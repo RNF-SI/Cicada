@@ -897,3 +897,160 @@ class FinanceOperation(models.Model):
 
     def __str__(self):
         return f"{self.libelle} (Opération {self.id_operation_id})"
+
+
+class RealisationOperationAnnee(models.Model):
+    """
+    Suivi annuel de la réalisation d'une opération (1-1 avec OperationAnnee).
+    Contient les valeurs réalisées au niveau de l'année :
+      - niveau de réalisation, périodicité réalisée,
+      - budget et travail réalisés quand la ventilation ne porte pas sur les organismes,
+      - commentaires et emprise spatiale réalisée.
+    Les valeurs ventilées par organisme sont stockées dans RealisationOperationAnneeOrganisme.
+    """
+
+    id_realisation_operation_annee = models.AutoField(primary_key=True)
+    id_operation_annee = models.OneToOneField(
+        OperationAnnee,
+        on_delete=models.CASCADE,
+        related_name='realisation',
+        db_column='id_operation_annee',
+        verbose_name=_("Année d'opération")
+    )
+    id_niveau_realisation = models.ForeignKey(
+        'core.Nomenclature',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='realisations_niveau',
+        db_column='id_niveau_realisation',
+        verbose_name=_("Niveau de réalisation"),
+        limit_choices_to={'id_type__mnemonique': 'NIVEAU_REALISATION'}
+    )
+    periodicite_realisee = models.BooleanField(
+        _("Périodicité réalisée"),
+        default=False
+    )
+    periodicite_mensuelle_realisee = models.JSONField(
+        _("Périodicité mensuelle réalisée"),
+        default=dict,
+        blank=True,
+        help_text=_('Format: {"1": true, "2": false, ..., "12": true}')
+    )
+    commentaires = models.TextField(
+        _("Détails / commentaires"),
+        blank=True,
+        null=True
+    )
+    geom_realisee = models.GeometryField(
+        _("Emprise spatiale réalisée"),
+        srid=4326,
+        null=True,
+        blank=True
+    )
+    budget_realise = models.DecimalField(
+        _("Budget réalisé (€)"),
+        max_digits=12, decimal_places=2,
+        null=True, blank=True,
+        help_text=_("Utilisé quand ventilation_mode = 'none'")
+    )
+    budget_fonctionnement_realise = models.DecimalField(
+        _("Budget fonctionnement réalisé (€)"),
+        max_digits=12, decimal_places=2,
+        null=True, blank=True,
+        help_text=_("Utilisé quand ventilation_mode = 'by_type' (sans organisme)")
+    )
+    budget_investissement_realise = models.DecimalField(
+        _("Budget investissement réalisé (€)"),
+        max_digits=12, decimal_places=2,
+        null=True, blank=True,
+        help_text=_("Utilisé quand ventilation_mode = 'by_type' (sans organisme)")
+    )
+    etp_realise = models.DecimalField(
+        _("Travail réalisé (jours)"),
+        max_digits=8, decimal_places=2,
+        null=True, blank=True,
+        help_text=_("Utilisé quand ventilation_mode ne porte pas sur les organismes")
+    )
+    date_ajout = models.DateTimeField(_("Date d'ajout"), auto_now_add=True)
+    date_maj = models.DateTimeField(_("Date de modification"), auto_now=True)
+    id_utilisateur_maj = models.ForeignKey(
+        'users.Role',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='+',
+        db_column='id_utilisateur_maj',
+        verbose_name=_("Dernier modificateur")
+    )
+
+    class Meta:
+        db_table = '"general"."t_realisation_operation_annees"'
+        db_table_comment = "Suivi de réalisation annuel d'une opération"
+        verbose_name = _("Réalisation annuelle d'opération")
+        verbose_name_plural = _("Réalisations annuelles d'opération")
+        ordering = ['id_operation_annee__annee']
+
+    def __str__(self):
+        return f"Réalisation OpAnnée {self.id_operation_annee_id}"
+
+    def get_plan_de_gestion(self):
+        """Permet le scoping par plan via OperationAnnee → Operation."""
+        try:
+            return self.id_operation_annee.id_operation.get_plan_de_gestion()
+        except Exception:
+            return None
+
+
+class RealisationOperationAnneeOrganisme(models.Model):
+    """
+    Ventilation par organisme des valeurs réalisées (1-1 avec OperationAnneeOrganisme).
+    Utilisée quand ventilation_mode est 'by_org' ou 'by_org_type'.
+    """
+
+    id_realisation_op_annee_organisme = models.AutoField(primary_key=True)
+    id_operation_annee_organisme = models.OneToOneField(
+        OperationAnneeOrganisme,
+        on_delete=models.CASCADE,
+        related_name='realisation',
+        db_column='id_operation_annee_organisme',
+        verbose_name=_("Organisme - Année d'opération")
+    )
+    budget_fonctionnement_realise = models.DecimalField(
+        _("Budget fonctionnement réalisé (€)"),
+        max_digits=12, decimal_places=2,
+        null=True, blank=True
+    )
+    budget_investissement_realise = models.DecimalField(
+        _("Budget investissement réalisé (€)"),
+        max_digits=12, decimal_places=2,
+        null=True, blank=True
+    )
+    etp_realise = models.DecimalField(
+        _("Travail réalisé (jours)"),
+        max_digits=8, decimal_places=2,
+        null=True, blank=True
+    )
+    date_ajout = models.DateTimeField(_("Date d'ajout"), auto_now_add=True)
+    date_maj = models.DateTimeField(_("Date de modification"), auto_now=True)
+
+    class Meta:
+        db_table = '"general"."t_realisation_operation_annee_organismes"'
+        db_table_comment = "Ventilation par organisme du suivi de réalisation annuel"
+        verbose_name = _("Réalisation par organisme - Année d'opération")
+        verbose_name_plural = _("Réalisations par organisme - Années d'opération")
+
+    def __str__(self):
+        return f"Réalisation OrgAnnée {self.id_operation_annee_organisme_id}"
+
+    def get_plan_de_gestion(self):
+        """Permet le scoping par plan via OperationAnneeOrganisme."""
+        try:
+            return (
+                self.id_operation_annee_organisme
+                .id_operation_annee
+                .id_operation
+                .get_plan_de_gestion()
+            )
+        except Exception:
+            return None

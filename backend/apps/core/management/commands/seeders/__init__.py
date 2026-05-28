@@ -29,6 +29,8 @@ from .sites_seeder import SitesSeeder
 from .users_seeder import UsersSeeder
 from .plans_seeder import PlansSeeder
 from .enjeux_seeder import EnjeuxSeeder
+from .minimal_plans_seeder import MinimalPlansSeeder
+from .realisations_seeder import RealisationsSeeder
 from .pending_users_seeder import PendingUsersSeeder
 from .validation_requests_seeder import ValidationRequestsSeeder
 from .notifications_seeder import NotificationsSeeder
@@ -49,6 +51,8 @@ SEEDER_CLASSES: List[Type[BaseSeeder]] = [
     UsersSeeder,         # deps: organismes, sites, groups
     PlansSeeder,         # deps: users, sites
     EnjeuxSeeder,        # deps: plans
+    MinimalPlansSeeder,  # deps: enjeux (chaîne minimale pour Brouage, Scandola, Remoray)
+    RealisationsSeeder,  # deps: enjeux (utilise les OperationAnnee seedées)
     PendingUsersSeeder,  # deps: organismes
 
     # Phase 3: Seeders complexes

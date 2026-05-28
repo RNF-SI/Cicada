@@ -1,0 +1,297 @@
+<app-header></app-header>
+
+<div class="suivis-layout">
+  @if (planSlug(); as slug) {
+    @if (planId(); as id) {
+      <app-plan-sidebar [planId]="id" [planSlug]="slug" activePage="tableau-de-bord"></app-plan-sidebar>
+    }
+  }
+
+  <main class="plan-main">
+    @if (isLoading()) {
+      <div class="loading-container">
+        <mat-spinner diameter="50"></mat-spinner>
+        <p>{{ 'common.loading' | translate }}</p>
+      </div>
+    } @else if (errorMessage()) {
+      <div class="error-container">
+        <i class="fi fi-rr-exclamation"></i>
+        <p>{{ errorMessage() }}</p>
+      </div>
+    } @else if (indicateur()) {
+      @let ind = indicateur()!;
+
+      <!-- HERO orange -->
+      <section class="hero-section">
+        <div class="hero-background"><div class="hero-pattern"></div></div>
+        <div class="hero-content">
+          <nav class="breadcrumb" aria-label="Fil d'Ariane">
+            <a routerLink="/accueil" class="breadcrumb-home" title="Retour à l'accueil">
+              <i class="fi fi-rr-home"></i>
+            </a>
+            <div class="breadcrumb-lines"></div>
+            <div class="breadcrumb-text">
+              <a routerLink="/plans" class="breadcrumb-link">{{ 'plans.title' | translate }}</a>
+              <i class="fi fi-rr-angle-small-right breadcrumb-chevron"></i>
+              <a [routerLink]="['/plans', planSlug(), 'tableau-de-bord']" class="breadcrumb-link">{{ 'plans.suivis.tableauDeBord.title' | translate }}</a>
+              <i class="fi fi-rr-angle-small-right breadcrumb-chevron"></i>
+              <span class="breadcrumb-current">{{ ind.nom_indicateur }}</span>
+            </div>
+          </nav>
+          <div class="plan-header">
+            <div class="plan-subtitle">
+              <i class="fi fi-rr-edit"></i>
+              <span>{{ 'plans.suivis.indicateur.subtitle' | translate | uppercase }}</span>
+            </div>
+            <h1 class="plan-title">{{ ind.nom_indicateur }}</h1>
+            <div class="hero-actions">
+              <button class="btn-hero-primary">
+                <i class="fi fi-rr-pencil"></i>
+                {{ 'plans.suivis.indicateur.editIndicateur' | translate }}
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Year selector -->
+      <section class="year-tabs">
+        @for (y of years(); track y) {
+          <button type="button" class="year-tab"
+                  [class.active]="y === selectedYear()" (click)="selectYear(y)">{{ y }}</button>
+        }
+      </section>
+
+      <div class="content-section">
+
+        <!-- Tableau des seuils des métriques (lecture seule) -->
+        <section class="saisie-card">
+          <h3 class="card-subtitle">{{ 'plans.suivis.indicateur.metriquesTitle' | translate }}</h3>
+          <div class="table-wrap">
+            <table class="seuils-table">
+              <thead>
+                <tr>
+                  <th>{{ 'plans.suivis.indicateur.thresh.intitule' | translate }}</th>
+                  <th>{{ 'plans.suivis.indicateur.thresh.unite' | translate }}</th>
+                  <th>{{ 'plans.suivis.indicateur.thresh.ponderation' | translate }}</th>
+                  <th>{{ 'plans.suivis.indicateur.thresh.etatReference' | translate }}</th>
+                  <th class="th-score th-very-bad">{{ 'plans.suivis.indicateur.thresh.veryBad' | translate }}</th>
+                  <th class="th-score th-bad">{{ 'plans.suivis.indicateur.thresh.bad' | translate }}</th>
+                  <th class="th-score th-neutral">{{ 'plans.suivis.indicateur.thresh.neutral' | translate }}</th>
+                  <th class="th-score th-good">{{ 'plans.suivis.indicateur.thresh.good' | translate }}</th>
+                  <th class="th-score th-very-good">{{ 'plans.suivis.indicateur.thresh.veryGood' | translate }}</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (m of ind.metriques || []; track m.id_metrique) {
+                  <tr>
+                    <td>{{ m.nom_metrique }}</td>
+                    <td>{{ m.unite || '—' }}</td>
+                    <td>{{ m.ponderation || 1 }}</td>
+                    <td>{{ m.etat_reference || '—' }}</td>
+                    <td>min {{ getScoreBound(m, 1, 'inf') }} / max {{ getScoreBound(m, 1, 'sup') }}</td>
+                    <td>min {{ getScoreBound(m, 2, 'inf') }} / max {{ getScoreBound(m, 2, 'sup') }}</td>
+                    <td>min {{ getScoreBound(m, 3, 'inf') }} / max {{ getScoreBound(m, 3, 'sup') }}</td>
+                    <td>min {{ getScoreBound(m, 4, 'inf') }} / max {{ getScoreBound(m, 4, 'sup') }}</td>
+                    <td>min {{ getScoreBound(m, 5, 'inf') }} / max {{ getScoreBound(m, 5, 'sup') }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- Section RÉSULTATS (mode édition ou récap) -->
+        <section class="saisie-card">
+          <div class="card-header">
+            <i class="fi fi-rr-folder card-icon"></i>
+            <h2 class="card-title">{{ 'plans.suivis.indicateur.resultatsTitle' | translate }}</h2>
+          </div>
+
+          @switch (mode()) {
+
+            <!-- MODE ÉDITION AUTO -->
+            @case ('edit-auto') {
+              <form [formGroup]="form" class="edit-form">
+                @for (m of ind.metriques || []; track m.id_metrique) {
+                  <div class="metric-block">
+                    <div class="metric-meta">
+                      <span>{{ 'plans.suivis.indicateur.intituleMetrique' | translate }} : <strong>{{ m.nom_metrique }}</strong></span>
+                      <span class="meta-sep">·</span>
+                      <span>{{ 'plans.suivis.indicateur.thresh.etatReference' | translate }} : <strong>{{ m.etat_reference || '—' }}</strong></span>
+                      <span class="meta-sep">·</span>
+                      <span>{{ 'plans.suivis.indicateur.thresh.ponderation' | translate }} : <strong>{{ m.ponderation || 1 }}</strong></span>
+                    </div>
+                    <label class="metric-label">{{ 'plans.suivis.indicateur.resultat' | translate }}</label>
+                    <div class="metric-input-row">
+                      <input type="text" [formControlName]="'m_' + m.id_metrique"
+                             [placeholder]="m.unite || ''" />
+                      <!-- Barre de seuils : 5 segments colorés avec score actif highlighted -->
+                      @let activeScore = valueToScore(form.get('m_' + m.id_metrique)?.value, m);
+                      <div class="threshold-bar">
+                        @for (lvl of scoreLevelsList; track lvl; let i = $index) {
+                          <span class="threshold-cell"
+                                [class]="'lvl-' + lvl"
+                                [class.active]="activeScore === i + 1">
+                            min {{ getScoreBound(m, i + 1, 'inf') }}
+                            / max {{ getScoreBound(m, i + 1, 'sup') }}
+                          </span>
+                        }
+                      </div>
+                    </div>
+                  </div>
+                }
+
+                <!-- Résultat de l'indicateur (calcul auto) -->
+                <div class="indicator-result">
+                  <label class="metric-label">{{ 'plans.suivis.indicateur.resultatIndicateur' | translate }} :</label>
+                  <div class="global-bar">
+                    @for (lvl of scoreLevelsList; track lvl; let i = $index) {
+                      <span class="global-cell"
+                            [class]="'lvl-' + lvl"
+                            [class.active]="liveAutoScore() === i + 1">
+                        {{ scoreLabels[lvl] }}
+                      </span>
+                    }
+                  </div>
+                  <button type="button" class="btn-link" (click)="setMode('edit-override')">
+                    {{ 'plans.suivis.indicateur.switchToManual' | translate }}
+                  </button>
+                </div>
+              </form>
+            }
+
+            <!-- MODE ÉDITION OVERRIDE MANUEL -->
+            @case ('edit-override') {
+              <form [formGroup]="form" class="edit-form">
+                @for (m of ind.metriques || []; track m.id_metrique) {
+                  <div class="metric-block">
+                    <div class="metric-meta">
+                      <span>{{ 'plans.suivis.indicateur.intituleMetrique' | translate }} : <strong>{{ m.nom_metrique }}</strong></span>
+                      <span class="meta-sep">·</span>
+                      <span>{{ 'plans.suivis.indicateur.thresh.etatReference' | translate }} : <strong>{{ m.etat_reference || '—' }}</strong></span>
+                    </div>
+                    <label class="metric-label">{{ 'plans.suivis.indicateur.resultat' | translate }}</label>
+                    <input type="text" [formControlName]="'m_' + m.id_metrique"
+                           [placeholder]="m.unite || ''" />
+                  </div>
+                }
+
+                <!-- Bandeau info -->
+                <div class="info-banner">
+                  <i class="fi fi-rr-info"></i>
+                  <div>
+                    <p><strong>{{ 'plans.suivis.indicateur.manualNote' | translate }}</strong></p>
+                    <p>{{ 'plans.suivis.indicateur.autoWas' | translate }}
+                      <strong>{{ scoreLabels[scoreToLevel(liveAutoScore())] | uppercase }}</strong>
+                    </p>
+                  </div>
+                </div>
+
+                <!-- 5 boutons score manuel -->
+                <div class="manual-score-row">
+                  @for (lvl of scoreLevelsList; track lvl; let i = $index) {
+                    <button type="button" class="manual-score-btn"
+                            [class]="'lvl-' + lvl"
+                            [class.active]="scoreOverride() === i + 1"
+                            (click)="pickManualScore(i + 1)">
+                      {{ scoreLabels[lvl] }}
+                    </button>
+                  }
+                </div>
+
+                <!-- Raisons -->
+                <label class="metric-label">{{ 'plans.suivis.indicateur.manualReason' | translate }}</label>
+                <textarea rows="3" class="full-width"
+                          [(ngModel)]="commentaireOverrideModel"
+                          [ngModelOptions]="{ standalone: true }"
+                          [placeholder]="'plans.suivis.indicateur.manualReasonPlaceholder' | translate"></textarea>
+
+                <button type="button" class="btn-link" (click)="setMode('edit-auto')">
+                  {{ 'plans.suivis.indicateur.switchToAuto' | translate }}
+                </button>
+              </form>
+            }
+
+            <!-- MODE RÉCAP -->
+            @case ('recap') {
+              @if (isOverridden()) {
+                <div class="info-banner">
+                  <i class="fi fi-rr-info"></i>
+                  <div>
+                    <p><strong>{{ 'plans.suivis.indicateur.manualNote' | translate }}</strong></p>
+                    @if (commentaireOverride()) {
+                      <p>{{ commentaireOverride() }}</p>
+                    }
+                    <button type="button" class="btn-link" (click)="setMode('edit-auto')">
+                      {{ 'plans.suivis.indicateur.switchToAuto' | translate }}
+                    </button>
+                  </div>
+                </div>
+              }
+
+              <!-- Légende -->
+              <div class="legend">
+                @for (lvl of scoreLevelsList; track lvl) {
+                  <span class="legend-item">
+                    <img [src]="'assets/images/icons/score-badges/score-' + lvl + '.svg'"
+                         class="legend-badge" alt="">
+                    <span>{{ scoreLabels[lvl] }}</span>
+                  </span>
+                }
+              </div>
+
+              <table class="recap-table">
+                <thead>
+                  <tr>
+                    <th>{{ 'plans.suivis.indicateur.thresh.intitule' | translate }}</th>
+                    <th>{{ 'plans.suivis.indicateur.scoreYear' | translate:{ year: selectedYear() } }}</th>
+                    <th>{{ 'plans.suivis.indicateur.etat' | translate }}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr class="recap-indic-row">
+                    <td><strong>{{ ind.nom_indicateur }}</strong></td>
+                    <td>{{ scoreLabels[scoreToLevel(effectiveScore())] }}</td>
+                    <td>
+                      <img [src]="'assets/images/icons/score-badges/score-' + scoreToLevel(effectiveScore()) + '.svg'"
+                           class="recap-badge" alt="">
+                    </td>
+                  </tr>
+                  @for (m of ind.metriques || []; track m.id_metrique; let mIdx = $index) {
+                    @let mScore = valueToScore(form.get('m_' + m.id_metrique)?.value, m);
+                    <tr class="recap-metric-row">
+                      <td>{{ 'plans.suivis.tableauDeBord.metriquePrefix' | translate:{ n: mIdx + 1 } }} {{ m.nom_metrique }}</td>
+                      <td>{{ form.get('m_' + m.id_metrique)?.value || '—' }} {{ m.unite || '' }}</td>
+                      <td>
+                        <img [src]="'assets/images/icons/score-badges/score-' + scoreToLevel(mScore) + '.svg'"
+                             class="recap-badge" alt="">
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+
+              <button type="button" class="btn-outlined-pill" (click)="setMode('edit-auto')">
+                {{ 'common.actions.edit' | translate }}
+              </button>
+            }
+          }
+        </section>
+
+        <!-- Bottom action bar (uniquement en mode édition) -->
+        @if (mode() !== 'recap') {
+          <div class="bottom-actions">
+            <button type="button" mat-stroked-button (click)="goBack()" [disabled]="isSaving()">
+              {{ 'common.actions.cancel' | translate }}
+            </button>
+            <button type="button" mat-flat-button color="primary" (click)="validate()" [disabled]="isSaving()">
+              @if (isSaving()) { <mat-spinner diameter="18"></mat-spinner> }
+              {{ 'common.actions.save' | translate }}
+            </button>
+          </div>
+        }
+      </div>
+    }
+  </main>
+</div>

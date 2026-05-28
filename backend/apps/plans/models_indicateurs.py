@@ -664,3 +664,68 @@ class Mesure(models.Model):
     def get_plan_de_gestion(self):
         """Implémente l'interface utilisée par CanModifyOnlyDraftPlan (#248)."""
         return self.id_metrique.get_plan_de_gestion() if self.id_metrique else None
+
+
+class IndicateurMesure(models.Model):
+    """
+    Saisie au niveau Indicateur (vs Mesure qui est au niveau Métrique).
+
+    Le score d'un indicateur peut être :
+      - calculé automatiquement à partir des scores de ses métriques
+        (moyenne pondérée via les seuils score_X_inf/sup), ou
+      - saisi manuellement par l'utilisateur (override) avec un commentaire
+        justifiant ce choix.
+
+    Cette table conserve uniquement les overrides : si aucune entrée n'existe
+    pour un (indicateur, année), le score est purement calculé.
+
+    Unique par (indicateur, année).
+    """
+
+    id_indicateur_mesure = models.AutoField(primary_key=True)
+    id_indicateur = models.ForeignKey(
+        Indicateur,
+        on_delete=models.CASCADE,
+        related_name='annual_mesures',
+        db_column='id_indicateur',
+        verbose_name=_("Indicateur"),
+    )
+    annee = models.IntegerField(_("Année"))
+    score_override = models.IntegerField(
+        _("Score saisi manuellement"),
+        null=True, blank=True,
+        validators=[MinValueValidator(1), MaxValueValidator(5)],
+        help_text=_("Score 1-5 saisi manuellement, écrase le calcul automatique."),
+    )
+    commentaire_override = models.TextField(
+        _("Raisons de la saisie manuelle"),
+        blank=True, null=True,
+    )
+    date_ajout = models.DateTimeField(_("Date d'ajout"), auto_now_add=True)
+    date_maj = models.DateTimeField(_("Date de modification"), auto_now=True)
+    id_utilisateur_maj = models.ForeignKey(
+        'users.Role',
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='+',
+        db_column='id_utilisateur_maj',
+        verbose_name=_("Dernier modificateur"),
+    )
+
+    class Meta:
+        db_table = '"general"."t_indicateur_mesures"'
+        db_table_comment = "Saisie annuelle au niveau indicateur (override manuel du score)"
+        verbose_name = _("Mesure d'indicateur")
+        verbose_name_plural = _("Mesures d'indicateurs")
+        unique_together = ['id_indicateur', 'annee']
+        ordering = ['-annee']
+
+    def __str__(self):
+        return f"IndicMesure {self.id_indicateur_id} - {self.annee} (score={self.score_override})"
+
+    def get_plan_de_gestion(self):
+        """Permet le scoping par plan via Indicateur → NE/RA → … → plan."""
+        try:
+            return self.id_indicateur.get_plan_de_gestion() if self.id_indicateur else None
+        except Exception:
+            return None

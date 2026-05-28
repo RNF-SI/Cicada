@@ -46,9 +46,9 @@
 // HERO SECTION
 // ============================================
 
-// HERO SECTION — factorisé via mixin (assets/scss/_components.scss)
+// HERO SECTION — variante orange (maquette Figma Suivi des actions)
 .hero-section {
-  @include plan-page-hero(280px);
+  @include plan-page-hero-suivi(280px);
 }
 
 .hero-background {
@@ -82,9 +82,9 @@
   justify-content: center;
   width: 48px;
   height: 48px;
-  background-color: $white;
+  background-color: $primary-color;
   border-radius: 50%;
-  color: $primary-color;
+  color: $white;
   text-decoration: none;
   flex-shrink: 0;
   z-index: 2;
@@ -112,7 +112,7 @@
     display: block;
     width: 100%;
     height: 1px;
-    background-color: $white;
+    background-color: $primary-color;
   }
 }
 
@@ -125,7 +125,7 @@
 }
 
 .breadcrumb-link {
-  color: $white;
+  color: $primary-color;
   font-family: $font-family;
   font-size: $font-size-base;
   font-weight: $font-weight-bold;
@@ -134,12 +134,12 @@
 }
 
 .breadcrumb-chevron {
-  color: $white;
+  color: $primary-color;
   font-size: $font-size-base;
 }
 
 .breadcrumb-current {
-  color: $white;
+  color: $primary-color;
   font-family: $font-family;
   font-size: $font-size-base;
 }
@@ -152,7 +152,7 @@
   display: flex;
   align-items: center;
   gap: $spacing-md;
-  color: $white;
+  color: $primary-color;
   font-size: $font-size-base;
   font-weight: $font-weight-bold;
   text-transform: uppercase;
@@ -163,7 +163,7 @@
 }
 
 .plan-title {
-  color: $white;
+  color: $primary-color;
   font-size: 48px;
   font-weight: $font-weight-bold;
   font-family: $font-family;
@@ -181,8 +181,8 @@
   align-items: center;
   gap: $spacing-xs;
   padding: $spacing-xs $spacing-lg;
-  background-color: $white;
-  color: $primary-color;
+  background-color: $primary-color;
+  color: $white;
   border: none;
   border-radius: 80px;
   font-family: $font-family;
@@ -201,6 +201,113 @@
 
 .content-section {
   padding: $spacing-xl;
+}
+
+// =============================================================================
+// Phase 3 — Onglets principaux (Réalisation / Budget / RH)
+// =============================================================================
+
+.suivi-tabs {
+  display: flex;
+  gap: $spacing-lg;
+  border-bottom: 2px solid $primary-bg-subtle;
+  margin-bottom: $spacing-lg;
+  padding: 0 $spacing-md;
+}
+
+.suivi-tab {
+  background: transparent;
+  border: none;
+  padding: $spacing-sm $spacing-md;
+  margin-bottom: -2px;
+  font-family: $font-family;
+  font-size: 1rem;
+  font-weight: 600;
+  color: $gray-dark;
+  cursor: pointer;
+  border-bottom: 3px solid transparent;
+  display: inline-flex;
+  align-items: baseline;
+  gap: $spacing-xs;
+  transition: color 0.2s, border-color 0.2s;
+
+  .tab-meta {
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: $gray-dark;
+    opacity: 0.8;
+  }
+
+  &:hover { color: $primary-color; }
+
+  &.active {
+    color: $primary-color;
+    border-bottom-color: $primary-color;
+    .tab-meta { color: $primary-color; opacity: 1; }
+  }
+}
+
+// Tableau d'agrégation (Budget / RH)
+.agg-table {
+  th.col-agg,
+  td.col-agg {
+    text-align: center;
+    min-width: 140px;
+  }
+
+  thead th.col-agg {
+    small {
+      display: block;
+      font-weight: 500;
+      opacity: 0.8;
+      font-size: 0.75rem;
+    }
+  }
+
+  td.col-agg {
+    padding: $spacing-sm;
+
+    .agg-prev {
+      font-weight: 700;
+      color: $black;
+    }
+    .agg-real {
+      margin-top: $spacing-xxs;
+      font-size: 0.85rem;
+      color: $gray-dark;
+      display: inline-flex;
+      align-items: center;
+      gap: $spacing-xxs;
+
+      .ecart {
+        display: inline-flex;
+        align-items: center;
+        gap: 2px;
+        padding: 1px 6px;
+        border-radius: $border-radius-pill;
+        font-weight: 700;
+        font-size: 0.75rem;
+
+        &.positive {
+          background: rgba(4, 133, 75, 0.15);
+          color: #04854B;
+        }
+        &.negative {
+          background: rgba(183, 77, 93, 0.15);
+          color: $secondary-terra-cotta;
+        }
+
+        i { font-size: 0.7rem; }
+      }
+
+      .real-value { font-style: italic; }
+    }
+    .agg-real-empty {
+      margin-top: $spacing-xxs;
+      color: $gray-light;
+      font-size: 0.85rem;
+    }
+  }
 }
 
 // Toggle Global / Annuel
@@ -446,6 +553,12 @@
 
       &.col-year {
         min-width: 54px;
+
+        &.clickable {
+          cursor: pointer;
+          transition: background 0.15s;
+          &:hover { background: rgba($primary-color, 0.08); }
+        }
       }
 
       &.col-icons {
@@ -588,5 +701,41 @@ tr.is-draft {
 
   .legend-items {
     gap: $spacing-sm;
+  }
+}
+
+// =============================================================================
+// Lignes en-tête organisme (Figma 240-44847, 4359-33061, 4360-27294)
+// =============================================================================
+
+.org-header-row {
+  background: $secondary-pale-green !important;
+
+  td {
+    padding: $spacing-sm !important;
+    font-weight: 700;
+    color: $primary-color;
+    font-size: 0.95rem;
+    border-top: 2px solid $primary-color;
+  }
+
+  // Variante "Totals" (onglets Budget / RH) : fond vert pâle saturé, montants alignés
+  &.org-header-row-totals {
+    td.col-action {
+      font-size: 0.95rem;
+
+      .org-total-suffix {
+        margin-left: $spacing-xxs;
+        font-weight: 500;
+        color: $gray-dark;
+        font-size: 0.85rem;
+      }
+    }
+
+    td.col-agg {
+      text-align: center;
+      .agg-prev { font-weight: 700; font-size: 1rem; color: $primary-color; }
+      .agg-real { margin-top: $spacing-xxs; }
+    }
   }
 }

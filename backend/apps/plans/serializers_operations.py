@@ -6,7 +6,8 @@ from rest_framework import serializers
 from .models_operations import (
     Protocole, SuiviInventaire,
     Operation, CorOperationSite, CorOperationMetrique,
-    OperationAnnee, OperationAnneeOrganisme, FinanceOperation
+    OperationAnnee, OperationAnneeOrganisme, FinanceOperation,
+    RealisationOperationAnnee, RealisationOperationAnneeOrganisme,
 )
 
 
@@ -160,16 +161,61 @@ def _compute_operation_code_affichage(op):
 # Serializers pour les entités nested
 # =============================================================================
 
+class RealisationOperationAnneeOrganismeSerializer(serializers.ModelSerializer):
+    """Réalisation ventilée par organisme (1-1 avec OperationAnneeOrganisme)."""
+
+    class Meta:
+        model = RealisationOperationAnneeOrganisme
+        fields = [
+            'id_realisation_op_annee_organisme',
+            'id_operation_annee_organisme',
+            'budget_fonctionnement_realise',
+            'budget_investissement_realise',
+            'etp_realise',
+            'date_ajout', 'date_maj',
+        ]
+        read_only_fields = ['id_realisation_op_annee_organisme', 'date_ajout', 'date_maj']
+
+
+class RealisationOperationAnneeSerializer(serializers.ModelSerializer):
+    """Réalisation annuelle d'une opération (1-1 avec OperationAnnee)."""
+    niveau_realisation_label = serializers.CharField(
+        source='id_niveau_realisation.label', read_only=True
+    )
+    niveau_realisation_mnemonique = serializers.CharField(
+        source='id_niveau_realisation.mnemonique', read_only=True
+    )
+
+    class Meta:
+        model = RealisationOperationAnnee
+        fields = [
+            'id_realisation_operation_annee',
+            'id_operation_annee',
+            'id_niveau_realisation', 'niveau_realisation_label', 'niveau_realisation_mnemonique',
+            'periodicite_realisee', 'periodicite_mensuelle_realisee',
+            'commentaires', 'geom_realisee',
+            'budget_realise',
+            'budget_fonctionnement_realise', 'budget_investissement_realise',
+            'etp_realise',
+            'date_ajout', 'date_maj', 'id_utilisateur_maj',
+        ]
+        read_only_fields = [
+            'id_realisation_operation_annee', 'date_ajout', 'date_maj', 'id_utilisateur_maj',
+        ]
+
+
 class OperationAnneeOrganismeSerializer(serializers.ModelSerializer):
     """Serializer pour la ventilation budget/travail par organisme."""
     organisme_nom = serializers.CharField(source='id_organisme.nom_organisme', read_only=True)
+    realisation = RealisationOperationAnneeOrganismeSerializer(read_only=True)
 
     class Meta:
         model = OperationAnneeOrganisme
         fields = [
             'id_operation_annee_organisme',
             'id_organisme', 'organisme_nom',
-            'budget_fonctionnement', 'budget_investissement', 'etp'
+            'budget_fonctionnement', 'budget_investissement', 'etp',
+            'realisation',
         ]
         read_only_fields = ['id_operation_annee_organisme']
 
@@ -177,13 +223,15 @@ class OperationAnneeOrganismeSerializer(serializers.ModelSerializer):
 class OperationAnneeSerializer(serializers.ModelSerializer):
     """Serializer pour la programmation annuelle d'une opération."""
     organismes = OperationAnneeOrganismeSerializer(many=True, read_only=True)
+    realisation = RealisationOperationAnneeSerializer(read_only=True)
 
     class Meta:
         model = OperationAnnee
         fields = [
             'id_operation_annee', 'annee', 'periodicite',
             'budget', 'etp', 'budget_fonctionnement', 'budget_investissement',
-            'periodicite_mensuelle', 'geom', 'organismes'
+            'periodicite_mensuelle', 'geom', 'organismes',
+            'realisation',
         ]
         read_only_fields = ['id_operation_annee']
 
@@ -305,6 +353,7 @@ class OperationSerializer(serializers.ModelSerializer):
     operation_annees = OperationAnneeSerializer(many=True, read_only=True)
     finances = FinanceOperationSerializer(many=True, read_only=True)
     suivi_inventaire = SuiviInventaireSerializer(source='id_suivi', read_only=True)
+    geom_geojson = serializers.SerializerMethodField()
 
     class Meta:
         model = Operation
@@ -326,13 +375,23 @@ class OperationSerializer(serializers.ModelSerializer):
             'programmation_annuelle', 'programmation_mensuelle',
             'programmation_mensuelle_defaut',
             'ventilation_mode',
-            'geom',
+            'geom', 'geom_geojson',
             'metriques', 'metrique_ids',
             'site_ids', 'nb_sites',
             'operation_annees', 'finances',
             'date_ajout', 'date_maj', 'createur_nom'
         ]
         read_only_fields = ['id_operation', 'date_ajout', 'date_maj']
+
+    def get_geom_geojson(self, obj):
+        """Emprise spatiale au format GeoJSON (consommable par Leaflet)."""
+        if not obj.geom:
+            return None
+        import json
+        try:
+            return json.loads(obj.geom.geojson)
+        except (AttributeError, ValueError, TypeError):
+            return None
 
     def get_type_action_label(self, obj):
         if obj.id_type_action:
@@ -363,6 +422,9 @@ class OperationSerializer(serializers.ModelSerializer):
                 'nom_metrique': m.nom_metrique,
                 'indicateur_id': m.id_indicateur_id,
                 'indicateur_nom': getattr(m.id_indicateur, 'nom_indicateur', None) if m.id_indicateur_id else None,
+                'etat_reference': m.etat_reference or '',
+                'type_metrique_id': m.type_metrique_id,
+                'type_metrique_label': getattr(m.type_metrique, 'label', None) if m.type_metrique_id else None,
             }
             for m in obj.metriques.all()
         ]

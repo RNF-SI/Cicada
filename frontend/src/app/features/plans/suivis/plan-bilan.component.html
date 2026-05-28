@@ -1,0 +1,468 @@
+<app-header></app-header>
+
+<div class="suivis-layout">
+  @if (planSlug(); as slug) {
+    @if (planId(); as id) {
+      <app-plan-sidebar [planId]="id" [planSlug]="slug" activePage="bilan"></app-plan-sidebar>
+    }
+  }
+
+  <main class="plan-main">
+
+    @if (isLoading()) {
+      <div class="loading-container">
+        <mat-spinner diameter="50"></mat-spinner>
+        <p>{{ 'common.loading' | translate }}</p>
+      </div>
+    } @else if (errorMessage()) {
+      <div class="error-container">
+        <i class="fi fi-rr-exclamation"></i>
+        <p>{{ errorMessage() }}</p>
+      </div>
+    } @else if (bilan()) {
+      @let b = bilan()!;
+
+      <!-- HERO -->
+      <section class="hero-section">
+        <div class="hero-background"><div class="hero-pattern"></div></div>
+        <div class="hero-content">
+          <nav class="breadcrumb" aria-label="Fil d'Ariane">
+            <a routerLink="/accueil" class="breadcrumb-home" title="Retour à l'accueil">
+              <i class="fi fi-rr-home"></i>
+            </a>
+            <div class="breadcrumb-lines"></div>
+            <div class="breadcrumb-text">
+              <a routerLink="/plans" class="breadcrumb-link">{{ 'plans.title' | translate }}</a>
+              <i class="fi fi-rr-angle-small-right breadcrumb-chevron"></i>
+              <a [routerLink]="['/plans', planSlug()]" class="breadcrumb-link">{{ planNom() }}</a>
+              <i class="fi fi-rr-angle-small-right breadcrumb-chevron"></i>
+              <span class="breadcrumb-current">{{ 'plans.suivis.bilan.title' | translate }}</span>
+            </div>
+          </nav>
+          <div class="plan-header">
+            <div class="plan-subtitle">
+              <i class="fi fi-rr-stats"></i>
+              <span>{{ 'plans.detail.sidebar.suivis' | translate | uppercase }}</span>
+            </div>
+            <h1 class="plan-title">{{ 'plans.suivis.bilan.title' | translate }}</h1>
+            <p class="hero-meta">{{ b.annee_min }} – {{ b.annee_max }}</p>
+            <div class="hero-actions">
+              <button class="btn-hero-primary" [matMenuTriggerFor]="genMenu">
+                <i class="fi fi-rr-download"></i>
+                <span>{{ 'plans.detail.generate' | translate }}</span>
+                <i class="fi fi-rr-angle-small-down"></i>
+              </button>
+              <mat-menu #genMenu="matMenu">
+                <button mat-menu-item>
+                  <i class="fi fi-rr-file-pdf"></i>
+                  <span>{{ 'plans.suivis.bilan.exportPdf' | translate }}</span>
+                </button>
+                <button mat-menu-item>
+                  <i class="fi fi-rr-file-word"></i>
+                  <span>{{ 'plans.suivis.bilan.exportWord' | translate }}</span>
+                </button>
+              </mat-menu>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- CONTENT -->
+      <section class="content-section">
+
+        <!-- Toggles + Year timeline + Filters (Phase 4 UI alignée Figma #4043) -->
+        <div class="toggle-row">
+          <div class="pill-toggle">
+            <button class="pill-btn" [class.active]="scope() === 'annuel'" (click)="setScope('annuel')">
+              {{ 'plans.suivis.actions.annuel' | translate }}
+            </button>
+            <button class="pill-btn" [class.active]="scope() === 'global'" (click)="setScope('global')">
+              {{ 'plans.suivis.actions.global' | translate }}
+            </button>
+          </div>
+          <div class="pill-toggle">
+            <button class="pill-btn" [class.active]="contentTab() === 'indicateurs'" (click)="setContentTab('indicateurs')">
+              {{ 'plans.suivis.bilan.tabs.indicateurs' | translate }}
+            </button>
+            <button class="pill-btn" [class.active]="contentTab() === 'actions'" (click)="setContentTab('actions')">
+              {{ 'plans.suivis.bilan.tabs.actions' | translate }}
+            </button>
+          </div>
+        </div>
+
+        <!-- Year timeline (uniquement en mode Annuel) -->
+        @if (scope() === 'annuel') {
+          <div class="year-timeline">
+            @for (y of planYears(); track y) {
+              <button
+                class="year-pill"
+                [class.active]="y === selectedYear()"
+                (click)="selectYear(y)">
+                {{ y }}
+              </button>
+            }
+          </div>
+        }
+
+        <!-- Filter row -->
+        <div class="filter-row">
+          <button class="filter-pill active">
+            {{ 'plans.suivis.actions.filterLabel' | translate }}
+          </button>
+          <div class="filter-separator"></div>
+          <button class="filter-pill" [matMenuTriggerFor]="enjeuMenu" [class.filter-active]="filterEnjeu()">
+            {{ 'plans.suivis.bilan.filterEnjeu' | translate }}
+            <i class="fi fi-rr-angle-small-down"></i>
+          </button>
+          <mat-menu #enjeuMenu="matMenu">
+            <button mat-menu-item (click)="setEnjeuFilter(null)"><em>{{ 'plans.suivis.bilan.allEnjeux' | translate }}</em></button>
+            @for (e of enjeuOptions(); track e.enjeu_id) {
+              <button mat-menu-item (click)="setEnjeuFilter(e.enjeu_id)">{{ e.libelle }}</button>
+            }
+          </mat-menu>
+          <div class="filter-separator"></div>
+          <button class="filter-pill" [matMenuTriggerFor]="orgMenu">
+            {{ 'plans.suivis.bilan.filterOrganismes' | translate }}
+            <i class="fi fi-rr-angle-small-down"></i>
+          </button>
+          <mat-menu #orgMenu="matMenu">
+            <button mat-menu-item><em>{{ 'plans.suivis.bilan.allOrganismes' | translate }}</em></button>
+            <button mat-menu-item disabled>{{ 'plans.suivis.bilan.orgFilterComingSoon' | translate }}</button>
+          </mat-menu>
+          @if (hasActiveFilters()) {
+            <button class="filter-pill filter-pill-reset" (click)="clearFilters()">
+              <i class="fi fi-rr-cross-small"></i>
+              {{ 'common.actions.reset' | translate }}
+            </button>
+          }
+          <button class="export-link">
+            <i class="fi fi-rr-download"></i>
+            {{ 'plans.suivis.bilan.exportGraphs' | translate }}
+          </button>
+        </div>
+
+        <!-- Tab content : Indicateurs ou Actions -->
+        @if (contentTab() === 'indicateurs') {
+          @if (isLoadingIndicateurs()) {
+            <div class="loading-container">
+              <mat-spinner diameter="40"></mat-spinner>
+            </div>
+          } @else if (bilanIndicateurs()) {
+            @let bi = bilanIndicateurs()!;
+            @if (bi.total_indicateurs === 0) {
+              <div class="empty-state">
+                <i class="fi fi-rr-info"></i>
+                <h2>{{ 'plans.suivis.bilan.noIndicateurs' | translate }}</h2>
+                <p>{{ 'plans.suivis.bilan.noIndicateursHint' | translate }}</p>
+              </div>
+            } @else {
+              <div class="indic-grid">
+
+                <!-- Camembert 1 : Taux de réalisation des indicateurs -->
+                <article class="chart-card">
+                  <h2 class="card-title">{{ 'plans.suivis.bilan.indic.tauxTitle' | translate }}</h2>
+                  @let evalSlices = getEvalSlices();
+                  <div class="chart-with-legend">
+                    <svg viewBox="0 0 220 220" class="chart-svg">
+                      @for (s of evalSlices; track s.label) {
+                        <path [attr.d]="s.d" [attr.fill]="s.color" stroke="white" stroke-width="2"></path>
+                        @if (s.pct > 8) {
+                          @let pos = pieLabelPos(s.midAngle, 90, 110, 110);
+                          <text [attr.x]="pos.x" [attr.y]="pos.y" text-anchor="middle" class="pie-label">
+                            {{ s.pct | number:'1.0-0':'fr-FR' }}%
+                          </text>
+                        }
+                      }
+                    </svg>
+                    <ul class="chart-legend">
+                      @for (s of evalSlices; track s.label) {
+                        <li>
+                          <span class="legend-dot" [style.background]="s.color"></span>
+                          <span>{{ s.label }}</span>
+                          <strong>{{ s.count }}</strong>
+                        </li>
+                      }
+                    </ul>
+                  </div>
+                </article>
+
+                <!-- Histogramme : Résultat des indicateurs -->
+                <article class="chart-card">
+                  <h2 class="card-title">{{ 'plans.suivis.bilan.indic.resultatTitle' | translate }}</h2>
+                  @let scoreData = bi.score_distribution;
+                  <svg viewBox="0 0 400 220" class="chart-svg">
+                    <!-- Y axis grid -->
+                    @for (gy of [0, 25, 50, 75, 100]; track gy) {
+                      <line [attr.x1]="40" [attr.x2]="380" [attr.y1]="200 - gy * 1.6" [attr.y2]="200 - gy * 1.6"
+                            stroke="#eee" stroke-width="1"></line>
+                    }
+                    @for (s of scoreData; track s.score; let i = $index) {
+                      @let maxC = bi.total_indicateurs || 1;
+                      @let h = (s.count / maxC) * 160;
+                      <rect
+                        [attr.x]="50 + i * 55"
+                        [attr.y]="200 - h"
+                        width="40"
+                        [attr.height]="h"
+                        [attr.fill]="scorePalette[s.score]"
+                        rx="3"></rect>
+                      <text [attr.x]="70 + i * 55" [attr.y]="195 - h" text-anchor="middle" class="bar-count">
+                        @if (s.count > 0) {{{ s.count }}}
+                      </text>
+                      <text [attr.x]="70 + i * 55" [attr.y]="215" text-anchor="middle" class="bar-label">
+                        {{ s.label }}
+                      </text>
+                    }
+                  </svg>
+                </article>
+
+                <!-- Camembert 2 : Niveau d'évaluation des indicateurs -->
+                <article class="chart-card">
+                  <h2 class="card-title">{{ 'plans.suivis.bilan.indic.niveauTitle' | translate }}</h2>
+                  @let scoreSlices = getScoreSlices();
+                  <div class="chart-with-legend">
+                    <svg viewBox="0 0 220 220" class="chart-svg">
+                      @for (s of scoreSlices; track s.label) {
+                        <path [attr.d]="s.d" [attr.fill]="s.color" stroke="white" stroke-width="2"></path>
+                        @if (s.pct > 6) {
+                          @let pos = pieLabelPos(s.midAngle, 90, 110, 110);
+                          <text [attr.x]="pos.x" [attr.y]="pos.y" text-anchor="middle" class="pie-label">
+                            {{ s.count }}
+                          </text>
+                        }
+                      }
+                    </svg>
+                    <ul class="chart-legend">
+                      @for (s of scoreSlices; track s.label) {
+                        <li>
+                          <span class="legend-dot" [style.background]="s.color"></span>
+                          <span>{{ s.label }}</span>
+                          <strong>{{ s.count }}</strong>
+                        </li>
+                      }
+                    </ul>
+                  </div>
+                </article>
+
+                <!-- Radar : Moyenne des résultats par enjeu -->
+                <article class="chart-card">
+                  <h2 class="card-title">{{ 'plans.suivis.bilan.indic.radarTitle' | translate }}</h2>
+                  @if (bi.by_enjeu.length < 3) {
+                    <p class="text-mention">{{ 'plans.suivis.bilan.indic.radarMin' | translate }}</p>
+                  } @else {
+                    @let radar = getRadar();
+                    <svg viewBox="0 0 300 260" class="chart-svg">
+                      <!-- Grid concentrique -->
+                      @for (r of radar.grid; track r) {
+                        <circle cx="150" cy="130" [attr.r]="r" fill="none" stroke="#eee" stroke-width="1"></circle>
+                      }
+                      <!-- Axes -->
+                      @for (a of radar.axes; track a.label) {
+                        <line [attr.x1]="a.x1" [attr.y1]="a.y1" [attr.x2]="a.x2" [attr.y2]="a.y2"
+                              stroke="#ddd" stroke-width="1"></line>
+                        <text [attr.x]="a.labelX" [attr.y]="a.labelY" text-anchor="middle" class="radar-label">
+                          {{ a.label.length > 18 ? (a.label | slice:0:18) + '…' : a.label }}
+                        </text>
+                      }
+                      <!-- Polygone -->
+                      <polygon [attr.points]="radar.polygon"
+                               fill="rgba(2, 83, 89, 0.2)"
+                               stroke="#025359" stroke-width="2"></polygon>
+                      <!-- Points -->
+                      @for (p of radar.points; track p.libelle) {
+                        <circle [attr.cx]="p.x" [attr.cy]="p.y" r="4" fill="#025359"></circle>
+                      }
+                    </svg>
+                  }
+                </article>
+
+              </div>
+            }
+          }
+        } @else {
+
+        <!-- Empty state -->
+        @if (b.taux_realisation.total === 0) {
+          <div class="empty-state">
+            <i class="fi fi-rr-info"></i>
+            <h2>{{ 'plans.suivis.bilan.empty.title' | translate }}</h2>
+            <p>{{ 'plans.suivis.bilan.empty.hint' | translate }}</p>
+          </div>
+        } @else {
+
+          <!-- Cartes synthèse -->
+          <div class="summary-grid">
+            <!-- Taux de réalisation -->
+            <article class="summary-card">
+              <h2 class="card-title">{{ 'plans.suivis.bilan.summary.tauxTitle' | translate }}</h2>
+              <div class="big-number">
+                {{ (b.taux_realisation.termine / b.taux_realisation.total * 100) | number:'1.0-0':'fr-FR' }}%
+              </div>
+              <p class="big-number-label">
+                {{ b.taux_realisation.termine }} / {{ b.taux_realisation.total }}
+                {{ 'plans.suivis.bilan.summary.actionsTerminees' | translate }}
+              </p>
+              <ul class="taux-detail">
+                @for (item of legendItems; track item.key) {
+                  <li>
+                    <span class="bar-dot" [class]="item.cssClass"></span>
+                    <span>{{ item.i18n | translate }}</span>
+                    <strong>{{ b.taux_realisation[item.key] || 0 }}</strong>
+                  </li>
+                }
+              </ul>
+            </article>
+
+            <!-- Budget -->
+            <article class="summary-card">
+              <h2 class="card-title">{{ 'plans.suivis.bilan.summary.budgetTitle' | translate }}</h2>
+              <table class="kpi-table">
+                <thead>
+                  <tr>
+                    <th></th>
+                    <th>{{ 'plans.suivis.bilan.summary.previsionnel' | translate }}</th>
+                    <th>{{ 'plans.suivis.bilan.summary.realise' | translate }}</th>
+                    <th>{{ 'plans.suivis.bilan.summary.ecart' | translate }}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>{{ 'plans.suivis.bilan.summary.fonctionnement' | translate }}</td>
+                    <td>{{ b.budget.fonctionnement.previsionnel | number:'1.0-0':'fr-FR' }} €</td>
+                    <td>{{ b.budget.fonctionnement.realise | number:'1.0-0':'fr-FR' }} €</td>
+                    <td>
+                      @if (ecartPct(b.budget.fonctionnement.previsionnel, b.budget.fonctionnement.realise); as e) {
+                        <span [class.negative]="e < 0" [class.positive]="e > 0">
+                          {{ e > 0 ? '+' : '' }}{{ e | number:'1.0-1':'fr-FR' }}%
+                        </span>
+                      }
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>{{ 'plans.suivis.bilan.summary.investissement' | translate }}</td>
+                    <td>{{ b.budget.investissement.previsionnel | number:'1.0-0':'fr-FR' }} €</td>
+                    <td>{{ b.budget.investissement.realise | number:'1.0-0':'fr-FR' }} €</td>
+                    <td>
+                      @if (ecartPct(b.budget.investissement.previsionnel, b.budget.investissement.realise); as e) {
+                        <span [class.negative]="e < 0" [class.positive]="e > 0">
+                          {{ e > 0 ? '+' : '' }}{{ e | number:'1.0-1':'fr-FR' }}%
+                        </span>
+                      }
+                    </td>
+                  </tr>
+                  <tr class="total-row">
+                    <td>{{ 'plans.suivis.bilan.summary.total' | translate }}</td>
+                    <td>{{ b.budget.total.previsionnel | number:'1.0-0':'fr-FR' }} €</td>
+                    <td>{{ b.budget.total.realise | number:'1.0-0':'fr-FR' }} €</td>
+                    <td>
+                      @if (ecartPct(b.budget.total.previsionnel, b.budget.total.realise); as e) {
+                        <span [class.negative]="e < 0" [class.positive]="e > 0">
+                          {{ e > 0 ? '+' : '' }}{{ e | number:'1.0-1':'fr-FR' }}%
+                        </span>
+                      }
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </article>
+
+            <!-- RH -->
+            <article class="summary-card">
+              <h2 class="card-title">{{ 'plans.suivis.bilan.summary.rhTitle' | translate }}</h2>
+              <div class="rh-grid">
+                <div>
+                  <div class="big-number">{{ b.rh.previsionnel | number:'1.0-1':'fr-FR' }}</div>
+                  <p class="big-number-label">{{ 'plans.suivis.bilan.summary.rhPrevisionnel' | translate }}</p>
+                </div>
+                <div>
+                  <div class="big-number">{{ b.rh.realise | number:'1.0-1':'fr-FR' }}</div>
+                  <p class="big-number-label">{{ 'plans.suivis.bilan.summary.rhRealise' | translate }}</p>
+                </div>
+              </div>
+              @if (ecartPct(b.rh.previsionnel, b.rh.realise); as e) {
+                <p class="ecart-summary" [class.negative]="e < 0" [class.positive]="e > 0">
+                  {{ 'plans.suivis.bilan.summary.ecart' | translate }} :
+                  {{ e > 0 ? '+' : '' }}{{ e | number:'1.0-1':'fr-FR' }}%
+                </p>
+              }
+            </article>
+          </div>
+
+          <!-- Légende des barres -->
+          <div class="legend">
+            <span class="legend-label">{{ 'plans.suivis.actions.legendLabel' | translate }}</span>
+            @for (item of legendItems; track item.key) {
+              <span class="legend-item">
+                <span class="bar-dot" [class]="item.cssClass"></span>
+                <span>{{ item.i18n | translate }}</span>
+              </span>
+            }
+          </div>
+
+          <!-- Par catégorie d'action -->
+          <article class="chart-card">
+            <h2 class="card-title">{{ 'plans.suivis.bilan.byCategorie.title' | translate }}</h2>
+            @if (b.by_categorie_action.length === 0) {
+              <p class="text-mention">{{ 'plans.suivis.bilan.noData' | translate }}</p>
+            } @else {
+              <ul class="bar-list">
+                @for (cat of b.by_categorie_action; track cat.code) {
+                  <li>
+                    <div class="bar-row-label">
+                      <strong>{{ cat.code }}</strong>
+                      <span>{{ cat.label }}</span>
+                      <span class="bar-total">{{ cat.total }}</span>
+                    </div>
+                    <div class="stacked-bar">
+                      @for (seg of buildBarSegments(cat); track seg.cssClass) {
+                        <span [class]="'segment ' + seg.cssClass"
+                              [style.width.%]="seg.pct"
+                              [title]="seg.label + ' : ' + seg.count">
+                          @if (seg.pct > 6) {
+                            <span class="seg-label">{{ seg.count }}</span>
+                          }
+                        </span>
+                      }
+                    </div>
+                  </li>
+                }
+              </ul>
+            }
+          </article>
+
+          <!-- Par enjeu -->
+          <article class="chart-card">
+            <h2 class="card-title">{{ 'plans.suivis.bilan.byEnjeu.title' | translate }}</h2>
+            @if (b.by_enjeu.length === 0) {
+              <p class="text-mention">{{ 'plans.suivis.bilan.noData' | translate }}</p>
+            } @else {
+              <ul class="bar-list">
+                @for (enjeu of b.by_enjeu; track enjeu.enjeu_id) {
+                  <li>
+                    <div class="bar-row-label">
+                      <span class="enjeu-label">{{ enjeu.libelle }}</span>
+                      <span class="bar-total">{{ enjeu.total }}</span>
+                    </div>
+                    <div class="stacked-bar">
+                      @for (seg of buildBarSegments(enjeu); track seg.cssClass) {
+                        <span [class]="'segment ' + seg.cssClass"
+                              [style.width.%]="seg.pct"
+                              [title]="seg.label + ' : ' + seg.count">
+                          @if (seg.pct > 6) {
+                            <span class="seg-label">{{ seg.count }}</span>
+                          }
+                        </span>
+                      }
+                    </div>
+                  </li>
+                }
+              </ul>
+            }
+          </article>
+
+        }
+        } <!-- end @else contentTab=actions -->
+      </section>
+    }
+  </main>
+</div>

@@ -1,0 +1,316 @@
+@import 'variables';
+@import 'responsive';
+
+.suivis-layout {
+  display: flex;
+  min-height: calc(100vh - 58px);
+  gap: $spacing-lg;
+  background: $beige;
+}
+.plan-main {
+  flex: 1;
+  min-width: 0;
+  padding-right: $spacing-lg;
+  overflow-x: hidden;
+}
+
+.loading-container,
+.error-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: $spacing-xxl;
+  gap: $spacing-md;
+  color: $gray-dark;
+  i { font-size: 2.5rem; color: $error-color; }
+}
+
+// =============================================================================
+// Hero orange (réutilise mixin global)
+// =============================================================================
+.hero-section { @include plan-page-hero-suivi(280px); }
+.hero-background { @include plan-page-hero-background; }
+.hero-pattern { @include plan-page-hero-pattern; opacity: 0.2; }
+.hero-content { @include plan-page-hero-content; max-width: 1400px; margin: 0 auto; }
+
+.breadcrumb {
+  position: relative; display: flex; align-items: center;
+  gap: $spacing-md; margin-bottom: $spacing-xl; height: 48px;
+}
+.breadcrumb-home {
+  width: 48px; height: 48px; background-color: $primary-color;
+  border-radius: 50%; color: $white;
+  display: flex; align-items: center; justify-content: center;
+  text-decoration: none; flex-shrink: 0; z-index: 2; padding: 12px;
+}
+.breadcrumb-lines {
+  position: absolute; left: 24px; right: 0; top: 0; bottom: 0;
+  display: flex; flex-direction: column; justify-content: space-between;
+  pointer-events: none; z-index: 0;
+  &::before, &::after {
+    content: ''; display: block; width: 100%; height: 1px;
+    background-color: $primary-color;
+  }
+}
+.breadcrumb-text {
+  position: relative; z-index: 1; display: flex; align-items: center; gap: $spacing-xs;
+  font-size: 0.85rem; color: $primary-color;
+  .breadcrumb-link { color: $primary-color; text-decoration: underline; font-weight: 600; }
+  .breadcrumb-chevron { font-size: 0.7rem; }
+  .breadcrumb-current { font-weight: 600; }
+}
+.plan-header { margin-top: $spacing-md; }
+.plan-subtitle {
+  display: inline-flex; align-items: center; gap: $spacing-xs;
+  font-size: 0.85rem; letter-spacing: 0.05em; color: $primary-color; font-weight: 700;
+}
+.plan-title {
+  margin: 0; font-size: 2.4rem; font-weight: 700; color: $primary-color; line-height: 1.1;
+}
+.hero-actions { display: flex; gap: $spacing-md; margin-top: $spacing-md; }
+.btn-hero-primary {
+  display: inline-flex; align-items: center; gap: $spacing-xs;
+  padding: $spacing-xs $spacing-lg;
+  background-color: $primary-color; color: $white; border: none;
+  border-radius: 80px;
+  font-family: 'Nunito', sans-serif; font-weight: 600;
+  cursor: pointer;
+  &:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.15); }
+}
+
+// =============================================================================
+// Year tabs
+// =============================================================================
+.year-tabs {
+  display: flex; gap: $spacing-md;
+  padding: $spacing-md $spacing-xl 0;
+  flex-wrap: wrap;
+}
+.year-tab {
+  background: transparent; border: none;
+  padding: $spacing-xs $spacing-sm;
+  font-family: 'Nunito', sans-serif; font-size: 1rem; font-weight: 600;
+  color: $gray-dark; cursor: pointer;
+  border-bottom: 2px solid transparent;
+  &.active { color: $primary-color; border-bottom-color: $primary-color; }
+}
+
+// =============================================================================
+// Content
+// =============================================================================
+.content-section {
+  padding: $spacing-md $spacing-xl $spacing-xxl;
+  max-width: 1400px;
+  margin: 0 auto;
+  display: flex; flex-direction: column; gap: $spacing-md;
+}
+.saisie-card {
+  background: white; border-radius: 12px;
+  padding: $spacing-md $spacing-lg;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+  .card-header {
+    display: flex; align-items: center; gap: $spacing-sm; margin-bottom: $spacing-md;
+    .card-icon { color: $secondary-orange-salmon; font-size: 1.1rem; }
+    .card-title { margin: 0; font-size: 0.95rem; letter-spacing: 0.05em; text-transform: uppercase; color: $black; font-weight: 700; }
+  }
+  .card-subtitle { margin: 0 0 $spacing-sm; font-size: 0.9rem; font-weight: 600; color: $gray-dark; }
+}
+
+.table-wrap { overflow-x: auto; }
+
+// =============================================================================
+// Tableau seuils (lecture seule)
+// =============================================================================
+.seuils-table {
+  width: 100%; border-collapse: collapse; font-size: 0.85rem;
+  thead th {
+    background: $primary-color; color: white;
+    padding: $spacing-xs $spacing-sm; font-weight: 600; text-align: left;
+    &.th-score { text-align: center; color: white; }
+    &.th-very-bad { background: #FF7579; }
+    &.th-bad      { background: #FA9965; }
+    &.th-neutral  { background: #F7D35C; color: $black; }
+    &.th-good     { background: #82DB8A; color: $black; }
+    &.th-very-good { background: #81C9D8; color: $black; }
+  }
+  tbody td {
+    padding: $spacing-xs $spacing-sm;
+    border-bottom: 1px solid $gray-lighter;
+  }
+  tbody tr:nth-child(even) { background: $gray-lighter; }
+}
+
+// =============================================================================
+// Formulaire édition
+// =============================================================================
+.edit-form { display: flex; flex-direction: column; gap: $spacing-md; }
+
+.metric-block {
+  padding: $spacing-sm 0;
+  border-top: 1px solid $gray-lighter;
+  &:first-child { border-top: none; padding-top: 0; }
+}
+.metric-meta {
+  font-size: 0.85rem; color: $gray-dark;
+  display: flex; flex-wrap: wrap; gap: $spacing-xs; align-items: center;
+  margin-bottom: $spacing-xs;
+  strong { color: $black; }
+  .meta-sep { color: $gray-light; }
+}
+.metric-label {
+  display: block;
+  font-size: 0.85rem; color: $gray-dark; margin-bottom: $spacing-xxs;
+}
+.metric-input-row {
+  display: flex; align-items: stretch; gap: $spacing-sm; flex-wrap: wrap;
+  input {
+    width: 140px; padding: $spacing-xs;
+    border: 1px solid $gray-light; border-radius: $border-radius-sm;
+    font-family: 'Nunito', sans-serif;
+    &:focus { outline: none; border-color: $primary-color; }
+  }
+}
+
+// Barre de seuils par score
+.threshold-bar {
+  display: flex; flex: 1; min-width: 300px;
+  border-radius: $border-radius-sm; overflow: hidden;
+  border: 1px solid $gray-lighter;
+}
+.threshold-cell {
+  flex: 1; padding: $spacing-xs $spacing-sm;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.75rem; font-weight: 600; color: $black; opacity: 0.5;
+  transition: opacity 0.15s, box-shadow 0.15s;
+  border-right: 1px solid white;
+  &:last-child { border-right: none; }
+
+  &.lvl-very-bad { background: #FF7579; color: white; }
+  &.lvl-bad      { background: #FA9965; color: white; }
+  &.lvl-neutral  { background: #F7D35C; }
+  &.lvl-good     { background: #82DB8A; }
+  &.lvl-very-good { background: #81C9D8; }
+
+  &.active {
+    opacity: 1;
+    box-shadow: inset 0 0 0 3px $secondary-terra-cotta;
+  }
+}
+
+// Barre globale du résultat indicateur
+.indicator-result {
+  padding-top: $spacing-md;
+  border-top: 2px solid $gray-lighter;
+}
+.global-bar {
+  display: flex; border-radius: $border-radius-sm; overflow: hidden;
+  margin: $spacing-xs 0;
+}
+.global-cell {
+  flex: 1; padding: $spacing-sm;
+  text-align: center; font-weight: 600; opacity: 0.5;
+  transition: opacity 0.15s, box-shadow 0.15s;
+  border-right: 1px solid white;
+  &:last-child { border-right: none; }
+  &.lvl-very-bad { background: #FF7579; color: white; }
+  &.lvl-bad      { background: #FA9965; color: white; }
+  &.lvl-neutral  { background: #F7D35C; }
+  &.lvl-good     { background: #82DB8A; }
+  &.lvl-very-good { background: #81C9D8; }
+  &.active { opacity: 1; box-shadow: inset 0 0 0 4px $secondary-terra-cotta; }
+}
+
+// =============================================================================
+// Bandeau info (mode override)
+// =============================================================================
+.info-banner {
+  display: flex; gap: $spacing-sm; align-items: flex-start;
+  padding: $spacing-md;
+  background: rgba(255, 182, 193, 0.25);
+  border-left: 3px solid $secondary-terra-cotta;
+  border-radius: $border-radius-sm;
+  margin: $spacing-md 0;
+
+  i { color: $secondary-terra-cotta; font-size: 1.2rem; margin-top: 2px; }
+  p { margin: 0; font-size: 0.9rem; color: $black; }
+  p + p { margin-top: $spacing-xxs; }
+}
+
+// 5 boutons score manuel
+.manual-score-row {
+  display: flex; gap: $spacing-sm; margin: $spacing-md 0;
+}
+.manual-score-btn {
+  flex: 1; padding: $spacing-sm;
+  border: none; border-radius: $border-radius-sm;
+  font-family: 'Nunito', sans-serif; font-weight: 600; cursor: pointer;
+  opacity: 0.5; transition: opacity 0.15s, box-shadow 0.15s;
+
+  &.lvl-very-bad { background: #FF7579; color: white; }
+  &.lvl-bad      { background: #FA9965; color: white; }
+  &.lvl-neutral  { background: #F7D35C; color: $black; }
+  &.lvl-good     { background: #82DB8A; color: $black; }
+  &.lvl-very-good { background: #81C9D8; color: $black; }
+
+  &.active {
+    opacity: 1;
+    box-shadow: inset 0 0 0 3px $primary-color;
+  }
+  &:hover { opacity: 1; }
+}
+
+.btn-link {
+  background: transparent; border: none;
+  color: $primary-color; font-weight: 600;
+  cursor: pointer; padding: $spacing-xs 0;
+  text-decoration: underline;
+}
+
+textarea.full-width {
+  width: 100%; padding: $spacing-sm;
+  border: 1px solid $gray-light; border-radius: $border-radius-sm;
+  font-family: 'Nunito', sans-serif; resize: vertical;
+}
+
+// =============================================================================
+// Récap (read-only)
+// =============================================================================
+.legend {
+  display: flex; gap: $spacing-md; flex-wrap: wrap;
+  padding: $spacing-sm 0;
+  font-size: 0.85rem;
+  .legend-item { display: inline-flex; align-items: center; gap: $spacing-xxs; }
+  .legend-badge { width: 24px; height: 24px; }
+}
+
+.recap-table {
+  width: 100%; border-collapse: collapse;
+  thead th {
+    background: $primary-color; color: white;
+    padding: $spacing-xs $spacing-sm; text-align: left;
+  }
+  tbody td { padding: $spacing-xs $spacing-sm; border-bottom: 1px solid $gray-lighter; }
+  .recap-indic-row td { font-weight: 600; }
+  .recap-metric-row { color: $gray-dark; font-size: 0.9rem; }
+  .recap-badge { width: 28px; height: 28px; }
+}
+
+.btn-outlined-pill {
+  display: inline-flex; align-items: center; gap: $spacing-xs;
+  padding: $spacing-xs $spacing-md;
+  background: transparent; color: $primary-color;
+  border: 1.5px solid $primary-color; border-radius: $border-radius-pill;
+  font-family: 'Nunito', sans-serif; font-weight: 600;
+  cursor: pointer; margin-top: $spacing-md;
+  &:hover { background: $primary-color; color: white; }
+}
+
+// =============================================================================
+// Bottom action bar
+// =============================================================================
+.bottom-actions {
+  display: flex; justify-content: flex-end; gap: $spacing-md;
+  padding-top: $spacing-md;
+  border-top: 1px solid $gray-light;
+}

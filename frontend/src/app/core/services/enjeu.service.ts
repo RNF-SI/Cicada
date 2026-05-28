@@ -3,7 +3,7 @@
  */
 import { Injectable, inject, signal, computed } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { Observable, of, tap, catchError, throwError } from 'rxjs';
+import { Observable, of, tap, catchError, throwError, map } from 'rxjs';
 
 import {
   Enjeu,
@@ -395,6 +395,11 @@ export class EnjeuService {
   // Indicateurs CRUD
   // ==========================================================================
 
+  /** Détail d'un indicateur (inclut ses métriques avec seuils, mesures, etc.). */
+  getIndicateur(id: number): Observable<Indicateur> {
+    return this.http.get<Indicateur>(`${this.apiUrl}/indicateurs/${id}/`);
+  }
+
   createIndicateur(payload: IndicateurCreatePayload): Observable<Indicateur> {
     return this.http.post<Indicateur>(`${this.apiUrl}/indicateurs/`, payload);
   }
@@ -440,9 +445,83 @@ export class EnjeuService {
   // Mesures CRUD
   // ==========================================================================
 
+  /** Liste les mesures d'une métrique (toutes années). */
+  getMesuresByMetrique(metriqueId: number): Observable<Mesure[]> {
+    return this.http.get<any>(`${this.apiUrl}/mesures/`, {
+      params: { id_metrique: String(metriqueId), page_size: '100' },
+    }).pipe(
+      map(res => (res?.results ?? res ?? []) as Mesure[]),
+    );
+  }
+
   createMesure(payload: MesureCreatePayload): Observable<Mesure> {
     return this.http.post<Mesure>(`${this.apiUrl}/mesures/`, payload);
   }
+
+  // ==========================================================================
+  // IndicateurMesure — saisie annuelle au niveau indicateur
+  // ==========================================================================
+
+  /** Score auto calculé pour un (indicateur, année). */
+  getIndicatorAutoScore(idIndicateur: number, annee: number): Observable<any> {
+    return this.http.get<any>(
+      `${this.apiUrl}/indicateur-mesures/auto-score/`,
+      { params: { id_indicateur: String(idIndicateur), annee: String(annee) } },
+    );
+  }
+
+  /** Score effectif (override si présent, sinon auto). */
+  getIndicatorResolved(idIndicateur: number, annee: number): Observable<any> {
+    return this.http.get<any>(
+      `${this.apiUrl}/indicateur-mesures/resolved/`,
+      { params: { id_indicateur: String(idIndicateur), annee: String(annee) } },
+    );
+  }
+
+  /** Upsert d'une saisie d'indicateur (override + commentaire). */
+  upsertIndicateurMesure(payload: {
+    id_indicateur: number; annee: number;
+    score_override?: number | null; commentaire_override?: string | null;
+  }): Observable<any> {
+    return this.http.post<any>(
+      `${this.apiUrl}/indicateur-mesures/upsert/`,
+      payload,
+    );
+  }
+
+  /** Supprime un override (passage en mode auto). */
+  deleteIndicateurMesure(id: number): Observable<void> {
+    return this.http.delete<void>(`${this.apiUrl}/indicateur-mesures/${id}/`);
+  }
+
+  /** Crée un nouvel indicateur de réponse + métrique liés à l'opération. */
+  createOperationResponseIndicator(
+    operationId: number,
+    payload: {
+      nom_indicateur: string;
+      nom_metrique?: string;
+      type_metrique_id?: number | null;
+      valeur_cible?: string;
+    },
+  ): Observable<{
+    id_metrique: number; id_indicateur: number;
+    nom_indicateur: string; nom_metrique: string;
+    etat_reference: string; type_metrique: number | null;
+  }> {
+    return this.http.post<any>(
+      `${this.apiUrl}/operations/${operationId}/create-indicator/`,
+      payload,
+    );
+  }
+
+  /** Retire le lien entre l'opération et une métrique (n'efface pas l'indicateur). */
+  unlinkOperationMetrique(operationId: number, metriqueId: number): Observable<any> {
+    return this.http.post<any>(
+      `${this.apiUrl}/operations/${operationId}/remove-metrique/`,
+      { metrique_id: metriqueId },
+    );
+  }
+
 
   updateMesure(id: number, payload: Partial<MesureCreatePayload>): Observable<Mesure> {
     return this.http.patch<Mesure>(`${this.apiUrl}/mesures/${id}/`, payload);

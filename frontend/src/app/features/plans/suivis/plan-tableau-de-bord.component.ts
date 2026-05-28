@@ -55,6 +55,25 @@ export class PlanTableauDeBordComponent implements OnInit {
 
   // Data
   oltGroups = signal<OltGroup[]>([]);
+
+  /**
+   * Groupes filtrés selon le toggle État/Pression : on garde uniquement les
+   * indicateurs dont type_indicateur_label correspond au mode actif, et on
+   * masque les OLT qui n'auraient plus aucun indicateur après filtrage.
+   */
+  filteredOltGroups = computed<OltGroup[]>(() => {
+    const tab = this.activeTab();
+    const targetLabel = tab === 'etat' ? 'État' : 'Pression';
+    return this.oltGroups()
+      .map(g => ({
+        ...g,
+        rows: g.rows.filter(r =>
+          (r.indicateur.type_indicateur_label ?? '').toLowerCase()
+          === targetLabel.toLowerCase()
+        ),
+      }))
+      .filter(g => g.rows.length > 0);
+  });
   planYearStart = signal<number>(new Date().getFullYear());
   planYearEnd = signal<number>(new Date().getFullYear() + 9);
 
@@ -73,15 +92,16 @@ export class PlanTableauDeBordComponent implements OnInit {
 
   hasData = computed(() => this.oltGroups().length > 0);
 
-  private readonly scoreIconsBasePath = 'assets/images/icons/smileys/';
+  private readonly scoreIconsBasePath = 'assets/images/icons/score-badges/';
 
-  private readonly scoreIconMap: Record<ScoreLevel, string[]> = {
-    'very-bad': ['fi-rr-minus-small-red-trait.png', 'fi-rr-minus-small-red-trait.png'],
-    'bad': ['fi-rr-minus-small-orange-trait.png'],
-    'neutral': ['moyen-trait.png'],
-    'good': ['fi-rr-plus-small-green-trait.png'],
-    'very-good': ['fi-rr-plus-small-blue-trait.png', 'fi-rr-plus-small-blue-trait.png'],
-    'no-data': ['sans-donnee-trait.png']
+  /** Mapping vers les SVG fournis depuis Figma (cercles colorés autoporteurs). */
+  private readonly scoreIconMap: Record<ScoreLevel, string> = {
+    'very-bad': 'score-very-bad.svg',
+    'bad': 'score-bad.svg',
+    'neutral': 'score-neutral.svg',
+    'good': 'score-good.svg',
+    'very-good': 'score-very-good.svg',
+    'no-data': 'score-no-data.svg',
   };
 
   legendItems: { level: ScoreLevel; labelKey: string }[] = [
@@ -93,8 +113,9 @@ export class PlanTableauDeBordComponent implements OnInit {
     { level: 'no-data', labelKey: 'plans.suivis.tableauDeBord.sansDonnee' }
   ];
 
-  getScoreIcons(level: ScoreLevel): string[] {
-    return (this.scoreIconMap[level] || []).map(f => this.scoreIconsBasePath + f);
+  /** Retourne l'unique icône (SVG) pour un niveau de score donné. */
+  getScoreIcon(level: ScoreLevel): string {
+    return this.scoreIconsBasePath + this.scoreIconMap[level];
   }
 
   /** Libellé du score pour tooltip (revue design #317). */
@@ -143,7 +164,9 @@ export class PlanTableauDeBordComponent implements OnInit {
                 rows.push({
                   ne,
                   indicateur: ind,
-                  expanded: false,
+                  // Métriques affichées par défaut conformément Figma 4147-22394 :
+                  // l'utilisateur peut toujours collapse via le chevron de l'indicateur.
+                  expanded: true,
                   metriques: ind.metriques || []
                 });
               }
@@ -261,8 +284,13 @@ export class PlanTableauDeBordComponent implements OnInit {
     const neId = group.rows[rowIdx].ne.id_ne;
     let count = 0;
     for (let i = rowIdx; i < group.rows.length; i++) {
-      if (group.rows[i].ne.id_ne === neId) count++;
-      else break;
+      if (group.rows[i].ne.id_ne !== neId) break;
+      // Ligne indicateur
+      count += 1;
+      // Sous-lignes métriques (uniquement quand l'indicateur est déplié)
+      if (group.rows[i].expanded) {
+        count += group.rows[i].metriques.length;
+      }
     }
     return count;
   }

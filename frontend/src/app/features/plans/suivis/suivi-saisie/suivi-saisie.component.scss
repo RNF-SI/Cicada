@@ -1,0 +1,469 @@
+@import 'variables';
+@import 'responsive';
+
+.suivis-layout {
+  display: flex;
+  min-height: calc(100vh - 80px);
+  background: $beige;
+}
+
+.plan-main {
+  flex: 1;
+  padding: 0;
+  overflow-x: hidden;
+}
+
+.loading-container,
+.error-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: $spacing-xxl;
+  gap: $spacing-md;
+  color: $gray-dark;
+
+  i {
+    font-size: 2.5rem;
+    color: $error-color;
+  }
+}
+
+// =============================================================================
+// Hero (réutilise les conventions de plan-suivi-actions)
+// =============================================================================
+
+.hero-section {
+  @include plan-page-hero-suivi(280px);
+
+  .hero-background {
+    position: absolute;
+    inset: 0;
+    opacity: 0.15;
+
+    .hero-pattern {
+      position: absolute;
+      inset: 0;
+      background-image: radial-gradient(circle at 20% 50%, rgba(255, 255, 255, 0.3) 0%, transparent 50%);
+    }
+  }
+
+  .hero-content {
+    position: relative;
+    z-index: 1;
+    max-width: 1400px;
+    margin: 0 auto;
+  }
+
+  .breadcrumb {
+    display: flex;
+    align-items: center;
+    gap: $spacing-sm;
+    margin-bottom: $spacing-md;
+
+    .breadcrumb-home {
+      display: inline-flex;
+      align-items: center;
+      color: $primary-color;
+      text-decoration: none;
+      &:hover { color: $secondary-terra-cotta; }
+    }
+
+    .breadcrumb-lines {
+      width: 24px;
+      height: 1px;
+      background: $primary-color;
+    }
+
+    .breadcrumb-text {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: $spacing-xxs;
+      font-size: 0.85rem;
+      color: $primary-color;
+
+      .breadcrumb-link {
+        color: $primary-color;
+        text-decoration: none;
+        font-weight: 600;
+        &:hover { color: $secondary-terra-cotta; }
+      }
+      .breadcrumb-chevron { font-size: 0.7rem; }
+      .breadcrumb-current { font-weight: 600; }
+    }
+  }
+
+  .plan-header {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-sm;
+
+    .plan-subtitle {
+      display: inline-flex;
+      align-items: center;
+      gap: $spacing-xs;
+      font-size: 0.85rem;
+      letter-spacing: 0.05em;
+      color: $primary-color;
+      font-weight: 700;
+    }
+
+    .plan-title {
+      margin: 0;
+      font-size: 2.4rem;
+      font-weight: 700;
+      color: $primary-color;
+      line-height: 1.1;
+    }
+
+    .hero-actions { margin-top: $spacing-sm; }
+
+    .btn-hero-primary {
+      display: inline-flex;
+      align-items: center;
+      gap: $spacing-xs;
+      background: $secondary-terra-cotta;
+      color: white;
+      border: none;
+      padding: $spacing-sm $spacing-lg;
+      border-radius: $border-radius-pill;
+      font-family: 'Nunito', sans-serif;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+      &:hover { background: darken(#B74D5D, 8%); }
+    }
+  }
+}
+
+// =============================================================================
+// Year selector tabs
+// =============================================================================
+
+.year-tabs {
+  display: flex;
+  gap: $spacing-md;
+  padding: $spacing-md $spacing-xl 0;
+  flex-wrap: wrap;
+  background: $beige;
+
+  .year-tab {
+    background: transparent;
+    border: none;
+    padding: $spacing-xs $spacing-sm;
+    cursor: pointer;
+    font-family: 'Nunito', sans-serif;
+    font-size: 1rem;
+    font-weight: 600;
+    color: $gray-dark;
+    border-bottom: 2px solid transparent;
+    transition: color 0.2s, border-color 0.2s;
+
+    &:hover { color: $primary-color; }
+
+    &.active {
+      color: $primary-color;
+      border-bottom-color: $primary-color;
+    }
+  }
+}
+
+// =============================================================================
+// Form layout
+// =============================================================================
+
+.saisie-form {
+  padding: $spacing-md $spacing-xl $spacing-xxl;
+  max-width: 1400px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-md;
+}
+
+.saisie-card {
+  background: white;
+  border-radius: 12px;
+  padding: $spacing-md $spacing-lg;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+
+  .card-header {
+    display: flex;
+    align-items: center;
+    gap: $spacing-sm;
+    margin-bottom: $spacing-md;
+
+    .card-icon {
+      color: $secondary-orange-salmon;
+      font-size: 1.1rem;
+    }
+    .card-title {
+      margin: 0;
+      font-size: 0.95rem;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: $black;
+      font-weight: 700;
+    }
+  }
+
+  .card-field {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-xxs;
+    margin-bottom: $spacing-sm;
+
+    label { font-size: 0.8rem; color: $gray-dark; }
+
+    .readonly-value {
+      padding: $spacing-xs $spacing-sm;
+      background: $gray-lighter;
+      border-radius: $border-radius-sm;
+      color: $black;
+      min-height: 36px;
+      display: flex;
+      align-items: center;
+    }
+  }
+}
+
+textarea.full-width {
+  width: 100%;
+  padding: $spacing-sm;
+  border: 1px solid $gray-light;
+  border-radius: $border-radius-sm;
+  font-family: 'Nunito', sans-serif;
+  resize: vertical;
+  &:focus {
+    outline: none;
+    border-color: $primary-color;
+  }
+}
+
+// =============================================================================
+// Realisation table
+// =============================================================================
+
+// Matrice Champs × Années (Figma 161-20144 / 4290-22241)
+.realisation-matrix {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: $spacing-md;
+  table-layout: auto;
+  font-size: 0.85rem;
+
+  thead {
+    background: $primary-color;
+    color: white;
+
+    th {
+      padding: $spacing-xs $spacing-sm;
+      text-align: center;
+      font-weight: 600;
+      font-size: 0.8rem;
+      min-width: 70px;
+    }
+    th.col-field { text-align: left; min-width: 240px; }
+    th.active {
+      background: $secondary-terra-cotta;
+      color: white;
+    }
+  }
+
+  tbody tr {
+    border-bottom: 1px solid $gray-lighter;
+    &:nth-child(odd) { background: $gray-lighter; }
+
+    td {
+      padding: $spacing-xs $spacing-sm;
+      text-align: center;
+      vertical-align: middle;
+
+      &.col-field { text-align: left; font-weight: 500; color: $black; }
+
+      // Cellule de l'année active : encadrée terra-cotta (cellule éditable)
+      &.active {
+        background: rgba(183, 77, 93, 0.06);
+        border-left: 2px solid $secondary-terra-cotta;
+        border-right: 2px solid $secondary-terra-cotta;
+        position: relative;
+      }
+    }
+
+    input[type='number'] {
+      width: 80px;
+      padding: $spacing-xxs $spacing-xs;
+      border: 1px solid $secondary-terra-cotta;
+      border-radius: $border-radius-sm;
+      font-family: 'Nunito', sans-serif;
+      text-align: right;
+      background: white;
+
+      &:focus { outline: none; border-color: $primary-color; }
+    }
+
+    input[type='checkbox'] { accent-color: $primary-color; }
+  }
+}
+
+// Pastille pour périodicité (prévue / réalisée)
+.cell-dot {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+
+  &.prev {
+    background: transparent;
+    border: 2px dashed $primary-color;
+  }
+  &.real {
+    background: $primary-color;
+  }
+}
+
+// =============================================================================
+// Organisme ventilation (modes by_org / by_org_type)
+// =============================================================================
+
+.org-section {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-lg;
+  margin-top: $spacing-lg;
+}
+
+.org-block {
+  .org-title {
+    margin: 0 0 $spacing-xs;
+    padding: $spacing-xs $spacing-sm;
+    background: $secondary-pale-green;
+    color: $primary-color;
+    font-size: 0.95rem;
+    font-weight: 600;
+    border-radius: $border-radius-sm;
+    border-left: 3px solid $primary-color;
+  }
+
+  &.total-block .org-title.total {
+    background: $primary-color;
+    color: white;
+    border-left-color: $secondary-terra-cotta;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .realisation-table { margin-top: 0; }
+}
+
+// =============================================================================
+// Emprise spatiale
+// =============================================================================
+
+.emprise-row {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: $spacing-md;
+  align-items: start;
+
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.emprise-map {
+  position: relative;
+  border-radius: $border-radius-sm;
+  overflow: hidden;
+  .emprise-empty {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.85);
+    margin: 0;
+    padding: $spacing-md;
+    text-align: center;
+  }
+}
+
+.emprise-actions {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-sm;
+  justify-content: center;
+  align-items: flex-start;
+  padding-top: $spacing-md;
+}
+
+.btn-emprise-import {
+  display: inline-flex;
+  align-items: center;
+  gap: $spacing-xs;
+  background: transparent;
+  color: $primary-color;
+  border: 1px solid $primary-color;
+  padding: $spacing-xs $spacing-lg;
+  border-radius: $border-radius-pill;
+  font-family: 'Nunito', sans-serif;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+
+  &:not(:disabled):hover {
+    background: $primary-color;
+    color: white;
+  }
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+// =============================================================================
+// Indicateurs de réponse
+// =============================================================================
+
+.indic-list {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-md;
+}
+
+.indic-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: $spacing-md;
+  align-items: end;
+  padding-top: $spacing-sm;
+  border-top: 1px solid $gray-lighter;
+
+  &:first-child { border-top: none; padding-top: 0; }
+
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.indic-meta {
+  font-size: 0.9rem;
+  color: $gray-dark;
+
+  .indic-label strong { color: $black; }
+  .indic-sub { font-size: 0.85rem; margin-top: $spacing-xxs; }
+}
+
+// =============================================================================
+// Bottom action bar
+// =============================================================================
+
+.bottom-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: $spacing-md;
+  padding: $spacing-md 0;
+  margin-top: $spacing-md;
+  border-top: 1px solid $gray-light;
+}

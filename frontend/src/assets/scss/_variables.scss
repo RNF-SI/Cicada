@@ -249,6 +249,18 @@ $sites-badge-bg: $sites-accent;
   overflow: hidden;
 }
 
+// Variante orange pour les pages Suivi (Suivi des actions, Bilan, Tableau de
+// bord) qui doivent respecter la palette saumon/jaune des maquettes Figma.
+@mixin plan-page-hero-suivi($min-height: 280px) {
+  position: relative;
+  background: linear-gradient(135deg, $secondary-yellow 0%, $secondary-orange-salmon 100%);
+  border-radius: 0 0 $border-radius-xl $border-radius-xl;
+  padding: $spacing-lg $spacing-xl $spacing-xl;
+  min-height: $min-height;
+  overflow: hidden;
+  color: $primary-color;
+}
+
 @mixin plan-page-hero-background {
   position: absolute;
   inset: 0;

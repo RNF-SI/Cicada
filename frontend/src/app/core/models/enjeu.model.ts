@@ -362,6 +362,49 @@ export interface Metrique {
 /**
  * Mesure datée rattachée à une métrique
  */
+/**
+ * Saisie annuelle au niveau Indicateur (override manuel du score auto).
+ */
+export interface IndicateurMesure {
+  id_indicateur_mesure?: number;
+  id_indicateur: number;
+  annee: number;
+  score_override?: number | null;     // 1-5
+  commentaire_override?: string | null;
+  date_ajout?: string;
+  date_maj?: string;
+  id_utilisateur_maj?: number | null;
+}
+
+export interface IndicateurAutoScoreResponse {
+  id_indicateur: number;
+  annee: number;
+  score: number | null;
+  has_data: boolean;
+  per_metrique: Array<{
+    id_metrique: number;
+    score: number | null;
+    valeur: string | null;
+    ponderation: number;
+  }>;
+}
+
+export interface IndicateurResolvedResponse {
+  id_indicateur: number;
+  annee: number;
+  score_auto: number | null;
+  score_override: number | null;
+  commentaire_override: string | null;
+  is_overridden: boolean;
+  score_effective: number | null;
+  per_metrique: Array<{
+    id_metrique: number;
+    score: number | null;
+    valeur: string | null;
+    ponderation: number;
+  }>;
+}
+
 export interface Mesure {
   id_mesure: number;
   id_metrique: number;
@@ -439,6 +482,41 @@ export interface ProgrammationAnnuelleRow {
 }
 
 /**
+ * Suivi de réalisation ventilé par organisme (1-1 avec OperationAnneeOrganisme).
+ */
+export interface RealisationOperationAnneeOrganisme {
+  id_realisation_op_annee_organisme?: number;
+  id_operation_annee_organisme: number;
+  budget_fonctionnement_realise: number | null;
+  budget_investissement_realise: number | null;
+  etp_realise: number | null;
+  date_ajout?: string;
+  date_maj?: string;
+}
+
+/**
+ * Suivi de réalisation annuel (1-1 avec OperationAnnee).
+ */
+export interface RealisationOperationAnnee {
+  id_realisation_operation_annee?: number;
+  id_operation_annee: number;
+  id_niveau_realisation?: number | null;
+  niveau_realisation_label?: string;
+  niveau_realisation_mnemonique?: string;
+  periodicite_realisee: boolean;
+  periodicite_mensuelle_realisee?: Record<string, boolean>;
+  commentaires?: string | null;
+  geom_realisee?: GeoJSONGeometry | null;
+  budget_realise?: number | null;
+  budget_fonctionnement_realise?: number | null;
+  budget_investissement_realise?: number | null;
+  etp_realise?: number | null;
+  date_ajout?: string;
+  date_maj?: string;
+  id_utilisateur_maj?: number | null;
+}
+
+/**
  * Ventilation budget/travail par organisme pour une année d'opération
  */
 export interface OperationAnneeOrganisme {
@@ -448,6 +526,7 @@ export interface OperationAnneeOrganisme {
   budget_fonctionnement: number | null;
   budget_investissement: number | null;
   etp: number | null;
+  realisation?: RealisationOperationAnneeOrganisme | null;
 }
 
 /**
@@ -464,6 +543,32 @@ export interface OperationAnnee {
   periodicite_mensuelle: Record<string, boolean>;
   geom?: GeoJSONGeometry;
   organismes?: OperationAnneeOrganisme[];
+  realisation?: RealisationOperationAnnee | null;
+}
+
+/**
+ * Payload d'upsert d'une réalisation annuelle (envoi formulaire de saisie).
+ */
+export interface RealisationUpsertPayload {
+  id_operation_annee: number;
+  id_niveau_realisation?: number | null;
+  periodicite_realisee?: boolean;
+  periodicite_mensuelle_realisee?: Record<string, boolean>;
+  commentaires?: string | null;
+  budget_realise?: number | null;
+  budget_fonctionnement_realise?: number | null;
+  budget_investissement_realise?: number | null;
+  etp_realise?: number | null;
+}
+
+/**
+ * Payload d'upsert d'une réalisation ventilée par organisme.
+ */
+export interface RealisationOrganismeUpsertPayload {
+  id_operation_annee_organisme: number;
+  budget_fonctionnement_realise?: number | null;
+  budget_investissement_realise?: number | null;
+  etp_realise?: number | null;
 }
 
 /**
@@ -481,6 +586,9 @@ export interface MetriqueRef {
   nom_metrique: string;
   indicateur_id: number;
   indicateur_nom: string;
+  etat_reference?: string;
+  type_metrique_id?: number | null;
+  type_metrique_label?: string | null;
 }
 
 export type OperationStatut = 'draft' | 'valide';
@@ -520,7 +628,8 @@ export interface Operation {
   programmation_mensuelle?: Record<string, Record<string, boolean>>;
   programmation_mensuelle_defaut?: Record<string, boolean>;
   ventilation_mode?: 'none' | 'by_org' | 'by_type' | 'by_org_type';
-  geom?: GeoJSONGeometry;
+  geom?: GeoJSONGeometry | string;
+  geom_geojson?: GeoJSONGeometry | null;
   // M2M to Metriques
   metriques?: MetriqueRef[];
   metrique_ids?: number[];

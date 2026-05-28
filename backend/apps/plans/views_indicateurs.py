@@ -13,7 +13,7 @@ from rest_framework.filters import SearchFilter, OrderingFilter
 from django.db import transaction
 
 from .models_indicateurs import (
-    Indicateur, Metrique, Mesure,
+    Indicateur, Metrique, Mesure, IndicateurMesure,
     CorIndicateurTaxon, CorIndicateurHabitat, CorIndicateurGeologie,
 )
 from .models_enjeux import NiveauExigence, ResultatAttendu
@@ -24,7 +24,7 @@ from .reorder import do_reorder
 from .serializers_indicateurs import (
     IndicateurSerializer, IndicateurListSerializer, IndicateurCreateSerializer,
     MetriqueSerializer, MetriqueListSerializer, MetriqueCreateSerializer,
-    MesureSerializer, MesureCreateSerializer,
+    MesureSerializer, MesureCreateSerializer, IndicateurMesureSerializer,
 )
 from .filters_indicateurs import IndicateurFilter, MetriqueFilter, MesureFilter
 
@@ -555,4 +555,190 @@ class MesureViewSet(viewsets.ModelViewSet):
             'metrique_nom': metrique.nom_metrique,
             'mesures': MesureSerializer(mesures, many=True).data,
             'total': mesures.count()
+        })
+
+
+# =============================================================================
+# IndicateurMesure — saisie annuelle au niveau indicateur (override manuel
+# + calcul auto exposé pour le frontend)
+# =============================================================================
+
+
+def _value_to_score(value, metrique) -> int | None:
+    """Convertit une valeur numérique en score 1-5 via les seuils de la métrique."""
+    try:
+        v = float(value)
+    except (TypeError, ValueError):
+        return None
+    for i in range(1, 6):
+        inf = getattr(metrique, f'score_{i}_inf', None)
+        sup = getattr(metrique, f'score_{i}_sup', None)
+        if inf is None or sup is None:
+            continue
+        if float(inf) <= v <= float(sup):
+            return i
+    return None
+
+
+def _compute_indicator_auto_score(indicateur: Indicateur, annee: int):
+    """
+    Calcule le score auto d'un indicateur pour une année donnée :
+    moyenne pondérée des scores 1-5 de chaque métrique (la mesure
+    retenue est la plus récente de l'année).
+
+    Retourne {
+        'score': 1-5 | None,
+        'has_data': bool,                 # vrai si au moins une métrique scorée
+        'per_metrique': [{ id_metrique, score, valeur }],
+    }.
+    """
+    from datetime import date as _date
+    metriques = indicateur.metriques.all()
+    per_met = []
+    weighted_sum = 0.0
+    weight_total = 0.0
+    has_any = False
+    for met in metriques:
+        # Mesure de l'année (la plus récente sur cette année)
+        mesure = (
+            met.mesures
+            .filter(date_mesure__year=annee)
+            .order_by('-date_mesure', '-date_ajout')
+            .first()
+        )
+        if mesure is None:
+            # Fallback : prendre la mesure la plus récente toutes années
+            mesure = met.mesures.order_by('-date_mesure', '-date_ajout').first()
+        score = _value_to_score(mesure.valeur, met) if mesure else None
+        weight = float(met.ponderation) if met.ponderation else 1.0
+        per_met.append({
+            'id_metrique': met.id_metrique,
+            'score': score,
+            'valeur': mesure.valeur if mesure else None,
+            'ponderation': weight,
+        })
+        if score is not None:
+            has_any = True
+            weighted_sum += score * weight
+            weight_total += weight
+    if not has_any or weight_total == 0:
+        return {'score': None, 'has_data': False, 'per_metrique': per_met}
+    score_avg = round(weighted_sum / weight_total)
+    score_avg = max(1, min(5, score_avg))
+    return {'score': score_avg, 'has_data': True, 'per_metrique': per_met}
+
+
+class IndicateurMesureViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet pour la saisie annuelle au niveau Indicateur (override manuel).
+
+    Endpoints:
+    - GET    /api/plans/indicateur-mesures/            Liste (filtrable)
+    - GET    /api/plans/indicateur-mesures/{id}/       Détail
+    - POST   /api/plans/indicateur-mesures/            Créer
+    - PATCH  /api/plans/indicateur-mesures/{id}/       Modifier
+    - DELETE /api/plans/indicateur-mesures/{id}/       Supprimer
+    - POST   /api/plans/indicateur-mesures/upsert/     Upsert par (indicateur, annee)
+    - GET    /api/plans/indicateur-mesures/auto-score/?id_indicateur=X&annee=Y
+                                                      Score auto calculé
+    - GET    /api/plans/indicateur-mesures/resolved/?id_indicateur=X&annee=Y
+                                                      Score effectif (override si présent, sinon auto)
+    """
+
+    queryset = IndicateurMesure.objects.select_related(
+        'id_indicateur', 'id_indicateur__id_ne__id_olt__id_enjeu',
+        'id_indicateur__id_resultat_attendu__id_oo',
+    )
+    serializer_class = IndicateurMesureSerializer
+    permission_classes = [permissions.IsAuthenticated, IsReferent]
+    filter_backends = [DjangoFilterBackend, OrderingFilter]
+    filterset_fields = {
+        'id_indicateur': ['exact'],
+        'annee': ['exact', 'gte', 'lte'],
+    }
+    ordering = ['-annee']
+
+    def perform_create(self, serializer):
+        serializer.save(id_utilisateur_maj=self.request.user)
+
+    def perform_update(self, serializer):
+        serializer.save(id_utilisateur_maj=self.request.user)
+
+    @action(detail=False, methods=['post'], url_path='upsert')
+    def upsert(self, request):
+        """Crée ou met à jour la saisie d'un (indicateur, année)."""
+        id_ind = request.data.get('id_indicateur')
+        annee = request.data.get('annee')
+        if not id_ind or annee is None:
+            return Response(
+                {'detail': 'id_indicateur et annee sont requis.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        try:
+            annee = int(annee)
+        except (TypeError, ValueError):
+            return Response({'detail': 'annee invalide.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        indicateur = get_object_or_404(Indicateur, pk=id_ind)
+        instance, _ = IndicateurMesure.objects.get_or_create(
+            id_indicateur=indicateur, annee=annee,
+        )
+        serializer = self.get_serializer(instance, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save(id_utilisateur_maj=request.user)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    @action(detail=False, methods=['get'], url_path='auto-score')
+    def auto_score(self, request):
+        """Score auto d'un indicateur pour une année donnée."""
+        id_ind = request.query_params.get('id_indicateur')
+        annee = request.query_params.get('annee')
+        if not id_ind or annee is None:
+            return Response(
+                {'detail': 'id_indicateur et annee sont requis.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        try:
+            annee = int(annee)
+        except (TypeError, ValueError):
+            return Response({'detail': 'annee invalide.'}, status=status.HTTP_400_BAD_REQUEST)
+        indicateur = get_object_or_404(Indicateur, pk=id_ind)
+        result = _compute_indicator_auto_score(indicateur, annee)
+        return Response({
+            'id_indicateur': indicateur.id_indicateur,
+            'annee': annee,
+            **result,
+        })
+
+    @action(detail=False, methods=['get'], url_path='resolved')
+    def resolved(self, request):
+        """
+        Score effectif d'un indicateur pour une année donnée :
+        retourne le score_override s'il existe, sinon le score auto calculé.
+        """
+        id_ind = request.query_params.get('id_indicateur')
+        annee = request.query_params.get('annee')
+        if not id_ind or annee is None:
+            return Response(
+                {'detail': 'id_indicateur et annee sont requis.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        try:
+            annee = int(annee)
+        except (TypeError, ValueError):
+            return Response({'detail': 'annee invalide.'}, status=status.HTTP_400_BAD_REQUEST)
+        indicateur = get_object_or_404(Indicateur, pk=id_ind)
+        auto = _compute_indicator_auto_score(indicateur, annee)
+        override = IndicateurMesure.objects.filter(
+            id_indicateur=indicateur, annee=annee, score_override__isnull=False,
+        ).first()
+        return Response({
+            'id_indicateur': indicateur.id_indicateur,
+            'annee': annee,
+            'score_auto': auto['score'],
+            'score_override': override.score_override if override else None,
+            'commentaire_override': override.commentaire_override if override else None,
+            'is_overridden': override is not None,
+            'score_effective': override.score_override if override else auto['score'],
+            'per_metrique': auto['per_metrique'],
         })

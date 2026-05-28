@@ -17,6 +17,19 @@ import {
 
 type ActionStatus = 'planned' | 'planned-realized' | 'planned-partial' | 'realized-unplanned' | 'partial-unplanned';
 
+type SuiviTab = 'realisation' | 'budget' | 'rh';
+
+/** Période d'agrégation pour les onglets Budget / RH. */
+type AggregationPeriod = 'current' | 'past' | 'total';
+
+/** Cellule prévi/réalisé pour le tableau Budget/RH. */
+interface AggregatedCell {
+  previsionnel: number;
+  realise: number;
+  hasRealise: boolean;
+  ecartPct: number | null;
+}
+
 interface FlatOperation {
   operation: Operation;
   enjeuLibelle: string;
@@ -52,13 +65,17 @@ export class PlanSuiviActionsComponent implements OnInit {
   planYearStart = signal<number>(new Date().getFullYear());
   planYearEnd = signal<number>(new Date().getFullYear() + 9);
 
+  // Tabs principaux (Phase 3)
+  activeTab = signal<SuiviTab>('realisation');
+  currentYear = signal<number>(new Date().getFullYear());
+
   // Filters
-  activeView = signal<'global' | 'annuel'>('global');
   filterCategorieAction = signal<string | null>(null);
   filterEnjeu = signal<number | null>(null);
   filterPriorite = signal<string | null>(null);
 
   // Computed
+  /** Liste des colonnes années entre planYearStart et planYearEnd. */
   yearColumns = computed(() => {
     const start = this.planYearStart();
     const end = this.planYearEnd();
@@ -103,6 +120,73 @@ export class PlanSuiviActionsComponent implements OnInit {
     });
     return Array.from(map.entries()).map(([id, libelle]) => ({ id, libelle }));
   });
+
+  /** Liste des organismes ventilés sur une opération donnée (déduplication
+   * entre années). Pour mode none/by_type, renvoie liste vide. */
+  getOrganismesForOp(op: Operation): { id_organisme: number; nom: string }[] {
+    if (op.ventilation_mode !== 'by_org' && op.ventilation_mode !== 'by_org_type') return [];
+    const seen = new Map<number, string>();
+    for (const oa of op.operation_annees || []) {
+      for (const oao of oa.organismes || []) {
+        if (!seen.has(oao.id_organisme)) {
+          seen.set(oao.id_organisme, oao.organisme_nom || `Org #${oao.id_organisme}`);
+        }
+      }
+    }
+    return [...seen.entries()].map(([id_organisme, nom]) => ({ id_organisme, nom }));
+  }
+
+  /** Groupes d'actions regroupés par organisme. Une action ventilée
+   * sur plusieurs organismes apparaît dans chacun. Les ops non-ventilées
+   * sont regroupées dans un bucket "Plan général" en fin de liste. */
+  operationsByOrganisme = computed<{
+    id_organisme: number;
+    nom: string;
+    operations: FlatOperation[];
+  }[]>(() => {
+    const ops = this.filteredOperations();
+    const groups = new Map<number, { id_organisme: number; nom: string; operations: FlatOperation[] }>();
+    const orphans: FlatOperation[] = [];
+    for (const item of ops) {
+      const orgsForOp = this.getOrganismesForOp(item.operation);
+      if (orgsForOp.length === 0) {
+        orphans.push(item);
+      } else {
+        for (const org of orgsForOp) {
+          if (!groups.has(org.id_organisme)) {
+            groups.set(org.id_organisme, { id_organisme: org.id_organisme, nom: org.nom, operations: [] });
+          }
+          groups.get(org.id_organisme)!.operations.push(item);
+        }
+      }
+    }
+    const result = [...groups.values()].sort((a, b) => a.nom.localeCompare(b.nom));
+    if (orphans.length > 0) {
+      result.push({ id_organisme: 0, nom: '__plan_general__', operations: orphans });
+    }
+    return result;
+  });
+
+  /** Total budget/ETP agrégé pour un groupe d'organisme sur une période. */
+  groupAggregate(
+    items: FlatOperation[],
+    period: AggregationPeriod,
+    metric: 'budget' | 'etp',
+  ): AggregatedCell {
+    let previsionnel = 0;
+    let realise = 0;
+    let hasRealise = false;
+    for (const item of items) {
+      const c = metric === 'budget'
+        ? this.aggregateBudget(item.operation, period)
+        : this.aggregateEtp(item.operation, period);
+      previsionnel += c.previsionnel;
+      realise += c.realise;
+      if (c.hasRealise) hasRealise = true;
+    }
+    const ecartPct = previsionnel > 0 ? ((realise - previsionnel) / previsionnel) * 100 : null;
+    return { previsionnel, realise, hasRealise, ecartPct };
+  }
 
   priorites = computed(() => {
     const labels = new Set<string>();
@@ -218,19 +302,37 @@ export class PlanSuiviActionsComponent implements OnInit {
     }
   }
 
+  /**
+   * Calcule le statut d'action pour une (opération, année) en combinant
+   * la périodicité prévue (planifié) et le niveau de réalisation observé.
+   *
+   * Matrice prévu × réalisé selon la légende des suivis :
+   *   prévu=oui, réalisé=TERMINE        → planned-realized
+   *   prévu=oui, réalisé=PARTIEL        → planned-partial
+   *   prévu=oui, réalisé=autre/aucun    → planned
+   *   prévu=non, réalisé=TERMINE        → realized-unplanned
+   *   prévu=non, réalisé=PARTIEL        → partial-unplanned
+   *   sinon                              → null (rien à afficher)
+   */
   getActionStatusForYear(op: Operation, year: number): ActionStatus | null {
     if (!op.operation_annees) return null;
     const annee = op.operation_annees.find(a => a.annee === year);
     if (!annee) return null;
 
-    if (annee.periodicite) {
+    const prevu = !!annee.periodicite;
+    const niveau = annee.realisation?.niveau_realisation_mnemonique ?? null;
+    const realiseTotal = niveau === 'TERMINE';
+    const realisePartiel = niveau === 'PARTIEL';
+
+    if (prevu) {
+      if (realiseTotal) return 'planned-realized';
+      if (realisePartiel) return 'planned-partial';
       return 'planned';
     }
+    // Non prévu mais réalisé (totalement ou partiellement)
+    if (realiseTotal) return 'realized-unplanned';
+    if (realisePartiel) return 'partial-unplanned';
     return null;
-  }
-
-  setView(view: 'global' | 'annuel'): void {
-    this.activeView.set(view);
   }
 
   setCategorieFilter(value: string | null): void {
@@ -269,4 +371,102 @@ export class PlanSuiviActionsComponent implements OnInit {
     if (!slug) return;
     this.router.navigate(['/plans', slug, 'enjeux', 'operations', operationId]);
   }
+
+  // ===========================================================================
+  // Phase 3 - Agrégations Budget / RH
+  // ===========================================================================
+
+  setTab(tab: SuiviTab): void {
+    this.activeTab.set(tab);
+  }
+
+  /**
+   * Calcule le budget prévi+réalisé pour une opération sur une période donnée.
+   * Le mode de ventilation est lu sur l'Operation.
+   */
+  aggregateBudget(op: Operation, period: AggregationPeriod): AggregatedCell {
+    return this.aggregate(op, period, 'budget');
+  }
+
+  /** Calcule l'ETP (jours) prévi+réalisé pour une opération sur une période. */
+  aggregateEtp(op: Operation, period: AggregationPeriod): AggregatedCell {
+    return this.aggregate(op, period, 'etp');
+  }
+
+  private aggregate(op: Operation, period: AggregationPeriod, metric: 'budget' | 'etp'): AggregatedCell {
+    const cy = this.currentYear();
+    const annees = (op.operation_annees || []).filter(oa => {
+      if (period === 'current') return oa.annee === cy;
+      if (period === 'past') return oa.annee < cy;
+      return true; // total
+    });
+
+    const mode = op.ventilation_mode || 'none';
+    let previsionnel = 0;
+    let realise = 0;
+    let hasRealise = false;
+
+    for (const oa of annees) {
+      // PRÉVISIONNEL ----------------------------------------------------------
+      if (metric === 'budget') {
+        if (mode === 'none') {
+          previsionnel += Number(oa.budget || 0);
+        } else if (mode === 'by_type') {
+          previsionnel += Number(oa.budget_fonctionnement || 0) + Number(oa.budget_investissement || 0);
+        } else {
+          for (const o of oa.organismes || []) {
+            previsionnel += Number(o.budget_fonctionnement || 0) + Number(o.budget_investissement || 0);
+          }
+        }
+      } else {
+        previsionnel += Number(oa.etp || 0);
+      }
+
+      // RÉALISÉ ---------------------------------------------------------------
+      const r = oa.realisation;
+      if (metric === 'budget') {
+        if (mode === 'none') {
+          if (r?.budget_realise != null) { realise += Number(r.budget_realise); hasRealise = true; }
+        } else if (mode === 'by_type') {
+          if (r?.budget_fonctionnement_realise != null) { realise += Number(r.budget_fonctionnement_realise); hasRealise = true; }
+          if (r?.budget_investissement_realise != null) { realise += Number(r.budget_investissement_realise); hasRealise = true; }
+        } else {
+          for (const o of oa.organismes || []) {
+            const ro = o.realisation;
+            if (ro?.budget_fonctionnement_realise != null) { realise += Number(ro.budget_fonctionnement_realise); hasRealise = true; }
+            if (ro?.budget_investissement_realise != null) { realise += Number(ro.budget_investissement_realise); hasRealise = true; }
+          }
+        }
+      } else {
+        if (mode === 'by_org' || mode === 'by_org_type') {
+          for (const o of oa.organismes || []) {
+            if (o.realisation?.etp_realise != null) { realise += Number(o.realisation.etp_realise); hasRealise = true; }
+          }
+        } else {
+          if (r?.etp_realise != null) { realise += Number(r.etp_realise); hasRealise = true; }
+        }
+      }
+    }
+
+    const ecartPct = previsionnel > 0 ? ((realise - previsionnel) / previsionnel) * 100 : null;
+    return { previsionnel, realise, hasRealise, ecartPct };
+  }
+
+  /** Total budget plan : somme du Total de toutes les opérations filtrées (prévi). */
+  totalPlanBudget = computed<number>(() => {
+    let sum = 0;
+    for (const item of this.filteredOperations()) {
+      sum += this.aggregateBudget(item.operation, 'total').previsionnel;
+    }
+    return sum;
+  });
+
+  /** Total ETP plan (prévi). */
+  totalPlanEtp = computed<number>(() => {
+    let sum = 0;
+    for (const item of this.filteredOperations()) {
+      sum += this.aggregateEtp(item.operation, 'total').previsionnel;
+    }
+    return sum;
+  });
 }

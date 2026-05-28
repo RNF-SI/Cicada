@@ -2404,6 +2404,99 @@ class EnjeuxSeeder(BaseSeeder):
             mesures_created.append(m)
 
         # =====================================================================
+        # Indicateurs Vercors-Écrins
+        # =====================================================================
+
+        # --- Vercors - NE "Au moins 2 couples nicheurs de gypaète dans le massif" ---
+        ne_couples_gypaete = next(
+            (ne for ne in nes_created
+             if 'couples nicheurs de gypaète' in ne.libelle.lower() or '2 couples nicheurs' in ne.libelle.lower()),
+            None,
+        )
+        if ne_couples_gypaete and type_ind_etat:
+            ind, created = Indicateur.objects.update_or_create(
+                id_ne=ne_couples_gypaete,
+                nom_indicateur='Nombre de couples nicheurs de gypaète barbu',
+                defaults={
+                    'type_indicateur': type_ind_etat,
+                    'est_standardise': True,
+                    'description': 'Nombre de couples nicheurs de gypaète barbu identifiés '
+                                   'dans le massif Vercors-Écrins par campagne annuelle.',
+                    'id_utilisateur_ajout': admin,
+                },
+            )
+            indicateurs_created.append(ind)
+            self.log_item('créé' if created else 'mis à jour', f'Indicateur: {ind.nom_indicateur[:50]}')
+
+            met, _ = Metrique.objects.update_or_create(
+                id_indicateur=ind,
+                nom_metrique='Nombre de couples nicheurs',
+                defaults={
+                    'type_metrique': type_met_numerique,
+                    'unite': 'couples',
+                    'ponderation': 1.0,
+                    'etat_reference': 'Référence : 1 couple en 2018',
+                    'sens_variation': 'CROISSANT',
+                    'has_borne_score1': True, 'has_borne_score5': True,
+                    'score_1_inf': 0, 'score_1_sup': 0, 'score_1_label': 'Aucun',
+                    'score_2_inf': 1, 'score_2_sup': 1, 'score_2_label': 'Un seul',
+                    'score_3_inf': 2, 'score_3_sup': 2, 'score_3_label': 'Objectif minimum',
+                    'score_4_inf': 3, 'score_4_sup': 4, 'score_4_label': 'Bon',
+                    'score_5_inf': 5, 'score_5_sup': 10, 'score_5_label': 'Très bon',
+                    'id_utilisateur_ajout': admin,
+                },
+            )
+            metriques_created.append(met)
+            m, _ = Mesure.objects.update_or_create(
+                id_metrique=met, date_mesure=date(2022, 7, 10),
+                defaults={'valeur': '2', 'commentaire': 'Campagne 2022, deux couples confirmés', 'id_utilisateur_ajout': admin},
+            )
+            mesures_created.append(m)
+            m, _ = Mesure.objects.update_or_create(
+                id_metrique=met, date_mesure=date(2024, 7, 12),
+                defaults={'valeur': '3', 'commentaire': 'Installation d\'un 3e couple en 2024', 'id_utilisateur_ajout': admin},
+            )
+            mesures_created.append(m)
+
+        # --- Vercors - NE "Succès de reproduction du gypaète ≥ 0.4 jeune/couple/an" ---
+        ne_succes_gypaete = next(
+            (ne for ne in nes_created if 'succès de reproduction du gypaète' in ne.libelle.lower()),
+            None,
+        )
+        if ne_succes_gypaete and type_ind_etat:
+            ind, created = Indicateur.objects.update_or_create(
+                id_ne=ne_succes_gypaete,
+                nom_indicateur='Taux de succès de reproduction du gypaète',
+                defaults={
+                    'type_indicateur': type_ind_etat,
+                    'description': 'Nombre de jeunes envolés par couple suivi sur la saison.',
+                    'id_utilisateur_ajout': admin,
+                },
+            )
+            indicateurs_created.append(ind)
+            self.log_item('créé' if created else 'mis à jour', f'Indicateur: {ind.nom_indicateur[:50]}')
+
+            met, _ = Metrique.objects.update_or_create(
+                id_indicateur=ind,
+                nom_metrique='Jeunes envolés / couple / an',
+                defaults={
+                    'type_metrique': type_met_numerique,
+                    'unite': 'jeunes/couple/an',
+                    'ponderation': 1.0,
+                    'etat_reference': 'Référence : 0.30 en 2021',
+                    'sens_variation': 'CROISSANT',
+                    'has_borne_score1': True, 'has_borne_score5': True,
+                    'score_1_inf': 0, 'score_1_sup': 0.1, 'score_1_label': 'Très faible',
+                    'score_2_inf': 0.1, 'score_2_sup': 0.3, 'score_2_label': 'Faible',
+                    'score_3_inf': 0.3, 'score_3_sup': 0.5, 'score_3_label': 'Moyen',
+                    'score_4_inf': 0.5, 'score_4_sup': 0.7, 'score_4_label': 'Bon',
+                    'score_5_inf': 0.7, 'score_5_sup': 1.5, 'score_5_label': 'Excellent',
+                    'id_utilisateur_ajout': admin,
+                },
+            )
+            metriques_created.append(met)
+
+        # =====================================================================
         # Indicateurs Lac de Remoray
         # =====================================================================
 
@@ -3336,6 +3429,7 @@ class EnjeuxSeeder(BaseSeeder):
         cat_reserve_ci = self._get_nomenclature('CATEGORIE_ACTION_RESERVE', 'CI')  # Infrastructures
         cat_reserve_ms = self._get_nomenclature('CATEGORIE_ACTION_RESERVE', 'MS')  # Management
         cat_reserve_pa = self._get_nomenclature('CATEGORIE_ACTION_RESERVE', 'PA')  # Accueil/animation
+        cat_reserve_cc = self._get_nomenclature('CATEGORIE_ACTION_RESERVE', 'CC')  # Création supports comm/péda
 
         # --- Opérations Camargue ---
         # Liée à l'indicateur "Surface des habitats humides en bon état de conservation"
@@ -3350,7 +3444,7 @@ class EnjeuxSeeder(BaseSeeder):
                     'id_categorie_action_reserve': cat_reserve_ip,
                     'description': 'Travaux de remise en eau du marais sud par suppression '
                                    'des endiguements et restauration des connexions hydrauliques.',
-                    'annee_min': 2024,
+                    'annee_min': 2020,
                     'annee_max': 2026,
                     'id_utilisateur_ajout': admin
                 }
@@ -3368,7 +3462,7 @@ class EnjeuxSeeder(BaseSeeder):
                     'id_categorie_action_reserve': cat_reserve_cs,
                     'description': 'Cartographie annuelle de l\'état de conservation '
                                    'des habitats humides par télédétection et terrain.',
-                    'annee_min': 2024,
+                    'annee_min': 2021,
                     'annee_max': 2030,
                     'id_utilisateur_ajout': admin
                 }
@@ -3388,7 +3482,7 @@ class EnjeuxSeeder(BaseSeeder):
                     'id_referentiel_operations': 'IP',
                     'description': 'Mise en place de zones d\'exclusion temporaires '
                                    'autour des colonies de nidification en période de reproduction.',
-                    'annee_min': 2024,
+                    'annee_min': 2022,
                     'annee_max': 2030,
                     'id_utilisateur_ajout': admin
                 }
@@ -3408,7 +3502,7 @@ class EnjeuxSeeder(BaseSeeder):
                     'id_referentiel_operations': 'GE',
                     'description': 'Animation de la concertation avec les acteurs agricoles '
                                    'pour la définition de quotas respectant le débit écologique.',
-                    'annee_min': 2024,
+                    'annee_min': 2023,
                     'annee_max': 2028,
                     'id_utilisateur_ajout': admin
                 }
@@ -3429,8 +3523,8 @@ class EnjeuxSeeder(BaseSeeder):
                     'id_referentiel_operations': 'CS',
                     'description': 'Suivi annuel des 24 placettes permanentes pour le comptage '
                                    'des stations d\'espèces arctico-alpines.',
-                    'annee_min': 2024,
-                    'annee_max': 2030,
+                    'annee_min': 2019,
+                    'annee_max': 2028,
                     'id_utilisateur_ajout': admin
                 }
             )
@@ -3449,8 +3543,8 @@ class EnjeuxSeeder(BaseSeeder):
                     'id_referentiel_operations': 'PR',
                     'description': 'Balisage et surveillance des zones de quiétude '
                                    'pour le tétras-lyre en période hivernale (nov-avr).',
-                    'annee_min': 2024,
-                    'annee_max': 2030,
+                    'annee_min': 2020,
+                    'annee_max': 2028,
                     'id_utilisateur_ajout': admin
                 }
             )
@@ -3466,12 +3560,92 @@ class EnjeuxSeeder(BaseSeeder):
                     'id_referentiel_operations': 'CC',
                     'description': 'Campagnes de communication et panneaux d\'information '
                                    'auprès des randonneurs et skieurs de randonnée.',
-                    'annee_min': 2024,
-                    'annee_max': 2030,
+                    'annee_min': 2021,
+                    'annee_max': 2028,
                     'id_utilisateur_ajout': admin
                 }
             )
             _link_op_to_indicateur(op2, ind_quietude)
+            operations_created.append(op2)
+            self.log_item('créé' if created else 'mis à jour', f'Opération: {op2.libelle[:50]}')
+
+        # --- Opérations Vercors-Écrins ---
+        # Liées à l'indicateur "Nombre de couples nicheurs de gypaète"
+        ind_gyp_couples = next((i for i in indicateurs_created if 'couples nicheurs de gypaète' in i.nom_indicateur), None)
+        ind_gyp_succes = next((i for i in indicateurs_created if 'succès de reproduction du gypaète' in i.nom_indicateur), None)
+
+        if ind_gyp_couples and prio_op_1:
+            op, created = Operation.objects.update_or_create(
+                code_operation='VER-CS01',
+                defaults={
+                    'libelle': 'Suivi annuel des couples nicheurs de gypaète barbu',
+                    'id_priorite': prio_op_1,
+                    'id_referentiel_operations': 'CS',
+                    'id_categorie_action_reserve': cat_reserve_cs,
+                    'description': 'Recensement annuel des couples nicheurs de gypaète '
+                                   'sur l\'ensemble du massif Vercors-Écrins, en partenariat '
+                                   'avec le réseau Casseur d\'Os de l\'OFB.',
+                    'annee_min': 2021,
+                    'annee_max': 2031,
+                    'id_utilisateur_ajout': admin,
+                },
+            )
+            _link_op_to_indicateur(op, ind_gyp_couples)
+            operations_created.append(op)
+            self.log_item('créé' if created else 'mis à jour', f'Opération: {op.libelle[:50]}')
+
+            op2, created = Operation.objects.update_or_create(
+                code_operation='VER-PR01',
+                defaults={
+                    'libelle': 'Surveillance des sites de nidification en période sensible',
+                    'id_priorite': prio_op_1,
+                    'id_referentiel_operations': 'PR',
+                    'id_categorie_action_reserve': cat_reserve_sp,
+                    'description': 'Patrouilles ciblées sur les sites de nidification du gypaète '
+                                   'en période de reproduction (janv-juin) pour limiter le dérangement.',
+                    'annee_min': 2022,
+                    'annee_max': 2031,
+                    'id_utilisateur_ajout': admin,
+                },
+            )
+            _link_op_to_indicateur(op2, ind_gyp_couples)
+            operations_created.append(op2)
+            self.log_item('créé' if created else 'mis à jour', f'Opération: {op2.libelle[:50]}')
+
+        if ind_gyp_succes and prio_op_2:
+            op, created = Operation.objects.update_or_create(
+                code_operation='VER-CC01',
+                defaults={
+                    'libelle': 'Sensibilisation des grimpeurs et alpinistes aux zones sensibles',
+                    'id_priorite': prio_op_2,
+                    'id_referentiel_operations': 'CC',
+                    'id_categorie_action_reserve': cat_reserve_cc,
+                    'description': 'Information ciblée auprès des fédérations sportives '
+                                   'et balisage saisonnier des falaises de nidification.',
+                    'annee_min': 2023,
+                    'annee_max': 2031,
+                    'id_utilisateur_ajout': admin,
+                },
+            )
+            _link_op_to_indicateur(op, ind_gyp_succes)
+            operations_created.append(op)
+            self.log_item('créé' if created else 'mis à jour', f'Opération: {op.libelle[:50]}')
+
+            op2, created = Operation.objects.update_or_create(
+                code_operation='VER-CS02',
+                defaults={
+                    'libelle': 'Caméras nichoirs et suivi photographique de la reproduction',
+                    'id_priorite': prio_op_2,
+                    'id_referentiel_operations': 'CS',
+                    'id_categorie_action_reserve': cat_reserve_cs,
+                    'description': 'Installation et exploitation de pièges photographiques '
+                                   'pour documenter le succès reproducteur sans dérangement.',
+                    'annee_min': 2024,
+                    'annee_max': 2030,
+                    'id_utilisateur_ajout': admin,
+                },
+            )
+            _link_op_to_indicateur(op2, ind_gyp_succes)
             operations_created.append(op2)
             self.log_item('créé' if created else 'mis à jour', f'Opération: {op2.libelle[:50]}')
 
@@ -3487,7 +3661,7 @@ class EnjeuxSeeder(BaseSeeder):
                     'id_referentiel_operations': 'CS',
                     'description': 'Campagnes de prélèvements mensuels sur 3 points '
                                    'du lac pour le suivi de la qualité physico-chimique.',
-                    'annee_min': 2024,
+                    'annee_min': 2023,
                     'annee_max': 2030,
                     'id_utilisateur_ajout': admin
                 }
@@ -3507,7 +3681,7 @@ class EnjeuxSeeder(BaseSeeder):
                     'id_referentiel_operations': 'GE',
                     'description': 'Enquête et accompagnement des exploitants agricoles '
                                    'pour la réduction des intrants sur le bassin versant.',
-                    'annee_min': 2024,
+                    'annee_min': 2023,
                     'annee_max': 2027,
                     'id_utilisateur_ajout': admin
                 }
@@ -3527,7 +3701,7 @@ class EnjeuxSeeder(BaseSeeder):
                     'id_referentiel_operations': 'GE',
                     'description': 'Négociation et renouvellement des conventions '
                                    'avec les agriculteurs pour la fauche tardive (après le 15 juillet).',
-                    'annee_min': 2024,
+                    'annee_min': 2023,
                     'annee_max': 2028,
                     'id_utilisateur_ajout': admin
                 }
@@ -3547,7 +3721,7 @@ class EnjeuxSeeder(BaseSeeder):
                     'id_referentiel_operations': 'SE',
                     'description': 'Trois campagnes annuelles d\'arrachage mécanique '
                                    'et de suivi des repousses sur les 3 stations connues.',
-                    'annee_min': 2024,
+                    'annee_min': 2023,
                     'annee_max': 2030,
                     'id_utilisateur_ajout': admin
                 }
@@ -3610,7 +3784,7 @@ class EnjeuxSeeder(BaseSeeder):
                     'id_referentiel_operations': 'SE',
                     'description': 'Relevé mensuel des 15 piézomètres installés sur les '
                                    '8 tourbières. Analyse des tendances inter-annuelles.',
-                    'annee_min': 2024,
+                    'annee_min': 2023,
                     'annee_max': 2030,
                     'id_utilisateur_ajout': admin
                 }
@@ -4357,6 +4531,13 @@ class EnjeuxSeeder(BaseSeeder):
                     op.frequence_unite = 'an'
                 if not op.operateurs:
                     op.operateurs = 'Agent de la réserve'
+
+            # Emprise spatiale (MultiPolygon SRID 4326, format identique aux sites).
+            # Centrée selon le préfixe du code opération (CAM, AR, VER, REM, ...).
+            from ._geo_helpers import make_operation_geom
+            if not op.geom:
+                op.geom = make_operation_geom(op.code_operation, idx)
+
             op.save()
 
             # Create OperationAnnee entries with varied data

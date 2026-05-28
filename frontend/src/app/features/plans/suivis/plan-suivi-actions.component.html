@@ -66,23 +66,39 @@
 
       <!-- Content Section -->
       <section class="content-section">
-        <!-- Toggle Global / Annuel -->
-        <div class="view-toggle">
+
+        <!-- Main tabs (Phase 3) : Réalisation / Budget / RH -->
+        <div class="suivi-tabs" role="tablist">
           <button
-            class="toggle-btn"
-            [class.active]="activeView() === 'global'"
-            (click)="setView('global')">
-            {{ 'plans.suivis.actions.global' | translate }}
+            class="suivi-tab"
+            [class.active]="activeTab() === 'realisation'"
+            (click)="setTab('realisation')"
+            role="tab">
+            {{ 'plans.suivis.actions.tabs.realisation' | translate }}
           </button>
           <button
-            class="toggle-btn"
-            [class.active]="activeView() === 'annuel'"
-            (click)="setView('annuel')">
-            {{ 'plans.suivis.actions.annuel' | translate }}
+            class="suivi-tab"
+            [class.active]="activeTab() === 'budget'"
+            (click)="setTab('budget')"
+            role="tab">
+            {{ 'plans.suivis.actions.tabs.budget' | translate }}
+            @if (totalPlanBudget(); as t) {
+              <span class="tab-meta">{{ t | number:'1.0-0':'fr-FR' }} €</span>
+            }
+          </button>
+          <button
+            class="suivi-tab"
+            [class.active]="activeTab() === 'rh'"
+            (click)="setTab('rh')"
+            role="tab">
+            {{ 'plans.suivis.actions.tabs.rh' | translate }}
+            @if (totalPlanEtp(); as e) {
+              <span class="tab-meta">{{ e | number:'1.0-0':'fr-FR' }} {{ 'plans.suivis.actions.tabs.jours' | translate }}</span>
+            }
           </button>
         </div>
 
-        <!-- Filters -->
+        <!-- Filters (toujours visibles) -->
         <div class="filter-bar">
           <div class="filter-bar-left">
             <div class="filter-label">{{ 'plans.suivis.actions.filterLabel' | translate }}</div>
@@ -156,20 +172,22 @@
           </button>
         </div>
 
-        <!-- Légende -->
-        <div class="legend">
-          <span class="legend-label">{{ 'plans.suivis.actions.legendLabel' | translate }}</span>
-          <div class="legend-items">
-            @for (item of legendItems; track item.status) {
-              <div class="legend-item">
-                <img [src]="getActionIcon(item.status)" class="action-status-icon legend-icon" alt="">
-                <span class="legend-text">{{ item.labelKey | translate }}</span>
-              </div>
-            }
+        <!-- Légende (uniquement onglet Réalisation) -->
+        @if (activeTab() === 'realisation') {
+          <div class="legend">
+            <span class="legend-label">{{ 'plans.suivis.actions.legendLabel' | translate }}</span>
+            <div class="legend-items">
+              @for (item of legendItems; track item.status) {
+                <div class="legend-item">
+                  <img [src]="getActionIcon(item.status)" class="action-status-icon legend-icon" alt="">
+                  <span class="legend-text">{{ item.labelKey | translate }}</span>
+                </div>
+              }
+            </div>
           </div>
-        </div>
+        }
 
-        <!-- Table -->
+        <!-- Tables -->
         @if (filteredOperations().length === 0) {
           <div class="empty-state">
             <i class="fi fi-rr-info"></i>
@@ -177,61 +195,263 @@
             <p class="empty-hint">{{ 'plans.suivis.actions.noOperationsHint' | translate }}</p>
           </div>
         } @else {
-          <div class="table-wrapper">
-            <table class="actions-table">
-              <thead>
-                <tr>
-                  <th class="col-action">{{ 'plans.suivis.actions.tableHeader' | translate }}</th>
-                  @for (year of yearColumns(); track year) {
-                    <th class="col-year">{{ year }}</th>
-                  }
-                  <th class="col-icons"></th>
-                </tr>
-              </thead>
-              <tbody>
-                @for (item of filteredOperations(); track item.operation.id_operation; let idx = $index) {
-                  <tr [class.row-alt]="idx % 2 === 1"
-                      [class.is-draft]="item.operation.statut === 'draft'">
-                    <td class="col-action">
-                      <div class="action-name">
-                        {{ item.operation.libelle }}
-                        @if (item.operation.statut === 'draft') {
-                          <mat-chip class="operation-draft-chip status-warning"
-                                    [matTooltip]="'enjeux.operations.draftChipTooltip' | translate">
-                            {{ 'enjeux.operations.draftChip' | translate }}
-                          </mat-chip>
-                        }
-                      </div>
-                      @if (item.operation.priorite_label) {
-                        <div class="action-priority" [ngClass]="getPrioriteClass(item.operation)">
-                          {{ item.operation.priorite_label }}
-                        </div>
+          @switch (activeTab()) {
+
+            <!-- ============================================================ -->
+            <!-- ONGLET RÉALISATION (existant)                                -->
+            <!-- ============================================================ -->
+            @case ('realisation') {
+              <div class="table-wrapper">
+                <table class="actions-table">
+                  <thead>
+                    <tr>
+                      <th class="col-action">{{ 'plans.suivis.actions.tableHeader' | translate }}</th>
+                      @for (year of yearColumns(); track year) {
+                        <th class="col-year">{{ year }}</th>
                       }
-                    </td>
-                    @for (year of yearColumns(); track year) {
-                      <td class="col-year">
-                        @if (getActionStatusForYear(item.operation, year); as status) {
-                          <img [src]="getActionIcon(status)" class="action-status-icon" alt="">
-                        }
-                      </td>
+                      <th class="col-icons"></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (group of operationsByOrganisme(); track group.id_organisme) {
+                      <!-- En-tête organisme -->
+                      <tr class="org-header-row">
+                        <td [attr.colspan]="yearColumns().length + 2">
+                          {{ group.nom === '__plan_general__'
+                             ? ('plans.suivis.actions.planGeneral' | translate)
+                             : group.nom }}
+                        </td>
+                      </tr>
+                      @for (item of group.operations; track item.operation.id_operation; let idx = $index) {
+                        <tr [class.row-alt]="idx % 2 === 1"
+                            [class.is-draft]="item.operation.statut === 'draft'">
+                          <td class="col-action">
+                            <div class="action-name">
+                              {{ item.operation.libelle }}
+                              @if (item.operation.statut === 'draft') {
+                                <mat-chip class="operation-draft-chip status-warning"
+                                          [matTooltip]="'enjeux.operations.draftChipTooltip' | translate">
+                                  {{ 'enjeux.operations.draftChip' | translate }}
+                                </mat-chip>
+                              }
+                            </div>
+                            @if (item.operation.priorite_label) {
+                              <div class="action-priority" [ngClass]="getPrioriteClass(item.operation)">
+                                {{ item.operation.priorite_label }}
+                              </div>
+                            }
+                          </td>
+                          @for (year of yearColumns(); track year) {
+                            <td
+                              class="col-year clickable"
+                              [routerLink]="['/plans', planSlug(), 'suivi-actions', 'saisie', item.operation.id_operation, year]"
+                              [title]="'plans.suivis.saisie.subtitle' | translate"
+                            >
+                              @if (getActionStatusForYear(item.operation, year); as status) {
+                                <img [src]="getActionIcon(status)" class="action-status-icon" alt="">
+                              }
+                            </td>
+                          }
+                          <td class="col-icons">
+                            <div class="row-actions">
+                              <button class="icon-btn-flat" title="Statistiques">
+                                <i class="fi fi-rr-chart-histogram"></i>
+                              </button>
+                              <button class="icon-btn-flat"
+                                      [title]="'common.actions.view' | translate"
+                                      (click)="navigateToViewOperation(item.operation.id_operation)">
+                                <i class="fi fi-rr-eye"></i>
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      }
                     }
-                    <td class="col-icons">
-                      <div class="row-actions">
-                        <button class="icon-btn-flat" title="Statistiques">
-                          <i class="fi fi-rr-chart-histogram"></i>
-                        </button>
-                        <button class="icon-btn-flat"
-                                [title]="'common.actions.view' | translate"
-                                (click)="navigateToViewOperation(item.operation.id_operation)">
-                          <i class="fi fi-rr-eye"></i>
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                }
-              </tbody>
-            </table>
-          </div>
+                  </tbody>
+                </table>
+              </div>
+            }
+
+            <!-- ============================================================ -->
+            <!-- ONGLET BUDGET (Phase 3)                                      -->
+            <!-- ============================================================ -->
+            @case ('budget') {
+              <div class="table-wrapper">
+                <table class="actions-table agg-table">
+                  <thead>
+                    <tr>
+                      <th class="col-action">{{ 'plans.suivis.actions.tableHeader' | translate }}</th>
+                      <th class="col-agg">
+                        {{ 'plans.suivis.actions.tabs.col.current' | translate }}
+                        <small>{{ currentYear() }}</small>
+                      </th>
+                      <th class="col-agg">{{ 'plans.suivis.actions.tabs.col.past' | translate }}</th>
+                      <th class="col-agg">{{ 'plans.suivis.actions.tabs.col.total' | translate }}</th>
+                      <th class="col-icons"></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (group of operationsByOrganisme(); track group.id_organisme) {
+                      <!-- En-tête organisme avec totaux agrégés -->
+                      <tr class="org-header-row org-header-row-totals">
+                        <td class="col-action">
+                          {{ group.nom === '__plan_general__'
+                             ? ('plans.suivis.actions.planGeneral' | translate)
+                             : group.nom }}
+                          <span class="org-total-suffix">— {{ 'plans.suivis.actions.tabs.col.total' | translate }}</span>
+                        </td>
+                        @for (period of ['current', 'past', 'total']; track period) {
+                          @let gcell = groupAggregate(group.operations, $any(period), 'budget');
+                          <td class="col-agg">
+                            <div class="agg-prev">{{ gcell.previsionnel | number:'1.0-0':'fr-FR' }} €</div>
+                            @if (gcell.hasRealise && gcell.ecartPct !== null) {
+                              <div class="agg-real">
+                                <span class="ecart" [class.positive]="gcell.ecartPct >= 0" [class.negative]="gcell.ecartPct < 0">
+                                  <i class="fi" [class.fi-rr-arrow-up]="gcell.ecartPct >= 0" [class.fi-rr-arrow-down]="gcell.ecartPct < 0"></i>
+                                  {{ (gcell.realise - gcell.previsionnel) | number:'1.0-0':'fr-FR' }} €
+                                </span>
+                              </div>
+                            }
+                          </td>
+                        }
+                        <td></td>
+                      </tr>
+                      @for (item of group.operations; track item.operation.id_operation; let idx = $index) {
+                        <tr [class.row-alt]="idx % 2 === 1">
+                          <td class="col-action">
+                            <div class="action-name">{{ item.operation.libelle }}</div>
+                            @if (item.operation.priorite_label) {
+                              <div class="action-priority" [ngClass]="getPrioriteClass(item.operation)">
+                                {{ item.operation.priorite_label }}
+                              </div>
+                            }
+                          </td>
+                          @for (period of ['current', 'past', 'total']; track period) {
+                            @let cell = aggregateBudget(item.operation, $any(period));
+                            <td class="col-agg">
+                              <div class="agg-prev">{{ cell.previsionnel | number:'1.0-0':'fr-FR' }} €</div>
+                              @if (cell.hasRealise) {
+                                <div class="agg-real">
+                                  @if (cell.ecartPct !== null) {
+                                    <span class="ecart" [class.positive]="cell.ecartPct >= 0" [class.negative]="cell.ecartPct < 0">
+                                      <i class="fi" [class.fi-rr-arrow-up]="cell.ecartPct >= 0" [class.fi-rr-arrow-down]="cell.ecartPct < 0"></i>
+                                      {{ (cell.ecartPct | number:'1.0-1':'fr-FR') }}%
+                                    </span>
+                                  }
+                                  <span class="real-value">{{ cell.realise | number:'1.0-0':'fr-FR' }} €</span>
+                                </div>
+                              } @else {
+                                <div class="agg-real-empty">—</div>
+                              }
+                            </td>
+                          }
+                          <td class="col-icons">
+                            <div class="row-actions">
+                              <button class="icon-btn-flat"
+                                      [title]="'common.actions.view' | translate"
+                                      (click)="navigateToViewOperation(item.operation.id_operation)">
+                                <i class="fi fi-rr-eye"></i>
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      }
+                    }
+                  </tbody>
+                </table>
+              </div>
+            }
+
+            <!-- ============================================================ -->
+            <!-- ONGLET RH (Phase 3)                                          -->
+            <!-- ============================================================ -->
+            @case ('rh') {
+              <div class="table-wrapper">
+                <table class="actions-table agg-table">
+                  <thead>
+                    <tr>
+                      <th class="col-action">{{ 'plans.suivis.actions.tableHeader' | translate }}</th>
+                      <th class="col-agg">
+                        {{ 'plans.suivis.actions.tabs.col.current' | translate }}
+                        <small>{{ currentYear() }}</small>
+                      </th>
+                      <th class="col-agg">{{ 'plans.suivis.actions.tabs.col.past' | translate }}</th>
+                      <th class="col-agg">{{ 'plans.suivis.actions.tabs.col.total' | translate }}</th>
+                      <th class="col-icons"></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (group of operationsByOrganisme(); track group.id_organisme) {
+                      <!-- En-tête organisme avec totaux RH -->
+                      <tr class="org-header-row org-header-row-totals">
+                        <td class="col-action">
+                          {{ group.nom === '__plan_general__'
+                             ? ('plans.suivis.actions.planGeneral' | translate)
+                             : group.nom }}
+                          <span class="org-total-suffix">— {{ 'plans.suivis.actions.tabs.col.total' | translate }}</span>
+                        </td>
+                        @for (period of ['current', 'past', 'total']; track period) {
+                          @let gcell = groupAggregate(group.operations, $any(period), 'etp');
+                          <td class="col-agg">
+                            <div class="agg-prev">{{ gcell.previsionnel | number:'1.0-1':'fr-FR' }} {{ 'plans.suivis.actions.tabs.jours' | translate }}</div>
+                            @if (gcell.hasRealise && gcell.ecartPct !== null) {
+                              <div class="agg-real">
+                                <span class="ecart" [class.positive]="gcell.ecartPct >= 0" [class.negative]="gcell.ecartPct < 0">
+                                  <i class="fi" [class.fi-rr-arrow-up]="gcell.ecartPct >= 0" [class.fi-rr-arrow-down]="gcell.ecartPct < 0"></i>
+                                  {{ (gcell.realise - gcell.previsionnel) | number:'1.0-1':'fr-FR' }} {{ 'plans.suivis.actions.tabs.jours' | translate }}
+                                </span>
+                              </div>
+                            }
+                          </td>
+                        }
+                        <td></td>
+                      </tr>
+                      @for (item of group.operations; track item.operation.id_operation; let idx = $index) {
+                        <tr [class.row-alt]="idx % 2 === 1">
+                          <td class="col-action">
+                            <div class="action-name">{{ item.operation.libelle }}</div>
+                            @if (item.operation.priorite_label) {
+                              <div class="action-priority" [ngClass]="getPrioriteClass(item.operation)">
+                                {{ item.operation.priorite_label }}
+                              </div>
+                            }
+                          </td>
+                          @for (period of ['current', 'past', 'total']; track period) {
+                            @let cell = aggregateEtp(item.operation, $any(period));
+                            <td class="col-agg">
+                              <div class="agg-prev">{{ cell.previsionnel | number:'1.0-1':'fr-FR' }} {{ 'plans.suivis.actions.tabs.jours' | translate }}</div>
+                              @if (cell.hasRealise) {
+                                <div class="agg-real">
+                                  @if (cell.ecartPct !== null) {
+                                    <span class="ecart" [class.positive]="cell.ecartPct >= 0" [class.negative]="cell.ecartPct < 0">
+                                      <i class="fi" [class.fi-rr-arrow-up]="cell.ecartPct >= 0" [class.fi-rr-arrow-down]="cell.ecartPct < 0"></i>
+                                      {{ (cell.ecartPct | number:'1.0-1':'fr-FR') }}%
+                                    </span>
+                                  }
+                                  <span class="real-value">{{ cell.realise | number:'1.0-1':'fr-FR' }} {{ 'plans.suivis.actions.tabs.jours' | translate }}</span>
+                                </div>
+                              } @else {
+                                <div class="agg-real-empty">—</div>
+                              }
+                            </td>
+                          }
+                          <td class="col-icons">
+                            <div class="row-actions">
+                              <button class="icon-btn-flat"
+                                      [title]="'common.actions.view' | translate"
+                                      (click)="navigateToViewOperation(item.operation.id_operation)">
+                                <i class="fi fi-rr-eye"></i>
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      }
+                    }
+                  </tbody>
+                </table>
+              </div>
+            }
+          }
         }
       </section>
     }

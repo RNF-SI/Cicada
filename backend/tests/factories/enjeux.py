@@ -14,7 +14,12 @@ from apps.plans.models_enjeux import (
 from apps.plans.models_indicateurs import (
     Indicateur, Metrique, Mesure, CorIndicateurTaxon,
 )
-from apps.plans.models_operations import Protocole, SuiviInventaire, Operation
+from apps.plans.models_operations import (
+    Protocole, SuiviInventaire, Operation,
+    OperationAnnee, OperationAnneeOrganisme,
+    RealisationOperationAnnee, RealisationOperationAnneeOrganisme,
+)
+from apps.users.models import BibOrganismes
 from tests.factories.core import TypeNomenclatureFactory, NomenclatureFactory
 from tests.factories.plans import PlanGestionFactory
 from tests.factories.users import RoleFactory
@@ -417,3 +422,100 @@ class OperationFactory(DjangoModelFactory):
         if extracted:
             for metrique in extracted:
                 self.metriques.add(metrique)
+
+
+# =============================================================================
+# OperationAnnee / OperationAnneeOrganisme / Realisation (Phase 1 - Suivis)
+# =============================================================================
+
+class OperationAnneeFactory(DjangoModelFactory):
+    """Programmation annuelle d'une opération."""
+
+    class Meta:
+        model = OperationAnnee
+
+    id_operation = factory.SubFactory(OperationFactory)
+    annee = factory.Sequence(lambda n: 2024 + (n % 7))
+    periodicite = True
+    budget = factory.Faker('pydecimal', left_digits=4, right_digits=2, positive=True)
+    etp = factory.Faker('pydecimal', left_digits=2, right_digits=2, positive=True)
+
+
+class OperationAnneeOrganismeFactory(DjangoModelFactory):
+    """Ventilation par organisme d'une OperationAnnee."""
+
+    class Meta:
+        model = OperationAnneeOrganisme
+
+    id_operation_annee = factory.SubFactory(OperationAnneeFactory)
+    id_organisme = factory.LazyAttribute(
+        lambda _: BibOrganismes.objects.first() or BibOrganismes.objects.create(
+            nom_organisme='Org Test'
+        )
+    )
+    budget_fonctionnement = factory.Faker('pydecimal', left_digits=4, right_digits=2, positive=True)
+    budget_investissement = factory.Faker('pydecimal', left_digits=4, right_digits=2, positive=True)
+    etp = factory.Faker('pydecimal', left_digits=2, right_digits=2, positive=True)
+
+
+def _get_or_create_niveau_realisation_type():
+    """Récupère ou crée le TypeNomenclature NIVEAU_REALISATION (singleton par DB)."""
+    from apps.core.models import TypeNomenclature
+    type_obj, _ = TypeNomenclature.objects.get_or_create(
+        mnemonique='NIVEAU_REALISATION',
+        defaults={'label': "Niveau de réalisation"},
+    )
+    return type_obj
+
+
+def NomenclatureNiveauRealisationFactory(mnemonique: str = 'TERMINE', label: str = None):
+    """
+    Crée (ou récupère) une nomenclature NIVEAU_REALISATION par mnémonique.
+
+    Mappage label par défaut :
+      NON_DEMARRE → "Non démarré", EN_COURS → "En cours", PARTIEL → "Partiel",
+      TERMINE → "Terminé", ABANDONNE → "Abandonné", REPORTE → "Reporté".
+    """
+    from apps.core.models import Nomenclature
+    labels = {
+        'NON_DEMARRE': 'Non démarré', 'EN_COURS': 'En cours', 'PARTIEL': 'Partiel',
+        'TERMINE': 'Terminé', 'ABANDONNE': 'Abandonné', 'REPORTE': 'Reporté',
+    }
+    type_obj = _get_or_create_niveau_realisation_type()
+    nomenclature, _ = Nomenclature.objects.get_or_create(
+        id_type=type_obj,
+        mnemonique=mnemonique,
+        defaults={
+            'cd_nomenclature': mnemonique[:10],
+            'label': label or labels.get(mnemonique, mnemonique),
+        },
+    )
+    return nomenclature
+
+
+class RealisationOperationAnneeFactory(DjangoModelFactory):
+    """Suivi de réalisation annuel."""
+
+    class Meta:
+        model = RealisationOperationAnnee
+
+    id_operation_annee = factory.SubFactory(OperationAnneeFactory)
+    id_niveau_realisation = factory.LazyFunction(
+        lambda: NomenclatureNiveauRealisationFactory(mnemonique='TERMINE')
+    )
+    periodicite_realisee = True
+    commentaires = factory.Faker('sentence', locale='fr_FR')
+    budget_realise = factory.Faker('pydecimal', left_digits=4, right_digits=2, positive=True)
+    etp_realise = factory.Faker('pydecimal', left_digits=2, right_digits=2, positive=True)
+
+
+class RealisationOperationAnneeOrganismeFactory(DjangoModelFactory):
+    """Ventilation par organisme d'une réalisation."""
+
+    class Meta:
+        model = RealisationOperationAnneeOrganisme
+
+    id_operation_annee_organisme = factory.SubFactory(OperationAnneeOrganismeFactory)
+    budget_fonctionnement_realise = factory.Faker('pydecimal', left_digits=4, right_digits=2, positive=True)
+    budget_investissement_realise = factory.Faker('pydecimal', left_digits=4, right_digits=2, positive=True)
+    etp_realise = factory.Faker('pydecimal', left_digits=2, right_digits=2, positive=True)

@@ -7,7 +7,7 @@ from .serializers_enjeux import _prefetched_count
 
 from .models_indicateurs import (
     Indicateur, CorIndicateurTaxon, CorIndicateurHabitat, CorIndicateurGeologie,
-    Metrique, MetriqueScoreBlock, Mesure,
+    Metrique, MetriqueScoreBlock, Mesure, IndicateurMesure,
 )
 
 
@@ -410,3 +410,27 @@ class IndicateurCreateSerializer(serializers.ModelSerializer):
                 "Un indicateur ne peut être rattaché qu'à un seul parent."
             )
         return attrs
+
+
+# =============================================================================
+# IndicateurMesure (saisie au niveau indicateur, avec override manuel)
+# =============================================================================
+
+class IndicateurMesureSerializer(serializers.ModelSerializer):
+    """Saisie annuelle au niveau Indicateur."""
+
+    class Meta:
+        model = IndicateurMesure
+        fields = [
+            'id_indicateur_mesure',
+            'id_indicateur',
+            'annee',
+            'score_override',
+            'commentaire_override',
+            'date_ajout',
+            'date_maj',
+            'id_utilisateur_maj',
+        ]
+        read_only_fields = [
+            'id_indicateur_mesure', 'date_ajout', 'date_maj', 'id_utilisateur_maj',
+        ]

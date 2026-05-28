@@ -14,8 +14,12 @@ from .views_enjeux import (
     ObjectifLongTermeViewSet, NiveauExigenceViewSet,
     ObjectifOperationnelViewSet, ResultatAttenduViewSet
 )
-from .views_indicateurs import IndicateurViewSet, MetriqueViewSet, MesureViewSet
-from .views_operations import OperationViewSet
+from .views_indicateurs import IndicateurViewSet, MetriqueViewSet, MesureViewSet, IndicateurMesureViewSet
+from .views_operations import (
+    OperationViewSet,
+    RealisationOperationAnneeViewSet,
+    RealisationOperationAnneeOrganismeViewSet,
+)
 
 # Router pour les ViewSets
 router = DefaultRouter()
@@ -30,9 +34,12 @@ router.register(r'niveaux-exigence', NiveauExigenceViewSet, basename='niveauexig
 router.register(r'indicateurs', IndicateurViewSet, basename='indicateur')
 router.register(r'metriques', MetriqueViewSet, basename='metrique')
 router.register(r'mesures', MesureViewSet, basename='mesure')
+router.register(r'indicateur-mesures', IndicateurMesureViewSet, basename='indicateur-mesure')
 router.register(r'objectifs-operationnels', ObjectifOperationnelViewSet, basename='objectifoperationnel')
 router.register(r'resultats-attendus', ResultatAttenduViewSet, basename='resultatattendu')
 router.register(r'operations', OperationViewSet, basename='operation')
+router.register(r'realisations', RealisationOperationAnneeViewSet, basename='realisation')
+router.register(r'realisations-organismes', RealisationOperationAnneeOrganismeViewSet, basename='realisation-organisme')
 
 # URLs spécifiques
 # NOTE: Specific paths must come BEFORE the router to avoid being captured by router patterns

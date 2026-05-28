@@ -46,9 +46,9 @@
 // HERO SECTION
 // ============================================
 
-// HERO SECTION — factorisé via mixin (assets/scss/_components.scss)
+// HERO SECTION — variante orange (maquette Figma Tableau de bord)
 .hero-section {
-  @include plan-page-hero(280px);
+  @include plan-page-hero-suivi(280px);
 }
 
 .hero-background {
@@ -82,9 +82,9 @@
   justify-content: center;
   width: 48px;
   height: 48px;
-  background-color: $white;
+  background-color: $primary-color;
   border-radius: 50%;
-  color: $primary-color;
+  color: $white;
   text-decoration: none;
   flex-shrink: 0;
   z-index: 2;
@@ -112,7 +112,7 @@
     display: block;
     width: 100%;
     height: 1px;
-    background-color: $white;
+    background-color: $primary-color;
   }
 }
 
@@ -125,7 +125,7 @@
 }
 
 .breadcrumb-link {
-  color: $white;
+  color: $primary-color;
   font-family: $font-family;
   font-size: $font-size-base;
   font-weight: $font-weight-bold;
@@ -134,12 +134,12 @@
 }
 
 .breadcrumb-chevron {
-  color: $white;
+  color: $primary-color;
   font-size: $font-size-base;
 }
 
 .breadcrumb-current {
-  color: $white;
+  color: $primary-color;
   font-family: $font-family;
   font-size: $font-size-base;
 }
@@ -152,7 +152,7 @@
   display: flex;
   align-items: center;
   gap: $spacing-md;
-  color: $white;
+  color: $primary-color;
   font-size: $font-size-base;
   font-weight: $font-weight-bold;
   text-transform: uppercase;
@@ -163,7 +163,7 @@
 }
 
 .plan-title {
-  color: $white;
+  color: $primary-color;
   font-size: 48px;
   font-weight: $font-weight-bold;
   font-family: $font-family;
@@ -181,8 +181,8 @@
   align-items: center;
   gap: $spacing-xs;
   padding: $spacing-xs $spacing-lg;
-  background-color: $white;
-  color: $primary-color;
+  background-color: $primary-color;
+  color: $white;
   border: none;
   border-radius: 80px;
   font-family: $font-family;
@@ -495,7 +495,12 @@
   padding-left: $spacing-lg !important;
   font-size: $font-size-small;
   color: $gray-dark;
-  font-style: italic;
+
+  .metrique-prefix {
+    color: $primary-color;
+    font-weight: 600;
+    margin-right: 4px;
+  }
 }
 
 .row-actions {
@@ -526,17 +531,12 @@
 }
 
 // Score trait icons
-.score-trait-icons {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0;
-}
-
-.score-trait-icon {
-  // Icônes scores plus grandes (revue design #317)
-  width: 26px;
-  height: 26px;
+// Pastilles de score conformes Figma 4147-22351 (SVG autoporteurs)
+.score-badge-icon {
+  width: 32px;
+  height: 32px;
+  display: inline-block;
+  vertical-align: middle;
   object-fit: contain;
 
   &.legend-icon {

@@ -1621,11 +1621,84 @@
     },
     "suivis": {
       "bilan": {
-        "title": "Bilan",
-        "comingSoon": "Cette fonctionnalité est en cours de développement."
+        "title": "Bilan de la gestion",
+        "comingSoon": "Cette fonctionnalité est en cours de développement.",
+        "noData": "Aucune donnée à afficher.",
+        "exportPdf": "Exporter en PDF",
+        "exportWord": "Exporter en Word",
+        "exportGraphs": "Exporter les graphiques",
+        "tabs": {
+          "indicateurs": "Indicateurs",
+          "actions": "Actions"
+        },
+        "filterEnjeu": "Enjeu/FCR",
+        "filterOrganismes": "Organismes",
+        "allEnjeux": "Tous les enjeux",
+        "allOrganismes": "Tous les organismes",
+        "orgFilterComingSoon": "Filtre par organisme — bientôt",
+        "indicateursComingSoon": "Onglet Indicateurs",
+        "indicateursComingSoonHint": "Les graphiques d'évaluation par indicateur (camembert, radar, histogramme) arrivent dans une prochaine itération.",
+        "noIndicateurs": "Aucun indicateur saisi",
+        "noIndicateursHint": "Les indicateurs sont créés depuis la page Détails et saisie, dans l'onglet Vision à long terme d'un enjeu.",
+        "indic": {
+          "tauxTitle": "Taux de réalisation des indicateurs",
+          "resultatTitle": "Résultat des indicateurs",
+          "niveauTitle": "Niveau d'évaluation des indicateurs",
+          "radarTitle": "Radar des moyennes des résultats des indicateurs",
+          "evalues": "Évalués",
+          "nonEvalues": "Non évalués",
+          "radarMin": "Au moins 3 enjeux évalués sont nécessaires pour afficher le radar."
+        },
+        "empty": {
+          "title": "Pas encore de suivi saisi",
+          "hint": "Le bilan s'alimente automatiquement quand des réalisations sont saisies sur la page Suivi des actions."
+        },
+        "errors": {
+          "loadFailed": "Erreur lors du chargement du bilan."
+        },
+        "niveau": {
+          "termine": "Terminé",
+          "partiel": "Partiel",
+          "enCours": "En cours",
+          "reporte": "Reporté",
+          "nonDemarre": "Non démarré",
+          "abandonne": "Abandonné"
+        },
+        "summary": {
+          "tauxTitle": "Taux de réalisation",
+          "actionsTerminees": "actions terminées",
+          "budgetTitle": "Budget",
+          "rhTitle": "RH (jours)",
+          "previsionnel": "Prévisionnel",
+          "realise": "Réalisé",
+          "ecart": "Écart",
+          "fonctionnement": "Fonctionnement",
+          "investissement": "Investissement",
+          "total": "Total",
+          "rhPrevisionnel": "Prévisionnel",
+          "rhRealise": "Réalisé"
+        },
+        "byCategorie": {
+          "title": "Niveau de réalisation par catégorie d'action"
+        },
+        "byEnjeu": {
+          "title": "Niveau de réalisation par enjeu / FCR"
+        }
       },
       "actions": {
         "title": "Suivi des actions",
+        "planGeneral": "Plan général (actions non ventilées par organisme)",
+        "tabs": {
+          "realisation": "Réalisation",
+          "budget": "Budget",
+          "rh": "RH",
+          "jours": "j",
+          "col": {
+            "current": "Année en cours",
+            "past": "Période écoulée",
+            "total": "Total Plan de gestion"
+          }
+        },
         "filterLabel": "FILTRER",
         "categorieAction": "Catégorie d'action",
         "enjeu": "Enjeu",
@@ -1644,8 +1717,98 @@
         "noOperations": "Aucune action n'est encore définie pour ce plan.",
         "noOperationsHint": "Les actions sont créées depuis la page Détails et saisie, dans l'onglet Stratégie opérationnelle d'un enjeu."
       },
+      "saisie": {
+        "subtitle": "Remplir le suivi d'une action",
+        "editAction": "Modifier l'action",
+        "requiredHint": "Les champs avec * sont obligatoires",
+        "noProgrammation": "Aucune programmation n'a été définie pour cette année — créez d'abord une OperationAnnee.",
+        "orgVentilationComingSoon": "La saisie ventilée par organisme arrive dans une prochaine itération.",
+        "sections": {
+          "realisation": "Réalisation",
+          "details": "Détails",
+          "emprise": "Emprise spatiale réalisée",
+          "indicateurs": "Indicateurs de réponse"
+        },
+        "fields": {
+          "operateurs": "Opérateur(s) de l'action",
+          "financeurs": "Financeurs et type de financement",
+          "niveau": "Niveau de réalisation",
+          "commentairesPlaceholder": "Détails / commentaires libres sur la réalisation de l'année…",
+          "empriseEmpty": "Aucune emprise spatiale n'a été définie pour cette action.",
+          "importSig": "Importer couche SIG",
+          "importSigSoon": "Upload de couche SIG disponible dans une prochaine itération.",
+          "indicateurNom": "Intitulé de l'indicateur",
+          "metriqueNom": "Métrique",
+          "valeurRealisee": "Valeur réalisée",
+          "noIndicateurs": "Aucun indicateur de réponse n'est rattaché à cette action."
+        },
+        "table": {
+          "field": "Champ",
+          "previsionnel": "Prévisionnel",
+          "realise": "Réalisé",
+          "periodicite": "Périodicité",
+          "programmation": "Programmation",
+          "periodicitePrevue": "Périodicité prévue",
+          "periodiciteRealisee": "Périodicité réalisée",
+          "budget": "Budget (€)",
+          "budgetPrev": "Budget prévisionnel (€)",
+          "budgetReal": "Budget réalisé (€)",
+          "budgetFonct": "Budget fonctionnement (€)",
+          "budgetInvest": "Budget investissement (€)",
+          "etp": "Travail (jours)",
+          "travailPrev": "Travail prévisionnel (jours)",
+          "travailReal": "Travail réalisé (jours)",
+          "total": "TOTAL"
+        },
+        "messages": {
+          "saved": "Modifications enregistrées."
+        },
+        "errors": {
+          "planNotFound": "Plan introuvable.",
+          "operationNotFound": "Action introuvable.",
+          "missingProgrammation": "Cette année n'est pas programmée pour cette action.",
+          "saveFailed": "Erreur lors de l'enregistrement."
+        }
+      },
+      "indicateur": {
+        "subtitle": "Remplir le suivi d'un indicateur",
+        "editIndicateur": "Modifier l'indicateur",
+        "metriquesTitle": "Métriques :",
+        "resultatsTitle": "Résultats",
+        "resultat": "Résultat",
+        "resultatIndicateur": "Résultat de l'indicateur",
+        "intituleMetrique": "Intitulé de la métrique",
+        "switchToManual": "Saisir manuellement le résultat",
+        "switchToAuto": "Passer au calcul automatique",
+        "manualNote": "La saisie du résultat de l'indicateur a été effectuée manuellement",
+        "autoWas": "Le résultat calculé automatiquement était",
+        "manualReason": "Raisons de la saisie manuelle",
+        "manualReasonPlaceholder": "Pourquoi avez-vous choisi de saisir un score différent du calcul auto ?",
+        "scoreYear": "Score {{year}}",
+        "etat": "État",
+        "thresh": {
+          "intitule": "Intitulé",
+          "unite": "Unité",
+          "ponderation": "Pondération",
+          "etatReference": "État de référence",
+          "veryBad": "Très mauvais (score 1)",
+          "bad": "Mauvais (score 2)",
+          "neutral": "Moyen (score 3)",
+          "good": "Bon (score 4)",
+          "veryGood": "Très bon (score 5)"
+        },
+        "messages": {
+          "saved": "Saisie enregistrée."
+        },
+        "errors": {
+          "indicateurNotFound": "Indicateur introuvable.",
+          "loadFailed": "Erreur lors du chargement.",
+          "saveFailed": "Erreur lors de l'enregistrement."
+        }
+      },
       "tableauDeBord": {
         "title": "Tableau de bord",
+        "metriquePrefix": "Métrique {{n}} :",
         "etat": "Etat",
         "pression": "Pression",
         "filterLabel": "FILTRER",
@@ -2594,6 +2757,21 @@
       "periodLabel": "Période",
       "empriseSpatiale": "Emprise spatiale",
       "ajouterEmprise": "Ajouter l'emprise spatiale",
+      "empriseEmpty": "Aucune emprise spatiale n'est définie pour cette action.",
+      "importSig": "Importer une couche SIG",
+      "importSigSoon": "Upload de couche SIG disponible dans une prochaine itération",
+      "indicateurNom": "Intitulé de l'indicateur",
+      "metriqueNom": "Métrique",
+      "indicateursEmpty": "Aucun indicateur de réponse n'est encore rattaché à cette action.",
+      "empriseSpatialeBadge": "Emprise spatiale renseignée",
+      "indicateursBadge": "{{count}} indicateur(s) de réponse rattaché(s)",
+      "intituleIndicateurReponse": "Intitulé de l'indicateur de réponse",
+      "typeMetrique": "Type de métriques",
+      "valeurCible": "Valeur cible",
+      "indicateurRemove": "Retirer cet indicateur de réponse",
+      "newIndicatorDefault": "Nouvel indicateur de réponse",
+      "indicateursAddError": "Erreur lors de l'ajout. L'action doit déjà être liée à au moins une métrique.",
+      "indicateursRemoveError": "Erreur lors de la suppression du lien.",
       "createSuccess": "Action créée avec succès",
       "updateSuccess": "Action mise à jour avec succès",
       "saveSuccess": "Modifications enregistrées",

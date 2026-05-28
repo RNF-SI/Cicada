@@ -109,11 +109,7 @@
           <div class="legend-items">
             @for (item of legendItems; track item.level) {
               <div class="legend-item">
-                <span class="score-trait-icons">
-                  @for (icon of getScoreIcons(item.level); track $index) {
-                    <img [src]="icon" class="score-trait-icon legend-icon" alt="">
-                  }
-                </span>
+                <img [src]="getScoreIcon(item.level)" class="score-badge-icon legend-icon" alt="">
                 <span class="legend-text">{{ item.labelKey | translate }}</span>
               </div>
             }
@@ -141,7 +137,7 @@
                 </tr>
               </thead>
               <tbody>
-                @for (group of oltGroups(); track group.olt.id_olt; let gIdx = $index) {
+                @for (group of filteredOltGroups(); track group.olt.id_olt; let gIdx = $index) {
                   <!-- OLT header row -->
                   <tr class="olt-header-row">
                     <td [attr.colspan]="yearColumns().length + 3">
@@ -164,14 +160,13 @@
                         </div>
                       </td>
                       @for (year of yearColumns(); track year) {
-                        <td class="col-year">
+                        <td class="col-year clickable"
+                            [routerLink]="['/plans', planSlug(), 'tableau-de-bord', 'saisie', row.indicateur.id_indicateur, year]"
+                            [title]="'plans.suivis.indicateur.subtitle' | translate">
                           @if (getScoreForYear(row, year); as score) {
-                            <!-- Tooltip de signification du score (revue design #317) -->
-                            <span class="score-trait-icons" [matTooltip]="getScoreLabel(score)" matTooltipPosition="above">
-                              @for (icon of getScoreIcons(score); track $index) {
-                                <img [src]="icon" class="score-trait-icon" alt="">
-                              }
-                            </span>
+                            <img [src]="getScoreIcon(score)" class="score-badge-icon"
+                                 [alt]="getScoreLabel(score)"
+                                 [matTooltip]="getScoreLabel(score)" matTooltipPosition="above">
                           }
                         </td>
                       }
@@ -187,22 +182,23 @@
                       </td>
                     </tr>
 
-                    <!-- Expanded metriques rows -->
+                    <!-- Expanded metriques rows.
+                         NB : pas de <td class="col-ne"> ici — la cellule NE
+                         de la ligne indicateur a un rowspan qui couvre ces
+                         sous-lignes (cf. getNeRowspan). -->
                     @if (row.expanded && row.metriques.length > 0) {
-                      @for (met of row.metriques; track met.id_metrique) {
+                      @for (met of row.metriques; track met.id_metrique; let mIdx = $index) {
                         <tr class="metrique-row">
-                          <td class="col-ne metrique-ne-cell"></td>
                           <td class="col-indicateur metrique-name">
+                            <span class="metrique-prefix">{{ 'plans.suivis.tableauDeBord.metriquePrefix' | translate:{ n: mIdx + 1 } }}</span>
                             {{ met.nom_metrique }}
                           </td>
                           @for (year of yearColumns(); track year) {
                             <td class="col-year">
                               @if (getMetriqueScoreForYear(met, year); as score) {
-                                <span class="score-trait-icons">
-                                  @for (icon of getScoreIcons(score); track $index) {
-                                    <img [src]="icon" class="score-trait-icon" alt="">
-                                  }
-                                </span>
+                                <img [src]="getScoreIcon(score)" class="score-badge-icon"
+                                     [alt]="getScoreLabel(score)"
+                                     [matTooltip]="getScoreLabel(score)" matTooltipPosition="above">
                               }
                             </td>
                           }

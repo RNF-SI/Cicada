@@ -24,6 +24,29 @@ def celery_eager_mode():
     settings.CELERY_TASK_EAGER_PROPAGATES = True
 
 
+@pytest.fixture(scope='session', autouse=True)
+def bump_nomenclature_sequences(django_db_setup, django_db_blocker):
+    """
+    Évite les conflits de clé primaire sur bib_nomenclatures_types /
+    t_nomenclatures : plusieurs migrations data réservent des ids fixes
+    (ex: 40, 48, 66, 67). Les factories qui créent dynamiquement des
+    nomenclatures via la sequence finissent par tomber sur ces ids.
+
+    On bump les deux séquences à 10000 au début de la session de tests.
+    """
+    from django.db import connection
+    with django_db_blocker.unblock():
+        with connection.cursor() as cur:
+            for seq in (
+                'ref_nomenclatures.bib_nomenclatures_types_id_type_seq',
+                'ref_nomenclatures.t_nomenclatures_id_nomenclature_seq',
+            ):
+                try:
+                    cur.execute(f"SELECT setval('{seq}', 10000, false);")
+                except Exception:
+                    pass
+
+
 @pytest.fixture(autouse=True)
 def clear_cache():
     """Clear Django cache before each test to ensure test isolation."""

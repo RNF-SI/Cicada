@@ -36,8 +36,18 @@ export const PLANS_ROUTES: Routes = [
     canActivate: [authGuard]
   },
   {
+    path: ':slug/suivi-actions/saisie/:operation_id/:annee',
+    loadComponent: () => import('./suivis/suivi-saisie/suivi-saisie.component').then(m => m.SuiviSaisieComponent),
+    canActivate: [authGuard]
+  },
+  {
     path: ':slug/tableau-de-bord',
     loadComponent: () => import('./suivis/plan-tableau-de-bord.component').then(m => m.PlanTableauDeBordComponent),
+    canActivate: [authGuard]
+  },
+  {
+    path: ':slug/tableau-de-bord/saisie/:indicateur_id/:annee',
+    loadComponent: () => import('./suivis/indicateur-saisie/indicateur-saisie.component').then(m => m.IndicateurSaisieComponent),
     canActivate: [authGuard]
   },
   {
