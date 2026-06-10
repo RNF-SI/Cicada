@@ -303,6 +303,31 @@
               [mention]="'modals.siteForm.hints.requestAsReferent' | translate">
             </app-checkbox>
           </div>
+
+          <!-- Aperçu : qui validera ce site (revue retours utilisateurs) -->
+          @if (!loadingValidators()) {
+            @if (autoValidated()) {
+              <div class="info-block info-block-success validators-preview">
+                <i class="fi fi-rr-shield-check"></i>
+                <span>{{ 'modals.siteForm.validators.autoValidated' | translate }}</span>
+              </div>
+            } @else if (creationValidators().length) {
+              <div class="info-block validators-preview">
+                <div class="validators-preview-title">
+                  <i class="fi fi-rr-info"></i>
+                  <span>{{ 'modals.siteForm.validators.pendingTitle' | translate }}</span>
+                </div>
+                <ul class="validators-list">
+                  @for (v of creationValidators(); track v.id) {
+                    <li>
+                      <span class="validator-name">{{ v.name }}</span>
+                      <span class="validator-role">{{ v.role_label }}@if (v.organisme) { — {{ v.organisme }} }</span>
+                    </li>
+                  }
+                </ul>
+              </div>
+            }
+          }
         }
       </form>
     </div>

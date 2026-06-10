@@ -22,6 +22,7 @@ import {
   ValidationRequestListItem,
   ValidationStatus,
   ValidationRequestType,
+  ValidatorInfo,
 } from '../../core/models/notification.model';
 import { ModuleAccessRequestDialogComponent, ModuleAccessRequestDialogData } from '../../shared/components/module-access-request-dialog/module-access-request-dialog.component';
 
@@ -61,6 +62,14 @@ export class MyRequestsComponent implements OnInit {
   // Demandes de l'utilisateur
   readonly myRequests = signal<ValidationRequestListItem[]>([]);
   readonly loadingRequests = signal(false);
+
+  // Validateurs par demande en attente (qui peut valider) — chargé à la demande
+  readonly validatorsByRequest = signal<Record<number, ValidatorInfo[]>>({});
+
+  /** Retourne les validateurs connus pour une demande. */
+  getValidators(requestId: number): ValidatorInfo[] {
+    return this.validatorsByRequest()[requestId] || [];
+  }
 
   // Modules necessitant un acces (charges depuis l'API)
   readonly availableModules = signal<Module[]>([]);
@@ -130,6 +139,7 @@ export class MyRequestsComponent implements OnInit {
       next: (requests) => {
         this.myRequests.set(requests);
         this.loadingRequests.set(false);
+        this.loadValidatorsForPending(requests);
       },
       error: (error) => {
         console.error('Erreur chargement mes demandes:', error);
@@ -141,6 +151,26 @@ export class MyRequestsComponent implements OnInit {
         this.loadingRequests.set(false);
       }
     });
+  }
+
+  /**
+   * Charge les validateurs (qui peut valider) pour les demandes en attente.
+   */
+  private loadValidatorsForPending(requests: ValidationRequestListItem[]): void {
+    const pending = requests.filter(r => r.status === 'pending');
+    for (const req of pending) {
+      this.validationService.getRequestValidators(req.id).subscribe({
+        next: (res) => {
+          this.validatorsByRequest.update(map => ({
+            ...map,
+            [req.id]: res.validators,
+          }));
+        },
+        error: () => {
+          // Non bloquant : on garde simplement le libellé générique
+        }
+      });
+    }
   }
 
   /**

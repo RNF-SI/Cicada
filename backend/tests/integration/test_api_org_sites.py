@@ -7,7 +7,7 @@ import pytest
 from rest_framework.test import APIClient
 from rest_framework import status
 
-from apps.users.models import BibOrganismes, Site, CorOgSite
+from apps.users.models import BibOrganismes, Site, CorOgSite, CorRoleSite
 from tests.factories.users import (
     SuperAdminFactory, AdminOrganismeFactory, ReferentFactory,
     RoleFactory, OrganismeFactory, SiteFactory, CorOgSiteFactory
@@ -437,6 +437,250 @@ class TestSitesCreateEndpoint:
         assert response.data['active'] is False  # Site is inactive until approved
         assert response.data['validation_pending'] is True  # Validation is pending
         assert 'validation_request_id' in response.data
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+class TestSitesCreateAutoValidation:
+    """Auto-validation à la création de site + exposition des validateurs.
+
+    Règle : si le créateur est lui-même validateur (admin_og de son organisme
+    ou super_admin), le site est validé automatiquement ; sinon la demande
+    reste en attente et la réponse expose la liste des validateurs (nom + rôle).
+    """
+
+    def test_admin_og_auto_validates_own_site(self, api_client):
+        org = OrganismeFactory()
+        admin_og = AdminOrganismeFactory(id_organisme=org)
+        api_client.force_authenticate(user=admin_og)
+
+        response = api_client.post('/api/users/sites/', {
+            'nom_site': 'Site Admin OG Auto',
+            'active': True,
+        }, format='json')
+
+        assert response.status_code == status.HTTP_201_CREATED
+        assert response.data['auto_validated'] is True
+        assert response.data['validation_pending'] is False
+        assert response.data['active'] is True
+        site = Site.objects.get(id_site=response.data['id_site'])
+        # le créateur devient référent du site
+        assert CorRoleSite.objects.filter(
+            id_site=site, id_role=admin_og, referent=True).exists()
+
+    def test_super_admin_auto_validates_own_site(self, api_client):
+        admin = SuperAdminFactory()
+        api_client.force_authenticate(user=admin)
+
+        response = api_client.post('/api/users/sites/', {
+            'nom_site': 'Site Super Admin Auto',
+            'active': True,
+        }, format='json')
+
+        assert response.status_code == status.HTTP_201_CREATED
+        assert response.data['auto_validated'] is True
+        assert response.data['active'] is True
+
+    def test_admin_og_auto_validation_does_not_notify_self(self, api_client):
+        from apps.notifications.models import Notification
+        org = OrganismeFactory()
+        admin_og = AdminOrganismeFactory(id_organisme=org)
+        api_client.force_authenticate(user=admin_og)
+
+        api_client.post('/api/users/sites/', {
+            'nom_site': 'Site No Self Notif', 'active': True,
+        }, format='json')
+
+        # pas de notification "validation_approved" envoyée au créateur lui-même
+        assert not Notification.objects.filter(
+            recipient=admin_og, notification_type='validation_approved').exists()
+
+    def test_regular_user_gets_pending_with_validators(self, api_client):
+        org = OrganismeFactory()
+        admin_og = AdminOrganismeFactory(id_organisme=org)
+        user = RoleFactory(id_organisme=org)
+        api_client.force_authenticate(user=user)
+
+        response = api_client.post('/api/users/sites/', {
+            'nom_site': 'Site User Pending',
+            'active': True,
+        }, format='json')
+
+        assert response.status_code == status.HTTP_201_CREATED
+        assert response.data['auto_validated'] is False
+        assert response.data['validation_pending'] is True
+        assert response.data['active'] is False
+
+        validators = response.data['validators']
+        assert isinstance(validators, list) and len(validators) >= 1
+        emails = {v['email'] for v in validators}
+        assert admin_og.email in emails
+        # le demandeur n'apparaît pas dans la liste
+        assert user.email not in emails
+        # forme attendue
+        v = validators[0]
+        assert set(['id', 'name', 'role_level', 'role_label', 'organisme']).issubset(v.keys())
+
+    def test_creation_validators_preview_admin_og(self, api_client):
+        org = OrganismeFactory()
+        admin_og = AdminOrganismeFactory(id_organisme=org)
+        api_client.force_authenticate(user=admin_og)
+
+        response = api_client.get('/api/users/sites/creation-validators/')
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data['auto_validated'] is True
+        assert response.data['validators'] == []
+
+    def test_creation_validators_preview_regular_user(self, api_client):
+        org = OrganismeFactory()
+        admin_og = AdminOrganismeFactory(id_organisme=org)
+        user = RoleFactory(id_organisme=org)
+        api_client.force_authenticate(user=user)
+
+        response = api_client.get('/api/users/sites/creation-validators/')
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data['auto_validated'] is False
+        emails = {v['email'] for v in response.data['validators']}
+        assert admin_og.email in emails
+
+    def test_request_validators_endpoint(self, api_client):
+        org = OrganismeFactory()
+        admin_og = AdminOrganismeFactory(id_organisme=org)
+        user = RoleFactory(id_organisme=org)
+        api_client.force_authenticate(user=user)
+
+        create = api_client.post('/api/users/sites/', {
+            'nom_site': 'Site For Validators Endpoint', 'active': True,
+        }, format='json')
+        vr_id = create.data['validation_request_id']
+
+        response = api_client.get(f'/api/validations/{vr_id}/validators/')
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data['is_self_validator'] is False
+        emails = {v['email'] for v in response.data['validators']}
+        assert admin_og.email in emails
+        assert user.email not in emails
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+class TestSitesCreateGeometry:
+    """Tests for geometry normalisation/repair on site creation (geom_geojson).
+
+    Couvre les géométries qui échouaient auparavant (anneaux non fermés,
+    auto-intersections, donut dessiné en polygones séparés, Polygon simple,
+    GeometryCollection) et qui sont désormais réparées en MultiPolygon valide.
+    """
+
+    def _create(self, api_client, geom, nom='Geom Site'):
+        admin = SuperAdminFactory()
+        api_client.force_authenticate(user=admin)
+        return api_client.post('/api/users/sites/', {
+            'nom_site': nom,
+            'surf_off': 10.0,
+            'active': True,
+            'geom_geojson': geom,
+        }, format='json')
+
+    def test_create_with_multipolygon(self, api_client):
+        geom = {
+            "type": "MultiPolygon",
+            "coordinates": [[[[4.70, 46.90], [4.70, 46.92], [4.73, 46.92],
+                              [4.73, 46.90], [4.70, 46.90]]]],
+        }
+        response = self._create(api_client, geom, 'Site MultiPolygon')
+        assert response.status_code == status.HTTP_201_CREATED
+        assert response.data['geom_geojson']['type'] == 'MultiPolygon'
+
+    def test_create_with_simple_polygon_is_converted(self, api_client):
+        geom = {
+            "type": "Polygon",
+            "coordinates": [[[4.70, 46.90], [4.70, 46.92], [4.73, 46.92],
+                             [4.73, 46.90], [4.70, 46.90]]],
+        }
+        response = self._create(api_client, geom, 'Site Polygon')
+        assert response.status_code == status.HTTP_201_CREATED
+        assert response.data['geom_geojson']['type'] == 'MultiPolygon'
+
+    def test_create_with_unclosed_ring_is_repaired(self, api_client):
+        geom = {
+            "type": "MultiPolygon",
+            "coordinates": [[[[4.70, 46.90], [4.70, 46.92], [4.73, 46.92],
+                              [4.73, 46.90]]]],  # anneau non fermé
+        }
+        response = self._create(api_client, geom, 'Site Unclosed')
+        assert response.status_code == status.HTTP_201_CREATED
+        assert response.data['geom_geojson']['type'] == 'MultiPolygon'
+
+    def test_create_with_self_intersection_is_repaired(self, api_client):
+        geom = {
+            "type": "MultiPolygon",
+            "coordinates": [[[[0, 0], [10, 10], [10, 0], [0, 10], [0, 0]]]],
+        }
+        response = self._create(api_client, geom, 'Site Bowtie')
+        assert response.status_code == status.HTTP_201_CREATED
+
+    def test_create_with_overlapping_donut_is_repaired(self, api_client):
+        """Trou dessiné comme deux polygones séparés qui se chevauchent."""
+        geom = {
+            "type": "MultiPolygon",
+            "coordinates": [
+                [[[0, 0], [0, 10], [10, 10], [10, 0], [0, 0]]],
+                [[[3, 3], [3, 6], [6, 6], [6, 3], [3, 3]]],
+            ],
+        }
+        response = self._create(api_client, geom, 'Site Donut Overlap')
+        assert response.status_code == status.HTTP_201_CREATED
+
+    def test_create_with_valid_donut_keeps_hole(self, api_client):
+        geom = {
+            "type": "MultiPolygon",
+            "coordinates": [[
+                [[0, 0], [0, 10], [10, 10], [10, 0], [0, 0]],
+                [[3, 3], [3, 6], [6, 6], [6, 3], [3, 3]],
+            ]],
+        }
+        response = self._create(api_client, geom, 'Site Donut Valid')
+        assert response.status_code == status.HTTP_201_CREATED
+        # le trou est conservé : le polygone a un anneau intérieur
+        coords = response.data['geom_geojson']['coordinates']
+        assert len(coords[0]) == 2  # anneau extérieur + 1 trou
+
+    def test_create_with_geometrycollection(self, api_client):
+        geom = {
+            "type": "GeometryCollection",
+            "geometries": [{
+                "type": "Polygon",
+                "coordinates": [[[4.70, 46.90], [4.70, 46.92], [4.73, 46.92],
+                                 [4.73, 46.90], [4.70, 46.90]]],
+            }],
+        }
+        response = self._create(api_client, geom, 'Site GeomCollection')
+        assert response.status_code == status.HTTP_201_CREATED
+        assert response.data['geom_geojson']['type'] == 'MultiPolygon'
+
+    def test_create_with_linestring_returns_clear_error(self, api_client):
+        geom = {"type": "LineString", "coordinates": [[0, 0], [1, 1]]}
+        response = self._create(api_client, geom, 'Site Bad')
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert 'geom_geojson' in response.data
+        message = str(response.data['geom_geojson'])
+        # message lisible (pas une exception GEOS brute)
+        assert 'Polygon' in message
+        assert 'GEOSWKBReader' not in message
+
+    def test_stored_geometry_is_valid_in_db(self, api_client):
+        """La géométrie réparée est valide en base (utile pour PostGIS)."""
+        geom = {
+            "type": "MultiPolygon",
+            "coordinates": [[[[0, 0], [10, 10], [10, 0], [0, 10], [0, 0]]]],
+        }
+        response = self._create(api_client, geom, 'Site DB Valid')
+        assert response.status_code == status.HTTP_201_CREATED
+        site = Site.objects.get(id_site=response.data['id_site'])
+        assert site.geom is not None
+        assert site.geom.valid
+        assert site.geom.srid == 4326
 
 
 @pytest.mark.django_db

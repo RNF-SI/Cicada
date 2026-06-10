@@ -171,6 +171,11 @@ class NotificationService:
             # Pour les inscriptions, pas de destinataire Role
             return
 
+        # Auto-validation : ne pas se notifier soi-même (le créateur est validateur)
+        if validation_request.validator_id and \
+                validation_request.validator_id == validation_request.requester_id:
+            return
+
         notification_type = 'validation_approved' if approved else 'validation_rejected'
         title = "Demande approuvée" if approved else "Demande rejetée"
 
@@ -1127,6 +1132,54 @@ class ValidationService:
         return validators
 
     @staticmethod
+    def serialize_validators(validators, exclude=None):
+        """Sérialise une liste/QuerySet de Role validateurs pour l'API/UI.
+
+        Retourne une liste de dicts triée par nom :
+        `{id, name, email, role_level, role_label, organisme}`.
+
+        Args:
+            validators: itérable de Role.
+            exclude: Role à exclure (ex: le demandeur lui-même).
+        """
+        exclude_id = getattr(exclude, 'id_role', None)
+        result = []
+        for v in validators:
+            if exclude_id is not None and v.id_role == exclude_id:
+                continue
+            name = f"{v.prenom_role or ''} {v.nom_role or ''}".strip() or v.email
+            result.append({
+                'id': v.id_role,
+                'name': name,
+                'email': v.email,
+                'role_level': v.role_level,
+                'role_label': v.get_role_level_display(),
+                'organisme': v.id_organisme.nom_organisme if v.id_organisme else None,
+            })
+        return sorted(result, key=lambda d: d['name'].lower())
+
+    @staticmethod
+    def preview_site_creation_validators(user):
+        """Validateurs qui seraient notifiés si `user` créait un site maintenant.
+
+        Réutilise la logique de `_get_site_creation_validators` sans nécessiter
+        de site/demande (les validateurs ne dépendent que de l'organisme du
+        demandeur). Sert à l'aperçu côté formulaire avant soumission.
+        """
+        validators = set()
+        if user.id_organisme:
+            validators.update(Role.objects.filter(
+                id_organisme=user.id_organisme,
+                role_level='admin_og',
+                active=True,
+            ))
+        validators.update(Role.objects.filter(
+            role_level='super_admin',
+            active=True,
+        ))
+        return validators
+
+    @staticmethod
     def _get_registration_validators(validation_request):
         """Validateurs pour une inscription."""
         validators = set()
@@ -1991,7 +2044,7 @@ class ValidationService:
         NotificationService.notify_other_validators(validation_request, validator, approved=True)
 
     @staticmethod
-    def approve_site_creation(validation_request, validator, comment=None, override_referent=None):
+    def approve_site_creation(validation_request, validator, comment=None, override_referent=None, notify_requester=True):
         """
         Approuve une creation de site et active le site.
         Le createur devient referent ou simple utilisateur selon request_as_referent.
@@ -2001,6 +2054,8 @@ class ValidationService:
             validator: Role qui approuve
             comment: Commentaire optionnel
             override_referent: Si defini, surcharge request_as_referent (bool)
+            notify_requester: Si False, ne notifie pas le demandeur (cas de la
+                validation automatique où le créateur est lui-même validateur).
         """
         if validation_request.request_type != 'site_creation':
             raise ValueError("Cette demande n'est pas une creation de site")
@@ -2047,22 +2102,23 @@ class ValidationService:
         # Approuver la demande
         validation_request.approve(validator, comment)
 
-        # Notifier le createur
-        if is_referent:
-            message = f"Votre site \"{site.nom_site}\" a ete valide. Vous en etes maintenant le referent."
-        else:
-            message = f"Votre site \"{site.nom_site}\" a ete valide. Vous avez acces au site en tant qu'utilisateur."
+        # Notifier le createur (sauf en validation automatique où il agit lui-même)
+        if notify_requester:
+            if is_referent:
+                message = f"Votre site \"{site.nom_site}\" a ete valide. Vous en etes maintenant le referent."
+            else:
+                message = f"Votre site \"{site.nom_site}\" a ete valide. Vous avez acces au site en tant qu'utilisateur."
 
-        NotificationService.create_notification(
-            recipient=requester,
-            notification_type='validation_approved',
-            title="Site valide",
-            message=message,
-            priority='high',
-            related_site=site,
-            action_url=f'/sites/{site.id_site}',
-            send_email=True
-        )
+            NotificationService.create_notification(
+                recipient=requester,
+                notification_type='validation_approved',
+                title="Site valide",
+                message=message,
+                priority='high',
+                related_site=site,
+                action_url=f'/sites/{site.id_site}',
+                send_email=True
+            )
 
         # Notifier les autres validateurs
         NotificationService.notify_other_validators(validation_request, validator, approved=True)

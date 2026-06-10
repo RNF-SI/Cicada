@@ -182,6 +182,17 @@
                       <i class="fi fi-rr-user-check validator-icon"></i>
                       {{ request.validator_name }}
                     </span>
+                  } @else if (getValidators(request.id).length) {
+                    <div class="awaiting-validators">
+                      <span class="pending-label">{{ 'myRequests.table.awaitingValidation' | translate }}</span>
+                      <ul class="possible-validators">
+                        @for (v of getValidators(request.id); track v.id) {
+                          <li [matTooltip]="v.role_label + (v.organisme ? ' — ' + v.organisme : '')">
+                            <i class="fi fi-rr-user"></i> {{ v.name }}
+                          </li>
+                        }
+                      </ul>
+                    </div>
                   } @else {
                     <span class="pending-label">{{ 'myRequests.table.awaitingValidation' | translate }}</span>
                   }

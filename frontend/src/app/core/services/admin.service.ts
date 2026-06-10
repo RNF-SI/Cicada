@@ -28,6 +28,7 @@ import {
   BulkImportJobStatus,
   PlanDuplicateOptions
 } from '../models/admin.model';
+import { SiteCreationValidatorsResponse } from '../models/notification.model';
 
 export interface DashboardStats {
   totalPlans: number;
@@ -235,6 +236,15 @@ export class AdminService {
    */
   createSite(payload: SiteCreatePayload): Observable<AdminSite> {
     return this.http.post<AdminSite>(`${this.apiUrl}/sites/`, payload)
+      .pipe(catchError(this.handleError));
+  }
+
+  /**
+   * Aperçu (avant création) des validateurs d'une future création de site.
+   * Retourne auto_validated=true si l'utilisateur courant valide lui-même.
+   */
+  getSiteCreationValidators(): Observable<SiteCreationValidatorsResponse> {
+    return this.http.get<SiteCreationValidatorsResponse>(`${this.apiUrl}/sites/creation-validators/`)
       .pipe(catchError(this.handleError));
   }
 

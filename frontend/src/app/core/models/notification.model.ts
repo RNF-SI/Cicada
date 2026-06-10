@@ -196,6 +196,34 @@ export interface ValidationRequestListItem {
 }
 
 /**
+ * Validateur pouvant traiter une demande (nom + rôle).
+ */
+export interface ValidatorInfo {
+  id: number;
+  name: string;
+  email: string;
+  role_level: string;
+  role_label: string;
+  organisme: string | null;
+}
+
+/**
+ * Réponse de GET /api/validations/{id}/validators/
+ */
+export interface RequestValidatorsResponse {
+  validators: ValidatorInfo[];
+  is_self_validator: boolean;
+}
+
+/**
+ * Réponse de GET /api/users/sites/creation-validators/ (aperçu avant création).
+ */
+export interface SiteCreationValidatorsResponse {
+  auto_validated: boolean;
+  validators: ValidatorInfo[];
+}
+
+/**
  * Reponse du endpoint poll.
  */
 export interface NotificationPollResponse {

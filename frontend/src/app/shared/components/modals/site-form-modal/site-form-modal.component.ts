@@ -14,7 +14,7 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { Subject, Subscription, debounceTime, distinctUntilChanged, filter } from 'rxjs';
 import { AdminService } from '../../../../core/services/admin.service';
 import { ValidationService } from '../../../../core/services/validation.service';
-import { ValidationRequestListItem } from '../../../../core/models/notification.model';
+import { ValidationRequestListItem, ValidatorInfo } from '../../../../core/models/notification.model';
 import { AdminSite, SiteCreatePayload, GeoJSONGeometry, DuplicateCheckResult, DuplicateSite } from '../../../../core/models/admin.model';
 import { LeafletMapEditComponent } from '../../leaflet-map-edit/leaflet-map-edit.component';
 import { SiteTypeDisplayPipe } from '../../../pipes/site-type-display.pipe';
@@ -107,6 +107,11 @@ export class SiteFormModalComponent implements OnInit, OnDestroy {
   // Pending requests for duplicate detection
   pendingRequests = signal<ValidationRequestListItem[]>([]);
 
+  // Aperçu des validateurs (avant création) — qui devra valider ce site
+  autoValidated = signal(false);
+  creationValidators = signal<ValidatorInfo[]>([]);
+  loadingValidators = signal(false);
+
   // Duplicate detection signals
   duplicateCheckResult = signal<DuplicateCheckResult | null>(null);
   isCheckingDuplicates = signal(false);
@@ -144,6 +149,11 @@ export class SiteFormModalComponent implements OnInit, OnDestroy {
     this.loadSiteTypes();
     this.setupDuplicateChecking();
     this.loadPendingRequests();
+
+    // Aperçu des validateurs (création uniquement)
+    if (!this.isEditMode) {
+      this.loadCreationValidators();
+    }
 
     // Initialize geometry from data
     if (this.data?.existingPolygon) {
@@ -288,6 +298,25 @@ export class SiteFormModalComponent implements OnInit, OnDestroy {
       },
       error: () => {
         // Don't block user on error
+      }
+    });
+  }
+
+  /**
+   * Charge l'aperçu des validateurs : qui devra valider ce site,
+   * ou si la création sera validée automatiquement (créateur validateur).
+   */
+  private loadCreationValidators(): void {
+    this.loadingValidators.set(true);
+    this.adminService.getSiteCreationValidators().subscribe({
+      next: (res) => {
+        this.autoValidated.set(res.auto_validated);
+        this.creationValidators.set(res.validators);
+        this.loadingValidators.set(false);
+      },
+      error: () => {
+        // Ne pas bloquer l'utilisateur en cas d'erreur
+        this.loadingValidators.set(false);
       }
     });
   }

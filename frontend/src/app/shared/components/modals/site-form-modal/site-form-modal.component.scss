@@ -798,3 +798,42 @@ mat-dialog-actions {
     }
   }
 }
+
+// ============================================
+// Aperçu des validateurs (qui validera ce site)
+// ============================================
+.validators-preview {
+  margin-top: $spacing-md;
+
+  .validators-preview-title {
+    display: flex;
+    align-items: center;
+    gap: $spacing-xs;
+    font-weight: 600;
+    margin-bottom: $spacing-xs;
+  }
+
+  .validators-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+
+    li {
+      display: flex;
+      flex-wrap: wrap;
+      gap: $spacing-xxs;
+      align-items: baseline;
+      padding: 2px 0;
+    }
+
+    .validator-name {
+      font-weight: 600;
+      color: $black;
+    }
+
+    .validator-role {
+      font-size: 0.85em;
+      color: $gray-dark;
+    }
+  }
+}

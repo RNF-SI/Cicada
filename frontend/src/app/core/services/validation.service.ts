@@ -8,6 +8,7 @@ import { Observable, tap } from 'rxjs';
 import {
   ValidationRequest,
   ValidationRequestListItem,
+  RequestValidatorsResponse,
   ValidationCountResponse,
   ValidationApproveData,
   ValidationRejectData,
@@ -109,6 +110,13 @@ export class ValidationService {
    */
   getMyRequests(): Observable<ValidationRequestListItem[]> {
     return this.http.get<ValidationRequestListItem[]>(`${this.apiUrl}/my_requests/`);
+  }
+
+  /**
+   * Récupère les validateurs (nom + rôle) pouvant traiter une demande.
+   */
+  getRequestValidators(id: number): Observable<RequestValidatorsResponse> {
+    return this.http.get<RequestValidatorsResponse>(`${this.apiUrl}/${id}/validators/`);
   }
 
   /**

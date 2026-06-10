@@ -1025,6 +1025,10 @@
         "typePrecision": "Indiquez le type de site non présent dans la liste",
         "requestAsReferent": "En tant que référent, vous pourrez gérer les accès et inviter d'autres utilisateurs sur ce site"
       },
+      "validators": {
+        "autoValidated": "Vous disposez des droits de validation : ce site sera validé automatiquement à sa création.",
+        "pendingTitle": "Ce site devra être validé. Seront notifiés :"
+      },
       "errors": {
         "nameRequired": "Le nom est requis",
         "surfacePositive": "La surface doit être positive",
