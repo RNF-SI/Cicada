@@ -624,6 +624,54 @@ class TestBulkImportExecution:
 
         assert response.status_code == status.HTTP_400_BAD_REQUEST
 
+    def test_import_polygon_geometry_converted_to_multipolygon(self, api_client):
+        """Import d'un Polygon simple -> stocké en MultiPolygon valide, SRID 4326."""
+        admin = SuperAdminFactory(id_organisme=OrganismeFactory())
+        api_client.force_authenticate(user=admin)
+
+        sites = [
+            {'row_index': 0, 'mapped_data': {'nom_site': 'Import Geom Poly'},
+             'geometry': SIMPLE_POLYGON},
+        ]
+        response = api_client.post(
+            '/api/users/sites/bulk_import_execute/',
+            {'sites': sites, 'selected_indices': [0]},
+            format='json',
+        )
+
+        assert response.status_code == status.HTTP_201_CREATED
+        assert response.data['created'] == 1
+        site = Site.objects.get(nom_site='Import Geom Poly')
+        assert site.geom is not None
+        assert site.geom.geom_type == 'MultiPolygon'
+        assert site.geom.valid
+        assert site.geom.srid == 4326
+
+    def test_import_unclosed_ring_is_repaired(self, api_client):
+        """Import d'un anneau non fermé (Shapefile/GeoJSON) -> réparé."""
+        admin = SuperAdminFactory(id_organisme=OrganismeFactory())
+        api_client.force_authenticate(user=admin)
+
+        unclosed = {
+            "type": "Polygon",
+            "coordinates": [[[2.0, 46.0], [2.1, 46.0], [2.1, 46.1], [2.0, 46.1]]],
+        }
+        sites = [
+            {'row_index': 0, 'mapped_data': {'nom_site': 'Import Unclosed'},
+             'geometry': unclosed},
+        ]
+        response = api_client.post(
+            '/api/users/sites/bulk_import_execute/',
+            {'sites': sites, 'selected_indices': [0]},
+            format='json',
+        )
+
+        assert response.status_code == status.HTTP_201_CREATED
+        assert response.data['created'] == 1
+        site = Site.objects.get(nom_site='Import Unclosed')
+        assert site.geom.geom_type == 'MultiPolygon'
+        assert site.geom.valid
+
 
 # =============================================================================
 # STATUS TESTS
