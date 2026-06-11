@@ -79,7 +79,9 @@
       <mat-form-field class="app-mat-form-field full-width" appearance="outline">
             <mat-label></mat-label>
             <mat-select [formControl]="categorieActionReserveCtrl"
+                        panelClass="action-reserve-panel"
                         [placeholder]="'enjeux.operations.categorieActionReservePlaceholder' | translate">
+              <mat-select-trigger>{{ selectedCategorieActionReserveLabel() }}</mat-select-trigger>
               <mat-option [value]="null">—</mat-option>
               @for (cat of categorieActionReserveOptions(); track cat.id_nomenclature) {
                 <mat-option [value]="cat.id_nomenclature">

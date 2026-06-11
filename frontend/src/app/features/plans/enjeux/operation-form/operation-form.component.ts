@@ -165,6 +165,20 @@ export class OperationFormComponent implements OnInit {
     return null;
   });
 
+  /**
+   * Libellé de la catégorie d'action réserve sélectionnée, pour l'affichage du
+   * `mat-select-trigger` (valeur fermée). Sans cela, le sélecteur affiche le
+   * texte brut de l'option où le code et l'intitulé sont collés (« CSConnaissance
+   * et suivi… »), Angular supprimant l'espace entre les deux <span>.
+   */
+  selectedCategorieActionReserveLabel(): string | null {
+    const id = this.categorieActionReserveCtrl.value;
+    if (id == null) return null;
+    const cat = this.categorieActionReserveOptions().find(c => c.id_nomenclature === id);
+    if (!cat) return null;
+    return cat.cd_nomenclature ? `${cat.cd_nomenclature} — ${cat.label}` : cat.label;
+  }
+
   /** Inventaires existants chargés (filtrés par type d'action) */
   availableInventaires = signal<{ id_suivi_inventaire: number; intitule: string; type_action_code?: string }[]>([]);
   categorieFinanceOptions = signal<{ id_nomenclature: number; mnemonique: string; label: string }[]>([]);
