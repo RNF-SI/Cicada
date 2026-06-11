@@ -2,7 +2,7 @@ import { Injectable, inject, signal, computed } from '@angular/core';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { Observable, BehaviorSubject, throwError, of } from 'rxjs';
-import { tap, catchError, map, switchMap } from 'rxjs/operators';
+import { tap, catchError, map, switchMap, finalize, shareReplay } from 'rxjs/operators';
 import {
   User,
   AuthTokens,
@@ -32,6 +32,9 @@ export class AuthService {
   private readonly apiUrl = '/api/auth';
 
   // State management with signals
+  /** Appel /refresh/ en cours, partagé entre les requêtes concurrentes (#103). */
+  private refreshInFlight$: Observable<string> | null = null;
+
   private currentUserSignal = signal<User | null>(null);
   private isLoadingSignal = signal<boolean>(false);
   private isInitializedSignal = signal<boolean>(false);
@@ -195,19 +198,31 @@ export class AuthService {
    * Refresh access token
    */
   refreshToken(): Observable<string> {
+    // Dédoublonnage des refresh concurrents : au rafraîchissement d'une page,
+    // plusieurs requêtes peuvent recevoir un 401 simultanément. Sans cela, on
+    // déclenchait autant d'appels /refresh/ en parallèle — problématique avec
+    // ROTATE_REFRESH_TOKENS + BLACKLIST_AFTER_ROTATION (le 1er invalide le token
+    // des suivants → logout intempestif). On partage donc un seul appel en vol.
+    if (this.refreshInFlight$) {
+      return this.refreshInFlight$;
+    }
+
     const tokens = this.getStoredTokens();
 
     if (!tokens?.refresh) {
       return throwError(() => new Error('No refresh token available'));
     }
 
-    return this.http.post<RefreshResponse>(`${this.apiUrl}/refresh/`, {
+    this.refreshInFlight$ = this.http.post<RefreshResponse>(`${this.apiUrl}/refresh/`, {
       refresh: tokens.refresh
     }).pipe(
       tap(response => {
         const newTokens: AuthTokens = {
           access: response.access,
-          refresh: tokens.refresh
+          // ROTATE_REFRESH_TOKENS=True : le backend renvoie un refresh token
+          // *renouvelé*. On DOIT le stocker (sinon, une fois le blacklist activé,
+          // le prochain refresh réutilise un token invalidé → déconnexion).
+          refresh: response.refresh ?? tokens.refresh
         };
         this.storeTokens(newTokens);
       }),
@@ -215,8 +230,12 @@ export class AuthService {
       catchError(error => {
         this.clearAuthData();
         return throwError(() => error);
-      })
+      }),
+      finalize(() => { this.refreshInFlight$ = null; }),
+      shareReplay(1)
     );
+
+    return this.refreshInFlight$;
   }
 
   /**
