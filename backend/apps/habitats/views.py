@@ -98,13 +98,34 @@ class HabrefViewSet(viewsets.ReadOnlyModelViewSet):
         url_path='correspondance/(?P<cd_hab>[0-9]+)',
     )
     def correspondance(self, request, cd_hab=None):
-        """Correspondances entre typologies pour un habitat donné."""
-        corresps = HabrefCorrespHab.objects.filter(
-            cd_hab=cd_hab
-        ).order_by('cd_typo_entre')
-        return Response(
-            HabrefCorrespHabSerializer(corresps, many=True).data
-        )
+        """
+        Correspondances entre typologies pour un habitat donné.
+
+        Les colonnes `lb_code_entre` / `lb_hab_entre` de habref_corresp_hab sont
+        souvent vides ; on les résout via `habref` (jointure sur cd_hab_entre) et
+        on ajoute le nom de la typologie (`lb_typo`). Indispensable pour afficher
+        un habitat dans d'autres référentiels (EUNIS, Corine, Cahiers…) — #89.
+        """
+        from django.db import connection
+        with connection.cursor() as cur:
+            cur.execute(
+                """
+                SELECT c.id, c.cd_hab, c.cd_hab_entre, c.cd_typo_entre,
+                       t.lb_typo,
+                       COALESCE(NULLIF(c.lb_code_entre, ''), h.lb_code) AS lb_code_entre,
+                       COALESCE(NULLIF(c.lb_hab_entre, ''), h.lb_hab_fr) AS lb_hab_entre,
+                       c.niveau_entre, c.type_rel
+                FROM ref_habitats.habref_corresp_hab c
+                JOIN ref_habitats.typoref t ON t.cd_typo = c.cd_typo_entre
+                LEFT JOIN ref_habitats.habref h ON h.cd_hab = c.cd_hab_entre
+                WHERE c.cd_hab = %s
+                ORDER BY c.cd_typo_entre, c.cd_hab_entre
+                """,
+                [cd_hab],
+            )
+            cols = [d[0] for d in cur.description]
+            rows = [dict(zip(cols, r)) for r in cur.fetchall()]
+        return Response(rows)
 
     @action(detail=False, methods=['post'], url_path='validate-bulk')
     def validate_bulk(self, request):

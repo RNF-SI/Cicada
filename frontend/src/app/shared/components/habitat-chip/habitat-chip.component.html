@@ -1,0 +1,27 @@
+<span class="reference-chip habitat-chip"
+      [class.expanded]="expanded()"
+      role="button"
+      tabindex="0"
+      (click)="toggle()"
+      (keydown.enter)="toggle()"
+      (keydown.space)="toggle()">
+  {{ cdHab() }} - {{ label() }}
+  <i class="fi fi-rr-angle-small-down habitat-chip__caret"></i>
+</span>
+
+@if (expanded()) {
+  <div class="habitat-chip__corresp">
+    @if (loading()) {
+      <span class="text-mention">{{ 'common.status.loading' | translate }}…</span>
+    } @else if (groups().length === 0) {
+      <span class="text-mention">{{ 'enjeux.accordion.habitatNoCorresp' | translate }}</span>
+    } @else {
+      @for (g of groups(); track g.typo) {
+        <div class="habitat-chip__line">
+          <span class="habitat-chip__typo">{{ g.label }}</span>
+          <span class="habitat-chip__codes">{{ g.codes.join(', ') }}</span>
+        </div>
+      }
+    }
+  </div>
+}

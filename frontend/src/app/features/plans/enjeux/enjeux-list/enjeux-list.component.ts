@@ -51,6 +51,7 @@ import {
 } from '../../../../core/models/enjeu.model';
 import { EnjeuAccordionComponent } from '../enjeu-accordion/enjeu-accordion.component';
 import { SectionTitleComponent } from '../../../../shared/components/section-title/section-title.component';
+import { HabitatChipComponent } from '../../../../shared/components/habitat-chip/habitat-chip.component';
 import { MetriqueFormComponent } from '../../../../shared/components/metrique-form/metrique-form.component';
 import {
   NomenclatureOption,
@@ -92,7 +93,8 @@ type TabType = 'detail' | 'olt' | 'operations';
     EnjeuAccordionComponent,
     SectionTitleComponent,
     MetriqueFormComponent,
-    DragDropModule
+    DragDropModule,
+    HabitatChipComponent
   ],
   templateUrl: './enjeux-list.component.html',
   styleUrl: './enjeux-list.component.scss'

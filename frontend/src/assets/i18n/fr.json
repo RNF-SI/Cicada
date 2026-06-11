@@ -2507,6 +2507,7 @@
       "processus": "Un processus",
       "listeEspeces": "Espèces concernées",
       "listeHabitats": "Habitats concernés",
+      "habitatNoCorresp": "Aucune correspondance EUNIS / Corine / Cahiers d'habitats.",
       "listeGeologies": "Sites géologiques concernés",
       "voirListe": "Voir la liste",
       "masquerListe": "Masquer la liste",

@@ -1,0 +1,43 @@
+@import 'variables';
+
+.habitat-chip {
+  cursor: pointer;
+  user-select: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+
+  &__caret {
+    font-size: 0.8em;
+    transition: transform 0.15s ease;
+  }
+
+  &.expanded .habitat-chip__caret {
+    transform: rotate(180deg);
+  }
+}
+
+.habitat-chip__corresp {
+  display: block;
+  margin: $spacing-xxs 0 $spacing-xs $spacing-sm;
+  padding-left: $spacing-sm;
+  border-left: 2px solid $gray-light;
+  font-size: $font-size-small;
+}
+
+.habitat-chip__line {
+  display: flex;
+  gap: $spacing-xs;
+  line-height: 1.5;
+}
+
+.habitat-chip__typo {
+  flex: 0 0 auto;
+  min-width: 130px;
+  font-weight: 600;
+  color: $primary-color;
+}
+
+.habitat-chip__codes {
+  color: $black;
+}

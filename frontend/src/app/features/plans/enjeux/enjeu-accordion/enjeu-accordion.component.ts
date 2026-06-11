@@ -13,6 +13,7 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { Enjeu } from '../../../../core/models/enjeu.model';
 import { ConfirmDialogComponent } from '../../../../shared/components/confirm-dialog/confirm-dialog.component';
 import { SectionTitleComponent } from '../../../../shared/components/section-title/section-title.component';
+import { HabitatChipComponent } from '../../../../shared/components/habitat-chip/habitat-chip.component';
 
 @Component({
   selector: 'app-enjeu-accordion',
@@ -24,7 +25,8 @@ import { SectionTitleComponent } from '../../../../shared/components/section-tit
     MatTooltipModule,
     MatDialogModule,
     TranslateModule,
-    SectionTitleComponent
+    SectionTitleComponent,
+    HabitatChipComponent
   ],
   templateUrl: './enjeu-accordion.component.html',
   styleUrl: './enjeu-accordion.component.scss'

@@ -259,7 +259,7 @@
                         @if (showDetailHabitatList() && enjeu.habitats?.length) {
                           <div class="reference-list">
                             @for (habitat of enjeu.habitats; track habitat.cd_hab) {
-                              <span class="reference-chip">{{ habitat.cd_hab }} - {{ habitat.lb_hab_fr }}</span>
+                              <app-habitat-chip [cdHab]="habitat.cd_hab" [label]="habitat.lb_hab_fr ?? ''"></app-habitat-chip>
                             }
                           </div>
                         }

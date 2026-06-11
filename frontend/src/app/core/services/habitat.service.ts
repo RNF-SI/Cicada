@@ -48,6 +48,8 @@ export interface CorrespondanceHabitat {
   cd_hab: number;
   cd_hab_entre: number;
   cd_typo_entre: number;
+  /** Nom de la typologie correspondante (EUNIS, CORINE_biotopes, …) — #89. */
+  lb_typo?: string;
   lb_code_entre: string;
   lb_hab_entre: string;
   niveau_entre: number;
