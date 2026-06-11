@@ -491,7 +491,12 @@ class MesureViewSet(viewsets.ModelViewSet):
         'id_metrique', 'id_utilisateur_ajout', 'id_utilisateur_maj'
     )
 
-    permission_classes = [permissions.IsAuthenticated, IsReferent, CanModifyOnlyDraftPlan]
+    # Pas de CanModifyOnlyDraftPlan : une Mesure est une valeur *réalisée*
+    # (indicateur de réponse, datée via date_mesure), saisie pendant la vie
+    # active du plan — comme la réalisation annuelle (RealisationOperationAnnee).
+    # Le verrou « brouillon uniquement » (#248) bloquait à tort cette saisie sur
+    # un plan validé (403 à l'enregistrement d'un indicateur de réponse).
+    permission_classes = [permissions.IsAuthenticated, IsReferent]
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
     filterset_class = MesureFilter
     search_fields = ['valeur', 'commentaire']
