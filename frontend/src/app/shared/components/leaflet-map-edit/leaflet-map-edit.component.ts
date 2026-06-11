@@ -128,6 +128,13 @@ export class LeafletMapEditComponent implements OnInit, AfterViewInit, OnChanges
     if (changes['geometryType'] && !changes['geometryType'].firstChange) {
       this.updateDrawControl();
     }
+    // Basculer entre lecture seule et édition doit ajouter/retirer les outils
+    // de dessin Leaflet-Draw. Sans ça, le bouton « Dessiner » changeait bien
+    // `readOnly` mais la barre d'outils crayon n'apparaissait jamais (elle
+    // n'était configurée qu'à l'init, où readOnly valait true).
+    if (changes['readOnly'] && !changes['readOnly'].firstChange) {
+      this.setupDrawControl();
+    }
   }
 
   ngOnDestroy(): void {

@@ -27,7 +27,7 @@ import { debounceTime, distinctUntilChanged, filter, switchMap } from 'rxjs/oper
 import { HeaderComponent } from '../../../../shared/components/header/header.component';
 import { ReferenceItemListComponent } from '../../../../shared/components/reference-item-list/reference-item-list.component';
 import { CheckboxComponent } from '../../../../shared/components/checkbox/checkbox.component';
-import { LeafletMapComponent } from '../../../../shared/components/leaflet-map/leaflet-map.component';
+import { EmpriseEditorComponent } from '../../../../shared/components/emprise-editor/emprise-editor.component';
 import { AccordionComponent } from '../../../../shared/components/accordion/accordion.component';
 import { FormFieldComponent } from '../../../../shared/components/form-field/form-field.component';
 import { EnjeuService } from '../../../../core/services/enjeu.service';
@@ -73,7 +73,7 @@ import {
     ReferenceItemListComponent,
     AccordionComponent,
     FormFieldComponent,
-    LeafletMapComponent,
+    EmpriseEditorComponent,
   ],
   templateUrl: './operation-form.component.html',
   styleUrl: './operation-form.component.scss'
@@ -105,6 +105,15 @@ export class OperationFormComponent implements OnInit {
   /** Mode lecture seule : la route `operations/:id` (sans /modifier) définit data.readOnly = true */
   isReadOnly = signal(false);
   existingOperation = signal<Operation | null>(null);
+
+  /** Emprise spatiale en cours d'édition (#342). undefined = inchangée. */
+  pendingEmprise = signal<any | undefined>(undefined);
+  /** Emprise à afficher : modif locale en priorité, sinon valeur serveur. */
+  empriseGeom = computed<any>(() => {
+    const pending = this.pendingEmprise();
+    if (pending !== undefined) return pending;
+    return this.existingOperation()?.geom_geojson ?? null;
+  });
   /** Types de métrique disponibles (TYPE_METRIQUE nomenclature). */
   typeMetriqueOptions = signal<{ id_nomenclature: number; label: string }[]>([]);
 
@@ -177,6 +186,11 @@ export class OperationFormComponent implements OnInit {
     const cat = this.categorieActionReserveOptions().find(c => c.id_nomenclature === id);
     if (!cat) return null;
     return cat.cd_nomenclature ? `${cat.cd_nomenclature} — ${cat.label}` : cat.label;
+  }
+
+  /** Capture les modifications de l'éditeur d'emprise spatiale (#342). */
+  onEmpriseChange(geom: any): void {
+    this.pendingEmprise.set(geom);
   }
 
   /** Inventaires existants chargés (filtrés par type d'action) */
@@ -1183,6 +1197,13 @@ export class OperationFormComponent implements OnInit {
           libelle: f.libelle.trim(),
           id_categorie: f.id_categorie || undefined
         }));
+    }
+
+    // Emprise spatiale (#342) : incluse uniquement si modifiée localement
+    // (undefined = on ne touche pas au serveur ; null = effacement explicite).
+    const pendingEmprise = this.pendingEmprise();
+    if (pendingEmprise !== undefined) {
+      payload.geom_geojson = pendingEmprise;
     }
 
     return payload;

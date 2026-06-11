@@ -27,7 +27,7 @@ import { forkJoin, of } from 'rxjs';
 import { HeaderComponent } from '../../../../shared/components/header/header.component';
 import { PlanSidebarComponent } from '../../shared/plan-sidebar/plan-sidebar.component';
 import { FormFieldComponent } from '../../../../shared/components/form-field/form-field.component';
-import { LeafletMapEditComponent } from '../../../../shared/components/leaflet-map-edit/leaflet-map-edit.component';
+import { EmpriseEditorComponent } from '../../../../shared/components/emprise-editor/emprise-editor.component';
 import { AdminService } from '../../../../core/services/admin.service';
 import { EnjeuService } from '../../../../core/services/enjeu.service';
 import { RealisationService } from '../../../../core/services/realisation.service';
@@ -57,7 +57,7 @@ type ActionStatus = 'planned' | 'planned-realized' | 'planned-partial' | 'realiz
     MatButtonModule, MatProgressSpinnerModule, MatSnackBarModule,
     TranslateModule,
     HeaderComponent, PlanSidebarComponent, FormFieldComponent,
-    LeafletMapEditComponent,
+    EmpriseEditorComponent,
   ],
   templateUrl: './suivi-saisie.component.html',
   styleUrl: './suivi-saisie.component.scss',
@@ -175,12 +175,7 @@ export class SuiviSaisieComponent implements OnInit {
   // d'utiliser `backgroundGeometry` pour l'emprise prévue dans les deux
   // modes — pas besoin d'aplatir en FeatureCollection.)
 
-  /** Toggle entre vue carte (lecture) et édition (dessin). */
-  toggleEditGeom(): void {
-    this.isEditingGeom.update(v => !v);
-  }
-
-  /** Capture les modifications de l'éditeur Leaflet-Draw. */
+  /** Capture les modifications de l'éditeur d'emprise. */
   onGeomRealiseeChange(geom: any): void {
     this.pendingGeomRealisee.set(geom);
   }
@@ -450,7 +445,7 @@ export class SuiviSaisieComponent implements OnInit {
     this.router.navigate(['/plans', this.planSlug(), 'enjeux', 'operations', opId, 'modifier']);
   }
 
-  submit(): void {
+  submit(quit = false): void {
     const oa = this.currentOperationAnnee();
     if (!oa?.id_operation_annee) {
       this.snack.open(
@@ -562,6 +557,8 @@ export class SuiviSaisieComponent implements OnInit {
         // brouillon (le serveur fait foi maintenant).
         this.pendingGeomRealisee.set(undefined);
         this.isEditingGeom.set(false);
+        // « Enregistrer et quitter » : retour à la liste de suivi des actions.
+        if (quit) this.goBack();
       },
       error: () => {
         this.isSaving.set(false);

@@ -2,6 +2,7 @@
   "common": {
     "actions": {
       "save": "Enregistrer",
+      "saveAndQuit": "Enregistrer et quitter",
       "cancel": "Annuler",
       "delete": "Supprimer",
       "edit": "Modifier",
@@ -25,6 +26,12 @@
       "moveDown": "Descendre",
       "collapse": "Replier",
       "clear": "Effacer"
+    },
+    "emprise": {
+      "empty": "Aucune emprise définie",
+      "startDraw": "Dessiner / importer",
+      "stopDraw": "Terminer",
+      "drawHint": "Dessinez un polygone sur la carte, ou importez un fichier (.geojson, .json ou .zip de shapefile en WGS84)."
     },
     "status": {
       "active": "Actif",

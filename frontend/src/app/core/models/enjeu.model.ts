@@ -652,6 +652,8 @@ export interface OperationCreatePayload {
   libelle: string;
   /** #251 — Statut envoyé selon le bouton utilisé : 'valide' pour Valider, 'draft' pour Enregistrer. */
   statut?: OperationStatut;
+  /** Emprise spatiale en GeoJSON (#342). null = effacement. */
+  geom_geojson?: any | null;
   id_priorite?: number;
   id_type_action?: number;
   // #228 — Catégorie d'action réserve CT88 (optionnel)

@@ -964,31 +964,14 @@
         <app-accordion variant="default" size="lg" [title]="'enjeux.operations.empriseSpatiale' | translate" [expanded]="sectionsOpen['emprise']" (expandedChange)="sectionsOpen['emprise'] = $event">
   <img accordionIcon src="assets/images/ellipses/ellipse-yellow.png" alt="" class="section-dot">
   <div class="section-content">
-    @if (existingOperation()?.geom_geojson; as gj) {
-      <div class="op-emprise-row">
-        <div class="op-emprise-map">
-          <app-leaflet-map
-            [geojsonData]="gj"
-            height="280px"
-            [showControls]="true"
-            [interactive]="true"
-            [fitBounds]="true">
-          </app-leaflet-map>
-        </div>
-        <div class="op-emprise-actions">
-          <button type="button" class="btn-outlined-pill" disabled
-                  [matTooltip]="'enjeux.operations.importSigSoon' | translate">
-            <i class="fi fi-rr-download"></i>
-            {{ 'enjeux.operations.importSig' | translate }}
-          </button>
-        </div>
-      </div>
-    } @else {
-      <p class="text-mention">{{ 'enjeux.operations.empriseEmpty' | translate }}</p>
-      <button type="button" class="add-link-btn" disabled>
-        + {{ 'enjeux.operations.ajouterEmprise' | translate }}
-      </button>
-    }
+    <!-- Éditeur d'emprise factorisé (carte + dessin + import shapefile/GeoJSON),
+         partagé avec la saisie d'un suivi. Lecture seule hors mode édition. -->
+    <app-emprise-editor
+      [geometry]="empriseGeom()"
+      [disabled]="isReadOnly()"
+      height="280px"
+      (geometryChange)="onEmpriseChange($event)">
+    </app-emprise-editor>
   </div>
 </app-accordion>
 

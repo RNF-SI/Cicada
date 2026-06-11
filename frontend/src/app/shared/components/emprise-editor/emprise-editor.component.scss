@@ -1,0 +1,63 @@
+@import 'variables';
+
+.emprise-editor {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: $spacing-md;
+  align-items: start;
+
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.emprise-editor__map {
+  position: relative;
+  border-radius: $border-radius-sm;
+  overflow: hidden;
+
+  .emprise-editor__empty {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.85);
+    margin: 0;
+    padding: $spacing-md;
+    text-align: center;
+  }
+}
+
+.emprise-editor__actions {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-sm;
+  justify-content: flex-start;
+  align-items: flex-start;
+  padding-top: $spacing-sm;
+}
+
+.emprise-editor__hint {
+  margin: 0;
+}
+
+.btn-emprise-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: $spacing-xs;
+  background: transparent;
+  color: $primary-color;
+  border: 1px solid $primary-color;
+  padding: $spacing-xs $spacing-lg;
+  border-radius: $border-radius-pill;
+  font-family: 'Nunito', sans-serif;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+
+  &:hover {
+    background: $primary-color;
+    color: white;
+  }
+}

@@ -1,0 +1,33 @@
+<div class="emprise-editor">
+  <div class="emprise-editor__map">
+    <!-- Même composant en lecture et en écriture : la géométrie de repère
+         (arrière-plan) reste visible dans les deux modes ; les outils de dessin
+         Leaflet-Draw n'apparaissent que lorsque `editing()` est vrai. -->
+    <app-leaflet-map-edit
+      [existingGeometry]="geometry()"
+      [backgroundGeometry]="backgroundGeometry()"
+      [readOnly]="!editing()"
+      [height]="height()"
+      geometryType="polygon"
+      [enableGeometryImport]="editing()"
+      (geometryChange)="onChange($event)">
+    </app-leaflet-map-edit>
+    @if (!editing() && !geometry() && !backgroundGeometry()) {
+      <p class="text-mention emprise-editor__empty">{{ emptyLabel() | translate }}</p>
+    }
+  </div>
+
+  <div class="emprise-editor__actions">
+    <ng-content select="[empriseLegend]"></ng-content>
+
+    @if (!disabled()) {
+      <button type="button" class="btn-emprise-toggle" (click)="toggle()">
+        <i class="fi" [class.fi-rr-pencil]="!editing()" [class.fi-rr-eye]="editing()"></i>
+        <span>{{ (editing() ? stopDrawLabel() : startDrawLabel()) | translate }}</span>
+      </button>
+      @if (editing()) {
+        <p class="text-mention emprise-editor__hint">{{ drawHintLabel() | translate }}</p>
+      }
+    }
+  </div>
+</div>

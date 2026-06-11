@@ -674,6 +674,9 @@ class OperationCreateSerializer(serializers.ModelSerializer):
     operation_annees = OperationAnneeWriteSerializer(many=True, required=False, default=[])
     finances = FinanceOperationSerializer(many=True, required=False, default=[])
     suivi_inventaire = SuiviInventaireWriteSerializer(required=False, allow_null=True, write_only=True)
+    # Emprise spatiale acceptée en GeoJSON (cohérent avec `geom_realisee` de la
+    # réalisation et `geom_geojson` du serializer de lecture).
+    geom_geojson = GeoJSONGeometryField(source='geom', required=False, allow_null=True)
 
     class Meta:
         model = Operation
@@ -692,7 +695,7 @@ class OperationCreateSerializer(serializers.ModelSerializer):
             'programmation_annuelle', 'programmation_mensuelle',
             'programmation_mensuelle_defaut',
             'ventilation_mode',
-            'geom',
+            'geom_geojson',
             'metrique_ids', 'site_ids',
             'operation_annees', 'finances'
         ]
