@@ -253,22 +253,18 @@
         </div>
 
         <div class="form-row two-columns">
-          <label class="app-mat-label">{{ 'modals.siteForm.fields.type' | translate }}</label>
-      <mat-form-field class="app-mat-form-field" appearance="outline">
-            <mat-label></mat-label>
-            <mat-select formControlName="id_type_site">
-              <mat-option [value]="null">-- {{ 'common.actions.select' | translate }} --</mat-option>
+          <app-form-field [label]="'modals.siteForm.fields.type' | translate">
+            <select formControlName="id_type_site">
+              <option [ngValue]="null">-- {{ 'common.actions.select' | translate }} --</option>
               @if (isLoadingTypes()) {
-                <mat-option disabled>{{ 'common.status.loading' | translate }}...</mat-option>
+                <option disabled>{{ 'common.status.loading' | translate }}...</option>
               } @else {
                 @for (type of siteTypes(); track type.id_nomenclature) {
-                  <mat-option [value]="type.id_nomenclature">
-                    {{ type.label }}{{ type.cd_nomenclature ? ' (' + type.cd_nomenclature + ')' : '' }}
-                  </mat-option>
+                  <option [ngValue]="type.id_nomenclature">{{ type.label }}{{ type.cd_nomenclature ? ' (' + type.cd_nomenclature + ')' : '' }}</option>
                 }
               }
-            </mat-select>
-          </mat-form-field>
+            </select>
+          </app-form-field>
 
           <app-form-field [label]="'modals.siteForm.fields.surface' | translate">
   <input type="number" formControlName="surf_off" placeholder="Ex: 1500">
