@@ -1,28 +1,48 @@
 @import 'variables';
 
-// Hôte en inline-block : le panneau de correspondances (block) reste contenu,
-// et la puce s'aligne correctement aussi bien en liste qui s'enroule (enjeu)
-// qu'en lignes verticales (action).
 :host {
   display: inline-block;
   vertical-align: top;
 }
 
-.habitat-chip {
-  cursor: pointer;
-  user-select: none;
+// Puce d'habitat (pill) cliquable
+.hchip {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  // Affordance « cliquable » : bordure + fond léger au survol/ouverture.
-  border: 1px dashed rgba($primary-color, 0.5);
-  transition: background-color 0.15s ease, border-color 0.15s ease;
+  gap: $spacing-xs;
+  padding: 4px $spacing-sm;
+  border: 1px solid $gray-light;
+  border-radius: $border-radius-pill;
+  background: $white;
+  font-family: $font-family;
+  font-size: $font-size-small;
+  color: $black;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background-color 0.15s ease, box-shadow 0.15s ease;
 
-  &:hover,
-  &.expanded {
-    background-color: rgba($primary-color, 0.08);
+  &:hover {
     border-color: $primary-color;
-    border-style: solid;
+    box-shadow: 0 1px 4px rgba($primary-color, 0.15);
+  }
+
+  &--open {
+    border-color: $primary-color;
+    background: $primary-bg-subtle;
+  }
+
+  &__code {
+    font-family: 'Courier New', monospace;
+    font-weight: 700;
+    font-size: 11px;
+    color: $primary-color;
+    background: rgba($primary-color, 0.1);
+    padding: 1px 6px;
+    border-radius: $border-radius-sm;
+    white-space: nowrap;
+  }
+
+  &__name {
+    font-weight: $font-weight-medium;
   }
 
   &__caret {
@@ -31,32 +51,61 @@
     transition: transform 0.15s ease;
   }
 
-  &.expanded .habitat-chip__caret {
+  &--open &__caret {
     transform: rotate(180deg);
   }
 }
 
-.habitat-chip__corresp {
-  display: block;
-  margin: $spacing-xxs 0 $spacing-xs $spacing-sm;
-  padding-left: $spacing-sm;
-  border-left: 2px solid $gray-light;
-  font-size: $font-size-small;
-}
-
-.habitat-chip__line {
+// Panneau de correspondances
+.hchip__panel {
+  margin: $spacing-xxs 0 $spacing-xs;
+  padding: $spacing-sm;
+  background: $beige;
+  border: 1px solid $gray-lighter;
+  border-radius: $border-radius-sm;
   display: flex;
+  flex-direction: column;
   gap: $spacing-xs;
-  line-height: 1.5;
 }
 
-.habitat-chip__typo {
-  flex: 0 0 auto;
-  min-width: 130px;
-  font-weight: 600;
+.hchip__muted {
+  font-size: $font-size-small;
+  color: $gray-dark;
+  font-style: italic;
+}
+
+.hchip__group {
+  display: flex;
+  align-items: baseline;
+  gap: $spacing-sm;
+}
+
+.hchip__typo {
+  flex: 0 0 130px;
+  font-size: 12px;
+  font-weight: 700;
   color: $primary-color;
 }
 
-.habitat-chip__codes {
+.hchip__codes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.hchip__codepill {
+  font-family: 'Courier New', monospace;
+  font-size: 11px;
   color: $black;
+  background: $white;
+  border: 1px solid $gray-light;
+  border-radius: $border-radius-sm;
+  padding: 1px 6px;
+  white-space: nowrap;
+}
+
+.hchip__more {
+  font-size: 11px;
+  color: $gray-dark;
+  align-self: center;
 }

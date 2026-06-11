@@ -1,25 +1,29 @@
-<span class="reference-chip habitat-chip"
-      [class.expanded]="expanded()"
-      role="button"
-      tabindex="0"
-      (click)="toggle()"
-      (keydown.enter)="toggle()"
-      (keydown.space)="toggle()">
-  {{ cdHab() }} - {{ label() }}
-  <i class="fi fi-rr-angle-small-down habitat-chip__caret"></i>
-</span>
+<button type="button" class="hchip"
+        [class.hchip--open]="expanded()"
+        (click)="toggle()">
+  <span class="hchip__code">{{ cdHab() }}</span>
+  <span class="hchip__name">{{ label() }}</span>
+  <i class="fi fi-rr-angle-small-down hchip__caret"></i>
+</button>
 
 @if (expanded()) {
-  <div class="habitat-chip__corresp">
+  <div class="hchip__panel">
     @if (loading()) {
-      <span class="text-mention">{{ 'common.status.loading' | translate }}…</span>
+      <span class="hchip__muted">{{ 'common.status.loading' | translate }}…</span>
     } @else if (groups().length === 0) {
-      <span class="text-mention">{{ 'enjeux.accordion.habitatNoCorresp' | translate }}</span>
+      <span class="hchip__muted">{{ 'enjeux.accordion.habitatNoCorresp' | translate }}</span>
     } @else {
       @for (g of groups(); track g.typo) {
-        <div class="habitat-chip__line">
-          <span class="habitat-chip__typo">{{ g.label }}</span>
-          <span class="habitat-chip__codes">{{ g.codes.join(', ') }}</span>
+        <div class="hchip__group">
+          <span class="hchip__typo">{{ g.label }}</span>
+          <span class="hchip__codes">
+            @for (code of g.codes; track code) {
+              <span class="hchip__codepill">{{ code }}</span>
+            }
+            @if (g.extra > 0) {
+              <span class="hchip__more">+{{ g.extra }}</span>
+            }
+          </span>
         </div>
       }
     }
