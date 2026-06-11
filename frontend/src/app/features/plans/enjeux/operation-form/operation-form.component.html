@@ -282,6 +282,19 @@
                     [items]="habitatItems"
                     (itemsChange)="onHabitatsChange($event)">
                   </app-reference-item-list>
+
+                  <!-- Correspondances EUNIS / Corine / Cahiers (#89) : puces
+                       cliquables, uniquement pour les habitats ayant un cd_hab. -->
+                  @if (habitatsWithCode().length > 0) {
+                    <div class="op-habitat-corresp">
+                      <span class="text-mention">{{ 'enjeux.operations.habitatCorrespHint' | translate }}</span>
+                      <div class="reference-list">
+                        @for (h of habitatsWithCode(); track h.cd_hab) {
+                          <app-habitat-chip [cdHab]="h.cd_hab" [label]="h.lb_hab_fr ?? ''"></app-habitat-chip>
+                        }
+                      </div>
+                    </div>
+                  }
                 </div>
               }
 

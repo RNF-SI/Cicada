@@ -1185,3 +1185,17 @@ app-form-field.finance-categorie {
     }
   }
 }
+
+// Correspondances d'habitats sous l'éditeur d'habitats de l'action (#89)
+.op-habitat-corresp {
+  margin-top: $spacing-sm;
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-xs;
+
+  .reference-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: $spacing-xs;
+  }
+}

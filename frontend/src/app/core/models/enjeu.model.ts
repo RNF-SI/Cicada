@@ -455,6 +455,8 @@ export interface SuiviInventaire {
   cible_secondaire?: string;
   taxon_taxref?: string;
   habitat_ref?: string;
+  /** Habitats structurés [{cd_hab, lb_hab_fr}] — pour les correspondances. */
+  habitats?: { cd_hab: string; lb_hab_fr?: string }[];
   date_lancement_suivi?: string;
   // Protocole (nested)
   protocole?: Protocole;

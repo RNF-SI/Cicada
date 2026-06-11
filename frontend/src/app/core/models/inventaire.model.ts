@@ -43,6 +43,8 @@ export interface SuiviInventaireDetail {
   plan_nom?: string;
   cible_secondaire?: string;
   habitat_ref?: string;
+  /** Habitats structurés [{cd_hab, lb_hab_fr}] — pour les correspondances. */
+  habitats?: { cd_hab: string; lb_hab_fr?: string }[];
   id_statut?: number;
   statut_label?: string;
   actif: boolean;
@@ -85,6 +87,8 @@ export interface SuiviInventaireCreatePayload {
   id_pg?: number;
   cible_secondaire?: string;
   habitat_ref?: string;
+  /** Habitats structurés [{cd_hab, lb_hab_fr}] — pour les correspondances. */
+  habitats?: { cd_hab: string; lb_hab_fr?: string }[];
   id_statut?: number;
   actif?: boolean;
   annee_fin_suivi?: number;

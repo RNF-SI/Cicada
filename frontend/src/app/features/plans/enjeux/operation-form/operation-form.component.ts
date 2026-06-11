@@ -26,6 +26,7 @@ import { debounceTime, distinctUntilChanged, filter, switchMap } from 'rxjs/oper
 
 import { HeaderComponent } from '../../../../shared/components/header/header.component';
 import { ReferenceItemListComponent } from '../../../../shared/components/reference-item-list/reference-item-list.component';
+import { HabitatChipComponent } from '../../../../shared/components/habitat-chip/habitat-chip.component';
 import { CheckboxComponent } from '../../../../shared/components/checkbox/checkbox.component';
 import { EmpriseEditorComponent } from '../../../../shared/components/emprise-editor/emprise-editor.component';
 import { AccordionComponent } from '../../../../shared/components/accordion/accordion.component';
@@ -71,6 +72,7 @@ import {
     TranslateModule,
     HeaderComponent,
     ReferenceItemListComponent,
+    HabitatChipComponent,
     AccordionComponent,
     FormFieldComponent,
     EmpriseEditorComponent,
@@ -687,8 +689,11 @@ export class OperationFormComponent implements OnInit {
           nom_complet: name,
         }));
       }
-      // Parse habitat references
-      if (suivi.habitat_ref) {
+      // Habitats : on privilégie la liste structurée (avec cd_hab, nécessaire
+      // aux correspondances), sinon on retombe sur le texte `habitat_ref`.
+      if (Array.isArray(suivi.habitats) && suivi.habitats.length > 0) {
+        this.habitatItems = suivi.habitats.map((h: any) => ({ cd_hab: h.cd_hab ?? '', lb_hab_fr: h.lb_hab_fr ?? '' }));
+      } else if (suivi.habitat_ref) {
         this.habitatItems = suivi.habitat_ref.split(',').map((s: string) => s.trim()).filter((s: string) => s).map((name: string) => ({
           cd_hab: '',
           lb_hab_fr: name,
@@ -1068,7 +1073,14 @@ export class OperationFormComponent implements OnInit {
         suiviData['taxon_taxref'] = this.taxonItems.map(t => t.nom_complet || String(t.cd_nom)).join(', ');
       }
       if (this.habitatItems.length > 0) {
+        // `habitat_ref` (noms) conservé pour l'affichage hérité ; `habitats`
+        // (structuré, avec cd_hab) permet d'afficher les correspondances.
         suiviData['habitat_ref'] = this.habitatItems.map(h => h.lb_hab_fr || h.cd_hab).join(', ');
+        suiviData['habitats'] = this.habitatItems
+          .filter(h => h.cd_hab)
+          .map(h => ({ cd_hab: h.cd_hab, lb_hab_fr: h.lb_hab_fr }));
+      } else {
+        suiviData['habitats'] = [];
       }
       const dateLancement = this.formatDate(rawFv.date_lancement_suivi);
       if (dateLancement) suiviData['date_lancement_suivi'] = dateLancement;
@@ -1525,7 +1537,9 @@ export class OperationFormComponent implements OnInit {
         } else {
           this.taxonItems = [];
         }
-        if (detail.habitat_ref) {
+        if (Array.isArray(detail.habitats) && detail.habitats.length > 0) {
+          this.habitatItems = detail.habitats.map((h: any) => ({ cd_hab: h.cd_hab ?? '', lb_hab_fr: h.lb_hab_fr ?? '' }));
+        } else if (detail.habitat_ref) {
           this.habitatItems = detail.habitat_ref.split(',').map(s => s.trim()).filter(s => s).map(name => ({
             cd_hab: '',
             lb_hab_fr: name,
@@ -1787,6 +1801,12 @@ export class OperationFormComponent implements OnInit {
 
   onHabitatsChange(items: (TaxonRef | HabitatRef | GeologieRef)[]): void {
     this.habitatItems = items as HabitatRef[];
+  }
+
+  /** Habitats de l'action ayant un cd_hab — éligibles à l'affichage des
+   * correspondances EUNIS/Corine/Cahiers (#89). */
+  habitatsWithCode(): HabitatRef[] {
+    return this.habitatItems.filter(h => !!h.cd_hab);
   }
 
   private formatDate(date: Date | string | null): string | undefined {

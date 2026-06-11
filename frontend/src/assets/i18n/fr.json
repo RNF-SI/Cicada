@@ -2713,6 +2713,7 @@
       "taxonTaxref": "Taxon(s) référé(s)",
       "habitatRef": "Habitat(s) référé(s)",
       "habitatRefTooltip": "Codes d'habitats issus du référentiel HabRef (cd_hab) de l'INPN",
+      "habitatCorrespHint": "Cliquez sur un habitat pour voir ses correspondances (EUNIS / Corine / Cahiers d'habitats) :",
       "protocoleCampanule": "Protocole répertorié dans campanule ?",
       "protocoleNom": "Protocole (Campanule)",
       "campanuleSearchPlaceholder": "Rechercher un protocole Campanule...",

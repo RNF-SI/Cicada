@@ -226,7 +226,16 @@ class SuiviInventaire(models.Model):
         max_length=500,
         blank=True,
         default='',
-        help_text=_("Référentiel habitat associé")
+        help_text=_("Référentiel habitat associé (noms, conservé pour l'affichage hérité)")
+    )
+    # Habitats structurés : liste de {cd_hab, lb_hab_fr}. Permet d'afficher les
+    # correspondances EUNIS/Corine/Cahiers (qui nécessitent le cd_hab) — le champ
+    # texte `habitat_ref` ci-dessus ne stockait que les noms.
+    habitats = models.JSONField(
+        _("Habitats (structurés)"),
+        default=list,
+        blank=True,
+        help_text=_("Liste d'habitats HabRef : [{cd_hab, lb_hab_fr}, ...]")
     )
     id_statut = models.ForeignKey(
         'core.Nomenclature',
