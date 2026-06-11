@@ -123,3 +123,23 @@
     gap: $spacing-sm;
   }
 }
+
+// Habitats avec correspondances (#89) : une ligne par habitat (puce dépliable
+// + bouton supprimer), regroupé au même endroit que l'édition.
+.habitat-rows {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-xs;
+  margin-bottom: $spacing-sm;
+}
+
+.habitat-row {
+  display: flex;
+  align-items: flex-start;
+  gap: $spacing-xs;
+
+  .chip-remove {
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+}

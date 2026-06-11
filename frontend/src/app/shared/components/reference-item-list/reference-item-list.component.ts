@@ -17,6 +17,7 @@ import { HabitatService, HabitatAutocomplete } from '../../../core/services/habi
 import { GeologyService, InpgAutocomplete } from '../../../core/services/geology.service';
 import { TaxonRef, HabitatRef, GeologieRef } from '../../../core/models/enjeu.model';
 import { ImportListDialogComponent, ImportListDialogData, ImportedItem } from '../modals/import-list-dialog/import-list-dialog.component';
+import { HabitatChipComponent } from '../habitat-chip/habitat-chip.component';
 
 @Component({
   selector: 'app-reference-item-list',
@@ -32,6 +33,7 @@ import { ImportListDialogComponent, ImportListDialogData, ImportedItem } from '.
     MatIconModule,
     MatProgressSpinnerModule,
     TranslateModule,
+    HabitatChipComponent,
   ],
   templateUrl: './reference-item-list.component.html',
   styleUrl: './reference-item-list.component.scss'
@@ -39,6 +41,9 @@ import { ImportListDialogComponent, ImportListDialogData, ImportedItem } from '.
 export class ReferenceItemListComponent implements OnInit, OnDestroy {
   @Input() type: 'taxon' | 'habitat' | 'geology' = 'taxon';
   @Input() items: (TaxonRef | HabitatRef | GeologieRef)[] = [];
+  /** Affiche, pour les habitats, leurs correspondances EUNIS/Corine/Cahiers
+   * cliquables (puce dépliable). Ne s'applique qu'au type 'habitat'. (#89) */
+  @Input() showCorrespondences = false;
   @Output() itemsChange = new EventEmitter<(TaxonRef | HabitatRef | GeologieRef)[]>();
 
   private readonly taxonomyService = inject(TaxonomyService);

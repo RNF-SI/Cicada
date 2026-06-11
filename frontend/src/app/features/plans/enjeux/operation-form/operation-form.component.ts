@@ -26,7 +26,6 @@ import { debounceTime, distinctUntilChanged, filter, switchMap } from 'rxjs/oper
 
 import { HeaderComponent } from '../../../../shared/components/header/header.component';
 import { ReferenceItemListComponent } from '../../../../shared/components/reference-item-list/reference-item-list.component';
-import { HabitatChipComponent } from '../../../../shared/components/habitat-chip/habitat-chip.component';
 import { CheckboxComponent } from '../../../../shared/components/checkbox/checkbox.component';
 import { EmpriseEditorComponent } from '../../../../shared/components/emprise-editor/emprise-editor.component';
 import { AccordionComponent } from '../../../../shared/components/accordion/accordion.component';
@@ -72,7 +71,6 @@ import {
     TranslateModule,
     HeaderComponent,
     ReferenceItemListComponent,
-    HabitatChipComponent,
     AccordionComponent,
     FormFieldComponent,
     EmpriseEditorComponent,
@@ -1801,12 +1799,6 @@ export class OperationFormComponent implements OnInit {
 
   onHabitatsChange(items: (TaxonRef | HabitatRef | GeologieRef)[]): void {
     this.habitatItems = items as HabitatRef[];
-  }
-
-  /** Habitats de l'action ayant un cd_hab — éligibles à l'affichage des
-   * correspondances EUNIS/Corine/Cahiers (#89). */
-  habitatsWithCode(): HabitatRef[] {
-    return this.habitatItems.filter(h => !!h.cd_hab);
   }
 
   private formatDate(date: Date | string | null): string | undefined {

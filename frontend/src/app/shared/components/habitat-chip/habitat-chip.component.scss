@@ -1,5 +1,13 @@
 @import 'variables';
 
+// Hôte en inline-block : le panneau de correspondances (block) reste contenu,
+// et la puce s'aligne correctement aussi bien en liste qui s'enroule (enjeu)
+// qu'en lignes verticales (action).
+:host {
+  display: inline-block;
+  vertical-align: top;
+}
+
 .habitat-chip {
   cursor: pointer;
   user-select: none;

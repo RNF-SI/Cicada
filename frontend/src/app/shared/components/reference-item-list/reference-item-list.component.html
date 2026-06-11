@@ -10,8 +10,26 @@
     </button>
   </div>
 
-  <!-- Chip list of current items -->
-  @if (items.length > 0) {
+  <!-- Habitats avec correspondances (#89) : une ligne par habitat, puce
+       cliquable (équivalents EUNIS/Corine/Cahiers) + bouton supprimer. Tout
+       est regroupé ici (plus de bloc séparé). -->
+  @if (items.length > 0 && type === 'habitat' && showCorrespondences) {
+    <div class="habitat-rows">
+      @for (item of items; track $index) {
+        <div class="habitat-row">
+          @if ($any(item).cd_hab) {
+            <app-habitat-chip [cdHab]="$any(item).cd_hab" [label]="$any(item).lb_hab_fr ?? ''"></app-habitat-chip>
+          } @else {
+            <span class="reference-chip">{{ getItemLabel(item) }}</span>
+          }
+          <button type="button" class="chip-remove" (click)="removeItem($index)" [attr.aria-label]="'common.actions.delete' | translate">
+            <i class="fi fi-rr-cross-small"></i>
+          </button>
+        </div>
+      }
+    </div>
+  } @else if (items.length > 0) {
+    <!-- Chip list of current items (taxons, géologie, habitats sans correspondances) -->
     <div class="chips-container">
       @for (item of items; track $index) {
         <div class="item-chip">
