@@ -5,38 +5,38 @@
   vertical-align: top;
 }
 
-// Puce d'habitat (pill) cliquable
+// Puce d'habitat cliquable — aligne le style sur `.reference-chip` du kit
+// (pill teinté primary, Nunito), avec états survol/ouverture.
 .hchip {
   display: inline-flex;
   align-items: center;
   gap: $spacing-xs;
-  padding: 4px $spacing-sm;
-  border: 1px solid $gray-light;
-  border-radius: $border-radius-pill;
-  background: $white;
+  padding: 3px $spacing-sm;
   font-family: $font-family;
   font-size: $font-size-small;
-  color: $black;
+  line-height: 20px;
+  color: $primary-color;
+  background-color: rgba($primary-color, 0.06);
+  border: 1px solid rgba($primary-color, 0.15);
+  border-radius: $border-radius-pill;
   cursor: pointer;
-  transition: border-color 0.15s ease, background-color 0.15s ease, box-shadow 0.15s ease;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
 
   &:hover {
     border-color: $primary-color;
-    box-shadow: 0 1px 4px rgba($primary-color, 0.15);
   }
 
   &--open {
+    background-color: $primary-bg-subtle;
     border-color: $primary-color;
-    background: $primary-bg-subtle;
   }
 
   &__code {
-    font-family: 'Courier New', monospace;
-    font-weight: 700;
+    font-weight: $font-weight-bold;
     font-size: 11px;
     color: $primary-color;
-    background: rgba($primary-color, 0.1);
-    padding: 1px 6px;
+    background-color: rgba($primary-color, 0.12);
+    padding: 0 6px;
     border-radius: $border-radius-sm;
     white-space: nowrap;
   }
@@ -47,7 +47,6 @@
 
   &__caret {
     font-size: 0.85em;
-    color: $primary-color;
     transition: transform 0.15s ease;
   }
 
@@ -60,7 +59,7 @@
 .hchip__panel {
   margin: $spacing-xxs 0 $spacing-xs;
   padding: $spacing-sm;
-  background: $beige;
+  background-color: rgba($primary-color, 0.04);
   border: 1px solid $gray-lighter;
   border-radius: $border-radius-sm;
   display: flex;
@@ -83,7 +82,7 @@
 .hchip__typo {
   flex: 0 0 130px;
   font-size: 12px;
-  font-weight: 700;
+  font-weight: $font-weight-bold;
   color: $primary-color;
 }
 
@@ -94,13 +93,12 @@
 }
 
 .hchip__codepill {
-  font-family: 'Courier New', monospace;
   font-size: 11px;
-  color: $black;
-  background: $white;
-  border: 1px solid $gray-light;
+  color: $primary-color;
+  background-color: $white;
+  border: 1px solid rgba($primary-color, 0.15);
   border-radius: $border-radius-sm;
-  padding: 1px 6px;
+  padding: 0 6px;
   white-space: nowrap;
 }
 
