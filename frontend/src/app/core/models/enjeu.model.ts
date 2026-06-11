@@ -29,6 +29,12 @@ export interface HabitatRef {
   id?: number;
   cd_hab: string;
   lb_hab_fr?: string;
+  /** Code propre dans la typologie d'origine (ex. « G1.6 »). #89 */
+  lb_code?: string;
+  /** Typologie d'origine (ex. « EUNIS »). #89 */
+  lb_typo?: string;
+  /** Nom complet (avec auteur). #89 */
+  lb_hab_fr_complet?: string;
 }
 
 /**

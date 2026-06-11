@@ -122,6 +122,11 @@ export class ReferenceItemListComponent implements OnInit, OnDestroy {
         const newItem: HabitatRef = {
           cd_hab: String(habitat.cd_hab),
           lb_hab_fr: habitat.lb_hab_fr || habitat.search_name || undefined,
+          // On conserve les infos riches de la recherche (#89) : code et
+          // typologie d'origine, nom complet — affichés dans la puce.
+          lb_code: habitat.lb_code || undefined,
+          lb_typo: habitat.lb_typo ? habitat.lb_typo.replace(/_/g, ' ') : undefined,
+          lb_hab_fr_complet: habitat.lb_hab_fr_complet || undefined,
         };
         this.items = [...this.items, newItem];
         this.itemsChange.emit(this.items);

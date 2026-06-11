@@ -1,4 +1,4 @@
-import { Component, computed, inject, input, signal } from '@angular/core';
+import { Component, computed, inject, input, output, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { TranslateModule } from '@ngx-translate/core';
 import { HabitatService, CorrespondanceHabitat } from '../../../core/services/habitat.service';
@@ -38,6 +38,17 @@ export class HabitatChipComponent {
 
   cdHab = input.required<string | number>();
   label = input<string>('');
+  /** Code propre de l'habitat dans sa typologie d'origine (ex. « G1.6 »). */
+  code = input<string | null>(null);
+  /** Typologie d'origine (ex. « EUNIS »). */
+  typo = input<string | null>(null);
+  /** Affiche une croix de suppression intégrée à la puce. */
+  removable = input<boolean>(false);
+  /** Émis au clic sur la croix de suppression. */
+  remove = output<void>();
+
+  /** Vrai si on connaît la classification d'origine de l'habitat. */
+  hasOwnInfo = computed(() => !!(this.code() || this.typo()));
 
   expanded = signal(false);
   loading = signal(false);
@@ -71,6 +82,11 @@ export class HabitatChipComponent {
 
   private typoLabel(cdTypo: number, lbTypo?: string): string {
     return PRIORITY_TYPOS[cdTypo] || (lbTypo || '').replace(/_/g, ' ');
+  }
+
+  onRemove(event: Event): void {
+    event.stopPropagation();
+    this.remove.emit();
   }
 
   toggle(): void {

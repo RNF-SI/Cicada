@@ -690,7 +690,7 @@ export class OperationFormComponent implements OnInit {
       // Habitats : on privilégie la liste structurée (avec cd_hab, nécessaire
       // aux correspondances), sinon on retombe sur le texte `habitat_ref`.
       if (Array.isArray(suivi.habitats) && suivi.habitats.length > 0) {
-        this.habitatItems = suivi.habitats.map((h: any) => ({ cd_hab: h.cd_hab ?? '', lb_hab_fr: h.lb_hab_fr ?? '' }));
+        this.habitatItems = suivi.habitats.map((h: any) => ({ cd_hab: h.cd_hab ?? '', lb_hab_fr: h.lb_hab_fr ?? '', lb_code: h.lb_code, lb_typo: h.lb_typo, lb_hab_fr_complet: h.lb_hab_fr_complet }));
       } else if (suivi.habitat_ref) {
         this.habitatItems = suivi.habitat_ref.split(',').map((s: string) => s.trim()).filter((s: string) => s).map((name: string) => ({
           cd_hab: '',
@@ -1076,7 +1076,13 @@ export class OperationFormComponent implements OnInit {
         suiviData['habitat_ref'] = this.habitatItems.map(h => h.lb_hab_fr || h.cd_hab).join(', ');
         suiviData['habitats'] = this.habitatItems
           .filter(h => h.cd_hab)
-          .map(h => ({ cd_hab: h.cd_hab, lb_hab_fr: h.lb_hab_fr }));
+          .map(h => ({
+            cd_hab: h.cd_hab,
+            lb_hab_fr: h.lb_hab_fr,
+            lb_code: h.lb_code,
+            lb_typo: h.lb_typo,
+            lb_hab_fr_complet: h.lb_hab_fr_complet,
+          }));
       } else {
         suiviData['habitats'] = [];
       }
@@ -1536,7 +1542,7 @@ export class OperationFormComponent implements OnInit {
           this.taxonItems = [];
         }
         if (Array.isArray(detail.habitats) && detail.habitats.length > 0) {
-          this.habitatItems = detail.habitats.map((h: any) => ({ cd_hab: h.cd_hab ?? '', lb_hab_fr: h.lb_hab_fr ?? '' }));
+          this.habitatItems = detail.habitats.map((h: any) => ({ cd_hab: h.cd_hab ?? '', lb_hab_fr: h.lb_hab_fr ?? '', lb_code: h.lb_code, lb_typo: h.lb_typo, lb_hab_fr_complet: h.lb_hab_fr_complet }));
         } else if (detail.habitat_ref) {
           this.habitatItems = detail.habitat_ref.split(',').map(s => s.trim()).filter(s => s).map(name => ({
             cd_hab: '',
