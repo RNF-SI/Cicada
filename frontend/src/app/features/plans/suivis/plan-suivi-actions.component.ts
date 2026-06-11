@@ -272,8 +272,11 @@ export class PlanSuiviActionsComponent implements OnInit {
   private loadData(planId: number): void {
     this.isLoading.set(true);
 
-    // Load enjeux with nested operations
-    this.enjeuService.getPlanEnjeux(planId).subscribe({
+    // Load enjeux with nested operations. forceRefresh=true : cette page affiche
+    // les réalisations annuelles, qui viennent d'être modifiées dans la saisie ;
+    // sans forcer, le cache de getPlanEnjeux renverrait l'état d'avant la saisie
+    // (il fallait rafraîchir la page pour voir la mise à jour).
+    this.enjeuService.getPlanEnjeux(planId, true).subscribe({
       next: (response) => {
         const flatOps: FlatOperation[] = [];
         const seenIds = new Set<number>();
