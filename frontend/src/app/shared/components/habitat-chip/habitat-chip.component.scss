@@ -5,10 +5,21 @@
   user-select: none;
   display: inline-flex;
   align-items: center;
-  gap: 2px;
+  gap: 4px;
+  // Affordance « cliquable » : bordure + fond léger au survol/ouverture.
+  border: 1px dashed rgba($primary-color, 0.5);
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+
+  &:hover,
+  &.expanded {
+    background-color: rgba($primary-color, 0.08);
+    border-color: $primary-color;
+    border-style: solid;
+  }
 
   &__caret {
-    font-size: 0.8em;
+    font-size: 0.85em;
+    color: $primary-color;
     transition: transform 0.15s ease;
   }
 
