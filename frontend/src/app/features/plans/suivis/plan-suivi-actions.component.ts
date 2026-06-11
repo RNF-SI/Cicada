@@ -74,6 +74,11 @@ export class PlanSuiviActionsComponent implements OnInit {
   filterEnjeu = signal<number | null>(null);
   filterPriorite = signal<string | null>(null);
 
+  // Libellés des 9 catégories d'action réserve CT88, indexés par code 2 lettres
+  // (SP, CS, IP, PA…). Sert à afficher la catégorie CT88 dans le filtre, même
+  // pour les actions sans catégorie réserve explicite (déduite du code). (#98)
+  private categorieLabelByPrefix = signal<Map<string, string>>(new Map());
+
   // Computed
   /** Liste des colonnes années entre planYearStart et planYearEnd. */
   yearColumns = computed(() => {
@@ -93,7 +98,7 @@ export class PlanSuiviActionsComponent implements OnInit {
     const prio = this.filterPriorite();
 
     if (cat) {
-      ops = ops.filter(o => o.operation.type_action_label === cat);
+      ops = ops.filter(o => this.getCategorieAction(o.operation) === cat);
     }
     if (enjeu) {
       ops = ops.filter(o => o.enjeuId === enjeu);
@@ -104,11 +109,32 @@ export class PlanSuiviActionsComponent implements OnInit {
     return ops;
   });
 
+  /**
+   * Catégorie d'action au sens CT88 (CS, IP, PA, PR, SP…). Le filtre « Catégories
+   * d'action » doit refléter ces grandes catégories de la méthode PG, pas les
+   * types détaillés / suivis. (#98)
+   *
+   * On s'appuie sur `op.code_prefix` (déjà calculé côté backend) : il vaut le code
+   * de la catégorie d'action réserve si elle est renseignée (#228), sinon le
+   * préfixe 2 lettres déduit du code du type d'action (ex. « CS1 » → « CS »). On
+   * le traduit ensuite en libellé CT88. Repli sur le libellé brut si le préfixe
+   * n'est pas connu (ex. type d'action sans code CT88).
+   */
+  getCategorieAction(op: Operation): string | null {
+    const prefix = op.code_prefix?.toUpperCase();
+    if (prefix) {
+      const label = this.categorieLabelByPrefix().get(prefix);
+      if (label) return label;
+    }
+    return op.categorie_action_reserve_label || op.type_action_label || null;
+  }
+
   // Unique filter values
   categorieActions = computed(() => {
     const labels = new Set<string>();
     this.allOperations().forEach(o => {
-      if (o.operation.type_action_label) labels.add(o.operation.type_action_label);
+      const cat = this.getCategorieAction(o.operation);
+      if (cat) labels.add(cat);
     });
     return Array.from(labels).sort();
   });
@@ -217,6 +243,15 @@ export class PlanSuiviActionsComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    // Charge les 9 catégories CT88 (mnémonique = code 2 lettres → libellé).
+    this.adminService.getNomenclaturesByType('CATEGORIE_ACTION_RESERVE').subscribe({
+      next: (noms) => {
+        const map = new Map<string, string>();
+        noms.forEach(n => { if (n.mnemonique) map.set(n.mnemonique.toUpperCase(), n.label); });
+        this.categorieLabelByPrefix.set(map);
+      }
+    });
+
     const slug = this.route.snapshot.paramMap.get('slug');
     if (slug) {
       this.planSlug.set(slug);
