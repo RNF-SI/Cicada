@@ -94,7 +94,12 @@ export class PlanBilanComponent implements OnInit {
     return this.bilan()?.by_enjeu || [];
   });
 
-  setScope(s: 'annuel' | 'global'): void { this.scope.set(s); }
+  setScope(s: 'annuel' | 'global'): void {
+    this.scope.set(s);
+    // La vue « annuel » doit recharger le bilan filtré sur l'année sélectionnée
+    // (sinon les comptages globaux s'affichent pour chaque année — #101).
+    this.reloadWithFilter();
+  }
   setContentTab(t: 'indicateurs' | 'actions'): void {
     this.contentTab.set(t);
     if (t === 'indicateurs' && !this.bilanIndicateurs() && !this.isLoadingIndicateurs()) {
@@ -238,7 +243,12 @@ export class PlanBilanComponent implements OnInit {
 
     return { axes, polygon, grid, points: pts };
   }
-  selectYear(y: number): void { this.selectedYear.set(y); }
+  selectYear(y: number): void {
+    this.selectedYear.set(y);
+    if (this.scope() === 'annuel') {
+      this.reloadWithFilter();
+    }
+  }
   setEnjeuFilter(id: number | null): void { this.filterEnjeu.set(id); this.reloadWithFilter(); }
   clearFilters(): void {
     this.filterEnjeu.set(null);
@@ -255,6 +265,8 @@ export class PlanBilanComponent implements OnInit {
     const filters: any = {};
     if (this.filterEnjeu()) filters.enjeu_id = this.filterEnjeu();
     if (this.filterOrganisme()) filters.organisme_id = this.filterOrganisme();
+    // En vue « annuel », scoper les agrégations à l'année sélectionnée (#101).
+    if (this.scope() === 'annuel') filters.annee = this.selectedYear();
     this.realisationService.bilan(id, filters).subscribe({
       next: (data) => this.bilan.set(data),
     });

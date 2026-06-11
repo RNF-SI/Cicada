@@ -75,6 +75,8 @@ export interface BilanResponse {
 export interface BilanFilters {
   enjeu_id?: number;
   organisme_id?: number;
+  /** Année pour la vue « annuel » du bilan. Omise = bilan global (toutes années). */
+  annee?: number;
 }
 
 export interface BilanIndicateursScoreEntry {
@@ -144,6 +146,7 @@ export class RealisationService {
     let params = new HttpParams();
     if (filters?.enjeu_id) params = params.set('enjeu_id', String(filters.enjeu_id));
     if (filters?.organisme_id) params = params.set('organisme_id', String(filters.organisme_id));
+    if (filters?.annee) params = params.set('annee', String(filters.annee));
     return this.http.get<BilanResponse>(
       `${this.apiUrl}/realisations/bilan/${planId}/`,
       { params },

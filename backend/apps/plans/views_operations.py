@@ -583,6 +583,11 @@ class RealisationOperationAnneeViewSet(viewsets.ModelViewSet):
         # Filtres optionnels
         enjeu_id = request.query_params.get('enjeu_id')
         organisme_id = request.query_params.get('organisme_id')
+        # Année : vue « annuel » du bilan. Sans ce filtre, le bilan agrégeait
+        # toutes les années → une action « Terminée » en 2026 apparaissait
+        # « Terminée » pour 2027, 2028… (#101). On scope alors les comptages à
+        # l'année demandée (chaque RealisationOperationAnnee est déjà par année).
+        annee = request.query_params.get('annee')
 
         # 1) RealisationOperationAnnee scopées au plan, avec relations utiles préchargées.
         realisations_qs = self.get_queryset().filter(
@@ -604,6 +609,12 @@ class RealisationOperationAnneeViewSet(viewsets.ModelViewSet):
             realisations_qs = realisations_qs.filter(
                 id_operation_annee__id_operation__metriques__id_indicateur__id_ne__id_olt__id_enjeu_id=enjeu_id
             ).distinct()
+
+        if annee:
+            try:
+                realisations_qs = realisations_qs.filter(id_operation_annee__annee=int(annee))
+            except (TypeError, ValueError):
+                pass
 
         # Helper : initialise un compteur par niveau de réalisation
         def _empty_counts():
