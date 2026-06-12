@@ -48,14 +48,21 @@ class HabrefViewSet(viewsets.ReadOnlyModelViewSet):
         is_numeric = search.isdigit()
 
         from django.db import connection
+        # Recherche par mots : chaque mot doit apparaître (sous-chaîne, sans
+        # accents). Sans ça, « pelouse sèche » ne trouvait pas « Pelouses sèches »
+        # (l'espace coupait la sous-chaîne au mauvais endroit à cause du pluriel).
+        words = search.split() or [search]
         with connection.cursor() as cursor:
-            sql = """
+            text_conds = " AND ".join(
+                ["unaccent(search_name) ILIKE unaccent(%s)"] * len(words)
+            )
+            sql = f"""
                 SELECT cd_hab, cd_typo, lb_code, search_name,
                        lb_hab_fr, lb_hab_fr_complet, lb_typo, niveau
                 FROM ref_habitats.autocomplete_habitat
-                WHERE (unaccent(search_name) ILIKE unaccent(%s)
+                WHERE (({text_conds})
             """
-            params = [f'%{search}%']
+            params = [f'%{w}%' for w in words]
 
             if is_numeric:
                 sql += " OR cd_hab::text LIKE %s"

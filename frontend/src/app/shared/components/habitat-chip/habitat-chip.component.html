@@ -44,9 +44,10 @@
           <li class="hchip__more">{{ 'enjeux.accordion.habitatRelatedMore' | translate:{ count: related().extra } }}</li>
         }
       </ul>
-    } @else if (hasOwnInfo()) {
-      <span class="hchip__muted">{{ 'enjeux.accordion.habitatNoRelated' | translate }}</span>
-    } @else {
+    } @else if (!hasOwnInfo()) {
+      <!-- Ni classification d'origine, ni habitat lié (habitat legacy sans
+           cd_hab enrichi) : on l'indique. Sinon, on ne montre rien de plus que
+           le référentiel d'origine (pas de note « vide » inutile). -->
       <span class="hchip__muted">{{ 'enjeux.accordion.habitatNoCorresp' | translate }}</span>
     }
   </div>
