@@ -233,6 +233,16 @@ export class ReferenceItemListComponent implements OnInit, OnDestroy {
     return `id_inpg: ${(item as GeologieRef).id_inpg}`;
   }
 
+  /** Badge court (identifiant) affiché en tête de puce — design unifié (#89). */
+  getItemBadge(item: TaxonRef | HabitatRef | GeologieRef): string {
+    if (this.type === 'taxon') return String((item as TaxonRef).cd_nom);
+    if (this.type === 'habitat') {
+      const h = item as HabitatRef;
+      return h.lb_code || String(h.cd_hab);
+    }
+    return String((item as GeologieRef).id_inpg);
+  }
+
   displayFn(result: TaxrefAutocomplete | HabitatAutocomplete | InpgAutocomplete | string): string {
     if (!result || typeof result === 'string') return result || '';
     if ('cd_nom' in result) {

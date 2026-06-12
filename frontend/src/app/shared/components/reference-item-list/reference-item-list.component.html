@@ -36,20 +36,17 @@
       }
     </div>
   } @else if (items.length > 0) {
-    <!-- Chip list of current items (taxons, géologie, habitats sans correspondances) -->
+    <!-- Chip list of current items (taxons, géologie) — même design « pill »
+         que les habitats : badge identifiant + nom + croix intégrée. (#89) -->
     <div class="chips-container">
       @for (item of items; track $index) {
-        <div class="item-chip">
-          <div class="chip-content">
-            <span class="chip-label">{{ getItemLabel(item) }}</span>
-            @if (getItemSecondary(item)) {
-              <span class="chip-secondary">{{ getItemSecondary(item) }}</span>
-            }
-          </div>
-          <button type="button" class="chip-remove" (click)="removeItem($index)" [attr.aria-label]="'common.actions.delete' | translate">
+        <span class="item-chip" [title]="getItemSecondary(item)">
+          <span class="item-chip__badge">{{ getItemBadge(item) }}</span>
+          <span class="item-chip__name">{{ getItemLabel(item) }}</span>
+          <button type="button" class="item-chip__remove" (click)="removeItem($index)" [attr.aria-label]="'common.actions.delete' | translate">
             <i class="fi fi-rr-cross-small"></i>
           </button>
-        </div>
+        </span>
       }
     </div>
   }
