@@ -2745,11 +2745,11 @@
                 </button>
                 <mat-menu #addMenuEmpty="matMenu">
                   <button mat-menu-item (click)="navigateToNewEnjeu()">
-                    <i class="fi fi-rr-mountains"></i>
+                    <i class="fi fi-rr-mountains menu-type-icon menu-type-enjeu"></i>
                     <span>{{ 'enjeux.types.enjeu' | translate }}</span>
                   </button>
                   <button mat-menu-item (click)="navigateToNewFcr()">
-                    <i class="fi fi-rr-key"></i>
+                    <i class="fi fi-rr-key menu-type-icon menu-type-fcr"></i>
                     <span>{{ 'enjeux.types.fcr' | translate }}</span>
                   </button>
                 </mat-menu>
@@ -2774,17 +2774,17 @@
               <div class="list-top-bar">
                 <p class="count-text">{{ totalCount() }} {{ 'enjeux.countSuffix' | translate }}</p>
                 @if (canEditPlan()) {
-                  <button mat-stroked-button [matMenuTriggerFor]="addMenu">
+                  <button mat-stroked-button color="primary" class="btn-add-enjeu-fcr" [matMenuTriggerFor]="addMenu">
                     <i class="fi fi-rr-plus-small"></i>
                     {{ 'enjeux.addButton' | translate }}
                   </button>
                   <mat-menu #addMenu="matMenu">
                     <button mat-menu-item (click)="navigateToNewEnjeu()">
-                      <i class="fi fi-rr-mountains"></i>
+                      <i class="fi fi-rr-mountains menu-type-icon menu-type-enjeu"></i>
                       <span>{{ 'enjeux.types.enjeu' | translate }}</span>
                     </button>
                     <button mat-menu-item (click)="navigateToNewFcr()">
-                      <i class="fi fi-rr-key"></i>
+                      <i class="fi fi-rr-key menu-type-icon menu-type-fcr"></i>
                       <span>{{ 'enjeux.types.fcr' | translate }}</span>
                     </button>
                   </mat-menu>

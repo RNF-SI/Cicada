@@ -1091,3 +1091,8 @@ label.app-mat-label + app-form-field,
     }
   }
 }
+
+// Menu « Ajouter enjeu/FCR » : icônes (montagnes/clef, identiques au reste de
+// l'app) colorées dans le primaire pour un rendu net et cohérent avec le bouton.
+// mat-menu est rendu dans un overlay global → règles globales (hors encapsulation).
+.menu-type-icon { font-size: 1rem; vertical-align: middle; color: $primary-color; }
