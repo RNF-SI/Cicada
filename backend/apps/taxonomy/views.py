@@ -98,15 +98,22 @@ class TaxrefViewSet(viewsets.ReadOnlyModelViewSet):
         limit = min(int(request.query_params.get('limit', 20)), 100)
 
         from django.db import connection
+        # Recherche par mots : chaque mot doit apparaître (sous-chaîne, sans
+        # accents) — sinon un espace casse la recherche (ex. « chene pubescent »
+        # ne trouvait pas « Chêne pubescent » selon les variantes de casse/pluriel).
+        words = search.split() or [search]
         with connection.cursor() as cursor:
             # Requête avec similarity() + unaccent() pour la pertinence
-            sql = """
+            text_conds = " AND ".join(
+                ["unaccent(search_name) ILIKE unaccent(%s)"] * len(words)
+            )
+            sql = f"""
                 SELECT cd_nom, cd_ref, search_name, nom_valide,
                        nom_vern, lb_nom, regne, group2_inpn, id_rang
                 FROM taxonomie.vm_taxref_list_forautocomplete
-                WHERE unaccent(search_name) ILIKE unaccent(%s)
+                WHERE {text_conds}
             """
-            params = [f'%{search}%']
+            params = [f'%{w}%' for w in words]
 
             # Filtres optionnels
             regne = request.query_params.get('regne')

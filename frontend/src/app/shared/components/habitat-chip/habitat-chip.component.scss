@@ -105,9 +105,10 @@
   align-items: baseline;
   gap: $spacing-sm;
 
+  // Plus de border-bottom ici : le séparateur est porté par l'en-tête de la
+  // liste des habitats liés, donc il n'apparaît que s'il y a une liste dessous.
   &--self {
-    padding-bottom: $spacing-xs;
-    border-bottom: 1px solid $gray-lighter;
+    padding-bottom: 0;
   }
 }
 
@@ -118,8 +119,11 @@
   color: $primary-color;
 }
 
-// Liste des habitats liés (même référentiel)
+// Liste des habitats liés (même référentiel) — porte le séparateur du haut,
+// donc visible seulement quand cette liste est rendue.
 .hchip__related-head {
+  padding-top: $spacing-xs;
+  border-top: 1px solid $gray-lighter;
   font-size: 12px;
   font-weight: $font-weight-bold;
   color: $primary-color;
