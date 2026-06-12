@@ -87,6 +87,7 @@ class EnjeuxSeeder(BaseSeeder):
         fcr_connaissance = self._get_nomenclature('CATEGORIE_FCR', 'CONNAISSANCE')
         fcr_ancrage = self._get_nomenclature('CATEGORIE_FCR', 'ANCRAGE')
         fcr_fonctionnement = self._get_nomenclature('CATEGORIE_FCR', 'FONCTIONNEMENT')
+        fcr_surveillance = self._get_nomenclature('CATEGORIE_FCR', 'SURVEILLANCE')  # #370
         fcr_autre = self._get_nomenclature('CATEGORIE_FCR', 'AUTRE')
 
         # Importance / priorité
@@ -721,6 +722,24 @@ class EnjeuxSeeder(BaseSeeder):
             )
             fcr_created.append(fcr)
             self.log_item('créé' if created else 'mis à jour', f'FCR: {fcr.intitule_court}')
+
+            # #370 — FCR de catégorie « Surveillance » (nouvelle catégorie)
+            if fcr_surveillance:
+                fcr, created = Enjeu.objects.update_or_create(
+                    id_pg=plan_camargue,
+                    libelle='Surveillance et police de l\'environnement sur le site',
+                    defaults={
+                        'id_categorie': cat_fcr,
+                        'intitule_court': 'Surveillance',
+                        'id_categorie_fcr': fcr_surveillance,
+                        'description': 'Renforcer la surveillance du territoire et la police de '
+                                       'l\'environnement (lutte contre le braconnage, contrôle de la '
+                                       'fréquentation et des activités sur la réserve).',
+                        'id_utilisateur_ajout': admin
+                    }
+                )
+                fcr_created.append(fcr)
+                self.log_item('créé' if created else 'mis à jour', f'FCR: {fcr.intitule_court}')
 
         # ==================== FCR - AIGUILLES ROUGES (2) ====================
 
@@ -2121,6 +2140,20 @@ class EnjeuxSeeder(BaseSeeder):
             )
             metriques_created.append(met3)
 
+            # #339 — Métrique de type indéterminé SANS intitulé (l'intitulé n'est
+            # plus obligatoire pour ce type). Démontre la saisie d'une métrique
+            # « à préciser » avant même d'en avoir défini le nom.
+            met_sans_nom, created = Metrique.objects.update_or_create(
+                id_indicateur=ind,
+                nom_metrique='',
+                type_metrique=type_met_indetermine,
+                defaults={
+                    'description': 'Métrique indéterminée laissée sans intitulé (#339).',
+                    'id_utilisateur_ajout': admin
+                }
+            )
+            metriques_created.append(met_sans_nom)
+
         # --- Camargue - NE "Succès de reproduction ≥ 0.5" (flamant) ---
         ne_flamant = next((ne for ne in nes_created if 'reproduction' in ne.libelle and 'jeune' in ne.libelle), None)
         if ne_flamant and type_ind_etat:
@@ -3470,6 +3503,27 @@ class EnjeuxSeeder(BaseSeeder):
             _link_op_to_indicateur(op2, ind_surface)
             operations_created.append(op2)
             self.log_item('créé' if created else 'mis à jour', f'Opération: {op2.libelle[:50]}')
+
+            # #367 — Action rattachée DIRECTEMENT à l'indicateur, sans métrique.
+            # Démontre la possibilité de créer une action de gestion sans avoir
+            # saisi de métrique au préalable (id_indicateur, pas de M2M métrique).
+            op_directe, created = Operation.objects.update_or_create(
+                code_operation='CAM-IP02',
+                defaults={
+                    'libelle': 'Entretien des ouvrages hydrauliques (action sans métrique)',
+                    'id_priorite': prio_op_2,
+                    'id_referentiel_operations': 'IP',
+                    'id_categorie_action_reserve': cat_reserve_ip,
+                    'id_indicateur': ind_surface,
+                    'description': 'Action de gestion rattachée directement à l\'indicateur, '
+                                   'sans métrique associée (#367).',
+                    'annee_min': 2022,
+                    'annee_max': 2030,
+                    'id_utilisateur_ajout': admin
+                }
+            )
+            operations_created.append(op_directe)
+            self.log_item('créé' if created else 'mis à jour', f'Opération: {op_directe.libelle[:50]}')
 
         # Liée à l'indicateur "Succès de reproduction du Flamant rose"
         ind_flamant = next((i for i in indicateurs_created if 'Flamant rose' in i.nom_indicateur), None)
