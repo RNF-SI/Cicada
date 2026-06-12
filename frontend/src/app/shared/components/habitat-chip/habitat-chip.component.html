@@ -14,7 +14,7 @@
 
 @if (expanded()) {
   <div class="hchip__panel">
-    <!-- Classification d'origine de l'habitat (référentiel + code + nom complet) -->
+    <!-- Classification d'origine de l'habitat -->
     @if (hasOwnInfo()) {
       <div class="hchip__group hchip__group--self">
         <span class="hchip__typo">{{ 'enjeux.accordion.habitatOwnTypo' | translate }}</span>
@@ -28,32 +28,26 @@
 
     @if (loading()) {
       <span class="hchip__muted">{{ 'common.status.loading' | translate }}…</span>
-    } @else {
-      @if (groups().length > 0) {
-        <!-- Correspondances vers d'AUTRES référentiels -->
-        <div class="hchip__group hchip__group--cross">
-          <span class="hchip__typo">{{ 'enjeux.accordion.habitatCrossTypo' | translate }}</span>
-        </div>
-        @for (g of groups(); track g.typo) {
-          <div class="hchip__group">
-            <span class="hchip__typo hchip__typo--sub">{{ g.label }}</span>
-            <span class="hchip__codes">
-              @for (cd of g.codes; track cd) {
-                <span class="hchip__codepill">{{ cd }}</span>
-              }
-              @if (g.extra > 0) {
-                <span class="hchip__more">+{{ g.extra }}</span>
-              }
-            </span>
-          </div>
+    } @else if (related().total > 0) {
+      <!-- Habitats liés DANS LE MÊME référentiel (sous-types, associés…) -->
+      <div class="hchip__related-head">
+        {{ 'enjeux.accordion.habitatRelated' | translate:{ count: related().total } }}
+      </div>
+      <ul class="hchip__related">
+        @for (r of related().items; track r.code + r.name) {
+          <li class="hchip__relitem">
+            @if (r.code) { <span class="hchip__codepill">{{ r.code }}</span> }
+            <span class="hchip__relname">{{ r.name || '—' }}</span>
+          </li>
         }
-      } @else if (hasOwnInfo()) {
-        <!-- Origine connue mais pas d'équivalent ailleurs : note discrète,
-             non contradictoire avec le badge du référentiel d'origine. -->
-        <span class="hchip__muted">{{ 'enjeux.accordion.habitatNoCrossCorresp' | translate }}</span>
-      } @else {
-        <span class="hchip__muted">{{ 'enjeux.accordion.habitatNoCorresp' | translate }}</span>
-      }
+        @if (related().extra > 0) {
+          <li class="hchip__more">{{ 'enjeux.accordion.habitatRelatedMore' | translate:{ count: related().extra } }}</li>
+        }
+      </ul>
+    } @else if (hasOwnInfo()) {
+      <span class="hchip__muted">{{ 'enjeux.accordion.habitatNoRelated' | translate }}</span>
+    } @else {
+      <span class="hchip__muted">{{ 'enjeux.accordion.habitatNoCorresp' | translate }}</span>
     }
   </div>
 }

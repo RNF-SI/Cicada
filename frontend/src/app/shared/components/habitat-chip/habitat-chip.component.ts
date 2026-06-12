@@ -3,28 +3,18 @@ import { CommonModule } from '@angular/common';
 import { TranslateModule } from '@ngx-translate/core';
 import { HabitatService, CorrespondanceHabitat } from '../../../core/services/habitat.service';
 
-/** Typologies mises en avant (en tête) avec un libellé court lisible. */
-const PRIORITY_TYPOS: Record<number, string> = {
-  7: 'EUNIS',
-  22: 'Corine biotopes',
-  4: "Cahiers d'habitats",
-  8: 'Hab. intérêt comm.',
-};
-const PRIORITY_ORDER = [7, 22, 4, 8];
-const MAX_CODES = 10;
+const MAX_RELATED = 12;
 
-interface CorrespGroup {
-  typo: number;
-  label: string;
-  codes: string[];
-  extra: number; // nombre de codes masqués au-delà de MAX_CODES
+interface RelatedHabitat {
+  code: string;
+  name: string;
 }
 
 /**
- * Puce d'habitat HabRef cliquable. Au clic, charge à la demande les
- * correspondances dans les autres référentiels et les affiche regroupées par
- * typologie (EUNIS / Corine / Cahiers d'habitats / HIC en tête, puis les
- * autres). Réutilisable (liste enjeux, formulaire d'action). #89
+ * Puce d'habitat HabRef cliquable. Au clic, charge à la demande, depuis HabRef,
+ * les **habitats liés** à cet habitat *dans le même référentiel* (sous-types,
+ * habitats associés…) — la base importée ne contient pas de correspondances
+ * croisées entre référentiels. Affiche aussi la classification d'origine. #89
  */
 @Component({
   selector: 'app-habitat-chip',
@@ -55,34 +45,22 @@ export class HabitatChipComponent {
   private loaded = signal(false);
   private correspondances = signal<CorrespondanceHabitat[]>([]);
 
-  /** Correspondances regroupées par typologie (toutes typologies), prioritaires
-   * en tête, codes dédupliqués et plafonnés. */
-  groups = computed<CorrespGroup[]>(() => {
-    const byTypo = new Map<number, { label: string; codes: Set<string> }>();
+  /** Habitats liés (même référentiel) : code + nom, dédupliqués et plafonnés. */
+  related = computed<{ items: RelatedHabitat[]; total: number; extra: number }>(() => {
+    const seen = new Set<string>();
+    const all: RelatedHabitat[] = [];
     for (const c of this.correspondances()) {
-      const code = (c.lb_code_entre || '').trim();
-      if (!code) continue;
-      if (!byTypo.has(c.cd_typo_entre)) {
-        byTypo.set(c.cd_typo_entre, { label: this.typoLabel(c.cd_typo_entre, c.lb_typo), codes: new Set() });
-      }
-      byTypo.get(c.cd_typo_entre)!.codes.add(code);
+      const cd = (c.lb_code_entre || '').trim();
+      const name = (c.lb_hab_entre || '').trim();
+      if (!cd && !name) continue;
+      const key = `${cd}|${name}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      all.push({ code: cd, name });
     }
-    const entries = Array.from(byTypo.entries());
-    entries.sort((a, b) => {
-      const pa = PRIORITY_ORDER.indexOf(a[0]);
-      const pb = PRIORITY_ORDER.indexOf(b[0]);
-      if (pa !== -1 || pb !== -1) return (pa === -1 ? 99 : pa) - (pb === -1 ? 99 : pb);
-      return a[1].label.localeCompare(b[1].label);
-    });
-    return entries.map(([typo, v]) => {
-      const all = Array.from(v.codes).sort();
-      return { typo, label: v.label, codes: all.slice(0, MAX_CODES), extra: Math.max(0, all.length - MAX_CODES) };
-    });
+    all.sort((a, b) => a.code.localeCompare(b.code) || a.name.localeCompare(b.name));
+    return { items: all.slice(0, MAX_RELATED), total: all.length, extra: Math.max(0, all.length - MAX_RELATED) };
   });
-
-  private typoLabel(cdTypo: number, lbTypo?: string): string {
-    return PRIORITY_TYPOS[cdTypo] || (lbTypo || '').replace(/_/g, ' ');
-  }
 
   onRemove(event: Event): void {
     event.stopPropagation();
