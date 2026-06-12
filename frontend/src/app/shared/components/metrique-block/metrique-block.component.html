@@ -51,8 +51,10 @@
               <span class="score-header-suffix">{{ 'enjeux.metriques.scoreSuffix' | translate:{ score: meta.level } }}</span>
             </th>
             @if (!last) {
-              <th class="boundary-header">
-                {{ 'enjeux.metriques.boundaryLabel' | translate }}
+              <th class="boundary-header" [class.inactive]="!isBoundaryVisible(i)">
+                @if (isBoundaryVisible(i)) {
+                  {{ 'enjeux.metriques.boundaryLabel' | translate }}
+                }
               </th>
             }
           }
@@ -68,31 +70,35 @@
               </div>
             </td>
             @if (!last) {
-              <td class="boundary-cell">
-                <div class="boundary-input-wrapper">
-                  <input type="number"
-                         class="boundary-input"
-                         [ngModel]="getBoundaryValue($any(i + 1))"
-                         (ngModelChange)="setBoundaryValue($any(i + 1), $event)"
-                         step="any"
-                         [placeholder]="'enjeux.metriques.boundaryPlaceholder' | translate">
-                  <span class="boundary-incl-label">{{ 'enjeux.metriques.includedIn' | translate }}</span>
-                  <div class="boundary-incl-tabs">
-                    <button type="button"
-                            class="boundary-incl-tab"
-                            [class.active]="isBoundaryInLeft($any(i + 1))"
-                            (click)="!isBoundaryInLeft($any(i + 1)) && toggleBoundaryInclusion($any(i + 1))">
-                      {{ scoreMetaOrdered[i].shortKey | translate }}
-                    </button>
-                    <button type="button"
-                            class="boundary-incl-tab boundary-incl-tab-right boundary-incl-tab-right-{{ scoreMetaOrdered[i+1].level }}"
-                            [class.active]="!isBoundaryInLeft($any(i + 1))"
-                            (click)="isBoundaryInLeft($any(i + 1)) && toggleBoundaryInclusion($any(i + 1))">
-                      {{ scoreMetaOrdered[i+1].shortKey | translate }}
-                    </button>
+              @if (isBoundaryVisible(i)) {
+                <td class="boundary-cell">
+                  <div class="boundary-input-wrapper">
+                    <input type="number"
+                           class="boundary-input"
+                           [ngModel]="getBoundaryValueAt(i)"
+                           (ngModelChange)="setBoundaryValueAt(i, $event)"
+                           step="any"
+                           [placeholder]="'enjeux.metriques.boundaryPlaceholder' | translate">
+                    <span class="boundary-incl-label">{{ 'enjeux.metriques.includedIn' | translate }}</span>
+                    <div class="boundary-incl-tabs">
+                      <button type="button"
+                              class="boundary-incl-tab"
+                              [class.active]="isBoundaryInLeftAt(i)"
+                              (click)="!isBoundaryInLeftAt(i) && toggleBoundaryInclusionAt(i)">
+                        {{ scoreMetaOrdered[i].shortKey | translate }}
+                      </button>
+                      <button type="button"
+                              class="boundary-incl-tab boundary-incl-tab-right boundary-incl-tab-right-{{ boundaryRightLevel(i) }}"
+                              [class.active]="!isBoundaryInLeftAt(i)"
+                              (click)="isBoundaryInLeftAt(i) && toggleBoundaryInclusionAt(i)">
+                        {{ boundaryRightShortKey(i) | translate }}
+                      </button>
+                    </div>
                   </div>
-                </div>
-              </td>
+                </td>
+              } @else {
+                <td class="boundary-cell boundary-cell-empty"></td>
+              }
             }
           }
         </tr>
