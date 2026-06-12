@@ -367,11 +367,20 @@ class IndicateurSerializer(serializers.ModelSerializer):
         return _prefetched_count(obj, 'metriques')
 
     def get_operations(self, obj):
-        """#367 — opérations rattachées directement à l'indicateur (sans métrique)."""
+        """#227/#367 — TOUTES les actions de l'indicateur, dédupliquées :
+        rattachées directement (id_indicateur) OU via l'une de ses métriques.
+        Sophie : les actions sont listées une seule fois sous l'indicateur, et
+        les métriques associées sont rappelées dans le bandeau de chaque action
+        (plus de regroupement « Métrique : … » au-dessus des actions)."""
         from .serializers_operations import OperationNestedSerializer
-        return OperationNestedSerializer(
-            obj.operations.all(), many=True, context=self.context,
-        ).data
+        seen = {}
+        for op in obj.operations.all():            # actions sans métrique (#367)
+            seen[op.id_operation] = op
+        for met in obj.metriques.all():            # actions liées à une métrique
+            for op in met.operations.all():
+                seen.setdefault(op.id_operation, op)
+        ops = sorted(seen.values(), key=lambda o: (o.ordre, o.id_operation))
+        return OperationNestedSerializer(ops, many=True, context=self.context).data
 
 
 class IndicateurListSerializer(serializers.ModelSerializer):

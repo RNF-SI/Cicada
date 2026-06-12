@@ -2814,6 +2814,7 @@
       "indicateursBadge": "{{count}} indicateur(s) de réponse rattaché(s)",
       "sansMetriqueBadge": "Sans métrique",
       "sansMetriqueTooltip": "Action rattachée directement à l'indicateur, sans métrique associée",
+      "metriqueLinkedTooltip": "Métrique associée à cette action",
       "intituleIndicateurReponse": "Intitulé de l'indicateur de réponse",
       "typeMetrique": "Type de métriques",
       "valeurCible": "Valeur cible",

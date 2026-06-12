@@ -2236,6 +2236,23 @@
   }
 }
 
+// #227 — Chip « métrique associée » rappelée dans le bandeau de l'action.
+.op-metrique-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  margin-left: $spacing-xs;
+  border-radius: $border-radius-pill;
+  background: rgba(2, 83, 89, 0.08);
+  color: $primary-color;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: default;
+
+  i { font-size: 0.85rem; }
+}
+
 .operation-header-right {
   display: flex;
   align-items: center;

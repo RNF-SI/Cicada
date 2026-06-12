@@ -1048,344 +1048,14 @@
                                                   </table>
                                                 </div>
 
-                                                @for (met of ind.metriques; track met.id_metrique) {
-                                                  <div class="metrique-block" [id]="'metrique-' + met.id_metrique">
-
-                                                    <!-- Opérations (Actions) de cette métrique — DnD intra-métrique (#228) -->
-                                                    @if (met.operations && met.operations.length > 0) {
-                                                      <p class="metriques-title">{{ 'enjeux.metriques.label' | translate }} : {{ met.nom_metrique }}</p>
-                                                      <div cdkDropList
-                                                           [id]="'operations-droplist-' + met.id_metrique"
-                                                           [cdkDropListData]="met.operations"
-                                                           class="operations-droplist"
-                                                           [cdkDropListDisabled]="!canEditPlan()"
-                                                           (cdkDropListDropped)="onOperationDrop($event, met)">
-                                                      @for (op of met.operations; track op.id_operation) {
-                                            <div cdkDrag [cdkDragDisabled]="!canEditPlan()"
-                                                 class="operation-card operation-drag-item"
-                                                 [class.expanded]="isOperationExpanded(op.id_operation)"
-                                                 [class.is-draft]="op.statut === 'draft'"
-                                                 [id]="'operation-' + op.id_operation">
-                                              <!-- En-tête de l'action (cliquable pour expand/collapse) -->
-                                              <div class="operation-header" (click)="toggleOperation(op.id_operation)">
-                                                <div class="operation-header-left">
-                                                  @if (canEditPlan()) {
-                                                    <button class="icon-btn-flat operation-drag-handle" type="button" cdkDragHandle
-                                                            (click)="$event.stopPropagation()"
-                                                            [title]="'enjeux.dnd.dragHandle' | translate"
-                                                            [attr.aria-label]="'enjeux.dnd.dragHandle' | translate">
-                                                      <i class="fi fi-rr-menu-burger"></i>
-                                                    </button>
-                                                  }
-                                                  <img src="assets/images/ellipses/ellipse-salmon.png" alt="" class="operation-ellipse">
-                                                  @if (op.code_affichage) {
-                                                    <span class="operation-code">{{ op.code_affichage }}</span>
-                                                  }
-                                                  <span class="operation-libelle">{{ 'enjeux.operations.label' | translate }} : {{ op.libelle }}</span>
-                                                  @if (op.geom_geojson) {
-                                                    <span class="op-trace-badge op-trace-emprise"
-                                                          [matTooltip]="'enjeux.operations.empriseSpatialeBadge' | translate"
-                                                          (click)="$event.stopPropagation()">
-                                                      <i class="fi fi-rr-marker"></i>
-                                                    </span>
-                                                  }
-                                                  @if (op.metriques?.length) {
-                                                    <span class="op-trace-badge op-trace-indicateurs"
-                                                          [matTooltip]="'enjeux.operations.indicateursBadge' | translate:{ count: op.metriques!.length }"
-                                                          (click)="$event.stopPropagation()">
-                                                      <i class="fi fi-rr-chart-histogram"></i>
-                                                      {{ op.metriques!.length }}
-                                                    </span>
-                                                  }
-                                                  @if (op.statut === 'draft') {
-                                                    <mat-chip class="operation-draft-chip status-warning"
-                                                              [matTooltip]="'enjeux.operations.draftChipTooltip' | translate"
-                                                              (click)="$event.stopPropagation()">
-                                                      {{ 'enjeux.operations.draftChip' | translate }}
-                                                    </mat-chip>
-                                                  }
-                                                </div>
-                                                <div class="operation-header-right">
-                                                  <button class="icon-btn-flat" (click)="navigateToViewOperation(op.id_operation); $event.stopPropagation()" [title]="'common.actions.view' | translate">
-                                                    <i class="fi fi-rr-eye"></i>
-                                                  </button>
-                                                  @if (canEditPlan()) {
-                                                    <button class="icon-btn-flat" (click)="navigateToEditOperation(op.id_operation); $event.stopPropagation()" [title]="'common.actions.edit' | translate">
-                                                      <i class="fi fi-rr-pencil"></i>
-                                                    </button>
-                                                    @if (op.metriques && op.metriques.length > 1) {
-                                                      <button class="icon-btn-flat" (click)="unlinkOperation(op, met.id_metrique); $event.stopPropagation()" [title]="'enjeux.operations.unlinkTitle' | translate">
-                                                        <i class="fi fi-rr-link-slash"></i>
-                                                      </button>
-                                                    }
-                                                    <button class="icon-btn-flat" (click)="deleteOperation(op); $event.stopPropagation()" [title]="'common.actions.delete' | translate">
-                                                      <i class="fi fi-rr-trash"></i>
-                                                    </button>
-                                                  }
-                                                  <i class="fi expand-arrow-op" [class.fi-rr-angle-small-down]="!isOperationExpanded(op.id_operation)" [class.fi-rr-angle-small-up]="isOperationExpanded(op.id_operation)"></i>
-                                                </div>
-                                              </div>
-
-                                              <!-- Contenu déplié de l'action -->
-                                              @if (isOperationExpanded(op.id_operation)) {
-                                                <div class="operation-expanded-content">
-                                                  <!-- Également liée à d'autres métriques -->
-                                                  @if (op.metriques && op.metriques.length > 1) {
-                                                    <div class="operation-detail-line linked-metriques-info">
-                                                      <span class="detail-label">{{ 'enjeux.operations.alsoLinkedTo' | translate }} :</span>
-                                                      <span class="detail-value">
-                                                        @for (metRef of getOtherMetriques(op, met.id_metrique); track metRef.id_metrique; let last = $last) {
-                                                          {{ metRef.nom_metrique }} ({{ metRef.indicateur_nom }})@if (!last) {, }
-                                                        }
-                                                      </span>
-                                                    </div>
-                                                  }
-                                                  <!-- Type d'action & Priorité -->
-                                                  <div class="operation-meta-row">
-                                                    @if (op.type_action_label) {
-                                                      <span class="operation-meta-item">
-                                                        <span class="meta-label">{{ 'enjeux.operations.typeActionLabel' | translate }} :</span>
-                                                        {{ op.type_action_label }}
-                                                      </span>
-                                                    }
-                                                    @if (op.priorite_label) {
-                                                      <span class="operation-meta-item">
-                                                        <span class="meta-label">{{ 'enjeux.operations.prioriteLabel' | translate }} :</span>
-                                                        {{ op.priorite_label }}
-                                                      </span>
-                                                    }
-                                                  </div>
-
-                                                  <!-- DÉTAILS DE L'INVENTAIRE OU DU SUIVI -->
-                                                  @if (op.suivi_inventaire) {
-                                                    <div class="operation-section-separator">
-                                                      <div class="separator-line"></div>
-                                                      <h5 class="operation-section-title">{{ 'enjeux.operations.detailsSuiviTitle' | translate | uppercase }}</h5>
-                                                    </div>
-                                                    <div class="operation-section">
-                                                      @if (op.suivi_inventaire.objectif_principal) {
-                                                        <div class="operation-detail-line">
-                                                          <span class="detail-label">{{ 'enjeux.operations.objectifPrincipal' | translate }} :</span>
-                                                          <span class="detail-value">{{ op.suivi_inventaire.objectif_principal }}</span>
-                                                        </div>
-                                                      }
-                                                      @if (op.suivi_inventaire.cibles_principales) {
-                                                        <div class="operation-detail-line">
-                                                          <span class="detail-label">{{ 'enjeux.operations.ciblesPrincipales' | translate }} :</span>
-                                                          <span class="detail-value">{{ op.suivi_inventaire.cibles_principales }}</span>
-                                                        </div>
-                                                      }
-                                                      @if (op.suivi_inventaire.taxon_taxref) {
-                                                        <div class="operation-detail-line">
-                                                          <span class="detail-label">{{ 'enjeux.operations.taxonTaxref' | translate }} :</span>
-                                                          <span class="detail-value">{{ op.suivi_inventaire.taxon_taxref }}</span>
-                                                        </div>
-                                                      }
-                                                      @if (op.suivi_inventaire.date_lancement_suivi) {
-                                                        <div class="operation-detail-line">
-                                                          <span class="detail-label">{{ 'enjeux.operations.dateLancement' | translate }} :</span>
-                                                          <span class="detail-value">{{ op.suivi_inventaire.date_lancement_suivi | date:'dd/MM/yyyy' }}</span>
-                                                        </div>
-                                                      }
-                                                      @if (op.suivi_inventaire.protocole?.protocole_campanule_nom) {
-                                                        <div class="operation-detail-line">
-                                                          <span class="detail-label">{{ 'enjeux.operations.protocoleNom' | translate }} :</span>
-                                                          <span class="detail-value">{{ op.suivi_inventaire.protocole?.protocole_campanule_nom }}</span>
-                                                        </div>
-                                                      }
-                                                    </div>
-                                                  }
-
-                                                  <!-- PROGRAMMATION -->
-                                                  @if (getPlanYears().length > 0) {
-                                                    <div class="operation-section-separator">
-                                                      <div class="separator-line"></div>
-                                                      <h5 class="operation-section-title">{{ 'enjeux.operations.programmationTitle' | translate | uppercase }}</h5>
-                                                    </div>
-                                                    <div class="operation-section">
-                                                      <!-- Table de programmation -->
-                                                      <div class="programmation-table-wrapper">
-                                                        <table class="programmation-table">
-                                                          <thead>
-                                                            <tr>
-                                                              <th class="prog-label-col">{{ 'enjeux.operations.programmation' | translate }}</th>
-                                                              @for (year of getPlanYears(); track year) {
-                                                                <th class="prog-year-col">{{ year }}</th>
-                                                              }
-                                                            </tr>
-                                                          </thead>
-                                                          <tbody>
-                                                            <!-- Périodicité (icônes prévu) -->
-                                                            <tr>
-                                                              <td class="prog-label-cell">{{ 'enjeux.operations.progPeriodicite' | translate }}</td>
-                                                              @for (year of getPlanYears(); track year) {
-                                                                <td class="prog-cell">
-                                                                  @if (isYearPlanned(op, year)) {
-                                                                    <img src="assets/images/icons/prevu.png" alt="Prévu" class="prevu-icon">
-                                                                  } @else {
-                                                                    <span class="prog-dash">-</span>
-                                                                  }
-                                                                </td>
-                                                              }
-                                                            </tr>
-                                                            @if (hasOrganismeData(op)) {
-                                                              <!-- Per-organisme rows -->
-                                                              @for (org of getOperationOrganismes(op); track org.id_organisme) {
-                                                                <tr class="prog-org-header">
-                                                                  <td class="prog-label-cell prog-org-name" [attr.colspan]="getPlanYears().length + 1">{{ org.organisme_nom }}</td>
-                                                                </tr>
-                                                                <tr>
-                                                                  <td class="prog-label-cell prog-indent">{{ 'enjeux.operations.budgetFonctionnement' | translate }}</td>
-                                                                  @for (year of getPlanYears(); track year) {
-                                                                    <td class="prog-cell prog-budget">{{ formatBudget(getOrgAnnee(op, year, org.id_organisme).fonct) }}</td>
-                                                                  }
-                                                                </tr>
-                                                                <tr>
-                                                                  <td class="prog-label-cell prog-indent">{{ 'enjeux.operations.budgetInvestissement' | translate }}</td>
-                                                                  @for (year of getPlanYears(); track year) {
-                                                                    <td class="prog-cell prog-budget">{{ formatBudget(getOrgAnnee(op, year, org.id_organisme).invest) }}</td>
-                                                                  }
-                                                                </tr>
-                                                                <tr>
-                                                                  <td class="prog-label-cell prog-indent prog-bold">{{ 'enjeux.operations.budgetTotal' | translate }}</td>
-                                                                  @for (year of getPlanYears(); track year) {
-                                                                    <td class="prog-cell prog-budget prog-computed">{{ formatOrgBudgetTotal(op, year, org.id_organisme) }}</td>
-                                                                  }
-                                                                </tr>
-                                                                <tr>
-                                                                  <td class="prog-label-cell prog-indent">{{ 'enjeux.operations.travailPrevisionnel' | translate }}</td>
-                                                                  @for (year of getPlanYears(); track year) {
-                                                                    <td class="prog-cell">{{ formatTravail(getOrgAnnee(op, year, org.id_organisme).etp) }}</td>
-                                                                  }
-                                                                </tr>
-                                                              }
-                                                              <!-- Total cross-organismes -->
-                                                              <tr class="prog-total-header">
-                                                                <td class="prog-label-cell prog-org-name" [attr.colspan]="getPlanYears().length + 1">{{ 'enjeux.operations.totalLabel' | translate }}</td>
-                                                              </tr>
-                                                              <tr>
-                                                                <td class="prog-label-cell prog-indent prog-bold">{{ 'enjeux.operations.budgetTotal' | translate }}</td>
-                                                                @for (year of getPlanYears(); track year) {
-                                                                  <td class="prog-cell prog-budget prog-computed">{{ formatBudget(getOperationAnnee(op, year)?.budget) }}</td>
-                                                                }
-                                                              </tr>
-                                                              <tr>
-                                                                <td class="prog-label-cell prog-indent prog-bold">{{ 'enjeux.operations.travailPrevisionnel' | translate }}</td>
-                                                                @for (year of getPlanYears(); track year) {
-                                                                  <td class="prog-cell prog-computed">{{ formatTravail(getOperationAnnee(op, year)?.etp) }}</td>
-                                                                }
-                                                              </tr>
-                                                            } @else if (isTypeBudgetMode(op)) {
-                                                              <!-- By type: fonctionnement/investissement without organismes -->
-                                                              <tr>
-                                                                <td class="prog-label-cell">{{ 'enjeux.operations.budgetFonctionnement' | translate }}</td>
-                                                                @for (year of getPlanYears(); track year) {
-                                                                  <td class="prog-cell prog-budget">{{ formatBudget(getOperationAnnee(op, year)?.budget_fonctionnement) }}</td>
-                                                                }
-                                                              </tr>
-                                                              <tr>
-                                                                <td class="prog-label-cell">{{ 'enjeux.operations.budgetInvestissement' | translate }}</td>
-                                                                @for (year of getPlanYears(); track year) {
-                                                                  <td class="prog-cell prog-budget">{{ formatBudget(getOperationAnnee(op, year)?.budget_investissement) }}</td>
-                                                                }
-                                                              </tr>
-                                                              <tr>
-                                                                <td class="prog-label-cell prog-bold">{{ 'enjeux.operations.budgetTotal' | translate }}</td>
-                                                                @for (year of getPlanYears(); track year) {
-                                                                  <td class="prog-cell prog-budget prog-computed">{{ formatBudget(getOperationAnnee(op, year)?.budget) }}</td>
-                                                                }
-                                                              </tr>
-                                                              <tr>
-                                                                <td class="prog-label-cell">{{ 'enjeux.operations.progTravail' | translate }}</td>
-                                                                @for (year of getPlanYears(); track year) {
-                                                                  <td class="prog-cell">{{ formatTravail(getOperationAnnee(op, year)?.etp) }}</td>
-                                                                }
-                                                              </tr>
-                                                            } @else {
-                                                              <!-- Flat budget/travail (no per-org data) -->
-                                                              <tr>
-                                                                <td class="prog-label-cell">{{ 'enjeux.operations.progBudget' | translate }}</td>
-                                                                @for (year of getPlanYears(); track year) {
-                                                                  <td class="prog-cell prog-budget">{{ formatBudget(getOperationAnnee(op, year)?.budget) }}</td>
-                                                                }
-                                                              </tr>
-                                                              <tr>
-                                                                <td class="prog-label-cell">{{ 'enjeux.operations.progTravail' | translate }}</td>
-                                                                @for (year of getPlanYears(); track year) {
-                                                                  <td class="prog-cell">{{ formatTravail(getOperationAnnee(op, year)?.etp) }}</td>
-                                                                }
-                                                              </tr>
-                                                            }
-                                                          </tbody>
-                                                        </table>
-                                                      </div>
-
-                                                      <!-- Mois programmés (sous le tableau) -->
-                                                      @if (hasAnyMonthlyPlanning(op)) {
-                                                        <div class="monthly-planning">
-                                                          <span class="monthly-label">{{ 'enjeux.operations.progMois' | translate }} :</span>
-                                                          <span class="monthly-months">{{ getPlannedMonthsForOperation(op).join(', ') }}</span>
-                                                        </div>
-                                                      }
-                                                    </div>
-                                                  }
-
-                                                  <!-- Fréquence, Opérateur, Financement -->
-                                                  @if (op.frequence_nombre || op.operateurs || (op.finances && op.finances.length > 0)) {
-                                                    <div class="operation-actors-section">
-                                                      @if (op.frequence_nombre && op.frequence_unite) {
-                                                        <div class="operation-detail-line">
-                                                          <span class="detail-label">{{ 'enjeux.operations.frequenceAction' | translate }} :</span>
-                                                          <span class="detail-value">{{ getFrequenceDisplay(op) }}</span>
-                                                        </div>
-                                                      }
-                                                      @if (op.operateurs) {
-                                                        <div class="operation-detail-line">
-                                                          <span class="detail-label">{{ 'enjeux.operations.operateursLabel' | translate }} :</span>
-                                                          <span class="detail-value">{{ op.operateurs }}</span>
-                                                        </div>
-                                                      }
-                                                      @if (op.finances && op.finances.length > 0) {
-                                                        <div class="operation-detail-line">
-                                                          <span class="detail-label">{{ 'enjeux.operations.financementsLabel' | translate }} :</span>
-                                                          <span class="detail-value">
-                                                            @for (fin of op.finances; track fin.id_finance_operation; let last = $last) {
-                                                              {{ fin.libelle }}@if (fin.categorie_label) { ({{ fin.categorie_label }})}@if (!last) {, }
-                                                            }
-                                                          </span>
-                                                        </div>
-                                                      }
-                                                    </div>
-                                                  }
-
-                                                  <!-- DÉTAILS / Description -->
-                                                  @if (op.description) {
-                                                    <div class="operation-section-separator">
-                                                      <div class="separator-line"></div>
-                                                      <h5 class="operation-section-title">{{ 'enjeux.operations.detailsLabel' | translate | uppercase }}</h5>
-                                                    </div>
-                                                    <div class="operation-section">
-                                                      <p class="operation-description">{{ op.description }}</p>
-                                                    </div>
-                                                  }
-                                                </div>
-                                              }
-                                            </div>
-                                          }
-                                                      </div> <!-- end operations-droplist (NE) #228 -->
-                                        }
-
-                                                    <!-- #1 : bouton « Ajouter une action » déplacé au niveau indicateur -->
-
-                                                  </div>
-                                                }
+                                                <!-- #227/#367 — Bloc « actions regroupées par métrique » supprimé : les actions sont listées une seule fois au niveau de l'indicateur (ind.operations), métriques rappelées dans le bandeau de chaque action. -->
                                               }
 
                                               <!-- #367 — Actions rattachées directement à l'indicateur (sans métrique) -->
                                               @if (ind.operations && ind.operations.length > 0) {
                                                 <div class="indicateur-direct-operations">
                                                   @for (op of ind.operations; track op.id_operation) {
-                                                    <div class="operation-card operation-card-direct"
+                                                    <div class="operation-card" [class.operation-card-direct]="!op.metriques?.length"
                                                          [class.expanded]="isOperationExpanded(op.id_operation)"
                                                          [class.is-draft]="op.statut === 'draft'"
                                                          [id]="'operation-' + op.id_operation">
@@ -1394,9 +1064,22 @@
                                                           <img src="assets/images/ellipses/ellipse-salmon.png" alt="" class="operation-ellipse">
                                                           @if (op.code_affichage) { <span class="operation-code">{{ op.code_affichage }}</span> }
                                                           <span class="operation-libelle">{{ 'enjeux.operations.label' | translate }} : {{ op.libelle }}</span>
-                                                          <span class="op-trace-badge op-trace-sans-metrique" [matTooltip]="'enjeux.operations.sansMetriqueTooltip' | translate" (click)="$event.stopPropagation()">
-                                                            <i class="fi fi-rr-ban"></i> {{ 'enjeux.operations.sansMetriqueBadge' | translate }}
-                                                          </span>
+                                                          @if (op.metriques?.length) {
+                                                            @for (m of op.metriques!; track m.id_metrique) {
+                                                              <span class="op-metrique-chip" (click)="$event.stopPropagation()" [matTooltip]="'enjeux.operations.metriqueLinkedTooltip' | translate">
+                                                                <i class="fi fi-rr-ruler-horizontal"></i> {{ m.nom_metrique }}
+                                                              </span>
+                                                            }
+                                                          } @else {
+                                                            <span class="op-trace-badge op-trace-sans-metrique" [matTooltip]="'enjeux.operations.sansMetriqueTooltip' | translate" (click)="$event.stopPropagation()">
+                                                              <i class="fi fi-rr-ban"></i> {{ 'enjeux.operations.sansMetriqueBadge' | translate }}
+                                                            </span>
+                                                          }
+                                                          @if (op.geom_geojson) {
+                                                            <span class="op-trace-badge op-trace-emprise" [matTooltip]="'enjeux.operations.empriseSpatialeBadge' | translate" (click)="$event.stopPropagation()">
+                                                              <i class="fi fi-rr-marker"></i>
+                                                            </span>
+                                                          }
                                                           @if (op.statut === 'draft') {
                                                             <span class="operation-draft-chip status-warning" (click)="$event.stopPropagation()">{{ 'enjeux.operations.draftChip' | translate }}</span>
                                                           }
@@ -2118,316 +1801,14 @@
                                           </table>
                                         </div>
 
-                                        @for (met of ind.metriques; track met.id_metrique) {
-                                          <div class="metrique-block" [id]="'metrique-' + met.id_metrique">
-
-                                            <!-- Opérations (Actions) de cette métrique — DnD intra-métrique (#228) -->
-                                            @if (met.operations && met.operations.length > 0) {
-                                              <p class="metriques-title">{{ 'enjeux.metriques.label' | translate }} : {{ met.nom_metrique }}</p>
-                                              <div cdkDropList
-                                                   [id]="'operations-droplist-oo-' + met.id_metrique"
-                                                   [cdkDropListData]="met.operations"
-                                                   class="operations-droplist"
-                                                   [cdkDropListDisabled]="!canEditPlan()"
-                                                   (cdkDropListDropped)="onOperationDrop($event, met)">
-                                              @for (op of met.operations; track op.id_operation) {
-                                    <div cdkDrag [cdkDragDisabled]="!canEditPlan()"
-                                         class="operation-card operation-drag-item"
-                                         [class.expanded]="isOoOperationExpanded(op.id_operation)"
-                                         [class.is-draft]="op.statut === 'draft'"
-                                         [id]="'operation-' + op.id_operation">
-                                      <div class="operation-header" (click)="toggleOoOperation(op.id_operation)">
-                                        <div class="operation-header-left">
-                                          @if (canEditPlan()) {
-                                            <button class="icon-btn-flat operation-drag-handle" type="button" cdkDragHandle
-                                                    (click)="$event.stopPropagation()"
-                                                    [title]="'enjeux.dnd.dragHandle' | translate"
-                                                    [attr.aria-label]="'enjeux.dnd.dragHandle' | translate">
-                                              <i class="fi fi-rr-menu-burger"></i>
-                                            </button>
-                                          }
-                                          <img src="assets/images/ellipses/ellipse-salmon.png" alt="" class="operation-ellipse">
-                                          @if (op.code_affichage) {
-                                            <span class="operation-code">{{ op.code_affichage }}</span>
-                                          }
-                                          <span class="operation-libelle">{{ 'enjeux.operations.label' | translate }} : {{ op.libelle }}</span>
-                                          @if (op.statut === 'draft') {
-                                            <mat-chip class="operation-draft-chip status-warning"
-                                                      [matTooltip]="'enjeux.operations.draftChipTooltip' | translate"
-                                                      (click)="$event.stopPropagation()">
-                                              {{ 'enjeux.operations.draftChip' | translate }}
-                                            </mat-chip>
-                                          }
-                                        </div>
-                                        <div class="operation-header-right">
-                                          <button class="icon-btn-flat" (click)="navigateToViewOperation(op.id_operation); $event.stopPropagation()" [title]="'common.actions.view' | translate">
-                                            <i class="fi fi-rr-eye"></i>
-                                          </button>
-                                          @if (canEditPlan()) {
-                                            <button class="icon-btn-flat" (click)="navigateToEditOperation(op.id_operation); $event.stopPropagation()" [title]="'common.actions.edit' | translate">
-                                              <i class="fi fi-rr-pencil"></i>
-                                            </button>
-                                            @if (op.metriques && op.metriques.length > 1) {
-                                              <button class="icon-btn-flat" (click)="unlinkOperation(op, met.id_metrique); $event.stopPropagation()" [title]="'enjeux.operations.unlinkTitle' | translate">
-                                                <i class="fi fi-rr-link-slash"></i>
-                                              </button>
-                                            }
-                                            <button class="icon-btn-flat" (click)="deleteOperation(op); $event.stopPropagation()" [title]="'common.actions.delete' | translate">
-                                              <i class="fi fi-rr-trash"></i>
-                                            </button>
-                                          }
-                                          <i class="fi expand-arrow-op" [class.fi-rr-angle-small-down]="!isOoOperationExpanded(op.id_operation)" [class.fi-rr-angle-small-up]="isOoOperationExpanded(op.id_operation)"></i>
-                                        </div>
-                                      </div>
-
-                                      @if (isOoOperationExpanded(op.id_operation)) {
-                                        <div class="operation-expanded-content">
-                                          <!-- Également liée à d'autres métriques -->
-                                          @if (op.metriques && op.metriques.length > 1) {
-                                            <div class="operation-detail-line linked-metriques-info">
-                                              <span class="detail-label">{{ 'enjeux.operations.alsoLinkedTo' | translate }} :</span>
-                                              <span class="detail-value">
-                                                @for (metRef of getOtherMetriques(op, met.id_metrique); track metRef.id_metrique; let last = $last) {
-                                                  {{ metRef.nom_metrique }} ({{ metRef.indicateur_nom }})@if (!last) {, }
-                                                }
-                                              </span>
-                                            </div>
-                                          }
-                                          <div class="operation-meta-row">
-                                            @if (op.type_action_label) {
-                                              <span class="operation-meta-item">
-                                                <span class="meta-label">{{ 'enjeux.operations.typeActionLabel' | translate }} :</span>
-                                                {{ op.type_action_label }}
-                                              </span>
-                                            }
-                                            @if (op.priorite_label) {
-                                              <span class="operation-meta-item">
-                                                <span class="meta-label">{{ 'enjeux.operations.prioriteLabel' | translate }} :</span>
-                                                {{ op.priorite_label }}
-                                              </span>
-                                            }
-                                          </div>
-
-                                          @if (op.suivi_inventaire) {
-                                            <div class="operation-section-separator">
-                                              <div class="separator-line"></div>
-                                              <h5 class="operation-section-title">{{ 'enjeux.operations.detailsSuiviTitle' | translate | uppercase }}</h5>
-                                            </div>
-                                            <div class="operation-section">
-                                              @if (op.suivi_inventaire.objectif_principal) {
-                                                <div class="operation-detail-line">
-                                                  <span class="detail-label">{{ 'enjeux.operations.objectifPrincipal' | translate }} :</span>
-                                                  <span class="detail-value">{{ op.suivi_inventaire.objectif_principal }}</span>
-                                                </div>
-                                              }
-                                              @if (op.suivi_inventaire.cibles_principales) {
-                                                <div class="operation-detail-line">
-                                                  <span class="detail-label">{{ 'enjeux.operations.ciblesPrincipales' | translate }} :</span>
-                                                  <span class="detail-value">{{ op.suivi_inventaire.cibles_principales }}</span>
-                                                </div>
-                                              }
-                                              @if (op.suivi_inventaire.taxon_taxref) {
-                                                <div class="operation-detail-line">
-                                                  <span class="detail-label">{{ 'enjeux.operations.taxonTaxref' | translate }} :</span>
-                                                  <span class="detail-value">{{ op.suivi_inventaire.taxon_taxref }}</span>
-                                                </div>
-                                              }
-                                              @if (op.suivi_inventaire.date_lancement_suivi) {
-                                                <div class="operation-detail-line">
-                                                  <span class="detail-label">{{ 'enjeux.operations.dateLancement' | translate }} :</span>
-                                                  <span class="detail-value">{{ op.suivi_inventaire.date_lancement_suivi | date:'dd/MM/yyyy' }}</span>
-                                                </div>
-                                              }
-                                              @if (op.suivi_inventaire.protocole?.protocole_campanule_nom) {
-                                                <div class="operation-detail-line">
-                                                  <span class="detail-label">{{ 'enjeux.operations.protocoleNom' | translate }} :</span>
-                                                  <span class="detail-value">{{ op.suivi_inventaire.protocole?.protocole_campanule_nom }}</span>
-                                                </div>
-                                              }
-                                            </div>
-                                          }
-
-                                          @if (getPlanYears().length > 0) {
-                                            <div class="operation-section-separator">
-                                              <div class="separator-line"></div>
-                                              <h5 class="operation-section-title">{{ 'enjeux.operations.programmationTitle' | translate | uppercase }}</h5>
-                                            </div>
-                                            <div class="operation-section">
-                                              <div class="programmation-table-wrapper">
-                                                <table class="programmation-table">
-                                                  <thead>
-                                                    <tr>
-                                                      <th class="prog-label-col">{{ 'enjeux.operations.programmation' | translate }}</th>
-                                                      @for (year of getPlanYears(); track year) {
-                                                        <th class="prog-year-col">{{ year }}</th>
-                                                      }
-                                                    </tr>
-                                                  </thead>
-                                                  <tbody>
-                                                    <tr>
-                                                      <td class="prog-label-cell">{{ 'enjeux.operations.progPeriodicite' | translate }}</td>
-                                                      @for (year of getPlanYears(); track year) {
-                                                        <td class="prog-cell">
-                                                          @if (isYearPlanned(op, year)) {
-                                                            <img src="assets/images/icons/prevu.png" alt="Prévu" class="prevu-icon">
-                                                          } @else {
-                                                            <span class="prog-dash">-</span>
-                                                          }
-                                                        </td>
-                                                      }
-                                                    </tr>
-                                                    @if (hasOrganismeData(op)) {
-                                                      @for (org of getOperationOrganismes(op); track org.id_organisme) {
-                                                        <tr class="prog-org-header">
-                                                          <td class="prog-label-cell prog-org-name" [attr.colspan]="getPlanYears().length + 1">{{ org.organisme_nom }}</td>
-                                                        </tr>
-                                                        <tr>
-                                                          <td class="prog-label-cell prog-indent">{{ 'enjeux.operations.budgetFonctionnement' | translate }}</td>
-                                                          @for (year of getPlanYears(); track year) {
-                                                            <td class="prog-cell prog-budget">{{ formatBudget(getOrgAnnee(op, year, org.id_organisme).fonct) }}</td>
-                                                          }
-                                                        </tr>
-                                                        <tr>
-                                                          <td class="prog-label-cell prog-indent">{{ 'enjeux.operations.budgetInvestissement' | translate }}</td>
-                                                          @for (year of getPlanYears(); track year) {
-                                                            <td class="prog-cell prog-budget">{{ formatBudget(getOrgAnnee(op, year, org.id_organisme).invest) }}</td>
-                                                          }
-                                                        </tr>
-                                                        <tr>
-                                                          <td class="prog-label-cell prog-indent prog-bold">{{ 'enjeux.operations.budgetTotal' | translate }}</td>
-                                                          @for (year of getPlanYears(); track year) {
-                                                            <td class="prog-cell prog-budget prog-computed">{{ formatOrgBudgetTotal(op, year, org.id_organisme) }}</td>
-                                                          }
-                                                        </tr>
-                                                        <tr>
-                                                          <td class="prog-label-cell prog-indent">{{ 'enjeux.operations.travailPrevisionnel' | translate }}</td>
-                                                          @for (year of getPlanYears(); track year) {
-                                                            <td class="prog-cell">{{ formatTravail(getOrgAnnee(op, year, org.id_organisme).etp) }}</td>
-                                                          }
-                                                        </tr>
-                                                      }
-                                                      <tr class="prog-total-header">
-                                                        <td class="prog-label-cell prog-org-name" [attr.colspan]="getPlanYears().length + 1">{{ 'enjeux.operations.totalLabel' | translate }}</td>
-                                                      </tr>
-                                                      <tr>
-                                                        <td class="prog-label-cell prog-indent prog-bold">{{ 'enjeux.operations.budgetTotal' | translate }}</td>
-                                                        @for (year of getPlanYears(); track year) {
-                                                          <td class="prog-cell prog-budget prog-computed">{{ formatBudget(getOperationAnnee(op, year)?.budget) }}</td>
-                                                        }
-                                                      </tr>
-                                                      <tr>
-                                                        <td class="prog-label-cell prog-indent prog-bold">{{ 'enjeux.operations.travailPrevisionnel' | translate }}</td>
-                                                        @for (year of getPlanYears(); track year) {
-                                                          <td class="prog-cell prog-computed">{{ formatTravail(getOperationAnnee(op, year)?.etp) }}</td>
-                                                        }
-                                                      </tr>
-                                                    } @else if (isTypeBudgetMode(op)) {
-                                                      <!-- By type: fonctionnement/investissement without organismes -->
-                                                      <tr>
-                                                        <td class="prog-label-cell">{{ 'enjeux.operations.budgetFonctionnement' | translate }}</td>
-                                                        @for (year of getPlanYears(); track year) {
-                                                          <td class="prog-cell prog-budget">{{ formatBudget(getOperationAnnee(op, year)?.budget_fonctionnement) }}</td>
-                                                        }
-                                                      </tr>
-                                                      <tr>
-                                                        <td class="prog-label-cell">{{ 'enjeux.operations.budgetInvestissement' | translate }}</td>
-                                                        @for (year of getPlanYears(); track year) {
-                                                          <td class="prog-cell prog-budget">{{ formatBudget(getOperationAnnee(op, year)?.budget_investissement) }}</td>
-                                                        }
-                                                      </tr>
-                                                      <tr>
-                                                        <td class="prog-label-cell prog-bold">{{ 'enjeux.operations.budgetTotal' | translate }}</td>
-                                                        @for (year of getPlanYears(); track year) {
-                                                          <td class="prog-cell prog-budget prog-computed">{{ formatBudget(getOperationAnnee(op, year)?.budget) }}</td>
-                                                        }
-                                                      </tr>
-                                                      <tr>
-                                                        <td class="prog-label-cell">{{ 'enjeux.operations.progTravail' | translate }}</td>
-                                                        @for (year of getPlanYears(); track year) {
-                                                          <td class="prog-cell">{{ formatTravail(getOperationAnnee(op, year)?.etp) }}</td>
-                                                        }
-                                                      </tr>
-                                                    } @else {
-                                                      <tr>
-                                                        <td class="prog-label-cell">{{ 'enjeux.operations.progBudget' | translate }}</td>
-                                                        @for (year of getPlanYears(); track year) {
-                                                          <td class="prog-cell prog-budget">{{ formatBudget(getOperationAnnee(op, year)?.budget) }}</td>
-                                                        }
-                                                      </tr>
-                                                      <tr>
-                                                        <td class="prog-label-cell">{{ 'enjeux.operations.progTravail' | translate }}</td>
-                                                        @for (year of getPlanYears(); track year) {
-                                                          <td class="prog-cell">{{ formatTravail(getOperationAnnee(op, year)?.etp) }}</td>
-                                                        }
-                                                      </tr>
-                                                    }
-                                                  </tbody>
-                                                </table>
-                                              </div>
-
-                                              @if (hasAnyMonthlyPlanning(op)) {
-                                                <div class="monthly-planning">
-                                                  <span class="monthly-label">{{ 'enjeux.operations.progMois' | translate }} :</span>
-                                                  <span class="monthly-months">{{ getPlannedMonthsForOperation(op).join(', ') }}</span>
-                                                </div>
-                                              }
-                                            </div>
-                                          }
-
-                                          @if (op.frequence_nombre || op.operateurs || (op.finances && op.finances.length > 0)) {
-                                            <div class="operation-actors-section">
-                                              @if (op.frequence_nombre && op.frequence_unite) {
-                                                <div class="operation-detail-line">
-                                                  <span class="detail-label">{{ 'enjeux.operations.frequenceAction' | translate }} :</span>
-                                                  <span class="detail-value">{{ getFrequenceDisplay(op) }}</span>
-                                                </div>
-                                              }
-                                              @if (op.operateurs) {
-                                                <div class="operation-detail-line">
-                                                  <span class="detail-label">{{ 'enjeux.operations.operateursLabel' | translate }} :</span>
-                                                  <span class="detail-value">{{ op.operateurs }}</span>
-                                                </div>
-                                              }
-                                              @if (op.finances && op.finances.length > 0) {
-                                                <div class="operation-detail-line">
-                                                  <span class="detail-label">{{ 'enjeux.operations.financementsLabel' | translate }} :</span>
-                                                  <span class="detail-value">
-                                                    @for (fin of op.finances; track fin.id_finance_operation; let last = $last) {
-                                                      {{ fin.libelle }}@if (fin.categorie_label) { ({{ fin.categorie_label }})}@if (!last) {, }
-                                                    }
-                                                  </span>
-                                                </div>
-                                              }
-                                            </div>
-                                          }
-
-                                          @if (op.description) {
-                                            <div class="operation-section-separator">
-                                              <div class="separator-line"></div>
-                                              <h5 class="operation-section-title">{{ 'enjeux.operations.detailsLabel' | translate | uppercase }}</h5>
-                                            </div>
-                                            <div class="operation-section">
-                                              <p class="operation-description">{{ op.description }}</p>
-                                            </div>
-                                          }
-                                        </div>
-                                      }
-                                    </div>
-                                  }
-                                              </div> <!-- end operations-droplist (OO) #228 -->
-                                }
-
-                                    <!-- #1 : bouton « Ajouter une action » déplacé au niveau indicateur (OO) -->
-
-                                          </div>
-                                        }
+                                        <!-- #227/#367 — Bloc « actions regroupées par métrique » supprimé : les actions sont listées une seule fois au niveau de l'indicateur (ind.operations), métriques rappelées dans le bandeau de chaque action. -->
                                       }
 
                                       <!-- #367 — Actions rattachées directement à l'indicateur (sans métrique) -->
                                       @if (ind.operations && ind.operations.length > 0) {
                                         <div class="indicateur-direct-operations">
                                           @for (op of ind.operations; track op.id_operation) {
-                                            <div class="operation-card operation-card-direct"
+                                            <div class="operation-card" [class.operation-card-direct]="!op.metriques?.length"
                                                  [class.expanded]="isOoOperationExpanded(op.id_operation)"
                                                  [class.is-draft]="op.statut === 'draft'"
                                                  [id]="'operation-' + op.id_operation">
@@ -2436,9 +1817,22 @@
                                                   <img src="assets/images/ellipses/ellipse-salmon.png" alt="" class="operation-ellipse">
                                                   @if (op.code_affichage) { <span class="operation-code">{{ op.code_affichage }}</span> }
                                                   <span class="operation-libelle">{{ 'enjeux.operations.label' | translate }} : {{ op.libelle }}</span>
-                                                  <span class="op-trace-badge op-trace-sans-metrique" [matTooltip]="'enjeux.operations.sansMetriqueTooltip' | translate" (click)="$event.stopPropagation()">
-                                                    <i class="fi fi-rr-ban"></i> {{ 'enjeux.operations.sansMetriqueBadge' | translate }}
-                                                  </span>
+                                                  @if (op.metriques?.length) {
+                                                    @for (m of op.metriques!; track m.id_metrique) {
+                                                      <span class="op-metrique-chip" (click)="$event.stopPropagation()" [matTooltip]="'enjeux.operations.metriqueLinkedTooltip' | translate">
+                                                        <i class="fi fi-rr-ruler-horizontal"></i> {{ m.nom_metrique }}
+                                                      </span>
+                                                    }
+                                                  } @else {
+                                                    <span class="op-trace-badge op-trace-sans-metrique" [matTooltip]="'enjeux.operations.sansMetriqueTooltip' | translate" (click)="$event.stopPropagation()">
+                                                      <i class="fi fi-rr-ban"></i> {{ 'enjeux.operations.sansMetriqueBadge' | translate }}
+                                                    </span>
+                                                  }
+                                                  @if (op.geom_geojson) {
+                                                    <span class="op-trace-badge op-trace-emprise" [matTooltip]="'enjeux.operations.empriseSpatialeBadge' | translate" (click)="$event.stopPropagation()">
+                                                      <i class="fi fi-rr-marker"></i>
+                                                    </span>
+                                                  }
                                                   @if (op.statut === 'draft') {
                                                     <span class="operation-draft-chip status-warning" (click)="$event.stopPropagation()">{{ 'enjeux.operations.draftChip' | translate }}</span>
                                                   }
