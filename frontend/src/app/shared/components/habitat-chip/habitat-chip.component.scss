@@ -109,6 +109,10 @@
     padding-bottom: $spacing-xs;
     border-bottom: 1px solid $gray-lighter;
   }
+
+  &--cross {
+    padding-top: $spacing-xxs;
+  }
 }
 
 .hchip__typo {
@@ -116,6 +120,17 @@
   font-size: 12px;
   font-weight: $font-weight-bold;
   color: $primary-color;
+
+  // En-tête « équivalents » : prend toute la largeur
+  .hchip__group--cross & {
+    flex: 1 1 auto;
+  }
+
+  // Libellé de typologie pour une ligne de correspondance (sous l'en-tête)
+  &--sub {
+    padding-left: $spacing-sm;
+    font-weight: $font-weight-semibold;
+  }
 }
 
 .hchip__selfinfo {

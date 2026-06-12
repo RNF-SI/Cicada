@@ -28,21 +28,31 @@
 
     @if (loading()) {
       <span class="hchip__muted">{{ 'common.status.loading' | translate }}…</span>
-    } @else if (groups().length === 0) {
-      <span class="hchip__muted">{{ 'enjeux.accordion.habitatNoCorresp' | translate }}</span>
     } @else {
-      @for (g of groups(); track g.typo) {
-        <div class="hchip__group">
-          <span class="hchip__typo">{{ g.label }}</span>
-          <span class="hchip__codes">
-            @for (cd of g.codes; track cd) {
-              <span class="hchip__codepill">{{ cd }}</span>
-            }
-            @if (g.extra > 0) {
-              <span class="hchip__more">+{{ g.extra }}</span>
-            }
-          </span>
+      @if (groups().length > 0) {
+        <!-- Correspondances vers d'AUTRES référentiels -->
+        <div class="hchip__group hchip__group--cross">
+          <span class="hchip__typo">{{ 'enjeux.accordion.habitatCrossTypo' | translate }}</span>
         </div>
+        @for (g of groups(); track g.typo) {
+          <div class="hchip__group">
+            <span class="hchip__typo hchip__typo--sub">{{ g.label }}</span>
+            <span class="hchip__codes">
+              @for (cd of g.codes; track cd) {
+                <span class="hchip__codepill">{{ cd }}</span>
+              }
+              @if (g.extra > 0) {
+                <span class="hchip__more">+{{ g.extra }}</span>
+              }
+            </span>
+          </div>
+        }
+      } @else if (hasOwnInfo()) {
+        <!-- Origine connue mais pas d'équivalent ailleurs : note discrète,
+             non contradictoire avec le badge du référentiel d'origine. -->
+        <span class="hchip__muted">{{ 'enjeux.accordion.habitatNoCrossCorresp' | translate }}</span>
+      } @else {
+        <span class="hchip__muted">{{ 'enjeux.accordion.habitatNoCorresp' | translate }}</span>
       }
     }
   </div>
