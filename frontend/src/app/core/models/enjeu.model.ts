@@ -277,6 +277,8 @@ export interface Indicateur {
   est_standardise: boolean;
   metriques?: Metrique[];
   nb_metriques?: number;
+  // #367 — actions rattachées directement à l'indicateur (sans métrique)
+  operations?: Operation[];
   taxons?: TaxonRef[];
   habitats?: HabitatRef[];
   geologies?: GeologieRef[];
@@ -664,6 +666,8 @@ export interface OperationCreatePayload {
   geom_geojson?: any | null;
   id_priorite?: number;
   id_type_action?: number;
+  // #367 — rattachement direct à un indicateur (action sans métrique préalable)
+  id_indicateur?: number | null;
   // #228 — Catégorie d'action réserve CT88 (optionnel)
   id_categorie_action_reserve?: number | null;
   id_referentiel_operations?: string;

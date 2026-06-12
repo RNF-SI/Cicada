@@ -1492,8 +1492,34 @@
                                                 }
                                               }
 
-                                              <!-- #1 : bouton « Ajouter une action » au niveau indicateur — liée à toutes ses métriques -->
-                                              @if (canEditPlan() && ind.metriques && ind.metriques.length > 0) {
+                                              <!-- #367 — Actions rattachées directement à l'indicateur (sans métrique) -->
+                                              @if (ind.operations && ind.operations.length > 0) {
+                                                <div class="indicateur-direct-operations">
+                                                  @for (op of ind.operations; track op.id_operation) {
+                                                    <div class="operation-header operation-header-direct">
+                                                      <div class="operation-header-left">
+                                                        <img src="assets/images/ellipses/ellipse-salmon.png" alt="" class="operation-ellipse">
+                                                        @if (op.code_affichage) { <span class="operation-code">{{ op.code_affichage }}</span> }
+                                                        <span class="operation-libelle">{{ 'enjeux.operations.label' | translate }} : {{ op.libelle }}</span>
+                                                        @if (op.statut === 'draft') {
+                                                          <span class="operation-draft-chip status-warning">{{ 'enjeux.operations.draftChip' | translate }}</span>
+                                                        }
+                                                      </div>
+                                                      <div class="operation-header-right">
+                                                        <button class="icon-btn-flat" (click)="navigateToViewOperation(op.id_operation)" [title]="'common.actions.view' | translate"><i class="fi fi-rr-eye"></i></button>
+                                                        @if (canEditPlan()) {
+                                                          <button class="icon-btn-flat" (click)="navigateToEditOperation(op.id_operation)" [title]="'common.actions.edit' | translate"><i class="fi fi-rr-pencil"></i></button>
+                                                          <button class="icon-btn-flat" (click)="deleteOperation(op)" [title]="'common.actions.delete' | translate"><i class="fi fi-rr-trash"></i></button>
+                                                        }
+                                                      </div>
+                                                    </div>
+                                                  }
+                                                </div>
+                                              }
+
+                                              <!-- #1/#367 : bouton « Ajouter une action » au niveau indicateur.
+                                                   Disponible même sans métrique (action rattachée directement à l'indicateur). -->
+                                              @if (canEditPlan()) {
                                                 <button class="add-item-btn add-item-btn-action" (click)="openAddActionForIndicateur(ind)">
                                                   <i class="fi fi-rr-plus-small"></i> {{ 'enjeux.operations.addActionAtIndicateur' | translate }}
                                                 </button>
@@ -2825,8 +2851,34 @@
                                         }
                                       }
 
-                                      <!-- #1 : bouton « Ajouter une action » au niveau indicateur (OO) — liée à toutes ses métriques -->
-                                      @if (canEditPlan() && ind.metriques && ind.metriques.length > 0) {
+                                      <!-- #367 — Actions rattachées directement à l'indicateur (sans métrique) -->
+                                      @if (ind.operations && ind.operations.length > 0) {
+                                        <div class="indicateur-direct-operations">
+                                          @for (op of ind.operations; track op.id_operation) {
+                                            <div class="operation-header operation-header-direct">
+                                              <div class="operation-header-left">
+                                                <img src="assets/images/ellipses/ellipse-salmon.png" alt="" class="operation-ellipse">
+                                                @if (op.code_affichage) { <span class="operation-code">{{ op.code_affichage }}</span> }
+                                                <span class="operation-libelle">{{ 'enjeux.operations.label' | translate }} : {{ op.libelle }}</span>
+                                                @if (op.statut === 'draft') {
+                                                  <span class="operation-draft-chip status-warning">{{ 'enjeux.operations.draftChip' | translate }}</span>
+                                                }
+                                              </div>
+                                              <div class="operation-header-right">
+                                                <button class="icon-btn-flat" (click)="navigateToViewOperation(op.id_operation)" [title]="'common.actions.view' | translate"><i class="fi fi-rr-eye"></i></button>
+                                                @if (canEditPlan()) {
+                                                  <button class="icon-btn-flat" (click)="navigateToEditOperation(op.id_operation)" [title]="'common.actions.edit' | translate"><i class="fi fi-rr-pencil"></i></button>
+                                                  <button class="icon-btn-flat" (click)="deleteOperation(op)" [title]="'common.actions.delete' | translate"><i class="fi fi-rr-trash"></i></button>
+                                                }
+                                              </div>
+                                            </div>
+                                          }
+                                        </div>
+                                      }
+
+                                      <!-- #1/#367 : bouton « Ajouter une action » au niveau indicateur (OO).
+                                           Disponible même sans métrique (action rattachée directement à l'indicateur). -->
+                                      @if (canEditPlan()) {
                                         <button class="add-item-btn add-item-btn-action" (click)="openAddActionForIndicateur(ind)">
                                           <i class="fi fi-rr-plus-small"></i> {{ 'enjeux.operations.addActionAtIndicateur' | translate }}
                                         </button>

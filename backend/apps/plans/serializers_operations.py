@@ -63,7 +63,11 @@ def compute_operation_codes_for_plan(plan_id):
     indicateurs_qs = (
         Indicateur.objects
         .order_by('ordre', 'id_indicateur')
-        .prefetch_related(Prefetch('metriques', queryset=metriques_qs))
+        .prefetch_related(
+            Prefetch('metriques', queryset=metriques_qs),
+            # #367 — actions rattachées directement à l'indicateur (sans métrique)
+            Prefetch('operations', queryset=operations_qs),
+        )
     )
     ne_qs = (
         NiveauExigence.objects
@@ -118,6 +122,12 @@ def compute_operation_codes_for_plan(plan_id):
                     continue
                 operations_by_id[op.pk] = op
                 seen_op_ids.append(op.pk)
+        # #367 — actions rattachées directement à l'indicateur (sans métrique)
+        for op in indicateur.operations.all():
+            if op.pk in operations_by_id:
+                continue
+            operations_by_id[op.pk] = op
+            seen_op_ids.append(op.pk)
 
     for enjeu in enjeux:
         # Branche NE : Enjeu → OLT → NE → Indicateur → Métrique → Action
@@ -407,6 +417,7 @@ class OperationSerializer(serializers.ModelSerializer):
             'programmation_mensuelle_defaut',
             'ventilation_mode',
             'geom', 'geom_geojson',
+            'id_indicateur',
             'metriques', 'metrique_ids',
             'site_ids', 'nb_sites',
             'operation_annees', 'finances',
@@ -510,6 +521,7 @@ class OperationListSerializer(serializers.ModelSerializer):
             'operateurs', 'partenaires', 'financeurs',
             'programmation_annuelle', 'programmation_mensuelle',
             'programmation_mensuelle_defaut',
+            'id_indicateur',
             'metriques', 'metrique_ids',
             'nb_sites',
             'nb_operation_annees', 'nb_finances',
@@ -684,6 +696,7 @@ class OperationCreateSerializer(serializers.ModelSerializer):
             'id_operation', 'libelle', 'ordre', 'statut',
             'id_priorite', 'id_type_action',
             'id_categorie_action_reserve',
+            'id_indicateur',
             'id_referentiel_operations', 'code_operation',
             'description',
             'annee_min', 'annee_max',
@@ -703,6 +716,8 @@ class OperationCreateSerializer(serializers.ModelSerializer):
         extra_kwargs = {
             'id_suivi': {'required': False, 'allow_null': True},
             'id_categorie_action_reserve': {'required': False, 'allow_null': True},
+            # #367 — rattachement direct à un indicateur (optionnel)
+            'id_indicateur': {'required': False, 'allow_null': True},
         }
 
     def to_representation(self, instance):

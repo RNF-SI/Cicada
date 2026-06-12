@@ -226,6 +226,11 @@ class MetriqueCreateSerializer(serializers.ModelSerializer):
             'score_blocks',
         ]
         read_only_fields = ['id_metrique']
+        extra_kwargs = {
+            # #339 — l'intitulé peut être vide pour une métrique « Indéterminé ».
+            # Le caractère obligatoire est appliqué conditionnellement dans validate().
+            'nom_metrique': {'required': False, 'allow_blank': True},
+        }
 
     def create(self, validated_data):
         blocks = validated_data.pop('score_blocks', [])
@@ -247,10 +252,21 @@ class MetriqueCreateSerializer(serializers.ModelSerializer):
         return instance
 
     def validate(self, attrs):
-        """Validate interval consistency for NUMERIQUE metrics."""
+        """Validate metric name requirement (#339) and interval consistency for NUMERIQUE metrics."""
         type_met = attrs.get('type_metrique', getattr(self.instance, 'type_metrique', None) if self.instance else None)
 
-        # Only validate for NUMERIQUE type
+        # #339 — L'intitulé n'est obligatoire que si le type n'est pas « Indéterminé ».
+        is_indetermine = bool(type_met) and getattr(type_met, 'mnemonique', None) == 'INDETERMINE'
+        nom = attrs.get(
+            'nom_metrique',
+            getattr(self.instance, 'nom_metrique', '') if self.instance else '',
+        )
+        if not is_indetermine and not (nom or '').strip():
+            raise serializers.ValidationError({
+                'nom_metrique': _("L'intitulé de la métrique est obligatoire.")
+            })
+
+        # Only validate intervals for NUMERIQUE type
         is_numerique = True
         if type_met and hasattr(type_met, 'mnemonique'):
             is_numerique = type_met.mnemonique == 'NUMERIQUE'
@@ -322,6 +338,8 @@ class IndicateurSerializer(serializers.ModelSerializer):
     """Serializer détaillé pour un Indicateur avec métriques et corrélations imbriquées.
     Les opérations sont désormais imbriquées sous chaque métrique (Métrique → Opérations)."""
     metriques = MetriqueSerializer(many=True, read_only=True)
+    # #367 — actions rattachées directement à l'indicateur (sans métrique)
+    operations = serializers.SerializerMethodField()
     taxons = CorIndicateurTaxonSerializer(many=True, read_only=True)
     habitats = CorIndicateurHabitatSerializer(many=True, read_only=True)
     geologies = CorIndicateurGeologieSerializer(many=True, read_only=True)
@@ -338,6 +356,7 @@ class IndicateurSerializer(serializers.ModelSerializer):
             'est_standardise',
             # Relations
             'metriques', 'nb_metriques',
+            'operations',
             'taxons', 'habitats', 'geologies',
             # Audit
             'date_ajout', 'date_maj', 'createur_nom'
@@ -346,6 +365,13 @@ class IndicateurSerializer(serializers.ModelSerializer):
 
     def get_nb_metriques(self, obj):
         return _prefetched_count(obj, 'metriques')
+
+    def get_operations(self, obj):
+        """#367 — opérations rattachées directement à l'indicateur (sans métrique)."""
+        from .serializers_operations import OperationNestedSerializer
+        return OperationNestedSerializer(
+            obj.operations.all(), many=True, context=self.context,
+        ).data
 
 
 class IndicateurListSerializer(serializers.ModelSerializer):

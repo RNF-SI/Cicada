@@ -490,6 +490,26 @@
         "address": "Adresse"
       }
     },
+    "orphans": {
+      "title": "Sites et plans orphelins",
+      "subtitle": "Éléments sans rattachement à corriger : sites sans utilisateur, plans sans site.",
+      "empty": "Aucun site ni plan orphelin. Tout est rattaché.",
+      "sites": {
+        "title": "Sites sans utilisateur",
+        "hint": "Ces sites actifs n'ont plus aucun utilisateur associé. Ajoutez-leur un référent ou un membre."
+      },
+      "plans": {
+        "title": "Plans sans site",
+        "hint": "Ces plans de gestion n'ont plus aucun site associé suite à la suppression de leurs sites."
+      },
+      "actions": {
+        "manage": "Gérer",
+        "open": "Ouvrir"
+      },
+      "messages": {
+        "loading": "Chargement des orphelins…"
+      }
+    },
     "redacteursPrincipaux": {
       "title": "Rédacteurs généraux",
       "subtitle": "Utilisateurs ayant accès en édition à tous les plans de gestion",
@@ -2491,9 +2511,10 @@
       "connaissance": "Connaissance",
       "ancrage": "Ancrage territorial",
       "fonctionnement": "Fonctionnement de l'aire protégée",
+      "surveillance": "Surveillance",
       "autre": "Autre",
       "details": "Détails",
-      "commentaires": "Détails / commentaires",
+      "commentaires": "Contexte, détails du choix du facteur clé",
       "commentairesPlaceholder": "Informations complémentaires"
     },
     "accordion": {

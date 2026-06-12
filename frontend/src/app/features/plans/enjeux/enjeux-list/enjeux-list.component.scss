@@ -2158,6 +2158,21 @@
   }
 }
 
+// #367 — Actions rattachées directement à l'indicateur (sans métrique)
+.indicateur-direct-operations {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-xs;
+  margin: $spacing-xs 0 $spacing-sm;
+
+  .operation-header-direct {
+    cursor: default;
+    padding: $spacing-xs $spacing-sm;
+    background: $gray-lighter;
+    border-radius: $border-radius-sm;
+  }
+}
+
 .operation-header-left {
   display: flex;
   align-items: center;

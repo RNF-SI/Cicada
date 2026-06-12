@@ -62,6 +62,12 @@ export class MetriqueFormComponent {
    *  Le second clic groupe la sélection avec ce bloc. Null = aucune sélection. */
   selectedFormulaIdx: number | null = null;
 
+  /** #339 — Type « Indéterminé » : l'intitulé de la métrique n'est alors pas obligatoire. */
+  get isIndetermine(): boolean {
+    const opt = this.typeMetriqueOptions.find(o => o.id_nomenclature === this.metrique.type_metrique);
+    return opt?.mnemonique === 'INDETERMINE';
+  }
+
   // =====================================================================
   // Vue flat du bloc principal (proxy vers metrique.scores[N].*)
   // =====================================================================

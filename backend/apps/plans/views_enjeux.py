@@ -117,6 +117,8 @@ class EnjeuViewSet(viewsets.ModelViewSet):
         ).prefetch_related(
             'taxons', 'habitats', 'geologies',
             Prefetch('metriques', queryset=metrique_qs),
+            # #367 — actions rattachées directement à l'indicateur (sans métrique)
+            Prefetch('operations', queryset=op_qs),
         )
 
         ne_qs = NiveauExigence.objects.select_related('id_utilisateur_ajout').prefetch_related(

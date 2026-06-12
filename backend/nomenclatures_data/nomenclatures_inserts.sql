@@ -250,6 +250,7 @@ INSERT INTO ref_nomenclatures.t_nomenclatures (id_nomenclature, id_type, cd_nome
 INSERT INTO ref_nomenclatures.t_nomenclatures (id_nomenclature, id_type, cd_nomenclature, mnemonique, label, definition, source, statut, hierarchy, date_ajout, date_maj, actif) VALUES (741, 44, 'ANCRAGE', 'ANCRAGE', 'Ancrage territorial', 'FCR lié à l''ancrage territorial', 'CICADA', 'Validé', '2', NOW(), NOW(), true);
 INSERT INTO ref_nomenclatures.t_nomenclatures (id_nomenclature, id_type, cd_nomenclature, mnemonique, label, definition, source, statut, hierarchy, date_ajout, date_maj, actif) VALUES (742, 44, 'FONCTIONNEMENT', 'FONCTIONNEMENT', 'Fonctionnement de l''aire protégée', 'FCR lié au fonctionnement de l''aire protégée', 'CICADA', 'Validé', '3', NOW(), NOW(), true);
 INSERT INTO ref_nomenclatures.t_nomenclatures (id_nomenclature, id_type, cd_nomenclature, mnemonique, label, definition, source, statut, hierarchy, date_ajout, date_maj, actif) VALUES (743, 44, 'AUTRE', 'AUTRE', 'Autre', 'Autre catégorie de FCR', 'CICADA', 'Validé', '4', NOW(), NOW(), true);
+INSERT INTO ref_nomenclatures.t_nomenclatures (id_nomenclature, id_type, cd_nomenclature, mnemonique, label, definition, source, statut, hierarchy, date_ajout, date_maj, actif) VALUES (744, 44, 'SURVEILLANCE', 'SURVEILLANCE', 'Surveillance', 'FCR lié à la surveillance', 'CICADA', 'Validé', '5', NOW(), NOW(), true);
 
 -- ============================================
 -- NOMENCLATURES POUR INDICATEURS ET MÉTRIQUES

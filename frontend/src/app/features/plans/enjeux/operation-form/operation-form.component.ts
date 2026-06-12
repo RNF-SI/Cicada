@@ -123,6 +123,8 @@ export class OperationFormComponent implements OnInit {
   // indicateur. Supersede `prelinkedMetriqueId` (qui reste utilisé pour
   // l'auto-scroll et la rétrocompatibilité avec les liens single-metric).
   prelinkedMetriqueIds = signal<number[]>([]);
+  // #367 — indicateur de rattachement direct (action créée sans métrique).
+  prelinkedIndicateurId = signal<number | null>(null);
   returnEnjeuSlug = signal<string | null>(null);
 
   // Nomenclatures
@@ -414,6 +416,13 @@ export class OperationFormComponent implements OnInit {
       }
     }
 
+    // #367 — rattachement direct à un indicateur (action créée sans métrique).
+    const indicateurIdStr = this.route.snapshot.queryParamMap.get('indicateurId');
+    if (indicateurIdStr) {
+      const id = parseInt(indicateurIdStr, 10);
+      if (!isNaN(id)) this.prelinkedIndicateurId.set(id);
+    }
+
     const returnEnjeu = this.route.snapshot.queryParamMap.get('returnEnjeu');
     if (returnEnjeu) {
       this.returnEnjeuSlug.set(returnEnjeu);
@@ -664,6 +673,11 @@ export class OperationFormComponent implements OnInit {
       financeurs: op.financeurs || '',
       metrique_ids: op.metrique_ids || []
     });
+
+    // #367 — conserver le rattachement direct à un indicateur (action sans métrique).
+    if ((op as any).id_indicateur) {
+      this.prelinkedIndicateurId.set((op as any).id_indicateur);
+    }
 
     // Restore type action autocomplete
     if (op.id_type_action) {
@@ -1122,6 +1136,8 @@ export class OperationFormComponent implements OnInit {
     if (fv.partenaires?.trim()) payload.partenaires = fv.partenaires.trim();
     if (fv.financeurs?.trim()) payload.financeurs = fv.financeurs.trim();
     if (fv.metrique_ids?.length) payload.metrique_ids = fv.metrique_ids;
+    // #367 — rattachement direct à un indicateur (quand l'action n'a pas de métrique).
+    if (this.prelinkedIndicateurId()) payload.id_indicateur = this.prelinkedIndicateurId();
 
     // Sites
     const siteIds = Object.entries(this.selectedSiteIds)

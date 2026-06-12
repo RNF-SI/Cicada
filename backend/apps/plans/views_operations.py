@@ -96,6 +96,8 @@ class OperationViewSet(viewsets.ModelViewSet):
         if user.is_admin_organisme() and user.id_organisme:
             return queryset.filter(
                 Q(metriques__id_indicateur__id_ne__id_olt__id_enjeu__id_pg__sites__site__corogsite__uuid_og=user.id_organisme) |
+                # #367 — action rattachée directement à un indicateur (sans métrique)
+                Q(id_indicateur__id_ne__id_olt__id_enjeu__id_pg__sites__site__corogsite__uuid_og=user.id_organisme) |
                 Q(id_suivi__id_pg__sites__site__corogsite__uuid_og=user.id_organisme) |
                 Q(id_utilisateur_ajout=user)
             ).distinct()
@@ -105,6 +107,10 @@ class OperationViewSet(viewsets.ModelViewSet):
             Q(metriques__id_indicateur__id_ne__id_olt__id_enjeu__id_pg__in=user_plan_ids) |
             Q(metriques__id_indicateur__id_ne__id_olt__id_enjeu__id_pg__sites__site__corrolesite__id_role=user) |
             Q(metriques__id_indicateur__id_ne__id_olt__id_enjeu__id_pg__statut='valide') |
+            # #367 — action rattachée directement à un indicateur (sans métrique)
+            Q(id_indicateur__id_ne__id_olt__id_enjeu__id_pg__in=user_plan_ids) |
+            Q(id_indicateur__id_ne__id_olt__id_enjeu__id_pg__sites__site__corrolesite__id_role=user) |
+            Q(id_indicateur__id_ne__id_olt__id_enjeu__id_pg__statut='valide') |
             Q(id_suivi__id_pg__in=user_plan_ids) |
             Q(id_suivi__id_pg__sites__site__corrolesite__id_role=user) |
             Q(id_suivi__id_pg__statut='valide') |
@@ -131,16 +137,26 @@ class OperationViewSet(viewsets.ModelViewSet):
             except SuiviInventaire.DoesNotExist:
                 return None
         metrique_ids = data.get('metrique_ids') or []
-        if not metrique_ids:
-            return None
-        try:
-            metrique = Metrique.objects.select_related(
-                'id_indicateur__id_ne__id_olt__id_enjeu__id_pg',
-                'id_indicateur__id_resultat_attendu__id_oo',
-            ).get(pk=metrique_ids[0])
-        except Metrique.DoesNotExist:
-            return None
-        return metrique.get_plan_de_gestion()
+        if metrique_ids:
+            try:
+                metrique = Metrique.objects.select_related(
+                    'id_indicateur__id_ne__id_olt__id_enjeu__id_pg',
+                    'id_indicateur__id_resultat_attendu__id_oo',
+                ).get(pk=metrique_ids[0])
+            except Metrique.DoesNotExist:
+                return None
+            return metrique.get_plan_de_gestion()
+        # #367 — action rattachée directement à un indicateur (sans métrique)
+        indicateur_id = data.get('id_indicateur')
+        if indicateur_id:
+            try:
+                return Indicateur.objects.select_related(
+                    'id_ne__id_olt__id_enjeu__id_pg',
+                    'id_resultat_attendu__id_oo',
+                ).get(pk=indicateur_id).get_plan_de_gestion()
+            except Indicateur.DoesNotExist:
+                return None
+        return None
 
     @action(detail=False, methods=['post'], url_path='reorder')
     def reorder(self, request):
@@ -166,7 +182,10 @@ class OperationViewSet(viewsets.ModelViewSet):
         GET /api/plans/operations/by-indicateur/{indicateur_id}/
         """
         indicateur = get_object_or_404(Indicateur, id_indicateur=indicateur_id)
-        operations = self.get_queryset().filter(metriques__id_indicateur=indicateur).distinct()
+        operations = self.get_queryset().filter(
+            # via une métrique de l'indicateur, ou rattachée directement (#367)
+            Q(metriques__id_indicateur=indicateur) | Q(id_indicateur=indicateur)
+        ).distinct()
         return Response({
             'indicateur_id': int(indicateur_id),
             'indicateur_nom': indicateur.nom_indicateur,
@@ -184,7 +203,10 @@ class OperationViewSet(viewsets.ModelViewSet):
         plan = get_object_or_404(PlanGestion, id_pg=plan_id)
         operations = self.get_queryset().filter(
             Q(metriques__id_indicateur__id_ne__id_olt__id_enjeu__id_pg=plan) |
-            Q(metriques__id_indicateur__id_resultat_attendu__id_oo__pressions__id_facteur_influence__id_enjeu__id_pg=plan)
+            Q(metriques__id_indicateur__id_resultat_attendu__id_oo__pressions__id_facteur_influence__id_enjeu__id_pg=plan) |
+            # #367 — actions rattachées directement à un indicateur (sans métrique)
+            Q(id_indicateur__id_ne__id_olt__id_enjeu__id_pg=plan) |
+            Q(id_indicateur__id_resultat_attendu__id_oo__pressions__id_facteur_influence__id_enjeu__id_pg=plan)
         ).distinct()
 
         grouped = defaultdict(list)

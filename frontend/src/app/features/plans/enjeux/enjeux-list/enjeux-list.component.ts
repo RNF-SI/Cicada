@@ -2244,8 +2244,11 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
     if (this.newIndicateurType) payload.type_indicateur = this.newIndicateurType;
     if (this.newIndicateurDescription.trim()) payload.description = this.newIndicateurDescription.trim();
 
-    // Filter metriques that have a name
-    const validMetriques = this.indicateurFormMetriques.filter(m => m.nom_metrique.trim());
+    // Filter metriques that have a name (#339 : les métriques de type
+    // « Indéterminé » sont conservées même sans intitulé).
+    const validMetriques = this.indicateurFormMetriques.filter(m =>
+      m.nom_metrique.trim() || this.getMetriqueTypeMnemonique(m.type_metrique) === 'INDETERMINE'
+    );
 
     this.enjeuService.createIndicateur(payload).pipe(
       takeUntilDestroyed(this.destroyRef)
@@ -2322,7 +2325,10 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
   }
 
   saveStandaloneMetrique(indicateurId: number): void {
-    if (!this.standaloneMetriqueForm || !this.standaloneMetriqueForm.nom_metrique.trim()) return;
+    // #339 : l'intitulé n'est requis que si le type n'est pas « Indéterminé ».
+    if (!this.standaloneMetriqueForm) return;
+    const isIndetermine = this.getMetriqueTypeMnemonique(this.standaloneMetriqueForm.type_metrique) === 'INDETERMINE';
+    if (!isIndetermine && !this.standaloneMetriqueForm.nom_metrique.trim()) return;
     this.isSavingStandaloneMetrique.set(true);
     const payload = this.buildMetriquePayload(indicateurId, this.standaloneMetriqueForm);
     this.enjeuService.createMetrique(payload).pipe(
@@ -3604,16 +3610,23 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
   openAddActionForIndicateur(ind: any): void {
     const metriques = (ind.metriques || []).filter((m: any) => !m._deleted);
     if (metriques.length === 0) {
-      this.snackBar.open(
-        this.translate.instant('enjeux.operations.indicateurNoMetriques'),
-        this.translate.instant('common.actions.close'),
-        { duration: 3000 }
-      );
+      // #367 — pas de métrique : on crée l'action rattachée directement à l'indicateur.
+      this.navigateToOperationFormForIndicateur(ind.id_indicateur);
       return;
     }
     const metriqueIds: number[] = metriques.map((m: any) => m.id_metrique).filter(Boolean);
     const indicateurNom: string = ind.nom_indicateur || '';
     this.openAddActionDialogForIds(metriqueIds, indicateurNom);
+  }
+
+  /** #367 — Navigation vers le form d'action rattachée directement à un indicateur (sans métrique). */
+  private navigateToOperationFormForIndicateur(indicateurId: number): void {
+    const slug = this.planSlug();
+    if (!slug || !indicateurId) return;
+    const queryParams: any = { indicateurId };
+    const enjeuSlug = this.selectedEnjeuSlug();
+    if (enjeuSlug) queryParams.returnEnjeu = enjeuSlug;
+    this.router.navigate(['/plans', slug, 'enjeux', 'operations', 'nouveau'], { queryParams });
   }
 
   /**

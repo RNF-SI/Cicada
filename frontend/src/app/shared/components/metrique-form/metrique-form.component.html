@@ -3,12 +3,12 @@
   <div class="row row-with-action">
     <app-form-field class="flex-1"
                     [label]="'enjeux.metriques.nomLabel' | translate"
-                    [required]="true">
+                    [required]="!isIndetermine">
       <input type="text"
              [(ngModel)]="metrique.nom_metrique"
              (ngModelChange)="emitChange()"
              [placeholder]="'enjeux.metriques.nomPlaceholder' | translate"
-             required>
+             [required]="!isIndetermine">
     </app-form-field>
     <button type="button"
             class="btn-delete"

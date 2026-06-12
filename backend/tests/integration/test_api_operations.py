@@ -227,6 +227,34 @@ class TestOperationCreateEndpoint:
         }, format='json')
         assert response.status_code == status.HTTP_201_CREATED
 
+    def test_create_action_on_indicateur_without_metrique(self, api_client, operation_test_data):
+        """#367 — créer une action rattachée directement à un indicateur, sans métrique."""
+        api_client.force_authenticate(user=operation_test_data['referent'])
+        indicateur = operation_test_data['indicateur1']
+        response = api_client.post('/api/plans/operations/', {
+            'libelle': 'Action sans métrique',
+            'id_indicateur': indicateur.id_indicateur,
+        }, format='json')
+        assert response.status_code == status.HTTP_201_CREATED, response.data
+        op = Operation.objects.get(libelle='Action sans métrique')
+        assert op.id_indicateur_id == indicateur.id_indicateur
+        assert op.metriques.count() == 0
+        # Le plan doit être résolu via l'indicateur (permission draft, #248/#367).
+        assert op.get_plan_de_gestion() is not None
+
+    def test_indicateur_action_appears_in_by_indicateur(self, api_client, operation_test_data):
+        """#367 — une action rattachée à l'indicateur apparaît dans by-indicateur."""
+        api_client.force_authenticate(user=operation_test_data['referent'])
+        indicateur = operation_test_data['indicateur1']
+        api_client.post('/api/plans/operations/', {
+            'libelle': 'Action directe indicateur',
+            'id_indicateur': indicateur.id_indicateur,
+        }, format='json')
+        response = api_client.get(f'/api/plans/operations/by-indicateur/{indicateur.id_indicateur}/')
+        assert response.status_code == status.HTTP_200_OK
+        libelles = [o['libelle'] for o in response.data['operations']]
+        assert 'Action directe indicateur' in libelles
+
     def test_create_with_all_fields(self, api_client, operation_test_data):
         """Test create with all optional fields."""
         api_client.force_authenticate(user=operation_test_data['super_admin'])

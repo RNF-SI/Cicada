@@ -570,6 +570,20 @@ class Operation(models.Model):
         help_text=_("Emprise géographique de l'opération")
     )
 
+    # #367 / #227 — Rattachement direct à un indicateur (état ou pression).
+    # Permet de créer une action « dans l'indicateur » sans métrique préalable.
+    # Le lien vers une/des métrique(s) (M2M ci-dessous) devient alors optionnel.
+    id_indicateur = models.ForeignKey(
+        'plans.Indicateur',
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name='operations',
+        db_column='id_indicateur',
+        verbose_name=_("Indicateur"),
+        help_text=_("Indicateur (état ou pression) auquel l'action est rattachée, sans passer par une métrique")
+    )
+
     # M2M vers Métriques (une opération peut être liée à plusieurs métriques)
     metriques = models.ManyToManyField(
         'plans.Metrique',
@@ -655,9 +669,10 @@ class Operation(models.Model):
         Implémente l'interface utilisée par CanModifyOnlyDraftPlan (#248).
         Une opération est rattachée au plan via :
           - son suivi/inventaire (id_suivi → SuiviInventaire.id_pg) en priorité,
-          - sinon une de ses métriques (M2M via CorOperationMetrique).
+          - sinon une de ses métriques (M2M via CorOperationMetrique),
+          - sinon son indicateur direct (id_indicateur, #367).
         Note : un suivi peut être orphelin (id_pg=None), auquel cas on
-        retombe sur les métriques.
+        retombe sur les métriques puis l'indicateur.
         """
         if self.id_suivi_id:
             try:
@@ -669,6 +684,12 @@ class Operation(models.Model):
         first_metrique = self.metriques.first() if hasattr(self, "metriques") else None
         if first_metrique is not None:
             return first_metrique.get_plan_de_gestion()
+        # #367 — action rattachée directement à un indicateur (sans métrique)
+        if self.id_indicateur_id:
+            try:
+                return self.id_indicateur.get_plan_de_gestion()
+            except Exception:
+                pass
         return None
 
     @property
