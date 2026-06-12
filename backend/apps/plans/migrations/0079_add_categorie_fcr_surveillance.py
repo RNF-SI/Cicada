@@ -28,7 +28,7 @@ def insert_categorie_fcr_surveillance(apps, schema_editor):
             VALUES (744, 44, 'SURVEILLANCE', 'SURVEILLANCE',
                     'Surveillance',
                     'FCR lié à la surveillance',
-                    'CICADA', 'Validé', '5', NOW(), NOW(), true)
+                    'CICADA', 'Validé', '4', NOW(), NOW(), true)
             ON CONFLICT (id_nomenclature) DO UPDATE SET
                 cd_nomenclature = EXCLUDED.cd_nomenclature,
                 mnemonique = EXCLUDED.mnemonique,
@@ -37,6 +37,12 @@ def insert_categorie_fcr_surveillance(apps, schema_editor):
                 hierarchy = EXCLUDED.hierarchy,
                 actif = true;
             """
+        )
+        # « Surveillance » doit apparaître avant « Autre » dans la liste
+        # (tri par hierarchy). On repousse donc « Autre » (id 743) en position 5.
+        cur.execute(
+            "UPDATE ref_nomenclatures.t_nomenclatures "
+            "SET hierarchy = '5' WHERE id_nomenclature = 743;"
         )
 
 

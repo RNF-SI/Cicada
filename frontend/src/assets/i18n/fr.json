@@ -2541,7 +2541,8 @@
       "precisionAutreEco": "Autre (conservation du patrimoine naturel) - précision",
       "precisionAutreSocio": "Autre (socio-économique) - précision",
       "etatEnjeu": "État de l'enjeu",
-      "detailsCommentaires": "Détails/commentaires"
+      "detailsCommentaires": "Détails/commentaires",
+      "fcrContexte": "Contexte, détails du choix du facteur clé"
     },
     "sidebar": {
       "title": "Liste enjeux et FCR",
@@ -2811,6 +2812,8 @@
       "indicateursEmpty": "Aucun indicateur de réponse n'est encore rattaché à cette action.",
       "empriseSpatialeBadge": "Emprise spatiale renseignée",
       "indicateursBadge": "{{count}} indicateur(s) de réponse rattaché(s)",
+      "sansMetriqueBadge": "Sans métrique",
+      "sansMetriqueTooltip": "Action rattachée directement à l'indicateur, sans métrique associée",
       "intituleIndicateurReponse": "Intitulé de l'indicateur de réponse",
       "typeMetrique": "Type de métriques",
       "valeurCible": "Valeur cible",
@@ -2961,6 +2964,7 @@
       "max": "Max",
       "valeur": "Valeur",
       "texte": "Texte",
+      "indetermineHint": "Type indéterminé : la grille de score sera définie plus tard, une fois le type de mesure précisé.",
       "partialError": "L'indicateur a été créé mais certaines métriques n'ont pas pu être enregistrées",
       "sectionTitle": "MÉTRIQUES",
       "createSuccess": "Métrique créée avec succès",

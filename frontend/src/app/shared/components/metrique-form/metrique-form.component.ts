@@ -62,10 +62,31 @@ export class MetriqueFormComponent {
    *  Le second clic groupe la sélection avec ce bloc. Null = aucune sélection. */
   selectedFormulaIdx: number | null = null;
 
-  /** #339 — Type « Indéterminé » : l'intitulé de la métrique n'est alors pas obligatoire. */
-  get isIndetermine(): boolean {
+  /** Mnémonique du type de métrique sélectionné (NUMERIQUE par défaut). */
+  private get typeMnemonique(): string {
     const opt = this.typeMetriqueOptions.find(o => o.id_nomenclature === this.metrique.type_metrique);
-    return opt?.mnemonique === 'INDETERMINE';
+    return opt?.mnemonique || 'NUMERIQUE';
+  }
+
+  get isNumerique(): boolean { return this.typeMnemonique === 'NUMERIQUE'; }
+  get isChiffre(): boolean { return this.typeMnemonique === 'CHIFFRE'; }
+  get isTexte(): boolean { return this.typeMnemonique === 'TEXTE'; }
+  /** #339 — Type « Indéterminé » : l'intitulé de la métrique n'est alors pas obligatoire. */
+  get isIndetermine(): boolean { return this.typeMnemonique === 'INDETERMINE'; }
+
+  /** #339 — Niveaux de score (chiffre / texte) : libellés + classe de couleur d'en-tête. */
+  readonly scoreLevelMeta = [
+    { level: 1, labelKey: 'enjeux.metriques.scores.tresMauvais' },
+    { level: 2, labelKey: 'enjeux.metriques.scores.mauvais' },
+    { level: 3, labelKey: 'enjeux.metriques.scores.moyen' },
+    { level: 4, labelKey: 'enjeux.metriques.scores.bon' },
+    { level: 5, labelKey: 'enjeux.metriques.scores.tresBon' },
+  ];
+
+  /** Garantit que le slot de score d'un niveau existe (ngModel a besoin d'un objet). */
+  ensureScore(level: number): { inf: number | null; sup: number | null; val: number | null; label: string } {
+    this.metrique.scores[level] ??= { inf: null, sup: null, val: null, label: '' };
+    return this.metrique.scores[level];
   }
 
   // =====================================================================

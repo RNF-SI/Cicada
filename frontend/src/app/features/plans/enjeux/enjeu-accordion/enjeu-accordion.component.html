@@ -149,10 +149,10 @@
         </div>
       }
 
-      <!-- Description / Commentaires -->
+      <!-- Description / Commentaires (#369 : libellé spécifique pour les FCR) -->
       @if (enjeu.description) {
         <div class="detail-section">
-          <h4 class="detail-title">{{ 'enjeux.accordion.detailsCommentaires' | translate }}</h4>
+          <h4 class="detail-title">{{ (isFcr ? 'enjeux.accordion.fcrContexte' : 'enjeux.accordion.detailsCommentaires') | translate }}</h4>
           <p class="detail-text">{{ enjeu.description }}</p>
         </div>
       }

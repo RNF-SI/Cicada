@@ -2159,18 +2159,18 @@
 }
 
 // #367 — Actions rattachées directement à l'indicateur (sans métrique)
+// #367 — Actions rattachées directement à l'indicateur (sans métrique).
 .indicateur-direct-operations {
   display: flex;
   flex-direction: column;
   gap: $spacing-xs;
   margin: $spacing-xs 0 $spacing-sm;
+}
 
-  .operation-header-direct {
-    cursor: default;
-    padding: $spacing-xs $spacing-sm;
-    background: $gray-lighter;
-    border-radius: $border-radius-sm;
-  }
+// Carte d'action directe : réutilise .operation-card, avec un liseré saumon
+// pour rappeler visuellement qu'elle n'est pas rattachée à une métrique.
+.operation-card-direct {
+  border-left: 3px solid $secondary-orange-salmon;
 }
 
 .operation-header-left {
@@ -2227,6 +2227,12 @@
   &.op-trace-emprise {
     background: rgba(254, 193, 128, 0.25);
     color: darken(#FEC180, 30%);
+  }
+
+  // #367 — badge « sans métrique » (saumon, texte sombre lisible AA)
+  &.op-trace-sans-metrique {
+    background: rgba(245, 179, 153, 0.30);
+    color: darken(#F5B399, 38%);
   }
 }
 

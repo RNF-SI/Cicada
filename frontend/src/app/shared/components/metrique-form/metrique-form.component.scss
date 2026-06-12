@@ -423,3 +423,69 @@
   &:hover { background: rgba($primary-color, 0.06); }
   i { font-size: 14px; }
 }
+
+// #339 — Grille de score CHIFFRE / TEXTE (alignée sur l'affichage numérique)
+.score-threshold-grid {
+  display: flex;
+  gap: 0;
+  margin-top: $spacing-sm;
+  border-radius: $border-radius-sm;
+  overflow: hidden;
+  border: 1px solid $gray-light;
+}
+
+.score-column {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+
+  &:not(:last-child) {
+    border-right: 1px solid $gray-light;
+  }
+}
+
+.score-column-header {
+  padding: $spacing-xs;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+
+  .score-header-label {
+    font-size: 11px;
+    font-weight: $font-weight-bold;
+    color: $black;
+    line-height: 1.2;
+  }
+
+  .score-header-value {
+    font-size: 11px;
+    font-weight: $font-weight-medium;
+    color: $black;
+  }
+
+  &.score-header-1 { background-color: $score-very-bad; }
+  &.score-header-2 { background-color: $score-bad; }
+  &.score-header-3 { background-color: $score-neutral; }
+  &.score-header-4 { background-color: $score-good; }
+  &.score-header-5 { background-color: $score-very-good; }
+}
+
+.score-column-inputs {
+  display: flex;
+  flex-direction: column;
+  padding: $spacing-xs;
+  gap: $spacing-xxs;
+  flex: 1;
+}
+
+.metrique-indetermine-hint {
+  margin-top: $spacing-sm;
+  padding: $spacing-sm;
+  background: $gray-lighter;
+  border-radius: $border-radius-sm;
+  color: $gray-dark;
+  font-size: 13px;
+}

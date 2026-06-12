@@ -60,6 +60,9 @@
     </app-form-field>
   </div>
 
+  <!-- Section de score : NUMERIQUE = formule + blocs d'intervalles ;
+       CHIFFRE/TEXTE = grille à 5 niveaux ; INDETERMINE = aucune grille (#339). -->
+  @if (isNumerique) {
   <!-- #247 : formule interactive. Cliquer sur un nom de bloc le sélectionne ;
        cliquer sur un autre groupe les deux (ajoute une paire de parenthèses).
        Cliquer sur une parenthèse la supprime. -->
@@ -215,4 +218,38 @@
     <i class="fi fi-rr-plus-small"></i>
     {{ 'enjeux.metriques.addExtraBlock' | translate }}
   </button>
+  }
+
+  <!-- #339 — Grille de score pour les types CHIFFRE / TEXTE (même présentation
+       que l'intervalle numérique : 5 niveaux colorés très mauvais → très bon). -->
+  @if (isChiffre || isTexte) {
+    <div class="score-threshold-grid">
+      @for (meta of scoreLevelMeta; track meta.level) {
+        <div class="score-column">
+          <div class="score-column-header score-header-{{meta.level}}">
+            <span class="score-header-label">{{ meta.labelKey | translate }}</span>
+            <span class="score-header-value">= {{ meta.level }}</span>
+          </div>
+          <div class="score-column-inputs">
+            @if (isChiffre) {
+              <app-form-field [label]="'enjeux.metriques.valeur' | translate">
+                <input type="number" [ngModel]="ensureScore(meta.level).val"
+                       (ngModelChange)="ensureScore(meta.level).val = $event; emitChange()">
+              </app-form-field>
+            } @else {
+              <app-form-field [label]="'enjeux.metriques.texte' | translate">
+                <input [ngModel]="ensureScore(meta.level).label"
+                       (ngModelChange)="ensureScore(meta.level).label = $event; emitChange()">
+              </app-form-field>
+            }
+          </div>
+        </div>
+      }
+    </div>
+  }
+
+  <!-- #339 — Type indéterminé : aucune grille de score (saisie à préciser plus tard). -->
+  @if (isIndetermine) {
+    <p class="metrique-indetermine-hint">{{ 'enjeux.metriques.indetermineHint' | translate }}</p>
+  }
 </div>
