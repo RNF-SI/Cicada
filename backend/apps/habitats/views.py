@@ -118,7 +118,7 @@ class HabrefViewSet(viewsets.ReadOnlyModelViewSet):
         enjeu/action (factorisation : même rendu partout).
 
         NB : `habref_corresp_hab` ne contient que des relations intra-référentiel
-        (sous-types/associés), pas de cross-walk entre référentiels.
+        (sous-types/associés), pas de table de correspondance entre référentiels.
         """
         from django.db import connection
         with connection.cursor() as cur:
