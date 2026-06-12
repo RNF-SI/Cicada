@@ -37,16 +37,16 @@ test.describe('Plan Views - Mindmap', () => {
     await expect(breadcrumb).toBeVisible();
   });
 
-  test('should display icicle chart visualization', async ({ referentPage }) => {
+  test('should display the tree visualization', async ({ referentPage }) => {
     const plan = await findPlan(referentPage, 'Camargue');
     await referentPage.goto(`/plans/${plan.slug}/mindmap`);
-    await referentPage.waitForTimeout(10000);
+    await waitForPageLoad(referentPage);
 
-    // SVG icicle chart should be rendered (wait for D3 to render)
-    const svg = referentPage.locator('.icicle-container svg, svg');
-    await svg.first().waitFor({ state: 'visible', timeout: 10000 }).catch(() => {});
-    const svgCount = await svg.count();
-    expect(svgCount).toBeGreaterThan(0);
+    // Fixed-column tree should be rendered with at least one clickable cell.
+    const cell = referentPage.locator('.tree-scroll .tree-cell');
+    await cell.first().waitFor({ state: 'visible', timeout: 15000 }).catch(() => {});
+    const cellCount = await cell.count();
+    expect(cellCount).toBeGreaterThan(0);
   });
 
   test('should display view toggle buttons (Enjeux / Actions)', async ({ referentPage }) => {
@@ -85,13 +85,13 @@ test.describe('Plan Views - Mindmap', () => {
       await toggleBtns.nth(1).click();
       await waitForPageLoad(referentPage);
 
-      // SVG should still be visible (re-rendered with inverse data)
-      const svg = referentPage.locator('svg');
-      await expect(svg.first()).toBeVisible();
+      // Tree should still render (re-rendered with inverse data)
+      const cell = referentPage.locator('.tree-scroll .tree-cell');
+      await expect(cell.first()).toBeVisible();
     }
   });
 
-  test('should display control buttons (reset zoom, focus)', async ({ referentPage }) => {
+  test('should display control buttons (expand / collapse all)', async ({ referentPage }) => {
     const plan = await findPlan(referentPage, 'Camargue');
     await referentPage.goto(`/plans/${plan.slug}/mindmap`);
     await waitForPageLoad(referentPage);

@@ -50,7 +50,7 @@
         </div>
       } @else {
         <div class="mindmap-wrapper">
-          <!-- Toolbar : view toggle à gauche, boutons d'action à droite (revue design Amandine) -->
+          <!-- Toolbar : view toggle à gauche, déplier/replier à droite -->
           <div class="mindmap-toolbar">
             <div class="view-toggle">
               <button [class.active]="viewMode() === 'enjeux'" (click)="switchView('enjeux')">
@@ -64,29 +64,18 @@
             </div>
 
             <div class="mindmap-controls">
-              @if (viewMode() === 'enjeux') {
-                <button mat-stroked-button (click)="resetIcicle()"
-                        [matTooltip]="'plans.mindmap.resetZoomPlanTooltip' | translate" matTooltipPosition="below"
-                        [attr.aria-label]="'plans.mindmap.resetZoomPlan' | translate">
-                  <i class="fi fi-rr-marker"></i>
-                </button>
-                <button mat-stroked-button (click)="focusOnEnjeu()"
-                        [matTooltip]="'plans.mindmap.focusEnjeuTooltip' | translate" matTooltipPosition="below"
-                        [attr.aria-label]="'plans.mindmap.focusEnjeu' | translate">
-                  <i class="fi fi-rr-target"></i>
-                </button>
-              } @else {
-                <button mat-stroked-button (click)="resetIcicleInverse()"
-                        [matTooltip]="'plans.mindmap.resetZoomPlanTooltip' | translate" matTooltipPosition="below"
-                        [attr.aria-label]="'plans.mindmap.resetZoomPlan' | translate">
-                  <i class="fi fi-rr-marker"></i>
-                </button>
-                <button mat-stroked-button (click)="focusOnOperation()"
-                        [matTooltip]="'plans.mindmap.focusOperationTooltip' | translate" matTooltipPosition="below"
-                        [attr.aria-label]="'plans.mindmap.focusOperation' | translate">
-                  <i class="fi fi-rr-target"></i>
-                </button>
-              }
+              <button mat-stroked-button (click)="expandAll()"
+                      [matTooltip]="'plans.mindmap.expandAllTooltip' | translate" matTooltipPosition="below"
+                      [attr.aria-label]="'plans.mindmap.expandAll' | translate">
+                <i class="fi fi-rr-resize"></i>
+                <span class="control-label">{{ 'plans.mindmap.expandAll' | translate }}</span>
+              </button>
+              <button mat-stroked-button (click)="collapseAll()"
+                      [matTooltip]="'plans.mindmap.collapseAllTooltip' | translate" matTooltipPosition="below"
+                      [attr.aria-label]="'plans.mindmap.collapseAll' | translate">
+                <i class="fi fi-rr-compress"></i>
+                <span class="control-label">{{ 'plans.mindmap.collapseAll' | translate }}</span>
+              </button>
             </div>
           </div>
 
@@ -101,19 +90,70 @@
           </div>
 
           <!-- Hint -->
-          <p class="icicle-hint">{{ 'plans.mindmap.clickHint' | translate }}</p>
+          <p class="tree-hint">{{ 'plans.mindmap.clickHint' | translate }}</p>
 
-          @if (viewMode() === 'enjeux') {
-            <!-- Icicle Container (normal: Enjeux → Actions) -->
-            <div class="icicle-container" #icicleContainer></div>
-          } @else {
-            <!-- Icicle Container (inverse: Actions → Enjeux) -->
-            <div class="icicle-container" #icicleInverseContainer></div>
+          <!-- Barre de focus (zoom sur un nœud) -->
+          @if (focusNode(); as f) {
+            <div class="focus-bar">
+              <button type="button" class="focus-back" (click)="resetFocus()">
+                <i class="fi fi-rr-angle-double-small-left"></i>
+                {{ 'plans.mindmap.overview' | translate }}
+              </button>
+              <span class="focus-current">
+                <span class="focus-current-dot" [style.background-color]="getEntityColor(f.entityType)"></span>
+                <span class="focus-current-type">{{ getEntityLabel(f.entityType) }}</span>
+                <span class="focus-current-name">{{ f.name }}</span>
+              </span>
+            </div>
           }
+
+          <!-- Arbre en colonnes (largeur ajustée), défilable -->
+          <div class="tree-scroll" #treeScroll [style.--col-w]="colWidth() + 'px'">
+            @if (displayRoots().length === 0) {
+              <p class="tree-empty">{{ 'plans.mindmap.empty' | translate }}</p>
+            } @else {
+              @for (root of displayRoots(); track root) {
+                <ng-container *ngTemplateOutlet="nodeTpl; context: { $implicit: root }"></ng-container>
+              }
+            }
+          </div>
         </div>
       }
     </section>
   </main>
+
+  <!-- Gabarit récursif d'un nœud : [case du nœud | pile verticale des enfants] -->
+  <ng-template #nodeTpl let-node>
+    <div class="tree-row">
+      <button type="button" class="tree-cell"
+              [style.background-color]="getEntityColor(node.entityType)"
+              [style.color]="getTextColor(getEntityColor(node.entityType))"
+              (click)="onCellClick(node)"
+              (dblclick)="onCellDblClick(node, $event)"
+              (mouseenter)="onCellEnter(node, $event)"
+              (mousemove)="onCellMove($event)"
+              (mouseleave)="onCellLeave()">
+        <span class="cell-type">{{ getEntityLabel(node.entityType) }}</span>
+        <span class="cell-name">{{ node.name }}</span>
+        @if (hasChildren(node)) {
+          <span class="cell-toggle"
+                role="button"
+                [attr.aria-label]="(isCollapsed(node) ? 'plans.mindmap.expand' : 'plans.mindmap.collapse') | translate"
+                (click)="toggleCollapse(node, $event)">
+            <i class="fi" [class.fi-rr-angle-small-down]="!isCollapsed(node)"
+               [class.fi-rr-angle-small-right]="isCollapsed(node)"></i>
+          </span>
+        }
+      </button>
+      @if (hasChildren(node) && !isCollapsed(node)) {
+        <div class="tree-children">
+          @for (child of node.children; track child) {
+            <ng-container *ngTemplateOutlet="nodeTpl; context: { $implicit: child }"></ng-container>
+          }
+        </div>
+      }
+    </div>
+  </ng-template>
 
   <!-- Tooltip personnalisé (#257) : affiche le nom complet d'une cellule -->
   @if (tooltipNode(); as t) {

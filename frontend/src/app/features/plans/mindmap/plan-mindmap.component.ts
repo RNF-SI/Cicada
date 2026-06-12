@@ -1,6 +1,6 @@
 import {
-  Component, OnInit, OnDestroy, AfterViewInit,
-  inject, signal, ElementRef, ViewChild, ChangeDetectorRef
+  Component, OnInit, OnDestroy, inject, signal, computed, effect,
+  ViewChild, ElementRef, HostListener
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
@@ -8,9 +8,7 @@ import { TranslateModule } from '@ngx-translate/core';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatButtonModule } from '@angular/material/button';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { Subscription, fromEvent, forkJoin } from 'rxjs';
-import { debounceTime } from 'rxjs/operators';
-import * as d3 from 'd3';
+import { forkJoin } from 'rxjs';
 
 import { HeaderComponent } from '../../../shared/components/header/header.component';
 import { PlanSidebarComponent } from '../shared/plan-sidebar/plan-sidebar.component';
@@ -21,10 +19,22 @@ import {
   MINDMAP_COLORS, MINDMAP_LABELS
 } from '../../../core/models/mindmap.model';
 
-interface IcicleNode extends d3.HierarchyRectangularNode<MindmapNode> {
-  target?: { x0: number; x1: number; y0: number; y1: number };
-}
-
+/**
+ * Tableau d'arborescence (#362) — rendu HTML/CSS natif.
+ *
+ * Historique : ce composant affichait un diagramme « icicle » D3 (partition SVG)
+ * avec zoom-au-clic. Les colonnes se comprimaient pour remplir l'écran, ce qui
+ * rognait le texte (le wrap était calculé une seule fois sur des colonnes larges
+ * et jamais recalculé au zoom) et réduisait les opérations/facteurs à de fines
+ * bandes à peine cliquables. On a remplacé tout cela par un arbre en colonnes
+ * de largeur fixe, défilable : le navigateur gère le retour à la ligne nativement
+ * (uniforme partout), chaque case est un vrai élément DOM cliquable avec une
+ * hauteur minimale, et le défilement remplace le zoom.
+ *
+ * Le rendu est récursif (cf. template) : chaque nœud = `[case | pile des enfants]`.
+ * Comme chaque case ancêtre a une largeur fixe, les nœuds d'une même profondeur
+ * s'alignent automatiquement en colonnes.
+ */
 @Component({
   selector: 'app-plan-mindmap',
   standalone: true,
@@ -36,15 +46,11 @@ interface IcicleNode extends d3.HierarchyRectangularNode<MindmapNode> {
   templateUrl: './plan-mindmap.component.html',
   styleUrl: './plan-mindmap.component.scss'
 })
-export class PlanMindmapComponent implements OnInit, AfterViewInit, OnDestroy {
+export class PlanMindmapComponent implements OnInit, OnDestroy {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly adminService = inject(AdminService);
   private readonly enjeuService = inject(EnjeuService);
-  private readonly cdr = inject(ChangeDetectorRef);
-
-  @ViewChild('icicleContainer', { static: false }) icicleContainerRef!: ElementRef<HTMLDivElement>;
-  @ViewChild('icicleInverseContainer', { static: false }) icicleInverseContainerRef!: ElementRef<HTMLDivElement>;
 
   planId = signal<number | null>(null);
   planSlug = signal<string | null>(null);
@@ -60,10 +66,51 @@ export class PlanMindmapComponent implements OnInit, AfterViewInit, OnDestroy {
   legendItems: { type: MindmapEntityType; color: string; label: string }[] = [];
 
   // Custom tooltip (#257) — surface le nom complet d'une cellule au survol
-  // (le texte SVG est tronqué quand la cellule est trop petite).
+  // (le texte de la case est tronqué à quelques lignes quand il est trop long).
   tooltipNode = signal<MindmapNode | null>(null);
   tooltipX = signal(0);
   tooltipY = signal(0);
+
+  // Nœuds dont le sous-arbre est replié (set de références MindmapNode).
+  collapsed = signal<Set<MindmapNode>>(new Set());
+
+  // Nœud sur lequel on a « zoomé » : l'arbre n'affiche plus que son sous-arbre,
+  // et la largeur des colonnes est recalculée pour tenir dans la largeur visible
+  // (pas de défilement horizontal). null = vue d'ensemble (toutes les racines).
+  focusNode = signal<MindmapNode | null>(null);
+
+  // Largeur d'une colonne (px), recalculée pour faire tenir le sous-arbre
+  // affiché dans la largeur du conteneur. Appliquée via --col-w sur .tree-scroll.
+  colWidth = signal(240);
+
+  @ViewChild('treeScroll') private treeScrollRef?: ElementRef<HTMLDivElement>;
+
+  // Timer pour distinguer simple-clic (zoom) du double-clic (ouvrir la fiche).
+  private clickTimer: ReturnType<typeof setTimeout> | null = null;
+
+  // Map enfant → parent, construite au chargement, pour remonter aux ancêtres
+  // dans openEntity() (le template récursif ne fournit pas la chaîne d'ancêtres).
+  private parentMap = new Map<MindmapNode, MindmapNode>();
+
+  /**
+   * Racines à afficher. Si on a zoomé sur un nœud, on n'affiche que celui-ci
+   * (son sous-arbre). Sinon, on saute le nœud « Plan » (déjà rappelé dans le
+   * breadcrumb et l'en-tête) : l'arbre démarre aux enjeux/FCR (vue normale) ou
+   * aux opérations (vue inverse).
+   */
+  displayRoots = computed<MindmapNode[]>(() => {
+    const focus = this.focusNode();
+    if (focus) {
+      return [focus];
+    }
+    const mode = this.viewMode();
+    const data = mode === 'enjeux' ? this.treeData() : this.inverseTreeData();
+    const children = data?.children ?? [];
+    if (mode === 'enjeux') {
+      return children.filter(c => c.entityType === 'enjeu' || c.entityType === 'fcr');
+    }
+    return children.filter(c => c.entityType === 'operation');
+  });
 
   getEntityLabel(type: MindmapEntityType | undefined): string {
     return type ? (MINDMAP_LABELS[type] || type) : '';
@@ -71,61 +118,6 @@ export class PlanMindmapComponent implements OnInit, AfterViewInit, OnDestroy {
 
   getEntityColor(type: MindmapEntityType | undefined): string {
     return type ? (MINDMAP_COLORS[type] || '#555') : '#555';
-  }
-
-  // Icicle view state (normal)
-  private icicleRoot!: IcicleNode;
-  private icicleFocus!: IcicleNode;
-  private icicleWidth = 0;
-  private icicleHeight = 0;
-  private icicleCellsParent!: d3.Selection<SVGGElement, unknown, null, undefined>;
-  private icicleInitialOffsetX = 0;
-
-  // Icicle view state (inverse)
-  private icicleInverseRoot!: IcicleNode;
-  private icicleInverseFocus!: IcicleNode;
-  private icicleInverseWidth = 0;
-  private icicleInverseHeight = 0;
-  private icicleInverseCellsParent!: d3.Selection<SVGGElement, unknown, null, undefined>;
-  private icicleInverseInitialOffsetX = 0;
-
-  // D3 element references for programmatic focus
-  private icicleSvg!: d3.Selection<SVGSVGElement, unknown, null, undefined>;
-  private icicleCell!: d3.Selection<SVGGElement, IcicleNode, SVGSVGElement, unknown>;
-  private icicleRect!: d3.Selection<SVGRectElement, IcicleNode, SVGGElement, unknown>;
-  private icicleDefs!: d3.Selection<SVGDefsElement, unknown, null, undefined>;
-  private icicleTypeText!: d3.Selection<SVGTextElement, IcicleNode, SVGGElement, unknown>;
-  private icicleNameText!: d3.Selection<SVGTextElement, IcicleNode, SVGGElement, unknown>;
-  private icicleViewWidth = 0;
-  private icicleViewHeight = 0;
-
-  // Same for inverse
-  private icicleInverseSvg!: d3.Selection<SVGSVGElement, unknown, null, undefined>;
-  private icicleInverseCell!: d3.Selection<SVGGElement, IcicleNode, SVGSVGElement, unknown>;
-  private icicleInverseRect!: d3.Selection<SVGRectElement, IcicleNode, SVGGElement, unknown>;
-  private icicleInverseDefs!: d3.Selection<SVGDefsElement, unknown, null, undefined>;
-  private icicleInverseTypeText!: d3.Selection<SVGTextElement, IcicleNode, SVGGElement, unknown>;
-  private icicleInverseNameText!: d3.Selection<SVGTextElement, IcicleNode, SVGGElement, unknown>;
-  private icicleInverseViewWidth = 0;
-  private icicleInverseViewHeight = 0;
-
-  private resizeSub?: Subscription;
-  private dataReady = false;
-  private viewReady = false;
-
-  constructor() {
-    const legendTypes: MindmapEntityType[] = [
-      'plan', 'enjeu', 'fcr', 'facteur', 'pression',
-      'olt', 'etat_enjeu', 'niveau_exigence',
-      'oo', 'resultat_attendu',
-      'indicateur', 'metrique', 'mesure',
-      'operation', 'suivi', 'protocole'
-    ];
-    this.legendItems = legendTypes.map(t => ({
-      type: t,
-      color: MINDMAP_COLORS[t],
-      label: MINDMAP_LABELS[t]
-    }));
   }
 
   ngOnInit(): void {
@@ -146,21 +138,6 @@ export class PlanMindmapComponent implements OnInit, AfterViewInit, OnDestroy {
     }
   }
 
-  ngAfterViewInit(): void {
-    this.viewReady = true;
-    if (this.dataReady) {
-      requestAnimationFrame(() => this.initCurrentView());
-    }
-
-    this.resizeSub = fromEvent(window, 'resize')
-      .pipe(debounceTime(200))
-      .subscribe(() => this.initCurrentView());
-  }
-
-  ngOnDestroy(): void {
-    this.resizeSub?.unsubscribe();
-  }
-
   private loadData(planId: number): void {
     forkJoin({
       normal: this.enjeuService.getMindmapData(planId),
@@ -169,12 +146,10 @@ export class PlanMindmapComponent implements OnInit, AfterViewInit, OnDestroy {
       next: ({ normal, inverse }) => {
         this.treeData.set(normal);
         this.inverseTreeData.set(inverse);
+        this.parentMap.clear();
+        this.buildParentMap(normal);
+        this.buildParentMap(inverse);
         this.loading.set(false);
-        this.dataReady = true;
-        this.cdr.detectChanges();
-        requestAnimationFrame(() => {
-          this.initCurrentView();
-        });
       },
       error: (err) => {
         console.error('[mindmap] Erreur chargement données:', err);
@@ -184,254 +159,170 @@ export class PlanMindmapComponent implements OnInit, AfterViewInit, OnDestroy {
     });
   }
 
+  private buildParentMap(node: MindmapNode): void {
+    for (const child of node.children ?? []) {
+      this.parentMap.set(child, node);
+      this.buildParentMap(child);
+    }
+  }
+
   switchView(mode: 'enjeux' | 'actions'): void {
     if (this.viewMode() === mode) return;
     this.viewMode.set(mode);
-    this.cdr.detectChanges();
-    requestAnimationFrame(() => this.initCurrentView());
+    // Les références repliées/focus appartiennent à l'autre arbre : on repart
+    // d'une vue d'ensemble dépliée.
+    this.collapsed.set(new Set());
+    this.focusNode.set(null);
   }
 
-  private initCurrentView(): void {
-    if (this.viewMode() === 'enjeux') {
-      this.initIcicle();
+  ngOnDestroy(): void {
+    if (this.clickTimer !== null) {
+      clearTimeout(this.clickTimer);
+    }
+  }
+
+  // ========== ARBRE ==========
+
+  hasChildren(node: MindmapNode): boolean {
+    return !!node.children && node.children.length > 0;
+  }
+
+  isCollapsed(node: MindmapNode): boolean {
+    return this.collapsed().has(node);
+  }
+
+  toggleCollapse(node: MindmapNode, event: Event): void {
+    event.stopPropagation();
+    const next = new Set(this.collapsed());
+    if (next.has(node)) {
+      next.delete(node);
     } else {
-      this.initIcicleInverse();
+      next.add(node);
+    }
+    this.collapsed.set(next);
+  }
+
+  /** « Tout replier » : ne garder visibles que les racines (enjeux/opérations). */
+  collapseAll(): void {
+    this.collapsed.set(new Set(this.displayRoots()));
+  }
+
+  /** « Tout déplier ». */
+  expandAll(): void {
+    this.collapsed.set(new Set());
+  }
+
+  // ========== ZOOM / FOCUS ==========
+  //
+  // Simple-clic = zoomer sur le nœud (n'afficher que son sous-arbre, colonnes
+  // recalculées pour tenir dans la largeur). Re-cliquer le nœud focalisé
+  // dézoome vers son parent. Double-clic = ouvrir la fiche détail.
+  // On diffère le simple-clic pour ne pas le déclencher lors d'un double-clic.
+
+  onCellClick(node: MindmapNode): void {
+    if (this.clickTimer !== null) {
+      clearTimeout(this.clickTimer);
+    }
+    this.clickTimer = setTimeout(() => {
+      this.clickTimer = null;
+      this.handleSingleClick(node);
+    }, 220);
+  }
+
+  onCellDblClick(node: MindmapNode, event: Event): void {
+    if (this.clickTimer !== null) {
+      clearTimeout(this.clickTimer);
+      this.clickTimer = null;
+    }
+    event.preventDefault();
+    this.openEntity(node);
+  }
+
+  private handleSingleClick(node: MindmapNode): void {
+    if (this.focusNode() === node) {
+      this.zoomOut();
+    } else if (this.hasChildren(node)) {
+      this.setFocus(node);
     }
   }
 
-  // ========== SHARED ICICLE BUILDER ==========
-
-  private buildIcicle(
-    container: HTMLDivElement,
-    data: MindmapNode,
-    clipPrefix: string,
-    filterChildren?: (children: MindmapNode[]) => MindmapNode[],
-    skipRoot: boolean = false,
-  ): {
-    root: IcicleNode;
-    svg: d3.Selection<SVGSVGElement, unknown, null, undefined>;
-    cell: d3.Selection<SVGGElement, IcicleNode, SVGSVGElement, unknown>;
-    rect: d3.Selection<SVGRectElement, IcicleNode, SVGGElement, unknown>;
-    defs: d3.Selection<SVGDefsElement, unknown, null, undefined>;
-    typeText: d3.Selection<SVGTextElement, IcicleNode, SVGGElement, unknown>;
-    nameText: d3.Selection<SVGTextElement, IcicleNode, SVGGElement, unknown>;
-    cellsParent: d3.Selection<SVGGElement, unknown, null, undefined>;
-    initialOffsetX: number;
-    width: number;
-    height: number;
-  } {
-    d3.select(container).selectAll('*').remove();
-
-    const width = container.clientWidth;
-    const containerHeight = container.clientHeight;
-
-    const filteredData: MindmapNode = filterChildren
-      ? { ...data, children: filterChildren(data.children || []) }
-      : data;
-
-    const hierarchy = d3.hierarchy(filteredData)
-      .sum(d => (!d.children || d.children.length === 0) ? 1 : 0);
-
-    hierarchy.eachAfter(d => {
-      if (d.children && d.children.length > 0) {
-        const total = d.children.reduce((s, c) => s + (c.value || 1), 0);
-        if (d.children.length > 1) {
-          const minVal = Math.max(1, Math.round(total / d.children.length * 0.4));
-          for (const child of d.children) {
-            if ((child.value || 0) < minVal) {
-              (child as any).value = minVal;
-            }
-          }
-        }
-        (d as any).value = d.children.reduce((s, c) => s + (c.value || 0), 0);
-      }
-    });
-
-    // #190 : au niveau racine (enjeux du plan ou actions selon la vue), on
-    // force une hauteur uniforme entre les enfants directs. Sans cela,
-    // l'enjeu le plus dense (le plus de feuilles) écrase visuellement les
-    // enjeux légers (FCR, enjeux géologiques sans OO/OLT) et les pousse
-    // sous la fenêtre.
-    //
-    // d3.partition divise l'espace au prorata de `child.value / parent.value`.
-    // Si on se contente de réécrire les `value` des enfants sans propager le
-    // nouveau total à `hierarchy.value`, la somme des x-extent dépasse celle
-    // de la racine et les derniers enfants débordent hors du SVG (cells 4–8
-    // hors viewport sur un plan de 8 enjeux/FCR). On rééchelonne donc
-    // chaque sous-arbre direct par un facteur uniforme pour que tous les
-    // depth-1 totalisent la même valeur, puis on met à jour `hierarchy.value`.
-    // Les ratios internes à chaque sous-arbre (depth-2+) sont préservés.
-    if (hierarchy.children && hierarchy.children.length > 1) {
-      const targetValue = Math.max(...hierarchy.children.map(c => (c.value as number) || 1));
-      for (const child of hierarchy.children) {
-        const currentValue = (child as any).value || 1;
-        if (currentValue !== targetValue) {
-          const scale = targetValue / currentValue;
-          child.each((d: any) => {
-            d.value = (d.value || 0) * scale;
-          });
-        }
-      }
-      (hierarchy as any).value = hierarchy.children.reduce(
-        (s, c) => s + ((c as any).value || 0),
-        0,
-      );
-    }
-
-    hierarchy.sort((a, b) => (b.value ?? 0) - (a.value ?? 0));
-
-    let maxDepth = 0;
-    hierarchy.each(d => { if (d.depth > maxDepth) maxDepth = d.depth; });
-    const initialVisibleCols = 2;
-    const columnWidth = width / initialVisibleCols;
-
-    // #190 : la hauteur du SVG est égale à la viewport — on ne l'étire plus
-    // à `leafCount * MIN_LEAF_HEIGHT`. Avant ce fix, sur un plan dense
-    // (~50 feuilles), le SVG faisait 2500 px et seul le premier enjeu était
-    // visible à l'écran (les autres demandaient un scroll). Désormais, tous
-    // les enjeux tiennent dans le viewport ; la lisibilité des niveaux
-    // profonds est assurée par le zoom au clic (animateToFocus rescale le
-    // sous-arbre focalisé pour qu'il occupe toute la hauteur).
-    const height = containerHeight;
-
-    const root = d3.partition<MindmapNode>()
-      .size([height, (maxDepth + 1) * columnWidth])
-      .padding(1)(hierarchy) as IcicleNode;
-
-    const svg = d3.select(container)
-      .append('svg')
-      .attr('viewBox', `0 0 ${width} ${height}`)
-      .attr('width', width)
-      .attr('height', height)
-      .style('font-family', "'Nunito', sans-serif");
-
-    const defs = svg.append('defs');
-
-    // #258 : quand on saute le nœud racine, on enveloppe les cellules dans
-    // un <g> translaté de -columnWidth pour décaler tout le rendu vers la
-    // gauche d'une colonne. On utilise toujours un <g> wrapper (même sans
-    // skipRoot) pour garder l'animation symétrique avec/sans shift.
-    const initialOffsetX = skipRoot ? -columnWidth : 0;
-    const cellsParent = svg.append('g')
-      .attr('class', 'cells-shift')
-      .attr('transform', `translate(${initialOffsetX},0)`) as
-        d3.Selection<SVGGElement, unknown, null, undefined>;
-
-    const cell = cellsParent.selectAll('g')
-      .data(root.descendants())
-      .join('g')
-      .attr('transform', (d: IcicleNode) => `translate(${d.y0},${d.x0})`)
-      // La cellule racine (depth 0) est masquée : son rendu serait en zone
-      // négative après le translate(-columnWidth), mais on la cache aussi
-      // pour éviter les hovers/tooltips fantômes.
-      .style('display', (d: IcicleNode) => (skipRoot && d.depth === 0) ? 'none' : null) as
-        d3.Selection<SVGGElement, IcicleNode, SVGSVGElement, unknown>;
-
-    cell.each(function(d, i) {
-      defs.append('clipPath')
-        .attr('id', `${clipPrefix}-${i}`)
-        .append('rect')
-        .attr('width', d.y1 - d.y0 - 1)
-        .attr('height', d.x1 - d.x0);
-    });
-
-    const rect = cell.append('rect')
-      .attr('width', d => d.y1 - d.y0 - 1)
-      .attr('height', d => this.icicleRectHeight(d))
-      .attr('fill', d => MINDMAP_COLORS[d.data.entityType] || '#555')
-      .attr('fill-opacity', 0.85)
-      .style('cursor', 'pointer');
-
-    const textGroup = cell.append('g')
-      .attr('clip-path', (_d, i) => `url(#${clipPrefix}-${i})`);
-
-    const typeText = textGroup.append('text')
-      .attr('class', 'icicle-type')
-      .attr('x', 6)
-      .attr('y', 14)
-      .attr('fill', d => this.getTextColor(MINDMAP_COLORS[d.data.entityType] || '#555'))
-      .attr('fill-opacity', d => this.typeVisible(d, width, initialOffsetX) ? 1 : 0)
-      .text(d => MINDMAP_LABELS[d.data.entityType] || d.data.entityType);
-
-    const nameText = textGroup.append('text')
-      .attr('class', 'icicle-name')
-      .attr('x', 6)
-      .attr('y', d => this.typeVisible(d, width, initialOffsetX) ? 28 : 13)
-      .attr('fill', d => this.getTextColor(MINDMAP_COLORS[d.data.entityType] || '#555'))
-      .attr('fill-opacity', d => this.nameVisible(d, width, initialOffsetX) ? 1 : 0);
-
-    this.wrapIcicleText(
-      nameText,
-      d => Math.max(0, (d.y1 - d.y0) - 12),
-      d => this.icicleRectHeight(d) - (this.typeVisible(d, width, initialOffsetX) ? 22 : 8),
-    );
-
-    // Custom HTML tooltip (#257) en remplacement de l'attribut SVG `title`
-    // (qui dépend du tooltip natif du navigateur, peu lisible). Affiche le
-    // nom complet et le type de l'élément sur hover.
-    cell.on('mouseenter', (event, p) => {
-      this.tooltipNode.set(p.data);
-      this.tooltipX.set(event.clientX);
-      this.tooltipY.set(event.clientY);
-    });
-    cell.on('mousemove', (event) => {
-      this.tooltipX.set(event.clientX);
-      this.tooltipY.set(event.clientY);
-    });
-    cell.on('mouseleave', () => {
-      this.tooltipNode.set(null);
-    });
-
-    return { root, svg, cell, rect, defs, typeText, nameText, cellsParent, initialOffsetX, width, height };
+  private setFocus(node: MindmapNode | null): void {
+    this.focusNode.set(node);
   }
 
-  private setupClickHandler(
-    root: IcicleNode,
-    getFocus: () => IcicleNode,
-    setFocus: (n: IcicleNode) => void,
-    getRoot: () => IcicleNode,
-    svg: d3.Selection<SVGSVGElement, unknown, null, undefined>,
-    cell: d3.Selection<SVGGElement, IcicleNode, SVGSVGElement, unknown>,
-    rect: d3.Selection<SVGRectElement, IcicleNode, SVGGElement, unknown>,
-    defs: d3.Selection<SVGDefsElement, unknown, null, undefined>,
-    typeText: d3.Selection<SVGTextElement, IcicleNode, SVGGElement, unknown>,
-    nameText: d3.Selection<SVGTextElement, IcicleNode, SVGGElement, unknown>,
-    cellsParent: d3.Selection<SVGGElement, unknown, null, undefined>,
-    initialOffsetX: number,
-    viewWidth: number,
-    viewHeight: number
-  ): void {
-    cell.on('click', (_event, p) => {
-      const currentFocus = getFocus();
-      const focus = (currentFocus === p)
-        ? (p.parent as IcicleNode || getRoot())
-        : p;
-      setFocus(focus);
-      this.animateToFocus(focus, getRoot(), root, svg, cell, rect, defs, typeText, nameText, cellsParent, initialOffsetX, viewWidth, viewHeight);
-    });
+  /** Dézoome d'un cran : vers le parent du nœud focalisé, ou la vue d'ensemble. */
+  zoomOut(): void {
+    const current = this.focusNode();
+    if (!current) return;
+    const parent = this.parentMap.get(current);
+    this.setFocus(parent && parent.entityType !== 'plan' ? parent : null);
+  }
 
-    cell.on('dblclick', (event, p) => {
-      event.preventDefault();
-      event.stopPropagation();
-      this.openEntity(p);
-    });
+  /** Revient à la vue d'ensemble (toutes les racines). */
+  resetFocus(): void {
+    this.setFocus(null);
+  }
+
+  @HostListener('window:resize')
+  onResize(): void {
+    requestAnimationFrame(() => this.recomputeColWidth());
+  }
+
+  /** Profondeur du sous-arbre (0 pour une feuille). */
+  private subtreeDepth(node: MindmapNode): number {
+    const children = node.children;
+    if (!children || children.length === 0) return 0;
+    let max = 0;
+    for (const child of children) {
+      const d = this.subtreeDepth(child);
+      if (d > max) max = d;
+    }
+    return max + 1;
+  }
+
+  private recomputeColWidth(): void {
+    const roots = this.displayRoots();
+    if (!roots.length) return;
+    const columns = Math.max(...roots.map(r => this.subtreeDepth(r))) + 1;
+    const avail = this.treeScrollRef?.nativeElement?.clientWidth ?? 0;
+    if (avail > 0 && columns > 0) {
+      const w = Math.floor((avail - 4) / columns);
+      // Clamp : on réduit la largeur pour tenir, sans descendre sous un seuil
+      // lisible ni dépasser une largeur confortable.
+      this.colWidth.set(Math.min(260, Math.max(150, w)));
+    } else {
+      this.colWidth.set(240);
+    }
+  }
+
+  onCellEnter(node: MindmapNode, event: MouseEvent): void {
+    this.tooltipNode.set(node);
+    this.tooltipX.set(event.clientX);
+    this.tooltipY.set(event.clientY);
+  }
+
+  onCellMove(event: MouseEvent): void {
+    this.tooltipX.set(event.clientX);
+    this.tooltipY.set(event.clientY);
+  }
+
+  onCellLeave(): void {
+    this.tooltipNode.set(null);
   }
 
   /**
-   * Navigate to the detail page of a node, triggered on double-click (#257).
+   * Navigue vers la fiche détail d'un nœud (#257).
    *
    * - `operation` → fiche dédiée (`/enjeux/operations/<id>`).
    * - `enjeu` / `fcr` → page détail de l'enjeu (`/enjeux/<enjeuSlug>`).
    * - Sous-entités (OLT, NE, OO, RA, indicateur, métrique, mesure, facteur,
-   *   pression, etat_enjeu) → page détail de l'enjeu ancêtre, avec un
-   *   fragment `<type>-<id>` que `enjeux-list` utilise pour scroller jusqu'à
-   *   l'élément précis (et déplier l'accordéon parent au passage).
+   *   pression, etat_enjeu) → page détail de l'enjeu ancêtre, avec un fragment
+   *   `<type>-<id>` que `enjeux-list` utilise pour scroller jusqu'à l'élément
+   *   précis (et déplier l'accordéon parent au passage).
    */
-  private openEntity(node: IcicleNode): void {
+  private openEntity(data: MindmapNode): void {
     const slug = this.planSlug();
-    if (!slug || !node.data.id) return;
-
-    const data = node.data;
+    if (!slug || !data.id) return;
 
     if (data.entityType === 'operation') {
       this.router.navigate(['/plans', slug, 'enjeux', 'operations', data.id]);
@@ -449,14 +340,20 @@ export class PlanMindmapComponent implements OnInit, AfterViewInit, OnDestroy {
     }
 
     // Sous-entité : remonter aux ancêtres pour trouver l'enjeu/FCR parent.
-    const enjeuAncestor = node.ancestors().find(a =>
-      (a.data.entityType === 'enjeu' || a.data.entityType === 'fcr') && a.data.slug
-    );
+    let enjeuAncestor: MindmapNode | undefined;
+    let cursor = this.parentMap.get(data);
+    while (cursor) {
+      if ((cursor.entityType === 'enjeu' || cursor.entityType === 'fcr') && cursor.slug) {
+        enjeuAncestor = cursor;
+        break;
+      }
+      cursor = this.parentMap.get(cursor);
+    }
 
     const fragment = `${data.entityType}-${data.id}`;
-    if (enjeuAncestor && enjeuAncestor.data.slug) {
+    if (enjeuAncestor && enjeuAncestor.slug) {
       this.router.navigate(
-        ['/plans', slug, 'enjeux', enjeuAncestor.data.slug],
+        ['/plans', slug, 'enjeux', enjeuAncestor.slug],
         { fragment },
       );
       return;
@@ -466,316 +363,35 @@ export class PlanMindmapComponent implements OnInit, AfterViewInit, OnDestroy {
     this.router.navigate(['/plans', slug, 'enjeux'], { fragment });
   }
 
-  private animateToFocus(
-    focus: IcicleNode,
-    rootNode: IcicleNode,
-    partitionRoot: IcicleNode,
-    svg: d3.Selection<SVGSVGElement, unknown, null, undefined>,
-    cell: d3.Selection<SVGGElement, IcicleNode, SVGSVGElement, unknown>,
-    rect: d3.Selection<SVGRectElement, IcicleNode, SVGGElement, unknown>,
-    defs: d3.Selection<SVGDefsElement, unknown, null, undefined>,
-    typeText: d3.Selection<SVGTextElement, IcicleNode, SVGGElement, unknown>,
-    nameText: d3.Selection<SVGTextElement, IcicleNode, SVGGElement, unknown>,
-    cellsParent: d3.Selection<SVGGElement, unknown, null, undefined>,
-    initialOffsetX: number,
-    viewWidth: number,
-    viewHeight: number
-  ): void {
-    let maxDescY1 = focus.y1;
-    focus.each((d: any) => { if (d.y1 > maxDescY1) maxDescY1 = d.y1; });
-
-    const ySpan = maxDescY1 - focus.y0;
-    const yScale = (focus === rootNode) ? 1 : (ySpan > 0 ? viewWidth / ySpan : 1);
-
-    // #190 : quand on revient à la racine, restaurer exactement les positions
-    // d'origine (target = d). La formule générale introduit un offset de
-    // `padding` (1 px) car d3.partition met root.x0/y0 à `padding` plutôt qu'à
-    // 0. Ce 1 px suffit à faire échouer le check `target.y0 + offsetX >= 0`
-    // dans typeVisible et masque le label "Enjeu"/"Opération" de la première
-    // colonne après un click-in/click-out.
-    if (focus === rootNode) {
-      partitionRoot.each((d: any) => {
-        d.target = { x0: d.x0, x1: d.x1, y0: d.y0, y1: d.y1 };
-      });
-    } else {
-      partitionRoot.each((d: any) => {
-        d.target = {
-          x0: ((d.x0 as number) - focus.x0) / (focus.x1 - focus.x0) * viewHeight,
-          x1: ((d.x1 as number) - focus.x0) / (focus.x1 - focus.x0) * viewHeight,
-          y0: ((d.y0 as number) - focus.y0) * yScale,
-          y1: ((d.y1 as number) - focus.y0) * yScale
-        };
-      });
-    }
-
-    // Quand on quitte la racine, on ramène le wrapper à offset=0 pour que la
-    // cellule focus (target.y0 = 0) s'affiche bien à x=0. Quand on revient à
-    // la racine, on restaure l'offset initial pour cacher la colonne plan.
-    const newOffsetX = (focus === rootNode) ? initialOffsetX : 0;
-
-    const t = svg.transition().duration(750) as any;
-
-    cellsParent.transition(t)
-      .attr('transform', `translate(${newOffsetX},0)`);
-
-    cell.transition(t)
-      .attr('transform', (d: any) => `translate(${d.target.y0},${d.target.x0})`);
-
-    rect.transition(t)
-      .attr('width', (d: any) => Math.max(0, d.target.y1 - d.target.y0 - 1))
-      .attr('height', (d: any) => this.icicleRectHeight(d.target));
-
-    const descendants = partitionRoot.descendants();
-    defs.selectAll<SVGRectElement, unknown>('clipPath rect').each(function(_d, i) {
-      const node = descendants[i] as any;
-      if (node?.target) {
-        d3.select(this).transition(t)
-          .attr('width', Math.max(0, node.target.y1 - node.target.y0 - 1))
-          .attr('height', node.target.x1 - node.target.x0);
-      }
-    });
-
-    typeText.transition(t)
-      .attr('fill-opacity', (d: any) => this.typeVisible(d.target, viewWidth, newOffsetX) ? 1 : 0);
-
-    nameText.transition(t)
-      .attr('y', (d: any) => this.typeVisible(d.target, viewWidth, newOffsetX) ? 28 : 13)
-      .attr('fill-opacity', (d: any) => this.nameVisible(d.target, viewWidth, newOffsetX) ? 1 : 0);
-  }
-
-  // ========== NORMAL ICICLE (Enjeux view) ==========
-
-  private initIcicle(): void {
-    const data = this.treeData();
-    const container = this.icicleContainerRef?.nativeElement;
-    if (!data || !container) return;
-
-    // #258 : skipRoot=true → on saute le nœud Plan, l'arborescence démarre
-    // aux enjeux/FCR directement (le PG est déjà rappelé dans le breadcrumb
-    // et l'en-tête de page).
-    const result = this.buildIcicle(container, data, 'clip', children =>
-      children.filter(c => c.entityType === 'enjeu' || c.entityType === 'fcr'),
-      true
-    );
-
-    this.icicleRoot = result.root;
-    this.icicleFocus = result.root;
-    this.icicleWidth = result.width;
-    this.icicleHeight = result.height;
-    this.icicleSvg = result.svg;
-    this.icicleCell = result.cell;
-    this.icicleRect = result.rect;
-    this.icicleDefs = result.defs;
-    this.icicleTypeText = result.typeText;
-    this.icicleNameText = result.nameText;
-    this.icicleCellsParent = result.cellsParent;
-    this.icicleInitialOffsetX = result.initialOffsetX;
-    this.icicleViewWidth = result.width;
-    this.icicleViewHeight = result.height;
-
-    this.setupClickHandler(
-      result.root,
-      () => this.icicleFocus,
-      (n) => { this.icicleFocus = n; },
-      () => this.icicleRoot,
-      result.svg, result.cell, result.rect, result.defs,
-      result.typeText, result.nameText,
-      result.cellsParent, result.initialOffsetX,
-      result.width, result.height
-    );
-  }
-
-  resetIcicle(): void {
-    if (!this.icicleRoot) return;
-    this.icicleFocus = this.icicleRoot;
-    this.animateToFocus(
-      this.icicleRoot, this.icicleRoot, this.icicleRoot,
-      this.icicleSvg, this.icicleCell, this.icicleRect, this.icicleDefs,
-      this.icicleTypeText, this.icicleNameText,
-      this.icicleCellsParent, this.icicleInitialOffsetX,
-      this.icicleViewWidth, this.icicleViewHeight
-    );
-  }
-
-  focusOnEnjeu(): void {
-    if (!this.icicleRoot) return;
-    // Find the first enjeu or fcr child of the root
-    const firstEnjeu = this.icicleRoot.children?.find(
-      c => c.data.entityType === 'enjeu' || c.data.entityType === 'fcr'
-    ) as IcicleNode | undefined;
-    if (!firstEnjeu) return;
-    this.icicleFocus = firstEnjeu;
-    this.animateToFocus(
-      firstEnjeu, this.icicleRoot, this.icicleRoot,
-      this.icicleSvg, this.icicleCell, this.icicleRect, this.icicleDefs,
-      this.icicleTypeText, this.icicleNameText,
-      this.icicleCellsParent, this.icicleInitialOffsetX,
-      this.icicleViewWidth, this.icicleViewHeight
-    );
-  }
-
-  // ========== INVERSE ICICLE (Actions view) ==========
-
-  private initIcicleInverse(): void {
-    const data = this.inverseTreeData();
-    const container = this.icicleInverseContainerRef?.nativeElement;
-    if (!data || !container) return;
-
-    // skipRoot=true : on saute le nœud Plan, l'arborescence inverse démarre
-    // aux opérations directement (cohérent avec la vue Enjeux qui démarre
-    // aux enjeux/FCR). Filtre des enfants : on ne garde que les opérations.
-    const result = this.buildIcicle(
-      container, data, 'clip-inv',
-      children => children.filter(c => c.entityType === 'operation'),
-      true,
-    );
-
-    this.icicleInverseRoot = result.root;
-    this.icicleInverseFocus = result.root;
-    this.icicleInverseWidth = result.width;
-    this.icicleInverseHeight = result.height;
-    this.icicleInverseSvg = result.svg;
-    this.icicleInverseCell = result.cell;
-    this.icicleInverseRect = result.rect;
-    this.icicleInverseDefs = result.defs;
-    this.icicleInverseTypeText = result.typeText;
-    this.icicleInverseNameText = result.nameText;
-    this.icicleInverseCellsParent = result.cellsParent;
-    this.icicleInverseInitialOffsetX = result.initialOffsetX;
-    this.icicleInverseViewWidth = result.width;
-    this.icicleInverseViewHeight = result.height;
-
-    this.setupClickHandler(
-      result.root,
-      () => this.icicleInverseFocus,
-      (n) => { this.icicleInverseFocus = n; },
-      () => this.icicleInverseRoot,
-      result.svg, result.cell, result.rect, result.defs,
-      result.typeText, result.nameText,
-      result.cellsParent, result.initialOffsetX,
-      result.width, result.height
-    );
-  }
-
-  resetIcicleInverse(): void {
-    if (!this.icicleInverseRoot) return;
-    this.icicleInverseFocus = this.icicleInverseRoot;
-    this.animateToFocus(
-      this.icicleInverseRoot, this.icicleInverseRoot, this.icicleInverseRoot,
-      this.icicleInverseSvg, this.icicleInverseCell, this.icicleInverseRect, this.icicleInverseDefs,
-      this.icicleInverseTypeText, this.icicleInverseNameText,
-      this.icicleInverseCellsParent, this.icicleInverseInitialOffsetX,
-      this.icicleInverseViewWidth, this.icicleInverseViewHeight
-    );
-  }
-
-  focusOnOperation(): void {
-    if (!this.icicleInverseRoot) return;
-    const firstOp = this.icicleInverseRoot.children?.find(
-      c => c.data.entityType === 'operation'
-    ) as IcicleNode | undefined;
-    if (!firstOp) return;
-    this.icicleInverseFocus = firstOp;
-    this.animateToFocus(
-      firstOp, this.icicleInverseRoot, this.icicleInverseRoot,
-      this.icicleInverseSvg, this.icicleInverseCell, this.icicleInverseRect, this.icicleInverseDefs,
-      this.icicleInverseTypeText, this.icicleInverseNameText,
-      this.icicleInverseCellsParent, this.icicleInverseInitialOffsetX,
-      this.icicleInverseViewWidth, this.icicleInverseViewHeight
-    );
-  }
-
-  // ========== SHARED UTILITIES ==========
-
-  private icicleRectHeight(d: { x0: number; x1: number }): number {
-    return d.x1 - d.x0 - Math.min(1, (d.x1 - d.x0) / 2);
-  }
-
-  /**
-   * Wrap SVG text into multiple tspans to fit the given maxWidth and maxHeight.
-   * First tspan keeps the parent text's y offset; subsequent tspans use dy so
-   * that the block moves as one when the parent's y is animated.
-   */
-  private wrapIcicleText(
-    selection: d3.Selection<SVGTextElement, IcicleNode, SVGGElement, unknown>,
-    maxWidthAccessor: (d: IcicleNode) => number,
-    maxHeightAccessor: (d: IcicleNode) => number,
-  ): void {
-    const lineHeight = 14;
-    selection.each(function(d) {
-      const textEl = d3.select(this);
-      const name = d.data.name || '';
-      const maxWidth = maxWidthAccessor(d);
-      const maxHeight = maxHeightAccessor(d);
-      const maxLines = Math.max(1, Math.floor(maxHeight / lineHeight));
-      const words = name.split(/\s+/).filter(w => w.length > 0).reverse();
-      const x = textEl.attr('x') || '0';
-
-      textEl.text(null);
-      if (words.length === 0 || maxWidth <= 0) {
-        return;
-      }
-
-      let line: string[] = [];
-      let lineCount = 1;
-      let tspan = textEl.append('tspan').attr('x', x);
-
-      const ellipsize = (span: d3.Selection<SVGTSpanElement, unknown, null, undefined>): void => {
-        let currentText = span.text();
-        while (currentText.length > 1 && (span.node() as SVGTextContentElement).getComputedTextLength() > maxWidth) {
-          currentText = currentText.slice(0, -1);
-          span.text(currentText + '…');
-        }
-      };
-
-      let word: string | undefined;
-      while ((word = words.pop())) {
-        line.push(word);
-        tspan.text(line.join(' '));
-        if ((tspan.node() as SVGTextContentElement).getComputedTextLength() > maxWidth) {
-          line.pop();
-          if (line.length === 0) {
-            // Single word too long for the line — keep it and truncate with ellipsis
-            tspan.text(word);
-            ellipsize(tspan);
-            line = [];
-          } else {
-            tspan.text(line.join(' '));
-            line = [word];
-          }
-          if (lineCount >= maxLines) {
-            // Reached the max number of lines — append ellipsis to the current line if needed
-            if (line.length > 0) {
-              const previous = tspan.text();
-              tspan.text(previous + '…');
-              ellipsize(tspan);
-            }
-            return;
-          }
-          lineCount++;
-          tspan = textEl.append('tspan')
-            .attr('x', x)
-            .attr('dy', `${lineHeight}px`)
-            .text(line.length > 0 ? line.join(' ') : '');
-        }
-      }
-    });
-  }
-
-  private typeVisible(d: { y0: number; y1: number; x0: number; x1: number }, viewWidth: number, offsetX: number = 0): boolean {
-    return (d.y1 + offsetX) <= viewWidth && (d.y0 + offsetX) >= 0 && (d.x1 - d.x0) > 26;
-  }
-
-  private nameVisible(d: { y0: number; y1: number; x0: number; x1: number }, viewWidth: number, offsetX: number = 0): boolean {
-    return (d.y1 + offsetX) <= viewWidth && (d.y0 + offsetX) >= 0 && (d.x1 - d.x0) > 13;
-  }
-
-  private getTextColor(hexColor: string): string {
+  getTextColor(hexColor: string): string {
     const hex = hexColor.replace('#', '');
     const r = parseInt(hex.substring(0, 2), 16);
     const g = parseInt(hex.substring(2, 4), 16);
     const b = parseInt(hex.substring(4, 6), 16);
     const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
     return luminance > 0.5 ? '#343433' : '#ffffff';
+  }
+
+  constructor() {
+    const legendTypes: MindmapEntityType[] = [
+      'plan', 'enjeu', 'fcr', 'facteur', 'pression',
+      'olt', 'etat_enjeu', 'niveau_exigence',
+      'oo', 'resultat_attendu',
+      'indicateur', 'metrique', 'mesure',
+      'operation', 'suivi', 'protocole'
+    ];
+    this.legendItems = legendTypes.map(t => ({
+      type: t,
+      color: MINDMAP_COLORS[t],
+      label: MINDMAP_LABELS[t]
+    }));
+
+    // Recalcule la largeur des colonnes dès que l'ensemble affiché change
+    // (chargement initial, bascule de vue, zoom/dézoom). On mesure dans un
+    // requestAnimationFrame pour que le conteneur soit mis en page au préalable.
+    effect(() => {
+      this.displayRoots(); // dépendance réactive
+      requestAnimationFrame(() => this.recomputeColWidth());
+    });
   }
 }

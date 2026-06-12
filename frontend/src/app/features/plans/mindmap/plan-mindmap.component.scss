@@ -226,8 +226,8 @@
   }
 }
 
-// Icicle hint
-.icicle-hint {
+// Hint au-dessus de l'arbre
+.tree-hint {
   font-family: $font-family;
   font-size: $font-size-small;
   color: $gray-dark;
@@ -235,20 +235,188 @@
   font-style: italic;
 }
 
-// Icicle Container
-.icicle-container {
+// Barre de focus (affichée quand on a zoomé sur un nœud)
+.focus-bar {
+  display: flex;
+  align-items: center;
+  gap: $spacing-md;
+  margin-bottom: $spacing-sm;
+  flex-wrap: wrap;
+}
+
+.focus-back {
+  display: inline-flex;
+  align-items: center;
+  gap: $spacing-xs;
+  padding: 6px $spacing-md;
+  background: $white;
+  color: $primary-color;
+  border: 1px solid $primary-color;
+  border-radius: $border-radius-pill;
+  font-family: $font-family;
+  font-size: $font-size-small;
+  font-weight: $font-weight-bold;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+
+  &:hover {
+    background: $primary-color;
+    color: $white;
+  }
+
+  i { font-size: 14px; }
+}
+
+.focus-current {
+  display: inline-flex;
+  align-items: center;
+  gap: $spacing-xs;
+  min-width: 0;
+  font-family: $font-family;
+  font-size: $font-size-small;
+  color: $black;
+}
+
+.focus-current-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.focus-current-type {
+  text-transform: uppercase;
+  font-weight: $font-weight-bold;
+  letter-spacing: 0.5px;
+  color: $gray-dark;
+  font-size: 11px;
+}
+
+.focus-current-name {
+  font-weight: $font-weight-bold;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+// ============================================
+// ARBRE EN COLONNES FIXES (défilable)
+// ============================================
+
+// Largeur d'une colonne (case) et hauteur minimale d'une ligne/feuille.
+// La hauteur min garantit que les opérations/feuilles restent cliquables et
+// laissent la place à 2 lignes de texte ; le défilement gère les plans denses.
+$tree-col-width: 240px;
+$tree-row-min: 56px;
+
+.tree-scroll {
+  --col-w: #{$tree-col-width};
   position: relative;
   width: 100%;
-  height: calc(100vh - 420px);
+  max-height: calc(100vh - 420px);
   min-height: 600px;
   background: $white;
   border-radius: $border-radius-sm;
   border: 1px solid $primary-bg-subtle;
-  // #257 : la partition peut être plus grande que la fenêtre quand le plan
-  // est dense (chaque feuille a min 50 px). On rend le conteneur scrollable
-  // verticalement pour permettre l'affichage multi-ligne du texte.
-  overflow-x: hidden;
-  overflow-y: auto;
+  // Colonnes fixes : on défile dans les deux sens plutôt que de comprimer.
+  overflow: auto;
+}
+
+.tree-empty {
+  padding: $spacing-xl;
+  text-align: center;
+  color: $gray-dark;
+  font-style: italic;
+}
+
+// Une « ligne » = la case d'un nœud suivie de la pile de ses enfants.
+// align-items:stretch fait que la case ancêtre occupe toute la hauteur de la
+// pile de ses enfants → l'alignement en colonnes se fait naturellement.
+.tree-row {
+  display: flex;
+  align-items: stretch;
+  min-height: $tree-row-min;
+}
+
+.tree-cell {
+  position: relative;
+  flex: 0 0 var(--col-w, #{$tree-col-width});
+  width: var(--col-w, #{$tree-col-width});
+  box-sizing: border-box;
+  // padding-top généreux → espace au-dessus du titre dans chaque case.
+  padding: $spacing-sm $spacing-sm 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  text-align: left;
+  font-family: $font-family;
+  border: none;
+  // Séparateur fin entre cases (remplace le padding(1) de l'ancien icicle).
+  box-shadow: inset 0 0 0 1px rgba($white, 0.55);
+  cursor: pointer;
+  overflow: hidden;
+  transition: filter 0.15s;
+
+  &:hover {
+    filter: brightness(1.08);
+  }
+
+  &:focus-visible {
+    outline: 2px solid $primary-color;
+    outline-offset: -2px;
+  }
+}
+
+.tree-children {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+
+.cell-type {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  opacity: 0.92;
+  // Laisse la place au chevron en haut à droite.
+  padding-right: 18px;
+}
+
+.cell-name {
+  font-size: 13px;
+  line-height: 1.3;
+  font-weight: $font-weight-regular;
+  word-break: break-word;
+  // Retour à la ligne natif, tronqué proprement au-delà de 4 lignes
+  // (le tooltip prend alors le relais pour le nom complet).
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.cell-toggle {
+  position: absolute;
+  top: 6px;
+  right: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: $border-radius-sm;
+  cursor: pointer;
+  opacity: 0.75;
+  transition: opacity 0.15s, background 0.15s;
+
+  &:hover {
+    opacity: 1;
+    background: rgba($white, 0.25);
+  }
+
+  i { font-size: 14px; line-height: 1; }
 }
 
 // Legend
@@ -297,7 +465,7 @@
   }
 }
 
-// Controls — boutons icône uniquement en haut droite (revue design Amandine)
+// Controls — boutons déplier / replier en haut droite
 .mindmap-controls {
   display: flex;
   align-items: center;
@@ -307,48 +475,17 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    min-width: 40px;
+    gap: $spacing-xs;
     padding: $spacing-xs $spacing-sm !important;
 
     i {
       font-size: 16px;
     }
   }
-}
 
-// ============================================
-// D3 ICICLE SVG STYLES
-// ============================================
-
-:host ::ng-deep {
-  .icicle-container svg {
-    cursor: pointer;
-    font-family: $font-family;
-
-    rect {
-      transition: filter 0.15s;
-
-      &:hover {
-        filter: brightness(1.1);
-      }
-    }
-
-    text {
-      user-select: none;
-      pointer-events: none;
-    }
-
-    .icicle-type {
-      font-size: 10px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
-
-    .icicle-name {
-      font-size: 12px;
-      font-weight: 400;
-    }
+  .control-label {
+    font-size: $font-size-small;
+    font-weight: $font-weight-bold;
   }
 }
 
@@ -366,9 +503,10 @@
     line-height: 36px;
   }
 
-  .icicle-container {
-    height: 400px;
-    min-height: 300px;
+  .tree-scroll {
+    // --col-w est piloté dynamiquement (style inline) selon la largeur réelle.
+    max-height: 70vh;
+    min-height: 360px;
   }
 
   .mindmap-legend {
@@ -377,10 +515,12 @@
 
   .mindmap-controls {
     flex-wrap: wrap;
+
+    .control-label { display: none; }
   }
 }
 
-// Tooltip personnalisé sur survol des cellules de l'icicle (#257).
+// Tooltip personnalisé sur survol des cellules de l'arbre (#257).
 // Position absolue par rapport au viewport (pilotée via [style.left/top.px]
 // dans le template), suit le curseur. Affiche le type de l'entité et son
 // nom complet (utile quand le texte SVG est tronqué dans une petite case).
