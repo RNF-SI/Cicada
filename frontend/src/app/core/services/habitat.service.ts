@@ -56,6 +56,22 @@ export interface CorrespondanceHabitat {
   type_rel: string;
 }
 
+/** Classification d'origine d'un habitat (référentiel + code). #89 */
+export interface HabitatOwnInfo {
+  cd_hab: number;
+  lb_code: string | null;
+  lb_typo: string | null;
+  lb_hab_fr: string | null;
+  lb_hab_fr_complet: string | null;
+  niveau: number | null;
+}
+
+/** Réponse de l'endpoint correspondance : origine + habitats liés. #89 */
+export interface HabitatCorrespondanceResponse {
+  habitat: HabitatOwnInfo | null;
+  related: CorrespondanceHabitat[];
+}
+
 export interface HabitatBulkFoundItem {
   input: string;
   cd_hab: number;
@@ -140,10 +156,10 @@ export class HabitatService {
   }
 
   /**
-   * Correspondances entre typologies pour un habitat.
+   * Classification d'origine d'un habitat + habitats liés (même référentiel).
    */
-  getCorrespondances(cdHab: number): Observable<CorrespondanceHabitat[]> {
-    return this.http.get<CorrespondanceHabitat[]>(
+  getCorrespondances(cdHab: number): Observable<HabitatCorrespondanceResponse> {
+    return this.http.get<HabitatCorrespondanceResponse>(
       `${this.apiUrl}/correspondance/${cdHab}/`
     );
   }

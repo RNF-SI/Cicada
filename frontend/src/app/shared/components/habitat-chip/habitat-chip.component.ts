@@ -1,7 +1,7 @@
 import { Component, computed, inject, input, output, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { TranslateModule } from '@ngx-translate/core';
-import { HabitatService, CorrespondanceHabitat } from '../../../core/services/habitat.service';
+import { HabitatService, CorrespondanceHabitat, HabitatOwnInfo } from '../../../core/services/habitat.service';
 
 const MAX_RELATED = 12;
 
@@ -37,19 +37,25 @@ export class HabitatChipComponent {
   /** Émis au clic sur la croix de suppression. */
   remove = output<void>();
 
-  /** Vrai si on connaît la classification d'origine de l'habitat. */
-  hasOwnInfo = computed(() => !!(this.code() || this.typo()));
-
   expanded = signal(false);
   loading = signal(false);
   private loaded = signal(false);
-  private correspondances = signal<CorrespondanceHabitat[]>([]);
+  private relatedRaw = signal<CorrespondanceHabitat[]>([]);
+  /** Classification d'origine récupérée depuis le serveur (via cd_hab seul). */
+  private fetchedInfo = signal<HabitatOwnInfo | null>(null);
+
+  /** Code/typologie d'origine : valeur fournie en entrée (instantanée) sinon
+   * celle récupérée depuis le serveur — la puce est ainsi identique partout. */
+  displayCode = computed<string | null>(() => this.code() || this.fetchedInfo()?.lb_code || null);
+  displayTypo = computed<string | null>(() => this.typo() || this.fetchedInfo()?.lb_typo || null);
+  /** Vrai si on connaît la classification d'origine de l'habitat. */
+  hasOwnInfo = computed(() => !!(this.displayCode() || this.displayTypo()));
 
   /** Habitats liés (même référentiel) : code + nom, dédupliqués et plafonnés. */
   related = computed<{ items: RelatedHabitat[]; total: number; extra: number }>(() => {
     const seen = new Set<string>();
     const all: RelatedHabitat[] = [];
-    for (const c of this.correspondances()) {
+    for (const c of this.relatedRaw()) {
       const cd = (c.lb_code_entre || '').trim();
       const name = (c.lb_hab_entre || '').trim();
       if (!cd && !name) continue;
@@ -74,7 +80,8 @@ export class HabitatChipComponent {
       this.loading.set(true);
       this.habitatService.getCorrespondances(Number(this.cdHab())).subscribe({
         next: (res) => {
-          this.correspondances.set(res || []);
+          this.fetchedInfo.set(res?.habitat ?? null);
+          this.relatedRaw.set(res?.related ?? []);
           this.loaded.set(true);
           this.loading.set(false);
         },

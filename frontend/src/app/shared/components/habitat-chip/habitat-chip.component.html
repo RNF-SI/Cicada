@@ -1,6 +1,6 @@
 <span class="hchip" [class.hchip--open]="expanded()">
   <button type="button" class="hchip__main" (click)="toggle()">
-    <span class="hchip__code">{{ code() || cdHab() }}</span>
+    <span class="hchip__code">{{ displayCode() || cdHab() }}</span>
     <span class="hchip__name">{{ label() }}</span>
     <i class="fi fi-rr-angle-small-down hchip__caret"></i>
   </button>
@@ -19,8 +19,8 @@
       <div class="hchip__group hchip__group--self">
         <span class="hchip__typo">{{ 'enjeux.accordion.habitatOwnTypo' | translate }}</span>
         <span class="hchip__selfinfo">
-          @if (typo()) { <span class="hchip__typo-tag">{{ typo() }}</span> }
-          @if (code()) { <span class="hchip__codepill">{{ code() }}</span> }
+          @if (displayTypo()) { <span class="hchip__typo-tag">{{ displayTypo() }}</span> }
+          @if (displayCode()) { <span class="hchip__codepill">{{ displayCode() }}</span> }
           <span class="hchip__cdhab">cd_hab&nbsp;{{ cdHab() }}</span>
         </span>
       </div>

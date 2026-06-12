@@ -106,15 +106,41 @@ class HabrefViewSet(viewsets.ReadOnlyModelViewSet):
     )
     def correspondance(self, request, cd_hab=None):
         """
-        Correspondances entre typologies pour un habitat donné.
+        Classification d'origine d'un habitat + habitats liés (HabRef). #89
 
-        Les colonnes `lb_code_entre` / `lb_hab_entre` de habref_corresp_hab sont
-        souvent vides ; on les résout via `habref` (jointure sur cd_hab_entre) et
-        on ajoute le nom de la typologie (`lb_typo`). Indispensable pour afficher
-        un habitat dans d'autres référentiels (EUNIS, Corine, Cahiers…) — #89.
+        Réponse : {
+          "habitat": { cd_hab, lb_code, lb_typo, lb_hab_fr, lb_hab_fr_complet, niveau },
+          "related": [ { cd_hab_entre, cd_typo_entre, lb_typo, lb_code_entre, lb_hab_entre, ... } ]
+        }
+
+        Permet à la puce d'afficher la classification d'origine et les habitats
+        liés à partir du seul cd_hab — indépendamment de ce qui est stocké côté
+        enjeu/action (factorisation : même rendu partout).
+
+        NB : `habref_corresp_hab` ne contient que des relations intra-référentiel
+        (sous-types/associés), pas de cross-walk entre référentiels.
         """
         from django.db import connection
         with connection.cursor() as cur:
+            # Classification d'origine (depuis la table d'autocomplete dénormalisée)
+            cur.execute(
+                """
+                SELECT cd_hab, lb_code, lb_typo, lb_hab_fr, lb_hab_fr_complet, niveau
+                FROM ref_habitats.autocomplete_habitat
+                WHERE cd_hab = %s
+                LIMIT 1
+                """,
+                [cd_hab],
+            )
+            row = cur.fetchone()
+            habitat = None
+            if row:
+                hcols = ['cd_hab', 'lb_code', 'lb_typo', 'lb_hab_fr', 'lb_hab_fr_complet', 'niveau']
+                habitat = dict(zip(hcols, row))
+                if habitat.get('lb_typo'):
+                    habitat['lb_typo'] = habitat['lb_typo'].replace('_', ' ')
+
+            # Habitats liés (même référentiel) : code + nom résolus via habref.
             cur.execute(
                 """
                 SELECT c.id, c.cd_hab, c.cd_hab_entre, c.cd_typo_entre,
@@ -131,8 +157,8 @@ class HabrefViewSet(viewsets.ReadOnlyModelViewSet):
                 [cd_hab],
             )
             cols = [d[0] for d in cur.description]
-            rows = [dict(zip(cols, r)) for r in cur.fetchall()]
-        return Response(rows)
+            related = [dict(zip(cols, r)) for r in cur.fetchall()]
+        return Response({'habitat': habitat, 'related': related})
 
     @action(detail=False, methods=['post'], url_path='validate-bulk')
     def validate_bulk(self, request):
