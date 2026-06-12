@@ -18,6 +18,14 @@
 
   &.row-with-action { align-items: center; }
   .flex-1 { flex: 1 1 0; min-width: 0; }
+
+  // Neutralise la règle globale `app-form-field + app-form-field { margin-top }`
+  // (styles.scss) : côte à côte dans une grille, les champs doivent rester
+  // alignés en haut. L'espacement vertical entre lignes vient du gap du
+  // conteneur `.metrique-form`.
+  app-form-field {
+    margin-top: 0;
+  }
 }
 
 .required { color: $error-color; }

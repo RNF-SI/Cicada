@@ -30,34 +30,34 @@
              required>
     </app-form-field>
 
-    <label class="app-mat-label">{{ 'enjeux.metriques.typeLabel' | translate }}</label>
-      <mat-form-field class="app-mat-form-field flex-1" appearance="outline">
-      <mat-label></mat-label>
-      <mat-select [(ngModel)]="metrique.type_metrique" (selectionChange)="emitChange()">
+    <app-form-field class="flex-1"
+                    [label]="'enjeux.metriques.typeLabel' | translate">
+      <select [(ngModel)]="metrique.type_metrique" (ngModelChange)="emitChange()">
+        <option [ngValue]="null">{{ 'common.actions.select' | translate }}</option>
         @for (opt of typeMetriqueOptions; track trackByOptionId($index, opt)) {
-          <mat-option [value]="opt.id_nomenclature">{{ opt.label }}</mat-option>
+          <option [ngValue]="opt.id_nomenclature">{{ opt.label }}</option>
         }
-      </mat-select>
-    </mat-form-field>
+      </select>
+    </app-form-field>
   </div>
 
   <!-- Ligne 3 : Pondération + État de référence -->
   <div class="row">
-    <app-form-field [label]="'enjeux.metriques.ponderationLabel' | translate">
-  <input
-             type="number"
+    <app-form-field class="flex-1"
+                    [label]="'enjeux.metriques.ponderationLabel' | translate">
+      <input type="number"
              step="0.1"
              min="0"
              [(ngModel)]="metrique.ponderation"
              (ngModelChange)="emitChange()">
-</app-form-field>
+    </app-form-field>
 
-    <app-form-field [label]="'enjeux.metriques.etatReferenceLabel' | translate">
-  <input
-             type="text"
+    <app-form-field class="flex-1"
+                    [label]="'enjeux.metriques.etatReferenceLabel' | translate">
+      <input type="text"
              [(ngModel)]="metrique.etat_reference"
              (ngModelChange)="emitChange()">
-</app-form-field>
+    </app-form-field>
   </div>
 
   <!-- #247 : formule interactive. Cliquer sur un nom de bloc le sélectionne ;
