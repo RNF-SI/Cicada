@@ -1029,6 +1029,8 @@
                                                                       <span class="cell-op">{{ line.op === 'AND' ? ('enjeux.metriques.opAnd' | translate) : ('enjeux.metriques.opOr' | translate) }}</span>
                                                                     }
                                                                     @if (line.openParen) { <span class="cell-paren">(</span> }
+                                                                    <!-- #340 — parité design avec les indicateurs de pression : afficher l'étiquette du bloc (Bloc A/B…) -->
+                                                                    <span class="cell-block-label">{{ line.blockLabel }} :</span>
                                                                     <span class="cell-interval">{{ line.text }}</span>
                                                                     @if (line.closeParen) { <span class="cell-paren">)</span> }
                                                                   </div>
