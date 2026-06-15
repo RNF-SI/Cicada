@@ -2001,18 +2001,53 @@ export class OperationFormComponent implements OnInit {
   }
 
   /**
-   * Applique la fréquence (frequence_nombre + frequence_unite) aux années :
-   * coche periodicite=true sur les années correspondantes à partir de la 1ère année du plan.
-   * Appelé quand l'utilisateur change l'unité de fréquence ou clique sur "Appliquer".
+   * Applique la fréquence (frequence_nombre + frequence_unite) aux années.
+   *
+   * #374 — La périodicité doit correspondre aux années réellement saisies (budget /
+   * ETP / jours renseignés) et à la fréquence choisie. On ancre donc le pas de
+   * fréquence à la 1re année saisie et on coche tous les `step` ans jusqu'à la
+   * dernière année saisie — sans marquer d'années parasites avant la 1re saisie ni
+   * après la dernière (l'ancien calcul `i % step` partait de la 1re année du plan,
+   * ce qui décalait les ronds, ex. 2025/2030 au lieu de 2026/2031).
    */
   applyFrequencyToAnnees(): void {
     const unite = this.form.get('frequence_unite')?.value;
     const step = this.getYearStepFromFrequence(unite);
     if (step === 0 || this.operationAnnees.length === 0) return;
 
+    const dataIdx: number[] = [];
     for (let i = 0; i < this.operationAnnees.length; i++) {
-      this.operationAnnees[i].periodicite = (i % step === 0);
+      if (this.anneeIndexHasData(i)) dataIdx.push(i);
     }
+    // À défaut de saisie, on retombe sur toute la plage à partir de la 1re année.
+    const first = dataIdx.length > 0 ? dataIdx[0] : 0;
+    const last = dataIdx.length > 0 ? dataIdx[dataIdx.length - 1] : this.operationAnnees.length - 1;
+
+    for (let i = 0; i < this.operationAnnees.length; i++) {
+      this.operationAnnees[i].periodicite = i >= first && i <= last && ((i - first) % step === 0);
+    }
+  }
+
+  /**
+   * #374 — Une année est considérée « saisie » si un budget ou un nombre de jours
+   * (ETP) y a été renseigné, quel que soit le mode de ventilation (direct, par
+   * organisme, par type, par organisme+type).
+   */
+  private anneeIndexHasData(i: number): boolean {
+    const dt = this.directTotals[i];
+    if (dt && (dt.budget != null || dt.etp != null)) return true;
+    const tb = this.typeBudgets[i];
+    if (tb && (tb.fonct != null || tb.invest != null || tb.etp != null)) return true;
+    const oa = this.operationAnnees[i];
+    if (oa && (oa.budget != null || oa.etp != null || oa.budget_fonctionnement != null || oa.budget_investissement != null)) return true;
+    for (const org of this.availableOrganismes()) {
+      const key = this.orgKey(i, org.id_organisme);
+      const ob = this.orgBudgets[key];
+      if (ob && (ob.fonct != null || ob.invest != null || ob.etp != null)) return true;
+      const obo = this.orgByOrgData[key];
+      if (obo && (obo.budget != null || obo.etp != null)) return true;
+    }
+    return false;
   }
 
   updateEtp(index: number, value: string): void {
