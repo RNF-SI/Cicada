@@ -1121,21 +1121,31 @@ label.app-mat-label + app-form-field,
 // #227 — Recherche dans le sélecteur « Métriques associées » (mat-select rendu
 // en overlay → styles globaux). Champ aligné kit UI (Nunito, accent primaire).
 .metrique-select-panel {
-  .select-search {
+  // Barre d'outils collante : recherche + filtre de portée
+  .select-toolbar {
     position: sticky;
     top: 0;
     z-index: 1;
     display: flex;
     align-items: center;
-    gap: $spacing-xs;
+    gap: $spacing-sm;
     padding: $spacing-xs $spacing-sm;
     background: $white;
     border-bottom: 1px solid $gray-light;
+  }
+
+  .select-search {
+    display: flex;
+    align-items: center;
+    gap: $spacing-xs;
+    flex: 1;
+    min-width: 0;
 
     .select-search-icon { color: $primary-color; font-size: 0.95rem; }
 
     .select-search-input {
       flex: 1;
+      min-width: 0;
       border: none;
       outline: none;
       background: transparent;
@@ -1146,6 +1156,36 @@ label.app-mat-label + app-form-field,
       &::placeholder { color: $gray-dark; }
     }
   }
+
+  // Filtre de portée « Cet indicateur » / « Tout le plan » (segmenté, kit UI)
+  .select-scope-toggle {
+    display: inline-flex;
+    flex-shrink: 0;
+    border: 1px solid $primary-color;
+    border-radius: $border-radius-pill;
+    overflow: hidden;
+
+    button {
+      border: none;
+      background: transparent;
+      cursor: pointer;
+      padding: 2px 10px;
+      font-family: $font-family;
+      font-size: 12px;
+      font-weight: $font-weight-semibold;
+      color: $primary-color;
+      white-space: nowrap;
+
+      &.active {
+        background: $primary-color;
+        color: $white;
+      }
+    }
+  }
+
+  // Option : nom de la métrique + indicateur sur la même ligne
+  .opt-metrique-nom { font-weight: $font-weight-semibold; }
+  .opt-metrique-ind { color: $gray-dark; margin-left: 4px; font-size: 0.85em; }
 
   .select-no-result {
     padding: $spacing-sm;

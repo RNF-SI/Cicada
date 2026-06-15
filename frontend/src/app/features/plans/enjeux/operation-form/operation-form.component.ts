@@ -221,8 +221,22 @@ export class OperationFormComponent implements OnInit {
   planIndicateurs = signal<{ id_indicateur: number; nom_indicateur: string }[]>([]);
   planMetriques = signal<{ id_metrique: number; nom_metrique: string; indicateur_nom: string; indicateur_id: number }[]>([]);
 
-  /** #227 — Terme de recherche du sélecteur « Métriques associées » (filtre maison). */
+  /** #227 — Sélecteur « Métriques associées » : terme de recherche + portée. */
   metriqueSearch = signal('');
+  /** Portée du filtre : 'indicateur' = métriques de l'indicateur de l'action ; 'plan' = tout le plan. */
+  metriqueScope = signal<'indicateur' | 'plan'>('indicateur');
+
+  /** Indicateur de l'action courante : rattachement direct, sinon indicateur de la 1re métrique pré-liée. */
+  currentIndicateurId = computed<number | null>(() => {
+    const direct = this.prelinkedIndicateurId();
+    if (direct) return direct;
+    const firstMet = this.prelinkedMetriqueIds()[0];
+    if (firstMet) {
+      const m = this.planMetriques().find(x => x.id_metrique === firstMet);
+      return m?.indicateur_id ?? null;
+    }
+    return null;
+  });
 
   /** Réinitialise la recherche à la fermeture du panneau de sélection. */
   onMetriquePanelToggle(opened: boolean): void {
@@ -230,29 +244,19 @@ export class OperationFormComponent implements OnInit {
   }
 
   /**
-   * #227/#373 — Métriques groupées par indicateur pour le sélecteur « Métriques
-   * associées » : l'indicateur de l'action en premier (« même indicateur »),
-   * puis les autres indicateurs du plan. Filtré par `metriqueSearch`.
+   * #227 — Liste plate des métriques pour le sélecteur, filtrée par la portée
+   * (cet indicateur / tout le plan) et par le terme de recherche. Chaque option
+   * affiche, sur une seule ligne, le nom de la métrique + son indicateur.
    */
-  metriquesGroupes = computed(() => {
-    const currentInd = this.prelinkedIndicateurId();
+  metriquesFiltrees = computed(() => {
     const term = this.metriqueSearch().trim().toLowerCase();
-    const byInd = new Map<number, { indicateur_id: number; indicateur_nom: string; metriques: { id_metrique: number; nom_metrique: string }[] }>();
-    for (const m of this.planMetriques()) {
-      if (term && !(`${m.nom_metrique} ${m.indicateur_nom}`.toLowerCase().includes(term))) continue;
-      if (!byInd.has(m.indicateur_id)) {
-        byInd.set(m.indicateur_id, { indicateur_id: m.indicateur_id, indicateur_nom: m.indicateur_nom, metriques: [] });
-      }
-      byInd.get(m.indicateur_id)!.metriques.push({ id_metrique: m.id_metrique, nom_metrique: m.nom_metrique });
-    }
-    const groups = Array.from(byInd.values());
-    // L'indicateur courant (celui de l'action) remonte en tête.
-    groups.sort((a, b) => {
-      if (currentInd && a.indicateur_id === currentInd) return -1;
-      if (currentInd && b.indicateur_id === currentInd) return 1;
-      return a.indicateur_nom.localeCompare(b.indicateur_nom);
+    const scope = this.metriqueScope();
+    const curInd = this.currentIndicateurId();
+    return this.planMetriques().filter(m => {
+      if (scope === 'indicateur' && curInd != null && m.indicateur_id !== curInd) return false;
+      if (term && !(`${m.nom_metrique} ${m.indicateur_nom}`.toLowerCase().includes(term))) return false;
+      return true;
     });
-    return groups.map(g => ({ ...g, isCurrent: currentInd != null && g.indicateur_id === currentInd }));
   });
 
   // Programmation annuelle via OperationAnnee[]

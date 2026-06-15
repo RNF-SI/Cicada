@@ -2817,6 +2817,8 @@
       "metriqueLinkedTooltip": "Métrique associée à cette action",
       "metriquesSameIndicateur": "même indicateur",
       "metriquesOtherIndicateur": "autre indicateur du plan",
+      "scopeIndicateur": "Cet indicateur",
+      "scopePlan": "Tout le plan",
       "intituleIndicateurReponse": "Intitulé de l'indicateur de réponse",
       "typeMetrique": "Type de métriques",
       "valeurCible": "Valeur cible",
