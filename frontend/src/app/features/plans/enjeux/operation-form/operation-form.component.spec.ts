@@ -356,4 +356,25 @@ describe('OperationFormComponent — ventilation budgétaire', () => {
       expect(markedYears(c)).toEqual([]);
     });
   });
+
+  // -------------------------------------------------------------------------
+  // Verrouillage des colonnes non programmées (saisie budget/ETP grisée)
+  // -------------------------------------------------------------------------
+  describe('isYearLocked', () => {
+    it('verrouille les années dont la périodicité n\'est pas cochée', () => {
+      const c = createComponentInstance();
+      c.operationAnnees = [
+        { annee: 2025, periodicite: true, budget: null, etp: null, periodicite_mensuelle: {} },
+        { annee: 2026, periodicite: false, budget: null, etp: null, periodicite_mensuelle: {} },
+      ];
+      expect(c.isYearLocked(0)).toBe(false);
+      expect(c.isYearLocked(1)).toBe(true);
+    });
+
+    it('verrouille un index hors plage (sécurité)', () => {
+      const c = createComponentInstance();
+      c.operationAnnees = [];
+      expect(c.isYearLocked(0)).toBe(true);
+    });
+  });
 });

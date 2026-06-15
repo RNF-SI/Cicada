@@ -359,6 +359,19 @@ $form-side-margin: $spacing-xxl;
   }
 }
 
+// #374 — Colonne dont la périodicité n'est pas cochée : saisie verrouillée et grisée.
+.prog-input:disabled {
+  color: $gray;
+  cursor: not-allowed;
+  background-color: transparent;
+}
+.prog-input-wrapper:has(.prog-input:disabled) {
+  background-color: $gray-lighter;
+  border-color: $gray-lighter;
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
 .prog-bar {
   height: 6px;
   margin-top: $spacing-sm;

@@ -1978,6 +1978,14 @@ export class OperationFormComponent implements OnInit {
     }
   }
 
+  /**
+   * #374 — Une année dont la périodicité n'est pas cochée n'est pas programmée :
+   * on grise et on verrouille la saisie de budget / ETP de cette colonne.
+   */
+  isYearLocked(index: number): boolean {
+    return !this.operationAnnees[index]?.periodicite;
+  }
+
   updateBudget(index: number, value: string): void {
     this.operationAnnees[index].budget = this.parseDecimal(value);
   }

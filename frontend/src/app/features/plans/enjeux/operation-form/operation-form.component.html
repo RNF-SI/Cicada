@@ -637,6 +637,7 @@
                                   <div class="prog-input-wrapper">
                                     <input type="text" inputmode="decimal"
                                            class="prog-input prog-input-suffixed"
+                                           [disabled]="isYearLocked(i)"
                                            [value]="formatBudget(getOrgBudget(i, org.id_organisme).fonct)"
                                            (change)="updateOrgBudgetFonct(i, org.id_organisme, $any($event.target).value)">
                                     <span class="prog-input-suffix">€</span>
@@ -652,6 +653,7 @@
                                   <div class="prog-input-wrapper">
                                     <input type="text" inputmode="decimal"
                                            class="prog-input prog-input-suffixed"
+                                           [disabled]="isYearLocked(i)"
                                            [value]="formatBudget(getOrgBudget(i, org.id_organisme).invest)"
                                            (change)="updateOrgBudgetInvest(i, org.id_organisme, $any($event.target).value)">
                                     <span class="prog-input-suffix">€</span>
@@ -676,6 +678,7 @@
                                   <div class="prog-input-wrapper">
                                     <input type="text" inputmode="decimal"
                                            class="prog-input prog-input-suffixed"
+                                           [disabled]="isYearLocked(i)"
                                            [value]="formatBudget(getOrgBudget(i, org.id_organisme).etp)"
                                            (change)="updateOrgEtp(i, org.id_organisme, $any($event.target).value)">
                                     <span class="prog-input-suffix">j</span>
@@ -724,6 +727,7 @@
                                   <div class="prog-input-wrapper">
                                     <input type="text" inputmode="decimal"
                                            class="prog-input prog-input-suffixed"
+                                           [disabled]="isYearLocked(i)"
                                            [value]="formatBudget(getOrgByOrgData(i, org.id_organisme).budget)"
                                            (change)="updateOrgByOrgBudget(i, org.id_organisme, $any($event.target).value)">
                                     <span class="prog-input-suffix">€</span>
@@ -739,6 +743,7 @@
                                   <div class="prog-input-wrapper">
                                     <input type="text" inputmode="decimal"
                                            class="prog-input prog-input-suffixed"
+                                           [disabled]="isYearLocked(i)"
                                            [value]="formatBudget(getOrgByOrgData(i, org.id_organisme).etp)"
                                            (change)="updateOrgByOrgEtp(i, org.id_organisme, $any($event.target).value)">
                                     <span class="prog-input-suffix">j</span>
@@ -779,6 +784,7 @@
                                 <div class="prog-input-wrapper">
                                   <input type="text" inputmode="decimal"
                                          class="prog-input prog-input-suffixed"
+                                           [disabled]="isYearLocked(i)"
                                          [value]="formatBudget(getTypeBudget(i).fonct)"
                                          (change)="updateTypeFonct(i, $any($event.target).value)">
                                   <span class="prog-input-suffix">€</span>
@@ -793,6 +799,7 @@
                                 <div class="prog-input-wrapper">
                                   <input type="text" inputmode="decimal"
                                          class="prog-input prog-input-suffixed"
+                                           [disabled]="isYearLocked(i)"
                                          [value]="formatBudget(getTypeBudget(i).invest)"
                                          (change)="updateTypeInvest(i, $any($event.target).value)">
                                   <span class="prog-input-suffix">€</span>
@@ -815,6 +822,7 @@
                                 <div class="prog-input-wrapper">
                                   <input type="text" inputmode="decimal"
                                          class="prog-input prog-input-suffixed"
+                                           [disabled]="isYearLocked(i)"
                                          [value]="formatBudget(getTypeBudget(i).etp)"
                                          (change)="updateTypeEtp(i, $any($event.target).value)">
                                   <span class="prog-input-suffix">j</span>
@@ -832,6 +840,7 @@
                                 <div class="prog-input-wrapper">
                                   <input type="text" inputmode="decimal"
                                          class="prog-input prog-input-suffixed"
+                                           [disabled]="isYearLocked(i)"
                                          [value]="formatBudget(getDirectTotal(i).budget)"
                                          (change)="updateDirectBudget(i, $any($event.target).value)">
                                   <span class="prog-input-suffix">€</span>
@@ -846,6 +855,7 @@
                                 <div class="prog-input-wrapper">
                                   <input type="text" inputmode="decimal"
                                          class="prog-input prog-input-suffixed"
+                                           [disabled]="isYearLocked(i)"
                                          [value]="formatBudget(getDirectTotal(i).etp)"
                                          (change)="updateDirectEtp(i, $any($event.target).value)">
                                   <span class="prog-input-suffix">j</span>
@@ -863,6 +873,7 @@
                                 <div class="prog-input-wrapper">
                                   <input type="text" inputmode="decimal"
                                          class="prog-input prog-input-suffixed"
+                                           [disabled]="isYearLocked(i)"
                                          [value]="formatBudget(annee.budget)"
                                          (change)="updateBudget(i, $any($event.target).value)">
                                   <span class="prog-input-suffix">€</span>
@@ -877,6 +888,7 @@
                                 <div class="prog-input-wrapper">
                                   <input type="text" inputmode="decimal"
                                          class="prog-input prog-input-suffixed"
+                                           [disabled]="isYearLocked(i)"
                                          [value]="formatBudget(annee.etp)"
                                          (change)="updateEtp(i, $any($event.target).value)">
                                   <span class="prog-input-suffix">j</span>
