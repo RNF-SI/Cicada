@@ -216,7 +216,7 @@ class ObjectifOperationnelSerializer(serializers.ModelSerializer):
     class Meta:
         model = ObjectifOperationnel
         fields = [
-            'id_oo', 'pressions', 'pression_ids',
+            'id_oo', 'pressions', 'pression_ids', 'id_enjeu',
             'libelle', 'description', 'ordre',
             'resultats_attendus', 'nb_resultats_attendus',
             'date_ajout', 'date_maj', 'createur_nom'
@@ -240,7 +240,7 @@ class ObjectifOperationnelListSerializer(serializers.ModelSerializer):
     class Meta:
         model = ObjectifOperationnel
         fields = [
-            'id_oo', 'pressions', 'pression_ids',
+            'id_oo', 'pressions', 'pression_ids', 'id_enjeu',
             'libelle', 'description', 'ordre',
             'nb_resultats_attendus',
             'date_ajout', 'date_maj', 'createur_nom'
@@ -255,7 +255,11 @@ class ObjectifOperationnelListSerializer(serializers.ModelSerializer):
 
 
 class ObjectifOperationnelCreateSerializer(serializers.ModelSerializer):
-    """Serializer pour la création/modification d'un Objectif Opérationnel."""
+    """Serializer pour la création/modification d'un Objectif Opérationnel.
+
+    Un OO est rattaché soit à des pressions (cas Enjeu), soit directement à un
+    enjeu/FCR via ``id_enjeu`` (cas FCR sans pression, #337).
+    """
     pression_ids = serializers.ListField(
         child=serializers.IntegerField(),
         write_only=True,
@@ -266,10 +270,21 @@ class ObjectifOperationnelCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = ObjectifOperationnel
         fields = [
-            'id_oo', 'pression_ids',
+            'id_oo', 'pression_ids', 'id_enjeu',
             'libelle', 'description', 'ordre'
         ]
         read_only_fields = ['id_oo']
+
+    def validate(self, attrs):
+        """#337 — un OO doit être ancré soit à des pressions, soit à un enjeu."""
+        if self.instance is None:
+            pression_ids = attrs.get('pression_ids') or []
+            id_enjeu = attrs.get('id_enjeu')
+            if not pression_ids and not id_enjeu:
+                raise serializers.ValidationError(
+                    _("Un objectif opérationnel doit être rattaché à au moins une pression ou à un enjeu.")
+                )
+        return attrs
 
     def create(self, validated_data):
         pression_ids = validated_data.pop('pression_ids', [])
@@ -513,6 +528,14 @@ class EnjeuDetailSerializer(serializers.ModelSerializer):
     objectifs_long_terme = ObjectifLongTermeSerializer(many=True, read_only=True)
     nb_objectifs_long_terme = serializers.SerializerMethodField()
 
+    # #337 — Objectifs opérationnels rattachés directement à l'enjeu/FCR
+    # (sans pression). Pour un Enjeu classique, les OO transitent par les
+    # pressions ; pour un FCR, ils sont exposés ici.
+    objectifs_operationnels = ObjectifOperationnelSerializer(
+        source='objectifs_operationnels_directs', many=True, read_only=True
+    )
+    nb_objectifs_operationnels = serializers.SerializerMethodField()
+
     # Créateur
     createur_nom = serializers.CharField(source='id_utilisateur_ajout.get_full_name', read_only=True)
 
@@ -537,6 +560,8 @@ class EnjeuDetailSerializer(serializers.ModelSerializer):
             'facteurs_influence', 'nb_facteurs_influence',
             # Objectifs à long terme (avec NE inclus)
             'objectifs_long_terme', 'nb_objectifs_long_terme',
+            # #337 — OO rattachés directement (FCR)
+            'objectifs_operationnels', 'nb_objectifs_operationnels',
             # Audit
             'date_ajout', 'date_maj', 'id_utilisateur_ajout', 'createur_nom'
         ]
@@ -547,6 +572,9 @@ class EnjeuDetailSerializer(serializers.ModelSerializer):
 
     def get_nb_objectifs_long_terme(self, obj):
         return _prefetched_count(obj, 'objectifs_long_terme')
+
+    def get_nb_objectifs_operationnels(self, obj):
+        return _prefetched_count(obj, 'objectifs_operationnels_directs')
 
 
 class EnjeuCreateSerializer(serializers.ModelSerializer):

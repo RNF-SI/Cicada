@@ -1363,10 +1363,10 @@
           <!-- Tab: Vision opérationnelle -->
           @if (activeTab() === 'operations') {
             <div class="oo-content">
-              <!-- Note contextuelle -->
+              <!-- Note contextuelle (#337 — variante FCR : pas de pression requise) -->
               <div class="olt-info-note">
                 <i class="fi fi-rr-info"></i>
-                <span>{{ 'enjeux.oo.usageNote' | translate }}</span>
+                <span>{{ (isSelectedFcr() ? 'enjeux.oo.usageNoteFcr' : 'enjeux.oo.usageNote') | translate }}</span>
               </div>
 
               <!-- Barre haut : compteur -->
@@ -1394,6 +1394,8 @@
                       <app-form-field class="full-width" [label]="'enjeux.oo.descriptionLabel' | translate">
   <textarea [(ngModel)]="editOoDescription" rows="2"></textarea>
 </app-form-field>
+                      <!-- #337 — pas de pression pour un FCR : OO rattaché directement -->
+                      @if (!isSelectedFcr()) {
                       <label class="app-mat-label">{{ 'enjeux.oo.pressionLabel' | translate }} *</label>
       <mat-form-field class="full-width app-mat-form-field" appearance="outline">
                         <mat-label></mat-label>
@@ -1407,9 +1409,10 @@
                           }
                         </mat-select>
                       </mat-form-field>
+                      }
                     </div>
                     <div class="inline-form-actions">
-                      <button mat-flat-button color="primary" (click)="saveEditOo(oo)" [disabled]="!editOoLibelle.trim() || editOoPressionIds.length === 0">
+                      <button mat-flat-button color="primary" (click)="saveEditOo(oo)" [disabled]="!editOoLibelle.trim() || (!isSelectedFcr() && editOoPressionIds.length === 0)">
                         {{ 'common.actions.save' | translate }}
                       </button>
                       <button mat-stroked-button (click)="cancelEditOo()">
@@ -2078,6 +2081,8 @@
                     <app-form-field class="full-width" [label]="'enjeux.oo.descriptionLabel' | translate">
   <textarea [(ngModel)]="newOoDescription" rows="2"></textarea>
 </app-form-field>
+                    <!-- #337 — pas de pression pour un FCR : OO rattaché directement -->
+                    @if (!isSelectedFcr()) {
                     <label class="app-mat-label">{{ 'enjeux.oo.pressionLabel' | translate }} *</label>
       <mat-form-field class="full-width app-mat-form-field" appearance="outline">
                       <mat-label></mat-label>
@@ -2091,9 +2096,10 @@
                         }
                       </mat-select>
                     </mat-form-field>
+                    }
                   </div>
                   <div class="inline-form-actions">
-                    <button mat-flat-button color="primary" (click)="saveOo()" [disabled]="!newOoLibelle.trim() || newOoPressionIds.length === 0">
+                    <button mat-flat-button color="primary" (click)="saveOo()" [disabled]="!newOoLibelle.trim() || (!isSelectedFcr() && newOoPressionIds.length === 0)">
                       {{ 'common.actions.save' | translate }}
                     </button>
                     <button mat-stroked-button (click)="cancelAddOo()">
@@ -2103,16 +2109,16 @@
                 </div>
               }
 
-              <!-- Bouton ajouter un OO (visible seulement si au moins une pression existe) -->
-              @if (!addingOo() && selectedPressions().length > 0 && canEditPlan()) {
+              <!-- Bouton ajouter un OO : au moins une pression (Enjeu) OU un FCR (#337) -->
+              @if (!addingOo() && (selectedPressions().length > 0 || isSelectedFcr()) && canEditPlan()) {
                 <button class="add-item-btn" (click)="startAddOo()">
                   <i class="fi fi-rr-plus-small"></i>
                   {{ 'enjeux.oo.addButton' | translate }}
                 </button>
               }
 
-              <!-- Message si aucune pression (guard : créer une pression d'abord) -->
-              @if (selectedPressions().length === 0 && totalOoCount() === 0 && !addingOo()) {
+              <!-- Message si aucune pression (guard : créer une pression d'abord). Pas pour un FCR (#337). -->
+              @if (!isSelectedFcr() && selectedPressions().length === 0 && totalOoCount() === 0 && !addingOo()) {
                 <div class="info-block info-block-warning">
                   <div class="info-icon">
                     <i class="fi fi-rr-exclamation"></i>
@@ -2124,8 +2130,8 @@
                 </div>
               }
 
-              <!-- Empty state si aucun OO mais des pressions existent -->
-              @if (totalOoCount() === 0 && selectedPressions().length > 0 && !addingOo()) {
+              <!-- Empty state si aucun OO mais des pressions existent (ou FCR, #337) -->
+              @if (totalOoCount() === 0 && (selectedPressions().length > 0 || isSelectedFcr()) && !addingOo()) {
                 <div class="info-block">
                   <div class="info-icon">
                     <i class="fi fi-rr-lightbulb-on"></i>

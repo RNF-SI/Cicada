@@ -131,6 +131,10 @@ export interface Enjeu {
   objectifs_long_terme?: ObjectifLongTerme[];
   nb_objectifs_long_terme?: number;
 
+  // #337 — Objectifs opérationnels rattachés directement (cas FCR, sans pression)
+  objectifs_operationnels?: ObjectifOperationnel[];
+  nb_objectifs_operationnels?: number;
+
   // Audit
   date_ajout: string;
   date_maj: string;
@@ -239,6 +243,8 @@ export interface ObjectifOperationnel {
   id_oo: number;
   pressions: PressionLight[];
   pression_ids: number[];
+  // #337 — rattachement direct à un enjeu/FCR (sans pression). null pour les OO classiques.
+  id_enjeu?: number | null;
   libelle: string;
   description?: string;
   resultats_attendus?: ResultatAttendu[];
@@ -753,7 +759,9 @@ export interface IndicateurCreatePayload {
  * Payload for creating an ObjectifOperationnel
  */
 export interface ObjectifOperationnelCreatePayload {
-  pression_ids: number[];
+  // #337 — un OO est rattaché soit à des pressions (Enjeu), soit à un enjeu (FCR)
+  pression_ids?: number[];
+  id_enjeu?: number;
   libelle: string;
   description?: string;
 }

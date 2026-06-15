@@ -7,7 +7,7 @@ from rest_framework import status
 from apps.plans.models_enjeux import ObjectifOperationnel, ResultatAttendu
 from apps.plans.models_indicateurs import Indicateur
 from tests.factories.enjeux import (
-    EnjeuFactory, FacteurInfluenceFactory, PressionFactory,
+    EnjeuFactory, FcrFactory, FacteurInfluenceFactory, PressionFactory,
     ObjectifOperationnelFactory, ResultatAttenduFactory,
     IndicateurPressionFactory, MetriqueFactory,
     NomenclatureEnjeuFactory, NomenclatureTypeIndicateurFactory,
@@ -197,6 +197,74 @@ class TestObjectifOperationnelCreate:
         assert response.status_code == status.HTTP_201_CREATED
         oo = ObjectifOperationnel.objects.get(libelle='OO Audit')
         assert oo.id_utilisateur_ajout == oo_test_data['super_admin']
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+class TestObjectifOperationnelFcr:
+    """#337 — un OO peut être créé sur un FCR sans pression préalable."""
+
+    def _make_fcr(self, oo_test_data):
+        return FcrFactory(
+            id_pg=oo_test_data['plan'],
+            libelle='FCR Gouvernance',
+            id_utilisateur_ajout=oo_test_data['referent'],
+        )
+
+    def test_referent_creates_oo_on_fcr_without_pression(self, api_client, oo_test_data):
+        """Un référent crée un OO rattaché directement au FCR (aucune pression)."""
+        fcr = self._make_fcr(oo_test_data)
+        api_client.force_authenticate(user=oo_test_data['referent'])
+        response = api_client.post('/api/plans/objectifs-operationnels/', {
+            'id_enjeu': fcr.id_enjeu,
+            'libelle': 'OO du FCR',
+            'description': 'Sans pression',
+        }, format='json')
+        assert response.status_code == status.HTTP_201_CREATED
+        oo = ObjectifOperationnel.objects.get(libelle='OO du FCR')
+        assert oo.id_enjeu_id == fcr.id_enjeu
+        assert oo.pressions.count() == 0
+        # Le plan est résolu via l'enjeu pour le check de permission (#248)
+        assert oo.get_plan_de_gestion() == oo_test_data['plan']
+
+    def test_create_without_pression_nor_enjeu_rejected(self, api_client, oo_test_data):
+        """Un OO sans pression ni enjeu est rejeté (400)."""
+        api_client.force_authenticate(user=oo_test_data['referent'])
+        response = api_client.post('/api/plans/objectifs-operationnels/', {
+            'libelle': 'OO orphelin',
+        }, format='json')
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+    def test_fcr_oo_exposed_in_by_plan(self, api_client, oo_test_data):
+        """L'OO direct du FCR apparaît dans by-plan sous objectifs_operationnels."""
+        fcr = self._make_fcr(oo_test_data)
+        ObjectifOperationnelFactory(
+            id_enjeu=fcr, libelle='OO exposé',
+            id_utilisateur_ajout=oo_test_data['referent'],
+        )
+        api_client.force_authenticate(user=oo_test_data['referent'])
+        plan_id = oo_test_data['plan'].id_pg
+        response = api_client.get(f'/api/plans/enjeux/by-plan/{plan_id}/')
+        assert response.status_code == status.HTTP_200_OK
+        fcr_data = [f for f in response.data['fcr'] if f['id_enjeu'] == fcr.id_enjeu][0]
+        oos = fcr_data['objectifs_operationnels']
+        assert len(oos) == 1
+        assert oos[0]['libelle'] == 'OO exposé'
+        assert oos[0]['id_enjeu'] == fcr.id_enjeu
+        assert oos[0]['pression_ids'] == []
+
+    def test_create_oo_on_fcr_blocked_when_plan_not_draft(self, api_client, oo_test_data):
+        """#248 — création bloquée (403) si le plan du FCR n'est pas en brouillon."""
+        fcr = self._make_fcr(oo_test_data)
+        plan = oo_test_data['plan']
+        plan.statut = 'valide'
+        plan.save(update_fields=['statut'])
+        api_client.force_authenticate(user=oo_test_data['referent'])
+        response = api_client.post('/api/plans/objectifs-operationnels/', {
+            'id_enjeu': fcr.id_enjeu,
+            'libelle': 'OO interdit',
+        }, format='json')
+        assert response.status_code == status.HTTP_403_FORBIDDEN
 
 
 @pytest.mark.django_db

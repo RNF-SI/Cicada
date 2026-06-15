@@ -1138,14 +1138,18 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
   // ont le bon `ordre` au moment où on les lit ici).
   selectedOos = computed(() => {
     this.planEnjeuxData();  // force dep on root signal
+    // #337 — un FCR n'a pas de pression : ses OO sont rattachés directement à
+    // l'enjeu et exposés via `objectifs_operationnels`.
+    const enjeu = this.selectedEnjeu();
+    const source = this.isSelectedFcr()
+      ? (enjeu?.objectifs_operationnels || [])
+      : this.selectedPressions().flatMap(p => p.objectifs_operationnels || []);
     const seen = new Set<number>();
-    const unique = this.selectedPressions()
-      .flatMap(p => p.objectifs_operationnels || [])
-      .filter(oo => {
-        if (seen.has(oo.id_oo)) return false;
-        seen.add(oo.id_oo);
-        return true;
-      });
+    const unique = source.filter(oo => {
+      if (seen.has(oo.id_oo)) return false;
+      seen.add(oo.id_oo);
+      return true;
+    });
     return [...unique].sort((a, b) => {
       const ordreA = (a as any).ordre ?? 0;
       const ordreB = (b as any).ordre ?? 0;
@@ -3909,10 +3913,13 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
 
   saveOo(): void {
     const enjeu = this.selectedEnjeu();
-    if (!enjeu || !this.newOoLibelle.trim() || this.newOoPressionIds.length === 0) return;
+    if (!enjeu || !this.newOoLibelle.trim()) return;
+    const isFcr = this.isSelectedFcr();
+    // #337 — pour un FCR, l'OO est rattaché directement à l'enjeu (sans pression).
+    if (!isFcr && this.newOoPressionIds.length === 0) return;
 
     this.enjeuService.createObjectifOperationnel({
-      pression_ids: this.newOoPressionIds,
+      ...(isFcr ? { id_enjeu: enjeu.id_enjeu } : { pression_ids: this.newOoPressionIds }),
       libelle: this.newOoLibelle.trim(),
       description: this.newOoDescription.trim() || undefined,
     }).subscribe({
@@ -3946,10 +3953,14 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
   }
 
   saveEditOo(oo: ObjectifOperationnel): void {
-    if (!this.editOoLibelle.trim() || this.editOoPressionIds.length === 0) return;
+    if (!this.editOoLibelle.trim()) return;
+    // #337 — un OO de FCR (rattaché directement à l'enjeu) n'a pas de pression :
+    // on ne modifie que le libellé/description sans toucher au rattachement.
+    const isFcr = this.isSelectedFcr();
+    if (!isFcr && this.editOoPressionIds.length === 0) return;
 
     this.enjeuService.updateObjectifOperationnel(oo.id_oo, {
-      pression_ids: this.editOoPressionIds,
+      ...(isFcr ? {} : { pression_ids: this.editOoPressionIds }),
       libelle: this.editOoLibelle.trim(),
       description: this.editOoDescription.trim() || undefined,
     }).subscribe({
