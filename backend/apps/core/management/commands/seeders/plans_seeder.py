@@ -1,14 +1,75 @@
 """
 Seeder pour les plans de gestion.
 """
+import base64
+import os
 from datetime import date
 from typing import Any, Dict, List
+
+from django.conf import settings
 
 from apps.core.models import Nomenclature
 from apps.plans.models import PlanGestion, CorSitePg, CorRolePlan, CorPgFichier
 from apps.users.models import Role, Site
 
 from .base import BaseSeeder
+
+# PNG 1×1 transparent valide (utilisé comme image de démonstration).
+_DEMO_PNG = base64.b64decode(
+    'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=='
+)
+
+
+def _make_demo_pdf(title: str) -> bytes:
+    """Génère un PDF minimal mais VALIDE (xref correct) affichant un titre.
+
+    Sert de fichier de démonstration pour que le téléchargement fonctionne en
+    local (#372) — les seeders ne posaient que les métadonnées, pas de binaire.
+    """
+    text = (title or 'Document de démonstration')[:80].replace('(', '').replace(')', '')
+    objs = [
+        b"<< /Type /Catalog /Pages 2 0 R >>",
+        b"<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+        b"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] "
+        b"/Resources << /Font << /F1 5 0 R >> >> /Contents 4 0 R >>",
+        None,  # contenu (rempli ci-dessous)
+        b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+    ]
+    stream = (
+        "BT /F1 16 Tf 60 770 Td (CICADA - " + text + ") Tj "
+        "0 -28 Td /F1 11 Tf (Fichier de demonstration genere par le seed.) Tj ET"
+    ).encode('latin-1', 'replace')
+    objs[3] = b"<< /Length " + str(len(stream)).encode() + b" >>\nstream\n" + stream + b"\nendstream"
+
+    pdf = b"%PDF-1.4\n"
+    offsets = []
+    for i, body in enumerate(objs, start=1):
+        offsets.append(len(pdf))
+        pdf += str(i).encode() + b" 0 obj\n" + body + b"\nendobj\n"
+    xref_pos = len(pdf)
+    pdf += b"xref\n0 " + str(len(objs) + 1).encode() + b"\n0000000000 65535 f \n"
+    for off in offsets:
+        pdf += ("%010d 00000 n \n" % off).encode()
+    pdf += (
+        b"trailer\n<< /Size " + str(len(objs) + 1).encode()
+        + b" /Root 1 0 R >>\nstartxref\n" + str(xref_pos).encode() + b"\n%%EOF"
+    )
+    return pdf
+
+
+def _write_demo_fichier(chemin_abs: str, ext: str, title: str) -> int:
+    """Écrit un fichier de démonstration sur le disque et renvoie sa taille."""
+    ext = (ext or '').lower()
+    if ext == 'pdf':
+        content = _make_demo_pdf(title)
+    elif ext in ('jpg', 'jpeg', 'png'):
+        content = _DEMO_PNG
+    else:
+        content = (f"Document de démonstration CICADA : {title}\n").encode('utf-8')
+    os.makedirs(os.path.dirname(chemin_abs), exist_ok=True)
+    with open(chemin_abs, 'wb') as fh:
+        fh.write(content)
+    return len(content)
 
 
 class PlansSeeder(BaseSeeder):
@@ -1243,12 +1304,21 @@ class PlansSeeder(BaseSeeder):
             referents = plan_obj.referents.all()
             uploader = referents.first() if referents.exists() else admin
 
+            # #372 — Écrire un binaire de démonstration sur le disque pour que
+            # le téléchargement fonctionne (les seeders ne posaient que les
+            # métadonnées, d'où les 404 « Fichier non disponible »).
+            chemin_abs = os.path.join(
+                settings.MEDIA_ROOT, 'plans', str(plan_obj.id_pg), fdata['nom_fichier']
+            )
+            taille = _write_demo_fichier(chemin_abs, fdata.get('extension'), fdata.get('titre') or fdata['nom_fichier'])
+            fdata['taille_fichier'] = taille
+
             CorPgFichier.objects.update_or_create(
                 plan_de_gestion=plan_obj,
                 nom_fichier=fdata['nom_fichier'],
                 defaults={
                     **fdata,
-                    'chemin_fichier': f'/app/media/plans/{plan_obj.id_pg}/{fdata["nom_fichier"]}',
+                    'chemin_fichier': chemin_abs,
                     'id_utilisateur_upload': uploader,
                 }
             )
