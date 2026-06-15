@@ -1651,6 +1651,10 @@
       "reassignError": "Erreur lors de la réassignation"
     },
     "suivis": {
+      "notValidatedBanner": {
+        "title": "Plan de gestion non validé",
+        "text": "Pas de modification possible tant que votre plan de gestion n'est pas validé."
+      },
       "bilan": {
         "title": "Bilan de la gestion",
         "comingSoon": "Cette fonctionnalité est en cours de développement.",

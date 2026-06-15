@@ -57,8 +57,17 @@ export class PlanSuiviActionsComponent implements OnInit {
   planId = signal<number | null>(null);
   planSlug = signal<string | null>(null);
   planNom = signal<string>('');
+  planStatut = signal<string | null>(null);
   isLoading = signal(true);
   errorMessage = signal<string | null>(null);
+
+  // #375 — le suivi (réalisations) ne peut être saisi qu'une fois le plan validé.
+  // Statuts considérés comme « validés » (suivi pertinent) : valide/modifie/mi_parcours/archive.
+  private readonly VALIDATED_STATUSES = ['valide', 'modifie', 'mi_parcours', 'archive'];
+  planNotValidated = computed(() => {
+    const s = this.planStatut();
+    return !!s && !this.VALIDATED_STATUSES.includes(s);
+  });
 
   // Data
   allOperations = signal<FlatOperation[]>([]);
@@ -259,6 +268,7 @@ export class PlanSuiviActionsComponent implements OnInit {
         next: (plan) => {
           this.planId.set(plan.id_pg);
           this.planNom.set(plan.nom);
+          this.planStatut.set(plan.statut ?? null);
           if (plan.annee_debut && plan.annee_fin) {
             this.planYearStart.set(plan.annee_debut);
             this.planYearEnd.set(plan.annee_fin);

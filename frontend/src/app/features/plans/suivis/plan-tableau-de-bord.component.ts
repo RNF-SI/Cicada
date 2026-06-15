@@ -50,8 +50,16 @@ export class PlanTableauDeBordComponent implements OnInit {
   planId = signal<number | null>(null);
   planSlug = signal<string | null>(null);
   planNom = signal<string>('');
+  planStatut = signal<string | null>(null);
   isLoading = signal(true);
   errorMessage = signal<string | null>(null);
+
+  // #375 — la saisie du tableau de bord (états/scores) n'est possible qu'une fois le plan validé.
+  private readonly VALIDATED_STATUSES = ['valide', 'modifie', 'mi_parcours', 'archive'];
+  planNotValidated = computed(() => {
+    const s = this.planStatut();
+    return !!s && !this.VALIDATED_STATUSES.includes(s);
+  });
 
   // Data
   oltGroups = signal<OltGroup[]>([]);
@@ -132,6 +140,7 @@ export class PlanTableauDeBordComponent implements OnInit {
         next: (plan) => {
           this.planId.set(plan.id_pg);
           this.planNom.set(plan.nom);
+          this.planStatut.set(plan.statut ?? null);
           if (plan.annee_debut && plan.annee_fin) {
             this.planYearStart.set(plan.annee_debut);
             this.planYearEnd.set(plan.annee_fin);

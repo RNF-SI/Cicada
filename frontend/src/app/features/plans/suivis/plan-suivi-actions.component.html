@@ -64,6 +64,21 @@
         </div>
       </section>
 
+      <!-- #375 — Bannière : pas de saisie tant que le plan n'est pas validé -->
+      @if (planNotValidated()) {
+        <div class="lock-banner" role="status">
+          <i class="fi fi-rr-info"></i>
+          <div class="lock-banner-content">
+            <span class="lock-banner-title">
+              {{ 'plans.suivis.notValidatedBanner.title' | translate }}
+            </span>
+            <span class="lock-banner-text">
+              {{ 'plans.suivis.notValidatedBanner.text' | translate }}
+            </span>
+          </div>
+        </div>
+      }
+
       <!-- Content Section -->
       <section class="content-section">
 
