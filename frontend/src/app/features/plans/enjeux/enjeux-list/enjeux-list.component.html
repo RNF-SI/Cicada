@@ -751,11 +751,12 @@
                                     </div>
                                   </div>
                                 } @else {
-                                  <div class="ne-card" [id]="'niveau_exigence-' + ne.id_ne">
-                                    <div class="ne-card-header">
+                                  <div class="ne-card" [id]="'niveau_exigence-' + ne.id_ne" [class.collapsed]="!isNeExpanded(ne.id_ne)">
+                                    <div class="ne-card-header" (click)="toggleNe(ne.id_ne)">
                                       <div class="ne-card-left">
                                         @if (canEditPlan()) {
                                           <button class="icon-btn-flat ne-drag-handle" type="button" cdkDragHandle
+                                                  (click)="$event.stopPropagation()"
                                                   [title]="'enjeux.dnd.dragHandle' | translate"
                                                   [attr.aria-label]="'enjeux.dnd.dragHandle' | translate">
                                             <i class="fi fi-rr-menu-burger"></i>
@@ -766,21 +767,29 @@
                                           {{ 'enjeux.niveauExigence.label' | translate }}
                                           <i class="fi fi-rr-info help-icon"
                                              [matTooltip]="'enjeux.niveauExigence.tooltip' | translate"
-                                             matTooltipPosition="right"></i>
+                                             matTooltipPosition="right"
+                                             (click)="$event.stopPropagation()"></i>
                                           : {{ ne.libelle }}
                                         </h3>
                                       </div>
-                                      @if (canEditPlan()) {
-                                        <div class="ne-card-actions">
-                                          <button class="icon-btn-flat" (click)="startEditNe(ne)" [title]="'common.actions.edit' | translate">
+                                      <div class="ne-card-actions">
+                                        @if (canEditPlan()) {
+                                          <button class="icon-btn-flat" (click)="startEditNe(ne); $event.stopPropagation()" [title]="'common.actions.edit' | translate">
                                             <i class="fi fi-rr-pencil"></i>
                                           </button>
-                                          <button class="icon-btn-flat" (click)="deleteNe(ne)" [title]="'common.actions.delete' | translate">
+                                          <button class="icon-btn-flat" (click)="deleteNe(ne); $event.stopPropagation()" [title]="'common.actions.delete' | translate">
                                             <i class="fi fi-rr-trash"></i>
                                           </button>
-                                        </div>
-                                      }
+                                        }
+                                        <button class="icon-btn-flat icon-btn-flat--action ne-toggle" type="button"
+                                                (click)="$event.stopPropagation(); toggleNe(ne.id_ne)"
+                                                [attr.aria-expanded]="isNeExpanded(ne.id_ne)"
+                                                [title]="(isNeExpanded(ne.id_ne) ? 'common.actions.collapse' : 'common.actions.expand') | translate">
+                                          <i class="fi" [ngClass]="isNeExpanded(ne.id_ne) ? 'fi-rr-angle-small-up' : 'fi-rr-angle-small-down'"></i>
+                                        </button>
+                                      </div>
                                     </div>
+                                    @if (isNeExpanded(ne.id_ne)) {
                                     @if (ne.description) {
                                       <p class="ne-description">{{ ne.description }}</p>
                                     }
@@ -1259,6 +1268,7 @@
                                       <button class="add-item-btn" (click)="startAddIndicateur(ne.id_ne)">
                                         <i class="fi fi-rr-plus-small"></i> {{ 'enjeux.indicateurs.addButton' | translate }}
                                       </button>
+                                    }
                                     }
                                   </div>
                                 }

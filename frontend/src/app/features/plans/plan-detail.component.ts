@@ -508,6 +508,30 @@ export class PlanDetailComponent implements OnInit, OnDestroy {
     }
   }
 
+  /**
+   * #371 — Clic sur un OLT de la vue d'ensemble : ouvrir l'enjeu sur l'onglet
+   * « Vision OLT » (et non l'onglet restauré depuis l'état précédent).
+   */
+  navigateToOltInEnjeu(olt: { enjeu_id: number }): void {
+    const enjeu = this.enjeuxData().find(e => e.id_enjeu === olt.enjeu_id);
+    const slug = this.planSlug();
+    if (enjeu?.slug && slug) {
+      this.router.navigate(['/plans', slug, 'enjeux', enjeu.slug], { queryParams: { tab: 'olt' } });
+    }
+  }
+
+  /**
+   * #371 — Clic sur un OO de la vue d'ensemble : ouvrir l'enjeu sur l'onglet
+   * « Stratégie opérationnelle » et déplier l'OO ciblé.
+   */
+  navigateToOoInEnjeu(oo: { enjeu_id: number; id_oo: number }): void {
+    const enjeu = this.enjeuxData().find(e => e.id_enjeu === oo.enjeu_id);
+    const slug = this.planSlug();
+    if (enjeu?.slug && slug) {
+      this.router.navigate(['/plans', slug, 'enjeux', enjeu.slug], { queryParams: { tab: 'operations', expandOo: oo.id_oo } });
+    }
+  }
+
   navigateToOperation(item: OperationSynthItem): void {
     const slug = this.planSlug();
     if (!slug || !item.enjeuSlug) return;

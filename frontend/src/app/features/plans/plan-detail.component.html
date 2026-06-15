@@ -451,7 +451,7 @@
                         } @else {
                           <div class="synthese-enjeux-list">
                             @for (olt of allOlts(); track olt.id_olt) {
-                              <div class="synthese-item" (click)="navigateToEnjeuByOltOo(olt.enjeu_id)">
+                              <div class="synthese-item" (click)="navigateToOltInEnjeu(olt)">
                                 <img src="assets/images/puces/puce-terra-cotta.png" alt="" class="synthese-item-bullet">
                                 <span class="synthese-item-label">{{ olt.libelle }}</span>
                               </div>
@@ -472,7 +472,7 @@
                         } @else {
                           <div class="synthese-enjeux-list">
                             @for (oo of allOos(); track oo.id_oo) {
-                              <div class="synthese-item" (click)="navigateToEnjeuByOltOo(oo.enjeu_id)">
+                              <div class="synthese-item" (click)="navigateToOoInEnjeu(oo)">
                                 <img src="assets/images/puces/puce-terra-cotta.png" alt="" class="synthese-item-bullet">
                                 <span class="synthese-item-label">{{ oo.libelle }}</span>
                               </div>

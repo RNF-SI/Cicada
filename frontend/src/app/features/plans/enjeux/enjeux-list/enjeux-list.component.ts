@@ -1600,6 +1600,26 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
     return this.expandedRaIds().has(id);
   }
 
+  // #344 — Repli des niveaux d'exigence (vue OLT). Le set contient les NE
+  // REPLIÉES ; vide = toutes dépliées (comportement par défaut).
+  collapsedNeIds = signal<Set<number>>(new Set());
+
+  toggleNe(id: number): void {
+    this.collapsedNeIds.update(ids => {
+      const newIds = new Set(ids);
+      if (newIds.has(id)) {
+        newIds.delete(id);
+      } else {
+        newIds.add(id);
+      }
+      return newIds;
+    });
+  }
+
+  isNeExpanded(id: number): boolean {
+    return !this.collapsedNeIds().has(id);
+  }
+
   startAddOlt(): void {
     if (this.totalOltCount() > 0) {
       const dialogRef = this.dialog.open(ConfirmDialogComponent, {
