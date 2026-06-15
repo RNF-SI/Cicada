@@ -303,13 +303,18 @@ class OperationViewSet(viewsets.ModelViewSet):
             .select_related('id_indicateur__id_ne', 'id_indicateur__id_resultat_attendu')
             .first()
         )
-        if not first_met:
+        if first_met:
+            parent_ind = first_met.id_indicateur
+        elif operation.id_indicateur_id:
+            # #367 — action rattachée directement à un indicateur (sans métrique) :
+            # on en hérite le parent NE/RA pour y rattacher l'indicateur de réponse.
+            parent_ind = operation.id_indicateur
+        else:
             return Response(
-                {'detail': "L'opération doit déjà être rattachée à au moins une métrique "
-                           "pour créer un nouvel indicateur de réponse."},
+                {'detail': "L'opération doit être rattachée à au moins une métrique ou à un "
+                           "indicateur pour créer un nouvel indicateur de réponse."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-        parent_ind = first_met.id_indicateur
 
         # Récupère le type indicateur "réponse" si possible, sinon réutilise celui du parent.
         from apps.core.models import Nomenclature

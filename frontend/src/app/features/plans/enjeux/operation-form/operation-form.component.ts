@@ -49,6 +49,11 @@ import {
   displayNomenclatureFn,
 } from '../../../../shared/utils/nomenclature-autocomplete.utils';
 
+/** Drapeau (sessionStorage) signalant qu'un indicateur de réponse doit être ajouté
+ * juste après l'enregistrement d'une action créée depuis le formulaire (survit au
+ * rechargement du composant lors du passage création → édition). */
+const PENDING_RESPONSE_INDICATOR_KEY = 'cicada.pendingResponseIndicator';
+
 @Component({
   selector: 'app-operation-form',
   standalone: true,
@@ -681,6 +686,13 @@ export class OperationFormComponent implements OnInit {
           this.campanuleSearchCtrl.disable();
         }
         this.isLoadingData.set(false);
+        // Reprise d'un ajout d'indicateur de réponse demandé avant l'enregistrement
+        // (clic « Ajouter » en création → brouillon enregistré → on ajoute ici).
+        if (!this.isReadOnly() && sessionStorage.getItem(PENDING_RESPONSE_INDICATOR_KEY)) {
+          sessionStorage.removeItem(PENDING_RESPONSE_INDICATOR_KEY);
+          this.sectionsOpen['indicateurs_reponse'] = true;
+          this.addResponseIndicator();
+        }
       },
       error: () => {
         this.errorMessage.set(this.translate.instant('enjeux.messages.loadError'));
@@ -974,7 +986,14 @@ export class OperationFormComponent implements OnInit {
   /** Bouton "+ Ajouter un indicateur de réponse" : crée Indicateur + Métrique côté backend. */
   addResponseIndicator(): void {
     const opId = this.operationId();
-    if (!opId) return;
+    if (!opId) {
+      // L'indicateur de réponse est rattaché à l'action côté serveur : en
+      // création (pas encore d'id), on enregistre d'abord un brouillon, puis on
+      // reprend l'ajout automatiquement au rechargement en mode édition.
+      sessionStorage.setItem(PENDING_RESPONSE_INDICATOR_KEY, '1');
+      this.saveDraft();
+      return;
+    }
     const defaultNom = this.translate.instant('enjeux.operations.newIndicatorDefault');
     this.enjeuService.createOperationResponseIndicator(opId, {
       nom_indicateur: defaultNom,

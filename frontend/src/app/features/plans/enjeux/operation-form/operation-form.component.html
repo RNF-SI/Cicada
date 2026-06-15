@@ -1086,6 +1086,12 @@
       <p class="text-mention">{{ 'enjeux.operations.indicateursEmpty' | translate }}</p>
     }
     @if (!isReadOnly()) {
+      @if (!operationId()) {
+        <p class="text-mention op-indic-create-hint">
+          <i class="fi fi-rr-info"></i>
+          {{ 'enjeux.operations.indicateursReponseCreateHint' | translate }}
+        </p>
+      }
       <button type="button" class="btn-outlined-pill" (click)="addResponseIndicator()">
         <i class="fi fi-rr-plus"></i>
         {{ 'enjeux.operations.ajouterIndicateurReponse' | translate }}
