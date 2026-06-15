@@ -221,15 +221,25 @@ export class OperationFormComponent implements OnInit {
   planIndicateurs = signal<{ id_indicateur: number; nom_indicateur: string }[]>([]);
   planMetriques = signal<{ id_metrique: number; nom_metrique: string; indicateur_nom: string; indicateur_id: number }[]>([]);
 
+  /** #227 — Terme de recherche du sélecteur « Métriques associées » (filtre maison). */
+  metriqueSearch = signal('');
+
+  /** Réinitialise la recherche à la fermeture du panneau de sélection. */
+  onMetriquePanelToggle(opened: boolean): void {
+    if (!opened) this.metriqueSearch.set('');
+  }
+
   /**
    * #227/#373 — Métriques groupées par indicateur pour le sélecteur « Métriques
    * associées » : l'indicateur de l'action en premier (« même indicateur »),
-   * puis les autres indicateurs du plan. Améliore la lisibilité/findabilité.
+   * puis les autres indicateurs du plan. Filtré par `metriqueSearch`.
    */
   metriquesGroupes = computed(() => {
     const currentInd = this.prelinkedIndicateurId();
+    const term = this.metriqueSearch().trim().toLowerCase();
     const byInd = new Map<number, { indicateur_id: number; indicateur_nom: string; metriques: { id_metrique: number; nom_metrique: string }[] }>();
     for (const m of this.planMetriques()) {
+      if (term && !(`${m.nom_metrique} ${m.indicateur_nom}`.toLowerCase().includes(term))) continue;
       if (!byInd.has(m.indicateur_id)) {
         byInd.set(m.indicateur_id, { indicateur_id: m.indicateur_id, indicateur_nom: m.indicateur_nom, metriques: [] });
       }

@@ -168,13 +168,27 @@
           <label class="app-mat-label">{{ 'enjeux.operations.metriquesAssocieesLabel' | translate }}</label>
       <mat-form-field class="app-mat-form-field full-width" appearance="outline">
             <mat-label></mat-label>
-            <mat-select formControlName="metrique_ids" multiple>
+            <mat-select formControlName="metrique_ids" multiple
+                        panelClass="metrique-select-panel"
+                        (openedChange)="onMetriquePanelToggle($event)">
+              <!-- #227 — Recherche maison (filtre les métriques par nom/indicateur) -->
+              <div class="select-search" (click)="$event.stopPropagation()">
+                <i class="fi fi-rr-search select-search-icon"></i>
+                <input type="text" class="select-search-input"
+                       [value]="metriqueSearch()"
+                       (input)="metriqueSearch.set($any($event.target).value)"
+                       (keydown)="$event.stopPropagation()"
+                       [placeholder]="'common.actions.search' | translate">
+              </div>
               @for (grp of metriquesGroupes(); track grp.indicateur_id) {
                 <mat-optgroup [label]="grp.indicateur_nom + ' — ' + ((grp.isCurrent ? 'enjeux.operations.metriquesSameIndicateur' : 'enjeux.operations.metriquesOtherIndicateur') | translate)">
                   @for (met of grp.metriques; track met.id_metrique) {
                     <mat-option [value]="met.id_metrique">{{ met.nom_metrique }}</mat-option>
                   }
                 </mat-optgroup>
+              }
+              @if (metriquesGroupes().length === 0) {
+                <div class="select-no-result">{{ 'common.noResults' | translate }}</div>
               }
             </mat-select>
           </mat-form-field>
