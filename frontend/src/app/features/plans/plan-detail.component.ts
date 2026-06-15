@@ -269,10 +269,9 @@ export class PlanDetailComponent implements OnInit, OnDestroy {
   // Pending site link requests for this plan
   pendingSiteRequests = signal<ValidationRequestListItem[]>([]);
 
-  // Permissions cycle de vie: référent du plan, admin_og ou super_admin (PAS redacteur_principal)
+  // Permissions cycle de vie (#346) : référent du plan, admin_og, super_admin OU rédacteur principal.
   canManageLifecycle = computed(() => {
-    if (this.authService.isRedacteurPrincipal()) return false;
-    if (this.authService.isSuperAdmin() || this.authService.isAdminOrganisme()) {
+    if (this.authService.isSuperAdmin() || this.authService.isRedacteurPrincipal() || this.authService.isAdminOrganisme()) {
       return true;
     }
     const p = this.plan();
