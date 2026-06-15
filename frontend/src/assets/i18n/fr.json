@@ -2815,6 +2815,8 @@
       "sansMetriqueBadge": "Sans métrique",
       "sansMetriqueTooltip": "Action rattachée directement à l'indicateur, sans métrique associée",
       "metriqueLinkedTooltip": "Métrique associée à cette action",
+      "metriquesSameIndicateur": "même indicateur",
+      "metriquesOtherIndicateur": "autre indicateur du plan",
       "intituleIndicateurReponse": "Intitulé de l'indicateur de réponse",
       "typeMetrique": "Type de métriques",
       "valeurCible": "Valeur cible",

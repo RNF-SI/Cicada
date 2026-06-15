@@ -219,7 +219,31 @@ export class OperationFormComponent implements OnInit {
 
   // Indicateurs et métriques du plan (pour les selects M2M)
   planIndicateurs = signal<{ id_indicateur: number; nom_indicateur: string }[]>([]);
-  planMetriques = signal<{ id_metrique: number; nom_metrique: string; indicateur_nom: string }[]>([]);
+  planMetriques = signal<{ id_metrique: number; nom_metrique: string; indicateur_nom: string; indicateur_id: number }[]>([]);
+
+  /**
+   * #227/#373 — Métriques groupées par indicateur pour le sélecteur « Métriques
+   * associées » : l'indicateur de l'action en premier (« même indicateur »),
+   * puis les autres indicateurs du plan. Améliore la lisibilité/findabilité.
+   */
+  metriquesGroupes = computed(() => {
+    const currentInd = this.prelinkedIndicateurId();
+    const byInd = new Map<number, { indicateur_id: number; indicateur_nom: string; metriques: { id_metrique: number; nom_metrique: string }[] }>();
+    for (const m of this.planMetriques()) {
+      if (!byInd.has(m.indicateur_id)) {
+        byInd.set(m.indicateur_id, { indicateur_id: m.indicateur_id, indicateur_nom: m.indicateur_nom, metriques: [] });
+      }
+      byInd.get(m.indicateur_id)!.metriques.push({ id_metrique: m.id_metrique, nom_metrique: m.nom_metrique });
+    }
+    const groups = Array.from(byInd.values());
+    // L'indicateur courant (celui de l'action) remonte en tête.
+    groups.sort((a, b) => {
+      if (currentInd && a.indicateur_id === currentInd) return -1;
+      if (currentInd && b.indicateur_id === currentInd) return 1;
+      return a.indicateur_nom.localeCompare(b.indicateur_nom);
+    });
+    return groups.map(g => ({ ...g, isCurrent: currentInd != null && g.indicateur_id === currentInd }));
+  });
 
   // Programmation annuelle via OperationAnnee[]
   years: number[] = [];
@@ -468,7 +492,7 @@ export class OperationFormComponent implements OnInit {
           this.enjeuService.getPlanEnjeux(plan.id_pg).subscribe({
             next: (response) => {
               const indicateurs: { id_indicateur: number; nom_indicateur: string }[] = [];
-              const metriques: { id_metrique: number; nom_metrique: string; indicateur_nom: string }[] = [];
+              const metriques: { id_metrique: number; nom_metrique: string; indicateur_nom: string; indicateur_id: number }[] = [];
 
               const allEnjeux = [...(response.enjeux || []), ...(response.fcr || [])];
               const seenIndicateurs = new Set<number>();
@@ -484,7 +508,8 @@ export class OperationFormComponent implements OnInit {
                   metriques.push({
                     id_metrique: met.id_metrique,
                     nom_metrique: met.nom_metrique,
-                    indicateur_nom: ind.nom_indicateur
+                    indicateur_nom: ind.nom_indicateur,
+                    indicateur_id: ind.id_indicateur
                   });
                 }
               };
