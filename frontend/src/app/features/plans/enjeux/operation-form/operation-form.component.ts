@@ -401,7 +401,7 @@ export class OperationFormComponent implements OnInit {
       frequence_unite: [null],
       operateurs: [''],
       partenaires: [''],
-      financeurs: [''],
+      // #343 — financeur textuel supprimé au profit des financeurs structurés (libellé + catégorie)
       // Détails
       description: [''],
       // Hidden but kept for backwards compat
@@ -709,7 +709,6 @@ export class OperationFormComponent implements OnInit {
       frequence_unite: op.frequence_unite || null,
       operateurs: op.operateurs || '',
       partenaires: op.partenaires || '',
-      financeurs: op.financeurs || '',
       metrique_ids: op.metrique_ids || []
     });
 
@@ -1173,7 +1172,7 @@ export class OperationFormComponent implements OnInit {
     if (fv.frequence_unite) payload.frequence_unite = fv.frequence_unite;
     if (fv.operateurs?.trim()) payload.operateurs = fv.operateurs.trim();
     if (fv.partenaires?.trim()) payload.partenaires = fv.partenaires.trim();
-    if (fv.financeurs?.trim()) payload.financeurs = fv.financeurs.trim();
+    // #343 — financeur textuel supprimé : on n'envoie plus le champ libre (financeurs structurés via `finances`).
     if (fv.metrique_ids?.length) payload.metrique_ids = fv.metrique_ids;
     // #367 — rattachement direct à un indicateur (quand l'action n'a pas de métrique).
     if (this.prelinkedIndicateurId()) payload.id_indicateur = this.prelinkedIndicateurId();

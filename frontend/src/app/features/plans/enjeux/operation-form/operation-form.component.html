@@ -943,12 +943,10 @@
   <textarea formControlName="partenaires" rows="2"></textarea>
 </app-form-field>
 
-              <!-- Financeur(s) (text field) -->
-              <app-form-field [label]="'enjeux.operations.financeursLabel' | translate">
-  <textarea formControlName="financeurs" rows="2"></textarea>
-</app-form-field>
+              <!-- #343 — Financeur textuel supprimé : seuls les financeurs structurés (libellé + catégorie) ci-dessous sont conservés. -->
 
               <!-- Finances (relational) -->
+              <label class="app-mat-label">{{ 'enjeux.operations.financeursLabel' | translate }}</label>
               <div class="finances-section">
                 @for (finance of finances; track $index) {
                   <div class="finance-row">
