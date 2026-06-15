@@ -3009,6 +3009,7 @@
       "exclusif": "< (exclus)",
       "nomPlaceholder": "Intitulé court de la métrique",
       "niveauxActifs": "Niveaux actifs :",
+      "nonUtilise": "Non utilisé",
       "scoreSuffix": "score = {{score}}",
       "boundaryLabel": "Valeur limite",
       "boundaryPlaceholder": "Valeur",

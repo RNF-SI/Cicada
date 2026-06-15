@@ -89,6 +89,30 @@ export class MetriqueFormComponent {
     return this.metrique.scores[level];
   }
 
+  /**
+   * #359 — Niveaux actifs pour les grilles simples (Chiffre / Texte), même
+   * principe que la cartouche NUMERIQUE (metrique-block) : un niveau marqué
+   * « non utilisé » est exclu de la grille (saisie grisée, masqué à la lecture).
+   */
+  isLevelActive(level: number): boolean {
+    return !(this.metrique._inactiveLevels || []).includes(level);
+  }
+
+  toggleLevelActive(level: number): void {
+    this.metrique._inactiveLevels ??= [];
+    const i = this.metrique._inactiveLevels.indexOf(level);
+    if (i >= 0) {
+      this.metrique._inactiveLevels.splice(i, 1);
+    } else {
+      this.metrique._inactiveLevels.push(level);
+      // Vide la saisie du niveau désactivé pour ne pas conserver de valeur orpheline.
+      const s = this.ensureScore(level);
+      s.val = null;
+      s.label = '';
+    }
+    this.emitChange();
+  }
+
   // =====================================================================
   // Vue flat du bloc principal (proxy vers metrique.scores[N].*)
   // =====================================================================

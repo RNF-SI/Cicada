@@ -2100,6 +2100,11 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
       }
     }
 
+    // #359 — niveaux désactivés (« non utilisé ») pour les grilles simples Chiffre / Texte.
+    if (mnemonique === 'CHIFFRE' || mnemonique === 'TEXTE') {
+      payload.inactive_levels = Array.isArray(met._inactiveLevels) ? [...met._inactiveLevels] : [];
+    }
+
     // Direction, inclusivité et bornes extrêmes (NUMERIQUE only)
     if (mnemonique === 'NUMERIQUE') {
       payload.sens_variation = met.sens_variation;
@@ -3134,10 +3139,13 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
     }
 
     if (mnemonique === 'CHIFFRE') {
+      // #359 — niveau « non utilisé » : masqué (cellule vide) à la lecture.
+      if ((met.inactive_levels || []).includes(level)) return '-';
       const val = met[`score_${level}_val`];
       return val != null ? this.formatNum(Number(val)) : '-';
     }
     if (mnemonique === 'TEXTE') {
+      if ((met.inactive_levels || []).includes(level)) return '-';
       const label = met[`score_${level}_label`];
       return label?.trim() || '-';
     }

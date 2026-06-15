@@ -223,15 +223,33 @@
   <!-- #339 — Grille de score pour les types CHIFFRE / TEXTE (même présentation
        que l'intervalle numérique : 5 niveaux colorés très mauvais → très bon). -->
   @if (isChiffre || isTexte) {
+    <!-- #359 — Sélection des niveaux actifs (même cartouche que NUMERIQUE) -->
+    <div class="config-row simple-levels-config">
+      <span class="config-label">{{ 'enjeux.metriques.niveauxActifs' | translate }}</span>
+      <div class="level-tags">
+        @for (meta of scoreLevelMeta; track meta.level) {
+          <button type="button"
+                  class="level-tag level-tag-{{ meta.level }}"
+                  [class.inactive]="!isLevelActive(meta.level)"
+                  [attr.aria-pressed]="isLevelActive(meta.level)"
+                  (click)="toggleLevelActive(meta.level)">
+            {{ meta.labelKey | translate }}
+          </button>
+        }
+      </div>
+    </div>
+
     <div class="score-threshold-grid">
       @for (meta of scoreLevelMeta; track meta.level) {
-        <div class="score-column">
+        <div class="score-column" [class.inactive]="!isLevelActive(meta.level)">
           <div class="score-column-header score-header-{{meta.level}}">
             <span class="score-header-label">{{ meta.labelKey | translate }}</span>
             <span class="score-header-value">= {{ meta.level }}</span>
           </div>
           <div class="score-column-inputs">
-            @if (isChiffre) {
+            @if (!isLevelActive(meta.level)) {
+              <span class="level-unused">{{ 'enjeux.metriques.nonUtilise' | translate }}</span>
+            } @else if (isChiffre) {
               <app-form-field [label]="'enjeux.metriques.valeur' | translate">
                 <input type="number" [ngModel]="ensureScore(meta.level).val"
                        (ngModelChange)="ensureScore(meta.level).val = $event; emitChange()">
