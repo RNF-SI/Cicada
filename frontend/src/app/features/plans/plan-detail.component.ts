@@ -974,6 +974,12 @@ export class PlanDetailComponent implements OnInit, OnDestroy {
 
   private openCsrpnStepDialog(step: CsrpnStep) {
     const p = this.plan();
+    // #347 — pré-remplir la modale avec la date (et le n° d'arrêté) déjà saisis
+    // pour cette étape, afin de ne pas perdre l'info après un retour en brouillon.
+    const initialDate =
+      step === 'csrpn' ? p?.date_avis_csrpn :
+      step === 'comite' ? p?.date_validation_comite :
+      step === 'arrete' ? p?.date_arrete_pref : null;
     const dialogData: CsrpnStepDialogData = {
       step,
       planName: p?.nom ?? '',
@@ -981,6 +987,8 @@ export class PlanDetailComponent implements OnInit, OnDestroy {
       canDeclareMiParcours: !!(p?.plan_parent_id) && !(p?.version_chain || []).some(
         v => v.id_pg !== p.id_pg && v.is_mi_parcours,
       ),
+      initialDate: initialDate ?? null,
+      initialNumeroArrete: step === 'arrete' ? (p?.numero_arrete_pref ?? null) : null,
     };
     return this.dialog
       .open<CsrpnStepDialogComponent, CsrpnStepDialogData, CsrpnStepDialogResult | null>(

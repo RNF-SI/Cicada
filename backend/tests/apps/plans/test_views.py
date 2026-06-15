@@ -474,6 +474,34 @@ class TestPlanGestionChangeStatus:
         )
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
+    def test_revert_to_draft_preserves_csrpn_info(self, api_client, plan_with_referent):
+        """#347 — repasser un plan validé en brouillon ne doit PAS effacer les
+        informations CSRPN (dates avis/comité/arrêté + numéro d'arrêté)."""
+        plan, referent, _, _ = plan_with_referent
+        # Plan validé avec des infos CSRPN renseignées.
+        plan.statut = 'valide'
+        plan.date_avis_csrpn = '2026-03-10'
+        plan.date_validation_comite = '2026-04-15'
+        plan.date_arrete_pref = '2026-05-20'
+        plan.numero_arrete_pref = 'AP-2026-042'
+        plan.save()
+
+        api_client.force_authenticate(user=referent)
+        response = api_client.post(
+            self.URL_TEMPLATE.format(plan.id_pg),
+            {'new_status': 'draft'},
+            format='json',
+        )
+        assert response.status_code == status.HTTP_200_OK
+
+        plan.refresh_from_db()
+        assert plan.statut == 'draft'
+        # Les métadonnées CSRPN sont conservées.
+        assert str(plan.date_avis_csrpn) == '2026-03-10'
+        assert str(plan.date_validation_comite) == '2026-04-15'
+        assert str(plan.date_arrete_pref) == '2026-05-20'
+        assert plan.numero_arrete_pref == 'AP-2026-042'
+
     def test_referent_not_of_plan_returns_403(self, api_client, plan_with_referent):
         """Referent of another site but not THIS plan gets 403.
         The user must be able to see the plan (via org/site association) but not be its referent."""
