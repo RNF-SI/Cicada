@@ -1081,10 +1081,16 @@ class CorEnjeuHabitat(models.Model):
         db_column='id_enjeu',
         verbose_name=_("Enjeu")
     )
+    # #368 — cd_hab nullable : un habitat « libre » (hors HabRef, ex. Outre-mer)
+    # est saisi sans code, seul `lb_hab_fr` est renseigné. Postgres autorise
+    # plusieurs lignes à cd_hab NULL pour un même enjeu (NULL distincts dans la
+    # contrainte d'unicité), donc plusieurs habitats libres sont possibles.
     cd_hab = models.CharField(
         _("cd_hab"),
         max_length=50,
-        help_text=_("Identifiant HabRef de l'habitat")
+        blank=True,
+        null=True,
+        help_text=_("Identifiant HabRef de l'habitat (vide pour un habitat saisi librement, #368)")
     )
     # Champ dénormalisé pour l'affichage
     lb_hab_fr = models.CharField(

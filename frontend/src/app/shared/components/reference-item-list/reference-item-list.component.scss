@@ -149,3 +149,33 @@
     margin-top: 2px;
   }
 }
+
+// #368 — saisie libre d'un habitat hors HabRef (ex. Outre-mer)
+.free-text-habitat {
+  margin-top: $spacing-xs;
+
+  .free-text-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: $spacing-xxs;
+    background: none;
+    border: none;
+    padding: 0;
+    color: $primary-color;
+    font-family: $font-family;
+    font-size: $font-size-small;
+    cursor: pointer;
+
+    &:hover { text-decoration: underline; }
+  }
+
+  .free-text-input-row {
+    display: flex;
+    align-items: flex-start;
+    gap: $spacing-sm;
+    margin-top: $spacing-xs;
+
+    .free-text-field { flex: 1; }
+    .free-text-add-btn { margin-top: 4px; }
+  }
+}

@@ -1127,10 +1127,12 @@ export class OperationFormComponent implements OnInit {
         // `habitat_ref` (noms) conservé pour l'affichage hérité ; `habitats`
         // (structuré, avec cd_hab) permet d'afficher les correspondances.
         suiviData['habitat_ref'] = this.habitatItems.map(h => h.lb_hab_fr || h.cd_hab).join(', ');
+        // #368 — on conserve aussi les habitats « libres » (sans cd_hab, ex. Outre-mer) :
+        // cd_hab=null + libellé saisi. On ne garde que les entrées ayant un code OU un libellé.
         suiviData['habitats'] = this.habitatItems
-          .filter(h => h.cd_hab)
+          .filter(h => h.cd_hab || (h.lb_hab_fr || '').trim())
           .map(h => ({
-            cd_hab: h.cd_hab,
+            cd_hab: h.cd_hab || null,
             lb_hab_fr: h.lb_hab_fr,
             lb_code: h.lb_code,
             lb_typo: h.lb_typo,

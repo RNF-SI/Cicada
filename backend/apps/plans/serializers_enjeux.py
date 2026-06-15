@@ -47,9 +47,20 @@ class TaxonRefSerializer(serializers.Serializer):
 
 
 class HabitatRefSerializer(serializers.Serializer):
-    """Serializer pour les références habitats."""
-    cd_hab = serializers.CharField(max_length=50)
+    """Serializer pour les références habitats.
+
+    #368 — `cd_hab` est optionnel : un habitat « libre » (hors HabRef, ex.
+    Outre-mer) n'a pas de code, seul `lb_hab_fr` est renseigné.
+    """
+    cd_hab = serializers.CharField(max_length=50, required=False, allow_blank=True, allow_null=True)
     lb_hab_fr = serializers.CharField(max_length=500, required=False, allow_blank=True)
+
+    def validate(self, attrs):
+        if not (attrs.get('cd_hab') or '').strip() and not (attrs.get('lb_hab_fr') or '').strip():
+            raise serializers.ValidationError(
+                _("Un habitat doit avoir un code HabRef ou un libellé saisi.")
+            )
+        return attrs
 
 
 class GeologieRefSerializer(serializers.Serializer):
@@ -691,7 +702,9 @@ class EnjeuCreateSerializer(serializers.ModelSerializer):
         if not taxon_ids and taxons_data:
             taxon_ids = [t['cd_nom'] for t in taxons_data]
         if not habitat_ids and habitats_data:
-            habitat_ids = [h['cd_hab'] for h in habitats_data]
+            # #368 — un habitat libre n'a pas de cd_hab ; on filtre les vides ici
+            # (l'itération réelle se fait sur habitats_data dans _create_habitat_relations).
+            habitat_ids = [h.get('cd_hab') for h in habitats_data if h.get('cd_hab')]
         if not geologie_ids and geologies_data:
             geologie_ids = [g['id_inpg'] for g in geologies_data]
 
@@ -719,7 +732,9 @@ class EnjeuCreateSerializer(serializers.ModelSerializer):
         if taxon_ids is None and taxons_data is not None:
             taxon_ids = [t['cd_nom'] for t in taxons_data]
         if habitat_ids is None and habitats_data is not None:
-            habitat_ids = [h['cd_hab'] for h in habitats_data]
+            # #368 — habitats libres (cd_hab vide) filtrés ici ; liste reste
+            # non-None pour déclencher le remplacement (delete + recreate).
+            habitat_ids = [h.get('cd_hab') for h in habitats_data if h.get('cd_hab')]
         if geologie_ids is None and geologies_data is not None:
             geologie_ids = [g['id_inpg'] for g in geologies_data]
 
@@ -758,15 +773,27 @@ class EnjeuCreateSerializer(serializers.ModelSerializer):
             )
 
     def _create_habitat_relations(self, enjeu, habitat_ids, habitats_data):
-        """Créer les relations avec les habitats."""
-        data_dict = {h['cd_hab']: h for h in habitats_data}
+        """Créer les relations avec les habitats.
+
+        #368 — Si `habitats_data` est fourni, on l'itère directement (un habitat
+        par entrée) pour supporter les habitats « libres » (cd_hab vide → None,
+        plusieurs possibles). Sinon, fallback historique sur `habitat_ids`.
+        """
+        if habitats_data:
+            for data in habitats_data:
+                cd = (data.get('cd_hab') or '').strip() or None
+                CorEnjeuHabitat.objects.create(
+                    id_enjeu=enjeu,
+                    cd_hab=cd,
+                    lb_hab_fr=data.get('lb_hab_fr', '') or ''
+                )
+            return
 
         for cd_hab in habitat_ids:
-            data = data_dict.get(cd_hab, {})
             CorEnjeuHabitat.objects.create(
                 id_enjeu=enjeu,
                 cd_hab=cd_hab,
-                lb_hab_fr=data.get('lb_hab_fr', '')
+                lb_hab_fr=''
             )
 
     def _create_geologie_relations(self, enjeu, geologie_ids, geologies_data):
@@ -935,7 +962,7 @@ class ResponsabiliteCreateSerializer(serializers.ModelSerializer):
         if not taxon_ids and taxons_data:
             taxon_ids = [t['cd_nom'] for t in taxons_data]
         if not habitat_ids and habitats_data:
-            habitat_ids = [h['cd_hab'] for h in habitats_data]
+            habitat_ids = [h.get('cd_hab') for h in habitats_data if h.get('cd_hab')]
         if not geologie_ids and geologies_data:
             geologie_ids = [g['id_inpg'] for g in geologies_data]
 
@@ -964,7 +991,9 @@ class ResponsabiliteCreateSerializer(serializers.ModelSerializer):
         if taxon_ids is None and taxons_data is not None:
             taxon_ids = [t['cd_nom'] for t in taxons_data]
         if habitat_ids is None and habitats_data is not None:
-            habitat_ids = [h['cd_hab'] for h in habitats_data]
+            # #368 — habitats libres (cd_hab vide) filtrés ici ; liste reste
+            # non-None pour déclencher le remplacement (delete + recreate).
+            habitat_ids = [h.get('cd_hab') for h in habitats_data if h.get('cd_hab')]
         if geologie_ids is None and geologies_data is not None:
             geologie_ids = [g['id_inpg'] for g in geologies_data]
 
@@ -1007,7 +1036,8 @@ class ResponsabiliteCreateSerializer(serializers.ModelSerializer):
 
     def _create_habitat_relations(self, responsabilite, habitat_ids, habitats_data):
         """Créer les relations avec les habitats."""
-        data_dict = {h['cd_hab']: h for h in habitats_data}
+        # #368 — clé sûre (un habitat libre peut ne pas avoir de cd_hab).
+        data_dict = {h.get('cd_hab'): h for h in habitats_data if h.get('cd_hab')}
 
         for cd_hab in habitat_ids:
             data = data_dict.get(cd_hab, {})

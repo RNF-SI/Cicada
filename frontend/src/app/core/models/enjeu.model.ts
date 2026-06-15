@@ -27,7 +27,8 @@ export interface TaxonRef {
  */
 export interface HabitatRef {
   id?: number;
-  cd_hab: string;
+  /** Code HabRef. Vide/null pour un habitat saisi librement (hors référentiel, #368). */
+  cd_hab?: string | null;
   lb_hab_fr?: string;
   /** Code propre dans la typologie d'origine (ex. « G1.6 »). #89 */
   lb_code?: string;

@@ -258,6 +258,44 @@ class TestEnjeuCreateEndpoint:
         enjeu = Enjeu.objects.get(libelle='Enjeu avec Habitats')
         assert enjeu.habitats.count() == 2
 
+    def test_create_with_free_text_habitats(self, api_client, enjeu_test_data):
+        """#368 — création d'un enjeu avec des habitats libres (hors HabRef, sans cd_hab)."""
+        api_client.force_authenticate(user=enjeu_test_data['super_admin'])
+        response = api_client.post('/api/plans/enjeux/', {
+            'id_pg': enjeu_test_data['plan'].id_pg,
+            'id_categorie': enjeu_test_data['cat_enjeu'].id_nomenclature,
+            'libelle': 'Enjeu habitats libres',
+            'rang': 1,
+            'habitat': True,
+            'habitats_data': [
+                {'cd_hab': '24', 'lb_hab_fr': 'Habitat HabRef'},
+                {'cd_hab': '', 'lb_hab_fr': 'Mangrove de Mayotte'},
+                {'lb_hab_fr': 'Forêt sèche de Nouvelle-Calédonie'},
+            ],
+        }, format='json')
+        assert response.status_code == status.HTTP_201_CREATED
+        enjeu = Enjeu.objects.get(libelle='Enjeu habitats libres')
+        assert enjeu.habitats.count() == 3
+        # Deux habitats libres (cd_hab NULL) coexistent grâce aux NULL distincts.
+        libres = enjeu.habitats.filter(cd_hab__isnull=True)
+        assert libres.count() == 2
+        assert set(libres.values_list('lb_hab_fr', flat=True)) == {
+            'Mangrove de Mayotte', 'Forêt sèche de Nouvelle-Calédonie'
+        }
+
+    def test_create_habitat_without_code_nor_label_rejected(self, api_client, enjeu_test_data):
+        """#368 — un habitat sans cd_hab ni libellé est rejeté (400)."""
+        api_client.force_authenticate(user=enjeu_test_data['super_admin'])
+        response = api_client.post('/api/plans/enjeux/', {
+            'id_pg': enjeu_test_data['plan'].id_pg,
+            'id_categorie': enjeu_test_data['cat_enjeu'].id_nomenclature,
+            'libelle': 'Enjeu habitat vide',
+            'rang': 1,
+            'habitat': True,
+            'habitats_data': [{'cd_hab': '', 'lb_hab_fr': ''}],
+        }, format='json')
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+
     def test_create_missing_required_fields(self, api_client, enjeu_test_data):
         """Test create without required fields returns 400."""
         api_client.force_authenticate(user=enjeu_test_data['super_admin'])

@@ -153,6 +153,41 @@ export class ReferenceItemListComponent implements OnInit, OnDestroy {
     this.itemsChange.emit(this.items);
   }
 
+  // ===========================================================================
+  // #368 — Habitat « libre » (hors HabRef, ex. Outre-mer)
+  // ===========================================================================
+
+  /** Mode saisie libre activé (case « je ne trouve pas mon habitat »). */
+  freeTextMode = signal(false);
+  freeTextControl = new FormControl('');
+
+  /** La saisie libre n'est proposée que pour les habitats (#368). */
+  get allowFreeText(): boolean {
+    return this.type === 'habitat';
+  }
+
+  toggleFreeTextMode(): void {
+    this.freeTextMode.set(!this.freeTextMode());
+    if (!this.freeTextMode()) {
+      this.freeTextControl.setValue('');
+    }
+  }
+
+  /** Ajoute un habitat libre (sans cd_hab, seul le libellé est renseigné). */
+  addFreeTextHabitat(): void {
+    const label = (this.freeTextControl.value || '').trim();
+    if (!label) return;
+    const exists = (this.items as HabitatRef[]).some(
+      h => !h.cd_hab && (h.lb_hab_fr || '').trim().toLowerCase() === label.toLowerCase()
+    );
+    if (!exists) {
+      const newItem: HabitatRef = { cd_hab: '', lb_hab_fr: label };
+      this.items = [...this.items, newItem];
+      this.itemsChange.emit(this.items);
+    }
+    this.freeTextControl.setValue('');
+  }
+
   openImportDialog(): void {
     const existingCodes = this.type === 'taxon'
       ? (this.items as TaxonRef[]).map(t => t.cd_nom)

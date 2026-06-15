@@ -78,4 +78,32 @@
       <mat-spinner matSuffix diameter="18"></mat-spinner>
     }
   </mat-form-field>
+
+  <!-- #368 — Habitat introuvable dans HabRef (ex. Outre-mer) : saisie libre -->
+  @if (allowFreeText) {
+    <div class="free-text-habitat">
+      <button type="button" class="free-text-toggle" (click)="toggleFreeTextMode()">
+        <i class="fi" [class.fi-rr-angle-small-down]="!freeTextMode()" [class.fi-rr-angle-small-up]="freeTextMode()"></i>
+        {{ 'enjeux.referenceList.habitatNotFound' | translate }}
+      </button>
+      @if (freeTextMode()) {
+        <div class="free-text-input-row">
+          <mat-form-field class="app-mat-form-field free-text-field" appearance="outline">
+            <mat-label></mat-label>
+            <input matInput
+                   [formControl]="freeTextControl"
+                   [placeholder]="'enjeux.referenceList.habitatFreeTextPlaceholder' | translate"
+                   (keydown.enter)="$event.preventDefault(); addFreeTextHabitat()">
+            <mat-hint>{{ 'enjeux.referenceList.habitatFreeTextHint' | translate }}</mat-hint>
+          </mat-form-field>
+          <button mat-flat-button color="primary" type="button"
+                  class="free-text-add-btn"
+                  [disabled]="!freeTextControl.value?.trim()"
+                  (click)="addFreeTextHabitat()">
+            {{ 'common.actions.add' | translate }}
+          </button>
+        </div>
+      }
+    </div>
+  }
 </div>
