@@ -1064,25 +1064,27 @@
                                                           <img src="assets/images/ellipses/ellipse-salmon.png" alt="" class="operation-ellipse">
                                                           @if (op.code_affichage) { <span class="operation-code">{{ op.code_affichage }}</span> }
                                                           <span class="operation-libelle">{{ 'enjeux.operations.label' | translate }} : {{ op.libelle }}</span>
-                                                          @if (op.metriques?.length) {
-                                                            @for (m of op.metriques!; track m.id_metrique) {
-                                                              <span class="op-metrique-chip" (click)="$event.stopPropagation()" [matTooltip]="'enjeux.operations.metriqueLinkedTooltip' | translate">
-                                                                <i class="fi fi-rr-ruler-horizontal"></i> {{ m.nom_metrique }}
-                                                              </span>
-                                                            }
-                                                          } @else {
-                                                            <span class="op-trace-badge op-trace-sans-metrique" [matTooltip]="'enjeux.operations.sansMetriqueTooltip' | translate" (click)="$event.stopPropagation()">
-                                                              <i class="fi fi-rr-ban"></i> {{ 'enjeux.operations.sansMetriqueBadge' | translate }}
-                                                            </span>
-                                                          }
-                                                          @if (op.geom_geojson) {
-                                                            <span class="op-trace-badge op-trace-emprise" [matTooltip]="'enjeux.operations.empriseSpatialeBadge' | translate" (click)="$event.stopPropagation()">
-                                                              <i class="fi fi-rr-marker"></i>
-                                                            </span>
-                                                          }
                                                           @if (op.statut === 'draft') {
                                                             <span class="operation-draft-chip status-warning" (click)="$event.stopPropagation()">{{ 'enjeux.operations.draftChip' | translate }}</span>
                                                           }
+                                                          <div class="operation-metriques-row">
+                                                            @if (op.metriques?.length) {
+                                                              @for (m of op.metriques!; track m.id_metrique) {
+                                                                <span class="op-metrique-chip" (click)="$event.stopPropagation()" [matTooltip]="'enjeux.operations.metriqueLinkedTooltip' | translate">
+                                                                  <i class="fi fi-rr-ruler-horizontal"></i> {{ m.nom_metrique }}
+                                                                </span>
+                                                              }
+                                                            } @else {
+                                                              <span class="op-trace-badge op-trace-sans-metrique" [matTooltip]="'enjeux.operations.sansMetriqueTooltip' | translate" (click)="$event.stopPropagation()">
+                                                                <i class="fi fi-rr-ban"></i> {{ 'enjeux.operations.sansMetriqueBadge' | translate }}
+                                                              </span>
+                                                            }
+                                                            @if (op.geom_geojson) {
+                                                              <span class="op-trace-badge op-trace-emprise" [matTooltip]="'enjeux.operations.empriseSpatialeBadge' | translate" (click)="$event.stopPropagation()">
+                                                                <i class="fi fi-rr-marker"></i>
+                                                              </span>
+                                                            }
+                                                          </div>
                                                         </div>
                                                         <div class="operation-header-right">
                                                           <button class="icon-btn-flat" (click)="navigateToViewOperation(op.id_operation); $event.stopPropagation()" [title]="'common.actions.view' | translate"><i class="fi fi-rr-eye"></i></button>
@@ -1817,25 +1819,27 @@
                                                   <img src="assets/images/ellipses/ellipse-salmon.png" alt="" class="operation-ellipse">
                                                   @if (op.code_affichage) { <span class="operation-code">{{ op.code_affichage }}</span> }
                                                   <span class="operation-libelle">{{ 'enjeux.operations.label' | translate }} : {{ op.libelle }}</span>
-                                                  @if (op.metriques?.length) {
-                                                    @for (m of op.metriques!; track m.id_metrique) {
-                                                      <span class="op-metrique-chip" (click)="$event.stopPropagation()" [matTooltip]="'enjeux.operations.metriqueLinkedTooltip' | translate">
-                                                        <i class="fi fi-rr-ruler-horizontal"></i> {{ m.nom_metrique }}
-                                                      </span>
-                                                    }
-                                                  } @else {
-                                                    <span class="op-trace-badge op-trace-sans-metrique" [matTooltip]="'enjeux.operations.sansMetriqueTooltip' | translate" (click)="$event.stopPropagation()">
-                                                      <i class="fi fi-rr-ban"></i> {{ 'enjeux.operations.sansMetriqueBadge' | translate }}
-                                                    </span>
-                                                  }
-                                                  @if (op.geom_geojson) {
-                                                    <span class="op-trace-badge op-trace-emprise" [matTooltip]="'enjeux.operations.empriseSpatialeBadge' | translate" (click)="$event.stopPropagation()">
-                                                      <i class="fi fi-rr-marker"></i>
-                                                    </span>
-                                                  }
                                                   @if (op.statut === 'draft') {
                                                     <span class="operation-draft-chip status-warning" (click)="$event.stopPropagation()">{{ 'enjeux.operations.draftChip' | translate }}</span>
                                                   }
+                                                  <div class="operation-metriques-row">
+                                                    @if (op.metriques?.length) {
+                                                      @for (m of op.metriques!; track m.id_metrique) {
+                                                        <span class="op-metrique-chip" (click)="$event.stopPropagation()" [matTooltip]="'enjeux.operations.metriqueLinkedTooltip' | translate">
+                                                          <i class="fi fi-rr-ruler-horizontal"></i> {{ m.nom_metrique }}
+                                                        </span>
+                                                      }
+                                                    } @else {
+                                                      <span class="op-trace-badge op-trace-sans-metrique" [matTooltip]="'enjeux.operations.sansMetriqueTooltip' | translate" (click)="$event.stopPropagation()">
+                                                        <i class="fi fi-rr-ban"></i> {{ 'enjeux.operations.sansMetriqueBadge' | translate }}
+                                                      </span>
+                                                    }
+                                                    @if (op.geom_geojson) {
+                                                      <span class="op-trace-badge op-trace-emprise" [matTooltip]="'enjeux.operations.empriseSpatialeBadge' | translate" (click)="$event.stopPropagation()">
+                                                        <i class="fi fi-rr-marker"></i>
+                                                      </span>
+                                                    }
+                                                  </div>
                                                 </div>
                                                 <div class="operation-header-right">
                                                   <button class="icon-btn-flat" (click)="navigateToViewOperation(op.id_operation); $event.stopPropagation()" [title]="'common.actions.view' | translate"><i class="fi fi-rr-eye"></i></button>
@@ -2133,7 +2137,7 @@
             <div class="empty-state">
               <p class="empty-text">{{ 'enjeux.empty.noEnjeu' | translate }}</p>
               @if (canEditPlan()) {
-                <button mat-stroked-button color="primary" [matMenuTriggerFor]="addMenuEmpty">
+                <button mat-stroked-button color="primary" class="btn-add-enjeu-fcr" [matMenuTriggerFor]="addMenuEmpty">
                   <i class="fi fi-rr-plus-small"></i>
                   {{ 'enjeux.addButton' | translate }}
                 </button>
