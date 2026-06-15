@@ -306,54 +306,29 @@ describe('OperationFormComponent — ventilation budgétaire', () => {
   });
 
   // -------------------------------------------------------------------------
-  // #374 — applyFrequencyToAnnees : ancrage aux années réellement saisies
+  // #374 — anneeIndexHasData : détecte une année réellement saisie (sert de
+  // départ par défaut dans la modale « Appliquer aux années »).
   // -------------------------------------------------------------------------
-  describe('#374 applyFrequencyToAnnees', () => {
-    /** Prépare le composant avec une plage d'années et une fréquence donnée. */
-    function setup(unite: string | null, startYear = 2025, endYear = 2034) {
+  describe('#374 anneeIndexHasData', () => {
+    function setup() {
       const c = createComponentInstance();
       c.operationAnnees = [];
       c.directTotals = {};
-      for (let y = startYear; y <= endYear; y++) {
+      for (let y = 2025; y <= 2031; y++) {
         c.operationAnnees.push({ annee: y, periodicite: false, budget: null, etp: null, periodicite_mensuelle: {} });
       }
-      (c as any).form = { get: () => ({ value: unite }) };
       return c;
     }
-    /** Renvoie les années dont periodicite est true. */
-    const markedYears = (c: OperationFormComponent) =>
-      c.operationAnnees.filter(a => a.periodicite).map(a => a.annee);
-
-    it('coche les années saisies (2026, 2031) et pas les années parasites (2025, 2030)', () => {
-      const c = setup('5_ans');
-      // jours/budget saisis en 2026 (idx 1) et 2031 (idx 6)
-      c.directTotals[1] = { budget: null, etp: 4 };
-      c.directTotals[6] = { budget: 12000, etp: null };
-      c.applyFrequencyToAnnees();
-      expect(markedYears(c)).toEqual([2026, 2031]);
+    it('détecte un budget direct saisi', () => {
+      const c = setup();
+      c.directTotals[1] = { budget: 1000, etp: null };
+      expect((c as any).anneeIndexHasData(0)).toBe(false);
+      expect((c as any).anneeIndexHasData(1)).toBe(true);
     });
-
-    it('ne marque rien hors de la plage des années saisies', () => {
-      const c = setup('2_ans');
-      c.directTotals[2] = { budget: 100, etp: null }; // 2027
-      c.directTotals[4] = { budget: 200, etp: null }; // 2029
-      c.applyFrequencyToAnnees();
-      // ancre = 2027, pas de 2 ans, borné à 2029 → 2027, 2029
-      expect(markedYears(c)).toEqual([2027, 2029]);
-    });
-
-    it('sans aucune saisie, retombe sur toute la plage à partir de la 1re année', () => {
-      const c = setup('5_ans');
-      c.applyFrequencyToAnnees();
-      // pas = 5 depuis idx 0 : 2025, 2030
-      expect(markedYears(c)).toEqual([2025, 2030]);
-    });
-
-    it('ne fait rien si la fréquence est vide', () => {
-      const c = setup(null);
-      c.directTotals[1] = { budget: 50, etp: null };
-      c.applyFrequencyToAnnees();
-      expect(markedYears(c)).toEqual([]);
+    it('détecte un ETP/jours direct saisi', () => {
+      const c = setup();
+      c.directTotals[6] = { budget: null, etp: 4 };
+      expect((c as any).anneeIndexHasData(6)).toBe(true);
     });
   });
 

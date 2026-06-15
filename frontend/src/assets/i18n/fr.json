@@ -2788,7 +2788,17 @@
       "frequenceAction": "Fréquence de l'action",
       "foisPar": "fois par",
       "applyFrequency": "Appliquer aux années",
-      "applyFrequencyTooltip": "Coche automatiquement les années correspondantes dans le tableau de programmation ci-dessous",
+      "applyFrequencyTooltip": "Ouvre une fenêtre pour choisir l'année et le mois de départ, puis remplit la périodicité du tableau de programmation ci-dessous selon la fréquence.",
+      "applyFrequencyInfo": "Remplit la périodicité du tableau de programmation ci-dessous.",
+      "freqDialog": {
+        "title": "Appliquer la fréquence",
+        "hint": "Choisissez l'année et le mois de départ. Les occurrences sont pré-cochées selon la fréquence ; ajustez-les si besoin avant d'appliquer.",
+        "startYear": "Année de départ",
+        "startMonth": "Mois de départ",
+        "yearsPreview": "Années programmées",
+        "monthsPreview": "Mois récurrents (mêmes mois chaque année)",
+        "apply": "Appliquer"
+      },
       "frequenceLabel": "Fréquence",
       "frequenceNombre": "Nombre",
       "frequenceUnite": "Unité",

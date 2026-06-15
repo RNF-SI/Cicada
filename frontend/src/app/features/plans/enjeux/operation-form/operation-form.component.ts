@@ -39,6 +39,7 @@ import { Operation, OperationCreatePayload, OperationStatut, OperationAnnee, Ope
 import { CampanuleAutocomplete } from '../../../../core/models/campanule.model';
 import { PlanSite, PlanSiteOrganisme } from '../../../../core/models/admin.model';
 import { ProtocoleCampanuleDialogComponent } from '../../../../shared/components/modals/protocole-campanule-dialog/protocole-campanule-dialog.component';
+import { FrequencyApplyDialogComponent, FrequencyApplyDialogResult } from '../../../../shared/components/modals/frequency-apply-dialog/frequency-apply-dialog.component';
 
 import {
   NomenclatureOption,
@@ -1991,49 +1992,51 @@ export class OperationFormComponent implements OnInit {
   }
 
   /**
-   * Retourne le pas entre années cochées selon l'unité de fréquence.
-   * - AN : tous les ans (pas = 1)
-   * - 2_ANS : tous les 2 ans (pas = 2)
-   * - 5_ANS : tous les 5 ans (pas = 5)
-   * - 10_ANS : tous les 10 ans (pas = 10)
-   * - autres (JOUR, MOIS, TRIMESTRE...) : tous les ans (pas = 1)
-   */
-  private getYearStepFromFrequence(unite: string | null): number {
-    if (!unite) return 0;
-    const u = unite.toLowerCase();
-    if (u === '2_ans') return 2;
-    if (u === '5_ans') return 5;
-    if (u === '10_ans') return 10;
-    // Pour tout intervalle infra-annuel (jour, mois, trimestre, an), l'action se produit chaque année
-    return 1;
-  }
-
-  /**
-   * Applique la fréquence (frequence_nombre + frequence_unite) aux années.
-   *
-   * #374 — La périodicité doit correspondre aux années réellement saisies (budget /
-   * ETP / jours renseignés) et à la fréquence choisie. On ancre donc le pas de
-   * fréquence à la 1re année saisie et on coche tous les `step` ans jusqu'à la
-   * dernière année saisie — sans marquer d'années parasites avant la 1re saisie ni
-   * après la dernière (l'ancien calcul `i % step` partait de la 1re année du plan,
-   * ce qui décalait les ronds, ex. 2025/2030 au lieu de 2026/2031).
+   * #374 — Ouvre la modale « Appliquer aux années » : l'utilisateur choisit
+   * l'année et le mois de départ, prévisualise les occurrences calculées selon
+   * la fréquence, les ajuste si besoin, puis valide. La périodicité annuelle et
+   * la périodicité mensuelle récurrente sont alors **remplacées** par la sélection.
+   * (Remplace l'ancien auto-calcul `i % step` ancré à la 1re année du plan, qui
+   * décalait les ronds — on ne devine plus l'ancrage.)
    */
   applyFrequencyToAnnees(): void {
-    const unite = this.form.get('frequence_unite')?.value;
-    const step = this.getYearStepFromFrequence(unite);
-    if (step === 0 || this.operationAnnees.length === 0) return;
+    if (this.operationAnnees.length === 0) return;
 
-    const dataIdx: number[] = [];
-    for (let i = 0; i < this.operationAnnees.length; i++) {
-      if (this.anneeIndexHasData(i)) dataIdx.push(i);
+    // Départ proposé par défaut : 1re année saisie (budget/ETP) ou déjà cochée, sinon la 1re.
+    let defaultStartYearIndex = this.operationAnnees.findIndex((_, i) => this.anneeIndexHasData(i));
+    if (defaultStartYearIndex < 0) {
+      defaultStartYearIndex = this.operationAnnees.findIndex(a => a.periodicite);
     }
-    // À défaut de saisie, on retombe sur toute la plage à partir de la 1re année.
-    const first = dataIdx.length > 0 ? dataIdx[0] : 0;
-    const last = dataIdx.length > 0 ? dataIdx[dataIdx.length - 1] : this.operationAnnees.length - 1;
+    if (defaultStartYearIndex < 0) defaultStartYearIndex = 0;
 
-    for (let i = 0; i < this.operationAnnees.length; i++) {
-      this.operationAnnees[i].periodicite = i >= first && i <= last && ((i - first) % step === 0);
+    // Mois de départ par défaut : 1er mois récurrent déjà coché, sinon janvier.
+    let defaultStartMonth = 1;
+    for (const m of this.months) {
+      if (this.programmationMensuelleDefaut[m.toString()]) { defaultStartMonth = m; break; }
     }
+
+    const ref = this.dialog.open(FrequencyApplyDialogComponent, {
+      width: '640px',
+      maxWidth: '95vw',
+      data: {
+        years: this.operationAnnees.map(a => a.annee),
+        monthLabels: this.monthLabels,
+        frequenceNombre: this.form.get('frequence_nombre')?.value ?? null,
+        frequenceUnite: this.form.get('frequence_unite')?.value ?? null,
+        defaultStartYearIndex,
+        defaultStartMonth,
+      },
+    });
+
+    ref.afterClosed().subscribe((result: FrequencyApplyDialogResult | null) => {
+      if (!result) return;
+      // Remplace la périodicité annuelle.
+      this.operationAnnees.forEach((annee, i) => {
+        annee.periodicite = !!result.yearFlags[i];
+      });
+      // Remplace la périodicité mensuelle récurrente (mêmes mois chaque année).
+      this.programmationMensuelleDefaut = { ...result.monthFlags };
+    });
   }
 
   /**

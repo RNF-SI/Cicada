@@ -601,6 +601,20 @@ app-form-field.finance-categorie {
   }
 }
 
+// #374 — info sous le bouton « Appliquer aux années »
+.apply-frequency-info {
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+  margin: $spacing-xs 0 0;
+  color: $gray-dark;
+  font-size: $font-size-small;
+
+  i {
+    color: $primary-color;
+  }
+}
+
 .frequence-number {
   display: flex;
   align-items: center;

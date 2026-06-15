@@ -1,0 +1,63 @@
+<h2 mat-dialog-title>{{ 'enjeux.operations.freqDialog.title' | translate }}</h2>
+
+<mat-dialog-content class="freq-dialog-content">
+  <p class="freq-dialog-hint">{{ 'enjeux.operations.freqDialog.hint' | translate }}</p>
+
+  <!-- Sélecteurs de départ -->
+  <div class="freq-dialog-row">
+    <label class="app-mat-label">{{ 'enjeux.operations.freqDialog.startYear' | translate }}</label>
+    <mat-form-field appearance="outline" class="app-mat-form-field">
+      <mat-select [(ngModel)]="startYearIndex" (ngModelChange)="recompute()">
+        @for (year of data.years; track year; let i = $index) {
+          <mat-option [value]="i">{{ year }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+
+    <label class="app-mat-label">{{ 'enjeux.operations.freqDialog.startMonth' | translate }}</label>
+    <mat-form-field appearance="outline" class="app-mat-form-field">
+      <mat-select [(ngModel)]="startMonth" (ngModelChange)="recompute()">
+        @for (label of data.monthLabels; track label; let i = $index) {
+          <mat-option [value]="i + 1">{{ label }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+  </div>
+
+  <!-- Aperçu années -->
+  <div class="freq-preview">
+    <div class="freq-preview-title">
+      {{ 'enjeux.operations.freqDialog.yearsPreview' | translate }}
+      <span class="freq-preview-count">({{ nbYearsSelected }})</span>
+    </div>
+    <div class="freq-chips">
+      @for (year of data.years; track year; let i = $index) {
+        <button type="button" class="freq-chip" [class.selected]="yearFlags[i]" (click)="toggleYear(i)">
+          {{ year }}
+        </button>
+      }
+    </div>
+  </div>
+
+  <!-- Aperçu mois récurrents -->
+  <div class="freq-preview">
+    <div class="freq-preview-title">
+      {{ 'enjeux.operations.freqDialog.monthsPreview' | translate }}
+      <span class="freq-preview-count">({{ nbMonthsSelected }})</span>
+    </div>
+    <div class="freq-chips">
+      @for (label of data.monthLabels; track label; let i = $index) {
+        <button type="button" class="freq-chip" [class.selected]="monthFlags[i]" (click)="toggleMonth(i)">
+          {{ label }}
+        </button>
+      }
+    </div>
+  </div>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-stroked-button (click)="cancel()">{{ 'common.actions.cancel' | translate }}</button>
+  <button mat-flat-button color="primary" (click)="confirm()" [disabled]="nbYearsSelected === 0">
+    {{ 'enjeux.operations.freqDialog.apply' | translate }}
+  </button>
+</mat-dialog-actions>
