@@ -1096,3 +1096,24 @@ label.app-mat-label + app-form-field,
 // l'app) colorées dans le primaire pour un rendu net et cohérent avec le bouton.
 // mat-menu est rendu dans un overlay global → règles globales (hors encapsulation).
 .menu-type-icon { font-size: 1rem; vertical-align: middle; color: $primary-color; }
+
+// Options du menu « Ajouter enjeu/FCR » alignées sur le kit UI (typo Nunito,
+// graisse semi-bold, espacement icône/texte cohérent).
+.add-enjeu-fcr-menu {
+  .mat-mdc-menu-item {
+    display: flex;
+    align-items: center;
+    gap: $spacing-sm;
+    min-height: 44px;
+    font-family: $font-family;
+
+    .menu-type-icon { color: $primary-color; font-size: 1.05rem; }
+
+    .mdc-list-item__primary-text {
+      font-family: $font-family;
+      font-size: $font-size-base;
+      font-weight: $font-weight-semibold;
+      color: $black;
+    }
+  }
+}

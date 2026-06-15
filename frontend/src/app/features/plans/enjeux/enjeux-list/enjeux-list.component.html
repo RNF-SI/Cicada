@@ -2141,7 +2141,7 @@
                   <i class="fi fi-rr-plus-small"></i>
                   {{ 'enjeux.addButton' | translate }}
                 </button>
-                <mat-menu #addMenuEmpty="matMenu">
+                <mat-menu #addMenuEmpty="matMenu" class="add-enjeu-fcr-menu">
                   <button mat-menu-item (click)="navigateToNewEnjeu()">
                     <i class="fi fi-rr-mountains menu-type-icon menu-type-enjeu"></i>
                     <span>{{ 'enjeux.types.enjeu' | translate }}</span>
@@ -2176,7 +2176,7 @@
                     <i class="fi fi-rr-plus-small"></i>
                     {{ 'enjeux.addButton' | translate }}
                   </button>
-                  <mat-menu #addMenu="matMenu">
+                  <mat-menu #addMenu="matMenu" class="add-enjeu-fcr-menu">
                     <button mat-menu-item (click)="navigateToNewEnjeu()">
                       <i class="fi fi-rr-mountains menu-type-icon menu-type-enjeu"></i>
                       <span>{{ 'enjeux.types.enjeu' | translate }}</span>
