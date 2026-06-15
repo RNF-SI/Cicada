@@ -2622,6 +2622,7 @@
       "habitatNotFound": "Je ne trouve pas mon habitat dans la liste",
       "habitatFreeTextPlaceholder": "Saisir le nom de l'habitat",
       "habitatFreeTextHint": "Habitat hors référentiel HabRef (ex. Outre-mer) — saisi librement, sans code.",
+      "habitatFreeTextBadgeTooltip": "Habitat saisi librement (hors référentiel HabRef)",
       "searchGeologyHint": "Référentiel INPG. Recherche par nom de site, code métier ou id_inpg (min. 2 caractères, 20 résultats max).",
       "geologyCount": "{{count}} site(s) géologique(s)",
       "searchGeology": "Rechercher un site géologique INPG",

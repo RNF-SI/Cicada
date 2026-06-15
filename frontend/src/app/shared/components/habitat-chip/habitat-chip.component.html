@@ -1,9 +1,17 @@
-<span class="hchip" [class.hchip--open]="expanded()">
-  <button type="button" class="hchip__main" (click)="toggle()">
-    <span class="hchip__code">{{ displayCode() || cdHab() }}</span>
-    <span class="hchip__name">{{ label() }}</span>
-    <i class="fi fi-rr-angle-small-down hchip__caret"></i>
-  </button>
+<span class="hchip" [class.hchip--open]="expanded()" [class.hchip--free]="freeText()">
+  @if (freeText()) {
+    <!-- #368 — habitat libre : même puce, marqueur « saisi » (crayon), non dépliable -->
+    <span class="hchip__main hchip__main--static" [title]="'enjeux.referenceList.habitatFreeTextBadgeTooltip' | translate">
+      <span class="hchip__freebadge"><i class="fi fi-rr-pencil"></i></span>
+      <span class="hchip__name">{{ label() }}</span>
+    </span>
+  } @else {
+    <button type="button" class="hchip__main" (click)="toggle()">
+      <span class="hchip__code">{{ displayCode() || cdHab() }}</span>
+      <span class="hchip__name">{{ label() }}</span>
+      <i class="fi fi-rr-angle-small-down hchip__caret"></i>
+    </button>
+  }
   @if (removable()) {
     <button type="button" class="hchip__remove" (click)="onRemove($event)"
             [attr.aria-label]="'common.actions.delete' | translate">

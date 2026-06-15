@@ -82,6 +82,31 @@
   }
 }
 
+// #368 — Variante « habitat libre » (saisi hors référentiel HabRef) : même
+// puce que les habitats du référentiel (teinte primary, Nunito) mais bordure
+// pointillée + marqueur crayon pour signaler une saisie manuelle. Non dépliable.
+.hchip--free {
+  border-style: dashed;
+
+  .hchip__main--static {
+    cursor: default;
+  }
+
+  .hchip__freebadge {
+    display: inline-flex;
+    align-items: center;
+    color: $primary-color;
+    background-color: rgba($primary-color, 0.12);
+    padding: 0 6px;
+    border-radius: $border-radius-sm;
+
+    i {
+      font-size: 11px;
+      line-height: 1;
+    }
+  }
+}
+
 // Panneau de correspondances
 .hchip__panel {
   margin: $spacing-xxs 0 $spacing-xs;

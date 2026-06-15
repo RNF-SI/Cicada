@@ -26,7 +26,7 @@ interface RelatedHabitat {
 export class HabitatChipComponent {
   private readonly habitatService = inject(HabitatService);
 
-  cdHab = input.required<string | number>();
+  cdHab = input<string | number>('');
   label = input<string>('');
   /** Code propre de l'habitat dans sa typologie d'origine (ex. « G1.6 »). */
   code = input<string | null>(null);
@@ -34,6 +34,9 @@ export class HabitatChipComponent {
   typo = input<string | null>(null);
   /** Affiche une croix de suppression intégrée à la puce. */
   removable = input<boolean>(false);
+  /** #368 — habitat « libre » saisi hors référentiel HabRef (pas de code, pas
+   * de correspondances) : même puce, marqueur distinctif, non dépliable. */
+  freeText = input<boolean>(false);
   /** Émis au clic sur la croix de suppression. */
   remove = output<void>();
 
@@ -74,6 +77,8 @@ export class HabitatChipComponent {
   }
 
   toggle(): void {
+    // #368 — un habitat libre n'a pas de correspondances à déplier.
+    if (this.freeText()) return;
     const next = !this.expanded();
     this.expanded.set(next);
     if (next && !this.loaded()) {
