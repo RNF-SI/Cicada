@@ -1026,7 +1026,7 @@
         <app-accordion variant="default" size="lg" [title]="'enjeux.operations.indicateursReponse' | translate" [expanded]="sectionsOpen['indicateurs_reponse']" (expandedChange)="sectionsOpen['indicateurs_reponse'] = $event">
   <img accordionIcon src="assets/images/ellipses/ellipse-yellow.png" alt="" class="section-dot">
   <div class="section-content">
-    @let opMetriques = existingOperation()?.metriques || [];
+    @let opMetriques = responseIndicators();
     @if (opMetriques.length > 0) {
       <div class="op-indic-editor">
         @for (m of opMetriques; track m.id_metrique; let last = $last) {
@@ -1092,7 +1092,9 @@
           {{ 'enjeux.operations.indicateursReponseCreateHint' | translate }}
         </p>
       }
-      <button type="button" class="btn-outlined-pill" (click)="addResponseIndicator()">
+      <button type="button" class="btn-outlined-pill"
+              [disabled]="!operationId()"
+              (click)="addResponseIndicator()">
         <i class="fi fi-rr-plus"></i>
         {{ 'enjeux.operations.ajouterIndicateurReponse' | translate }}
       </button>

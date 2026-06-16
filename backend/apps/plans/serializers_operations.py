@@ -464,6 +464,9 @@ class OperationSerializer(serializers.ModelSerializer):
                 'nom_metrique': m.nom_metrique,
                 'indicateur_id': m.id_indicateur_id,
                 'indicateur_nom': getattr(m.id_indicateur, 'nom_indicateur', None) if m.id_indicateur_id else None,
+                # #347/réponse — type de l'indicateur (ETAT/PRESSION/REPONSE) pour
+                # distinguer les indicateurs de réponse des métriques associées.
+                'indicateur_type': getattr(getattr(m.id_indicateur, 'type_indicateur', None), 'mnemonique', None) if m.id_indicateur_id else None,
                 'etat_reference': m.etat_reference or '',
                 'type_metrique_id': m.type_metrique_id,
                 'type_metrique_label': getattr(m.type_metrique, 'label', None) if m.type_metrique_id else None,
@@ -558,6 +561,7 @@ class OperationListSerializer(serializers.ModelSerializer):
                 'nom_metrique': m.nom_metrique,
                 'indicateur_id': m.id_indicateur_id,
                 'indicateur_nom': getattr(m.id_indicateur, 'nom_indicateur', None) if m.id_indicateur_id else None,
+                'indicateur_type': getattr(getattr(m.id_indicateur, 'type_indicateur', None), 'mnemonique', None) if m.id_indicateur_id else None,
             }
             for m in obj.metriques.all()
         ]

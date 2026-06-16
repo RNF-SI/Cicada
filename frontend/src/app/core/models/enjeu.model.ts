@@ -605,6 +605,9 @@ export interface MetriqueRef {
   nom_metrique: string;
   indicateur_id: number;
   indicateur_nom: string;
+  /** Type de l'indicateur parent (ETAT / PRESSION / REPONSE). Distingue les
+   *  indicateurs de réponse des métriques associées (état/pression). */
+  indicateur_type?: string | null;
   etat_reference?: string;
   type_metrique_id?: number | null;
   type_metrique_label?: string | null;

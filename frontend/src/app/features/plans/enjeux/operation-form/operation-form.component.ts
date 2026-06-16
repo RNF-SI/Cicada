@@ -49,11 +49,6 @@ import {
   displayNomenclatureFn,
 } from '../../../../shared/utils/nomenclature-autocomplete.utils';
 
-/** Drapeau (sessionStorage) signalant qu'un indicateur de réponse doit être ajouté
- * juste après l'enregistrement d'une action créée depuis le formulaire (survit au
- * rechargement du composant lors du passage création → édition). */
-const PENDING_RESPONSE_INDICATOR_KEY = 'cicada.pendingResponseIndicator';
-
 @Component({
   selector: 'app-operation-form',
   standalone: true,
@@ -111,6 +106,13 @@ export class OperationFormComponent implements OnInit {
   /** Mode lecture seule : la route `operations/:id` (sans /modifier) définit data.readOnly = true */
   isReadOnly = signal(false);
   existingOperation = signal<Operation | null>(null);
+
+  /** Indicateurs de réponse rattachés à l'action : seulement les métriques dont
+   * l'indicateur est de type REPONSE (les métriques associées état/pression
+   * s'affichent dans la section « Métriques associées », pas ici). */
+  responseIndicators = computed(() =>
+    (this.existingOperation()?.metriques || []).filter(m => m.indicateur_type === 'REPONSE')
+  );
 
   /** Emprise spatiale en cours d'édition (#342). undefined = inchangée. */
   pendingEmprise = signal<any | undefined>(undefined);
@@ -686,13 +688,6 @@ export class OperationFormComponent implements OnInit {
           this.campanuleSearchCtrl.disable();
         }
         this.isLoadingData.set(false);
-        // Reprise d'un ajout d'indicateur de réponse demandé avant l'enregistrement
-        // (clic « Ajouter » en création → brouillon enregistré → on ajoute ici).
-        if (!this.isReadOnly() && sessionStorage.getItem(PENDING_RESPONSE_INDICATOR_KEY)) {
-          sessionStorage.removeItem(PENDING_RESPONSE_INDICATOR_KEY);
-          this.sectionsOpen['indicateurs_reponse'] = true;
-          this.addResponseIndicator();
-        }
       },
       error: () => {
         this.errorMessage.set(this.translate.instant('enjeux.messages.loadError'));
@@ -986,14 +981,9 @@ export class OperationFormComponent implements OnInit {
   /** Bouton "+ Ajouter un indicateur de réponse" : crée Indicateur + Métrique côté backend. */
   addResponseIndicator(): void {
     const opId = this.operationId();
-    if (!opId) {
-      // L'indicateur de réponse est rattaché à l'action côté serveur : en
-      // création (pas encore d'id), on enregistre d'abord un brouillon, puis on
-      // reprend l'ajout automatiquement au rechargement en mode édition.
-      sessionStorage.setItem(PENDING_RESPONSE_INDICATOR_KEY, '1');
-      this.saveDraft();
-      return;
-    }
+    // En création, l'action n'existe pas encore : le bouton est désactivé côté
+    // template (l'utilisateur enregistre d'abord l'action). Garde de sécurité ici.
+    if (!opId) return;
     const defaultNom = this.translate.instant('enjeux.operations.newIndicatorDefault');
     this.enjeuService.createOperationResponseIndicator(opId, {
       nom_indicateur: defaultNom,
@@ -1007,6 +997,8 @@ export class OperationFormComponent implements OnInit {
           nom_metrique: created.nom_metrique,
           indicateur_id: created.id_indicateur,
           indicateur_nom: created.nom_indicateur,
+          // create-indicator crée toujours un indicateur de type REPONSE.
+          indicateur_type: 'REPONSE',
           etat_reference: created.etat_reference,
           type_metrique_id: created.type_metrique,
           type_metrique_label: null,

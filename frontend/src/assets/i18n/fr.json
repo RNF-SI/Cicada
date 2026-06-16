@@ -2815,7 +2815,7 @@
       "detailsCommentaires": "Détails / commentaires",
       "indicateursReponse": "Indicateur(s) de réponse",
       "ajouterIndicateurReponse": "Ajouter un indicateur de réponse",
-      "indicateursReponseCreateHint": "L'action sera d'abord enregistrée en brouillon pour pouvoir y rattacher un indicateur de réponse.",
+      "indicateursReponseCreateHint": "Enregistrez d'abord l'action pour pouvoir y ajouter des indicateurs de réponse.",
       "descriptionLabel": "Description",
       "codeLabel": "Code opération",
       "refLabel": "Référentiel opérations",
