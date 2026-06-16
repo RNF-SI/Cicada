@@ -933,28 +933,38 @@ export class PlanDetailComponent implements OnInit, OnDestroy {
     });
   }
 
-  /** Étape 3 : `comite_consultatif → arrete_pref` (RNN) ou `→ valide` (non-RNN).
-   *  Saisie de la date de validation comité. */
+  /** Validation comité : RNN → avance vers `arrete_pref` ; non-RNN → étape
+   *  terminale (enregistre la date) puis PROPOSE la validation plateforme (#347). */
   validateByComite(): void {
     this.openCsrpnStepDialog('comite').subscribe(result => {
       if (!result) return;
-      const isRnn = this.isRnn();
-      if (isRnn) {
+      if (this.isRnn()) {
         this.changeCsrpnStep('arrete_pref', { dateValidationComite: result.date });
       } else {
-        // Non-RNN : la validation finale sort du workflow CSRPN et passe en
-        // `valide` (`change-status` remet validation_step à NULL côté backend).
-        this.changeStatus('valide', { isMiParcours: result.isMiParcours });
+        // #347 — découplé : on enregistre la date (étape terminale non-RNN) sans
+        // changer le statut, puis on propose la validation plateforme.
+        this.changeCsrpnStep('comite_consultatif', { dateValidationComite: result.date },
+          () => this.proposePlatformValidation());
       }
     });
   }
 
-  /** Étape 4 (RNN uniquement) : `arrete_pref → valide`. Saisie date + numéro. */
+  /** Arrêté préfectoral (RNN) : enregistre date + numéro (étape administrative
+   *  terminale, sans changer le statut), puis PROPOSE la validation plateforme (#347). */
   recordArretePref(): void {
     this.openCsrpnStepDialog('arrete').subscribe(result => {
       if (!result) return;
-      this.changeStatus('valide', { isMiParcours: result.isMiParcours });
+      this.changeCsrpnStep('arrete_pref',
+        { dateArretePref: result.date, numeroArretePref: result.numeroArrete },
+        () => this.proposePlatformValidation());
     });
+  }
+
+  /** #347 — Propose (sans forcer) la validation plateforme après une validation
+   *  administrative terminale. La validation reste une action manuelle distincte. */
+  private proposePlatformValidation(): void {
+    if (this.plan()?.statut !== 'draft') return; // déjà validé : rien à proposer
+    this.confirmValidation();
   }
 
   /** Annule le workflow CSRPN en cours : retour en `draft` simple
@@ -977,6 +987,7 @@ export class PlanDetailComponent implements OnInit, OnDestroy {
       dateArretePref?: string;
       numeroArretePref?: string;
     } = {},
+    onDone?: () => void,
   ): void {
     const p = this.plan();
     if (!p) return;
@@ -988,6 +999,7 @@ export class PlanDetailComponent implements OnInit, OnDestroy {
           { duration: 3000 }
         );
         this.loadPlan();
+        if (onDone) onDone();
       },
       error: () => {
         this.snackBar.open(
@@ -1011,9 +1023,9 @@ export class PlanDetailComponent implements OnInit, OnDestroy {
       step,
       planName: p?.nom ?? '',
       isRnn: this.isRnn(),
-      canDeclareMiParcours: !!(p?.plan_parent_id) && !(p?.version_chain || []).some(
-        v => v.id_pg !== p.id_pg && v.is_mi_parcours,
-      ),
+      // #347 — la déclaration mi-parcours se fait à la validation plateforme
+      // (confirmValidation), plus à l'étape administrative CSRPN.
+      canDeclareMiParcours: false,
       initialDate: initialDate ?? null,
       initialNumeroArrete: step === 'arrete' ? (p?.numero_arrete_pref ?? null) : null,
     };

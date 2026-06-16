@@ -952,6 +952,39 @@ class TestPlanGestionChangeStatus:
         assert plan.statut == 'draft'
         assert plan.validation_step == 'avis_csrpn'
 
+    def test_csrpn_step_allowed_on_validated_plan(self, api_client):
+        """#347 — les validations administratives sont orthogonales au statut :
+        on peut lancer/avancer le workflow CSRPN sur un plan déjà validé."""
+        admin = SuperAdminFactory()
+        plan = PlanGestionFactory(statut='valide')
+        api_client.force_authenticate(user=admin)
+        response = api_client.post(
+            self.CSRPN_STEP_URL_TEMPLATE.format(plan.id_pg),
+            {'step': 'avis_csrpn'},
+        )
+        assert response.status_code == status.HTTP_200_OK
+        plan.refresh_from_db()
+        assert plan.statut == 'valide'  # statut plateforme inchangé
+        assert plan.validation_step == 'avis_csrpn'
+
+    def test_csrpn_step_self_transition_records_date(self, api_client):
+        """#347 — auto-transition (step inchangé) : enregistre la date de l'étape
+        terminale sans changer d'étape ni de statut."""
+        admin = SuperAdminFactory()
+        rnn_site = self._make_typed_site('RNN')
+        plan = PlanGestionFactory(statut='draft', validation_step='arrete_pref', sites=[rnn_site])
+        api_client.force_authenticate(user=admin)
+        response = api_client.post(
+            self.CSRPN_STEP_URL_TEMPLATE.format(plan.id_pg),
+            {'step': 'arrete_pref', 'date_arrete_pref': '2026-05-20', 'numero_arrete_pref': 'AP-99'},
+        )
+        assert response.status_code == status.HTTP_200_OK
+        plan.refresh_from_db()
+        assert plan.statut == 'draft'
+        assert plan.validation_step == 'arrete_pref'
+        assert str(plan.date_arrete_pref) == '2026-05-20'
+        assert plan.numero_arrete_pref == 'AP-99'
+
     def test_avis_csrpn_to_comite_with_date(self, api_client):
         """`csrpn-step/` : avis_csrpn → comite_consultatif enregistre la date d'avis."""
         admin = SuperAdminFactory()
@@ -993,8 +1026,8 @@ class TestPlanGestionChangeStatus:
         assert response.status_code == status.HTTP_400_BAD_REQUEST
 
     def test_comite_to_valide_for_non_rnn(self, api_client):
-        """Pour un plan PNR, `change-status` valide depuis draft+comite_consultatif
-        sort directement du workflow (validation_step → NULL)."""
+        """#347 — La validation plateforme est découplée des validations
+        administratives : valider conserve `validation_step` (orthogonal)."""
         admin = SuperAdminFactory()
         pnr_site = self._make_typed_site('PNR')
         plan = PlanGestionFactory(statut='draft', validation_step='comite_consultatif', sites=[pnr_site])
@@ -1006,11 +1039,11 @@ class TestPlanGestionChangeStatus:
         assert response.status_code == status.HTTP_200_OK
         plan.refresh_from_db()
         assert plan.statut == 'valide'
-        assert plan.validation_step is None
+        assert plan.validation_step == 'comite_consultatif'
 
-    def test_arrete_pref_to_valide_clears_validation_step(self, api_client):
-        """`change-status` depuis draft+arrete_pref → valide remet
-        validation_step à NULL."""
+    def test_arrete_pref_to_valide_keeps_validation_step(self, api_client):
+        """#347 — Valider la plateforme depuis draft+arrete_pref conserve
+        `validation_step` (validations administratives orthogonales)."""
         admin = SuperAdminFactory()
         rnn_site = self._make_typed_site('RNN')
         plan = PlanGestionFactory(statut='draft', validation_step='arrete_pref', sites=[rnn_site])
@@ -1022,7 +1055,7 @@ class TestPlanGestionChangeStatus:
         assert response.status_code == status.HTTP_200_OK
         plan.refresh_from_db()
         assert plan.statut == 'valide'
-        assert plan.validation_step is None
+        assert plan.validation_step == 'arrete_pref'
 
     def test_csrpn_back_to_draft(self, api_client):
         """`csrpn-step/` : step=null annule le workflow (validation_step → NULL)."""
@@ -1058,7 +1091,8 @@ class TestPlanGestionChangeStatus:
         assert response.status_code == status.HTTP_200_OK
         child.refresh_from_db()
         assert child.statut == 'modifie'
-        assert child.validation_step is None
+        # #347 — validation_step conservé (découplé du statut plateforme).
+        assert child.validation_step == 'arrete_pref'
 
     def test_csrpn_validation_with_is_mi_parcours(self, api_client):
         """Validation finale + is_mi_parcours sur un enfant en workflow CSRPN →

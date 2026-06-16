@@ -1102,11 +1102,10 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
             plan.is_mi_parcours = True
             update_fields.append('is_mi_parcours')
 
-        # #277 — Si le plan était dans le workflow CSRPN et qu'il est validé,
-        # on remet validation_step à NULL (sortie du workflow).
-        if new_status in ('valide', 'modifie') and plan.validation_step:
-            plan.validation_step = None
-            update_fields.append('validation_step')
+        # #347 — Les validations administratives (validation_step + dates CSRPN)
+        # sont désormais ORTHOGONALES au statut plateforme : on ne les efface plus
+        # à la validation. La validation plateforme et les validations
+        # administratives coexistent en parallèle.
 
         # #347 — Retour en brouillon : on NE touche PAS aux validations
         # administratives (dates CSRPN/comité/arrêté). Elles sont orthogonales au
@@ -1197,11 +1196,9 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_403_FORBIDDEN
             )
 
-        if plan.statut != 'draft':
-            return Response(
-                {'error': "Le workflow CSRPN s'applique uniquement aux plans en brouillon."},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+        # #347 — Les validations administratives sont orthogonales au statut
+        # plateforme : on peut les enregistrer quel que soit le statut du plan
+        # (brouillon comme validé), en parallèle de la validation plateforme.
 
         # `step` peut être None (annulation du workflow).
         new_step = request.data.get('step') if 'step' in request.data else _MISSING
@@ -1218,11 +1215,14 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
 
         current_step = plan.validation_step
         # Transitions autorisées du workflow CSRPN. None = pas dans le workflow.
+        # #347 — auto-transitions autorisées (step == current) : permet de
+        # (re)enregistrer la date d'une étape terminale sans la quitter (l'étape
+        # finale n'enchaîne plus sur la validation plateforme, désormais séparée).
         allowed_step_transitions = {
             None: ['avis_csrpn'],
-            'avis_csrpn': [None, 'comite_consultatif'],
-            'comite_consultatif': [None, 'arrete_pref'],
-            'arrete_pref': [None],
+            'avis_csrpn': [None, 'avis_csrpn', 'comite_consultatif'],
+            'comite_consultatif': [None, 'comite_consultatif', 'arrete_pref'],
+            'arrete_pref': [None, 'arrete_pref'],
         }
 
         if new_step not in allowed_step_transitions.get(current_step, []):
