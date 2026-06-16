@@ -759,6 +759,33 @@ export class PlanDetailComponent implements OnInit, OnDestroy {
     return !!(p && p.is_mi_parcours);
   });
 
+  /** #347 — Au moins une information de validation CSRPN est renseignée. */
+  hasCsrpnInfo = computed<boolean>(() => {
+    const p = this.plan();
+    return !!(p && (p.date_avis_csrpn || p.date_validation_comite || p.date_arrete_pref || p.numero_arrete_pref));
+  });
+
+  /** #347 — Récapitulatif des dates CSRPN (affiché au survol du badge). */
+  csrpnRecapTooltip = computed<string>(() => {
+    const p = this.plan();
+    if (!p) return '';
+    const fmt = (iso?: string | null) => {
+      if (!iso) return null;
+      const [y, m, d] = iso.slice(0, 10).split('-');
+      return d && m && y ? `${d}/${m}/${y}` : iso;
+    };
+    const lines: string[] = [];
+    if (p.date_avis_csrpn) lines.push(`${this.translate.instant('plans.csrpnRecap.avis')} : ${fmt(p.date_avis_csrpn)}`);
+    if (p.date_validation_comite) lines.push(`${this.translate.instant('plans.csrpnRecap.comite')} : ${fmt(p.date_validation_comite)}`);
+    if (p.date_arrete_pref) {
+      const num = p.numero_arrete_pref ? ` (n° ${p.numero_arrete_pref})` : '';
+      lines.push(`${this.translate.instant('plans.csrpnRecap.arrete')} : ${fmt(p.date_arrete_pref)}${num}`);
+    } else if (p.numero_arrete_pref) {
+      lines.push(`${this.translate.instant('plans.csrpnRecap.arrete')} : n° ${p.numero_arrete_pref}`);
+    }
+    return lines.join('\n');
+  });
+
   /** #276 — Vrai si la chaîne du plan a déjà une évaluation mi-parcours
    *  (sur n'importe laquelle de ses versions). Bloque la création d'une
    *  nouvelle éval mi-parcours. */

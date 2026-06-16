@@ -1195,3 +1195,11 @@ label.app-mat-label + app-form-field,
     text-align: center;
   }
 }
+
+// #347 — Tooltip multi-ligne pour le récap des informations de validation CSRPN
+// (matTooltipClass="csrpn-recap-tooltip"). Le tooltip Material est rendu dans un
+// overlay global, d'où ce style non scopé.
+.csrpn-recap-tooltip {
+  white-space: pre-line;
+  text-align: left;
+}

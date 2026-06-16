@@ -1297,6 +1297,12 @@
       "arrete_pref": "Arrêté préfectoral",
       "tooltip": "Étape du workflow de validation CSRPN en cours sur ce brouillon."
     },
+    "csrpnRecap": {
+      "badge": "Validation CSRPN",
+      "avis": "Avis CSRPN",
+      "comite": "Validation comité",
+      "arrete": "Arrêté préfectoral"
+    },
     "extension": {
       "badge": "Étendu",
       "badge_rnn": "Prolongé",

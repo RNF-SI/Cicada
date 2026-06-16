@@ -1108,6 +1108,22 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
             plan.validation_step = None
             update_fields.append('validation_step')
 
+        # #347 — Retour en brouillon : on restaure l'étape CSRPN atteinte (déduite
+        # des dates déjà saisies) pour reprendre le workflow là où on en était,
+        # plutôt que de tout recommencer depuis le début.
+        if new_status == 'draft' and old_status in ('valide', 'modifie') and not plan.validation_step:
+            if plan.date_arrete_pref:
+                resumed_step = 'arrete_pref'
+            elif plan.date_validation_comite:
+                resumed_step = 'comite_consultatif'
+            elif plan.date_avis_csrpn:
+                resumed_step = 'avis_csrpn'
+            else:
+                resumed_step = None
+            if resumed_step:
+                plan.validation_step = resumed_step
+                update_fields.append('validation_step')
+
         plan.save(update_fields=update_fields)
 
         # Règle « cascade de validation vers l'amont » : valider un brouillon

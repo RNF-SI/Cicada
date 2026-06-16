@@ -501,6 +501,24 @@ class TestPlanGestionChangeStatus:
         assert str(plan.date_validation_comite) == '2026-04-15'
         assert str(plan.date_arrete_pref) == '2026-05-20'
         assert plan.numero_arrete_pref == 'AP-2026-042'
+        # #347 — l'étape CSRPN atteinte est restaurée (reprise du workflow).
+        assert plan.validation_step == 'arrete_pref'
+
+    def test_revert_to_draft_resumes_earlier_csrpn_step(self, api_client, plan_with_referent):
+        """#347 — si seule la date d'avis CSRPN est saisie, on reprend à `avis_csrpn`."""
+        plan, referent, _, _ = plan_with_referent
+        plan.statut = 'valide'
+        plan.date_avis_csrpn = '2026-03-10'
+        plan.save()
+
+        api_client.force_authenticate(user=referent)
+        response = api_client.post(
+            self.URL_TEMPLATE.format(plan.id_pg),
+            {'new_status': 'draft'}, format='json',
+        )
+        assert response.status_code == status.HTTP_200_OK
+        plan.refresh_from_db()
+        assert plan.validation_step == 'avis_csrpn'
 
     def test_referent_not_of_plan_returns_403(self, api_client, plan_with_referent):
         """Referent of another site but not THIS plan gets 403.

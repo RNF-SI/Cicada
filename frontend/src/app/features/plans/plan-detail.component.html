@@ -116,6 +116,16 @@
                       {{ ('plans.validationStep.' + p.validation_step) | translate }}
                     </span>
                   }
+                  <!-- #347 — Récap des informations de validation CSRPN (détail au survol) -->
+                  @if (hasCsrpnInfo()) {
+                    <span class="meta-value status-chip status-chip--csrpn-recap"
+                          [matTooltip]="csrpnRecapTooltip()"
+                          matTooltipClass="csrpn-recap-tooltip"
+                          matTooltipPosition="above">
+                      <i class="fi fi-rr-info"></i>
+                      {{ 'plans.csrpnRecap.badge' | translate }}
+                    </span>
+                  }
                   @if (isPlanExtended()) {
                     <span class="meta-separator">|</span>
                     <span class="meta-value extension-badge">
