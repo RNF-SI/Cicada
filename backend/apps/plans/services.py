@@ -78,33 +78,14 @@ class PlanDuplicationService:
             source_plan.nom, PlanGestion
         )
 
-        # 2. Copy plan (linked as new version via plan_parent)
+        # 2. Copy plan (linked as new version via plan_parent).
+        # #377 — copie TOUTES les métadonnées (dont les validations
+        # administratives CSRPN), sauf le statut (repart en draft).
         source_id = source_plan.id_pg
-        new_plan = PlanGestion(
+        new_plan = PlanDuplicationService.build_version_plan(
+            source_plan, user,
             nom=new_name,
-            slug='',  # Will be auto-generated in save()
-            plan_parent=source_plan,
-            id_cdr=source_plan.id_cdr,
-            rang=source_plan.rang,
-            statut='draft',
             version=source_plan.get_next_version(),
-            annee_debut=source_plan.annee_debut,
-            annee_fin=source_plan.annee_fin,
-            surface=source_plan.surface,
-            gestion_partagee=source_plan.gestion_partagee,
-            ct88=source_plan.ct88,
-            risque_incendie=source_plan.risque_incendie,
-            date_avis_csrpn=source_plan.date_avis_csrpn,
-            id_docgestion_fcen=source_plan.id_docgestion_fcen,
-            id_evaluation=source_plan.id_evaluation,
-            id_redacteur_type=source_plan.id_redacteur_type,
-            redacteur_nom=source_plan.redacteur_nom,
-            redacteurs=source_plan.redacteurs,
-            relecteurs=source_plan.relecteurs,
-            commentaire=source_plan.commentaire,
-            geometrie=None,
-            id_utilisateur_ajout=user,
-            id_utilisateur_maj=user,
         )
         # Skip automatic activity signal - we'll log manually
         new_plan._skip_activity_signal = True
@@ -273,6 +254,36 @@ class PlanDuplicationService:
         )
 
     @staticmethod
+    def build_version_plan(source_plan, user, **overrides):
+        """Construit (NON sauvegardé) un nouveau plan-version à partir d'un plan
+        source.
+
+        Copie TOUTES les métadonnées du plan de gestion — y compris les
+        validations administratives CSRPN (`date_avis_csrpn`,
+        `date_validation_comite`, `date_arrete_pref`, `numero_arrete_pref`,
+        `validation_step`) — puis réinitialise les champs de contrôle et de
+        cycle de vie. Le statut repart à `draft` (seule la métadonnée exclue).
+
+        Les `overrides` fixent les champs propres au flux appelant (nom,
+        version, id_type_document, rang, années…). #377 / copie des métadonnées.
+        """
+        new_plan = PlanDuplicationService._dup(
+            source_plan, user,
+            slug='',                 # régénéré à la sauvegarde
+            plan_parent=source_plan,
+            statut='draft',          # seule métadonnée NON copiée
+            geometrie=None,          # recalculée depuis les sites
+            # Attributs de cycle de vie (non métadonnées) : repartent à zéro
+            is_mi_parcours=False,
+            en_revision=False,
+            next_rang_plan=None,
+            annees_extension=0,
+        )
+        for key, value in overrides.items():
+            setattr(new_plan, key, value)
+        return new_plan
+
+    @staticmethod
     def _dup(old, user, **overrides):
         """Clone superficiel d'une instance (copy + pk=None).
 
@@ -284,8 +295,16 @@ class PlanDuplicationService:
         """
         new = copy.copy(old)
         new.pk = None
+        # `copy.copy` est superficiel : sans cela `new._state` (et les caches de
+        # relations) seraient PARTAGÉS avec `old` — muter l'état du clone
+        # corromprait alors l'instance source (db=None → M2M cassés). On donne
+        # donc au clone son propre état et on purge les caches hérités.
+        new._state = copy.copy(old._state)
         new._state.adding = True
         new._state.db = None
+        new._prefetched_objects_cache = {}
+        if hasattr(new, '_state') and hasattr(new._state, 'fields_cache'):
+            new._state.fields_cache = {}
         concrete = {f.name for f in old._meta.concrete_fields}
         if 'id_utilisateur_ajout' in concrete:
             new.id_utilisateur_ajout = user

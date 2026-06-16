@@ -1298,3 +1298,73 @@ class TestDuplicateContentDeep:
         assert Mesure.objects.filter(id_metrique=new_met).count() == 0
         # La mesure d'origine est conservée.
         assert Mesure.objects.filter(id_metrique=met).count() == 1
+
+
+@pytest.mark.django_db
+@pytest.mark.unit
+class TestDuplicateMetadata:
+    """La copie d'un plan copie les métadonnées (dont validations admin), sauf statut."""
+
+    def _duplicate(self, source_plan, user):
+        return PlanDuplicationService.duplicate_plan(
+            source_plan=source_plan, user=user,
+            copy_sites=False, copy_referents=False, copy_fichiers=False,
+            copy_enjeux=False, copy_sub_elements=False,
+        )
+
+    def test_admin_validations_copied(self, user):
+        """Les validations administratives CSRPN sont copiées (#377)."""
+        import datetime
+        source = PlanGestionFactory(
+            statut='valide', id_utilisateur_ajout=user,
+            date_avis_csrpn=datetime.date(2024, 1, 10),
+            date_validation_comite=datetime.date(2024, 3, 15),
+            date_arrete_pref=datetime.date(2024, 5, 20),
+            numero_arrete_pref='AP-2024-42',
+        )
+        new_plan = self._duplicate(source, user)
+        assert new_plan.date_avis_csrpn == datetime.date(2024, 1, 10)
+        assert new_plan.date_validation_comite == datetime.date(2024, 3, 15)
+        assert new_plan.date_arrete_pref == datetime.date(2024, 5, 20)
+        assert new_plan.numero_arrete_pref == 'AP-2024-42'
+
+    def test_general_metadata_copied(self, user):
+        """Les métadonnées descriptives sont copiées."""
+        source = PlanGestionFactory(
+            statut='valide', id_utilisateur_ajout=user,
+            commentaire='Note interne', redacteurs='Alice', relecteurs='Bob',
+            surface=123.45,
+        )
+        new_plan = self._duplicate(source, user)
+        assert new_plan.commentaire == 'Note interne'
+        assert new_plan.redacteurs == 'Alice'
+        assert new_plan.relecteurs == 'Bob'
+        assert float(new_plan.surface) == 123.45
+
+    def test_statut_not_copied(self, user):
+        """Le statut n'est PAS copié : le nouveau plan repart en brouillon."""
+        source = PlanGestionFactory(statut='valide', id_utilisateur_ajout=user)
+        new_plan = self._duplicate(source, user)
+        assert new_plan.statut == 'draft'
+
+    def test_lifecycle_attributes_reset(self, user):
+        """Les attributs de cycle de vie ne sont pas hérités (fresh draft)."""
+        source = PlanGestionFactory(
+            statut='valide', id_utilisateur_ajout=user,
+            annees_extension=2, en_revision=True, is_mi_parcours=False,
+        )
+        new_plan = self._duplicate(source, user)
+        assert new_plan.annees_extension == 0
+        assert new_plan.en_revision is False
+        assert new_plan.is_mi_parcours is False
+        assert new_plan.next_rang_plan_id is None
+
+    def test_source_not_corrupted_by_copy(self, user):
+        """La copie ne corrompt pas l'instance source (régression _state partagé)."""
+        source = PlanGestionFactory(statut='valide', id_utilisateur_ajout=user,
+                                    numero_arrete_pref='AP-1')
+        self._duplicate(source, user)
+        source.refresh_from_db()
+        # La source reste lisible et inchangée.
+        assert source.statut == 'valide'
+        assert source.numero_arrete_pref == 'AP-1'

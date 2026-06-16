@@ -1801,24 +1801,17 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
 
         # Nouveau rang → nouvelle numérotation (v1). Un changement de rang
         # correspond à un NOUVEAU plan de gestion, pas à une nouvelle version.
-        new_plan = PlanGestion.objects.create(
+        # #377 — copie de toutes les métadonnées du plan source (sauf statut).
+        new_plan = PlanDuplicationService.build_version_plan(
+            plan, request.user,
             nom=nom,
-            plan_parent=plan,
             id_type_document=revise_type,
-            statut='draft',
             version=plan.get_first_version_for_next_rang(),
             annee_debut=annee_debut,
             annee_fin=annee_fin,
             rang=new_rang,
-            surface=plan.surface,
-            gestion_partagee=plan.gestion_partagee,
-            ct88=plan.ct88,
-            risque_incendie=plan.risque_incendie,
-            id_redacteur_type=plan.id_redacteur_type,
-            redacteur_nom=plan.redacteur_nom,
-            id_utilisateur_ajout=request.user,
-            id_utilisateur_maj=request.user,
         )
+        new_plan.save()
 
         # Copier les sites
         for cor_site in plan.sites.all():
@@ -1909,26 +1902,15 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
-        # Créer le nouveau plan
-        new_plan = PlanGestion.objects.create(
+        # Créer le nouveau plan.
+        # #377 — copie de toutes les métadonnées du plan source (sauf statut).
+        new_plan = PlanDuplicationService.build_version_plan(
+            plan, request.user,
             nom=f"Évaluation mi-parcours - {plan.nom}",
-            plan_parent=plan,
             id_type_document=eval_type,
-            statut='draft',
             version=plan.get_next_version(),
-            annee_debut=plan.annee_debut,
-            annee_fin=plan.annee_fin,
-            rang=plan.rang,
-            surface=plan.surface,
-            gestion_partagee=plan.gestion_partagee,
-            ct88=plan.ct88,
-            risque_incendie=plan.risque_incendie,
-            id_evaluation=plan.id_evaluation,
-            id_redacteur_type=plan.id_redacteur_type,
-            redacteur_nom=plan.redacteur_nom,
-            id_utilisateur_ajout=request.user,
-            id_utilisateur_maj=request.user,
         )
+        new_plan.save()
 
         # Copier les sites
         for cor_site in plan.sites.all():
