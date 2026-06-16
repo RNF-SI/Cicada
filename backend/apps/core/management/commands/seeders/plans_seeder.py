@@ -619,6 +619,104 @@ class PlansSeeder(BaseSeeder):
                 referents_list.append(user)
         plan.referents.set(referents_list)
 
+    def _seed_sandbox(self, admin, sites, doc_types) -> List[PlanGestion]:
+        """#348 — « Bac à sable » : chaîne dédiée aux tests de SUPPRESSION et de
+        DUPLICATION de versions, sans impacter les autres jeux de données.
+
+        Chaîne (plans tous préfixés « Bac à sable — ») :
+          Rang 1 : v1 (validé, racine, AVEC enjeux) → v2 (modifié)
+                   → v3 (éval mi-parcours : modifié + is_mi_parcours)
+          Rang 2 : brouillon — pour observer la renumérotation multi-rangs.
+
+        Permet de tester : suppression début/milieu/fin de chaîne, cascade du
+        contenu (enjeux) et des liens, renumérotation par rang, et duplication
+        d'une version validée. `reset()` les supprime (delete sur tous les plans).
+        """
+        plan_initial, eval_mi, plan_revise = doc_types
+        site = sites[0] if sites else None
+        referent = admin
+        created: List[PlanGestion] = []
+
+        def _mk(nom, statut, version, rang, parent, doc_type,
+                annee_debut, annee_fin, is_mi_parcours=False):
+            plan, _ = PlanGestion.objects.update_or_create(
+                nom=nom,
+                defaults={
+                    'statut': statut,
+                    'version': version,
+                    'rang': rang,
+                    'plan_parent': parent,
+                    'id_type_document': doc_type,
+                    'annee_debut': annee_debut,
+                    'annee_fin': annee_fin,
+                    'is_mi_parcours': is_mi_parcours,
+                    'id_utilisateur_ajout': admin,
+                    'id_utilisateur_maj': admin,
+                },
+            )
+            if site:
+                CorSitePg.objects.get_or_create(
+                    site=site, plan_de_gestion=plan, defaults={'rang': 1}
+                )
+            CorRolePlan.objects.update_or_create(
+                id_role=referent, plan_de_gestion=plan, defaults={'referent': True}
+            )
+            plan.referents.add(referent)
+            created.append(plan)
+            return plan
+
+        v1 = _mk('Bac à sable — Plan initial 2010-2020', 'valide', '1', 1, None,
+                 plan_initial, 2010, 2020)
+        v2 = _mk('Bac à sable — Plan révisé 2020-2030', 'modifie', '2', 1, v1,
+                 plan_revise, 2020, 2030)
+        v3 = _mk('Bac à sable — Éval mi-parcours 2025', 'modifie', '3', 1, v2,
+                 eval_mi, 2025, 2025, is_mi_parcours=True)
+        _mk('Bac à sable — Plan rang 2 (brouillon) 2030-2040', 'draft', '1', 2, v3,
+            plan_revise, 2030, 2040)
+
+        # Contenu sur la racine : permet de vérifier la cascade à la suppression.
+        self._seed_sandbox_enjeux(v1, admin)
+
+        self.log_item(
+            'chain',
+            'Bac à sable (#348) : rang1 v1→v2→v3(mi-parcours) + rang2 brouillon (avec enjeux)'
+        )
+        return created
+
+    def _seed_sandbox_enjeux(self, plan: PlanGestion, admin) -> None:
+        """Quelques enjeux de démonstration sur le plan racine du bac à sable."""
+        from apps.plans.models_enjeux import Enjeu
+
+        cat = Nomenclature.objects.filter(
+            id_type__mnemonique='CATEGORIE_ENJEU', mnemonique='ENJEU'
+        ).first()
+        if not cat:
+            return
+        prio = Nomenclature.objects.filter(
+            id_type__mnemonique='IMPORTANCE_ENJEU', mnemonique='PRIORITE_1'
+        ).first()
+
+        demos = [
+            ('Bac à sable — Enjeu de démonstration A', 'Démo A'),
+            ('Bac à sable — Enjeu de démonstration B', 'Démo B'),
+        ]
+        for rang, (libelle, court) in enumerate(demos, start=1):
+            Enjeu.objects.update_or_create(
+                id_pg=plan,
+                libelle=libelle,
+                defaults={
+                    'id_categorie': cat,
+                    'intitule_court': court,
+                    'rang': rang,
+                    'id_importance': prio,
+                    'categorie_ecologique': True,
+                    'habitat': True,
+                    'description': "Enjeu de test pour vérifier la cascade lors de la "
+                                   "suppression d'une version (#348).",
+                    'id_utilisateur_ajout': admin,
+                },
+            )
+
     def seed(self) -> List[PlanGestion]:
         """
         Crée les plans de gestion de test.
@@ -1327,6 +1425,13 @@ class PlansSeeder(BaseSeeder):
 
         self.log_summary(fichiers_count, 'documents de test')
 
+        # #348 — Bac à sable suppression / duplication (chaîne dédiée, isolée).
+        if plan_initial_type and eval_mi_type and plan_revise_type:
+            sandbox_plans = self._seed_sandbox(
+                admin, sites, (plan_initial_type, eval_mi_type, plan_revise_type)
+            )
+            plans.extend(sandbox_plans)
+
         self.log_summary(len(plans), 'plans de gestion')
         self.context.set('plans', plans)
         return plans
@@ -1376,6 +1481,11 @@ class PlansSeeder(BaseSeeder):
             '    v1.0 Plan initial 2011-2021 (archive)',
             '    v2.0 → Plan révisé 2021-2031 (valide)',
             '    v2.1 → Eval mi-parcours 2026 (draft)',
+            '\nBac à sable suppression/duplication (#348) — 4 plans :',
+            '  Rang 1 : v1 Plan initial 2010-2020 (valide, avec 2 enjeux)',
+            '           → v2 Plan révisé 2020-2030 (modifie)',
+            '           → v3 Éval mi-parcours 2025 (modifie + is_mi_parcours)',
+            '  Rang 2 : brouillon 2030-2040 (draft)',
             '\nDocuments de test (10):',
             '  - Camargue: 3 docs (2 PDF publics + 1 carte)',
             '  - Aiguilles Rouges: 2 docs (1 PdG + 1 annexe)',
