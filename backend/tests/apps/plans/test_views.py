@@ -919,37 +919,75 @@ class TestPlanGestionChangeStatus:
         )
         assert response.status_code == status.HTTP_400_BAD_REQUEST
 
-    # ---------- #348 — annulation du drapeau is_mi_parcours ----------
+    # ---------- #348 — suppression d'une version (delete-version) ----------
 
-    def test_remove_mi_parcours_clears_flag(self, api_client):
-        """remove-mi-parcours repasse is_mi_parcours à False sans changer le statut."""
+    def test_delete_version_removes_mi_parcours_version(self, api_client):
+        """Supprime une version mi-parcours (validée) et libère la chaîne."""
         admin = SuperAdminFactory()
-        parent = PlanGestionFactory(statut='valide')
-        plan = PlanGestionFactory(statut='modifie', is_mi_parcours=True, plan_parent=parent)
+        parent = PlanGestionFactory(statut='valide', version='1', rang=1)
+        plan = PlanGestionFactory(
+            statut='modifie', is_mi_parcours=True, plan_parent=parent, version='2', rang=1
+        )
         api_client.force_authenticate(user=admin)
-        response = api_client.post(f'/api/plans/plans/{plan.id_pg}/remove-mi-parcours/')
+        response = api_client.post(f'/api/plans/plans/{plan.id_pg}/delete-version/')
         assert response.status_code == status.HTTP_200_OK
-        plan.refresh_from_db()
-        assert plan.statut == 'modifie'  # statut inchangé
-        assert plan.is_mi_parcours is False
+        assert response.data['deleted_id'] == plan.id_pg
+        assert not PlanGestion.objects.filter(pk=plan.id_pg).exists()
+        # Le parent subsiste et la chaîne n'a plus de mi-parcours.
+        parent.refresh_from_db()
+        assert parent.chain_has_mi_parcours() is False
 
-    def test_remove_mi_parcours_frees_chain_for_new_one(self, api_client):
-        """Après annulation, la chaîne peut de nouveau accueillir une mi-parcours."""
+    def test_delete_version_relinks_children_to_grandparent(self, api_client):
+        """Supprimer une version du milieu re-rattache ses enfants au parent."""
         admin = SuperAdminFactory()
-        parent = PlanGestionFactory(statut='valide')
-        plan = PlanGestionFactory(statut='modifie', is_mi_parcours=True, plan_parent=parent)
+        v1 = PlanGestionFactory(statut='valide', version='1', rang=1)
+        v2 = PlanGestionFactory(statut='modifie', plan_parent=v1, version='2', rang=1)
+        v3 = PlanGestionFactory(statut='draft', plan_parent=v2, version='3', rang=1)
         api_client.force_authenticate(user=admin)
-        api_client.post(f'/api/plans/plans/{plan.id_pg}/remove-mi-parcours/')
-        plan.refresh_from_db()
-        assert plan.chain_has_mi_parcours() is False
+        response = api_client.post(f'/api/plans/plans/{v2.id_pg}/delete-version/')
+        assert response.status_code == status.HTTP_200_OK
+        v3.refresh_from_db()
+        # v3 est re-rattaché à v1 (grand-parent), la chaîne reste connectée.
+        assert v3.plan_parent_id == v1.id_pg
 
-    def test_remove_mi_parcours_when_not_flagged(self, api_client):
-        """Annuler sur un plan non mi-parcours → 400."""
+    def test_delete_version_renumbers_remaining_versions(self, api_client):
+        """Après suppression, les versions du rang sont renumérotées 1..N."""
         admin = SuperAdminFactory()
-        plan = PlanGestionFactory(statut='modifie', is_mi_parcours=False)
+        v1 = PlanGestionFactory(statut='valide', version='1', rang=1)
+        v2 = PlanGestionFactory(statut='modifie', plan_parent=v1, version='2', rang=1)
+        v3 = PlanGestionFactory(statut='draft', plan_parent=v2, version='3', rang=1)
         api_client.force_authenticate(user=admin)
-        response = api_client.post(f'/api/plans/plans/{plan.id_pg}/remove-mi-parcours/')
-        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        api_client.post(f'/api/plans/plans/{v2.id_pg}/delete-version/')
+        v1.refresh_from_db()
+        v3.refresh_from_db()
+        assert v1.version == '1'
+        assert v3.version == '2'  # ré-indexé (était v3)
+
+    def test_delete_version_cascades_links(self, api_client):
+        """La suppression efface les liaisons (CorSitePg) mais pas le site."""
+        from apps.plans.models import CorSitePg
+        from tests.factories.users import SiteFactory
+        admin = SuperAdminFactory()
+        plan = PlanGestionFactory(statut='draft')
+        site = SiteFactory()
+        CorSitePg.objects.create(plan_de_gestion=plan, site=site)
+        api_client.force_authenticate(user=admin)
+        response = api_client.post(f'/api/plans/plans/{plan.id_pg}/delete-version/')
+        assert response.status_code == status.HTTP_200_OK
+        assert not CorSitePg.objects.filter(plan_de_gestion_id=plan.id_pg).exists()
+        # Le site lui-même n'est pas supprimé.
+        from apps.users.models import Site
+        assert Site.objects.filter(pk=site.pk).exists()
+
+    def test_delete_version_forbidden_for_non_referent(self, api_client):
+        """Un utilisateur sans droit ne peut pas supprimer une version → 403."""
+        from tests.factories.users import RoleFactory
+        plan = PlanGestionFactory(statut='draft')
+        user = RoleFactory()
+        api_client.force_authenticate(user=user)
+        response = api_client.post(f'/api/plans/plans/{plan.id_pg}/delete-version/')
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+        assert PlanGestion.objects.filter(pk=plan.id_pg).exists()
 
     # ---------- #277 — workflow CSRPN ----------
 

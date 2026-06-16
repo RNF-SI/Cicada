@@ -26,7 +26,8 @@ import {
   BulkImportValidationResult,
   BulkImportResult,
   BulkImportJobStatus,
-  PlanDuplicateOptions
+  PlanDuplicateOptions,
+  PlanVersionChainItem
 } from '../models/admin.model';
 import { SiteCreationValidatorsResponse } from '../models/notification.model';
 
@@ -682,12 +683,14 @@ export class AdminService {
   }
 
   /**
-   * #348 — Cancel the mid-term evaluation flag of a plan (is_mi_parcours → false).
-   * POST /api/plans/plans/{id}/remove-mi-parcours/
+   * #348 — Supprime définitivement une version (plan) de la chaîne de versions.
+   * Cascade les liens, re-rattache les enfants au parent, renumérote les
+   * versions restantes. Renvoie la chaîne restante.
+   * POST /api/plans/plans/{id}/delete-version/
    */
-  removePlanMiParcours(planId: number): Observable<AdminPlan> {
-    return this.http.post<AdminPlan>(
-      `${this.plansApiUrl}/plans/${planId}/remove-mi-parcours/`,
+  deletePlanVersion(planId: number): Observable<{ deleted_id: number; version_chain: PlanVersionChainItem[] }> {
+    return this.http.post<{ deleted_id: number; version_chain: PlanVersionChainItem[] }>(
+      `${this.plansApiUrl}/plans/${planId}/delete-version/`,
       {}
     ).pipe(catchError(this.handleError));
   }

@@ -262,13 +262,6 @@
                         <span>{{ 'plans.lifecycle.actions.startMiParcours' | translate }}</span>
                       </button>
                     }
-                    @if (isPlanMiParcours()) {
-                      <button class="btn-lifecycle btn-lifecycle-warning" (click)="confirmCancelMiParcours()"
-                              [matTooltip]="'plans.lifecycle.actions.cancelMiParcoursDesc' | translate" matTooltipPosition="below">
-                        <i class="fi fi-rr-cross-circle"></i>
-                        <span>{{ 'plans.lifecycle.actions.cancelMiParcours' | translate }}</span>
-                      </button>
-                    }
                     @if (canCreateNewVersion()) {
                       <button class="btn-lifecycle btn-lifecycle-success" (click)="openCreateNewVersionDialog()"
                               [matTooltip]="'plans.lifecycle.actions.createNewVersionDesc' | translate" matTooltipPosition="below">
@@ -290,6 +283,12 @@
                       <span>{{ 'plans.lifecycle.actions.reactivate' | translate }}</span>
                     </button>
                   }
+                  <!-- #348 — Accès à la page Paramètres (gestion avancée des versions) -->
+                  <button class="btn-lifecycle btn-lifecycle-neutral" [routerLink]="['/plans', p.slug, 'parametres']"
+                          [matTooltip]="'plans.settings.title' | translate" matTooltipPosition="below">
+                    <i class="fi fi-rr-settings"></i>
+                    <span>{{ 'plans.settings.openButton' | translate }}</span>
+                  </button>
                 }
                 <button class="btn-generate">
                   <i class="fi fi-rr-download"></i>

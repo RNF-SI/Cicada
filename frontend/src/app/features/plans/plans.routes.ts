@@ -63,6 +63,11 @@ export const PLANS_ROUTES: Routes = [
     canActivate: [authGuard]
   },
   {
+    path: ':slug/parametres',
+    loadComponent: () => import('./plan-settings.component').then(m => m.PlanSettingsComponent),
+    canActivate: [authGuard]
+  },
+  {
     path: ':slug',
     component: PlanDetailComponent,
     canActivate: [authGuard]

@@ -1467,9 +1467,7 @@
         "recordArretePref": "Enregistrer l'arrêté préfectoral",
         "recordArretePrefDesc": "L'arrêté préfectoral est pris : enregistrer la date et le numéro, puis valider définitivement le plan.",
         "cancelCsrpn": "Annuler le workflow CSRPN",
-        "cancelCsrpnDesc": "Repasser le plan en brouillon — annule l'étape CSRPN en cours.",
-        "cancelMiParcours": "Annuler l'évaluation mi-parcours",
-        "cancelMiParcoursDesc": "Retirer la désignation « évaluation mi-parcours » de ce plan. Le statut reste « modifié ». Une nouvelle évaluation mi-parcours pourra ensuite être déclarée dans la chaîne."
+        "cancelCsrpnDesc": "Repasser le plan en brouillon — annule l'étape CSRPN en cours."
       },
       "warnings": {
         "validateTitle": "Valider le plan de gestion",
@@ -1488,9 +1486,7 @@
         "startRevisionTitle": "Marquer le plan en cours de révision",
         "startRevisionWarning": "Le plan reste validé fonctionnellement, mais sera signalé comme « en cours de révision » : un nouveau plan (rang suivant) est en cours de rédaction en parallèle. La révision peut être lancée avant ou après le dépassement de la période.",
         "cancelRevisionTitle": "Annuler la révision",
-        "cancelRevisionWarning": "L'indicateur « en cours de révision » et le lien vers le rang suivant seront retirés. Le statut du plan reste inchangé. Le plan du rang suivant n'est pas supprimé.",
-        "cancelMiParcoursTitle": "Annuler l'évaluation mi-parcours",
-        "cancelMiParcoursWarning": "La désignation « évaluation mi-parcours » sera retirée de ce plan. Son statut (« modifié ») et son contenu ne sont pas modifiés. La chaîne pourra de nouveau accueillir une évaluation mi-parcours."
+        "cancelRevisionWarning": "L'indicateur « en cours de révision » et le lien vers le rang suivant seront retirés. Le statut du plan reste inchangé. Le plan du rang suivant n'est pas supprimé."
       },
       "messages": {
         "statusChanged": "Le statut du plan a été modifié avec succès.",
@@ -1506,9 +1502,7 @@
         "revisionEnded": "La révision du plan a été arrêtée.",
         "revisionError": "Impossible de modifier l'état de révision du plan.",
         "miParcoursCreated": "Le brouillon de l'évaluation mi-parcours a été créé.",
-        "miParcoursLinked": "Le brouillon a été lié comme évaluation mi-parcours.",
-        "miParcoursCancelled": "La désignation « évaluation mi-parcours » a été annulée.",
-        "miParcoursCancelError": "Impossible d'annuler l'évaluation mi-parcours."
+        "miParcoursLinked": "Le brouillon a été lié comme évaluation mi-parcours."
       },
       "lockedBanner": {
         "title": "Plan verrouillé en lecture seule",
@@ -1992,6 +1986,23 @@
         "sites": "Sites",
         "actions": "Actions"
       }
+    },
+    "settings": {
+      "openButton": "Paramètres",
+      "title": "Paramètres du plan de gestion",
+      "subtitle": "Gestion avancée des versions de ce plan de gestion.",
+      "back": "Retour au plan",
+      "noPermission": "Vous n'avez pas accès aux paramètres de ce plan de gestion.",
+      "versionsTitle": "Versions du plan de gestion",
+      "versionsHelp": "Supprimer une version efface définitivement son contenu (enjeux, opérations, suivis, fichiers) et ses liens (sites, utilisateurs, organismes). Les sites, utilisateurs et organismes eux-mêmes ne sont pas supprimés. La suppression d'une version mi-parcours annule l'évaluation à mi-parcours.",
+      "currentBadge": "Version affichée",
+      "miParcoursBadge": "Évaluation mi-parcours",
+      "versionLabel": "Version",
+      "deleteVersion": "Supprimer cette version",
+      "deleteVersionConfirmTitle": "Supprimer définitivement cette version ?",
+      "deleteVersionConfirmMessage": "La version « {{name}} » (v{{version}}) et tout son contenu seront supprimés définitivement. Ses liens avec les sites, utilisateurs et organismes seront retirés, et les versions restantes seront renumérotées. Cette action est irréversible.",
+      "deleteSuccess": "La version a été supprimée.",
+      "deleteError": "La suppression de la version a échoué."
     }
   },
   "profile": {

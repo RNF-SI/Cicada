@@ -1644,54 +1644,87 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
         serializer = PlanGestionDetailSerializer(plan)
         return Response(serializer.data)
 
-    @action(detail=True, methods=['post'], url_path='remove-mi-parcours',
+    @action(detail=True, methods=['post'], url_path='delete-version',
             permission_classes=[permissions.IsAuthenticated, IsReferent])
-    def remove_mi_parcours(self, request, pk=None):
+    def delete_version(self, request, pk=None):
         """
-        Annuler la désignation « évaluation mi-parcours » d'un plan (#348).
+        Supprime définitivement une version (plan) d'une chaîne de versions (#348).
 
-        POST /api/plans/plans/{id}/remove-mi-parcours/
+        POST /api/plans/plans/{id}/delete-version/
 
-        Repasse `is_mi_parcours` à False sans toucher au statut (le plan reste
-        `modifie`, une modification ordinaire). Libère la chaîne : une nouvelle
-        évaluation mi-parcours pourra ensuite être déclarée. Attribut orthogonal
-        au statut, donc accessible hors brouillon (comme l'extension #250 et la
-        révision #278). Réservé aux référents du plan, admin_og et super_admin.
+        Utilisé par la page « Paramètres du plan de gestion » pour supprimer une
+        version quelconque de la chaîne — y compris l'évaluation mi-parcours.
+
+        - Réservé au référent du plan, admin_og, super_admin (`_can_delete_plan`).
+        - Supprime le plan et, par CASCADE Django, ses liens (sites, membres,
+          référents, organismes rédacteurs, fichiers, enjeux, opérations,
+          suivis). Les sites / utilisateurs / organismes eux-mêmes ne sont pas
+          supprimés, seules les liaisons le sont.
+        - Répare la chaîne : les enfants directs sont re-rattachés au parent du
+          plan supprimé (la chaîne reste connectée), puis les versions du/des
+          rang(s) impacté(s) sont renumérotées de façon contiguë (1..N).
+        - Notifie les acteurs liés.
+
+        Renvoie l'identifiant supprimé et la chaîne de versions restante.
         """
+        from django.db import transaction
+        from apps.notifications.services import NotificationService
+
         plan = self.get_object()
 
-        user = request.user
-        if not user.can_manage_plan_lifecycle() and not plan.referents.filter(pk=user.pk).exists():
+        if not self._can_delete_plan(request.user, plan):
             return Response(
-                {'error': "Vous devez être référent de ce plan pour annuler l'évaluation mi-parcours."},
-                status=status.HTTP_403_FORBIDDEN
+                {'detail': "Vous n'avez pas les droits pour supprimer cette version."},
+                status=status.HTTP_403_FORBIDDEN,
             )
 
-        if not plan.is_mi_parcours:
-            return Response(
-                {'error': "Ce plan n'est pas une évaluation mi-parcours."},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+        # Capturer la chaîne et les acteurs AVANT la suppression.
+        chain_ids = [item['id_pg'] for item in plan.get_version_chain()]
+        parent = plan.plan_parent
+        plan_name = plan.nom
+        plan_id = plan.id_pg
+        deleted_by = request.user
+        referent_ids = list(plan.referents.values_list('id_role', flat=True))
+        member_ids = list(
+            CorRolePlan.objects.filter(plan_de_gestion=plan).values_list('id_role', flat=True)
+        )
+        org_ids = list(plan.organismes_redacteurs.values_list('uuid_og', flat=True))
 
-        plan.is_mi_parcours = False
-        plan.id_utilisateur_maj = request.user
-        plan.save(update_fields=['is_mi_parcours', 'id_utilisateur_maj', 'date_maj'])
+        with transaction.atomic():
+            # Re-rattacher les enfants au parent du plan supprimé pour garder la
+            # chaîne connectée (plan_parent est SET_NULL : sans cela les enfants
+            # deviendraient des racines orphelines).
+            plan.children.update(plan_parent=parent)
+            plan.delete()
+            # Renuméroter les versions restantes de la chaîne, par rang.
+            survivors = list(
+                PlanGestion.objects.filter(id_pg__in=chain_ids).exclude(pk=plan_id)
+            )
+            PlanGestion.renumber_versions_per_rang(survivors)
 
         try:
-            from apps.core.services import ActivityService
-            ActivityService.log(
-                user=request.user,
-                action='update',
-                entity_type='plan',
-                entity_id=plan.id_pg,
-                entity_name=plan.nom,
-                description="Désignation évaluation mi-parcours annulée",
+            NotificationService.notify_plan_deleted(
+                plan_name=plan_name,
+                plan_id=plan_id,
+                deleted_by=deleted_by,
+                referent_ids=referent_ids,
+                org_ids=org_ids,
+                member_ids=member_ids,
             )
         except Exception:
             pass
 
-        serializer = PlanGestionDetailSerializer(plan)
-        return Response(serializer.data)
+        # Construire la chaîne restante pour le frontend.
+        anchor = None
+        if parent is not None:
+            parent.refresh_from_db()
+            anchor = parent
+        else:
+            anchor = PlanGestion.objects.filter(id_pg__in=chain_ids).exclude(pk=plan_id).first()
+        remaining = anchor.get_version_chain() if anchor is not None else []
+
+        return Response({'deleted_id': plan_id, 'version_chain': remaining},
+                        status=status.HTTP_200_OK)
 
     @action(detail=True, methods=['post'], url_path='create-next-rang',
             permission_classes=[permissions.IsAuthenticated, IsReferent])
