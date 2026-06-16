@@ -1309,6 +1309,7 @@
       "comite": "Validation comité consultatif",
       "arrete": "Arrêté préfectoral",
       "notStarted": "Non commencé",
+      "empty": "Aucune validation administrative enregistrée. Cliquez pour en ajouter.",
       "validatedOn": "Validé le {{date}}",
       "record": "Enregistrer la validation",
       "edit": "Modifier la validation",

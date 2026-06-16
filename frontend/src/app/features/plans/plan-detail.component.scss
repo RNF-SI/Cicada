@@ -297,6 +297,30 @@
         font-size: 11px;
       }
     }
+
+    // #347 — Badge « Validations administratives » : info au survol, édition au
+    // clic. Teinte primaire (kit UI). Rendu comme bouton → reset des styles.
+    &--csrpn-recap {
+      margin-left: $spacing-xxs;
+      gap: $spacing-xxs;
+      border: none;
+      font-family: inherit;
+      background-color: rgba($primary-color, 0.1);
+      color: $primary-color !important;
+      cursor: default;
+
+      i {
+        font-size: 11px;
+      }
+
+      &.is-editable {
+        cursor: pointer;
+
+        &:hover {
+          background-color: rgba($primary-color, 0.2);
+        }
+      }
+    }
   }
 
   // #250 / #278 — badges affichés à côté du chip de statut quand le plan
@@ -1383,22 +1407,21 @@
 }
 
 // ============================================
-// #347 — Panneau validations administratives
+// #347 — Menu d'édition des validations administratives (badge en haut)
 // ============================================
-.admin-validations-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
+.admin-valid-menu {
   display: flex;
   flex-direction: column;
   gap: $spacing-xs;
+  padding: $spacing-sm $spacing-md;
+  min-width: 280px;
 }
 
 .admin-validation-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: $spacing-sm;
+  gap: $spacing-md;
   padding: $spacing-xs 0;
 
   &:not(:last-child) {

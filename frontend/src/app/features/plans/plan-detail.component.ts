@@ -7,6 +7,7 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatMenuModule } from '@angular/material/menu';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { Subscription } from 'rxjs';
 import { HeaderComponent } from '../../shared/components/header/header.component';
@@ -119,6 +120,7 @@ interface SubAccordion {
     MatDialogModule,
     MatChipsModule,
     MatTooltipModule,
+    MatMenuModule,
     TranslateModule,
     HeaderComponent,
     SectionTitleComponent,
@@ -759,6 +761,35 @@ export class PlanDetailComponent implements OnInit, OnDestroy {
   isPlanMiParcours = computed<boolean>(() => {
     const p = this.plan();
     return !!(p && p.is_mi_parcours);
+  });
+
+  /** #347 — Au moins une information de validation administrative est renseignée. */
+  hasCsrpnInfo = computed<boolean>(() => {
+    const p = this.plan();
+    return !!(p && (p.date_avis_csrpn || p.date_validation_comite || p.date_arrete_pref || p.numero_arrete_pref));
+  });
+
+  /** #347 — Récapitulatif des validations administratives (affiché au survol du
+   *  badge en haut du plan). Fallback explicite quand rien n'est renseigné. */
+  csrpnRecapTooltip = computed<string>(() => {
+    const p = this.plan();
+    if (!p) return '';
+    const fmt = (iso?: string | null) => {
+      if (!iso) return null;
+      const [y, m, d] = iso.slice(0, 10).split('-');
+      return d && m && y ? `${d}/${m}/${y}` : iso;
+    };
+    const lines: string[] = [];
+    if (p.date_avis_csrpn) lines.push(`${this.translate.instant('plans.csrpnRecap.avis')} : ${fmt(p.date_avis_csrpn)}`);
+    if (p.date_validation_comite) lines.push(`${this.translate.instant('plans.csrpnRecap.comite')} : ${fmt(p.date_validation_comite)}`);
+    if (p.date_arrete_pref) {
+      const num = p.numero_arrete_pref ? ` (n° ${p.numero_arrete_pref})` : '';
+      lines.push(`${this.translate.instant('plans.csrpnRecap.arrete')} : ${fmt(p.date_arrete_pref)}${num}`);
+    } else if (p.numero_arrete_pref) {
+      lines.push(`${this.translate.instant('plans.csrpnRecap.arrete')} : n° ${p.numero_arrete_pref}`);
+    }
+    if (!lines.length) return this.translate.instant('plans.adminValidations.empty');
+    return lines.join('\n');
   });
 
   /** #276 — Vrai si la chaîne du plan a déjà une évaluation mi-parcours
