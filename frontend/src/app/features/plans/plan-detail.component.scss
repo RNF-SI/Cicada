@@ -299,15 +299,17 @@
     }
 
     // #347 — Badge « Validations administratives » : info au survol, édition au
-    // clic. Teinte primaire (kit UI). Rendu comme bouton → reset des styles.
+    // clic. Bouton secondaire kit UI (fond blanc, bordure + texte primary,
+    // hover plein) pour être clairement visible parmi les chips de statut.
     &--csrpn-recap {
       margin-left: $spacing-xxs;
       gap: $spacing-xxs;
-      border: none;
       font-family: inherit;
-      background-color: rgba($primary-color, 0.1);
+      background-color: $white;
+      border: 1px solid $primary-color;
       color: $primary-color !important;
       cursor: default;
+      transition: all $transition-fast;
 
       i {
         font-size: 11px;
@@ -315,18 +317,24 @@
 
       .av-count {
         font-weight: $font-weight-bold;
-        background-color: rgba($primary-color, 0.18);
+        background-color: rgba($primary-color, 0.15);
         border-radius: $border-radius-pill;
         padding: 0 6px;
         font-size: 11px;
         line-height: 1.5;
+        transition: inherit;
       }
 
       &.is-editable {
         cursor: pointer;
 
         &:hover {
-          background-color: rgba($primary-color, 0.2);
+          background-color: $primary-color;
+          color: $white !important;
+
+          .av-count {
+            background-color: rgba($white, 0.25);
+          }
         }
       }
     }

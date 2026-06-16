@@ -136,13 +136,13 @@
                               }
                             </div>
                             <div class="av-actions">
-                              <button class="icon-btn-flat" (click)="openAdminValidationDialog(item.key)"
+                              <button class="icon-btn icon-btn-sm" (click)="openAdminValidationDialog(item.key)"
                                       [matTooltip]="(item.done ? 'plans.adminValidations.edit' : 'plans.adminValidations.record') | translate"
                                       matTooltipPosition="above">
                                 <i class="fi" [class.fi-rr-pencil]="item.done" [class.fi-rr-plus]="!item.done"></i>
                               </button>
                               @if (item.done) {
-                                <button class="icon-btn-flat" (click)="clearAdminValidation(item.key)"
+                                <button class="icon-btn icon-btn-sm" (click)="clearAdminValidation(item.key)"
                                         [matTooltip]="'plans.adminValidations.clear' | translate"
                                         matTooltipPosition="above">
                                   <i class="fi fi-rr-trash"></i>
