@@ -1026,17 +1026,13 @@
         <app-accordion variant="default" size="lg" [title]="'enjeux.operations.indicateursReponse' | translate" [expanded]="sectionsOpen['indicateurs_reponse']" (expandedChange)="sectionsOpen['indicateurs_reponse'] = $event">
   <img accordionIcon src="assets/images/ellipses/ellipse-yellow.png" alt="" class="section-dot">
   <div class="section-content">
-    <div class="info-block op-indic-examples">
-      <div class="info-block-icon"></div>
-      <div class="info-block-content">
-        <p class="info-block-content-title">{{ 'enjeux.operations.reponseExamplesTitle' | translate }}</p>
-        <ul class="list-bullets">
-          <li>{{ 'enjeux.operations.reponseExample1' | translate }}</li>
-          <li>{{ 'enjeux.operations.reponseExample2' | translate }}</li>
-          <li>{{ 'enjeux.operations.reponseExample3' | translate }}</li>
-        </ul>
-      </div>
-    </div>
+    <button type="button" class="op-indic-help"
+            [matTooltip]="reponseExamplesTooltip"
+            matTooltipClass="multiline-tooltip"
+            matTooltipPosition="right">
+      <i class="fi fi-rr-interrogation"></i>
+      <span>{{ 'enjeux.operations.reponseExamplesTitle' | translate }}</span>
+    </button>
     @let opMetriques = responseIndicators();
     @if (opMetriques.length > 0) {
       <div class="op-indic-editor">

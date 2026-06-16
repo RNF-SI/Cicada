@@ -313,6 +313,15 @@
         font-size: 11px;
       }
 
+      .av-count {
+        font-weight: $font-weight-bold;
+        background-color: rgba($primary-color, 0.18);
+        border-radius: $border-radius-pill;
+        padding: 0 6px;
+        font-size: 11px;
+        line-height: 1.5;
+      }
+
       &.is-editable {
         cursor: pointer;
 

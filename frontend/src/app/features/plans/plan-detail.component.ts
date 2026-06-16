@@ -770,26 +770,32 @@ export class PlanDetailComponent implements OnInit, OnDestroy {
   });
 
   /** #347 — Récapitulatif des validations administratives (affiché au survol du
-   *  badge en haut du plan). Fallback explicite quand rien n'est renseigné. */
+   *  badge en haut du plan). Liste CHAQUE étape avec son statut (validé + date /
+   *  non commencé), pour donner l'état complet sans ouvrir le menu. */
   csrpnRecapTooltip = computed<string>(() => {
-    const p = this.plan();
-    if (!p) return '';
     const fmt = (iso?: string | null) => {
       if (!iso) return null;
       const [y, m, d] = iso.slice(0, 10).split('-');
       return d && m && y ? `${d}/${m}/${y}` : iso;
     };
-    const lines: string[] = [];
-    if (p.date_avis_csrpn) lines.push(`${this.translate.instant('plans.csrpnRecap.avis')} : ${fmt(p.date_avis_csrpn)}`);
-    if (p.date_validation_comite) lines.push(`${this.translate.instant('plans.csrpnRecap.comite')} : ${fmt(p.date_validation_comite)}`);
-    if (p.date_arrete_pref) {
-      const num = p.numero_arrete_pref ? ` (n° ${p.numero_arrete_pref})` : '';
-      lines.push(`${this.translate.instant('plans.csrpnRecap.arrete')} : ${fmt(p.date_arrete_pref)}${num}`);
-    } else if (p.numero_arrete_pref) {
-      lines.push(`${this.translate.instant('plans.csrpnRecap.arrete')} : n° ${p.numero_arrete_pref}`);
-    }
-    if (!lines.length) return this.translate.instant('plans.adminValidations.empty');
+    const lines = this.adminValidations().map(item => {
+      const label = this.translate.instant(item.labelKey);
+      if (item.done) {
+        const num = item.numero ? ` (n° ${item.numero})` : '';
+        const validated = this.translate.instant('plans.adminValidations.validatedOn', { date: fmt(item.date) ?? '' });
+        return `${label} : ${validated}${num}`;
+      }
+      return `${label} : ${this.translate.instant('plans.adminValidations.notStarted')}`;
+    });
     return lines.join('\n');
+  });
+
+  /** #347 — Compteur « validées / total » affiché sur le badge en haut, pour
+   *  visualiser le statut d'un coup d'œil sans survol. */
+  adminValidationsSummary = computed<string>(() => {
+    const items = this.adminValidations();
+    const done = items.filter(i => i.done).length;
+    return `${done}/${items.length}`;
   });
 
   /** #276 — Vrai si la chaîne du plan a déjà une évaluation mi-parcours

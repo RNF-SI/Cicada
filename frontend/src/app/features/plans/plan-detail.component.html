@@ -118,6 +118,7 @@
                             [matMenuTriggerFor]="adminValidMenu">
                       <i class="fi fi-rr-info"></i>
                       {{ 'plans.adminValidations.title' | translate }}
+                      <span class="av-count">{{ adminValidationsSummary() }}</span>
                       <i class="fi fi-rr-angle-small-down"></i>
                     </button>
                     <mat-menu #adminValidMenu="matMenu" class="admin-valid-menu-panel">
@@ -159,6 +160,7 @@
                           matTooltipPosition="above">
                       <i class="fi fi-rr-info"></i>
                       {{ 'plans.adminValidations.title' | translate }}
+                      <span class="av-count">{{ adminValidationsSummary() }}</span>
                     </span>
                   }
                   @if (isPlanExtended()) {

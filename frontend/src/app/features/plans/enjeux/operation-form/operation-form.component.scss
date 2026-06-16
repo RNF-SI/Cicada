@@ -1213,3 +1213,28 @@ app-form-field.finance-categorie {
   }
 }
 
+
+// Aide « indicateurs de réponse » : lien tertiaire discret (icône + libellé),
+// exemples affichés au survol. Couleurs kit UI (primary).
+.op-indic-help {
+  display: inline-flex;
+  align-items: center;
+  gap: $spacing-xxs;
+  margin-bottom: $spacing-sm;
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: help;
+  color: $primary-color;
+  font-family: inherit;
+  font-size: $font-size-small;
+  font-weight: $font-weight-semibold;
+
+  i {
+    font-size: 14px;
+  }
+
+  &:hover {
+    text-decoration: underline;
+  }
+}

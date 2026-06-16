@@ -147,6 +147,16 @@ export class OperationFormComponent implements OnInit {
     return out;
   });
 
+  /** Aide « comment remplir un indicateur de réponse » : 3 exemples affichés
+   *  au survol (tooltip multi-ligne) pour ne pas alourdir le formulaire. */
+  get reponseExamplesTooltip(): string {
+    return [
+      this.translate.instant('enjeux.operations.reponseExample1'),
+      this.translate.instant('enjeux.operations.reponseExample2'),
+      this.translate.instant('enjeux.operations.reponseExample3'),
+    ].join('\n\n');
+  }
+
   // Query params
   prelinkedMetriqueId = signal<number | null>(null);
   // #1 — Liste de métriques à pré-lier quand l'action est créée au niveau

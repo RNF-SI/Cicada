@@ -1203,3 +1203,11 @@ label.app-mat-label + app-form-field,
   white-space: pre-line;
   text-align: left;
 }
+
+// Tooltip multi-ligne générique (aide contextuelle, ex : exemples d'indicateurs
+// de réponse). Rendu dans l'overlay global → style non scopé.
+.multiline-tooltip {
+  white-space: pre-line;
+  text-align: left;
+  max-width: 360px !important;
+}
