@@ -1082,19 +1082,52 @@
           </div>
         }
       </div>
-    } @else {
+    } @else if (pendingResponseIndicators.length === 0) {
       <p class="text-mention">{{ 'enjeux.operations.indicateursEmpty' | translate }}</p>
     }
+
+    <!-- Indicateurs de réponse saisis avant l'enregistrement (création) : en mémoire,
+         créés à la sauvegarde de l'action. -->
+    @if (!isReadOnly() && pendingResponseIndicators.length > 0) {
+      <div class="op-indic-editor">
+        @for (pi of pendingResponseIndicators; track $index; let i = $index; let last = $last) {
+          <div class="op-indic-edit-row" [class.with-separator]="!last">
+            <div class="op-indic-line op-indic-line-title">
+              <app-form-field [label]="'enjeux.operations.intituleIndicateurReponse' | translate" [required]="true">
+                <input type="text" [(ngModel)]="pi.nom_indicateur" [ngModelOptions]="{ standalone: true }" />
+              </app-form-field>
+              <button type="button" class="op-indic-delete"
+                      (click)="removePendingResponseIndicator(i)"
+                      [title]="'enjeux.operations.indicateurRemove' | translate"
+                      [attr.aria-label]="'enjeux.operations.indicateurRemove' | translate">
+                <i class="fi fi-rr-trash"></i>
+              </button>
+            </div>
+            <div class="op-indic-line op-indic-line-grid">
+              <app-form-field [label]="'enjeux.operations.metriqueNom' | translate">
+                <input type="text" [(ngModel)]="pi.nom_metrique" [ngModelOptions]="{ standalone: true }" />
+              </app-form-field>
+              <app-form-field [label]="'enjeux.operations.typeMetrique' | translate">
+                <select [(ngModel)]="pi.type_metrique_id" [ngModelOptions]="{ standalone: true }">
+                  <option [ngValue]="null">—</option>
+                  @for (opt of typeMetriqueOptions(); track opt.id_nomenclature) {
+                    <option [ngValue]="opt.id_nomenclature">{{ opt.label }}</option>
+                  }
+                </select>
+              </app-form-field>
+            </div>
+            <div class="op-indic-line">
+              <app-form-field [label]="'enjeux.operations.valeurCible' | translate">
+                <input type="text" [(ngModel)]="pi.valeur_cible" [ngModelOptions]="{ standalone: true }" />
+              </app-form-field>
+            </div>
+          </div>
+        }
+      </div>
+    }
+
     @if (!isReadOnly()) {
-      @if (!operationId()) {
-        <p class="text-mention op-indic-create-hint">
-          <i class="fi fi-rr-info"></i>
-          {{ 'enjeux.operations.indicateursReponseCreateHint' | translate }}
-        </p>
-      }
-      <button type="button" class="btn-outlined-pill"
-              [disabled]="!operationId()"
-              (click)="addResponseIndicator()">
+      <button type="button" class="btn-outlined-pill" (click)="addResponseIndicator()">
         <i class="fi fi-rr-plus"></i>
         {{ 'enjeux.operations.ajouterIndicateurReponse' | translate }}
       </button>

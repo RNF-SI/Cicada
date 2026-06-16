@@ -22,6 +22,7 @@ import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { MatDialogModule, MatDialog } from '@angular/material/dialog';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
+import { forkJoin, of, Observable } from 'rxjs';
 import { debounceTime, distinctUntilChanged, filter, switchMap } from 'rxjs/operators';
 
 import { HeaderComponent } from '../../../../shared/components/header/header.component';
@@ -113,6 +114,15 @@ export class OperationFormComponent implements OnInit {
   responseIndicators = computed(() =>
     (this.existingOperation()?.metriques || []).filter(m => m.indicateur_type === 'REPONSE')
   );
+
+  /** Indicateurs de réponse saisis avant l'enregistrement (création d'action) :
+   * conservés en mémoire puis créés côté serveur à la sauvegarde de l'action. */
+  pendingResponseIndicators: {
+    nom_indicateur: string;
+    nom_metrique: string;
+    type_metrique_id: number | null;
+    valeur_cible: string;
+  }[] = [];
 
   /** Emprise spatiale en cours d'édition (#342). undefined = inchangée. */
   pendingEmprise = signal<any | undefined>(undefined);
@@ -981,9 +991,17 @@ export class OperationFormComponent implements OnInit {
   /** Bouton "+ Ajouter un indicateur de réponse" : crée Indicateur + Métrique côté backend. */
   addResponseIndicator(): void {
     const opId = this.operationId();
-    // En création, l'action n'existe pas encore : le bouton est désactivé côté
-    // template (l'utilisateur enregistre d'abord l'action). Garde de sécurité ici.
-    if (!opId) return;
+    if (!opId) {
+      // En création : l'action n'existe pas encore côté serveur. On collecte
+      // l'indicateur de réponse en mémoire ; il sera créé à l'enregistrement.
+      this.pendingResponseIndicators.push({
+        nom_indicateur: this.translate.instant('enjeux.operations.newIndicatorDefault'),
+        nom_metrique: this.translate.instant('enjeux.operations.newIndicatorDefault'),
+        type_metrique_id: null,
+        valeur_cible: '',
+      });
+      return;
+    }
     const defaultNom = this.translate.instant('enjeux.operations.newIndicatorDefault');
     this.enjeuService.createOperationResponseIndicator(opId, {
       nom_indicateur: defaultNom,
@@ -1035,6 +1053,11 @@ export class OperationFormComponent implements OnInit {
         { duration: 4000 },
       ),
     });
+  }
+
+  /** Retire un indicateur de réponse en attente (création, non encore enregistré). */
+  removePendingResponseIndicator(index: number): void {
+    this.pendingResponseIndicators.splice(index, 1);
   }
 
   /** Sauvegarde le titre de l'indicateur (on blur de l'input). */
@@ -1338,18 +1361,46 @@ export class OperationFormComponent implements OnInit {
     } else {
       this.enjeuService.createOperation(payload).subscribe({
         next: (created) => {
-          this.isLoading.set(false);
-          this.snackBar.open(
-            this.translate.instant(successKey),
-            this.translate.instant('common.actions.close'),
-            { duration: 3000 }
-          );
-          this.enjeuService.refreshCurrentPlanEnjeux();
-          if (opts.stayOnForm && created?.id_operation) {
-            this.navigateToEdit(created.id_operation);
-          } else {
-            this.navigateAfterCreate(created?.id_operation ?? null);
-          }
+          const newOpId = created?.id_operation ?? null;
+          // Créer les indicateurs de réponse saisis avant l'enregistrement.
+          const pending = this.pendingResponseIndicators;
+          const createPending$: Observable<unknown> = (newOpId && pending.length > 0)
+            ? forkJoin(pending.map(pi => this.enjeuService.createOperationResponseIndicator(newOpId, {
+                nom_indicateur: (pi.nom_indicateur || '').trim() || this.translate.instant('enjeux.operations.newIndicatorDefault'),
+                nom_metrique: (pi.nom_metrique || '').trim() || undefined,
+                type_metrique_id: pi.type_metrique_id ?? undefined,
+                valeur_cible: (pi.valeur_cible || '').trim() || undefined,
+              })))
+            : of(null);
+
+          createPending$.subscribe({
+            next: () => {
+              this.pendingResponseIndicators = [];
+              this.isLoading.set(false);
+              this.snackBar.open(
+                this.translate.instant(successKey),
+                this.translate.instant('common.actions.close'),
+                { duration: 3000 }
+              );
+              this.enjeuService.refreshCurrentPlanEnjeux();
+              if (opts.stayOnForm && newOpId) {
+                this.navigateToEdit(newOpId);
+              } else {
+                this.navigateAfterCreate(newOpId);
+              }
+            },
+            error: () => {
+              // L'action est créée ; seul l'ajout d'un indicateur a échoué.
+              this.isLoading.set(false);
+              this.snackBar.open(
+                this.translate.instant('enjeux.operations.indicateursAddError'),
+                this.translate.instant('common.actions.close'),
+                { duration: 4000 }
+              );
+              this.enjeuService.refreshCurrentPlanEnjeux();
+              if (newOpId) this.navigateToEdit(newOpId);
+            },
+          });
         },
         error: (error) => {
           this.isLoading.set(false);
