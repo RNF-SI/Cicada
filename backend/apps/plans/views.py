@@ -1840,6 +1840,10 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
                 referent=membre.referent,
             )
 
+        # #377 — Copier tout le contenu (enjeux, hiérarchie, suivis, opérations)
+        # pour que le rang suivant soit éditable sans impacter la version source.
+        PlanDuplicationService.copy_content(plan, new_plan, request.user)
+
         try:
             from apps.core.services import ActivityService
             ActivityService.log(
@@ -1945,6 +1949,10 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
                 plan_de_gestion=new_plan,
                 referent=membre.referent,
             )
+
+        # #377 — Copier tout le contenu pour que l'évaluation mi-parcours soit
+        # éditable sans impacter la version source.
+        PlanDuplicationService.copy_content(plan, new_plan, request.user)
 
         # Log activity
         try:

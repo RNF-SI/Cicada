@@ -1485,6 +1485,22 @@ class TestPlanGestionCreateEvaluation:
         response = api_client.post(self.URL_TEMPLATE.format(plan.id_pg))
         assert response.status_code == status.HTTP_201_CREATED
 
+    def test_create_evaluation_copies_content(self, api_client, eval_nomenclature):
+        """#377 — L'évaluation mi-parcours copie le contenu (enjeux) du plan source."""
+        from tests.factories.enjeux import EnjeuFactory
+        from apps.plans.models_enjeux import Enjeu
+        admin = SuperAdminFactory()
+        plan = PlanGestionValideFactory()
+        EnjeuFactory(id_pg=plan, libelle='Enjeu source')
+        api_client.force_authenticate(user=admin)
+        response = api_client.post(self.URL_TEMPLATE.format(plan.id_pg))
+        assert response.status_code == status.HTTP_201_CREATED
+        new_plan_id = response.data['id_pg']
+        assert new_plan_id != plan.id_pg
+        # Le nouveau plan a une copie de l'enjeu ; la source la conserve aussi.
+        assert Enjeu.objects.filter(id_pg_id=new_plan_id, libelle='Enjeu source').count() == 1
+        assert Enjeu.objects.filter(id_pg=plan, libelle='Enjeu source').count() == 1
+
     # ---------- Preconditions ----------
 
     def test_draft_plan_returns_400(self, api_client, eval_nomenclature):
