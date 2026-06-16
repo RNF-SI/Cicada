@@ -108,6 +108,7 @@
       "noAccount": "Pas encore inscrit ?",
       "createAccount": "Créer un compte",
       "backToHome": "Retour à l'accueil",
+      "forgotPassword": "Mot de passe oublié ?",
       "errors": {
         "usernameRequired": "L'identifiant ou l'email est requis",
         "passwordRequired": "Le mot de passe est requis"
@@ -161,7 +162,42 @@
       "title": "Demande en attente",
       "message": "Votre demande d'inscription a été envoyée. Vous recevrez un email une fois votre compte validé par un administrateur."
     },
-    "logout": "Déconnexion"
+    "logout": "Déconnexion",
+    "forgotPassword": {
+      "title": "Mot de passe oublié",
+      "subtitle": "Saisissez votre adresse email : nous vous enverrons un lien pour réinitialiser votre mot de passe.",
+      "email": "Adresse email",
+      "emailPlaceholder": "votre.email@exemple.fr",
+      "submit": "Envoyer le lien",
+      "loading": "Envoi en cours…",
+      "successMessage": "Si un compte est associé à cette adresse, un email contenant un lien de réinitialisation vient d'être envoyé. Pensez à vérifier vos courriers indésirables.",
+      "backToLogin": "Retour à la connexion",
+      "errors": {
+        "emailRequired": "L'adresse email est requise",
+        "emailInvalid": "Format d'adresse email invalide"
+      }
+    },
+    "resetPassword": {
+      "title": "Nouveau mot de passe",
+      "subtitle": "Choisissez un nouveau mot de passe pour votre compte.",
+      "newPassword": "Nouveau mot de passe",
+      "newPasswordPlaceholder": "Au moins 8 caractères",
+      "confirmPassword": "Confirmer le mot de passe",
+      "confirmPasswordPlaceholder": "Ressaisissez le mot de passe",
+      "submit": "Réinitialiser le mot de passe",
+      "loading": "Réinitialisation…",
+      "successMessage": "Votre mot de passe a été réinitialisé. Vous allez être redirigé vers la page de connexion.",
+      "invalidLink": "Ce lien de réinitialisation est incomplet ou invalide. Veuillez refaire une demande.",
+      "requestNewLink": "Demander un nouveau lien",
+      "goToLogin": "Aller à la connexion",
+      "backToLogin": "Retour à la connexion",
+      "errors": {
+        "passwordRequired": "Le mot de passe est requis",
+        "passwordMinLength": "Le mot de passe doit contenir au moins 8 caractères",
+        "confirmRequired": "Veuillez confirmer le mot de passe",
+        "mismatch": "Les mots de passe ne correspondent pas"
+      }
+    }
   },
   "header": {
     "administration": "Administration",

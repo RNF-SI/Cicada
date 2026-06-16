@@ -114,6 +114,41 @@ class CustomTokenObtainPairSerializer(serializers.Serializer):
         }
 
 
+class PasswordResetRequestSerializer(serializers.Serializer):
+    """
+    Demande de réinitialisation de mot de passe (#329).
+    L'utilisateur saisit l'email associé à son compte ; un lien lui est envoyé.
+    """
+
+    email = serializers.EmailField(help_text=_("Adresse email du compte"))
+
+
+class PasswordResetConfirmSerializer(serializers.Serializer):
+    """
+    Confirmation de réinitialisation (#329) : applique le nouveau mot de passe
+    après validation du jeton reçu par email.
+    """
+
+    uid = serializers.CharField(help_text=_("Identifiant encodé reçu dans le lien"))
+    token = serializers.CharField(help_text=_("Jeton de réinitialisation reçu dans le lien"))
+    new_password = serializers.CharField(
+        write_only=True,
+        min_length=8,
+        style={'input_type': 'password'},
+        help_text=_("Nouveau mot de passe (minimum 8 caractères)"),
+    )
+
+    def validate_new_password(self, value):
+        """Applique les validateurs de mot de passe Django (si configurés)."""
+        from django.contrib.auth.password_validation import validate_password
+        from django.core.exceptions import ValidationError as DjangoValidationError
+        try:
+            validate_password(value)
+        except DjangoValidationError as exc:
+            raise serializers.ValidationError(list(exc.messages))
+        return value
+
+
 class UserInfoSerializer(serializers.ModelSerializer):
     """
     Serializer pour les informations utilisateur.

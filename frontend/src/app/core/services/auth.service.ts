@@ -174,6 +174,43 @@ export class AuthService {
   }
 
   /**
+   * #329 — Demande de réinitialisation de mot de passe.
+   * Le backend renvoie toujours un message neutre (il ne révèle pas si un
+   * compte correspond), que l'on relaie tel quel.
+   */
+  requestPasswordReset(email: string): Observable<string> {
+    return this.http
+      .post<{ detail: string }>(`${this.apiUrl}/password-reset/`, { email })
+      .pipe(
+        map(response => response.detail),
+        catchError(error => this.handleError(error))
+      );
+  }
+
+  /**
+   * #329 — Confirme la réinitialisation avec le jeton reçu par email et
+   * applique le nouveau mot de passe.
+   */
+  confirmPasswordReset(uid: string, token: string, newPassword: string): Observable<string> {
+    return this.http
+      .post<{ detail: string }>(`${this.apiUrl}/password-reset/confirm/`, {
+        uid,
+        token,
+        new_password: newPassword,
+      })
+      .pipe(
+        map(response => response.detail),
+        catchError((error: HttpErrorResponse) => {
+          const fieldError = error.error?.new_password?.[0];
+          if (fieldError) {
+            return throwError(() => new Error(fieldError));
+          }
+          return this.handleError(error);
+        })
+      );
+  }
+
+  /**
    * Logout - blacklist refresh token and clear local data
    */
   logout(): Observable<void> {

@@ -6,6 +6,8 @@ from django.urls import path
 from .views import (
     CustomTokenObtainPairView,
     CustomTokenRefreshView,
+    PasswordResetRequestView,
+    PasswordResetConfirmView,
     logout_view,
     user_info_view,
     health_check_view,
@@ -26,6 +28,10 @@ urlpatterns = [
     path('login/', CustomTokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('refresh/', CustomTokenRefreshView.as_view(), name='token_refresh'),
     path('logout/', logout_view, name='logout'),
+
+    # Mot de passe oublié (#329)
+    path('password-reset/', PasswordResetRequestView.as_view(), name='password_reset'),
+    path('password-reset/confirm/', PasswordResetConfirmView.as_view(), name='password_reset_confirm'),
 
     # Inscription publique
     path('register/', public_registration_view, name='register'),

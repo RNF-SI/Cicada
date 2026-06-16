@@ -190,6 +190,43 @@ def send_registration_rejected_email(self, email, reason=None):
         raise self.retry(exc=e, countdown=60 * (2 ** self.request.retries))
 
 
+@shared_task(bind=True, max_retries=3)
+def send_password_reset_email(self, email, reset_url, nom_complet=None):
+    """
+    Envoie l'email de réinitialisation de mot de passe (#329).
+
+    Args:
+        email: Adresse email du compte
+        reset_url: URL frontend complète (avec uid + token) de réinitialisation
+        nom_complet: Nom complet optionnel pour la formule d'appel
+    """
+    try:
+        context = {
+            'nom_complet': nom_complet or email,
+            'email': email,
+            'reset_url': reset_url,
+            'site_url': settings.SITE_URL if hasattr(settings, 'SITE_URL') else 'http://localhost:4200',
+        }
+
+        html_message = render_to_string('emails/password_reset.html', context)
+        plain_message = strip_tags(html_message)
+
+        send_mail(
+            subject="Réinitialisation de votre mot de passe CICADA",
+            message=plain_message,
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=[email],
+            html_message=html_message,
+            fail_silently=False,
+        )
+
+        logger.info(f"Password reset email sent to {email}")
+
+    except Exception as e:
+        logger.error(f"Failed to send password reset email to {email}: {e}")
+        raise self.retry(exc=e, countdown=60 * (2 ** self.request.retries))
+
+
 # #328 — La tache hebdomadaire check_organismes_without_admin (recap email aux
 # super-admins) a ete supprimee : l'etat « organisme sans admin » est detecte en
 # temps reel par les signaux Django (apps/users/signals.py ->
