@@ -989,6 +989,42 @@ class TestPlanGestionChangeStatus:
         assert response.status_code == status.HTTP_403_FORBIDDEN
         assert PlanGestion.objects.filter(pk=plan.id_pg).exists()
 
+    def test_delete_version_cascades_content(self, api_client):
+        """Supprimer une version supprime aussi son contenu (enjeux) par CASCADE."""
+        from tests.factories.enjeux import EnjeuFactory
+        from apps.plans.models_enjeux import Enjeu
+        admin = SuperAdminFactory()
+        plan = PlanGestionFactory(statut='draft')
+        enjeu = EnjeuFactory(id_pg=plan)
+        api_client.force_authenticate(user=admin)
+        response = api_client.post(f'/api/plans/plans/{plan.id_pg}/delete-version/')
+        assert response.status_code == status.HTTP_200_OK
+        assert not Enjeu.objects.filter(pk=enjeu.id_enjeu).exists()
+
+    def test_delete_version_renumber_scoped_per_rang(self, api_client):
+        """La renumérotation après suppression est scopée au rang : le rang
+        suivant n'est pas renuméroté, et les enfants sont re-rattachés."""
+        admin = SuperAdminFactory()
+        v1 = PlanGestionFactory(statut='valide', version='1', rang=1)
+        v2 = PlanGestionFactory(statut='modifie', plan_parent=v1, version='2', rang=1)
+        v3 = PlanGestionFactory(statut='modifie', plan_parent=v2, version='3', rang=1)
+        r2 = PlanGestionFactory(statut='draft', plan_parent=v3, version='1', rang=2)
+        api_client.force_authenticate(user=admin)
+        # Supprime v2 (milieu du rang 1).
+        response = api_client.post(f'/api/plans/plans/{v2.id_pg}/delete-version/')
+        assert response.status_code == status.HTTP_200_OK
+        v1.refresh_from_db()
+        v3.refresh_from_db()
+        r2.refresh_from_db()
+        # Rang 1 renuméroté de façon contiguë (1, 2).
+        assert v1.version == '1'
+        assert v3.version == '2'
+        # v3 re-rattaché au parent de v2 (= v1).
+        assert v3.plan_parent_id == v1.id_pg
+        # Le rang 2 n'est pas affecté.
+        assert r2.rang == 2
+        assert r2.version == '1'
+
     # ---------- #277 — workflow CSRPN ----------
 
     def _make_typed_site(self, mnemonique: str):

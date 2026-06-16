@@ -49,6 +49,7 @@ export class PlanSidebarComponent implements OnInit {
       return a.id_enjeu - b.id_enjeu;
     });
   });
+  overviewMenuExpanded = signal(true);
   detailsMenuExpanded = signal(true);
   suivisMenuExpanded = signal(true);
 
@@ -80,6 +81,10 @@ export class PlanSidebarComponent implements OnInit {
 
   ngOnInit(): void {
     // Le chargement initial est géré par l'effect dans le constructeur
+  }
+
+  toggleOverviewMenu(): void {
+    this.overviewMenuExpanded.update(v => !v);
   }
 
   toggleDetailsMenu(): void {
