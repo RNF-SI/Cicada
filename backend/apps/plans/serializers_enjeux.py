@@ -287,14 +287,71 @@ class ObjectifOperationnelCreateSerializer(serializers.ModelSerializer):
         read_only_fields = ['id_oo']
 
     def validate(self, attrs):
-        """#337 — un OO doit être ancré soit à des pressions, soit à un enjeu."""
-        if self.instance is None:
-            pression_ids = attrs.get('pression_ids') or []
-            id_enjeu = attrs.get('id_enjeu')
-            if not pression_ids and not id_enjeu:
+        """Contrôle d'intégrité du rattachement d'un OO selon la catégorie du parent.
+
+        Le mode de rattachement d'un OO dépend de la nature de l'enjeu parent :
+
+        - Enjeu « classique » : la chaîne Enjeu → Facteur d'influence → Pression
+          est STRUCTURANTE. Un OO descend obligatoirement d'au moins une pression
+          (``pression_ids``) et n'est JAMAIS rattaché directement à l'enjeu.
+
+        - FCR (Facteur Clé de Réussite) : la chaîne facteur/pression est
+          FACULTATIVE et purement DESCRIPTIVE. Un OO de FCR est TOUJOURS rattaché
+          directement au FCR via ``id_enjeu`` (sans pression), même si le FCR
+          porte par ailleurs des facteurs/pressions.
+
+        On verrouille donc les croisements interdits pour garantir l'intégrité du
+        modèle (cf. évolution FCR / #337) :
+          1. un OO doit être ancré quelque part (pression OU enjeu direct) ;
+          2. le rattachement direct (``id_enjeu``) est réservé aux FCR ;
+          3. un OO de FCR ne peut pas être rattaché à une pression.
+
+        Ces règles ne s'appliquent qu'à la création : en modification, le
+        rattachement initial n'est pas remis en cause.
+        """
+        if self.instance is not None:
+            return attrs
+
+        pression_ids = attrs.get('pression_ids') or []
+        enjeu = attrs.get('id_enjeu')  # instance Enjeu (FK résolue par DRF) ou None
+
+        # (1) Un OO doit être ancré : au moins une pression OU un enjeu direct.
+        if not pression_ids and not enjeu:
+            raise serializers.ValidationError(
+                _("Un objectif opérationnel doit être rattaché à au moins une pression ou à un FCR.")
+            )
+
+        # (2) Rattachement direct via id_enjeu → réservé aux FCR.
+        if enjeu is not None:
+            if not enjeu.is_fcr():
                 raise serializers.ValidationError(
-                    _("Un objectif opérationnel doit être rattaché à au moins une pression ou à un enjeu.")
+                    _("Le rattachement direct d'un objectif opérationnel est réservé aux FCR. "
+                      "Pour un enjeu classique, rattachez l'objectif à une ou plusieurs pressions.")
                 )
+            # Un OO de FCR est rattaché AU FCR uniquement : pas de pression au-dessus.
+            if pression_ids:
+                raise serializers.ValidationError(
+                    _("Un objectif opérationnel de FCR est rattaché directement au FCR, "
+                      "il ne peut pas être lié à une pression.")
+                )
+
+        # (3) Rattachement par pressions → l'enjeu parent (remonté via la chaîne
+        #     Pression → Facteur → Enjeu) ne doit PAS être un FCR.
+        else:  # pression_ids non vide (sinon bloqué en (1))
+            parent_pression = (
+                Pression.objects
+                .filter(pk__in=pression_ids)
+                .select_related('id_facteur_influence__id_enjeu__id_categorie')
+                .first()
+            )
+            if parent_pression is not None:
+                parent_enjeu = parent_pression.id_facteur_influence.id_enjeu
+                if parent_enjeu.is_fcr():
+                    raise serializers.ValidationError(
+                        _("Un objectif opérationnel de FCR doit être rattaché directement au FCR, "
+                          "pas à une pression.")
+                    )
+
         return attrs
 
     def create(self, validated_data):

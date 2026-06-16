@@ -11,6 +11,13 @@
       [showLine]="true">
       <!-- Bouton modifier retiré (revue design Amandine — doublon avec celui du body sub-header) -->
       <div sectionActions class="header-actions">
+        <!-- Accès à la page détail de l'enjeu / FCR (icône œil, comme ailleurs). -->
+        <button mat-icon-button
+                class="action-btn view-btn"
+                (click)="onNavigateToDetail($event)"
+                [matTooltip]="'common.actions.view' | translate">
+          <i class="fi fi-rr-eye"></i>
+        </button>
         <button mat-icon-button class="expand-btn">
           <i class="fi" [ngClass]="expanded() ? 'fi-rr-angle-up' : 'fi-rr-angle-down'"></i>
         </button>
@@ -162,20 +169,22 @@
         </div>
       }
 
-      <!-- Facteurs d'influence (enjeux uniquement) -->
-      @if (!isFcr) {
-        <div class="facteurs-summary">
-          <div class="facteurs-count">
-            <i class="fi fi-rr-chart-tree"></i>
-            <span>{{ facteurCount }} {{ 'enjeux.facteurInfluence.countSuffix' | translate }}</span>
-          </div>
-          @if (facteurCount > 0) {
-            <button mat-stroked-button class="btn-sm" (click)="onNavigateToDetail($event)">
-              {{ 'enjeux.facteurInfluence.viewButton' | translate }}
-            </button>
-          }
+      <!--
+        Résumé des facteurs d'influence — affiché pour les enjeux ET les FCR.
+        Un FCR peut désormais porter des facteurs d'influence (descriptifs) ;
+        on montre donc le compteur dans les deux cas.
+      -->
+      <div class="facteurs-summary">
+        <div class="facteurs-count">
+          <i class="fi fi-rr-chart-tree"></i>
+          <span>{{ facteurCount }} {{ 'enjeux.facteurInfluence.countSuffix' | translate }}</span>
         </div>
-      }
+        @if (facteurCount > 0) {
+          <button mat-stroked-button class="btn-sm" (click)="onNavigateToDetail($event)">
+            {{ 'enjeux.facteurInfluence.viewButton' | translate }}
+          </button>
+        }
+      </div>
 
       <!-- Metadata -->
       <div class="metadata">

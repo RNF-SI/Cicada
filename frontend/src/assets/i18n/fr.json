@@ -2708,7 +2708,7 @@
       "noFacteurTitle": "Aucun facteur d'influence",
       "noFacteurDescription": "Vous devez d'abord créer au moins un facteur d'influence dans l'onglet « Détail » avant de pouvoir ajouter un objectif opérationnel.",
       "noPressionTitle": "Aucune pression",
-      "noPressionDescription": "Vous devez d'abord créer au moins une pression sous un facteur d'influence dans l'onglet « Détail » avant de pouvoir ajouter un objectif opérationnel."
+      "noPressionDescription": "Vous devez d'abord créer au moins une pression sous un facteur d'influence dans l'onglet « Détail » avant de pouvoir ajouter un objectif opérationnel, dans le cas d'un enjeu."
     },
     "resultatAttendu": {
       "label": "Résultat attendu",

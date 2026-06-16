@@ -3923,7 +3923,12 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
     const enjeu = this.selectedEnjeu();
     if (!enjeu || !this.newOoLibelle.trim()) return;
     const isFcr = this.isSelectedFcr();
-    // #337 — pour un FCR, l'OO est rattaché directement à l'enjeu (sans pression).
+    // Règle de rattachement d'un OO selon la catégorie du parent :
+    //  - FCR  : l'OO est TOUJOURS rattaché directement au FCR via id_enjeu,
+    //           sans pression (même si le FCR porte des facteurs/pressions,
+    //           qui restent purement descriptifs). On n'exige donc aucune pression.
+    //  - Enjeu : l'OO descend obligatoirement d'au moins une pression
+    //           (chaîne Facteur → Pression → OO). On bloque si rien n'est sélectionné.
     if (!isFcr && this.newOoPressionIds.length === 0) return;
 
     this.enjeuService.createObjectifOperationnel({

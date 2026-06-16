@@ -325,12 +325,24 @@
                 }
               </div>
 
-              <!-- Facteurs d'Influence (enjeux uniquement, pas FCR) -->
-              @if (!isSelectedFcr()) {
-                <div cdkDropList
-                     class="facteurs-droplist"
-                     [cdkDropListDisabled]="!canEditPlan()"
-                     (cdkDropListDropped)="onFacteurDrop($event)">
+              <!--
+                Facteurs d'Influence — affichés pour les enjeux ET les FCR.
+
+                Évolution du modèle FCR : la section facteurs d'influence (et son
+                bouton d'ajout) avait été masquée pour les FCR (#337). Elle est
+                ré-affichée car un FCR peut désormais porter des facteurs
+                d'influence. Différence de sémantique :
+                  - Enjeu : la chaîne Facteur → Pression est STRUCTURANTE
+                    (un OO descend obligatoirement d'une pression).
+                  - FCR : la chaîne Facteur → Pression est FACULTATIVE et
+                    purement DESCRIPTIVE. Elle n'ancre pas les OO : un OO de FCR
+                    est toujours rattaché directement au FCR (voir section OO).
+                Le bloc est donc rendu dans les deux cas, sans garde isSelectedFcr().
+              -->
+              <div cdkDropList
+                   class="facteurs-droplist"
+                   [cdkDropListDisabled]="!canEditPlan()"
+                   (cdkDropListDropped)="onFacteurDrop($event)">
                 @for (facteur of selectedFacteurs(); track facteur.id_facteur_influence) {
                   <div cdkDrag [cdkDragDisabled]="!canEditPlan()" class="facteur-influence-card facteur-drag-item" [id]="'facteur-' + facteur.id_facteur_influence" [class.expanded]="isFacteurExpanded(facteur.id_facteur_influence)">
                     <!-- Mode édition facteur -->
@@ -637,7 +649,7 @@
                     {{ 'enjeux.facteurInfluence.addButton' | translate }}
                   </button>
                 }
-              }
+                <!-- (fin de la section facteurs d'influence — rendue pour enjeux ET FCR) -->
             </div>
           }
 
@@ -2088,7 +2100,13 @@
                     <app-form-field class="full-width" [label]="'enjeux.oo.descriptionLabel' | translate">
   <textarea [(ngModel)]="newOoDescription" rows="2"></textarea>
 </app-form-field>
-                    <!-- #337 — pas de pression pour un FCR : OO rattaché directement -->
+                    <!--
+                      Sélecteur de pression : UNIQUEMENT pour un enjeu classique.
+                      Pour un FCR, l'OO est toujours rattaché directement au FCR
+                      (champ id_enjeu, cf. saveOo) — même si le FCR porte des
+                      facteurs/pressions, ceux-ci sont descriptifs et n'ancrent
+                      jamais un OO. On masque donc le sélecteur pour les FCR.
+                    -->
                     @if (!isSelectedFcr()) {
                     <label class="app-mat-label">{{ 'enjeux.oo.pressionLabel' | translate }} *</label>
       <mat-form-field class="full-width app-mat-form-field" appearance="outline">
@@ -2261,7 +2279,8 @@
                         [initiallyExpanded]="selectedEnjeuId() === item.id_enjeu"
                         [canEdit]="canEditPlan()"
                         (edit)="navigateToEdit(item)"
-                        (delete)="onEnjeuDelete(item)">
+                        (delete)="onEnjeuDelete(item)"
+                        (navigateToDetail)="navigateToEnjeuDetail($event)">
                       </app-enjeu-accordion>
                     </div>
                   }

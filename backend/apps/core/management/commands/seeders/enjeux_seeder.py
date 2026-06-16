@@ -2006,6 +2006,113 @@ class EnjeuxSeeder(BaseSeeder):
             ras_created.append(ra_renouee)
             self.log_item('créé' if created else 'mis à jour', f'RA: {ra_renouee.libelle[:50]}')
 
+        # =====================================================================
+        # Objectifs Opérationnels des FCR — démonstration du modèle FCR
+        # =====================================================================
+        # Évolution du modèle FCR : un OO de FCR est rattaché DIRECTEMENT au FCR
+        # (champ ``id_enjeu``), sans passer par un facteur d'influence ni une
+        # pression — contrairement à un enjeu classique où l'OO descend
+        # obligatoirement d'une pression. Les facteurs/pressions d'un FCR, quand
+        # ils existent, sont purement DESCRIPTIFS et n'ancrent jamais un OO.
+        #
+        # On illustre ici les deux configurations désormais possibles pour un FCR :
+        #   (A) un FCR avec des OO rattachés directement, SANS aucun facteur/pression ;
+        #   (B) un FCR portant des facteurs/pressions DESCRIPTIFS, avec malgré tout
+        #       ses OO rattachés directement au FCR (et non aux pressions).
+
+        # --- (A) FCR Camargue « Connaissance esp. » : OO directs, sans facteur ---
+        fcr_connaissance_camargue = next(
+            (f for f in fcr_created
+             if 'connaissances sur les espèces patrimoniales' in f.libelle.lower()),
+            None
+        )
+        if fcr_connaissance_camargue:
+            # OO rattaché directement au FCR via id_enjeu : aucune pression.
+            oo_fcr_a, created = ObjectifOperationnel.objects.update_or_create(
+                id_enjeu=fcr_connaissance_camargue,
+                libelle='Compléter l\'inventaire des espèces patrimoniales du site',
+                defaults={
+                    'description': 'Mener les campagnes d\'inventaire ciblées (avifaune, '
+                                   'entomofaune, flore) pour combler les lacunes de connaissance. '
+                                   'OO rattaché directement au FCR, sans facteur ni pression.',
+                    'id_utilisateur_ajout': admin
+                }
+            )
+            oos_created.append(oo_fcr_a)
+            self.log_item('créé' if created else 'mis à jour', f'OO (FCR direct): {oo_fcr_a.libelle[:50]}')
+
+            ra_fcr_a, created = ResultatAttendu.objects.update_or_create(
+                id_oo=oo_fcr_a,
+                libelle='Atlas des espèces patrimoniales publié d\'ici 2030',
+                defaults={
+                    'description': 'Un atlas synthétisant les données d\'inventaire est publié '
+                                   'et mis à disposition des partenaires scientifiques.',
+                    'id_utilisateur_ajout': admin
+                }
+            )
+            ras_created.append(ra_fcr_a)
+            self.log_item('créé' if created else 'mis à jour', f'RA: {ra_fcr_a.libelle[:50]}')
+
+        # --- (B) FCR Camargue « Partenariats » : facteurs descriptifs + OO directs ---
+        fcr_partenariats_camargue = next(
+            (f for f in fcr_created
+             if 'renforcement des partenariats locaux' in f.libelle.lower()),
+            None
+        )
+        if fcr_partenariats_camargue:
+            # Facteur d'influence DESCRIPTIF rattaché au FCR (n'ancre aucun OO).
+            fi_fcr, created = FacteurInfluence.objects.update_or_create(
+                id_enjeu=fcr_partenariats_camargue,
+                libelle='Multiplicité des acteurs du territoire',
+                defaults={
+                    'description': 'Le territoire compte de nombreux acteurs (collectivités, '
+                                   'agriculteurs, associations) dont la coordination conditionne '
+                                   'la réussite de la gestion. Facteur purement descriptif.',
+                    'id_utilisateur_ajout': admin
+                }
+            )
+            facteurs_created.append(fi_fcr)
+            self.log_item('créé' if created else 'mis à jour', f'Facteur (FCR): {fi_fcr.libelle[:50]}')
+
+            # Pression DESCRIPTIVE sous ce facteur (toujours sans lien avec l'OO).
+            p_fcr, created = Pression.objects.update_or_create(
+                id_facteur_influence=fi_fcr,
+                libelle='Concurrence des usages sur le foncier',
+                defaults={
+                    'description': 'Les intérêts agricoles, touristiques et de conservation '
+                                   'entrent parfois en concurrence. Élément de contexte.',
+                    'id_utilisateur_ajout': admin
+                }
+            )
+            pressions_created.append(p_fcr)
+
+            # OO rattaché DIRECTEMENT au FCR (id_enjeu) malgré la présence du
+            # facteur/pression ci-dessus : on ne lie surtout pas l'OO à p_fcr.
+            oo_fcr_b, created = ObjectifOperationnel.objects.update_or_create(
+                id_enjeu=fcr_partenariats_camargue,
+                libelle='Formaliser des conventions de partenariat avec les acteurs clés',
+                defaults={
+                    'description': 'Signer des conventions pluriannuelles avec le PNR de Camargue '
+                                   'et les communes riveraines. OO rattaché directement au FCR, '
+                                   'les facteurs/pressions du FCR restant descriptifs.',
+                    'id_utilisateur_ajout': admin
+                }
+            )
+            oos_created.append(oo_fcr_b)
+            self.log_item('créé' if created else 'mis à jour', f'OO (FCR direct): {oo_fcr_b.libelle[:50]}')
+
+            ra_fcr_b, created = ResultatAttendu.objects.update_or_create(
+                id_oo=oo_fcr_b,
+                libelle='Au moins 5 conventions actives signées',
+                defaults={
+                    'description': 'Cinq conventions de partenariat au minimum sont signées '
+                                   'et effectives sur la durée du plan.',
+                    'id_utilisateur_ajout': admin
+                }
+            )
+            ras_created.append(ra_fcr_b)
+            self.log_item('créé' if created else 'mis à jour', f'RA: {ra_fcr_b.libelle[:50]}')
+
         self.log_summary(len(oos_created), 'objectifs opérationnels')
         self.log_summary(len(ras_created), 'résultats attendus')
 

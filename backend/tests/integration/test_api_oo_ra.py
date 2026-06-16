@@ -266,6 +266,39 @@ class TestObjectifOperationnelFcr:
         }, format='json')
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
+    def test_direct_attachment_to_normal_enjeu_rejected(self, api_client, oo_test_data):
+        """Le rattachement direct (id_enjeu) est réservé aux FCR : sur un enjeu
+        classique, l'OO doit passer par une pression → 400."""
+        api_client.force_authenticate(user=oo_test_data['referent'])
+        response = api_client.post('/api/plans/objectifs-operationnels/', {
+            'id_enjeu': oo_test_data['enjeu'].id_enjeu,  # enjeu classique, pas un FCR
+            'libelle': 'OO direct interdit sur enjeu',
+        }, format='json')
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+    def test_fcr_oo_with_pression_rejected(self, api_client, oo_test_data):
+        """Un OO de FCR ne peut pas être rattaché à une pression : fournir à la
+        fois id_enjeu (FCR) et pression_ids est rejeté → 400."""
+        fcr = self._make_fcr(oo_test_data)
+        api_client.force_authenticate(user=oo_test_data['referent'])
+        response = api_client.post('/api/plans/objectifs-operationnels/', {
+            'id_enjeu': fcr.id_enjeu,
+            'pression_ids': [oo_test_data['pression1'].id_pression],
+            'libelle': 'OO FCR avec pression',
+        }, format='json')
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+    def test_fcr_can_have_facteur_influence(self, api_client, oo_test_data):
+        """Évolution du modèle FCR : un facteur d'influence (descriptif) peut
+        être créé sur un FCR → 201."""
+        fcr = self._make_fcr(oo_test_data)
+        api_client.force_authenticate(user=oo_test_data['referent'])
+        response = api_client.post('/api/plans/facteurs-influence/', {
+            'id_enjeu': fcr.id_enjeu,
+            'libelle': 'Facteur descriptif du FCR',
+        }, format='json')
+        assert response.status_code == status.HTTP_201_CREATED
+
 
 @pytest.mark.django_db
 @pytest.mark.integration
