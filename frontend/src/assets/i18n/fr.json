@@ -1298,7 +1298,7 @@
       "tooltip": "Étape du workflow de validation CSRPN en cours sur ce brouillon."
     },
     "csrpnRecap": {
-      "badge": "Validation CSRPN",
+      "badge": "Validations administratives",
       "avis": "Avis CSRPN",
       "comite": "Validation comité",
       "arrete": "Arrêté préfectoral"
