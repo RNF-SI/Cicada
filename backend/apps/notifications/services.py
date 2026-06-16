@@ -549,96 +549,13 @@ class NotificationService:
                 send_email=False,
             )
 
-    @staticmethod
-    def notify_organismes_no_admin_summary(organismes):
-        """
-        Envoie un email recapitulatif unique pour tous les organismes sans admin.
-        Une seule notification + un seul email par super admin.
-
-        Args:
-            organismes: Liste de BibOrganismes sans admin_og
-        """
-        import logging
-        logger = logging.getLogger(__name__)
-
-        count = len(organismes)
-        org_names = [o.nom_organisme for o in organismes]
-
-        title = f"Audit hebdomadaire : {count} organisme(s) sans administrateur"
-        message = (
-            f"{count} organisme(s) n'ont aucun administrateur actif :\n\n"
-            + "\n".join(f"- {name}" for name in org_names)
-        )
-
-        super_admins = Role.objects.filter(role_level='super_admin', active=True)
-        for admin in super_admins:
-            NotificationService.create_notification(
-                recipient=admin,
-                notification_type='organisme_no_admin',
-                title=title,
-                message=message,
-                priority='critical',
-                action_url="/administration/organismes",
-            )
-            NotificationService._send_audit_summary_email(
-                recipient=admin,
-                subject=title,
-                intro=f"{count} organisme(s) n'ont aucun administrateur actif.",
-                items=org_names,
-                action_url="/administration/organismes",
-                action_label="Voir les organismes",
-            )
-
-        logger.info(f"Organismes without admin summary sent: {count} organismes")
-
-    @staticmethod
-    def _send_audit_summary_email(recipient, subject, intro, items, action_url, action_label):
-        """
-        Envoie un email recapitulatif d'audit.
-
-        Args:
-            recipient: Role destinataire
-            subject: Sujet de l'email
-            intro: Phrase d'introduction
-            items: Liste de noms a afficher
-            action_url: URL relative du bouton d'action
-            action_label: Libelle du bouton d'action
-        """
-        from django.conf import settings
-        from django.core.mail import send_mail
-        from django.template.loader import render_to_string
-        from django.utils.html import strip_tags
-        import logging
-        logger = logging.getLogger(__name__)
-
-        if not recipient.email:
-            return
-
-        site_url = getattr(settings, 'SITE_URL', 'http://localhost:4200')
-        context = {
-            'recipient': recipient,
-            'intro': intro,
-            'items': items,
-            'item_count': len(items),
-            'action_url': f"{site_url}{action_url}",
-            'action_label': action_label,
-            'site_url': site_url,
-        }
-
-        try:
-            html_message = render_to_string('emails/audit_summary.html', context)
-            plain_message = strip_tags(html_message)
-
-            send_mail(
-                subject=subject,
-                message=plain_message,
-                from_email=settings.DEFAULT_FROM_EMAIL,
-                recipient_list=[recipient.email],
-                html_message=html_message,
-                fail_silently=False,
-            )
-        except Exception as e:
-            logger.warning(f"Failed to send audit summary email to {recipient.email}: {e}")
+    # #328 — Suppression de l'audit hebdomadaire « organismes sans admin » par
+    # email (notify_organismes_no_admin_summary + _send_audit_summary_email).
+    # Comme pour les sites/plans orphelins, l'état « organisme sans admin » est
+    # un état persistant (et non un événement) : il est détecté en temps réel
+    # par les signaux Django (notify_organisme_no_admin) et consultable à la
+    # demande. Le récap hebdomadaire ne faisait que saturer la boîte mail des
+    # super-admins.
 
     @staticmethod
     def notify_plans_need_reassignment(site, organisme=None):

@@ -228,13 +228,9 @@ CELERY_BEAT_SCHEDULE = {
         'schedule': crontab(hour=3, minute=0),
         'kwargs': {'days': 90, 'acknowledged_days': 30},
     },
-    # Audit hebdomadaire des organismes sans admin - tous les lundis a 8h
-    # Note: La detection en temps reel est faite par les signaux Django (users/signals.py)
-    # Cette tache sert de filet de securite pour detecter les cas manques
-    'check-organismes-no-admin': {
-        'task': 'apps.notifications.tasks.check_organismes_without_admin',
-        'schedule': crontab(hour=8, minute=0, day_of_week=1),  # Lundi
-    },
+    # #328 - L'audit hebdomadaire des organismes sans admin (recap email du lundi)
+    # a ete supprime : etat persistant detecte en temps reel par les signaux
+    # Django (users/signals.py), pas un evenement a renvoyer chaque semaine.
     # Note: Les sites et plans orphelins ne sont plus audites par email hebdomadaire.
     # L'etat orphelin est un etat persistant (et non un evenement) : il est consultable
     # a la demande via la page Administration > Orphelins (endpoint /api/admin/orphans/).

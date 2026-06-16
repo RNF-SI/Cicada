@@ -190,36 +190,11 @@ def send_registration_rejected_email(self, email, reason=None):
         raise self.retry(exc=e, countdown=60 * (2 ** self.request.retries))
 
 
-@shared_task
-def check_organismes_without_admin():
-    """
-    Tache d'audit hebdomadaire pour verifier les organismes sans admin_og.
-    Envoie un seul email recapitulatif aux super admins.
-
-    Note: La detection en temps reel est faite par les signaux Django
-    dans apps/users/signals.py (post_save et post_delete sur Role).
-    Cette tache sert de filet de securite pour detecter les cas manques
-    (imports directs en base, migrations, etc.).
-    """
-    from apps.users.models import BibOrganismes, Role
-    from .services import NotificationService
-
-    organismes_without_admin = []
-    for organisme in BibOrganismes.objects.all().order_by('nom_organisme'):
-        has_admin = Role.objects.filter(
-            id_organisme=organisme,
-            role_level='admin_og',
-            active=True
-        ).exists()
-        if not has_admin:
-            organismes_without_admin.append(organisme)
-
-    if not organismes_without_admin:
-        logger.info("No organismes without admin found")
-        return
-
-    logger.info(f"Found {len(organismes_without_admin)} organismes without admin")
-    NotificationService.notify_organismes_no_admin_summary(organismes_without_admin)
+# #328 — La tache hebdomadaire check_organismes_without_admin (recap email aux
+# super-admins) a ete supprimee : l'etat « organisme sans admin » est detecte en
+# temps reel par les signaux Django (apps/users/signals.py ->
+# NotificationService.notify_organisme_no_admin) et consultable a la demande. Le
+# recap hebdomadaire ne faisait que saturer la boite mail des super-admins.
 
 
 @shared_task
