@@ -1303,6 +1303,19 @@
       "comite": "Validation comité",
       "arrete": "Arrêté préfectoral"
     },
+    "adminValidations": {
+      "title": "Validations administratives",
+      "avisCsrpn": "Avis CSRPN",
+      "comite": "Validation comité consultatif",
+      "arrete": "Arrêté préfectoral",
+      "notStarted": "Non commencé",
+      "validatedOn": "Validé le {{date}}",
+      "record": "Enregistrer la validation",
+      "edit": "Modifier la validation",
+      "clear": "Effacer la validation",
+      "clearTitle": "Effacer la validation",
+      "clearMessage": "Voulez-vous effacer cette validation administrative ? La date enregistrée sera supprimée."
+    },
     "extension": {
       "badge": "Étendu",
       "badge_rnn": "Prolongé",
@@ -2822,6 +2835,12 @@
       "indicateursReponse": "Indicateur(s) de réponse",
       "ajouterIndicateurReponse": "Ajouter un indicateur de réponse",
       "indicateursReponseCreateHint": "Enregistrez d'abord l'action pour pouvoir y ajouter des indicateurs de réponse.",
+      "metriqueTypeChiffree": "Chiffrée",
+      "metriqueTypeTextuelle": "Textuelle",
+      "reponseExamplesTitle": "Exemples pour remplir un indicateur de réponse :",
+      "reponseExample1": "Métrique textuelle — Type : « Textuelle » · Métrique : « fait / non fait » · Valeur cible : « fait ».",
+      "reponseExample2": "Métrique chiffrée — Type : « Chiffrée » · Métrique : « nombre d'inventaires réalisés / nombre d'inventaires prévus » · Valeur cible : « 100 % ».",
+      "reponseExample3": "Métrique chiffrée (entretien des chemins) — Type : « Chiffrée » · Métrique : « linéaire de cheminement entretenu (km) » · Valeur cible : « nombre de km de cheminement sur la réserve ».",
       "descriptionLabel": "Description",
       "codeLabel": "Code opération",
       "refLabel": "Référentiel opérations",

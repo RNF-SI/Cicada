@@ -106,26 +106,9 @@
                   <!-- Chip statut harmonisé : composant <app-status-chip>
                        garantit même couleur/label/tooltip que Mes plans. -->
                   <app-status-chip [statut]="p.statut"></app-status-chip>
-                  <!-- #277 — Sous-chip workflow CSRPN. Affiché en complément du statut
-                       (brouillon) pour visualiser l'étape de validation en cours. -->
-                  @if (p.validation_step) {
-                    <span class="meta-value status-chip status-chip--csrpn"
-                          [matTooltip]="'plans.validationStep.tooltip' | translate"
-                          matTooltipPosition="above">
-                      <i class="fi fi-rr-paper-plane"></i>
-                      {{ ('plans.validationStep.' + p.validation_step) | translate }}
-                    </span>
-                  }
-                  <!-- #347 — Récap des informations de validation CSRPN (détail au survol) -->
-                  @if (hasCsrpnInfo()) {
-                    <span class="meta-value status-chip status-chip--csrpn-recap"
-                          [matTooltip]="csrpnRecapTooltip()"
-                          matTooltipClass="csrpn-recap-tooltip"
-                          matTooltipPosition="above">
-                      <i class="fi fi-rr-info"></i>
-                      {{ 'plans.csrpnRecap.badge' | translate }}
-                    </span>
-                  }
+                  <!-- #347 — Les validations administratives (CSRPN / comité / arrêté)
+                       sont présentées dans un panneau dédié (sidebar), indépendamment
+                       du statut plateforme. -->
                   @if (isPlanExtended()) {
                     <span class="meta-separator">|</span>
                     <span class="meta-value extension-badge">
@@ -175,54 +158,10 @@
                       <span>{{ 'plans.lifecycle.actions.validate' | translate }}</span>
                     </button>
                   }
-                  <!-- #347 — VALIDATIONS ADMINISTRATIVES (CSRPN / comité / arrêté).
-                       Orthogonales au statut : disponibles en brouillon ET en validé. -->
-                  @if (!p.validation_step) {
-                    <button class="btn-lifecycle btn-lifecycle-info" (click)="submitForCsrpn()"
-                            [matTooltip]="'plans.lifecycle.actions.submitForCsrpnDesc' | translate" matTooltipPosition="below">
-                      <i class="fi fi-rr-paper-plane"></i>
-                      <span>{{ 'plans.lifecycle.actions.submitForCsrpn' | translate }}</span>
-                    </button>
-                  }
-                  <!-- #277 — Workflow CSRPN : étape 2 (avis rendu) + annulation -->
-                  @if (p.validation_step === 'avis_csrpn') {
-                    <button class="btn-lifecycle btn-lifecycle-success" (click)="recordCsrpnOpinion()"
-                            [matTooltip]="'plans.lifecycle.actions.recordCsrpnOpinionDesc' | translate" matTooltipPosition="below">
-                      <i class="fi fi-rr-check"></i>
-                      <span>{{ 'plans.lifecycle.actions.recordCsrpnOpinion' | translate }}</span>
-                    </button>
-                    <button class="btn-lifecycle btn-lifecycle-warning" (click)="cancelCsrpn()"
-                            [matTooltip]="'plans.lifecycle.actions.cancelCsrpnDesc' | translate" matTooltipPosition="below">
-                      <i class="fi fi-rr-undo"></i>
-                      <span>{{ 'plans.lifecycle.actions.cancelCsrpn' | translate }}</span>
-                    </button>
-                  }
-                  <!-- #277 — Workflow CSRPN : étape 3 (validation comité) + annulation -->
-                  @if (p.validation_step === 'comite_consultatif') {
-                    <button class="btn-lifecycle btn-lifecycle-success" (click)="validateByComite()"
-                            [matTooltip]="'plans.lifecycle.actions.validateByComiteDesc' | translate" matTooltipPosition="below">
-                      <i class="fi fi-rr-check"></i>
-                      <span>{{ 'plans.lifecycle.actions.validateByComite' | translate }}</span>
-                    </button>
-                    <button class="btn-lifecycle btn-lifecycle-warning" (click)="cancelCsrpn()"
-                            [matTooltip]="'plans.lifecycle.actions.cancelCsrpnDesc' | translate" matTooltipPosition="below">
-                      <i class="fi fi-rr-undo"></i>
-                      <span>{{ 'plans.lifecycle.actions.cancelCsrpn' | translate }}</span>
-                    </button>
-                  }
-                  <!-- #277 — Workflow CSRPN : étape 4 (arrêté préfectoral) + annulation -->
-                  @if (p.validation_step === 'arrete_pref') {
-                    <button class="btn-lifecycle btn-lifecycle-success" (click)="recordArretePref()"
-                            [matTooltip]="'plans.lifecycle.actions.recordArretePrefDesc' | translate" matTooltipPosition="below">
-                      <i class="fi fi-rr-check"></i>
-                      <span>{{ 'plans.lifecycle.actions.recordArretePref' | translate }}</span>
-                    </button>
-                    <button class="btn-lifecycle btn-lifecycle-warning" (click)="cancelCsrpn()"
-                            [matTooltip]="'plans.lifecycle.actions.cancelCsrpnDesc' | translate" matTooltipPosition="below">
-                      <i class="fi fi-rr-undo"></i>
-                      <span>{{ 'plans.lifecycle.actions.cancelCsrpn' | translate }}</span>
-                    </button>
-                  }
+                  <!-- #347 — Les validations administratives (avis CSRPN / comité /
+                       arrêté préfectoral) sont désormais enregistrées indépendamment
+                       depuis le panneau « Validations administratives » (sidebar),
+                       sans workflow imposé. -->
                   <!-- Validé / Modifié → Remettre en brouillon (uniquement feuille de chaîne)
                        + Étendre/Retirer extension (#250) + Lancer/Arrêter révision (#278)
                        + Lancer évaluation mi-parcours (#276) + Créer nouvelle version
@@ -656,6 +595,49 @@
               [currentStatus]="plan()?.statut || 'draft'"
               [principalSiteTypeMnemonique]="principalSiteTypeMnemonique()">
             </app-plan-version-timeline>
+          </div>
+
+          <!-- #347 — Validations administratives (indépendantes du statut plateforme) -->
+          <div class="section-card compact">
+            <app-section-title
+              [title]="'plans.adminValidations.title' | translate"
+              icon="fi-rr-clipboard-list-check"
+              ellipseColor="primary"
+              size="md"
+              [showLine]="true">
+            </app-section-title>
+            <ul class="admin-validations-list">
+              @for (item of adminValidations(); track item.key) {
+                <li class="admin-validation-row">
+                  <div class="av-info">
+                    <span class="av-label">{{ item.labelKey | translate }}</span>
+                    @if (item.done) {
+                      <app-tag variant="success" size="sm"
+                               [label]="('plans.adminValidations.validatedOn' | translate:{ date: (item.date | date:'dd/MM/yyyy') }) + (item.numero ? ' · n° ' + item.numero : '')">
+                      </app-tag>
+                    } @else {
+                      <app-tag variant="muted" size="sm" [label]="'plans.adminValidations.notStarted' | translate"></app-tag>
+                    }
+                  </div>
+                  @if (canManageLifecycle()) {
+                    <div class="av-actions">
+                      <button class="icon-btn-flat" (click)="openAdminValidationDialog(item.key)"
+                              [matTooltip]="(item.done ? 'plans.adminValidations.edit' : 'plans.adminValidations.record') | translate"
+                              matTooltipPosition="above">
+                        <i class="fi" [class.fi-rr-pencil]="item.done" [class.fi-rr-plus]="!item.done"></i>
+                      </button>
+                      @if (item.done) {
+                        <button class="icon-btn-flat" (click)="clearAdminValidation(item.key)"
+                                [matTooltip]="'plans.adminValidations.clear' | translate"
+                                matTooltipPosition="above">
+                          <i class="fi fi-rr-trash"></i>
+                        </button>
+                      }
+                    </div>
+                  }
+                </li>
+              }
+            </ul>
           </div>
 
           <!-- Documents -->

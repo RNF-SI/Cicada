@@ -11,6 +11,7 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { Subscription } from 'rxjs';
 import { HeaderComponent } from '../../shared/components/header/header.component';
 import { StatusChipComponent } from '../../shared/components/status-chip/status-chip.component';
+import { TagComponent } from '../../shared/components/tag/tag.component';
 import { SectionTitleComponent } from '../../shared/components/section-title/section-title.component';
 import { PlanSidebarComponent } from './shared/plan-sidebar/plan-sidebar.component';
 import { AdminService } from '../../core/services/admin.service';
@@ -125,6 +126,7 @@ interface SubAccordion {
     PlanVersionTimelineComponent,
     EntityTileComponent,
     StatusChipComponent,
+    TagComponent,
   ],
   templateUrl: './plan-detail.component.html',
   styleUrl: './plan-detail.component.scss'
@@ -759,33 +761,6 @@ export class PlanDetailComponent implements OnInit, OnDestroy {
     return !!(p && p.is_mi_parcours);
   });
 
-  /** #347 — Au moins une information de validation CSRPN est renseignée. */
-  hasCsrpnInfo = computed<boolean>(() => {
-    const p = this.plan();
-    return !!(p && (p.date_avis_csrpn || p.date_validation_comite || p.date_arrete_pref || p.numero_arrete_pref));
-  });
-
-  /** #347 — Récapitulatif des dates CSRPN (affiché au survol du badge). */
-  csrpnRecapTooltip = computed<string>(() => {
-    const p = this.plan();
-    if (!p) return '';
-    const fmt = (iso?: string | null) => {
-      if (!iso) return null;
-      const [y, m, d] = iso.slice(0, 10).split('-');
-      return d && m && y ? `${d}/${m}/${y}` : iso;
-    };
-    const lines: string[] = [];
-    if (p.date_avis_csrpn) lines.push(`${this.translate.instant('plans.csrpnRecap.avis')} : ${fmt(p.date_avis_csrpn)}`);
-    if (p.date_validation_comite) lines.push(`${this.translate.instant('plans.csrpnRecap.comite')} : ${fmt(p.date_validation_comite)}`);
-    if (p.date_arrete_pref) {
-      const num = p.numero_arrete_pref ? ` (n° ${p.numero_arrete_pref})` : '';
-      lines.push(`${this.translate.instant('plans.csrpnRecap.arrete')} : ${fmt(p.date_arrete_pref)}${num}`);
-    } else if (p.numero_arrete_pref) {
-      lines.push(`${this.translate.instant('plans.csrpnRecap.arrete')} : n° ${p.numero_arrete_pref}`);
-    }
-    return lines.join('\n');
-  });
-
   /** #276 — Vrai si la chaîne du plan a déjà une évaluation mi-parcours
    *  (sur n'importe laquelle de ses versions). Bloque la création d'une
    *  nouvelle éval mi-parcours. */
@@ -913,85 +888,78 @@ export class PlanDetailComponent implements OnInit, OnDestroy {
    *  par l'étape arrêté préfectoral après la validation comité. */
   isRnn = computed<boolean>(() => this.principalSiteTypeMnemonique() === 'RNN');
 
-  /** Étape 1 : lancer le workflow CSRPN (`validation_step` null → avis_csrpn).
-   *  Le plan reste en `draft`. */
-  submitForCsrpn(): void {
+  /** #347 — Validations administratives indépendantes (panneau dédié).
+   *  Chaque élément est « validé » dès que sa date est renseignée. L'arrêté
+   *  préfectoral n'est présent que pour les RNN/RNR. */
+  adminValidations = computed<{
+    key: 'avis_csrpn' | 'comite_consultatif' | 'arrete_pref';
+    dialogStep: CsrpnStep;
+    labelKey: string;
+    done: boolean;
+    date: string | null;
+    numero: string | null;
+  }[]>(() => {
+    const p = this.plan();
+    const items: {
+      key: 'avis_csrpn' | 'comite_consultatif' | 'arrete_pref';
+      dialogStep: CsrpnStep;
+      labelKey: string;
+      done: boolean;
+      date: string | null;
+      numero: string | null;
+    }[] = [
+      {
+        key: 'avis_csrpn', dialogStep: 'csrpn',
+        labelKey: 'plans.adminValidations.avisCsrpn',
+        done: !!p?.date_avis_csrpn, date: p?.date_avis_csrpn ?? null, numero: null,
+      },
+      {
+        key: 'comite_consultatif', dialogStep: 'comite',
+        labelKey: 'plans.adminValidations.comite',
+        done: !!p?.date_validation_comite, date: p?.date_validation_comite ?? null, numero: null,
+      },
+    ];
+    if (this.isRnn()) {
+      items.push({
+        key: 'arrete_pref', dialogStep: 'arrete',
+        labelKey: 'plans.adminValidations.arrete',
+        done: !!p?.date_arrete_pref, date: p?.date_arrete_pref ?? null,
+        numero: p?.numero_arrete_pref ?? null,
+      });
+    }
+    return items;
+  });
+
+  /** #347 — Ouvre la modale de saisie pour un élément administratif et enregistre
+   *  sa date (et le n° d'arrêté) de façon indépendante du workflow et du statut. */
+  openAdminValidationDialog(key: 'avis_csrpn' | 'comite_consultatif' | 'arrete_pref'): void {
+    const item = this.adminValidations().find(i => i.key === key);
+    if (!item) return;
+    this.openCsrpnStepDialog(item.dialogStep).subscribe(result => {
+      if (!result) return;
+      this.recordAdminValidation(key, result.date, result.numeroArrete ?? null);
+    });
+  }
+
+  /** #347 — Efface une validation administrative (date → null). */
+  clearAdminValidation(key: 'avis_csrpn' | 'comite_consultatif' | 'arrete_pref'): void {
     this.openLifecycleConfirm({
-      title: this.translate.instant('plans.lifecycle.actions.submitForCsrpn'),
-      message: this.translate.instant('plans.lifecycle.actions.submitForCsrpnDesc'),
-      confirmText: this.translate.instant('plans.lifecycle.actions.submitForCsrpn'),
-      confirmColor: 'primary',
-      onConfirm: () => this.changeCsrpnStep('avis_csrpn'),
-    });
-  }
-
-  /** Étape 2 : `avis_csrpn → comite_consultatif`. Saisie de la date d'avis. */
-  recordCsrpnOpinion(): void {
-    this.openCsrpnStepDialog('csrpn').subscribe(result => {
-      if (!result) return;
-      this.changeCsrpnStep('comite_consultatif', { dateAvisCsrpn: result.date });
-    });
-  }
-
-  /** Validation comité : RNN → avance vers `arrete_pref` ; non-RNN → étape
-   *  terminale (enregistre la date) puis PROPOSE la validation plateforme (#347). */
-  validateByComite(): void {
-    this.openCsrpnStepDialog('comite').subscribe(result => {
-      if (!result) return;
-      if (this.isRnn()) {
-        this.changeCsrpnStep('arrete_pref', { dateValidationComite: result.date });
-      } else {
-        // #347 — découplé : on enregistre la date (étape terminale non-RNN) sans
-        // changer le statut, puis on propose la validation plateforme.
-        this.changeCsrpnStep('comite_consultatif', { dateValidationComite: result.date },
-          () => this.proposePlatformValidation());
-      }
-    });
-  }
-
-  /** Arrêté préfectoral (RNN) : enregistre date + numéro (étape administrative
-   *  terminale, sans changer le statut), puis PROPOSE la validation plateforme (#347). */
-  recordArretePref(): void {
-    this.openCsrpnStepDialog('arrete').subscribe(result => {
-      if (!result) return;
-      this.changeCsrpnStep('arrete_pref',
-        { dateArretePref: result.date, numeroArretePref: result.numeroArrete },
-        () => this.proposePlatformValidation());
-    });
-  }
-
-  /** #347 — Propose (sans forcer) la validation plateforme après une validation
-   *  administrative terminale. La validation reste une action manuelle distincte. */
-  private proposePlatformValidation(): void {
-    if (this.plan()?.statut !== 'draft') return; // déjà validé : rien à proposer
-    this.confirmValidation();
-  }
-
-  /** Annule le workflow CSRPN en cours : retour en `draft` simple
-   *  (`validation_step` → null), sans changement de statut. */
-  cancelCsrpn(): void {
-    this.openLifecycleConfirm({
-      title: this.translate.instant('plans.lifecycle.actions.cancelCsrpn'),
-      message: this.translate.instant('plans.lifecycle.actions.cancelCsrpnDesc'),
-      confirmText: this.translate.instant('plans.lifecycle.actions.cancelCsrpn'),
+      title: this.translate.instant('plans.adminValidations.clearTitle'),
+      message: this.translate.instant('plans.adminValidations.clearMessage'),
+      confirmText: this.translate.instant('common.actions.delete'),
       confirmColor: 'warn',
-      onConfirm: () => this.changeCsrpnStep(null),
+      onConfirm: () => this.recordAdminValidation(key, null, null),
     });
   }
 
-  private changeCsrpnStep(
-    step: 'avis_csrpn' | 'comite_consultatif' | 'arrete_pref' | null,
-    options: {
-      dateAvisCsrpn?: string;
-      dateValidationComite?: string;
-      dateArretePref?: string;
-      numeroArretePref?: string;
-    } = {},
-    onDone?: () => void,
+  private recordAdminValidation(
+    key: 'avis_csrpn' | 'comite_consultatif' | 'arrete_pref',
+    date: string | null,
+    numeroArrete?: string | null,
   ): void {
     const p = this.plan();
     if (!p) return;
-    this.adminService.changeCsrpnStep(p.id_pg, step, options).subscribe({
+    this.adminService.recordAdminValidation(p.id_pg, key, date, numeroArrete).subscribe({
       next: () => {
         this.snackBar.open(
           this.translate.instant('plans.lifecycle.messages.statusChanged'),
@@ -999,7 +967,6 @@ export class PlanDetailComponent implements OnInit, OnDestroy {
           { duration: 3000 }
         );
         this.loadPlan();
-        if (onDone) onDone();
       },
       error: () => {
         this.snackBar.open(

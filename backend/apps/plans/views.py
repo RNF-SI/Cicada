@@ -1288,6 +1288,96 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
         serializer = PlanGestionDetailSerializer(plan)
         return Response(serializer.data)
 
+    @action(detail=True, methods=['post'], url_path='admin-validation',
+            permission_classes=[permissions.IsAuthenticated, IsReferent])
+    def admin_validation(self, request, pk=None):
+        """
+        Enregistrer/éditer/effacer une validation administrative INDÉPENDANTE (#347).
+
+        POST /api/plans/plans/{id}/admin-validation/
+        Body: {
+            "key": "avis_csrpn" | "comite_consultatif" | "arrete_pref",
+            "date": "YYYY-MM-DD" | null,     # null => efface la validation
+            "numero_arrete_pref"?: string     # uniquement pour arrete_pref
+        }
+
+        Contrairement à `csrpn-step` (workflow ordonné, déprécié #347), chaque
+        validation administrative est enregistrée séparément, dans n'importe quel
+        ordre, quel que soit le statut plateforme du plan. L'état « validé » d'un
+        élément est porté par sa date (renseignée = validé).
+
+        - `arrete_pref` est réservé aux RNN/RNR (rejet sinon).
+        - `validation_step` est maintenu (compat) sur l'étape la plus avancée
+          renseignée, mais ne pilote plus l'UI.
+        """
+        plan = self.get_object()
+
+        user = request.user
+        if not user.can_manage_plan_lifecycle() and not plan.referents.filter(pk=user.pk).exists():
+            return Response(
+                {'error': "Vous devez être référent de ce plan pour gérer les validations administratives."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        key = request.data.get('key')
+        key_to_date_field = {
+            'avis_csrpn': 'date_avis_csrpn',
+            'comite_consultatif': 'date_validation_comite',
+            'arrete_pref': 'date_arrete_pref',
+        }
+        if key not in key_to_date_field:
+            return Response(
+                {'error': f"Clé invalide. Choix : {', '.join(key_to_date_field)}"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        if key == 'arrete_pref' and not plan.is_rnn():
+            return Response(
+                {'error': "L'arrêté préfectoral est réservé aux RNN/RNR."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        date_value = request.data.get('date') or None
+        date_field = key_to_date_field[key]
+        setattr(plan, date_field, date_value)
+        update_fields = [date_field, 'id_utilisateur_maj', 'date_maj']
+
+        if key == 'arrete_pref':
+            # Le n° d'arrêté suit la date : effacé si la date est effacée.
+            plan.numero_arrete_pref = (request.data.get('numero_arrete_pref') or None) if date_value else None
+            update_fields.append('numero_arrete_pref')
+
+        # Maintenir `validation_step` (compat) sur l'étape la plus avancée renseignée.
+        if plan.date_arrete_pref:
+            plan.validation_step = 'arrete_pref'
+        elif plan.date_validation_comite:
+            plan.validation_step = 'comite_consultatif'
+        elif plan.date_avis_csrpn:
+            plan.validation_step = 'avis_csrpn'
+        else:
+            plan.validation_step = None
+        update_fields.append('validation_step')
+
+        plan.id_utilisateur_maj = request.user
+        plan.save(update_fields=update_fields)
+
+        try:
+            from apps.core.services import ActivityService
+            verb = 'enregistrée' if date_value else 'effacée'
+            ActivityService.log(
+                user=request.user,
+                action='status_change',
+                entity_type='plan',
+                entity_id=plan.id_pg,
+                entity_name=plan.nom,
+                description=f"Validation administrative « {key} » {verb}",
+            )
+        except Exception:
+            pass
+
+        serializer = PlanGestionDetailSerializer(plan)
+        return Response(serializer.data)
+
     @action(detail=True, methods=['post'], url_path='extend-duration',
             permission_classes=[permissions.IsAuthenticated, IsReferent])
     def extend_duration(self, request, pk=None):

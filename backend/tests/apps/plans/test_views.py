@@ -985,6 +985,84 @@ class TestPlanGestionChangeStatus:
         assert str(plan.date_arrete_pref) == '2026-05-20'
         assert plan.numero_arrete_pref == 'AP-99'
 
+    # ---------- #347 — validations administratives indépendantes ----------
+
+    ADMIN_VALIDATION_URL_TEMPLATE = '/api/plans/plans/{}/admin-validation/'
+
+    def test_admin_validation_records_independently(self, api_client):
+        """#347 — enregistre une validation administrative sans workflow ordonné,
+        quel que soit le statut plateforme du plan."""
+        admin = SuperAdminFactory()
+        plan = PlanGestionFactory(statut='valide')
+        api_client.force_authenticate(user=admin)
+        response = api_client.post(
+            self.ADMIN_VALIDATION_URL_TEMPLATE.format(plan.id_pg),
+            {'key': 'comite_consultatif', 'date': '2026-04-10'},
+        )
+        assert response.status_code == status.HTTP_200_OK
+        plan.refresh_from_db()
+        assert plan.statut == 'valide'  # statut plateforme inchangé
+        assert str(plan.date_validation_comite) == '2026-04-10'
+        # validation_step maintenu (compat) sur l'étape renseignée
+        assert plan.validation_step == 'comite_consultatif'
+
+    def test_admin_validation_arrete_rejected_for_non_rnn(self, api_client):
+        """#347 — l'arrêté préfectoral est réservé aux RNN/RNR."""
+        admin = SuperAdminFactory()
+        pnr_site = self._make_typed_site('PNR')
+        plan = PlanGestionFactory(statut='draft', sites=[pnr_site])
+        api_client.force_authenticate(user=admin)
+        response = api_client.post(
+            self.ADMIN_VALIDATION_URL_TEMPLATE.format(plan.id_pg),
+            {'key': 'arrete_pref', 'date': '2026-04-10', 'numero_arrete_pref': 'AP-1'},
+        )
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+    def test_admin_validation_arrete_records_for_rnn(self, api_client):
+        """#347 — arrêté préfectoral : date + numéro enregistrés pour une RNN."""
+        admin = SuperAdminFactory()
+        rnn_site = self._make_typed_site('RNN')
+        plan = PlanGestionFactory(statut='draft', sites=[rnn_site])
+        api_client.force_authenticate(user=admin)
+        response = api_client.post(
+            self.ADMIN_VALIDATION_URL_TEMPLATE.format(plan.id_pg),
+            {'key': 'arrete_pref', 'date': '2026-05-20', 'numero_arrete_pref': 'AP-42'},
+        )
+        assert response.status_code == status.HTTP_200_OK
+        plan.refresh_from_db()
+        assert str(plan.date_arrete_pref) == '2026-05-20'
+        assert plan.numero_arrete_pref == 'AP-42'
+        assert plan.validation_step == 'arrete_pref'
+
+    def test_admin_validation_clear_recomputes_step(self, api_client):
+        """#347 — effacer une validation (date=null) recalcule validation_step."""
+        admin = SuperAdminFactory()
+        plan = PlanGestionFactory(
+            statut='valide', validation_step='comite_consultatif',
+            date_avis_csrpn='2026-01-10', date_validation_comite='2026-02-10',
+        )
+        api_client.force_authenticate(user=admin)
+        response = api_client.post(
+            self.ADMIN_VALIDATION_URL_TEMPLATE.format(plan.id_pg),
+            {'key': 'comite_consultatif', 'date': None},
+        )
+        assert response.status_code == status.HTTP_200_OK
+        plan.refresh_from_db()
+        assert plan.date_validation_comite is None
+        # l'avis CSRPN reste → validation_step retombe sur avis_csrpn
+        assert plan.validation_step == 'avis_csrpn'
+
+    def test_admin_validation_invalid_key(self, api_client):
+        """#347 — clé inconnue → 400."""
+        admin = SuperAdminFactory()
+        plan = PlanGestionFactory(statut='draft')
+        api_client.force_authenticate(user=admin)
+        response = api_client.post(
+            self.ADMIN_VALIDATION_URL_TEMPLATE.format(plan.id_pg),
+            {'key': 'nimporte_quoi', 'date': '2026-04-10'},
+        )
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+
     def test_avis_csrpn_to_comite_with_date(self, api_client):
         """`csrpn-step/` : avis_csrpn → comite_consultatif enregistre la date d'avis."""
         admin = SuperAdminFactory()

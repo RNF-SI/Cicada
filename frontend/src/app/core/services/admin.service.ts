@@ -589,6 +589,27 @@ export class AdminService {
   }
 
   /**
+   * #347 — Enregistrer/éditer/effacer une validation administrative indépendante.
+   *
+   * POST /api/plans/plans/{id}/admin-validation/
+   * @param planId — Plan concerné (n'importe quel statut).
+   * @param key — `avis_csrpn` | `comite_consultatif` | `arrete_pref`.
+   * @param date — Date de validation (`null` pour effacer).
+   * @param numeroArrete — N° d'arrêté (uniquement pour `arrete_pref`).
+   */
+  recordAdminValidation(
+    planId: number,
+    key: 'avis_csrpn' | 'comite_consultatif' | 'arrete_pref',
+    date: string | null,
+    numeroArrete?: string | null,
+  ): Observable<AdminPlan> {
+    const body: Record<string, unknown> = { key, date };
+    if (key === 'arrete_pref') body['numero_arrete_pref'] = numeroArrete ?? null;
+    return this.http.post<AdminPlan>(`${this.plansApiUrl}/plans/${planId}/admin-validation/`, body)
+      .pipe(catchError(this.handleError));
+  }
+
+  /**
    * Create a mid-term evaluation from a validated plan
    * POST /api/plans/plans/{id}/create-evaluation/
    */

@@ -133,7 +133,19 @@ export class OperationFormComponent implements OnInit {
     return this.existingOperation()?.geom_geojson ?? null;
   });
   /** Types de métrique disponibles (TYPE_METRIQUE nomenclature). */
-  typeMetriqueOptions = signal<{ id_nomenclature: number; label: string }[]>([]);
+  typeMetriqueOptions = signal<{ id_nomenclature: number; mnemonique?: string; label: string }[]>([]);
+
+  /** #347/réponse — Pour les indicateurs de réponse, le type de métrique se limite
+   * à « Chiffrée » (CHIFFRE) ou « Textuelle » (TEXTE). */
+  responseTypeOptions = computed<{ id: number; label: string }[]>(() => {
+    const opts = this.typeMetriqueOptions();
+    const out: { id: number; label: string }[] = [];
+    const chiffre = opts.find(o => o.mnemonique === 'CHIFFRE');
+    if (chiffre) out.push({ id: chiffre.id_nomenclature, label: this.translate.instant('enjeux.operations.metriqueTypeChiffree') });
+    const texte = opts.find(o => o.mnemonique === 'TEXTE');
+    if (texte) out.push({ id: texte.id_nomenclature, label: this.translate.instant('enjeux.operations.metriqueTypeTextuelle') });
+    return out;
+  });
 
   // Query params
   prelinkedMetriqueId = signal<number | null>(null);

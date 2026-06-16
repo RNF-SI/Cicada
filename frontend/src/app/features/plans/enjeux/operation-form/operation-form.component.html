@@ -1026,6 +1026,14 @@
         <app-accordion variant="default" size="lg" [title]="'enjeux.operations.indicateursReponse' | translate" [expanded]="sectionsOpen['indicateurs_reponse']" (expandedChange)="sectionsOpen['indicateurs_reponse'] = $event">
   <img accordionIcon src="assets/images/ellipses/ellipse-yellow.png" alt="" class="section-dot">
   <div class="section-content">
+    <div class="info-block info-block-info op-indic-examples">
+      <p class="text-bold">{{ 'enjeux.operations.reponseExamplesTitle' | translate }}</p>
+      <ul class="list-bullets">
+        <li>{{ 'enjeux.operations.reponseExample1' | translate }}</li>
+        <li>{{ 'enjeux.operations.reponseExample2' | translate }}</li>
+        <li>{{ 'enjeux.operations.reponseExample3' | translate }}</li>
+      </ul>
+    </div>
     @let opMetriques = responseIndicators();
     @if (opMetriques.length > 0) {
       <div class="op-indic-editor">
@@ -1064,8 +1072,8 @@
                   [disabled]="isReadOnly()"
                   (change)="saveMetricType(m.id_metrique, $any($event.target).value ? +$any($event.target).value : null)">
                   <option [ngValue]="''">—</option>
-                  @for (opt of typeMetriqueOptions(); track opt.id_nomenclature) {
-                    <option [ngValue]="opt.id_nomenclature">{{ opt.label }}</option>
+                  @for (opt of responseTypeOptions(); track opt.id) {
+                    <option [ngValue]="opt.id">{{ opt.label }}</option>
                   }
                 </select>
               </app-form-field>
@@ -1110,8 +1118,8 @@
               <app-form-field [label]="'enjeux.operations.typeMetrique' | translate">
                 <select [(ngModel)]="pi.type_metrique_id" [ngModelOptions]="{ standalone: true }">
                   <option [ngValue]="null">—</option>
-                  @for (opt of typeMetriqueOptions(); track opt.id_nomenclature) {
-                    <option [ngValue]="opt.id_nomenclature">{{ opt.label }}</option>
+                  @for (opt of responseTypeOptions(); track opt.id) {
+                    <option [ngValue]="opt.id">{{ opt.label }}</option>
                   }
                 </select>
               </app-form-field>
