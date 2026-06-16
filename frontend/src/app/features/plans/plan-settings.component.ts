@@ -11,6 +11,8 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { AuthService } from '../../core/services/auth.service';
 import { AdminService } from '../../core/services/admin.service';
 import { AdminPlan, PlanStatut, PlanVersionChainItem } from '../../core/models/admin.model';
+import { HeaderComponent } from '../../shared/components/header/header.component';
+import { PlanSidebarComponent } from './shared/plan-sidebar/plan-sidebar.component';
 import { TagComponent, TagVariant } from '../../shared/components/tag/tag.component';
 import {
   ConfirmDialogComponent,
@@ -20,9 +22,10 @@ import {
 /**
  * #348 — Page « Paramètres du plan de gestion ».
  *
- * Gestion avancée des versions : suppression d'une version quelconque de la
- * chaîne (y compris l'évaluation mi-parcours). Accessible uniquement aux
- * référents du plan, admin organisme et super admin.
+ * Gestion avancée : suppression de la VERSION AFFICHÉE (pour éviter les
+ * suppressions de versions par erreur, on n'agit que sur le plan courant).
+ * Supprimer une version mi-parcours annule de fait l'évaluation à mi-parcours.
+ * Accessible uniquement au référent du plan, admin organisme et super admin.
  */
 @Component({
   selector: 'app-plan-settings',
@@ -35,6 +38,8 @@ import {
     MatDialogModule,
     MatTooltipModule,
     TranslateModule,
+    HeaderComponent,
+    PlanSidebarComponent,
     TagComponent,
   ],
   templateUrl: './plan-settings.component.html',
@@ -53,9 +58,9 @@ export class PlanSettingsComponent {
   readonly plan = signal<AdminPlan | null>(null);
   readonly isLoading = signal(true);
   readonly errorMessage = signal<string | null>(null);
-  readonly deletingId = signal<number | null>(null);
+  readonly deleting = signal(false);
 
-  /** Versions triées (rang puis version) issues de la chaîne du plan. */
+  /** Versions de la chaîne, triées (rang puis version) — affichées en contexte. */
   readonly versions = computed<PlanVersionChainItem[]>(() => {
     const chain = this.plan()?.version_chain ?? [];
     return [...chain].sort((a, b) => {
@@ -121,12 +126,15 @@ export class PlanSettingsComponent {
     }
   }
 
-  confirmDelete(item: PlanVersionChainItem): void {
+  /** Confirme et supprime la version actuellement affichée. */
+  confirmDeleteCurrent(): void {
+    const p = this.plan();
+    if (!p) return;
     const data: ConfirmDialogData = {
       title: this.translate.instant('plans.settings.deleteVersionConfirmTitle'),
       message: this.translate.instant('plans.settings.deleteVersionConfirmMessage', {
-        name: item.nom,
-        version: item.version,
+        name: p.nom,
+        version: p.version ?? '1',
       }),
       confirmText: this.translate.instant('plans.settings.deleteVersion'),
       cancelText: this.translate.instant('common.actions.cancel'),
@@ -134,35 +142,28 @@ export class PlanSettingsComponent {
     };
     const dialogRef = this.dialog.open(ConfirmDialogComponent, { width: '520px', data });
     dialogRef.afterClosed().subscribe(confirmed => {
-      if (confirmed) this.deleteVersion(item);
+      if (confirmed) this.deleteCurrent();
     });
   }
 
-  private deleteVersion(item: PlanVersionChainItem): void {
-    const current = this.plan();
-    if (!current) return;
-    this.deletingId.set(item.id_pg);
+  private deleteCurrent(): void {
+    const p = this.plan();
+    if (!p) return;
+    this.deleting.set(true);
 
-    this.adminService.deletePlanVersion(item.id_pg).subscribe({
+    this.adminService.deletePlanVersion(p.id_pg).subscribe({
       next: () => {
-        this.deletingId.set(null);
+        this.deleting.set(false);
         this.snackBar.open(
           this.translate.instant('plans.settings.deleteSuccess'),
           this.translate.instant('common.actions.close'),
           { duration: 4000 },
         );
-
-        if (item.id_pg === current.id_pg) {
-          // La version affichée a été supprimée : retour à la liste des plans.
-          this.router.navigate(['/plans']);
-          return;
-        }
-        // Sinon, recharger le plan affiché par slug : la chaîne (et le badge
-        // « Version affichée ») reste ainsi correctement ancrée et renumérotée.
-        this.loadPlan();
+        // La version affichée a été supprimée : retour à la liste des plans.
+        this.router.navigate(['/plans']);
       },
       error: err => {
-        this.deletingId.set(null);
+        this.deleting.set(false);
         const detail = err?.message || this.translate.instant('plans.settings.deleteError');
         this.snackBar.open(detail, this.translate.instant('common.actions.close'), { duration: 5000 });
       },

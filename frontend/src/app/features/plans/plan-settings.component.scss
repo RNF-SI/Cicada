@@ -1,9 +1,18 @@
 @import 'variables';
 
-.plan-settings-page {
-  max-width: 900px;
-  margin: 0 auto;
-  padding: $spacing-lg $spacing-md $spacing-xxl;
+// Layout aligné sur les autres sous-pages du plan (sidebar + contenu)
+.settings-layout {
+  display: flex;
+  min-height: calc(100vh - 58px);
+  gap: $spacing-lg;
+  background: $beige;
+}
+
+.plan-main {
+  flex: 1;
+  min-width: 0;
+  padding: $spacing-lg $spacing-lg $spacing-xxl 0;
+  overflow-x: hidden;
 }
 
 .settings-loading {
@@ -50,8 +59,9 @@
   margin: 0;
 }
 
-// ── Section versions ──────────────────────────────────────────────────
+// ── Sections ──────────────────────────────────────────────────────────
 .settings-section {
+  max-width: 760px;
   margin-top: $spacing-lg;
 }
 
@@ -60,9 +70,37 @@
   margin: 0 0 $spacing-sm;
 }
 
+// Version affichée (zone de suppression)
+.current-version {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: $spacing-sm $spacing-md;
+  margin-top: $spacing-md;
+  padding: $spacing-md;
+  background-color: $white;
+  border: 1px solid $gray-light;
+  border-left: $border-width-accent solid $error-color;
+  border-radius: $border-radius-md;
+}
+
+.current-version-info {
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+  flex-wrap: wrap;
+}
+
+.version-rang {
+  font-weight: $font-weight-bold;
+  color: $black;
+}
+
+// Liste de contexte (lecture seule)
 .version-list {
   list-style: none;
-  margin: $spacing-md 0 0;
+  margin: $spacing-md 0 $spacing-xs;
   padding: 0;
   display: flex;
   flex-direction: column;
@@ -92,11 +130,6 @@
   flex-wrap: wrap;
 }
 
-.version-rang {
-  font-weight: $font-weight-bold;
-  color: $black;
-}
-
 .current-badge {
   font-size: $font-size-small;
   color: $secondary-terra-cotta;
@@ -119,8 +152,8 @@
   color: $gray-dark;
 }
 
-.version-actions {
-  margin-left: auto;
+.versions-hint {
+  margin-top: $spacing-xs;
 }
 
 // Bouton de suppression (rouge erreur, texte blanc — WCAG AA)

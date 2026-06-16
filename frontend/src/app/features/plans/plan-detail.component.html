@@ -9,6 +9,7 @@
       <app-plan-sidebar
         [planId]="id"
         [planSlug]="slug"
+        [canManage]="canManageLifecycle()"
         activePage="overview">
       </app-plan-sidebar>
     }
@@ -283,12 +284,6 @@
                       <span>{{ 'plans.lifecycle.actions.reactivate' | translate }}</span>
                     </button>
                   }
-                  <!-- #348 — Accès à la page Paramètres (gestion avancée des versions) -->
-                  <button class="btn-lifecycle btn-lifecycle-neutral" [routerLink]="['/plans', p.slug, 'parametres']"
-                          [matTooltip]="'plans.settings.title' | translate" matTooltipPosition="below">
-                    <i class="fi fi-rr-settings"></i>
-                    <span>{{ 'plans.settings.openButton' | translate }}</span>
-                  </button>
                 }
                 <button class="btn-generate">
                   <i class="fi fi-rr-download"></i>

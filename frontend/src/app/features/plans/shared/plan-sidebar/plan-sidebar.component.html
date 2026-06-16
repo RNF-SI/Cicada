@@ -5,13 +5,28 @@
 
   <nav class="sidebar-nav">
     <!-- Vue d'ensemble -->
-    <button
-      class="menu-item"
-      [class.active]="activePage() === 'overview'"
-      (click)="navigateToOverview()">
-      <i class="fi fi-rr-comment-info"></i>
-      <span>{{ 'plans.detail.sidebar.overview' | translate }}</span>
-    </button>
+    <div class="menu-item-wrapper">
+      <button
+        class="menu-item"
+        [class.active]="activePage() === 'overview'"
+        (click)="navigateToOverview()">
+        <i class="fi fi-rr-comment-info"></i>
+        <span>{{ 'plans.detail.sidebar.overview' | translate }}</span>
+      </button>
+
+      <!-- #348 — Paramètres du plan (gestion avancée des versions),
+           sous-entrée discrète réservée aux gestionnaires du plan. -->
+      @if (canManage()) {
+        <div class="submenu">
+          <button
+            class="submenu-item"
+            [class.active-sub]="activePage() === 'settings'"
+            (click)="navigateToSettings()">
+            {{ 'plans.settings.openButton' | translate }}
+          </button>
+        </div>
+      }
+    </div>
 
     <!-- Détails et saisie -->
     <div class="menu-item-wrapper">

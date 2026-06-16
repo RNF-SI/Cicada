@@ -18,8 +18,11 @@ export class PlanSidebarComponent implements OnInit {
 
   planId = input.required<number>();
   planSlug = input.required<string>();
-  activePage = input<'overview' | 'enjeux' | 'bilan' | 'suivi-actions' | 'tableau-de-bord' | 'mindmap'>('overview');
+  activePage = input<'overview' | 'enjeux' | 'bilan' | 'suivi-actions' | 'tableau-de-bord' | 'mindmap' | 'settings'>('overview');
   selectedEnjeuSlug = input<string | null>(null);
+  /** #348 — Affiche l'entrée « Paramètres » (gestion avancée des versions),
+   *  réservée au référent du plan, admin organisme et super admin. */
+  canManage = input<boolean>(false);
 
   // Signal partagé service : la sidebar reflète automatiquement les
   // mutations faites côté enjeux-list (DnD, CRUD…). Voir
@@ -113,5 +116,9 @@ export class PlanSidebarComponent implements OnInit {
 
   navigateToMindmap(): void {
     this.router.navigate(['/plans', this.planSlug(), 'tableau-d-arborescence']);
+  }
+
+  navigateToSettings(): void {
+    this.router.navigate(['/plans', this.planSlug(), 'parametres']);
   }
 }
