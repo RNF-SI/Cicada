@@ -13,7 +13,6 @@ from apps.notifications.tasks import (
     send_registration_pending_email,
     send_registration_approved_email,
     send_registration_rejected_email,
-    check_orphaned_sites,
     check_organismes_without_admin,
     cleanup_old_notifications,
     cleanup_expired_pending_users,
@@ -194,55 +193,6 @@ class TestRegistrationEmails:
 # =============================================================================
 # AUDIT TASKS TESTS
 # =============================================================================
-
-@pytest.mark.django_db
-@pytest.mark.unit
-class TestCheckOrphanedSites:
-    """Tests for check_orphaned_sites task."""
-
-    @patch('apps.notifications.services.NotificationService')
-    def test_check_orphaned_sites_finds_orphans(self, mock_service):
-        """Test task finds sites without users and sends summary."""
-        # Create sites without users
-        orphan_site1 = SiteFactory(active=True)
-        orphan_site2 = SiteFactory(active=True)
-
-        # Create site with users
-        site_with_user = SiteFactory(active=True)
-        user = RoleFactory()
-        CorRoleSiteFactory(id_role=user, id_site=site_with_user)
-
-        check_orphaned_sites()
-
-        # Should send a single summary with all orphaned sites
-        mock_service.notify_orphaned_sites_summary.assert_called_once()
-        sites_arg = mock_service.notify_orphaned_sites_summary.call_args[0][0]
-        site_ids = {s.pk for s in sites_arg}
-        assert orphan_site1.pk in site_ids
-        assert orphan_site2.pk in site_ids
-        assert site_with_user.pk not in site_ids
-
-    @patch('apps.notifications.services.NotificationService')
-    def test_check_orphaned_sites_skips_inactive(self, mock_service):
-        """Test task ignores inactive sites."""
-        # Create inactive site without users
-        SiteFactory(active=False)
-
-        check_orphaned_sites()
-
-        mock_service.notify_orphaned_sites_summary.assert_not_called()
-
-    @patch('apps.notifications.services.NotificationService')
-    def test_check_orphaned_sites_no_orphans(self, mock_service):
-        """Test task does nothing when all sites have users."""
-        site = SiteFactory(active=True)
-        user = RoleFactory()
-        CorRoleSiteFactory(id_role=user, id_site=site)
-
-        check_orphaned_sites()
-
-        mock_service.notify_orphaned_sites_summary.assert_not_called()
-
 
 @pytest.mark.django_db
 @pytest.mark.unit

@@ -1032,11 +1032,11 @@ OPTIONS = {
 ### Authentication & Permissions
 
 - **User Roles**: Super Admin > Rédacteur Principal > Admin Organisme > Utilisateur
-- **Rédacteur Principal** : Rôle intermédiaire entre super_admin et admin_og. Accès global en lecture/écriture à tous les plans, enjeux, opérations, indicateurs, fichiers, **sites et organismes** (cross-organisme). Peut lier directement un site à un plan (sans validation). **Ne peut PAS** gérer le cycle de vie des plans (valider/archiver/évaluation). Seul le super_admin peut attribuer ce rôle (endpoints `set-redacteur-principal` / `remove-redacteur-principal`). Méthodes : `user.is_redacteur_principal()`, `user.can_manage_plan_lifecycle()`. Frontend : `authService.isRedacteurPrincipal()`, `authService.hasGlobalAccess()`, distinction `canEditPlan` vs `canManageLifecycle` dans plan-detail. Page admin dédiée : `/administration/redacteurs-principaux`.
+- **Rédacteur Principal** : Rôle intermédiaire entre super_admin et admin_og. Accès global en lecture/écriture à tous les plans, enjeux, opérations, indicateurs, fichiers, **sites et organismes** (cross-organisme). Peut lier directement un site à un plan (sans validation). **Peut gérer le cycle de vie des plans** (valider/archiver/évaluation), au même titre que l'admin organisme, le super admin et le référent du plan (#346). Seul le super_admin peut attribuer ce rôle (endpoints `set-redacteur-principal` / `remove-redacteur-principal`). Méthodes : `user.is_redacteur_principal()`, `user.can_manage_plan_lifecycle()`. Frontend : `authService.isRedacteurPrincipal()`, `authService.hasGlobalAccess()`, `canEditPlan` et `canManageLifecycle` dans plan-detail. Page admin dédiée : `/administration/redacteurs-principaux`.
   - **Pattern backend (IMPORTANT)** : `is_admin_organisme()` retourne `True` pour le RP. Dans tout `get_queryset()`, toujours vérifier `is_redacteur_principal()` **AVANT** `is_admin_organisme()` pour éviter un scoping incorrect à l'organisme. Pattern : `if user.is_super_admin() or user.is_redacteur_principal(): return queryset_global`.
   - **Pattern frontend (IMPORTANT)** : Ne jamais utiliser `!isSuperAdmin() && isAdminOrganisme()` pour scoper par organisme — le RP serait inclus. Utiliser `!hasGlobalAccess() && isAdminOrganisme()` via le signal `authService.hasGlobalAccess` (= `isSuperAdmin() || isRedacteurPrincipal()`).
 - **Référent** (access level, not a role): User is "referent" if assigned as site referent (`CorRoleSite.referent=True`) or plan referent (`PlanGestion.referents`)
-- **Permissions cycle de vie des plans** : Les actions de changement de statut et création d'évaluation sont réservées aux **référents du plan spécifique** (vérifié via `plan.referents.filter(pk=user.pk)`), aux admin_og et super_admin. Le rédacteur principal est **exclu** du cycle de vie (`can_manage_plan_lifecycle()` retourne `False`). Permission DRF `IsReferent` + vérification objet dans la vue.
+- **Permissions cycle de vie des plans** : Les actions de changement de statut et création d'évaluation sont réservées aux **référents du plan spécifique** (vérifié via `plan.referents.filter(pk=user.pk)`), aux admin_og, super_admin **et au rédacteur principal** (#346 — `can_manage_plan_lifecycle()` retourne `True` pour le RP). Permission DRF `IsReferent` + vérification objet dans la vue.
 - **Permission Model**: Role-based with hierarchical access and Django groups
 - **JWT Implementation**: djangorestframework-simplejwt with 60min access + 7-day refresh tokens
 - **Security Middleware**: 3 custom middleware for headers, permissions, and audit
@@ -1434,6 +1434,14 @@ class UsersConfig(AppConfig):
 - Actions rapides : approuver/rejeter en un clic
 - Dialog de détail avec informations complètes
 - Accessible aux admin_og et super_admin
+
+**Administration Orphelins (`/administration/orphelins`):**
+- Page listant les **sites sans utilisateur** et les **plans sans site** (état persistant, consulté à la demande).
+- **Remplace l'ancien audit hebdomadaire par email** : les tâches Celery beat `check_orphaned_sites` / `check_orphaned_plans` (et leurs résumés email `notify_orphaned_sites_summary` / `notify_orphaned_plans_summary`) ont été supprimées. L'état orphelin n'est pas un événement récurrent ; l'envoyer chaque semaine saturait la boîte mail des admins.
+- La détection temps réel d'un site qui devient orphelin reste assurée par les signaux Django, mais **in-app uniquement** (`notify_site_orphaned`, `send_email=False`, priorité `medium`). Pas de notification temps réel pour les plans.
+- **Scope par rôle** : super_admin / rédacteur général voient tous les sites + tous les plans orphelins ; admin_og voit uniquement les sites orphelins de son organisme (pas les plans, non rattachables à un organisme sans site).
+- **Badge de navigation** dans la sidebar admin (compteur sites + plans), rafraîchi via `OrphansService.startAutoRefresh()` (toutes les 5 min) pour admin_og+.
+- Backend : `GET /api/admin/orphans/` (liste) et `GET /api/admin/orphans/counts/` (compteur léger pour le badge), permission `IsAdminOrganisme`. Frontend : `OrphansService`, `AdminOrphansComponent`, clés i18n `admin.orphans.*`.
 
 **Inscription Publique (`/auth/register`):**
 - Formulaire d'inscription avec sélection d'organisme

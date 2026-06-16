@@ -886,3 +886,139 @@ class ActivityLogViewSet(viewsets.ReadOnlyModelViewSet):
             result['rgpd'] = rgpd_count
 
         return Response(result)
+
+
+def _orphans_has_global_access(user):
+    """Acces global (tous organismes) aux orphelins : super_admin ou redacteur principal."""
+    return user.is_super_admin() or user.is_redacteur_principal()
+
+
+def _orphaned_sites_queryset(user):
+    """
+    Sites actifs sans aucun utilisateur associe.
+    Scope : acces global -> tous ; admin_og -> sites de son organisme.
+    """
+    from apps.users.models import Site, CorRoleSite, CorOgSite
+
+    sites_with_users = CorRoleSite.objects.values_list('id_site', flat=True)
+    qs = (
+        Site.objects.filter(active=True)
+        .exclude(id_site__in=sites_with_users)
+        .order_by('nom_site')
+    )
+
+    if _orphans_has_global_access(user):
+        return qs
+
+    # admin_og : restreint a son organisme
+    if user.id_organisme_id:
+        site_ids = CorOgSite.objects.filter(
+            uuid_og=user.id_organisme
+        ).values_list('id_site', flat=True)
+        return qs.filter(id_site__in=site_ids)
+
+    return qs.none()
+
+
+def _orphaned_plans_queryset(user):
+    """
+    Plans de gestion sans aucun site associe.
+    Un plan orphelin n'ayant plus de site n'est rattachable a aucun organisme :
+    reserve a l'acces global (super_admin / redacteur principal).
+    """
+    from apps.plans.models import PlanGestion, CorSitePg
+
+    if not _orphans_has_global_access(user):
+        return PlanGestion.objects.none()
+
+    # Sur CorSitePg, la FK vers le plan est `plan_de_gestion` (col. plan_de_gestion_id).
+    plans_with_sites = CorSitePg.objects.values_list('plan_de_gestion', flat=True)
+    return (
+        PlanGestion.objects.exclude(id_pg__in=plans_with_sites)
+        .order_by('nom')
+    )
+
+
+class AdminOrphansView(APIView):
+    """
+    Sites et plans orphelins (etat persistant, consultable a la demande).
+
+    Remplace l'ancien audit hebdomadaire par email : l'etat orphelin n'est pas un
+    evenement recurrent mais un etat que les admins consultent quand ils le souhaitent.
+
+    GET /api/admin/orphans/ ->
+        {
+          "sites": [{ "id_site", "nom_site", "slug", "organismes": [...] }],
+          "plans": [{ "id_pg", "nom", "slug" }],
+          "sites_count": int,
+          "plans_count": int
+        }
+
+    Scope par role :
+    - super_admin / redacteur principal : tous les sites + tous les plans orphelins
+    - admin_og : sites orphelins de son organisme uniquement (pas de plans orphelins)
+    """
+    permission_classes = [IsAdminOrganisme]
+
+    def get(self, request):
+        from apps.users.models import CorOgSite
+
+        user = request.user
+
+        sites = list(_orphaned_sites_queryset(user))
+        plans = list(_orphaned_plans_queryset(user))
+
+        # Organismes gestionnaires par site (pour affichage)
+        site_ids = [s.id_site for s in sites]
+        orgs_by_site = {}
+        if site_ids:
+            for cor in CorOgSite.objects.filter(
+                id_site__in=site_ids
+            ).select_related('uuid_og'):
+                orgs_by_site.setdefault(cor.id_site_id, []).append(
+                    cor.uuid_og.nom_organisme
+                )
+
+        sites_data = [
+            {
+                'id_site': s.id_site,
+                'nom_site': s.nom_site,
+                'slug': s.slug,
+                'organismes': orgs_by_site.get(s.id_site, []),
+            }
+            for s in sites
+        ]
+        plans_data = [
+            {
+                'id_pg': p.id_pg,
+                'nom': p.nom,
+                'slug': p.slug,
+            }
+            for p in plans
+        ]
+
+        return Response({
+            'sites': sites_data,
+            'plans': plans_data,
+            'sites_count': len(sites_data),
+            'plans_count': len(plans_data),
+        })
+
+
+class AdminOrphansCountsView(APIView):
+    """
+    Compteurs legers des orphelins (pour le badge de navigation admin).
+
+    GET /api/admin/orphans/counts/ -> { "sites_count", "plans_count", "total" }
+    """
+    permission_classes = [IsAdminOrganisme]
+
+    def get(self, request):
+        user = request.user
+        sites_count = _orphaned_sites_queryset(user).count()
+        plans_count = _orphaned_plans_queryset(user).count()
+        return Response({
+            'sites_count': sites_count,
+            'plans_count': plans_count,
+            'total': sites_count + plans_count,
+        })

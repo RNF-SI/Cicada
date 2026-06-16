@@ -191,36 +191,6 @@ def send_registration_rejected_email(self, email, reason=None):
 
 
 @shared_task
-def check_orphaned_sites():
-    """
-    Tache d'audit hebdomadaire pour verifier les sites sans utilisateurs.
-    Envoie un seul email recapitulatif aux super admins et admin_og concernes.
-
-    Note: La detection en temps reel est faite par les signaux Django
-    dans apps/users/signals.py (post_delete sur CorRoleSite, post_save sur Role).
-    Cette tache sert de filet de securite pour detecter les cas manques
-    (imports directs en base, migrations, etc.).
-    """
-    from apps.users.models import Site, CorRoleSite
-    from .services import NotificationService
-
-    # Sites actifs sans aucun utilisateur associe
-    sites_with_users = CorRoleSite.objects.values_list('id_site', flat=True)
-    orphaned_sites = list(
-        Site.objects.filter(active=True)
-        .exclude(id_site__in=sites_with_users)
-        .order_by('nom_site')
-    )
-
-    if not orphaned_sites:
-        logger.info("No orphaned sites found")
-        return
-
-    logger.info(f"Found {len(orphaned_sites)} orphaned sites")
-    NotificationService.notify_orphaned_sites_summary(orphaned_sites)
-
-
-@shared_task
 def check_organismes_without_admin():
     """
     Tache d'audit hebdomadaire pour verifier les organismes sans admin_og.
@@ -250,31 +220,6 @@ def check_organismes_without_admin():
 
     logger.info(f"Found {len(organismes_without_admin)} organismes without admin")
     NotificationService.notify_organismes_no_admin_summary(organismes_without_admin)
-
-
-@shared_task
-def check_orphaned_plans():
-    """
-    Tache d'audit hebdomadaire pour verifier les plans de gestion sans site associe.
-    Ces plans se retrouvent orphelins apres suppression de leurs sites lies.
-
-    Envoie un email recapitulatif aux super admins avec la liste des plans orphelins.
-    """
-    from apps.plans.models import PlanGestion, CorSitePg
-    from .services import NotificationService
-
-    plans_with_sites = CorSitePg.objects.values_list('id_pg', flat=True)
-    orphaned_plans = list(
-        PlanGestion.objects.exclude(id_pg__in=plans_with_sites)
-        .order_by('nom')
-    )
-
-    if not orphaned_plans:
-        logger.info("No orphaned plans found")
-        return
-
-    logger.info(f"Found {len(orphaned_plans)} orphaned plans")
-    NotificationService.notify_orphaned_plans_summary(orphaned_plans)
 
 
 @shared_task

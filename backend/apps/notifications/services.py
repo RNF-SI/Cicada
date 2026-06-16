@@ -344,7 +344,14 @@ class NotificationService:
 
     @staticmethod
     def notify_site_orphaned(site):
-        """Notifie les admins qu'un site n'a plus d'utilisateurs."""
+        """
+        Notifie les admins qu'un site n'a plus d'utilisateurs.
+
+        Notification in-app uniquement (pas d'email) : l'etat orphelin est aussi
+        consultable a la demande via la page Administration > Orphelins. On evite
+        ainsi de saturer la boite mail des admins (cf. suppression de l'audit
+        hebdomadaire par email).
+        """
         title = f"Site orphelin : {site.nom_site}"
         message = f"Le site {site.nom_site} n'a plus aucun utilisateur associé."
 
@@ -352,10 +359,10 @@ class NotificationService:
             notification_type='site_orphaned',
             title=title,
             message=message,
-            priority='high',
+            priority='medium',
             related_site=site,
-            action_url=f"/administration/sites/{site.id_site}",
-            send_email=True
+            action_url="/administration/orphelins",
+            send_email=False
         )
 
         # Notifier aussi les admin_og des organismes gestionnaires
@@ -371,10 +378,10 @@ class NotificationService:
                     notification_type='site_orphaned',
                     title=title,
                     message=message,
-                    priority='high',
+                    priority='medium',
                     related_site=site,
-                    action_url=f"/administration/sites/{site.id_site}",
-                    send_email=True
+                    action_url="/administration/orphelins",
+                    send_email=False
                 )
 
     @staticmethod
@@ -541,136 +548,6 @@ class NotificationService:
                 priority='high',
                 send_email=False,
             )
-
-    @staticmethod
-    def notify_orphaned_sites_summary(sites):
-        """
-        Envoie un email recapitulatif unique pour tous les sites orphelins.
-        Une seule notification + un seul email par destinataire.
-
-        Args:
-            sites: Liste de Site sans utilisateurs
-        """
-        import logging
-        logger = logging.getLogger(__name__)
-
-        count = len(sites)
-        site_names = [s.nom_site for s in sites]
-        sites_list_text = "\n".join(f"- {name}" for name in site_names)
-
-        title = f"Audit hebdomadaire : {count} site(s) sans utilisateur"
-        message = (
-            f"{count} site(s) actif(s) n'ont aucun utilisateur associé :\n\n"
-            f"{sites_list_text}"
-        )
-
-        # Une seule notification par super admin
-        super_admins = Role.objects.filter(role_level='super_admin', active=True)
-        for admin in super_admins:
-            notification = NotificationService.create_notification(
-                recipient=admin,
-                notification_type='site_orphaned',
-                title=title,
-                message=message,
-                priority='high',
-                action_url="/administration/sites",
-            )
-            # Envoyer l'email recapitulatif
-            NotificationService._send_audit_summary_email(
-                recipient=admin,
-                subject=title,
-                intro=f"{count} site(s) actif(s) n'ont aucun utilisateur associé.",
-                items=site_names,
-                action_url="/administration/sites",
-                action_label="Voir les sites",
-            )
-
-        # Notifier les admin_og concernes (regroupes par admin)
-        admin_og_sites = {}
-        for site in sites:
-            for cor_og in CorOgSite.objects.filter(id_site=site):
-                admin_ogs = Role.objects.filter(
-                    id_organisme=cor_og.uuid_og,
-                    role_level='admin_og',
-                    active=True
-                )
-                for admin in admin_ogs:
-                    admin_og_sites.setdefault(admin.pk, {
-                        'admin': admin,
-                        'sites': []
-                    })['sites'].append(site.nom_site)
-
-        for data in admin_og_sites.values():
-            admin = data['admin']
-            admin_site_names = data['sites']
-            admin_count = len(admin_site_names)
-            admin_title = f"Audit hebdomadaire : {admin_count} site(s) sans utilisateur"
-            admin_message = (
-                f"{admin_count} site(s) de votre organisme n'ont aucun utilisateur associé :\n\n"
-                + "\n".join(f"- {name}" for name in admin_site_names)
-            )
-            NotificationService.create_notification(
-                recipient=admin,
-                notification_type='site_orphaned',
-                title=admin_title,
-                message=admin_message,
-                priority='high',
-                action_url="/administration/sites",
-            )
-            NotificationService._send_audit_summary_email(
-                recipient=admin,
-                subject=admin_title,
-                intro=f"{admin_count} site(s) de votre organisme n'ont aucun utilisateur associé.",
-                items=admin_site_names,
-                action_url="/administration/sites",
-                action_label="Voir les sites",
-            )
-
-        logger.info(f"Orphaned sites summary sent: {count} sites")
-
-    @staticmethod
-    def notify_orphaned_plans_summary(plans):
-        """
-        Envoie un email recapitulatif unique pour tous les plans orphelins
-        (plans sans site associe suite a la suppression de leurs sites).
-
-        Une seule notification + un seul email par super admin.
-
-        Args:
-            plans: Liste de PlanGestion sans site associe
-        """
-        from apps.users.models import Role
-
-        count = len(plans)
-        plan_names = [p.nom for p in plans]
-
-        title = f"Audit hebdomadaire : {count} plan(s) de gestion sans site"
-        intro = f"{count} plan(s) de gestion n'ont aucun site associé suite à la suppression de leurs sites."
-        message = (
-            f"{count} plan(s) de gestion orphelins :\n\n"
-            + "\n".join(f"- {name}" for name in plan_names)
-        )
-
-        super_admins = Role.objects.filter(role_level='super_admin', active=True)
-        for admin in super_admins:
-            NotificationService.create_notification(
-                recipient=admin,
-                notification_type='plans_orphaned_summary',
-                title=title,
-                message=message,
-                priority='high',
-                action_url="/administration/plans",
-            )
-            NotificationService._send_audit_summary_email(
-                recipient=admin,
-                subject=title,
-                intro=intro,
-                items=plan_names,
-                action_url="/administration/plans",
-                action_label="Voir les plans",
-            )
-
-        logger.info(f"Orphaned plans summary sent: {count} plans")
 
     @staticmethod
     def notify_organismes_no_admin_summary(organismes):

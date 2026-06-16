@@ -235,19 +235,11 @@ CELERY_BEAT_SCHEDULE = {
         'task': 'apps.notifications.tasks.check_organismes_without_admin',
         'schedule': crontab(hour=8, minute=0, day_of_week=1),  # Lundi
     },
-    # Audit hebdomadaire des sites orphelins - tous les lundis a 8h30
-    # Note: La detection en temps reel est faite par les signaux Django (users/signals.py)
-    # Cette tache sert de filet de securite pour detecter les cas manques
-    'check-orphaned-sites': {
-        'task': 'apps.notifications.tasks.check_orphaned_sites',
-        'schedule': crontab(hour=8, minute=30, day_of_week=1),  # Lundi
-    },
-    # Audit hebdomadaire des plans de gestion sans site - tous les lundis a 9h
-    # Detecte les plans orphelins suite a la suppression de tous leurs sites
-    'check-orphaned-plans': {
-        'task': 'apps.notifications.tasks.check_orphaned_plans',
-        'schedule': crontab(hour=9, minute=0, day_of_week=1),  # Lundi
-    },
+    # Note: Les sites et plans orphelins ne sont plus audites par email hebdomadaire.
+    # L'etat orphelin est un etat persistant (et non un evenement) : il est consultable
+    # a la demande via la page Administration > Orphelins (endpoint /api/admin/orphans/).
+    # La detection temps reel d'un site qui devient orphelin reste assuree par les signaux
+    # Django (in-app uniquement, sans email).
     # Nettoyage des anciennes notifications - tous les jours a 4h
     'cleanup-old-notifications': {
         'task': 'apps.notifications.tasks.cleanup_old_notifications',

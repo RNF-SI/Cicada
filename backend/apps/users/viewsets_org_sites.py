@@ -586,7 +586,8 @@ class SiteViewSet(viewsets.ModelViewSet):
           la suppression d'un site est un acte de cycle de vie)
         - Envoie une notification aux référents et admin_og des organismes liés
         - Les plans liés (CorSitePg CASCADE) perdent leur association mais ne sont pas supprimés
-        - La détection des plans orphelins est faite par la tâche hebdomadaire check_orphaned_plans
+        - Les plans devenus orphelins (sans site) sont consultables via la page
+          Administration > Orphelins (endpoint /api/admin/orphans/)
         """
         from apps.notifications.services import NotificationService
 

@@ -1,0 +1,85 @@
+<div class="admin-orphans">
+  <!-- Header -->
+  <header class="page-header">
+    <div class="header-left">
+      <h1>{{ 'admin.orphans.title' | translate }}</h1>
+      <p class="subtitle">{{ 'admin.orphans.subtitle' | translate }}</p>
+    </div>
+  </header>
+
+  <!-- Loading -->
+  @if (isLoading()) {
+    <div class="loading-container">
+      <mat-spinner diameter="40"></mat-spinner>
+      <p>{{ 'admin.orphans.messages.loading' | translate }}</p>
+    </div>
+  } @else if (errorMessage()) {
+    <div class="info-block info-block-error">
+      <i class="fi fi-rr-exclamation"></i>
+      <span>{{ errorMessage() }}</span>
+    </div>
+  } @else {
+    <!-- Aucun orphelin -->
+    @if (sites().length === 0 && plans().length === 0) {
+      <div class="empty-state">
+        <i class="fi fi-rr-check-circle"></i>
+        <p>{{ 'admin.orphans.empty' | translate }}</p>
+      </div>
+    }
+
+    <!-- Sites orphelins -->
+    @if (sites().length > 0) {
+      <section class="orphans-section">
+        <h2>
+          <i class="fi fi-rr-marker"></i>
+          {{ 'admin.orphans.sites.title' | translate }}
+          <span class="count-pill">{{ sites().length }}</span>
+        </h2>
+        <p class="section-hint">{{ 'admin.orphans.sites.hint' | translate }}</p>
+        <ul class="orphans-list">
+          @for (site of sites(); track site.id_site) {
+            <li class="orphan-item">
+              <div class="orphan-main">
+                <a [routerLink]="['/administration/sites']" [queryParams]="{ q: site.nom_site }" class="orphan-name">
+                  {{ site.nom_site }}
+                </a>
+                @if (site.organismes.length > 0) {
+                  <span class="orphan-meta">{{ site.organismes.join(', ') }}</span>
+                }
+              </div>
+              <a [routerLink]="['/administration/sites']" [queryParams]="{ q: site.nom_site }" class="link-default orphan-action">
+                {{ 'admin.orphans.actions.manage' | translate }}
+                <i class="fi fi-rr-angle-right"></i>
+              </a>
+            </li>
+          }
+        </ul>
+      </section>
+    }
+
+    <!-- Plans orphelins (acces global uniquement) -->
+    @if (hasGlobalAccess() && plans().length > 0) {
+      <section class="orphans-section">
+        <h2>
+          <i class="fi fi-rr-document"></i>
+          {{ 'admin.orphans.plans.title' | translate }}
+          <span class="count-pill">{{ plans().length }}</span>
+        </h2>
+        <p class="section-hint">{{ 'admin.orphans.plans.hint' | translate }}</p>
+        <ul class="orphans-list">
+          @for (plan of plans(); track plan.id_pg) {
+            <li class="orphan-item">
+              <div class="orphan-main">
+                <a [routerLink]="['/plans', plan.slug]" class="orphan-name">{{ plan.nom }}</a>
+              </div>
+              <a [routerLink]="['/plans', plan.slug]" class="link-default orphan-action">
+                {{ 'admin.orphans.actions.open' | translate }}
+                <i class="fi fi-rr-angle-right"></i>
+              </a>
+            </li>
+          }
+        </ul>
+      </section>
+    }
+  }
+</div>
