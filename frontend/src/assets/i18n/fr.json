@@ -1431,7 +1431,9 @@
         "recordArretePref": "Enregistrer l'arrêté préfectoral",
         "recordArretePrefDesc": "L'arrêté préfectoral est pris : enregistrer la date et le numéro, puis valider définitivement le plan.",
         "cancelCsrpn": "Annuler le workflow CSRPN",
-        "cancelCsrpnDesc": "Repasser le plan en brouillon — annule l'étape CSRPN en cours."
+        "cancelCsrpnDesc": "Repasser le plan en brouillon — annule l'étape CSRPN en cours.",
+        "cancelMiParcours": "Annuler l'évaluation mi-parcours",
+        "cancelMiParcoursDesc": "Retirer la désignation « évaluation mi-parcours » de ce plan. Le statut reste « modifié ». Une nouvelle évaluation mi-parcours pourra ensuite être déclarée dans la chaîne."
       },
       "warnings": {
         "validateTitle": "Valider le plan de gestion",
@@ -1450,7 +1452,9 @@
         "startRevisionTitle": "Marquer le plan en cours de révision",
         "startRevisionWarning": "Le plan reste validé fonctionnellement, mais sera signalé comme « en cours de révision » : un nouveau plan (rang suivant) est en cours de rédaction en parallèle. La révision peut être lancée avant ou après le dépassement de la période.",
         "cancelRevisionTitle": "Annuler la révision",
-        "cancelRevisionWarning": "L'indicateur « en cours de révision » et le lien vers le rang suivant seront retirés. Le statut du plan reste inchangé. Le plan du rang suivant n'est pas supprimé."
+        "cancelRevisionWarning": "L'indicateur « en cours de révision » et le lien vers le rang suivant seront retirés. Le statut du plan reste inchangé. Le plan du rang suivant n'est pas supprimé.",
+        "cancelMiParcoursTitle": "Annuler l'évaluation mi-parcours",
+        "cancelMiParcoursWarning": "La désignation « évaluation mi-parcours » sera retirée de ce plan. Son statut (« modifié ») et son contenu ne sont pas modifiés. La chaîne pourra de nouveau accueillir une évaluation mi-parcours."
       },
       "messages": {
         "statusChanged": "Le statut du plan a été modifié avec succès.",
@@ -1466,7 +1470,9 @@
         "revisionEnded": "La révision du plan a été arrêtée.",
         "revisionError": "Impossible de modifier l'état de révision du plan.",
         "miParcoursCreated": "Le brouillon de l'évaluation mi-parcours a été créé.",
-        "miParcoursLinked": "Le brouillon a été lié comme évaluation mi-parcours."
+        "miParcoursLinked": "Le brouillon a été lié comme évaluation mi-parcours.",
+        "miParcoursCancelled": "La désignation « évaluation mi-parcours » a été annulée.",
+        "miParcoursCancelError": "Impossible d'annuler l'évaluation mi-parcours."
       },
       "lockedBanner": {
         "title": "Plan verrouillé en lecture seule",

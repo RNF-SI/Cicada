@@ -751,6 +751,36 @@ export class PlanDetailComponent implements OnInit, OnDestroy {
     });
   }
 
+  /** #348 — Annuler la désignation « évaluation mi-parcours » du plan. */
+  confirmCancelMiParcours(): void {
+    this.openLifecycleConfirm({
+      title: this.translate.instant('plans.lifecycle.warnings.cancelMiParcoursTitle'),
+      message: this.translate.instant('plans.lifecycle.warnings.cancelMiParcoursWarning'),
+      confirmText: this.translate.instant('plans.lifecycle.actions.cancelMiParcours'),
+      confirmColor: 'warn',
+      onConfirm: () => this.cancelMiParcours(),
+    });
+  }
+
+  private cancelMiParcours(): void {
+    const p = this.plan();
+    if (!p) return;
+    this.adminService.removePlanMiParcours(p.id_pg).subscribe({
+      next: () => {
+        this.snackBar.open(
+          this.translate.instant('plans.lifecycle.messages.miParcoursCancelled'),
+          this.translate.instant('common.actions.close'),
+          { duration: 4000 }
+        );
+        this.loadPlan();
+      },
+      error: (err) => {
+        const detail = err?.error?.error || this.translate.instant('plans.lifecycle.messages.miParcoursCancelError');
+        this.snackBar.open(detail, this.translate.instant('common.actions.close'), { duration: 5000 });
+      },
+    });
+  }
+
   /** #278 — Indique si le plan est en cours de révision. */
   isPlanInRevision = computed<boolean>(() => {
     const p = this.plan();

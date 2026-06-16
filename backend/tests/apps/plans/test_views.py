@@ -919,6 +919,38 @@ class TestPlanGestionChangeStatus:
         )
         assert response.status_code == status.HTTP_400_BAD_REQUEST
 
+    # ---------- #348 — annulation du drapeau is_mi_parcours ----------
+
+    def test_remove_mi_parcours_clears_flag(self, api_client):
+        """remove-mi-parcours repasse is_mi_parcours à False sans changer le statut."""
+        admin = SuperAdminFactory()
+        parent = PlanGestionFactory(statut='valide')
+        plan = PlanGestionFactory(statut='modifie', is_mi_parcours=True, plan_parent=parent)
+        api_client.force_authenticate(user=admin)
+        response = api_client.post(f'/api/plans/plans/{plan.id_pg}/remove-mi-parcours/')
+        assert response.status_code == status.HTTP_200_OK
+        plan.refresh_from_db()
+        assert plan.statut == 'modifie'  # statut inchangé
+        assert plan.is_mi_parcours is False
+
+    def test_remove_mi_parcours_frees_chain_for_new_one(self, api_client):
+        """Après annulation, la chaîne peut de nouveau accueillir une mi-parcours."""
+        admin = SuperAdminFactory()
+        parent = PlanGestionFactory(statut='valide')
+        plan = PlanGestionFactory(statut='modifie', is_mi_parcours=True, plan_parent=parent)
+        api_client.force_authenticate(user=admin)
+        api_client.post(f'/api/plans/plans/{plan.id_pg}/remove-mi-parcours/')
+        plan.refresh_from_db()
+        assert plan.chain_has_mi_parcours() is False
+
+    def test_remove_mi_parcours_when_not_flagged(self, api_client):
+        """Annuler sur un plan non mi-parcours → 400."""
+        admin = SuperAdminFactory()
+        plan = PlanGestionFactory(statut='modifie', is_mi_parcours=False)
+        api_client.force_authenticate(user=admin)
+        response = api_client.post(f'/api/plans/plans/{plan.id_pg}/remove-mi-parcours/')
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+
     # ---------- #277 — workflow CSRPN ----------
 
     def _make_typed_site(self, mnemonique: str):

@@ -262,6 +262,13 @@
                         <span>{{ 'plans.lifecycle.actions.startMiParcours' | translate }}</span>
                       </button>
                     }
+                    @if (isPlanMiParcours()) {
+                      <button class="btn-lifecycle btn-lifecycle-warning" (click)="confirmCancelMiParcours()"
+                              [matTooltip]="'plans.lifecycle.actions.cancelMiParcoursDesc' | translate" matTooltipPosition="below">
+                        <i class="fi fi-rr-cross-circle"></i>
+                        <span>{{ 'plans.lifecycle.actions.cancelMiParcours' | translate }}</span>
+                      </button>
+                    }
                     @if (canCreateNewVersion()) {
                       <button class="btn-lifecycle btn-lifecycle-success" (click)="openCreateNewVersionDialog()"
                               [matTooltip]="'plans.lifecycle.actions.createNewVersionDesc' | translate" matTooltipPosition="below">

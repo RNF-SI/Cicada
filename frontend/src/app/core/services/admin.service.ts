@@ -682,6 +682,17 @@ export class AdminService {
   }
 
   /**
+   * #348 — Cancel the mid-term evaluation flag of a plan (is_mi_parcours → false).
+   * POST /api/plans/plans/{id}/remove-mi-parcours/
+   */
+  removePlanMiParcours(planId: number): Observable<AdminPlan> {
+    return this.http.post<AdminPlan>(
+      `${this.plansApiUrl}/plans/${planId}/remove-mi-parcours/`,
+      {}
+    ).pipe(catchError(this.handleError));
+  }
+
+  /**
    * Duplicate a plan with configurable options
    * POST /api/plans/plans/{id}/duplicate/
    */
