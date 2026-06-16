@@ -989,6 +989,20 @@ class TestPlanGestionChangeStatus:
         assert response.status_code == status.HTTP_403_FORBIDDEN
         assert PlanGestion.objects.filter(pk=plan.id_pg).exists()
 
+    def test_delete_version_root_of_chain(self, api_client):
+        """Supprimer la racine (début de chaîne) : l'enfant devient racine et
+        la version est renumérotée."""
+        admin = SuperAdminFactory()
+        root = PlanGestionFactory(statut='valide', version='1', rang=1)
+        child = PlanGestionFactory(statut='modifie', plan_parent=root, version='2', rang=1)
+        api_client.force_authenticate(user=admin)
+        response = api_client.post(f'/api/plans/plans/{root.id_pg}/delete-version/')
+        assert response.status_code == status.HTTP_200_OK
+        assert not PlanGestion.objects.filter(pk=root.id_pg).exists()
+        child.refresh_from_db()
+        assert child.plan_parent_id is None  # devient racine
+        assert child.version == '1'  # renuméroté
+
     def test_delete_version_cascades_content(self, api_client):
         """Supprimer une version supprime aussi son contenu (enjeux) par CASCADE."""
         from tests.factories.enjeux import EnjeuFactory
