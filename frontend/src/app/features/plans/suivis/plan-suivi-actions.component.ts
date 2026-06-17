@@ -18,7 +18,7 @@ import {
   Enjeu, Indicateur, Operation, OperationAnnee
 } from '../../../core/models/enjeu.model';
 
-type ActionStatus = 'planned' | 'planned-realized' | 'planned-partial' | 'realized-unplanned' | 'partial-unplanned';
+type ActionStatus = 'planned' | 'planned-realized' | 'planned-partial' | 'planned-not-realized' | 'realized-unplanned' | 'partial-unplanned';
 
 type SuiviTab = 'realisation' | 'budget' | 'rh';
 
@@ -63,7 +63,7 @@ export class PlanSuiviActionsComponent implements OnInit {
   /** mnémonique NIVEAU_REALISATION → id_nomenclature (pour la surcharge). */
   private niveauIdByMnemonique = signal<Map<string, number>>(new Map());
   /** Niveaux proposés dans le menu de surcharge, dans l'ordre de progression. */
-  readonly niveauGlobalOptions = ['NON_DEMARRE', 'EN_COURS', 'PARTIEL', 'TERMINE', 'ABANDONNE', 'REPORTE'];
+  readonly niveauGlobalOptions = ['NON_DEMARRE', 'EN_COURS', 'PARTIEL', 'TERMINE', 'NON_REALISE', 'ABANDONNE', 'REPORTE'];
 
   canManageGlobal = computed<boolean>(() => {
     if (this.authService.hasGlobalAccess() || this.authService.isAdminOrganisme()) {
@@ -283,6 +283,7 @@ export class PlanSuiviActionsComponent implements OnInit {
     'planned': 'assets/images/icons/prevu.png',
     'planned-realized': 'assets/images/icons/prevu-realise.png',
     'planned-partial': 'assets/images/icons/prevu-partiellement-realise.png',
+    'planned-not-realized': 'assets/images/icons/non-realise.svg',
     'realized-unplanned': 'assets/images/icons/realise.png',
     'partial-unplanned': 'assets/images/icons/partiellement-realise.png'
   };
@@ -291,6 +292,7 @@ export class PlanSuiviActionsComponent implements OnInit {
     { status: 'planned', labelKey: 'plans.suivis.actions.actionPrevue' },
     { status: 'planned-realized', labelKey: 'plans.suivis.actions.actionPrevueRealisee' },
     { status: 'planned-partial', labelKey: 'plans.suivis.actions.actionPrevuePartielle' },
+    { status: 'planned-not-realized', labelKey: 'plans.suivis.actions.actionNonRealisee' },
     { status: 'realized-unplanned', labelKey: 'plans.suivis.actions.actionRealiseeNonPrevue' },
     { status: 'partial-unplanned', labelKey: 'plans.suivis.actions.actionPartielleNonPrevue' }
   ];
@@ -429,10 +431,12 @@ export class PlanSuiviActionsComponent implements OnInit {
     const niveau = annee.realisation?.niveau_realisation_mnemonique ?? null;
     const realiseTotal = niveau === 'TERMINE';
     const realisePartiel = niveau === 'PARTIEL';
+    const nonRealise = niveau === 'NON_REALISE'; // #379
 
     if (prevu) {
       if (realiseTotal) return 'planned-realized';
       if (realisePartiel) return 'planned-partial';
+      if (nonRealise) return 'planned-not-realized'; // prévu mais non réalisé (croix)
       return 'planned';
     }
     // Non prévu mais réalisé (totalement ou partiellement)
@@ -495,6 +499,7 @@ export class PlanSuiviActionsComponent implements OnInit {
       case 'TERMINE': return 'success';
       case 'EN_COURS': return 'info';
       case 'PARTIEL': return 'warning';
+      case 'NON_REALISE': return 'error'; // #379
       case 'ABANDONNE': return 'error';
       case 'REPORTE': return 'draft';
       default: return 'muted'; // NON_DEMARRE / inconnu

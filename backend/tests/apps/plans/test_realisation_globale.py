@@ -76,6 +76,19 @@ class TestComputeNiveauRealisationGlobal:
         _annee(op, 2025, 'ABANDONNE')
         assert op.compute_niveau_realisation_global() == 'ABANDONNE'
 
+    def test_que_des_non_realisees(self):
+        # #379 — toutes les années programmées « non réalisée »
+        op = OperationFactory()
+        _annee(op, 2024, 'NON_REALISE')
+        _annee(op, 2025, 'NON_REALISE')
+        assert op.compute_niveau_realisation_global() == 'NON_REALISE'
+
+    def test_terminee_et_non_realisee_reste_en_cours(self):
+        op = OperationFactory()
+        _annee(op, 2024, 'TERMINE')
+        _annee(op, 2025, 'NON_REALISE')
+        assert op.compute_niveau_realisation_global() == 'EN_COURS'
+
 
 @pytest.mark.django_db
 @pytest.mark.unit

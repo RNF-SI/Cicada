@@ -123,8 +123,8 @@
           <app-form-field [label]="'plans.suivis.saisie.fields.niveau' | translate">
             <select formControlName="id_niveau_realisation">
               <option [ngValue]="null">—</option>
-              @for (n of niveaux(); track n.id_nomenclature) {
-                <option [ngValue]="n.id_nomenclature">{{ n.label }}</option>
+              @for (n of niveauSaisieOptions(); track n.id) {
+                <option [ngValue]="n.id">{{ n.labelKey | translate }}</option>
               }
             </select>
           </app-form-field>

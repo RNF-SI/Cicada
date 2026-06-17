@@ -1827,12 +1827,14 @@
             "PARTIEL": "Partiel",
             "TERMINE": "Terminé",
             "ABANDONNE": "Abandonné",
-            "REPORTE": "Reporté"
+            "REPORTE": "Reporté",
+            "NON_REALISE": "Non réalisée"
           }
         },
         "searchPlaceholder": "Rechercher une action…",
         "organisme": "Organisme",
-        "allOrganismes": "Tous les organismes"
+        "allOrganismes": "Tous les organismes",
+        "actionNonRealisee": "Action prévue non réalisée"
       },
       "saisie": {
         "subtitle": "Remplir le suivi d'une action",
@@ -1893,6 +1895,11 @@
           "operationNotFound": "Action introuvable.",
           "missingProgrammation": "Cette année n'est pas programmée pour cette action.",
           "saveFailed": "Erreur lors de l'enregistrement."
+        },
+        "niveau": {
+          "realisee": "Réalisée",
+          "partielle": "Partiellement réalisée",
+          "nonRealisee": "Non réalisée"
         }
       },
       "indicateur": {

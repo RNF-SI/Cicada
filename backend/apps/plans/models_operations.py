@@ -736,6 +736,7 @@ class Operation(models.Model):
         'TERMINE': 'Terminé',
         'ABANDONNE': 'Abandonné',
         'REPORTE': 'Reporté',
+        'NON_REALISE': 'Non réalisée',  # #379
     }
 
     def compute_niveau_realisation_global(self):
@@ -780,8 +781,12 @@ class Operation(models.Model):
             return 'ABANDONNE'
         if unique == {'REPORTE'}:
             return 'REPORTE'
-        if unique <= {'NON_DEMARRE'}:
-            return 'NON_DEMARRE'
+        if unique == {'NON_REALISE'}:
+            return 'NON_REALISE'  # #379 — toutes les années programmées non réalisées
+        if unique <= {'NON_DEMARRE', 'NON_REALISE'}:
+            # Ni progression ni terminaison : non réalisé si au moins une année
+            # explicitement « non réalisée », sinon simplement non démarré.
+            return 'NON_REALISE' if 'NON_REALISE' in unique else 'NON_DEMARRE'
         if 'TERMINE' in unique or 'EN_COURS' in unique:
             return 'EN_COURS'
         if 'PARTIEL' in unique:

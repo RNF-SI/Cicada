@@ -91,6 +91,24 @@ export class SuiviSaisieComponent implements OnInit {
   // -------- Data --------
   operation = signal<Operation | null>(null);
   niveaux = signal<Niveau[]>([]);
+
+  // #379 — Le formulaire ne propose que 3 niveaux : Réalisée / Partiellement
+  // réalisée / Non réalisée (les autres mnémoniques restent en base pour les
+  // données historiques et le statut global).
+  private readonly NIVEAU_SAISIE: { mnemonique: string; labelKey: string }[] = [
+    { mnemonique: 'TERMINE', labelKey: 'plans.suivis.saisie.niveau.realisee' },
+    { mnemonique: 'PARTIEL', labelKey: 'plans.suivis.saisie.niveau.partielle' },
+    { mnemonique: 'NON_REALISE', labelKey: 'plans.suivis.saisie.niveau.nonRealisee' },
+  ];
+  niveauSaisieOptions = computed<{ id: number; labelKey: string }[]>(() => {
+    const byMnem = new Map(this.niveaux().map(n => [n.mnemonique, n]));
+    return this.NIVEAU_SAISIE
+      .map(o => {
+        const n = byMnem.get(o.mnemonique);
+        return n ? { id: n.id_nomenclature, labelKey: o.labelKey } : null;
+      })
+      .filter((x): x is { id: number; labelKey: string } => x !== null);
+  });
   isLoading = signal(true);
   isSaving = signal(false);
   errorMessage = signal<string | null>(null);
