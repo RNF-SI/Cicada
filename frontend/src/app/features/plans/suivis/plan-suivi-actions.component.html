@@ -110,6 +110,13 @@
         <!-- Filters (toujours visibles) -->
         <div class="filter-bar">
           <div class="filter-bar-left">
+            <!-- #379 — recherche textuelle sur une action -->
+            <app-search-bar class="action-search"
+              [value]="filterText()"
+              (valueChange)="filterText.set($event)"
+              [placeholder]="'plans.suivis.actions.searchPlaceholder' | translate"
+              [ariaLabel]="'plans.suivis.actions.searchPlaceholder' | translate">
+            </app-search-bar>
             <div class="filter-label">{{ 'plans.suivis.actions.filterLabel' | translate }}</div>
             <div class="filter-buttons">
               <!-- Catégorie d'action -->
@@ -165,6 +172,26 @@
                 }
               </mat-menu>
               <div class="filter-separator"></div>
+
+              <!-- #379 — Organisme -->
+              @if (availableOrganismes().length > 0) {
+                <button class="filter-btn" [matMenuTriggerFor]="orgMenu"
+                  [class.filter-active]="filterOrganisme()">
+                  {{ 'plans.suivis.actions.organisme' | translate }}
+                  <i class="fi fi-rr-angle-small-down"></i>
+                </button>
+                <mat-menu #orgMenu="matMenu">
+                  <button mat-menu-item (click)="setOrganismeFilter(null)">
+                    <em>{{ 'plans.suivis.actions.allOrganismes' | translate }}</em>
+                  </button>
+                  @for (org of availableOrganismes(); track org.id_organisme) {
+                    <button mat-menu-item (click)="setOrganismeFilter(org.id_organisme)">
+                      {{ org.nom }}
+                    </button>
+                  }
+                </mat-menu>
+                <div class="filter-separator"></div>
+              }
 
               <!-- Bouton réinitialiser les filtres (revue design #317) -->
               @if (hasActiveFilters()) {

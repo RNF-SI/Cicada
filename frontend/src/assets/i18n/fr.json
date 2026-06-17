@@ -1829,7 +1829,10 @@
             "ABANDONNE": "Abandonné",
             "REPORTE": "Reporté"
           }
-        }
+        },
+        "searchPlaceholder": "Rechercher une action…",
+        "organisme": "Organisme",
+        "allOrganismes": "Tous les organismes"
       },
       "saisie": {
         "subtitle": "Remplir le suivi d'une action",

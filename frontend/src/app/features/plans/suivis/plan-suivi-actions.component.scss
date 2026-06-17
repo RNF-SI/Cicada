@@ -357,6 +357,14 @@
   display: flex;
   align-items: center;
   gap: 0;
+  flex-wrap: wrap;
+}
+
+// #379 — barre de recherche d'action dans la barre de filtres
+.action-search {
+  display: block;
+  max-width: 280px;
+  margin-right: $spacing-md;
 }
 
 .filter-label {

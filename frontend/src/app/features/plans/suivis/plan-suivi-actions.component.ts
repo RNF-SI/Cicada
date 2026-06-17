@@ -10,6 +10,7 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { HeaderComponent } from '../../../shared/components/header/header.component';
 import { PlanSidebarComponent } from '../shared/plan-sidebar/plan-sidebar.component';
 import { TagComponent, TagVariant } from '../../../shared/components/tag/tag.component';
+import { SearchBarComponent } from '../../../shared/components/search-bar/search-bar.component';
 import { AdminService } from '../../../core/services/admin.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { EnjeuService } from '../../../core/services/enjeu.service';
@@ -44,7 +45,7 @@ interface FlatOperation {
   imports: [
     CommonModule, RouterModule, MatButtonModule, MatChipsModule, MatMenuModule,
     MatProgressSpinnerModule, MatTooltipModule, TranslateModule,
-    HeaderComponent, PlanSidebarComponent, TagComponent
+    HeaderComponent, PlanSidebarComponent, TagComponent, SearchBarComponent
   ],
   templateUrl: './plan-suivi-actions.component.html',
   styleUrl: './plan-suivi-actions.component.scss'
@@ -100,6 +101,9 @@ export class PlanSuiviActionsComponent implements OnInit {
   filterCategorieAction = signal<string | null>(null);
   filterEnjeu = signal<number | null>(null);
   filterPriorite = signal<string | null>(null);
+  // #379 — recherche textuelle sur le libellé d'action + filtre organisme.
+  filterText = signal<string>('');
+  filterOrganisme = signal<number | null>(null);
 
   // Libellés des 9 catégories d'action réserve CT88, indexés par code 2 lettres
   // (SP, CS, IP, PA…). Sert à afficher la catégorie CT88 dans le filtre, même
@@ -123,6 +127,8 @@ export class PlanSuiviActionsComponent implements OnInit {
     const cat = this.filterCategorieAction();
     const enjeu = this.filterEnjeu();
     const prio = this.filterPriorite();
+    const text = this.normalize(this.filterText());
+    const org = this.filterOrganisme();
 
     if (cat) {
       ops = ops.filter(o => this.getCategorieAction(o.operation) === cat);
@@ -133,7 +139,31 @@ export class PlanSuiviActionsComponent implements OnInit {
     if (prio) {
       ops = ops.filter(o => o.operation.priorite_label === prio);
     }
+    if (text) {
+      ops = ops.filter(o => this.normalize(o.operation.libelle).includes(text));
+    }
+    if (org) {
+      ops = ops.filter(o => this.getOrganismesForOp(o.operation).some(g => g.id_organisme === org));
+    }
     return ops;
+  });
+
+  /** Normalisation pour la recherche : minuscules, sans accents. */
+  private normalize(s: string): string {
+    return (s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
+  }
+
+  /** #379 — Organismes disponibles (ventilés sur au moins une action) pour le filtre. */
+  availableOrganismes = computed<{ id_organisme: number; nom: string }[]>(() => {
+    const seen = new Map<number, string>();
+    for (const o of this.allOperations()) {
+      for (const g of this.getOrganismesForOp(o.operation)) {
+        if (!seen.has(g.id_organisme)) seen.set(g.id_organisme, g.nom);
+      }
+    }
+    return [...seen.entries()]
+      .map(([id_organisme, nom]) => ({ id_organisme, nom }))
+      .sort((a, b) => a.nom.localeCompare(b.nom));
   });
 
   /**
@@ -423,14 +453,21 @@ export class PlanSuiviActionsComponent implements OnInit {
     this.filterPriorite.set(value);
   }
 
+  setOrganismeFilter(value: number | null): void {
+    this.filterOrganisme.set(value);
+  }
+
   clearFilters(): void {
     this.filterCategorieAction.set(null);
     this.filterEnjeu.set(null);
     this.filterPriorite.set(null);
+    this.filterText.set('');
+    this.filterOrganisme.set(null);
   }
 
   hasActiveFilters(): boolean {
-    return !!(this.filterCategorieAction() || this.filterEnjeu() || this.filterPriorite());
+    return !!(this.filterCategorieAction() || this.filterEnjeu() || this.filterPriorite()
+      || this.filterText() || this.filterOrganisme());
   }
 
   getPrioriteClass(op: Operation): string {
