@@ -395,6 +395,19 @@ class OperationSerializer(serializers.ModelSerializer):
     finances = FinanceOperationSerializer(many=True, read_only=True)
     suivi_inventaire = SuiviInventaireSerializer(source='id_suivi', read_only=True)
     geom_geojson = serializers.SerializerMethodField()
+    # #355/#379 — statut de réalisation global (sur la période)
+    niveau_realisation_global_mnemonique = serializers.SerializerMethodField()
+    niveau_realisation_global_label = serializers.SerializerMethodField()
+    niveau_realisation_global_manuel = serializers.SerializerMethodField()
+
+    def get_niveau_realisation_global_mnemonique(self, obj):
+        return obj.get_niveau_realisation_global()
+
+    def get_niveau_realisation_global_label(self, obj):
+        return obj.get_niveau_realisation_global_label()
+
+    def get_niveau_realisation_global_manuel(self, obj):
+        return obj.is_niveau_realisation_global_manuel()
 
     class Meta:
         model = Operation
@@ -421,6 +434,9 @@ class OperationSerializer(serializers.ModelSerializer):
             'metriques', 'metrique_ids',
             'site_ids', 'nb_sites',
             'operation_annees', 'finances',
+            'niveau_realisation_global_mnemonique',
+            'niveau_realisation_global_label',
+            'niveau_realisation_global_manuel',
             'date_ajout', 'date_maj', 'createur_nom'
         ]
         read_only_fields = ['id_operation', 'date_ajout', 'date_maj']

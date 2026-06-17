@@ -245,10 +245,7 @@
                       @for (year of yearColumns(); track year) {
                         <th class="col-year">{{ year }}</th>
                       }
-                      <th class="col-global"
-                          [matTooltip]="'plans.suivis.actions.globalStatus.columnTitle' | translate">
-                        <i class="fi fi-rr-chart-histogram"></i>
-                      </th>
+                      <th class="col-global">{{ 'plans.suivis.actions.globalStatus.columnHeader' | translate }}</th>
                       <th class="col-icons"></th>
                     </tr>
                   </thead>
@@ -306,6 +303,12 @@
                                          [label]="('plans.suivis.actions.globalStatus.niveau.' + gm) | translate"></app-tag>
                               }
                             }
+                            <!-- #379 — accès à la page globale de l'action -->
+                            <button type="button" class="icon-btn-flat global-page-btn"
+                                    [title]="'plans.suivis.actionGlobal.openTooltip' | translate"
+                                    [routerLink]="['/plans', planSlug(), 'suivi-actions', 'action', item.operation.id_operation]">
+                              <i class="fi fi-rr-chart-histogram"></i>
+                            </button>
                           </td>
                           <td class="col-icons">
                             <div class="row-actions">
@@ -400,7 +403,10 @@
                           </td>
                           @for (period of ['current', 'past', 'total']; track period) {
                             @let cell = aggregateBudget(item.operation, $any(period));
-                            <td class="col-agg">
+                            <td class="col-agg"
+                                [class.clickable]="period === 'current'"
+                                [routerLink]="period === 'current' ? ['/plans', planSlug(), 'suivi-actions', 'saisie', item.operation.id_operation, currentYear()] : null"
+                                [title]="period === 'current' ? ('plans.suivis.actionGlobal.fillBudgetTooltip' | translate) : ''">
                               <div class="agg-prev">{{ cell.previsionnel | number:'1.0-0':'fr-FR' }} €</div>
                               @if (cell.hasRealise) {
                                 <div class="agg-real">
@@ -419,6 +425,11 @@
                           }
                           <td class="col-icons">
                             <div class="row-actions">
+                              <button class="icon-btn-flat"
+                                      [title]="'plans.suivis.actionGlobal.openTooltip' | translate"
+                                      [routerLink]="['/plans', planSlug(), 'suivi-actions', 'action', item.operation.id_operation]">
+                                <i class="fi fi-rr-chart-histogram"></i>
+                              </button>
                               <button class="icon-btn-flat"
                                       [title]="'common.actions.view' | translate"
                                       (click)="navigateToViewOperation(item.operation.id_operation)">
@@ -490,7 +501,10 @@
                           </td>
                           @for (period of ['current', 'past', 'total']; track period) {
                             @let cell = aggregateEtp(item.operation, $any(period));
-                            <td class="col-agg">
+                            <td class="col-agg"
+                                [class.clickable]="period === 'current'"
+                                [routerLink]="period === 'current' ? ['/plans', planSlug(), 'suivi-actions', 'saisie', item.operation.id_operation, currentYear()] : null"
+                                [title]="period === 'current' ? ('plans.suivis.actionGlobal.fillRhTooltip' | translate) : ''">
                               <div class="agg-prev">{{ cell.previsionnel | number:'1.0-1':'fr-FR' }} {{ 'plans.suivis.actions.tabs.jours' | translate }}</div>
                               @if (cell.hasRealise) {
                                 <div class="agg-real">
@@ -509,6 +523,11 @@
                           }
                           <td class="col-icons">
                             <div class="row-actions">
+                              <button class="icon-btn-flat"
+                                      [title]="'plans.suivis.actionGlobal.openTooltip' | translate"
+                                      [routerLink]="['/plans', planSlug(), 'suivi-actions', 'action', item.operation.id_operation]">
+                                <i class="fi fi-rr-chart-histogram"></i>
+                              </button>
                               <button class="icon-btn-flat"
                                       [title]="'common.actions.view' | translate"
                                       (click)="navigateToViewOperation(item.operation.id_operation)">

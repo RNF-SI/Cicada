@@ -267,6 +267,13 @@
   td.col-agg {
     padding: $spacing-sm;
 
+    // #379 — cellule « année en cours » cliquable → formulaire de saisie
+    &.clickable {
+      cursor: pointer;
+      transition: background 0.15s;
+      &:hover { background: rgba($primary-color, 0.08); }
+    }
+
     .agg-prev {
       font-weight: 700;
       color: $black;
@@ -584,9 +591,14 @@
         min-width: 96px;
       }
 
-      // #355 — statut de réalisation global
+      // #355/#379 — statut de réalisation global + bouton vue globale
       &.col-global {
-        min-width: 96px;
+        min-width: 110px;
+
+        display: flex;
+        align-items: center;
+        gap: $spacing-xxs;
+        justify-content: center;
 
         .global-status-trigger {
           background: none;
@@ -597,6 +609,8 @@
           display: inline-flex;
           align-items: center;
         }
+
+        .global-page-btn { flex-shrink: 0; }
       }
     }
   }

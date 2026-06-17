@@ -1,0 +1,131 @@
+<app-header></app-header>
+
+<div class="suivis-layout">
+  @if (planSlug(); as slug) {
+    @if (planId(); as id) {
+      <app-plan-sidebar [planId]="id" [planSlug]="slug" activePage="suivi-actions"></app-plan-sidebar>
+    }
+  }
+
+  <main class="plan-main">
+    @if (isLoading()) {
+      <div class="loading-container">
+        <mat-spinner diameter="50"></mat-spinner>
+        <p>{{ 'common.loading' | translate }}</p>
+      </div>
+    } @else if (errorMessage()) {
+      <div class="error-container">
+        <i class="fi fi-rr-exclamation"></i>
+        <p>{{ errorMessage() }}</p>
+      </div>
+    } @else if (operation(); as op) {
+
+      <!-- HERO -->
+      <section class="hero-section">
+        <div class="hero-background"><div class="hero-pattern"></div></div>
+        <div class="hero-content">
+          <nav class="breadcrumb" aria-label="Fil d'Ariane">
+            <a routerLink="/accueil" class="breadcrumb-home" [title]="'common.actions.home' | translate">
+              <i class="fi fi-rr-home"></i>
+            </a>
+            <div class="breadcrumb-lines"></div>
+            <div class="breadcrumb-text">
+              <a routerLink="/plans" class="breadcrumb-link">{{ 'plans.title' | translate }}</a>
+              <i class="fi fi-rr-angle-small-right breadcrumb-chevron"></i>
+              <a [routerLink]="['/plans', planSlug(), 'suivi-actions']" class="breadcrumb-link">{{ 'plans.suivis.actions.title' | translate }}</a>
+              <i class="fi fi-rr-angle-small-right breadcrumb-chevron"></i>
+              <span class="breadcrumb-current">{{ op.libelle }}</span>
+            </div>
+          </nav>
+          <div class="plan-header">
+            <div class="plan-subtitle">
+              <i class="fi fi-rr-chart-histogram"></i>
+              <span>{{ 'plans.suivis.actionGlobal.subtitle' | translate | uppercase }}</span>
+            </div>
+            <h1 class="plan-title">{{ op.libelle }}</h1>
+          </div>
+        </div>
+      </section>
+
+      <section class="content-section">
+        <!-- Cartes de synthèse -->
+        <div class="summary-cards">
+          <div class="summary-card">
+            <span class="summary-label">{{ 'plans.suivis.actionGlobal.realisation' | translate }}</span>
+            @if (op.niveau_realisation_global_mnemonique) {
+              <app-tag
+                [variant]="niveauTagVariant(op.niveau_realisation_global_mnemonique)"
+                [label]="op.niveau_realisation_global_label || op.niveau_realisation_global_mnemonique"></app-tag>
+            } @else {
+              <span class="summary-empty">—</span>
+            }
+          </div>
+
+          <div class="summary-card">
+            <span class="summary-label">{{ 'plans.suivis.actionGlobal.budgetTotal' | translate }}</span>
+            <div class="summary-value">
+              <span class="summary-prev">{{ budgetTotal().prev | number:'1.0-0':'fr-FR' }} €</span>
+              <span class="summary-real">
+                {{ 'plans.suivis.actionGlobal.realise' | translate }} :
+                {{ budgetTotal().real | number:'1.0-0':'fr-FR' }} €
+              </span>
+            </div>
+          </div>
+
+          <div class="summary-card">
+            <span class="summary-label">{{ 'plans.suivis.actionGlobal.rhTotal' | translate }}</span>
+            <div class="summary-value">
+              <span class="summary-prev">{{ etpTotal().prev | number:'1.0-1':'fr-FR' }} {{ 'plans.suivis.actions.tabs.jours' | translate }}</span>
+              <span class="summary-real">
+                {{ 'plans.suivis.actionGlobal.realise' | translate }} :
+                {{ etpTotal().real | number:'1.0-1':'fr-FR' }} {{ 'plans.suivis.actions.tabs.jours' | translate }}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Récapitulatif annuel -->
+        <h3 class="section-title">{{ 'plans.suivis.actionGlobal.yearlyTitle' | translate }}</h3>
+        <div class="table-wrapper">
+          <table class="year-table">
+            <thead>
+              <tr>
+                <th>{{ 'plans.suivis.actionGlobal.year' | translate }}</th>
+                <th>{{ 'plans.suivis.actionGlobal.niveau' | translate }}</th>
+                <th>{{ 'plans.suivis.actionGlobal.budgetPrevReal' | translate }}</th>
+                <th>{{ 'plans.suivis.actionGlobal.rhPrevReal' | translate }}</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (row of yearRows(); track row.annee) {
+                <tr>
+                  <td class="year-cell">
+                    <a [routerLink]="['/plans', planSlug(), 'suivi-actions', 'saisie', op.id_operation, row.annee]">
+                      {{ row.annee }}
+                    </a>
+                  </td>
+                  <td>
+                    @if (row.niveau) {
+                      <app-tag size="sm" [variant]="niveauTagVariant(row.niveau)"
+                               [label]="row.niveauLabel || row.niveau"></app-tag>
+                    } @else { — }
+                  </td>
+                  <td>
+                    {{ row.budgetPrev | number:'1.0-0':'fr-FR' }} €
+                    <small>/ {{ row.budgetReal | number:'1.0-0':'fr-FR' }} €</small>
+                  </td>
+                  <td>
+                    {{ row.etpPrev | number:'1.0-1':'fr-FR' }}
+                    <small>/ {{ row.etpReal | number:'1.0-1':'fr-FR' }} {{ 'plans.suivis.actions.tabs.jours' | translate }}</small>
+                  </td>
+                </tr>
+              } @empty {
+                <tr><td colspan="4" class="empty-row">{{ 'plans.suivis.actionGlobal.noYears' | translate }}</td></tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </section>
+    }
+  </main>
+</div>

@@ -41,6 +41,12 @@ export const PLANS_ROUTES: Routes = [
     canActivate: [authGuard]
   },
   {
+    // #379 — Page globale d'une action (statut, budget, RH, récap annuel)
+    path: ':slug/suivi-actions/action/:operation_id',
+    loadComponent: () => import('./suivis/action-global/action-global.component').then(m => m.ActionGlobalComponent),
+    canActivate: [authGuard]
+  },
+  {
     path: ':slug/tableau-de-bord',
     loadComponent: () => import('./suivis/plan-tableau-de-bord.component').then(m => m.PlanTableauDeBordComponent),
     canActivate: [authGuard]
