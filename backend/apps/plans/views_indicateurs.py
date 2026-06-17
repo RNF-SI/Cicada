@@ -116,6 +116,122 @@ class IndicateurViewSet(viewsets.ModelViewSet):
     def perform_update(self, serializer):
         serializer.save(id_utilisateur_maj=self.request.user)
 
+    @action(detail=True, methods=['get'], url_path='global')
+    def global_evaluation(self, request, pk=None):
+        """
+        #355 — Évaluation GLOBALE d'un indicateur (État/Pression) sur la période.
+
+        GET /api/plans/indicateurs/{id}/global/
+
+        Retourne, par métrique et au niveau indicateur :
+          - la série annuelle (valeur → score 1-5),
+          - l'état courant (score de la dernière année renseignée),
+          - la moyenne des scores et la tendance (premier ↔ dernier).
+        La « globale partielle » est naturelle : seules les années renseignées
+        comptent. Lecture seule (GET), accès aligné sur le tableau de bord.
+        """
+        from collections import defaultdict
+
+        ind = self.get_object()
+
+        def _score(value, m):
+            """1-5 selon la grille de la métrique, 0 si hors plage / non numérique."""
+            try:
+                v = float(value)
+            except (TypeError, ValueError):
+                return 0
+            for i in range(1, 6):
+                inf = getattr(m, f'score_{i}_inf', None)
+                sup = getattr(m, f'score_{i}_sup', None)
+                if inf is None or sup is None:
+                    continue
+                if float(inf) <= v <= float(sup):
+                    return i
+            return 0
+
+        def _trend(scores_by_year):
+            """Tendance : comparaison premier ↔ dernier score renseigné."""
+            years = sorted(scores_by_year.keys())
+            if len(years) < 2:
+                return 'stable'
+            first, last = scores_by_year[years[0]], scores_by_year[years[-1]]
+            if last > first:
+                return 'hausse'
+            if last < first:
+                return 'baisse'
+            return 'stable'
+
+        metriques_payload = []
+        ind_year_scores = defaultdict(list)  # année -> [scores métriques]
+
+        for m in ind.metriques.all().prefetch_related('mesures'):
+            # Dernière mesure par année (par date_mesure puis date_ajout)
+            by_year = {}
+            for mes in m.mesures.all():
+                if not mes.date_mesure:
+                    continue
+                y = mes.date_mesure.year
+                key = (mes.date_mesure, mes.date_ajout)
+                prev = by_year.get(y)
+                if prev is None or key >= prev['key']:
+                    by_year[y] = {'valeur': mes.valeur, 'key': key}
+
+            series = []
+            scores_by_year = {}
+            for y in sorted(by_year.keys()):
+                val = by_year[y]['valeur']
+                sc = _score(val, m)
+                series.append({'annee': y, 'valeur': val, 'score': sc or None})
+                if sc > 0:
+                    scores_by_year[y] = sc
+                    ind_year_scores[y].append(sc)
+
+            etat_courant = None
+            if scores_by_year:
+                ly = max(scores_by_year.keys())
+                etat_courant = {'annee': ly, 'score': scores_by_year[ly]}
+            moyenne = (
+                round(sum(scores_by_year.values()) / len(scores_by_year), 2)
+                if scores_by_year else None
+            )
+            metriques_payload.append({
+                'id_metrique': m.id_metrique,
+                'nom_metrique': m.nom_metrique,
+                'etat_reference': m.etat_reference,
+                'sens_variation': m.sens_variation,
+                'series': series,
+                'etat_courant': etat_courant,
+                'moyenne': moyenne,
+                'tendance': _trend(scores_by_year),
+            })
+
+        # Agrégat indicateur : moyenne des scores métriques par année
+        ind_series = []
+        ind_scores_by_year = {}
+        for y in sorted(ind_year_scores.keys()):
+            avg = round(sum(ind_year_scores[y]) / len(ind_year_scores[y]), 2)
+            ind_series.append({'annee': y, 'score': avg})
+            ind_scores_by_year[y] = avg
+        etat_courant_score = (
+            ind_scores_by_year[max(ind_scores_by_year)] if ind_scores_by_year else None
+        )
+        moyenne_score = (
+            round(sum(ind_scores_by_year.values()) / len(ind_scores_by_year), 2)
+            if ind_scores_by_year else None
+        )
+
+        return Response({
+            'id_indicateur': ind.id_indicateur,
+            'nom_indicateur': ind.nom_indicateur,
+            'type_indicateur': getattr(ind.type_indicateur, 'mnemonique', None),
+            'type_indicateur_label': getattr(ind.type_indicateur, 'label', None),
+            'metriques': metriques_payload,
+            'serie': ind_series,
+            'etat_courant_score': etat_courant_score,
+            'moyenne_score': moyenne_score,
+            'tendance': _trend(ind_scores_by_year),
+        })
+
     @action(detail=False, methods=['post'], url_path='reorder')
     def reorder(self, request):
         """

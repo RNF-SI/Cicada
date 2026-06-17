@@ -2,6 +2,8 @@
 #355 — Tests du niveau de réalisation GLOBAL d'une action (sur la période) :
 calcul automatique sur les années programmées + surcharge manuelle hybride.
 """
+from datetime import date
+
 import pytest
 
 from apps.plans.models_operations import OperationRealisationGlobale, Operation
@@ -10,6 +12,9 @@ from tests.factories.enjeux import (
     OperationAnneeFactory,
     RealisationOperationAnneeFactory,
     NomenclatureNiveauRealisationFactory,
+    IndicateurFactory,
+    MetriqueFactory,
+    MesureFactory,
 )
 from tests.factories.users import (
     SuperAdminFactory,
@@ -145,3 +150,50 @@ class TestGlobalRealisationEndpoint:
             format='json',
         )
         assert r.status_code == 403
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+class TestIndicateurGlobalEndpoint:
+    """#355 — Évaluation globale par indicateur (tableau de bord)."""
+
+    def _metrique_avec_seuils(self, ind):
+        return MetriqueFactory(
+            id_indicateur=ind,
+            score_1_inf=0, score_1_sup=20,
+            score_2_inf=20, score_2_sup=40,
+            score_3_inf=40, score_3_sup=60,
+            score_4_inf=60, score_4_sup=80,
+            score_5_inf=80, score_5_sup=100,
+        )
+
+    def test_etat_courant_moyenne_et_tendance(self, api_client):
+        admin = SuperAdminFactory()
+        ind = IndicateurFactory()
+        met = self._metrique_avec_seuils(ind)
+        MesureFactory(id_metrique=met, valeur='50', date_mesure=date(2024, 6, 1))  # score 3
+        MesureFactory(id_metrique=met, valeur='90', date_mesure=date(2025, 6, 1))  # score 5
+
+        api_client.force_authenticate(admin)
+        r = api_client.get(f'/api/plans/indicateurs/{ind.id_indicateur}/global/')
+
+        assert r.status_code == 200
+        assert r.data['etat_courant_score'] == 5.0       # dernière année = 2025
+        assert r.data['moyenne_score'] == 4.0            # (3 + 5) / 2
+        assert r.data['tendance'] == 'hausse'            # 3 → 5
+        m0 = r.data['metriques'][0]
+        assert m0['etat_courant'] == {'annee': 2025, 'score': 5}
+        assert len(m0['series']) == 2
+
+    def test_sans_mesure(self, api_client):
+        admin = SuperAdminFactory()
+        ind = IndicateurFactory()
+        self._metrique_avec_seuils(ind)
+
+        api_client.force_authenticate(admin)
+        r = api_client.get(f'/api/plans/indicateurs/{ind.id_indicateur}/global/')
+
+        assert r.status_code == 200
+        assert r.data['etat_courant_score'] is None
+        assert r.data['moyenne_score'] is None
+        assert r.data['serie'] == []
