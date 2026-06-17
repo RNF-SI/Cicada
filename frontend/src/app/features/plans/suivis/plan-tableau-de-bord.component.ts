@@ -8,6 +8,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { HeaderComponent } from '../../../shared/components/header/header.component';
 import { PlanSidebarComponent } from '../shared/plan-sidebar/plan-sidebar.component';
+import { SearchBarComponent } from '../../../shared/components/search-bar/search-bar.component';
 import { AdminService } from '../../../core/services/admin.service';
 import { EnjeuService } from '../../../core/services/enjeu.service';
 import {
@@ -28,6 +29,7 @@ interface DashboardGroup {
   id: number;
   index: number;
   label: string;
+  enjeuId: number;
   enjeuLibelle: string;
   rows: IndicatorRow[];
 }
@@ -47,7 +49,7 @@ interface IndicatorRow {
   imports: [
     CommonModule, RouterModule, MatButtonModule, MatMenuModule,
     MatProgressSpinnerModule, MatTooltipModule, TranslateModule,
-    HeaderComponent, PlanSidebarComponent
+    HeaderComponent, PlanSidebarComponent, SearchBarComponent
   ],
   templateUrl: './plan-tableau-de-bord.component.html',
   styleUrl: './plan-tableau-de-bord.component.scss'
@@ -76,31 +78,77 @@ export class PlanTableauDeBordComponent implements OnInit {
   dashboardGroups = signal<DashboardGroup[]>([]);
 
   /**
-   * #389 — Groupes filtrés selon le toggle État/Pression :
-   * - État : groupes OLT (OLT → NE → indicateur) + indicateurs de type État,
-   * - Pression : groupes OO (OO → RA → indicateur) + indicateurs de type Pression.
-   * On masque les groupes vides après filtrage.
+   * #389/#356 — Groupes affichés selon l'onglet et les filtres :
+   * - État    : groupes OLT (OLT → NE) + indicateurs d'État,
+   * - Pression : groupes OO (OO → RA) + indicateurs de Pression,
+   * - Ensemble : les deux, regroupés par enjeu (en-tête enjeu dans le template).
+   * Filtres : nom d'objectif (OLT/OO), recherche libre (objectif/sous-entité/
+   * indicateur) et enjeu (mode ensemble uniquement).
    */
   filteredGroups = computed<DashboardGroup[]>(() => {
     const tab = this.activeTab();
-    const targetKind = tab === 'etat' ? 'olt' : 'oo';
-    const targetLabel = tab === 'etat' ? 'État' : 'Pression';
+    const objectif = this.filterObjectif();
+    const name = this.normalize(this.filterName());
+    const enjeuId = this.filterEnjeuId();
+
     return this.dashboardGroups()
-      .filter(g => g.kind === targetKind)
-      .map(g => ({
-        ...g,
-        rows: g.rows.filter(r =>
-          (r.indicateur.type_indicateur_label ?? '').toLowerCase()
-          === targetLabel.toLowerCase()
-        ),
-      }))
+      .filter(g => tab === 'ensemble' ? true : (tab === 'etat' ? g.kind === 'olt' : g.kind === 'oo'))
+      .filter(g => !(tab === 'ensemble' && enjeuId) || g.enjeuId === enjeuId)
+      .filter(g => !objectif || g.label === objectif)
+      .map(g => {
+        // Type d'indicateur naturel du groupe (OLT → État, OO → Pression)
+        const needle = g.kind === 'olt' ? 'tat' : 'press';
+        let rows = g.rows.filter(r =>
+          (r.indicateur.type_indicateur_label ?? '').toLowerCase().includes(needle));
+        if (name) {
+          const groupMatch = this.normalize(g.label).includes(name);
+          if (!groupMatch) {
+            rows = rows.filter(r =>
+              this.normalize(r.subLabel).includes(name)
+              || this.normalize(r.indicateur.nom_indicateur).includes(name));
+          }
+        }
+        return { ...g, rows };
+      })
       .filter(g => g.rows.length > 0);
   });
+
+  /** Liste des noms d'objectif (OLT/OO) pour le filtre, selon l'onglet. */
+  objectifNames = computed<string[]>(() => {
+    const tab = this.activeTab();
+    const names = new Set<string>();
+    for (const g of this.dashboardGroups()) {
+      if (tab === 'etat' && g.kind !== 'olt') continue;
+      if (tab === 'pression' && g.kind !== 'oo') continue;
+      names.add(g.label);
+    }
+    return [...names].sort((a, b) => a.localeCompare(b));
+  });
+
+  /** Enjeux présents (pour le filtre du mode ensemble). */
+  enjeuOptions = computed<{ id: number; libelle: string }[]>(() => {
+    const map = new Map<number, string>();
+    for (const g of this.dashboardGroups()) {
+      if (!map.has(g.enjeuId)) map.set(g.enjeuId, g.enjeuLibelle);
+    }
+    return [...map.entries()]
+      .map(([id, libelle]) => ({ id, libelle }))
+      .sort((a, b) => a.libelle.localeCompare(b.libelle));
+  });
+
+  private normalize(s: string): string {
+    return (s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
+  }
   planYearStart = signal<number>(new Date().getFullYear());
   planYearEnd = signal<number>(new Date().getFullYear() + 9);
 
   // Filters
-  activeTab = signal<'etat' | 'pression'>('etat');
+  // #356 — 3e option « Ensemble » (état + pression simultanés).
+  activeTab = signal<'etat' | 'pression' | 'ensemble'>('etat');
+  // #356 — filtres : nom d'objectif (OLT/OO), recherche libre, enjeu (mode ensemble).
+  filterObjectif = signal<string | null>(null);
+  filterName = signal<string>('');
+  filterEnjeuId = signal<number | null>(null);
 
   yearColumns = computed(() => {
     const start = this.planYearStart();
@@ -177,6 +225,7 @@ export class PlanTableauDeBordComponent implements OnInit {
 
         for (const enjeu of allEnjeux) {
           const enjeuLibelle = enjeu.intitule_court || enjeu.libelle;
+          const enjeuId = enjeu.id_enjeu;
 
           // --- États : OLT → NE → indicateur ---
           for (const olt of enjeu.objectifs_long_terme || []) {
@@ -194,7 +243,7 @@ export class PlanTableauDeBordComponent implements OnInit {
               }
             }
             if (rows.length > 0) {
-              groups.push({ kind: 'olt', id: olt.id_olt, index: oltCounter, label: olt.libelle, enjeuLibelle, rows });
+              groups.push({ kind: 'olt', id: olt.id_olt, index: oltCounter, label: olt.libelle, enjeuId, enjeuLibelle, rows });
             }
           }
 
@@ -227,7 +276,7 @@ export class PlanTableauDeBordComponent implements OnInit {
               }
             }
             if (rows.length > 0) {
-              groups.push({ kind: 'oo', id: oo.id_oo, index: ooCounter, label: oo.libelle, enjeuLibelle, rows });
+              groups.push({ kind: 'oo', id: oo.id_oo, index: ooCounter, label: oo.libelle, enjeuId, enjeuLibelle, rows });
             }
           }
         }
@@ -242,8 +291,54 @@ export class PlanTableauDeBordComponent implements OnInit {
     });
   }
 
-  setTab(tab: 'etat' | 'pression'): void {
+  setTab(tab: 'etat' | 'pression' | 'ensemble'): void {
     this.activeTab.set(tab);
+    // Le filtre objectif dépend de l'onglet ; le filtre enjeu n'existe qu'en
+    // mode ensemble → on réinitialise pour éviter un filtrage fantôme.
+    this.filterObjectif.set(null);
+    if (tab !== 'ensemble') this.filterEnjeuId.set(null);
+  }
+
+  setObjectifFilter(value: string | null): void { this.filterObjectif.set(value); }
+  setEnjeuFilter(value: number | null): void { this.filterEnjeuId.set(value); }
+
+  clearFilters(): void {
+    this.filterObjectif.set(null);
+    this.filterName.set('');
+    this.filterEnjeuId.set(null);
+  }
+
+  hasActiveFilters(): boolean {
+    return !!(this.filterObjectif() || this.filterName() || this.filterEnjeuId());
+  }
+
+  /** #356 — Début d'un bloc enjeu (en-tête enjeu) en mode ensemble. */
+  isFirstGroupOfEnjeu(idx: number): boolean {
+    if (this.activeTab() !== 'ensemble') return false;
+    const groups = this.filteredGroups();
+    if (idx === 0) return true;
+    return groups[idx].enjeuId !== groups[idx - 1].enjeuId;
+  }
+
+  /** #356 — Actions liées à un indicateur (via ses métriques), dédupliquées. */
+  actionsForIndicator(row: IndicatorRow): { id: number; libelle: string; annee: number }[] {
+    const seen = new Map<number, { id: number; libelle: string; annee: number }>();
+    for (const m of row.metriques) {
+      for (const op of ((m as any).operations || [])) {
+        if (!seen.has(op.id_operation)) {
+          seen.set(op.id_operation, { id: op.id_operation, libelle: op.libelle, annee: this.actionYear(op) });
+        }
+      }
+    }
+    return [...seen.values()];
+  }
+
+  /** Année cible pour le lien vers le suivi annuel d'une action. */
+  private actionYear(op: any): number {
+    const cy = new Date().getFullYear();
+    const min = op.annee_min ?? cy;
+    const max = op.annee_max ?? cy;
+    return (cy >= min && cy <= max) ? cy : min;
   }
 
   toggleIndicator(group: DashboardGroup, row: IndicatorRow): void {

@@ -250,6 +250,7 @@
   display: flex;
   align-items: center;
   gap: 0;
+  flex-wrap: wrap;
 }
 
 .filter-label {
@@ -460,6 +461,48 @@
     letter-spacing: 0.5px;
     border-bottom: 2px solid rgba($primary-color, 0.15);
   }
+}
+
+// #356 — en-tête enjeu (mode ensemble), couleur distincte (terra-cotta)
+.enjeu-header-row {
+  td {
+    background-color: $secondary-terra-cotta;
+    color: $white;
+    font-weight: $font-weight-bold;
+    font-size: $font-size-base;
+    text-align: left !important;
+    padding: $spacing-sm $spacing-md !important;
+    letter-spacing: 0.5px;
+  }
+}
+
+// #356 — colonne Actions
+.tdb-table {
+  th.col-actions, td.col-actions {
+    min-width: 120px;
+    max-width: 200px;
+  }
+  td.col-actions {
+    text-align: left;
+    .action-link {
+      display: block;
+      color: $primary-color;
+      text-decoration: underline;
+      font-size: $font-size-small;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 190px;
+      &:hover { color: $primary-hover; }
+    }
+  }
+}
+
+// #356 — barre de recherche du tableau de bord
+.tdb-search {
+  display: block;
+  max-width: 280px;
+  margin-right: $spacing-md;
 }
 
 // Indicator row

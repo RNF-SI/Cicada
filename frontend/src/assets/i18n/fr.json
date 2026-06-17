@@ -26,7 +26,8 @@
       "moveDown": "Descendre",
       "collapse": "Replier",
       "clear": "Effacer",
-      "home": "Retour à l'accueil"
+      "home": "Retour à l'accueil",
+      "all": "Tous"
     },
     "emprise": {
       "empty": "Aucune emprise définie",
@@ -1960,7 +1961,12 @@
         "noDataHint": "Les indicateurs sont créés depuis la page Détails et saisie, dans l'onglet Vision à long terme d'un enjeu.",
         "global": "Global",
         "globalTooltip": "Voir l'évaluation globale de l'indicateur sur la période",
-        "resultatAttendu": "Résultat attendu"
+        "resultatAttendu": "Résultat attendu",
+        "ensemble": "Ensemble",
+        "searchPlaceholder": "Rechercher (objectif, indicateur…)",
+        "enjeu": "Enjeu",
+        "actions": "Actions",
+        "niveauOuResultat": "Niveau d'exigence / Résultat attendu"
       },
       "indicateurGlobal": {
         "subtitle": "Évaluation globale de l'indicateur",
