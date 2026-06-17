@@ -504,6 +504,11 @@ class OperationListSerializer(serializers.ModelSerializer):
     nb_finances = serializers.SerializerMethodField()
     enjeu_slug = serializers.SerializerMethodField()
     oo_id = serializers.SerializerMethodField()
+    # #355 — Niveau de réalisation GLOBAL (sur la période) : surcharge si présente,
+    # sinon calcul automatique sur les années programmées.
+    niveau_realisation_global_mnemonique = serializers.SerializerMethodField()
+    niveau_realisation_global_label = serializers.SerializerMethodField()
+    niveau_realisation_global_manuel = serializers.SerializerMethodField()
 
     class Meta:
         model = Operation
@@ -529,9 +534,21 @@ class OperationListSerializer(serializers.ModelSerializer):
             'nb_sites',
             'nb_operation_annees', 'nb_finances',
             'enjeu_slug', 'oo_id',
+            'niveau_realisation_global_mnemonique',
+            'niveau_realisation_global_label',
+            'niveau_realisation_global_manuel',
             'date_ajout', 'date_maj', 'createur_nom'
         ]
         read_only_fields = ['id_operation', 'date_ajout', 'date_maj']
+
+    def get_niveau_realisation_global_mnemonique(self, obj):
+        return obj.get_niveau_realisation_global()
+
+    def get_niveau_realisation_global_label(self, obj):
+        return obj.get_niveau_realisation_global_label()
+
+    def get_niveau_realisation_global_manuel(self, obj):
+        return obj.is_niveau_realisation_global_manuel()
 
     def get_type_action_label(self, obj):
         if obj.id_type_action:

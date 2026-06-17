@@ -15,9 +15,11 @@ from collections import defaultdict
 from .models_operations import (
     Operation, CorOperationMetrique, OperationAnnee, OperationAnneeOrganisme,
     FinanceOperation, RealisationOperationAnnee, RealisationOperationAnneeOrganisme,
+    OperationRealisationGlobale,
 )
 from .models_indicateurs import Indicateur, Metrique
 from .models import PlanGestion, CorRolePlan
+from apps.core.models import Nomenclature
 from apps.users.permissions import IsReferent
 from .permissions import CanModifyOnlyDraftPlan
 from .reorder import do_reorder
@@ -391,6 +393,25 @@ def _scope_realisation_queryset(queryset, user, op_path):
     ).distinct()
 
 
+def _can_manage_operation_global(user, operation):
+    """
+    #355 — Droit de surcharger le niveau de réalisation GLOBAL d'une action.
+    Réservé aux gestionnaires du plan (cf. canManageLifecycle côté front) :
+    super_admin / rédacteur principal, admin de l'organisme du plan, ou
+    référent du plan.
+    """
+    if user.is_super_admin() or user.is_redacteur_principal():
+        return True
+    plan = operation.get_plan_de_gestion()
+    if plan is None:
+        return False
+    if user.is_admin_organisme() and user.id_organisme:
+        return plan.sites.filter(
+            site__corogsite__uuid_og=user.id_organisme
+        ).exists()
+    return plan.referents.filter(pk=user.pk).exists()
+
+
 class RealisationOperationAnneeViewSet(viewsets.ModelViewSet):
     """
     ViewSet pour la réalisation annuelle d'une opération (suivi).
@@ -466,6 +487,69 @@ class RealisationOperationAnneeViewSet(viewsets.ModelViewSet):
         serializer.is_valid(raise_exception=True)
         serializer.save(id_utilisateur_maj=request.user)
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+    @staticmethod
+    def _global_payload(operation):
+        """État effectif du niveau de réalisation global d'une opération (#355)."""
+        return {
+            'id_operation': operation.id_operation,
+            'niveau_realisation_global_mnemonique': operation.get_niveau_realisation_global(),
+            'niveau_realisation_global_label': operation.get_niveau_realisation_global_label(),
+            'niveau_realisation_global_manuel': operation.is_niveau_realisation_global_manuel(),
+        }
+
+    @action(detail=False, methods=['get', 'post', 'delete'],
+            url_path=r'global-realisation/(?P<operation_id>\d+)')
+    def global_realisation(self, request, operation_id=None):
+        """
+        #355 — Niveau de réalisation GLOBAL (sur la période) d'une action.
+
+        GET    /api/plans/realisations/global-realisation/{operation_id}/
+          → état effectif (calcul auto ou surcharge).
+        POST   …  body { id_niveau_realisation, commentaire_override? }
+          → pose/met à jour la surcharge manuelle.
+        DELETE …  → retire la surcharge (retour au calcul automatique).
+
+        Écritures réservées aux gestionnaires du plan. Non verrouillé brouillon
+        (donnée de suivi, éditable après validation).
+        """
+        operation = get_object_or_404(Operation, pk=operation_id)
+
+        if request.method == 'GET':
+            return Response(self._global_payload(operation))
+
+        if not _can_manage_operation_global(request.user, operation):
+            return Response(
+                {'detail': "Action réservée aux gestionnaires du plan."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        if request.method == 'DELETE':
+            OperationRealisationGlobale.objects.filter(id_operation=operation).delete()
+            fresh = get_object_or_404(Operation, pk=operation_id)
+            return Response(self._global_payload(fresh))
+
+        # POST — poser/mettre à jour la surcharge
+        niveau_id = request.data.get('id_niveau_realisation')
+        if not niveau_id:
+            return Response(
+                {'detail': 'id_niveau_realisation est requis.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        niveau = get_object_or_404(
+            Nomenclature, pk=niveau_id,
+            id_type__mnemonique='NIVEAU_REALISATION',
+        )
+        OperationRealisationGlobale.objects.update_or_create(
+            id_operation=operation,
+            defaults={
+                'id_niveau_realisation': niveau,
+                'commentaire_override': request.data.get('commentaire_override') or '',
+                'id_utilisateur_maj': request.user,
+            },
+        )
+        fresh = get_object_or_404(Operation, pk=operation_id)
+        return Response(self._global_payload(fresh))
 
     @action(detail=False, methods=['get'], url_path=r'by-operation/(?P<operation_id>\d+)')
     def by_operation(self, request, operation_id=None):
@@ -615,6 +699,12 @@ class RealisationOperationAnneeViewSet(viewsets.ModelViewSet):
         # « Terminée » pour 2027, 2028… (#101). On scope alors les comptages à
         # l'année demandée (chaque RealisationOperationAnnee est déjà par année).
         annee = request.query_params.get('annee')
+        # #355 — Vue « globale » (sans année) : le comptage des niveaux de
+        # réalisation se fait UNE fois par opération via son statut global
+        # (surcharge sinon calcul sur les années programmées), au lieu de
+        # compter chaque ligne annuelle. Corrige « 1 année Terminée = action
+        # Terminée au global ». La vue annuelle (?annee=) reste par année.
+        is_global_view = not annee
 
         # 1) RealisationOperationAnnee scopées au plan, avec relations utiles préchargées.
         realisations_qs = self.get_queryset().filter(
@@ -667,48 +757,56 @@ class RealisationOperationAnneeViewSet(viewsets.ModelViewSet):
 
         # Set des operation_annees vues pour ne pas double-compter les budgets prévisionnels.
         seen_op_annees = set()
+        # #355 — opérations vues (pour le comptage global après la boucle).
+        seen_op_ids = set()
+
+        niveau_map = {
+            'NON_DEMARRE': 'non_demarre', 'EN_COURS': 'en_cours',
+            'PARTIEL': 'partiel', 'TERMINE': 'termine',
+            'ABANDONNE': 'abandonne', 'REPORTE': 'reporte',
+        }
 
         for r in realisations_qs:
             oa = r.id_operation_annee
             op = oa.id_operation
+            seen_op_ids.add(op.id_operation)
 
-            # --- Comptage niveau ---
-            mnemonique = (
-                r.id_niveau_realisation.mnemonique
-                if r.id_niveau_realisation else None
-            )
-            key = {
-                'NON_DEMARRE': 'non_demarre', 'EN_COURS': 'en_cours',
-                'PARTIEL': 'partiel', 'TERMINE': 'termine',
-                'ABANDONNE': 'abandonne', 'REPORTE': 'reporte',
-            }.get(mnemonique, 'inconnu')
+            # --- Comptage niveau (vue ANNUELLE uniquement) ---
+            # En vue globale, le comptage est fait une fois par opération après
+            # la boucle via le statut global (#355).
+            if not is_global_view:
+                mnemonique = (
+                    r.id_niveau_realisation.mnemonique
+                    if r.id_niveau_realisation else None
+                )
+                key = niveau_map.get(mnemonique, 'inconnu')
 
-            # Catégorie d'action (préfixe CT88 si dispo, sinon TYPE_ACTION)
-            cat = op.id_categorie_action_reserve or op.id_type_action
-            cat_code = (cat.cd_nomenclature or cat.mnemonique or 'AUTRE') if cat else 'AUTRE'
-            cat_label = (cat.label if cat else 'Autre')
-            categorie_meta[cat_code] = cat_label
-            by_categorie[cat_code][key] += 1
-            by_categorie[cat_code]['total'] += 1
+                # Catégorie d'action (préfixe CT88 si dispo, sinon TYPE_ACTION)
+                cat = op.id_categorie_action_reserve or op.id_type_action
+                cat_code = (cat.cd_nomenclature or cat.mnemonique or 'AUTRE') if cat else 'AUTRE'
+                cat_label = (cat.label if cat else 'Autre')
+                categorie_meta[cat_code] = cat_label
+                by_categorie[cat_code][key] += 1
+                by_categorie[cat_code]['total'] += 1
 
-            # Enjeux : une op peut être rattachée à plusieurs métriques → plusieurs enjeux.
-            # On compte une fois par enjeu rattaché.
-            enjeux_set = set()
-            for m in op.metriques.all():
-                try:
-                    enjeu = m.id_indicateur.id_ne.id_olt.id_enjeu
-                    if enjeu is None:
+                # Enjeux : une op peut être rattachée à plusieurs métriques → plusieurs enjeux.
+                # On compte une fois par enjeu rattaché.
+                enjeux_set = set()
+                for m in op.metriques.all():
+                    try:
+                        enjeu = m.id_indicateur.id_ne.id_olt.id_enjeu
+                        if enjeu is None:
+                            continue
+                        enjeux_set.add(enjeu.id_enjeu)
+                        enjeu_meta[enjeu.id_enjeu] = enjeu.libelle
+                    except Exception:
                         continue
-                    enjeux_set.add(enjeu.id_enjeu)
-                    enjeu_meta[enjeu.id_enjeu] = enjeu.libelle
-                except Exception:
-                    continue
-            for eid in enjeux_set:
-                by_enjeu[eid][key] += 1
-                by_enjeu[eid]['total'] += 1
+                for eid in enjeux_set:
+                    by_enjeu[eid][key] += 1
+                    by_enjeu[eid]['total'] += 1
 
-            taux_global[key] += 1
-            taux_global['total'] += 1
+                taux_global[key] += 1
+                taux_global['total'] += 1
 
             # --- Budgets / ETP ---
             mode = op.ventilation_mode
@@ -747,6 +845,49 @@ class RealisationOperationAnneeViewSet(viewsets.ModelViewSet):
                     real_oao = getattr(oao, 'realisation', None)
                     if real_oao:
                         etp_realise_total += (real_oao.etp_realise or 0)
+
+        # #355 — Vue globale : comptage du niveau UNE fois par opération via son
+        # statut global (surcharge sinon calcul sur les années programmées).
+        if is_global_view and seen_op_ids:
+            ops_global = Operation.objects.filter(
+                id_operation__in=seen_op_ids
+            ).select_related(
+                'id_categorie_action_reserve', 'id_type_action',
+                'realisation_globale', 'realisation_globale__id_niveau_realisation',
+            ).prefetch_related(
+                Prefetch(
+                    'operation_annees',
+                    queryset=OperationAnnee.objects.select_related(
+                        'realisation', 'realisation__id_niveau_realisation',
+                    ),
+                ),
+                'metriques__id_indicateur__id_ne__id_olt__id_enjeu',
+            )
+            for op in ops_global:
+                key = niveau_map.get(op.get_niveau_realisation_global(), 'inconnu')
+
+                cat = op.id_categorie_action_reserve or op.id_type_action
+                cat_code = (cat.cd_nomenclature or cat.mnemonique or 'AUTRE') if cat else 'AUTRE'
+                categorie_meta[cat_code] = (cat.label if cat else 'Autre')
+                by_categorie[cat_code][key] += 1
+                by_categorie[cat_code]['total'] += 1
+
+                enjeux_set = set()
+                for m in op.metriques.all():
+                    try:
+                        enjeu = m.id_indicateur.id_ne.id_olt.id_enjeu
+                        if enjeu is None:
+                            continue
+                        enjeux_set.add(enjeu.id_enjeu)
+                        enjeu_meta[enjeu.id_enjeu] = enjeu.libelle
+                    except Exception:
+                        continue
+                for eid in enjeux_set:
+                    by_enjeu[eid][key] += 1
+                    by_enjeu[eid]['total'] += 1
+
+                taux_global[key] += 1
+                taux_global['total'] += 1
 
         # 3) Mise en forme
         by_categorie_list = sorted(

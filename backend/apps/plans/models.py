@@ -41,6 +41,7 @@ from .models_operations import (
     CorOperationSite,
     OperationAnnee,
     FinanceOperation,
+    OperationRealisationGlobale,
 )
 
 

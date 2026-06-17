@@ -93,12 +93,17 @@ class EnjeuViewSet(viewsets.ModelViewSet):
         op_qs = Operation.objects.select_related(
             'id_priorite', 'id_type_action',
             'id_categorie_action_reserve', 'id_utilisateur_ajout',
+            # #355 — surcharge manuelle du niveau global (reverse OneToOne)
+            'realisation_globale', 'realisation_globale__id_niveau_realisation',
         ).prefetch_related(
             Prefetch('metriques', queryset=Metrique.objects.select_related('id_indicateur')),
             'sites',
             Prefetch(
                 'operation_annees',
-                queryset=OperationAnnee.objects.prefetch_related(
+                # #355 — réalisation annuelle + niveau pour le calcul du statut global
+                queryset=OperationAnnee.objects.select_related(
+                    'realisation', 'realisation__id_niveau_realisation',
+                ).prefetch_related(
                     Prefetch('organismes', queryset=op_annee_organisme_qs),
                 ),
             ),
