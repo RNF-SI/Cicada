@@ -103,7 +103,12 @@ export class AuthService {
       const thirtyMinutesAgo = Date.now() - (30 * 60 * 1000);
 
       if (!lastVerified || parseInt(lastVerified, 10) < thirtyMinutesAgo) {
-        this.verifyToken().subscribe();
+        // #364 — Vérification de fond NON destructive : un échec transitoire
+        // (token d'accès expiré + course de rotation, hoquet backend pendant un
+        // déploiement, blip réseau) ne doit pas déconnecter ni rediriger vers
+        // l'accueil. On garde la session en cache ; l'intercepteur tranchera sur
+        // un vrai 401 lors de la prochaine action utilisateur.
+        this.verifyToken(true).subscribe();
       }
     } else {
       this.isInitializedSignal.set(true);
@@ -111,9 +116,15 @@ export class AuthService {
   }
 
   /**
-   * Verify current token by calling the /me endpoint
+   * Verify current token by calling the /me endpoint.
+   *
+   * @param background Vérification de fond (bootstrap au rafraîchissement de
+   *   page). Dans ce mode, un échec n'est JAMAIS destructif : on conserve la
+   *   session en cache, sans appeler `clearAuthData()` ni rediriger (#364).
+   *   La déconnexion réelle reste pilotée par l'intercepteur HTTP sur un 401
+   *   d'une requête déclenchée par l'utilisateur.
    */
-  verifyToken(): Observable<User | null> {
+  verifyToken(background = false): Observable<User | null> {
     const tokens = this.getStoredTokens();
     if (!tokens) {
       return of(null);
@@ -125,8 +136,15 @@ export class AuthService {
         this.storeUser(user);
         this.updateVerificationTimestamp();
       }),
+      map(user => user as User | null),
       catchError(() => {
-        // Token invalid, try refresh or logout
+        // #364 — En mode fond, ne pas déclencher de logout/redirection sur un
+        // échec transitoire : on garde l'utilisateur en cache tel quel.
+        if (background) {
+          return of(this.currentUserSignal());
+        }
+
+        // Token invalid (chemin explicite), try refresh or logout
         return this.refreshToken().pipe(
           switchMap(() => this.http.get<User>(`${this.apiUrl}/me/`)),
           tap(user => {
@@ -134,6 +152,7 @@ export class AuthService {
             this.storeUser(user);
             this.updateVerificationTimestamp();
           }),
+          map(user => user as User | null),
           catchError(() => {
             this.clearAuthData();
             return of(null);
