@@ -77,12 +77,29 @@
         }
       </section>
 
+      <!-- #379 — Bannière : saisie impossible tant que le plan n'est pas validé -->
+      @if (planNotValidated()) {
+        <div class="lock-banner" role="status">
+          <i class="fi fi-rr-lock"></i>
+          <div class="lock-banner-content">
+            <span class="lock-banner-title">
+              {{ 'plans.suivis.notValidatedBanner.title' | translate }}
+            </span>
+            <span class="lock-banner-text">
+              {{ 'plans.suivis.notValidatedBanner.text' | translate }}
+            </span>
+          </div>
+        </div>
+      }
+
       <!-- ============================================================ -->
       <!-- FORM -->
       <!-- ============================================================ -->
       <form [formGroup]="form" class="saisie-form" (ngSubmit)="submit()">
 
-        <p class="text-mention">{{ 'plans.suivis.saisie.requiredHint' | translate }}</p>
+        @if (!planNotValidated()) {
+          <p class="text-mention">{{ 'plans.suivis.saisie.requiredHint' | translate }}</p>
+        }
 
         <!-- Opérateurs / Financeurs (lecture seule) -->
         <section class="saisie-card">
@@ -494,17 +511,19 @@
         <!-- Bottom action bar -->
         <div class="bottom-actions">
           <button type="button" mat-stroked-button (click)="goBack()" [disabled]="isSaving()">
-            {{ 'common.actions.cancel' | translate }}
+            {{ planNotValidated() ? ('common.actions.back' | translate) : ('common.actions.cancel' | translate) }}
           </button>
-          <button type="submit" mat-flat-button color="primary" [disabled]="isSaving()">
-            @if (isSaving()) {
-              <mat-spinner diameter="18"></mat-spinner>
-            }
-            {{ 'common.actions.save' | translate }}
-          </button>
-          <button type="button" mat-stroked-button color="primary" (click)="submit(true)" [disabled]="isSaving()">
-            {{ 'common.actions.saveAndQuit' | translate }}
-          </button>
+          @if (!planNotValidated()) {
+            <button type="submit" mat-flat-button color="primary" [disabled]="isSaving()">
+              @if (isSaving()) {
+                <mat-spinner diameter="18"></mat-spinner>
+              }
+              {{ 'common.actions.save' | translate }}
+            </button>
+            <button type="button" mat-stroked-button color="primary" (click)="submit(true)" [disabled]="isSaving()">
+              {{ 'common.actions.saveAndQuit' | translate }}
+            </button>
+          }
         </div>
       </form>
 

@@ -76,8 +76,17 @@ export class SuiviSaisieComponent implements OnInit {
   planSlug = signal<string | null>(null);
   planId = signal<number | null>(null);
   planNom = signal<string>('');
+  planStatut = signal<string | null>(null);
   operationId = signal<number | null>(null);
   selectedYear = signal<number>(new Date().getFullYear());
+
+  // #379 — la saisie n'est possible qu'une fois le plan validé. Sinon, la page
+  // reste consultable mais le formulaire est désactivé (source d'erreurs sinon).
+  private readonly VALIDATED_STATUSES = ['valide', 'modifie', 'mi_parcours', 'archive'];
+  planNotValidated = computed(() => {
+    const s = this.planStatut();
+    return !!s && !this.VALIDATED_STATUSES.includes(s);
+  });
 
   // -------- Data --------
   operation = signal<Operation | null>(null);
@@ -292,6 +301,8 @@ export class SuiviSaisieComponent implements OnInit {
       next: (plan) => {
         this.planId.set(plan.id_pg);
         this.planNom.set(plan.nom);
+        this.planStatut.set(plan.statut ?? null);
+        this.applyReadOnlyLock();
       },
       error: (err) => {
         this.errorMessage.set(this.translate.instant('plans.suivis.saisie.errors.planNotFound'));
@@ -364,6 +375,18 @@ export class SuiviSaisieComponent implements OnInit {
         valeur: [existing?.valeur ?? ''],
       }));
     }
+    this.applyReadOnlyLock();
+  }
+
+  /**
+   * #379 — Verrou lecture seule : si le plan n'est pas validé, on désactive
+   * tout le formulaire (y compris les contrôles ajoutés dynamiquement aux
+   * FormArrays). À rappeler après chaque (ré)hydratation.
+   */
+  private applyReadOnlyLock(): void {
+    if (this.planNotValidated()) {
+      this.form.disable({ emitEvent: false });
+    }
   }
 
   private hydrateFormFromCurrentYear(): void {
@@ -379,6 +402,7 @@ export class SuiviSaisieComponent implements OnInit {
       commentaires: r?.commentaires ?? '',
     });
     this.hydrateOrganismesArray(oa);
+    this.applyReadOnlyLock();
   }
 
   /** Reconstruit le FormArray des organismes à partir de l'OperationAnnee active. */
@@ -446,6 +470,10 @@ export class SuiviSaisieComponent implements OnInit {
   }
 
   submit(quit = false): void {
+    // #379 — interdire toute sauvegarde si le plan n'est pas validé.
+    if (this.planNotValidated()) {
+      return;
+    }
     const oa = this.currentOperationAnnee();
     if (!oa?.id_operation_annee) {
       this.snack.open(
