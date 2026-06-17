@@ -127,41 +127,9 @@ $form-side-margin: $spacing-xxl;
   border-left: 2px solid $gray-light;
 }
 
-// Details Panel
-.details-panel {
-  margin-bottom: $spacing-lg;
-
-  ::ng-deep .mat-expansion-panel-header {
-    background-color: $white;
-  }
-
-  mat-panel-title {
-    display: flex;
-    align-items: center;
-    gap: $spacing-sm;
-    font-weight: $font-weight-bold;
-    color: $black;
-    text-transform: uppercase;
-    letter-spacing: 3px;
-    font-size: $font-size-base;
-    border-bottom: 1px solid $secondary-terra-cotta;
-    padding-bottom: $spacing-xs;
-    width: 100%;
-  }
-
-  .panel-ellipse {
-    width: 16px;
-    height: 16px;
-    object-fit: contain;
-  }
-
-  .panel-toggle-icon {
-    margin-left: auto;
-    color: $primary-color;
-    font-size: 16px;
-  }
-}
-
+// Section Détails : la structure et le style sont portés par <app-accordion
+// variant="section"> (#334). L'icône projetée est dimensionnée par le slot
+// d'icône de l'accordéon. Plus de code mort mat-expansion-panel ici.
 .panel-content {
   padding-top: $spacing-md;
 }
