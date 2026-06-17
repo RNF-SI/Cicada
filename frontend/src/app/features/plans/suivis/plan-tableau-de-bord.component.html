@@ -143,7 +143,11 @@
             <table class="tdb-table">
               <thead>
                 <tr>
-                  <th class="col-ne">{{ 'plans.suivis.tableauDeBord.niveauExigence' | translate }}</th>
+                  <th class="col-ne">
+                    {{ (activeTab() === 'etat'
+                        ? 'plans.suivis.tableauDeBord.niveauExigence'
+                        : 'plans.suivis.tableauDeBord.resultatAttendu') | translate }}
+                  </th>
                   <th class="col-indicateur">{{ 'plans.suivis.tableauDeBord.indicateurs' | translate }}</th>
                   @for (year of yearColumns(); track year) {
                     <th class="col-year">{{ year }}</th>
@@ -153,11 +157,11 @@
                 </tr>
               </thead>
               <tbody>
-                @for (group of filteredOltGroups(); track group.olt.id_olt; let gIdx = $index) {
-                  <!-- OLT header row -->
+                @for (group of filteredGroups(); track group.kind + '-' + group.id) {
+                  <!-- En-tête de groupe : OLT (état) ou OO (pression) (#389) -->
                   <tr class="olt-header-row">
                     <td [attr.colspan]="yearColumns().length + 4">
-                      OLT {{ group.oltIndex }} : {{ group.olt.libelle | uppercase }}
+                      {{ group.kind === 'olt' ? 'OLT' : 'OO' }} {{ group.index }} : {{ group.label | uppercase }}
                     </td>
                   </tr>
 
@@ -166,11 +170,11 @@
                     <tr class="indicator-row" [class.row-alt]="rIdx % 2 === 1">
                       @if (isFirstIndicatorOfNe(group, rIdx)) {
                         <td class="col-ne" [attr.rowspan]="getNeRowspan(group, rIdx)">
-                          {{ row.ne.libelle }}
+                          {{ row.subLabel }}
                         </td>
                       }
                       <td class="col-indicateur">
-                        <div class="indicateur-cell" (click)="toggleIndicator(gIdx, rIdx)">
+                        <div class="indicateur-cell" (click)="toggleIndicator(group, row)">
                           <span class="indicateur-name">{{ row.indicateur.nom_indicateur }}</span>
                           <i class="fi" [class.fi-rr-angle-small-down]="!row.expanded" [class.fi-rr-angle-small-up]="row.expanded"></i>
                         </div>

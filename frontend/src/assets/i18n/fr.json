@@ -1959,7 +1959,8 @@
         "noData": "Aucun indicateur n'est encore défini pour ce plan.",
         "noDataHint": "Les indicateurs sont créés depuis la page Détails et saisie, dans l'onglet Vision à long terme d'un enjeu.",
         "global": "Global",
-        "globalTooltip": "Voir l'évaluation globale de l'indicateur sur la période"
+        "globalTooltip": "Voir l'évaluation globale de l'indicateur sur la période",
+        "resultatAttendu": "Résultat attendu"
       },
       "indicateurGlobal": {
         "subtitle": "Évaluation globale de l'indicateur",

@@ -16,15 +16,26 @@ import {
 
 type ScoreLevel = 'very-bad' | 'bad' | 'neutral' | 'good' | 'very-good' | 'no-data';
 
-interface OltGroup {
-  olt: ObjectifLongTerme;
-  oltIndex: number;
+/**
+ * #389 — Un groupe du tableau de bord. Pour les indicateurs d'État, le groupe
+ * est un Objectif Long Terme (OLT → NE → indicateur). Pour les indicateurs de
+ * Pression, c'est un Objectif Opérationnel (OO → RA → indicateur). Le `kind`
+ * détermine l'en-tête affiché (« OLT N » vs « OO N ») et le libellé de la
+ * première colonne (Niveau d'exigence vs Résultat attendu).
+ */
+interface DashboardGroup {
+  kind: 'olt' | 'oo';
+  id: number;
+  index: number;
+  label: string;
   enjeuLibelle: string;
   rows: IndicatorRow[];
 }
 
 interface IndicatorRow {
-  ne: NiveauExigence;
+  /** Sous-entité de regroupement : NE (état) ou RA (pression). */
+  subId: number;
+  subLabel: string;
   indicateur: Indicateur;
   expanded: boolean;
   metriques: Metrique[];
@@ -62,17 +73,20 @@ export class PlanTableauDeBordComponent implements OnInit {
   });
 
   // Data
-  oltGroups = signal<OltGroup[]>([]);
+  dashboardGroups = signal<DashboardGroup[]>([]);
 
   /**
-   * Groupes filtrés selon le toggle État/Pression : on garde uniquement les
-   * indicateurs dont type_indicateur_label correspond au mode actif, et on
-   * masque les OLT qui n'auraient plus aucun indicateur après filtrage.
+   * #389 — Groupes filtrés selon le toggle État/Pression :
+   * - État : groupes OLT (OLT → NE → indicateur) + indicateurs de type État,
+   * - Pression : groupes OO (OO → RA → indicateur) + indicateurs de type Pression.
+   * On masque les groupes vides après filtrage.
    */
-  filteredOltGroups = computed<OltGroup[]>(() => {
+  filteredGroups = computed<DashboardGroup[]>(() => {
     const tab = this.activeTab();
+    const targetKind = tab === 'etat' ? 'olt' : 'oo';
     const targetLabel = tab === 'etat' ? 'État' : 'Pression';
-    return this.oltGroups()
+    return this.dashboardGroups()
+      .filter(g => g.kind === targetKind)
       .map(g => ({
         ...g,
         rows: g.rows.filter(r =>
@@ -98,7 +112,7 @@ export class PlanTableauDeBordComponent implements OnInit {
     return years;
   });
 
-  hasData = computed(() => this.oltGroups().length > 0);
+  hasData = computed(() => this.dashboardGroups().length > 0);
 
   private readonly scoreIconsBasePath = 'assets/images/icons/score-badges/';
 
@@ -156,43 +170,69 @@ export class PlanTableauDeBordComponent implements OnInit {
 
     this.enjeuService.getPlanEnjeux(planId).subscribe({
       next: (response) => {
-        const groups: OltGroup[] = [];
+        const groups: DashboardGroup[] = [];
         const allEnjeux = [...response.enjeux, ...response.fcr];
         let oltCounter = 0;
+        let ooCounter = 0;
 
         for (const enjeu of allEnjeux) {
-          const olts = enjeu.objectifs_long_terme || [];
-          for (const olt of olts) {
+          const enjeuLibelle = enjeu.intitule_court || enjeu.libelle;
+
+          // --- États : OLT → NE → indicateur ---
+          for (const olt of enjeu.objectifs_long_terme || []) {
             oltCounter++;
             const rows: IndicatorRow[] = [];
-
-            const nes = olt.niveaux_exigence || [];
-            for (const ne of nes) {
-              const indicateurs = ne.indicateurs || [];
-              for (const ind of indicateurs) {
+            for (const ne of olt.niveaux_exigence || []) {
+              for (const ind of ne.indicateurs || []) {
                 rows.push({
-                  ne,
+                  subId: ne.id_ne,
+                  subLabel: ne.libelle,
                   indicateur: ind,
-                  // Métriques affichées par défaut conformément Figma 4147-22394 :
-                  // l'utilisateur peut toujours collapse via le chevron de l'indicateur.
                   expanded: true,
                   metriques: ind.metriques || []
                 });
               }
             }
-
             if (rows.length > 0) {
-              groups.push({
-                olt,
-                oltIndex: oltCounter,
-                enjeuLibelle: enjeu.intitule_court || enjeu.libelle,
-                rows
-              });
+              groups.push({ kind: 'olt', id: olt.id_olt, index: oltCounter, label: olt.libelle, enjeuLibelle, rows });
+            }
+          }
+
+          // --- Pressions : OO → RA → indicateur (#389). Un OO peut être
+          //     rattaché via plusieurs pressions ou directement à l'enjeu ;
+          //     on déduplique par id_oo. ---
+          const ooMap = new Map<number, any>();
+          for (const fi of enjeu.facteurs_influence || []) {
+            for (const pr of fi.pressions || []) {
+              for (const oo of pr.objectifs_operationnels || []) {
+                if (!ooMap.has(oo.id_oo)) ooMap.set(oo.id_oo, oo);
+              }
+            }
+          }
+          for (const oo of enjeu.objectifs_operationnels || []) {
+            if (!ooMap.has(oo.id_oo)) ooMap.set(oo.id_oo, oo);
+          }
+          for (const oo of ooMap.values()) {
+            ooCounter++;
+            const rows: IndicatorRow[] = [];
+            for (const ra of oo.resultats_attendus || []) {
+              for (const ind of ra.indicateurs || []) {
+                rows.push({
+                  subId: ra.id_ra,
+                  subLabel: ra.libelle,
+                  indicateur: ind,
+                  expanded: true,
+                  metriques: ind.metriques || []
+                });
+              }
+            }
+            if (rows.length > 0) {
+              groups.push({ kind: 'oo', id: oo.id_oo, index: ooCounter, label: oo.libelle, enjeuLibelle, rows });
             }
           }
         }
 
-        this.oltGroups.set(groups);
+        this.dashboardGroups.set(groups);
         this.isLoading.set(false);
       },
       error: () => {
@@ -206,15 +246,20 @@ export class PlanTableauDeBordComponent implements OnInit {
     this.activeTab.set(tab);
   }
 
-  toggleIndicator(groupIdx: number, rowIdx: number): void {
-    this.oltGroups.update(groups => {
-      const updated = [...groups];
-      const group = { ...updated[groupIdx] };
-      group.rows = [...group.rows];
-      group.rows[rowIdx] = { ...group.rows[rowIdx], expanded: !group.rows[rowIdx].expanded };
-      updated[groupIdx] = group;
-      return updated;
-    });
+  toggleIndicator(group: DashboardGroup, row: IndicatorRow): void {
+    // On identifie le groupe (kind + id) et la ligne (indicateur + sous-entité)
+    // par leur identité plutôt que par index, car le template itère des groupes
+    // filtrés dont l'index ne correspond pas à dashboardGroups.
+    this.dashboardGroups.update(groups => groups.map(g => {
+      if (g.kind !== group.kind || g.id !== group.id) return g;
+      return {
+        ...g,
+        rows: g.rows.map(r =>
+          (r.indicateur.id_indicateur === row.indicateur.id_indicateur && r.subId === row.subId)
+            ? { ...r, expanded: !r.expanded }
+            : r),
+      };
+    }));
   }
 
   /**
@@ -299,16 +344,16 @@ export class PlanTableauDeBordComponent implements OnInit {
   /**
    * Get the rowspan for the NE cell (how many indicators share this NE).
    */
-  isFirstIndicatorOfNe(group: OltGroup, rowIdx: number): boolean {
+  isFirstIndicatorOfNe(group: DashboardGroup, rowIdx: number): boolean {
     if (rowIdx === 0) return true;
-    return group.rows[rowIdx].ne.id_ne !== group.rows[rowIdx - 1].ne.id_ne;
+    return group.rows[rowIdx].subId !== group.rows[rowIdx - 1].subId;
   }
 
-  getNeRowspan(group: OltGroup, rowIdx: number): number {
-    const neId = group.rows[rowIdx].ne.id_ne;
+  getNeRowspan(group: DashboardGroup, rowIdx: number): number {
+    const subId = group.rows[rowIdx].subId;
     let count = 0;
     for (let i = rowIdx; i < group.rows.length; i++) {
-      if (group.rows[i].ne.id_ne !== neId) break;
+      if (group.rows[i].subId !== subId) break;
       // Ligne indicateur
       count += 1;
       // Sous-lignes métriques (uniquement quand l'indicateur est déplié)
