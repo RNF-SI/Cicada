@@ -128,8 +128,16 @@ $form-side-margin: $spacing-xxl;
 }
 
 // Section Détails : la structure et le style sont portés par <app-accordion
-// variant="section"> (#334). L'icône projetée est dimensionnée par le slot
-// d'icône de l'accordéon. Plus de code mort mat-expansion-panel ici.
+// variant="section"> (#334). Plus de code mort mat-expansion-panel ici.
+
+// Marqueur ellipse projeté dans le slot d'icône de l'accordéon (#334).
+// Dimensionné ici car l'<img> appartient à ce composant (encapsulation).
+.panel-ellipse {
+  width: 15px;
+  height: 15px;
+  object-fit: contain;
+}
+
 .panel-content {
   padding-top: $spacing-md;
 }

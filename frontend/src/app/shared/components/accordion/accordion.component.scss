@@ -69,7 +69,8 @@
     // Icône projetée sous forme d'image (ex. marqueur ellipse enjeu/FCR).
     // Sans cette règle, le PNG s'affichait à sa taille naturelle (#334).
     // 15px = taille du marqueur ellipse standard de l'app (.facteur-bullet, .ne-ellipse).
-    img {
+    // ::ng-deep nécessaire : l'<img> est du contenu projeté (encapsulation parente).
+    ::ng-deep img {
       width: 15px;
       height: 15px;
       object-fit: contain;

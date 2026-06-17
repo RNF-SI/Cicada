@@ -116,6 +116,13 @@ $form-side-margin: $spacing-xxl;
 }
 
 // Section Détails portée par <app-accordion variant="section"> (#334).
+// Marqueur ellipse projeté, dimensionné ici (encapsulation du composant).
+.panel-ellipse {
+  width: 15px;
+  height: 15px;
+  object-fit: contain;
+}
+
 .panel-content {
   padding-top: $spacing-md;
 }
