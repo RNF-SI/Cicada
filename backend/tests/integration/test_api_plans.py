@@ -1116,6 +1116,35 @@ class TestPlansFichiersDownload:
 
         assert response.status_code == status.HTTP_404_NOT_FOUND
 
+    def test_download_fichier_as_non_referent_member(self, api_client, tmp_path):
+        """#372 — Un membre du plan NON-référent doit pouvoir télécharger un
+        fichier. Auparavant, le gate ``IsReferent`` au niveau vue renvoyait 403
+        pour tout non-référent (admin d'organisme, membre du plan) ayant pourtant
+        un accès légitime au plan."""
+        user = RoleFactory()
+        site = SiteFactory()
+        # Membre du site (referent=False) → accès au plan sans être référent
+        CorRoleSiteFactory(id_role=user, id_site=site, referent=False)
+        assert not user.is_referent()
+
+        plan = PlanGestionFactory()
+        CorSitePgFactory(plan_de_gestion=plan, site=site)
+
+        test_file = tmp_path / "private_doc.pdf"
+        test_file.write_text("Private content")
+
+        fichier = CorPgFichierFactory(
+            plan_de_gestion=plan,
+            public=False,
+            chemin_fichier=str(test_file),
+            nom_fichier='private_doc.pdf'
+        )
+
+        api_client.force_authenticate(user=user)
+        response = api_client.get(f'/api/plans/fichiers/{fichier.id}/download/')
+
+        assert response.status_code == status.HTTP_200_OK
+
 
 # =============================================================================
 # BULK ASSIGN SITES TESTS

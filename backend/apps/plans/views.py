@@ -2046,6 +2046,20 @@ class CorPgFichierViewSet(viewsets.ModelViewSet):
     ordering_fields = ['nom_fichier', 'type_fichier', 'ordre_affichage', 'date_upload']
     ordering = ['ordre_affichage', 'nom_fichier']
     
+    def get_permissions(self):
+        """
+        #372 — Lecture (list/retrieve/download) accessible à tout utilisateur
+        authentifié : l'accès réel est déjà borné par ``get_queryset()`` (plans
+        accessibles) et par la vérification du plan dans l'action ``download``.
+        Exiger ``IsReferent`` au niveau vue bloquait à tort le téléchargement
+        pour les non-référents légitimes (admin d'organisme, membre du plan).
+        Les écritures (upload/suppression) restent réservées aux référents et
+        au brouillon uniquement.
+        """
+        if self.action in ('list', 'retrieve', 'download'):
+            return [permissions.IsAuthenticated()]
+        return [permissions.IsAuthenticated(), IsReferent(), CanModifyOnlyDraftPlan()]
+
     def get_queryset(self):
         """Filtrer les fichiers selon les permissions sur les plans."""
         user = self.request.user
