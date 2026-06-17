@@ -92,6 +92,36 @@ export class OrganismeFormModalComponent implements OnInit {
     }
   }
 
+  /**
+   * Retourne le message d'erreur traduit d'un champ (ou null), uniquement
+   * une fois le champ touché — évite d'afficher toutes les erreurs sur un
+   * formulaire vierge.
+   */
+  fieldError(name: string): string | null {
+    const control = this.form.get(name);
+    if (!control || !control.touched || !control.errors) {
+      return null;
+    }
+    const t = (key: string, params?: object) => this.translate.instant(key, params);
+    const errors = control.errors;
+
+    switch (name) {
+      case 'nom_organisme':
+        if (errors['required']) return t('common.validation.required');
+        if (errors['maxlength']) return t('common.validation.maxLength', { max: 255 });
+        break;
+      case 'cp_organisme':
+        if (errors['pattern']) return t('modals.organismeForm.validation.postalCodeInvalid');
+        if (errors['maxlength']) return t('common.validation.maxLength', { max: 10 });
+        break;
+      case 'email_organisme':
+        if (errors['email']) return t('common.validation.email');
+        if (errors['maxlength']) return t('common.validation.maxLength', { max: 255 });
+        break;
+    }
+    return null;
+  }
+
   onSubmit(): void {
     if (this.form.invalid) {
       this.form.markAllAsTouched();

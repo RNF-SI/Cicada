@@ -58,11 +58,14 @@ h1 {
 }
 
 .form-row {
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
   gap: $spacing-md;
+  // Aligne les champs en haut : une erreur sous l'un ne décale pas l'autre
+  align-items: start;
 
-  .half-width {
-    flex: 1;
+  > * {
+    min-width: 0;
   }
 }
 
@@ -150,6 +153,81 @@ h1 {
   }
 }
 
+// Bouton-lien « Mon organisme n'existe pas ? Le créer »
+.create-org-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: $spacing-xxs;
+  background: none;
+  border: none;
+  padding: $spacing-xxs 0;
+  margin-top: -#{$spacing-xs};
+  cursor: pointer;
+  font-size: 13px;
+
+  i {
+    font-size: 14px;
+  }
+}
+
+// Sous-formulaire de création d'un nouvel organisme
+.new-org-section {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-sm;
+  padding: $spacing-md;
+  background: $gray-lighter;
+  border: 1px solid $gray-light;
+  border-radius: $border-radius-md;
+
+  .new-org-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: $spacing-sm;
+
+    button {
+      display: inline-flex;
+      align-items: center;
+      gap: $spacing-xxs;
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 13px;
+      white-space: nowrap;
+    }
+  }
+}
+
+.info-box--inline {
+  padding: $spacing-sm $spacing-md;
+}
+
+// Grille 2 colonnes (champs pleine largeur via .span-2), calquée sur le formulaire admin
+.new-org-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: $spacing-xs $spacing-md;
+  align-items: start;
+
+  .span-2 {
+    grid-column: 1 / -1;
+  }
+
+  .select-cell {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .full-width {
+    width: 100%;
+  }
+
+  @media (max-width: 600px) {
+    grid-template-columns: 1fr;
+  }
+}
+
 .submit-button {
   height: 43px;
   font-size: $font-size-base;
@@ -215,7 +293,7 @@ h1 {
   }
 
   .form-row {
-    flex-direction: column;
+    grid-template-columns: 1fr;
     gap: $spacing-md;
   }
 }

@@ -185,6 +185,7 @@ class ValidationRequest(models.Model):
         ('invite_org_to_site', _('Invitation organisme vers site')),
         ('invite_user_to_site', _('Invitation utilisateur vers site')),
         ('plan_site_link', _('Lien plan-site')),
+        ('organisme_creation', _("Création d'organisme")),
     ]
 
     STATUS_CHOICES = [
@@ -269,6 +270,27 @@ class ValidationRequest(models.Model):
         max_length=20,
         null=True,
         blank=True
+    )
+
+    # Donnees proposees pour une demande de creation (ex: organisme_creation).
+    # Stocke les champs du nouvel organisme avant validation par le super_admin.
+    requested_data = models.JSONField(
+        _('Données proposées'),
+        default=dict,
+        blank=True,
+        help_text=_("Données soumises pour une demande de création (ex: organisme à créer)")
+    )
+
+    # Lien vers une demande connexe traitee ensemble.
+    # Ex: la demande organisme_creation pointe vers la demande user_registration
+    # afin de rattacher le nouvel organisme au compte en attente lors de l'approbation.
+    related_request = models.ForeignKey(
+        'self',
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name='linked_requests',
+        verbose_name=_('Demande liée')
     )
 
     # Details de la demande

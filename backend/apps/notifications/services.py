@@ -916,6 +916,13 @@ class ValidationService:
             # Validateurs: referents du site + admin_og des organismes du site
             validators = ValidationService._get_plan_site_link_validators(validation_request)
 
+        elif validation_request.request_type == 'organisme_creation':
+            # Création d'un organisme : seuls les super_admin peuvent valider
+            validators = set(Role.objects.filter(
+                role_level='super_admin',
+                active=True
+            ))
+
         # Fallback: si aucun validateur trouve, super_admin
         if not validators:
             validators = set(Role.objects.filter(
@@ -1348,6 +1355,17 @@ class ValidationService:
 
         pending = validation_request.pending_user
 
+        # Si une demande de creation d'organisme liee est encore en attente, elle
+        # doit etre approuvee d'abord : elle rattachera l'organisme au compte.
+        if pending.requested_organisme is None and organisme_override is None:
+            pending_org_request = validation_request.linked_requests.filter(
+                request_type='organisme_creation', status='pending'
+            ).first()
+            if pending_org_request:
+                raise ValueError(
+                    "Veuillez d'abord approuver la demande de création d'organisme associée."
+                )
+
         # Determiner l'organisme final (pending OU override fourni par l'admin)
         final_organisme = pending.requested_organisme or organisme_override
         if final_organisme is None:
@@ -1442,6 +1460,65 @@ class ValidationService:
         )
 
         return user
+
+    @staticmethod
+    def approve_organisme_creation(validation_request, validator, comment=None):
+        """
+        Approuve une demande de création d'organisme.
+
+        Crée le BibOrganismes à partir des données soumises, puis rattache le
+        nouvel organisme à l'inscription liée (PendingUser + ValidationRequest)
+        afin que l'approbation du compte puisse ensuite aboutir.
+
+        Args:
+            validation_request: ValidationRequest (type organisme_creation)
+            validator: Role qui approuve (super_admin)
+            comment: Commentaire optionnel
+
+        Returns:
+            BibOrganismes créé
+        """
+        from apps.users.models import BibOrganismes
+
+        if validation_request.request_type != 'organisme_creation':
+            raise ValueError("Cette demande n'est pas une création d'organisme")
+
+        data = validation_request.requested_data or {}
+        nom = (data.get('nom_organisme') or '').strip()
+        if not nom:
+            raise ValueError("Nom de l'organisme manquant dans la demande.")
+
+        parent = None
+        parent_id = data.get('parent_id')
+        if parent_id:
+            parent = BibOrganismes.objects.filter(id_organisme=parent_id).first()
+
+        organisme = BibOrganismes.objects.create(
+            nom_organisme=nom,
+            adresse_organisme=data.get('adresse_organisme') or None,
+            cp_organisme=data.get('cp_organisme') or None,
+            ville_organisme=data.get('ville_organisme') or None,
+            tel_organisme=data.get('tel_organisme') or None,
+            email_organisme=data.get('email_organisme') or None,
+            url_organisme=data.get('url_organisme') or None,
+            id_parent=parent,
+        )
+
+        # Rattacher l'organisme a l'inscription liee (compte en attente)
+        linked = validation_request.related_request
+        if linked and linked.request_type == 'user_registration':
+            if not linked.requested_organisme:
+                linked.requested_organisme = organisme
+                linked.save(update_fields=['requested_organisme', 'updated_at'])
+            if hasattr(linked, 'pending_user'):
+                pending = linked.pending_user
+                if not pending.requested_organisme:
+                    pending.requested_organisme = organisme
+                    pending.save(update_fields=['requested_organisme'])
+
+        validation_request.approve(validator, comment)
+
+        return organisme
 
     # ==================== Auto-approval helper ====================
 
@@ -2150,3 +2227,16 @@ class ValidationService:
                         site=site,
                         organisme=validation_request.requested_organisme
                     )
+
+        # Cascade : une demande de création d'organisme et l'inscription liée
+        # vont de pair (compte non plaçable sans organisme). Rejeter l'une rejette
+        # l'autre. Les gardes is_pending()/status='pending' stoppent la récursion.
+        if validation_request.request_type == 'organisme_creation':
+            linked = validation_request.related_request
+            if linked and linked.is_pending():
+                ValidationService.reject_request(linked, validator, comment)
+        elif validation_request.request_type == 'user_registration':
+            for linked in validation_request.linked_requests.filter(
+                request_type='organisme_creation', status='pending'
+            ):
+                ValidationService.reject_request(linked, validator, comment)

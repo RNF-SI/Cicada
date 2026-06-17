@@ -130,7 +130,14 @@
       "organisme": "Organisme",
       "organismePlaceholder": "Sélectionnez ou recherchez votre organisme",
       "organismeHint": "Choisissez un organisme dans la liste déroulante",
+      "createOrganisme": {
+        "toggle": "Mon organisme n'existe pas dans la liste ? Le créer",
+        "title": "Nouvel organisme à créer",
+        "back": "Choisir un organisme existant",
+        "info": "Une demande de création d'organisme sera envoyée à l'administrateur, en plus de votre demande de compte. Les deux seront validées séparément."
+      },
       "password": "Mot de passe",
+      "passwordHint": "Au moins 8 caractères.",
       "passwordPlaceholder": "Minimum 8 caractères",
       "confirmPassword": "Confirmer le mot de passe",
       "confirmPasswordPlaceholder": "Retapez votre mot de passe",
@@ -144,6 +151,7 @@
       "backToLogin": "Se connecter",
       "backToHome": "Retour à l'accueil",
       "errors": {
+        "formInvalid": "Veuillez compléter les champs obligatoires signalés en rouge avant de vous inscrire.",
         "firstNameRequired": "Le prénom est requis",
         "lastNameRequired": "Le nom est requis",
         "emailRequired": "L'email est requis",

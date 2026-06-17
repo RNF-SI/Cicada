@@ -121,6 +121,37 @@ interface DialogData {
             </div>
           }
 
+          <!-- Détail du nouvel organisme proposé (demande organisme_creation) -->
+          @if (validation()!.request_type === 'organisme_creation' && validation()!.requested_data; as org) {
+            <div class="detail-row full-width">
+              <span class="detail-label">Organisme à créer</span>
+              <div class="detail-value org-proposal">
+                <div class="org-name"><strong>{{ org.nom_organisme }}</strong></div>
+                @if (org.adresse_organisme) {
+                  <div>{{ org.adresse_organisme }}</div>
+                }
+                @if (org.cp_organisme || org.ville_organisme) {
+                  <div>{{ org.cp_organisme }} {{ org.ville_organisme }}</div>
+                }
+                @if (org.tel_organisme) {
+                  <div><i class="fi fi-rr-phone-call"></i> {{ org.tel_organisme }}</div>
+                }
+                @if (org.email_organisme) {
+                  <div><i class="fi fi-rr-envelope"></i> {{ org.email_organisme }}</div>
+                }
+                @if (org.url_organisme) {
+                  <div><i class="fi fi-rr-link"></i> {{ org.url_organisme }}</div>
+                }
+              </div>
+            </div>
+            <div class="referent-request-info">
+              <i class="fi fi-rr-info"></i>
+              <div class="info-content">
+                Cette demande est <strong>liée à une inscription</strong> : approuvez-la d'abord, puis approuvez le compte.
+              </div>
+            </div>
+          }
+
           <!-- Justification -->
           @if (validation()!.justification) {
             <div class="detail-row full-width">
@@ -452,6 +483,25 @@ interface DialogData {
       color: v.$gray !important;
     }
 
+    .org-proposal {
+      background: v.$gray-light;
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-size: 13px;
+      line-height: 1.6;
+
+      .org-name {
+        font-size: 14px;
+        margin-bottom: 2px;
+      }
+
+      i {
+        color: v.$primary-color;
+        font-size: 12px;
+        margin-right: 4px;
+      }
+    }
+
     .referent-request-info {
       display: flex;
       align-items: center;
@@ -700,6 +750,7 @@ export class ValidationDetailDialogComponent implements OnInit {
       'site_org_link': 'fi-rr-link',
       'invite_org_to_site': 'fi-rr-building',
       'invite_user_to_site': 'fi-rr-user-add',
+      'organisme_creation': 'fi-rr-building',
     };
     return icons[type] || 'fi-rr-check-circle';
   }

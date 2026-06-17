@@ -443,6 +443,12 @@ class ValidationRequestViewSet(viewsets.ModelViewSet):
                         request.user,
                         comment
                     )
+                elif validation_request.request_type == 'organisme_creation':
+                    ValidationService.approve_organisme_creation(
+                        validation_request,
+                        request.user,
+                        comment
+                    )
                 else:
                     # Approbation generique
                     validation_request.approve(request.user, comment)
