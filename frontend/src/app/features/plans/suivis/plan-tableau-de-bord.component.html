@@ -148,6 +148,7 @@
                   @for (year of yearColumns(); track year) {
                     <th class="col-year">{{ year }}</th>
                   }
+                  <th class="col-global">{{ 'plans.suivis.tableauDeBord.global' | translate }}</th>
                   <th class="col-icons"></th>
                 </tr>
               </thead>
@@ -155,7 +156,7 @@
                 @for (group of filteredOltGroups(); track group.olt.id_olt; let gIdx = $index) {
                   <!-- OLT header row -->
                   <tr class="olt-header-row">
-                    <td [attr.colspan]="yearColumns().length + 3">
+                    <td [attr.colspan]="yearColumns().length + 4">
                       OLT {{ group.oltIndex }} : {{ group.olt.libelle | uppercase }}
                     </td>
                   </tr>
@@ -185,12 +186,23 @@
                           }
                         </td>
                       }
+                      <!-- #355 — Évaluation globale (état courant), cliquable → page globale -->
+                      <td class="col-global clickable"
+                          [routerLink]="['/plans', planSlug(), 'tableau-de-bord', 'indicateur', row.indicateur.id_indicateur]"
+                          [title]="'plans.suivis.tableauDeBord.globalTooltip' | translate">
+                        @if (getGlobalScoreForRow(row); as gscore) {
+                          <img [src]="getScoreIcon(gscore)" class="score-badge-icon"
+                               [alt]="getScoreLabel(gscore)"
+                               [matTooltip]="getScoreLabel(gscore)" matTooltipPosition="above">
+                        } @else {
+                          <span class="global-empty">—</span>
+                        }
+                      </td>
                       <td class="col-icons">
                         <div class="row-actions">
-                          <button class="icon-btn-flat" title="Statistiques">
-                            <i class="fi fi-rr-chart-histogram"></i>
-                          </button>
-                          <button class="icon-btn-flat" title="Voir détails">
+                          <button class="icon-btn-flat"
+                                  [title]="'plans.suivis.tableauDeBord.globalTooltip' | translate"
+                                  [routerLink]="['/plans', planSlug(), 'tableau-de-bord', 'indicateur', row.indicateur.id_indicateur]">
                             <i class="fi fi-rr-eye"></i>
                           </button>
                         </div>
@@ -217,6 +229,7 @@
                               }
                             </td>
                           }
+                          <td class="col-global"></td>
                           <td class="col-icons"></td>
                         </tr>
                       }

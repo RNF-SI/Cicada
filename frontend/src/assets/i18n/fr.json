@@ -25,7 +25,8 @@
       "moveUp": "Monter",
       "moveDown": "Descendre",
       "collapse": "Replier",
-      "clear": "Effacer"
+      "clear": "Effacer",
+      "home": "Retour à l'accueil"
     },
     "emprise": {
       "empty": "Aucune emprise définie",
@@ -1937,7 +1938,24 @@
         "niveauExigence": "Niveau d'exigence",
         "indicateurs": "Indicateurs",
         "noData": "Aucun indicateur n'est encore défini pour ce plan.",
-        "noDataHint": "Les indicateurs sont créés depuis la page Détails et saisie, dans l'onglet Vision à long terme d'un enjeu."
+        "noDataHint": "Les indicateurs sont créés depuis la page Détails et saisie, dans l'onglet Vision à long terme d'un enjeu.",
+        "global": "Global",
+        "globalTooltip": "Voir l'évaluation globale de l'indicateur sur la période"
+      },
+      "indicateurGlobal": {
+        "subtitle": "Évaluation globale de l'indicateur",
+        "etatCourant": "État courant",
+        "moyenne": "Moyenne",
+        "tendanceLabel": "Tendance",
+        "evolutionTitle": "Évolution sur la période",
+        "metriquesTitle": "Détail par métrique",
+        "cible": "Cible / état de référence",
+        "noData": "Aucune donnée",
+        "tendance": {
+          "hausse": "En amélioration",
+          "baisse": "En dégradation",
+          "stable": "Stable"
+        }
       }
     },
     "mindmap": {

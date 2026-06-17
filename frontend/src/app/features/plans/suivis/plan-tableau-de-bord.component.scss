@@ -388,6 +388,12 @@
         width: 67px;
       }
 
+      &.col-global {
+        min-width: 72px;
+        width: 84px;
+        border-left: 2px solid $primary-bg-subtle;
+      }
+
       &.col-icons {
         min-width: 96px;
         width: 96px;
@@ -420,6 +426,19 @@
         min-width: 54px;
         // Filets entre années (revue design #317)
         border-right: 1px solid $primary-bg-subtle;
+      }
+
+      &.col-global {
+        min-width: 72px;
+        border-left: 2px solid $primary-bg-subtle;
+
+        &.clickable {
+          cursor: pointer;
+          transition: background 0.15s;
+          &:hover { background: rgba($primary-color, 0.08); }
+        }
+
+        .global-empty { color: $gray; }
       }
 
       &.col-icons {

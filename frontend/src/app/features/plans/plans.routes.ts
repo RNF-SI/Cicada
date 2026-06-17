@@ -51,6 +51,12 @@ export const PLANS_ROUTES: Routes = [
     canActivate: [authGuard]
   },
   {
+    // #355 — Page globale d'un indicateur (état courant + moyenne + tendance)
+    path: ':slug/tableau-de-bord/indicateur/:indicateur_id',
+    loadComponent: () => import('./suivis/indicateur-global/indicateur-global.component').then(m => m.IndicateurGlobalComponent),
+    canActivate: [authGuard]
+  },
+  {
     path: ':slug/tableau-d-arborescence',
     loadComponent: () => import('./mindmap/plan-mindmap.component').then(m => m.PlanMindmapComponent),
     canActivate: [authGuard]

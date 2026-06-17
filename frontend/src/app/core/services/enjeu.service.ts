@@ -51,6 +51,30 @@ export interface GlobalRealisationResponse {
   niveau_realisation_global_manuel: boolean;
 }
 
+/** #355 — Évaluation globale d'un indicateur (tableau de bord). */
+export interface IndicateurMetriqueGlobal {
+  id_metrique: number;
+  nom_metrique: string;
+  etat_reference: string | null;
+  sens_variation: string | null;
+  series: { annee: number; valeur: string | null; score: number | null }[];
+  etat_courant: { annee: number; score: number } | null;
+  moyenne: number | null;
+  tendance: 'hausse' | 'baisse' | 'stable';
+}
+
+export interface IndicateurGlobalResponse {
+  id_indicateur: number;
+  nom_indicateur: string;
+  type_indicateur: string | null;
+  type_indicateur_label: string | null;
+  metriques: IndicateurMetriqueGlobal[];
+  serie: { annee: number; score: number }[];
+  etat_courant_score: number | null;
+  moyenne_score: number | null;
+  tendance: 'hausse' | 'baisse' | 'stable';
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -174,6 +198,16 @@ export class EnjeuService {
       id_niveau_realisation: niveauId,
       commentaire_override: commentaire ?? '',
     });
+  }
+
+  /**
+   * #355 — Évaluation globale d'un indicateur (série annuelle, état courant,
+   * moyenne, tendance) pour la page globale du tableau de bord.
+   */
+  getIndicateurGlobal(indicateurId: number): Observable<IndicateurGlobalResponse> {
+    return this.http.get<IndicateurGlobalResponse>(
+      `${this.apiUrl}/indicateurs/${indicateurId}/global/`
+    );
   }
 
   /**

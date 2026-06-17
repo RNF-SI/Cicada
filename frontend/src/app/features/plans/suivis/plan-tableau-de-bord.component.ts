@@ -248,6 +248,21 @@ export class PlanTableauDeBordComponent implements OnInit {
     return this.valueToScoreLevel(metrique, parseFloat(mesure.valeur));
   }
 
+  /**
+   * #355 — Score « global » (état courant) d'un indicateur = score de la
+   * dernière année renseignée. La « globale partielle » découle naturellement :
+   * seules les années déjà saisies comptent. La page globale de l'indicateur
+   * (colonne « Global » cliquable) détaille moyenne et tendance.
+   */
+  getGlobalScoreForRow(row: IndicatorRow): ScoreLevel | null {
+    const years = [...this.yearColumns()].sort((a, b) => b - a);
+    for (const y of years) {
+      const s = this.getScoreForYear(row, y);
+      if (s && s !== 'no-data') return s;
+    }
+    return null;
+  }
+
   private valueToScoreLevel(metrique: Metrique, value: number): ScoreLevel {
     if (isNaN(value)) return 'no-data';
 

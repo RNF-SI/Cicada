@@ -1,0 +1,173 @@
+@import 'variables';
+@import 'responsive';
+
+.suivis-layout {
+  display: flex;
+  min-height: calc(100vh - 58px);
+  gap: $spacing-lg;
+  background: $beige;
+}
+.plan-main {
+  flex: 1;
+  min-width: 0;
+  padding-right: $spacing-lg;
+  overflow-x: hidden;
+}
+
+.loading-container,
+.error-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: $spacing-xxl;
+  gap: $spacing-md;
+  color: $gray-dark;
+  i { font-size: 2.5rem; color: $error-color; }
+}
+
+// Hero (réutilise les mixins partagés, comme indicateur-saisie)
+.hero-section { @include plan-page-hero-suivi(240px); }
+.hero-background { @include plan-page-hero-background; }
+.hero-pattern { @include plan-page-hero-pattern; opacity: 0.2; }
+.hero-content { @include plan-page-hero-content; max-width: 1400px; margin: 0 auto; }
+
+.breadcrumb {
+  position: relative; display: flex; align-items: center;
+  gap: $spacing-md; margin-bottom: $spacing-xl; height: 48px;
+}
+.breadcrumb-home {
+  width: 48px; height: 48px; background-color: $primary-color;
+  border-radius: 50%; color: $white;
+  display: flex; align-items: center; justify-content: center;
+  text-decoration: none; flex-shrink: 0; z-index: 2; padding: 12px;
+}
+.breadcrumb-lines {
+  position: absolute; left: 24px; right: 0; top: 0; bottom: 0;
+  display: flex; flex-direction: column; justify-content: space-between;
+  pointer-events: none; z-index: 0;
+  &::before, &::after {
+    content: ''; display: block; width: 100%; height: 1px;
+    background-color: $primary-color;
+  }
+}
+.breadcrumb-text {
+  position: relative; z-index: 1; display: flex; align-items: center; gap: $spacing-xs;
+  font-size: 0.85rem; color: $primary-color;
+  .breadcrumb-link { color: $primary-color; text-decoration: underline; font-weight: 600; }
+  .breadcrumb-chevron { font-size: 0.7rem; }
+  .breadcrumb-current { font-weight: 600; }
+}
+.plan-header { margin-top: $spacing-md; }
+.plan-subtitle {
+  display: inline-flex; align-items: center; gap: $spacing-xs;
+  font-size: 0.85rem; letter-spacing: 0.05em; color: $primary-color; font-weight: 700;
+}
+.plan-title {
+  margin: 0; font-size: 2.4rem; font-weight: 700; color: $primary-color; line-height: 1.1;
+}
+.indicateur-type {
+  display: inline-block; margin-top: $spacing-xs;
+  padding: 2px $spacing-sm; border-radius: $border-radius-pill;
+  background: rgba($primary-color, 0.1); color: $primary-color;
+  font-size: 0.8rem; font-weight: 600;
+}
+
+.content-section {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: $spacing-xl $spacing-lg;
+}
+
+.section-title {
+  margin: 0 0 $spacing-md;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: $primary-color;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+// Cartes de synthèse
+.summary-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: $spacing-lg;
+  margin-bottom: $spacing-xl;
+}
+.summary-card {
+  background: $white;
+  border: 1px solid $gray-light;
+  border-radius: $border-radius-md;
+  padding: $spacing-lg;
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-sm;
+}
+.summary-label {
+  font-size: 0.8rem; color: $gray-dark; text-transform: uppercase; letter-spacing: 0.5px;
+}
+.summary-value {
+  display: flex; align-items: center; gap: $spacing-sm;
+  i { font-size: 1.4rem; color: $primary-color; }
+}
+.summary-score { font-size: 1.4rem; font-weight: 700; color: $black; }
+.summary-empty { color: $gray; }
+
+// Graphique de tendance
+.trend-chart-card {
+  background: $white;
+  border: 1px solid $gray-light;
+  border-radius: $border-radius-md;
+  padding: $spacing-lg;
+  margin-bottom: $spacing-xl;
+}
+.trend-chart {
+  width: 100%;
+  height: 120px;
+  .trend-line {
+    fill: none;
+    stroke: $primary-color;
+    stroke-width: 1;
+    vector-effect: non-scaling-stroke;
+  }
+  circle { fill: $primary-color; }
+}
+.trend-years {
+  display: flex; justify-content: space-between;
+  margin-top: $spacing-xs;
+  .trend-year { font-size: 0.7rem; color: $gray-dark; }
+}
+
+// Détail par métrique
+.metrique-card {
+  background: $white;
+  border: 1px solid $gray-light;
+  border-left: 3px solid $secondary-pale-green;
+  border-radius: 0 $border-radius-md $border-radius-md 0;
+  padding: $spacing-lg;
+  margin-bottom: $spacing-md;
+}
+.metrique-header {
+  display: flex; flex-wrap: wrap; align-items: baseline; gap: $spacing-md;
+  margin-bottom: $spacing-sm;
+}
+.metrique-name { font-weight: 700; color: $black; }
+.metrique-cible { font-size: 0.85rem; color: $gray-dark; }
+.metrique-meta {
+  display: flex; flex-wrap: wrap; gap: $spacing-lg;
+  font-size: 0.85rem; color: $gray-dark;
+  margin-bottom: $spacing-md;
+  app-score-icon { vertical-align: middle; }
+  .metrique-tendance i { margin-right: 4px; color: $primary-color; }
+}
+.metrique-timeline {
+  display: flex; flex-wrap: wrap; gap: $spacing-sm;
+}
+.timeline-year {
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  min-width: 44px;
+  .timeline-year-label { font-size: 0.7rem; color: $gray-dark; }
+  .timeline-empty { color: $gray; }
+}
+.metrique-no-data { color: $gray; font-size: 0.85rem; }
