@@ -97,9 +97,6 @@
             (click)="setTab('budget')"
             role="tab">
             {{ 'plans.suivis.actions.tabs.budget' | translate }}
-            @if (totalPlanBudget(); as t) {
-              <span class="tab-meta">{{ t | number:'1.0-0':'fr-FR' }} €</span>
-            }
           </button>
           <button
             class="suivi-tab"
@@ -107,9 +104,6 @@
             (click)="setTab('rh')"
             role="tab">
             {{ 'plans.suivis.actions.tabs.rh' | translate }}
-            @if (totalPlanEtp(); as e) {
-              <span class="tab-meta">{{ e | number:'1.0-0':'fr-FR' }} {{ 'plans.suivis.actions.tabs.jours' | translate }}</span>
-            }
           </button>
         </div>
 

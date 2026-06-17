@@ -573,22 +573,4 @@ export class PlanSuiviActionsComponent implements OnInit {
     const ecartPct = previsionnel > 0 ? ((realise - previsionnel) / previsionnel) * 100 : null;
     return { previsionnel, realise, hasRealise, ecartPct };
   }
-
-  /** Total budget plan : somme du Total de toutes les opérations filtrées (prévi). */
-  totalPlanBudget = computed<number>(() => {
-    let sum = 0;
-    for (const item of this.filteredOperations()) {
-      sum += this.aggregateBudget(item.operation, 'total').previsionnel;
-    }
-    return sum;
-  });
-
-  /** Total ETP plan (prévi). */
-  totalPlanEtp = computed<number>(() => {
-    let sum = 0;
-    for (const item of this.filteredOperations()) {
-      sum += this.aggregateEtp(item.operation, 'total').previsionnel;
-    }
-    return sum;
-  });
 }
