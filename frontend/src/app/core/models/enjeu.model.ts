@@ -660,6 +660,10 @@ export interface Operation {
   // Nested relational data
   operation_annees?: OperationAnnee[];
   finances?: FinanceOperation[];
+  // #355 — Niveau de réalisation GLOBAL (sur la période) : surcharge sinon calcul auto
+  niveau_realisation_global_mnemonique?: string | null;
+  niveau_realisation_global_label?: string | null;
+  niveau_realisation_global_manuel?: boolean;
   date_ajout: string;
   date_maj: string;
   createur_nom?: string;

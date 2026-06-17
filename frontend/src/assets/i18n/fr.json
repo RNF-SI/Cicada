@@ -1806,7 +1806,21 @@
         "tableHeader": "Actions (priorité)",
         "leCasEcheant": "le cas échéant",
         "noOperations": "Aucune action n'est encore définie pour ce plan.",
-        "noOperationsHint": "Les actions sont créées depuis la page Détails et saisie, dans l'onglet Stratégie opérationnelle d'un enjeu."
+        "noOperationsHint": "Les actions sont créées depuis la page Détails et saisie, dans l'onglet Stratégie opérationnelle d'un enjeu.",
+        "globalStatus": {
+          "columnTitle": "Réalisation globale (sur la période du plan)",
+          "auto": "Automatique (calculé)",
+          "tooltipAuto": "Statut calculé automatiquement à partir des années programmées. Cliquez pour forcer un statut.",
+          "tooltipManuel": "Statut forcé manuellement. Cliquez pour le modifier ou revenir au calcul automatique.",
+          "niveau": {
+            "NON_DEMARRE": "Non démarré",
+            "EN_COURS": "En cours",
+            "PARTIEL": "Partiel",
+            "TERMINE": "Terminé",
+            "ABANDONNE": "Abandonné",
+            "REPORTE": "Reporté"
+          }
+        }
       },
       "saisie": {
         "subtitle": "Remplir le suivi d'une action",

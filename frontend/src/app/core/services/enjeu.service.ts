@@ -43,6 +43,14 @@ import {
 } from '../models/enjeu.model';
 import { MindmapNode } from '../models/mindmap.model';
 
+/** #355 — Réponse de l'endpoint de surcharge du niveau de réalisation global. */
+export interface GlobalRealisationResponse {
+  id_operation: number;
+  niveau_realisation_global_mnemonique: string | null;
+  niveau_realisation_global_label: string | null;
+  niveau_realisation_global_manuel: boolean;
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -147,6 +155,25 @@ export class EnjeuService {
         return throwError(() => err);
       })
     );
+  }
+
+  /**
+   * #355 — Surcharge manuelle du niveau de réalisation GLOBAL d'une action.
+   * `mnemonique = null` retire la surcharge (retour au calcul automatique).
+   */
+  setGlobalRealisation(
+    operationId: number,
+    niveauId: number | null,
+    commentaire?: string
+  ): Observable<GlobalRealisationResponse> {
+    const url = `${this.apiUrl}/realisations/global-realisation/${operationId}/`;
+    if (niveauId === null) {
+      return this.http.delete<GlobalRealisationResponse>(url);
+    }
+    return this.http.post<GlobalRealisationResponse>(url, {
+      id_niveau_realisation: niveauId,
+      commentaire_override: commentaire ?? '',
+    });
   }
 
   /**

@@ -9,7 +9,9 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { HeaderComponent } from '../../../shared/components/header/header.component';
 import { PlanSidebarComponent } from '../shared/plan-sidebar/plan-sidebar.component';
+import { TagComponent, TagVariant } from '../../../shared/components/tag/tag.component';
 import { AdminService } from '../../../core/services/admin.service';
+import { AuthService } from '../../../core/services/auth.service';
 import { EnjeuService } from '../../../core/services/enjeu.service';
 import {
   Enjeu, Indicateur, Operation, OperationAnnee
@@ -42,7 +44,7 @@ interface FlatOperation {
   imports: [
     CommonModule, RouterModule, MatButtonModule, MatChipsModule, MatMenuModule,
     MatProgressSpinnerModule, MatTooltipModule, TranslateModule,
-    HeaderComponent, PlanSidebarComponent
+    HeaderComponent, PlanSidebarComponent, TagComponent
   ],
   templateUrl: './plan-suivi-actions.component.html',
   styleUrl: './plan-suivi-actions.component.scss'
@@ -51,8 +53,24 @@ export class PlanSuiviActionsComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly adminService = inject(AdminService);
+  private readonly authService = inject(AuthService);
   private readonly enjeuService = inject(EnjeuService);
   private readonly translate = inject(TranslateService);
+
+  // #355 — Niveau de réalisation global : surcharge réservée aux gestionnaires du plan.
+  private planReferentIds = signal<number[]>([]);
+  /** mnémonique NIVEAU_REALISATION → id_nomenclature (pour la surcharge). */
+  private niveauIdByMnemonique = signal<Map<string, number>>(new Map());
+  /** Niveaux proposés dans le menu de surcharge, dans l'ordre de progression. */
+  readonly niveauGlobalOptions = ['NON_DEMARRE', 'EN_COURS', 'PARTIEL', 'TERMINE', 'ABANDONNE', 'REPORTE'];
+
+  canManageGlobal = computed<boolean>(() => {
+    if (this.authService.hasGlobalAccess() || this.authService.isAdminOrganisme()) {
+      return true;
+    }
+    const uid = this.authService.currentUser()?.id;
+    return uid != null && this.planReferentIds().includes(uid);
+  });
 
   planId = signal<number | null>(null);
   planSlug = signal<string | null>(null);
@@ -261,6 +279,15 @@ export class PlanSuiviActionsComponent implements OnInit {
       }
     });
 
+    // #355 — Niveaux de réalisation (mnémonique → id) pour la surcharge globale.
+    this.adminService.getNomenclaturesByType('NIVEAU_REALISATION').subscribe({
+      next: (noms) => {
+        const map = new Map<string, number>();
+        noms.forEach(n => { if (n.mnemonique) map.set(n.mnemonique, n.id_nomenclature); });
+        this.niveauIdByMnemonique.set(map);
+      }
+    });
+
     const slug = this.route.snapshot.paramMap.get('slug');
     if (slug) {
       this.planSlug.set(slug);
@@ -269,6 +296,7 @@ export class PlanSuiviActionsComponent implements OnInit {
           this.planId.set(plan.id_pg);
           this.planNom.set(plan.nom);
           this.planStatut.set(plan.statut ?? null);
+          this.planReferentIds.set((plan.referents ?? []).map(r => r.id_role));
           if (plan.annee_debut && plan.annee_fin) {
             this.planYearStart.set(plan.annee_debut);
             this.planYearEnd.set(plan.annee_fin);
@@ -418,6 +446,52 @@ export class PlanSuiviActionsComponent implements OnInit {
     const slug = this.planSlug();
     if (!slug) return;
     this.router.navigate(['/plans', slug, 'enjeux', 'operations', operationId]);
+  }
+
+  // ===========================================================================
+  // #355 — Niveau de réalisation GLOBAL (colonne dédiée + surcharge)
+  // ===========================================================================
+
+  /** Variante de tag selon le niveau de réalisation global. */
+  globalTagVariant(mnemonique: string | null | undefined): TagVariant {
+    switch (mnemonique) {
+      case 'TERMINE': return 'success';
+      case 'EN_COURS': return 'info';
+      case 'PARTIEL': return 'warning';
+      case 'ABANDONNE': return 'error';
+      case 'REPORTE': return 'draft';
+      default: return 'muted'; // NON_DEMARRE / inconnu
+    }
+  }
+
+  /**
+   * Pose (mnémonique) ou retire (null = automatique) la surcharge du niveau
+   * global d'une action, puis met à jour la ligne sans recharger toute la page.
+   */
+  setGlobalRealisation(op: Operation, mnemonique: string | null): void {
+    const niveauId = mnemonique === null
+      ? null
+      : (this.niveauIdByMnemonique().get(mnemonique) ?? null);
+    if (mnemonique !== null && niveauId === null) {
+      return; // garde-fou : nomenclature non chargée
+    }
+    this.enjeuService.setGlobalRealisation(op.id_operation, niveauId).subscribe({
+      next: (res) => {
+        this.allOperations.update(list => list.map(fo =>
+          fo.operation.id_operation === op.id_operation
+            ? {
+                ...fo,
+                operation: {
+                  ...fo.operation,
+                  niveau_realisation_global_mnemonique: res.niveau_realisation_global_mnemonique,
+                  niveau_realisation_global_label: res.niveau_realisation_global_label,
+                  niveau_realisation_global_manuel: res.niveau_realisation_global_manuel,
+                },
+              }
+            : fo
+        ));
+      }
+    });
   }
 
   // ===========================================================================

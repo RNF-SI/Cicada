@@ -522,6 +522,17 @@
         min-width: 96px;
         width: 96px;
       }
+
+      // #355 — colonne du statut de réalisation global
+      &.col-global {
+        min-width: 96px;
+        width: 110px;
+
+        i {
+          color: $white;
+          font-size: 15px;
+        }
+      }
     }
   }
 
@@ -563,6 +574,21 @@
 
       &.col-icons {
         min-width: 96px;
+      }
+
+      // #355 — statut de réalisation global
+      &.col-global {
+        min-width: 96px;
+
+        .global-status-trigger {
+          background: none;
+          border: none;
+          padding: 0;
+          margin: 0;
+          cursor: pointer;
+          display: inline-flex;
+          align-items: center;
+        }
       }
     }
   }
