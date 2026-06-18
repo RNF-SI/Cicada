@@ -77,6 +77,14 @@ export class LeafletMapEditComponent implements OnInit, AfterViewInit, OnChanges
   @Input() enableGeometryImport: boolean = false;
 
   /**
+   * Afficher le bouton d'import dans la barre d'outils de la carte.
+   * Permet de garder l'import actif (input fichier caché + handler) tout en
+   * masquant le bouton in-map lorsqu'un bouton d'import existe déjà ailleurs
+   * (ex. formulaire site, #390). Sans effet si `enableGeometryImport` est faux.
+   */
+  @Input() showImportButton: boolean = true;
+
+  /**
    * Mode lecture seule : la carte affiche `existingGeometry` (et
    * éventuellement `backgroundGeometry`) sans afficher la barre d'outils
    * de dessin. Pratique pour partager le même composant entre prévisualisation

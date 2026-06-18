@@ -181,6 +181,11 @@
     font-family: $font-family;
   }
 
+  // Plus d'espace entre les groupes d'outils (dessin / édition) — #390
+  .leaflet-draw-section + .leaflet-draw-section {
+    margin-top: $spacing-sm;
+  }
+
   // Toolbar de dessin
   .leaflet-draw-toolbar {
     a {
