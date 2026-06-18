@@ -114,10 +114,25 @@
           </details>
         </div>
 
-        <!-- ===== Bloc 2 : Indicateurs de réponse (séparé du budget/RH) ===== -->
+        <!-- ===== Toggle : Indicateurs de réponse / Budget & RH (style tableau de bord) ===== -->
         @if (responseIndicators().length > 0) {
+          <div class="view-toggle">
+            <button class="toggle-btn"
+                    [class.active]="activeSection() === 'reponse'"
+                    (click)="setSection('reponse')">
+              {{ 'plans.suivis.actionGlobal.responseTitle' | translate }}
+            </button>
+            <button class="toggle-btn"
+                    [class.active]="activeSection() === 'budget'"
+                    (click)="setSection('budget')">
+              {{ 'plans.suivis.actionGlobal.resourcesTitle' | translate }}
+            </button>
+          </div>
+        }
+
+        <!-- ===== Section : Indicateurs de réponse ===== -->
+        @if (responseIndicators().length > 0 && activeSection() === 'reponse') {
           <div class="global-panel resp-panel">
-            <h3 class="section-title">{{ 'plans.suivis.actionGlobal.responseTitle' | translate }}</h3>
             <p class="panel-hint">{{ 'plans.suivis.actionGlobal.responseHint' | translate }}</p>
             <div class="table-wrapper resp-wrapper">
               <table class="resp-table">
@@ -154,10 +169,11 @@
           </div>
         }
 
-        <!-- ===== Bloc 3 : Budget & temps de travail ===== -->
-        <div class="global-panel">
-          <h3 class="section-title">{{ 'plans.suivis.actionGlobal.resourcesTitle' | translate }}</h3>
-          <div class="summary-cards">
+        <!-- ===== Section : Budget & temps de travail ===== -->
+        @if (activeSection() === 'budget' || responseIndicators().length === 0) {
+          <div class="global-panel">
+            <h3 class="section-title">{{ 'plans.suivis.actionGlobal.resourcesTitle' | translate }}</h3>
+            <div class="summary-cards">
             <div class="summary-card">
               <span class="summary-label">{{ 'plans.suivis.actionGlobal.budgetTotal' | translate }}</span>
               <div class="summary-value">
@@ -179,8 +195,9 @@
                 </span>
               </div>
             </div>
+            </div>
           </div>
-        </div>
+        }
 
         <!-- #379 — Légende des statuts de réalisation annuels -->
         <div class="legend">

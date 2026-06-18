@@ -97,6 +97,29 @@
   text-transform: uppercase; letter-spacing: 1px;
 }
 
+// #356 — Toggle « Indicateurs de réponse » / « Budget & RH » (style tableau de bord)
+.view-toggle {
+  display: flex;
+  justify-content: center;
+  margin-bottom: $spacing-lg;
+}
+.toggle-btn {
+  padding: $spacing-xs $spacing-lg;
+  font-family: $font-family;
+  font-size: $font-size-base;
+  font-weight: $font-weight-bold;
+  color: $primary-color;
+  background: $white;
+  border: 1px solid $primary-bg-medium;
+  cursor: pointer;
+  transition: all $transition-fast;
+  min-width: 160px;
+
+  &:first-child { border-radius: $border-radius-pill 0 0 $border-radius-pill; border-right: none; }
+  &:last-child { border-radius: 0 $border-radius-pill $border-radius-pill 0; }
+  &.active { background-color: $primary-color; color: $white; border-color: $primary-color; }
+}
+
 // #356 — Panneaux distincts (réalisation / indicateurs de réponse / budget-RH)
 .global-panel {
   background: $white;

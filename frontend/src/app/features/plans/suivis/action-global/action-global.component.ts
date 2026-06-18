@@ -69,6 +69,13 @@ export class ActionGlobalComponent implements OnInit {
   /** #356 — Commentaire global (textarea), non obligatoire. */
   commentaire = signal<string>('');
 
+  /**
+   * #356 — Section affichée sous la réalisation globale, via un toggle façon
+   * tableau de bord : « Indicateurs de réponse » ou « Budget & RH ».
+   */
+  activeSection = signal<'reponse' | 'budget'>('reponse');
+  setSection(s: 'reponse' | 'budget'): void { this.activeSection.set(s); }
+
   legendItems = ACTION_LEGEND_ITEMS;
 
   /** Surcharge globale : droits gestionnaire (cf. canManageLifecycle). */
