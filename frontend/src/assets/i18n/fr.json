@@ -1962,6 +1962,7 @@
         "noDataHint": "Les indicateurs sont créés depuis la page Détails et saisie, dans l'onglet Vision à long terme d'un enjeu.",
         "global": "Global",
         "globalTooltip": "Voir l'évaluation globale de l'indicateur sur la période",
+        "viewInTree": "Voir dans l'arborescence de l'enjeu",
         "resultatAttendu": "Résultat attendu",
         "ensemble": "Ensemble",
         "searchPlaceholder": "Rechercher (objectif, indicateur…)",

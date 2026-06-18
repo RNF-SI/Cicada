@@ -244,21 +244,24 @@
                           <span class="global-empty">—</span>
                         }
                       </td>
-                      <!-- #356 — Actions liées (cliquables → suivi annuel) -->
+                      <!-- #356 — Actions liées : code compact, survol = libellé,
+                           clic → page globale de l'action -->
                       <td class="col-actions">
                         @for (act of actionsForIndicator(row); track act.id) {
-                          <a class="action-link"
-                             [routerLink]="['/plans', planSlug(), 'suivi-actions', 'saisie', act.id, act.annee]"
-                             [title]="act.libelle">{{ act.libelle }}</a>
+                          <a class="action-link action-code"
+                             [routerLink]="['/plans', planSlug(), 'suivi-actions', 'action', act.id]"
+                             [matTooltip]="act.libelle" matTooltipPosition="above">{{ act.code }}</a>
                         } @empty {
                           <span class="global-empty">—</span>
                         }
                       </td>
                       <td class="col-icons">
                         <div class="row-actions">
+                          <!-- #356 — Œil → page détail de l'enjeu, ancrée sur l'indicateur -->
                           <button class="icon-btn-flat"
-                                  [title]="'plans.suivis.tableauDeBord.globalTooltip' | translate"
-                                  [routerLink]="['/plans', planSlug(), 'tableau-de-bord', 'indicateur', row.indicateur.id_indicateur]">
+                                  [title]="'plans.suivis.tableauDeBord.viewInTree' | translate"
+                                  [routerLink]="['/plans', planSlug(), 'enjeux', group.enjeuSlug]"
+                                  [fragment]="'indicateur-' + row.indicateur.id_indicateur">
                             <i class="fi fi-rr-eye"></i>
                           </button>
                         </div>

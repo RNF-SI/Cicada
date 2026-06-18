@@ -479,8 +479,8 @@
 // #356 — colonne Actions
 .tdb-table {
   th.col-actions, td.col-actions {
-    min-width: 120px;
-    max-width: 200px;
+    min-width: 90px;
+    max-width: 160px;
   }
   td.col-actions {
     text-align: left;
@@ -494,6 +494,17 @@
       text-overflow: ellipsis;
       max-width: 190px;
       &:hover { color: $primary-hover; }
+    }
+    // #356 — Code compact (CS1, SP2…) : pastilles inline, pas un bloc par ligne.
+    .action-link.action-code {
+      display: inline-block;
+      margin: 1px 4px 1px 0;
+      padding: 1px 6px;
+      border-radius: $border-radius-sm;
+      background-color: $primary-bg-subtle;
+      text-decoration: none;
+      font-weight: 600;
+      &:hover { background-color: rgba($primary-color, 0.15); }
     }
   }
 }

@@ -31,6 +31,8 @@ interface DashboardGroup {
   label: string;
   enjeuId: number;
   enjeuLibelle: string;
+  /** #356 — slug de l'enjeu, pour le deep-link de l'œil vers la page détail. */
+  enjeuSlug: string;
   rows: IndicatorRow[];
 }
 
@@ -226,6 +228,7 @@ export class PlanTableauDeBordComponent implements OnInit {
         for (const enjeu of allEnjeux) {
           const enjeuLibelle = enjeu.intitule_court || enjeu.libelle;
           const enjeuId = enjeu.id_enjeu;
+          const enjeuSlug = (enjeu as any).slug || '';
 
           // --- États : OLT → NE → indicateur ---
           for (const olt of enjeu.objectifs_long_terme || []) {
@@ -243,7 +246,7 @@ export class PlanTableauDeBordComponent implements OnInit {
               }
             }
             if (rows.length > 0) {
-              groups.push({ kind: 'olt', id: olt.id_olt, index: oltCounter, label: olt.libelle, enjeuId, enjeuLibelle, rows });
+              groups.push({ kind: 'olt', id: olt.id_olt, index: oltCounter, label: olt.libelle, enjeuId, enjeuLibelle, enjeuSlug, rows });
             }
           }
 
@@ -276,7 +279,7 @@ export class PlanTableauDeBordComponent implements OnInit {
               }
             }
             if (rows.length > 0) {
-              groups.push({ kind: 'oo', id: oo.id_oo, index: ooCounter, label: oo.libelle, enjeuId, enjeuLibelle, rows });
+              groups.push({ kind: 'oo', id: oo.id_oo, index: ooCounter, label: oo.libelle, enjeuId, enjeuLibelle, enjeuSlug, rows });
             }
           }
         }
@@ -320,13 +323,22 @@ export class PlanTableauDeBordComponent implements OnInit {
     return groups[idx].enjeuId !== groups[idx - 1].enjeuId;
   }
 
-  /** #356 — Actions liées à un indicateur (via ses métriques), dédupliquées. */
-  actionsForIndicator(row: IndicatorRow): { id: number; libelle: string; annee: number }[] {
-    const seen = new Map<number, { id: number; libelle: string; annee: number }>();
+  /**
+   * #356 — Actions liées à un indicateur (via ses métriques), dédupliquées.
+   * `code` = code compact (code réserve si forcé, sinon gestref + rang ;
+   * ex. CS1, SP2), `libelle` complet pour le survol.
+   */
+  actionsForIndicator(row: IndicatorRow): { id: number; code: string; libelle: string; annee: number }[] {
+    const seen = new Map<number, { id: number; code: string; libelle: string; annee: number }>();
     for (const m of row.metriques) {
       for (const op of ((m as any).operations || [])) {
         if (!seen.has(op.id_operation)) {
-          seen.set(op.id_operation, { id: op.id_operation, libelle: op.libelle, annee: this.actionYear(op) });
+          seen.set(op.id_operation, {
+            id: op.id_operation,
+            code: op.code_affichage || op.code_prefix || op.libelle,
+            libelle: op.libelle,
+            annee: this.actionYear(op),
+          });
         }
       }
     }
