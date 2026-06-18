@@ -382,7 +382,7 @@
       &.col-indicateur {
         text-align: left;
         padding-left: $spacing-md;
-        min-width: 260px;
+        min-width: 190px;
       }
 
       &.col-year {
@@ -396,9 +396,10 @@
         border-left: 2px solid $primary-bg-subtle;
       }
 
+      // #356 — dernière colonne (œil) : réduite, on libère de la place pour Actions
       &.col-icons {
-        min-width: 96px;
-        width: 96px;
+        min-width: 48px;
+        width: 48px;
       }
     }
   }
@@ -444,7 +445,8 @@
       }
 
       &.col-icons {
-        min-width: 96px;
+        min-width: 48px;
+        width: 48px;
       }
     }
   }
@@ -477,11 +479,11 @@
   }
 }
 
-// #356 — colonne Actions
+// #356 — colonne Actions : plus d'espace horizontal (codes compacts en pastilles)
 .tdb-table {
   th.col-actions, td.col-actions {
-    min-width: 90px;
-    max-width: 160px;
+    min-width: 150px;
+    max-width: 300px;
   }
   td.col-actions {
     text-align: left;
