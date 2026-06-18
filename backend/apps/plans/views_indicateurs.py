@@ -13,7 +13,7 @@ from rest_framework.filters import SearchFilter, OrderingFilter
 from django.db import transaction
 
 from .models_indicateurs import (
-    Indicateur, Metrique, Mesure, IndicateurMesure,
+    Indicateur, Metrique, Mesure, IndicateurMesure, IndicateurRealisationGlobale,
     CorIndicateurTaxon, CorIndicateurHabitat, CorIndicateurGeologie,
 )
 from .models_enjeux import NiveauExigence, ResultatAttendu
@@ -220,6 +220,14 @@ class IndicateurViewSet(viewsets.ModelViewSet):
             if ind_scores_by_year else None
         )
 
+        # #356 — Surcharge manuelle d'interprétation (icône d'évaluation forcée).
+        # Le score calculé reste inchangé ; l'icône affichée = override si posé.
+        override = ind.get_evaluation_globale()
+        score_override = override.score_override if override else None
+        etat_courant_effectif = (
+            score_override if score_override is not None else etat_courant_score
+        )
+
         return Response({
             'id_indicateur': ind.id_indicateur,
             'nom_indicateur': ind.nom_indicateur,
@@ -230,6 +238,10 @@ class IndicateurViewSet(viewsets.ModelViewSet):
             'etat_courant_score': etat_courant_score,
             'moyenne_score': moyenne_score,
             'tendance': _trend(ind_scores_by_year),
+            'score_override': score_override,
+            'commentaire': override.commentaire_override if override else None,
+            'etat_courant_effectif': etat_courant_effectif,
+            'manuel': score_override is not None,
         })
 
     @action(detail=False, methods=['post'], url_path='reorder')
@@ -749,6 +761,25 @@ def _compute_indicator_auto_score(indicateur: Indicateur, annee: int):
     return {'score': score_avg, 'has_data': True, 'per_metrique': per_met}
 
 
+def _can_manage_indicateur_global(user, indicateur):
+    """
+    #356 — Droit de surcharger l'évaluation GLOBALE d'un indicateur.
+    Réservé aux gestionnaires du plan (cf. canManageLifecycle côté front) :
+    super_admin / rédacteur principal, admin de l'organisme du plan, ou
+    référent du plan.
+    """
+    if user.is_super_admin() or user.is_redacteur_principal():
+        return True
+    plan = indicateur.get_plan_de_gestion()
+    if plan is None:
+        return False
+    if user.is_admin_organisme() and user.id_organisme:
+        return plan.sites.filter(
+            site__corogsite__uuid_og=user.id_organisme
+        ).exists()
+    return plan.referents.filter(pk=user.pk).exists()
+
+
 class IndicateurMesureViewSet(viewsets.ModelViewSet):
     """
     ViewSet pour la saisie annuelle au niveau Indicateur (override manuel).
@@ -863,3 +894,75 @@ class IndicateurMesureViewSet(viewsets.ModelViewSet):
             'score_effective': override.score_override if override else auto['score'],
             'per_metrique': auto['per_metrique'],
         })
+
+    @staticmethod
+    def _global_eval_payload(indicateur):
+        """État effectif de l'évaluation globale d'un indicateur (#356)."""
+        override = indicateur.get_evaluation_globale()
+        return {
+            'id_indicateur': indicateur.id_indicateur,
+            'score_override': override.score_override if override else None,
+            'commentaire': override.commentaire_override if override else None,
+            'manuel': bool(override and override.score_override is not None),
+        }
+
+    @action(detail=False, methods=['get', 'post', 'delete'],
+            url_path=r'global-evaluation/(?P<indicateur_id>\d+)')
+    def global_evaluation(self, request, indicateur_id=None):
+        """
+        #356 — Surcharge manuelle de l'évaluation GLOBALE d'un indicateur.
+
+        GET    /api/plans/indicateur-mesures/global-evaluation/{indicateur_id}/
+          → surcharge effective (score_override, commentaire, manuel).
+        POST   …  body { score_override?, commentaire_override? }
+          → pose/met à jour. Les deux sont optionnels : un commentaire seul est
+            possible (n'active pas le mode manuel). Le score calculé ne change pas ;
+            score_override ne fait que changer l'icône d'interprétation affichée.
+        DELETE …  → retire la surcharge (retour au calcul automatique, commentaire effacé).
+
+        Écritures réservées aux gestionnaires du plan. Non verrouillé brouillon
+        (donnée de suivi, éditable après validation).
+        """
+        indicateur = get_object_or_404(Indicateur, pk=indicateur_id)
+
+        if request.method == 'GET':
+            return Response(self._global_eval_payload(indicateur))
+
+        if not _can_manage_indicateur_global(request.user, indicateur):
+            return Response(
+                {'detail': "Action réservée aux gestionnaires du plan."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        if request.method == 'DELETE':
+            IndicateurRealisationGlobale.objects.filter(id_indicateur=indicateur).delete()
+            return Response(self._global_eval_payload(indicateur))
+
+        # POST — score et/ou commentaire (au moins l'un des deux requis).
+        score = request.data.get('score_override')
+        commentaire = request.data.get('commentaire_override')
+        if score in (None, '') and commentaire is None:
+            return Response(
+                {'detail': 'score_override ou commentaire_override est requis.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        if score in (None, ''):
+            score_value = None
+        else:
+            try:
+                score_value = int(score)
+            except (TypeError, ValueError):
+                return Response({'detail': 'score_override invalide.'},
+                                status=status.HTTP_400_BAD_REQUEST)
+            if not (1 <= score_value <= 5):
+                return Response({'detail': 'score_override doit être entre 1 et 5.'},
+                                status=status.HTTP_400_BAD_REQUEST)
+        IndicateurRealisationGlobale.objects.update_or_create(
+            id_indicateur=indicateur,
+            defaults={
+                'score_override': score_value,
+                'commentaire_override': commentaire or '',
+                'id_utilisateur_maj': request.user,
+            },
+        )
+        return Response(self._global_eval_payload(indicateur))

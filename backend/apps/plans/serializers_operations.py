@@ -399,6 +399,7 @@ class OperationSerializer(serializers.ModelSerializer):
     niveau_realisation_global_mnemonique = serializers.SerializerMethodField()
     niveau_realisation_global_label = serializers.SerializerMethodField()
     niveau_realisation_global_manuel = serializers.SerializerMethodField()
+    niveau_realisation_global_commentaire = serializers.SerializerMethodField()
 
     def get_niveau_realisation_global_mnemonique(self, obj):
         return obj.get_niveau_realisation_global()
@@ -408,6 +409,9 @@ class OperationSerializer(serializers.ModelSerializer):
 
     def get_niveau_realisation_global_manuel(self, obj):
         return obj.is_niveau_realisation_global_manuel()
+
+    def get_niveau_realisation_global_commentaire(self, obj):
+        return obj.get_niveau_realisation_global_commentaire()
 
     class Meta:
         model = Operation
@@ -437,6 +441,7 @@ class OperationSerializer(serializers.ModelSerializer):
             'niveau_realisation_global_mnemonique',
             'niveau_realisation_global_label',
             'niveau_realisation_global_manuel',
+            'niveau_realisation_global_commentaire',
             'date_ajout', 'date_maj', 'createur_nom'
         ]
         read_only_fields = ['id_operation', 'date_ajout', 'date_maj']

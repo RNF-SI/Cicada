@@ -33,6 +33,8 @@ from .models_indicateurs import (
     CorIndicateurGeologie,
     Metrique,
     Mesure,
+    IndicateurMesure,
+    IndicateurRealisationGlobale,
 )
 from .models_operations import (
     Protocole,

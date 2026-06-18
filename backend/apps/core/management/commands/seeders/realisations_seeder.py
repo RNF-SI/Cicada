@@ -10,6 +10,7 @@ from decimal import Decimal
 from typing import List
 
 from apps.core.models import Nomenclature
+from apps.plans.models_indicateurs import Indicateur, IndicateurRealisationGlobale
 from apps.plans.models_operations import (
     OperationAnnee,
     OperationAnneeOrganisme,
@@ -217,9 +218,34 @@ class RealisationsSeeder(BaseSeeder):
             )
             global_overrides.append(obj)
 
+        # #356 — Surcharges MANUELLES de l'évaluation globale d'indicateurs
+        # (icône d'interprétation forcée + commentaire) sur un sous-ensemble
+        # déterministe, pour démontrer la fonctionnalité.
+        indic_overrides = []
+        admin = users[0] if users else None
+        # score 5 = ++, 1 = −− ; mappe quelques indicateurs sur des interprétations.
+        score_map = {0: 5, 2: 4, 4: 3, 6: 2, 8: 1}
+        for ind in Indicateur.objects.all().order_by('id_indicateur')[:40]:
+            entry = score_map.get(ind.id_indicateur % 10)
+            if entry is None:
+                continue
+            obj, _ = IndicateurRealisationGlobale.objects.update_or_create(
+                id_indicateur=ind,
+                defaults={
+                    'score_override': entry,
+                    'commentaire_override': (
+                        "Interprétation globale forcée (seed) : "
+                        f"évaluation manuelle (score {entry})."
+                    ),
+                    'id_utilisateur_maj': admin,
+                },
+            )
+            indic_overrides.append(obj)
+
         self.log_summary(len(realisations_annee), 'réalisations annuelles créées')
         self.log_summary(len(realisations_organisme), 'réalisations par organisme créées')
         self.log_summary(len(global_overrides), 'surcharges de statut global créées')
+        self.log_summary(len(indic_overrides), 'évaluations globales d\'indicateurs forcées')
         # Détail par niveau (utile pour confirmer la variété sur la page Bilan).
         for mnemo, count in per_niveau.items():
             if count:
@@ -235,6 +261,7 @@ class RealisationsSeeder(BaseSeeder):
 
     def reset(self) -> int:
         count = 0
+        count += IndicateurRealisationGlobale.objects.all().delete()[0]
         count += OperationRealisationGlobale.objects.all().delete()[0]
         count += RealisationOperationAnneeOrganisme.objects.all().delete()[0]
         count += RealisationOperationAnnee.objects.all().delete()[0]

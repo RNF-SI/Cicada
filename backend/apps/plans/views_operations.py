@@ -496,6 +496,7 @@ class RealisationOperationAnneeViewSet(viewsets.ModelViewSet):
             'niveau_realisation_global_mnemonique': operation.get_niveau_realisation_global(),
             'niveau_realisation_global_label': operation.get_niveau_realisation_global_label(),
             'niveau_realisation_global_manuel': operation.is_niveau_realisation_global_manuel(),
+            'niveau_realisation_global_commentaire': operation.get_niveau_realisation_global_commentaire(),
         }
 
     @action(detail=False, methods=['get', 'post', 'delete'],
@@ -529,22 +530,27 @@ class RealisationOperationAnneeViewSet(viewsets.ModelViewSet):
             fresh = get_object_or_404(Operation, pk=operation_id)
             return Response(self._global_payload(fresh))
 
-        # POST — poser/mettre à jour la surcharge
+        # POST — poser/mettre à jour la surcharge (niveau et/ou commentaire).
+        # #356 — Le commentaire est indépendant du forçage : on peut enregistrer
+        # un commentaire seul (niveau null), ce qui n'active PAS le mode manuel.
         niveau_id = request.data.get('id_niveau_realisation')
-        if not niveau_id:
+        commentaire = request.data.get('commentaire_override')
+        if not niveau_id and commentaire is None:
             return Response(
-                {'detail': 'id_niveau_realisation est requis.'},
+                {'detail': 'id_niveau_realisation ou commentaire_override est requis.'},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-        niveau = get_object_or_404(
-            Nomenclature, pk=niveau_id,
-            id_type__mnemonique='NIVEAU_REALISATION',
-        )
+        niveau = None
+        if niveau_id:
+            niveau = get_object_or_404(
+                Nomenclature, pk=niveau_id,
+                id_type__mnemonique='NIVEAU_REALISATION',
+            )
         OperationRealisationGlobale.objects.update_or_create(
             id_operation=operation,
             defaults={
                 'id_niveau_realisation': niveau,
-                'commentaire_override': request.data.get('commentaire_override') or '',
+                'commentaire_override': commentaire or '',
                 'id_utilisateur_maj': request.user,
             },
         )

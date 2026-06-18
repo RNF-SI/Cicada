@@ -120,6 +120,26 @@ class Indicateur(models.Model):
         parent = self.id_ne or self.id_resultat_attendu
         return parent.get_plan_de_gestion() if parent else None
 
+    def get_evaluation_globale(self):
+        """Objet IndicateurRealisationGlobale (surcharge manuelle) ou None."""
+        return getattr(self, 'realisation_globale', None)
+
+    def get_evaluation_globale_override(self):
+        """
+        Score d'interprétation forcé (1..5) ou None si aucune surcharge.
+
+        #356 — L'utilisateur peut attribuer une icône d'évaluation
+        (++ / + / neutre / − / −−, soit score 5..1) qui prime sur le calcul
+        automatique pour l'affichage. Le score calculé reste inchangé.
+        """
+        override = self.get_evaluation_globale()
+        return override.score_override if override else None
+
+    def get_commentaire_global(self):
+        """Commentaire global de l'indicateur (page globale) ou None."""
+        override = self.get_evaluation_globale()
+        return override.commentaire_override if override else None
+
 
 class CorIndicateurTaxon(models.Model):
     """
@@ -727,5 +747,70 @@ class IndicateurMesure(models.Model):
         """Permet le scoping par plan via Indicateur → NE/RA → … → plan."""
         try:
             return self.id_indicateur.get_plan_de_gestion() if self.id_indicateur else None
+        except Exception:
+            return None
+
+
+class IndicateurRealisationGlobale(models.Model):
+    """
+    #356 — Surcharge MANUELLE de l'évaluation globale d'un indicateur (sur toute
+    la période du PG). 1-1 avec Indicateur.
+
+    L'état courant d'un indicateur est calculé automatiquement (moyenne des scores
+    annuels). Ce score calculé NE CHANGE PAS ; mais l'interprétation qu'on en fait
+    peut différer : un gestionnaire peut attribuer une icône d'évaluation
+    (++ / + / neutre / − / −−, soit `score_override` 5..1) qui prime sur le calcul
+    pour l'affichage de la page globale et du tableau de bord.
+
+    Le commentaire est INDÉPENDANT du forçage : on peut enregistrer un commentaire
+    seul (sans score_override) pour documenter l'interprétation.
+
+    C'est de la donnée de SUIVI : éditable après validation du plan (pas de verrou
+    brouillon), comme IndicateurMesure / OperationRealisationGlobale.
+    """
+
+    id_indicateur_realisation_globale = models.AutoField(primary_key=True)
+    id_indicateur = models.OneToOneField(
+        Indicateur,
+        on_delete=models.CASCADE,
+        related_name='realisation_globale',
+        db_column='id_indicateur',
+        verbose_name=_("Indicateur"),
+    )
+    score_override = models.IntegerField(
+        _("Évaluation forcée (score 1-5)"),
+        null=True, blank=True,
+        validators=[MinValueValidator(1), MaxValueValidator(5)],
+        help_text=_("Icône d'évaluation attribuée manuellement (5=++, 1=−−), "
+                    "prime sur le calcul automatique pour l'affichage."),
+    )
+    commentaire_override = models.TextField(
+        _("Commentaire global"),
+        blank=True, null=True,
+    )
+    date_ajout = models.DateTimeField(_("Date d'ajout"), auto_now_add=True)
+    date_maj = models.DateTimeField(_("Date de modification"), auto_now=True)
+    id_utilisateur_maj = models.ForeignKey(
+        'users.Role',
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='+',
+        db_column='id_utilisateur_maj',
+        verbose_name=_("Dernier modificateur"),
+    )
+
+    class Meta:
+        db_table = '"general"."t_indicateur_realisation_globale"'
+        db_table_comment = "Surcharge manuelle de l'évaluation globale d'un indicateur (#356)"
+        verbose_name = _("Évaluation globale d'indicateur")
+        verbose_name_plural = _("Évaluations globales d'indicateur")
+
+    def __str__(self):
+        return f"Évaluation globale Indicateur {self.id_indicateur_id}"
+
+    def get_plan_de_gestion(self):
+        """Permet le scoping par plan via Indicateur."""
+        try:
+            return self.id_indicateur.get_plan_de_gestion()
         except Exception:
             return None

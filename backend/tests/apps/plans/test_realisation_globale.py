@@ -210,3 +210,106 @@ class TestIndicateurGlobalEndpoint:
         assert r.data['etat_courant_score'] is None
         assert r.data['moyenne_score'] is None
         assert r.data['serie'] == []
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+class TestIndicateurGlobalEvaluationOverride:
+    """#356 — Surcharge manuelle de l'évaluation globale d'un indicateur."""
+
+    URL = '/api/plans/indicateur-mesures/global-evaluation/{ind}/'
+
+    def _metrique_avec_seuils(self, ind):
+        return MetriqueFactory(
+            id_indicateur=ind,
+            score_1_inf=0, score_1_sup=20,
+            score_2_inf=20, score_2_sup=40,
+            score_3_inf=40, score_3_sup=60,
+            score_4_inf=60, score_4_sup=80,
+            score_5_inf=80, score_5_sup=100,
+        )
+
+    def test_superadmin_pose_recupere_et_retire_la_surcharge(self, api_client):
+        admin = SuperAdminFactory()
+        ind = IndicateurFactory()
+        met = self._metrique_avec_seuils(ind)
+        MesureFactory(id_metrique=met, valeur='50', date_mesure=date(2024, 6, 1))  # score 3
+
+        api_client.force_authenticate(admin)
+        url = self.URL.format(ind=ind.id_indicateur)
+
+        # POST — pose une icône d'évaluation forcée (++ = 5)
+        r = api_client.post(url, {'score_override': 5}, format='json')
+        assert r.status_code == 200
+        assert r.data['score_override'] == 5
+        assert r.data['manuel'] is True
+
+        # GET indicateurs/{id}/global/ — l'icône effective suit la surcharge,
+        # mais le score calculé (moyenne) ne change pas.
+        g = api_client.get(f'/api/plans/indicateurs/{ind.id_indicateur}/global/')
+        assert g.data['etat_courant_effectif'] == 5
+        assert g.data['moyenne_score'] == 3.0
+        assert g.data['manuel'] is True
+
+        # DELETE — retour au calcul automatique
+        d = api_client.delete(url)
+        assert d.status_code == 200
+        assert d.data['manuel'] is False
+        assert d.data['score_override'] is None
+
+    def test_commentaire_seul_n_active_pas_le_mode_manuel(self, api_client):
+        admin = SuperAdminFactory()
+        ind = IndicateurFactory()
+
+        api_client.force_authenticate(admin)
+        url = self.URL.format(ind=ind.id_indicateur)
+
+        r = api_client.post(url, {'commentaire_override': 'Note libre'}, format='json')
+        assert r.status_code == 200
+        assert r.data['manuel'] is False
+        assert r.data['score_override'] is None
+        assert r.data['commentaire'] == 'Note libre'
+
+    def test_post_vide_refuse(self, api_client):
+        admin = SuperAdminFactory()
+        ind = IndicateurFactory()
+        api_client.force_authenticate(admin)
+        r = api_client.post(self.URL.format(ind=ind.id_indicateur), {}, format='json')
+        assert r.status_code == 400
+
+    def test_referent_non_gestionnaire_du_plan_refuse(self, api_client):
+        user = RoleFactory()
+        CorRoleSiteFactory(id_role=user, referent=True, referent_valid=True)
+        assert user.is_referent()
+
+        ind = IndicateurFactory()  # pas de plan rattaché → non gestionnaire
+        api_client.force_authenticate(user)
+        r = api_client.post(
+            self.URL.format(ind=ind.id_indicateur),
+            {'score_override': 4},
+            format='json',
+        )
+        assert r.status_code == 403
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+class TestOperationGlobalCommentaireSeul:
+    """#356 — Commentaire global d'une action, indépendant du forçage de statut."""
+
+    URL = '/api/plans/realisations/global-realisation/{op}/'
+
+    def test_commentaire_seul_n_active_pas_le_mode_manuel(self, api_client):
+        admin = SuperAdminFactory()
+        op = OperationFactory()
+        _annee(op, 2024, 'TERMINE')  # calcul → TERMINE
+
+        api_client.force_authenticate(admin)
+        url = self.URL.format(op=op.id_operation)
+
+        r = api_client.post(url, {'commentaire_override': 'RAS'}, format='json')
+        assert r.status_code == 200
+        # Niveau toujours calculé (pas de surcharge de statut), mais commentaire posé
+        assert r.data['niveau_realisation_global_manuel'] is False
+        assert r.data['niveau_realisation_global_mnemonique'] == 'TERMINE'
+        assert r.data['niveau_realisation_global_commentaire'] == 'RAS'

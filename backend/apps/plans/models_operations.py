@@ -818,6 +818,11 @@ class Operation(models.Model):
         ov = self.realisation_globale_override
         return bool(ov is not None and ov.id_niveau_realisation_id)
 
+    def get_niveau_realisation_global_commentaire(self):
+        """Commentaire global de l'action (page globale) ou None (#356)."""
+        ov = self.realisation_globale_override
+        return ov.commentaire_override if ov else None
+
 
 class CorOperationSite(models.Model):
     """
