@@ -13,6 +13,7 @@ from apps.core.models import Nomenclature
 from apps.plans.models_operations import (
     OperationAnnee,
     OperationAnneeOrganisme,
+    OperationRealisationGlobale,
     RealisationOperationAnnee,
     RealisationOperationAnneeOrganisme,
 )
@@ -28,6 +29,7 @@ _RATIO_BY_NIVEAU = {
     'EN_COURS':    Decimal('0.40'),
     'REPORTE':     Decimal('0.10'),
     'NON_DEMARRE': Decimal('0.00'),
+    'NON_REALISE': Decimal('0.05'),  # #379 — prévu mais non réalisé
     'ABANDONNE':   Decimal('0.20'),
 }
 
@@ -35,10 +37,11 @@ _RATIO_BY_NIVEAU = {
 # afin d'alimenter correctement les graphiques du Bilan (#Phase 4) et la légende
 # du Suivi des actions. Le bucket est calculé par (op_id + annee) % 10.
 _DISTRIBUTION_PAST = {
-    # 60% terminé, 20% partiel, 10% reporté, 10% abandonné
+    # 50% terminé, 20% partiel, 10% non réalisé, 10% reporté, 10% abandonné (#379)
     0: 'TERMINE', 1: 'TERMINE', 2: 'TERMINE',
-    3: 'TERMINE', 4: 'TERMINE', 5: 'TERMINE',
-    6: 'PARTIEL', 7: 'PARTIEL',
+    3: 'TERMINE', 4: 'TERMINE',
+    5: 'PARTIEL', 6: 'PARTIEL',
+    7: 'NON_REALISE',
     8: 'REPORTE',
     9: 'ABANDONNE',
 }
@@ -95,7 +98,7 @@ class RealisationsSeeder(BaseSeeder):
         niveaux_cache = {
             m: self._get_niveau(m)
             for m in ('TERMINE', 'PARTIEL', 'EN_COURS',
-                      'REPORTE', 'NON_DEMARRE', 'ABANDONNE')
+                      'REPORTE', 'NON_DEMARRE', 'NON_REALISE', 'ABANDONNE')
         }
         if not all(niveaux_cache.values()):
             self.log(
@@ -107,6 +110,7 @@ class RealisationsSeeder(BaseSeeder):
         current_year = date.today().year
         realisations_annee = []
         realisations_organisme = []
+        seen_op_ids = set()  # #379 — opérations vues (pour les surcharges globales)
         # Suivi des compteurs par mnémonique (utile pour le log final).
         per_niveau = {m: 0 for m in niveaux_cache}
 
@@ -116,6 +120,7 @@ class RealisationsSeeder(BaseSeeder):
         ).select_related('id_operation').prefetch_related('organismes')
 
         for oa in operation_annees:
+            seen_op_ids.add(oa.id_operation_id)
             is_complete = oa.annee < current_year
             distribution = _DISTRIBUTION_PAST if is_complete else _DISTRIBUTION_CURRENT
             bucket = (oa.id_operation_id + oa.annee) % 10
@@ -193,8 +198,28 @@ class RealisationsSeeder(BaseSeeder):
                     )
                     realisations_organisme.append(real_oao)
 
+        # #379 — Surcharges MANUELLES du statut global sur un sous-ensemble
+        # déterministe d'opérations (démontre la fonctionnalité hybride).
+        global_overrides = []
+        override_map = {0: 'TERMINE', 3: 'PARTIEL', 6: 'NON_REALISE'}
+        for op_id in sorted(seen_op_ids):
+            mnemo = override_map.get(op_id % 9)
+            if not mnemo:
+                continue
+            niveau = niveaux_cache[mnemo]
+            obj, _ = OperationRealisationGlobale.objects.update_or_create(
+                id_operation_id=op_id,
+                defaults={
+                    'id_niveau_realisation': niveau,
+                    'commentaire_override': f"Statut global forcé (seed) : {niveau.label}.",
+                    'id_utilisateur_maj': admin,
+                },
+            )
+            global_overrides.append(obj)
+
         self.log_summary(len(realisations_annee), 'réalisations annuelles créées')
         self.log_summary(len(realisations_organisme), 'réalisations par organisme créées')
+        self.log_summary(len(global_overrides), 'surcharges de statut global créées')
         # Détail par niveau (utile pour confirmer la variété sur la page Bilan).
         for mnemo, count in per_niveau.items():
             if count:
@@ -210,6 +235,7 @@ class RealisationsSeeder(BaseSeeder):
 
     def reset(self) -> int:
         count = 0
+        count += OperationRealisationGlobale.objects.all().delete()[0]
         count += RealisationOperationAnneeOrganisme.objects.all().delete()[0]
         count += RealisationOperationAnnee.objects.all().delete()[0]
         return count
