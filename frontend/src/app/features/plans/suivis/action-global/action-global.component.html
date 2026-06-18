@@ -18,8 +18,8 @@
         <i class="fi fi-rr-exclamation"></i>
         <p>{{ errorMessage() }}</p>
       </div>
-    } @else if (operation(); as op) {
-
+    } @else if (operation()) {
+      @if (operation(); as op) {
       <!-- HERO -->
       <section class="hero-section">
         <div class="hero-background"><div class="hero-pattern"></div></div>
@@ -48,16 +48,64 @@
       </section>
 
       <section class="content-section">
+        <!-- #379 — Indicateurs de réponse (cible + valeur par année), en haut -->
+        @if (responseIndicators().length > 0) {
+          <h3 class="section-title">{{ 'plans.suivis.actionGlobal.responseTitle' | translate }}</h3>
+          <div class="table-wrapper resp-wrapper">
+            <table class="resp-table">
+              <thead>
+                <tr>
+                  <th class="col-text">{{ 'plans.suivis.actionGlobal.indicateur' | translate }}</th>
+                  <th class="col-text">{{ 'plans.suivis.actionGlobal.metrique' | translate }}</th>
+                  <th class="col-text">{{ 'plans.suivis.actionGlobal.cible' | translate }}</th>
+                  @for (y of years(); track y) { <th class="col-y">{{ y }}</th> }
+                </tr>
+              </thead>
+              <tbody>
+                @for (ri of responseIndicators(); track ri.id_metrique) {
+                  <tr>
+                    <td class="col-text">{{ ri.indicateur_nom || '—' }}</td>
+                    <td class="col-text">{{ ri.nom_metrique }}</td>
+                    <td class="col-text">{{ ri.valeur_cible || '—' }}</td>
+                    @for (y of years(); track y) {
+                      <td class="col-y">{{ ri.byYear.get(y) || '—' }}</td>
+                    }
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+
         <!-- Cartes de synthèse -->
         <div class="summary-cards">
           <div class="summary-card">
             <span class="summary-label">{{ 'plans.suivis.actionGlobal.realisation' | translate }}</span>
-            @if (op.niveau_realisation_global_mnemonique) {
-              <app-tag
-                [variant]="niveauTagVariant(op.niveau_realisation_global_mnemonique)"
-                [label]="op.niveau_realisation_global_label || op.niveau_realisation_global_mnemonique"></app-tag>
-            } @else {
-              <span class="summary-empty">—</span>
+            <div class="global-result">
+              <img [src]="globalIcon(op.niveau_realisation_global_mnemonique)"
+                   class="action-status-icon"
+                   [alt]="globalLabelKey(op.niveau_realisation_global_mnemonique) | translate">
+              <span class="global-result-label">
+                {{ globalLabelKey(op.niveau_realisation_global_mnemonique) | translate }}
+                @if (op.niveau_realisation_global_manuel) {
+                  <small class="manuel-tag">{{ 'plans.suivis.actionGlobal.manuel' | translate }}</small>
+                }
+              </span>
+            </div>
+            <!-- #379 — surcharge manuelle (gestionnaires) -->
+            @if (canManageGlobal()) {
+              <div class="global-override">
+                @for (r of manualResults; track r.value) {
+                  <button mat-stroked-button color="primary" class="override-btn"
+                          [class.active]="isCurrentResult(r.value)"
+                          (click)="setGlobalManuel(r.value)">
+                    {{ r.labelKey | translate }}
+                  </button>
+                }
+                <button mat-button color="primary" (click)="setGlobalManuel(null)">
+                  {{ 'plans.suivis.actionGlobal.auto' | translate }}
+                </button>
+              </div>
             }
           </div>
 
@@ -84,6 +132,19 @@
           </div>
         </div>
 
+        <!-- #379 — Légende des statuts de réalisation annuels -->
+        <div class="legend">
+          <span class="legend-label">{{ 'plans.suivis.actions.legendLabel' | translate }}</span>
+          <div class="legend-items">
+            @for (item of legendItems; track item.status) {
+              <div class="legend-item">
+                <img [src]="getActionIcon(item.status)" class="action-status-icon legend-icon" alt="">
+                <span class="legend-text">{{ item.labelKey | translate }}</span>
+              </div>
+            }
+          </div>
+        </div>
+
         <!-- Récapitulatif annuel -->
         <h3 class="section-title">{{ 'plans.suivis.actionGlobal.yearlyTitle' | translate }}</h3>
         <div class="table-wrapper">
@@ -105,9 +166,8 @@
                     </a>
                   </td>
                   <td>
-                    @if (row.niveau) {
-                      <app-tag size="sm" [variant]="niveauTagVariant(row.niveau)"
-                               [label]="row.niveauLabel || row.niveau"></app-tag>
+                    @if (row.status; as st) {
+                      <img [src]="getActionIcon(st)" class="action-status-icon" alt="">
                     } @else { — }
                   </td>
                   <td>
@@ -126,6 +186,7 @@
           </table>
         </div>
       </section>
+      }
     }
   </main>
 </div>

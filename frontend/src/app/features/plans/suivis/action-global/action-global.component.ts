@@ -1,38 +1,51 @@
 import { Component, OnInit, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, RouterModule } from '@angular/router';
+import { MatButtonModule } from '@angular/material/button';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { TranslateModule } from '@ngx-translate/core';
 import { HeaderComponent } from '../../../../shared/components/header/header.component';
 import { PlanSidebarComponent } from '../../shared/plan-sidebar/plan-sidebar.component';
-import { TagComponent, TagVariant } from '../../../../shared/components/tag/tag.component';
 import { AdminService } from '../../../../core/services/admin.service';
+import { AuthService } from '../../../../core/services/auth.service';
 import { EnjeuService } from '../../../../core/services/enjeu.service';
-import { Operation, OperationAnnee } from '../../../../core/models/enjeu.model';
+import { Operation, OperationAnnee, Mesure } from '../../../../core/models/enjeu.model';
+import {
+  ActionStatus, ACTION_LEGEND_ITEMS, getActionIcon, getActionStatusForYear
+} from '../action-status.util';
 
 interface YearRow {
   annee: number;
-  niveau: string | null;
-  niveauLabel: string | null;
+  status: ActionStatus | null;
   budgetPrev: number;
   budgetReal: number;
   etpPrev: number;
   etpReal: number;
 }
 
+interface ResponseIndicator {
+  id_metrique: number;
+  indicateur_nom: string | null;
+  nom_metrique: string;
+  valeur_cible: string;
+  byYear: Map<number, string>;
+}
+
+/** Surcharge manuelle proposée sur la page (3 résultats). */
+type ManualResult = 'TERMINE' | 'PARTIEL' | 'NON_REALISE';
+
 /**
- * #379 — Page globale d'une action : statut de réalisation global (sur la
- * période), totaux budget et RH (prévisionnel vs réalisé) et récapitulatif
- * annuel. Accessible depuis le bouton « Global » des tableaux Réalisation /
- * Budget / RH du suivi des actions.
+ * #379 — Page globale d'une action : statut de réalisation global (modifiable),
+ * indicateurs de réponse (cible + valeur par année), totaux budget/RH et
+ * récapitulatif annuel (icône de réalisation + budget/RH).
  */
 @Component({
   selector: 'app-action-global',
   standalone: true,
   imports: [
-    CommonModule, RouterModule, MatProgressSpinnerModule, MatTooltipModule,
-    TranslateModule, HeaderComponent, PlanSidebarComponent, TagComponent
+    CommonModule, RouterModule, MatButtonModule, MatProgressSpinnerModule,
+    MatTooltipModule, TranslateModule, HeaderComponent, PlanSidebarComponent
   ],
   templateUrl: './action-global.component.html',
   styleUrl: './action-global.component.scss'
@@ -40,6 +53,7 @@ interface YearRow {
 export class ActionGlobalComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly adminService = inject(AdminService);
+  private readonly authService = inject(AuthService);
   private readonly enjeuService = inject(EnjeuService);
 
   planId = signal<number | null>(null);
@@ -48,7 +62,59 @@ export class ActionGlobalComponent implements OnInit {
   errorMessage = signal<string | null>(null);
   operation = signal<Operation | null>(null);
 
-  /** Récapitulatif annuel (budget/RH prévisionnel vs réalisé + niveau). */
+  legendItems = ACTION_LEGEND_ITEMS;
+
+  /** Surcharge globale : droits gestionnaire (cf. canManageLifecycle). */
+  private planReferentIds = signal<number[]>([]);
+  private niveauIdByMnemonique = signal<Map<string, number>>(new Map());
+  /** mesures par métrique (indicateurs de réponse). */
+  private mesuresByMetrique = signal<Map<number, Mesure[]>>(new Map());
+  /** Boutons de résultat proposés. */
+  readonly manualResults: { value: ManualResult; labelKey: string }[] = [
+    { value: 'TERMINE', labelKey: 'plans.suivis.actionGlobal.statut.realise' },
+    { value: 'PARTIEL', labelKey: 'plans.suivis.actionGlobal.statut.partiel' },
+    { value: 'NON_REALISE', labelKey: 'plans.suivis.actionGlobal.statut.nonRealise' },
+  ];
+
+  canManageGlobal = computed<boolean>(() => {
+    if (this.authService.hasGlobalAccess() || this.authService.isAdminOrganisme()) return true;
+    const uid = this.authService.currentUser()?.id;
+    return uid != null && this.planReferentIds().includes(uid);
+  });
+
+  /** Années couvertes par l'action (annee_min..annee_max). */
+  years = computed<number[]>(() => {
+    const op = this.operation();
+    if (!op) return [];
+    const min = op.annee_min ?? new Date().getFullYear();
+    const max = op.annee_max ?? min;
+    const arr: number[] = [];
+    for (let y = min; y <= max; y++) arr.push(y);
+    return arr;
+  });
+
+  /** Indicateurs de réponse de l'action (type REPONSE) + valeurs par année. */
+  responseIndicators = computed<ResponseIndicator[]>(() => {
+    const op = this.operation();
+    if (!op) return [];
+    const reps = (op.metriques || []).filter(
+      m => (m.indicateur_type || '').toUpperCase() === 'REPONSE');
+    const map = this.mesuresByMetrique();
+    return reps.map(m => {
+      const byYear = new Map<number, string>();
+      for (const mes of (map.get(m.id_metrique) || [])) {
+        if (mes.date_mesure) byYear.set(new Date(mes.date_mesure).getFullYear(), mes.valeur);
+      }
+      return {
+        id_metrique: m.id_metrique,
+        indicateur_nom: m.indicateur_nom ?? null,
+        nom_metrique: m.nom_metrique,
+        valeur_cible: m.etat_reference || '',
+        byYear,
+      };
+    });
+  });
+
   yearRows = computed<YearRow[]>(() => {
     const op = this.operation();
     if (!op) return [];
@@ -56,8 +122,7 @@ export class ActionGlobalComponent implements OnInit {
       .sort((a, b) => a.annee - b.annee)
       .map(oa => ({
         annee: oa.annee,
-        niveau: oa.realisation?.niveau_realisation_mnemonique ?? null,
-        niveauLabel: oa.realisation?.niveau_realisation_label ?? null,
+        status: getActionStatusForYear(op, oa.annee),
         budgetPrev: this.budgetPrev(op, oa),
         budgetReal: this.budgetReal(op, oa),
         etpPrev: Number(oa.etp || 0),
@@ -87,12 +152,26 @@ export class ActionGlobalComponent implements OnInit {
     if (slug) {
       this.planSlug.set(slug);
       this.adminService.getPlanBySlug(slug).subscribe({
-        next: (plan) => this.planId.set(plan.id_pg),
+        next: (plan) => {
+          this.planId.set(plan.id_pg);
+          this.planReferentIds.set((plan.referents ?? []).map(r => r.id_role));
+        },
       });
     }
+    this.adminService.getNomenclaturesByType('NIVEAU_REALISATION').subscribe({
+      next: (noms) => {
+        const map = new Map<string, number>();
+        noms.forEach(n => { if (n.mnemonique) map.set(n.mnemonique, n.id_nomenclature); });
+        this.niveauIdByMnemonique.set(map);
+      }
+    });
     if (opId) {
       this.enjeuService.getOperation(opId).subscribe({
-        next: (op) => { this.operation.set(op); this.isLoading.set(false); },
+        next: (op) => {
+          this.operation.set(op);
+          this.isLoading.set(false);
+          this.loadResponseMesures(op);
+        },
         error: () => {
           this.errorMessage.set('Erreur lors du chargement de l\'action');
           this.isLoading.set(false);
@@ -101,6 +180,66 @@ export class ActionGlobalComponent implements OnInit {
     } else {
       this.isLoading.set(false);
     }
+  }
+
+  /** Charge les mesures des indicateurs de réponse (type REPONSE). */
+  private loadResponseMesures(op: Operation): void {
+    const reps = (op.metriques || []).filter(
+      m => (m.indicateur_type || '').toUpperCase() === 'REPONSE');
+    for (const m of reps) {
+      this.enjeuService.getMesuresByMetrique(m.id_metrique).subscribe({
+        next: (list) => {
+          const map = new Map(this.mesuresByMetrique());
+          map.set(m.id_metrique, list);
+          this.mesuresByMetrique.set(map);
+        },
+      });
+    }
+  }
+
+  // --- Statut global (3 icônes) ---
+  getActionIcon(status: ActionStatus | null): string { return getActionIcon(status); }
+
+  /** Ramène le niveau global aux 3 icônes (TERMINE/PARTIEL/reste). */
+  globalIcon(mnemonique: string | null | undefined): string {
+    switch (mnemonique) {
+      case 'TERMINE': return 'assets/images/icons/realise.png';
+      case 'PARTIEL': return 'assets/images/icons/partiellement-realise.png';
+      default: return 'assets/images/icons/non-realise-seul.svg';
+    }
+  }
+
+  globalLabelKey(mnemonique: string | null | undefined): string {
+    switch (mnemonique) {
+      case 'TERMINE': return 'plans.suivis.actionGlobal.statut.realise';
+      case 'PARTIEL': return 'plans.suivis.actionGlobal.statut.partiel';
+      default: return 'plans.suivis.actionGlobal.statut.nonRealise';
+    }
+  }
+
+  /** Bouton actif = surcharge manuelle correspondant au résultat courant. */
+  isCurrentResult(value: ManualResult): boolean {
+    const op = this.operation();
+    return !!op?.niveau_realisation_global_manuel
+      && op?.niveau_realisation_global_mnemonique === value;
+  }
+
+  /** Pose (value) ou retire (null = automatique) la surcharge du résultat global. */
+  setGlobalManuel(value: ManualResult | null): void {
+    const op = this.operation();
+    if (!op) return;
+    const niveauId = value === null ? null : (this.niveauIdByMnemonique().get(value) ?? null);
+    if (value !== null && niveauId === null) return;
+    this.enjeuService.setGlobalRealisation(op.id_operation, niveauId).subscribe({
+      next: (res) => {
+        this.operation.update(cur => cur ? {
+          ...cur,
+          niveau_realisation_global_mnemonique: res.niveau_realisation_global_mnemonique,
+          niveau_realisation_global_label: res.niveau_realisation_global_label,
+          niveau_realisation_global_manuel: res.niveau_realisation_global_manuel,
+        } : cur);
+      }
+    });
   }
 
   // --- Agrégation budget selon le mode de ventilation ---
@@ -128,19 +267,6 @@ export class ActionGlobalComponent implements OnInit {
       return Number(r?.budget_fonctionnement_realise || 0) + Number(r?.budget_investissement_realise || 0);
     }
     return Number(r?.budget_realise || 0);
-  }
-
-  /** Variante de tag selon le niveau de réalisation. */
-  niveauTagVariant(mnemonique: string | null | undefined): TagVariant {
-    switch (mnemonique) {
-      case 'TERMINE': return 'success';
-      case 'EN_COURS': return 'info';
-      case 'PARTIEL': return 'warning';
-      case 'NON_REALISE': return 'error';
-      case 'ABANDONNE': return 'error';
-      case 'REPORTE': return 'draft';
-      default: return 'muted';
-    }
   }
 
   ecartPct(prev: number, real: number): number | null {

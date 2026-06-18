@@ -126,3 +126,65 @@
   .year-cell a { color: $primary-color; font-weight: 600; text-decoration: underline; }
   .empty-row { text-align: center; color: $gray; }
 }
+
+// #379 — icône de statut de réalisation (réutilise les assets du tableau)
+.action-status-icon { width: 28px; height: 28px; object-fit: contain; vertical-align: middle; }
+
+// #379 — résultat global (icône + libellé) + surcharge manuelle
+.global-result {
+  display: flex; align-items: center; gap: $spacing-sm;
+  .global-result-label { font-weight: 700; color: $black; }
+  .manuel-tag {
+    margin-left: $spacing-xs; font-weight: 500; font-size: 0.7rem;
+    color: $gray-dark; text-transform: uppercase; letter-spacing: 0.5px;
+  }
+}
+.global-override {
+  display: flex; flex-wrap: wrap; align-items: center; gap: $spacing-xs;
+  margin-top: $spacing-sm;
+  .override-btn.active {
+    background: $primary-color;
+    color: $white;
+  }
+}
+
+// #379 — légende des statuts
+.legend {
+  display: flex; align-items: center; flex-wrap: wrap; gap: $spacing-md;
+  margin: $spacing-lg 0 $spacing-md;
+  .legend-label { font-weight: 700; color: $primary-color; }
+  .legend-items { display: flex; flex-wrap: wrap; gap: $spacing-md; }
+  .legend-item { display: inline-flex; align-items: center; gap: $spacing-xxs; }
+  .legend-icon { width: 22px; height: 22px; }
+  .legend-text { font-size: 0.85rem; color: $gray-dark; }
+}
+
+// #379 — tableau des indicateurs de réponse
+.resp-wrapper { margin-bottom: $spacing-xl; }
+.resp-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: $white;
+  border: 1px solid $gray-light;
+  border-radius: $border-radius-md;
+  overflow: hidden;
+
+  thead th {
+    background: $primary-color;
+    color: $white;
+    text-align: left;
+    padding: $spacing-sm $spacing-md;
+    font-size: 0.85rem;
+    white-space: nowrap;
+    &.col-y { text-align: center; min-width: 56px; }
+  }
+  tbody td {
+    padding: $spacing-sm $spacing-md;
+    border-bottom: 1px solid $primary-bg-subtle;
+    border-right: 1px solid $primary-bg-subtle;
+    font-size: $font-size-base;
+    color: $black;
+    &.col-text { text-align: left; }
+    &.col-y { text-align: center; }
+  }
+}

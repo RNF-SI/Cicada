@@ -2002,7 +2002,12 @@
           "realise": "Réalisé",
           "partiel": "Partiellement réalisé",
           "nonRealise": "Non réalisé"
-        }
+        },
+        "responseTitle": "Indicateurs de réponse",
+        "indicateur": "Indicateur",
+        "metrique": "Métrique",
+        "auto": "Automatique",
+        "manuel": "manuel"
       }
     },
     "mindmap": {
