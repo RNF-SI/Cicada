@@ -225,15 +225,18 @@ test.describe('Plan Views - Suivi Actions', () => {
     await expect(heroSection).toBeVisible();
   });
 
-  test('should display Global/Annuel view toggle', async ({ referentPage }) => {
+  // La page suivi-actions a été redessinée (Phase 3) : la bascule Global/Annuel
+  // a laissé place à des onglets (Réalisation / Budget / RH) + un tableau
+  // multi-années. On vérifie donc la présence de ces onglets de vue.
+  test('should display the suivi view tabs (Réalisation / Budget / RH)', async ({ referentPage }) => {
     const plan = await findPlan(referentPage, 'Camargue');
     await referentPage.goto(`/plans/${plan.slug}/suivi-actions`);
     await waitForPageLoad(referentPage);
 
-    const toggleBtns = referentPage.locator('.view-toggle .toggle-btn');
-    await toggleBtns.first().waitFor({ state: 'visible', timeout: 15000 }).catch(() => {});
-    const btnCount = await toggleBtns.count();
-    expect(btnCount).toBeGreaterThanOrEqual(2);
+    const tabs = referentPage.locator('.suivi-tabs [role="tab"]');
+    await tabs.first().waitFor({ state: 'visible', timeout: 15000 }).catch(() => {});
+    const tabCount = await tabs.count();
+    expect(tabCount).toBeGreaterThanOrEqual(2);
   });
 
   test('should display filter bar with dropdowns', async ({ referentPage }) => {

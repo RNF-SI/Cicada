@@ -566,11 +566,12 @@ describe('PlanDetailComponent', () => {
         fixture.detectChanges();
       });
 
-      // #277 — sur `draft`, on a maintenant : edit metadata + validate (raccourci)
-      // + submitForCsrpn (envoi pour avis CSRPN, workflow réglementaire).
-      it('should show exactly three lifecycle buttons (edit + validate + submitForCsrpn)', () => {
+      // #347 — les validations administratives CSRPN sont désormais découplées
+      // de la validation plateforme (panneau dédié). Sur `draft`, il reste :
+      // edit metadata + validate (validation plateforme).
+      it('should show exactly two lifecycle buttons (edit + validate)', () => {
         const buttons = fixture.nativeElement.querySelectorAll('.btn-lifecycle');
-        expect(buttons.length).toBe(3);
+        expect(buttons.length).toBe(2);
       });
 
       it('should show the btn-lifecycle-success class (validate action)', () => {

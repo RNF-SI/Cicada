@@ -60,8 +60,9 @@ async function createNe(page: import('@playwright/test').Page, oltId: number, li
 }
 
 async function createOo(page: import('@playwright/test').Page, pressionId: number, libelle: string) {
+  // OO ↔ Pression est désormais une M2M : on passe la liste pression_ids (#337).
   const { ok, data } = await apiPost(page, 'plans/objectifs-operationnels/', {
-    id_pression: pressionId, libelle,
+    pression_ids: [pressionId], libelle,
   });
   expect(ok).toBeTruthy();
   return data;

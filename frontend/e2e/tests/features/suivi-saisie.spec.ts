@@ -12,32 +12,41 @@
 import { test, expect } from '../../fixtures/auth.fixture';
 import {
   findPlan,
-  findFirstOperation,
+  findFirstMetrique,
   apiGet,
   apiPost,
+  apiDelete,
 } from '../../helpers/plan.helper';
 
 // ─── Helpers ────────────────────────────────────────────────────
 
-/** Find an operation that has at least one OperationAnnee. */
-async function findOperationWithAnnee(page: any, planId: number) {
-  const { data } = await apiGet(page, `plans/operations/by-plan/${planId}/`);
-  const allOps: any[] = [];
-  for (const group of data.groups || []) {
-    if (Array.isArray(group.operations)) allOps.push(...group.operations);
+/**
+ * Crée une opération DÉDIÉE à ces tests, avec des OperationAnnee explicites et
+ * cohérentes (annee_min/max alignés sur les années créées).
+ *
+ * On NE réutilise PAS une opération seedée partagée : operations.spec.ts édite
+ * « la première opération du plan » (findFirstOperation) sur le même plan
+ * brouillon Camargue, ce qui corrompt ses années (incohérence annee_min/max vs
+ * OperationAnnee) et casse les assertions d'onglets d'années ici. Une opération
+ * fraîche par test garantit l'isolation.
+ */
+async function createSuiviOperation(page: any, planId: number) {
+  const met = await findFirstMetrique(page, planId);
+  const annees = [2025, 2026, 2027];
+  const { ok, status, data } = await apiPost(page, 'plans/operations/', {
+    libelle: `E2E Suivi Saisie ${Date.now()}`,
+    annee_min: annees[0],
+    annee_max: annees[annees.length - 1],
+    ventilation_mode: 'none',
+    metrique_ids: [met.id_metrique],
+    operation_annees: annees.map((a) => ({
+      annee: a, periodicite: true, budget: 5000, etp: 10,
+    })),
+  });
+  if (!ok) {
+    throw new Error(`Failed to create suivi operation (status ${status}): ${JSON.stringify(data)}`);
   }
-  // Pick first op that has annees
-  for (const op of allOps) {
-    if (op.operation_annees && op.operation_annees.length > 0) {
-      return op;
-    }
-    // Some serializers omit operation_annees in list - fetch detail
-    const { data: detail } = await apiGet(page, `plans/operations/${op.id_operation}/`);
-    if (detail.operation_annees && detail.operation_annees.length > 0) {
-      return detail;
-    }
-  }
-  throw new Error(`No operation with OperationAnnee found for plan ${planId}`);
+  return data; // OperationSerializer : inclut operation_annees (avec id_operation_annee)
 }
 
 // ─── Tests ───────────────────────────────────────────────────────
@@ -45,75 +54,87 @@ async function findOperationWithAnnee(page: any, planId: number) {
 test.describe('Suivi - Saisie page', () => {
   test('renders header, year tabs and form sections', async ({ referentPage }) => {
     const plan = await findPlan(referentPage, 'Camargue');
-    const op = await findOperationWithAnnee(referentPage, plan.id_pg);
+    const op = await createSuiviOperation(referentPage, plan.id_pg);
     const oa = op.operation_annees[0];
 
-    await referentPage.goto(
-      `/plans/${plan.slug}/suivi-actions/saisie/${op.id_operation}/${oa.annee}`,
-    );
+    try {
+      await referentPage.goto(
+        `/plans/${plan.slug}/suivi-actions/saisie/${op.id_operation}/${oa.annee}`,
+      );
 
-    // Title = operation libelle
-    await expect(referentPage.locator('.plan-title')).toContainText(op.libelle);
+      // Title = operation libelle
+      await expect(referentPage.locator('.plan-title')).toContainText(op.libelle);
 
-    // Year tabs visible with at least one active
-    await expect(referentPage.locator('.year-tab').first()).toBeVisible();
-    await expect(referentPage.locator('.year-tab.active')).toContainText(String(oa.annee));
+      // Year tabs visible with at least one active
+      await expect(referentPage.locator('.year-tab').first()).toBeVisible();
+      await expect(referentPage.locator('.year-tab.active')).toContainText(String(oa.annee));
 
-    // Sections
-    await expect(referentPage.locator('.saisie-card').first()).toBeVisible();
-    await expect(referentPage.getByText(/Réalisation/i)).toBeVisible();
-    await expect(referentPage.getByText(/^Détails/i)).toBeVisible();
+      // Sections (titres de cartes — locator précis pour éviter les libellés de
+      // champs comme « Niveau de réalisation » qui matchent aussi /Réalisation/).
+      await expect(referentPage.locator('.saisie-card').first()).toBeVisible();
+      await expect(referentPage.getByRole('heading', { name: 'Réalisation', exact: true })).toBeVisible();
+      await expect(referentPage.getByRole('heading', { name: 'Détails', exact: true })).toBeVisible();
 
-    // Modify action button in hero
-    await expect(referentPage.locator('.btn-hero-primary')).toContainText(/Modifier l'action/);
+      // Modify action button in hero
+      await expect(referentPage.locator('.btn-hero-primary')).toContainText(/Modifier l'action/);
+    } finally {
+      await apiDelete(referentPage, `plans/operations/${op.id_operation}/`);
+    }
   });
 
   test('switches between year tabs and updates active state', async ({ referentPage }) => {
     const plan = await findPlan(referentPage, 'Camargue');
-    const op = await findOperationWithAnnee(referentPage, plan.id_pg);
-    const annees = op.operation_annees.map((oa: any) => oa.annee).sort();
-    if (annees.length < 2) test.skip(true, 'Need at least 2 OperationAnnee to test year switching');
+    const op = await createSuiviOperation(referentPage, plan.id_pg);
+    const annees = op.operation_annees.map((oa: any) => oa.annee).sort((a: number, b: number) => a - b);
 
     const initial = annees[0];
     const target = annees[1];
 
-    await referentPage.goto(
-      `/plans/${plan.slug}/suivi-actions/saisie/${op.id_operation}/${initial}`,
-    );
+    try {
+      await referentPage.goto(
+        `/plans/${plan.slug}/suivi-actions/saisie/${op.id_operation}/${initial}`,
+      );
 
-    await expect(referentPage.locator('.year-tab.active')).toContainText(String(initial));
-    await referentPage.locator('.year-tab', { hasText: String(target) }).click();
-    await expect(referentPage.locator('.year-tab.active')).toContainText(String(target));
+      await expect(referentPage.locator('.year-tab.active')).toContainText(String(initial));
+      await referentPage.locator('.year-tab', { hasText: String(target) }).click();
+      await expect(referentPage.locator('.year-tab.active')).toContainText(String(target));
+    } finally {
+      await apiDelete(referentPage, `plans/operations/${op.id_operation}/`);
+    }
   });
 
   test('submit persists realisation via upsert', async ({ referentPage }) => {
     const plan = await findPlan(referentPage, 'Camargue');
-    const op = await findOperationWithAnnee(referentPage, plan.id_pg);
-    // Pick an OperationAnnee in mode 'none' (cell-level budget input visible)
+    const op = await createSuiviOperation(referentPage, plan.id_pg);
+    // OperationAnnee en mode 'none' (cell-level budget input visible)
     const oa = op.operation_annees.find((o: any) => o.id_operation_annee);
     if (!oa) test.skip(true, 'No usable OperationAnnee');
 
-    await referentPage.goto(
-      `/plans/${plan.slug}/suivi-actions/saisie/${op.id_operation}/${oa.annee}`,
-    );
+    try {
+      await referentPage.goto(
+        `/plans/${plan.slug}/suivi-actions/saisie/${op.id_operation}/${oa.annee}`,
+      );
 
-    // Wait for the form to be ready
-    await referentPage.waitForSelector('.realisation-table, .saisie-card');
+      // Wait for the form to be ready
+      await referentPage.waitForSelector('.realisation-table, .saisie-card');
 
-    // Commentaires : unique marker so we can verify after reload
-    const marker = `Test E2E ${Date.now()}`;
-    await referentPage.locator('textarea[formcontrolname="commentaires"]').fill(marker);
+      // Commentaires : unique marker so we can verify after reload
+      const marker = `Test E2E ${Date.now()}`;
+      await referentPage.locator('textarea[formcontrolname="commentaires"]').fill(marker);
 
-    // Click Save (Enregistrer)
-    await referentPage.getByRole('button', { name: /Enregistrer/i }).click();
+      // Click Save (« Enregistrer » exact — distinct de « Enregistrer et quitter »)
+      await referentPage.getByRole('button', { name: 'Enregistrer', exact: true }).click();
 
-    // Snackbar success
-    await expect(referentPage.getByText(/Modifications enregistrées/i)).toBeVisible({ timeout: 6000 });
+      // Snackbar success
+      await expect(referentPage.getByText(/Modifications enregistrées/i)).toBeVisible({ timeout: 6000 });
 
-    // Reload + verify the textarea retains the marker
-    await referentPage.reload();
-    await referentPage.waitForSelector('textarea[formcontrolname="commentaires"]');
-    await expect(referentPage.locator('textarea[formcontrolname="commentaires"]')).toHaveValue(marker);
+      // Reload + verify the textarea retains the marker
+      await referentPage.reload();
+      await referentPage.waitForSelector('textarea[formcontrolname="commentaires"]');
+      await expect(referentPage.locator('textarea[formcontrolname="commentaires"]')).toHaveValue(marker);
+    } finally {
+      await apiDelete(referentPage, `plans/operations/${op.id_operation}/`);
+    }
   });
 
   test('renders per-organisme sub-tables for by_org_type operations', async ({ referentPage }) => {

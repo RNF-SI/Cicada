@@ -5697,6 +5697,25 @@ class EnjeuxSeeder(BaseSeeder):
                 operations_created.append(op_b)
                 self.log_item('créé', f'Opération brouillon Camargue: {op_b.libelle[:50]}')
 
+                # Programmation annuelle : cette opération est créée APRÈS la
+                # boucle principale de génération des OperationAnnee, donc on
+                # crée ses années ici. Indispensable aux tests E2E suivi-saisie
+                # (findOperationWithAnnee exige ≥1 OperationAnnee sur le plan
+                # brouillon Camargue sélectionné par findPlan).
+                if op_b.annee_min and op_b.annee_max:
+                    for year in range(op_b.annee_min, op_b.annee_max + 1):
+                        OperationAnnee.objects.update_or_create(
+                            id_operation=op_b, annee=year,
+                            defaults={
+                                'periodicite': True,
+                                'periodicite_mensuelle': {"4": True, "5": True, "6": True,
+                                                          "7": True, "8": True, "9": True},
+                                'budget': 8000,
+                                'etp': 12,
+                            },
+                        )
+                        annees_created += 1
+
         self.log_summary(annees_created, 'années de programmation')
         self.log_summary(finances_created, 'sources de financement')
         self.log_summary(protocoles_created, 'protocoles')
