@@ -49,6 +49,15 @@ export interface GlobalRealisationResponse {
   niveau_realisation_global_mnemonique: string | null;
   niveau_realisation_global_label: string | null;
   niveau_realisation_global_manuel: boolean;
+  niveau_realisation_global_commentaire?: string | null;
+}
+
+/** #356 — Réponse de l'endpoint de surcharge d'évaluation globale d'un indicateur. */
+export interface IndicateurGlobalEvalResponse {
+  id_indicateur: number;
+  score_override: number | null;
+  commentaire: string | null;
+  manuel: boolean;
 }
 
 /** #355 — Évaluation globale d'un indicateur (tableau de bord). */
@@ -73,6 +82,11 @@ export interface IndicateurGlobalResponse {
   etat_courant_score: number | null;
   moyenne_score: number | null;
   tendance: 'hausse' | 'baisse' | 'stable';
+  // #356 — Surcharge manuelle d'interprétation (icône forcée + commentaire).
+  score_override?: number | null;
+  commentaire?: string | null;
+  etat_courant_effectif?: number | null;
+  manuel?: boolean;
 }
 
 @Injectable({
@@ -191,9 +205,11 @@ export class EnjeuService {
     commentaire?: string
   ): Observable<GlobalRealisationResponse> {
     const url = `${this.apiUrl}/realisations/global-realisation/${operationId}/`;
-    if (niveauId === null) {
+    // Effacement complet : ni niveau, ni commentaire fourni → retour au calcul auto.
+    if (niveauId === null && commentaire === undefined) {
       return this.http.delete<GlobalRealisationResponse>(url);
     }
+    // #356 — Le niveau peut être null (commentaire seul) : le mode manuel reste off.
     return this.http.post<GlobalRealisationResponse>(url, {
       id_niveau_realisation: niveauId,
       commentaire_override: commentaire ?? '',
@@ -208,6 +224,26 @@ export class EnjeuService {
     return this.http.get<IndicateurGlobalResponse>(
       `${this.apiUrl}/indicateurs/${indicateurId}/global/`
     );
+  }
+
+  /**
+   * #356 — Surcharge manuelle de l'évaluation globale d'un indicateur.
+   * `score = null` retire l'icône forcée (le commentaire reste si fourni).
+   * Si `score = null` ET `commentaire = undefined` → suppression complète.
+   */
+  setIndicateurGlobalEval(
+    indicateurId: number,
+    score: number | null,
+    commentaire?: string
+  ): Observable<IndicateurGlobalEvalResponse> {
+    const url = `${this.apiUrl}/indicateur-mesures/global-evaluation/${indicateurId}/`;
+    if (score === null && commentaire === undefined) {
+      return this.http.delete<IndicateurGlobalEvalResponse>(url);
+    }
+    return this.http.post<IndicateurGlobalEvalResponse>(url, {
+      score_override: score,
+      commentaire_override: commentaire ?? '',
+    });
   }
 
   /**

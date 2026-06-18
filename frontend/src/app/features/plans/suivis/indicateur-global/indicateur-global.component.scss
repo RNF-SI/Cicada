@@ -113,6 +113,59 @@
 }
 .summary-score { font-size: 1.4rem; font-weight: 700; color: $black; }
 .summary-empty { color: $gray; }
+.summary-auto-note { font-size: 0.75rem; color: $gray-dark; }
+
+// Badges smileys (mêmes assets que le tableau de bord)
+.score-badge-icon-lg { width: 40px; height: 40px; }
+.score-badge-icon { width: 28px; height: 28px; }
+.score-badge-icon-sm { width: 22px; height: 22px; vertical-align: middle; }
+
+.manuel-tag {
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: $border-radius-sm;
+  background: $secondary-terra-cotta;
+  color: $white;
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+// #356 — Carte d'interprétation manuelle + commentaire
+.override-card {
+  background: $white;
+  border: 1px solid $gray-light;
+  border-radius: $border-radius-md;
+  padding: $spacing-lg;
+  margin-bottom: $spacing-xl;
+}
+.override-hint { font-size: 0.85rem; color: $gray-dark; margin: 0 0 $spacing-md; }
+.eval-buttons {
+  display: flex; flex-wrap: wrap; align-items: center; gap: $spacing-sm;
+  margin-bottom: $spacing-lg;
+}
+.eval-btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  padding: 4px; border: 2px solid transparent; border-radius: $border-radius-round;
+  background: $beige; cursor: pointer; transition: all 0.15s ease;
+  &:hover { background: $primary-bg-subtle; }
+  &.active { border-color: $primary-color; background: $primary-bg-subtle; }
+}
+.eval-auto { margin-left: $spacing-sm; }
+.comment-label {
+  display: block; font-size: 0.85rem; font-weight: 600;
+  color: $primary-color; margin-bottom: $spacing-xs;
+}
+.comment-textarea {
+  width: 100%; box-sizing: border-box;
+  border: 1px solid $gray-light; border-radius: $border-radius-sm;
+  padding: $spacing-sm; font-family: inherit; font-size: 0.9rem;
+  resize: vertical;
+  &:focus { outline: none; border-color: $primary-color; }
+}
+.comment-actions { margin-top: $spacing-sm; text-align: right; }
+.comment-readonly { white-space: pre-wrap; color: $black; margin: 0; }
 
 // Graphique de tendance
 .trend-chart-card {
@@ -167,6 +220,10 @@
 .timeline-year {
   display: flex; flex-direction: column; align-items: center; gap: 2px;
   min-width: 44px;
+  text-decoration: none;
+  padding: 4px; border-radius: $border-radius-sm;
+  transition: background 0.15s ease;
+  &:hover { background: $primary-bg-subtle; }
   .timeline-year-label { font-size: 0.7rem; color: $gray-dark; }
   .timeline-empty { color: $gray; }
 }

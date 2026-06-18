@@ -56,11 +56,20 @@
         <div class="summary-cards">
           <div class="summary-card">
             <span class="summary-label">{{ 'plans.suivis.indicateurGlobal.etatCourant' | translate }}</span>
-            @if (d.etat_courant_score != null) {
+            @if (etatCourantEffectif() != null) {
               <div class="summary-value">
-                <app-score-icon [level]="scoreToLevel(d.etat_courant_score)" [size]="40"></app-score-icon>
-                <span class="summary-score">{{ d.etat_courant_score | number:'1.0-1':'fr-FR' }}/5</span>
+                <img [src]="getScoreBadge(etatCourantEffectif())" class="score-badge-icon-lg"
+                     [alt]="'plans.suivis.indicateurGlobal.etatCourant' | translate">
+                @if (d.manuel) {
+                  <small class="manuel-tag">{{ 'plans.suivis.indicateurGlobal.manuel' | translate }}</small>
+                }
               </div>
+              @if (d.manuel && d.etat_courant_score != null) {
+                <small class="summary-auto-note">
+                  {{ 'plans.suivis.indicateurGlobal.scoreCalcule' | translate }} :
+                  {{ d.etat_courant_score | number:'1.0-1':'fr-FR' }}/5
+                </small>
+              }
             } @else {
               <span class="summary-empty">{{ 'plans.suivis.indicateurGlobal.noData' | translate }}</span>
             }
@@ -83,6 +92,46 @@
             </div>
           </div>
         </div>
+
+        <!-- #356 — Interprétation manuelle (gestionnaires) -->
+        @if (canManageGlobal()) {
+          <div class="override-card">
+            <h3 class="section-title">{{ 'plans.suivis.indicateurGlobal.evalTitle' | translate }}</h3>
+            <p class="override-hint">{{ 'plans.suivis.indicateurGlobal.evalHint' | translate }}</p>
+            <div class="eval-buttons">
+              @for (b of evalButtons; track b.score) {
+                <button type="button" class="eval-btn"
+                        [class.active]="isCurrentEval(b.score)"
+                        [matTooltip]="b.labelKey | translate"
+                        (click)="setGlobalEval(b.score)">
+                  <img [src]="getScoreIcon(b.level)" class="score-badge-icon" [alt]="b.labelKey | translate">
+                </button>
+              }
+              <button mat-button color="primary" class="eval-auto" (click)="setGlobalEval(null)">
+                {{ 'plans.suivis.indicateurGlobal.auto' | translate }}
+              </button>
+            </div>
+
+            <!-- Commentaire global (non obligatoire, indépendant du forçage) -->
+            <label class="comment-label" for="ind-global-comment">
+              {{ 'plans.suivis.indicateurGlobal.commentLabel' | translate }}
+            </label>
+            <textarea id="ind-global-comment" class="comment-textarea" rows="3"
+                      [ngModel]="commentaire()" (ngModelChange)="commentaire.set($event)"
+                      [placeholder]="'plans.suivis.indicateurGlobal.commentPlaceholder' | translate"></textarea>
+            <div class="comment-actions">
+              <button mat-stroked-button color="primary" (click)="saveComment()">
+                {{ 'plans.suivis.indicateurGlobal.saveComment' | translate }}
+              </button>
+            </div>
+          </div>
+        } @else if (d.commentaire) {
+          <!-- Lecture seule : commentaire global -->
+          <div class="override-card">
+            <h3 class="section-title">{{ 'plans.suivis.indicateurGlobal.commentLabel' | translate }}</h3>
+            <p class="comment-readonly">{{ d.commentaire }}</p>
+          </div>
+        }
 
         <!-- Graphique de tendance (série indicateur) -->
         @if (sparkline(); as sl) {
@@ -122,7 +171,7 @@
                 <span>
                   {{ 'plans.suivis.indicateurGlobal.etatCourant' | translate }} :
                   @if (m.etat_courant) {
-                    <app-score-icon [level]="scoreToLevel(m.etat_courant.score)" [size]="20"></app-score-icon>
+                    <img [src]="getScoreBadge(m.etat_courant.score)" class="score-badge-icon-sm" alt="">
                     <small>({{ m.etat_courant.annee }})</small>
                   } @else { — }
                 </span>
@@ -136,18 +185,20 @@
                 </span>
               </div>
 
-              <!-- Timeline annuelle des scores -->
+              <!-- Timeline annuelle des scores. Années cliquables → saisie. -->
               @if (m.series.length > 0) {
                 <div class="metrique-timeline">
                   @for (pt of m.series; track pt.annee) {
-                    <div class="timeline-year" [matTooltip]="(pt.valeur ?? '—') + ''">
+                    <a class="timeline-year"
+                       [routerLink]="['/plans', planSlug(), 'tableau-de-bord', 'saisie', d.id_indicateur, pt.annee]"
+                       [matTooltip]="(pt.valeur ?? '—') + ' — ' + ('plans.suivis.indicateurGlobal.goToSaisie' | translate)">
                       <span class="timeline-year-label">{{ pt.annee }}</span>
                       @if (pt.score != null) {
-                        <app-score-icon [level]="scoreToLevel(pt.score)" [size]="22"></app-score-icon>
+                        <img [src]="getScoreBadge(pt.score)" class="score-badge-icon-sm" alt="">
                       } @else {
                         <span class="timeline-empty">—</span>
                       }
-                    </div>
+                    </a>
                   }
                 </div>
               } @else {
