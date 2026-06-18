@@ -9,6 +9,7 @@ import { Observable, of, throwError } from 'rxjs';
 import { signal, WritableSignal } from '@angular/core';
 
 import { PlanCreateComponent } from './plan-create.component';
+import { SitePlanSummary } from '../../core/models/admin.model';
 import { AdminService } from '../../core/services/admin.service';
 import { AuthService } from '../../core/services/auth.service';
 import { ImpersonationGuardService } from '../../core/services/impersonation-guard.service';
@@ -100,6 +101,7 @@ describe('PlanCreateComponent', () => {
     getSites: jest.Mock;
     getOrganismeSites: jest.Mock;
     createPlan: jest.Mock;
+    getPlansForSites: jest.Mock;
   };
 
   // Writable signals for AuthService mock
@@ -139,6 +141,7 @@ describe('PlanCreateComponent', () => {
       })),
       getOrganismeSites: jest.fn().mockReturnValue(of([])),
       createPlan: jest.fn().mockReturnValue(of({ id_pg: 99, slug: 'nouveau-plan', nom: 'Nouveau plan' })),
+      getPlansForSites: jest.fn().mockReturnValue(of({ sites: [] })),
     };
 
     // Signal-based AuthService mock (required by HeaderComponent)
@@ -583,6 +586,105 @@ describe('PlanCreateComponent', () => {
 
     it('should have null organisme by default', () => {
       expect(component.selectedOrganisme()).toBeNull();
+    });
+  });
+
+  // =========================================================================
+  // Chaîne de versions (fil entre rangs)
+  // =========================================================================
+
+  describe('version chain — fil entre rangs', () => {
+    beforeEach(() => setup());
+
+    const validatedPlan = (over: Partial<SitePlanSummary> = {}): SitePlanSummary => ({
+      id_pg: 1,
+      nom: 'PG Camargue rang 1',
+      slug: 'pg-camargue-rang-1',
+      statut: 'valide',
+      statut_display: 'Validé',
+      rang: 1,
+      version: '1',
+      annee_debut: 2010,
+      annee_fin: 2020,
+      is_mi_parcours: false,
+      ...over,
+    });
+
+    it('should fetch existing plans when a site is selected', () => {
+      component.selectedSiteIds.set([10]);
+      fixture.detectChanges();
+      expect(mockAdminService.getPlansForSites).toHaveBeenCalledWith([10]);
+    });
+
+    it('should clear existing plans when no site is selected', () => {
+      component.existingPlansBySite.set([{ site_id: 10, site_nom: 'Camargue', plans: [validatedPlan()] }]);
+      component.selectedSiteIds.set([]);
+      fixture.detectChanges();
+      expect(component.existingPlansBySite()).toEqual([]);
+    });
+
+    it('should suggest the previous rang plan as parent', () => {
+      component.existingPlansBySite.set([{ site_id: 10, site_nom: 'Camargue', plans: [validatedPlan()] }]);
+      component.form.get('rang')?.setValue(2);
+      expect(component.suggestedParent()?.id_pg).toBe(1);
+      expect(component.sameRangConflicts().length).toBe(0);
+    });
+
+    it('should pick the highest lower rang (then highest version) as parent', () => {
+      component.existingPlansBySite.set([{
+        site_id: 10, site_nom: 'Camargue', plans: [
+          validatedPlan({ id_pg: 1, rang: 1, version: '1' }),
+          validatedPlan({ id_pg: 2, rang: 2, version: '1' }),
+          validatedPlan({ id_pg: 3, rang: 2, version: '2', statut: 'modifie' }),
+        ],
+      }]);
+      component.form.get('rang')?.setValue(3);
+      expect(component.suggestedParent()?.id_pg).toBe(3);
+    });
+
+    it('should not suggest a parent when no lower rang exists', () => {
+      component.existingPlansBySite.set([{ site_id: 10, site_nom: 'Camargue', plans: [validatedPlan({ rang: 2 })] }]);
+      component.form.get('rang')?.setValue(1);
+      expect(component.suggestedParent()).toBeNull();
+    });
+
+    it('should flag a same-rang conflict (non blocking)', () => {
+      component.existingPlansBySite.set([{ site_id: 10, site_nom: 'Camargue', plans: [validatedPlan({ rang: 2 })] }]);
+      component.form.get('rang')?.setValue(2);
+      expect(component.sameRangConflicts().length).toBe(1);
+    });
+
+    it('should dedupe plans shared across several sites', () => {
+      const shared = validatedPlan();
+      component.existingPlansBySite.set([
+        { site_id: 10, site_nom: 'Camargue', plans: [shared] },
+        { site_id: 20, site_nom: 'Vercors', plans: [shared] },
+      ]);
+      expect(component.allExistingPlans().length).toBe(1);
+    });
+
+    it('should include plan_parent_id in payload when link is confirmed', () => {
+      component.existingPlansBySite.set([{ site_id: 10, site_nom: 'Camargue', plans: [validatedPlan()] }]);
+      component.form.patchValue({ nom: 'PG Camargue rang 2', rang: 2 });
+      component.selectedSiteIds.set([10]);
+
+      component.onSubmit();
+
+      expect(mockAdminService.createPlan).toHaveBeenCalledWith(
+        expect.objectContaining({ plan_parent_id: 1 })
+      );
+    });
+
+    it('should omit plan_parent_id when link is unchecked', () => {
+      component.existingPlansBySite.set([{ site_id: 10, site_nom: 'Camargue', plans: [validatedPlan()] }]);
+      component.form.patchValue({ nom: 'PG Camargue rang 2', rang: 2 });
+      component.selectedSiteIds.set([10]);
+      component.linkToParentEnabled.set(false);
+
+      component.onSubmit();
+
+      const payload = mockAdminService.createPlan.mock.calls[0][0];
+      expect(payload.plan_parent_id).toBeUndefined();
     });
   });
 });

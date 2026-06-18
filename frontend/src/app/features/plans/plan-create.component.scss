@@ -656,3 +656,48 @@
     }
   }
 }
+
+// ============================================
+// CHAÎNE DE VERSIONS — contrôle rang / rattachement (fil entre rangs)
+// ============================================
+.version-chain-box {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-sm;
+  margin-bottom: $spacing-md;
+
+  .info-block {
+    display: flex;
+    gap: $spacing-sm;
+    align-items: flex-start;
+
+    i {
+      margin-top: 2px;
+      flex-shrink: 0;
+    }
+
+    .list-bullets {
+      margin: $spacing-xxs 0 0;
+    }
+  }
+
+  .link-parent-block app-checkbox {
+    display: block;
+  }
+
+  .existing-plans-details {
+    summary {
+      cursor: pointer;
+      color: $primary-color;
+      font-weight: 600;
+    }
+
+    .existing-site-group {
+      margin-top: $spacing-sm;
+    }
+
+    .existing-site-name {
+      margin-bottom: $spacing-xxs;
+    }
+  }
+}

@@ -1776,3 +1776,132 @@ class TestPlansPeriodFilters:
         assert response.status_code == status.HTTP_200_OK
         # All plans created in tests will be "recent"
         assert response.data['pagination']['count'] >= 1
+
+
+# =============================================================================
+# FOR-SITES ENDPOINT + AUTO-LINK PARENT (fil entre rangs)
+# =============================================================================
+
+@pytest.mark.django_db
+@pytest.mark.integration
+class TestPlansForSitesEndpoint:
+    """Tests for GET /api/plans/plans/for-sites/ (PG validés/archivés d'un site)."""
+
+    def test_unauthenticated_denied(self, api_client):
+        site = SiteFactory()
+        response = api_client.get(f'/api/plans/plans/for-sites/?site_ids={site.id_site}')
+        assert response.status_code in (status.HTTP_401_UNAUTHORIZED, status.HTTP_403_FORBIDDEN)
+
+    def test_returns_validated_plans_grouped_by_site(self, api_client):
+        admin = SuperAdminFactory()
+        site = SiteFactory()
+        PlanGestionValideFactory(nom='PG rang 1', rang=1, sites=[site])
+
+        api_client.force_authenticate(user=admin)
+        response = api_client.get(f'/api/plans/plans/for-sites/?site_ids={site.id_site}')
+
+        assert response.status_code == status.HTTP_200_OK
+        assert len(response.data['sites']) == 1
+        entry = response.data['sites'][0]
+        assert entry['site_id'] == site.id_site
+        assert entry['site_nom'] == site.nom_site
+        assert len(entry['plans']) == 1
+        assert entry['plans'][0]['nom'] == 'PG rang 1'
+        assert entry['plans'][0]['rang'] == 1
+
+    def test_excludes_drafts(self, api_client):
+        admin = SuperAdminFactory()
+        site = SiteFactory()
+        PlanGestionValideFactory(nom='Valide', rang=1, sites=[site])
+        PlanGestionArchiveFactory(nom='Archive', rang=2, sites=[site])
+        PlanGestionFactory(nom='Brouillon', statut='draft', rang=3, sites=[site])
+
+        api_client.force_authenticate(user=admin)
+        response = api_client.get(f'/api/plans/plans/for-sites/?site_ids={site.id_site}')
+
+        noms = {p['nom'] for p in response.data['sites'][0]['plans']}
+        assert noms == {'Valide', 'Archive'}
+
+    def test_empty_when_no_site_ids(self, api_client):
+        admin = SuperAdminFactory()
+        api_client.force_authenticate(user=admin)
+        response = api_client.get('/api/plans/plans/for-sites/')
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data['sites'] == []
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+class TestPlansAutoLinkParent:
+    """Tests pour le rattachement automatique au plan du rang précédent (#fil)."""
+
+    def _create(self, api_client, site, rang, parent_id=None, nom='Nouveau rang'):
+        payload = {
+            'nom': nom,
+            'annee_debut': 2030,
+            'annee_fin': 2040,
+            'statut': 'draft',
+            'ct88': False,
+            'rang': rang,
+            'sites_ids': [site.id_site],
+        }
+        if parent_id is not None:
+            payload['plan_parent_id'] = parent_id
+        return api_client.post('/api/plans/plans/', payload)
+
+    def test_links_to_previous_rang_validated_plan(self, api_client):
+        admin = SuperAdminFactory()
+        site = SiteFactory()
+        parent = PlanGestionValideFactory(nom='PG rang 1', rang=1, sites=[site])
+
+        api_client.force_authenticate(user=admin)
+        response = self._create(api_client, site, rang=2, parent_id=parent.id_pg)
+
+        assert response.status_code == status.HTTP_201_CREATED
+        new_plan = PlanGestion.objects.get(nom='Nouveau rang')
+        assert new_plan.plan_parent_id == parent.id_pg
+
+    def test_without_parent_id_leaves_null(self, api_client):
+        admin = SuperAdminFactory()
+        site = SiteFactory()
+        PlanGestionValideFactory(nom='PG rang 1', rang=1, sites=[site])
+
+        api_client.force_authenticate(user=admin)
+        response = self._create(api_client, site, rang=2)
+
+        assert response.status_code == status.HTTP_201_CREATED
+        assert PlanGestion.objects.get(nom='Nouveau rang').plan_parent_id is None
+
+    def test_ignores_non_validated_parent(self, api_client):
+        admin = SuperAdminFactory()
+        site = SiteFactory()
+        parent = PlanGestionFactory(nom='Brouillon parent', statut='draft', rang=1, sites=[site])
+
+        api_client.force_authenticate(user=admin)
+        response = self._create(api_client, site, rang=2, parent_id=parent.id_pg)
+
+        assert response.status_code == status.HTTP_201_CREATED
+        assert PlanGestion.objects.get(nom='Nouveau rang').plan_parent_id is None
+
+    def test_ignores_parent_same_or_higher_rang(self, api_client):
+        admin = SuperAdminFactory()
+        site = SiteFactory()
+        parent = PlanGestionValideFactory(nom='PG rang 2', rang=2, sites=[site])
+
+        api_client.force_authenticate(user=admin)
+        response = self._create(api_client, site, rang=2, parent_id=parent.id_pg)
+
+        assert response.status_code == status.HTTP_201_CREATED
+        assert PlanGestion.objects.get(nom='Nouveau rang').plan_parent_id is None
+
+    def test_ignores_parent_without_shared_site(self, api_client):
+        admin = SuperAdminFactory()
+        site = SiteFactory()
+        other_site = SiteFactory()
+        parent = PlanGestionValideFactory(nom='PG autre site', rang=1, sites=[other_site])
+
+        api_client.force_authenticate(user=admin)
+        response = self._create(api_client, site, rang=2, parent_id=parent.id_pg)
+
+        assert response.status_code == status.HTTP_201_CREATED
+        assert PlanGestion.objects.get(nom='Nouveau rang').plan_parent_id is None

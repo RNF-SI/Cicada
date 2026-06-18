@@ -221,9 +221,38 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
         return queryset.filter(conditions).distinct()
     
     def perform_create(self, serializer):
-        """Définir l'utilisateur créateur."""
-        serializer.save(id_utilisateur_ajout=self.request.user)
-    
+        """Définir l'utilisateur créateur et, le cas échéant, rattacher le plan
+        au plan validé du rang précédent (conserve la chaîne de versions).
+
+        Le frontend peut envoyer `plan_parent_id` lors de la création standard
+        d'un PG (page « Créer un plan ») quand l'utilisateur confirme le
+        rattachement au plan validé du rang précédent sur le même site. On
+        valide ce parent côté serveur avant de poser le lien.
+        """
+        plan = serializer.save(id_utilisateur_ajout=self.request.user)
+
+        parent_id = self.request.data.get('plan_parent_id')
+        if parent_id and not plan.plan_parent_id:
+            parent = PlanGestion.objects.filter(pk=parent_id).first()
+            if parent and self._is_valid_rang_parent(parent, plan):
+                plan.plan_parent = parent
+                plan.save(update_fields=['plan_parent'])
+
+    @staticmethod
+    def _is_valid_rang_parent(parent, plan):
+        """Vrai si `parent` est un parent de rang valide pour `plan` lors d'une
+        création standard : plan validé/archivé, rang strictement inférieur et
+        au moins un site en commun. Empêche un rattachement incohérent."""
+        if parent.pk == plan.pk:
+            return False
+        if parent.statut not in PlanGestion.VALIDATED_STATUSES:
+            return False
+        if (parent.rang or 1) >= (plan.rang or 1):
+            return False
+        plan_sites = set(plan.sites.values_list('site_id', flat=True))
+        parent_sites = set(parent.sites.values_list('site_id', flat=True))
+        return bool(plan_sites & parent_sites)
+
     def perform_update(self, serializer):
         """Définir l'utilisateur modificateur."""
         serializer.save(id_utilisateur_maj=self.request.user)
@@ -246,6 +275,65 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
 
         serializer = PlanGestionDetailSerializer(plan, context={'request': request})
         return Response(serializer.data)
+
+    @action(detail=False, methods=['get'], url_path='for-sites')
+    def for_sites(self, request):
+        """
+        Plans validés/archivés associés à un ou plusieurs sites, groupés par
+        site et triés par rang.
+
+        GET /api/plans/plans/for-sites/?site_ids=1,2
+
+        Sert, lors de la création d'un plan, à :
+        - alerter si un PG du même rang existe déjà sur le site ;
+        - proposer de rattacher le nouveau plan au plan validé du rang
+          précédent (conservation de la chaîne de versions) ;
+        - afficher le détail des PG déjà rattachés au site.
+
+        Seuls les plans validés/archivés (`VALIDATED_STATUSES` = valide,
+        modifie, archive — y compris les évaluations mi-parcours qui portent
+        le statut `modifie`) sont renvoyés ; les brouillons sont exclus.
+        Le scope respecte les permissions de l'utilisateur (get_queryset).
+        """
+        raw = request.query_params.get('site_ids', '')
+        site_ids = [int(c) for c in (chunk.strip() for chunk in raw.split(',')) if c.isdigit()]
+        if not site_ids:
+            return Response({'sites': []})
+
+        from apps.users.models import Site
+
+        qs = (
+            self.get_queryset()
+            .filter(sites__site_id__in=site_ids, statut__in=PlanGestion.VALIDATED_STATUSES)
+            .distinct()
+        )
+        names = dict(
+            Site.objects.filter(id_site__in=site_ids).values_list('id_site', 'nom_site')
+        )
+
+        sites_payload = []
+        for sid in site_ids:
+            plans = qs.filter(sites__site_id=sid).order_by('rang', 'version')
+            sites_payload.append({
+                'site_id': sid,
+                'site_nom': names.get(sid),
+                'plans': [
+                    {
+                        'id_pg': p.id_pg,
+                        'nom': p.nom,
+                        'slug': p.slug,
+                        'statut': p.statut,
+                        'statut_display': p.get_statut_display(),
+                        'rang': p.rang,
+                        'version': p.version,
+                        'annee_debut': p.annee_debut,
+                        'annee_fin': p.annee_fin,
+                        'is_mi_parcours': bool(p.is_mi_parcours),
+                    }
+                    for p in plans
+                ],
+            })
+        return Response({'sites': sites_payload})
 
     @action(detail=False, methods=['get'])
     def geojson_list(self, request):

@@ -11,6 +11,7 @@ import {
   OrganismeCreatePayload,
   SiteCreatePayload,
   PlanCreatePayload,
+  SitePlansResponse,
   PlanStatut,
   EvaluationType,
   RedacteurType,
@@ -515,6 +516,17 @@ export class AdminService {
    */
   createPlan(payload: PlanCreatePayload): Observable<AdminPlan> {
     return this.http.post<AdminPlan>(`${this.plansApiUrl}/plans/`, payload)
+      .pipe(catchError(this.handleError));
+  }
+
+  /**
+   * Récupère les plans validés/archivés associés à un ou plusieurs sites,
+   * groupés par site. Utilisé à la création d'un plan pour alerter sur un
+   * doublon de rang et proposer le rattachement au plan du rang précédent.
+   */
+  getPlansForSites(siteIds: number[]): Observable<SitePlansResponse> {
+    const params = new HttpParams().set('site_ids', siteIds.join(','));
+    return this.http.get<SitePlansResponse>(`${this.plansApiUrl}/plans/for-sites/`, { params })
       .pipe(catchError(this.handleError));
   }
 
