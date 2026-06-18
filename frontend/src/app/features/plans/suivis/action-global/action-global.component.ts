@@ -203,10 +203,6 @@ export class ActionGlobalComponent implements OnInit {
         next: (op) => {
           this.operation.set(op);
           this.commentaire.set((op as any).niveau_realisation_global_commentaire ?? '');
-          // Déplier d'office si une surcharge/commentaire existe déjà.
-          if (op.niveau_realisation_global_manuel || this.commentaire().trim()) {
-            this.showOverride.set(true);
-          }
           this.isLoading.set(false);
           this.loadResponseMesures(op);
         },

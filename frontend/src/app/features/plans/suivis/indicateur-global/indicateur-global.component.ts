@@ -101,21 +101,53 @@ export class IndicateurGlobalComponent implements OnInit {
     return d.etat_courant_effectif != null ? d.etat_courant_effectif : d.etat_courant_score;
   });
 
-  /** Points de la polyline SVG pour la série indicateur (graphique de tendance). */
-  sparkline = computed<{ points: string; dots: { x: number; y: number; score: number; annee: number }[] } | null>(() => {
+  /**
+   * Modèle du graphique d'évolution (série indicateur). Coordonnées en unités
+   * SVG « réelles » (viewBox non déformé) avec marges pour les axes : lignes
+   * horizontales + ordonnées (scores 1→5) pour la lisibilité.
+   */
+  chart = computed(() => {
     const d = this.data();
     if (!d || d.serie.length === 0) return null;
-    const W = 100, H = 40, pad = 4;
+    const W = 640, H = 280;
+    const padL = 40, padR = 20, padT = 16, padB = 34;
+    const plotW = W - padL - padR;
+    const plotH = H - padT - padB;
     const n = d.serie.length;
-    const xStep = n > 1 ? (W - 2 * pad) / (n - 1) : 0;
-    const dots = d.serie.map((pt, i) => {
-      const x = pad + i * xStep;
-      // score 1..5 → y inversé (5 en haut)
-      const y = pad + (H - 2 * pad) * (1 - (pt.score - 1) / 4);
-      return { x, y, score: pt.score, annee: pt.annee };
-    });
-    return { points: dots.map(p => `${p.x},${p.y}`).join(' '), dots };
+    const xAt = (i: number) => padL + (n > 1 ? (plotW * i) / (n - 1) : plotW / 2);
+    const yAt = (score: number) => padT + plotH * (1 - (score - 1) / 4); // 1 en bas, 5 en haut
+    const dots = d.serie.map((pt, i) => ({
+      x: xAt(i), y: yAt(pt.score), score: pt.score, annee: pt.annee,
+      level: this.scoreToLevel(pt.score),
+    }));
+    return {
+      W, H, padL, padR, padB, plotLeft: padL, plotRight: W - padR,
+      points: dots.map(p => `${p.x},${p.y}`).join(' '),
+      dots,
+      gridlines: [1, 2, 3, 4, 5].map(s => ({ score: s, y: yAt(s) })),
+      xLabels: d.serie.map((pt, i) => ({ x: xAt(i), annee: pt.annee })),
+    };
   });
+
+  /** Années (union triée) présentes dans les séries des métriques. */
+  metriqueYears = computed<number[]>(() => {
+    const d = this.data();
+    if (!d) return [];
+    const set = new Set<number>();
+    for (const m of d.metriques) for (const pt of m.series) set.add(pt.annee);
+    return [...set].sort((a, b) => a - b);
+  });
+
+  /** Score 1-5 d'une métrique pour une année (ou null si pas de mesure). */
+  metriqueScore(m: IndicateurMetriqueGlobal, annee: number): number | null {
+    return m.series.find(s => s.annee === annee)?.score ?? null;
+  }
+
+  /** Infobulle d'une cellule métrique/année (valeur + invite à la saisie). */
+  metriqueTooltip(m: IndicateurMetriqueGlobal, annee: number): string {
+    const val = m.series.find(s => s.annee === annee)?.valeur ?? '—';
+    return `${val} — ${this.translate.instant('plans.suivis.indicateurGlobal.goToSaisie')}`;
+  }
 
   ngOnInit(): void {
     const slug = this.route.snapshot.paramMap.get('slug');
@@ -135,8 +167,6 @@ export class IndicateurGlobalComponent implements OnInit {
         next: (res) => {
           this.data.set(res);
           this.commentaire.set(res.commentaire ?? '');
-          // Déplier d'office si une interprétation manuelle/commentaire existe déjà.
-          if (res.manuel || (res.commentaire ?? '').trim()) this.showOverride.set(true);
           this.isLoading.set(false);
         },
         error: () => {

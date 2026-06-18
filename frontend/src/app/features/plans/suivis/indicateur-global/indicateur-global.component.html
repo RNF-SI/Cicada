@@ -162,79 +162,89 @@
           </div>
         }
 
-        <!-- Graphique de tendance (série indicateur) -->
-        @if (sparkline(); as sl) {
+        <!-- Graphique d'évolution (série indicateur) : axes + lignes horizontales -->
+        @if (chart(); as c) {
           <div class="trend-chart-card">
             <h3 class="section-title">{{ 'plans.suivis.indicateurGlobal.evolutionTitle' | translate }}</h3>
-            <svg class="trend-chart" viewBox="0 0 100 40" preserveAspectRatio="none" role="img"
+            <p class="chart-caption">{{ 'plans.suivis.indicateurGlobal.scoreCaption' | translate }}</p>
+            <svg class="trend-chart" [attr.viewBox]="'0 0 ' + c.W + ' ' + c.H" role="img"
                  [attr.aria-label]="'plans.suivis.indicateurGlobal.evolutionTitle' | translate">
-              <polyline [attr.points]="sl.points" class="trend-line"></polyline>
-              @for (dot of sl.dots; track dot.annee) {
-                <circle [attr.cx]="dot.x" [attr.cy]="dot.y" r="2"
+              <!-- Lignes horizontales + ordonnées (scores 1→5) -->
+              @for (g of c.gridlines; track g.score) {
+                <line class="grid-line"
+                      [attr.x1]="c.plotLeft" [attr.x2]="c.plotRight"
+                      [attr.y1]="g.y" [attr.y2]="g.y"></line>
+                <text class="axis-label" [attr.x]="c.plotLeft - 10" [attr.y]="g.y + 4" text-anchor="end">{{ g.score }}</text>
+              }
+              <!-- Courbe + points -->
+              <polyline [attr.points]="c.points" class="trend-line"></polyline>
+              @for (dot of c.dots; track dot.annee) {
+                <circle class="trend-dot" [attr.cx]="dot.x" [attr.cy]="dot.y" r="5"
                         [matTooltip]="dot.annee + ' — ' + (dot.score | number:'1.0-1':'fr-FR') + '/5'"></circle>
               }
-            </svg>
-            <div class="trend-years">
-              @for (pt of d.serie; track pt.annee) {
-                <span class="trend-year">{{ pt.annee }}</span>
+              <!-- Abscisses (années) -->
+              @for (xl of c.xLabels; track xl.annee) {
+                <text class="axis-label" [attr.x]="xl.x" [attr.y]="c.H - 12" text-anchor="middle">{{ xl.annee }}</text>
               }
-            </div>
+            </svg>
           </div>
         }
 
-        <!-- Détail par métrique -->
+        <!-- Détail par métrique : tableau pleine largeur (kit UI) -->
         <div class="metriques-section">
           <h3 class="section-title">{{ 'plans.suivis.indicateurGlobal.metriquesTitle' | translate }}</h3>
-          @for (m of d.metriques; track trackMetrique($index, m)) {
-            <div class="metrique-card">
-              <div class="metrique-header">
-                <span class="metrique-name">{{ m.nom_metrique }}</span>
-                @if (m.etat_reference) {
-                  <span class="metrique-cible">
-                    {{ 'plans.suivis.indicateurGlobal.cible' | translate }} : {{ m.etat_reference }}
-                  </span>
+          <div class="table-wrapper">
+            <table class="metriques-table">
+              <thead>
+                <tr>
+                  <th class="col-text">{{ 'plans.suivis.indicateurGlobal.metrique' | translate }}</th>
+                  <th class="col-text">{{ 'plans.suivis.indicateurGlobal.cible' | translate }}</th>
+                  <th class="col-c">{{ 'plans.suivis.indicateurGlobal.etatCourant' | translate }}</th>
+                  <th class="col-c">{{ 'plans.suivis.indicateurGlobal.moyenne' | translate }}</th>
+                  <th class="col-c">{{ 'plans.suivis.indicateurGlobal.tendanceLabel' | translate }}</th>
+                  @for (y of metriqueYears(); track y) { <th class="col-y">{{ y }}</th> }
+                </tr>
+              </thead>
+              <tbody>
+                @for (m of d.metriques; track trackMetrique($index, m)) {
+                  <tr>
+                    <td class="col-text col-name">{{ m.nom_metrique }}</td>
+                    <td class="col-text">{{ m.etat_reference || '—' }}</td>
+                    <td class="col-c">
+                      @if (m.etat_courant) {
+                        <img [src]="getScoreBadge(m.etat_courant.score)" class="score-badge-icon-sm" alt="">
+                        <small>({{ m.etat_courant.annee }})</small>
+                      } @else { — }
+                    </td>
+                    <td class="col-c">{{ m.moyenne != null ? (m.moyenne | number:'1.0-1':'fr-FR') + '/5' : '—' }}</td>
+                    <td class="col-c">
+                      <span class="metrique-tendance" [matTooltip]="tendanceLabelKey(m.tendance) | translate">
+                        <i class="fi" [class]="'fi ' + tendanceIcon(m.tendance)"></i>
+                      </span>
+                    </td>
+                    @for (y of metriqueYears(); track y) {
+                      <!-- valeur cliquable → formulaire de saisie de l'année -->
+                      <td class="col-y">
+                        <a class="metrique-cell-link"
+                           [routerLink]="['/plans', planSlug(), 'tableau-de-bord', 'saisie', d.id_indicateur, y]"
+                           [matTooltip]="metriqueTooltip(m, y)">
+                          @if (metriqueScore(m, y); as sc) {
+                            <img [src]="getScoreBadge(sc)" class="score-badge-icon-sm" alt="">
+                          } @else { <span class="cell-empty">—</span> }
+                        </a>
+                      </td>
+                    }
+                  </tr>
+                } @empty {
+                  <tr>
+                    <td [attr.colspan]="5 + metriqueYears().length" class="empty-row">
+                      {{ 'plans.suivis.indicateurGlobal.noData' | translate }}
+                    </td>
+                  </tr>
                 }
-              </div>
-
-              <div class="metrique-meta">
-                <span>
-                  {{ 'plans.suivis.indicateurGlobal.etatCourant' | translate }} :
-                  @if (m.etat_courant) {
-                    <img [src]="getScoreBadge(m.etat_courant.score)" class="score-badge-icon-sm" alt="">
-                    <small>({{ m.etat_courant.annee }})</small>
-                  } @else { — }
-                </span>
-                <span>
-                  {{ 'plans.suivis.indicateurGlobal.moyenne' | translate }} :
-                  {{ m.moyenne != null ? (m.moyenne | number:'1.0-1':'fr-FR') + '/5' : '—' }}
-                </span>
-                <span class="metrique-tendance">
-                  <i class="fi" [class]="'fi ' + tendanceIcon(m.tendance)"></i>
-                  {{ tendanceLabelKey(m.tendance) | translate }}
-                </span>
-              </div>
-
-              <!-- Timeline annuelle des scores. Années cliquables → saisie. -->
-              @if (m.series.length > 0) {
-                <div class="metrique-timeline">
-                  @for (pt of m.series; track pt.annee) {
-                    <a class="timeline-year"
-                       [routerLink]="['/plans', planSlug(), 'tableau-de-bord', 'saisie', d.id_indicateur, pt.annee]"
-                       [matTooltip]="(pt.valeur ?? '—') + ' — ' + ('plans.suivis.indicateurGlobal.goToSaisie' | translate)">
-                      <span class="timeline-year-label">{{ pt.annee }}</span>
-                      @if (pt.score != null) {
-                        <img [src]="getScoreBadge(pt.score)" class="score-badge-icon-sm" alt="">
-                      } @else {
-                        <span class="timeline-empty">—</span>
-                      }
-                    </a>
-                  }
-                </div>
-              } @else {
-                <p class="metrique-no-data">{{ 'plans.suivis.indicateurGlobal.noData' | translate }}</p>
-              }
-            </div>
-          }
+              </tbody>
+            </table>
+          </div>
         </div>
       </section>
       }

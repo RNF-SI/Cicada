@@ -224,56 +224,74 @@
   padding: $spacing-lg;
   margin-bottom: $spacing-xl;
 }
+.chart-caption {
+  margin: 0 0 $spacing-sm;
+  font-size: 0.8rem; color: $gray-dark;
+}
 .trend-chart {
   width: 100%;
-  height: 120px;
+  max-width: 760px;
+  height: auto;
+  display: block;
+  margin: 0 auto;
+
+  .grid-line {
+    stroke: $primary-bg-subtle;
+    stroke-width: 1;
+  }
+  .axis-label {
+    fill: $gray-dark;
+    font-size: 13px;
+    font-family: $font-family;
+  }
   .trend-line {
     fill: none;
     stroke: $primary-color;
-    stroke-width: 1;
-    vector-effect: non-scaling-stroke;
+    stroke-width: 2.5;
   }
-  circle { fill: $primary-color; }
-}
-.trend-years {
-  display: flex; justify-content: space-between;
-  margin-top: $spacing-xs;
-  .trend-year { font-size: 0.7rem; color: $gray-dark; }
+  .trend-dot { fill: $primary-color; }
 }
 
-// Détail par métrique
-.metrique-card {
+// Détail par métrique — tableau pleine largeur (kit UI)
+.table-wrapper { overflow-x: auto; }
+.metriques-table {
+  width: 100%;
+  border-collapse: collapse;
   background: $white;
   border: 1px solid $gray-light;
-  border-left: 3px solid $secondary-pale-green;
-  border-radius: 0 $border-radius-md $border-radius-md 0;
-  padding: $spacing-lg;
-  margin-bottom: $spacing-md;
+  border-radius: $border-radius-md;
+  overflow: hidden;
+
+  thead th {
+    background: $primary-color;
+    color: $white;
+    text-align: left;
+    padding: $spacing-sm $spacing-md;
+    font-size: 0.85rem;
+    white-space: nowrap;
+    &.col-c, &.col-y { text-align: center; }
+    &.col-y { min-width: 52px; }
+  }
+  tbody td {
+    padding: $spacing-sm $spacing-md;
+    border-bottom: 1px solid $primary-bg-subtle;
+    border-right: 1px solid $primary-bg-subtle;
+    font-size: $font-size-base;
+    color: $black;
+    vertical-align: middle;
+    &.col-text { text-align: left; }
+    &.col-name { font-weight: 600; color: $primary-color; }
+    &.col-c, &.col-y { text-align: center; }
+    small { color: $gray-dark; }
+  }
+  tbody tr:nth-child(even) td { background: rgba($secondary-pale-green, 0.12); }
+  .metrique-tendance i { color: $primary-color; font-size: 1rem; }
+  .empty-row { text-align: center; color: $gray; }
 }
-.metrique-header {
-  display: flex; flex-wrap: wrap; align-items: baseline; gap: $spacing-md;
-  margin-bottom: $spacing-sm;
-}
-.metrique-name { font-weight: 700; color: $black; }
-.metrique-cible { font-size: 0.85rem; color: $gray-dark; }
-.metrique-meta {
-  display: flex; flex-wrap: wrap; gap: $spacing-lg;
-  font-size: 0.85rem; color: $gray-dark;
-  margin-bottom: $spacing-md;
-  app-score-icon { vertical-align: middle; }
-  .metrique-tendance i { margin-right: 4px; color: $primary-color; }
-}
-.metrique-timeline {
-  display: flex; flex-wrap: wrap; gap: $spacing-sm;
-}
-.timeline-year {
-  display: flex; flex-direction: column; align-items: center; gap: 2px;
-  min-width: 44px;
+.metrique-cell-link {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 30px; padding: 2px 4px; border-radius: $border-radius-sm;
   text-decoration: none;
-  padding: 4px; border-radius: $border-radius-sm;
-  transition: background 0.15s ease;
   &:hover { background: $primary-bg-subtle; }
-  .timeline-year-label { font-size: 0.7rem; color: $gray-dark; }
-  .timeline-empty { color: $gray; }
+  .cell-empty { color: $gray; }
 }
-.metrique-no-data { color: $gray; font-size: 0.85rem; }
