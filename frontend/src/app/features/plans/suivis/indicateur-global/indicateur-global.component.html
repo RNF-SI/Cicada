@@ -93,6 +93,22 @@
           </div>
         </div>
 
+        <!-- #356 — Explication du calcul de l'évaluation globale -->
+        <details class="calc-explainer">
+          <summary>
+            <i class="fi fi-rr-info"></i>
+            {{ 'plans.suivis.indicateurGlobal.calc.title' | translate }}
+          </summary>
+          <p>{{ 'plans.suivis.indicateurGlobal.calc.intro' | translate }}</p>
+          <ul>
+            <li>{{ 'plans.suivis.indicateurGlobal.calc.rule1' | translate }}</li>
+            <li>{{ 'plans.suivis.indicateurGlobal.calc.rule2' | translate }}</li>
+            <li>{{ 'plans.suivis.indicateurGlobal.calc.rule3' | translate }}</li>
+            <li>{{ 'plans.suivis.indicateurGlobal.calc.rule4' | translate }}</li>
+          </ul>
+          <p class="calc-note">{{ 'plans.suivis.indicateurGlobal.calc.manual' | translate }}</p>
+        </details>
+
         <!-- #356 — Interprétation manuelle (gestionnaires) -->
         @if (canManageGlobal()) {
           <div class="override-card">

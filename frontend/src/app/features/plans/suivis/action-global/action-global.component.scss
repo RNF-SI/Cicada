@@ -26,21 +26,30 @@
   i { font-size: 2.5rem; color: $error-color; }
 }
 
-// Hero (mixins partagés)
-.hero-section { @include plan-page-hero-suivi(240px); }
+// Hero — aligné sur la page « Suivi des actions » (même bandeau, fil d'Ariane et titre)
+.hero-section { @include plan-page-hero-suivi(280px); }
 .hero-background { @include plan-page-hero-background; }
 .hero-pattern { @include plan-page-hero-pattern; opacity: 0.2; }
-.hero-content { @include plan-page-hero-content; max-width: 1400px; margin: 0 auto; }
+.hero-content { @include plan-page-hero-content; }
 
 .breadcrumb {
-  position: relative; display: flex; align-items: center;
-  gap: $spacing-md; margin-bottom: $spacing-xl; height: 48px;
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: $spacing-md;
+  margin-bottom: $spacing-xl;
+  height: 48px;
+  background-color: transparent !important;
+  padding: 0 !important;
+  border-radius: 0 !important;
 }
 .breadcrumb-home {
-  width: 48px; height: 48px; background-color: $primary-color;
-  border-radius: 50%; color: $white;
   display: flex; align-items: center; justify-content: center;
+  width: 48px; height: 48px;
+  background-color: $primary-color; border-radius: 50%; color: $white;
   text-decoration: none; flex-shrink: 0; z-index: 2; padding: 12px;
+  i { font-size: 20px; }
+  &:hover { transform: scale(1.05); }
 }
 .breadcrumb-lines {
   position: absolute; left: 24px; right: 0; top: 0; bottom: 0;
@@ -52,19 +61,28 @@
   }
 }
 .breadcrumb-text {
-  position: relative; z-index: 1; display: flex; align-items: center; gap: $spacing-xs;
-  font-size: 0.85rem; color: $primary-color;
-  .breadcrumb-link { color: $primary-color; text-decoration: underline; font-weight: 600; }
-  .breadcrumb-chevron { font-size: 0.7rem; }
-  .breadcrumb-current { font-weight: 600; }
+  position: relative; z-index: 1;
+  display: flex; align-items: center; gap: $spacing-xs;
+}
+.breadcrumb-link {
+  color: $primary-color; font-family: $font-family;
+  font-size: $font-size-base; font-weight: $font-weight-bold;
+  text-decoration: underline; text-underline-offset: 3px;
+}
+.breadcrumb-chevron { color: $primary-color; font-size: $font-size-base; }
+.breadcrumb-current {
+  color: $primary-color; font-family: $font-family; font-size: $font-size-base;
 }
 .plan-header { margin-top: $spacing-md; }
 .plan-subtitle {
-  display: inline-flex; align-items: center; gap: $spacing-xs;
-  font-size: 0.85rem; letter-spacing: 0.05em; color: $primary-color; font-weight: 700;
+  display: flex; align-items: center; gap: $spacing-md;
+  color: $primary-color; font-size: $font-size-base; font-weight: $font-weight-bold;
+  text-transform: uppercase; letter-spacing: 3px; margin-bottom: $spacing-sm;
+  i { font-size: 15px; }
 }
 .plan-title {
-  margin: 0; font-size: 2.4rem; font-weight: 700; color: $primary-color; line-height: 1.1;
+  color: $primary-color; font-size: 48px; font-weight: $font-weight-bold;
+  font-family: $font-family; line-height: 72px; margin: 0 0 $spacing-lg 0;
 }
 
 .content-section {
@@ -77,6 +95,59 @@
   margin: 0 0 $spacing-md;
   font-size: 1.1rem; font-weight: 700; color: $primary-color;
   text-transform: uppercase; letter-spacing: 1px;
+}
+
+// #356 — Panneaux distincts (réalisation / indicateurs de réponse / budget-RH)
+.global-panel {
+  background: $white;
+  border: 1px solid $gray-light;
+  border-radius: $border-radius-md;
+  padding: $spacing-lg;
+  margin-bottom: $spacing-xl;
+
+  // Les cartes internes ne portent plus leur propre bordure/fond (le panneau l'apporte).
+  .summary-cards { margin-bottom: 0; }
+  .summary-card { border: none; padding: 0; }
+  .summary-cards .summary-card { padding: $spacing-md; border: 1px solid $gray-light; }
+  .resp-wrapper { margin-bottom: 0; }
+}
+.resp-panel { border-left: 4px solid $secondary-yellow; }
+.panel-hint {
+  margin: -#{$spacing-sm} 0 $spacing-md;
+  font-size: 0.85rem; color: $gray-dark;
+}
+
+// #356 — Explication du calcul (collapsible)
+.calc-explainer {
+  margin-top: $spacing-md;
+  border-top: 1px solid $primary-bg-subtle;
+  padding-top: $spacing-sm;
+
+  summary {
+    cursor: pointer;
+    font-weight: 600;
+    color: $primary-color;
+    display: flex; align-items: center; gap: $spacing-xs;
+    list-style: none;
+    i { font-size: 14px; }
+    &::-webkit-details-marker { display: none; }
+  }
+  p { margin: $spacing-sm 0; font-size: 0.9rem; color: $black; }
+  ul { margin: $spacing-xs 0 $spacing-sm $spacing-lg; padding: 0; }
+  li { font-size: 0.88rem; color: $gray-dark; margin-bottom: 2px; }
+  .calc-note { font-style: italic; color: $gray-dark; font-size: 0.85rem; }
+}
+
+// #356 — Valeur cliquable dans le tableau des indicateurs de réponse
+.resp-cell-link {
+  display: inline-block;
+  min-width: 32px;
+  color: $primary-color;
+  font-weight: 600;
+  text-decoration: none;
+  padding: 2px 6px;
+  border-radius: $border-radius-sm;
+  &:hover { background: $primary-bg-subtle; text-decoration: underline; }
 }
 
 .summary-cards {

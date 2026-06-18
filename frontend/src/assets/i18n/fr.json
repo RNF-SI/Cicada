@@ -1983,6 +1983,15 @@
         "noData": "Aucune donnée",
         "manuel": "Manuel",
         "scoreCalcule": "Score calculé",
+        "calc": {
+          "title": "Comment l'évaluation globale est-elle calculée ?",
+          "intro": "L'évaluation globale est calculée automatiquement à partir des mesures annuelles de chaque métrique :",
+          "rule1": "Chaque mesure est convertie en score de 1 à 5 selon les seuils définis sur la métrique.",
+          "rule2": "L'état courant correspond au score de la dernière année renseignée.",
+          "rule3": "La moyenne est la moyenne des scores annuels (seules les années renseignées comptent).",
+          "rule4": "La tendance compare le premier et le dernier score renseigné (amélioration, dégradation ou stable).",
+          "manual": "Un gestionnaire peut attribuer une interprétation différente (icône forcée) ; cela ne modifie pas le score calculé, qui reste affiché."
+        },
         "evalTitle": "Interprétation de l'évaluation",
         "evalHint": "Le score est calculé automatiquement à partir des années renseignées. Vous pouvez attribuer une évaluation différente selon votre interprétation ; le score calculé reste inchangé.",
         "auto": "Automatique",
@@ -2026,9 +2035,22 @@
           "nonRealise": "Non réalisé"
         },
         "responseTitle": "Indicateurs de réponse",
+        "responseHint": "Cliquez sur une valeur pour la saisir ou la modifier dans le formulaire de suivi de l'année correspondante.",
+        "resourcesTitle": "Budget & temps de travail",
+        "goToSaisie": "Saisir cette année dans le formulaire de suivi",
         "indicateur": "Indicateur",
         "metrique": "Métrique",
         "cible": "Cible",
+        "calc": {
+          "title": "Comment la réalisation globale est-elle calculée ?",
+          "intro": "La réalisation globale est calculée automatiquement à partir des niveaux de réalisation saisis sur les années programmées de l'action :",
+          "rule1": "Toutes les années programmées sont « Terminé » → Terminé",
+          "rule2": "Au moins une année « Terminé » ou « En cours », sans que toutes soient terminées → En cours",
+          "rule3": "Uniquement des « Partiel » → Partiel",
+          "rule4": "Uniquement « Abandonné », « Reporté » ou « Non réalisée » → ce même statut",
+          "rule5": "Aucune réalisation saisie sur les années programmées → Non démarré",
+          "manual": "Un gestionnaire peut forcer manuellement ce statut (badge « manuel ») ; la surcharge prime alors sur le calcul automatique."
+        },
         "auto": "Automatique",
         "manuel": "manuel",
         "commentLabel": "Commentaire global (optionnel)",

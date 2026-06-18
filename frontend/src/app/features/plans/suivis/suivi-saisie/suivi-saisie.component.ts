@@ -293,6 +293,10 @@ export class SuiviSaisieComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    // #356 — fragment d'URL (ex. depuis la page globale d'action) pour scroller
+    // automatiquement vers une section (les indicateurs de réponse, en bas).
+    this.requestedFragment = this.route.snapshot.fragment;
+
     this.route.paramMap.subscribe(params => {
       const slug = params.get('slug');
       const opId = params.get('operation_id');
@@ -304,6 +308,19 @@ export class SuiviSaisieComponent implements OnInit {
 
       this.loadData();
     });
+  }
+
+  /** Fragment cible (#indicateurs-reponse) à scroller une fois la page chargée. */
+  private requestedFragment: string | null = null;
+
+  /** Scrolle vers le fragment demandé (une seule fois), après rendu de la section. */
+  private scrollToRequestedFragment(): void {
+    const frag = this.requestedFragment;
+    if (!frag) return;
+    this.requestedFragment = null;
+    setTimeout(() => {
+      document.getElementById(frag)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 400);
   }
 
   private loadData(): void {
@@ -341,6 +358,7 @@ export class SuiviSaisieComponent implements OnInit {
         this.loadMesuresForMetriques(op);
         this.hydrateFormFromCurrentYear();
         this.isLoading.set(false);
+        this.scrollToRequestedFragment();
       },
       error: () => {
         this.errorMessage.set(this.translate.instant('plans.suivis.saisie.errors.operationNotFound'));

@@ -48,38 +48,10 @@
       </section>
 
       <section class="content-section">
-        <!-- #379 — Indicateurs de réponse (cible + valeur par année), en haut -->
-        @if (responseIndicators().length > 0) {
-          <h3 class="section-title">{{ 'plans.suivis.actionGlobal.responseTitle' | translate }}</h3>
-          <div class="table-wrapper resp-wrapper">
-            <table class="resp-table">
-              <thead>
-                <tr>
-                  <th class="col-text">{{ 'plans.suivis.actionGlobal.indicateur' | translate }}</th>
-                  <th class="col-text">{{ 'plans.suivis.actionGlobal.metrique' | translate }}</th>
-                  <th class="col-text">{{ 'plans.suivis.actionGlobal.cible' | translate }}</th>
-                  @for (y of years(); track y) { <th class="col-y">{{ y }}</th> }
-                </tr>
-              </thead>
-              <tbody>
-                @for (ri of responseIndicators(); track ri.id_metrique) {
-                  <tr>
-                    <td class="col-text">{{ ri.indicateur_nom || '—' }}</td>
-                    <td class="col-text">{{ ri.nom_metrique }}</td>
-                    <td class="col-text">{{ ri.valeur_cible || '—' }}</td>
-                    @for (y of years(); track y) {
-                      <td class="col-y">{{ ri.byYear.get(y) || '—' }}</td>
-                    }
-                  </tr>
-                }
-              </tbody>
-            </table>
-          </div>
-        }
 
-        <!-- Cartes de synthèse -->
-        <div class="summary-cards">
-          <div class="summary-card">
+        <!-- ===== Bloc 1 : Réalisation globale ===== -->
+        <div class="global-panel">
+          <div class="summary-card realisation-card">
             <span class="summary-label">{{ 'plans.suivis.actionGlobal.realisation' | translate }}</span>
             <div class="global-result">
               <img [src]="globalIcon(op.niveau_realisation_global_mnemonique)"
@@ -124,25 +96,88 @@
             }
           </div>
 
-          <div class="summary-card">
-            <span class="summary-label">{{ 'plans.suivis.actionGlobal.budgetTotal' | translate }}</span>
-            <div class="summary-value">
-              <span class="summary-prev">{{ budgetTotal().prev | number:'1.0-0':'fr-FR' }} €</span>
-              <span class="summary-real">
-                {{ 'plans.suivis.actionGlobal.realise' | translate }} :
-                {{ budgetTotal().real | number:'1.0-0':'fr-FR' }} €
-              </span>
+          <!-- #356 — Explication du calcul de la réalisation globale -->
+          <details class="calc-explainer">
+            <summary>
+              <i class="fi fi-rr-info"></i>
+              {{ 'plans.suivis.actionGlobal.calc.title' | translate }}
+            </summary>
+            <p>{{ 'plans.suivis.actionGlobal.calc.intro' | translate }}</p>
+            <ul>
+              <li>{{ 'plans.suivis.actionGlobal.calc.rule1' | translate }}</li>
+              <li>{{ 'plans.suivis.actionGlobal.calc.rule2' | translate }}</li>
+              <li>{{ 'plans.suivis.actionGlobal.calc.rule3' | translate }}</li>
+              <li>{{ 'plans.suivis.actionGlobal.calc.rule4' | translate }}</li>
+              <li>{{ 'plans.suivis.actionGlobal.calc.rule5' | translate }}</li>
+            </ul>
+            <p class="calc-note">{{ 'plans.suivis.actionGlobal.calc.manual' | translate }}</p>
+          </details>
+        </div>
+
+        <!-- ===== Bloc 2 : Indicateurs de réponse (séparé du budget/RH) ===== -->
+        @if (responseIndicators().length > 0) {
+          <div class="global-panel resp-panel">
+            <h3 class="section-title">{{ 'plans.suivis.actionGlobal.responseTitle' | translate }}</h3>
+            <p class="panel-hint">{{ 'plans.suivis.actionGlobal.responseHint' | translate }}</p>
+            <div class="table-wrapper resp-wrapper">
+              <table class="resp-table">
+                <thead>
+                  <tr>
+                    <th class="col-text">{{ 'plans.suivis.actionGlobal.indicateur' | translate }}</th>
+                    <th class="col-text">{{ 'plans.suivis.actionGlobal.metrique' | translate }}</th>
+                    <th class="col-text">{{ 'plans.suivis.actionGlobal.cible' | translate }}</th>
+                    @for (y of years(); track y) { <th class="col-y">{{ y }}</th> }
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (ri of responseIndicators(); track ri.id_metrique) {
+                    <tr>
+                      <td class="col-text">{{ ri.indicateur_nom || '—' }}</td>
+                      <td class="col-text">{{ ri.nom_metrique }}</td>
+                      <td class="col-text">{{ ri.valeur_cible || '—' }}</td>
+                      @for (y of years(); track y) {
+                        <!-- #356 — valeur cliquable → formulaire de suivi (année), en bas -->
+                        <td class="col-y">
+                          <a class="resp-cell-link"
+                             [routerLink]="['/plans', planSlug(), 'suivi-actions', 'saisie', op.id_operation, y]"
+                             fragment="indicateurs-reponse"
+                             [matTooltip]="'plans.suivis.actionGlobal.goToSaisie' | translate">
+                            {{ ri.byYear.get(y) || '—' }}
+                          </a>
+                        </td>
+                      }
+                    </tr>
+                  }
+                </tbody>
+              </table>
             </div>
           </div>
+        }
 
-          <div class="summary-card">
-            <span class="summary-label">{{ 'plans.suivis.actionGlobal.rhTotal' | translate }}</span>
-            <div class="summary-value">
-              <span class="summary-prev">{{ etpTotal().prev | number:'1.0-1':'fr-FR' }} {{ 'plans.suivis.actions.tabs.jours' | translate }}</span>
-              <span class="summary-real">
-                {{ 'plans.suivis.actionGlobal.realise' | translate }} :
-                {{ etpTotal().real | number:'1.0-1':'fr-FR' }} {{ 'plans.suivis.actions.tabs.jours' | translate }}
-              </span>
+        <!-- ===== Bloc 3 : Budget & temps de travail ===== -->
+        <div class="global-panel">
+          <h3 class="section-title">{{ 'plans.suivis.actionGlobal.resourcesTitle' | translate }}</h3>
+          <div class="summary-cards">
+            <div class="summary-card">
+              <span class="summary-label">{{ 'plans.suivis.actionGlobal.budgetTotal' | translate }}</span>
+              <div class="summary-value">
+                <span class="summary-prev">{{ budgetTotal().prev | number:'1.0-0':'fr-FR' }} €</span>
+                <span class="summary-real">
+                  {{ 'plans.suivis.actionGlobal.realise' | translate }} :
+                  {{ budgetTotal().real | number:'1.0-0':'fr-FR' }} €
+                </span>
+              </div>
+            </div>
+
+            <div class="summary-card">
+              <span class="summary-label">{{ 'plans.suivis.actionGlobal.rhTotal' | translate }}</span>
+              <div class="summary-value">
+                <span class="summary-prev">{{ etpTotal().prev | number:'1.0-1':'fr-FR' }} {{ 'plans.suivis.actions.tabs.jours' | translate }}</span>
+                <span class="summary-real">
+                  {{ 'plans.suivis.actionGlobal.realise' | translate }} :
+                  {{ etpTotal().real | number:'1.0-1':'fr-FR' }} {{ 'plans.suivis.actions.tabs.jours' | translate }}
+                </span>
+              </div>
             </div>
           </div>
         </div>
