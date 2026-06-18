@@ -1836,7 +1836,8 @@
         "searchPlaceholder": "Rechercher une action…",
         "organisme": "Organisme",
         "allOrganismes": "Tous les organismes",
-        "actionNonRealisee": "Action prévue non réalisée"
+        "actionNonRealisee": "Action prévue non réalisée",
+        "actionNonRealiseeSeule": "Action non réalisée"
       },
       "saisie": {
         "subtitle": "Remplir le suivi d'une action",

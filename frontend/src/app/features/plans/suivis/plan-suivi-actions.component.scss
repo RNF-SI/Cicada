@@ -284,7 +284,6 @@
     // #379 — cellule « année en cours » cliquable → formulaire de saisie
     &.clickable {
       cursor: pointer;
-      transition: background 0.15s;
       &:hover { background: rgba($primary-color, 0.08); }
     }
 
@@ -615,9 +614,10 @@
         // Fins traits entre années
         border-right: 1px solid $primary-bg-subtle;
 
+        // #379 — fond au survol uniquement (revert instantané, pas de transition
+        // qui « traîne » au retour de navigation)
         &.clickable {
           cursor: pointer;
-          transition: background 0.15s;
           &:hover { background: rgba($primary-color, 0.08); }
         }
       }
@@ -629,13 +629,9 @@
       // #355/#379 — statut de réalisation global + bouton vue globale
       &.col-global {
         min-width: 110px;
-        // Trait plus épais séparant la colonne global
+        text-align: center;
+        // Trait plus épais séparant la colonne global (td normal → trait continu)
         border-left: 2px solid $primary-color;
-
-        display: flex;
-        align-items: center;
-        gap: $spacing-xxs;
-        justify-content: center;
 
         // #379 — lien-icône vers la page globale de l'action
         .global-icon-link {

@@ -270,6 +270,12 @@ export class PlanSuiviActionsComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    // #379 — restaurer l'onglet depuis l'URL (retour « précédent » depuis la saisie)
+    const tabParam = this.route.snapshot.queryParamMap.get('tab');
+    if (tabParam === 'budget' || tabParam === 'rh') {
+      this.activeTab.set(tabParam);
+    }
+
     // Charge les 9 catégories CT88 (mnémonique = code 2 lettres → libellé).
     this.adminService.getNomenclaturesByType('CATEGORIE_ACTION_RESERVE').subscribe({
       next: (noms) => {
@@ -461,6 +467,14 @@ export class PlanSuiviActionsComponent implements OnInit {
 
   setTab(tab: SuiviTab): void {
     this.activeTab.set(tab);
+    // #379 — persister l'onglet dans l'URL pour le retrouver après « précédent »
+    // depuis la saisie (sinon on revenait toujours sur Réalisation).
+    this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { tab: tab === 'realisation' ? null : tab },
+      queryParamsHandling: 'merge',
+      replaceUrl: true,
+    });
   }
 
   /**

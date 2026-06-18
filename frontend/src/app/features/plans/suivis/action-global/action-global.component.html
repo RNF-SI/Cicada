@@ -142,6 +142,11 @@
                 <span class="legend-text">{{ item.labelKey | translate }}</span>
               </div>
             }
+            <!-- #379 — croix seule (statut global « non réalisé ») -->
+            <div class="legend-item">
+              <img src="assets/images/icons/non-realise-seul.svg" class="action-status-icon legend-icon" alt="">
+              <span class="legend-text">{{ 'plans.suivis.actions.actionNonRealiseeSeule' | translate }}</span>
+            </div>
           </div>
         </div>
 
