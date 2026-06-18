@@ -82,28 +82,34 @@
       <!-- Content Section -->
       <section class="content-section">
 
-        <!-- Main tabs (Phase 3) : Réalisation / Budget / RH -->
-        <div class="suivi-tabs" role="tablist">
-          <button
-            class="suivi-tab"
-            [class.active]="activeTab() === 'realisation'"
-            (click)="setTab('realisation')"
-            role="tab">
-            {{ 'plans.suivis.actions.tabs.realisation' | translate }}
-          </button>
-          <button
-            class="suivi-tab"
-            [class.active]="activeTab() === 'budget'"
-            (click)="setTab('budget')"
-            role="tab">
-            {{ 'plans.suivis.actions.tabs.budget' | translate }}
-          </button>
-          <button
-            class="suivi-tab"
-            [class.active]="activeTab() === 'rh'"
-            (click)="setTab('rh')"
-            role="tab">
-            {{ 'plans.suivis.actions.tabs.rh' | translate }}
+        <!-- Main tabs (Phase 3) : Réalisation / Budget / RH + Exporter à droite (Figma 240-44699) -->
+        <div class="suivi-tabs-row">
+          <div class="suivi-tabs" role="tablist">
+            <button
+              class="suivi-tab"
+              [class.active]="activeTab() === 'realisation'"
+              (click)="setTab('realisation')"
+              role="tab">
+              {{ 'plans.suivis.actions.tabs.realisation' | translate }}
+            </button>
+            <button
+              class="suivi-tab"
+              [class.active]="activeTab() === 'budget'"
+              (click)="setTab('budget')"
+              role="tab">
+              {{ 'plans.suivis.actions.tabs.budget' | translate }}
+            </button>
+            <button
+              class="suivi-tab"
+              [class.active]="activeTab() === 'rh'"
+              (click)="setTab('rh')"
+              role="tab">
+              {{ 'plans.suivis.actions.tabs.rh' | translate }}
+            </button>
+          </div>
+          <button class="export-btn">
+            {{ 'plans.suivis.actions.exportTable' | translate }}
+            <i class="fi fi-rr-download"></i>
           </button>
         </div>
 
@@ -195,19 +201,13 @@
               }
             </div>
           </div>
-          <!-- #379 — recherche à droite (style une ligne, Figma 4366-24484) -->
-          <div class="filter-bar-right">
-            <app-search-bar class="action-search"
-              [value]="filterText()"
-              (valueChange)="filterText.set($event)"
-              [placeholder]="'plans.suivis.actions.searchPlaceholder' | translate"
-              [ariaLabel]="'plans.suivis.actions.searchPlaceholder' | translate">
-            </app-search-bar>
-            <button class="export-btn">
-              {{ 'plans.suivis.actions.exportTable' | translate }}
-              <i class="fi fi-rr-download"></i>
-            </button>
-          </div>
+          <!-- #379 — recherche juste à côté des filtres (Figma 4366-24484) -->
+          <app-search-bar class="action-search"
+            [value]="filterText()"
+            (valueChange)="filterText.set($event)"
+            [placeholder]="'plans.suivis.actions.searchPlaceholder' | translate"
+            [ariaLabel]="'plans.suivis.actions.searchPlaceholder' | translate">
+          </app-search-bar>
         </div>
 
         <!-- Légende (uniquement onglet Réalisation) -->
@@ -399,15 +399,13 @@
                               }
                             </td>
                           }
-                          <!-- #379 — colonne Global : icône statut → page globale -->
+                          <!-- #356 — colonne Global : icône statistiques → page globale
+                               (pas l'icône de réalisation, non pertinente ici) -->
                           <td class="col-global">
-                            <a class="global-icon-link"
+                            <a class="global-stats-link"
                                [routerLink]="['/plans', planSlug(), 'suivi-actions', 'action', item.operation.id_operation]"
-                               [matTooltip]="(globalRealisationLabelKey(item.operation.niveau_realisation_global_mnemonique) | translate)
-                                  + ' — ' + ('plans.suivis.actionGlobal.openTooltip' | translate)">
-                              <img [src]="globalRealisationIcon(item.operation.niveau_realisation_global_mnemonique)"
-                                   class="action-status-icon"
-                                   [alt]="globalRealisationLabelKey(item.operation.niveau_realisation_global_mnemonique) | translate">
+                               [matTooltip]="'plans.suivis.actionGlobal.openTooltip' | translate">
+                              <i class="fi fi-rr-chart-histogram"></i>
                             </a>
                           </td>
                           <td class="col-icons">
@@ -504,15 +502,13 @@
                               }
                             </td>
                           }
-                          <!-- #379 — colonne Global : icône statut → page globale -->
+                          <!-- #356 — colonne Global : icône statistiques → page globale
+                               (pas l'icône de réalisation, non pertinente ici) -->
                           <td class="col-global">
-                            <a class="global-icon-link"
+                            <a class="global-stats-link"
                                [routerLink]="['/plans', planSlug(), 'suivi-actions', 'action', item.operation.id_operation]"
-                               [matTooltip]="(globalRealisationLabelKey(item.operation.niveau_realisation_global_mnemonique) | translate)
-                                  + ' — ' + ('plans.suivis.actionGlobal.openTooltip' | translate)">
-                              <img [src]="globalRealisationIcon(item.operation.niveau_realisation_global_mnemonique)"
-                                   class="action-status-icon"
-                                   [alt]="globalRealisationLabelKey(item.operation.niveau_realisation_global_mnemonique) | translate">
+                               [matTooltip]="'plans.suivis.actionGlobal.openTooltip' | translate">
+                              <i class="fi fi-rr-chart-histogram"></i>
                             </a>
                           </td>
                           <td class="col-icons">

@@ -631,6 +631,7 @@ class MinimalPlansSeeder(BaseSeeder):
                         'description': "Profondeur moyenne de disparition du disque de Secchi mesurée sur 3 stations.",
                         'metrique': 'Profondeur moyenne (m)',
                         'unite': 'm',
+                        'cible': '≥ 5 m',
                         'measures': [(2018, '4.2'), (2020, '4.5'), (2022, '4.4'), (2024, '4.6')],
                     },
                     {
@@ -638,6 +639,7 @@ class MinimalPlansSeeder(BaseSeeder):
                         'description': 'Indicateur d\'eutrophisation : concentration moyenne annuelle.',
                         'metrique': 'Chlorophylle a (µg/L)',
                         'unite': 'µg/L',
+                        'cible': '≤ 5 µg/L',
                         'measures': [(2018, '8.5'), (2020, '7.2'), (2022, '6.8'), (2024, '6.5')],
                     },
                 ],
@@ -651,6 +653,7 @@ class MinimalPlansSeeder(BaseSeeder):
                         'description': 'Surface mesurée des dépressions en eau au printemps.',
                         'metrique': 'Surface en eau (ha)',
                         'unite': 'ha',
+                        'cible': '≥ 3 ha',
                         'measures': [(2019, '2.1'), (2021, '2.4'), (2023, '2.7')],
                     },
                 ],
@@ -664,6 +667,7 @@ class MinimalPlansSeeder(BaseSeeder):
                         'description': 'Nombre de jours après l\'ouverture saisonnière avant la 1re halte observée.',
                         'metrique': 'Délai (jours)',
                         'unite': 'jours',
+                        'cible': '≤ 5 jours',
                         'measures': [(2019, '12'), (2021, '9'), (2023, '7')],
                     },
                 ],
@@ -677,6 +681,7 @@ class MinimalPlansSeeder(BaseSeeder):
                         'description': 'Différence max-min annuelle des niveaux dans les piézomètres témoins.',
                         'metrique': 'Amplitude (cm)',
                         'unite': 'cm',
+                        'cible': '≤ 25 cm',
                         'measures': [(2018, '38'), (2020, '34'), (2022, '32'), (2024, '30')],
                     },
                 ],
@@ -690,6 +695,7 @@ class MinimalPlansSeeder(BaseSeeder):
                         'description': 'Pourcentage de recouvrement des sphaignes mesuré par placette.',
                         'metrique': 'Recouvrement Sphagnum (%)',
                         'unite': '%',
+                        'cible': '≥ 60 %',
                         'measures': [(2019, '42'), (2021, '48'), (2023, '53')],
                     },
                 ],
@@ -735,17 +741,23 @@ class MinimalPlansSeeder(BaseSeeder):
                 if created:
                     nb_inds += 1
 
-                # Métrique
-                met, _ = Metrique.objects.get_or_create(
+                # Métrique (avec cible / état de référence pour la vue globale d'action)
+                cible = ind_spec.get('cible', '')
+                met, met_created = Metrique.objects.get_or_create(
                     id_indicateur=ind,
                     nom_metrique=ind_spec['metrique'],
                     defaults={
                         'type_metrique': type_met_num,
                         'unite': ind_spec['unite'],
                         'sens_variation': 'CROISSANT',
+                        'etat_reference': cible,
                         'id_utilisateur_ajout': admin,
                     },
                 )
+                # Backfill idempotent de la cible si la métrique existait déjà sans.
+                if not met_created and cible and not (met.etat_reference or '').strip():
+                    met.etat_reference = cible
+                    met.save(update_fields=['etat_reference'])
 
                 # Mesures
                 for year, valeur in ind_spec['measures']:

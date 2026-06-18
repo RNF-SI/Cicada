@@ -207,12 +207,20 @@
 // Phase 3 — Onglets principaux (Réalisation / Budget / RH)
 // =============================================================================
 
-.suivi-tabs {
+// #356 — Ligne des onglets : onglets à gauche, « Exporter tableau » à droite.
+.suivi-tabs-row {
   display: flex;
-  gap: $spacing-lg;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: $spacing-md;
   border-bottom: 2px solid $primary-bg-subtle;
   margin-bottom: $spacing-lg;
   padding: 0 $spacing-md;
+}
+
+.suivi-tabs {
+  display: flex;
+  gap: $spacing-lg;
 }
 
 .suivi-tab {
@@ -369,33 +377,24 @@
 .filter-bar {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: $spacing-md;
   margin-bottom: $spacing-md;
 }
 
-// #379 — FILTRER + boutons à gauche, tout sur une seule ligne
+// #379 — FILTRER + boutons à gauche (largeur du contenu)
 .filter-bar-left {
   display: flex;
   align-items: center;
   gap: 0;
-  flex: 1;
+  flex: 0 0 auto;
   min-width: 0;
 }
 
-// #379 — recherche (+ export) à droite, même ligne (Figma 4366-24484)
-.filter-bar-right {
-  display: flex;
-  align-items: center;
-  gap: $spacing-md;
-  flex-shrink: 0;
-}
-
-// #379 — barre de recherche d'action (à droite)
+// #356 — recherche juste à côté des filtres, occupe la largeur restante (Figma 4366-24484)
 .action-search {
   display: block;
-  width: 240px;
-  max-width: 280px;
+  flex: 1 1 auto;
+  min-width: 200px;
 }
 
 .filter-label {
@@ -463,21 +462,35 @@
   background-color: rgba($primary-color, 0.15);
 }
 
+// #356 — « Exporter tableau » sur la ligne des onglets, à droite (Figma 240-44699)
 .export-btn {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: $spacing-xs;
-  padding: $spacing-xs $spacing-md;
+  padding: $spacing-sm $spacing-xs;
+  margin-bottom: $spacing-xs;
   font-family: $font-family;
   font-size: $font-size-base;
+  font-weight: $font-weight-bold;
   color: $primary-color;
   background: transparent;
   border: none;
   cursor: pointer;
-  text-decoration: underline;
-  text-underline-offset: 3px;
+  white-space: nowrap;
 
   i { font-size: 14px; }
+  &:hover { color: $primary-hover; }
+}
+
+// #356 — Lien « statistiques » (page globale) dans les tables Budget / RH
+.global-stats-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: $primary-color;
+  text-decoration: none;
+  i { font-size: 18px; }
+  &:hover { color: $primary-hover; }
 }
 
 // Légende
@@ -773,6 +786,7 @@ tr.is-draft {
     align-items: flex-start;
     gap: $spacing-sm;
   }
+  .action-search { width: 100%; }
 
   .legend {
     flex-direction: column;

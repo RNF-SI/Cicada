@@ -2028,6 +2028,7 @@
         "responseTitle": "Indicateurs de réponse",
         "indicateur": "Indicateur",
         "metrique": "Métrique",
+        "cible": "Cible",
         "auto": "Automatique",
         "manuel": "manuel",
         "commentLabel": "Commentaire global (optionnel)",
