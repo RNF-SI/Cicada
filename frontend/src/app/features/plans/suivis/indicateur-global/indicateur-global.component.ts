@@ -57,6 +57,14 @@ export class IndicateurGlobalComponent implements OnInit {
   /** Commentaire global (textarea), non obligatoire. */
   commentaire = signal<string>('');
 
+  /**
+   * #356 — L'ajustement manuel est une OPTION, pas une action forcée : les
+   * contrôles d'interprétation restent repliés tant que l'utilisateur ne clique
+   * pas sur « Ajuster manuellement » (déplié d'office s'il existe déjà une
+   * surcharge ou un commentaire).
+   */
+  showOverride = signal<boolean>(false);
+
   /** Droits gestionnaire (cf. canManageLifecycle). */
   private planReferentIds = signal<number[]>([]);
 
@@ -127,6 +135,8 @@ export class IndicateurGlobalComponent implements OnInit {
         next: (res) => {
           this.data.set(res);
           this.commentaire.set(res.commentaire ?? '');
+          // Déplier d'office si une interprétation manuelle/commentaire existe déjà.
+          if (res.manuel || (res.commentaire ?? '').trim()) this.showOverride.set(true);
           this.isLoading.set(false);
         },
         error: () => {

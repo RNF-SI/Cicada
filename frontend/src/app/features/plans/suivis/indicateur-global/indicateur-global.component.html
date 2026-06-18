@@ -109,38 +109,51 @@
           <p class="calc-note">{{ 'plans.suivis.indicateurGlobal.calc.manual' | translate }}</p>
         </details>
 
-        <!-- #356 — Interprétation manuelle (gestionnaires) -->
+        <!-- #356 — Interprétation manuelle : OPTION repliée par défaut -->
         @if (canManageGlobal()) {
-          <div class="override-card">
-            <h3 class="section-title">{{ 'plans.suivis.indicateurGlobal.evalTitle' | translate }}</h3>
-            <p class="override-hint">{{ 'plans.suivis.indicateurGlobal.evalHint' | translate }}</p>
-            <div class="eval-buttons">
-              @for (b of evalButtons; track b.score) {
-                <button type="button" class="eval-btn"
-                        [class.active]="isCurrentEval(b.score)"
-                        [matTooltip]="b.labelKey | translate"
-                        (click)="setGlobalEval(b.score)">
-                  <img [src]="getScoreIcon(b.level)" class="score-badge-icon" [alt]="b.labelKey | translate">
+          @if (!showOverride()) {
+            <div class="override-toggle-row">
+              <button mat-button color="primary" class="override-toggle"
+                      (click)="showOverride.set(true)">
+                <i class="fi fi-rr-pencil"></i>
+                {{ 'plans.suivis.indicateurGlobal.adjustManually' | translate }}
+              </button>
+            </div>
+          } @else {
+            <div class="override-card">
+              <h3 class="section-title">{{ 'plans.suivis.indicateurGlobal.evalTitle' | translate }}</h3>
+              <p class="override-hint">{{ 'plans.suivis.indicateurGlobal.evalHint' | translate }}</p>
+              <div class="eval-buttons">
+                @for (b of evalButtons; track b.score) {
+                  <button type="button" class="eval-btn"
+                          [class.active]="isCurrentEval(b.score)"
+                          [matTooltip]="b.labelKey | translate"
+                          (click)="setGlobalEval(b.score)">
+                    <img [src]="getScoreIcon(b.level)" class="score-badge-icon" [alt]="b.labelKey | translate">
+                  </button>
+                }
+                <button mat-button color="primary" class="eval-auto" (click)="setGlobalEval(null)">
+                  {{ 'plans.suivis.indicateurGlobal.auto' | translate }}
                 </button>
-              }
-              <button mat-button color="primary" class="eval-auto" (click)="setGlobalEval(null)">
-                {{ 'plans.suivis.indicateurGlobal.auto' | translate }}
-              </button>
-            </div>
+              </div>
 
-            <!-- Commentaire global (non obligatoire, indépendant du forçage) -->
-            <label class="comment-label" for="ind-global-comment">
-              {{ 'plans.suivis.indicateurGlobal.commentLabel' | translate }}
-            </label>
-            <textarea id="ind-global-comment" class="comment-textarea" rows="3"
-                      [ngModel]="commentaire()" (ngModelChange)="commentaire.set($event)"
-                      [placeholder]="'plans.suivis.indicateurGlobal.commentPlaceholder' | translate"></textarea>
-            <div class="comment-actions">
-              <button mat-stroked-button color="primary" (click)="saveComment()">
-                {{ 'plans.suivis.indicateurGlobal.saveComment' | translate }}
-              </button>
+              <!-- Commentaire global (non obligatoire, indépendant du forçage) -->
+              <label class="comment-label" for="ind-global-comment">
+                {{ 'plans.suivis.indicateurGlobal.commentLabel' | translate }}
+              </label>
+              <textarea id="ind-global-comment" class="comment-textarea" rows="3"
+                        [ngModel]="commentaire()" (ngModelChange)="commentaire.set($event)"
+                        [placeholder]="'plans.suivis.indicateurGlobal.commentPlaceholder' | translate"></textarea>
+              <div class="comment-actions">
+                <button mat-button class="override-collapse" (click)="showOverride.set(false)">
+                  {{ 'common.actions.close' | translate }}
+                </button>
+                <button mat-stroked-button color="primary" (click)="saveComment()">
+                  {{ 'plans.suivis.indicateurGlobal.saveComment' | translate }}
+                </button>
+              </div>
             </div>
-          </div>
+          }
         } @else if (d.commentaire) {
           <!-- Lecture seule : commentaire global -->
           <div class="override-card">

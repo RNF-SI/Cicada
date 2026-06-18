@@ -73,40 +73,53 @@
               }
             </div>
 
-            <!-- #356 — surcharge manuelle (gestionnaires) : saisie attendue -->
+            <!-- #356 — ajustement manuel : OPTION repliée par défaut (non forcée) -->
             @if (canManageGlobal()) {
-              <div class="eval-prompt">
-                <i class="fi fi-rr-info"></i>
-                <span>{{ 'plans.suivis.actionGlobal.evalPrompt' | translate }}</span>
-              </div>
-              <div class="global-override" role="group"
-                   [attr.aria-label]="'plans.suivis.actionGlobal.realisation' | translate">
-                @for (r of manualResults; track r.value) {
-                  <button mat-stroked-button color="primary" class="override-btn"
-                          [class.active]="isCurrentResult(r.value)"
-                          (click)="setGlobalManuel(r.value)">
-                    @if (isCurrentResult(r.value)) { <i class="fi fi-rr-check"></i> }
-                    {{ r.labelKey | translate }}
+              @if (!showOverride()) {
+                <div class="override-toggle-row">
+                  <button mat-button color="primary" class="override-toggle"
+                          (click)="showOverride.set(true)">
+                    <i class="fi fi-rr-pencil"></i>
+                    {{ 'plans.suivis.actionGlobal.adjustManually' | translate }}
                   </button>
-                }
-                <button mat-button color="primary" class="override-auto"
-                        (click)="setGlobalManuel(null)">
-                  {{ 'plans.suivis.actionGlobal.auto' | translate }}
-                </button>
-              </div>
+                </div>
+              } @else {
+                <div class="eval-prompt">
+                  <i class="fi fi-rr-info"></i>
+                  <span>{{ 'plans.suivis.actionGlobal.evalPrompt' | translate }}</span>
+                </div>
+                <div class="global-override" role="group"
+                     [attr.aria-label]="'plans.suivis.actionGlobal.realisation' | translate">
+                  @for (r of manualResults; track r.value) {
+                    <button mat-stroked-button color="primary" class="override-btn"
+                            [class.active]="isCurrentResult(r.value)"
+                            (click)="setGlobalManuel(r.value)">
+                      @if (isCurrentResult(r.value)) { <i class="fi fi-rr-check"></i> }
+                      {{ r.labelKey | translate }}
+                    </button>
+                  }
+                  <button mat-button color="primary" class="override-auto"
+                          (click)="setGlobalManuel(null)">
+                    {{ 'plans.suivis.actionGlobal.auto' | translate }}
+                  </button>
+                </div>
 
-              <!-- #356 — Commentaire global (non obligatoire, indépendant du forçage) -->
-              <label class="comment-label" for="action-global-comment">
-                {{ 'plans.suivis.actionGlobal.commentLabel' | translate }}
-              </label>
-              <textarea id="action-global-comment" class="comment-textarea" rows="3"
-                        [ngModel]="commentaire()" (ngModelChange)="commentaire.set($event)"
-                        [placeholder]="'plans.suivis.actionGlobal.commentPlaceholder' | translate"></textarea>
-              <div class="comment-actions">
-                <button mat-stroked-button color="primary" (click)="saveComment()">
-                  {{ 'plans.suivis.actionGlobal.saveComment' | translate }}
-                </button>
-              </div>
+                <!-- #356 — Commentaire global (non obligatoire, indépendant du forçage) -->
+                <label class="comment-label" for="action-global-comment">
+                  {{ 'plans.suivis.actionGlobal.commentLabel' | translate }}
+                </label>
+                <textarea id="action-global-comment" class="comment-textarea" rows="3"
+                          [ngModel]="commentaire()" (ngModelChange)="commentaire.set($event)"
+                          [placeholder]="'plans.suivis.actionGlobal.commentPlaceholder' | translate"></textarea>
+                <div class="comment-actions">
+                  <button mat-button class="override-collapse" (click)="showOverride.set(false)">
+                    {{ 'common.actions.close' | translate }}
+                  </button>
+                  <button mat-stroked-button color="primary" (click)="saveComment()">
+                    {{ 'plans.suivis.actionGlobal.saveComment' | translate }}
+                  </button>
+                </div>
+              }
             } @else if (op.niveau_realisation_global_commentaire) {
               <p class="comment-readonly">{{ op.niveau_realisation_global_commentaire }}</p>
             }

@@ -255,6 +255,14 @@
   i { font-size: 14px; }
 }
 
+// #356 — Ajustement manuel proposé discrètement (non forcé)
+.override-toggle-row { margin-top: $spacing-sm; }
+.override-toggle {
+  display: inline-flex; align-items: center; gap: $spacing-xs;
+  i { font-size: 14px; }
+}
+.override-collapse { margin-right: $spacing-sm; color: $gray-dark; }
+
 // #356 — Invite à la saisie : ligne d'aide contextuelle (couleur primaire)
 .eval-prompt {
   display: flex; align-items: flex-start; gap: $spacing-xs;

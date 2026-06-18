@@ -1993,6 +1993,7 @@
           "manual": "Un gestionnaire peut attribuer une interprétation différente (icône forcée) ; cela ne modifie pas le score calculé, qui reste affiché."
         },
         "evalTitle": "Interprétation de l'évaluation",
+        "adjustManually": "Ajuster manuellement l'évaluation",
         "evalHint": "Le score est calculé automatiquement à partir des années renseignées. Vous pouvez attribuer une évaluation différente selon votre interprétation ; le score calculé reste inchangé.",
         "auto": "Automatique",
         "goToSaisie": "Saisir cette année",
@@ -2036,6 +2037,7 @@
           "aEvaluer": "À évaluer"
         },
         "evalPrompt": "La réalisation globale est déterminée automatiquement à partir des suivis annuels, sur l'ensemble de la période de l'action. Vous pouvez l'ajuster manuellement si besoin.",
+        "adjustManually": "Ajuster manuellement la réalisation",
         "responseTitle": "Indicateurs de réponse",
         "responseHint": "Cliquez sur une valeur pour la saisir ou la modifier dans le formulaire de suivi de l'année correspondante.",
         "recapTab": "Récapitulatif",

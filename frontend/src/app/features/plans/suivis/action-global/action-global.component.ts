@@ -70,6 +70,14 @@ export class ActionGlobalComponent implements OnInit {
   commentaire = signal<string>('');
 
   /**
+   * #356 — L'ajustement manuel de la réalisation globale est une OPTION, pas une
+   * action forcée : les contrôles restent repliés tant que l'utilisateur ne clique
+   * pas sur « Ajuster manuellement » (déplié d'office si une surcharge ou un
+   * commentaire existe déjà).
+   */
+  showOverride = signal<boolean>(false);
+
+  /**
    * #356 — Section affichée sous la réalisation globale, via un toggle façon
    * tableau de bord : « Indicateurs de réponse » ou « Récapitulatif »
    * (budget/RH + récapitulatif annuel). « Récapitulatif » est l'onglet par défaut.
@@ -195,6 +203,10 @@ export class ActionGlobalComponent implements OnInit {
         next: (op) => {
           this.operation.set(op);
           this.commentaire.set((op as any).niveau_realisation_global_commentaire ?? '');
+          // Déplier d'office si une surcharge/commentaire existe déjà.
+          if (op.niveau_realisation_global_manuel || this.commentaire().trim()) {
+            this.showOverride.set(true);
+          }
           this.isLoading.set(false);
           this.loadResponseMesures(op);
         },
