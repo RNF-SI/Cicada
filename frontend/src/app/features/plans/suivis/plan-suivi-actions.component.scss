@@ -255,6 +255,20 @@
     min-width: 140px;
   }
 
+  // #379 — gros trait (bleu-vert) après la colonne titre
+  th.col-action,
+  td.col-action {
+    border-right: 3px solid $primary-color;
+  }
+
+  // Fins traits entre les colonnes agrégées
+  th.col-agg {
+    border-right: 1px solid rgba($white, 0.18);
+  }
+  td.col-agg {
+    border-right: 1px solid $primary-bg-subtle;
+  }
+
   thead th.col-agg {
     small {
       display: block;
@@ -526,11 +540,15 @@
         text-align: left;
         padding-left: $spacing-md;
         min-width: 280px;
+        // #379 — gros trait (bleu-vert) séparant la colonne titre du reste
+        border-right: 3px solid $primary-color;
       }
 
       &.col-year {
         min-width: 54px;
         width: 67px;
+        // Fins traits entre années (dans l'en-tête sombre : blanc translucide)
+        border-right: 1px solid rgba($white, 0.18);
       }
 
       &.col-icons {
@@ -538,10 +556,12 @@
         width: 96px;
       }
 
-      // #355 — colonne du statut de réalisation global
+      // #355/#379 — colonne du statut de réalisation global
       &.col-global {
         min-width: 96px;
         width: 110px;
+        // Trait plus épais séparant la colonne global
+        border-left: 2px solid $primary-color;
 
         i {
           color: $white;
@@ -575,10 +595,14 @@
       &.col-action {
         text-align: left;
         padding-left: $spacing-md;
+        // #379 — gros trait (bleu-vert) séparant la colonne titre du reste
+        border-right: 3px solid $primary-color;
       }
 
       &.col-year {
         min-width: 54px;
+        // Fins traits entre années
+        border-right: 1px solid $primary-bg-subtle;
 
         &.clickable {
           cursor: pointer;
@@ -594,6 +618,8 @@
       // #355/#379 — statut de réalisation global + bouton vue globale
       &.col-global {
         min-width: 110px;
+        // Trait plus épais séparant la colonne global
+        border-left: 2px solid $primary-color;
 
         display: flex;
         align-items: center;
