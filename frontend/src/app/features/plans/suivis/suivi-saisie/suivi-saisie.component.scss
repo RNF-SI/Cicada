@@ -161,7 +161,10 @@
       line-height: 1.1;
     }
 
-    .hero-actions { margin-top: $spacing-sm; }
+    .hero-actions {
+      margin-top: $spacing-sm;
+      display: inline-flex; flex-wrap: wrap; gap: $spacing-sm;
+    }
 
     .btn-hero-primary {
       display: inline-flex;
@@ -177,6 +180,24 @@
       cursor: pointer;
       transition: background 0.2s;
       &:hover { background: darken(#B74D5D, 8%); }
+    }
+
+    // #356 — Bouton secondaire (vue globale) : outline blanc sur le hero.
+    .btn-hero-secondary {
+      display: inline-flex;
+      align-items: center;
+      gap: $spacing-xs;
+      background: $white;
+      color: $primary-color;
+      border: 1px solid $primary-color;
+      padding: $spacing-sm $spacing-lg;
+      border-radius: $border-radius-pill;
+      font-family: 'Nunito', sans-serif;
+      font-weight: 600;
+      text-decoration: none;
+      cursor: pointer;
+      transition: background 0.2s, color 0.2s;
+      &:hover { background: $primary-color; color: $white; }
     }
   }
 }

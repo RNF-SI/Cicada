@@ -58,6 +58,12 @@
                 <i class="fi fi-rr-pencil"></i>
                 <span>{{ 'plans.suivis.saisie.editAction' | translate }}</span>
               </button>
+              <!-- #356 — Accès à la vue globale de l'action -->
+              <a class="btn-hero-secondary"
+                 [routerLink]="['/plans', planSlug(), 'suivi-actions', 'action', operationId()]">
+                <i class="fi fi-rr-chart-histogram"></i>
+                <span>{{ 'plans.suivis.saisie.viewGlobal' | translate }}</span>
+              </a>
             </div>
           </div>
         </div>

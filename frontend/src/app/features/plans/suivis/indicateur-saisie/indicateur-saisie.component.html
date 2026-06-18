@@ -49,6 +49,12 @@
                 <i class="fi fi-rr-pencil"></i>
                 {{ 'plans.suivis.indicateur.editIndicateur' | translate }}
               </button>
+              <!-- #356 — Accès à la page globale de l'indicateur -->
+              <a class="btn-hero-secondary"
+                 [routerLink]="['/plans', planSlug(), 'tableau-de-bord', 'indicateur', indicateurId()]">
+                <i class="fi fi-rr-chart-histogram"></i>
+                {{ 'plans.suivis.indicateur.viewGlobal' | translate }}
+              </a>
             </div>
           </div>
         </div>

@@ -1842,6 +1842,7 @@
       "saisie": {
         "subtitle": "Remplir le suivi d'une action",
         "editAction": "Modifier l'action",
+        "viewGlobal": "Voir le résultat global",
         "requiredHint": "Les champs avec * sont obligatoires",
         "noProgrammation": "Aucune programmation n'a été définie pour cette année — créez d'abord une OperationAnnee.",
         "orgVentilationComingSoon": "La saisie ventilée par organisme arrive dans une prochaine itération.",
@@ -1908,6 +1909,7 @@
       "indicateur": {
         "subtitle": "Remplir le suivi d'un indicateur",
         "editIndicateur": "Modifier l'indicateur",
+        "viewGlobal": "Voir l'évaluation globale",
         "metriquesTitle": "Métriques :",
         "resultatsTitle": "Résultats",
         "resultat": "Résultat",
