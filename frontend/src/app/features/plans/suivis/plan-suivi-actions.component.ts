@@ -15,8 +15,9 @@ import { EnjeuService } from '../../../core/services/enjeu.service';
 import {
   Enjeu, Indicateur, Operation, OperationAnnee
 } from '../../../core/models/enjeu.model';
-
-type ActionStatus = 'planned' | 'planned-realized' | 'planned-partial' | 'planned-not-realized' | 'realized-unplanned' | 'partial-unplanned';
+import {
+  ActionStatus, ACTION_LEGEND_ITEMS, getActionIcon, getActionStatusForYear
+} from './action-status.util';
 
 type SuiviTab = 'realisation' | 'budget' | 'rh';
 
@@ -261,26 +262,11 @@ export class PlanSuiviActionsComponent implements OnInit {
     return Array.from(labels).sort();
   });
 
-  private readonly actionIconMap: Record<ActionStatus, string> = {
-    'planned': 'assets/images/icons/prevu.png',
-    'planned-realized': 'assets/images/icons/prevu-realise.png',
-    'planned-partial': 'assets/images/icons/prevu-partiellement-realise.png',
-    'planned-not-realized': 'assets/images/icons/non-realise.svg',
-    'realized-unplanned': 'assets/images/icons/realise.png',
-    'partial-unplanned': 'assets/images/icons/partiellement-realise.png'
-  };
+  // #379 — légende partagée (util action-status)
+  legendItems = ACTION_LEGEND_ITEMS;
 
-  legendItems: { status: ActionStatus; labelKey: string }[] = [
-    { status: 'planned', labelKey: 'plans.suivis.actions.actionPrevue' },
-    { status: 'planned-realized', labelKey: 'plans.suivis.actions.actionPrevueRealisee' },
-    { status: 'planned-partial', labelKey: 'plans.suivis.actions.actionPrevuePartielle' },
-    { status: 'planned-not-realized', labelKey: 'plans.suivis.actions.actionNonRealisee' },
-    { status: 'realized-unplanned', labelKey: 'plans.suivis.actions.actionRealiseeNonPrevue' },
-    { status: 'partial-unplanned', labelKey: 'plans.suivis.actions.actionPartielleNonPrevue' }
-  ];
-
-  getActionIcon(status: ActionStatus): string {
-    return this.actionIconMap[status] || '';
+  getActionIcon(status: ActionStatus | null): string {
+    return getActionIcon(status);
   }
 
   ngOnInit(): void {
@@ -395,26 +381,7 @@ export class PlanSuiviActionsComponent implements OnInit {
    *   sinon                              → null (rien à afficher)
    */
   getActionStatusForYear(op: Operation, year: number): ActionStatus | null {
-    if (!op.operation_annees) return null;
-    const annee = op.operation_annees.find(a => a.annee === year);
-    if (!annee) return null;
-
-    const prevu = !!annee.periodicite;
-    const niveau = annee.realisation?.niveau_realisation_mnemonique ?? null;
-    const realiseTotal = niveau === 'TERMINE';
-    const realisePartiel = niveau === 'PARTIEL';
-    const nonRealise = niveau === 'NON_REALISE'; // #379
-
-    if (prevu) {
-      if (realiseTotal) return 'planned-realized';
-      if (realisePartiel) return 'planned-partial';
-      if (nonRealise) return 'planned-not-realized'; // prévu mais non réalisé (croix)
-      return 'planned';
-    }
-    // Non prévu mais réalisé (totalement ou partiellement)
-    if (realiseTotal) return 'realized-unplanned';
-    if (realisePartiel) return 'partial-unplanned';
-    return null;
+    return getActionStatusForYear(op, year);
   }
 
   setCategorieFilter(value: string | null): void {
