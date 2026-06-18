@@ -114,7 +114,7 @@
           </details>
         </div>
 
-        <!-- ===== Toggle : Indicateurs de réponse / Budget & RH (style tableau de bord) ===== -->
+        <!-- ===== Toggle : Indicateurs de réponse / Récapitulatif (style tableau de bord) ===== -->
         @if (responseIndicators().length > 0) {
           <div class="view-toggle">
             <button class="toggle-btn"
@@ -123,9 +123,9 @@
               {{ 'plans.suivis.actionGlobal.responseTitle' | translate }}
             </button>
             <button class="toggle-btn"
-                    [class.active]="activeSection() === 'budget'"
-                    (click)="setSection('budget')">
-              {{ 'plans.suivis.actionGlobal.resourcesTitle' | translate }}
+                    [class.active]="activeSection() === 'recap'"
+                    (click)="setSection('recap')">
+              {{ 'plans.suivis.actionGlobal.recapTab' | translate }}
             </button>
           </div>
         }
@@ -169,8 +169,8 @@
           </div>
         }
 
-        <!-- ===== Section : Budget & temps de travail ===== -->
-        @if (activeSection() === 'budget' || responseIndicators().length === 0) {
+        <!-- ===== Section : Récapitulatif (budget/RH + récapitulatif annuel) ===== -->
+        @if (activeSection() === 'recap' || responseIndicators().length === 0) {
           <div class="global-panel">
             <h3 class="section-title">{{ 'plans.suivis.actionGlobal.resourcesTitle' | translate }}</h3>
             <div class="summary-cards">
@@ -197,11 +197,10 @@
             </div>
             </div>
           </div>
-        }
 
-        <!-- #379 — Légende des statuts de réalisation annuels -->
-        <div class="legend">
-          <span class="legend-label">{{ 'plans.suivis.actions.legendLabel' | translate }}</span>
+          <!-- #379 — Légende des statuts de réalisation annuels -->
+          <div class="legend">
+            <span class="legend-label">{{ 'plans.suivis.actions.legendLabel' | translate }}</span>
           <div class="legend-items">
             @for (item of legendItems; track item.status) {
               <div class="legend-item">
@@ -217,9 +216,10 @@
           </div>
         </div>
 
-        <!-- Récapitulatif annuel -->
-        <h3 class="section-title">{{ 'plans.suivis.actionGlobal.yearlyTitle' | translate }}</h3>
-        <div class="table-wrapper">
+          <!-- Récapitulatif annuel -->
+          <div class="global-panel">
+          <h3 class="section-title">{{ 'plans.suivis.actionGlobal.yearlyTitle' | translate }}</h3>
+          <div class="table-wrapper">
           <table class="year-table">
             <thead>
               <tr>
@@ -256,7 +256,9 @@
               }
             </tbody>
           </table>
-        </div>
+          </div>
+          </div>
+        }
       </section>
       }
     }

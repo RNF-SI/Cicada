@@ -387,6 +387,23 @@ export class SuiviSaisieComponent implements OnInit {
     }
   }
 
+  /**
+   * Mesure retenue pour une année : la PLUS RÉCENTE (date_mesure, puis date_ajout).
+   * Une métrique peut avoir plusieurs mesures la même année ; on choisit
+   * déterministiquement la dernière, pour être cohérent avec la page globale
+   * de l'action et la page globale de l'indicateur.
+   */
+  private latestMesureForYear(mesures: Mesure[], year: number): Mesure | undefined {
+    return mesures
+      .filter(mm => mm.date_mesure && new Date(mm.date_mesure).getFullYear() === year)
+      .sort((a, b) => {
+        const da = new Date(a.date_mesure!).getTime();
+        const db = new Date(b.date_mesure!).getTime();
+        if (db !== da) return db - da;
+        return new Date(b.date_ajout ?? 0).getTime() - new Date(a.date_ajout ?? 0).getTime();
+      })[0];
+  }
+
   /** Reconstruit le FormArray des indicateurs depuis les métriques liées. */
   private hydrateIndicateursArray(): void {
     const fa = this.indicateursFA;
@@ -398,7 +415,7 @@ export class SuiviSaisieComponent implements OnInit {
 
     for (const met of op.metriques) {
       const mesures = this.mesuresByMetrique.get(met.id_metrique) ?? [];
-      const existing = mesures.find(mm => mm.date_mesure && new Date(mm.date_mesure).getFullYear() === year);
+      const existing = this.latestMesureForYear(mesures, year);
 
       fa.push(this.fb.group({
         id_metrique: [met.id_metrique],
@@ -505,9 +522,7 @@ export class SuiviSaisieComponent implements OnInit {
     for (const ctrl of this.indicateursFA.controls) {
       const metId = ctrl.get('id_metrique')?.value;
       const mesures = this.mesuresByMetrique.get(metId) ?? [];
-      const existing = mesures.find(
-        mm => mm.date_mesure && new Date(mm.date_mesure).getFullYear() === year
-      );
+      const existing = this.latestMesureForYear(mesures, year);
       ctrl.patchValue(
         { id_mesure: existing?.id_mesure ?? null, valeur: existing?.valeur ?? '' },
         { emitEvent: false },

@@ -71,10 +71,11 @@ export class ActionGlobalComponent implements OnInit {
 
   /**
    * #356 — Section affichée sous la réalisation globale, via un toggle façon
-   * tableau de bord : « Indicateurs de réponse » ou « Budget & RH ».
+   * tableau de bord : « Indicateurs de réponse » ou « Récapitulatif »
+   * (budget/RH + récapitulatif annuel). « Récapitulatif » est l'onglet par défaut.
    */
-  activeSection = signal<'reponse' | 'budget'>('reponse');
-  setSection(s: 'reponse' | 'budget'): void { this.activeSection.set(s); }
+  activeSection = signal<'reponse' | 'recap'>('recap');
+  setSection(s: 'reponse' | 'recap'): void { this.activeSection.set(s); }
 
   legendItems = ACTION_LEGEND_ITEMS;
 
@@ -115,9 +116,19 @@ export class ActionGlobalComponent implements OnInit {
       m => (m.indicateur_type || '').toUpperCase() === 'REPONSE');
     const map = this.mesuresByMetrique();
     return reps.map(m => {
+      // Une métrique peut avoir plusieurs mesures la même année : on retient la
+      // PLUS RÉCENTE (date_mesure), pour être cohérent avec le formulaire de suivi.
       const byYear = new Map<number, string>();
+      const bestTs = new Map<number, number>();
       for (const mes of (map.get(m.id_metrique) || [])) {
-        if (mes.date_mesure) byYear.set(new Date(mes.date_mesure).getFullYear(), mes.valeur);
+        if (!mes.date_mesure) continue;
+        const d = new Date(mes.date_mesure);
+        const y = d.getFullYear();
+        const t = d.getTime();
+        if (!bestTs.has(y) || t >= (bestTs.get(y) as number)) {
+          bestTs.set(y, t);
+          byYear.set(y, mes.valeur);
+        }
       }
       return {
         id_metrique: m.id_metrique,

@@ -2036,6 +2036,7 @@
         },
         "responseTitle": "Indicateurs de réponse",
         "responseHint": "Cliquez sur une valeur pour la saisir ou la modifier dans le formulaire de suivi de l'année correspondante.",
+        "recapTab": "Récapitulatif",
         "resourcesTitle": "Budget & temps de travail",
         "goToSaisie": "Saisir cette année dans le formulaire de suivi",
         "indicateur": "Indicateur",
