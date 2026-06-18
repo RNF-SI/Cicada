@@ -2032,8 +2032,10 @@
         "statut": {
           "realise": "Réalisé",
           "partiel": "Partiellement réalisé",
-          "nonRealise": "Non réalisé"
+          "nonRealise": "Non réalisé",
+          "aEvaluer": "À évaluer"
         },
+        "evalPrompt": "La réalisation globale est déterminée automatiquement à partir des suivis annuels, sur l'ensemble de la période de l'action. Vous pouvez l'ajuster manuellement si besoin.",
         "responseTitle": "Indicateurs de réponse",
         "responseHint": "Cliquez sur une valeur pour la saisir ou la modifier dans le formulaire de suivi de l'année correspondante.",
         "recapTab": "Récapitulatif",
@@ -2044,13 +2046,12 @@
         "cible": "Cible",
         "calc": {
           "title": "Comment la réalisation globale est-elle calculée ?",
-          "intro": "La réalisation globale est calculée automatiquement à partir des niveaux de réalisation saisis sur les années programmées de l'action :",
-          "rule1": "Toutes les années programmées sont « Terminé » → Terminé",
-          "rule2": "Au moins une année « Terminé » ou « En cours », sans que toutes soient terminées → En cours",
-          "rule3": "Uniquement des « Partiel » → Partiel",
-          "rule4": "Uniquement « Abandonné », « Reporté » ou « Non réalisée » → ce même statut",
-          "rule5": "Aucune réalisation saisie sur les années programmées → Non démarré",
-          "manual": "Un gestionnaire peut forcer manuellement ce statut (badge « manuel ») ; la surcharge prime alors sur le calcul automatique."
+          "intro": "La réalisation globale exprime, sur l'ENSEMBLE de la période de l'action, si elle a été menée à bien — ce n'est pas un avancement « à ce jour ». Elle est déterminée automatiquement à partir des réalisations saisies année par année, mais uniquement dans les cas nets (tant que la période n'est pas écoulée, le calcul ne conclut généralement pas). Vous pouvez l'ajuster manuellement si besoin :",
+          "rule1": "Toutes les années programmées sont « Terminé » → Réalisé",
+          "rule2": "Uniquement des « Partiel » → Partiellement réalisé",
+          "rule3": "Uniquement « Abandonné », « Reporté » ou « Non réalisée » → Non réalisé",
+          "rule4": "Dans tous les autres cas (années encore à venir, situation mixte…) → aucune réalisation globale n'est affichée : à évaluer manuellement.",
+          "manual": "Un gestionnaire peut fixer manuellement la réalisation globale (Réalisé / Partiellement réalisé / Non réalisé) ; la surcharge prime alors sur le calcul automatique."
         },
         "auto": "Automatique",
         "manuel": "manuel",

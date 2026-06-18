@@ -224,22 +224,64 @@
 // #379 — icône de statut de réalisation (réutilise les assets du tableau)
 .action-status-icon { width: 28px; height: 28px; object-fit: contain; vertical-align: middle; }
 
-// #379 — résultat global (icône + libellé) + surcharge manuelle
+// #356 — Le panneau « Réalisation globale » signale qu'une évaluation est attendue
+.realisation-panel {
+  border-left: 4px solid $primary-color;
+}
+.realisation-card {
+  display: flex; flex-direction: column; gap: $spacing-sm;
+}
+
+// #379/#356 — résultat global (icône + libellé) ou invite « à évaluer »
 .global-result {
   display: flex; align-items: center; gap: $spacing-sm;
-  .global-result-label { font-weight: 700; color: $black; }
+  margin-top: $spacing-xs;
+  .global-result-label { font-size: 1.2rem; font-weight: 700; color: $black; }
   .manuel-tag {
     margin-left: $spacing-xs; font-weight: 500; font-size: 0.7rem;
     color: $gray-dark; text-transform: uppercase; letter-spacing: 0.5px;
   }
+  .action-status-icon { width: 34px; height: 34px; }
 }
+
+// #356 — État « à évaluer » : pastille kit UI (jaune brouillon, texte noir — AA)
+.a-evaluer-badge {
+  display: inline-flex; align-items: center; gap: $spacing-xs;
+  padding: $spacing-xxs $spacing-md;
+  background: $secondary-yellow;
+  color: $black;
+  border-radius: $border-radius-pill;
+  font-weight: 700; font-size: 0.95rem;
+  i { font-size: 14px; }
+}
+
+// #356 — Invite à la saisie : ligne d'aide contextuelle (couleur primaire)
+.eval-prompt {
+  display: flex; align-items: flex-start; gap: $spacing-xs;
+  margin-top: $spacing-md;
+  padding: $spacing-sm $spacing-md;
+  background: $primary-bg-subtle;
+  border-radius: $border-radius-sm;
+  color: $primary-color;
+  font-size: 0.88rem;
+  i { font-size: 15px; margin-top: 1px; flex-shrink: 0; }
+}
+
+// #356 — Groupe de choix de la réalisation globale (saisie attendue)
 .global-override {
-  display: flex; flex-wrap: wrap; align-items: center; gap: $spacing-xs;
+  display: flex; flex-wrap: wrap; align-items: center; gap: $spacing-sm;
   margin-top: $spacing-sm;
-  .override-btn.active {
-    background: $primary-color;
-    color: $white;
+
+  .override-btn {
+    i { font-size: 13px; margin-right: 2px; }
+    &.active {
+      background: $primary-color;
+      color: $white;
+      font-weight: 700;
+      box-shadow: 0 1px 3px rgba($primary-color, 0.35);
+    }
   }
+  .override-auto { margin-left: $spacing-xs; }
 }
 
 // #356 — Commentaire global

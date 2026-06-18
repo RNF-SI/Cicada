@@ -50,31 +50,47 @@
       <section class="content-section">
 
         <!-- ===== Bloc 1 : Réalisation globale ===== -->
-        <div class="global-panel">
-          <div class="summary-card realisation-card">
+        <div class="global-panel realisation-panel">
+          <div class="realisation-card">
             <span class="summary-label">{{ 'plans.suivis.actionGlobal.realisation' | translate }}</span>
-            <div class="global-result">
-              <img [src]="globalIcon(op.niveau_realisation_global_mnemonique)"
-                   class="action-status-icon"
-                   [alt]="globalLabelKey(op.niveau_realisation_global_mnemonique) | translate">
-              <span class="global-result-label">
-                {{ globalLabelKey(op.niveau_realisation_global_mnemonique) | translate }}
-                @if (op.niveau_realisation_global_manuel) {
-                  <small class="manuel-tag">{{ 'plans.suivis.actionGlobal.manuel' | translate }}</small>
-                }
-              </span>
+
+            <!-- État courant : statut conclu, ou invite « à évaluer » -->
+            <div class="global-result" [class.is-a-evaluer]="isAEvaluer()">
+              @if (isAEvaluer()) {
+                <span class="a-evaluer-badge">
+                  <i class="fi fi-rr-pencil"></i>
+                  {{ 'plans.suivis.actionGlobal.statut.aEvaluer' | translate }}
+                </span>
+              } @else {
+                <img [src]="globalStateIcon()" class="action-status-icon"
+                     [alt]="globalStateLabelKey() | translate">
+                <span class="global-result-label">
+                  {{ globalStateLabelKey() | translate }}
+                  @if (op.niveau_realisation_global_manuel) {
+                    <small class="manuel-tag">{{ 'plans.suivis.actionGlobal.manuel' | translate }}</small>
+                  }
+                </span>
+              }
             </div>
-            <!-- #379 — surcharge manuelle (gestionnaires) -->
+
+            <!-- #356 — surcharge manuelle (gestionnaires) : saisie attendue -->
             @if (canManageGlobal()) {
-              <div class="global-override">
+              <div class="eval-prompt">
+                <i class="fi fi-rr-info"></i>
+                <span>{{ 'plans.suivis.actionGlobal.evalPrompt' | translate }}</span>
+              </div>
+              <div class="global-override" role="group"
+                   [attr.aria-label]="'plans.suivis.actionGlobal.realisation' | translate">
                 @for (r of manualResults; track r.value) {
                   <button mat-stroked-button color="primary" class="override-btn"
                           [class.active]="isCurrentResult(r.value)"
                           (click)="setGlobalManuel(r.value)">
+                    @if (isCurrentResult(r.value)) { <i class="fi fi-rr-check"></i> }
                     {{ r.labelKey | translate }}
                   </button>
                 }
-                <button mat-button color="primary" (click)="setGlobalManuel(null)">
+                <button mat-button color="primary" class="override-auto"
+                        (click)="setGlobalManuel(null)">
                   {{ 'plans.suivis.actionGlobal.auto' | translate }}
                 </button>
               </div>
@@ -108,24 +124,23 @@
               <li>{{ 'plans.suivis.actionGlobal.calc.rule2' | translate }}</li>
               <li>{{ 'plans.suivis.actionGlobal.calc.rule3' | translate }}</li>
               <li>{{ 'plans.suivis.actionGlobal.calc.rule4' | translate }}</li>
-              <li>{{ 'plans.suivis.actionGlobal.calc.rule5' | translate }}</li>
             </ul>
             <p class="calc-note">{{ 'plans.suivis.actionGlobal.calc.manual' | translate }}</p>
           </details>
         </div>
 
-        <!-- ===== Toggle : Indicateurs de réponse / Récapitulatif (style tableau de bord) ===== -->
+        <!-- ===== Toggle : Récapitulatif (gauche, défaut) / Indicateurs de réponse (droite) ===== -->
         @if (responseIndicators().length > 0) {
           <div class="view-toggle">
-            <button class="toggle-btn"
-                    [class.active]="activeSection() === 'reponse'"
-                    (click)="setSection('reponse')">
-              {{ 'plans.suivis.actionGlobal.responseTitle' | translate }}
-            </button>
             <button class="toggle-btn"
                     [class.active]="activeSection() === 'recap'"
                     (click)="setSection('recap')">
               {{ 'plans.suivis.actionGlobal.recapTab' | translate }}
+            </button>
+            <button class="toggle-btn"
+                    [class.active]="activeSection() === 'reponse'"
+                    (click)="setSection('reponse')">
+              {{ 'plans.suivis.actionGlobal.responseTitle' | translate }}
             </button>
           </div>
         }

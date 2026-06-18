@@ -223,23 +223,48 @@ export class ActionGlobalComponent implements OnInit {
     }
   }
 
-  // --- Statut global (3 icônes) ---
+  // --- Statut global ---
   getActionIcon(status: ActionStatus | null): string { return getActionIcon(status); }
 
-  /** Ramène le niveau global aux 3 icônes (TERMINE/PARTIEL/reste). */
-  globalIcon(mnemonique: string | null | undefined): string {
-    switch (mnemonique) {
-      case 'TERMINE': return 'assets/images/icons/realise.png';
-      case 'PARTIEL': return 'assets/images/icons/partiellement-realise.png';
-      default: return 'assets/images/icons/non-realise-seul.svg';
+  /**
+   * État global affiché. La réalisation globale est une appréciation sur TOUTE
+   * la période de l'action — pas un avancement « à ce jour ». Les états temporels
+   * du calcul (« en cours », « non démarré ») ne concluent donc rien : on renvoie
+   * `a_evaluer`, qui invite à une évaluation manuelle plutôt que d'afficher un
+   * statut trompeur.
+   */
+  globalState(): 'realise' | 'partiel' | 'non_realise' | 'a_evaluer' {
+    const m = this.operation()?.niveau_realisation_global_mnemonique;
+    switch (m) {
+      case 'TERMINE': return 'realise';
+      case 'PARTIEL': return 'partiel';
+      case 'ABANDONNE':
+      case 'REPORTE':
+      case 'NON_REALISE': return 'non_realise';
+      default: return 'a_evaluer'; // NON_DEMARRE, EN_COURS, null → rien de conclu
     }
   }
 
-  globalLabelKey(mnemonique: string | null | undefined): string {
-    switch (mnemonique) {
-      case 'TERMINE': return 'plans.suivis.actionGlobal.statut.realise';
-      case 'PARTIEL': return 'plans.suivis.actionGlobal.statut.partiel';
-      default: return 'plans.suivis.actionGlobal.statut.nonRealise';
+  /** Vrai quand aucune conclusion automatique n'est possible (à évaluer). */
+  isAEvaluer(): boolean { return this.globalState() === 'a_evaluer'; }
+
+  /** Icône du statut global affiché (vide pour « à évaluer »). */
+  globalStateIcon(): string {
+    switch (this.globalState()) {
+      case 'realise': return 'assets/images/icons/realise.png';
+      case 'partiel': return 'assets/images/icons/partiellement-realise.png';
+      case 'non_realise': return 'assets/images/icons/non-realise-seul.svg';
+      default: return '';
+    }
+  }
+
+  /** Clé i18n du libellé du statut global affiché. */
+  globalStateLabelKey(): string {
+    switch (this.globalState()) {
+      case 'realise': return 'plans.suivis.actionGlobal.statut.realise';
+      case 'partiel': return 'plans.suivis.actionGlobal.statut.partiel';
+      case 'non_realise': return 'plans.suivis.actionGlobal.statut.nonRealise';
+      default: return 'plans.suivis.actionGlobal.statut.aEvaluer';
     }
   }
 
