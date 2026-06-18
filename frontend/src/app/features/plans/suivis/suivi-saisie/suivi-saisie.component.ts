@@ -466,10 +466,36 @@ export class SuiviSaisieComponent implements OnInit {
   selectYear(year: number): void {
     this.selectedYear.set(year);
     this.hydrateFormFromCurrentYear();
+    // Les indicateurs de réponse sont saisis par année : recharger la mesure
+    // correspondant à la nouvelle année. On PATCHE les contrôles existants
+    // (sans reconstruire le FormArray) car le `@for (track id_metrique)` du
+    // template réutiliserait les inputs sans les relier aux nouveaux contrôles.
+    this.refreshIndicateursForYear();
     // Réinitialiser l'emprise en cours d'édition (chaque année a sa propre
     // emprise réalisée).
     this.pendingGeomRealisee.set(undefined);
     this.isEditingGeom.set(false);
+  }
+
+  /**
+   * Met à jour, sur place, la valeur réalisée + l'id_mesure de chaque
+   * indicateur de réponse pour l'année sélectionnée. Les mesures sont déjà
+   * en cache (mesuresByMetrique), donc aucun appel API.
+   */
+  private refreshIndicateursForYear(): void {
+    const year = this.selectedYear();
+    for (const ctrl of this.indicateursFA.controls) {
+      const metId = ctrl.get('id_metrique')?.value;
+      const mesures = this.mesuresByMetrique.get(metId) ?? [];
+      const existing = mesures.find(
+        mm => mm.date_mesure && new Date(mm.date_mesure).getFullYear() === year
+      );
+      ctrl.patchValue(
+        { id_mesure: existing?.id_mesure ?? null, valeur: existing?.valeur ?? '' },
+        { emitEvent: false },
+      );
+    }
+    this.applyReadOnlyLock();
   }
 
   goBack(): void {
