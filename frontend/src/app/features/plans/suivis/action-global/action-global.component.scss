@@ -148,6 +148,23 @@
   }
 }
 
+// #356 — Commentaire global
+.comment-label {
+  display: block; margin-top: $spacing-md; margin-bottom: $spacing-xs;
+  font-size: 0.85rem; font-weight: 600; color: $primary-color;
+}
+.comment-textarea {
+  width: 100%; box-sizing: border-box;
+  border: 1px solid $gray-light; border-radius: $border-radius-sm;
+  padding: $spacing-sm; font-family: inherit; font-size: 0.9rem; resize: vertical;
+  &:focus { outline: none; border-color: $primary-color; }
+}
+.comment-actions { margin-top: $spacing-sm; text-align: right; }
+.comment-readonly {
+  white-space: pre-wrap; color: $black; margin: $spacing-sm 0 0;
+  font-size: 0.9rem;
+}
+
 // #379 — légende des statuts
 .legend {
   display: flex; align-items: center; flex-wrap: wrap; gap: $spacing-md;

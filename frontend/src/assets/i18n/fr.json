@@ -2027,7 +2027,11 @@
         "indicateur": "Indicateur",
         "metrique": "Métrique",
         "auto": "Automatique",
-        "manuel": "manuel"
+        "manuel": "manuel",
+        "commentLabel": "Commentaire global (optionnel)",
+        "commentPlaceholder": "Précisez le contexte de la réalisation globale de l'action…",
+        "saveComment": "Enregistrer le commentaire",
+        "commentSaved": "Commentaire enregistré"
       }
     },
     "mindmap": {

@@ -1,10 +1,12 @@
 import { Component, OnInit, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterModule } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { TranslateModule } from '@ngx-translate/core';
+import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { HeaderComponent } from '../../../../shared/components/header/header.component';
 import { PlanSidebarComponent } from '../../shared/plan-sidebar/plan-sidebar.component';
 import { AdminService } from '../../../../core/services/admin.service';
@@ -44,7 +46,7 @@ type ManualResult = 'TERMINE' | 'PARTIEL' | 'NON_REALISE';
   selector: 'app-action-global',
   standalone: true,
   imports: [
-    CommonModule, RouterModule, MatButtonModule, MatProgressSpinnerModule,
+    CommonModule, FormsModule, RouterModule, MatButtonModule, MatProgressSpinnerModule,
     MatTooltipModule, TranslateModule, HeaderComponent, PlanSidebarComponent
   ],
   templateUrl: './action-global.component.html',
@@ -55,12 +57,17 @@ export class ActionGlobalComponent implements OnInit {
   private readonly adminService = inject(AdminService);
   private readonly authService = inject(AuthService);
   private readonly enjeuService = inject(EnjeuService);
+  private readonly snackBar = inject(MatSnackBar);
+  private readonly translate = inject(TranslateService);
 
   planId = signal<number | null>(null);
   planSlug = signal<string | null>(null);
   isLoading = signal(true);
   errorMessage = signal<string | null>(null);
   operation = signal<Operation | null>(null);
+
+  /** #356 — Commentaire global (textarea), non obligatoire. */
+  commentaire = signal<string>('');
 
   legendItems = ACTION_LEGEND_ITEMS;
 
@@ -169,6 +176,7 @@ export class ActionGlobalComponent implements OnInit {
       this.enjeuService.getOperation(opId).subscribe({
         next: (op) => {
           this.operation.set(op);
+          this.commentaire.set((op as any).niveau_realisation_global_commentaire ?? '');
           this.isLoading.set(false);
           this.loadResponseMesures(op);
         },
@@ -224,22 +232,54 @@ export class ActionGlobalComponent implements OnInit {
       && op?.niveau_realisation_global_mnemonique === value;
   }
 
-  /** Pose (value) ou retire (null = automatique) la surcharge du résultat global. */
+  /**
+   * Pose (value) ou retire (null = automatique) la surcharge du résultat global.
+   * Le commentaire courant est préservé (#356).
+   */
   setGlobalManuel(value: ManualResult | null): void {
     const op = this.operation();
     if (!op) return;
     const niveauId = value === null ? null : (this.niveauIdByMnemonique().get(value) ?? null);
     if (value !== null && niveauId === null) return;
-    this.enjeuService.setGlobalRealisation(op.id_operation, niveauId).subscribe({
+    const comment = this.commentaire().trim();
+    // Auto sans commentaire → suppression complète ; sinon on conserve le commentaire.
+    const commentArg = (value === null && !comment) ? undefined : comment;
+    this.enjeuService.setGlobalRealisation(op.id_operation, niveauId, commentArg).subscribe({
+      next: (res) => this.applyGlobalResponse(res),
+    });
+  }
+
+  /** #356 — Enregistre le commentaire seul (sans toucher au statut forcé). */
+  saveComment(): void {
+    const op = this.operation();
+    if (!op) return;
+    // Conserve le niveau forcé courant le cas échéant (commentaire indépendant).
+    const niveauId = op.niveau_realisation_global_manuel
+      ? (this.niveauIdByMnemonique().get(op.niveau_realisation_global_mnemonique || '') ?? null)
+      : null;
+    this.enjeuService.setGlobalRealisation(op.id_operation, niveauId, this.commentaire().trim()).subscribe({
       next: (res) => {
-        this.operation.update(cur => cur ? {
-          ...cur,
-          niveau_realisation_global_mnemonique: res.niveau_realisation_global_mnemonique,
-          niveau_realisation_global_label: res.niveau_realisation_global_label,
-          niveau_realisation_global_manuel: res.niveau_realisation_global_manuel,
-        } : cur);
+        this.applyGlobalResponse(res);
+        this.snackBar.open(
+          this.translate.instant('plans.suivis.actionGlobal.commentSaved'),
+          this.translate.instant('common.actions.close'),
+          { duration: 2500 }
+        );
       }
     });
+  }
+
+  private applyGlobalResponse(res: { niveau_realisation_global_mnemonique: string | null;
+                                     niveau_realisation_global_label: string | null;
+                                     niveau_realisation_global_manuel: boolean;
+                                     niveau_realisation_global_commentaire?: string | null; }): void {
+    this.operation.update(cur => cur ? {
+      ...cur,
+      niveau_realisation_global_mnemonique: res.niveau_realisation_global_mnemonique,
+      niveau_realisation_global_label: res.niveau_realisation_global_label,
+      niveau_realisation_global_manuel: res.niveau_realisation_global_manuel,
+      niveau_realisation_global_commentaire: res.niveau_realisation_global_commentaire ?? '',
+    } as Operation : cur);
   }
 
   // --- Agrégation budget selon le mode de ventilation ---

@@ -106,6 +106,21 @@
                   {{ 'plans.suivis.actionGlobal.auto' | translate }}
                 </button>
               </div>
+
+              <!-- #356 — Commentaire global (non obligatoire, indépendant du forçage) -->
+              <label class="comment-label" for="action-global-comment">
+                {{ 'plans.suivis.actionGlobal.commentLabel' | translate }}
+              </label>
+              <textarea id="action-global-comment" class="comment-textarea" rows="3"
+                        [ngModel]="commentaire()" (ngModelChange)="commentaire.set($event)"
+                        [placeholder]="'plans.suivis.actionGlobal.commentPlaceholder' | translate"></textarea>
+              <div class="comment-actions">
+                <button mat-stroked-button color="primary" (click)="saveComment()">
+                  {{ 'plans.suivis.actionGlobal.saveComment' | translate }}
+                </button>
+              </div>
+            } @else if (op.niveau_realisation_global_commentaire) {
+              <p class="comment-readonly">{{ op.niveau_realisation_global_commentaire }}</p>
             }
           </div>
 

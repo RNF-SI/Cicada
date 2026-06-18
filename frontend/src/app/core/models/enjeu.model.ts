@@ -664,6 +664,7 @@ export interface Operation {
   niveau_realisation_global_mnemonique?: string | null;
   niveau_realisation_global_label?: string | null;
   niveau_realisation_global_manuel?: boolean;
+  niveau_realisation_global_commentaire?: string | null;
   date_ajout: string;
   date_maj: string;
   createur_nom?: string;
