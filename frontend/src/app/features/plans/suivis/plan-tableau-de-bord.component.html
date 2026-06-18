@@ -98,15 +98,9 @@
           </button>
         </div>
 
-        <!-- Filters (#356) -->
+        <!-- Filters (#356) — alignés sur « Suivi des actions » : filtres puis recherche, une ligne -->
         <div class="filter-bar">
           <div class="filter-bar-left">
-            <app-search-bar class="tdb-search"
-              [value]="filterName()"
-              (valueChange)="filterName.set($event)"
-              [placeholder]="'plans.suivis.tableauDeBord.searchPlaceholder' | translate"
-              [ariaLabel]="'plans.suivis.tableauDeBord.searchPlaceholder' | translate">
-            </app-search-bar>
             <div class="filter-label">{{ 'plans.suivis.tableauDeBord.filterLabel' | translate }}</div>
             <div class="filter-buttons">
               <!-- Nom d'objectif -->
@@ -147,6 +141,13 @@
               }
             </div>
           </div>
+          <!-- Recherche textuelle après les filtres (style Suivi des actions) -->
+          <app-search-bar class="tdb-search"
+            [value]="filterName()"
+            (valueChange)="filterName.set($event)"
+            [placeholder]="'plans.suivis.tableauDeBord.searchPlaceholder' | translate"
+            [ariaLabel]="'plans.suivis.tableauDeBord.searchPlaceholder' | translate">
+          </app-search-bar>
         </div>
 
         <!-- Légende -->

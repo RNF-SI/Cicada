@@ -238,11 +238,12 @@
   }
 }
 
-// Filter bar
+// Filter bar — alignée sur « Suivi des actions » : filtres à gauche, recherche
+// à droite occupant la largeur restante, le tout sur une seule ligne.
 .filter-bar {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: $spacing-md;
   margin-bottom: $spacing-md;
 }
 
@@ -250,7 +251,7 @@
   display: flex;
   align-items: center;
   gap: 0;
-  flex-wrap: wrap;
+  flex: 0 0 auto;
 }
 
 .filter-label {
@@ -512,8 +513,8 @@
 // #356 — barre de recherche du tableau de bord
 .tdb-search {
   display: block;
-  max-width: 280px;
-  margin-right: $spacing-md;
+  flex: 1 1 auto;
+  min-width: 200px;
 }
 
 // Indicator row
@@ -667,6 +668,7 @@
     align-items: flex-start;
     gap: $spacing-sm;
   }
+  .tdb-search { width: 100%; }
 
   .legend {
     flex-direction: column;
