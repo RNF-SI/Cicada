@@ -284,33 +284,16 @@
                               }
                             </td>
                           }
-                          <!-- #355 — Statut de réalisation GLOBAL (sur la période) -->
+                          <!-- #379 — Réalisation GLOBALE : 1 des 3 icônes, cliquable → page globale -->
                           <td class="col-global">
-                            @if (item.operation.niveau_realisation_global_mnemonique; as gm) {
-                              @if (canManageGlobal()) {
-                                <button type="button" class="global-status-trigger"
-                                        [matMenuTriggerFor]="globalMenu"
-                                        [matMenuTriggerData]="{ op: item.operation }"
-                                        [matTooltip]="(item.operation.niveau_realisation_global_manuel
-                                           ? 'plans.suivis.actions.globalStatus.tooltipManuel'
-                                           : 'plans.suivis.actions.globalStatus.tooltipAuto') | translate">
-                                  <app-tag size="sm"
-                                           [variant]="globalTagVariant(gm)"
-                                           [label]="('plans.suivis.actions.globalStatus.niveau.' + gm) | translate"
-                                           [icon]="item.operation.niveau_realisation_global_manuel ? 'fi-rr-pencil' : ''"></app-tag>
-                                </button>
-                              } @else {
-                                <app-tag size="sm"
-                                         [variant]="globalTagVariant(gm)"
-                                         [label]="('plans.suivis.actions.globalStatus.niveau.' + gm) | translate"></app-tag>
-                              }
-                            }
-                            <!-- #379 — accès à la page globale de l'action -->
-                            <button type="button" class="icon-btn-flat global-page-btn"
-                                    [title]="'plans.suivis.actionGlobal.openTooltip' | translate"
-                                    [routerLink]="['/plans', planSlug(), 'suivi-actions', 'action', item.operation.id_operation]">
-                              <i class="fi fi-rr-chart-histogram"></i>
-                            </button>
+                            <a class="global-icon-link"
+                               [routerLink]="['/plans', planSlug(), 'suivi-actions', 'action', item.operation.id_operation]"
+                               [matTooltip]="(globalRealisationLabelKey(item.operation.niveau_realisation_global_mnemonique) | translate)
+                                  + ' — ' + ('plans.suivis.actionGlobal.openTooltip' | translate)">
+                              <img [src]="globalRealisationIcon(item.operation.niveau_realisation_global_mnemonique)"
+                                   class="action-status-icon"
+                                   [alt]="globalRealisationLabelKey(item.operation.niveau_realisation_global_mnemonique) | translate">
+                            </a>
                           </td>
                           <td class="col-icons">
                             <div class="row-actions">
@@ -332,21 +315,6 @@
                   </tbody>
                 </table>
               </div>
-
-              <!-- #355 — Menu de surcharge du niveau global (gestionnaires) -->
-              <mat-menu #globalMenu="matMenu">
-                <ng-template matMenuContent let-op="op">
-                  <button mat-menu-item (click)="setGlobalRealisation(op, null)">
-                    <i class="fi fi-rr-refresh"></i>
-                    {{ 'plans.suivis.actions.globalStatus.auto' | translate }}
-                  </button>
-                  @for (n of niveauGlobalOptions; track n) {
-                    <button mat-menu-item (click)="setGlobalRealisation(op, n)">
-                      {{ ('plans.suivis.actions.globalStatus.niveau.' + n) | translate }}
-                    </button>
-                  }
-                </ng-template>
-              </mat-menu>
             }
 
             <!-- ============================================================ -->
