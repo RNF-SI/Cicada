@@ -155,6 +155,7 @@ export class FcrFormComponent implements OnInit {
           { id: 0, mnemonique: 'CONNAISSANCE', label: 'Connaissance', translateKey: 'enjeux.fcrForm.connaissance' },
           { id: 0, mnemonique: 'ANCRAGE', label: 'Ancrage territorial', translateKey: 'enjeux.fcrForm.ancrage' },
           { id: 0, mnemonique: 'FONCTIONNEMENT', label: 'Fonctionnement de l\'aire protégée', translateKey: 'enjeux.fcrForm.fonctionnement' },
+          { id: 0, mnemonique: 'SURVEILLANCE', label: 'Surveillance', translateKey: 'enjeux.fcrForm.surveillance' },
           { id: 0, mnemonique: 'AUTRE', label: 'Autre', translateKey: 'enjeux.fcrForm.autre' }
         ]);
         this.loadFcrIfEdit();
@@ -167,6 +168,7 @@ export class FcrFormComponent implements OnInit {
       'CONNAISSANCE': 'enjeux.fcrForm.connaissance',
       'ANCRAGE': 'enjeux.fcrForm.ancrage',
       'FONCTIONNEMENT': 'enjeux.fcrForm.fonctionnement',
+      'SURVEILLANCE': 'enjeux.fcrForm.surveillance',
       'AUTRE': 'enjeux.fcrForm.autre'
     };
     return mapping[mnemonique] || 'enjeux.fcrForm.autre';

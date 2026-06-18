@@ -2,7 +2,7 @@ import { Injectable, inject, signal, computed } from '@angular/core';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { Observable, BehaviorSubject, throwError, of } from 'rxjs';
-import { tap, catchError, map, switchMap } from 'rxjs/operators';
+import { tap, catchError, map, switchMap, finalize, shareReplay } from 'rxjs/operators';
 import {
   User,
   AuthTokens,
@@ -32,6 +32,9 @@ export class AuthService {
   private readonly apiUrl = '/api/auth';
 
   // State management with signals
+  /** Appel /refresh/ en cours, partagé entre les requêtes concurrentes (#103). */
+  private refreshInFlight$: Observable<string> | null = null;
+
   private currentUserSignal = signal<User | null>(null);
   private isLoadingSignal = signal<boolean>(false);
   private isInitializedSignal = signal<boolean>(false);
@@ -100,7 +103,12 @@ export class AuthService {
       const thirtyMinutesAgo = Date.now() - (30 * 60 * 1000);
 
       if (!lastVerified || parseInt(lastVerified, 10) < thirtyMinutesAgo) {
-        this.verifyToken().subscribe();
+        // #364 — Vérification de fond NON destructive : un échec transitoire
+        // (token d'accès expiré + course de rotation, hoquet backend pendant un
+        // déploiement, blip réseau) ne doit pas déconnecter ni rediriger vers
+        // l'accueil. On garde la session en cache ; l'intercepteur tranchera sur
+        // un vrai 401 lors de la prochaine action utilisateur.
+        this.verifyToken(true).subscribe();
       }
     } else {
       this.isInitializedSignal.set(true);
@@ -108,9 +116,15 @@ export class AuthService {
   }
 
   /**
-   * Verify current token by calling the /me endpoint
+   * Verify current token by calling the /me endpoint.
+   *
+   * @param background Vérification de fond (bootstrap au rafraîchissement de
+   *   page). Dans ce mode, un échec n'est JAMAIS destructif : on conserve la
+   *   session en cache, sans appeler `clearAuthData()` ni rediriger (#364).
+   *   La déconnexion réelle reste pilotée par l'intercepteur HTTP sur un 401
+   *   d'une requête déclenchée par l'utilisateur.
    */
-  verifyToken(): Observable<User | null> {
+  verifyToken(background = false): Observable<User | null> {
     const tokens = this.getStoredTokens();
     if (!tokens) {
       return of(null);
@@ -122,8 +136,15 @@ export class AuthService {
         this.storeUser(user);
         this.updateVerificationTimestamp();
       }),
+      map(user => user as User | null),
       catchError(() => {
-        // Token invalid, try refresh or logout
+        // #364 — En mode fond, ne pas déclencher de logout/redirection sur un
+        // échec transitoire : on garde l'utilisateur en cache tel quel.
+        if (background) {
+          return of(this.currentUserSignal());
+        }
+
+        // Token invalid (chemin explicite), try refresh or logout
         return this.refreshToken().pipe(
           switchMap(() => this.http.get<User>(`${this.apiUrl}/me/`)),
           tap(user => {
@@ -131,6 +152,7 @@ export class AuthService {
             this.storeUser(user);
             this.updateVerificationTimestamp();
           }),
+          map(user => user as User | null),
           catchError(() => {
             this.clearAuthData();
             return of(null);
@@ -171,6 +193,43 @@ export class AuthService {
   }
 
   /**
+   * #329 — Demande de réinitialisation de mot de passe.
+   * Le backend renvoie toujours un message neutre (il ne révèle pas si un
+   * compte correspond), que l'on relaie tel quel.
+   */
+  requestPasswordReset(email: string): Observable<string> {
+    return this.http
+      .post<{ detail: string }>(`${this.apiUrl}/password-reset/`, { email })
+      .pipe(
+        map(response => response.detail),
+        catchError(error => this.handleError(error))
+      );
+  }
+
+  /**
+   * #329 — Confirme la réinitialisation avec le jeton reçu par email et
+   * applique le nouveau mot de passe.
+   */
+  confirmPasswordReset(uid: string, token: string, newPassword: string): Observable<string> {
+    return this.http
+      .post<{ detail: string }>(`${this.apiUrl}/password-reset/confirm/`, {
+        uid,
+        token,
+        new_password: newPassword,
+      })
+      .pipe(
+        map(response => response.detail),
+        catchError((error: HttpErrorResponse) => {
+          const fieldError = error.error?.new_password?.[0];
+          if (fieldError) {
+            return throwError(() => new Error(fieldError));
+          }
+          return this.handleError(error);
+        })
+      );
+  }
+
+  /**
    * Logout - blacklist refresh token and clear local data
    */
   logout(): Observable<void> {
@@ -195,19 +254,31 @@ export class AuthService {
    * Refresh access token
    */
   refreshToken(): Observable<string> {
+    // Dédoublonnage des refresh concurrents : au rafraîchissement d'une page,
+    // plusieurs requêtes peuvent recevoir un 401 simultanément. Sans cela, on
+    // déclenchait autant d'appels /refresh/ en parallèle — problématique avec
+    // ROTATE_REFRESH_TOKENS + BLACKLIST_AFTER_ROTATION (le 1er invalide le token
+    // des suivants → logout intempestif). On partage donc un seul appel en vol.
+    if (this.refreshInFlight$) {
+      return this.refreshInFlight$;
+    }
+
     const tokens = this.getStoredTokens();
 
     if (!tokens?.refresh) {
       return throwError(() => new Error('No refresh token available'));
     }
 
-    return this.http.post<RefreshResponse>(`${this.apiUrl}/refresh/`, {
+    this.refreshInFlight$ = this.http.post<RefreshResponse>(`${this.apiUrl}/refresh/`, {
       refresh: tokens.refresh
     }).pipe(
       tap(response => {
         const newTokens: AuthTokens = {
           access: response.access,
-          refresh: tokens.refresh
+          // ROTATE_REFRESH_TOKENS=True : le backend renvoie un refresh token
+          // *renouvelé*. On DOIT le stocker (sinon, une fois le blacklist activé,
+          // le prochain refresh réutilise un token invalidé → déconnexion).
+          refresh: response.refresh ?? tokens.refresh
         };
         this.storeTokens(newTokens);
       }),
@@ -215,8 +286,12 @@ export class AuthService {
       catchError(error => {
         this.clearAuthData();
         return throwError(() => error);
-      })
+      }),
+      finalize(() => { this.refreshInFlight$ = null; }),
+      shareReplay(1)
     );
+
+    return this.refreshInFlight$;
   }
 
   /**

@@ -87,6 +87,7 @@ class EnjeuxSeeder(BaseSeeder):
         fcr_connaissance = self._get_nomenclature('CATEGORIE_FCR', 'CONNAISSANCE')
         fcr_ancrage = self._get_nomenclature('CATEGORIE_FCR', 'ANCRAGE')
         fcr_fonctionnement = self._get_nomenclature('CATEGORIE_FCR', 'FONCTIONNEMENT')
+        fcr_surveillance = self._get_nomenclature('CATEGORIE_FCR', 'SURVEILLANCE')  # #370
         fcr_autre = self._get_nomenclature('CATEGORIE_FCR', 'AUTRE')
 
         # Importance / priorité
@@ -721,6 +722,24 @@ class EnjeuxSeeder(BaseSeeder):
             )
             fcr_created.append(fcr)
             self.log_item('créé' if created else 'mis à jour', f'FCR: {fcr.intitule_court}')
+
+            # #370 — FCR de catégorie « Surveillance » (nouvelle catégorie)
+            if fcr_surveillance:
+                fcr, created = Enjeu.objects.update_or_create(
+                    id_pg=plan_camargue,
+                    libelle='Surveillance et police de l\'environnement sur le site',
+                    defaults={
+                        'id_categorie': cat_fcr,
+                        'intitule_court': 'Surveillance',
+                        'id_categorie_fcr': fcr_surveillance,
+                        'description': 'Renforcer la surveillance du territoire et la police de '
+                                       'l\'environnement (lutte contre le braconnage, contrôle de la '
+                                       'fréquentation et des activités sur la réserve).',
+                        'id_utilisateur_ajout': admin
+                    }
+                )
+                fcr_created.append(fcr)
+                self.log_item('créé' if created else 'mis à jour', f'FCR: {fcr.intitule_court}')
 
         # ==================== FCR - AIGUILLES ROUGES (2) ====================
 
@@ -1987,6 +2006,113 @@ class EnjeuxSeeder(BaseSeeder):
             ras_created.append(ra_renouee)
             self.log_item('créé' if created else 'mis à jour', f'RA: {ra_renouee.libelle[:50]}')
 
+        # =====================================================================
+        # Objectifs Opérationnels des FCR — démonstration du modèle FCR
+        # =====================================================================
+        # Évolution du modèle FCR : un OO de FCR est rattaché DIRECTEMENT au FCR
+        # (champ ``id_enjeu``), sans passer par un facteur d'influence ni une
+        # pression — contrairement à un enjeu classique où l'OO descend
+        # obligatoirement d'une pression. Les facteurs/pressions d'un FCR, quand
+        # ils existent, sont purement DESCRIPTIFS et n'ancrent jamais un OO.
+        #
+        # On illustre ici les deux configurations désormais possibles pour un FCR :
+        #   (A) un FCR avec des OO rattachés directement, SANS aucun facteur/pression ;
+        #   (B) un FCR portant des facteurs/pressions DESCRIPTIFS, avec malgré tout
+        #       ses OO rattachés directement au FCR (et non aux pressions).
+
+        # --- (A) FCR Camargue « Connaissance esp. » : OO directs, sans facteur ---
+        fcr_connaissance_camargue = next(
+            (f for f in fcr_created
+             if 'connaissances sur les espèces patrimoniales' in f.libelle.lower()),
+            None
+        )
+        if fcr_connaissance_camargue:
+            # OO rattaché directement au FCR via id_enjeu : aucune pression.
+            oo_fcr_a, created = ObjectifOperationnel.objects.update_or_create(
+                id_enjeu=fcr_connaissance_camargue,
+                libelle='Compléter l\'inventaire des espèces patrimoniales du site',
+                defaults={
+                    'description': 'Mener les campagnes d\'inventaire ciblées (avifaune, '
+                                   'entomofaune, flore) pour combler les lacunes de connaissance. '
+                                   'OO rattaché directement au FCR, sans facteur ni pression.',
+                    'id_utilisateur_ajout': admin
+                }
+            )
+            oos_created.append(oo_fcr_a)
+            self.log_item('créé' if created else 'mis à jour', f'OO (FCR direct): {oo_fcr_a.libelle[:50]}')
+
+            ra_fcr_a, created = ResultatAttendu.objects.update_or_create(
+                id_oo=oo_fcr_a,
+                libelle='Atlas des espèces patrimoniales publié d\'ici 2030',
+                defaults={
+                    'description': 'Un atlas synthétisant les données d\'inventaire est publié '
+                                   'et mis à disposition des partenaires scientifiques.',
+                    'id_utilisateur_ajout': admin
+                }
+            )
+            ras_created.append(ra_fcr_a)
+            self.log_item('créé' if created else 'mis à jour', f'RA: {ra_fcr_a.libelle[:50]}')
+
+        # --- (B) FCR Camargue « Partenariats » : facteurs descriptifs + OO directs ---
+        fcr_partenariats_camargue = next(
+            (f for f in fcr_created
+             if 'renforcement des partenariats locaux' in f.libelle.lower()),
+            None
+        )
+        if fcr_partenariats_camargue:
+            # Facteur d'influence DESCRIPTIF rattaché au FCR (n'ancre aucun OO).
+            fi_fcr, created = FacteurInfluence.objects.update_or_create(
+                id_enjeu=fcr_partenariats_camargue,
+                libelle='Multiplicité des acteurs du territoire',
+                defaults={
+                    'description': 'Le territoire compte de nombreux acteurs (collectivités, '
+                                   'agriculteurs, associations) dont la coordination conditionne '
+                                   'la réussite de la gestion. Facteur purement descriptif.',
+                    'id_utilisateur_ajout': admin
+                }
+            )
+            facteurs_created.append(fi_fcr)
+            self.log_item('créé' if created else 'mis à jour', f'Facteur (FCR): {fi_fcr.libelle[:50]}')
+
+            # Pression DESCRIPTIVE sous ce facteur (toujours sans lien avec l'OO).
+            p_fcr, created = Pression.objects.update_or_create(
+                id_facteur_influence=fi_fcr,
+                libelle='Concurrence des usages sur le foncier',
+                defaults={
+                    'description': 'Les intérêts agricoles, touristiques et de conservation '
+                                   'entrent parfois en concurrence. Élément de contexte.',
+                    'id_utilisateur_ajout': admin
+                }
+            )
+            pressions_created.append(p_fcr)
+
+            # OO rattaché DIRECTEMENT au FCR (id_enjeu) malgré la présence du
+            # facteur/pression ci-dessus : on ne lie surtout pas l'OO à p_fcr.
+            oo_fcr_b, created = ObjectifOperationnel.objects.update_or_create(
+                id_enjeu=fcr_partenariats_camargue,
+                libelle='Formaliser des conventions de partenariat avec les acteurs clés',
+                defaults={
+                    'description': 'Signer des conventions pluriannuelles avec le PNR de Camargue '
+                                   'et les communes riveraines. OO rattaché directement au FCR, '
+                                   'les facteurs/pressions du FCR restant descriptifs.',
+                    'id_utilisateur_ajout': admin
+                }
+            )
+            oos_created.append(oo_fcr_b)
+            self.log_item('créé' if created else 'mis à jour', f'OO (FCR direct): {oo_fcr_b.libelle[:50]}')
+
+            ra_fcr_b, created = ResultatAttendu.objects.update_or_create(
+                id_oo=oo_fcr_b,
+                libelle='Au moins 5 conventions actives signées',
+                defaults={
+                    'description': 'Cinq conventions de partenariat au minimum sont signées '
+                                   'et effectives sur la durée du plan.',
+                    'id_utilisateur_ajout': admin
+                }
+            )
+            ras_created.append(ra_fcr_b)
+            self.log_item('créé' if created else 'mis à jour', f'RA: {ra_fcr_b.libelle[:50]}')
+
         self.log_summary(len(oos_created), 'objectifs opérationnels')
         self.log_summary(len(ras_created), 'résultats attendus')
 
@@ -2120,6 +2246,20 @@ class EnjeuxSeeder(BaseSeeder):
                 }
             )
             metriques_created.append(met3)
+
+            # #339 — Métrique de type indéterminé SANS intitulé (l'intitulé n'est
+            # plus obligatoire pour ce type). Démontre la saisie d'une métrique
+            # « à préciser » avant même d'en avoir défini le nom.
+            met_sans_nom, created = Metrique.objects.update_or_create(
+                id_indicateur=ind,
+                nom_metrique='',
+                type_metrique=type_met_indetermine,
+                defaults={
+                    'description': 'Métrique indéterminée laissée sans intitulé (#339).',
+                    'id_utilisateur_ajout': admin
+                }
+            )
+            metriques_created.append(met_sans_nom)
 
         # --- Camargue - NE "Succès de reproduction ≥ 0.5" (flamant) ---
         ne_flamant = next((ne for ne in nes_created if 'reproduction' in ne.libelle and 'jeune' in ne.libelle), None)
@@ -3470,6 +3610,27 @@ class EnjeuxSeeder(BaseSeeder):
             _link_op_to_indicateur(op2, ind_surface)
             operations_created.append(op2)
             self.log_item('créé' if created else 'mis à jour', f'Opération: {op2.libelle[:50]}')
+
+            # #367 — Action rattachée DIRECTEMENT à l'indicateur, sans métrique.
+            # Démontre la possibilité de créer une action de gestion sans avoir
+            # saisi de métrique au préalable (id_indicateur, pas de M2M métrique).
+            op_directe, created = Operation.objects.update_or_create(
+                code_operation='CAM-IP02',
+                defaults={
+                    'libelle': 'Entretien des ouvrages hydrauliques (action sans métrique)',
+                    'id_priorite': prio_op_2,
+                    'id_referentiel_operations': 'IP',
+                    'id_categorie_action_reserve': cat_reserve_ip,
+                    'id_indicateur': ind_surface,
+                    'description': 'Action de gestion rattachée directement à l\'indicateur, '
+                                   'sans métrique associée (#367).',
+                    'annee_min': 2022,
+                    'annee_max': 2030,
+                    'id_utilisateur_ajout': admin
+                }
+            )
+            operations_created.append(op_directe)
+            self.log_item('créé' if created else 'mis à jour', f'Opération: {op_directe.libelle[:50]}')
 
         # Liée à l'indicateur "Succès de reproduction du Flamant rose"
         ind_flamant = next((i for i in indicateurs_created if 'Flamant rose' in i.nom_indicateur), None)
@@ -5535,6 +5696,25 @@ class EnjeuxSeeder(BaseSeeder):
                 _link_op_to_indicateur(op_b, ind_b)
                 operations_created.append(op_b)
                 self.log_item('créé', f'Opération brouillon Camargue: {op_b.libelle[:50]}')
+
+                # Programmation annuelle : cette opération est créée APRÈS la
+                # boucle principale de génération des OperationAnnee, donc on
+                # crée ses années ici. Indispensable aux tests E2E suivi-saisie
+                # (findOperationWithAnnee exige ≥1 OperationAnnee sur le plan
+                # brouillon Camargue sélectionné par findPlan).
+                if op_b.annee_min and op_b.annee_max:
+                    for year in range(op_b.annee_min, op_b.annee_max + 1):
+                        OperationAnnee.objects.update_or_create(
+                            id_operation=op_b, annee=year,
+                            defaults={
+                                'periodicite': True,
+                                'periodicite_mensuelle': {"4": True, "5": True, "6": True,
+                                                          "7": True, "8": True, "9": True},
+                                'budget': 8000,
+                                'etp': 12,
+                            },
+                        )
+                        annees_created += 1
 
         self.log_summary(annees_created, 'années de programmation')
         self.log_summary(finances_created, 'sources de financement')

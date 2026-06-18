@@ -1,0 +1,218 @@
+@import 'variables';
+
+:host {
+  display: inline-block;
+  vertical-align: top;
+}
+
+// Puce d'habitat — style aligné sur `.reference-chip` du kit (pill teinté
+// primary, Nunito). Conteneur = partie cliquable + croix de suppression.
+.hchip {
+  display: inline-flex;
+  align-items: stretch;
+  font-family: $font-family;
+  font-size: $font-size-small;
+  color: $primary-color;
+  background-color: rgba($primary-color, 0.06);
+  border: 1px solid rgba($primary-color, 0.15);
+  border-radius: $border-radius-pill;
+  overflow: hidden;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+
+  &:hover {
+    border-color: $primary-color;
+  }
+
+  &--open {
+    background-color: $primary-bg-subtle;
+    border-color: $primary-color;
+  }
+
+  &__main {
+    display: inline-flex;
+    align-items: center;
+    gap: $spacing-xs;
+    padding: 3px $spacing-sm;
+    background: transparent;
+    border: none;
+    color: inherit;
+    font: inherit;
+    line-height: 20px;
+    cursor: pointer;
+  }
+
+  &__code {
+    font-weight: $font-weight-bold;
+    font-size: 11px;
+    color: $primary-color;
+    background-color: rgba($primary-color, 0.12);
+    padding: 0 6px;
+    border-radius: $border-radius-sm;
+    white-space: nowrap;
+  }
+
+  &__name {
+    font-weight: $font-weight-medium;
+  }
+
+  &__caret {
+    font-size: 0.85em;
+    transition: transform 0.15s ease;
+  }
+
+  &--open &__caret {
+    transform: rotate(180deg);
+  }
+
+  &__remove {
+    display: inline-flex;
+    align-items: center;
+    padding: 0 $spacing-xs;
+    background: transparent;
+    border: none;
+    border-left: 1px solid rgba($primary-color, 0.15);
+    color: $primary-color;
+    cursor: pointer;
+    transition: background-color 0.15s ease;
+
+    &:hover {
+      background-color: rgba($error-color, 0.12);
+      color: $error-color;
+    }
+  }
+}
+
+// #368 — Variante « habitat libre » (saisi hors référentiel HabRef) : même
+// puce que les habitats du référentiel (teinte primary, Nunito) mais bordure
+// pointillée + marqueur crayon pour signaler une saisie manuelle. Non dépliable.
+.hchip--free {
+  border-style: dashed;
+
+  .hchip__main--static {
+    cursor: default;
+  }
+
+  .hchip__freebadge {
+    display: inline-flex;
+    align-items: center;
+    color: $primary-color;
+    background-color: rgba($primary-color, 0.12);
+    padding: 0 6px;
+    border-radius: $border-radius-sm;
+
+    i {
+      font-size: 11px;
+      line-height: 1;
+    }
+  }
+}
+
+// Panneau de correspondances
+.hchip__panel {
+  margin: $spacing-xxs 0 $spacing-xs;
+  padding: $spacing-sm;
+  background-color: rgba($primary-color, 0.04);
+  border: 1px solid $gray-lighter;
+  border-radius: $border-radius-sm;
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-xs;
+}
+
+.hchip__muted {
+  font-size: $font-size-small;
+  color: $gray-dark;
+  font-style: italic;
+}
+
+.hchip__group {
+  display: flex;
+  align-items: baseline;
+  gap: $spacing-sm;
+
+  // Plus de border-bottom ici : le séparateur est porté par l'en-tête de la
+  // liste des habitats liés, donc il n'apparaît que s'il y a une liste dessous.
+  &--self {
+    padding-bottom: 0;
+  }
+}
+
+.hchip__typo {
+  flex: 0 0 130px;
+  font-size: 12px;
+  font-weight: $font-weight-bold;
+  color: $primary-color;
+}
+
+// Liste des habitats liés (même référentiel) — porte le séparateur du haut,
+// donc visible seulement quand cette liste est rendue.
+.hchip__related-head {
+  padding-top: $spacing-xs;
+  border-top: 1px solid $gray-lighter;
+  font-size: 12px;
+  font-weight: $font-weight-bold;
+  color: $primary-color;
+}
+
+.hchip__related {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.hchip__relitem {
+  display: flex;
+  align-items: baseline;
+  gap: $spacing-xs;
+}
+
+.hchip__relname {
+  font-size: 12px;
+  color: $black;
+}
+
+.hchip__selfinfo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+}
+
+.hchip__typo-tag {
+  font-size: 11px;
+  font-weight: $font-weight-semibold;
+  color: $white;
+  background-color: $primary-color;
+  border-radius: $border-radius-sm;
+  padding: 0 6px;
+}
+
+.hchip__cdhab {
+  font-size: 11px;
+  color: $gray-dark;
+}
+
+.hchip__codes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.hchip__codepill {
+  font-size: 11px;
+  color: $primary-color;
+  background-color: $white;
+  border: 1px solid rgba($primary-color, 0.15);
+  border-radius: $border-radius-sm;
+  padding: 0 6px;
+  white-space: nowrap;
+}
+
+.hchip__more {
+  font-size: 11px;
+  color: $gray-dark;
+  align-self: center;
+}

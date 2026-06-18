@@ -175,6 +175,23 @@ class TestRolePermissionMethods:
         user = RoleFactory()
         assert user.is_referent() is False
 
+    def test_can_manage_plan_lifecycle_for_redacteur_principal(self):
+        """#346 — le rédacteur principal peut gérer le cycle de vie des plans."""
+        rp = RoleFactory(role_level='redacteur_principal')
+        assert rp.can_manage_plan_lifecycle() is True
+
+    def test_can_manage_plan_lifecycle_for_admin_og(self):
+        """L'admin organisme peut gérer le cycle de vie."""
+        assert AdminOrganismeFactory().can_manage_plan_lifecycle() is True
+
+    def test_can_manage_plan_lifecycle_for_super_admin(self):
+        """Le super admin peut gérer le cycle de vie."""
+        assert SuperAdminFactory().can_manage_plan_lifecycle() is True
+
+    def test_can_manage_plan_lifecycle_for_regular_user(self):
+        """Un utilisateur standard ne peut pas gérer le cycle de vie."""
+        assert RoleFactory().can_manage_plan_lifecycle() is False
+
 
 @pytest.mark.django_db
 @pytest.mark.unit

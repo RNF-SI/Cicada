@@ -523,5 +523,25 @@ describe('AuthService', () => {
 
       expect(service.currentUser()).toEqual(mockUser);
     }));
+
+    it('background mode: keeps cached session on failure, no refresh, no redirect (#364)', fakeAsync(() => {
+      // Établir une session connectée
+      service.login({ username: 'test@example.com', password: 'x' }).subscribe();
+      const loginReq = httpMock.expectOne('/api/auth/login/');
+      loginReq.flush({ access: 'a', refresh: 'r', user: mockUser } as LoginResponse);
+      tick();
+      expect(service.currentUser()).toEqual(mockUser);
+
+      // Vérification de fond qui échoue (token expiré / hoquet backend)
+      service.verifyToken(true).subscribe();
+      const meReq = httpMock.expectOne('/api/auth/me/');
+      meReq.flush({}, { status: 401, statusText: 'Unauthorized' });
+      tick();
+
+      // Pas de refresh déclenché, pas de redirection, session conservée
+      httpMock.expectNone('/api/auth/refresh/');
+      expect(router.navigate).not.toHaveBeenCalledWith(['/accueil']);
+      expect(service.currentUser()).toEqual(mockUser);
+    }));
   });
 });

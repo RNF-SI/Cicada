@@ -59,9 +59,24 @@
         </div>
       </section>
 
+      <!-- #375 — Bannière : pas de saisie tant que le plan n'est pas validé -->
+      @if (planNotValidated()) {
+        <div class="lock-banner" role="status">
+          <i class="fi fi-rr-info"></i>
+          <div class="lock-banner-content">
+            <span class="lock-banner-title">
+              {{ 'plans.suivis.notValidatedBanner.title' | translate }}
+            </span>
+            <span class="lock-banner-text">
+              {{ 'plans.suivis.notValidatedBanner.text' | translate }}
+            </span>
+          </div>
+        </div>
+      }
+
       <!-- Content -->
       <section class="content-section">
-        <!-- Toggle Etat / Pression -->
+        <!-- Toggle Etat / Pression / Ensemble (#356) -->
         <div class="view-toggle">
           <button
             class="toggle-btn"
@@ -75,32 +90,64 @@
             (click)="setTab('pression')">
             {{ 'plans.suivis.tableauDeBord.pression' | translate }}
           </button>
+          <button
+            class="toggle-btn"
+            [class.active]="activeTab() === 'ensemble'"
+            (click)="setTab('ensemble')">
+            {{ 'plans.suivis.tableauDeBord.ensemble' | translate }}
+          </button>
         </div>
 
-        <!-- Filters -->
+        <!-- Filters (#356) — alignés sur « Suivi des actions » : filtres puis recherche, une ligne -->
         <div class="filter-bar">
           <div class="filter-bar-left">
             <div class="filter-label">{{ 'plans.suivis.tableauDeBord.filterLabel' | translate }}</div>
             <div class="filter-buttons">
-              <button class="filter-btn" [matMenuTriggerFor]="typeMenu">
-                {{ 'plans.suivis.tableauDeBord.typeObjectif' | translate }}
-                <i class="fi fi-rr-angle-small-down"></i>
-              </button>
-              <mat-menu #typeMenu="matMenu">
-                <button mat-menu-item><em>Tous</em></button>
-              </mat-menu>
-              <div class="filter-separator"></div>
-
-              <button class="filter-btn" [matMenuTriggerFor]="nomMenu">
+              <!-- Nom d'objectif -->
+              <button class="filter-btn" [matMenuTriggerFor]="nomMenu"
+                      [class.filter-active]="filterObjectif()">
                 {{ 'plans.suivis.tableauDeBord.nomObjectif' | translate }}
                 <i class="fi fi-rr-angle-small-down"></i>
               </button>
               <mat-menu #nomMenu="matMenu">
-                <button mat-menu-item><em>Tous</em></button>
+                <button mat-menu-item (click)="setObjectifFilter(null)"><em>{{ 'common.actions.all' | translate }}</em></button>
+                @for (name of objectifNames(); track name) {
+                  <button mat-menu-item (click)="setObjectifFilter(name)">{{ name }}</button>
+                }
               </mat-menu>
               <div class="filter-separator"></div>
+
+              <!-- Enjeu (mode ensemble uniquement) -->
+              @if (activeTab() === 'ensemble' && enjeuOptions().length > 0) {
+                <button class="filter-btn" [matMenuTriggerFor]="enjeuMenu"
+                        [class.filter-active]="filterEnjeuId()">
+                  {{ 'plans.suivis.tableauDeBord.enjeu' | translate }}
+                  <i class="fi fi-rr-angle-small-down"></i>
+                </button>
+                <mat-menu #enjeuMenu="matMenu">
+                  <button mat-menu-item (click)="setEnjeuFilter(null)"><em>{{ 'common.actions.all' | translate }}</em></button>
+                  @for (e of enjeuOptions(); track e.id) {
+                    <button mat-menu-item (click)="setEnjeuFilter(e.id)">{{ e.libelle }}</button>
+                  }
+                </mat-menu>
+                <div class="filter-separator"></div>
+              }
+
+              @if (hasActiveFilters()) {
+                <button class="filter-btn filter-btn-reset" (click)="clearFilters()">
+                  <i class="fi fi-rr-cross-small"></i>
+                  {{ 'common.actions.reset' | translate }}
+                </button>
+              }
             </div>
           </div>
+          <!-- Recherche textuelle après les filtres (style Suivi des actions) -->
+          <app-search-bar class="tdb-search"
+            [value]="filterName()"
+            (valueChange)="filterName.set($event)"
+            [placeholder]="'plans.suivis.tableauDeBord.searchPlaceholder' | translate"
+            [ariaLabel]="'plans.suivis.tableauDeBord.searchPlaceholder' | translate">
+          </app-search-bar>
         </div>
 
         <!-- Légende -->
@@ -128,20 +175,36 @@
             <table class="tdb-table">
               <thead>
                 <tr>
-                  <th class="col-ne">{{ 'plans.suivis.tableauDeBord.niveauExigence' | translate }}</th>
+                  <th class="col-ne">
+                    {{ (activeTab() === 'etat'
+                        ? 'plans.suivis.tableauDeBord.niveauExigence'
+                        : activeTab() === 'pression'
+                          ? 'plans.suivis.tableauDeBord.resultatAttendu'
+                          : 'plans.suivis.tableauDeBord.niveauOuResultat') | translate }}
+                  </th>
                   <th class="col-indicateur">{{ 'plans.suivis.tableauDeBord.indicateurs' | translate }}</th>
                   @for (year of yearColumns(); track year) {
                     <th class="col-year">{{ year }}</th>
                   }
+                  <th class="col-global">{{ 'plans.suivis.tableauDeBord.global' | translate }}</th>
+                  <th class="col-actions">{{ 'plans.suivis.tableauDeBord.actions' | translate }}</th>
                   <th class="col-icons"></th>
                 </tr>
               </thead>
               <tbody>
-                @for (group of filteredOltGroups(); track group.olt.id_olt; let gIdx = $index) {
-                  <!-- OLT header row -->
+                @for (group of filteredGroups(); track group.kind + '-' + group.id; let gi = $index) {
+                  <!-- #356 — En-tête enjeu (mode ensemble) -->
+                  @if (isFirstGroupOfEnjeu(gi)) {
+                    <tr class="enjeu-header-row">
+                      <td [attr.colspan]="yearColumns().length + 5">
+                        {{ 'plans.suivis.tableauDeBord.enjeu' | translate }} : {{ group.enjeuLibelle | uppercase }}
+                      </td>
+                    </tr>
+                  }
+                  <!-- En-tête de groupe : OLT (état) ou OO (pression) (#389) -->
                   <tr class="olt-header-row">
-                    <td [attr.colspan]="yearColumns().length + 3">
-                      OLT {{ group.oltIndex }} : {{ group.olt.libelle | uppercase }}
+                    <td [attr.colspan]="yearColumns().length + 5">
+                      {{ group.kind === 'olt' ? 'OLT' : 'OO' }} {{ group.index }} : {{ group.label | uppercase }}
                     </td>
                   </tr>
 
@@ -150,11 +213,11 @@
                     <tr class="indicator-row" [class.row-alt]="rIdx % 2 === 1">
                       @if (isFirstIndicatorOfNe(group, rIdx)) {
                         <td class="col-ne" [attr.rowspan]="getNeRowspan(group, rIdx)">
-                          {{ row.ne.libelle }}
+                          {{ row.subLabel }}
                         </td>
                       }
                       <td class="col-indicateur">
-                        <div class="indicateur-cell" (click)="toggleIndicator(gIdx, rIdx)">
+                        <div class="indicateur-cell" (click)="toggleIndicator(group, row)">
                           <span class="indicateur-name">{{ row.indicateur.nom_indicateur }}</span>
                           <i class="fi" [class.fi-rr-angle-small-down]="!row.expanded" [class.fi-rr-angle-small-up]="row.expanded"></i>
                         </div>
@@ -170,12 +233,36 @@
                           }
                         </td>
                       }
+                      <!-- #355 — Évaluation globale (état courant), cliquable → page globale -->
+                      <td class="col-global clickable"
+                          [routerLink]="['/plans', planSlug(), 'tableau-de-bord', 'indicateur', row.indicateur.id_indicateur]"
+                          [title]="'plans.suivis.tableauDeBord.globalTooltip' | translate">
+                        @if (getGlobalScoreForRow(row); as gscore) {
+                          <img [src]="getScoreIcon(gscore)" class="score-badge-icon"
+                               [alt]="getScoreLabel(gscore)"
+                               [matTooltip]="getScoreLabel(gscore)" matTooltipPosition="above">
+                        } @else {
+                          <span class="global-empty">—</span>
+                        }
+                      </td>
+                      <!-- #356 — Actions liées : code compact, survol = libellé,
+                           clic → page globale de l'action -->
+                      <td class="col-actions">
+                        @for (act of actionsForIndicator(row); track act.id) {
+                          <a class="action-link action-code"
+                             [routerLink]="['/plans', planSlug(), 'suivi-actions', 'action', act.id]"
+                             [matTooltip]="act.libelle" matTooltipPosition="above">{{ act.code }}</a>
+                        } @empty {
+                          <span class="global-empty">—</span>
+                        }
+                      </td>
                       <td class="col-icons">
                         <div class="row-actions">
-                          <button class="icon-btn-flat" title="Statistiques">
-                            <i class="fi fi-rr-chart-histogram"></i>
-                          </button>
-                          <button class="icon-btn-flat" title="Voir détails">
+                          <!-- #356 — Œil → page détail de l'enjeu, ancrée sur l'indicateur -->
+                          <button class="icon-btn-flat"
+                                  [title]="'plans.suivis.tableauDeBord.viewInTree' | translate"
+                                  [routerLink]="['/plans', planSlug(), 'enjeux', group.enjeuSlug]"
+                                  [fragment]="'indicateur-' + row.indicateur.id_indicateur">
                             <i class="fi fi-rr-eye"></i>
                           </button>
                         </div>
@@ -202,6 +289,8 @@
                               }
                             </td>
                           }
+                          <td class="col-global"></td>
+                          <td class="col-actions"></td>
                           <td class="col-icons"></td>
                         </tr>
                       }

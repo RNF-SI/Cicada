@@ -10,21 +10,44 @@
     </button>
   </div>
 
-  <!-- Chip list of current items -->
-  @if (items.length > 0) {
+  <!-- Habitats avec correspondances (#89) : une ligne par habitat, puce
+       cliquable (équivalents EUNIS/Corine/Cahiers) + bouton supprimer. Tout
+       est regroupé ici (plus de bloc séparé). -->
+  @if (items.length > 0 && type === 'habitat' && showCorrespondences) {
+    <div class="habitat-rows">
+      @for (item of items; track $index) {
+        @if ($any(item).cd_hab) {
+          <app-habitat-chip
+            [cdHab]="$any(item).cd_hab"
+            [label]="$any(item).lb_hab_fr ?? ''"
+            [code]="$any(item).lb_code ?? null"
+            [typo]="$any(item).lb_typo ?? null"
+            [removable]="true"
+            (remove)="removeItem($index)">
+          </app-habitat-chip>
+        } @else {
+          <!-- #368 — habitat libre : même puce, variante « saisi » (marqueur + pointillé) -->
+          <app-habitat-chip
+            [label]="$any(item).lb_hab_fr ?? getItemLabel(item)"
+            [freeText]="true"
+            [removable]="true"
+            (remove)="removeItem($index)">
+          </app-habitat-chip>
+        }
+      }
+    </div>
+  } @else if (items.length > 0) {
+    <!-- Chip list of current items (taxons, géologie) — même design « pill »
+         que les habitats : badge identifiant + nom + croix intégrée. (#89) -->
     <div class="chips-container">
       @for (item of items; track $index) {
-        <div class="item-chip">
-          <div class="chip-content">
-            <span class="chip-label">{{ getItemLabel(item) }}</span>
-            @if (getItemSecondary(item)) {
-              <span class="chip-secondary">{{ getItemSecondary(item) }}</span>
-            }
-          </div>
-          <button type="button" class="chip-remove" (click)="removeItem($index)" [attr.aria-label]="'common.actions.delete' | translate">
+        <span class="item-chip" [title]="getItemSecondary(item)">
+          <span class="item-chip__badge">{{ getItemBadge(item) }}</span>
+          <span class="item-chip__name">{{ getItemLabel(item) }}</span>
+          <button type="button" class="item-chip__remove" (click)="removeItem($index)" [attr.aria-label]="'common.actions.delete' | translate">
             <i class="fi fi-rr-cross-small"></i>
           </button>
-        </div>
+        </span>
       }
     </div>
   }
@@ -56,4 +79,32 @@
       <mat-spinner matSuffix diameter="18"></mat-spinner>
     }
   </mat-form-field>
+
+  <!-- #368 — Habitat introuvable dans HabRef (ex. Outre-mer) : saisie libre -->
+  @if (allowFreeText) {
+    <div class="free-text-habitat">
+      <button type="button" class="free-text-toggle" (click)="toggleFreeTextMode()">
+        <i class="fi" [class.fi-rr-angle-small-down]="!freeTextMode()" [class.fi-rr-angle-small-up]="freeTextMode()"></i>
+        {{ 'enjeux.referenceList.habitatNotFound' | translate }}
+      </button>
+      @if (freeTextMode()) {
+        <div class="free-text-input-row">
+          <mat-form-field class="app-mat-form-field free-text-field" appearance="outline">
+            <mat-label></mat-label>
+            <input matInput
+                   [formControl]="freeTextControl"
+                   [placeholder]="'enjeux.referenceList.habitatFreeTextPlaceholder' | translate"
+                   (keydown.enter)="$event.preventDefault(); addFreeTextHabitat()">
+            <mat-hint>{{ 'enjeux.referenceList.habitatFreeTextHint' | translate }}</mat-hint>
+          </mat-form-field>
+          <button mat-flat-button color="primary" type="button"
+                  class="free-text-add-btn"
+                  [disabled]="!freeTextControl.value?.trim()"
+                  (click)="addFreeTextHabitat()">
+            {{ 'common.actions.add' | translate }}
+          </button>
+        </div>
+      }
+    </div>
+  }
 </div>

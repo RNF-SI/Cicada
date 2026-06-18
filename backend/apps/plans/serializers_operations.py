@@ -63,7 +63,11 @@ def compute_operation_codes_for_plan(plan_id):
     indicateurs_qs = (
         Indicateur.objects
         .order_by('ordre', 'id_indicateur')
-        .prefetch_related(Prefetch('metriques', queryset=metriques_qs))
+        .prefetch_related(
+            Prefetch('metriques', queryset=metriques_qs),
+            # #367 — actions rattachées directement à l'indicateur (sans métrique)
+            Prefetch('operations', queryset=operations_qs),
+        )
     )
     ne_qs = (
         NiveauExigence.objects
@@ -118,6 +122,12 @@ def compute_operation_codes_for_plan(plan_id):
                     continue
                 operations_by_id[op.pk] = op
                 seen_op_ids.append(op.pk)
+        # #367 — actions rattachées directement à l'indicateur (sans métrique)
+        for op in indicateur.operations.all():
+            if op.pk in operations_by_id:
+                continue
+            operations_by_id[op.pk] = op
+            seen_op_ids.append(op.pk)
 
     for enjeu in enjeux:
         # Branche NE : Enjeu → OLT → NE → Indicateur → Métrique → Action
@@ -312,7 +322,7 @@ class SuiviInventaireSerializer(serializers.ModelSerializer):
             # Détails
             'objectif_principal', 'objectif_secondaire',
             'cibles_principales', 'cible_secondaire',
-            'taxon_taxref', 'habitat_ref',
+            'taxon_taxref', 'habitat_ref', 'habitats',
             'date_lancement_suivi',
             # Protocole (nested)
             'protocole',
@@ -354,7 +364,7 @@ class SuiviInventaireWriteSerializer(serializers.ModelSerializer):
             # Détails
             'objectif_principal', 'objectif_secondaire',
             'cibles_principales', 'cible_secondaire',
-            'taxon_taxref', 'habitat_ref',
+            'taxon_taxref', 'habitat_ref', 'habitats',
             'date_lancement_suivi',
             # Protocole (nested writable)
             'protocole',
@@ -385,6 +395,23 @@ class OperationSerializer(serializers.ModelSerializer):
     finances = FinanceOperationSerializer(many=True, read_only=True)
     suivi_inventaire = SuiviInventaireSerializer(source='id_suivi', read_only=True)
     geom_geojson = serializers.SerializerMethodField()
+    # #355/#379 — statut de réalisation global (sur la période)
+    niveau_realisation_global_mnemonique = serializers.SerializerMethodField()
+    niveau_realisation_global_label = serializers.SerializerMethodField()
+    niveau_realisation_global_manuel = serializers.SerializerMethodField()
+    niveau_realisation_global_commentaire = serializers.SerializerMethodField()
+
+    def get_niveau_realisation_global_mnemonique(self, obj):
+        return obj.get_niveau_realisation_global()
+
+    def get_niveau_realisation_global_label(self, obj):
+        return obj.get_niveau_realisation_global_label()
+
+    def get_niveau_realisation_global_manuel(self, obj):
+        return obj.is_niveau_realisation_global_manuel()
+
+    def get_niveau_realisation_global_commentaire(self, obj):
+        return obj.get_niveau_realisation_global_commentaire()
 
     class Meta:
         model = Operation
@@ -407,9 +434,14 @@ class OperationSerializer(serializers.ModelSerializer):
             'programmation_mensuelle_defaut',
             'ventilation_mode',
             'geom', 'geom_geojson',
+            'id_indicateur',
             'metriques', 'metrique_ids',
             'site_ids', 'nb_sites',
             'operation_annees', 'finances',
+            'niveau_realisation_global_mnemonique',
+            'niveau_realisation_global_label',
+            'niveau_realisation_global_manuel',
+            'niveau_realisation_global_commentaire',
             'date_ajout', 'date_maj', 'createur_nom'
         ]
         read_only_fields = ['id_operation', 'date_ajout', 'date_maj']
@@ -453,6 +485,9 @@ class OperationSerializer(serializers.ModelSerializer):
                 'nom_metrique': m.nom_metrique,
                 'indicateur_id': m.id_indicateur_id,
                 'indicateur_nom': getattr(m.id_indicateur, 'nom_indicateur', None) if m.id_indicateur_id else None,
+                # #347/réponse — type de l'indicateur (ETAT/PRESSION/REPONSE) pour
+                # distinguer les indicateurs de réponse des métriques associées.
+                'indicateur_type': getattr(getattr(m.id_indicateur, 'type_indicateur', None), 'mnemonique', None) if m.id_indicateur_id else None,
                 'etat_reference': m.etat_reference or '',
                 'type_metrique_id': m.type_metrique_id,
                 'type_metrique_label': getattr(m.type_metrique, 'label', None) if m.type_metrique_id else None,
@@ -490,6 +525,11 @@ class OperationListSerializer(serializers.ModelSerializer):
     nb_finances = serializers.SerializerMethodField()
     enjeu_slug = serializers.SerializerMethodField()
     oo_id = serializers.SerializerMethodField()
+    # #355 — Niveau de réalisation GLOBAL (sur la période) : surcharge si présente,
+    # sinon calcul automatique sur les années programmées.
+    niveau_realisation_global_mnemonique = serializers.SerializerMethodField()
+    niveau_realisation_global_label = serializers.SerializerMethodField()
+    niveau_realisation_global_manuel = serializers.SerializerMethodField()
 
     class Meta:
         model = Operation
@@ -510,13 +550,26 @@ class OperationListSerializer(serializers.ModelSerializer):
             'operateurs', 'partenaires', 'financeurs',
             'programmation_annuelle', 'programmation_mensuelle',
             'programmation_mensuelle_defaut',
+            'id_indicateur',
             'metriques', 'metrique_ids',
             'nb_sites',
             'nb_operation_annees', 'nb_finances',
             'enjeu_slug', 'oo_id',
+            'niveau_realisation_global_mnemonique',
+            'niveau_realisation_global_label',
+            'niveau_realisation_global_manuel',
             'date_ajout', 'date_maj', 'createur_nom'
         ]
         read_only_fields = ['id_operation', 'date_ajout', 'date_maj']
+
+    def get_niveau_realisation_global_mnemonique(self, obj):
+        return obj.get_niveau_realisation_global()
+
+    def get_niveau_realisation_global_label(self, obj):
+        return obj.get_niveau_realisation_global_label()
+
+    def get_niveau_realisation_global_manuel(self, obj):
+        return obj.is_niveau_realisation_global_manuel()
 
     def get_type_action_label(self, obj):
         if obj.id_type_action:
@@ -546,6 +599,7 @@ class OperationListSerializer(serializers.ModelSerializer):
                 'nom_metrique': m.nom_metrique,
                 'indicateur_id': m.id_indicateur_id,
                 'indicateur_nom': getattr(m.id_indicateur, 'nom_indicateur', None) if m.id_indicateur_id else None,
+                'indicateur_type': getattr(getattr(m.id_indicateur, 'type_indicateur', None), 'mnemonique', None) if m.id_indicateur_id else None,
             }
             for m in obj.metriques.all()
         ]
@@ -674,6 +728,9 @@ class OperationCreateSerializer(serializers.ModelSerializer):
     operation_annees = OperationAnneeWriteSerializer(many=True, required=False, default=[])
     finances = FinanceOperationSerializer(many=True, required=False, default=[])
     suivi_inventaire = SuiviInventaireWriteSerializer(required=False, allow_null=True, write_only=True)
+    # Emprise spatiale acceptée en GeoJSON (cohérent avec `geom_realisee` de la
+    # réalisation et `geom_geojson` du serializer de lecture).
+    geom_geojson = GeoJSONGeometryField(source='geom', required=False, allow_null=True)
 
     class Meta:
         model = Operation
@@ -681,6 +738,7 @@ class OperationCreateSerializer(serializers.ModelSerializer):
             'id_operation', 'libelle', 'ordre', 'statut',
             'id_priorite', 'id_type_action',
             'id_categorie_action_reserve',
+            'id_indicateur',
             'id_referentiel_operations', 'code_operation',
             'description',
             'annee_min', 'annee_max',
@@ -692,7 +750,7 @@ class OperationCreateSerializer(serializers.ModelSerializer):
             'programmation_annuelle', 'programmation_mensuelle',
             'programmation_mensuelle_defaut',
             'ventilation_mode',
-            'geom',
+            'geom_geojson',
             'metrique_ids', 'site_ids',
             'operation_annees', 'finances'
         ]
@@ -700,6 +758,8 @@ class OperationCreateSerializer(serializers.ModelSerializer):
         extra_kwargs = {
             'id_suivi': {'required': False, 'allow_null': True},
             'id_categorie_action_reserve': {'required': False, 'allow_null': True},
+            # #367 — rattachement direct à un indicateur (optionnel)
+            'id_indicateur': {'required': False, 'allow_null': True},
         }
 
     def to_representation(self, instance):

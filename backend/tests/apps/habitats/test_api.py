@@ -117,13 +117,14 @@ class TestHabrefCorrespondanceEndpoint:
     def test_correspondance_returns_results(self):
         response = self.client.get('/api/habref/correspondance/1000/')
         assert response.status_code == 200
-        assert len(response.data) == 1
-        assert response.data[0]['cd_hab_entre'] == 3000
+        assert response.data['habitat']['cd_hab'] == 1000
+        assert len(response.data['related']) == 1
+        assert response.data['related'][0]['cd_hab_entre'] == 3000
 
     def test_correspondance_empty(self):
         response = self.client.get('/api/habref/correspondance/2000/')
         assert response.status_code == 200
-        assert len(response.data) == 0
+        assert len(response.data['related']) == 0
 
 
 @pytest.mark.django_db

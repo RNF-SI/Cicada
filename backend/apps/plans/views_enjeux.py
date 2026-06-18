@@ -93,12 +93,17 @@ class EnjeuViewSet(viewsets.ModelViewSet):
         op_qs = Operation.objects.select_related(
             'id_priorite', 'id_type_action',
             'id_categorie_action_reserve', 'id_utilisateur_ajout',
+            # #355 — surcharge manuelle du niveau global (reverse OneToOne)
+            'realisation_globale', 'realisation_globale__id_niveau_realisation',
         ).prefetch_related(
             Prefetch('metriques', queryset=Metrique.objects.select_related('id_indicateur')),
             'sites',
             Prefetch(
                 'operation_annees',
-                queryset=OperationAnnee.objects.prefetch_related(
+                # #355 — réalisation annuelle + niveau pour le calcul du statut global
+                queryset=OperationAnnee.objects.select_related(
+                    'realisation', 'realisation__id_niveau_realisation',
+                ).prefetch_related(
                     Prefetch('organismes', queryset=op_annee_organisme_qs),
                 ),
             ),
@@ -117,6 +122,8 @@ class EnjeuViewSet(viewsets.ModelViewSet):
         ).prefetch_related(
             'taxons', 'habitats', 'geologies',
             Prefetch('metriques', queryset=metrique_qs),
+            # #367 — actions rattachées directement à l'indicateur (sans métrique)
+            Prefetch('operations', queryset=op_qs),
         )
 
         ne_qs = NiveauExigence.objects.select_related('id_utilisateur_ajout').prefetch_related(
@@ -152,6 +159,8 @@ class EnjeuViewSet(viewsets.ModelViewSet):
         return [
             Prefetch('facteurs_influence', queryset=fi_qs),
             Prefetch('objectifs_long_terme', queryset=olt_qs),
+            # #337 — OO rattachés directement à l'enjeu/FCR (sans pression)
+            Prefetch('objectifs_operationnels_directs', queryset=oo_qs),
         ]
 
     @classmethod
@@ -967,7 +976,7 @@ class ObjectifOperationnelViewSet(viewsets.ModelViewSet):
     """
 
     queryset = ObjectifOperationnel.objects.select_related(
-        'id_utilisateur_ajout', 'id_utilisateur_maj'
+        'id_utilisateur_ajout', 'id_utilisateur_maj', 'id_enjeu',
     ).prefetch_related(
         'pressions', 'pressions__id_facteur_influence',
         'pressions__id_facteur_influence__id_enjeu',
@@ -986,16 +995,23 @@ class ObjectifOperationnelViewSet(viewsets.ModelViewSet):
     ordering = ['id_oo']
 
     def get_plan_for_payload(self, data):
-        """#248 — check draft via la première pression rattachée (M2M)."""
+        """#248 — check draft via la première pression rattachée (M2M),
+        ou via l'enjeu rattaché directement (#337, cas FCR sans pression)."""
         pression_ids = data.get('pression_ids') or []
-        if not pression_ids:
-            return None
-        try:
-            return Pression.objects.select_related(
-                'id_facteur_influence__id_enjeu'
-            ).get(pk=pression_ids[0]).get_plan_de_gestion()
-        except Pression.DoesNotExist:
-            return None
+        if pression_ids:
+            try:
+                return Pression.objects.select_related(
+                    'id_facteur_influence__id_enjeu'
+                ).get(pk=pression_ids[0]).get_plan_de_gestion()
+            except Pression.DoesNotExist:
+                return None
+        enjeu_id = data.get('id_enjeu')
+        if enjeu_id:
+            try:
+                return Enjeu.objects.only('id_pg').get(pk=enjeu_id).get_plan_de_gestion()
+            except Enjeu.DoesNotExist:
+                return None
+        return None
 
     def get_serializer_class(self):
         if self.action == 'list':
@@ -1014,16 +1030,22 @@ class ObjectifOperationnelViewSet(viewsets.ModelViewSet):
         if user.is_redacteur_principal():
             return queryset
 
+        # #337 — un OO est rattaché soit via ses pressions, soit directement à
+        # l'enjeu (FCR). Les deux chemins sont pris en compte pour le scoping.
         if user.is_admin_organisme() and user.id_organisme:
             return queryset.filter(
-                pressions__id_facteur_influence__id_enjeu__id_pg__sites__site__corogsite__uuid_og=user.id_organisme
+                Q(pressions__id_facteur_influence__id_enjeu__id_pg__sites__site__corogsite__uuid_og=user.id_organisme) |
+                Q(id_enjeu__id_pg__sites__site__corogsite__uuid_og=user.id_organisme)
             ).distinct()
 
         user_plan_ids = CorRolePlan.objects.filter(id_role=user).values_list('plan_de_gestion_id', flat=True)
         return queryset.filter(
             Q(pressions__id_facteur_influence__id_enjeu__id_pg__in=user_plan_ids) |
             Q(pressions__id_facteur_influence__id_enjeu__id_pg__sites__site__corrolesite__id_role=user) |
-            Q(pressions__id_facteur_influence__id_enjeu__id_pg__statut='valide')
+            Q(pressions__id_facteur_influence__id_enjeu__id_pg__statut='valide') |
+            Q(id_enjeu__id_pg__in=user_plan_ids) |
+            Q(id_enjeu__id_pg__sites__site__corrolesite__id_role=user) |
+            Q(id_enjeu__id_pg__statut='valide')
         ).distinct()
 
     def perform_create(self, serializer):
@@ -1037,16 +1059,18 @@ class ObjectifOperationnelViewSet(viewsets.ModelViewSet):
         """
         Réordonne les objectifs opérationnels d'un enjeu (#249/#261).
 
-        Les OO sont rattachés transitivement à un enjeu via leurs pressions
-        (Enjeu → FacteurInfluence → Pression ↔ OO M2M).
+        Les OO sont rattachés à un enjeu soit transitivement via leurs pressions
+        (Enjeu → FacteurInfluence → Pression ↔ OO M2M), soit directement via
+        ``id_enjeu`` (#337, cas FCR).
 
         Payload: { "parent_id": <id_enjeu>, "ordered_ids": [id1, id2, ...] }
         """
         return do_reorder(
             self,
             request,
-            parent_filter=lambda pid, _req: Q(
-                pressions__id_facteur_influence__id_enjeu=pid
+            parent_filter=lambda pid, _req: (
+                Q(pressions__id_facteur_influence__id_enjeu=pid) |
+                Q(id_enjeu=pid)
             ),
         )
 

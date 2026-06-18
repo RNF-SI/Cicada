@@ -115,7 +115,7 @@
     <!-- Accueil (toujours visible) -->
     <a routerLink="/accueil"
        class="sidebar-item"
-       [class.active]="isActiveRoute('/accueil') || isActiveRoute('/')"
+       [class.active]="isActiveRoute('/accueil')"
        (click)="toggleMenu()">
       <i class="fi fi-rr-home"></i>
       <span>{{ 'header.sidebar.home' | translate }}</span>

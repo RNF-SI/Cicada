@@ -11,6 +11,13 @@
       [showLine]="true">
       <!-- Bouton modifier retiré (revue design Amandine — doublon avec celui du body sub-header) -->
       <div sectionActions class="header-actions">
+        <!-- Accès à la page détail de l'enjeu / FCR (icône œil, comme ailleurs). -->
+        <button mat-icon-button
+                class="action-btn view-btn"
+                (click)="onNavigateToDetail($event)"
+                [matTooltip]="'common.actions.view' | translate">
+          <i class="fi fi-rr-eye"></i>
+        </button>
         <button mat-icon-button class="expand-btn">
           <i class="fi" [ngClass]="expanded() ? 'fi-rr-angle-up' : 'fi-rr-angle-down'"></i>
         </button>
@@ -99,8 +106,13 @@
             </div>
             @if (showHabitatList() && enjeu.habitats?.length) {
               <div class="reference-list">
-                @for (habitat of enjeu.habitats; track habitat.cd_hab) {
-                  <span class="reference-chip">{{ habitat.cd_hab }} - {{ habitat.lb_hab_fr }}</span>
+                @for (habitat of enjeu.habitats; track $index) {
+                  @if (habitat.cd_hab) {
+                    <app-habitat-chip [cdHab]="habitat.cd_hab" [label]="habitat.lb_hab_fr ?? ''"></app-habitat-chip>
+                  } @else {
+                    <!-- #368 — habitat libre (hors HabRef) : puce variante « saisi » -->
+                    <app-habitat-chip [label]="habitat.lb_hab_fr ?? ''" [freeText]="true"></app-habitat-chip>
+                  }
                 }
               </div>
             }
@@ -149,28 +161,30 @@
         </div>
       }
 
-      <!-- Description / Commentaires -->
+      <!-- Description / Commentaires (#369 : libellé spécifique pour les FCR) -->
       @if (enjeu.description) {
         <div class="detail-section">
-          <h4 class="detail-title">{{ 'enjeux.accordion.detailsCommentaires' | translate }}</h4>
+          <h4 class="detail-title">{{ (isFcr ? 'enjeux.accordion.fcrContexte' : 'enjeux.accordion.detailsCommentaires') | translate }}</h4>
           <p class="detail-text">{{ enjeu.description }}</p>
         </div>
       }
 
-      <!-- Facteurs d'influence (enjeux uniquement) -->
-      @if (!isFcr) {
-        <div class="facteurs-summary">
-          <div class="facteurs-count">
-            <i class="fi fi-rr-chart-tree"></i>
-            <span>{{ facteurCount }} {{ 'enjeux.facteurInfluence.countSuffix' | translate }}</span>
-          </div>
-          @if (facteurCount > 0) {
-            <button mat-stroked-button class="btn-sm" (click)="onNavigateToDetail($event)">
-              {{ 'enjeux.facteurInfluence.viewButton' | translate }}
-            </button>
-          }
+      <!--
+        Résumé des facteurs d'influence — affiché pour les enjeux ET les FCR.
+        Un FCR peut désormais porter des facteurs d'influence (descriptifs) ;
+        on montre donc le compteur dans les deux cas.
+      -->
+      <div class="facteurs-summary">
+        <div class="facteurs-count">
+          <i class="fi fi-rr-chart-tree"></i>
+          <span>{{ facteurCount }} {{ 'enjeux.facteurInfluence.countSuffix' | translate }}</span>
         </div>
-      }
+        @if (facteurCount > 0) {
+          <button mat-stroked-button class="btn-sm" (click)="onNavigateToDetail($event)">
+            {{ 'enjeux.facteurInfluence.viewButton' | translate }}
+          </button>
+        }
+      </div>
 
       <!-- Metadata -->
       <div class="metadata">

@@ -221,9 +221,38 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
         return queryset.filter(conditions).distinct()
     
     def perform_create(self, serializer):
-        """Définir l'utilisateur créateur."""
-        serializer.save(id_utilisateur_ajout=self.request.user)
-    
+        """Définir l'utilisateur créateur et, le cas échéant, rattacher le plan
+        au plan validé du rang précédent (conserve la chaîne de versions).
+
+        Le frontend peut envoyer `plan_parent_id` lors de la création standard
+        d'un PG (page « Créer un plan ») quand l'utilisateur confirme le
+        rattachement au plan validé du rang précédent sur le même site. On
+        valide ce parent côté serveur avant de poser le lien.
+        """
+        plan = serializer.save(id_utilisateur_ajout=self.request.user)
+
+        parent_id = self.request.data.get('plan_parent_id')
+        if parent_id and not plan.plan_parent_id:
+            parent = PlanGestion.objects.filter(pk=parent_id).first()
+            if parent and self._is_valid_rang_parent(parent, plan):
+                plan.plan_parent = parent
+                plan.save(update_fields=['plan_parent'])
+
+    @staticmethod
+    def _is_valid_rang_parent(parent, plan):
+        """Vrai si `parent` est un parent de rang valide pour `plan` lors d'une
+        création standard : plan validé/archivé, rang strictement inférieur et
+        au moins un site en commun. Empêche un rattachement incohérent."""
+        if parent.pk == plan.pk:
+            return False
+        if parent.statut not in PlanGestion.VALIDATED_STATUSES:
+            return False
+        if (parent.rang or 1) >= (plan.rang or 1):
+            return False
+        plan_sites = set(plan.sites.values_list('site_id', flat=True))
+        parent_sites = set(parent.sites.values_list('site_id', flat=True))
+        return bool(plan_sites & parent_sites)
+
     def perform_update(self, serializer):
         """Définir l'utilisateur modificateur."""
         serializer.save(id_utilisateur_maj=self.request.user)
@@ -246,6 +275,65 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
 
         serializer = PlanGestionDetailSerializer(plan, context={'request': request})
         return Response(serializer.data)
+
+    @action(detail=False, methods=['get'], url_path='for-sites')
+    def for_sites(self, request):
+        """
+        Plans validés/archivés associés à un ou plusieurs sites, groupés par
+        site et triés par rang.
+
+        GET /api/plans/plans/for-sites/?site_ids=1,2
+
+        Sert, lors de la création d'un plan, à :
+        - alerter si un PG du même rang existe déjà sur le site ;
+        - proposer de rattacher le nouveau plan au plan validé du rang
+          précédent (conservation de la chaîne de versions) ;
+        - afficher le détail des PG déjà rattachés au site.
+
+        Seuls les plans validés/archivés (`VALIDATED_STATUSES` = valide,
+        modifie, archive — y compris les évaluations mi-parcours qui portent
+        le statut `modifie`) sont renvoyés ; les brouillons sont exclus.
+        Le scope respecte les permissions de l'utilisateur (get_queryset).
+        """
+        raw = request.query_params.get('site_ids', '')
+        site_ids = [int(c) for c in (chunk.strip() for chunk in raw.split(',')) if c.isdigit()]
+        if not site_ids:
+            return Response({'sites': []})
+
+        from apps.users.models import Site
+
+        qs = (
+            self.get_queryset()
+            .filter(sites__site_id__in=site_ids, statut__in=PlanGestion.VALIDATED_STATUSES)
+            .distinct()
+        )
+        names = dict(
+            Site.objects.filter(id_site__in=site_ids).values_list('id_site', 'nom_site')
+        )
+
+        sites_payload = []
+        for sid in site_ids:
+            plans = qs.filter(sites__site_id=sid).order_by('rang', 'version')
+            sites_payload.append({
+                'site_id': sid,
+                'site_nom': names.get(sid),
+                'plans': [
+                    {
+                        'id_pg': p.id_pg,
+                        'nom': p.nom,
+                        'slug': p.slug,
+                        'statut': p.statut,
+                        'statut_display': p.get_statut_display(),
+                        'rang': p.rang,
+                        'version': p.version,
+                        'annee_debut': p.annee_debut,
+                        'annee_fin': p.annee_fin,
+                        'is_mi_parcours': bool(p.is_mi_parcours),
+                    }
+                    for p in plans
+                ],
+            })
+        return Response({'sites': sites_payload})
 
     @action(detail=False, methods=['get'])
     def geojson_list(self, request):
@@ -1102,11 +1190,14 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
             plan.is_mi_parcours = True
             update_fields.append('is_mi_parcours')
 
-        # #277 — Si le plan était dans le workflow CSRPN et qu'il est validé,
-        # on remet validation_step à NULL (sortie du workflow).
-        if new_status in ('valide', 'modifie') and plan.validation_step:
-            plan.validation_step = None
-            update_fields.append('validation_step')
+        # #347 — Les validations administratives (validation_step + dates CSRPN)
+        # sont désormais ORTHOGONALES au statut plateforme : on ne les efface plus
+        # à la validation. La validation plateforme et les validations
+        # administratives coexistent en parallèle.
+
+        # #347 — Retour en brouillon : on NE touche PAS aux validations
+        # administratives (dates CSRPN/comité/arrêté). Elles sont orthogonales au
+        # statut plateforme et conservées telles quelles.
 
         plan.save(update_fields=update_fields)
 
@@ -1193,11 +1284,9 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_403_FORBIDDEN
             )
 
-        if plan.statut != 'draft':
-            return Response(
-                {'error': "Le workflow CSRPN s'applique uniquement aux plans en brouillon."},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+        # #347 — Les validations administratives sont orthogonales au statut
+        # plateforme : on peut les enregistrer quel que soit le statut du plan
+        # (brouillon comme validé), en parallèle de la validation plateforme.
 
         # `step` peut être None (annulation du workflow).
         new_step = request.data.get('step') if 'step' in request.data else _MISSING
@@ -1214,11 +1303,14 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
 
         current_step = plan.validation_step
         # Transitions autorisées du workflow CSRPN. None = pas dans le workflow.
+        # #347 — auto-transitions autorisées (step == current) : permet de
+        # (re)enregistrer la date d'une étape terminale sans la quitter (l'étape
+        # finale n'enchaîne plus sur la validation plateforme, désormais séparée).
         allowed_step_transitions = {
             None: ['avis_csrpn'],
-            'avis_csrpn': [None, 'comite_consultatif'],
-            'comite_consultatif': [None, 'arrete_pref'],
-            'arrete_pref': [None],
+            'avis_csrpn': [None, 'avis_csrpn', 'comite_consultatif'],
+            'comite_consultatif': [None, 'comite_consultatif', 'arrete_pref'],
+            'arrete_pref': [None, 'arrete_pref'],
         }
 
         if new_step not in allowed_step_transitions.get(current_step, []):
@@ -1277,6 +1369,96 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
                 old_status=old_step,
                 new_status=new_step,
                 triggered_by=request.user,
+            )
+        except Exception:
+            pass
+
+        serializer = PlanGestionDetailSerializer(plan)
+        return Response(serializer.data)
+
+    @action(detail=True, methods=['post'], url_path='admin-validation',
+            permission_classes=[permissions.IsAuthenticated, IsReferent])
+    def admin_validation(self, request, pk=None):
+        """
+        Enregistrer/éditer/effacer une validation administrative INDÉPENDANTE (#347).
+
+        POST /api/plans/plans/{id}/admin-validation/
+        Body: {
+            "key": "avis_csrpn" | "comite_consultatif" | "arrete_pref",
+            "date": "YYYY-MM-DD" | null,     # null => efface la validation
+            "numero_arrete_pref"?: string     # uniquement pour arrete_pref
+        }
+
+        Contrairement à `csrpn-step` (workflow ordonné, déprécié #347), chaque
+        validation administrative est enregistrée séparément, dans n'importe quel
+        ordre, quel que soit le statut plateforme du plan. L'état « validé » d'un
+        élément est porté par sa date (renseignée = validé).
+
+        - `arrete_pref` est réservé aux RNN/RNR (rejet sinon).
+        - `validation_step` est maintenu (compat) sur l'étape la plus avancée
+          renseignée, mais ne pilote plus l'UI.
+        """
+        plan = self.get_object()
+
+        user = request.user
+        if not user.can_manage_plan_lifecycle() and not plan.referents.filter(pk=user.pk).exists():
+            return Response(
+                {'error': "Vous devez être référent de ce plan pour gérer les validations administratives."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        key = request.data.get('key')
+        key_to_date_field = {
+            'avis_csrpn': 'date_avis_csrpn',
+            'comite_consultatif': 'date_validation_comite',
+            'arrete_pref': 'date_arrete_pref',
+        }
+        if key not in key_to_date_field:
+            return Response(
+                {'error': f"Clé invalide. Choix : {', '.join(key_to_date_field)}"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        if key == 'arrete_pref' and not plan.is_rnn():
+            return Response(
+                {'error': "L'arrêté préfectoral est réservé aux RNN/RNR."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        date_value = request.data.get('date') or None
+        date_field = key_to_date_field[key]
+        setattr(plan, date_field, date_value)
+        update_fields = [date_field, 'id_utilisateur_maj', 'date_maj']
+
+        if key == 'arrete_pref':
+            # Le n° d'arrêté suit la date : effacé si la date est effacée.
+            plan.numero_arrete_pref = (request.data.get('numero_arrete_pref') or None) if date_value else None
+            update_fields.append('numero_arrete_pref')
+
+        # Maintenir `validation_step` (compat) sur l'étape la plus avancée renseignée.
+        if plan.date_arrete_pref:
+            plan.validation_step = 'arrete_pref'
+        elif plan.date_validation_comite:
+            plan.validation_step = 'comite_consultatif'
+        elif plan.date_avis_csrpn:
+            plan.validation_step = 'avis_csrpn'
+        else:
+            plan.validation_step = None
+        update_fields.append('validation_step')
+
+        plan.id_utilisateur_maj = request.user
+        plan.save(update_fields=update_fields)
+
+        try:
+            from apps.core.services import ActivityService
+            verb = 'enregistrée' if date_value else 'effacée'
+            ActivityService.log(
+                user=request.user,
+                action='status_change',
+                entity_type='plan',
+                entity_id=plan.id_pg,
+                entity_name=plan.nom,
+                description=f"Validation administrative « {key} » {verb}",
             )
         except Exception:
             pass
@@ -1550,6 +1732,88 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
         serializer = PlanGestionDetailSerializer(plan)
         return Response(serializer.data)
 
+    @action(detail=True, methods=['post'], url_path='delete-version',
+            permission_classes=[permissions.IsAuthenticated, IsReferent])
+    def delete_version(self, request, pk=None):
+        """
+        Supprime définitivement une version (plan) d'une chaîne de versions (#348).
+
+        POST /api/plans/plans/{id}/delete-version/
+
+        Utilisé par la page « Paramètres du plan de gestion » pour supprimer une
+        version quelconque de la chaîne — y compris l'évaluation mi-parcours.
+
+        - Réservé au référent du plan, admin_og, super_admin (`_can_delete_plan`).
+        - Supprime le plan et, par CASCADE Django, ses liens (sites, membres,
+          référents, organismes rédacteurs, fichiers, enjeux, opérations,
+          suivis). Les sites / utilisateurs / organismes eux-mêmes ne sont pas
+          supprimés, seules les liaisons le sont.
+        - Répare la chaîne : les enfants directs sont re-rattachés au parent du
+          plan supprimé (la chaîne reste connectée), puis les versions du/des
+          rang(s) impacté(s) sont renumérotées de façon contiguë (1..N).
+        - Notifie les acteurs liés.
+
+        Renvoie l'identifiant supprimé et la chaîne de versions restante.
+        """
+        from django.db import transaction
+        from apps.notifications.services import NotificationService
+
+        plan = self.get_object()
+
+        if not self._can_delete_plan(request.user, plan):
+            return Response(
+                {'detail': "Vous n'avez pas les droits pour supprimer cette version."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        # Capturer la chaîne et les acteurs AVANT la suppression.
+        chain_ids = [item['id_pg'] for item in plan.get_version_chain()]
+        parent = plan.plan_parent
+        plan_name = plan.nom
+        plan_id = plan.id_pg
+        deleted_by = request.user
+        referent_ids = list(plan.referents.values_list('id_role', flat=True))
+        member_ids = list(
+            CorRolePlan.objects.filter(plan_de_gestion=plan).values_list('id_role', flat=True)
+        )
+        org_ids = list(plan.organismes_redacteurs.values_list('uuid_og', flat=True))
+
+        with transaction.atomic():
+            # Re-rattacher les enfants au parent du plan supprimé pour garder la
+            # chaîne connectée (plan_parent est SET_NULL : sans cela les enfants
+            # deviendraient des racines orphelines).
+            plan.children.update(plan_parent=parent)
+            plan.delete()
+            # Renuméroter les versions restantes de la chaîne, par rang.
+            survivors = list(
+                PlanGestion.objects.filter(id_pg__in=chain_ids).exclude(pk=plan_id)
+            )
+            PlanGestion.renumber_versions_per_rang(survivors)
+
+        try:
+            NotificationService.notify_plan_deleted(
+                plan_name=plan_name,
+                plan_id=plan_id,
+                deleted_by=deleted_by,
+                referent_ids=referent_ids,
+                org_ids=org_ids,
+                member_ids=member_ids,
+            )
+        except Exception:
+            pass
+
+        # Construire la chaîne restante pour le frontend.
+        anchor = None
+        if parent is not None:
+            parent.refresh_from_db()
+            anchor = parent
+        else:
+            anchor = PlanGestion.objects.filter(id_pg__in=chain_ids).exclude(pk=plan_id).first()
+        remaining = anchor.get_version_chain() if anchor is not None else []
+
+        return Response({'deleted_id': plan_id, 'version_chain': remaining},
+                        status=status.HTTP_200_OK)
+
     @action(detail=True, methods=['post'], url_path='create-next-rang',
             permission_classes=[permissions.IsAuthenticated, IsReferent])
     def create_next_rang(self, request, pk=None):
@@ -1625,24 +1889,17 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
 
         # Nouveau rang → nouvelle numérotation (v1). Un changement de rang
         # correspond à un NOUVEAU plan de gestion, pas à une nouvelle version.
-        new_plan = PlanGestion.objects.create(
+        # #377 — copie de toutes les métadonnées du plan source (sauf statut).
+        new_plan = PlanDuplicationService.build_version_plan(
+            plan, request.user,
             nom=nom,
-            plan_parent=plan,
             id_type_document=revise_type,
-            statut='draft',
             version=plan.get_first_version_for_next_rang(),
             annee_debut=annee_debut,
             annee_fin=annee_fin,
             rang=new_rang,
-            surface=plan.surface,
-            gestion_partagee=plan.gestion_partagee,
-            ct88=plan.ct88,
-            risque_incendie=plan.risque_incendie,
-            id_redacteur_type=plan.id_redacteur_type,
-            redacteur_nom=plan.redacteur_nom,
-            id_utilisateur_ajout=request.user,
-            id_utilisateur_maj=request.user,
         )
+        new_plan.save()
 
         # Copier les sites
         for cor_site in plan.sites.all():
@@ -1663,6 +1920,10 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
                 plan_de_gestion=new_plan,
                 referent=membre.referent,
             )
+
+        # #377 — Copier tout le contenu (enjeux, hiérarchie, suivis, opérations)
+        # pour que le rang suivant soit éditable sans impacter la version source.
+        PlanDuplicationService.copy_content(plan, new_plan, request.user)
 
         try:
             from apps.core.services import ActivityService
@@ -1729,26 +1990,15 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
-        # Créer le nouveau plan
-        new_plan = PlanGestion.objects.create(
+        # Créer le nouveau plan.
+        # #377 — copie de toutes les métadonnées du plan source (sauf statut).
+        new_plan = PlanDuplicationService.build_version_plan(
+            plan, request.user,
             nom=f"Évaluation mi-parcours - {plan.nom}",
-            plan_parent=plan,
             id_type_document=eval_type,
-            statut='draft',
             version=plan.get_next_version(),
-            annee_debut=plan.annee_debut,
-            annee_fin=plan.annee_fin,
-            rang=plan.rang,
-            surface=plan.surface,
-            gestion_partagee=plan.gestion_partagee,
-            ct88=plan.ct88,
-            risque_incendie=plan.risque_incendie,
-            id_evaluation=plan.id_evaluation,
-            id_redacteur_type=plan.id_redacteur_type,
-            redacteur_nom=plan.redacteur_nom,
-            id_utilisateur_ajout=request.user,
-            id_utilisateur_maj=request.user,
         )
+        new_plan.save()
 
         # Copier les sites
         for cor_site in plan.sites.all():
@@ -1769,6 +2019,10 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
                 plan_de_gestion=new_plan,
                 referent=membre.referent,
             )
+
+        # #377 — Copier tout le contenu pour que l'évaluation mi-parcours soit
+        # éditable sans impacter la version source.
+        PlanDuplicationService.copy_content(plan, new_plan, request.user)
 
         # Log activity
         try:
@@ -1880,6 +2134,20 @@ class CorPgFichierViewSet(viewsets.ModelViewSet):
     ordering_fields = ['nom_fichier', 'type_fichier', 'ordre_affichage', 'date_upload']
     ordering = ['ordre_affichage', 'nom_fichier']
     
+    def get_permissions(self):
+        """
+        #372 — Lecture (list/retrieve/download) accessible à tout utilisateur
+        authentifié : l'accès réel est déjà borné par ``get_queryset()`` (plans
+        accessibles) et par la vérification du plan dans l'action ``download``.
+        Exiger ``IsReferent`` au niveau vue bloquait à tort le téléchargement
+        pour les non-référents légitimes (admin d'organisme, membre du plan).
+        Les écritures (upload/suppression) restent réservées aux référents et
+        au brouillon uniquement.
+        """
+        if self.action in ('list', 'retrieve', 'download'):
+            return [permissions.IsAuthenticated()]
+        return [permissions.IsAuthenticated(), IsReferent(), CanModifyOnlyDraftPlan()]
+
     def get_queryset(self):
         """Filtrer les fichiers selon les permissions sur les plans."""
         user = self.request.user

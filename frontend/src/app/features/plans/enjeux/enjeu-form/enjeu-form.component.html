@@ -55,11 +55,9 @@
             <input formControlName="intitule_court"
                    maxlength="25"
                    [placeholder]="'enjeux.enjeuForm.intituleCourtPlaceholder' | translate">
-            <button suffixSlot type="button"
-                    [matTooltip]="'enjeux.enjeuForm.intituleCourtHint' | translate"
-                    matTooltipPosition="above">
-              <i class="fi fi-rr-interrogation"></i>
-            </button>
+            <i suffixSlot class="fi fi-rr-info help-icon"
+               [matTooltip]="'enjeux.enjeuForm.intituleCourtHint' | translate"
+               matTooltipPosition="above"></i>
           </app-form-field>
 
           <!-- Priorité -->
@@ -111,6 +109,7 @@
                 <app-reference-item-list
                   type="habitat"
                   [items]="habitatItems"
+                  [showCorrespondences]="true"
                   (itemsChange)="onHabitatsChange($event)">
                 </app-reference-item-list>
               </div>
@@ -187,8 +186,8 @@
           }
         </div>
 
-        <!-- Section Détails (#303 accordion enjeu) -->
-        <app-accordion variant="enjeu" [title]="'enjeux.enjeuForm.details' | translate">
+        <!-- Section Détails (#334 — variante section : titre sombre, icône colorée, sans bande) -->
+        <app-accordion variant="section" [title]="'enjeux.enjeuForm.details' | translate">
           <img accordionIcon src="assets/images/ellipses/ellipse-terra-cotta.png" alt="" class="panel-ellipse">
 
           <div class="panel-content">

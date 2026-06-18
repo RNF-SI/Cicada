@@ -33,6 +33,8 @@ from .models_indicateurs import (
     CorIndicateurGeologie,
     Metrique,
     Mesure,
+    IndicateurMesure,
+    IndicateurRealisationGlobale,
 )
 from .models_operations import (
     Protocole,
@@ -41,6 +43,7 @@ from .models_operations import (
     CorOperationSite,
     OperationAnnee,
     FinanceOperation,
+    OperationRealisationGlobale,
 )
 
 
@@ -638,6 +641,31 @@ class PlanGestion(models.Model):
     def get_first_version_for_next_rang(self):
         """Première version pour le rang suivant — toujours '1' (nouveau plan)."""
         return '1'
+
+    @staticmethod
+    def renumber_versions_per_rang(plans):
+        """
+        Renumérote les versions d'un ensemble de plans, par rang, de façon
+        contiguë (1..N) selon l'ordre chronologique (date_ajout puis id_pg).
+
+        Utilisé après la suppression d'une version (#348) pour conserver une
+        numérotation cohérente : les versions sont scopées au rang (cf. #279),
+        donc on regroupe par rang avant de réindexer. Ne sauvegarde que les
+        plans dont la version change réellement.
+        """
+        from collections import defaultdict
+
+        by_rang = defaultdict(list)
+        for plan in plans:
+            by_rang[plan.rang or 1].append(plan)
+
+        for group in by_rang.values():
+            group.sort(key=lambda p: (p.date_ajout, p.id_pg))
+            for index, plan in enumerate(group, start=1):
+                new_version = str(index)
+                if plan.version != new_version:
+                    plan.version = new_version
+                    plan.save(update_fields=['version'])
 
 
 class CorSitePg(models.Model):

@@ -27,8 +27,15 @@ export interface TaxonRef {
  */
 export interface HabitatRef {
   id?: number;
-  cd_hab: string;
+  /** Code HabRef. Vide/null pour un habitat saisi librement (hors référentiel, #368). */
+  cd_hab?: string | null;
   lb_hab_fr?: string;
+  /** Code propre dans la typologie d'origine (ex. « G1.6 »). #89 */
+  lb_code?: string;
+  /** Typologie d'origine (ex. « EUNIS »). #89 */
+  lb_typo?: string;
+  /** Nom complet (avec auteur). #89 */
+  lb_hab_fr_complet?: string;
 }
 
 /**
@@ -124,6 +131,10 @@ export interface Enjeu {
   // Objectifs à long terme (avec NE imbriqués)
   objectifs_long_terme?: ObjectifLongTerme[];
   nb_objectifs_long_terme?: number;
+
+  // #337 — Objectifs opérationnels rattachés directement (cas FCR, sans pression)
+  objectifs_operationnels?: ObjectifOperationnel[];
+  nb_objectifs_operationnels?: number;
 
   // Audit
   date_ajout: string;
@@ -233,6 +244,8 @@ export interface ObjectifOperationnel {
   id_oo: number;
   pressions: PressionLight[];
   pression_ids: number[];
+  // #337 — rattachement direct à un enjeu/FCR (sans pression). null pour les OO classiques.
+  id_enjeu?: number | null;
   libelle: string;
   description?: string;
   resultats_attendus?: ResultatAttendu[];
@@ -271,6 +284,8 @@ export interface Indicateur {
   est_standardise: boolean;
   metriques?: Metrique[];
   nb_metriques?: number;
+  // #367 — actions rattachées directement à l'indicateur (sans métrique)
+  operations?: Operation[];
   taxons?: TaxonRef[];
   habitats?: HabitatRef[];
   geologies?: GeologieRef[];
@@ -455,6 +470,8 @@ export interface SuiviInventaire {
   cible_secondaire?: string;
   taxon_taxref?: string;
   habitat_ref?: string;
+  /** Habitats structurés [{cd_hab, lb_hab_fr}] — pour les correspondances. */
+  habitats?: { cd_hab: string; lb_hab_fr?: string }[];
   date_lancement_suivi?: string;
   // Protocole (nested)
   protocole?: Protocole;
@@ -588,6 +605,9 @@ export interface MetriqueRef {
   nom_metrique: string;
   indicateur_id: number;
   indicateur_nom: string;
+  /** Type de l'indicateur parent (ETAT / PRESSION / REPONSE). Distingue les
+   *  indicateurs de réponse des métriques associées (état/pression). */
+  indicateur_type?: string | null;
   etat_reference?: string;
   type_metrique_id?: number | null;
   type_metrique_label?: string | null;
@@ -640,6 +660,11 @@ export interface Operation {
   // Nested relational data
   operation_annees?: OperationAnnee[];
   finances?: FinanceOperation[];
+  // #355 — Niveau de réalisation GLOBAL (sur la période) : surcharge sinon calcul auto
+  niveau_realisation_global_mnemonique?: string | null;
+  niveau_realisation_global_label?: string | null;
+  niveau_realisation_global_manuel?: boolean;
+  niveau_realisation_global_commentaire?: string | null;
   date_ajout: string;
   date_maj: string;
   createur_nom?: string;
@@ -652,8 +677,12 @@ export interface OperationCreatePayload {
   libelle: string;
   /** #251 — Statut envoyé selon le bouton utilisé : 'valide' pour Valider, 'draft' pour Enregistrer. */
   statut?: OperationStatut;
+  /** Emprise spatiale en GeoJSON (#342). null = effacement. */
+  geom_geojson?: any | null;
   id_priorite?: number;
   id_type_action?: number;
+  // #367 — rattachement direct à un indicateur (action sans métrique préalable)
+  id_indicateur?: number | null;
   // #228 — Catégorie d'action réserve CT88 (optionnel)
   id_categorie_action_reserve?: number | null;
   id_referentiel_operations?: string;
@@ -739,7 +768,9 @@ export interface IndicateurCreatePayload {
  * Payload for creating an ObjectifOperationnel
  */
 export interface ObjectifOperationnelCreatePayload {
-  pression_ids: number[];
+  // #337 — un OO est rattaché soit à des pressions (Enjeu), soit à un enjeu (FCR)
+  pression_ids?: number[];
+  id_enjeu?: number;
   libelle: string;
   description?: string;
 }

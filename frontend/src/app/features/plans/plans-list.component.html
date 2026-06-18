@@ -257,11 +257,10 @@
                     <td class="col-status">
                       <div class="status-content">
                         <app-status-chip [statut]="plan.statut"></app-status-chip>
-                        @if (!isRedacteurPrincipal()) {
-                          <button class="btn-icon" (click)="editStatus(plan)" [title]="'plans.list.actions.editStatus' | translate">
-                            <i class="fi fi-rr-pencil"></i>
-                          </button>
-                        }
+                        <!-- #346 — le rédacteur principal peut aussi gérer le cycle de vie -->
+                        <button class="btn-icon" (click)="editStatus(plan)" [title]="'plans.list.actions.editStatus' | translate">
+                          <i class="fi fi-rr-pencil"></i>
+                        </button>
                       </div>
                     </td>
                     <td class="col-actions">

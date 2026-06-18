@@ -47,9 +47,20 @@ class TaxonRefSerializer(serializers.Serializer):
 
 
 class HabitatRefSerializer(serializers.Serializer):
-    """Serializer pour les références habitats."""
-    cd_hab = serializers.CharField(max_length=50)
+    """Serializer pour les références habitats.
+
+    #368 — `cd_hab` est optionnel : un habitat « libre » (hors HabRef, ex.
+    Outre-mer) n'a pas de code, seul `lb_hab_fr` est renseigné.
+    """
+    cd_hab = serializers.CharField(max_length=50, required=False, allow_blank=True, allow_null=True)
     lb_hab_fr = serializers.CharField(max_length=500, required=False, allow_blank=True)
+
+    def validate(self, attrs):
+        if not (attrs.get('cd_hab') or '').strip() and not (attrs.get('lb_hab_fr') or '').strip():
+            raise serializers.ValidationError(
+                _("Un habitat doit avoir un code HabRef ou un libellé saisi.")
+            )
+        return attrs
 
 
 class GeologieRefSerializer(serializers.Serializer):
@@ -216,7 +227,7 @@ class ObjectifOperationnelSerializer(serializers.ModelSerializer):
     class Meta:
         model = ObjectifOperationnel
         fields = [
-            'id_oo', 'pressions', 'pression_ids',
+            'id_oo', 'pressions', 'pression_ids', 'id_enjeu',
             'libelle', 'description', 'ordre',
             'resultats_attendus', 'nb_resultats_attendus',
             'date_ajout', 'date_maj', 'createur_nom'
@@ -240,7 +251,7 @@ class ObjectifOperationnelListSerializer(serializers.ModelSerializer):
     class Meta:
         model = ObjectifOperationnel
         fields = [
-            'id_oo', 'pressions', 'pression_ids',
+            'id_oo', 'pressions', 'pression_ids', 'id_enjeu',
             'libelle', 'description', 'ordre',
             'nb_resultats_attendus',
             'date_ajout', 'date_maj', 'createur_nom'
@@ -255,7 +266,11 @@ class ObjectifOperationnelListSerializer(serializers.ModelSerializer):
 
 
 class ObjectifOperationnelCreateSerializer(serializers.ModelSerializer):
-    """Serializer pour la création/modification d'un Objectif Opérationnel."""
+    """Serializer pour la création/modification d'un Objectif Opérationnel.
+
+    Un OO est rattaché soit à des pressions (cas Enjeu), soit directement à un
+    enjeu/FCR via ``id_enjeu`` (cas FCR sans pression, #337).
+    """
     pression_ids = serializers.ListField(
         child=serializers.IntegerField(),
         write_only=True,
@@ -266,10 +281,78 @@ class ObjectifOperationnelCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = ObjectifOperationnel
         fields = [
-            'id_oo', 'pression_ids',
+            'id_oo', 'pression_ids', 'id_enjeu',
             'libelle', 'description', 'ordre'
         ]
         read_only_fields = ['id_oo']
+
+    def validate(self, attrs):
+        """Contrôle d'intégrité du rattachement d'un OO selon la catégorie du parent.
+
+        Le mode de rattachement d'un OO dépend de la nature de l'enjeu parent :
+
+        - Enjeu « classique » : la chaîne Enjeu → Facteur d'influence → Pression
+          est STRUCTURANTE. Un OO descend obligatoirement d'au moins une pression
+          (``pression_ids``) et n'est JAMAIS rattaché directement à l'enjeu.
+
+        - FCR (Facteur Clé de Réussite) : la chaîne facteur/pression est
+          FACULTATIVE et purement DESCRIPTIVE. Un OO de FCR est TOUJOURS rattaché
+          directement au FCR via ``id_enjeu`` (sans pression), même si le FCR
+          porte par ailleurs des facteurs/pressions.
+
+        On verrouille donc les croisements interdits pour garantir l'intégrité du
+        modèle (cf. évolution FCR / #337) :
+          1. un OO doit être ancré quelque part (pression OU enjeu direct) ;
+          2. le rattachement direct (``id_enjeu``) est réservé aux FCR ;
+          3. un OO de FCR ne peut pas être rattaché à une pression.
+
+        Ces règles ne s'appliquent qu'à la création : en modification, le
+        rattachement initial n'est pas remis en cause.
+        """
+        if self.instance is not None:
+            return attrs
+
+        pression_ids = attrs.get('pression_ids') or []
+        enjeu = attrs.get('id_enjeu')  # instance Enjeu (FK résolue par DRF) ou None
+
+        # (1) Un OO doit être ancré : au moins une pression OU un enjeu direct.
+        if not pression_ids and not enjeu:
+            raise serializers.ValidationError(
+                _("Un objectif opérationnel doit être rattaché à au moins une pression ou à un FCR.")
+            )
+
+        # (2) Rattachement direct via id_enjeu → réservé aux FCR.
+        if enjeu is not None:
+            if not enjeu.is_fcr():
+                raise serializers.ValidationError(
+                    _("Le rattachement direct d'un objectif opérationnel est réservé aux FCR. "
+                      "Pour un enjeu classique, rattachez l'objectif à une ou plusieurs pressions.")
+                )
+            # Un OO de FCR est rattaché AU FCR uniquement : pas de pression au-dessus.
+            if pression_ids:
+                raise serializers.ValidationError(
+                    _("Un objectif opérationnel de FCR est rattaché directement au FCR, "
+                      "il ne peut pas être lié à une pression.")
+                )
+
+        # (3) Rattachement par pressions → l'enjeu parent (remonté via la chaîne
+        #     Pression → Facteur → Enjeu) ne doit PAS être un FCR.
+        else:  # pression_ids non vide (sinon bloqué en (1))
+            parent_pression = (
+                Pression.objects
+                .filter(pk__in=pression_ids)
+                .select_related('id_facteur_influence__id_enjeu__id_categorie')
+                .first()
+            )
+            if parent_pression is not None:
+                parent_enjeu = parent_pression.id_facteur_influence.id_enjeu
+                if parent_enjeu.is_fcr():
+                    raise serializers.ValidationError(
+                        _("Un objectif opérationnel de FCR doit être rattaché directement au FCR, "
+                          "pas à une pression.")
+                    )
+
+        return attrs
 
     def create(self, validated_data):
         pression_ids = validated_data.pop('pression_ids', [])
@@ -513,6 +596,14 @@ class EnjeuDetailSerializer(serializers.ModelSerializer):
     objectifs_long_terme = ObjectifLongTermeSerializer(many=True, read_only=True)
     nb_objectifs_long_terme = serializers.SerializerMethodField()
 
+    # #337 — Objectifs opérationnels rattachés directement à l'enjeu/FCR
+    # (sans pression). Pour un Enjeu classique, les OO transitent par les
+    # pressions ; pour un FCR, ils sont exposés ici.
+    objectifs_operationnels = ObjectifOperationnelSerializer(
+        source='objectifs_operationnels_directs', many=True, read_only=True
+    )
+    nb_objectifs_operationnels = serializers.SerializerMethodField()
+
     # Créateur
     createur_nom = serializers.CharField(source='id_utilisateur_ajout.get_full_name', read_only=True)
 
@@ -537,6 +628,8 @@ class EnjeuDetailSerializer(serializers.ModelSerializer):
             'facteurs_influence', 'nb_facteurs_influence',
             # Objectifs à long terme (avec NE inclus)
             'objectifs_long_terme', 'nb_objectifs_long_terme',
+            # #337 — OO rattachés directement (FCR)
+            'objectifs_operationnels', 'nb_objectifs_operationnels',
             # Audit
             'date_ajout', 'date_maj', 'id_utilisateur_ajout', 'createur_nom'
         ]
@@ -547,6 +640,9 @@ class EnjeuDetailSerializer(serializers.ModelSerializer):
 
     def get_nb_objectifs_long_terme(self, obj):
         return _prefetched_count(obj, 'objectifs_long_terme')
+
+    def get_nb_objectifs_operationnels(self, obj):
+        return _prefetched_count(obj, 'objectifs_operationnels_directs')
 
 
 class EnjeuCreateSerializer(serializers.ModelSerializer):
@@ -663,7 +759,9 @@ class EnjeuCreateSerializer(serializers.ModelSerializer):
         if not taxon_ids and taxons_data:
             taxon_ids = [t['cd_nom'] for t in taxons_data]
         if not habitat_ids and habitats_data:
-            habitat_ids = [h['cd_hab'] for h in habitats_data]
+            # #368 — un habitat libre n'a pas de cd_hab ; on filtre les vides ici
+            # (l'itération réelle se fait sur habitats_data dans _create_habitat_relations).
+            habitat_ids = [h.get('cd_hab') for h in habitats_data if h.get('cd_hab')]
         if not geologie_ids and geologies_data:
             geologie_ids = [g['id_inpg'] for g in geologies_data]
 
@@ -691,7 +789,9 @@ class EnjeuCreateSerializer(serializers.ModelSerializer):
         if taxon_ids is None and taxons_data is not None:
             taxon_ids = [t['cd_nom'] for t in taxons_data]
         if habitat_ids is None and habitats_data is not None:
-            habitat_ids = [h['cd_hab'] for h in habitats_data]
+            # #368 — habitats libres (cd_hab vide) filtrés ici ; liste reste
+            # non-None pour déclencher le remplacement (delete + recreate).
+            habitat_ids = [h.get('cd_hab') for h in habitats_data if h.get('cd_hab')]
         if geologie_ids is None and geologies_data is not None:
             geologie_ids = [g['id_inpg'] for g in geologies_data]
 
@@ -730,15 +830,27 @@ class EnjeuCreateSerializer(serializers.ModelSerializer):
             )
 
     def _create_habitat_relations(self, enjeu, habitat_ids, habitats_data):
-        """Créer les relations avec les habitats."""
-        data_dict = {h['cd_hab']: h for h in habitats_data}
+        """Créer les relations avec les habitats.
+
+        #368 — Si `habitats_data` est fourni, on l'itère directement (un habitat
+        par entrée) pour supporter les habitats « libres » (cd_hab vide → None,
+        plusieurs possibles). Sinon, fallback historique sur `habitat_ids`.
+        """
+        if habitats_data:
+            for data in habitats_data:
+                cd = (data.get('cd_hab') or '').strip() or None
+                CorEnjeuHabitat.objects.create(
+                    id_enjeu=enjeu,
+                    cd_hab=cd,
+                    lb_hab_fr=data.get('lb_hab_fr', '') or ''
+                )
+            return
 
         for cd_hab in habitat_ids:
-            data = data_dict.get(cd_hab, {})
             CorEnjeuHabitat.objects.create(
                 id_enjeu=enjeu,
                 cd_hab=cd_hab,
-                lb_hab_fr=data.get('lb_hab_fr', '')
+                lb_hab_fr=''
             )
 
     def _create_geologie_relations(self, enjeu, geologie_ids, geologies_data):
@@ -907,7 +1019,7 @@ class ResponsabiliteCreateSerializer(serializers.ModelSerializer):
         if not taxon_ids and taxons_data:
             taxon_ids = [t['cd_nom'] for t in taxons_data]
         if not habitat_ids and habitats_data:
-            habitat_ids = [h['cd_hab'] for h in habitats_data]
+            habitat_ids = [h.get('cd_hab') for h in habitats_data if h.get('cd_hab')]
         if not geologie_ids and geologies_data:
             geologie_ids = [g['id_inpg'] for g in geologies_data]
 
@@ -936,7 +1048,9 @@ class ResponsabiliteCreateSerializer(serializers.ModelSerializer):
         if taxon_ids is None and taxons_data is not None:
             taxon_ids = [t['cd_nom'] for t in taxons_data]
         if habitat_ids is None and habitats_data is not None:
-            habitat_ids = [h['cd_hab'] for h in habitats_data]
+            # #368 — habitats libres (cd_hab vide) filtrés ici ; liste reste
+            # non-None pour déclencher le remplacement (delete + recreate).
+            habitat_ids = [h.get('cd_hab') for h in habitats_data if h.get('cd_hab')]
         if geologie_ids is None and geologies_data is not None:
             geologie_ids = [g['id_inpg'] for g in geologies_data]
 
@@ -979,7 +1093,8 @@ class ResponsabiliteCreateSerializer(serializers.ModelSerializer):
 
     def _create_habitat_relations(self, responsabilite, habitat_ids, habitats_data):
         """Créer les relations avec les habitats."""
-        data_dict = {h['cd_hab']: h for h in habitats_data}
+        # #368 — clé sûre (un habitat libre peut ne pas avoir de cd_hab).
+        data_dict = {h.get('cd_hab'): h for h in habitats_data if h.get('cd_hab')}
 
         for cd_hab in habitat_ids:
             data = data_dict.get(cd_hab, {})

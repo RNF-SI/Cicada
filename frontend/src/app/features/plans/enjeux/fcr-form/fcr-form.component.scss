@@ -115,39 +115,12 @@ $form-side-margin: $spacing-xxl;
   font-size: $font-size-small;
 }
 
-// Details Panel
-.details-panel {
-  margin-bottom: $spacing-lg;
-
-  ::ng-deep .mat-expansion-panel-header {
-    background-color: $white;
-  }
-
-  mat-panel-title {
-    display: flex;
-    align-items: center;
-    gap: $spacing-sm;
-    font-weight: $font-weight-bold;
-    color: $black;
-    text-transform: uppercase;
-    letter-spacing: 3px;
-    font-size: $font-size-base;
-    border-bottom: 1px solid $secondary-terra-cotta;
-    padding-bottom: $spacing-xs;
-    width: 100%;
-  }
-
-  .panel-ellipse {
-    width: 16px;
-    height: 16px;
-    object-fit: contain;
-  }
-
-  .panel-toggle-icon {
-    margin-left: auto;
-    color: $primary-color;
-    font-size: 16px;
-  }
+// Section Détails portée par <app-accordion variant="section"> (#334).
+// Marqueur ellipse projeté, dimensionné ici (encapsulation du composant).
+.panel-ellipse {
+  width: 15px;
+  height: 15px;
+  object-fit: contain;
 }
 
 .panel-content {

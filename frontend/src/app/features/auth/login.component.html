@@ -70,6 +70,9 @@
     </form>
 
     <div class="login-footer">
+      <p class="forgot-password-link">
+        <a routerLink="/auth/forgot-password">{{ 'auth.login.forgotPassword' | translate }}</a>
+      </p>
       <p class="register-link">
         {{ 'auth.login.noAccount' | translate }}
         <a routerLink="/auth/register">{{ 'auth.login.createAccount' | translate }}</a>

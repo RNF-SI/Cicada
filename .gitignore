@@ -109,3 +109,6 @@ cicada_*.deb
 
 # Claude Code session artifacts
 .claude/scheduled_tasks.lock
+
+# Fichiers de test d'import de sites (locaux, non versionnés)
+frontend/src/assets/templates/import-sites-test*

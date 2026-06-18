@@ -171,6 +171,11 @@ class NotificationService:
             # Pour les inscriptions, pas de destinataire Role
             return
 
+        # Auto-validation : ne pas se notifier soi-même (le créateur est validateur)
+        if validation_request.validator_id and \
+                validation_request.validator_id == validation_request.requester_id:
+            return
+
         notification_type = 'validation_approved' if approved else 'validation_rejected'
         title = "Demande approuvée" if approved else "Demande rejetée"
 
@@ -339,7 +344,14 @@ class NotificationService:
 
     @staticmethod
     def notify_site_orphaned(site):
-        """Notifie les admins qu'un site n'a plus d'utilisateurs."""
+        """
+        Notifie les admins qu'un site n'a plus d'utilisateurs.
+
+        Notification in-app uniquement (pas d'email) : l'etat orphelin est aussi
+        consultable a la demande via la page Administration > Orphelins. On evite
+        ainsi de saturer la boite mail des admins (cf. suppression de l'audit
+        hebdomadaire par email).
+        """
         title = f"Site orphelin : {site.nom_site}"
         message = f"Le site {site.nom_site} n'a plus aucun utilisateur associé."
 
@@ -347,10 +359,10 @@ class NotificationService:
             notification_type='site_orphaned',
             title=title,
             message=message,
-            priority='high',
+            priority='medium',
             related_site=site,
-            action_url=f"/administration/sites/{site.id_site}",
-            send_email=True
+            action_url="/administration/orphelins",
+            send_email=False
         )
 
         # Notifier aussi les admin_og des organismes gestionnaires
@@ -366,10 +378,10 @@ class NotificationService:
                     notification_type='site_orphaned',
                     title=title,
                     message=message,
-                    priority='high',
+                    priority='medium',
                     related_site=site,
-                    action_url=f"/administration/sites/{site.id_site}",
-                    send_email=True
+                    action_url="/administration/orphelins",
+                    send_email=False
                 )
 
     @staticmethod
@@ -537,226 +549,13 @@ class NotificationService:
                 send_email=False,
             )
 
-    @staticmethod
-    def notify_orphaned_sites_summary(sites):
-        """
-        Envoie un email recapitulatif unique pour tous les sites orphelins.
-        Une seule notification + un seul email par destinataire.
-
-        Args:
-            sites: Liste de Site sans utilisateurs
-        """
-        import logging
-        logger = logging.getLogger(__name__)
-
-        count = len(sites)
-        site_names = [s.nom_site for s in sites]
-        sites_list_text = "\n".join(f"- {name}" for name in site_names)
-
-        title = f"Audit hebdomadaire : {count} site(s) sans utilisateur"
-        message = (
-            f"{count} site(s) actif(s) n'ont aucun utilisateur associé :\n\n"
-            f"{sites_list_text}"
-        )
-
-        # Une seule notification par super admin
-        super_admins = Role.objects.filter(role_level='super_admin', active=True)
-        for admin in super_admins:
-            notification = NotificationService.create_notification(
-                recipient=admin,
-                notification_type='site_orphaned',
-                title=title,
-                message=message,
-                priority='high',
-                action_url="/administration/sites",
-            )
-            # Envoyer l'email recapitulatif
-            NotificationService._send_audit_summary_email(
-                recipient=admin,
-                subject=title,
-                intro=f"{count} site(s) actif(s) n'ont aucun utilisateur associé.",
-                items=site_names,
-                action_url="/administration/sites",
-                action_label="Voir les sites",
-            )
-
-        # Notifier les admin_og concernes (regroupes par admin)
-        admin_og_sites = {}
-        for site in sites:
-            for cor_og in CorOgSite.objects.filter(id_site=site):
-                admin_ogs = Role.objects.filter(
-                    id_organisme=cor_og.uuid_og,
-                    role_level='admin_og',
-                    active=True
-                )
-                for admin in admin_ogs:
-                    admin_og_sites.setdefault(admin.pk, {
-                        'admin': admin,
-                        'sites': []
-                    })['sites'].append(site.nom_site)
-
-        for data in admin_og_sites.values():
-            admin = data['admin']
-            admin_site_names = data['sites']
-            admin_count = len(admin_site_names)
-            admin_title = f"Audit hebdomadaire : {admin_count} site(s) sans utilisateur"
-            admin_message = (
-                f"{admin_count} site(s) de votre organisme n'ont aucun utilisateur associé :\n\n"
-                + "\n".join(f"- {name}" for name in admin_site_names)
-            )
-            NotificationService.create_notification(
-                recipient=admin,
-                notification_type='site_orphaned',
-                title=admin_title,
-                message=admin_message,
-                priority='high',
-                action_url="/administration/sites",
-            )
-            NotificationService._send_audit_summary_email(
-                recipient=admin,
-                subject=admin_title,
-                intro=f"{admin_count} site(s) de votre organisme n'ont aucun utilisateur associé.",
-                items=admin_site_names,
-                action_url="/administration/sites",
-                action_label="Voir les sites",
-            )
-
-        logger.info(f"Orphaned sites summary sent: {count} sites")
-
-    @staticmethod
-    def notify_orphaned_plans_summary(plans):
-        """
-        Envoie un email recapitulatif unique pour tous les plans orphelins
-        (plans sans site associe suite a la suppression de leurs sites).
-
-        Une seule notification + un seul email par super admin.
-
-        Args:
-            plans: Liste de PlanGestion sans site associe
-        """
-        from apps.users.models import Role
-
-        count = len(plans)
-        plan_names = [p.nom for p in plans]
-
-        title = f"Audit hebdomadaire : {count} plan(s) de gestion sans site"
-        intro = f"{count} plan(s) de gestion n'ont aucun site associé suite à la suppression de leurs sites."
-        message = (
-            f"{count} plan(s) de gestion orphelins :\n\n"
-            + "\n".join(f"- {name}" for name in plan_names)
-        )
-
-        super_admins = Role.objects.filter(role_level='super_admin', active=True)
-        for admin in super_admins:
-            NotificationService.create_notification(
-                recipient=admin,
-                notification_type='plans_orphaned_summary',
-                title=title,
-                message=message,
-                priority='high',
-                action_url="/administration/plans",
-            )
-            NotificationService._send_audit_summary_email(
-                recipient=admin,
-                subject=title,
-                intro=intro,
-                items=plan_names,
-                action_url="/administration/plans",
-                action_label="Voir les plans",
-            )
-
-        logger.info(f"Orphaned plans summary sent: {count} plans")
-
-    @staticmethod
-    def notify_organismes_no_admin_summary(organismes):
-        """
-        Envoie un email recapitulatif unique pour tous les organismes sans admin.
-        Une seule notification + un seul email par super admin.
-
-        Args:
-            organismes: Liste de BibOrganismes sans admin_og
-        """
-        import logging
-        logger = logging.getLogger(__name__)
-
-        count = len(organismes)
-        org_names = [o.nom_organisme for o in organismes]
-
-        title = f"Audit hebdomadaire : {count} organisme(s) sans administrateur"
-        message = (
-            f"{count} organisme(s) n'ont aucun administrateur actif :\n\n"
-            + "\n".join(f"- {name}" for name in org_names)
-        )
-
-        super_admins = Role.objects.filter(role_level='super_admin', active=True)
-        for admin in super_admins:
-            NotificationService.create_notification(
-                recipient=admin,
-                notification_type='organisme_no_admin',
-                title=title,
-                message=message,
-                priority='critical',
-                action_url="/administration/organismes",
-            )
-            NotificationService._send_audit_summary_email(
-                recipient=admin,
-                subject=title,
-                intro=f"{count} organisme(s) n'ont aucun administrateur actif.",
-                items=org_names,
-                action_url="/administration/organismes",
-                action_label="Voir les organismes",
-            )
-
-        logger.info(f"Organismes without admin summary sent: {count} organismes")
-
-    @staticmethod
-    def _send_audit_summary_email(recipient, subject, intro, items, action_url, action_label):
-        """
-        Envoie un email recapitulatif d'audit.
-
-        Args:
-            recipient: Role destinataire
-            subject: Sujet de l'email
-            intro: Phrase d'introduction
-            items: Liste de noms a afficher
-            action_url: URL relative du bouton d'action
-            action_label: Libelle du bouton d'action
-        """
-        from django.conf import settings
-        from django.core.mail import send_mail
-        from django.template.loader import render_to_string
-        from django.utils.html import strip_tags
-        import logging
-        logger = logging.getLogger(__name__)
-
-        if not recipient.email:
-            return
-
-        site_url = getattr(settings, 'SITE_URL', 'http://localhost:4200')
-        context = {
-            'recipient': recipient,
-            'intro': intro,
-            'items': items,
-            'item_count': len(items),
-            'action_url': f"{site_url}{action_url}",
-            'action_label': action_label,
-            'site_url': site_url,
-        }
-
-        try:
-            html_message = render_to_string('emails/audit_summary.html', context)
-            plain_message = strip_tags(html_message)
-
-            send_mail(
-                subject=subject,
-                message=plain_message,
-                from_email=settings.DEFAULT_FROM_EMAIL,
-                recipient_list=[recipient.email],
-                html_message=html_message,
-                fail_silently=False,
-            )
-        except Exception as e:
-            logger.warning(f"Failed to send audit summary email to {recipient.email}: {e}")
+    # #328 — Suppression de l'audit hebdomadaire « organismes sans admin » par
+    # email (notify_organismes_no_admin_summary + _send_audit_summary_email).
+    # Comme pour les sites/plans orphelins, l'état « organisme sans admin » est
+    # un état persistant (et non un événement) : il est détecté en temps réel
+    # par les signaux Django (notify_organisme_no_admin) et consultable à la
+    # demande. Le récap hebdomadaire ne faisait que saturer la boîte mail des
+    # super-admins.
 
     @staticmethod
     def notify_plans_need_reassignment(site, organisme=None):
@@ -1117,6 +916,13 @@ class ValidationService:
             # Validateurs: referents du site + admin_og des organismes du site
             validators = ValidationService._get_plan_site_link_validators(validation_request)
 
+        elif validation_request.request_type == 'organisme_creation':
+            # Création d'un organisme : seuls les super_admin peuvent valider
+            validators = set(Role.objects.filter(
+                role_level='super_admin',
+                active=True
+            ))
+
         # Fallback: si aucun validateur trouve, super_admin
         if not validators:
             validators = set(Role.objects.filter(
@@ -1124,6 +930,54 @@ class ValidationService:
                 active=True
             ))
 
+        return validators
+
+    @staticmethod
+    def serialize_validators(validators, exclude=None):
+        """Sérialise une liste/QuerySet de Role validateurs pour l'API/UI.
+
+        Retourne une liste de dicts triée par nom :
+        `{id, name, email, role_level, role_label, organisme}`.
+
+        Args:
+            validators: itérable de Role.
+            exclude: Role à exclure (ex: le demandeur lui-même).
+        """
+        exclude_id = getattr(exclude, 'id_role', None)
+        result = []
+        for v in validators:
+            if exclude_id is not None and v.id_role == exclude_id:
+                continue
+            name = f"{v.prenom_role or ''} {v.nom_role or ''}".strip() or v.email
+            result.append({
+                'id': v.id_role,
+                'name': name,
+                'email': v.email,
+                'role_level': v.role_level,
+                'role_label': v.get_role_level_display(),
+                'organisme': v.id_organisme.nom_organisme if v.id_organisme else None,
+            })
+        return sorted(result, key=lambda d: d['name'].lower())
+
+    @staticmethod
+    def preview_site_creation_validators(user):
+        """Validateurs qui seraient notifiés si `user` créait un site maintenant.
+
+        Réutilise la logique de `_get_site_creation_validators` sans nécessiter
+        de site/demande (les validateurs ne dépendent que de l'organisme du
+        demandeur). Sert à l'aperçu côté formulaire avant soumission.
+        """
+        validators = set()
+        if user.id_organisme:
+            validators.update(Role.objects.filter(
+                id_organisme=user.id_organisme,
+                role_level='admin_og',
+                active=True,
+            ))
+        validators.update(Role.objects.filter(
+            role_level='super_admin',
+            active=True,
+        ))
         return validators
 
     @staticmethod
@@ -1501,6 +1355,17 @@ class ValidationService:
 
         pending = validation_request.pending_user
 
+        # Si une demande de creation d'organisme liee est encore en attente, elle
+        # doit etre approuvee d'abord : elle rattachera l'organisme au compte.
+        if pending.requested_organisme is None and organisme_override is None:
+            pending_org_request = validation_request.linked_requests.filter(
+                request_type='organisme_creation', status='pending'
+            ).first()
+            if pending_org_request:
+                raise ValueError(
+                    "Veuillez d'abord approuver la demande de création d'organisme associée."
+                )
+
         # Determiner l'organisme final (pending OU override fourni par l'admin)
         final_organisme = pending.requested_organisme or organisme_override
         if final_organisme is None:
@@ -1595,6 +1460,65 @@ class ValidationService:
         )
 
         return user
+
+    @staticmethod
+    def approve_organisme_creation(validation_request, validator, comment=None):
+        """
+        Approuve une demande de création d'organisme.
+
+        Crée le BibOrganismes à partir des données soumises, puis rattache le
+        nouvel organisme à l'inscription liée (PendingUser + ValidationRequest)
+        afin que l'approbation du compte puisse ensuite aboutir.
+
+        Args:
+            validation_request: ValidationRequest (type organisme_creation)
+            validator: Role qui approuve (super_admin)
+            comment: Commentaire optionnel
+
+        Returns:
+            BibOrganismes créé
+        """
+        from apps.users.models import BibOrganismes
+
+        if validation_request.request_type != 'organisme_creation':
+            raise ValueError("Cette demande n'est pas une création d'organisme")
+
+        data = validation_request.requested_data or {}
+        nom = (data.get('nom_organisme') or '').strip()
+        if not nom:
+            raise ValueError("Nom de l'organisme manquant dans la demande.")
+
+        parent = None
+        parent_id = data.get('parent_id')
+        if parent_id:
+            parent = BibOrganismes.objects.filter(id_organisme=parent_id).first()
+
+        organisme = BibOrganismes.objects.create(
+            nom_organisme=nom,
+            adresse_organisme=data.get('adresse_organisme') or None,
+            cp_organisme=data.get('cp_organisme') or None,
+            ville_organisme=data.get('ville_organisme') or None,
+            tel_organisme=data.get('tel_organisme') or None,
+            email_organisme=data.get('email_organisme') or None,
+            url_organisme=data.get('url_organisme') or None,
+            id_parent=parent,
+        )
+
+        # Rattacher l'organisme a l'inscription liee (compte en attente)
+        linked = validation_request.related_request
+        if linked and linked.request_type == 'user_registration':
+            if not linked.requested_organisme:
+                linked.requested_organisme = organisme
+                linked.save(update_fields=['requested_organisme', 'updated_at'])
+            if hasattr(linked, 'pending_user'):
+                pending = linked.pending_user
+                if not pending.requested_organisme:
+                    pending.requested_organisme = organisme
+                    pending.save(update_fields=['requested_organisme'])
+
+        validation_request.approve(validator, comment)
+
+        return organisme
 
     # ==================== Auto-approval helper ====================
 
@@ -1991,7 +1915,7 @@ class ValidationService:
         NotificationService.notify_other_validators(validation_request, validator, approved=True)
 
     @staticmethod
-    def approve_site_creation(validation_request, validator, comment=None, override_referent=None):
+    def approve_site_creation(validation_request, validator, comment=None, override_referent=None, notify_requester=True):
         """
         Approuve une creation de site et active le site.
         Le createur devient referent ou simple utilisateur selon request_as_referent.
@@ -2001,6 +1925,8 @@ class ValidationService:
             validator: Role qui approuve
             comment: Commentaire optionnel
             override_referent: Si defini, surcharge request_as_referent (bool)
+            notify_requester: Si False, ne notifie pas le demandeur (cas de la
+                validation automatique où le créateur est lui-même validateur).
         """
         if validation_request.request_type != 'site_creation':
             raise ValueError("Cette demande n'est pas une creation de site")
@@ -2047,22 +1973,23 @@ class ValidationService:
         # Approuver la demande
         validation_request.approve(validator, comment)
 
-        # Notifier le createur
-        if is_referent:
-            message = f"Votre site \"{site.nom_site}\" a ete valide. Vous en etes maintenant le referent."
-        else:
-            message = f"Votre site \"{site.nom_site}\" a ete valide. Vous avez acces au site en tant qu'utilisateur."
+        # Notifier le createur (sauf en validation automatique où il agit lui-même)
+        if notify_requester:
+            if is_referent:
+                message = f"Votre site \"{site.nom_site}\" a ete valide. Vous en etes maintenant le referent."
+            else:
+                message = f"Votre site \"{site.nom_site}\" a ete valide. Vous avez acces au site en tant qu'utilisateur."
 
-        NotificationService.create_notification(
-            recipient=requester,
-            notification_type='validation_approved',
-            title="Site valide",
-            message=message,
-            priority='high',
-            related_site=site,
-            action_url=f'/sites/{site.id_site}',
-            send_email=True
-        )
+            NotificationService.create_notification(
+                recipient=requester,
+                notification_type='validation_approved',
+                title="Site valide",
+                message=message,
+                priority='high',
+                related_site=site,
+                action_url=f'/sites/{site.id_site}',
+                send_email=True
+            )
 
         # Notifier les autres validateurs
         NotificationService.notify_other_validators(validation_request, validator, approved=True)
@@ -2300,3 +2227,16 @@ class ValidationService:
                         site=site,
                         organisme=validation_request.requested_organisme
                     )
+
+        # Cascade : une demande de création d'organisme et l'inscription liée
+        # vont de pair (compte non plaçable sans organisme). Rejeter l'une rejette
+        # l'autre. Les gardes is_pending()/status='pending' stoppent la récursion.
+        if validation_request.request_type == 'organisme_creation':
+            linked = validation_request.related_request
+            if linked and linked.is_pending():
+                ValidationService.reject_request(linked, validator, comment)
+        elif validation_request.request_type == 'user_registration':
+            for linked in validation_request.linked_requests.filter(
+                request_type='organisme_creation', status='pending'
+            ):
+                ValidationService.reject_request(linked, validator, comment)

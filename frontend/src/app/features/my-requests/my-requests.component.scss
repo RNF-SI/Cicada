@@ -365,3 +365,25 @@
     }
   }
 }
+
+// Validateurs possibles pour une demande en attente
+.awaiting-validators {
+  .possible-validators {
+    list-style: none;
+    margin: 4px 0 0;
+    padding: 0;
+
+    li {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 0.85em;
+      color: $gray-dark;
+      padding: 1px 0;
+
+      i {
+        font-size: 0.9em;
+      }
+    }
+  }
+}

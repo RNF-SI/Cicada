@@ -1,0 +1,62 @@
+<span class="hchip" [class.hchip--open]="expanded()" [class.hchip--free]="freeText()">
+  @if (freeText()) {
+    <!-- #368 — habitat libre : même puce, marqueur « saisi » (crayon), non dépliable -->
+    <span class="hchip__main hchip__main--static" [title]="'enjeux.referenceList.habitatFreeTextBadgeTooltip' | translate">
+      <span class="hchip__freebadge"><i class="fi fi-rr-pencil"></i></span>
+      <span class="hchip__name">{{ label() }}</span>
+    </span>
+  } @else {
+    <button type="button" class="hchip__main" (click)="toggle()">
+      <span class="hchip__code">{{ displayCode() || cdHab() }}</span>
+      <span class="hchip__name">{{ label() }}</span>
+      <i class="fi fi-rr-angle-small-down hchip__caret"></i>
+    </button>
+  }
+  @if (removable()) {
+    <button type="button" class="hchip__remove" (click)="onRemove($event)"
+            [attr.aria-label]="'common.actions.delete' | translate">
+      <i class="fi fi-rr-cross-small"></i>
+    </button>
+  }
+</span>
+
+@if (expanded()) {
+  <div class="hchip__panel">
+    <!-- Classification d'origine de l'habitat -->
+    @if (hasOwnInfo()) {
+      <div class="hchip__group hchip__group--self">
+        <span class="hchip__typo">{{ 'enjeux.accordion.habitatOwnTypo' | translate }}</span>
+        <span class="hchip__selfinfo">
+          @if (displayTypo()) { <span class="hchip__typo-tag">{{ displayTypo() }}</span> }
+          @if (displayCode()) { <span class="hchip__codepill">{{ displayCode() }}</span> }
+          <span class="hchip__cdhab">cd_hab&nbsp;{{ cdHab() }}</span>
+        </span>
+      </div>
+    }
+
+    @if (loading()) {
+      <span class="hchip__muted">{{ 'common.status.loading' | translate }}…</span>
+    } @else if (related().total > 0) {
+      <!-- Habitats liés DANS LE MÊME référentiel (sous-types, associés…) -->
+      <div class="hchip__related-head">
+        {{ 'enjeux.accordion.habitatRelated' | translate:{ count: related().total } }}
+      </div>
+      <ul class="hchip__related">
+        @for (r of related().items; track r.code + r.name) {
+          <li class="hchip__relitem">
+            @if (r.code) { <span class="hchip__codepill">{{ r.code }}</span> }
+            <span class="hchip__relname">{{ r.name || '—' }}</span>
+          </li>
+        }
+        @if (related().extra > 0) {
+          <li class="hchip__more">{{ 'enjeux.accordion.habitatRelatedMore' | translate:{ count: related().extra } }}</li>
+        }
+      </ul>
+    } @else if (!hasOwnInfo()) {
+      <!-- Ni classification d'origine, ni habitat lié (habitat legacy sans
+           cd_hab enrichi) : on l'indique. Sinon, on ne montre rien de plus que
+           le référentiel d'origine (pas de note « vide » inutile). -->
+      <span class="hchip__muted">{{ 'enjeux.accordion.habitatNoCorresp' | translate }}</span>
+    }
+  </div>
+}

@@ -1,0 +1,191 @@
+@import 'variables';
+
+// Layout aligné sur les autres sous-pages du plan (sidebar + contenu)
+.settings-layout {
+  display: flex;
+  min-height: calc(100vh - 58px);
+  gap: $spacing-lg;
+  background: $beige;
+}
+
+.plan-main {
+  flex: 1;
+  min-width: 0;
+  padding: $spacing-lg $spacing-lg $spacing-xxl 0;
+  overflow-x: hidden;
+}
+
+.settings-loading {
+  display: flex;
+  justify-content: center;
+  padding: $spacing-xxl 0;
+}
+
+// ── En-tête ───────────────────────────────────────────────────────────
+.settings-header {
+  margin-bottom: $spacing-lg;
+}
+
+.back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: $spacing-xxs;
+  color: $primary-color;
+  font-weight: $font-weight-bold;
+  text-decoration: none;
+  margin-bottom: $spacing-sm;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+.settings-title {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+  color: $primary-color;
+  margin: 0 0 $spacing-xxs;
+}
+
+.settings-plan-name {
+  font-weight: $font-weight-bold;
+  color: $black;
+  margin: 0 0 $spacing-xxs;
+}
+
+.subtitle {
+  color: $gray-dark;
+  margin: 0;
+}
+
+// ── Sections ──────────────────────────────────────────────────────────
+.settings-section {
+  max-width: 760px;
+  margin-top: $spacing-lg;
+}
+
+.section-title {
+  color: $primary-color;
+  margin: 0 0 $spacing-sm;
+}
+
+// Version affichée (zone de suppression)
+.current-version {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: $spacing-sm $spacing-md;
+  margin-top: $spacing-md;
+  padding: $spacing-md;
+  background-color: $white;
+  border: 1px solid $gray-light;
+  border-left: $border-width-accent solid $error-color;
+  border-radius: $border-radius-md;
+}
+
+.current-version-info {
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+  flex-wrap: wrap;
+}
+
+.version-rang {
+  font-weight: $font-weight-bold;
+  color: $black;
+}
+
+// Liste de contexte (lecture seule)
+.version-list {
+  list-style: none;
+  margin: $spacing-md 0 $spacing-xs;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-sm;
+}
+
+.version-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: $spacing-sm $spacing-md;
+  padding: $spacing-md;
+  background-color: $white;
+  border: 1px solid $gray-light;
+  border-radius: $border-radius-md;
+
+  &.is-current {
+    border-left: $border-width-accent solid $secondary-terra-cotta;
+    background-color: $beige;
+  }
+}
+
+.version-main {
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+  flex-wrap: wrap;
+}
+
+.current-badge {
+  font-size: $font-size-small;
+  color: $secondary-terra-cotta;
+  font-weight: $font-weight-bold;
+}
+
+.version-meta {
+  flex: 1;
+  min-width: 180px;
+  display: flex;
+  flex-direction: column;
+}
+
+.version-name {
+  color: $black;
+}
+
+.version-period {
+  font-size: $font-size-small;
+  color: $gray-dark;
+}
+
+.versions-hint {
+  margin-top: $spacing-xs;
+}
+
+// Bouton de suppression (rouge erreur, texte blanc — WCAG AA)
+.btn-lifecycle-danger {
+  display: inline-flex;
+  align-items: center;
+  gap: $spacing-xxs;
+  padding: $spacing-xs $spacing-md;
+  border: none;
+  border-radius: $border-radius-pill;
+  background-color: $error-color;
+  color: $white;
+  font-family: $font-family;
+  font-weight: $font-weight-bold;
+  font-size: $font-size-base;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+
+  &:hover:not(:disabled) {
+    opacity: 0.9;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  i {
+    font-size: $font-size-h4;
+  }
+
+  ::ng-deep .mat-mdc-progress-spinner circle {
+    stroke: $white;
+  }
+}

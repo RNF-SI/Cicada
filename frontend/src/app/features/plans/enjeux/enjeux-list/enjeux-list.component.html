@@ -258,8 +258,13 @@
                         </div>
                         @if (showDetailHabitatList() && enjeu.habitats?.length) {
                           <div class="reference-list">
-                            @for (habitat of enjeu.habitats; track habitat.cd_hab) {
-                              <span class="reference-chip">{{ habitat.cd_hab }} - {{ habitat.lb_hab_fr }}</span>
+                            @for (habitat of enjeu.habitats; track $index) {
+                              @if (habitat.cd_hab) {
+                                <app-habitat-chip [cdHab]="habitat.cd_hab" [label]="habitat.lb_hab_fr ?? ''"></app-habitat-chip>
+                              } @else {
+                                <!-- #368 — habitat libre (hors HabRef) : puce variante « saisi » -->
+                                <app-habitat-chip [label]="habitat.lb_hab_fr ?? ''" [freeText]="true"></app-habitat-chip>
+                              }
                             }
                           </div>
                         }
@@ -308,11 +313,11 @@
                       <p class="section-text">{{ enjeu.etat_enjeu }}</p>
                     }
 
-                    <!-- Détails/commentaires -->
+                    <!-- Détails/commentaires (#369 : libellé spécifique pour les FCR) -->
                     @if (enjeu.description) {
                       <div class="section-block">
                         <div class="section-line"></div>
-                        <h4 class="section-title-uppercase">{{ 'enjeux.accordion.detailsCommentaires' | translate }}</h4>
+                        <h4 class="section-title-uppercase">{{ (isSelectedFcr() ? 'enjeux.accordion.fcrContexte' : 'enjeux.accordion.detailsCommentaires') | translate }}</h4>
                       </div>
                       <p class="section-text">{{ enjeu.description }}</p>
                     }
@@ -320,12 +325,24 @@
                 }
               </div>
 
-              <!-- Facteurs d'Influence (enjeux uniquement, pas FCR) -->
-              @if (!isSelectedFcr()) {
-                <div cdkDropList
-                     class="facteurs-droplist"
-                     [cdkDropListDisabled]="!canEditPlan()"
-                     (cdkDropListDropped)="onFacteurDrop($event)">
+              <!--
+                Facteurs d'Influence — affichés pour les enjeux ET les FCR.
+
+                Évolution du modèle FCR : la section facteurs d'influence (et son
+                bouton d'ajout) avait été masquée pour les FCR (#337). Elle est
+                ré-affichée car un FCR peut désormais porter des facteurs
+                d'influence. Différence de sémantique :
+                  - Enjeu : la chaîne Facteur → Pression est STRUCTURANTE
+                    (un OO descend obligatoirement d'une pression).
+                  - FCR : la chaîne Facteur → Pression est FACULTATIVE et
+                    purement DESCRIPTIVE. Elle n'ancre pas les OO : un OO de FCR
+                    est toujours rattaché directement au FCR (voir section OO).
+                Le bloc est donc rendu dans les deux cas, sans garde isSelectedFcr().
+              -->
+              <div cdkDropList
+                   class="facteurs-droplist"
+                   [cdkDropListDisabled]="!canEditPlan()"
+                   (cdkDropListDropped)="onFacteurDrop($event)">
                 @for (facteur of selectedFacteurs(); track facteur.id_facteur_influence) {
                   <div cdkDrag [cdkDragDisabled]="!canEditPlan()" class="facteur-influence-card facteur-drag-item" [id]="'facteur-' + facteur.id_facteur_influence" [class.expanded]="isFacteurExpanded(facteur.id_facteur_influence)">
                     <!-- Mode édition facteur -->
@@ -632,7 +649,7 @@
                     {{ 'enjeux.facteurInfluence.addButton' | translate }}
                   </button>
                 }
-              }
+                <!-- (fin de la section facteurs d'influence — rendue pour enjeux ET FCR) -->
             </div>
           }
 
@@ -751,11 +768,12 @@
                                     </div>
                                   </div>
                                 } @else {
-                                  <div class="ne-card" [id]="'niveau_exigence-' + ne.id_ne">
-                                    <div class="ne-card-header">
+                                  <div class="ne-card" [id]="'niveau_exigence-' + ne.id_ne" [class.collapsed]="!isNeExpanded(ne.id_ne)">
+                                    <div class="ne-card-header" (click)="toggleNe(ne.id_ne)">
                                       <div class="ne-card-left">
                                         @if (canEditPlan()) {
                                           <button class="icon-btn-flat ne-drag-handle" type="button" cdkDragHandle
+                                                  (click)="$event.stopPropagation()"
                                                   [title]="'enjeux.dnd.dragHandle' | translate"
                                                   [attr.aria-label]="'enjeux.dnd.dragHandle' | translate">
                                             <i class="fi fi-rr-menu-burger"></i>
@@ -766,21 +784,29 @@
                                           {{ 'enjeux.niveauExigence.label' | translate }}
                                           <i class="fi fi-rr-info help-icon"
                                              [matTooltip]="'enjeux.niveauExigence.tooltip' | translate"
-                                             matTooltipPosition="right"></i>
+                                             matTooltipPosition="right"
+                                             (click)="$event.stopPropagation()"></i>
                                           : {{ ne.libelle }}
                                         </h3>
                                       </div>
-                                      @if (canEditPlan()) {
-                                        <div class="ne-card-actions">
-                                          <button class="icon-btn-flat" (click)="startEditNe(ne)" [title]="'common.actions.edit' | translate">
+                                      <div class="ne-card-actions">
+                                        @if (canEditPlan()) {
+                                          <button class="icon-btn-flat" (click)="startEditNe(ne); $event.stopPropagation()" [title]="'common.actions.edit' | translate">
                                             <i class="fi fi-rr-pencil"></i>
                                           </button>
-                                          <button class="icon-btn-flat" (click)="deleteNe(ne)" [title]="'common.actions.delete' | translate">
+                                          <button class="icon-btn-flat" (click)="deleteNe(ne); $event.stopPropagation()" [title]="'common.actions.delete' | translate">
                                             <i class="fi fi-rr-trash"></i>
                                           </button>
-                                        </div>
-                                      }
+                                        }
+                                        <button class="icon-btn-flat icon-btn-flat--action ne-toggle" type="button"
+                                                (click)="$event.stopPropagation(); toggleNe(ne.id_ne)"
+                                                [attr.aria-expanded]="isNeExpanded(ne.id_ne)"
+                                                [title]="(isNeExpanded(ne.id_ne) ? 'common.actions.collapse' : 'common.actions.expand') | translate">
+                                          <i class="fi" [ngClass]="isNeExpanded(ne.id_ne) ? 'fi-rr-angle-small-up' : 'fi-rr-angle-small-down'"></i>
+                                        </button>
+                                      </div>
                                     </div>
+                                    @if (isNeExpanded(ne.id_ne)) {
                                     @if (ne.description) {
                                       <p class="ne-description">{{ ne.description }}</p>
                                     }
@@ -884,122 +910,11 @@
 
                                                   <!-- Form complet : visible uniquement quand le toggle « Modifier » est activé -->
                                                   @if (met._expanded) {
-                                                  @if (getMetriqueTypeMnemonique(met.type_metrique) === 'NUMERIQUE') {
                                                     <app-metrique-form
                                                       [metrique]="met"
                                                       [typeMetriqueOptions]="typeMetriqueOptions()"
                                                       (delete)="removeMetriqueFromEdit(i)">
                                                     </app-metrique-form>
-                                                  } @else {
-                                                  <div class="metrique-form-block">
-                                                    <div class="metrique-row">
-                                                      <app-form-field [label]="('enjeux.metriques.nomLabel' | translate) + ' *'">
-  <input [(ngModel)]="met.nom_metrique">
-</app-form-field>
-                                                      <button class="icon-btn-flat metrique-delete-btn" (click)="removeMetriqueFromEdit(i)" [title]="'common.actions.delete' | translate">
-                                                        <i class="fi fi-rr-trash"></i>
-                                                      </button>
-                                                    </div>
-
-                                                    <div class="metrique-row-2col">
-                                                      <app-form-field [label]="'enjeux.metriques.uniteLabel' | translate">
-  <input [(ngModel)]="met.unite">
-</app-form-field>
-                                                      <label class="app-mat-label">{{ 'enjeux.metriques.typeLabel' | translate }}</label>
-      <mat-form-field class="app-mat-form-field" appearance="outline">
-                                                        <mat-label></mat-label>
-                                                        <mat-select [(ngModel)]="met.type_metrique">
-                                                          @for (opt of typeMetriqueOptions(); track opt.id_nomenclature) {
-                                                            <mat-option [value]="opt.id_nomenclature">{{ opt.label }}</mat-option>
-                                                          }
-                                                        </mat-select>
-                                                      </mat-form-field>
-                                                    </div>
-
-                                                    <div class="metrique-row-2col">
-                                                      <app-form-field [label]="'enjeux.metriques.ponderationLabel' | translate">
-  <input type="number" [(ngModel)]="met.ponderation">
-</app-form-field>
-                                                      <app-form-field [label]="'enjeux.metriques.etatReferenceLabel' | translate">
-  <input [(ngModel)]="met.etat_reference">
-</app-form-field>
-                                                    </div>
-
-                                                    <!-- Direction selector (NUMERIQUE only) -->
-                                                    @if (getMetriqueTypeMnemonique(met.type_metrique) === 'NUMERIQUE') {
-                                                      <div class="direction-selector">
-                                                        <span class="direction-label">{{ 'enjeux.metriques.direction' | translate }} :</span>
-                                                        <mat-button-toggle-group [(ngModel)]="met.sens_variation" (ngModelChange)="onDirectionChange(met)">
-                                                          <mat-button-toggle value="CROISSANT">{{ 'enjeux.metriques.croissant' | translate }}</mat-button-toggle>
-                                                          <mat-button-toggle value="DECROISSANT">{{ 'enjeux.metriques.decroissant' | translate }}</mat-button-toggle>
-                                                        </mat-button-toggle-group>
-                                                      </div>
-                                                    }
-                                                    @if (getMetriqueTypeMnemonique(met.type_metrique) !== 'INDETERMINE') {
-                                                    <div class="score-threshold-grid">
-                                                      @for (level of scoreLevels; track level) {
-                                                        <div class="score-column">
-                                                          <div class="score-column-header score-header-{{level}}">
-                                                            <span class="score-header-label">{{ getScoreLevelLabel(level) }}</span>
-                                                            <span class="score-header-value">= {{level}}</span>
-                                                          </div>
-                                                          <div class="score-column-inputs">
-                                                            @switch (getMetriqueTypeMnemonique(met.type_metrique)) {
-                                                              @case ('CHIFFRE') {
-                                                                <app-form-field [label]="'enjeux.metriques.valeur' | translate">
-  <input type="number" [(ngModel)]="met.scores[level].val">
-</app-form-field>
-                                                              }
-                                                              @case ('TEXTE') {
-                                                                <app-form-field [label]="'enjeux.metriques.texte' | translate">
-  <input [(ngModel)]="met.scores[level].label">
-</app-form-field>
-                                                              }
-                                                              @default {
-                                                                <!-- Fixed-height slot for optional bound checkbox -->
-                                                                <div class="optional-bound-slot">
-                                                                  @if (isOptionalBound(met, level, met.sens_variation === 'CROISSANT' ? 'inf' : 'sup') && level === 1) {
-                                                                    <app-checkbox [(ngModel)]="met.has_score1_optional_bound"
-                                                                      (ngModelChange)="onOptionalBoundToggle(met, 1)"
-                                                                      class="optional-bound-checkbox" [label]="getOptionalBoundLabel(met, 1)"></app-checkbox>
-                                                                  }
-                                                                  @if (isOptionalBound(met, level, met.sens_variation === 'CROISSANT' ? 'sup' : 'inf') && level === 5) {
-                                                                    <app-checkbox [(ngModel)]="met.has_score5_optional_bound"
-                                                                      (ngModelChange)="onOptionalBoundToggle(met, 5)"
-                                                                      class="optional-bound-checkbox" [label]="getOptionalBoundLabel(met, 5)"></app-checkbox>
-                                                                  }
-                                                                </div>
-                                                                <div class="score-fields" [class.descending]="met.sens_variation === 'DECROISSANT'">
-                                                                  <app-form-field [label]="'enjeux.metriques.min' | translate">
-  <input type="number" [(ngModel)]="met.scores[level].inf"
-                                                                      [disabled]="isScoreFieldDisabled(met, level, 'inf')"
-                                                                      (ngModelChange)="onScoreBoundaryChange(met, level, 'inf')">
-</app-form-field>
-                                                                  <app-form-field [label]="'enjeux.metriques.max' | translate">
-  <input type="number" [(ngModel)]="met.scores[level].sup"
-                                                                      [disabled]="isScoreFieldDisabled(met, level, 'sup')"
-                                                                      (ngModelChange)="onScoreBoundaryChange(met, level, 'sup')">
-</app-form-field>
-                                                                </div>
-                                                                <!-- Fixed-height slot for boundary toggle -->
-                                                                <div class="boundary-toggle-slot">
-                                                                  @if (level < 5) {
-                                                                    <button type="button" class="boundary-toggle"
-                                                                      (click)="toggleBoundaryInclusive(met, level)"
-                                                                      [class.inclusive]="isSupInclusive(met, level)">
-                                                                      {{ isSupInclusive(met, level) ? '≤' : '<' }}
-                                                                    </button>
-                                                                  }
-                                                                </div>
-                                                              }
-                                                            }
-                                                          </div>
-                                                        </div>
-                                                      }
-                                                    </div>
-                                                    }
-                                                  </div>
-                                                  }
                                                   }
                                                   </div>
                                                 }
@@ -1131,6 +1046,8 @@
                                                                       <span class="cell-op">{{ line.op === 'AND' ? ('enjeux.metriques.opAnd' | translate) : ('enjeux.metriques.opOr' | translate) }}</span>
                                                                     }
                                                                     @if (line.openParen) { <span class="cell-paren">(</span> }
+                                                                    <!-- #340 — parité design avec les indicateurs de pression : afficher l'étiquette du bloc (Bloc A/B…) -->
+                                                                    <span class="cell-block-label">{{ line.blockLabel }} :</span>
                                                                     <span class="cell-interval">{{ line.text }}</span>
                                                                     @if (line.closeParen) { <span class="cell-paren">)</span> }
                                                                   </div>
@@ -1159,341 +1076,64 @@
                                                   </table>
                                                 </div>
 
-                                                @for (met of ind.metriques; track met.id_metrique) {
-                                                  <div class="metrique-block" [id]="'metrique-' + met.id_metrique">
+                                                <!-- #227/#367 — Bloc « actions regroupées par métrique » supprimé : les actions sont listées une seule fois au niveau de l'indicateur (ind.operations), métriques rappelées dans le bandeau de chaque action. -->
+                                              }
 
-                                                    <!-- Opérations (Actions) de cette métrique — DnD intra-métrique (#228) -->
-                                                    @if (met.operations && met.operations.length > 0) {
-                                                      <p class="metriques-title">{{ 'enjeux.metriques.label' | translate }} : {{ met.nom_metrique }}</p>
-                                                      <div cdkDropList
-                                                           [id]="'operations-droplist-' + met.id_metrique"
-                                                           [cdkDropListData]="met.operations"
-                                                           class="operations-droplist"
-                                                           [cdkDropListDisabled]="!canEditPlan()"
-                                                           (cdkDropListDropped)="onOperationDrop($event, met)">
-                                                      @for (op of met.operations; track op.id_operation) {
-                                            <div cdkDrag [cdkDragDisabled]="!canEditPlan()"
-                                                 class="operation-card operation-drag-item"
-                                                 [class.expanded]="isOperationExpanded(op.id_operation)"
-                                                 [class.is-draft]="op.statut === 'draft'"
-                                                 [id]="'operation-' + op.id_operation">
-                                              <!-- En-tête de l'action (cliquable pour expand/collapse) -->
-                                              <div class="operation-header" (click)="toggleOperation(op.id_operation)">
-                                                <div class="operation-header-left">
-                                                  @if (canEditPlan()) {
-                                                    <button class="icon-btn-flat operation-drag-handle" type="button" cdkDragHandle
-                                                            (click)="$event.stopPropagation()"
-                                                            [title]="'enjeux.dnd.dragHandle' | translate"
-                                                            [attr.aria-label]="'enjeux.dnd.dragHandle' | translate">
-                                                      <i class="fi fi-rr-menu-burger"></i>
-                                                    </button>
-                                                  }
-                                                  <img src="assets/images/ellipses/ellipse-salmon.png" alt="" class="operation-ellipse">
-                                                  @if (op.code_affichage) {
-                                                    <span class="operation-code">{{ op.code_affichage }}</span>
-                                                  }
-                                                  <span class="operation-libelle">{{ 'enjeux.operations.label' | translate }} : {{ op.libelle }}</span>
-                                                  @if (op.geom_geojson) {
-                                                    <span class="op-trace-badge op-trace-emprise"
-                                                          [matTooltip]="'enjeux.operations.empriseSpatialeBadge' | translate"
-                                                          (click)="$event.stopPropagation()">
-                                                      <i class="fi fi-rr-marker"></i>
-                                                    </span>
-                                                  }
-                                                  @if (op.metriques?.length) {
-                                                    <span class="op-trace-badge op-trace-indicateurs"
-                                                          [matTooltip]="'enjeux.operations.indicateursBadge' | translate:{ count: op.metriques!.length }"
-                                                          (click)="$event.stopPropagation()">
-                                                      <i class="fi fi-rr-chart-histogram"></i>
-                                                      {{ op.metriques!.length }}
-                                                    </span>
-                                                  }
-                                                  @if (op.statut === 'draft') {
-                                                    <mat-chip class="operation-draft-chip status-warning"
-                                                              [matTooltip]="'enjeux.operations.draftChipTooltip' | translate"
-                                                              (click)="$event.stopPropagation()">
-                                                      {{ 'enjeux.operations.draftChip' | translate }}
-                                                    </mat-chip>
-                                                  }
-                                                </div>
-                                                <div class="operation-header-right">
-                                                  <button class="icon-btn-flat" (click)="navigateToViewOperation(op.id_operation); $event.stopPropagation()" [title]="'common.actions.view' | translate">
-                                                    <i class="fi fi-rr-eye"></i>
-                                                  </button>
-                                                  @if (canEditPlan()) {
-                                                    <button class="icon-btn-flat" (click)="navigateToEditOperation(op.id_operation); $event.stopPropagation()" [title]="'common.actions.edit' | translate">
-                                                      <i class="fi fi-rr-pencil"></i>
-                                                    </button>
-                                                    @if (op.metriques && op.metriques.length > 1) {
-                                                      <button class="icon-btn-flat" (click)="unlinkOperation(op, met.id_metrique); $event.stopPropagation()" [title]="'enjeux.operations.unlinkTitle' | translate">
-                                                        <i class="fi fi-rr-link-slash"></i>
-                                                      </button>
-                                                    }
-                                                    <button class="icon-btn-flat" (click)="deleteOperation(op); $event.stopPropagation()" [title]="'common.actions.delete' | translate">
-                                                      <i class="fi fi-rr-trash"></i>
-                                                    </button>
-                                                  }
-                                                  <i class="fi expand-arrow-op" [class.fi-rr-angle-small-down]="!isOperationExpanded(op.id_operation)" [class.fi-rr-angle-small-up]="isOperationExpanded(op.id_operation)"></i>
-                                                </div>
-                                              </div>
-
-                                              <!-- Contenu déplié de l'action -->
-                                              @if (isOperationExpanded(op.id_operation)) {
-                                                <div class="operation-expanded-content">
-                                                  <!-- Également liée à d'autres métriques -->
-                                                  @if (op.metriques && op.metriques.length > 1) {
-                                                    <div class="operation-detail-line linked-metriques-info">
-                                                      <span class="detail-label">{{ 'enjeux.operations.alsoLinkedTo' | translate }} :</span>
-                                                      <span class="detail-value">
-                                                        @for (metRef of getOtherMetriques(op, met.id_metrique); track metRef.id_metrique; let last = $last) {
-                                                          {{ metRef.nom_metrique }} ({{ metRef.indicateur_nom }})@if (!last) {, }
-                                                        }
-                                                      </span>
-                                                    </div>
-                                                  }
-                                                  <!-- Type d'action & Priorité -->
-                                                  <div class="operation-meta-row">
-                                                    @if (op.type_action_label) {
-                                                      <span class="operation-meta-item">
-                                                        <span class="meta-label">{{ 'enjeux.operations.typeActionLabel' | translate }} :</span>
-                                                        {{ op.type_action_label }}
-                                                      </span>
-                                                    }
-                                                    @if (op.priorite_label) {
-                                                      <span class="operation-meta-item">
-                                                        <span class="meta-label">{{ 'enjeux.operations.prioriteLabel' | translate }} :</span>
-                                                        {{ op.priorite_label }}
-                                                      </span>
-                                                    }
-                                                  </div>
-
-                                                  <!-- DÉTAILS DE L'INVENTAIRE OU DU SUIVI -->
-                                                  @if (op.suivi_inventaire) {
-                                                    <div class="operation-section-separator">
-                                                      <div class="separator-line"></div>
-                                                      <h5 class="operation-section-title">{{ 'enjeux.operations.detailsSuiviTitle' | translate | uppercase }}</h5>
-                                                    </div>
-                                                    <div class="operation-section">
-                                                      @if (op.suivi_inventaire.objectif_principal) {
-                                                        <div class="operation-detail-line">
-                                                          <span class="detail-label">{{ 'enjeux.operations.objectifPrincipal' | translate }} :</span>
-                                                          <span class="detail-value">{{ op.suivi_inventaire.objectif_principal }}</span>
-                                                        </div>
-                                                      }
-                                                      @if (op.suivi_inventaire.cibles_principales) {
-                                                        <div class="operation-detail-line">
-                                                          <span class="detail-label">{{ 'enjeux.operations.ciblesPrincipales' | translate }} :</span>
-                                                          <span class="detail-value">{{ op.suivi_inventaire.cibles_principales }}</span>
-                                                        </div>
-                                                      }
-                                                      @if (op.suivi_inventaire.taxon_taxref) {
-                                                        <div class="operation-detail-line">
-                                                          <span class="detail-label">{{ 'enjeux.operations.taxonTaxref' | translate }} :</span>
-                                                          <span class="detail-value">{{ op.suivi_inventaire.taxon_taxref }}</span>
-                                                        </div>
-                                                      }
-                                                      @if (op.suivi_inventaire.date_lancement_suivi) {
-                                                        <div class="operation-detail-line">
-                                                          <span class="detail-label">{{ 'enjeux.operations.dateLancement' | translate }} :</span>
-                                                          <span class="detail-value">{{ op.suivi_inventaire.date_lancement_suivi | date:'dd/MM/yyyy' }}</span>
-                                                        </div>
-                                                      }
-                                                      @if (op.suivi_inventaire.protocole?.protocole_campanule_nom) {
-                                                        <div class="operation-detail-line">
-                                                          <span class="detail-label">{{ 'enjeux.operations.protocoleNom' | translate }} :</span>
-                                                          <span class="detail-value">{{ op.suivi_inventaire.protocole?.protocole_campanule_nom }}</span>
-                                                        </div>
-                                                      }
-                                                    </div>
-                                                  }
-
-                                                  <!-- PROGRAMMATION -->
-                                                  @if (getPlanYears().length > 0) {
-                                                    <div class="operation-section-separator">
-                                                      <div class="separator-line"></div>
-                                                      <h5 class="operation-section-title">{{ 'enjeux.operations.programmationTitle' | translate | uppercase }}</h5>
-                                                    </div>
-                                                    <div class="operation-section">
-                                                      <!-- Table de programmation -->
-                                                      <div class="programmation-table-wrapper">
-                                                        <table class="programmation-table">
-                                                          <thead>
-                                                            <tr>
-                                                              <th class="prog-label-col">{{ 'enjeux.operations.programmation' | translate }}</th>
-                                                              @for (year of getPlanYears(); track year) {
-                                                                <th class="prog-year-col">{{ year }}</th>
+                                              <!-- #367 — Actions rattachées directement à l'indicateur (sans métrique) -->
+                                              @if (ind.operations && ind.operations.length > 0) {
+                                                <div class="indicateur-direct-operations">
+                                                  @for (op of ind.operations; track op.id_operation) {
+                                                    <div class="operation-card" [class.operation-card-direct]="!op.metriques?.length"
+                                                         [class.expanded]="isOperationExpanded(op.id_operation)"
+                                                         [class.is-draft]="op.statut === 'draft'"
+                                                         [id]="'operation-' + op.id_operation">
+                                                      <div class="operation-header" (click)="toggleOperation(op.id_operation)">
+                                                        <div class="operation-header-left">
+                                                          <img src="assets/images/ellipses/ellipse-salmon.png" alt="" class="operation-ellipse">
+                                                          @if (op.code_affichage) { <span class="operation-code">{{ op.code_affichage }}</span> }
+                                                          <span class="operation-libelle">{{ 'enjeux.operations.label' | translate }} : {{ op.libelle }}</span>
+                                                          @if (op.statut === 'draft') {
+                                                            <span class="operation-draft-chip status-warning" (click)="$event.stopPropagation()">{{ 'enjeux.operations.draftChip' | translate }}</span>
+                                                          }
+                                                          <div class="operation-metriques-row">
+                                                            @if (op.metriques?.length) {
+                                                              @for (m of op.metriques!; track m.id_metrique) {
+                                                                <span class="op-metrique-chip" (click)="$event.stopPropagation()" [matTooltip]="'enjeux.operations.metriqueLinkedTooltip' | translate">
+                                                                  <i class="fi fi-rr-ruler-horizontal"></i> {{ m.nom_metrique }}
+                                                                </span>
                                                               }
-                                                            </tr>
-                                                          </thead>
-                                                          <tbody>
-                                                            <!-- Périodicité (icônes prévu) -->
-                                                            <tr>
-                                                              <td class="prog-label-cell">{{ 'enjeux.operations.progPeriodicite' | translate }}</td>
-                                                              @for (year of getPlanYears(); track year) {
-                                                                <td class="prog-cell">
-                                                                  @if (isYearPlanned(op, year)) {
-                                                                    <img src="assets/images/icons/prevu.png" alt="Prévu" class="prevu-icon">
-                                                                  } @else {
-                                                                    <span class="prog-dash">-</span>
-                                                                  }
-                                                                </td>
-                                                              }
-                                                            </tr>
-                                                            @if (hasOrganismeData(op)) {
-                                                              <!-- Per-organisme rows -->
-                                                              @for (org of getOperationOrganismes(op); track org.id_organisme) {
-                                                                <tr class="prog-org-header">
-                                                                  <td class="prog-label-cell prog-org-name" [attr.colspan]="getPlanYears().length + 1">{{ org.organisme_nom }}</td>
-                                                                </tr>
-                                                                <tr>
-                                                                  <td class="prog-label-cell prog-indent">{{ 'enjeux.operations.budgetFonctionnement' | translate }}</td>
-                                                                  @for (year of getPlanYears(); track year) {
-                                                                    <td class="prog-cell prog-budget">{{ formatBudget(getOrgAnnee(op, year, org.id_organisme).fonct) }}</td>
-                                                                  }
-                                                                </tr>
-                                                                <tr>
-                                                                  <td class="prog-label-cell prog-indent">{{ 'enjeux.operations.budgetInvestissement' | translate }}</td>
-                                                                  @for (year of getPlanYears(); track year) {
-                                                                    <td class="prog-cell prog-budget">{{ formatBudget(getOrgAnnee(op, year, org.id_organisme).invest) }}</td>
-                                                                  }
-                                                                </tr>
-                                                                <tr>
-                                                                  <td class="prog-label-cell prog-indent prog-bold">{{ 'enjeux.operations.budgetTotal' | translate }}</td>
-                                                                  @for (year of getPlanYears(); track year) {
-                                                                    <td class="prog-cell prog-budget prog-computed">{{ formatOrgBudgetTotal(op, year, org.id_organisme) }}</td>
-                                                                  }
-                                                                </tr>
-                                                                <tr>
-                                                                  <td class="prog-label-cell prog-indent">{{ 'enjeux.operations.travailPrevisionnel' | translate }}</td>
-                                                                  @for (year of getPlanYears(); track year) {
-                                                                    <td class="prog-cell">{{ formatTravail(getOrgAnnee(op, year, org.id_organisme).etp) }}</td>
-                                                                  }
-                                                                </tr>
-                                                              }
-                                                              <!-- Total cross-organismes -->
-                                                              <tr class="prog-total-header">
-                                                                <td class="prog-label-cell prog-org-name" [attr.colspan]="getPlanYears().length + 1">{{ 'enjeux.operations.totalLabel' | translate }}</td>
-                                                              </tr>
-                                                              <tr>
-                                                                <td class="prog-label-cell prog-indent prog-bold">{{ 'enjeux.operations.budgetTotal' | translate }}</td>
-                                                                @for (year of getPlanYears(); track year) {
-                                                                  <td class="prog-cell prog-budget prog-computed">{{ formatBudget(getOperationAnnee(op, year)?.budget) }}</td>
-                                                                }
-                                                              </tr>
-                                                              <tr>
-                                                                <td class="prog-label-cell prog-indent prog-bold">{{ 'enjeux.operations.travailPrevisionnel' | translate }}</td>
-                                                                @for (year of getPlanYears(); track year) {
-                                                                  <td class="prog-cell prog-computed">{{ formatTravail(getOperationAnnee(op, year)?.etp) }}</td>
-                                                                }
-                                                              </tr>
-                                                            } @else if (isTypeBudgetMode(op)) {
-                                                              <!-- By type: fonctionnement/investissement without organismes -->
-                                                              <tr>
-                                                                <td class="prog-label-cell">{{ 'enjeux.operations.budgetFonctionnement' | translate }}</td>
-                                                                @for (year of getPlanYears(); track year) {
-                                                                  <td class="prog-cell prog-budget">{{ formatBudget(getOperationAnnee(op, year)?.budget_fonctionnement) }}</td>
-                                                                }
-                                                              </tr>
-                                                              <tr>
-                                                                <td class="prog-label-cell">{{ 'enjeux.operations.budgetInvestissement' | translate }}</td>
-                                                                @for (year of getPlanYears(); track year) {
-                                                                  <td class="prog-cell prog-budget">{{ formatBudget(getOperationAnnee(op, year)?.budget_investissement) }}</td>
-                                                                }
-                                                              </tr>
-                                                              <tr>
-                                                                <td class="prog-label-cell prog-bold">{{ 'enjeux.operations.budgetTotal' | translate }}</td>
-                                                                @for (year of getPlanYears(); track year) {
-                                                                  <td class="prog-cell prog-budget prog-computed">{{ formatBudget(getOperationAnnee(op, year)?.budget) }}</td>
-                                                                }
-                                                              </tr>
-                                                              <tr>
-                                                                <td class="prog-label-cell">{{ 'enjeux.operations.progTravail' | translate }}</td>
-                                                                @for (year of getPlanYears(); track year) {
-                                                                  <td class="prog-cell">{{ formatTravail(getOperationAnnee(op, year)?.etp) }}</td>
-                                                                }
-                                                              </tr>
                                                             } @else {
-                                                              <!-- Flat budget/travail (no per-org data) -->
-                                                              <tr>
-                                                                <td class="prog-label-cell">{{ 'enjeux.operations.progBudget' | translate }}</td>
-                                                                @for (year of getPlanYears(); track year) {
-                                                                  <td class="prog-cell prog-budget">{{ formatBudget(getOperationAnnee(op, year)?.budget) }}</td>
-                                                                }
-                                                              </tr>
-                                                              <tr>
-                                                                <td class="prog-label-cell">{{ 'enjeux.operations.progTravail' | translate }}</td>
-                                                                @for (year of getPlanYears(); track year) {
-                                                                  <td class="prog-cell">{{ formatTravail(getOperationAnnee(op, year)?.etp) }}</td>
-                                                                }
-                                                              </tr>
+                                                              <span class="op-trace-badge op-trace-sans-metrique" [matTooltip]="'enjeux.operations.sansMetriqueTooltip' | translate" (click)="$event.stopPropagation()">
+                                                                <i class="fi fi-rr-ban"></i> {{ 'enjeux.operations.sansMetriqueBadge' | translate }}
+                                                              </span>
                                                             }
-                                                          </tbody>
-                                                        </table>
+                                                            @if (op.geom_geojson) {
+                                                              <span class="op-trace-badge op-trace-emprise" [matTooltip]="'enjeux.operations.empriseSpatialeBadge' | translate" (click)="$event.stopPropagation()">
+                                                                <i class="fi fi-rr-marker"></i>
+                                                              </span>
+                                                            }
+                                                          </div>
+                                                        </div>
+                                                        <div class="operation-header-right">
+                                                          <button class="icon-btn-flat" (click)="navigateToViewOperation(op.id_operation); $event.stopPropagation()" [title]="'common.actions.view' | translate"><i class="fi fi-rr-eye"></i></button>
+                                                          @if (canEditPlan()) {
+                                                            <button class="icon-btn-flat" (click)="navigateToEditOperation(op.id_operation); $event.stopPropagation()" [title]="'common.actions.edit' | translate"><i class="fi fi-rr-pencil"></i></button>
+                                                            <button class="icon-btn-flat" (click)="deleteOperation(op); $event.stopPropagation()" [title]="'common.actions.delete' | translate"><i class="fi fi-rr-trash"></i></button>
+                                                          }
+                                                          <i class="fi expand-arrow-op" [class.fi-rr-angle-small-down]="!isOperationExpanded(op.id_operation)" [class.fi-rr-angle-small-up]="isOperationExpanded(op.id_operation)"></i>
+                                                        </div>
                                                       </div>
-
-                                                      <!-- Mois programmés (sous le tableau) -->
-                                                      @if (hasAnyMonthlyPlanning(op)) {
-                                                        <div class="monthly-planning">
-                                                          <span class="monthly-label">{{ 'enjeux.operations.progMois' | translate }} :</span>
-                                                          <span class="monthly-months">{{ getPlannedMonthsForOperation(op).join(', ') }}</span>
-                                                        </div>
+                                                      @if (isOperationExpanded(op.id_operation)) {
+                                                        <ng-container [ngTemplateOutlet]="opExpandedContent" [ngTemplateOutletContext]="{ op: op, metId: null }"></ng-container>
                                                       }
-                                                    </div>
-                                                  }
-
-                                                  <!-- Fréquence, Opérateur, Financement -->
-                                                  @if (op.frequence_nombre || op.operateurs || (op.finances && op.finances.length > 0)) {
-                                                    <div class="operation-actors-section">
-                                                      @if (op.frequence_nombre && op.frequence_unite) {
-                                                        <div class="operation-detail-line">
-                                                          <span class="detail-label">{{ 'enjeux.operations.frequenceAction' | translate }} :</span>
-                                                          <span class="detail-value">{{ getFrequenceDisplay(op) }}</span>
-                                                        </div>
-                                                      }
-                                                      @if (op.operateurs) {
-                                                        <div class="operation-detail-line">
-                                                          <span class="detail-label">{{ 'enjeux.operations.operateursLabel' | translate }} :</span>
-                                                          <span class="detail-value">{{ op.operateurs }}</span>
-                                                        </div>
-                                                      }
-                                                      @if (op.finances && op.finances.length > 0) {
-                                                        <div class="operation-detail-line">
-                                                          <span class="detail-label">{{ 'enjeux.operations.financementsLabel' | translate }} :</span>
-                                                          <span class="detail-value">
-                                                            @for (fin of op.finances; track fin.id_finance_operation; let last = $last) {
-                                                              {{ fin.libelle }}@if (fin.categorie_label) { ({{ fin.categorie_label }})}@if (!last) {, }
-                                                            }
-                                                          </span>
-                                                        </div>
-                                                      }
-                                                    </div>
-                                                  }
-
-                                                  <!-- DÉTAILS / Description -->
-                                                  @if (op.description) {
-                                                    <div class="operation-section-separator">
-                                                      <div class="separator-line"></div>
-                                                      <h5 class="operation-section-title">{{ 'enjeux.operations.detailsLabel' | translate | uppercase }}</h5>
-                                                    </div>
-                                                    <div class="operation-section">
-                                                      <p class="operation-description">{{ op.description }}</p>
                                                     </div>
                                                   }
                                                 </div>
                                               }
-                                            </div>
-                                          }
-                                                      </div> <!-- end operations-droplist (NE) #228 -->
-                                        }
 
-                                                    <!-- #1 : bouton « Ajouter une action » déplacé au niveau indicateur -->
-
-                                                  </div>
-                                                }
-                                              }
-
-                                              <!-- #1 : bouton « Ajouter une action » au niveau indicateur — liée à toutes ses métriques -->
-                                              @if (canEditPlan() && ind.metriques && ind.metriques.length > 0) {
+                                              <!-- #1/#367 : bouton « Ajouter une action » au niveau indicateur.
+                                                   Disponible même sans métrique (action rattachée directement à l'indicateur). -->
+                                              @if (canEditPlan()) {
                                                 <button class="add-item-btn add-item-btn-action" (click)="openAddActionForIndicateur(ind)">
                                                   <i class="fi fi-rr-plus-small"></i> {{ 'enjeux.operations.addActionAtIndicateur' | translate }}
                                                 </button>
@@ -1510,118 +1150,15 @@
                                               @if (addingMetriqueForIndicateur() === ind.id_indicateur && standaloneMetriqueForm) {
                                                 <div class="metrique-form-block standalone-metrique-form">
                                                   <h5 class="metriques-section-title">{{ 'enjeux.metriques.addButton' | translate }}</h5>
-                                                  @if (getMetriqueTypeMnemonique(standaloneMetriqueForm.type_metrique) === 'NUMERIQUE') {
                                                     <app-metrique-form
                                                       [metrique]="standaloneMetriqueForm"
                                                       [typeMetriqueOptions]="typeMetriqueOptions()"
                                                       (delete)="cancelAddStandaloneMetrique()">
                                                     </app-metrique-form>
-                                                  } @else {
-                                                  <div class="metrique-row">
-                                                    <app-form-field [label]="('enjeux.metriques.nomLabel' | translate) + ' *'">
-  <input [(ngModel)]="standaloneMetriqueForm.nom_metrique">
-</app-form-field>
-                                                  </div>
-                                                  <div class="metrique-row-2col">
-                                                    <app-form-field [label]="'enjeux.metriques.uniteLabel' | translate">
-  <input [(ngModel)]="standaloneMetriqueForm.unite">
-</app-form-field>
-                                                    <label class="app-mat-label">{{ 'enjeux.metriques.typeLabel' | translate }}</label>
-      <mat-form-field class="app-mat-form-field" appearance="outline">
-                                                      <mat-label></mat-label>
-                                                      <mat-select [(ngModel)]="standaloneMetriqueForm.type_metrique">
-                                                        @for (opt of typeMetriqueOptions(); track opt.id_nomenclature) {
-                                                          <mat-option [value]="opt.id_nomenclature">{{ opt.label }}</mat-option>
-                                                        }
-                                                      </mat-select>
-                                                    </mat-form-field>
-                                                  </div>
-                                                  <div class="metrique-row-2col">
-                                                    <app-form-field [label]="'enjeux.metriques.ponderationLabel' | translate">
-  <input type="number" [(ngModel)]="standaloneMetriqueForm.ponderation">
-</app-form-field>
-                                                    <app-form-field [label]="'enjeux.metriques.etatReferenceLabel' | translate">
-  <input [(ngModel)]="standaloneMetriqueForm.etat_reference">
-</app-form-field>
-                                                  </div>
-                                                  <!-- Direction selector (NUMERIQUE only) -->
-                                                  @if (getMetriqueTypeMnemonique(standaloneMetriqueForm.type_metrique) === 'NUMERIQUE') {
-                                                    <div class="direction-selector">
-                                                      <span class="direction-label">{{ 'enjeux.metriques.direction' | translate }} :</span>
-                                                      <mat-button-toggle-group [(ngModel)]="standaloneMetriqueForm.sens_variation" (ngModelChange)="onDirectionChange(standaloneMetriqueForm)">
-                                                        <mat-button-toggle value="CROISSANT">{{ 'enjeux.metriques.croissant' | translate }}</mat-button-toggle>
-                                                        <mat-button-toggle value="DECROISSANT">{{ 'enjeux.metriques.decroissant' | translate }}</mat-button-toggle>
-                                                      </mat-button-toggle-group>
-                                                    </div>
-                                                  }
-                                                  @if (getMetriqueTypeMnemonique(standaloneMetriqueForm.type_metrique) !== 'INDETERMINE') {
-                                                  <div class="score-threshold-grid">
-                                                    @for (level of scoreLevels; track level) {
-                                                      <div class="score-column">
-                                                        <div class="score-column-header score-header-{{level}}">
-                                                          <span class="score-header-label">{{ getScoreLevelLabel(level) }}</span>
-                                                          <span class="score-header-value">= {{level}}</span>
-                                                        </div>
-                                                        <div class="score-column-inputs">
-                                                          @switch (getMetriqueTypeMnemonique(standaloneMetriqueForm.type_metrique)) {
-                                                            @case ('CHIFFRE') {
-                                                              <app-form-field [label]="'enjeux.metriques.valeur' | translate">
-  <input type="number" [(ngModel)]="standaloneMetriqueForm.scores[level].val">
-</app-form-field>
-                                                            }
-                                                            @case ('TEXTE') {
-                                                              <app-form-field [label]="'enjeux.metriques.texte' | translate">
-  <input [(ngModel)]="standaloneMetriqueForm.scores[level].label">
-</app-form-field>
-                                                            }
-                                                            @default {
-                                                              <!-- Fixed-height slot for optional bound checkbox -->
-                                                              <div class="optional-bound-slot">
-                                                                @if (isOptionalBound(standaloneMetriqueForm, level, standaloneMetriqueForm.sens_variation === 'CROISSANT' ? 'inf' : 'sup') && level === 1) {
-                                                                  <app-checkbox [(ngModel)]="standaloneMetriqueForm.has_score1_optional_bound"
-                                                                    (ngModelChange)="onOptionalBoundToggle(standaloneMetriqueForm, 1)"
-                                                                    class="optional-bound-checkbox" [label]="getOptionalBoundLabel(standaloneMetriqueForm, 1)"></app-checkbox>
-                                                                }
-                                                                @if (isOptionalBound(standaloneMetriqueForm, level, standaloneMetriqueForm.sens_variation === 'CROISSANT' ? 'sup' : 'inf') && level === 5) {
-                                                                  <app-checkbox [(ngModel)]="standaloneMetriqueForm.has_score5_optional_bound"
-                                                                    (ngModelChange)="onOptionalBoundToggle(standaloneMetriqueForm, 5)"
-                                                                    class="optional-bound-checkbox" [label]="getOptionalBoundLabel(standaloneMetriqueForm, 5)"></app-checkbox>
-                                                                }
-                                                              </div>
-                                                              <div class="score-fields" [class.descending]="standaloneMetriqueForm.sens_variation === 'DECROISSANT'">
-                                                                <app-form-field [label]="'enjeux.metriques.min' | translate">
-  <input type="number" [(ngModel)]="standaloneMetriqueForm.scores[level].inf"
-                                                                    [disabled]="isScoreFieldDisabled(standaloneMetriqueForm, level, 'inf')"
-                                                                    (ngModelChange)="onScoreBoundaryChange(standaloneMetriqueForm, level, 'inf')">
-</app-form-field>
-                                                                <app-form-field [label]="'enjeux.metriques.max' | translate">
-  <input type="number" [(ngModel)]="standaloneMetriqueForm.scores[level].sup"
-                                                                    [disabled]="isScoreFieldDisabled(standaloneMetriqueForm, level, 'sup')"
-                                                                    (ngModelChange)="onScoreBoundaryChange(standaloneMetriqueForm, level, 'sup')">
-</app-form-field>
-                                                              </div>
-                                                              <!-- Fixed-height slot for boundary toggle -->
-                                                              <div class="boundary-toggle-slot">
-                                                                @if (level < 5) {
-                                                                  <button type="button" class="boundary-toggle"
-                                                                    (click)="toggleBoundaryInclusive(standaloneMetriqueForm, level)"
-                                                                    [class.inclusive]="isSupInclusive(standaloneMetriqueForm, level)">
-                                                                    {{ isSupInclusive(standaloneMetriqueForm, level) ? '≤' : '<' }}
-                                                                  </button>
-                                                                }
-                                                              </div>
-                                                            }
-                                                          }
-                                                        </div>
-                                                      </div>
-                                                    }
-                                                  </div>
-                                                  }
-                                                  }
                                                   <div class="inline-form-actions">
                                                     <button mat-flat-button color="primary"
                                                       (click)="saveStandaloneMetrique(ind.id_indicateur)"
-                                                      [disabled]="isSavingStandaloneMetrique() || !standaloneMetriqueForm.nom_metrique.trim()">
+                                                      [disabled]="isSavingStandaloneMetrique() || (!standaloneMetriqueForm.nom_metrique.trim() && getMetriqueTypeMnemonique(standaloneMetriqueForm.type_metrique) !== 'INDETERMINE')">
                                                       {{ 'common.actions.save' | translate }}
                                                     </button>
                                                     <button mat-stroked-button (click)="cancelAddStandaloneMetrique()">
@@ -1718,126 +1255,11 @@
                                             </div>
 
                                             @if (met._expanded) {
-                                            @if (getMetriqueTypeMnemonique(met.type_metrique) === 'NUMERIQUE') {
                                               <app-metrique-form
                                                 [metrique]="met"
                                                 [typeMetriqueOptions]="typeMetriqueOptions()"
                                                 (delete)="removeMetriqueFromForm(i)">
                                               </app-metrique-form>
-                                            } @else {
-                                            <div class="metrique-form-block">
-                                              <!-- Row 1: Nom + delete -->
-                                              <div class="metrique-row">
-                                                <app-form-field [label]="('enjeux.metriques.nomLabel' | translate) + ' *'">
-  <input [(ngModel)]="met.nom_metrique">
-</app-form-field>
-                                                <button class="icon-btn-flat metrique-delete-btn" (click)="removeMetriqueFromForm(i)" [title]="'common.actions.delete' | translate">
-                                                  <i class="fi fi-rr-trash"></i>
-                                                </button>
-                                              </div>
-
-                                              <!-- Row 2: Unité + Type -->
-                                              <div class="metrique-row-2col">
-                                                <app-form-field [label]="'enjeux.metriques.uniteLabel' | translate">
-  <input [(ngModel)]="met.unite">
-</app-form-field>
-                                                <label class="app-mat-label">{{ 'enjeux.metriques.typeLabel' | translate }}</label>
-      <mat-form-field class="app-mat-form-field" appearance="outline">
-                                                  <mat-label></mat-label>
-                                                  <mat-select [(ngModel)]="met.type_metrique">
-                                                    @for (opt of typeMetriqueOptions(); track opt.id_nomenclature) {
-                                                      <mat-option [value]="opt.id_nomenclature">{{ opt.label }}</mat-option>
-                                                    }
-                                                  </mat-select>
-                                                </mat-form-field>
-                                              </div>
-
-                                              <!-- Row 3: Pondération + État de référence -->
-                                              <div class="metrique-row-2col">
-                                                <app-form-field [label]="'enjeux.metriques.ponderationLabel' | translate">
-  <input type="number" [(ngModel)]="met.ponderation">
-</app-form-field>
-                                                <app-form-field [label]="'enjeux.metriques.etatReferenceLabel' | translate">
-  <input [(ngModel)]="met.etat_reference">
-</app-form-field>
-                                              </div>
-
-                                              <!-- Score threshold grid -->
-                                              <!-- Direction selector (NUMERIQUE only) -->
-                                              @if (getMetriqueTypeMnemonique(met.type_metrique) === 'NUMERIQUE') {
-                                                <div class="direction-selector">
-                                                  <span class="direction-label">{{ 'enjeux.metriques.direction' | translate }} :</span>
-                                                  <mat-button-toggle-group [(ngModel)]="met.sens_variation" (ngModelChange)="onDirectionChange(met)">
-                                                    <mat-button-toggle value="CROISSANT">{{ 'enjeux.metriques.croissant' | translate }}</mat-button-toggle>
-                                                    <mat-button-toggle value="DECROISSANT">{{ 'enjeux.metriques.decroissant' | translate }}</mat-button-toggle>
-                                                  </mat-button-toggle-group>
-                                                </div>
-                                              }
-                                              @if (getMetriqueTypeMnemonique(met.type_metrique) !== 'INDETERMINE') {
-                                              <div class="score-threshold-grid">
-                                                @for (level of scoreLevels; track level) {
-                                                  <div class="score-column">
-                                                    <div class="score-column-header score-header-{{level}}">
-                                                      <span class="score-header-label">{{ getScoreLevelLabel(level) }}</span>
-                                                      <span class="score-header-value">= {{level}}</span>
-                                                    </div>
-                                                    <div class="score-column-inputs">
-                                                      @switch (getMetriqueTypeMnemonique(met.type_metrique)) {
-                                                        @case ('CHIFFRE') {
-                                                          <app-form-field [label]="'enjeux.metriques.valeur' | translate">
-  <input type="number" [(ngModel)]="met.scores[level].val">
-</app-form-field>
-                                                        }
-                                                        @case ('TEXTE') {
-                                                          <app-form-field [label]="'enjeux.metriques.texte' | translate">
-  <input [(ngModel)]="met.scores[level].label">
-</app-form-field>
-                                                        }
-                                                        @default {
-                                                          <!-- Fixed-height slot for optional bound checkbox -->
-                                                          <div class="optional-bound-slot">
-                                                            @if (isOptionalBound(met, level, met.sens_variation === 'CROISSANT' ? 'inf' : 'sup') && level === 1) {
-                                                              <app-checkbox [(ngModel)]="met.has_score1_optional_bound"
-                                                                (ngModelChange)="onOptionalBoundToggle(met, 1)"
-                                                                class="optional-bound-checkbox" [label]="getOptionalBoundLabel(met, 1)"></app-checkbox>
-                                                            }
-                                                            @if (isOptionalBound(met, level, met.sens_variation === 'CROISSANT' ? 'sup' : 'inf') && level === 5) {
-                                                              <app-checkbox [(ngModel)]="met.has_score5_optional_bound"
-                                                                (ngModelChange)="onOptionalBoundToggle(met, 5)"
-                                                                class="optional-bound-checkbox" [label]="getOptionalBoundLabel(met, 5)"></app-checkbox>
-                                                            }
-                                                          </div>
-                                                          <div class="score-fields" [class.descending]="met.sens_variation === 'DECROISSANT'">
-                                                            <app-form-field [label]="'enjeux.metriques.min' | translate">
-  <input type="number" [(ngModel)]="met.scores[level].inf"
-                                                                [disabled]="isScoreFieldDisabled(met, level, 'inf')"
-                                                                (ngModelChange)="onScoreBoundaryChange(met, level, 'inf')">
-</app-form-field>
-                                                            <app-form-field [label]="'enjeux.metriques.max' | translate">
-  <input type="number" [(ngModel)]="met.scores[level].sup"
-                                                                [disabled]="isScoreFieldDisabled(met, level, 'sup')"
-                                                                (ngModelChange)="onScoreBoundaryChange(met, level, 'sup')">
-</app-form-field>
-                                                          </div>
-                                                          <!-- Fixed-height slot for boundary toggle -->
-                                                          <div class="boundary-toggle-slot">
-                                                            @if (level < 5) {
-                                                              <button type="button" class="boundary-toggle"
-                                                                (click)="toggleBoundaryInclusive(met, level)"
-                                                                [class.inclusive]="isSupInclusive(met, level)">
-                                                                {{ isSupInclusive(met, level) ? '≤' : '<' }}
-                                                              </button>
-                                                            }
-                                                          </div>
-                                                        }
-                                                      }
-                                                    </div>
-                                                  </div>
-                                                }
-                                              </div>
-                                              }
-                                            </div>
-                                            }
                                             }
                                             </div>
                                           }
@@ -1865,6 +1287,7 @@
                                       <button class="add-item-btn" (click)="startAddIndicateur(ne.id_ne)">
                                         <i class="fi fi-rr-plus-small"></i> {{ 'enjeux.indicateurs.addButton' | translate }}
                                       </button>
+                                    }
                                     }
                                   </div>
                                 }
@@ -1959,10 +1382,10 @@
           <!-- Tab: Vision opérationnelle -->
           @if (activeTab() === 'operations') {
             <div class="oo-content">
-              <!-- Note contextuelle -->
+              <!-- Note contextuelle (#337 — variante FCR : pas de pression requise) -->
               <div class="olt-info-note">
                 <i class="fi fi-rr-info"></i>
-                <span>{{ 'enjeux.oo.usageNote' | translate }}</span>
+                <span>{{ (isSelectedFcr() ? 'enjeux.oo.usageNoteFcr' : 'enjeux.oo.usageNote') | translate }}</span>
               </div>
 
               <!-- Barre haut : compteur -->
@@ -1990,6 +1413,8 @@
                       <app-form-field class="full-width" [label]="'enjeux.oo.descriptionLabel' | translate">
   <textarea [(ngModel)]="editOoDescription" rows="2"></textarea>
 </app-form-field>
+                      <!-- #337 — pas de pression pour un FCR : OO rattaché directement -->
+                      @if (!isSelectedFcr()) {
                       <label class="app-mat-label">{{ 'enjeux.oo.pressionLabel' | translate }} *</label>
       <mat-form-field class="full-width app-mat-form-field" appearance="outline">
                         <mat-label></mat-label>
@@ -2003,9 +1428,10 @@
                           }
                         </mat-select>
                       </mat-form-field>
+                      }
                     </div>
                     <div class="inline-form-actions">
-                      <button mat-flat-button color="primary" (click)="saveEditOo(oo)" [disabled]="!editOoLibelle.trim() || editOoPressionIds.length === 0">
+                      <button mat-flat-button color="primary" (click)="saveEditOo(oo)" [disabled]="!editOoLibelle.trim() || (!isSelectedFcr() && editOoPressionIds.length === 0)">
                         {{ 'common.actions.save' | translate }}
                       </button>
                       <button mat-stroked-button (click)="cancelEditOo()">
@@ -2245,122 +1671,11 @@
                                           </div>
 
                                           @if (met._expanded) {
-                                          @if (getMetriqueTypeMnemonique(met.type_metrique) === 'NUMERIQUE') {
                                             <app-metrique-form
                                               [metrique]="met"
                                               [typeMetriqueOptions]="typeMetriqueOptions()"
                                               (delete)="removeOoMetriqueFromEdit(i)">
                                             </app-metrique-form>
-                                          } @else {
-                                          <div class="metrique-form-block">
-                                            <div class="metrique-row">
-                                              <app-form-field [label]="('enjeux.metriques.nomLabel' | translate) + ' *'">
-  <input [(ngModel)]="met.nom_metrique">
-</app-form-field>
-                                              <button class="icon-btn-flat metrique-delete-btn" (click)="removeOoMetriqueFromEdit(i)" [title]="'common.actions.delete' | translate">
-                                                <i class="fi fi-rr-trash"></i>
-                                              </button>
-                                            </div>
-
-                                            <div class="metrique-row-2col">
-                                              <app-form-field [label]="'enjeux.metriques.uniteLabel' | translate">
-  <input [(ngModel)]="met.unite">
-</app-form-field>
-                                              <label class="app-mat-label">{{ 'enjeux.metriques.typeLabel' | translate }}</label>
-      <mat-form-field class="app-mat-form-field" appearance="outline">
-                                                <mat-label></mat-label>
-                                                <mat-select [(ngModel)]="met.type_metrique">
-                                                  @for (opt of typeMetriqueOptions(); track opt.id_nomenclature) {
-                                                    <mat-option [value]="opt.id_nomenclature">{{ opt.label }}</mat-option>
-                                                  }
-                                                </mat-select>
-                                              </mat-form-field>
-                                            </div>
-
-                                            <div class="metrique-row-2col">
-                                              <app-form-field [label]="'enjeux.metriques.ponderationLabel' | translate">
-  <input type="number" [(ngModel)]="met.ponderation">
-</app-form-field>
-                                              <app-form-field [label]="'enjeux.metriques.etatReferenceLabel' | translate">
-  <input [(ngModel)]="met.etat_reference">
-</app-form-field>
-                                            </div>
-
-                                            <!-- Direction selector (NUMERIQUE only) -->
-                                            @if (getMetriqueTypeMnemonique(met.type_metrique) === 'NUMERIQUE') {
-                                              <div class="direction-selector">
-                                                <span class="direction-label">{{ 'enjeux.metriques.direction' | translate }} :</span>
-                                                <mat-button-toggle-group [(ngModel)]="met.sens_variation" (ngModelChange)="onDirectionChange(met)">
-                                                  <mat-button-toggle value="CROISSANT">{{ 'enjeux.metriques.croissant' | translate }}</mat-button-toggle>
-                                                  <mat-button-toggle value="DECROISSANT">{{ 'enjeux.metriques.decroissant' | translate }}</mat-button-toggle>
-                                                </mat-button-toggle-group>
-                                              </div>
-                                            }
-                                            @if (getMetriqueTypeMnemonique(met.type_metrique) !== 'INDETERMINE') {
-                                            <div class="score-threshold-grid">
-                                              @for (level of scoreLevels; track level) {
-                                                <div class="score-column">
-                                                  <div class="score-column-header score-header-{{level}}">
-                                                    <span class="score-header-label">{{ getScoreLevelLabel(level) }}</span>
-                                                    <span class="score-header-value">= {{level}}</span>
-                                                  </div>
-                                                  <div class="score-column-inputs">
-                                                    @switch (getMetriqueTypeMnemonique(met.type_metrique)) {
-                                                      @case ('CHIFFRE') {
-                                                        <app-form-field [label]="'enjeux.metriques.valeur' | translate">
-  <input type="number" [(ngModel)]="met.scores[level].val">
-</app-form-field>
-                                                      }
-                                                      @case ('TEXTE') {
-                                                        <app-form-field [label]="'enjeux.metriques.texte' | translate">
-  <input [(ngModel)]="met.scores[level].label">
-</app-form-field>
-                                                      }
-                                                      @default {
-                                                        <!-- Fixed-height slot for optional bound checkbox -->
-                                                        <div class="optional-bound-slot">
-                                                          @if (isOptionalBound(met, level, met.sens_variation === 'CROISSANT' ? 'inf' : 'sup') && level === 1) {
-                                                            <app-checkbox [(ngModel)]="met.has_score1_optional_bound"
-                                                              (ngModelChange)="onOptionalBoundToggle(met, 1)"
-                                                              class="optional-bound-checkbox" [label]="getOptionalBoundLabel(met, 1)"></app-checkbox>
-                                                          }
-                                                          @if (isOptionalBound(met, level, met.sens_variation === 'CROISSANT' ? 'sup' : 'inf') && level === 5) {
-                                                            <app-checkbox [(ngModel)]="met.has_score5_optional_bound"
-                                                              (ngModelChange)="onOptionalBoundToggle(met, 5)"
-                                                              class="optional-bound-checkbox" [label]="getOptionalBoundLabel(met, 5)"></app-checkbox>
-                                                          }
-                                                        </div>
-                                                        <div class="score-fields" [class.descending]="met.sens_variation === 'DECROISSANT'">
-                                                          <app-form-field [label]="'enjeux.metriques.min' | translate">
-  <input type="number" [(ngModel)]="met.scores[level].inf"
-                                                              [disabled]="isScoreFieldDisabled(met, level, 'inf')"
-                                                              (ngModelChange)="onScoreBoundaryChange(met, level, 'inf')">
-</app-form-field>
-                                                          <app-form-field [label]="'enjeux.metriques.max' | translate">
-  <input type="number" [(ngModel)]="met.scores[level].sup"
-                                                              [disabled]="isScoreFieldDisabled(met, level, 'sup')"
-                                                              (ngModelChange)="onScoreBoundaryChange(met, level, 'sup')">
-</app-form-field>
-                                                        </div>
-                                                        <!-- Fixed-height slot for boundary toggle -->
-                                                        <div class="boundary-toggle-slot">
-                                                          @if (level < 5) {
-                                                            <button type="button" class="boundary-toggle"
-                                                              (click)="toggleBoundaryInclusive(met, level)"
-                                                              [class.inclusive]="isSupInclusive(met, level)">
-                                                              {{ isSupInclusive(met, level) ? '≤' : '<' }}
-                                                            </button>
-                                                          }
-                                                        </div>
-                                                      }
-                                                    }
-                                                  </div>
-                                                </div>
-                                              }
-                                            </div>
-                                            }
-                                          </div>
-                                          }
                                           }
                                           </div>
                                         }
@@ -2520,313 +1835,64 @@
                                           </table>
                                         </div>
 
-                                        @for (met of ind.metriques; track met.id_metrique) {
-                                          <div class="metrique-block" [id]="'metrique-' + met.id_metrique">
+                                        <!-- #227/#367 — Bloc « actions regroupées par métrique » supprimé : les actions sont listées une seule fois au niveau de l'indicateur (ind.operations), métriques rappelées dans le bandeau de chaque action. -->
+                                      }
 
-                                            <!-- Opérations (Actions) de cette métrique — DnD intra-métrique (#228) -->
-                                            @if (met.operations && met.operations.length > 0) {
-                                              <p class="metriques-title">{{ 'enjeux.metriques.label' | translate }} : {{ met.nom_metrique }}</p>
-                                              <div cdkDropList
-                                                   [id]="'operations-droplist-oo-' + met.id_metrique"
-                                                   [cdkDropListData]="met.operations"
-                                                   class="operations-droplist"
-                                                   [cdkDropListDisabled]="!canEditPlan()"
-                                                   (cdkDropListDropped)="onOperationDrop($event, met)">
-                                              @for (op of met.operations; track op.id_operation) {
-                                    <div cdkDrag [cdkDragDisabled]="!canEditPlan()"
-                                         class="operation-card operation-drag-item"
-                                         [class.expanded]="isOoOperationExpanded(op.id_operation)"
-                                         [class.is-draft]="op.statut === 'draft'"
-                                         [id]="'operation-' + op.id_operation">
-                                      <div class="operation-header" (click)="toggleOoOperation(op.id_operation)">
-                                        <div class="operation-header-left">
-                                          @if (canEditPlan()) {
-                                            <button class="icon-btn-flat operation-drag-handle" type="button" cdkDragHandle
-                                                    (click)="$event.stopPropagation()"
-                                                    [title]="'enjeux.dnd.dragHandle' | translate"
-                                                    [attr.aria-label]="'enjeux.dnd.dragHandle' | translate">
-                                              <i class="fi fi-rr-menu-burger"></i>
-                                            </button>
-                                          }
-                                          <img src="assets/images/ellipses/ellipse-salmon.png" alt="" class="operation-ellipse">
-                                          @if (op.code_affichage) {
-                                            <span class="operation-code">{{ op.code_affichage }}</span>
-                                          }
-                                          <span class="operation-libelle">{{ 'enjeux.operations.label' | translate }} : {{ op.libelle }}</span>
-                                          @if (op.statut === 'draft') {
-                                            <mat-chip class="operation-draft-chip status-warning"
-                                                      [matTooltip]="'enjeux.operations.draftChipTooltip' | translate"
-                                                      (click)="$event.stopPropagation()">
-                                              {{ 'enjeux.operations.draftChip' | translate }}
-                                            </mat-chip>
-                                          }
-                                        </div>
-                                        <div class="operation-header-right">
-                                          <button class="icon-btn-flat" (click)="navigateToViewOperation(op.id_operation); $event.stopPropagation()" [title]="'common.actions.view' | translate">
-                                            <i class="fi fi-rr-eye"></i>
-                                          </button>
-                                          @if (canEditPlan()) {
-                                            <button class="icon-btn-flat" (click)="navigateToEditOperation(op.id_operation); $event.stopPropagation()" [title]="'common.actions.edit' | translate">
-                                              <i class="fi fi-rr-pencil"></i>
-                                            </button>
-                                            @if (op.metriques && op.metriques.length > 1) {
-                                              <button class="icon-btn-flat" (click)="unlinkOperation(op, met.id_metrique); $event.stopPropagation()" [title]="'enjeux.operations.unlinkTitle' | translate">
-                                                <i class="fi fi-rr-link-slash"></i>
-                                              </button>
-                                            }
-                                            <button class="icon-btn-flat" (click)="deleteOperation(op); $event.stopPropagation()" [title]="'common.actions.delete' | translate">
-                                              <i class="fi fi-rr-trash"></i>
-                                            </button>
-                                          }
-                                          <i class="fi expand-arrow-op" [class.fi-rr-angle-small-down]="!isOoOperationExpanded(op.id_operation)" [class.fi-rr-angle-small-up]="isOoOperationExpanded(op.id_operation)"></i>
-                                        </div>
-                                      </div>
-
-                                      @if (isOoOperationExpanded(op.id_operation)) {
-                                        <div class="operation-expanded-content">
-                                          <!-- Également liée à d'autres métriques -->
-                                          @if (op.metriques && op.metriques.length > 1) {
-                                            <div class="operation-detail-line linked-metriques-info">
-                                              <span class="detail-label">{{ 'enjeux.operations.alsoLinkedTo' | translate }} :</span>
-                                              <span class="detail-value">
-                                                @for (metRef of getOtherMetriques(op, met.id_metrique); track metRef.id_metrique; let last = $last) {
-                                                  {{ metRef.nom_metrique }} ({{ metRef.indicateur_nom }})@if (!last) {, }
-                                                }
-                                              </span>
-                                            </div>
-                                          }
-                                          <div class="operation-meta-row">
-                                            @if (op.type_action_label) {
-                                              <span class="operation-meta-item">
-                                                <span class="meta-label">{{ 'enjeux.operations.typeActionLabel' | translate }} :</span>
-                                                {{ op.type_action_label }}
-                                              </span>
-                                            }
-                                            @if (op.priorite_label) {
-                                              <span class="operation-meta-item">
-                                                <span class="meta-label">{{ 'enjeux.operations.prioriteLabel' | translate }} :</span>
-                                                {{ op.priorite_label }}
-                                              </span>
-                                            }
-                                          </div>
-
-                                          @if (op.suivi_inventaire) {
-                                            <div class="operation-section-separator">
-                                              <div class="separator-line"></div>
-                                              <h5 class="operation-section-title">{{ 'enjeux.operations.detailsSuiviTitle' | translate | uppercase }}</h5>
-                                            </div>
-                                            <div class="operation-section">
-                                              @if (op.suivi_inventaire.objectif_principal) {
-                                                <div class="operation-detail-line">
-                                                  <span class="detail-label">{{ 'enjeux.operations.objectifPrincipal' | translate }} :</span>
-                                                  <span class="detail-value">{{ op.suivi_inventaire.objectif_principal }}</span>
-                                                </div>
-                                              }
-                                              @if (op.suivi_inventaire.cibles_principales) {
-                                                <div class="operation-detail-line">
-                                                  <span class="detail-label">{{ 'enjeux.operations.ciblesPrincipales' | translate }} :</span>
-                                                  <span class="detail-value">{{ op.suivi_inventaire.cibles_principales }}</span>
-                                                </div>
-                                              }
-                                              @if (op.suivi_inventaire.taxon_taxref) {
-                                                <div class="operation-detail-line">
-                                                  <span class="detail-label">{{ 'enjeux.operations.taxonTaxref' | translate }} :</span>
-                                                  <span class="detail-value">{{ op.suivi_inventaire.taxon_taxref }}</span>
-                                                </div>
-                                              }
-                                              @if (op.suivi_inventaire.date_lancement_suivi) {
-                                                <div class="operation-detail-line">
-                                                  <span class="detail-label">{{ 'enjeux.operations.dateLancement' | translate }} :</span>
-                                                  <span class="detail-value">{{ op.suivi_inventaire.date_lancement_suivi | date:'dd/MM/yyyy' }}</span>
-                                                </div>
-                                              }
-                                              @if (op.suivi_inventaire.protocole?.protocole_campanule_nom) {
-                                                <div class="operation-detail-line">
-                                                  <span class="detail-label">{{ 'enjeux.operations.protocoleNom' | translate }} :</span>
-                                                  <span class="detail-value">{{ op.suivi_inventaire.protocole?.protocole_campanule_nom }}</span>
-                                                </div>
-                                              }
-                                            </div>
-                                          }
-
-                                          @if (getPlanYears().length > 0) {
-                                            <div class="operation-section-separator">
-                                              <div class="separator-line"></div>
-                                              <h5 class="operation-section-title">{{ 'enjeux.operations.programmationTitle' | translate | uppercase }}</h5>
-                                            </div>
-                                            <div class="operation-section">
-                                              <div class="programmation-table-wrapper">
-                                                <table class="programmation-table">
-                                                  <thead>
-                                                    <tr>
-                                                      <th class="prog-label-col">{{ 'enjeux.operations.programmation' | translate }}</th>
-                                                      @for (year of getPlanYears(); track year) {
-                                                        <th class="prog-year-col">{{ year }}</th>
+                                      <!-- #367 — Actions rattachées directement à l'indicateur (sans métrique) -->
+                                      @if (ind.operations && ind.operations.length > 0) {
+                                        <div class="indicateur-direct-operations">
+                                          @for (op of ind.operations; track op.id_operation) {
+                                            <div class="operation-card" [class.operation-card-direct]="!op.metriques?.length"
+                                                 [class.expanded]="isOoOperationExpanded(op.id_operation)"
+                                                 [class.is-draft]="op.statut === 'draft'"
+                                                 [id]="'operation-' + op.id_operation">
+                                              <div class="operation-header" (click)="toggleOoOperation(op.id_operation)">
+                                                <div class="operation-header-left">
+                                                  <img src="assets/images/ellipses/ellipse-salmon.png" alt="" class="operation-ellipse">
+                                                  @if (op.code_affichage) { <span class="operation-code">{{ op.code_affichage }}</span> }
+                                                  <span class="operation-libelle">{{ 'enjeux.operations.label' | translate }} : {{ op.libelle }}</span>
+                                                  @if (op.statut === 'draft') {
+                                                    <span class="operation-draft-chip status-warning" (click)="$event.stopPropagation()">{{ 'enjeux.operations.draftChip' | translate }}</span>
+                                                  }
+                                                  <div class="operation-metriques-row">
+                                                    @if (op.metriques?.length) {
+                                                      @for (m of op.metriques!; track m.id_metrique) {
+                                                        <span class="op-metrique-chip" (click)="$event.stopPropagation()" [matTooltip]="'enjeux.operations.metriqueLinkedTooltip' | translate">
+                                                          <i class="fi fi-rr-ruler-horizontal"></i> {{ m.nom_metrique }}
+                                                        </span>
                                                       }
-                                                    </tr>
-                                                  </thead>
-                                                  <tbody>
-                                                    <tr>
-                                                      <td class="prog-label-cell">{{ 'enjeux.operations.progPeriodicite' | translate }}</td>
-                                                      @for (year of getPlanYears(); track year) {
-                                                        <td class="prog-cell">
-                                                          @if (isYearPlanned(op, year)) {
-                                                            <img src="assets/images/icons/prevu.png" alt="Prévu" class="prevu-icon">
-                                                          } @else {
-                                                            <span class="prog-dash">-</span>
-                                                          }
-                                                        </td>
-                                                      }
-                                                    </tr>
-                                                    @if (hasOrganismeData(op)) {
-                                                      @for (org of getOperationOrganismes(op); track org.id_organisme) {
-                                                        <tr class="prog-org-header">
-                                                          <td class="prog-label-cell prog-org-name" [attr.colspan]="getPlanYears().length + 1">{{ org.organisme_nom }}</td>
-                                                        </tr>
-                                                        <tr>
-                                                          <td class="prog-label-cell prog-indent">{{ 'enjeux.operations.budgetFonctionnement' | translate }}</td>
-                                                          @for (year of getPlanYears(); track year) {
-                                                            <td class="prog-cell prog-budget">{{ formatBudget(getOrgAnnee(op, year, org.id_organisme).fonct) }}</td>
-                                                          }
-                                                        </tr>
-                                                        <tr>
-                                                          <td class="prog-label-cell prog-indent">{{ 'enjeux.operations.budgetInvestissement' | translate }}</td>
-                                                          @for (year of getPlanYears(); track year) {
-                                                            <td class="prog-cell prog-budget">{{ formatBudget(getOrgAnnee(op, year, org.id_organisme).invest) }}</td>
-                                                          }
-                                                        </tr>
-                                                        <tr>
-                                                          <td class="prog-label-cell prog-indent prog-bold">{{ 'enjeux.operations.budgetTotal' | translate }}</td>
-                                                          @for (year of getPlanYears(); track year) {
-                                                            <td class="prog-cell prog-budget prog-computed">{{ formatOrgBudgetTotal(op, year, org.id_organisme) }}</td>
-                                                          }
-                                                        </tr>
-                                                        <tr>
-                                                          <td class="prog-label-cell prog-indent">{{ 'enjeux.operations.travailPrevisionnel' | translate }}</td>
-                                                          @for (year of getPlanYears(); track year) {
-                                                            <td class="prog-cell">{{ formatTravail(getOrgAnnee(op, year, org.id_organisme).etp) }}</td>
-                                                          }
-                                                        </tr>
-                                                      }
-                                                      <tr class="prog-total-header">
-                                                        <td class="prog-label-cell prog-org-name" [attr.colspan]="getPlanYears().length + 1">{{ 'enjeux.operations.totalLabel' | translate }}</td>
-                                                      </tr>
-                                                      <tr>
-                                                        <td class="prog-label-cell prog-indent prog-bold">{{ 'enjeux.operations.budgetTotal' | translate }}</td>
-                                                        @for (year of getPlanYears(); track year) {
-                                                          <td class="prog-cell prog-budget prog-computed">{{ formatBudget(getOperationAnnee(op, year)?.budget) }}</td>
-                                                        }
-                                                      </tr>
-                                                      <tr>
-                                                        <td class="prog-label-cell prog-indent prog-bold">{{ 'enjeux.operations.travailPrevisionnel' | translate }}</td>
-                                                        @for (year of getPlanYears(); track year) {
-                                                          <td class="prog-cell prog-computed">{{ formatTravail(getOperationAnnee(op, year)?.etp) }}</td>
-                                                        }
-                                                      </tr>
-                                                    } @else if (isTypeBudgetMode(op)) {
-                                                      <!-- By type: fonctionnement/investissement without organismes -->
-                                                      <tr>
-                                                        <td class="prog-label-cell">{{ 'enjeux.operations.budgetFonctionnement' | translate }}</td>
-                                                        @for (year of getPlanYears(); track year) {
-                                                          <td class="prog-cell prog-budget">{{ formatBudget(getOperationAnnee(op, year)?.budget_fonctionnement) }}</td>
-                                                        }
-                                                      </tr>
-                                                      <tr>
-                                                        <td class="prog-label-cell">{{ 'enjeux.operations.budgetInvestissement' | translate }}</td>
-                                                        @for (year of getPlanYears(); track year) {
-                                                          <td class="prog-cell prog-budget">{{ formatBudget(getOperationAnnee(op, year)?.budget_investissement) }}</td>
-                                                        }
-                                                      </tr>
-                                                      <tr>
-                                                        <td class="prog-label-cell prog-bold">{{ 'enjeux.operations.budgetTotal' | translate }}</td>
-                                                        @for (year of getPlanYears(); track year) {
-                                                          <td class="prog-cell prog-budget prog-computed">{{ formatBudget(getOperationAnnee(op, year)?.budget) }}</td>
-                                                        }
-                                                      </tr>
-                                                      <tr>
-                                                        <td class="prog-label-cell">{{ 'enjeux.operations.progTravail' | translate }}</td>
-                                                        @for (year of getPlanYears(); track year) {
-                                                          <td class="prog-cell">{{ formatTravail(getOperationAnnee(op, year)?.etp) }}</td>
-                                                        }
-                                                      </tr>
                                                     } @else {
-                                                      <tr>
-                                                        <td class="prog-label-cell">{{ 'enjeux.operations.progBudget' | translate }}</td>
-                                                        @for (year of getPlanYears(); track year) {
-                                                          <td class="prog-cell prog-budget">{{ formatBudget(getOperationAnnee(op, year)?.budget) }}</td>
-                                                        }
-                                                      </tr>
-                                                      <tr>
-                                                        <td class="prog-label-cell">{{ 'enjeux.operations.progTravail' | translate }}</td>
-                                                        @for (year of getPlanYears(); track year) {
-                                                          <td class="prog-cell">{{ formatTravail(getOperationAnnee(op, year)?.etp) }}</td>
-                                                        }
-                                                      </tr>
+                                                      <span class="op-trace-badge op-trace-sans-metrique" [matTooltip]="'enjeux.operations.sansMetriqueTooltip' | translate" (click)="$event.stopPropagation()">
+                                                        <i class="fi fi-rr-ban"></i> {{ 'enjeux.operations.sansMetriqueBadge' | translate }}
+                                                      </span>
                                                     }
-                                                  </tbody>
-                                                </table>
+                                                    @if (op.geom_geojson) {
+                                                      <span class="op-trace-badge op-trace-emprise" [matTooltip]="'enjeux.operations.empriseSpatialeBadge' | translate" (click)="$event.stopPropagation()">
+                                                        <i class="fi fi-rr-marker"></i>
+                                                      </span>
+                                                    }
+                                                  </div>
+                                                </div>
+                                                <div class="operation-header-right">
+                                                  <button class="icon-btn-flat" (click)="navigateToViewOperation(op.id_operation); $event.stopPropagation()" [title]="'common.actions.view' | translate"><i class="fi fi-rr-eye"></i></button>
+                                                  @if (canEditPlan()) {
+                                                    <button class="icon-btn-flat" (click)="navigateToEditOperation(op.id_operation); $event.stopPropagation()" [title]="'common.actions.edit' | translate"><i class="fi fi-rr-pencil"></i></button>
+                                                    <button class="icon-btn-flat" (click)="deleteOperation(op); $event.stopPropagation()" [title]="'common.actions.delete' | translate"><i class="fi fi-rr-trash"></i></button>
+                                                  }
+                                                  <i class="fi expand-arrow-op" [class.fi-rr-angle-small-down]="!isOoOperationExpanded(op.id_operation)" [class.fi-rr-angle-small-up]="isOoOperationExpanded(op.id_operation)"></i>
+                                                </div>
                                               </div>
-
-                                              @if (hasAnyMonthlyPlanning(op)) {
-                                                <div class="monthly-planning">
-                                                  <span class="monthly-label">{{ 'enjeux.operations.progMois' | translate }} :</span>
-                                                  <span class="monthly-months">{{ getPlannedMonthsForOperation(op).join(', ') }}</span>
-                                                </div>
+                                              @if (isOoOperationExpanded(op.id_operation)) {
+                                                <ng-container [ngTemplateOutlet]="opExpandedContent" [ngTemplateOutletContext]="{ op: op, metId: null }"></ng-container>
                                               }
-                                            </div>
-                                          }
-
-                                          @if (op.frequence_nombre || op.operateurs || (op.finances && op.finances.length > 0)) {
-                                            <div class="operation-actors-section">
-                                              @if (op.frequence_nombre && op.frequence_unite) {
-                                                <div class="operation-detail-line">
-                                                  <span class="detail-label">{{ 'enjeux.operations.frequenceAction' | translate }} :</span>
-                                                  <span class="detail-value">{{ getFrequenceDisplay(op) }}</span>
-                                                </div>
-                                              }
-                                              @if (op.operateurs) {
-                                                <div class="operation-detail-line">
-                                                  <span class="detail-label">{{ 'enjeux.operations.operateursLabel' | translate }} :</span>
-                                                  <span class="detail-value">{{ op.operateurs }}</span>
-                                                </div>
-                                              }
-                                              @if (op.finances && op.finances.length > 0) {
-                                                <div class="operation-detail-line">
-                                                  <span class="detail-label">{{ 'enjeux.operations.financementsLabel' | translate }} :</span>
-                                                  <span class="detail-value">
-                                                    @for (fin of op.finances; track fin.id_finance_operation; let last = $last) {
-                                                      {{ fin.libelle }}@if (fin.categorie_label) { ({{ fin.categorie_label }})}@if (!last) {, }
-                                                    }
-                                                  </span>
-                                                </div>
-                                              }
-                                            </div>
-                                          }
-
-                                          @if (op.description) {
-                                            <div class="operation-section-separator">
-                                              <div class="separator-line"></div>
-                                              <h5 class="operation-section-title">{{ 'enjeux.operations.detailsLabel' | translate | uppercase }}</h5>
-                                            </div>
-                                            <div class="operation-section">
-                                              <p class="operation-description">{{ op.description }}</p>
                                             </div>
                                           }
                                         </div>
                                       }
-                                    </div>
-                                  }
-                                              </div> <!-- end operations-droplist (OO) #228 -->
-                                }
 
-                                    <!-- #1 : bouton « Ajouter une action » déplacé au niveau indicateur (OO) -->
-
-                                          </div>
-                                        }
-                                      }
-
-                                      <!-- #1 : bouton « Ajouter une action » au niveau indicateur (OO) — liée à toutes ses métriques -->
-                                      @if (canEditPlan() && ind.metriques && ind.metriques.length > 0) {
+                                      <!-- #1/#367 : bouton « Ajouter une action » au niveau indicateur (OO).
+                                           Disponible même sans métrique (action rattachée directement à l'indicateur). -->
+                                      @if (canEditPlan()) {
                                         <button class="add-item-btn add-item-btn-action" (click)="openAddActionForIndicateur(ind)">
                                           <i class="fi fi-rr-plus-small"></i> {{ 'enjeux.operations.addActionAtIndicateur' | translate }}
                                         </button>
@@ -2843,110 +1909,15 @@
                                       @if (addingMetriqueForIndicateur() === ind.id_indicateur && standaloneMetriqueForm) {
                                         <div class="metrique-form-block standalone-metrique-form">
                                           <h5 class="metriques-section-title">{{ 'enjeux.metriques.addButton' | translate }}</h5>
-                                          <div class="metrique-row">
-                                            <app-form-field [label]="('enjeux.metriques.nomLabel' | translate) + ' *'">
-  <input [(ngModel)]="standaloneMetriqueForm.nom_metrique">
-</app-form-field>
-                                          </div>
-                                          <div class="metrique-row-2col">
-                                            <app-form-field [label]="'enjeux.metriques.uniteLabel' | translate">
-  <input [(ngModel)]="standaloneMetriqueForm.unite">
-</app-form-field>
-                                            <label class="app-mat-label">{{ 'enjeux.metriques.typeLabel' | translate }}</label>
-      <mat-form-field class="app-mat-form-field" appearance="outline">
-                                              <mat-label></mat-label>
-                                              <mat-select [(ngModel)]="standaloneMetriqueForm.type_metrique">
-                                                @for (opt of typeMetriqueOptions(); track opt.id_nomenclature) {
-                                                  <mat-option [value]="opt.id_nomenclature">{{ opt.label }}</mat-option>
-                                                }
-                                              </mat-select>
-                                            </mat-form-field>
-                                          </div>
-                                          <div class="metrique-row-2col">
-                                            <app-form-field [label]="'enjeux.metriques.ponderationLabel' | translate">
-  <input type="number" [(ngModel)]="standaloneMetriqueForm.ponderation">
-</app-form-field>
-                                            <app-form-field [label]="'enjeux.metriques.etatReferenceLabel' | translate">
-  <input [(ngModel)]="standaloneMetriqueForm.etat_reference">
-</app-form-field>
-                                          </div>
-                                          <!-- Direction selector (NUMERIQUE only) -->
-                                          @if (getMetriqueTypeMnemonique(standaloneMetriqueForm.type_metrique) === 'NUMERIQUE') {
-                                            <div class="direction-selector">
-                                              <span class="direction-label">{{ 'enjeux.metriques.direction' | translate }} :</span>
-                                              <mat-button-toggle-group [(ngModel)]="standaloneMetriqueForm.sens_variation" (ngModelChange)="onDirectionChange(standaloneMetriqueForm)">
-                                                <mat-button-toggle value="CROISSANT">{{ 'enjeux.metriques.croissant' | translate }}</mat-button-toggle>
-                                                <mat-button-toggle value="DECROISSANT">{{ 'enjeux.metriques.decroissant' | translate }}</mat-button-toggle>
-                                              </mat-button-toggle-group>
-                                            </div>
-                                          }
-                                          @if (getMetriqueTypeMnemonique(standaloneMetriqueForm.type_metrique) !== 'INDETERMINE') {
-                                          <div class="score-threshold-grid">
-                                            @for (level of scoreLevels; track level) {
-                                              <div class="score-column">
-                                                <div class="score-column-header score-header-{{level}}">
-                                                  <span class="score-header-label">{{ getScoreLevelLabel(level) }}</span>
-                                                  <span class="score-header-value">= {{level}}</span>
-                                                </div>
-                                                <div class="score-column-inputs">
-                                                  @switch (getMetriqueTypeMnemonique(standaloneMetriqueForm.type_metrique)) {
-                                                    @case ('CHIFFRE') {
-                                                      <app-form-field [label]="'enjeux.metriques.valeur' | translate">
-  <input type="number" [(ngModel)]="standaloneMetriqueForm.scores[level].val">
-</app-form-field>
-                                                    }
-                                                    @case ('TEXTE') {
-                                                      <app-form-field [label]="'enjeux.metriques.texte' | translate">
-  <input [(ngModel)]="standaloneMetriqueForm.scores[level].label">
-</app-form-field>
-                                                    }
-                                                    @default {
-                                                      <!-- Fixed-height slot for optional bound checkbox -->
-                                                      <div class="optional-bound-slot">
-                                                        @if (isOptionalBound(standaloneMetriqueForm, level, standaloneMetriqueForm.sens_variation === 'CROISSANT' ? 'inf' : 'sup') && level === 1) {
-                                                          <app-checkbox [(ngModel)]="standaloneMetriqueForm.has_score1_optional_bound"
-                                                            (ngModelChange)="onOptionalBoundToggle(standaloneMetriqueForm, 1)"
-                                                            class="optional-bound-checkbox" [label]="getOptionalBoundLabel(standaloneMetriqueForm, 1)"></app-checkbox>
-                                                        }
-                                                        @if (isOptionalBound(standaloneMetriqueForm, level, standaloneMetriqueForm.sens_variation === 'CROISSANT' ? 'sup' : 'inf') && level === 5) {
-                                                          <app-checkbox [(ngModel)]="standaloneMetriqueForm.has_score5_optional_bound"
-                                                            (ngModelChange)="onOptionalBoundToggle(standaloneMetriqueForm, 5)"
-                                                            class="optional-bound-checkbox" [label]="getOptionalBoundLabel(standaloneMetriqueForm, 5)"></app-checkbox>
-                                                        }
-                                                      </div>
-                                                      <div class="score-fields" [class.descending]="standaloneMetriqueForm.sens_variation === 'DECROISSANT'">
-                                                        <app-form-field [label]="'enjeux.metriques.min' | translate">
-  <input type="number" [(ngModel)]="standaloneMetriqueForm.scores[level].inf"
-                                                            [disabled]="isScoreFieldDisabled(standaloneMetriqueForm, level, 'inf')"
-                                                            (ngModelChange)="onScoreBoundaryChange(standaloneMetriqueForm, level, 'inf')">
-</app-form-field>
-                                                        <app-form-field [label]="'enjeux.metriques.max' | translate">
-  <input type="number" [(ngModel)]="standaloneMetriqueForm.scores[level].sup"
-                                                            [disabled]="isScoreFieldDisabled(standaloneMetriqueForm, level, 'sup')"
-                                                            (ngModelChange)="onScoreBoundaryChange(standaloneMetriqueForm, level, 'sup')">
-</app-form-field>
-                                                      </div>
-                                                      <!-- Fixed-height slot for boundary toggle -->
-                                                      <div class="boundary-toggle-slot">
-                                                        @if (level < 5) {
-                                                          <button type="button" class="boundary-toggle"
-                                                            (click)="toggleBoundaryInclusive(standaloneMetriqueForm, level)"
-                                                            [class.inclusive]="isSupInclusive(standaloneMetriqueForm, level)">
-                                                            {{ isSupInclusive(standaloneMetriqueForm, level) ? '≤' : '<' }}
-                                                          </button>
-                                                        }
-                                                      </div>
-                                                    }
-                                                  }
-                                                </div>
-                                              </div>
-                                            }
-                                          </div>
-                                          }
+                                            <app-metrique-form
+                                              [metrique]="standaloneMetriqueForm"
+                                              [typeMetriqueOptions]="typeMetriqueOptions()"
+                                              (delete)="cancelAddStandaloneMetrique()">
+                                            </app-metrique-form>
                                           <div class="inline-form-actions">
                                             <button mat-flat-button color="primary"
                                               (click)="saveStandaloneMetrique(ind.id_indicateur)"
-                                              [disabled]="isSavingStandaloneMetrique() || !standaloneMetriqueForm.nom_metrique.trim()">
+                                              [disabled]="isSavingStandaloneMetrique() || (!standaloneMetriqueForm.nom_metrique.trim() && getMetriqueTypeMnemonique(standaloneMetriqueForm.type_metrique) !== 'INDETERMINE')">
                                               {{ 'common.actions.save' | translate }}
                                             </button>
                                             <button mat-stroked-button (click)="cancelAddStandaloneMetrique()">
@@ -3040,122 +2011,11 @@
                                     </div>
 
                                     @if (met._expanded) {
-                                    @if (getMetriqueTypeMnemonique(met.type_metrique) === 'NUMERIQUE') {
                                       <app-metrique-form
                                         [metrique]="met"
                                         [typeMetriqueOptions]="typeMetriqueOptions()"
                                         (delete)="removeOoMetriqueRow(i)">
                                       </app-metrique-form>
-                                    } @else {
-                                    <div class="metrique-form-block">
-                                      <div class="metrique-row">
-                                        <app-form-field [label]="('enjeux.metriques.nomLabel' | translate) + ' *'">
-  <input [(ngModel)]="met.nom_metrique">
-</app-form-field>
-                                        <button class="icon-btn-flat metrique-delete-btn" (click)="removeOoMetriqueRow(i)" [title]="'common.actions.delete' | translate">
-                                          <i class="fi fi-rr-trash"></i>
-                                        </button>
-                                      </div>
-
-                                      <div class="metrique-row-2col">
-                                        <app-form-field [label]="'enjeux.metriques.uniteLabel' | translate">
-  <input [(ngModel)]="met.unite">
-</app-form-field>
-                                        <label class="app-mat-label">{{ 'enjeux.metriques.typeLabel' | translate }}</label>
-      <mat-form-field class="app-mat-form-field" appearance="outline">
-                                          <mat-label></mat-label>
-                                          <mat-select [(ngModel)]="met.type_metrique">
-                                            @for (opt of typeMetriqueOptions(); track opt.id_nomenclature) {
-                                              <mat-option [value]="opt.id_nomenclature">{{ opt.label }}</mat-option>
-                                            }
-                                          </mat-select>
-                                        </mat-form-field>
-                                      </div>
-
-                                      <div class="metrique-row-2col">
-                                        <app-form-field [label]="'enjeux.metriques.ponderationLabel' | translate">
-  <input type="number" [(ngModel)]="met.ponderation">
-</app-form-field>
-                                        <app-form-field [label]="'enjeux.metriques.etatReferenceLabel' | translate">
-  <input [(ngModel)]="met.etat_reference">
-</app-form-field>
-                                      </div>
-
-                                      <!-- Direction selector (NUMERIQUE only) -->
-                                      @if (getMetriqueTypeMnemonique(met.type_metrique) === 'NUMERIQUE') {
-                                        <div class="direction-selector">
-                                          <span class="direction-label">{{ 'enjeux.metriques.direction' | translate }} :</span>
-                                          <mat-button-toggle-group [(ngModel)]="met.sens_variation" (ngModelChange)="onDirectionChange(met)">
-                                            <mat-button-toggle value="CROISSANT">{{ 'enjeux.metriques.croissant' | translate }}</mat-button-toggle>
-                                            <mat-button-toggle value="DECROISSANT">{{ 'enjeux.metriques.decroissant' | translate }}</mat-button-toggle>
-                                          </mat-button-toggle-group>
-                                        </div>
-                                      }
-                                      @if (getMetriqueTypeMnemonique(met.type_metrique) !== 'INDETERMINE') {
-                                      <div class="score-threshold-grid">
-                                        @for (level of scoreLevels; track level) {
-                                          <div class="score-column">
-                                            <div class="score-column-header score-header-{{level}}">
-                                              <span class="score-header-label">{{ getScoreLevelLabel(level) }}</span>
-                                              <span class="score-header-value">= {{level}}</span>
-                                            </div>
-                                            <div class="score-column-inputs">
-                                              @switch (getMetriqueTypeMnemonique(met.type_metrique)) {
-                                                @case ('CHIFFRE') {
-                                                  <app-form-field [label]="'enjeux.metriques.valeur' | translate">
-  <input type="number" [(ngModel)]="met.scores[level].val">
-</app-form-field>
-                                                }
-                                                @case ('TEXTE') {
-                                                  <app-form-field [label]="'enjeux.metriques.texte' | translate">
-  <input [(ngModel)]="met.scores[level].label">
-</app-form-field>
-                                                }
-                                                @default {
-                                                  <!-- Fixed-height slot for optional bound checkbox -->
-                                                  <div class="optional-bound-slot">
-                                                    @if (isOptionalBound(met, level, met.sens_variation === 'CROISSANT' ? 'inf' : 'sup') && level === 1) {
-                                                      <app-checkbox [(ngModel)]="met.has_score1_optional_bound"
-                                                        (ngModelChange)="onOptionalBoundToggle(met, 1)"
-                                                        class="optional-bound-checkbox" [label]="getOptionalBoundLabel(met, 1)"></app-checkbox>
-                                                    }
-                                                    @if (isOptionalBound(met, level, met.sens_variation === 'CROISSANT' ? 'sup' : 'inf') && level === 5) {
-                                                      <app-checkbox [(ngModel)]="met.has_score5_optional_bound"
-                                                        (ngModelChange)="onOptionalBoundToggle(met, 5)"
-                                                        class="optional-bound-checkbox" [label]="getOptionalBoundLabel(met, 5)"></app-checkbox>
-                                                    }
-                                                  </div>
-                                                  <div class="score-fields" [class.descending]="met.sens_variation === 'DECROISSANT'">
-                                                    <app-form-field [label]="'enjeux.metriques.min' | translate">
-  <input type="number" [(ngModel)]="met.scores[level].inf"
-                                                        [disabled]="isScoreFieldDisabled(met, level, 'inf')"
-                                                        (ngModelChange)="onScoreBoundaryChange(met, level, 'inf')">
-</app-form-field>
-                                                    <app-form-field [label]="'enjeux.metriques.max' | translate">
-  <input type="number" [(ngModel)]="met.scores[level].sup"
-                                                        [disabled]="isScoreFieldDisabled(met, level, 'sup')"
-                                                        (ngModelChange)="onScoreBoundaryChange(met, level, 'sup')">
-</app-form-field>
-                                                  </div>
-                                                  <!-- Fixed-height slot for boundary toggle -->
-                                                  <div class="boundary-toggle-slot">
-                                                    @if (level < 5) {
-                                                      <button type="button" class="boundary-toggle"
-                                                        (click)="toggleBoundaryInclusive(met, level)"
-                                                        [class.inclusive]="isSupInclusive(met, level)">
-                                                        {{ isSupInclusive(met, level) ? '≤' : '<' }}
-                                                      </button>
-                                                    }
-                                                  </div>
-                                                }
-                                              }
-                                            </div>
-                                          </div>
-                                        }
-                                      </div>
-                                      }
-                                    </div>
-                                    }
                                     }
                                     </div>
                                   }
@@ -3240,6 +2100,14 @@
                     <app-form-field class="full-width" [label]="'enjeux.oo.descriptionLabel' | translate">
   <textarea [(ngModel)]="newOoDescription" rows="2"></textarea>
 </app-form-field>
+                    <!--
+                      Sélecteur de pression : UNIQUEMENT pour un enjeu classique.
+                      Pour un FCR, l'OO est toujours rattaché directement au FCR
+                      (champ id_enjeu, cf. saveOo) — même si le FCR porte des
+                      facteurs/pressions, ceux-ci sont descriptifs et n'ancrent
+                      jamais un OO. On masque donc le sélecteur pour les FCR.
+                    -->
+                    @if (!isSelectedFcr()) {
                     <label class="app-mat-label">{{ 'enjeux.oo.pressionLabel' | translate }} *</label>
       <mat-form-field class="full-width app-mat-form-field" appearance="outline">
                       <mat-label></mat-label>
@@ -3253,9 +2121,10 @@
                         }
                       </mat-select>
                     </mat-form-field>
+                    }
                   </div>
                   <div class="inline-form-actions">
-                    <button mat-flat-button color="primary" (click)="saveOo()" [disabled]="!newOoLibelle.trim() || newOoPressionIds.length === 0">
+                    <button mat-flat-button color="primary" (click)="saveOo()" [disabled]="!newOoLibelle.trim() || (!isSelectedFcr() && newOoPressionIds.length === 0)">
                       {{ 'common.actions.save' | translate }}
                     </button>
                     <button mat-stroked-button (click)="cancelAddOo()">
@@ -3265,16 +2134,16 @@
                 </div>
               }
 
-              <!-- Bouton ajouter un OO (visible seulement si au moins une pression existe) -->
-              @if (!addingOo() && selectedPressions().length > 0 && canEditPlan()) {
+              <!-- Bouton ajouter un OO : au moins une pression (Enjeu) OU un FCR (#337) -->
+              @if (!addingOo() && (selectedPressions().length > 0 || isSelectedFcr()) && canEditPlan()) {
                 <button class="add-item-btn" (click)="startAddOo()">
                   <i class="fi fi-rr-plus-small"></i>
                   {{ 'enjeux.oo.addButton' | translate }}
                 </button>
               }
 
-              <!-- Message si aucune pression (guard : créer une pression d'abord) -->
-              @if (selectedPressions().length === 0 && totalOoCount() === 0 && !addingOo()) {
+              <!-- Message si aucune pression (guard : créer une pression d'abord). Pas pour un FCR (#337). -->
+              @if (!isSelectedFcr() && selectedPressions().length === 0 && totalOoCount() === 0 && !addingOo()) {
                 <div class="info-block info-block-warning">
                   <div class="info-icon">
                     <i class="fi fi-rr-exclamation"></i>
@@ -3286,8 +2155,8 @@
                 </div>
               }
 
-              <!-- Empty state si aucun OO mais des pressions existent -->
-              @if (totalOoCount() === 0 && selectedPressions().length > 0 && !addingOo()) {
+              <!-- Empty state si aucun OO mais des pressions existent (ou FCR, #337) -->
+              @if (totalOoCount() === 0 && (selectedPressions().length > 0 || isSelectedFcr()) && !addingOo()) {
                 <div class="info-block">
                   <div class="info-icon">
                     <i class="fi fi-rr-lightbulb-on"></i>
@@ -3309,17 +2178,17 @@
             <div class="empty-state">
               <p class="empty-text">{{ 'enjeux.empty.noEnjeu' | translate }}</p>
               @if (canEditPlan()) {
-                <button mat-stroked-button color="primary" [matMenuTriggerFor]="addMenuEmpty">
+                <button mat-stroked-button color="primary" class="btn-add-enjeu-fcr" [matMenuTriggerFor]="addMenuEmpty">
                   <i class="fi fi-rr-plus-small"></i>
                   {{ 'enjeux.addButton' | translate }}
                 </button>
-                <mat-menu #addMenuEmpty="matMenu">
+                <mat-menu #addMenuEmpty="matMenu" class="add-enjeu-fcr-menu">
                   <button mat-menu-item (click)="navigateToNewEnjeu()">
-                    <i class="fi fi-rr-mountains"></i>
+                    <i class="fi fi-rr-mountains menu-type-icon menu-type-enjeu"></i>
                     <span>{{ 'enjeux.types.enjeu' | translate }}</span>
                   </button>
                   <button mat-menu-item (click)="navigateToNewFcr()">
-                    <i class="fi fi-rr-key"></i>
+                    <i class="fi fi-rr-key menu-type-icon menu-type-fcr"></i>
                     <span>{{ 'enjeux.types.fcr' | translate }}</span>
                   </button>
                 </mat-menu>
@@ -3344,17 +2213,17 @@
               <div class="list-top-bar">
                 <p class="count-text">{{ totalCount() }} {{ 'enjeux.countSuffix' | translate }}</p>
                 @if (canEditPlan()) {
-                  <button mat-stroked-button [matMenuTriggerFor]="addMenu">
+                  <button mat-stroked-button color="primary" class="btn-add-enjeu-fcr" [matMenuTriggerFor]="addMenu">
                     <i class="fi fi-rr-plus-small"></i>
                     {{ 'enjeux.addButton' | translate }}
                   </button>
-                  <mat-menu #addMenu="matMenu">
+                  <mat-menu #addMenu="matMenu" class="add-enjeu-fcr-menu">
                     <button mat-menu-item (click)="navigateToNewEnjeu()">
-                      <i class="fi fi-rr-mountains"></i>
+                      <i class="fi fi-rr-mountains menu-type-icon menu-type-enjeu"></i>
                       <span>{{ 'enjeux.types.enjeu' | translate }}</span>
                     </button>
                     <button mat-menu-item (click)="navigateToNewFcr()">
-                      <i class="fi fi-rr-key"></i>
+                      <i class="fi fi-rr-key menu-type-icon menu-type-fcr"></i>
                       <span>{{ 'enjeux.types.fcr' | translate }}</span>
                     </button>
                   </mat-menu>
@@ -3410,7 +2279,8 @@
                         [initiallyExpanded]="selectedEnjeuId() === item.id_enjeu"
                         [canEdit]="canEditPlan()"
                         (edit)="navigateToEdit(item)"
-                        (delete)="onEnjeuDelete(item)">
+                        (delete)="onEnjeuDelete(item)"
+                        (navigateToDetail)="navigateToEnjeuDetail($event)">
                       </app-enjeu-accordion>
                     </div>
                   }
@@ -3423,3 +2293,248 @@
     }
   </main>
 </div>
+
+
+<ng-template #opExpandedContent let-op="op" let-metId="metId">
+                                                <div class="operation-expanded-content">
+                                                  <!-- Également liée à d'autres métriques -->
+                                                  @if (op.metriques && op.metriques.length > 1) {
+                                                    <div class="operation-detail-line linked-metriques-info">
+                                                      <span class="detail-label">{{ 'enjeux.operations.alsoLinkedTo' | translate }} :</span>
+                                                      <span class="detail-value">
+                                                        @for (metRef of getOtherMetriques(op, metId); track metRef.id_metrique; let last = $last) {
+                                                          {{ metRef.nom_metrique }} ({{ metRef.indicateur_nom }})@if (!last) {, }
+                                                        }
+                                                      </span>
+                                                    </div>
+                                                  }
+                                                  <!-- Type d'action & Priorité -->
+                                                  <div class="operation-meta-row">
+                                                    @if (op.type_action_label) {
+                                                      <span class="operation-meta-item">
+                                                        <span class="meta-label">{{ 'enjeux.operations.typeActionLabel' | translate }} :</span>
+                                                        {{ op.type_action_label }}
+                                                      </span>
+                                                    }
+                                                    @if (op.priorite_label) {
+                                                      <span class="operation-meta-item">
+                                                        <span class="meta-label">{{ 'enjeux.operations.prioriteLabel' | translate }} :</span>
+                                                        {{ op.priorite_label }}
+                                                      </span>
+                                                    }
+                                                  </div>
+
+                                                  <!-- DÉTAILS DE L'INVENTAIRE OU DU SUIVI -->
+                                                  @if (op.suivi_inventaire) {
+                                                    <div class="operation-section-separator">
+                                                      <div class="separator-line"></div>
+                                                      <h5 class="operation-section-title">{{ 'enjeux.operations.detailsSuiviTitle' | translate | uppercase }}</h5>
+                                                    </div>
+                                                    <div class="operation-section">
+                                                      @if (op.suivi_inventaire.objectif_principal) {
+                                                        <div class="operation-detail-line">
+                                                          <span class="detail-label">{{ 'enjeux.operations.objectifPrincipal' | translate }} :</span>
+                                                          <span class="detail-value">{{ op.suivi_inventaire.objectif_principal }}</span>
+                                                        </div>
+                                                      }
+                                                      @if (op.suivi_inventaire.cibles_principales) {
+                                                        <div class="operation-detail-line">
+                                                          <span class="detail-label">{{ 'enjeux.operations.ciblesPrincipales' | translate }} :</span>
+                                                          <span class="detail-value">{{ op.suivi_inventaire.cibles_principales }}</span>
+                                                        </div>
+                                                      }
+                                                      @if (op.suivi_inventaire.taxon_taxref) {
+                                                        <div class="operation-detail-line">
+                                                          <span class="detail-label">{{ 'enjeux.operations.taxonTaxref' | translate }} :</span>
+                                                          <span class="detail-value">{{ op.suivi_inventaire.taxon_taxref }}</span>
+                                                        </div>
+                                                      }
+                                                      @if (op.suivi_inventaire.date_lancement_suivi) {
+                                                        <div class="operation-detail-line">
+                                                          <span class="detail-label">{{ 'enjeux.operations.dateLancement' | translate }} :</span>
+                                                          <span class="detail-value">{{ op.suivi_inventaire.date_lancement_suivi | date:'dd/MM/yyyy' }}</span>
+                                                        </div>
+                                                      }
+                                                      @if (op.suivi_inventaire.protocole?.protocole_campanule_nom) {
+                                                        <div class="operation-detail-line">
+                                                          <span class="detail-label">{{ 'enjeux.operations.protocoleNom' | translate }} :</span>
+                                                          <span class="detail-value">{{ op.suivi_inventaire.protocole?.protocole_campanule_nom }}</span>
+                                                        </div>
+                                                      }
+                                                    </div>
+                                                  }
+
+                                                  <!-- PROGRAMMATION -->
+                                                  @if (getPlanYears().length > 0) {
+                                                    <div class="operation-section-separator">
+                                                      <div class="separator-line"></div>
+                                                      <h5 class="operation-section-title">{{ 'enjeux.operations.programmationTitle' | translate | uppercase }}</h5>
+                                                    </div>
+                                                    <div class="operation-section">
+                                                      <!-- Table de programmation -->
+                                                      <div class="programmation-table-wrapper">
+                                                        <table class="programmation-table">
+                                                          <thead>
+                                                            <tr>
+                                                              <th class="prog-label-col">{{ 'enjeux.operations.programmation' | translate }}</th>
+                                                              @for (year of getPlanYears(); track year) {
+                                                                <th class="prog-year-col">{{ year }}</th>
+                                                              }
+                                                            </tr>
+                                                          </thead>
+                                                          <tbody>
+                                                            <!-- Périodicité (icônes prévu) -->
+                                                            <tr>
+                                                              <td class="prog-label-cell">{{ 'enjeux.operations.progPeriodicite' | translate }}</td>
+                                                              @for (year of getPlanYears(); track year) {
+                                                                <td class="prog-cell">
+                                                                  @if (isYearPlanned(op, year)) {
+                                                                    <img src="assets/images/icons/prevu.png" alt="Prévu" class="prevu-icon">
+                                                                  } @else {
+                                                                    <span class="prog-dash">-</span>
+                                                                  }
+                                                                </td>
+                                                              }
+                                                            </tr>
+                                                            @if (hasOrganismeData(op)) {
+                                                              <!-- Per-organisme rows -->
+                                                              @for (org of getOperationOrganismes(op); track org.id_organisme) {
+                                                                <tr class="prog-org-header">
+                                                                  <td class="prog-label-cell prog-org-name" [attr.colspan]="getPlanYears().length + 1">{{ org.organisme_nom }}</td>
+                                                                </tr>
+                                                                <tr>
+                                                                  <td class="prog-label-cell prog-indent">{{ 'enjeux.operations.budgetFonctionnement' | translate }}</td>
+                                                                  @for (year of getPlanYears(); track year) {
+                                                                    <td class="prog-cell prog-budget">{{ formatBudget(getOrgAnnee(op, year, org.id_organisme).fonct) }}</td>
+                                                                  }
+                                                                </tr>
+                                                                <tr>
+                                                                  <td class="prog-label-cell prog-indent">{{ 'enjeux.operations.budgetInvestissement' | translate }}</td>
+                                                                  @for (year of getPlanYears(); track year) {
+                                                                    <td class="prog-cell prog-budget">{{ formatBudget(getOrgAnnee(op, year, org.id_organisme).invest) }}</td>
+                                                                  }
+                                                                </tr>
+                                                                <tr>
+                                                                  <td class="prog-label-cell prog-indent prog-bold">{{ 'enjeux.operations.budgetTotal' | translate }}</td>
+                                                                  @for (year of getPlanYears(); track year) {
+                                                                    <td class="prog-cell prog-budget prog-computed">{{ formatOrgBudgetTotal(op, year, org.id_organisme) }}</td>
+                                                                  }
+                                                                </tr>
+                                                                <tr>
+                                                                  <td class="prog-label-cell prog-indent">{{ 'enjeux.operations.travailPrevisionnel' | translate }}</td>
+                                                                  @for (year of getPlanYears(); track year) {
+                                                                    <td class="prog-cell">{{ formatTravail(getOrgAnnee(op, year, org.id_organisme).etp) }}</td>
+                                                                  }
+                                                                </tr>
+                                                              }
+                                                              <!-- Total cross-organismes -->
+                                                              <tr class="prog-total-header">
+                                                                <td class="prog-label-cell prog-org-name" [attr.colspan]="getPlanYears().length + 1">{{ 'enjeux.operations.totalLabel' | translate }}</td>
+                                                              </tr>
+                                                              <tr>
+                                                                <td class="prog-label-cell prog-indent prog-bold">{{ 'enjeux.operations.budgetTotal' | translate }}</td>
+                                                                @for (year of getPlanYears(); track year) {
+                                                                  <td class="prog-cell prog-budget prog-computed">{{ formatBudget(getOperationAnnee(op, year)?.budget) }}</td>
+                                                                }
+                                                              </tr>
+                                                              <tr>
+                                                                <td class="prog-label-cell prog-indent prog-bold">{{ 'enjeux.operations.travailPrevisionnel' | translate }}</td>
+                                                                @for (year of getPlanYears(); track year) {
+                                                                  <td class="prog-cell prog-computed">{{ formatTravail(getOperationAnnee(op, year)?.etp) }}</td>
+                                                                }
+                                                              </tr>
+                                                            } @else if (isTypeBudgetMode(op)) {
+                                                              <!-- By type: fonctionnement/investissement without organismes -->
+                                                              <tr>
+                                                                <td class="prog-label-cell">{{ 'enjeux.operations.budgetFonctionnement' | translate }}</td>
+                                                                @for (year of getPlanYears(); track year) {
+                                                                  <td class="prog-cell prog-budget">{{ formatBudget(getOperationAnnee(op, year)?.budget_fonctionnement) }}</td>
+                                                                }
+                                                              </tr>
+                                                              <tr>
+                                                                <td class="prog-label-cell">{{ 'enjeux.operations.budgetInvestissement' | translate }}</td>
+                                                                @for (year of getPlanYears(); track year) {
+                                                                  <td class="prog-cell prog-budget">{{ formatBudget(getOperationAnnee(op, year)?.budget_investissement) }}</td>
+                                                                }
+                                                              </tr>
+                                                              <tr>
+                                                                <td class="prog-label-cell prog-bold">{{ 'enjeux.operations.budgetTotal' | translate }}</td>
+                                                                @for (year of getPlanYears(); track year) {
+                                                                  <td class="prog-cell prog-budget prog-computed">{{ formatBudget(getOperationAnnee(op, year)?.budget) }}</td>
+                                                                }
+                                                              </tr>
+                                                              <tr>
+                                                                <td class="prog-label-cell">{{ 'enjeux.operations.progTravail' | translate }}</td>
+                                                                @for (year of getPlanYears(); track year) {
+                                                                  <td class="prog-cell">{{ formatTravail(getOperationAnnee(op, year)?.etp) }}</td>
+                                                                }
+                                                              </tr>
+                                                            } @else {
+                                                              <!-- Flat budget/travail (no per-org data) -->
+                                                              <tr>
+                                                                <td class="prog-label-cell">{{ 'enjeux.operations.progBudget' | translate }}</td>
+                                                                @for (year of getPlanYears(); track year) {
+                                                                  <td class="prog-cell prog-budget">{{ formatBudget(getOperationAnnee(op, year)?.budget) }}</td>
+                                                                }
+                                                              </tr>
+                                                              <tr>
+                                                                <td class="prog-label-cell">{{ 'enjeux.operations.progTravail' | translate }}</td>
+                                                                @for (year of getPlanYears(); track year) {
+                                                                  <td class="prog-cell">{{ formatTravail(getOperationAnnee(op, year)?.etp) }}</td>
+                                                                }
+                                                              </tr>
+                                                            }
+                                                          </tbody>
+                                                        </table>
+                                                      </div>
+
+                                                      <!-- Mois programmés (sous le tableau) -->
+                                                      @if (hasAnyMonthlyPlanning(op)) {
+                                                        <div class="monthly-planning">
+                                                          <span class="monthly-label">{{ 'enjeux.operations.progMois' | translate }} :</span>
+                                                          <span class="monthly-months">{{ getPlannedMonthsForOperation(op).join(', ') }}</span>
+                                                        </div>
+                                                      }
+                                                    </div>
+                                                  }
+
+                                                  <!-- Fréquence, Opérateur, Financement -->
+                                                  @if (op.frequence_nombre || op.operateurs || (op.finances && op.finances.length > 0)) {
+                                                    <div class="operation-actors-section">
+                                                      @if (op.frequence_nombre && op.frequence_unite) {
+                                                        <div class="operation-detail-line">
+                                                          <span class="detail-label">{{ 'enjeux.operations.frequenceAction' | translate }} :</span>
+                                                          <span class="detail-value">{{ getFrequenceDisplay(op) }}</span>
+                                                        </div>
+                                                      }
+                                                      @if (op.operateurs) {
+                                                        <div class="operation-detail-line">
+                                                          <span class="detail-label">{{ 'enjeux.operations.operateursLabel' | translate }} :</span>
+                                                          <span class="detail-value">{{ op.operateurs }}</span>
+                                                        </div>
+                                                      }
+                                                      @if (op.finances && op.finances.length > 0) {
+                                                        <div class="operation-detail-line">
+                                                          <span class="detail-label">{{ 'enjeux.operations.financementsLabel' | translate }} :</span>
+                                                          <span class="detail-value">
+                                                            @for (fin of op.finances; track fin.id_finance_operation; let last = $last) {
+                                                              {{ fin.libelle }}@if (fin.categorie_label) { ({{ fin.categorie_label }})}@if (!last) {, }
+                                                            }
+                                                          </span>
+                                                        </div>
+                                                      }
+                                                    </div>
+                                                  }
+
+                                                  <!-- DÉTAILS / Description -->
+                                                  @if (op.description) {
+                                                    <div class="operation-section-separator">
+                                                      <div class="separator-line"></div>
+                                                      <h5 class="operation-section-title">{{ 'enjeux.operations.detailsLabel' | translate | uppercase }}</h5>
+                                                    </div>
+                                                    <div class="operation-section">
+                                                      <p class="operation-description">{{ op.description }}</p>
+                                                    </div>
+                                                  }
+                                                </div>
+</ng-template>

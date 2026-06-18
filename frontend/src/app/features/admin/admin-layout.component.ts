@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { Router, RouterModule, NavigationEnd } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
 import { ErrorLogService } from '../../core/services/error-log.service';
+import { OrphansService } from '../../core/services/orphans.service';
 import { HeaderComponent } from '../../shared/components/header/header.component';
 import { filter } from 'rxjs/operators';
 
@@ -30,6 +31,7 @@ export class AdminLayoutComponent implements OnInit, OnDestroy {
   private readonly authService = inject(AuthService);
   private readonly router = inject(Router);
   private readonly errorLogService = inject(ErrorLogService);
+  private readonly orphansService = inject(OrphansService);
 
   readonly currentUser = this.authService.currentUser;
   readonly isSuperAdmin = this.authService.isSuperAdmin;
@@ -37,6 +39,9 @@ export class AdminLayoutComponent implements OnInit, OnDestroy {
 
   // Signal pour le badge des logs d'erreur
   readonly errorLogCount = this.errorLogService.unacknowledgedCount;
+
+  // Signal pour le badge des sites/plans orphelins
+  readonly orphansCount = this.orphansService.count;
 
   // Impersonation state
   readonly isImpersonating = this.authService.isImpersonating;
@@ -59,6 +64,11 @@ export class AdminLayoutComponent implements OnInit, OnDestroy {
       this.errorLogService.startAutoRefresh(60000);
     }
 
+    // Badge orphelins : visible pour admin_og (ses sites) et super_admin (sites + plans)
+    if (this.authService.hasRole('admin_og')) {
+      this.orphansService.startAutoRefresh(300000);
+    }
+
     // Fermer le sidebar mobile lors de la navigation
     this.router.events.pipe(
       filter((event): event is NavigationEnd => event instanceof NavigationEnd)
@@ -79,6 +89,7 @@ export class AdminLayoutComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.errorLogService.stopAutoRefresh();
+    this.orphansService.stopAutoRefresh();
   }
 
   stopImpersonation(): void {
@@ -105,6 +116,7 @@ export class AdminLayoutComponent implements OnInit, OnDestroy {
     { label: 'Organismes', icon: 'fi-rr-building', route: '/administration/organismes', minRole: 'admin_og' },
     { label: 'Sites', icon: 'fi-rr-marker', route: '/administration/sites', minRole: 'referent' },
     { label: 'Plans de gestion', icon: 'fi-rr-document', route: '/administration/plans', minRole: 'referent' },
+    { label: 'Orphelins', icon: 'fi-rr-unlink', route: '/administration/orphelins', minRole: 'admin_og', badgeSignal: 'orphansCount' },
     { label: 'Rédacteurs généraux', icon: 'fi-rr-pen-nib', route: '/administration/redacteurs-principaux', exactRole: 'super_admin' },
     { label: 'Acces modules', icon: 'fi-rr-apps', route: '/administration/modules', exactRole: 'super_admin' },
     { label: 'Logs erreurs', icon: 'fi-rr-bug', route: '/administration/logs', exactRole: 'super_admin', badgeSignal: 'errorLogCount' },

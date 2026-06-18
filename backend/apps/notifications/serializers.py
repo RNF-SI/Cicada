@@ -131,6 +131,8 @@ class ValidationRequestSerializer(serializers.ModelSerializer):
             'target_user',
             'requested_organisme',
             'requested_role_level',
+            'requested_data',
+            'related_request',
             'justification',
             'validator',
             'validation_comment',
@@ -265,6 +267,9 @@ class ValidationRequestListSerializer(serializers.ModelSerializer):
                 return obj.target_module
         if obj.requested_organisme:
             return f"Organisme: {obj.requested_organisme.nom_organisme}"
+        if obj.request_type == 'organisme_creation':
+            nom = (obj.requested_data or {}).get('nom_organisme')
+            return f"Organisme à créer: {nom}" if nom else "Organisme à créer"
         return None
 
     def get_validator_name(self, obj):
@@ -319,6 +324,32 @@ class ValidationRejectSerializer(serializers.Serializer):
     )
 
 
+class NewOrganismeSerializer(serializers.Serializer):
+    """
+    Données d'un organisme à créer, soumises lors d'une inscription quand
+    l'organisme du demandeur n'existe pas encore. Reflète les champs du
+    formulaire de création d'organisme de l'administration.
+    """
+
+    nom_organisme = serializers.CharField(max_length=255)
+    parent_id = serializers.IntegerField(required=False, allow_null=True)
+    adresse_organisme = serializers.CharField(max_length=255, required=False, allow_blank=True)
+    cp_organisme = serializers.CharField(max_length=10, required=False, allow_blank=True)
+    ville_organisme = serializers.CharField(max_length=100, required=False, allow_blank=True)
+    tel_organisme = serializers.CharField(max_length=20, required=False, allow_blank=True)
+    email_organisme = serializers.EmailField(required=False, allow_blank=True)
+    url_organisme = serializers.CharField(max_length=255, required=False, allow_blank=True)
+
+    def validate_parent_id(self, value):
+        """Vérifie que l'organisme parent existe s'il est fourni."""
+        if value is None:
+            return value
+        from apps.users.models import BibOrganismes
+        if not BibOrganismes.objects.filter(id_organisme=value).exists():
+            raise serializers.ValidationError(_("Organisme parent introuvable."))
+        return value
+
+
 class PublicRegistrationSerializer(serializers.Serializer):
     """Serializer pour l'inscription publique."""
 
@@ -353,9 +384,13 @@ class PublicRegistrationSerializer(serializers.Serializer):
         help_text=_("Prénom")
     )
     requested_organisme_id = serializers.IntegerField(
-        required=True,
-        allow_null=False,
-        help_text=_("ID de l'organisme demandé (obligatoire)")
+        required=False,
+        allow_null=True,
+        help_text=_("ID de l'organisme demandé (ou new_organisme si l'organisme n'existe pas)")
+    )
+    new_organisme = NewOrganismeSerializer(
+        required=False,
+        help_text=_("Données d'un nouvel organisme à créer si l'organisme n'existe pas")
     )
     justification = serializers.CharField(
         required=False,
@@ -414,30 +449,57 @@ class PublicRegistrationSerializer(serializers.Serializer):
                 'password_confirm': _("Les mots de passe ne correspondent pas.")
             })
 
-        # Verifier que l'organisme existe (champ obligatoire)
-        from apps.users.models import BibOrganismes
-        try:
-            BibOrganismes.objects.get(id_organisme=data['requested_organisme_id'])
-        except BibOrganismes.DoesNotExist:
+        # L'utilisateur doit soit choisir un organisme existant, soit en demander
+        # la création (new_organisme). Les deux sont exclusifs.
+        organisme_id = data.get('requested_organisme_id')
+        new_organisme = data.get('new_organisme')
+
+        if not organisme_id and not new_organisme:
             raise serializers.ValidationError({
-                'requested_organisme_id': _("Organisme non trouvé.")
+                'requested_organisme_id': _(
+                    "Sélectionnez un organisme ou renseignez un organisme à créer."
+                )
             })
+
+        if organisme_id and new_organisme:
+            raise serializers.ValidationError({
+                'new_organisme': _(
+                    "Choisissez un organisme existant OU demandez-en la création, pas les deux."
+                )
+            })
+
+        # Verifier que l'organisme existe quand un id est fourni
+        if organisme_id:
+            from apps.users.models import BibOrganismes
+            if not BibOrganismes.objects.filter(id_organisme=organisme_id).exists():
+                raise serializers.ValidationError({
+                    'requested_organisme_id': _("Organisme non trouvé.")
+                })
 
         return data
 
     def create(self, validated_data):
-        """Cree PendingUser et ValidationRequest."""
+        """
+        Cree PendingUser et ValidationRequest(s).
+
+        - Organisme existant : une seule demande `user_registration`.
+        - Nouvel organisme : deux demandes liées — `user_registration` (compte,
+          sans organisme pour l'instant) et `organisme_creation` (à valider par
+          le super_admin, qui rattachera ensuite l'organisme au compte).
+        """
         from django.contrib.auth.hashers import make_password
         from apps.users.models import BibOrganismes
 
-        # Recuperer l'organisme si fourni
+        new_organisme = validated_data.get('new_organisme')
+
+        # Recuperer l'organisme existant si fourni
         organisme = None
         if validated_data.get('requested_organisme_id'):
             organisme = BibOrganismes.objects.get(
                 id_organisme=validated_data['requested_organisme_id']
             )
 
-        # Creer la ValidationRequest
+        # Creer la ValidationRequest d'inscription
         validation_request = ValidationRequest.objects.create(
             request_type='user_registration',
             status='pending',
@@ -460,8 +522,21 @@ class PublicRegistrationSerializer(serializers.Serializer):
             user_agent=self.context.get('user_agent'),
         )
 
-        # Notifier les validateurs
         from .services import NotificationService
+
+        # Si demande de création d'organisme : 2e demande liée pour le super_admin
+        if new_organisme:
+            organisme_request = ValidationRequest.objects.create(
+                request_type='organisme_creation',
+                status='pending',
+                requester=None,
+                requested_data=dict(new_organisme),
+                related_request=validation_request,
+                justification=validated_data.get('justification', ''),
+            )
+            NotificationService.notify_validators(organisme_request)
+
+        # Notifier les validateurs de l'inscription
         NotificationService.notify_validators(validation_request)
 
         # Envoyer un email de confirmation au demandeur

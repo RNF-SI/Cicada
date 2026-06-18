@@ -304,4 +304,52 @@ describe('OperationFormComponent — ventilation budgétaire', () => {
       expect(m.previewCode()).toBeNull();
     });
   });
+
+  // -------------------------------------------------------------------------
+  // #374 — anneeIndexHasData : détecte une année réellement saisie (sert de
+  // départ par défaut dans la modale « Appliquer aux années »).
+  // -------------------------------------------------------------------------
+  describe('#374 anneeIndexHasData', () => {
+    function setup() {
+      const c = createComponentInstance();
+      c.operationAnnees = [];
+      c.directTotals = {};
+      for (let y = 2025; y <= 2031; y++) {
+        c.operationAnnees.push({ annee: y, periodicite: false, budget: null, etp: null, periodicite_mensuelle: {} });
+      }
+      return c;
+    }
+    it('détecte un budget direct saisi', () => {
+      const c = setup();
+      c.directTotals[1] = { budget: 1000, etp: null };
+      expect((c as any).anneeIndexHasData(0)).toBe(false);
+      expect((c as any).anneeIndexHasData(1)).toBe(true);
+    });
+    it('détecte un ETP/jours direct saisi', () => {
+      const c = setup();
+      c.directTotals[6] = { budget: null, etp: 4 };
+      expect((c as any).anneeIndexHasData(6)).toBe(true);
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // Verrouillage des colonnes non programmées (saisie budget/ETP grisée)
+  // -------------------------------------------------------------------------
+  describe('isYearLocked', () => {
+    it('verrouille les années dont la périodicité n\'est pas cochée', () => {
+      const c = createComponentInstance();
+      c.operationAnnees = [
+        { annee: 2025, periodicite: true, budget: null, etp: null, periodicite_mensuelle: {} },
+        { annee: 2026, periodicite: false, budget: null, etp: null, periodicite_mensuelle: {} },
+      ];
+      expect(c.isYearLocked(0)).toBe(false);
+      expect(c.isYearLocked(1)).toBe(true);
+    });
+
+    it('verrouille un index hors plage (sécurité)', () => {
+      const c = createComponentInstance();
+      c.operationAnnees = [];
+      expect(c.isYearLocked(0)).toBe(true);
+    });
+  });
 });

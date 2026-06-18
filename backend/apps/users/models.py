@@ -171,9 +171,8 @@ class Role(AbstractUser):
 
     def can_manage_plan_lifecycle(self):
         """Vérifie si l'utilisateur peut gérer le cycle de vie des plans (valider/archiver/évaluation).
-        Le Rédacteur Principal est exclu — il peut éditer les plans mais pas gérer leur cycle de vie."""
-        if self.is_redacteur_principal():
-            return False
+        #346 — Le Rédacteur Principal peut désormais gérer le cycle de vie, au même
+        titre que l'admin organisme, le super admin et le référent du plan."""
         return self.is_admin_organisme()
     
     def is_referent(self):

@@ -491,12 +491,12 @@ describe('SiteDetailComponent', () => {
 
     it('should get correct role label for referent', () => {
       const referentUser = component.siteUsers()[0];
-      expect(component.getUserRoleLabel(referentUser)).toBe('Referent');
+      expect(component.getUserRoleLabel(referentUser)).toBe('sites.detail.roles.referent');
     });
 
     it('should get correct role label for regular user', () => {
       const regularUser = component.siteUsers()[1];
-      expect(component.getUserRoleLabel(regularUser)).toBe('Utilisateur');
+      expect(component.getUserRoleLabel(regularUser)).toBe('sites.detail.roles.user');
     });
 
     it('should get correct role label for conservateur', () => {
@@ -504,15 +504,15 @@ describe('SiteDetailComponent', () => {
         ...component.siteUsers()[0],
         conservateur: true
       };
-      expect(component.getUserRoleLabel(conservateur)).toBe('Conservateur');
+      expect(component.getUserRoleLabel(conservateur)).toBe('sites.detail.roles.conservateur');
     });
 
-    it('should get correct role class', () => {
+    it('should get correct role variant (#296 <app-tag>)', () => {
       const referentUser = component.siteUsers()[0];
       const regularUser = component.siteUsers()[1];
 
-      expect(component.getUserRoleClass(referentUser)).toBe('role-referent');
-      expect(component.getUserRoleClass(regularUser)).toBe('role-user');
+      expect(component.getUserRoleVariant(referentUser)).toBe('warning');
+      expect(component.getUserRoleVariant(regularUser)).toBe('muted');
     });
   });
 
@@ -792,14 +792,15 @@ describe('SiteDetailComponent', () => {
       expect(component.getPlanStatusClass('valide')).toBe('status-success');
       expect(component.getPlanStatusClass('draft')).toBe('status-warning');
       expect(component.getPlanStatusClass('archive')).toBe('status-neutre');
-      expect(component.getPlanStatusClass('unknown')).toBe('status-neutre');
+      // Util centralisé (plan-status.utils) : statut inconnu → pas de classe.
+      expect(component.getPlanStatusClass('unknown')).toBe('');
     });
 
-    it('should return correct plan status label', () => {
-      expect(component.getPlanStatusLabel('valide')).toBe('Valide');
-      expect(component.getPlanStatusLabel('draft')).toBe('Brouillon');
-      expect(component.getPlanStatusLabel('archive')).toBe('Archive');
-      expect(component.getPlanStatusLabel('unknown')).toBe('unknown');
+    it('should return correct plan status i18n key', () => {
+      expect(component.getPlanStatusKey('valide')).toBe('plans.status.valide');
+      expect(component.getPlanStatusKey('draft')).toBe('plans.status.draft');
+      expect(component.getPlanStatusKey('archive')).toBe('plans.status.archive');
+      expect(component.getPlanStatusKey('unknown')).toBe('plans.status.unknown');
     });
   });
 

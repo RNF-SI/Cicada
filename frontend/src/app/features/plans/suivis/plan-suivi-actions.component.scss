@@ -56,8 +56,8 @@
 }
 
 .hero-pattern {
+  // Vagues blanches visibles à droite, comme les pages site / plan de gestion (#383)
   @include plan-page-hero-pattern;
-  opacity: 0.2;
 }
 
 .hero-content {
@@ -207,12 +207,20 @@
 // Phase 3 — Onglets principaux (Réalisation / Budget / RH)
 // =============================================================================
 
-.suivi-tabs {
+// #356 — Ligne des onglets : onglets à gauche, « Exporter tableau » à droite.
+.suivi-tabs-row {
   display: flex;
-  gap: $spacing-lg;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: $spacing-md;
   border-bottom: 2px solid $primary-bg-subtle;
   margin-bottom: $spacing-lg;
   padding: 0 $spacing-md;
+}
+
+.suivi-tabs {
+  display: flex;
+  gap: $spacing-lg;
 }
 
 .suivi-tab {
@@ -255,6 +263,20 @@
     min-width: 140px;
   }
 
+  // #379 — gros trait (bleu-vert) après la colonne titre
+  th.col-action,
+  td.col-action {
+    border-right: 3px solid $primary-color;
+  }
+
+  // Fins traits entre les colonnes agrégées
+  th.col-agg {
+    border-right: 1px solid rgba($white, 0.18);
+  }
+  td.col-agg {
+    border-right: 1px solid $primary-bg-subtle;
+  }
+
   thead th.col-agg {
     small {
       display: block;
@@ -266,6 +288,12 @@
 
   td.col-agg {
     padding: $spacing-sm;
+
+    // #379 — cellule « année en cours » cliquable → formulaire de saisie
+    &.clickable {
+      cursor: pointer;
+      &:hover { background: rgba($primary-color, 0.08); }
+    }
 
     .agg-prev {
       font-weight: 700;
@@ -349,14 +377,24 @@
 .filter-bar {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: $spacing-md;
   margin-bottom: $spacing-md;
 }
 
+// #379 — FILTRER + boutons à gauche (largeur du contenu)
 .filter-bar-left {
   display: flex;
   align-items: center;
   gap: 0;
+  flex: 0 0 auto;
+  min-width: 0;
+}
+
+// #356 — recherche juste à côté des filtres, occupe la largeur restante (Figma 4366-24484)
+.action-search {
+  display: block;
+  flex: 1 1 auto;
+  min-width: 200px;
 }
 
 .filter-label {
@@ -424,21 +462,35 @@
   background-color: rgba($primary-color, 0.15);
 }
 
+// #356 — « Exporter tableau » sur la ligne des onglets, à droite (Figma 240-44699)
 .export-btn {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: $spacing-xs;
-  padding: $spacing-xs $spacing-md;
+  padding: $spacing-sm $spacing-xs;
+  margin-bottom: $spacing-xs;
   font-family: $font-family;
   font-size: $font-size-base;
+  font-weight: $font-weight-bold;
   color: $primary-color;
   background: transparent;
   border: none;
   cursor: pointer;
-  text-decoration: underline;
-  text-underline-offset: 3px;
+  white-space: nowrap;
 
   i { font-size: 14px; }
+  &:hover { color: $primary-hover; }
+}
+
+// #356 — Lien « statistiques » (page globale) dans les tables Budget / RH
+.global-stats-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: $primary-color;
+  text-decoration: none;
+  i { font-size: 18px; }
+  &:hover { color: $primary-hover; }
 }
 
 // Légende
@@ -511,16 +563,33 @@
         text-align: left;
         padding-left: $spacing-md;
         min-width: 280px;
+        // #379 — gros trait (bleu-vert) séparant la colonne titre du reste
+        border-right: 3px solid $primary-color;
       }
 
       &.col-year {
         min-width: 54px;
         width: 67px;
+        // Fins traits entre années (dans l'en-tête sombre : blanc translucide)
+        border-right: 1px solid rgba($white, 0.18);
       }
 
       &.col-icons {
         min-width: 96px;
         width: 96px;
+      }
+
+      // #355/#379 — colonne du statut de réalisation global
+      &.col-global {
+        min-width: 96px;
+        width: 110px;
+        // Trait plus épais séparant la colonne global
+        border-left: 2px solid $primary-color;
+
+        i {
+          color: $white;
+          font-size: 15px;
+        }
       }
     }
   }
@@ -549,20 +618,44 @@
       &.col-action {
         text-align: left;
         padding-left: $spacing-md;
+        // #379 — gros trait (bleu-vert) séparant la colonne titre du reste
+        border-right: 3px solid $primary-color;
       }
 
       &.col-year {
         min-width: 54px;
+        // Fins traits entre années
+        border-right: 1px solid $primary-bg-subtle;
 
+        // #379 — fond au survol uniquement (revert instantané, pas de transition
+        // qui « traîne » au retour de navigation)
         &.clickable {
           cursor: pointer;
-          transition: background 0.15s;
           &:hover { background: rgba($primary-color, 0.08); }
         }
       }
 
       &.col-icons {
         min-width: 96px;
+      }
+
+      // #355/#379 — statut de réalisation global + bouton vue globale
+      &.col-global {
+        min-width: 110px;
+        text-align: center;
+        // Trait plus épais séparant la colonne global (td normal → trait continu)
+        border-left: 2px solid $primary-color;
+
+        // #379 — lien-icône vers la page globale de l'action
+        .global-icon-link {
+          display: inline-flex;
+          align-items: center;
+          cursor: pointer;
+          border-radius: $border-radius-round;
+          transition: background 0.15s;
+          padding: 2px;
+          &:hover { background: rgba($primary-color, 0.08); }
+        }
       }
     }
   }
@@ -693,6 +786,7 @@ tr.is-draft {
     align-items: flex-start;
     gap: $spacing-sm;
   }
+  .action-search { width: 100%; }
 
   .legend {
     flex-direction: column;

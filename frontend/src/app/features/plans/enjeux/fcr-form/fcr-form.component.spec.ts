@@ -266,9 +266,10 @@ describe('FcrFormComponent', () => {
       fix.detectChanges();
 
       const options = fix.componentInstance.fcrCategorieOptions();
-      expect(options.length).toBe(4);
+      expect(options.length).toBe(5);
       expect(options[0].mnemonique).toBe('CONNAISSANCE');
       expect(options[0].id).toBe(0); // fallback uses id: 0
+      expect(options.some(o => o.mnemonique === 'SURVEILLANCE')).toBe(true); // #370
     });
 
     it('should map mnemonique to translate key', () => {

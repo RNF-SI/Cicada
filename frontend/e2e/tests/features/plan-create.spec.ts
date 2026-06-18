@@ -308,7 +308,8 @@ test.describe.serial('Plan Create - Creation and Verification', () => {
     const planTitle = page.locator('.plan-title');
     await expect(planTitle).toContainText(planNameRequired);
 
-    const statusValue = page.locator('.meta-value.status');
+    // Statut affiché via le composant <app-status-chip> (Kit UI) en en-tête.
+    const statusValue = page.locator('app-status-chip').first();
     await expect(statusValue).toContainText('Brouillon');
   });
 

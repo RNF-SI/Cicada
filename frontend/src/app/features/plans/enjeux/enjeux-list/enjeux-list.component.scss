@@ -772,6 +772,22 @@
 }
 
 // Unified add item button (Figma: stroked pill with + icon)
+// Bouton « Ajouter enjeu/FCR » : aligner la typo sur les autres boutons de la
+// vue (Nunito, gras, 14px) — le mat-stroked-button par défaut rendait le texte
+// plus fin/petit (graisse 500, police Material).
+.btn-add-enjeu-fcr.mat-mdc-outlined-button {
+  font-family: $font-family;
+  --mdc-outlined-button-label-text-font: #{$font-family};
+  --mdc-outlined-button-label-text-size: #{$font-size-base};
+  --mdc-outlined-button-label-text-weight: #{$font-weight-bold};
+
+  .mdc-button__label {
+    font-family: $font-family;
+    font-size: $font-size-base;
+    font-weight: $font-weight-bold;
+  }
+}
+
 .add-item-btn {
   display: inline-flex;
   align-items: center;
@@ -2158,12 +2174,44 @@
   }
 }
 
+// #367 — Actions rattachées directement à l'indicateur (sans métrique)
+// #367 — Actions rattachées directement à l'indicateur (sans métrique).
+.indicateur-direct-operations {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-xs;
+  margin: $spacing-xs 0 $spacing-sm;
+}
+
+// Carte d'action directe : réutilise .operation-card, avec un liseré saumon
+// pour rappeler visuellement qu'elle n'est pas rattachée à une métrique.
+.operation-card-direct {
+  border-left: 3px solid $secondary-orange-salmon;
+}
+
 .operation-header-left {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;          // #373 — les chips métriques passent sur la ligne du dessous
   gap: $spacing-sm;
   flex: 1;
   min-width: 0;
+}
+
+// #373 (Sophie) — métriques associées rappelées SOUS le titre de l'action
+// (et non à côté) pour la lisibilité. flex-basis: 100% force le retour à la ligne.
+.operation-metriques-row {
+  flex-basis: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: $spacing-xxs;
+  margin-left: calc(15px + #{$spacing-sm}); // aligné sous le titre (après l'ellipse)
+
+  .op-metrique-chip,
+  .op-trace-badge {
+    margin-left: 0; // le gap du conteneur gère l'espacement
+  }
 }
 
 .operation-ellipse {
@@ -2213,6 +2261,29 @@
     background: rgba(254, 193, 128, 0.25);
     color: darken(#FEC180, 30%);
   }
+
+  // #367 — badge « sans métrique » (saumon, texte sombre lisible AA)
+  &.op-trace-sans-metrique {
+    background: rgba(245, 179, 153, 0.30);
+    color: darken(#F5B399, 38%);
+  }
+}
+
+// #227 — Chip « métrique associée » rappelée dans le bandeau de l'action.
+.op-metrique-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  margin-left: $spacing-xs;
+  border-radius: $border-radius-pill;
+  background: rgba(2, 83, 89, 0.08);
+  color: $primary-color;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: default;
+
+  i { font-size: 0.85rem; }
 }
 
 .operation-header-right {

@@ -18,7 +18,7 @@
       }
 
       <div class="form-row">
-        <app-form-field [label]="'auth.register.firstName' | translate" [required]="true">
+        <app-form-field [label]="'auth.register.firstName' | translate" [required]="true" [error]="fieldError('prenom')">
   <i prefixSlot class="fi fi-rr-user"></i>
   <input
             type="text"
@@ -26,36 +26,20 @@
             [placeholder]="'auth.register.firstNamePlaceholder' | translate"
             autocomplete="given-name"
           >
-          
-          @if (registerForm.get('prenom')?.hasError('required') && registerForm.get('prenom')?.touched) {
-            
-          }
-          @if (registerForm.get('prenom')?.hasError('maxlength')) {
-            
-          }
 </app-form-field>
 
-        <app-form-field [label]="'auth.register.lastName' | translate" [required]="true">
+        <app-form-field [label]="'auth.register.lastName' | translate" [required]="true" [error]="fieldError('nom')">
+  <i prefixSlot class="fi fi-rr-user"></i>
   <input
             type="text"
             formControlName="nom"
             [placeholder]="'auth.register.lastNamePlaceholder' | translate"
             autocomplete="family-name"
           >
-          @if (registerForm.get('nom')?.hasError('required') && registerForm.get('nom')?.touched) {
-            
-          }
-          @if (registerForm.get('nom')?.hasError('maxlength')) {
-            
-          }
-  <ng-container errorSlot>
-    <p class="form-error-msg"><i class="fi fi-rr-exclamation"></i> {{ 'auth.register.errors.lastNameRequired' | translate }}</p>
-    <p class="form-error-msg"><i class="fi fi-rr-exclamation"></i> {{ 'auth.register.errors.maxLength' | translate:{ max: 50 } }}</p>
-  </ng-container>
 </app-form-field>
       </div>
 
-      <app-form-field [label]="'auth.register.email' | translate" [required]="true">
+      <app-form-field [label]="'auth.register.email' | translate" [required]="true" [error]="fieldError('email')">
   <i prefixSlot class="fi fi-rr-envelope"></i>
   <input
           type="email"
@@ -63,13 +47,6 @@
           [placeholder]="'auth.register.emailPlaceholder' | translate"
           autocomplete="email"
         >
-        
-        @if (registerForm.get('email')?.hasError('required') && registerForm.get('email')?.touched) {
-          
-        }
-        @if (registerForm.get('email')?.hasError('email') && registerForm.get('email')?.touched) {
-          
-        }
 </app-form-field>
 
       <app-form-field [label]="'auth.register.identifiant' | translate" [helpText]="'auth.register.identifiantHint' | translate">
@@ -87,35 +64,111 @@
         }
 </app-form-field>
 
-      <label class="app-mat-label">{{ 'auth.register.organisme' | translate }}</label>
-      <mat-form-field class="app-mat-form-field full-width" appearance="outline">
-        <mat-label></mat-label>
-        <input
-          matInput
-          type="text"
-          formControlName="organisme"
-          [matAutocomplete]="auto"
-          (input)="filterOrganismes($event)"
-          [placeholder]="'auth.register.organismePlaceholder' | translate"
-        >
-        <mat-icon matPrefix class="field-icon">
-          <i class="fi fi-rr-building"></i>
-        </mat-icon>
-        <mat-autocomplete #auto="matAutocomplete" [displayWith]="displayOrganisme">
-          @for (org of filteredOrganismes(); track org.id) {
-            <mat-option [value]="org">{{ org.nom_organisme }}</mat-option>
+      @if (!creatingOrganisme()) {
+        <!-- Sélection d'un organisme existant -->
+        <label class="app-mat-label">
+          {{ 'auth.register.organisme' | translate }}
+          <span class="required-star" aria-hidden="true">*</span>
+        </label>
+        <mat-form-field class="app-mat-form-field full-width" appearance="outline">
+          <mat-label></mat-label>
+          <input
+            matInput
+            type="text"
+            formControlName="organisme"
+            [matAutocomplete]="auto"
+            (input)="filterOrganismes($event)"
+            [placeholder]="'auth.register.organismePlaceholder' | translate"
+          >
+          <mat-icon matPrefix class="field-icon">
+            <i class="fi fi-rr-building"></i>
+          </mat-icon>
+          <mat-autocomplete #auto="matAutocomplete" [displayWith]="displayOrganisme">
+            @for (org of filteredOrganismes(); track org.id) {
+              <mat-option [value]="org">{{ org.nom_organisme }}</mat-option>
+            }
+          </mat-autocomplete>
+          @if (registerForm.get('organisme')?.hasError('required') && registerForm.get('organisme')?.touched) {
+            <mat-error>{{ 'auth.register.errors.organismeRequired' | translate }}</mat-error>
+          } @else if (registerForm.get('organisme')?.hasError('organismeNotSelected') && registerForm.get('organisme')?.touched) {
+            <mat-error>{{ 'auth.register.errors.organismeNotSelected' | translate }}</mat-error>
+          } @else {
+            <mat-hint>{{ 'auth.register.organismeHint' | translate }}</mat-hint>
           }
-        </mat-autocomplete>
-        @if (registerForm.get('organisme')?.hasError('required') && registerForm.get('organisme')?.touched) {
-          <mat-error>{{ 'auth.register.errors.organismeRequired' | translate }}</mat-error>
-        } @else if (registerForm.get('organisme')?.hasError('organismeNotSelected') && registerForm.get('organisme')?.touched) {
-          <mat-error>{{ 'auth.register.errors.organismeNotSelected' | translate }}</mat-error>
-        } @else {
-          <mat-hint>{{ 'auth.register.organismeHint' | translate }}</mat-hint>
-        }
-      </mat-form-field>
+        </mat-form-field>
 
-      <app-form-field [label]="'auth.register.password' | translate" [required]="true">
+        <button type="button" class="create-org-toggle link-default" (click)="toggleCreateOrganisme(true)">
+          <i class="fi fi-rr-plus-small"></i>
+          {{ 'auth.register.createOrganisme.toggle' | translate }}
+        </button>
+      } @else {
+        <!-- Création d'un nouvel organisme : demande envoyée à l'administrateur -->
+        <div class="new-org-section" formGroupName="newOrganisme">
+          <div class="new-org-header">
+            <label class="app-mat-label">
+              {{ 'auth.register.createOrganisme.title' | translate }}
+              <span class="required-star" aria-hidden="true">*</span>
+            </label>
+            <button type="button" class="link-default" (click)="toggleCreateOrganisme(false)">
+              <i class="fi fi-rr-arrow-left"></i>
+              {{ 'auth.register.createOrganisme.back' | translate }}
+            </button>
+          </div>
+
+          <div class="info-box info-box--inline">
+            <i class="fi fi-rr-info"></i>
+            <p>{{ 'auth.register.createOrganisme.info' | translate }}</p>
+          </div>
+
+          <div class="new-org-grid">
+            <app-form-field class="span-2" [label]="'modals.organismeForm.name' | translate" [required]="true"
+              [error]="newOrgError('nom_organisme')">
+              <input formControlName="nom_organisme" [placeholder]="'modals.organismeForm.namePlaceholder' | translate">
+            </app-form-field>
+
+            <div class="span-2 select-cell">
+              <label class="app-mat-label">{{ 'modals.organismeForm.parent' | translate }}</label>
+              <mat-form-field class="app-mat-form-field full-width" appearance="outline">
+                <mat-label></mat-label>
+                <mat-select formControlName="parent_id">
+                  <mat-option [value]="null">{{ 'modals.organismeForm.noParent' | translate }}</mat-option>
+                  @for (org of organismes(); track org.id) {
+                    <mat-option [value]="org.id">{{ org.nom_organisme }}</mat-option>
+                  }
+                </mat-select>
+              </mat-form-field>
+            </div>
+
+            <app-form-field class="span-2" [label]="'modals.organismeForm.address' | translate">
+              <input formControlName="adresse_organisme" [placeholder]="'modals.organismeForm.addressPlaceholder' | translate">
+            </app-form-field>
+
+            <app-form-field [label]="'modals.organismeForm.postalCode' | translate" [error]="newOrgError('cp_organisme')">
+              <input formControlName="cp_organisme" [placeholder]="'modals.organismeForm.postalCodePlaceholder' | translate">
+            </app-form-field>
+
+            <app-form-field [label]="'modals.organismeForm.city' | translate">
+              <input formControlName="ville_organisme" [placeholder]="'modals.organismeForm.cityPlaceholder' | translate">
+            </app-form-field>
+
+            <app-form-field [label]="'modals.organismeForm.phone' | translate">
+              <input formControlName="tel_organisme" [placeholder]="'modals.organismeForm.phonePlaceholder' | translate">
+            </app-form-field>
+
+            <app-form-field [label]="'modals.organismeForm.email' | translate" [error]="newOrgError('email_organisme')">
+              <input type="email" formControlName="email_organisme" [placeholder]="'modals.organismeForm.emailPlaceholder' | translate">
+            </app-form-field>
+
+            <app-form-field class="span-2" [label]="'modals.organismeForm.website' | translate"
+              [helpText]="'modals.organismeForm.websiteHint' | translate">
+              <input formControlName="url_organisme" [placeholder]="'modals.organismeForm.websitePlaceholder' | translate">
+            </app-form-field>
+          </div>
+        </div>
+      }
+
+      <app-form-field [label]="'auth.register.password' | translate" [required]="true"
+        [helpText]="'auth.register.passwordHint' | translate" [error]="fieldError('password')">
   <i prefixSlot class="fi fi-rr-lock"></i>
   <input
           [type]="hidePassword() ? 'password' : 'text'"
@@ -123,14 +176,6 @@
           [placeholder]="'auth.register.passwordPlaceholder' | translate"
           autocomplete="new-password"
         >
-        
-        
-        @if (registerForm.get('password')?.hasError('required') && registerForm.get('password')?.touched) {
-          
-        }
-        @if (registerForm.get('password')?.hasError('minlength') && registerForm.get('password')?.touched) {
-          
-        }
   <button suffixSlot
           type="button"
           class="password-toggle"
@@ -141,7 +186,8 @@
         </button>
 </app-form-field>
 
-      <app-form-field [label]="'auth.register.confirmPassword' | translate" [required]="true">
+      <app-form-field [label]="'auth.register.confirmPassword' | translate" [required]="true"
+        [error]="fieldError('confirmPassword')">
   <i prefixSlot class="fi fi-rr-lock"></i>
   <input
           [type]="hideConfirmPassword() ? 'password' : 'text'"
@@ -149,14 +195,6 @@
           [placeholder]="'auth.register.confirmPasswordPlaceholder' | translate"
           autocomplete="new-password"
         >
-        
-        
-        @if (registerForm.get('confirmPassword')?.hasError('required') && registerForm.get('confirmPassword')?.touched) {
-          
-        }
-        @if (registerForm.hasError('passwordMismatch') && registerForm.get('confirmPassword')?.touched) {
-          
-        }
   <button suffixSlot
           type="button"
           class="password-toggle"
@@ -167,19 +205,13 @@
         </button>
 </app-form-field>
 
-      <app-form-field [label]="'auth.register.justification' | translate" [helpText]="'auth.register.justificationHint' | translate">
+      <app-form-field [label]="'auth.register.justification' | translate"
+        [helpText]="'auth.register.justificationHint' | translate" [error]="fieldError('justification')">
   <textarea
           formControlName="justification"
           rows="3"
           [placeholder]="'auth.register.justificationPlaceholder' | translate"
         ></textarea>
-        
-        @if (registerForm.get('justification')?.hasError('maxlength')) {
-          
-        }
-  <ng-container errorSlot>
-    <p class="form-error-msg"><i class="fi fi-rr-exclamation"></i> {{ 'auth.register.errors.maxLength' | translate:{ max: 1000 } }}</p>
-  </ng-container>
 </app-form-field>
 
       <div class="info-box">
@@ -192,7 +224,7 @@
         color="primary"
         type="submit"
         class="submit-button"
-        [disabled]="registerForm.invalid || isLoading()"
+        [disabled]="isLoading()"
       >
         @if (isLoading()) {
           <mat-spinner diameter="20" color="accent"></mat-spinner>

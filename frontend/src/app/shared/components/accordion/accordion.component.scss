@@ -65,6 +65,16 @@
       font-size: 18px;
       color: $primary-color;
     }
+
+    // Icône projetée sous forme d'image (ex. marqueur ellipse enjeu/FCR).
+    // Sans cette règle, le PNG s'affichait à sa taille naturelle (#334).
+    // 15px = taille du marqueur ellipse standard de l'app (.facteur-bullet, .ne-ellipse).
+    // ::ng-deep nécessaire : l'<img> est du contenu projeté (encapsulation parente).
+    ::ng-deep img {
+      width: 15px;
+      height: 15px;
+      object-fit: contain;
+    }
   }
 
   &__title {
@@ -154,6 +164,17 @@
   &--fcr.app-accordion--expanded {
     .app-accordion__body {
       background-color: rgba($secondary-orange-salmon, 0.05);
+    }
+  }
+
+  // Variante section (#334) — en-tête de section type « DÉTAILS »
+  // Titre sombre en majuscules espacées, icône colorée projetée, séparateur
+  // léger sous le header, SANS bande latérale colorée (conforme Figma).
+  &--section {
+    .app-accordion__title {
+      color: $black;
+      text-transform: uppercase;
+      letter-spacing: 2px;
     }
   }
 

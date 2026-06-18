@@ -552,6 +552,40 @@ export interface PlanCreatePayload {
   organismes_redacteurs_ids?: number[];
   commentaire?: string;
   referents_ids?: number[];
+  /**
+   * Plan validé du rang précédent auquel rattacher ce nouveau plan
+   * (conservation de la chaîne de versions). Posé à la création standard
+   * quand l'utilisateur confirme le rattachement suggéré.
+   */
+  plan_parent_id?: number;
+}
+
+/**
+ * Résumé d'un plan validé/archivé associé à un site (endpoint for-sites).
+ */
+export interface SitePlanSummary {
+  id_pg: number;
+  nom: string;
+  slug: string;
+  statut: PlanStatut;
+  statut_display: string;
+  rang: number;
+  version: string;
+  annee_debut: number | null;
+  annee_fin: number | null;
+  is_mi_parcours: boolean;
+}
+
+/** Plans validés/archivés d'un site. */
+export interface SitePlansEntry {
+  site_id: number;
+  site_nom: string;
+  plans: SitePlanSummary[];
+}
+
+/** Réponse de GET /api/plans/plans/for-sites/. */
+export interface SitePlansResponse {
+  sites: SitePlansEntry[];
 }
 
 /**

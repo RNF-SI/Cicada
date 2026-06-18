@@ -7,7 +7,7 @@
  * - Rédacteurs/Relecteurs: champs texte libre
  * - Organisme rédacteur principal: sélection d'organisme ou saisie libre
  */
-import { Component, inject, signal, computed, OnInit, ElementRef, ViewChild } from '@angular/core';
+import { Component, inject, signal, computed, effect, OnInit, ElementRef, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterModule } from '@angular/router';
 import { FormBuilder, FormGroup, FormControl, Validators, ReactiveFormsModule, FormsModule } from '@angular/forms';
@@ -37,7 +37,9 @@ import { ViewScopeToggleComponent, ViewScope } from '../../shared/components/vie
 import { SiteFormModalComponent, SiteFormModalResult } from '../../shared/components/modals/site-form-modal/site-form-modal.component';
 import {
   PlanCreatePayload,
-  AdminOrganisme
+  AdminOrganisme,
+  SitePlansEntry,
+  SitePlanSummary
 } from '../../core/models/admin.model';
 import { OrganismeFormModalComponent } from '../../shared/components/modals/organisme-form-modal/organisme-form-modal.component';
 
@@ -179,6 +181,54 @@ export class PlanCreateComponent implements OnInit {
   availableOrganismes = signal<AdminOrganisme[]>([]);
   filteredOrganismes$!: Observable<AdminOrganisme[]>;
 
+  // === Chaîne de versions : contrôle rang + rattachement (fil entre rangs) ===
+  /** PG validés/archivés associés aux sites sélectionnés (groupés par site). */
+  existingPlansBySite = signal<SitePlansEntry[]>([]);
+  /** Mirroir signal du champ `rang` pour alimenter les computeds. */
+  private rangSignal = signal<number>(1);
+  /** Case « rattacher au plan du rang précédent » (cochée par défaut). */
+  linkToParentEnabled = signal(true);
+  /** Valeur courante du rang (exposée au template). */
+  currentRang = computed(() => this.rangSignal());
+
+  /** Tous les PG validés des sites sélectionnés, dédupliqués par id_pg. */
+  allExistingPlans = computed<SitePlanSummary[]>(() => {
+    const byId = new Map<number, SitePlanSummary>();
+    for (const entry of this.existingPlansBySite()) {
+      for (const plan of entry.plans) {
+        byId.set(plan.id_pg, plan);
+      }
+    }
+    return [...byId.values()];
+  });
+
+  /** PG existants ayant exactement le rang saisi → conflit (avertissement). */
+  sameRangConflicts = computed<SitePlanSummary[]>(() => {
+    const rang = this.rangSignal();
+    return this.allExistingPlans().filter(p => p.rang === rang);
+  });
+
+  /**
+   * Plan validé du rang précédent à proposer comme parent : rang le plus élevé
+   * strictement inférieur au rang saisi (puis version la plus haute).
+   */
+  suggestedParent = computed<SitePlanSummary | null>(() => {
+    const rang = this.rangSignal();
+    const lower = this.allExistingPlans().filter(p => p.rang < rang);
+    if (lower.length === 0) return null;
+    return [...lower].sort(
+      (a, b) => (b.rang - a.rang) || (this.versionNum(b.version) - this.versionNum(a.version))
+    )[0];
+  });
+
+  constructor() {
+    // Recharge les PG du/des site(s) dès que la sélection de sites change.
+    effect(() => {
+      const ids = this.selectedSiteIds();
+      this.fetchSitePlans(ids);
+    });
+  }
+
   ngOnInit(): void {
     // Super admin defaults to 'all' scope to see every site
     if (this.authService.isSuperAdmin()) {
@@ -195,6 +245,29 @@ export class PlanCreateComponent implements OnInit {
     this.initForm();
     this.loadData();
     this.setupAutocomplete();
+
+    // Mirroir du champ rang pour les computeds (conflit / parent suggéré)
+    const rangCtrl = this.form.get('rang');
+    this.rangSignal.set(Number(rangCtrl?.value) || 1);
+    rangCtrl?.valueChanges.subscribe(v => this.rangSignal.set(Number(v) || 1));
+  }
+
+  /** Charge les PG validés associés aux sites sélectionnés (vide si aucun). */
+  private fetchSitePlans(siteIds: number[]): void {
+    if (siteIds.length === 0) {
+      this.existingPlansBySite.set([]);
+      return;
+    }
+    this.adminService.getPlansForSites(siteIds).subscribe({
+      next: (res) => this.existingPlansBySite.set(res.sites || []),
+      error: () => this.existingPlansBySite.set([]),
+    });
+  }
+
+  /** Convertit une version texte en entier pour le tri (fallback 0). */
+  private versionNum(version: string): number {
+    const n = parseInt(version, 10);
+    return Number.isNaN(n) ? 0 : n;
   }
 
   private initForm(): void {
@@ -511,7 +584,12 @@ export class PlanCreateComponent implements OnInit {
       commentaire: formValue.commentaire || undefined,
       organismes_redacteurs_ids: orgEntry?.organismeId
         ? [orgEntry.organismeId]
-        : []
+        : [],
+
+      // Rattachement à la chaîne de versions (fil entre rangs) si confirmé
+      plan_parent_id: this.linkToParentEnabled() && this.suggestedParent()
+        ? this.suggestedParent()!.id_pg
+        : undefined
     };
 
     this.adminService.createPlan(payload).subscribe({

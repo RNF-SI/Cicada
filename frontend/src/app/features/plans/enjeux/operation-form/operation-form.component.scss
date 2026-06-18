@@ -359,6 +359,19 @@ $form-side-margin: $spacing-xxl;
   }
 }
 
+// #374 — Colonne dont la périodicité n'est pas cochée : saisie verrouillée et grisée.
+.prog-input:disabled {
+  color: $gray;
+  cursor: not-allowed;
+  background-color: transparent;
+}
+.prog-input-wrapper:has(.prog-input:disabled) {
+  background-color: $gray-lighter;
+  border-color: $gray-lighter;
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
 .prog-bar {
   height: 6px;
   margin-top: $spacing-sm;
@@ -585,6 +598,20 @@ app-form-field.finance-categorie {
 
   i {
     font-size: 0.95rem;
+  }
+}
+
+// #374 — info sous le bouton « Appliquer aux années »
+.apply-frequency-info {
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+  margin: $spacing-xs 0 0;
+  color: $gray-dark;
+  font-size: $font-size-small;
+
+  i {
+    color: $primary-color;
   }
 }
 
@@ -1183,5 +1210,31 @@ app-form-field.finance-categorie {
       // pas besoin d'espace en plus avant la 1ère question (cf. retour utilisateur).
       padding: 0 $spacing-xxl $spacing-xl;
     }
+  }
+}
+
+
+// Aide « indicateurs de réponse » : lien tertiaire discret (icône + libellé),
+// exemples affichés au survol. Couleurs kit UI (primary).
+.op-indic-help {
+  display: inline-flex;
+  align-items: center;
+  gap: $spacing-xxs;
+  margin-bottom: $spacing-sm;
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: help;
+  color: $primary-color;
+  font-family: inherit;
+  font-size: $font-size-small;
+  font-weight: $font-weight-semibold;
+
+  i {
+    font-size: 14px;
+  }
+
+  &:hover {
+    text-decoration: underline;
   }
 }

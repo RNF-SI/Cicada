@@ -1,0 +1,66 @@
+@import 'variables';
+
+.freq-dialog-content {
+  min-width: 480px;
+  max-width: 640px;
+}
+
+.freq-dialog-hint {
+  margin: 0 0 $spacing-md;
+  color: $gray-dark;
+  font-size: $font-size-small;
+}
+
+.freq-dialog-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: $spacing-sm;
+  margin-bottom: $spacing-md;
+
+  .app-mat-label {
+    font-weight: 600;
+  }
+}
+
+.freq-preview {
+  margin-bottom: $spacing-md;
+}
+
+.freq-preview-title {
+  font-weight: 600;
+  margin-bottom: $spacing-xs;
+  color: $primary-color;
+
+  .freq-preview-count {
+    color: $gray-dark;
+    font-weight: 400;
+  }
+}
+
+.freq-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spacing-xs;
+}
+
+.freq-chip {
+  padding: $spacing-xxs $spacing-sm;
+  border: 1px solid $gray-light;
+  border-radius: $border-radius-pill;
+  background-color: $white;
+  color: $gray-dark;
+  font-size: $font-size-small;
+  cursor: pointer;
+  transition: all 0.15s ease;
+
+  &:hover {
+    border-color: $primary-color;
+  }
+
+  &.selected {
+    background-color: $primary-color;
+    border-color: $primary-color;
+    color: $white;
+  }
+}

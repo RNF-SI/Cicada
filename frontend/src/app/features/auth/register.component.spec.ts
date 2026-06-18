@@ -559,4 +559,78 @@ describe('RegisterComponent', () => {
       expect(router.navigate).toHaveBeenCalledWith(['/auth/registration-pending']);
     }));
   });
+
+  // ==================== CREATE ORGANISME FLOW ====================
+
+  describe('Create organisme flow', () => {
+    beforeEach(async () => {
+      await setupTestBed();
+      fixture.detectChanges();
+    });
+
+    it('should toggle validators when entering create mode', () => {
+      component.toggleCreateOrganisme(true);
+
+      expect(component.creatingOrganisme()).toBe(true);
+      // organisme n'est plus requis (désactivé), le nom du nouvel organisme l'est
+      const organisme = component.registerForm.get('organisme')!;
+      const nom = component.registerForm.get(['newOrganisme', 'nom_organisme'])!;
+      expect(organisme.disabled).toBe(true);
+      nom.setValue('');
+      nom.markAsTouched();
+      expect(nom.hasError('required')).toBe(true);
+    });
+
+    it('should restore organisme requirement when leaving create mode', () => {
+      component.toggleCreateOrganisme(true);
+      component.toggleCreateOrganisme(false);
+
+      expect(component.creatingOrganisme()).toBe(false);
+      const organisme = component.registerForm.get('organisme')!;
+      expect(organisme.enabled).toBe(true);
+      expect(organisme.hasError('required')).toBe(true);
+    });
+
+    it('should submit new_organisme payload in create mode', fakeAsync(() => {
+      component.toggleCreateOrganisme(true);
+      component.registerForm.patchValue({
+        email: 'new@example.com',
+        password: 'password123',
+        confirmPassword: 'password123',
+        nom: 'Dupont',
+        prenom: 'Jean',
+        justification: 'Mon orga n\'existe pas',
+        newOrganisme: {
+          nom_organisme: 'Conservatoire X',
+          cp_organisme: '21000',
+          ville_organisme: 'Dijon'
+        }
+      });
+
+      component.onSubmit();
+      tick();
+
+      expect(httpMock.post).toHaveBeenCalledTimes(1);
+      const [, payload] = httpMock.post.mock.calls[0];
+      expect(payload.requested_organisme_id).toBeUndefined();
+      expect(payload.new_organisme.nom_organisme).toBe('Conservatoire X');
+      expect(payload.new_organisme.cp_organisme).toBe('21000');
+      expect(router.navigate).toHaveBeenCalledWith(['/auth/registration-pending']);
+    }));
+
+    it('should not submit when new organisme name is missing', () => {
+      component.toggleCreateOrganisme(true);
+      component.registerForm.patchValue({
+        email: 'new@example.com',
+        password: 'password123',
+        confirmPassword: 'password123',
+        nom: 'Dupont',
+        prenom: 'Jean'
+      });
+
+      component.onSubmit();
+
+      expect(httpMock.post).not.toHaveBeenCalled();
+    });
+  });
 });

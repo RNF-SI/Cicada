@@ -24,6 +24,11 @@ export interface CsrpnStepDialogData {
    *  encore de `mi_parcours`. Permet d'afficher la case mi-parcours dans le
    *  dialog `arrete` (RNN) ou `comite` (non-RNN). */
   canDeclareMiParcours: boolean;
+  /** #347 — date déjà saisie pour cette étape (ISO yyyy-mm-dd), pour pré-remplir
+   *  la modale et éviter de perdre l'info lors d'un re-passage par le workflow. */
+  initialDate?: string | null;
+  /** #347 — numéro d'arrêté déjà saisi (étape `arrete`). */
+  initialNumeroArrete?: string | null;
 }
 
 export interface CsrpnStepDialogResult {
@@ -63,9 +68,14 @@ export class CsrpnStepDialogComponent {
   form: FormGroup;
 
   constructor() {
+    // #347 — pré-remplissage des valeurs déjà saisies (date au format ISO →
+    // Date locale pour le datepicker, sans décalage de fuseau).
+    const initialDate = this.data.initialDate
+      ? new Date(this.data.initialDate + 'T00:00:00')
+      : null;
     this.form = this.fb.group({
-      date: [null, Validators.required],
-      numeroArrete: [''],
+      date: [initialDate, Validators.required],
+      numeroArrete: [this.data.initialNumeroArrete || ''],
       isMiParcours: [false],
     });
     if (this.data.step === 'arrete') {

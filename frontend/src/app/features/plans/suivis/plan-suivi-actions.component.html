@@ -64,37 +64,52 @@
         </div>
       </section>
 
+      <!-- #375 — Bannière : pas de saisie tant que le plan n'est pas validé -->
+      @if (planNotValidated()) {
+        <div class="lock-banner" role="status">
+          <i class="fi fi-rr-info"></i>
+          <div class="lock-banner-content">
+            <span class="lock-banner-title">
+              {{ 'plans.suivis.notValidatedBanner.title' | translate }}
+            </span>
+            <span class="lock-banner-text">
+              {{ 'plans.suivis.notValidatedBanner.text' | translate }}
+            </span>
+          </div>
+        </div>
+      }
+
       <!-- Content Section -->
       <section class="content-section">
 
-        <!-- Main tabs (Phase 3) : Réalisation / Budget / RH -->
-        <div class="suivi-tabs" role="tablist">
-          <button
-            class="suivi-tab"
-            [class.active]="activeTab() === 'realisation'"
-            (click)="setTab('realisation')"
-            role="tab">
-            {{ 'plans.suivis.actions.tabs.realisation' | translate }}
-          </button>
-          <button
-            class="suivi-tab"
-            [class.active]="activeTab() === 'budget'"
-            (click)="setTab('budget')"
-            role="tab">
-            {{ 'plans.suivis.actions.tabs.budget' | translate }}
-            @if (totalPlanBudget(); as t) {
-              <span class="tab-meta">{{ t | number:'1.0-0':'fr-FR' }} €</span>
-            }
-          </button>
-          <button
-            class="suivi-tab"
-            [class.active]="activeTab() === 'rh'"
-            (click)="setTab('rh')"
-            role="tab">
-            {{ 'plans.suivis.actions.tabs.rh' | translate }}
-            @if (totalPlanEtp(); as e) {
-              <span class="tab-meta">{{ e | number:'1.0-0':'fr-FR' }} {{ 'plans.suivis.actions.tabs.jours' | translate }}</span>
-            }
+        <!-- Main tabs (Phase 3) : Réalisation / Budget / RH + Exporter à droite (Figma 240-44699) -->
+        <div class="suivi-tabs-row">
+          <div class="suivi-tabs" role="tablist">
+            <button
+              class="suivi-tab"
+              [class.active]="activeTab() === 'realisation'"
+              (click)="setTab('realisation')"
+              role="tab">
+              {{ 'plans.suivis.actions.tabs.realisation' | translate }}
+            </button>
+            <button
+              class="suivi-tab"
+              [class.active]="activeTab() === 'budget'"
+              (click)="setTab('budget')"
+              role="tab">
+              {{ 'plans.suivis.actions.tabs.budget' | translate }}
+            </button>
+            <button
+              class="suivi-tab"
+              [class.active]="activeTab() === 'rh'"
+              (click)="setTab('rh')"
+              role="tab">
+              {{ 'plans.suivis.actions.tabs.rh' | translate }}
+            </button>
+          </div>
+          <button class="export-btn">
+            {{ 'plans.suivis.actions.exportTable' | translate }}
+            <i class="fi fi-rr-download"></i>
           </button>
         </div>
 
@@ -157,6 +172,26 @@
               </mat-menu>
               <div class="filter-separator"></div>
 
+              <!-- #379 — Organisme -->
+              @if (availableOrganismes().length > 0) {
+                <button class="filter-btn" [matMenuTriggerFor]="orgMenu"
+                  [class.filter-active]="filterOrganisme()">
+                  {{ 'plans.suivis.actions.organisme' | translate }}
+                  <i class="fi fi-rr-angle-small-down"></i>
+                </button>
+                <mat-menu #orgMenu="matMenu">
+                  <button mat-menu-item (click)="setOrganismeFilter(null)">
+                    <em>{{ 'plans.suivis.actions.allOrganismes' | translate }}</em>
+                  </button>
+                  @for (org of availableOrganismes(); track org.id_organisme) {
+                    <button mat-menu-item (click)="setOrganismeFilter(org.id_organisme)">
+                      {{ org.nom }}
+                    </button>
+                  }
+                </mat-menu>
+                <div class="filter-separator"></div>
+              }
+
               <!-- Bouton réinitialiser les filtres (revue design #317) -->
               @if (hasActiveFilters()) {
                 <button class="filter-btn filter-btn-reset" (click)="clearFilters()">
@@ -166,10 +201,13 @@
               }
             </div>
           </div>
-          <button class="export-btn">
-            {{ 'plans.suivis.actions.exportTable' | translate }}
-            <i class="fi fi-rr-download"></i>
-          </button>
+          <!-- #379 — recherche juste à côté des filtres (Figma 4366-24484) -->
+          <app-search-bar class="action-search"
+            [value]="filterText()"
+            (valueChange)="filterText.set($event)"
+            [placeholder]="'plans.suivis.actions.searchPlaceholder' | translate"
+            [ariaLabel]="'plans.suivis.actions.searchPlaceholder' | translate">
+          </app-search-bar>
         </div>
 
         <!-- Légende (uniquement onglet Réalisation) -->
@@ -183,6 +221,11 @@
                   <span class="legend-text">{{ item.labelKey | translate }}</span>
                 </div>
               }
+              <!-- #379 — croix seule (statut global « non réalisé ») -->
+              <div class="legend-item">
+                <img src="assets/images/icons/non-realise-seul.svg" class="action-status-icon legend-icon" alt="">
+                <span class="legend-text">{{ 'plans.suivis.actions.actionNonRealiseeSeule' | translate }}</span>
+              </div>
             </div>
           </div>
         }
@@ -209,20 +252,14 @@
                       @for (year of yearColumns(); track year) {
                         <th class="col-year">{{ year }}</th>
                       }
+                      <th class="col-global">{{ 'plans.suivis.actions.globalStatus.columnHeader' | translate }}</th>
                       <th class="col-icons"></th>
                     </tr>
                   </thead>
                   <tbody>
-                    @for (group of operationsByOrganisme(); track group.id_organisme) {
-                      <!-- En-tête organisme -->
-                      <tr class="org-header-row">
-                        <td [attr.colspan]="yearColumns().length + 2">
-                          {{ group.nom === '__plan_general__'
-                             ? ('plans.suivis.actions.planGeneral' | translate)
-                             : group.nom }}
-                        </td>
-                      </tr>
-                      @for (item of group.operations; track item.operation.id_operation; let idx = $index) {
+                    <!-- #379 — liste à plat : la réalisation d'une action est unique,
+                         indépendante de l'organisme (pas de bandeaux organisme ici) -->
+                    @for (item of filteredOperations(); track item.operation.id_operation; let idx = $index) {
                         <tr [class.row-alt]="idx % 2 === 1"
                             [class.is-draft]="item.operation.statut === 'draft'">
                           <td class="col-action">
@@ -252,11 +289,19 @@
                               }
                             </td>
                           }
+                          <!-- #379 — Réalisation GLOBALE : 1 des 3 icônes, cliquable → page globale -->
+                          <td class="col-global">
+                            <a class="global-icon-link"
+                               [routerLink]="['/plans', planSlug(), 'suivi-actions', 'action', item.operation.id_operation]"
+                               [matTooltip]="(globalRealisationLabelKey(item.operation.niveau_realisation_global_mnemonique) | translate)
+                                  + ' — ' + ('plans.suivis.actionGlobal.openTooltip' | translate)">
+                              <img [src]="globalRealisationIcon(item.operation.niveau_realisation_global_mnemonique)"
+                                   class="action-status-icon"
+                                   [alt]="globalRealisationLabelKey(item.operation.niveau_realisation_global_mnemonique) | translate">
+                            </a>
+                          </td>
                           <td class="col-icons">
                             <div class="row-actions">
-                              <button class="icon-btn-flat" title="Statistiques">
-                                <i class="fi fi-rr-chart-histogram"></i>
-                              </button>
                               <button class="icon-btn-flat"
                                       [title]="'common.actions.view' | translate"
                                       (click)="navigateToViewOperation(item.operation.id_operation)">
@@ -265,7 +310,12 @@
                             </div>
                           </td>
                         </tr>
-                      }
+                    } @empty {
+                      <tr>
+                        <td [attr.colspan]="yearColumns().length + 3" class="empty-row">
+                          {{ 'plans.suivis.actions.noOperations' | translate }}
+                        </td>
+                      </tr>
                     }
                   </tbody>
                 </table>
@@ -287,6 +337,7 @@
                       </th>
                       <th class="col-agg">{{ 'plans.suivis.actions.tabs.col.past' | translate }}</th>
                       <th class="col-agg">{{ 'plans.suivis.actions.tabs.col.total' | translate }}</th>
+                      <th class="col-global">{{ 'plans.suivis.actions.globalStatus.columnHeader' | translate }}</th>
                       <th class="col-icons"></th>
                     </tr>
                   </thead>
@@ -314,7 +365,7 @@
                             }
                           </td>
                         }
-                        <td></td>
+                        <td colspan="2"></td>
                       </tr>
                       @for (item of group.operations; track item.operation.id_operation; let idx = $index) {
                         <tr [class.row-alt]="idx % 2 === 1">
@@ -328,7 +379,10 @@
                           </td>
                           @for (period of ['current', 'past', 'total']; track period) {
                             @let cell = aggregateBudget(item.operation, $any(period));
-                            <td class="col-agg">
+                            <td class="col-agg"
+                                [class.clickable]="period === 'current'"
+                                [routerLink]="period === 'current' ? ['/plans', planSlug(), 'suivi-actions', 'saisie', item.operation.id_operation, currentYear()] : null"
+                                [title]="period === 'current' ? ('plans.suivis.actionGlobal.fillBudgetTooltip' | translate) : ''">
                               <div class="agg-prev">{{ cell.previsionnel | number:'1.0-0':'fr-FR' }} €</div>
                               @if (cell.hasRealise) {
                                 <div class="agg-real">
@@ -345,6 +399,15 @@
                               }
                             </td>
                           }
+                          <!-- #356 — colonne Global : icône statistiques → page globale
+                               (pas l'icône de réalisation, non pertinente ici) -->
+                          <td class="col-global">
+                            <a class="global-stats-link"
+                               [routerLink]="['/plans', planSlug(), 'suivi-actions', 'action', item.operation.id_operation]"
+                               [matTooltip]="'plans.suivis.actionGlobal.openTooltip' | translate">
+                              <i class="fi fi-rr-chart-histogram"></i>
+                            </a>
+                          </td>
                           <td class="col-icons">
                             <div class="row-actions">
                               <button class="icon-btn-flat"
@@ -377,6 +440,7 @@
                       </th>
                       <th class="col-agg">{{ 'plans.suivis.actions.tabs.col.past' | translate }}</th>
                       <th class="col-agg">{{ 'plans.suivis.actions.tabs.col.total' | translate }}</th>
+                      <th class="col-global">{{ 'plans.suivis.actions.globalStatus.columnHeader' | translate }}</th>
                       <th class="col-icons"></th>
                     </tr>
                   </thead>
@@ -404,7 +468,7 @@
                             }
                           </td>
                         }
-                        <td></td>
+                        <td colspan="2"></td>
                       </tr>
                       @for (item of group.operations; track item.operation.id_operation; let idx = $index) {
                         <tr [class.row-alt]="idx % 2 === 1">
@@ -418,7 +482,10 @@
                           </td>
                           @for (period of ['current', 'past', 'total']; track period) {
                             @let cell = aggregateEtp(item.operation, $any(period));
-                            <td class="col-agg">
+                            <td class="col-agg"
+                                [class.clickable]="period === 'current'"
+                                [routerLink]="period === 'current' ? ['/plans', planSlug(), 'suivi-actions', 'saisie', item.operation.id_operation, currentYear()] : null"
+                                [title]="period === 'current' ? ('plans.suivis.actionGlobal.fillRhTooltip' | translate) : ''">
                               <div class="agg-prev">{{ cell.previsionnel | number:'1.0-1':'fr-FR' }} {{ 'plans.suivis.actions.tabs.jours' | translate }}</div>
                               @if (cell.hasRealise) {
                                 <div class="agg-real">
@@ -435,6 +502,15 @@
                               }
                             </td>
                           }
+                          <!-- #356 — colonne Global : icône statistiques → page globale
+                               (pas l'icône de réalisation, non pertinente ici) -->
+                          <td class="col-global">
+                            <a class="global-stats-link"
+                               [routerLink]="['/plans', planSlug(), 'suivi-actions', 'action', item.operation.id_operation]"
+                               [matTooltip]="'plans.suivis.actionGlobal.openTooltip' | translate">
+                              <i class="fi fi-rr-chart-histogram"></i>
+                            </a>
+                          </td>
                           <td class="col-icons">
                             <div class="row-actions">
                               <button class="icon-btn-flat"

@@ -77,6 +77,14 @@ export class LeafletMapEditComponent implements OnInit, AfterViewInit, OnChanges
   @Input() enableGeometryImport: boolean = false;
 
   /**
+   * Afficher le bouton d'import dans la barre d'outils de la carte.
+   * Permet de garder l'import actif (input fichier caché + handler) tout en
+   * masquant le bouton in-map lorsqu'un bouton d'import existe déjà ailleurs
+   * (ex. formulaire site, #390). Sans effet si `enableGeometryImport` est faux.
+   */
+  @Input() showImportButton: boolean = true;
+
+  /**
    * Mode lecture seule : la carte affiche `existingGeometry` (et
    * éventuellement `backgroundGeometry`) sans afficher la barre d'outils
    * de dessin. Pratique pour partager le même composant entre prévisualisation
@@ -127,6 +135,13 @@ export class LeafletMapEditComponent implements OnInit, AfterViewInit, OnChanges
     }
     if (changes['geometryType'] && !changes['geometryType'].firstChange) {
       this.updateDrawControl();
+    }
+    // Basculer entre lecture seule et édition doit ajouter/retirer les outils
+    // de dessin Leaflet-Draw. Sans ça, le bouton « Dessiner » changeait bien
+    // `readOnly` mais la barre d'outils crayon n'apparaissait jamais (elle
+    // n'était configurée qu'à l'init, où readOnly valait true).
+    if (changes['readOnly'] && !changes['readOnly'].firstChange) {
+      this.setupDrawControl();
     }
   }
 
@@ -737,13 +752,23 @@ export class LeafletMapEditComponent implements OnInit, AfterViewInit, OnChanges
         const text = await file.text();
         geojson = JSON.parse(text);
       } else if (extension === 'zip') {
-        // Fichier ZIP contenant tous les fichiers shapefile
+        // Fichier ZIP contenant tous les fichiers shapefile.
+        // ⚠️ shpjs v6 : NE PAS appeler `shp.parseZip`. Dans le build ESM utilisé
+        // par Angular, `parseZip`/`parseShp` sont des exports *nommés* et ne sont
+        // PAS attachés au default → `shp.parseZip` vaut `undefined` et lève
+        // « shp.parseZip is not a function », ce qui faisait échouer TOUT import
+        // shapefile avec le message générique « vérifier le format » (#88 / #24).
+        // Le default export est lui-même appelable et gère le buffer .zip, avec
+        // reprojection automatique vers WGS84 d'après le .prj (testé EPSG:2154).
         const arrayBuffer = await file.arrayBuffer();
-        geojson = await shp.parseZip(arrayBuffer);
+        geojson = await shp(arrayBuffer);
       } else if (extension === 'shp') {
-        // Fichier .shp seul - parser les géométries
+        // Fichier .shp seul - parser les géométries via l'export nommé `parseShp`
+        // (absent du default en build ESM, cf. ci-dessus).
         const arrayBuffer = await file.arrayBuffer();
-        const geometries = shp.parseShp(arrayBuffer);
+        const shpjs: any = await import('shpjs');
+        const parseShp = shpjs.parseShp ?? shpjs.default?.parseShp;
+        const geometries = parseShp ? parseShp(arrayBuffer) : [];
         if (geometries && geometries.length > 0) {
           geojson = {
             type: 'FeatureCollection',
@@ -754,6 +779,15 @@ export class LeafletMapEditComponent implements OnInit, AfterViewInit, OnChanges
             }))
           };
         }
+      }
+
+      // shpjs peut renvoyer un tableau de FeatureCollection (zip multi-couches) :
+      // on fusionne alors en une seule FeatureCollection.
+      if (Array.isArray(geojson)) {
+        geojson = {
+          type: 'FeatureCollection',
+          features: geojson.flatMap((fc: any) => fc?.features ?? [])
+        };
       }
 
       if (!geojson) {

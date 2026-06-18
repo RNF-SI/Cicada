@@ -2,9 +2,6 @@ import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { TranslateModule } from '@ngx-translate/core';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatSelectModule } from '@angular/material/select';
 import { CdkDragDrop, DragDropModule, moveItemInArray } from '@angular/cdk/drag-drop';
 import { MetriqueFormData, MetriqueScoreBlock } from '../../../core/models/enjeu.model';
 import { MetriqueBlockComponent, ScoreBlockData } from '../metrique-block/metrique-block.component';
@@ -47,7 +44,6 @@ export interface FormulaPart {
   standalone: true,
   imports: [
     CommonModule, FormsModule, TranslateModule,
-    MatFormFieldModule, MatInputModule, MatSelectModule,
     DragDropModule,
     MetriqueBlockComponent,
     FormFieldComponent,
@@ -65,6 +61,57 @@ export class MetriqueFormComponent {
   /** Index du bloc actuellement sélectionné dans la formule (0 = principal, 1+ = complémentaires).
    *  Le second clic groupe la sélection avec ce bloc. Null = aucune sélection. */
   selectedFormulaIdx: number | null = null;
+
+  /** Mnémonique du type de métrique sélectionné (NUMERIQUE par défaut). */
+  private get typeMnemonique(): string {
+    const opt = this.typeMetriqueOptions.find(o => o.id_nomenclature === this.metrique.type_metrique);
+    return opt?.mnemonique || 'NUMERIQUE';
+  }
+
+  get isNumerique(): boolean { return this.typeMnemonique === 'NUMERIQUE'; }
+  get isChiffre(): boolean { return this.typeMnemonique === 'CHIFFRE'; }
+  get isTexte(): boolean { return this.typeMnemonique === 'TEXTE'; }
+  /** #339 — Type « Indéterminé » : l'intitulé de la métrique n'est alors pas obligatoire. */
+  get isIndetermine(): boolean { return this.typeMnemonique === 'INDETERMINE'; }
+
+  /** #339 — Niveaux de score (chiffre / texte) : libellés + classe de couleur d'en-tête. */
+  readonly scoreLevelMeta = [
+    { level: 1, labelKey: 'enjeux.metriques.scores.tresMauvais' },
+    { level: 2, labelKey: 'enjeux.metriques.scores.mauvais' },
+    { level: 3, labelKey: 'enjeux.metriques.scores.moyen' },
+    { level: 4, labelKey: 'enjeux.metriques.scores.bon' },
+    { level: 5, labelKey: 'enjeux.metriques.scores.tresBon' },
+  ];
+
+  /** Garantit que le slot de score d'un niveau existe (ngModel a besoin d'un objet). */
+  ensureScore(level: number): { inf: number | null; sup: number | null; val: number | null; label: string } {
+    this.metrique.scores[level] ??= { inf: null, sup: null, val: null, label: '' };
+    return this.metrique.scores[level];
+  }
+
+  /**
+   * #359 — Niveaux actifs pour les grilles simples (Chiffre / Texte), même
+   * principe que la cartouche NUMERIQUE (metrique-block) : un niveau marqué
+   * « non utilisé » est exclu de la grille (saisie grisée, masqué à la lecture).
+   */
+  isLevelActive(level: number): boolean {
+    return !(this.metrique._inactiveLevels || []).includes(level);
+  }
+
+  toggleLevelActive(level: number): void {
+    this.metrique._inactiveLevels ??= [];
+    const i = this.metrique._inactiveLevels.indexOf(level);
+    if (i >= 0) {
+      this.metrique._inactiveLevels.splice(i, 1);
+    } else {
+      this.metrique._inactiveLevels.push(level);
+      // Vide la saisie du niveau désactivé pour ne pas conserver de valeur orpheline.
+      const s = this.ensureScore(level);
+      s.val = null;
+      s.label = '';
+    }
+    this.emitChange();
+  }
 
   // =====================================================================
   // Vue flat du bloc principal (proxy vers metrique.scores[N].*)

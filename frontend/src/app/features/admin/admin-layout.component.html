@@ -62,6 +62,9 @@
           @if (item.badgeSignal === 'errorLogCount' && errorLogCount() > 0) {
             <span class="badge">{{ errorLogCount() > 99 ? '99+' : errorLogCount() }}</span>
           }
+          @if (item.badgeSignal === 'orphansCount' && orphansCount() > 0) {
+            <span class="badge">{{ orphansCount() > 99 ? '99+' : orphansCount() }}</span>
+          }
         </a>
       }
     </nav>

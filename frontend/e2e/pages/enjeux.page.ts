@@ -83,7 +83,8 @@ export class EnjeuxPage {
     this.addMenuFcr = page.locator('mat-menu-item', { hasText: 'FCR' }).first();
 
     // Detail view
-    this.enjeuMainTitle = page.locator('.enjeu-main-title');
+    // Titre du détail enjeu : migré vers <app-section-title class="enjeu-main-header">
+    this.enjeuMainTitle = page.locator('.enjeu-main-header');
     this.enjeuDetailCard = page.locator('.enjeu-detail-card');
     this.cardSectionName = page.locator('.card-section-name');
     this.cardDetailBody = page.locator('.card-detail-body');

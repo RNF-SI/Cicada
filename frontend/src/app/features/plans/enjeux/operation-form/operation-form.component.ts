@@ -22,12 +22,13 @@ import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { MatDialogModule, MatDialog } from '@angular/material/dialog';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
+import { forkJoin, of, Observable } from 'rxjs';
 import { debounceTime, distinctUntilChanged, filter, switchMap } from 'rxjs/operators';
 
 import { HeaderComponent } from '../../../../shared/components/header/header.component';
 import { ReferenceItemListComponent } from '../../../../shared/components/reference-item-list/reference-item-list.component';
 import { CheckboxComponent } from '../../../../shared/components/checkbox/checkbox.component';
-import { LeafletMapComponent } from '../../../../shared/components/leaflet-map/leaflet-map.component';
+import { EmpriseEditorComponent } from '../../../../shared/components/emprise-editor/emprise-editor.component';
 import { AccordionComponent } from '../../../../shared/components/accordion/accordion.component';
 import { FormFieldComponent } from '../../../../shared/components/form-field/form-field.component';
 import { EnjeuService } from '../../../../core/services/enjeu.service';
@@ -39,6 +40,7 @@ import { Operation, OperationCreatePayload, OperationStatut, OperationAnnee, Ope
 import { CampanuleAutocomplete } from '../../../../core/models/campanule.model';
 import { PlanSite, PlanSiteOrganisme } from '../../../../core/models/admin.model';
 import { ProtocoleCampanuleDialogComponent } from '../../../../shared/components/modals/protocole-campanule-dialog/protocole-campanule-dialog.component';
+import { FrequencyApplyDialogComponent, FrequencyApplyDialogResult } from '../../../../shared/components/modals/frequency-apply-dialog/frequency-apply-dialog.component';
 
 import {
   NomenclatureOption,
@@ -73,7 +75,7 @@ import {
     ReferenceItemListComponent,
     AccordionComponent,
     FormFieldComponent,
-    LeafletMapComponent,
+    EmpriseEditorComponent,
   ],
   templateUrl: './operation-form.component.html',
   styleUrl: './operation-form.component.scss'
@@ -105,8 +107,55 @@ export class OperationFormComponent implements OnInit {
   /** Mode lecture seule : la route `operations/:id` (sans /modifier) définit data.readOnly = true */
   isReadOnly = signal(false);
   existingOperation = signal<Operation | null>(null);
+
+  /** Indicateurs de réponse rattachés à l'action : seulement les métriques dont
+   * l'indicateur est de type REPONSE (les métriques associées état/pression
+   * s'affichent dans la section « Métriques associées », pas ici). */
+  responseIndicators = computed(() =>
+    (this.existingOperation()?.metriques || []).filter(m => m.indicateur_type === 'REPONSE')
+  );
+
+  /** Indicateurs de réponse saisis avant l'enregistrement (création d'action) :
+   * conservés en mémoire puis créés côté serveur à la sauvegarde de l'action. */
+  pendingResponseIndicators: {
+    nom_indicateur: string;
+    nom_metrique: string;
+    type_metrique_id: number | null;
+    valeur_cible: string;
+  }[] = [];
+
+  /** Emprise spatiale en cours d'édition (#342). undefined = inchangée. */
+  pendingEmprise = signal<any | undefined>(undefined);
+  /** Emprise à afficher : modif locale en priorité, sinon valeur serveur. */
+  empriseGeom = computed<any>(() => {
+    const pending = this.pendingEmprise();
+    if (pending !== undefined) return pending;
+    return this.existingOperation()?.geom_geojson ?? null;
+  });
   /** Types de métrique disponibles (TYPE_METRIQUE nomenclature). */
-  typeMetriqueOptions = signal<{ id_nomenclature: number; label: string }[]>([]);
+  typeMetriqueOptions = signal<{ id_nomenclature: number; mnemonique?: string; label: string }[]>([]);
+
+  /** #347/réponse — Pour les indicateurs de réponse, le type de métrique se limite
+   * à « Chiffrée » (CHIFFRE) ou « Textuelle » (TEXTE). */
+  responseTypeOptions = computed<{ id: number; label: string }[]>(() => {
+    const opts = this.typeMetriqueOptions();
+    const out: { id: number; label: string }[] = [];
+    const chiffre = opts.find(o => o.mnemonique === 'CHIFFRE');
+    if (chiffre) out.push({ id: chiffre.id_nomenclature, label: this.translate.instant('enjeux.operations.metriqueTypeChiffree') });
+    const texte = opts.find(o => o.mnemonique === 'TEXTE');
+    if (texte) out.push({ id: texte.id_nomenclature, label: this.translate.instant('enjeux.operations.metriqueTypeTextuelle') });
+    return out;
+  });
+
+  /** Aide « comment remplir un indicateur de réponse » : 3 exemples affichés
+   *  au survol (tooltip multi-ligne) pour ne pas alourdir le formulaire. */
+  get reponseExamplesTooltip(): string {
+    return [
+      this.translate.instant('enjeux.operations.reponseExample1'),
+      this.translate.instant('enjeux.operations.reponseExample2'),
+      this.translate.instant('enjeux.operations.reponseExample3'),
+    ].join('\n\n');
+  }
 
   // Query params
   prelinkedMetriqueId = signal<number | null>(null);
@@ -114,6 +163,8 @@ export class OperationFormComponent implements OnInit {
   // indicateur. Supersede `prelinkedMetriqueId` (qui reste utilisé pour
   // l'auto-scroll et la rétrocompatibilité avec les liens single-metric).
   prelinkedMetriqueIds = signal<number[]>([]);
+  // #367 — indicateur de rattachement direct (action créée sans métrique).
+  prelinkedIndicateurId = signal<number | null>(null);
   returnEnjeuSlug = signal<string | null>(null);
 
   // Nomenclatures
@@ -165,6 +216,25 @@ export class OperationFormComponent implements OnInit {
     return null;
   });
 
+  /**
+   * Libellé de la catégorie d'action réserve sélectionnée, pour l'affichage du
+   * `mat-select-trigger` (valeur fermée). Sans cela, le sélecteur affiche le
+   * texte brut de l'option où le code et l'intitulé sont collés (« CSConnaissance
+   * et suivi… »), Angular supprimant l'espace entre les deux <span>.
+   */
+  selectedCategorieActionReserveLabel(): string | null {
+    const id = this.categorieActionReserveCtrl.value;
+    if (id == null) return null;
+    const cat = this.categorieActionReserveOptions().find(c => c.id_nomenclature === id);
+    if (!cat) return null;
+    return cat.cd_nomenclature ? `${cat.cd_nomenclature} — ${cat.label}` : cat.label;
+  }
+
+  /** Capture les modifications de l'éditeur d'emprise spatiale (#342). */
+  onEmpriseChange(geom: any): void {
+    this.pendingEmprise.set(geom);
+  }
+
   /** Inventaires existants chargés (filtrés par type d'action) */
   availableInventaires = signal<{ id_suivi_inventaire: number; intitule: string; type_action_code?: string }[]>([]);
   categorieFinanceOptions = signal<{ id_nomenclature: number; mnemonique: string; label: string }[]>([]);
@@ -189,7 +259,45 @@ export class OperationFormComponent implements OnInit {
 
   // Indicateurs et métriques du plan (pour les selects M2M)
   planIndicateurs = signal<{ id_indicateur: number; nom_indicateur: string }[]>([]);
-  planMetriques = signal<{ id_metrique: number; nom_metrique: string; indicateur_nom: string }[]>([]);
+  planMetriques = signal<{ id_metrique: number; nom_metrique: string; indicateur_nom: string; indicateur_id: number }[]>([]);
+
+  /** #227 — Sélecteur « Métriques associées » : terme de recherche + portée. */
+  metriqueSearch = signal('');
+  /** Portée du filtre : 'indicateur' = métriques de l'indicateur de l'action ; 'plan' = tout le plan. */
+  metriqueScope = signal<'indicateur' | 'plan'>('indicateur');
+
+  /** Indicateur de l'action courante : rattachement direct, sinon indicateur de la 1re métrique pré-liée. */
+  currentIndicateurId = computed<number | null>(() => {
+    const direct = this.prelinkedIndicateurId();
+    if (direct) return direct;
+    const firstMet = this.prelinkedMetriqueIds()[0];
+    if (firstMet) {
+      const m = this.planMetriques().find(x => x.id_metrique === firstMet);
+      return m?.indicateur_id ?? null;
+    }
+    return null;
+  });
+
+  /** Réinitialise la recherche à la fermeture du panneau de sélection. */
+  onMetriquePanelToggle(opened: boolean): void {
+    if (!opened) this.metriqueSearch.set('');
+  }
+
+  /**
+   * #227 — Liste plate des métriques pour le sélecteur, filtrée par la portée
+   * (cet indicateur / tout le plan) et par le terme de recherche. Chaque option
+   * affiche, sur une seule ligne, le nom de la métrique + son indicateur.
+   */
+  metriquesFiltrees = computed(() => {
+    const term = this.metriqueSearch().trim().toLowerCase();
+    const scope = this.metriqueScope();
+    const curInd = this.currentIndicateurId();
+    return this.planMetriques().filter(m => {
+      if (scope === 'indicateur' && curInd != null && m.indicateur_id !== curInd) return false;
+      if (term && !(`${m.nom_metrique} ${m.indicateur_nom}`.toLowerCase().includes(term))) return false;
+      return true;
+    });
+  });
 
   // Programmation annuelle via OperationAnnee[]
   years: number[] = [];
@@ -333,7 +441,7 @@ export class OperationFormComponent implements OnInit {
       frequence_unite: [null],
       operateurs: [''],
       partenaires: [''],
-      financeurs: [''],
+      // #343 — financeur textuel supprimé au profit des financeurs structurés (libellé + catégorie)
       // Détails
       description: [''],
       // Hidden but kept for backwards compat
@@ -386,6 +494,13 @@ export class OperationFormComponent implements OnInit {
       }
     }
 
+    // #367 — rattachement direct à un indicateur (action créée sans métrique).
+    const indicateurIdStr = this.route.snapshot.queryParamMap.get('indicateurId');
+    if (indicateurIdStr) {
+      const id = parseInt(indicateurIdStr, 10);
+      if (!isNaN(id)) this.prelinkedIndicateurId.set(id);
+    }
+
     const returnEnjeu = this.route.snapshot.queryParamMap.get('returnEnjeu');
     if (returnEnjeu) {
       this.returnEnjeuSlug.set(returnEnjeu);
@@ -431,7 +546,7 @@ export class OperationFormComponent implements OnInit {
           this.enjeuService.getPlanEnjeux(plan.id_pg).subscribe({
             next: (response) => {
               const indicateurs: { id_indicateur: number; nom_indicateur: string }[] = [];
-              const metriques: { id_metrique: number; nom_metrique: string; indicateur_nom: string }[] = [];
+              const metriques: { id_metrique: number; nom_metrique: string; indicateur_nom: string; indicateur_id: number }[] = [];
 
               const allEnjeux = [...(response.enjeux || []), ...(response.fcr || [])];
               const seenIndicateurs = new Set<number>();
@@ -447,7 +562,8 @@ export class OperationFormComponent implements OnInit {
                   metriques.push({
                     id_metrique: met.id_metrique,
                     nom_metrique: met.nom_metrique,
-                    indicateur_nom: ind.nom_indicateur
+                    indicateur_nom: ind.nom_indicateur,
+                    indicateur_id: ind.id_indicateur
                   });
                 }
               };
@@ -633,9 +749,13 @@ export class OperationFormComponent implements OnInit {
       frequence_unite: op.frequence_unite || null,
       operateurs: op.operateurs || '',
       partenaires: op.partenaires || '',
-      financeurs: op.financeurs || '',
       metrique_ids: op.metrique_ids || []
     });
+
+    // #367 — conserver le rattachement direct à un indicateur (action sans métrique).
+    if ((op as any).id_indicateur) {
+      this.prelinkedIndicateurId.set((op as any).id_indicateur);
+    }
 
     // Restore type action autocomplete
     if (op.id_type_action) {
@@ -659,8 +779,11 @@ export class OperationFormComponent implements OnInit {
           nom_complet: name,
         }));
       }
-      // Parse habitat references
-      if (suivi.habitat_ref) {
+      // Habitats : on privilégie la liste structurée (avec cd_hab, nécessaire
+      // aux correspondances), sinon on retombe sur le texte `habitat_ref`.
+      if (Array.isArray(suivi.habitats) && suivi.habitats.length > 0) {
+        this.habitatItems = suivi.habitats.map((h: any) => ({ cd_hab: h.cd_hab ?? '', lb_hab_fr: h.lb_hab_fr ?? '', lb_code: h.lb_code, lb_typo: h.lb_typo, lb_hab_fr_complet: h.lb_hab_fr_complet }));
+      } else if (suivi.habitat_ref) {
         this.habitatItems = suivi.habitat_ref.split(',').map((s: string) => s.trim()).filter((s: string) => s).map((name: string) => ({
           cd_hab: '',
           lb_hab_fr: name,
@@ -890,7 +1013,17 @@ export class OperationFormComponent implements OnInit {
   /** Bouton "+ Ajouter un indicateur de réponse" : crée Indicateur + Métrique côté backend. */
   addResponseIndicator(): void {
     const opId = this.operationId();
-    if (!opId) return;
+    if (!opId) {
+      // En création : l'action n'existe pas encore côté serveur. On collecte
+      // l'indicateur de réponse en mémoire ; il sera créé à l'enregistrement.
+      this.pendingResponseIndicators.push({
+        nom_indicateur: this.translate.instant('enjeux.operations.newIndicatorDefault'),
+        nom_metrique: this.translate.instant('enjeux.operations.newIndicatorDefault'),
+        type_metrique_id: null,
+        valeur_cible: '',
+      });
+      return;
+    }
     const defaultNom = this.translate.instant('enjeux.operations.newIndicatorDefault');
     this.enjeuService.createOperationResponseIndicator(opId, {
       nom_indicateur: defaultNom,
@@ -904,6 +1037,8 @@ export class OperationFormComponent implements OnInit {
           nom_metrique: created.nom_metrique,
           indicateur_id: created.id_indicateur,
           indicateur_nom: created.nom_indicateur,
+          // create-indicator crée toujours un indicateur de type REPONSE.
+          indicateur_type: 'REPONSE',
           etat_reference: created.etat_reference,
           type_metrique_id: created.type_metrique,
           type_metrique_label: null,
@@ -940,6 +1075,11 @@ export class OperationFormComponent implements OnInit {
         { duration: 4000 },
       ),
     });
+  }
+
+  /** Retire un indicateur de réponse en attente (création, non encore enregistré). */
+  removePendingResponseIndicator(index: number): void {
+    this.pendingResponseIndicators.splice(index, 1);
   }
 
   /** Sauvegarde le titre de l'indicateur (on blur de l'input). */
@@ -1040,7 +1180,22 @@ export class OperationFormComponent implements OnInit {
         suiviData['taxon_taxref'] = this.taxonItems.map(t => t.nom_complet || String(t.cd_nom)).join(', ');
       }
       if (this.habitatItems.length > 0) {
+        // `habitat_ref` (noms) conservé pour l'affichage hérité ; `habitats`
+        // (structuré, avec cd_hab) permet d'afficher les correspondances.
         suiviData['habitat_ref'] = this.habitatItems.map(h => h.lb_hab_fr || h.cd_hab).join(', ');
+        // #368 — on conserve aussi les habitats « libres » (sans cd_hab, ex. Outre-mer) :
+        // cd_hab=null + libellé saisi. On ne garde que les entrées ayant un code OU un libellé.
+        suiviData['habitats'] = this.habitatItems
+          .filter(h => h.cd_hab || (h.lb_hab_fr || '').trim())
+          .map(h => ({
+            cd_hab: h.cd_hab || null,
+            lb_hab_fr: h.lb_hab_fr,
+            lb_code: h.lb_code,
+            lb_typo: h.lb_typo,
+            lb_hab_fr_complet: h.lb_hab_fr_complet,
+          }));
+      } else {
+        suiviData['habitats'] = [];
       }
       const dateLancement = this.formatDate(rawFv.date_lancement_suivi);
       if (dateLancement) suiviData['date_lancement_suivi'] = dateLancement;
@@ -1076,8 +1231,10 @@ export class OperationFormComponent implements OnInit {
     if (fv.frequence_unite) payload.frequence_unite = fv.frequence_unite;
     if (fv.operateurs?.trim()) payload.operateurs = fv.operateurs.trim();
     if (fv.partenaires?.trim()) payload.partenaires = fv.partenaires.trim();
-    if (fv.financeurs?.trim()) payload.financeurs = fv.financeurs.trim();
+    // #343 — financeur textuel supprimé : on n'envoie plus le champ libre (financeurs structurés via `finances`).
     if (fv.metrique_ids?.length) payload.metrique_ids = fv.metrique_ids;
+    // #367 — rattachement direct à un indicateur (quand l'action n'a pas de métrique).
+    if (this.prelinkedIndicateurId()) payload.id_indicateur = this.prelinkedIndicateurId();
 
     // Sites
     const siteIds = Object.entries(this.selectedSiteIds)
@@ -1171,6 +1328,13 @@ export class OperationFormComponent implements OnInit {
         }));
     }
 
+    // Emprise spatiale (#342) : incluse uniquement si modifiée localement
+    // (undefined = on ne touche pas au serveur ; null = effacement explicite).
+    const pendingEmprise = this.pendingEmprise();
+    if (pendingEmprise !== undefined) {
+      payload.geom_geojson = pendingEmprise;
+    }
+
     return payload;
   }
 
@@ -1219,18 +1383,46 @@ export class OperationFormComponent implements OnInit {
     } else {
       this.enjeuService.createOperation(payload).subscribe({
         next: (created) => {
-          this.isLoading.set(false);
-          this.snackBar.open(
-            this.translate.instant(successKey),
-            this.translate.instant('common.actions.close'),
-            { duration: 3000 }
-          );
-          this.enjeuService.refreshCurrentPlanEnjeux();
-          if (opts.stayOnForm && created?.id_operation) {
-            this.navigateToEdit(created.id_operation);
-          } else {
-            this.navigateAfterCreate(created?.id_operation ?? null);
-          }
+          const newOpId = created?.id_operation ?? null;
+          // Créer les indicateurs de réponse saisis avant l'enregistrement.
+          const pending = this.pendingResponseIndicators;
+          const createPending$: Observable<unknown> = (newOpId && pending.length > 0)
+            ? forkJoin(pending.map(pi => this.enjeuService.createOperationResponseIndicator(newOpId, {
+                nom_indicateur: (pi.nom_indicateur || '').trim() || this.translate.instant('enjeux.operations.newIndicatorDefault'),
+                nom_metrique: (pi.nom_metrique || '').trim() || undefined,
+                type_metrique_id: pi.type_metrique_id ?? undefined,
+                valeur_cible: (pi.valeur_cible || '').trim() || undefined,
+              })))
+            : of(null);
+
+          createPending$.subscribe({
+            next: () => {
+              this.pendingResponseIndicators = [];
+              this.isLoading.set(false);
+              this.snackBar.open(
+                this.translate.instant(successKey),
+                this.translate.instant('common.actions.close'),
+                { duration: 3000 }
+              );
+              this.enjeuService.refreshCurrentPlanEnjeux();
+              if (opts.stayOnForm && newOpId) {
+                this.navigateToEdit(newOpId);
+              } else {
+                this.navigateAfterCreate(newOpId);
+              }
+            },
+            error: () => {
+              // L'action est créée ; seul l'ajout d'un indicateur a échoué.
+              this.isLoading.set(false);
+              this.snackBar.open(
+                this.translate.instant('enjeux.operations.indicateursAddError'),
+                this.translate.instant('common.actions.close'),
+                { duration: 4000 }
+              );
+              this.enjeuService.refreshCurrentPlanEnjeux();
+              if (newOpId) this.navigateToEdit(newOpId);
+            },
+          });
         },
         error: (error) => {
           this.isLoading.set(false);
@@ -1490,7 +1682,9 @@ export class OperationFormComponent implements OnInit {
         } else {
           this.taxonItems = [];
         }
-        if (detail.habitat_ref) {
+        if (Array.isArray(detail.habitats) && detail.habitats.length > 0) {
+          this.habitatItems = detail.habitats.map((h: any) => ({ cd_hab: h.cd_hab ?? '', lb_hab_fr: h.lb_hab_fr ?? '', lb_code: h.lb_code, lb_typo: h.lb_typo, lb_hab_fr_complet: h.lb_hab_fr_complet }));
+        } else if (detail.habitat_ref) {
           this.habitatItems = detail.habitat_ref.split(',').map(s => s.trim()).filter(s => s).map(name => ({
             cd_hab: '',
             lb_hab_fr: name,
@@ -1871,41 +2065,86 @@ export class OperationFormComponent implements OnInit {
     }
   }
 
+  /**
+   * #374 — Une année dont la périodicité n'est pas cochée n'est pas programmée :
+   * on grise et on verrouille la saisie de budget / ETP de cette colonne.
+   */
+  isYearLocked(index: number): boolean {
+    return !this.operationAnnees[index]?.periodicite;
+  }
+
   updateBudget(index: number, value: string): void {
     this.operationAnnees[index].budget = this.parseDecimal(value);
   }
 
   /**
-   * Retourne le pas entre années cochées selon l'unité de fréquence.
-   * - AN : tous les ans (pas = 1)
-   * - 2_ANS : tous les 2 ans (pas = 2)
-   * - 5_ANS : tous les 5 ans (pas = 5)
-   * - 10_ANS : tous les 10 ans (pas = 10)
-   * - autres (JOUR, MOIS, TRIMESTRE...) : tous les ans (pas = 1)
+   * #374 — Ouvre la modale « Appliquer aux années » : l'utilisateur choisit
+   * l'année et le mois de départ, prévisualise les occurrences calculées selon
+   * la fréquence, les ajuste si besoin, puis valide. La périodicité annuelle et
+   * la périodicité mensuelle récurrente sont alors **remplacées** par la sélection.
+   * (Remplace l'ancien auto-calcul `i % step` ancré à la 1re année du plan, qui
+   * décalait les ronds — on ne devine plus l'ancrage.)
    */
-  private getYearStepFromFrequence(unite: string | null): number {
-    if (!unite) return 0;
-    const u = unite.toLowerCase();
-    if (u === '2_ans') return 2;
-    if (u === '5_ans') return 5;
-    if (u === '10_ans') return 10;
-    // Pour tout intervalle infra-annuel (jour, mois, trimestre, an), l'action se produit chaque année
-    return 1;
+  applyFrequencyToAnnees(): void {
+    if (this.operationAnnees.length === 0) return;
+
+    // Départ proposé par défaut : 1re année saisie (budget/ETP) ou déjà cochée, sinon la 1re.
+    let defaultStartYearIndex = this.operationAnnees.findIndex((_, i) => this.anneeIndexHasData(i));
+    if (defaultStartYearIndex < 0) {
+      defaultStartYearIndex = this.operationAnnees.findIndex(a => a.periodicite);
+    }
+    if (defaultStartYearIndex < 0) defaultStartYearIndex = 0;
+
+    // Mois de départ par défaut : 1er mois récurrent déjà coché, sinon janvier.
+    let defaultStartMonth = 1;
+    for (const m of this.months) {
+      if (this.programmationMensuelleDefaut[m.toString()]) { defaultStartMonth = m; break; }
+    }
+
+    const ref = this.dialog.open(FrequencyApplyDialogComponent, {
+      width: '640px',
+      maxWidth: '95vw',
+      data: {
+        years: this.operationAnnees.map(a => a.annee),
+        monthLabels: this.monthLabels,
+        frequenceNombre: this.form.get('frequence_nombre')?.value ?? null,
+        frequenceUnite: this.form.get('frequence_unite')?.value ?? null,
+        defaultStartYearIndex,
+        defaultStartMonth,
+      },
+    });
+
+    ref.afterClosed().subscribe((result: FrequencyApplyDialogResult | null) => {
+      if (!result) return;
+      // Remplace la périodicité annuelle.
+      this.operationAnnees.forEach((annee, i) => {
+        annee.periodicite = !!result.yearFlags[i];
+      });
+      // Remplace la périodicité mensuelle récurrente (mêmes mois chaque année).
+      this.programmationMensuelleDefaut = { ...result.monthFlags };
+    });
   }
 
   /**
-   * Applique la fréquence (frequence_nombre + frequence_unite) aux années :
-   * coche periodicite=true sur les années correspondantes à partir de la 1ère année du plan.
-   * Appelé quand l'utilisateur change l'unité de fréquence ou clique sur "Appliquer".
+   * #374 — Une année est considérée « saisie » si un budget ou un nombre de jours
+   * (ETP) y a été renseigné, quel que soit le mode de ventilation (direct, par
+   * organisme, par type, par organisme+type).
    */
-  applyFrequencyToAnnees(): void {
-    const unite = this.form.get('frequence_unite')?.value;
-    const step = this.getYearStepFromFrequence(unite);
-    if (step === 0 || this.operationAnnees.length === 0) return;
-
-    for (let i = 0; i < this.operationAnnees.length; i++) {
-      this.operationAnnees[i].periodicite = (i % step === 0);
+  private anneeIndexHasData(i: number): boolean {
+    const dt = this.directTotals[i];
+    if (dt && (dt.budget != null || dt.etp != null)) return true;
+    const tb = this.typeBudgets[i];
+    if (tb && (tb.fonct != null || tb.invest != null || tb.etp != null)) return true;
+    const oa = this.operationAnnees[i];
+    if (oa && (oa.budget != null || oa.etp != null || oa.budget_fonctionnement != null || oa.budget_investissement != null)) return true;
+    for (const org of this.availableOrganismes()) {
+      const key = this.orgKey(i, org.id_organisme);
+      const ob = this.orgBudgets[key];
+      if (ob && (ob.fonct != null || ob.invest != null || ob.etp != null)) return true;
+      const obo = this.orgByOrgData[key];
+      if (obo && (obo.budget != null || obo.etp != null)) return true;
     }
+    return false;
   }
 
   updateEtp(index: number, value: string): void {

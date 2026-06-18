@@ -49,8 +49,11 @@ export class RegisterComponent implements OnInit {
   hideConfirmPassword = signal(true);
   errorMessage = signal<string | null>(null);
   isLoading = signal(false);
+  submitAttempted = signal(false);
   organismes = signal<OrganismeOption[]>([]);
   filteredOrganismes = signal<OrganismeOption[]>([]);
+  /** Mode « créer un nouvel organisme » (l'organisme du demandeur n'existe pas). */
+  creatingOrganisme = signal(false);
 
   constructor() {
     this.registerForm = this.fb.group({
@@ -61,8 +64,66 @@ export class RegisterComponent implements OnInit {
       nom: ['', [Validators.required, Validators.maxLength(50)]],
       prenom: ['', [Validators.required, Validators.maxLength(50)]],
       organisme: [null, [Validators.required, this.organismeSelectedValidator]],
+      // Sous-formulaire « nouvel organisme » (calqué sur le formulaire admin).
+      // Les validators required sont activés dynamiquement en mode création.
+      newOrganisme: this.fb.group({
+        nom_organisme: ['', [Validators.maxLength(255)]],
+        parent_id: [null],
+        adresse_organisme: ['', [Validators.maxLength(255)]],
+        cp_organisme: ['', [Validators.maxLength(10), Validators.pattern(/^\d{5}$/)]],
+        ville_organisme: ['', [Validators.maxLength(100)]],
+        tel_organisme: ['', [Validators.maxLength(20)]],
+        email_organisme: ['', [Validators.email, Validators.maxLength(255)]],
+        url_organisme: ['', [Validators.maxLength(255)]],
+      }),
       justification: ['', [Validators.maxLength(1000)]]
     }, { validators: this.passwordMatchValidator });
+  }
+
+  /**
+   * Bascule entre « choisir un organisme existant » et « créer un nouvel organisme ».
+   * Active/désactive les validators en conséquence.
+   */
+  toggleCreateOrganisme(create: boolean): void {
+    const organisme = this.registerForm.get('organisme')!;
+    const newOrg = this.registerForm.get('newOrganisme') as FormGroup;
+    const nom = newOrg.get('nom_organisme')!;
+
+    if (create) {
+      organisme.clearValidators();
+      organisme.setValue(null);
+      organisme.disable();
+      nom.setValidators([Validators.required, Validators.maxLength(255)]);
+    } else {
+      organisme.enable();
+      organisme.setValidators([Validators.required, this.organismeSelectedValidator]);
+      nom.setValidators([Validators.maxLength(255)]);
+      newOrg.reset({ parent_id: null });
+    }
+    organisme.updateValueAndValidity();
+    nom.updateValueAndValidity();
+    this.creatingOrganisme.set(create);
+  }
+
+  /** Message d'erreur d'un champ du sous-formulaire « nouvel organisme ». */
+  newOrgError(name: string): string | null {
+    const control = this.registerForm.get(['newOrganisme', name]);
+    if (!control || (!control.touched && !this.submitAttempted()) || !control.errors) {
+      return null;
+    }
+    const t = (key: string, params?: object) => this.translate.instant(key, params);
+    const errors = control.errors;
+    if (name === 'nom_organisme') {
+      if (errors['required']) return t('common.validation.required');
+      if (errors['maxlength']) return t('common.validation.maxLength', { max: 255 });
+    }
+    if (name === 'cp_organisme' && errors['pattern']) {
+      return t('modals.organismeForm.validation.postalCodeInvalid');
+    }
+    if (name === 'email_organisme' && errors['email']) {
+      return t('common.validation.email');
+    }
+    return null;
   }
 
   ngOnInit(): void {
@@ -136,6 +197,56 @@ export class RegisterComponent implements OnInit {
     return null;
   }
 
+  /**
+   * Retourne le message d'erreur traduit d'un champ, ou null si le champ est valide.
+   * Le message n'apparaît qu'une fois le champ "touché" ou après une tentative d'envoi,
+   * pour ne pas afficher des erreurs sur un formulaire vierge.
+   */
+  fieldError(name: string): string | null {
+    const control = this.registerForm.get(name);
+    if (!control || (!control.touched && !this.submitAttempted())) {
+      return null;
+    }
+    const t = (key: string, params?: object) => this.translate.instant(key, params);
+
+    // Cas particulier : la concordance est une erreur de niveau formulaire.
+    if (name === 'confirmPassword') {
+      if (control.hasError('required')) return t('auth.register.errors.confirmPasswordRequired');
+      if (this.registerForm.hasError('passwordMismatch')) return t('auth.register.errors.passwordMismatch');
+      return null;
+    }
+
+    const errors = control.errors;
+    if (!errors) return null;
+
+    switch (name) {
+      case 'prenom':
+        if (errors['required']) return t('auth.register.errors.firstNameRequired');
+        if (errors['maxlength']) return t('auth.register.errors.maxLength', { max: 50 });
+        break;
+      case 'nom':
+        if (errors['required']) return t('auth.register.errors.lastNameRequired');
+        if (errors['maxlength']) return t('auth.register.errors.maxLength', { max: 50 });
+        break;
+      case 'email':
+        if (errors['required']) return t('auth.register.errors.emailRequired');
+        if (errors['email']) return t('auth.register.errors.emailInvalid');
+        break;
+      case 'password':
+        if (errors['required']) return t('auth.register.errors.passwordRequired');
+        if (errors['minlength']) return t('auth.register.errors.passwordMinLength');
+        break;
+      case 'organisme':
+        if (errors['required']) return t('auth.register.errors.organismeRequired');
+        if (errors['organismeNotSelected']) return t('auth.register.errors.organismeNotSelected');
+        break;
+      case 'justification':
+        if (errors['maxlength']) return t('auth.register.errors.maxLength', { max: 1000 });
+        break;
+    }
+    return null;
+  }
+
   togglePasswordVisibility(): void {
     this.hidePassword.update(value => !value);
   }
@@ -145,25 +256,45 @@ export class RegisterComponent implements OnInit {
   }
 
   onSubmit(): void {
+    this.submitAttempted.set(true);
+
     if (this.registerForm.invalid) {
       this.registerForm.markAllAsTouched();
+      this.errorMessage.set(this.translate.instant('auth.register.errors.formInvalid'));
       return;
     }
 
     this.errorMessage.set(null);
     this.isLoading.set(true);
 
-    const formValue = this.registerForm.value;
-    const payload = {
+    const formValue = this.registerForm.getRawValue();
+    const payload: Record<string, unknown> = {
       email: formValue.email,
       identifiant: (formValue.identifiant || '').trim(),
       password: formValue.password,
       password_confirm: formValue.confirmPassword,
       nom_role: formValue.nom,
       prenom_role: formValue.prenom,
-      requested_organisme_id: formValue.organisme?.id_organisme ?? formValue.organisme?.id ?? null,
       justification: formValue.justification || ''
     };
+
+    if (this.creatingOrganisme()) {
+      // Demande de création d'un nouvel organisme (envoyée au super admin)
+      const no = formValue.newOrganisme;
+      payload['new_organisme'] = {
+        nom_organisme: no.nom_organisme,
+        parent_id: no.parent_id ?? null,
+        adresse_organisme: no.adresse_organisme || '',
+        cp_organisme: no.cp_organisme || '',
+        ville_organisme: no.ville_organisme || '',
+        tel_organisme: no.tel_organisme || '',
+        email_organisme: no.email_organisme || '',
+        url_organisme: no.url_organisme || ''
+      };
+    } else {
+      payload['requested_organisme_id'] =
+        formValue.organisme?.id_organisme ?? formValue.organisme?.id ?? null;
+    }
 
     this.http.post('/api/auth/register/', payload)
       .subscribe({

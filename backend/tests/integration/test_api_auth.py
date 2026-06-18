@@ -771,3 +771,106 @@ class TestPublicStats:
         assert response.data['organismes_count'] >= 2
         # Only valid plans should be counted, not drafts
         assert response.data['plans_count'] >= 2
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+class TestPasswordReset:
+    """Tests for the forgotten-password flow (#329)."""
+
+    REQUEST_URL = '/api/auth/password-reset/'
+    CONFIRM_URL = '/api/auth/password-reset/confirm/'
+
+    def _uid_token(self, user):
+        from django.contrib.auth.tokens import default_token_generator
+        from django.utils.encoding import force_bytes
+        from django.utils.http import urlsafe_base64_encode
+        return (
+            urlsafe_base64_encode(force_bytes(user.pk)),
+            default_token_generator.make_token(user),
+        )
+
+    def test_request_existing_email_enqueues_email(self, api_client, user_with_password):
+        """Une adresse connue déclenche l'envoi du mail de réinitialisation."""
+        from unittest.mock import patch
+        with patch('apps.notifications.tasks.send_password_reset_email.delay') as mock_delay:
+            response = api_client.post(
+                self.REQUEST_URL, {'email': user_with_password.email}, format='json'
+            )
+        assert response.status_code == status.HTTP_200_OK
+        mock_delay.assert_called_once()
+        # Le lien transmis pointe vers la page frontend de réinitialisation.
+        sent_url = mock_delay.call_args[0][1]
+        assert '/auth/reset-password?uid=' in sent_url and 'token=' in sent_url
+
+    def test_request_unknown_email_no_email_same_response(self, api_client):
+        """Une adresse inconnue renvoie la même réponse, sans envoyer d'email."""
+        from unittest.mock import patch
+        with patch('apps.notifications.tasks.send_password_reset_email.delay') as mock_delay:
+            response = api_client.post(
+                self.REQUEST_URL, {'email': 'inconnu@test.fr'}, format='json'
+            )
+        assert response.status_code == status.HTTP_200_OK
+        mock_delay.assert_not_called()
+
+    def test_request_inactive_user_no_email(self, api_client, user_with_password):
+        """Un compte désactivé ne reçoit pas d'email de réinitialisation."""
+        from unittest.mock import patch
+        user_with_password.active = False
+        user_with_password.save(update_fields=['active'])
+        with patch('apps.notifications.tasks.send_password_reset_email.delay') as mock_delay:
+            response = api_client.post(
+                self.REQUEST_URL, {'email': user_with_password.email}, format='json'
+            )
+        assert response.status_code == status.HTTP_200_OK
+        mock_delay.assert_not_called()
+
+    def test_confirm_valid_token_sets_password(self, api_client, user_with_password):
+        """Un jeton valide applique le nouveau mot de passe."""
+        uid, token = self._uid_token(user_with_password)
+        response = api_client.post(
+            self.CONFIRM_URL,
+            {'uid': uid, 'token': token, 'new_password': 'NouveauPass123!'},
+            format='json',
+        )
+        assert response.status_code == status.HTTP_200_OK
+        user_with_password.refresh_from_db()
+        assert user_with_password.check_password('NouveauPass123!')
+
+    def test_confirm_invalid_token_rejected(self, api_client, user_with_password):
+        """Un jeton invalide est rejeté (400) et le mot de passe est inchangé."""
+        uid, _token = self._uid_token(user_with_password)
+        response = api_client.post(
+            self.CONFIRM_URL,
+            {'uid': uid, 'token': 'invalide-xxxx', 'new_password': 'NouveauPass123!'},
+            format='json',
+        )
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        user_with_password.refresh_from_db()
+        assert user_with_password.check_password('TestPassword123!')
+
+    def test_confirm_token_single_use(self, api_client, user_with_password):
+        """Le jeton n'est plus valide après une réinitialisation réussie."""
+        uid, token = self._uid_token(user_with_password)
+        first = api_client.post(
+            self.CONFIRM_URL,
+            {'uid': uid, 'token': token, 'new_password': 'NouveauPass123!'},
+            format='json',
+        )
+        assert first.status_code == status.HTTP_200_OK
+        second = api_client.post(
+            self.CONFIRM_URL,
+            {'uid': uid, 'token': token, 'new_password': 'EncoreAutre123!'},
+            format='json',
+        )
+        assert second.status_code == status.HTTP_400_BAD_REQUEST
+
+    def test_confirm_short_password_rejected(self, api_client, user_with_password):
+        """Un mot de passe trop court (<8) est rejeté."""
+        uid, token = self._uid_token(user_with_password)
+        response = api_client.post(
+            self.CONFIRM_URL,
+            {'uid': uid, 'token': token, 'new_password': 'court'},
+            format='json',
+        )
+        assert response.status_code == status.HTTP_400_BAD_REQUEST

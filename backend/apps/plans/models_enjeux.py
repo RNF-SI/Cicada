@@ -675,6 +675,10 @@ class ObjectifOperationnel(models.Model):
     Objectif opérationnel (OO) lié à une ou plusieurs pressions (M2M).
     Décrit les résultats concrets attendus pendant la durée du plan de gestion.
     Hiérarchie : Enjeu → FacteurInfluence → Pression ↔ OO (M2M) → ResultatAttendu.
+
+    #337 — Pour un FCR (qui n'a ni facteur d'influence ni pression), l'OO peut
+    être rattaché directement à l'enjeu/FCR via ``id_enjeu`` (sans pression).
+    Un OO a donc soit des pressions (cas Enjeu), soit un enjeu direct (cas FCR).
     """
 
     id_oo = models.AutoField(primary_key=True)
@@ -685,6 +689,17 @@ class ObjectifOperationnel(models.Model):
         blank=True,
         verbose_name=_("Pressions"),
         help_text=_("Pressions liées à cet objectif opérationnel")
+    )
+    # #337 — Rattachement direct à un enjeu/FCR sans pression préalable.
+    id_enjeu = models.ForeignKey(
+        Enjeu,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name='objectifs_operationnels_directs',
+        db_column='id_enjeu',
+        verbose_name=_("Enjeu (rattachement direct)"),
+        help_text=_("Rattachement direct à un enjeu/FCR sans passer par une pression (#337)")
     )
     libelle = models.CharField(
         _("Intitulé"),
@@ -741,12 +756,15 @@ class ObjectifOperationnel(models.Model):
         """
         Implémente l'interface utilisée par CanModifyOnlyDraftPlan (#248).
         Un OO est rattaché à des pressions via M2M : on remonte au plan via
-        la première pression rattachée.
+        la première pression rattachée. #337 — à défaut de pression (cas FCR),
+        on remonte au plan via l'enjeu rattaché directement.
         """
         first_pression = self.pressions.first()
-        if first_pression is None:
-            return None
-        return first_pression.get_plan_de_gestion()
+        if first_pression is not None:
+            return first_pression.get_plan_de_gestion()
+        if self.id_enjeu_id:
+            return self.id_enjeu.id_pg
+        return None
 
 
 class ResultatAttendu(models.Model):
@@ -1063,10 +1081,16 @@ class CorEnjeuHabitat(models.Model):
         db_column='id_enjeu',
         verbose_name=_("Enjeu")
     )
+    # #368 — cd_hab nullable : un habitat « libre » (hors HabRef, ex. Outre-mer)
+    # est saisi sans code, seul `lb_hab_fr` est renseigné. Postgres autorise
+    # plusieurs lignes à cd_hab NULL pour un même enjeu (NULL distincts dans la
+    # contrainte d'unicité), donc plusieurs habitats libres sont possibles.
     cd_hab = models.CharField(
         _("cd_hab"),
         max_length=50,
-        help_text=_("Identifiant HabRef de l'habitat")
+        blank=True,
+        null=True,
+        help_text=_("Identifiant HabRef de l'habitat (vide pour un habitat saisi librement, #368)")
     )
     # Champ dénormalisé pour l'affichage
     lb_hab_fr = models.CharField(

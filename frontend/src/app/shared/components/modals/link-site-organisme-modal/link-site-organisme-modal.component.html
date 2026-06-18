@@ -107,6 +107,10 @@
 
           <div class="add-site-form">
             <label class="app-mat-label">Rechercher un site</label>
+      <!-- #331 — Recherche conservée en mat-autocomplete (typeahead avec liste de
+           résultats sélectionnables) : pattern volontairement distinct de la barre
+           de filtre unifiée SearchBarComponent (#298), qui ne propose pas de
+           suggestions. L'harmonisation #331 ne s'applique donc pas ici. -->
       <mat-form-field class="app-mat-form-field site-search-field" appearance="outline">
               <mat-label></mat-label>
               <input

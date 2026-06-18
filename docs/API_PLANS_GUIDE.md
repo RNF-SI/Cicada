@@ -41,6 +41,9 @@ Guide complet de l'API REST pour la gestion des Plans de Gestion des espaces nat
 | POST | `/api/plans/plans/{id}/remove-extension/` | Retirer l'extension |
 | POST | `/api/plans/plans/{id}/start-revision/` | Marquer en cours de révision (`en_revision`) |
 | POST | `/api/plans/plans/{id}/end-revision/` | Annuler la révision |
+| POST | `/api/plans/plans/{id}/delete-version/` | Supprimer une version de la chaîne (#348) |
+
+> **Copie du contenu et des métadonnées (#377)** : `duplicate`, `create-evaluation` et `create-next-rang` copient **tout** le contenu du plan source (enjeux + hiérarchie complète, suivis/inventaires, opérations, blocs de score) **et toutes ses métadonnées** (dont les validations administratives CSRPN), afin que la nouvelle version soit éditable **sans impacter** les versions précédentes. Seul le `statut` n'est pas copié (repart en `draft`). Données empiriques (mesures, réalisations) exclues. Voir §15.
 
 ### Statuts et attributs orthogonaux
 
@@ -724,24 +727,34 @@ curl -X POST http://localhost:8000/api/plans/plans/1/create-evaluation/ \
 {"error": "Le plan doit être validé pour créer une évaluation"}
 ```
 
-### 15. Duplication d'un plan
+### 15. Duplication d'un plan / nouvelle version
 
 **POST /api/plans/plans/{id}/duplicate/**
 
-Crée une copie du plan avec les options sélectionnées.
+Crée une **nouvelle version** (brouillon enfant, même rang) à partir d'un plan
+validé (`valide` / `modifie` / `archive`), avec les options sélectionnées.
 
-**Permission** : admin_og ou super_admin
+**Permission** : référent du plan, admin_og ou super_admin.
+**Précondition** : pas de brouillon enfant déjà ouvert (`has_draft_child`).
+
+| Option | Défaut | Description |
+|--------|--------|-------------|
+| `copy_sites` | `true` | Copier les associations site ↔ plan |
+| `copy_referents` | `true` | Copier les référents |
+| `copy_fichiers` | `false` | Copier les fichiers (métadonnées + fichiers physiques) |
+| `copy_enjeux` | `true` | Copier les enjeux/FCR et leurs liens (taxon/habitat/géologie) |
+| `copy_sub_elements` | `true` | Copier toute la hiérarchie sous les enjeux (nécessite `copy_enjeux`) |
 
 ```bash
 curl -X POST http://localhost:8000/api/plans/plans/1/duplicate/ \
   -H "Authorization: Bearer {token}" \
   -H "Content-Type: application/json" \
   -d '{
-    "include_enjeux": true,
-    "include_olt": true,
-    "include_oo": true,
-    "include_sites": true,
-    "include_referents": true
+    "copy_sites": true,
+    "copy_referents": true,
+    "copy_fichiers": false,
+    "copy_enjeux": true,
+    "copy_sub_elements": true
   }'
 ```
 
@@ -749,11 +762,78 @@ curl -X POST http://localhost:8000/api/plans/plans/1/duplicate/ \
 ```json
 {
   "id_pg": 6,
-  "nom": "[Copie] Plan de gestion 2020-2030 - Camargue",
-  "slug": "copie-plan-gestion-2020-2030-camargue",
-  "statut": "draft"
+  "nom": "[En cours d'élaboration] Plan de gestion 2020-2030 - Camargue",
+  "slug": "en-cours-d-elaboration-plan-gestion-2020-2030-camargue",
+  "statut": "draft",
+  "version": "3"
 }
 ```
+
+#### Copie complète du contenu (#377)
+
+Quand `copy_enjeux` + `copy_sub_elements` sont actifs (cas par défaut, utilisé
+par « Créer une nouvelle version » dans l'UI), la copie est **profonde et
+intégrale** : chaque élément du plan est cloné en une nouvelle entité
+indépendante, et tous les liens internes sont re-câblés vers les copies. La
+nouvelle version peut donc être éditée **sans aucun impact** sur les versions
+précédentes.
+
+Éléments copiés :
+- **Enjeux / FCR** (tous les axes et champs) + liens taxon / habitat / géologie ;
+- **Hiérarchie** : facteurs d'influence → pressions → objectifs opérationnels
+  (dédupliqués) → résultats attendus, et OLT → niveaux d'exigence ;
+- **Indicateurs** (+ liens taxon/habitat/géologie) ;
+- **Métriques** : tous les champs (seuils, `ordre`, `inactive_levels`,
+  parenthésage) **+ blocs de score complémentaires** (`MetriqueScoreBlock`, #247) ;
+- **Suivis / inventaires** du plan ;
+- **Opérations** (actions) : re-reliées aux **nouveaux** indicateurs et
+  métriques, avec leurs années de programmation (+ ventilation par organisme),
+  financements et sites.
+
+Éléments **volontairement exclus** (propres à la version source) : les données
+empiriques — mesures (`Mesure`), saisies annuelles d'indicateurs
+(`IndicateurMesure`) et réalisations (`RealisationOperationAnnee`).
+
+#### Copie des métadonnées du plan
+
+Le nouveau plan copie aussi **toutes les métadonnées** du plan source — y
+compris les **validations administratives CSRPN** (`date_avis_csrpn`,
+`date_validation_comite`, `date_arrete_pref`, `numero_arrete_pref`,
+`validation_step`), ainsi que `id_cdr`, années, surface, rédacteurs/relecteurs,
+commentaire, type de document, etc. (helper `build_version_plan`).
+
+**Seul le `statut` n'est pas copié** : la nouvelle version repart en `draft`.
+Les attributs orthogonaux de cycle de vie ne sont pas hérités non plus
+(`is_mi_parcours`, `en_revision`, `annees_extension`, `next_rang_plan` repartent
+à zéro) ; `geometrie` est recalculée depuis les sites.
+
+> Les actions `create-evaluation` (évaluation mi-parcours) et `create-next-rang`
+> (rang suivant) appliquent la **même copie complète** (contenu via
+> `copy_content()` + métadonnées via `build_version_plan()`).
+
+### 16. Suppression d'une version (#348)
+
+**POST /api/plans/plans/{id}/delete-version/**
+
+Supprime définitivement une version (plan) de la chaîne. Utilisé par la page
+« Paramètres du plan de gestion » (accessible via la sidebar « Vue d'ensemble »
+pour les gestionnaires).
+
+**Permission** : référent du plan, admin_og ou super_admin.
+
+Effets :
+- Suppression du plan et, par CASCADE, de ses liens (sites, membres, référents,
+  organismes, fichiers) **et de son contenu** (enjeux, opérations, suivis). Les
+  sites / utilisateurs / organismes eux-mêmes ne sont pas supprimés.
+- **Réparation de la chaîne** : les enfants directs sont re-rattachés au parent
+  du plan supprimé, puis les versions du/des rang(s) impacté(s) sont
+  **renumérotées** de façon contiguë (1..N).
+- Notification des acteurs liés.
+
+Supprimer la version portant `is_mi_parcours` annule de fait l'évaluation à
+mi-parcours (la chaîne peut de nouveau en accueillir une).
+
+**Réponse (200) :** `{ "deleted_id": 6, "version_chain": [ ... ] }`
 
 ## 🎯 Bonnes pratiques
 

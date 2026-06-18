@@ -17,8 +17,12 @@ from apps.plans.models_enjeux import (
     CorEnjeuTaxon, CorEnjeuHabitat, CorEnjeuGeologie,
 )
 from apps.plans.models_indicateurs import (
-    Indicateur, Metrique, Mesure,
+    Indicateur, Metrique, Mesure, MetriqueScoreBlock,
     CorIndicateurTaxon, CorIndicateurHabitat, CorIndicateurGeologie,
+)
+from apps.plans.models_operations import (
+    SuiviInventaire, Operation, OperationAnnee,
+    OperationAnneeOrganisme, FinanceOperation, CorOperationMetrique,
 )
 from apps.plans.models import CorRolePlan
 from apps.plans.services import PlanDuplicationService
@@ -40,6 +44,7 @@ from tests.factories.enjeux import (
     CorEnjeuTaxonFactory, CorEnjeuHabitatFactory, CorEnjeuGeologieFactory,
     IndicateurFactory, IndicateurPressionFactory, MetriqueFactory, MesureFactory,
     CorIndicateurTaxonFactory,
+    SuiviInventaireFactory, OperationFactory, OperationAnneeFactory,
 )
 
 
@@ -1165,3 +1170,201 @@ class TestScopeMineFilter:
         assert response.status_code == status.HTTP_200_OK
         names = [p['nom'] for p in response.data['results']]
         assert 'Any Plan' in names
+
+
+# =============================================================================
+# #377 — Copie COMPLÈTE du contenu (opérations, suivis, blocs de score)
+# =============================================================================
+
+
+@pytest.mark.django_db
+@pytest.mark.unit
+class TestDuplicateContentDeep:
+    """Une nouvelle version doit copier tout le contenu et rester indépendante."""
+
+    def _build_indicateur(self, source_plan, user):
+        """Construit enjeu → OLT → NE → indicateur → métrique sur le plan."""
+        enjeu = EnjeuFactory(id_pg=source_plan, id_utilisateur_ajout=user)
+        olt = ObjectifLongTermeFactory(id_enjeu=enjeu, id_utilisateur_ajout=user)
+        ne = NiveauExigenceFactory(id_olt=olt, id_utilisateur_ajout=user)
+        ind = IndicateurFactory(id_ne=ne, id_utilisateur_ajout=user)
+        met = MetriqueFactory(id_indicateur=ind, nom_metrique='Met A', id_utilisateur_ajout=user)
+        return enjeu, ind, met
+
+    def _duplicate(self, source_plan, user):
+        return PlanDuplicationService.duplicate_plan(
+            source_plan=source_plan, user=user,
+            copy_sites=False, copy_referents=False,
+            copy_fichiers=False, copy_enjeux=True, copy_sub_elements=True,
+        )
+
+    def test_metrique_score_block_copied(self, source_plan, user):
+        """Les blocs de score complémentaires (#247) sont copiés."""
+        _, ind, met = self._build_indicateur(source_plan, user)
+        MetriqueScoreBlock.objects.create(
+            id_metrique=met, position=1, logical_op='AND',
+            sens_variation='CROISSANT', score_3_inf=10, score_3_sup=20,
+        )
+        new_plan = self._duplicate(source_plan, user)
+        new_met = Metrique.objects.get(id_indicateur__id_ne__id_olt__id_enjeu__id_pg=new_plan)
+        blocks = MetriqueScoreBlock.objects.filter(id_metrique=new_met)
+        assert blocks.count() == 1
+        assert blocks.first().logical_op == 'AND'
+        # Indépendance : le bloc d'origine est intact.
+        assert MetriqueScoreBlock.objects.filter(id_metrique=met).count() == 1
+
+    def test_metrique_extra_fields_copied(self, source_plan, user):
+        """Les champs ordre / inactive_levels / parenthésage sont copiés (#377)."""
+        _, ind, _ = self._build_indicateur(source_plan, user)
+        Metrique.objects.filter(id_indicateur=ind).update(
+            ordre=3, inactive_levels=[2, 4], group_open=1, group_close=1
+        )
+        new_plan = self._duplicate(source_plan, user)
+        new_met = Metrique.objects.get(id_indicateur__id_ne__id_olt__id_enjeu__id_pg=new_plan)
+        assert new_met.ordre == 3
+        assert new_met.inactive_levels == [2, 4]
+        assert new_met.group_open == 1 and new_met.group_close == 1
+
+    def test_enjeu_all_booleans_copied(self, source_plan, user):
+        """Tous les axes/booléens d'un enjeu sont copiés (#377)."""
+        EnjeuFactory(
+            id_pg=source_plan, id_utilisateur_ajout=user,
+            patrimoine_geologique=True, valeur_paysagere=True,
+            developpement_durable=True, usages=True,
+        )
+        new_plan = self._duplicate(source_plan, user)
+        new_enjeu = Enjeu.objects.get(id_pg=new_plan)
+        assert new_enjeu.patrimoine_geologique is True
+        assert new_enjeu.valeur_paysagere is True
+        assert new_enjeu.developpement_durable is True
+        assert new_enjeu.usages is True
+
+    def test_suivi_copied(self, source_plan, user):
+        """Les suivis/inventaires du plan sont copiés et rattachés au nouveau plan."""
+        SuiviInventaireFactory(id_pg=source_plan, intitule='Suivi flore', id_utilisateur_ajout=user)
+        new_plan = self._duplicate(source_plan, user)
+        new_suivis = SuiviInventaire.objects.filter(id_pg=new_plan)
+        assert new_suivis.count() == 1
+        assert new_suivis.first().intitule == 'Suivi flore'
+        # L'original reste rattaché à l'ancien plan.
+        assert SuiviInventaire.objects.filter(id_pg=source_plan).count() == 1
+
+    def test_operation_copied_and_relinked(self, source_plan, user):
+        """Une opération liée à un indicateur est copiée et re-reliée au nouvel
+        indicateur (pas l'ancien)."""
+        _, ind, met = self._build_indicateur(source_plan, user)
+        op = OperationFactory(
+            id_indicateur=ind, libelle='Action A', metriques=[met],
+            id_utilisateur_ajout=user,
+        )
+        OperationAnneeFactory(id_operation=op, annee=2025)
+
+        new_plan = self._duplicate(source_plan, user)
+        new_ind = Indicateur.objects.get(id_ne__id_olt__id_enjeu__id_pg=new_plan)
+        new_met = Metrique.objects.get(id_indicateur=new_ind)
+
+        new_ops = Operation.objects.filter(id_indicateur=new_ind)
+        assert new_ops.count() == 1
+        new_op = new_ops.first()
+        assert new_op.libelle == 'Action A'
+        assert new_op.id_operation != op.id_operation
+        # Re-reliée aux NOUVELLES métriques.
+        assert list(new_op.metriques.values_list('id_metrique', flat=True)) == [new_met.id_metrique]
+        # Année de programmation copiée.
+        assert OperationAnnee.objects.filter(id_operation=new_op, annee=2025).count() == 1
+        # Indépendance : l'opération d'origine pointe toujours vers l'ancien indicateur.
+        op.refresh_from_db()
+        assert op.id_indicateur_id == ind.id_indicateur
+
+    def test_operation_via_suivi_copied(self, source_plan, user):
+        """Une opération liée seulement à un suivi est copiée et re-reliée."""
+        suivi = SuiviInventaireFactory(id_pg=source_plan, id_utilisateur_ajout=user)
+        op = OperationFactory(
+            id_suivi=suivi, id_indicateur=None, libelle='Action suivi',
+            id_utilisateur_ajout=user,
+        )
+        new_plan = self._duplicate(source_plan, user)
+        new_suivi = SuiviInventaire.objects.get(id_pg=new_plan)
+        new_ops = Operation.objects.filter(id_suivi=new_suivi)
+        assert new_ops.count() == 1
+        assert new_ops.first().libelle == 'Action suivi'
+
+    def test_empirical_mesures_not_copied(self, source_plan, user):
+        """Les mesures empiriques ne sont PAS copiées (propres à la version source)."""
+        _, ind, met = self._build_indicateur(source_plan, user)
+        MesureFactory(id_metrique=met, valeur='42', id_utilisateur_ajout=user)
+        new_plan = self._duplicate(source_plan, user)
+        new_met = Metrique.objects.get(id_indicateur__id_ne__id_olt__id_enjeu__id_pg=new_plan)
+        assert Mesure.objects.filter(id_metrique=new_met).count() == 0
+        # La mesure d'origine est conservée.
+        assert Mesure.objects.filter(id_metrique=met).count() == 1
+
+
+@pytest.mark.django_db
+@pytest.mark.unit
+class TestDuplicateMetadata:
+    """La copie d'un plan copie les métadonnées (dont validations admin), sauf statut."""
+
+    def _duplicate(self, source_plan, user):
+        return PlanDuplicationService.duplicate_plan(
+            source_plan=source_plan, user=user,
+            copy_sites=False, copy_referents=False, copy_fichiers=False,
+            copy_enjeux=False, copy_sub_elements=False,
+        )
+
+    def test_admin_validations_copied(self, user):
+        """Les validations administratives CSRPN sont copiées (#377)."""
+        import datetime
+        source = PlanGestionFactory(
+            statut='valide', id_utilisateur_ajout=user,
+            date_avis_csrpn=datetime.date(2024, 1, 10),
+            date_validation_comite=datetime.date(2024, 3, 15),
+            date_arrete_pref=datetime.date(2024, 5, 20),
+            numero_arrete_pref='AP-2024-42',
+        )
+        new_plan = self._duplicate(source, user)
+        assert new_plan.date_avis_csrpn == datetime.date(2024, 1, 10)
+        assert new_plan.date_validation_comite == datetime.date(2024, 3, 15)
+        assert new_plan.date_arrete_pref == datetime.date(2024, 5, 20)
+        assert new_plan.numero_arrete_pref == 'AP-2024-42'
+
+    def test_general_metadata_copied(self, user):
+        """Les métadonnées descriptives sont copiées."""
+        source = PlanGestionFactory(
+            statut='valide', id_utilisateur_ajout=user,
+            commentaire='Note interne', redacteurs='Alice', relecteurs='Bob',
+            surface=123.45,
+        )
+        new_plan = self._duplicate(source, user)
+        assert new_plan.commentaire == 'Note interne'
+        assert new_plan.redacteurs == 'Alice'
+        assert new_plan.relecteurs == 'Bob'
+        assert float(new_plan.surface) == 123.45
+
+    def test_statut_not_copied(self, user):
+        """Le statut n'est PAS copié : le nouveau plan repart en brouillon."""
+        source = PlanGestionFactory(statut='valide', id_utilisateur_ajout=user)
+        new_plan = self._duplicate(source, user)
+        assert new_plan.statut == 'draft'
+
+    def test_lifecycle_attributes_reset(self, user):
+        """Les attributs de cycle de vie ne sont pas hérités (fresh draft)."""
+        source = PlanGestionFactory(
+            statut='valide', id_utilisateur_ajout=user,
+            annees_extension=2, en_revision=True, is_mi_parcours=False,
+        )
+        new_plan = self._duplicate(source, user)
+        assert new_plan.annees_extension == 0
+        assert new_plan.en_revision is False
+        assert new_plan.is_mi_parcours is False
+        assert new_plan.next_rang_plan_id is None
+
+    def test_source_not_corrupted_by_copy(self, user):
+        """La copie ne corrompt pas l'instance source (régression _state partagé)."""
+        source = PlanGestionFactory(statut='valide', id_utilisateur_ajout=user,
+                                    numero_arrete_pref='AP-1')
+        self._duplicate(source, user)
+        source.refresh_from_db()
+        # La source reste lisible et inchangée.
+        assert source.statut == 'valide'
+        assert source.numero_arrete_pref == 'AP-1'

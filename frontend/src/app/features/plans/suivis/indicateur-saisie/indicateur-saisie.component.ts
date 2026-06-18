@@ -145,7 +145,13 @@ export class IndicateurSaisieComponent implements OnInit {
   getScoreBound(met: Metrique, scoreIdx: number, kind: 'inf' | 'sup'): string {
     const key = `score_${scoreIdx}_${kind}` as keyof Metrique;
     const v = (met as any)[key];
-    return v === null || v === undefined ? '—' : String(v);
+    if (v === null || v === undefined || v === '') return '—';
+    // Les seuils sont stockés en DecimalField(4 décimales) → « 50.0000 ».
+    // On retire les zéros superflus (jusqu'à 4 décimales utiles), format fr-FR.
+    const num = Number(v);
+    return Number.isNaN(num)
+      ? String(v)
+      : num.toLocaleString('fr-FR', { maximumFractionDigits: 4 });
   }
 
   /** Getter/setter pour ngModel du commentaire (basé sur signal). */

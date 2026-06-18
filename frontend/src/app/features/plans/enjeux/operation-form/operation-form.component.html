@@ -79,7 +79,9 @@
       <mat-form-field class="app-mat-form-field full-width" appearance="outline">
             <mat-label></mat-label>
             <mat-select [formControl]="categorieActionReserveCtrl"
+                        panelClass="action-reserve-panel"
                         [placeholder]="'enjeux.operations.categorieActionReservePlaceholder' | translate">
+              <mat-select-trigger>{{ selectedCategorieActionReserveLabel() }}</mat-select-trigger>
               <mat-option [value]="null">—</mat-option>
               @for (cat of categorieActionReserveOptions(); track cat.id_nomenclature) {
                 <mat-option [value]="cat.id_nomenclature">
@@ -166,11 +168,40 @@
           <label class="app-mat-label">{{ 'enjeux.operations.metriquesAssocieesLabel' | translate }}</label>
       <mat-form-field class="app-mat-form-field full-width" appearance="outline">
             <mat-label></mat-label>
-            <mat-select formControlName="metrique_ids" multiple>
-              @for (met of planMetriques(); track met.id_metrique) {
+            <mat-select formControlName="metrique_ids" multiple
+                        panelClass="metrique-select-panel"
+                        (openedChange)="onMetriquePanelToggle($event)">
+              <!-- #227 — Barre d'outils : recherche + filtre de portée -->
+              <div class="select-toolbar" (click)="$event.stopPropagation()">
+                <div class="select-search">
+                  <i class="fi fi-rr-search select-search-icon"></i>
+                  <input type="text" class="select-search-input"
+                         [value]="metriqueSearch()"
+                         (input)="metriqueSearch.set($any($event.target).value)"
+                         (keydown)="$event.stopPropagation()"
+                         [placeholder]="'common.actions.search' | translate">
+                </div>
+                @if (currentIndicateurId() != null) {
+                  <div class="select-scope-toggle">
+                    <button type="button" [class.active]="metriqueScope() === 'indicateur'"
+                            (click)="metriqueScope.set('indicateur')">
+                      {{ 'enjeux.operations.scopeIndicateur' | translate }}
+                    </button>
+                    <button type="button" [class.active]="metriqueScope() === 'plan'"
+                            (click)="metriqueScope.set('plan')">
+                      {{ 'enjeux.operations.scopePlan' | translate }}
+                    </button>
+                  </div>
+                }
+              </div>
+              @for (met of metriquesFiltrees(); track met.id_metrique) {
                 <mat-option [value]="met.id_metrique">
-                  {{ met.nom_metrique }} ({{ met.indicateur_nom }})
+                  <span class="opt-metrique-nom">{{ met.nom_metrique }}</span>
+                  <span class="opt-metrique-ind">— {{ met.indicateur_nom }}</span>
                 </mat-option>
+              }
+              @if (metriquesFiltrees().length === 0) {
+                <div class="select-no-result">{{ 'common.noResults' | translate }}</div>
               }
             </mat-select>
           </mat-form-field>
@@ -275,9 +306,11 @@
                        [matTooltip]="'enjeux.operations.habitatRefTooltip' | translate"
                        matTooltipPosition="right"></i>
                   </label>
+                  <span class="text-mention op-habitat-hint">{{ 'enjeux.operations.habitatCorrespHint' | translate }}</span>
                   <app-reference-item-list
                     type="habitat"
                     [items]="habitatItems"
+                    [showCorrespondences]="true"
                     (itemsChange)="onHabitatsChange($event)">
                   </app-reference-item-list>
                 </div>
@@ -474,6 +507,10 @@
                     {{ 'enjeux.operations.applyFrequency' | translate }}
                   </button>
                 </div>
+                <p class="apply-frequency-info">
+                  <i class="fi fi-rr-info"></i>
+                  {{ 'enjeux.operations.applyFrequencyInfo' | translate }}
+                </p>
               </div>
   </div>
 </app-accordion>
@@ -604,6 +641,7 @@
                                   <div class="prog-input-wrapper">
                                     <input type="text" inputmode="decimal"
                                            class="prog-input prog-input-suffixed"
+                                           [disabled]="isYearLocked(i)"
                                            [value]="formatBudget(getOrgBudget(i, org.id_organisme).fonct)"
                                            (change)="updateOrgBudgetFonct(i, org.id_organisme, $any($event.target).value)">
                                     <span class="prog-input-suffix">€</span>
@@ -619,6 +657,7 @@
                                   <div class="prog-input-wrapper">
                                     <input type="text" inputmode="decimal"
                                            class="prog-input prog-input-suffixed"
+                                           [disabled]="isYearLocked(i)"
                                            [value]="formatBudget(getOrgBudget(i, org.id_organisme).invest)"
                                            (change)="updateOrgBudgetInvest(i, org.id_organisme, $any($event.target).value)">
                                     <span class="prog-input-suffix">€</span>
@@ -643,6 +682,7 @@
                                   <div class="prog-input-wrapper">
                                     <input type="text" inputmode="decimal"
                                            class="prog-input prog-input-suffixed"
+                                           [disabled]="isYearLocked(i)"
                                            [value]="formatBudget(getOrgBudget(i, org.id_organisme).etp)"
                                            (change)="updateOrgEtp(i, org.id_organisme, $any($event.target).value)">
                                     <span class="prog-input-suffix">j</span>
@@ -691,6 +731,7 @@
                                   <div class="prog-input-wrapper">
                                     <input type="text" inputmode="decimal"
                                            class="prog-input prog-input-suffixed"
+                                           [disabled]="isYearLocked(i)"
                                            [value]="formatBudget(getOrgByOrgData(i, org.id_organisme).budget)"
                                            (change)="updateOrgByOrgBudget(i, org.id_organisme, $any($event.target).value)">
                                     <span class="prog-input-suffix">€</span>
@@ -706,6 +747,7 @@
                                   <div class="prog-input-wrapper">
                                     <input type="text" inputmode="decimal"
                                            class="prog-input prog-input-suffixed"
+                                           [disabled]="isYearLocked(i)"
                                            [value]="formatBudget(getOrgByOrgData(i, org.id_organisme).etp)"
                                            (change)="updateOrgByOrgEtp(i, org.id_organisme, $any($event.target).value)">
                                     <span class="prog-input-suffix">j</span>
@@ -746,6 +788,7 @@
                                 <div class="prog-input-wrapper">
                                   <input type="text" inputmode="decimal"
                                          class="prog-input prog-input-suffixed"
+                                           [disabled]="isYearLocked(i)"
                                          [value]="formatBudget(getTypeBudget(i).fonct)"
                                          (change)="updateTypeFonct(i, $any($event.target).value)">
                                   <span class="prog-input-suffix">€</span>
@@ -760,6 +803,7 @@
                                 <div class="prog-input-wrapper">
                                   <input type="text" inputmode="decimal"
                                          class="prog-input prog-input-suffixed"
+                                           [disabled]="isYearLocked(i)"
                                          [value]="formatBudget(getTypeBudget(i).invest)"
                                          (change)="updateTypeInvest(i, $any($event.target).value)">
                                   <span class="prog-input-suffix">€</span>
@@ -782,6 +826,7 @@
                                 <div class="prog-input-wrapper">
                                   <input type="text" inputmode="decimal"
                                          class="prog-input prog-input-suffixed"
+                                           [disabled]="isYearLocked(i)"
                                          [value]="formatBudget(getTypeBudget(i).etp)"
                                          (change)="updateTypeEtp(i, $any($event.target).value)">
                                   <span class="prog-input-suffix">j</span>
@@ -799,6 +844,7 @@
                                 <div class="prog-input-wrapper">
                                   <input type="text" inputmode="decimal"
                                          class="prog-input prog-input-suffixed"
+                                           [disabled]="isYearLocked(i)"
                                          [value]="formatBudget(getDirectTotal(i).budget)"
                                          (change)="updateDirectBudget(i, $any($event.target).value)">
                                   <span class="prog-input-suffix">€</span>
@@ -813,6 +859,7 @@
                                 <div class="prog-input-wrapper">
                                   <input type="text" inputmode="decimal"
                                          class="prog-input prog-input-suffixed"
+                                           [disabled]="isYearLocked(i)"
                                          [value]="formatBudget(getDirectTotal(i).etp)"
                                          (change)="updateDirectEtp(i, $any($event.target).value)">
                                   <span class="prog-input-suffix">j</span>
@@ -830,6 +877,7 @@
                                 <div class="prog-input-wrapper">
                                   <input type="text" inputmode="decimal"
                                          class="prog-input prog-input-suffixed"
+                                           [disabled]="isYearLocked(i)"
                                          [value]="formatBudget(annee.budget)"
                                          (change)="updateBudget(i, $any($event.target).value)">
                                   <span class="prog-input-suffix">€</span>
@@ -844,6 +892,7 @@
                                 <div class="prog-input-wrapper">
                                   <input type="text" inputmode="decimal"
                                          class="prog-input prog-input-suffixed"
+                                           [disabled]="isYearLocked(i)"
                                          [value]="formatBudget(annee.etp)"
                                          (change)="updateEtp(i, $any($event.target).value)">
                                   <span class="prog-input-suffix">j</span>
@@ -910,12 +959,10 @@
   <textarea formControlName="partenaires" rows="2"></textarea>
 </app-form-field>
 
-              <!-- Financeur(s) (text field) -->
-              <app-form-field [label]="'enjeux.operations.financeursLabel' | translate">
-  <textarea formControlName="financeurs" rows="2"></textarea>
-</app-form-field>
+              <!-- #343 — Financeur textuel supprimé : seuls les financeurs structurés (libellé + catégorie) ci-dessous sont conservés. -->
 
               <!-- Finances (relational) -->
+              <label class="app-mat-label">{{ 'enjeux.operations.financeursLabel' | translate }}</label>
               <div class="finances-section">
                 @for (finance of finances; track $index) {
                   <div class="finance-row">
@@ -962,31 +1009,14 @@
         <app-accordion variant="default" size="lg" [title]="'enjeux.operations.empriseSpatiale' | translate" [expanded]="sectionsOpen['emprise']" (expandedChange)="sectionsOpen['emprise'] = $event">
   <img accordionIcon src="assets/images/ellipses/ellipse-yellow.png" alt="" class="section-dot">
   <div class="section-content">
-    @if (existingOperation()?.geom_geojson; as gj) {
-      <div class="op-emprise-row">
-        <div class="op-emprise-map">
-          <app-leaflet-map
-            [geojsonData]="gj"
-            height="280px"
-            [showControls]="true"
-            [interactive]="true"
-            [fitBounds]="true">
-          </app-leaflet-map>
-        </div>
-        <div class="op-emprise-actions">
-          <button type="button" class="btn-outlined-pill" disabled
-                  [matTooltip]="'enjeux.operations.importSigSoon' | translate">
-            <i class="fi fi-rr-download"></i>
-            {{ 'enjeux.operations.importSig' | translate }}
-          </button>
-        </div>
-      </div>
-    } @else {
-      <p class="text-mention">{{ 'enjeux.operations.empriseEmpty' | translate }}</p>
-      <button type="button" class="add-link-btn" disabled>
-        + {{ 'enjeux.operations.ajouterEmprise' | translate }}
-      </button>
-    }
+    <!-- Éditeur d'emprise factorisé (carte + dessin + import shapefile/GeoJSON),
+         partagé avec la saisie d'un suivi. Lecture seule hors mode édition. -->
+    <app-emprise-editor
+      [geometry]="empriseGeom()"
+      [disabled]="isReadOnly()"
+      height="280px"
+      (geometryChange)="onEmpriseChange($event)">
+    </app-emprise-editor>
   </div>
 </app-accordion>
 
@@ -996,7 +1026,14 @@
         <app-accordion variant="default" size="lg" [title]="'enjeux.operations.indicateursReponse' | translate" [expanded]="sectionsOpen['indicateurs_reponse']" (expandedChange)="sectionsOpen['indicateurs_reponse'] = $event">
   <img accordionIcon src="assets/images/ellipses/ellipse-yellow.png" alt="" class="section-dot">
   <div class="section-content">
-    @let opMetriques = existingOperation()?.metriques || [];
+    <button type="button" class="op-indic-help"
+            [matTooltip]="reponseExamplesTooltip"
+            matTooltipClass="multiline-tooltip"
+            matTooltipPosition="right">
+      <i class="fi fi-rr-interrogation"></i>
+      <span>{{ 'enjeux.operations.reponseExamplesTitle' | translate }}</span>
+    </button>
+    @let opMetriques = responseIndicators();
     @if (opMetriques.length > 0) {
       <div class="op-indic-editor">
         @for (m of opMetriques; track m.id_metrique; let last = $last) {
@@ -1034,8 +1071,8 @@
                   [disabled]="isReadOnly()"
                   (change)="saveMetricType(m.id_metrique, $any($event.target).value ? +$any($event.target).value : null)">
                   <option [ngValue]="''">—</option>
-                  @for (opt of typeMetriqueOptions(); track opt.id_nomenclature) {
-                    <option [ngValue]="opt.id_nomenclature">{{ opt.label }}</option>
+                  @for (opt of responseTypeOptions(); track opt.id) {
+                    <option [ngValue]="opt.id">{{ opt.label }}</option>
                   }
                 </select>
               </app-form-field>
@@ -1052,9 +1089,50 @@
           </div>
         }
       </div>
-    } @else {
+    } @else if (pendingResponseIndicators.length === 0) {
       <p class="text-mention">{{ 'enjeux.operations.indicateursEmpty' | translate }}</p>
     }
+
+    <!-- Indicateurs de réponse saisis avant l'enregistrement (création) : en mémoire,
+         créés à la sauvegarde de l'action. -->
+    @if (!isReadOnly() && pendingResponseIndicators.length > 0) {
+      <div class="op-indic-editor">
+        @for (pi of pendingResponseIndicators; track $index; let i = $index; let last = $last) {
+          <div class="op-indic-edit-row" [class.with-separator]="!last">
+            <div class="op-indic-line op-indic-line-title">
+              <app-form-field [label]="'enjeux.operations.intituleIndicateurReponse' | translate" [required]="true">
+                <input type="text" [(ngModel)]="pi.nom_indicateur" [ngModelOptions]="{ standalone: true }" />
+              </app-form-field>
+              <button type="button" class="op-indic-delete"
+                      (click)="removePendingResponseIndicator(i)"
+                      [title]="'enjeux.operations.indicateurRemove' | translate"
+                      [attr.aria-label]="'enjeux.operations.indicateurRemove' | translate">
+                <i class="fi fi-rr-trash"></i>
+              </button>
+            </div>
+            <div class="op-indic-line op-indic-line-grid">
+              <app-form-field [label]="'enjeux.operations.metriqueNom' | translate">
+                <input type="text" [(ngModel)]="pi.nom_metrique" [ngModelOptions]="{ standalone: true }" />
+              </app-form-field>
+              <app-form-field [label]="'enjeux.operations.typeMetrique' | translate">
+                <select [(ngModel)]="pi.type_metrique_id" [ngModelOptions]="{ standalone: true }">
+                  <option [ngValue]="null">—</option>
+                  @for (opt of responseTypeOptions(); track opt.id) {
+                    <option [ngValue]="opt.id">{{ opt.label }}</option>
+                  }
+                </select>
+              </app-form-field>
+            </div>
+            <div class="op-indic-line">
+              <app-form-field [label]="'enjeux.operations.valeurCible' | translate">
+                <input type="text" [(ngModel)]="pi.valeur_cible" [ngModelOptions]="{ standalone: true }" />
+              </app-form-field>
+            </div>
+          </div>
+        }
+      </div>
+    }
+
     @if (!isReadOnly()) {
       <button type="button" class="btn-outlined-pill" (click)="addResponseIndicator()">
         <i class="fi fi-rr-plus"></i>

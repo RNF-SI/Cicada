@@ -58,6 +58,12 @@
                 <i class="fi fi-rr-pencil"></i>
                 <span>{{ 'plans.suivis.saisie.editAction' | translate }}</span>
               </button>
+              <!-- #356 — Accès à la vue globale de l'action -->
+              <a class="btn-hero-secondary"
+                 [routerLink]="['/plans', planSlug(), 'suivi-actions', 'action', operationId()]">
+                <i class="fi fi-rr-chart-histogram"></i>
+                <span>{{ 'plans.suivis.saisie.viewGlobal' | translate }}</span>
+              </a>
             </div>
           </div>
         </div>
@@ -77,12 +83,29 @@
         }
       </section>
 
+      <!-- #379 — Bannière : saisie impossible tant que le plan n'est pas validé -->
+      @if (planNotValidated()) {
+        <div class="lock-banner" role="status">
+          <i class="fi fi-rr-lock"></i>
+          <div class="lock-banner-content">
+            <span class="lock-banner-title">
+              {{ 'plans.suivis.notValidatedBanner.title' | translate }}
+            </span>
+            <span class="lock-banner-text">
+              {{ 'plans.suivis.notValidatedBanner.text' | translate }}
+            </span>
+          </div>
+        </div>
+      }
+
       <!-- ============================================================ -->
       <!-- FORM -->
       <!-- ============================================================ -->
       <form [formGroup]="form" class="saisie-form" (ngSubmit)="submit()">
 
-        <p class="text-mention">{{ 'plans.suivis.saisie.requiredHint' | translate }}</p>
+        @if (!planNotValidated()) {
+          <p class="text-mention">{{ 'plans.suivis.saisie.requiredHint' | translate }}</p>
+        }
 
         <!-- Opérateurs / Financeurs (lecture seule) -->
         <section class="saisie-card">
@@ -106,8 +129,8 @@
           <app-form-field [label]="'plans.suivis.saisie.fields.niveau' | translate">
             <select formControlName="id_niveau_realisation">
               <option [ngValue]="null">—</option>
-              @for (n of niveaux(); track n.id_nomenclature) {
-                <option [ngValue]="n.id_nomenclature">{{ n.label }}</option>
+              @for (n of niveauSaisieOptions(); track n.id) {
+                <option [ngValue]="n.id">{{ n.labelKey | translate }}</option>
               }
             </select>
           </app-form-field>
@@ -152,7 +175,9 @@
                     @let oa = getOaForYear(y);
                     <td [class.active]="y === selectedYear()">
                       @if (y === selectedYear()) {
-                        <input type="checkbox" formControlName="periodicite_realisee" />
+                        <input type="checkbox"
+                               [checked]="!!form.get('periodicite_realisee')?.value"
+                               (change)="form.get('periodicite_realisee')?.setValue($any($event.target).checked)" />
                       } @else if (oa?.realisation?.periodicite_realisee) {
                         <span class="cell-check">✓</span>
                       } @else {
@@ -278,7 +303,9 @@
                   @for (y of years(); track y) {
                     <td [class.active]="y === selectedYear()">
                       @if (y === selectedYear()) {
-                        <input type="checkbox" formControlName="periodicite_realisee" />
+                        <input type="checkbox"
+                               [checked]="!!form.get('periodicite_realisee')?.value"
+                               (change)="form.get('periodicite_realisee')?.setValue($any($event.target).checked)" />
                       } @else if (getOaForYear(y)?.realisation?.periodicite_realisee) {
                         <span class="cell-check">✓</span>
                       } @else { — }
@@ -431,50 +458,30 @@
             <img src="assets/images/ellipses/ellipse-yellow.png" alt="" class="card-ellipse">
             <h2 class="card-title">{{ 'plans.suivis.saisie.sections.emprise' | translate }}</h2>
           </div>
-          <div class="emprise-row">
-            <div class="emprise-map">
-              <!-- Même composant en lecture et en écriture pour garder un
-                   rendu visuel cohérent : l'emprise prévue est affichée en
-                   arrière-plan (pointillés terra-cotta) et l'emprise réalisée
-                   par-dessus. Les outils de dessin Leaflet-Draw apparaissent
-                   uniquement quand `isEditingGeom()` est vrai. -->
-              <app-leaflet-map-edit
-                [existingGeometry]="realisedGeom()"
-                [backgroundGeometry]="plannedGeom()"
-                [readOnly]="!isEditingGeom()"
-                height="320px"
-                geometryType="polygon"
-                [enableGeometryImport]="isEditingGeom()"
-                (geometryChange)="onGeomRealiseeChange($event)">
-              </app-leaflet-map-edit>
-              @if (!isEditingGeom() && !plannedGeom() && !realisedGeom()) {
-                <p class="text-mention emprise-empty">{{ 'plans.suivis.saisie.fields.empriseEmpty' | translate }}</p>
-              }
-            </div>
-            <div class="emprise-actions">
-              <div class="emprise-legend">
-                <div class="emprise-legend-item">
-                  <span class="legend-swatch legend-prevu"></span>
-                  {{ 'plans.suivis.saisie.fields.empriseLegendPrevu' | translate }}
-                </div>
-                <div class="emprise-legend-item">
-                  <span class="legend-swatch legend-realise"></span>
-                  {{ 'plans.suivis.saisie.fields.empriseLegendRealise' | translate }}
-                </div>
+          <!-- Emprise prévue (arrière-plan, pointillés terra-cotta) + emprise
+               réalisée éditable. Composant factorisé partagé avec le formulaire
+               d'opération. -->
+          <app-emprise-editor
+            [geometry]="realisedGeom()"
+            [backgroundGeometry]="plannedGeom()"
+            [editing]="isEditingGeom()"
+            (editingChange)="isEditingGeom.set($event)"
+            (geometryChange)="onGeomRealiseeChange($event)">
+            <div empriseLegend class="emprise-legend">
+              <div class="emprise-legend-item">
+                <span class="legend-swatch legend-prevu"></span>
+                {{ 'plans.suivis.saisie.fields.empriseLegendPrevu' | translate }}
               </div>
-              <button type="button" class="btn-emprise-import" (click)="toggleEditGeom()">
-                <i class="fi" [class.fi-rr-pencil]="!isEditingGeom()" [class.fi-rr-eye]="isEditingGeom()"></i>
-                <span>{{ (isEditingGeom() ? 'plans.suivis.saisie.fields.empriseStopDraw' : 'plans.suivis.saisie.fields.empriseStartDraw') | translate }}</span>
-              </button>
-              @if (isEditingGeom()) {
-                <p class="text-mention">{{ 'plans.suivis.saisie.fields.empriseDrawHint' | translate }}</p>
-              }
+              <div class="emprise-legend-item">
+                <span class="legend-swatch legend-realise"></span>
+                {{ 'plans.suivis.saisie.fields.empriseLegendRealise' | translate }}
+              </div>
             </div>
-          </div>
+          </app-emprise-editor>
         </section>
 
         <!-- Indicateurs de réponse -->
-        <section class="saisie-card">
+        <section class="saisie-card" id="indicateurs-reponse">
           <div class="card-header">
             <img src="assets/images/ellipses/ellipse-yellow.png" alt="" class="card-ellipse">
             <h2 class="card-title">{{ 'plans.suivis.saisie.sections.indicateurs' | translate }}</h2>
@@ -510,14 +517,19 @@
         <!-- Bottom action bar -->
         <div class="bottom-actions">
           <button type="button" mat-stroked-button (click)="goBack()" [disabled]="isSaving()">
-            {{ 'common.actions.cancel' | translate }}
+            {{ planNotValidated() ? ('common.actions.back' | translate) : ('common.actions.cancel' | translate) }}
           </button>
-          <button type="submit" mat-flat-button color="primary" [disabled]="isSaving()">
-            @if (isSaving()) {
-              <mat-spinner diameter="18"></mat-spinner>
-            }
-            {{ 'common.actions.save' | translate }}
-          </button>
+          @if (!planNotValidated()) {
+            <button type="submit" mat-flat-button color="primary" [disabled]="isSaving()">
+              @if (isSaving()) {
+                <mat-spinner diameter="18"></mat-spinner>
+              }
+              {{ 'common.actions.save' | translate }}
+            </button>
+            <button type="button" mat-stroked-button color="primary" (click)="submit(true)" [disabled]="isSaving()">
+              {{ 'common.actions.saveAndQuit' | translate }}
+            </button>
+          }
         </div>
       </form>
 

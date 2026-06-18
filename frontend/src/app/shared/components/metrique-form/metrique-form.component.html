@@ -3,12 +3,12 @@
   <div class="row row-with-action">
     <app-form-field class="flex-1"
                     [label]="'enjeux.metriques.nomLabel' | translate"
-                    [required]="true">
+                    [required]="!isIndetermine">
       <input type="text"
              [(ngModel)]="metrique.nom_metrique"
              (ngModelChange)="emitChange()"
              [placeholder]="'enjeux.metriques.nomPlaceholder' | translate"
-             required>
+             [required]="!isIndetermine">
     </app-form-field>
     <button type="button"
             class="btn-delete"
@@ -30,36 +30,39 @@
              required>
     </app-form-field>
 
-    <label class="app-mat-label">{{ 'enjeux.metriques.typeLabel' | translate }}</label>
-      <mat-form-field class="app-mat-form-field flex-1" appearance="outline">
-      <mat-label></mat-label>
-      <mat-select [(ngModel)]="metrique.type_metrique" (selectionChange)="emitChange()">
+    <app-form-field class="flex-1"
+                    [label]="'enjeux.metriques.typeLabel' | translate">
+      <select [(ngModel)]="metrique.type_metrique" (ngModelChange)="emitChange()">
+        <option [ngValue]="null">{{ 'common.actions.select' | translate }}</option>
         @for (opt of typeMetriqueOptions; track trackByOptionId($index, opt)) {
-          <mat-option [value]="opt.id_nomenclature">{{ opt.label }}</mat-option>
+          <option [ngValue]="opt.id_nomenclature">{{ opt.label }}</option>
         }
-      </mat-select>
-    </mat-form-field>
+      </select>
+    </app-form-field>
   </div>
 
   <!-- Ligne 3 : Pondération + État de référence -->
   <div class="row">
-    <app-form-field [label]="'enjeux.metriques.ponderationLabel' | translate">
-  <input
-             type="number"
+    <app-form-field class="flex-1"
+                    [label]="'enjeux.metriques.ponderationLabel' | translate">
+      <input type="number"
              step="0.1"
              min="0"
              [(ngModel)]="metrique.ponderation"
              (ngModelChange)="emitChange()">
-</app-form-field>
+    </app-form-field>
 
-    <app-form-field [label]="'enjeux.metriques.etatReferenceLabel' | translate">
-  <input
-             type="text"
+    <app-form-field class="flex-1"
+                    [label]="'enjeux.metriques.etatReferenceLabel' | translate">
+      <input type="text"
              [(ngModel)]="metrique.etat_reference"
              (ngModelChange)="emitChange()">
-</app-form-field>
+    </app-form-field>
   </div>
 
+  <!-- Section de score : NUMERIQUE = formule + blocs d'intervalles ;
+       CHIFFRE/TEXTE = grille à 5 niveaux ; INDETERMINE = aucune grille (#339). -->
+  @if (isNumerique) {
   <!-- #247 : formule interactive. Cliquer sur un nom de bloc le sélectionne ;
        cliquer sur un autre groupe les deux (ajoute une paire de parenthèses).
        Cliquer sur une parenthèse la supprime. -->
@@ -215,4 +218,56 @@
     <i class="fi fi-rr-plus-small"></i>
     {{ 'enjeux.metriques.addExtraBlock' | translate }}
   </button>
+  }
+
+  <!-- #339 — Grille de score pour les types CHIFFRE / TEXTE (même présentation
+       que l'intervalle numérique : 5 niveaux colorés très mauvais → très bon). -->
+  @if (isChiffre || isTexte) {
+    <!-- #359 — Sélection des niveaux actifs (même cartouche que NUMERIQUE) -->
+    <div class="config-row simple-levels-config">
+      <span class="config-label">{{ 'enjeux.metriques.niveauxActifs' | translate }}</span>
+      <div class="level-tags">
+        @for (meta of scoreLevelMeta; track meta.level) {
+          <button type="button"
+                  class="level-tag level-tag-{{ meta.level }}"
+                  [class.inactive]="!isLevelActive(meta.level)"
+                  [attr.aria-pressed]="isLevelActive(meta.level)"
+                  (click)="toggleLevelActive(meta.level)">
+            {{ meta.labelKey | translate }}
+          </button>
+        }
+      </div>
+    </div>
+
+    <div class="score-threshold-grid">
+      @for (meta of scoreLevelMeta; track meta.level) {
+        <div class="score-column" [class.inactive]="!isLevelActive(meta.level)">
+          <div class="score-column-header score-header-{{meta.level}}">
+            <span class="score-header-label">{{ meta.labelKey | translate }}</span>
+            <span class="score-header-value">= {{ meta.level }}</span>
+          </div>
+          <div class="score-column-inputs">
+            @if (!isLevelActive(meta.level)) {
+              <span class="level-unused">{{ 'enjeux.metriques.nonUtilise' | translate }}</span>
+            } @else if (isChiffre) {
+              <app-form-field [label]="'enjeux.metriques.valeur' | translate">
+                <input type="number" [ngModel]="ensureScore(meta.level).val"
+                       (ngModelChange)="ensureScore(meta.level).val = $event; emitChange()">
+              </app-form-field>
+            } @else {
+              <app-form-field [label]="'enjeux.metriques.texte' | translate">
+                <input [ngModel]="ensureScore(meta.level).label"
+                       (ngModelChange)="ensureScore(meta.level).label = $event; emitChange()">
+              </app-form-field>
+            }
+          </div>
+        </div>
+      }
+    </div>
+  }
+
+  <!-- #339 — Type indéterminé : aucune grille de score (saisie à préciser plus tard). -->
+  @if (isIndetermine) {
+    <p class="metrique-indetermine-hint">{{ 'enjeux.metriques.indetermineHint' | translate }}</p>
+  }
 </div>

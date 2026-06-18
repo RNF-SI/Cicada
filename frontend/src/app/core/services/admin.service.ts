@@ -11,6 +11,7 @@ import {
   OrganismeCreatePayload,
   SiteCreatePayload,
   PlanCreatePayload,
+  SitePlansResponse,
   PlanStatut,
   EvaluationType,
   RedacteurType,
@@ -26,8 +27,10 @@ import {
   BulkImportValidationResult,
   BulkImportResult,
   BulkImportJobStatus,
-  PlanDuplicateOptions
+  PlanDuplicateOptions,
+  PlanVersionChainItem
 } from '../models/admin.model';
+import { SiteCreationValidatorsResponse } from '../models/notification.model';
 
 export interface DashboardStats {
   totalPlans: number;
@@ -235,6 +238,15 @@ export class AdminService {
    */
   createSite(payload: SiteCreatePayload): Observable<AdminSite> {
     return this.http.post<AdminSite>(`${this.apiUrl}/sites/`, payload)
+      .pipe(catchError(this.handleError));
+  }
+
+  /**
+   * Aperçu (avant création) des validateurs d'une future création de site.
+   * Retourne auto_validated=true si l'utilisateur courant valide lui-même.
+   */
+  getSiteCreationValidators(): Observable<SiteCreationValidatorsResponse> {
+    return this.http.get<SiteCreationValidatorsResponse>(`${this.apiUrl}/sites/creation-validators/`)
       .pipe(catchError(this.handleError));
   }
 
@@ -508,6 +520,17 @@ export class AdminService {
   }
 
   /**
+   * Récupère les plans validés/archivés associés à un ou plusieurs sites,
+   * groupés par site. Utilisé à la création d'un plan pour alerter sur un
+   * doublon de rang et proposer le rattachement au plan du rang précédent.
+   */
+  getPlansForSites(siteIds: number[]): Observable<SitePlansResponse> {
+    const params = new HttpParams().set('site_ids', siteIds.join(','));
+    return this.http.get<SitePlansResponse>(`${this.plansApiUrl}/plans/for-sites/`, { params })
+      .pipe(catchError(this.handleError));
+  }
+
+  /**
    * Update a plan de gestion
    */
   updatePlan(id: number, payload: Partial<PlanCreatePayload>): Observable<AdminPlan> {
@@ -579,6 +602,27 @@ export class AdminService {
   }
 
   /**
+   * #347 — Enregistrer/éditer/effacer une validation administrative indépendante.
+   *
+   * POST /api/plans/plans/{id}/admin-validation/
+   * @param planId — Plan concerné (n'importe quel statut).
+   * @param key — `avis_csrpn` | `comite_consultatif` | `arrete_pref`.
+   * @param date — Date de validation (`null` pour effacer).
+   * @param numeroArrete — N° d'arrêté (uniquement pour `arrete_pref`).
+   */
+  recordAdminValidation(
+    planId: number,
+    key: 'avis_csrpn' | 'comite_consultatif' | 'arrete_pref',
+    date: string | null,
+    numeroArrete?: string | null,
+  ): Observable<AdminPlan> {
+    const body: Record<string, unknown> = { key, date };
+    if (key === 'arrete_pref') body['numero_arrete_pref'] = numeroArrete ?? null;
+    return this.http.post<AdminPlan>(`${this.plansApiUrl}/plans/${planId}/admin-validation/`, body)
+      .pipe(catchError(this.handleError));
+  }
+
+  /**
    * Create a mid-term evaluation from a validated plan
    * POST /api/plans/plans/{id}/create-evaluation/
    */
@@ -646,6 +690,19 @@ export class AdminService {
   endPlanRevision(planId: number): Observable<AdminPlan> {
     return this.http.post<AdminPlan>(
       `${this.plansApiUrl}/plans/${planId}/end-revision/`,
+      {}
+    ).pipe(catchError(this.handleError));
+  }
+
+  /**
+   * #348 — Supprime définitivement une version (plan) de la chaîne de versions.
+   * Cascade les liens, re-rattache les enfants au parent, renumérote les
+   * versions restantes. Renvoie la chaîne restante.
+   * POST /api/plans/plans/{id}/delete-version/
+   */
+  deletePlanVersion(planId: number): Observable<{ deleted_id: number; version_chain: PlanVersionChainItem[] }> {
+    return this.http.post<{ deleted_id: number; version_chain: PlanVersionChainItem[] }>(
+      `${this.plansApiUrl}/plans/${planId}/delete-version/`,
       {}
     ).pipe(catchError(this.handleError));
   }

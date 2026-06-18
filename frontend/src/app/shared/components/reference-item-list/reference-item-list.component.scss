@@ -38,54 +38,60 @@
   padding: $spacing-xs;
 }
 
+// Puce taxon/géologie — même design « pill » que la puce d'habitat (`.hchip`) :
+// badge identifiant teinté + nom + croix de suppression intégrée.
 .item-chip {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: $spacing-xs;
-  background-color: $primary-bg-subtle;
-  border: 1px solid $primary-bg-medium;
+  background-color: rgba($primary-color, 0.06);
+  border: 1px solid rgba($primary-color, 0.15);
   border-radius: $border-radius-pill;
-  padding: $spacing-xxs $spacing-xs $spacing-xxs $spacing-sm;
+  overflow: hidden;
   max-width: 100%;
+  font-size: $font-size-small;
+  color: $primary-color;
+  transition: border-color 0.15s ease;
 
-  .chip-content {
-    display: flex;
-    flex-direction: column;
-    min-width: 0;
-
-    .chip-label {
-      font-size: $font-size-small;
-      color: $primary-color;
-      font-weight: $font-weight-medium;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    .chip-secondary {
-      font-size: 11px;
-      color: $gray-dark;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
+  &:hover {
+    border-color: $primary-color;
   }
 
-  .chip-remove {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 20px;
-    height: 20px;
-    border: none;
-    background: none;
-    color: $gray;
-    cursor: pointer;
-    border-radius: $border-radius-round;
+  &__badge {
+    font-weight: $font-weight-bold;
+    font-size: 11px;
+    color: $primary-color;
+    background-color: rgba($primary-color, 0.12);
+    padding: 0 6px;
+    margin: 3px 0 3px $spacing-xs;
+    border-radius: $border-radius-sm;
+    white-space: nowrap;
     flex-shrink: 0;
+  }
+
+  &__name {
+    padding: 3px $spacing-xs;
+    font-weight: $font-weight-medium;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
+  }
+
+  &__remove {
+    display: inline-flex;
+    align-items: center;
+    align-self: stretch;
+    padding: 0 $spacing-xs;
+    background: transparent;
+    border: none;
+    border-left: 1px solid rgba($primary-color, 0.15);
+    color: $primary-color;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: background-color 0.15s ease;
 
     &:hover {
-      background-color: rgba($error-color, 0.1);
+      background-color: rgba($error-color, 0.12);
       color: $error-color;
     }
 
@@ -121,5 +127,55 @@
     flex-direction: column;
     align-items: flex-start;
     gap: $spacing-sm;
+  }
+}
+
+// Habitats avec correspondances (#89) : une ligne par habitat (puce dépliable
+// + bouton supprimer), regroupé au même endroit que l'édition.
+.habitat-rows {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-xs;
+  margin-bottom: $spacing-sm;
+}
+
+.habitat-row {
+  display: flex;
+  align-items: flex-start;
+  gap: $spacing-xs;
+
+  .chip-remove {
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+}
+
+// #368 — saisie libre d'un habitat hors HabRef (ex. Outre-mer)
+.free-text-habitat {
+  margin-top: $spacing-xs;
+
+  .free-text-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: $spacing-xxs;
+    background: none;
+    border: none;
+    padding: 0;
+    color: $primary-color;
+    font-family: $font-family;
+    font-size: $font-size-small;
+    cursor: pointer;
+
+    &:hover { text-decoration: underline; }
+  }
+
+  .free-text-input-row {
+    display: flex;
+    align-items: flex-start;
+    gap: $spacing-sm;
+    margin-top: $spacing-xs;
+
+    .free-text-field { flex: 1; }
+    .free-text-add-btn { margin-top: 4px; }
   }
 }

@@ -1,0 +1,253 @@
+<app-header></app-header>
+
+<div class="suivis-layout">
+  @if (planSlug(); as slug) {
+    @if (planId(); as id) {
+      <app-plan-sidebar [planId]="id" [planSlug]="slug" activePage="tableau-de-bord"></app-plan-sidebar>
+    }
+  }
+
+  <main class="plan-main">
+    @if (isLoading()) {
+      <div class="loading-container">
+        <mat-spinner diameter="50"></mat-spinner>
+        <p>{{ 'common.loading' | translate }}</p>
+      </div>
+    } @else if (errorMessage()) {
+      <div class="error-container">
+        <i class="fi fi-rr-exclamation"></i>
+        <p>{{ errorMessage() }}</p>
+      </div>
+    } @else if (data()) {
+      @if (data(); as d) {
+
+      <!-- HERO -->
+      <section class="hero-section">
+        <div class="hero-background"><div class="hero-pattern"></div></div>
+        <div class="hero-content">
+          <nav class="breadcrumb" aria-label="Fil d'Ariane">
+            <a routerLink="/accueil" class="breadcrumb-home" [title]="'common.actions.home' | translate">
+              <i class="fi fi-rr-home"></i>
+            </a>
+            <div class="breadcrumb-lines"></div>
+            <div class="breadcrumb-text">
+              <a routerLink="/plans" class="breadcrumb-link">{{ 'plans.title' | translate }}</a>
+              <i class="fi fi-rr-angle-small-right breadcrumb-chevron"></i>
+              <a [routerLink]="['/plans', planSlug(), 'tableau-de-bord']" class="breadcrumb-link">{{ 'plans.suivis.tableauDeBord.title' | translate }}</a>
+              <i class="fi fi-rr-angle-small-right breadcrumb-chevron"></i>
+              <span class="breadcrumb-current">{{ d.nom_indicateur }}</span>
+            </div>
+          </nav>
+          <div class="plan-header">
+            <div class="plan-subtitle">
+              <i class="fi fi-rr-chart-histogram"></i>
+              <span>{{ 'plans.suivis.indicateurGlobal.subtitle' | translate | uppercase }}</span>
+            </div>
+            <h1 class="plan-title">{{ d.nom_indicateur }}</h1>
+            @if (d.type_indicateur_label) {
+              <span class="indicateur-type">{{ d.type_indicateur_label }}</span>
+            }
+          </div>
+        </div>
+      </section>
+
+      <section class="content-section">
+        <!-- Cartes de synthèse -->
+        <div class="summary-cards">
+          <div class="summary-card">
+            <span class="summary-label">{{ 'plans.suivis.indicateurGlobal.etatCourant' | translate }}</span>
+            @if (etatCourantEffectif() != null) {
+              <div class="summary-value">
+                <img [src]="getScoreBadge(etatCourantEffectif())" class="score-badge-icon-lg"
+                     [alt]="'plans.suivis.indicateurGlobal.etatCourant' | translate">
+                @if (d.manuel) {
+                  <small class="manuel-tag">{{ 'plans.suivis.indicateurGlobal.manuel' | translate }}</small>
+                }
+              </div>
+              @if (d.manuel && d.etat_courant_score != null) {
+                <small class="summary-auto-note">
+                  {{ 'plans.suivis.indicateurGlobal.scoreCalcule' | translate }} :
+                  {{ d.etat_courant_score | number:'1.0-1':'fr-FR' }}/5
+                </small>
+              }
+            } @else {
+              <span class="summary-empty">{{ 'plans.suivis.indicateurGlobal.noData' | translate }}</span>
+            }
+          </div>
+
+          <div class="summary-card">
+            <span class="summary-label">{{ 'plans.suivis.indicateurGlobal.moyenne' | translate }}</span>
+            @if (d.moyenne_score != null) {
+              <span class="summary-score">{{ d.moyenne_score | number:'1.0-1':'fr-FR' }}/5</span>
+            } @else {
+              <span class="summary-empty">{{ 'plans.suivis.indicateurGlobal.noData' | translate }}</span>
+            }
+          </div>
+
+          <div class="summary-card">
+            <span class="summary-label">{{ 'plans.suivis.indicateurGlobal.tendanceLabel' | translate }}</span>
+            <div class="summary-value">
+              <i class="fi" [class]="'fi ' + tendanceIcon(d.tendance)"></i>
+              <span>{{ tendanceLabelKey(d.tendance) | translate }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- #356 — Explication du calcul de l'évaluation globale -->
+        <details class="calc-explainer">
+          <summary>
+            <i class="fi fi-rr-info"></i>
+            {{ 'plans.suivis.indicateurGlobal.calc.title' | translate }}
+          </summary>
+          <p>{{ 'plans.suivis.indicateurGlobal.calc.intro' | translate }}</p>
+          <ul>
+            <li>{{ 'plans.suivis.indicateurGlobal.calc.rule1' | translate }}</li>
+            <li>{{ 'plans.suivis.indicateurGlobal.calc.rule2' | translate }}</li>
+            <li>{{ 'plans.suivis.indicateurGlobal.calc.rule3' | translate }}</li>
+            <li>{{ 'plans.suivis.indicateurGlobal.calc.rule4' | translate }}</li>
+          </ul>
+          <p class="calc-note">{{ 'plans.suivis.indicateurGlobal.calc.manual' | translate }}</p>
+        </details>
+
+        <!-- #356 — Interprétation manuelle : OPTION repliée par défaut -->
+        @if (canManageGlobal()) {
+          @if (!showOverride()) {
+            <div class="override-toggle-row">
+              <button mat-button color="primary" class="override-toggle"
+                      (click)="showOverride.set(true)">
+                <i class="fi fi-rr-pencil"></i>
+                {{ 'plans.suivis.indicateurGlobal.adjustManually' | translate }}
+              </button>
+            </div>
+          } @else {
+            <div class="override-card">
+              <h3 class="section-title">{{ 'plans.suivis.indicateurGlobal.evalTitle' | translate }}</h3>
+              <p class="override-hint">{{ 'plans.suivis.indicateurGlobal.evalHint' | translate }}</p>
+              <div class="eval-buttons">
+                @for (b of evalButtons; track b.score) {
+                  <button type="button" class="eval-btn"
+                          [class.active]="isCurrentEval(b.score)"
+                          [matTooltip]="b.labelKey | translate"
+                          (click)="setGlobalEval(b.score)">
+                    <img [src]="getScoreIcon(b.level)" class="score-badge-icon" [alt]="b.labelKey | translate">
+                  </button>
+                }
+                <button mat-button color="primary" class="eval-auto" (click)="setGlobalEval(null)">
+                  {{ 'plans.suivis.indicateurGlobal.auto' | translate }}
+                </button>
+              </div>
+
+              <!-- Commentaire global (non obligatoire, indépendant du forçage) -->
+              <label class="comment-label" for="ind-global-comment">
+                {{ 'plans.suivis.indicateurGlobal.commentLabel' | translate }}
+              </label>
+              <textarea id="ind-global-comment" class="comment-textarea" rows="3"
+                        [ngModel]="commentaire()" (ngModelChange)="commentaire.set($event)"
+                        [placeholder]="'plans.suivis.indicateurGlobal.commentPlaceholder' | translate"></textarea>
+              <div class="comment-actions">
+                <button mat-button class="override-collapse" (click)="showOverride.set(false)">
+                  {{ 'common.actions.close' | translate }}
+                </button>
+                <button mat-stroked-button color="primary" (click)="saveComment()">
+                  {{ 'plans.suivis.indicateurGlobal.saveComment' | translate }}
+                </button>
+              </div>
+            </div>
+          }
+        } @else if (d.commentaire) {
+          <!-- Lecture seule : commentaire global -->
+          <div class="override-card">
+            <h3 class="section-title">{{ 'plans.suivis.indicateurGlobal.commentLabel' | translate }}</h3>
+            <p class="comment-readonly">{{ d.commentaire }}</p>
+          </div>
+        }
+
+        <!-- Graphique d'évolution (série indicateur) : axes + lignes horizontales -->
+        @if (chart(); as c) {
+          <div class="trend-chart-card">
+            <h3 class="section-title">{{ 'plans.suivis.indicateurGlobal.evolutionTitle' | translate }}</h3>
+            <p class="chart-caption">{{ 'plans.suivis.indicateurGlobal.scoreCaption' | translate }}</p>
+            <svg class="trend-chart" [attr.viewBox]="'0 0 ' + c.W + ' ' + c.H" role="img"
+                 [attr.aria-label]="'plans.suivis.indicateurGlobal.evolutionTitle' | translate">
+              <!-- Lignes horizontales + ordonnées (scores 1→5) -->
+              @for (g of c.gridlines; track g.score) {
+                <line class="grid-line"
+                      [attr.x1]="c.plotLeft" [attr.x2]="c.plotRight"
+                      [attr.y1]="g.y" [attr.y2]="g.y"></line>
+                <text class="axis-label" [attr.x]="c.plotLeft - 10" [attr.y]="g.y + 4" text-anchor="end">{{ g.score }}</text>
+              }
+              <!-- Courbe + points -->
+              <polyline [attr.points]="c.points" class="trend-line"></polyline>
+              @for (dot of c.dots; track dot.annee) {
+                <circle class="trend-dot" [attr.cx]="dot.x" [attr.cy]="dot.y" r="5"
+                        [matTooltip]="dot.annee + ' — ' + (dot.score | number:'1.0-1':'fr-FR') + '/5'"></circle>
+              }
+              <!-- Abscisses (années) -->
+              @for (xl of c.xLabels; track xl.annee) {
+                <text class="axis-label" [attr.x]="xl.x" [attr.y]="c.H - 12" text-anchor="middle">{{ xl.annee }}</text>
+              }
+            </svg>
+          </div>
+        }
+
+        <!-- Détail par métrique : tableau pleine largeur (kit UI) -->
+        <div class="metriques-section">
+          <h3 class="section-title">{{ 'plans.suivis.indicateurGlobal.metriquesTitle' | translate }}</h3>
+          <div class="table-wrapper">
+            <table class="metriques-table">
+              <thead>
+                <tr>
+                  <th class="col-text">{{ 'plans.suivis.indicateurGlobal.metrique' | translate }}</th>
+                  <th class="col-text">{{ 'plans.suivis.indicateurGlobal.cible' | translate }}</th>
+                  <th class="col-c">{{ 'plans.suivis.indicateurGlobal.etatCourant' | translate }}</th>
+                  <th class="col-c">{{ 'plans.suivis.indicateurGlobal.moyenne' | translate }}</th>
+                  <th class="col-c">{{ 'plans.suivis.indicateurGlobal.tendanceLabel' | translate }}</th>
+                  @for (y of metriqueYears(); track y) { <th class="col-y">{{ y }}</th> }
+                </tr>
+              </thead>
+              <tbody>
+                @for (m of d.metriques; track trackMetrique($index, m)) {
+                  <tr>
+                    <td class="col-text col-name">{{ m.nom_metrique }}</td>
+                    <td class="col-text">{{ m.etat_reference || '—' }}</td>
+                    <td class="col-c">
+                      @if (m.etat_courant) {
+                        <img [src]="getScoreBadge(m.etat_courant.score)" class="score-badge-icon-sm" alt="">
+                        <small>({{ m.etat_courant.annee }})</small>
+                      } @else { — }
+                    </td>
+                    <td class="col-c">{{ m.moyenne != null ? (m.moyenne | number:'1.0-1':'fr-FR') + '/5' : '—' }}</td>
+                    <td class="col-c">
+                      <span class="metrique-tendance" [matTooltip]="tendanceLabelKey(m.tendance) | translate">
+                        <i class="fi" [class]="'fi ' + tendanceIcon(m.tendance)"></i>
+                      </span>
+                    </td>
+                    @for (y of metriqueYears(); track y) {
+                      <!-- valeur cliquable → formulaire de saisie de l'année -->
+                      <td class="col-y">
+                        <a class="metrique-cell-link"
+                           [routerLink]="['/plans', planSlug(), 'tableau-de-bord', 'saisie', d.id_indicateur, y]"
+                           [matTooltip]="metriqueTooltip(m, y)">
+                          @if (metriqueScore(m, y); as sc) {
+                            <img [src]="getScoreBadge(sc)" class="score-badge-icon-sm" alt="">
+                          } @else { <span class="cell-empty">—</span> }
+                        </a>
+                      </td>
+                    }
+                  </tr>
+                } @empty {
+                  <tr>
+                    <td [attr.colspan]="5 + metriqueYears().length" class="empty-row">
+                      {{ 'plans.suivis.indicateurGlobal.noData' | translate }}
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+      }
+    }
+  </main>
+</div>

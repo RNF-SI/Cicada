@@ -2,6 +2,7 @@
   "common": {
     "actions": {
       "save": "Enregistrer",
+      "saveAndQuit": "Enregistrer et quitter",
       "cancel": "Annuler",
       "delete": "Supprimer",
       "edit": "Modifier",
@@ -24,7 +25,15 @@
       "moveUp": "Monter",
       "moveDown": "Descendre",
       "collapse": "Replier",
-      "clear": "Effacer"
+      "clear": "Effacer",
+      "home": "Retour à l'accueil",
+      "all": "Tous"
+    },
+    "emprise": {
+      "empty": "Aucune emprise définie",
+      "startDraw": "Dessiner / importer",
+      "stopDraw": "Terminer",
+      "drawHint": "Dessinez un polygone sur la carte, ou importez un fichier (.geojson, .json ou .zip de shapefile en WGS84)."
     },
     "status": {
       "active": "Actif",
@@ -101,6 +110,7 @@
       "noAccount": "Pas encore inscrit ?",
       "createAccount": "Créer un compte",
       "backToHome": "Retour à l'accueil",
+      "forgotPassword": "Mot de passe oublié ?",
       "errors": {
         "usernameRequired": "L'identifiant ou l'email est requis",
         "passwordRequired": "Le mot de passe est requis"
@@ -121,7 +131,14 @@
       "organisme": "Organisme",
       "organismePlaceholder": "Sélectionnez ou recherchez votre organisme",
       "organismeHint": "Choisissez un organisme dans la liste déroulante",
+      "createOrganisme": {
+        "toggle": "Mon organisme n'existe pas dans la liste ? Le créer",
+        "title": "Nouvel organisme à créer",
+        "back": "Choisir un organisme existant",
+        "info": "Une demande de création d'organisme sera envoyée à l'administrateur, en plus de votre demande de compte. Les deux seront validées séparément."
+      },
       "password": "Mot de passe",
+      "passwordHint": "Au moins 8 caractères.",
       "passwordPlaceholder": "Minimum 8 caractères",
       "confirmPassword": "Confirmer le mot de passe",
       "confirmPasswordPlaceholder": "Retapez votre mot de passe",
@@ -135,6 +152,7 @@
       "backToLogin": "Se connecter",
       "backToHome": "Retour à l'accueil",
       "errors": {
+        "formInvalid": "Veuillez compléter les champs obligatoires signalés en rouge avant de vous inscrire.",
         "firstNameRequired": "Le prénom est requis",
         "lastNameRequired": "Le nom est requis",
         "emailRequired": "L'email est requis",
@@ -154,7 +172,42 @@
       "title": "Demande en attente",
       "message": "Votre demande d'inscription a été envoyée. Vous recevrez un email une fois votre compte validé par un administrateur."
     },
-    "logout": "Déconnexion"
+    "logout": "Déconnexion",
+    "forgotPassword": {
+      "title": "Mot de passe oublié",
+      "subtitle": "Saisissez votre adresse email : nous vous enverrons un lien pour réinitialiser votre mot de passe.",
+      "email": "Adresse email",
+      "emailPlaceholder": "votre.email@exemple.fr",
+      "submit": "Envoyer le lien",
+      "loading": "Envoi en cours…",
+      "successMessage": "Si un compte est associé à cette adresse, un email contenant un lien de réinitialisation vient d'être envoyé. Pensez à vérifier vos courriers indésirables.",
+      "backToLogin": "Retour à la connexion",
+      "errors": {
+        "emailRequired": "L'adresse email est requise",
+        "emailInvalid": "Format d'adresse email invalide"
+      }
+    },
+    "resetPassword": {
+      "title": "Nouveau mot de passe",
+      "subtitle": "Choisissez un nouveau mot de passe pour votre compte.",
+      "newPassword": "Nouveau mot de passe",
+      "newPasswordPlaceholder": "Au moins 8 caractères",
+      "confirmPassword": "Confirmer le mot de passe",
+      "confirmPasswordPlaceholder": "Ressaisissez le mot de passe",
+      "submit": "Réinitialiser le mot de passe",
+      "loading": "Réinitialisation…",
+      "successMessage": "Votre mot de passe a été réinitialisé. Vous allez être redirigé vers la page de connexion.",
+      "invalidLink": "Ce lien de réinitialisation est incomplet ou invalide. Veuillez refaire une demande.",
+      "requestNewLink": "Demander un nouveau lien",
+      "goToLogin": "Aller à la connexion",
+      "backToLogin": "Retour à la connexion",
+      "errors": {
+        "passwordRequired": "Le mot de passe est requis",
+        "passwordMinLength": "Le mot de passe doit contenir au moins 8 caractères",
+        "confirmRequired": "Veuillez confirmer le mot de passe",
+        "mismatch": "Les mots de passe ne correspondent pas"
+      }
+    }
   },
   "header": {
     "administration": "Administration",
@@ -481,6 +534,26 @@
         "email": "Email",
         "phone": "Téléphone",
         "address": "Adresse"
+      }
+    },
+    "orphans": {
+      "title": "Sites et plans orphelins",
+      "subtitle": "Éléments sans rattachement à corriger : sites sans utilisateur, plans sans site.",
+      "empty": "Aucun site ni plan orphelin. Tout est rattaché.",
+      "sites": {
+        "title": "Sites sans utilisateur",
+        "hint": "Ces sites actifs n'ont plus aucun utilisateur associé. Ajoutez-leur un référent ou un membre."
+      },
+      "plans": {
+        "title": "Plans sans site",
+        "hint": "Ces plans de gestion n'ont plus aucun site associé suite à la suppression de leurs sites."
+      },
+      "actions": {
+        "manage": "Gérer",
+        "open": "Ouvrir"
+      },
+      "messages": {
+        "loading": "Chargement des orphelins…"
       }
     },
     "redacteursPrincipaux": {
@@ -1025,6 +1098,10 @@
         "typePrecision": "Indiquez le type de site non présent dans la liste",
         "requestAsReferent": "En tant que référent, vous pourrez gérer les accès et inviter d'autres utilisateurs sur ce site"
       },
+      "validators": {
+        "autoValidated": "Vous disposez des droits de validation : ce site sera validé automatiquement à sa création.",
+        "pendingTitle": "Ce site devra être validé. Seront notifiés :"
+      },
       "errors": {
         "nameRequired": "Le nom est requis",
         "surfacePositive": "La surface doit être positive",
@@ -1116,6 +1193,13 @@
       "sitesHintLink": "créer le site.",
       "sitePending": "(en attente de validation)",
       "addFreeText": "Ajouter en texte libre",
+      "versionChain": {
+        "sameRangTitle": "Un plan de gestion de rang {{rang}} existe déjà pour ce site :",
+        "linkLabel": "Rattacher ce plan à la suite de « {{nom}} » (rang {{rang}})",
+        "linkMention": "Conserve le fil entre les rangs (chaîne de versions). Décochez pour créer un plan indépendant.",
+        "existingTitle": "Plans de gestion déjà associés à ce site",
+        "rangLabel": "Rang {{rang}}"
+      },
       "messages": {
         "siteCreated": "Site créé et sélectionné avec succès",
         "sitePendingValidation": "Site créé et sélectionné. Il sera validé par un administrateur."
@@ -1265,6 +1349,26 @@
       "comite_consultatif": "Validation comité consultatif",
       "arrete_pref": "Arrêté préfectoral",
       "tooltip": "Étape du workflow de validation CSRPN en cours sur ce brouillon."
+    },
+    "csrpnRecap": {
+      "badge": "Validations administratives",
+      "avis": "Avis CSRPN",
+      "comite": "Validation comité",
+      "arrete": "Arrêté préfectoral"
+    },
+    "adminValidations": {
+      "title": "Validations administratives",
+      "avisCsrpn": "Avis CSRPN",
+      "comite": "Validation comité consultatif",
+      "arrete": "Arrêté préfectoral",
+      "notStarted": "Non commencé",
+      "empty": "Aucune validation administrative enregistrée. Cliquez pour en ajouter.",
+      "validatedOn": "Validé le {{date}}",
+      "record": "Enregistrer la validation",
+      "edit": "Modifier la validation",
+      "clear": "Effacer la validation",
+      "clearTitle": "Effacer la validation",
+      "clearMessage": "Voulez-vous effacer cette validation administrative ? La date enregistrée sera supprimée."
     },
     "extension": {
       "badge": "Étendu",
@@ -1620,6 +1724,10 @@
       "reassignError": "Erreur lors de la réassignation"
     },
     "suivis": {
+      "notValidatedBanner": {
+        "title": "Plan de gestion non validé",
+        "text": "Pas de modification possible tant que votre plan de gestion n'est pas validé."
+      },
       "bilan": {
         "title": "Bilan de la gestion",
         "comingSoon": "Cette fonctionnalité est en cours de développement.",
@@ -1715,11 +1823,33 @@
         "tableHeader": "Actions (priorité)",
         "leCasEcheant": "le cas échéant",
         "noOperations": "Aucune action n'est encore définie pour ce plan.",
-        "noOperationsHint": "Les actions sont créées depuis la page Détails et saisie, dans l'onglet Stratégie opérationnelle d'un enjeu."
+        "noOperationsHint": "Les actions sont créées depuis la page Détails et saisie, dans l'onglet Stratégie opérationnelle d'un enjeu.",
+        "globalStatus": {
+          "columnTitle": "Réalisation globale (sur la période du plan)",
+          "auto": "Automatique (calculé)",
+          "tooltipAuto": "Statut calculé automatiquement à partir des années programmées. Cliquez pour forcer un statut.",
+          "tooltipManuel": "Statut forcé manuellement. Cliquez pour le modifier ou revenir au calcul automatique.",
+          "niveau": {
+            "NON_DEMARRE": "Non démarré",
+            "EN_COURS": "En cours",
+            "PARTIEL": "Partiel",
+            "TERMINE": "Terminé",
+            "ABANDONNE": "Abandonné",
+            "REPORTE": "Reporté",
+            "NON_REALISE": "Non réalisée"
+          },
+          "columnHeader": "Global"
+        },
+        "searchPlaceholder": "Rechercher une action…",
+        "organisme": "Organisme",
+        "allOrganismes": "Tous les organismes",
+        "actionNonRealisee": "Action prévue non réalisée",
+        "actionNonRealiseeSeule": "Action non réalisée"
       },
       "saisie": {
         "subtitle": "Remplir le suivi d'une action",
         "editAction": "Modifier l'action",
+        "viewGlobal": "Voir le résultat global",
         "requiredHint": "Les champs avec * sont obligatoires",
         "noProgrammation": "Aucune programmation n'a été définie pour cette année — créez d'abord une OperationAnnee.",
         "orgVentilationComingSoon": "La saisie ventilée par organisme arrive dans une prochaine itération.",
@@ -1776,11 +1906,17 @@
           "operationNotFound": "Action introuvable.",
           "missingProgrammation": "Cette année n'est pas programmée pour cette action.",
           "saveFailed": "Erreur lors de l'enregistrement."
+        },
+        "niveau": {
+          "realisee": "Réalisée",
+          "partielle": "Partiellement réalisée",
+          "nonRealisee": "Non réalisée"
         }
       },
       "indicateur": {
         "subtitle": "Remplir le suivi d'un indicateur",
         "editIndicateur": "Modifier l'indicateur",
+        "viewGlobal": "Voir l'évaluation globale",
         "metriquesTitle": "Métriques :",
         "resultatsTitle": "Résultats",
         "resultat": "Résultat",
@@ -1832,7 +1968,108 @@
         "niveauExigence": "Niveau d'exigence",
         "indicateurs": "Indicateurs",
         "noData": "Aucun indicateur n'est encore défini pour ce plan.",
-        "noDataHint": "Les indicateurs sont créés depuis la page Détails et saisie, dans l'onglet Vision à long terme d'un enjeu."
+        "noDataHint": "Les indicateurs sont créés depuis la page Détails et saisie, dans l'onglet Vision à long terme d'un enjeu.",
+        "global": "Global",
+        "globalTooltip": "Voir l'évaluation globale de l'indicateur sur la période",
+        "viewInTree": "Voir dans l'arborescence de l'enjeu",
+        "resultatAttendu": "Résultat attendu",
+        "ensemble": "Ensemble",
+        "searchPlaceholder": "Rechercher (objectif, indicateur…)",
+        "enjeu": "Enjeu",
+        "actions": "Actions",
+        "niveauOuResultat": "Niveau d'exigence / Résultat attendu"
+      },
+      "indicateurGlobal": {
+        "subtitle": "Évaluation globale de l'indicateur",
+        "etatCourant": "État courant",
+        "moyenne": "Moyenne",
+        "tendanceLabel": "Tendance",
+        "evolutionTitle": "Évolution sur la période",
+        "scoreCaption": "Score annuel de l'indicateur, de 1 (très mauvais) à 5 (très bon).",
+        "metriquesTitle": "Détail par métrique",
+        "metrique": "Métrique",
+        "cible": "Cible / état de référence",
+        "noData": "Aucune donnée",
+        "manuel": "Manuel",
+        "scoreCalcule": "Score calculé",
+        "calc": {
+          "title": "Comment l'évaluation globale est-elle calculée ?",
+          "intro": "L'évaluation globale est calculée automatiquement à partir des mesures annuelles de chaque métrique :",
+          "rule1": "Chaque mesure est convertie en score de 1 à 5 selon les seuils définis sur la métrique.",
+          "rule2": "L'état courant correspond au score de la dernière année renseignée.",
+          "rule3": "La moyenne est la moyenne des scores annuels (seules les années renseignées comptent).",
+          "rule4": "La tendance compare le premier et le dernier score renseigné (amélioration, dégradation ou stable).",
+          "manual": "Un gestionnaire peut attribuer une interprétation différente (icône forcée) ; cela ne modifie pas le score calculé, qui reste affiché."
+        },
+        "evalTitle": "Interprétation de l'évaluation",
+        "adjustManually": "Ajuster manuellement l'évaluation",
+        "evalHint": "Le score est calculé automatiquement à partir des années renseignées. Vous pouvez attribuer une évaluation différente selon votre interprétation ; le score calculé reste inchangé.",
+        "auto": "Automatique",
+        "goToSaisie": "Saisir cette année",
+        "saved": "Évaluation enregistrée",
+        "commentSaved": "Commentaire enregistré",
+        "commentLabel": "Commentaire global (optionnel)",
+        "commentPlaceholder": "Précisez votre interprétation de l'évaluation globale…",
+        "saveComment": "Enregistrer le commentaire",
+        "eval": {
+          "tresBon": "Très bon (++)",
+          "bon": "Bon (+)",
+          "moyen": "Moyen",
+          "mauvais": "Mauvais (−)",
+          "tresMauvais": "Très mauvais (−−)"
+        },
+        "tendance": {
+          "hausse": "En amélioration",
+          "baisse": "En dégradation",
+          "stable": "Stable"
+        }
+      },
+      "actionGlobal": {
+        "subtitle": "Vue globale de l'action",
+        "openTooltip": "Voir la vue globale de l'action (réalisation, budget, RH)",
+        "realisation": "Réalisation globale",
+        "budgetTotal": "Budget total",
+        "rhTotal": "Temps de travail total",
+        "realise": "Réalisé",
+        "yearlyTitle": "Récapitulatif annuel",
+        "year": "Année",
+        "niveau": "Réalisation",
+        "budgetPrevReal": "Budget prév. / réalisé",
+        "rhPrevReal": "RH prév. / réalisé",
+        "noYears": "Aucune année programmée",
+        "fillBudgetTooltip": "Renseigner le budget de l'année en cours",
+        "fillRhTooltip": "Renseigner le temps de travail de l'année en cours",
+        "statut": {
+          "realise": "Réalisé",
+          "partiel": "Partiellement réalisé",
+          "nonRealise": "Non réalisé",
+          "aEvaluer": "À évaluer"
+        },
+        "evalPrompt": "La réalisation globale est déterminée automatiquement à partir des suivis annuels, sur l'ensemble de la période de l'action. Vous pouvez l'ajuster manuellement si besoin.",
+        "adjustManually": "Ajuster manuellement la réalisation",
+        "responseTitle": "Indicateurs de réponse",
+        "responseHint": "Cliquez sur une valeur pour la saisir ou la modifier dans le formulaire de suivi de l'année correspondante.",
+        "recapTab": "Récapitulatif",
+        "resourcesTitle": "Budget & temps de travail",
+        "goToSaisie": "Saisir cette année dans le formulaire de suivi",
+        "indicateur": "Indicateur",
+        "metrique": "Métrique",
+        "cible": "Cible",
+        "calc": {
+          "title": "Comment la réalisation globale est-elle calculée ?",
+          "intro": "La réalisation globale exprime, sur l'ENSEMBLE de la période de l'action, si elle a été menée à bien — ce n'est pas un avancement « à ce jour ». Elle est déterminée automatiquement à partir des réalisations saisies année par année, mais uniquement dans les cas nets (tant que la période n'est pas écoulée, le calcul ne conclut généralement pas). Vous pouvez l'ajuster manuellement si besoin :",
+          "rule1": "Toutes les années programmées sont « Terminé » → Réalisé",
+          "rule2": "Uniquement des « Partiel » → Partiellement réalisé",
+          "rule3": "Uniquement « Abandonné », « Reporté » ou « Non réalisée » → Non réalisé",
+          "rule4": "Dans tous les autres cas (années encore à venir, situation mixte…) → aucune réalisation globale n'est affichée : à évaluer manuellement.",
+          "manual": "Un gestionnaire peut fixer manuellement la réalisation globale (Réalisé / Partiellement réalisé / Non réalisé) ; la surcharge prime alors sur le calcul automatique."
+        },
+        "auto": "Automatique",
+        "manuel": "manuel",
+        "commentLabel": "Commentaire global (optionnel)",
+        "commentPlaceholder": "Précisez le contexte de la réalisation globale de l'action…",
+        "saveComment": "Enregistrer le commentaire",
+        "commentSaved": "Commentaire enregistré"
       }
     },
     "mindmap": {
@@ -1840,14 +2077,14 @@
       "viewMindmap": "Voir le tableau d'arborescence",
       "viewEnjeux": "Enjeux → Actions",
       "viewActions": "Actions → Enjeux",
-      "clickHint": "Cliquez sur un élément pour explorer sa hiérarchie",
-      "resetZoom": "Recentrer",
-      "resetZoomPlan": "Recentrer sur le plan",
-      "resetZoomPlanTooltip": "Affiche l'arborescence complète du plan (tous les enjeux et toutes les actions).",
-      "focusEnjeu": "Centrer la vue",
-      "focusEnjeuTooltip": "Zoome sur l'élément actuellement sélectionné pour mieux le visualiser dans l'arborescence.",
-      "focusOperation": "Centrer la vue",
-      "focusOperationTooltip": "Zoome sur l'action actuellement sélectionnée pour mieux la visualiser dans l'arborescence inversée.",
+      "clickHint": "Cliquez sur un élément pour zoomer dessus, double-cliquez pour ouvrir sa fiche. Survolez pour voir le nom complet.",
+      "overview": "Vue d'ensemble",
+      "expandAll": "Tout déplier",
+      "expandAllTooltip": "Affiche tous les niveaux de l'arborescence.",
+      "collapseAll": "Tout replier",
+      "collapseAllTooltip": "Ne garde visibles que les éléments de premier niveau.",
+      "expand": "Déplier",
+      "collapse": "Replier",
       "loading": "Chargement du tableau d'arborescence...",
       "empty": "Aucune donnée à afficher"
     },
@@ -1895,6 +2132,25 @@
         "sites": "Sites",
         "actions": "Actions"
       }
+    },
+    "settings": {
+      "openButton": "Paramètres",
+      "title": "Paramètres du plan de gestion",
+      "subtitle": "Gestion avancée des versions de ce plan de gestion.",
+      "back": "Retour au plan",
+      "noPermission": "Vous n'avez pas accès aux paramètres de ce plan de gestion.",
+      "versionsTitle": "Versions du plan de gestion",
+      "deleteSectionTitle": "Supprimer cette version",
+      "otherVersionsHint": "Pour supprimer une autre version, ouvrez-la puis allez dans ses paramètres.",
+      "versionsHelp": "Supprimer la version affichée efface définitivement son contenu (enjeux, opérations, suivis, fichiers) et ses liens (sites, utilisateurs, organismes). Les sites, utilisateurs et organismes eux-mêmes ne sont pas supprimés. Les versions restantes sont renumérotées. Supprimer une version mi-parcours annule l'évaluation à mi-parcours. Cette action est irréversible.",
+      "currentBadge": "Version affichée",
+      "miParcoursBadge": "Évaluation mi-parcours",
+      "versionLabel": "Version",
+      "deleteVersion": "Supprimer cette version",
+      "deleteVersionConfirmTitle": "Supprimer définitivement cette version ?",
+      "deleteVersionConfirmMessage": "La version « {{name}} » (v{{version}}) et tout son contenu seront supprimés définitivement. Ses liens avec les sites, utilisateurs et organismes seront retirés, et les versions restantes seront renumérotées. Cette action est irréversible.",
+      "deleteSuccess": "La version a été supprimée.",
+      "deleteError": "La suppression de la version a échoué."
     }
   },
   "profile": {
@@ -2480,9 +2736,10 @@
       "connaissance": "Connaissance",
       "ancrage": "Ancrage territorial",
       "fonctionnement": "Fonctionnement de l'aire protégée",
+      "surveillance": "Surveillance",
       "autre": "Autre",
       "details": "Détails",
-      "commentaires": "Détails / commentaires",
+      "commentaires": "Contexte, détails du choix du facteur clé",
       "commentairesPlaceholder": "Informations complémentaires"
     },
     "accordion": {
@@ -2496,6 +2753,11 @@
       "processus": "Un processus",
       "listeEspeces": "Espèces concernées",
       "listeHabitats": "Habitats concernés",
+      "habitatNoCorresp": "Aucune information complémentaire disponible.",
+      "habitatNoRelated": "Pas de sous-type ni d'habitat lié.",
+      "habitatRelated": "Habitats liés, même référentiel ({{count}}) :",
+      "habitatRelatedMore": "+ {{count}} autre(s)",
+      "habitatOwnTypo": "Référentiel d'origine",
       "listeGeologies": "Sites géologiques concernés",
       "voirListe": "Voir la liste",
       "masquerListe": "Masquer la liste",
@@ -2504,7 +2766,8 @@
       "precisionAutreEco": "Autre (conservation du patrimoine naturel) - précision",
       "precisionAutreSocio": "Autre (socio-économique) - précision",
       "etatEnjeu": "État de l'enjeu",
-      "detailsCommentaires": "Détails/commentaires"
+      "detailsCommentaires": "Détails/commentaires",
+      "fcrContexte": "Contexte, détails du choix du facteur clé"
     },
     "sidebar": {
       "title": "Liste enjeux et FCR",
@@ -2577,6 +2840,10 @@
       "searchHint": "Saisissez au moins 2 caractères pour lancer la recherche",
       "searchTaxonHint": "Référentiel TaxRef (INPN). Recherche par nom scientifique, vernaculaire ou cd_nom (min. 2 caractères, 20 résultats max). Tous les rangs sont sélectionnables (espèce, genre, famille, ordre…).",
       "searchHabitatHint": "Référentiel HabRef (INPN). Recherche par nom, code typologique (lb_code) ou identifiant cd_hab (min. 2 caractères, 20 résultats max).",
+      "habitatNotFound": "Je ne trouve pas mon habitat dans la liste",
+      "habitatFreeTextPlaceholder": "Saisir le nom de l'habitat",
+      "habitatFreeTextHint": "Habitat hors référentiel HabRef (ex. Outre-mer) — saisi librement, sans code.",
+      "habitatFreeTextBadgeTooltip": "Habitat saisi librement (hors référentiel HabRef)",
       "searchGeologyHint": "Référentiel INPG. Recherche par nom de site, code métier ou id_inpg (min. 2 caractères, 20 résultats max).",
       "geologyCount": "{{count}} site(s) géologique(s)",
       "searchGeology": "Rechercher un site géologique INPG",
@@ -2637,11 +2904,12 @@
       "hint": "Qu'est-ce qu'un objectif opérationnel ?",
       "description": "Un objectif opérationnel (OO) décrit les résultats concrets attendus pendant la durée du plan de gestion pour contribuer à l'atteinte de l'objectif à long terme.",
       "usageNote": "Un objectif opérationnel peut être associé à une ou plusieurs pressions identifiées sur l'enjeu. Les facteurs d'influence et les pressions se créent dans l'onglet « Détail » de votre enjeu ou FCR.",
+      "usageNoteFcr": "Définissez ici les objectifs opérationnels de ce facteur clé de réussite. Pour un FCR, aucune pression préalable n'est requise.",
       "descriptionLabel": "Détails / commentaires",
       "noFacteurTitle": "Aucun facteur d'influence",
       "noFacteurDescription": "Vous devez d'abord créer au moins un facteur d'influence dans l'onglet « Détail » avant de pouvoir ajouter un objectif opérationnel.",
       "noPressionTitle": "Aucune pression",
-      "noPressionDescription": "Vous devez d'abord créer au moins une pression sous un facteur d'influence dans l'onglet « Détail » avant de pouvoir ajouter un objectif opérationnel."
+      "noPressionDescription": "Vous devez d'abord créer au moins une pression sous un facteur d'influence dans l'onglet « Détail » avant de pouvoir ajouter un objectif opérationnel, dans le cas d'un enjeu."
     },
     "resultatAttendu": {
       "label": "Résultat attendu",
@@ -2666,7 +2934,7 @@
       "empty": "Aucun objectif opérationnel saisi",
       "addButton": "Ajouter un objectif opérationnel",
       "addAction": "Ajouter une action",
-      "addActionAtIndicateur": "Ajouter une action (liée à toutes les métriques)",
+      "addActionAtIndicateur": "Ajouter une action",
       "indicateurNoMetriques": "Cet indicateur n'a pas encore de métrique — ajoutez-en une d'abord.",
       "hint": "Qu'est-ce qu'un objectif opérationnel ?",
       "description": "Un objectif opérationnel (OO) décrit les résultats concrets attendus pendant la durée du plan de gestion pour contribuer à l'atteinte de l'objectif à long terme.",
@@ -2701,6 +2969,7 @@
       "taxonTaxref": "Taxon(s) référé(s)",
       "habitatRef": "Habitat(s) référé(s)",
       "habitatRefTooltip": "Codes d'habitats issus du référentiel HabRef (cd_hab) de l'INPN",
+      "habitatCorrespHint": "Cliquez sur un habitat pour voir son référentiel d'origine et ses habitats liés (sous-types) :",
       "protocoleCampanule": "Protocole répertorié dans campanule ?",
       "protocoleNom": "Protocole (Campanule)",
       "campanuleSearchPlaceholder": "Rechercher un protocole Campanule...",
@@ -2744,7 +3013,17 @@
       "frequenceAction": "Fréquence de l'action",
       "foisPar": "fois par",
       "applyFrequency": "Appliquer aux années",
-      "applyFrequencyTooltip": "Coche automatiquement les années correspondantes dans le tableau de programmation ci-dessous",
+      "applyFrequencyTooltip": "Ouvre une fenêtre pour choisir l'année et le mois de départ, puis remplit la périodicité du tableau de programmation ci-dessous selon la fréquence.",
+      "applyFrequencyInfo": "Remplit la périodicité du tableau de programmation ci-dessous.",
+      "freqDialog": {
+        "title": "Appliquer la fréquence",
+        "hint": "Choisissez l'année et le mois de départ. Les occurrences sont pré-cochées selon la fréquence ; ajustez-les si besoin avant d'appliquer.",
+        "startYear": "Année de départ",
+        "startMonth": "Mois de départ",
+        "yearsPreview": "Années programmées",
+        "monthsPreview": "Mois récurrents (mêmes mois chaque année)",
+        "apply": "Appliquer"
+      },
       "frequenceLabel": "Fréquence",
       "frequenceNombre": "Nombre",
       "frequenceUnite": "Unité",
@@ -2757,6 +3036,13 @@
       "detailsCommentaires": "Détails / commentaires",
       "indicateursReponse": "Indicateur(s) de réponse",
       "ajouterIndicateurReponse": "Ajouter un indicateur de réponse",
+      "indicateursReponseCreateHint": "Enregistrez d'abord l'action pour pouvoir y ajouter des indicateurs de réponse.",
+      "metriqueTypeChiffree": "Chiffrée",
+      "metriqueTypeTextuelle": "Textuelle",
+      "reponseExamplesTitle": "Exemples pour remplir un indicateur de réponse :",
+      "reponseExample1": "Métrique textuelle — Type : « Textuelle » · Métrique : « fait / non fait » · Valeur cible : « fait ».",
+      "reponseExample2": "Métrique chiffrée — Type : « Chiffrée » · Métrique : « nombre d'inventaires réalisés / nombre d'inventaires prévus » · Valeur cible : « 100 % ».",
+      "reponseExample3": "Métrique chiffrée (entretien des chemins) — Type : « Chiffrée » · Métrique : « linéaire de cheminement entretenu (km) » · Valeur cible : « nombre de km de cheminement sur la réserve ».",
       "descriptionLabel": "Description",
       "codeLabel": "Code opération",
       "refLabel": "Référentiel opérations",
@@ -2773,6 +3059,13 @@
       "indicateursEmpty": "Aucun indicateur de réponse n'est encore rattaché à cette action.",
       "empriseSpatialeBadge": "Emprise spatiale renseignée",
       "indicateursBadge": "{{count}} indicateur(s) de réponse rattaché(s)",
+      "sansMetriqueBadge": "Sans métrique",
+      "sansMetriqueTooltip": "Action rattachée directement à l'indicateur, sans métrique associée",
+      "metriqueLinkedTooltip": "Métrique associée à cette action",
+      "metriquesSameIndicateur": "même indicateur",
+      "metriquesOtherIndicateur": "autre indicateur du plan",
+      "scopeIndicateur": "Cet indicateur",
+      "scopePlan": "Tout le plan",
       "intituleIndicateurReponse": "Intitulé de l'indicateur de réponse",
       "typeMetrique": "Type de métriques",
       "valeurCible": "Valeur cible",
@@ -2923,6 +3216,7 @@
       "max": "Max",
       "valeur": "Valeur",
       "texte": "Texte",
+      "indetermineHint": "Type indéterminé : la grille de score sera définie plus tard, une fois le type de mesure précisé.",
       "partialError": "L'indicateur a été créé mais certaines métriques n'ont pas pu être enregistrées",
       "sectionTitle": "MÉTRIQUES",
       "createSuccess": "Métrique créée avec succès",
@@ -2947,6 +3241,7 @@
       "exclusif": "< (exclus)",
       "nomPlaceholder": "Intitulé court de la métrique",
       "niveauxActifs": "Niveaux actifs :",
+      "nonUtilise": "Non utilisé",
       "scoreSuffix": "score = {{score}}",
       "boundaryLabel": "Valeur limite",
       "boundaryPlaceholder": "Valeur",

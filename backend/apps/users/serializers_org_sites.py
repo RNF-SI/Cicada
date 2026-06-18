@@ -648,21 +648,18 @@ class SiteCreateUpdateSerializer(serializers.ModelSerializer):
         return value if value else None
 
     def validate_geom_geojson(self, value):
-        """Valide la géométrie GeoJSON."""
-        if value is not None:
-            try:
-                from django.contrib.gis.geos import GEOSGeometry
-                geom = GEOSGeometry(str(value))
-                if not isinstance(geom, MultiPolygon):
-                    # Convertir en MultiPolygon si nécessaire
-                    if hasattr(geom, 'geom_type') and geom.geom_type == 'Polygon':
-                        geom = MultiPolygon(geom)
-                    else:
-                        raise serializers.ValidationError(_("La géométrie doit être un Polygon ou MultiPolygon."))
-                return geom
-            except Exception as e:
-                raise serializers.ValidationError(_("GeoJSON invalide: %(error)s") % {'error': str(e)})
-        return value
+        """Valide et normalise la géométrie GeoJSON.
+
+        Répare les défauts courants (anneaux non fermés, auto-intersections,
+        trous, SRID manquant) et convertit en MultiPolygon EPSG:4326.
+        """
+        if value is None:
+            return value
+        from .geo_utils import normalize_to_multipolygon, GeometryError
+        try:
+            return normalize_to_multipolygon(value)
+        except GeometryError as e:
+            raise serializers.ValidationError(str(e))
 
     def validate_geom_pt_geojson(self, value):
         """Valide le point de référence GeoJSON."""

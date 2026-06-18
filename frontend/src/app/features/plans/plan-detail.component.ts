@@ -7,10 +7,12 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatMenuModule } from '@angular/material/menu';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { Subscription } from 'rxjs';
 import { HeaderComponent } from '../../shared/components/header/header.component';
 import { StatusChipComponent } from '../../shared/components/status-chip/status-chip.component';
+import { TagComponent } from '../../shared/components/tag/tag.component';
 import { SectionTitleComponent } from '../../shared/components/section-title/section-title.component';
 import { PlanSidebarComponent } from './shared/plan-sidebar/plan-sidebar.component';
 import { AdminService } from '../../core/services/admin.service';
@@ -118,6 +120,7 @@ interface SubAccordion {
     MatDialogModule,
     MatChipsModule,
     MatTooltipModule,
+    MatMenuModule,
     TranslateModule,
     HeaderComponent,
     SectionTitleComponent,
@@ -125,6 +128,7 @@ interface SubAccordion {
     PlanVersionTimelineComponent,
     EntityTileComponent,
     StatusChipComponent,
+    TagComponent,
   ],
   templateUrl: './plan-detail.component.html',
   styleUrl: './plan-detail.component.scss'
@@ -269,10 +273,9 @@ export class PlanDetailComponent implements OnInit, OnDestroy {
   // Pending site link requests for this plan
   pendingSiteRequests = signal<ValidationRequestListItem[]>([]);
 
-  // Permissions cycle de vie: référent du plan, admin_og ou super_admin (PAS redacteur_principal)
+  // Permissions cycle de vie (#346) : référent du plan, admin_og, super_admin OU rédacteur principal.
   canManageLifecycle = computed(() => {
-    if (this.authService.isRedacteurPrincipal()) return false;
-    if (this.authService.isSuperAdmin() || this.authService.isAdminOrganisme()) {
+    if (this.authService.isSuperAdmin() || this.authService.isRedacteurPrincipal() || this.authService.isAdminOrganisme()) {
       return true;
     }
     const p = this.plan();
@@ -508,6 +511,30 @@ export class PlanDetailComponent implements OnInit, OnDestroy {
     }
   }
 
+  /**
+   * #371 — Clic sur un OLT de la vue d'ensemble : ouvrir l'enjeu sur l'onglet
+   * « Vision OLT » (et non l'onglet restauré depuis l'état précédent).
+   */
+  navigateToOltInEnjeu(olt: { enjeu_id: number }): void {
+    const enjeu = this.enjeuxData().find(e => e.id_enjeu === olt.enjeu_id);
+    const slug = this.planSlug();
+    if (enjeu?.slug && slug) {
+      this.router.navigate(['/plans', slug, 'enjeux', enjeu.slug], { queryParams: { tab: 'olt' } });
+    }
+  }
+
+  /**
+   * #371 — Clic sur un OO de la vue d'ensemble : ouvrir l'enjeu sur l'onglet
+   * « Stratégie opérationnelle » et déplier l'OO ciblé.
+   */
+  navigateToOoInEnjeu(oo: { enjeu_id: number; id_oo: number }): void {
+    const enjeu = this.enjeuxData().find(e => e.id_enjeu === oo.enjeu_id);
+    const slug = this.planSlug();
+    if (enjeu?.slug && slug) {
+      this.router.navigate(['/plans', slug, 'enjeux', enjeu.slug], { queryParams: { tab: 'operations', expandOo: oo.id_oo } });
+    }
+  }
+
   navigateToOperation(item: OperationSynthItem): void {
     const slug = this.planSlug();
     if (!slug || !item.enjeuSlug) return;
@@ -736,6 +763,41 @@ export class PlanDetailComponent implements OnInit, OnDestroy {
     return !!(p && p.is_mi_parcours);
   });
 
+  /** #347 — Au moins une information de validation administrative est renseignée. */
+  hasCsrpnInfo = computed<boolean>(() => {
+    const p = this.plan();
+    return !!(p && (p.date_avis_csrpn || p.date_validation_comite || p.date_arrete_pref || p.numero_arrete_pref));
+  });
+
+  /** #347 — Récapitulatif des validations administratives (affiché au survol du
+   *  badge en haut du plan). Liste CHAQUE étape avec son statut (validé + date /
+   *  non commencé), pour donner l'état complet sans ouvrir le menu. */
+  csrpnRecapTooltip = computed<string>(() => {
+    const fmt = (iso?: string | null) => {
+      if (!iso) return null;
+      const [y, m, d] = iso.slice(0, 10).split('-');
+      return d && m && y ? `${d}/${m}/${y}` : iso;
+    };
+    const lines = this.adminValidations().map(item => {
+      const label = this.translate.instant(item.labelKey);
+      if (item.done) {
+        const num = item.numero ? ` (n° ${item.numero})` : '';
+        const validated = this.translate.instant('plans.adminValidations.validatedOn', { date: fmt(item.date) ?? '' });
+        return `${label} : ${validated}${num}`;
+      }
+      return `${label} : ${this.translate.instant('plans.adminValidations.notStarted')}`;
+    });
+    return lines.join('\n');
+  });
+
+  /** #347 — Compteur « validées / total » affiché sur le badge en haut, pour
+   *  visualiser le statut d'un coup d'œil sans survol. */
+  adminValidationsSummary = computed<string>(() => {
+    const items = this.adminValidations();
+    const done = items.filter(i => i.done).length;
+    return `${done}/${items.length}`;
+  });
+
   /** #276 — Vrai si la chaîne du plan a déjà une évaluation mi-parcours
    *  (sur n'importe laquelle de ses versions). Bloque la création d'une
    *  nouvelle éval mi-parcours. */
@@ -863,74 +925,78 @@ export class PlanDetailComponent implements OnInit, OnDestroy {
    *  par l'étape arrêté préfectoral après la validation comité. */
   isRnn = computed<boolean>(() => this.principalSiteTypeMnemonique() === 'RNN');
 
-  /** Étape 1 : lancer le workflow CSRPN (`validation_step` null → avis_csrpn).
-   *  Le plan reste en `draft`. */
-  submitForCsrpn(): void {
+  /** #347 — Validations administratives indépendantes (panneau dédié).
+   *  Chaque élément est « validé » dès que sa date est renseignée. L'arrêté
+   *  préfectoral n'est présent que pour les RNN/RNR. */
+  adminValidations = computed<{
+    key: 'avis_csrpn' | 'comite_consultatif' | 'arrete_pref';
+    dialogStep: CsrpnStep;
+    labelKey: string;
+    done: boolean;
+    date: string | null;
+    numero: string | null;
+  }[]>(() => {
+    const p = this.plan();
+    const items: {
+      key: 'avis_csrpn' | 'comite_consultatif' | 'arrete_pref';
+      dialogStep: CsrpnStep;
+      labelKey: string;
+      done: boolean;
+      date: string | null;
+      numero: string | null;
+    }[] = [
+      {
+        key: 'avis_csrpn', dialogStep: 'csrpn',
+        labelKey: 'plans.adminValidations.avisCsrpn',
+        done: !!p?.date_avis_csrpn, date: p?.date_avis_csrpn ?? null, numero: null,
+      },
+      {
+        key: 'comite_consultatif', dialogStep: 'comite',
+        labelKey: 'plans.adminValidations.comite',
+        done: !!p?.date_validation_comite, date: p?.date_validation_comite ?? null, numero: null,
+      },
+    ];
+    if (this.isRnn()) {
+      items.push({
+        key: 'arrete_pref', dialogStep: 'arrete',
+        labelKey: 'plans.adminValidations.arrete',
+        done: !!p?.date_arrete_pref, date: p?.date_arrete_pref ?? null,
+        numero: p?.numero_arrete_pref ?? null,
+      });
+    }
+    return items;
+  });
+
+  /** #347 — Ouvre la modale de saisie pour un élément administratif et enregistre
+   *  sa date (et le n° d'arrêté) de façon indépendante du workflow et du statut. */
+  openAdminValidationDialog(key: 'avis_csrpn' | 'comite_consultatif' | 'arrete_pref'): void {
+    const item = this.adminValidations().find(i => i.key === key);
+    if (!item) return;
+    this.openCsrpnStepDialog(item.dialogStep).subscribe(result => {
+      if (!result) return;
+      this.recordAdminValidation(key, result.date, result.numeroArrete ?? null);
+    });
+  }
+
+  /** #347 — Efface une validation administrative (date → null). */
+  clearAdminValidation(key: 'avis_csrpn' | 'comite_consultatif' | 'arrete_pref'): void {
     this.openLifecycleConfirm({
-      title: this.translate.instant('plans.lifecycle.actions.submitForCsrpn'),
-      message: this.translate.instant('plans.lifecycle.actions.submitForCsrpnDesc'),
-      confirmText: this.translate.instant('plans.lifecycle.actions.submitForCsrpn'),
-      confirmColor: 'primary',
-      onConfirm: () => this.changeCsrpnStep('avis_csrpn'),
-    });
-  }
-
-  /** Étape 2 : `avis_csrpn → comite_consultatif`. Saisie de la date d'avis. */
-  recordCsrpnOpinion(): void {
-    this.openCsrpnStepDialog('csrpn').subscribe(result => {
-      if (!result) return;
-      this.changeCsrpnStep('comite_consultatif', { dateAvisCsrpn: result.date });
-    });
-  }
-
-  /** Étape 3 : `comite_consultatif → arrete_pref` (RNN) ou `→ valide` (non-RNN).
-   *  Saisie de la date de validation comité. */
-  validateByComite(): void {
-    this.openCsrpnStepDialog('comite').subscribe(result => {
-      if (!result) return;
-      const isRnn = this.isRnn();
-      if (isRnn) {
-        this.changeCsrpnStep('arrete_pref', { dateValidationComite: result.date });
-      } else {
-        // Non-RNN : la validation finale sort du workflow CSRPN et passe en
-        // `valide` (`change-status` remet validation_step à NULL côté backend).
-        this.changeStatus('valide', { isMiParcours: result.isMiParcours });
-      }
-    });
-  }
-
-  /** Étape 4 (RNN uniquement) : `arrete_pref → valide`. Saisie date + numéro. */
-  recordArretePref(): void {
-    this.openCsrpnStepDialog('arrete').subscribe(result => {
-      if (!result) return;
-      this.changeStatus('valide', { isMiParcours: result.isMiParcours });
-    });
-  }
-
-  /** Annule le workflow CSRPN en cours : retour en `draft` simple
-   *  (`validation_step` → null), sans changement de statut. */
-  cancelCsrpn(): void {
-    this.openLifecycleConfirm({
-      title: this.translate.instant('plans.lifecycle.actions.cancelCsrpn'),
-      message: this.translate.instant('plans.lifecycle.actions.cancelCsrpnDesc'),
-      confirmText: this.translate.instant('plans.lifecycle.actions.cancelCsrpn'),
+      title: this.translate.instant('plans.adminValidations.clearTitle'),
+      message: this.translate.instant('plans.adminValidations.clearMessage'),
+      confirmText: this.translate.instant('common.actions.delete'),
       confirmColor: 'warn',
-      onConfirm: () => this.changeCsrpnStep(null),
+      onConfirm: () => this.recordAdminValidation(key, null, null),
     });
   }
 
-  private changeCsrpnStep(
-    step: 'avis_csrpn' | 'comite_consultatif' | 'arrete_pref' | null,
-    options: {
-      dateAvisCsrpn?: string;
-      dateValidationComite?: string;
-      dateArretePref?: string;
-      numeroArretePref?: string;
-    } = {},
+  private recordAdminValidation(
+    key: 'avis_csrpn' | 'comite_consultatif' | 'arrete_pref',
+    date: string | null,
+    numeroArrete?: string | null,
   ): void {
     const p = this.plan();
     if (!p) return;
-    this.adminService.changeCsrpnStep(p.id_pg, step, options).subscribe({
+    this.adminService.recordAdminValidation(p.id_pg, key, date, numeroArrete).subscribe({
       next: () => {
         this.snackBar.open(
           this.translate.instant('plans.lifecycle.messages.statusChanged'),
@@ -951,13 +1017,21 @@ export class PlanDetailComponent implements OnInit, OnDestroy {
 
   private openCsrpnStepDialog(step: CsrpnStep) {
     const p = this.plan();
+    // #347 — pré-remplir la modale avec la date (et le n° d'arrêté) déjà saisis
+    // pour cette étape, afin de ne pas perdre l'info après un retour en brouillon.
+    const initialDate =
+      step === 'csrpn' ? p?.date_avis_csrpn :
+      step === 'comite' ? p?.date_validation_comite :
+      step === 'arrete' ? p?.date_arrete_pref : null;
     const dialogData: CsrpnStepDialogData = {
       step,
       planName: p?.nom ?? '',
       isRnn: this.isRnn(),
-      canDeclareMiParcours: !!(p?.plan_parent_id) && !(p?.version_chain || []).some(
-        v => v.id_pg !== p.id_pg && v.is_mi_parcours,
-      ),
+      // #347 — la déclaration mi-parcours se fait à la validation plateforme
+      // (confirmValidation), plus à l'étape administrative CSRPN.
+      canDeclareMiParcours: false,
+      initialDate: initialDate ?? null,
+      initialNumeroArrete: step === 'arrete' ? (p?.numero_arrete_pref ?? null) : null,
     };
     return this.dialog
       .open<CsrpnStepDialogComponent, CsrpnStepDialogData, CsrpnStepDialogResult | null>(

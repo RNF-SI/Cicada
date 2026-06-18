@@ -493,74 +493,90 @@ class SiteViewSet(viewsets.ModelViewSet):
         - Autres: site créé inactif, demande de validation créée
         """
         from apps.notifications.models import ValidationRequest
-        from apps.notifications.services import NotificationService
+        from apps.notifications.services import NotificationService, ValidationService
 
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
         user = request.user
 
-        if user.is_super_admin():
-            # Super admin: création directe sans validation
-            site = serializer.save(active=True)
+        # Récupérer request_as_referent (défaut: True pour compatibilité ascendante)
+        request_as_referent = request.data.get('request_as_referent', True)
 
-            # Le super admin devient référent du site
-            CorRoleSite.objects.create(
-                id_site=site,
-                id_role=user,
-                referent=True,
-                referent_valid=True,
-                conservateur=False,
+        # Le site est créé inactif puis activé immédiatement si le créateur a
+        # lui-même les droits de validation (auto-validation).
+        site = serializer.save(active=False)
+
+        validation_request = ValidationRequest.objects.create(
+            request_type='site_creation',
+            status='pending',
+            requester=user,
+            target_site=site,
+            justification=f"Création du site {site.nom_site}",
+            request_as_referent=request_as_referent,
+        )
+
+        # Déterminer les validateurs de cette demande
+        validators = ValidationService.get_validators_for_request(validation_request)
+        is_self_validator = any(v.id_role == user.id_role for v in validators)
+
+        if is_self_validator:
+            # Validation automatique : le créateur dispose des droits de validation
+            ValidationService.approve_site_creation(
+                validation_request,
+                validator=user,
+                comment="Validation automatique : le créateur dispose des droits de validation.",
+                notify_requester=False,
             )
+            site.refresh_from_db()
 
-            # Lier l'organisme du créateur si existe
-            if user.id_organisme:
-                CorOgSite.objects.get_or_create(
-                    id_site=site,
-                    uuid_og=user.id_organisme,
-                    defaults={'principal': True}
-                )
-
-            # Réponse standard pour super admin
-            response_serializer = SiteDetailSerializer(site, context={'request': request})
-            return Response(response_serializer.data, status=status.HTTP_201_CREATED)
-        else:
-            # Autres utilisateurs: site inactif + demande de validation
-            site = serializer.save(active=False)
-
-            # Récupérer request_as_referent (défaut: True pour compatibilité ascendante)
-            request_as_referent = request.data.get('request_as_referent', True)
-
-            # Créer la demande de validation
-            validation_request = ValidationRequest.objects.create(
-                request_type='site_creation',
-                status='pending',
-                requester=user,
-                target_site=site,
-                justification=f"Création du site {site.nom_site}",
-                request_as_referent=request_as_referent,
-            )
-
-            # Notifier les validateurs (admin_og de l'organisme du créateur + super_admin)
-            NotificationService.notify_validators(validation_request)
-
-            # Réponse avec indication de validation en attente
             response_serializer = SiteDetailSerializer(site, context={'request': request})
             response_data = response_serializer.data
-            response_data['validation_pending'] = True
-            response_data['validation_request_id'] = validation_request.id
+            response_data['auto_validated'] = True
+            response_data['validation_pending'] = False
             if request_as_referent:
                 response_data['message'] = (
-                    f"Le site \"{site.nom_site}\" a été créé et est en attente de validation. "
-                    "Vous deviendrez automatiquement référent du site une fois celui-ci validé."
+                    f"Le site \"{site.nom_site}\" a été créé et validé automatiquement. "
+                    "Vous en êtes le référent."
                 )
             else:
                 response_data['message'] = (
-                    f"Le site \"{site.nom_site}\" a été créé et est en attente de validation. "
-                    "Vous obtiendrez un accès utilisateur au site une fois celui-ci validé."
+                    f"Le site \"{site.nom_site}\" a été créé et validé automatiquement."
                 )
-
             return Response(response_data, status=status.HTTP_201_CREATED)
+
+        # Sinon : site en attente de validation, on notifie les validateurs
+        NotificationService.notify_validators(validation_request)
+
+        response_serializer = SiteDetailSerializer(site, context={'request': request})
+        response_data = response_serializer.data
+        response_data['validation_pending'] = True
+        response_data['auto_validated'] = False
+        response_data['validation_request_id'] = validation_request.id
+        # Liste des validateurs (nom + rôle) pour informer le demandeur
+        serialized_validators = ValidationService.serialize_validators(validators, exclude=user)
+        response_data['validators'] = serialized_validators
+
+        if request_as_referent:
+            base_message = (
+                f"Le site \"{site.nom_site}\" a été créé et est en attente de validation. "
+                "Vous deviendrez automatiquement référent du site une fois celui-ci validé."
+            )
+        else:
+            base_message = (
+                f"Le site \"{site.nom_site}\" a été créé et est en attente de validation. "
+                "Vous obtiendrez un accès utilisateur au site une fois celui-ci validé."
+            )
+
+        # Préciser qui peut valider (nom + rôle), pour informer le demandeur
+        if serialized_validators:
+            who = ", ".join(
+                f"{v['name']} ({v['role_label']})" for v in serialized_validators
+            )
+            base_message += f" Validateurs : {who}."
+        response_data['message'] = base_message
+
+        return Response(response_data, status=status.HTTP_201_CREATED)
 
     def destroy(self, request, *args, **kwargs):
         """
@@ -570,7 +586,8 @@ class SiteViewSet(viewsets.ModelViewSet):
           la suppression d'un site est un acte de cycle de vie)
         - Envoie une notification aux référents et admin_og des organismes liés
         - Les plans liés (CorSitePg CASCADE) perdent leur association mais ne sont pas supprimés
-        - La détection des plans orphelins est faite par la tâche hebdomadaire check_orphaned_plans
+        - Les plans devenus orphelins (sans site) sont consultables via la page
+          Administration > Orphelins (endpoint /api/admin/orphans/)
         """
         from apps.notifications.services import NotificationService
 
@@ -609,6 +626,27 @@ class SiteViewSet(viewsets.ModelViewSet):
         )
 
         return Response(status=204)
+
+    @action(detail=False, methods=['get'], url_path='creation-validators')
+    def creation_validators(self, request):
+        """Aperçu (avant création) des validateurs d'une future création de site.
+
+        Retourne `auto_validated=True` si l'utilisateur courant dispose lui-même
+        des droits de validation (la création sera alors validée automatiquement),
+        sinon la liste des validateurs (nom + rôle) qui seront notifiés.
+        """
+        from apps.notifications.services import ValidationService
+
+        user = request.user
+        validator_set = ValidationService.preview_site_creation_validators(user)
+        is_self_validator = any(v.id_role == user.id_role for v in validator_set)
+        return Response({
+            'auto_validated': is_self_validator,
+            'validators': (
+                [] if is_self_validator
+                else ValidationService.serialize_validators(validator_set, exclude=user)
+            ),
+        })
 
     @action(detail=True, methods=['get'])
     def geojson(self, request, slug=None):

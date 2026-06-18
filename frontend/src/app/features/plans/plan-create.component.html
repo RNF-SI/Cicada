@@ -165,6 +165,63 @@
             </app-form-field>
           </div>
 
+          <!-- Chaîne de versions : conflit de rang / rattachement / détail PG du site -->
+          @if (allExistingPlans().length > 0) {
+            <div class="version-chain-box">
+
+              <!-- Avertissement : un PG du même rang existe déjà (non bloquant) -->
+              @if (sameRangConflicts().length > 0) {
+                <div class="info-block info-block-warning">
+                  <i class="fi fi-rr-exclamation"></i>
+                  <div>
+                    <p class="text-bold">{{ 'modals.planForm.versionChain.sameRangTitle' | translate:{ rang: currentRang() } }}</p>
+                    <ul class="list-bullets">
+                      @for (plan of sameRangConflicts(); track plan.id_pg) {
+                        <li>{{ plan.nom }} — {{ plan.statut_display }}</li>
+                      }
+                    </ul>
+                  </div>
+                </div>
+              }
+
+              <!-- Suggestion de rattachement au plan du rang précédent -->
+              @if (suggestedParent(); as parent) {
+                <div class="info-block info-block-success link-parent-block">
+                  <i class="fi fi-rr-link"></i>
+                  <div>
+                    <app-checkbox
+                      [checked]="linkToParentEnabled()"
+                      (checkedChange)="linkToParentEnabled.set($event)"
+                      [label]="'modals.planForm.versionChain.linkLabel' | translate:{ nom: parent.nom, rang: parent.rang }"
+                      [mention]="'modals.planForm.versionChain.linkMention' | translate">
+                    </app-checkbox>
+                  </div>
+                </div>
+              }
+
+              <!-- Détail des PG validés déjà associés au(x) site(s) -->
+              <details class="existing-plans-details">
+                <summary>{{ 'modals.planForm.versionChain.existingTitle' | translate }}</summary>
+                @for (entry of existingPlansBySite(); track entry.site_id) {
+                  @if (entry.plans.length > 0) {
+                    <div class="existing-site-group">
+                      <p class="text-bold existing-site-name">{{ entry.site_nom }}</p>
+                      <ul class="list-bullets">
+                        @for (plan of entry.plans; track plan.id_pg) {
+                          <li>
+                            {{ 'modals.planForm.versionChain.rangLabel' | translate:{ rang: plan.rang } }}
+                            — {{ plan.nom }}
+                            <span class="text-mention">({{ plan.statut_display }}@if (plan.annee_debut && plan.annee_fin) {, {{ plan.annee_debut }}–{{ plan.annee_fin }}})</span>
+                          </li>
+                        }
+                      </ul>
+                    </div>
+                  }
+                }
+              </details>
+            </div>
+          }
+
           <!-- CT88 (Radio buttons) -->
           <div class="form-section-box ct88-section">
             <label class="field-label">{{ 'modals.planForm.fields.ct88' | translate }} *</label>

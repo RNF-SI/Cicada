@@ -33,30 +33,24 @@
 }
 
 // =============================================================================
-// Hero — couleur unie pale-green Kit UI (Figma 4290-22253) + pattern
-// d'ellipses (banner-waves) sur la droite, comme les pages d'enjeux.
+// Hero — dégradé orange Kit UI (Figma 161-20144, issue #382) + pattern
+// d'ellipses (banner-waves) sur la droite, comme les autres pages de suivi.
 // =============================================================================
 
 .hero-section {
-  // On n'utilise PAS le mixin `plan-page-hero-suivi` (qui applique un dégradé
-  // jaune→saumon) : la maquette demande ici une couleur unique pale-green.
-  position: relative;
-  background-color: $secondary-pale-green;
-  border-radius: 0 0 $border-radius-xl $border-radius-xl;
-  padding: $spacing-lg $spacing-xl $spacing-xl;
-  min-height: 280px;
-  overflow: hidden;
-  color: $primary-color;
+  // #382 — dégradé jaune→saumon partagé avec les pages Suivi (au lieu du
+  // pale-green : la maquette à jour demande l'orange, avec l'image à droite).
+  @include plan-page-hero-suivi(280px);
 
   .hero-background {
     @include plan-page-hero-background;
   }
 
   // Vagues/ellipses décoratives à droite — même asset et même positionnement
-  // que les pages enjeux (mixin partagé `plan-page-hero-pattern`).
+  // que les autres pages de suivi (mixin partagé `plan-page-hero-pattern`).
   .hero-pattern {
     @include plan-page-hero-pattern;
-    opacity: 0.35;
+    opacity: 0.2;
   }
 
   .hero-content {
@@ -161,7 +155,10 @@
       line-height: 1.1;
     }
 
-    .hero-actions { margin-top: $spacing-sm; }
+    .hero-actions {
+      margin-top: $spacing-sm;
+      display: inline-flex; flex-wrap: wrap; gap: $spacing-sm;
+    }
 
     .btn-hero-primary {
       display: inline-flex;
@@ -177,6 +174,24 @@
       cursor: pointer;
       transition: background 0.2s;
       &:hover { background: darken(#B74D5D, 8%); }
+    }
+
+    // #356 — Bouton secondaire (vue globale) : outline blanc sur le hero.
+    .btn-hero-secondary {
+      display: inline-flex;
+      align-items: center;
+      gap: $spacing-xs;
+      background: $white;
+      color: $primary-color;
+      border: 1px solid $primary-color;
+      padding: $spacing-sm $spacing-lg;
+      border-radius: $border-radius-pill;
+      font-family: 'Nunito', sans-serif;
+      font-weight: 600;
+      text-decoration: none;
+      cursor: pointer;
+      transition: background 0.2s, color 0.2s;
+      &:hover { background: $primary-color; color: $white; }
     }
   }
 }

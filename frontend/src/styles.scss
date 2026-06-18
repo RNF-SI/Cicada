@@ -963,6 +963,32 @@ body.leaflet-map-fullscreen-active {
     }
   }
 }
+
+// ════════════════════════════════════════════════════════════════
+// Catégorie d'action réserve (CT88) — <mat-select> simple, overlay CDK.
+// Sans panelClass, le code (CS) et l'intitulé étaient collés
+// (« CSConnaissance et suivi… »). On applique la même présentation
+// « badge code + intitulé » que le type d'action.
+// ════════════════════════════════════════════════════════════════
+.action-reserve-panel {
+  .action-code {
+    font-family: 'Courier New', monospace;
+    font-weight: 700;
+    font-size: 12px;
+    color: $primary-color;
+    background-color: $primary-bg-subtle;
+    padding: 1px 6px;
+    border-radius: $border-radius-sm;
+    margin-right: $spacing-xs;
+    white-space: nowrap;
+  }
+
+  .action-label {
+    font-size: 13px;
+    color: $black;
+  }
+}
+
 // ============================================
 // AUTOFILL GLOBAL (Chrome/Edge fix)
 // ============================================
@@ -1064,4 +1090,124 @@ label.app-mat-label + app-form-field,
       white-space: normal;
     }
   }
+}
+
+// Menu « Ajouter enjeu/FCR » : icônes (montagnes/clef, identiques au reste de
+// l'app) colorées dans le primaire pour un rendu net et cohérent avec le bouton.
+// mat-menu est rendu dans un overlay global → règles globales (hors encapsulation).
+.menu-type-icon { font-size: 1rem; vertical-align: middle; color: $primary-color; }
+
+// Options du menu « Ajouter enjeu/FCR » alignées sur le kit UI (typo Nunito,
+// graisse semi-bold, espacement icône/texte cohérent).
+.add-enjeu-fcr-menu {
+  .mat-mdc-menu-item {
+    display: flex;
+    align-items: center;
+    gap: $spacing-sm;
+    min-height: 44px;
+    font-family: $font-family;
+
+    .menu-type-icon { color: $primary-color; font-size: 1.05rem; }
+
+    .mdc-list-item__primary-text {
+      font-family: $font-family;
+      font-size: $font-size-base;
+      font-weight: $font-weight-semibold;
+      color: $black;
+    }
+  }
+}
+
+// #227 — Recherche dans le sélecteur « Métriques associées » (mat-select rendu
+// en overlay → styles globaux). Champ aligné kit UI (Nunito, accent primaire).
+.metrique-select-panel {
+  // Barre d'outils collante : recherche + filtre de portée
+  .select-toolbar {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    gap: $spacing-sm;
+    padding: $spacing-xs $spacing-sm;
+    background: $white;
+    border-bottom: 1px solid $gray-light;
+  }
+
+  .select-search {
+    display: flex;
+    align-items: center;
+    gap: $spacing-xs;
+    flex: 1;
+    min-width: 0;
+
+    .select-search-icon { color: $primary-color; font-size: 0.95rem; }
+
+    .select-search-input {
+      flex: 1;
+      min-width: 0;
+      border: none;
+      outline: none;
+      background: transparent;
+      font-family: $font-family;
+      font-size: $font-size-base;
+      color: $black;
+
+      &::placeholder { color: $gray-dark; }
+    }
+  }
+
+  // Filtre de portée « Cet indicateur » / « Tout le plan » (segmenté, kit UI)
+  .select-scope-toggle {
+    display: inline-flex;
+    flex-shrink: 0;
+    border: 1px solid $primary-color;
+    border-radius: $border-radius-pill;
+    overflow: hidden;
+
+    button {
+      border: none;
+      background: transparent;
+      cursor: pointer;
+      padding: 2px 10px;
+      font-family: $font-family;
+      font-size: 12px;
+      font-weight: $font-weight-semibold;
+      color: $primary-color;
+      white-space: nowrap;
+
+      &.active {
+        background: $primary-color;
+        color: $white;
+      }
+    }
+  }
+
+  // Option : nom de la métrique + indicateur sur la même ligne
+  .opt-metrique-nom { font-weight: $font-weight-semibold; }
+  .opt-metrique-ind { color: $gray-dark; margin-left: 4px; font-size: 0.85em; }
+
+  .select-no-result {
+    padding: $spacing-sm;
+    font-family: $font-family;
+    font-size: $font-size-base;
+    color: $gray-dark;
+    text-align: center;
+  }
+}
+
+// #347 — Tooltip multi-ligne pour le récap des informations de validation CSRPN
+// (matTooltipClass="csrpn-recap-tooltip"). Le tooltip Material est rendu dans un
+// overlay global, d'où ce style non scopé.
+.csrpn-recap-tooltip {
+  white-space: pre-line;
+  text-align: left;
+}
+
+// Tooltip multi-ligne générique (aide contextuelle, ex : exemples d'indicateurs
+// de réponse). Rendu dans l'overlay global → style non scopé.
+.multiline-tooltip {
+  white-space: pre-line;
+  text-align: left;
+  max-width: 360px !important;
 }

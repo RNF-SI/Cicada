@@ -27,7 +27,7 @@ import { forkJoin, of } from 'rxjs';
 import { HeaderComponent } from '../../../../shared/components/header/header.component';
 import { PlanSidebarComponent } from '../../shared/plan-sidebar/plan-sidebar.component';
 import { FormFieldComponent } from '../../../../shared/components/form-field/form-field.component';
-import { LeafletMapEditComponent } from '../../../../shared/components/leaflet-map-edit/leaflet-map-edit.component';
+import { EmpriseEditorComponent } from '../../../../shared/components/emprise-editor/emprise-editor.component';
 import { AdminService } from '../../../../core/services/admin.service';
 import { EnjeuService } from '../../../../core/services/enjeu.service';
 import { RealisationService } from '../../../../core/services/realisation.service';
@@ -57,7 +57,7 @@ type ActionStatus = 'planned' | 'planned-realized' | 'planned-partial' | 'realiz
     MatButtonModule, MatProgressSpinnerModule, MatSnackBarModule,
     TranslateModule,
     HeaderComponent, PlanSidebarComponent, FormFieldComponent,
-    LeafletMapEditComponent,
+    EmpriseEditorComponent,
   ],
   templateUrl: './suivi-saisie.component.html',
   styleUrl: './suivi-saisie.component.scss',
@@ -76,12 +76,39 @@ export class SuiviSaisieComponent implements OnInit {
   planSlug = signal<string | null>(null);
   planId = signal<number | null>(null);
   planNom = signal<string>('');
+  planStatut = signal<string | null>(null);
   operationId = signal<number | null>(null);
   selectedYear = signal<number>(new Date().getFullYear());
+
+  // #379 — la saisie n'est possible qu'une fois le plan validé. Sinon, la page
+  // reste consultable mais le formulaire est désactivé (source d'erreurs sinon).
+  private readonly VALIDATED_STATUSES = ['valide', 'modifie', 'mi_parcours', 'archive'];
+  planNotValidated = computed(() => {
+    const s = this.planStatut();
+    return !!s && !this.VALIDATED_STATUSES.includes(s);
+  });
 
   // -------- Data --------
   operation = signal<Operation | null>(null);
   niveaux = signal<Niveau[]>([]);
+
+  // #379 — Le formulaire ne propose que 3 niveaux : Réalisée / Partiellement
+  // réalisée / Non réalisée (les autres mnémoniques restent en base pour les
+  // données historiques et le statut global).
+  private readonly NIVEAU_SAISIE: { mnemonique: string; labelKey: string }[] = [
+    { mnemonique: 'TERMINE', labelKey: 'plans.suivis.saisie.niveau.realisee' },
+    { mnemonique: 'PARTIEL', labelKey: 'plans.suivis.saisie.niveau.partielle' },
+    { mnemonique: 'NON_REALISE', labelKey: 'plans.suivis.saisie.niveau.nonRealisee' },
+  ];
+  niveauSaisieOptions = computed<{ id: number; labelKey: string }[]>(() => {
+    const byMnem = new Map(this.niveaux().map(n => [n.mnemonique, n]));
+    return this.NIVEAU_SAISIE
+      .map(o => {
+        const n = byMnem.get(o.mnemonique);
+        return n ? { id: n.id_nomenclature, labelKey: o.labelKey } : null;
+      })
+      .filter((x): x is { id: number; labelKey: string } => x !== null);
+  });
   isLoading = signal(true);
   isSaving = signal(false);
   errorMessage = signal<string | null>(null);
@@ -175,12 +202,7 @@ export class SuiviSaisieComponent implements OnInit {
   // d'utiliser `backgroundGeometry` pour l'emprise prévue dans les deux
   // modes — pas besoin d'aplatir en FeatureCollection.)
 
-  /** Toggle entre vue carte (lecture) et édition (dessin). */
-  toggleEditGeom(): void {
-    this.isEditingGeom.update(v => !v);
-  }
-
-  /** Capture les modifications de l'éditeur Leaflet-Draw. */
+  /** Capture les modifications de l'éditeur d'emprise. */
   onGeomRealiseeChange(geom: any): void {
     this.pendingGeomRealisee.set(geom);
   }
@@ -271,6 +293,10 @@ export class SuiviSaisieComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    // #356 — fragment d'URL (ex. depuis la page globale d'action) pour scroller
+    // automatiquement vers une section (les indicateurs de réponse, en bas).
+    this.requestedFragment = this.route.snapshot.fragment;
+
     this.route.paramMap.subscribe(params => {
       const slug = params.get('slug');
       const opId = params.get('operation_id');
@@ -282,6 +308,19 @@ export class SuiviSaisieComponent implements OnInit {
 
       this.loadData();
     });
+  }
+
+  /** Fragment cible (#indicateurs-reponse) à scroller une fois la page chargée. */
+  private requestedFragment: string | null = null;
+
+  /** Scrolle vers le fragment demandé (une seule fois), après rendu de la section. */
+  private scrollToRequestedFragment(): void {
+    const frag = this.requestedFragment;
+    if (!frag) return;
+    this.requestedFragment = null;
+    setTimeout(() => {
+      document.getElementById(frag)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 400);
   }
 
   private loadData(): void {
@@ -297,6 +336,8 @@ export class SuiviSaisieComponent implements OnInit {
       next: (plan) => {
         this.planId.set(plan.id_pg);
         this.planNom.set(plan.nom);
+        this.planStatut.set(plan.statut ?? null);
+        this.applyReadOnlyLock();
       },
       error: (err) => {
         this.errorMessage.set(this.translate.instant('plans.suivis.saisie.errors.planNotFound'));
@@ -317,6 +358,7 @@ export class SuiviSaisieComponent implements OnInit {
         this.loadMesuresForMetriques(op);
         this.hydrateFormFromCurrentYear();
         this.isLoading.set(false);
+        this.scrollToRequestedFragment();
       },
       error: () => {
         this.errorMessage.set(this.translate.instant('plans.suivis.saisie.errors.operationNotFound'));
@@ -345,6 +387,23 @@ export class SuiviSaisieComponent implements OnInit {
     }
   }
 
+  /**
+   * Mesure retenue pour une année : la PLUS RÉCENTE (date_mesure, puis date_ajout).
+   * Une métrique peut avoir plusieurs mesures la même année ; on choisit
+   * déterministiquement la dernière, pour être cohérent avec la page globale
+   * de l'action et la page globale de l'indicateur.
+   */
+  private latestMesureForYear(mesures: Mesure[], year: number): Mesure | undefined {
+    return mesures
+      .filter(mm => mm.date_mesure && new Date(mm.date_mesure).getFullYear() === year)
+      .sort((a, b) => {
+        const da = new Date(a.date_mesure!).getTime();
+        const db = new Date(b.date_mesure!).getTime();
+        if (db !== da) return db - da;
+        return new Date(b.date_ajout ?? 0).getTime() - new Date(a.date_ajout ?? 0).getTime();
+      })[0];
+  }
+
   /** Reconstruit le FormArray des indicateurs depuis les métriques liées. */
   private hydrateIndicateursArray(): void {
     const fa = this.indicateursFA;
@@ -356,7 +415,7 @@ export class SuiviSaisieComponent implements OnInit {
 
     for (const met of op.metriques) {
       const mesures = this.mesuresByMetrique.get(met.id_metrique) ?? [];
-      const existing = mesures.find(mm => mm.date_mesure && new Date(mm.date_mesure).getFullYear() === year);
+      const existing = this.latestMesureForYear(mesures, year);
 
       fa.push(this.fb.group({
         id_metrique: [met.id_metrique],
@@ -368,6 +427,18 @@ export class SuiviSaisieComponent implements OnInit {
         id_mesure: [existing?.id_mesure ?? null],
         valeur: [existing?.valeur ?? ''],
       }));
+    }
+    this.applyReadOnlyLock();
+  }
+
+  /**
+   * #379 — Verrou lecture seule : si le plan n'est pas validé, on désactive
+   * tout le formulaire (y compris les contrôles ajoutés dynamiquement aux
+   * FormArrays). À rappeler après chaque (ré)hydratation.
+   */
+  private applyReadOnlyLock(): void {
+    if (this.planNotValidated()) {
+      this.form.disable({ emitEvent: false });
     }
   }
 
@@ -384,6 +455,7 @@ export class SuiviSaisieComponent implements OnInit {
       commentaires: r?.commentaires ?? '',
     });
     this.hydrateOrganismesArray(oa);
+    this.applyReadOnlyLock();
   }
 
   /** Reconstruit le FormArray des organismes à partir de l'OperationAnnee active. */
@@ -429,10 +501,34 @@ export class SuiviSaisieComponent implements OnInit {
   selectYear(year: number): void {
     this.selectedYear.set(year);
     this.hydrateFormFromCurrentYear();
+    // Les indicateurs de réponse sont saisis par année : recharger la mesure
+    // correspondant à la nouvelle année. On PATCHE les contrôles existants
+    // (sans reconstruire le FormArray) car le `@for (track id_metrique)` du
+    // template réutiliserait les inputs sans les relier aux nouveaux contrôles.
+    this.refreshIndicateursForYear();
     // Réinitialiser l'emprise en cours d'édition (chaque année a sa propre
     // emprise réalisée).
     this.pendingGeomRealisee.set(undefined);
     this.isEditingGeom.set(false);
+  }
+
+  /**
+   * Met à jour, sur place, la valeur réalisée + l'id_mesure de chaque
+   * indicateur de réponse pour l'année sélectionnée. Les mesures sont déjà
+   * en cache (mesuresByMetrique), donc aucun appel API.
+   */
+  private refreshIndicateursForYear(): void {
+    const year = this.selectedYear();
+    for (const ctrl of this.indicateursFA.controls) {
+      const metId = ctrl.get('id_metrique')?.value;
+      const mesures = this.mesuresByMetrique.get(metId) ?? [];
+      const existing = this.latestMesureForYear(mesures, year);
+      ctrl.patchValue(
+        { id_mesure: existing?.id_mesure ?? null, valeur: existing?.valeur ?? '' },
+        { emitEvent: false },
+      );
+    }
+    this.applyReadOnlyLock();
   }
 
   goBack(): void {
@@ -450,7 +546,11 @@ export class SuiviSaisieComponent implements OnInit {
     this.router.navigate(['/plans', this.planSlug(), 'enjeux', 'operations', opId, 'modifier']);
   }
 
-  submit(): void {
+  submit(quit = false): void {
+    // #379 — interdire toute sauvegarde si le plan n'est pas validé.
+    if (this.planNotValidated()) {
+      return;
+    }
     const oa = this.currentOperationAnnee();
     if (!oa?.id_operation_annee) {
       this.snack.open(
@@ -562,6 +662,8 @@ export class SuiviSaisieComponent implements OnInit {
         // brouillon (le serveur fait foi maintenant).
         this.pendingGeomRealisee.set(undefined);
         this.isEditingGeom.set(false);
+        // « Enregistrer et quitter » : retour à la liste de suivi des actions.
+        if (quit) this.goBack();
       },
       error: () => {
         this.isSaving.set(false);

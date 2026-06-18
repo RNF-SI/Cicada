@@ -1,0 +1,294 @@
+<app-header></app-header>
+
+<div class="suivis-layout">
+  @if (planSlug(); as slug) {
+    @if (planId(); as id) {
+      <app-plan-sidebar [planId]="id" [planSlug]="slug" activePage="suivi-actions"></app-plan-sidebar>
+    }
+  }
+
+  <main class="plan-main">
+    @if (isLoading()) {
+      <div class="loading-container">
+        <mat-spinner diameter="50"></mat-spinner>
+        <p>{{ 'common.loading' | translate }}</p>
+      </div>
+    } @else if (errorMessage()) {
+      <div class="error-container">
+        <i class="fi fi-rr-exclamation"></i>
+        <p>{{ errorMessage() }}</p>
+      </div>
+    } @else if (operation()) {
+      @if (operation(); as op) {
+      <!-- HERO -->
+      <section class="hero-section">
+        <div class="hero-background"><div class="hero-pattern"></div></div>
+        <div class="hero-content">
+          <nav class="breadcrumb" aria-label="Fil d'Ariane">
+            <a routerLink="/accueil" class="breadcrumb-home" [title]="'common.actions.home' | translate">
+              <i class="fi fi-rr-home"></i>
+            </a>
+            <div class="breadcrumb-lines"></div>
+            <div class="breadcrumb-text">
+              <a routerLink="/plans" class="breadcrumb-link">{{ 'plans.title' | translate }}</a>
+              <i class="fi fi-rr-angle-small-right breadcrumb-chevron"></i>
+              <a [routerLink]="['/plans', planSlug(), 'suivi-actions']" class="breadcrumb-link">{{ 'plans.suivis.actions.title' | translate }}</a>
+              <i class="fi fi-rr-angle-small-right breadcrumb-chevron"></i>
+              <span class="breadcrumb-current">{{ op.libelle }}</span>
+            </div>
+          </nav>
+          <div class="plan-header">
+            <div class="plan-subtitle">
+              <i class="fi fi-rr-chart-histogram"></i>
+              <span>{{ 'plans.suivis.actionGlobal.subtitle' | translate | uppercase }}</span>
+            </div>
+            <h1 class="plan-title">{{ op.libelle }}</h1>
+          </div>
+        </div>
+      </section>
+
+      <section class="content-section">
+
+        <!-- ===== Bloc 1 : Réalisation globale ===== -->
+        <div class="global-panel realisation-panel">
+          <div class="realisation-card">
+            <span class="summary-label">{{ 'plans.suivis.actionGlobal.realisation' | translate }}</span>
+
+            <!-- État courant : statut conclu, ou invite « à évaluer » -->
+            <div class="global-result" [class.is-a-evaluer]="isAEvaluer()">
+              @if (isAEvaluer()) {
+                <span class="a-evaluer-badge">
+                  <i class="fi fi-rr-pencil"></i>
+                  {{ 'plans.suivis.actionGlobal.statut.aEvaluer' | translate }}
+                </span>
+              } @else {
+                <img [src]="globalStateIcon()" class="action-status-icon"
+                     [alt]="globalStateLabelKey() | translate">
+                <span class="global-result-label">
+                  {{ globalStateLabelKey() | translate }}
+                  @if (op.niveau_realisation_global_manuel) {
+                    <small class="manuel-tag">{{ 'plans.suivis.actionGlobal.manuel' | translate }}</small>
+                  }
+                </span>
+              }
+            </div>
+
+            <!-- #356 — ajustement manuel : OPTION repliée par défaut (non forcée) -->
+            @if (canManageGlobal()) {
+              @if (!showOverride()) {
+                <div class="override-toggle-row">
+                  <button mat-button color="primary" class="override-toggle"
+                          (click)="showOverride.set(true)">
+                    <i class="fi fi-rr-pencil"></i>
+                    {{ 'plans.suivis.actionGlobal.adjustManually' | translate }}
+                  </button>
+                </div>
+              } @else {
+                <div class="eval-prompt">
+                  <i class="fi fi-rr-info"></i>
+                  <span>{{ 'plans.suivis.actionGlobal.evalPrompt' | translate }}</span>
+                </div>
+                <div class="global-override" role="group"
+                     [attr.aria-label]="'plans.suivis.actionGlobal.realisation' | translate">
+                  @for (r of manualResults; track r.value) {
+                    <button mat-stroked-button color="primary" class="override-btn"
+                            [class.active]="isCurrentResult(r.value)"
+                            (click)="setGlobalManuel(r.value)">
+                      @if (isCurrentResult(r.value)) { <i class="fi fi-rr-check"></i> }
+                      {{ r.labelKey | translate }}
+                    </button>
+                  }
+                  <button mat-button color="primary" class="override-auto"
+                          (click)="setGlobalManuel(null)">
+                    {{ 'plans.suivis.actionGlobal.auto' | translate }}
+                  </button>
+                </div>
+
+                <!-- #356 — Commentaire global (non obligatoire, indépendant du forçage) -->
+                <label class="comment-label" for="action-global-comment">
+                  {{ 'plans.suivis.actionGlobal.commentLabel' | translate }}
+                </label>
+                <textarea id="action-global-comment" class="comment-textarea" rows="3"
+                          [ngModel]="commentaire()" (ngModelChange)="commentaire.set($event)"
+                          [placeholder]="'plans.suivis.actionGlobal.commentPlaceholder' | translate"></textarea>
+                <div class="comment-actions">
+                  <button mat-button class="override-collapse" (click)="showOverride.set(false)">
+                    {{ 'common.actions.close' | translate }}
+                  </button>
+                  <button mat-stroked-button color="primary" (click)="saveComment()">
+                    {{ 'plans.suivis.actionGlobal.saveComment' | translate }}
+                  </button>
+                </div>
+              }
+            } @else if (op.niveau_realisation_global_commentaire) {
+              <p class="comment-readonly">{{ op.niveau_realisation_global_commentaire }}</p>
+            }
+          </div>
+
+          <!-- #356 — Explication du calcul de la réalisation globale -->
+          <details class="calc-explainer">
+            <summary>
+              <i class="fi fi-rr-info"></i>
+              {{ 'plans.suivis.actionGlobal.calc.title' | translate }}
+            </summary>
+            <p>{{ 'plans.suivis.actionGlobal.calc.intro' | translate }}</p>
+            <ul>
+              <li>{{ 'plans.suivis.actionGlobal.calc.rule1' | translate }}</li>
+              <li>{{ 'plans.suivis.actionGlobal.calc.rule2' | translate }}</li>
+              <li>{{ 'plans.suivis.actionGlobal.calc.rule3' | translate }}</li>
+              <li>{{ 'plans.suivis.actionGlobal.calc.rule4' | translate }}</li>
+            </ul>
+            <p class="calc-note">{{ 'plans.suivis.actionGlobal.calc.manual' | translate }}</p>
+          </details>
+        </div>
+
+        <!-- ===== Toggle : Récapitulatif (gauche, défaut) / Indicateurs de réponse (droite) ===== -->
+        @if (responseIndicators().length > 0) {
+          <div class="view-toggle">
+            <button class="toggle-btn"
+                    [class.active]="activeSection() === 'recap'"
+                    (click)="setSection('recap')">
+              {{ 'plans.suivis.actionGlobal.recapTab' | translate }}
+            </button>
+            <button class="toggle-btn"
+                    [class.active]="activeSection() === 'reponse'"
+                    (click)="setSection('reponse')">
+              {{ 'plans.suivis.actionGlobal.responseTitle' | translate }}
+            </button>
+          </div>
+        }
+
+        <!-- ===== Section : Indicateurs de réponse ===== -->
+        @if (responseIndicators().length > 0 && activeSection() === 'reponse') {
+          <div class="global-panel resp-panel">
+            <p class="panel-hint">{{ 'plans.suivis.actionGlobal.responseHint' | translate }}</p>
+            <div class="table-wrapper resp-wrapper">
+              <table class="resp-table">
+                <thead>
+                  <tr>
+                    <th class="col-text">{{ 'plans.suivis.actionGlobal.indicateur' | translate }}</th>
+                    <th class="col-text">{{ 'plans.suivis.actionGlobal.metrique' | translate }}</th>
+                    <th class="col-text">{{ 'plans.suivis.actionGlobal.cible' | translate }}</th>
+                    @for (y of years(); track y) { <th class="col-y">{{ y }}</th> }
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (ri of responseIndicators(); track ri.id_metrique) {
+                    <tr>
+                      <td class="col-text">{{ ri.indicateur_nom || '—' }}</td>
+                      <td class="col-text">{{ ri.nom_metrique }}</td>
+                      <td class="col-text">{{ ri.valeur_cible || '—' }}</td>
+                      @for (y of years(); track y) {
+                        <!-- #356 — valeur cliquable → formulaire de suivi (année), en bas -->
+                        <td class="col-y">
+                          <a class="resp-cell-link"
+                             [routerLink]="['/plans', planSlug(), 'suivi-actions', 'saisie', op.id_operation, y]"
+                             fragment="indicateurs-reponse"
+                             [matTooltip]="'plans.suivis.actionGlobal.goToSaisie' | translate">
+                            {{ ri.byYear.get(y) || '—' }}
+                          </a>
+                        </td>
+                      }
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          </div>
+        }
+
+        <!-- ===== Section : Récapitulatif (budget/RH + récapitulatif annuel) ===== -->
+        @if (activeSection() === 'recap' || responseIndicators().length === 0) {
+          <div class="global-panel">
+            <h3 class="section-title">{{ 'plans.suivis.actionGlobal.resourcesTitle' | translate }}</h3>
+            <div class="summary-cards">
+            <div class="summary-card">
+              <span class="summary-label">{{ 'plans.suivis.actionGlobal.budgetTotal' | translate }}</span>
+              <div class="summary-value">
+                <span class="summary-prev">{{ budgetTotal().prev | number:'1.0-0':'fr-FR' }} €</span>
+                <span class="summary-real">
+                  {{ 'plans.suivis.actionGlobal.realise' | translate }} :
+                  {{ budgetTotal().real | number:'1.0-0':'fr-FR' }} €
+                </span>
+              </div>
+            </div>
+
+            <div class="summary-card">
+              <span class="summary-label">{{ 'plans.suivis.actionGlobal.rhTotal' | translate }}</span>
+              <div class="summary-value">
+                <span class="summary-prev">{{ etpTotal().prev | number:'1.0-1':'fr-FR' }} {{ 'plans.suivis.actions.tabs.jours' | translate }}</span>
+                <span class="summary-real">
+                  {{ 'plans.suivis.actionGlobal.realise' | translate }} :
+                  {{ etpTotal().real | number:'1.0-1':'fr-FR' }} {{ 'plans.suivis.actions.tabs.jours' | translate }}
+                </span>
+              </div>
+            </div>
+            </div>
+          </div>
+
+          <!-- #379 — Légende des statuts de réalisation annuels -->
+          <div class="legend">
+            <span class="legend-label">{{ 'plans.suivis.actions.legendLabel' | translate }}</span>
+          <div class="legend-items">
+            @for (item of legendItems; track item.status) {
+              <div class="legend-item">
+                <img [src]="getActionIcon(item.status)" class="action-status-icon legend-icon" alt="">
+                <span class="legend-text">{{ item.labelKey | translate }}</span>
+              </div>
+            }
+            <!-- #379 — croix seule (statut global « non réalisé ») -->
+            <div class="legend-item">
+              <img src="assets/images/icons/non-realise-seul.svg" class="action-status-icon legend-icon" alt="">
+              <span class="legend-text">{{ 'plans.suivis.actions.actionNonRealiseeSeule' | translate }}</span>
+            </div>
+          </div>
+        </div>
+
+          <!-- Récapitulatif annuel -->
+          <div class="global-panel">
+          <h3 class="section-title">{{ 'plans.suivis.actionGlobal.yearlyTitle' | translate }}</h3>
+          <div class="table-wrapper">
+          <table class="year-table">
+            <thead>
+              <tr>
+                <th>{{ 'plans.suivis.actionGlobal.year' | translate }}</th>
+                <th>{{ 'plans.suivis.actionGlobal.niveau' | translate }}</th>
+                <th>{{ 'plans.suivis.actionGlobal.budgetPrevReal' | translate }}</th>
+                <th>{{ 'plans.suivis.actionGlobal.rhPrevReal' | translate }}</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (row of yearRows(); track row.annee) {
+                <tr>
+                  <td class="year-cell">
+                    <a [routerLink]="['/plans', planSlug(), 'suivi-actions', 'saisie', op.id_operation, row.annee]">
+                      {{ row.annee }}
+                    </a>
+                  </td>
+                  <td>
+                    @if (row.status; as st) {
+                      <img [src]="getActionIcon(st)" class="action-status-icon" alt="">
+                    } @else { — }
+                  </td>
+                  <td>
+                    {{ row.budgetPrev | number:'1.0-0':'fr-FR' }} €
+                    <small>/ {{ row.budgetReal | number:'1.0-0':'fr-FR' }} €</small>
+                  </td>
+                  <td>
+                    {{ row.etpPrev | number:'1.0-1':'fr-FR' }}
+                    <small>/ {{ row.etpReal | number:'1.0-1':'fr-FR' }} {{ 'plans.suivis.actions.tabs.jours' | translate }}</small>
+                  </td>
+                </tr>
+              } @empty {
+                <tr><td colspan="4" class="empty-row">{{ 'plans.suivis.actionGlobal.noYears' | translate }}</td></tr>
+              }
+            </tbody>
+          </table>
+          </div>
+          </div>
+        }
+      </section>
+      }
+    }
+  </main>
+</div>

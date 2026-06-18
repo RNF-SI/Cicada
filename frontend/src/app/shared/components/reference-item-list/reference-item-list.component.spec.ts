@@ -523,4 +523,56 @@ describe('ReferenceItemListComponent', () => {
       expect(completeSpy).toHaveBeenCalled();
     });
   });
+
+  // ==========================================
+  // #368 — Habitat libre (hors HabRef)
+  // ==========================================
+  describe('#368 habitat libre', () => {
+    it('allowFreeText vrai uniquement pour les habitats', () => {
+      component.type = 'habitat';
+      expect(component.allowFreeText).toBe(true);
+      component.type = 'taxon';
+      expect(component.allowFreeText).toBe(false);
+    });
+
+    it('addFreeTextHabitat ajoute un item sans cd_hab', () => {
+      component.type = 'habitat';
+      component.items = [];
+      const emitted: HabitatRef[][] = [];
+      component.itemsChange.subscribe(v => emitted.push(v as HabitatRef[]));
+      component.freeTextControl.setValue('  Mangrove de Mayotte  ');
+      component.addFreeTextHabitat();
+      expect(component.items.length).toBe(1);
+      const added = component.items[0] as HabitatRef;
+      expect(added.cd_hab).toBe('');
+      expect(added.lb_hab_fr).toBe('Mangrove de Mayotte');
+      expect(emitted.length).toBe(1);
+      expect(component.freeTextControl.value).toBe('');
+    });
+
+    it('addFreeTextHabitat ignore un libellé vide', () => {
+      component.type = 'habitat';
+      component.items = [];
+      component.freeTextControl.setValue('   ');
+      component.addFreeTextHabitat();
+      expect(component.items.length).toBe(0);
+    });
+
+    it('addFreeTextHabitat dédoublonne (insensible à la casse)', () => {
+      component.type = 'habitat';
+      component.items = [{ cd_hab: '', lb_hab_fr: 'Récif corallien' }];
+      component.freeTextControl.setValue('récif corallien');
+      component.addFreeTextHabitat();
+      expect(component.items.length).toBe(1);
+    });
+
+    it('toggleFreeTextMode bascule et vide le champ à la fermeture', () => {
+      component.freeTextControl.setValue('xxx');
+      component.toggleFreeTextMode();
+      expect(component.freeTextMode()).toBe(true);
+      component.toggleFreeTextMode();
+      expect(component.freeTextMode()).toBe(false);
+      expect(component.freeTextControl.value).toBe('');
+    });
+  });
 });

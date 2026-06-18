@@ -191,6 +191,14 @@
   min-width: 90px;
 }
 
+// #345 — valeur-limite masquée (jouxte un niveau désactivé) : colonne neutre,
+// sans saisie, pour conserver l'alignement du tableau.
+.boundary-cell-empty {
+  padding: 12px 8px;
+  background: $gray-lighter;
+  min-width: 24px;
+}
+
 .boundary-input-wrapper {
   display: flex;
   flex-direction: column;

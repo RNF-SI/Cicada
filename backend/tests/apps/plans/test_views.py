@@ -474,6 +474,35 @@ class TestPlanGestionChangeStatus:
         )
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
+    def test_revert_to_draft_preserves_csrpn_info(self, api_client, plan_with_referent):
+        """#347 — repasser un plan validé en brouillon ne doit PAS effacer les
+        informations CSRPN (dates avis/comité/arrêté + numéro d'arrêté)."""
+        plan, referent, _, _ = plan_with_referent
+        # Plan validé avec des infos CSRPN renseignées.
+        plan.statut = 'valide'
+        plan.date_avis_csrpn = '2026-03-10'
+        plan.date_validation_comite = '2026-04-15'
+        plan.date_arrete_pref = '2026-05-20'
+        plan.numero_arrete_pref = 'AP-2026-042'
+        plan.save()
+
+        api_client.force_authenticate(user=referent)
+        response = api_client.post(
+            self.URL_TEMPLATE.format(plan.id_pg),
+            {'new_status': 'draft'},
+            format='json',
+        )
+        assert response.status_code == status.HTTP_200_OK
+
+        plan.refresh_from_db()
+        assert plan.statut == 'draft'
+        # #347 — Les validations administratives (dates CSRPN/comité/arrêté + n°)
+        # sont orthogonales au statut plateforme : conservées au retour en brouillon.
+        assert str(plan.date_avis_csrpn) == '2026-03-10'
+        assert str(plan.date_validation_comite) == '2026-04-15'
+        assert str(plan.date_arrete_pref) == '2026-05-20'
+        assert plan.numero_arrete_pref == 'AP-2026-042'
+
     def test_referent_not_of_plan_returns_403(self, api_client, plan_with_referent):
         """Referent of another site but not THIS plan gets 403.
         The user must be able to see the plan (via org/site association) but not be its referent."""
@@ -890,6 +919,126 @@ class TestPlanGestionChangeStatus:
         )
         assert response.status_code == status.HTTP_400_BAD_REQUEST
 
+    # ---------- #348 — suppression d'une version (delete-version) ----------
+
+    def test_delete_version_removes_mi_parcours_version(self, api_client):
+        """Supprime une version mi-parcours (validée) et libère la chaîne."""
+        admin = SuperAdminFactory()
+        parent = PlanGestionFactory(statut='valide', version='1', rang=1)
+        plan = PlanGestionFactory(
+            statut='modifie', is_mi_parcours=True, plan_parent=parent, version='2', rang=1
+        )
+        api_client.force_authenticate(user=admin)
+        response = api_client.post(f'/api/plans/plans/{plan.id_pg}/delete-version/')
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data['deleted_id'] == plan.id_pg
+        assert not PlanGestion.objects.filter(pk=plan.id_pg).exists()
+        # Le parent subsiste et la chaîne n'a plus de mi-parcours.
+        parent.refresh_from_db()
+        assert parent.chain_has_mi_parcours() is False
+
+    def test_delete_version_relinks_children_to_grandparent(self, api_client):
+        """Supprimer une version du milieu re-rattache ses enfants au parent."""
+        admin = SuperAdminFactory()
+        v1 = PlanGestionFactory(statut='valide', version='1', rang=1)
+        v2 = PlanGestionFactory(statut='modifie', plan_parent=v1, version='2', rang=1)
+        v3 = PlanGestionFactory(statut='draft', plan_parent=v2, version='3', rang=1)
+        api_client.force_authenticate(user=admin)
+        response = api_client.post(f'/api/plans/plans/{v2.id_pg}/delete-version/')
+        assert response.status_code == status.HTTP_200_OK
+        v3.refresh_from_db()
+        # v3 est re-rattaché à v1 (grand-parent), la chaîne reste connectée.
+        assert v3.plan_parent_id == v1.id_pg
+
+    def test_delete_version_renumbers_remaining_versions(self, api_client):
+        """Après suppression, les versions du rang sont renumérotées 1..N."""
+        admin = SuperAdminFactory()
+        v1 = PlanGestionFactory(statut='valide', version='1', rang=1)
+        v2 = PlanGestionFactory(statut='modifie', plan_parent=v1, version='2', rang=1)
+        v3 = PlanGestionFactory(statut='draft', plan_parent=v2, version='3', rang=1)
+        api_client.force_authenticate(user=admin)
+        api_client.post(f'/api/plans/plans/{v2.id_pg}/delete-version/')
+        v1.refresh_from_db()
+        v3.refresh_from_db()
+        assert v1.version == '1'
+        assert v3.version == '2'  # ré-indexé (était v3)
+
+    def test_delete_version_cascades_links(self, api_client):
+        """La suppression efface les liaisons (CorSitePg) mais pas le site."""
+        from apps.plans.models import CorSitePg
+        from tests.factories.users import SiteFactory
+        admin = SuperAdminFactory()
+        plan = PlanGestionFactory(statut='draft')
+        site = SiteFactory()
+        CorSitePg.objects.create(plan_de_gestion=plan, site=site)
+        api_client.force_authenticate(user=admin)
+        response = api_client.post(f'/api/plans/plans/{plan.id_pg}/delete-version/')
+        assert response.status_code == status.HTTP_200_OK
+        assert not CorSitePg.objects.filter(plan_de_gestion_id=plan.id_pg).exists()
+        # Le site lui-même n'est pas supprimé.
+        from apps.users.models import Site
+        assert Site.objects.filter(pk=site.pk).exists()
+
+    def test_delete_version_forbidden_for_non_referent(self, api_client):
+        """Un utilisateur sans droit ne peut pas supprimer une version → 403."""
+        from tests.factories.users import RoleFactory
+        plan = PlanGestionFactory(statut='draft')
+        user = RoleFactory()
+        api_client.force_authenticate(user=user)
+        response = api_client.post(f'/api/plans/plans/{plan.id_pg}/delete-version/')
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+        assert PlanGestion.objects.filter(pk=plan.id_pg).exists()
+
+    def test_delete_version_root_of_chain(self, api_client):
+        """Supprimer la racine (début de chaîne) : l'enfant devient racine et
+        la version est renumérotée."""
+        admin = SuperAdminFactory()
+        root = PlanGestionFactory(statut='valide', version='1', rang=1)
+        child = PlanGestionFactory(statut='modifie', plan_parent=root, version='2', rang=1)
+        api_client.force_authenticate(user=admin)
+        response = api_client.post(f'/api/plans/plans/{root.id_pg}/delete-version/')
+        assert response.status_code == status.HTTP_200_OK
+        assert not PlanGestion.objects.filter(pk=root.id_pg).exists()
+        child.refresh_from_db()
+        assert child.plan_parent_id is None  # devient racine
+        assert child.version == '1'  # renuméroté
+
+    def test_delete_version_cascades_content(self, api_client):
+        """Supprimer une version supprime aussi son contenu (enjeux) par CASCADE."""
+        from tests.factories.enjeux import EnjeuFactory
+        from apps.plans.models_enjeux import Enjeu
+        admin = SuperAdminFactory()
+        plan = PlanGestionFactory(statut='draft')
+        enjeu = EnjeuFactory(id_pg=plan)
+        api_client.force_authenticate(user=admin)
+        response = api_client.post(f'/api/plans/plans/{plan.id_pg}/delete-version/')
+        assert response.status_code == status.HTTP_200_OK
+        assert not Enjeu.objects.filter(pk=enjeu.id_enjeu).exists()
+
+    def test_delete_version_renumber_scoped_per_rang(self, api_client):
+        """La renumérotation après suppression est scopée au rang : le rang
+        suivant n'est pas renuméroté, et les enfants sont re-rattachés."""
+        admin = SuperAdminFactory()
+        v1 = PlanGestionFactory(statut='valide', version='1', rang=1)
+        v2 = PlanGestionFactory(statut='modifie', plan_parent=v1, version='2', rang=1)
+        v3 = PlanGestionFactory(statut='modifie', plan_parent=v2, version='3', rang=1)
+        r2 = PlanGestionFactory(statut='draft', plan_parent=v3, version='1', rang=2)
+        api_client.force_authenticate(user=admin)
+        # Supprime v2 (milieu du rang 1).
+        response = api_client.post(f'/api/plans/plans/{v2.id_pg}/delete-version/')
+        assert response.status_code == status.HTTP_200_OK
+        v1.refresh_from_db()
+        v3.refresh_from_db()
+        r2.refresh_from_db()
+        # Rang 1 renuméroté de façon contiguë (1, 2).
+        assert v1.version == '1'
+        assert v3.version == '2'
+        # v3 re-rattaché au parent de v2 (= v1).
+        assert v3.plan_parent_id == v1.id_pg
+        # Le rang 2 n'est pas affecté.
+        assert r2.rang == 2
+        assert r2.version == '1'
+
     # ---------- #277 — workflow CSRPN ----------
 
     def _make_typed_site(self, mnemonique: str):
@@ -922,6 +1071,117 @@ class TestPlanGestionChangeStatus:
         plan.refresh_from_db()
         assert plan.statut == 'draft'
         assert plan.validation_step == 'avis_csrpn'
+
+    def test_csrpn_step_allowed_on_validated_plan(self, api_client):
+        """#347 — les validations administratives sont orthogonales au statut :
+        on peut lancer/avancer le workflow CSRPN sur un plan déjà validé."""
+        admin = SuperAdminFactory()
+        plan = PlanGestionFactory(statut='valide')
+        api_client.force_authenticate(user=admin)
+        response = api_client.post(
+            self.CSRPN_STEP_URL_TEMPLATE.format(plan.id_pg),
+            {'step': 'avis_csrpn'},
+        )
+        assert response.status_code == status.HTTP_200_OK
+        plan.refresh_from_db()
+        assert plan.statut == 'valide'  # statut plateforme inchangé
+        assert plan.validation_step == 'avis_csrpn'
+
+    def test_csrpn_step_self_transition_records_date(self, api_client):
+        """#347 — auto-transition (step inchangé) : enregistre la date de l'étape
+        terminale sans changer d'étape ni de statut."""
+        admin = SuperAdminFactory()
+        rnn_site = self._make_typed_site('RNN')
+        plan = PlanGestionFactory(statut='draft', validation_step='arrete_pref', sites=[rnn_site])
+        api_client.force_authenticate(user=admin)
+        response = api_client.post(
+            self.CSRPN_STEP_URL_TEMPLATE.format(plan.id_pg),
+            {'step': 'arrete_pref', 'date_arrete_pref': '2026-05-20', 'numero_arrete_pref': 'AP-99'},
+        )
+        assert response.status_code == status.HTTP_200_OK
+        plan.refresh_from_db()
+        assert plan.statut == 'draft'
+        assert plan.validation_step == 'arrete_pref'
+        assert str(plan.date_arrete_pref) == '2026-05-20'
+        assert plan.numero_arrete_pref == 'AP-99'
+
+    # ---------- #347 — validations administratives indépendantes ----------
+
+    ADMIN_VALIDATION_URL_TEMPLATE = '/api/plans/plans/{}/admin-validation/'
+
+    def test_admin_validation_records_independently(self, api_client):
+        """#347 — enregistre une validation administrative sans workflow ordonné,
+        quel que soit le statut plateforme du plan."""
+        admin = SuperAdminFactory()
+        plan = PlanGestionFactory(statut='valide')
+        api_client.force_authenticate(user=admin)
+        response = api_client.post(
+            self.ADMIN_VALIDATION_URL_TEMPLATE.format(plan.id_pg),
+            {'key': 'comite_consultatif', 'date': '2026-04-10'},
+        )
+        assert response.status_code == status.HTTP_200_OK
+        plan.refresh_from_db()
+        assert plan.statut == 'valide'  # statut plateforme inchangé
+        assert str(plan.date_validation_comite) == '2026-04-10'
+        # validation_step maintenu (compat) sur l'étape renseignée
+        assert plan.validation_step == 'comite_consultatif'
+
+    def test_admin_validation_arrete_rejected_for_non_rnn(self, api_client):
+        """#347 — l'arrêté préfectoral est réservé aux RNN/RNR."""
+        admin = SuperAdminFactory()
+        pnr_site = self._make_typed_site('PNR')
+        plan = PlanGestionFactory(statut='draft', sites=[pnr_site])
+        api_client.force_authenticate(user=admin)
+        response = api_client.post(
+            self.ADMIN_VALIDATION_URL_TEMPLATE.format(plan.id_pg),
+            {'key': 'arrete_pref', 'date': '2026-04-10', 'numero_arrete_pref': 'AP-1'},
+        )
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+    def test_admin_validation_arrete_records_for_rnn(self, api_client):
+        """#347 — arrêté préfectoral : date + numéro enregistrés pour une RNN."""
+        admin = SuperAdminFactory()
+        rnn_site = self._make_typed_site('RNN')
+        plan = PlanGestionFactory(statut='draft', sites=[rnn_site])
+        api_client.force_authenticate(user=admin)
+        response = api_client.post(
+            self.ADMIN_VALIDATION_URL_TEMPLATE.format(plan.id_pg),
+            {'key': 'arrete_pref', 'date': '2026-05-20', 'numero_arrete_pref': 'AP-42'},
+        )
+        assert response.status_code == status.HTTP_200_OK
+        plan.refresh_from_db()
+        assert str(plan.date_arrete_pref) == '2026-05-20'
+        assert plan.numero_arrete_pref == 'AP-42'
+        assert plan.validation_step == 'arrete_pref'
+
+    def test_admin_validation_clear_recomputes_step(self, api_client):
+        """#347 — effacer une validation (date=null) recalcule validation_step."""
+        admin = SuperAdminFactory()
+        plan = PlanGestionFactory(
+            statut='valide', validation_step='comite_consultatif',
+            date_avis_csrpn='2026-01-10', date_validation_comite='2026-02-10',
+        )
+        api_client.force_authenticate(user=admin)
+        response = api_client.post(
+            self.ADMIN_VALIDATION_URL_TEMPLATE.format(plan.id_pg),
+            {'key': 'comite_consultatif', 'date': None},
+        )
+        assert response.status_code == status.HTTP_200_OK
+        plan.refresh_from_db()
+        assert plan.date_validation_comite is None
+        # l'avis CSRPN reste → validation_step retombe sur avis_csrpn
+        assert plan.validation_step == 'avis_csrpn'
+
+    def test_admin_validation_invalid_key(self, api_client):
+        """#347 — clé inconnue → 400."""
+        admin = SuperAdminFactory()
+        plan = PlanGestionFactory(statut='draft')
+        api_client.force_authenticate(user=admin)
+        response = api_client.post(
+            self.ADMIN_VALIDATION_URL_TEMPLATE.format(plan.id_pg),
+            {'key': 'nimporte_quoi', 'date': '2026-04-10'},
+        )
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
 
     def test_avis_csrpn_to_comite_with_date(self, api_client):
         """`csrpn-step/` : avis_csrpn → comite_consultatif enregistre la date d'avis."""
@@ -964,8 +1224,8 @@ class TestPlanGestionChangeStatus:
         assert response.status_code == status.HTTP_400_BAD_REQUEST
 
     def test_comite_to_valide_for_non_rnn(self, api_client):
-        """Pour un plan PNR, `change-status` valide depuis draft+comite_consultatif
-        sort directement du workflow (validation_step → NULL)."""
+        """#347 — La validation plateforme est découplée des validations
+        administratives : valider conserve `validation_step` (orthogonal)."""
         admin = SuperAdminFactory()
         pnr_site = self._make_typed_site('PNR')
         plan = PlanGestionFactory(statut='draft', validation_step='comite_consultatif', sites=[pnr_site])
@@ -977,11 +1237,11 @@ class TestPlanGestionChangeStatus:
         assert response.status_code == status.HTTP_200_OK
         plan.refresh_from_db()
         assert plan.statut == 'valide'
-        assert plan.validation_step is None
+        assert plan.validation_step == 'comite_consultatif'
 
-    def test_arrete_pref_to_valide_clears_validation_step(self, api_client):
-        """`change-status` depuis draft+arrete_pref → valide remet
-        validation_step à NULL."""
+    def test_arrete_pref_to_valide_keeps_validation_step(self, api_client):
+        """#347 — Valider la plateforme depuis draft+arrete_pref conserve
+        `validation_step` (validations administratives orthogonales)."""
         admin = SuperAdminFactory()
         rnn_site = self._make_typed_site('RNN')
         plan = PlanGestionFactory(statut='draft', validation_step='arrete_pref', sites=[rnn_site])
@@ -993,7 +1253,7 @@ class TestPlanGestionChangeStatus:
         assert response.status_code == status.HTTP_200_OK
         plan.refresh_from_db()
         assert plan.statut == 'valide'
-        assert plan.validation_step is None
+        assert plan.validation_step == 'arrete_pref'
 
     def test_csrpn_back_to_draft(self, api_client):
         """`csrpn-step/` : step=null annule le workflow (validation_step → NULL)."""
@@ -1029,7 +1289,8 @@ class TestPlanGestionChangeStatus:
         assert response.status_code == status.HTTP_200_OK
         child.refresh_from_db()
         assert child.statut == 'modifie'
-        assert child.validation_step is None
+        # #347 — validation_step conservé (découplé du statut plateforme).
+        assert child.validation_step == 'arrete_pref'
 
     def test_csrpn_validation_with_is_mi_parcours(self, api_client):
         """Validation finale + is_mi_parcours sur un enfant en workflow CSRPN →
@@ -1223,6 +1484,22 @@ class TestPlanGestionCreateEvaluation:
         api_client.force_authenticate(user=admin)
         response = api_client.post(self.URL_TEMPLATE.format(plan.id_pg))
         assert response.status_code == status.HTTP_201_CREATED
+
+    def test_create_evaluation_copies_content(self, api_client, eval_nomenclature):
+        """#377 — L'évaluation mi-parcours copie le contenu (enjeux) du plan source."""
+        from tests.factories.enjeux import EnjeuFactory
+        from apps.plans.models_enjeux import Enjeu
+        admin = SuperAdminFactory()
+        plan = PlanGestionValideFactory()
+        EnjeuFactory(id_pg=plan, libelle='Enjeu source')
+        api_client.force_authenticate(user=admin)
+        response = api_client.post(self.URL_TEMPLATE.format(plan.id_pg))
+        assert response.status_code == status.HTTP_201_CREATED
+        new_plan_id = response.data['id_pg']
+        assert new_plan_id != plan.id_pg
+        # Le nouveau plan a une copie de l'enjeu ; la source la conserve aussi.
+        assert Enjeu.objects.filter(id_pg_id=new_plan_id, libelle='Enjeu source').count() == 1
+        assert Enjeu.objects.filter(id_pg=plan, libelle='Enjeu source').count() == 1
 
     # ---------- Preconditions ----------
 

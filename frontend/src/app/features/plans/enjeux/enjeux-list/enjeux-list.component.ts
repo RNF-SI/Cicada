@@ -51,6 +51,7 @@ import {
 } from '../../../../core/models/enjeu.model';
 import { EnjeuAccordionComponent } from '../enjeu-accordion/enjeu-accordion.component';
 import { SectionTitleComponent } from '../../../../shared/components/section-title/section-title.component';
+import { HabitatChipComponent } from '../../../../shared/components/habitat-chip/habitat-chip.component';
 import { MetriqueFormComponent } from '../../../../shared/components/metrique-form/metrique-form.component';
 import {
   NomenclatureOption,
@@ -92,7 +93,8 @@ type TabType = 'detail' | 'olt' | 'operations';
     EnjeuAccordionComponent,
     SectionTitleComponent,
     MetriqueFormComponent,
-    DragDropModule
+    DragDropModule,
+    HabitatChipComponent
   ],
   templateUrl: './enjeux-list.component.html',
   styleUrl: './enjeux-list.component.scss'
@@ -1136,14 +1138,18 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
   // ont le bon `ordre` au moment où on les lit ici).
   selectedOos = computed(() => {
     this.planEnjeuxData();  // force dep on root signal
+    // #337 — un FCR n'a pas de pression : ses OO sont rattachés directement à
+    // l'enjeu et exposés via `objectifs_operationnels`.
+    const enjeu = this.selectedEnjeu();
+    const source = this.isSelectedFcr()
+      ? (enjeu?.objectifs_operationnels || [])
+      : this.selectedPressions().flatMap(p => p.objectifs_operationnels || []);
     const seen = new Set<number>();
-    const unique = this.selectedPressions()
-      .flatMap(p => p.objectifs_operationnels || [])
-      .filter(oo => {
-        if (seen.has(oo.id_oo)) return false;
-        seen.add(oo.id_oo);
-        return true;
-      });
+    const unique = source.filter(oo => {
+      if (seen.has(oo.id_oo)) return false;
+      seen.add(oo.id_oo);
+      return true;
+    });
     return [...unique].sort((a, b) => {
       const ordreA = (a as any).ordre ?? 0;
       const ordreB = (b as any).ordre ?? 0;
@@ -1596,6 +1602,26 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
 
   isRaExpanded(id: number): boolean {
     return this.expandedRaIds().has(id);
+  }
+
+  // #344 — Repli des niveaux d'exigence (vue OLT). Le set contient les NE
+  // REPLIÉES ; vide = toutes dépliées (comportement par défaut).
+  collapsedNeIds = signal<Set<number>>(new Set());
+
+  toggleNe(id: number): void {
+    this.collapsedNeIds.update(ids => {
+      const newIds = new Set(ids);
+      if (newIds.has(id)) {
+        newIds.delete(id);
+      } else {
+        newIds.add(id);
+      }
+      return newIds;
+    });
+  }
+
+  isNeExpanded(id: number): boolean {
+    return !this.collapsedNeIds().has(id);
   }
 
   startAddOlt(): void {
@@ -2074,6 +2100,11 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
       }
     }
 
+    // #359 — niveaux désactivés (« non utilisé ») pour les grilles simples Chiffre / Texte.
+    if (mnemonique === 'CHIFFRE' || mnemonique === 'TEXTE') {
+      payload.inactive_levels = Array.isArray(met._inactiveLevels) ? [...met._inactiveLevels] : [];
+    }
+
     // Direction, inclusivité et bornes extrêmes (NUMERIQUE only)
     if (mnemonique === 'NUMERIQUE') {
       payload.sens_variation = met.sens_variation;
@@ -2242,8 +2273,11 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
     if (this.newIndicateurType) payload.type_indicateur = this.newIndicateurType;
     if (this.newIndicateurDescription.trim()) payload.description = this.newIndicateurDescription.trim();
 
-    // Filter metriques that have a name
-    const validMetriques = this.indicateurFormMetriques.filter(m => m.nom_metrique.trim());
+    // Filter metriques that have a name (#339 : les métriques de type
+    // « Indéterminé » sont conservées même sans intitulé).
+    const validMetriques = this.indicateurFormMetriques.filter(m =>
+      m.nom_metrique.trim() || this.getMetriqueTypeMnemonique(m.type_metrique) === 'INDETERMINE'
+    );
 
     this.enjeuService.createIndicateur(payload).pipe(
       takeUntilDestroyed(this.destroyRef)
@@ -2320,7 +2354,10 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
   }
 
   saveStandaloneMetrique(indicateurId: number): void {
-    if (!this.standaloneMetriqueForm || !this.standaloneMetriqueForm.nom_metrique.trim()) return;
+    // #339 : l'intitulé n'est requis que si le type n'est pas « Indéterminé ».
+    if (!this.standaloneMetriqueForm) return;
+    const isIndetermine = this.getMetriqueTypeMnemonique(this.standaloneMetriqueForm.type_metrique) === 'INDETERMINE';
+    if (!isIndetermine && !this.standaloneMetriqueForm.nom_metrique.trim()) return;
     this.isSavingStandaloneMetrique.set(true);
     const payload = this.buildMetriquePayload(indicateurId, this.standaloneMetriqueForm);
     this.enjeuService.createMetrique(payload).pipe(
@@ -3102,10 +3139,13 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
     }
 
     if (mnemonique === 'CHIFFRE') {
+      // #359 — niveau « non utilisé » : masqué (cellule vide) à la lecture.
+      if ((met.inactive_levels || []).includes(level)) return '-';
       const val = met[`score_${level}_val`];
       return val != null ? this.formatNum(Number(val)) : '-';
     }
     if (mnemonique === 'TEXTE') {
+      if ((met.inactive_levels || []).includes(level)) return '-';
       const label = met[`score_${level}_label`];
       return label?.trim() || '-';
     }
@@ -3602,16 +3642,23 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
   openAddActionForIndicateur(ind: any): void {
     const metriques = (ind.metriques || []).filter((m: any) => !m._deleted);
     if (metriques.length === 0) {
-      this.snackBar.open(
-        this.translate.instant('enjeux.operations.indicateurNoMetriques'),
-        this.translate.instant('common.actions.close'),
-        { duration: 3000 }
-      );
+      // #367 — pas de métrique : on crée l'action rattachée directement à l'indicateur.
+      this.navigateToOperationFormForIndicateur(ind.id_indicateur);
       return;
     }
     const metriqueIds: number[] = metriques.map((m: any) => m.id_metrique).filter(Boolean);
     const indicateurNom: string = ind.nom_indicateur || '';
     this.openAddActionDialogForIds(metriqueIds, indicateurNom);
+  }
+
+  /** #367 — Navigation vers le form d'action rattachée directement à un indicateur (sans métrique). */
+  private navigateToOperationFormForIndicateur(indicateurId: number): void {
+    const slug = this.planSlug();
+    if (!slug || !indicateurId) return;
+    const queryParams: any = { indicateurId };
+    const enjeuSlug = this.selectedEnjeuSlug();
+    if (enjeuSlug) queryParams.returnEnjeu = enjeuSlug;
+    this.router.navigate(['/plans', slug, 'enjeux', 'operations', 'nouveau'], { queryParams });
   }
 
   /**
@@ -3874,10 +3921,18 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
 
   saveOo(): void {
     const enjeu = this.selectedEnjeu();
-    if (!enjeu || !this.newOoLibelle.trim() || this.newOoPressionIds.length === 0) return;
+    if (!enjeu || !this.newOoLibelle.trim()) return;
+    const isFcr = this.isSelectedFcr();
+    // Règle de rattachement d'un OO selon la catégorie du parent :
+    //  - FCR  : l'OO est TOUJOURS rattaché directement au FCR via id_enjeu,
+    //           sans pression (même si le FCR porte des facteurs/pressions,
+    //           qui restent purement descriptifs). On n'exige donc aucune pression.
+    //  - Enjeu : l'OO descend obligatoirement d'au moins une pression
+    //           (chaîne Facteur → Pression → OO). On bloque si rien n'est sélectionné.
+    if (!isFcr && this.newOoPressionIds.length === 0) return;
 
     this.enjeuService.createObjectifOperationnel({
-      pression_ids: this.newOoPressionIds,
+      ...(isFcr ? { id_enjeu: enjeu.id_enjeu } : { pression_ids: this.newOoPressionIds }),
       libelle: this.newOoLibelle.trim(),
       description: this.newOoDescription.trim() || undefined,
     }).subscribe({
@@ -3911,10 +3966,14 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
   }
 
   saveEditOo(oo: ObjectifOperationnel): void {
-    if (!this.editOoLibelle.trim() || this.editOoPressionIds.length === 0) return;
+    if (!this.editOoLibelle.trim()) return;
+    // #337 — un OO de FCR (rattaché directement à l'enjeu) n'a pas de pression :
+    // on ne modifie que le libellé/description sans toucher au rattachement.
+    const isFcr = this.isSelectedFcr();
+    if (!isFcr && this.editOoPressionIds.length === 0) return;
 
     this.enjeuService.updateObjectifOperationnel(oo.id_oo, {
-      pression_ids: this.editOoPressionIds,
+      ...(isFcr ? {} : { pression_ids: this.editOoPressionIds }),
       libelle: this.editOoLibelle.trim(),
       description: this.editOoDescription.trim() || undefined,
     }).subscribe({

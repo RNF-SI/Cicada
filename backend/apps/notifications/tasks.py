@@ -190,91 +190,48 @@ def send_registration_rejected_email(self, email, reason=None):
         raise self.retry(exc=e, countdown=60 * (2 ** self.request.retries))
 
 
-@shared_task
-def check_orphaned_sites():
+@shared_task(bind=True, max_retries=3)
+def send_password_reset_email(self, email, reset_url, nom_complet=None):
     """
-    Tache d'audit hebdomadaire pour verifier les sites sans utilisateurs.
-    Envoie un seul email recapitulatif aux super admins et admin_og concernes.
+    Envoie l'email de réinitialisation de mot de passe (#329).
 
-    Note: La detection en temps reel est faite par les signaux Django
-    dans apps/users/signals.py (post_delete sur CorRoleSite, post_save sur Role).
-    Cette tache sert de filet de securite pour detecter les cas manques
-    (imports directs en base, migrations, etc.).
+    Args:
+        email: Adresse email du compte
+        reset_url: URL frontend complète (avec uid + token) de réinitialisation
+        nom_complet: Nom complet optionnel pour la formule d'appel
     """
-    from apps.users.models import Site, CorRoleSite
-    from .services import NotificationService
+    try:
+        context = {
+            'nom_complet': nom_complet or email,
+            'email': email,
+            'reset_url': reset_url,
+            'site_url': settings.SITE_URL if hasattr(settings, 'SITE_URL') else 'http://localhost:4200',
+        }
 
-    # Sites actifs sans aucun utilisateur associe
-    sites_with_users = CorRoleSite.objects.values_list('id_site', flat=True)
-    orphaned_sites = list(
-        Site.objects.filter(active=True)
-        .exclude(id_site__in=sites_with_users)
-        .order_by('nom_site')
-    )
+        html_message = render_to_string('emails/password_reset.html', context)
+        plain_message = strip_tags(html_message)
 
-    if not orphaned_sites:
-        logger.info("No orphaned sites found")
-        return
+        send_mail(
+            subject="Réinitialisation de votre mot de passe CICADA",
+            message=plain_message,
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=[email],
+            html_message=html_message,
+            fail_silently=False,
+        )
 
-    logger.info(f"Found {len(orphaned_sites)} orphaned sites")
-    NotificationService.notify_orphaned_sites_summary(orphaned_sites)
+        logger.info(f"Password reset email sent to {email}")
 
-
-@shared_task
-def check_organismes_without_admin():
-    """
-    Tache d'audit hebdomadaire pour verifier les organismes sans admin_og.
-    Envoie un seul email recapitulatif aux super admins.
-
-    Note: La detection en temps reel est faite par les signaux Django
-    dans apps/users/signals.py (post_save et post_delete sur Role).
-    Cette tache sert de filet de securite pour detecter les cas manques
-    (imports directs en base, migrations, etc.).
-    """
-    from apps.users.models import BibOrganismes, Role
-    from .services import NotificationService
-
-    organismes_without_admin = []
-    for organisme in BibOrganismes.objects.all().order_by('nom_organisme'):
-        has_admin = Role.objects.filter(
-            id_organisme=organisme,
-            role_level='admin_og',
-            active=True
-        ).exists()
-        if not has_admin:
-            organismes_without_admin.append(organisme)
-
-    if not organismes_without_admin:
-        logger.info("No organismes without admin found")
-        return
-
-    logger.info(f"Found {len(organismes_without_admin)} organismes without admin")
-    NotificationService.notify_organismes_no_admin_summary(organismes_without_admin)
+    except Exception as e:
+        logger.error(f"Failed to send password reset email to {email}: {e}")
+        raise self.retry(exc=e, countdown=60 * (2 ** self.request.retries))
 
 
-@shared_task
-def check_orphaned_plans():
-    """
-    Tache d'audit hebdomadaire pour verifier les plans de gestion sans site associe.
-    Ces plans se retrouvent orphelins apres suppression de leurs sites lies.
-
-    Envoie un email recapitulatif aux super admins avec la liste des plans orphelins.
-    """
-    from apps.plans.models import PlanGestion, CorSitePg
-    from .services import NotificationService
-
-    plans_with_sites = CorSitePg.objects.values_list('id_pg', flat=True)
-    orphaned_plans = list(
-        PlanGestion.objects.exclude(id_pg__in=plans_with_sites)
-        .order_by('nom')
-    )
-
-    if not orphaned_plans:
-        logger.info("No orphaned plans found")
-        return
-
-    logger.info(f"Found {len(orphaned_plans)} orphaned plans")
-    NotificationService.notify_orphaned_plans_summary(orphaned_plans)
+# #328 — La tache hebdomadaire check_organismes_without_admin (recap email aux
+# super-admins) a ete supprimee : l'etat « organisme sans admin » est detecte en
+# temps reel par les signaux Django (apps/users/signals.py ->
+# NotificationService.notify_organisme_no_admin) et consultable a la demande. Le
+# recap hebdomadaire ne faisait que saturer la boite mail des super-admins.
 
 
 @shared_task

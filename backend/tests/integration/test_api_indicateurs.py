@@ -357,6 +357,32 @@ class TestMetriqueCreate:
         assert response.status_code == status.HTTP_201_CREATED
         assert Metrique.objects.filter(nom_metrique='Nouvelle Métrique').exists()
 
+    def test_create_indetermine_without_name(self, api_client, indicateur_test_data):
+        """#339 — une métrique de type « Indéterminé » peut être créée sans intitulé."""
+        type_indet = NomenclatureTypeMetriqueFactory(
+            cd_nomenclature='INDETERMINE', mnemonique='INDETERMINE', label='Indéterminé'
+        )
+        api_client.force_authenticate(user=indicateur_test_data['referent'])
+        response = api_client.post('/api/plans/metriques/', {
+            'id_indicateur': indicateur_test_data['indicateur1'].id_indicateur,
+            'nom_metrique': '',
+            'type_metrique': type_indet.id_nomenclature,
+        })
+        assert response.status_code == status.HTTP_201_CREATED
+        assert Metrique.objects.filter(
+            id_indicateur=indicateur_test_data['indicateur1'], nom_metrique=''
+        ).exists()
+
+    def test_create_non_indetermine_requires_name(self, api_client, indicateur_test_data):
+        """#339 — pour les autres types, l'intitulé reste obligatoire (400 sans nom)."""
+        api_client.force_authenticate(user=indicateur_test_data['referent'])
+        response = api_client.post('/api/plans/metriques/', {
+            'id_indicateur': indicateur_test_data['indicateur1'].id_indicateur,
+            'nom_metrique': '',
+        })
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert 'nom_metrique' in response.data
+
     def test_create_with_seuils(self, api_client, indicateur_test_data):
         """Test create a metrique with score thresholds."""
         api_client.force_authenticate(user=indicateur_test_data['super_admin'])

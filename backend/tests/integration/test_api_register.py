@@ -8,9 +8,35 @@ from rest_framework import status
 
 from apps.notifications.models import PendingUser, ValidationRequest
 from apps.notifications.services import ValidationService
-from apps.users.models import Role
+from apps.users.models import BibOrganismes, Role
 from tests.factories.users import OrganismeFactory, SuperAdminFactory, RoleFactory
 from tests.factories.notifications import PendingUserFactory
+
+
+NEW_ORG = {
+    'nom_organisme': 'Conservatoire Test',
+    'adresse_organisme': '1 rue de la Test',
+    'cp_organisme': '21000',
+    'ville_organisme': 'Dijon',
+    'tel_organisme': '0380000000',
+    'email_organisme': 'contact@orga-test.fr',
+    'url_organisme': 'https://orga-test.fr',
+}
+
+
+def _payload_new_org(**overrides):
+    """Payload d'inscription demandant la création d'un nouvel organisme."""
+    base = {
+        'email': 'newuser@test.fr',
+        'password': 'StrongPass123!',
+        'password_confirm': 'StrongPass123!',
+        'nom_role': 'Doe',
+        'prenom_role': 'Jane',
+        'new_organisme': dict(NEW_ORG),
+        'justification': 'Mon organisme n\'existe pas encore.',
+    }
+    base.update(overrides)
+    return base
 
 
 @pytest.fixture
@@ -292,3 +318,128 @@ class TestApprovalEndpointWithOverride:
         assert response.status_code == status.HTTP_200_OK
         user = Role.objects.get(email='endpoint.rescue@test.fr')
         assert user.id_organisme == fallback_org
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+class TestRegistrationWithNewOrganisme:
+    """Inscription avec demande de création d'un nouvel organisme (#385)."""
+
+    URL = '/api/auth/register/'
+
+    def test_register_with_new_organisme_creates_two_linked_requests(self, api_client):
+        response = api_client.post(self.URL, _payload_new_org(), format='json')
+
+        assert response.status_code == status.HTTP_201_CREATED
+
+        pending = PendingUser.objects.get(email='newuser@test.fr')
+        # Le compte n'a pas encore d'organisme (il sera créé puis rattaché)
+        assert pending.requested_organisme is None
+
+        reg = pending.validation_request
+        assert reg.request_type == 'user_registration'
+
+        org_req = ValidationRequest.objects.get(request_type='organisme_creation')
+        assert org_req.related_request_id == reg.id
+        assert org_req.status == 'pending'
+        assert org_req.requested_data['nom_organisme'] == NEW_ORG['nom_organisme']
+        assert org_req.requested_data['cp_organisme'] == '21000'
+        # Aucun organisme réellement créé tant que non validé
+        assert not BibOrganismes.objects.filter(nom_organisme=NEW_ORG['nom_organisme']).exists()
+
+    def test_register_rejects_both_organisme_and_new_organisme(self, api_client):
+        org = OrganismeFactory()
+        payload = _payload_new_org(requested_organisme_id=org.id_organisme)
+
+        response = api_client.post(self.URL, payload, format='json')
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert not PendingUser.objects.filter(email='newuser@test.fr').exists()
+
+    def test_register_new_organisme_missing_name_rejected(self, api_client):
+        payload = _payload_new_org(new_organisme={'ville_organisme': 'Dijon'})
+
+        response = api_client.post(self.URL, payload, format='json')
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+    def test_approve_organisme_creation_creates_org_and_links_pending(self, api_client):
+        api_client.post(self.URL, _payload_new_org(), format='json')
+        validator = SuperAdminFactory()
+        org_req = ValidationRequest.objects.get(request_type='organisme_creation')
+
+        organisme = ValidationService.approve_organisme_creation(org_req, validator)
+
+        assert organisme.nom_organisme == NEW_ORG['nom_organisme']
+        assert organisme.ville_organisme == 'Dijon'
+        org_req.refresh_from_db()
+        assert org_req.status == 'approved'
+
+        # L'organisme est rattaché au compte en attente et à sa demande
+        pending = PendingUser.objects.get(email='newuser@test.fr')
+        assert pending.requested_organisme_id == organisme.id_organisme
+        assert pending.validation_request.requested_organisme_id == organisme.id_organisme
+
+    def test_approve_registration_blocked_until_organisme_approved(self, api_client):
+        api_client.post(self.URL, _payload_new_org(), format='json')
+        validator = SuperAdminFactory()
+        pending = PendingUser.objects.get(email='newuser@test.fr')
+
+        with pytest.raises(ValueError, match="création d'organisme"):
+            ValidationService.approve_registration(pending.validation_request, validator)
+
+        assert not Role.objects.filter(email='newuser@test.fr').exists()
+
+    def test_full_flow_org_then_account(self, api_client):
+        api_client.post(self.URL, _payload_new_org(), format='json')
+        validator = SuperAdminFactory()
+        org_req = ValidationRequest.objects.get(request_type='organisme_creation')
+        reg = org_req.related_request
+
+        organisme = ValidationService.approve_organisme_creation(org_req, validator)
+        user = ValidationService.approve_registration(reg, validator)
+
+        assert user.email == 'newuser@test.fr'
+        assert user.id_organisme == organisme
+        assert not PendingUser.objects.filter(email='newuser@test.fr').exists()
+
+    def test_endpoint_approve_account_before_organisme_returns_400_and_keeps_pending(self, api_client):
+        """Approuver le compte AVANT l'organisme via l'API : 400 explicite, rien de cassé."""
+        api_client.post(self.URL, _payload_new_org(), format='json')
+        validator = SuperAdminFactory()
+        reg = ValidationRequest.objects.get(request_type='user_registration')
+
+        api_client.force_authenticate(user=validator)
+        response = api_client.post(
+            f'/api/validations/{reg.id}/approve/', {}, format='json'
+        )
+
+        # Erreur métier propre (pas un 500)
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert 'organisme' in response.data['error'].lower()
+
+        # La demande reste en attente (transaction annulée) et aucun compte créé
+        reg.refresh_from_db()
+        assert reg.status == 'pending'
+        assert not Role.objects.filter(email='newuser@test.fr').exists()
+
+        # Dans le bon ordre (organisme puis compte) : tout fonctionne
+        org_req = ValidationRequest.objects.get(request_type='organisme_creation')
+        api_client.post(f'/api/validations/{org_req.id}/approve/', {}, format='json')
+        response2 = api_client.post(f'/api/validations/{reg.id}/approve/', {}, format='json')
+        assert response2.status_code == status.HTTP_200_OK
+        assert Role.objects.filter(email='newuser@test.fr').exists()
+
+    def test_reject_organisme_creation_cascades_to_registration(self, api_client):
+        api_client.post(self.URL, _payload_new_org(), format='json')
+        validator = SuperAdminFactory()
+        org_req = ValidationRequest.objects.get(request_type='organisme_creation')
+        reg = org_req.related_request
+
+        ValidationService.reject_request(org_req, validator, comment='Organisme non pertinent.')
+
+        org_req.refresh_from_db()
+        reg.refresh_from_db()
+        assert org_req.status == 'rejected'
+        assert reg.status == 'rejected'
+        assert not BibOrganismes.objects.filter(nom_organisme=NEW_ORG['nom_organisme']).exists()

@@ -9,13 +9,15 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { HeaderComponent } from '../../../shared/components/header/header.component';
 import { PlanSidebarComponent } from '../shared/plan-sidebar/plan-sidebar.component';
+import { SearchBarComponent } from '../../../shared/components/search-bar/search-bar.component';
 import { AdminService } from '../../../core/services/admin.service';
 import { EnjeuService } from '../../../core/services/enjeu.service';
 import {
   Enjeu, Indicateur, Operation, OperationAnnee
 } from '../../../core/models/enjeu.model';
-
-type ActionStatus = 'planned' | 'planned-realized' | 'planned-partial' | 'realized-unplanned' | 'partial-unplanned';
+import {
+  ActionStatus, ACTION_LEGEND_ITEMS, getActionIcon, getActionStatusForYear
+} from './action-status.util';
 
 type SuiviTab = 'realisation' | 'budget' | 'rh';
 
@@ -42,7 +44,7 @@ interface FlatOperation {
   imports: [
     CommonModule, RouterModule, MatButtonModule, MatChipsModule, MatMenuModule,
     MatProgressSpinnerModule, MatTooltipModule, TranslateModule,
-    HeaderComponent, PlanSidebarComponent
+    HeaderComponent, PlanSidebarComponent, SearchBarComponent
   ],
   templateUrl: './plan-suivi-actions.component.html',
   styleUrl: './plan-suivi-actions.component.scss'
@@ -57,8 +59,17 @@ export class PlanSuiviActionsComponent implements OnInit {
   planId = signal<number | null>(null);
   planSlug = signal<string | null>(null);
   planNom = signal<string>('');
+  planStatut = signal<string | null>(null);
   isLoading = signal(true);
   errorMessage = signal<string | null>(null);
+
+  // #375 — le suivi (réalisations) ne peut être saisi qu'une fois le plan validé.
+  // Statuts considérés comme « validés » (suivi pertinent) : valide/modifie/mi_parcours/archive.
+  private readonly VALIDATED_STATUSES = ['valide', 'modifie', 'mi_parcours', 'archive'];
+  planNotValidated = computed(() => {
+    const s = this.planStatut();
+    return !!s && !this.VALIDATED_STATUSES.includes(s);
+  });
 
   // Data
   allOperations = signal<FlatOperation[]>([]);
@@ -73,6 +84,14 @@ export class PlanSuiviActionsComponent implements OnInit {
   filterCategorieAction = signal<string | null>(null);
   filterEnjeu = signal<number | null>(null);
   filterPriorite = signal<string | null>(null);
+  // #379 — recherche textuelle sur le libellé d'action + filtre organisme.
+  filterText = signal<string>('');
+  filterOrganisme = signal<number | null>(null);
+
+  // Libellés des 9 catégories d'action réserve CT88, indexés par code 2 lettres
+  // (SP, CS, IP, PA…). Sert à afficher la catégorie CT88 dans le filtre, même
+  // pour les actions sans catégorie réserve explicite (déduite du code). (#98)
+  private categorieLabelByPrefix = signal<Map<string, string>>(new Map());
 
   // Computed
   /** Liste des colonnes années entre planYearStart et planYearEnd. */
@@ -91,9 +110,11 @@ export class PlanSuiviActionsComponent implements OnInit {
     const cat = this.filterCategorieAction();
     const enjeu = this.filterEnjeu();
     const prio = this.filterPriorite();
+    const text = this.normalize(this.filterText());
+    const org = this.filterOrganisme();
 
     if (cat) {
-      ops = ops.filter(o => o.operation.type_action_label === cat);
+      ops = ops.filter(o => this.getCategorieAction(o.operation) === cat);
     }
     if (enjeu) {
       ops = ops.filter(o => o.enjeuId === enjeu);
@@ -101,14 +122,59 @@ export class PlanSuiviActionsComponent implements OnInit {
     if (prio) {
       ops = ops.filter(o => o.operation.priorite_label === prio);
     }
+    if (text) {
+      ops = ops.filter(o => this.normalize(o.operation.libelle).includes(text));
+    }
+    if (org) {
+      ops = ops.filter(o => this.getOrganismesForOp(o.operation).some(g => g.id_organisme === org));
+    }
     return ops;
   });
+
+  /** Normalisation pour la recherche : minuscules, sans accents. */
+  private normalize(s: string): string {
+    return (s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
+  }
+
+  /** #379 — Organismes disponibles (ventilés sur au moins une action) pour le filtre. */
+  availableOrganismes = computed<{ id_organisme: number; nom: string }[]>(() => {
+    const seen = new Map<number, string>();
+    for (const o of this.allOperations()) {
+      for (const g of this.getOrganismesForOp(o.operation)) {
+        if (!seen.has(g.id_organisme)) seen.set(g.id_organisme, g.nom);
+      }
+    }
+    return [...seen.entries()]
+      .map(([id_organisme, nom]) => ({ id_organisme, nom }))
+      .sort((a, b) => a.nom.localeCompare(b.nom));
+  });
+
+  /**
+   * Catégorie d'action au sens CT88 (CS, IP, PA, PR, SP…). Le filtre « Catégories
+   * d'action » doit refléter ces grandes catégories de la méthode PG, pas les
+   * types détaillés / suivis. (#98)
+   *
+   * On s'appuie sur `op.code_prefix` (déjà calculé côté backend) : il vaut le code
+   * de la catégorie d'action réserve si elle est renseignée (#228), sinon le
+   * préfixe 2 lettres déduit du code du type d'action (ex. « CS1 » → « CS »). On
+   * le traduit ensuite en libellé CT88. Repli sur le libellé brut si le préfixe
+   * n'est pas connu (ex. type d'action sans code CT88).
+   */
+  getCategorieAction(op: Operation): string | null {
+    const prefix = op.code_prefix?.toUpperCase();
+    if (prefix) {
+      const label = this.categorieLabelByPrefix().get(prefix);
+      if (label) return label;
+    }
+    return op.categorie_action_reserve_label || op.type_action_label || null;
+  }
 
   // Unique filter values
   categorieActions = computed(() => {
     const labels = new Set<string>();
     this.allOperations().forEach(o => {
-      if (o.operation.type_action_label) labels.add(o.operation.type_action_label);
+      const cat = this.getCategorieAction(o.operation);
+      if (cat) labels.add(cat);
     });
     return Array.from(labels).sort();
   });
@@ -196,27 +262,29 @@ export class PlanSuiviActionsComponent implements OnInit {
     return Array.from(labels).sort();
   });
 
-  private readonly actionIconMap: Record<ActionStatus, string> = {
-    'planned': 'assets/images/icons/prevu.png',
-    'planned-realized': 'assets/images/icons/prevu-realise.png',
-    'planned-partial': 'assets/images/icons/prevu-partiellement-realise.png',
-    'realized-unplanned': 'assets/images/icons/realise.png',
-    'partial-unplanned': 'assets/images/icons/partiellement-realise.png'
-  };
+  // #379 — légende partagée (util action-status)
+  legendItems = ACTION_LEGEND_ITEMS;
 
-  legendItems: { status: ActionStatus; labelKey: string }[] = [
-    { status: 'planned', labelKey: 'plans.suivis.actions.actionPrevue' },
-    { status: 'planned-realized', labelKey: 'plans.suivis.actions.actionPrevueRealisee' },
-    { status: 'planned-partial', labelKey: 'plans.suivis.actions.actionPrevuePartielle' },
-    { status: 'realized-unplanned', labelKey: 'plans.suivis.actions.actionRealiseeNonPrevue' },
-    { status: 'partial-unplanned', labelKey: 'plans.suivis.actions.actionPartielleNonPrevue' }
-  ];
-
-  getActionIcon(status: ActionStatus): string {
-    return this.actionIconMap[status] || '';
+  getActionIcon(status: ActionStatus | null): string {
+    return getActionIcon(status);
   }
 
   ngOnInit(): void {
+    // #379 — restaurer l'onglet depuis l'URL (retour « précédent » depuis la saisie)
+    const tabParam = this.route.snapshot.queryParamMap.get('tab');
+    if (tabParam === 'budget' || tabParam === 'rh') {
+      this.activeTab.set(tabParam);
+    }
+
+    // Charge les 9 catégories CT88 (mnémonique = code 2 lettres → libellé).
+    this.adminService.getNomenclaturesByType('CATEGORIE_ACTION_RESERVE').subscribe({
+      next: (noms) => {
+        const map = new Map<string, string>();
+        noms.forEach(n => { if (n.mnemonique) map.set(n.mnemonique.toUpperCase(), n.label); });
+        this.categorieLabelByPrefix.set(map);
+      }
+    });
+
     const slug = this.route.snapshot.paramMap.get('slug');
     if (slug) {
       this.planSlug.set(slug);
@@ -224,6 +292,7 @@ export class PlanSuiviActionsComponent implements OnInit {
         next: (plan) => {
           this.planId.set(plan.id_pg);
           this.planNom.set(plan.nom);
+          this.planStatut.set(plan.statut ?? null);
           if (plan.annee_debut && plan.annee_fin) {
             this.planYearStart.set(plan.annee_debut);
             this.planYearEnd.set(plan.annee_fin);
@@ -237,8 +306,11 @@ export class PlanSuiviActionsComponent implements OnInit {
   private loadData(planId: number): void {
     this.isLoading.set(true);
 
-    // Load enjeux with nested operations
-    this.enjeuService.getPlanEnjeux(planId).subscribe({
+    // Load enjeux with nested operations. forceRefresh=true : cette page affiche
+    // les réalisations annuelles, qui viennent d'être modifiées dans la saisie ;
+    // sans forcer, le cache de getPlanEnjeux renverrait l'état d'avant la saisie
+    // (il fallait rafraîchir la page pour voir la mise à jour).
+    this.enjeuService.getPlanEnjeux(planId, true).subscribe({
       next: (response) => {
         const flatOps: FlatOperation[] = [];
         const seenIds = new Set<number>();
@@ -315,24 +387,7 @@ export class PlanSuiviActionsComponent implements OnInit {
    *   sinon                              → null (rien à afficher)
    */
   getActionStatusForYear(op: Operation, year: number): ActionStatus | null {
-    if (!op.operation_annees) return null;
-    const annee = op.operation_annees.find(a => a.annee === year);
-    if (!annee) return null;
-
-    const prevu = !!annee.periodicite;
-    const niveau = annee.realisation?.niveau_realisation_mnemonique ?? null;
-    const realiseTotal = niveau === 'TERMINE';
-    const realisePartiel = niveau === 'PARTIEL';
-
-    if (prevu) {
-      if (realiseTotal) return 'planned-realized';
-      if (realisePartiel) return 'planned-partial';
-      return 'planned';
-    }
-    // Non prévu mais réalisé (totalement ou partiellement)
-    if (realiseTotal) return 'realized-unplanned';
-    if (realisePartiel) return 'partial-unplanned';
-    return null;
+    return getActionStatusForYear(op, year);
   }
 
   setCategorieFilter(value: string | null): void {
@@ -347,14 +402,21 @@ export class PlanSuiviActionsComponent implements OnInit {
     this.filterPriorite.set(value);
   }
 
+  setOrganismeFilter(value: number | null): void {
+    this.filterOrganisme.set(value);
+  }
+
   clearFilters(): void {
     this.filterCategorieAction.set(null);
     this.filterEnjeu.set(null);
     this.filterPriorite.set(null);
+    this.filterText.set('');
+    this.filterOrganisme.set(null);
   }
 
   hasActiveFilters(): boolean {
-    return !!(this.filterCategorieAction() || this.filterEnjeu() || this.filterPriorite());
+    return !!(this.filterCategorieAction() || this.filterEnjeu() || this.filterPriorite()
+      || this.filterText() || this.filterOrganisme());
   }
 
   getPrioriteClass(op: Operation): string {
@@ -373,11 +435,46 @@ export class PlanSuiviActionsComponent implements OnInit {
   }
 
   // ===========================================================================
+  // #379 — Réalisation GLOBALE : 3 icônes (réalisé / partiellement / non réalisé)
+  // ===========================================================================
+
+  /**
+   * Ramène le niveau global aux 3 icônes du suivi : TERMINE → réalisé,
+   * PARTIEL → partiellement réalisé, tout le reste (EN_COURS, NON_REALISE,
+   * NON_DEMARRE, ABANDONNE, REPORTE, aucun) → non réalisé. La surcharge se fait
+   * désormais sur la page globale de l'action.
+   */
+  globalRealisationIcon(mnemonique: string | null | undefined): string {
+    switch (mnemonique) {
+      case 'TERMINE': return 'assets/images/icons/realise.png';
+      case 'PARTIEL': return 'assets/images/icons/partiellement-realise.png';
+      default: return 'assets/images/icons/non-realise-seul.svg';
+    }
+  }
+
+  /** Clé i18n du libellé du statut global (pour alt/tooltip). */
+  globalRealisationLabelKey(mnemonique: string | null | undefined): string {
+    switch (mnemonique) {
+      case 'TERMINE': return 'plans.suivis.actionGlobal.statut.realise';
+      case 'PARTIEL': return 'plans.suivis.actionGlobal.statut.partiel';
+      default: return 'plans.suivis.actionGlobal.statut.nonRealise';
+    }
+  }
+
+  // ===========================================================================
   // Phase 3 - Agrégations Budget / RH
   // ===========================================================================
 
   setTab(tab: SuiviTab): void {
     this.activeTab.set(tab);
+    // #379 — persister l'onglet dans l'URL pour le retrouver après « précédent »
+    // depuis la saisie (sinon on revenait toujours sur Réalisation).
+    this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { tab: tab === 'realisation' ? null : tab },
+      queryParamsHandling: 'merge',
+      replaceUrl: true,
+    });
   }
 
   /**
@@ -451,22 +548,4 @@ export class PlanSuiviActionsComponent implements OnInit {
     const ecartPct = previsionnel > 0 ? ((realise - previsionnel) / previsionnel) * 100 : null;
     return { previsionnel, realise, hasRealise, ecartPct };
   }
-
-  /** Total budget plan : somme du Total de toutes les opérations filtrées (prévi). */
-  totalPlanBudget = computed<number>(() => {
-    let sum = 0;
-    for (const item of this.filteredOperations()) {
-      sum += this.aggregateBudget(item.operation, 'total').previsionnel;
-    }
-    return sum;
-  });
-
-  /** Total ETP plan (prévi). */
-  totalPlanEtp = computed<number>(() => {
-    let sum = 0;
-    for (const item of this.filteredOperations()) {
-      sum += this.aggregateEtp(item.operation, 'total').previsionnel;
-    }
-    return sum;
-  });
 }

@@ -273,6 +273,7 @@ export class AdminValidationsComponent implements OnInit {
       'site_org_link': 'fi-rr-link',
       'invite_org_to_site': 'fi-rr-building',
       'invite_user_to_site': 'fi-rr-user-add',
+      'organisme_creation': 'fi-rr-building',
     };
     return icons[type] || 'fi-rr-check-circle';
   }

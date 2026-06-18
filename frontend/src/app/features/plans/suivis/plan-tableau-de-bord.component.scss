@@ -238,11 +238,12 @@
   }
 }
 
-// Filter bar
+// Filter bar — alignée sur « Suivi des actions » : filtres à gauche, recherche
+// à droite occupant la largeur restante, le tout sur une seule ligne.
 .filter-bar {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: $spacing-md;
   margin-bottom: $spacing-md;
 }
 
@@ -250,6 +251,7 @@
   display: flex;
   align-items: center;
   gap: 0;
+  flex: 0 0 auto;
 }
 
 .filter-label {
@@ -380,7 +382,7 @@
       &.col-indicateur {
         text-align: left;
         padding-left: $spacing-md;
-        min-width: 260px;
+        min-width: 190px;
       }
 
       &.col-year {
@@ -388,9 +390,16 @@
         width: 67px;
       }
 
+      &.col-global {
+        min-width: 72px;
+        width: 84px;
+        border-left: 2px solid $primary-bg-subtle;
+      }
+
+      // #356 — dernière colonne (œil) : réduite, on libère de la place pour Actions
       &.col-icons {
-        min-width: 96px;
-        width: 96px;
+        min-width: 48px;
+        width: 48px;
       }
     }
   }
@@ -422,8 +431,22 @@
         border-right: 1px solid $primary-bg-subtle;
       }
 
+      &.col-global {
+        min-width: 72px;
+        border-left: 2px solid $primary-bg-subtle;
+
+        &.clickable {
+          cursor: pointer;
+          transition: background 0.15s;
+          &:hover { background: rgba($primary-color, 0.08); }
+        }
+
+        .global-empty { color: $gray; }
+      }
+
       &.col-icons {
-        min-width: 96px;
+        min-width: 48px;
+        width: 48px;
       }
     }
   }
@@ -441,6 +464,59 @@
     letter-spacing: 0.5px;
     border-bottom: 2px solid rgba($primary-color, 0.15);
   }
+}
+
+// #356 — en-tête enjeu (mode ensemble), couleur distincte (terra-cotta)
+.enjeu-header-row {
+  td {
+    background-color: $secondary-terra-cotta;
+    color: $white;
+    font-weight: $font-weight-bold;
+    font-size: $font-size-base;
+    text-align: left !important;
+    padding: $spacing-sm $spacing-md !important;
+    letter-spacing: 0.5px;
+  }
+}
+
+// #356 — colonne Actions : plus d'espace horizontal (codes compacts en pastilles)
+.tdb-table {
+  th.col-actions, td.col-actions {
+    min-width: 150px;
+    max-width: 300px;
+  }
+  td.col-actions {
+    text-align: left;
+    .action-link {
+      display: block;
+      color: $primary-color;
+      text-decoration: underline;
+      font-size: $font-size-small;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 190px;
+      &:hover { color: $primary-hover; }
+    }
+    // #356 — Code compact (CS1, SP2…) : pastilles inline, pas un bloc par ligne.
+    .action-link.action-code {
+      display: inline-block;
+      margin: 1px 4px 1px 0;
+      padding: 1px 6px;
+      border-radius: $border-radius-sm;
+      background-color: $primary-bg-subtle;
+      text-decoration: none;
+      font-weight: 600;
+      &:hover { background-color: rgba($primary-color, 0.15); }
+    }
+  }
+}
+
+// #356 — barre de recherche du tableau de bord
+.tdb-search {
+  display: block;
+  flex: 1 1 auto;
+  min-width: 200px;
 }
 
 // Indicator row
@@ -594,6 +670,7 @@
     align-items: flex-start;
     gap: $spacing-sm;
   }
+  .tdb-search { width: 100%; }
 
   .legend {
     flex-direction: column;

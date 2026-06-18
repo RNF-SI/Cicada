@@ -97,7 +97,8 @@ describe('SiteFormModalComponent', () => {
       checkDuplicates: jest.fn().mockReturnValue(of(mockDuplicateResult)),
       createSite: jest.fn().mockReturnValue(of({ id_site: 1, nom_site: 'Test Site' })),
       updateSite: jest.fn().mockReturnValue(of({ id_site: 1, nom_site: 'Updated Site' })),
-      assignSiteToOrganisme: jest.fn().mockReturnValue(of({}))
+      assignSiteToOrganisme: jest.fn().mockReturnValue(of({})),
+      getSiteCreationValidators: jest.fn().mockReturnValue(of({ auto_validated: true, validators: [] }))
     } as unknown as jest.Mocked<AdminService>;
 
     validationService = {

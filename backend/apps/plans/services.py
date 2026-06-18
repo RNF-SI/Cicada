@@ -1,6 +1,7 @@
 """
 Service de duplication de Plans de Gestion.
 """
+import copy
 import logging
 import os
 import shutil
@@ -77,33 +78,14 @@ class PlanDuplicationService:
             source_plan.nom, PlanGestion
         )
 
-        # 2. Copy plan (linked as new version via plan_parent)
+        # 2. Copy plan (linked as new version via plan_parent).
+        # #377 — copie TOUTES les métadonnées (dont les validations
+        # administratives CSRPN), sauf le statut (repart en draft).
         source_id = source_plan.id_pg
-        new_plan = PlanGestion(
+        new_plan = PlanDuplicationService.build_version_plan(
+            source_plan, user,
             nom=new_name,
-            slug='',  # Will be auto-generated in save()
-            plan_parent=source_plan,
-            id_cdr=source_plan.id_cdr,
-            rang=source_plan.rang,
-            statut='draft',
             version=source_plan.get_next_version(),
-            annee_debut=source_plan.annee_debut,
-            annee_fin=source_plan.annee_fin,
-            surface=source_plan.surface,
-            gestion_partagee=source_plan.gestion_partagee,
-            ct88=source_plan.ct88,
-            risque_incendie=source_plan.risque_incendie,
-            date_avis_csrpn=source_plan.date_avis_csrpn,
-            id_docgestion_fcen=source_plan.id_docgestion_fcen,
-            id_evaluation=source_plan.id_evaluation,
-            id_redacteur_type=source_plan.id_redacteur_type,
-            redacteur_nom=source_plan.redacteur_nom,
-            redacteurs=source_plan.redacteurs,
-            relecteurs=source_plan.relecteurs,
-            commentaire=source_plan.commentaire,
-            geometrie=None,
-            id_utilisateur_ajout=user,
-            id_utilisateur_maj=user,
         )
         # Skip automatic activity signal - we'll log manually
         new_plan._skip_activity_signal = True
@@ -134,11 +116,17 @@ class PlanDuplicationService:
                 source_id, new_plan, user
             )
 
-        # 6. Copy enjeux + hierarchy
+        # 6. Copy enjeux + hierarchy (+ suivis & opérations si sous-éléments).
+        # #377 — Une nouvelle version doit copier TOUT le contenu pour pouvoir
+        # être éditée sans impacter les anciennes versions.
         if copy_enjeux:
-            PlanDuplicationService._copy_enjeux(
+            indicateur_map, metrique_map = PlanDuplicationService._copy_enjeux(
                 source_id, new_plan, user, copy_sub_elements
             )
+            if copy_sub_elements:
+                PlanDuplicationService._copy_suivis_and_operations(
+                    source_id, new_plan, user, indicateur_map, metrique_map
+                )
 
         # 7. Recalculate geometry
         if copy_sites:
@@ -249,8 +237,96 @@ class PlanDuplicationService:
             new_fichier.save()
 
     @staticmethod
+    def copy_content(source_plan, new_plan, user):
+        """Copie tout le contenu (enjeux + hiérarchie + suivis + opérations) d'un
+        plan source vers un nouveau plan déjà créé (#377).
+
+        Utilisé par les flux de création de version qui n'utilisent pas
+        `duplicate_plan` (évaluation mi-parcours, rang suivant). Le nouveau plan
+        devient pleinement éditable sans impact sur la version source.
+        """
+        source_id = getattr(source_plan, 'id_pg', source_plan)
+        indicateur_map, metrique_map = PlanDuplicationService._copy_enjeux(
+            source_id, new_plan, user, copy_sub_elements=True
+        )
+        PlanDuplicationService._copy_suivis_and_operations(
+            source_id, new_plan, user, indicateur_map, metrique_map
+        )
+
+    @staticmethod
+    def build_version_plan(source_plan, user, **overrides):
+        """Construit (NON sauvegardé) un nouveau plan-version à partir d'un plan
+        source.
+
+        Copie TOUTES les métadonnées du plan de gestion — y compris les
+        validations administratives CSRPN (`date_avis_csrpn`,
+        `date_validation_comite`, `date_arrete_pref`, `numero_arrete_pref`,
+        `validation_step`) — puis réinitialise les champs de contrôle et de
+        cycle de vie. Le statut repart à `draft` (seule la métadonnée exclue).
+
+        Les `overrides` fixent les champs propres au flux appelant (nom,
+        version, id_type_document, rang, années…). #377 / copie des métadonnées.
+        """
+        new_plan = PlanDuplicationService._dup(
+            source_plan, user,
+            slug='',                 # régénéré à la sauvegarde
+            plan_parent=source_plan,
+            statut='draft',          # seule métadonnée NON copiée
+            geometrie=None,          # recalculée depuis les sites
+            # Attributs de cycle de vie (non métadonnées) : repartent à zéro
+            is_mi_parcours=False,
+            en_revision=False,
+            next_rang_plan=None,
+            annees_extension=0,
+        )
+        for key, value in overrides.items():
+            setattr(new_plan, key, value)
+        return new_plan
+
+    @staticmethod
+    def _dup(old, user, **overrides):
+        """Clone superficiel d'une instance (copy + pk=None).
+
+        Réinitialise le PK (l'INSERT générera un nouvel id) et les champs
+        d'audit utilisateur, puis applique les overrides (FK remappées, etc.).
+        Les timestamps auto_now/auto_now_add sont régénérés à la sauvegarde.
+        Retourne l'instance NON sauvegardée (le M2M et les enfants sont gérés
+        par l'appelant). #377
+        """
+        new = copy.copy(old)
+        new.pk = None
+        # `copy.copy` est superficiel : sans cela `new._state` (et les caches de
+        # relations) seraient PARTAGÉS avec `old` — muter l'état du clone
+        # corromprait alors l'instance source (db=None → M2M cassés). On donne
+        # donc au clone son propre état et on purge les caches hérités.
+        new._state = copy.copy(old._state)
+        new._state.adding = True
+        new._state.db = None
+        new._prefetched_objects_cache = {}
+        if hasattr(new, '_state') and hasattr(new._state, 'fields_cache'):
+            new._state.fields_cache = {}
+        concrete = {f.name for f in old._meta.concrete_fields}
+        if 'id_utilisateur_ajout' in concrete:
+            new.id_utilisateur_ajout = user
+        if 'id_utilisateur_maj' in concrete:
+            new.id_utilisateur_maj = user
+        for key, value in overrides.items():
+            setattr(new, key, value)
+        return new
+
+    @staticmethod
     def _copy_enjeux(source_plan_id, new_plan, user, copy_sub_elements):
-        """Copy enjeux/FCR with their M2M and optionally sub-elements."""
+        """Copie les enjeux/FCR (+ liens taxon/habitat/géologie) et, si demandé,
+        toute la hiérarchie : facteurs → pressions → OO → RA → indicateurs →
+        métriques (+ blocs de score #247), et OLT → NE → indicateurs → métriques.
+
+        Copie l'INTÉGRALITÉ des champs de chaque entité (#377). Les données
+        empiriques (mesures, saisies annuelles) ne sont volontairement PAS
+        copiées : elles appartiennent à la version d'origine.
+
+        Retourne (indicateur_map, metrique_map) : mappings old_id → nouvelle
+        instance, utilisés pour relier les opérations copiées.
+        """
         from .models_enjeux import (
             Enjeu, FacteurInfluence, Pression,
             ObjectifLongTerme, NiveauExigence,
@@ -258,230 +334,170 @@ class PlanDuplicationService:
             CorEnjeuTaxon, CorEnjeuHabitat, CorEnjeuGeologie,
         )
         from .models_indicateurs import (
-            Indicateur, Metrique,
+            Indicateur, Metrique, MetriqueScoreBlock,
             CorIndicateurTaxon, CorIndicateurHabitat, CorIndicateurGeologie,
         )
 
-        enjeux = Enjeu.objects.filter(id_pg_id=source_plan_id)
+        dup = PlanDuplicationService._dup
+        indicateur_map = {}
+        metrique_map = {}
 
-        for old_enjeu in enjeux:
-            old_enjeu_id = old_enjeu.id_enjeu
+        def _copy_indicateur(old_ind, **parent_override):
+            new_ind = dup(old_ind, user, **parent_override)
+            new_ind.save()
+            indicateur_map[old_ind.id_indicateur] = new_ind
 
-            # Copy enjeu
-            new_enjeu = Enjeu(
-                id_pg=new_plan,
-                id_categorie=old_enjeu.id_categorie,
-                libelle=old_enjeu.libelle,
-                intitule_court=old_enjeu.intitule_court,
-                slug='',  # Auto-generated
-                description=old_enjeu.description,
-                rang=old_enjeu.rang,
-                categorie_ecologique=old_enjeu.categorie_ecologique,
-                habitat=old_enjeu.habitat,
-                espece=old_enjeu.espece,
-                processus=old_enjeu.processus,
-                etat_enjeu=old_enjeu.etat_enjeu,
-                id_categorie_fcr=old_enjeu.id_categorie_fcr,
-                id_importance=old_enjeu.id_importance,
-                geom=old_enjeu.geom,
-                id_utilisateur_ajout=user,
-                id_utilisateur_maj=user,
-            )
+            for cor in CorIndicateurTaxon.objects.filter(id_indicateur=old_ind):
+                CorIndicateurTaxon.objects.create(
+                    id_indicateur=new_ind, cd_nom=cor.cd_nom,
+                    nom_complet=cor.nom_complet, nom_vern=cor.nom_vern,
+                )
+            for cor in CorIndicateurHabitat.objects.filter(id_indicateur=old_ind):
+                CorIndicateurHabitat.objects.create(
+                    id_indicateur=new_ind, cd_hab=cor.cd_hab, lb_hab_fr=cor.lb_hab_fr,
+                )
+            for cor in CorIndicateurGeologie.objects.filter(id_indicateur=old_ind):
+                CorIndicateurGeologie.objects.create(
+                    id_indicateur=new_ind, id_inpg=cor.id_inpg, nom=cor.nom,
+                )
+
+            # Métriques + blocs de score complémentaires (#247)
+            for old_met in Metrique.objects.filter(id_indicateur=old_ind):
+                new_met = dup(old_met, user, id_indicateur=new_ind)
+                new_met.save()
+                metrique_map[old_met.id_metrique] = new_met
+                for blk in MetriqueScoreBlock.objects.filter(id_metrique=old_met):
+                    new_blk = dup(blk, user, id_metrique=new_met)
+                    new_blk.save()
+            return new_ind
+
+        for old_enjeu in Enjeu.objects.filter(id_pg_id=source_plan_id):
+            new_enjeu = dup(old_enjeu, user, id_pg=new_plan, slug='')
             new_enjeu.save()
 
-            # Copy enjeu M2M tables
-            for cor in CorEnjeuTaxon.objects.filter(id_enjeu_id=old_enjeu_id):
+            for cor in CorEnjeuTaxon.objects.filter(id_enjeu=old_enjeu):
                 CorEnjeuTaxon.objects.create(
-                    id_enjeu=new_enjeu,
-                    cd_nom=cor.cd_nom,
-                    nom_complet=cor.nom_complet,
-                    nom_vern=cor.nom_vern,
+                    id_enjeu=new_enjeu, cd_nom=cor.cd_nom,
+                    nom_complet=cor.nom_complet, nom_vern=cor.nom_vern,
                 )
-            for cor in CorEnjeuHabitat.objects.filter(id_enjeu_id=old_enjeu_id):
+            for cor in CorEnjeuHabitat.objects.filter(id_enjeu=old_enjeu):
                 CorEnjeuHabitat.objects.create(
-                    id_enjeu=new_enjeu,
-                    cd_hab=cor.cd_hab,
-                    lb_hab_fr=cor.lb_hab_fr,
+                    id_enjeu=new_enjeu, cd_hab=cor.cd_hab, lb_hab_fr=cor.lb_hab_fr,
                 )
-            for cor in CorEnjeuGeologie.objects.filter(id_enjeu_id=old_enjeu_id):
+            for cor in CorEnjeuGeologie.objects.filter(id_enjeu=old_enjeu):
                 CorEnjeuGeologie.objects.create(
-                    id_enjeu=new_enjeu,
-                    id_inpg=cor.id_inpg,
-                    nom=cor.nom,
+                    id_enjeu=new_enjeu, id_inpg=cor.id_inpg, nom=cor.nom,
                 )
 
             if not copy_sub_elements:
                 continue
 
-            # Copy FacteurInfluence -> Pression, then OO (M2M) -> ResultatAttendu -> Indicateur
-            # Track old→new OO mapping to avoid duplicating OOs linked to multiple pressions
-            oo_mapping = {}  # {old_oo_id: new_oo}
-            pression_mapping = {}  # {old_pression_id: new_pression}
-
-            for old_fi in FacteurInfluence.objects.filter(id_enjeu_id=old_enjeu_id):
-                old_fi_id = old_fi.id_facteur_influence
-                new_fi = FacteurInfluence.objects.create(
-                    id_enjeu=new_enjeu,
-                    libelle=old_fi.libelle,
-                    description=old_fi.description,
-                    id_utilisateur_ajout=user,
-                    id_utilisateur_maj=user,
-                )
-
-                for old_pression in Pression.objects.filter(id_facteur_influence_id=old_fi_id):
-                    new_pression = Pression.objects.create(
-                        id_facteur_influence=new_fi,
-                        id_pressref=old_pression.id_pressref,
-                        libelle=old_pression.libelle,
-                        description=old_pression.description,
-                        id_utilisateur_ajout=user,
-                        id_utilisateur_maj=user,
-                    )
-                    pression_mapping[old_pression.id_pression] = new_pression
-
-                    # Copy OO (M2M) -> ResultatAttendu -> Indicateur -> Metrique
-                    for old_oo in old_pression.objectifs_operationnels.all():
-                        if old_oo.id_oo not in oo_mapping:
-                            # First time seeing this OO: create it
-                            new_oo = ObjectifOperationnel.objects.create(
-                                libelle=old_oo.libelle,
-                                description=old_oo.description,
-                                id_utilisateur_ajout=user,
-                                id_utilisateur_maj=user,
-                            )
-                            oo_mapping[old_oo.id_oo] = new_oo
-
-                            # Copy child elements (only once per OO)
+            # Facteurs → Pressions → OO (M2M, dédupliqués) → RA → Indicateurs
+            oo_map = {}
+            for old_fi in FacteurInfluence.objects.filter(id_enjeu=old_enjeu):
+                new_fi = dup(old_fi, user, id_enjeu=new_enjeu)
+                new_fi.save()
+                for old_pr in Pression.objects.filter(id_facteur_influence=old_fi):
+                    new_pr = dup(old_pr, user, id_facteur_influence=new_fi)
+                    new_pr.save()
+                    for old_oo in old_pr.objectifs_operationnels.all():
+                        if old_oo.id_oo not in oo_map:
+                            new_oo = dup(old_oo, user)
+                            new_oo.save()
+                            oo_map[old_oo.id_oo] = new_oo
                             for old_ra in ResultatAttendu.objects.filter(id_oo=old_oo):
-                                new_ra = ResultatAttendu.objects.create(
-                                    id_oo=new_oo,
-                                    libelle=old_ra.libelle,
-                                    description=old_ra.description,
-                                    id_utilisateur_ajout=user,
-                                    id_utilisateur_maj=user,
-                                )
-
+                                new_ra = dup(old_ra, user, id_oo=new_oo)
+                                new_ra.save()
                                 for old_ind in Indicateur.objects.filter(id_resultat_attendu=old_ra):
-                                    new_ind = PlanDuplicationService._copy_indicateur(
-                                        old_ind, user, id_ne=None, id_resultat_attendu=new_ra
+                                    _copy_indicateur(
+                                        old_ind, id_ne=None, id_resultat_attendu=new_ra
                                     )
-                                    PlanDuplicationService._copy_indicateur_relations(
-                                        old_ind, new_ind, user
-                                    )
+                        oo_map[old_oo.id_oo].pressions.add(new_pr)
 
-                        # Link the (possibly already created) new OO to the new pression
-                        oo_mapping[old_oo.id_oo].pressions.add(new_pression)
-
-            # Copy OLT -> NiveauExigence -> Indicateur -> Metrique
-            for old_olt in ObjectifLongTerme.objects.filter(id_enjeu_id=old_enjeu_id):
-                new_olt = ObjectifLongTerme.objects.create(
-                    id_enjeu=new_enjeu,
-                    libelle=old_olt.libelle,
-                    description=old_olt.description,
-                    id_utilisateur_ajout=user,
-                    id_utilisateur_maj=user,
-                )
-
-                # NiveauExigence -> Indicateur -> Metrique
+            # OLT → Niveaux d'exigence → Indicateurs
+            for old_olt in ObjectifLongTerme.objects.filter(id_enjeu=old_enjeu):
+                new_olt = dup(old_olt, user, id_enjeu=new_enjeu)
+                new_olt.save()
                 for old_ne in NiveauExigence.objects.filter(id_olt=old_olt):
-                    new_ne = NiveauExigence.objects.create(
-                        id_olt=new_olt,
-                        libelle=old_ne.libelle,
-                        description=old_ne.description,
-                        id_utilisateur_ajout=user,
-                        id_utilisateur_maj=user,
-                    )
-
+                    new_ne = dup(old_ne, user, id_olt=new_olt)
+                    new_ne.save()
                     for old_ind in Indicateur.objects.filter(id_ne=old_ne):
-                        new_ind = PlanDuplicationService._copy_indicateur(
-                            old_ind, user, id_ne=new_ne, id_resultat_attendu=None
-                        )
-                        PlanDuplicationService._copy_indicateur_relations(
-                            old_ind, new_ind, user
-                        )
+                        _copy_indicateur(old_ind, id_ne=new_ne, id_resultat_attendu=None)
+
+        return indicateur_map, metrique_map
 
     @staticmethod
-    def _copy_indicateur(old_ind, user, id_ne=None, id_resultat_attendu=None):
-        """Copy a single Indicateur with its parent FK."""
-        from .models_indicateurs import Indicateur
+    def _copy_suivis_and_operations(source_plan_id, new_plan, user,
+                                    indicateur_map, metrique_map):
+        """Copie les suivis/inventaires du plan puis les opérations (actions),
+        en re-reliant chaque opération aux nouvelles entités copiées (#377).
 
-        return Indicateur.objects.create(
-            id_ne=id_ne,
-            id_resultat_attendu=id_resultat_attendu,
-            nom_indicateur=old_ind.nom_indicateur,
-            description=old_ind.description,
-            type_indicateur=old_ind.type_indicateur,
-            est_standardise=old_ind.est_standardise,
-            id_utilisateur_ajout=user,
-            id_utilisateur_maj=user,
+        Une opération est rattachée au plan via son indicateur, ses métriques
+        (M2M) ou son suivi. On la clone avec ses années (+ organismes) et ses
+        financements. Les données « réalisées » (RealisationOperationAnnee) ne
+        sont pas copiées : elles concernent la version d'origine.
+        """
+        from .models_operations import (
+            SuiviInventaire, Operation, OperationAnnee,
+            OperationAnneeOrganisme, FinanceOperation,
+            CorOperationSite, CorOperationMetrique,
         )
 
-    @staticmethod
-    def _copy_indicateur_relations(old_ind, new_ind, user):
-        """Copy M2M and child objects (Metrique) of an Indicateur."""
-        from .models_indicateurs import (
-            Metrique, CorIndicateurTaxon, CorIndicateurHabitat,
-            CorIndicateurGeologie,
-        )
+        dup = PlanDuplicationService._dup
 
-        # M2M tables
-        for cor in CorIndicateurTaxon.objects.filter(id_indicateur=old_ind):
-            CorIndicateurTaxon.objects.create(
-                id_indicateur=new_ind,
-                cd_nom=cor.cd_nom,
-                nom_complet=cor.nom_complet,
-                nom_vern=cor.nom_vern,
+        # 1. Suivis / inventaires (rattachés directement au plan).
+        suivi_map = {}
+        for old_suivi in SuiviInventaire.objects.filter(id_pg_id=source_plan_id):
+            new_suivi = dup(old_suivi, user, id_pg=new_plan)
+            new_suivi.save()
+            suivi_map[old_suivi.id_suivi_inventaire] = new_suivi
+
+        # 2. Identifier les opérations du plan (indicateur, métriques ou suivi).
+        op_ids = set()
+        if indicateur_map:
+            op_ids |= set(
+                Operation.objects.filter(id_indicateur_id__in=indicateur_map.keys())
+                .values_list('id_operation', flat=True)
             )
-        for cor in CorIndicateurHabitat.objects.filter(id_indicateur=old_ind):
-            CorIndicateurHabitat.objects.create(
-                id_indicateur=new_ind,
-                cd_hab=cor.cd_hab,
-                lb_hab_fr=cor.lb_hab_fr,
+            op_ids |= set(
+                Operation.objects.filter(metriques__id_metrique__in=metrique_map.keys())
+                .values_list('id_operation', flat=True)
             )
-        for cor in CorIndicateurGeologie.objects.filter(id_indicateur=old_ind):
-            CorIndicateurGeologie.objects.create(
-                id_indicateur=new_ind,
-                id_inpg=cor.id_inpg,
-                nom=cor.nom,
+        if suivi_map:
+            op_ids |= set(
+                Operation.objects.filter(id_suivi_id__in=suivi_map.keys())
+                .values_list('id_operation', flat=True)
             )
 
-        # Metriques (exclude Mesures - empirical data)
-        for old_met in Metrique.objects.filter(id_indicateur=old_ind):
-            Metrique.objects.create(
-                id_indicateur=new_ind,
-                nom_metrique=old_met.nom_metrique,
-                description=old_met.description,
-                type_metrique=old_met.type_metrique,
-                unite=old_met.unite,
-                ponderation=old_met.ponderation,
-                etat_reference=old_met.etat_reference,
-                sens_variation=old_met.sens_variation,
-                score_1_inf=old_met.score_1_inf,
-                score_1_sup=old_met.score_1_sup,
-                score_2_inf=old_met.score_2_inf,
-                score_2_sup=old_met.score_2_sup,
-                score_3_inf=old_met.score_3_inf,
-                score_3_sup=old_met.score_3_sup,
-                score_4_inf=old_met.score_4_inf,
-                score_4_sup=old_met.score_4_sup,
-                score_5_inf=old_met.score_5_inf,
-                score_5_sup=old_met.score_5_sup,
-                score_1_val=old_met.score_1_val,
-                score_2_val=old_met.score_2_val,
-                score_3_val=old_met.score_3_val,
-                score_4_val=old_met.score_4_val,
-                score_5_val=old_met.score_5_val,
-                score_1_label=old_met.score_1_label,
-                score_2_label=old_met.score_2_label,
-                score_3_label=old_met.score_3_label,
-                score_4_label=old_met.score_4_label,
-                score_5_label=old_met.score_5_label,
-                score_1_sup_inclusive=old_met.score_1_sup_inclusive,
-                score_2_sup_inclusive=old_met.score_2_sup_inclusive,
-                score_3_sup_inclusive=old_met.score_3_sup_inclusive,
-                score_4_sup_inclusive=old_met.score_4_sup_inclusive,
-                has_borne_score1=old_met.has_borne_score1,
-                has_borne_score5=old_met.has_borne_score5,
-                id_utilisateur_ajout=user,
-                id_utilisateur_maj=user,
-            )
+        for old_op in Operation.objects.filter(id_operation__in=op_ids):
+            overrides = {}
+            if old_op.id_indicateur_id:
+                overrides['id_indicateur'] = indicateur_map.get(old_op.id_indicateur_id)
+            if old_op.id_suivi_id:
+                overrides['id_suivi'] = suivi_map.get(old_op.id_suivi_id)
+            new_op = dup(old_op, user, **overrides)
+            new_op.save()
+
+            # M2M métriques (via through) — remappées vers les nouvelles métriques.
+            for old_met in old_op.metriques.all():
+                new_met = metrique_map.get(old_met.id_metrique)
+                if new_met is not None:
+                    CorOperationMetrique.objects.create(
+                        id_operation=new_op, id_metrique=new_met
+                    )
+            # M2M sites (via through) — mêmes sites (entités indépendantes du plan).
+            for site in old_op.sites.all():
+                CorOperationSite.objects.create(id_operation=new_op, id_site=site)
+
+            # Années de programmation (+ ventilation par organisme).
+            for old_oa in OperationAnnee.objects.filter(id_operation=old_op):
+                new_oa = dup(old_oa, user, id_operation=new_op)
+                new_oa.save()
+                for old_org in OperationAnneeOrganisme.objects.filter(id_operation_annee=old_oa):
+                    new_org = dup(old_org, user, id_operation_annee=new_oa)
+                    new_org.save()
+
+            # Financements.
+            for old_fin in FinanceOperation.objects.filter(id_operation=old_op):
+                new_fin = dup(old_fin, user, id_operation=new_op)
+                new_fin.save()

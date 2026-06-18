@@ -297,6 +297,47 @@
         font-size: 11px;
       }
     }
+
+    // #347 — Badge « Validations administratives » : info au survol, édition au
+    // clic. Bouton secondaire kit UI (fond blanc, bordure + texte primary,
+    // hover plein) pour être clairement visible parmi les chips de statut.
+    &--csrpn-recap {
+      margin-left: $spacing-xxs;
+      gap: $spacing-xxs;
+      font-family: inherit;
+      background-color: $white;
+      border: 1px solid $primary-color;
+      color: $primary-color !important;
+      cursor: default;
+      transition: all $transition-fast;
+
+      i {
+        font-size: 11px;
+      }
+
+      .av-count {
+        font-weight: $font-weight-bold;
+        background-color: rgba($primary-color, 0.15);
+        border-radius: $border-radius-pill;
+        padding: 0 6px;
+        font-size: 11px;
+        line-height: 1.5;
+        transition: inherit;
+      }
+
+      &.is-editable {
+        cursor: pointer;
+
+        &:hover {
+          background-color: $primary-color;
+          color: $white !important;
+
+          .av-count {
+            background-color: rgba($white, 0.25);
+          }
+        }
+      }
+    }
   }
 
   // #250 / #278 — badges affichés à côté du chip de statut quand le plan
@@ -1379,5 +1420,48 @@
 
   .side-column {
     grid-template-columns: 1fr;
+  }
+}
+
+// ============================================
+// #347 — Menu d'édition des validations administratives (badge en haut)
+// ============================================
+.admin-valid-menu {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-xs;
+  padding: $spacing-sm $spacing-md;
+  min-width: 280px;
+}
+
+.admin-validation-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: $spacing-md;
+  padding: $spacing-xs 0;
+
+  &:not(:last-child) {
+    border-bottom: 1px solid $gray-lighter;
+  }
+
+  .av-info {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-xxs;
+    min-width: 0;
+  }
+
+  .av-label {
+    font-weight: 600;
+    color: $black;
+    font-size: 14px;
+  }
+
+  .av-actions {
+    display: flex;
+    align-items: center;
+    gap: $spacing-xxs;
+    flex-shrink: 0;
   }
 }

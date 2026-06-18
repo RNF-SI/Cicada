@@ -16,9 +16,10 @@ Ce document décrit le fonctionnement du module de gestion des plans de gestion 
 10. [Gestion des sites en attente](#gestion-des-sites-en-attente)
 11. [Réassignation de site](#réassignation-de-site)
 12. [Rédacteurs et relecteurs](#rédacteurs-et-relecteurs)
-13. [Duplication d'un plan](#duplication-dun-plan)
-14. [Gestion depuis la page site](#gestion-depuis-la-page-site)
-15. [API Endpoints](#api-endpoints)
+13. [Duplication d'un plan / nouvelle version](#duplication-dun-plan--nouvelle-version)
+14. [Page « Paramètres du plan de gestion »](#page--paramètres-du-plan-de-gestion-348)
+15. [Gestion depuis la page site](#gestion-depuis-la-page-site)
+16. [API Endpoints](#api-endpoints)
 
 ---
 
@@ -123,7 +124,7 @@ L'action crée un nouveau plan avec :
 - `type_document` = `EVAL_MI_PARCOURS`
 - `statut` = `draft`
 - `version` = version suivante (ex: 1.0 → 1.1)
-- Copie des sites et référents du plan parent
+- Copie des sites, référents **et de tout le contenu** du plan parent (#377 — voir « Duplication d'un plan / nouvelle version »)
 
 ### Timeline de versions (interface)
 
@@ -826,27 +827,81 @@ Le champ `redacteur_nom` suit la même logique hybride :
 
 ---
 
-## Duplication d'un plan
+## Duplication d'un plan / nouvelle version
 
-Un plan de gestion peut être dupliqué pour créer une copie avec des options configurables.
+Le bouton « Créer une nouvelle version » duplique un plan validé pour produire
+un brouillon enfant éditable (même rang).
 
 ### Options de duplication
 
 | Option | Description | Défaut |
 |--------|-------------|--------|
-| Enjeux | Copier les enjeux et facteurs clés de réussite | Oui |
-| Objectifs long terme | Copier les objectifs long terme | Oui |
-| Objectifs opérationnels | Copier les objectifs opérationnels | Oui |
 | Sites | Copier les associations de sites | Oui |
 | Référents | Copier les référents du plan | Oui |
+| Fichiers | Copier les fichiers (documents, cartes…) | Non |
+| Enjeux | Copier les enjeux/FCR et leurs liens | Oui |
+| Sous-éléments | Copier toute la hiérarchie sous les enjeux | Oui |
+
+### Copie complète du contenu (#377)
+
+Avec les options par défaut (enjeux + sous-éléments), la duplication réalise une
+**copie profonde et intégrale** : chaque élément est cloné en une entité
+indépendante et les liens internes sont re-câblés vers les copies, de sorte que
+**l'édition de la nouvelle version n'a aucun impact sur les versions précédentes**.
+
+Sont copiés : enjeux/FCR (tous les champs + liens taxon/habitat/géologie),
+facteurs → pressions → objectifs opérationnels → résultats attendus, OLT →
+niveaux d'exigence, indicateurs, métriques (seuils, ordre, niveaux inactifs,
+parenthésage **+ blocs de score complémentaires #247**), **suivis/inventaires**,
+et **opérations** (re-reliées aux nouveaux indicateurs/métriques, avec années de
+programmation, financements, ventilation par organisme et sites).
+
+Sont **exclues** (propres à la version source) : les données empiriques —
+mesures, saisies annuelles d'indicateurs et réalisations d'opérations.
+
+**Métadonnées du plan** : le nouveau plan copie aussi toutes les métadonnées du
+plan source — y compris les **validations administratives** (dates avis CSRPN /
+comité / arrêté préfectoral, n° d'arrêté), années, surface, rédacteurs,
+commentaire, etc. **Seul le statut n'est pas copié** (la nouvelle version repart
+en brouillon) ; les attributs de cycle de vie (mi-parcours, révision, extension)
+ne sont pas hérités.
+
+> Les actions **« Lancer une évaluation mi-parcours »** (`create-evaluation`) et
+> **« Créer le rang suivant »** (`create-next-rang`) appliquent la même copie
+> complète du contenu **et des métadonnées**.
 
 ### Workflow
 
-1. L'utilisateur clique sur "Dupliquer" depuis la page détail du plan
+1. L'utilisateur clique sur « Créer une nouvelle version » depuis la page détail du plan
 2. Une modale présente les options de duplication avec un résumé du plan source
 3. L'utilisateur sélectionne les éléments à copier et confirme
-4. Le nouveau plan est créé en statut `draft` avec le nom "[Copie] Nom du plan original"
+4. Le nouveau plan est créé en statut `draft`, nom « [En cours d'élaboration] … »
 5. L'utilisateur est redirigé vers le nouveau plan
+
+---
+
+## Page « Paramètres du plan de gestion » (#348)
+
+Accessible depuis la sidebar du plan : l'entrée **« Vue d'ensemble » est
+dépliable** et révèle un sous-élément **« Paramètres »**, visible uniquement pour
+les **gestionnaires** (référent du plan, admin organisme, super admin).
+
+Cette page permet la **gestion avancée des versions** — actuellement la
+**suppression de la version affichée**. Pour éviter les suppressions par erreur,
+on ne peut supprimer que le plan courant ; les autres versions de la chaîne sont
+affichées en lecture seule (contexte). Pour en supprimer une autre, on l'ouvre
+puis on va dans ses paramètres.
+
+Au clic sur « Supprimer cette version », une **modale de confirmation** s'affiche.
+La suppression (endpoint `delete-version`) :
+- efface le plan et **tout son contenu** (enjeux, opérations, suivis) ainsi que
+  ses liens (sites, utilisateurs, organismes) — les entités liées elles-mêmes
+  sont conservées ;
+- **répare la chaîne** : les enfants sont re-rattachés au parent du plan
+  supprimé, puis les versions du rang sont **renumérotées** (1..N) ;
+- supprimer la version mi-parcours annule l'évaluation à mi-parcours.
+
+Supprimer la version affichée redirige vers la liste des plans.
 
 ---
 
@@ -892,8 +947,10 @@ Pour les utilisateurs qui ne sont pas référents du site, un bouton "Demander l
 | Méthode | Endpoint | Description | Permission |
 |---------|----------|-------------|------------|
 | `POST` | `/api/plans/plans/{id}/change-status/` | Changer le statut | Référent, admin_og, super_admin |
-| `POST` | `/api/plans/plans/{id}/create-evaluation/` | Créer une évaluation mi-parcours | Référent, admin_og, super_admin |
-| `POST` | `/api/plans/plans/{id}/duplicate/` | Dupliquer un plan | admin_og, super_admin |
+| `POST` | `/api/plans/plans/{id}/create-evaluation/` | Créer une évaluation mi-parcours (copie le contenu #377) | Référent, admin_og, super_admin |
+| `POST` | `/api/plans/plans/{id}/create-next-rang/` | Créer le rang suivant (copie le contenu #377) | Référent, admin_og, super_admin |
+| `POST` | `/api/plans/plans/{id}/duplicate/` | Nouvelle version — copie complète du contenu (#377) | Référent, admin_og, super_admin |
+| `POST` | `/api/plans/plans/{id}/delete-version/` | Supprimer une version (cascade + renumérotation #348) | Référent, admin_og, super_admin |
 
 ### Gestion des sites
 

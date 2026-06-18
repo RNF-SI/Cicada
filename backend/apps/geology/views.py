@@ -44,20 +44,21 @@ class InpgViewSet(viewsets.ReadOnlyModelViewSet):
         limit = min(int(request.query_params.get('limit', 20)), 100)
 
         from django.db import connection
+        # Recherche par mots : chaque mot doit apparaître (sous-chaîne, sans
+        # accents), pour que les espaces ne cassent pas la recherche.
+        words = search.split() or [search]
+        search_expr = "unaccent(COALESCE(lb_site, '') || ' ' || COALESCE(id_metier, ''))"
         with connection.cursor() as cursor:
-            sql = """
+            text_conds = " AND ".join([f"{search_expr} ILIKE unaccent(%s)"] * len(words))
+            sql = f"""
                 SELECT id_inpg, id_metier, lb_site, region,
                        departements, communes, interet_geol_principal
                 FROM ref_inpg.inpg
-                WHERE unaccent(COALESCE(lb_site, '') || ' ' || COALESCE(id_metier, ''))
-                      ILIKE unaccent(%s)
-                ORDER BY similarity(
-                    unaccent(COALESCE(lb_site, '') || ' ' || COALESCE(id_metier, '')),
-                    unaccent(%s)
-                ) DESC
+                WHERE {text_conds}
+                ORDER BY similarity({search_expr}, unaccent(%s)) DESC
                 LIMIT %s
             """
-            params = [f'%{search}%', search, limit]
+            params = [f'%{w}%' for w in words] + [search, limit]
             cursor.execute(sql, params)
             columns = [col[0] for col in cursor.description]
             results = [dict(zip(columns, row)) for row in cursor.fetchall()]

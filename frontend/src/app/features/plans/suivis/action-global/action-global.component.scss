@@ -1,0 +1,351 @@
+@import 'variables';
+@import 'responsive';
+
+.suivis-layout {
+  display: flex;
+  min-height: calc(100vh - 58px);
+  gap: $spacing-lg;
+  background: $beige;
+}
+.plan-main {
+  flex: 1;
+  min-width: 0;
+  padding-right: $spacing-lg;
+  overflow-x: hidden;
+}
+
+.loading-container,
+.error-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: $spacing-xxl;
+  gap: $spacing-md;
+  color: $gray-dark;
+  i { font-size: 2.5rem; color: $error-color; }
+}
+
+// Hero — aligné sur la page « Suivi des actions » (même bandeau, fil d'Ariane et titre)
+.hero-section { @include plan-page-hero-suivi(280px); }
+.hero-background { @include plan-page-hero-background; }
+.hero-pattern { @include plan-page-hero-pattern; opacity: 0.2; }
+.hero-content { @include plan-page-hero-content; }
+
+.breadcrumb {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: $spacing-md;
+  margin-bottom: $spacing-xl;
+  height: 48px;
+  background-color: transparent !important;
+  padding: 0 !important;
+  border-radius: 0 !important;
+}
+.breadcrumb-home {
+  display: flex; align-items: center; justify-content: center;
+  width: 48px; height: 48px;
+  background-color: $primary-color; border-radius: 50%; color: $white;
+  text-decoration: none; flex-shrink: 0; z-index: 2; padding: 12px;
+  i { font-size: 20px; }
+  &:hover { transform: scale(1.05); }
+}
+.breadcrumb-lines {
+  position: absolute; left: 24px; right: 0; top: 0; bottom: 0;
+  display: flex; flex-direction: column; justify-content: space-between;
+  pointer-events: none; z-index: 0;
+  &::before, &::after {
+    content: ''; display: block; width: 100%; height: 1px;
+    background-color: $primary-color;
+  }
+}
+.breadcrumb-text {
+  position: relative; z-index: 1;
+  display: flex; align-items: center; gap: $spacing-xs;
+}
+.breadcrumb-link {
+  color: $primary-color; font-family: $font-family;
+  font-size: $font-size-base; font-weight: $font-weight-bold;
+  text-decoration: underline; text-underline-offset: 3px;
+}
+.breadcrumb-chevron { color: $primary-color; font-size: $font-size-base; }
+.breadcrumb-current {
+  color: $primary-color; font-family: $font-family; font-size: $font-size-base;
+}
+.plan-header { margin-top: $spacing-md; }
+.plan-subtitle {
+  display: flex; align-items: center; gap: $spacing-md;
+  color: $primary-color; font-size: $font-size-base; font-weight: $font-weight-bold;
+  text-transform: uppercase; letter-spacing: 3px; margin-bottom: $spacing-sm;
+  i { font-size: 15px; }
+}
+.plan-title {
+  color: $primary-color; font-size: 48px; font-weight: $font-weight-bold;
+  font-family: $font-family; line-height: 72px; margin: 0 0 $spacing-lg 0;
+}
+
+.content-section {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: $spacing-xl $spacing-lg;
+}
+
+.section-title {
+  margin: 0 0 $spacing-md;
+  font-size: 1.1rem; font-weight: 700; color: $primary-color;
+  text-transform: uppercase; letter-spacing: 1px;
+}
+
+// #356 — Toggle « Indicateurs de réponse » / « Budget & RH » (style tableau de bord)
+.view-toggle {
+  display: flex;
+  justify-content: center;
+  margin-bottom: $spacing-lg;
+}
+.toggle-btn {
+  padding: $spacing-xs $spacing-lg;
+  font-family: $font-family;
+  font-size: $font-size-base;
+  font-weight: $font-weight-bold;
+  color: $primary-color;
+  background: $white;
+  border: 1px solid $primary-bg-medium;
+  cursor: pointer;
+  transition: all $transition-fast;
+  min-width: 160px;
+
+  &:first-child { border-radius: $border-radius-pill 0 0 $border-radius-pill; border-right: none; }
+  &:last-child { border-radius: 0 $border-radius-pill $border-radius-pill 0; }
+  &.active { background-color: $primary-color; color: $white; border-color: $primary-color; }
+}
+
+// #356 — Panneaux distincts (réalisation / indicateurs de réponse / budget-RH)
+.global-panel {
+  background: $white;
+  border: 1px solid $gray-light;
+  border-radius: $border-radius-md;
+  padding: $spacing-lg;
+  margin-bottom: $spacing-xl;
+
+  // Les cartes internes ne portent plus leur propre bordure/fond (le panneau l'apporte).
+  .summary-cards { margin-bottom: 0; }
+  .summary-card { border: none; padding: 0; }
+  .summary-cards .summary-card { padding: $spacing-md; border: 1px solid $gray-light; }
+  .resp-wrapper { margin-bottom: 0; }
+}
+.resp-panel { border-left: 4px solid $secondary-yellow; }
+.panel-hint {
+  margin: -#{$spacing-sm} 0 $spacing-md;
+  font-size: 0.85rem; color: $gray-dark;
+}
+
+// #356 — Explication du calcul (collapsible)
+.calc-explainer {
+  margin-top: $spacing-md;
+  border-top: 1px solid $primary-bg-subtle;
+  padding-top: $spacing-sm;
+
+  summary {
+    cursor: pointer;
+    font-weight: 600;
+    color: $primary-color;
+    display: flex; align-items: center; gap: $spacing-xs;
+    list-style: none;
+    i { font-size: 14px; }
+    &::-webkit-details-marker { display: none; }
+  }
+  p { margin: $spacing-sm 0; font-size: 0.9rem; color: $black; }
+  ul { margin: $spacing-xs 0 $spacing-sm $spacing-lg; padding: 0; }
+  li { font-size: 0.88rem; color: $gray-dark; margin-bottom: 2px; }
+  .calc-note { font-style: italic; color: $gray-dark; font-size: 0.85rem; }
+}
+
+// #356 — Valeur cliquable dans le tableau des indicateurs de réponse
+.resp-cell-link {
+  display: inline-block;
+  min-width: 32px;
+  color: $primary-color;
+  font-weight: 600;
+  text-decoration: none;
+  padding: 2px 6px;
+  border-radius: $border-radius-sm;
+  &:hover { background: $primary-bg-subtle; text-decoration: underline; }
+}
+
+.summary-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: $spacing-lg;
+  margin-bottom: $spacing-xl;
+}
+.summary-card {
+  background: $white;
+  border: 1px solid $gray-light;
+  border-radius: $border-radius-md;
+  padding: $spacing-lg;
+  display: flex; flex-direction: column; gap: $spacing-sm;
+}
+.summary-label {
+  font-size: 0.8rem; color: $gray-dark; text-transform: uppercase; letter-spacing: 0.5px;
+}
+.summary-value { display: flex; flex-direction: column; gap: 2px; }
+.summary-prev { font-size: 1.3rem; font-weight: 700; color: $black; }
+.summary-real { font-size: 0.85rem; color: $gray-dark; }
+.summary-empty { color: $gray; }
+
+.table-wrapper { overflow-x: auto; }
+.year-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: $white;
+  border: 1px solid $gray-light;
+  border-radius: $border-radius-md;
+  overflow: hidden;
+
+  thead th {
+    background: $primary-color;
+    color: $white;
+    text-align: left;
+    padding: $spacing-sm $spacing-md;
+    font-size: 0.85rem;
+  }
+  tbody td {
+    padding: $spacing-sm $spacing-md;
+    border-bottom: 1px solid $primary-bg-subtle;
+    font-size: $font-size-base;
+    color: $black;
+    small { color: $gray-dark; }
+  }
+  .year-cell a { color: $primary-color; font-weight: 600; text-decoration: underline; }
+  .empty-row { text-align: center; color: $gray; }
+}
+
+// #379 — icône de statut de réalisation (réutilise les assets du tableau)
+.action-status-icon { width: 28px; height: 28px; object-fit: contain; vertical-align: middle; }
+
+// #356 — Le panneau « Réalisation globale » signale qu'une évaluation est attendue
+.realisation-panel {
+  border-left: 4px solid $primary-color;
+}
+.realisation-card {
+  display: flex; flex-direction: column; gap: $spacing-sm;
+}
+
+// #379/#356 — résultat global (icône + libellé) ou invite « à évaluer »
+.global-result {
+  display: flex; align-items: center; gap: $spacing-sm;
+  margin-top: $spacing-xs;
+  .global-result-label { font-size: 1.2rem; font-weight: 700; color: $black; }
+  .manuel-tag {
+    margin-left: $spacing-xs; font-weight: 500; font-size: 0.7rem;
+    color: $gray-dark; text-transform: uppercase; letter-spacing: 0.5px;
+  }
+  .action-status-icon { width: 34px; height: 34px; }
+}
+
+// #356 — État « à évaluer » : pastille kit UI (jaune brouillon, texte noir — AA)
+.a-evaluer-badge {
+  display: inline-flex; align-items: center; gap: $spacing-xs;
+  padding: $spacing-xxs $spacing-md;
+  background: $secondary-yellow;
+  color: $black;
+  border-radius: $border-radius-pill;
+  font-weight: 700; font-size: 0.95rem;
+  i { font-size: 14px; }
+}
+
+// #356 — Ajustement manuel proposé discrètement (non forcé)
+.override-toggle-row { margin-top: $spacing-sm; }
+.override-toggle {
+  display: inline-flex; align-items: center; gap: $spacing-xs;
+  i { font-size: 14px; }
+}
+.override-collapse { margin-right: $spacing-sm; color: $gray-dark; }
+
+// #356 — Invite à la saisie : ligne d'aide contextuelle (couleur primaire)
+.eval-prompt {
+  display: flex; align-items: flex-start; gap: $spacing-xs;
+  margin-top: $spacing-md;
+  padding: $spacing-sm $spacing-md;
+  background: $primary-bg-subtle;
+  border-radius: $border-radius-sm;
+  color: $primary-color;
+  font-size: 0.88rem;
+  i { font-size: 15px; margin-top: 1px; flex-shrink: 0; }
+}
+
+// #356 — Groupe de choix de la réalisation globale (saisie attendue)
+.global-override {
+  display: flex; flex-wrap: wrap; align-items: center; gap: $spacing-sm;
+  margin-top: $spacing-sm;
+
+  .override-btn {
+    i { font-size: 13px; margin-right: 2px; }
+    &.active {
+      background: $primary-color;
+      color: $white;
+      font-weight: 700;
+      box-shadow: 0 1px 3px rgba($primary-color, 0.35);
+    }
+  }
+  .override-auto { margin-left: $spacing-xs; }
+}
+
+// #356 — Commentaire global
+.comment-label {
+  display: block; margin-top: $spacing-md; margin-bottom: $spacing-xs;
+  font-size: 0.85rem; font-weight: 600; color: $primary-color;
+}
+.comment-textarea {
+  width: 100%; box-sizing: border-box;
+  border: 1px solid $gray-light; border-radius: $border-radius-sm;
+  padding: $spacing-sm; font-family: inherit; font-size: 0.9rem; resize: vertical;
+  &:focus { outline: none; border-color: $primary-color; }
+}
+.comment-actions { margin-top: $spacing-sm; text-align: right; }
+.comment-readonly {
+  white-space: pre-wrap; color: $black; margin: $spacing-sm 0 0;
+  font-size: 0.9rem;
+}
+
+// #379 — légende des statuts
+.legend {
+  display: flex; align-items: center; flex-wrap: wrap; gap: $spacing-md;
+  margin: $spacing-lg 0 $spacing-md;
+  .legend-label { font-weight: 700; color: $primary-color; }
+  .legend-items { display: flex; flex-wrap: wrap; gap: $spacing-md; }
+  .legend-item { display: inline-flex; align-items: center; gap: $spacing-xxs; }
+  .legend-icon { width: 22px; height: 22px; }
+  .legend-text { font-size: 0.85rem; color: $gray-dark; }
+}
+
+// #379 — tableau des indicateurs de réponse
+.resp-wrapper { margin-bottom: $spacing-xl; }
+.resp-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: $white;
+  border: 1px solid $gray-light;
+  border-radius: $border-radius-md;
+  overflow: hidden;
+
+  thead th {
+    background: $primary-color;
+    color: $white;
+    text-align: left;
+    padding: $spacing-sm $spacing-md;
+    font-size: 0.85rem;
+    white-space: nowrap;
+    &.col-y { text-align: center; min-width: 56px; }
+  }
+  tbody td {
+    padding: $spacing-sm $spacing-md;
+    border-bottom: 1px solid $primary-bg-subtle;
+    border-right: 1px solid $primary-bg-subtle;
+    font-size: $font-size-base;
+    color: $black;
+    &.col-text { text-align: left; }
+    &.col-y { text-align: center; }
+  }
+}

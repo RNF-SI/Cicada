@@ -15,68 +15,48 @@
   }
 
   <form [formGroup]="form" class="organisme-form">
-    <app-form-field [label]="('modals.organismeForm.name' | translate) + ' *'" [required]="true">
-  <input formControlName="nom_organisme" [placeholder]="'modals.organismeForm.namePlaceholder' | translate">
-      @if (form.get('nom_organisme')?.hasError('required') && form.get('nom_organisme')?.touched) {
-        
-      }
-  <ng-container errorSlot>
-    <p class="form-error-msg"><i class="fi fi-rr-exclamation"></i> {{ 'common.validation.required' | translate }}</p>
-  </ng-container>
-</app-form-field>
+    <app-form-field class="span-2" [label]="'modals.organismeForm.name' | translate" [required]="true"
+      [error]="fieldError('nom_organisme')">
+      <input formControlName="nom_organisme" [placeholder]="'modals.organismeForm.namePlaceholder' | translate">
+    </app-form-field>
 
-    <label class="app-mat-label">{{ 'modals.organismeForm.parent' | translate }}</label>
+    <div class="span-2 select-cell">
+      <label class="app-mat-label">{{ 'modals.organismeForm.parent' | translate }}</label>
       <mat-form-field class="app-mat-form-field full-width" appearance="outline">
-      <mat-label></mat-label>
-      <mat-select formControlName="parent_id">
-        <mat-option [value]="null">{{ 'modals.organismeForm.noParent' | translate }}</mat-option>
-        @for (org of parentOrganismes(); track org.id_organisme) {
-          <mat-option [value]="org.id_organisme">{{ org.nom_organisme }}</mat-option>
-        }
-      </mat-select>
-    </mat-form-field>
-
-    <div class="form-row">
-      <app-form-field [label]="'modals.organismeForm.address' | translate">
-  <input formControlName="adresse_organisme" [placeholder]="'modals.organismeForm.addressPlaceholder' | translate">
-</app-form-field>
+        <mat-label></mat-label>
+        <mat-select formControlName="parent_id">
+          <mat-option [value]="null">{{ 'modals.organismeForm.noParent' | translate }}</mat-option>
+          @for (org of parentOrganismes(); track org.id_organisme) {
+            <mat-option [value]="org.id_organisme">{{ org.nom_organisme }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
     </div>
 
-    <div class="form-row two-columns">
-      <app-form-field [label]="'modals.organismeForm.postalCode' | translate">
-  <input formControlName="cp_organisme" [placeholder]="'modals.organismeForm.postalCodePlaceholder' | translate">
-        @if (form.get('cp_organisme')?.hasError('pattern') && form.get('cp_organisme')?.touched) {
-          
-        }
-  <ng-container errorSlot>
-    <p class="form-error-msg"><i class="fi fi-rr-exclamation"></i> {{ 'modals.organismeForm.validation.postalCodeInvalid' | translate }}</p>
-  </ng-container>
-</app-form-field>
+    <app-form-field class="span-2" [label]="'modals.organismeForm.address' | translate">
+      <input formControlName="adresse_organisme" [placeholder]="'modals.organismeForm.addressPlaceholder' | translate">
+    </app-form-field>
 
-      <app-form-field [label]="'modals.organismeForm.city' | translate">
-  <input formControlName="ville_organisme" [placeholder]="'modals.organismeForm.cityPlaceholder' | translate">
-</app-form-field>
-    </div>
+    <app-form-field [label]="'modals.organismeForm.postalCode' | translate" [error]="fieldError('cp_organisme')">
+      <input formControlName="cp_organisme" [placeholder]="'modals.organismeForm.postalCodePlaceholder' | translate">
+    </app-form-field>
 
-    <div class="form-row two-columns">
-      <app-form-field [label]="'modals.organismeForm.phone' | translate">
-  <input formControlName="tel_organisme" [placeholder]="'modals.organismeForm.phonePlaceholder' | translate">
-</app-form-field>
+    <app-form-field [label]="'modals.organismeForm.city' | translate">
+      <input formControlName="ville_organisme" [placeholder]="'modals.organismeForm.cityPlaceholder' | translate">
+    </app-form-field>
 
-      <app-form-field [label]="'modals.organismeForm.email' | translate">
-  <input type="email" formControlName="email_organisme" [placeholder]="'modals.organismeForm.emailPlaceholder' | translate">
-        @if (form.get('email_organisme')?.hasError('email') && form.get('email_organisme')?.touched) {
-          
-        }
-  <ng-container errorSlot>
-    <p class="form-error-msg"><i class="fi fi-rr-exclamation"></i> {{ 'common.validation.emailInvalid' | translate }}</p>
-  </ng-container>
-</app-form-field>
-    </div>
+    <app-form-field [label]="'modals.organismeForm.phone' | translate">
+      <input formControlName="tel_organisme" [placeholder]="'modals.organismeForm.phonePlaceholder' | translate">
+    </app-form-field>
 
-    <app-form-field [label]="'modals.organismeForm.website' | translate" [helpText]="'modals.organismeForm.websiteHint' | translate">
-  <input formControlName="url_organisme" [placeholder]="'modals.organismeForm.websitePlaceholder' | translate">
-</app-form-field>
+    <app-form-field [label]="'modals.organismeForm.email' | translate" [error]="fieldError('email_organisme')">
+      <input type="email" formControlName="email_organisme" [placeholder]="'modals.organismeForm.emailPlaceholder' | translate">
+    </app-form-field>
+
+    <app-form-field class="span-2" [label]="'modals.organismeForm.website' | translate"
+      [helpText]="'modals.organismeForm.websiteHint' | translate">
+      <input formControlName="url_organisme" [placeholder]="'modals.organismeForm.websitePlaceholder' | translate">
+    </app-form-field>
   </form>
 </mat-dialog-content>
 

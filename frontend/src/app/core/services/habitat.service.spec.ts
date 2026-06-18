@@ -7,6 +7,7 @@ import {
   HabitatDetail,
   Typologie,
   CorrespondanceHabitat,
+  HabitatCorrespondanceResponse,
 } from './habitat.service';
 
 describe('HabitatService', () => {
@@ -172,15 +173,15 @@ describe('HabitatService', () => {
 
   describe('getCorrespondances', () => {
     it('should fetch correspondances for a habitat', fakeAsync(() => {
-      let result: CorrespondanceHabitat[] | undefined;
+      let result: HabitatCorrespondanceResponse | undefined;
       service.getCorrespondances(1000).subscribe(c => { result = c; });
 
       const req = httpMock.expectOne('/api/habref/correspondance/1000/');
-      req.flush(mockCorrespondances);
+      req.flush({ habitat: null, related: mockCorrespondances });
       tick();
 
-      expect(result!.length).toBe(1);
-      expect(result![0].cd_hab_entre).toBe(3000);
+      expect(result!.related.length).toBe(1);
+      expect(result!.related[0].cd_hab_entre).toBe(3000);
     }));
   });
 });

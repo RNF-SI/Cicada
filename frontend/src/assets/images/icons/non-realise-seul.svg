@@ -1,0 +1,4 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 28 28" role="img" aria-label="Non réalisée">
+  <!-- Croix seule « non réalisée », couleur primaire (cohérente avec les marques des autres icônes) -->
+  <path d="M7 7 L21 21 M21 7 L7 21" fill="none" stroke="#025359" stroke-width="3" stroke-linecap="round"/>
+</svg>

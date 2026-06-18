@@ -17,6 +17,7 @@ import { HabitatService, HabitatAutocomplete } from '../../../core/services/habi
 import { GeologyService, InpgAutocomplete } from '../../../core/services/geology.service';
 import { TaxonRef, HabitatRef, GeologieRef } from '../../../core/models/enjeu.model';
 import { ImportListDialogComponent, ImportListDialogData, ImportedItem } from '../modals/import-list-dialog/import-list-dialog.component';
+import { HabitatChipComponent } from '../habitat-chip/habitat-chip.component';
 
 @Component({
   selector: 'app-reference-item-list',
@@ -32,6 +33,7 @@ import { ImportListDialogComponent, ImportListDialogData, ImportedItem } from '.
     MatIconModule,
     MatProgressSpinnerModule,
     TranslateModule,
+    HabitatChipComponent,
   ],
   templateUrl: './reference-item-list.component.html',
   styleUrl: './reference-item-list.component.scss'
@@ -39,6 +41,9 @@ import { ImportListDialogComponent, ImportListDialogData, ImportedItem } from '.
 export class ReferenceItemListComponent implements OnInit, OnDestroy {
   @Input() type: 'taxon' | 'habitat' | 'geology' = 'taxon';
   @Input() items: (TaxonRef | HabitatRef | GeologieRef)[] = [];
+  /** Affiche, pour les habitats, leurs correspondances EUNIS/Corine/Cahiers
+   * cliquables (puce dépliable). Ne s'applique qu'au type 'habitat'. (#89) */
+  @Input() showCorrespondences = false;
   @Output() itemsChange = new EventEmitter<(TaxonRef | HabitatRef | GeologieRef)[]>();
 
   private readonly taxonomyService = inject(TaxonomyService);
@@ -117,6 +122,11 @@ export class ReferenceItemListComponent implements OnInit, OnDestroy {
         const newItem: HabitatRef = {
           cd_hab: String(habitat.cd_hab),
           lb_hab_fr: habitat.lb_hab_fr || habitat.search_name || undefined,
+          // On conserve les infos riches de la recherche (#89) : code et
+          // typologie d'origine, nom complet — affichés dans la puce.
+          lb_code: habitat.lb_code || undefined,
+          lb_typo: habitat.lb_typo ? habitat.lb_typo.replace(/_/g, ' ') : undefined,
+          lb_hab_fr_complet: habitat.lb_hab_fr_complet || undefined,
         };
         this.items = [...this.items, newItem];
         this.itemsChange.emit(this.items);
@@ -141,6 +151,41 @@ export class ReferenceItemListComponent implements OnInit, OnDestroy {
   removeItem(index: number): void {
     this.items = this.items.filter((_, i) => i !== index);
     this.itemsChange.emit(this.items);
+  }
+
+  // ===========================================================================
+  // #368 — Habitat « libre » (hors HabRef, ex. Outre-mer)
+  // ===========================================================================
+
+  /** Mode saisie libre activé (case « je ne trouve pas mon habitat »). */
+  freeTextMode = signal(false);
+  freeTextControl = new FormControl('');
+
+  /** La saisie libre n'est proposée que pour les habitats (#368). */
+  get allowFreeText(): boolean {
+    return this.type === 'habitat';
+  }
+
+  toggleFreeTextMode(): void {
+    this.freeTextMode.set(!this.freeTextMode());
+    if (!this.freeTextMode()) {
+      this.freeTextControl.setValue('');
+    }
+  }
+
+  /** Ajoute un habitat libre (sans cd_hab, seul le libellé est renseigné). */
+  addFreeTextHabitat(): void {
+    const label = (this.freeTextControl.value || '').trim();
+    if (!label) return;
+    const exists = (this.items as HabitatRef[]).some(
+      h => !h.cd_hab && (h.lb_hab_fr || '').trim().toLowerCase() === label.toLowerCase()
+    );
+    if (!exists) {
+      const newItem: HabitatRef = { cd_hab: '', lb_hab_fr: label };
+      this.items = [...this.items, newItem];
+      this.itemsChange.emit(this.items);
+    }
+    this.freeTextControl.setValue('');
   }
 
   openImportDialog(): void {
@@ -221,6 +266,16 @@ export class ReferenceItemListComponent implements OnInit, OnDestroy {
       return `cd_hab: ${(item as HabitatRef).cd_hab}`;
     }
     return `id_inpg: ${(item as GeologieRef).id_inpg}`;
+  }
+
+  /** Badge court (identifiant) affiché en tête de puce — design unifié (#89). */
+  getItemBadge(item: TaxonRef | HabitatRef | GeologieRef): string {
+    if (this.type === 'taxon') return String((item as TaxonRef).cd_nom);
+    if (this.type === 'habitat') {
+      const h = item as HabitatRef;
+      return h.lb_code || String(h.cd_hab);
+    }
+    return String((item as GeologieRef).id_inpg);
   }
 
   displayFn(result: TaxrefAutocomplete | HabitatAutocomplete | InpgAutocomplete | string): string {

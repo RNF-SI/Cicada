@@ -13,8 +13,6 @@ from apps.notifications.tasks import (
     send_registration_pending_email,
     send_registration_approved_email,
     send_registration_rejected_email,
-    check_orphaned_sites,
-    check_organismes_without_admin,
     cleanup_old_notifications,
     cleanup_expired_pending_users,
     process_deletion_requests
@@ -22,7 +20,7 @@ from apps.notifications.tasks import (
 from apps.notifications.models import Notification, ValidationRequest, PendingUser
 from apps.users.models import Role, Site, CorRoleSite, BibOrganismes
 from tests.factories.users import (
-    RoleFactory, SuperAdminFactory, AdminOrganismeFactory,
+    RoleFactory, SuperAdminFactory,
     SiteFactory, OrganismeFactory, CorRoleSiteFactory
 )
 from tests.factories.notifications import NotificationFactory, ValidationRequestFactory
@@ -195,106 +193,9 @@ class TestRegistrationEmails:
 # AUDIT TASKS TESTS
 # =============================================================================
 
-@pytest.mark.django_db
-@pytest.mark.unit
-class TestCheckOrphanedSites:
-    """Tests for check_orphaned_sites task."""
-
-    @patch('apps.notifications.services.NotificationService')
-    def test_check_orphaned_sites_finds_orphans(self, mock_service):
-        """Test task finds sites without users and sends summary."""
-        # Create sites without users
-        orphan_site1 = SiteFactory(active=True)
-        orphan_site2 = SiteFactory(active=True)
-
-        # Create site with users
-        site_with_user = SiteFactory(active=True)
-        user = RoleFactory()
-        CorRoleSiteFactory(id_role=user, id_site=site_with_user)
-
-        check_orphaned_sites()
-
-        # Should send a single summary with all orphaned sites
-        mock_service.notify_orphaned_sites_summary.assert_called_once()
-        sites_arg = mock_service.notify_orphaned_sites_summary.call_args[0][0]
-        site_ids = {s.pk for s in sites_arg}
-        assert orphan_site1.pk in site_ids
-        assert orphan_site2.pk in site_ids
-        assert site_with_user.pk not in site_ids
-
-    @patch('apps.notifications.services.NotificationService')
-    def test_check_orphaned_sites_skips_inactive(self, mock_service):
-        """Test task ignores inactive sites."""
-        # Create inactive site without users
-        SiteFactory(active=False)
-
-        check_orphaned_sites()
-
-        mock_service.notify_orphaned_sites_summary.assert_not_called()
-
-    @patch('apps.notifications.services.NotificationService')
-    def test_check_orphaned_sites_no_orphans(self, mock_service):
-        """Test task does nothing when all sites have users."""
-        site = SiteFactory(active=True)
-        user = RoleFactory()
-        CorRoleSiteFactory(id_role=user, id_site=site)
-
-        check_orphaned_sites()
-
-        mock_service.notify_orphaned_sites_summary.assert_not_called()
-
-
-@pytest.mark.django_db
-@pytest.mark.unit
-class TestCheckOrganismesWithoutAdmin:
-    """Tests for check_organismes_without_admin task."""
-
-    @patch('apps.notifications.services.NotificationService')
-    def test_check_organismes_finds_without_admin(self, mock_service):
-        """Test task finds organismes without admin and sends summary."""
-        # Create organisme without admin
-        organisme_no_admin = OrganismeFactory()
-
-        # Create organisme with admin
-        organisme_with_admin = OrganismeFactory()
-        AdminOrganismeFactory(id_organisme=organisme_with_admin)
-
-        check_organismes_without_admin()
-
-        # Should send a single summary
-        mock_service.notify_organismes_no_admin_summary.assert_called_once()
-        orgs_arg = mock_service.notify_organismes_no_admin_summary.call_args[0][0]
-        org_ids = {o.pk for o in orgs_arg}
-        assert organisme_no_admin.pk in org_ids
-        assert organisme_with_admin.pk not in org_ids
-
-    @patch('apps.notifications.services.NotificationService')
-    def test_check_organismes_skips_inactive_admin(self, mock_service):
-        """Test task detects inactive admins."""
-        organisme = OrganismeFactory()
-        # Create inactive admin
-        RoleFactory(id_organisme=organisme, role_level='admin_og', active=False)
-
-        # Reset mock after factory setup (signals may have triggered)
-        mock_service.reset_mock()
-
-        check_organismes_without_admin()
-
-        # The task should include organisme without active admin in summary
-        mock_service.notify_organismes_no_admin_summary.assert_called_once()
-        orgs_arg = mock_service.notify_organismes_no_admin_summary.call_args[0][0]
-        org_ids = {o.pk for o in orgs_arg}
-        assert organisme.pk in org_ids
-
-    @patch('apps.notifications.services.NotificationService')
-    def test_check_organismes_all_have_admin(self, mock_service):
-        """Test task does nothing when all organismes have admins."""
-        organisme = OrganismeFactory()
-        AdminOrganismeFactory(id_organisme=organisme)
-
-        check_organismes_without_admin()
-
-        mock_service.notify_organismes_no_admin_summary.assert_not_called()
+# #328 — La tache hebdomadaire check_organismes_without_admin a ete supprimee
+# (etat persistant detecte en temps reel par les signaux Django). Ses tests
+# (TestCheckOrganismesWithoutAdmin) ont donc ete retires.
 
 
 # =============================================================================

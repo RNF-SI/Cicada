@@ -13,7 +13,7 @@ from rest_framework.filters import SearchFilter, OrderingFilter
 from django.db import transaction
 
 from .models_indicateurs import (
-    Indicateur, Metrique, Mesure, IndicateurMesure,
+    Indicateur, Metrique, Mesure, IndicateurMesure, IndicateurRealisationGlobale,
     CorIndicateurTaxon, CorIndicateurHabitat, CorIndicateurGeologie,
 )
 from .models_enjeux import NiveauExigence, ResultatAttendu
@@ -115,6 +115,134 @@ class IndicateurViewSet(viewsets.ModelViewSet):
 
     def perform_update(self, serializer):
         serializer.save(id_utilisateur_maj=self.request.user)
+
+    @action(detail=True, methods=['get'], url_path='global')
+    def global_evaluation(self, request, pk=None):
+        """
+        #355 — Évaluation GLOBALE d'un indicateur (État/Pression) sur la période.
+
+        GET /api/plans/indicateurs/{id}/global/
+
+        Retourne, par métrique et au niveau indicateur :
+          - la série annuelle (valeur → score 1-5),
+          - l'état courant (score de la dernière année renseignée),
+          - la moyenne des scores et la tendance (premier ↔ dernier).
+        La « globale partielle » est naturelle : seules les années renseignées
+        comptent. Lecture seule (GET), accès aligné sur le tableau de bord.
+        """
+        from collections import defaultdict
+
+        ind = self.get_object()
+
+        def _score(value, m):
+            """1-5 selon la grille de la métrique, 0 si hors plage / non numérique."""
+            try:
+                v = float(value)
+            except (TypeError, ValueError):
+                return 0
+            for i in range(1, 6):
+                inf = getattr(m, f'score_{i}_inf', None)
+                sup = getattr(m, f'score_{i}_sup', None)
+                if inf is None or sup is None:
+                    continue
+                if float(inf) <= v <= float(sup):
+                    return i
+            return 0
+
+        def _trend(scores_by_year):
+            """Tendance : comparaison premier ↔ dernier score renseigné."""
+            years = sorted(scores_by_year.keys())
+            if len(years) < 2:
+                return 'stable'
+            first, last = scores_by_year[years[0]], scores_by_year[years[-1]]
+            if last > first:
+                return 'hausse'
+            if last < first:
+                return 'baisse'
+            return 'stable'
+
+        metriques_payload = []
+        ind_year_scores = defaultdict(list)  # année -> [scores métriques]
+
+        for m in ind.metriques.all().prefetch_related('mesures'):
+            # Dernière mesure par année (par date_mesure puis date_ajout)
+            by_year = {}
+            for mes in m.mesures.all():
+                if not mes.date_mesure:
+                    continue
+                y = mes.date_mesure.year
+                key = (mes.date_mesure, mes.date_ajout)
+                prev = by_year.get(y)
+                if prev is None or key >= prev['key']:
+                    by_year[y] = {'valeur': mes.valeur, 'key': key}
+
+            series = []
+            scores_by_year = {}
+            for y in sorted(by_year.keys()):
+                val = by_year[y]['valeur']
+                sc = _score(val, m)
+                series.append({'annee': y, 'valeur': val, 'score': sc or None})
+                if sc > 0:
+                    scores_by_year[y] = sc
+                    ind_year_scores[y].append(sc)
+
+            etat_courant = None
+            if scores_by_year:
+                ly = max(scores_by_year.keys())
+                etat_courant = {'annee': ly, 'score': scores_by_year[ly]}
+            moyenne = (
+                round(sum(scores_by_year.values()) / len(scores_by_year), 2)
+                if scores_by_year else None
+            )
+            metriques_payload.append({
+                'id_metrique': m.id_metrique,
+                'nom_metrique': m.nom_metrique,
+                'etat_reference': m.etat_reference,
+                'sens_variation': m.sens_variation,
+                'series': series,
+                'etat_courant': etat_courant,
+                'moyenne': moyenne,
+                'tendance': _trend(scores_by_year),
+            })
+
+        # Agrégat indicateur : moyenne des scores métriques par année
+        ind_series = []
+        ind_scores_by_year = {}
+        for y in sorted(ind_year_scores.keys()):
+            avg = round(sum(ind_year_scores[y]) / len(ind_year_scores[y]), 2)
+            ind_series.append({'annee': y, 'score': avg})
+            ind_scores_by_year[y] = avg
+        etat_courant_score = (
+            ind_scores_by_year[max(ind_scores_by_year)] if ind_scores_by_year else None
+        )
+        moyenne_score = (
+            round(sum(ind_scores_by_year.values()) / len(ind_scores_by_year), 2)
+            if ind_scores_by_year else None
+        )
+
+        # #356 — Surcharge manuelle d'interprétation (icône d'évaluation forcée).
+        # Le score calculé reste inchangé ; l'icône affichée = override si posé.
+        override = ind.get_evaluation_globale()
+        score_override = override.score_override if override else None
+        etat_courant_effectif = (
+            score_override if score_override is not None else etat_courant_score
+        )
+
+        return Response({
+            'id_indicateur': ind.id_indicateur,
+            'nom_indicateur': ind.nom_indicateur,
+            'type_indicateur': getattr(ind.type_indicateur, 'mnemonique', None),
+            'type_indicateur_label': getattr(ind.type_indicateur, 'label', None),
+            'metriques': metriques_payload,
+            'serie': ind_series,
+            'etat_courant_score': etat_courant_score,
+            'moyenne_score': moyenne_score,
+            'tendance': _trend(ind_scores_by_year),
+            'score_override': score_override,
+            'commentaire': override.commentaire_override if override else None,
+            'etat_courant_effectif': etat_courant_effectif,
+            'manuel': score_override is not None,
+        })
 
     @action(detail=False, methods=['post'], url_path='reorder')
     def reorder(self, request):
@@ -491,7 +619,12 @@ class MesureViewSet(viewsets.ModelViewSet):
         'id_metrique', 'id_utilisateur_ajout', 'id_utilisateur_maj'
     )
 
-    permission_classes = [permissions.IsAuthenticated, IsReferent, CanModifyOnlyDraftPlan]
+    # Pas de CanModifyOnlyDraftPlan : une Mesure est une valeur *réalisée*
+    # (indicateur de réponse, datée via date_mesure), saisie pendant la vie
+    # active du plan — comme la réalisation annuelle (RealisationOperationAnnee).
+    # Le verrou « brouillon uniquement » (#248) bloquait à tort cette saisie sur
+    # un plan validé (403 à l'enregistrement d'un indicateur de réponse).
+    permission_classes = [permissions.IsAuthenticated, IsReferent]
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
     filterset_class = MesureFilter
     search_fields = ['valeur', 'commentaire']
@@ -628,6 +761,25 @@ def _compute_indicator_auto_score(indicateur: Indicateur, annee: int):
     return {'score': score_avg, 'has_data': True, 'per_metrique': per_met}
 
 
+def _can_manage_indicateur_global(user, indicateur):
+    """
+    #356 — Droit de surcharger l'évaluation GLOBALE d'un indicateur.
+    Réservé aux gestionnaires du plan (cf. canManageLifecycle côté front) :
+    super_admin / rédacteur principal, admin de l'organisme du plan, ou
+    référent du plan.
+    """
+    if user.is_super_admin() or user.is_redacteur_principal():
+        return True
+    plan = indicateur.get_plan_de_gestion()
+    if plan is None:
+        return False
+    if user.is_admin_organisme() and user.id_organisme:
+        return plan.sites.filter(
+            site__corogsite__uuid_og=user.id_organisme
+        ).exists()
+    return plan.referents.filter(pk=user.pk).exists()
+
+
 class IndicateurMesureViewSet(viewsets.ModelViewSet):
     """
     ViewSet pour la saisie annuelle au niveau Indicateur (override manuel).
@@ -742,3 +894,75 @@ class IndicateurMesureViewSet(viewsets.ModelViewSet):
             'score_effective': override.score_override if override else auto['score'],
             'per_metrique': auto['per_metrique'],
         })
+
+    @staticmethod
+    def _global_eval_payload(indicateur):
+        """État effectif de l'évaluation globale d'un indicateur (#356)."""
+        override = indicateur.get_evaluation_globale()
+        return {
+            'id_indicateur': indicateur.id_indicateur,
+            'score_override': override.score_override if override else None,
+            'commentaire': override.commentaire_override if override else None,
+            'manuel': bool(override and override.score_override is not None),
+        }
+
+    @action(detail=False, methods=['get', 'post', 'delete'],
+            url_path=r'global-evaluation/(?P<indicateur_id>\d+)')
+    def global_evaluation(self, request, indicateur_id=None):
+        """
+        #356 — Surcharge manuelle de l'évaluation GLOBALE d'un indicateur.
+
+        GET    /api/plans/indicateur-mesures/global-evaluation/{indicateur_id}/
+          → surcharge effective (score_override, commentaire, manuel).
+        POST   …  body { score_override?, commentaire_override? }
+          → pose/met à jour. Les deux sont optionnels : un commentaire seul est
+            possible (n'active pas le mode manuel). Le score calculé ne change pas ;
+            score_override ne fait que changer l'icône d'interprétation affichée.
+        DELETE …  → retire la surcharge (retour au calcul automatique, commentaire effacé).
+
+        Écritures réservées aux gestionnaires du plan. Non verrouillé brouillon
+        (donnée de suivi, éditable après validation).
+        """
+        indicateur = get_object_or_404(Indicateur, pk=indicateur_id)
+
+        if request.method == 'GET':
+            return Response(self._global_eval_payload(indicateur))
+
+        if not _can_manage_indicateur_global(request.user, indicateur):
+            return Response(
+                {'detail': "Action réservée aux gestionnaires du plan."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        if request.method == 'DELETE':
+            IndicateurRealisationGlobale.objects.filter(id_indicateur=indicateur).delete()
+            return Response(self._global_eval_payload(indicateur))
+
+        # POST — score et/ou commentaire (au moins l'un des deux requis).
+        score = request.data.get('score_override')
+        commentaire = request.data.get('commentaire_override')
+        if score in (None, '') and commentaire is None:
+            return Response(
+                {'detail': 'score_override ou commentaire_override est requis.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        if score in (None, ''):
+            score_value = None
+        else:
+            try:
+                score_value = int(score)
+            except (TypeError, ValueError):
+                return Response({'detail': 'score_override invalide.'},
+                                status=status.HTTP_400_BAD_REQUEST)
+            if not (1 <= score_value <= 5):
+                return Response({'detail': 'score_override doit être entre 1 et 5.'},
+                                status=status.HTTP_400_BAD_REQUEST)
+        IndicateurRealisationGlobale.objects.update_or_create(
+            id_indicateur=indicateur,
+            defaults={
+                'score_override': score_value,
+                'commentaire_override': commentaire or '',
+                'id_utilisateur_maj': request.user,
+            },
+        )
+        return Response(self._global_eval_payload(indicateur))

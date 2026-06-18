@@ -1,0 +1,116 @@
+<app-header></app-header>
+
+<div class="settings-layout">
+  @if (plan(); as p) {
+    @if (p.slug) {
+      <app-plan-sidebar
+        [planId]="p.id_pg"
+        [planSlug]="p.slug"
+        [canManage]="canManage()"
+        activePage="settings">
+      </app-plan-sidebar>
+    }
+  }
+
+  <main class="plan-main">
+    @if (isLoading()) {
+      <div class="settings-loading">
+        <mat-spinner diameter="36"></mat-spinner>
+      </div>
+    } @else if (errorMessage()) {
+      <div class="info-block info-block-error">
+        <span class="info-block-icon"></span>
+        <div class="info-block-content">
+          <p class="info-block-content-text">{{ errorMessage() }}</p>
+        </div>
+      </div>
+    } @else if (plan()) {
+      @if (plan(); as p) {
+        <!-- En-tête -->
+        <div class="settings-header">
+          <a [routerLink]="['/plans', p.slug]" class="back-link">
+            <i class="fi fi-rr-arrow-left"></i>
+            {{ 'plans.settings.back' | translate }}
+          </a>
+          <h1 class="settings-title">
+            <i class="fi fi-rr-settings"></i>
+            {{ 'plans.settings.title' | translate }}
+          </h1>
+          <p class="settings-plan-name">{{ p.nom }}</p>
+          <p class="subtitle">{{ 'plans.settings.subtitle' | translate }}</p>
+        </div>
+
+        @if (!canManage()) {
+          <div class="info-block info-block-warning">
+            <span class="info-block-icon"></span>
+            <div class="info-block-content">
+              <p class="info-block-content-text">{{ 'plans.settings.noPermission' | translate }}</p>
+            </div>
+          </div>
+        } @else {
+          <!-- Suppression de la version affichée -->
+          <section class="settings-section danger-zone">
+            <h2 class="section-title">{{ 'plans.settings.deleteSectionTitle' | translate }}</h2>
+            <div class="info-block info-block-warning">
+              <span class="info-block-icon"></span>
+              <div class="info-block-content">
+                <p class="info-block-content-text">{{ 'plans.settings.versionsHelp' | translate }}</p>
+              </div>
+            </div>
+
+            <div class="current-version">
+              <div class="current-version-info">
+                <span class="version-rang">{{ 'plans.settings.versionLabel' | translate }} {{ p.version ?? '1' }}</span>
+                <app-tag [variant]="tagVariant(p.statut)" [label]="'plans.status.' + p.statut | translate" size="sm"></app-tag>
+                @if (p.is_mi_parcours) {
+                  <app-tag variant="warning" [label]="'plans.settings.miParcoursBadge' | translate" size="sm"></app-tag>
+                }
+              </div>
+              <button
+                class="btn-lifecycle-danger"
+                [disabled]="deleting()"
+                (click)="confirmDeleteCurrent()">
+                @if (deleting()) {
+                  <mat-spinner diameter="16"></mat-spinner>
+                } @else {
+                  <i class="fi fi-rr-trash"></i>
+                }
+                <span>{{ 'plans.settings.deleteVersion' | translate }}</span>
+              </button>
+            </div>
+          </section>
+
+          <!-- Chaîne des versions (contexte, lecture seule) -->
+          @if (versions().length > 1) {
+            <section class="settings-section">
+              <h2 class="section-title">{{ 'plans.settings.versionsTitle' | translate }}</h2>
+              <ul class="version-list">
+                @for (v of versions(); track v.id_pg) {
+                  <li class="version-row" [class.is-current]="v.is_current">
+                    <div class="version-main">
+                      <span class="version-rang">{{ 'plans.settings.versionLabel' | translate }} {{ v.version }}</span>
+                      <app-tag [variant]="tagVariant(v.statut)" [label]="'plans.status.' + v.statut | translate" size="sm"></app-tag>
+                      @if (v.is_mi_parcours) {
+                        <app-tag variant="warning" [label]="'plans.settings.miParcoursBadge' | translate" size="sm"></app-tag>
+                      }
+                      @if (v.is_current) {
+                        <span class="current-badge">{{ 'plans.settings.currentBadge' | translate }}</span>
+                      }
+                    </div>
+                    <div class="version-meta">
+                      <span class="version-name">{{ v.nom }}</span>
+                      @if (v.annee_debut && v.annee_fin) {
+                        <span class="version-period">{{ v.annee_debut }}–{{ v.annee_fin }}</span>
+                      }
+                    </div>
+                  </li>
+                }
+              </ul>
+              <p class="text-mention versions-hint">{{ 'plans.settings.otherVersionsHint' | translate }}</p>
+            </section>
+          }
+        }
+      }
+    }
+  </main>
+</div>

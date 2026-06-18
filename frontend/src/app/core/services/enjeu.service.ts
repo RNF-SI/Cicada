@@ -43,6 +43,52 @@ import {
 } from '../models/enjeu.model';
 import { MindmapNode } from '../models/mindmap.model';
 
+/** #355 — Réponse de l'endpoint de surcharge du niveau de réalisation global. */
+export interface GlobalRealisationResponse {
+  id_operation: number;
+  niveau_realisation_global_mnemonique: string | null;
+  niveau_realisation_global_label: string | null;
+  niveau_realisation_global_manuel: boolean;
+  niveau_realisation_global_commentaire?: string | null;
+}
+
+/** #356 — Réponse de l'endpoint de surcharge d'évaluation globale d'un indicateur. */
+export interface IndicateurGlobalEvalResponse {
+  id_indicateur: number;
+  score_override: number | null;
+  commentaire: string | null;
+  manuel: boolean;
+}
+
+/** #355 — Évaluation globale d'un indicateur (tableau de bord). */
+export interface IndicateurMetriqueGlobal {
+  id_metrique: number;
+  nom_metrique: string;
+  etat_reference: string | null;
+  sens_variation: string | null;
+  series: { annee: number; valeur: string | null; score: number | null }[];
+  etat_courant: { annee: number; score: number } | null;
+  moyenne: number | null;
+  tendance: 'hausse' | 'baisse' | 'stable';
+}
+
+export interface IndicateurGlobalResponse {
+  id_indicateur: number;
+  nom_indicateur: string;
+  type_indicateur: string | null;
+  type_indicateur_label: string | null;
+  metriques: IndicateurMetriqueGlobal[];
+  serie: { annee: number; score: number }[];
+  etat_courant_score: number | null;
+  moyenne_score: number | null;
+  tendance: 'hausse' | 'baisse' | 'stable';
+  // #356 — Surcharge manuelle d'interprétation (icône forcée + commentaire).
+  score_override?: number | null;
+  commentaire?: string | null;
+  etat_courant_effectif?: number | null;
+  manuel?: boolean;
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -147,6 +193,57 @@ export class EnjeuService {
         return throwError(() => err);
       })
     );
+  }
+
+  /**
+   * #355 — Surcharge manuelle du niveau de réalisation GLOBAL d'une action.
+   * `mnemonique = null` retire la surcharge (retour au calcul automatique).
+   */
+  setGlobalRealisation(
+    operationId: number,
+    niveauId: number | null,
+    commentaire?: string
+  ): Observable<GlobalRealisationResponse> {
+    const url = `${this.apiUrl}/realisations/global-realisation/${operationId}/`;
+    // Effacement complet : ni niveau, ni commentaire fourni → retour au calcul auto.
+    if (niveauId === null && commentaire === undefined) {
+      return this.http.delete<GlobalRealisationResponse>(url);
+    }
+    // #356 — Le niveau peut être null (commentaire seul) : le mode manuel reste off.
+    return this.http.post<GlobalRealisationResponse>(url, {
+      id_niveau_realisation: niveauId,
+      commentaire_override: commentaire ?? '',
+    });
+  }
+
+  /**
+   * #355 — Évaluation globale d'un indicateur (série annuelle, état courant,
+   * moyenne, tendance) pour la page globale du tableau de bord.
+   */
+  getIndicateurGlobal(indicateurId: number): Observable<IndicateurGlobalResponse> {
+    return this.http.get<IndicateurGlobalResponse>(
+      `${this.apiUrl}/indicateurs/${indicateurId}/global/`
+    );
+  }
+
+  /**
+   * #356 — Surcharge manuelle de l'évaluation globale d'un indicateur.
+   * `score = null` retire l'icône forcée (le commentaire reste si fourni).
+   * Si `score = null` ET `commentaire = undefined` → suppression complète.
+   */
+  setIndicateurGlobalEval(
+    indicateurId: number,
+    score: number | null,
+    commentaire?: string
+  ): Observable<IndicateurGlobalEvalResponse> {
+    const url = `${this.apiUrl}/indicateur-mesures/global-evaluation/${indicateurId}/`;
+    if (score === null && commentaire === undefined) {
+      return this.http.delete<IndicateurGlobalEvalResponse>(url);
+    }
+    return this.http.post<IndicateurGlobalEvalResponse>(url, {
+      score_override: score,
+      commentaire_override: commentaire ?? '',
+    });
   }
 
   /**

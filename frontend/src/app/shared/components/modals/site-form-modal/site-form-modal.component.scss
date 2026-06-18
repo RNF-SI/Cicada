@@ -350,12 +350,19 @@
 }
 
 .form-row {
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr;
   gap: $spacing-md;
+  align-items: start; // aligne le haut des deux colonnes
 
   &.two-columns {
-    > * {
-      flex: 1;
+    grid-template-columns: 1fr 1fr; // colonnes de largeur égale
+
+    // Les 2 champs sont CÔTE À CÔTE : on annule l'écart vertical de 24px que la
+    // règle globale « app-form-field + app-form-field » (pensée pour des champs
+    // EMPILÉS) applique au 2e champ et qui le décalait vers le bas.
+    > app-form-field + app-form-field {
+      margin-top: 0;
     }
   }
 }
@@ -778,13 +785,8 @@ mat-dialog-actions {
 
 @media (max-width: $breakpoint-tablet) {
   .form-row.two-columns {
-    flex-direction: column;
-    gap: 0;
-
-    > * {
-      flex: none;
-      width: 100%;
-    }
+    grid-template-columns: 1fr; // empilé sur mobile/tablette
+    gap: $spacing-lg;           // 24px entre champs empilés
   }
 
   .checkbox-row {
@@ -795,6 +797,45 @@ mat-dialog-actions {
   .duplicate-actions.compact {
     button {
       font-size: 10px;
+    }
+  }
+}
+
+// ============================================
+// Aperçu des validateurs (qui validera ce site)
+// ============================================
+.validators-preview {
+  margin-top: $spacing-md;
+
+  .validators-preview-title {
+    display: flex;
+    align-items: center;
+    gap: $spacing-xs;
+    font-weight: 600;
+    margin-bottom: $spacing-xs;
+  }
+
+  .validators-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+
+    li {
+      display: flex;
+      flex-wrap: wrap;
+      gap: $spacing-xxs;
+      align-items: baseline;
+      padding: 2px 0;
+    }
+
+    .validator-name {
+      font-weight: 600;
+      color: $black;
+    }
+
+    .validator-role {
+      font-size: 0.85em;
+      color: $gray-dark;
     }
   }
 }

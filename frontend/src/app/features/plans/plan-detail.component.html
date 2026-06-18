@@ -9,6 +9,7 @@
       <app-plan-sidebar
         [planId]="id"
         [planSlug]="slug"
+        [canManage]="canManageLifecycle()"
         activePage="overview">
       </app-plan-sidebar>
     }
@@ -106,14 +107,61 @@
                   <!-- Chip statut harmonisé : composant <app-status-chip>
                        garantit même couleur/label/tooltip que Mes plans. -->
                   <app-status-chip [statut]="p.statut"></app-status-chip>
-                  <!-- #277 — Sous-chip workflow CSRPN. Affiché en complément du statut
-                       (brouillon) pour visualiser l'étape de validation en cours. -->
-                  @if (p.validation_step) {
-                    <span class="meta-value status-chip status-chip--csrpn"
-                          [matTooltip]="'plans.validationStep.tooltip' | translate"
+                  <!-- #347 — Badge « Validations administratives » en haut du plan :
+                       informations au survol (récap), édition au clic via menu
+                       (indépendante, possible en brouillon comme en validé). -->
+                  @if (canManageLifecycle()) {
+                    <button type="button"
+                            class="meta-value status-chip status-chip--csrpn-recap is-editable"
+                            [matTooltip]="csrpnRecapTooltip()"
+                            matTooltipClass="csrpn-recap-tooltip"
+                            matTooltipPosition="above"
+                            [matMenuTriggerFor]="adminValidMenu">
+                      <i class="fi fi-rr-info"></i>
+                      {{ 'plans.adminValidations.title' | translate }}
+                      <span class="av-count">{{ adminValidationsSummary() }}</span>
+                      <i class="fi fi-rr-angle-small-down"></i>
+                    </button>
+                    <mat-menu #adminValidMenu="matMenu" class="admin-valid-menu-panel">
+                      <div class="admin-valid-menu" (click)="$event.stopPropagation()">
+                        @for (item of adminValidations(); track item.key) {
+                          <div class="admin-validation-row">
+                            <div class="av-info">
+                              <span class="av-label">{{ item.labelKey | translate }}</span>
+                              @if (item.done) {
+                                <app-tag variant="success" size="sm"
+                                         [label]="('plans.adminValidations.validatedOn' | translate:{ date: (item.date | date:'dd/MM/yyyy') }) + (item.numero ? ' · n° ' + item.numero : '')">
+                                </app-tag>
+                              } @else {
+                                <app-tag variant="muted" size="sm" [label]="'plans.adminValidations.notStarted' | translate"></app-tag>
+                              }
+                            </div>
+                            <div class="av-actions">
+                              <button class="icon-btn icon-btn-sm" (click)="openAdminValidationDialog(item.key)"
+                                      [matTooltip]="(item.done ? 'plans.adminValidations.edit' : 'plans.adminValidations.record') | translate"
+                                      matTooltipPosition="above">
+                                <i class="fi" [class.fi-rr-pencil]="item.done" [class.fi-rr-plus]="!item.done"></i>
+                              </button>
+                              @if (item.done) {
+                                <button class="icon-btn icon-btn-sm" (click)="clearAdminValidation(item.key)"
+                                        [matTooltip]="'plans.adminValidations.clear' | translate"
+                                        matTooltipPosition="above">
+                                  <i class="fi fi-rr-trash"></i>
+                                </button>
+                              }
+                            </div>
+                          </div>
+                        }
+                      </div>
+                    </mat-menu>
+                  } @else if (hasCsrpnInfo()) {
+                    <span class="meta-value status-chip status-chip--csrpn-recap"
+                          [matTooltip]="csrpnRecapTooltip()"
+                          matTooltipClass="csrpn-recap-tooltip"
                           matTooltipPosition="above">
-                      <i class="fi fi-rr-paper-plane"></i>
-                      {{ ('plans.validationStep.' + p.validation_step) | translate }}
+                      <i class="fi fi-rr-info"></i>
+                      {{ 'plans.adminValidations.title' | translate }}
+                      <span class="av-count">{{ adminValidationsSummary() }}</span>
                     </span>
                   }
                   @if (isPlanExtended()) {
@@ -156,59 +204,19 @@
                   </button>
                 }
                 @if (canManageLifecycle()) {
-                  <!-- Draft → Valider (raccourci) ou Envoyer pour avis CSRPN (workflow #277) -->
-                  <!-- Brouillon hors workflow CSRPN : valider + lancer CSRPN -->
-                  @if (p.statut === 'draft' && !p.validation_step) {
+                  <!-- #347 — VALIDATION PLATEFORME (statut). Indépendante des
+                       validations administratives ci-dessous. -->
+                  @if (p.statut === 'draft') {
                     <button class="btn-lifecycle btn-lifecycle-success" (click)="confirmValidation()"
                             [matTooltip]="'plans.lifecycle.actions.validateDesc' | translate" matTooltipPosition="below">
                       <i class="fi fi-rr-check"></i>
                       <span>{{ 'plans.lifecycle.actions.validate' | translate }}</span>
                     </button>
-                    <button class="btn-lifecycle btn-lifecycle-info" (click)="submitForCsrpn()"
-                            [matTooltip]="'plans.lifecycle.actions.submitForCsrpnDesc' | translate" matTooltipPosition="below">
-                      <i class="fi fi-rr-paper-plane"></i>
-                      <span>{{ 'plans.lifecycle.actions.submitForCsrpn' | translate }}</span>
-                    </button>
                   }
-                  <!-- #277 — Workflow CSRPN : étape 2 (avis rendu) + annulation -->
-                  @if (p.statut === 'draft' && p.validation_step === 'avis_csrpn') {
-                    <button class="btn-lifecycle btn-lifecycle-success" (click)="recordCsrpnOpinion()"
-                            [matTooltip]="'plans.lifecycle.actions.recordCsrpnOpinionDesc' | translate" matTooltipPosition="below">
-                      <i class="fi fi-rr-check"></i>
-                      <span>{{ 'plans.lifecycle.actions.recordCsrpnOpinion' | translate }}</span>
-                    </button>
-                    <button class="btn-lifecycle btn-lifecycle-warning" (click)="cancelCsrpn()"
-                            [matTooltip]="'plans.lifecycle.actions.cancelCsrpnDesc' | translate" matTooltipPosition="below">
-                      <i class="fi fi-rr-undo"></i>
-                      <span>{{ 'plans.lifecycle.actions.cancelCsrpn' | translate }}</span>
-                    </button>
-                  }
-                  <!-- #277 — Workflow CSRPN : étape 3 (validation comité) + annulation -->
-                  @if (p.statut === 'draft' && p.validation_step === 'comite_consultatif') {
-                    <button class="btn-lifecycle btn-lifecycle-success" (click)="validateByComite()"
-                            [matTooltip]="'plans.lifecycle.actions.validateByComiteDesc' | translate" matTooltipPosition="below">
-                      <i class="fi fi-rr-check"></i>
-                      <span>{{ 'plans.lifecycle.actions.validateByComite' | translate }}</span>
-                    </button>
-                    <button class="btn-lifecycle btn-lifecycle-warning" (click)="cancelCsrpn()"
-                            [matTooltip]="'plans.lifecycle.actions.cancelCsrpnDesc' | translate" matTooltipPosition="below">
-                      <i class="fi fi-rr-undo"></i>
-                      <span>{{ 'plans.lifecycle.actions.cancelCsrpn' | translate }}</span>
-                    </button>
-                  }
-                  <!-- #277 — Workflow CSRPN : étape 4 (arrêté préfectoral) + annulation -->
-                  @if (p.statut === 'draft' && p.validation_step === 'arrete_pref') {
-                    <button class="btn-lifecycle btn-lifecycle-success" (click)="recordArretePref()"
-                            [matTooltip]="'plans.lifecycle.actions.recordArretePrefDesc' | translate" matTooltipPosition="below">
-                      <i class="fi fi-rr-check"></i>
-                      <span>{{ 'plans.lifecycle.actions.recordArretePref' | translate }}</span>
-                    </button>
-                    <button class="btn-lifecycle btn-lifecycle-warning" (click)="cancelCsrpn()"
-                            [matTooltip]="'plans.lifecycle.actions.cancelCsrpnDesc' | translate" matTooltipPosition="below">
-                      <i class="fi fi-rr-undo"></i>
-                      <span>{{ 'plans.lifecycle.actions.cancelCsrpn' | translate }}</span>
-                    </button>
-                  }
+                  <!-- #347 — Les validations administratives (avis CSRPN / comité /
+                       arrêté préfectoral) sont désormais enregistrées indépendamment
+                       depuis le panneau « Validations administratives » (sidebar),
+                       sans workflow imposé. -->
                   <!-- Validé / Modifié → Remettre en brouillon (uniquement feuille de chaîne)
                        + Étendre/Retirer extension (#250) + Lancer/Arrêter révision (#278)
                        + Lancer évaluation mi-parcours (#276) + Créer nouvelle version
@@ -451,7 +459,7 @@
                         } @else {
                           <div class="synthese-enjeux-list">
                             @for (olt of allOlts(); track olt.id_olt) {
-                              <div class="synthese-item" (click)="navigateToEnjeuByOltOo(olt.enjeu_id)">
+                              <div class="synthese-item" (click)="navigateToOltInEnjeu(olt)">
                                 <img src="assets/images/puces/puce-terra-cotta.png" alt="" class="synthese-item-bullet">
                                 <span class="synthese-item-label">{{ olt.libelle }}</span>
                               </div>
@@ -472,7 +480,7 @@
                         } @else {
                           <div class="synthese-enjeux-list">
                             @for (oo of allOos(); track oo.id_oo) {
-                              <div class="synthese-item" (click)="navigateToEnjeuByOltOo(oo.enjeu_id)">
+                              <div class="synthese-item" (click)="navigateToOoInEnjeu(oo)">
                                 <img src="assets/images/puces/puce-terra-cotta.png" alt="" class="synthese-item-bullet">
                                 <span class="synthese-item-label">{{ oo.libelle }}</span>
                               </div>

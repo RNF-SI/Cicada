@@ -48,14 +48,21 @@ class HabrefViewSet(viewsets.ReadOnlyModelViewSet):
         is_numeric = search.isdigit()
 
         from django.db import connection
+        # Recherche par mots : chaque mot doit apparaître (sous-chaîne, sans
+        # accents). Sans ça, « pelouse sèche » ne trouvait pas « Pelouses sèches »
+        # (l'espace coupait la sous-chaîne au mauvais endroit à cause du pluriel).
+        words = search.split() or [search]
         with connection.cursor() as cursor:
-            sql = """
+            text_conds = " AND ".join(
+                ["unaccent(search_name) ILIKE unaccent(%s)"] * len(words)
+            )
+            sql = f"""
                 SELECT cd_hab, cd_typo, lb_code, search_name,
                        lb_hab_fr, lb_hab_fr_complet, lb_typo, niveau
                 FROM ref_habitats.autocomplete_habitat
-                WHERE (unaccent(search_name) ILIKE unaccent(%s)
+                WHERE (({text_conds})
             """
-            params = [f'%{search}%']
+            params = [f'%{w}%' for w in words]
 
             if is_numeric:
                 sql += " OR cd_hab::text LIKE %s"
@@ -98,13 +105,60 @@ class HabrefViewSet(viewsets.ReadOnlyModelViewSet):
         url_path='correspondance/(?P<cd_hab>[0-9]+)',
     )
     def correspondance(self, request, cd_hab=None):
-        """Correspondances entre typologies pour un habitat donné."""
-        corresps = HabrefCorrespHab.objects.filter(
-            cd_hab=cd_hab
-        ).order_by('cd_typo_entre')
-        return Response(
-            HabrefCorrespHabSerializer(corresps, many=True).data
-        )
+        """
+        Classification d'origine d'un habitat + habitats liés (HabRef). #89
+
+        Réponse : {
+          "habitat": { cd_hab, lb_code, lb_typo, lb_hab_fr, lb_hab_fr_complet, niveau },
+          "related": [ { cd_hab_entre, cd_typo_entre, lb_typo, lb_code_entre, lb_hab_entre, ... } ]
+        }
+
+        Permet à la puce d'afficher la classification d'origine et les habitats
+        liés à partir du seul cd_hab — indépendamment de ce qui est stocké côté
+        enjeu/action (factorisation : même rendu partout).
+
+        NB : `habref_corresp_hab` ne contient que des relations intra-référentiel
+        (sous-types/associés), pas de table de correspondance entre référentiels.
+        """
+        from django.db import connection
+        with connection.cursor() as cur:
+            # Classification d'origine (depuis la table d'autocomplete dénormalisée)
+            cur.execute(
+                """
+                SELECT cd_hab, lb_code, lb_typo, lb_hab_fr, lb_hab_fr_complet, niveau
+                FROM ref_habitats.autocomplete_habitat
+                WHERE cd_hab = %s
+                LIMIT 1
+                """,
+                [cd_hab],
+            )
+            row = cur.fetchone()
+            habitat = None
+            if row:
+                hcols = ['cd_hab', 'lb_code', 'lb_typo', 'lb_hab_fr', 'lb_hab_fr_complet', 'niveau']
+                habitat = dict(zip(hcols, row))
+                if habitat.get('lb_typo'):
+                    habitat['lb_typo'] = habitat['lb_typo'].replace('_', ' ')
+
+            # Habitats liés (même référentiel) : code + nom résolus via habref.
+            cur.execute(
+                """
+                SELECT c.id, c.cd_hab, c.cd_hab_entre, c.cd_typo_entre,
+                       t.lb_typo,
+                       COALESCE(NULLIF(c.lb_code_entre, ''), h.lb_code) AS lb_code_entre,
+                       COALESCE(NULLIF(c.lb_hab_entre, ''), h.lb_hab_fr) AS lb_hab_entre,
+                       c.niveau_entre, c.type_rel
+                FROM ref_habitats.habref_corresp_hab c
+                JOIN ref_habitats.typoref t ON t.cd_typo = c.cd_typo_entre
+                LEFT JOIN ref_habitats.habref h ON h.cd_hab = c.cd_hab_entre
+                WHERE c.cd_hab = %s
+                ORDER BY c.cd_typo_entre, c.cd_hab_entre
+                """,
+                [cd_hab],
+            )
+            cols = [d[0] for d in cur.description]
+            related = [dict(zip(cols, r)) for r in cur.fetchall()]
+        return Response({'habitat': habitat, 'related': related})
 
     @action(detail=False, methods=['post'], url_path='validate-bulk')
     def validate_bulk(self, request):

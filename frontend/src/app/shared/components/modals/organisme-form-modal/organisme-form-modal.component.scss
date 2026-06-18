@@ -1,38 +1,37 @@
 @import 'variables';
 
 .organisme-form {
-  display: flex;
-  flex-direction: column;
-  gap: $spacing-xs;
-  min-width: 450px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: $spacing-sm $spacing-md;
+  align-items: start;
+  min-width: 480px;
   padding-top: $spacing-md;
 
   @media (max-width: 600px) {
+    grid-template-columns: 1fr;
     min-width: auto;
     width: 100%;
   }
+}
+
+// Champs occupant toute la largeur de la grille (nom, parent, adresse, site web)
+.span-2 {
+  grid-column: 1 / -1;
+}
+
+// Cellule label + mat-select (l'organisme parent) empilés verticalement
+.select-cell {
+  display: flex;
+  flex-direction: column;
 }
 
 .full-width {
   width: 100%;
 }
 
-.form-row {
+mat-form-field {
   width: 100%;
-
-  &.two-columns {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: $spacing-md;
-
-    @media (max-width: 600px) {
-      grid-template-columns: 1fr;
-    }
-  }
-
-  mat-form-field {
-    width: 100%;
-  }
 }
 
 .error-banner {

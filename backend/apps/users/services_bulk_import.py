@@ -489,13 +489,11 @@ class BulkSiteImportService:
                     # Create site
                     site = Site(**site_kwargs)
 
-                    # Geometry
+                    # Geometry (normalisation + réparation partagée)
                     geometry = site_data.get('geometry')
                     if geometry:
-                        geom = GEOSGeometry(json.dumps(geometry))
-                        if geom.geom_type == 'Polygon':
-                            geom = MultiPolygon(geom)
-                        site.geom = geom
+                        from .geo_utils import normalize_to_multipolygon
+                        site.geom = normalize_to_multipolygon(geometry)
 
                     site.save()
 

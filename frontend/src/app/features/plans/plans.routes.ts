@@ -41,6 +41,12 @@ export const PLANS_ROUTES: Routes = [
     canActivate: [authGuard]
   },
   {
+    // #379 — Page globale d'une action (statut, budget, RH, récap annuel)
+    path: ':slug/suivi-actions/action/:operation_id',
+    loadComponent: () => import('./suivis/action-global/action-global.component').then(m => m.ActionGlobalComponent),
+    canActivate: [authGuard]
+  },
+  {
     path: ':slug/tableau-de-bord',
     loadComponent: () => import('./suivis/plan-tableau-de-bord.component').then(m => m.PlanTableauDeBordComponent),
     canActivate: [authGuard]
@@ -48,6 +54,12 @@ export const PLANS_ROUTES: Routes = [
   {
     path: ':slug/tableau-de-bord/saisie/:indicateur_id/:annee',
     loadComponent: () => import('./suivis/indicateur-saisie/indicateur-saisie.component').then(m => m.IndicateurSaisieComponent),
+    canActivate: [authGuard]
+  },
+  {
+    // #355 — Page globale d'un indicateur (état courant + moyenne + tendance)
+    path: ':slug/tableau-de-bord/indicateur/:indicateur_id',
+    loadComponent: () => import('./suivis/indicateur-global/indicateur-global.component').then(m => m.IndicateurGlobalComponent),
     canActivate: [authGuard]
   },
   {
@@ -60,6 +72,11 @@ export const PLANS_ROUTES: Routes = [
     // utilisent désormais /tableau-d-arborescence.
     path: ':slug/mindmap',
     loadComponent: () => import('./mindmap/plan-mindmap.component').then(m => m.PlanMindmapComponent),
+    canActivate: [authGuard]
+  },
+  {
+    path: ':slug/parametres',
+    loadComponent: () => import('./plan-settings.component').then(m => m.PlanSettingsComponent),
     canActivate: [authGuard]
   },
   {

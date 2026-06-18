@@ -1,8 +1,14 @@
 """
 Vues pour l'authentification JWT.
 """
+import logging
+
+from django.conf import settings
+from django.contrib.auth.tokens import default_token_generator
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
+from django.utils.encoding import force_bytes, force_str
+from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated, AllowAny
@@ -17,7 +23,14 @@ from rest_framework_simplejwt.exceptions import TokenError, InvalidToken
 from apps.users.models import Role, Site, BibOrganismes
 from apps.plans.models import PlanGestion
 from .models import ImpersonationLog
-from .serializers import CustomTokenObtainPairSerializer, UserInfoSerializer
+from .serializers import (
+    CustomTokenObtainPairSerializer,
+    PasswordResetConfirmSerializer,
+    PasswordResetRequestSerializer,
+    UserInfoSerializer,
+)
+
+logger = logging.getLogger(__name__)
 
 
 class CustomTokenObtainPairView(APIView):
@@ -82,6 +95,99 @@ class CustomTokenRefreshView(TokenRefreshView):
                 raise InvalidToken({'detail': 'Utilisateur introuvable.'})
 
         return response
+
+
+class PasswordResetRequestView(APIView):
+    """
+    Demande de réinitialisation de mot de passe (#329).
+
+    POST /api/auth/password-reset/
+    Body: {"email": "utilisateur@example.fr"}
+
+    Envoie un email contenant un lien de réinitialisation si un compte actif
+    correspond. La réponse est volontairement identique que le compte existe
+    ou non, pour ne pas permettre l'énumération des adresses.
+    """
+    permission_classes = [AllowAny]
+    throttle_classes = [AuthRateThrottle]
+
+    def post(self, request):
+        serializer = PasswordResetRequestSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        email = serializer.validated_data['email']
+
+        user = Role.objects.filter(email__iexact=email, active=True).first()
+        if user and user.email:
+            from apps.notifications.tasks import send_password_reset_email
+
+            uid = urlsafe_base64_encode(force_bytes(user.pk))
+            token = default_token_generator.make_token(user)
+            site_url = getattr(settings, 'SITE_URL', 'http://localhost:4200')
+            reset_url = f"{site_url}/auth/reset-password?uid={uid}&token={token}"
+            nom_complet = f"{user.prenom_role or ''} {user.nom_role or ''}".strip() or user.email
+            try:
+                send_password_reset_email.delay(user.email, reset_url, nom_complet)
+            except Exception:
+                # Ne jamais faire échouer la requête (ni révéler l'existence du
+                # compte) si la file de tâches est indisponible.
+                logger.exception("Échec de la mise en file de l'email de réinitialisation")
+
+        return Response(
+            {'detail': "Si un compte est associé à cette adresse, un email de "
+                       "réinitialisation vient d'être envoyé."},
+            status=status.HTTP_200_OK,
+        )
+
+
+class PasswordResetConfirmView(APIView):
+    """
+    Confirmation de réinitialisation de mot de passe (#329).
+
+    POST /api/auth/password-reset/confirm/
+    Body: {"uid": "...", "token": "...", "new_password": "..."}
+
+    Valide le jeton (lié au hash du mot de passe courant, donc à usage unique)
+    et applique le nouveau mot de passe.
+    """
+    permission_classes = [AllowAny]
+    throttle_classes = [AuthRateThrottle]
+
+    def post(self, request):
+        serializer = PasswordResetConfirmSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        uid = serializer.validated_data['uid']
+        token = serializer.validated_data['token']
+        new_password = serializer.validated_data['new_password']
+
+        user = None
+        try:
+            pk = force_str(urlsafe_base64_decode(uid))
+            user = Role.objects.get(pk=pk)
+        except (TypeError, ValueError, OverflowError, Role.DoesNotExist):
+            user = None
+
+        if user is None or not default_token_generator.check_token(user, token):
+            return Response(
+                {'detail': "Le lien de réinitialisation est invalide ou a expiré. "
+                           "Veuillez refaire une demande."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if not user.active:
+            return Response(
+                {'detail': "Ce compte est désactivé."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        user.set_password(new_password)
+        user.save(update_fields=['password'])
+        logger.info(f"Password reset completed for user {user.pk}")
+
+        return Response(
+            {'detail': "Votre mot de passe a été réinitialisé. Vous pouvez "
+                       "maintenant vous connecter."},
+            status=status.HTTP_200_OK,
+        )
 
 
 @api_view(['POST'])

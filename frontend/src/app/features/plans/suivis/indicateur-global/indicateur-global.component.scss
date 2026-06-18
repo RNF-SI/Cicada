@@ -1,0 +1,297 @@
+@import 'variables';
+@import 'responsive';
+
+.suivis-layout {
+  display: flex;
+  min-height: calc(100vh - 58px);
+  gap: $spacing-lg;
+  background: $beige;
+}
+.plan-main {
+  flex: 1;
+  min-width: 0;
+  padding-right: $spacing-lg;
+  overflow-x: hidden;
+}
+
+.loading-container,
+.error-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: $spacing-xxl;
+  gap: $spacing-md;
+  color: $gray-dark;
+  i { font-size: 2.5rem; color: $error-color; }
+}
+
+// Hero — aligné sur la page « Suivi des actions » (même bandeau, fil d'Ariane et titre)
+.hero-section { @include plan-page-hero-suivi(280px); }
+.hero-background { @include plan-page-hero-background; }
+.hero-pattern { @include plan-page-hero-pattern; opacity: 0.2; }
+.hero-content { @include plan-page-hero-content; }
+
+.breadcrumb {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: $spacing-md;
+  margin-bottom: $spacing-xl;
+  height: 48px;
+  background-color: transparent !important;
+  padding: 0 !important;
+  border-radius: 0 !important;
+}
+.breadcrumb-home {
+  display: flex; align-items: center; justify-content: center;
+  width: 48px; height: 48px;
+  background-color: $primary-color; border-radius: 50%; color: $white;
+  text-decoration: none; flex-shrink: 0; z-index: 2; padding: 12px;
+  i { font-size: 20px; }
+  &:hover { transform: scale(1.05); }
+}
+.breadcrumb-lines {
+  position: absolute; left: 24px; right: 0; top: 0; bottom: 0;
+  display: flex; flex-direction: column; justify-content: space-between;
+  pointer-events: none; z-index: 0;
+  &::before, &::after {
+    content: ''; display: block; width: 100%; height: 1px;
+    background-color: $primary-color;
+  }
+}
+.breadcrumb-text {
+  position: relative; z-index: 1;
+  display: flex; align-items: center; gap: $spacing-xs;
+}
+.breadcrumb-link {
+  color: $primary-color; font-family: $font-family;
+  font-size: $font-size-base; font-weight: $font-weight-bold;
+  text-decoration: underline; text-underline-offset: 3px;
+}
+.breadcrumb-chevron { color: $primary-color; font-size: $font-size-base; }
+.breadcrumb-current {
+  color: $primary-color; font-family: $font-family; font-size: $font-size-base;
+}
+.plan-header { margin-top: $spacing-md; }
+.plan-subtitle {
+  display: flex; align-items: center; gap: $spacing-md;
+  color: $primary-color; font-size: $font-size-base; font-weight: $font-weight-bold;
+  text-transform: uppercase; letter-spacing: 3px; margin-bottom: $spacing-sm;
+  i { font-size: 15px; }
+}
+.plan-title {
+  color: $primary-color; font-size: 48px; font-weight: $font-weight-bold;
+  font-family: $font-family; line-height: 72px; margin: 0 0 $spacing-lg 0;
+}
+.indicateur-type {
+  display: inline-block; margin-top: $spacing-xs;
+  padding: 2px $spacing-sm; border-radius: $border-radius-pill;
+  background: rgba($primary-color, 0.1); color: $primary-color;
+  font-size: 0.8rem; font-weight: 600;
+}
+
+.content-section {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: $spacing-xl $spacing-lg;
+}
+
+.section-title {
+  margin: 0 0 $spacing-md;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: $primary-color;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+// Cartes de synthèse
+.summary-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: $spacing-lg;
+  margin-bottom: $spacing-xl;
+}
+.summary-card {
+  background: $white;
+  border: 1px solid $gray-light;
+  border-radius: $border-radius-md;
+  padding: $spacing-lg;
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-sm;
+}
+.summary-label {
+  font-size: 0.8rem; color: $gray-dark; text-transform: uppercase; letter-spacing: 0.5px;
+}
+.summary-value {
+  display: flex; align-items: center; gap: $spacing-sm;
+  i { font-size: 1.4rem; color: $primary-color; }
+}
+.summary-score { font-size: 1.4rem; font-weight: 700; color: $black; }
+.summary-empty { color: $gray; }
+.summary-auto-note { font-size: 0.75rem; color: $gray-dark; }
+
+// #356 — Explication du calcul (collapsible)
+.calc-explainer {
+  background: $white;
+  border: 1px solid $gray-light;
+  border-radius: $border-radius-md;
+  padding: $spacing-md $spacing-lg;
+  margin-bottom: $spacing-xl;
+
+  summary {
+    cursor: pointer;
+    font-weight: 600;
+    color: $primary-color;
+    display: flex; align-items: center; gap: $spacing-xs;
+    list-style: none;
+    i { font-size: 14px; }
+    &::-webkit-details-marker { display: none; }
+  }
+  p { margin: $spacing-sm 0; font-size: 0.9rem; color: $black; }
+  ul { margin: $spacing-xs 0 $spacing-sm $spacing-lg; padding: 0; }
+  li { font-size: 0.88rem; color: $gray-dark; margin-bottom: 2px; }
+  .calc-note { font-style: italic; color: $gray-dark; font-size: 0.85rem; }
+}
+
+// Badges smileys (mêmes assets que le tableau de bord)
+.score-badge-icon-lg { width: 40px; height: 40px; }
+.score-badge-icon { width: 28px; height: 28px; }
+.score-badge-icon-sm { width: 22px; height: 22px; vertical-align: middle; }
+
+.manuel-tag {
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: $border-radius-sm;
+  background: $secondary-terra-cotta;
+  color: $white;
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+// #356 — Carte d'interprétation manuelle + commentaire
+// #356 — Ajustement manuel proposé discrètement (non forcé)
+.override-toggle-row { margin: 0 0 $spacing-xl; }
+.override-toggle {
+  display: inline-flex; align-items: center; gap: $spacing-xs;
+  i { font-size: 14px; }
+}
+.override-collapse { margin-right: $spacing-sm; color: $gray-dark; }
+
+.override-card {
+  background: $white;
+  border: 1px solid $gray-light;
+  border-radius: $border-radius-md;
+  padding: $spacing-lg;
+  margin-bottom: $spacing-xl;
+}
+.override-hint { font-size: 0.85rem; color: $gray-dark; margin: 0 0 $spacing-md; }
+.eval-buttons {
+  display: flex; flex-wrap: wrap; align-items: center; gap: $spacing-sm;
+  margin-bottom: $spacing-lg;
+}
+.eval-btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  padding: 4px; border: 2px solid transparent; border-radius: $border-radius-round;
+  background: $beige; cursor: pointer; transition: all 0.15s ease;
+  &:hover { background: $primary-bg-subtle; }
+  &.active { border-color: $primary-color; background: $primary-bg-subtle; }
+}
+.eval-auto { margin-left: $spacing-sm; }
+.comment-label {
+  display: block; font-size: 0.85rem; font-weight: 600;
+  color: $primary-color; margin-bottom: $spacing-xs;
+}
+.comment-textarea {
+  width: 100%; box-sizing: border-box;
+  border: 1px solid $gray-light; border-radius: $border-radius-sm;
+  padding: $spacing-sm; font-family: inherit; font-size: 0.9rem;
+  resize: vertical;
+  &:focus { outline: none; border-color: $primary-color; }
+}
+.comment-actions { margin-top: $spacing-sm; text-align: right; }
+.comment-readonly { white-space: pre-wrap; color: $black; margin: 0; }
+
+// Graphique de tendance
+.trend-chart-card {
+  background: $white;
+  border: 1px solid $gray-light;
+  border-radius: $border-radius-md;
+  padding: $spacing-lg;
+  margin-bottom: $spacing-xl;
+}
+.chart-caption {
+  margin: 0 0 $spacing-sm;
+  font-size: 0.8rem; color: $gray-dark;
+}
+.trend-chart {
+  width: 100%;
+  max-width: 760px;
+  height: auto;
+  display: block;
+  margin: 0 auto;
+
+  .grid-line {
+    stroke: $primary-bg-subtle;
+    stroke-width: 1;
+  }
+  .axis-label {
+    fill: $gray-dark;
+    font-size: 13px;
+    font-family: $font-family;
+  }
+  .trend-line {
+    fill: none;
+    stroke: $primary-color;
+    stroke-width: 2.5;
+  }
+  .trend-dot { fill: $primary-color; }
+}
+
+// Détail par métrique — tableau pleine largeur (kit UI)
+.table-wrapper { overflow-x: auto; }
+.metriques-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: $white;
+  border: 1px solid $gray-light;
+  border-radius: $border-radius-md;
+  overflow: hidden;
+
+  thead th {
+    background: $primary-color;
+    color: $white;
+    text-align: left;
+    padding: $spacing-sm $spacing-md;
+    font-size: 0.85rem;
+    white-space: nowrap;
+    &.col-c, &.col-y { text-align: center; }
+    &.col-y { min-width: 52px; }
+  }
+  tbody td {
+    padding: $spacing-sm $spacing-md;
+    border-bottom: 1px solid $primary-bg-subtle;
+    border-right: 1px solid $primary-bg-subtle;
+    font-size: $font-size-base;
+    color: $black;
+    vertical-align: middle;
+    &.col-text { text-align: left; }
+    &.col-name { font-weight: 600; color: $primary-color; }
+    &.col-c, &.col-y { text-align: center; }
+    small { color: $gray-dark; }
+  }
+  tbody tr:nth-child(even) td { background: rgba($secondary-pale-green, 0.12); }
+  .metrique-tendance i { color: $primary-color; font-size: 1rem; }
+  .empty-row { text-align: center; color: $gray; }
+}
+.metrique-cell-link {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 30px; padding: 2px 4px; border-radius: $border-radius-sm;
+  text-decoration: none;
+  &:hover { background: $primary-bg-subtle; }
+  .cell-empty { color: $gray; }
+}

@@ -1,7 +1,7 @@
 import { Component, EventEmitter, Input, Output, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 
-export type AccordionVariant = 'default' | 'enjeu' | 'fcr' | 'subtle';
+export type AccordionVariant = 'default' | 'enjeu' | 'fcr' | 'subtle' | 'section';
 export type AccordionSize = 'sm' | 'md' | 'lg';
 
 /**
@@ -10,7 +10,9 @@ export type AccordionSize = 'sm' | 'md' | 'lg';
  * Bloc collapsible avec header (titre + icône optionnelle + actions) et body projeté.
  *
  * - Chevron haut/bas conforme #297 (replié → bas, déplié → haut)
- * - 4 variantes visuelles : default, enjeu (terra-cotta), fcr (saumon), subtle (gris clair)
+ * - 5 variantes visuelles : default, enjeu (terra-cotta), fcr (saumon), subtle (gris clair),
+ *   section (en-tête de section « DÉTAILS » : titre sombre en majuscules, icône colorée
+ *   projetée, sans bande latérale — cf. #334)
  * - Slots : `[accordionIcon]` (icône à gauche), `[accordionActions]` (boutons à droite), corps par défaut
  * - Compatible avec contrôle externe (input `expanded`) ou interne (toggle)
  *

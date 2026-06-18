@@ -16,6 +16,7 @@ import { AdminSettingsComponent } from './admin-settings/admin-settings.componen
 import { AdminRgpdComponent } from './admin-rgpd/admin-rgpd.component';
 import { AdminUpdateComponent } from './admin-update/admin-update.component';
 import { AdminRedacteursPrincipauxComponent } from './admin-redacteurs-principaux.component';
+import { AdminOrphansComponent } from './admin-orphans/admin-orphans.component';
 
 /**
  * Admin Routes Configuration
@@ -91,6 +92,12 @@ export const ADMIN_ROUTES: Routes = [
         component: AdminPlansComponent,
         canActivate: [roleGuard],
         data: { requiredRole: 'referent' } // referent can access for validations
+      },
+      {
+        path: 'orphelins',
+        component: AdminOrphansComponent,
+        canActivate: [roleGuard],
+        data: { requiredRole: 'admin_og' } // admin_og (sites de son organisme) + super_admin/RP (sites + plans)
       },
       {
         path: 'modules',

@@ -150,4 +150,34 @@ describe('MetriqueFormComponent', () => {
       expect(spy).toHaveBeenCalled();
     });
   });
+
+  describe('#359 niveaux actifs (Chiffre / Texte)', () => {
+    it('tous les niveaux actifs par défaut', () => {
+      expect([1, 2, 3, 4, 5].every(l => component.isLevelActive(l))).toBe(true);
+    });
+
+    it('toggleLevelActive désactive puis réactive un niveau', () => {
+      component.toggleLevelActive(3);
+      expect(component.isLevelActive(3)).toBe(false);
+      expect(component.metrique._inactiveLevels).toContain(3);
+      component.toggleLevelActive(3);
+      expect(component.isLevelActive(3)).toBe(true);
+      expect(component.metrique._inactiveLevels).not.toContain(3);
+    });
+
+    it('désactiver un niveau vide sa valeur et son label', () => {
+      component.metrique.scores[2].val = 12;
+      component.metrique.scores[2].label = 'Bon';
+      component.toggleLevelActive(2);
+      expect(component.metrique.scores[2].val).toBeNull();
+      expect(component.metrique.scores[2].label).toBe('');
+    });
+
+    it('émet metriqueChange au toggle', () => {
+      const spy = jest.fn();
+      component.metriqueChange.subscribe(spy);
+      component.toggleLevelActive(4);
+      expect(spy).toHaveBeenCalled();
+    });
+  });
 });

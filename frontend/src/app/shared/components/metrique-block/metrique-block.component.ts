@@ -94,45 +94,87 @@ export class MetriqueBlockComponent {
     this.emit();
   }
 
-  getBoundaryValue(boundary: BoundaryIndex): number | null {
+  // ---------------------------------------------------------------------------
+  // Valeurs-limites (#345) : une valeur-limite n'existe qu'entre deux niveaux
+  // ACTIFS consécutifs. Les colonnes-limites jouxtant un niveau désactivé sont
+  // masquées, et la limite « saute » les niveaux désactivés jusqu'au prochain
+  // niveau actif. Les méthodes sont indexées par la colonne GAUCHE (index i
+  // dans l'ordre d'affichage).
+  // ---------------------------------------------------------------------------
+
+  /** Index (dans l'ordre d'affichage) du prochain niveau actif après la colonne i. */
+  nextActiveIndex(i: number): number {
     const ordered = this.scoreMetaOrdered;
-    const leftLevel = ordered[boundary - 1].level;
-    return (this.block as any)[`score_${leftLevel}_sup`];
+    for (let k = i + 1; k < ordered.length; k++) {
+      if (this.isLevelActive(ordered[k].level)) return k;
+    }
+    return -1;
   }
 
-  setBoundaryValue(boundary: BoundaryIndex, value: number | null): void {
-    const ordered = this.scoreMetaOrdered;
-    const leftLevel = ordered[boundary - 1].level;
-    const rightLevel = ordered[boundary].level;
+  /** La valeur-limite après la colonne i est-elle affichée ? (colonne active + un niveau actif après). */
+  isBoundaryVisible(i: number): boolean {
+    return this.isLevelActive(this.scoreMetaOrdered[i].level) && this.nextActiveIndex(i) >= 0;
+  }
+
+  /** Mnémonique court du niveau actif à droite de la limite après la colonne i. */
+  boundaryRightShortKey(i: number): string {
+    const k = this.nextActiveIndex(i);
+    return k >= 0 ? this.scoreMetaOrdered[k].shortKey : '';
+  }
+
+  /** Niveau (1..5) actif à droite de la limite après la colonne i (pour la couleur). */
+  boundaryRightLevel(i: number): number {
+    const k = this.nextActiveIndex(i);
+    return k >= 0 ? this.scoreMetaOrdered[k].level : 0;
+  }
+
+  getBoundaryValueAt(i: number): number | null {
+    return (this.block as any)[`score_${this.scoreMetaOrdered[i].level}_sup`];
+  }
+
+  setBoundaryValueAt(i: number, value: number | null): void {
+    const leftLevel = this.scoreMetaOrdered[i].level;
+    const k = this.nextActiveIndex(i);
     (this.block as any)[`score_${leftLevel}_sup`] = value;
-    (this.block as any)[`score_${rightLevel}_inf`] = value;
+    if (k >= 0) {
+      (this.block as any)[`score_${this.scoreMetaOrdered[k].level}_inf`] = value;
+    }
     this.emit();
   }
 
-  isBoundaryInLeft(boundary: BoundaryIndex): boolean {
-    const ordered = this.scoreMetaOrdered;
-    const leftLevel = ordered[boundary - 1].level;
-    return (this.block as any)[`score_${leftLevel}_sup_inclusive`];
+  isBoundaryInLeftAt(i: number): boolean {
+    return (this.block as any)[`score_${this.scoreMetaOrdered[i].level}_sup_inclusive`];
   }
 
-  toggleBoundaryInclusion(boundary: BoundaryIndex): void {
-    const ordered = this.scoreMetaOrdered;
-    const leftLevel = ordered[boundary - 1].level;
-    const key = `score_${leftLevel}_sup_inclusive`;
+  toggleBoundaryInclusionAt(i: number): void {
+    const key = `score_${this.scoreMetaOrdered[i].level}_sup_inclusive`;
     (this.block as any)[key] = !(this.block as any)[key];
     this.emit();
   }
 
   getIntervalText(level: ScoreLevel): string {
     if (!this.isLevelActive(level)) return '';
-    const inf = (this.block as any)[`score_${level}_inf`];
-    const sup = (this.block as any)[`score_${level}_sup`];
-    if (inf == null && sup == null) return '—';
 
     const ordered = this.scoreMetaOrdered;
     const idx = ordered.findIndex(m => m.level === level);
-    const prev = idx > 0 ? ordered[idx - 1].level : null;
-    const next = idx < ordered.length - 1 ? ordered[idx + 1].level : null;
+    // Voisins ACTIFS (un niveau désactivé est « traversé » : la borne provient
+    // du prochain niveau actif). #345.
+    let prevIdx = -1;
+    for (let i = idx - 1; i >= 0; i--) { if (this.isLevelActive(ordered[i].level)) { prevIdx = i; break; } }
+    let nextIdx = -1;
+    for (let i = idx + 1; i < ordered.length; i++) { if (this.isLevelActive(ordered[i].level)) { nextIdx = i; break; } }
+    const prev = prevIdx >= 0 ? ordered[prevIdx].level : null;
+    const next = nextIdx >= 0 ? ordered[nextIdx].level : null;
+
+    // #341 — la borne inf d'un niveau = la valeur-limite à sa gauche (sup du
+    // voisin actif précédent), pas `score_${level}_inf` qui peut ne pas être
+    // renseigné (ex. niveau extrême « très mauvais » en sens décroissant).
+    const inf = prev != null
+      ? (this.block as any)[`score_${prev}_sup`]
+      : (this.block as any)[`score_${level}_inf`];
+    const sup = (this.block as any)[`score_${level}_sup`];
+    if (inf == null && sup == null) return '—';
+
     const infInclusive = prev ? !this.supInclusiveFor(prev) : true;
     const supInclusive = next ? this.supInclusiveFor(level) : true;
 

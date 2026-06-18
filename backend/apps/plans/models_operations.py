@@ -226,7 +226,16 @@ class SuiviInventaire(models.Model):
         max_length=500,
         blank=True,
         default='',
-        help_text=_("Référentiel habitat associé")
+        help_text=_("Référentiel habitat associé (noms, conservé pour l'affichage hérité)")
+    )
+    # Habitats structurés : liste de {cd_hab, lb_hab_fr}. Permet d'afficher les
+    # correspondances EUNIS/Corine/Cahiers (qui nécessitent le cd_hab) — le champ
+    # texte `habitat_ref` ci-dessus ne stockait que les noms.
+    habitats = models.JSONField(
+        _("Habitats (structurés)"),
+        default=list,
+        blank=True,
+        help_text=_("Liste d'habitats HabRef : [{cd_hab, lb_hab_fr}, ...]")
     )
     id_statut = models.ForeignKey(
         'core.Nomenclature',
@@ -561,6 +570,20 @@ class Operation(models.Model):
         help_text=_("Emprise géographique de l'opération")
     )
 
+    # #367 / #227 — Rattachement direct à un indicateur (état ou pression).
+    # Permet de créer une action « dans l'indicateur » sans métrique préalable.
+    # Le lien vers une/des métrique(s) (M2M ci-dessous) devient alors optionnel.
+    id_indicateur = models.ForeignKey(
+        'plans.Indicateur',
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name='operations',
+        db_column='id_indicateur',
+        verbose_name=_("Indicateur"),
+        help_text=_("Indicateur (état ou pression) auquel l'action est rattachée, sans passer par une métrique")
+    )
+
     # M2M vers Métriques (une opération peut être liée à plusieurs métriques)
     metriques = models.ManyToManyField(
         'plans.Metrique',
@@ -646,9 +669,10 @@ class Operation(models.Model):
         Implémente l'interface utilisée par CanModifyOnlyDraftPlan (#248).
         Une opération est rattachée au plan via :
           - son suivi/inventaire (id_suivi → SuiviInventaire.id_pg) en priorité,
-          - sinon une de ses métriques (M2M via CorOperationMetrique).
+          - sinon une de ses métriques (M2M via CorOperationMetrique),
+          - sinon son indicateur direct (id_indicateur, #367).
         Note : un suivi peut être orphelin (id_pg=None), auquel cas on
-        retombe sur les métriques.
+        retombe sur les métriques puis l'indicateur.
         """
         if self.id_suivi_id:
             try:
@@ -660,6 +684,12 @@ class Operation(models.Model):
         first_metrique = self.metriques.first() if hasattr(self, "metriques") else None
         if first_metrique is not None:
             return first_metrique.get_plan_de_gestion()
+        # #367 — action rattachée directement à un indicateur (sans métrique)
+        if self.id_indicateur_id:
+            try:
+                return self.id_indicateur.get_plan_de_gestion()
+            except Exception:
+                pass
         return None
 
     @property
@@ -695,6 +725,103 @@ class Operation(models.Model):
             except Exception:
                 pass
         return 'AC'
+
+    # #355 — Réalisation GLOBALE (sur toute la période du PG).
+    # Libellés des niveaux (alignés sur la nomenclature NIVEAU_REALISATION) pour
+    # exposer un libellé sans requête supplémentaire lors de la sérialisation.
+    NIVEAU_REALISATION_LABELS = {
+        'NON_DEMARRE': 'Non démarré',
+        'EN_COURS': 'En cours',
+        'PARTIEL': 'Partiel',
+        'TERMINE': 'Terminé',
+        'ABANDONNE': 'Abandonné',
+        'REPORTE': 'Reporté',
+        'NON_REALISE': 'Non réalisée',  # #379
+    }
+
+    def compute_niveau_realisation_global(self):
+        """
+        #355 — Calcule le niveau de réalisation GLOBAL d'une action sur la période,
+        à partir des réalisations annuelles de ses années *programmées*.
+
+        Années programmées = OperationAnnee avec periodicite=True (à défaut, toutes
+        les années de l'opération). Règle :
+          - aucune année programmée                       → None
+          - aucune réalisation saisie                     → NON_DEMARRE
+          - toutes les années programmées TERMINE         → TERMINE
+          - uniquement ABANDONNE / uniquement REPORTE      → ABANDONNE / REPORTE
+          - au moins une TERMINE/EN_COURS (mais pas toutes)→ EN_COURS
+          - uniquement des PARTIEL                          → PARTIEL
+          - sinon                                          → NON_DEMARRE
+
+        Renvoie le mnémonique (str) ou None. Mapping volontairement conservateur :
+        une action récurrente réalisée 1 an sur 10 reste « En cours », pas « Terminé ».
+        """
+        annees = list(self.operation_annees.all())
+        programmed = [oa for oa in annees if oa.periodicite] or annees
+        if not programmed:
+            return None
+
+        mnems = []
+        for oa in programmed:
+            real = getattr(oa, 'realisation', None)
+            if real is not None and real.id_niveau_realisation_id:
+                mnems.append(real.id_niveau_realisation.mnemonique)
+            else:
+                mnems.append(None)
+
+        filled = [m for m in mnems if m]
+        if not filled:
+            return 'NON_DEMARRE'
+
+        unique = set(filled)
+        if filled and all(m == 'TERMINE' for m in mnems):
+            return 'TERMINE'
+        if unique == {'ABANDONNE'}:
+            return 'ABANDONNE'
+        if unique == {'REPORTE'}:
+            return 'REPORTE'
+        if unique == {'NON_REALISE'}:
+            return 'NON_REALISE'  # #379 — toutes les années programmées non réalisées
+        if unique <= {'NON_DEMARRE', 'NON_REALISE'}:
+            # Ni progression ni terminaison : non réalisé si au moins une année
+            # explicitement « non réalisée », sinon simplement non démarré.
+            return 'NON_REALISE' if 'NON_REALISE' in unique else 'NON_DEMARRE'
+        if 'TERMINE' in unique or 'EN_COURS' in unique:
+            return 'EN_COURS'
+        if 'PARTIEL' in unique:
+            return 'PARTIEL'
+        return 'NON_DEMARRE'
+
+    @property
+    def realisation_globale_override(self):
+        """Objet OperationRealisationGlobale (surcharge manuelle) ou None."""
+        return getattr(self, 'realisation_globale', None)
+
+    def get_niveau_realisation_global(self):
+        """
+        Mnémonique effectif du niveau global : la surcharge manuelle si elle existe,
+        sinon le calcul automatique (#355, statut hybride).
+        """
+        ov = self.realisation_globale_override
+        if ov is not None and ov.id_niveau_realisation_id:
+            return ov.id_niveau_realisation.mnemonique
+        return self.compute_niveau_realisation_global()
+
+    def get_niveau_realisation_global_label(self):
+        """Libellé lisible du niveau global effectif (ou None)."""
+        mnem = self.get_niveau_realisation_global()
+        return self.NIVEAU_REALISATION_LABELS.get(mnem) if mnem else None
+
+    def is_niveau_realisation_global_manuel(self):
+        """True si le niveau global est issu d'une surcharge manuelle."""
+        ov = self.realisation_globale_override
+        return bool(ov is not None and ov.id_niveau_realisation_id)
+
+    def get_niveau_realisation_global_commentaire(self):
+        """Commentaire global de l'action (page globale) ou None (#356)."""
+        ov = self.realisation_globale_override
+        return ov.commentaire_override if ov else None
 
 
 class CorOperationSite(models.Model):
@@ -1052,5 +1179,70 @@ class RealisationOperationAnneeOrganisme(models.Model):
                 .id_operation
                 .get_plan_de_gestion()
             )
+        except Exception:
+            return None
+
+
+class OperationRealisationGlobale(models.Model):
+    """
+    #355 — Surcharge MANUELLE du niveau de réalisation global d'une action
+    (sur toute la période du PG). 1-1 avec Operation.
+
+    En l'absence de cette ligne, le niveau global est calculé automatiquement
+    (Operation.compute_niveau_realisation_global). Quand un gestionnaire force
+    un statut (action faite en avance/retard, ou « terminée » malgré une session
+    manquante), on enregistre la surcharge ici. C'est de la donnée de SUIVI :
+    elle reste éditable après validation du plan (pas de verrou brouillon),
+    comme RealisationOperationAnnee.
+    """
+
+    id_operation_realisation_globale = models.AutoField(primary_key=True)
+    id_operation = models.OneToOneField(
+        Operation,
+        on_delete=models.CASCADE,
+        related_name='realisation_globale',
+        db_column='id_operation',
+        verbose_name=_("Opération")
+    )
+    id_niveau_realisation = models.ForeignKey(
+        'core.Nomenclature',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='realisations_globales_niveau',
+        db_column='id_niveau_realisation',
+        verbose_name=_("Niveau de réalisation global (surcharge)"),
+        limit_choices_to={'id_type__mnemonique': 'NIVEAU_REALISATION'}
+    )
+    commentaire_override = models.TextField(
+        _("Commentaire de surcharge"),
+        blank=True,
+        null=True
+    )
+    date_ajout = models.DateTimeField(_("Date d'ajout"), auto_now_add=True)
+    date_maj = models.DateTimeField(_("Date de modification"), auto_now=True)
+    id_utilisateur_maj = models.ForeignKey(
+        'users.Role',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='+',
+        db_column='id_utilisateur_maj',
+        verbose_name=_("Dernier modificateur")
+    )
+
+    class Meta:
+        db_table = '"general"."t_operation_realisation_globale"'
+        db_table_comment = "Surcharge manuelle du niveau de réalisation global d'une action (#355)"
+        verbose_name = _("Réalisation globale d'opération")
+        verbose_name_plural = _("Réalisations globales d'opération")
+
+    def __str__(self):
+        return f"Réalisation globale Opération {self.id_operation_id}"
+
+    def get_plan_de_gestion(self):
+        """Permet le scoping par plan via Operation."""
+        try:
+            return self.id_operation.get_plan_de_gestion()
         except Exception:
             return None

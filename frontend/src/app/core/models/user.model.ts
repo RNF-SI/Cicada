@@ -73,6 +73,8 @@ export interface LoginResponse {
  */
 export interface RefreshResponse {
   access: string;
+  /** Présent quand ROTATE_REFRESH_TOKENS est actif côté backend. */
+  refresh?: string;
 }
 
 /**

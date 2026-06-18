@@ -249,6 +249,25 @@ class ValidationRequestViewSet(viewsets.ModelViewSet):
         serializer = ValidationRequestListSerializer(queryset, many=True)
         return Response(serializer.data)
 
+    @action(detail=True, methods=['get'])
+    def validators(self, request, pk=None):
+        """Liste des validateurs (nom + rôle) pouvant traiter cette demande.
+
+        Permet au demandeur de savoir à qui sa demande a été transmise.
+        Le demandeur lui-même est exclu de la liste.
+        """
+        validation_request = self.get_object()
+        validator_set = ValidationService.get_validators_for_request(validation_request)
+        is_self_validator = any(
+            v.id_role == request.user.id_role for v in validator_set
+        )
+        return Response({
+            'validators': ValidationService.serialize_validators(
+                validator_set, exclude=validation_request.requester
+            ),
+            'is_self_validator': is_self_validator,
+        })
+
     @action(detail=False, methods=['get'])
     def types(self, request):
         """
@@ -420,6 +439,12 @@ class ValidationRequestViewSet(viewsets.ModelViewSet):
                     )
                 elif validation_request.request_type == 'admin_demotion':
                     ValidationService.approve_admin_demotion(
+                        validation_request,
+                        request.user,
+                        comment
+                    )
+                elif validation_request.request_type == 'organisme_creation':
+                    ValidationService.approve_organisme_creation(
                         validation_request,
                         request.user,
                         comment

@@ -35,7 +35,8 @@ export type ValidationRequestType =
   | 'site_org_link'
   | 'plan_site_link'
   | 'invite_org_to_site'
-  | 'invite_user_to_site';
+  | 'invite_user_to_site'
+  | 'organisme_creation';
 
 // Modules disponibles pour les demandes d'accès
 export type ModuleCode = 'zonages' | 'inventaires' | 'plans' | 'sites';
@@ -137,6 +138,19 @@ export interface ValidationRequest {
     id: number;
     nom_organisme: string;
   };
+  /** Données proposées pour une demande de création (ex: organisme à créer) */
+  requested_data?: {
+    nom_organisme?: string;
+    parent_id?: number | null;
+    adresse_organisme?: string;
+    cp_organisme?: string;
+    ville_organisme?: string;
+    tel_organisme?: string;
+    email_organisme?: string;
+    url_organisme?: string;
+  };
+  /** ID d'une demande liée (ex: l'inscription rattachée à une création d'organisme) */
+  related_request?: number | null;
   requested_role_level?: string;
   justification?: string;
   validator?: {
@@ -193,6 +207,34 @@ export interface ValidationRequestListItem {
   request_as_referent?: boolean;
   /** Indique si cette demande site_access est bloquée par un site_org_link en attente */
   blocked_by_org_link?: boolean;
+}
+
+/**
+ * Validateur pouvant traiter une demande (nom + rôle).
+ */
+export interface ValidatorInfo {
+  id: number;
+  name: string;
+  email: string;
+  role_level: string;
+  role_label: string;
+  organisme: string | null;
+}
+
+/**
+ * Réponse de GET /api/validations/{id}/validators/
+ */
+export interface RequestValidatorsResponse {
+  validators: ValidatorInfo[];
+  is_self_validator: boolean;
+}
+
+/**
+ * Réponse de GET /api/users/sites/creation-validators/ (aperçu avant création).
+ */
+export interface SiteCreationValidatorsResponse {
+  auto_validated: boolean;
+  validators: ValidatorInfo[];
 }
 
 /**

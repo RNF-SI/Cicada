@@ -18,6 +18,14 @@
 
   &.row-with-action { align-items: center; }
   .flex-1 { flex: 1 1 0; min-width: 0; }
+
+  // Neutralise la règle globale `app-form-field + app-form-field { margin-top }`
+  // (styles.scss) : côte à côte dans une grille, les champs doivent rester
+  // alignés en haut. L'espacement vertical entre lignes vient du gap du
+  // conteneur `.metrique-form`.
+  app-form-field {
+    margin-top: 0;
+  }
 }
 
 .required { color: $error-color; }
@@ -414,4 +422,132 @@
 
   &:hover { background: rgba($primary-color, 0.06); }
   i { font-size: 14px; }
+}
+
+// #339 — Grille de score CHIFFRE / TEXTE (alignée sur l'affichage numérique)
+.score-threshold-grid {
+  display: flex;
+  gap: 0;
+  margin-top: $spacing-sm;
+  border-radius: $border-radius-sm;
+  overflow: hidden;
+  border: 1px solid $gray-light;
+}
+
+.score-column {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+
+  &:not(:last-child) {
+    border-right: 1px solid $gray-light;
+  }
+}
+
+.score-column-header {
+  padding: $spacing-xs;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+
+  .score-header-label {
+    font-size: 11px;
+    font-weight: $font-weight-bold;
+    color: $black;
+    line-height: 1.2;
+  }
+
+  .score-header-value {
+    font-size: 11px;
+    font-weight: $font-weight-medium;
+    color: $black;
+  }
+
+  &.score-header-1 { background-color: $score-very-bad; }
+  &.score-header-2 { background-color: $score-bad; }
+  &.score-header-3 { background-color: $score-neutral; }
+  &.score-header-4 { background-color: $score-good; }
+  &.score-header-5 { background-color: $score-very-good; }
+}
+
+.score-column-inputs {
+  display: flex;
+  flex-direction: column;
+  padding: $spacing-xs;
+  gap: $spacing-xxs;
+  flex: 1;
+}
+
+// #359 — colonne d'un niveau « non utilisé » : grisée
+.score-column.inactive {
+  opacity: 0.5;
+
+  .score-column-header { filter: grayscale(0.7); }
+
+  .level-unused {
+    font-size: 12px;
+    font-style: italic;
+    color: $gray-dark;
+    text-align: center;
+    padding: $spacing-xs 0;
+  }
+}
+
+// #359 — cartouche « Niveaux actifs » (réplique de metrique-block)
+.simple-levels-config {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+  flex-wrap: wrap;
+  margin-top: $spacing-sm;
+
+  .config-label {
+    font-size: 13px;
+    color: $black;
+    font-weight: $font-weight-regular;
+  }
+
+  .level-tags {
+    display: flex;
+    gap: $spacing-xs;
+    flex-wrap: wrap;
+  }
+
+  .level-tag {
+    padding: 4px 12px;
+    border-radius: $border-radius-sm;
+    border: none;
+    font-family: $font-family;
+    font-size: 13px;
+    font-weight: $font-weight-bold;
+    color: $black;
+    cursor: pointer;
+    transition: opacity 0.15s ease, background 0.15s ease;
+
+    &.level-tag-1 { background: $score-very-bad; }
+    &.level-tag-2 { background: $score-bad; }
+    &.level-tag-3 { background: $score-neutral; }
+    &.level-tag-4 { background: $score-good; }
+    &.level-tag-5 { background: $score-very-good; }
+
+    &.inactive {
+      background: $gray-lighter !important;
+      color: $gray-dark;
+      text-decoration: line-through;
+    }
+
+    &:hover { opacity: 0.85; }
+  }
+}
+
+.metrique-indetermine-hint {
+  margin-top: $spacing-sm;
+  padding: $spacing-sm;
+  background: $gray-lighter;
+  border-radius: $border-radius-sm;
+  color: $gray-dark;
+  font-size: 13px;
 }

@@ -227,6 +227,34 @@ class TestOperationCreateEndpoint:
         }, format='json')
         assert response.status_code == status.HTTP_201_CREATED
 
+    def test_create_action_on_indicateur_without_metrique(self, api_client, operation_test_data):
+        """#367 — créer une action rattachée directement à un indicateur, sans métrique."""
+        api_client.force_authenticate(user=operation_test_data['referent'])
+        indicateur = operation_test_data['indicateur1']
+        response = api_client.post('/api/plans/operations/', {
+            'libelle': 'Action sans métrique',
+            'id_indicateur': indicateur.id_indicateur,
+        }, format='json')
+        assert response.status_code == status.HTTP_201_CREATED, response.data
+        op = Operation.objects.get(libelle='Action sans métrique')
+        assert op.id_indicateur_id == indicateur.id_indicateur
+        assert op.metriques.count() == 0
+        # Le plan doit être résolu via l'indicateur (permission draft, #248/#367).
+        assert op.get_plan_de_gestion() is not None
+
+    def test_indicateur_action_appears_in_by_indicateur(self, api_client, operation_test_data):
+        """#367 — une action rattachée à l'indicateur apparaît dans by-indicateur."""
+        api_client.force_authenticate(user=operation_test_data['referent'])
+        indicateur = operation_test_data['indicateur1']
+        api_client.post('/api/plans/operations/', {
+            'libelle': 'Action directe indicateur',
+            'id_indicateur': indicateur.id_indicateur,
+        }, format='json')
+        response = api_client.get(f'/api/plans/operations/by-indicateur/{indicateur.id_indicateur}/')
+        assert response.status_code == status.HTTP_200_OK
+        libelles = [o['libelle'] for o in response.data['operations']]
+        assert 'Action directe indicateur' in libelles
+
     def test_create_with_all_fields(self, api_client, operation_test_data):
         """Test create with all optional fields."""
         api_client.force_authenticate(user=operation_test_data['super_admin'])
@@ -824,6 +852,66 @@ class TestOperationByIndicateurEndpoint:
         api_client.force_authenticate(user=operation_test_data['super_admin'])
         response = api_client.get('/api/plans/operations/by-indicateur/99999/')
         assert response.status_code == status.HTTP_404_NOT_FOUND
+
+
+# =============================================================================
+# TestOperationCreateIndicator (indicateurs de réponse)
+# =============================================================================
+
+@pytest.mark.django_db
+@pytest.mark.integration
+class TestOperationCreateIndicator:
+    """Tests for POST /api/plans/operations/{id}/create-indicator/ (indicateur de réponse)."""
+
+    def test_create_indicator_from_metrique_parent(self, api_client, operation_test_data):
+        """Action rattachée à une métrique → indicateur de réponse créé sous le même NE/RA."""
+        api_client.force_authenticate(user=operation_test_data['super_admin'])
+        op = operation_test_data['op1']  # lié à metrique1 (indicateur1, sous NE)
+        response = api_client.post(
+            f'/api/plans/operations/{op.id_operation}/create-indicator/',
+            {'nom_indicateur': 'Indicateur de réponse A'}, format='json',
+        )
+        assert response.status_code == status.HTTP_201_CREATED
+        assert response.data['nom_indicateur'] == 'Indicateur de réponse A'
+        # Le nouvel indicateur est rattaché au plan via l'op (vérif via by-indicateur)
+        new_ind_id = response.data['id_indicateur']
+        from apps.plans.models_indicateurs import Indicateur
+        new_ind = Indicateur.objects.get(pk=new_ind_id)
+        assert new_ind.id_ne_id == operation_test_data['indicateur1'].id_ne_id
+
+    def test_create_indicator_from_direct_indicator_no_metrique(self, api_client, operation_test_data):
+        """#367 — action rattachée directement à un indicateur (sans métrique) :
+        l'indicateur de réponse est tout de même créé (parent hérité de l'indicateur direct)."""
+        api_client.force_authenticate(user=operation_test_data['super_admin'])
+        op_direct = OperationFactory(
+            id_indicateur=operation_test_data['indicateur1'],
+            id_utilisateur_ajout=operation_test_data['referent'],
+        )  # pas de métrique
+        response = api_client.post(
+            f'/api/plans/operations/{op_direct.id_operation}/create-indicator/',
+            {'nom_indicateur': 'Réponse sans métrique'}, format='json',
+        )
+        assert response.status_code == status.HTTP_201_CREATED
+        assert response.data['nom_indicateur'] == 'Réponse sans métrique'
+
+    def test_create_indicator_without_name_returns_400(self, api_client, operation_test_data):
+        api_client.force_authenticate(user=operation_test_data['super_admin'])
+        op = operation_test_data['op1']
+        response = api_client.post(
+            f'/api/plans/operations/{op.id_operation}/create-indicator/',
+            {'nom_indicateur': '  '}, format='json',
+        )
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+    def test_create_indicator_without_parent_returns_400(self, api_client, operation_test_data):
+        """Ni métrique ni indicateur direct → 400."""
+        api_client.force_authenticate(user=operation_test_data['super_admin'])
+        orphan = OperationFactory(id_utilisateur_ajout=operation_test_data['referent'])
+        response = api_client.post(
+            f'/api/plans/operations/{orphan.id_operation}/create-indicator/',
+            {'nom_indicateur': 'Orpheline'}, format='json',
+        )
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
 
 
 # =============================================================================
