@@ -371,21 +371,32 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: $spacing-md;
   margin-bottom: $spacing-md;
 }
 
+// #379 — FILTRER + boutons à gauche, tout sur une seule ligne
 .filter-bar-left {
   display: flex;
   align-items: center;
   gap: 0;
-  flex-wrap: wrap;
+  flex: 1;
+  min-width: 0;
 }
 
-// #379 — barre de recherche d'action dans la barre de filtres
+// #379 — recherche (+ export) à droite, même ligne (Figma 4366-24484)
+.filter-bar-right {
+  display: flex;
+  align-items: center;
+  gap: $spacing-md;
+  flex-shrink: 0;
+}
+
+// #379 — barre de recherche d'action (à droite)
 .action-search {
   display: block;
+  width: 240px;
   max-width: 280px;
-  margin-right: $spacing-md;
 }
 
 .filter-label {
