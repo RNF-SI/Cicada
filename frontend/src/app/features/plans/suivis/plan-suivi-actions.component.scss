@@ -56,8 +56,8 @@
 }
 
 .hero-pattern {
+  // Vagues blanches visibles à droite, comme les pages site / plan de gestion (#383)
   @include plan-page-hero-pattern;
-  opacity: 0.2;
 }
 
 .hero-content {
