@@ -334,21 +334,26 @@ class PlanGestionDetailSerializer(serializers.ModelSerializer):
     organismes_redacteurs_list = serializers.SerializerMethodField(read_only=True)
 
     def get_peut_etre_etendu(self, obj):
-        """Indique si le plan est dans la fenêtre permettant l'extension (#250).
+        """Indique si le plan peut donner lieu à une prolongation (#250 — refonte).
 
-        L'extension est ouverte aux plans validés (valide / modifie /
-        mi_parcours) qui ne sont pas déjà étendus. L'attribut `en_revision`
-        peut cohabiter mais n'est pas requis.
+        Une prolongation crée un brouillon de version étendue. Elle est ouverte
+        aux plans validés (valide / modifie) qui n'ont pas encore atteint le
+        cumul maximum de 2 ans d'extension et qui n'ont pas déjà un brouillon
+        enfant en cours. Couvre aussi la reconduction (+1 an) depuis une version
+        étendue de 1 an déjà validée.
         """
         from datetime import date
         if obj.statut not in PlanGestion.EXTENDABLE_STATUSES:
             return False
-        if obj.annees_extension and obj.annees_extension > 0:
+        if (obj.annees_extension or 0) >= 2:
+            return False
+        if obj.has_draft_child():
             return False
         if not obj.annee_fin:
             return False
+        effective_end = obj.annee_fin + (obj.annees_extension or 0)
         current_year = date.today().year
-        return obj.annee_fin - 1 <= current_year <= obj.annee_fin + 2
+        return effective_end - 1 <= current_year <= effective_end + 2
 
     def get_annee_fin_effective(self, obj):
         """Année de fin effective (annee_fin + annees_extension si étendu)."""

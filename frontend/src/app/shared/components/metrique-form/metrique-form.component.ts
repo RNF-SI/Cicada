@@ -168,6 +168,8 @@ export class MetriqueFormComponent {
   addBlock(): void {
     const newBlock: MetriqueScoreBlock = {
       position: this.blocks.length + 1,
+      intitule: '',
+      unite: '',
       logical_op: 'OR',
       group_open: 0,
       group_close: 0,
@@ -288,6 +290,8 @@ export class MetriqueFormComponent {
     this.metrique.score_blocks = unified.slice(1).map((b, i) => ({
       id_score_block: undefined, // serializer recrée toujours les complémentaires
       position: i + 1,
+      intitule: b.intitule ?? '',
+      unite: b.unite ?? '',
       logical_op: (b.logical_op as 'OR' | 'AND') ?? 'OR',
       group_open: b.group_open ?? 0,
       group_close: b.group_close ?? 0,
@@ -318,6 +322,10 @@ export class MetriqueFormComponent {
       group_open: m.group_open ?? 0,
       group_close: m.group_close ?? 0,
       sens_variation: m.sens_variation,
+      // L'intitulé/unité du principal voyagent aussi (intitulé = bloc_intitule,
+      // unité = unite de la métrique) pour rester attachés au contenu du bloc.
+      intitule: m.bloc_intitule ?? '',
+      unite: m.unite ?? '',
       score_1_inf: m.scores[1]?.inf ?? null, score_1_sup: m.scores[1]?.sup ?? null,
       score_2_inf: m.scores[2]?.inf ?? null, score_2_sup: m.scores[2]?.sup ?? null,
       score_3_inf: m.scores[3]?.inf ?? null, score_3_sup: m.scores[3]?.sup ?? null,
@@ -339,6 +347,9 @@ export class MetriqueFormComponent {
   private applyUnifiedToMain(b: any): void {
     const m = this.metrique;
     m.sens_variation = b.sens_variation;
+    // L'intitulé/unité du bloc devenu principal alimentent bloc_intitule + unite.
+    m.bloc_intitule = b.intitule ?? '';
+    m.unite = b.unite ?? '';
     m.scores = {
       1: { inf: b.score_1_inf, sup: b.score_1_sup, val: m.scores[1]?.val ?? null, label: m.scores[1]?.label ?? '' },
       2: { inf: b.score_2_inf, sup: b.score_2_sup, val: m.scores[2]?.val ?? null, label: m.scores[2]?.label ?? '' },
@@ -424,15 +435,15 @@ export class MetriqueFormComponent {
   getFormulaText(): string {
     const mainOpens = '('.repeat(this.metrique.group_open ?? 0);
     const mainCloses = ')'.repeat(this.metrique.group_close ?? 0);
-    const mainLabel = this.formatBlockLabel(this.metrique._letter ?? 'A');
+    const mainLabel = this.blockLabel(0);
     const parts: string[] = [`${mainOpens}${mainLabel}${mainCloses}`];
-    this.blocks.forEach((block) => {
+    this.blocks.forEach((block, idx) => {
       const op = ' ' + this.translate(block.logical_op === 'AND'
         ? 'enjeux.metriques.opAnd'
         : 'enjeux.metriques.opOr') + ' ';
       const opens = '('.repeat(block.group_open ?? 0);
       const closes = ')'.repeat(block.group_close ?? 0);
-      const label = this.formatBlockLabel(block._letter ?? '?');
+      const label = this.blockLabel(idx + 1);
       parts.push(`${op}${opens}${label}${closes}`);
     });
     return parts.join('');
@@ -489,7 +500,7 @@ export class MetriqueFormComponent {
     parts.push({
       kind: 'block',
       blockIdx: 0,
-      label: this.formatBlockLabel(this.metrique._letter ?? 'A'),
+      label: this.blockLabel(0),
     });
     for (let k = 0; k < (this.metrique.group_close ?? 0); k++) {
       parts.push({ kind: 'close', blockIdx: 0 });
@@ -511,7 +522,7 @@ export class MetriqueFormComponent {
       parts.push({
         kind: 'block',
         blockIdx: i + 1,
-        label: this.formatBlockLabel(block._letter ?? '?'),
+        label: this.blockLabel(i + 1),
       });
       for (let k = 0; k < (block.group_close ?? 0); k++) {
         parts.push({ kind: 'close', blockIdx: i + 1 });
@@ -521,8 +532,31 @@ export class MetriqueFormComponent {
     return parts;
   }
 
-  /** Formate le libellé visible : "Bloc A", "Bloc B", … */
-  private formatBlockLabel(letter: string): string {
+  /**
+   * Libellé d'affichage d'un bloc : « intitulé (unité) » (ex: « hauteur (m) »),
+   * ou juste « intitulé » si l'unité est vide. À défaut d'intitulé, retombe sur
+   * « Bloc <lettre> ». `idx` = 0 → bloc principal (intitulé = `bloc_intitule`,
+   * unité = `unite` de la métrique), idx ≥ 1 → bloc complémentaire `blocks[idx-1]`.
+   */
+  blockLabel(idx: number): string {
+    let intitule: string | null | undefined;
+    let unite: string | null | undefined;
+    let letter: string;
+    if (idx === 0) {
+      intitule = this.metrique.bloc_intitule;
+      unite = this.metrique.unite;
+      letter = this.metrique._letter ?? 'A';
+    } else {
+      const block = this.blocks[idx - 1];
+      intitule = block?.intitule;
+      unite = block?.unite;
+      letter = block?._letter ?? '?';
+    }
+    const label = (intitule ?? '').trim();
+    if (label) {
+      const u = (unite ?? '').trim();
+      return u ? `${label} (${u})` : label;
+    }
     return this.translate('enjeux.metriques.blockLabel') + ' ' + letter;
   }
 

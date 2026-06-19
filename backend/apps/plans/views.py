@@ -1477,21 +1477,27 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
             permission_classes=[permissions.IsAuthenticated, IsReferent])
     def extend_duration(self, request, pk=None):
         """
-        Étendre la durée d'un plan de gestion de 1 ou 2 années (#250).
+        Prolonger un plan de gestion (#250 — refonte).
 
         POST /api/plans/plans/{id}/extend-duration/
         Body: {"years": 1}  ou  {"years": 2}
 
+        Crée un **brouillon de nouvelle version étendue** : copie de toutes les
+        métadonnées et de tout le contenu (enjeux, hiérarchie, suivis,
+        opérations) du plan source, avec `annees_extension` cumulé (max 2 ans).
+        Le gestionnaire complète ce brouillon (actions / suivi des années
+        ajoutées) puis le valide ; le plan d'origine peut alors être archivé
+        (pop-up #246). Une première prolongation de 1 an peut être reconduite
+        d'une année supplémentaire (cumul max 2 ans) en repartant de la version
+        étendue validée.
+
         Conditions :
         - Référent du plan, admin_og ou super_admin.
-        - Plan dans un statut validé (`valide`, `modifie`, `mi_parcours`,
-          `en_revision`). Pas de double extension (annees_extension == 0).
-        - Date courante ∈ [annee_fin - 1, annee_fin + 2] (fenêtre de déclenchement).
-        - `years` ∈ {1, 2}.
-
-        Effet : `annees_extension` = N. Le statut du plan n'est PAS modifié :
-        « étendu » est un attribut orthogonal au statut. Le plan reste donc
-        verrouillé en lecture seule par #248 si son statut !== `draft`.
+        - Plan source validé (`valide`, `modifie`), sans brouillon enfant en
+          cours.
+        - `annee_fin` renseignée, date courante dans la fenêtre de déclenchement
+          autour de l'échéance effective (`annee_fin + annees_extension`).
+        - `years` ∈ {1, 2}, cumul d'extension ≤ 2 ans.
         """
         from datetime import date
 
@@ -1505,17 +1511,17 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_403_FORBIDDEN
             )
 
-        # Statut compatible : tout statut post-validation hors archive.
+        # Statut compatible : plan validé (validé / modifié).
         if plan.statut not in PlanGestion.EXTENDABLE_STATUSES:
             return Response(
-                {'error': "Seul un plan validé (validé, modifié, mi-parcours ou en révision) peut être prolongé."},
+                {'error': "Seul un plan validé (validé ou modifié) peut être prolongé."},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        # Pas de double extension.
-        if plan.annees_extension and plan.annees_extension > 0:
+        # Un seul brouillon enfant à la fois.
+        if plan.has_draft_child():
             return Response(
-                {'error': "Ce plan est déjà prolongé."},
+                {'error': "Un brouillon est déjà en cours sur ce plan. Validez ou supprimez le brouillon existant avant de prolonger."},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
@@ -1526,49 +1532,98 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        # Fenêtre de déclenchement : [annee_fin - 1, annee_fin + 2].
+        # Cumul d'extension ≤ 2 ans.
+        current_ext = plan.annees_extension or 0
+        remaining = 2 - current_ext
+        if remaining <= 0:
+            return Response(
+                {'error': "Ce plan est déjà prolongé au maximum (2 ans cumulés)."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Fenêtre de déclenchement autour de l'échéance effective.
+        effective_end = plan.annee_fin + current_ext
         current_year = date.today().year
-        if not (plan.annee_fin - 1 <= current_year <= plan.annee_fin + 2):
+        if not (effective_end - 1 <= current_year <= effective_end + 2):
             return Response(
                 {'error': (
-                    f"Le plan ne peut être prolongé qu'entre {plan.annee_fin - 1} "
-                    f"et {plan.annee_fin + 2} (année actuelle : {current_year})."
+                    f"Le plan ne peut être prolongé qu'entre {effective_end - 1} "
+                    f"et {effective_end + 2} (année actuelle : {current_year})."
                 )},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        # Valeur d'extension : 1 ou 2.
+        # Valeur d'extension : 1 ou 2, dans la limite du cumul restant.
         try:
             years = int(request.data.get('years'))
         except (TypeError, ValueError):
             years = None
 
-        if years not in (1, 2):
+        if years not in (1, 2) or years > remaining:
+            choices = "1 ou 2" if remaining >= 2 else "1"
             return Response(
-                {'error': "Le paramètre 'years' doit valoir 1 ou 2."},
+                {'error': f"Le paramètre 'years' doit valoir {choices} (cumul max 2 ans)."},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        plan.annees_extension = years
-        plan.id_utilisateur_maj = request.user
-        plan.save(update_fields=['annees_extension', 'id_utilisateur_maj', 'date_maj'])
+        new_extension = current_ext + years
+
+        # Créer le brouillon de version étendue (copie métadonnées + contenu),
+        # même rang que le plan source — il sera validé en `modifie` puis le
+        # plan d'origine archivé (pop-up #246). #377 — copie complète.
+        new_plan = PlanDuplicationService.build_version_plan(
+            plan, request.user,
+            nom=f"Plan de gestion étendu - {plan.nom}",
+            version=plan.get_next_version(),
+            annees_extension=new_extension,
+        )
+        new_plan.save()
+
+        # Copier les sites
+        for cor_site in plan.sites.all():
+            CorSitePg.objects.create(
+                plan_de_gestion=new_plan,
+                site=cor_site.site,
+                rang=cor_site.rang,
+            )
+
+        # Copier les référents
+        new_plan.referents.set(plan.referents.all())
+
+        # Copier les membres (CorRolePlan)
+        from .models import CorRolePlan
+        for membre in plan.membres.all():
+            CorRolePlan.objects.create(
+                id_role=membre.id_role,
+                plan_de_gestion=new_plan,
+                referent=membre.referent,
+            )
+
+        # #377 — Copier tout le contenu pour que la version étendue soit
+        # éditable (ajout d'actions, suivi) sans impacter la version source.
+        PlanDuplicationService.copy_content(plan, new_plan, request.user)
+        new_plan.update_geometrie()
 
         # Log activity
         try:
             from apps.core.services import ActivityService
             ActivityService.log(
                 user=request.user,
-                action='update',
+                action='create',
                 entity_type='plan',
-                entity_id=plan.id_pg,
-                entity_name=plan.nom,
-                description=f"Plan prolongé de {years} an{'s' if years > 1 else ''}",
+                entity_id=new_plan.id_pg,
+                entity_name=new_plan.nom,
+                description=(
+                    f"Brouillon de version étendue (+{years} an{'s' if years > 1 else ''}, "
+                    f"cumul {new_extension} an{'s' if new_extension > 1 else ''}) "
+                    f"créé depuis '{plan.nom}'"
+                ),
             )
         except Exception:
             pass
 
-        serializer = PlanGestionDetailSerializer(plan)
-        return Response(serializer.data)
+        serializer = PlanGestionDetailSerializer(new_plan)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     @action(detail=True, methods=['post'], url_path='remove-extension',
             permission_classes=[permissions.IsAuthenticated, IsReferent])

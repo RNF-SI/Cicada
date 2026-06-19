@@ -154,6 +154,30 @@ export class IndicateurSaisieComponent implements OnInit {
       : num.toLocaleString('fr-FR', { maximumFractionDigits: 4 });
   }
 
+  /**
+   * Libellé « unité » d'une métrique pour le tableau des seuils.
+   * - Mono-bloc : l'unité de la métrique (ou « — »).
+   * - Multi-blocs : la liste « intitulé (unité) » de chaque bloc (principal +
+   *   complémentaires), séparée par « / » (ex: « hauteur (m) / recouvrement (%) »).
+   */
+  metriqueUniteLabel(met: Metrique): string {
+    const blocks = met.score_blocks || [];
+    if (blocks.length === 0) {
+      return (met.unite || '').trim() || '—';
+    }
+    const fmt = (intitule?: string | null, unite?: string | null, fallback = '') => {
+      const i = (intitule ?? '').trim();
+      const u = (unite ?? '').trim();
+      if (!i) return fallback;
+      return u ? `${i} (${u})` : i;
+    };
+    const labels = [
+      fmt(met.bloc_intitule, met.unite, met.nom_metrique),
+      ...blocks.map((b, idx) => fmt(b.intitule, b.unite, `Bloc ${idx + 2}`)),
+    ].filter(Boolean);
+    return labels.length ? labels.join(' / ') : '—';
+  }
+
   /** Getter/setter pour ngModel du commentaire (basé sur signal). */
   get commentaireOverrideModel(): string { return this.commentaireOverride(); }
   set commentaireOverrideModel(v: string) { this.commentaireOverride.set(v); }

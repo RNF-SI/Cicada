@@ -278,7 +278,7 @@
                         <tr class="metrique-row">
                           <td class="col-indicateur metrique-name">
                             <span class="metrique-prefix">{{ 'plans.suivis.tableauDeBord.metriquePrefix' | translate:{ n: mIdx + 1 } }}</span>
-                            {{ met.nom_metrique }}
+                            {{ met.nom_metrique }}@if (met.unite) {<span class="metrique-unite"> ({{ met.unite }})</span>}
                           </td>
                           @for (year of yearColumns(); track year) {
                             <td class="col-year">

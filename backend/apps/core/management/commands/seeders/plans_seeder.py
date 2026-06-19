@@ -85,10 +85,16 @@ class PlansSeeder(BaseSeeder):
       → Eval mi-parcours (draft) → Plan révisé (draft)
     - Vercors-Écrins (3 niveaux): Plan initial 2011-2021 (archive)
       → Plan actuel 2021-2031 (valide) → Eval mi-parcours (draft)
-    - Vercors revision/draft (2 niveaux, #250/#278) : rang 1 2014-2024
-      (valide + en_revision=True + étendu +1 an, next_rang_plan = rang 2) ↔
-      rang 2 2026-2036 (draft). Démontre la cohabitation entre un plan validé
-      en cours de révision et le brouillon du rang suivant.
+    - Vercors revision/draft (2 niveaux, #278) : rang 1 2014-2024
+      (valide + en_revision=True, next_rang_plan = rang 2) ↔ rang 2 2026-2036
+      (draft). Démontre la cohabitation entre un plan validé en cours de
+      révision et le brouillon du rang suivant.
+
+    Chaînes d'extension (#250, prolongation = nouvelle version) — version
+    d'origine archivée → version étendue (modifie, `annees_extension>0`) :
+    - Scandola rang 2 : 2016-2025 (archive) → (étendu +2 ans, modifie)
+    - Grand-Voyeux RNR : 2015-2024 (archive) → (RNR étendu +1 an, modifie) [#281]
+    - Marais de Brouage ENS : 2014-2023 (archive) → (ENS étendu +2 ans, modifie) [#281]
 
     Panel évaluations mi-parcours (#276, 6 plans couvrant les variantes) :
     - Camargue eval 2005 : EVAL_MI_PARCOURS, archive (historique)
@@ -96,8 +102,7 @@ class PlansSeeder(BaseSeeder):
     - Vercors-Écrins eval 2026 : EVAL_MI_PARCOURS, draft
     - Lac de Remoray eval 2022 : EVAL_MI_PARCOURS, avis_csrpn (workflow CSRPN)
     - Vercors 2014-2024 eval 2020 : EVAL_MI_PARCOURS, comite_consultatif
-    - Aiguilles Rouges eval 2023 : modifie + is_mi_parcours=True + étendu +1 an
-      (combinaison des 3 attributs orthogonaux)
+    - Aiguilles Rouges eval 2023 : modifie + is_mi_parcours=True
     """
 
     name = 'plans'
@@ -316,17 +321,18 @@ class PlansSeeder(BaseSeeder):
                 'sites': [sites[1]],
                 'membres': []
             },
-            # #250 — Plan validé ET étendu (+2 ans). Extension = attribut
-            # orthogonal au statut : le plan reste 'valide' (verrouillé en
-            # lecture seule), seul `annees_extension` indique la prolongation.
+            # #250 (refonte) — Chaîne d'extension sur Scandola (rang 2).
+            # Une prolongation crée une NOUVELLE VERSION (brouillon → modifie)
+            # qui copie le contenu ; le plan d'origine est archivé. On modélise
+            # donc le résultat du flux : v1 archivée → v2 « étendue » (modifie).
+            # v1 : version d'origine du rang 2, archivée lors de la prolongation.
             {
-                'nom': 'Plan de gestion 2016-2025 - Scandola (étendu)',
+                'nom': 'Plan de gestion 2016-2025 - Scandola',
                 'annee_debut': 2016,
                 'annee_fin': 2025,
                 'rang': 2,
                 'surface': 1669,
-                'statut': 'valide',
-                'annees_extension': 2,
+                'statut': 'archive',
                 'version': '1',
                 'gestion_partagee': False,
                 'ct88': False,
@@ -337,9 +343,38 @@ class PlansSeeder(BaseSeeder):
                 'redacteurs': 'A. Aboucaya (RNF)',
                 'relecteurs': 'CSRPN Corse',
                 'date_avis_csrpn': date(2016, 6, 30),
-                'commentaire': 'Plan validé prolongé de 2 ans (2025 → 2027) pendant la rédaction '
-                               'du rang suivant. Le plan reste en lecture seule — '
-                               'l\'extension est un attribut indépendant du statut (#250).',
+                'commentaire': 'Version d\'origine du rang 2, archivée lors de la prolongation '
+                               'du plan (#250). Remplacée par la version étendue active.',
+                'sites': [sites[5]],  # Scandola
+                'membres': [
+                    (users[0], True),  # admin (super_admin) - référent
+                    (users[1], True),  # admin.rnf - référent
+                ]
+            },
+            # v2 : version étendue (+2 ans), validée en `modifie` (même rang),
+            # enfant de la v1. `annees_extension=2` → échéance effective 2027.
+            {
+                'nom': 'Plan de gestion 2016-2025 - Scandola (étendu +2 ans)',
+                'annee_debut': 2016,
+                'annee_fin': 2025,
+                'rang': 2,
+                'surface': 1669,
+                'statut': 'modifie',
+                'annees_extension': 2,
+                'version': '2',
+                'gestion_partagee': False,
+                'ct88': False,
+                'risque_incendie': True,
+                'id_evaluation': eval_int,
+                'id_redacteur_type': redac_gest,
+                'redacteur_nom': 'RNF - Équipe Corse',
+                'redacteurs': 'A. Aboucaya (RNF)',
+                'relecteurs': 'CSRPN Corse',
+                'date_avis_csrpn': date(2016, 6, 30),
+                'commentaire': 'Version étendue de 2 ans (échéance effective 2027), créée par '
+                               'prolongation du plan d\'origine puis validée (#250). Contenu '
+                               'copié, éditable. Le plan parent a été archivé. '
+                               'plan_parent posé en fin de seed.',
                 'sites': [sites[5]],  # Scandola
                 'membres': [
                     (users[0], True),  # admin (super_admin) - référent
@@ -447,9 +482,9 @@ class PlansSeeder(BaseSeeder):
 
         # #278 — Chaîne de cohabitation Vercors : un plan validé est marqué
         # « en cours de révision » (attribut `en_revision=True`, statut reste
-        # `valide`) ET étendu de 1 an. Le rang suivant est rédigé en brouillon
-        # en parallèle. La révision peut être déclenchée avant ou après le
-        # dépassement de `annee_fin` — pas de contrainte temporelle.
+        # `valide`). Le rang suivant est rédigé en brouillon en parallèle. La
+        # révision peut être déclenchée avant ou après le dépassement de
+        # `annee_fin` — pas de contrainte temporelle.
         plans.append({
             'nom': 'Plan de gestion 2014-2024 - Vercors (en cours de révision)',
             'annee_debut': 2014,
@@ -458,7 +493,6 @@ class PlansSeeder(BaseSeeder):
             'surface': 4500,
             'statut': 'valide',
             'en_revision': True,
-            'annees_extension': 1,
             'version': '1',
             'gestion_partagee': False,
             'ct88': True,
@@ -471,9 +505,9 @@ class PlansSeeder(BaseSeeder):
             'date_avis_csrpn': date(2014, 4, 22),
             'commentaire': 'Plan validé en fin de cycle, marqué en révision : il reste '
                            'fonctionnellement validé pendant que le rang suivant est '
-                           'rédigé en brouillon. Prolongé de 1 an pour assurer la '
-                           'transition. Démontre la cohabitation `en_revision` + extension '
-                           '(#250 / #278). Le lien `next_rang_plan` est posé en fin de seed.',
+                           'rédigé en brouillon. Démontre la cohabitation `en_revision` + '
+                           'brouillon du rang suivant (#278). Le lien `next_rang_plan` est '
+                           'posé en fin de seed.',
             'sites': [sites[3]],  # Vercors
             # admin@test.fr inclus comme membre pour que le plan soit visible
             # dans « Mes plans » du super_admin par défaut (scope='mine').
@@ -509,19 +543,20 @@ class PlansSeeder(BaseSeeder):
         })
 
         # #281 — Panel libellés contextualisés du badge d'extension.
-        # Plans validés + étendus sur sites de types différents pour
-        # tester les libellés : RNN/RNR → "Plan prolongé", PNR → "Plan en
-        # renouvellement", ENS/ENSD → "Plan étendu", autre → "Étendu".
-        # admin@test.fr est référent pour visibilité par défaut.
+        # Plans étendus sur sites de types différents pour tester les libellés :
+        # RNN/RNR → "Plan prolongé", PNR → "Plan en renouvellement",
+        # ENS/ENSD → "Plan étendu", autre → "Étendu".
+        # #250 (refonte) — Chaque cas est une CHAÎNE : version d'origine archivée
+        # → version étendue (modifie) issue de la prolongation. plan_parent posé
+        # en fin de seed. admin@test.fr est référent pour visibilité par défaut.
 
         # Cas RNR — Grand-Voyeux : "Plan prolongé"
         plans.append({
-            'nom': 'Plan de gestion 2015-2024 - Grand-Voyeux (RNR étendu)',
+            'nom': 'Plan de gestion 2015-2024 - Grand-Voyeux',
             'annee_debut': 2015,
             'annee_fin': 2024,
             'rang': 1,
-            'statut': 'valide',
-            'annees_extension': 1,
+            'statut': 'archive',
             'version': '1',
             'gestion_partagee': False,
             'ct88': False,
@@ -530,8 +565,31 @@ class PlansSeeder(BaseSeeder):
             'id_redacteur_type': redac_gest,
             'redacteur_nom': 'CEN Auvergne-Rhône-Alpes',
             'date_avis_csrpn': date(2015, 4, 8),
+            'commentaire': 'Version d\'origine, archivée lors de la prolongation du plan (#250).',
+            'sites': [sites[2]],  # Grand-Voyeux (RNR)
+            'membres': [
+                (users[0], True),  # super_admin - referent
+                (users[2], True),  # admin.cen - referent
+            ],
+        })
+        plans.append({
+            'nom': 'Plan de gestion 2015-2024 - Grand-Voyeux (RNR étendu)',
+            'annee_debut': 2015,
+            'annee_fin': 2024,
+            'rang': 1,
+            'statut': 'modifie',
+            'annees_extension': 1,
+            'version': '2',
+            'gestion_partagee': False,
+            'ct88': False,
+            'risque_incendie': False,
+            'id_evaluation': eval_fin,
+            'id_redacteur_type': redac_gest,
+            'redacteur_nom': 'CEN Auvergne-Rhône-Alpes',
+            'date_avis_csrpn': date(2015, 4, 8),
             'commentaire': 'Site RNR → badge contextualisé « Plan prolongé » (#281). '
-                           'Plan validé étendu de 1 an.',
+                           'Version étendue de 1 an issue de la prolongation, validée '
+                           'en modifie. plan_parent posé en fin de seed.',
             'sites': [sites[2]],  # Grand-Voyeux (RNR)
             'membres': [
                 (users[0], True),  # super_admin - referent
@@ -541,12 +599,11 @@ class PlansSeeder(BaseSeeder):
 
         # Cas ENS — Marais de Brouage : "Plan étendu"
         plans.append({
-            'nom': 'Plan de gestion 2014-2023 - Marais de Brouage (ENS étendu)',
+            'nom': 'Plan de gestion 2014-2023 - Marais de Brouage',
             'annee_debut': 2014,
             'annee_fin': 2023,
             'rang': 1,
-            'statut': 'valide',
-            'annees_extension': 2,
+            'statut': 'archive',
             'version': '1',
             'gestion_partagee': False,
             'ct88': False,
@@ -555,8 +612,30 @@ class PlansSeeder(BaseSeeder):
             'id_redacteur_type': redac_gest,
             'redacteur_nom': 'DREAL Nouvelle-Aquitaine',
             'date_avis_csrpn': date(2014, 6, 16),
+            'commentaire': 'Version d\'origine, archivée lors de la prolongation du plan (#250).',
+            'sites': [sites[4]],  # Marais de Brouage (ENS)
+            'membres': [
+                (users[0], True),  # super_admin - referent
+            ],
+        })
+        plans.append({
+            'nom': 'Plan de gestion 2014-2023 - Marais de Brouage (ENS étendu)',
+            'annee_debut': 2014,
+            'annee_fin': 2023,
+            'rang': 1,
+            'statut': 'modifie',
+            'annees_extension': 2,
+            'version': '2',
+            'gestion_partagee': False,
+            'ct88': False,
+            'risque_incendie': False,
+            'id_evaluation': eval_fin,
+            'id_redacteur_type': redac_gest,
+            'redacteur_nom': 'DREAL Nouvelle-Aquitaine',
+            'date_avis_csrpn': date(2014, 6, 16),
             'commentaire': 'Site ENS → badge contextualisé « Plan étendu » (#281). '
-                           'Plan validé étendu de 2 ans.',
+                           'Version étendue de 2 ans issue de la prolongation, validée '
+                           'en modifie. plan_parent posé en fin de seed.',
             'sites': [sites[4]],  # Marais de Brouage (ENS)
             'membres': [
                 (users[0], True),  # super_admin - referent
@@ -1105,10 +1184,10 @@ class PlansSeeder(BaseSeeder):
             self.log_item('chain', 'Vercors-Écrins: 3 niveaux (initial → révisé → eval)')
 
             # -----------------------------------------------------------------
-            # Chaîne « validé + en_revision ↔ brouillon » sur Vercors (#250 / #278)
-            # Le rang 1 est validé ET marqué en cours de révision ET étendu d'1 an.
-            # Le rang 2 est en brouillon en parallèle. Lien explicite via
-            # `next_rang_plan` pour exposer « Voir le rang suivant » dans l'UI.
+            # Chaîne « validé + en_revision ↔ brouillon » sur Vercors (#278)
+            # Le rang 1 est validé ET marqué en cours de révision. Le rang 2 est
+            # en brouillon en parallèle. Lien explicite via `next_rang_plan` pour
+            # exposer « Voir le rang suivant » dans l'UI.
             # -----------------------------------------------------------------
             try:
                 rang1 = PlanGestion.objects.get(
@@ -1123,7 +1202,7 @@ class PlansSeeder(BaseSeeder):
                 rang2.plan_parent = rang1
                 rang2.id_type_document = plan_revise_type
                 rang2.save(update_fields=['plan_parent', 'id_type_document'])
-                self.log_item('chain', 'Vercors (revision/draft): validé+étendu+en_revision ↔ brouillon rang 2 (next_rang_plan posé)')
+                self.log_item('chain', 'Vercors (revision/draft): validé+en_revision ↔ brouillon rang 2 (next_rang_plan posé)')
             except PlanGestion.DoesNotExist:
                 pass
 
@@ -1182,7 +1261,7 @@ class PlansSeeder(BaseSeeder):
                 pass
 
             # Cas (b) — EVAL_MI_PARCOURS en validation comité sur Vercors 2014-2024
-            # (le plan est validé+étendu+en_revision et n'a pas encore de mi-parcours
+            # (le plan est validé+en_revision et n'a pas encore de mi-parcours
             # dans sa chaîne — donc on peut en ajouter une).
             try:
                 vc_parent = PlanGestion.objects.filter(
@@ -1229,21 +1308,36 @@ class PlansSeeder(BaseSeeder):
             except Exception:
                 pass
 
-            # Cas (c) — combiner is_mi_parcours + extension sur Aiguilles Rouges
-            # (l'évaluation mi-parcours d'Aiguilles Rouges 2023 reçoit aussi
-            # une extension d'1 an pour démontrer la cohabitation des 2 flags).
-            try:
-                ar_eval_existing = PlanGestion.objects.filter(
-                    nom='Évaluation mi-parcours 2023 - Aiguilles Rouges'
-                ).first()
-                if ar_eval_existing:
-                    ar_eval_existing.annees_extension = 1
-                    ar_eval_existing.save(update_fields=['annees_extension'])
-                    self.log_item('chain', 'Aiguilles Rouges eval 2023 : modifie + is_mi_parcours=True + étendu +1 an')
-            except Exception:
-                pass
-
             self.log_item('chain', 'Panel mi-parcours (#276) : 6 plans (draft, draft, avis_csrpn, comite, modifie+is_mi_parcours, archive)')
+
+            # -----------------------------------------------------------------
+            # #250 (refonte) — Liens des chaînes d'extension. Une prolongation
+            # crée une nouvelle version (modifie) qui copie le contenu, puis le
+            # plan d'origine est archivé. On reproduit ce résultat : la version
+            # étendue (modifie, `annees_extension>0`) devient l'enfant de la
+            # version d'origine (archive) du MÊME rang.
+            # -----------------------------------------------------------------
+            extension_chains = [
+                ('Plan de gestion 2016-2025 - Scandola (étendu +2 ans)',
+                 'Plan de gestion 2016-2025 - Scandola'),
+                ('Plan de gestion 2015-2024 - Grand-Voyeux (RNR étendu)',
+                 'Plan de gestion 2015-2024 - Grand-Voyeux'),
+                ('Plan de gestion 2014-2023 - Marais de Brouage (ENS étendu)',
+                 'Plan de gestion 2014-2023 - Marais de Brouage'),
+            ]
+            for child_nom, parent_nom in extension_chains:
+                try:
+                    child = PlanGestion.objects.get(nom=child_nom)
+                    parent = PlanGestion.objects.get(nom=parent_nom)
+                    if plan_initial_type:
+                        parent.id_type_document = plan_initial_type
+                        parent.save(update_fields=['id_type_document'])
+                        child.id_type_document = plan_initial_type
+                    child.plan_parent = parent
+                    child.save(update_fields=['plan_parent', 'id_type_document'])
+                    self.log_item('chain', f'Extension (#250) : « {parent_nom} » (archive) → « {child_nom} » (modifie, étendu)')
+                except PlanGestion.DoesNotExist:
+                    pass
 
         # =====================================================================
         # Renumérotation des versions par rang (cohérence #ND)

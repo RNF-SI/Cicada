@@ -496,7 +496,14 @@ class OperationSerializer(serializers.ModelSerializer):
         ]
 
     def get_metrique_ids(self, obj):
-        return [m.id_metrique for m in obj.metriques.all()]
+        # #398 — n'expose QUE les métriques État/Pression « associées » à l'action.
+        # Les métriques d'indicateurs de réponse appartiennent à leur indicateur de
+        # réponse et sont gérées à part : elles ne doivent pas transiter par cette
+        # liste, qui pilote la (re)synchronisation des liens op↔métrique au save.
+        return [
+            m.id_metrique for m in obj.metriques.all()
+            if getattr(getattr(m.id_indicateur, 'type_indicateur', None), 'mnemonique', None) != 'REPONSE'
+        ]
 
     def get_site_ids(self, obj):
         return [s.id_site for s in obj.sites.all()]
@@ -605,7 +612,14 @@ class OperationListSerializer(serializers.ModelSerializer):
         ]
 
     def get_metrique_ids(self, obj):
-        return [m.id_metrique for m in obj.metriques.all()]
+        # #398 — n'expose QUE les métriques État/Pression « associées » à l'action.
+        # Les métriques d'indicateurs de réponse appartiennent à leur indicateur de
+        # réponse et sont gérées à part : elles ne doivent pas transiter par cette
+        # liste, qui pilote la (re)synchronisation des liens op↔métrique au save.
+        return [
+            m.id_metrique for m in obj.metriques.all()
+            if getattr(getattr(m.id_indicateur, 'type_indicateur', None), 'mnemonique', None) != 'REPONSE'
+        ]
 
     def get_nb_sites(self, obj):
         return len(obj.sites.all()) if hasattr(obj, '_prefetched_objects_cache') and 'sites' in obj._prefetched_objects_cache else obj.sites.count()
@@ -924,14 +938,21 @@ class OperationCreateSerializer(serializers.ModelSerializer):
                     id_site=site
                 )
 
-        # Replace M2M metriques
+        # Replace M2M metriques — UNIQUEMENT les liens vers des métriques
+        # État/Pression. Les liens vers les métriques d'indicateurs de réponse
+        # sont gérés séparément (create-indicator / suppression de l'indicateur)
+        # et ne doivent pas être réécrits ici (#398).
         if metrique_ids is not None:
-            CorOperationMetrique.objects.filter(id_operation=instance).delete()
+            CorOperationMetrique.objects.filter(
+                id_operation=instance,
+            ).exclude(
+                id_metrique__id_indicateur__type_indicateur__mnemonique='REPONSE',
+            ).delete()
             from .models_indicateurs import Metrique
             for met in Metrique.objects.filter(id_metrique__in=metrique_ids):
-                CorOperationMetrique.objects.create(
+                CorOperationMetrique.objects.get_or_create(
                     id_operation=instance,
-                    id_metrique=met
+                    id_metrique=met,
                 )
 
         # Replace nested operation_annees (delete + recreate)

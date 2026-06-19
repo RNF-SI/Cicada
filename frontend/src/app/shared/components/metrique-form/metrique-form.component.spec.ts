@@ -16,6 +16,7 @@ function freshMetrique(): MetriqueFormData {
     nom_metrique: '',
     type_metrique: null,
     unite: '',
+    bloc_intitule: '',
     ponderation: null,
     etat_reference: '',
     scores: {
@@ -88,6 +89,9 @@ describe('MetriqueFormComponent', () => {
       expect(component.blocks[0].sens_variation).toBe('CROISSANT');
       expect(component.blocks[0].group_open).toBe(0);
       expect(component.blocks[0].group_close).toBe(0);
+      // Intitulé/unité du bloc initialisés vides.
+      expect(component.blocks[0].intitule).toBe('');
+      expect(component.blocks[0].unite).toBe('');
     });
 
     it('addBlock() x3 numérote les positions correctement', () => {
@@ -148,6 +152,49 @@ describe('MetriqueFormComponent', () => {
       component.metriqueChange.subscribe(spy);
       component.addBlock();
       expect(spy).toHaveBeenCalled();
+    });
+  });
+
+  describe('blockLabel — intitulé (unité)', () => {
+    it('affiche « intitulé (unité) » pour le bloc principal', () => {
+      component.metrique.bloc_intitule = 'hauteur';
+      component.metrique.unite = 'm';
+      expect(component.blockLabel(0)).toBe('hauteur (m)');
+    });
+
+    it('affiche juste l\'intitulé si l\'unité est vide', () => {
+      component.metrique.bloc_intitule = 'présence';
+      component.metrique.unite = '';
+      expect(component.blockLabel(0)).toBe('présence');
+    });
+
+    it('retombe sur « Bloc <lettre> » si l\'intitulé est vide', () => {
+      component.metrique.bloc_intitule = '';
+      component.metrique._letter = 'A';
+      // FakeTranslateLoader renvoie {} → la clé est utilisée telle quelle par le pipe,
+      // mais blockLabel utilise le dict interne translate() qui mappe blockLabel→« Bloc ».
+      expect(component.blockLabel(0)).toBe('Bloc A');
+    });
+
+    it('affiche « intitulé (unité) » pour un bloc complémentaire', () => {
+      component.addBlock();
+      component.blocks[0].intitule = 'recouvrement';
+      component.blocks[0].unite = '%';
+      expect(component.blockLabel(1)).toBe('recouvrement (%)');
+    });
+
+    it('réordonnancement : intitulé/unité suivent le bloc déplacé en tête', () => {
+      component.metrique.bloc_intitule = 'hauteur';
+      component.metrique.unite = 'm';
+      component.addBlock();
+      component.blocks[0].intitule = 'recouvrement';
+      component.blocks[0].unite = '%';
+      // Déplace le bloc complémentaire (index 1) vers la position principale (0).
+      component.onBlockDrop({ previousIndex: 1, currentIndex: 0 } as any);
+      expect(component.metrique.bloc_intitule).toBe('recouvrement');
+      expect(component.metrique.unite).toBe('%');
+      expect(component.blocks[0].intitule).toBe('hauteur');
+      expect(component.blocks[0].unite).toBe('m');
     });
   });
 

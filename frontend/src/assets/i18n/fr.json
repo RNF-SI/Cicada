@@ -1464,7 +1464,7 @@
         "toDraft": "Remettre en brouillon",
         "toDraftDesc": "Remettre ce plan en brouillon pour le modifier à nouveau.",
         "extendDuration": "Étendre la durée du plan",
-        "extendDurationDesc": "Prolonger ce plan de 1 ou 2 années pendant la rédaction du rang suivant.",
+        "extendDurationDesc": "Créer une version étendue (+1 ou +2 ans) en copiant le contenu et le suivi, pour ajouter des actions et poursuivre le suivi sur les années ajoutées.",
         "revertExtension": "Annuler l'extension",
         "revertExtensionDesc": "Repasser ce plan en statut validé en annulant son extension.",
         "startRevision": "Marquer en cours de révision",
@@ -1513,6 +1513,7 @@
         "previousArchived": "Le plan précédent a été archivé.",
         "previousArchiveError": "Erreur lors de l'archivage du plan précédent.",
         "extensionApplied": "Plan prolongé de {{years}} an(s).",
+        "extensionDraftCreated": "Brouillon de version étendue créé. Complétez les actions et le suivi, puis validez-le.",
         "extensionRemoved": "L'extension du plan a été retirée.",
         "extensionError": "Impossible de prolonger le plan.",
         "revisionStarted": "Le plan est désormais marqué en cours de révision.",
@@ -1524,6 +1525,11 @@
       "lockedBanner": {
         "title": "Plan verrouillé en lecture seule",
         "text": "Ce plan n'est pas en brouillon. Pour le modifier, repassez-le en brouillon depuis le cycle de vie ou créez une nouvelle version (duplication / évaluation mi-parcours)."
+      },
+      "notReferentBanner": {
+        "title": "Vous n'êtes pas référent de ce plan de gestion",
+        "text": "Vous consultez ce plan en lecture seule. Pour pouvoir le modifier (enjeux, actions, indicateurs…), vous devez en devenir référent.",
+        "requestButton": "Demander à devenir référent"
       },
       "archivePrevious": {
         "title": "Archiver le plan précédent ?",
@@ -1559,9 +1565,11 @@
       },
       "extendDuration": {
         "title": "Étendre la durée du plan",
-        "intro": "Le plan « {{name}} » se termine en {{year}}. Choisissez le nombre d'années à ajouter pour couvrir la période de transition avec le plan suivant.",
+        "titleReconduction": "Reconduire l'extension du plan",
+        "intro": "Le plan « {{name}} » se termine en {{year}}. Choisissez le nombre d'années à ajouter : une version étendue (brouillon) sera créée en copiant tout le contenu et le suivi.",
+        "introReconduction": "Le plan « {{name}} » est prolongé jusqu'en {{year}}. Vous pouvez le reconduire d'une année supplémentaire (cumul maximum de 2 ans). Une nouvelle version étendue (brouillon) sera créée.",
         "newEnd": "Nouvelle échéance",
-        "hint": "Pendant l'extension, le plan reste éditable pour ajouter ou modifier les actions des années ajoutées. Vous pouvez annuler l'extension à tout moment."
+        "hint": "Le brouillon créé est librement modifiable : ajoutez des actions et poursuivez le suivi sur les années ajoutées, puis validez-le. Le plan d'origine pourra alors être archivé."
       },
       "startRevision": {
         "title": "Marquer en cours de révision",
@@ -3210,6 +3218,9 @@
       "typeLabel": "Type de métrique",
       "typeRequired": "Le type de métrique est obligatoire.",
       "uniteLabel": "Unité",
+      "blocIntituleLabel": "Intitulé du bloc",
+      "blocIntitulePlaceholder": "ex : hauteur",
+      "blocUniteLabel": "Unité (optionnel)",
       "ponderationLabel": "Pondération",
       "etatReferenceLabel": "État de référence",
       "seuilsTitle": "Seuils de scores",
@@ -3243,6 +3254,7 @@
       "nomPlaceholder": "Intitulé court de la métrique",
       "niveauxActifs": "Niveaux actifs :",
       "nonUtilise": "Non utilisé",
+      "activeLevelRequired": "Métrique « {{name}} » : chaque niveau actif (non grisé) doit avoir une valeur. Renseignez-les ou marquez le niveau « Non utilisé ».",
       "scoreSuffix": "score = {{score}}",
       "boundaryLabel": "Valeur limite",
       "boundaryPlaceholder": "Valeur",

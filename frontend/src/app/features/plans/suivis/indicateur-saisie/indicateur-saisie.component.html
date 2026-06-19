@@ -92,7 +92,7 @@
                 @for (m of ind.metriques || []; track m.id_metrique) {
                   <tr>
                     <td>{{ m.nom_metrique }}</td>
-                    <td>{{ m.unite || '—' }}</td>
+                    <td>{{ metriqueUniteLabel(m) }}</td>
                     <td>{{ m.ponderation || 1 }}</td>
                     <td>{{ m.etat_reference || '—' }}</td>
                     <td>min {{ getScoreBound(m, 1, 'inf') }} / max {{ getScoreBound(m, 1, 'sup') }}</td>

@@ -296,8 +296,9 @@
         </div>
       </section>
 
-    <!-- Bannière verrouillage hors brouillon (#248) -->
-    @if (plan() && !isPlanDraft()) {
+    <!-- Bannière verrouillage hors brouillon (#248) — réservée aux gestionnaires
+         (le message « repassez en brouillon » ne concerne qu'eux). -->
+    @if (plan() && !isPlanDraft() && canManageLifecycle()) {
       <div class="lock-banner" role="status">
         <i class="fi fi-rr-lock"></i>
         <div class="lock-banner-content">
@@ -308,6 +309,26 @@
             {{ 'plans.lifecycle.lockedBanner.text' | translate }}
           </span>
         </div>
+      </div>
+    }
+
+    <!-- Bannière « non référent » : utilisateur sans droit de gestion sur ce plan.
+         Lecture seule + possibilité de demander à devenir référent. -->
+    @if (plan() && !canManageLifecycle()) {
+      <div class="lock-banner lock-banner--access" role="status">
+        <i class="fi fi-rr-info"></i>
+        <div class="lock-banner-content">
+          <span class="lock-banner-title">
+            {{ 'plans.lifecycle.notReferentBanner.title' | translate }}
+          </span>
+          <span class="lock-banner-text">
+            {{ 'plans.lifecycle.notReferentBanner.text' | translate }}
+          </span>
+        </div>
+        <button class="lock-banner-btn" (click)="requestBecomeReferent()">
+          <i class="fi fi-rr-user-add"></i>
+          <span>{{ 'plans.lifecycle.notReferentBanner.requestButton' | translate }}</span>
+        </button>
       </div>
     }
 

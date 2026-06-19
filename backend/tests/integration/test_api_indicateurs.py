@@ -448,6 +448,101 @@ class TestMetriqueCreate:
         assert metrique.has_borne_score1 is True
         assert metrique.has_borne_score5 is False
 
+    def test_create_with_bloc_intitule_and_block_labels(self, api_client, indicateur_test_data):
+        """Métriques multi-blocs : intitulé/unité par bloc (principal + complémentaire)."""
+        api_client.force_authenticate(user=indicateur_test_data['super_admin'])
+        response = api_client.post('/api/plans/metriques/', {
+            'id_indicateur': indicateur_test_data['indicateur1'].id_indicateur,
+            'nom_metrique': 'État de la végétation',
+            'bloc_intitule': 'hauteur',
+            'unite': 'm',
+            'score_1_inf': '0.0000', 'score_1_sup': '10.0000',
+            'score_blocks': [{
+                'position': 1,
+                'intitule': 'recouvrement',
+                'unite': '%',
+                'logical_op': 'OR',
+                'sens_variation': 'CROISSANT',
+                'score_1_inf': '0.0000', 'score_1_sup': '20.0000',
+            }],
+        }, format='json')
+        assert response.status_code == status.HTTP_201_CREATED, response.data
+        met = Metrique.objects.get(nom_metrique='État de la végétation')
+        assert met.bloc_intitule == 'hauteur'
+        block = met.score_blocks.get(position=1)
+        assert block.intitule == 'recouvrement'
+        assert block.unite == '%'
+        detail = api_client.get(f'/api/plans/metriques/{met.id_metrique}/')
+        assert detail.status_code == status.HTTP_200_OK
+        assert detail.data['bloc_intitule'] == 'hauteur'
+        assert detail.data['score_blocks'][0]['intitule'] == 'recouvrement'
+        assert detail.data['score_blocks'][0]['unite'] == '%'
+
+    def test_chiffre_active_level_requires_value(self, api_client, indicateur_test_data):
+        """Chiffre : un niveau actif sans valeur → 400 (saisie obligatoire)."""
+        type_chiffre = NomenclatureTypeMetriqueFactory(
+            cd_nomenclature='CHIFFRE', mnemonique='CHIFFRE', label='Chiffre'
+        )
+        api_client.force_authenticate(user=indicateur_test_data['super_admin'])
+        response = api_client.post('/api/plans/metriques/', {
+            'id_indicateur': indicateur_test_data['indicateur1'].id_indicateur,
+            'nom_metrique': 'Chiffre incomplet',
+            'type_metrique': type_chiffre.id_nomenclature,
+            'score_1_val': '1.0000',
+            # score_2_val manquant alors que le niveau 2 est actif
+            'score_3_val': '3.0000',
+            'score_4_val': '4.0000',
+            'score_5_val': '5.0000',
+        }, format='json')
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert 'score_2_val' in response.data
+
+    def test_chiffre_inactive_level_not_required(self, api_client, indicateur_test_data):
+        """Chiffre : un niveau marqué « non utilisé » n'a pas besoin de valeur → 201."""
+        type_chiffre = NomenclatureTypeMetriqueFactory(
+            cd_nomenclature='CHIFFRE', mnemonique='CHIFFRE', label='Chiffre'
+        )
+        api_client.force_authenticate(user=indicateur_test_data['super_admin'])
+        response = api_client.post('/api/plans/metriques/', {
+            'id_indicateur': indicateur_test_data['indicateur1'].id_indicateur,
+            'nom_metrique': 'Chiffre niveau 2 non utilisé',
+            'type_metrique': type_chiffre.id_nomenclature,
+            'inactive_levels': [2],
+            'score_1_val': '1.0000',
+            'score_3_val': '3.0000',
+            'score_4_val': '4.0000',
+            'score_5_val': '5.0000',
+        }, format='json')
+        assert response.status_code == status.HTTP_201_CREATED, response.data
+
+    def test_texte_active_level_requires_label(self, api_client, indicateur_test_data):
+        """Texte : un niveau actif sans libellé → 400."""
+        type_texte = NomenclatureTypeMetriqueFactory(
+            cd_nomenclature='TEXTE', mnemonique='TEXTE', label='Texte'
+        )
+        api_client.force_authenticate(user=indicateur_test_data['super_admin'])
+        response = api_client.post('/api/plans/metriques/', {
+            'id_indicateur': indicateur_test_data['indicateur1'].id_indicateur,
+            'nom_metrique': 'Texte incomplet',
+            'type_metrique': type_texte.id_nomenclature,
+            'score_1_label': 'Mauvais',
+            'score_2_label': 'Moyen',
+            # niveaux 3/4/5 actifs mais sans libellé
+        }, format='json')
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert 'score_3_label' in response.data
+
+    def test_create_without_unite(self, api_client, indicateur_test_data):
+        """L'unité de la métrique est optionnelle (création sans unité acceptée)."""
+        api_client.force_authenticate(user=indicateur_test_data['super_admin'])
+        response = api_client.post('/api/plans/metriques/', {
+            'id_indicateur': indicateur_test_data['indicateur1'].id_indicateur,
+            'nom_metrique': 'Métrique sans unité',
+        }, format='json')
+        assert response.status_code == status.HTTP_201_CREATED, response.data
+        met = Metrique.objects.get(nom_metrique='Métrique sans unité')
+        assert not met.unite
+
     def test_non_referent_denied(self, api_client, indicateur_test_data):
         """Test non-referent cannot create."""
         api_client.force_authenticate(user=indicateur_test_data['user'])

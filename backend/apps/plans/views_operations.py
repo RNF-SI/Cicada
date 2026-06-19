@@ -285,7 +285,7 @@ class OperationViewSet(viewsets.ModelViewSet):
         POST /api/plans/operations/{id}/create-indicator/
         Body: {
             "nom_indicateur": str (required),
-            "nom_metrique": str (optional, défaut: nom_indicateur),
+            "nom_metrique": str (optional, vide par défaut),
             "type_metrique_id": int (optional),
             "valeur_cible": str (optional, écrit dans Metrique.etat_reference)
         }
@@ -333,9 +333,12 @@ class OperationViewSet(viewsets.ModelViewSet):
         )
 
         type_met_id = request.data.get('type_metrique_id')
+        # #398 — ne PAS retomber sur `nom_indicateur` : un indicateur de réponse
+        # créé sans métrique nommée doit rester « sans métrique » (sinon le nom
+        # de l'indicateur s'affiche à tort comme une métrique sous l'action).
         new_met = Metrique.objects.create(
             id_indicateur=new_ind,
-            nom_metrique=request.data.get('nom_metrique') or nom_indicateur,
+            nom_metrique=(request.data.get('nom_metrique') or '').strip(),
             type_metrique_id=type_met_id if type_met_id else None,
             etat_reference=request.data.get('valeur_cible') or '',
             id_utilisateur_ajout=request.user,

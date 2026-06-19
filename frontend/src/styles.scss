@@ -1121,11 +1121,12 @@ label.app-mat-label + app-form-field,
 // #227 — Recherche dans le sélecteur « Métriques associées » (mat-select rendu
 // en overlay → styles globaux). Champ aligné kit UI (Nunito, accent primaire).
 .metrique-select-panel {
-  // Barre d'outils collante : recherche + filtre de portée
+  // Barre d'outils : recherche + filtre de portée. NON collante : Material
+  // défile le panneau pour amener l'option sélectionnée en vue à l'ouverture ;
+  // une barre `sticky` masquerait alors la première option (elle se retrouvait
+  // sous la barre). En flux normal, la barre défile avec les options — pas de
+  // recouvrement.
   .select-toolbar {
-    position: sticky;
-    top: 0;
-    z-index: 1;
     display: flex;
     align-items: center;
     gap: $spacing-sm;

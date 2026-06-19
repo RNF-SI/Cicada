@@ -111,8 +111,8 @@
         </div>
       </section>
 
-      <!-- Bannière verrouillage hors brouillon (#248) -->
-      @if (planStatut() && !isPlanDraft()) {
+      <!-- Bannière verrouillage hors brouillon (#248) — réservée aux gestionnaires. -->
+      @if (planStatut() && !isPlanDraft() && isPlanManager()) {
         <div class="lock-banner" role="status">
           <i class="fi fi-rr-lock"></i>
           <div class="lock-banner-content">
@@ -123,6 +123,25 @@
               {{ 'plans.lifecycle.lockedBanner.text' | translate }}
             </span>
           </div>
+        </div>
+      }
+
+      <!-- Bannière « non référent » : consultant sans droit de gestion sur ce plan. -->
+      @if (planStatut() && !isPlanManager()) {
+        <div class="lock-banner lock-banner--access" role="status">
+          <i class="fi fi-rr-info"></i>
+          <div class="lock-banner-content">
+            <span class="lock-banner-title">
+              {{ 'plans.lifecycle.notReferentBanner.title' | translate }}
+            </span>
+            <span class="lock-banner-text">
+              {{ 'plans.lifecycle.notReferentBanner.text' | translate }}
+            </span>
+          </div>
+          <button class="lock-banner-btn" (click)="requestBecomeReferent()">
+            <i class="fi fi-rr-user-add"></i>
+            <span>{{ 'plans.lifecycle.notReferentBanner.requestButton' | translate }}</span>
+          </button>
         </div>
       }
 
@@ -1077,7 +1096,7 @@
                                               @if (ind.operations && ind.operations.length > 0) {
                                                 <div class="indicateur-direct-operations">
                                                   @for (op of ind.operations; track op.id_operation) {
-                                                    <div class="operation-card" [class.operation-card-direct]="!op.metriques?.length"
+                                                    <div class="operation-card" [class.operation-card-direct]="!visibleMetriques(op).length"
                                                          [class.expanded]="isOperationExpanded(op.id_operation)"
                                                          [class.is-draft]="op.statut === 'draft'"
                                                          [id]="'operation-' + op.id_operation">
@@ -1090,8 +1109,9 @@
                                                             <span class="operation-draft-chip status-warning" (click)="$event.stopPropagation()">{{ 'enjeux.operations.draftChip' | translate }}</span>
                                                           }
                                                           <div class="operation-metriques-row">
-                                                            @if (op.metriques?.length) {
-                                                              @for (m of op.metriques!; track m.id_metrique) {
+                                                            @let visMets = visibleMetriques(op);
+                                                            @if (visMets.length) {
+                                                              @for (m of visMets; track m.id_metrique) {
                                                                 <span class="op-metrique-chip" (click)="$event.stopPropagation()" [matTooltip]="m.indicateur_nom || ('enjeux.operations.metriqueLinkedTooltip' | translate)">
                                                                   <i class="fi fi-rr-ruler-horizontal"></i> {{ m.nom_metrique }}
                                                                 </span>
@@ -1830,7 +1850,7 @@
                                       @if (ind.operations && ind.operations.length > 0) {
                                         <div class="indicateur-direct-operations">
                                           @for (op of ind.operations; track op.id_operation) {
-                                            <div class="operation-card" [class.operation-card-direct]="!op.metriques?.length"
+                                            <div class="operation-card" [class.operation-card-direct]="!visibleMetriques(op).length"
                                                  [class.expanded]="isOoOperationExpanded(op.id_operation)"
                                                  [class.is-draft]="op.statut === 'draft'"
                                                  [id]="'operation-' + op.id_operation">
@@ -1843,8 +1863,9 @@
                                                     <span class="operation-draft-chip status-warning" (click)="$event.stopPropagation()">{{ 'enjeux.operations.draftChip' | translate }}</span>
                                                   }
                                                   <div class="operation-metriques-row">
-                                                    @if (op.metriques?.length) {
-                                                      @for (m of op.metriques!; track m.id_metrique) {
+                                                    @let visMetsOo = visibleMetriques(op);
+                                                    @if (visMetsOo.length) {
+                                                      @for (m of visMetsOo; track m.id_metrique) {
                                                         <span class="op-metrique-chip" (click)="$event.stopPropagation()" [matTooltip]="m.indicateur_nom || ('enjeux.operations.metriqueLinkedTooltip' | translate)">
                                                           <i class="fi fi-rr-ruler-horizontal"></i> {{ m.nom_metrique }}
                                                         </span>

@@ -551,8 +551,10 @@ export class OperationFormComponent implements OnInit {
           }
           // Load operation data AFTER sites are initialized to avoid race condition
           this.loadOperationIfEdit();
-          // Load enjeux after plan is loaded
-          this.enjeuService.getPlanEnjeux(plan.id_pg).subscribe({
+          // Load enjeux after plan is loaded. Force-refresh : une métrique créée
+          // juste avant (dans l'indicateur) doit apparaître dans le sélecteur
+          // « Métriques associées » sans dépendre du cache.
+          this.enjeuService.getPlanEnjeux(plan.id_pg, true).subscribe({
             next: (response) => {
               const indicateurs: { id_indicateur: number; nom_indicateur: string }[] = [];
               const metriques: { id_metrique: number; nom_metrique: string; indicateur_nom: string; indicateur_id: number }[] = [];
@@ -563,6 +565,10 @@ export class OperationFormComponent implements OnInit {
 
               const collectIndicateursMetriques = (ind: any) => {
                 if (!ind || seenIndicateurs.has(ind.id_indicateur)) return;
+                // #398 — les indicateurs de réponse (et leurs métriques) ne font pas
+                // partie des « métriques associées » sélectionnables : ils sont propres
+                // à une action et gérés dans la section « Indicateur(s) de réponse ».
+                if (ind.type_indicateur_mnemonique === 'REPONSE') return;
                 seenIndicateurs.add(ind.id_indicateur);
                 indicateurs.push({ id_indicateur: ind.id_indicateur, nom_indicateur: ind.nom_indicateur });
                 for (const met of ind.metriques || []) {
@@ -595,6 +601,17 @@ export class OperationFormComponent implements OnInit {
                           collectIndicateursMetriques(ind);
                         }
                       }
+                    }
+                  }
+                }
+                // #337 — Chemin OO direct (OO rattaché directement à l'enjeu/FCR,
+                // sans pression) : Enjeu → OO → RA → Indicateur → Métrique. Sans ce
+                // parcours, les métriques des indicateurs d'un FCR n'apparaissaient
+                // pas dans le sélecteur « Métriques associées ».
+                for (const oo of enjeu.objectifs_operationnels || []) {
+                  for (const ra of oo.resultats_attendus || []) {
+                    for (const ind of ra.indicateurs || []) {
+                      collectIndicateursMetriques(ind);
                     }
                   }
                 }
@@ -1025,9 +1042,11 @@ export class OperationFormComponent implements OnInit {
     if (!opId) {
       // En création : l'action n'existe pas encore côté serveur. On collecte
       // l'indicateur de réponse en mémoire ; il sera créé à l'enregistrement.
+      // #398 — la métrique reste vide tant que l'utilisateur ne l'a pas nommée :
+      // un indicateur de réponse sans métrique nommée ne doit pas afficher de chip.
       this.pendingResponseIndicators.push({
         nom_indicateur: this.translate.instant('enjeux.operations.newIndicatorDefault'),
-        nom_metrique: this.translate.instant('enjeux.operations.newIndicatorDefault'),
+        nom_metrique: '',
         type_metrique_id: null,
         valeur_cible: '',
       });
@@ -1036,7 +1055,6 @@ export class OperationFormComponent implements OnInit {
     const defaultNom = this.translate.instant('enjeux.operations.newIndicatorDefault');
     this.enjeuService.createOperationResponseIndicator(opId, {
       nom_indicateur: defaultNom,
-      nom_metrique: defaultNom,
     }).subscribe({
       next: (created) => {
         const op = this.existingOperation();
@@ -1056,6 +1074,8 @@ export class OperationFormComponent implements OnInit {
           ...op,
           metriques: [...(op.metriques || []), newRef],
         });
+        // NB : pas de synchro avec `metrique_ids` — les métriques d'indicateurs de
+        // réponse n'appartiennent pas à cette liste (gérées à part côté backend).
       },
       error: (err) => {
         const msg = err?.error?.detail
@@ -1065,25 +1085,39 @@ export class OperationFormComponent implements OnInit {
     });
   }
 
-  /** Bouton corbeille : retire le lien op ↔ métrique (n'efface pas l'indicateur sous-jacent). */
+  /** Bouton corbeille : supprime l'indicateur de réponse (et sa métrique). Un
+   *  indicateur de réponse est propre à l'action ; une fois retiré il ne doit
+   *  plus exister. La suppression de l'indicateur cascade sur sa métrique et sur
+   *  le lien op ↔ métrique. Comme les métriques de réponse ne transitent pas par
+   *  `metrique_ids` (gérées à part côté backend), aucun risque de re-création au save. */
   removeResponseIndicator(metriqueId: number): void {
     const opId = this.operationId();
     if (!opId) return;
-    this.enjeuService.unlinkOperationMetrique(opId, metriqueId).subscribe({
-      next: () => {
-        const op = this.existingOperation();
-        if (!op?.metriques) return;
+    const met = this.existingOperation()?.metriques?.find(m => m.id_metrique === metriqueId);
+    const indicateurId = met?.indicateur_id ?? null;
+
+    const onRemoved = () => {
+      const op = this.existingOperation();
+      if (op?.metriques) {
         this.existingOperation.set({
           ...op,
           metriques: op.metriques.filter(m => m.id_metrique !== metriqueId),
         });
-      },
-      error: () => this.snackBar.open(
-        this.translate.instant('enjeux.operations.indicateursRemoveError'),
-        this.translate.instant('common.actions.close'),
-        { duration: 4000 },
-      ),
-    });
+      }
+    };
+    const onError = () => this.snackBar.open(
+      this.translate.instant('enjeux.operations.indicateursRemoveError'),
+      this.translate.instant('common.actions.close'),
+      { duration: 4000 },
+    );
+
+    // Cas nominal : on supprime l'indicateur de réponse (cascade métrique + lien).
+    if (indicateurId) {
+      this.enjeuService.deleteIndicateur(indicateurId).subscribe({ next: onRemoved, error: onError });
+      return;
+    }
+    // Filet : indicateur inconnu → on se contente de retirer le lien.
+    this.enjeuService.unlinkOperationMetrique(opId, metriqueId).subscribe({ next: onRemoved, error: onError });
   }
 
   /** Retire un indicateur de réponse en attente (création, non encore enregistré). */

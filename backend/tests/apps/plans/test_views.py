@@ -722,19 +722,26 @@ class TestPlanGestionChangeStatus:
         response = api_client.post(f'/api/plans/plans/{plan.id_pg}/start-revision/')
         assert response.status_code == status.HTTP_400_BAD_REQUEST
 
-    def test_valide_en_revision_etendu_combined(self, api_client):
-        """Un plan validé peut être à la fois étendu ET en cours de révision."""
+    def test_modifie_etendu_en_revision_combined(self, api_client):
+        """#250 (refonte) — Une version étendue (`modifie` + annees_extension)
+        peut aussi être en cours de révision : les attributs cohabitent."""
         admin = SuperAdminFactory()
-        plan = PlanGestionFactory(statut='valide', annees_extension=2, en_revision=True)
+        parent = PlanGestionFactory(statut='archive', rang=1)
+        # Version étendue : modifie, enfant du plan d'origine, même rang.
+        plan = PlanGestionFactory(
+            statut='modifie', plan_parent=parent, rang=1,
+            annees_extension=2, en_revision=True, version='2',
+        )
         api_client.force_authenticate(user=admin)
         # Le plan reste verrouillé en lecture seule via le verrou #248
         # (testé ailleurs) ; on s'assure ici que les attributs cohabitent.
         plan.refresh_from_db()
-        assert plan.statut == 'valide'
+        assert plan.statut == 'modifie'
         assert plan.annees_extension == 2
         assert plan.en_revision is True
         assert plan.is_extended()
         assert plan.is_in_revision()
+        assert plan.is_modification()
 
     def test_create_next_rang(self, api_client, plan_revise_nomenclature):
         """create-next-rang crée un brouillon enfant rang+1 du plan source."""
@@ -1436,6 +1443,129 @@ class TestPlanGestionChangeStatus:
         assert log is not None
         assert 'draft' in log.description
         assert 'valide' in log.description
+
+
+# ==================== #250 — extend-duration (version étendue) tests ====================
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+class TestPlanGestionExtendDuration:
+    """Tests pour POST /api/plans/plans/{id}/extend-duration/ (#250 refonte).
+
+    Une prolongation crée désormais un BROUILLON de version étendue (copie du
+    contenu) au lieu de poser un attribut sur le plan en place.
+    """
+
+    URL = '/api/plans/plans/{}/extend-duration/'
+
+    @staticmethod
+    def _current_year():
+        from datetime import date
+        return date.today().year
+
+    def _valide_plan(self, **kwargs):
+        """Plan validé dont l'échéance tombe dans la fenêtre de déclenchement."""
+        params = dict(statut='valide', rang=1, annee_debut=self._current_year() - 5,
+                      annee_fin=self._current_year())
+        params.update(kwargs)
+        return PlanGestionFactory(**params)
+
+    def test_extend_creates_draft_version(self, api_client):
+        """+1 an sur un plan validé crée un brouillon enfant étendu."""
+        admin = SuperAdminFactory()
+        site = SiteFactory()
+        referent = ReferentFactory()
+        plan = self._valide_plan(sites=[site], referents=[referent])
+        api_client.force_authenticate(user=admin)
+
+        response = api_client.post(self.URL.format(plan.id_pg), {'years': 1})
+
+        assert response.status_code == status.HTTP_201_CREATED
+        new_id = response.data['id_pg']
+        new_plan = PlanGestion.objects.get(pk=new_id)
+        assert new_plan.id_pg != plan.id_pg
+        assert new_plan.statut == 'draft'
+        assert new_plan.plan_parent_id == plan.id_pg
+        assert new_plan.rang == plan.rang          # même rang (prolongation)
+        assert new_plan.annees_extension == 1
+        # Copie sites + référents
+        assert new_plan.sites.count() == 1
+        assert list(new_plan.referents.all()) == [referent]
+        # Plan source inchangé
+        plan.refresh_from_db()
+        assert plan.statut == 'valide'
+        assert plan.annees_extension == 0
+
+    def test_extend_two_years(self, api_client):
+        """+2 ans pose directement le cumul maximum."""
+        admin = SuperAdminFactory()
+        plan = self._valide_plan()
+        api_client.force_authenticate(user=admin)
+        response = api_client.post(self.URL.format(plan.id_pg), {'years': 2})
+        assert response.status_code == status.HTTP_201_CREATED
+        assert PlanGestion.objects.get(pk=response.data['id_pg']).annees_extension == 2
+
+    def test_reconduction_cumulates(self, api_client):
+        """Reconduction +1 an sur une version étendue de 1 an → cumul 2 ans."""
+        admin = SuperAdminFactory()
+        parent = self._valide_plan(annees_extension=0)
+        # Version étendue de 1 an déjà validée (modifie + annees_extension=1)
+        etendu = PlanGestionFactory(
+            statut='modifie', plan_parent=parent, rang=parent.rang,
+            annee_debut=parent.annee_debut, annee_fin=parent.annee_fin,
+            annees_extension=1, version='2',
+        )
+        api_client.force_authenticate(user=admin)
+        response = api_client.post(self.URL.format(etendu.id_pg), {'years': 1})
+        assert response.status_code == status.HTTP_201_CREATED
+        assert PlanGestion.objects.get(pk=response.data['id_pg']).annees_extension == 2
+
+    def test_reconduction_two_years_rejected(self, api_client):
+        """Reconduction +2 ans rejetée si déjà 1 an (cumul dépasserait 2)."""
+        admin = SuperAdminFactory()
+        parent = self._valide_plan()
+        etendu = PlanGestionFactory(
+            statut='modifie', plan_parent=parent, rang=parent.rang,
+            annee_debut=parent.annee_debut, annee_fin=parent.annee_fin,
+            annees_extension=1, version='2',
+        )
+        api_client.force_authenticate(user=admin)
+        response = api_client.post(self.URL.format(etendu.id_pg), {'years': 2})
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+    def test_extend_at_max_rejected(self, api_client):
+        """Un plan déjà prolongé de 2 ans ne peut plus être prolongé."""
+        admin = SuperAdminFactory()
+        plan = self._valide_plan(annees_extension=2)
+        api_client.force_authenticate(user=admin)
+        response = api_client.post(self.URL.format(plan.id_pg), {'years': 1})
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+    def test_extend_with_existing_draft_child_rejected(self, api_client):
+        """Impossible de prolonger si un brouillon enfant existe déjà."""
+        admin = SuperAdminFactory()
+        plan = self._valide_plan()
+        PlanGestionFactory(statut='draft', plan_parent=plan, rang=plan.rang)
+        api_client.force_authenticate(user=admin)
+        response = api_client.post(self.URL.format(plan.id_pg), {'years': 1})
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+    def test_extend_draft_plan_rejected(self, api_client):
+        """Un brouillon ne peut pas être prolongé (statut non validé)."""
+        admin = SuperAdminFactory()
+        plan = PlanGestionFactory(statut='draft', annee_fin=self._current_year())
+        api_client.force_authenticate(user=admin)
+        response = api_client.post(self.URL.format(plan.id_pg), {'years': 1})
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+    def test_extend_invalid_years_rejected(self, api_client):
+        """years hors {1, 2} rejeté."""
+        admin = SuperAdminFactory()
+        plan = self._valide_plan()
+        api_client.force_authenticate(user=admin)
+        response = api_client.post(self.URL.format(plan.id_pg), {'years': 3})
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
 
 
 # ==================== Phase 3: create-evaluation tests ====================

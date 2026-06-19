@@ -237,9 +237,13 @@
   font-family: $font-family;
   font-size: 12px;
   font-weight: $font-weight-bold;
-  text-transform: uppercase;
   letter-spacing: 0.04em;
   align-self: flex-start;
+}
+
+// Champs intitulé/unité par bloc (#métriques multi-blocs).
+.block-meta-row {
+  margin-bottom: $spacing-sm;
 }
 
 // =====================================================================

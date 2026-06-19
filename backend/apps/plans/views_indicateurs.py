@@ -140,7 +140,10 @@ class IndicateurViewSet(viewsets.ModelViewSet):
                 v = float(value)
             except (TypeError, ValueError):
                 return 0
+            inactive = set(getattr(m, 'inactive_levels', None) or [])
             for i in range(1, 6):
+                if i in inactive:
+                    continue
                 inf = getattr(m, f'score_{i}_inf', None)
                 sup = getattr(m, f'score_{i}_sup', None)
                 if inf is None or sup is None:
@@ -703,7 +706,10 @@ def _value_to_score(value, metrique) -> int | None:
         v = float(value)
     except (TypeError, ValueError):
         return None
+    inactive = set(getattr(metrique, 'inactive_levels', None) or [])
     for i in range(1, 6):
+        if i in inactive:
+            continue
         inf = getattr(metrique, f'score_{i}_inf', None)
         sup = getattr(metrique, f'score_{i}_sup', None)
         if inf is None or sup is None:

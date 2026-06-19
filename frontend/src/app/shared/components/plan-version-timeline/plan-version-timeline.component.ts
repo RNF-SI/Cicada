@@ -113,6 +113,11 @@ export class PlanVersionTimelineComponent {
   }
 
   getNodeIcon(item: PlanVersionChainItem): string {
+    // #250 — Une version prolongée se distingue par une icône « horloge + »,
+    // matérialisant la case « Plan de gestion étendu » du cycle de vie.
+    if (this.isItemExtended(item)) {
+      return 'fi-rr-time-add';
+    }
     switch (item.type_document_mnemonique) {
       case 'EVAL_MI_PARCOURS':
         return 'fi-rr-time-forward';
