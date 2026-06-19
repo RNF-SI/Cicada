@@ -959,9 +959,6 @@
                                                    (click)="$event.stopPropagation()"></i>
                                                 : {{ ind.nom_indicateur }}
                                               </span>
-                                              @if (ind.est_standardise) {
-                                                <span class="indicateur-std-chip">STD</span>
-                                              }
                                             </div>
                                             <div class="indicateur-actions">
                                               @if (canEditPlan()) {
@@ -1093,8 +1090,13 @@
                                                             <span class="operation-draft-chip status-warning" (click)="$event.stopPropagation()">{{ 'enjeux.operations.draftChip' | translate }}</span>
                                                           }
                                                           <div class="operation-metriques-row">
-                                                            <!-- #403 — chips de métriques retirés (redondants avec « Également liée à » du détail). -->
-                                                            @if (!op.metriques?.length) {
+                                                            @if (op.metriques?.length) {
+                                                              @for (m of op.metriques!; track m.id_metrique) {
+                                                                <span class="op-metrique-chip" (click)="$event.stopPropagation()" [matTooltip]="m.indicateur_nom || ('enjeux.operations.metriqueLinkedTooltip' | translate)">
+                                                                  <i class="fi fi-rr-ruler-horizontal"></i> {{ m.nom_metrique }}
+                                                                </span>
+                                                              }
+                                                            } @else {
                                                               <span class="op-trace-badge op-trace-sans-metrique" [matTooltip]="'enjeux.operations.sansMetriqueTooltip' | translate" (click)="$event.stopPropagation()">
                                                                 <i class="fi fi-rr-ban"></i> {{ 'enjeux.operations.sansMetriqueBadge' | translate }}
                                                               </span>
@@ -1712,9 +1714,6 @@
                                            (click)="$event.stopPropagation()"></i>
                                         : {{ ind.nom_indicateur }}
                                       </span>
-                                      @if (ind.est_standardise) {
-                                        <span class="indicateur-std-chip">STD</span>
-                                      }
                                     </div>
                                     <div class="indicateur-actions">
                                       @if (canEditPlan()) {
@@ -1844,8 +1843,13 @@
                                                     <span class="operation-draft-chip status-warning" (click)="$event.stopPropagation()">{{ 'enjeux.operations.draftChip' | translate }}</span>
                                                   }
                                                   <div class="operation-metriques-row">
-                                                    <!-- #403 — chips de métriques retirés (redondants avec « Également liée à » du détail). -->
-                                                    @if (!op.metriques?.length) {
+                                                    @if (op.metriques?.length) {
+                                                      @for (m of op.metriques!; track m.id_metrique) {
+                                                        <span class="op-metrique-chip" (click)="$event.stopPropagation()" [matTooltip]="m.indicateur_nom || ('enjeux.operations.metriqueLinkedTooltip' | translate)">
+                                                          <i class="fi fi-rr-ruler-horizontal"></i> {{ m.nom_metrique }}
+                                                        </span>
+                                                      }
+                                                    } @else {
                                                       <span class="op-trace-badge op-trace-sans-metrique" [matTooltip]="'enjeux.operations.sansMetriqueTooltip' | translate" (click)="$event.stopPropagation()">
                                                         <i class="fi fi-rr-ban"></i> {{ 'enjeux.operations.sansMetriqueBadge' | translate }}
                                                       </span>
@@ -2281,17 +2285,8 @@
 
 <ng-template #opExpandedContent let-op="op" let-metId="metId">
                                                 <div class="operation-expanded-content">
-                                                  <!-- Également liée à d'autres métriques -->
-                                                  @if (op.metriques && op.metriques.length > 1) {
-                                                    <div class="operation-detail-line linked-metriques-info">
-                                                      <span class="detail-label">{{ 'enjeux.operations.alsoLinkedTo' | translate }} :</span>
-                                                      <span class="detail-value">
-                                                        @for (metRef of getOtherMetriques(op, metId); track metRef.id_metrique; let last = $last) {
-                                                          {{ metRef.nom_metrique }} ({{ metRef.indicateur_nom }})@if (!last) {, }
-                                                        }
-                                                      </span>
-                                                    </div>
-                                                  }
+                                                  <!-- #403 — section « Également liée à » retirée ; l'info est portée
+                                                       par les chips de métriques (avec détail au survol) en tête d'action. -->
                                                   <!-- Type d'action & Priorité -->
                                                   <div class="operation-meta-row">
                                                     @if (op.type_action_label) {
