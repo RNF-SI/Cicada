@@ -377,6 +377,9 @@ class IndicateurSerializer(serializers.ModelSerializer):
     createur_nom = serializers.CharField(source='id_utilisateur_ajout.get_full_name', read_only=True)
     type_indicateur_label = serializers.CharField(source='type_indicateur.label', read_only=True)
     type_indicateur_mnemonique = serializers.CharField(source='type_indicateur.mnemonique', read_only=True)
+    # #420 — slug de l'enjeu, pour le deep-link « Modifier l'indicateur » depuis
+    # la page de saisie du suivi vers le détail de l'enjeu (arborescence).
+    enjeu_slug = serializers.SerializerMethodField()
 
     class Meta:
         model = Indicateur
@@ -389,6 +392,8 @@ class IndicateurSerializer(serializers.ModelSerializer):
             'metriques', 'nb_metriques',
             'operations',
             'taxons', 'habitats', 'geologies',
+            # Navigation
+            'enjeu_slug',
             # Audit
             'date_ajout', 'date_maj', 'createur_nom'
         ]
@@ -396,6 +401,35 @@ class IndicateurSerializer(serializers.ModelSerializer):
 
     def get_nb_metriques(self, obj):
         return _prefetched_count(obj, 'metriques')
+
+    def get_enjeu_slug(self, obj):
+        """#420 — Remonte au slug de l'enjeu de l'indicateur.
+        Deux chemins possibles : via NE (Indicateur → NE → OLT → Enjeu) ou
+        via RA (Indicateur → RA → OO → Pression → Facteur → Enjeu)."""
+        # Chemin NE
+        try:
+            ne = obj.id_ne
+            if ne and ne.id_olt and ne.id_olt.id_enjeu:
+                return ne.id_olt.id_enjeu.slug
+        except AttributeError:
+            pass
+        # Chemin RA (via pression)
+        try:
+            ra = obj.id_resultat_attendu
+            if ra and ra.id_oo:
+                oo = ra.id_oo
+                pression = oo.pressions.select_related(
+                    'id_facteur_influence__id_enjeu'
+                ).first()
+                if (pression and pression.id_facteur_influence
+                        and pression.id_facteur_influence.id_enjeu):
+                    return pression.id_facteur_influence.id_enjeu.slug
+                # #337 — OO rattaché directement à un enjeu (FCR)
+                if getattr(oo, 'id_enjeu', None):
+                    return oo.id_enjeu.slug
+        except AttributeError:
+            pass
+        return None
 
     def get_operations(self, obj):
         """#227/#367 — TOUTES les actions de l'indicateur, dédupliquées :

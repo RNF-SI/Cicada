@@ -84,8 +84,8 @@
   background-color: $primary-color; color: $white; border: none;
   border-radius: 80px;
   font-family: 'Nunito', sans-serif; font-weight: 600;
-  cursor: pointer;
-  &:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.15); }
+  text-decoration: none; cursor: pointer;
+  &:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.15); color: $white; }
 }
 // #356 — Bouton secondaire (page globale) : outline blanc.
 .btn-hero-secondary {

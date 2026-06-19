@@ -45,10 +45,15 @@
             </div>
             <h1 class="plan-title">{{ ind.nom_indicateur }}</h1>
             <div class="hero-actions">
-              <button class="btn-hero-primary">
-                <i class="fi fi-rr-pencil"></i>
-                {{ 'plans.suivis.indicateur.editIndicateur' | translate }}
-              </button>
+              <!-- #420 — deep-link vers le détail de l'enjeu, ancré sur l'indicateur -->
+              @if (ind.enjeu_slug) {
+                <a class="btn-hero-primary"
+                   [routerLink]="['/plans', planSlug(), 'enjeux', ind.enjeu_slug]"
+                   [fragment]="'indicateur-' + ind.id_indicateur">
+                  <i class="fi fi-rr-pencil"></i>
+                  {{ 'plans.suivis.indicateur.editIndicateur' | translate }}
+                </a>
+              }
               <!-- #356 — Accès à la page globale de l'indicateur -->
               <a class="btn-hero-secondary"
                  [routerLink]="['/plans', planSlug(), 'tableau-de-bord', 'indicateur', indicateurId()]">

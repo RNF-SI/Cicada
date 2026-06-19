@@ -293,6 +293,8 @@ export interface Indicateur {
   date_ajout: string;
   date_maj: string;
   createur_nom?: string;
+  // #420 — slug de l'enjeu, pour le deep-link « Modifier l'indicateur »
+  enjeu_slug?: string | null;
 }
 
 /**
