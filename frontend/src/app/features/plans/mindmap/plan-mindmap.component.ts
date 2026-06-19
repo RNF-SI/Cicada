@@ -247,6 +247,14 @@ export class PlanMindmapComponent implements OnInit, OnDestroy {
   }
 
   private setFocus(node: MindmapNode | null): void {
+    // #404 — Zoomer sur un nœud doit révéler son sous-arbre, y compris après
+    // « Tout replier » (où le nœud est replié). Sans ça, un simple-clic sur un
+    // nœud replié zoome sur un nœud vide qui semble « ne pas s'ouvrir ».
+    if (node && this.collapsed().has(node)) {
+      const next = new Set(this.collapsed());
+      next.delete(node);
+      this.collapsed.set(next);
+    }
     this.focusNode.set(node);
   }
 
