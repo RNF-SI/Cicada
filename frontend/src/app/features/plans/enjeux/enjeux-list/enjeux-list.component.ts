@@ -3640,6 +3640,7 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
     if (metriqueId) queryParams.metriqueId = metriqueId;
     const enjeuSlug = this.selectedEnjeuSlug();
     if (enjeuSlug) queryParams.returnEnjeu = enjeuSlug;
+    queryParams.returnTab = this.activeTab();
     const extras = Object.keys(queryParams).length > 0 ? { queryParams } : {};
     this.router.navigate(['/plans', slug, 'enjeux', 'operations', 'nouveau'], extras);
   }
@@ -3667,6 +3668,7 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
     const queryParams: any = { indicateurId };
     const enjeuSlug = this.selectedEnjeuSlug();
     if (enjeuSlug) queryParams.returnEnjeu = enjeuSlug;
+    queryParams.returnTab = this.activeTab();
     this.router.navigate(['/plans', slug, 'enjeux', 'operations', 'nouveau'], { queryParams });
   }
 
@@ -3728,6 +3730,7 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
     const queryParams: any = { metriqueIds: metriqueIds.join(',') };
     const enjeuSlug = this.selectedEnjeuSlug();
     if (enjeuSlug) queryParams.returnEnjeu = enjeuSlug;
+    queryParams.returnTab = this.activeTab();
     this.router.navigate(['/plans', slug, 'enjeux', 'operations', 'nouveau'], { queryParams });
   }
 

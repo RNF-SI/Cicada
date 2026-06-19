@@ -166,6 +166,10 @@ export class OperationFormComponent implements OnInit {
   // #367 — indicateur de rattachement direct (action créée sans métrique).
   prelinkedIndicateurId = signal<number | null>(null);
   returnEnjeuSlug = signal<string | null>(null);
+  // #398 — onglet d'origine (« olt » ou « operations ») pour y revenir après
+  // création. Sans ça, une action créée depuis l'onglet OLT renvoyait vers
+  // l'onglet Opérations (où une action sans métrique n'apparaît pas).
+  returnTab = signal<string | null>(null);
 
   // Nomenclatures
   typeActionOptions = signal<NomenclatureOption[]>([]);
@@ -504,6 +508,11 @@ export class OperationFormComponent implements OnInit {
     const returnEnjeu = this.route.snapshot.queryParamMap.get('returnEnjeu');
     if (returnEnjeu) {
       this.returnEnjeuSlug.set(returnEnjeu);
+    }
+
+    const returnTab = this.route.snapshot.queryParamMap.get('returnTab');
+    if (returnTab) {
+      this.returnTab.set(returnTab);
     }
 
     this.loadData();
@@ -1589,7 +1598,10 @@ export class OperationFormComponent implements OnInit {
     const returnEnjeu = this.returnEnjeuSlug();
     const metriqueId = this.prelinkedMetriqueId();
     if (returnEnjeu) {
-      const queryParams: Record<string, number | string> = { tab: 'operations' };
+      // #398 — revenir sur l'onglet d'origine (OLT ou Opérations) plutôt que
+      // de forcer « operations » : une action sans métrique n'apparaît pas
+      // dans l'onglet Opérations et l'utilisateur se retrouvait « sur les OO ».
+      const queryParams: Record<string, number | string> = { tab: this.returnTab() || 'operations' };
       if (newOpId) {
         queryParams['expandOperation'] = newOpId;
       } else if (metriqueId) {
