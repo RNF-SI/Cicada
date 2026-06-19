@@ -86,6 +86,7 @@
                   <th>{{ 'plans.suivis.indicateur.thresh.unite' | translate }}</th>
                   <th>{{ 'plans.suivis.indicateur.thresh.ponderation' | translate }}</th>
                   <th>{{ 'plans.suivis.indicateur.thresh.etatReference' | translate }}</th>
+                  <th class="th-indetermine">{{ 'plans.suivis.indicateur.thresh.indetermine' | translate }}</th>
                   <th class="th-score th-very-bad">{{ 'plans.suivis.indicateur.thresh.veryBad' | translate }}</th>
                   <th class="th-score th-bad">{{ 'plans.suivis.indicateur.thresh.bad' | translate }}</th>
                   <th class="th-score th-neutral">{{ 'plans.suivis.indicateur.thresh.neutral' | translate }}</th>
@@ -100,11 +101,16 @@
                     <td>{{ metriqueUniteLabel(m) }}</td>
                     <td>{{ m.ponderation || 1 }}</td>
                     <td>{{ m.etat_reference || '—' }}</td>
-                    <td>min {{ getScoreBound(m, 1, 'inf') }} / max {{ getScoreBound(m, 1, 'sup') }}</td>
-                    <td>min {{ getScoreBound(m, 2, 'inf') }} / max {{ getScoreBound(m, 2, 'sup') }}</td>
-                    <td>min {{ getScoreBound(m, 3, 'inf') }} / max {{ getScoreBound(m, 3, 'sup') }}</td>
-                    <td>min {{ getScoreBound(m, 4, 'inf') }} / max {{ getScoreBound(m, 4, 'sup') }}</td>
-                    <td>min {{ getScoreBound(m, 5, 'inf') }} / max {{ getScoreBound(m, 5, 'sup') }}</td>
+                    <td class="indetermine-cell">
+                      @if (isMetriqueIndetermine(m)) {
+                        <span class="indetermine-marker"><i class="fi fi-rr-check"></i> {{ 'common.yes' | translate }}</span>
+                      } @else { <span class="indetermine-empty">—</span> }
+                    </td>
+                    <td>{{ scoreRange(m, 1) }}</td>
+                    <td>{{ scoreRange(m, 2) }}</td>
+                    <td>{{ scoreRange(m, 3) }}</td>
+                    <td>{{ scoreRange(m, 4) }}</td>
+                    <td>{{ scoreRange(m, 5) }}</td>
                   </tr>
                 }
               </tbody>

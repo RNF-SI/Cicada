@@ -26,6 +26,7 @@ import { PlanSidebarComponent } from '../../shared/plan-sidebar/plan-sidebar.com
 import { AdminService } from '../../../../core/services/admin.service';
 import { EnjeuService } from '../../../../core/services/enjeu.service';
 import { Indicateur, Metrique, Mesure, MesureCreatePayload } from '../../../../core/models/enjeu.model';
+import { formatScoreRange, isMetriqueIndetermine } from '../metrique-seuils.util';
 
 type DisplayMode = 'recap' | 'edit-auto' | 'edit-override';
 type ScoreLevel = 'very-bad' | 'bad' | 'neutral' | 'good' | 'very-good' | 'no-data';
@@ -148,6 +149,16 @@ export class IndicateurSaisieComponent implements OnInit {
   scoreLevelsList: ScoreLevel[] = SCORE_LEVELS;
 
   /** Bornes seuil d'une métrique pour un score donné (1-5). */
+  /** #421 — intervalle d'un palier formaté comme dans la saisie PG ([50 ; 200], ]30 ; 50]…). */
+  scoreRange(met: Metrique, level: number): string {
+    return formatScoreRange(met, level);
+  }
+
+  /** #421 — vrai si la métrique est de type indéterminé. */
+  isMetriqueIndetermine(met: Metrique): boolean {
+    return isMetriqueIndetermine(met);
+  }
+
   getScoreBound(met: Metrique, scoreIdx: number, kind: 'inf' | 'sup'): string {
     const key = `score_${scoreIdx}_${kind}` as keyof Metrique;
     const v = (met as any)[key];

@@ -1939,15 +1939,16 @@
         "scoreYear": "Score {{year}}",
         "etat": "État",
         "thresh": {
-          "intitule": "Intitulé",
+          "intitule": "Intitulé de la métrique",
           "unite": "Unité",
           "ponderation": "Pondération",
           "etatReference": "État de référence",
-          "veryBad": "Très mauvais (score 1)",
-          "bad": "Mauvais (score 2)",
-          "neutral": "Moyen (score 3)",
-          "good": "Bon (score 4)",
-          "veryGood": "Très bon (score 5)"
+          "indetermine": "Indéterminé",
+          "veryBad": "Très mauvais =1",
+          "bad": "Mauvais =2",
+          "neutral": "Moyen =3",
+          "good": "Bon =4",
+          "veryGood": "Très bon =5"
         },
         "messages": {
           "saved": "Saisie enregistrée."
