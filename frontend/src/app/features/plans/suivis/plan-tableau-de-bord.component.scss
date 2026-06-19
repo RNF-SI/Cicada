@@ -429,6 +429,12 @@
         min-width: 54px;
         // Filets entre années (revue design #317)
         border-right: 1px solid $primary-bg-subtle;
+
+        // #419 — survol par case (et non par ligne), comme le tableau des actions
+        &.clickable {
+          cursor: pointer;
+          &:hover { background: rgba($primary-color, 0.08); }
+        }
       }
 
       &.col-global {
@@ -528,9 +534,10 @@
     background-color: rgba($secondary-pale-green, 0.2);
   }
 
-  // Hover plus distinct du background normal (revue design Amandine)
+  // #419 — survol discret sur la ligne ; la mise en évidence forte est portée
+  // par la case de l'année survolée (cf. .col-year.clickable ci-dessous)
   &:hover {
-    background-color: $primary-bg-subtle;
+    background-color: rgba($primary-color, 0.03);
   }
 }
 
