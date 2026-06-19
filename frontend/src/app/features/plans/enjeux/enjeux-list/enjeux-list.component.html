@@ -402,7 +402,7 @@
                           </button>
                         }
                         <button class="icon-btn-flat icon-btn-flat--action" (click)="$event.stopPropagation(); toggleFacteur(facteur.id_facteur_influence)">
-                          <i class="fi" [ngClass]="isFacteurExpanded(facteur.id_facteur_influence) ? 'fi-rr-minus-circle' : 'fi-rr-add'"></i>
+                          <i class="fi" [ngClass]="isFacteurExpanded(facteur.id_facteur_influence) ? 'fi-rr-angle-small-up' : 'fi-rr-angle-small-down'"></i>
                         </button>
                       </div>
                     </div>
@@ -523,7 +523,7 @@
                                   </button>
                                 }
                                 <button class="icon-btn-flat icon-btn-flat--action" (click)="$event.stopPropagation(); togglePression(pression.id_pression)">
-                                  <i class="fi" [ngClass]="isPressionExpanded(pression.id_pression) ? 'fi-rr-minus-circle' : 'fi-rr-add'"></i>
+                                  <i class="fi" [ngClass]="isPressionExpanded(pression.id_pression) ? 'fi-rr-angle-small-up' : 'fi-rr-angle-small-down'"></i>
                                 </button>
                               </div>
                             </div>
@@ -959,9 +959,6 @@
                                                    (click)="$event.stopPropagation()"></i>
                                                 : {{ ind.nom_indicateur }}
                                               </span>
-                                              @if (ind.type_indicateur_label) {
-                                                <span class="indicateur-type-chip">{{ ind.type_indicateur_label }}</span>
-                                              }
                                               @if (ind.est_standardise) {
                                                 <span class="indicateur-std-chip">STD</span>
                                               }
@@ -1720,9 +1717,6 @@
                                            (click)="$event.stopPropagation()"></i>
                                         : {{ ind.nom_indicateur }}
                                       </span>
-                                      @if (ind.type_indicateur_label) {
-                                        <span class="indicateur-type-chip">{{ ind.type_indicateur_label }}</span>
-                                      }
                                       @if (ind.est_standardise) {
                                         <span class="indicateur-std-chip">STD</span>
                                       }
