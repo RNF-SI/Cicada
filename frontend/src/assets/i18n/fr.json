@@ -3138,7 +3138,7 @@
       "tooltip": "Facteur d'influence : élément ou phénomène (naturel ou anthropique) agissant favorablement ou défavorablement sur l'état de conservation de l'enjeu (CT88).",
       "newTitle": "Nouveau facteur d'influence",
       "addButton": "Ajouter un facteur d'influence",
-      "usageNote": "Utilisez cette section pour définir les facteurs d'influence de cet enjeu. Il est possible d'en ajouter plusieurs si nécessaire.",
+      "usageNote": "Utilisez cette section pour définir les facteurs d'influence et les pressions de cet enjeu. Il est possible d'en ajouter plusieurs si nécessaire.",
       "viewButton": "Voir les facteurs",
       "countSuffix": "facteur(s) d'influence",
       "libelleLabel": "Intitulé du facteur d'influence",
