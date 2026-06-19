@@ -98,10 +98,11 @@ export class PlanTableauDeBordComponent implements OnInit {
       .filter(g => !(tab === 'ensemble' && enjeuId) || g.enjeuId === enjeuId)
       .filter(g => !objectif || g.label === objectif)
       .map(g => {
-        // Type d'indicateur naturel du groupe (OLT → État, OO → Pression)
-        const needle = g.kind === 'olt' ? 'tat' : 'press';
-        let rows = g.rows.filter(r =>
-          (r.indicateur.type_indicateur_label ?? '').toLowerCase().includes(needle));
+        // #422 — ne pas filtrer par type d'indicateur : le chemin du groupe
+        // (OLT = état, OO = pression/réponse) suffit à le qualifier. Le filtre
+        // par libellé de type masquait les indicateurs de réponse (saisis dans
+        // les fiches action) et les indicateurs sans type renseigné.
+        let rows = g.rows;
         if (name) {
           const groupMatch = this.normalize(g.label).includes(name);
           if (!groupMatch) {
