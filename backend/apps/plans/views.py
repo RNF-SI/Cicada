@@ -231,6 +231,13 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
         """
         plan = serializer.save(id_utilisateur_ajout=self.request.user)
 
+        # Le créateur devient référent de son plan. Sans cela, un non-admin
+        # (référent/utilisateur) perd immédiatement l'accès en édition sur le
+        # plan qu'il vient de créer : côté frontend `canEditPlan` /
+        # `canManageLifecycle` exigent le statut de référent du plan pour les
+        # non-admins. Idempotent vis-à-vis d'éventuels `referents_ids` envoyés.
+        plan.referents.add(self.request.user)
+
         parent_id = self.request.data.get('plan_parent_id')
         if parent_id and not plan.plan_parent_id:
             parent = PlanGestion.objects.filter(pk=parent_id).first()
