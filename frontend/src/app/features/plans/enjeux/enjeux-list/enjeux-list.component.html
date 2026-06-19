@@ -1093,13 +1093,8 @@
                                                             <span class="operation-draft-chip status-warning" (click)="$event.stopPropagation()">{{ 'enjeux.operations.draftChip' | translate }}</span>
                                                           }
                                                           <div class="operation-metriques-row">
-                                                            @if (op.metriques?.length) {
-                                                              @for (m of op.metriques!; track m.id_metrique) {
-                                                                <span class="op-metrique-chip" (click)="$event.stopPropagation()" [matTooltip]="'enjeux.operations.metriqueLinkedTooltip' | translate">
-                                                                  <i class="fi fi-rr-ruler-horizontal"></i> {{ m.nom_metrique }}
-                                                                </span>
-                                                              }
-                                                            } @else {
+                                                            <!-- #403 — chips de métriques retirés (redondants avec « Également liée à » du détail). -->
+                                                            @if (!op.metriques?.length) {
                                                               <span class="op-trace-badge op-trace-sans-metrique" [matTooltip]="'enjeux.operations.sansMetriqueTooltip' | translate" (click)="$event.stopPropagation()">
                                                                 <i class="fi fi-rr-ban"></i> {{ 'enjeux.operations.sansMetriqueBadge' | translate }}
                                                               </span>
@@ -1849,13 +1844,8 @@
                                                     <span class="operation-draft-chip status-warning" (click)="$event.stopPropagation()">{{ 'enjeux.operations.draftChip' | translate }}</span>
                                                   }
                                                   <div class="operation-metriques-row">
-                                                    @if (op.metriques?.length) {
-                                                      @for (m of op.metriques!; track m.id_metrique) {
-                                                        <span class="op-metrique-chip" (click)="$event.stopPropagation()" [matTooltip]="'enjeux.operations.metriqueLinkedTooltip' | translate">
-                                                          <i class="fi fi-rr-ruler-horizontal"></i> {{ m.nom_metrique }}
-                                                        </span>
-                                                      }
-                                                    } @else {
+                                                    <!-- #403 — chips de métriques retirés (redondants avec « Également liée à » du détail). -->
+                                                    @if (!op.metriques?.length) {
                                                       <span class="op-trace-badge op-trace-sans-metrique" [matTooltip]="'enjeux.operations.sansMetriqueTooltip' | translate" (click)="$event.stopPropagation()">
                                                         <i class="fi fi-rr-ban"></i> {{ 'enjeux.operations.sansMetriqueBadge' | translate }}
                                                       </span>

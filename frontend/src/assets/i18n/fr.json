@@ -3059,7 +3059,7 @@
       "indicateursEmpty": "Aucun indicateur de réponse n'est encore rattaché à cette action.",
       "empriseSpatialeBadge": "Emprise spatiale renseignée",
       "indicateursBadge": "{{count}} indicateur(s) de réponse rattaché(s)",
-      "sansMetriqueBadge": "Sans métrique",
+      "sansMetriqueBadge": "Aucune métrique associée",
       "sansMetriqueTooltip": "Action rattachée directement à l'indicateur, sans métrique associée",
       "metriqueLinkedTooltip": "Métrique associée à cette action",
       "metriquesSameIndicateur": "même indicateur",
