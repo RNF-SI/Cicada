@@ -339,12 +339,9 @@
 
                 <!-- ═══ MODE NON-CAMPANULE (Non) ═══ -->
                 @if (isNotCampanule) {
-                  <!-- Nom du protocole (libre) -->
-                  <app-form-field [label]="'inventaires.form.nomProtocole' | translate" [required]="true">
+                  <!-- #413 — Nom du protocole (libre, facultatif) + aide nom local -->
+                  <app-form-field [label]="'inventaires.form.nomProtocole' | translate" [helpText]="'inventaires.form.nomProtocoleNonCampanuleHint' | translate">
   <input formControlName="nom_protocole">
-                    @if (shouldShowError('nom_protocole')) {
-                      
-                    }
 </app-form-field>
                 }
 
@@ -475,15 +472,12 @@
                   <app-form-field [label]="'inventaires.form.periodeEchantillonnage' | translate">
         <input formControlName="periode_echantillonnage">
       </app-form-field>
-
-                  <!-- Mode et champ de validation -->
-                  <app-form-field [label]="'inventaires.form.modeValidation' | translate">
-        <input formControlName="mode_validation">
-      </app-form-field>
+                  <!-- #414 — « Mode et champ de validation » supprimé pour les protocoles non-CAMPanule -->
                 }
 
-                <!-- Respect strict du protocole + Consulter le protocole -->
-                @if (isCampanule || isNotCampanule) {
+                <!-- #414 — « Respect strict du protocole » réservé aux protocoles CAMPanule -->
+                @if (isCampanule) {
+                  <!-- Respect strict du protocole + Consulter le protocole -->
                   <div class="radio-field-row radio-field-row-with-link"
                     [class.has-error]="shouldShowError('respect_protocole')">
                     <span class="radio-field-label">
@@ -494,7 +488,7 @@
                       <mat-radio-button [value]="true" color="primary">{{ 'common.yes' | translate }}</mat-radio-button>
                       <mat-radio-button [value]="false" color="primary">{{ 'common.no' | translate }}</mat-radio-button>
                     </mat-radio-group>
-                    @if (isCampanule && hasCampanuleSelected) {
+                    @if (hasCampanuleSelected) {
                       <a class="consulter-link" (click)="consulterProtocole()">
                         {{ 'inventaires.form.consulterProtocole' | translate }}
                       </a>
@@ -503,17 +497,17 @@
                   @if (shouldShowError('respect_protocole')) {
                     <p class="field-error"><i class="fi fi-rr-exclamation"></i>{{ getErrorMessage('respect_protocole') }}</p>
                   }
-                }
 
-                <!-- Conditional: non-respect fields -->
-                @if (isNonRespect) {
-                  <app-form-field [label]="'inventaires.form.justificationNonRespect' | translate">
+                  <!-- Conditional: non-respect fields -->
+                  @if (isNonRespect) {
+                    <app-form-field [label]="'inventaires.form.justificationNonRespect' | translate">
         <textarea formControlName="justification_non_respect" rows="2"></textarea>
       </app-form-field>
 
-                  <app-form-field [label]="'inventaires.form.differencesProtocole' | translate">
+                    <app-form-field [label]="'inventaires.form.differencesProtocole' | translate">
         <textarea formControlName="differences_protocole" rows="2"></textarea>
       </app-form-field>
+                  }
                 }
 
                 <!-- Nombre d'ETP (campanule mode) -->

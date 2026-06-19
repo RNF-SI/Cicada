@@ -1514,15 +1514,18 @@ export class OperationFormComponent implements OnInit {
 
     this.applyRequiredValidator('intitule_suivi', requireForCS);
     this.applyRequiredValidator('protocole_dans_campanule', requireForCS);
-    this.applyRequiredValidator('respect_protocole', requireForCS);
+    // #414 — « Respect strict du protocole » n'est demandé que pour les
+    // protocoles CAMPanule ; masqué (et non requis) pour les protocoles locaux.
+    this.applyRequiredValidator(
+      'respect_protocole',
+      requireForCS && protocoleCampanule === true,
+    );
     this.applyRequiredValidator(
       'cd_protocole_campanule',
       requireForCS && protocoleCampanule === true,
     );
-    this.applyRequiredValidator(
-      'nom_protocole',
-      requireForCS && protocoleCampanule === false,
-    );
+    // #413 — le nom d'un protocole non-CAMPanule (nom local) est facultatif.
+    this.applyRequiredValidator('nom_protocole', false);
   }
 
   /** Helper : ajoute ou retire Validators.required sur un contrôle, sans émettre. */
@@ -2109,8 +2112,28 @@ export class OperationFormComponent implements OnInit {
     const annee = this.operationAnnees[index];
     annee.periodicite = !annee.periodicite;
     if (!annee.periodicite) {
+      // #425 — décocher la programmation d'une année doit remettre à zéro le
+      // budget et la RH de cette colonne, quel que soit le mode de ventilation.
+      this.clearYearBudget(index);
+    }
+  }
+
+  /**
+   * #425 — Réinitialise toutes les saisies budget/RH d'une année (tous modes de
+   * ventilation confondus). Appelé quand on décoche la programmation de l'année.
+   */
+  private clearYearBudget(index: number): void {
+    const annee = this.operationAnnees[index];
+    if (annee) {
       annee.budget = null;
       annee.etp = null;
+    }
+    this.directTotals[index] = { budget: null, etp: null };
+    this.typeBudgets[index] = { fonct: null, invest: null, etp: null };
+    for (const org of this.availableOrganismes()) {
+      const key = this.orgKey(index, org.id_organisme);
+      this.orgBudgets[key] = { fonct: null, invest: null, etp: null };
+      this.orgByOrgData[key] = { budget: null, etp: null };
     }
   }
 

@@ -397,8 +397,8 @@
 
               <!-- ═══ MODE NON-CAMPANULE (Non) ═══ -->
               @if (isNotCampanule) {
-                <!-- Nom du protocole (libre) -->
-                <app-form-field [label]="'enjeux.operations.nomProtocole' | translate" [required]="true">
+                <!-- #413 — Nom du protocole (libre, facultatif) + aide nom local -->
+                <app-form-field [label]="'enjeux.operations.nomProtocole' | translate" [helpText]="'enjeux.operations.nomProtocoleNonCampanuleHint' | translate">
   <input formControlName="nom_protocole">
 </app-form-field>
 
@@ -408,32 +408,35 @@
 </app-form-field>
               }
 
-              <!-- Respectez-vous strictement le protocole ? -->
-              <div class="radio-field-row radio-field-row-with-link">
-                <span class="radio-field-label">
-                  {{ 'enjeux.operations.respectProtocole' | translate }}
-                  <span class="required-star">*</span>
-                </span>
-                <mat-radio-group formControlName="respect_protocole" class="radio-inline">
-                  <mat-radio-button [value]="true" color="primary">{{ 'common.yes' | translate }}</mat-radio-button>
-                  <mat-radio-button [value]="false" color="primary">{{ 'common.no' | translate }}</mat-radio-button>
-                </mat-radio-group>
-                @if (isCampanule && hasCampanuleSelected) {
-                  <a class="consulter-link" (click)="consulterProtocole()">
-                    {{ 'enjeux.operations.consulterProtocole' | translate }}
-                  </a>
-                }
-              </div>
+              <!-- #414 — « Respect strict du protocole » réservé aux protocoles CAMPanule -->
+              @if (isCampanule) {
+                <!-- Respectez-vous strictement le protocole ? -->
+                <div class="radio-field-row radio-field-row-with-link">
+                  <span class="radio-field-label">
+                    {{ 'enjeux.operations.respectProtocole' | translate }}
+                    <span class="required-star">*</span>
+                  </span>
+                  <mat-radio-group formControlName="respect_protocole" class="radio-inline">
+                    <mat-radio-button [value]="true" color="primary">{{ 'common.yes' | translate }}</mat-radio-button>
+                    <mat-radio-button [value]="false" color="primary">{{ 'common.no' | translate }}</mat-radio-button>
+                  </mat-radio-group>
+                  @if (hasCampanuleSelected) {
+                    <a class="consulter-link" (click)="consulterProtocole()">
+                      {{ 'enjeux.operations.consulterProtocole' | translate }}
+                    </a>
+                  }
+                </div>
 
-              <!-- Non-respect: Justification + Différences -->
-              @if (isNonRespect) {
-                <app-form-field [label]="'enjeux.operations.justificationNonRespect' | translate">
+                <!-- Non-respect: Justification + Différences -->
+                @if (isNonRespect) {
+                  <app-form-field [label]="'enjeux.operations.justificationNonRespect' | translate">
   <textarea formControlName="justification_non_respect" rows="3"></textarea>
 </app-form-field>
 
-                <app-form-field [label]="'enjeux.operations.differencesProtocole' | translate">
+                  <app-form-field [label]="'enjeux.operations.differencesProtocole' | translate">
   <textarea formControlName="differences_protocole" rows="3"></textarea>
 </app-form-field>
+                }
               }
 
               <!-- Description du protocole (readonly si Campanule) -->
