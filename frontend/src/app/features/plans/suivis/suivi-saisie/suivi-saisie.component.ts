@@ -552,21 +552,18 @@ export class SuiviSaisieComponent implements OnInit {
       return;
     }
     const oa = this.currentOperationAnnee();
-    if (!oa?.id_operation_annee) {
-      this.snack.open(
-        this.translate.instant('plans.suivis.saisie.errors.missingProgrammation'),
-        this.translate.instant('common.actions.close'),
-        { duration: 4000 },
-      );
-      return;
-    }
     const v = this.form.value;
     const orgVentilation = this.isOrgVentilation();
 
     // 1) Payload annuel : niveau, périodicité, commentaires toujours.
     //    Budget/ETP au niveau année uniquement si pas de ventilation par org.
+    // #418 — si l'année n'était pas programmée (pas d'OperationAnnee), on
+    // transmet (id_operation, annee) : le backend crée l'année à la volée
+    // (réalisée non prévue). Sinon on cible l'OperationAnnee existante.
     const annualPayload: RealisationUpsertPayload = {
-      id_operation_annee: oa.id_operation_annee,
+      ...(oa?.id_operation_annee
+        ? { id_operation_annee: oa.id_operation_annee }
+        : { id_operation: this.operationId() ?? undefined, annee: this.selectedYear() }),
       id_niveau_realisation: v.id_niveau_realisation || null,
       periodicite_realisee: !!v.periodicite_realisee,
       commentaires: v.commentaires || null,
@@ -655,6 +652,17 @@ export class SuiviSaisieComponent implements OnInit {
                 if (idxOrg >= 0) target.organismes[idxOrg].realisation = so;
               }
             }
+            this.operation.set({ ...op });
+          } else {
+            // #418 — année non planifiée créée à la volée : on l'ajoute
+            // localement pour refléter immédiatement la saisie.
+            op.operation_annees.push({
+              id_operation_annee: savedAnnual.id_operation_annee,
+              annee: this.selectedYear(),
+              periodicite: false,
+              organismes: [],
+              realisation: savedAnnual,
+            } as unknown as OperationAnnee);
             this.operation.set({ ...op });
           }
         }

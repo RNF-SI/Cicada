@@ -465,20 +465,37 @@ class RealisationOperationAnneeViewSet(viewsets.ModelViewSet):
 
         POST /api/plans/realisations/upsert/
         Body: { "id_operation_annee": 123, "id_niveau_realisation": 1502, ... }
+
+        #418 — Si l'année n'était pas programmée (pas d'OperationAnnee), on
+        accepte aussi { "id_operation": 12, "annee": 2025, ... } : l'année est
+        créée à la volée (periodicite=False) pour permettre la saisie du suivi
+        d'une action « réalisée non prévue ».
         """
         id_op_annee = request.data.get('id_operation_annee')
-        if not id_op_annee:
-            return Response(
-                {'detail': 'id_operation_annee est requis.'},
-                status=status.HTTP_400_BAD_REQUEST,
+        created_oa = False
+        if id_op_annee:
+            operation_annee = get_object_or_404(OperationAnnee, pk=id_op_annee)
+        else:
+            id_operation = request.data.get('id_operation')
+            annee = request.data.get('annee')
+            if not id_operation or annee in (None, ''):
+                return Response(
+                    {'detail': 'id_operation_annee, ou (id_operation + annee), est requis.'},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            operation = get_object_or_404(Operation, pk=id_operation)
+            operation_annee, created_oa = OperationAnnee.objects.get_or_create(
+                id_operation=operation, annee=int(annee),
+                defaults={'periodicite': False},
             )
-        operation_annee = get_object_or_404(OperationAnnee, pk=id_op_annee)
         # Garde-fou : l'utilisateur doit voir l'opération parente via le scoping standard.
         accessible_ops = _scope_realisation_queryset(
             OperationAnnee.objects.filter(pk=operation_annee.pk),
             request.user, 'id_operation',
         )
         if not accessible_ops.exists():
+            if created_oa:
+                operation_annee.delete()
             return Response(
                 {'detail': "Vous n'avez pas accès à cette opération."},
                 status=status.HTTP_403_FORBIDDEN,

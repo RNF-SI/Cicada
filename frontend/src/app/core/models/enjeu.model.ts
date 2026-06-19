@@ -576,7 +576,11 @@ export interface OperationAnnee {
  * Payload d'upsert d'une réalisation annuelle (envoi formulaire de saisie).
  */
 export interface RealisationUpsertPayload {
-  id_operation_annee: number;
+  id_operation_annee?: number;
+  // #418 — saisie d'un suivi pour une année NON planifiée : le backend crée
+  // l'OperationAnnee à la volée à partir de (id_operation, annee).
+  id_operation?: number;
+  annee?: number;
   id_niveau_realisation?: number | null;
   periodicite_realisee?: boolean;
   periodicite_mensuelle_realisee?: Record<string, boolean>;
