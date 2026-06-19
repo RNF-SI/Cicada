@@ -414,6 +414,8 @@ export interface IndicateurAutoScoreResponse {
 export interface IndicateurResolvedResponse {
   id_indicateur: number;
   annee: number;
+  // #424 — id de l'override (IndicateurMesure) pour pouvoir le supprimer
+  id_indicateur_mesure?: number | null;
   score_auto: number | null;
   score_override: number | null;
   commentaire_override: string | null;

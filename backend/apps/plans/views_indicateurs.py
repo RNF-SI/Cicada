@@ -893,6 +893,9 @@ class IndicateurMesureViewSet(viewsets.ModelViewSet):
         return Response({
             'id_indicateur': indicateur.id_indicateur,
             'annee': annee,
+            # #424 — id de l'override pour permettre au front de le supprimer
+            # (repassage en calcul automatique).
+            'id_indicateur_mesure': override.id_indicateur_mesure if override else None,
             'score_auto': auto['score'],
             'score_override': override.score_override if override else None,
             'commentaire_override': override.commentaire_override if override else None,

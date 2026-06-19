@@ -262,11 +262,9 @@ export class IndicateurSaisieComponent implements OnInit {
         this.scoreOverride.set(resolved.score_override);
         this.commentaireOverride.set(resolved.commentaire_override || '');
         this.isOverridden.set(resolved.is_overridden);
-        // Récupérer l'id_indicateur_mesure si override existe
-        if (resolved.is_overridden) {
-          this.enjeuService.getIndicatorResolved(indId, year).subscribe();
-          // L'API resolved ne renvoie pas l'id. On l'obtient via /indicateur-mesures/?id_indicateur=X&annee=Y
-        }
+        // #424 — l'API resolved renvoie désormais l'id de l'override : on le
+        // mémorise pour pouvoir le supprimer lors du repassage en auto.
+        this.overrideId.set(resolved.id_indicateur_mesure ?? null);
         // Mode initial : recap si on a déjà au moins une mesure ou un override
         const hasAnyData = mesures.length > 0 || resolved.is_overridden;
         this.mode.set(hasAnyData ? 'recap' : 'edit-auto');
