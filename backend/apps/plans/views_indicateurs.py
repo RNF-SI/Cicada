@@ -700,11 +700,21 @@ class MesureViewSet(viewsets.ModelViewSet):
 # =============================================================================
 
 
+def _coerce_float(value):
+    """#423 — Convertit une valeur en float en tolérant la virgule décimale
+    française (« 20,6 » → 20.6). Retourne None si non convertible."""
+    if value is None:
+        return None
+    try:
+        return float(str(value).replace(',', '.').strip())
+    except (TypeError, ValueError):
+        return None
+
+
 def _value_to_score(value, metrique) -> int | None:
     """Convertit une valeur numérique en score 1-5 via les seuils de la métrique."""
-    try:
-        v = float(value)
-    except (TypeError, ValueError):
+    v = _coerce_float(value)
+    if v is None:
         return None
     inactive = set(getattr(metrique, 'inactive_levels', None) or [])
     for i in range(1, 6):
@@ -712,9 +722,14 @@ def _value_to_score(value, metrique) -> int | None:
             continue
         inf = getattr(metrique, f'score_{i}_inf', None)
         sup = getattr(metrique, f'score_{i}_sup', None)
-        if inf is None or sup is None:
+        # #423 — une borne absente = palier ouvert (-∞ / +∞). Les paliers
+        # extrêmes (très mauvais ouvert vers le bas, très bon ouvert vers le
+        # haut) étaient ignorés à tort, ce qui décalait le score d'un cran.
+        if inf is None and sup is None:
             continue
-        if float(inf) <= v <= float(sup):
+        lo = float(inf) if inf is not None else float('-inf')
+        hi = float(sup) if sup is not None else float('inf')
+        if lo <= v <= hi:
             return i
     return None
 

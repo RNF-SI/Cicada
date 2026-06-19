@@ -607,16 +607,20 @@ class RealisationOperationAnneeViewSet(viewsets.ModelViewSet):
 
         def _compute_score(value, m):
             """Retourne 1-5 selon la grille de scores de la métrique, ou 0 si hors plage."""
+            # #423 — virgule décimale française tolérée
             try:
-                v = float(value)
-            except (TypeError, ValueError):
+                v = float(str(value).replace(',', '.').strip())
+            except (TypeError, ValueError, AttributeError):
                 return 0
             for i in range(1, 6):
                 inf = getattr(m, f'score_{i}_inf', None)
                 sup = getattr(m, f'score_{i}_sup', None)
-                if inf is None or sup is None:
+                # #423 — borne absente = palier ouvert (-∞ / +∞)
+                if inf is None and sup is None:
                     continue
-                if float(inf) <= v <= float(sup):
+                lo = float(inf) if inf is not None else float('-inf')
+                hi = float(sup) if sup is not None else float('inf')
+                if lo <= v <= hi:
                     return i
             return 0
 

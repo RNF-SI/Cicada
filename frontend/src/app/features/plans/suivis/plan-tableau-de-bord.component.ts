@@ -382,7 +382,7 @@ export class PlanTableauDeBordComponent implements OnInit {
         return new Date(m.date_mesure).getFullYear() === year;
       });
       if (mesure) {
-        return this.valueToScoreLevel(metrique, parseFloat(mesure.valeur));
+        return this.valueToScoreLevel(metrique, parseFloat(String(mesure.valeur).replace(',', '.')));
       }
     }
     return null;
@@ -398,7 +398,7 @@ export class PlanTableauDeBordComponent implements OnInit {
       return new Date(m.date_mesure).getFullYear() === year;
     });
     if (!mesure) return null;
-    return this.valueToScoreLevel(metrique, parseFloat(mesure.valeur));
+    return this.valueToScoreLevel(metrique, parseFloat(String(mesure.valeur).replace(',', '.')));
   }
 
   /**

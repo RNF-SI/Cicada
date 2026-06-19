@@ -104,13 +104,19 @@ export class IndicateurSaisieComponent implements OnInit {
 
   /** Convertit une valeur numérique en score 1-5 selon les seuils d'une métrique. */
   valueToScore(value: any, met: Metrique): number | null {
-    const v = typeof value === 'number' ? value : parseFloat(String(value || ''));
+    // #423 — tolère la virgule décimale française (« 20,6 »).
+    const v = typeof value === 'number' ? value : parseFloat(String(value ?? '').replace(',', '.'));
     if (isNaN(v)) return null;
     for (let i = 1; i <= 5; i++) {
       const inf = (met as any)[`score_${i}_inf`];
       const sup = (met as any)[`score_${i}_sup`];
-      if (inf === null || inf === undefined || sup === null || sup === undefined) continue;
-      if (Number(inf) <= v && v <= Number(sup)) return i;
+      const hasInf = inf !== null && inf !== undefined;
+      const hasSup = sup !== null && sup !== undefined;
+      // #423 — palier extrême ouvert : borne absente = -∞ / +∞ (ne pas l'ignorer).
+      if (!hasInf && !hasSup) continue;
+      const lo = hasInf ? Number(inf) : -Infinity;
+      const hi = hasSup ? Number(sup) : Infinity;
+      if (lo <= v && v <= hi) return i;
     }
     return null;
   }
@@ -336,7 +342,7 @@ export class IndicateurSaisieComponent implements OnInit {
         const existing = this.mesuresByMetrique.get(met.id_metrique);
         const payload: MesureCreatePayload = {
           id_metrique: met.id_metrique,
-          valeur: String(value),
+          valeur: String(value).replace(',', '.'),
           date_mesure: `${year}-12-31`,
         };
         mesureCalls.push(
