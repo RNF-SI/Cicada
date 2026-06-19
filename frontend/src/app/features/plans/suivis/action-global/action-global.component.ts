@@ -242,15 +242,30 @@ export class ActionGlobalComponent implements OnInit {
    * statut trompeur.
    */
   globalState(): 'realise' | 'partiel' | 'non_realise' | 'a_evaluer' {
-    const m = this.operation()?.niveau_realisation_global_mnemonique;
+    const op = this.operation();
+    const m = op?.niveau_realisation_global_mnemonique;
     switch (m) {
       case 'TERMINE': return 'realise';
       case 'PARTIEL': return 'partiel';
       case 'ABANDONNE':
       case 'REPORTE':
-      case 'NON_REALISE': return 'non_realise';
+      case 'NON_REALISE':
+        // #417 — la croix « non réalisé » du global n'apparaît que si le
+        // gestionnaire a explicitement indiqué la non-réalisation : soit via
+        // une appréciation globale manuelle, soit en marquant au moins une
+        // année « non réalisée ». Sinon, la case reste vide (à évaluer).
+        return (op?.niveau_realisation_global_manuel || this.hasYearMarkedNotRealized())
+          ? 'non_realise' : 'a_evaluer';
       default: return 'a_evaluer'; // NON_DEMARRE, EN_COURS, null → rien de conclu
     }
+  }
+
+  /** #417 — vrai si au moins une année est explicitement marquée « non réalisée ». */
+  private hasYearMarkedNotRealized(): boolean {
+    const op = this.operation();
+    return !!op?.operation_annees?.some(
+      (a: any) => a.realisation?.niveau_realisation_mnemonique === 'NON_REALISE',
+    );
   }
 
   /** Vrai quand aucune conclusion automatique n'est possible (à évaluer). */
