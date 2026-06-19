@@ -3208,6 +3208,7 @@
       "addButton": "Ajouter une métrique",
       "nomLabel": "Intitulé de la métrique",
       "typeLabel": "Type de métrique",
+      "typeRequired": "Le type de métrique est obligatoire.",
       "uniteLabel": "Unité",
       "ponderationLabel": "Pondération",
       "etatReferenceLabel": "État de référence",

@@ -31,8 +31,9 @@
     </app-form-field>
 
     <app-form-field class="flex-1"
-                    [label]="'enjeux.metriques.typeLabel' | translate">
-      <select [(ngModel)]="metrique.type_metrique" (ngModelChange)="emitChange()">
+                    [label]="'enjeux.metriques.typeLabel' | translate"
+                    [required]="true">
+      <select [(ngModel)]="metrique.type_metrique" (ngModelChange)="emitChange()" required>
         <option [ngValue]="null">{{ 'common.actions.select' | translate }}</option>
         @for (opt of typeMetriqueOptions; track trackByOptionId($index, opt)) {
           <option [ngValue]="opt.id_nomenclature">{{ opt.label }}</option>

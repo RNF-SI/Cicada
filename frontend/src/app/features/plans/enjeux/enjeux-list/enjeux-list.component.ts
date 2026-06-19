@@ -2356,6 +2356,15 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
   saveStandaloneMetrique(indicateurId: number): void {
     // #339 : l'intitulé n'est requis que si le type n'est pas « Indéterminé ».
     if (!this.standaloneMetriqueForm) return;
+    // #401 — le type de métrique est obligatoire.
+    if (this.standaloneMetriqueForm.type_metrique == null) {
+      this.snackBar.open(
+        this.translate.instant('enjeux.metriques.typeRequired'),
+        this.translate.instant('common.actions.close'),
+        { duration: 3000 }
+      );
+      return;
+    }
     const isIndetermine = this.getMetriqueTypeMnemonique(this.standaloneMetriqueForm.type_metrique) === 'INDETERMINE';
     if (!isIndetermine && !this.standaloneMetriqueForm.nom_metrique.trim()) return;
     this.isSavingStandaloneMetrique.set(true);
