@@ -612,6 +612,16 @@ class PlanGestion(models.Model):
             return False
         return site.id_type_site.mnemonique == 'RNN'
 
+    def is_reserve_naturelle(self):
+        """#406 — Vrai si le site principal est une réserve naturelle
+        (RNN, RNR ou RNC). Conditionne l'accès au workflow de validation
+        administrative (avis CSRPN, comité consultatif, arrêté préfectoral).
+        """
+        site = self.get_principal_site()
+        if not site or not site.id_type_site:
+            return False
+        return site.id_type_site.mnemonique in ('RNN', 'RNR', 'RNC')
+
     def get_next_version(self):
         """
         Calcule la prochaine version pour une modification du MÊME rang (#279).

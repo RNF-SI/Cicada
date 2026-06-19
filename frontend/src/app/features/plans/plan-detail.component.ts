@@ -928,6 +928,11 @@ export class PlanDetailComponent implements OnInit, OnDestroy {
    *  par l'étape arrêté préfectoral après la validation comité. */
   isRnn = computed<boolean>(() => this.principalSiteTypeMnemonique() === 'RNN');
 
+  /** #406 — Vrai si le site principal est une réserve naturelle (RNN/RNR/RNC).
+   *  La validation administrative n'est proposée que pour ces sites. */
+  isReserveNaturelle = computed<boolean>(() =>
+    ['RNN', 'RNR', 'RNC'].includes(this.principalSiteTypeMnemonique() ?? ''));
+
   /** #347 — Validations administratives indépendantes (panneau dédié).
    *  Chaque élément est « validé » dès que sa date est renseignée. L'arrêté
    *  préfectoral n'est présent que pour les RNN/RNR. */

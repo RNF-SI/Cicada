@@ -110,7 +110,7 @@
                   <!-- #347 — Badge « Validations administratives » en haut du plan :
                        informations au survol (récap), édition au clic via menu
                        (indépendante, possible en brouillon comme en validé). -->
-                  @if (canManageLifecycle()) {
+                  @if (canManageLifecycle() && isReserveNaturelle()) {
                     <button type="button"
                             class="meta-value status-chip status-chip--csrpn-recap is-editable"
                             [matTooltip]="csrpnRecapTooltip()"

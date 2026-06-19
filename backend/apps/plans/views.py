@@ -1323,6 +1323,15 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
+        # #406 — le workflow de validation administrative (CSRPN) est réservé
+        # aux réserves naturelles (RNN/RNR/RNC). L'annulation (step=None) reste
+        # toujours permise pour pouvoir sortir d'un état incohérent.
+        if new_step is not None and not plan.is_reserve_naturelle():
+            return Response(
+                {'error': "La validation administrative est réservée aux réserves naturelles (RNN, RNR, RNC)."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
         current_step = plan.validation_step
         # Transitions autorisées du workflow CSRPN. None = pas dans le workflow.
         # #347 — auto-transitions autorisées (step == current) : permet de
@@ -1438,6 +1447,14 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
         if key not in key_to_date_field:
             return Response(
                 {'error': f"Clé invalide. Choix : {', '.join(key_to_date_field)}"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # #406 — la validation administrative est réservée aux réserves
+        # naturelles (RNN/RNR/RNC). L'effacement (date=null) reste autorisé.
+        if (request.data.get('date') or None) and not plan.is_reserve_naturelle():
+            return Response(
+                {'error': "La validation administrative est réservée aux réserves naturelles (RNN, RNR, RNC)."},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
