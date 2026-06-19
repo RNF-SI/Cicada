@@ -404,11 +404,11 @@
                         <img src="assets/images/ellipses/ellipse-terra-cotta.png" alt="" class="facteur-bullet">
                         <h3 class="facteur-card-title">
                           {{ 'enjeux.facteurInfluence.label' | translate }}
+                          : {{ facteur.libelle }}
                           <i class="fi fi-rr-info help-icon"
                              [matTooltip]="'enjeux.facteurInfluence.tooltip' | translate"
                              matTooltipPosition="right"
                              (click)="$event.stopPropagation()"></i>
-                          : {{ facteur.libelle }}
                         </h3>
                       </div>
                       <div class="facteur-card-actions">
@@ -519,11 +519,11 @@
                                 <div class="pression-card-title-block">
                                   <h4 class="pression-card-title">
                                     {{ 'enjeux.pression.label' | translate }}
+                                    : {{ pression.libelle }}
                                     <i class="fi fi-rr-info help-icon"
                                        [matTooltip]="'enjeux.pression.tooltip' | translate"
                                        matTooltipPosition="right"
                                        (click)="$event.stopPropagation()"></i>
-                                    : {{ pression.libelle }}
                                   </h4>
                                   @if (pression.pressref_label) {
                                     <div class="pression-card-type">
@@ -801,11 +801,11 @@
                                         <img src="assets/images/ellipses/ellipse-terra-cotta.png" alt="" class="ne-ellipse">
                                         <h3 class="ne-card-title">
                                           {{ 'enjeux.niveauExigence.label' | translate }}
+                                          : {{ ne.libelle }}
                                           <i class="fi fi-rr-info help-icon"
                                              [matTooltip]="'enjeux.niveauExigence.tooltip' | translate"
                                              matTooltipPosition="right"
                                              (click)="$event.stopPropagation()"></i>
-                                          : {{ ne.libelle }}
                                         </h3>
                                       </div>
                                       <div class="ne-card-actions">
@@ -972,11 +972,11 @@
                                               <img src="assets/images/ellipses/ellipse-salmon.png" alt="" class="indicateur-ellipse">
                                               <span class="indicateur-nom">
                                                 {{ 'enjeux.indicateurs.label' | translate }}
+                                                : {{ ind.nom_indicateur }}
                                                 <i class="fi fi-rr-info help-icon"
                                                    [matTooltip]="'enjeux.indicateurs.tooltip' | translate"
                                                    matTooltipPosition="right"
                                                    (click)="$event.stopPropagation()"></i>
-                                                : {{ ind.nom_indicateur }}
                                               </span>
                                             </div>
                                             <div class="indicateur-actions">
@@ -1078,6 +1078,9 @@
                                                           }
                                                           @if (canEditPlan()) {
                                                             <td class="actions-col">
+                                                              <button class="icon-btn-flat" (click)="startEditIndicateur(ind, met.id_metrique)" title="{{ 'common.actions.edit' | translate }}">
+                                                                <i class="fi fi-rr-pencil"></i>
+                                                              </button>
                                                               <button class="icon-btn-flat" (click)="deleteMetrique(met)" title="{{ 'common.actions.delete' | translate }}">
                                                                 <i class="fi fi-rr-trash"></i>
                                                               </button>
@@ -1559,11 +1562,11 @@
                                 <img src="assets/images/ellipses/ellipse-terra-cotta.png" alt="" class="ne-ellipse">
                                 <h3 class="ne-card-title">
                                   {{ 'enjeux.resultatAttendu.label' | translate }}
+                                  : {{ ra.libelle }}
                                   <i class="fi fi-rr-info help-icon"
                                      [matTooltip]="'enjeux.resultatAttendu.tooltip' | translate"
                                      matTooltipPosition="right"
                                      (click)="$event.stopPropagation()"></i>
-                                  : {{ ra.libelle }}
                                 </h3>
                               </div>
                               <div class="ne-card-actions">
@@ -1728,11 +1731,11 @@
                                       <img src="assets/images/ellipses/ellipse-salmon.png" alt="" class="indicateur-ellipse">
                                       <span class="indicateur-nom">
                                         {{ 'enjeux.indicateurPression.label' | translate }}
+                                        : {{ ind.nom_indicateur }}
                                         <i class="fi fi-rr-info help-icon"
                                            [matTooltip]="'enjeux.indicateurPression.tooltip' | translate"
                                            matTooltipPosition="right"
                                            (click)="$event.stopPropagation()"></i>
-                                        : {{ ind.nom_indicateur }}
                                       </span>
                                     </div>
                                     <div class="indicateur-actions">
@@ -1832,6 +1835,9 @@
                                                   }
                                                   @if (canEditPlan()) {
                                                     <td class="actions-col">
+                                                      <button class="icon-btn-flat" (click)="startEditOoIndicateur(ind, met.id_metrique)" title="{{ 'common.actions.edit' | translate }}">
+                                                        <i class="fi fi-rr-pencil"></i>
+                                                      </button>
                                                       <button class="icon-btn-flat" (click)="deleteMetrique(met)" title="{{ 'common.actions.delete' | translate }}">
                                                         <i class="fi fi-rr-trash"></i>
                                                       </button>

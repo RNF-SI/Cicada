@@ -2522,7 +2522,7 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
     });
   }
 
-  startEditIndicateur(ind: any): void {
+  startEditIndicateur(ind: any, expandMetriqueId?: number): void {
     this.editingIndicateurId.set(ind.id_indicateur);
     this.editIndicateurNom = ind.nom_indicateur;
     this.editIndicateurType = ind.type_indicateur || null;
@@ -2534,6 +2534,14 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
     this.editIndicateurMetriques = (ind.metriques || []).map((met: Metrique) =>
       this.metriqueToFormData(met)
     );
+
+    // #411 — édition d'une métrique précise : la déplier directement
+    if (expandMetriqueId != null) {
+      const target = this.editIndicateurMetriques.find(
+        (m) => m.id_metrique === expandMetriqueId
+      );
+      if (target) target._expanded = true;
+    }
   }
 
   cancelEditIndicateur(): void {
@@ -4389,7 +4397,7 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
     });
   }
 
-  startEditOoIndicateur(indicateur: Indicateur): void {
+  startEditOoIndicateur(indicateur: Indicateur, expandMetriqueId?: number): void {
     this.editingOoIndicateurId.set(indicateur.id_indicateur);
     this.editOoIndicateurNom = indicateur.nom_indicateur;
     this.editOoIndicateurType = indicateur.type_indicateur || null;
@@ -4399,6 +4407,14 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
     this.editOoIndicateurMetriques = (indicateur.metriques || []).map(m =>
       this.metriqueToFormData(m)
     );
+
+    // #411 — édition d'une métrique précise : la déplier directement
+    if (expandMetriqueId != null) {
+      const target = this.editOoIndicateurMetriques.find(
+        m => m.id_metrique === expandMetriqueId
+      );
+      if (target) target._expanded = true;
+    }
   }
 
   cancelEditOoIndicateur(): void {
