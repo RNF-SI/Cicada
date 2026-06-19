@@ -105,25 +105,41 @@
             <!-- Sous-question habitats (si coché) -->
             @if (form.get('habitat')?.value) {
               <div class="form-group sub-question">
-                <label class="form-label">{{ 'enjeux.enjeuForm.habitatsConcernes' | translate }}</label>
+                <label class="form-label">
+                  {{ 'enjeux.enjeuForm.habitatsConcernes' | translate }}
+                  <span class="required-star">*</span>
+                </label>
+                <!-- #409 — précision sur les taxons/habitats à saisir -->
+                <p class="text-mention">{{ 'enjeux.enjeuForm.cibleRefHint' | translate }}</p>
                 <app-reference-item-list
                   type="habitat"
                   [items]="habitatItems"
                   [showCorrespondences]="true"
                   (itemsChange)="onHabitatsChange($event)">
                 </app-reference-item-list>
+                @if (showRefErrors() && habitatRefMissing) {
+                  <p class="field-error"><i class="fi fi-rr-exclamation"></i>{{ 'enjeux.enjeuForm.habitatRefRequired' | translate }}</p>
+                }
               </div>
             }
 
             <!-- Sous-question espèces (si coché) -->
             @if (form.get('espece')?.value) {
               <div class="form-group sub-question">
-                <label class="form-label">{{ 'enjeux.enjeuForm.especesConcernees' | translate }}</label>
+                <label class="form-label">
+                  {{ 'enjeux.enjeuForm.especesConcernees' | translate }}
+                  <span class="required-star">*</span>
+                </label>
+                <!-- #409 — précision sur les taxons/habitats à saisir -->
+                <p class="text-mention">{{ 'enjeux.enjeuForm.cibleRefHint' | translate }}</p>
                 <app-reference-item-list
                   type="taxon"
                   [items]="taxonItems"
                   (itemsChange)="onTaxonsChange($event)">
                 </app-reference-item-list>
+                @if (showRefErrors() && especeRefMissing) {
+                  <p class="field-error"><i class="fi fi-rr-exclamation"></i>{{ 'enjeux.enjeuForm.especeRefRequired' | translate }}</p>
+                }
               </div>
             }
 

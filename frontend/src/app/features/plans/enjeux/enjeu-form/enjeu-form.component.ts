@@ -78,6 +78,10 @@ export class EnjeuFormComponent implements OnInit {
   habitatItems: HabitatRef[] = [];
   geologieItems: GeologieRef[] = [];
 
+  // #409 — affiche les erreurs « au moins un taxon/habitat requis » après une
+  // tentative d'enregistrement (cible espèce/habitat cochée mais liste vide).
+  showRefErrors = signal(false);
+
   ngOnInit(): void {
     this.initForm();
     this.loadRouteParams();
@@ -317,12 +321,31 @@ export class EnjeuFormComponent implements OnInit {
     this.geologieItems = items as GeologieRef[];
   }
 
+  /** #409 — taxon requis si cible « espèce » cochée. */
+  get especeRefMissing(): boolean {
+    return !!this.form.get('espece')?.value && this.taxonItems.length === 0;
+  }
+
+  /** #409 — habitat requis si cible « habitat » cochée. */
+  get habitatRefMissing(): boolean {
+    return !!this.form.get('habitat')?.value && this.habitatItems.length === 0;
+  }
+
   onSubmit(): void {
     if (this.form.invalid) {
       this.form.markAllAsTouched();
       this.scrollToError();
       return;
     }
+
+    // #409 — exiger au moins un taxon / habitat quand la cible est cochée.
+    if (this.especeRefMissing || this.habitatRefMissing) {
+      this.showRefErrors.set(true);
+      this.errorMessage.set(this.translate.instant('enjeux.enjeuForm.cibleRefRequired'));
+      this.scrollToError();
+      return;
+    }
+    this.showRefErrors.set(false);
 
     this.isLoading.set(true);
     this.errorMessage.set(null);
