@@ -5,7 +5,8 @@
  * Refactorisé pour utiliser OperationAnnee[] (table relationnelle)
  * au lieu de JSONField programmation_annuelle/programmation_mensuelle.
  */
-import { Component, OnInit, inject, signal, computed, ElementRef } from '@angular/core';
+import { Component, OnInit, inject, signal, computed, ElementRef, DestroyRef } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule, Location } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { FormBuilder, FormControl, FormGroup, Validators, ReactiveFormsModule, FormsModule } from '@angular/forms';
@@ -84,6 +85,7 @@ export class OperationFormComponent implements OnInit {
   private readonly elRef = inject(ElementRef);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
+  private readonly destroyRef = inject(DestroyRef);
   private readonly location = inject(Location);
   private readonly fb = inject(FormBuilder);
   private readonly enjeuService = inject(EnjeuService);
@@ -131,6 +133,18 @@ export class OperationFormComponent implements OnInit {
     const pending = this.pendingEmprise();
     if (pending !== undefined) return pending;
     return this.existingOperation()?.geom_geojson ?? null;
+  });
+
+  /** #410 — « l'emprise de l'action correspond à l'emprise du/des site(s) ».
+   *  Quand coché, l'emprise est calculée depuis les sites sélectionnés et le
+   *  dessin manuel est désactivé. */
+  useSiteEmprise = signal(false);
+  isComputingSiteEmprise = signal(false);
+
+  /** #410 — nombre de sites cochés (réactif via selectedSiteIdsVersion). */
+  selectedSitesCount = computed<number>(() => {
+    this.selectedSiteIdsVersion();
+    return Object.values(this.selectedSiteIds).filter(Boolean).length;
   });
   /** Types de métrique disponibles (TYPE_METRIQUE nomenclature). */
   typeMetriqueOptions = signal<{ id_nomenclature: number; mnemonique?: string; label: string }[]>([]);
@@ -457,6 +471,16 @@ export class OperationFormComponent implements OnInit {
   }
 
   private loadRouteParams(): void {
+    // #415 — s'abonner aux paramètres (au lieu de lire le snapshot une seule
+    // fois) : si Angular réutilise ce composant pour une autre action (ex.
+    // « Modifier l'action » depuis le suivi), on recharge bien les données au
+    // lieu de conserver un formulaire vide/obsolète.
+    this.route.paramMap
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => this.applyRouteParams());
+  }
+
+  private applyRouteParams(): void {
     // Walk up the route tree to find the 'slug' param (plan slug)
     const slug = this.findRouteParam('slug');
     if (slug) {
@@ -469,8 +493,14 @@ export class OperationFormComponent implements OnInit {
     }
 
     const opIdStr = this.route.snapshot.paramMap.get('operationId');
-    if (opIdStr) {
-      this.operationId.set(parseInt(opIdStr, 10));
+    const newOpId = opIdStr ? parseInt(opIdStr, 10) : null;
+    // #415 — changement d'action sur un composant réutilisé : on repart d'un
+    // état propre avant de recharger (sinon les anciennes données persistent).
+    if (newOpId !== this.operationId()) {
+      this.resetOperationState();
+    }
+    if (newOpId != null) {
+      this.operationId.set(newOpId);
       // En mode lecture seule la page reste "vue" — pas d'édition — mais on
       // doit quand même charger les données de l'action existante
       if (!this.isReadOnly()) {
@@ -516,6 +546,28 @@ export class OperationFormComponent implements OnInit {
     }
 
     this.loadData();
+  }
+
+  /**
+   * #415 — Réinitialise l'état spécifique à une action (utilisé quand le
+   * composant est réutilisé pour une autre action). Les souscriptions du
+   * formulaire restent intactes (on ne recrée pas le FormGroup) ; loadData()
+   * repeuplera ensuite les valeurs.
+   */
+  private resetOperationState(): void {
+    this.existingOperation.set(null);
+    this.isEditMode.set(false);
+    this.operationAnnees = [];
+    this.years = [];
+    this.orgBudgets = {};
+    this.typeBudgets = {};
+    this.directTotals = {};
+    this.orgByOrgData = {};
+    this.selectedSiteIds = {};
+    this.selectedSiteIdsVersion.update(v => v + 1);
+    this.pendingEmprise.set(undefined);
+    this.useSiteEmprise.set(false);
+    this.ventilationMode.set('none');
   }
 
   /**
@@ -2050,6 +2102,65 @@ export class OperationFormComponent implements OnInit {
   toggleSite(siteId: number): void {
     this.selectedSiteIds[siteId] = !this.selectedSiteIds[siteId];
     this.selectedSiteIdsVersion.update(v => v + 1);
+    // #410 — si l'emprise suit les sites, la recalculer quand la sélection change.
+    if (this.useSiteEmprise()) {
+      this.computeSiteEmprise();
+    }
+  }
+
+  /** #410 — bascule « emprise de l'action = emprise du/des site(s) ». */
+  toggleUseSiteEmprise(checked: boolean): void {
+    this.useSiteEmprise.set(checked);
+    if (checked) {
+      this.computeSiteEmprise();
+    }
+    // Décoché : on conserve l'emprise calculée comme point de départ éditable.
+  }
+
+  /**
+   * #410 — Calcule l'emprise de l'action à partir des géométries des sites
+   * sélectionnés (union des MultiPolygons) et l'applique comme emprise courante.
+   */
+  private computeSiteEmprise(): void {
+    const slugs = this.planSites()
+      .filter(s => this.selectedSiteIds[s.id_site] && s.slug)
+      .map(s => s.slug as string);
+    if (slugs.length === 0) {
+      this.pendingEmprise.set(null);
+      return;
+    }
+    this.isComputingSiteEmprise.set(true);
+    forkJoin(slugs.map(slug => this.adminService.getSiteGeoJSON(slug))).subscribe({
+      next: (features) => {
+        const geoms = features.map(f => (f as any)?.geometry).filter(Boolean);
+        this.pendingEmprise.set(this.combineSiteGeometries(geoms));
+        this.isComputingSiteEmprise.set(false);
+      },
+      error: () => {
+        this.isComputingSiteEmprise.set(false);
+        this.useSiteEmprise.set(false);
+        this.snackBar.open(
+          this.translate.instant('enjeux.operations.empriseSitesError'),
+          this.translate.instant('common.actions.close'),
+          { duration: 4000 },
+        );
+      },
+    });
+  }
+
+  /**
+   * #410 — Fusionne plusieurs géométries de sites (Polygon / MultiPolygon) en
+   * un seul MultiPolygon GeoJSON (concaténation des polygones).
+   */
+  private combineSiteGeometries(geoms: any[]): any {
+    const polygons: any[] = [];
+    for (const g of geoms) {
+      if (!g) continue;
+      if (g.type === 'Polygon') polygons.push(g.coordinates);
+      else if (g.type === 'MultiPolygon') polygons.push(...g.coordinates);
+    }
+    if (polygons.length === 0) return null;
+    return { type: 'MultiPolygon', coordinates: polygons };
   }
 
   // ════════════════════════════════════════════════
