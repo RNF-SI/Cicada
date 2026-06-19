@@ -744,6 +744,16 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
                 .order_by('id_enjeu')
             )
 
+            # #416 — afficher d'abord les enjeux, puis les FCR (dans chaque
+            # groupe, on conserve l'ordre par id_enjeu).
+            enjeux = sorted(
+                enjeux,
+                key=lambda e: (
+                    1 if (e.id_categorie and e.id_categorie.mnemonique == 'FCR') else 0,
+                    e.id_enjeu,
+                ),
+            )
+
             def build_indicateur_node(ind):
                 """Build an indicateur node with metriques and their operations nested."""
                 ind_node = {
@@ -779,6 +789,9 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
                 }
 
                 # Facteurs d'influence + pressions + OO
+                # #416 — on construit d'abord les facteurs dans une liste, mais
+                # on les rattache APRÈS l'état de l'enjeu (état actuel en premier).
+                facteur_nodes = []
                 for facteur in enjeu.facteurs_influence.all():
                     facteur_node = {
                         'name': facteur.libelle,
@@ -813,7 +826,7 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
                                 oo_node['children'].append(ra_node)
                             pression_node['children'].append(oo_node)
                         facteur_node['children'].append(pression_node)
-                    enjeu_node['children'].append(facteur_node)
+                    facteur_nodes.append(facteur_node)
 
                 # État de l'enjeu -> OLT branch
                 # Build a virtual "état de l'enjeu" node from the etat_enjeu text field
@@ -844,7 +857,9 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
                         olt_node['children'].append(ne_node)
 
                     etat_node['children'].append(olt_node)
+                # #416 — état actuel d'abord, puis les facteurs d'influence
                 enjeu_node['children'].append(etat_node)
+                enjeu_node['children'].extend(facteur_nodes)
 
                 root['children'].append(enjeu_node)
 
