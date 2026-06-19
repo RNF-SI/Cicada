@@ -801,6 +801,16 @@ class OperationCreateSerializer(serializers.ModelSerializer):
         finances_data = validated_data.pop('finances', [])
         suivi_data = validated_data.pop('suivi_inventaire', None)
 
+        # #398 — garantir le rattachement à un indicateur : si aucun
+        # `id_indicateur` n'est fourni mais des métriques le sont, on déduit
+        # l'indicateur de la première métrique. Une action sans indicateur
+        # n'apparaît sous aucun indicateur (orpheline).
+        if not validated_data.get('id_indicateur') and metrique_ids:
+            from .models_indicateurs import Metrique
+            first_met = Metrique.objects.filter(id_metrique__in=metrique_ids).first()
+            if first_met and first_met.id_indicateur_id:
+                validated_data['id_indicateur'] = first_met.id_indicateur
+
         # Create SuiviInventaire if provided
         if suivi_data:
             user = validated_data.get('id_utilisateur_ajout')

@@ -274,7 +274,7 @@ export class OperationFormComponent implements OnInit {
   currentIndicateurId = computed<number | null>(() => {
     const direct = this.prelinkedIndicateurId();
     if (direct) return direct;
-    const firstMet = this.prelinkedMetriqueIds()[0];
+    const firstMet = this.prelinkedMetriqueIds()[0] ?? this.prelinkedMetriqueId();
     if (firstMet) {
       const m = this.planMetriques().find(x => x.id_metrique === firstMet);
       return m?.indicateur_id ?? null;
@@ -1242,8 +1242,11 @@ export class OperationFormComponent implements OnInit {
     if (fv.partenaires?.trim()) payload.partenaires = fv.partenaires.trim();
     // #343 — financeur textuel supprimé : on n'envoie plus le champ libre (financeurs structurés via `finances`).
     if (fv.metrique_ids?.length) payload.metrique_ids = fv.metrique_ids;
-    // #367 — rattachement direct à un indicateur (quand l'action n'a pas de métrique).
-    if (this.prelinkedIndicateurId()) payload.id_indicateur = this.prelinkedIndicateurId();
+    // #367/#398 — toujours rattacher l'action à son indicateur parent
+    // (rattachement direct OU indicateur de la métrique pré-liée). Sans ça,
+    // une action sans métrique restait orpheline et n'apparaissait nulle part.
+    const indId = this.currentIndicateurId();
+    if (indId) payload.id_indicateur = indId;
 
     // Sites
     const siteIds = Object.entries(this.selectedSiteIds)
