@@ -887,7 +887,9 @@ body.leaflet-map-fullscreen-active {
     letter-spacing: 0.3px;
     padding: $spacing-xs $spacing-md;
     border-bottom: 1px solid $gray-light;
-    background-color: rgba($primary-color, 0.04);
+    // #408 — fond OPAQUE : un fond translucide laissait voir les options qui
+    // défilent sous l'en-tête sticky, rendant les intitulés illisibles.
+    background-color: mix($primary-color, #ffffff, 8%);
     min-height: 36px;
     line-height: 36px;
     // Toujours visible, jamais tronqué
@@ -895,7 +897,7 @@ body.leaflet-map-fullscreen-active {
     overflow: visible;
     position: sticky;
     top: 0;
-    z-index: 1;
+    z-index: 2;
   }
 
   .mat-mdc-option {
