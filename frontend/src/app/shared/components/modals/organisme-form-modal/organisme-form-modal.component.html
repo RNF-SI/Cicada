@@ -24,7 +24,7 @@
       <label class="app-mat-label">{{ 'modals.organismeForm.parent' | translate }}</label>
       <mat-form-field class="app-mat-form-field full-width" appearance="outline">
         <mat-label></mat-label>
-        <mat-select formControlName="parent_id">
+        <mat-select formControlName="parent_id" [placeholder]="'modals.organismeForm.noParent' | translate">
           <mat-option [value]="null">{{ 'modals.organismeForm.noParent' | translate }}</mat-option>
           @for (org of parentOrganismes(); track org.id_organisme) {
             <mat-option [value]="org.id_organisme">{{ org.nom_organisme }}</mat-option>
