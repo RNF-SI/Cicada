@@ -98,6 +98,13 @@ $form-side-margin: $page-gutter;
   }
 }
 
+// #412 — espacer les sections (accordéons) qui s'enchaînaient sans marge,
+// comme le formulaire d'action de gestion.
+.form-container ::ng-deep app-accordion {
+  display: block;
+  margin-bottom: $spacing-lg;
+}
+
 // Required notice
 .required-notice {
   color: $gray-dark;
