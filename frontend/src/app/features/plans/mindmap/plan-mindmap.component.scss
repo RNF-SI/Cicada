@@ -478,14 +478,20 @@ $tree-row-min: 56px;
     gap: $spacing-xs;
     padding: $spacing-xs $spacing-sm !important;
 
+    // #393 — l'icône Flaticon et le label doivent partager la même boîte verticale
+    // pour être alignés (line-height: 1 + centrage flex).
     i {
       font-size: 16px;
+      line-height: 1;
+      display: inline-flex;
+      align-items: center;
     }
   }
 
   .control-label {
     font-size: $font-size-small;
     font-weight: $font-weight-bold;
+    line-height: 1;
   }
 }
 
