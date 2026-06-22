@@ -31,19 +31,21 @@
           </div>
         }
 
-        <!-- Info block: standalone usage -->
-        <div class="info-block">
-          <div class="info-block-icon"></div>
-          <div class="info-block-content">
-            <p class="info-block-content-title">{{ 'inventaires.form.infoStandalone.title' | translate }}</p>
-            <p class="info-block-content-text">{{ 'inventaires.form.infoStandalone.description' | translate }}</p>
-          </div>
-        </div>
-
         <!-- ═══════════════════════════════════════ -->
         <!-- MAIN CARD (flush under hero)            -->
         <!-- ═══════════════════════════════════════ -->
         <div class="form-card form-card-flush">
+          <!-- #412 — bandeau « utilisation autonome » DANS la carte : la carte
+               reste ainsi accolée au header (design « flush »), comme la saisie
+               d'une action. -->
+          <div class="info-block">
+            <div class="info-block-icon"></div>
+            <div class="info-block-content">
+              <p class="info-block-content-title">{{ 'inventaires.form.infoStandalone.title' | translate }}</p>
+              <p class="info-block-content-text">{{ 'inventaires.form.infoStandalone.description' | translate }}</p>
+            </div>
+          </div>
+
           <p class="required-notice">
             {{ 'inventaires.form.requiredBefore' | translate }}
             <span class="required-star">*</span>
@@ -278,7 +280,9 @@
         <!-- ═══════════════════════════════════════ -->
         <!-- SECTION: Protocole                      -->
         <!-- ═══════════════════════════════════════ -->
-        <app-accordion variant="subtle" [title]="'inventaires.form.sections.protocole' | translate" [expanded]="sectionsOpen['protocole']" (expandedChange)="sectionsOpen['protocole'] = $event">
+        <!-- #412 — design aligné sur la saisie d'une action (accordéons « default lg » + pastille jaune) -->
+        <app-accordion variant="default" size="lg" [title]="'inventaires.form.sections.protocole' | translate" [expanded]="sectionsOpen['protocole']" (expandedChange)="sectionsOpen['protocole'] = $event">
+  <img accordionIcon src="assets/images/ellipses/ellipse-yellow.png" alt="" class="section-dot">
   <div class="section-content">
 <div class="form-grid">
                 <!-- Protocole répertorié dans Campanule ? -->
@@ -523,7 +527,8 @@
         <!-- ═══════════════════════════════════════ -->
         <!-- SECTION: Bancarisation et stockage      -->
         <!-- ═══════════════════════════════════════ -->
-        <app-accordion variant="subtle" [title]="'inventaires.form.sections.bancarisation' | translate" [expanded]="sectionsOpen['bancarisation']" (expandedChange)="sectionsOpen['bancarisation'] = $event">
+        <app-accordion variant="default" size="lg" [title]="'inventaires.form.sections.bancarisation' | translate" [expanded]="sectionsOpen['bancarisation']" (expandedChange)="sectionsOpen['bancarisation'] = $event">
+  <img accordionIcon src="assets/images/ellipses/ellipse-yellow.png" alt="" class="section-dot">
   <div class="section-content">
 <div class="form-grid">
                 <label class="app-mat-label">{{ 'inventaires.form.outilBancarisation' | translate }}</label>
@@ -562,7 +567,8 @@
         <!-- ═══════════════════════════════════════ -->
         <!-- SECTION: Détails                        -->
         <!-- ═══════════════════════════════════════ -->
-        <app-accordion variant="subtle" [title]="'inventaires.form.sections.details' | translate" [expanded]="sectionsOpen['details']" (expandedChange)="sectionsOpen['details'] = $event">
+        <app-accordion variant="default" size="lg" [title]="'inventaires.form.sections.details' | translate" [expanded]="sectionsOpen['details']" (expandedChange)="sectionsOpen['details'] = $event">
+  <img accordionIcon src="assets/images/ellipses/ellipse-yellow.png" alt="" class="section-dot">
   <div class="section-content">
 <div class="form-grid">
                 <!-- Commentaires -->
@@ -590,3 +596,4 @@
     </div>
   }
 </div>
+

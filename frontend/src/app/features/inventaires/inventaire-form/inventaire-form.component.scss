@@ -77,8 +77,9 @@ $form-side-margin: $page-gutter;
 // ============================================
 
 .info-block {
-  // Marges sur les côtés et en haut pour détacher du header (revue design #318)
-  margin: $spacing-lg $spacing-sm $spacing-lg $spacing-sm;
+  // #412 — désormais à l'intérieur de la carte : on retire les marges
+  // latérales/hautes et on ne garde qu'un écart sous le bandeau.
+  margin: 0 0 $spacing-lg 0;
 }
 
 // ============================================
