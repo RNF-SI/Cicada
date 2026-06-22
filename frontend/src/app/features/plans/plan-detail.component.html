@@ -154,7 +154,8 @@
                         }
                       </div>
                     </mat-menu>
-                  } @else if (hasCsrpnInfo()) {
+                  } @else if (hasCsrpnInfo() && isReserveNaturelle()) {
+                    <!-- #406 — récap lecture seule réservé aux réserves naturelles -->
                     <span class="meta-value status-chip status-chip--csrpn-recap"
                           [matTooltip]="csrpnRecapTooltip()"
                           matTooltipClass="csrpn-recap-tooltip"

@@ -502,7 +502,7 @@ class PlansSeeder(BaseSeeder):
             'redacteur_nom': 'CEN Auvergne-Rhône-Alpes',
             'redacteurs': 'L. Dupuis (CEN ARA)',
             'relecteurs': 'CSRPN Auvergne-Rhône-Alpes',
-            'date_avis_csrpn': date(2014, 4, 22),
+            # #406 — site PNR (non réserve) : pas de validation administrative CSRPN
             'commentaire': 'Plan validé en fin de cycle, marqué en révision : il reste '
                            'fonctionnellement validé pendant que le rang suivant est '
                            'rédigé en brouillon. Démontre la cohabitation `en_revision` + '
@@ -611,7 +611,7 @@ class PlansSeeder(BaseSeeder):
             'id_evaluation': eval_fin,
             'id_redacteur_type': redac_gest,
             'redacteur_nom': 'DREAL Nouvelle-Aquitaine',
-            'date_avis_csrpn': date(2014, 6, 16),
+            # #406 — site ENS (non réserve) : pas de validation administrative CSRPN
             'commentaire': 'Version d\'origine, archivée lors de la prolongation du plan (#250).',
             'sites': [sites[4]],  # Marais de Brouage (ENS)
             'membres': [
@@ -632,7 +632,7 @@ class PlansSeeder(BaseSeeder):
             'id_evaluation': eval_fin,
             'id_redacteur_type': redac_gest,
             'redacteur_nom': 'DREAL Nouvelle-Aquitaine',
-            'date_avis_csrpn': date(2014, 6, 16),
+            # #406 — site ENS (non réserve) : pas de validation administrative CSRPN
             'commentaire': 'Site ENS → badge contextualisé « Plan étendu » (#281). '
                            'Version étendue de 2 ans issue de la prolongation, validée '
                            'en modifie. plan_parent posé en fin de seed.',
