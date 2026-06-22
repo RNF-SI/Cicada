@@ -77,6 +77,10 @@ export class SuiviSaisieComponent implements OnInit {
   planId = signal<number | null>(null);
   planNom = signal<string>('');
   planStatut = signal<string | null>(null);
+  // #418 — plage d'années du PLAN (et non de l'action) : permet la saisie d'un
+  // suivi sur une année où l'action n'était pas programmée (« réalisée non prévue »).
+  planYearStart = signal<number | null>(null);
+  planYearEnd = signal<number | null>(null);
   operationId = signal<number | null>(null);
   selectedYear = signal<number>(new Date().getFullYear());
 
@@ -168,13 +172,30 @@ export class SuiviSaisieComponent implements OnInit {
   /** Affiche la décomposition fonctionnement/investissement. */
   isByType = computed(() => this.ventilationMode() === 'by_type');
 
-  /** Années sur lesquelles l'opération est programmée. */
+  /**
+   * Années affichées en onglets. #418 — on couvre toute la plage du PLAN (et non
+   * la seule plage de l'action), afin de permettre la saisie d'un suivi sur une
+   * année où l'action n'était pas programmée (« réalisée non prévue »). Repli sur
+   * la plage de l'action si la plage du plan est inconnue. L'année sélectionnée
+   * (depuis l'URL) est toujours incluse par sécurité.
+   */
   years = computed<number[]>(() => {
     const op = this.operation();
-    if (!op || op.annee_min == null || op.annee_max == null) return [];
-    const out: number[] = [];
-    for (let y = op.annee_min; y <= op.annee_max; y++) out.push(y);
-    return out;
+    let start = this.planYearStart();
+    let end = this.planYearEnd();
+    if (start == null || end == null) {
+      // Repli : plage de l'action
+      start = op?.annee_min ?? null;
+      end = op?.annee_max ?? null;
+    }
+    const set = new Set<number>();
+    if (start != null && end != null) {
+      for (let y = start; y <= end; y++) set.add(y);
+    }
+    // Inclure l'année ciblée par l'URL même si hors plage connue.
+    const sel = this.selectedYear();
+    if (sel) set.add(sel);
+    return [...set].sort((a, b) => a - b);
   });
 
   /** Programmation de l'année active (prévisionnel). */
@@ -337,6 +358,8 @@ export class SuiviSaisieComponent implements OnInit {
         this.planId.set(plan.id_pg);
         this.planNom.set(plan.nom);
         this.planStatut.set(plan.statut ?? null);
+        this.planYearStart.set(plan.annee_debut ?? null);
+        this.planYearEnd.set(plan.annee_fin ?? null);
         this.applyReadOnlyLock();
       },
       error: (err) => {
