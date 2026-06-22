@@ -12,7 +12,8 @@ from .views_enjeux import (
     EnjeuViewSet, ResponsabiliteViewSet,
     FacteurInfluenceViewSet, PressionViewSet,
     ObjectifLongTermeViewSet, NiveauExigenceViewSet,
-    ObjectifOperationnelViewSet, ResultatAttenduViewSet
+    ObjectifOperationnelViewSet, ResultatAttenduViewSet,
+    CorEnjeuFichierViewSet
 )
 from .views_indicateurs import IndicateurViewSet, MetriqueViewSet, MesureViewSet, IndicateurMesureViewSet
 from .views_operations import (
@@ -26,6 +27,7 @@ router = DefaultRouter()
 router.register(r'plans', PlanGestionViewSet, basename='plangestion')
 router.register(r'fichiers', CorPgFichierViewSet, basename='corpgfichier')
 router.register(r'enjeux', EnjeuViewSet, basename='enjeu')
+router.register(r'enjeux-fichiers', CorEnjeuFichierViewSet, basename='enjeu-fichier')
 router.register(r'responsabilites', ResponsabiliteViewSet, basename='responsabilite')
 router.register(r'facteurs-influence', FacteurInfluenceViewSet, basename='facteurinfluence')
 router.register(r'pressions', PressionViewSet, basename='pression')

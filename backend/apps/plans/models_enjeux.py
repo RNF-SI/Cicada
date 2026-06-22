@@ -1210,3 +1210,104 @@ class CorEnjeuObjetGeologique(models.Model):
 
     def __str__(self):
         return f"Enjeu {self.id_enjeu_id} - Objet géologique {self.code}"
+
+
+class CorEnjeuFichier(models.Model):
+    """
+    #237 — Documents rattachés au patrimoine « Documents » d'un enjeu géologique.
+
+    Un document est soit :
+    - numérique (`support='numerique'`) : fichier téléversé et stocké sur le
+      serveur (PDF, image, archive…) ;
+    - papier (`support='papier'`) : simple référence décrite par un titre
+      (aucun fichier stocké), pour les archives papier non numérisées.
+    """
+
+    SUPPORT_CHOICES = [
+        ('numerique', _('Numérique')),
+        ('papier', _('Papier')),
+    ]
+
+    id = models.AutoField(primary_key=True)
+    id_enjeu = models.ForeignKey(
+        Enjeu,
+        on_delete=models.CASCADE,
+        related_name='fichiers',
+        db_column='id_enjeu',
+        verbose_name=_("Enjeu")
+    )
+    support = models.CharField(
+        _("Support"),
+        max_length=10,
+        choices=SUPPORT_CHOICES,
+        default='numerique'
+    )
+
+    # Informations sur le fichier (vides pour un document papier)
+    nom_fichier = models.CharField(_("Nom du fichier"), max_length=255, blank=True, default='')
+    chemin_fichier = models.CharField(_("Chemin du fichier"), max_length=500, blank=True, default='')
+    taille_fichier = models.BigIntegerField(_("Taille du fichier (bytes)"), null=True, blank=True)
+    extension = models.CharField(_("Extension"), max_length=10, blank=True, default='')
+
+    # Métadonnées descriptives
+    titre = models.CharField(
+        _("Titre / référence"),
+        max_length=255,
+        blank=True,
+        default='',
+        help_text=_("Titre du document numérique ou référence du document papier")
+    )
+    description = models.TextField(_("Description"), blank=True, default='')
+
+    date_upload = models.DateTimeField(_("Date d'ajout"), auto_now_add=True)
+    id_utilisateur_upload = models.ForeignKey(
+        'users.Role',
+        on_delete=models.PROTECT,
+        null=True, blank=True,
+        db_column='id_utilisateur_upload',
+        verbose_name=_("Utilisateur ayant ajouté")
+    )
+    ordre_affichage = models.IntegerField(_("Ordre d'affichage"), default=0)
+
+    class Meta:
+        db_table = '"fichiers"."t_enjeu_fichiers"'
+        db_table_comment = 'Documents rattachés aux enjeux géologiques (#237)'
+        verbose_name = _("Enjeu - Document")
+        verbose_name_plural = _("Enjeux - Documents")
+        ordering = ['ordre_affichage', 'nom_fichier']
+
+    def __str__(self):
+        return f"Enjeu {self.id_enjeu_id} - Document {self.titre or self.nom_fichier}"
+
+    def get_plan_de_gestion(self):
+        """Implémente l'interface utilisée par CanModifyOnlyDraftPlan (#248)."""
+        return self.id_enjeu.get_plan_de_gestion()
+
+    def get_file_size_human(self):
+        if not self.taille_fichier:
+            return None
+        size = float(self.taille_fichier)
+        for unit in ['B', 'KB', 'MB', 'GB']:
+            if size < 1024.0:
+                return f"{size:.1f} {unit}"
+            size /= 1024.0
+        return f"{size:.1f} TB"
+
+    def handle_file_upload(self, uploaded_file):
+        """Stocke un fichier téléversé sous `enjeux/{id_enjeu}/`."""
+        import os
+        from django.conf import settings
+        from django.core.files.storage import default_storage
+
+        self.support = 'numerique'
+        if not self.nom_fichier:
+            self.nom_fichier = uploaded_file.name
+        _, ext = os.path.splitext(self.nom_fichier)
+        self.extension = ext.lower()
+        self.taille_fichier = uploaded_file.size
+
+        upload_dir = f"enjeux/{self.id_enjeu_id}"
+        os.makedirs(os.path.join(settings.MEDIA_ROOT, upload_dir), exist_ok=True)
+        file_path = os.path.join(upload_dir, self.nom_fichier)
+        self.chemin_fichier = default_storage.save(file_path, uploaded_file)
+        self.save()

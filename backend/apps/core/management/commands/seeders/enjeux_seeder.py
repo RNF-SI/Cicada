@@ -10,6 +10,7 @@ from apps.plans.models_enjeux import (
     ObjectifLongTerme, NiveauExigence,
     ObjectifOperationnel, ResultatAttendu,
     CorEnjeuTaxon, CorEnjeuHabitat, CorEnjeuGeologie, CorEnjeuObjetGeologique,
+    CorEnjeuFichier,
     CorResponsabiliteTaxon, CorResponsabiliteHabitat, CorResponsabiliteGeologie,
     CorResponsabiliteEnjeu
 )
@@ -417,19 +418,25 @@ class EnjeuxSeeder(BaseSeeder):
                 id_enjeu=enjeu, id_inpg='2590',
                 defaults={'nom': 'Eclogites paléozoïques du lac Cornu (Aiguilles Rouges)'}
             )
-            # #237 — objets géologiques de la typologie (in situ + documents + « Autre » avec précision)
+            # #237 — objets géologiques de la typologie (in situ + « Autre » avec précision).
+            # Le patrimoine Documents (geo_documents) n'a pas de détail dans la typologie V2.
             for code, libelle, precision in [
                 ('IS_AFFLEUREMENT', 'Affleurement remarquable', ''),
                 ('IS_SITE_PALEO', 'Site paléontologique', ''),
                 ('IS_GISEMENT_FOSSILIFERE', 'Gisement fossilifère', ''),
                 ('IS_GEOMORPHO', 'Site géomorphologique, paysage géologique remarquable', ''),
-                ('DOC_ARCHIVES', 'Documents (archives numériques ou papier)', ''),
                 ('IS_AUTRE', 'Autre', 'Stries et polis glaciaires'),
             ]:
                 CorEnjeuObjetGeologique.objects.get_or_create(
                     id_enjeu=enjeu, code=code,
                     defaults={'libelle': libelle, 'precision': precision}
                 )
+            # #237 — patrimoine Documents : référence papier d'exemple
+            CorEnjeuFichier.objects.get_or_create(
+                id_enjeu=enjeu, support='papier',
+                titre='Cartographie géologique du massif (1968, archives papier)',
+                defaults={'id_utilisateur_upload': admin}
+            )
             enjeux_created.append(enjeu)
             self.log_item('créé' if created else 'mis à jour', f'Enjeu: {enjeu.intitule_court}')
 
@@ -718,17 +725,23 @@ class EnjeuxSeeder(BaseSeeder):
                 id_enjeu=enjeu, id_inpg='2125',
                 defaults={'nom': 'Pertes du Doubs à Arçon'}
             )
-            # #237 — objets géologiques in situ + ex situ (collections) + documents
+            # #237 — objets géologiques in situ + ex situ (collections).
+            # Le patrimoine Documents (geo_documents) n'a pas de détail dans la typologie V2.
             for code, libelle, precision in [
                 ('IS_GEOMORPHO', 'Site géomorphologique, paysage géologique remarquable', ''),
                 ('ES_COLL_LITHOLOGIQUE', 'Collection lithologique', ''),
                 ('ES_AUTRE', 'Autre', 'Collection de blocs erratiques glaciaires'),
-                ('DOC_ARCHIVES', 'Documents (archives numériques ou papier)', ''),
             ]:
                 CorEnjeuObjetGeologique.objects.get_or_create(
                     id_enjeu=enjeu, code=code,
                     defaults={'libelle': libelle, 'precision': precision}
                 )
+            # #237 — patrimoine Documents : référence papier d'exemple
+            CorEnjeuFichier.objects.get_or_create(
+                id_enjeu=enjeu, support='papier',
+                titre='Inventaire des moraines würmiennes (rapport papier, 1995)',
+                defaults={'id_utilisateur_upload': admin}
+            )
             enjeux_created.append(enjeu)
             self.log_item('créé' if created else 'mis à jour', f'Enjeu: {enjeu.intitule_court}')
 

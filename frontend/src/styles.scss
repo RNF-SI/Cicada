@@ -1122,6 +1122,20 @@ label.app-mat-label + app-form-field,
 
 // #227 — Recherche dans le sélecteur « Métriques associées » (mat-select rendu
 // en overlay → styles globaux). Champ aligné kit UI (Nunito, accent primaire).
+// #237 — indentation des sous-types (cavités, gisements…) dans la liste
+// déroulante des objets géologiques (panneau mat-select en overlay global)
+.geo-objet-select-panel {
+  .geo-objet-option-child .mdc-list-item__primary-text {
+    padding-left: $spacing-lg;
+    color: $gray-dark;
+
+    &::before {
+      content: '↳ ';
+      color: $gray;
+    }
+  }
+}
+
 .metrique-select-panel {
   // Barre d'outils : recherche + filtre de portée. NON collante : Material
   // défile le panneau pour amener l'option sélectionnée en vue à l'ouverture ;

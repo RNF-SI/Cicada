@@ -2726,8 +2726,19 @@
         "label": "Objet(s) géologique(s)",
         "inSitu": "Patrimoine in situ",
         "exSitu": "Patrimoine ex situ",
-        "documents": "Documents",
-        "precisionPlaceholder": "Précisez"
+        "selectPlaceholder": "Sélectionnez un ou plusieurs objets",
+        "precisionLabel": "Précision (autre objet géologique)",
+        "precisionPlaceholder": "Précisez l'objet géologique"
+      },
+      "documents": {
+        "label": "Documents",
+        "hint": "Téléversez des documents numériques (PDF, images…) ou ajoutez une référence à un document papier.",
+        "addFile": "Ajouter un fichier",
+        "addPaper": "Ajouter une référence papier",
+        "paperPlaceholder": "Référence du document papier (titre, cote…)",
+        "paperBadge": "Papier",
+        "pending": "En attente d'enregistrement",
+        "uploadError": "L'enjeu a été enregistré mais l'ajout d'un ou plusieurs documents a échoué."
       },
       "patrimoineGeoConcerne": "Patrimoine géologique concerné par l'enjeu",
       "rechercherINPG": "Rechercher le patrimoine INPG",

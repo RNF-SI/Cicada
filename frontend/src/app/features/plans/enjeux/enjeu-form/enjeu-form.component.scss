@@ -243,7 +243,8 @@ $form-side-margin: $spacing-xxl;
   }
 }
 
-// #237 — Objet(s) géologique(s) : groupes hiérarchiques (in situ / ex situ / documents)
+// #237 — Objet(s) géologique(s) : une liste déroulante multi-select par
+// patrimoine coché (in situ / ex situ)
 .geo-objet-group {
   margin-bottom: $spacing-md;
 
@@ -252,26 +253,93 @@ $form-side-margin: $spacing-xxl;
     color: $primary-color;
     margin: 0 0 $spacing-xs 0;
   }
-}
 
-.geo-objet-item {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: $spacing-sm;
-  margin-bottom: $spacing-xs;
-
-  &.geo-objet-child {
-    margin-left: $spacing-lg;
+  .full-width {
+    width: 100%;
   }
 }
 
-.geo-objet-precision {
-  flex: 1 1 240px;
-  min-width: 200px;
+// #237 — Documents du patrimoine « Documents » (numériques + références papier)
+.geo-doc-list {
+  list-style: none;
+  margin: $spacing-xs 0 $spacing-sm 0;
+  padding: 0;
+}
+
+.geo-doc-item {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
   padding: $spacing-xs $spacing-sm;
   border: 1px solid $gray-light;
   border-radius: $border-radius-sm;
-  font-family: $font-family;
-  font-size: $font-size-base;
+  margin-bottom: $spacing-xs;
+
+  &.geo-doc-staged {
+    border-style: dashed;
+    background: $gray-lighter;
+  }
+
+  .geo-doc-icon {
+    color: $primary-color;
+    flex-shrink: 0;
+  }
+
+  .geo-doc-name {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    background: none;
+    border: none;
+    padding: 0;
+    text-align: left;
+    font: inherit;
+    cursor: default;
+  }
+
+  button.geo-doc-name {
+    cursor: pointer;
+  }
+
+  .geo-doc-meta {
+    color: $gray-dark;
+    font-size: $font-size-small;
+    flex-shrink: 0;
+  }
+
+  .geo-doc-paper-input {
+    flex: 1 1 auto;
+    min-width: 0;
+    padding: $spacing-xs $spacing-sm;
+    border: 1px solid $gray-light;
+    border-radius: $border-radius-sm;
+    font-family: $font-family;
+    font-size: $font-size-base;
+  }
+
+  .geo-doc-remove {
+    flex-shrink: 0;
+    width: 32px;
+    height: 32px;
+    border: none;
+    background: none;
+    border-radius: $border-radius-round;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: $error-color;
+
+    &:hover {
+      background-color: $gray-lighter;
+    }
+  }
+}
+
+.geo-doc-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spacing-sm;
 }

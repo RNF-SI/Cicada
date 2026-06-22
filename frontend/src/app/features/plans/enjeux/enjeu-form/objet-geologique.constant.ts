@@ -1,13 +1,16 @@
 /**
- * #237 — Typologie des objets géologiques (fournie par Corentin / PatriNat).
+ * #237 — Typologie des objets géologiques (fichier « Typologie enjeux géol
+ * CICADA », onglet « Typologie CICADA V2 », colonnes après la colonne C).
  *
- * Structure hiérarchique groupée par type de patrimoine. Les groupes affichés
- * dans le formulaire dépendent des cases patrimoine cochées (in situ, ex situ,
- * documents). Le patrimoine « Autre » n'a pas d'objets : il porte sa propre
- * précision libre (champ `geo_autre_precision`).
+ * Seuls les patrimoines « in situ » et « ex situ » portent un détail d'objets :
+ * dans la V2, les patrimoines « Documents » et « Autre » n'ont aucun sous-type
+ * (le patrimoine « Autre » porte uniquement sa précision libre via le champ
+ * `geo_autre_precision`).
  *
- * Parents ET sous-types sont sélectionnables (#237). Les codes sont stables et
- * persistés ; seul le libellé est dénormalisé pour l'affichage / l'export.
+ * Le détail est présenté sous forme de liste déroulante multi-select par
+ * patrimoine coché (#237). Parents ET sous-types sont sélectionnables. Les codes
+ * sont stables et persistés ; seul le libellé est dénormalisé pour l'affichage /
+ * l'export.
  */
 
 export interface ObjetGeologiqueOption {
@@ -20,8 +23,10 @@ export interface ObjetGeologiqueOption {
 
 export interface ObjetGeologiqueGroup {
   /** Patrimoine déclencheur (case à cocher correspondante). */
-  patrimoine: 'in_situ' | 'ex_situ' | 'documents';
+  patrimoine: 'in_situ' | 'ex_situ';
   titleKey: string;
+  /** Nom du contrôle de formulaire de la case à cocher patrimoine. */
+  control: 'geo_in_situ' | 'geo_ex_situ';
   options: ObjetGeologiqueOption[];
 }
 
@@ -29,6 +34,7 @@ export const GEO_OBJET_GROUPS: ObjetGeologiqueGroup[] = [
   {
     patrimoine: 'in_situ',
     titleKey: 'enjeux.enjeuForm.geoObjets.inSitu',
+    control: 'geo_in_situ',
     options: [
       {
         code: 'IS_SITE_PALEO',
@@ -60,6 +66,7 @@ export const GEO_OBJET_GROUPS: ObjetGeologiqueGroup[] = [
   {
     patrimoine: 'ex_situ',
     titleKey: 'enjeux.enjeuForm.geoObjets.exSitu',
+    control: 'geo_ex_situ',
     options: [
       { code: 'ES_COLL_PALEO', libelle: 'Collection paléontologique' },
       { code: 'ES_COLL_MINERALOGIQUE', libelle: 'Collection minéralogique' },
@@ -67,15 +74,17 @@ export const GEO_OBJET_GROUPS: ObjetGeologiqueGroup[] = [
       { code: 'ES_AUTRE', libelle: 'Autre', isAutre: true },
     ],
   },
-  {
-    patrimoine: 'documents',
-    titleKey: 'enjeux.enjeuForm.geoObjets.documents',
-    options: [
-      { code: 'DOC_ARCHIVES', libelle: 'Documents (archives numériques ou papier)' },
-      { code: 'DOC_AUTRE', libelle: 'Autre', isAutre: true },
-    ],
-  },
 ];
+
+/** Liste tous les codes d'un groupe (parents + enfants), pour la synchro multi-select. */
+export function groupObjetCodes(group: ObjetGeologiqueGroup): string[] {
+  const codes: string[] = [];
+  for (const opt of group.options) {
+    codes.push(opt.code);
+    for (const child of opt.children || []) codes.push(child.code);
+  }
+  return codes;
+}
 
 /** Aplatit la typologie en { code → option } (parents + enfants). */
 export const GEO_OBJET_BY_CODE: Record<string, ObjetGeologiqueOption> = (() => {

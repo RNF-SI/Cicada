@@ -60,6 +60,24 @@ export interface ObjetGeologiqueRef {
 }
 
 /**
+ * #237 — Document du patrimoine « Documents » d'un enjeu géologique.
+ * `support='numerique'` → fichier téléversé ; `support='papier'` → référence.
+ */
+export interface EnjeuDocument {
+  id: number;
+  id_enjeu?: number;
+  support: 'numerique' | 'papier';
+  nom_fichier?: string;
+  titre?: string;
+  description?: string;
+  taille_fichier?: number | null;
+  file_size_human?: string | null;
+  extension?: string;
+  url?: string | null;
+  date_upload?: string;
+}
+
+/**
  * Enjeu / FCR categories
  */
 export type EnjeuCategorie = 'ENJEU' | 'FCR';
@@ -134,6 +152,7 @@ export interface Enjeu {
   habitats?: HabitatRef[];
   geologies?: GeologieRef[];
   objets_geologiques?: ObjetGeologiqueRef[];
+  documents?: EnjeuDocument[];
 
   // Counts (from list serializer)
   nb_taxons?: number;

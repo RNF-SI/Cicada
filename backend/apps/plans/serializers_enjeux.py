@@ -10,6 +10,7 @@ from .models_enjeux import (
     ObjectifLongTerme, NiveauExigence,
     ObjectifOperationnel, ResultatAttendu,
     CorEnjeuTaxon, CorEnjeuHabitat, CorEnjeuGeologie, CorEnjeuObjetGeologique,
+    CorEnjeuFichier,
     CorResponsabiliteTaxon, CorResponsabiliteHabitat, CorResponsabiliteGeologie,
     CorResponsabiliteEnjeu
 )
@@ -111,6 +112,56 @@ class CorEnjeuObjetGeologiqueSerializer(serializers.ModelSerializer):
         model = CorEnjeuObjetGeologique
         fields = ['id', 'code', 'libelle', 'precision']
         read_only_fields = ['id']
+
+
+class CorEnjeuFichierSerializer(serializers.ModelSerializer):
+    """#237 — Serializer pour les documents (numériques/papier) d'un enjeu."""
+
+    fichier = serializers.FileField(write_only=True, required=False)
+    file_size_human = serializers.SerializerMethodField()
+    url = serializers.SerializerMethodField()
+
+    class Meta:
+        model = CorEnjeuFichier
+        fields = [
+            'id', 'id_enjeu', 'support', 'nom_fichier', 'fichier', 'url',
+            'titre', 'description', 'taille_fichier', 'file_size_human',
+            'extension', 'ordre_affichage', 'date_upload',
+        ]
+        read_only_fields = [
+            'id', 'nom_fichier', 'taille_fichier', 'extension', 'date_upload',
+        ]
+
+    def get_file_size_human(self, obj):
+        return obj.get_file_size_human()
+
+    def get_url(self, obj):
+        if obj.chemin_fichier:
+            return f"/media/enjeux/{obj.id_enjeu_id}/{obj.nom_fichier}"
+        return None
+
+    def validate(self, attrs):
+        """Un document numérique exige un fichier (à la création) ;
+        un document papier exige un titre/référence."""
+        support = attrs.get('support') or (self.instance.support if self.instance else 'numerique')
+        if support == 'papier':
+            titre = attrs.get('titre') if 'titre' in attrs else (self.instance.titre if self.instance else '')
+            if not (titre or '').strip():
+                raise serializers.ValidationError(
+                    {'titre': _("Une référence (titre) est requise pour un document papier.")}
+                )
+        elif self.instance is None and not attrs.get('fichier'):
+            raise serializers.ValidationError(
+                {'fichier': _("Un fichier est requis pour un document numérique.")}
+            )
+        return attrs
+
+    def create(self, validated_data):
+        fichier = validated_data.pop('fichier', None)
+        instance = super().create(validated_data)
+        if fichier:
+            instance.handle_file_upload(fichier)
+        return instance
 
 
 class CorResponsabiliteTaxonSerializer(serializers.ModelSerializer):
@@ -606,6 +657,8 @@ class EnjeuDetailSerializer(serializers.ModelSerializer):
     geologies = CorEnjeuGeologieSerializer(many=True, read_only=True)
     # #237 — objets géologiques (typologie Corentin)
     objets_geologiques = CorEnjeuObjetGeologiqueSerializer(many=True, read_only=True)
+    # #237 — documents du patrimoine « Documents » (numériques + références papier)
+    documents = CorEnjeuFichierSerializer(source='fichiers', many=True, read_only=True)
 
     # Facteurs d'influence (nested)
     facteurs_influence = FacteurInfluenceSerializer(many=True, read_only=True)
@@ -642,7 +695,7 @@ class EnjeuDetailSerializer(serializers.ModelSerializer):
             # Optionnels
             'id_importance', 'importance_label', 'geom',
             # Relations
-            'taxons', 'habitats', 'geologies', 'objets_geologiques',
+            'taxons', 'habitats', 'geologies', 'objets_geologiques', 'documents',
             # Facteurs d'influence
             'facteurs_influence', 'nb_facteurs_influence',
             # Objectifs à long terme (avec NE inclus)
