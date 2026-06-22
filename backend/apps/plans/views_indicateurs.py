@@ -711,6 +711,29 @@ def _coerce_float(value):
         return None
 
 
+def _palier_inclusivity(metrique, level):
+    """#423 — Inclusivité des bornes d'un palier, cohérente avec l'affichage
+    (notation par crochets, cf. getScoreRange côté front).
+
+    - Borne inf : inclusive uniquement si le sup du palier précédent est
+      explicitement exclusif (sinon la valeur frontière appartient au palier
+      précédent). Le palier 1 a une inf inclusive par défaut.
+    - Borne sup : inclusive sauf si explicitement marquée exclusive. Le palier 5
+      a une sup inclusive par défaut.
+    """
+    if level <= 1:
+        inf_inclusive = True
+    else:
+        prev = getattr(metrique, f'score_{level - 1}_sup_inclusive', None)
+        inf_inclusive = (prev is False)
+    if level >= 5:
+        sup_inclusive = True
+    else:
+        cur = getattr(metrique, f'score_{level}_sup_inclusive', None)
+        sup_inclusive = (cur is not False)
+    return inf_inclusive, sup_inclusive
+
+
 def _value_to_score(value, metrique) -> int | None:
     """Convertit une valeur numérique en score 1-5 via les seuils de la métrique."""
     v = _coerce_float(value)
@@ -727,9 +750,13 @@ def _value_to_score(value, metrique) -> int | None:
         # haut) étaient ignorés à tort, ce qui décalait le score d'un cran.
         if inf is None and sup is None:
             continue
-        lo = float(inf) if inf is not None else float('-inf')
-        hi = float(sup) if sup is not None else float('inf')
-        if lo <= v <= hi:
+        # #423 — respecter l'inclusivité des bornes : « 35 » dans ]35;50] doit
+        # tomber dans le palier dont la borne sup vaut 35 (35 inclus), pas dans
+        # celui dont la borne inf vaut 35 (35 exclu).
+        inf_incl, sup_incl = _palier_inclusivity(metrique, i)
+        lower_ok = inf is None or (v >= float(inf) if inf_incl else v > float(inf))
+        upper_ok = sup is None or (v <= float(sup) if sup_incl else v < float(sup))
+        if lower_ok and upper_ok:
             return i
     return None
 

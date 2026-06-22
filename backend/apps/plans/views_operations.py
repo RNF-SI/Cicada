@@ -623,23 +623,11 @@ class RealisationOperationAnneeViewSet(viewsets.ModelViewSet):
         plan = get_object_or_404(_Plan, pk=plan_id)
 
         def _compute_score(value, m):
-            """Retourne 1-5 selon la grille de scores de la métrique, ou 0 si hors plage."""
-            # #423 — virgule décimale française tolérée
-            try:
-                v = float(str(value).replace(',', '.').strip())
-            except (TypeError, ValueError, AttributeError):
-                return 0
-            for i in range(1, 6):
-                inf = getattr(m, f'score_{i}_inf', None)
-                sup = getattr(m, f'score_{i}_sup', None)
-                # #423 — borne absente = palier ouvert (-∞ / +∞)
-                if inf is None and sup is None:
-                    continue
-                lo = float(inf) if inf is not None else float('-inf')
-                hi = float(sup) if sup is not None else float('inf')
-                if lo <= v <= hi:
-                    return i
-            return 0
+            """Retourne 1-5 selon la grille de scores de la métrique, ou 0 si hors plage.
+            #423 — délègue à _value_to_score (virgule décimale, bornes ouvertes ET
+            inclusivité des bornes gérées au même endroit)."""
+            from .views_indicateurs import _value_to_score
+            return _value_to_score(value, m) or 0
 
         indicators_qs = Indicateur.objects.filter(
             id_ne__id_olt__id_enjeu__id_pg=plan,

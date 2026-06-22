@@ -115,9 +115,14 @@ export class IndicateurSaisieComponent implements OnInit {
       const hasSup = sup !== null && sup !== undefined;
       // #423 — palier extrême ouvert : borne absente = -∞ / +∞ (ne pas l'ignorer).
       if (!hasInf && !hasSup) continue;
-      const lo = hasInf ? Number(inf) : -Infinity;
-      const hi = hasSup ? Number(sup) : Infinity;
-      if (lo <= v && v <= hi) return i;
+      // #423 — respecter l'inclusivité des bornes (cf. notation par crochets) :
+      // « 35 » dans ]35;50] tombe dans le palier de borne sup=35, pas celui de
+      // borne inf=35.
+      const infIncl = i <= 1 ? true : (met as any)[`score_${i - 1}_sup_inclusive`] === false;
+      const supIncl = i >= 5 ? true : (met as any)[`score_${i}_sup_inclusive`] !== false;
+      const lowerOk = !hasInf || (infIncl ? v >= Number(inf) : v > Number(inf));
+      const upperOk = !hasSup || (supIncl ? v <= Number(sup) : v < Number(sup));
+      if (lowerOk && upperOk) return i;
     }
     return null;
   }

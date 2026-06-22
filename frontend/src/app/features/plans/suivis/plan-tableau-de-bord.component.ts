@@ -434,14 +434,15 @@ export class PlanTableauDeBordComponent implements OnInit {
     for (let level = 1; level <= 5; level++) {
       const inf = (metrique as any)[`score_${level}_inf`];
       const sup = (metrique as any)[`score_${level}_sup`];
-
-      if (inf != null && sup != null) {
-        if (value >= inf && value <= sup) {
-          return this.levelToScoreLevel(level);
-        }
-      } else if (inf != null && value >= inf) {
-        return this.levelToScoreLevel(level);
-      } else if (sup != null && value <= sup) {
+      const hasInf = inf != null;
+      const hasSup = sup != null;
+      if (!hasInf && !hasSup) continue;
+      // #423 — inclusivité des bornes (cohérent avec la notation par crochets).
+      const infIncl = level <= 1 ? true : (metrique as any)[`score_${level - 1}_sup_inclusive`] === false;
+      const supIncl = level >= 5 ? true : (metrique as any)[`score_${level}_sup_inclusive`] !== false;
+      const lowerOk = !hasInf || (infIncl ? value >= Number(inf) : value > Number(inf));
+      const upperOk = !hasSup || (supIncl ? value <= Number(sup) : value < Number(sup));
+      if (lowerOk && upperOk) {
         return this.levelToScoreLevel(level);
       }
     }
