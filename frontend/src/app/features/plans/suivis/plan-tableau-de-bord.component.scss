@@ -56,8 +56,8 @@
 }
 
 .hero-pattern {
+  // #383 — vagues pleinement visibles à droite (comme les autres pages de suivi)
   @include plan-page-hero-pattern;
-  opacity: 0.2;
 }
 
 .hero-content {

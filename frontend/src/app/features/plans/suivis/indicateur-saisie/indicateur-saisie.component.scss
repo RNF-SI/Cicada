@@ -32,7 +32,7 @@
 // Hero/fil d'Ariane/titre alignés sur le formulaire de suivi d'une action (#382)
 .hero-section { @include plan-page-hero-suivi(280px); }
 .hero-background { @include plan-page-hero-background; }
-.hero-pattern { @include plan-page-hero-pattern; opacity: 0.2; }
+.hero-pattern { @include plan-page-hero-pattern; } // #383 — vagues pleinement visibles
 .hero-content { @include plan-page-hero-content; }
 
 .breadcrumb {

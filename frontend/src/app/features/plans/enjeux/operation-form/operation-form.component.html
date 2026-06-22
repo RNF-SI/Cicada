@@ -3,15 +3,19 @@
 <div class="enjeu-form-page" [class.readonly-mode]="isReadOnly()">
   <!-- Hero Section -->
   <div class="hero-section">
-    <h1 class="hero-title">
-      @if (isReadOnly()) {
-        {{ 'enjeux.operations.viewTitle' | translate }}
-      } @else if (isEditMode()) {
-        {{ 'enjeux.operations.editTitle' | translate }}
-      } @else {
-        {{ 'enjeux.operations.createTitle' | translate }}
-      }
-    </h1>
+    <!-- #383 — vagues décoratives à droite, comme les pages de suivi -->
+    <div class="hero-background"><div class="hero-pattern"></div></div>
+    <div class="hero-content">
+      <h1 class="hero-title">
+        @if (isReadOnly()) {
+          {{ 'enjeux.operations.viewTitle' | translate }}
+        } @else if (isEditMode()) {
+          {{ 'enjeux.operations.editTitle' | translate }}
+        } @else {
+          {{ 'enjeux.operations.createTitle' | translate }}
+        }
+      </h1>
+    </div>
   </div>
 
   <!-- Loading State -->

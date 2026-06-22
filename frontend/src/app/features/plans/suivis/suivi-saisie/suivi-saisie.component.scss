@@ -49,8 +49,8 @@
   // Vagues/ellipses décoratives à droite — même asset et même positionnement
   // que les autres pages de suivi (mixin partagé `plan-page-hero-pattern`).
   .hero-pattern {
+    // #383 — vagues pleinement visibles à droite
     @include plan-page-hero-pattern;
-    opacity: 0.2;
   }
 
   .hero-content {
