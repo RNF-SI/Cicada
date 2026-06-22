@@ -195,6 +195,24 @@ class Enjeu(models.Model):
         default=False,
         help_text=_("Patrimoine géologique de type in-situ (sites géologiques)")
     )
+    # #237 — patrimoines géologiques supplémentaires (au même niveau que in/ex-situ)
+    geo_documents = models.BooleanField(
+        _("Patrimoine géologique - documents"),
+        default=False,
+        help_text=_("Patrimoine géologique de type documentaire (archives numériques ou papier)")
+    )
+    geo_autre = models.BooleanField(
+        _("Patrimoine géologique - autre"),
+        default=False,
+        help_text=_("Patrimoine géologique de type autre")
+    )
+    geo_autre_precision = models.CharField(
+        _("Précision patrimoine géologique - autre"),
+        max_length=255,
+        blank=True,
+        default='',
+        help_text=_("Précision sur le patrimoine géologique de type 'Autre'")
+    )
     # Champ legacy conservé pour compatibilité (remplacé par fonctionnalite_ecosysteme)
     processus = models.BooleanField(
         _("Processus"),
@@ -1147,3 +1165,48 @@ class CorEnjeuGeologie(models.Model):
 
     def __str__(self):
         return f"Enjeu {self.id_enjeu_id} - Géologie {self.id_inpg}"
+
+
+class CorEnjeuObjetGeologique(models.Model):
+    """
+    #237 — Objet(s) géologique(s) d'un enjeu, issus de la typologie fournie par
+    Corentin (PatriNat). Le `code` référence la typologie (constante côté front),
+    `libelle` est dénormalisé pour l'affichage et l'export.
+    """
+
+    id = models.AutoField(primary_key=True)
+    id_enjeu = models.ForeignKey(
+        Enjeu,
+        on_delete=models.CASCADE,
+        related_name='objets_geologiques',
+        db_column='id_enjeu',
+        verbose_name=_("Enjeu")
+    )
+    code = models.CharField(
+        _("Code"),
+        max_length=50,
+        help_text=_("Code de l'objet géologique dans la typologie")
+    )
+    libelle = models.CharField(
+        _("Libellé"),
+        max_length=255,
+        blank=True,
+        default=''
+    )
+    # #237 — précision libre pour un objet de type « Autre »
+    precision = models.CharField(
+        _("Précision"),
+        max_length=255,
+        blank=True,
+        default=''
+    )
+
+    class Meta:
+        db_table = '"general"."cor_enjeu_objet_geologique"'
+        db_table_comment = 'Liaison enjeux - objets géologiques (#237)'
+        verbose_name = _("Enjeu - Objet géologique")
+        verbose_name_plural = _("Enjeux - Objets géologiques")
+        unique_together = ['id_enjeu', 'code']
+
+    def __str__(self):
+        return f"Enjeu {self.id_enjeu_id} - Objet géologique {self.code}"

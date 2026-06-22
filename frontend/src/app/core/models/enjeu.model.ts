@@ -48,6 +48,18 @@ export interface GeologieRef {
 }
 
 /**
+ * #237 — Objet géologique sélectionné sur un enjeu (typologie Corentin).
+ * `code` référence la typologie (constante GEO_OBJET_GROUPS), `libelle` est
+ * dénormalisé, `precision` est saisie libre pour un objet de type « Autre ».
+ */
+export interface ObjetGeologiqueRef {
+  id?: number;
+  code: string;
+  libelle?: string;
+  precision?: string;
+}
+
+/**
  * Enjeu / FCR categories
  */
 export type EnjeuCategorie = 'ENJEU' | 'FCR';
@@ -91,6 +103,9 @@ export interface Enjeu {
   patrimoine_geologique: boolean;
   geo_ex_situ: boolean;
   geo_in_situ: boolean;
+  geo_documents: boolean;
+  geo_autre: boolean;
+  geo_autre_precision?: string;
   fonctionnalite_ecosysteme: boolean;
   autre_ecologique: boolean;
   autre_ecologique_precision?: string;
@@ -118,6 +133,7 @@ export interface Enjeu {
   taxons?: TaxonRef[];
   habitats?: HabitatRef[];
   geologies?: GeologieRef[];
+  objets_geologiques?: ObjetGeologiqueRef[];
 
   // Counts (from list serializer)
   nb_taxons?: number;
@@ -876,6 +892,9 @@ export interface EnjeuCreatePayload {
   patrimoine_geologique?: boolean;
   geo_ex_situ?: boolean;
   geo_in_situ?: boolean;
+  geo_documents?: boolean;
+  geo_autre?: boolean;
+  geo_autre_precision?: string;
   fonctionnalite_ecosysteme?: boolean;
   autre_ecologique?: boolean;
   autre_ecologique_precision?: string;
@@ -899,6 +918,7 @@ export interface EnjeuCreatePayload {
   taxons_data?: TaxonRef[];
   habitats_data?: HabitatRef[];
   geologies_data?: GeologieRef[];
+  objets_geologiques_data?: ObjetGeologiqueRef[];
 }
 
 /**
@@ -931,6 +951,9 @@ export interface EnjeuUpdatePayload {
   patrimoine_geologique?: boolean;
   geo_ex_situ?: boolean;
   geo_in_situ?: boolean;
+  geo_documents?: boolean;
+  geo_autre?: boolean;
+  geo_autre_precision?: string;
   fonctionnalite_ecosysteme?: boolean;
   autre_ecologique?: boolean;
   autre_ecologique_precision?: string;
@@ -953,6 +976,7 @@ export interface EnjeuUpdatePayload {
   taxons_data?: TaxonRef[];
   habitats_data?: HabitatRef[];
   geologies_data?: GeologieRef[];
+  objets_geologiques_data?: ObjetGeologiqueRef[];
 }
 
 /**

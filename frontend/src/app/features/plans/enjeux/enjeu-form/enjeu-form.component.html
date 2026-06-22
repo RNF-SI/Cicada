@@ -147,11 +147,24 @@
             @if (form.get('patrimoine_geologique')?.value) {
               <div class="form-group sub-question">
                 <label class="form-label">{{ 'enjeux.enjeuForm.typePatrimoineGeo' | translate }}</label>
+                <!-- #237 — In situ / Ex situ / Documents / Autre au même niveau -->
                 <div class="checkbox-group">
-                  <app-checkbox formControlName="geo_ex_situ" [label]="'enjeux.enjeuForm.geoExSitu' | translate"></app-checkbox>
                   <app-checkbox formControlName="geo_in_situ" [label]="'enjeux.enjeuForm.geoInSitu' | translate"></app-checkbox>
+                  <app-checkbox formControlName="geo_ex_situ" [label]="'enjeux.enjeuForm.geoExSitu' | translate"></app-checkbox>
+                  <app-checkbox formControlName="geo_documents" [label]="'enjeux.enjeuForm.geoDocuments' | translate"></app-checkbox>
+                  <app-checkbox formControlName="geo_autre" [label]="'enjeux.enjeuForm.geoAutre' | translate"></app-checkbox>
                 </div>
               </div>
+
+              <!-- #237 — précision libre pour le patrimoine « Autre » -->
+              @if (form.get('geo_autre')?.value) {
+                <div class="form-group sub-question">
+                  <app-form-field [label]="'enjeux.enjeuForm.geoAutrePrecision' | translate">
+  <input formControlName="geo_autre_precision" maxlength="255"
+         [placeholder]="'enjeux.enjeuForm.geoAutrePrecisionPlaceholder' | translate">
+</app-form-field>
+                </div>
+              }
 
               <div class="form-group sub-question">
                 <label class="form-label">{{ 'enjeux.enjeuForm.patrimoineGeoConcerne' | translate }}</label>
@@ -161,6 +174,43 @@
                   (itemsChange)="onGeologiesChange($event)">
                 </app-reference-item-list>
               </div>
+
+              <!-- #237 — Objet(s) géologique(s) : multi-select hiérarchique
+                   conditionné par les patrimoines cochés (in situ / ex situ / documents) -->
+              @if (visibleObjetGroups().length > 0) {
+                <div class="form-group sub-question">
+                  <label class="form-label">{{ 'enjeux.enjeuForm.geoObjets.label' | translate }}</label>
+                  @for (group of visibleObjetGroups(); track group.patrimoine) {
+                    <div class="geo-objet-group">
+                      <p class="geo-objet-group-title">{{ group.titleKey | translate }}</p>
+                      @for (opt of group.options; track opt.code) {
+                        <div class="geo-objet-item">
+                          <app-checkbox
+                            [checked]="isObjetSelected(opt.code)"
+                            (checkedChange)="toggleObjet(opt.code)"
+                            [label]="opt.libelle">
+                          </app-checkbox>
+                          @if (opt.isAutre && isObjetSelected(opt.code)) {
+                            <input class="geo-objet-precision" maxlength="255"
+                                   [value]="objetPrecision(opt.code)"
+                                   (input)="setObjetPrecision(opt.code, $any($event.target).value)"
+                                   [placeholder]="'enjeux.enjeuForm.geoObjets.precisionPlaceholder' | translate">
+                          }
+                        </div>
+                        @for (child of opt.children || []; track child.code) {
+                          <div class="geo-objet-item geo-objet-child">
+                            <app-checkbox
+                              [checked]="isObjetSelected(child.code)"
+                              (checkedChange)="toggleObjet(child.code)"
+                              [label]="child.libelle">
+                            </app-checkbox>
+                          </div>
+                        }
+                      }
+                    </div>
+                  }
+                </div>
+              }
             }
 
             <!-- Précision "Autre écologique" (si coché) -->

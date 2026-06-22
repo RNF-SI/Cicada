@@ -242,3 +242,36 @@ $form-side-margin: $spacing-xxl;
     padding: $spacing-xs $spacing-md;
   }
 }
+
+// #237 — Objet(s) géologique(s) : groupes hiérarchiques (in situ / ex situ / documents)
+.geo-objet-group {
+  margin-bottom: $spacing-md;
+
+  .geo-objet-group-title {
+    font-weight: $font-weight-bold;
+    color: $primary-color;
+    margin: 0 0 $spacing-xs 0;
+  }
+}
+
+.geo-objet-item {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: $spacing-sm;
+  margin-bottom: $spacing-xs;
+
+  &.geo-objet-child {
+    margin-left: $spacing-lg;
+  }
+}
+
+.geo-objet-precision {
+  flex: 1 1 240px;
+  min-width: 200px;
+  padding: $spacing-xs $spacing-sm;
+  border: 1px solid $gray-light;
+  border-radius: $border-radius-sm;
+  font-family: $font-family;
+  font-size: $font-size-base;
+}

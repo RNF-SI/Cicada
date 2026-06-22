@@ -9,7 +9,7 @@ from .models_enjeux import (
     Enjeu, FacteurInfluence, Pression, Responsabilite,
     ObjectifLongTerme, NiveauExigence,
     ObjectifOperationnel, ResultatAttendu,
-    CorEnjeuTaxon, CorEnjeuHabitat, CorEnjeuGeologie,
+    CorEnjeuTaxon, CorEnjeuHabitat, CorEnjeuGeologie, CorEnjeuObjetGeologique,
     CorResponsabiliteTaxon, CorResponsabiliteHabitat, CorResponsabiliteGeologie,
     CorResponsabiliteEnjeu
 )
@@ -93,6 +93,23 @@ class CorEnjeuGeologieSerializer(serializers.ModelSerializer):
     class Meta:
         model = CorEnjeuGeologie
         fields = ['id', 'id_inpg', 'nom']
+        read_only_fields = ['id']
+
+
+class ObjetGeologiqueRefSerializer(serializers.Serializer):
+    """#237 — Serializer d'un objet géologique (code de typologie + libellé,
+    + précision libre pour un objet de type « Autre »)."""
+    code = serializers.CharField(max_length=50)
+    libelle = serializers.CharField(max_length=255, required=False, allow_blank=True)
+    precision = serializers.CharField(max_length=255, required=False, allow_blank=True)
+
+
+class CorEnjeuObjetGeologiqueSerializer(serializers.ModelSerializer):
+    """#237 — Serializer pour les relations Enjeu-Objet géologique."""
+
+    class Meta:
+        model = CorEnjeuObjetGeologique
+        fields = ['id', 'code', 'libelle', 'precision']
         read_only_fields = ['id']
 
 
@@ -547,7 +564,7 @@ class EnjeuListSerializer(serializers.ModelSerializer):
             'libelle', 'intitule_court', 'ordre',
             # Champs Enjeu
             'rang', 'categorie_ecologique',
-            'habitat', 'espece', 'patrimoine_geologique', 'geo_ex_situ', 'geo_in_situ', 'fonctionnalite_ecosysteme', 'autre_ecologique', 'autre_ecologique_precision', 'processus',
+            'habitat', 'espece', 'patrimoine_geologique', 'geo_ex_situ', 'geo_in_situ', 'geo_documents', 'geo_autre', 'geo_autre_precision', 'fonctionnalite_ecosysteme', 'autre_ecologique', 'autre_ecologique_precision', 'processus',
             'valeur_paysagere', 'patrimoine_culturel', 'developpement_durable', 'usages', 'valeur_ajoutee', 'autre_socioeco', 'autre_socioeco_precision',
             # Champs FCR
             'id_categorie_fcr', 'categorie_fcr_label',
@@ -587,6 +604,8 @@ class EnjeuDetailSerializer(serializers.ModelSerializer):
     taxons = CorEnjeuTaxonSerializer(many=True, read_only=True)
     habitats = CorEnjeuHabitatSerializer(many=True, read_only=True)
     geologies = CorEnjeuGeologieSerializer(many=True, read_only=True)
+    # #237 — objets géologiques (typologie Corentin)
+    objets_geologiques = CorEnjeuObjetGeologiqueSerializer(many=True, read_only=True)
 
     # Facteurs d'influence (nested)
     facteurs_influence = FacteurInfluenceSerializer(many=True, read_only=True)
@@ -615,7 +634,7 @@ class EnjeuDetailSerializer(serializers.ModelSerializer):
             'libelle', 'intitule_court', 'description', 'ordre',
             # Champs Enjeu
             'rang', 'categorie_ecologique',
-            'habitat', 'espece', 'patrimoine_geologique', 'geo_ex_situ', 'geo_in_situ', 'fonctionnalite_ecosysteme', 'autre_ecologique', 'autre_ecologique_precision', 'processus',
+            'habitat', 'espece', 'patrimoine_geologique', 'geo_ex_situ', 'geo_in_situ', 'geo_documents', 'geo_autre', 'geo_autre_precision', 'fonctionnalite_ecosysteme', 'autre_ecologique', 'autre_ecologique_precision', 'processus',
             'valeur_paysagere', 'patrimoine_culturel', 'developpement_durable', 'usages', 'valeur_ajoutee', 'autre_socioeco', 'autre_socioeco_precision',
             'etat_enjeu',
             # Champs FCR
@@ -623,7 +642,7 @@ class EnjeuDetailSerializer(serializers.ModelSerializer):
             # Optionnels
             'id_importance', 'importance_label', 'geom',
             # Relations
-            'taxons', 'habitats', 'geologies',
+            'taxons', 'habitats', 'geologies', 'objets_geologiques',
             # Facteurs d'influence
             'facteurs_influence', 'nb_facteurs_influence',
             # Objectifs à long terme (avec NE inclus)
@@ -687,6 +706,13 @@ class EnjeuCreateSerializer(serializers.ModelSerializer):
         required=False,
         default=list
     )
+    # #237 — objets géologiques sélectionnés (code + libellé de la typologie)
+    objets_geologiques_data = serializers.ListField(
+        child=ObjetGeologiqueRefSerializer(),
+        write_only=True,
+        required=False,
+        default=list
+    )
 
     class Meta:
         model = Enjeu
@@ -695,7 +721,7 @@ class EnjeuCreateSerializer(serializers.ModelSerializer):
             'libelle', 'intitule_court', 'description', 'ordre',
             # Champs Enjeu
             'rang', 'categorie_ecologique',
-            'habitat', 'espece', 'patrimoine_geologique', 'geo_ex_situ', 'geo_in_situ', 'fonctionnalite_ecosysteme', 'autre_ecologique', 'autre_ecologique_precision', 'processus',
+            'habitat', 'espece', 'patrimoine_geologique', 'geo_ex_situ', 'geo_in_situ', 'geo_documents', 'geo_autre', 'geo_autre_precision', 'fonctionnalite_ecosysteme', 'autre_ecologique', 'autre_ecologique_precision', 'processus',
             'valeur_paysagere', 'patrimoine_culturel', 'developpement_durable', 'usages', 'valeur_ajoutee', 'autre_socioeco', 'autre_socioeco_precision',
             'etat_enjeu',
             # Champs FCR
@@ -704,7 +730,8 @@ class EnjeuCreateSerializer(serializers.ModelSerializer):
             'id_importance', 'geom',
             # Relations (write-only)
             'taxon_ids', 'habitat_ids', 'geologie_ids',
-            'taxons_data', 'habitats_data', 'geologies_data'
+            'taxons_data', 'habitats_data', 'geologies_data',
+            'objets_geologiques_data',
         ]
         read_only_fields = ['id_enjeu', 'slug']
 
@@ -754,6 +781,7 @@ class EnjeuCreateSerializer(serializers.ModelSerializer):
         taxons_data = validated_data.pop('taxons_data', [])
         habitats_data = validated_data.pop('habitats_data', [])
         geologies_data = validated_data.pop('geologies_data', [])
+        objets_geologiques_data = validated_data.pop('objets_geologiques_data', [])
 
         # Si les IDs ne sont pas fournis, les extraire depuis les données
         if not taxon_ids and taxons_data:
@@ -772,6 +800,7 @@ class EnjeuCreateSerializer(serializers.ModelSerializer):
         self._create_taxon_relations(enjeu, taxon_ids, taxons_data)
         self._create_habitat_relations(enjeu, habitat_ids, habitats_data)
         self._create_geologie_relations(enjeu, geologie_ids, geologies_data)
+        self._create_objet_geologique_relations(enjeu, objets_geologiques_data)
 
         return enjeu
 
@@ -784,6 +813,7 @@ class EnjeuCreateSerializer(serializers.ModelSerializer):
         taxons_data = validated_data.pop('taxons_data', None)
         habitats_data = validated_data.pop('habitats_data', None)
         geologies_data = validated_data.pop('geologies_data', None)
+        objets_geologiques_data = validated_data.pop('objets_geologiques_data', None)
 
         # Si les IDs ne sont pas fournis, les extraire depuis les données
         if taxon_ids is None and taxons_data is not None:
@@ -812,6 +842,11 @@ class EnjeuCreateSerializer(serializers.ModelSerializer):
         if geologie_ids is not None:
             instance.geologies.all().delete()
             self._create_geologie_relations(instance, geologie_ids, geologies_data or [])
+
+        # #237 — remplacement complet des objets géologiques si fournis
+        if objets_geologiques_data is not None:
+            instance.objets_geologiques.all().delete()
+            self._create_objet_geologique_relations(instance, objets_geologiques_data)
 
         return instance
 
@@ -863,6 +898,22 @@ class EnjeuCreateSerializer(serializers.ModelSerializer):
                 id_enjeu=enjeu,
                 id_inpg=id_inpg,
                 nom=data.get('nom', '')
+            )
+
+    def _create_objet_geologique_relations(self, enjeu, objets_data):
+        """#237 — Créer les relations avec les objets géologiques sélectionnés.
+        `precision` permet de préciser un objet de type « Autre »."""
+        seen = set()
+        for obj in objets_data or []:
+            code = (obj.get('code') or '').strip()
+            if not code or code in seen:
+                continue
+            seen.add(code)
+            CorEnjeuObjetGeologique.objects.create(
+                id_enjeu=enjeu,
+                code=code,
+                libelle=obj.get('libelle', '') or '',
+                precision=obj.get('precision', '') or '',
             )
 
 

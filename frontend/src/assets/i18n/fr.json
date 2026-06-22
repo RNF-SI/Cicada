@@ -2718,6 +2718,17 @@
       "typePatrimoineGeo": "Type de patrimoine géologique concerné par l'enjeu",
       "geoExSitu": "Ex-situ",
       "geoInSitu": "In-situ",
+      "geoDocuments": "Documents",
+      "geoAutre": "Autre",
+      "geoAutrePrecision": "Précision (autre patrimoine géologique)",
+      "geoAutrePrecisionPlaceholder": "Précisez le type de patrimoine géologique",
+      "geoObjets": {
+        "label": "Objet(s) géologique(s)",
+        "inSitu": "Patrimoine in situ",
+        "exSitu": "Patrimoine ex situ",
+        "documents": "Documents",
+        "precisionPlaceholder": "Précisez"
+      },
       "patrimoineGeoConcerne": "Patrimoine géologique concerné par l'enjeu",
       "rechercherINPG": "Rechercher le patrimoine INPG",
       "rechercherINPGHint": "Rechercher un site dans l'Inventaire National du Patrimoine Géologique",

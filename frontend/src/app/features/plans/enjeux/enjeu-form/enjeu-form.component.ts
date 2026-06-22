@@ -22,7 +22,8 @@ import { CheckboxComponent } from '../../../../shared/components/checkbox/checkb
 import { FormFieldComponent } from '../../../../shared/components/form-field/form-field.component';
 import { EnjeuService } from '../../../../core/services/enjeu.service';
 import { AdminService } from '../../../../core/services/admin.service';
-import { Enjeu, EnjeuCreatePayload, EnjeuUpdatePayload, TaxonRef, HabitatRef, GeologieRef } from '../../../../core/models/enjeu.model';
+import { Enjeu, EnjeuCreatePayload, EnjeuUpdatePayload, TaxonRef, HabitatRef, GeologieRef, ObjetGeologiqueRef } from '../../../../core/models/enjeu.model';
+import { GEO_OBJET_GROUPS, ObjetGeologiqueGroup, ObjetGeologiqueOption } from './objet-geologique.constant';
 
 @Component({
   selector: 'app-enjeu-form',
@@ -78,6 +79,11 @@ export class EnjeuFormComponent implements OnInit {
   habitatItems: HabitatRef[] = [];
   geologieItems: GeologieRef[] = [];
 
+  // #237 — objets géologiques sélectionnés : { code → précision éventuelle }.
+  // La présence de la clé = objet coché ; la valeur = précision (objets « Autre »).
+  selectedObjets: Record<string, string> = {};
+  readonly geoObjetGroups = GEO_OBJET_GROUPS;
+
   // #409 — affiche les erreurs « au moins un taxon/habitat requis » après une
   // tentative d'enregistrement (cible espèce/habitat cochée mais liste vide).
   showRefErrors = signal(false);
@@ -99,6 +105,9 @@ export class EnjeuFormComponent implements OnInit {
       patrimoine_geologique: [false],
       geo_ex_situ: [false],
       geo_in_situ: [false],
+      geo_documents: [false],
+      geo_autre: [false],
+      geo_autre_precision: [''],
       fonctionnalite_ecosysteme: [false],
       autre_ecologique: [false],
       autre_ecologique_precision: [''],
@@ -119,10 +128,23 @@ export class EnjeuFormComponent implements OnInit {
       if (!isGeo) {
         this.form.patchValue({
           geo_ex_situ: false,
-          geo_in_situ: false
+          geo_in_situ: false,
+          geo_documents: false,
+          geo_autre: false,
+          geo_autre_precision: '',
         }, { emitEvent: false });
+        this.selectedObjets = {};
       }
     });
+
+    // #237 — décocher un patrimoine retire les objets géologiques de ce groupe.
+    for (const group of GEO_OBJET_GROUPS) {
+      const ctrl = group.patrimoine === 'in_situ' ? 'geo_in_situ'
+        : group.patrimoine === 'ex_situ' ? 'geo_ex_situ' : 'geo_documents';
+      this.form.get(ctrl)?.valueChanges.subscribe(isChecked => {
+        if (!isChecked) this.clearGroupObjets(group);
+      });
+    }
 
     // Réinitialiser les listes quand les checkboxes sont décochées
     this.form.get('habitat')?.valueChanges.subscribe(isChecked => {
@@ -161,10 +183,14 @@ export class EnjeuFormComponent implements OnInit {
           patrimoine_geologique: false,
           geo_ex_situ: false,
           geo_in_situ: false,
+          geo_documents: false,
+          geo_autre: false,
+          geo_autre_precision: '',
           fonctionnalite_ecosysteme: false,
           autre_ecologique: false,
           autre_ecologique_precision: ''
         }, { emitEvent: false });
+        this.selectedObjets = {};
       }
     });
 
@@ -288,6 +314,9 @@ export class EnjeuFormComponent implements OnInit {
       patrimoine_geologique: enjeu.patrimoine_geologique || false,
       geo_ex_situ: enjeu.geo_ex_situ || false,
       geo_in_situ: enjeu.geo_in_situ || false,
+      geo_documents: enjeu.geo_documents || false,
+      geo_autre: enjeu.geo_autre || false,
+      geo_autre_precision: enjeu.geo_autre_precision || '',
       fonctionnalite_ecosysteme: enjeu.fonctionnalite_ecosysteme || false,
       autre_ecologique: enjeu.autre_ecologique || false,
       autre_ecologique_precision: enjeu.autre_ecologique_precision || '',
@@ -307,6 +336,12 @@ export class EnjeuFormComponent implements OnInit {
     this.taxonItems = enjeu.taxons ? [...enjeu.taxons] : [];
     this.habitatItems = enjeu.habitats ? [...enjeu.habitats] : [];
     this.geologieItems = enjeu.geologies ? [...enjeu.geologies] : [];
+
+    // #237 — restaurer les objets géologiques sélectionnés + leurs précisions
+    this.selectedObjets = {};
+    for (const obj of enjeu.objets_geologiques || []) {
+      this.selectedObjets[obj.code] = obj.precision || '';
+    }
   }
 
   onTaxonsChange(items: (TaxonRef | HabitatRef | GeologieRef)[]): void {
@@ -319,6 +354,70 @@ export class EnjeuFormComponent implements OnInit {
 
   onGeologiesChange(items: (TaxonRef | HabitatRef | GeologieRef)[]): void {
     this.geologieItems = items as GeologieRef[];
+  }
+
+  // ════════════════════════════════════════════════════════════════
+  // #237 — Objet(s) géologique(s)
+  // ════════════════════════════════════════════════════════════════
+
+  /** Groupes d'objets affichés selon les patrimoines cochés. */
+  visibleObjetGroups(): ObjetGeologiqueGroup[] {
+    return this.geoObjetGroups.filter(g => {
+      const ctrl = g.patrimoine === 'in_situ' ? 'geo_in_situ'
+        : g.patrimoine === 'ex_situ' ? 'geo_ex_situ' : 'geo_documents';
+      return !!this.form.get(ctrl)?.value;
+    });
+  }
+
+  isObjetSelected(code: string): boolean {
+    return Object.prototype.hasOwnProperty.call(this.selectedObjets, code);
+  }
+
+  toggleObjet(code: string): void {
+    if (this.isObjetSelected(code)) {
+      delete this.selectedObjets[code];
+    } else {
+      this.selectedObjets[code] = '';
+    }
+  }
+
+  objetPrecision(code: string): string {
+    return this.selectedObjets[code] ?? '';
+  }
+
+  setObjetPrecision(code: string, value: string): void {
+    if (this.isObjetSelected(code)) this.selectedObjets[code] = value;
+  }
+
+  /** Retire de la sélection tous les objets (parents + enfants) d'un groupe. */
+  private clearGroupObjets(group: ObjetGeologiqueGroup): void {
+    for (const opt of group.options) {
+      delete this.selectedObjets[opt.code];
+      for (const child of opt.children || []) delete this.selectedObjets[child.code];
+    }
+  }
+
+  /** Construit le payload `objets_geologiques_data` à partir de la sélection. */
+  private buildObjetsGeologiquesData(): ObjetGeologiqueRef[] {
+    return Object.keys(this.selectedObjets).map(code => {
+      const opt = this.findObjetOption(code);
+      return {
+        code,
+        libelle: opt?.libelle ?? '',
+        precision: this.selectedObjets[code] || '',
+      };
+    });
+  }
+
+  private findObjetOption(code: string): ObjetGeologiqueOption | undefined {
+    for (const group of this.geoObjetGroups) {
+      for (const opt of group.options) {
+        if (opt.code === code) return opt;
+        const child = (opt.children || []).find(c => c.code === code);
+        if (child) return child;
+      }
+    }
+    return undefined;
   }
 
   /** #409 — taxon requis si cible « espèce » cochée. */
@@ -383,6 +482,9 @@ export class EnjeuFormComponent implements OnInit {
       patrimoine_geologique: formValue.patrimoine_geologique,
       geo_ex_situ: formValue.geo_ex_situ,
       geo_in_situ: formValue.geo_in_situ,
+      geo_documents: formValue.geo_documents,
+      geo_autre: formValue.geo_autre,
+      geo_autre_precision: formValue.geo_autre_precision || undefined,
       fonctionnalite_ecosysteme: formValue.fonctionnalite_ecosysteme,
       autre_ecologique: formValue.autre_ecologique,
       autre_ecologique_precision: formValue.autre_ecologique_precision || undefined,
@@ -400,6 +502,8 @@ export class EnjeuFormComponent implements OnInit {
       taxons_data: this.taxonItems.length > 0 ? this.taxonItems : undefined,
       habitats_data: this.habitatItems.length > 0 ? this.habitatItems : undefined,
       geologies_data: this.geologieItems.length > 0 ? this.geologieItems : undefined,
+      // #237 — objets géologiques (toujours envoyé pour permettre la suppression)
+      objets_geologiques_data: this.buildObjetsGeologiquesData(),
     };
 
     this.enjeuService.createEnjeu(payload).subscribe({
@@ -442,6 +546,9 @@ export class EnjeuFormComponent implements OnInit {
       patrimoine_geologique: formValue.patrimoine_geologique,
       geo_ex_situ: formValue.geo_ex_situ,
       geo_in_situ: formValue.geo_in_situ,
+      geo_documents: formValue.geo_documents,
+      geo_autre: formValue.geo_autre,
+      geo_autre_precision: formValue.geo_autre_precision || undefined,
       fonctionnalite_ecosysteme: formValue.fonctionnalite_ecosysteme,
       autre_ecologique: formValue.autre_ecologique,
       autre_ecologique_precision: formValue.autre_ecologique_precision || undefined,
@@ -459,6 +566,8 @@ export class EnjeuFormComponent implements OnInit {
       taxons_data: this.taxonItems.length > 0 ? this.taxonItems : undefined,
       habitats_data: this.habitatItems.length > 0 ? this.habitatItems : undefined,
       geologies_data: this.geologieItems.length > 0 ? this.geologieItems : undefined,
+      // #237 — objets géologiques (toujours envoyé pour permettre la suppression)
+      objets_geologiques_data: this.buildObjetsGeologiquesData(),
     };
 
     this.enjeuService.updateEnjeu(enjeuId, payload).subscribe({
@@ -520,3 +629,4 @@ export class EnjeuFormComponent implements OnInit {
     return this.form.get('intitule_court')?.value?.length || 0;
   }
 }
+
