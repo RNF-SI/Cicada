@@ -173,7 +173,7 @@ export class InventaireFormPage {
    * Fill all fields required by the conditional validators :
    * intitule, integre_plan_gestion=Non, objectif_principal, cibles_principales,
    * date_lancement_suivi, protocole_dans_campanule=Non, nom_protocole,
-   * respect_protocole=Oui, documentation_disponible=Non, nb_etp_cycle, frequence.
+   * documentation_disponible=Non, nb_etp_cycle, frequence.
    * After this call, the form is in a state that should pass validation.
    */
   async fillAllRequiredFields(intitule: string) {
@@ -189,7 +189,8 @@ export class InventaireFormPage {
     await this.page.waitForTimeout(300);
     await this.nomProtocoleInput.fill('Protocole E2E');
     await this.nbEtpCycleInput.fill('1');
-    await this.respectProtocoleOui.click();
+    // #413 — `respect_protocole` n'est demandé que pour les protocoles CAMPanule.
+    // En hors-CAMPanule, seuls `documentation_disponible` et `nb_etp_cycle` sont requis.
     // documentation_disponible=Non
     await this.page.locator('mat-radio-group[formControlName="documentation_disponible"] mat-radio-button').nth(1).click();
     // Fréquence : 1 fois par AN

@@ -194,7 +194,8 @@ test.describe('Operations - Create', () => {
       objectif: 'Objectif du protocole de test',
       periode: 'Janvier-Mars',
     });
-    await formPage.setRespectProtocoleOui();
+    // #413 — `respect_protocole` n'est demandé que pour les protocoles CAMPanule ;
+    // hors-CAMPanule, ce champ n'est plus affiché ni requis.
 
     // Set frequency
     await formPage.setFrequence(2, 'an');
@@ -614,8 +615,9 @@ test.describe('Operations - Form Interactions', () => {
     // Select CS action to reveal protocole section
     await formPage.selectCSAction();
 
-    // Select non-campanule first
-    await formPage.protocoleCampanuleNon.click();
+    // #413 — `respect_protocole` (et la justification de non-respect) ne s'affichent
+    // que pour un protocole CAMPanule : choisir le mode CAMPanule.
+    await formPage.protocoleCampanuleOui.click();
     await referentPage.waitForTimeout(300);
 
     // Select "Non" for respect protocole

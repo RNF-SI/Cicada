@@ -35,16 +35,12 @@ test.describe('Registration', () => {
   });
 
   test('should show validation errors for empty required fields', async ({ page }) => {
-    // Touch and leave fields empty
-    await registerPage.firstNameInput.click();
-    await registerPage.lastNameInput.click();
-    await registerPage.emailInput.click();
-    await registerPage.passwordInput.click();
-    await registerPage.confirmPasswordInput.click();
-    await registerPage.firstNameInput.click(); // blur confirmPassword
+    // Le bouton de soumission est toujours actif : la validation s'affiche au submit.
+    await registerPage.submit();
 
-    // Submit button should be disabled
-    await expect(registerPage.submitButton).toBeDisabled();
+    // Un bandeau d'erreur apparaît et on reste sur la page d'inscription.
+    await expect(page.locator('.error-banner')).toBeVisible();
+    await expect(page).toHaveURL(/\/auth\/register/);
   });
 
   test('should show error for password mismatch', async ({ page }) => {
@@ -53,20 +49,16 @@ test.describe('Registration', () => {
     await registerPage.lastNameInput.fill('User');
     await registerPage.emailInput.fill('mismatch@test.fr');
 
-    await registerPage.passwordInput.click();
     await registerPage.passwordInput.fill('Test123!abc');
-    await registerPage.confirmPasswordInput.click();
     await registerPage.confirmPasswordInput.fill('DifferentPassword');
-    // Blur to trigger validation
-    await registerPage.firstNameInput.click();
 
-    // Either mat-error is shown or submit button stays disabled due to password mismatch
-    const mismatchError = page.locator('mat-error, .app-form-field__error, .form-error-msg').filter({ hasText: /correspondent|match/i });
-    const hasError = await mismatchError.isVisible({ timeout: 3000 }).catch(() => false);
-    if (!hasError) {
-      // Fallback: verify submit button is disabled (form invalid due to mismatch)
-      await expect(registerPage.submitButton).toBeDisabled();
-    }
+    // Le bouton est toujours actif : soumettre déclenche la validation (markAllAsTouched).
+    await registerPage.submit();
+
+    // L'erreur de concordance des mots de passe s'affiche et on reste sur la page.
+    const mismatchError = page.locator('.app-form-field__error, mat-error, .form-error-msg').filter({ hasText: /correspondent|match/i });
+    await expect(mismatchError.first()).toBeVisible();
+    await expect(page).toHaveURL(/\/auth\/register/);
   });
 
   test('should show error for duplicate email', async ({ page }) => {

@@ -12,6 +12,7 @@
 import { test, expect } from '../../fixtures/auth.fixture';
 import {
   findPlan,
+  findValidatedPlan,
   findFirstMetrique,
   apiGet,
   apiPost,
@@ -104,37 +105,59 @@ test.describe('Suivi - Saisie page', () => {
   });
 
   test('submit persists realisation via upsert', async ({ referentPage }) => {
-    const plan = await findPlan(referentPage, 'Camargue');
-    const op = await createSuiviOperation(referentPage, plan.id_pg);
-    // OperationAnnee en mode 'none' (cell-level budget input visible)
-    const oa = op.operation_annees.find((o: any) => o.id_operation_annee);
-    if (!oa) test.skip(true, 'No usable OperationAnnee');
-
-    try {
-      await referentPage.goto(
-        `/plans/${plan.slug}/suivi-actions/saisie/${op.id_operation}/${oa.annee}`,
-      );
-
-      // Wait for the form to be ready
-      await referentPage.waitForSelector('.realisation-table, .saisie-card');
-
-      // Commentaires : unique marker so we can verify after reload
-      const marker = `Test E2E ${Date.now()}`;
-      await referentPage.locator('textarea[formcontrolname="commentaires"]').fill(marker);
-
-      // Click Save (« Enregistrer » exact — distinct de « Enregistrer et quitter »)
-      await referentPage.getByRole('button', { name: 'Enregistrer', exact: true }).click();
-
-      // Snackbar success
-      await expect(referentPage.getByText(/Modifications enregistrées/i)).toBeVisible({ timeout: 6000 });
-
-      // Reload + verify the textarea retains the marker
-      await referentPage.reload();
-      await referentPage.waitForSelector('textarea[formcontrolname="commentaires"]');
-      await expect(referentPage.locator('textarea[formcontrolname="commentaires"]')).toHaveValue(marker);
-    } finally {
-      await apiDelete(referentPage, `plans/operations/${op.id_operation}/`);
+    // #379 — la saisie de réalisation n'est éditable que sur un plan VALIDÉ
+    // (le formulaire est verrouillé en lecture seule sur un brouillon). On cible
+    // donc une opération seedée d'un plan validé (pas de création possible non
+    // plus sur un plan validé, #248).
+    const plan = await findValidatedPlan(referentPage);
+    const { data } = await apiGet(referentPage, `plans/operations/by-plan/${plan.id_pg}/`);
+    let op: any = null;
+    for (const group of data.groups || []) {
+      for (const o of group.operations || []) {
+        const { data: detail } = await apiGet(referentPage, `plans/operations/${o.id_operation}/`);
+        if (detail.ventilation_mode === 'none' && detail.operation_annees?.length) {
+          op = detail;
+          break;
+        }
+      }
+      if (op) break;
     }
+    if (!op) {
+      test.skip(true, 'No "none" ventilation operation on a validated plan');
+      return;
+    }
+    const oa = op.operation_annees[0];
+
+    const commentaires = 'textarea[formcontrolname="commentaires"]';
+    await referentPage.goto(
+      `/plans/${plan.slug}/suivi-actions/saisie/${op.id_operation}/${oa.annee}`,
+    );
+
+    // Wait for the form to be ready
+    await referentPage.waitForSelector('.realisation-table, .saisie-card');
+
+    // Capture la valeur d'origine pour restaurer la donnée seedée après le test.
+    const original = await referentPage.locator(commentaires).inputValue();
+
+    // Commentaires : unique marker so we can verify after reload
+    const marker = `Test E2E ${Date.now()}`;
+    await referentPage.locator(commentaires).fill(marker);
+
+    // Click Save (« Enregistrer » exact — distinct de « Enregistrer et quitter »)
+    await referentPage.getByRole('button', { name: 'Enregistrer', exact: true }).click();
+
+    // Snackbar success
+    await expect(referentPage.getByText(/Modifications enregistrées/i)).toBeVisible({ timeout: 6000 });
+
+    // Reload + verify the textarea retains the marker
+    await referentPage.reload();
+    await referentPage.waitForSelector(commentaires);
+    await expect(referentPage.locator(commentaires)).toHaveValue(marker);
+
+    // Restaure la valeur d'origine pour ne pas polluer la donnée seedée.
+    await referentPage.locator(commentaires).fill(original);
+    await referentPage.getByRole('button', { name: 'Enregistrer', exact: true }).click();
+    await expect(referentPage.getByText(/Modifications enregistrées/i)).toBeVisible({ timeout: 6000 });
   });
 
   test('renders per-organisme sub-tables for by_org_type operations', async ({ referentPage }) => {
