@@ -252,7 +252,8 @@
 .year-legend {
   display: flex;
   gap: $spacing-lg;
-  padding: $spacing-xs $spacing-xl 0;
+  // #418 — un petit espace sous la légende
+  padding: $spacing-xs $spacing-xl $spacing-sm;
   background: $beige;
   font-size: 0.8rem;
   color: $gray-dark;
