@@ -724,13 +724,39 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
       const el = this.elRef.nativeElement.querySelector(`#${CSS.escape(anchor)}`);
       if (el) {
         clearInterval(interval);
-        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        el.classList.add('anchor-highlight');
-        setTimeout(() => el.classList.remove('anchor-highlight'), 2000);
+        this.scrollToAnchorWhenStable(el as HTMLElement);
       } else if (attempts >= maxAttempts) {
         clearInterval(interval);
       }
     }, 100);
+  }
+
+  /**
+   * #420 — Scrolle vers l'élément une fois sa position **stabilisée**. Les
+   * accordéons parents se déplient en cascade (plusieurs cycles de rendu) :
+   * scroller dès l'apparition viserait une position périmée, d'où un scroll
+   * inexact. On attend deux mesures consécutives identiques de `top` avant de
+   * lancer un unique scroll fluide (garde-fou à 1,5 s).
+   */
+  private scrollToAnchorWhenStable(el: HTMLElement): void {
+    let lastTop = NaN;
+    let stableCount = 0;
+    const doScroll = () => {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      el.classList.add('anchor-highlight');
+      setTimeout(() => el.classList.remove('anchor-highlight'), 2000);
+    };
+    const poll = setInterval(() => {
+      const top = el.getBoundingClientRect().top;
+      stableCount = Math.abs(top - lastTop) < 1 ? stableCount + 1 : 0;
+      lastTop = top;
+      if (stableCount >= 2) {
+        clearInterval(poll);
+        clearTimeout(guard);
+        doScroll();
+      }
+    }, 80);
+    const guard = setTimeout(() => { clearInterval(poll); doScroll(); }, 1500);
   }
 
   /**
