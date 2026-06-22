@@ -1859,6 +1859,8 @@
         "editAction": "Modifier l'action",
         "viewGlobal": "Voir le résultat global",
         "requiredHint": "Les champs avec * sont obligatoires",
+        "yearPlanned": "Année prévue (action programmée)",
+        "yearNotPlanned": "Année non prévue (réalisée non prévue)",
         "noProgrammation": "Aucune programmation n'a été définie pour cette année — créez d'abord une OperationAnnee.",
         "orgVentilationComingSoon": "La saisie ventilée par organisme arrive dans une prochaine itération.",
         "sections": {

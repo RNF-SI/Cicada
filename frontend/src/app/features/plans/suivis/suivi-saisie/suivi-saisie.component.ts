@@ -21,6 +21,7 @@ import {
 import { MatButtonModule } from '@angular/material/button';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { forkJoin, of } from 'rxjs';
 
@@ -56,6 +57,7 @@ type ActionStatus = 'planned' | 'planned-realized' | 'planned-partial' | 'realiz
     CommonModule, RouterModule, FormsModule, ReactiveFormsModule,
     MatButtonModule, MatProgressSpinnerModule, MatSnackBarModule,
     TranslateModule,
+    MatTooltipModule,
     HeaderComponent, PlanSidebarComponent, FormFieldComponent,
     EmpriseEditorComponent,
   ],
@@ -231,6 +233,12 @@ export class SuiviSaisieComponent implements OnInit {
   /** Retourne l'OperationAnnee pour une année donnée (ou null). */
   getOaForYear(year: number): OperationAnnee | null {
     return this.operation()?.operation_annees?.find(oa => oa.annee === year) ?? null;
+  }
+
+  /** #418 — vrai si l'action était PROGRAMMÉE cette année (périodicité prévue).
+   *  Sert à distinguer visuellement les onglets « prévu » / « non prévu ». */
+  isYearPlanned(year: number): boolean {
+    return !!this.getOaForYear(year)?.periodicite;
   }
 
   /** Liste des organismes ventilés pour le mode by_org/by_org_type (déduplication entre années). */
