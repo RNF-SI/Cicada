@@ -31,19 +31,21 @@
           </div>
         }
 
-        <!-- Info block: standalone usage -->
-        <div class="info-block">
-          <div class="info-block-icon"></div>
-          <div class="info-block-content">
-            <p class="info-block-content-title">{{ 'inventaires.form.infoStandalone.title' | translate }}</p>
-            <p class="info-block-content-text">{{ 'inventaires.form.infoStandalone.description' | translate }}</p>
-          </div>
-        </div>
-
         <!-- ═══════════════════════════════════════ -->
         <!-- MAIN CARD (flush under hero)            -->
         <!-- ═══════════════════════════════════════ -->
         <div class="form-card form-card-flush">
+          <!-- #412 — bandeau « utilisation autonome » DANS la carte : la carte
+               reste ainsi accolée au header (design « flush »), comme la saisie
+               d'une action. -->
+          <div class="info-block">
+            <div class="info-block-icon"></div>
+            <div class="info-block-content">
+              <p class="info-block-content-title">{{ 'inventaires.form.infoStandalone.title' | translate }}</p>
+              <p class="info-block-content-text">{{ 'inventaires.form.infoStandalone.description' | translate }}</p>
+            </div>
+          </div>
+
           <p class="required-notice">
             {{ 'inventaires.form.requiredBefore' | translate }}
             <span class="required-star">*</span>
@@ -278,7 +280,9 @@
         <!-- ═══════════════════════════════════════ -->
         <!-- SECTION: Protocole                      -->
         <!-- ═══════════════════════════════════════ -->
-        <app-accordion variant="subtle" [title]="'inventaires.form.sections.protocole' | translate" [expanded]="sectionsOpen['protocole']" (expandedChange)="sectionsOpen['protocole'] = $event">
+        <!-- #412 — design aligné sur la saisie d'une action (accordéons « default lg » + pastille jaune) -->
+        <app-accordion variant="default" size="lg" [title]="'inventaires.form.sections.protocole' | translate" [expanded]="sectionsOpen['protocole']" (expandedChange)="sectionsOpen['protocole'] = $event">
+  <img accordionIcon src="assets/images/ellipses/ellipse-yellow.png" alt="" class="section-dot">
   <div class="section-content">
 <div class="form-grid">
                 <!-- Protocole répertorié dans Campanule ? -->
@@ -339,12 +343,9 @@
 
                 <!-- ═══ MODE NON-CAMPANULE (Non) ═══ -->
                 @if (isNotCampanule) {
-                  <!-- Nom du protocole (libre) -->
-                  <app-form-field [label]="'inventaires.form.nomProtocole' | translate" [required]="true">
+                  <!-- #413 — Nom du protocole (libre, facultatif) + aide nom local -->
+                  <app-form-field [label]="'inventaires.form.nomProtocole' | translate" [helpText]="'inventaires.form.nomProtocoleNonCampanuleHint' | translate">
   <input formControlName="nom_protocole">
-                    @if (shouldShowError('nom_protocole')) {
-                      
-                    }
 </app-form-field>
                 }
 
@@ -475,15 +476,12 @@
                   <app-form-field [label]="'inventaires.form.periodeEchantillonnage' | translate">
         <input formControlName="periode_echantillonnage">
       </app-form-field>
-
-                  <!-- Mode et champ de validation -->
-                  <app-form-field [label]="'inventaires.form.modeValidation' | translate">
-        <input formControlName="mode_validation">
-      </app-form-field>
+                  <!-- #414 — « Mode et champ de validation » supprimé pour les protocoles non-CAMPanule -->
                 }
 
-                <!-- Respect strict du protocole + Consulter le protocole -->
-                @if (isCampanule || isNotCampanule) {
+                <!-- #414 — « Respect strict du protocole » réservé aux protocoles CAMPanule -->
+                @if (isCampanule) {
+                  <!-- Respect strict du protocole + Consulter le protocole -->
                   <div class="radio-field-row radio-field-row-with-link"
                     [class.has-error]="shouldShowError('respect_protocole')">
                     <span class="radio-field-label">
@@ -494,7 +492,7 @@
                       <mat-radio-button [value]="true" color="primary">{{ 'common.yes' | translate }}</mat-radio-button>
                       <mat-radio-button [value]="false" color="primary">{{ 'common.no' | translate }}</mat-radio-button>
                     </mat-radio-group>
-                    @if (isCampanule && hasCampanuleSelected) {
+                    @if (hasCampanuleSelected) {
                       <a class="consulter-link" (click)="consulterProtocole()">
                         {{ 'inventaires.form.consulterProtocole' | translate }}
                       </a>
@@ -503,17 +501,17 @@
                   @if (shouldShowError('respect_protocole')) {
                     <p class="field-error"><i class="fi fi-rr-exclamation"></i>{{ getErrorMessage('respect_protocole') }}</p>
                   }
-                }
 
-                <!-- Conditional: non-respect fields -->
-                @if (isNonRespect) {
-                  <app-form-field [label]="'inventaires.form.justificationNonRespect' | translate">
+                  <!-- Conditional: non-respect fields -->
+                  @if (isNonRespect) {
+                    <app-form-field [label]="'inventaires.form.justificationNonRespect' | translate">
         <textarea formControlName="justification_non_respect" rows="2"></textarea>
       </app-form-field>
 
-                  <app-form-field [label]="'inventaires.form.differencesProtocole' | translate">
+                    <app-form-field [label]="'inventaires.form.differencesProtocole' | translate">
         <textarea formControlName="differences_protocole" rows="2"></textarea>
       </app-form-field>
+                  }
                 }
 
                 <!-- Nombre d'ETP (campanule mode) -->
@@ -529,7 +527,8 @@
         <!-- ═══════════════════════════════════════ -->
         <!-- SECTION: Bancarisation et stockage      -->
         <!-- ═══════════════════════════════════════ -->
-        <app-accordion variant="subtle" [title]="'inventaires.form.sections.bancarisation' | translate" [expanded]="sectionsOpen['bancarisation']" (expandedChange)="sectionsOpen['bancarisation'] = $event">
+        <app-accordion variant="default" size="lg" [title]="'inventaires.form.sections.bancarisation' | translate" [expanded]="sectionsOpen['bancarisation']" (expandedChange)="sectionsOpen['bancarisation'] = $event">
+  <img accordionIcon src="assets/images/ellipses/ellipse-yellow.png" alt="" class="section-dot">
   <div class="section-content">
 <div class="form-grid">
                 <label class="app-mat-label">{{ 'inventaires.form.outilBancarisation' | translate }}</label>
@@ -568,7 +567,8 @@
         <!-- ═══════════════════════════════════════ -->
         <!-- SECTION: Détails                        -->
         <!-- ═══════════════════════════════════════ -->
-        <app-accordion variant="subtle" [title]="'inventaires.form.sections.details' | translate" [expanded]="sectionsOpen['details']" (expandedChange)="sectionsOpen['details'] = $event">
+        <app-accordion variant="default" size="lg" [title]="'inventaires.form.sections.details' | translate" [expanded]="sectionsOpen['details']" (expandedChange)="sectionsOpen['details'] = $event">
+  <img accordionIcon src="assets/images/ellipses/ellipse-yellow.png" alt="" class="section-dot">
   <div class="section-content">
 <div class="form-grid">
                 <!-- Commentaires -->
@@ -596,3 +596,4 @@
     </div>
   }
 </div>
+

@@ -32,7 +32,7 @@
 // Hero/fil d'Ariane/titre alignés sur le formulaire de suivi d'une action (#382)
 .hero-section { @include plan-page-hero-suivi(280px); }
 .hero-background { @include plan-page-hero-background; }
-.hero-pattern { @include plan-page-hero-pattern; opacity: 0.2; }
+.hero-pattern { @include plan-page-hero-pattern; } // #383 — vagues pleinement visibles
 .hero-content { @include plan-page-hero-content; }
 
 .breadcrumb {
@@ -84,8 +84,8 @@
   background-color: $primary-color; color: $white; border: none;
   border-radius: 80px;
   font-family: 'Nunito', sans-serif; font-weight: 600;
-  cursor: pointer;
-  &:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.15); }
+  text-decoration: none; cursor: pointer;
+  &:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.15); color: $white; }
 }
 // #356 — Bouton secondaire (page globale) : outline blanc.
 .btn-hero-secondary {
@@ -163,10 +163,18 @@
     &.th-good     { background: #82DB8A; color: $black; }
     &.th-very-good { background: #81C9D8; color: $black; }
   }
+  // #421 — colonne « Indéterminé » (parité avec la saisie PG)
+  thead th.th-indetermine { text-align: center; }
   tbody td {
     padding: $spacing-xs $spacing-sm;
     border-bottom: 1px solid $gray-lighter;
   }
+  tbody td.indetermine-cell { text-align: center; }
+  .indetermine-marker {
+    color: $success-color; font-weight: 600; white-space: nowrap;
+    i { font-size: 0.8rem; }
+  }
+  .indetermine-empty { color: $gray-light; }
   tbody tr:nth-child(even) { background: $gray-lighter; }
 }
 

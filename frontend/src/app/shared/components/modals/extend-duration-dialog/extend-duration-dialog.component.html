@@ -1,23 +1,28 @@
-<h2 mat-dialog-title>{{ 'plans.lifecycle.extendDuration.title' | translate }}</h2>
+<h2 mat-dialog-title>
+  {{ (isReconduction ? 'plans.lifecycle.extendDuration.titleReconduction' : 'plans.lifecycle.extendDuration.title') | translate }}
+</h2>
 
 <mat-dialog-content>
   <p class="intro">
-    {{ 'plans.lifecycle.extendDuration.intro' | translate:{ name: data.planName, year: data.anneeFin } }}
+    {{ (isReconduction ? 'plans.lifecycle.extendDuration.introReconduction' : 'plans.lifecycle.extendDuration.intro')
+        | translate:{ name: data.planName, year: data.anneeFin + currentExtension } }}
   </p>
 
   <div class="choice-grid">
     <button type="button" class="choice-card" (click)="choose(1)">
       <span class="choice-years">+1 an</span>
       <span class="choice-new-end">
-        {{ 'plans.lifecycle.extendDuration.newEnd' | translate }} : <strong>{{ data.anneeFin + 1 }}</strong>
+        {{ 'plans.lifecycle.extendDuration.newEnd' | translate }} : <strong>{{ newEnd(1) }}</strong>
       </span>
     </button>
-    <button type="button" class="choice-card" (click)="choose(2)">
-      <span class="choice-years">+2 ans</span>
-      <span class="choice-new-end">
-        {{ 'plans.lifecycle.extendDuration.newEnd' | translate }} : <strong>{{ data.anneeFin + 2 }}</strong>
-      </span>
-    </button>
+    @if (remaining >= 2) {
+      <button type="button" class="choice-card" (click)="choose(2)">
+        <span class="choice-years">+2 ans</span>
+        <span class="choice-new-end">
+          {{ 'plans.lifecycle.extendDuration.newEnd' | translate }} : <strong>{{ newEnd(2) }}</strong>
+        </span>
+      </button>
+    }
   </div>
 
   <p class="hint">

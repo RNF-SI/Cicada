@@ -19,20 +19,24 @@
     </button>
   </div>
 
-  <!-- Ligne 2 : Unité + Type de métrique -->
+  <!-- Ligne 2 : Unité + Type de métrique.
+       En multi-blocs, l'unité est saisie au niveau du bloc 1 (à côté de son
+       intitulé), comme pour les autres blocs : on masque alors ce champ pour
+       éviter de saisir deux fois la même valeur. -->
   <div class="row">
-    <app-form-field class="flex-1"
-                    [label]="'enjeux.metriques.uniteLabel' | translate"
-                    [required]="true">
-      <input type="text"
-             [(ngModel)]="metrique.unite"
-             (ngModelChange)="emitChange()"
-             required>
-    </app-form-field>
+    @if (blocks.length === 0) {
+      <app-form-field class="flex-1"
+                      [label]="'enjeux.metriques.uniteLabel' | translate">
+        <input type="text"
+               [(ngModel)]="metrique.unite"
+               (ngModelChange)="emitChange()">
+      </app-form-field>
+    }
 
     <app-form-field class="flex-1"
-                    [label]="'enjeux.metriques.typeLabel' | translate">
-      <select [(ngModel)]="metrique.type_metrique" (ngModelChange)="emitChange()">
+                    [label]="'enjeux.metriques.typeLabel' | translate"
+                    [required]="true">
+      <select [(ngModel)]="metrique.type_metrique" (ngModelChange)="emitChange()" required>
         <option [ngValue]="null">{{ 'common.actions.select' | translate }}</option>
         @for (opt of typeMetriqueOptions; track trackByOptionId($index, opt)) {
           <option [ngValue]="opt.id_nomenclature">{{ opt.label }}</option>
@@ -144,11 +148,30 @@
         </button>
       }
 
-      <!-- Étiquette stable rappelant la lettre du bloc (rappel visuel : la
-           lettre dans la formule en haut correspond à cette card). -->
+      <!-- Étiquette du bloc : « intitulé (unité) » (rappel visuel : correspond
+           au chip de la formule en haut). Repli sur « Bloc A » si intitulé vide. -->
       @if (blocks.length > 0) {
         <div class="block-name-badge">
-          {{ 'enjeux.metriques.blockLabel' | translate }} {{ metrique._letter ?? 'A' }}
+          {{ blockLabel(0) }}
+        </div>
+
+        <!-- Intitulé + unité du bloc principal (même présentation que les blocs
+             complémentaires). L'unité alimente le champ unité de la métrique. -->
+        <div class="row block-meta-row">
+          <app-form-field class="flex-1"
+                          [label]="'enjeux.metriques.blocIntituleLabel' | translate"
+                          [required]="true">
+            <input type="text"
+                   [(ngModel)]="metrique.bloc_intitule"
+                   (ngModelChange)="emitChange()"
+                   [placeholder]="'enjeux.metriques.blocIntitulePlaceholder' | translate">
+          </app-form-field>
+          <app-form-field class="flex-1"
+                          [label]="'enjeux.metriques.blocUniteLabel' | translate">
+            <input type="text"
+                   [(ngModel)]="metrique.unite"
+                   (ngModelChange)="emitChange()">
+          </app-form-field>
         </div>
       }
 
@@ -195,9 +218,27 @@
         </button>
       </div>
 
-      <!-- Étiquette stable rappelant la lettre du bloc. -->
+      <!-- Étiquette du bloc : « intitulé (unité) » (repli « Bloc B » si vide). -->
       <div class="block-name-badge">
-        {{ 'enjeux.metriques.blockLabel' | translate }} {{ block._letter ?? '?' }}
+        {{ blockLabel(i + 1) }}
+      </div>
+
+      <!-- Intitulé (requis) + unité (optionnelle) du bloc complémentaire. -->
+      <div class="row block-meta-row">
+        <app-form-field class="flex-1"
+                        [label]="'enjeux.metriques.blocIntituleLabel' | translate"
+                        [required]="true">
+          <input type="text"
+                 [(ngModel)]="block.intitule"
+                 (ngModelChange)="emitChange()"
+                 [placeholder]="'enjeux.metriques.blocIntitulePlaceholder' | translate">
+        </app-form-field>
+        <app-form-field class="flex-1"
+                        [label]="'enjeux.metriques.blocUniteLabel' | translate">
+          <input type="text"
+                 [(ngModel)]="block.unite"
+                 (ngModelChange)="emitChange()">
+        </app-form-field>
       </div>
 
       <!-- Card du bloc, indenté + bordure colorée selon profondeur -->

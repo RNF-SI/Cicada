@@ -90,6 +90,8 @@ class MetriqueScoreBlockSerializer(serializers.ModelSerializer):
         fields = [
             'id_score_block',
             'position',
+            'intitule',
+            'unite',
             'logical_op',
             'group_open',
             'group_close',
@@ -127,7 +129,7 @@ class MetriqueSerializer(serializers.ModelSerializer):
             'id_metrique', 'id_indicateur',
             'nom_metrique', 'description', 'ordre',
             'type_metrique', 'type_metrique_label', 'type_metrique_mnemonique',
-            'unite', 'ponderation', 'etat_reference',
+            'unite', 'bloc_intitule', 'ponderation', 'etat_reference',
             # Seuils de scores
             'score_1_inf', 'score_1_sup', 'score_1_val', 'score_1_label',
             'score_2_inf', 'score_2_sup', 'score_2_val', 'score_2_label',
@@ -208,7 +210,7 @@ class MetriqueCreateSerializer(serializers.ModelSerializer):
         fields = [
             'id_metrique', 'id_indicateur',
             'nom_metrique', 'description', 'ordre',
-            'type_metrique', 'unite', 'ponderation', 'etat_reference',
+            'type_metrique', 'unite', 'bloc_intitule', 'ponderation', 'etat_reference',
             # Seuils de scores
             'score_1_inf', 'score_1_sup', 'score_1_val', 'score_1_label',
             'score_2_inf', 'score_2_sup', 'score_2_val', 'score_2_label',
@@ -266,16 +268,44 @@ class MetriqueCreateSerializer(serializers.ModelSerializer):
                 'nom_metrique': _("L'intitulé de la métrique est obligatoire.")
             })
 
-        # Only validate intervals for NUMERIQUE type
-        is_numerique = True
-        if type_met and hasattr(type_met, 'mnemonique'):
-            is_numerique = type_met.mnemonique == 'NUMERIQUE'
-        elif type_met and hasattr(type_met, 'pk'):
+        # Mnémonique du type (NUMERIQUE / CHIFFRE / TEXTE / INDETERMINE).
+        mnemo = getattr(type_met, 'mnemonique', None)
+        if mnemo is None and type_met and hasattr(type_met, 'pk'):
             from apps.core.models import Nomenclature
             try:
-                is_numerique = Nomenclature.objects.get(pk=type_met.pk).mnemonique == 'NUMERIQUE'
+                mnemo = Nomenclature.objects.get(pk=type_met.pk).mnemonique
             except Nomenclature.DoesNotExist:
-                is_numerique = False
+                mnemo = None
+        # Par défaut (type absent), on traite comme NUMERIQUE (comportement historique).
+        is_numerique = mnemo is None or mnemo == 'NUMERIQUE'
+
+        # Chiffre / Texte : chaque niveau ACTIF (non « non utilisé ») doit avoir
+        # une valeur (val pour Chiffre, label pour Texte) — évite une grille
+        # incomplète qui fausserait le scoring.
+        if mnemo in ('CHIFFRE', 'TEXTE'):
+            inactive_raw = attrs.get(
+                'inactive_levels',
+                getattr(self.instance, 'inactive_levels', None) if self.instance else None,
+            ) or []
+            try:
+                inactive_set = {int(x) for x in inactive_raw}
+            except (TypeError, ValueError):
+                inactive_set = set()
+            field = 'val' if mnemo == 'CHIFFRE' else 'label'
+            for level in range(1, 6):
+                if level in inactive_set:
+                    continue
+                attr_name = f'score_{level}_{field}'
+                value = attrs.get(
+                    attr_name,
+                    getattr(self.instance, attr_name, None) if self.instance else None,
+                )
+                missing = value is None if mnemo == 'CHIFFRE' else not (value or '').strip()
+                if missing:
+                    raise serializers.ValidationError({
+                        attr_name: _("Chaque niveau actif doit avoir une valeur (ou être marqué « non utilisé »).")
+                    })
+            return attrs
 
         if not is_numerique:
             return attrs
@@ -346,18 +376,24 @@ class IndicateurSerializer(serializers.ModelSerializer):
     nb_metriques = serializers.SerializerMethodField()
     createur_nom = serializers.CharField(source='id_utilisateur_ajout.get_full_name', read_only=True)
     type_indicateur_label = serializers.CharField(source='type_indicateur.label', read_only=True)
+    type_indicateur_mnemonique = serializers.CharField(source='type_indicateur.mnemonique', read_only=True)
+    # #420 — slug de l'enjeu, pour le deep-link « Modifier l'indicateur » depuis
+    # la page de saisie du suivi vers le détail de l'enjeu (arborescence).
+    enjeu_slug = serializers.SerializerMethodField()
 
     class Meta:
         model = Indicateur
         fields = [
             'id_indicateur', 'id_ne', 'id_resultat_attendu',
             'nom_indicateur', 'description', 'ordre',
-            'type_indicateur', 'type_indicateur_label',
+            'type_indicateur', 'type_indicateur_label', 'type_indicateur_mnemonique',
             'est_standardise',
             # Relations
             'metriques', 'nb_metriques',
             'operations',
             'taxons', 'habitats', 'geologies',
+            # Navigation
+            'enjeu_slug',
             # Audit
             'date_ajout', 'date_maj', 'createur_nom'
         ]
@@ -365,6 +401,35 @@ class IndicateurSerializer(serializers.ModelSerializer):
 
     def get_nb_metriques(self, obj):
         return _prefetched_count(obj, 'metriques')
+
+    def get_enjeu_slug(self, obj):
+        """#420 — Remonte au slug de l'enjeu de l'indicateur.
+        Deux chemins possibles : via NE (Indicateur → NE → OLT → Enjeu) ou
+        via RA (Indicateur → RA → OO → Pression → Facteur → Enjeu)."""
+        # Chemin NE
+        try:
+            ne = obj.id_ne
+            if ne and ne.id_olt and ne.id_olt.id_enjeu:
+                return ne.id_olt.id_enjeu.slug
+        except AttributeError:
+            pass
+        # Chemin RA (via pression)
+        try:
+            ra = obj.id_resultat_attendu
+            if ra and ra.id_oo:
+                oo = ra.id_oo
+                pression = oo.pressions.select_related(
+                    'id_facteur_influence__id_enjeu'
+                ).first()
+                if (pression and pression.id_facteur_influence
+                        and pression.id_facteur_influence.id_enjeu):
+                    return pression.id_facteur_influence.id_enjeu.slug
+                # #337 — OO rattaché directement à un enjeu (FCR)
+                if getattr(oo, 'id_enjeu', None):
+                    return oo.id_enjeu.slug
+        except AttributeError:
+            pass
+        return None
 
     def get_operations(self, obj):
         """#227/#367 — TOUTES les actions de l'indicateur, dédupliquées :

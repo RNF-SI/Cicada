@@ -45,10 +45,15 @@
             </div>
             <h1 class="plan-title">{{ ind.nom_indicateur }}</h1>
             <div class="hero-actions">
-              <button class="btn-hero-primary">
-                <i class="fi fi-rr-pencil"></i>
-                {{ 'plans.suivis.indicateur.editIndicateur' | translate }}
-              </button>
+              <!-- #420 — deep-link vers le détail de l'enjeu, ancré sur l'indicateur -->
+              @if (ind.enjeu_slug) {
+                <a class="btn-hero-primary"
+                   [routerLink]="['/plans', planSlug(), 'enjeux', ind.enjeu_slug]"
+                   [fragment]="'indicateur-' + ind.id_indicateur">
+                  <i class="fi fi-rr-pencil"></i>
+                  {{ 'plans.suivis.indicateur.editIndicateur' | translate }}
+                </a>
+              }
               <!-- #356 — Accès à la page globale de l'indicateur -->
               <a class="btn-hero-secondary"
                  [routerLink]="['/plans', planSlug(), 'tableau-de-bord', 'indicateur', indicateurId()]">
@@ -81,6 +86,7 @@
                   <th>{{ 'plans.suivis.indicateur.thresh.unite' | translate }}</th>
                   <th>{{ 'plans.suivis.indicateur.thresh.ponderation' | translate }}</th>
                   <th>{{ 'plans.suivis.indicateur.thresh.etatReference' | translate }}</th>
+                  <th class="th-indetermine">{{ 'plans.suivis.indicateur.thresh.indetermine' | translate }}</th>
                   <th class="th-score th-very-bad">{{ 'plans.suivis.indicateur.thresh.veryBad' | translate }}</th>
                   <th class="th-score th-bad">{{ 'plans.suivis.indicateur.thresh.bad' | translate }}</th>
                   <th class="th-score th-neutral">{{ 'plans.suivis.indicateur.thresh.neutral' | translate }}</th>
@@ -92,14 +98,19 @@
                 @for (m of ind.metriques || []; track m.id_metrique) {
                   <tr>
                     <td>{{ m.nom_metrique }}</td>
-                    <td>{{ m.unite || '—' }}</td>
+                    <td>{{ metriqueUniteLabel(m) }}</td>
                     <td>{{ m.ponderation || 1 }}</td>
                     <td>{{ m.etat_reference || '—' }}</td>
-                    <td>min {{ getScoreBound(m, 1, 'inf') }} / max {{ getScoreBound(m, 1, 'sup') }}</td>
-                    <td>min {{ getScoreBound(m, 2, 'inf') }} / max {{ getScoreBound(m, 2, 'sup') }}</td>
-                    <td>min {{ getScoreBound(m, 3, 'inf') }} / max {{ getScoreBound(m, 3, 'sup') }}</td>
-                    <td>min {{ getScoreBound(m, 4, 'inf') }} / max {{ getScoreBound(m, 4, 'sup') }}</td>
-                    <td>min {{ getScoreBound(m, 5, 'inf') }} / max {{ getScoreBound(m, 5, 'sup') }}</td>
+                    <td class="indetermine-cell">
+                      @if (isMetriqueIndetermine(m)) {
+                        <span class="indetermine-marker"><i class="fi fi-rr-check"></i> {{ 'common.yes' | translate }}</span>
+                      } @else { <span class="indetermine-empty">—</span> }
+                    </td>
+                    <td>{{ scoreRange(m, 1) }}</td>
+                    <td>{{ scoreRange(m, 2) }}</td>
+                    <td>{{ scoreRange(m, 3) }}</td>
+                    <td>{{ scoreRange(m, 4) }}</td>
+                    <td>{{ scoreRange(m, 5) }}</td>
                   </tr>
                 }
               </tbody>

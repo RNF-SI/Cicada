@@ -34,10 +34,18 @@ $form-side-margin: $spacing-xxl;
 
 // Hero Section
 .hero-section {
+  // #383 — position relative + overflow caché pour ancrer les vagues décoratives
+  position: relative;
+  overflow: hidden;
   background-color: $secondary-yellow;
   padding: $spacing-xl $spacing-xxl;
   margin: $spacing-xxl $form-side-margin 0;
   border-radius: $border-radius-lg $border-radius-lg 0 0;
+
+  // #383 — vagues à droite, comme les pages de suivi
+  .hero-background { @include plan-page-hero-background; }
+  .hero-pattern { @include plan-page-hero-pattern; }
+  .hero-content { @include plan-page-hero-content; }
 
   .hero-title {
     color: $primary-color;

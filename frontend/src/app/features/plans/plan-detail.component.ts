@@ -631,6 +631,9 @@ export class PlanDetailComponent implements OnInit, OnDestroy {
   private shouldPromptMiParcours(): boolean {
     const p = this.plan();
     if (!p?.plan_parent_id) return false;
+    // #250 — Une version étendue est une prolongation, jamais une évaluation
+    // mi-parcours : on ne propose pas le pop-up mi-parcours à sa validation.
+    if (p.annees_extension && p.annees_extension > 0) return false;
     const chain = p.version_chain ?? [];
     const parent = chain.find(item => item.id_pg === p.plan_parent_id);
     const parentValidated = parent
@@ -925,6 +928,11 @@ export class PlanDetailComponent implements OnInit, OnDestroy {
    *  par l'étape arrêté préfectoral après la validation comité. */
   isRnn = computed<boolean>(() => this.principalSiteTypeMnemonique() === 'RNN');
 
+  /** #406 — Vrai si le site principal est une réserve naturelle (RNN/RNR/RNC).
+   *  La validation administrative n'est proposée que pour ces sites. */
+  isReserveNaturelle = computed<boolean>(() =>
+    ['RNN', 'RNR', 'RNC'].includes(this.principalSiteTypeMnemonique() ?? ''));
+
   /** #347 — Validations administratives indépendantes (panneau dédié).
    *  Chaque élément est « validé » dès que sa date est renseignée. L'arrêté
    *  préfectoral n'est présent que pour les RNN/RNR. */
@@ -1042,8 +1050,9 @@ export class PlanDetailComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * #250 — Ouvre la modale de choix « +1 an » / « +2 ans » pour prolonger
-   * la durée du plan. Appel API au choix de l'utilisateur.
+   * #250 (refonte) — Ouvre la modale de choix « +1 an » / « +2 ans » pour
+   * prolonger la durée du plan. Au choix, l'API crée un brouillon de version
+   * étendue (copie du contenu) vers lequel on navigue ensuite.
    */
   openExtendDurationDialog(): void {
     const p = this.plan();
@@ -1052,6 +1061,7 @@ export class PlanDetailComponent implements OnInit, OnDestroy {
     const dialogData: ExtendDurationDialogData = {
       planName: p.nom,
       anneeFin: p.annee_fin,
+      currentExtension: p.annees_extension ?? 0,
     };
 
     this.dialog
@@ -1103,13 +1113,19 @@ export class PlanDetailComponent implements OnInit, OnDestroy {
     const p = this.plan();
     if (!p) return;
     this.adminService.extendPlanDuration(p.id_pg, years).subscribe({
-      next: () => {
+      next: (newPlan) => {
         this.snackBar.open(
-          this.translate.instant('plans.lifecycle.messages.extensionApplied', { years }),
+          this.translate.instant('plans.lifecycle.messages.extensionDraftCreated'),
           this.translate.instant('common.actions.close'),
-          { duration: 4000 }
+          { duration: 5000 }
         );
-        this.loadPlan();
+        // L'API renvoie le brouillon de version étendue : on y navigue pour
+        // que le gestionnaire complète les actions/suivis avant validation.
+        if (newPlan?.slug) {
+          this.router.navigate(['/plans', newPlan.slug]);
+        } else {
+          this.loadPlan();
+        }
       },
       error: (err) => {
         const detail = err?.error?.error || this.translate.instant('plans.lifecycle.messages.extensionError');
@@ -1323,6 +1339,22 @@ export class PlanDetailComponent implements OnInit, OnDestroy {
         targetSlug: site.slug,
         targetName: site.nom_site,
         siteMode: 'organisme',
+      } as AccessRequestDialogData,
+    });
+  }
+
+  /** Ouvre la modale de demande d'accès au plan, option « Référent » présélectionnée. */
+  requestBecomeReferent(): void {
+    const p = this.plan();
+    if (!p) return;
+    this.dialog.open(AccessRequestDialogComponent, {
+      width: '500px',
+      data: {
+        type: 'plan',
+        targetId: p.id_pg,
+        targetName: p.nom,
+        hasAccessViaSite: true,
+        defaultAsReferent: true,
       } as AccessRequestDialogData,
     });
   }

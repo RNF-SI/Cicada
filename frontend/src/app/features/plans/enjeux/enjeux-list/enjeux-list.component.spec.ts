@@ -131,6 +131,8 @@ const mockEnjeu1: Enjeu = {
   patrimoine_geologique: false,
   geo_ex_situ: false,
   geo_in_situ: false,
+  geo_documents: false,
+  geo_autre: false,
   fonctionnalite_ecosysteme: false,
   autre_ecologique: false,
   valeur_paysagere: false,
@@ -190,6 +192,8 @@ const mockEnjeu2: Enjeu = {
   patrimoine_geologique: false,
   geo_ex_situ: false,
   geo_in_situ: false,
+  geo_documents: false,
+  geo_autre: false,
   fonctionnalite_ecosysteme: false,
   autre_ecologique: false,
   valeur_paysagere: false,
@@ -216,6 +220,8 @@ const mockFcr: Enjeu = {
   patrimoine_geologique: false,
   geo_ex_situ: false,
   geo_in_situ: false,
+  geo_documents: false,
+  geo_autre: false,
   fonctionnalite_ecosysteme: false,
   autre_ecologique: false,
   valeur_paysagere: false,
@@ -1406,6 +1412,70 @@ describe('EnjeuxListComponent', () => {
       jest.spyOn(MatDialog.prototype, 'open').mockReturnValue(mockDialogRef);
       component.deleteMetrique({ id_metrique: 901 });
       expect(mockEnjeuService.deleteMetrique).toHaveBeenCalledWith(901);
+    });
+
+    it('blocks save when a CHIFFRE active level has no value', () => {
+      jest.spyOn(mockEnjeuService, 'createIndicateur');
+      const met = component.createEmptyMetrique();
+      met.nom_metrique = 'Effectifs';
+      // Force type CHIFFRE via stub du mnémonique.
+      jest.spyOn(component, 'getMetriqueTypeMnemonique').mockReturnValue('CHIFFRE');
+      met.type_metrique = 1351;
+      met.scores[1].val = 1;
+      // niveau 2 actif mais vide (val null) → doit bloquer
+      component.indicateurFormMetriques = [met];
+      component.newIndicateurNom = 'Indic';
+      const snackSpy = jest.spyOn((component as any).snackBar, 'open');
+      component.saveIndicateur({ id_ne: 1 });
+      expect(snackSpy).toHaveBeenCalled();
+      expect(mockEnjeuService.createIndicateur).not.toHaveBeenCalled();
+    });
+
+    it('allows save when CHIFFRE empty level is marked inactive', () => {
+      const met = component.createEmptyMetrique();
+      met.nom_metrique = 'Effectifs';
+      jest.spyOn(component, 'getMetriqueTypeMnemonique').mockReturnValue('CHIFFRE');
+      met.scores[1].val = 1; met.scores[3].val = 3; met.scores[4].val = 4; met.scores[5].val = 5;
+      met._inactiveLevels = [2];
+      component.indicateurFormMetriques = [met];
+      component.newIndicateurNom = 'Indic';
+      component.saveIndicateur({ id_ne: 1 });
+      expect(mockEnjeuService.createIndicateur).toHaveBeenCalled();
+    });
+
+    it('nulls bounds of inactive NUMERIQUE levels in payload (principal + block)', () => {
+      const met = component.createEmptyMetrique();
+      met.nom_metrique = 'Test blocs';
+      met.scores[1] = { inf: null, sup: 11, val: null, label: '' };
+      met.scores[2] = { inf: 11, sup: 22, val: null, label: '' }; // sera inactivé
+      met._inactiveLevels = [2];
+      met.score_blocks = [{
+        position: 1, intitule: 'élec', unite: 'A', logical_op: 'OR',
+        group_open: 0, group_close: 0, sens_variation: 'CROISSANT',
+        score_1_inf: null, score_1_sup: 1,
+        score_2_inf: 11, score_2_sup: 22, // niveau 2 inactif sur le bloc
+        score_3_inf: null, score_3_sup: null,
+        score_4_inf: null, score_4_sup: null,
+        score_5_inf: null, score_5_sup: null,
+        score_1_sup_inclusive: true, score_2_sup_inclusive: true,
+        score_3_sup_inclusive: true, score_4_sup_inclusive: true,
+        has_borne_score1: false, has_borne_score5: false,
+        inactive_levels: [2],
+      }];
+      const payload = component.buildMetriquePayload(801, met) as any;
+      expect(payload.score_2_inf).toBeNull();
+      expect(payload.score_2_sup).toBeNull();
+      expect(payload.score_blocks[0].score_2_inf).toBeNull();
+      expect(payload.score_blocks[0].score_2_sup).toBeNull();
+    });
+
+    it('getScoreRange masque un niveau NUMERIQUE inactif (données résiduelles)', () => {
+      const met: any = {
+        type_metrique_mnemonique: 'NUMERIQUE',
+        inactive_levels: [2],
+        score_2_inf: 11, score_2_sup: 22,
+      };
+      expect(component.getScoreRange(met, 2)).toBe('- - -');
     });
 
     it('should build metrique payload correctly', () => {

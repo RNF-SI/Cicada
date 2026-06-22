@@ -312,6 +312,29 @@ class TestPlansCreateEndpoint:
         plan = PlanGestion.objects.get(nom='Creator Test Plan')
         assert plan.id_utilisateur_ajout == referent
 
+    def test_create_plan_adds_creator_as_referent(self, api_client):
+        """Le créateur devient référent de son plan, sinon un non-admin perd
+        l'accès en édition (canEditPlan/canManageLifecycle) sur le plan qu'il
+        vient de créer."""
+        referent = ReferentFactory()
+        site = SiteFactory()
+        CorRoleSiteFactory(id_role=referent, id_site=site, referent=True, referent_valid=True)
+
+        api_client.force_authenticate(user=referent)
+        response = api_client.post('/api/plans/plans/', {
+            'nom': 'Self Referent Plan',
+            'statut': 'draft',
+            'annee_debut': 2024,
+            'annee_fin': 2034,
+            'rang': 1,
+            'ct88': False,
+            'sites_ids': [site.id_site]
+        })
+
+        assert response.status_code == status.HTTP_201_CREATED
+        plan = PlanGestion.objects.get(nom='Self Referent Plan')
+        assert referent in plan.referents.all()
+
     def test_create_plan_regular_user_denied(self, api_client):
         """Test regular users cannot create plans."""
         user = RoleFactory()

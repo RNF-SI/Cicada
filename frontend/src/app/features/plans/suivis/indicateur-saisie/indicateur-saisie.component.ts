@@ -26,6 +26,7 @@ import { PlanSidebarComponent } from '../../shared/plan-sidebar/plan-sidebar.com
 import { AdminService } from '../../../../core/services/admin.service';
 import { EnjeuService } from '../../../../core/services/enjeu.service';
 import { Indicateur, Metrique, Mesure, MesureCreatePayload } from '../../../../core/models/enjeu.model';
+import { formatScoreRange, isMetriqueIndetermine } from '../metrique-seuils.util';
 
 type DisplayMode = 'recap' | 'edit-auto' | 'edit-override';
 type ScoreLevel = 'very-bad' | 'bad' | 'neutral' | 'good' | 'very-good' | 'no-data';
@@ -104,13 +105,24 @@ export class IndicateurSaisieComponent implements OnInit {
 
   /** Convertit une valeur numérique en score 1-5 selon les seuils d'une métrique. */
   valueToScore(value: any, met: Metrique): number | null {
-    const v = typeof value === 'number' ? value : parseFloat(String(value || ''));
+    // #423 — tolère la virgule décimale française (« 20,6 »).
+    const v = typeof value === 'number' ? value : parseFloat(String(value ?? '').replace(',', '.'));
     if (isNaN(v)) return null;
     for (let i = 1; i <= 5; i++) {
       const inf = (met as any)[`score_${i}_inf`];
       const sup = (met as any)[`score_${i}_sup`];
-      if (inf === null || inf === undefined || sup === null || sup === undefined) continue;
-      if (Number(inf) <= v && v <= Number(sup)) return i;
+      const hasInf = inf !== null && inf !== undefined;
+      const hasSup = sup !== null && sup !== undefined;
+      // #423 — palier extrême ouvert : borne absente = -∞ / +∞ (ne pas l'ignorer).
+      if (!hasInf && !hasSup) continue;
+      // #423 — respecter l'inclusivité des bornes (cf. notation par crochets) :
+      // « 35 » dans ]35;50] tombe dans le palier de borne sup=35, pas celui de
+      // borne inf=35.
+      const infIncl = i <= 1 ? true : (met as any)[`score_${i - 1}_sup_inclusive`] === false;
+      const supIncl = i >= 5 ? true : (met as any)[`score_${i}_sup_inclusive`] !== false;
+      const lowerOk = !hasInf || (infIncl ? v >= Number(inf) : v > Number(inf));
+      const upperOk = !hasSup || (supIncl ? v <= Number(sup) : v < Number(sup));
+      if (lowerOk && upperOk) return i;
     }
     return null;
   }
@@ -142,6 +154,16 @@ export class IndicateurSaisieComponent implements OnInit {
   scoreLevelsList: ScoreLevel[] = SCORE_LEVELS;
 
   /** Bornes seuil d'une métrique pour un score donné (1-5). */
+  /** #421 — intervalle d'un palier formaté comme dans la saisie PG ([50 ; 200], ]30 ; 50]…). */
+  scoreRange(met: Metrique, level: number): string {
+    return formatScoreRange(met, level);
+  }
+
+  /** #421 — vrai si la métrique est de type indéterminé. */
+  isMetriqueIndetermine(met: Metrique): boolean {
+    return isMetriqueIndetermine(met);
+  }
+
   getScoreBound(met: Metrique, scoreIdx: number, kind: 'inf' | 'sup'): string {
     const key = `score_${scoreIdx}_${kind}` as keyof Metrique;
     const v = (met as any)[key];
@@ -152,6 +174,30 @@ export class IndicateurSaisieComponent implements OnInit {
     return Number.isNaN(num)
       ? String(v)
       : num.toLocaleString('fr-FR', { maximumFractionDigits: 4 });
+  }
+
+  /**
+   * Libellé « unité » d'une métrique pour le tableau des seuils.
+   * - Mono-bloc : l'unité de la métrique (ou « — »).
+   * - Multi-blocs : la liste « intitulé (unité) » de chaque bloc (principal +
+   *   complémentaires), séparée par « / » (ex: « hauteur (m) / recouvrement (%) »).
+   */
+  metriqueUniteLabel(met: Metrique): string {
+    const blocks = met.score_blocks || [];
+    if (blocks.length === 0) {
+      return (met.unite || '').trim() || '—';
+    }
+    const fmt = (intitule?: string | null, unite?: string | null, fallback = '') => {
+      const i = (intitule ?? '').trim();
+      const u = (unite ?? '').trim();
+      if (!i) return fallback;
+      return u ? `${i} (${u})` : i;
+    };
+    const labels = [
+      fmt(met.bloc_intitule, met.unite, met.nom_metrique),
+      ...blocks.map((b, idx) => fmt(b.intitule, b.unite, `Bloc ${idx + 2}`)),
+    ].filter(Boolean);
+    return labels.length ? labels.join(' / ') : '—';
   }
 
   /** Getter/setter pour ngModel du commentaire (basé sur signal). */
@@ -238,11 +284,9 @@ export class IndicateurSaisieComponent implements OnInit {
         this.scoreOverride.set(resolved.score_override);
         this.commentaireOverride.set(resolved.commentaire_override || '');
         this.isOverridden.set(resolved.is_overridden);
-        // Récupérer l'id_indicateur_mesure si override existe
-        if (resolved.is_overridden) {
-          this.enjeuService.getIndicatorResolved(indId, year).subscribe();
-          // L'API resolved ne renvoie pas l'id. On l'obtient via /indicateur-mesures/?id_indicateur=X&annee=Y
-        }
+        // #424 — l'API resolved renvoie désormais l'id de l'override : on le
+        // mémorise pour pouvoir le supprimer lors du repassage en auto.
+        this.overrideId.set(resolved.id_indicateur_mesure ?? null);
         // Mode initial : recap si on a déjà au moins une mesure ou un override
         const hasAnyData = mesures.length > 0 || resolved.is_overridden;
         this.mode.set(hasAnyData ? 'recap' : 'edit-auto');
@@ -314,7 +358,7 @@ export class IndicateurSaisieComponent implements OnInit {
         const existing = this.mesuresByMetrique.get(met.id_metrique);
         const payload: MesureCreatePayload = {
           id_metrique: met.id_metrique,
-          valeur: String(value),
+          valeur: String(value).replace(',', '.'),
           date_mesure: `${year}-12-31`,
         };
         mesureCalls.push(

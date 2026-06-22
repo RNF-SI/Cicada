@@ -48,6 +48,36 @@ export interface GeologieRef {
 }
 
 /**
+ * #237 — Objet géologique sélectionné sur un enjeu (typologie Corentin).
+ * `code` référence la typologie (constante GEO_OBJET_GROUPS), `libelle` est
+ * dénormalisé, `precision` est saisie libre pour un objet de type « Autre ».
+ */
+export interface ObjetGeologiqueRef {
+  id?: number;
+  code: string;
+  libelle?: string;
+  precision?: string;
+}
+
+/**
+ * #237 — Document du patrimoine « Documents » d'un enjeu géologique.
+ * `support='numerique'` → fichier téléversé ; `support='papier'` → référence.
+ */
+export interface EnjeuDocument {
+  id: number;
+  id_enjeu?: number;
+  support: 'numerique' | 'papier';
+  nom_fichier?: string;
+  titre?: string;
+  description?: string;
+  taille_fichier?: number | null;
+  file_size_human?: string | null;
+  extension?: string;
+  url?: string | null;
+  date_upload?: string;
+}
+
+/**
  * Enjeu / FCR categories
  */
 export type EnjeuCategorie = 'ENJEU' | 'FCR';
@@ -91,6 +121,9 @@ export interface Enjeu {
   patrimoine_geologique: boolean;
   geo_ex_situ: boolean;
   geo_in_situ: boolean;
+  geo_documents: boolean;
+  geo_autre: boolean;
+  geo_autre_precision?: string;
   fonctionnalite_ecosysteme: boolean;
   autre_ecologique: boolean;
   autre_ecologique_precision?: string;
@@ -118,6 +151,8 @@ export interface Enjeu {
   taxons?: TaxonRef[];
   habitats?: HabitatRef[];
   geologies?: GeologieRef[];
+  objets_geologiques?: ObjetGeologiqueRef[];
+  documents?: EnjeuDocument[];
 
   // Counts (from list serializer)
   nb_taxons?: number;
@@ -281,6 +316,7 @@ export interface Indicateur {
   description?: string;
   type_indicateur?: number;
   type_indicateur_label?: string;
+  type_indicateur_mnemonique?: string;
   est_standardise: boolean;
   metriques?: Metrique[];
   nb_metriques?: number;
@@ -292,6 +328,8 @@ export interface Indicateur {
   date_ajout: string;
   date_maj: string;
   createur_nom?: string;
+  // #420 — slug de l'enjeu, pour le deep-link « Modifier l'indicateur »
+  enjeu_slug?: string | null;
 }
 
 /**
@@ -310,6 +348,8 @@ export interface Indicateur {
 export interface MetriqueScoreBlock {
   id_score_block?: number;          // undefined = nouveau, number = existant
   position: number;                 // ordre du bloc parmi les complémentaires (1-N)
+  intitule?: string | null;         // intitulé du bloc (ex: recouvrement)
+  unite?: string | null;            // unité du bloc (optionnelle, ex: %, m)
   logical_op: 'OR' | 'AND';         // combinaison avec le bloc précédent
   group_open: number;               // nombre de '(' à ouvrir avant ce bloc
   group_close: number;              // nombre de ')' à fermer après ce bloc
@@ -345,6 +385,8 @@ export interface Metrique {
   type_metrique_label?: string;
   type_metrique_mnemonique?: string;
   unite?: string;
+  // Intitulé du bloc principal quand la métrique combine plusieurs blocs (ex: hauteur)
+  bloc_intitule?: string;
   ponderation?: number;
   etat_reference?: string;
   score_1_inf?: number; score_1_sup?: number; score_1_val?: number; score_1_label?: string;
@@ -407,6 +449,8 @@ export interface IndicateurAutoScoreResponse {
 export interface IndicateurResolvedResponse {
   id_indicateur: number;
   annee: number;
+  // #424 — id de l'override (IndicateurMesure) pour pouvoir le supprimer
+  id_indicateur_mesure?: number | null;
   score_auto: number | null;
   score_override: number | null;
   commentaire_override: string | null;
@@ -567,7 +611,11 @@ export interface OperationAnnee {
  * Payload d'upsert d'une réalisation annuelle (envoi formulaire de saisie).
  */
 export interface RealisationUpsertPayload {
-  id_operation_annee: number;
+  id_operation_annee?: number;
+  // #418 — saisie d'un suivi pour une année NON planifiée : le backend crée
+  // l'OperationAnnee à la volée à partir de (id_operation, annee).
+  id_operation?: number;
+  annee?: number;
   id_niveau_realisation?: number | null;
   periodicite_realisee?: boolean;
   periodicite_mensuelle_realisee?: Record<string, boolean>;
@@ -719,6 +767,8 @@ export interface MetriqueFormData {
   nom_metrique: string;
   type_metrique: number | null;
   unite: string;
+  // Intitulé du bloc principal (utilisé quand la métrique combine plusieurs blocs).
+  bloc_intitule: string;
   ponderation: number | null;
   etat_reference: string;
   /** #4 — Ordre d'affichage parmi les métriques d'un indicateur (réordonnancement DnD). */
@@ -793,7 +843,8 @@ export interface MetriqueCreatePayload {
   description?: string;
   ordre?: number;
   type_metrique?: number;
-  unite?: string;
+  unite?: string | null;
+  bloc_intitule?: string | null;
   ponderation?: number;
   etat_reference?: string;
   score_1_inf?: number; score_1_sup?: number; score_1_val?: number; score_1_label?: string;
@@ -860,6 +911,9 @@ export interface EnjeuCreatePayload {
   patrimoine_geologique?: boolean;
   geo_ex_situ?: boolean;
   geo_in_situ?: boolean;
+  geo_documents?: boolean;
+  geo_autre?: boolean;
+  geo_autre_precision?: string;
   fonctionnalite_ecosysteme?: boolean;
   autre_ecologique?: boolean;
   autre_ecologique_precision?: string;
@@ -883,6 +937,7 @@ export interface EnjeuCreatePayload {
   taxons_data?: TaxonRef[];
   habitats_data?: HabitatRef[];
   geologies_data?: GeologieRef[];
+  objets_geologiques_data?: ObjetGeologiqueRef[];
 }
 
 /**
@@ -915,6 +970,9 @@ export interface EnjeuUpdatePayload {
   patrimoine_geologique?: boolean;
   geo_ex_situ?: boolean;
   geo_in_situ?: boolean;
+  geo_documents?: boolean;
+  geo_autre?: boolean;
+  geo_autre_precision?: string;
   fonctionnalite_ecosysteme?: boolean;
   autre_ecologique?: boolean;
   autre_ecologique_precision?: string;
@@ -937,6 +995,7 @@ export interface EnjeuUpdatePayload {
   taxons_data?: TaxonRef[];
   habitats_data?: HabitatRef[];
   geologies_data?: GeologieRef[];
+  objets_geologiques_data?: ObjetGeologiqueRef[];
 }
 
 /**

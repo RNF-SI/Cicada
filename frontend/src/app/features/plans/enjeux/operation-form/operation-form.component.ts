@@ -5,7 +5,8 @@
  * Refactorisé pour utiliser OperationAnnee[] (table relationnelle)
  * au lieu de JSONField programmation_annuelle/programmation_mensuelle.
  */
-import { Component, OnInit, inject, signal, computed, ElementRef } from '@angular/core';
+import { Component, OnInit, inject, signal, computed, ElementRef, DestroyRef } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule, Location } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { FormBuilder, FormControl, FormGroup, Validators, ReactiveFormsModule, FormsModule } from '@angular/forms';
@@ -84,6 +85,7 @@ export class OperationFormComponent implements OnInit {
   private readonly elRef = inject(ElementRef);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
+  private readonly destroyRef = inject(DestroyRef);
   private readonly location = inject(Location);
   private readonly fb = inject(FormBuilder);
   private readonly enjeuService = inject(EnjeuService);
@@ -132,6 +134,18 @@ export class OperationFormComponent implements OnInit {
     if (pending !== undefined) return pending;
     return this.existingOperation()?.geom_geojson ?? null;
   });
+
+  /** #410 — « l'emprise de l'action correspond à l'emprise du/des site(s) ».
+   *  Quand coché, l'emprise est calculée depuis les sites sélectionnés et le
+   *  dessin manuel est désactivé. */
+  useSiteEmprise = signal(false);
+  isComputingSiteEmprise = signal(false);
+
+  /** #410 — nombre de sites cochés (réactif via selectedSiteIdsVersion). */
+  selectedSitesCount = computed<number>(() => {
+    this.selectedSiteIdsVersion();
+    return Object.values(this.selectedSiteIds).filter(Boolean).length;
+  });
   /** Types de métrique disponibles (TYPE_METRIQUE nomenclature). */
   typeMetriqueOptions = signal<{ id_nomenclature: number; mnemonique?: string; label: string }[]>([]);
 
@@ -166,6 +180,10 @@ export class OperationFormComponent implements OnInit {
   // #367 — indicateur de rattachement direct (action créée sans métrique).
   prelinkedIndicateurId = signal<number | null>(null);
   returnEnjeuSlug = signal<string | null>(null);
+  // #398 — onglet d'origine (« olt » ou « operations ») pour y revenir après
+  // création. Sans ça, une action créée depuis l'onglet OLT renvoyait vers
+  // l'onglet Opérations (où une action sans métrique n'apparaît pas).
+  returnTab = signal<string | null>(null);
 
   // Nomenclatures
   typeActionOptions = signal<NomenclatureOption[]>([]);
@@ -270,7 +288,7 @@ export class OperationFormComponent implements OnInit {
   currentIndicateurId = computed<number | null>(() => {
     const direct = this.prelinkedIndicateurId();
     if (direct) return direct;
-    const firstMet = this.prelinkedMetriqueIds()[0];
+    const firstMet = this.prelinkedMetriqueIds()[0] ?? this.prelinkedMetriqueId();
     if (firstMet) {
       const m = this.planMetriques().find(x => x.id_metrique === firstMet);
       return m?.indicateur_id ?? null;
@@ -453,6 +471,16 @@ export class OperationFormComponent implements OnInit {
   }
 
   private loadRouteParams(): void {
+    // #415 — s'abonner aux paramètres (au lieu de lire le snapshot une seule
+    // fois) : si Angular réutilise ce composant pour une autre action (ex.
+    // « Modifier l'action » depuis le suivi), on recharge bien les données au
+    // lieu de conserver un formulaire vide/obsolète.
+    this.route.paramMap
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => this.applyRouteParams());
+  }
+
+  private applyRouteParams(): void {
     // Walk up the route tree to find the 'slug' param (plan slug)
     const slug = this.findRouteParam('slug');
     if (slug) {
@@ -465,8 +493,14 @@ export class OperationFormComponent implements OnInit {
     }
 
     const opIdStr = this.route.snapshot.paramMap.get('operationId');
-    if (opIdStr) {
-      this.operationId.set(parseInt(opIdStr, 10));
+    const newOpId = opIdStr ? parseInt(opIdStr, 10) : null;
+    // #415 — changement d'action sur un composant réutilisé : on repart d'un
+    // état propre avant de recharger (sinon les anciennes données persistent).
+    if (newOpId !== this.operationId()) {
+      this.resetOperationState();
+    }
+    if (newOpId != null) {
+      this.operationId.set(newOpId);
       // En mode lecture seule la page reste "vue" — pas d'édition — mais on
       // doit quand même charger les données de l'action existante
       if (!this.isReadOnly()) {
@@ -506,7 +540,34 @@ export class OperationFormComponent implements OnInit {
       this.returnEnjeuSlug.set(returnEnjeu);
     }
 
+    const returnTab = this.route.snapshot.queryParamMap.get('returnTab');
+    if (returnTab) {
+      this.returnTab.set(returnTab);
+    }
+
     this.loadData();
+  }
+
+  /**
+   * #415 — Réinitialise l'état spécifique à une action (utilisé quand le
+   * composant est réutilisé pour une autre action). Les souscriptions du
+   * formulaire restent intactes (on ne recrée pas le FormGroup) ; loadData()
+   * repeuplera ensuite les valeurs.
+   */
+  private resetOperationState(): void {
+    this.existingOperation.set(null);
+    this.isEditMode.set(false);
+    this.operationAnnees = [];
+    this.years = [];
+    this.orgBudgets = {};
+    this.typeBudgets = {};
+    this.directTotals = {};
+    this.orgByOrgData = {};
+    this.selectedSiteIds = {};
+    this.selectedSiteIdsVersion.update(v => v + 1);
+    this.pendingEmprise.set(undefined);
+    this.useSiteEmprise.set(false);
+    this.ventilationMode.set('none');
   }
 
   /**
@@ -542,8 +603,10 @@ export class OperationFormComponent implements OnInit {
           }
           // Load operation data AFTER sites are initialized to avoid race condition
           this.loadOperationIfEdit();
-          // Load enjeux after plan is loaded
-          this.enjeuService.getPlanEnjeux(plan.id_pg).subscribe({
+          // Load enjeux after plan is loaded. Force-refresh : une métrique créée
+          // juste avant (dans l'indicateur) doit apparaître dans le sélecteur
+          // « Métriques associées » sans dépendre du cache.
+          this.enjeuService.getPlanEnjeux(plan.id_pg, true).subscribe({
             next: (response) => {
               const indicateurs: { id_indicateur: number; nom_indicateur: string }[] = [];
               const metriques: { id_metrique: number; nom_metrique: string; indicateur_nom: string; indicateur_id: number }[] = [];
@@ -554,6 +617,10 @@ export class OperationFormComponent implements OnInit {
 
               const collectIndicateursMetriques = (ind: any) => {
                 if (!ind || seenIndicateurs.has(ind.id_indicateur)) return;
+                // #398 — les indicateurs de réponse (et leurs métriques) ne font pas
+                // partie des « métriques associées » sélectionnables : ils sont propres
+                // à une action et gérés dans la section « Indicateur(s) de réponse ».
+                if (ind.type_indicateur_mnemonique === 'REPONSE') return;
                 seenIndicateurs.add(ind.id_indicateur);
                 indicateurs.push({ id_indicateur: ind.id_indicateur, nom_indicateur: ind.nom_indicateur });
                 for (const met of ind.metriques || []) {
@@ -586,6 +653,17 @@ export class OperationFormComponent implements OnInit {
                           collectIndicateursMetriques(ind);
                         }
                       }
+                    }
+                  }
+                }
+                // #337 — Chemin OO direct (OO rattaché directement à l'enjeu/FCR,
+                // sans pression) : Enjeu → OO → RA → Indicateur → Métrique. Sans ce
+                // parcours, les métriques des indicateurs d'un FCR n'apparaissaient
+                // pas dans le sélecteur « Métriques associées ».
+                for (const oo of enjeu.objectifs_operationnels || []) {
+                  for (const ra of oo.resultats_attendus || []) {
+                    for (const ind of ra.indicateurs || []) {
+                      collectIndicateursMetriques(ind);
                     }
                   }
                 }
@@ -1016,9 +1094,11 @@ export class OperationFormComponent implements OnInit {
     if (!opId) {
       // En création : l'action n'existe pas encore côté serveur. On collecte
       // l'indicateur de réponse en mémoire ; il sera créé à l'enregistrement.
+      // #398 — la métrique reste vide tant que l'utilisateur ne l'a pas nommée :
+      // un indicateur de réponse sans métrique nommée ne doit pas afficher de chip.
       this.pendingResponseIndicators.push({
         nom_indicateur: this.translate.instant('enjeux.operations.newIndicatorDefault'),
-        nom_metrique: this.translate.instant('enjeux.operations.newIndicatorDefault'),
+        nom_metrique: '',
         type_metrique_id: null,
         valeur_cible: '',
       });
@@ -1027,7 +1107,6 @@ export class OperationFormComponent implements OnInit {
     const defaultNom = this.translate.instant('enjeux.operations.newIndicatorDefault');
     this.enjeuService.createOperationResponseIndicator(opId, {
       nom_indicateur: defaultNom,
-      nom_metrique: defaultNom,
     }).subscribe({
       next: (created) => {
         const op = this.existingOperation();
@@ -1047,6 +1126,8 @@ export class OperationFormComponent implements OnInit {
           ...op,
           metriques: [...(op.metriques || []), newRef],
         });
+        // NB : pas de synchro avec `metrique_ids` — les métriques d'indicateurs de
+        // réponse n'appartiennent pas à cette liste (gérées à part côté backend).
       },
       error: (err) => {
         const msg = err?.error?.detail
@@ -1056,25 +1137,39 @@ export class OperationFormComponent implements OnInit {
     });
   }
 
-  /** Bouton corbeille : retire le lien op ↔ métrique (n'efface pas l'indicateur sous-jacent). */
+  /** Bouton corbeille : supprime l'indicateur de réponse (et sa métrique). Un
+   *  indicateur de réponse est propre à l'action ; une fois retiré il ne doit
+   *  plus exister. La suppression de l'indicateur cascade sur sa métrique et sur
+   *  le lien op ↔ métrique. Comme les métriques de réponse ne transitent pas par
+   *  `metrique_ids` (gérées à part côté backend), aucun risque de re-création au save. */
   removeResponseIndicator(metriqueId: number): void {
     const opId = this.operationId();
     if (!opId) return;
-    this.enjeuService.unlinkOperationMetrique(opId, metriqueId).subscribe({
-      next: () => {
-        const op = this.existingOperation();
-        if (!op?.metriques) return;
+    const met = this.existingOperation()?.metriques?.find(m => m.id_metrique === metriqueId);
+    const indicateurId = met?.indicateur_id ?? null;
+
+    const onRemoved = () => {
+      const op = this.existingOperation();
+      if (op?.metriques) {
         this.existingOperation.set({
           ...op,
           metriques: op.metriques.filter(m => m.id_metrique !== metriqueId),
         });
-      },
-      error: () => this.snackBar.open(
-        this.translate.instant('enjeux.operations.indicateursRemoveError'),
-        this.translate.instant('common.actions.close'),
-        { duration: 4000 },
-      ),
-    });
+      }
+    };
+    const onError = () => this.snackBar.open(
+      this.translate.instant('enjeux.operations.indicateursRemoveError'),
+      this.translate.instant('common.actions.close'),
+      { duration: 4000 },
+    );
+
+    // Cas nominal : on supprime l'indicateur de réponse (cascade métrique + lien).
+    if (indicateurId) {
+      this.enjeuService.deleteIndicateur(indicateurId).subscribe({ next: onRemoved, error: onError });
+      return;
+    }
+    // Filet : indicateur inconnu → on se contente de retirer le lien.
+    this.enjeuService.unlinkOperationMetrique(opId, metriqueId).subscribe({ next: onRemoved, error: onError });
   }
 
   /** Retire un indicateur de réponse en attente (création, non encore enregistré). */
@@ -1233,8 +1328,11 @@ export class OperationFormComponent implements OnInit {
     if (fv.partenaires?.trim()) payload.partenaires = fv.partenaires.trim();
     // #343 — financeur textuel supprimé : on n'envoie plus le champ libre (financeurs structurés via `finances`).
     if (fv.metrique_ids?.length) payload.metrique_ids = fv.metrique_ids;
-    // #367 — rattachement direct à un indicateur (quand l'action n'a pas de métrique).
-    if (this.prelinkedIndicateurId()) payload.id_indicateur = this.prelinkedIndicateurId();
+    // #367/#398 — toujours rattacher l'action à son indicateur parent
+    // (rattachement direct OU indicateur de la métrique pré-liée). Sans ça,
+    // une action sans métrique restait orpheline et n'apparaissait nulle part.
+    const indId = this.currentIndicateurId();
+    if (indId) payload.id_indicateur = indId;
 
     // Sites
     const siteIds = Object.entries(this.selectedSiteIds)
@@ -1468,15 +1566,18 @@ export class OperationFormComponent implements OnInit {
 
     this.applyRequiredValidator('intitule_suivi', requireForCS);
     this.applyRequiredValidator('protocole_dans_campanule', requireForCS);
-    this.applyRequiredValidator('respect_protocole', requireForCS);
+    // #414 — « Respect strict du protocole » n'est demandé que pour les
+    // protocoles CAMPanule ; masqué (et non requis) pour les protocoles locaux.
+    this.applyRequiredValidator(
+      'respect_protocole',
+      requireForCS && protocoleCampanule === true,
+    );
     this.applyRequiredValidator(
       'cd_protocole_campanule',
       requireForCS && protocoleCampanule === true,
     );
-    this.applyRequiredValidator(
-      'nom_protocole',
-      requireForCS && protocoleCampanule === false,
-    );
+    // #413 — le nom d'un protocole non-CAMPanule (nom local) est facultatif.
+    this.applyRequiredValidator('nom_protocole', false);
   }
 
   /** Helper : ajoute ou retire Validators.required sur un contrôle, sans émettre. */
@@ -1589,7 +1690,10 @@ export class OperationFormComponent implements OnInit {
     const returnEnjeu = this.returnEnjeuSlug();
     const metriqueId = this.prelinkedMetriqueId();
     if (returnEnjeu) {
-      const queryParams: Record<string, number | string> = { tab: 'operations' };
+      // #398 — revenir sur l'onglet d'origine (OLT ou Opérations) plutôt que
+      // de forcer « operations » : une action sans métrique n'apparaît pas
+      // dans l'onglet Opérations et l'utilisateur se retrouvait « sur les OO ».
+      const queryParams: Record<string, number | string> = { tab: this.returnTab() || 'operations' };
       if (newOpId) {
         queryParams['expandOperation'] = newOpId;
       } else if (metriqueId) {
@@ -1998,6 +2102,65 @@ export class OperationFormComponent implements OnInit {
   toggleSite(siteId: number): void {
     this.selectedSiteIds[siteId] = !this.selectedSiteIds[siteId];
     this.selectedSiteIdsVersion.update(v => v + 1);
+    // #410 — si l'emprise suit les sites, la recalculer quand la sélection change.
+    if (this.useSiteEmprise()) {
+      this.computeSiteEmprise();
+    }
+  }
+
+  /** #410 — bascule « emprise de l'action = emprise du/des site(s) ». */
+  toggleUseSiteEmprise(checked: boolean): void {
+    this.useSiteEmprise.set(checked);
+    if (checked) {
+      this.computeSiteEmprise();
+    }
+    // Décoché : on conserve l'emprise calculée comme point de départ éditable.
+  }
+
+  /**
+   * #410 — Calcule l'emprise de l'action à partir des géométries des sites
+   * sélectionnés (union des MultiPolygons) et l'applique comme emprise courante.
+   */
+  private computeSiteEmprise(): void {
+    const slugs = this.planSites()
+      .filter(s => this.selectedSiteIds[s.id_site] && s.slug)
+      .map(s => s.slug as string);
+    if (slugs.length === 0) {
+      this.pendingEmprise.set(null);
+      return;
+    }
+    this.isComputingSiteEmprise.set(true);
+    forkJoin(slugs.map(slug => this.adminService.getSiteGeoJSON(slug))).subscribe({
+      next: (features) => {
+        const geoms = features.map(f => (f as any)?.geometry).filter(Boolean);
+        this.pendingEmprise.set(this.combineSiteGeometries(geoms));
+        this.isComputingSiteEmprise.set(false);
+      },
+      error: () => {
+        this.isComputingSiteEmprise.set(false);
+        this.useSiteEmprise.set(false);
+        this.snackBar.open(
+          this.translate.instant('enjeux.operations.empriseSitesError'),
+          this.translate.instant('common.actions.close'),
+          { duration: 4000 },
+        );
+      },
+    });
+  }
+
+  /**
+   * #410 — Fusionne plusieurs géométries de sites (Polygon / MultiPolygon) en
+   * un seul MultiPolygon GeoJSON (concaténation des polygones).
+   */
+  private combineSiteGeometries(geoms: any[]): any {
+    const polygons: any[] = [];
+    for (const g of geoms) {
+      if (!g) continue;
+      if (g.type === 'Polygon') polygons.push(g.coordinates);
+      else if (g.type === 'MultiPolygon') polygons.push(...g.coordinates);
+    }
+    if (polygons.length === 0) return null;
+    return { type: 'MultiPolygon', coordinates: polygons };
   }
 
   // ════════════════════════════════════════════════
@@ -2060,8 +2223,28 @@ export class OperationFormComponent implements OnInit {
     const annee = this.operationAnnees[index];
     annee.periodicite = !annee.periodicite;
     if (!annee.periodicite) {
+      // #425 — décocher la programmation d'une année doit remettre à zéro le
+      // budget et la RH de cette colonne, quel que soit le mode de ventilation.
+      this.clearYearBudget(index);
+    }
+  }
+
+  /**
+   * #425 — Réinitialise toutes les saisies budget/RH d'une année (tous modes de
+   * ventilation confondus). Appelé quand on décoche la programmation de l'année.
+   */
+  private clearYearBudget(index: number): void {
+    const annee = this.operationAnnees[index];
+    if (annee) {
       annee.budget = null;
       annee.etp = null;
+    }
+    this.directTotals[index] = { budget: null, etp: null };
+    this.typeBudgets[index] = { fonct: null, invest: null, etp: null };
+    for (const org of this.availableOrganismes()) {
+      const key = this.orgKey(index, org.id_organisme);
+      this.orgBudgets[key] = { fonct: null, invest: null, etp: null };
+      this.orgByOrgData[key] = { budget: null, etp: null };
     }
   }
 

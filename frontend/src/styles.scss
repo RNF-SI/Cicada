@@ -887,7 +887,9 @@ body.leaflet-map-fullscreen-active {
     letter-spacing: 0.3px;
     padding: $spacing-xs $spacing-md;
     border-bottom: 1px solid $gray-light;
-    background-color: rgba($primary-color, 0.04);
+    // #408 — fond OPAQUE : un fond translucide laissait voir les options qui
+    // défilent sous l'en-tête sticky, rendant les intitulés illisibles.
+    background-color: mix($primary-color, #ffffff, 8%);
     min-height: 36px;
     line-height: 36px;
     // Toujours visible, jamais tronqué
@@ -895,7 +897,7 @@ body.leaflet-map-fullscreen-active {
     overflow: visible;
     position: sticky;
     top: 0;
-    z-index: 1;
+    z-index: 2;
   }
 
   .mat-mdc-option {
@@ -1120,12 +1122,27 @@ label.app-mat-label + app-form-field,
 
 // #227 — Recherche dans le sélecteur « Métriques associées » (mat-select rendu
 // en overlay → styles globaux). Champ aligné kit UI (Nunito, accent primaire).
+// #237 — indentation des sous-types (cavités, gisements…) dans la liste
+// déroulante des objets géologiques (panneau mat-select en overlay global)
+.geo-objet-select-panel {
+  .geo-objet-option-child .mdc-list-item__primary-text {
+    padding-left: $spacing-lg;
+    color: $gray-dark;
+
+    &::before {
+      content: '↳ ';
+      color: $gray;
+    }
+  }
+}
+
 .metrique-select-panel {
-  // Barre d'outils collante : recherche + filtre de portée
+  // Barre d'outils : recherche + filtre de portée. NON collante : Material
+  // défile le panneau pour amener l'option sélectionnée en vue à l'ouverture ;
+  // une barre `sticky` masquerait alors la première option (elle se retrouvait
+  // sous la barre). En flux normal, la barre défile avec les options — pas de
+  // recouvrement.
   .select-toolbar {
-    position: sticky;
-    top: 0;
-    z-index: 1;
     display: flex;
     align-items: center;
     gap: $spacing-sm;
@@ -1210,4 +1227,16 @@ label.app-mat-label + app-form-field,
   white-space: pre-line;
   text-align: left;
   max-width: 360px !important;
+}
+
+// #426 — menus de filtres multi-sélection (tableau de bord) : la case à cocher
+// ne ferme pas le menu (stopPropagation côté template). Rendu dans un overlay
+// CDK → styles globaux nécessaires.
+.multiselect-menu {
+  .filter-check {
+    font-size: 16px !important;
+    margin-right: 8px;
+    color: #025359;
+    vertical-align: middle;
+  }
 }

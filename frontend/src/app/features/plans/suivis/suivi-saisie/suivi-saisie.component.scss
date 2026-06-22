@@ -49,8 +49,8 @@
   // Vagues/ellipses décoratives à droite — même asset et même positionnement
   // que les autres pages de suivi (mixin partagé `plan-page-hero-pattern`).
   .hero-pattern {
+    // #383 — vagues pleinement visibles à droite
     @include plan-page-hero-pattern;
-    opacity: 0.2;
   }
 
   .hero-content {
@@ -229,6 +229,51 @@
     &.active {
       color: $primary-color;
       border-bottom-color: $primary-color;
+    }
+
+    // #418 — année non prévue : style atténué + soulignement pointillé pour la
+    // distinguer des années programmées.
+    &.year-not-planned {
+      color: $gray;
+      font-weight: 500;
+      font-style: italic;
+      border-bottom-style: dashed;
+      border-bottom-color: $gray-light;
+
+      &.active {
+        color: $secondary-orange-salmon;
+        border-bottom-color: $secondary-orange-salmon;
+      }
+    }
+  }
+}
+
+// #418 — légende prévu / non prévu sous les onglets d'années
+.year-legend {
+  display: flex;
+  gap: $spacing-lg;
+  // #418 — un petit espace sous la légende
+  padding: $spacing-xs $spacing-xl $spacing-sm;
+  background: $beige;
+  font-size: 0.8rem;
+  color: $gray-dark;
+
+  .year-legend-item {
+    display: inline-flex;
+    align-items: center;
+    gap: $spacing-xxs;
+  }
+
+  .dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    display: inline-block;
+
+    &.dot-planned { background: $primary-color; }
+    &.dot-not-planned {
+      background: transparent;
+      border: 1.5px dashed $gray;
     }
   }
 }

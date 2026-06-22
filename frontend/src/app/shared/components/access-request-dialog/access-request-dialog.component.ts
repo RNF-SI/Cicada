@@ -38,6 +38,8 @@ export interface AccessRequestDialogData {
   sitesNeedingAccess?: SelectableSite[];  // Sites du plan où demander le lien
   // Mode site : demande personnelle (CorRoleSite) ou rattachement d'organisme (CorOgSite)
   siteMode?: 'personal' | 'organisme';
+  // Mode plan : présélectionne l'option « Référent » (ex : bouton « Demander à devenir référent »)
+  defaultAsReferent?: boolean;
 }
 
 @Component({
@@ -301,7 +303,7 @@ export class AccessRequestDialogComponent {
   justification = '';
   submitting = false;
   selectedSiteSlug: string | null = null;
-  requestAsReferent = false;
+  requestAsReferent = this.data.defaultAsReferent ?? false;
 
   /** Verifie si on est en mode selection de sites (existant) */
   get isSelectionMode(): boolean {

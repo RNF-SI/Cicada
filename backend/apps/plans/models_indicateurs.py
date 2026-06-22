@@ -304,6 +304,13 @@ class Metrique(models.Model):
         null=True,
         help_text=_("Unité de mesure (ex: %, m², individus)")
     )
+    bloc_intitule = models.CharField(
+        _("Intitulé du bloc principal"),
+        max_length=500,
+        blank=True,
+        null=True,
+        help_text=_("Intitulé du bloc principal quand la métrique combine plusieurs blocs (ex: hauteur)")
+    )
     ponderation = models.DecimalField(
         _("Pondération"),
         max_digits=5,
@@ -531,6 +538,20 @@ class MetriqueScoreBlock(models.Model):
         _("Position"),
         default=1,
         help_text=_("Ordre du bloc complémentaire (1=premier après le principal)"),
+    )
+    intitule = models.CharField(
+        _("Intitulé"),
+        max_length=500,
+        blank=True,
+        null=True,
+        help_text=_("Intitulé du bloc (ex: recouvrement)"),
+    )
+    unite = models.CharField(
+        _("Unité"),
+        max_length=100,
+        blank=True,
+        null=True,
+        help_text=_("Unité de mesure du bloc (optionnelle, ex: %, m)"),
     )
     logical_op = models.CharField(
         _("Opérateur logique"),

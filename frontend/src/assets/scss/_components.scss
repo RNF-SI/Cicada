@@ -904,3 +904,41 @@
     line-height: 1.4;
   }
 }
+
+// Variante « non référent » : lecture seule + demande pour devenir référent.
+// Ton informatif (bleu-vert) et bouton d'action aligné à droite.
+.lock-banner.lock-banner--access {
+  align-items: center;
+  justify-content: space-between;
+  background-color: rgba($info-color, 0.15);
+  border-color: $info-color;
+
+  > i {
+    color: $info-color;
+  }
+
+  .lock-banner-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: $spacing-xs;
+    flex-shrink: 0;
+    padding: $spacing-xs $spacing-md;
+    border: none;
+    border-radius: $border-radius-pill;
+    background-color: $primary-color;
+    color: $white;
+    font-family: $font-family;
+    font-weight: $font-weight-bold;
+    font-size: $font-size-small;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+
+    &:hover {
+      background-color: darken($primary-color, 6%);
+    }
+
+    i {
+      font-size: 16px;
+    }
+  }
+}

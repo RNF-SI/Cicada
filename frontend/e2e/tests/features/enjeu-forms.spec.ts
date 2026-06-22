@@ -96,6 +96,9 @@ test.describe('Enjeu Form - Create', () => {
     // Habitat reference list should appear
     await expect(form.habitatRefList).toBeVisible();
 
+    // #409 — au moins un habitat est requis quand la cible « habitat » est cochée.
+    await form.addHabitatFreeText('Prairie humide E2E');
+
     await form.submit();
     await form.waitForSnackbar();
     await referentPage.waitForURL(/\/enjeux/, { timeout: 10000 });
@@ -114,6 +117,9 @@ test.describe('Enjeu Form - Create', () => {
     await referentPage.waitForTimeout(300);
 
     await expect(form.taxonRefList).toBeVisible();
+
+    // #409 — au moins un taxon est requis quand la cible « espèce » est cochée.
+    await form.addTaxon('Bufo');
 
     await form.submit();
     await form.waitForSnackbar();
@@ -304,6 +310,9 @@ test.describe('Enjeu Form - Edit', () => {
 
     const updatedName = `${enjeu.libelle} (E2E modifie)`;
     await form.fillLibelle(updatedName);
+    // #409 — l'enjeu peut avoir une cible habitat/espèce sans référence (donnée
+    // antérieure à la contrainte) : la satisfaire pour pouvoir enregistrer.
+    await form.ensureCibleRefsSatisfied();
     await form.submit();
     await form.waitForSnackbar();
     await referentPage.waitForURL(/\/enjeux/, { timeout: 10000 });

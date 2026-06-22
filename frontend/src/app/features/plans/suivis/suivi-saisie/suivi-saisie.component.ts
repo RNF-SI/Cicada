@@ -21,6 +21,7 @@ import {
 import { MatButtonModule } from '@angular/material/button';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { forkJoin, of } from 'rxjs';
 
@@ -56,6 +57,7 @@ type ActionStatus = 'planned' | 'planned-realized' | 'planned-partial' | 'realiz
     CommonModule, RouterModule, FormsModule, ReactiveFormsModule,
     MatButtonModule, MatProgressSpinnerModule, MatSnackBarModule,
     TranslateModule,
+    MatTooltipModule,
     HeaderComponent, PlanSidebarComponent, FormFieldComponent,
     EmpriseEditorComponent,
   ],
@@ -77,6 +79,10 @@ export class SuiviSaisieComponent implements OnInit {
   planId = signal<number | null>(null);
   planNom = signal<string>('');
   planStatut = signal<string | null>(null);
+  // #418 — plage d'années du PLAN (et non de l'action) : permet la saisie d'un
+  // suivi sur une année où l'action n'était pas programmée (« réalisée non prévue »).
+  planYearStart = signal<number | null>(null);
+  planYearEnd = signal<number | null>(null);
   operationId = signal<number | null>(null);
   selectedYear = signal<number>(new Date().getFullYear());
 
@@ -168,13 +174,30 @@ export class SuiviSaisieComponent implements OnInit {
   /** Affiche la décomposition fonctionnement/investissement. */
   isByType = computed(() => this.ventilationMode() === 'by_type');
 
-  /** Années sur lesquelles l'opération est programmée. */
+  /**
+   * Années affichées en onglets. #418 — on couvre toute la plage du PLAN (et non
+   * la seule plage de l'action), afin de permettre la saisie d'un suivi sur une
+   * année où l'action n'était pas programmée (« réalisée non prévue »). Repli sur
+   * la plage de l'action si la plage du plan est inconnue. L'année sélectionnée
+   * (depuis l'URL) est toujours incluse par sécurité.
+   */
   years = computed<number[]>(() => {
     const op = this.operation();
-    if (!op || op.annee_min == null || op.annee_max == null) return [];
-    const out: number[] = [];
-    for (let y = op.annee_min; y <= op.annee_max; y++) out.push(y);
-    return out;
+    let start = this.planYearStart();
+    let end = this.planYearEnd();
+    if (start == null || end == null) {
+      // Repli : plage de l'action
+      start = op?.annee_min ?? null;
+      end = op?.annee_max ?? null;
+    }
+    const set = new Set<number>();
+    if (start != null && end != null) {
+      for (let y = start; y <= end; y++) set.add(y);
+    }
+    // Inclure l'année ciblée par l'URL même si hors plage connue.
+    const sel = this.selectedYear();
+    if (sel) set.add(sel);
+    return [...set].sort((a, b) => a - b);
   });
 
   /** Programmation de l'année active (prévisionnel). */
@@ -210,6 +233,12 @@ export class SuiviSaisieComponent implements OnInit {
   /** Retourne l'OperationAnnee pour une année donnée (ou null). */
   getOaForYear(year: number): OperationAnnee | null {
     return this.operation()?.operation_annees?.find(oa => oa.annee === year) ?? null;
+  }
+
+  /** #418 — vrai si l'action était PROGRAMMÉE cette année (périodicité prévue).
+   *  Sert à distinguer visuellement les onglets « prévu » / « non prévu ». */
+  isYearPlanned(year: number): boolean {
+    return !!this.getOaForYear(year)?.periodicite;
   }
 
   /** Liste des organismes ventilés pour le mode by_org/by_org_type (déduplication entre années). */
@@ -337,6 +366,8 @@ export class SuiviSaisieComponent implements OnInit {
         this.planId.set(plan.id_pg);
         this.planNom.set(plan.nom);
         this.planStatut.set(plan.statut ?? null);
+        this.planYearStart.set(plan.annee_debut ?? null);
+        this.planYearEnd.set(plan.annee_fin ?? null);
         this.applyReadOnlyLock();
       },
       error: (err) => {
@@ -552,21 +583,18 @@ export class SuiviSaisieComponent implements OnInit {
       return;
     }
     const oa = this.currentOperationAnnee();
-    if (!oa?.id_operation_annee) {
-      this.snack.open(
-        this.translate.instant('plans.suivis.saisie.errors.missingProgrammation'),
-        this.translate.instant('common.actions.close'),
-        { duration: 4000 },
-      );
-      return;
-    }
     const v = this.form.value;
     const orgVentilation = this.isOrgVentilation();
 
     // 1) Payload annuel : niveau, périodicité, commentaires toujours.
     //    Budget/ETP au niveau année uniquement si pas de ventilation par org.
+    // #418 — si l'année n'était pas programmée (pas d'OperationAnnee), on
+    // transmet (id_operation, annee) : le backend crée l'année à la volée
+    // (réalisée non prévue). Sinon on cible l'OperationAnnee existante.
     const annualPayload: RealisationUpsertPayload = {
-      id_operation_annee: oa.id_operation_annee,
+      ...(oa?.id_operation_annee
+        ? { id_operation_annee: oa.id_operation_annee }
+        : { id_operation: this.operationId() ?? undefined, annee: this.selectedYear() }),
       id_niveau_realisation: v.id_niveau_realisation || null,
       periodicite_realisee: !!v.periodicite_realisee,
       commentaires: v.commentaires || null,
@@ -655,6 +683,17 @@ export class SuiviSaisieComponent implements OnInit {
                 if (idxOrg >= 0) target.organismes[idxOrg].realisation = so;
               }
             }
+            this.operation.set({ ...op });
+          } else {
+            // #418 — année non planifiée créée à la volée : on l'ajoute
+            // localement pour refléter immédiatement la saisie.
+            op.operation_annees.push({
+              id_operation_annee: savedAnnual.id_operation_annee,
+              annee: this.selectedYear(),
+              periodicite: false,
+              organismes: [],
+              realisation: savedAnnual,
+            } as unknown as OperationAnnee);
             this.operation.set({ ...op });
           }
         }

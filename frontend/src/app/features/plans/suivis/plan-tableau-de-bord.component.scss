@@ -56,8 +56,8 @@
 }
 
 .hero-pattern {
+  // #383 — vagues pleinement visibles à droite (comme les autres pages de suivi)
   @include plan-page-hero-pattern;
-  opacity: 0.2;
 }
 
 .hero-content {
@@ -299,6 +299,22 @@
     font-weight: $font-weight-bold;
     background-color: $primary-bg-soft;
   }
+
+  // #426 — badge compteur de filtres actifs (multi-sélection)
+  .filter-count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    border-radius: 9px;
+    background-color: $primary-color;
+    color: $white;
+    font-size: 11px;
+    font-weight: $font-weight-bold;
+    line-height: 1;
+  }
 }
 
 .filter-separator {
@@ -429,6 +445,12 @@
         min-width: 54px;
         // Filets entre années (revue design #317)
         border-right: 1px solid $primary-bg-subtle;
+
+        // #419 — survol par case (et non par ligne), comme le tableau des actions
+        &.clickable {
+          cursor: pointer;
+          &:hover { background: rgba($primary-color, 0.08); }
+        }
       }
 
       &.col-global {
@@ -528,9 +550,10 @@
     background-color: rgba($secondary-pale-green, 0.2);
   }
 
-  // Hover plus distinct du background normal (revue design Amandine)
+  // #419 — survol discret sur la ligne ; la mise en évidence forte est portée
+  // par la case de l'année survolée (cf. .col-year.clickable ci-dessous)
   &:hover {
-    background-color: $primary-bg-subtle;
+    background-color: rgba($primary-color, 0.03);
   }
 }
 
@@ -681,3 +704,4 @@
     gap: $spacing-sm;
   }
 }
+

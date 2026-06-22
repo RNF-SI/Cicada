@@ -110,7 +110,7 @@
                   <!-- #347 — Badge « Validations administratives » en haut du plan :
                        informations au survol (récap), édition au clic via menu
                        (indépendante, possible en brouillon comme en validé). -->
-                  @if (canManageLifecycle()) {
+                  @if (canManageLifecycle() && isReserveNaturelle()) {
                     <button type="button"
                             class="meta-value status-chip status-chip--csrpn-recap is-editable"
                             [matTooltip]="csrpnRecapTooltip()"
@@ -154,7 +154,8 @@
                         }
                       </div>
                     </mat-menu>
-                  } @else if (hasCsrpnInfo()) {
+                  } @else if (hasCsrpnInfo() && isReserveNaturelle()) {
+                    <!-- #406 — récap lecture seule réservé aux réserves naturelles -->
                     <span class="meta-value status-chip status-chip--csrpn-recap"
                           [matTooltip]="csrpnRecapTooltip()"
                           matTooltipClass="csrpn-recap-tooltip"
@@ -296,8 +297,9 @@
         </div>
       </section>
 
-    <!-- Bannière verrouillage hors brouillon (#248) -->
-    @if (plan() && !isPlanDraft()) {
+    <!-- Bannière verrouillage hors brouillon (#248) — réservée aux gestionnaires
+         (le message « repassez en brouillon » ne concerne qu'eux). -->
+    @if (plan() && !isPlanDraft() && canManageLifecycle()) {
       <div class="lock-banner" role="status">
         <i class="fi fi-rr-lock"></i>
         <div class="lock-banner-content">
@@ -308,6 +310,26 @@
             {{ 'plans.lifecycle.lockedBanner.text' | translate }}
           </span>
         </div>
+      </div>
+    }
+
+    <!-- Bannière « non référent » : utilisateur sans droit de gestion sur ce plan.
+         Lecture seule + possibilité de demander à devenir référent. -->
+    @if (plan() && !canManageLifecycle()) {
+      <div class="lock-banner lock-banner--access" role="status">
+        <i class="fi fi-rr-info"></i>
+        <div class="lock-banner-content">
+          <span class="lock-banner-title">
+            {{ 'plans.lifecycle.notReferentBanner.title' | translate }}
+          </span>
+          <span class="lock-banner-text">
+            {{ 'plans.lifecycle.notReferentBanner.text' | translate }}
+          </span>
+        </div>
+        <button class="lock-banner-btn" (click)="requestBecomeReferent()">
+          <i class="fi fi-rr-user-add"></i>
+          <span>{{ 'plans.lifecycle.notReferentBanner.requestButton' | translate }}</span>
+        </button>
       </div>
     }
 
@@ -439,10 +461,6 @@
                                 }
                               </div>
                             }
-                            <button class="btn-view-details" (click)="navigateToEnjeux()">
-                              <i class="fi fi-rr-arrow-right"></i>
-                              {{ 'plans.detail.viewEnjeux' | translate }}
-                            </button>
                           </div>
                         }
                       } @else if (accordion.id === 'objectifs-lt') {

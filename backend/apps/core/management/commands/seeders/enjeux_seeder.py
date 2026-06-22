@@ -9,7 +9,8 @@ from apps.plans.models_enjeux import (
     Enjeu, FacteurInfluence, Pression, Responsabilite,
     ObjectifLongTerme, NiveauExigence,
     ObjectifOperationnel, ResultatAttendu,
-    CorEnjeuTaxon, CorEnjeuHabitat, CorEnjeuGeologie,
+    CorEnjeuTaxon, CorEnjeuHabitat, CorEnjeuGeologie, CorEnjeuObjetGeologique,
+    CorEnjeuFichier,
     CorResponsabiliteTaxon, CorResponsabiliteHabitat, CorResponsabiliteGeologie,
     CorResponsabiliteEnjeu
 )
@@ -394,6 +395,10 @@ class EnjeuxSeeder(BaseSeeder):
                     'espece': False,
                     'patrimoine_geologique': True,
                     'geo_in_situ': True,
+                    # #237 — démontre les patrimoines Documents + Autre (avec précision)
+                    'geo_documents': True,
+                    'geo_autre': True,
+                    'geo_autre_precision': 'Patrimoine glaciaire (modelés et stries glaciaires)',
                     'etat_enjeu': 'Le massif des Aiguilles Rouges présente un patrimoine géologique '
                                   'remarquable : gneiss précambriens, éclogites paléozoïques et '
                                   'modelés glaciaires quaternaires. Recul glaciaire accéléré.',
@@ -412,6 +417,25 @@ class EnjeuxSeeder(BaseSeeder):
             CorEnjeuGeologie.objects.get_or_create(
                 id_enjeu=enjeu, id_inpg='2590',
                 defaults={'nom': 'Eclogites paléozoïques du lac Cornu (Aiguilles Rouges)'}
+            )
+            # #237 — objets géologiques de la typologie (in situ + « Autre » avec précision).
+            # Le patrimoine Documents (geo_documents) n'a pas de détail dans la typologie V2.
+            for code, libelle, precision in [
+                ('IS_AFFLEUREMENT', 'Affleurement remarquable', ''),
+                ('IS_SITE_PALEO', 'Site paléontologique', ''),
+                ('IS_GISEMENT_FOSSILIFERE', 'Gisement fossilifère', ''),
+                ('IS_GEOMORPHO', 'Site géomorphologique, paysage géologique remarquable', ''),
+                ('IS_AUTRE', 'Autre', 'Stries et polis glaciaires'),
+            ]:
+                CorEnjeuObjetGeologique.objects.get_or_create(
+                    id_enjeu=enjeu, code=code,
+                    defaults={'libelle': libelle, 'precision': precision}
+                )
+            # #237 — patrimoine Documents : référence papier d'exemple
+            CorEnjeuFichier.objects.get_or_create(
+                id_enjeu=enjeu, support='papier',
+                titre='Cartographie géologique du massif (1968, archives papier)',
+                defaults={'id_utilisateur_upload': admin}
             )
             enjeux_created.append(enjeu)
             self.log_item('créé' if created else 'mis à jour', f'Enjeu: {enjeu.intitule_court}')
@@ -501,6 +525,17 @@ class EnjeuxSeeder(BaseSeeder):
                 id_enjeu=enjeu, id_inpg='3927',
                 defaults={'nom': 'Faille-pli miocène de Sassenage (Vercors)'}
             )
+            # #237 — objets géologiques in situ : site souterrain + sous-types (cavités), géomorphologie
+            for code, libelle, precision in [
+                ('IS_SOUTERRAIN', 'Site souterrain', ''),
+                ('IS_CAVITE_NATURELLE', 'Cavité naturelle', ''),
+                ('IS_GEOMORPHO', 'Site géomorphologique, paysage géologique remarquable', ''),
+                ('IS_HYDROGEO', 'Site hydrogéologique', ''),
+            ]:
+                CorEnjeuObjetGeologique.objects.get_or_create(
+                    id_enjeu=enjeu, code=code,
+                    defaults={'libelle': libelle, 'precision': precision}
+                )
             enjeux_created.append(enjeu)
             self.log_item('créé' if created else 'mis à jour', f'Enjeu: {enjeu.intitule_court}')
 
@@ -664,6 +699,9 @@ class EnjeuxSeeder(BaseSeeder):
                     'espece': False,
                     'patrimoine_geologique': True,
                     'geo_in_situ': True,
+                    # #237 — démontre les patrimoines Ex situ + Documents
+                    'geo_ex_situ': True,
+                    'geo_documents': True,
                     'etat_enjeu': 'Les moraines würmiennes et le modelé glaciaire du bassin de Remoray '
                                   'témoignent de l\'histoire glaciaire du Jura. Sites bien conservés '
                                   'mais peu documentés et non valorisés.',
@@ -686,6 +724,23 @@ class EnjeuxSeeder(BaseSeeder):
             CorEnjeuGeologie.objects.get_or_create(
                 id_enjeu=enjeu, id_inpg='2125',
                 defaults={'nom': 'Pertes du Doubs à Arçon'}
+            )
+            # #237 — objets géologiques in situ + ex situ (collections).
+            # Le patrimoine Documents (geo_documents) n'a pas de détail dans la typologie V2.
+            for code, libelle, precision in [
+                ('IS_GEOMORPHO', 'Site géomorphologique, paysage géologique remarquable', ''),
+                ('ES_COLL_LITHOLOGIQUE', 'Collection lithologique', ''),
+                ('ES_AUTRE', 'Autre', 'Collection de blocs erratiques glaciaires'),
+            ]:
+                CorEnjeuObjetGeologique.objects.get_or_create(
+                    id_enjeu=enjeu, code=code,
+                    defaults={'libelle': libelle, 'precision': precision}
+                )
+            # #237 — patrimoine Documents : référence papier d'exemple
+            CorEnjeuFichier.objects.get_or_create(
+                id_enjeu=enjeu, support='papier',
+                titre='Inventaire des moraines würmiennes (rapport papier, 1995)',
+                defaults={'id_utilisateur_upload': admin}
             )
             enjeux_created.append(enjeu)
             self.log_item('créé' if created else 'mis à jour', f'Enjeu: {enjeu.intitule_court}')

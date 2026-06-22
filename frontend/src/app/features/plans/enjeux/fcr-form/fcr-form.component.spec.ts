@@ -58,6 +58,8 @@ const existingFcr: Enjeu = {
   patrimoine_geologique: false,
   geo_ex_situ: false,
   geo_in_situ: false,
+  geo_documents: false,
+  geo_autre: false,
   fonctionnalite_ecosysteme: false,
   autre_ecologique: false,
   processus: false,

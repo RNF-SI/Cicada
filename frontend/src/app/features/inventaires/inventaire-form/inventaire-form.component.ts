@@ -185,11 +185,13 @@ export class InventaireFormComponent implements OnInit {
     const protocoleSet = isCampanule || isNotCampanule;
 
     this.applyRequiredValidator('cd_protocole_campanule', isCampanule);
-    this.applyRequiredValidator('nom_protocole', isNotCampanule);
+    // #413 — le nom d'un protocole non-CAMPanule (nom local) est facultatif.
+    this.applyRequiredValidator('nom_protocole', false);
     // Champs visibles dans les 2 modes (dès qu'un mode est choisi)
     this.applyRequiredValidator('frequence_nombre', protocoleSet);
     this.applyRequiredValidator('frequence_unite', protocoleSet);
-    this.applyRequiredValidator('respect_protocole', protocoleSet);
+    // #414 — « Respect strict du protocole » réservé aux protocoles CAMPanule.
+    this.applyRequiredValidator('respect_protocole', isCampanule);
     // Champs visibles uniquement en mode hors-CAMPanule
     this.applyRequiredValidator('documentation_disponible', isNotCampanule);
     this.applyRequiredValidator('nb_etp_cycle', isNotCampanule);

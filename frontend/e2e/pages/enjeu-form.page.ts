@@ -161,4 +161,52 @@ export class EnjeuFormPage {
     await panelHeader.click();
     await this.page.waitForTimeout(300);
   }
+
+  /**
+   * #409 — ajoute un habitat en saisie libre (sans cd_hab) pour satisfaire
+   * la contrainte « au moins un habitat si la cible habitat est cochée ».
+   */
+  async addHabitatFreeText(label: string) {
+    await this.habitatRefList.locator('.free-text-toggle').click();
+    await this.habitatRefList.locator('.free-text-field input').fill(label);
+    await this.habitatRefList.locator('.free-text-add-btn').click();
+    await this.page.waitForTimeout(200);
+  }
+
+  /**
+   * #409 — ajoute un taxon via l'autocomplete TaxRef (≥2 caractères) pour
+   * satisfaire la contrainte « au moins un taxon si la cible espèce est cochée ».
+   */
+  async addTaxon(query: string) {
+    const input = this.taxonRefList.locator('input[matInput]');
+    await input.click();
+    // Frappe caractère par caractère pour déclencher valueChanges/debounce et
+    // ouvrir le panneau matAutocomplete (fill() ne l'ouvre pas toujours).
+    await input.pressSequentially(query, { delay: 60 });
+    const option = this.page
+      .locator('.reference-autocomplete-panel mat-option, .cdk-overlay-pane mat-option')
+      .first();
+    await option.waitFor({ state: 'visible', timeout: 10000 });
+    await option.click();
+    await this.page.waitForTimeout(200);
+  }
+
+  /**
+   * #409 — en édition d'un enjeu existant dont la cible habitat/espèce est cochée
+   * mais sans référence rattachée (données antérieures à #409), ajoute une
+   * référence afin que le formulaire soit valide et puisse être enregistré.
+   * No-op si les cibles ne sont pas cochées ou déjà satisfaites.
+   */
+  async ensureCibleRefsSatisfied() {
+    if (await this.habitatRefList.isVisible().catch(() => false)) {
+      if ((await this.habitatRefList.locator('.item-chip').count()) === 0) {
+        await this.addHabitatFreeText('Habitat E2E');
+      }
+    }
+    if (await this.taxonRefList.isVisible().catch(() => false)) {
+      if ((await this.taxonRefList.locator('.item-chip').count()) === 0) {
+        await this.addTaxon('Bufo');
+      }
+    }
+  }
 }

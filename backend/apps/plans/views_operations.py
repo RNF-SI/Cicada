@@ -285,7 +285,7 @@ class OperationViewSet(viewsets.ModelViewSet):
         POST /api/plans/operations/{id}/create-indicator/
         Body: {
             "nom_indicateur": str (required),
-            "nom_metrique": str (optional, défaut: nom_indicateur),
+            "nom_metrique": str (optional, vide par défaut),
             "type_metrique_id": int (optional),
             "valeur_cible": str (optional, écrit dans Metrique.etat_reference)
         }
@@ -333,9 +333,12 @@ class OperationViewSet(viewsets.ModelViewSet):
         )
 
         type_met_id = request.data.get('type_metrique_id')
+        # #398 — ne PAS retomber sur `nom_indicateur` : un indicateur de réponse
+        # créé sans métrique nommée doit rester « sans métrique » (sinon le nom
+        # de l'indicateur s'affiche à tort comme une métrique sous l'action).
         new_met = Metrique.objects.create(
             id_indicateur=new_ind,
-            nom_metrique=request.data.get('nom_metrique') or nom_indicateur,
+            nom_metrique=(request.data.get('nom_metrique') or '').strip(),
             type_metrique_id=type_met_id if type_met_id else None,
             etat_reference=request.data.get('valeur_cible') or '',
             id_utilisateur_ajout=request.user,
@@ -462,20 +465,37 @@ class RealisationOperationAnneeViewSet(viewsets.ModelViewSet):
 
         POST /api/plans/realisations/upsert/
         Body: { "id_operation_annee": 123, "id_niveau_realisation": 1502, ... }
+
+        #418 — Si l'année n'était pas programmée (pas d'OperationAnnee), on
+        accepte aussi { "id_operation": 12, "annee": 2025, ... } : l'année est
+        créée à la volée (periodicite=False) pour permettre la saisie du suivi
+        d'une action « réalisée non prévue ».
         """
         id_op_annee = request.data.get('id_operation_annee')
-        if not id_op_annee:
-            return Response(
-                {'detail': 'id_operation_annee est requis.'},
-                status=status.HTTP_400_BAD_REQUEST,
+        created_oa = False
+        if id_op_annee:
+            operation_annee = get_object_or_404(OperationAnnee, pk=id_op_annee)
+        else:
+            id_operation = request.data.get('id_operation')
+            annee = request.data.get('annee')
+            if not id_operation or annee in (None, ''):
+                return Response(
+                    {'detail': 'id_operation_annee, ou (id_operation + annee), est requis.'},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            operation = get_object_or_404(Operation, pk=id_operation)
+            operation_annee, created_oa = OperationAnnee.objects.get_or_create(
+                id_operation=operation, annee=int(annee),
+                defaults={'periodicite': False},
             )
-        operation_annee = get_object_or_404(OperationAnnee, pk=id_op_annee)
         # Garde-fou : l'utilisateur doit voir l'opération parente via le scoping standard.
         accessible_ops = _scope_realisation_queryset(
             OperationAnnee.objects.filter(pk=operation_annee.pk),
             request.user, 'id_operation',
         )
         if not accessible_ops.exists():
+            if created_oa:
+                operation_annee.delete()
             return Response(
                 {'detail': "Vous n'avez pas accès à cette opération."},
                 status=status.HTTP_403_FORBIDDEN,
@@ -603,19 +623,11 @@ class RealisationOperationAnneeViewSet(viewsets.ModelViewSet):
         plan = get_object_or_404(_Plan, pk=plan_id)
 
         def _compute_score(value, m):
-            """Retourne 1-5 selon la grille de scores de la métrique, ou 0 si hors plage."""
-            try:
-                v = float(value)
-            except (TypeError, ValueError):
-                return 0
-            for i in range(1, 6):
-                inf = getattr(m, f'score_{i}_inf', None)
-                sup = getattr(m, f'score_{i}_sup', None)
-                if inf is None or sup is None:
-                    continue
-                if float(inf) <= v <= float(sup):
-                    return i
-            return 0
+            """Retourne 1-5 selon la grille de scores de la métrique, ou 0 si hors plage.
+            #423 — délègue à _value_to_score (virgule décimale, bornes ouvertes ET
+            inclusivité des bornes gérées au même endroit)."""
+            from .views_indicateurs import _value_to_score
+            return _value_to_score(value, m) or 0
 
         indicators_qs = Indicateur.objects.filter(
             id_ne__id_olt__id_enjeu__id_pg=plan,

@@ -34,6 +34,10 @@ import { HeaderComponent } from '../../../../shared/components/header/header.com
 import { PlanSidebarComponent } from '../../shared/plan-sidebar/plan-sidebar.component';
 import { ConfirmDialogComponent } from '../../../../shared/components/confirm-dialog/confirm-dialog.component';
 import {
+  AccessRequestDialogComponent,
+  AccessRequestDialogData,
+} from '../../../../shared/components/access-request-dialog/access-request-dialog.component';
+import {
   DuplicateIndicateurDialogComponent,
   DuplicateIndicateurDialogData,
   DuplicateIndicateurDialogResult,
@@ -137,6 +141,18 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
   // ET le plan doit être en brouillon (#248).
   canEditPlan = computed(() => {
     if (!this.isPlanDraft()) return false;
+    if (this.authService.isSuperAdmin() || this.authService.isRedacteurPrincipal() || this.authService.isAdminOrganisme()) {
+      return true;
+    }
+    const currentUser = this.authService.currentUser();
+    if (!currentUser) return false;
+    return this.planReferentIds().includes(currentUser.id);
+  });
+
+  /** Gestionnaire du plan : admin/super/RP ou référent du plan (indépendant du
+   *  statut brouillon). Sert à distinguer un simple consultant non référent,
+   *  à qui l'on propose de demander à devenir référent. */
+  isPlanManager = computed(() => {
     if (this.authService.isSuperAdmin() || this.authService.isRedacteurPrincipal() || this.authService.isAdminOrganisme()) {
       return true;
     }
@@ -708,13 +724,39 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
       const el = this.elRef.nativeElement.querySelector(`#${CSS.escape(anchor)}`);
       if (el) {
         clearInterval(interval);
-        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        el.classList.add('anchor-highlight');
-        setTimeout(() => el.classList.remove('anchor-highlight'), 2000);
+        this.scrollToAnchorWhenStable(el as HTMLElement);
       } else if (attempts >= maxAttempts) {
         clearInterval(interval);
       }
     }, 100);
+  }
+
+  /**
+   * #420 — Scrolle vers l'élément une fois sa position **stabilisée**. Les
+   * accordéons parents se déplient en cascade (plusieurs cycles de rendu) :
+   * scroller dès l'apparition viserait une position périmée, d'où un scroll
+   * inexact. On attend deux mesures consécutives identiques de `top` avant de
+   * lancer un unique scroll fluide (garde-fou à 1,5 s).
+   */
+  private scrollToAnchorWhenStable(el: HTMLElement): void {
+    let lastTop = NaN;
+    let stableCount = 0;
+    const doScroll = () => {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      el.classList.add('anchor-highlight');
+      setTimeout(() => el.classList.remove('anchor-highlight'), 2000);
+    };
+    const poll = setInterval(() => {
+      const top = el.getBoundingClientRect().top;
+      stableCount = Math.abs(top - lastTop) < 1 ? stableCount + 1 : 0;
+      lastTop = top;
+      if (stableCount >= 2) {
+        clearInterval(poll);
+        clearTimeout(guard);
+        doScroll();
+      }
+    }, 80);
+    const guard = setTimeout(() => { clearInterval(poll); doScroll(); }, 1500);
   }
 
   /**
@@ -1161,6 +1203,22 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
   totalOoCount = computed(() => {
     return this.selectedOos().length;
   });
+
+  /** Ouvre la modale de demande d'accès au plan, option « Référent » présélectionnée. */
+  requestBecomeReferent(): void {
+    const id = this.planId();
+    if (!id) return;
+    this.dialog.open(AccessRequestDialogComponent, {
+      width: '500px',
+      data: {
+        type: 'plan',
+        targetId: id,
+        targetName: this.planNom(),
+        hasAccessViaSite: true,
+        defaultAsReferent: true,
+      } as AccessRequestDialogData,
+    });
+  }
 
   // Event handlers pour les accordéons
   onEnjeuDelete(enjeu: Enjeu): void {
@@ -1934,6 +1992,7 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
       nom_metrique: '',
       type_metrique: null,
       unite: '',
+      bloc_intitule: '',
       ponderation: null,
       etat_reference: '',
       scores: {
@@ -1981,6 +2040,33 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
     return result;
   }
 
+  /**
+   * Libellé d'affichage d'un bloc : « intitulé (unité) » (ex: « hauteur (m) »),
+   * ou juste « intitulé » si l'unité est vide. À défaut d'intitulé, retombe sur
+   * « Bloc <lettre> » (compatibilité). `idx` = 0 → bloc principal (intitulé =
+   * `bloc_intitule`, unité = `unite` de la métrique), idx ≥ 1 → bloc
+   * complémentaire `score_blocks[idx-1]`.
+   */
+  metriqueBlockLabel(met: any, idx: number): string {
+    let intitule: string | null | undefined;
+    let unite: string | null | undefined;
+    if (idx === 0) {
+      intitule = met.bloc_intitule;
+      unite = met.unite;
+    } else {
+      const block = (met.score_blocks || [])[idx - 1];
+      intitule = block?.intitule;
+      unite = block?.unite;
+    }
+    const label = (intitule ?? '').trim();
+    if (label) {
+      const u = (unite ?? '').trim();
+      return u ? `${label} (${u})` : label;
+    }
+    // Fallback historique : « Bloc A », « Bloc B »…
+    return this.translate.instant('enjeux.metriques.blockLabel') + ' ' + this.indexToBlockLetter(idx);
+  }
+
   metriqueToFormData(met: Metrique): MetriqueFormData {
     const sensVariation = met.sens_variation || 'CROISSANT';
 
@@ -1990,6 +2076,7 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
       nom_metrique: met.nom_metrique,
       type_metrique: met.type_metrique || null,
       unite: met.unite || '',
+      bloc_intitule: met.bloc_intitule || '',
       ponderation: met.ponderation ?? null,
       etat_reference: met.etat_reference || '',
       ordre: met.ordre ?? 0,
@@ -2020,6 +2107,8 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
       score_blocks: (met.score_blocks || []).map((b, i) => ({
         id_score_block: b.id_score_block,
         position: b.position,
+        intitule: b.intitule || '',
+        unite: b.unite || '',
         logical_op: b.logical_op,
         group_open: b.group_open,
         group_close: b.group_close,
@@ -2066,7 +2155,10 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
       nom_metrique: met.nom_metrique.trim(),
     };
     if (met.type_metrique) payload.type_metrique = met.type_metrique;
-    if (met.unite.trim()) payload.unite = met.unite.trim();
+    // Unité optionnelle au niveau métrique : envoyer null explicite si vidée pour effacer en base.
+    payload.unite = met.unite.trim() || null;
+    // Intitulé du bloc principal (pertinent en multi-blocs ; inoffensif sinon).
+    payload.bloc_intitule = met.bloc_intitule?.trim() || null;
     if (met.ponderation != null) payload.ponderation = met.ponderation;
     if (met.etat_reference.trim()) payload.etat_reference = met.etat_reference.trim();
     if (met.ordre != null) payload.ordre = met.ordre;
@@ -2079,6 +2171,13 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
       } else if (mnemonique === 'TEXTE') {
         if (s?.label?.trim()) (payload as any)[`score_${level}_label`] = s.label.trim();
       } else {
+        // NUMERIQUE: niveau « non utilisé » → bornes effacées (null explicite)
+        // pour ne pas laisser de données fantômes (tableau + scoring auto).
+        if ((met._inactiveLevels || []).includes(level)) {
+          (payload as any)[`score_${level}_inf`] = null;
+          (payload as any)[`score_${level}_sup`] = null;
+          continue;
+        }
         // NUMERIQUE: handle optional extreme bounds
         const isOptionalInf = this.isOptionalBound(met, level, 'inf');
         const isOptionalSup = this.isOptionalBound(met, level, 'sup');
@@ -2123,25 +2222,36 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
       // #247 — blocs de scoring complémentaires. Envoyés intégralement à
       // chaque sauvegarde : le serializer remplace l'ensemble (delete + recréation).
       if (met.score_blocks !== undefined) {
-        payload.score_blocks = (met.score_blocks || []).map(b => ({
-          position: b.position,
-          logical_op: b.logical_op,
-          group_open: b.group_open,
-          group_close: b.group_close,
-          sens_variation: b.sens_variation,
-          score_1_inf: b.score_1_inf, score_1_sup: b.score_1_sup,
-          score_2_inf: b.score_2_inf, score_2_sup: b.score_2_sup,
-          score_3_inf: b.score_3_inf, score_3_sup: b.score_3_sup,
-          score_4_inf: b.score_4_inf, score_4_sup: b.score_4_sup,
-          score_5_inf: b.score_5_inf, score_5_sup: b.score_5_sup,
-          score_1_sup_inclusive: b.score_1_sup_inclusive,
-          score_2_sup_inclusive: b.score_2_sup_inclusive,
-          score_3_sup_inclusive: b.score_3_sup_inclusive,
-          score_4_sup_inclusive: b.score_4_sup_inclusive,
-          has_borne_score1: b.has_borne_score1,
-          has_borne_score5: b.has_borne_score5,
-          inactive_levels: Array.isArray(b.inactive_levels) ? [...b.inactive_levels] : [],
-        }));
+        payload.score_blocks = (met.score_blocks || []).map(b => {
+          const inactive = Array.isArray(b.inactive_levels) ? [...b.inactive_levels] : [];
+          const block: any = {
+            position: b.position,
+            intitule: b.intitule?.trim() || null,
+            unite: b.unite?.trim() || null,
+            logical_op: b.logical_op,
+            group_open: b.group_open,
+            group_close: b.group_close,
+            sens_variation: b.sens_variation,
+            score_1_inf: b.score_1_inf, score_1_sup: b.score_1_sup,
+            score_2_inf: b.score_2_inf, score_2_sup: b.score_2_sup,
+            score_3_inf: b.score_3_inf, score_3_sup: b.score_3_sup,
+            score_4_inf: b.score_4_inf, score_4_sup: b.score_4_sup,
+            score_5_inf: b.score_5_inf, score_5_sup: b.score_5_sup,
+            score_1_sup_inclusive: b.score_1_sup_inclusive,
+            score_2_sup_inclusive: b.score_2_sup_inclusive,
+            score_3_sup_inclusive: b.score_3_sup_inclusive,
+            score_4_sup_inclusive: b.score_4_sup_inclusive,
+            has_borne_score1: b.has_borne_score1,
+            has_borne_score5: b.has_borne_score5,
+            inactive_levels: inactive,
+          };
+          // Niveau « non utilisé » → bornes effacées (cohérent avec le principal).
+          for (const lvl of inactive) {
+            block[`score_${lvl}_inf`] = null;
+            block[`score_${lvl}_sup`] = null;
+          }
+          return block;
+        });
       }
     }
 
@@ -2261,8 +2371,57 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
     }
   }
 
+  /**
+   * Vérifie que les niveaux ACTIFS (non grisés) d'une métrique « Chiffre » ou
+   * « Texte » ont bien une valeur saisie. Retourne un message d'erreur (avec le
+   * nom de la métrique) si un niveau actif est vide, sinon null.
+   *
+   * Pour les autres types (NUMERIQUE, INDETERMINE), aucune contrainte ici.
+   */
+  private metriqueActiveLevelsError(met: MetriqueFormData): string | null {
+    const mnemo = this.getMetriqueTypeMnemonique(met.type_metrique);
+    if (mnemo !== 'CHIFFRE' && mnemo !== 'TEXTE') return null;
+    const inactive = met._inactiveLevels || [];
+    for (let lvl = 1; lvl <= 5; lvl++) {
+      if (inactive.includes(lvl)) continue;
+      const s = met.scores?.[lvl];
+      const empty = mnemo === 'CHIFFRE' ? (s?.val == null) : !(s?.label?.trim());
+      if (empty) {
+        const name = met.nom_metrique?.trim() || this.translate.instant('enjeux.metriques.unnamed');
+        return this.translate.instant('enjeux.metriques.activeLevelRequired', { name });
+      }
+    }
+    return null;
+  }
+
+  /**
+   * Valide une liste de métriques avant sauvegarde : si un niveau actif est vide
+   * (Chiffre / Texte), affiche un snackbar et retourne false (sauvegarde bloquée).
+   * Les métriques marquées supprimées sont ignorées.
+   */
+  private validateMetriquesActiveLevels(metriques: MetriqueFormData[]): boolean {
+    for (const met of metriques) {
+      if (met._deleted) continue;
+      const err = this.metriqueActiveLevelsError(met);
+      if (err) {
+        this.snackBar.open(err, this.translate.instant('common.actions.close'), { duration: 4000 });
+        return false;
+      }
+    }
+    return true;
+  }
+
   saveIndicateur(ne: any): void {
     if (!this.newIndicateurNom.trim()) return;
+
+    // Filter metriques that have a name (#339 : les métriques de type
+    // « Indéterminé » sont conservées même sans intitulé).
+    const validMetriques = this.indicateurFormMetriques.filter(m =>
+      m.nom_metrique.trim() || this.getMetriqueTypeMnemonique(m.type_metrique) === 'INDETERMINE'
+    );
+    // Niveaux actifs (Chiffre / Texte) : saisie obligatoire.
+    if (!this.validateMetriquesActiveLevels(validMetriques)) return;
+
     this.isSavingIndicateur.set(true);
 
     const payload: any = {
@@ -2272,12 +2431,6 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
     };
     if (this.newIndicateurType) payload.type_indicateur = this.newIndicateurType;
     if (this.newIndicateurDescription.trim()) payload.description = this.newIndicateurDescription.trim();
-
-    // Filter metriques that have a name (#339 : les métriques de type
-    // « Indéterminé » sont conservées même sans intitulé).
-    const validMetriques = this.indicateurFormMetriques.filter(m =>
-      m.nom_metrique.trim() || this.getMetriqueTypeMnemonique(m.type_metrique) === 'INDETERMINE'
-    );
 
     this.enjeuService.createIndicateur(payload).pipe(
       takeUntilDestroyed(this.destroyRef)
@@ -2356,8 +2509,18 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
   saveStandaloneMetrique(indicateurId: number): void {
     // #339 : l'intitulé n'est requis que si le type n'est pas « Indéterminé ».
     if (!this.standaloneMetriqueForm) return;
+    // #401 — le type de métrique est obligatoire.
+    if (this.standaloneMetriqueForm.type_metrique == null) {
+      this.snackBar.open(
+        this.translate.instant('enjeux.metriques.typeRequired'),
+        this.translate.instant('common.actions.close'),
+        { duration: 3000 }
+      );
+      return;
+    }
     const isIndetermine = this.getMetriqueTypeMnemonique(this.standaloneMetriqueForm.type_metrique) === 'INDETERMINE';
     if (!isIndetermine && !this.standaloneMetriqueForm.nom_metrique.trim()) return;
+    if (!this.validateMetriquesActiveLevels([this.standaloneMetriqueForm])) return;
     this.isSavingStandaloneMetrique.set(true);
     const payload = this.buildMetriquePayload(indicateurId, this.standaloneMetriqueForm);
     this.enjeuService.createMetrique(payload).pipe(
@@ -2385,7 +2548,7 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
     });
   }
 
-  startEditIndicateur(ind: any): void {
+  startEditIndicateur(ind: any, expandMetriqueId?: number): void {
     this.editingIndicateurId.set(ind.id_indicateur);
     this.editIndicateurNom = ind.nom_indicateur;
     this.editIndicateurType = ind.type_indicateur || null;
@@ -2397,6 +2560,14 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
     this.editIndicateurMetriques = (ind.metriques || []).map((met: Metrique) =>
       this.metriqueToFormData(met)
     );
+
+    // #411 — édition d'une métrique précise : la déplier directement
+    if (expandMetriqueId != null) {
+      const target = this.editIndicateurMetriques.find(
+        (m) => m.id_metrique === expandMetriqueId
+      );
+      if (target) target._expanded = true;
+    }
   }
 
   cancelEditIndicateur(): void {
@@ -2865,6 +3036,7 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
 
   saveEditIndicateur(ind: any): void {
     if (!this.editIndicateurNom.trim()) return;
+    if (!this.validateMetriquesActiveLevels(this.editIndicateurMetriques)) return;
     this.isSavingIndicateur.set(true);
 
     const payload: any = {
@@ -3149,7 +3321,10 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
       const label = met[`score_${level}_label`];
       return label?.trim() || '-';
     }
-    // NUMERIQUE
+    // NUMERIQUE — #359 : niveau « non utilisé » masqué (cohérent Chiffre/Texte
+    // et robuste aux données déjà enregistrées avec des bornes résiduelles).
+    if ((met.inactive_levels || []).includes(level)) return '- - -';
+
     const inf = met[`score_${level}_inf`];
     const sup = met[`score_${level}_sup`];
 
@@ -3212,29 +3387,28 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
   }> {
     const lines: Array<any> = [];
 
-    // Lettres stables : principal = A, complémentaires = B, C, D, … (basé
-    // sur l'ordre courant). Le label reste « Bloc A », « Bloc B », etc.
-    const blockLabelPrefix = this.translate.instant('enjeux.metriques.blockLabel');
+    // Libellés des blocs : « intitulé (unité) » (ex: « hauteur (m) »), avec
+    // repli sur « Bloc A/B » si l'intitulé est vide (cf. metriqueBlockLabel).
 
-    // Bloc principal — étiqueté avec sa lettre.
+    // Bloc principal.
     const mainText = this.getScoreRange(met, level);
     if (mainText && mainText !== '-' && mainText !== '- - -') {
       lines.push({
         text: mainText,
-        blockLabel: blockLabelPrefix + ' ' + this.indexToBlockLetter(0),
+        blockLabel: this.metriqueBlockLabel(met, 0),
         openParen: (met.group_open ?? 0) > 0,
         closeParen: (met.group_close ?? 0) > 0,
       });
     }
 
-    // Blocs complémentaires — étiquetés avec leur lettre stable.
+    // Blocs complémentaires.
     const blocks = met.score_blocks || [];
     blocks.forEach((block: any, idx: number) => {
       const text = this.getScoreRange({ ...block, type_metrique_mnemonique: 'NUMERIQUE' }, level);
       if (!text || text === '-' || text === '- - -') return;
       lines.push({
         text,
-        blockLabel: blockLabelPrefix + ' ' + this.indexToBlockLetter(idx + 1),
+        blockLabel: this.metriqueBlockLabel(met, idx + 1),
         op: block.logical_op,
         openParen: (block.group_open ?? 0) > 0,
         closeParen: (block.group_close ?? 0) > 0,
@@ -3631,6 +3805,7 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
     if (metriqueId) queryParams.metriqueId = metriqueId;
     const enjeuSlug = this.selectedEnjeuSlug();
     if (enjeuSlug) queryParams.returnEnjeu = enjeuSlug;
+    queryParams.returnTab = this.activeTab();
     const extras = Object.keys(queryParams).length > 0 ? { queryParams } : {};
     this.router.navigate(['/plans', slug, 'enjeux', 'operations', 'nouveau'], extras);
   }
@@ -3658,6 +3833,7 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
     const queryParams: any = { indicateurId };
     const enjeuSlug = this.selectedEnjeuSlug();
     if (enjeuSlug) queryParams.returnEnjeu = enjeuSlug;
+    queryParams.returnTab = this.activeTab();
     this.router.navigate(['/plans', slug, 'enjeux', 'operations', 'nouveau'], { queryParams });
   }
 
@@ -3719,6 +3895,7 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
     const queryParams: any = { metriqueIds: metriqueIds.join(',') };
     const enjeuSlug = this.selectedEnjeuSlug();
     if (enjeuSlug) queryParams.returnEnjeu = enjeuSlug;
+    queryParams.returnTab = this.activeTab();
     this.router.navigate(['/plans', slug, 'enjeux', 'operations', 'nouveau'], { queryParams });
   }
 
@@ -3816,6 +3993,16 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
   getOtherMetriques(op: Operation, currentMetriqueId: number): MetriqueRef[] {
     if (!op.metriques) return [];
     return op.metriques.filter(m => m.id_metrique !== currentMetriqueId);
+  }
+
+  /** Métriques affichables en chips sous une action : uniquement les métriques
+   *  liées à l'action (indicateurs d'État/Pression). On exclut les indicateurs de
+   *  réponse (type REPONSE) — propres à l'action — qui ne doivent pas apparaître
+   *  en tête, ainsi que les métriques sans nom (#398). */
+  visibleMetriques(op: Operation): MetriqueRef[] {
+    return (op.metriques || []).filter(m =>
+      m.indicateur_type !== 'REPONSE' && (m.nom_metrique || '').trim().length > 0,
+    );
   }
 
   navigateToEditOperation(operationId: number): void {
@@ -4184,6 +4371,7 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
 
   saveIndicateurForRa(ra: ResultatAttendu): void {
     if (!this.newOoIndicateurNom.trim()) return;
+    if (!this.validateMetriquesActiveLevels(this.ooIndicateurFormMetriques)) return;
 
     this.isSavingOoIndicateur.set(true);
     this.enjeuService.createIndicateur({
@@ -4235,7 +4423,7 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
     });
   }
 
-  startEditOoIndicateur(indicateur: Indicateur): void {
+  startEditOoIndicateur(indicateur: Indicateur, expandMetriqueId?: number): void {
     this.editingOoIndicateurId.set(indicateur.id_indicateur);
     this.editOoIndicateurNom = indicateur.nom_indicateur;
     this.editOoIndicateurType = indicateur.type_indicateur || null;
@@ -4245,6 +4433,14 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
     this.editOoIndicateurMetriques = (indicateur.metriques || []).map(m =>
       this.metriqueToFormData(m)
     );
+
+    // #411 — édition d'une métrique précise : la déplier directement
+    if (expandMetriqueId != null) {
+      const target = this.editOoIndicateurMetriques.find(
+        m => m.id_metrique === expandMetriqueId
+      );
+      if (target) target._expanded = true;
+    }
   }
 
   cancelEditOoIndicateur(): void {
@@ -4273,6 +4469,7 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
 
   saveEditOoIndicateur(ind: Indicateur): void {
     if (!this.editOoIndicateurNom.trim()) return;
+    if (!this.validateMetriquesActiveLevels(this.editOoIndicateurMetriques)) return;
     this.isSavingOoIndicateur.set(true);
 
     const payload: any = {

@@ -4,12 +4,12 @@ Tests d'intégration pour l'API REST Opérations (Actions).
 import pytest
 from rest_framework import status
 
-from apps.plans.models_operations import Operation, Protocole, SuiviInventaire
+from apps.plans.models_operations import Operation, Protocole, SuiviInventaire, CorOperationMetrique
 from tests.factories.enjeux import (
     EnjeuFactory, NomenclatureEnjeuFactory,
     ObjectifLongTermeFactory, NiveauExigenceFactory,
     IndicateurFactory, MetriqueFactory, ProtocoleFactory, SuiviInventaireFactory, OperationFactory,
-    NomenclaturePrioriteOperationFactory,
+    NomenclaturePrioriteOperationFactory, NomenclatureTypeIndicateurFactory,
 )
 from tests.factories.plans import PlanGestionFactory, CorSitePgFactory
 from tests.factories.users import (
@@ -60,12 +60,23 @@ def operation_test_data(db):
         id_olt=olt, libelle='NE Test Op',
         id_utilisateur_ajout=referent
     )
+    # Types État/Pression explicites : sans ça, l'Iterator de la factory peut
+    # produire un indicateur REPONSE, ce qui fausse les tests sur `metrique_ids`
+    # (les liens REPONSE étant désormais préservés à la re-synchro, #398).
+    type_etat = NomenclatureTypeIndicateurFactory(
+        cd_nomenclature='ETAT', mnemonique='ETAT', label='État',
+    )
+    type_pression = NomenclatureTypeIndicateurFactory(
+        cd_nomenclature='PRESSION', mnemonique='PRESSION', label='Pression',
+    )
     indicateur1 = IndicateurFactory(
         id_ne=ne, nom_indicateur='Indicateur Test Op 1',
+        type_indicateur=type_etat,
         id_utilisateur_ajout=referent
     )
     indicateur2 = IndicateurFactory(
         id_ne=ne, nom_indicateur='Indicateur Test Op 2',
+        type_indicateur=type_pression,
         id_utilisateur_ajout=referent
     )
 
@@ -614,6 +625,44 @@ class TestOperationUpdateEndpoint:
         operation_test_data['op1'].refresh_from_db()
         assert operation_test_data['op1'].libelle == 'Opération Mise à Jour'
 
+    def test_update_metrique_ids_preserves_response_indicator(self, api_client, operation_test_data):
+        """#398 — la (re)synchro de `metrique_ids` au save ne touche QUE les liens
+        vers des métriques État/Pression. Un indicateur de réponse (lié à l'action
+        via sa propre métrique) doit survivre, et ne pas figurer dans `metrique_ids`."""
+        api_client.force_authenticate(user=operation_test_data['super_admin'])
+        op = operation_test_data['op1']
+
+        # Indicateur de réponse + sa métrique, rattachés à l'action.
+        reponse_type = NomenclatureTypeIndicateurFactory(
+            cd_nomenclature='REPONSE', mnemonique='REPONSE', label='Réponse',
+        )
+        reponse_ind = IndicateurFactory(
+            id_ne=operation_test_data['indicateur1'].id_ne,
+            type_indicateur=reponse_type,
+            nom_indicateur='Indicateur de réponse',
+            id_utilisateur_ajout=operation_test_data['referent'],
+        )
+        reponse_met = MetriqueFactory(
+            id_indicateur=reponse_ind, nom_metrique='Métrique de réponse',
+            id_utilisateur_ajout=operation_test_data['referent'],
+        )
+        CorOperationMetrique.objects.create(id_operation=op, id_metrique=reponse_met)
+
+        etat_met_id = operation_test_data['metrique1'].id_metrique
+
+        # Le front n'envoie que la métrique État (la réponse ne transite pas par la liste).
+        response = api_client.patch(f'/api/plans/operations/{op.id_operation}/', {
+            'metrique_ids': [etat_met_id],
+        }, format='json')
+        assert response.status_code == status.HTTP_200_OK
+
+        # Le lien vers la métrique de réponse a survécu…
+        linked = set(op.metriques.values_list('id_metrique', flat=True))
+        assert reponse_met.id_metrique in linked
+        assert etat_met_id in linked
+        # …mais `metrique_ids` exposé n'inclut QUE l'État/Pression.
+        assert response.data['metrique_ids'] == [etat_met_id]
+
     def test_referent_updates(self, api_client, operation_test_data):
         """Test referent can update an operation."""
         api_client.force_authenticate(user=operation_test_data['referent'])
@@ -878,6 +927,18 @@ class TestOperationCreateIndicator:
         from apps.plans.models_indicateurs import Indicateur
         new_ind = Indicateur.objects.get(pk=new_ind_id)
         assert new_ind.id_ne_id == operation_test_data['indicateur1'].id_ne_id
+
+    def test_create_indicator_defaults_to_empty_metric_name(self, api_client, operation_test_data):
+        """#398 — sans `nom_metrique`, la métrique reste sans nom (au lieu d'hériter
+        du nom de l'indicateur), pour ne pas s'afficher à tort comme une métrique."""
+        api_client.force_authenticate(user=operation_test_data['super_admin'])
+        op = operation_test_data['op1']
+        response = api_client.post(
+            f'/api/plans/operations/{op.id_operation}/create-indicator/',
+            {'nom_indicateur': 'Indicateur de réponse sans métrique'}, format='json',
+        )
+        assert response.status_code == status.HTTP_201_CREATED
+        assert response.data['nom_metrique'] == ''
 
     def test_create_indicator_from_direct_indicator_no_metrique(self, api_client, operation_test_data):
         """#367 — action rattachée directement à un indicateur (sans métrique) :

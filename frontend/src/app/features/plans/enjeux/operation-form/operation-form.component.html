@@ -3,15 +3,19 @@
 <div class="enjeu-form-page" [class.readonly-mode]="isReadOnly()">
   <!-- Hero Section -->
   <div class="hero-section">
-    <h1 class="hero-title">
-      @if (isReadOnly()) {
-        {{ 'enjeux.operations.viewTitle' | translate }}
-      } @else if (isEditMode()) {
-        {{ 'enjeux.operations.editTitle' | translate }}
-      } @else {
-        {{ 'enjeux.operations.createTitle' | translate }}
-      }
-    </h1>
+    <!-- #383 — vagues décoratives à droite, comme les pages de suivi -->
+    <div class="hero-background"><div class="hero-pattern"></div></div>
+    <div class="hero-content">
+      <h1 class="hero-title">
+        @if (isReadOnly()) {
+          {{ 'enjeux.operations.viewTitle' | translate }}
+        } @else if (isEditMode()) {
+          {{ 'enjeux.operations.editTitle' | translate }}
+        } @else {
+          {{ 'enjeux.operations.createTitle' | translate }}
+        }
+      </h1>
+    </div>
   </div>
 
   <!-- Loading State -->
@@ -397,8 +401,8 @@
 
               <!-- ═══ MODE NON-CAMPANULE (Non) ═══ -->
               @if (isNotCampanule) {
-                <!-- Nom du protocole (libre) -->
-                <app-form-field [label]="'enjeux.operations.nomProtocole' | translate" [required]="true">
+                <!-- #413 — Nom du protocole (libre, facultatif) + aide nom local -->
+                <app-form-field [label]="'enjeux.operations.nomProtocole' | translate" [helpText]="'enjeux.operations.nomProtocoleNonCampanuleHint' | translate">
   <input formControlName="nom_protocole">
 </app-form-field>
 
@@ -408,32 +412,35 @@
 </app-form-field>
               }
 
-              <!-- Respectez-vous strictement le protocole ? -->
-              <div class="radio-field-row radio-field-row-with-link">
-                <span class="radio-field-label">
-                  {{ 'enjeux.operations.respectProtocole' | translate }}
-                  <span class="required-star">*</span>
-                </span>
-                <mat-radio-group formControlName="respect_protocole" class="radio-inline">
-                  <mat-radio-button [value]="true" color="primary">{{ 'common.yes' | translate }}</mat-radio-button>
-                  <mat-radio-button [value]="false" color="primary">{{ 'common.no' | translate }}</mat-radio-button>
-                </mat-radio-group>
-                @if (isCampanule && hasCampanuleSelected) {
-                  <a class="consulter-link" (click)="consulterProtocole()">
-                    {{ 'enjeux.operations.consulterProtocole' | translate }}
-                  </a>
-                }
-              </div>
+              <!-- #414 — « Respect strict du protocole » réservé aux protocoles CAMPanule -->
+              @if (isCampanule) {
+                <!-- Respectez-vous strictement le protocole ? -->
+                <div class="radio-field-row radio-field-row-with-link">
+                  <span class="radio-field-label">
+                    {{ 'enjeux.operations.respectProtocole' | translate }}
+                    <span class="required-star">*</span>
+                  </span>
+                  <mat-radio-group formControlName="respect_protocole" class="radio-inline">
+                    <mat-radio-button [value]="true" color="primary">{{ 'common.yes' | translate }}</mat-radio-button>
+                    <mat-radio-button [value]="false" color="primary">{{ 'common.no' | translate }}</mat-radio-button>
+                  </mat-radio-group>
+                  @if (hasCampanuleSelected) {
+                    <a class="consulter-link" (click)="consulterProtocole()">
+                      {{ 'enjeux.operations.consulterProtocole' | translate }}
+                    </a>
+                  }
+                </div>
 
-              <!-- Non-respect: Justification + Différences -->
-              @if (isNonRespect) {
-                <app-form-field [label]="'enjeux.operations.justificationNonRespect' | translate">
+                <!-- Non-respect: Justification + Différences -->
+                @if (isNonRespect) {
+                  <app-form-field [label]="'enjeux.operations.justificationNonRespect' | translate">
   <textarea formControlName="justification_non_respect" rows="3"></textarea>
 </app-form-field>
 
-                <app-form-field [label]="'enjeux.operations.differencesProtocole' | translate">
+                  <app-form-field [label]="'enjeux.operations.differencesProtocole' | translate">
   <textarea formControlName="differences_protocole" rows="3"></textarea>
 </app-form-field>
+                }
               }
 
               <!-- Description du protocole (readonly si Campanule) -->
@@ -1009,11 +1016,31 @@
         <app-accordion variant="default" size="lg" [title]="'enjeux.operations.empriseSpatiale' | translate" [expanded]="sectionsOpen['emprise']" (expandedChange)="sectionsOpen['emprise'] = $event">
   <img accordionIcon src="assets/images/ellipses/ellipse-yellow.png" alt="" class="section-dot">
   <div class="section-content">
+    <!-- #410 — l'emprise de l'action peut reprendre celle du/des site(s)
+         sélectionné(s). Quand coché, le dessin manuel est désactivé. -->
+    <div class="emprise-site-option">
+      <app-checkbox
+        [checked]="useSiteEmprise()"
+        (checkedChange)="toggleUseSiteEmprise($event)"
+        [disabled]="isReadOnly() || selectedSitesCount() === 0"
+        [label]="'enjeux.operations.empriseMatchesSites' | translate">
+      </app-checkbox>
+      <p class="text-mention">
+        @if (selectedSitesCount() === 0) {
+          {{ 'enjeux.operations.empriseSitesSelectFirst' | translate }}
+        } @else {
+          {{ 'enjeux.operations.empriseSitesHint' | translate }}
+        }
+      </p>
+      @if (isComputingSiteEmprise()) {
+        <p class="text-mention">{{ 'enjeux.operations.empriseSitesComputing' | translate }}</p>
+      }
+    </div>
     <!-- Éditeur d'emprise factorisé (carte + dessin + import shapefile/GeoJSON),
          partagé avec la saisie d'un suivi. Lecture seule hors mode édition. -->
     <app-emprise-editor
       [geometry]="empriseGeom()"
-      [disabled]="isReadOnly()"
+      [disabled]="isReadOnly() || useSiteEmprise()"
       height="280px"
       (geometryChange)="onEmpriseChange($event)">
     </app-emprise-editor>

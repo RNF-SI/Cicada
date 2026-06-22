@@ -4,10 +4,12 @@
  */
 import { Component, OnInit, inject, signal, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { forkJoin, Observable, of } from 'rxjs';
 import { ActivatedRoute, Router } from '@angular/router';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
+import { MatSelectModule } from '@angular/material/select';
 import { MatButtonModule } from '@angular/material/button';
 import { MatRadioModule } from '@angular/material/radio';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
@@ -22,7 +24,8 @@ import { CheckboxComponent } from '../../../../shared/components/checkbox/checkb
 import { FormFieldComponent } from '../../../../shared/components/form-field/form-field.component';
 import { EnjeuService } from '../../../../core/services/enjeu.service';
 import { AdminService } from '../../../../core/services/admin.service';
-import { Enjeu, EnjeuCreatePayload, EnjeuUpdatePayload, TaxonRef, HabitatRef, GeologieRef } from '../../../../core/models/enjeu.model';
+import { Enjeu, EnjeuCreatePayload, EnjeuUpdatePayload, TaxonRef, HabitatRef, GeologieRef, ObjetGeologiqueRef, EnjeuDocument } from '../../../../core/models/enjeu.model';
+import { GEO_OBJET_GROUPS, ObjetGeologiqueGroup, ObjetGeologiqueOption, groupObjetCodes } from './objet-geologique.constant';
 
 @Component({
   selector: 'app-enjeu-form',
@@ -32,6 +35,7 @@ import { Enjeu, EnjeuCreatePayload, EnjeuUpdatePayload, TaxonRef, HabitatRef, Ge
     ReactiveFormsModule,
     MatFormFieldModule,
     MatInputModule,
+    MatSelectModule,
     MatButtonModule,
     MatRadioModule,
     CheckboxComponent,
@@ -78,6 +82,22 @@ export class EnjeuFormComponent implements OnInit {
   habitatItems: HabitatRef[] = [];
   geologieItems: GeologieRef[] = [];
 
+  // #237 — objets géologiques sélectionnés : { code → précision éventuelle }.
+  // La présence de la clé = objet coché ; la valeur = précision (objets « Autre »).
+  selectedObjets: Record<string, string> = {};
+  readonly geoObjetGroups = GEO_OBJET_GROUPS;
+
+  // #237 — Documents du patrimoine « Documents ».
+  // Existants (mode édition) + ajouts mis en attente, téléversés après l'enregistrement.
+  existingDocuments = signal<EnjeuDocument[]>([]);
+  stagedFiles = signal<File[]>([]);
+  stagedPapers = signal<string[]>([]);
+  private pendingDeleteDocIds: number[] = [];
+
+  // #409 — affiche les erreurs « au moins un taxon/habitat requis » après une
+  // tentative d'enregistrement (cible espèce/habitat cochée mais liste vide).
+  showRefErrors = signal(false);
+
   ngOnInit(): void {
     this.initForm();
     this.loadRouteParams();
@@ -95,6 +115,9 @@ export class EnjeuFormComponent implements OnInit {
       patrimoine_geologique: [false],
       geo_ex_situ: [false],
       geo_in_situ: [false],
+      geo_documents: [false],
+      geo_autre: [false],
+      geo_autre_precision: [''],
       fonctionnalite_ecosysteme: [false],
       autre_ecologique: [false],
       autre_ecologique_precision: [''],
@@ -115,8 +138,27 @@ export class EnjeuFormComponent implements OnInit {
       if (!isGeo) {
         this.form.patchValue({
           geo_ex_situ: false,
-          geo_in_situ: false
+          geo_in_situ: false,
+          geo_documents: false,
+          geo_autre: false,
+          geo_autre_precision: '',
         }, { emitEvent: false });
+        this.selectedObjets = {};
+      }
+    });
+
+    // #237 — décocher un patrimoine retire les objets géologiques de ce groupe.
+    for (const group of GEO_OBJET_GROUPS) {
+      this.form.get(group.control)?.valueChanges.subscribe(isChecked => {
+        if (!isChecked) this.clearGroupObjets(group);
+      });
+    }
+
+    // #237 — décocher « Documents » abandonne les ajouts de documents en attente.
+    this.form.get('geo_documents')?.valueChanges.subscribe(isChecked => {
+      if (!isChecked) {
+        this.stagedFiles.set([]);
+        this.stagedPapers.set([]);
       }
     });
 
@@ -157,10 +199,14 @@ export class EnjeuFormComponent implements OnInit {
           patrimoine_geologique: false,
           geo_ex_situ: false,
           geo_in_situ: false,
+          geo_documents: false,
+          geo_autre: false,
+          geo_autre_precision: '',
           fonctionnalite_ecosysteme: false,
           autre_ecologique: false,
           autre_ecologique_precision: ''
         }, { emitEvent: false });
+        this.selectedObjets = {};
       }
     });
 
@@ -284,6 +330,9 @@ export class EnjeuFormComponent implements OnInit {
       patrimoine_geologique: enjeu.patrimoine_geologique || false,
       geo_ex_situ: enjeu.geo_ex_situ || false,
       geo_in_situ: enjeu.geo_in_situ || false,
+      geo_documents: enjeu.geo_documents || false,
+      geo_autre: enjeu.geo_autre || false,
+      geo_autre_precision: enjeu.geo_autre_precision || '',
       fonctionnalite_ecosysteme: enjeu.fonctionnalite_ecosysteme || false,
       autre_ecologique: enjeu.autre_ecologique || false,
       autre_ecologique_precision: enjeu.autre_ecologique_precision || '',
@@ -303,6 +352,18 @@ export class EnjeuFormComponent implements OnInit {
     this.taxonItems = enjeu.taxons ? [...enjeu.taxons] : [];
     this.habitatItems = enjeu.habitats ? [...enjeu.habitats] : [];
     this.geologieItems = enjeu.geologies ? [...enjeu.geologies] : [];
+
+    // #237 — restaurer les objets géologiques sélectionnés + leurs précisions
+    this.selectedObjets = {};
+    for (const obj of enjeu.objets_geologiques || []) {
+      this.selectedObjets[obj.code] = obj.precision || '';
+    }
+
+    // #237 — documents existants (numériques + références papier)
+    this.existingDocuments.set(enjeu.documents ? [...enjeu.documents] : []);
+    this.stagedFiles.set([]);
+    this.stagedPapers.set([]);
+    this.pendingDeleteDocIds = [];
   }
 
   onTaxonsChange(items: (TaxonRef | HabitatRef | GeologieRef)[]): void {
@@ -317,12 +378,183 @@ export class EnjeuFormComponent implements OnInit {
     this.geologieItems = items as GeologieRef[];
   }
 
+  // ════════════════════════════════════════════════════════════════
+  // #237 — Objet(s) géologique(s)
+  // ════════════════════════════════════════════════════════════════
+
+  /** Groupes d'objets affichés selon les patrimoines cochés (in situ / ex situ). */
+  visibleObjetGroups(): ObjetGeologiqueGroup[] {
+    return this.geoObjetGroups.filter(g => !!this.form.get(g.control)?.value);
+  }
+
+  isObjetSelected(code: string): boolean {
+    return Object.prototype.hasOwnProperty.call(this.selectedObjets, code);
+  }
+
+  /** Codes actuellement cochés dans la liste déroulante d'un groupe (pour `[value]`). */
+  selectedCodesFor(group: ObjetGeologiqueGroup): string[] {
+    return groupObjetCodes(group).filter(code => this.isObjetSelected(code));
+  }
+
+  /**
+   * Synchronise la sélection multi-select d'un groupe dans `selectedObjets`,
+   * en préservant les précisions déjà saisies pour les objets conservés.
+   */
+  onObjetSelectionChange(group: ObjetGeologiqueGroup, codes: string[]): void {
+    const selected = new Set(codes);
+    for (const code of groupObjetCodes(group)) {
+      if (selected.has(code)) {
+        if (!this.isObjetSelected(code)) this.selectedObjets[code] = '';
+      } else {
+        delete this.selectedObjets[code];
+      }
+    }
+  }
+
+  /** Objets « Autre » sélectionnés d'un groupe (affichage du champ de précision). */
+  selectedAutreObjets(group: ObjetGeologiqueGroup): ObjetGeologiqueOption[] {
+    return group.options.filter(opt => opt.isAutre && this.isObjetSelected(opt.code));
+  }
+
+  objetPrecision(code: string): string {
+    return this.selectedObjets[code] ?? '';
+  }
+
+  setObjetPrecision(code: string, value: string): void {
+    if (this.isObjetSelected(code)) this.selectedObjets[code] = value;
+  }
+
+  /** Retire de la sélection tous les objets (parents + enfants) d'un groupe. */
+  private clearGroupObjets(group: ObjetGeologiqueGroup): void {
+    for (const opt of group.options) {
+      delete this.selectedObjets[opt.code];
+      for (const child of opt.children || []) delete this.selectedObjets[child.code];
+    }
+  }
+
+  /**
+   * Construit le payload `objets_geologiques_data` à partir de la sélection.
+   * Les codes absents de la typologie courante (ex. anciens codes Documents)
+   * sont écartés pour nettoyer les données héritées.
+   */
+  private buildObjetsGeologiquesData(): ObjetGeologiqueRef[] {
+    return Object.keys(this.selectedObjets)
+      .map(code => ({ code, opt: this.findObjetOption(code) }))
+      .filter(({ opt }) => !!opt)
+      .map(({ code, opt }) => ({
+        code,
+        libelle: opt!.libelle,
+        precision: this.selectedObjets[code] || '',
+      }));
+  }
+
+  private findObjetOption(code: string): ObjetGeologiqueOption | undefined {
+    for (const group of this.geoObjetGroups) {
+      for (const opt of group.options) {
+        if (opt.code === code) return opt;
+        const child = (opt.children || []).find(c => c.code === code);
+        if (child) return child;
+      }
+    }
+    return undefined;
+  }
+
+  // ════════════════════════════════════════════════════════════════
+  // #237 — Documents du patrimoine « Documents »
+  // ════════════════════════════════════════════════════════════════
+
+  /** Ajoute les fichiers sélectionnés à la file d'attente d'upload. */
+  onDocumentFilesSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    if (!input.files?.length) return;
+    this.stagedFiles.update(files => [...files, ...Array.from(input.files!)]);
+    input.value = ''; // permet de re-sélectionner le même fichier
+  }
+
+  removeStagedFile(index: number): void {
+    this.stagedFiles.update(files => files.filter((_, i) => i !== index));
+  }
+
+  addPaperReference(): void {
+    this.stagedPapers.update(papers => [...papers, '']);
+  }
+
+  updatePaperReference(index: number, value: string): void {
+    this.stagedPapers.update(papers => papers.map((p, i) => (i === index ? value : p)));
+  }
+
+  removePaperReference(index: number): void {
+    this.stagedPapers.update(papers => papers.filter((_, i) => i !== index));
+  }
+
+  /** Marque un document existant pour suppression (appliquée à l'enregistrement). */
+  markDocumentForDeletion(doc: EnjeuDocument): void {
+    this.pendingDeleteDocIds.push(doc.id);
+    this.existingDocuments.update(docs => docs.filter(d => d.id !== doc.id));
+  }
+
+  downloadDocument(doc: EnjeuDocument): void {
+    if (doc.support !== 'numerique') return;
+    this.enjeuService.downloadEnjeuDocumentBlob(doc.id).subscribe(blob => {
+      const objectUrl = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = objectUrl;
+      a.download = doc.nom_fichier || 'document';
+      a.click();
+      URL.revokeObjectURL(objectUrl);
+    });
+  }
+
+  /**
+   * Applique les changements de documents après l'enregistrement de l'enjeu :
+   * suppressions, puis upload des fichiers, puis création des références papier.
+   */
+  private syncDocuments(enjeuId: number): Observable<unknown> {
+    const ops: Observable<unknown>[] = [];
+
+    for (const id of this.pendingDeleteDocIds) {
+      ops.push(this.enjeuService.deleteEnjeuDocument(id));
+    }
+
+    // N'envoyer les ajouts que si le patrimoine « Documents » est coché.
+    if (this.form.get('geo_documents')?.value) {
+      for (const file of this.stagedFiles()) {
+        ops.push(this.enjeuService.uploadEnjeuDocument(enjeuId, file));
+      }
+      for (const titre of this.stagedPapers()) {
+        const ref = titre.trim();
+        if (ref) ops.push(this.enjeuService.addEnjeuPaperDocument(enjeuId, ref));
+      }
+    }
+
+    return ops.length ? forkJoin(ops) : of(null);
+  }
+
+  /** #409 — taxon requis si cible « espèce » cochée. */
+  get especeRefMissing(): boolean {
+    return !!this.form.get('espece')?.value && this.taxonItems.length === 0;
+  }
+
+  /** #409 — habitat requis si cible « habitat » cochée. */
+  get habitatRefMissing(): boolean {
+    return !!this.form.get('habitat')?.value && this.habitatItems.length === 0;
+  }
+
   onSubmit(): void {
     if (this.form.invalid) {
       this.form.markAllAsTouched();
       this.scrollToError();
       return;
     }
+
+    // #409 — exiger au moins un taxon / habitat quand la cible est cochée.
+    if (this.especeRefMissing || this.habitatRefMissing) {
+      this.showRefErrors.set(true);
+      this.errorMessage.set(this.translate.instant('enjeux.enjeuForm.cibleRefRequired'));
+      this.scrollToError();
+      return;
+    }
+    this.showRefErrors.set(false);
 
     this.isLoading.set(true);
     this.errorMessage.set(null);
@@ -360,6 +592,9 @@ export class EnjeuFormComponent implements OnInit {
       patrimoine_geologique: formValue.patrimoine_geologique,
       geo_ex_situ: formValue.geo_ex_situ,
       geo_in_situ: formValue.geo_in_situ,
+      geo_documents: formValue.geo_documents,
+      geo_autre: formValue.geo_autre,
+      geo_autre_precision: formValue.geo_autre_precision || undefined,
       fonctionnalite_ecosysteme: formValue.fonctionnalite_ecosysteme,
       autre_ecologique: formValue.autre_ecologique,
       autre_ecologique_precision: formValue.autre_ecologique_precision || undefined,
@@ -377,17 +612,34 @@ export class EnjeuFormComponent implements OnInit {
       taxons_data: this.taxonItems.length > 0 ? this.taxonItems : undefined,
       habitats_data: this.habitatItems.length > 0 ? this.habitatItems : undefined,
       geologies_data: this.geologieItems.length > 0 ? this.geologieItems : undefined,
+      // #237 — objets géologiques (toujours envoyé pour permettre la suppression)
+      objets_geologiques_data: this.buildObjetsGeologiquesData(),
     };
 
     this.enjeuService.createEnjeu(payload).subscribe({
-      next: () => {
-        this.isLoading.set(false);
-        this.snackBar.open(
-          this.translate.instant('enjeux.messages.enjeuCreateSuccess'),
-          this.translate.instant('common.actions.close'),
-          { duration: 3000 }
-        );
-        this.navigateBack();
+      next: (enjeu) => {
+        // #237 — téléverser les documents en attente sur le nouvel enjeu
+        this.syncDocuments(enjeu.id_enjeu).subscribe({
+          next: () => {
+            this.isLoading.set(false);
+            this.snackBar.open(
+              this.translate.instant('enjeux.messages.enjeuCreateSuccess'),
+              this.translate.instant('common.actions.close'),
+              { duration: 3000 }
+            );
+            this.navigateBack();
+          },
+          error: () => {
+            // L'enjeu est créé : on revient à la liste même si un document a échoué.
+            this.isLoading.set(false);
+            this.snackBar.open(
+              this.translate.instant('enjeux.enjeuForm.documents.uploadError'),
+              this.translate.instant('common.actions.close'),
+              { duration: 4000 }
+            );
+            this.navigateBack();
+          },
+        });
       },
       error: (error) => {
         this.isLoading.set(false);
@@ -419,6 +671,9 @@ export class EnjeuFormComponent implements OnInit {
       patrimoine_geologique: formValue.patrimoine_geologique,
       geo_ex_situ: formValue.geo_ex_situ,
       geo_in_situ: formValue.geo_in_situ,
+      geo_documents: formValue.geo_documents,
+      geo_autre: formValue.geo_autre,
+      geo_autre_precision: formValue.geo_autre_precision || undefined,
       fonctionnalite_ecosysteme: formValue.fonctionnalite_ecosysteme,
       autre_ecologique: formValue.autre_ecologique,
       autre_ecologique_precision: formValue.autre_ecologique_precision || undefined,
@@ -436,17 +691,33 @@ export class EnjeuFormComponent implements OnInit {
       taxons_data: this.taxonItems.length > 0 ? this.taxonItems : undefined,
       habitats_data: this.habitatItems.length > 0 ? this.habitatItems : undefined,
       geologies_data: this.geologieItems.length > 0 ? this.geologieItems : undefined,
+      // #237 — objets géologiques (toujours envoyé pour permettre la suppression)
+      objets_geologiques_data: this.buildObjetsGeologiquesData(),
     };
 
     this.enjeuService.updateEnjeu(enjeuId, payload).subscribe({
       next: () => {
-        this.isLoading.set(false);
-        this.snackBar.open(
-          this.translate.instant('enjeux.messages.enjeuUpdateSuccess'),
-          this.translate.instant('common.actions.close'),
-          { duration: 3000 }
-        );
-        this.navigateBack();
+        // #237 — appliquer les changements de documents (ajouts/suppressions)
+        this.syncDocuments(enjeuId).subscribe({
+          next: () => {
+            this.isLoading.set(false);
+            this.snackBar.open(
+              this.translate.instant('enjeux.messages.enjeuUpdateSuccess'),
+              this.translate.instant('common.actions.close'),
+              { duration: 3000 }
+            );
+            this.navigateBack();
+          },
+          error: () => {
+            this.isLoading.set(false);
+            this.snackBar.open(
+              this.translate.instant('enjeux.enjeuForm.documents.uploadError'),
+              this.translate.instant('common.actions.close'),
+              { duration: 4000 }
+            );
+            this.navigateBack();
+          },
+        });
       },
       error: (error) => {
         this.isLoading.set(false);
@@ -497,3 +768,4 @@ export class EnjeuFormComponent implements OnInit {
     return this.form.get('intitule_court')?.value?.length || 0;
   }
 }
+

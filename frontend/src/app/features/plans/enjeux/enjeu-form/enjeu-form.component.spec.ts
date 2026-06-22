@@ -55,6 +55,8 @@ const existingEnjeu: Enjeu = {
   patrimoine_geologique: false,
   geo_ex_situ: false,
   geo_in_situ: false,
+  geo_documents: false,
+  geo_autre: false,
   fonctionnalite_ecosysteme: false,
   autre_ecologique: false,
   processus: false,
@@ -66,6 +68,8 @@ const existingEnjeu: Enjeu = {
   autre_socioeco: false,
   etat_enjeu: 'bon',
   description: 'Description existante',
+  // #409 — cible « habitat » cochée : au moins un habitat doit être rattaché.
+  habitats: [{ cd_hab: 'HAB1', lb_hab_fr: 'Habitat test' }],
   date_ajout: '2024-01-01T00:00:00Z',
   date_maj: '2024-01-15T00:00:00Z',
   slug: 'enjeu-existant',
@@ -290,6 +294,8 @@ describe('EnjeuFormComponent', () => {
         etat_enjeu: 'bon',
         description: 'Description'
       });
+      // #409 — cible « habitat » cochée : fournir un habitat pour passer la validation.
+      component.habitatItems = [{ cd_hab: 'HAB1', lb_hab_fr: 'Habitat test' }];
       component.onSubmit();
       const payload = mockEnjeuService.createEnjeu.mock.calls[0][0];
       expect(payload.id_pg).toBe(10);

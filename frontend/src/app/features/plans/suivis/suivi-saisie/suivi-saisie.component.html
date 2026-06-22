@@ -78,10 +78,18 @@
             type="button"
             class="year-tab"
             [class.active]="y === selectedYear()"
+            [class.year-not-planned]="!isYearPlanned(y)"
+            [matTooltip]="(isYearPlanned(y) ? 'plans.suivis.saisie.yearPlanned' : 'plans.suivis.saisie.yearNotPlanned') | translate"
+            matTooltipPosition="above"
             (click)="selectYear(y)"
           >{{ y }}</button>
         }
       </section>
+      <!-- #418 — légende prévu / non prévu -->
+      <div class="year-legend">
+        <span class="year-legend-item"><span class="dot dot-planned"></span>{{ 'plans.suivis.saisie.yearPlanned' | translate }}</span>
+        <span class="year-legend-item"><span class="dot dot-not-planned"></span>{{ 'plans.suivis.saisie.yearNotPlanned' | translate }}</span>
+      </div>
 
       <!-- #379 — Bannière : saisie impossible tant que le plan n'est pas validé -->
       @if (planNotValidated()) {

@@ -140,7 +140,10 @@ class IndicateurViewSet(viewsets.ModelViewSet):
                 v = float(value)
             except (TypeError, ValueError):
                 return 0
+            inactive = set(getattr(m, 'inactive_levels', None) or [])
             for i in range(1, 6):
+                if i in inactive:
+                    continue
                 inf = getattr(m, f'score_{i}_inf', None)
                 sup = getattr(m, f'score_{i}_sup', None)
                 if inf is None or sup is None:
@@ -697,18 +700,63 @@ class MesureViewSet(viewsets.ModelViewSet):
 # =============================================================================
 
 
-def _value_to_score(value, metrique) -> int | None:
-    """Convertit une valeur numérique en score 1-5 via les seuils de la métrique."""
+def _coerce_float(value):
+    """#423 — Convertit une valeur en float en tolérant la virgule décimale
+    française (« 20,6 » → 20.6). Retourne None si non convertible."""
+    if value is None:
+        return None
     try:
-        v = float(value)
+        return float(str(value).replace(',', '.').strip())
     except (TypeError, ValueError):
         return None
+
+
+def _palier_inclusivity(metrique, level):
+    """#423 — Inclusivité des bornes d'un palier, cohérente avec l'affichage
+    (notation par crochets, cf. getScoreRange côté front).
+
+    - Borne inf : inclusive uniquement si le sup du palier précédent est
+      explicitement exclusif (sinon la valeur frontière appartient au palier
+      précédent). Le palier 1 a une inf inclusive par défaut.
+    - Borne sup : inclusive sauf si explicitement marquée exclusive. Le palier 5
+      a une sup inclusive par défaut.
+    """
+    if level <= 1:
+        inf_inclusive = True
+    else:
+        prev = getattr(metrique, f'score_{level - 1}_sup_inclusive', None)
+        inf_inclusive = (prev is False)
+    if level >= 5:
+        sup_inclusive = True
+    else:
+        cur = getattr(metrique, f'score_{level}_sup_inclusive', None)
+        sup_inclusive = (cur is not False)
+    return inf_inclusive, sup_inclusive
+
+
+def _value_to_score(value, metrique) -> int | None:
+    """Convertit une valeur numérique en score 1-5 via les seuils de la métrique."""
+    v = _coerce_float(value)
+    if v is None:
+        return None
+    inactive = set(getattr(metrique, 'inactive_levels', None) or [])
     for i in range(1, 6):
+        if i in inactive:
+            continue
         inf = getattr(metrique, f'score_{i}_inf', None)
         sup = getattr(metrique, f'score_{i}_sup', None)
-        if inf is None or sup is None:
+        # #423 — une borne absente = palier ouvert (-∞ / +∞). Les paliers
+        # extrêmes (très mauvais ouvert vers le bas, très bon ouvert vers le
+        # haut) étaient ignorés à tort, ce qui décalait le score d'un cran.
+        if inf is None and sup is None:
             continue
-        if float(inf) <= v <= float(sup):
+        # #423 — respecter l'inclusivité des bornes : « 35 » dans ]35;50] doit
+        # tomber dans le palier dont la borne sup vaut 35 (35 inclus), pas dans
+        # celui dont la borne inf vaut 35 (35 exclu).
+        inf_incl, sup_incl = _palier_inclusivity(metrique, i)
+        lower_ok = inf is None or (v >= float(inf) if inf_incl else v > float(inf))
+        upper_ok = sup is None or (v <= float(sup) if sup_incl else v < float(sup))
+        if lower_ok and upper_ok:
             return i
     return None
 
@@ -887,6 +935,9 @@ class IndicateurMesureViewSet(viewsets.ModelViewSet):
         return Response({
             'id_indicateur': indicateur.id_indicateur,
             'annee': annee,
+            # #424 — id de l'override pour permettre au front de le supprimer
+            # (repassage en calcul automatique).
+            'id_indicateur_mesure': override.id_indicateur_mesure if override else None,
             'score_auto': auto['score'],
             'score_override': override.score_override if override else None,
             'commentaire_override': override.commentaire_override if override else None,

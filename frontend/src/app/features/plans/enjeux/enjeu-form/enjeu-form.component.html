@@ -105,38 +105,47 @@
             <!-- Sous-question habitats (si coché) -->
             @if (form.get('habitat')?.value) {
               <div class="form-group sub-question">
-                <label class="form-label">{{ 'enjeux.enjeuForm.habitatsConcernes' | translate }}</label>
+                <label class="form-label">
+                  {{ 'enjeux.enjeuForm.habitatsConcernes' | translate }}
+                  <span class="required-star">*</span>
+                </label>
+                <!-- #409 — précision sur les taxons/habitats à saisir -->
+                <p class="text-mention">{{ 'enjeux.enjeuForm.cibleRefHint' | translate }}</p>
                 <app-reference-item-list
                   type="habitat"
                   [items]="habitatItems"
                   [showCorrespondences]="true"
                   (itemsChange)="onHabitatsChange($event)">
                 </app-reference-item-list>
+                @if (showRefErrors() && habitatRefMissing) {
+                  <p class="field-error"><i class="fi fi-rr-exclamation"></i>{{ 'enjeux.enjeuForm.habitatRefRequired' | translate }}</p>
+                }
               </div>
             }
 
             <!-- Sous-question espèces (si coché) -->
             @if (form.get('espece')?.value) {
               <div class="form-group sub-question">
-                <label class="form-label">{{ 'enjeux.enjeuForm.especesConcernees' | translate }}</label>
+                <label class="form-label">
+                  {{ 'enjeux.enjeuForm.especesConcernees' | translate }}
+                  <span class="required-star">*</span>
+                </label>
+                <!-- #409 — précision sur les taxons/habitats à saisir -->
+                <p class="text-mention">{{ 'enjeux.enjeuForm.cibleRefHint' | translate }}</p>
                 <app-reference-item-list
                   type="taxon"
                   [items]="taxonItems"
                   (itemsChange)="onTaxonsChange($event)">
                 </app-reference-item-list>
+                @if (showRefErrors() && especeRefMissing) {
+                  <p class="field-error"><i class="fi fi-rr-exclamation"></i>{{ 'enjeux.enjeuForm.especeRefRequired' | translate }}</p>
+                }
               </div>
             }
 
             <!-- Sous-questions patrimoine géologique (si coché) -->
             @if (form.get('patrimoine_geologique')?.value) {
-              <div class="form-group sub-question">
-                <label class="form-label">{{ 'enjeux.enjeuForm.typePatrimoineGeo' | translate }}</label>
-                <div class="checkbox-group">
-                  <app-checkbox formControlName="geo_ex_situ" [label]="'enjeux.enjeuForm.geoExSitu' | translate"></app-checkbox>
-                  <app-checkbox formControlName="geo_in_situ" [label]="'enjeux.enjeuForm.geoInSitu' | translate"></app-checkbox>
-                </div>
-              </div>
-
+              <!-- 1. Patrimoine géologique INPG concerné -->
               <div class="form-group sub-question">
                 <label class="form-label">{{ 'enjeux.enjeuForm.patrimoineGeoConcerne' | translate }}</label>
                 <app-reference-item-list
@@ -145,6 +154,138 @@
                   (itemsChange)="onGeologiesChange($event)">
                 </app-reference-item-list>
               </div>
+
+              <!-- 2. Type de patrimoine (sous la question INPG). « Autre » en dernier. -->
+              <div class="form-group sub-question">
+                <label class="form-label">{{ 'enjeux.enjeuForm.typePatrimoineGeo' | translate }}</label>
+                <!-- #237 — In situ / Ex situ / Documents / Autre au même niveau -->
+                <div class="checkbox-group">
+                  <app-checkbox formControlName="geo_in_situ" [label]="'enjeux.enjeuForm.geoInSitu' | translate"></app-checkbox>
+                  <app-checkbox formControlName="geo_ex_situ" [label]="'enjeux.enjeuForm.geoExSitu' | translate"></app-checkbox>
+                  <app-checkbox formControlName="geo_documents" [label]="'enjeux.enjeuForm.geoDocuments' | translate"></app-checkbox>
+                  <app-checkbox formControlName="geo_autre" [label]="'enjeux.enjeuForm.geoAutre' | translate"></app-checkbox>
+                </div>
+              </div>
+
+              <!-- 3. Objet(s) géologique(s) : une liste déroulante multi-select
+                   par patrimoine coché (in situ / ex situ). -->
+              @if (visibleObjetGroups().length > 0) {
+                <div class="form-group sub-question">
+                  <label class="form-label">{{ 'enjeux.enjeuForm.geoObjets.label' | translate }}</label>
+                  @for (group of visibleObjetGroups(); track group.patrimoine) {
+                    <div class="geo-objet-group">
+                      <p class="geo-objet-group-title">{{ group.titleKey | translate }}</p>
+                      <mat-form-field class="app-mat-form-field full-width" appearance="outline">
+                        <mat-label></mat-label>
+                        <mat-select multiple
+                                    panelClass="geo-objet-select-panel"
+                                    [placeholder]="'enjeux.enjeuForm.geoObjets.selectPlaceholder' | translate"
+                                    [value]="selectedCodesFor(group)"
+                                    (selectionChange)="onObjetSelectionChange(group, $event.value)">
+                          @for (opt of group.options; track opt.code) {
+                            <mat-option [value]="opt.code">{{ opt.libelle }}</mat-option>
+                            @for (child of opt.children || []; track child.code) {
+                              <mat-option [value]="child.code" class="geo-objet-option-child">{{ child.libelle }}</mat-option>
+                            }
+                          }
+                        </mat-select>
+                      </mat-form-field>
+
+                      <!-- #237 — précision libre pour un objet « Autre » sélectionné -->
+                      @for (autre of selectedAutreObjets(group); track autre.code) {
+                        <app-form-field [label]="'enjeux.enjeuForm.geoObjets.precisionLabel' | translate">
+                          <input maxlength="255"
+                                 [value]="objetPrecision(autre.code)"
+                                 (input)="setObjetPrecision(autre.code, $any($event.target).value)"
+                                 [placeholder]="'enjeux.enjeuForm.geoObjets.precisionPlaceholder' | translate">
+                        </app-form-field>
+                      }
+                    </div>
+                  }
+                </div>
+              }
+
+              <!-- 4. Documents (numériques téléversés + références papier) -->
+              @if (form.get('geo_documents')?.value) {
+                <div class="form-group sub-question">
+                  <label class="form-label">{{ 'enjeux.enjeuForm.documents.label' | translate }}</label>
+                  <p class="text-mention">{{ 'enjeux.enjeuForm.documents.hint' | translate }}</p>
+
+                  <ul class="geo-doc-list">
+                    <!-- Documents déjà enregistrés (mode édition) -->
+                    @for (doc of existingDocuments(); track doc.id) {
+                      <li class="geo-doc-item">
+                        @if (doc.support === 'numerique') {
+                          <i class="fi fi-rr-document geo-doc-icon"></i>
+                          <button type="button" class="geo-doc-name link-default" (click)="downloadDocument(doc)">
+                            {{ doc.titre || doc.nom_fichier }}
+                          </button>
+                          @if (doc.file_size_human) { <span class="geo-doc-meta">({{ doc.file_size_human }})</span> }
+                        } @else {
+                          <i class="fi fi-rr-clip geo-doc-icon"></i>
+                          <span class="geo-doc-name">{{ doc.titre }}</span>
+                          <span class="geo-doc-meta">{{ 'enjeux.enjeuForm.documents.paperBadge' | translate }}</span>
+                        }
+                        <button type="button" class="geo-doc-remove"
+                                [attr.aria-label]="'common.actions.delete' | translate"
+                                (click)="markDocumentForDeletion(doc)">
+                          <i class="fi fi-rr-trash"></i>
+                        </button>
+                      </li>
+                    }
+
+                    <!-- Fichiers numériques en attente d'upload -->
+                    @for (file of stagedFiles(); track $index) {
+                      <li class="geo-doc-item geo-doc-staged">
+                        <i class="fi fi-rr-document geo-doc-icon"></i>
+                        <span class="geo-doc-name">{{ file.name }}</span>
+                        <span class="geo-doc-meta">{{ 'enjeux.enjeuForm.documents.pending' | translate }}</span>
+                        <button type="button" class="geo-doc-remove"
+                                [attr.aria-label]="'common.actions.delete' | translate"
+                                (click)="removeStagedFile($index)">
+                          <i class="fi fi-rr-cross-small"></i>
+                        </button>
+                      </li>
+                    }
+
+                    <!-- Références papier en attente -->
+                    @for (paper of stagedPapers(); track $index) {
+                      <li class="geo-doc-item geo-doc-staged">
+                        <i class="fi fi-rr-clip geo-doc-icon"></i>
+                        <input class="geo-doc-paper-input" maxlength="255"
+                               [value]="paper"
+                               (input)="updatePaperReference($index, $any($event.target).value)"
+                               [placeholder]="'enjeux.enjeuForm.documents.paperPlaceholder' | translate">
+                        <button type="button" class="geo-doc-remove"
+                                [attr.aria-label]="'common.actions.delete' | translate"
+                                (click)="removePaperReference($index)">
+                          <i class="fi fi-rr-cross-small"></i>
+                        </button>
+                      </li>
+                    }
+                  </ul>
+
+                  <div class="geo-doc-actions">
+                    <button type="button" mat-stroked-button (click)="fileInput.click()">
+                      <i class="fi fi-rr-upload"></i> {{ 'enjeux.enjeuForm.documents.addFile' | translate }}
+                    </button>
+                    <button type="button" mat-stroked-button (click)="addPaperReference()">
+                      <i class="fi fi-rr-clip"></i> {{ 'enjeux.enjeuForm.documents.addPaper' | translate }}
+                    </button>
+                    <input #fileInput type="file" multiple hidden (change)="onDocumentFilesSelected($event)">
+                  </div>
+                </div>
+              }
+
+              <!-- 5. Précision « Autre » patrimoine géologique — en tout dernier -->
+              @if (form.get('geo_autre')?.value) {
+                <div class="form-group sub-question">
+                  <app-form-field [label]="'enjeux.enjeuForm.geoAutrePrecision' | translate">
+  <input formControlName="geo_autre_precision" maxlength="255"
+         [placeholder]="'enjeux.enjeuForm.geoAutrePrecisionPlaceholder' | translate">
+</app-form-field>
+                </div>
+              }
             }
 
             <!-- Précision "Autre écologique" (si coché) -->

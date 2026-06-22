@@ -7,6 +7,7 @@ import { Observable, of, tap, catchError, throwError, map } from 'rxjs';
 
 import {
   Enjeu,
+  EnjeuDocument,
   EnjeuCreatePayload,
   FcrCreatePayload,
   EnjeuUpdatePayload,
@@ -302,6 +303,42 @@ export class EnjeuService {
         return throwError(() => err);
       })
     );
+  }
+
+  // ════════════════════════════════════════════════════════════════
+  // #237 — Documents du patrimoine « Documents » d'un enjeu
+  // ════════════════════════════════════════════════════════════════
+
+  /** Téléverse un document numérique (fichier) rattaché à un enjeu. */
+  uploadEnjeuDocument(enjeuId: number, file: File, titre?: string): Observable<EnjeuDocument> {
+    const form = new FormData();
+    form.append('id_enjeu', String(enjeuId));
+    form.append('support', 'numerique');
+    form.append('fichier', file);
+    if (titre) form.append('titre', titre);
+    return this.http.post<EnjeuDocument>(`${this.apiUrl}/enjeux-fichiers/`, form);
+  }
+
+  /** Ajoute une référence de document papier (sans fichier). */
+  addEnjeuPaperDocument(enjeuId: number, titre: string, description?: string): Observable<EnjeuDocument> {
+    return this.http.post<EnjeuDocument>(`${this.apiUrl}/enjeux-fichiers/`, {
+      id_enjeu: enjeuId,
+      support: 'papier',
+      titre,
+      description: description || '',
+    });
+  }
+
+  /** Supprime un document (numérique ou papier) d'un enjeu. */
+  deleteEnjeuDocument(documentId: number): Observable<void> {
+    return this.http.delete<void>(`${this.apiUrl}/enjeux-fichiers/${documentId}/`);
+  }
+
+  /** Télécharge le fichier d'un document numérique sous forme de blob. */
+  downloadEnjeuDocumentBlob(documentId: number): Observable<Blob> {
+    return this.http.get(`${this.apiUrl}/enjeux-fichiers/${documentId}/download/`, {
+      responseType: 'blob',
+    });
   }
 
   /**

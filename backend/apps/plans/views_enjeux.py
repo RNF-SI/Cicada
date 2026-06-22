@@ -8,6 +8,7 @@ from django.shortcuts import get_object_or_404
 from rest_framework import viewsets, status, permissions
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import SearchFilter, OrderingFilter
 
@@ -15,7 +16,7 @@ from .models_enjeux import (
     Enjeu, FacteurInfluence, Pression, Responsabilite,
     ObjectifLongTerme, NiveauExigence,
     ObjectifOperationnel, ResultatAttendu,
-    CorEnjeuTaxon, CorEnjeuHabitat, CorEnjeuGeologie,
+    CorEnjeuTaxon, CorEnjeuHabitat, CorEnjeuGeologie, CorEnjeuFichier,
     CorResponsabiliteTaxon, CorResponsabiliteHabitat, CorResponsabiliteGeologie
 )
 from .models import PlanGestion, CorRolePlan
@@ -29,7 +30,7 @@ from .serializers_enjeux import (
     ObjectifOperationnelSerializer, ObjectifOperationnelListSerializer, ObjectifOperationnelCreateSerializer,
     ResultatAttenduSerializer, ResultatAttenduCreateSerializer,
     ResponsabiliteListSerializer, ResponsabiliteDetailSerializer, ResponsabiliteCreateSerializer,
-    CorEnjeuTaxonSerializer, CorEnjeuHabitatSerializer
+    CorEnjeuTaxonSerializer, CorEnjeuHabitatSerializer, CorEnjeuFichierSerializer
 )
 from apps.users.permissions import IsReferent, IsSuperAdmin, IsAdminOrganisme
 from .permissions import CanModifyOnlyDraftPlan
@@ -67,7 +68,7 @@ class EnjeuViewSet(viewsets.ModelViewSet):
     queryset = Enjeu.objects.select_related(
         'id_pg', 'id_categorie', 'id_categorie_fcr', 'id_importance',
         'id_utilisateur_ajout', 'id_utilisateur_maj'
-    ).prefetch_related('taxons', 'habitats', 'geologies')
+    ).prefetch_related('taxons', 'habitats', 'geologies', 'objets_geologiques', 'fichiers')
 
     @classmethod
     def _build_deep_prefetches(cls):
@@ -1185,3 +1186,91 @@ class ResultatAttenduViewSet(viewsets.ModelViewSet):
 
 # Import models for stats action
 from django.db import models
+
+
+class CorEnjeuFichierViewSet(viewsets.ModelViewSet):
+    """
+    #237 — Documents (numériques + références papier) du patrimoine
+    « Documents » d'un enjeu géologique.
+
+    - Lecture (list/retrieve/download) : tout utilisateur authentifié, bornée
+      par `get_queryset()` aux enjeux des plans accessibles.
+    - Écriture (upload/papier/suppression) : référent du plan, sur brouillon
+      uniquement (`CanModifyOnlyDraftPlan`).
+    """
+
+    queryset = CorEnjeuFichier.objects.all().select_related(
+        'id_enjeu', 'id_enjeu__id_pg', 'id_utilisateur_upload'
+    )
+    serializer_class = CorEnjeuFichierSerializer
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
+    filter_backends = [DjangoFilterBackend, OrderingFilter]
+    filterset_fields = ['id_enjeu', 'support']
+    ordering_fields = ['ordre_affichage', 'date_upload', 'nom_fichier']
+    ordering = ['ordre_affichage', 'date_upload']
+
+    def get_permissions(self):
+        if self.action in ('list', 'retrieve', 'download'):
+            return [permissions.IsAuthenticated()]
+        return [permissions.IsAuthenticated(), IsReferent(), CanModifyOnlyDraftPlan()]
+
+    def _accessible_enjeu_ids(self):
+        """IDs des enjeux accessibles via le scope de l'EnjeuViewSet."""
+        enjeu_viewset = EnjeuViewSet()
+        enjeu_viewset.request = self.request
+        enjeu_viewset.kwargs = {}
+        return enjeu_viewset.get_queryset().values_list('id_enjeu', flat=True)
+
+    def get_queryset(self):
+        user = self.request.user
+        if user.is_super_admin() or user.is_redacteur_principal():
+            return self.queryset
+        return self.queryset.filter(id_enjeu__in=self._accessible_enjeu_ids())
+
+    def get_plan_for_payload(self, data):
+        """Check draft à la création : remonte le plan depuis l'enjeu."""
+        enjeu_id = data.get('id_enjeu')
+        if not enjeu_id:
+            return None
+        try:
+            return Enjeu.objects.select_related('id_pg').get(pk=enjeu_id).get_plan_de_gestion()
+        except Enjeu.DoesNotExist:
+            return None
+
+    def perform_create(self, serializer):
+        serializer.save(id_utilisateur_upload=self.request.user)
+
+    @action(detail=True, methods=['get'])
+    def download(self, request, pk=None):
+        """Télécharger un document numérique : GET /api/plans/enjeux-fichiers/{id}/download/"""
+        import os
+        import mimetypes
+        from django.conf import settings
+        from django.http import HttpResponse
+
+        fichier = self.get_object()
+        # Scope d'accès (mêmes règles que get_queryset)
+        if not self.get_queryset().filter(pk=fichier.pk).exists():
+            return Response({'error': 'Permissions insuffisantes'}, status=status.HTTP_403_FORBIDDEN)
+
+        if fichier.support != 'numerique' or not fichier.chemin_fichier:
+            return HttpResponse('Document papier : aucun fichier à télécharger',
+                                content_type='text/plain; charset=utf-8', status=404)
+
+        chemin = fichier.chemin_fichier
+        if not os.path.isabs(chemin):
+            chemin = os.path.join(settings.MEDIA_ROOT, chemin)
+        if not os.path.exists(chemin):
+            return HttpResponse('Fichier non disponible sur le serveur',
+                                content_type='text/plain; charset=utf-8', status=404)
+
+        content_type, _ = mimetypes.guess_type(fichier.nom_fichier)
+        content_type = content_type or 'application/octet-stream'
+        with open(chemin, 'rb') as f:
+            content = f.read()
+        response = HttpResponse(content, content_type=content_type)
+        ext = (fichier.extension or '').lower().lstrip('.')
+        disposition = 'inline' if ext in ('pdf', 'jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp') else 'attachment'
+        response['Content-Disposition'] = f'{disposition}; filename="{fichier.nom_fichier}"'
+        response['Content-Length'] = len(content)
+        return response
