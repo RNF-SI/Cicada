@@ -89,14 +89,14 @@ export class PlanTableauDeBordComponent implements OnInit {
    */
   filteredGroups = computed<DashboardGroup[]>(() => {
     const tab = this.activeTab();
-    const objectif = this.filterObjectif();
+    const objectifs = this.filterObjectifs();
     const name = this.normalize(this.filterName());
-    const enjeuId = this.filterEnjeuId();
+    const enjeuIds = this.filterEnjeuIds();
 
     return this.dashboardGroups()
       .filter(g => tab === 'ensemble' ? true : (tab === 'etat' ? g.kind === 'olt' : g.kind === 'oo'))
-      .filter(g => !(tab === 'ensemble' && enjeuId) || g.enjeuId === enjeuId)
-      .filter(g => !objectif || g.label === objectif)
+      .filter(g => !(tab === 'ensemble' && enjeuIds.length) || enjeuIds.includes(g.enjeuId))
+      .filter(g => !objectifs.length || objectifs.includes(g.label))
       .map(g => {
         // #422 — ne pas filtrer par type d'indicateur : le chemin du groupe
         // (OLT = état, OO = pression/réponse) suffit à le qualifier. Le filtre
@@ -149,9 +149,10 @@ export class PlanTableauDeBordComponent implements OnInit {
   // #356 — 3e option « Ensemble » (état + pression simultanés).
   activeTab = signal<'etat' | 'pression' | 'ensemble'>('etat');
   // #356 — filtres : nom d'objectif (OLT/OO), recherche libre, enjeu (mode ensemble).
-  filterObjectif = signal<string | null>(null);
+  // #426 — filtres multi-sélection (plusieurs objectifs / enjeux à la fois).
+  filterObjectifs = signal<string[]>([]);
   filterName = signal<string>('');
-  filterEnjeuId = signal<number | null>(null);
+  filterEnjeuIds = signal<number[]>([]);
 
   yearColumns = computed(() => {
     const start = this.planYearStart();
@@ -299,21 +300,31 @@ export class PlanTableauDeBordComponent implements OnInit {
     this.activeTab.set(tab);
     // Le filtre objectif dépend de l'onglet ; le filtre enjeu n'existe qu'en
     // mode ensemble → on réinitialise pour éviter un filtrage fantôme.
-    this.filterObjectif.set(null);
-    if (tab !== 'ensemble') this.filterEnjeuId.set(null);
+    this.filterObjectifs.set([]);
+    if (tab !== 'ensemble') this.filterEnjeuIds.set([]);
   }
 
-  setObjectifFilter(value: string | null): void { this.filterObjectif.set(value); }
-  setEnjeuFilter(value: number | null): void { this.filterEnjeuId.set(value); }
+  // #426 — bascule la présence d'une valeur dans le filtre multi-sélection.
+  toggleObjectifFilter(value: string): void {
+    this.filterObjectifs.update(arr =>
+      arr.includes(value) ? arr.filter(v => v !== value) : [...arr, value]);
+  }
+  isObjectifSelected(value: string): boolean { return this.filterObjectifs().includes(value); }
+
+  toggleEnjeuFilter(value: number): void {
+    this.filterEnjeuIds.update(arr =>
+      arr.includes(value) ? arr.filter(v => v !== value) : [...arr, value]);
+  }
+  isEnjeuSelected(value: number): boolean { return this.filterEnjeuIds().includes(value); }
 
   clearFilters(): void {
-    this.filterObjectif.set(null);
+    this.filterObjectifs.set([]);
     this.filterName.set('');
-    this.filterEnjeuId.set(null);
+    this.filterEnjeuIds.set([]);
   }
 
   hasActiveFilters(): boolean {
-    return !!(this.filterObjectif() || this.filterName() || this.filterEnjeuId());
+    return !!(this.filterObjectifs().length || this.filterName() || this.filterEnjeuIds().length);
   }
 
   /** #356 — Début d'un bloc enjeu (en-tête enjeu) en mode ensemble. */
@@ -472,3 +483,4 @@ export class PlanTableauDeBordComponent implements OnInit {
     return count;
   }
 }
+

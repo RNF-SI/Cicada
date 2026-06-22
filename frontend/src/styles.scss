@@ -1214,3 +1214,15 @@ label.app-mat-label + app-form-field,
   text-align: left;
   max-width: 360px !important;
 }
+
+// #426 — menus de filtres multi-sélection (tableau de bord) : la case à cocher
+// ne ferme pas le menu (stopPropagation côté template). Rendu dans un overlay
+// CDK → styles globaux nécessaires.
+.multiselect-menu {
+  .filter-check {
+    font-size: 16px !important;
+    margin-right: 8px;
+    color: #025359;
+    vertical-align: middle;
+  }
+}

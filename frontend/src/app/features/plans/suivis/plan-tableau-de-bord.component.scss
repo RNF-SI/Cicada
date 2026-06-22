@@ -299,6 +299,22 @@
     font-weight: $font-weight-bold;
     background-color: $primary-bg-soft;
   }
+
+  // #426 — badge compteur de filtres actifs (multi-sélection)
+  .filter-count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    border-radius: 9px;
+    background-color: $primary-color;
+    color: $white;
+    font-size: 11px;
+    font-weight: $font-weight-bold;
+    line-height: 1;
+  }
 }
 
 .filter-separator {
@@ -688,3 +704,4 @@
     gap: $spacing-sm;
   }
 }
+

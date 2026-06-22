@@ -103,31 +103,37 @@
           <div class="filter-bar-left">
             <div class="filter-label">{{ 'plans.suivis.tableauDeBord.filterLabel' | translate }}</div>
             <div class="filter-buttons">
-              <!-- Nom d'objectif -->
+              <!-- Nom d'objectif (multi-sélection #426) -->
               <button class="filter-btn" [matMenuTriggerFor]="nomMenu"
-                      [class.filter-active]="filterObjectif()">
+                      [class.filter-active]="filterObjectifs().length">
                 {{ 'plans.suivis.tableauDeBord.nomObjectif' | translate }}
+                @if (filterObjectifs().length) { <span class="filter-count">{{ filterObjectifs().length }}</span> }
                 <i class="fi fi-rr-angle-small-down"></i>
               </button>
-              <mat-menu #nomMenu="matMenu">
-                <button mat-menu-item (click)="setObjectifFilter(null)"><em>{{ 'common.actions.all' | translate }}</em></button>
+              <mat-menu #nomMenu="matMenu" class="multiselect-menu">
                 @for (name of objectifNames(); track name) {
-                  <button mat-menu-item (click)="setObjectifFilter(name)">{{ name }}</button>
+                  <button mat-menu-item (click)="toggleObjectifFilter(name); $event.stopPropagation()">
+                    <i class="fi filter-check" [class.fi-rr-square]="!isObjectifSelected(name)" [class.fi-rr-checkbox]="isObjectifSelected(name)"></i>
+                    <span>{{ name }}</span>
+                  </button>
                 }
               </mat-menu>
               <div class="filter-separator"></div>
 
-              <!-- Enjeu (mode ensemble uniquement) -->
+              <!-- Enjeu (mode ensemble uniquement, multi-sélection #426) -->
               @if (activeTab() === 'ensemble' && enjeuOptions().length > 0) {
                 <button class="filter-btn" [matMenuTriggerFor]="enjeuMenu"
-                        [class.filter-active]="filterEnjeuId()">
+                        [class.filter-active]="filterEnjeuIds().length">
                   {{ 'plans.suivis.tableauDeBord.enjeu' | translate }}
+                  @if (filterEnjeuIds().length) { <span class="filter-count">{{ filterEnjeuIds().length }}</span> }
                   <i class="fi fi-rr-angle-small-down"></i>
                 </button>
-                <mat-menu #enjeuMenu="matMenu">
-                  <button mat-menu-item (click)="setEnjeuFilter(null)"><em>{{ 'common.actions.all' | translate }}</em></button>
+                <mat-menu #enjeuMenu="matMenu" class="multiselect-menu">
                   @for (e of enjeuOptions(); track e.id) {
-                    <button mat-menu-item (click)="setEnjeuFilter(e.id)">{{ e.libelle }}</button>
+                    <button mat-menu-item (click)="toggleEnjeuFilter(e.id); $event.stopPropagation()">
+                      <i class="fi filter-check" [class.fi-rr-square]="!isEnjeuSelected(e.id)" [class.fi-rr-checkbox]="isEnjeuSelected(e.id)"></i>
+                      <span>{{ e.libelle }}</span>
+                    </button>
                   }
                 </mat-menu>
                 <div class="filter-separator"></div>
