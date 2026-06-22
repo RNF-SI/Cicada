@@ -1068,7 +1068,8 @@ class TestPlanGestionChangeStatus:
     def test_draft_to_avis_csrpn(self, api_client):
         """`csrpn-step/` : draft + step=null → step=avis_csrpn (lancement workflow)."""
         admin = SuperAdminFactory()
-        plan = PlanGestionFactory(statut='draft')
+        # #406 — la validation administrative est réservée aux réserves naturelles
+        plan = PlanGestionFactory(statut='draft', sites=[self._make_typed_site('RNN')])
         api_client.force_authenticate(user=admin)
         response = api_client.post(
             self.CSRPN_STEP_URL_TEMPLATE.format(plan.id_pg),
@@ -1079,11 +1080,37 @@ class TestPlanGestionChangeStatus:
         assert plan.statut == 'draft'
         assert plan.validation_step == 'avis_csrpn'
 
+    def test_csrpn_step_rejected_for_non_reserve(self, api_client):
+        """#406 — le workflow CSRPN est refusé si le site principal n'est pas une
+        réserve naturelle (ici un PNR)."""
+        admin = SuperAdminFactory()
+        plan = PlanGestionFactory(statut='draft', sites=[self._make_typed_site('PNR')])
+        api_client.force_authenticate(user=admin)
+        response = api_client.post(
+            self.CSRPN_STEP_URL_TEMPLATE.format(plan.id_pg),
+            {'step': 'avis_csrpn'},
+        )
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        plan.refresh_from_db()
+        assert plan.validation_step is None
+
+    def test_admin_validation_rejected_for_non_reserve(self, api_client):
+        """#406 — la validation administrative indépendante est aussi gatée."""
+        admin = SuperAdminFactory()
+        plan = PlanGestionFactory(statut='valide', sites=[self._make_typed_site('ENS')])
+        api_client.force_authenticate(user=admin)
+        response = api_client.post(
+            self.ADMIN_VALIDATION_URL_TEMPLATE.format(plan.id_pg),
+            {'key': 'comite_consultatif', 'date': '2026-04-10'},
+        )
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+
     def test_csrpn_step_allowed_on_validated_plan(self, api_client):
         """#347 — les validations administratives sont orthogonales au statut :
         on peut lancer/avancer le workflow CSRPN sur un plan déjà validé."""
         admin = SuperAdminFactory()
-        plan = PlanGestionFactory(statut='valide')
+        # #406 — réserve naturelle requise pour la validation administrative
+        plan = PlanGestionFactory(statut='valide', sites=[self._make_typed_site('RNN')])
         api_client.force_authenticate(user=admin)
         response = api_client.post(
             self.CSRPN_STEP_URL_TEMPLATE.format(plan.id_pg),
@@ -1120,7 +1147,8 @@ class TestPlanGestionChangeStatus:
         """#347 — enregistre une validation administrative sans workflow ordonné,
         quel que soit le statut plateforme du plan."""
         admin = SuperAdminFactory()
-        plan = PlanGestionFactory(statut='valide')
+        # #406 — réserve naturelle requise pour la validation administrative
+        plan = PlanGestionFactory(statut='valide', sites=[self._make_typed_site('RNN')])
         api_client.force_authenticate(user=admin)
         response = api_client.post(
             self.ADMIN_VALIDATION_URL_TEMPLATE.format(plan.id_pg),
@@ -1193,7 +1221,8 @@ class TestPlanGestionChangeStatus:
     def test_avis_csrpn_to_comite_with_date(self, api_client):
         """`csrpn-step/` : avis_csrpn → comite_consultatif enregistre la date d'avis."""
         admin = SuperAdminFactory()
-        plan = PlanGestionFactory(statut='draft', validation_step='avis_csrpn')
+        # #406 — réserve naturelle requise pour la validation administrative
+        plan = PlanGestionFactory(statut='draft', validation_step='avis_csrpn', sites=[self._make_typed_site('RNN')])
         api_client.force_authenticate(user=admin)
         response = api_client.post(
             self.CSRPN_STEP_URL_TEMPLATE.format(plan.id_pg),
@@ -1334,7 +1363,8 @@ class TestPlanGestionChangeStatus:
         admin = SuperAdminFactory()
         referent = ReferentFactory()
         other_admin = SuperAdminFactory()
-        plan = PlanGestionFactory(statut='draft', referents=[referent, other_admin])
+        # #406 — réserve naturelle requise pour la validation administrative
+        plan = PlanGestionFactory(statut='draft', referents=[referent, other_admin], sites=[self._make_typed_site('RNN')])
         api_client.force_authenticate(user=admin)
         response = api_client.post(
             self.CSRPN_STEP_URL_TEMPLATE.format(plan.id_pg),

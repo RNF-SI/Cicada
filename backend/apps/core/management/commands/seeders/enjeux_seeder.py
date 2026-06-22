@@ -9,7 +9,7 @@ from apps.plans.models_enjeux import (
     Enjeu, FacteurInfluence, Pression, Responsabilite,
     ObjectifLongTerme, NiveauExigence,
     ObjectifOperationnel, ResultatAttendu,
-    CorEnjeuTaxon, CorEnjeuHabitat, CorEnjeuGeologie,
+    CorEnjeuTaxon, CorEnjeuHabitat, CorEnjeuGeologie, CorEnjeuObjetGeologique,
     CorResponsabiliteTaxon, CorResponsabiliteHabitat, CorResponsabiliteGeologie,
     CorResponsabiliteEnjeu
 )
@@ -394,6 +394,10 @@ class EnjeuxSeeder(BaseSeeder):
                     'espece': False,
                     'patrimoine_geologique': True,
                     'geo_in_situ': True,
+                    # #237 — démontre les patrimoines Documents + Autre (avec précision)
+                    'geo_documents': True,
+                    'geo_autre': True,
+                    'geo_autre_precision': 'Patrimoine glaciaire (modelés et stries glaciaires)',
                     'etat_enjeu': 'Le massif des Aiguilles Rouges présente un patrimoine géologique '
                                   'remarquable : gneiss précambriens, éclogites paléozoïques et '
                                   'modelés glaciaires quaternaires. Recul glaciaire accéléré.',
@@ -413,6 +417,19 @@ class EnjeuxSeeder(BaseSeeder):
                 id_enjeu=enjeu, id_inpg='2590',
                 defaults={'nom': 'Eclogites paléozoïques du lac Cornu (Aiguilles Rouges)'}
             )
+            # #237 — objets géologiques de la typologie (in situ + documents + « Autre » avec précision)
+            for code, libelle, precision in [
+                ('IS_AFFLEUREMENT', 'Affleurement remarquable', ''),
+                ('IS_SITE_PALEO', 'Site paléontologique', ''),
+                ('IS_GISEMENT_FOSSILIFERE', 'Gisement fossilifère', ''),
+                ('IS_GEOMORPHO', 'Site géomorphologique, paysage géologique remarquable', ''),
+                ('DOC_ARCHIVES', 'Documents (archives numériques ou papier)', ''),
+                ('IS_AUTRE', 'Autre', 'Stries et polis glaciaires'),
+            ]:
+                CorEnjeuObjetGeologique.objects.get_or_create(
+                    id_enjeu=enjeu, code=code,
+                    defaults={'libelle': libelle, 'precision': precision}
+                )
             enjeux_created.append(enjeu)
             self.log_item('créé' if created else 'mis à jour', f'Enjeu: {enjeu.intitule_court}')
 
