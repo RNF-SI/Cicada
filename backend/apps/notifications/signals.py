@@ -47,28 +47,12 @@ def notify_user_site_association(sender, instance, created, **kwargs):
         logger.info(f"User {instance.id_role} notified of site {instance.id_site} association")
 
 
-@receiver(post_delete, sender='users.CorRoleSite')
-def check_site_orphaned_on_user_removal(sender, instance, **kwargs):
-    """
-    Verifie si un site devient orphelin apres le retrait d'un utilisateur.
-    Saute la vérification si le site est en cours de suppression (CASCADE) :
-    il n'est pas orphelin, il est supprimé.
-    """
-    from apps.users.models import CorRoleSite
-    from apps.users.deletion_tracker import is_site_deleting
-    from .services import NotificationService
-
-    if is_site_deleting(instance.id_site_id):
-        return
-
-    site = instance.id_site
-
-    # Verifier s'il reste des utilisateurs sur ce site
-    remaining_users = CorRoleSite.objects.filter(id_site=site).exists()
-
-    if not remaining_users:
-        NotificationService.notify_site_orphaned(site)
-        logger.info(f"Site {site.nom_site} is now orphaned")
+# #446 — La détection « site orphelin » sur retrait d'utilisateur est gérée par
+# `apps.users.signals.check_site_orphaned_after_user_removed` (post_delete
+# CorRoleSite), qui dédoublonne via `_was_recently_notified` et filtre les
+# utilisateurs actifs. Le handler équivalent qui vivait ici n'avait pas cette
+# déduplication et, selon l'ordre d'exécution des signaux, produisait une
+# notification en double. Il a donc été retiré pour éviter les doublons.
 
 
 @receiver(post_delete, sender='users.CorRoleSite')

@@ -139,7 +139,11 @@ class TestNotifyUserSiteAssociation:
 @pytest.mark.django_db
 @pytest.mark.unit
 class TestCheckSiteOrphanedOnUserRemoval:
-    """Tests for check_site_orphaned_on_user_removal signal (CorRoleSite post_delete)."""
+    """Détection « site orphelin » au retrait d'un utilisateur (CorRoleSite post_delete).
+
+    Comportement assuré par users.signals.check_site_orphaned_after_user_removed
+    (le handler équivalent côté notifications a été retiré, #446, car il faisait
+    doublon sans déduplication)."""
 
     def test_orphaned_notification_when_last_user_removed(self):
         """Removing the last user from a site triggers site_orphaned notifications."""

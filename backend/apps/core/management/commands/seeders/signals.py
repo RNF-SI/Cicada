@@ -30,7 +30,8 @@ def _get_signal_registry() -> List[Tuple[Any, Callable, Any]]:
         # Signaux de apps.notifications.signals
         # =============================================
         (post_save, notif_signals.notify_user_site_association, CorRoleSite),
-        (post_delete, notif_signals.check_site_orphaned_on_user_removal, CorRoleSite),
+        # #446 — check_site_orphaned_on_user_removal retiré (doublon) ; la
+        # détection est faite par users.signals.check_site_orphaned_after_user_removed.
         (post_delete, notif_signals.notify_user_removed_from_site, CorRoleSite),
         (pre_save, notif_signals.track_user_deactivation, Role),
         (post_save, notif_signals.notify_user_deactivation, Role),
