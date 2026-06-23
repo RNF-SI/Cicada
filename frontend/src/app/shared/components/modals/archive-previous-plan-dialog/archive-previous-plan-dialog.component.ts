@@ -20,13 +20,16 @@ export interface ArchivePreviousPlanDialogResult {
 }
 
 /**
- * Cherche dans la chaîne de versions un plan encore au statut `valide`,
- * différent de celui qui vient d'être validé. Si un tel plan existe, il est
- * candidat à l'archivage automatique (#246).
+ * Cherche dans la chaîne de versions le plan validé **antérieur** à celui qu'on
+ * vient de valider/réactiver, candidat à l'archivage automatique (#246).
  *
- * V1 : on s'appuie uniquement sur la `version_chain` (lien `plan_parent`).
- * Le cas « nouveau rang sans plan_parent partageant un site » sera couvert
- * par #248 (verrouillage hors brouillon + détection automatique de rang).
+ * #395 — On ne retient qu'un plan dont l'ordre (rang puis version) est
+ * **strictement inférieur** à celui du plan courant, et on prend le plus récent
+ * d'entre eux (prédécesseur immédiat). Sans cette contrainte, réactiver un plan
+ * ancien proposait d'archiver un plan plus récent, ce qui n'avait pas de sens.
+ *
+ * On s'appuie sur la `version_chain` (lien `plan_parent`). La `version` étant
+ * scopée au rang (#279), on compare d'abord le rang puis la version.
  */
 export function findPreviousValidatedPlan(
   currentPlanId: number,
@@ -35,7 +38,29 @@ export function findPreviousValidatedPlan(
   if (!versionChain || versionChain.length === 0) {
     return null;
   }
-  return versionChain.find(p => p.id_pg !== currentPlanId && p.statut === 'valide') ?? null;
+  const current = versionChain.find(p => p.id_pg === currentPlanId);
+  if (!current) {
+    return null;
+  }
+  const orderKey = (p: PlanVersionChainItem): [number, number] => [p.rang ?? 0, Number(p.version) || 0];
+  const [curRang, curVer] = orderKey(current);
+  const isBefore = (p: PlanVersionChainItem): boolean => {
+    const [r, v] = orderKey(p);
+    return r < curRang || (r === curRang && v < curVer);
+  };
+
+  const candidates = versionChain.filter(
+    p => p.id_pg !== currentPlanId && p.statut === 'valide' && isBefore(p),
+  );
+  if (candidates.length === 0) {
+    return null;
+  }
+  // Prédécesseur immédiat = le plus récent (ordre le plus élevé) parmi les antérieurs.
+  return candidates.reduce((best, p) => {
+    const [br, bv] = orderKey(best);
+    const [pr, pv] = orderKey(p);
+    return pr > br || (pr === br && pv > bv) ? p : best;
+  });
 }
 
 @Component({
