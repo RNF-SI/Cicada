@@ -267,7 +267,10 @@ export class LeafletMapEditComponent implements OnInit, AfterViewInit, OnChanges
       },
       edit: {
         featureGroup: this.drawnItems,
-        remove: true
+        // #431 : la suppression leaflet-draw (poubelle de gauche) fait doublon
+        // avec le bouton « Tout effacer » custom (poubelle de droite). On ne
+        // garde que ce dernier ; on conserve l'outil d'édition (crayon).
+        remove: false
       }
     };
 
@@ -469,25 +472,41 @@ export class LeafletMapEditComponent implements OnInit, AfterViewInit, OnChanges
 
       console.log('loadExistingGeometry: données à charger', geojsonData);
 
-      // Créer un layer GeoJSON
-      const geoJsonLayer = L.geoJSON(geojsonData, {
-        style: {
-          color: this.primaryColor,
-          weight: 2,
-          fillColor: this.fillColor,
-          fillOpacity: 0.3
-        },
-        pointToLayer: (feature, latlng) => {
-          return L.marker(latlng);
-        }
-      });
+      const style = {
+        color: this.primaryColor,
+        weight: 2,
+        fillColor: this.fillColor,
+        fillOpacity: 0.3
+      };
 
-      // Ajouter chaque layer au groupe éditable
+      // #435 — Un MultiPolygon chargé en un seul layer n'est pas correctement
+      // éditable par leaflet-draw (Edit.Poly ne génère pas de poignées de
+      // sommets exploitables). On l'éclate donc en polygones individuels
+      // éditables ; `emitGeometry()` les recombine en MultiPolygon à la
+      // sauvegarde. Cela rend notamment éditable l'emprise copiée d'un site (#410).
+      const geom = geojsonData.geometry;
       let layerCount = 0;
-      geoJsonLayer.eachLayer((layer) => {
-        this.drawnItems?.addLayer(layer);
-        layerCount++;
-      });
+      if (geom && geom.type === 'MultiPolygon' && Array.isArray(geom.coordinates)) {
+        geom.coordinates.forEach((polygonCoords: any) => {
+          const polyFeature: any = { type: 'Feature', properties: {}, geometry: { type: 'Polygon', coordinates: polygonCoords } };
+          const polyLayer = L.geoJSON(polyFeature, { style });
+          polyLayer.eachLayer((layer) => {
+            this.drawnItems?.addLayer(layer);
+            layerCount++;
+          });
+        });
+      } else {
+        const geoJsonLayer = L.geoJSON(geojsonData, {
+          style,
+          pointToLayer: (feature, latlng) => {
+            return L.marker(latlng);
+          }
+        });
+        geoJsonLayer.eachLayer((layer) => {
+          this.drawnItems?.addLayer(layer);
+          layerCount++;
+        });
+      }
 
       console.log('loadExistingGeometry:', layerCount, 'layers ajoutés');
 
