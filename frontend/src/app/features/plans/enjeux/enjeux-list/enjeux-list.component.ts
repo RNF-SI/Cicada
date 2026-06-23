@@ -1253,7 +1253,7 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
       if (nbPressions) impactList.push({ label: this.translate.instant('enjeux.cascade.pressions', { count: nbPressions }), count: nbPressions, icon: 'fi-rr-triangle-warning' });
       if (nbOlts) impactList.push({ label: this.translate.instant('enjeux.cascade.olt', { count: nbOlts }), count: nbOlts, icon: 'fi-rr-bullseye-arrow' });
       if (nbNes) impactList.push({ label: this.translate.instant('enjeux.cascade.ne', { count: nbNes }), count: nbNes, icon: 'fi-rr-target' });
-      if (nbOos) impactList.push({ label: this.translate.instant('enjeux.cascade.oo', { count: nbOos }), count: nbOos, icon: 'fi-rr-bullseye-arrow' });
+      if (nbOos) impactList.push({ label: this.translate.instant('enjeux.cascade.oo', { count: nbOos }), count: nbOos, icon: 'fi-rr-edit' });
       if (nbRas) impactList.push({ label: this.translate.instant('enjeux.cascade.ra', { count: nbRas }), count: nbRas, icon: 'fi-rr-check' });
       if (nbIndicateurs) impactList.push({ label: this.translate.instant('enjeux.cascade.indicateurs', { count: nbIndicateurs }), count: nbIndicateurs, icon: 'fi-rr-chart-line-up' });
     }
