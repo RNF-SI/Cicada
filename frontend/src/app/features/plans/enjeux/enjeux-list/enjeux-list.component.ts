@@ -2851,6 +2851,21 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
     this.applyReorder('objectifs-long-terme', enjeu.id_enjeu, list, event.previousIndex, event.currentIndex, 'id_olt');
   }
 
+  /**
+   * #442 : monte (delta=-1) ou descend (delta=+1) un OLT via des boutons
+   * explicites, alternative plus découvrable que le drag-and-drop. La
+   * numérotation globale des OLT (`oltGlobalRank`) suit l'ordre, donc
+   * réordonner donne « la main » sur les numéros. Réutilise `applyReorder`
+   * (persistance + rollback).
+   */
+  moveOlt(index: number, delta: number): void {
+    const enjeu = this.selectedEnjeu();
+    const list = enjeu?.objectifs_long_terme || [];
+    const target = index + delta;
+    if (!enjeu?.id_enjeu || target < 0 || target >= list.length) return;
+    this.applyReorder('objectifs-long-terme', enjeu.id_enjeu, list, index, target, 'id_olt');
+  }
+
   /** Drag-and-drop : réordonne les NE d'un OLT. */
   onNeDrop(event: CdkDragDrop<any[]>, olt: ObjectifLongTerme): void {
     if (!olt?.id_olt) return;
@@ -3140,6 +3155,16 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
               { duration: 3000 }
             );
             this.loadPlanData(true);
+          },
+          // Sans ce handler, toute erreur (403 plan verrouillé, contrainte, etc.)
+          // échouait silencieusement → la suppression semblait « sans effet » (#444).
+          error: (err) => {
+            const detail = err?.error?.detail;
+            this.snackBar.open(
+              detail || this.translate.instant('enjeux.indicateurs.deleteError'),
+              this.translate.instant('common.actions.close'),
+              { duration: 6000, panelClass: 'snackbar-error' }
+            );
           }
         });
       }
