@@ -40,6 +40,7 @@ export class InventaireService {
       if (filters.id_pg) params = params.set('id_pg', filters.id_pg.toString());
       if (filters.annee_min) params = params.set('annee_min', filters.annee_min.toString());
       if (filters.annee_max) params = params.set('annee_max', filters.annee_max.toString());
+      if (filters.site) params = params.set('site', filters.site.toString());
       if (filters.type_action_prefix) params = params.set('type_action_prefix', filters.type_action_prefix);
       if (filters.search) params = params.set('search', filters.search);
       if (filters.page) params = params.set('page', filters.page.toString());

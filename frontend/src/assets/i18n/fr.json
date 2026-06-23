@@ -3419,7 +3419,10 @@
       "generate": "Générer"
     },
     "filters": {
-      "label": "Filtrer"
+      "label": "Filtrer",
+      "site": "Site",
+      "dateDebut": "Début à partir du",
+      "clear": "Réinitialiser"
     },
     "searchPlaceholder": "Rechercher un suivi ou inventaire...",
     "resultsCount": "{{count}} résultat(s)",

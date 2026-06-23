@@ -78,8 +78,14 @@ export class InventairesListComponent implements OnInit {
   statutFilter = signal<number | undefined>(undefined);
   statutOptions = signal<{ id: number; label: string }[]>([]);
 
+  // #358 — filtres supplémentaires : site + date de début (à partir de).
+  siteFilter = signal<number | undefined>(undefined);
+  dateDebutMin = signal<string>('');
+  siteOptions = signal<{ id_site: number; nom_site: string }[]>([]);
+
   ngOnInit(): void {
     this.loadStatutOptions();
+    this.loadSiteOptions();
     this.loadData();
   }
 
@@ -93,6 +99,18 @@ export class InventairesListComponent implements OnInit {
     });
   }
 
+  loadSiteOptions(): void {
+    this.adminService.getSites({ page: 1, page_size: 500 }).subscribe({
+      next: (response) => {
+        this.siteOptions.set(
+          response.results
+            .map(s => ({ id_site: s.id_site, nom_site: s.nom_site }))
+            .sort((a, b) => a.nom_site.localeCompare(b.nom_site))
+        );
+      }
+    });
+  }
+
   loadData(): void {
     this.isLoading.set(true);
     this.errorMessage.set(null);
@@ -100,6 +118,8 @@ export class InventairesListComponent implements OnInit {
     this.inventaireService.getInventaires({
       search: this.searchQuery() || undefined,
       id_statut: this.statutFilter(),
+      site: this.siteFilter(),
+      annee_min: this.dateDebutMin() || undefined,
       page: this.currentPage(),
       page_size: this.pageSize,
     }).subscribe({
@@ -125,6 +145,32 @@ export class InventairesListComponent implements OnInit {
 
   setStatutFilter(statutId: number | undefined): void {
     this.statutFilter.set(statutId);
+    this.currentPage.set(1);
+    this.loadData();
+  }
+
+  // #358 — filtres site + date de début
+  setSiteFilter(siteId: number | undefined): void {
+    this.siteFilter.set(siteId);
+    this.currentPage.set(1);
+    this.loadData();
+  }
+
+  setDateDebutMin(date: string): void {
+    this.dateDebutMin.set(date || '');
+    this.currentPage.set(1);
+    this.loadData();
+  }
+
+  /** Vrai si au moins un filtre (hors recherche) est actif (#358). */
+  hasActiveFilters(): boolean {
+    return this.statutFilter() !== undefined || this.siteFilter() !== undefined || !!this.dateDebutMin();
+  }
+
+  clearFilters(): void {
+    this.statutFilter.set(undefined);
+    this.siteFilter.set(undefined);
+    this.dateDebutMin.set('');
     this.currentPage.set(1);
     this.loadData();
   }

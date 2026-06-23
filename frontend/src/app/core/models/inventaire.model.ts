@@ -119,8 +119,11 @@ export interface InventaireFilters {
   id_type_action?: number;
   type_action_prefix?: string;
   id_pg?: number;
-  annee_min?: number;
+  /** #358 — date de lancement minimale (YYYY-MM-DD) ; accepte aussi une année. */
+  annee_min?: number | string;
   annee_max?: number;
+  /** #358 — filtre par site (via les opérations du suivi). */
+  site?: number;
   search?: string;
   page?: number;
   page_size?: number;

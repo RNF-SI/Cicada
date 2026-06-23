@@ -720,3 +720,24 @@
     display: none;
   }
 }
+
+// #358 — filtres site + date de début
+.filter-date {
+  display: inline-flex;
+  align-items: center;
+  gap: $spacing-xs;
+  font-size: $font-size-small;
+  color: $gray-dark;
+
+  input[type="date"] {
+    border: 1px solid $gray-light;
+    border-radius: $border-radius-sm;
+    padding: 4px 8px;
+    font-family: $font-family;
+    color: $black;
+  }
+}
+
+.filter-clear {
+  color: $error-color;
+}

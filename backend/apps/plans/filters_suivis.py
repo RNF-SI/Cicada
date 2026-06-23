@@ -19,6 +19,8 @@ class SuiviInventaireFilter(django_filters.FilterSet):
     id_pg = django_filters.NumberFilter(field_name='id_pg')
     annee_min = django_filters.DateFilter(field_name='date_lancement_suivi', lookup_expr='gte')
     annee_max = django_filters.NumberFilter(field_name='annee_fin_suivi', lookup_expr='lte')
+    # #358 — filtre par site (un suivi est rattaché aux sites via ses opérations).
+    site = django_filters.NumberFilter(method='filter_site')
 
     class Meta:
         model = SuiviInventaire
@@ -31,3 +33,9 @@ class SuiviInventaireFilter(django_filters.FilterSet):
         return queryset.filter(
             id_type_action__cd_nomenclature__startswith=value
         )
+
+    def filter_site(self, queryset, name, value):
+        """#358 — suivis rattachés à un site via leurs opérations (CorOperationSite)."""
+        if not value:
+            return queryset
+        return queryset.filter(operations__sites=value).distinct()

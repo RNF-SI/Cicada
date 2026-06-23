@@ -67,6 +67,41 @@
                 </button>
               }
             </mat-menu>
+
+            <!-- #358 — filtre par site -->
+            <button class="filter-btn" [class.filter-active]="siteFilter()"
+              [matMenuTriggerFor]="siteMenu">
+              {{ 'inventaires.filters.site' | translate }}
+              @if (siteFilter()) {
+                <span class="filter-badge">1</span>
+              }
+              <i class="fi fi-rr-angle-small-down"></i>
+            </button>
+            <mat-menu #siteMenu="matMenu">
+              <button mat-menu-item (click)="setSiteFilter(undefined)">
+                <span>{{ 'common.filters.all' | translate }}</span>
+              </button>
+              @for (site of siteOptions(); track site.id_site) {
+                <button mat-menu-item (click)="setSiteFilter(site.id_site)">
+                  <span>{{ site.nom_site }}</span>
+                </button>
+              }
+            </mat-menu>
+
+            <!-- #358 — filtre par date de début (à partir de) -->
+            <label class="filter-date">
+              <span>{{ 'inventaires.filters.dateDebut' | translate }}</span>
+              <input type="date" [value]="dateDebutMin()"
+                     (change)="setDateDebutMin($any($event.target).value)" />
+            </label>
+
+            <!-- #358 — réinitialiser les filtres -->
+            @if (hasActiveFilters()) {
+              <button class="filter-btn filter-clear" (click)="clearFilters()">
+                <i class="fi fi-rr-cross-small"></i>
+                {{ 'inventaires.filters.clear' | translate }}
+              </button>
+            }
           </div>
           <div class="filter-separator"></div>
         </div>
