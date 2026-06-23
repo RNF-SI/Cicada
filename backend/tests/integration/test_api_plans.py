@@ -1808,7 +1808,7 @@ class TestPlansPeriodFilters:
 @pytest.mark.django_db
 @pytest.mark.integration
 class TestPlansForSitesEndpoint:
-    """Tests for GET /api/plans/plans/for-sites/ (PG validés/archivés d'un site)."""
+    """Tests for GET /api/plans/plans/for-sites/ (PG d'un site, tous statuts)."""
 
     def test_unauthenticated_denied(self, api_client):
         site = SiteFactory()
@@ -1832,7 +1832,8 @@ class TestPlansForSitesEndpoint:
         assert entry['plans'][0]['nom'] == 'PG rang 1'
         assert entry['plans'][0]['rang'] == 1
 
-    def test_excludes_drafts(self, api_client):
+    def test_includes_all_statuses_incl_drafts(self, api_client):
+        """Anti-prolifération : tous les statuts sont renvoyés, brouillons compris."""
         admin = SuperAdminFactory()
         site = SiteFactory()
         PlanGestionValideFactory(nom='Valide', rang=1, sites=[site])
@@ -1843,7 +1844,7 @@ class TestPlansForSitesEndpoint:
         response = api_client.get(f'/api/plans/plans/for-sites/?site_ids={site.id_site}')
 
         noms = {p['nom'] for p in response.data['sites'][0]['plans']}
-        assert noms == {'Valide', 'Archive'}
+        assert noms == {'Valide', 'Archive', 'Brouillon'}
 
     def test_empty_when_no_site_ids(self, api_client):
         admin = SuperAdminFactory()
@@ -1895,7 +1896,8 @@ class TestPlansAutoLinkParent:
         assert response.status_code == status.HTTP_201_CREATED
         assert PlanGestion.objects.get(nom='Nouveau rang').plan_parent_id is None
 
-    def test_ignores_non_validated_parent(self, api_client):
+    def test_links_to_draft_parent(self, api_client):
+        """Anti-prolifération : le rattachement à un parent brouillon est autorisé."""
         admin = SuperAdminFactory()
         site = SiteFactory()
         parent = PlanGestionFactory(nom='Brouillon parent', statut='draft', rang=1, sites=[site])
@@ -1904,7 +1906,7 @@ class TestPlansAutoLinkParent:
         response = self._create(api_client, site, rang=2, parent_id=parent.id_pg)
 
         assert response.status_code == status.HTTP_201_CREATED
-        assert PlanGestion.objects.get(nom='Nouveau rang').plan_parent_id is None
+        assert PlanGestion.objects.get(nom='Nouveau rang').plan_parent_id == parent.id_pg
 
     def test_ignores_parent_same_or_higher_rang(self, api_client):
         admin = SuperAdminFactory()

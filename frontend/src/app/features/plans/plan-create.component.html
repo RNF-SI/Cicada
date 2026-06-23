@@ -192,7 +192,7 @@
                     <app-checkbox
                       [checked]="linkToParentEnabled()"
                       (checkedChange)="linkToParentEnabled.set($event)"
-                      [label]="'modals.planForm.versionChain.linkLabel' | translate:{ nom: parent.nom, rang: parent.rang }"
+                      [label]="'modals.planForm.versionChain.linkLabel' | translate:{ nom: parent.nom, rang: parent.rang, statut: parent.statut_display }"
                       [mention]="'modals.planForm.versionChain.linkMention' | translate">
                     </app-checkbox>
                   </div>

@@ -1196,7 +1196,7 @@
       "addFreeText": "Ajouter en texte libre",
       "versionChain": {
         "sameRangTitle": "Un plan de gestion de rang {{rang}} existe déjà pour ce site :",
-        "linkLabel": "Rattacher ce plan à la suite de « {{nom}} » (rang {{rang}})",
+        "linkLabel": "Rattacher ce plan à la suite de « {{nom}} » (rang {{rang}}, {{statut}})",
         "linkMention": "Conserve le fil entre les rangs (chaîne de versions). Décochez pour créer un plan indépendant.",
         "existingTitle": "Plans de gestion déjà associés à ce site",
         "rangLabel": "Rang {{rang}}"

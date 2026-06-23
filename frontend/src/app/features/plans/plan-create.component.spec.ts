@@ -654,6 +654,31 @@ describe('PlanCreateComponent', () => {
       expect(component.sameRangConflicts().length).toBe(1);
     });
 
+    it('should suggest a draft plan as parent (anti-prolifération)', () => {
+      component.existingPlansBySite.set([{ site_id: 10, site_nom: 'Camargue', plans: [
+        validatedPlan({ id_pg: 5, rang: 1, statut: 'draft', statut_display: 'Brouillon' }),
+      ] }]);
+      component.form.get('rang')?.setValue(2);
+      expect(component.suggestedParent()?.id_pg).toBe(5);
+    });
+
+    it('should prefer a validated plan over a draft at equal rang', () => {
+      component.existingPlansBySite.set([{ site_id: 10, site_nom: 'Camargue', plans: [
+        validatedPlan({ id_pg: 5, rang: 1, statut: 'draft', statut_display: 'Brouillon', version: '2' }),
+        validatedPlan({ id_pg: 6, rang: 1, statut: 'valide', version: '1' }),
+      ] }]);
+      component.form.get('rang')?.setValue(2);
+      expect(component.suggestedParent()?.id_pg).toBe(6);
+    });
+
+    it('should flag a same-rang conflict for a draft too', () => {
+      component.existingPlansBySite.set([{ site_id: 10, site_nom: 'Camargue', plans: [
+        validatedPlan({ rang: 2, statut: 'draft', statut_display: 'Brouillon' }),
+      ] }]);
+      component.form.get('rang')?.setValue(2);
+      expect(component.sameRangConflicts().length).toBe(1);
+    });
+
     it('should dedupe plans shared across several sites', () => {
       const shared = validatedPlan();
       component.existingPlansBySite.set([

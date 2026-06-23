@@ -216,8 +216,14 @@ export class PlanCreateComponent implements OnInit {
     const rang = this.rangSignal();
     const lower = this.allExistingPlans().filter(p => p.rang < rang);
     if (lower.length === 0) return null;
+    // Rang le plus élevé d'abord ; à rang égal, préférer un plan validé à un
+    // brouillon (chaîner à la version « officielle ») ; puis version la plus haute.
+    const validated = (p: SitePlanSummary) => (p.statut !== 'draft' ? 1 : 0);
     return [...lower].sort(
-      (a, b) => (b.rang - a.rang) || (this.versionNum(b.version) - this.versionNum(a.version))
+      (a, b) =>
+        (b.rang - a.rang) ||
+        (validated(b) - validated(a)) ||
+        (this.versionNum(b.version) - this.versionNum(a.version))
     )[0];
   });
 

@@ -248,11 +248,11 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
     @staticmethod
     def _is_valid_rang_parent(parent, plan):
         """Vrai si `parent` est un parent de rang valide pour `plan` lors d'une
-        création standard : plan validé/archivé, rang strictement inférieur et
-        au moins un site en commun. Empêche un rattachement incohérent."""
+        création standard : rang strictement inférieur et au moins un site en
+        commun. Le statut du parent n'est PAS contraint — on autorise aussi le
+        rattachement à un plan en **brouillon** (anti-prolifération : permet de
+        chaîner un nouveau rang à un plan existant non encore validé)."""
         if parent.pk == plan.pk:
-            return False
-        if parent.statut not in PlanGestion.VALIDATED_STATUSES:
             return False
         if (parent.rang or 1) >= (plan.rang or 1):
             return False
@@ -293,13 +293,13 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
 
         Sert, lors de la création d'un plan, à :
         - alerter si un PG du même rang existe déjà sur le site ;
-        - proposer de rattacher le nouveau plan au plan validé du rang
-          précédent (conservation de la chaîne de versions) ;
+        - proposer de rattacher le nouveau plan au plan du rang précédent
+          (conservation de la chaîne de versions) ;
         - afficher le détail des PG déjà rattachés au site.
 
-        Seuls les plans validés/archivés (`VALIDATED_STATUSES` = valide,
-        modifie, archive — y compris les évaluations mi-parcours qui portent
-        le statut `modifie`) sont renvoyés ; les brouillons sont exclus.
+        Tous les statuts sont renvoyés, **y compris les brouillons** (anti-
+        prolifération : on veut voir tout plan déjà existant sur le site pour
+        éviter d'en créer un doublon, et pouvoir s'y rattacher).
         Le scope respecte les permissions de l'utilisateur (get_queryset).
         """
         raw = request.query_params.get('site_ids', '')
@@ -311,7 +311,7 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
 
         qs = (
             self.get_queryset()
-            .filter(sites__site_id__in=site_ids, statut__in=PlanGestion.VALIDATED_STATUSES)
+            .filter(sites__site_id__in=site_ids)
             .distinct()
         )
         names = dict(
