@@ -1199,7 +1199,10 @@
         "linkLabel": "Rattacher ce plan à la suite de « {{nom}} » (rang {{rang}}, {{statut}})",
         "linkMention": "Conserve le fil entre les rangs (chaîne de versions). Décochez pour créer un plan indépendant.",
         "existingTitle": "Plans de gestion déjà associés à ce site",
-        "rangLabel": "Rang {{rang}}"
+        "rangLabel": "Rang {{rang}}",
+        "title": "Chaîne de versions",
+        "linkedTo": "Ce plan est rattaché à la version précédente :",
+        "notLinked": "Ce plan n'est rattaché à aucune version précédente."
       },
       "messages": {
         "siteCreated": "Site créé et sélectionné avec succès",

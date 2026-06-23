@@ -29,7 +29,8 @@ import {
   PlanCreatePayload,
   PlanStatut,
   AdminSite,
-  AdminUser
+  AdminUser,
+  SitePlansEntry
 } from '../../../../core/models/admin.model';
 
 export interface PlanFormModalData {
@@ -136,6 +137,9 @@ export class PlanFormModalComponent implements OnInit {
   selectedSiteIds = signal<number[]>([]);
   selectedReferentIds = signal<number[]>([]);
 
+  /** #433 — Plans validés/archivés existants sur le(s) site(s) (contexte chaîne de versions, lecture seule). */
+  existingPlansBySite = signal<SitePlansEntry[]>([]);
+
   // Site scope toggle
   siteScope = signal<ViewScope>('mine');
   readonly showSiteScopeToggle = computed(() => this.authService.isAdminOrganisme() || this.isSuperAdmin());
@@ -210,6 +214,22 @@ export class PlanFormModalComponent implements OnInit {
     this.initForm();
     this.loadData();
     this.setupAutocomplete();
+    this.loadVersionChainContext();
+  }
+
+  /**
+   * #433 — Contexte de chaîne de versions affiché (lecture seule) dans la modale,
+   * notamment après une duplication : à quel plan la version est rattachée, et
+   * les plans déjà existants sur le(s) site(s). Purement informatif (la
+   * modification du rattachement n'est pas gérée ici).
+   */
+  private loadVersionChainContext(): void {
+    const siteIds = (this.data?.plan?.sites || []).map(s => s.id_site);
+    if (siteIds.length === 0) return;
+    this.adminService.getPlansForSites(siteIds).subscribe({
+      next: (res) => this.existingPlansBySite.set(res.sites || []),
+      error: () => this.existingPlansBySite.set([]),
+    });
   }
 
   private setupAutocomplete(): void {

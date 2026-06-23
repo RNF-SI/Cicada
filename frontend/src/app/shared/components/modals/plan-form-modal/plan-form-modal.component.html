@@ -127,6 +127,40 @@
 </app-form-field>
         </div>
 
+        <!-- #433 — Contexte de chaîne de versions (lecture seule) : rattachement
+             courant + plans déjà existants sur le(s) site(s). -->
+        @if (isEditMode && (data?.plan?.plan_parent_id || existingPlansBySite().length > 0)) {
+          <div class="form-section version-chain-info">
+            <label class="field-label">{{ 'modals.planForm.versionChain.title' | translate }}</label>
+            @if (data?.plan?.plan_parent_nom) {
+              <p class="info-block info-block-success">
+                <i class="fi fi-rr-link"></i>
+                {{ 'modals.planForm.versionChain.linkedTo' | translate }} <strong>{{ data?.plan?.plan_parent_nom }}</strong>
+              </p>
+            } @else {
+              <p class="text-mention">{{ 'modals.planForm.versionChain.notLinked' | translate }}</p>
+            }
+            @if (existingPlansBySite().length > 0) {
+              <p class="text-mention">{{ 'modals.planForm.versionChain.existingTitle' | translate }}</p>
+              <ul class="version-chain-list">
+                @for (entry of existingPlansBySite(); track entry.site_id) {
+                  <li>
+                    <strong>{{ entry.site_nom }}</strong>
+                    <ul>
+                      @for (p of entry.plans; track p.id_pg) {
+                        <li>
+                          {{ 'modals.planForm.versionChain.rangLabel' | translate:{ rang: p.rang } }} —
+                          {{ p.nom }} ({{ p.statut_display }})
+                        </li>
+                      }
+                    </ul>
+                  </li>
+                }
+              </ul>
+            }
+          </div>
+        }
+
         <!-- CT88 (Radio buttons) -->
         <div class="form-section ct88-section">
           <label class="field-label">{{ 'modals.planForm.fields.ct88' | translate }} *</label>
