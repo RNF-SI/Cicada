@@ -8,10 +8,15 @@
 >
   <span class="bell-container">
     <i class="fi fi-rr-bell bell-icon"></i>
-    @if (totalBadgeCount() > 0) {
-      <span class="notification-badge" [class.has-critical]="pendingValidations() > 0">
+    @if (unreadCount() > 0) {
+      <span class="notification-badge">
         {{ badgeDisplay() }}
       </span>
+    }
+    @else if (pendingValidations() > 0) {
+      <!-- #386 — pastille discrète « validations à traiter » sans compteur :
+           signale les validations sans empêcher « tout marquer comme lu ». -->
+      <span class="notification-badge notification-badge--dot has-critical" aria-hidden="true"></span>
     }
   </span>
 </button>

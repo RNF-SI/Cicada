@@ -45,9 +45,14 @@ export class NotificationBellComponent implements OnInit, OnDestroy {
     return this.authService.canAccessAdmin();
   });
 
-  // Badge display (max 99+)
+  // Badge display (max 99+).
+  // #386 — le badge reflète les notifications NON LUES uniquement, afin que
+  // « tout marquer comme lu » le ramène à 0. Les validations en attente (qui
+  // pour un super_admin couvrent tout le système et ne « se lisent » pas) sont
+  // surfacées séparément dans le panneau (« X demande(s) à traiter ») et sur la
+  // page d'administration des validations.
   readonly badgeDisplay = computed(() => {
-    const count = this.totalBadgeCount();
+    const count = this.unreadCount();
     if (count > 99) return '99+';
     return count.toString();
   });
