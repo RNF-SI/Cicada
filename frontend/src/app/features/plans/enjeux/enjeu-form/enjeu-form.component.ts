@@ -91,7 +91,6 @@ export class EnjeuFormComponent implements OnInit {
   // #237 — Documents du patrimoine « Documents ».
   // Existants (mode édition) + ajouts mis en attente, téléversés après l'enregistrement.
   existingDocuments = signal<EnjeuDocument[]>([]);
-  stagedFiles = signal<File[]>([]);
   stagedPapers = signal<string[]>([]);
   private pendingDeleteDocIds: number[] = [];
 
@@ -162,7 +161,6 @@ export class EnjeuFormComponent implements OnInit {
     // #237 — décocher « Documents » abandonne les ajouts de documents en attente.
     this.form.get('geo_documents')?.valueChanges.subscribe(isChecked => {
       if (!isChecked) {
-        this.stagedFiles.set([]);
         this.stagedPapers.set([]);
       }
     });
@@ -375,7 +373,6 @@ export class EnjeuFormComponent implements OnInit {
 
     // #237 — documents existants (numériques + références papier)
     this.existingDocuments.set(enjeu.documents ? [...enjeu.documents] : []);
-    this.stagedFiles.set([]);
     this.stagedPapers.set([]);
     this.pendingDeleteDocIds = [];
   }
@@ -469,18 +466,6 @@ export class EnjeuFormComponent implements OnInit {
   // #237 — Documents du patrimoine « Documents »
   // ════════════════════════════════════════════════════════════════
 
-  /** Ajoute les fichiers sélectionnés à la file d'attente d'upload. */
-  onDocumentFilesSelected(event: Event): void {
-    const input = event.target as HTMLInputElement;
-    if (!input.files?.length) return;
-    this.stagedFiles.update(files => [...files, ...Array.from(input.files!)]);
-    input.value = ''; // permet de re-sélectionner le même fichier
-  }
-
-  removeStagedFile(index: number): void {
-    this.stagedFiles.update(files => files.filter((_, i) => i !== index));
-  }
-
   addPaperReference(): void {
     this.stagedPapers.update(papers => [...papers, '']);
   }
@@ -513,7 +498,8 @@ export class EnjeuFormComponent implements OnInit {
 
   /**
    * Applique les changements de documents après l'enregistrement de l'enjeu :
-   * suppressions, puis upload des fichiers, puis création des références papier.
+   * suppressions, puis création des références papier. L'import de fichier a été
+   * retiré (#438) — seules les références (bibliographiques) sont ajoutables.
    */
   private syncDocuments(enjeuId: number): Observable<unknown> {
     const ops: Observable<unknown>[] = [];
@@ -524,9 +510,6 @@ export class EnjeuFormComponent implements OnInit {
 
     // N'envoyer les ajouts que si le patrimoine « Documents » est coché.
     if (this.form.get('geo_documents')?.value) {
-      for (const file of this.stagedFiles()) {
-        ops.push(this.enjeuService.uploadEnjeuDocument(enjeuId, file));
-      }
       for (const titre of this.stagedPapers()) {
         const ref = titre.trim();
         if (ref) ops.push(this.enjeuService.addEnjeuPaperDocument(enjeuId, ref));

@@ -236,20 +236,6 @@
                       </li>
                     }
 
-                    <!-- Fichiers numériques en attente d'upload -->
-                    @for (file of stagedFiles(); track $index) {
-                      <li class="geo-doc-item geo-doc-staged">
-                        <i class="fi fi-rr-document geo-doc-icon"></i>
-                        <span class="geo-doc-name">{{ file.name }}</span>
-                        <span class="geo-doc-meta">{{ 'enjeux.enjeuForm.documents.pending' | translate }}</span>
-                        <button type="button" class="geo-doc-remove"
-                                [attr.aria-label]="'common.actions.delete' | translate"
-                                (click)="removeStagedFile($index)">
-                          <i class="fi fi-rr-cross-small"></i>
-                        </button>
-                      </li>
-                    }
-
                     <!-- Références papier en attente -->
                     @for (paper of stagedPapers(); track $index) {
                       <li class="geo-doc-item geo-doc-staged">
@@ -268,13 +254,11 @@
                   </ul>
 
                   <div class="geo-doc-actions">
-                    <button type="button" mat-stroked-button (click)="fileInput.click()">
-                      <i class="fi fi-rr-upload"></i> {{ 'enjeux.enjeuForm.documents.addFile' | translate }}
-                    </button>
+                    <!-- #438 — l'import de fichier a été retiré ; seules les
+                         références (papier / bibliographiques) sont saisissables. -->
                     <button type="button" mat-stroked-button (click)="addPaperReference()">
                       <i class="fi fi-rr-clip"></i> {{ 'enjeux.enjeuForm.documents.addPaper' | translate }}
                     </button>
-                    <input #fileInput type="file" multiple hidden (change)="onDocumentFilesSelected($event)">
                   </div>
                 </div>
               }
