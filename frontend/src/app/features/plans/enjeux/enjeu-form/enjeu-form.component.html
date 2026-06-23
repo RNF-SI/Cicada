@@ -60,14 +60,16 @@
                matTooltipPosition="above"></i>
           </app-form-field>
 
-          <!-- Priorité -->
+          <!-- Priorité (facultative, #441) -->
           <div class="form-group">
-            <label class="form-label">{{ 'enjeux.enjeuForm.priorite' | translate }} <span class="required-star">*</span></label>
+            <label class="form-label">{{ 'enjeux.enjeuForm.priorite' | translate }}</label>
             <mat-radio-group formControlName="rang" class="priority-radio-group">
+              <mat-radio-button [value]="null">{{ 'enjeux.enjeuForm.prioriteNonDefinie' | translate }}</mat-radio-button>
               <mat-radio-button [value]="1">1</mat-radio-button>
               <mat-radio-button [value]="2">2</mat-radio-button>
               <mat-radio-button [value]="3">3</mat-radio-button>
             </mat-radio-group>
+            <span class="field-hint">{{ 'enjeux.enjeuForm.prioriteHint' | translate }}</span>
           </div>
 
           <!-- Catégorie de l'enjeu (choix exclusif) -->

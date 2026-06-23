@@ -108,7 +108,8 @@ export class EnjeuFormComponent implements OnInit {
     this.form = this.fb.group({
       libelle: ['', [Validators.required, Validators.maxLength(500)]],
       intitule_court: ['', [Validators.maxLength(25)]],
-      rang: [1, [Validators.required, Validators.min(1), Validators.max(3)]],
+      // Priorité facultative (#441) : null = « non définie » (on ne force plus 1)
+      rang: [null as number | null, [Validators.min(1), Validators.max(3)]],
       categorie_ecologique: [true],
       // Checkboxes écologiques
       habitat: [false],
@@ -333,7 +334,7 @@ export class EnjeuFormComponent implements OnInit {
     this.form.patchValue({
       libelle: enjeu.libelle,
       intitule_court: enjeu.intitule_court || '',
-      rang: enjeu.rang || 1,
+      rang: enjeu.rang ?? null,
       categorie_ecologique: enjeu.categorie_ecologique ?? true,
       // Écologique
       habitat: enjeu.habitat || false,

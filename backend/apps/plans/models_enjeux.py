@@ -136,11 +136,12 @@ class Enjeu(models.Model):
     # Priorité (1, 2, 3) - Seulement pour Enjeux
     rang = models.IntegerField(
         _("Priorité"),
-        default=1,
+        default=None,
         null=True,
         blank=True,
         validators=[MinValueValidator(1), MaxValueValidator(3)],
-        help_text=_("Priorité de l'enjeu (1=haute, 2=moyenne, 3=basse)")
+        help_text=_("Priorité de l'enjeu (1=haute, 2=moyenne, 3=basse). "
+                    "Null = priorité non définie (#441).")
     )
     # Catégorie de l'enjeu — exclusivité : un enjeu est soit lié à la
     # conservation du patrimoine naturel, soit socio-économique, mais pas

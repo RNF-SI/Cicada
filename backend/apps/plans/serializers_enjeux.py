@@ -799,9 +799,11 @@ class EnjeuCreateSerializer(serializers.ModelSerializer):
             mnemonique = id_categorie.mnemonique if hasattr(id_categorie, 'mnemonique') else None
 
             if mnemonique == 'ENJEU':
-                # Pour un Enjeu, la priorité est requise
-                if not attrs.get('rang'):
-                    attrs['rang'] = 1  # Valeur par défaut
+                # #441 : la priorité d'un enjeu est facultative. Beaucoup de PG
+                # (CEN notamment) ne priorisent pas leurs enjeux ; on ne force
+                # donc plus la valeur 1 par défaut. Une valeur absente/null
+                # signifie « priorité non définie ».
+                pass
 
             elif mnemonique == 'FCR':
                 # Pour un FCR, la catégorie FCR est recommandée
