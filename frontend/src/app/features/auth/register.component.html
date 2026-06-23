@@ -97,6 +97,16 @@
           }
         </mat-form-field>
 
+        <!-- #385 — guider l'utilisateur quand aucun organisme n'est disponible
+             (cas d'un environnement sans organismes : la sélection est requise
+             mais la liste est vide → blocage non explicite). -->
+        @if (organismes().length === 0) {
+          <p class="text-mention org-empty-hint">
+            <i class="fi fi-rr-info"></i>
+            {{ 'auth.register.organismeEmpty' | translate }}
+          </p>
+        }
+
         <button type="button" class="create-org-toggle link-default" (click)="toggleCreateOrganisme(true)">
           <i class="fi fi-rr-plus-small"></i>
           {{ 'auth.register.createOrganisme.toggle' | translate }}

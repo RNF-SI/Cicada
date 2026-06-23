@@ -230,6 +230,23 @@ export class SuiviSaisieComponent implements OnInit {
     this.pendingGeomRealisee.set(geom);
   }
 
+  /** Vrai s'il existe une emprise prévue (emprise de l'action) à copier (#434). */
+  hasPlannedGeom = computed<boolean>(() => this.plannedGeom() != null);
+
+  /**
+   * #434 — Copie l'emprise prévue (emprise de l'action) comme emprise réalisée
+   * et bascule en mode édition pour pouvoir l'ajuster. La carte se recharge via
+   * le binding `[geometry]="realisedGeom()"` (qui lit `pendingGeomRealisee`).
+   */
+  copyPlannedEmprise(): void {
+    const planned = this.plannedGeom();
+    if (planned == null) return;
+    // Clone pour éviter de partager la référence avec l'emprise prévue affichée
+    // en arrière-plan.
+    this.pendingGeomRealisee.set(structuredClone(planned));
+    this.isEditingGeom.set(true);
+  }
+
   /** Retourne l'OperationAnnee pour une année donnée (ou null). */
   getOaForYear(year: number): OperationAnnee | null {
     return this.operation()?.operation_annees?.find(oa => oa.annee === year) ?? null;

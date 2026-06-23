@@ -466,6 +466,15 @@
             <img src="assets/images/ellipses/ellipse-yellow.png" alt="" class="card-ellipse">
             <h2 class="card-title">{{ 'plans.suivis.saisie.sections.emprise' | translate }}</h2>
           </div>
+          <!-- #434 — copier l'emprise prévue (emprise de l'action) comme emprise
+               réalisée, puis l'ajuster. Visible seulement si une emprise est prévue. -->
+          @if (hasPlannedGeom()) {
+            <button type="button" mat-stroked-button class="btn-sm copy-planned-emprise"
+                    (click)="copyPlannedEmprise()">
+              <i class="fi fi-rr-copy-alt"></i>
+              {{ 'plans.suivis.saisie.fields.copyPlannedEmprise' | translate }}
+            </button>
+          }
           <!-- Emprise prévue (arrière-plan, pointillés terra-cotta) + emprise
                réalisée éditable. Composant factorisé partagé avec le formulaire
                d'opération. -->
