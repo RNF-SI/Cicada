@@ -370,25 +370,22 @@ describe('PlanDuplicateComponent', () => {
 
     it('should include plans with statut valide', () => {
       component.planScope.set('all');
-      const filtered = component.filteredPlans();
-      const statuts = filtered.map(p => p.statut);
-      expect(statuts.every(s => s === 'valide')).toBe(true);
+      const ids = component.filteredPlans().map(p => p.id_pg);
+      expect(ids).toContain(100);
     });
 
-    it('should exclude plans with statut draft', () => {
+    it('should include plans with statut draft (#391)', () => {
       component.planScope.set('all');
-      const filtered = component.filteredPlans();
-      const ids = filtered.map(p => p.id_pg);
-      // id_pg 101 is draft
-      expect(ids).not.toContain(101);
+      const ids = component.filteredPlans().map(p => p.id_pg);
+      // id_pg 101 is draft — désormais exploitable comme base
+      expect(ids).toContain(101);
     });
 
-    it('should exclude plans with statut archive', () => {
+    it('should include plans with statut archive (#391)', () => {
       component.planScope.set('all');
-      const filtered = component.filteredPlans();
-      const ids = filtered.map(p => p.id_pg);
-      // id_pg 102 is archive
-      expect(ids).not.toContain(102);
+      const ids = component.filteredPlans().map(p => p.id_pg);
+      // id_pg 102 is archive — désormais exploitable comme base
+      expect(ids).toContain(102);
     });
 
     it('should exclude plans with children_count > 0 (non-leaf)', () => {
@@ -399,16 +396,19 @@ describe('PlanDuplicateComponent', () => {
       expect(ids).not.toContain(103);
     });
 
-    it('should include leaf valide plans only', () => {
+    it('should include all basable leaf plans (#391)', () => {
       component.planScope.set('all');
-      const filtered = component.filteredPlans();
-      const ids = filtered.map(p => p.id_pg);
-      // Only these are valide + leaf: 100, 104, 105, 106
+      const ids = component.filteredPlans().map(p => p.id_pg);
+      // Basable + leaf : 100 (valide), 101 (draft), 102 (archive), 104, 105, 106.
+      // 103 exclu (non-feuille).
       expect(ids).toContain(100);
+      expect(ids).toContain(101);
+      expect(ids).toContain(102);
       expect(ids).toContain(104);
       expect(ids).toContain(105);
       expect(ids).toContain(106);
-      expect(filtered.length).toBe(4);
+      expect(ids).not.toContain(103);
+      expect(ids.length).toBe(6);
     });
 
     it('should apply search filter on plan name', () => {
@@ -427,11 +427,12 @@ describe('PlanDuplicateComponent', () => {
       expect(filtered[0].id_pg).toBe(106);
     });
 
-    it('should combine search and valide filter', () => {
+    it('should find draft plans by search (#391 — drafts now basable)', () => {
       component.planScope.set('all');
-      // Searching for 'Draft' should return nothing since draft plans are excluded
       component.searchQuery.set('Draft');
-      expect(component.filteredPlans().length).toBe(0);
+      const filtered = component.filteredPlans();
+      expect(filtered.length).toBe(1);
+      expect(filtered[0].id_pg).toBe(101);
     });
 
     it('should handle case-insensitive search', () => {
@@ -442,10 +443,11 @@ describe('PlanDuplicateComponent', () => {
       expect(filtered[0].id_pg).toBe(100);
     });
 
-    it('should return all valide leaf plans with empty search', () => {
+    it('should return all basable leaf plans with empty search (#391)', () => {
       component.planScope.set('all');
       component.searchQuery.set('');
-      expect(component.filteredPlans().length).toBe(4);
+      // 100, 101, 102, 104, 105, 106 (103 non-feuille exclu)
+      expect(component.filteredPlans().length).toBe(6);
     });
 
     it('should trim whitespace in search query', () => {
@@ -522,20 +524,21 @@ describe('PlanDuplicateComponent', () => {
     });
 
     describe('all scope (super admin)', () => {
-      it('should include all valide leaf plans', () => {
+      it('should include all basable leaf plans (#391)', () => {
         setup({ isSuperAdmin: true });
         component.planScope.set('all');
         const filtered = component.filteredPlans();
-        expect(filtered.length).toBe(4);
+        // draft (101) et archive (102) désormais exploitables comme base
+        expect(filtered.length).toBe(6);
       });
 
-      it('should still exclude non-valide and non-leaf plans', () => {
+      it('should still exclude non-leaf plans (draft/archive now kept #391)', () => {
         setup({ isSuperAdmin: true });
         component.planScope.set('all');
         const ids = component.filteredPlans().map(p => p.id_pg);
-        expect(ids).not.toContain(101); // draft
-        expect(ids).not.toContain(102); // archive
-        expect(ids).not.toContain(103); // non-leaf
+        expect(ids).toContain(101); // draft — basable
+        expect(ids).toContain(102); // archive — basable
+        expect(ids).not.toContain(103); // non-leaf — toujours exclu
       });
     });
   });
@@ -889,10 +892,9 @@ describe('PlanDuplicateComponent', () => {
     });
 
     it('should show only immediate parent when toggle is off and plan is draft', () => {
-      // For this test we need a draft child that also passes the filter.
-      // filteredPlans excludes drafts, so linkedPlansById won't produce entries
-      // for draft children in the filtered list. This correctly tests that
-      // the toggle-off logic targets draft plans specifically.
+      // #391 — les drafts sont désormais exploitables comme base, donc le draft
+      // enfant apparaît dans filteredPlans. Toggle off + draft → on affiche son
+      // parent immédiat uniquement.
       const parent = makePlan({ id_pg: 500, nom: 'Parent', statut: 'archive', children_count: 1 });
       const child = makePlan({
         id_pg: 501,
@@ -906,9 +908,14 @@ describe('PlanDuplicateComponent', () => {
       component.planScope.set('all');
       component.showOldVersions.set(false);
 
-      // The draft child is not in filteredPlans (only valide), so no linked plans
-      expect(component.filteredPlans().length).toBe(0);
-      expect(component.linkedPlansById().size).toBe(0);
+      // Le draft enfant (feuille) est dans la liste ; le parent (non-feuille) en est exclu.
+      const ids = component.filteredPlans().map(p => p.id_pg);
+      expect(ids).toContain(501);
+      expect(ids).not.toContain(500);
+      // Toggle off + draft → parent immédiat affiché.
+      const linked = component.linkedPlansById();
+      expect(linked.has(501)).toBe(true);
+      expect(linked.get(501)!.map(p => p.id_pg)).toEqual([500]);
     });
   });
 

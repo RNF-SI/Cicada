@@ -111,18 +111,30 @@ export class PlanDuplicateComponent implements OnInit {
     return plans;
   });
 
-  /** Final filtered list: scope + validated only + leaf only (children_count === 0) + search */
+  /**
+   * Statuts exploitables comme base de duplication (#391). Auparavant restreint
+   * au seul statut `valide`, ce qui affichait « Aucun plan trouvé » dès que les
+   * plans de l'utilisateur étaient en brouillon, modifiés ou archivés (cas
+   * fréquent : baser un nouveau plan sur le précédent, souvent archivé). On
+   * accepte tout le cycle de vie courant (on exclut seulement les statuts
+   * transitoires du workflow CSRPN).
+   */
+  private static readonly BASABLE_STATUSES = new Set([
+    'draft', 'valide', 'modifie', 'mi_parcours', 'archive',
+  ]);
+
+  /** Final filtered list: scope + basable status + leaf only (children_count === 0) + search */
   readonly filteredPlans = computed(() => {
     const search = this.searchQuery().toLowerCase().trim();
     return this.scopedPlans().filter(p => {
-      // Only validated plans can serve as a base
-      const isValide = p.statut === 'valide';
+      // Plans exploitables comme base (#391)
+      const isBasable = PlanDuplicateComponent.BASABLE_STATUSES.has(p.statut);
       // Only show leaf plans (not replaced by a newer version)
       const isLeaf = !p.children_count || p.children_count === 0;
       const searchMatch = !search ||
         p.nom.toLowerCase().includes(search) ||
         (p.sites || []).some(s => s.nom_site.toLowerCase().includes(search));
-      return isValide && isLeaf && searchMatch;
+      return isBasable && isLeaf && searchMatch;
     });
   });
 
