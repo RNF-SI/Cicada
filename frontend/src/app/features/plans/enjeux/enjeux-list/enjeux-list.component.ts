@@ -2149,6 +2149,30 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
     return opt?.mnemonique || 'NUMERIQUE';
   }
 
+  /**
+   * #400 — Résout le type d'une métrique pour construire le payload, de façon
+   * robuste à une course de chargement. `getMetriqueTypeMnemonique` dépend des
+   * options de nomenclature chargées en asynchrone : si l'utilisateur enregistre
+   * avant la fin du chargement, le type retombait sur NUMERIQUE et les valeurs
+   * CHIFFRE/TEXTE n'étaient pas envoyées (métrique enregistrée vide). En repli,
+   * on infère le type à partir des données saisies (comme l'affichage).
+   */
+  private resolveFormMnemonique(met: MetriqueFormData): string {
+    const byType = this.getMetriqueTypeMnemonique(met.type_metrique);
+    // Options chargées + type sélectionné → la nomenclature fait foi.
+    if (this.typeMetriqueOptions().length > 0 && met.type_metrique) {
+      return byType;
+    }
+    // Repli : inférence à partir des champs renseignés.
+    const levels = [1, 2, 3, 4, 5];
+    const hasVal = levels.some(l => met.scores[l]?.val != null);
+    const hasLabel = levels.some(l => (met.scores[l]?.label || '').trim());
+    const hasBounds = levels.some(l => met.scores[l]?.inf != null || met.scores[l]?.sup != null);
+    if (hasVal && !hasBounds) return 'CHIFFRE';
+    if (hasLabel && !hasBounds) return 'TEXTE';
+    return byType;
+  }
+
   buildMetriquePayload(indicateurId: number, met: MetriqueFormData): MetriqueCreatePayload {
     const payload: MetriqueCreatePayload = {
       id_indicateur: indicateurId,
@@ -2163,7 +2187,7 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
     if (met.etat_reference.trim()) payload.etat_reference = met.etat_reference.trim();
     if (met.ordre != null) payload.ordre = met.ordre;
 
-    const mnemonique = this.getMetriqueTypeMnemonique(met.type_metrique);
+    const mnemonique = this.resolveFormMnemonique(met);
     for (let level = 1; level <= 5; level++) {
       const s = met.scores[level];
       if (mnemonique === 'CHIFFRE') {
