@@ -28,6 +28,10 @@
           @if (taxon.nom_vern) {
             <span class="taxon-nom-vern">{{ taxon.nom_vern.split(',')[0] }}</span>
           }
+          @if (taxon.is_synonyme) {
+            <!-- #449 — nom trouvé = synonyme ; on indique le taxon accepté. -->
+            <span class="taxon-synonyme">{{ 'enjeux.taxons.synonymOf' | translate }} {{ taxon.nom_valide }}</span>
+          }
           <span class="taxon-meta">
             {{ taxon.regne }} &middot; {{ taxon.group2_inpn }}
           </span>
@@ -36,3 +40,15 @@
     }
   </mat-autocomplete>
 </mat-form-field>
+
+<!-- #449 — recherche élargie aux synonymes (absents de l'autocomplete standard
+     qui ne liste que les noms valides). -->
+@if (!synonymMode()) {
+  <button type="button" class="taxon-synonym-link link-default" (click)="enableSynonymSearch()">
+    <i class="fi fi-rr-search"></i> {{ 'enjeux.taxons.notFound' | translate }}
+  </button>
+} @else {
+  <span class="taxon-synonym-hint text-mention">
+    <i class="fi fi-rr-info"></i> {{ 'enjeux.taxons.synonymModeActive' | translate }}
+  </span>
+}

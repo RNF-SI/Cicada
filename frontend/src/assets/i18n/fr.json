@@ -2647,6 +2647,11 @@
     "network": "Erreur de connexion. Vérifiez votre connexion internet."
   },
   "enjeux": {
+    "taxons": {
+      "notFound": "Je ne trouve pas mon taxon (rechercher dans les synonymes)",
+      "synonymModeActive": "Recherche élargie aux synonymes activée — sélectionnez un nom : le taxon valide correspondant sera rattaché.",
+      "synonymOf": "synonyme de"
+    },
     "cascade": {
       "facteurs": "Facteur(s) d'influence",
       "pressions": "Pression(s)",

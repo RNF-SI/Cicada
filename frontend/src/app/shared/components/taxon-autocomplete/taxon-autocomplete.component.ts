@@ -10,8 +10,8 @@ import { MatInputModule } from '@angular/material/input';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { TranslateModule } from '@ngx-translate/core';
-import { Subject, Subscription } from 'rxjs';
-import { debounceTime, distinctUntilChanged, switchMap, tap, filter } from 'rxjs/operators';
+import { merge, Subject, Subscription } from 'rxjs';
+import { debounceTime, switchMap, tap, filter, map } from 'rxjs/operators';
 
 import { TaxonomyService, TaxrefAutocomplete } from '../../../core/services/taxonomy.service';
 
@@ -70,16 +70,26 @@ export class TaxonAutocompleteComponent implements OnInit, OnDestroy, ControlVal
   isLoading = signal(false);
   selectedTaxon = signal<TaxrefAutocomplete | null>(null);
 
+  /** #449 — recherche élargie incluant les synonymes (activée via le lien
+   *  « je ne trouve pas mon taxon »). */
+  synonymMode = signal(false);
+  /** Re-déclenche la recherche avec le terme courant (ex. à l'activation des synonymes). */
+  private readonly retrigger$ = new Subject<void>();
+
   private subscription = new Subscription();
   private onChange: (value: number | null) => void = () => {};
   private onTouched: () => void = () => {};
 
   ngOnInit(): void {
+    // #449 — on fusionne la frappe et un re-déclenchement explicite (activation
+    // de la recherche par synonymes) pour relancer la requête avec le même terme.
+    const search$ = merge(
+      this.searchControl.valueChanges.pipe(filter(value => typeof value === 'string')),
+      this.retrigger$.pipe(map(() => this.searchControl.value)),
+    );
     this.subscription.add(
-      this.searchControl.valueChanges.pipe(
+      search$.pipe(
         debounceTime(300),
-        distinctUntilChanged(),
-        filter(value => typeof value === 'string'),
         tap(() => this.isLoading.set(true)),
         switchMap(value => {
           const search = (value as string) || '';
@@ -95,6 +105,7 @@ export class TaxonAutocompleteComponent implements OnInit, OnDestroy, ControlVal
             limit: effectiveLimit,
             regne: this.regne(),
             group2_inpn: this.group2Inpn(),
+            include_synonyms: this.synonymMode(),
           });
         }),
       ).subscribe(results => {
@@ -102,6 +113,17 @@ export class TaxonAutocompleteComponent implements OnInit, OnDestroy, ControlVal
         this.isLoading.set(false);
       })
     );
+  }
+
+  /**
+   * #449 — Active la recherche élargie incluant les synonymes et relance la
+   * requête avec le terme courant. Déclenchée par le lien « je ne trouve pas
+   * mon taxon ».
+   */
+  enableSynonymSearch(): void {
+    if (this.synonymMode()) return;
+    this.synonymMode.set(true);
+    this.retrigger$.next();
   }
 
   ngOnDestroy(): void {
@@ -115,7 +137,17 @@ export class TaxonAutocompleteComponent implements OnInit, OnDestroy, ControlVal
   }
 
   onOptionSelected(event: any): void {
-    const taxon: TaxrefAutocomplete = event.option.value;
+    let taxon: TaxrefAutocomplete = event.option.value;
+    // #449 — un synonyme est résolu vers le taxon ACCEPTÉ (cd_ref) : c'est ce
+    // taxon valide qui est rattaché, avec son nom valide pour l'affichage.
+    if (taxon.is_synonyme && taxon.cd_ref) {
+      taxon = {
+        ...taxon,
+        cd_nom: taxon.cd_ref,
+        lb_nom: taxon.nom_valide || taxon.lb_nom,
+        is_synonyme: false,
+      };
+    }
     this.selectedTaxon.set(taxon);
     this.taxonSelected.emit(taxon);
     this.onChange(taxon.cd_nom);
@@ -126,6 +158,7 @@ export class TaxonAutocompleteComponent implements OnInit, OnDestroy, ControlVal
     this.searchControl.setValue('');
     this.selectedTaxon.set(null);
     this.results.set([]);
+    this.synonymMode.set(false); // #449 — revenir à la recherche standard
     this.taxonSelected.emit(null);
     this.onChange(null);
   }

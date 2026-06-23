@@ -97,25 +97,43 @@ class TaxrefViewSet(viewsets.ReadOnlyModelViewSet):
 
         limit = min(int(request.query_params.get('limit', 20)), 100)
 
+        # #449 — Recherche élargie incluant les SYNONYMES. La vue
+        # `vm_taxref_list_forautocomplete` ne contient que les noms valides
+        # (cd_nom = cd_ref) ; pour retrouver un taxon par un de ses synonymes,
+        # on interroge directement la table `taxref` (qui contient toutes les
+        # graphies) et on expose le nom valide + un drapeau `is_synonyme`.
+        include_synonyms = request.query_params.get('include_synonyms', '').lower() in ('1', 'true', 'yes')
+
         from django.db import connection
         # Recherche par mots : chaque mot doit apparaître (sous-chaîne, sans
         # accents) — sinon un espace casse la recherche (ex. « chene pubescent »
         # ne trouvait pas « Chêne pubescent » selon les variantes de casse/pluriel).
         words = search.split() or [search]
+        # Colonne de recherche selon la source (vue = search_name ; table = lb_nom).
+        search_col = 'lb_nom' if include_synonyms else 'search_name'
         with connection.cursor() as cursor:
-            # Requête avec similarity() + unaccent() pour la pertinence
             text_conds = " AND ".join(
-                ["unaccent(search_name) ILIKE unaccent(%s)"] * len(words)
+                [f"unaccent({search_col}) ILIKE unaccent(%s)"] * len(words)
             )
-            sql = f"""
-                SELECT cd_nom, cd_ref, search_name, nom_valide,
-                       nom_vern, lb_nom, regne, group2_inpn, id_rang
-                FROM taxonomie.vm_taxref_list_forautocomplete
-                WHERE {text_conds}
-            """
+            if include_synonyms:
+                sql = f"""
+                    SELECT cd_nom, cd_ref, lb_nom AS search_name, nom_valide,
+                           nom_vern, lb_nom, regne, group2_inpn, id_rang,
+                           (cd_nom <> cd_ref) AS is_synonyme
+                    FROM taxonomie.taxref
+                    WHERE {text_conds}
+                """
+            else:
+                sql = f"""
+                    SELECT cd_nom, cd_ref, search_name, nom_valide,
+                           nom_vern, lb_nom, regne, group2_inpn, id_rang,
+                           false AS is_synonyme
+                    FROM taxonomie.vm_taxref_list_forautocomplete
+                    WHERE {text_conds}
+                """
             params = [f'%{w}%' for w in words]
 
-            # Filtres optionnels
+            # Filtres optionnels (colonnes présentes dans la vue ET la table).
             regne = request.query_params.get('regne')
             if regne:
                 sql += " AND regne = %s"
@@ -130,7 +148,7 @@ class TaxrefViewSet(viewsets.ReadOnlyModelViewSet):
             # (sous-espèce, variété, forme) avant les genres / familles / rangs
             # supérieurs, qui « polluaient » le haut de la liste (retour CEN
             # Bourgogne). La similarité reste le tri secondaire.
-            sql += """
+            sql += f"""
                 ORDER BY
                     CASE id_rang
                         WHEN 'ES'   THEN 0
@@ -139,7 +157,7 @@ class TaxrefViewSet(viewsets.ReadOnlyModelViewSet):
                         WHEN 'FO'   THEN 3
                         ELSE 4
                     END,
-                    similarity(unaccent(search_name), unaccent(%s)) DESC
+                    similarity(unaccent({search_col}), unaccent(%s)) DESC
                 LIMIT %s
             """
             params.extend([search, limit])

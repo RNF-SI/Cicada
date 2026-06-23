@@ -19,6 +19,8 @@ export interface TaxrefAutocomplete {
   regne: string;
   group2_inpn: string;
   id_rang: string;
+  /** #449 — vrai si le nom trouvé est un synonyme (cd_nom ≠ cd_ref). */
+  is_synonyme?: boolean;
 }
 
 export interface TaxrefDetail {
@@ -207,6 +209,8 @@ export class TaxonomyService {
     limit?: number;
     regne?: string;
     group2_inpn?: string;
+    /** #449 — inclure les synonymes (recherche élargie dans la table taxref). */
+    include_synonyms?: boolean;
   }): Observable<TaxrefAutocomplete[]> {
     if (search.length < 2) {
       return of([]);
@@ -215,7 +219,7 @@ export class TaxonomyService {
     // Vérifier le cache. #238 — inclure `limit` dans la clé pour éviter
     // qu'un appel court avec limit=20 ne masque les résultats supplémentaires
     // que demande un appel ultérieur avec un limit plus haut.
-    const cacheKey = `${search}|${options?.regne || ''}|${options?.group2_inpn || ''}|${options?.limit || ''}`;
+    const cacheKey = `${search}|${options?.regne || ''}|${options?.group2_inpn || ''}|${options?.limit || ''}|${options?.include_synonyms ? 'syn' : ''}`;
     const cached = this.autocompleteCache.get(cacheKey);
     if (cached) {
       return of(cached);
@@ -225,6 +229,7 @@ export class TaxonomyService {
     if (options?.limit) params = params.set('limit', options.limit.toString());
     if (options?.regne) params = params.set('regne', options.regne);
     if (options?.group2_inpn) params = params.set('group2_inpn', options.group2_inpn);
+    if (options?.include_synonyms) params = params.set('include_synonyms', 'true');
 
     return this.http.get<TaxrefAutocomplete[]>(
       `${this.apiUrl}/autocomplete/`, { params }
