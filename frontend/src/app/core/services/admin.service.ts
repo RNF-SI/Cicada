@@ -47,6 +47,23 @@ export class AdminService {
   private readonly http = inject(HttpClient);
   private readonly apiUrl = '/api/users';
 
+  /**
+   * Libellés lisibles des champs pour les messages d'erreur de validation (#439).
+   * Une valeur vide ('') affiche le message sans préfixe (le message backend est
+   * déjà explicite, ex. erreurs de géométrie).
+   */
+  private static readonly FIELD_LABELS: Record<string, string> = {
+    nom_site: 'Nom du site',
+    id_inpn: 'Code INPN',
+    id_local: 'Identifiant local',
+    surf_off: 'Surface officielle',
+    geom_geojson: '',
+    geom_pt_geojson: '',
+    id_type_site: 'Type de site',
+    type_site_precision: 'Précision du type',
+    non_field_errors: '',
+  };
+
   // ==================== ORGANISMES ====================
 
   /**
@@ -1061,15 +1078,21 @@ export class AdminService {
       if (error.status === 400) {
         if (error.error?.detail) {
           errorMessage = error.error.detail;
-        } else if (typeof error.error === 'object') {
-          // Collect all validation errors
+        } else if (typeof error.error === 'string') {
+          errorMessage = error.error;
+        } else if (typeof error.error === 'object' && error.error !== null) {
+          // Collect all validation errors with human-readable field labels (#439)
           const errors: string[] = [];
           Object.keys(error.error).forEach(key => {
             const fieldErrors = error.error[key];
-            if (Array.isArray(fieldErrors)) {
-              errors.push(`${key}: ${fieldErrors.join(', ')}`);
+            const message = Array.isArray(fieldErrors) ? fieldErrors.join(', ') : `${fieldErrors}`;
+            const label = AdminService.FIELD_LABELS[key];
+            // Pas de préfixe pour les erreurs non-champ ou les champs « géométrie »
+            // dont le message est déjà explicite (ex. « La géométrie fournie est invalide… »).
+            if (label === '' || key === 'non_field_errors') {
+              errors.push(message);
             } else {
-              errors.push(`${key}: ${fieldErrors}`);
+              errors.push(`${label ?? key} : ${message}`);
             }
           });
           errorMessage = errors.join('\n');
@@ -1083,6 +1106,10 @@ export class AdminService {
         console.error('Server error details:', error.error);
       } else if (error.status === 0) {
         errorMessage = 'Impossible de se connecter au serveur';
+      } else {
+        // Statut non géré : remonter le détail/code plutôt qu'un message opaque (#439)
+        errorMessage = error.error?.detail || error.error?.error
+          || `Une erreur est survenue (code ${error.status}).`;
       }
     }
 
