@@ -460,3 +460,54 @@ globale après la saisie.
 
 > ℹ️ Les encadrés **💡 Cas d'usage** laissés vides dans ce guide sont à compléter par votre réseau,
 > à partir des situations concrètes rencontrées lors de la saisie des plans existants.
+
+---
+
+## 6. Points de cadrage (questions fréquentes)
+
+Ces points répondent aux ambiguïtés les plus fréquentes remontées lors des tests de saisie.
+
+### 6.1 Créer les sites **avant** la saisie d'un plan
+
+Un plan de gestion se rattache toujours à un ou plusieurs **sites** existants. **Tous les sites
+concernés doivent donc être créés (et validés) avant** de commencer la saisie du plan. Pensez-y
+en particulier si votre réseau gère de nombreux sites : préparez-les en amont (création unitaire
+ou import en masse) pour ne pas être bloqué·e au moment de créer le plan.
+
+### 6.2 Métrique et unité
+
+Dans beaucoup de plans, la **métrique** et son **unité** sont confondues (souvent une seule colonne
+dans les tableaux d'arborescence existants). Dans CICADA, saisissez :
+
+- l'**intitulé de la métrique** = *ce que l'on mesure* (ex. « surface de ligneux », « recouvrement ») ;
+- l'**unité** = *dans quelle grandeur* (ex. « ha », « % », « ml »).
+
+Lorsqu'un même indicateur est suivi par plusieurs grandeurs (ex. *surface* **et** *recouvrement*),
+créez **une métrique par grandeur**. Attention : les actions se rattachent alors à chaque métrique.
+
+### 6.3 Habitats associés à un enjeu (HabRef)
+
+HabRef ne contient pas toujours la référence exacte employée dans le plan, et plusieurs entrées
+peuvent sembler valables. Recommandations :
+
+- faire renseigner cette partie par un·e **phytosociologue** lorsque c'est possible (regard fondé
+  sur les correspondances entre typologies) ;
+- **limiter la saisie** aux habitats pour lesquels une **responsabilité forte (à modérée)** a été
+  identifiée, plutôt que de tout lister.
+
+La recherche d'**espèces** (TaxRef) accepte plusieurs mots : tapez le **genre puis l'espèce**
+(ex. `quercus pub`) pour filtrer directement ; les espèces et sous-espèces sont proposées en
+priorité, avant les genres et familles.
+
+### 6.4 Entretien ou restauration ?
+
+La distinction entre une action d'**entretien** et une action de **restauration** est souvent
+ambiguë en pratique. Ligne de partage retenue :
+
+- **Restauration** : action visant à **rétablir** un état ou une fonctionnalité dégradés
+  (intervention ponctuelle, souvent lourde, pour revenir à l'état souhaité).
+- **Entretien** : action **récurrente** visant à **maintenir** un état déjà atteint
+  (gestion courante reconduite dans le temps).
+
+En cas de doute, raisonnez par l'objectif : *revenir à un état* (restauration) vs *conserver un
+état* (entretien).
