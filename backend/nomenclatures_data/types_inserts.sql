@@ -62,3 +62,6 @@ INSERT INTO ref_nomenclatures.bib_nomenclatures_types (id_type, mnemonique, labe
 INSERT INTO ref_nomenclatures.bib_nomenclatures_types (id_type, mnemonique, label, definition, source, statut, date_ajout, date_maj) VALUES (66, 'CATEGORIE_ACTION_RESERVE', 'Catégorie d''action réserve', 'DOMAINES D''ACTIVITÉ réserve CT88', 'CICADA/CT88', 'Validé', NOW(), NOW());
 -- Niveau de réalisation d'une opération annuelle (CICADA - Suivis Phase 1)
 INSERT INTO ref_nomenclatures.bib_nomenclatures_types (id_type, mnemonique, label, definition, source, statut, date_ajout, date_maj) VALUES (67, 'NIVEAU_REALISATION', 'Niveau de réalisation', 'Niveau de réalisation d''une opération sur une année donnée', 'CICADA', 'Validé', NOW(), NOW());
+
+-- #237 — Typologie des objets géologiques (in situ / ex situ / documents)
+INSERT INTO ref_nomenclatures.bib_nomenclatures_types (id_type, mnemonique, label, definition, source, statut, date_ajout, date_maj) VALUES (68, 'TYPE_OBJET_GEOLOGIQUE', 'Type d''objet géologique', 'Typologie des objets géologiques d''un enjeu (in situ / ex situ / documents)', 'CICADA/PatriNat', 'Validé', NOW(), NOW());

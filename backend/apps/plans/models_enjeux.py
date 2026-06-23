@@ -1169,9 +1169,10 @@ class CorEnjeuGeologie(models.Model):
 
 class CorEnjeuObjetGeologique(models.Model):
     """
-    #237 — Objet(s) géologique(s) d'un enjeu, issus de la typologie fournie par
-    Corentin (PatriNat). Le `code` référence la typologie (constante côté front),
-    `libelle` est dénormalisé pour l'affichage et l'export.
+    #237 — Objet(s) géologique(s) d'un enjeu, issus de la typologie PatriNat.
+    L'objet référence désormais une nomenclature `TYPE_OBJET_GEOLOGIQUE`
+    (référentiel centralisé) ; `precision` reste une saisie libre pour les
+    objets de type « Autre ».
     """
 
     id = models.AutoField(primary_key=True)
@@ -1182,16 +1183,14 @@ class CorEnjeuObjetGeologique(models.Model):
         db_column='id_enjeu',
         verbose_name=_("Enjeu")
     )
-    code = models.CharField(
-        _("Code"),
-        max_length=50,
-        help_text=_("Code de l'objet géologique dans la typologie")
-    )
-    libelle = models.CharField(
-        _("Libellé"),
-        max_length=255,
-        blank=True,
-        default=''
+    id_objet_geologique = models.ForeignKey(
+        'core.Nomenclature',
+        on_delete=models.PROTECT,
+        related_name='enjeux_objet_geologique',
+        db_column='id_objet_geologique',
+        verbose_name=_("Objet géologique"),
+        help_text=_("Type d'objet géologique (nomenclature TYPE_OBJET_GEOLOGIQUE)"),
+        limit_choices_to={'id_type__mnemonique': 'TYPE_OBJET_GEOLOGIQUE'},
     )
     # #237 — précision libre pour un objet de type « Autre »
     precision = models.CharField(
@@ -1206,10 +1205,10 @@ class CorEnjeuObjetGeologique(models.Model):
         db_table_comment = 'Liaison enjeux - objets géologiques (#237)'
         verbose_name = _("Enjeu - Objet géologique")
         verbose_name_plural = _("Enjeux - Objets géologiques")
-        unique_together = ['id_enjeu', 'code']
+        unique_together = ['id_enjeu', 'id_objet_geologique']
 
     def __str__(self):
-        return f"Enjeu {self.id_enjeu_id} - Objet géologique {self.code}"
+        return f"Enjeu {self.id_enjeu_id} - Objet géologique {self.id_objet_geologique_id}"
 
 
 class CorEnjeuFichier(models.Model):

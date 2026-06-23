@@ -180,23 +180,23 @@
                         <mat-select multiple
                                     panelClass="geo-objet-select-panel"
                                     [placeholder]="'enjeux.enjeuForm.geoObjets.selectPlaceholder' | translate"
-                                    [value]="selectedCodesFor(group)"
+                                    [value]="selectedIdsFor(group)"
                                     (selectionChange)="onObjetSelectionChange(group, $event.value)">
-                          @for (opt of group.options; track opt.code) {
-                            <mat-option [value]="opt.code">{{ opt.libelle }}</mat-option>
-                            @for (child of opt.children || []; track child.code) {
-                              <mat-option [value]="child.code" class="geo-objet-option-child">{{ child.libelle }}</mat-option>
+                          @for (opt of group.options; track opt.id) {
+                            <mat-option [value]="opt.id">{{ opt.libelle }}</mat-option>
+                            @for (child of opt.children || []; track child.id) {
+                              <mat-option [value]="child.id" class="geo-objet-option-child">{{ child.libelle }}</mat-option>
                             }
                           }
                         </mat-select>
                       </mat-form-field>
 
                       <!-- #237 — précision libre pour un objet « Autre » sélectionné -->
-                      @for (autre of selectedAutreObjets(group); track autre.code) {
+                      @for (autre of selectedAutreObjets(group); track autre.id) {
                         <app-form-field [label]="'enjeux.enjeuForm.geoObjets.precisionLabel' | translate">
                           <input maxlength="255"
-                                 [value]="objetPrecision(autre.code)"
-                                 (input)="setObjetPrecision(autre.code, $any($event.target).value)"
+                                 [value]="objetPrecision(autre.id)"
+                                 (input)="setObjetPrecision(autre.id, $any($event.target).value)"
                                  [placeholder]="'enjeux.enjeuForm.geoObjets.precisionPlaceholder' | translate">
                         </app-form-field>
                       }

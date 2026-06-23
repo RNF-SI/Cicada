@@ -25,7 +25,7 @@ import { FormFieldComponent } from '../../../../shared/components/form-field/for
 import { EnjeuService } from '../../../../core/services/enjeu.service';
 import { AdminService } from '../../../../core/services/admin.service';
 import { Enjeu, EnjeuCreatePayload, EnjeuUpdatePayload, TaxonRef, HabitatRef, GeologieRef, ObjetGeologiqueRef, EnjeuDocument } from '../../../../core/models/enjeu.model';
-import { GEO_OBJET_GROUPS, ObjetGeologiqueGroup, ObjetGeologiqueOption, groupObjetCodes } from './objet-geologique.constant';
+import { buildGeoObjetGroups, groupObjetIds, ObjetGeologiqueGroup, ObjetGeologiqueOption } from './objet-geologique.constant';
 
 @Component({
   selector: 'app-enjeu-form',
@@ -82,10 +82,11 @@ export class EnjeuFormComponent implements OnInit {
   habitatItems: HabitatRef[] = [];
   geologieItems: GeologieRef[] = [];
 
-  // #237 — objets géologiques sélectionnés : { code → précision éventuelle }.
+  // #237 — objets géologiques sélectionnés : { id_nomenclature → précision }.
   // La présence de la clé = objet coché ; la valeur = précision (objets « Autre »).
-  selectedObjets: Record<string, string> = {};
-  readonly geoObjetGroups = GEO_OBJET_GROUPS;
+  selectedObjets: Record<number, string> = {};
+  // Typologie chargée depuis le référentiel de nomenclatures (TYPE_OBJET_GEOLOGIQUE).
+  geoObjetGroups = signal<ObjetGeologiqueGroup[]>([]);
 
   // #237 — Documents du patrimoine « Documents ».
   // Existants (mode édition) + ajouts mis en attente, téléversés après l'enregistrement.
@@ -147,10 +148,13 @@ export class EnjeuFormComponent implements OnInit {
       }
     });
 
-    // #237 — décocher un patrimoine retire les objets géologiques de ce groupe.
-    for (const group of GEO_OBJET_GROUPS) {
-      this.form.get(group.control)?.valueChanges.subscribe(isChecked => {
-        if (!isChecked) this.clearGroupObjets(group);
+    // #237 — décocher un patrimoine (in situ / ex situ) retire ses objets.
+    for (const control of ['geo_in_situ', 'geo_ex_situ']) {
+      this.form.get(control)?.valueChanges.subscribe(isChecked => {
+        if (!isChecked) {
+          const group = this.geoObjetGroups().find(g => g.control === control);
+          if (group) this.clearGroupObjets(group);
+        }
       });
     }
 
@@ -248,6 +252,13 @@ export class EnjeuFormComponent implements OnInit {
     this.isLoadingData.set(true);
     this.planLoaded = false;
     this.nomenclatureLoaded = false;
+
+    // #237 — charger la typologie des objets géologiques depuis le référentiel
+    // de nomenclatures (au lieu d'une constante codée en dur).
+    this.adminService.getNomenclaturesByType('TYPE_OBJET_GEOLOGIQUE').subscribe({
+      next: (items) => this.geoObjetGroups.set(buildGeoObjetGroups(items as any[])),
+      error: () => this.geoObjetGroups.set([]),
+    });
 
     // Charger le plan par slug
     const slug = this.planSlug();
@@ -356,7 +367,9 @@ export class EnjeuFormComponent implements OnInit {
     // #237 — restaurer les objets géologiques sélectionnés + leurs précisions
     this.selectedObjets = {};
     for (const obj of enjeu.objets_geologiques || []) {
-      this.selectedObjets[obj.code] = obj.precision || '';
+      if (obj.id_objet_geologique != null) {
+        this.selectedObjets[obj.id_objet_geologique] = obj.precision || '';
+      }
     }
 
     // #237 — documents existants (numériques + références papier)
@@ -384,79 +397,71 @@ export class EnjeuFormComponent implements OnInit {
 
   /** Groupes d'objets affichés selon les patrimoines cochés (in situ / ex situ). */
   visibleObjetGroups(): ObjetGeologiqueGroup[] {
-    return this.geoObjetGroups.filter(g => !!this.form.get(g.control)?.value);
+    return this.geoObjetGroups().filter(g => !!this.form.get(g.control)?.value);
   }
 
-  isObjetSelected(code: string): boolean {
-    return Object.prototype.hasOwnProperty.call(this.selectedObjets, code);
+  isObjetSelected(id: number): boolean {
+    return Object.prototype.hasOwnProperty.call(this.selectedObjets, id);
   }
 
-  /** Codes actuellement cochés dans la liste déroulante d'un groupe (pour `[value]`). */
-  selectedCodesFor(group: ObjetGeologiqueGroup): string[] {
-    return groupObjetCodes(group).filter(code => this.isObjetSelected(code));
+  /** Ids actuellement cochés dans la liste déroulante d'un groupe (pour `[value]`). */
+  selectedIdsFor(group: ObjetGeologiqueGroup): number[] {
+    return groupObjetIds(group).filter(id => this.isObjetSelected(id));
   }
 
   /**
    * Synchronise la sélection multi-select d'un groupe dans `selectedObjets`,
    * en préservant les précisions déjà saisies pour les objets conservés.
    */
-  onObjetSelectionChange(group: ObjetGeologiqueGroup, codes: string[]): void {
-    const selected = new Set(codes);
-    for (const code of groupObjetCodes(group)) {
-      if (selected.has(code)) {
-        if (!this.isObjetSelected(code)) this.selectedObjets[code] = '';
+  onObjetSelectionChange(group: ObjetGeologiqueGroup, ids: number[]): void {
+    const selected = new Set(ids);
+    for (const id of groupObjetIds(group)) {
+      if (selected.has(id)) {
+        if (!this.isObjetSelected(id)) this.selectedObjets[id] = '';
       } else {
-        delete this.selectedObjets[code];
+        delete this.selectedObjets[id];
       }
     }
   }
 
   /** Objets « Autre » sélectionnés d'un groupe (affichage du champ de précision). */
   selectedAutreObjets(group: ObjetGeologiqueGroup): ObjetGeologiqueOption[] {
-    return group.options.filter(opt => opt.isAutre && this.isObjetSelected(opt.code));
+    const result: ObjetGeologiqueOption[] = [];
+    for (const opt of group.options) {
+      if (opt.isAutre && this.isObjetSelected(opt.id)) result.push(opt);
+      for (const child of opt.children || []) {
+        if (child.isAutre && this.isObjetSelected(child.id)) result.push(child);
+      }
+    }
+    return result;
   }
 
-  objetPrecision(code: string): string {
-    return this.selectedObjets[code] ?? '';
+  objetPrecision(id: number): string {
+    return this.selectedObjets[id] ?? '';
   }
 
-  setObjetPrecision(code: string, value: string): void {
-    if (this.isObjetSelected(code)) this.selectedObjets[code] = value;
+  setObjetPrecision(id: number, value: string): void {
+    if (this.isObjetSelected(id)) this.selectedObjets[id] = value;
   }
 
   /** Retire de la sélection tous les objets (parents + enfants) d'un groupe. */
   private clearGroupObjets(group: ObjetGeologiqueGroup): void {
-    for (const opt of group.options) {
-      delete this.selectedObjets[opt.code];
-      for (const child of opt.children || []) delete this.selectedObjets[child.code];
-    }
+    for (const id of groupObjetIds(group)) delete this.selectedObjets[id];
   }
 
   /**
    * Construit le payload `objets_geologiques_data` à partir de la sélection.
-   * Les codes absents de la typologie courante (ex. anciens codes Documents)
-   * sont écartés pour nettoyer les données héritées.
+   * Les ids absents de la typologie courante sont écartés (nettoyage hérité).
    */
   private buildObjetsGeologiquesData(): ObjetGeologiqueRef[] {
-    return Object.keys(this.selectedObjets)
-      .map(code => ({ code, opt: this.findObjetOption(code) }))
-      .filter(({ opt }) => !!opt)
-      .map(({ code, opt }) => ({
-        code,
-        libelle: opt!.libelle,
-        precision: this.selectedObjets[code] || '',
-      }));
-  }
-
-  private findObjetOption(code: string): ObjetGeologiqueOption | undefined {
-    for (const group of this.geoObjetGroups) {
-      for (const opt of group.options) {
-        if (opt.code === code) return opt;
-        const child = (opt.children || []).find(c => c.code === code);
-        if (child) return child;
-      }
+    const validIds = new Set<number>();
+    for (const g of this.geoObjetGroups()) {
+      for (const id of groupObjetIds(g)) validIds.add(id);
     }
-    return undefined;
+    return Object.keys(this.selectedObjets)
+      .map(k => Number(k))
+      .filter(id => validIds.has(id))
+      .map(id => ({ id_objet_geologique: id, precision: this.selectedObjets[id] || '' }));
   }
 
   // ════════════════════════════════════════════════════════════════
@@ -768,4 +773,5 @@ export class EnjeuFormComponent implements OnInit {
     return this.form.get('intitule_court')?.value?.length || 0;
   }
 }
+
 

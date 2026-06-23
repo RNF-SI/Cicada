@@ -427,10 +427,14 @@ class EnjeuxSeeder(BaseSeeder):
                 ('IS_GEOMORPHO', 'Site géomorphologique, paysage géologique remarquable', ''),
                 ('IS_AUTRE', 'Autre', 'Stries et polis glaciaires'),
             ]:
-                CorEnjeuObjetGeologique.objects.get_or_create(
-                    id_enjeu=enjeu, code=code,
-                    defaults={'libelle': libelle, 'precision': precision}
-                )
+                _nom_obj = Nomenclature.objects.filter(
+                    id_type__mnemonique='TYPE_OBJET_GEOLOGIQUE', cd_nomenclature=code
+                ).first()
+                if _nom_obj:
+                    CorEnjeuObjetGeologique.objects.get_or_create(
+                        id_enjeu=enjeu, id_objet_geologique=_nom_obj,
+                        defaults={'precision': precision}
+                    )
             # #237 — patrimoine Documents : référence papier d'exemple
             CorEnjeuFichier.objects.get_or_create(
                 id_enjeu=enjeu, support='papier',
@@ -532,10 +536,14 @@ class EnjeuxSeeder(BaseSeeder):
                 ('IS_GEOMORPHO', 'Site géomorphologique, paysage géologique remarquable', ''),
                 ('IS_HYDROGEO', 'Site hydrogéologique', ''),
             ]:
-                CorEnjeuObjetGeologique.objects.get_or_create(
-                    id_enjeu=enjeu, code=code,
-                    defaults={'libelle': libelle, 'precision': precision}
-                )
+                _nom_obj = Nomenclature.objects.filter(
+                    id_type__mnemonique='TYPE_OBJET_GEOLOGIQUE', cd_nomenclature=code
+                ).first()
+                if _nom_obj:
+                    CorEnjeuObjetGeologique.objects.get_or_create(
+                        id_enjeu=enjeu, id_objet_geologique=_nom_obj,
+                        defaults={'precision': precision}
+                    )
             enjeux_created.append(enjeu)
             self.log_item('créé' if created else 'mis à jour', f'Enjeu: {enjeu.intitule_court}')
 
@@ -732,10 +740,14 @@ class EnjeuxSeeder(BaseSeeder):
                 ('ES_COLL_LITHOLOGIQUE', 'Collection lithologique', ''),
                 ('ES_AUTRE', 'Autre', 'Collection de blocs erratiques glaciaires'),
             ]:
-                CorEnjeuObjetGeologique.objects.get_or_create(
-                    id_enjeu=enjeu, code=code,
-                    defaults={'libelle': libelle, 'precision': precision}
-                )
+                _nom_obj = Nomenclature.objects.filter(
+                    id_type__mnemonique='TYPE_OBJET_GEOLOGIQUE', cd_nomenclature=code
+                ).first()
+                if _nom_obj:
+                    CorEnjeuObjetGeologique.objects.get_or_create(
+                        id_enjeu=enjeu, id_objet_geologique=_nom_obj,
+                        defaults={'precision': precision}
+                    )
             # #237 — patrimoine Documents : référence papier d'exemple
             CorEnjeuFichier.objects.get_or_create(
                 id_enjeu=enjeu, support='papier',
