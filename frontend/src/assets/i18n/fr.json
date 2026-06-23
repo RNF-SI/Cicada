@@ -244,6 +244,9 @@
     }
   },
   "home": {
+    "footer": {
+      "partners": "Avec le soutien de"
+    },
     "heroTitle": "CICADA, l'outil des plans de gestion",
     "heroSubtitle": "Explorez les données du territoire, saisissez vos plans de gestion et suivez vos indicateurs facilement.",
     "exploration": {
