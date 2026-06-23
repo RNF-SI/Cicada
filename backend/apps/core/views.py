@@ -140,6 +140,16 @@ class SiteConfigurationView(APIView):
             serializer = SiteConfigurationSerializer(config, context={'request': request})
             return Response(serializer.data)
 
+        # #448 — Suppression du logo de la structure (reset)
+        if request.data.get('structure_logo') == '' or request.data.get('reset_logo') == 'true':
+            if config.structure_logo:
+                config.structure_logo.delete(save=False)
+            config.structure_logo = None
+            config.updated_by = request.user
+            config.save()
+            serializer = SiteConfigurationSerializer(config, context={'request': request})
+            return Response(serializer.data)
+
         # Use update serializer for write operations
         update_serializer = SiteConfigurationUpdateSerializer(
             config,

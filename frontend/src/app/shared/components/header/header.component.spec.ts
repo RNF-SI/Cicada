@@ -10,6 +10,7 @@ import { of, throwError } from 'rxjs';
 class DummyComponent {}
 import { HeaderComponent } from './header.component';
 import { AuthService } from '../../../core/services/auth.service';
+import { SettingsService } from '../../../core/services/settings.service';
 import { ImpersonationGuardService } from '../../../core/services/impersonation-guard.service';
 import { ModuleService } from '../../../core/services/module.service';
 import { NotificationService } from '../../../core/services/notification.service';
@@ -95,6 +96,13 @@ describe('HeaderComponent', () => {
       refresh: jest.fn().mockReturnValue(of({ notifications: [], unread_count: 0, pending_validations: 0 }))
     };
 
+    // #448 — le header lit le thème (couleur bandeau + logo) via SettingsService.
+    const settingsServiceMock = {
+      config: signal(null),
+      defaultHeaderColor: '#025359',
+      loadSettings: jest.fn().mockReturnValue(of(null))
+    };
+
     await TestBed.configureTestingModule({
       imports: [
         HeaderComponent,
@@ -112,7 +120,8 @@ describe('HeaderComponent', () => {
         { provide: AuthService, useValue: authServiceMock },
         { provide: ImpersonationGuardService, useValue: impersonationGuardMock },
         { provide: ModuleService, useValue: moduleServiceMock },
-        { provide: NotificationService, useValue: notificationServiceMock }
+        { provide: NotificationService, useValue: notificationServiceMock },
+        { provide: SettingsService, useValue: settingsServiceMock }
       ]
     }).compileComponents();
 

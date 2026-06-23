@@ -31,6 +31,8 @@ class SiteConfigurationSerializer(serializers.ModelSerializer):
     # Override homepage_image to return relative path instead of full URL
     homepage_image = serializers.SerializerMethodField()
     homepage_image_url = serializers.SerializerMethodField()
+    structure_logo = serializers.SerializerMethodField()
+    structure_logo_url = serializers.SerializerMethodField()
     updated_by_name = serializers.SerializerMethodField()
 
     class Meta:
@@ -39,11 +41,22 @@ class SiteConfigurationSerializer(serializers.ModelSerializer):
             'homepage_image',
             'homepage_image_url',
             'homepage_image_position',
+            'header_color',
+            'structure_logo',
+            'structure_logo_url',
             'updated_at',
             'updated_by',
             'updated_by_name',
         ]
         read_only_fields = fields
+
+    def get_structure_logo(self, obj) -> str | None:
+        """Chemin relatif du logo de la structure (#448)."""
+        return obj.structure_logo.name if obj.structure_logo else None
+
+    def get_structure_logo_url(self, obj) -> str | None:
+        """URL relative du logo (compatible proxy frontend) (#448)."""
+        return obj.structure_logo.url if obj.structure_logo else None
 
     def get_homepage_image(self, obj) -> str | None:
         """Retourne le chemin relatif de l'image (sans le domaine)."""
@@ -73,7 +86,7 @@ class SiteConfigurationUpdateSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = SiteConfiguration
-        fields = ['homepage_image', 'homepage_image_position']
+        fields = ['homepage_image', 'homepage_image_position', 'header_color', 'structure_logo']
 
 
 class ModuleSerializer(serializers.ModelSerializer):

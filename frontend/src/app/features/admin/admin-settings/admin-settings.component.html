@@ -144,4 +144,89 @@
       </div>
     </div>
   </section>
+
+  <!-- #448 — Couleur du bandeau -->
+  <section class="settings-section">
+    <div class="section-header">
+      <h2 class="section-title">
+        <i class="fi fi-rr-palette"></i>
+        {{ 'admin.settings.banner.title' | translate }}
+      </h2>
+      <p class="section-description">{{ 'admin.settings.banner.description' | translate }}</p>
+    </div>
+
+    <!-- Aperçu du bandeau -->
+    <div class="banner-preview" [style.background-color]="headerColor()">
+      <span class="banner-preview__text">{{ 'admin.settings.banner.preview' | translate }}</span>
+    </div>
+
+    <!-- Couleurs prédéfinies (kit UI) -->
+    <div class="color-presets">
+      @for (preset of presetColors; track preset.value) {
+        <button type="button" class="color-swatch"
+                [class.selected]="headerColor().toLowerCase() === preset.value.toLowerCase()"
+                [style.background-color]="preset.value"
+                [title]="preset.label"
+                [attr.aria-label]="preset.label"
+                (click)="onColorInput(preset.value)">
+        </button>
+      }
+    </div>
+
+    <!-- Couleur personnalisée + enregistrement -->
+    <div class="banner-actions">
+      <label class="custom-color">
+        {{ 'admin.settings.banner.custom' | translate }}
+        <input type="color" [value]="headerColor()" (input)="onColorInput($any($event.target).value)" />
+        <span class="custom-color__value">{{ headerColor() }}</span>
+      </label>
+      <button mat-flat-button color="primary" (click)="saveHeaderColor()" [disabled]="isSaving()">
+        <i class="fi fi-rr-check"></i> {{ 'common.actions.save' | translate }}
+      </button>
+    </div>
+  </section>
+
+  <!-- #448 — Logo de la structure -->
+  <section class="settings-section">
+    <div class="section-header">
+      <h2 class="section-title">
+        <i class="fi fi-rr-picture"></i>
+        {{ 'admin.settings.logo.title' | translate }}
+      </h2>
+      <p class="section-description">{{ 'admin.settings.logo.description' | translate }}</p>
+    </div>
+
+    <div class="logo-settings">
+      <div class="logo-preview" [style.background-color]="headerColor()">
+        @if (currentLogoUrl) {
+          <img [src]="currentLogoUrl" alt="Logo structure" class="logo-preview__img" />
+        } @else {
+          <span class="logo-preview__empty">{{ 'admin.settings.logo.none' | translate }}</span>
+        }
+      </div>
+
+      <div class="logo-actions">
+        @if (logoPreview()) {
+          <button mat-flat-button color="primary" (click)="uploadLogo()" [disabled]="isSaving()">
+            <i class="fi fi-rr-check"></i> {{ 'common.actions.save' | translate }}
+          </button>
+          <button mat-stroked-button (click)="cancelLogoSelection()" [disabled]="isSaving()">
+            {{ 'common.actions.cancel' | translate }}
+          </button>
+        } @else {
+          <label class="upload-button">
+            <input type="file" accept="image/*" (change)="onLogoSelected($event)" hidden />
+            <span mat-flat-button color="primary" class="upload-btn-content">
+              <i class="fi fi-rr-upload"></i> {{ 'admin.settings.logo.upload' | translate }}
+            </span>
+          </label>
+          @if (hasStructureLogo) {
+            <button mat-stroked-button (click)="resetLogo()" [disabled]="isSaving()">
+              <i class="fi fi-rr-trash"></i> {{ 'admin.settings.logo.remove' | translate }}
+            </button>
+          }
+        }
+      </div>
+    </div>
+  </section>
 </div>

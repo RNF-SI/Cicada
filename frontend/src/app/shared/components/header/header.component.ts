@@ -9,6 +9,7 @@ import { trigger, state, style, transition, animate } from '@angular/animations'
 import { AuthService } from '../../../core/services/auth.service';
 import { ImpersonationGuardService } from '../../../core/services/impersonation-guard.service';
 import { ModuleService } from '../../../core/services/module.service';
+import { SettingsService } from '../../../core/services/settings.service';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { filter, map } from 'rxjs/operators';
 import { NotificationBellComponent } from '../notification-bell/notification-bell.component';
@@ -59,6 +60,24 @@ export class HeaderComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly impersonationGuard = inject(ImpersonationGuardService);
   private readonly moduleService = inject(ModuleService);
+  private readonly settings = inject(SettingsService);
+
+  // #448 — Personnalisation du bandeau (couleur + logo structure).
+  readonly headerColor = computed(() => this.settings.config()?.header_color || this.settings.defaultHeaderColor);
+  readonly structureLogoUrl = computed(() => this.settings.config()?.structure_logo_url || null);
+  /** Vrai si la couleur du bandeau est foncée → contenu en blanc (lisibilité). */
+  readonly headerOnDark = computed(() => this.isDarkColor(this.headerColor()));
+
+  /** Luminance relative approchée : sombre si < 0.5 (texte blanc requis). */
+  private isDarkColor(hex: string): boolean {
+    const m = /^#?([0-9a-f]{6})$/i.exec(hex || '');
+    if (!m) return true;
+    const n = parseInt(m[1], 16);
+    const r = (n >> 16) & 255, g = (n >> 8) & 255, b = n & 255;
+    // Luminance perçue (sRGB simplifiée).
+    const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+    return luminance < 0.6;
+  }
 
   // Menu state
   menuOpen = false;
@@ -107,7 +126,11 @@ export class HeaderComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    // Pas besoin de charger ici : l'effect() du constructor s'en charge
+    // #448 — s'assurer que le thème (couleur bandeau + logo) est chargé pour
+    // l'afficher sur toutes les pages (idempotent : seulement si pas déjà chargé).
+    if (!this.settings.config()) {
+      this.settings.loadSettings().subscribe();
+    }
   }
 
   private loadAccessibleModules(): void {

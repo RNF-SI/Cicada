@@ -21,12 +21,20 @@
   </div>
 }
 
-<header class="header" [class.home-page]="isHomePage()" [class.with-impersonation]="isImpersonating()">
+<header class="header" [class.home-page]="isHomePage()" [class.with-impersonation]="isImpersonating()"
+        [class.header--on-dark]="headerOnDark()" [style.background-color]="headerColor()">
   <div class="header-content">
     <!-- Hamburger Menu - Always visible on mobile/tablet, hidden on home page for desktop -->
     <button class="hamburger-btn" [class.hide-desktop]="isHomePage()" (click)="toggleMenu()" [attr.aria-label]="'header.menu' | translate">
       <i class="fi fi-rr-menu-burger"></i>
     </button>
+
+    <!-- #448 — Logo de la structure (en haut à gauche), si configuré -->
+    @if (structureLogoUrl()) {
+      <a routerLink="/" class="header-structure-logo" aria-label="Accueil">
+        <img [src]="structureLogoUrl()" alt="Logo structure" class="structure-logo-img" />
+      </a>
+    }
 
     <!-- Logo centered -->
     <a routerLink="/" class="header-logo">

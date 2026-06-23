@@ -1,6 +1,7 @@
 """
 Modèles de base partagés par toute l'application.
 """
+from django.core.validators import RegexValidator
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
@@ -324,6 +325,24 @@ class SiteConfiguration(models.Model):
         choices=IMAGE_POSITION_CHOICES,
         default='top',
         help_text=_('Position verticale du point focal de l\'image (haut, centre, bas)')
+    )
+    # #448 — Personnalisation de l'instance (couleur du bandeau + logo structure)
+    header_color = models.CharField(
+        _('Couleur du bandeau'),
+        max_length=7,
+        default='#025359',
+        validators=[RegexValidator(
+            regex=r'^#[0-9A-Fa-f]{6}$',
+            message=_('La couleur doit être au format hexadécimal (ex. #025359).')
+        )],
+        help_text=_('Couleur de fond du bandeau (header), au format hexadécimal #RRGGBB')
+    )
+    structure_logo = models.ImageField(
+        _('Logo de la structure'),
+        upload_to='settings/logo/',
+        null=True,
+        blank=True,
+        help_text=_('Logo de la structure affiché en haut à gauche du bandeau')
     )
     updated_at = models.DateTimeField(
         _('Mis à jour le'),

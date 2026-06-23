@@ -10,6 +10,9 @@ describe('SettingsService', () => {
     homepage_image: 'settings/homepage/image.jpg',
     homepage_image_url: 'http://localhost:8000/media/settings/homepage/image.jpg',
     homepage_image_position: 'center',
+    header_color: '#025359',
+    structure_logo: null,
+    structure_logo_url: null,
     updated_at: '2024-01-15T10:30:00Z',
     updated_by: 1,
     updated_by_name: 'Admin User'
@@ -132,6 +135,9 @@ describe('SettingsService', () => {
         homepage_image: null,
         homepage_image_url: null,
         homepage_image_position: 'top',
+        header_color: '#025359',
+        structure_logo: null,
+        structure_logo_url: null,
         updated_at: '',
         updated_by: null,
         updated_by_name: null

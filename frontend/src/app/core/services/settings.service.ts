@@ -8,6 +8,12 @@ export interface SiteConfiguration {
   homepage_image: string | null;
   homepage_image_url: string | null;
   homepage_image_position: ImagePosition;
+  /** #448 — Couleur de fond du bandeau (header), hexadécimal #RRGGBB. */
+  header_color: string;
+  /** #448 — Logo de la structure (chemin relatif). */
+  structure_logo: string | null;
+  /** #448 — URL relative du logo de la structure. */
+  structure_logo_url: string | null;
   updated_at: string;
   updated_by: number | null;
   updated_by_name: string | null;
@@ -44,6 +50,26 @@ export class SettingsService {
     return this.defaultHomepageImage;
   }
 
+  /** Couleur par défaut du bandeau (kit UI — Primary). */
+  readonly defaultHeaderColor = '#025359';
+
+  /** #448 — Couleur du bandeau configurée (repli sur la couleur par défaut). */
+  getHeaderColor(): string {
+    return this.configSignal()?.header_color || this.defaultHeaderColor;
+  }
+
+  /** #448 — URL du logo de la structure (null si non défini). */
+  getStructureLogoUrl(): string | null {
+    return this.configSignal()?.structure_logo_url || null;
+  }
+
+  /** Réinitialise le logo de la structure (#448, super_admin). */
+  resetStructureLogo(): Observable<SiteConfiguration> {
+    const formData = new FormData();
+    formData.append('reset_logo', 'true');
+    return this.updateSettings(formData);
+  }
+
   /**
    * Load site configuration from API.
    * This endpoint is public (no authentication required).
@@ -66,6 +92,9 @@ export class SettingsService {
           homepage_image: null,
           homepage_image_url: null,
           homepage_image_position: 'top' as ImagePosition,
+          header_color: this.defaultHeaderColor,
+          structure_logo: null,
+          structure_logo_url: null,
           updated_at: '',
           updated_by: null,
           updated_by_name: null

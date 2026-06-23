@@ -479,3 +479,52 @@
     padding: $spacing-sm $spacing-md;
   }
 }
+
+// #448 — Logo de la structure (en haut à gauche du bandeau)
+.header-structure-logo {
+  position: absolute;
+  left: 60px;
+  display: flex;
+  align-items: center;
+  text-decoration: none;
+
+  .structure-logo-img {
+    height: 38px;
+    width: auto;
+    max-width: 180px;
+    object-fit: contain;
+  }
+}
+
+// #448 — Bandeau coloré (foncé) : contenu en blanc pour la lisibilité.
+.header.header--on-dark {
+  .hamburger-btn {
+    color: #fff;
+    &:hover { background-color: rgba(255, 255, 255, 0.18); }
+  }
+
+  .nav-link,
+  .btn-text,
+  .user-name,
+  .user-icon,
+  .chevron,
+  .login-btn,
+  .admin-btn {
+    color: #fff;
+  }
+
+  .nav-link:hover,
+  .user-menu-trigger:hover {
+    background-color: rgba(255, 255, 255, 0.18);
+  }
+
+  // Logo CICADA centré : rendu en blanc (le logo structure reste inchangé).
+  .header-logo .logo-img {
+    filter: brightness(0) invert(1);
+  }
+
+  // Cloche de notifications (composant enfant).
+  ::ng-deep .bell-icon {
+    color: #fff;
+  }
+}

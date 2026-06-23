@@ -44,12 +44,30 @@ export class AdminSettingsComponent implements OnInit {
   // Image position
   selectedPosition = signal<ImagePosition>('center');
 
+  // #448 — Personnalisation : couleur du bandeau + logo structure
+  readonly headerColor = signal<string>('#025359');
+  /** Couleurs prédéfinies du kit UI. */
+  readonly presetColors: { label: string; value: string }[] = [
+    { label: 'Primary (bleu-vert)', value: '#025359' },
+    { label: 'Terra cotta', value: '#B74D5D' },
+    { label: 'Succès (vert)', value: '#04854B' },
+    { label: 'Info (bleu)', value: '#81C9D8' },
+    { label: 'Jaune', value: '#FEC180' },
+    { label: 'Orange saumon', value: '#F5B399' },
+    { label: 'Vert pâle', value: '#C0E3CF' },
+  ];
+  readonly logoPreview = signal<string | null>(null);
+  readonly selectedLogo = signal<File | null>(null);
+
   constructor() {
     // Sync position from config when it loads
     effect(() => {
       const config = this.config();
       if (config?.homepage_image_position) {
         this.selectedPosition.set(config.homepage_image_position);
+      }
+      if (config?.header_color) {
+        this.headerColor.set(config.header_color);
       }
     });
   }
@@ -163,6 +181,127 @@ export class AdminSettingsComponent implements OnInit {
         this.isSaving.set(false);
         this.previewImage.set(null);
         this.selectedFile.set(null);
+        this.snackBar.open(
+          this.translate.instant('admin.settings.messages.restored'),
+          this.translate.instant('common.actions.close'),
+          { duration: 3000 }
+        );
+      },
+      error: () => {
+        this.isSaving.set(false);
+        this.snackBar.open(
+          this.translate.instant('admin.settings.messages.error'),
+          this.translate.instant('common.actions.close'),
+          { duration: 3000 }
+        );
+      }
+    });
+  }
+
+  // ============================================================
+  // #448 — Couleur du bandeau
+  // ============================================================
+
+  /** Sélection d'une couleur (preset ou color input). */
+  onColorInput(value: string): void {
+    this.headerColor.set(value);
+  }
+
+  /** Enregistre la couleur du bandeau. */
+  saveHeaderColor(): void {
+    this.isSaving.set(true);
+    const formData = new FormData();
+    formData.append('header_color', this.headerColor());
+    this.settingsService.updateSettings(formData).subscribe({
+      next: () => {
+        this.isSaving.set(false);
+        this.snackBar.open(
+          this.translate.instant('admin.settings.messages.saved'),
+          this.translate.instant('common.actions.close'),
+          { duration: 3000 }
+        );
+      },
+      error: () => {
+        this.isSaving.set(false);
+        this.snackBar.open(
+          this.translate.instant('admin.settings.messages.error'),
+          this.translate.instant('common.actions.close'),
+          { duration: 3000 }
+        );
+      }
+    });
+  }
+
+  // ============================================================
+  // #448 — Logo de la structure
+  // ============================================================
+
+  get currentLogoUrl(): string | null {
+    return this.logoPreview() || this.config()?.structure_logo_url || null;
+  }
+
+  get hasStructureLogo(): boolean {
+    return !!this.config()?.structure_logo;
+  }
+
+  onLogoSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    if (!input.files?.length) return;
+    const file = input.files[0];
+    if (!file.type.startsWith('image/')) {
+      this.snackBar.open('Veuillez sélectionner une image valide', 'Fermer', { duration: 3000 });
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      this.snackBar.open('Le logo ne doit pas dépasser 5 Mo', 'Fermer', { duration: 3000 });
+      return;
+    }
+    this.selectedLogo.set(file);
+    const reader = new FileReader();
+    reader.onload = (e) => this.logoPreview.set(e.target?.result as string);
+    reader.readAsDataURL(file);
+  }
+
+  uploadLogo(): void {
+    const file = this.selectedLogo();
+    if (!file) return;
+    this.isSaving.set(true);
+    const formData = new FormData();
+    formData.append('structure_logo', file);
+    this.settingsService.updateSettings(formData).subscribe({
+      next: () => {
+        this.isSaving.set(false);
+        this.logoPreview.set(null);
+        this.selectedLogo.set(null);
+        this.snackBar.open(
+          this.translate.instant('admin.settings.messages.saved'),
+          this.translate.instant('common.actions.close'),
+          { duration: 3000 }
+        );
+      },
+      error: () => {
+        this.isSaving.set(false);
+        this.snackBar.open(
+          this.translate.instant('admin.settings.messages.error'),
+          this.translate.instant('common.actions.close'),
+          { duration: 3000 }
+        );
+      }
+    });
+  }
+
+  cancelLogoSelection(): void {
+    this.logoPreview.set(null);
+    this.selectedLogo.set(null);
+  }
+
+  resetLogo(): void {
+    this.isSaving.set(true);
+    this.settingsService.resetStructureLogo().subscribe({
+      next: () => {
+        this.isSaving.set(false);
+        this.logoPreview.set(null);
+        this.selectedLogo.set(null);
         this.snackBar.open(
           this.translate.instant('admin.settings.messages.restored'),
           this.translate.instant('common.actions.close'),

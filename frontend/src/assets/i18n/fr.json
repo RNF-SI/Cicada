@@ -648,6 +648,19 @@
     "settings": {
       "title": "Paramètres",
       "subtitle": "Configuration globale de l'application",
+      "banner": {
+        "title": "Couleur du bandeau",
+        "description": "Couleur de fond du bandeau (header) de l'application. Permet de distinguer visuellement cette instance de CICADA.",
+        "preview": "Aperçu du bandeau",
+        "custom": "Couleur personnalisée"
+      },
+      "logo": {
+        "title": "Logo de la structure",
+        "description": "Logo affiché en haut à gauche du bandeau. Format image (PNG/SVG), 5 Mo max.",
+        "upload": "Changer le logo",
+        "remove": "Retirer le logo",
+        "none": "Aucun logo"
+      },
       "homepage": {
         "title": "Image de la page d'accueil",
         "description": "Cette image s'affiche sur la page d'accueil pour les visiteurs non connectés.",
