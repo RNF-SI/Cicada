@@ -48,13 +48,15 @@ export interface GeologieRef {
 }
 
 /**
- * #237 — Objet géologique sélectionné sur un enjeu (typologie Corentin).
- * `code` référence la typologie (constante GEO_OBJET_GROUPS), `libelle` est
- * dénormalisé, `precision` est saisie libre pour un objet de type « Autre ».
+ * #237 — Objet géologique sélectionné sur un enjeu.
+ * `id_objet_geologique` référence une nomenclature TYPE_OBJET_GEOLOGIQUE ;
+ * `code`/`libelle` sont dénormalisés (lecture seule, depuis la nomenclature) ;
+ * `precision` est une saisie libre pour un objet de type « Autre ».
  */
 export interface ObjetGeologiqueRef {
   id?: number;
-  code: string;
+  id_objet_geologique?: number;
+  code?: string;
   libelle?: string;
   precision?: string;
 }

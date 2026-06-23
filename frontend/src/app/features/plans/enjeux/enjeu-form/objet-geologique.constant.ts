@@ -1,19 +1,33 @@
 /**
- * #237 — Typologie des objets géologiques (fichier « Typologie enjeux géol
- * CICADA », onglet « Typologie CICADA V2 », colonnes après la colonne C).
+ * #237 — Typologie des objets géologiques (in situ / ex situ).
  *
- * Seuls les patrimoines « in situ » et « ex situ » portent un détail d'objets :
- * dans la V2, les patrimoines « Documents » et « Autre » n'ont aucun sous-type
- * (le patrimoine « Autre » porte uniquement sa précision libre via le champ
- * `geo_autre_precision`).
+ * La typologie n'est plus codée en dur : elle provient désormais du référentiel
+ * de nomenclatures `TYPE_OBJET_GEOLOGIQUE` (cf. nomenclatures_data), chargé via
+ * `GET /api/nomenclatures/?type=TYPE_OBJET_GEOLOGIQUE`. Ce module ne fait que
+ * **transformer** la liste plate des nomenclatures en arbre groupé par patrimoine
+ * (in situ / ex situ) avec parents et sous-types.
  *
- * Le détail est présenté sous forme de liste déroulante multi-select par
- * patrimoine coché (#237). Parents ET sous-types sont sélectionnables. Les codes
- * sont stables et persistés ; seul le libellé est dénormalisé pour l'affichage /
- * l'export.
+ * Encodage :
+ *  - patrimoine dérivé du préfixe de code (`IS_` → in situ, `ES_` → ex situ) ;
+ *  - hiérarchie + ordre via le champ `hierarchy` (chemin pointé zero-paddé :
+ *    `1.01` = option, `1.01.01` = sous-type) ;
+ *  - objet « Autre » détecté via le suffixe de code (`_AUTRE`).
+ *
+ * Les patrimoines « Documents » (fichiers) et « Autre » (précision libre) n'ont
+ * pas d'objets de typologie.
  */
 
+/** Forme minimale d'une nomenclature renvoyée par l'API. */
+export interface GeoObjetNomenclature {
+  id_nomenclature: number;
+  cd_nomenclature: string;
+  label: string;
+  hierarchy?: string | null;
+}
+
 export interface ObjetGeologiqueOption {
+  /** id_nomenclature — clé de sélection et de persistance. */
+  id: number;
   code: string;
   libelle: string;
   /** `true` → l'objet attend une précision libre (« Autre »). */
@@ -30,70 +44,62 @@ export interface ObjetGeologiqueGroup {
   options: ObjetGeologiqueOption[];
 }
 
-export const GEO_OBJET_GROUPS: ObjetGeologiqueGroup[] = [
-  {
-    patrimoine: 'in_situ',
-    titleKey: 'enjeux.enjeuForm.geoObjets.inSitu',
-    control: 'geo_in_situ',
-    options: [
-      {
-        code: 'IS_SITE_PALEO',
-        libelle: 'Site paléontologique',
-        children: [
-          { code: 'IS_GISEMENT_FOSSILIFERE', libelle: 'Gisement fossilifère' },
-          { code: 'IS_ICHNOSITE', libelle: 'Ichnosite (site à empreintes fossiles)' },
-        ],
-      },
-      { code: 'IS_AFFLEUREMENT', libelle: 'Affleurement remarquable' },
-      { code: 'IS_STRATOTYPE', libelle: 'Stratotype / coupe stratigraphique' },
-      { code: 'IS_TECTONIQUE', libelle: 'Site tectonique ou structural' },
-      { code: 'IS_MINERALOGIQUE', libelle: 'Site minéralogique' },
-      { code: 'IS_VOLCANIQUE', libelle: 'Site volcanique' },
-      { code: 'IS_GEOMORPHO', libelle: 'Site géomorphologique, paysage géologique remarquable' },
-      { code: 'IS_HYDROGEO', libelle: 'Site hydrogéologique' },
-      {
-        code: 'IS_SOUTERRAIN',
-        libelle: 'Site souterrain',
-        children: [
-          { code: 'IS_CAVITE_NATURELLE', libelle: 'Cavité naturelle' },
-          { code: 'IS_CAVITE_ANTHROPIQUE', libelle: 'Cavité anthropique' },
-        ],
-      },
-      { code: 'IS_HISTORIQUE', libelle: 'Site historique (localité type, site fondateur, lieu de découverte)' },
-      { code: 'IS_AUTRE', libelle: 'Autre', isAutre: true },
-    ],
-  },
-  {
-    patrimoine: 'ex_situ',
-    titleKey: 'enjeux.enjeuForm.geoObjets.exSitu',
-    control: 'geo_ex_situ',
-    options: [
-      { code: 'ES_COLL_PALEO', libelle: 'Collection paléontologique' },
-      { code: 'ES_COLL_MINERALOGIQUE', libelle: 'Collection minéralogique' },
-      { code: 'ES_COLL_LITHOLOGIQUE', libelle: 'Collection lithologique' },
-      { code: 'ES_AUTRE', libelle: 'Autre', isAutre: true },
-    ],
-  },
+/** Configuration statique des groupes (ordre, libellé, case à cocher). */
+const PATRIMOINE_CONFIG: { patrimoine: 'in_situ' | 'ex_situ'; prefix: string; titleKey: string; control: 'geo_in_situ' | 'geo_ex_situ'; }[] = [
+  { patrimoine: 'in_situ', prefix: 'IS_', titleKey: 'enjeux.enjeuForm.geoObjets.inSitu', control: 'geo_in_situ' },
+  { patrimoine: 'ex_situ', prefix: 'ES_', titleKey: 'enjeux.enjeuForm.geoObjets.exSitu', control: 'geo_ex_situ' },
 ];
 
-/** Liste tous les codes d'un groupe (parents + enfants), pour la synchro multi-select. */
-export function groupObjetCodes(group: ObjetGeologiqueGroup): string[] {
-  const codes: string[] = [];
-  for (const opt of group.options) {
-    codes.push(opt.code);
-    for (const child of opt.children || []) codes.push(child.code);
-  }
-  return codes;
+function depthOf(hierarchy: string | null | undefined): number {
+  return ((hierarchy || '').match(/\./g) || []).length;
 }
 
-/** Aplatit la typologie en { code → option } (parents + enfants). */
-export const GEO_OBJET_BY_CODE: Record<string, ObjetGeologiqueOption> = (() => {
-  const map: Record<string, ObjetGeologiqueOption> = {};
-  for (const group of GEO_OBJET_GROUPS) {
-    for (const opt of group.options) {
-      map[opt.code] = opt;
-      for (const child of opt.children || []) map[child.code] = child;
+/**
+ * Construit l'arbre groupé (par patrimoine, parents → sous-types) à partir de la
+ * liste plate des nomenclatures TYPE_OBJET_GEOLOGIQUE.
+ */
+export function buildGeoObjetGroups(nomenclatures: GeoObjetNomenclature[]): ObjetGeologiqueGroup[] {
+  const sorted = [...(nomenclatures || [])].sort(
+    (a, b) => (a.hierarchy || '').localeCompare(b.hierarchy || ''),
+  );
+
+  return PATRIMOINE_CONFIG.map(cfg => {
+    const items = sorted.filter(n => (n.cd_nomenclature || '').startsWith(cfg.prefix));
+    // Index par hierarchy pour rattacher les enfants à leur parent.
+    const byHierarchy = new Map<string, ObjetGeologiqueOption>();
+    const options: ObjetGeologiqueOption[] = [];
+
+    for (const n of items) {
+      const opt: ObjetGeologiqueOption = {
+        id: n.id_nomenclature,
+        code: n.cd_nomenclature,
+        libelle: n.label,
+        isAutre: (n.cd_nomenclature || '').endsWith('_AUTRE') || undefined,
+      };
+      const hier = n.hierarchy || '';
+      byHierarchy.set(hier, opt);
+      if (depthOf(hier) >= 2) {
+        // Sous-type : rattacher au parent (hierarchy sans le dernier segment).
+        const parentHier = hier.slice(0, hier.lastIndexOf('.'));
+        const parent = byHierarchy.get(parentHier);
+        if (parent) {
+          (parent.children ||= []).push(opt);
+          continue;
+        }
+      }
+      options.push(opt);
     }
+
+    return { patrimoine: cfg.patrimoine, titleKey: cfg.titleKey, control: cfg.control, options };
+  });
+}
+
+/** Liste tous les ids d'un groupe (parents + enfants), pour la synchro multi-select. */
+export function groupObjetIds(group: ObjetGeologiqueGroup): number[] {
+  const ids: number[] = [];
+  for (const opt of group.options) {
+    ids.push(opt.id);
+    for (const child of opt.children || []) ids.push(child.id);
   }
-  return map;
-})();
+  return ids;
+}

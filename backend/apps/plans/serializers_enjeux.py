@@ -98,20 +98,22 @@ class CorEnjeuGeologieSerializer(serializers.ModelSerializer):
 
 
 class ObjetGeologiqueRefSerializer(serializers.Serializer):
-    """#237 — Serializer d'un objet géologique (code de typologie + libellé,
-    + précision libre pour un objet de type « Autre »)."""
-    code = serializers.CharField(max_length=50)
-    libelle = serializers.CharField(max_length=255, required=False, allow_blank=True)
+    """#237 — Payload d'un objet géologique sélectionné : référence la
+    nomenclature TYPE_OBJET_GEOLOGIQUE (par id), + précision libre pour « Autre »."""
+    id_objet_geologique = serializers.IntegerField()
     precision = serializers.CharField(max_length=255, required=False, allow_blank=True)
 
 
 class CorEnjeuObjetGeologiqueSerializer(serializers.ModelSerializer):
-    """#237 — Serializer pour les relations Enjeu-Objet géologique."""
+    """#237 — Serializer (lecture) d'une relation Enjeu-Objet géologique.
+    Expose la nomenclature (code + libellé dénormalisés pour l'affichage)."""
+    code = serializers.CharField(source='id_objet_geologique.cd_nomenclature', read_only=True)
+    libelle = serializers.CharField(source='id_objet_geologique.label', read_only=True)
 
     class Meta:
         model = CorEnjeuObjetGeologique
-        fields = ['id', 'code', 'libelle', 'precision']
-        read_only_fields = ['id']
+        fields = ['id', 'id_objet_geologique', 'code', 'libelle', 'precision']
+        read_only_fields = ['id', 'code', 'libelle']
 
 
 class CorEnjeuFichierSerializer(serializers.ModelSerializer):
@@ -955,17 +957,22 @@ class EnjeuCreateSerializer(serializers.ModelSerializer):
 
     def _create_objet_geologique_relations(self, enjeu, objets_data):
         """#237 — Créer les relations avec les objets géologiques sélectionnés.
-        `precision` permet de préciser un objet de type « Autre »."""
+        Chaque entrée référence une nomenclature TYPE_OBJET_GEOLOGIQUE (par id) ;
+        `precision` complète un objet de type « Autre »."""
+        valid_ids = set(
+            Nomenclature.objects
+            .filter(id_type__mnemonique='TYPE_OBJET_GEOLOGIQUE')
+            .values_list('id_nomenclature', flat=True)
+        )
         seen = set()
         for obj in objets_data or []:
-            code = (obj.get('code') or '').strip()
-            if not code or code in seen:
+            nid = obj.get('id_objet_geologique')
+            if not nid or nid in seen or nid not in valid_ids:
                 continue
-            seen.add(code)
+            seen.add(nid)
             CorEnjeuObjetGeologique.objects.create(
                 id_enjeu=enjeu,
-                code=code,
-                libelle=obj.get('libelle', '') or '',
+                id_objet_geologique_id=nid,
                 precision=obj.get('precision', '') or '',
             )
 
