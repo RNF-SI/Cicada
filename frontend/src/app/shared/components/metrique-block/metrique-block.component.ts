@@ -143,12 +143,19 @@ export class MetriqueBlockComponent {
   }
 
   isBoundaryInLeftAt(i: number): boolean {
-    return (this.block as any)[`score_${this.scoreMetaOrdered[i].level}_sup_inclusive`];
+    // #450 — Appliquer le même défaut (`?? true`) que `supInclusiveFor` : sans
+    // cela, l'indicateur du toggle divergeait de l'intervalle affiché pour la
+    // frontière dont le flag n'a pas de valeur par défaut (score_5_sup_inclusive,
+    // utilisé par la frontière « très bon / bon » en sens décroissant).
+    return (this.block as any)[`score_${this.scoreMetaOrdered[i].level}_sup_inclusive`] ?? true;
   }
 
   toggleBoundaryInclusionAt(i: number): void {
     const key = `score_${this.scoreMetaOrdered[i].level}_sup_inclusive`;
-    (this.block as any)[key] = !(this.block as any)[key];
+    // #450 — basculer la valeur EFFECTIVE (défaut `true`) : sans le `?? true`,
+    // un flag undefined (ex. score_5_sup_inclusive en décroissant) donnait
+    // `!undefined === true` et le toggle restait bloqué côté gauche.
+    (this.block as any)[key] = !((this.block as any)[key] ?? true);
     this.emit();
   }
 
@@ -204,6 +211,19 @@ export class MetriqueBlockComponent {
   onSensVariationChange(value: 'CROISSANT' | 'DECROISSANT'): void {
     if (this.block.sens_variation === value) return;
     this.block.sens_variation = value;
+    // #451 — Les bornes et leurs inclusivités sont propres à un sens : les
+    // colonnes utilisées diffèrent entre croissant (score_1..4_sup) et
+    // décroissant (score_5..2_sup). Sans réinitialisation, les valeurs saisies
+    // dans l'ancien sens « fuyaient » dans le nouveau (mélange à la sauvegarde).
+    // On repart donc d'une grille de bornes vierge ; les niveaux actifs sont
+    // conservés (indépendants du sens).
+    for (let level = 1; level <= 5; level++) {
+      (this.block as any)[`score_${level}_inf`] = null;
+      (this.block as any)[`score_${level}_sup`] = null;
+    }
+    for (let level = 1; level <= 5; level++) {
+      (this.block as any)[`score_${level}_sup_inclusive`] = true;
+    }
     this.emit();
   }
 
