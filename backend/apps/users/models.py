@@ -255,7 +255,20 @@ class Role(AbstractUser):
                 CorOgSite.objects.filter(uuid_og=self.id_organisme)
                 .values_list('id_site', flat=True)
             )
-        return direct | via_org
+        # #440 : sites que l'utilisateur a lui-même créés et qui sont en attente
+        # de validation (il n'est pas encore référent et son organisme n'est pas
+        # encore rattaché). Sans cela, il ne pourrait ni revoir ni corriger le
+        # site qu'il vient de créer tant que la validation n'a pas eu lieu.
+        from apps.notifications.models import ValidationRequest
+        pending_created = set(
+            ValidationRequest.objects.filter(
+                request_type='site_creation',
+                status='pending',
+                requester=self,
+                target_site__isnull=False,
+            ).values_list('target_site', flat=True)
+        )
+        return direct | via_org | pending_created
 
     def has_access_to_site(self, site):
         """Vérifie si l'utilisateur a accès en lecture au site donné."""

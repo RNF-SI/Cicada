@@ -480,6 +480,21 @@ class SiteViewSet(viewsets.ModelViewSet):
             if user.can_manage_site(obj):
                 return obj
 
+            # #440 : le créateur d'un site peut le corriger (ex. ajouter le type)
+            # tant que sa demande de création est en attente de validation. Il n'est
+            # pas encore référent (il le deviendra à la validation), mais il vient de
+            # créer le site : lui refuser l'édition pendant l'attente est contre-intuitif.
+            # La suppression reste réservée à can_manage_site.
+            if self.action in ['update', 'partial_update']:
+                from apps.notifications.models import ValidationRequest
+                if ValidationRequest.objects.filter(
+                    request_type='site_creation',
+                    status='pending',
+                    requester=user,
+                    target_site=obj,
+                ).exists():
+                    return obj
+
             from rest_framework.exceptions import PermissionDenied
             raise PermissionDenied("Vous n'avez pas la permission de modifier ce site.")
 
