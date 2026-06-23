@@ -126,8 +126,20 @@ class TaxrefViewSet(viewsets.ReadOnlyModelViewSet):
                 sql += " AND group2_inpn = %s"
                 params.append(group2_inpn)
 
+            # #443 : faire remonter les espèces et taxons infra-spécifiques
+            # (sous-espèce, variété, forme) avant les genres / familles / rangs
+            # supérieurs, qui « polluaient » le haut de la liste (retour CEN
+            # Bourgogne). La similarité reste le tri secondaire.
             sql += """
-                ORDER BY similarity(unaccent(search_name), unaccent(%s)) DESC
+                ORDER BY
+                    CASE id_rang
+                        WHEN 'ES'   THEN 0
+                        WHEN 'SSES' THEN 1
+                        WHEN 'VAR'  THEN 2
+                        WHEN 'FO'   THEN 3
+                        ELSE 4
+                    END,
+                    similarity(unaccent(search_name), unaccent(%s)) DESC
                 LIMIT %s
             """
             params.extend([search, limit])
