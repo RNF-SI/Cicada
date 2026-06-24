@@ -351,3 +351,11 @@ textarea.full-width {
   padding-top: $spacing-md;
   border-top: 1px solid $gray-light;
 }
+
+// #378 — mention des champs obligatoires (sous les onglets années, conforme Figma)
+.required-note {
+  margin: $spacing-xs 0 $spacing-sm;
+  color: $gray-dark;
+  font-size: $font-size-small;
+  font-style: italic;
+}
