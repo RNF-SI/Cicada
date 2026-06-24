@@ -12,6 +12,7 @@ from .views import (
     SiteConfigurationView,
     AdminOrphansView,
     AdminOrphansCountsView,
+    AdminLogsView,
 )
 
 router = DefaultRouter()
@@ -29,6 +30,8 @@ urlpatterns = [
     # Sites et plans orphelins (admin_og+) - remplace l'audit hebdomadaire par email
     path('admin/orphans/', AdminOrphansView.as_view(), name='admin-orphans'),
     path('admin/orphans/counts/', AdminOrphansCountsView.as_view(), name='admin-orphans-counts'),
+    # Consultation des logs applicatifs (#456, super_admin)
+    path('admin/logs/', AdminLogsView.as_view(), name='admin-logs'),
     # Site configuration (public GET, super_admin PATCH)
     path('settings/', SiteConfigurationView.as_view(), name='site-configuration'),
 ]

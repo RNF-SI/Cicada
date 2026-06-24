@@ -1032,3 +1032,104 @@ class AdminOrphansCountsView(APIView):
             'plans_count': plans_count,
             'total': sites_count + plans_count,
         })
+
+
+# =============================================================================
+# Logs applicatifs (#456) — consultation par le super_admin
+# =============================================================================
+
+# Fichiers de logs autorisés à la consultation (cf. config LOGGING).
+_ALLOWED_LOG_FILES = {'django.log', 'error.log', 'audit.log'}
+_MAX_LOG_LINES = 1000
+
+
+def _resolve_log_file(filename):
+    """Résout un nom de fichier de log de façon sûre (anti-traversée de chemin).
+
+    N'autorise que les fichiers connus (et leurs variantes de rotation
+    `name.log.N`), situés directement dans LOG_DIR.
+    Retourne le chemin absolu ou None si invalide/inexistant.
+    """
+    import os
+    from django.conf import settings
+    if not filename or '/' in filename or '\\' in filename or filename.startswith('.'):
+        return None
+    base = filename.split('.log')[0] + '.log'
+    if base not in _ALLOWED_LOG_FILES:
+        return None
+    log_dir = os.path.realpath(settings.LOG_DIR)
+    path = os.path.realpath(os.path.join(log_dir, filename))
+    # Le chemin résolu doit rester dans LOG_DIR et le fichier doit exister.
+    if os.path.commonpath([log_dir, path]) != log_dir or not os.path.isfile(path):
+        return None
+    return path
+
+
+class AdminLogsView(APIView):
+    """
+    Consultation des fichiers de logs applicatifs (super_admin uniquement).
+
+    - GET /api/admin/logs/                         → liste des fichiers disponibles
+    - GET /api/admin/logs/?file=error.log&lines=300&level=ERROR
+                                                   → N dernières lignes (filtre niveau optionnel)
+    - GET /api/admin/logs/?file=error.log&download=1 → téléchargement du fichier
+    """
+
+    permission_classes = [IsSuperAdmin]
+
+    def get(self, request):
+        import os
+        from django.conf import settings
+        from django.http import FileResponse
+
+        filename = request.query_params.get('file')
+
+        # Sans `file` : lister les fichiers de logs disponibles.
+        if not filename:
+            log_dir = settings.LOG_DIR
+            files = []
+            try:
+                for name in sorted(os.listdir(log_dir)):
+                    base = name.split('.log')[0] + '.log'
+                    if base in _ALLOWED_LOG_FILES and os.path.isfile(os.path.join(log_dir, name)):
+                        size = os.path.getsize(os.path.join(log_dir, name))
+                        files.append({'name': name, 'size': size})
+            except FileNotFoundError:
+                pass
+            return Response({'log_dir': log_dir, 'files': files})
+
+        path = _resolve_log_file(filename)
+        if not path:
+            return Response({'error': 'Fichier de log introuvable ou non autorisé.'},
+                            status=status.HTTP_404_NOT_FOUND)
+
+        # Téléchargement du fichier brut.
+        if request.query_params.get('download') in ('1', 'true', 'yes'):
+            return FileResponse(open(path, 'rb'), as_attachment=True, filename=os.path.basename(path))
+
+        # Lecture des N dernières lignes (+ filtre par niveau optionnel).
+        try:
+            lines_param = int(request.query_params.get('lines', 300))
+        except (TypeError, ValueError):
+            lines_param = 300
+        n = max(1, min(lines_param, _MAX_LOG_LINES))
+
+        level = (request.query_params.get('level') or '').strip().upper()
+        try:
+            with open(path, 'r', encoding='utf-8', errors='replace') as f:
+                all_lines = f.read().splitlines()
+        except OSError:
+            return Response({'error': "Impossible de lire le fichier de log."},
+                            status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        if level:
+            all_lines = [ln for ln in all_lines if level in ln.upper()]
+
+        tail = all_lines[-n:]
+        return Response({
+            'file': os.path.basename(path),
+            'lines': tail,
+            'returned': len(tail),
+            'total': len(all_lines),
+            'truncated': len(all_lines) > len(tail),
+        })

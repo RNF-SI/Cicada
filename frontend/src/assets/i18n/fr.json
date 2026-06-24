@@ -645,6 +645,21 @@
         "accessRevoked": "Accès retiré à {{user}}"
       }
     },
+    "serverLogs": {
+      "title": "Logs serveur",
+      "subtitle": "Consultation des fichiers de logs applicatifs (django, erreurs, audit).",
+      "file": "Fichier",
+      "level": "Niveau",
+      "lines": "Lignes",
+      "refresh": "Rafraîchir",
+      "download": "Télécharger",
+      "path": "Emplacement :",
+      "noFiles": "Aucun fichier de log trouvé.",
+      "emptyContent": "Ce fichier est vide (aucune ligne pour ce filtre).",
+      "truncated": "Affichage des {{returned}} dernières lignes sur {{total}}.",
+      "loadError": "Impossible de charger les logs.",
+      "downloadError": "Le téléchargement a échoué."
+    },
     "settings": {
       "title": "Paramètres",
       "subtitle": "Configuration globale de l'application",

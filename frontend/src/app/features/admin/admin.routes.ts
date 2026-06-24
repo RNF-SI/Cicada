@@ -110,6 +110,13 @@ export const ADMIN_ROUTES: Routes = [
         canActivate: [notAdminOgOnlyGuard] // Only super_admin can view error logs
       },
       {
+        // #456 — consultation des fichiers de logs serveur (super_admin)
+        path: 'logs-serveur',
+        loadComponent: () => import('./admin-server-logs/admin-server-logs.component')
+          .then(m => m.AdminServerLogsComponent),
+        canActivate: [notAdminOgOnlyGuard]
+      },
+      {
         path: 'rgpd',
         component: AdminRgpdComponent,
         canActivate: [notAdminOgOnlyGuard] // Only super_admin can manage RGPD requests

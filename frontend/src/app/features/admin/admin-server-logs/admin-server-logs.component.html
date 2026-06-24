@@ -1,0 +1,71 @@
+<div class="admin-server-logs">
+  <header class="page-header">
+    <h1 class="page-title">{{ 'admin.serverLogs.title' | translate }}</h1>
+    <p class="page-subtitle">{{ 'admin.serverLogs.subtitle' | translate }}</p>
+  </header>
+
+  <!-- Barre d'outils : fichier + niveau + lignes + actions -->
+  <div class="logs-toolbar">
+    <label class="logs-field">
+      <span>{{ 'admin.serverLogs.file' | translate }}</span>
+      <select [ngModel]="selectedFile()" (ngModelChange)="selectFile($event)">
+        @for (f of files(); track f.name) {
+          <option [value]="f.name">{{ f.name }} ({{ formatSize(f.size) }})</option>
+        }
+      </select>
+    </label>
+
+    <label class="logs-field">
+      <span>{{ 'admin.serverLogs.level' | translate }}</span>
+      <select [ngModel]="level()" (ngModelChange)="onLevelChange($event)">
+        @for (lvl of levelOptions; track lvl) {
+          <option [value]="lvl">{{ lvl || ('common.filters.all' | translate) }}</option>
+        }
+      </select>
+    </label>
+
+    <label class="logs-field">
+      <span>{{ 'admin.serverLogs.lines' | translate }}</span>
+      <select [ngModel]="lines()" (ngModelChange)="onLinesChange($event)">
+        <option [ngValue]="100">100</option>
+        <option [ngValue]="300">300</option>
+        <option [ngValue]="500">500</option>
+        <option [ngValue]="1000">1000</option>
+      </select>
+    </label>
+
+    <div class="logs-actions">
+      <button mat-stroked-button (click)="loadContent()" [disabled]="isLoading() || !selectedFile()">
+        <i class="fi fi-rr-refresh"></i> {{ 'admin.serverLogs.refresh' | translate }}
+      </button>
+      <button mat-flat-button color="primary" (click)="download()" [disabled]="!selectedFile()">
+        <i class="fi fi-rr-download"></i> {{ 'admin.serverLogs.download' | translate }}
+      </button>
+    </div>
+  </div>
+
+  @if (logDir()) {
+    <p class="logs-path">{{ 'admin.serverLogs.path' | translate }} <code>{{ logDir() }}</code></p>
+  }
+
+  <!-- Contenu -->
+  @if (isLoading()) {
+    <div class="logs-loading"><mat-spinner diameter="32"></mat-spinner></div>
+  } @else if (errorMessage()) {
+    <p class="logs-error">{{ errorMessage() }}</p>
+  } @else if (files().length === 0) {
+    <p class="logs-empty">{{ 'admin.serverLogs.noFiles' | translate }}</p>
+  } @else if (content(); as c) {
+    @if (c.truncated) {
+      <p class="logs-truncated">
+        {{ 'admin.serverLogs.truncated' | translate:{ returned: c.returned, total: c.total } }}
+      </p>
+    }
+    @if (c.lines.length === 0) {
+      <p class="logs-empty">{{ 'admin.serverLogs.emptyContent' | translate }}</p>
+    } @else {
+      <pre class="logs-content"><code>@for (line of c.lines; track $index) {<span class="log-line" [class]="lineClass(line)">{{ line }}
+</span>}</code></pre>
+    }
+  }
+</div>
