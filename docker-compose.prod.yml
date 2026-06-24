@@ -76,7 +76,9 @@ services:
     volumes:
       - media_files:/app/media
       - static_files:/app/static
-      - logs_data:/app/logs
+      # #384 — bind-mount des logs sur l'hôte (/var/log/cicada) pour consultation
+      # directe sur le serveur (conteneur=root, dossier hôte créé par le postinst).
+      - /var/log/cicada:/app/logs
     depends_on:
       db:
         condition: service_healthy
@@ -137,7 +139,9 @@ services:
       - SITE_URL=${SITE_URL:-http://localhost:4200}
     volumes:
       - media_files:/app/media
-      - logs_data:/app/logs
+      # #384 — bind-mount des logs sur l'hôte (/var/log/cicada) pour consultation
+      # directe sur le serveur (conteneur=root, dossier hôte créé par le postinst).
+      - /var/log/cicada:/app/logs
     depends_on:
       db:
         condition: service_healthy
@@ -170,7 +174,9 @@ services:
       - CELERY_RESULT_BACKEND=redis://:${REDIS_PASSWORD}@redis:6379/0
       - DJANGO_SETTINGS_MODULE=config.settings.production
     volumes:
-      - logs_data:/app/logs
+      # #384 — bind-mount des logs sur l'hôte (/var/log/cicada) pour consultation
+      # directe sur le serveur (conteneur=root, dossier hôte créé par le postinst).
+      - /var/log/cicada:/app/logs
     depends_on:
       db:
         condition: service_healthy
