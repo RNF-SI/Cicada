@@ -1,0 +1,203 @@
+<div class="planif">
+
+  <!-- Bascule Agenda / Calendrier + légende -->
+  <div class="planif-toolbar">
+    <div class="planif-views" role="tablist">
+      <button class="planif-view-btn" [class.active]="view() === 'agenda'"
+        (click)="setView('agenda')" role="tab">
+        <i class="fi fi-rr-list-check"></i>{{ 'plans.suivis.planification.tabs.agenda' | translate }}
+      </button>
+      <button class="planif-view-btn" [class.active]="view() === 'calendrier'"
+        (click)="setView('calendrier')" role="tab">
+        <i class="fi fi-rr-calendar"></i>{{ 'plans.suivis.planification.tabs.calendrier' | translate }}
+      </button>
+    </div>
+
+    <div class="planif-legend">
+      @for (item of legendItems; track item.status) {
+        <span class="planif-legend-item">
+          <img [src]="icon(item.status)" alt="">{{ item.labelKey | translate }}
+        </span>
+      }
+    </div>
+  </div>
+
+  @switch (view()) {
+
+    <!-- ====================================================================== -->
+    <!-- AGENDA                                                                 -->
+    <!-- ====================================================================== -->
+    @case ('agenda') {
+      <div class="agenda-tabs" role="tablist">
+        <button class="agenda-tab" [class.active]="agendaTab() === 'thisMonth'"
+          (click)="setAgendaTab('thisMonth')" role="tab">
+          {{ 'plans.suivis.planification.agenda.thisMonth' | translate }}
+          <span class="agenda-count">{{ countThisMonth() }}</span>
+        </button>
+        <button class="agenda-tab" [class.active]="agendaTab() === 'nextMonth'"
+          (click)="setAgendaTab('nextMonth')" role="tab">
+          {{ 'plans.suivis.planification.agenda.nextMonth' | translate }}
+          <span class="agenda-month">{{ nextMonthLabel() }}</span>
+          <span class="agenda-count">{{ countNextMonth() }}</span>
+        </button>
+        <button class="agenda-tab" [class.active]="agendaTab() === 'thisYear'"
+          (click)="setAgendaTab('thisYear')" role="tab">
+          {{ 'plans.suivis.planification.agenda.thisYear' | translate }}
+          <span class="agenda-count">{{ countThisYear() }}</span>
+        </button>
+      </div>
+
+      @if (agendaItems().length === 0) {
+        <div class="planif-empty">
+          <i class="fi fi-rr-calendar-clock"></i>
+          <p>{{ 'plans.suivis.planification.agenda.empty' | translate }}</p>
+        </div>
+      } @else {
+        <ul class="agenda-list">
+          @for (item of pagedAgendaItems(); track $index) {
+            <li class="agenda-item" [class.is-draft]="item.fop.operation.statut === 'draft'">
+              <img class="agenda-status" [src]="icon(item.status)"
+                   [alt]="statusLabelKey(item.status) | translate"
+                   [matTooltip]="statusLabelKey(item.status) | translate">
+              <span class="agenda-deadline">{{ deadlineLabel(item) }}</span>
+              <div class="agenda-main">
+                <div class="agenda-titleline">
+                  @if (item.fop.operation.code_affichage) {
+                    <span class="planif-code">{{ item.fop.operation.code_affichage }}</span>
+                  }
+                  <span class="agenda-libelle">{{ item.fop.operation.libelle }}</span>
+                </div>
+                <div class="agenda-meta">
+                  <span class="agenda-enjeu"><i class="fi fi-rr-flag"></i>{{ item.fop.enjeuLibelle }}</span>
+                  @if (getOrganismesForOp(item.fop.operation); as orgs) {
+                    @if (orgs) { <span class="agenda-org"><i class="fi fi-rr-building"></i>{{ orgs }}</span> }
+                  }
+                </div>
+              </div>
+              <div class="agenda-tags">
+                @if (item.fop.operation.priorite_label) {
+                  <app-tag [variant]="prioriteVariant(item.fop.operation)"
+                           [label]="item.fop.operation.priorite_label" size="sm"></app-tag>
+                }
+                <button class="icon-btn-flat" [title]="'common.actions.view' | translate"
+                        (click)="navigateToViewOperation(item.fop.operation.id_operation)">
+                  <i class="fi fi-rr-eye"></i>
+                </button>
+              </div>
+            </li>
+          }
+        </ul>
+
+        @if (agendaTotalPages() > 1) {
+          <div class="agenda-pagination">
+            <button class="year-nav-btn" (click)="prevAgendaPage()" [disabled]="agendaPage() <= 1"
+                    [title]="'common.actions.previous' | translate">
+              <i class="fi fi-rr-angle-small-left"></i>
+            </button>
+            <span class="agenda-pageinfo">
+              {{ agendaRangeStart() }}–{{ agendaRangeEnd() }} / {{ agendaItems().length }}
+            </span>
+            <button class="year-nav-btn" (click)="nextAgendaPage()" [disabled]="agendaPage() >= agendaTotalPages()"
+                    [title]="'common.actions.next' | translate">
+              <i class="fi fi-rr-angle-small-right"></i>
+            </button>
+          </div>
+        }
+      }
+    }
+
+    <!-- ====================================================================== -->
+    <!-- CALENDRIER MENSUEL                                                     -->
+    <!-- ====================================================================== -->
+    @case ('calendrier') {
+      <div class="calendar-toolbar">
+        <div class="calendar-yearnav">
+          <button class="year-nav-btn" (click)="prevCalendarYear()"
+                  [disabled]="calendarYear() <= planYearStart()"
+                  [title]="'common.actions.previous' | translate">
+            <i class="fi fi-rr-angle-small-left"></i>
+          </button>
+          <span class="calendar-year">{{ calendarYear() }}</span>
+          <button class="year-nav-btn" (click)="nextCalendarYear()"
+                  [disabled]="calendarYear() >= planYearEnd()"
+                  [title]="'common.actions.next' | translate">
+            <i class="fi fi-rr-angle-small-right"></i>
+          </button>
+        </div>
+
+        <!-- #459 décliné aux mois : ne montrer que les actions ayant une réponse au mois choisi -->
+        <div class="calendar-monthfilter">
+          <button class="cal-filter-btn" [class.active]="calendarMonth() != null" [matMenuTriggerFor]="monthMenu">
+            <i class="fi fi-rr-filter"></i>
+            {{ calendarMonth() == null
+                ? ('plans.suivis.planification.calendar.allMonths' | translate)
+                : monthLabels()[calendarMonth()! - 1] }}
+            <i class="fi fi-rr-angle-small-down"></i>
+          </button>
+          <mat-menu #monthMenu="matMenu">
+            <button mat-menu-item (click)="calendarMonth.set(null)">
+              <em>{{ 'plans.suivis.planification.calendar.allMonths' | translate }}</em>
+            </button>
+            @for (m of monthLabels(); track $index) {
+              <button mat-menu-item (click)="calendarMonth.set($index + 1)">{{ m }}</button>
+            }
+          </mat-menu>
+          @if (calendarMonth() != null) {
+            <button class="cal-clear" (click)="calendarMonth.set(null)" [title]="'common.actions.reset' | translate">
+              <i class="fi fi-rr-cross-small"></i>
+            </button>
+          }
+        </div>
+      </div>
+
+      <div class="cal-wrapper">
+        <div class="cal">
+          <div class="cal-head">
+            <div class="cal-rowlabel cal-corner">{{ 'plans.suivis.actions.tableHeader' | translate }}</div>
+            <div class="cal-months">
+              @for (m of monthLabels(); track $index) {
+                <div class="cal-mhead"
+                     [class.is-now]="isCurrentMonthCol($index + 1)"
+                     [class.is-filter]="isFilterMonthCol($index + 1)">{{ m }}</div>
+              }
+            </div>
+          </div>
+
+          @for (row of calendarRows(); track row.fop.operation.id_operation) {
+            <div class="cal-row" [class.is-draft]="row.fop.operation.statut === 'draft'">
+              <div class="cal-rowlabel" (click)="navigateToViewOperation(row.fop.operation.id_operation)">
+                @if (row.fop.operation.code_affichage) {
+                  <span class="planif-code">{{ row.fop.operation.code_affichage }}</span>
+                }
+                <span class="cal-libelle">{{ row.fop.operation.libelle }}</span>
+              </div>
+              <div class="cal-months">
+                @for (band of row.bands; track band.start) {
+                  <div class="cal-band" [style.grid-column]="band.start + ' / ' + (band.end + 1)">
+                    @for (cell of band.cells; track cell.month) {
+                      <span class="cal-cell" [matTooltip]="(statusLabelKey(cell.status) | translate) + ' — ' + monthLabels()[cell.month - 1]">
+                        <img [src]="icon(cell.status)" alt="">
+                      </span>
+                    }
+                  </div>
+                }
+                @for (u of row.unplanned; track u.month) {
+                  <div class="cal-mark" [style.grid-column]="u.month + ' / ' + (u.month + 1)"
+                       [matTooltip]="(statusLabelKey(u.status) | translate) + ' — ' + monthLabels()[u.month - 1]">
+                    <img [src]="icon(u.status)" alt="">
+                  </div>
+                }
+              </div>
+            </div>
+          } @empty {
+            <div class="cal-empty">
+              {{ (calendarMonth() != null
+                  ? 'plans.suivis.planification.calendar.noMonth'
+                  : 'plans.suivis.planification.noPlannedYear') | translate }}
+            </div>
+          }
+        </div>
+      </div>
+    }
+  }
+</div>

@@ -113,6 +113,31 @@
 .fiche-ind-type { color: $gray-dark; }
 .fiche-ind-met { color: $gray-dark; }
 
+.fiche-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: $font-size-small;
+
+  th, td {
+    text-align: left;
+    padding: 4px $spacing-sm;
+    border-bottom: 1px solid $gray-lighter;
+  }
+
+  th {
+    color: $gray-dark;
+    font-weight: $font-weight-bold;
+  }
+
+  .num { text-align: right; }
+
+  tfoot td {
+    font-weight: $font-weight-bold;
+    border-top: 2px solid $gray-light;
+    border-bottom: none;
+  }
+}
+
 .fiche-footer {
   margin-top: $spacing-lg;
   color: $gray;

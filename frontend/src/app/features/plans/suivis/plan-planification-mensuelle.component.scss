@@ -1,0 +1,187 @@
+@import 'variables';
+
+:host { display: block; }
+
+.planif { display: flex; flex-direction: column; gap: $spacing-md; }
+
+// Barre d'outils : bascule Agenda/Calendrier + légende
+.planif-toolbar {
+  display: flex; align-items: center; justify-content: space-between; gap: $spacing-md; flex-wrap: wrap;
+}
+.planif-views {
+  display: inline-flex; border: 1px solid $primary-bg-medium; border-radius: $border-radius-pill; overflow: hidden;
+}
+.planif-view-btn {
+  display: inline-flex; align-items: center; gap: $spacing-xs; padding: $spacing-xs $spacing-lg;
+  font-family: $font-family; font-size: $font-size-base; font-weight: $font-weight-bold;
+  color: $primary-color; background: $white; border: none; cursor: pointer;
+  i { font-size: 15px; }
+  &:not(:last-child) { border-right: 1px solid $primary-bg-medium; }
+  &.active { background: $primary-color; color: $white; }
+}
+.planif-legend {
+  display: flex; align-items: center; gap: $spacing-lg; flex-wrap: wrap;
+}
+.planif-legend-item {
+  display: inline-flex; align-items: center; gap: $spacing-xs; font-size: 13px; color: $black;
+  img { width: 24px; height: 24px; object-fit: contain; }
+}
+
+// Codes d'action (CS1, IP2…)
+.planif-code {
+  display: inline-block; padding: 1px 6px; border-radius: $border-radius-sm;
+  background: $primary-bg-soft; color: $primary-color; font-weight: $font-weight-bold; font-size: 12px; flex-shrink: 0;
+}
+
+.icon-btn-flat {
+  display: flex; align-items: center; justify-content: center; width: 32px; height: 32px;
+  background: transparent; border: none; border-radius: $border-radius-sm; color: $primary-color;
+  cursor: pointer; transition: background-color $transition-fast; flex-shrink: 0;
+  i { font-size: 16px; }
+  &:hover { background-color: $primary-bg-subtle; }
+}
+
+.planif-empty {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  min-height: 180px; text-align: center; padding: $spacing-xl;
+  i { font-size: 44px; color: $gray; margin-bottom: $spacing-md; }
+  p { font-size: $font-size-base; color: $black; margin: 0; }
+}
+
+// ============================================================================
+// AGENDA
+// ============================================================================
+.agenda-tabs {
+  display: flex; gap: $spacing-sm; border-bottom: 2px solid $primary-bg-subtle;
+}
+.agenda-tab {
+  display: inline-flex; align-items: center; gap: $spacing-xs;
+  background: transparent; border: none; padding: $spacing-sm $spacing-md; margin-bottom: -2px;
+  font-family: $font-family; font-size: 0.95rem; font-weight: $font-weight-semibold; color: $gray-dark;
+  cursor: pointer; border-bottom: 3px solid transparent; transition: color 0.2s, border-color 0.2s;
+  &:hover { color: $primary-color; }
+  &.active { color: $primary-color; border-bottom-color: $primary-color; }
+}
+.agenda-month {
+  text-transform: capitalize; font-weight: $font-weight-bold; color: $primary-color;
+}
+.agenda-count {
+  display: inline-flex; align-items: center; justify-content: center; min-width: 20px; height: 20px;
+  padding: 0 6px; border-radius: $border-radius-pill; background: $primary-bg-soft;
+  color: $primary-color; font-size: 11px; font-weight: $font-weight-bold;
+}
+
+.agenda-list { list-style: none; margin: $spacing-md 0 0; padding: 0; display: flex; flex-direction: column; gap: $spacing-xs; }
+.agenda-item {
+  display: flex; align-items: center; gap: $spacing-md;
+  background: $white; border: 1px solid $primary-bg-subtle; border-radius: $border-radius-sm;
+  padding: $spacing-sm $spacing-md;
+  &.is-draft .agenda-libelle { font-style: italic; color: $gray-dark; }
+}
+.agenda-status { width: 28px; height: 28px; object-fit: contain; flex-shrink: 0; }
+.agenda-deadline {
+  flex: 0 0 92px; font-weight: $font-weight-bold; color: $primary-color; font-size: 0.9rem; text-transform: capitalize;
+}
+.agenda-main { flex: 1 1 auto; min-width: 0; }
+.agenda-titleline { display: flex; align-items: center; gap: $spacing-xs; }
+.agenda-libelle { font-weight: $font-weight-semibold; color: $black; }
+.agenda-meta { display: flex; gap: $spacing-md; margin-top: 2px; flex-wrap: wrap; }
+.agenda-enjeu, .agenda-org {
+  display: inline-flex; align-items: center; gap: 4px; color: $gray-dark; font-size: $font-size-small;
+  i { font-size: 12px; }
+}
+.agenda-tags { display: flex; align-items: center; gap: $spacing-xs; flex-shrink: 0; }
+
+// Pagination de l'agenda
+.agenda-pagination {
+  display: flex; align-items: center; justify-content: center; gap: $spacing-md; margin-top: $spacing-md;
+}
+.agenda-pageinfo { font-size: $font-size-small; color: $gray-dark; font-weight: $font-weight-semibold; }
+
+// ============================================================================
+// CALENDRIER MENSUEL (grille + bandes continues)
+// ============================================================================
+.calendar-toolbar {
+  display: flex; align-items: center; justify-content: center; gap: $spacing-xl; flex-wrap: wrap; margin-bottom: $spacing-xs;
+}
+.calendar-yearnav { display: flex; align-items: center; justify-content: center; gap: $spacing-md; }
+
+.calendar-monthfilter { display: inline-flex; align-items: center; gap: $spacing-xs; }
+.cal-filter-btn {
+  display: inline-flex; align-items: center; gap: $spacing-xs; padding: $spacing-xs $spacing-md; height: 36px;
+  font-family: $font-family; font-size: $font-size-base; color: $primary-color;
+  background: $white; border: 1px solid $primary-bg-medium; border-radius: $border-radius-pill; cursor: pointer;
+  i { font-size: 13px; }
+  &.active { font-weight: $font-weight-bold; background: $primary-bg-soft; border-color: $primary-color; }
+}
+.cal-clear {
+  display: inline-flex; align-items: center; justify-content: center; width: 30px; height: 30px;
+  border-radius: $border-radius-round; border: none; background: transparent; color: $error-color; cursor: pointer;
+  i { font-size: 16px; }
+  &:hover { background: rgba($error-color, 0.08); }
+}
+.calendar-year { font-size: 1.25rem; font-weight: $font-weight-bold; color: $primary-color; min-width: 64px; text-align: center; }
+.year-nav-btn {
+  width: 36px; height: 36px; border-radius: $border-radius-round; border: 1px solid $primary-bg-medium;
+  background: $white; color: $primary-color; cursor: pointer; display: flex; align-items: center; justify-content: center;
+  i { font-size: 18px; }
+  &:hover:not(:disabled) { background: $primary-bg-subtle; }
+  &:disabled { opacity: 0.4; cursor: not-allowed; }
+}
+
+.cal-wrapper { overflow-x: auto; border: 1px solid $primary-bg-focus; border-radius: $border-radius-sm; }
+.cal { min-width: 720px; }
+
+.cal-head, .cal-row { display: grid; grid-template-columns: 260px 1fr; align-items: stretch; }
+.cal-head {
+  background: $primary-color; position: sticky; top: 0; z-index: 1;
+  .cal-rowlabel { color: $white; font-weight: $font-weight-bold; }
+}
+.cal-corner { display: flex; align-items: center; }
+
+.cal-months { display: grid; grid-template-columns: repeat(12, 1fr); align-items: center; min-height: 44px; }
+.cal-mhead {
+  display: flex; align-items: center; justify-content: center; padding: $spacing-sm 0;
+  color: $white; font-weight: $font-weight-bold; font-size: 0.8rem; text-transform: capitalize;
+  border-left: 1px solid rgba($white, 0.18);
+  &.is-now { background: rgba($white, 0.16); }
+  &.is-filter { background: $secondary-yellow; color: $black; }
+}
+
+.cal-row {
+  border-top: 1px solid $primary-bg-subtle; background: $white;
+  &:hover { background: rgba($primary-color, 0.03); }
+  &.is-draft .cal-libelle { font-style: italic; color: $gray-dark; }
+}
+.cal-rowlabel {
+  display: flex; align-items: center; gap: $spacing-xs; padding: $spacing-sm $spacing-md;
+  border-right: 3px solid $primary-color; cursor: pointer; min-width: 0;
+  .cal-libelle {
+    font-weight: $font-weight-semibold; color: $primary-color; line-height: 1.25;
+    overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+  }
+}
+
+// Bande continue : suite de mois consécutifs prévus.
+.cal-band {
+  grid-row: 1; display: flex; align-items: center; align-self: center;
+  background: $primary-bg-soft; border: 1px solid $primary-bg-medium; border-radius: $border-radius-pill;
+  min-height: 32px; margin: 0 2px;
+}
+.cal-cell {
+  flex: 1; display: flex; align-items: center; justify-content: center;
+  img { width: 22px; height: 22px; object-fit: contain; }
+}
+// Marqueur isolé (mois réalisé non prévu).
+.cal-mark {
+  grid-row: 1; display: flex; align-items: center; justify-content: center;
+  img { width: 22px; height: 22px; object-fit: contain; }
+}
+
+.cal-empty { padding: $spacing-lg; text-align: center; color: $gray-dark; grid-column: 1 / -1; }
+
+@media (max-width: $breakpoint-tablet) {
+  .planif-toolbar { flex-direction: column; align-items: flex-start; }
+  .agenda-item { flex-wrap: wrap; }
+  .agenda-deadline { flex-basis: auto; }
+}

@@ -55,7 +55,8 @@
     <p class="logs-error">{{ errorMessage() }}</p>
   } @else if (files().length === 0) {
     <p class="logs-empty">{{ 'admin.serverLogs.noFiles' | translate }}</p>
-  } @else if (content(); as c) {
+  } @else if (content()) {
+    @let c = content()!;
     @if (c.truncated) {
       <p class="logs-truncated">
         {{ 'admin.serverLogs.truncated' | translate:{ returned: c.returned, total: c.total } }}

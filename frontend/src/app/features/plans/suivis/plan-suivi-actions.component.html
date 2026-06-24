@@ -87,6 +87,13 @@
           <div class="suivi-tabs" role="tablist">
             <button
               class="suivi-tab"
+              [class.active]="activeTab() === 'planification'"
+              (click)="setTab('planification')"
+              role="tab">
+              {{ 'plans.suivis.actions.tabs.planification' | translate }}
+            </button>
+            <button
+              class="suivi-tab"
               [class.active]="activeTab() === 'realisation'"
               (click)="setTab('realisation')"
               role="tab">
@@ -245,6 +252,18 @@
             [ariaLabel]="'plans.suivis.actions.searchPlaceholder' | translate">
           </app-search-bar>
         </div>
+
+        @if (activeTab() === 'planification') {
+          <!-- #xxx — Planification mensuelle : 1er onglet (vue prévisionnelle).
+               Reçoit les actions filtrées (hors filtre Réalisation) + l'année. -->
+          <app-plan-planification-mensuelle
+            [operations]="baseFilteredOperations()"
+            [planYearStart]="planYearStart()"
+            [planYearEnd]="planYearEnd()"
+            [planSlug]="planSlug() || ''"
+            [filterYear]="filterYear()">
+          </app-plan-planification-mensuelle>
+        } @else {
 
         <!-- Légende (uniquement onglet Réalisation) -->
         @if (activeTab() === 'realisation') {
@@ -564,6 +583,7 @@
               </div>
             }
           }
+        }
         }
       </section>
     }

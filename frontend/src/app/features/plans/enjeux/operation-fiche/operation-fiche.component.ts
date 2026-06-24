@@ -44,13 +44,42 @@ export class OperationFicheComponent implements OnInit {
     return [...byInd.values()];
   });
 
-  /** Années où l'action est programmée (périodicité). */
-  readonly anneesProgrammees = computed(() =>
-    (this.operation()?.operation_annees ?? [])
-      .filter(oa => oa.periodicite)
-      .map(oa => oa.annee)
-      .sort((a, b) => a - b)
+  /** Indicateurs de réponse (l'action y contribue), mis en avant. */
+  readonly indicateursReponse = computed(() =>
+    this.indicateursLies().filter(i => (i.type ?? '').toUpperCase() === 'REPONSE')
   );
+
+  /** Autres indicateurs liés (état / pression), pour rappel. */
+  readonly indicateursEtatPression = computed(() =>
+    this.indicateursLies().filter(i => (i.type ?? '').toUpperCase() !== 'REPONSE')
+  );
+
+  /** Programmation annuelle : années planifiées avec budget / ETP. */
+  readonly programmation = computed(() =>
+    [...(this.operation()?.operation_annees ?? [])]
+      .sort((a, b) => a.annee - b.annee)
+      .map(oa => ({
+        annee: oa.annee,
+        periodicite: oa.periodicite,
+        budget: oa.budget,
+        etp: oa.etp,
+      }))
+  );
+
+  /** Total budget programmé (somme des budgets annuels renseignés). */
+  readonly totalBudget = computed(() => {
+    const vals = this.programmation().map(p => p.budget).filter((v): v is number => v != null);
+    return vals.length ? vals.reduce((a, b) => a + Number(b), 0) : null;
+  });
+
+  /** Total ETP programmé (somme des ETP annuels renseignés). */
+  readonly totalEtp = computed(() => {
+    const vals = this.programmation().map(p => p.etp).filter((v): v is number => v != null);
+    return vals.length ? vals.reduce((a, b) => a + Number(b), 0) : null;
+  });
+
+  /** Sources de financement de l'action. */
+  readonly financements = computed(() => this.operation()?.finances ?? []);
 
   /** #326 — Emprise spatiale de l'action (geom), affichée en carte lecture seule. */
   readonly empriseGeom = computed<any>(() => {

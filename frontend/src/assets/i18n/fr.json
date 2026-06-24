@@ -12,6 +12,8 @@
       "close": "Fermer",
       "confirm": "Confirmer",
       "back": "Retour",
+      "previous": "Précédent",
+      "next": "Suivant",
       "view": "Voir",
       "create": "Créer",
       "update": "Mettre à jour",
@@ -1771,6 +1773,26 @@
         "title": "Plan de gestion non validé",
         "text": "Pas de modification possible tant que votre plan de gestion n'est pas validé."
       },
+      "planification": {
+        "title": "Planification mensuelle",
+        "monthsShort": "janv.,févr.,mars,avr.,mai,juin,juil.,août,sept.,oct.,nov.,déc.",
+        "wholeYear": "Année",
+        "noPlannedYear": "Aucune action prévue cette année pour cette sélection.",
+        "tabs": {
+          "agenda": "Agenda",
+          "calendrier": "Calendrier"
+        },
+        "agenda": {
+          "thisMonth": "Ce mois-ci",
+          "nextMonth": "Le mois prochain",
+          "thisYear": "Cette année",
+          "empty": "Aucune action prévue sur cette période."
+        },
+        "calendar": {
+          "allMonths": "Tous les mois",
+          "noMonth": "Aucune action avec une réponse à ce mois."
+        }
+      },
       "bilan": {
         "title": "Bilan de la gestion",
         "comingSoon": "Cette fonctionnalité est en cours de développement.",
@@ -1840,6 +1862,7 @@
         "title": "Suivi des actions",
         "planGeneral": "Plan général (actions non ventilées par organisme)",
         "tabs": {
+          "planification": "Planification mensuelle",
           "realisation": "Réalisation",
           "budget": "Budget",
           "rh": "RH",
@@ -1903,6 +1926,15 @@
           "partenaires": "Partenaires",
           "financeurs": "Financeurs",
           "indicateurs": "Indicateurs liés",
+          "indicateursReponse": "Indicateurs de réponse",
+          "indicateursAutres": "Autres indicateurs liés (état / pression)",
+          "programmation": "Programmation",
+          "annee": "Année",
+          "programmee": "Programmée",
+          "budget": "Budget",
+          "etp": "ETP",
+          "total": "Total",
+          "financements": "Financements",
           "emprise": "Emprise spatiale",
           "realisation": "Réalisation",
           "realisationGlobale": "Niveau global",

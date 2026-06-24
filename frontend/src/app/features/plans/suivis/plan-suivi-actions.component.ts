@@ -10,6 +10,7 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { HeaderComponent } from '../../../shared/components/header/header.component';
 import { PlanSidebarComponent } from '../shared/plan-sidebar/plan-sidebar.component';
 import { SearchBarComponent } from '../../../shared/components/search-bar/search-bar.component';
+import { PlanPlanificationMensuelleComponent } from './plan-planification-mensuelle.component';
 import { AdminService } from '../../../core/services/admin.service';
 import { EnjeuService } from '../../../core/services/enjeu.service';
 import {
@@ -19,7 +20,7 @@ import {
   ActionStatus, ACTION_LEGEND_ITEMS, getActionIcon, getActionStatusForYear
 } from './action-status.util';
 
-type SuiviTab = 'realisation' | 'budget' | 'rh';
+type SuiviTab = 'planification' | 'realisation' | 'budget' | 'rh';
 
 /** Période d'agrégation pour les onglets Budget / RH. */
 type AggregationPeriod = 'current' | 'past' | 'total';
@@ -44,7 +45,8 @@ interface FlatOperation {
   imports: [
     CommonModule, RouterModule, MatButtonModule, MatChipsModule, MatMenuModule,
     MatProgressSpinnerModule, MatTooltipModule, TranslateModule,
-    HeaderComponent, PlanSidebarComponent, SearchBarComponent
+    HeaderComponent, PlanSidebarComponent, SearchBarComponent,
+    PlanPlanificationMensuelleComponent
   ],
   templateUrl: './plan-suivi-actions.component.html',
   styleUrl: './plan-suivi-actions.component.scss'
@@ -116,7 +118,9 @@ export class PlanSuiviActionsComponent implements OnInit {
     return this.allYears();
   });
 
-  filteredOperations = computed(() => {
+  /** Filtres communs (catégorie/enjeu/priorité/texte/organisme), hors filtre
+   *  « Réalisation ». Sert de base au tableau et à la planification mensuelle. */
+  baseFilteredOperations = computed(() => {
     let ops = this.allOperations();
     const cat = this.filterCategorieAction();
     const enjeu = this.filterEnjeu();
@@ -139,6 +143,11 @@ export class PlanSuiviActionsComponent implements OnInit {
     if (org) {
       ops = ops.filter(o => this.getOrganismesForOp(o.operation).some(g => g.id_organisme === org));
     }
+    return ops;
+  });
+
+  filteredOperations = computed(() => {
+    let ops = this.baseFilteredOperations();
     // #354 — filtre par réalisation (sur les années affichées : si une année est
     // sélectionnée, la réalisation est évaluée sur cette année uniquement).
     const real = this.filterRealisation();
@@ -300,7 +309,7 @@ export class PlanSuiviActionsComponent implements OnInit {
   ngOnInit(): void {
     // #379 — restaurer l'onglet depuis l'URL (retour « précédent » depuis la saisie)
     const tabParam = this.route.snapshot.queryParamMap.get('tab');
-    if (tabParam === 'budget' || tabParam === 'rh') {
+    if (tabParam === 'planification' || tabParam === 'budget' || tabParam === 'rh') {
       this.activeTab.set(tabParam);
     }
 

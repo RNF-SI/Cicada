@@ -18,7 +18,8 @@
     <p class="fiche-loading">{{ 'common.loading' | translate }}</p>
   } @else if (errorMessage()) {
     <p class="fiche-error">{{ errorMessage() }}</p>
-  } @else if (operation(); as op) {
+  } @else {
+    @if (operation(); as op) {
     <article class="fiche">
       <!-- En-tête -->
       <header class="fiche-header">
@@ -48,10 +49,6 @@
             <dt>{{ 'plans.suivis.actions.fiche.frequence' | translate }}</dt>
             <dd>{{ op.frequence_nombre }} / {{ op.frequence_unite || '—' }}</dd>
           }
-          @if (anneesProgrammees().length) {
-            <dt>{{ 'plans.suivis.actions.fiche.anneesProgrammees' | translate }}</dt>
-            <dd>{{ anneesProgrammees().join(', ') }}</dd>
-          }
         </dl>
       </section>
 
@@ -76,12 +73,74 @@
         </section>
       }
 
-      <!-- Indicateurs liés -->
-      @if (indicateursLies().length) {
+      <!-- Programmation -->
+      @if (programmation().length) {
         <section class="fiche-section">
-          <h2>{{ 'plans.suivis.actions.fiche.indicateurs' | translate }}</h2>
+          <h2>{{ 'plans.suivis.actions.fiche.programmation' | translate }}</h2>
+          <table class="fiche-table">
+            <thead>
+              <tr>
+                <th>{{ 'plans.suivis.actions.fiche.annee' | translate }}</th>
+                <th>{{ 'plans.suivis.actions.fiche.programmee' | translate }}</th>
+                <th class="num">{{ 'plans.suivis.actions.fiche.budget' | translate }}</th>
+                <th class="num">{{ 'plans.suivis.actions.fiche.etp' | translate }}</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (p of programmation(); track p.annee) {
+                <tr>
+                  <td>{{ p.annee }}</td>
+                  <td>{{ (p.periodicite ? 'common.yes' : 'common.no') | translate }}</td>
+                  <td class="num">{{ p.budget != null ? (p.budget | number:'1.0-2') + ' €' : '—' }}</td>
+                  <td class="num">{{ p.etp != null ? (p.etp | number:'1.0-2') : '—' }}</td>
+                </tr>
+              }
+            </tbody>
+            @if (totalBudget() != null || totalEtp() != null) {
+              <tfoot>
+                <tr>
+                  <td colspan="2">{{ 'plans.suivis.actions.fiche.total' | translate }}</td>
+                  <td class="num">{{ totalBudget() != null ? (totalBudget() | number:'1.0-2') + ' €' : '—' }}</td>
+                  <td class="num">{{ totalEtp() != null ? (totalEtp() | number:'1.0-2') : '—' }}</td>
+                </tr>
+              </tfoot>
+            }
+          </table>
+
+          @if (financements().length) {
+            <dl class="fiche-grid">
+              <dt>{{ 'plans.suivis.actions.fiche.financements' | translate }}</dt>
+              <dd>
+                @for (f of financements(); track f.id_finance_operation; let last = $last) {
+                  {{ f.libelle }}@if (f.categorie_label) {({{ f.categorie_label }})}@if (!last) {<span>, </span>}
+                }
+              </dd>
+            </dl>
+          }
+        </section>
+      }
+
+      <!-- Indicateurs de réponse (mis en avant) -->
+      @if (indicateursReponse().length) {
+        <section class="fiche-section">
+          <h2>{{ 'plans.suivis.actions.fiche.indicateursReponse' | translate }}</h2>
           <ul class="fiche-list">
-            @for (ind of indicateursLies(); track ind.id) {
+            @for (ind of indicateursReponse(); track ind.id) {
+              <li>
+                <strong>{{ ind.nom }}</strong>
+                @if (ind.metriques.length) { <span class="fiche-ind-met"> — {{ ind.metriques.join(', ') }}</span> }
+              </li>
+            }
+          </ul>
+        </section>
+      }
+
+      <!-- Autres indicateurs liés (état / pression) -->
+      @if (indicateursEtatPression().length) {
+        <section class="fiche-section">
+          <h2>{{ 'plans.suivis.actions.fiche.indicateursAutres' | translate }}</h2>
+          <ul class="fiche-list">
+            @for (ind of indicateursEtatPression(); track ind.id) {
               <li>
                 <strong>{{ ind.nom }}</strong>
                 @if (ind.type) { <span class="fiche-ind-type">({{ ind.type }})</span> }
@@ -123,5 +182,6 @@
         {{ 'plans.suivis.actions.fiche.generatedNote' | translate }}
       </footer>
     </article>
+    }
   }
 </div>
