@@ -2118,6 +2118,15 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
         # éditable sans impacter la version source.
         PlanDuplicationService.copy_content(plan, new_plan, request.user)
 
+        # #349 — Marquer l'évaluation comme mi-parcours DÈS le brouillon (et non
+        # seulement à sa validation), afin qu'elle soit identifiée comme
+        # évaluation mi-parcours pendant sa rédaction. Posé uniquement si aucune
+        # mi-parcours n'existe déjà dans la chaîne (unicité). Le flag est préservé
+        # à la validation (change_status ne le réinitialise pas).
+        if not plan.chain_has_mi_parcours():
+            new_plan.is_mi_parcours = True
+            new_plan.save(update_fields=['is_mi_parcours'])
+
         # Log activity
         try:
             from apps.core.services import ActivityService

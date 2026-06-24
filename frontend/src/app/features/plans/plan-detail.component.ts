@@ -631,6 +631,10 @@ export class PlanDetailComponent implements OnInit, OnDestroy {
   private shouldPromptMiParcours(): boolean {
     const p = this.plan();
     if (!p?.plan_parent_id) return false;
+    // #349 — le plan est déjà désigné comme évaluation mi-parcours dès le
+    // brouillon (drapeau posé à la création de l'évaluation) : inutile de
+    // redemander à la validation.
+    if (p.is_mi_parcours) return false;
     // #250 — Une version étendue est une prolongation, jamais une évaluation
     // mi-parcours : on ne propose pas le pop-up mi-parcours à sa validation.
     if (p.annees_extension && p.annees_extension > 0) return false;
