@@ -35,6 +35,14 @@ export const ENJEUX_ROUTES: Routes = [
     title: 'Modifier action'
   },
   {
+    // #354 — fiche synthétique imprimable/exportable d'une action
+    path: 'operations/:operationId/fiche',
+    loadComponent: () => import('./operation-fiche/operation-fiche.component')
+      .then(m => m.OperationFicheComponent),
+    canActivate: [authGuard],
+    title: 'Fiche action'
+  },
+  {
     path: 'operations/:operationId',
     loadComponent: () => import('./operation-form/operation-form.component')
       .then(m => m.OperationFormComponent),

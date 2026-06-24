@@ -1,0 +1,113 @@
+<div class="fiche-page">
+  <!-- Barre d'actions (masquée à l'impression) -->
+  <div class="fiche-toolbar no-print">
+    <button class="btn-back" (click)="goBack()">
+      <i class="fi fi-rr-arrow-left"></i> {{ 'common.actions.back' | translate }}
+    </button>
+    <div class="fiche-toolbar-right">
+      <button class="btn-print" (click)="print()">
+        <i class="fi fi-rr-print"></i> {{ 'plans.suivis.actions.fiche.export' | translate }}
+      </button>
+      <button class="btn-edit" (click)="goEdit()">
+        <i class="fi fi-rr-pencil"></i> {{ 'common.actions.edit' | translate }}
+      </button>
+    </div>
+  </div>
+
+  @if (isLoading()) {
+    <p class="fiche-loading">{{ 'common.loading' | translate }}</p>
+  } @else if (errorMessage()) {
+    <p class="fiche-error">{{ errorMessage() }}</p>
+  } @else if (operation(); as op) {
+    <article class="fiche">
+      <!-- En-tête -->
+      <header class="fiche-header">
+        <span class="fiche-code">{{ op.code_affichage || op.code_prefix || '—' }}</span>
+        <h1 class="fiche-titre">{{ op.libelle }}</h1>
+        <div class="fiche-tags">
+          @if (op.priorite_label) { <span class="fiche-tag fiche-tag--prio">{{ op.priorite_label }}</span> }
+          @if (op.categorie_action_reserve_label) { <span class="fiche-tag">{{ op.categorie_action_reserve_label }}</span> }
+          @if (op.type_action_label) { <span class="fiche-tag fiche-tag--type">{{ op.type_action_label }}</span> }
+        </div>
+      </header>
+
+      @if (op.description) {
+        <section class="fiche-section">
+          <h2>{{ 'plans.suivis.actions.fiche.description' | translate }}</h2>
+          <p>{{ op.description }}</p>
+        </section>
+      }
+
+      <!-- Temporalité -->
+      <section class="fiche-section">
+        <h2>{{ 'plans.suivis.actions.fiche.temporalite' | translate }}</h2>
+        <dl class="fiche-grid">
+          <dt>{{ 'plans.suivis.actions.fiche.periode' | translate }}</dt>
+          <dd>{{ periode() }}</dd>
+          @if (op.frequence_nombre) {
+            <dt>{{ 'plans.suivis.actions.fiche.frequence' | translate }}</dt>
+            <dd>{{ op.frequence_nombre }} / {{ op.frequence_unite || '—' }}</dd>
+          }
+          @if (anneesProgrammees().length) {
+            <dt>{{ 'plans.suivis.actions.fiche.anneesProgrammees' | translate }}</dt>
+            <dd>{{ anneesProgrammees().join(', ') }}</dd>
+          }
+        </dl>
+      </section>
+
+      <!-- Acteurs -->
+      @if (op.operateurs || op.partenaires || op.financeurs) {
+        <section class="fiche-section">
+          <h2>{{ 'plans.suivis.actions.fiche.acteurs' | translate }}</h2>
+          <dl class="fiche-grid">
+            @if (op.operateurs) {
+              <dt>{{ 'plans.suivis.actions.fiche.operateurs' | translate }}</dt>
+              <dd>{{ op.operateurs }}</dd>
+            }
+            @if (op.partenaires) {
+              <dt>{{ 'plans.suivis.actions.fiche.partenaires' | translate }}</dt>
+              <dd>{{ op.partenaires }}</dd>
+            }
+            @if (op.financeurs) {
+              <dt>{{ 'plans.suivis.actions.fiche.financeurs' | translate }}</dt>
+              <dd>{{ op.financeurs }}</dd>
+            }
+          </dl>
+        </section>
+      }
+
+      <!-- Indicateurs liés -->
+      @if (indicateursLies().length) {
+        <section class="fiche-section">
+          <h2>{{ 'plans.suivis.actions.fiche.indicateurs' | translate }}</h2>
+          <ul class="fiche-list">
+            @for (ind of indicateursLies(); track ind.id) {
+              <li>
+                <strong>{{ ind.nom }}</strong>
+                @if (ind.type) { <span class="fiche-ind-type">({{ ind.type }})</span> }
+                @if (ind.metriques.length) { <span class="fiche-ind-met"> — {{ ind.metriques.join(', ') }}</span> }
+              </li>
+            }
+          </ul>
+        </section>
+      }
+
+      <!-- Réalisation -->
+      <section class="fiche-section">
+        <h2>{{ 'plans.suivis.actions.fiche.realisation' | translate }}</h2>
+        <dl class="fiche-grid">
+          <dt>{{ 'plans.suivis.actions.fiche.realisationGlobale' | translate }}</dt>
+          <dd>{{ op.niveau_realisation_global_label || '—' }}</dd>
+          @if (op.niveau_realisation_global_commentaire) {
+            <dt>{{ 'plans.suivis.actions.fiche.commentaire' | translate }}</dt>
+            <dd>{{ op.niveau_realisation_global_commentaire }}</dd>
+          }
+        </dl>
+      </section>
+
+      <footer class="fiche-footer">
+        {{ 'plans.suivis.actions.fiche.generatedNote' | translate }}
+      </footer>
+    </article>
+  }
+</div>

@@ -458,11 +458,11 @@ export class PlanSuiviActionsComponent implements OnInit {
     return '';
   }
 
-  /** Ouvre la fiche action en lecture seule (page dédiée, partageable via URL) */
+  /** #354 — Ouvre la fiche synthétique (imprimable/exportable) de l'action. */
   navigateToViewOperation(operationId: number): void {
     const slug = this.planSlug();
     if (!slug) return;
-    this.router.navigate(['/plans', slug, 'enjeux', 'operations', operationId]);
+    this.router.navigate(['/plans', slug, 'enjeux', 'operations', operationId, 'fiche']);
   }
 
   // ===========================================================================

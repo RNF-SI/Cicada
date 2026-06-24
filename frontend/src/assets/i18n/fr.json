@@ -1876,6 +1876,23 @@
         "filterRealisation": "Réalisation",
         "realisationDone": "Réalisées",
         "realisationNone": "Non réalisées",
+        "fiche": {
+          "export": "Imprimer / Exporter (PDF)",
+          "description": "Description",
+          "temporalite": "Temporalité",
+          "periode": "Période",
+          "frequence": "Fréquence",
+          "anneesProgrammees": "Années programmées",
+          "acteurs": "Acteurs",
+          "operateurs": "Opérateurs",
+          "partenaires": "Partenaires",
+          "financeurs": "Financeurs",
+          "indicateurs": "Indicateurs liés",
+          "realisation": "Réalisation",
+          "realisationGlobale": "Niveau global",
+          "commentaire": "Commentaire",
+          "generatedNote": "Fiche générée depuis CICADA."
+        },
         "actionNonRealisee": "Action prévue non réalisée",
         "actionNonRealiseeSeule": "Action non réalisée"
       },

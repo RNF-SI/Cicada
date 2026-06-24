@@ -1,0 +1,131 @@
+@import 'variables';
+
+.fiche-page {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: $spacing-lg;
+}
+
+.fiche-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: $spacing-lg;
+
+  &-right {
+    display: flex;
+    gap: $spacing-sm;
+  }
+
+  button {
+    display: inline-flex;
+    align-items: center;
+    gap: $spacing-xs;
+    border-radius: $border-radius-pill;
+    padding: $spacing-xs $spacing-md;
+    font-weight: $font-weight-bold;
+    cursor: pointer;
+    border: 1px solid $primary-color;
+    background: $white;
+    color: $primary-color;
+
+    &.btn-print {
+      background: $primary-color;
+      color: $white;
+    }
+  }
+}
+
+.fiche {
+  background: $white;
+  border: 1px solid $gray-light;
+  border-radius: $border-radius-md;
+  padding: $spacing-xl;
+}
+
+.fiche-header {
+  border-bottom: 2px solid $primary-color;
+  padding-bottom: $spacing-md;
+  margin-bottom: $spacing-md;
+}
+
+.fiche-code {
+  display: inline-block;
+  font-family: monospace;
+  font-weight: $font-weight-bold;
+  color: $secondary-terra-cotta;
+}
+
+.fiche-titre {
+  margin: $spacing-xs 0;
+  color: $primary-color;
+}
+
+.fiche-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spacing-xs;
+  margin-top: $spacing-xs;
+}
+
+.fiche-tag {
+  background: $gray-lighter;
+  color: $black;
+  border-radius: $border-radius-pill;
+  padding: 2px 10px;
+  font-size: $font-size-small;
+
+  &--prio { background: $secondary-yellow; }
+  &--type { background: $secondary-pale-green; }
+}
+
+.fiche-section {
+  margin-bottom: $spacing-md;
+
+  h2 {
+    font-size: $font-size-base;
+    color: $primary-color;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    border-bottom: 1px solid $gray-lighter;
+    padding-bottom: 2px;
+    margin-bottom: $spacing-xs;
+  }
+}
+
+.fiche-grid {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 4px $spacing-md;
+  margin: 0;
+
+  dt { color: $gray-dark; font-weight: $font-weight-bold; }
+  dd { margin: 0; color: $black; }
+}
+
+.fiche-list {
+  margin: 0;
+  padding-left: $spacing-md;
+
+  li { margin-bottom: 2px; }
+}
+
+.fiche-ind-type { color: $gray-dark; }
+.fiche-ind-met { color: $gray-dark; }
+
+.fiche-footer {
+  margin-top: $spacing-lg;
+  color: $gray;
+  font-size: $font-size-small;
+  font-style: italic;
+}
+
+.fiche-loading, .fiche-error { text-align: center; color: $gray-dark; }
+.fiche-error { color: $error-color; }
+
+// #354 — impression : masquer la barre d'actions et neutraliser les marges/ombres.
+@media print {
+  .no-print { display: none !important; }
+  .fiche-page { max-width: none; padding: 0; }
+  .fiche { border: none; padding: 0; }
+}
