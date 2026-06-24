@@ -192,6 +192,42 @@
                 <div class="filter-separator"></div>
               }
 
+              <!-- #354 — Année -->
+              <button class="filter-btn" [matMenuTriggerFor]="yearMenu"
+                [class.filter-active]="filterYear() != null">
+                {{ 'plans.suivis.actions.filterYear' | translate }}
+                @if (filterYear() != null) { <span>&nbsp;: {{ filterYear() }}</span> }
+                <i class="fi fi-rr-angle-small-down"></i>
+              </button>
+              <mat-menu #yearMenu="matMenu">
+                <button mat-menu-item (click)="filterYear.set(null)">
+                  <em>{{ 'plans.suivis.actions.allYears' | translate }}</em>
+                </button>
+                @for (y of allYears(); track y) {
+                  <button mat-menu-item (click)="filterYear.set(y)">{{ y }}</button>
+                }
+              </mat-menu>
+              <div class="filter-separator"></div>
+
+              <!-- #354 — Réalisation -->
+              <button class="filter-btn" [matMenuTriggerFor]="realMenu"
+                [class.filter-active]="filterRealisation() !== 'all'">
+                {{ 'plans.suivis.actions.filterRealisation' | translate }}
+                <i class="fi fi-rr-angle-small-down"></i>
+              </button>
+              <mat-menu #realMenu="matMenu">
+                <button mat-menu-item (click)="filterRealisation.set('all')">
+                  <em>{{ 'common.filters.all' | translate }}</em>
+                </button>
+                <button mat-menu-item (click)="filterRealisation.set('realized')">
+                  {{ 'plans.suivis.actions.realisationDone' | translate }}
+                </button>
+                <button mat-menu-item (click)="filterRealisation.set('not-realized')">
+                  {{ 'plans.suivis.actions.realisationNone' | translate }}
+                </button>
+              </mat-menu>
+              <div class="filter-separator"></div>
+
               <!-- Bouton réinitialiser les filtres (revue design #317) -->
               @if (hasActiveFilters()) {
                 <button class="filter-btn filter-btn-reset" (click)="clearFilters()">

@@ -87,6 +87,9 @@ export class PlanSuiviActionsComponent implements OnInit {
   // #379 — recherche textuelle sur le libellé d'action + filtre organisme.
   filterText = signal<string>('');
   filterOrganisme = signal<number | null>(null);
+  // #354 — filtre par année (affiche une seule année) + par réalisation.
+  filterYear = signal<number | null>(null);
+  filterRealisation = signal<'all' | 'realized' | 'not-realized'>('all');
 
   // Libellés des 9 catégories d'action réserve CT88, indexés par code 2 lettres
   // (SP, CS, IP, PA…). Sert à afficher la catégorie CT88 dans le filtre, même
@@ -95,7 +98,8 @@ export class PlanSuiviActionsComponent implements OnInit {
 
   // Computed
   /** Liste des colonnes années entre planYearStart et planYearEnd. */
-  yearColumns = computed(() => {
+  /** Toutes les années du plan (pour le sélecteur de filtre). */
+  allYears = computed(() => {
     const start = this.planYearStart();
     const end = this.planYearEnd();
     const years: number[] = [];
@@ -103,6 +107,13 @@ export class PlanSuiviActionsComponent implements OnInit {
       years.push(y);
     }
     return years;
+  });
+
+  yearColumns = computed(() => {
+    // #354 — si une année est sélectionnée, on n'affiche que cette colonne.
+    const fy = this.filterYear();
+    if (fy != null) return [fy];
+    return this.allYears();
   });
 
   filteredOperations = computed(() => {
@@ -128,8 +139,25 @@ export class PlanSuiviActionsComponent implements OnInit {
     if (org) {
       ops = ops.filter(o => this.getOrganismesForOp(o.operation).some(g => g.id_organisme === org));
     }
+    // #354 — filtre par réalisation (sur les années affichées : si une année est
+    // sélectionnée, la réalisation est évaluée sur cette année uniquement).
+    const real = this.filterRealisation();
+    if (real !== 'all') {
+      const years = this.yearColumns();
+      ops = ops.filter(o => {
+        const realized = years.some(y => this.opYearIsRealized(o.operation, y));
+        return real === 'realized' ? realized : !realized;
+      });
+    }
     return ops;
   });
+
+  /** #354 — vrai si l'action a une réalisation (totale ou partielle) cette année. */
+  private opYearIsRealized(op: Operation, year: number): boolean {
+    const st = this.getActionStatusForYear(op, year);
+    return st === 'planned-realized' || st === 'planned-partial'
+        || st === 'realized-unplanned' || st === 'partial-unplanned';
+  }
 
   /** Normalisation pour la recherche : minuscules, sans accents. */
   private normalize(s: string): string {
@@ -412,11 +440,14 @@ export class PlanSuiviActionsComponent implements OnInit {
     this.filterPriorite.set(null);
     this.filterText.set('');
     this.filterOrganisme.set(null);
+    this.filterYear.set(null);
+    this.filterRealisation.set('all');
   }
 
   hasActiveFilters(): boolean {
     return !!(this.filterCategorieAction() || this.filterEnjeu() || this.filterPriorite()
-      || this.filterText() || this.filterOrganisme());
+      || this.filterText() || this.filterOrganisme()
+      || this.filterYear() != null || this.filterRealisation() !== 'all');
   }
 
   getPrioriteClass(op: Operation): string {

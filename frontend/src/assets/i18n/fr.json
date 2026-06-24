@@ -1871,6 +1871,11 @@
         "searchPlaceholder": "Rechercher une action…",
         "organisme": "Organisme",
         "allOrganismes": "Tous les organismes",
+        "filterYear": "Année",
+        "allYears": "Toutes les années",
+        "filterRealisation": "Réalisation",
+        "realisationDone": "Réalisées",
+        "realisationNone": "Non réalisées",
         "actionNonRealisee": "Action prévue non réalisée",
         "actionNonRealiseeSeule": "Action non réalisée"
       },
