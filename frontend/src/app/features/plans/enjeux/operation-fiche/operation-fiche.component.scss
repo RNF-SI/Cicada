@@ -129,3 +129,8 @@
   .fiche-page { max-width: none; padding: 0; }
   .fiche { border: none; padding: 0; }
 }
+
+// #326 — la carte d'emprise ne s'imprime pas proprement : masquée à l'export.
+@media print {
+  .no-print-map { display: none !important; }
+}

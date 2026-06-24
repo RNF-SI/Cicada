@@ -92,6 +92,20 @@
         </section>
       }
 
+      <!-- #326 — Emprise spatiale (carte, lecture seule) -->
+      @if (empriseGeom()) {
+        <section class="fiche-section fiche-section--map no-print-map">
+          <h2>{{ 'plans.suivis.actions.fiche.emprise' | translate }}</h2>
+          <app-leaflet-map-edit
+            [existingGeometry]="empriseGeom()"
+            [readOnly]="true"
+            [showImportButton]="false"
+            height="280px"
+            geometryType="polygon">
+          </app-leaflet-map-edit>
+        </section>
+      }
+
       <!-- Réalisation -->
       <section class="fiche-section">
         <h2>{{ 'plans.suivis.actions.fiche.realisation' | translate }}</h2>

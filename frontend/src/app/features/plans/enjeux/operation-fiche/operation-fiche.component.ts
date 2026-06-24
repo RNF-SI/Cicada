@@ -4,6 +4,7 @@ import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { TranslateModule } from '@ngx-translate/core';
 import { EnjeuService } from '../../../../core/services/enjeu.service';
 import { Operation } from '../../../../core/models/enjeu.model';
+import { LeafletMapEditComponent } from '../../../../shared/components/leaflet-map-edit/leaflet-map-edit.component';
 
 /**
  * #354 — Fiche synthétique d'une action (opération).
@@ -17,7 +18,7 @@ import { Operation } from '../../../../core/models/enjeu.model';
 @Component({
   selector: 'app-operation-fiche',
   standalone: true,
-  imports: [CommonModule, RouterModule, TranslateModule],
+  imports: [CommonModule, RouterModule, TranslateModule, LeafletMapEditComponent],
   templateUrl: './operation-fiche.component.html',
   styleUrl: './operation-fiche.component.scss',
 })
@@ -50,6 +51,12 @@ export class OperationFicheComponent implements OnInit {
       .map(oa => oa.annee)
       .sort((a, b) => a - b)
   );
+
+  /** #326 — Emprise spatiale de l'action (geom), affichée en carte lecture seule. */
+  readonly empriseGeom = computed<any>(() => {
+    const op = this.operation();
+    return op?.geom_geojson ?? op?.geom ?? null;
+  });
 
   /** Période lisible (annee_min – annee_max). */
   readonly periode = computed(() => {
