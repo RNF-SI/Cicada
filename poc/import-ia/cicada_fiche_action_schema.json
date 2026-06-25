@@ -1,0 +1,132 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Cicada — Fiche action (extraction depuis plan de gestion textuel)",
+  "description": "Schema cible pour l'extraction LLM d'une fiche action. Aligne sur le modele d'export Cicada (onglets 'Action CS' et 'Action hors CS'). Chaque champ porte un 'source_quote' optionnel pour tracer l'origine dans le document et faciliter la relecture humaine. Mettre null si l'information est absente du document — NE JAMAIS inventer.",
+  "type": "object",
+  "properties": {
+    "type_action": {
+      "type": "string",
+      "enum": ["CS", "hors_CS"],
+      "description": "CS = connaissance/suivi scientifique (onglet 'Action CS'). hors_CS = intervention/gestion/admin (onglet 'Action hors CS'). Indice: code commencant par CS, PR -> souvent CS ; SP, EI, IP, CI, MS, PA, CC -> hors_CS."
+    },
+    "code_action": {
+      "type": ["string", "null"],
+      "description": "Code tel qu'ecrit dans le doc, ex 'CS 1.1', 'CS 01', 'IP 15'. Conserver la forme d'origine."
+    },
+    "code_nature": {
+      "type": ["string", "null"],
+      "enum": ["SP", "CS", "EI", "IP", "CI", "MS", "PR", "PA", "CC", null],
+      "description": "Nature de l'operation extraite du code. SP=surveillance/police, CS=connaissance/suivi, EI=etudes/ingenierie, IP=interventions patrimoine, CI=infrastructures accueil, MS=management/soutien, PR=recherche, PA=accueil/animation, CC=communication/pedagogie."
+    },
+    "intitule": {
+      "type": "string",
+      "description": "Intitule complet de l'action/operation."
+    },
+    "priorite": {
+      "type": ["integer", "null"],
+      "description": "Niveau de priorite (1, 2, 3...). null si absent."
+    },
+    "cadre": {
+      "type": "object",
+      "description": "1) Cadre de l'action — rattachement a l'arborescence. Les intitules sont copies tels quels ; le rapprochement avec les entites Cicada existantes se fait a l'import.",
+      "properties": {
+        "enjeu_intitule": { "type": ["string", "null"] },
+        "olt_intitule": { "type": ["string", "null"], "description": "Objectif a long terme (OLT) rattache." },
+        "oo_intitule": { "type": ["string", "null"], "description": "Objectif operationnel, si present (Mepieu l'expose, Val Suzon non)." },
+        "indicateur": {
+          "type": ["string", "null"],
+          "description": "Indicateur d'etat (CS) OU indicateur de pression / pression a gerer (hors_CS)."
+        },
+        "niveau_exigence_ou_resultat": {
+          "type": ["string", "null"],
+          "description": "Niveau d'exigence a atteindre / etat vise sur le long terme (CS) OU resultats attendus (hors_CS)."
+        },
+        "actions_liees": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Codes ou intitules des actions liees (ex 'CS 1.2', 'CS07 suivi des herbiers'). Liste vide si aucune."
+        },
+        "metriques": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Metriques liees si explicitement listees. Souvent VIDE — l'import des metriques est hors-perimetre V1."
+        }
+      },
+      "required": ["enjeu_intitule", "olt_intitule", "indicateur"]
+    },
+    "operation": {
+      "type": "object",
+      "description": "2) Details de l'operation.",
+      "properties": {
+        "details": {
+          "type": ["string", "null"],
+          "description": "Detail du suivi (protocole, contenu/etapes) pour CS, ou details/commentaires de l'action pour hors_CS. Concatener description generale + contenu/etapes si separes dans le doc."
+        },
+        "nom_protocole": { "type": ["string", "null"], "description": "Nom du protocole si nomme (ex 'methode MNHN Maciejewski 2015')." },
+        "localisation": { "type": ["string", "null"], "description": "Description textuelle de l'emprise/localisation (pas la geometrie)." },
+        "autorisations": { "type": ["string", "null"], "description": "Autorisations reglementaires (capture/prelevement/destruction). 'Sans objet' possible." },
+        "operateurs_internes": { "type": "array", "items": { "type": "string" } },
+        "operateurs_externes": { "type": "array", "items": { "type": "string" } },
+        "partenaires": { "type": "array", "items": { "type": "string" } }
+      },
+      "required": ["details"]
+    },
+    "programmation": {
+      "type": "object",
+      "description": "3) Volet administratif et financier.",
+      "properties": {
+        "annee_debut_plan": { "type": ["integer", "null"], "description": "Premiere annee du plan, ex 2020 ou 2023 (pour reindexer en N..N+8)." },
+        "calendrier_annuel": {
+          "type": "array",
+          "description": "Une entree par annee programmee.",
+          "items": {
+            "type": "object",
+            "properties": {
+              "annee": { "type": "integer" },
+              "programme": { "type": "boolean", "description": "true si une intervention est prevue cette annee (croix dans le tableau)." },
+              "intitule_intervention": { "type": ["string", "null"], "description": "Type d'intervention prevu cette annee si precise." }
+            },
+            "required": ["annee", "programme"]
+          }
+        },
+        "periodicite": { "type": ["string", "null"], "description": "Periodicite textuelle, ex 'annuel', '1 fois par mois', 'tous les 2 ans'." },
+        "financements": {
+          "type": "array",
+          "description": "Lignes de financement par organisme/financeur. Structure souple car tres variable selon les docs.",
+          "items": {
+            "type": "object",
+            "properties": {
+              "organisme_ou_financeur": { "type": "string" },
+              "budget_fonctionnement_eur": { "type": ["number", "null"] },
+              "budget_investissement_eur": { "type": ["number", "null"] },
+              "budget_total_eur": { "type": ["number", "null"] },
+              "jours_previsionnels": { "type": ["number", "null"] }
+            },
+            "required": ["organisme_ou_financeur"]
+          }
+        },
+        "budget_total_eur": { "type": ["number", "null"] }
+      }
+    },
+    "indicateurs_reponse": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Indicateurs de reponse / 'reponses attendues de l'operation' (ce que produit l'action)."
+    },
+    "extraction_meta": {
+      "type": "object",
+      "description": "Metadonnees de tracabilite pour la relecture humaine.",
+      "properties": {
+        "page_source": { "type": ["integer", "null"], "description": "Page du PDF source." },
+        "confiance_globale": { "type": "string", "enum": ["haute", "moyenne", "basse"], "description": "Auto-evaluation du modele sur la qualite d'extraction de cette fiche." },
+        "champs_incertains": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Liste des chemins de champs (ex 'cadre.olt_intitule') dont l'extraction est incertaine — a verifier en priorite par l'humain."
+        }
+      },
+      "required": ["confiance_globale"]
+    }
+  },
+  "required": ["type_action", "intitule", "cadre", "operation", "extraction_meta"]
+}

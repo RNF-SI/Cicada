@@ -1,0 +1,295 @@
+{
+  "_source_documents": {
+    "val_suzon": "pg_val_suzon_tome_iii_fa1_pelouses (1).pdf — RNR Val Suzon, PG 2020-2029, Enjeu 1, ONF",
+    "mepieu": "pg_rnr_mepieu_2023_2032_partie_3_repertoire_des_operations (3).pdf — RNR Étangs de Mépieu, PG 2023-2032, Lo Parvi"
+  },
+  "fiches": [
+    {
+      "type_action": "CS",
+      "code_action": "CS 1.1",
+      "code_nature": "CS",
+      "intitule": "Suivi cartographique de la surface des pelouses",
+      "priorite": 1,
+      "cadre": {
+        "enjeu_intitule": "Complexe \"pelouses-ourlets-fruticées-chênaies pubescentes\"",
+        "olt_intitule": "Maintenir l'état de conservation du Complexe \"pelouses-ourlets-fruticées-chênaies pubescentes\"",
+        "oo_intitule": null,
+        "indicateur": "Surface des pelouses",
+        "niveau_exigence_ou_resultat": "Maintien de la surface occupée par les pelouses",
+        "actions_liees": [
+          "CS 1.2 Suivi de la connectivité des pelouses",
+          "CS 1.3 Suivi phyto-dynamique des pelouses",
+          "CS 1.14 Suivi du recouvrement arbustif/arboré au sein de l'éco-complexe",
+          "EI 1.17 Elaboration de notices de gestion pour chaque entité de l'éco-complexe"
+        ],
+        "metriques": []
+      },
+      "operation": {
+        "details": "Suivre la surface occupée par les formations végétales de pelouses au sens de l'habitat générique Natura 2000 6210. Actualisation régulière de la cartographie et somme des surfaces occupées. Cartographie réalisable par photo-interprétation, après confirmation de l'appartenance du polygone à l'habitat (notamment via le suivi phytodynamique).",
+        "nom_protocole": null,
+        "localisation": "Pelouses de la RNR-FE",
+        "autorisations": null,
+        "operateurs_internes": ["Chargé d'études", "Géomaticien"],
+        "operateurs_externes": ["CBNBP (éventuellement, à définir selon besoin)"],
+        "partenaires": []
+      },
+      "programmation": {
+        "annee_debut_plan": 2020,
+        "calendrier_annuel": [
+          {"annee": 2020, "programme": true, "intitule_intervention": "Plan de gestion des pelouses (état des lieux)"},
+          {"annee": 2021, "programme": true, "intitule_intervention": "Plan de gestion des pelouses (état des lieux)"},
+          {"annee": 2028, "programme": true, "intitule_intervention": "Actualisation de la cartographie des pelouses"}
+        ],
+        "periodicite": null,
+        "financements": [
+          {"organisme_ou_financeur": "Chargé d'études (interne)", "jours_previsionnels": 5},
+          {"organisme_ou_financeur": "Géomaticien (interne)", "jours_previsionnels": 5}
+        ],
+        "budget_total_eur": null
+      },
+      "indicateurs_reponse": [],
+      "extraction_meta": {
+        "page_source": 7,
+        "confiance_globale": "haute",
+        "champs_incertains": ["programmation.financements (2020-2021 renvoient à \"Voir EI 1.17\", non chiffrés ici)"]
+      }
+    },
+    {
+      "type_action": "CS",
+      "code_action": "CS 1.2",
+      "code_nature": "CS",
+      "intitule": "Suivi de la connectivité des pelouses",
+      "priorite": 2,
+      "cadre": {
+        "enjeu_intitule": "Complexe \"pelouses-ourlets-fruticées-chênaies pubescentes\"",
+        "olt_intitule": "Maintenir l'état de conservation du Complexe \"pelouses-ourlets-fruticées-chênaies pubescentes\"",
+        "oo_intitule": null,
+        "indicateur": "Morcellement et fragmentation",
+        "niveau_exigence_ou_resultat": "Maintien de la connectivité des pelouses",
+        "actions_liees": ["CS 1.1 Suivi cartographique de la surface des pelouses"],
+        "metriques": []
+      },
+      "operation": {
+        "details": "Voir méthode MNHN.",
+        "nom_protocole": "Méthode MNHN (Maciejewski et al, 2015)",
+        "localisation": "Pelouses de la RNR-FE",
+        "autorisations": null,
+        "operateurs_internes": ["Conservatrice (recrutement stagiaire)", "Géomaticien (encadrement stagiaire)", "Chargé d'études"],
+        "operateurs_externes": ["Stagiaire"],
+        "partenaires": []
+      },
+      "programmation": {
+        "annee_debut_plan": 2020,
+        "calendrier_annuel": [],
+        "periodicite": null,
+        "financements": [],
+        "budget_total_eur": null
+      },
+      "indicateurs_reponse": [],
+      "extraction_meta": {
+        "page_source": 9,
+        "confiance_globale": "moyenne",
+        "champs_incertains": [
+          "programmation.calendrier_annuel (tableau de déroulement non présent sur les pages extraites)",
+          "programmation.financements (budget non présent sur les pages extraites)"
+        ]
+      }
+    },
+    {
+      "type_action": "CS",
+      "code_action": "CS 1.3",
+      "code_nature": "CS",
+      "intitule": "Suivi phyto-dynamique des pelouses",
+      "priorite": 1,
+      "cadre": {
+        "enjeu_intitule": "Complexe \"pelouses-ourlets-fruticées-chênaies pubescentes\"",
+        "olt_intitule": "Maintenir l'état de conservation du Complexe \"pelouses-ourlets-fruticées-chênaies pubescentes\"",
+        "oo_intitule": null,
+        "indicateur": "Espèces eutrophiles ; Espèces indicatrices du régime agropastoral ; Recouvrement du Brachypode ; Recouvrement des espèces d'ourlet ; Recouvrement des espèces exotiques envahissantes",
+        "niveau_exigence_ou_resultat": "Intégrité de la composition floristique des pelouses",
+        "actions_liees": [
+          "CS 1.1 Suivi cartographique de la surface des pelouses",
+          "EI 1.17 Elaboration de notices de gestion pour chaque entité de l'éco-complexe"
+        ],
+        "metriques": []
+      },
+      "operation": {
+        "details": "Récolter les données permettant de suivre les indicateurs choisis pour l'état de conservation des pelouses. Suivi réalisé sur un échantillon de polygones : échantillonnage aléatoire, méthode et unité d'échantillonnage selon Maciejewski et al 2015 (transect traversant la surface, tronçons), phase terrain (mesure des paramètres / relevés phytosociologiques), calcul des valeurs des indicateurs et attribution d'une note par polygone selon la grille de lecture des métriques, puis moyenne à l'échelle de la RNR-FE. La mise en œuvre fera office d'état des lieux sur la RNR-FE.",
+        "nom_protocole": "Méthode MNHN (Maciejewski et al, 2015)",
+        "localisation": "Pelouses de la RNR-FE",
+        "autorisations": null,
+        "operateurs_internes": ["Conservatrice (recrutement stagiaire)", "Chargé d'études (encadrement stagiaire)"],
+        "operateurs_externes": ["Stagiaire"],
+        "partenaires": []
+      },
+      "programmation": {
+        "annee_debut_plan": 2020,
+        "calendrier_annuel": [
+          {"annee": 2020, "programme": true, "intitule_intervention": "Plan de gestion des pelouses (état des lieux)"},
+          {"annee": 2021, "programme": true, "intitule_intervention": "Plan de gestion des pelouses (état des lieux)"},
+          {"annee": 2022, "programme": true, "intitule_intervention": "Stage"}
+        ],
+        "periodicite": "Répétée 5 ans après l'état des lieux",
+        "financements": [
+          {"organisme_ou_financeur": "Conservatrice (interne)", "jours_previsionnels": 3},
+          {"organisme_ou_financeur": "Chargé d'études (interne)", "jours_previsionnels": 10},
+          {"organisme_ou_financeur": "Stage (6 mois) - frais de stage", "budget_fonctionnement_eur": 3300}
+        ],
+        "budget_total_eur": 3300
+      },
+      "indicateurs_reponse": [],
+      "extraction_meta": {
+        "page_source": 11,
+        "confiance_globale": "haute",
+        "champs_incertains": ["programmation.periodicite (déduite du texte \"répétée 5 ans plus tard\")"]
+      }
+    },
+    {
+      "type_action": "CS",
+      "code_action": "CS 01",
+      "code_nature": "CS",
+      "intitule": "Analyse de la qualité des eaux",
+      "priorite": 1,
+      "cadre": {
+        "enjeu_intitule": "Les marais",
+        "olt_intitule": "Maintenir la diversité des milieux palustres",
+        "oo_intitule": null,
+        "indicateur": "Pesticides d'origine agricole",
+        "niveau_exigence_ou_resultat": "Bonne qualité des eaux",
+        "actions_liees": ["CS07 suivi des herbiers de characées", "CS08 suivi des herbiers aquatiques"],
+        "metriques": []
+      },
+      "operation": {
+        "details": "Étude physico-chimique des eaux des marais (Ambossu, Fulye, Marterin) durant un cycle annuel, quatre campagnes de mesures (hiver, printemps, été, automne) aux points les plus profonds. Prélèvements pour analyse des sels nutritifs et pesticides. Paramètres : matières organiques oxydables (DBO5, DCO, ammonium, azote kjedahl), nitrates, nitrites, phosphores, MES, température, minéralisation, phytoplancton, micropolluants minéraux, pesticides. Un rapport complet est attendu : évaluation de la qualité des eaux et analyse de l'évolution avec les suivis précédents.",
+        "nom_protocole": null,
+        "localisation": "Marais de l'Ambossu, Fulye, Marterin",
+        "autorisations": "Sans objet",
+        "operateurs_internes": ["Conservateur"],
+        "operateurs_externes": ["Bureau d'études"],
+        "partenaires": []
+      },
+      "programmation": {
+        "annee_debut_plan": 2023,
+        "calendrier_annuel": [
+          {"annee": 2025, "programme": true, "intitule_intervention": "Sur un cycle annuel"}
+        ],
+        "periodicite": "Sur un cycle annuel",
+        "financements": [
+          {"organisme_ou_financeur": "Région", "budget_total_eur": 8621},
+          {"organisme_ou_financeur": "Vicat", "budget_total_eur": 3695}
+        ],
+        "budget_total_eur": 12316
+      },
+      "indicateurs_reponse": ["Liste et concentration des pesticides d'origine agricole"],
+      "extraction_meta": {
+        "page_source": 17,
+        "confiance_globale": "haute",
+        "champs_incertains": ["cadre.oo_intitule (aucun OO mentionné sur cette fiche)"]
+      }
+    },
+    {
+      "type_action": "CS",
+      "code_action": "CS 02",
+      "code_nature": "CS",
+      "intitule": "Suivi limnimétrique",
+      "priorite": 1,
+      "cadre": {
+        "enjeu_intitule": "Les marais ; Capacité d'accueil des étangs et des mares pour la biodiversité",
+        "olt_intitule": "Maintenir la diversité des milieux palustres ; Maintenir la capacité d'accueil des étangs et des mares",
+        "oo_intitule": "Mieux connaître les impacts du changement climatique sur les étangs et leur capacité d'accueil",
+        "indicateur": "Degré d'humidité ; Connaissance des impacts du changement climatique",
+        "niveau_exigence_ou_resultat": "Saturation en eau des histosols ; Données d'évolution climatique",
+        "actions_liees": ["CS03 suivi des températures des étangs"],
+        "metriques": []
+      },
+      "operation": {
+        "details": "Des échelles limnimétriques sont installées sur les marais du Marterin, de l'Ambossu, de Fulye et les étangs Barral et Grand Étang. Contrôler durant la deuxième semaine de chaque mois le niveau d'eau de tous les marais et étangs équipés ; inscrire les relevés dans la base de données ; en fin d'année corréler avec les précipitations annuelles fournies par le Département. À chaque manœuvre des ouvrages de vidange, un relevé du niveau d'eau est réalisé et consigné dans un registre.",
+        "nom_protocole": null,
+        "localisation": "Grand Étang, Barral, Fulye, Marterin, Ambossu, léchères de l'Ambossu, Empoissonnement",
+        "autorisations": null,
+        "operateurs_internes": ["Garde-technicien"],
+        "operateurs_externes": [],
+        "partenaires": []
+      },
+      "programmation": {
+        "annee_debut_plan": 2023,
+        "calendrier_annuel": [
+          {"annee": 2023, "programme": true, "intitule_intervention": null},
+          {"annee": 2024, "programme": true, "intitule_intervention": null},
+          {"annee": 2025, "programme": true, "intitule_intervention": null},
+          {"annee": 2026, "programme": true, "intitule_intervention": null},
+          {"annee": 2027, "programme": true, "intitule_intervention": null},
+          {"annee": 2028, "programme": true, "intitule_intervention": null},
+          {"annee": 2029, "programme": true, "intitule_intervention": null},
+          {"annee": 2030, "programme": true, "intitule_intervention": null},
+          {"annee": 2031, "programme": true, "intitule_intervention": null},
+          {"annee": 2032, "programme": true, "intitule_intervention": null}
+        ],
+        "periodicite": "1 fois par mois",
+        "financements": [
+          {"organisme_ou_financeur": "Région", "budget_total_eur": 7888},
+          {"organisme_ou_financeur": "Vicat", "budget_total_eur": 3381}
+        ],
+        "budget_total_eur": 11269
+      },
+      "indicateurs_reponse": ["Graphiques"],
+      "extraction_meta": {
+        "page_source": 19,
+        "confiance_globale": "haute",
+        "champs_incertains": []
+      }
+    },
+    {
+      "type_action": "CS",
+      "code_action": "CS 03",
+      "code_nature": "CS",
+      "intitule": "Suivi des températures des étangs",
+      "priorite": 1,
+      "cadre": {
+        "enjeu_intitule": "Capacité d'accueil des étangs et des mares pour la biodiversité",
+        "olt_intitule": "Maintenir la capacité d'accueil des étangs et des mares",
+        "oo_intitule": "Mieux connaître les impacts du changement climatique sur les étangs et leur capacité d'accueil",
+        "indicateur": "Connaissances des impacts du changement climatique",
+        "niveau_exigence_ou_resultat": "Données sur l'évolution climatique",
+        "actions_liees": ["CS02 suivi limnimétrique"],
+        "metriques": []
+      },
+      "operation": {
+        "details": "Depuis 2015 le Grand Étang et l'étang Barral sont équipés de sondes thermiques (type HOBO, situées dans la bonde de chaque étang). Installer de nouvelles sondes au Grand Étang et à Barral, relever une fois par trimestre les données, les inscrire dans la base de données, puis corréler en fin d'année les variations avec les températures annuelles fournies par le Département (ENS de la Save à Arandon-Passins). Les sondes ont une durée de vie limitée et devront être remplacées au cours du plan de gestion.",
+        "nom_protocole": null,
+        "localisation": "Grand Étang, Barral",
+        "autorisations": "Sans objet",
+        "operateurs_internes": ["Garde-technicien"],
+        "operateurs_externes": [],
+        "partenaires": []
+      },
+      "programmation": {
+        "annee_debut_plan": 2023,
+        "calendrier_annuel": [
+          {"annee": 2023, "programme": true, "intitule_intervention": "Achat des sondes"},
+          {"annee": 2024, "programme": true, "intitule_intervention": null},
+          {"annee": 2025, "programme": true, "intitule_intervention": null},
+          {"annee": 2026, "programme": true, "intitule_intervention": null},
+          {"annee": 2027, "programme": true, "intitule_intervention": null},
+          {"annee": 2028, "programme": true, "intitule_intervention": "Renouvellement des sondes (milieu de plan)"},
+          {"annee": 2029, "programme": true, "intitule_intervention": null},
+          {"annee": 2030, "programme": true, "intitule_intervention": null},
+          {"annee": 2031, "programme": true, "intitule_intervention": null},
+          {"annee": 2032, "programme": true, "intitule_intervention": null}
+        ],
+        "periodicite": "Chaque trimestre",
+        "financements": [
+          {"organisme_ou_financeur": "Région", "budget_total_eur": 5467},
+          {"organisme_ou_financeur": "Vicat", "budget_total_eur": 2344}
+        ],
+        "budget_total_eur": 7811
+      },
+      "indicateurs_reponse": ["Graphiques"],
+      "extraction_meta": {
+        "page_source": 21,
+        "confiance_globale": "haute",
+        "champs_incertains": []
+      }
+    }
+  ]
+}
