@@ -1,0 +1,51 @@
+{
+  "_source": "Arborescence minimale alignée sur les 6 fiches de extraction_demo.json (test end-to-end du rattachement)",
+  "plan_libelle": "Test rattachement",
+  "enjeux": [
+    {
+      "libelle": "Complexe pelouses-ourlets-fruticées-chênaies pubescentes",
+      "categorie": "ENJEU",
+      "priorite": 1,
+      "categorie_ecologique": true,
+      "types_ecologiques": ["habitat", "espece"],
+      "olts": [
+        {
+          "libelle": "Maintenir l'état de conservation du Complexe \"pelouses-ourlets-fruticées-chênaies pubescentes\"",
+          "niveaux_exigence": [
+            {
+              "libelle": "Maintien et intégrité des pelouses",
+              "indicateurs": [
+                {"nom": "Surface des pelouses", "type": "ETAT", "metriques": []},
+                {"nom": "Morcellement et fragmentation", "type": "ETAT", "metriques": []},
+                {"nom": "Espèces eutrophiles", "type": "ETAT", "metriques": []}
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "libelle": "Les marais",
+      "categorie": "ENJEU",
+      "priorite": 1,
+      "categorie_ecologique": true,
+      "types_ecologiques": ["habitat"],
+      "olts": [
+        {
+          "libelle": "Maintenir la diversité des milieux palustres",
+          "niveaux_exigence": [
+            {
+              "libelle": "Bonne qualité et fonctionnalité des marais",
+              "indicateurs": [
+                {"nom": "Pesticides d'origine agricole", "type": "PRESSION", "metriques": []},
+                {"nom": "Degré d'humidité", "type": "ETAT", "metriques": []},
+                {"nom": "Connaissances des impacts du changement climatique", "type": "ETAT", "metriques": []}
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "extraction_meta": {"confiance_globale": "haute", "champs_incertains": []}
+}

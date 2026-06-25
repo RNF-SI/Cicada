@@ -1,0 +1,133 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Cicada — Arborescence d'un plan de gestion (module #478)",
+  "description": "Schéma cible pour l'extraction de l'ARBORESCENCE d'un PG (hors fiches actions, traitées séparément). Hiérarchie Cicada : Enjeu/FCR → (FacteurInfluence → Pression) ; Enjeu → OLT → NiveauExigence → Indicateur(état) → Métrique ; Enjeu → ObjectifOperationnel → ResultatAttendu → Indicateur(pression/réponse) → Métrique. Recopier les libellés tels quels ; mettre null si absent, NE JAMAIS inventer. Lister dans `a_completer` les infos requises par Cicada absentes de la source (saisie humaine à l'import, cf. #478).",
+  "type": "object",
+  "properties": {
+    "plan_libelle": {"type": ["string", "null"], "description": "Intitulé du plan/réserve, pour contrôle."},
+    "enjeux": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "libelle": {"type": "string"},
+          "categorie": {"type": "string", "enum": ["ENJEU", "FCR"], "description": "Enjeu de conservation ou Facteur Clé de Réussite."},
+          "priorite": {"type": ["integer", "null"], "description": "Rang 1=haute, 2=moyenne, 3=basse. null si absent."},
+          "categorie_ecologique": {"type": ["boolean", "null"], "description": "true=conservation patrimoine naturel, false=socio-économique, null=à compléter."},
+          "types_ecologiques": {
+            "type": "array",
+            "items": {"type": "string", "enum": ["habitat", "espece", "patrimoine_geologique", "fonctionnalite_ecosysteme", "autre"]},
+            "description": "Cases à cocher du type d'enjeu écologique. Souvent à compléter par l'humain."
+          },
+          "facteurs": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "libelle": {"type": "string"},
+                "pressions": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "libelle": {"type": "string"},
+                      "type_pression_suggere": {"type": ["string", "null"], "description": "Suggestion de type PressRef (nomenclature TYPE_PRESSION) ; null → à choisir à l'import (#478)."}
+                    },
+                    "required": ["libelle"]
+                  }
+                }
+              },
+              "required": ["libelle"]
+            }
+          },
+          "olts": {
+            "type": "array",
+            "description": "Objectifs à long terme (branche ÉTAT).",
+            "items": {
+              "type": "object",
+              "properties": {
+                "libelle": {"type": "string"},
+                "niveaux_exigence": {
+                  "type": "array",
+                  "description": "« État visé sur le long terme » dans le tableau d'arborescence.",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "libelle": {"type": "string"},
+                      "indicateurs": {"$ref": "#/$defs/indicateurs"}
+                    },
+                    "required": ["libelle"]
+                  }
+                }
+              },
+              "required": ["libelle"]
+            }
+          },
+          "objectifs_operationnels": {
+            "type": "array",
+            "description": "Branche PRESSION/RÉPONSE (OO → RA → indicateurs pression/réponse). Souvent vide si la source ne décrit que la branche état.",
+            "items": {
+              "type": "object",
+              "properties": {
+                "libelle": {"type": "string"},
+                "resultats_attendus": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "libelle": {"type": "string"},
+                      "indicateurs": {"$ref": "#/$defs/indicateurs"}
+                    },
+                    "required": ["libelle"]
+                  }
+                }
+              },
+              "required": ["libelle"]
+            }
+          },
+          "a_completer": {
+            "type": "array",
+            "items": {"type": "string"},
+            "description": "Champs requis par Cicada absents de la source, à saisir à l'import (ex: 'types_ecologiques', 'categorie_ecologique')."
+          }
+        },
+        "required": ["libelle", "categorie"]
+      }
+    },
+    "extraction_meta": {
+      "type": "object",
+      "properties": {
+        "confiance_globale": {"type": "string", "enum": ["haute", "moyenne", "basse"]},
+        "champs_incertains": {"type": "array", "items": {"type": "string"}}
+      },
+      "required": ["confiance_globale"]
+    }
+  },
+  "required": ["enjeux", "extraction_meta"],
+  "$defs": {
+    "indicateurs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "nom": {"type": "string"},
+          "type": {"type": "string", "enum": ["ETAT", "PRESSION", "REPONSE"]},
+          "metriques": {
+            "type": "array",
+            "description": "Libellés des métriques. Les valeurs/grilles de scoring ne sont PAS importées (indicateur laissé 'indéterminé' faute de mesures, #478).",
+            "items": {
+              "type": "object",
+              "properties": {
+                "nom": {"type": "string"},
+                "valeur_cible": {"type": ["string", "null"], "description": "« Valeur idéale à atteindre » (texte), reportée en description."},
+                "unite": {"type": ["string", "null"]}
+              },
+              "required": ["nom"]
+            }
+          }
+        },
+        "required": ["nom", "type"]
+      }
+    }
+  }
+}

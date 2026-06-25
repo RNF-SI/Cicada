@@ -1,0 +1,71 @@
+{
+  "_source": "pg_val_suzon_tome_ii — Tableau 15 : arborescence de la stratégie pour l'Enjeu 2 (falaises et éboulis)",
+  "plan_libelle": "RNR et Forêt d'Exception du Val Suzon — Plan de gestion 2020-2029",
+  "enjeux": [
+    {
+      "libelle": "Falaises et éboulis (Enjeu 2)",
+      "categorie": "ENJEU",
+      "priorite": null,
+      "categorie_ecologique": true,
+      "types_ecologiques": [],
+      "facteurs": [],
+      "olts": [
+        {
+          "libelle": "B. Maintenir le bon état de conservation des falaises et éboulis",
+          "niveaux_exigence": [
+            {
+              "libelle": "Le cortège caractéristique d'espèces végétales et bryophytiques des falaises froides ombragées sera préservé",
+              "indicateurs": [
+                {
+                  "nom": "Espèces végétales caractéristiques et patrimoniales",
+                  "type": "ETAT",
+                  "metriques": [
+                    {"nom": "Effectifs d'Athamante de Crète", "valeur_cible": "A minima maintien des populations (165 pieds en 2016)", "unite": null},
+                    {"nom": "Effectifs de Doradille des sources", "valeur_cible": "A minima maintien des populations (27 pieds en 2017)", "unite": null}
+                  ]
+                },
+                {
+                  "nom": "Espèces bryophytiques caractéristiques et patrimoniales",
+                  "type": "ETAT",
+                  "metriques": [
+                    {"nom": "Liste complète à définir (Neckera menziesii, Orthothecium rufescens…)", "valeur_cible": "A définir après état des lieux", "unite": null}
+                  ]
+                }
+              ]
+            },
+            {
+              "libelle": "Les espèces végétales à fort enjeu de conservation des falaises et corniches sèches thermophiles seront conservées",
+              "indicateurs": [
+                {
+                  "nom": "Lunetière lisse",
+                  "type": "ETAT",
+                  "metriques": [
+                    {"nom": "Nombre de pieds de Lunetière lisse", "valeur_cible": "A minima maintien des populations (396 pieds en 2017)", "unite": null}
+                  ]
+                }
+              ]
+            },
+            {
+              "libelle": "Le Faucon pèlerin continuera à nidifier",
+              "indicateurs": [
+                {
+                  "nom": "Faucon pèlerin",
+                  "type": "ETAT",
+                  "metriques": [
+                    {"nom": "Couples nicheurs et jeunes à l'envol", "valeur_cible": "A minima autant qu'en 2018 (2 couples et 3 jeunes)", "unite": null}
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "objectifs_operationnels": [],
+      "a_completer": ["types_ecologiques (habitat/espèce à confirmer à l'import)"]
+    }
+  ],
+  "extraction_meta": {
+    "confiance_globale": "haute",
+    "champs_incertains": ["enjeux[0].libelle (titre de l'enjeu déduit du contexte, à confirmer depuis le tome II)"]
+  }
+}

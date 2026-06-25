@@ -85,17 +85,22 @@ class Command(BaseCommand):
         type_nom = self._nomenclature_index("TYPE_ACTION")
 
         report = {"crees": 0, "rattaches": 0, "non_rattaches": []}
-        sid = transaction.savepoint()
+        # Dry-run robuste : atomic() + exception pour forcer le rollback. (savepoint()
+        # est un no-op hors atomic, en mode autocommit — il ne protège PAS un dry-run.)
+        class _DryRun(Exception):
+            pass
         try:
-            for fiche in fiches:
-                self._import_fiche(fiche, user, index, prio_nom, type_nom, report)
-        finally:
-            if opts["commit"]:
-                transaction.savepoint_commit(sid)
-                self.stdout.write(self.style.SUCCESS("✓ COMMIT — écrit en base."))
-            else:
-                transaction.savepoint_rollback(sid)
-                self.stdout.write(self.style.WARNING("DRY-RUN — rollback (rien écrit). Ajoute --commit pour persister."))
+            with transaction.atomic():
+                for fiche in fiches:
+                    self._import_fiche(fiche, user, index, prio_nom, type_nom, report)
+                if not opts["commit"]:
+                    raise _DryRun()
+        except _DryRun:
+            pass
+        if opts["commit"]:
+            self.stdout.write(self.style.SUCCESS("✓ COMMIT — écrit en base."))
+        else:
+            self.stdout.write(self.style.WARNING("DRY-RUN — rollback (rien écrit). Ajoute --commit pour persister."))
 
         self.stdout.write(
             f"\nRésumé : {report['crees']} opérations, "
