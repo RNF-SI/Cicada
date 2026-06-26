@@ -149,12 +149,21 @@ export class SiteFormModalComponent implements OnInit, OnDestroy {
       this.loadCreationValidators();
     }
 
-    // Initialize geometry from data
+    // Initialize geometry from data.
+    // #440 — en mode édition, le site (détail complet) porte sa géométrie dans
+    // geom_geojson / geom_pt_geojson : on l'utilise pour pré-remplir la carte.
+    // Les géométries explicites (existingPolygon/existingPoint) restent
+    // prioritaires si fournies.
+    const site = this.data?.site;
     if (this.data?.existingPolygon) {
       this.polygonGeometry.set(this.data.existingPolygon);
+    } else if (site?.geom_geojson) {
+      this.polygonGeometry.set(site.geom_geojson);
     }
     if (this.data?.existingPoint) {
       this.pointGeometry.set(this.data.existingPoint);
+    } else if (site?.geom_pt_geojson) {
+      this.pointGeometry.set(site.geom_pt_geojson);
     }
   }
 

@@ -782,4 +782,53 @@ describe('SiteFormModalComponent', () => {
       expect(adminService.updateSite).toHaveBeenCalledWith('existing-site', expect.any(Object));
     }));
   });
+
+  // #440 — la géométrie du site doit être affichée à l'ouverture du
+  // formulaire d'édition (et donc renvoyée à la sauvegarde).
+  describe('edit mode - geometry pre-fill', () => {
+    const polygon = { type: 'Polygon', coordinates: [[[0, 0], [0, 1], [1, 1], [0, 0]]] };
+    const point = { type: 'Point', coordinates: [0.5, 0.5] };
+
+    beforeEach(async () => {
+      const editData: SiteFormModalData = {
+        site: {
+          id_site: 1,
+          slug: 'existing-site',
+          nom_site: 'Existing Site',
+          geom_geojson: polygon,
+          geom_pt_geojson: point
+        }
+      };
+
+      await TestBed.resetTestingModule();
+      await TestBed.configureTestingModule({
+        imports: [
+          SiteFormModalComponent,
+          NoopAnimationsModule,
+          HttpClientTestingModule,
+          TranslateModule.forRoot({
+            loader: { provide: TranslateLoader, useClass: FakeTranslateLoader },
+            defaultLanguage: 'fr'
+          })
+        ],
+        providers: [
+          { provide: MatDialogRef, useValue: dialogRef },
+          { provide: MAT_DIALOG_DATA, useValue: editData },
+          { provide: AdminService, useValue: adminService },
+          { provide: ValidationService, useValue: validationService }
+        ]
+      }).compileComponents();
+
+      fixture = TestBed.createComponent(SiteFormModalComponent);
+      component = fixture.componentInstance;
+      // ngOnInit sans detectChanges : on évite de monter la carte Leaflet
+      // (qui plante au nettoyage sous jsdom) tout en exécutant l'init géométrie.
+      component.ngOnInit();
+    });
+
+    it('should pre-fill geometry signals from the edited site', () => {
+      expect(component.polygonGeometry()).toEqual(polygon);
+      expect(component.pointGeometry()).toEqual(point);
+    });
+  });
 });
