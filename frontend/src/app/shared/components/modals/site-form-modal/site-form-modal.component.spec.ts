@@ -781,6 +781,20 @@ describe('SiteFormModalComponent', () => {
       tick();
       expect(adminService.updateSite).toHaveBeenCalledWith('existing-site', expect.any(Object));
     }));
+
+    // #440 — sans ce flush, un sommet déplacé mais non « validé » via la coche
+    // de leaflet-draw serait perdu et l'ancienne trace réenregistrée.
+    it('should flush map geometry before submitting', fakeAsync(() => {
+      const flushGeometry = jest.fn();
+      (component as unknown as { leafletMapEdit: unknown }).leafletMapEdit = { flushGeometry };
+
+      component.form.patchValue({ nom_site: 'Updated Site Name' });
+      component.onSubmit();
+      tick();
+
+      expect(flushGeometry).toHaveBeenCalledTimes(1);
+      expect(adminService.updateSite).toHaveBeenCalled();
+    }));
   });
 
   // #440 — la géométrie du site doit être affichée à l'ouverture du

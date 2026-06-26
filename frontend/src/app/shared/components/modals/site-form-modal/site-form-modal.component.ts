@@ -436,6 +436,11 @@ export class SiteFormModalComponent implements OnInit, OnDestroy {
     this.isLoading.set(true);
     this.errorMessage.set(null);
 
+    // #440 — capter d'éventuelles éditions de géométrie non « validées » via la
+    // coche de la barre d'édition leaflet avant de construire le payload, sinon
+    // les sommets déplacés seraient perdus et l'ancienne trace réenregistrée.
+    this.leafletMapEdit?.flushGeometry();
+
     const payload: SiteCreatePayload = {
       nom_site: this.form.value.nom_site,
       id_local: this.form.value.id_local || undefined,

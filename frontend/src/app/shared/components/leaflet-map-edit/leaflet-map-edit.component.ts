@@ -579,6 +579,19 @@ export class LeafletMapEditComponent implements OnInit, AfterViewInit, OnChanges
   }
 
   /**
+   * Force la lecture de la géométrie actuellement dessinée sur la carte et la
+   * (ré)émet vers le parent. À appeler avant une sauvegarde : leaflet-draw ne
+   * déclenche `draw:edited` que si l'utilisateur valide son édition via la coche
+   * de la barre d'outils. Sans ce flush, des sommets déplacés mais non
+   * « validés » ne seraient jamais remontés et l'ancienne trace serait
+   * enregistrée (#440).
+   */
+  flushGeometry(): void {
+    this.emitGeometry();
+    this.emitPointGeometry();
+  }
+
+  /**
    * Émet la géométrie actuelle au format GeoJSON
    */
   private emitGeometry(): void {
