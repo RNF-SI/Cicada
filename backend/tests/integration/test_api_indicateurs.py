@@ -10,6 +10,7 @@ from tests.factories.enjeux import (
     NomenclatureEnjeuFactory,
     IndicateurFactory, MetriqueFactory, MesureFactory,
     NomenclatureTypeIndicateurFactory, NomenclatureTypeMetriqueFactory,
+    NomenclatureFormatMetriqueFactory,
     CorIndicateurTaxonFactory,
 )
 from tests.factories.plans import PlanGestionFactory, CorSitePgFactory
@@ -531,6 +532,49 @@ class TestMetriqueCreate:
         }, format='json')
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert 'score_3_label' in response.data
+
+    def test_format_simple_skips_grid_validation(self, api_client, indicateur_test_data):
+        """#452 — Format SIMPLE : une métrique TEXTE/CHIFFRE sans grille est acceptée.
+
+        C'est le cas d'un indicateur de réponse « simple » (valeur libre) : on
+        ne doit pas exiger les libellés/valeurs des 5 niveaux.
+        """
+        type_texte = NomenclatureTypeMetriqueFactory(
+            cd_nomenclature='TEXTE', mnemonique='TEXTE', label='Texte'
+        )
+        format_simple = NomenclatureFormatMetriqueFactory(
+            cd_nomenclature='SIMPLE', mnemonique='SIMPLE', label='Simple'
+        )
+        api_client.force_authenticate(user=indicateur_test_data['super_admin'])
+        response = api_client.post('/api/plans/metriques/', {
+            'id_indicateur': indicateur_test_data['indicateur1'].id_indicateur,
+            'nom_metrique': 'Réponse texte simple',
+            'type_metrique': type_texte.id_nomenclature,
+            'format_metrique': format_simple.id_nomenclature,
+            # aucun libellé de niveau → toléré en format SIMPLE
+        }, format='json')
+        assert response.status_code == status.HTTP_201_CREATED, response.data
+        assert response.data['format_metrique'] == format_simple.id_nomenclature
+
+    def test_format_grille_still_validates_grid(self, api_client, indicateur_test_data):
+        """#452 — Format GRILLE : la grille reste obligatoire (niveau actif sans libellé → 400)."""
+        type_texte = NomenclatureTypeMetriqueFactory(
+            cd_nomenclature='TEXTE', mnemonique='TEXTE', label='Texte'
+        )
+        format_grille = NomenclatureFormatMetriqueFactory(
+            cd_nomenclature='GRILLE', mnemonique='GRILLE', label='Grille'
+        )
+        api_client.force_authenticate(user=indicateur_test_data['super_admin'])
+        response = api_client.post('/api/plans/metriques/', {
+            'id_indicateur': indicateur_test_data['indicateur1'].id_indicateur,
+            'nom_metrique': 'Réponse texte grille incomplète',
+            'type_metrique': type_texte.id_nomenclature,
+            'format_metrique': format_grille.id_nomenclature,
+            'score_1_label': 'Mauvais',
+            # niveaux 2..5 actifs mais sans libellé → 400
+        }, format='json')
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert 'score_2_label' in response.data
 
     def test_create_without_unite(self, api_client, indicateur_test_data):
         """L'unité de la métrique est optionnelle (création sans unité acceptée)."""

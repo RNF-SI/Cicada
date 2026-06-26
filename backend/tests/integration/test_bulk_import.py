@@ -154,6 +154,49 @@ class TestBulkImportValidation:
 
         assert response.status_code == status.HTTP_400_BAD_REQUEST
 
+    def test_reject_bare_polygon_with_explicit_message(self, api_client):
+        """#439 — Une géométrie nue (Polygon seul, sans propriétés) est refusée
+        avec un message explicite expliquant qu'on attend une FeatureCollection
+        de sites. C'est exactement le fichier `polygon_invalid.geojson` testé."""
+        admin = SuperAdminFactory()
+        api_client.force_authenticate(user=admin)
+
+        content = json.dumps({
+            "type": "Polygon",
+            "coordinates": [[[2.0, 46.0], [3.0, 47.0], [2.0, 47.0], [3.0, 46.0], [2.0, 46.0]]],
+        }).encode()
+        f = SimpleUploadedFile("polygon_invalid.geojson", content, content_type="application/json")
+
+        response = api_client.post(
+            '/api/users/sites/bulk_import_validate/',
+            {'file': f},
+            format='multipart',
+        )
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        error = response.data.get('error', '')
+        # Message explicite : mentionne la géométrie nue ET la FeatureCollection attendue.
+        assert 'géométrie' in error.lower()
+        assert 'FeatureCollection' in error
+
+    def test_accept_single_feature(self, api_client):
+        """#439 — Une Feature seule (avec propriétés) est acceptée comme un site."""
+        admin = SuperAdminFactory()
+        api_client.force_authenticate(user=admin)
+
+        feature = _make_feature("Site unique", inpn="FR9999999", geometry=SIMPLE_POLYGON)
+        content = json.dumps(feature).encode()
+        f = SimpleUploadedFile("one.geojson", content, content_type="application/json")
+
+        response = api_client.post(
+            '/api/users/sites/bulk_import_validate/',
+            {'file': f},
+            format='multipart',
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data['total'] == 1
+
     def test_auto_detection_mapping(self, api_client):
         """Auto-detection maps common property names."""
         admin = SuperAdminFactory()

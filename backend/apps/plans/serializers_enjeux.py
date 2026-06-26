@@ -398,12 +398,11 @@ class ObjectifOperationnelCreateSerializer(serializers.ModelSerializer):
                     _("Le rattachement direct d'un objectif opérationnel est réservé aux FCR. "
                       "Pour un enjeu classique, rattachez l'objectif à une ou plusieurs pressions.")
                 )
-            # Un OO de FCR est rattaché AU FCR uniquement : pas de pression au-dessus.
-            if pression_ids:
-                raise serializers.ValidationError(
-                    _("Un objectif opérationnel de FCR est rattaché directement au FCR, "
-                      "il ne peut pas être lié à une pression.")
-                )
+            # #474 — un OO de FCR est rattaché AU FCR (id_enjeu), et PEUT EN PLUS être
+            # lié, de façon facultative, à une ou plusieurs pressions (issues des
+            # enjeux écologiques du plan). On n'interdit donc plus la présence
+            # simultanée de `id_enjeu` (FCR) et de `pression_ids` : les deux
+            # rattachements coexistent (FK directe + M2M descriptive).
 
         # (3) Rattachement par pressions → l'enjeu parent (remonté via la chaîne
         #     Pression → Facteur → Enjeu) ne doit PAS être un FCR.

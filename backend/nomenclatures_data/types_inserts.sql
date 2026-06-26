@@ -65,3 +65,6 @@ INSERT INTO ref_nomenclatures.bib_nomenclatures_types (id_type, mnemonique, labe
 
 -- #237 — Typologie des objets géologiques (in situ / ex situ / documents)
 INSERT INTO ref_nomenclatures.bib_nomenclatures_types (id_type, mnemonique, label, definition, source, statut, date_ajout, date_maj) VALUES (68, 'TYPE_OBJET_GEOLOGIQUE', 'Type d''objet géologique', 'Typologie des objets géologiques d''un enjeu (in situ / ex situ / documents)', 'CICADA/PatriNat', 'Validé', NOW(), NOW());
+
+-- #452 — Format de présentation d'une métrique (simple / grille)
+INSERT INTO ref_nomenclatures.bib_nomenclatures_types (id_type, mnemonique, label, definition, source, statut, date_ajout, date_maj) VALUES (69, 'FORMAT_METRIQUE', 'Format de métrique', 'Format de présentation de la métrique (simple, grille)', 'CICADA', 'Validé', NOW(), NOW());

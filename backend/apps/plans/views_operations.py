@@ -30,6 +30,26 @@ from .serializers_operations import (
 from .filters_operations import OperationFilter
 
 
+# #452 — Champs de grille de scoring d'une métrique (réponse en format GRILLE).
+_METRIQUE_GRID_FIELDS = (
+    ['sens_variation', 'has_borne_score1', 'has_borne_score5', 'inactive_levels']
+    + [f'score_{i}_{suf}' for i in range(1, 6) for suf in ('inf', 'sup', 'val', 'label')]
+    + [f'score_{i}_sup_inclusive' for i in range(1, 5)]
+)
+
+
+def _apply_metrique_grid(metrique, data):
+    """#452 — Applique (passe-plat) les champs de grille présents dans `data`
+    sur une métrique, puis sauvegarde si au moins un champ a été fourni."""
+    changed = False
+    for field in _METRIQUE_GRID_FIELDS:
+        if field in data:
+            setattr(metrique, field, data.get(field))
+            changed = True
+    if changed:
+        metrique.save()
+
+
 class OperationViewSet(viewsets.ModelViewSet):
     """
     ViewSet pour les Opérations (Actions).
@@ -48,8 +68,12 @@ class OperationViewSet(viewsets.ModelViewSet):
     ).prefetch_related(
         Prefetch('metriques', queryset=Metrique.objects.select_related(
             'id_indicateur',
+            'id_indicateur__type_indicateur',
             'id_indicateur__id_ne__id_olt__id_enjeu',
             'id_indicateur__id_resultat_attendu__id_oo',
+            # #452 — type + format exposés pour la grille des indicateurs de réponse
+            'type_metrique',
+            'format_metrique',
         )),
         'sites',
         Prefetch('operation_annees', queryset=OperationAnnee.objects.select_related(
@@ -324,12 +348,20 @@ class OperationViewSet(viewsets.ModelViewSet):
             id_type__mnemonique='TYPE_INDICATEUR', mnemonique='REPONSE',
         ).first()
 
+        # #477 — un indicateur ne doit avoir QU'UN seul parent (cf. Indicateur.clean()).
+        # On recopie donc le parent NE/RA de l'indicateur source en privilégiant le NE
+        # s'il est défini, jamais les deux (un parent corrompu portant ne ET ra ne doit
+        # pas propager l'incohérence au nouvel indicateur de réponse).
+        if parent_ind.id_ne_id:
+            parent_kwargs = {'id_ne_id': parent_ind.id_ne_id, 'id_resultat_attendu': None}
+        else:
+            parent_kwargs = {'id_ne': None, 'id_resultat_attendu_id': parent_ind.id_resultat_attendu_id}
+
         new_ind = Indicateur.objects.create(
             nom_indicateur=nom_indicateur,
-            id_ne=parent_ind.id_ne,
-            id_resultat_attendu=parent_ind.id_resultat_attendu,
             type_indicateur=type_ind_reponse or parent_ind.type_indicateur,
             id_utilisateur_ajout=request.user,
+            **parent_kwargs,
         )
 
         type_met_id = request.data.get('type_metrique_id')
@@ -340,9 +372,16 @@ class OperationViewSet(viewsets.ModelViewSet):
             id_indicateur=new_ind,
             nom_metrique=(request.data.get('nom_metrique') or '').strip(),
             type_metrique_id=type_met_id if type_met_id else None,
+            format_metrique_id=request.data.get('format_metrique') or None,
             etat_reference=request.data.get('valeur_cible') or '',
             id_utilisateur_ajout=request.user,
         )
+
+        # #452 — grille de scoring optionnelle (format GRILLE) : passe-plat des
+        # champs de grille fournis par l'éditeur. Aucune validation stricte ici
+        # (l'édition ultérieure via PATCH /metriques/ la fait) — on persiste ce
+        # que le front a saisi pour une métrique de réponse en grille.
+        _apply_metrique_grid(new_met, request.data)
 
         CorOperationMetrique.objects.create(
             id_operation=operation, id_metrique=new_met,
@@ -355,6 +394,7 @@ class OperationViewSet(viewsets.ModelViewSet):
             'nom_metrique': new_met.nom_metrique,
             'etat_reference': new_met.etat_reference,
             'type_metrique': new_met.type_metrique_id,
+            'format_metrique': new_met.format_metrique_id,
         }, status=status.HTTP_201_CREATED)
 
 

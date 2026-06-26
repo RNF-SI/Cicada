@@ -279,6 +279,26 @@ class NomenclatureTypeMetriqueFactory(NomenclatureFactory):
     label = factory.Iterator(['Intervalle numérique', 'Chiffre', 'Texte'])
 
 
+class FormatMetriqueTypeFactory(TypeNomenclatureFactory):
+    """Factory for TypeNomenclature FORMAT_METRIQUE (#452)."""
+
+    mnemonique = 'FORMAT_METRIQUE'
+    label = 'Format de métrique'
+
+
+class NomenclatureFormatMetriqueFactory(NomenclatureFactory):
+    """Factory for a FORMAT_METRIQUE nomenclature (SIMPLE / GRILLE) — #452."""
+
+    class Meta:
+        model = NomenclatureFactory._meta.model
+        django_get_or_create = ('mnemonique',)
+
+    id_type = factory.SubFactory(FormatMetriqueTypeFactory)
+    cd_nomenclature = 'SIMPLE'
+    mnemonique = 'SIMPLE'
+    label = 'Simple'
+
+
 class IndicateurFactory(DjangoModelFactory):
     """Factory for Indicateur model (linked to NE by default)."""
 

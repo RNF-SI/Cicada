@@ -704,6 +704,66 @@ class TestSitesUpdateEndpoint:
         assert site.nom_site == 'Updated Site'
         assert float(site.surf_off) == 200.0
 
+    def test_pending_creator_can_edit_own_site(self, api_client):
+        """#440 — le créateur d'un site encore « en attente de validation »
+        (donc pas encore référent) peut tout de même le corriger (ex. ajouter
+        le type oublié). Auparavant : 403 au niveau de la vue (IsReferent)."""
+        from apps.notifications.models import ValidationRequest
+
+        org = OrganismeFactory()
+        creator = RoleFactory(id_organisme=org)  # utilisateur simple, non référent
+        site = SiteFactory(nom_site='Site en attente', active=False)
+        ValidationRequest.objects.create(
+            request_type='site_creation',
+            status='pending',
+            requester=creator,
+            target_site=site,
+            justification='Création',
+        )
+
+        api_client.force_authenticate(user=creator)
+        response = api_client.patch(
+            f'/api/users/sites/{site.slug}/',
+            {'nom_site': 'Site corrigé'},
+            format='json',
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        site.refresh_from_db()
+        assert site.nom_site == 'Site corrigé'
+
+    def test_non_creator_regular_user_cannot_edit_pending_site(self, api_client):
+        """#440 — la tolérance est limitée au créateur : un autre utilisateur
+        simple ne peut pas modifier un site en attente qui ne lui appartient pas
+        (ni 200). Il ne le voit pas dans son périmètre → 404."""
+        from apps.notifications.models import ValidationRequest
+
+        org = OrganismeFactory()
+        creator = RoleFactory(id_organisme=org)
+        other = RoleFactory(id_organisme=org)
+        site = SiteFactory(nom_site='Site en attente', active=False)
+        ValidationRequest.objects.create(
+            request_type='site_creation',
+            status='pending',
+            requester=creator,
+            target_site=site,
+            justification='Création',
+        )
+
+        api_client.force_authenticate(user=other)
+        response = api_client.patch(
+            f'/api/users/sites/{site.slug}/',
+            {'nom_site': 'Tentative'},
+            format='json',
+        )
+
+        assert response.status_code in (
+            status.HTTP_403_FORBIDDEN,
+            status.HTTP_404_NOT_FOUND,
+        )
+        site.refresh_from_db()
+        assert site.nom_site == 'Site en attente'
+
 
 @pytest.mark.django_db
 @pytest.mark.integration

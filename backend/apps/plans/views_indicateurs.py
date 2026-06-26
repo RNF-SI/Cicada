@@ -531,7 +531,8 @@ class MetriqueViewSet(viewsets.ModelViewSet):
     """
 
     queryset = Metrique.objects.select_related(
-        'id_indicateur', 'type_metrique', 'id_utilisateur_ajout', 'id_utilisateur_maj'
+        'id_indicateur', 'type_metrique', 'format_metrique',
+        'id_utilisateur_ajout', 'id_utilisateur_maj'
     ).prefetch_related('mesures', 'mesures__id_utilisateur_ajout')
 
     permission_classes = [permissions.IsAuthenticated, IsReferent, CanModifyOnlyDraftPlan]

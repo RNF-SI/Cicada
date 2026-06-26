@@ -121,6 +121,8 @@ class MetriqueSerializer(serializers.ModelSerializer):
     createur_nom = serializers.CharField(source='id_utilisateur_ajout.get_full_name', read_only=True)
     type_metrique_label = serializers.CharField(source='type_metrique.label', read_only=True)
     type_metrique_mnemonique = serializers.CharField(source='type_metrique.mnemonique', read_only=True)
+    # #452 — format de présentation (SIMPLE / GRILLE)
+    format_metrique_mnemonique = serializers.CharField(source='format_metrique.mnemonique', read_only=True)
     score_blocks = MetriqueScoreBlockSerializer(many=True, read_only=True)
 
     class Meta:
@@ -129,6 +131,7 @@ class MetriqueSerializer(serializers.ModelSerializer):
             'id_metrique', 'id_indicateur',
             'nom_metrique', 'description', 'ordre',
             'type_metrique', 'type_metrique_label', 'type_metrique_mnemonique',
+            'format_metrique', 'format_metrique_mnemonique',
             'unite', 'bloc_intitule', 'ponderation', 'etat_reference',
             # Seuils de scores
             'score_1_inf', 'score_1_sup', 'score_1_val', 'score_1_label',
@@ -210,7 +213,8 @@ class MetriqueCreateSerializer(serializers.ModelSerializer):
         fields = [
             'id_metrique', 'id_indicateur',
             'nom_metrique', 'description', 'ordre',
-            'type_metrique', 'unite', 'bloc_intitule', 'ponderation', 'etat_reference',
+            'type_metrique', 'format_metrique',
+            'unite', 'bloc_intitule', 'ponderation', 'etat_reference',
             # Seuils de scores
             'score_1_inf', 'score_1_sup', 'score_1_val', 'score_1_label',
             'score_2_inf', 'score_2_sup', 'score_2_val', 'score_2_label',
@@ -267,6 +271,24 @@ class MetriqueCreateSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError({
                 'nom_metrique': _("L'intitulé de la métrique est obligatoire.")
             })
+
+        # #452 — Format de présentation. Une métrique « simple » (typiquement un
+        # indicateur de réponse sans grille) saisit une valeur libre : on n'exige
+        # alors aucune grille de scoring. Format NULL = comportement historique
+        # (grille validée) pour les indicateurs état/pression.
+        format_met = attrs.get(
+            'format_metrique',
+            getattr(self.instance, 'format_metrique', None) if self.instance else None,
+        )
+        format_mnemo = getattr(format_met, 'mnemonique', None)
+        if format_mnemo is None and format_met and hasattr(format_met, 'pk'):
+            from apps.core.models import Nomenclature
+            try:
+                format_mnemo = Nomenclature.objects.get(pk=format_met.pk).mnemonique
+            except Nomenclature.DoesNotExist:
+                format_mnemo = None
+        if format_mnemo == 'SIMPLE':
+            return attrs
 
         # Mnémonique du type (NUMERIQUE / CHIFFRE / TEXTE / INDETERMINE).
         mnemo = getattr(type_met, 'mnemonique', None)

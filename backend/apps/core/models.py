@@ -330,7 +330,11 @@ class SiteConfiguration(models.Model):
     header_color = models.CharField(
         _('Couleur du bandeau'),
         max_length=7,
-        default='#025359',
+        # #448 — Par défaut le bandeau est blanc (comportement historique avant
+        # l'ajout de la personnalisation). L'admin peut ensuite choisir une
+        # couleur. Le frontend adapte automatiquement la couleur du texte et de
+        # la cloche pour rester lisible quelle que soit la couleur choisie.
+        default='#FFFFFF',
         validators=[RegexValidator(
             regex=r'^#[0-9A-Fa-f]{6}$',
             message=_('La couleur doit être au format hexadécimal (ex. #025359).')

@@ -435,7 +435,12 @@ class SiteViewSet(viewsets.ModelViewSet):
             # Tout utilisateur authentifié peut créer un site (soumis à validation)
             permission_classes = [permissions.IsAuthenticated]
         elif self.action in ['update', 'partial_update']:
-            permission_classes = [IsReferent]  # Vérifié dans get_object
+            # #440 — la permission fine est vérifiée dans get_object (super_admin,
+            # can_manage_site, ou créateur d'un site encore en attente de
+            # validation). On ne peut pas exiger IsReferent ici : le créateur
+            # d'un site en attente n'est pas encore référent → il serait bloqué
+            # par un 403 au niveau vue avant même d'atteindre get_object.
+            permission_classes = [permissions.IsAuthenticated]
         elif self.action in ['destroy']:
             permission_classes = [IsReferent]  # Vérifié dans get_object (super_admin, admin_og, référent du site)
         elif self.action in ['bulk_import_validate', 'bulk_import_execute', 'bulk_import_status']:

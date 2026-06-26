@@ -167,6 +167,32 @@ def _compute_operation_code_affichage(op):
     return codes.get(op.id_operation, f"{op.code_prefix}?")
 
 
+def _response_metrique_grid(m):
+    """#452 — Format + grille de scoring d'une métrique d'indicateur de réponse.
+
+    Exposé à part (uniquement pour les métriques REPONSE) pour permettre une
+    saisie/visu *type-aware* : select des libellés pour TEXTE (#464), valeurs
+    numériques pour CHIFFRE (#465), seuils + score auto pour NUMERIQUE.
+    """
+    grid = {
+        'format_metrique_id': m.format_metrique_id,
+        'format_metrique_mnemonique': getattr(m.format_metrique, 'mnemonique', None) if m.format_metrique_id else None,
+        'type_metrique_mnemonique': getattr(m.type_metrique, 'mnemonique', None) if m.type_metrique_id else None,
+        'sens_variation': m.sens_variation,
+        'has_borne_score1': m.has_borne_score1,
+        'has_borne_score5': m.has_borne_score5,
+        'inactive_levels': m.inactive_levels or [],
+    }
+    for i in range(1, 6):
+        grid[f'score_{i}_inf'] = getattr(m, f'score_{i}_inf')
+        grid[f'score_{i}_sup'] = getattr(m, f'score_{i}_sup')
+        grid[f'score_{i}_val'] = getattr(m, f'score_{i}_val')
+        grid[f'score_{i}_label'] = getattr(m, f'score_{i}_label')
+    for i in range(1, 5):
+        grid[f'score_{i}_sup_inclusive'] = getattr(m, f'score_{i}_sup_inclusive')
+    return grid
+
+
 # =============================================================================
 # Serializers pour les entités nested
 # =============================================================================
@@ -479,21 +505,26 @@ class OperationSerializer(serializers.ModelSerializer):
 
     def get_metriques(self, obj):
         # Use prefetched data if available — avoids extra query
-        return [
-            {
+        result = []
+        for m in obj.metriques.all():
+            ind_type = getattr(getattr(m.id_indicateur, 'type_indicateur', None), 'mnemonique', None) if m.id_indicateur_id else None
+            data = {
                 'id_metrique': m.id_metrique,
                 'nom_metrique': m.nom_metrique,
                 'indicateur_id': m.id_indicateur_id,
                 'indicateur_nom': getattr(m.id_indicateur, 'nom_indicateur', None) if m.id_indicateur_id else None,
                 # #347/réponse — type de l'indicateur (ETAT/PRESSION/REPONSE) pour
                 # distinguer les indicateurs de réponse des métriques associées.
-                'indicateur_type': getattr(getattr(m.id_indicateur, 'type_indicateur', None), 'mnemonique', None) if m.id_indicateur_id else None,
+                'indicateur_type': ind_type,
                 'etat_reference': m.etat_reference or '',
                 'type_metrique_id': m.type_metrique_id,
                 'type_metrique_label': getattr(m.type_metrique, 'label', None) if m.type_metrique_id else None,
             }
-            for m in obj.metriques.all()
-        ]
+            # #452 — grille + format exposés pour les indicateurs de réponse.
+            if ind_type == 'REPONSE':
+                data.update(_response_metrique_grid(m))
+            result.append(data)
+        return result
 
     def get_metrique_ids(self, obj):
         # #398 — n'expose QUE les métriques État/Pression « associées » à l'action.
@@ -600,16 +631,21 @@ class OperationListSerializer(serializers.ModelSerializer):
         return _compute_operation_code_affichage(obj)
 
     def get_metriques(self, obj):
-        return [
-            {
+        result = []
+        for m in obj.metriques.all():
+            ind_type = getattr(getattr(m.id_indicateur, 'type_indicateur', None), 'mnemonique', None) if m.id_indicateur_id else None
+            data = {
                 'id_metrique': m.id_metrique,
                 'nom_metrique': m.nom_metrique,
                 'indicateur_id': m.id_indicateur_id,
                 'indicateur_nom': getattr(m.id_indicateur, 'nom_indicateur', None) if m.id_indicateur_id else None,
-                'indicateur_type': getattr(getattr(m.id_indicateur, 'type_indicateur', None), 'mnemonique', None) if m.id_indicateur_id else None,
+                'indicateur_type': ind_type,
             }
-            for m in obj.metriques.all()
-        ]
+            # #452 — grille + format exposés pour les indicateurs de réponse.
+            if ind_type == 'REPONSE':
+                data.update(_response_metrique_grid(m))
+            result.append(data)
+        return result
 
     def get_metrique_ids(self, obj):
         # #398 — n'expose QUE les métriques État/Pression « associées » à l'action.

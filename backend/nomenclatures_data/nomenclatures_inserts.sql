@@ -267,6 +267,10 @@ INSERT INTO ref_nomenclatures.t_nomenclatures (id_nomenclature, id_type, cd_nome
 INSERT INTO ref_nomenclatures.t_nomenclatures (id_nomenclature, id_type, cd_nomenclature, mnemonique, label, definition, source, statut, hierarchy, date_ajout, date_maj, actif) VALUES (1352, 48, 'TEXTE', 'TEXTE', 'Texte', 'Métrique de type texte (description libre)', 'CICADA', 'Validé', '3', NOW(), NOW(), true);
 INSERT INTO ref_nomenclatures.t_nomenclatures (id_nomenclature, id_type, cd_nomenclature, mnemonique, label, definition, source, statut, hierarchy, date_ajout, date_maj, actif) VALUES (1367, 48, 'INDETERMINE', 'INDETERMINE', 'Indéterminé', 'Type de métrique non défini — saisie à préciser ultérieurement', 'CICADA', 'Validé', '4', NOW(), NOW(), true);
 
+-- FORMAT_METRIQUE (id_type=69) - Format de présentation de la métrique (#452)
+INSERT INTO ref_nomenclatures.t_nomenclatures (id_nomenclature, id_type, cd_nomenclature, mnemonique, label, definition, source, statut, hierarchy, date_ajout, date_maj, actif) VALUES (1370, 69, 'SIMPLE', 'SIMPLE', 'Simple', 'Saisie d''une valeur libre (sans grille de scoring)', 'CICADA', 'Validé', '1', NOW(), NOW(), true);
+INSERT INTO ref_nomenclatures.t_nomenclatures (id_nomenclature, id_type, cd_nomenclature, mnemonique, label, definition, source, statut, hierarchy, date_ajout, date_maj, actif) VALUES (1371, 69, 'GRILLE', 'GRILLE', 'Grille', 'Grille de 5 niveaux (très mauvais à très bon) avec scoring automatique', 'CICADA', 'Validé', '2', NOW(), NOW(), true);
+
 -- ============================================
 -- NOMENCLATURES POUR OPÉRATIONS (ACTIONS)
 -- ============================================

@@ -297,6 +297,20 @@ class Metrique(models.Model):
         help_text=_("Numérique, Qualitatif ou Booléen"),
         limit_choices_to={'id_type__mnemonique': 'TYPE_METRIQUE'}
     )
+    # #452 — format de présentation de la métrique (surtout pour les indicateurs
+    # de réponse) : SIMPLE = saisie d'une valeur libre ; GRILLE = grille 5 niveaux
+    # avec scoring, comme les indicateurs état/pression. NULL = traité comme SIMPLE.
+    format_metrique = models.ForeignKey(
+        'core.Nomenclature',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='metriques_format',
+        db_column='format_metrique',
+        verbose_name=_("Format de métrique"),
+        help_text=_("Simple ou Grille"),
+        limit_choices_to={'id_type__mnemonique': 'FORMAT_METRIQUE'}
+    )
     unite = models.CharField(
         _("Unité"),
         max_length=100,

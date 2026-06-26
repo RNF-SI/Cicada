@@ -68,23 +68,54 @@ TARGET_FIELDS = ['nom_site', 'id_inpn', 'id_local', 'type_site_id', 'surf_off', 
 class BulkSiteImportService:
     """Service pour parser, valider et importer des sites en masse."""
 
+    # Géométries nues : refusées en import en masse (aucune propriété de site
+    # comme le nom) mais détectées pour un message d'erreur explicite (#439).
+    _BARE_GEOMETRY_TYPES = (
+        'Point', 'MultiPoint', 'LineString', 'MultiLineString',
+        'Polygon', 'MultiPolygon', 'GeometryCollection',
+    )
+
     @staticmethod
     def parse_geojson(file_content):
         """
-        Parse un fichier GeoJSON (FeatureCollection).
-        Retourne une liste de dicts avec 'properties' et 'geometry'.
+        Parse un fichier GeoJSON pour l'import en masse de sites.
+
+        Accepte une FeatureCollection ou une Feature seule (enveloppée). Une
+        géométrie nue (Polygon, Point…) est refusée avec un message explicite :
+        elle ne porte aucune propriété de site (nom…), donc rien à importer
+        (#439). Retourne une liste de dicts avec 'properties' et 'geometry'.
         """
         try:
             data = json.loads(file_content)
         except (json.JSONDecodeError, ValueError) as e:
-            raise ValueError(f"Fichier JSON invalide: {e}")
+            raise ValueError(f"Fichier JSON invalide : {e}")
 
-        if not isinstance(data, dict) or data.get('type') != 'FeatureCollection':
-            raise ValueError("Le fichier doit être un GeoJSON de type FeatureCollection.")
+        if not isinstance(data, dict) or 'type' not in data:
+            raise ValueError(
+                "GeoJSON non reconnu : le fichier doit être une FeatureCollection "
+                "(ou une Feature) contenant les sites à importer."
+            )
+
+        geo_type = data.get('type')
+        if geo_type == 'FeatureCollection':
+            pass
+        elif geo_type == 'Feature':
+            data = {'type': 'FeatureCollection', 'features': [data]}
+        elif geo_type in BulkSiteImportService._BARE_GEOMETRY_TYPES:
+            raise ValueError(
+                f"Le fichier ne contient qu'une géométrie « {geo_type} » sans "
+                "propriétés de site (nom, code…). L'import en masse attend une "
+                "FeatureCollection de Features (une par site, avec ses attributs)."
+            )
+        else:
+            raise ValueError(
+                f"Type GeoJSON « {geo_type} » non pris en charge. Attendu : une "
+                "FeatureCollection (ou une Feature) décrivant les sites."
+            )
 
         features = data.get('features', [])
         if not features:
-            raise ValueError("Le fichier ne contient aucune feature.")
+            raise ValueError("Le fichier ne contient aucune entité (feature) à importer.")
 
         result = []
         for i, feature in enumerate(features):

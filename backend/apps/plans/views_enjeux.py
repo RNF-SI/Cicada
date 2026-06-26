@@ -120,6 +120,14 @@ class EnjeuViewSet(viewsets.ModelViewSet):
 
         indicateur_qs = Indicateur.objects.select_related(
             'type_indicateur', 'id_utilisateur_ajout',
+        ).exclude(
+            # #477 — les indicateurs de RÉPONSE sont propres à une action (créés
+            # via la fiche action, rattachés au même NE/RA pour le contexte) et ne
+            # doivent JAMAIS apparaître comme des indicateurs autonomes dans
+            # l'arborescence de l'enjeu ni dans le tableau de bord (où ils
+            # s'affichaient à tort comme « Indicateur d'état/pression »). Ils
+            # restent gérés à part via la fiche action et l'onglet « Réponse ».
+            type_indicateur__mnemonique='REPONSE',
         ).prefetch_related(
             'taxons', 'habitats', 'geologies',
             Prefetch('metriques', queryset=metrique_qs),
