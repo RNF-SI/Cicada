@@ -202,6 +202,13 @@
                   <i class="fi fi-rr-info"></i>
                   <span>{{ 'enjeux.facteurInfluence.usageNote' | translate }}</span>
                 </div>
+              } @else {
+                <!-- #492 — Pour les FCR : la pression n'est pas obligatoire
+                     (variante « sauf catégorie ancrage » si FCR d'ancrage). -->
+                <div class="olt-info-note">
+                  <i class="fi fi-rr-info"></i>
+                  <span>{{ (selectedFcrIsAncrage() ? 'enjeux.facteurInfluence.fcrPressureNotMandatoryAncrage' : 'enjeux.facteurInfluence.fcrPressureNotMandatory') | translate }}</span>
+                </div>
               }
 
               <!-- Enjeu detail card (terra-cotta) -->
@@ -1118,6 +1125,10 @@
                                                           <img src="assets/images/ellipses/ellipse-salmon.png" alt="" class="operation-ellipse">
                                                           @if (op.code_affichage) { <span class="operation-code">{{ op.code_affichage }}</span> }
                                                           <span class="operation-libelle">{{ 'enjeux.operations.label' | translate }} : {{ op.libelle }}</span>
+                                                          <!-- #489 — Priorité en chip à côté du titre -->
+                                                          @if (op.priorite_label) {
+                                                            <span class="operation-priority-chip" (click)="$event.stopPropagation()" [title]="'enjeux.operations.prioriteTooltip' | translate">{{ 'enjeux.operations.prioriteLabel' | translate }} {{ op.priorite_label }}</span>
+                                                          }
                                                           @if (op.statut === 'draft') {
                                                             <span class="operation-draft-chip status-warning" (click)="$event.stopPropagation()">{{ 'enjeux.operations.draftChip' | translate }}</span>
                                                           }
@@ -1449,6 +1460,21 @@
                           @for (fi of selectedFacteurs(); track fi.id_facteur_influence) {
                             <mat-optgroup [label]="fi.libelle">
                               @for (p of fi.pressions || []; track p.id_pression) {
+                                <mat-option [value]="p.id_pression">{{ p.libelle }}</mat-option>
+                              }
+                            </mat-optgroup>
+                          }
+                        </mat-select>
+                      </mat-form-field>
+                      } @else if (ecologicalPressionGroups().length > 0) {
+                      <!-- #474 — lien facultatif vers les pressions des enjeux écologiques (FCR) -->
+                      <label class="app-mat-label">{{ 'enjeux.oo.pressionOptionalLabel' | translate }}</label>
+      <mat-form-field class="full-width app-mat-form-field" appearance="outline">
+                        <mat-label></mat-label>
+                        <mat-select [(ngModel)]="editOoPressionIds" multiple>
+                          @for (group of ecologicalPressionGroups(); track group.label) {
+                            <mat-optgroup [label]="group.label">
+                              @for (p of group.pressions; track p.id_pression) {
                                 <mat-option [value]="p.id_pression">{{ p.libelle }}</mat-option>
                               }
                             </mat-optgroup>
@@ -1875,6 +1901,10 @@
                                                   <img src="assets/images/ellipses/ellipse-salmon.png" alt="" class="operation-ellipse">
                                                   @if (op.code_affichage) { <span class="operation-code">{{ op.code_affichage }}</span> }
                                                   <span class="operation-libelle">{{ 'enjeux.operations.label' | translate }} : {{ op.libelle }}</span>
+                                                  <!-- #489 — Priorité en chip à côté du titre -->
+                                                  @if (op.priorite_label) {
+                                                    <span class="operation-priority-chip" (click)="$event.stopPropagation()" [title]="'enjeux.operations.prioriteTooltip' | translate">{{ 'enjeux.operations.prioriteLabel' | translate }} {{ op.priorite_label }}</span>
+                                                  }
                                                   @if (op.statut === 'draft') {
                                                     <span class="operation-draft-chip status-warning" (click)="$event.stopPropagation()">{{ 'enjeux.operations.draftChip' | translate }}</span>
                                                   }
@@ -2140,6 +2170,21 @@
                         @for (fi of selectedFacteurs(); track fi.id_facteur_influence) {
                           <mat-optgroup [label]="fi.libelle">
                             @for (p of fi.pressions || []; track p.id_pression) {
+                              <mat-option [value]="p.id_pression">{{ p.libelle }}</mat-option>
+                            }
+                          </mat-optgroup>
+                        }
+                      </mat-select>
+                    </mat-form-field>
+                    } @else if (ecologicalPressionGroups().length > 0) {
+                    <!-- #474 — lien facultatif vers les pressions des enjeux écologiques (FCR) -->
+                    <label class="app-mat-label">{{ 'enjeux.oo.pressionOptionalLabel' | translate }}</label>
+      <mat-form-field class="full-width app-mat-form-field" appearance="outline">
+                      <mat-label></mat-label>
+                      <mat-select [(ngModel)]="newOoPressionIds" multiple>
+                        @for (group of ecologicalPressionGroups(); track group.label) {
+                          <mat-optgroup [label]="group.label">
+                            @for (p of group.pressions; track p.id_pression) {
                               <mat-option [value]="p.id_pression">{{ p.libelle }}</mat-option>
                             }
                           </mat-optgroup>

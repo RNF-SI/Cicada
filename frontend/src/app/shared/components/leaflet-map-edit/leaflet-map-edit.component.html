@@ -34,14 +34,6 @@
     <button
       type="button"
       class="toolbar-btn"
-      (click)="clearAll()"
-      [matTooltip]="'sites.form.geometry.clearAll' | translate"
-      matTooltipPosition="left">
-      <i class="fi fi-rr-trash"></i>
-    </button>
-    <button
-      type="button"
-      class="toolbar-btn"
       (click)="recenter()"
       [matTooltip]="'sites.form.geometry.recenter' | translate"
       matTooltipPosition="left">
@@ -62,7 +54,7 @@
         <i class="fi fi-rr-pencil"></i>
         <strong>Modifier</strong> ou
         <i class="fi fi-rr-trash"></i>
-        <strong>supprimer</strong> une géométrie via les boutons sous les outils. Cliquez sur une forme pour la sélectionner.
+        <strong>supprimer</strong> une géométrie via les outils en haut à gauche, puis cliquez sur la forme ou le marqueur à modifier ou supprimer.
       </span>
     } @else if (geometryType === 'polygon') {
       <span class="instructions-line">

@@ -1089,7 +1089,9 @@ export class AdminService {
             const label = AdminService.FIELD_LABELS[key];
             // Pas de préfixe pour les erreurs non-champ ou les champs « géométrie »
             // dont le message est déjà explicite (ex. « La géométrie fournie est invalide… »).
-            if (label === '' || key === 'non_field_errors') {
+            // `error` / `detail` sont des messages métier déjà rédigés côté backend
+            // (ex. « Un brouillon est déjà en cours sur ce plan… ») → pas de préfixe.
+            if (label === '' || key === 'non_field_errors' || key === 'error' || key === 'detail') {
               errors.push(message);
             } else {
               errors.push(`${label ?? key} : ${message}`);

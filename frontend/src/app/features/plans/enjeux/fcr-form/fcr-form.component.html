@@ -18,6 +18,13 @@
   <!-- Form Content -->
   @if (!isLoadingData()) {
     <div class="form-container">
+      <!-- #493 — Grande bulle d'information au début de la création d'un FCR -->
+      @if (!isEditMode()) {
+        <div class="info-block info-block-fcr">
+          <i class="fi fi-rr-info"></i>
+          <p>{{ 'enjeux.fcrForm.infoBubble' | translate }}</p>
+        </div>
+      }
       <form [formGroup]="form" (ngSubmit)="onSubmit()">
         <!-- Error Message -->
         @if (errorMessage()) {
@@ -60,6 +67,18 @@
               <i class="fi fi-rr-interrogation"></i>
             </button>
           </app-form-field>
+
+          <!-- Priorité (facultative, #479 — comme les enjeux #441) -->
+          <div class="form-group">
+            <label class="form-label">{{ 'enjeux.enjeuForm.priorite' | translate }}</label>
+            <mat-radio-group formControlName="rang" class="priority-radio-group">
+              <mat-radio-button [value]="null">{{ 'enjeux.enjeuForm.prioriteNonDefinie' | translate }}</mat-radio-button>
+              <mat-radio-button [value]="1">1</mat-radio-button>
+              <mat-radio-button [value]="2">2</mat-radio-button>
+              <mat-radio-button [value]="3">3</mat-radio-button>
+            </mat-radio-group>
+            <span class="field-hint">{{ 'enjeux.enjeuForm.prioriteHint' | translate }}</span>
+          </div>
 
           <!-- Catégorie FCR -->
           <div class="form-group">

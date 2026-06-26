@@ -3,10 +3,14 @@
 .admin-settings {
   padding: $spacing-lg;
   max-width: 810px;
+  // #448 — espacement régulier entre les sections (sinon elles se touchaient).
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-lg;
 }
 
 .page-header {
-  margin-bottom: $spacing-xl;
+  margin-bottom: 0;
 }
 
 .page-title {
@@ -75,7 +79,7 @@
 .image-preview {
   position: relative;
   width: 100%;
-  max-width: 540px;
+  max-width: 360px;
   aspect-ratio: 16 / 9;
   background: $gray-lighter;
   border-radius: $border-radius-lg;
@@ -277,9 +281,9 @@
   margin-bottom: $spacing-md;
 
   &__text {
-    color: #fff;
+    // Couleur définie en inline selon la luminance de la couleur choisie
+    // (#448 — lisible aussi bien sur fond clair que foncé).
     font-weight: $font-weight-bold;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
   }
 }
 
@@ -297,7 +301,7 @@
   border: 2px solid transparent;
   cursor: pointer;
   padding: 0;
-  box-shadow: $shadow-sm;
+  box-shadow: $shadow-light;
   transition: transform $transition-fast;
 
   &:hover { transform: scale(1.1); }
@@ -342,7 +346,9 @@
 }
 
 .logo-preview {
-  height: 80px;
+  // #448 — aperçu réduit, proportionné au rendu réel dans le bandeau.
+  height: 56px;
+  max-width: 360px;
   border-radius: $border-radius-md;
   display: flex;
   align-items: center;
@@ -350,15 +356,16 @@
   border: 1px solid $gray-light;
 
   &__img {
-    height: 48px;
+    height: 32px;
     width: auto;
-    max-width: 220px;
+    max-width: 160px;
     object-fit: contain;
   }
 
   &__empty {
-    color: rgba(255, 255, 255, 0.85);
+    // Couleur définie en inline selon la couleur du bandeau (#448).
     font-style: italic;
+    font-size: $font-size-small;
   }
 }
 

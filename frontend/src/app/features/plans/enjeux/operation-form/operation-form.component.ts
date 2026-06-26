@@ -23,8 +23,8 @@ import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { MatDialogModule, MatDialog } from '@angular/material/dialog';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
-import { forkJoin, of, Observable } from 'rxjs';
-import { debounceTime, distinctUntilChanged, filter, switchMap } from 'rxjs/operators';
+import { forkJoin, of, Observable, Subject } from 'rxjs';
+import { debounceTime, distinctUntilChanged, filter, switchMap, groupBy, mergeMap } from 'rxjs/operators';
 
 import { HeaderComponent } from '../../../../shared/components/header/header.component';
 import { ReferenceItemListComponent } from '../../../../shared/components/reference-item-list/reference-item-list.component';
@@ -32,12 +32,13 @@ import { CheckboxComponent } from '../../../../shared/components/checkbox/checkb
 import { EmpriseEditorComponent } from '../../../../shared/components/emprise-editor/emprise-editor.component';
 import { AccordionComponent } from '../../../../shared/components/accordion/accordion.component';
 import { FormFieldComponent } from '../../../../shared/components/form-field/form-field.component';
+import { MetriqueFormComponent } from '../../../../shared/components/metrique-form/metrique-form.component';
 import { EnjeuService } from '../../../../core/services/enjeu.service';
 import { AdminService } from '../../../../core/services/admin.service';
 import { CampanuleService } from '../../../../core/services/campanule.service';
 import { InventaireService } from '../../../../core/services/inventaire.service';
 import { SuiviInventaireDetail } from '../../../../core/models/inventaire.model';
-import { Operation, OperationCreatePayload, OperationStatut, OperationAnnee, OperationAnneeOrganisme, FinanceOperation, SuiviInventaire, TaxonRef, HabitatRef, GeologieRef } from '../../../../core/models/enjeu.model';
+import { Operation, OperationCreatePayload, OperationStatut, OperationAnnee, OperationAnneeOrganisme, FinanceOperation, SuiviInventaire, TaxonRef, HabitatRef, GeologieRef, MetriqueFormData, MetriqueRef, Enjeu } from '../../../../core/models/enjeu.model';
 import { CampanuleAutocomplete } from '../../../../core/models/campanule.model';
 import { PlanSite, PlanSiteOrganisme } from '../../../../core/models/admin.model';
 import { ProtocoleCampanuleDialogComponent } from '../../../../shared/components/modals/protocole-campanule-dialog/protocole-campanule-dialog.component';
@@ -50,6 +51,11 @@ import {
   getNomenclatureDepth,
   displayNomenclatureFn,
 } from '../../../../shared/utils/nomenclature-autocomplete.utils';
+import {
+  blankMetriqueFormData,
+  metriqueRefToFormData,
+  buildMetriqueGridFields,
+} from '../../../../shared/utils/metrique-form.util';
 
 @Component({
   selector: 'app-operation-form',
@@ -77,6 +83,7 @@ import {
     AccordionComponent,
     FormFieldComponent,
     EmpriseEditorComponent,
+    MetriqueFormComponent,
   ],
   templateUrl: './operation-form.component.html',
   styleUrl: './operation-form.component.scss'
@@ -124,6 +131,10 @@ export class OperationFormComponent implements OnInit {
     nom_metrique: string;
     type_metrique_id: number | null;
     valeur_cible: string;
+    // #452 — format (id nomenclature) + grille en mémoire (éditée avant l'enregistrement
+    // de l'action) ; envoyés au backend à la création.
+    format_metrique_id: number | null;
+    formData?: MetriqueFormData;
   }[] = [];
 
   /** Emprise spatiale en cours d'édition (#342). undefined = inchangée. */
@@ -150,7 +161,7 @@ export class OperationFormComponent implements OnInit {
   typeMetriqueOptions = signal<{ id_nomenclature: number; mnemonique?: string; label: string }[]>([]);
 
   /** #347/réponse — Pour les indicateurs de réponse, le type de métrique se limite
-   * à « Chiffrée » (CHIFFRE) ou « Textuelle » (TEXTE). */
+   * à « Chiffrée » (CHIFFRE), « Textuelle » (TEXTE) ou « Numérique » (NUMERIQUE, #452). */
   responseTypeOptions = computed<{ id: number; label: string }[]>(() => {
     const opts = this.typeMetriqueOptions();
     const out: { id: number; label: string }[] = [];
@@ -158,8 +169,40 @@ export class OperationFormComponent implements OnInit {
     if (chiffre) out.push({ id: chiffre.id_nomenclature, label: this.translate.instant('enjeux.operations.metriqueTypeChiffree') });
     const texte = opts.find(o => o.mnemonique === 'TEXTE');
     if (texte) out.push({ id: texte.id_nomenclature, label: this.translate.instant('enjeux.operations.metriqueTypeTextuelle') });
+    const numerique = opts.find(o => o.mnemonique === 'NUMERIQUE');
+    if (numerique) out.push({ id: numerique.id_nomenclature, label: this.translate.instant('enjeux.operations.metriqueTypeNumerique') });
     return out;
   });
+
+  /** #452 — Formats de métrique (SIMPLE / GRILLE) chargés depuis la nomenclature. */
+  formatMetriqueOptions = signal<{ id_nomenclature: number; mnemonique?: string; label: string }[]>([]);
+
+  /** Liste de types proposée à l'éditeur de grille embarqué : on exclut INDETERMINE.
+   *  Coercion `mnemonique: string` pour matcher TypeMetriqueOption (non optionnel). */
+  gridTypeMetriqueOptions = computed<{ id_nomenclature: number; mnemonique: string; label: string }[]>(() =>
+    this.typeMetriqueOptions()
+      .filter(o => o.mnemonique !== 'INDETERMINE')
+      .map(o => ({ id_nomenclature: o.id_nomenclature, mnemonique: o.mnemonique || '', label: o.label })),
+  );
+
+  private formatId(mnemonique: 'SIMPLE' | 'GRILLE'): number | null {
+    return this.formatMetriqueOptions().find(o => o.mnemonique === mnemonique)?.id_nomenclature ?? null;
+  }
+  /** Vrai si le format (id nomenclature) correspond à GRILLE. */
+  isGrilleFormat(formatId: number | null | undefined): boolean {
+    if (formatId == null) return false;
+    return this.formatMetriqueOptions().find(o => o.id_nomenclature === formatId)?.mnemonique === 'GRILLE';
+  }
+  /** Vrai si une métrique de réponse (sauvegardée) est en format GRILLE. */
+  isResponseGrille(ref: MetriqueRef): boolean {
+    return (ref.format_metrique_mnemonique || '') === 'GRILLE';
+  }
+
+  /** #452 — MetriqueFormData (éditeur de grille) par métrique de réponse sauvegardée,
+   *  construit à la demande et mémoïsé (clé = id_metrique). */
+  private responseFormDataMap = new Map<number, MetriqueFormData>();
+  /** Émetteur d'auto-sauvegarde débouncée de la grille (action déjà enregistrée). */
+  private gridSave$ = new Subject<{ metriqueId: number; data: MetriqueFormData }>();
 
   /** Aide « comment remplir un indicateur de réponse » : 3 exemples affichés
    *  au survol (tooltip multi-ligne) pour ne pas alourdir le formulaire. */
@@ -279,6 +322,60 @@ export class OperationFormComponent implements OnInit {
   planIndicateurs = signal<{ id_indicateur: number; nom_indicateur: string }[]>([]);
   planMetriques = signal<{ id_metrique: number; nom_metrique: string; indicateur_nom: string; indicateur_id: number }[]>([]);
 
+  // #476 — résolution de l'enjeu associé à l'action pour suggérer ses
+  // habitats/espèces en accès rapide dans le formulaire de suivi.
+  private indicateurEnjeuMap = signal<Map<number, Enjeu>>(new Map());
+  private metriqueIndicateurMap = signal<Map<number, number>>(new Map());
+  /** Reflet réactif du contrôle `metrique_ids` (pour les computeds de suggestions). */
+  selectedMetriqueIdsSig = signal<number[]>([]);
+
+  /** Enjeu(x) rattaché(s) à l'action via ses indicateurs/métriques liés. */
+  private linkedEnjeux = computed<Enjeu[]>(() => {
+    const indMap = this.indicateurEnjeuMap();
+    const metMap = this.metriqueIndicateurMap();
+    const indIds = new Set<number>();
+    for (const mid of this.selectedMetriqueIdsSig()) {
+      const indId = metMap.get(mid);
+      if (indId) indIds.add(indId);
+    }
+    for (const m of this.existingOperation()?.metriques || []) {
+      if (m.indicateur_id) indIds.add(m.indicateur_id);
+    }
+    const pre = this.prelinkedIndicateurId();
+    if (pre) indIds.add(pre);
+    const enjeuById = new Map<number, Enjeu>();
+    for (const indId of indIds) {
+      const e = indMap.get(indId);
+      if (e) enjeuById.set(e.id_enjeu, e);
+    }
+    return [...enjeuById.values()];
+  });
+
+  /** #476 — habitats de l'enjeu associé, proposés en suggestion (dédupliqués). */
+  enjeuHabitatSuggestions = computed<HabitatRef[]>(() => {
+    const out: HabitatRef[] = [];
+    const seen = new Set<string>();
+    for (const e of this.linkedEnjeux()) {
+      for (const h of e.habitats || []) {
+        const k = String(h.cd_hab);
+        if (h.cd_hab && !seen.has(k)) { seen.add(k); out.push(h); }
+      }
+    }
+    return out;
+  });
+
+  /** #476 — espèces (taxons) de l'enjeu associé, proposées en suggestion. */
+  enjeuTaxonSuggestions = computed<TaxonRef[]>(() => {
+    const out: TaxonRef[] = [];
+    const seen = new Set<number>();
+    for (const e of this.linkedEnjeux()) {
+      for (const t of e.taxons || []) {
+        if (t.cd_nom && !seen.has(t.cd_nom)) { seen.add(t.cd_nom); out.push(t); }
+      }
+    }
+    return out;
+  });
+
   /** #227 — Sélecteur « Métriques associées » : terme de recherche + portée. */
   metriqueSearch = signal('');
   /** Portée du filtre : 'indicateur' = métriques de l'indicateur de l'action ; 'plan' = tout le plan. */
@@ -397,10 +494,42 @@ export class OperationFormComponent implements OnInit {
     window.scrollTo({ top: 0, behavior: 'instant' });
     this.loadFrequenceNomenclature();
     this.initForm();
+    this.initMetriqueIdsSync();
     this.initSuiviLibelleSync();
     this.initTypeActionAutocomplete();
     this.initCampanuleAutocomplete();
+    this.initResponseGridAutosave();
     this.loadRouteParams();
+  }
+
+  /** #452 — Auto-sauvegarde débouncée de la grille d'un indicateur de réponse
+   *  déjà enregistré : 1 flux par métrique (groupBy) pour éviter d'écraser une
+   *  grille par une autre, débounce 600 ms, dernier état gagne (switchMap). */
+  private initResponseGridAutosave(): void {
+    this.gridSave$.pipe(
+      groupBy(e => e.metriqueId),
+      mergeMap(group => group.pipe(
+        debounceTime(600),
+        switchMap(({ metriqueId, data }) => {
+          const mnemo = this.getMetriqueTypeMnemonique(data.type_metrique);
+          const payload: any = {
+            nom_metrique: (data.nom_metrique || '').trim(),
+            type_metrique: data.type_metrique ?? undefined,
+            format_metrique: this.formatId('GRILLE'),
+            etat_reference: (data.etat_reference || '').trim(),
+            ...buildMetriqueGridFields(data, mnemo),
+          };
+          return this.enjeuService.updateMetrique(metriqueId, payload);
+        }),
+      )),
+      takeUntilDestroyed(this.destroyRef),
+    ).subscribe({
+      error: () => this.snackBar.open(
+        this.translate.instant('enjeux.operations.indicateursAddError'),
+        this.translate.instant('common.actions.close'),
+        { duration: 4000 },
+      ),
+    });
   }
 
   private loadFrequenceNomenclature(): void {
@@ -468,6 +597,17 @@ export class OperationFormComponent implements OnInit {
       annee_min: [null],
       annee_max: [null],
     });
+  }
+
+  /** #476 — reflète le contrôle `metrique_ids` dans un signal pour alimenter les
+   *  computeds de suggestions (habitats/espèces de l'enjeu associé). */
+  private initMetriqueIdsSync(): void {
+    const ctrl = this.form.get('metrique_ids');
+    if (!ctrl) return;
+    this.selectedMetriqueIdsSig.set((ctrl.value as number[]) || []);
+    ctrl.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((value: number[] | null) => this.selectedMetriqueIdsSig.set(value || []));
   }
 
   private loadRouteParams(): void {
@@ -614,16 +754,22 @@ export class OperationFormComponent implements OnInit {
               const allEnjeux = [...(response.enjeux || []), ...(response.fcr || [])];
               const seenIndicateurs = new Set<number>();
               const seenMetriques = new Set<number>();
+              // #476 — maps indicateur→enjeu et métrique→indicateur pour résoudre
+              // l'enjeu associé à l'action et en proposer les habitats/espèces.
+              const indEnjeuMap = new Map<number, Enjeu>();
+              const metIndMap = new Map<number, number>();
 
-              const collectIndicateursMetriques = (ind: any) => {
+              const collectIndicateursMetriques = (ind: any, enjeu: Enjeu) => {
                 if (!ind || seenIndicateurs.has(ind.id_indicateur)) return;
                 // #398 — les indicateurs de réponse (et leurs métriques) ne font pas
                 // partie des « métriques associées » sélectionnables : ils sont propres
                 // à une action et gérés dans la section « Indicateur(s) de réponse ».
                 if (ind.type_indicateur_mnemonique === 'REPONSE') return;
                 seenIndicateurs.add(ind.id_indicateur);
+                indEnjeuMap.set(ind.id_indicateur, enjeu);
                 indicateurs.push({ id_indicateur: ind.id_indicateur, nom_indicateur: ind.nom_indicateur });
                 for (const met of ind.metriques || []) {
+                  metIndMap.set(met.id_metrique, ind.id_indicateur);
                   if (seenMetriques.has(met.id_metrique)) continue;
                   seenMetriques.add(met.id_metrique);
                   metriques.push({
@@ -640,7 +786,7 @@ export class OperationFormComponent implements OnInit {
                 for (const olt of enjeu.objectifs_long_terme || []) {
                   for (const ne of olt.niveaux_exigence || []) {
                     for (const ind of ne.indicateurs || []) {
-                      collectIndicateursMetriques(ind);
+                      collectIndicateursMetriques(ind, enjeu);
                     }
                   }
                 }
@@ -650,7 +796,7 @@ export class OperationFormComponent implements OnInit {
                     for (const oo of pression.objectifs_operationnels || []) {
                       for (const ra of oo.resultats_attendus || []) {
                         for (const ind of ra.indicateurs || []) {
-                          collectIndicateursMetriques(ind);
+                          collectIndicateursMetriques(ind, enjeu);
                         }
                       }
                     }
@@ -663,7 +809,7 @@ export class OperationFormComponent implements OnInit {
                 for (const oo of enjeu.objectifs_operationnels || []) {
                   for (const ra of oo.resultats_attendus || []) {
                     for (const ind of ra.indicateurs || []) {
-                      collectIndicateursMetriques(ind);
+                      collectIndicateursMetriques(ind, enjeu);
                     }
                   }
                 }
@@ -671,6 +817,8 @@ export class OperationFormComponent implements OnInit {
 
               this.planIndicateurs.set(indicateurs);
               this.planMetriques.set(metriques);
+              this.indicateurEnjeuMap.set(indEnjeuMap);
+              this.metriqueIndicateurMap.set(metIndMap);
             },
             error: () => {}
           });
@@ -713,6 +861,12 @@ export class OperationFormComponent implements OnInit {
     this.adminService.getNomenclaturesByType('TYPE_METRIQUE').subscribe({
       next: (options) => this.typeMetriqueOptions.set(options),
       error: () => this.typeMetriqueOptions.set([]),
+    });
+
+    // #452 — formats de métrique (SIMPLE / GRILLE) pour les indicateurs de réponse.
+    this.adminService.getNomenclaturesByType('FORMAT_METRIQUE').subscribe({
+      next: (options) => this.formatMetriqueOptions.set(options),
+      error: () => this.formatMetriqueOptions.set([]),
     });
 
 
@@ -1079,6 +1233,8 @@ export class OperationFormComponent implements OnInit {
   private patchLocalMetrique(metriqueId: number, patch: Partial<{
     nom_metrique: string; indicateur_nom: string; etat_reference: string;
     type_metrique_id: number | null; type_metrique_label: string | null;
+    // #452 — format (id + mnémonique) pour le toggle simple/grille.
+    format_metrique_id: number | null; format_metrique_mnemonique: string | null;
   }>): void {
     const op = this.existingOperation();
     if (!op?.metriques) return;
@@ -1101,6 +1257,7 @@ export class OperationFormComponent implements OnInit {
         nom_metrique: '',
         type_metrique_id: null,
         valeur_cible: '',
+        format_metrique_id: this.formatId('SIMPLE'),
       });
       return;
     }
@@ -1211,6 +1368,58 @@ export class OperationFormComponent implements OnInit {
     this.enjeuService.updateMetrique(metriqueId, { etat_reference: trimmed }).subscribe({
       next: () => this.patchLocalMetrique(metriqueId, { etat_reference: trimmed }),
     });
+  }
+
+  // ===========================================================================
+  // #452 — Format grille des indicateurs de réponse
+  // ===========================================================================
+
+  /** Mnémonique du type de métrique (NUMERIQUE par défaut), depuis la nomenclature. */
+  getMetriqueTypeMnemonique(typeMetriqueId: number | null | undefined): string {
+    if (!typeMetriqueId) return 'NUMERIQUE';
+    return this.typeMetriqueOptions().find(o => o.id_nomenclature === typeMetriqueId)?.mnemonique || 'NUMERIQUE';
+  }
+
+  /** MetriqueFormData (éditeur de grille) d'une métrique de réponse sauvegardée,
+   *  construite à la demande et mémoïsée pour conserver l'état d'édition. */
+  responseGridData(ref: MetriqueRef): MetriqueFormData {
+    let data = this.responseFormDataMap.get(ref.id_metrique);
+    if (!data) {
+      data = metriqueRefToFormData(ref);
+      this.responseFormDataMap.set(ref.id_metrique, data);
+    }
+    return data;
+  }
+
+  /** Bascule le format (SIMPLE / GRILLE) d'une métrique de réponse sauvegardée. */
+  setResponseFormat(ref: MetriqueRef, grille: boolean): void {
+    const formatId = this.formatId(grille ? 'GRILLE' : 'SIMPLE');
+    this.enjeuService.updateMetrique(ref.id_metrique, { format_metrique: formatId }).subscribe({
+      next: () => this.patchLocalMetrique(ref.id_metrique, {
+        format_metrique_id: formatId,
+        format_metrique_mnemonique: grille ? 'GRILLE' : 'SIMPLE',
+      }),
+    });
+  }
+
+  /** L'éditeur de grille a émis une modification → auto-sauvegarde débouncée. */
+  onResponseGridChange(metriqueId: number, data: MetriqueFormData): void {
+    this.gridSave$.next({ metriqueId, data });
+  }
+
+  /** Bascule le format d'un indicateur de réponse en attente (création). */
+  setPendingResponseFormat(pi: OperationFormComponent['pendingResponseIndicators'][number], grille: boolean): void {
+    pi.format_metrique_id = this.formatId(grille ? 'GRILLE' : 'SIMPLE');
+    if (grille && !pi.formData) {
+      const fd = blankMetriqueFormData();
+      fd.nom_metrique = pi.nom_metrique;
+      fd.type_metrique = pi.type_metrique_id;
+      fd.etat_reference = pi.valeur_cible;
+      pi.formData = fd;
+    }
+  }
+  isPendingGrille(pi: OperationFormComponent['pendingResponseIndicators'][number]): boolean {
+    return this.isGrilleFormat(pi.format_metrique_id);
   }
 
   private buildPayload(): OperationCreatePayload {
@@ -1467,7 +1676,10 @@ export class OperationFormComponent implements OnInit {
           );
           this.enjeuService.refreshCurrentPlanEnjeux();
           if (!opts.stayOnForm) {
-            this.goBack();
+            // #482 — Revenir sur l'enjeu/onglet d'origine (et déployer l'action
+            // modifiée) plutôt que d'utiliser location.back(), qui pouvait
+            // ramener l'utilisateur « sur l'OO » de façon inattendue.
+            this.navigateAfterCreate(opId);
           }
         },
         error: (error) => {
@@ -1485,12 +1697,28 @@ export class OperationFormComponent implements OnInit {
           // Créer les indicateurs de réponse saisis avant l'enregistrement.
           const pending = this.pendingResponseIndicators;
           const createPending$: Observable<unknown> = (newOpId && pending.length > 0)
-            ? forkJoin(pending.map(pi => this.enjeuService.createOperationResponseIndicator(newOpId, {
-                nom_indicateur: (pi.nom_indicateur || '').trim() || this.translate.instant('enjeux.operations.newIndicatorDefault'),
-                nom_metrique: (pi.nom_metrique || '').trim() || undefined,
-                type_metrique_id: pi.type_metrique_id ?? undefined,
-                valeur_cible: (pi.valeur_cible || '').trim() || undefined,
-              })))
+            ? forkJoin(pending.map(pi => {
+                const grille = this.isGrilleFormat(pi.format_metrique_id);
+                // En grille, la métrique (nom/type/cible) est portée par la
+                // grille en mémoire (pi.formData) ; sinon par les champs simples.
+                const fd = pi.formData;
+                const body: Record<string, unknown> = {
+                  nom_indicateur: (pi.nom_indicateur || '').trim() || this.translate.instant('enjeux.operations.newIndicatorDefault'),
+                  format_metrique: pi.format_metrique_id ?? undefined,
+                };
+                if (grille && fd) {
+                  const mnemo = this.getMetriqueTypeMnemonique(fd.type_metrique);
+                  body['nom_metrique'] = (fd.nom_metrique || '').trim() || undefined;
+                  body['type_metrique_id'] = fd.type_metrique ?? undefined;
+                  body['valeur_cible'] = (fd.etat_reference || '').trim() || undefined;
+                  Object.assign(body, buildMetriqueGridFields(fd, mnemo));
+                } else {
+                  body['nom_metrique'] = (pi.nom_metrique || '').trim() || undefined;
+                  body['type_metrique_id'] = pi.type_metrique_id ?? undefined;
+                  body['valeur_cible'] = (pi.valeur_cible || '').trim() || undefined;
+                }
+                return this.enjeuService.createOperationResponseIndicator(newOpId, body as any);
+              }))
             : of(null);
 
           createPending$.subscribe({
@@ -1565,6 +1793,10 @@ export class OperationFormComponent implements OnInit {
     const protocoleCampanule = this.form.get('protocole_dans_campanule')?.value;
 
     this.applyRequiredValidator('intitule_suivi', requireForCS);
+    // #461 — objectif principal + cible principale obligatoires pour une
+    // action de type suivi (CS, nouveau suivi).
+    this.applyRequiredValidator('objectif_principal', requireForCS);
+    this.applyRequiredValidator('cibles_principales', requireForCS);
     this.applyRequiredValidator('protocole_dans_campanule', requireForCS);
     // #414 — « Respect strict du protocole » n'est demandé que pour les
     // protocoles CAMPanule ; masqué (et non requis) pour les protocoles locaux.

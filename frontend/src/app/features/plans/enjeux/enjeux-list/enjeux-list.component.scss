@@ -2239,6 +2239,20 @@
   cursor: default;
 }
 
+// #489 — Chip de priorité à côté du titre de l'action
+.operation-priority-chip {
+  flex-shrink: 0;
+  margin-left: $spacing-xs;
+  padding: 2px 10px;
+  border-radius: $border-radius-pill;
+  background: $secondary-yellow;
+  color: $black;
+  font-size: 0.78rem;
+  font-weight: $font-weight-bold;
+  white-space: nowrap;
+  cursor: default;
+}
+
 // Badges discrets indiquant la présence d'emprise / indicateurs de réponse
 // sur une action (cohérence avec ce qui est saisissable dans le formulaire).
 .op-trace-badge {

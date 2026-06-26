@@ -50,8 +50,9 @@ export class SettingsService {
     return this.defaultHomepageImage;
   }
 
-  /** Couleur par défaut du bandeau (kit UI — Primary). */
-  readonly defaultHeaderColor = '#025359';
+  /** #448 — Bandeau blanc par défaut (comportement historique avant la
+   *  personnalisation). L'admin peut choisir une autre couleur. */
+  readonly defaultHeaderColor = '#FFFFFF';
 
   /** #448 — Couleur du bandeau configurée (repli sur la couleur par défaut). */
   getHeaderColor(): string {

@@ -68,6 +68,15 @@ export class HeaderComponent implements OnInit {
   /** Vrai si la couleur du bandeau est foncée → contenu en blanc (lisibilité). */
   readonly headerOnDark = computed(() => this.isDarkColor(this.headerColor()));
 
+  /**
+   * #448 — Couleur de premier plan du bandeau (texte, icônes, cloche), exposée
+   * comme variable CSS `--header-fg`. Calculée à partir de la luminance de la
+   * couleur du bandeau pour garantir un contraste suffisant quelle que soit la
+   * couleur choisie : la cloche de notifications notamment ne se fond plus dans
+   * le bandeau (ex. fond bleu primary = cloche blanche, et non plus invisible).
+   */
+  readonly headerForeground = computed(() => this.headerOnDark() ? '#FFFFFF' : '#025359');
+
   /** Luminance relative approchée : sombre si < 0.5 (texte blanc requis). */
   private isDarkColor(hex: string): boolean {
     const m = /^#?([0-9a-f]{6})$/i.exec(hex || '');

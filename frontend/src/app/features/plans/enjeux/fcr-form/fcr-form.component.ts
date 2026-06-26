@@ -87,6 +87,9 @@ export class FcrFormComponent implements OnInit {
     this.form = this.fb.group({
       libelle: ['', [Validators.required, Validators.maxLength(500)]],
       intitule_court: ['', [Validators.maxLength(25)]],
+      // #479 — priorité facultative pour les FCR aussi (null = « non définie »),
+      // au même titre que les enjeux (#441).
+      rang: [null as number | null, [Validators.min(1), Validators.max(3)]],
       id_categorie_fcr: [null, Validators.required],
       description: ['']
     });
@@ -200,6 +203,7 @@ export class FcrFormComponent implements OnInit {
     this.form.patchValue({
       libelle: fcr.libelle,
       intitule_court: fcr.intitule_court || '',
+      rang: fcr.rang ?? null,
       id_categorie_fcr: fcr.id_categorie_fcr,
       description: fcr.description || ''
     });
@@ -249,6 +253,7 @@ export class FcrFormComponent implements OnInit {
       id_categorie: categorieId,
       libelle: formValue.libelle,
       intitule_court: formValue.intitule_court || undefined,
+      rang: formValue.rang ?? null,
       id_categorie_fcr: formValue.id_categorie_fcr,
       description: formValue.description || undefined
     };
@@ -285,6 +290,7 @@ export class FcrFormComponent implements OnInit {
     const payload: EnjeuUpdatePayload = {
       libelle: formValue.libelle,
       intitule_court: formValue.intitule_court || undefined,
+      rang: formValue.rang ?? null,
       id_categorie_fcr: formValue.id_categorie_fcr,
       description: formValue.description || undefined
     };

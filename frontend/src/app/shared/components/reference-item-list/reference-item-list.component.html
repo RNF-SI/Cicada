@@ -52,6 +52,24 @@
     </div>
   }
 
+  <!-- #476 — Suggestions de l'enjeu associé (accès rapide avant la recherche large) -->
+  @if (availableSuggestions.length > 0) {
+    <div class="suggestions-block">
+      <span class="suggestions-label">
+        {{ suggestionsLabel || (('enjeux.referenceList.suggestionsFromEnjeu') | translate) }}
+      </span>
+      <div class="suggestions-chips">
+        @for (sugg of availableSuggestions; track $index) {
+          <button type="button" class="suggestion-chip" (click)="addSuggestion(sugg)">
+            <i class="fi fi-rr-plus-small"></i>
+            <span class="suggestion-chip__badge">{{ getItemBadge(sugg) }}</span>
+            <span class="suggestion-chip__name">{{ getItemLabel(sugg) }}</span>
+          </button>
+        }
+      </div>
+    </div>
+  }
+
   <!-- Autocomplete search -->
   <label class="app-mat-label">{{ (type === 'taxon' ? 'enjeux.referenceList.searchTaxon' : type === 'habitat' ? 'enjeux.referenceList.searchHabitat' : 'enjeux.referenceList.searchGeology') | translate }}</label>
       <mat-form-field class="app-mat-form-field search-field" appearance="outline">

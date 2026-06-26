@@ -44,10 +44,13 @@ export class AdminSettingsComponent implements OnInit {
   // Image position
   selectedPosition = signal<ImagePosition>('center');
 
-  // #448 — Personnalisation : couleur du bandeau + logo structure
-  readonly headerColor = signal<string>('#025359');
-  /** Couleurs prédéfinies du kit UI. */
+  // #448 — Personnalisation : couleur du bandeau + logo structure.
+  // Bandeau blanc par défaut (comportement historique).
+  readonly headerColor = signal<string>('#FFFFFF');
+  /** Couleurs prédéfinies du kit UI (blanc/beige en tête : défaut historique). */
   readonly presetColors: { label: string; value: string }[] = [
+    { label: 'Blanc (défaut)', value: '#FFFFFF' },
+    { label: 'Beige', value: '#F8F5F1' },
     { label: 'Primary (bleu-vert)', value: '#025359' },
     { label: 'Terra cotta', value: '#B74D5D' },
     { label: 'Succès (vert)', value: '#04854B' },
@@ -205,6 +208,25 @@ export class AdminSettingsComponent implements OnInit {
   /** Sélection d'une couleur (preset ou color input). */
   onColorInput(value: string): void {
     this.headerColor.set(value);
+  }
+
+  /**
+   * #448 — Couleur de texte lisible (blanc ou noir) au-dessus d'une couleur de
+   * fond donnée. Même logique de luminance que le header, pour que l'aperçu
+   * reflète fidèlement le rendu réel (texte clair sur fond foncé et inversement).
+   */
+  contrastTextColor(hex: string): string {
+    const m = /^#?([0-9a-f]{6})$/i.exec(hex || '');
+    if (!m) return '#FFFFFF';
+    const n = parseInt(m[1], 16);
+    const r = (n >> 16) & 255, g = (n >> 8) & 255, b = n & 255;
+    const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+    return luminance < 0.6 ? '#FFFFFF' : '#343433';
+  }
+
+  /** Couleur de texte de l'aperçu du bandeau (lisible sur la couleur choisie). */
+  get bannerTextColor(): string {
+    return this.contrastTextColor(this.headerColor());
   }
 
   /** Enregistre la couleur du bandeau. */

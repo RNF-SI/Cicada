@@ -21,7 +21,10 @@
 
   .bell-icon {
     font-size: $font-size-h4;
-    color: $primary-color;
+    // #448 — la couleur de la cloche suit le premier plan du bandeau
+    // (`--header-fg`, héritée du header) pour rester lisible quelle que soit
+    // la couleur de fond choisie. Repli sur le bleu-vert primaire hors header.
+    color: var(--header-fg, #{$primary-color});
   }
 
   .notification-badge {

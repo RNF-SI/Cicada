@@ -430,6 +430,12 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
     return this.selectedEnjeu()?.categorie_fcr_label || '';
   });
 
+  // #492 — FCR de catégorie « Ancrage territorial » : la note sur la pression
+  // non obligatoire est nuancée (« sauf catégorie ancrage »).
+  selectedFcrIsAncrage = computed(() => {
+    return /ancrage/i.test(this.selectedEnjeu()?.categorie_fcr_label || '');
+  });
+
   // Index d'affichage de l'enjeu sélectionné (1-based)
   selectedDisplayIndex = computed(() => {
     const slug = this.selectedEnjeuSlug();
@@ -1155,6 +1161,26 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
   // Computed pour les facteurs d'influence de l'enjeu sélectionné
   selectedFacteurs = computed(() => {
     return this.selectedEnjeu()?.facteurs_influence || [];
+  });
+
+  // #474 — pressions des enjeux ÉCOLOGIQUES du plan, proposées (de façon
+  // facultative) au rattachement d'un OO de FCR. Un FCR n'a pas de pression
+  // propre structurante ; on liste donc les pressions des autres enjeux du plan,
+  // groupées par « enjeu › facteur d'influence » pour le sélecteur.
+  ecologicalPressionGroups = computed(() => {
+    const data = this.planEnjeuxData();
+    if (!data) return [] as { label: string; pressions: { id_pression: number; libelle: string }[] }[];
+    const groups: { label: string; pressions: { id_pression: number; libelle: string }[] }[] = [];
+    for (const enjeu of data.enjeux || []) {
+      const enjeuLibelle = enjeu.intitule_court || enjeu.libelle;
+      for (const fi of enjeu.facteurs_influence || []) {
+        const pressions = (fi.pressions || []).map(p => ({ id_pression: p.id_pression, libelle: p.libelle }));
+        if (pressions.length) {
+          groups.push({ label: `${enjeuLibelle} › ${fi.libelle}`, pressions });
+        }
+      }
+    }
+    return groups;
   });
 
   // Computed pour le nombre d'OLT de l'enjeu sélectionné
@@ -4160,15 +4186,17 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
     if (!enjeu || !this.newOoLibelle.trim()) return;
     const isFcr = this.isSelectedFcr();
     // Règle de rattachement d'un OO selon la catégorie du parent :
-    //  - FCR  : l'OO est TOUJOURS rattaché directement au FCR via id_enjeu,
-    //           sans pression (même si le FCR porte des facteurs/pressions,
-    //           qui restent purement descriptifs). On n'exige donc aucune pression.
+    //  - FCR  : l'OO est rattaché directement au FCR via id_enjeu. Le lien vers
+    //           des pressions (issues des enjeux écologiques) est FACULTATIF (#474) :
+    //           on envoie aussi pression_ids si l'utilisateur en a choisi.
     //  - Enjeu : l'OO descend obligatoirement d'au moins une pression
     //           (chaîne Facteur → Pression → OO). On bloque si rien n'est sélectionné.
     if (!isFcr && this.newOoPressionIds.length === 0) return;
 
     this.enjeuService.createObjectifOperationnel({
-      ...(isFcr ? { id_enjeu: enjeu.id_enjeu } : { pression_ids: this.newOoPressionIds }),
+      ...(isFcr
+        ? { id_enjeu: enjeu.id_enjeu, ...(this.newOoPressionIds.length ? { pression_ids: this.newOoPressionIds } : {}) }
+        : { pression_ids: this.newOoPressionIds }),
       libelle: this.newOoLibelle.trim(),
       description: this.newOoDescription.trim() || undefined,
     }).subscribe({
@@ -4203,13 +4231,15 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
 
   saveEditOo(oo: ObjectifOperationnel): void {
     if (!this.editOoLibelle.trim()) return;
-    // #337 — un OO de FCR (rattaché directement à l'enjeu) n'a pas de pression :
-    // on ne modifie que le libellé/description sans toucher au rattachement.
+    // #474 — un OO de FCR est rattaché directement au FCR ; son lien vers des
+    // pressions est facultatif et éditable. On envoie donc toujours pression_ids
+    // (liste éventuellement vide = aucun lien). Pour un enjeu classique, au moins
+    // une pression reste obligatoire.
     const isFcr = this.isSelectedFcr();
     if (!isFcr && this.editOoPressionIds.length === 0) return;
 
     this.enjeuService.updateObjectifOperationnel(oo.id_oo, {
-      ...(isFcr ? {} : { pression_ids: this.editOoPressionIds }),
+      pression_ids: this.editOoPressionIds,
       libelle: this.editOoLibelle.trim(),
       description: this.editOoDescription.trim() || undefined,
     }).subscribe({

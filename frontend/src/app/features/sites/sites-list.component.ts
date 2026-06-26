@@ -554,6 +554,61 @@ export class SitesListComponent implements OnInit {
   }
 
   /**
+   * #440 — Rouvre en édition un site que l'utilisateur a créé et qui est
+   * encore « en attente de validation ». Le créateur reste autorisé (côté
+   * backend) à corriger son site tant que la demande de création n'est pas
+   * traitée (ex. ajouter le type oublié). Le site est déjà présent dans
+   * `allSites()` (accessible_site_ids inclut les créations en attente).
+   */
+  editPendingSite(request: ValidationRequestListItem): void {
+    const site = this.allSites().find(s => s.id_site === request.target_site_id);
+    if (!site?.slug) {
+      this.snackBar.open(
+        this.translate.instant('common.messages.error'),
+        this.translate.instant('common.actions.close'),
+        { duration: 3000 }
+      );
+      return;
+    }
+
+    // #440 — l'objet de la liste est allégé (pas de géométrie ni de tous les
+    // champs). On récupère le détail complet pour pré-remplir le formulaire
+    // (type, géométrie/carte, etc.) ; repli sur l'objet liste en cas d'échec.
+    this.adminService.getSite(site.slug).pipe(
+      catchError(() => of(site as unknown as AdminSite))
+    ).subscribe((fullSite) => this.openSiteEditModal(fullSite));
+  }
+
+  /** Ouvre le formulaire de site en mode édition (plein écran) pour un site complet. */
+  private openSiteEditModal(site: AdminSite): void {
+    const dialogRef = this.dialog.open(SiteFormModalComponent, {
+      width: '100vw',
+      maxWidth: '100vw',
+      height: '100vh',
+      maxHeight: '100vh',
+      panelClass: 'site-form-page-mode',
+      hasBackdrop: false,
+      autoFocus: false,
+      data: {
+        site,
+        isPageMode: true,
+      } as SiteFormModalData,
+    });
+
+    dialogRef.afterClosed().subscribe((result: SiteFormModalResult | undefined) => {
+      if (!result) return;
+      if (result.site) {
+        this.snackBar.open(
+          this.translate.instant('sites.editSite.success'),
+          this.translate.instant('common.actions.close'),
+          { duration: 3000 }
+        );
+        this.loadData();
+      }
+    });
+  }
+
+  /**
    * Traite les actions de doublons retournées par le formulaire de création de site.
    */
   private handleDuplicateAction(result: SiteFormModalResult): void {

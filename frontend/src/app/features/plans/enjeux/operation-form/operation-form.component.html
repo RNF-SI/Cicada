@@ -43,6 +43,12 @@
         <div class="form-card form-card-flush">
           <p class="required-notice">{{ 'enjeux.enjeuForm.requiredBefore' | translate }} <span class="required-star">*</span> {{ 'enjeux.enjeuForm.requiredAfter' | translate }}</p>
 
+          <!-- #481 — Rappel de l'ordre de saisie (l'action se renseigne après son indicateur) -->
+          <div class="info-block saisie-order-help">
+            <i class="fi fi-rr-info"></i>
+            <span>{{ 'enjeux.operations.saisieOrderHelp' | translate }}</span>
+          </div>
+
           <!-- Type d'action (autocomplete groupé par catégorie) -->
           <label class="app-mat-label">{{ 'enjeux.operations.typeActionLabel' | translate }}</label>
       <mat-form-field class="app-mat-form-field full-width" appearance="outline">
@@ -213,6 +219,11 @@
           <!-- Priorité (radio buttons : 1, 2, 3) -->
           <div class="priorite-row">
             <span class="priorite-label">{{ 'enjeux.operations.prioriteLabel' | translate }}</span>
+            <!-- #487 — Info-bulle priorité (actions liées aux OLT) -->
+            <i class="fi fi-rr-info help-icon priorite-help"
+               [matTooltip]="'enjeux.operations.prioriteTooltip' | translate"
+               matTooltipClass="multiline-tooltip"
+               matTooltipPosition="right"></i>
             <mat-radio-group formControlName="id_priorite" class="priorite-radio-group">
               @for (opt of prioriteOptions(); track opt.id_nomenclature) {
                 <mat-radio-button [value]="opt.id_nomenclature" color="primary">
@@ -231,8 +242,9 @@
         <app-accordion variant="default" size="lg" [title]="'enjeux.operations.detailsSuiviTitle' | translate" [expanded]="sectionsOpen['details_suivi']" (expandedChange)="sectionsOpen['details_suivi'] = $event" [class.readonly-section]="estSuiviExistant()">
   <img accordionIcon src="assets/images/ellipses/ellipse-yellow.png" alt="" class="section-dot">
   <div class="section-content">
-<!-- Objectif principal (grouped select) -->
-              <label class="app-mat-label">{{ 'enjeux.operations.objectifPrincipal' | translate }}</label>
+<!-- Objectif principal (grouped select) — #461 obligatoire pour action de suivi -->
+              <label class="app-mat-label">{{ 'enjeux.operations.objectifPrincipal' | translate }}
+                <span class="required-star">*</span></label>
       <mat-form-field class="app-mat-form-field full-width" appearance="outline">
                 <mat-label></mat-label>
                 <mat-select formControlName="objectif_principal">
@@ -277,8 +289,9 @@
                 </mat-form-field>
               }
 
-              <!-- Cible principale -->
-              <label class="app-mat-label">{{ 'enjeux.operations.ciblesPrincipales' | translate }}</label>
+              <!-- Cible principale — #461 obligatoire pour action de suivi -->
+              <label class="app-mat-label">{{ 'enjeux.operations.ciblesPrincipales' | translate }}
+                <span class="required-star">*</span></label>
       <mat-form-field class="app-mat-form-field full-width" appearance="outline">
                 <mat-label></mat-label>
                 <mat-select formControlName="cibles_principales">
@@ -296,6 +309,8 @@
                   <app-reference-item-list
                     type="taxon"
                     [items]="taxonItems"
+                    [suggestions]="enjeuTaxonSuggestions()"
+                    [suggestionsLabel]="'enjeux.referenceList.suggestionsTaxonFromEnjeu' | translate"
                     (itemsChange)="onTaxonsChange($event)">
                   </app-reference-item-list>
                 </div>
@@ -315,6 +330,8 @@
                     type="habitat"
                     [items]="habitatItems"
                     [showCorrespondences]="true"
+                    [suggestions]="enjeuHabitatSuggestions()"
+                    [suggestionsLabel]="'enjeux.referenceList.suggestionsHabitatFromEnjeu' | translate"
                     (itemsChange)="onHabitatsChange($event)">
                   </app-reference-item-list>
                 </div>
@@ -1084,35 +1101,56 @@
                 </button>
               }
             </div>
-            <!-- Ligne 2 : Métrique + Type métrique -->
-            <div class="op-indic-line op-indic-line-grid">
-              <app-form-field [label]="'enjeux.operations.metriqueNom' | translate">
-                <input type="text"
-                       [value]="m.nom_metrique || ''"
-                       [disabled]="isReadOnly()"
-                       (blur)="saveMetricName(m.id_metrique, $any($event.target).value)" />
-              </app-form-field>
-              <app-form-field [label]="'enjeux.operations.typeMetrique' | translate">
-                <select
-                  [value]="m.type_metrique_id ?? ''"
-                  [disabled]="isReadOnly()"
-                  (change)="saveMetricType(m.id_metrique, $any($event.target).value ? +$any($event.target).value : null)">
-                  <option [ngValue]="''">—</option>
-                  @for (opt of responseTypeOptions(); track opt.id) {
-                    <option [ngValue]="opt.id">{{ opt.label }}</option>
-                  }
-                </select>
-              </app-form-field>
-            </div>
-            <!-- Ligne 3 : Valeur cible -->
+            <!-- #452 — Format de la métrique : simple ou grille (5 niveaux) -->
             <div class="op-indic-line">
-              <app-form-field [label]="'enjeux.operations.valeurCible' | translate">
-                <input type="text"
-                       [value]="m.etat_reference || ''"
-                       [disabled]="isReadOnly()"
-                       (blur)="saveMetricTarget(m.id_metrique, $any($event.target).value)" />
-              </app-form-field>
+              <app-checkbox
+                [checked]="isResponseGrille(m)"
+                [disabled]="isReadOnly()"
+                [label]="'enjeux.operations.formatGrilleLabel' | translate"
+                [mention]="'enjeux.operations.formatGrilleHint' | translate"
+                (checkedChange)="setResponseFormat(m, $event)">
+              </app-checkbox>
             </div>
+
+            @if (isResponseGrille(m)) {
+              <!-- Format GRILLE : éditeur de grille réutilisé (état/pression) -->
+              <app-metrique-form
+                [metrique]="responseGridData(m)"
+                [typeMetriqueOptions]="gridTypeMetriqueOptions()"
+                (metriqueChange)="onResponseGridChange(m.id_metrique, $event)">
+              </app-metrique-form>
+            } @else {
+              <!-- Format SIMPLE : saisie d'une valeur libre (comportement existant) -->
+              <!-- Ligne 2 : Métrique + Type métrique -->
+              <div class="op-indic-line op-indic-line-grid">
+                <app-form-field [label]="'enjeux.operations.metriqueNom' | translate">
+                  <input type="text"
+                         [value]="m.nom_metrique || ''"
+                         [disabled]="isReadOnly()"
+                         (blur)="saveMetricName(m.id_metrique, $any($event.target).value)" />
+                </app-form-field>
+                <app-form-field [label]="'enjeux.operations.typeMetrique' | translate">
+                  <select
+                    [value]="m.type_metrique_id ?? ''"
+                    [disabled]="isReadOnly()"
+                    (change)="saveMetricType(m.id_metrique, $any($event.target).value ? +$any($event.target).value : null)">
+                    <option [ngValue]="''">—</option>
+                    @for (opt of responseTypeOptions(); track opt.id) {
+                      <option [ngValue]="opt.id">{{ opt.label }}</option>
+                    }
+                  </select>
+                </app-form-field>
+              </div>
+              <!-- Ligne 3 : Valeur cible -->
+              <div class="op-indic-line">
+                <app-form-field [label]="'enjeux.operations.valeurCible' | translate">
+                  <input type="text"
+                         [value]="m.etat_reference || ''"
+                         [disabled]="isReadOnly()"
+                         (blur)="saveMetricTarget(m.id_metrique, $any($event.target).value)" />
+                </app-form-field>
+              </div>
+            }
           </div>
         }
       </div>
@@ -1137,24 +1175,42 @@
                 <i class="fi fi-rr-trash"></i>
               </button>
             </div>
-            <div class="op-indic-line op-indic-line-grid">
-              <app-form-field [label]="'enjeux.operations.metriqueNom' | translate">
-                <input type="text" [(ngModel)]="pi.nom_metrique" [ngModelOptions]="{ standalone: true }" />
-              </app-form-field>
-              <app-form-field [label]="'enjeux.operations.typeMetrique' | translate">
-                <select [(ngModel)]="pi.type_metrique_id" [ngModelOptions]="{ standalone: true }">
-                  <option [ngValue]="null">—</option>
-                  @for (opt of responseTypeOptions(); track opt.id) {
-                    <option [ngValue]="opt.id">{{ opt.label }}</option>
-                  }
-                </select>
-              </app-form-field>
-            </div>
+            <!-- #452 — Format de la métrique : simple ou grille (5 niveaux) -->
             <div class="op-indic-line">
-              <app-form-field [label]="'enjeux.operations.valeurCible' | translate">
-                <input type="text" [(ngModel)]="pi.valeur_cible" [ngModelOptions]="{ standalone: true }" />
-              </app-form-field>
+              <app-checkbox
+                [checked]="isPendingGrille(pi)"
+                [label]="'enjeux.operations.formatGrilleLabel' | translate"
+                [mention]="'enjeux.operations.formatGrilleHint' | translate"
+                (checkedChange)="setPendingResponseFormat(pi, $event)">
+              </app-checkbox>
             </div>
+
+            @if (isPendingGrille(pi) && pi.formData) {
+              <app-metrique-form
+                [metrique]="pi.formData"
+                [typeMetriqueOptions]="gridTypeMetriqueOptions()"
+                (metriqueChange)="pi.formData = $event">
+              </app-metrique-form>
+            } @else {
+              <div class="op-indic-line op-indic-line-grid">
+                <app-form-field [label]="'enjeux.operations.metriqueNom' | translate">
+                  <input type="text" [(ngModel)]="pi.nom_metrique" [ngModelOptions]="{ standalone: true }" />
+                </app-form-field>
+                <app-form-field [label]="'enjeux.operations.typeMetrique' | translate">
+                  <select [(ngModel)]="pi.type_metrique_id" [ngModelOptions]="{ standalone: true }">
+                    <option [ngValue]="null">—</option>
+                    @for (opt of responseTypeOptions(); track opt.id) {
+                      <option [ngValue]="opt.id">{{ opt.label }}</option>
+                    }
+                  </select>
+                </app-form-field>
+              </div>
+              <div class="op-indic-line">
+                <app-form-field [label]="'enjeux.operations.valeurCible' | translate">
+                  <input type="text" [(ngModel)]="pi.valeur_cible" [ngModelOptions]="{ standalone: true }" />
+                </app-form-field>
+              </div>
+            }
           </div>
         }
       </div>

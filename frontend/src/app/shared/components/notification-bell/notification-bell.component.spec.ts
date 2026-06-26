@@ -122,28 +122,28 @@ describe('NotificationBellComponent', () => {
 
   describe('Badge Display', () => {
     it('should display badge count normally', () => {
-      totalBadgeCountSignal.set(5);
+      unreadCountSignal.set(5);
       fixture.detectChanges();
 
       expect(component.badgeDisplay()).toBe('5');
     });
 
     it('should display 99+ when count exceeds 99', () => {
-      totalBadgeCountSignal.set(100);
+      unreadCountSignal.set(100);
       fixture.detectChanges();
 
       expect(component.badgeDisplay()).toBe('99+');
     });
 
     it('should display 99+ when count is 150', () => {
-      totalBadgeCountSignal.set(150);
+      unreadCountSignal.set(150);
       fixture.detectChanges();
 
       expect(component.badgeDisplay()).toBe('99+');
     });
 
     it('should display 0 when no notifications', () => {
-      totalBadgeCountSignal.set(0);
+      unreadCountSignal.set(0);
       fixture.detectChanges();
 
       expect(component.badgeDisplay()).toBe('0');

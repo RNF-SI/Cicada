@@ -373,3 +373,37 @@ tr.is-child {
     padding-left: $spacing-md;
   }
 }
+
+// #391 — Brouillon affiché mais non sélectionnable comme base : ligne grisée
+// + bouton désactivé accompagné d'une icône d'aide expliquant pourquoi.
+.plans-table tr.row-disabled {
+  td {
+    color: $gray;
+  }
+  .plan-name {
+    color: $gray-dark;
+  }
+  // On garde le tag de statut lisible (il porte sa propre couleur).
+  .status-tag {
+    opacity: 0.85;
+  }
+}
+
+.action-disabled {
+  display: inline-flex;
+  align-items: center;
+  gap: $spacing-xs;
+
+  .draft-help-icon {
+    color: $primary-color;
+    font-size: $font-size-base;
+    cursor: help;
+    line-height: 1;
+
+    &:hover,
+    &:focus {
+      color: darken($primary-color, 8%);
+      outline: none;
+    }
+  }
+}

@@ -6,6 +6,30 @@
   padding-bottom: 80px; // Space for fixed action bar
 }
 
+// #493 — Grande bulle d'information en début de création d'un FCR
+.info-block-fcr {
+  display: flex;
+  gap: $spacing-md;
+  align-items: flex-start;
+  margin: $spacing-lg $spacing-xxl 0;
+  padding: $spacing-lg;
+  background-color: $secondary-pale-green;
+  border-radius: $border-radius-md;
+  color: $black;
+
+  i {
+    flex-shrink: 0;
+    font-size: 1.5rem;
+    color: $primary-color;
+    margin-top: 2px;
+  }
+
+  p {
+    margin: 0;
+    line-height: 1.5;
+  }
+}
+
 // Side margin for form pages (reused across all form layouts)
 $form-side-margin: $spacing-xxl;
 
@@ -99,6 +123,12 @@ $form-side-margin: $spacing-xxl;
   font-weight: $font-weight-regular;
   color: $black;
   margin-bottom: $spacing-sm;
+}
+
+// Priority Radio Group (#479)
+.priority-radio-group {
+  display: flex;
+  gap: $spacing-lg;
 }
 
 // FCR Category Radio Group

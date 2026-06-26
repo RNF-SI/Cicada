@@ -179,3 +179,51 @@
     .free-text-add-btn { margin-top: 4px; }
   }
 }
+
+// #476 — suggestions issues de l'enjeu associé (accès rapide avant recherche)
+.suggestions-block {
+  margin-bottom: $spacing-sm;
+
+  .suggestions-label {
+    display: block;
+    font-size: $font-size-small;
+    color: $gray-dark;
+    margin-bottom: $spacing-xxs;
+  }
+
+  .suggestions-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: $spacing-xs;
+  }
+
+  .suggestion-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: $spacing-xxs;
+    padding: 2px $spacing-sm 2px $spacing-xxs;
+    background: $white;
+    border: 1px dashed $primary-color;
+    border-radius: $border-radius-pill;
+    color: $primary-color;
+    font-family: $font-family;
+    font-size: $font-size-small;
+    cursor: pointer;
+    transition: background-color 0.15s ease, color 0.15s ease;
+
+    i { font-size: 14px; line-height: 1; }
+
+    .suggestion-chip__badge {
+      font-weight: $font-weight-bold;
+      background: $gray-lighter;
+      border-radius: $border-radius-sm;
+      padding: 0 $spacing-xxs;
+    }
+
+    &:hover {
+      background: $primary-color;
+      color: $white;
+      .suggestion-chip__badge { background: rgba(255, 255, 255, 0.25); color: $white; }
+    }
+  }
+}

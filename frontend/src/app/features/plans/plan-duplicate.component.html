@@ -97,7 +97,9 @@
                     </td>
                     <td class="col-sites"></td>
                     <td class="col-actions">
-                      <button mat-stroked-button class="btn-sm" (click)="onSelectPlan(ancestor)">
+                      <button mat-stroked-button class="btn-sm"
+                              [disabled]="!canUseAsBase(ancestor)"
+                              (click)="onSelectPlan(ancestor)">
                         {{ 'plans.duplicate.selectPlan' | translate }}
                       </button>
                     </td>
@@ -105,7 +107,8 @@
                 }
               }
               <!-- Main plan row -->
-              <tr [class.odd]="odd" [class.is-child]="linkedPlansById().has(plan.id_pg)">
+              <tr [class.odd]="odd" [class.is-child]="linkedPlansById().has(plan.id_pg)"
+                  [class.row-disabled]="!canUseAsBase(plan)">
                 <td class="col-name">
                   <div [class.child-indent]="linkedPlansById().has(plan.id_pg)">
                     @if (linkedPlansById().has(plan.id_pg)) {
@@ -143,9 +146,23 @@
                   </div>
                 </td>
                 <td class="col-actions">
-                  <button mat-flat-button color="primary" class="btn-sm" (click)="onSelectPlan(plan)">
-                    {{ 'plans.duplicate.selectPlan' | translate }}
-                  </button>
+                  @if (canUseAsBase(plan)) {
+                    <button mat-flat-button color="primary" class="btn-sm" (click)="onSelectPlan(plan)">
+                      {{ 'plans.duplicate.selectPlan' | translate }}
+                    </button>
+                  } @else {
+                    <!-- #391 — brouillon : non sélectionnable, avec aide explicative -->
+                    <span class="action-disabled">
+                      <button mat-flat-button color="primary" class="btn-sm" disabled>
+                        {{ 'plans.duplicate.selectPlan' | translate }}
+                      </button>
+                      <i class="fi fi-rr-info draft-help-icon"
+                         tabindex="0"
+                         [attr.aria-label]="'plans.duplicate.draftNotBasable' | translate"
+                         [matTooltip]="'plans.duplicate.draftNotBasable' | translate"
+                         matTooltipClass="multiline-tooltip"></i>
+                    </span>
+                  }
                 </td>
               </tr>
             }

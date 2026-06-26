@@ -386,6 +386,9 @@ export interface Metrique {
   type_metrique?: number;
   type_metrique_label?: string;
   type_metrique_mnemonique?: string;
+  // #452 — format de présentation (SIMPLE / GRILLE)
+  format_metrique?: number;
+  format_metrique_mnemonique?: string;
   unite?: string;
   // Intitulé du bloc principal quand la métrique combine plusieurs blocs (ex: hauteur)
   bloc_intitule?: string;
@@ -661,6 +664,25 @@ export interface MetriqueRef {
   etat_reference?: string;
   type_metrique_id?: number | null;
   type_metrique_label?: string | null;
+  // #452 — format + grille de scoring (exposés par le backend pour les
+  // métriques d'indicateur de réponse, afin d'alimenter une saisie/visu
+  // type-aware et l'éditeur de grille).
+  format_metrique_id?: number | null;
+  format_metrique_mnemonique?: string | null;
+  type_metrique_mnemonique?: string | null;
+  sens_variation?: 'CROISSANT' | 'DECROISSANT';
+  has_borne_score1?: boolean;
+  has_borne_score5?: boolean;
+  inactive_levels?: number[];
+  score_1_inf?: number | null; score_1_sup?: number | null; score_1_val?: number | null; score_1_label?: string | null;
+  score_2_inf?: number | null; score_2_sup?: number | null; score_2_val?: number | null; score_2_label?: string | null;
+  score_3_inf?: number | null; score_3_sup?: number | null; score_3_val?: number | null; score_3_label?: string | null;
+  score_4_inf?: number | null; score_4_sup?: number | null; score_4_val?: number | null; score_4_label?: string | null;
+  score_5_inf?: number | null; score_5_sup?: number | null; score_5_val?: number | null; score_5_label?: string | null;
+  score_1_sup_inclusive?: boolean;
+  score_2_sup_inclusive?: boolean;
+  score_3_sup_inclusive?: boolean;
+  score_4_sup_inclusive?: boolean;
 }
 
 export type OperationStatut = 'draft' | 'valide';
@@ -768,6 +790,9 @@ export interface MetriqueFormData {
   id_metrique?: number;  // undefined = new, number = existing
   nom_metrique: string;
   type_metrique: number | null;
+  // #452 — format de présentation (id nomenclature FORMAT_METRIQUE : SIMPLE / GRILLE).
+  // Pertinent pour les indicateurs de réponse ; null/SIMPLE = saisie d'une valeur libre.
+  format_metrique?: number | null;
   unite: string;
   // Intitulé du bloc principal (utilisé quand la métrique combine plusieurs blocs).
   bloc_intitule: string;
@@ -845,6 +870,8 @@ export interface MetriqueCreatePayload {
   description?: string;
   ordre?: number;
   type_metrique?: number;
+  // #452 — format de présentation (id nomenclature FORMAT_METRIQUE)
+  format_metrique?: number | null;
   unite?: string | null;
   bloc_intitule?: string | null;
   ponderation?: number;
@@ -950,6 +977,8 @@ export interface FcrCreatePayload {
   id_categorie: number; // ID nomenclature "FCR"
   libelle: string;
   intitule_court?: string;
+  // #479 — priorité facultative pour les FCR (null = « non définie »)
+  rang?: EnjeuPriorite | null;
   id_categorie_fcr: number;
   description?: string;
   // Taxonomic relations (optional for FCR)
@@ -964,7 +993,7 @@ export interface EnjeuUpdatePayload {
   libelle?: string;
   intitule_court?: string;
   description?: string;
-  rang?: EnjeuPriorite;
+  rang?: EnjeuPriorite | null;
   categorie_ecologique?: boolean;
   // Ecological checkboxes
   habitat?: boolean;

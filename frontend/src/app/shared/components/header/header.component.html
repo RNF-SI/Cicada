@@ -22,7 +22,8 @@
 }
 
 <header class="header" [class.home-page]="isHomePage()" [class.with-impersonation]="isImpersonating()"
-        [class.header--on-dark]="headerOnDark()" [style.background-color]="headerColor()">
+        [class.header--on-dark]="headerOnDark()" [style.background-color]="headerColor()"
+        [style.--header-fg]="headerForeground()">
   <div class="header-content">
     <!-- Hamburger Menu - Always visible on mobile/tablet, hidden on home page for desktop -->
     <button class="hamburger-btn" [class.hide-desktop]="isHomePage()" (click)="toggleMenu()" [attr.aria-label]="'header.menu' | translate">

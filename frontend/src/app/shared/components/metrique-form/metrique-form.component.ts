@@ -62,8 +62,16 @@ export class MetriqueFormComponent {
    *  Le second clic groupe la sélection avec ce bloc. Null = aucune sélection. */
   selectedFormulaIdx: number | null = null;
 
-  /** Mnémonique du type de métrique sélectionné (NUMERIQUE par défaut). */
+  /**
+   * Mnémonique du type de grille de métrique sélectionné.
+   * #495 — Tant qu'aucun type n'est choisi (nouvelle métrique), on renvoie une
+   * chaîne vide pour qu'AUCUNE grille ne s'affiche par défaut. La grille
+   * n'apparaît qu'une fois le type de grille sélectionné par l'utilisateur.
+   * (NUMERIQUE reste le repli pour une métrique dont le type est inconnu mais
+   *  bien renseigné.)
+   */
   private get typeMnemonique(): string {
+    if (this.metrique.type_metrique == null) return '';
     const opt = this.typeMetriqueOptions.find(o => o.id_nomenclature === this.metrique.type_metrique);
     return opt?.mnemonique || 'NUMERIQUE';
   }

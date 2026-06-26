@@ -172,7 +172,7 @@ export class LeafletMapEditComponent implements OnInit, AfterViewInit, OnChanges
 
     // Fond de carte
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
       maxZoom: 19
     }).addTo(this.map);
 
@@ -267,10 +267,12 @@ export class LeafletMapEditComponent implements OnInit, AfterViewInit, OnChanges
       },
       edit: {
         featureGroup: this.drawnItems,
-        // #431 : la suppression leaflet-draw (poubelle de gauche) fait doublon
-        // avec le bouton « Tout effacer » custom (poubelle de droite). On ne
-        // garde que ce dernier ; on conserve l'outil d'édition (crayon).
-        remove: false
+        // #431 : on conserve l'outil de suppression leaflet-draw (poubelle de
+        // gauche) car c'est lui qui permet de supprimer UNE seule entité
+        // (cliquer une forme/un marqueur pour la retirer). Le bouton « Tout
+        // effacer » custom (poubelle de droite) a été retiré du template pour
+        // éviter le doublon. On conserve l'outil d'édition (crayon).
+        remove: true
       }
     };
 

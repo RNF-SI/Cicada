@@ -156,8 +156,8 @@
     </div>
 
     <!-- Aperçu du bandeau -->
-    <div class="banner-preview" [style.background-color]="headerColor()">
-      <span class="banner-preview__text">{{ 'admin.settings.banner.preview' | translate }}</span>
+    <div class="banner-preview" [style.background-color]="headerColor()" [style.border]="headerColor().toLowerCase() === '#ffffff' ? '1px solid #E4E4E4' : null">
+      <span class="banner-preview__text" [style.color]="bannerTextColor">{{ 'admin.settings.banner.preview' | translate }}</span>
     </div>
 
     <!-- Couleurs prédéfinies (kit UI) -->
@@ -201,7 +201,7 @@
         @if (currentLogoUrl) {
           <img [src]="currentLogoUrl" alt="Logo structure" class="logo-preview__img" />
         } @else {
-          <span class="logo-preview__empty">{{ 'admin.settings.logo.none' | translate }}</span>
+          <span class="logo-preview__empty" [style.color]="bannerTextColor">{{ 'admin.settings.logo.none' | translate }}</span>
         }
       </div>
 

@@ -521,9 +521,34 @@
                     <span class="indic-info-label">{{ 'plans.suivis.saisie.fields.valeurCible' | translate }} :</span>
                     <span class="indic-info-value">{{ ind.value.valeur_cible || '—' }}</span>
                   </div>
+                  <!-- #452/#464/#465 — saisie type-aware selon le format/type de la métrique -->
                   <app-form-field [label]="ind.value.nom_metrique || ('plans.suivis.saisie.fields.valeurRealisee' | translate)">
-                    <input type="text" formControlName="valeur"
-                           [placeholder]="'plans.suivis.saisie.fields.valeurRealisee' | translate" />
+                    @switch (saisieMode(ind)) {
+                      @case ('text-select') {
+                        <select formControlName="valeur">
+                          <option value="">—</option>
+                          @for (opt of gridOptions(ind); track opt) {
+                            <option [value]="opt">{{ opt }}</option>
+                          }
+                        </select>
+                      }
+                      @case ('chiffre-select') {
+                        <select formControlName="valeur">
+                          <option value="">—</option>
+                          @for (opt of gridOptions(ind); track opt) {
+                            <option [value]="opt">{{ opt }}</option>
+                          }
+                        </select>
+                      }
+                      @case ('number') {
+                        <input type="number" formControlName="valeur"
+                               [placeholder]="'plans.suivis.saisie.fields.valeurRealisee' | translate" />
+                      }
+                      @default {
+                        <input type="text" formControlName="valeur"
+                               [placeholder]="'plans.suivis.saisie.fields.valeurRealisee' | translate" />
+                      }
+                    }
                   </app-form-field>
                 </div>
               }

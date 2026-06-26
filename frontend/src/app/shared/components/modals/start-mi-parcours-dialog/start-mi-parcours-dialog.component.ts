@@ -130,7 +130,10 @@ export class StartMiParcoursDialogComponent implements OnInit {
         },
         error: (err) => {
           this.submitting = false;
-          this.errorMessage = err?.error?.error || 'Erreur lors de la création du brouillon.';
+          // #349 — `AdminService.handleError` renvoie un `Error(message)` :
+          // on lit `err.message` (ex. « Un brouillon est déjà en cours sur ce
+          // plan… ») au lieu de `err.error.error`, toujours indéfini ici.
+          this.errorMessage = err?.message || err?.error?.error || 'Erreur lors de la création du brouillon.';
         },
       });
       return;

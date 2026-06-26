@@ -242,7 +242,8 @@ export class PlanTableauDeBordComponent implements OnInit {
                   subId: ne.id_ne,
                   subLabel: ne.libelle,
                   indicateur: ind,
-                  expanded: true,
+                  // #462 — indicateurs repliés par défaut (métriques masquées) pour alléger le visuel à l'arrivée
+                  expanded: false,
                   metriques: ind.metriques || []
                 });
               }
@@ -275,7 +276,8 @@ export class PlanTableauDeBordComponent implements OnInit {
                   subId: ra.id_ra,
                   subLabel: ra.libelle,
                   indicateur: ind,
-                  expanded: true,
+                  // #462 — indicateurs repliés par défaut (métriques masquées) pour alléger le visuel à l'arrivée
+                  expanded: false,
                   metriques: ind.metriques || []
                 });
               }

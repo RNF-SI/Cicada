@@ -173,6 +173,14 @@
   &:hover { background: $primary-bg-subtle; text-decoration: underline; }
 }
 
+// #452 — badge de score (grille) en regard de la valeur saisie
+.resp-score-badge {
+  width: 16px;
+  height: 16px;
+  vertical-align: middle;
+  margin-right: 4px;
+}
+
 .summary-cards {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));

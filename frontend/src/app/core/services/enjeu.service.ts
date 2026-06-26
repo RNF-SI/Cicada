@@ -631,16 +631,21 @@ export class EnjeuService {
   /** Crée un nouvel indicateur de réponse + métrique liés à l'opération. */
   createOperationResponseIndicator(
     operationId: number,
+    // #452 — `format_metrique` + champs de grille optionnels (passe-plat backend)
+    // pour créer en une fois un indicateur de réponse en format GRILLE.
     payload: {
       nom_indicateur: string;
       nom_metrique?: string;
       type_metrique_id?: number | null;
       valeur_cible?: string;
+      format_metrique?: number | null;
+      [gridField: string]: unknown;
     },
   ): Observable<{
     id_metrique: number; id_indicateur: number;
     nom_indicateur: string; nom_metrique: string;
     etat_reference: string; type_metrique: number | null;
+    format_metrique?: number | null;
   }> {
     return this.http.post<any>(
       `${this.apiUrl}/operations/${operationId}/create-indicator/`,

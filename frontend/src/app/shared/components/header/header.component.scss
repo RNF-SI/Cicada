@@ -523,8 +523,7 @@
     filter: brightness(0) invert(1);
   }
 
-  // Cloche de notifications (composant enfant).
-  ::ng-deep .bell-icon {
-    color: #fff;
-  }
+  // #448 — la cloche de notifications suit désormais la variable CSS
+  // `--header-fg` (cf. notification-bell.component.scss), plus besoin de
+  // surcharge ::ng-deep ici.
 }

@@ -196,6 +196,17 @@ $form-side-margin: $spacing-xxl;
     color: $black;
     font-weight: $font-weight-medium;
   }
+
+  // #487 — Info-bulle priorité : rapprocher l'icône du libellé
+  .priorite-help {
+    margin-left: -#{$spacing-md};
+    cursor: help;
+  }
+}
+
+// #481 — Bandeau de rappel de l'ordre de saisie
+.saisie-order-help {
+  margin-bottom: $spacing-lg;
 }
 
 .priorite-radio-group {

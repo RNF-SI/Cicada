@@ -243,6 +243,42 @@
     }
   }
 
+  // #431 — Les boutons de la barre d'outils leaflet-draw utilisent par défaut
+  // des sprites maison qui ne correspondent pas aux icônes Flaticon décrites
+  // dans le texte sous la carte (« stylo » ≠ icône d'édition, etc.). On
+  // remplace les sprites par les MÊMES glyphes Flaticon que le texte, pour que
+  // bouton et légende soient identiques.
+  .leaflet-draw-toolbar a {
+    background-image: none !important; // masque le sprite leaflet-draw
+    position: relative;
+
+    &::before {
+      font-family: 'uicons-regular-rounded' !important;
+      font-style: normal;
+      font-weight: 400;
+      font-size: 15px;
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: $primary-color;
+    }
+  }
+
+  // Dessin (fond primary au survol/actif → glyphe blanc)
+  .leaflet-draw-draw-polygon::before { content: '\e5a7'; } // fi-rr-draw-polygon
+  .leaflet-draw-draw-marker::before { content: '\ea01'; }  // fi-rr-marker
+  .leaflet-draw-draw-polygon,
+  .leaflet-draw-draw-marker {
+    &:hover::before,
+    &.leaflet-draw-toolbar-button-enabled::before { color: $white; }
+  }
+
+  // Édition / suppression (fond jaune au survol/actif → glyphe reste foncé lisible)
+  .leaflet-draw-edit-edit::before { content: '\eb87'; }   // fi-rr-pencil
+  .leaflet-draw-edit-remove::before { content: '\f026'; } // fi-rr-trash
+
   // Tooltip du dessin
   .leaflet-draw-tooltip {
     background-color: $primary-color;

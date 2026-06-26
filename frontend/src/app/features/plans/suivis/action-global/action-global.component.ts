@@ -16,6 +16,7 @@ import { Operation, OperationAnnee, Mesure } from '../../../../core/models/enjeu
 import {
   ActionStatus, ACTION_LEGEND_ITEMS, getActionIcon, getActionStatusForYear
 } from '../action-status.util';
+import { computeMetriqueScore, scoreLevelName } from '../metrique-seuils.util';
 
 interface YearRow {
   annee: number;
@@ -32,6 +33,8 @@ interface ResponseIndicator {
   nom_metrique: string;
   valeur_cible: string;
   byYear: Map<number, string>;
+  // #452 — métrique complète (grille) pour calculer un badge de score en visu.
+  meta: any;
 }
 
 /** Surcharge manuelle proposée sur la page (3 résultats). */
@@ -144,9 +147,18 @@ export class ActionGlobalComponent implements OnInit {
         nom_metrique: m.nom_metrique,
         valeur_cible: m.etat_reference || '',
         byYear,
+        meta: m,
       };
     });
   });
+
+  /** #452 — Niveau de score (badge SVG) d'une valeur saisie pour un indicateur
+   *  de réponse en grille. Renvoie null si non scorable (format simple / hors grille). */
+  responseScoreLevel(ri: ResponseIndicator, value: string | undefined): string | null {
+    if (!value) return null;
+    const score = computeMetriqueScore(ri.meta, value);
+    return score == null ? null : scoreLevelName(score);
+  }
 
   yearRows = computed<YearRow[]>(() => {
     const op = this.operation();

@@ -272,6 +272,16 @@
                         <i class="fi fi-rr-hourglass-end chip-icon"></i>
                         {{ 'sites.pendingCreations.awaitingValidation' | translate }}
                       </mat-chip>
+                      <!-- #440 — le créateur peut corriger son site (ex. ajouter le type)
+                           tant que la validation est en attente. -->
+                      <button
+                        mat-stroked-button
+                        class="btn-sm pending-edit-btn"
+                        (click)="editPendingSite(request)"
+                        [matTooltip]="'sites.pendingCreations.editTooltip' | translate">
+                        <i class="fi fi-rr-pencil"></i>
+                        {{ 'common.actions.edit' | translate }}
+                      </button>
                     </div>
                   </div>
                 }

@@ -83,3 +83,61 @@ export function formatScoreRange(met: any, level: number): string {
 export function isMetriqueIndetermine(met: any): boolean {
   return (met?.type_metrique_mnemonique ?? '') === 'INDETERMINE';
 }
+
+export type ScoreLevelName = 'very-bad' | 'bad' | 'neutral' | 'good' | 'very-good' | 'no-data';
+
+/** Convertit un score 1-5 en nom de niveau (sert au nom de badge SVG). */
+export function scoreLevelName(score: number | null | undefined): ScoreLevelName {
+  const map: ScoreLevelName[] = ['no-data', 'very-bad', 'bad', 'neutral', 'good', 'very-good'];
+  return (score && map[score]) || 'no-data';
+}
+
+/**
+ * #452 — Calcule le score 1-5 d'une valeur saisie selon la grille d'une
+ * métrique : TEXTE = libellé sélectionné, CHIFFRE = valeur discrète,
+ * NUMERIQUE = seuils (avec inclusivité des bornes, cf. #423). Renvoie null si
+ * non scorable (valeur vide, hors grille, ou format simple sans grille).
+ */
+export function computeMetriqueScore(met: any, value: any): number | null {
+  if (!met || value === null || value === undefined || String(value).trim() === '') return null;
+  const mnemo = resolveMnemonique(met);
+  const inactive: number[] = Array.isArray(met.inactive_levels) ? met.inactive_levels : [];
+
+  if (mnemo === 'TEXTE') {
+    const v = String(value).trim();
+    for (let i = 1; i <= 5; i++) {
+      if (inactive.includes(i)) continue;
+      const label = (met[`score_${i}_label`] ?? '').toString().trim();
+      if (label && label === v) return i;
+    }
+    return null;
+  }
+
+  const num = parseFloat(String(value).replace(',', '.'));
+  if (isNaN(num)) return null;
+
+  if (mnemo === 'CHIFFRE') {
+    for (let i = 1; i <= 5; i++) {
+      if (inactive.includes(i)) continue;
+      const val = met[`score_${i}_val`];
+      if (val !== null && val !== undefined && Number(val) === num) return i;
+    }
+    return null;
+  }
+
+  // NUMERIQUE — seuils
+  for (let i = 1; i <= 5; i++) {
+    if (inactive.includes(i)) continue;
+    const inf = met[`score_${i}_inf`];
+    const sup = met[`score_${i}_sup`];
+    const hasInf = inf !== null && inf !== undefined;
+    const hasSup = sup !== null && sup !== undefined;
+    if (!hasInf && !hasSup) continue;
+    const infIncl = i <= 1 ? true : met[`score_${i - 1}_sup_inclusive`] === false;
+    const supIncl = i >= 5 ? true : met[`score_${i}_sup_inclusive`] !== false;
+    const lowerOk = !hasInf || (infIncl ? num >= Number(inf) : num > Number(inf));
+    const upperOk = !hasSup || (supIncl ? num <= Number(sup) : num < Number(sup));
+    if (lowerOk && upperOk) return i;
+  }
+  return null;
+}

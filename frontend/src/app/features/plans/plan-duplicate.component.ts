@@ -112,29 +112,44 @@ export class PlanDuplicateComponent implements OnInit {
   });
 
   /**
-   * Statuts exploitables comme base de duplication (#391). Auparavant restreint
-   * au seul statut `valide`, ce qui affichait « Aucun plan trouvé » dès que les
-   * plans de l'utilisateur étaient en brouillon, modifiés ou archivés (cas
-   * fréquent : baser un nouveau plan sur le précédent, souvent archivé). On
-   * accepte tout le cycle de vie courant (on exclut seulement les statuts
-   * transitoires du workflow CSRPN).
+   * Statuts **affichés** dans la liste (#391) : tout le cycle de vie courant,
+   * brouillons compris. Les brouillons restent visibles (pour le contexte :
+   * voir les versions en cours) mais grisés/non sélectionnables (cf.
+   * `canUseAsBase`). On exclut seulement les statuts transitoires CSRPN.
    */
-  private static readonly BASABLE_STATUSES = new Set([
+  private static readonly DISPLAYABLE_STATUSES = new Set([
     'draft', 'valide', 'modifie', 'mi_parcours', 'archive',
   ]);
 
-  /** Final filtered list: scope + basable status + leaf only (children_count === 0) + search */
+  /**
+   * Statuts réellement **exploitables comme base** de duplication. Doit
+   * correspondre à `DRAFTABLE_PARENT_STATUSES` côté backend ({valide, modifie,
+   * archive}) : on ne crée une nouvelle version qu'à partir d'un plan **qui a
+   * été validé**. Le brouillon (`draft`) en est exclu — le backend le refuse
+   * (« Seuls les plans validés… ») : il est affiché grisé avec une aide.
+   */
+  private static readonly BASABLE_STATUSES = new Set([
+    'valide', 'modifie', 'archive',
+  ]);
+
+  /** Vrai si le plan peut servir de base à une duplication (#391). Les autres
+   *  (brouillons) restent affichés mais désactivés, avec une infobulle d'aide. */
+  canUseAsBase(plan: AdminPlan): boolean {
+    return PlanDuplicateComponent.BASABLE_STATUSES.has(plan.statut);
+  }
+
+  /** Final filtered list: scope + displayable status + leaf only (children_count === 0) + search */
   readonly filteredPlans = computed(() => {
     const search = this.searchQuery().toLowerCase().trim();
     return this.scopedPlans().filter(p => {
-      // Plans exploitables comme base (#391)
-      const isBasable = PlanDuplicateComponent.BASABLE_STATUSES.has(p.statut);
+      // Plans affichés (basables ou non — les brouillons sont grisés, #391)
+      const isDisplayable = PlanDuplicateComponent.DISPLAYABLE_STATUSES.has(p.statut);
       // Only show leaf plans (not replaced by a newer version)
       const isLeaf = !p.children_count || p.children_count === 0;
       const searchMatch = !search ||
         p.nom.toLowerCase().includes(search) ||
         (p.sites || []).some(s => s.nom_site.toLowerCase().includes(search));
-      return isBasable && isLeaf && searchMatch;
+      return isDisplayable && isLeaf && searchMatch;
     });
   });
 
@@ -267,6 +282,12 @@ export class PlanDuplicateComponent implements OnInit {
   }
 
   onSelectPlan(plan: AdminPlan): void {
+    // #391 — garde-fou : un brouillon ne peut pas servir de base (le backend
+    // le refuse). Le bouton est déjà désactivé côté template ; double sécurité.
+    if (!this.canUseAsBase(plan)) {
+      return;
+    }
+
     const data: DuplicatePlanDialogData = {
       planId: plan.id_pg,
       planName: plan.nom,
@@ -302,12 +323,18 @@ export class PlanDuplicateComponent implements OnInit {
                 this.router.navigate(['/plans']);
               }
             },
-            error: () => {
+            error: (err) => {
               this.duplicating.set(false);
+              // #391 — afficher le message d'erreur explicite renvoyé par le
+              // backend (ex. « Un brouillon est déjà en cours sur ce plan… »,
+              // « Seuls les plans validés… »). `AdminService.handleError`
+              // transforme la réponse HTTP en `Error(message)` : on lit donc
+              // `err.message` (et non `err.error.error`, toujours indéfini ici).
+              const detail = err?.message || this.translate.instant('plans.duplicate.error');
               this.snackBar.open(
-                this.translate.instant('plans.duplicate.error'),
+                detail,
                 this.translate.instant('common.actions.close'),
-                { duration: 5000 }
+                { duration: 6000 }
               );
             },
           });

@@ -80,6 +80,18 @@ export class NotificationBellComponent implements OnInit, OnDestroy {
     // Naviguer si URL d'action
     if (notification.action_url) {
       this.router.navigateByUrl(notification.action_url);
+      return;
+    }
+
+    // #386 — repli : une notification liée à une validation reste actionnable
+    // même sans URL d'action explicite (anciennes notifications). On envoie
+    // l'utilisateur vers la page d'administration des validations où il peut
+    // approuver / rejeter la demande.
+    if (
+      this.canAccessValidations() &&
+      notification.notification_type?.startsWith('validation')
+    ) {
+      this.goToValidations();
     }
   }
 

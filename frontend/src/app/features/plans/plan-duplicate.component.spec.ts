@@ -374,11 +374,14 @@ describe('PlanDuplicateComponent', () => {
       expect(ids).toContain(100);
     });
 
-    it('should include plans with statut draft (#391)', () => {
+    it('should DISPLAY draft plans but mark them non-basable (#391)', () => {
       component.planScope.set('all');
-      const ids = component.filteredPlans().map(p => p.id_pg);
-      // id_pg 101 is draft — désormais exploitable comme base
+      const plans = component.filteredPlans();
+      const ids = plans.map(p => p.id_pg);
+      // id_pg 101 is draft — affiché (visible) mais grisé/non sélectionnable.
       expect(ids).toContain(101);
+      const draft = plans.find(p => p.id_pg === 101)!;
+      expect(component.canUseAsBase(draft)).toBe(false);
     });
 
     it('should include plans with statut archive (#391)', () => {
@@ -396,11 +399,11 @@ describe('PlanDuplicateComponent', () => {
       expect(ids).not.toContain(103);
     });
 
-    it('should include all basable leaf plans (#391)', () => {
+    it('should display all leaf plans incl. drafts, 103 non-leaf excluded (#391)', () => {
       component.planScope.set('all');
       const ids = component.filteredPlans().map(p => p.id_pg);
-      // Basable + leaf : 100 (valide), 101 (draft), 102 (archive), 104, 105, 106.
-      // 103 exclu (non-feuille).
+      // Affichés (feuilles) : 100 (valide), 101 (draft, grisé), 102 (archive),
+      // 104, 105, 106 (valide). 103 exclu (non-feuille).
       expect(ids).toContain(100);
       expect(ids).toContain(101);
       expect(ids).toContain(102);
@@ -427,12 +430,14 @@ describe('PlanDuplicateComponent', () => {
       expect(filtered[0].id_pg).toBe(106);
     });
 
-    it('should find draft plans by search (#391 — drafts now basable)', () => {
+    it('should return draft plans by search but non-basable (#391)', () => {
       component.planScope.set('all');
       component.searchQuery.set('Draft');
       const filtered = component.filteredPlans();
+      // Le brouillon (101) reste visible (recherche) mais non sélectionnable.
       expect(filtered.length).toBe(1);
       expect(filtered[0].id_pg).toBe(101);
+      expect(component.canUseAsBase(filtered[0])).toBe(false);
     });
 
     it('should handle case-insensitive search', () => {
@@ -443,10 +448,10 @@ describe('PlanDuplicateComponent', () => {
       expect(filtered[0].id_pg).toBe(100);
     });
 
-    it('should return all basable leaf plans with empty search (#391)', () => {
+    it('should return all displayed leaf plans with empty search (#391)', () => {
       component.planScope.set('all');
       component.searchQuery.set('');
-      // 100, 101, 102, 104, 105, 106 (103 non-feuille exclu)
+      // 100, 101 (draft grisé), 102, 104, 105, 106 ; 103 non-feuille exclu.
       expect(component.filteredPlans().length).toBe(6);
     });
 
@@ -524,20 +529,23 @@ describe('PlanDuplicateComponent', () => {
     });
 
     describe('all scope (super admin)', () => {
-      it('should include all basable leaf plans (#391)', () => {
+      it('should display all leaf plans incl. drafts (#391)', () => {
         setup({ isSuperAdmin: true });
         component.planScope.set('all');
         const filtered = component.filteredPlans();
-        // draft (101) et archive (102) désormais exploitables comme base
+        // 6 feuilles affichées (dont le brouillon grisé) ; 103 non-feuille exclu.
         expect(filtered.length).toBe(6);
       });
 
-      it('should still exclude non-leaf plans (draft/archive now kept #391)', () => {
+      it('should keep drafts visible but non-basable, exclude non-leaf (#391)', () => {
         setup({ isSuperAdmin: true });
         component.planScope.set('all');
-        const ids = component.filteredPlans().map(p => p.id_pg);
-        expect(ids).toContain(101); // draft — basable
+        const plans = component.filteredPlans();
+        const ids = plans.map(p => p.id_pg);
+        expect(ids).toContain(101); // draft — affiché (grisé)
+        expect(component.canUseAsBase(plans.find(p => p.id_pg === 101)!)).toBe(false);
         expect(ids).toContain(102); // archive — basable
+        expect(component.canUseAsBase(plans.find(p => p.id_pg === 102)!)).toBe(true);
         expect(ids).not.toContain(103); // non-leaf — toujours exclu
       });
     });
@@ -686,7 +694,7 @@ describe('PlanDuplicateComponent', () => {
       expect(mockSnackBarOpen).toHaveBeenCalledWith(
         expect.any(String),
         expect.any(String),
-        { duration: 5000 }
+        { duration: 6000 }
       );
     });
 
@@ -891,10 +899,9 @@ describe('PlanDuplicateComponent', () => {
       expect(ancestors[1].id_pg).toBe(401);
     });
 
-    it('should show only immediate parent when toggle is off and plan is draft', () => {
-      // #391 — les drafts sont désormais exploitables comme base, donc le draft
-      // enfant apparaît dans filteredPlans. Toggle off + draft → on affiche son
-      // parent immédiat uniquement.
+    it('should show a draft leaf with its parent, but mark the draft non-basable (#391)', () => {
+      // Le brouillon reste affiché (avec son parent immédiat au-dessus, toggle
+      // off) mais n'est pas sélectionnable comme base (canUseAsBase=false).
       const parent = makePlan({ id_pg: 500, nom: 'Parent', statut: 'archive', children_count: 1 });
       const child = makePlan({
         id_pg: 501,
@@ -908,11 +915,12 @@ describe('PlanDuplicateComponent', () => {
       component.planScope.set('all');
       component.showOldVersions.set(false);
 
-      // Le draft enfant (feuille) est dans la liste ; le parent (non-feuille) en est exclu.
-      const ids = component.filteredPlans().map(p => p.id_pg);
-      expect(ids).toContain(501);
-      expect(ids).not.toContain(500);
-      // Toggle off + draft → parent immédiat affiché.
+      const plans = component.filteredPlans();
+      const ids = plans.map(p => p.id_pg);
+      expect(ids).toContain(501); // brouillon affiché (feuille)
+      expect(ids).not.toContain(500); // parent non-feuille (montré en ancêtre)
+      expect(component.canUseAsBase(plans.find(p => p.id_pg === 501)!)).toBe(false);
+      // Toggle off + draft → parent immédiat affiché comme ancêtre.
       const linked = component.linkedPlansById();
       expect(linked.has(501)).toBe(true);
       expect(linked.get(501)!.map(p => p.id_pg)).toEqual([500]);

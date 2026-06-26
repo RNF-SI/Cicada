@@ -44,6 +44,13 @@ export class ReferenceItemListComponent implements OnInit, OnDestroy {
   /** Affiche, pour les habitats, leurs correspondances EUNIS/Corine/Cahiers
    * cliquables (puce dépliable). Ne s'applique qu'au type 'habitat'. (#89) */
   @Input() showCorrespondences = false;
+  /** #476 — suggestions à proposer en accès rapide AVANT la recherche large
+   * (ex. habitats/espèces déjà saisis dans l'enjeu associé à l'action). Un clic
+   * ajoute la suggestion aux `items`. Les suggestions déjà sélectionnées sont
+   * masquées. */
+  @Input() suggestions: (TaxonRef | HabitatRef | GeologieRef)[] = [];
+  /** Libellé affiché au-dessus des suggestions (#476). */
+  @Input() suggestionsLabel = '';
   @Output() itemsChange = new EventEmitter<(TaxonRef | HabitatRef | GeologieRef)[]>();
 
   private readonly taxonomyService = inject(TaxonomyService);
@@ -150,6 +157,32 @@ export class ReferenceItemListComponent implements OnInit, OnDestroy {
 
   removeItem(index: number): void {
     this.items = this.items.filter((_, i) => i !== index);
+    this.itemsChange.emit(this.items);
+  }
+
+  // ===========================================================================
+  // #476 — suggestions (accès rapide aux habitats/espèces de l'enjeu associé)
+  // ===========================================================================
+
+  /** Code identifiant d'un item/suggestion selon le type (dédup). */
+  private itemCode(item: TaxonRef | HabitatRef | GeologieRef): string {
+    if (this.type === 'taxon') return String((item as TaxonRef).cd_nom);
+    if (this.type === 'habitat') return String((item as HabitatRef).cd_hab);
+    return String((item as GeologieRef).id_inpg);
+  }
+
+  /** Suggestions non encore sélectionnées (les autres sont masquées). */
+  get availableSuggestions(): (TaxonRef | HabitatRef | GeologieRef)[] {
+    if (!this.suggestions?.length) return [];
+    const selected = new Set(this.items.map(i => this.itemCode(i)));
+    return this.suggestions.filter(s => !selected.has(this.itemCode(s)));
+  }
+
+  /** Ajoute une suggestion à la sélection (avec dédup). */
+  addSuggestion(item: TaxonRef | HabitatRef | GeologieRef): void {
+    const code = this.itemCode(item);
+    if (this.items.some(i => this.itemCode(i) === code)) return;
+    this.items = [...this.items, item];
     this.itemsChange.emit(this.items);
   }
 

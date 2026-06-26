@@ -909,7 +909,8 @@ export class PlanDetailComponent implements OnInit, OnDestroy {
           }
         },
         error: (err) => {
-          const detail = err?.error?.error || this.translate.instant('plans.duplicate.error');
+          // `AdminService.handleError` renvoie un `Error(message)` → lire `err.message`.
+          const detail = err?.message || err?.error?.error || this.translate.instant('plans.duplicate.error');
           this.snackBar.open(detail, this.translate.instant('common.actions.close'), { duration: 5000 });
         },
       });

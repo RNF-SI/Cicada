@@ -13,9 +13,11 @@
         {{ badgeDisplay() }}
       </span>
     }
-    @else if (pendingValidations() > 0) {
+    @else if (canAccessValidations() && pendingValidations() > 0) {
       <!-- #386 — pastille discrète « validations à traiter » sans compteur :
-           signale les validations sans empêcher « tout marquer comme lu ». -->
+           signale les validations sans empêcher « tout marquer comme lu ».
+           Affichée uniquement si l'utilisateur peut réellement les traiter,
+           pour que la pastille corresponde toujours à une action possible. -->
       <span class="notification-badge notification-badge--dot has-critical" aria-hidden="true"></span>
     }
   </span>

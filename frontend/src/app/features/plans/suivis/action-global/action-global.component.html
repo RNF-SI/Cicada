@@ -185,6 +185,11 @@
                              [routerLink]="['/plans', planSlug(), 'suivi-actions', 'saisie', op.id_operation, y]"
                              fragment="indicateurs-reponse"
                              [matTooltip]="'plans.suivis.actionGlobal.goToSaisie' | translate">
+                            <!-- #452 — badge de score (grille) à côté de la valeur saisie -->
+                            @if (responseScoreLevel(ri, ri.byYear.get(y)); as lvl) {
+                              <img [src]="'assets/images/icons/score-badges/score-' + lvl + '.svg'"
+                                   class="resp-score-badge" alt="" />
+                            }
                             {{ ri.byYear.get(y) || '—' }}
                           </a>
                         </td>

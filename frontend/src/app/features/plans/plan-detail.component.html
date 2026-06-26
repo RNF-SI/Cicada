@@ -223,25 +223,21 @@
                        + Lancer évaluation mi-parcours (#276) + Créer nouvelle version
                        + Archiver. Verrouillage en lecture seule identique. -->
                   @if (p.statut === 'valide' || p.statut === 'modifie') {
+                    <!-- #499 — Ordre : Modifier (brouillon) → Évaluation mi-parcours → En cours de révision → Extension → Archiver.
+                         #501 — Le bouton « Créer une nouvelle version » a été retiré : la création d'une nouvelle version
+                         se fait désormais uniquement via la duplication depuis la liste des plans de gestion. -->
                     @if (!p.children_count || p.children_count === 0) {
                       <button class="btn-lifecycle btn-lifecycle-warning" (click)="confirmToDraft()"
                               [matTooltip]="'plans.lifecycle.actions.toDraftDesc' | translate" matTooltipPosition="below">
-                        <i class="fi fi-rr-undo"></i>
+                        <i class="fi fi-rr-pencil"></i>
                         <span>{{ 'plans.lifecycle.actions.toDraft' | translate }}</span>
                       </button>
                     }
-                    @if (p.peut_etre_etendu) {
-                      <button class="btn-lifecycle btn-lifecycle-info" (click)="openExtendDurationDialog()"
-                              [matTooltip]="'plans.lifecycle.actions.extendDurationDesc' | translate" matTooltipPosition="below">
-                        <i class="fi fi-rr-time-add"></i>
-                        <span>{{ 'plans.lifecycle.actions.extendDuration' | translate }}</span>
-                      </button>
-                    }
-                    @if (isPlanExtended()) {
-                      <button class="btn-lifecycle btn-lifecycle-warning" (click)="confirmRevertExtension()"
-                              [matTooltip]="'plans.lifecycle.actions.revertExtensionDesc' | translate" matTooltipPosition="below">
-                        <i class="fi fi-rr-time-delete"></i>
-                        <span>{{ 'plans.lifecycle.actions.revertExtension' | translate }}</span>
+                    @if (canStartMiParcours()) {
+                      <button class="btn-lifecycle btn-lifecycle-terra-cotta" (click)="openStartMiParcoursDialog()"
+                              [matTooltip]="'plans.lifecycle.actions.startMiParcoursDesc' | translate" matTooltipPosition="below">
+                        <i class="fi fi-rr-time-forward"></i>
+                        <span>{{ 'plans.lifecycle.actions.startMiParcours' | translate }}</span>
                       </button>
                     }
                     @if (!isPlanInRevision()) {
@@ -257,18 +253,18 @@
                         <span>{{ 'plans.lifecycle.actions.cancelRevision' | translate }}</span>
                       </button>
                     }
-                    @if (canStartMiParcours()) {
-                      <button class="btn-lifecycle btn-lifecycle-terra-cotta" (click)="openStartMiParcoursDialog()"
-                              [matTooltip]="'plans.lifecycle.actions.startMiParcoursDesc' | translate" matTooltipPosition="below">
-                        <i class="fi fi-rr-time-forward"></i>
-                        <span>{{ 'plans.lifecycle.actions.startMiParcours' | translate }}</span>
+                    @if (p.peut_etre_etendu) {
+                      <button class="btn-lifecycle btn-lifecycle-info" (click)="openExtendDurationDialog()"
+                              [matTooltip]="'plans.lifecycle.actions.extendDurationDesc' | translate" matTooltipPosition="below">
+                        <i class="fi fi-rr-time-add"></i>
+                        <span>{{ 'plans.lifecycle.actions.extendDuration' | translate }}</span>
                       </button>
                     }
-                    @if (canCreateNewVersion()) {
-                      <button class="btn-lifecycle btn-lifecycle-success" (click)="openCreateNewVersionDialog()"
-                              [matTooltip]="'plans.lifecycle.actions.createNewVersionDesc' | translate" matTooltipPosition="below">
-                        <i class="fi fi-rr-duplicate"></i>
-                        <span>{{ 'plans.lifecycle.actions.createNewVersion' | translate }}</span>
+                    @if (isPlanExtended()) {
+                      <button class="btn-lifecycle btn-lifecycle-warning" (click)="confirmRevertExtension()"
+                              [matTooltip]="'plans.lifecycle.actions.revertExtensionDesc' | translate" matTooltipPosition="below">
+                        <i class="fi fi-rr-time-delete"></i>
+                        <span>{{ 'plans.lifecycle.actions.revertExtension' | translate }}</span>
                       </button>
                     }
                     <button class="btn-lifecycle btn-lifecycle-neutral" (click)="confirmArchive()"

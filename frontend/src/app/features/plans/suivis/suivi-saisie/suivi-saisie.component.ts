@@ -16,7 +16,7 @@ import { Component, OnInit, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import {
-  FormArray, FormBuilder, FormGroup, FormsModule, ReactiveFormsModule,
+  AbstractControl, FormArray, FormBuilder, FormGroup, FormsModule, ReactiveFormsModule,
 } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
@@ -474,9 +474,53 @@ export class SuiviSaisieComponent implements OnInit {
         valeur_cible: [met.etat_reference ?? ''],
         id_mesure: [existing?.id_mesure ?? null],
         valeur: [existing?.valeur ?? ''],
+        // #452/#464/#465 — métadonnées de format/grille pour une saisie type-aware
+        // (select des libellés TEXTE, valeurs CHIFFRE, input numérique NUMERIQUE).
+        format_mnemo: [met.format_metrique_mnemonique ?? null],
+        type_mnemo: [met.type_metrique_mnemonique ?? null],
+        meta: [met],
       }));
     }
     this.applyReadOnlyLock();
+  }
+
+  /**
+   * #452/#464/#465 — Mode de saisie d'un indicateur de réponse selon son format
+   * (SIMPLE / GRILLE) et son type (TEXTE / CHIFFRE / NUMERIQUE) :
+   *  - `text-select`   : grille TEXTE → select des libellés (#464)
+   *  - `chiffre-select`: grille CHIFFRE → select des valeurs discrètes
+   *  - `number`        : CHIFFRE/NUMERIQUE sans grille de libellés → input numérique (#465)
+   *  - `text`          : valeur libre (comportement historique)
+   */
+  saisieMode(ctrl: AbstractControl): 'text-select' | 'chiffre-select' | 'number' | 'text' {
+    const v = ctrl.value;
+    const grille = v?.format_mnemo === 'GRILLE';
+    const type = v?.type_mnemo;
+    if (grille && type === 'TEXTE') return 'text-select';
+    if (grille && type === 'CHIFFRE') return 'chiffre-select';
+    if (type === 'CHIFFRE' || type === 'NUMERIQUE') return 'number';
+    return 'text';
+  }
+
+  /** Libellés (TEXTE) ou valeurs (CHIFFRE) sélectionnables, issus de la grille
+   *  de la métrique (niveaux actifs uniquement). */
+  gridOptions(ctrl: AbstractControl): string[] {
+    const meta: any = ctrl.value?.meta;
+    if (!meta) return [];
+    const inactive: number[] = Array.isArray(meta.inactive_levels) ? meta.inactive_levels : [];
+    const type = ctrl.value?.type_mnemo;
+    const out: string[] = [];
+    for (let lvl = 1; lvl <= 5; lvl++) {
+      if (inactive.includes(lvl)) continue;
+      if (type === 'TEXTE') {
+        const label = (meta[`score_${lvl}_label`] ?? '').toString().trim();
+        if (label) out.push(label);
+      } else if (type === 'CHIFFRE') {
+        const val = meta[`score_${lvl}_val`];
+        if (val !== null && val !== undefined) out.push(String(val));
+      }
+    }
+    return out;
   }
 
   /**
