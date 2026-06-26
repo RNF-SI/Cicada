@@ -272,6 +272,10 @@
                         <i class="fi fi-rr-hourglass-end chip-icon"></i>
                         {{ 'sites.pendingCreations.awaitingValidation' | translate }}
                       </mat-chip>
+                      <button mat-stroked-button class="btn-sm" (click)="editPendingSite(request)">
+                        <i class="fi fi-rr-pencil"></i>
+                        {{ 'sites.pendingCreations.edit' | translate }}
+                      </button>
                     </div>
                   </div>
                 }
