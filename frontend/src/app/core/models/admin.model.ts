@@ -89,6 +89,10 @@ export interface AdminSite {
   // Informations sur l'acces de l'utilisateur courant
   current_user_is_referent?: boolean;
   current_user_access?: SiteUserAccess;
+  /** Géométrie polygone (retournée par SiteDetailSerializer) */
+  geom_geojson?: GeoJSONGeometry | null;
+  /** Point de référence (retourné par SiteDetailSerializer) */
+  geom_pt_geojson?: GeoJSONGeometry | null;
 }
 
 /**
