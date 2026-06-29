@@ -431,4 +431,37 @@ describe('OperationFormComponent — ventilation budgétaire', () => {
       expect(m.format_metrique_id).toBe(10);
     });
   });
+
+  // -------------------------------------------------------------------------
+  // #452/#248 — applyPlanReadOnly : verrou lecture seule selon le statut du plan
+  // (empêche le « cochée puis décochée » de la case grille sur un plan validé,
+  //  où le PATCH renvoie 403).
+  // -------------------------------------------------------------------------
+  describe('#452 applyPlanReadOnly', () => {
+    function comp(initial = false): OperationFormComponent {
+      const c = Object.create(OperationFormComponent.prototype) as OperationFormComponent;
+      (c as any).isReadOnly = signal(initial);
+      return c;
+    }
+
+    it('verrouille le formulaire si le plan n\'est pas en brouillon', () => {
+      for (const statut of ['valide', 'modifie', 'mi_parcours', 'archive', 'avis_csrpn']) {
+        const c = comp(false);
+        (c as any).applyPlanReadOnly(statut);
+        expect(c.isReadOnly()).toBe(true);
+      }
+    });
+
+    it('laisse le formulaire éditable si le plan est en brouillon', () => {
+      const c = comp(false);
+      (c as any).applyPlanReadOnly('draft');
+      expect(c.isReadOnly()).toBe(false);
+    });
+
+    it('n\'abaisse jamais un verrou déjà posé (route lecture seule)', () => {
+      const c = comp(true);
+      (c as any).applyPlanReadOnly('draft');
+      expect(c.isReadOnly()).toBe(true);
+    });
+  });
 });

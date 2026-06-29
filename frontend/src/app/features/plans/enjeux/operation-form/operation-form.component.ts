@@ -750,6 +750,20 @@ export class OperationFormComponent implements OnInit {
     return null;
   }
 
+  /**
+   * #452/#248 — Verrou lecture seule si le plan n'est pas en brouillon : le
+   * serveur refuse toute modification (CanModifyOnlyDraftPlan → 403). Sans ce
+   * verrou, la case « Utiliser une grille de scoring » restait cliquable sur un
+   * plan validé ; la mise à jour optimiste la cochait puis, au retour 403 du
+   * PATCH, la décochait aussitôt (symptôme « cochée puis décochée »).
+   * N'abaisse jamais un verrou déjà posé par la route (lecture seule de la fiche).
+   */
+  private applyPlanReadOnly(statut: string | null | undefined): void {
+    if (statut && statut !== 'draft') {
+      this.isReadOnly.set(true);
+    }
+  }
+
   private loadData(): void {
     this.isLoadingData.set(true);
 
@@ -759,6 +773,7 @@ export class OperationFormComponent implements OnInit {
         next: (plan) => {
           this.planId.set(plan.id_pg);
           this.planNom.set(plan.nom);
+          this.applyPlanReadOnly(plan.statut);
           this.computeYears(plan.annee_debut, plan.annee_fin);
           // Extract plan sites
           if (plan.sites) {
@@ -1434,7 +1449,17 @@ export class OperationFormComponent implements OnInit {
       format_metrique_mnemonique: grille ? 'GRILLE' : 'SIMPLE',
     });
     this.enjeuService.updateMetrique(ref.id_metrique, { format_metrique: formatId }).subscribe({
-      error: () => this.patchLocalMetrique(ref.id_metrique, previous),
+      // #452 — en cas d'échec (ex. plan devenu non modifiable → 403), on restaure
+      // l'état précédent ET on l'explique : sans message, l'utilisateur voyait la
+      // case « se cocher puis se décocher » sans comprendre pourquoi.
+      error: () => {
+        this.patchLocalMetrique(ref.id_metrique, previous);
+        this.snackBar.open(
+          this.translate.instant('enjeux.operations.formatGrilleSaveError'),
+          this.translate.instant('common.actions.close'),
+          { duration: 5000 },
+        );
+      },
     });
   }
 
