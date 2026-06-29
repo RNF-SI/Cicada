@@ -1235,6 +1235,10 @@
         "rangLabel": "Rang {{rang}}",
         "title": "Chaîne de versions",
         "linkedTo": "Ce plan est rattaché à la version précédente :",
+        "linkedToMeta": "(rang {{rang}}, version {{version}})",
+        "explainChain": "Ce plan appartient au même cycle de vie que le plan de base et y reste rattaché de façon définitive : ce rattachement ne peut plus être retiré.",
+        "explainVersion": "Sa version reprend par défaut celle du plan de base augmentée de 1 (au sein du même rang).",
+        "explainRang": "Si vous modifiez son rang ci-dessus, sa version est automatiquement recalculée pour repartir au bon numéro dans ce nouveau rang.",
         "notLinked": "Ce plan n'est rattaché à aucune version précédente."
       },
       "messages": {

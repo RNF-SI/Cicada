@@ -135,8 +135,21 @@
             @if (data?.plan?.plan_parent_nom) {
               <p class="info-block info-block-success">
                 <i class="fi fi-rr-link"></i>
-                {{ 'modals.planForm.versionChain.linkedTo' | translate }} <strong>{{ data?.plan?.plan_parent_nom }}</strong>
+                <span>
+                  {{ 'modals.planForm.versionChain.linkedTo' | translate }}
+                  <strong>{{ data?.plan?.plan_parent_nom }}</strong>
+                  @if (data?.plan?.plan_parent_rang || data?.plan?.plan_parent_version) {
+                    <span class="parent-meta">{{ 'modals.planForm.versionChain.linkedToMeta' | translate:{ rang: data?.plan?.plan_parent_rang, version: data?.plan?.plan_parent_version } }}</span>
+                  }
+                </span>
               </p>
+              <!-- #433 — explication de ce que crée une duplication (rattachement
+                   définitif au cycle de vie + logique version/rang). -->
+              <ul class="version-chain-explain text-mention">
+                <li>{{ 'modals.planForm.versionChain.explainChain' | translate }}</li>
+                <li>{{ 'modals.planForm.versionChain.explainVersion' | translate }}</li>
+                <li>{{ 'modals.planForm.versionChain.explainRang' | translate }}</li>
+              </ul>
             } @else {
               <p class="text-mention">{{ 'modals.planForm.versionChain.notLinked' | translate }}</p>
             }

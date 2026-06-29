@@ -552,3 +552,21 @@ mat-dialog-actions {
     }
   }
 }
+
+// #433 — Contexte chaîne de versions : explication duplication
+.version-chain-explain {
+  margin: $spacing-xs 0 0;
+  padding-left: $spacing-md;
+  font-size: $font-size-small;
+  line-height: 1.45;
+
+  li + li {
+    margin-top: $spacing-xxs;
+  }
+}
+
+.parent-meta {
+  margin-left: $spacing-xxs;
+  color: $gray-dark;
+  font-size: $font-size-small;
+}
