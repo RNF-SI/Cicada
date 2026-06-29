@@ -523,6 +523,9 @@ export interface AdminPlan {
   plan_parent_id?: number | null;
   plan_parent_nom?: string | null;
   plan_parent_slug?: string | null;
+  /** #433 — rang/version du plan parent (rappel du contexte chaîne de versions). */
+  plan_parent_rang?: number | null;
+  plan_parent_version?: string | null;
   type_document_display?: string | null;
   children_count?: number;
   version_chain?: PlanVersionChainItem[];

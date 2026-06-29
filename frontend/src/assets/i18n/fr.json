@@ -1235,6 +1235,10 @@
         "rangLabel": "Rang {{rang}}",
         "title": "Chaîne de versions",
         "linkedTo": "Ce plan est rattaché à la version précédente :",
+        "linkedToMeta": "(rang {{rang}}, version {{version}})",
+        "explainChain": "Ce plan appartient au même cycle de vie que le plan de base et y reste rattaché de façon définitive : ce rattachement ne peut plus être retiré.",
+        "explainVersion": "Sa version reprend par défaut celle du plan de base augmentée de 1 (au sein du même rang).",
+        "explainRang": "Si vous modifiez son rang ci-dessus, sa version est automatiquement recalculée pour repartir au bon numéro dans ce nouveau rang.",
         "notLinked": "Ce plan n'est rattaché à aucune version précédente."
       },
       "messages": {
@@ -2193,6 +2197,12 @@
     "duplicate": {
       "title": "Créer à partir d'un plan existant",
       "subtitle": "Sélectionnez un plan de gestion sur lequel vous souhaitez vous baser pour créer le nouveau",
+      "info": {
+        "title": "Que se passe-t-il quand vous sélectionnez un plan ?",
+        "chain": "Le nouveau plan rejoint le cycle de vie (chaîne de versions) du plan choisi et y reste rattaché de façon définitive : impossible de le détacher ensuite.",
+        "version": "Par défaut, sa version reprend celle du plan de base augmentée de 1 (au sein du même rang).",
+        "rang": "Si vous changez son rang ensuite (page « Modifier le plan de gestion »), sa version est automatiquement recalculée pour repartir au bon numéro dans ce nouveau rang."
+      },
       "searchPlaceholder": "Rechercher un plan...",
       "noResults": "Aucun plan trouvé",
       "selectPlan": "Sélectionner",
@@ -2200,7 +2210,9 @@
       "dialog": {
         "title": "Créer sur la base de ce plan",
         "subtitle": "Choisissez les éléments à copier",
-        "planInfo": "Plan source",
+        "planInfo": "Plan de départ (dupliqué)",
+        "rangLabel": "Rang {{rang}}",
+        "versionLabel": "Version {{version}}",
         "options": {
           "sites": "Sites associés",
           "sitesDescription": "Copie les associations site-plan",
@@ -2214,6 +2226,7 @@
           "subElementsDescription": "Copie les facteurs d influence, pressions, objectifs, indicateurs et métriques"
         },
         "hints": {
+          "versionChain": "Le nouveau plan rejoindra le cycle de vie de ce plan de départ et y restera rattaché : par défaut sa version sera incrémentée de 1 (même rang).",
           "excludedData": "Les mesures et opérations ne sont pas copiées.",
           "newStatus": "Le nouveau plan sera en statut Brouillon.",
           "subElementsDisabled": "Activez \"Enjeux et FCR\" pour copier les sous-éléments."

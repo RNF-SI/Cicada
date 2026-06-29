@@ -14,6 +14,22 @@
   }
 }
 
+// Aide contexte chaîne de versions (#433)
+.duplicate-info {
+  margin-bottom: $spacing-lg;
+
+  .info-block-list {
+    margin: $spacing-xxs 0 0;
+    padding-left: $spacing-md;
+    color: $gray-dark;
+    font-size: $font-size-base;
+
+    li + li {
+      margin-top: $spacing-xxs;
+    }
+  }
+}
+
 // ============================================
 // TOOLBAR
 // ============================================

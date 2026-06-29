@@ -552,3 +552,27 @@ mat-dialog-actions {
     }
   }
 }
+
+// #433 — Contexte chaîne de versions : bloc d'aide (explication duplication)
+.version-chain-help {
+  margin-top: $spacing-sm;
+  align-items: flex-start;
+
+  ul {
+    margin: 0;
+    padding-left: $spacing-md;
+    font-size: $font-size-small;
+    color: $gray-dark;
+    line-height: 1.45;
+
+    li + li {
+      margin-top: $spacing-xxs;
+    }
+  }
+}
+
+.parent-meta {
+  margin-left: $spacing-xxs;
+  color: $gray-dark;
+  font-size: $font-size-small;
+}

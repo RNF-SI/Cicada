@@ -14,6 +14,10 @@ export interface DuplicatePlanDialogData {
   planPeriod: string;
   planStatus: string;
   nbSites: number;
+  /** #433 — rang du plan de départ (rappel du contexte chaîne de versions). */
+  planRang?: number;
+  /** #433 — version du plan de départ (rappel du contexte chaîne de versions). */
+  planVersion?: string;
 }
 
 export interface DuplicatePlanDialogResult {

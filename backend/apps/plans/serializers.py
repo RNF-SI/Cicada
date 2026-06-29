@@ -319,6 +319,8 @@ class PlanGestionDetailSerializer(serializers.ModelSerializer):
     plan_parent_id = serializers.IntegerField(source='plan_parent.id_pg', read_only=True, allow_null=True)
     plan_parent_nom = serializers.CharField(source='plan_parent.nom', read_only=True, allow_null=True)
     plan_parent_slug = serializers.SlugField(source='plan_parent.slug', read_only=True, allow_null=True)
+    plan_parent_rang = serializers.IntegerField(source='plan_parent.rang', read_only=True, allow_null=True)
+    plan_parent_version = serializers.CharField(source='plan_parent.version', read_only=True, allow_null=True)
     type_document_display = serializers.CharField(source='id_type_document.label', read_only=True, allow_null=True)
     children_count = serializers.IntegerField(source='children.count', read_only=True)
     version_chain = serializers.SerializerMethodField()
@@ -455,6 +457,7 @@ class PlanGestionDetailSerializer(serializers.ModelSerializer):
             'redacteur_nom', 'redacteurs', 'relecteurs', 'autres_contributeurs',
             'commentaire', 'statut', 'statut_display', 'version',
             'plan_parent_id', 'plan_parent_nom', 'plan_parent_slug',
+            'plan_parent_rang', 'plan_parent_version',
             'type_document_display', 'children_count', 'version_chain',
             'geometrie', 'is_multi_sites', 'organismes_gestionnaires', 'sites_list',
             'organismes_redacteurs_list', 'organismes_redacteurs_ids',
