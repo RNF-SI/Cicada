@@ -4091,12 +4091,18 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
     );
   }
 
-  /** Ouvre la fiche action en lecture seule (page dédiée, partageable via URL) */
+  /**
+   * #494 — Ouvre la fiche synthétique de l'action (page dédiée `/fiche`),
+   * et non le formulaire en lecture seule.
+   * #455 — Ouverture dans un nouvel onglet pour ne pas perdre l'arborescence en cours.
+   */
   navigateToViewOperation(operationId: number): void {
     const slug = this.planSlug();
     if (!slug) return;
-    this.lastScrollAnchor = { type: 'operation', id: operationId };
-    this.router.navigate(['/plans', slug, 'enjeux', 'operations', operationId]);
+    const url = this.router.serializeUrl(
+      this.router.createUrlTree(['/plans', slug, 'enjeux', 'operations', operationId, 'fiche'])
+    );
+    window.open(url, '_blank', 'noopener');
   }
 
   deleteOperation(operation: Operation): void {
