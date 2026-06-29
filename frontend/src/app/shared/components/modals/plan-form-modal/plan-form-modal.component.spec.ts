@@ -99,6 +99,8 @@ describe('PlanFormModalComponent', () => {
       getOrganismeSites: getOrganismeSitesMock,
       getUsers: getUsersMock,
       getOrganismes: jest.fn().mockReturnValue(of({ count: 0, results: [] })),
+      // #433 — contexte chaîne de versions chargé en mode édition.
+      getPlansForSites: jest.fn().mockReturnValue(of({ sites: [] })),
       createPlan: createPlanMock,
       updatePlan: updatePlanMock
     };

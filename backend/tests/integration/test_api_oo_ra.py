@@ -276,9 +276,10 @@ class TestObjectifOperationnelFcr:
         }, format='json')
         assert response.status_code == status.HTTP_400_BAD_REQUEST
 
-    def test_fcr_oo_with_pression_rejected(self, api_client, oo_test_data):
-        """Un OO de FCR ne peut pas être rattaché à une pression : fournir à la
-        fois id_enjeu (FCR) et pression_ids est rejeté → 400."""
+    def test_fcr_oo_with_pression_allowed(self, api_client, oo_test_data):
+        """#474 — un OO de FCR PEUT, de façon facultative, être lié à une ou
+        plusieurs pressions EN PLUS de son rattachement direct au FCR (id_enjeu).
+        Fournir à la fois id_enjeu (FCR) et pression_ids est désormais accepté."""
         fcr = self._make_fcr(oo_test_data)
         api_client.force_authenticate(user=oo_test_data['referent'])
         response = api_client.post('/api/plans/objectifs-operationnels/', {
@@ -286,7 +287,11 @@ class TestObjectifOperationnelFcr:
             'pression_ids': [oo_test_data['pression1'].id_pression],
             'libelle': 'OO FCR avec pression',
         }, format='json')
-        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert response.status_code == status.HTTP_201_CREATED
+        oo = ObjectifOperationnel.objects.get(libelle='OO FCR avec pression')
+        assert oo.id_enjeu_id == fcr.id_enjeu
+        assert oo.pressions.count() == 1
+        assert oo.pressions.first().id_pression == oo_test_data['pression1'].id_pression
 
     def test_fcr_can_have_facteur_influence(self, api_client, oo_test_data):
         """Évolution du modèle FCR : un facteur d'influence (descriptif) peut

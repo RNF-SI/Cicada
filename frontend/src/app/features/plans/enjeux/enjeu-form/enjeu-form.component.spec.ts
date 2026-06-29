@@ -111,6 +111,7 @@ describe('EnjeuFormComponent', () => {
   let mockAdminService: {
     getPlanBySlug: jest.Mock;
     getNomenclatureByMnemonique: jest.Mock;
+    getNomenclaturesByType: jest.Mock;
   };
 
   function setup(routeParams: Record<string, string> = {}, parentParentParams: Record<string, string> = { slug: 'plan-test' }): void {
@@ -127,6 +128,8 @@ describe('EnjeuFormComponent', () => {
     mockAdminService = {
       getPlanBySlug: jest.fn().mockReturnValue(of({ id_pg: 10, nom: 'Plan Test' })),
       getNomenclatureByMnemonique: jest.fn().mockReturnValue(of({ id_nomenclature: 42, mnemonique: 'ENJEU', label: 'Enjeu' })),
+      // #237 — typologie des objets géologiques chargée à l'init du composant.
+      getNomenclaturesByType: jest.fn().mockReturnValue(of([])),
     };
     TestBed.configureTestingModule({
       imports: [
@@ -172,7 +175,8 @@ describe('EnjeuFormComponent', () => {
       setup();
       expect(component.form.get('libelle')?.value).toBe('');
       expect(component.form.get('intitule_court')?.value).toBe('');
-      expect(component.form.get('rang')?.value).toBe(1);
+      // rang est optionnel (défaut « non défini » = null, bornes 1..3).
+      expect(component.form.get('rang')?.value).toBe(null);
       expect(component.form.get('categorie_ecologique')?.value).toBe(true);
       // Ecological checkboxes
       expect(component.form.get('habitat')?.value).toBe(false);
@@ -238,9 +242,10 @@ describe('EnjeuFormComponent', () => {
       expect(component.form.get('libelle')?.hasError('maxlength')).toBe(true);
     });
 
-    it('should require rang', () => {
+    it('should not require rang (optionnel, « non défini » autorisé)', () => {
       component.form.get('rang')?.setValue(null);
-      expect(component.form.get('rang')?.hasError('required')).toBe(true);
+      expect(component.form.get('rang')?.hasError('required')).toBe(false);
+      expect(component.form.get('rang')?.valid).toBe(true);
     });
 
     it('should validate rang min(1)', () => {

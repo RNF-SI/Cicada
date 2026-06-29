@@ -135,7 +135,7 @@ describe('SettingsService', () => {
         homepage_image: null,
         homepage_image_url: null,
         homepage_image_position: 'top',
-        header_color: '#025359',
+        header_color: '#FFFFFF',
         structure_logo: null,
         structure_logo_url: null,
         updated_at: '',
