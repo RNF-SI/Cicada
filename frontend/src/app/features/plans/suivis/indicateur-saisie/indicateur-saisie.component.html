@@ -130,9 +130,14 @@
 
           @switch (mode()) {
 
-            <!-- MODE ÉDITION AUTO -->
-            @case ('edit-auto') {
+            <!-- MODE ÉDITION UNIFIÉ (#510) : les métriques restent toujours
+                 saisissables ; le résultat de l'indicateur est calculé en live,
+                 avec une option de forçage manuel (qui n'affecte que le résultat). -->
+            @case ('edit') {
               <form [formGroup]="form" class="edit-form">
+
+                <!-- 1) Saisie des métriques (toujours possible) -->
+                <h3 class="edit-subtitle">{{ 'plans.suivis.indicateur.metriquesSaisieTitle' | translate }}</h3>
                 @for (m of ind.metriques || []; track m.id_metrique) {
                   <div class="metric-block">
                     <div class="metric-meta">
@@ -162,9 +167,19 @@
                   </div>
                 }
 
-                <!-- Résultat de l'indicateur (calcul auto) -->
+                <!-- 2) Résultat de l'indicateur -->
                 <div class="indicator-result">
                   <label class="metric-label">{{ 'plans.suivis.indicateur.resultatIndicateur' | translate }} :</label>
+
+                  <!-- Résultat AUTO : toujours affiché, recalculé en live -->
+                  <div class="result-auto-label">
+                    {{ 'plans.suivis.indicateur.autoResultLabel' | translate }} :
+                    @if (liveAutoScore() !== null) {
+                      <strong>{{ scoreLabels[scoreToLevel(liveAutoScore())] }}</strong>
+                    } @else {
+                      <span class="text-muted">{{ 'plans.suivis.indicateur.autoResultPending' | translate }}</span>
+                    }
+                  </div>
                   <div class="global-bar">
                     @for (lvl of scoreLevelsList; track lvl; let i = $index) {
                       <span class="global-cell"
@@ -174,62 +189,42 @@
                       </span>
                     }
                   </div>
-                  <button type="button" class="btn-link" (click)="setMode('edit-override')">
-                    {{ 'plans.suivis.indicateur.switchToManual' | translate }}
-                  </button>
-                </div>
-              </form>
-            }
 
-            <!-- MODE ÉDITION OVERRIDE MANUEL -->
-            @case ('edit-override') {
-              <form [formGroup]="form" class="edit-form">
-                @for (m of ind.metriques || []; track m.id_metrique) {
-                  <div class="metric-block">
-                    <div class="metric-meta">
-                      <span>{{ 'plans.suivis.indicateur.intituleMetrique' | translate }} : <strong>{{ m.nom_metrique }}</strong></span>
-                      <span class="meta-sep">·</span>
-                      <span>{{ 'plans.suivis.indicateur.thresh.etatReference' | translate }} : <strong>{{ m.etat_reference || '—' }}</strong></span>
+                  <!-- Explication du calcul automatique -->
+                  <p class="auto-explanation">
+                    <i class="fi fi-rr-info"></i>
+                    {{ 'plans.suivis.indicateur.autoExplanation' | translate }}
+                  </p>
+
+                  <!-- Case : forcer manuellement le résultat -->
+                  <app-checkbox
+                    [checked]="manualOverride()"
+                    [label]="'plans.suivis.indicateur.forceManual' | translate"
+                    [mention]="'plans.suivis.indicateur.forceManualHint' | translate"
+                    (checkedChange)="setManualOverride($event)">
+                  </app-checkbox>
+
+                  @if (manualOverride()) {
+                    <div class="manual-block">
+                      <label class="metric-label">{{ 'plans.suivis.indicateur.manualResultLabel' | translate }}</label>
+                      <div class="manual-score-row">
+                        @for (lvl of scoreLevelsList; track lvl; let i = $index) {
+                          <button type="button" class="manual-score-btn"
+                                  [class]="'lvl-' + lvl"
+                                  [class.active]="scoreOverride() === i + 1"
+                                  (click)="pickManualScore(i + 1)">
+                            {{ scoreLabels[lvl] }}
+                          </button>
+                        }
+                      </div>
+                      <label class="metric-label">{{ 'plans.suivis.indicateur.manualReason' | translate }}</label>
+                      <textarea rows="3" class="full-width"
+                                [(ngModel)]="commentaireOverrideModel"
+                                [ngModelOptions]="{ standalone: true }"
+                                [placeholder]="'plans.suivis.indicateur.manualReasonPlaceholder' | translate"></textarea>
                     </div>
-                    <label class="metric-label">{{ 'plans.suivis.indicateur.resultat' | translate }}</label>
-                    <input type="text" [formControlName]="'m_' + m.id_metrique"
-                           [placeholder]="m.unite || ''" />
-                  </div>
-                }
-
-                <!-- Bandeau info -->
-                <div class="info-banner">
-                  <i class="fi fi-rr-info"></i>
-                  <div>
-                    <p><strong>{{ 'plans.suivis.indicateur.manualNote' | translate }}</strong></p>
-                    <p>{{ 'plans.suivis.indicateur.autoWas' | translate }}
-                      <strong>{{ scoreLabels[scoreToLevel(liveAutoScore())] | uppercase }}</strong>
-                    </p>
-                  </div>
-                </div>
-
-                <!-- 5 boutons score manuel -->
-                <div class="manual-score-row">
-                  @for (lvl of scoreLevelsList; track lvl; let i = $index) {
-                    <button type="button" class="manual-score-btn"
-                            [class]="'lvl-' + lvl"
-                            [class.active]="scoreOverride() === i + 1"
-                            (click)="pickManualScore(i + 1)">
-                      {{ scoreLabels[lvl] }}
-                    </button>
                   }
                 </div>
-
-                <!-- Raisons -->
-                <label class="metric-label">{{ 'plans.suivis.indicateur.manualReason' | translate }}</label>
-                <textarea rows="3" class="full-width"
-                          [(ngModel)]="commentaireOverrideModel"
-                          [ngModelOptions]="{ standalone: true }"
-                          [placeholder]="'plans.suivis.indicateur.manualReasonPlaceholder' | translate"></textarea>
-
-                <button type="button" class="btn-link" (click)="setMode('edit-auto')">
-                  {{ 'plans.suivis.indicateur.switchToAuto' | translate }}
-                </button>
               </form>
             }
 
@@ -243,9 +238,6 @@
                     @if (commentaireOverride()) {
                       <p>{{ commentaireOverride() }}</p>
                     }
-                    <button type="button" class="btn-link" (click)="setMode('edit-auto')">
-                      {{ 'plans.suivis.indicateur.switchToAuto' | translate }}
-                    </button>
                   </div>
                 </div>
               }
@@ -292,7 +284,7 @@
                 </tbody>
               </table>
 
-              <button type="button" class="btn-outlined-pill" (click)="setMode('edit-auto')">
+              <button type="button" class="btn-outlined-pill" (click)="editFromRecap()">
                 {{ 'common.actions.edit' | translate }}
               </button>
             }

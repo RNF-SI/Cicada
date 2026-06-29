@@ -18,17 +18,20 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
-import { forkJoin, of } from 'rxjs';
+import { forkJoin, of, Subscription } from 'rxjs';
 import { map } from 'rxjs/operators';
 
 import { HeaderComponent } from '../../../../shared/components/header/header.component';
 import { PlanSidebarComponent } from '../../shared/plan-sidebar/plan-sidebar.component';
+import { CheckboxComponent } from '../../../../shared/components/checkbox/checkbox.component';
 import { AdminService } from '../../../../core/services/admin.service';
 import { EnjeuService } from '../../../../core/services/enjeu.service';
 import { Indicateur, Metrique, Mesure, MesureCreatePayload } from '../../../../core/models/enjeu.model';
 import { formatScoreRange, isMetriqueIndetermine } from '../metrique-seuils.util';
 
-type DisplayMode = 'recap' | 'edit-auto' | 'edit-override';
+// #510 — un seul mode d'édition cohérent (les anciens 'edit-auto'/'edit-override'
+// sont fusionnés : auto par défaut, forçage manuel optionnel via une case).
+type DisplayMode = 'recap' | 'edit';
 type ScoreLevel = 'very-bad' | 'bad' | 'neutral' | 'good' | 'very-good' | 'no-data';
 
 const SCORE_LEVELS: ScoreLevel[] = ['very-bad', 'bad', 'neutral', 'good', 'very-good'];
@@ -39,7 +42,7 @@ const SCORE_LEVELS: ScoreLevel[] = ['very-bad', 'bad', 'neutral', 'good', 'very-
   imports: [
     CommonModule, RouterModule, FormsModule, ReactiveFormsModule,
     MatButtonModule, MatProgressSpinnerModule, MatSnackBarModule, TranslateModule,
-    HeaderComponent, PlanSidebarComponent,
+    HeaderComponent, PlanSidebarComponent, CheckboxComponent,
   ],
   templateUrl: './indicateur-saisie.component.html',
   styleUrl: './indicateur-saisie.component.scss',
@@ -64,12 +67,23 @@ export class IndicateurSaisieComponent implements OnInit {
   isSaving = signal(false);
   errorMessage = signal<string | null>(null);
 
-  mode = signal<DisplayMode>('edit-auto');
+  mode = signal<DisplayMode>('edit');
   scoreAuto = signal<number | null>(null);
   scoreOverride = signal<number | null>(null);
   commentaireOverride = signal<string>('');
   isOverridden = signal(false);
   overrideId = signal<number | null>(null);
+
+  // #510 — Forçage manuel du résultat (case « Forcer le résultat manuellement »).
+  // Décoché = résultat auto ; coché = override manuel. Indépendant de la saisie
+  // des métriques (toujours possible).
+  manualOverride = signal(false);
+
+  // #510 — Tick incrémenté à chaque changement de valeur du formulaire pour
+  // rendre `liveAutoScore` réellement réactif (les FormControl ne sont pas des
+  // signals : sans cette dépendance, le computed restait figé).
+  private formTick = signal(0);
+  private formSub?: Subscription;
 
   /** Liste des années (annee_debut → annee_fin du plan). */
   planYearStart = signal<number>(new Date().getFullYear() - 5);
@@ -127,8 +141,10 @@ export class IndicateurSaisieComponent implements OnInit {
     return null;
   }
 
-  /** Score auto recalculé à partir des valeurs saisies (en live). */
+  /** Score auto recalculé à partir des valeurs saisies (en live, #510).
+   *  Lit `formTick()` pour se réévaluer à chaque modification du formulaire. */
   liveAutoScore = computed<number | null>(() => {
+    this.formTick(); // dépendance réactive (valueChanges du formulaire)
     const ind = this.indicateur();
     if (!ind?.metriques?.length) return null;
     let sum = 0;
@@ -146,7 +162,7 @@ export class IndicateurSaisieComponent implements OnInit {
     return Math.max(1, Math.min(5, Math.round(sum / weight)));
   });
 
-  /** Score effectif affiché en récap (override prioritaire). */
+  /** Score effectif affiché en récap (override sauvegardé prioritaire). */
   effectiveScore = computed<number | null>(() => {
     return this.isOverridden() ? this.scoreOverride() : this.scoreAuto();
   });
@@ -260,6 +276,10 @@ export class IndicateurSaisieComponent implements OnInit {
       group[`m_${met.id_metrique}`] = [''];
     }
     this.form = fb.group(group);
+    // #510 — réactivité du score auto : chaque saisie de métrique bumpe le tick
+    // dont dépend `liveAutoScore`. On résouscrit à chaque (ré)hydratation du form.
+    this.formSub?.unsubscribe();
+    this.formSub = this.form.valueChanges.subscribe(() => this.formTick.update(v => v + 1));
   }
 
   /** Charge le score résolu (auto + override) + les Mesures existantes. */
@@ -284,12 +304,15 @@ export class IndicateurSaisieComponent implements OnInit {
         this.scoreOverride.set(resolved.score_override);
         this.commentaireOverride.set(resolved.commentaire_override || '');
         this.isOverridden.set(resolved.is_overridden);
+        // #510 — l'état « forçage manuel » de l'éditeur reflète l'override
+        // sauvegardé (réinitialisé à chaque (ré)chargement d'année).
+        this.manualOverride.set(resolved.is_overridden);
         // #424 — l'API resolved renvoie désormais l'id de l'override : on le
         // mémorise pour pouvoir le supprimer lors du repassage en auto.
         this.overrideId.set(resolved.id_indicateur_mesure ?? null);
         // Mode initial : recap si on a déjà au moins une mesure ou un override
         const hasAnyData = mesures.length > 0 || resolved.is_overridden;
-        this.mode.set(hasAnyData ? 'recap' : 'edit-auto');
+        this.mode.set(hasAnyData ? 'recap' : 'edit');
         this.isLoading.set(false);
       },
       error: () => {
@@ -328,7 +351,22 @@ export class IndicateurSaisieComponent implements OnInit {
     this.loadResolvedAndMesures();
   }
 
-  setMode(m: DisplayMode): void { this.mode.set(m); }
+  /** #510 — « Modifier » depuis le récap : ouvre l'éditeur unique en
+   *  préservant l'état de forçage manuel précédemment enregistré. */
+  editFromRecap(): void {
+    this.manualOverride.set(this.isOverridden());
+    this.mode.set('edit');
+  }
+
+  /** #510 — Bascule de la case « Forcer le résultat manuellement ». À
+   *  l'activation, on initialise le score forcé sur le score auto courant
+   *  (point de départ cohérent) s'il n'y en a pas déjà un. */
+  setManualOverride(force: boolean): void {
+    this.manualOverride.set(force);
+    if (force && this.scoreOverride() === null) {
+      this.scoreOverride.set(this.liveAutoScore());
+    }
+  }
 
   goBack(): void {
     this.router.navigate(['/plans', this.planSlug(), 'tableau-de-bord']);
@@ -346,40 +384,41 @@ export class IndicateurSaisieComponent implements OnInit {
     if (!ind || !indId) return;
 
     this.isSaving.set(true);
-    const mode = this.mode();
 
-    // 1) Mesures par métrique (mode auto : on enregistre les valeurs saisies)
+    // 1) Mesures par métrique — toujours enregistrées (la saisie des métriques
+    //    reste possible que le résultat soit auto ou forcé manuellement, #510).
     const mesureCalls: any[] = [];
-    if (mode === 'edit-auto' || mode === 'edit-override') {
-      for (const met of ind.metriques || []) {
-        const ctrl = this.form.get(`m_${met.id_metrique}`);
-        const value = ctrl?.value;
-        if (value === null || value === undefined || String(value).trim() === '') continue;
-        const existing = this.mesuresByMetrique.get(met.id_metrique);
-        const payload: MesureCreatePayload = {
-          id_metrique: met.id_metrique,
-          valeur: String(value).replace(',', '.'),
-          date_mesure: `${year}-12-31`,
-        };
-        mesureCalls.push(
-          existing
-            ? this.enjeuService.updateMesure(existing.id_mesure, payload)
-            : this.enjeuService.createMesure(payload),
-        );
-      }
+    for (const met of ind.metriques || []) {
+      const ctrl = this.form.get(`m_${met.id_metrique}`);
+      const value = ctrl?.value;
+      if (value === null || value === undefined || String(value).trim() === '') continue;
+      const existing = this.mesuresByMetrique.get(met.id_metrique);
+      const payload: MesureCreatePayload = {
+        id_metrique: met.id_metrique,
+        valeur: String(value).replace(',', '.'),
+        date_mesure: `${year}-12-31`,
+      };
+      mesureCalls.push(
+        existing
+          ? this.enjeuService.updateMesure(existing.id_mesure, payload)
+          : this.enjeuService.createMesure(payload),
+      );
     }
 
-    // 2) Upsert/Delete IndicateurMesure selon override
+    // 2) Override du RÉSULTAT de l'indicateur (#510) : piloté par la case
+    //    « Forcer le résultat manuellement », indépendamment des métriques.
+    //    - cochée + score choisi → upsert de l'override ;
+    //    - décochée → suppression de l'override existant (retour à l'auto,
+    //      action explicite de l'utilisateur, plus d'effet de bord silencieux).
     let indMesCall: any;
-    if (mode === 'edit-override' && this.scoreOverride() !== null) {
+    if (this.manualOverride() && this.scoreOverride() !== null) {
       indMesCall = this.enjeuService.upsertIndicateurMesure({
         id_indicateur: indId,
         annee: year,
         score_override: this.scoreOverride(),
         commentaire_override: this.commentaireOverride() || null,
       });
-    } else if (this.isOverridden() && this.overrideId()) {
-      // Repasser en auto : on supprime l'override existant
+    } else if (this.overrideId()) {
       indMesCall = this.enjeuService.deleteIndicateurMesure(this.overrideId()!);
     } else {
       indMesCall = of(null);
