@@ -571,6 +571,16 @@ describe('EnjeuxListComponent', () => {
       component.navigateToEnjeuDetail(mockEnjeu1);
       expect(router.navigate).toHaveBeenCalledWith(['/plans', 'plan-test', 'enjeux', 'protection-zones-humides']);
     });
+
+    it('should open the action fiche (not the form) in a new tab (#494, #455)', () => {
+      const openSpy = jest.spyOn(window, 'open').mockReturnValue(null);
+      component.navigateToViewOperation(2445);
+      expect(openSpy).toHaveBeenCalledTimes(1);
+      const [url, target] = openSpy.mock.calls[0];
+      expect(url).toContain('/plans/plan-test/enjeux/operations/2445/fiche');
+      expect(target).toBe('_blank');
+      openSpy.mockRestore();
+    });
   });
 
   // =========================================================================
