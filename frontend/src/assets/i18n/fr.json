@@ -2806,6 +2806,8 @@
       "intituleCourtPlaceholder": "Intitulé court (max 25 car.)",
       "intituleCourtHint": "Veuillez définir un nom raccourci pour l'enjeu (max 25 caractères)",
       "priorite": "Priorité de l'enjeu",
+      "prioriteNonDefinie": "Non définie",
+      "prioriteHint": "Facultatif. Laissez « Non définie » si l'enjeu n'est pas priorisé.",
       "priorite1": "1",
       "priorite2": "2",
       "priorite3": "3",
@@ -2896,8 +2898,6 @@
     },
     "accordion": {
       "priorite": "Priorité",
-      "prioriteNonDefinie": "Non définie",
-      "prioriteHint": "Facultatif. Laissez « Non définie » si vos enjeux ne sont pas priorisés.",
       "categorie": "Catégorie",
       "categorieEnjeu": "Enjeu de conservation du patrimoine naturel",
       "categorieSocioEco": "Enjeu socio-économique",
