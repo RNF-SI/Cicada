@@ -363,7 +363,16 @@ export class PlanPlanificationMensuelleComponent {
     return [...seen.values()].join(', ');
   }
 
+  /**
+   * #354 — Ouvre la fiche synthétique (imprimable/exportable) de l'action.
+   * #455 — Ouverture dans un nouvel onglet pour ne pas perdre le suivi en cours.
+   */
   navigateToViewOperation(operationId: number): void {
-    this.router.navigate(['/plans', this.planSlug(), 'enjeux', 'operations', operationId, 'fiche']);
+    const slug = this.planSlug();
+    if (!slug) return;
+    const url = this.router.serializeUrl(
+      this.router.createUrlTree(['/plans', slug, 'enjeux', 'operations', operationId, 'fiche'])
+    );
+    window.open(url, '_blank', 'noopener');
   }
 }
