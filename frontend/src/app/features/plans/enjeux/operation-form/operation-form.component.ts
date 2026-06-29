@@ -1418,14 +1418,23 @@ export class OperationFormComponent implements OnInit {
     return data;
   }
 
-  /** Bascule le format (SIMPLE / GRILLE) d'une métrique de réponse sauvegardée. */
+  /** Bascule le format (SIMPLE / GRILLE) d'une métrique de réponse sauvegardée.
+   *  Mise à jour **optimiste** : l'éditeur de grille (et son champ « Type de grille
+   *  de métrique ») s'affiche immédiatement, sans attendre l'aller-retour serveur
+   *  qui bloquait le rendu (#452 — retour de test). En cas d'échec réseau, on
+   *  restaure l'état précédent. */
   setResponseFormat(ref: MetriqueRef, grille: boolean): void {
     const formatId = this.formatId(grille ? 'GRILLE' : 'SIMPLE');
+    const previous = {
+      format_metrique_id: ref.format_metrique_id ?? null,
+      format_metrique_mnemonique: ref.format_metrique_mnemonique ?? null,
+    };
+    this.patchLocalMetrique(ref.id_metrique, {
+      format_metrique_id: formatId,
+      format_metrique_mnemonique: grille ? 'GRILLE' : 'SIMPLE',
+    });
     this.enjeuService.updateMetrique(ref.id_metrique, { format_metrique: formatId }).subscribe({
-      next: () => this.patchLocalMetrique(ref.id_metrique, {
-        format_metrique_id: formatId,
-        format_metrique_mnemonique: grille ? 'GRILLE' : 'SIMPLE',
-      }),
+      error: () => this.patchLocalMetrique(ref.id_metrique, previous),
     });
   }
 
