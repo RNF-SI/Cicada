@@ -145,11 +145,16 @@
               </p>
               <!-- #433 — explication de ce que crée une duplication (rattachement
                    définitif au cycle de vie + logique version/rang). -->
-              <ul class="version-chain-explain text-mention">
-                <li>{{ 'modals.planForm.versionChain.explainChain' | translate }}</li>
-                <li>{{ 'modals.planForm.versionChain.explainVersion' | translate }}</li>
-                <li>{{ 'modals.planForm.versionChain.explainRang' | translate }}</li>
-              </ul>
+              <div class="info-block version-chain-help">
+                <div class="info-block-icon"></div>
+                <div class="info-block-content">
+                  <ul>
+                    <li>{{ 'modals.planForm.versionChain.explainChain' | translate }}</li>
+                    <li>{{ 'modals.planForm.versionChain.explainVersion' | translate }}</li>
+                    <li>{{ 'modals.planForm.versionChain.explainRang' | translate }}</li>
+                  </ul>
+                </div>
+              </div>
             } @else {
               <p class="text-mention">{{ 'modals.planForm.versionChain.notLinked' | translate }}</p>
             }
