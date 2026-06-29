@@ -550,6 +550,29 @@
                       }
                     }
                   </app-form-field>
+
+                  <!-- #452 — Rappel de la grille d'évaluation (si format GRILLE) :
+                       les 5 niveaux avec leur libellé/valeur/intervalle, le niveau
+                       correspondant à la valeur saisie est mis en évidence. -->
+                  @if (isGrille(ind)) {
+                    <div class="resp-grid-recap">
+                      <span class="resp-grid-recap-label"
+                            [matTooltip]="'plans.suivis.saisie.fields.gridRecapHint' | translate">
+                        {{ 'plans.suivis.saisie.fields.gridRecap' | translate }}
+                      </span>
+                      <div class="resp-grid-levels">
+                        @for (lv of gridLevels(ind); track lv.level) {
+                          <div class="resp-grid-cell"
+                               [class.active]="lv.active"
+                               [class.inactive]="lv.inactive">
+                            <img [src]="'assets/images/icons/score-badges/score-' + lv.name + '.svg'"
+                                 class="resp-grid-badge" alt="" />
+                            <span class="resp-grid-text">{{ lv.text }}</span>
+                          </div>
+                        }
+                      </div>
+                    </div>
+                  }
                 </div>
               }
             </div>

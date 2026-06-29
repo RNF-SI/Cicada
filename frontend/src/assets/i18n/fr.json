@@ -1982,7 +1982,9 @@
           "metriqueNom": "Métrique",
           "valeurCible": "Valeur cible",
           "valeurRealisee": "Valeur réalisée",
-          "noIndicateurs": "Aucun indicateur de réponse n'est rattaché à cette action."
+          "noIndicateurs": "Aucun indicateur de réponse n'est rattaché à cette action.",
+          "gridRecap": "Grille d'évaluation",
+          "gridRecapHint": "Rappel des 5 niveaux de la grille de cet indicateur de réponse."
         },
         "table": {
           "field": "Champ",
@@ -3198,6 +3200,7 @@
       "indicateursReponse": "Indicateur(s) de réponse",
       "ajouterIndicateurReponse": "Ajouter un indicateur de réponse",
       "indicateursReponseCreateHint": "Enregistrez d'abord l'action pour pouvoir y ajouter des indicateurs de réponse.",
+      "metriqueTypePasDeReponse": "Pas de réponse",
       "metriqueTypeChiffree": "Chiffrée",
       "metriqueTypeTextuelle": "Textuelle",
       "metriqueTypeNumerique": "Numérique",

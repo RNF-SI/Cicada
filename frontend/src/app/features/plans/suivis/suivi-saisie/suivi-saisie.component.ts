@@ -40,6 +40,7 @@ import {
   RealisationUpsertPayload,
   RealisationOrganismeUpsertPayload,
 } from '../../../../core/models/enjeu.model';
+import { formatScoreRange, computeMetriqueScore, scoreLevelName } from '../metrique-seuils.util';
 
 interface Niveau {
   id_nomenclature: number;
@@ -519,6 +520,36 @@ export class SuiviSaisieComponent implements OnInit {
         const val = meta[`score_${lvl}_val`];
         if (val !== null && val !== undefined) out.push(String(val));
       }
+    }
+    return out;
+  }
+
+  /** #452 — Vrai si l'indicateur de réponse utilise une grille de scoring : on
+   *  rappelle alors la grille (5 niveaux) sous le champ de saisie. */
+  isGrille(ctrl: AbstractControl): boolean {
+    return ctrl.value?.format_mnemo === 'GRILLE';
+  }
+
+  /**
+   * #452 — Rappel de la grille d'évaluation d'un indicateur de réponse : les 5
+   * niveaux avec leur libellé/valeur/intervalle (cf. saisie d'un indicateur
+   * d'état/pression). Le niveau correspondant à la valeur saisie est marqué
+   * `active`. Les niveaux désactivés sont marqués `inactive`.
+   */
+  gridLevels(ctrl: AbstractControl): { level: number; name: string; text: string; inactive: boolean; active: boolean }[] {
+    const meta: any = ctrl.value?.meta;
+    if (!meta) return [];
+    const inactive: number[] = Array.isArray(meta.inactive_levels) ? meta.inactive_levels : [];
+    const activeLevel = computeMetriqueScore(meta, ctrl.value?.valeur);
+    const out: { level: number; name: string; text: string; inactive: boolean; active: boolean }[] = [];
+    for (let lvl = 1; lvl <= 5; lvl++) {
+      out.push({
+        level: lvl,
+        name: scoreLevelName(lvl),
+        text: formatScoreRange(meta, lvl),
+        inactive: inactive.includes(lvl),
+        active: activeLevel === lvl,
+      });
     }
     return out;
   }

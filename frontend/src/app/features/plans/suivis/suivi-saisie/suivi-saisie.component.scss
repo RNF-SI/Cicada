@@ -614,6 +614,59 @@ textarea.full-width {
   }
 }
 
+// #452 — Rappel de la grille d'évaluation d'un indicateur de réponse (5 niveaux)
+.resp-grid-recap {
+  margin-top: $spacing-sm;
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-xs;
+}
+
+.resp-grid-recap-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: $gray-dark;
+}
+
+.resp-grid-levels {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spacing-xs;
+}
+
+.resp-grid-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  min-width: 78px;
+  padding: $spacing-xs $spacing-sm;
+  border: 1px solid $gray-lighter;
+  border-radius: $border-radius-sm;
+  background: $white;
+  text-align: center;
+
+  .resp-grid-badge {
+    width: 22px;
+    height: 22px;
+  }
+
+  .resp-grid-text {
+    font-size: 0.8rem;
+    color: $black;
+  }
+
+  &.active {
+    border-color: $primary-color;
+    background: rgba($primary-color, 0.08);
+    .resp-grid-text { font-weight: 700; }
+  }
+
+  &.inactive {
+    opacity: 0.4;
+  }
+}
+
 // =============================================================================
 // Bottom action bar
 // =============================================================================

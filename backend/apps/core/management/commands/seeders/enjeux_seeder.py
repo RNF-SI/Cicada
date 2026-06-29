@@ -2198,6 +2198,9 @@ class EnjeuxSeeder(BaseSeeder):
         type_met_chiffre = self._get_nomenclature('TYPE_METRIQUE', 'CHIFFRE')
         type_met_texte = self._get_nomenclature('TYPE_METRIQUE', 'TEXTE')
         type_met_indetermine = self._get_nomenclature('TYPE_METRIQUE', 'INDETERMINE')
+        # #452 — Format de métrique : GRILLE active la grille de scoring 5 niveaux
+        # (comme les indicateurs d'état/pression) pour un indicateur de réponse.
+        format_grille = self._get_nomenclature('FORMAT_METRIQUE', 'GRILLE')
 
         from datetime import date
 
@@ -3042,11 +3045,15 @@ class EnjeuxSeeder(BaseSeeder):
             indicateurs_created.append(ind)
             self.log_item('créé' if created else 'mis à jour', f'Indicateur: {ind.nom_indicateur[:50]}')
 
+            # #452 — Indicateur de réponse en grille de scoring (NUMERIQUE) :
+            # le score est calculé automatiquement depuis les seuils (saisie d'une
+            # valeur numérique en suivi → badge de score dans la fiche action).
             met, created = Metrique.objects.update_or_create(
                 id_indicateur=ind,
                 nom_metrique='Durée moyenne de séjour',
                 defaults={
                     'type_metrique': type_met_numerique,
+                    'format_metrique': format_grille,
                     'unite': 'jours',
                     'sens_variation': 'CROISSANT',
                     'has_borne_score1': True, 'has_borne_score5': True,
@@ -3068,6 +3075,109 @@ class EnjeuxSeeder(BaseSeeder):
             m, _ = Mesure.objects.update_or_create(
                 id_metrique=met, date_mesure=date(2023, 10, 15),
                 defaults={'valeur': '6.5', 'commentaire': 'Automne 2023 - moyenne sur 4 ind. suivis', 'id_utilisateur_ajout': admin}
+            )
+            mesures_created.append(m)
+            # Remplissage du suivi pour les années de l'action REM-BA02 (2024-2026).
+            m, _ = Mesure.objects.update_or_create(
+                id_metrique=met, date_mesure=date(2024, 10, 12),
+                defaults={'valeur': '8', 'commentaire': 'Automne 2024 - halte prolongée après aménagement', 'id_utilisateur_ajout': admin}
+            )
+            mesures_created.append(m)
+            m, _ = Mesure.objects.update_or_create(
+                id_metrique=met, date_mesure=date(2025, 10, 10),
+                defaults={'valeur': '11', 'commentaire': 'Automne 2025 - stationnement long', 'id_utilisateur_ajout': admin}
+            )
+            mesures_created.append(m)
+
+        # --- #452/#464 — Indicateur de réponse en grille TEXTUELLE ---
+        # En suivi des actions, le résultat se choisit dans un menu déroulant des
+        # 5 libellés (cf. #464). Rattaché au même NE que « Qualité d'accueil »,
+        # lié à l'action REM-BA02 plus bas.
+        if ne_duree_halte and type_ind_reponse and format_grille:
+            ind_resp_texte, created = Indicateur.objects.update_or_create(
+                id_ne=ne_duree_halte,
+                nom_indicateur='Niveau de mise en œuvre de la zone de quiétude',
+                defaults={
+                    'type_indicateur': type_ind_reponse,
+                    'est_standardise': False,
+                    'description': 'Évaluation qualitative du déploiement de la zone de '
+                                   'quiétude lacustre (balisage, surveillance, respect).',
+                    'id_utilisateur_ajout': admin,
+                },
+            )
+            indicateurs_created.append(ind_resp_texte)
+            self.log_item('créé' if created else 'mis à jour', f'Indicateur: {ind_resp_texte.nom_indicateur[:50]}')
+
+            met_resp_texte, _ = Metrique.objects.update_or_create(
+                id_indicateur=ind_resp_texte,
+                nom_metrique='Niveau de déploiement',
+                defaults={
+                    'type_metrique': type_met_texte,
+                    'format_metrique': format_grille,
+                    'etat_reference': 'Pleinement opérationnelle',
+                    'score_1_label': 'Non engagé',
+                    'score_2_label': 'Balisage partiel',
+                    'score_3_label': 'Balisage complet',
+                    'score_4_label': 'Balisage et surveillance',
+                    'score_5_label': 'Pleinement opérationnelle',
+                    'id_utilisateur_ajout': admin,
+                },
+            )
+            metriques_created.append(met_resp_texte)
+            m, _ = Mesure.objects.update_or_create(
+                id_metrique=met_resp_texte, date_mesure=date(2024, 9, 1),
+                defaults={'valeur': 'Balisage complet', 'commentaire': '2024 - bouées posées, surveillance à organiser', 'id_utilisateur_ajout': admin},
+            )
+            mesures_created.append(m)
+            m, _ = Mesure.objects.update_or_create(
+                id_metrique=met_resp_texte, date_mesure=date(2025, 9, 1),
+                defaults={'valeur': 'Balisage et surveillance', 'commentaire': '2025 - rondes hebdomadaires en place', 'id_utilisateur_ajout': admin},
+            )
+            mesures_created.append(m)
+
+        # --- #452/#465 — Indicateur de réponse en grille CHIFFRÉE ---
+        # En suivi des actions, le résultat se choisit dans un menu déroulant des
+        # 5 valeurs (cf. #465). Rattaché au même NE, lié à l'action REM-BA02.
+        if ne_duree_halte and type_ind_reponse and format_grille:
+            ind_resp_chiffre, created = Indicateur.objects.update_or_create(
+                id_ne=ne_duree_halte,
+                nom_indicateur='Taux de réalisation du suivi Balbuzard',
+                defaults={
+                    'type_indicateur': type_ind_reponse,
+                    'est_standardise': False,
+                    'description': 'Part des campagnes d\'observation prévues effectivement '
+                                   'réalisées dans la saison (en %).',
+                    'id_utilisateur_ajout': admin,
+                },
+            )
+            indicateurs_created.append(ind_resp_chiffre)
+            self.log_item('créé' if created else 'mis à jour', f'Indicateur: {ind_resp_chiffre.nom_indicateur[:50]}')
+
+            met_resp_chiffre, _ = Metrique.objects.update_or_create(
+                id_indicateur=ind_resp_chiffre,
+                nom_metrique='Taux de réalisation des campagnes',
+                defaults={
+                    'type_metrique': type_met_chiffre,
+                    'format_metrique': format_grille,
+                    'unite': '%',
+                    'etat_reference': '100',
+                    'score_1_val': 0,
+                    'score_2_val': 25,
+                    'score_3_val': 50,
+                    'score_4_val': 75,
+                    'score_5_val': 100,
+                    'id_utilisateur_ajout': admin,
+                },
+            )
+            metriques_created.append(met_resp_chiffre)
+            m, _ = Mesure.objects.update_or_create(
+                id_metrique=met_resp_chiffre, date_mesure=date(2024, 11, 1),
+                defaults={'valeur': '75', 'commentaire': '2024 - 3 campagnes sur 4 réalisées', 'id_utilisateur_ajout': admin},
+            )
+            mesures_created.append(m)
+            m, _ = Mesure.objects.update_or_create(
+                id_metrique=met_resp_chiffre, date_mesure=date(2025, 11, 1),
+                defaults={'valeur': '100', 'commentaire': '2025 - toutes les campagnes réalisées', 'id_utilisateur_ajout': admin},
             )
             mesures_created.append(m)
 
@@ -4108,6 +4218,9 @@ class EnjeuxSeeder(BaseSeeder):
         # =====================================================================
         ind_balbuzard_freq = next((i for i in indicateurs_created if 'Fréquentation du lac par le Balbuzard' in i.nom_indicateur), None)
         ind_balbuzard_qual = next((i for i in indicateurs_created if 'Qualité d\'accueil du site pour le Balbuzard' in i.nom_indicateur), None)
+        # #452 — indicateurs de réponse en grille (textuelle #464 / chiffrée #465)
+        ind_resp_texte = next((i for i in indicateurs_created if i.nom_indicateur == 'Niveau de mise en œuvre de la zone de quiétude'), None)
+        ind_resp_chiffre = next((i for i in indicateurs_created if i.nom_indicateur == 'Taux de réalisation du suivi Balbuzard'), None)
 
         if ind_balbuzard_freq and prio_op_1:
             op, created = Operation.objects.update_or_create(
@@ -4161,6 +4274,13 @@ class EnjeuxSeeder(BaseSeeder):
                 }
             )
             _link_op_to_indicateur(op, ind_balbuzard_qual)
+            # #452 — l'action REM-BA02 porte aussi deux indicateurs de réponse en
+            # grille (textuelle #464 et chiffrée #465) pour illustrer la saisie
+            # type-aware (menus déroulants) dans le suivi des actions.
+            if ind_resp_texte:
+                _link_op_to_indicateur(op, ind_resp_texte)
+            if ind_resp_chiffre:
+                _link_op_to_indicateur(op, ind_resp_chiffre)
             operations_created.append(op)
             self.log_item('créé' if created else 'mis à jour', f'Opération Balbuzard: {op.libelle[:50]}')
 

@@ -1134,7 +1134,7 @@
                     [value]="m.type_metrique_id ?? ''"
                     [disabled]="isReadOnly()"
                     (change)="saveMetricType(m.id_metrique, $any($event.target).value ? +$any($event.target).value : null)">
-                    <option [ngValue]="''">—</option>
+                    <option [ngValue]="''">{{ 'enjeux.operations.metriqueTypePasDeReponse' | translate }}</option>
                     @for (opt of responseTypeOptions(); track opt.id) {
                       <option [ngValue]="opt.id">{{ opt.label }}</option>
                     }
@@ -1198,7 +1198,7 @@
                 </app-form-field>
                 <app-form-field [label]="'enjeux.operations.typeMetrique' | translate">
                   <select [(ngModel)]="pi.type_metrique_id" [ngModelOptions]="{ standalone: true }">
-                    <option [ngValue]="null">—</option>
+                    <option [ngValue]="null">{{ 'enjeux.operations.metriqueTypePasDeReponse' | translate }}</option>
                     @for (opt of responseTypeOptions(); track opt.id) {
                       <option [ngValue]="opt.id">{{ opt.label }}</option>
                     }

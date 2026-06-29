@@ -6,7 +6,12 @@
  */
 import { TestBed } from '@angular/core/testing';
 import { signal, computed } from '@angular/core';
-import { OperationFormComponent } from './operation-form.component';
+import { Subject } from 'rxjs';
+import {
+  OperationFormComponent,
+  buildResponseTypeOptions,
+  buildGridTypeMetriqueOptions,
+} from './operation-form.component';
 
 // ---------------------------------------------------------------------------
 // Helpers réutilisables
@@ -350,6 +355,80 @@ describe('OperationFormComponent — ventilation budgétaire', () => {
       const c = createComponentInstance();
       c.operationAnnees = [];
       expect(c.isYearLocked(0)).toBe(true);
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // #452 — Types de métrique d'un indicateur de réponse selon le format
+  //   SIMPLE (case décochée)  → « Pas de réponse » (vide) + Chiffrée + Textuelle
+  //   GRILLE (case cochée)    → tous les types (Intervalle numérique inclus)
+  // -------------------------------------------------------------------------
+  describe('#452 buildResponseTypeOptions / buildGridTypeMetriqueOptions', () => {
+    const NOMENCLATURES = [
+      { id_nomenclature: 1, mnemonique: 'NUMERIQUE', label: 'Intervalle numérique' },
+      { id_nomenclature: 2, mnemonique: 'CHIFFRE', label: 'Chiffre' },
+      { id_nomenclature: 3, mnemonique: 'TEXTE', label: 'Texte' },
+      { id_nomenclature: 4, mnemonique: 'INDETERMINE', label: 'Indéterminé' },
+    ];
+
+    it('saisie SIMPLE : n\'expose que Chiffrée et Textuelle (pas NUMERIQUE ni INDETERMINE)', () => {
+      const ids = buildResponseTypeOptions(NOMENCLATURES, (k) => k).map(o => o.id);
+      expect(ids).toEqual([2, 3]); // CHIFFRE, TEXTE
+      expect(ids).not.toContain(1); // pas d'Intervalle numérique en saisie simple
+    });
+
+    it('mode GRILLE : expose tous les types sauf INDETERMINE (Intervalle numérique inclus)', () => {
+      const mnemos = buildGridTypeMetriqueOptions(NOMENCLATURES).map(o => o.mnemonique);
+      expect(mnemos).toEqual(['NUMERIQUE', 'CHIFFRE', 'TEXTE']);
+      expect(mnemos).not.toContain('INDETERMINE');
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // #452 — setResponseFormat : mise à jour OPTIMISTE (l'éditeur de grille
+  // s'affiche immédiatement, sans attendre l'aller-retour serveur), avec revert
+  // si la sauvegarde réseau échoue.
+  // -------------------------------------------------------------------------
+  describe('#452 setResponseFormat — mise à jour optimiste', () => {
+    function setup() {
+      const c = createComponentInstance();
+      (c as any).formatMetriqueOptions = signal([
+        { id_nomenclature: 10, mnemonique: 'SIMPLE', label: 'Simple' },
+        { id_nomenclature: 11, mnemonique: 'GRILLE', label: 'Grille' },
+      ]);
+      (c as any).existingOperation = signal({
+        id_operation: 1,
+        metriques: [{
+          id_metrique: 5, indicateur_type: 'REPONSE',
+          format_metrique_id: 10, format_metrique_mnemonique: 'SIMPLE',
+        }],
+      });
+      const subj = new Subject<unknown>();
+      const calls: { id: number; payload: unknown }[] = [];
+      (c as any).enjeuService = {
+        updateMetrique: (id: number, payload: unknown) => { calls.push({ id, payload }); return subj; },
+      };
+      const ref = (c as any).existingOperation().metriques[0];
+      return { c, subj, calls, ref };
+    }
+
+    it('passe la métrique en GRILLE immédiatement, avant toute réponse serveur', () => {
+      const { c, calls, ref } = setup();
+      c.setResponseFormat(ref, true);
+      const m = (c as any).existingOperation().metriques[0];
+      expect(m.format_metrique_mnemonique).toBe('GRILLE'); // affichage instantané
+      expect(m.format_metrique_id).toBe(11);
+      expect(calls).toEqual([{ id: 5, payload: { format_metrique: 11 } }]); // save déclenché
+    });
+
+    it('restaure l\'état précédent si la sauvegarde échoue', () => {
+      const { c, subj, ref } = setup();
+      c.setResponseFormat(ref, true);
+      expect((c as any).existingOperation().metriques[0].format_metrique_mnemonique).toBe('GRILLE');
+      subj.error(new Error('network'));
+      const m = (c as any).existingOperation().metriques[0];
+      expect(m.format_metrique_mnemonique).toBe('SIMPLE'); // revert
+      expect(m.format_metrique_id).toBe(10);
     });
   });
 });
