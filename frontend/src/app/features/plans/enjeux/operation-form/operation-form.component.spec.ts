@@ -6,7 +6,7 @@
  */
 import { TestBed } from '@angular/core/testing';
 import { signal, computed } from '@angular/core';
-import { Subject } from 'rxjs';
+import { Subject, of } from 'rxjs';
 import {
   OperationFormComponent,
   buildResponseTypeOptions,
@@ -493,6 +493,90 @@ describe('OperationFormComponent — ventilation budgétaire', () => {
       expect(handled).toBe(false);
       expect(c.isReadOnly()).toBe(false);
       expect(opened.length).toBe(0);
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // #452 — flushResponseGrids : enregistre le dernier état de grille en attente
+  // au moment du submit (sinon l'auto-save débouncé est perdu si on valide
+  // aussitôt → type/valeurs/libellés non sauvegardés, grille « vide » au reload).
+  // -------------------------------------------------------------------------
+  describe('#452 flushResponseGrids', () => {
+    function comp() {
+      const c = Object.create(OperationFormComponent.prototype) as OperationFormComponent;
+      (c as any).typeMetriqueOptions = signal([
+        { id_nomenclature: 1351, mnemonique: 'CHIFFRE', label: 'Chiffre' },
+      ]);
+      (c as any).formatMetriqueOptions = signal([
+        { id_nomenclature: 1371, mnemonique: 'GRILLE', label: 'Grille' },
+      ]);
+      const calls: { id: number; p: any }[] = [];
+      (c as any).enjeuService = {
+        updateMetrique: (id: number, p: any) => { calls.push({ id, p }); return of(p); },
+      };
+      (c as any).latestGridData = new Map();
+      return { c, calls };
+    }
+
+    it('PATCHe le dernier état CHIFFRE de chaque grille puis vide la file', () => {
+      const { c, calls } = comp();
+      (c as any).latestGridData.set(5, {
+        nom_metrique: 'Taux', type_metrique: 1351,
+        scores: { 1: { val: 0 }, 2: { val: 25 }, 3: { val: 50 }, 4: { val: 75 }, 5: { val: 100 } },
+        _inactiveLevels: [],
+      });
+      let done = false;
+      (c as any).flushResponseGrids().subscribe(() => { done = true; });
+      expect(done).toBe(true);
+      expect(calls.length).toBe(1);
+      expect(calls[0].id).toBe(5);
+      expect(calls[0].p.type_metrique).toBe(1351);
+      expect(calls[0].p.format_metrique).toBe(1371); // GRILLE
+      expect(calls[0].p.score_1_val).toBe(0);
+      expect(calls[0].p.score_5_val).toBe(100);
+      expect((c as any).latestGridData.size).toBe(0); // file vidée
+    });
+
+    it('sans grille en attente : ne déclenche aucun PATCH', () => {
+      const { c, calls } = comp();
+      let done = false;
+      (c as any).flushResponseGrids().subscribe(() => { done = true; });
+      expect(done).toBe(true);
+      expect(calls.length).toBe(0);
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // #452 — Suppression d'un indicateur de réponse (saved + pending).
+  // -------------------------------------------------------------------------
+  describe('#452 suppression d\'indicateur de réponse', () => {
+    it('removeResponseIndicator : supprime l\'indicateur et le retire de l\'action', () => {
+      const c = Object.create(OperationFormComponent.prototype) as OperationFormComponent;
+      (c as any).operationId = signal(2653);
+      (c as any).existingOperation = signal({
+        id_operation: 2653,
+        metriques: [
+          { id_metrique: 5, indicateur_id: 50, indicateur_type: 'REPONSE' },
+          { id_metrique: 6, indicateur_id: 60, indicateur_type: 'REPONSE' },
+        ],
+      });
+      const deleted: number[] = [];
+      (c as any).enjeuService = {
+        deleteIndicateur: (id: number) => { deleted.push(id); return of(null); },
+      };
+      c.removeResponseIndicator(5);
+      expect(deleted).toEqual([50]); // supprime l'indicateur (cascade métrique)
+      const remaining = (c as any).existingOperation().metriques.map((m: any) => m.id_metrique);
+      expect(remaining).toEqual([6]); // retiré localement
+    });
+
+    it('removePendingResponseIndicator : retire l\'élément à l\'index donné', () => {
+      const c = Object.create(OperationFormComponent.prototype) as OperationFormComponent;
+      (c as any).pendingResponseIndicators = [
+        { nom_indicateur: 'A' }, { nom_indicateur: 'B' }, { nom_indicateur: 'C' },
+      ];
+      c.removePendingResponseIndicator(1);
+      expect((c as any).pendingResponseIndicators.map((p: any) => p.nom_indicateur)).toEqual(['A', 'C']);
     });
   });
 });

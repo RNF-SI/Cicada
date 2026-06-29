@@ -24,7 +24,7 @@ import { MatDialogModule, MatDialog } from '@angular/material/dialog';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { forkJoin, of, Observable, Subject } from 'rxjs';
-import { debounceTime, distinctUntilChanged, filter, switchMap, groupBy, mergeMap } from 'rxjs/operators';
+import { debounceTime, distinctUntilChanged, filter, switchMap, groupBy, mergeMap, catchError } from 'rxjs/operators';
 
 import { HeaderComponent } from '../../../../shared/components/header/header.component';
 import { ReferenceItemListComponent } from '../../../../shared/components/reference-item-list/reference-item-list.component';
@@ -537,21 +537,9 @@ export class OperationFormComponent implements OnInit {
       groupBy(e => e.metriqueId),
       mergeMap(group => group.pipe(
         debounceTime(600),
-        switchMap(({ metriqueId, data }) => {
-          const mnemo = this.getMetriqueTypeMnemonique(data.type_metrique);
-          const payload: any = {
-            nom_metrique: (data.nom_metrique || '').trim(),
-            type_metrique: data.type_metrique ?? undefined,
-            format_metrique: this.formatId('GRILLE'),
-            etat_reference: (data.etat_reference || '').trim(),
-            // #452 — unité et pondération éditées dans la grille (étaient perdues
-            // à la sauvegarde de l'indicateur de réponse).
-            unite: (data.unite || '').trim() || null,
-            ponderation: data.ponderation ?? null,
-            ...buildMetriqueGridFields(data, mnemo),
-          };
-          return this.enjeuService.updateMetrique(metriqueId, payload);
-        }),
+        switchMap(({ metriqueId, data }) =>
+          this.enjeuService.updateMetrique(metriqueId, this.buildResponseGridPayload(data)),
+        ),
       )),
       takeUntilDestroyed(this.destroyRef),
     ).subscribe({
@@ -561,6 +549,43 @@ export class OperationFormComponent implements OnInit {
         { duration: 4000 },
       ),
     });
+  }
+
+  /** #452 — Construit le payload PATCH d'une grille d'indicateur de réponse
+   *  (partagé entre l'auto-save débouncé et le flush au moment de « Valider »). */
+  private buildResponseGridPayload(data: MetriqueFormData): Record<string, unknown> {
+    const mnemo = this.getMetriqueTypeMnemonique(data.type_metrique);
+    return {
+      nom_metrique: (data.nom_metrique || '').trim(),
+      type_metrique: data.type_metrique ?? undefined,
+      format_metrique: this.formatId('GRILLE'),
+      etat_reference: (data.etat_reference || '').trim(),
+      // #452 — unité et pondération éditées dans la grille (étaient perdues).
+      unite: (data.unite || '').trim() || null,
+      ponderation: data.ponderation ?? null,
+      ...buildMetriqueGridFields(data, mnemo),
+    };
+  }
+
+  /** #452 — Dernier état de grille saisi par métrique (pour flush au submit :
+   *  l'auto-save est débouncé et serait perdu si l'utilisateur valide aussitôt). */
+  private latestGridData = new Map<number, MetriqueFormData>();
+
+  /**
+   * #452 — Flush des grilles d'indicateurs de réponse en attente : enregistre
+   * immédiatement (sans debounce) le dernier état saisi, pour qu'un clic
+   * « Valider » juste après une saisie ne perde pas le type / les valeurs / les
+   * libellés (symptôme « la grille ne réapparaît pas au rechargement »).
+   * Tolérant aux erreurs (une grille incomplète ne bloque pas la soumission).
+   */
+  private flushResponseGrids(): Observable<unknown> {
+    if (this.latestGridData.size === 0) return of(null);
+    const calls = [...this.latestGridData.entries()].map(([metriqueId, data]) =>
+      this.enjeuService.updateMetrique(metriqueId, this.buildResponseGridPayload(data))
+        .pipe(catchError(() => of(null))),
+    );
+    this.latestGridData.clear();
+    return forkJoin(calls);
   }
 
   private loadFrequenceNomenclature(): void {
@@ -1492,8 +1517,10 @@ export class OperationFormComponent implements OnInit {
     });
   }
 
-  /** L'éditeur de grille a émis une modification → auto-sauvegarde débouncée. */
+  /** L'éditeur de grille a émis une modification → auto-sauvegarde débouncée.
+   *  On mémorise aussi le dernier état pour pouvoir le flusher au submit (#452). */
   onResponseGridChange(metriqueId: number, data: MetriqueFormData): void {
+    this.latestGridData.set(metriqueId, data);
     this.gridSave$.next({ metriqueId, data });
   }
 
@@ -1747,7 +1774,20 @@ export class OperationFormComponent implements OnInit {
   ): void {
     this.isLoading.set(true);
     this.errorMessage.set(null);
+    // #452 — flush des grilles d'indicateurs de réponse en attente (auto-save
+    // débouncé non encore parti) AVANT de soumettre/naviguer : sinon les
+    // dernières saisies de grille (type, valeurs, libellés) sont perdues quand
+    // l'utilisateur clique « Valider » juste après les avoir remplies.
+    this.flushResponseGrids().subscribe({
+      next: () => this.doSubmitToApi(payload, opts),
+      error: () => this.doSubmitToApi(payload, opts),
+    });
+  }
 
+  private doSubmitToApi(
+    payload: OperationCreatePayload,
+    opts: { stayOnForm: boolean; statut: OperationStatut },
+  ): void {
     payload.statut = opts.statut;
 
     const successKey = opts.stayOnForm
