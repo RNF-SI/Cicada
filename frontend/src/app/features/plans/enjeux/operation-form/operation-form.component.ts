@@ -170,6 +170,34 @@ export class OperationFormComponent implements OnInit {
     formData?: MetriqueFormData;
   }[] = [];
 
+  /** #452 — Passe à `true` quand on tente de valider l'action avec un indicateur
+   *  de réponse sans intitulé : déclenche l'affichage de l'erreur sous les champs
+   *  « Intitulé de l'indicateur de réponse » concernés. */
+  showResponseTitleErrors = signal(false);
+
+  /** #452 — Un intitulé d'indicateur de réponse est « manquant » s'il est vide
+   *  OU s'il est resté le nom par défaut (« Nouvel indicateur de réponse ») : on
+   *  force l'utilisateur à saisir un vrai intitulé avant de valider l'action. */
+  private isBlankResponseTitle(nom: string | null | undefined): boolean {
+    const v = (nom || '').trim();
+    return !v || v === this.translate.instant('enjeux.operations.newIndicatorDefault');
+  }
+
+  /** #452 — Vrai si un indicateur de réponse (enregistré ou en attente) n'a pas
+   *  d'intitulé valide. L'intitulé est obligatoire pour valider l'action. */
+  hasMissingResponseTitle(): boolean {
+    return this.responseIndicators().some(m => this.isBlankResponseTitle(m.indicateur_nom))
+      || this.pendingResponseIndicators.some(pi => this.isBlankResponseTitle(pi.nom_indicateur));
+  }
+
+  /** #452 — Message d'erreur à afficher sous un champ « Intitulé de l'indicateur
+   *  de réponse » (null si pas d'erreur ou validation pas encore tentée). */
+  responseTitleError(nom: string | null | undefined): string | null {
+    return this.showResponseTitleErrors() && this.isBlankResponseTitle(nom)
+      ? this.translate.instant('enjeux.operations.indicateurReponseTitleError')
+      : null;
+  }
+
   /** Emprise spatiale en cours d'édition (#342). undefined = inchangée. */
   pendingEmprise = signal<any | undefined>(undefined);
   /** Emprise à afficher : modif locale en priorité, sinon valeur serveur. */
@@ -1290,9 +1318,20 @@ export class OperationFormComponent implements OnInit {
   }
 
   save(): void {
-    if (this.form.invalid) {
+    // #452 — un indicateur de réponse doit avoir un intitulé pour valider l'action.
+    const titleMissing = this.hasMissingResponseTitle();
+    if (this.form.invalid || titleMissing) {
       this.form.markAllAsTouched();
-      this.showValidationErrorMessage();
+      if (titleMissing) {
+        this.showResponseTitleErrors.set(true);
+        this.snackBar.open(
+          this.translate.instant('enjeux.operations.indicateurReponseTitleRequired'),
+          this.translate.instant('common.actions.close'),
+          { duration: 5000 },
+        );
+      } else {
+        this.showValidationErrorMessage();
+      }
       this.scrollToError();
       return;
     }

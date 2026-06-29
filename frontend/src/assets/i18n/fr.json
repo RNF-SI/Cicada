@@ -3215,6 +3215,8 @@
       "formatGrilleHint": "La grille évalue le résultat sur 5 niveaux (très mauvais à très bon), comme les indicateurs d'état et de pression. Sans grille, on saisit une valeur libre.",
       "formatGrilleSaveError": "Impossible d'enregistrer le format de la métrique : le plan n'est peut-être plus modifiable. Repassez-le en brouillon puis réessayez.",
       "planLockedError": "Action impossible : ce plan n'est plus en brouillon (il a peut-être été validé entre-temps). Repassez-le en brouillon pour le modifier.",
+      "indicateurReponseTitleRequired": "Chaque indicateur de réponse doit avoir un intitulé. Renseignez les intitulés manquants avant de valider.",
+      "indicateurReponseTitleError": "L'intitulé de l'indicateur de réponse est obligatoire.",
       "reponseExamplesTitle": "Exemples pour remplir un indicateur de réponse :",
       "reponseExample1": "Métrique textuelle — Type : « Textuelle » · Métrique : « fait / non fait » · Valeur cible : « fait ».",
       "reponseExample2": "Métrique chiffrée — Type : « Chiffrée » · Métrique : « nombre d'inventaires réalisés / nombre d'inventaires prévus » · Valeur cible : « 100 % ».",

@@ -579,4 +579,42 @@ describe('OperationFormComponent — ventilation budgétaire', () => {
       expect((c as any).pendingResponseIndicators.map((p: any) => p.nom_indicateur)).toEqual(['A', 'C']);
     });
   });
+
+  // -------------------------------------------------------------------------
+  // #452 — Intitulé d'indicateur de réponse obligatoire pour valider l'action.
+  // -------------------------------------------------------------------------
+  describe('#452 hasMissingResponseTitle', () => {
+    const DEFAULT_NAME = 'Nouvel indicateur de réponse';
+    function comp(saved: any[], pending: any[]): OperationFormComponent {
+      const c = Object.create(OperationFormComponent.prototype) as OperationFormComponent;
+      (c as any).responseIndicators = () => saved;
+      (c as any).pendingResponseIndicators = pending;
+      (c as any).translate = {
+        instant: (k: string) => k === 'enjeux.operations.newIndicatorDefault' ? DEFAULT_NAME : k,
+      };
+      return c;
+    }
+
+    it('vrai si un indicateur enregistré n\'a pas d\'intitulé (vide ou espaces)', () => {
+      expect(comp([{ indicateur_nom: '' }], []).hasMissingResponseTitle()).toBe(true);
+      expect(comp([{ indicateur_nom: '   ' }], []).hasMissingResponseTitle()).toBe(true);
+    });
+
+    it('vrai si l\'intitulé est resté le nom par défaut (non renommé)', () => {
+      expect(comp([{ indicateur_nom: DEFAULT_NAME }], []).hasMissingResponseTitle()).toBe(true);
+      expect(comp([], [{ nom_indicateur: DEFAULT_NAME }]).hasMissingResponseTitle()).toBe(true);
+    });
+
+    it('vrai si un indicateur en attente n\'a pas d\'intitulé', () => {
+      expect(comp([], [{ nom_indicateur: '' }]).hasMissingResponseTitle()).toBe(true);
+    });
+
+    it('faux si tous les indicateurs ont un intitulé renseigné', () => {
+      expect(comp([{ indicateur_nom: 'État du lac' }], [{ nom_indicateur: 'Suivi' }]).hasMissingResponseTitle()).toBe(false);
+    });
+
+    it('faux s\'il n\'y a aucun indicateur de réponse', () => {
+      expect(comp([], []).hasMissingResponseTitle()).toBe(false);
+    });
+  });
 });

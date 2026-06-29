@@ -1086,7 +1086,8 @@
             <div class="op-indic-line op-indic-line-title">
               <app-form-field
                 [label]="'enjeux.operations.intituleIndicateurReponse' | translate"
-                [required]="true">
+                [required]="true"
+                [error]="responseTitleError(m.indicateur_nom)">
                 <input type="text"
                        [value]="m.indicateur_nom"
                        [disabled]="isReadOnly()"
@@ -1165,7 +1166,8 @@
         @for (pi of pendingResponseIndicators; track $index; let i = $index; let last = $last) {
           <div class="op-indic-edit-row" [class.with-separator]="!last">
             <div class="op-indic-line op-indic-line-title">
-              <app-form-field [label]="'enjeux.operations.intituleIndicateurReponse' | translate" [required]="true">
+              <app-form-field [label]="'enjeux.operations.intituleIndicateurReponse' | translate" [required]="true"
+                [error]="responseTitleError(pi.nom_indicateur)">
                 <input type="text" [(ngModel)]="pi.nom_indicateur" [ngModelOptions]="{ standalone: true }" />
               </app-form-field>
               <button type="button" class="op-indic-delete"
