@@ -664,6 +664,10 @@ export interface MetriqueRef {
   etat_reference?: string;
   type_metrique_id?: number | null;
   type_metrique_label?: string | null;
+  // #452 — unité et pondération de la métrique (éditées dans la grille d'un
+  // indicateur de réponse), exposées par le backend pour ré-affichage et save.
+  unite?: string | null;
+  ponderation?: number | string | null;
   // #452 — format + grille de scoring (exposés par le backend pour les
   // métriques d'indicateur de réponse, afin d'alimenter une saisie/visu
   // type-aware et l'éditeur de grille).

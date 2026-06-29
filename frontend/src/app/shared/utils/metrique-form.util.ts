@@ -44,9 +44,11 @@ export function metriqueRefToFormData(ref: MetriqueRef): MetriqueFormData {
     nom_metrique: ref.nom_metrique || '',
     type_metrique: ref.type_metrique_id ?? null,
     format_metrique: ref.format_metrique_id ?? null,
-    unite: '',
+    // #452 — ré-afficher l'unité/pondération enregistrées (sinon réinitialisées
+    // à vide à chaque ouverture de la grille d'un indicateur de réponse).
+    unite: ref.unite ?? '',
     bloc_intitule: '',
-    ponderation: null,
+    ponderation: ref.ponderation == null ? null : Number(ref.ponderation),
     etat_reference: ref.etat_reference || '',
     scores: {
       1: { inf: num(ref.score_1_inf), sup: num(ref.score_1_sup), val: num(ref.score_1_val), label: ref.score_1_label || '' },

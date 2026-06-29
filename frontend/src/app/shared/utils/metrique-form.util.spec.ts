@@ -53,6 +53,25 @@ describe('metriqueRefToFormData', () => {
     expect(fd.scores[1].sup).toBe(35);
     expect(fd.has_score1_optional_bound).toBe(true);
   });
+
+  it('#452 — restaure l\'unité et la pondération depuis la MetriqueRef', () => {
+    const ref: MetriqueRef = {
+      id_metrique: 9, nom_metrique: 'm', indicateur_id: 1, indicateur_nom: 'i',
+      unite: 'cm', ponderation: '2.5' as any,
+    };
+    const fd = metriqueRefToFormData(ref);
+    expect(fd.unite).toBe('cm');
+    expect(fd.ponderation).toBe(2.5);
+  });
+
+  it('#452 — unité/pondération absentes → valeurs par défaut', () => {
+    const ref: MetriqueRef = {
+      id_metrique: 9, nom_metrique: 'm', indicateur_id: 1, indicateur_nom: 'i',
+    };
+    const fd = metriqueRefToFormData(ref);
+    expect(fd.unite).toBe('');
+    expect(fd.ponderation).toBeNull();
+  });
 });
 
 describe('buildMetriqueGridFields', () => {

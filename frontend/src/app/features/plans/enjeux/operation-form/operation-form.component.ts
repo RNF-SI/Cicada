@@ -544,6 +544,10 @@ export class OperationFormComponent implements OnInit {
             type_metrique: data.type_metrique ?? undefined,
             format_metrique: this.formatId('GRILLE'),
             etat_reference: (data.etat_reference || '').trim(),
+            // #452 — unité et pondération éditées dans la grille (étaient perdues
+            // à la sauvegarde de l'indicateur de réponse).
+            unite: (data.unite || '').trim() || null,
+            ponderation: data.ponderation ?? null,
             ...buildMetriqueGridFields(data, mnemo),
           };
           return this.enjeuService.updateMetrique(metriqueId, payload);

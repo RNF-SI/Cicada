@@ -641,6 +641,27 @@ class TestMetriquePartialUpdate:
         metrique.refresh_from_db()
         assert metrique.format_metrique_id == grille.id_nomenclature
 
+    def test_patch_unite_ponderation_persiste(self, api_client, indicateur_test_data):
+        """#452 — l'unité et la pondération d'une métrique (éditées dans la grille
+        d'un indicateur de réponse) sont bien enregistrées par un PATCH ; elles
+        étaient perdues à la validation du formulaire d'action."""
+        metrique = MetriqueFactory(
+            id_indicateur=indicateur_test_data['indicateur1'],
+            nom_metrique='Métrique réponse', unite='', ponderation=None,
+            type_metrique=None,
+            id_utilisateur_ajout=indicateur_test_data['referent'],
+        )
+        api_client.force_authenticate(user=indicateur_test_data['referent'])
+        response = api_client.patch(
+            f'/api/plans/metriques/{metrique.id_metrique}/',
+            {'unite': 'cm', 'ponderation': '2.5'},
+            format='json',
+        )
+        assert response.status_code == status.HTTP_200_OK, response.data
+        metrique.refresh_from_db()
+        assert metrique.unite == 'cm'
+        assert float(metrique.ponderation) == 2.5
+
     def test_patch_nom_vide_explicite_reste_rejete(self, api_client, indicateur_test_data):
         """Vider explicitement l'intitulé (nom_metrique='') reste refusé : la
         souplesse ne s'applique qu'aux PATCH qui ne touchent PAS au champ nom."""

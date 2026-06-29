@@ -178,6 +178,11 @@ def _response_metrique_grid(m):
         'format_metrique_id': m.format_metrique_id,
         'format_metrique_mnemonique': getattr(m.format_metrique, 'mnemonique', None) if m.format_metrique_id else None,
         'type_metrique_mnemonique': getattr(m.type_metrique, 'mnemonique', None) if m.type_metrique_id else None,
+        # #452 — unité et pondération de la métrique de réponse (éditées dans la
+        # grille) : exposées pour que le formulaire les ré-affiche et que la
+        # sauvegarde ne les perde pas.
+        'unite': m.unite or '',
+        'ponderation': m.ponderation,
         'sens_variation': m.sens_variation,
         'has_borne_score1': m.has_borne_score1,
         'has_borne_score5': m.has_borne_score5,
