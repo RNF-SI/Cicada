@@ -45,6 +45,8 @@ describe('DuplicatePlanDialogComponent', () => {
     planPeriod: '2024-2034',
     planStatus: 'valide',
     nbSites: 3,
+    planRang: 2,
+    planVersion: '1',
   };
 
   beforeEach(async () => {

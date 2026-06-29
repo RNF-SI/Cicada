@@ -887,6 +887,8 @@ export class PlanDetailComponent implements OnInit, OnDestroy {
       planPeriod: this.formatPeriod(p),
       planStatus: this.translate.instant('plans.status.' + p.statut),
       nbSites: (p.sites || []).length,
+      planRang: p.rang,
+      planVersion: p.version,
     };
 
     const dialogRef = this.dialog.open(DuplicatePlanDialogComponent, {

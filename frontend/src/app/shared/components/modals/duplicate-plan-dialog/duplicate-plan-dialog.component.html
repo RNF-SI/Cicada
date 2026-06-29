@@ -10,6 +10,8 @@
     <h4>{{ 'plans.duplicate.dialog.planInfo' | translate }}</h4>
     <div class="plan-info-details">
       <span class="plan-name">{{ data.planName }}</span>
+      <span class="plan-meta" *ngIf="data.planRang">{{ 'plans.duplicate.dialog.rangLabel' | translate:{ rang: data.planRang } }}</span>
+      <span class="plan-meta" *ngIf="data.planVersion">{{ 'plans.duplicate.dialog.versionLabel' | translate:{ version: data.planVersion } }}</span>
       <span class="plan-meta" *ngIf="data.planPeriod">{{ data.planPeriod }}</span>
       <span class="plan-meta" *ngIf="data.nbSites">{{ data.nbSites }} site(s)</span>
     </div>
@@ -65,6 +67,10 @@
 
   <!-- Hints -->
   <div class="hints">
+    <div class="hint-item">
+      <i class="fi fi-rr-info"></i>
+      <span>{{ 'plans.duplicate.dialog.hints.versionChain' | translate }}</span>
+    </div>
     <div class="hint-item">
       <i class="fi fi-rr-info"></i>
       <span>{{ 'plans.duplicate.dialog.hints.excludedData' | translate }}</span>

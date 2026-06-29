@@ -294,6 +294,8 @@ export class PlanDuplicateComponent implements OnInit {
       planPeriod: this.getPeriod(plan),
       planStatus: this.getStatusLabel(plan.statut),
       nbSites: (plan.sites || []).length,
+      planRang: plan.rang,
+      planVersion: plan.version,
     };
 
     const dialogRef = this.dialog.open(DuplicatePlanDialogComponent, {
