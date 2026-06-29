@@ -609,6 +609,57 @@ class TestMetriqueCreate:
 
 
 # =============================================================================
+# Metrique partial update (PATCH) — #452
+# =============================================================================
+
+@pytest.mark.django_db
+@pytest.mark.integration
+class TestMetriquePartialUpdate:
+    """Tests for PATCH /api/plans/metriques/{id}/ (mise à jour partielle, #452)."""
+
+    def test_patch_format_sur_metrique_sans_nom(self, api_client, indicateur_test_data):
+        """#452 — basculer le format (grille de scoring) d'une métrique de réponse
+        encore SANS intitulé (fraîchement ajoutée) ne doit pas être rejeté : un
+        PATCH partiel qui ne touche pas `nom_metrique` ne ré-exige pas l'intitulé.
+        Reproduit le « cochée puis décochée » de la case grille (PATCH 400 →
+        revert optimiste côté front)."""
+        grille = NomenclatureFormatMetriqueFactory(
+            mnemonique='GRILLE', cd_nomenclature='GRILLE', label='Grille',
+        )
+        metrique = MetriqueFactory(
+            id_indicateur=indicateur_test_data['indicateur1'],
+            nom_metrique='', type_metrique=None,
+            id_utilisateur_ajout=indicateur_test_data['referent'],
+        )
+        api_client.force_authenticate(user=indicateur_test_data['referent'])
+        response = api_client.patch(
+            f'/api/plans/metriques/{metrique.id_metrique}/',
+            {'format_metrique': grille.id_nomenclature},
+            format='json',
+        )
+        assert response.status_code == status.HTTP_200_OK, response.data
+        metrique.refresh_from_db()
+        assert metrique.format_metrique_id == grille.id_nomenclature
+
+    def test_patch_nom_vide_explicite_reste_rejete(self, api_client, indicateur_test_data):
+        """Vider explicitement l'intitulé (nom_metrique='') reste refusé : la
+        souplesse ne s'applique qu'aux PATCH qui ne touchent PAS au champ nom."""
+        metrique = MetriqueFactory(
+            id_indicateur=indicateur_test_data['indicateur1'],
+            nom_metrique='Déjà nommée',
+            id_utilisateur_ajout=indicateur_test_data['referent'],
+        )
+        api_client.force_authenticate(user=indicateur_test_data['referent'])
+        response = api_client.patch(
+            f'/api/plans/metriques/{metrique.id_metrique}/',
+            {'nom_metrique': ''},
+            format='json',
+        )
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert 'nom_metrique' in response.data
+
+
+# =============================================================================
 # Metrique by-indicateur endpoint
 # =============================================================================
 

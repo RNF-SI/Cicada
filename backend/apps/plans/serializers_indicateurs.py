@@ -267,7 +267,15 @@ class MetriqueCreateSerializer(serializers.ModelSerializer):
             'nom_metrique',
             getattr(self.instance, 'nom_metrique', '') if self.instance else '',
         )
-        if not is_indetermine and not (nom or '').strip():
+        # #452 — En mise à jour PARTIELLE (PATCH) qui ne touche pas à l'intitulé,
+        # on n'exige pas qu'il soit déjà renseigné : un indicateur de réponse
+        # fraîchement ajouté peut être configuré (bascule en grille de scoring,
+        # type de métrique…) AVANT d'être nommé. Sans cette souplesse, le PATCH
+        # `{format_metrique}` était rejeté (400) et la case « grille » se cochait
+        # puis se décochait (revert optimiste). L'intitulé reste requis à la
+        # création et dès qu'on modifie explicitement le champ `nom_metrique`.
+        name_untouched_partial = bool(self.partial) and 'nom_metrique' not in attrs
+        if not name_untouched_partial and not is_indetermine and not (nom or '').strip():
             raise serializers.ValidationError({
                 'nom_metrique': _("L'intitulé de la métrique est obligatoire.")
             })
