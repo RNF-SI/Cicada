@@ -764,6 +764,27 @@ export class OperationFormComponent implements OnInit {
     }
   }
 
+  /**
+   * #452 — Une mutation refusée car le plan n'est plus en brouillon renvoie 403
+   * (CanModifyOnlyDraftPlan). Cas typique : le plan a été validé pendant que le
+   * formulaire d'action restait ouvert. On verrouille alors le formulaire en
+   * lecture seule (les boutons d'édition — corbeille, case grille… — disparaissent)
+   * et on l'explique clairement, au lieu de laisser l'utilisateur cliquer sur des
+   * actions qui échouent « en silence ». Renvoie `true` si l'erreur a été traitée.
+   */
+  private handlePlanLocked(err: unknown): boolean {
+    if ((err as { status?: number })?.status === 403) {
+      this.isReadOnly.set(true);
+      this.snackBar.open(
+        this.translate.instant('enjeux.operations.planLockedError'),
+        this.translate.instant('common.actions.close'),
+        { duration: 6000 },
+      );
+      return true;
+    }
+    return false;
+  }
+
   private loadData(): void {
     this.isLoadingData.set(true);
 
@@ -1356,11 +1377,14 @@ export class OperationFormComponent implements OnInit {
         });
       }
     };
-    const onError = () => this.snackBar.open(
-      this.translate.instant('enjeux.operations.indicateursRemoveError'),
-      this.translate.instant('common.actions.close'),
-      { duration: 4000 },
-    );
+    const onError = (err: unknown) => {
+      if (this.handlePlanLocked(err)) return;
+      this.snackBar.open(
+        this.translate.instant('enjeux.operations.indicateursRemoveError'),
+        this.translate.instant('common.actions.close'),
+        { duration: 4000 },
+      );
+    };
 
     // Cas nominal : on supprime l'indicateur de réponse (cascade métrique + lien).
     if (indicateurId) {
@@ -1452,8 +1476,9 @@ export class OperationFormComponent implements OnInit {
       // #452 — en cas d'échec (ex. plan devenu non modifiable → 403), on restaure
       // l'état précédent ET on l'explique : sans message, l'utilisateur voyait la
       // case « se cocher puis se décocher » sans comprendre pourquoi.
-      error: () => {
+      error: (err: unknown) => {
         this.patchLocalMetrique(ref.id_metrique, previous);
+        if (this.handlePlanLocked(err)) return;
         this.snackBar.open(
           this.translate.instant('enjeux.operations.formatGrilleSaveError'),
           this.translate.instant('common.actions.close'),

@@ -464,4 +464,35 @@ describe('OperationFormComponent — ventilation budgétaire', () => {
       expect(c.isReadOnly()).toBe(true);
     });
   });
+
+  // -------------------------------------------------------------------------
+  // #452 — handlePlanLocked : une mutation refusée (403, plan non modifiable)
+  // verrouille le formulaire et l'explique (corbeille / case grille incluses).
+  // -------------------------------------------------------------------------
+  describe('#452 handlePlanLocked', () => {
+    function comp() {
+      const c = Object.create(OperationFormComponent.prototype) as OperationFormComponent;
+      (c as any).isReadOnly = signal(false);
+      const opened: unknown[] = [];
+      (c as any).snackBar = { open: (...a: unknown[]) => opened.push(a) };
+      (c as any).translate = { instant: (k: string) => k };
+      return { c, opened };
+    }
+
+    it('sur 403 : verrouille le formulaire, affiche un message, et renvoie true', () => {
+      const { c, opened } = comp();
+      const handled = (c as any).handlePlanLocked({ status: 403 });
+      expect(handled).toBe(true);
+      expect(c.isReadOnly()).toBe(true);
+      expect(opened.length).toBe(1);
+    });
+
+    it('sur une autre erreur : ne verrouille pas et renvoie false', () => {
+      const { c, opened } = comp();
+      const handled = (c as any).handlePlanLocked({ status: 500 });
+      expect(handled).toBe(false);
+      expect(c.isReadOnly()).toBe(false);
+      expect(opened.length).toBe(0);
+    });
+  });
 });
