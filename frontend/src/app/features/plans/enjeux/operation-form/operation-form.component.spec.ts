@@ -6,7 +6,11 @@
  */
 import { TestBed } from '@angular/core/testing';
 import { signal, computed } from '@angular/core';
-import { OperationFormComponent } from './operation-form.component';
+import {
+  OperationFormComponent,
+  buildResponseTypeOptions,
+  buildGridTypeMetriqueOptions,
+} from './operation-form.component';
 
 // ---------------------------------------------------------------------------
 // Helpers réutilisables
@@ -350,6 +354,32 @@ describe('OperationFormComponent — ventilation budgétaire', () => {
       const c = createComponentInstance();
       c.operationAnnees = [];
       expect(c.isYearLocked(0)).toBe(true);
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // #452 — Types de métrique d'un indicateur de réponse selon le format
+  //   SIMPLE (case décochée)  → « Pas de réponse » (vide) + Chiffrée + Textuelle
+  //   GRILLE (case cochée)    → tous les types (Intervalle numérique inclus)
+  // -------------------------------------------------------------------------
+  describe('#452 buildResponseTypeOptions / buildGridTypeMetriqueOptions', () => {
+    const NOMENCLATURES = [
+      { id_nomenclature: 1, mnemonique: 'NUMERIQUE', label: 'Intervalle numérique' },
+      { id_nomenclature: 2, mnemonique: 'CHIFFRE', label: 'Chiffre' },
+      { id_nomenclature: 3, mnemonique: 'TEXTE', label: 'Texte' },
+      { id_nomenclature: 4, mnemonique: 'INDETERMINE', label: 'Indéterminé' },
+    ];
+
+    it('saisie SIMPLE : n\'expose que Chiffrée et Textuelle (pas NUMERIQUE ni INDETERMINE)', () => {
+      const ids = buildResponseTypeOptions(NOMENCLATURES, (k) => k).map(o => o.id);
+      expect(ids).toEqual([2, 3]); // CHIFFRE, TEXTE
+      expect(ids).not.toContain(1); // pas d'Intervalle numérique en saisie simple
+    });
+
+    it('mode GRILLE : expose tous les types sauf INDETERMINE (Intervalle numérique inclus)', () => {
+      const mnemos = buildGridTypeMetriqueOptions(NOMENCLATURES).map(o => o.mnemonique);
+      expect(mnemos).toEqual(['NUMERIQUE', 'CHIFFRE', 'TEXTE']);
+      expect(mnemos).not.toContain('INDETERMINE');
     });
   });
 });

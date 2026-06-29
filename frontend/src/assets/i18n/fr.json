@@ -3185,6 +3185,7 @@
       "indicateursReponse": "Indicateur(s) de réponse",
       "ajouterIndicateurReponse": "Ajouter un indicateur de réponse",
       "indicateursReponseCreateHint": "Enregistrez d'abord l'action pour pouvoir y ajouter des indicateurs de réponse.",
+      "metriqueTypePasDeReponse": "Pas de réponse",
       "metriqueTypeChiffree": "Chiffrée",
       "metriqueTypeTextuelle": "Textuelle",
       "metriqueTypeNumerique": "Numérique",

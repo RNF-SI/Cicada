@@ -57,6 +57,39 @@ import {
   buildMetriqueGridFields,
 } from '../../../../shared/utils/metrique-form.util';
 
+/** Option de type de métrique brute (nomenclature TYPE_METRIQUE). */
+type TypeMetriqueNomenclature = { id_nomenclature: number; mnemonique?: string; label: string };
+
+/**
+ * #452 — Types de métrique proposés pour un indicateur de réponse en saisie SIMPLE
+ * (case « grille de scoring » décochée) : uniquement « Chiffrée » (CHIFFRE) et
+ * « Textuelle » (TEXTE). « Pas de réponse » est l'option vide du select ; le type
+ * « Intervalle numérique » (NUMERIQUE) est réservé au mode grille.
+ */
+export function buildResponseTypeOptions(
+  opts: TypeMetriqueNomenclature[],
+  translate: (key: string) => string,
+): { id: number; label: string }[] {
+  const out: { id: number; label: string }[] = [];
+  const chiffre = opts.find(o => o.mnemonique === 'CHIFFRE');
+  if (chiffre) out.push({ id: chiffre.id_nomenclature, label: translate('enjeux.operations.metriqueTypeChiffree') });
+  const texte = opts.find(o => o.mnemonique === 'TEXTE');
+  if (texte) out.push({ id: texte.id_nomenclature, label: translate('enjeux.operations.metriqueTypeTextuelle') });
+  return out;
+}
+
+/**
+ * #452 — Types proposés à l'éditeur de grille embarqué (case cochée) : tous les
+ * types sauf INDETERMINE (Intervalle numérique, Chiffre, Texte).
+ */
+export function buildGridTypeMetriqueOptions(
+  opts: TypeMetriqueNomenclature[],
+): { id_nomenclature: number; mnemonique: string; label: string }[] {
+  return opts
+    .filter(o => o.mnemonique !== 'INDETERMINE')
+    .map(o => ({ id_nomenclature: o.id_nomenclature, mnemonique: o.mnemonique || '', label: o.label }));
+}
+
 @Component({
   selector: 'app-operation-form',
   standalone: true,
@@ -160,29 +193,23 @@ export class OperationFormComponent implements OnInit {
   /** Types de métrique disponibles (TYPE_METRIQUE nomenclature). */
   typeMetriqueOptions = signal<{ id_nomenclature: number; mnemonique?: string; label: string }[]>([]);
 
-  /** #347/réponse — Pour les indicateurs de réponse, le type de métrique se limite
-   * à « Chiffrée » (CHIFFRE), « Textuelle » (TEXTE) ou « Numérique » (NUMERIQUE, #452). */
-  responseTypeOptions = computed<{ id: number; label: string }[]>(() => {
-    const opts = this.typeMetriqueOptions();
-    const out: { id: number; label: string }[] = [];
-    const chiffre = opts.find(o => o.mnemonique === 'CHIFFRE');
-    if (chiffre) out.push({ id: chiffre.id_nomenclature, label: this.translate.instant('enjeux.operations.metriqueTypeChiffree') });
-    const texte = opts.find(o => o.mnemonique === 'TEXTE');
-    if (texte) out.push({ id: texte.id_nomenclature, label: this.translate.instant('enjeux.operations.metriqueTypeTextuelle') });
-    const numerique = opts.find(o => o.mnemonique === 'NUMERIQUE');
-    if (numerique) out.push({ id: numerique.id_nomenclature, label: this.translate.instant('enjeux.operations.metriqueTypeNumerique') });
-    return out;
-  });
+  /** #347/réponse — Pour les indicateurs de réponse en saisie SIMPLE (sans grille),
+   * le type de métrique se limite à « Pas de réponse » (option vide), « Chiffrée »
+   * (CHIFFRE) ou « Textuelle » (TEXTE). Le type « Intervalle numérique » (NUMERIQUE)
+   * n'est proposé qu'en mode grille (#452 — cf. retour de test) via
+   * {@link gridTypeMetriqueOptions}. Logique pure extraite dans
+   * {@link buildResponseTypeOptions} pour la testabilité. */
+  responseTypeOptions = computed<{ id: number; label: string }[]>(() =>
+    buildResponseTypeOptions(this.typeMetriqueOptions(), (k) => this.translate.instant(k)),
+  );
 
   /** #452 — Formats de métrique (SIMPLE / GRILLE) chargés depuis la nomenclature. */
   formatMetriqueOptions = signal<{ id_nomenclature: number; mnemonique?: string; label: string }[]>([]);
 
   /** Liste de types proposée à l'éditeur de grille embarqué : on exclut INDETERMINE.
-   *  Coercion `mnemonique: string` pour matcher TypeMetriqueOption (non optionnel). */
+   *  Logique pure extraite dans {@link buildGridTypeMetriqueOptions}. */
   gridTypeMetriqueOptions = computed<{ id_nomenclature: number; mnemonique: string; label: string }[]>(() =>
-    this.typeMetriqueOptions()
-      .filter(o => o.mnemonique !== 'INDETERMINE')
-      .map(o => ({ id_nomenclature: o.id_nomenclature, mnemonique: o.mnemonique || '', label: o.label })),
+    buildGridTypeMetriqueOptions(this.typeMetriqueOptions()),
   );
 
   private formatId(mnemonique: 'SIMPLE' | 'GRILLE'): number | null {
