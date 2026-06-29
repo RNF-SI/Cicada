@@ -27,7 +27,7 @@ import { CheckboxComponent } from '../../../../shared/components/checkbox/checkb
 import { AdminService } from '../../../../core/services/admin.service';
 import { EnjeuService } from '../../../../core/services/enjeu.service';
 import { Indicateur, Metrique, Mesure, MesureCreatePayload } from '../../../../core/models/enjeu.model';
-import { formatScoreRange, isMetriqueIndetermine } from '../metrique-seuils.util';
+import { formatScoreRange, isMetriqueIndetermine, computeMetriqueScore } from '../metrique-seuils.util';
 
 // #510 — un seul mode d'édition cohérent (les anciens 'edit-auto'/'edit-override'
 // sont fusionnés : auto par défaut, forçage manuel optionnel via une case).
@@ -117,28 +117,39 @@ export class IndicateurSaisieComponent implements OnInit {
     return map[score] || 'no-data';
   }
 
-  /** Convertit une valeur numérique en score 1-5 selon les seuils d'une métrique. */
+  /** Score 1-5 d'une valeur selon la grille d'une métrique. Délègue à l'utilitaire
+   *  partagé qui gère les 3 types (NUMERIQUE par seuils, CHIFFRE par valeur,
+   *  TEXTE par libellé) — #464/#465 (avant : seuils NUMERIQUE uniquement). */
   valueToScore(value: any, met: Metrique): number | null {
-    // #423 — tolère la virgule décimale française (« 20,6 »).
-    const v = typeof value === 'number' ? value : parseFloat(String(value ?? '').replace(',', '.'));
-    if (isNaN(v)) return null;
-    for (let i = 1; i <= 5; i++) {
-      const inf = (met as any)[`score_${i}_inf`];
-      const sup = (met as any)[`score_${i}_sup`];
-      const hasInf = inf !== null && inf !== undefined;
-      const hasSup = sup !== null && sup !== undefined;
-      // #423 — palier extrême ouvert : borne absente = -∞ / +∞ (ne pas l'ignorer).
-      if (!hasInf && !hasSup) continue;
-      // #423 — respecter l'inclusivité des bornes (cf. notation par crochets) :
-      // « 35 » dans ]35;50] tombe dans le palier de borne sup=35, pas celui de
-      // borne inf=35.
-      const infIncl = i <= 1 ? true : (met as any)[`score_${i - 1}_sup_inclusive`] === false;
-      const supIncl = i >= 5 ? true : (met as any)[`score_${i}_sup_inclusive`] !== false;
-      const lowerOk = !hasInf || (infIncl ? v >= Number(inf) : v > Number(inf));
-      const upperOk = !hasSup || (supIncl ? v <= Number(sup) : v < Number(sup));
-      if (lowerOk && upperOk) return i;
+    return computeMetriqueScore(met, value);
+  }
+
+  // #464/#465 — Saisie d'une métrique CHIFFRE/TEXTE : choix parmi les options de
+  // la grille (libellés / valeurs), au lieu d'un champ texte libre.
+  metricSaisieMode(met: Metrique): 'text-select' | 'chiffre-select' | 'free' {
+    const type = (met as any).type_metrique_mnemonique;
+    if ((type === 'TEXTE' || type === 'CHIFFRE') && this.metricGridOptions(met).length > 0) {
+      return type === 'TEXTE' ? 'text-select' : 'chiffre-select';
     }
-    return null;
+    return 'free';
+  }
+
+  /** Options sélectionnables d'une métrique CHIFFRE/TEXTE (niveaux actifs). */
+  metricGridOptions(met: Metrique): string[] {
+    const inactive: number[] = Array.isArray((met as any).inactive_levels) ? (met as any).inactive_levels : [];
+    const type = (met as any).type_metrique_mnemonique;
+    const out: string[] = [];
+    for (let lvl = 1; lvl <= 5; lvl++) {
+      if (inactive.includes(lvl)) continue;
+      if (type === 'TEXTE') {
+        const label = ((met as any)[`score_${lvl}_label`] ?? '').toString().trim();
+        if (label) out.push(label);
+      } else if (type === 'CHIFFRE') {
+        const val = (met as any)[`score_${lvl}_val`];
+        if (val !== null && val !== undefined) out.push(String(val));
+      }
+    }
+    return out;
   }
 
   /** Score auto recalculé à partir des valeurs saisies (en live, #510).

@@ -149,20 +149,45 @@
                     </div>
                     <label class="metric-label">{{ 'plans.suivis.indicateur.resultat' | translate }}</label>
                     <div class="metric-input-row">
-                      <input type="text" [formControlName]="'m_' + m.id_metrique"
-                             [placeholder]="m.unite || ''" />
-                      <!-- Barre de seuils : 5 segments colorés avec score actif highlighted -->
-                      @let activeScore = valueToScore(form.get('m_' + m.id_metrique)?.value, m);
-                      <div class="threshold-bar">
-                        @for (lvl of scoreLevelsList; track lvl; let i = $index) {
-                          <span class="threshold-cell"
-                                [class]="'lvl-' + lvl"
-                                [class.active]="activeScore === i + 1">
-                            min {{ getScoreBound(m, i + 1, 'inf') }}
-                            / max {{ getScoreBound(m, i + 1, 'sup') }}
-                          </span>
+                      <!-- #464/#465 — métrique CHIFFRE/TEXTE : choix parmi les
+                           options de la grille (libellés / valeurs) ; sinon champ libre. -->
+                      @switch (metricSaisieMode(m)) {
+                        @case ('text-select') {
+                          <select [formControlName]="'m_' + m.id_metrique">
+                            <option value="">—</option>
+                            @for (opt of metricGridOptions(m); track opt) {
+                              <option [value]="opt">{{ opt }}</option>
+                            }
+                          </select>
                         }
-                      </div>
+                        @case ('chiffre-select') {
+                          <select [formControlName]="'m_' + m.id_metrique">
+                            <option value="">—</option>
+                            @for (opt of metricGridOptions(m); track opt) {
+                              <option [value]="opt">{{ opt }}</option>
+                            }
+                          </select>
+                        }
+                        @default {
+                          <input type="text" [formControlName]="'m_' + m.id_metrique"
+                                 [placeholder]="m.unite || ''" />
+                        }
+                      }
+                      <!-- Barre de seuils (NUMERIQUE) : score actif highlighted.
+                           Pour CHIFFRE/TEXTE, les options sont déjà dans le select. -->
+                      @if (metricSaisieMode(m) === 'free') {
+                        @let activeScore = valueToScore(form.get('m_' + m.id_metrique)?.value, m);
+                        <div class="threshold-bar">
+                          @for (lvl of scoreLevelsList; track lvl; let i = $index) {
+                            <span class="threshold-cell"
+                                  [class]="'lvl-' + lvl"
+                                  [class.active]="activeScore === i + 1">
+                              min {{ getScoreBound(m, i + 1, 'inf') }}
+                              / max {{ getScoreBound(m, i + 1, 'sup') }}
+                            </span>
+                          }
+                        </div>
+                      }
                     </div>
                   </div>
                 }

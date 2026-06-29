@@ -495,10 +495,15 @@ export class SuiviSaisieComponent implements OnInit {
    */
   saisieMode(ctrl: AbstractControl): 'text-select' | 'chiffre-select' | 'number' | 'text' {
     const v = ctrl.value;
-    const grille = v?.format_mnemo === 'GRILLE';
     const type = v?.type_mnemo;
-    if (grille && type === 'TEXTE') return 'text-select';
-    if (grille && type === 'CHIFFRE') return 'chiffre-select';
+    // #464/#465 — une métrique TEXTE/CHIFFRE se saisit en choisissant une des
+    // options de sa grille (libellés / valeurs), qu'elle soit un indicateur de
+    // réponse en grille OU une métrique d'état/pression associée. Seul le cas
+    // « réponse SIMPLE » (saisie libre, sans grille) reste un champ libre.
+    const isSimpleResponse = v?.format_mnemo === 'SIMPLE';
+    if (!isSimpleResponse && (type === 'TEXTE' || type === 'CHIFFRE') && this.gridOptions(ctrl).length > 0) {
+      return type === 'TEXTE' ? 'text-select' : 'chiffre-select';
+    }
     if (type === 'CHIFFRE' || type === 'NUMERIQUE') return 'number';
     return 'text';
   }

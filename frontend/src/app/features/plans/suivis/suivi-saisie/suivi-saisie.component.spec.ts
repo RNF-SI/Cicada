@@ -22,18 +22,28 @@ describe('SuiviSaisieComponent — indicateurs de réponse', () => {
   // ---------------------------------------------------------------------------
   describe('saisieMode', () => {
     const c = comp();
+    const TEXTE_META = { score_1_label: 'A', score_2_label: 'B', score_3_label: 'C', score_4_label: 'D', score_5_label: 'E' };
+    const CHIFFRE_META = { score_1_val: 0, score_2_val: 1, score_3_val: 2, score_4_val: 3, score_5_val: 4 };
+
     it('grille TEXTE → menu déroulant des libellés', () => {
-      expect(c.saisieMode(ctrlOf({ format_mnemo: 'GRILLE', type_mnemo: 'TEXTE' }))).toBe('text-select');
+      expect(c.saisieMode(ctrlOf({ format_mnemo: 'GRILLE', type_mnemo: 'TEXTE', meta: TEXTE_META }))).toBe('text-select');
     });
     it('grille CHIFFRE → menu déroulant des valeurs', () => {
-      expect(c.saisieMode(ctrlOf({ format_mnemo: 'GRILLE', type_mnemo: 'CHIFFRE' }))).toBe('chiffre-select');
+      expect(c.saisieMode(ctrlOf({ format_mnemo: 'GRILLE', type_mnemo: 'CHIFFRE', meta: CHIFFRE_META }))).toBe('chiffre-select');
     });
-    it('CHIFFRE/NUMERIQUE simple → champ numérique', () => {
-      expect(c.saisieMode(ctrlOf({ format_mnemo: 'SIMPLE', type_mnemo: 'NUMERIQUE' }))).toBe('number');
+    it('#464/#465 — CHIFFRE/TEXTE état/pression (format null, avec options) → select', () => {
+      expect(c.saisieMode(ctrlOf({ format_mnemo: null, type_mnemo: 'CHIFFRE', meta: CHIFFRE_META }))).toBe('chiffre-select');
+      expect(c.saisieMode(ctrlOf({ format_mnemo: null, type_mnemo: 'TEXTE', meta: TEXTE_META }))).toBe('text-select');
+    });
+    it('réponse SIMPLE → champ libre (pas de select)', () => {
+      expect(c.saisieMode(ctrlOf({ format_mnemo: 'SIMPLE', type_mnemo: 'CHIFFRE', meta: CHIFFRE_META }))).toBe('number');
+      expect(c.saisieMode(ctrlOf({ format_mnemo: 'SIMPLE', type_mnemo: 'TEXTE', meta: TEXTE_META }))).toBe('text');
+    });
+    it('NUMERIQUE → champ numérique', () => {
+      expect(c.saisieMode(ctrlOf({ format_mnemo: 'GRILLE', type_mnemo: 'NUMERIQUE' }))).toBe('number');
+    });
+    it('CHIFFRE sans options → champ numérique', () => {
       expect(c.saisieMode(ctrlOf({ format_mnemo: null, type_mnemo: 'CHIFFRE' }))).toBe('number');
-    });
-    it('défaut → texte libre', () => {
-      expect(c.saisieMode(ctrlOf({ format_mnemo: 'SIMPLE', type_mnemo: 'TEXTE' }))).toBe('text');
     });
   });
 

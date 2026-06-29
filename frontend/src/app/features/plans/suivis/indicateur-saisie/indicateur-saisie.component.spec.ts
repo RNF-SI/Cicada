@@ -112,4 +112,36 @@ describe('IndicateurSaisieComponent — éditeur unifié (#510)', () => {
       expect(c.scoreOverride()).toBe(5);
     });
   });
+
+  // ---------------------------------------------------------------------------
+  // #464/#465 — saisie d'une métrique CHIFFRE/TEXTE via un select des options
+  // de la grille (au lieu d'un champ texte libre).
+  // ---------------------------------------------------------------------------
+  describe('metricSaisieMode / metricGridOptions', () => {
+    const c = comp();
+    const TEXTE: any = {
+      type_metrique_mnemonique: 'TEXTE',
+      score_1_label: 'Très mauvais', score_2_label: 'Mauvais', score_3_label: 'Moyen',
+      score_4_label: 'Bon', score_5_label: 'Très bon', inactive_levels: [],
+    };
+    const CHIFFRE: any = {
+      type_metrique_mnemonique: 'CHIFFRE',
+      score_1_val: 0, score_2_val: 25, score_3_val: 50, score_4_val: 75, score_5_val: 100,
+      inactive_levels: [2],
+    };
+    const NUMERIQUE: any = { type_metrique_mnemonique: 'NUMERIQUE', score_1_inf: 0, score_1_sup: 10 };
+
+    it('TEXTE → select des libellés', () => {
+      expect(c.metricSaisieMode(TEXTE)).toBe('text-select');
+      expect(c.metricGridOptions(TEXTE)).toEqual(['Très mauvais', 'Mauvais', 'Moyen', 'Bon', 'Très bon']);
+    });
+    it('CHIFFRE → select des valeurs (niveaux inactifs exclus)', () => {
+      expect(c.metricSaisieMode(CHIFFRE)).toBe('chiffre-select');
+      expect(c.metricGridOptions(CHIFFRE)).toEqual(['0', '50', '75', '100']); // niveau 2 inactif exclu
+    });
+    it('NUMERIQUE → champ libre', () => {
+      expect(c.metricSaisieMode(NUMERIQUE)).toBe('free');
+      expect(c.metricGridOptions(NUMERIQUE)).toEqual([]);
+    });
+  });
 });

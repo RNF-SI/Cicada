@@ -525,9 +525,11 @@ class OperationSerializer(serializers.ModelSerializer):
                 'type_metrique_id': m.type_metrique_id,
                 'type_metrique_label': getattr(m.type_metrique, 'label', None) if m.type_metrique_id else None,
             }
-            # #452 — grille + format exposés pour les indicateurs de réponse.
-            if ind_type == 'REPONSE':
-                data.update(_response_metrique_grid(m))
+            # #452/#464/#465 — grille + format exposés pour TOUTES les métriques en
+            # grille (indicateurs de réponse ET métriques d'état/pression associées) :
+            # la saisie du résultat propose alors un select des options de la grille
+            # (libellés TEXTE / valeurs CHIFFRE) au lieu d'un champ texte libre.
+            data.update(_response_metrique_grid(m))
             result.append(data)
         return result
 
@@ -646,9 +648,11 @@ class OperationListSerializer(serializers.ModelSerializer):
                 'indicateur_nom': getattr(m.id_indicateur, 'nom_indicateur', None) if m.id_indicateur_id else None,
                 'indicateur_type': ind_type,
             }
-            # #452 — grille + format exposés pour les indicateurs de réponse.
-            if ind_type == 'REPONSE':
-                data.update(_response_metrique_grid(m))
+            # #452/#464/#465 — grille + format exposés pour TOUTES les métriques en
+            # grille (indicateurs de réponse ET métriques d'état/pression associées) :
+            # la saisie du résultat propose alors un select des options de la grille
+            # (libellés TEXTE / valeurs CHIFFRE) au lieu d'un champ texte libre.
+            data.update(_response_metrique_grid(m))
             result.append(data)
         return result
 
