@@ -2469,7 +2469,7 @@
     },
     "pendingCreations": {
       "title": "Sites en attente de validation",
-      "description": "Ces sites que vous avez créés sont en attente de validation par un administrateur.",
+      "description": "Ces sites que vous avez créés sont en attente de validation par un administrateur. Vous pouvez les compléter ou les corriger tant que la validation n'a pas eu lieu.",
       "requestedOn": "Demandé le",
       "awaitingValidation": "En attente de validation",
       "editTooltip": "Compléter ou corriger ce site avant sa validation"

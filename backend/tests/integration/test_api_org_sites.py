@@ -1621,3 +1621,64 @@ class TestOrganismesPublicEndpoint:
         assert response.status_code == status.HTTP_200_OK
         names = [o['nom_organisme'] for o in response.data]
         assert names == sorted(names)
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+class TestSitePendingCreatorEdit:
+    """#440 — le créateur d'un site en attente de validation peut le corriger.
+
+    Tant que sa demande de création (`site_creation`) est `pending`, il n'est
+    pas encore référent : la vue ne doit donc pas exiger `IsReferent` au niveau
+    requête (sinon il est rejeté AVANT le contrôle fin de get_object).
+    """
+
+    def _make_pending_site(self, creator):
+        """Crée un site inactif + la demande de création en attente associée."""
+        from apps.notifications.models import ValidationRequest
+
+        site = SiteFactory(nom_site='Site en attente', active=False)
+        ValidationRequest.objects.create(
+            request_type='site_creation',
+            status='pending',
+            requester=creator,
+            target_site=site,
+            justification=f"Création du site {site.nom_site}",
+        )
+        return site
+
+    def test_pending_creator_can_edit_own_site(self, api_client):
+        """Le créateur (utilisateur lambda) peut éditer son site en attente."""
+        creator = RoleFactory()
+        site = self._make_pending_site(creator)
+
+        api_client.force_authenticate(user=creator)
+        response = api_client.patch(
+            f'/api/users/sites/{site.slug}/',
+            {'nom_site': 'Site corrigé'},
+            format='json',
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        site.refresh_from_db()
+        assert site.nom_site == 'Site corrigé'
+
+    def test_non_creator_regular_user_cannot_edit_pending_site(self, api_client):
+        """Un autre utilisateur lambda ne peut pas éditer le site en attente."""
+        creator = RoleFactory()
+        other = RoleFactory()
+        site = self._make_pending_site(creator)
+
+        api_client.force_authenticate(user=other)
+        response = api_client.patch(
+            f'/api/users/sites/{site.slug}/',
+            {'nom_site': 'Tentative non autorisée'},
+            format='json',
+        )
+
+        assert response.status_code in (
+            status.HTTP_403_FORBIDDEN,
+            status.HTTP_404_NOT_FOUND,
+        )
+        site.refresh_from_db()
+        assert site.nom_site == 'Site en attente'
