@@ -2029,6 +2029,13 @@
         "autoWas": "Le résultat calculé automatiquement était",
         "manualReason": "Raisons de la saisie manuelle",
         "manualReasonPlaceholder": "Pourquoi avez-vous choisi de saisir un score différent du calcul auto ?",
+        "metriquesSaisieTitle": "Saisie des métriques",
+        "autoResultLabel": "Résultat automatique",
+        "autoResultPending": "À calculer — saisissez au moins une métrique",
+        "autoExplanation": "Le résultat de l'indicateur est calculé automatiquement : moyenne pondérée des scores de ses métriques saisies, arrondie au niveau le plus proche. Il se met à jour à mesure que vous remplissez les métriques.",
+        "forceManual": "Forcer le résultat manuellement",
+        "forceManualHint": "Décoché, le résultat reste calculé automatiquement à partir des métriques. Coché, vous choisissez le niveau ci-dessous — les métriques restent saisissables, seul le résultat de l'indicateur est forcé.",
+        "manualResultLabel": "Résultat forcé",
         "scoreYear": "Score {{year}}",
         "etat": "État",
         "thresh": {

@@ -240,6 +240,32 @@
   padding-top: $spacing-md;
   border-top: 2px solid $gray-lighter;
 }
+
+// #510 — éditeur unifié
+.edit-subtitle {
+  margin: 0 0 $spacing-xs;
+  font-size: 1rem;
+  font-weight: 700;
+  color: $primary-color;
+}
+.result-auto-label {
+  font-size: 0.95rem;
+  color: $black;
+  .text-muted { color: $gray-dark; font-style: italic; }
+}
+.auto-explanation {
+  display: flex;
+  gap: $spacing-xs;
+  align-items: flex-start;
+  margin: $spacing-xs 0 $spacing-md;
+  font-size: 0.85rem;
+  color: $gray-dark;
+  i { color: $info-color; margin-top: 2px; }
+}
+.manual-block {
+  margin-top: $spacing-sm;
+  padding-top: $spacing-sm;
+}
 .global-bar {
   display: flex; border-radius: $border-radius-sm; overflow: hidden;
   margin: $spacing-xs 0;
