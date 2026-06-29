@@ -604,15 +604,20 @@ export class OperationFormComponent implements OnInit {
    * immédiatement (sans debounce) le dernier état saisi, pour qu'un clic
    * « Valider » juste après une saisie ne perde pas le type / les valeurs / les
    * libellés (symptôme « la grille ne réapparaît pas au rechargement »).
-   * Tolérant aux erreurs (une grille incomplète ne bloque pas la soumission).
+   *
+   * `strict = false` (brouillon) : tolérant — une grille incomplète ne bloque pas.
+   * `strict = true` (« Valider ») : l'observable **échoue** si une grille est
+   * incomplète ou sans intitulé (le backend renvoie 400) → la validation est
+   * bloquée et l'erreur affichée, au lieu d'un échec silencieux.
    */
-  private flushResponseGrids(): Observable<unknown> {
+  private flushResponseGrids(strict = false): Observable<unknown> {
     if (this.latestGridData.size === 0) return of(null);
-    const calls = [...this.latestGridData.entries()].map(([metriqueId, data]) =>
-      this.enjeuService.updateMetrique(metriqueId, this.buildResponseGridPayload(data))
-        .pipe(catchError(() => of(null))),
-    );
-    this.latestGridData.clear();
+    const calls = [...this.latestGridData.entries()].map(([metriqueId, data]) => {
+      const call = this.enjeuService.updateMetrique(metriqueId, this.buildResponseGridPayload(data));
+      // En mode strict on laisse l'erreur remonter (forkJoin échouera) ; sinon on
+      // l'absorbe pour ne pas bloquer un simple enregistrement brouillon.
+      return strict ? call : call.pipe(catchError(() => of(null)));
+    });
     return forkJoin(calls);
   }
 
@@ -1437,6 +1442,9 @@ export class OperationFormComponent implements OnInit {
     const indicateurId = met?.indicateur_id ?? null;
 
     const onRemoved = () => {
+      // #452 — purger l'état de grille en attente (sinon un flush au submit
+      // tenterait de PATCHer une métrique supprimée → 404).
+      this.latestGridData.delete(metriqueId);
       const op = this.existingOperation();
       if (op?.metriques) {
         this.existingOperation.set({
@@ -1817,9 +1825,26 @@ export class OperationFormComponent implements OnInit {
     // débouncé non encore parti) AVANT de soumettre/naviguer : sinon les
     // dernières saisies de grille (type, valeurs, libellés) sont perdues quand
     // l'utilisateur clique « Valider » juste après les avoir remplies.
-    this.flushResponseGrids().subscribe({
+    // En validation stricte (« Valider »), une grille incomplète / sans intitulé
+    // de métrique fait échouer le flush (400) → on BLOQUE et on affiche l'erreur,
+    // au lieu de valider l'action alors que la grille n'a pas pu s'enregistrer.
+    const strict = !opts.stayOnForm;
+    this.flushResponseGrids(strict).subscribe({
       next: () => this.doSubmitToApi(payload, opts),
-      error: () => this.doSubmitToApi(payload, opts),
+      error: () => {
+        if (strict) {
+          this.isLoading.set(false);
+          this.snackBar.open(
+            this.translate.instant('enjeux.operations.responseGridIncomplete'),
+            this.translate.instant('common.actions.close'),
+            { duration: 7000 },
+          );
+          this.scrollToError();
+          return;
+        }
+        // brouillon : on ne bloque pas la sauvegarde pour une grille incomplète.
+        this.doSubmitToApi(payload, opts);
+      },
     });
   }
 

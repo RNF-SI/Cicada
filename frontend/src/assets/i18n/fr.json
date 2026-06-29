@@ -3217,6 +3217,7 @@
       "planLockedError": "Action impossible : ce plan n'est plus en brouillon (il a peut-être été validé entre-temps). Repassez-le en brouillon pour le modifier.",
       "indicateurReponseTitleRequired": "Chaque indicateur de réponse doit avoir un intitulé. Renseignez les intitulés manquants avant de valider.",
       "indicateurReponseTitleError": "L'intitulé de l'indicateur de réponse est obligatoire.",
+      "responseGridIncomplete": "Une métrique d'indicateur de réponse est incomplète : renseignez l'intitulé de la métrique et toutes les valeurs des niveaux actifs de la grille (les niveaux « non utilisés » sont ignorés) avant de valider.",
       "reponseExamplesTitle": "Exemples pour remplir un indicateur de réponse :",
       "reponseExample1": "Métrique textuelle — Type : « Textuelle » · Métrique : « fait / non fait » · Valeur cible : « fait ».",
       "reponseExample2": "Métrique chiffrée — Type : « Chiffrée » · Métrique : « nombre d'inventaires réalisés / nombre d'inventaires prévus » · Valeur cible : « 100 % ».",

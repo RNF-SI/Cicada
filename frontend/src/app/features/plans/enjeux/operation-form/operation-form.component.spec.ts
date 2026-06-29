@@ -6,7 +6,7 @@
  */
 import { TestBed } from '@angular/core/testing';
 import { signal, computed } from '@angular/core';
-import { Subject, of } from 'rxjs';
+import { Subject, of, throwError } from 'rxjs';
 import {
   OperationFormComponent,
   buildResponseTypeOptions,
@@ -502,7 +502,7 @@ describe('OperationFormComponent — ventilation budgétaire', () => {
   // aussitôt → type/valeurs/libellés non sauvegardés, grille « vide » au reload).
   // -------------------------------------------------------------------------
   describe('#452 flushResponseGrids', () => {
-    function comp() {
+    function comp(fail = false) {
       const c = Object.create(OperationFormComponent.prototype) as OperationFormComponent;
       (c as any).typeMetriqueOptions = signal([
         { id_nomenclature: 1351, mnemonique: 'CHIFFRE', label: 'Chiffre' },
@@ -512,13 +512,16 @@ describe('OperationFormComponent — ventilation budgétaire', () => {
       ]);
       const calls: { id: number; p: any }[] = [];
       (c as any).enjeuService = {
-        updateMetrique: (id: number, p: any) => { calls.push({ id, p }); return of(p); },
+        updateMetrique: (id: number, p: any) => {
+          calls.push({ id, p });
+          return fail ? throwError(() => ({ status: 400 })) : of(p);
+        },
       };
       (c as any).latestGridData = new Map();
       return { c, calls };
     }
 
-    it('PATCHe le dernier état CHIFFRE de chaque grille puis vide la file', () => {
+    it('PATCHe le dernier état CHIFFRE de chaque grille en attente', () => {
       const { c, calls } = comp();
       (c as any).latestGridData.set(5, {
         nom_metrique: 'Taux', type_metrique: 1351,
@@ -534,7 +537,6 @@ describe('OperationFormComponent — ventilation budgétaire', () => {
       expect(calls[0].p.format_metrique).toBe(1371); // GRILLE
       expect(calls[0].p.score_1_val).toBe(0);
       expect(calls[0].p.score_5_val).toBe(100);
-      expect((c as any).latestGridData.size).toBe(0); // file vidée
     });
 
     it('sans grille en attente : ne déclenche aucun PATCH', () => {
@@ -543,6 +545,24 @@ describe('OperationFormComponent — ventilation budgétaire', () => {
       (c as any).flushResponseGrids().subscribe(() => { done = true; });
       expect(done).toBe(true);
       expect(calls.length).toBe(0);
+    });
+
+    it('mode strict : propage l\'erreur si une grille est rejetée (400)', () => {
+      const { c } = comp(true);
+      (c as any).latestGridData.set(5, { nom_metrique: '', type_metrique: 1351, scores: {}, _inactiveLevels: [] });
+      let errored = false, completed = false;
+      (c as any).flushResponseGrids(true).subscribe({ next: () => { completed = true; }, error: () => { errored = true; } });
+      expect(errored).toBe(true);   // bloque la validation
+      expect(completed).toBe(false);
+    });
+
+    it('mode tolérant (brouillon) : absorbe l\'erreur (ne bloque pas)', () => {
+      const { c } = comp(true);
+      (c as any).latestGridData.set(5, { nom_metrique: '', type_metrique: 1351, scores: {}, _inactiveLevels: [] });
+      let errored = false, completed = false;
+      (c as any).flushResponseGrids(false).subscribe({ next: () => { completed = true; }, error: () => { errored = true; } });
+      expect(errored).toBe(false);
+      expect(completed).toBe(true);
     });
   });
 
@@ -560,6 +580,7 @@ describe('OperationFormComponent — ventilation budgétaire', () => {
           { id_metrique: 6, indicateur_id: 60, indicateur_type: 'REPONSE' },
         ],
       });
+      (c as any).latestGridData = new Map();
       const deleted: number[] = [];
       (c as any).enjeuService = {
         deleteIndicateur: (id: number) => { deleted.push(id); return of(null); },
