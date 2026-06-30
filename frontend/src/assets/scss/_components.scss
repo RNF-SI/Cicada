@@ -917,6 +917,13 @@
     color: $info-color;
   }
 
+  // Le bloc texte occupe l'espace disponible et reste calé à gauche
+  // (sans flex-grow, justify-content: space-between le centrerait #508).
+  .lock-banner-content {
+    flex: 1;
+    text-align: left;
+  }
+
   .lock-banner-btn {
     display: inline-flex;
     align-items: center;
