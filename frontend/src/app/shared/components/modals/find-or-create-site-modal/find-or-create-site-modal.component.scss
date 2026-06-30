@@ -67,7 +67,7 @@ mat-dialog-content {
   justify-content: center;
   gap: $spacing-sm;
   padding: $spacing-lg;
-  color: $gray;
+  color: $gray-dark;
 }
 
 // Résultats
@@ -138,7 +138,7 @@ mat-dialog-content {
 
 .category-description {
   font-size: 0.8rem;
-  color: $gray;
+  color: $gray-dark;
   margin: 0;
   padding: 0 $spacing-md $spacing-sm;
 }
@@ -386,20 +386,15 @@ mat-dialog-content {
   margin: $spacing-lg 0;
 }
 
-// Section création
+// Section création — carte blanche propre (tokens kit UI, pas de fond teal délavé)
 .create-section {
-  background-color: $primary-bg-soft;
-  border: 1px dashed rgba($primary-color, 0.3);
+  background-color: $white;
+  border: 1px solid $primary-bg-medium;
   border-radius: $border-radius-md;
   padding: $spacing-md;
 
-  &.create-section-primary {
-    background-color: $primary-bg-subtle;
-    border: 1px solid $primary-bg-medium;
-
-    button {
-      margin-top: $spacing-xs;
-    }
+  &.create-section-primary button {
+    margin-top: $spacing-xs;
   }
 }
 
@@ -439,7 +434,7 @@ mat-dialog-content {
 
 .create-description {
   font-size: 0.85rem;
-  color: $gray;
+  color: $gray-dark;
   margin: 0 0 $spacing-md;
 }
 

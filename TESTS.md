@@ -1,3 +1,4 @@
 # Validations manuelles en attente
 
 - [ ] #455 — Le clic sur l'œil d'une action ouvre un nouvel onglet — Sur la page « Planification mensuelle » d'un plan (`/plans/:slug/suivis/planification`), cliquer sur l'icône œil d'une action : la fiche synthétique de l'action doit s'ouvrir dans un **nouvel onglet** (l'onglet de suivi en cours reste actif). Vérifier idem sur la page « Suivi des actions ».
+- [ ] #517 — Style de la modale « Rechercher un site ou en créer un nouveau » — Sur `/sites`, ouvrir la modale (« Rechercher ou créer »). Vérifier que la section « Créer un nouveau site » est une **carte blanche avec un filet bleu-vert léger** (plus de fond teal grisâtre/délavé ni de bordure). Le texte « Créez un nouveau site pour votre organisme. » doit être en **gris foncé lisible** (#746F6E, AA), pas en gris très clair. Lancer une recherche (≥ 2 caractères) : les descriptions de catégories et le texte « Recherche en cours… » doivent aussi être en gris foncé lisible.
