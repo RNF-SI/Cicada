@@ -1127,7 +1127,7 @@
                                                           <span class="operation-libelle">{{ 'enjeux.operations.label' | translate }} : {{ op.libelle }}</span>
                                                           <!-- #489 — Priorité en chip à côté du titre -->
                                                           @if (op.priorite_label) {
-                                                            <span class="operation-priority-chip" (click)="$event.stopPropagation()" [title]="'enjeux.operations.prioriteTooltip' | translate">{{ 'enjeux.operations.prioriteLabel' | translate }} {{ op.priorite_label }}</span>
+                                                            <span class="operation-priority-chip" (click)="$event.stopPropagation()" [title]="'enjeux.operations.prioriteTooltip' | translate">{{ op.priorite_label }}</span>
                                                           }
                                                           @if (op.statut === 'draft') {
                                                             <span class="operation-draft-chip status-warning" (click)="$event.stopPropagation()">{{ 'enjeux.operations.draftChip' | translate }}</span>
@@ -1903,7 +1903,7 @@
                                                   <span class="operation-libelle">{{ 'enjeux.operations.label' | translate }} : {{ op.libelle }}</span>
                                                   <!-- #489 — Priorité en chip à côté du titre -->
                                                   @if (op.priorite_label) {
-                                                    <span class="operation-priority-chip" (click)="$event.stopPropagation()" [title]="'enjeux.operations.prioriteTooltip' | translate">{{ 'enjeux.operations.prioriteLabel' | translate }} {{ op.priorite_label }}</span>
+                                                    <span class="operation-priority-chip" (click)="$event.stopPropagation()" [title]="'enjeux.operations.prioriteTooltip' | translate">{{ op.priorite_label }}</span>
                                                   }
                                                   @if (op.statut === 'draft') {
                                                     <span class="operation-draft-chip status-warning" (click)="$event.stopPropagation()">{{ 'enjeux.operations.draftChip' | translate }}</span>

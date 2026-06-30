@@ -11,3 +11,4 @@
   - Dans la section **« Indicateurs de réponse »**, chaque indicateur affiche désormais son nom **puis la grille de scoring de ses métriques** (table : Intitulé, Unité, Pondération, État de référence, Indéterminé + 5 colonnes de paliers colorées Très mauvais → Très bon).
   - Vérifier que les intervalles s'affichent correctement selon le type de métrique : **Intervalle numérique** (`[10 ; 20]`, `≥ 40`, `≤ 5`, paliers inactifs `- - -`), **Texte** (libellés), **Chiffre** (valeurs). Les paliers adjacents de même valeur doivent être fusionnés (colspan). Une métrique **Indéterminé** affiche « Oui » dans la colonne dédiée et pas de grille.
   - L'affichage doit rester correct à l'impression/export PDF (bouton « Imprimer / Exporter »).
+- [ ] #513 — Priorité écrite 2 fois dans les actions (OLT/OO) — ouvrir un plan en brouillon, onglets OLT puis OO ; vérifier que le chip de priorité d'une action affiche « Priorité 1 » (et non « Priorité Priorité 1 »)
