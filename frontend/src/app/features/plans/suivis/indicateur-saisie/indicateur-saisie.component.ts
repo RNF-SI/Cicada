@@ -379,6 +379,12 @@ export class IndicateurSaisieComponent implements OnInit {
     }
   }
 
+  /** #510 — le bloc « résultat automatique » est grisé (non retenu) dès que le
+   *  forçage manuel est actif, pour ne pas perdre l'utilisateur. */
+  autoResultDimmed(): boolean {
+    return this.manualOverride();
+  }
+
   goBack(): void {
     this.router.navigate(['/plans', this.planSlug(), 'tableau-de-bord']);
   }

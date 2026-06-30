@@ -248,6 +248,22 @@
   font-weight: 700;
   color: $primary-color;
 }
+// #510 — bloc « résultat automatique » : grisé quand le forçage manuel est
+// actif, pour ne pas laisser croire qu'il reste la valeur retenue.
+.result-auto {
+  transition: opacity 0.15s;
+  &.dimmed {
+    opacity: 0.45;
+    pointer-events: none;
+    filter: grayscale(1);
+  }
+}
+.auto-disabled-tag {
+  margin-left: $spacing-xs;
+  font-size: 0.8rem;
+  font-style: italic;
+  color: $gray-dark;
+}
 .result-auto-label {
   font-size: 0.95rem;
   color: $black;

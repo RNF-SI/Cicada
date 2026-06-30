@@ -2038,6 +2038,7 @@
         "metriquesSaisieTitle": "Saisie des métriques",
         "autoResultLabel": "Résultat automatique",
         "autoResultPending": "À calculer — saisissez au moins une métrique",
+        "autoResultDisabled": "(désactivé — résultat forcé manuellement)",
         "autoExplanation": "Le résultat de l'indicateur est calculé automatiquement : moyenne pondérée des scores de ses métriques saisies, arrondie au niveau le plus proche. Il se met à jour à mesure que vous remplissez les métriques.",
         "forceManual": "Forcer le résultat manuellement",
         "forceManualHint": "Décoché, le résultat reste calculé automatiquement à partir des métriques. Coché, vous choisissez le niveau ci-dessous — les métriques restent saisissables, seul le résultat de l'indicateur est forcé.",

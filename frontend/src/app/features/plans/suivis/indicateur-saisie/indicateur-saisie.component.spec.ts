@@ -114,6 +114,35 @@ describe('IndicateurSaisieComponent — éditeur unifié (#510)', () => {
   });
 
   // ---------------------------------------------------------------------------
+  // #510 (retour de test) — le bloc « résultat automatique » est grisé dès que
+  // la saisie manuelle (forçage) est sélectionnée, pour ne pas perdre l'utilisateur.
+  // ---------------------------------------------------------------------------
+  describe('autoResultDimmed', () => {
+    it('grise le résultat automatique quand le forçage manuel est actif', () => {
+      const c = comp();
+      (c as any).manualOverride = signal(true);
+      expect(c.autoResultDimmed()).toBe(true);
+    });
+
+    it('laisse le résultat automatique pleinement visible en mode auto', () => {
+      const c = comp();
+      (c as any).manualOverride = signal(false);
+      expect(c.autoResultDimmed()).toBe(false);
+    });
+
+    it('suit la bascule de la case « Forcer le résultat manuellement »', () => {
+      const c = comp();
+      (c as any).manualOverride = signal(false);
+      (c as any).scoreOverride = signal<number | null>(null);
+      (c as any).liveAutoScore = signal<number | null>(3);
+      c.setManualOverride(true);
+      expect(c.autoResultDimmed()).toBe(true);
+      c.setManualOverride(false);
+      expect(c.autoResultDimmed()).toBe(false);
+    });
+  });
+
+  // ---------------------------------------------------------------------------
   // #464/#465 — saisie d'une métrique CHIFFRE/TEXTE via un select des options
   // de la grille (au lieu d'un champ texte libre).
   // ---------------------------------------------------------------------------

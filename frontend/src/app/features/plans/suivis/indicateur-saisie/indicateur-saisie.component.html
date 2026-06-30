@@ -196,30 +196,38 @@
                 <div class="indicator-result">
                   <label class="metric-label">{{ 'plans.suivis.indicateur.resultatIndicateur' | translate }} :</label>
 
-                  <!-- Résultat AUTO : toujours affiché, recalculé en live -->
-                  <div class="result-auto-label">
-                    {{ 'plans.suivis.indicateur.autoResultLabel' | translate }} :
-                    @if (liveAutoScore() !== null) {
-                      <strong>{{ scoreLabels[scoreToLevel(liveAutoScore())] }}</strong>
-                    } @else {
-                      <span class="text-muted">{{ 'plans.suivis.indicateur.autoResultPending' | translate }}</span>
-                    }
-                  </div>
-                  <div class="global-bar">
-                    @for (lvl of scoreLevelsList; track lvl; let i = $index) {
-                      <span class="global-cell"
-                            [class]="'lvl-' + lvl"
-                            [class.active]="liveAutoScore() === i + 1">
-                        {{ scoreLabels[lvl] }}
-                      </span>
-                    }
-                  </div>
+                  <!-- Résultat AUTO : toujours affiché, recalculé en live.
+                       Grisé (#510) quand le forçage manuel est actif, pour
+                       signaler qu'il n'est plus la valeur retenue. -->
+                  <div class="result-auto" [class.dimmed]="autoResultDimmed()"
+                       [attr.aria-disabled]="autoResultDimmed() ? 'true' : null">
+                    <div class="result-auto-label">
+                      {{ 'plans.suivis.indicateur.autoResultLabel' | translate }} :
+                      @if (liveAutoScore() !== null) {
+                        <strong>{{ scoreLabels[scoreToLevel(liveAutoScore())] }}</strong>
+                      } @else {
+                        <span class="text-muted">{{ 'plans.suivis.indicateur.autoResultPending' | translate }}</span>
+                      }
+                      @if (manualOverride()) {
+                        <span class="auto-disabled-tag">{{ 'plans.suivis.indicateur.autoResultDisabled' | translate }}</span>
+                      }
+                    </div>
+                    <div class="global-bar">
+                      @for (lvl of scoreLevelsList; track lvl; let i = $index) {
+                        <span class="global-cell"
+                              [class]="'lvl-' + lvl"
+                              [class.active]="liveAutoScore() === i + 1">
+                          {{ scoreLabels[lvl] }}
+                        </span>
+                      }
+                    </div>
 
-                  <!-- Explication du calcul automatique -->
-                  <p class="auto-explanation">
-                    <i class="fi fi-rr-info"></i>
-                    {{ 'plans.suivis.indicateur.autoExplanation' | translate }}
-                  </p>
+                    <!-- Explication du calcul automatique -->
+                    <p class="auto-explanation">
+                      <i class="fi fi-rr-info"></i>
+                      {{ 'plans.suivis.indicateur.autoExplanation' | translate }}
+                    </p>
+                  </div>
 
                   <!-- Case : forcer manuellement le résultat -->
                   <app-checkbox
