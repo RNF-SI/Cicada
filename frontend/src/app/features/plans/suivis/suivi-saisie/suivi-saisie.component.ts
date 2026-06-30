@@ -235,17 +235,45 @@ export class SuiviSaisieComponent implements OnInit {
   hasPlannedGeom = computed<boolean>(() => this.plannedGeom() != null);
 
   /**
+   * #511 — Instantané de l'état de l'emprise réalisée juste AVANT une copie de
+   * l'emprise prévue, pour pouvoir revenir en arrière si on s'est trompé.
+   * `null` = aucune copie annulable en cours.
+   */
+  private empriseSnapshot = signal<{ geom: any | undefined; editing: boolean } | null>(null);
+
+  /** Vrai si une copie de l'emprise prévue peut être annulée (#511). */
+  canUndoCopyEmprise = computed<boolean>(() => this.empriseSnapshot() != null);
+
+  /**
    * #434 — Copie l'emprise prévue (emprise de l'action) comme emprise réalisée
    * et bascule en mode édition pour pouvoir l'ajuster. La carte se recharge via
    * le binding `[geometry]="realisedGeom()"` (qui lit `pendingGeomRealisee`).
+   * #511 — Mémorise l'état précédent pour permettre un retour en arrière.
    */
   copyPlannedEmprise(): void {
     const planned = this.plannedGeom();
     if (planned == null) return;
+    // Mémoriser l'état courant avant écrasement (pour l'annulation #511).
+    this.empriseSnapshot.set({
+      geom: this.pendingGeomRealisee(),
+      editing: this.isEditingGeom(),
+    });
     // Clone pour éviter de partager la référence avec l'emprise prévue affichée
     // en arrière-plan.
     this.pendingGeomRealisee.set(structuredClone(planned));
     this.isEditingGeom.set(true);
+  }
+
+  /**
+   * #511 — Annule la dernière copie de l'emprise prévue et restaure l'emprise
+   * réalisée telle qu'elle était avant la copie.
+   */
+  undoCopyPlannedEmprise(): void {
+    const snapshot = this.empriseSnapshot();
+    if (snapshot == null) return;
+    this.pendingGeomRealisee.set(snapshot.geom);
+    this.isEditingGeom.set(snapshot.editing);
+    this.empriseSnapshot.set(null);
   }
 
   /** Retourne l'OperationAnnee pour une année donnée (ou null). */
@@ -638,6 +666,7 @@ export class SuiviSaisieComponent implements OnInit {
     // emprise réalisée).
     this.pendingGeomRealisee.set(undefined);
     this.isEditingGeom.set(false);
+    this.empriseSnapshot.set(null);
   }
 
   /**
@@ -798,6 +827,7 @@ export class SuiviSaisieComponent implements OnInit {
         // brouillon (le serveur fait foi maintenant).
         this.pendingGeomRealisee.set(undefined);
         this.isEditingGeom.set(false);
+        this.empriseSnapshot.set(null);
         // « Enregistrer et quitter » : retour à la liste de suivi des actions.
         if (quit) this.goBack();
       },

@@ -1972,6 +1972,7 @@
           "empriseLegendPrevu": "Emprise prévue",
           "empriseLegendRealise": "Emprise réalisée",
           "copyPlannedEmprise": "Copier l'emprise prévue",
+          "undoCopyPlannedEmprise": "Annuler la copie",
           "empriseStartDraw": "Tracer l'emprise réalisée",
           "empriseStopDraw": "Terminer le tracé",
           "empriseDrawHint": "Utilisez la barre d'outils en haut à gauche pour dessiner ou importer une couche SIG. L'emprise prévue reste affichée en pointillés.",

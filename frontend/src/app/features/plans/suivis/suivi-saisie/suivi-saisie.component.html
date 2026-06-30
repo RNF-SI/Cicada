@@ -469,11 +469,21 @@
           <!-- #434 — copier l'emprise prévue (emprise de l'action) comme emprise
                réalisée, puis l'ajuster. Visible seulement si une emprise est prévue. -->
           @if (hasPlannedGeom()) {
-            <button type="button" mat-stroked-button class="btn-sm copy-planned-emprise"
-                    (click)="copyPlannedEmprise()">
-              <i class="fi fi-rr-copy-alt"></i>
-              {{ 'plans.suivis.saisie.fields.copyPlannedEmprise' | translate }}
-            </button>
+            <div class="emprise-actions">
+              <button type="button" mat-stroked-button class="btn-sm copy-planned-emprise"
+                      (click)="copyPlannedEmprise()">
+                <i class="fi fi-rr-copy-alt"></i>
+                {{ 'plans.suivis.saisie.fields.copyPlannedEmprise' | translate }}
+              </button>
+              <!-- #511 — revenir en arrière si on s'est trompé en copiant. -->
+              @if (canUndoCopyEmprise()) {
+                <button type="button" mat-button class="btn-sm undo-copy-emprise"
+                        (click)="undoCopyPlannedEmprise()">
+                  <i class="fi fi-rr-undo"></i>
+                  {{ 'plans.suivis.saisie.fields.undoCopyPlannedEmprise' | translate }}
+                </button>
+              }
+            </div>
           }
           <!-- Emprise prévue (arrière-plan, pointillés terra-cotta) + emprise
                réalisée éditable. Composant factorisé partagé avec le formulaire

@@ -5,6 +5,7 @@
  * On teste les helpers purs (qui ne dépendent que de `ctrl.value`) sans monter
  * le composant complet.
  */
+import { computed, signal } from '@angular/core';
 import { SuiviSaisieComponent } from './suivi-saisie.component';
 
 /** Faux AbstractControl minimal : seul `value` est lu par les helpers. */
@@ -100,6 +101,68 @@ describe('SuiviSaisieComponent — indicateurs de réponse', () => {
 
     it('retourne [] si pas de meta', () => {
       expect(c.gridLevels(ctrlOf({}))).toEqual([]);
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // Copie de l'emprise prévue + retour en arrière (#511)
+  // ---------------------------------------------------------------------------
+  describe('copyPlannedEmprise / undoCopyPlannedEmprise', () => {
+    const PLANNED = { type: 'Point', coordinates: [1, 2] };
+
+    // `structuredClone` (utilisé par copyPlannedEmprise) absent du runtime jsdom.
+    beforeAll(() => {
+      const g = globalThis as unknown as { structuredClone?: <T>(v: T) => T };
+      g.structuredClone ??= (v) => JSON.parse(JSON.stringify(v));
+    });
+
+    /** Monte un composant avec les signaux d'emprise initialisés à la main. */
+    function empriseComp(plannedGeom: unknown) {
+      const c = comp();
+      c.plannedGeom = signal<any>(plannedGeom) as any;
+      c.pendingGeomRealisee = signal<any | undefined>(undefined);
+      c.isEditingGeom = signal(false);
+      const snap = signal<{ geom: any | undefined; editing: boolean } | null>(null);
+      (c as any).empriseSnapshot = snap;
+      c.canUndoCopyEmprise = computed(() => snap() != null) as any;
+      return c;
+    }
+
+    it('copie l\'emprise prévue (clone), passe en édition et autorise l\'annulation', () => {
+      const c = empriseComp(PLANNED);
+      c.copyPlannedEmprise();
+      expect(c.pendingGeomRealisee()).toEqual(PLANNED);
+      expect(c.pendingGeomRealisee()).not.toBe(PLANNED); // clone, pas la même référence
+      expect(c.isEditingGeom()).toBe(true);
+      expect(c.canUndoCopyEmprise()).toBe(true);
+    });
+
+    it('ne fait rien s\'il n\'y a pas d\'emprise prévue', () => {
+      const c = empriseComp(null);
+      c.copyPlannedEmprise();
+      expect(c.pendingGeomRealisee()).toBeUndefined();
+      expect(c.isEditingGeom()).toBe(false);
+      expect(c.canUndoCopyEmprise()).toBe(false);
+    });
+
+    it('revient en arrière en restaurant l\'état précédent', () => {
+      const c = empriseComp(PLANNED);
+      const previous = { type: 'Point', coordinates: [9, 9] };
+      c.pendingGeomRealisee.set(previous);
+      c.copyPlannedEmprise();
+      expect(c.pendingGeomRealisee()).toEqual(PLANNED);
+
+      c.undoCopyPlannedEmprise();
+      expect(c.pendingGeomRealisee()).toBe(previous);
+      expect(c.isEditingGeom()).toBe(false);
+      expect(c.canUndoCopyEmprise()).toBe(false);
+    });
+
+    it('undo sans copie préalable est un no-op', () => {
+      const c = empriseComp(PLANNED);
+      c.pendingGeomRealisee.set(PLANNED);
+      c.undoCopyPlannedEmprise();
+      expect(c.pendingGeomRealisee()).toBe(PLANNED);
     });
   });
 });

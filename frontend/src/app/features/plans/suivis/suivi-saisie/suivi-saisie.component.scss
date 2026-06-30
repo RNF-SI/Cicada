@@ -508,10 +508,11 @@ textarea.full-width {
 
 .emprise-actions {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
+  flex-wrap: wrap;
   gap: $spacing-sm;
   justify-content: flex-start;
-  align-items: flex-start;
+  align-items: center;
   padding-top: $spacing-sm;
 }
 
