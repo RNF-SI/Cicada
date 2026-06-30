@@ -34,6 +34,14 @@ export const planEditableGuard: CanActivateFn = (
     return router.createUrlTree(['/plans']);
   }
 
+  // #512 — Quand la route bloquée cible une action (« Modifier l'action » depuis
+  // le suivi / tableau de bord d'un plan validé), rediriger directement vers la
+  // fiche en lecture seule de cette action plutôt que vers la liste des enjeux.
+  const operationId = route.paramMap.get('operationId');
+  const lockedTarget = operationId
+    ? router.createUrlTree(['/plans', slug, 'enjeux', 'operations', operationId])
+    : router.createUrlTree(['/plans', slug, 'enjeux']);
+
   return adminService.getPlanBySlug(slug).pipe(
     map((plan) => {
       if (EDITABLE_STATUSES.has(plan.statut)) {
@@ -44,8 +52,8 @@ export const planEditableGuard: CanActivateFn = (
         translate.instant('common.actions.close'),
         { duration: 4000 },
       );
-      return router.createUrlTree(['/plans', slug, 'enjeux']);
+      return lockedTarget;
     }),
-    catchError(() => of(router.createUrlTree(['/plans', slug, 'enjeux']))),
+    catchError(() => of(lockedTarget)),
   );
 };
