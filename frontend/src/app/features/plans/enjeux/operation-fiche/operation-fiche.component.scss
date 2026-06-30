@@ -113,6 +113,20 @@
 .fiche-ind-type { color: $gray-dark; }
 .fiche-ind-met { color: $gray-dark; }
 
+// #515 — Indicateur de réponse : intitulé + grille de métriques.
+.fiche-ind-block {
+  margin-bottom: $spacing-md;
+
+  &:last-child { margin-bottom: 0; }
+}
+
+.fiche-ind-name {
+  font-size: $font-size-base;
+  font-weight: $font-weight-bold;
+  color: $primary-color;
+  margin: 0 0 $spacing-xs;
+}
+
 .fiche-table {
   width: 100%;
   border-collapse: collapse;

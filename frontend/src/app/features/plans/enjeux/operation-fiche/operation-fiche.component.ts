@@ -3,8 +3,9 @@ import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { TranslateModule } from '@ngx-translate/core';
 import { EnjeuService } from '../../../../core/services/enjeu.service';
-import { Operation } from '../../../../core/models/enjeu.model';
+import { MetriqueRef, Operation } from '../../../../core/models/enjeu.model';
 import { LeafletMapEditComponent } from '../../../../shared/components/leaflet-map-edit/leaflet-map-edit.component';
+import { MetriqueGridDisplayComponent } from '../../../../shared/components/metrique-grid-display/metrique-grid-display.component';
 
 /**
  * #354 — Fiche synthétique d'une action (opération).
@@ -18,7 +19,7 @@ import { LeafletMapEditComponent } from '../../../../shared/components/leaflet-m
 @Component({
   selector: 'app-operation-fiche',
   standalone: true,
-  imports: [CommonModule, RouterModule, TranslateModule, LeafletMapEditComponent],
+  imports: [CommonModule, RouterModule, TranslateModule, LeafletMapEditComponent, MetriqueGridDisplayComponent],
   templateUrl: './operation-fiche.component.html',
   styleUrl: './operation-fiche.component.scss',
 })
@@ -35,10 +36,11 @@ export class OperationFicheComponent implements OnInit {
   /** Indicateurs liés, dérivés des métriques de l'action, dédupliqués. */
   readonly indicateursLies = computed(() => {
     const metriques = this.operation()?.metriques ?? [];
-    const byInd = new Map<number, { id: number; nom: string; type?: string | null; metriques: string[] }>();
+    const byInd = new Map<number, { id: number; nom: string; type?: string | null; metriques: string[]; metriqueRefs: MetriqueRef[] }>();
     for (const m of metriques) {
-      const entry = byInd.get(m.indicateur_id) ?? { id: m.indicateur_id, nom: m.indicateur_nom, type: m.indicateur_type, metriques: [] };
+      const entry = byInd.get(m.indicateur_id) ?? { id: m.indicateur_id, nom: m.indicateur_nom, type: m.indicateur_type, metriques: [], metriqueRefs: [] };
       if (m.nom_metrique) entry.metriques.push(m.nom_metrique);
+      entry.metriqueRefs.push(m);
       byInd.set(m.indicateur_id, entry);
     }
     return [...byInd.values()];

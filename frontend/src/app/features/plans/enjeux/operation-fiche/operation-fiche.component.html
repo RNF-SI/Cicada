@@ -120,18 +120,16 @@
         </section>
       }
 
-      <!-- Indicateurs de réponse (mis en avant) -->
+      <!-- Indicateurs de réponse (mis en avant, avec grille de métriques #515) -->
       @if (indicateursReponse().length) {
         <section class="fiche-section">
           <h2>{{ 'plans.suivis.actions.fiche.indicateursReponse' | translate }}</h2>
-          <ul class="fiche-list">
-            @for (ind of indicateursReponse(); track ind.id) {
-              <li>
-                <strong>{{ ind.nom }}</strong>
-                @if (ind.metriques.length) { <span class="fiche-ind-met"> — {{ ind.metriques.join(', ') }}</span> }
-              </li>
-            }
-          </ul>
+          @for (ind of indicateursReponse(); track ind.id) {
+            <div class="fiche-ind-block">
+              <h3 class="fiche-ind-name">{{ ind.nom }}</h3>
+              <app-metrique-grid-display [metriques]="ind.metriqueRefs"></app-metrique-grid-display>
+            </div>
+          }
         </section>
       }
 
