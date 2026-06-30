@@ -332,6 +332,9 @@ export interface Indicateur {
   createur_nom?: string;
   // #420 — slug de l'enjeu, pour le deep-link « Modifier l'indicateur »
   enjeu_slug?: string | null;
+  // #518 — scores forcés manuellement par année (clé = année, valeur = score 1..5).
+  // Le tableau de bord les affiche en priorité sur le calcul automatique.
+  score_overrides?: Record<string, number>;
 }
 
 /**

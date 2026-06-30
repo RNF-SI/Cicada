@@ -410,6 +410,10 @@ class IndicateurSerializer(serializers.ModelSerializer):
     # #420 — slug de l'enjeu, pour le deep-link « Modifier l'indicateur » depuis
     # la page de saisie du suivi vers le détail de l'enjeu (arborescence).
     enjeu_slug = serializers.SerializerMethodField()
+    # #518 — overrides manuels du score par année (saisie au niveau indicateur).
+    # Le tableau de bord doit afficher ces scores forcés en priorité sur le
+    # calcul automatique issu des métriques.
+    score_overrides = serializers.SerializerMethodField()
 
     class Meta:
         model = Indicateur
@@ -422,6 +426,8 @@ class IndicateurSerializer(serializers.ModelSerializer):
             'metriques', 'nb_metriques',
             'operations',
             'taxons', 'habitats', 'geologies',
+            # Saisie annuelle (override manuel du score)
+            'score_overrides',
             # Navigation
             'enjeu_slug',
             # Audit
@@ -431,6 +437,19 @@ class IndicateurSerializer(serializers.ModelSerializer):
 
     def get_nb_metriques(self, obj):
         return _prefetched_count(obj, 'metriques')
+
+    def get_score_overrides(self, obj):
+        """#518 — Mappe `année -> score forcé (1..5)` pour les saisies manuelles.
+
+        N'inclut que les années réellement surchargées (`score_override`
+        renseigné). Le tableau de bord les affiche en priorité sur le score
+        automatique. Clés en chaîne (JSON) ; le front les lit par année.
+        """
+        return {
+            str(am.annee): am.score_override
+            for am in obj.annual_mesures.all()
+            if am.score_override is not None
+        }
 
     def get_enjeu_slug(self, obj):
         """#420 — Remonte au slug de l'enjeu de l'indicateur.

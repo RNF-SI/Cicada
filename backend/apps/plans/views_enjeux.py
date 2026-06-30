@@ -130,6 +130,8 @@ class EnjeuViewSet(viewsets.ModelViewSet):
             type_indicateur__mnemonique='REPONSE',
         ).prefetch_related(
             'taxons', 'habitats', 'geologies',
+            # #518 — overrides manuels du score par année (tableau de bord)
+            'annual_mesures',
             Prefetch('metriques', queryset=metrique_qs),
             # #367 — actions rattachées directement à l'indicateur (sans métrique)
             Prefetch('operations', queryset=op_qs),

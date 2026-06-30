@@ -384,10 +384,24 @@ export class PlanTableauDeBordComponent implements OnInit {
   }
 
   /**
+   * #518 — Score forcé manuellement pour un indicateur une année donnée, ou
+   * null si la saisie reste automatique. Prime sur le calcul des métriques.
+   */
+  getOverrideForYear(indicateur: Indicateur, year: number): ScoreLevel | null {
+    const score = indicateur.score_overrides?.[String(year)];
+    if (score == null) return null;
+    return this.levelToScoreLevel(score);
+  }
+
+  /**
    * Get score level for an indicateur in a given year.
+   * #518 — Un score saisi manuellement (override au niveau indicateur) prime
+   * sur le calcul automatique issu des métriques.
    * Uses mesures data from metriques when available.
    */
   getScoreForYear(row: IndicatorRow, year: number): ScoreLevel | null {
+    const override = this.getOverrideForYear(row.indicateur, year);
+    if (override) return override;
     for (const metrique of row.metriques) {
       const mesures = metrique.mesures || [];
       const mesure = mesures.find(m => {

@@ -872,3 +872,62 @@ class TestEnjeuFilters:
         response = api_client.get('/api/plans/enjeux/?search=ZZZNoMatchXXX')
         assert response.status_code == status.HTTP_200_OK
         assert len(response.data['results']) == 0
+
+
+# =============================================================================
+# TestByPlanScoreOverrides (#518)
+# =============================================================================
+
+@pytest.mark.django_db
+@pytest.mark.integration
+class TestByPlanScoreOverrides:
+    """#518 — l'endpoint by-plan expose les scores forcés manuellement
+    (override au niveau indicateur) pour que le tableau de bord les affiche."""
+
+    def _indicateur_on_plan(self, enjeu_test_data):
+        from tests.factories.enjeux import (
+            ObjectifLongTermeFactory, NiveauExigenceFactory, IndicateurFactory,
+        )
+        olt = ObjectifLongTermeFactory(id_enjeu=enjeu_test_data['enjeu1'])
+        ne = NiveauExigenceFactory(id_olt=olt)
+        return IndicateurFactory(id_ne=ne)
+
+    def test_score_overrides_exposes_manual_score(self, api_client, enjeu_test_data):
+        """Un IndicateurMesure avec score_override est renvoyé dans score_overrides."""
+        from apps.plans.models_indicateurs import IndicateurMesure
+        indic = self._indicateur_on_plan(enjeu_test_data)
+        IndicateurMesure.objects.create(
+            id_indicateur=indic, annee=2024, score_override=5,
+        )
+
+        api_client.force_authenticate(user=enjeu_test_data['super_admin'])
+        plan_id = enjeu_test_data['plan'].id_pg
+        response = api_client.get(f'/api/plans/enjeux/by-plan/{plan_id}/')
+        assert response.status_code == status.HTTP_200_OK
+
+        found = self._find_indicateur(response.data, indic.id_indicateur)
+        assert found is not None
+        assert found['score_overrides'] == {'2024': 5}
+
+    def test_score_overrides_empty_without_override(self, api_client, enjeu_test_data):
+        """Sans override, score_overrides est un dictionnaire vide."""
+        indic = self._indicateur_on_plan(enjeu_test_data)
+
+        api_client.force_authenticate(user=enjeu_test_data['super_admin'])
+        plan_id = enjeu_test_data['plan'].id_pg
+        response = api_client.get(f'/api/plans/enjeux/by-plan/{plan_id}/')
+        assert response.status_code == status.HTTP_200_OK
+
+        found = self._find_indicateur(response.data, indic.id_indicateur)
+        assert found is not None
+        assert found['score_overrides'] == {}
+
+    @staticmethod
+    def _find_indicateur(payload, indic_id):
+        for enjeu in [*payload.get('enjeux', []), *payload.get('fcr', [])]:
+            for olt in enjeu.get('objectifs_long_terme', []):
+                for ne in olt.get('niveaux_exigence', []):
+                    for ind in ne.get('indicateurs', []):
+                        if ind['id_indicateur'] == indic_id:
+                            return ind
+        return None
