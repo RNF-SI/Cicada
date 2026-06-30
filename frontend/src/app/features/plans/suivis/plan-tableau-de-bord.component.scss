@@ -489,7 +489,8 @@
 }
 
 // #356 — en-tête enjeu (mode ensemble), couleur distincte (terra-cotta)
-.enjeu-header-row {
+// #505 — surclasser `.tdb-table tbody td { color: $black }` pour garder le texte blanc
+.tdb-table tbody .enjeu-header-row {
   td {
     background-color: $secondary-terra-cotta;
     color: $white;
