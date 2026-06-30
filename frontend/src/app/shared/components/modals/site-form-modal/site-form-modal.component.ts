@@ -356,8 +356,6 @@ export class SiteFormModalComponent implements OnInit, OnDestroy {
       type_site_precision: [site?.type_site_precision || '', Validators.maxLength(100)],
       surf_off: [site?.surf_off || null, [Validators.min(0)]],
       marin: [site?.marin || false],
-      outre_mer: [site?.outre_mer || false],
-      active: [site?.active !== false], // Default to true
       requestAsReferent: [true] // Default to true (user wants to become referent)
     });
   }
@@ -449,8 +447,10 @@ export class SiteFormModalComponent implements OnInit, OnDestroy {
       type_site_precision: this.isTypeAutre ? (this.form.value.type_site_precision || undefined) : null,
       surf_off: this.form.value.surf_off || undefined,
       marin: this.form.value.marin,
-      outre_mer: this.form.value.outre_mer,
-      active: this.form.value.active,
+      // Champs retirés du formulaire (#507) : préserver la valeur existante en édition,
+      // valeurs par défaut sensées en création (hors outre-mer, site actif).
+      outre_mer: this.data?.site?.outre_mer ?? false,
+      active: this.data?.site?.active !== false,
       // Add geometry data
       geom_geojson: this.polygonGeometry() || undefined,
       geom_pt_geojson: this.pointGeometry() || undefined,

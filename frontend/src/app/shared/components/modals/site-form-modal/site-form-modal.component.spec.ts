@@ -145,6 +145,12 @@ describe('SiteFormModalComponent', () => {
       expect(component.form.get('id_inpn')?.value).toBe('');
     });
 
+    it('should only keep the "marin" checkbox (#507 - remove outre_mer and active)', () => {
+      expect(component.form.get('marin')).toBeTruthy();
+      expect(component.form.get('outre_mer')).toBeNull();
+      expect(component.form.get('active')).toBeNull();
+    });
+
     it('should load site types on init', () => {
       expect(adminService.getSiteTypes).toHaveBeenCalled();
     });
