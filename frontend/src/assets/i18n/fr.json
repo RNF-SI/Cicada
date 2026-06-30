@@ -2080,7 +2080,7 @@
         "moyen": "Moyen",
         "bon": "Bon",
         "tresBon": "Très bon",
-        "sansDonnee": "Sans donnée",
+        "sansDonnee": "Indéterminé",
         "niveauExigence": "Niveau d'exigence",
         "indicateurs": "Indicateurs",
         "noData": "Aucun indicateur n'est encore défini pour ce plan.",

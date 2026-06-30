@@ -108,7 +108,9 @@ export class IndicateurSaisieComponent implements OnInit {
     'neutral': 'Moyen',
     'good': 'Bon',
     'very-good': 'Très bon',
-    'no-data': 'Sans donnée',
+    // #519 — un résultat sans donnée est désormais un état « indéterminé »
+    // explicitement sélectionnable en saisie manuelle (rond gris conservé).
+    'no-data': 'Indéterminé',
   };
 
   scoreToLevel(score: number | null | undefined): ScoreLevel {

@@ -749,8 +749,11 @@ class IndicateurMesure(models.Model):
     score_override = models.IntegerField(
         _("Score saisi manuellement"),
         null=True, blank=True,
-        validators=[MinValueValidator(1), MaxValueValidator(5)],
-        help_text=_("Score 1-5 saisi manuellement, écrase le calcul automatique."),
+        validators=[MinValueValidator(0), MaxValueValidator(5)],
+        help_text=_(
+            "Score saisi manuellement, écrase le calcul automatique : 1-5, "
+            "ou 0 pour forcer l'état « indéterminé » (sans donnée). #519"
+        ),
     )
     commentaire_override = models.TextField(
         _("Raisons de la saisie manuelle"),

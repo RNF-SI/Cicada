@@ -922,6 +922,29 @@ class TestByPlanScoreOverrides:
         assert found is not None
         assert found['score_overrides'] == {}
 
+    def test_upsert_accepts_indetermine_override(self, api_client, enjeu_test_data):
+        """#519 — score_override = 0 (« indéterminé ») est accepté et résolu
+        comme une surcharge effective (rond gris du tableau de bord)."""
+        indic = self._indicateur_on_plan(enjeu_test_data)
+        api_client.force_authenticate(user=enjeu_test_data['super_admin'])
+
+        resp = api_client.post(
+            '/api/plans/indicateur-mesures/upsert/',
+            {'id_indicateur': indic.id_indicateur, 'annee': 2024, 'score_override': 0},
+            format='json',
+        )
+        assert resp.status_code == status.HTTP_200_OK
+        assert resp.data['score_override'] == 0
+
+        resolved = api_client.get(
+            '/api/plans/indicateur-mesures/resolved/',
+            {'id_indicateur': indic.id_indicateur, 'annee': 2024},
+        )
+        assert resolved.status_code == status.HTTP_200_OK
+        assert resolved.data['is_overridden'] is True
+        assert resolved.data['score_override'] == 0
+        assert resolved.data['score_effective'] == 0
+
     @staticmethod
     def _find_indicateur(payload, indic_id):
         for enjeu in [*payload.get('enjeux', []), *payload.get('fcr', [])]:

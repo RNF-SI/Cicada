@@ -249,6 +249,12 @@
                             {{ scoreLabels[lvl] }}
                           </button>
                         }
+                        <!-- #519 — état « indéterminé » (aucune donnée) : score 0, rond gris -->
+                        <button type="button" class="manual-score-btn lvl-no-data"
+                                [class.active]="scoreOverride() === 0"
+                                (click)="pickManualScore(0)">
+                          {{ scoreLabels['no-data'] }}
+                        </button>
                       </div>
                       <label class="metric-label">{{ 'plans.suivis.indicateur.manualReason' | translate }}</label>
                       <textarea rows="3" class="full-width"

@@ -111,6 +111,15 @@ describe('IndicateurSaisieComponent — éditeur unifié (#510)', () => {
       c.pickManualScore(5);
       expect(c.scoreOverride()).toBe(5);
     });
+
+    // #519 — l'état « indéterminé » est forçable manuellement (score 0 = rond gris).
+    it('permet de forcer l\'état indéterminé (score 0)', () => {
+      const c = comp();
+      (c as any).scoreOverride = signal<number | null>(3);
+      c.pickManualScore(0);
+      expect(c.scoreOverride()).toBe(0);
+      expect(c.scoreToLevel(0)).toBe('no-data');
+    });
   });
 
   // ---------------------------------------------------------------------------

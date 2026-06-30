@@ -331,6 +331,8 @@
   &.lvl-neutral  { background: #F7D35C; color: $black; }
   &.lvl-good     { background: #82DB8A; color: $black; }
   &.lvl-very-good { background: #81C9D8; color: $black; }
+  // #519 — état « indéterminé » : rond gris, cohérent avec le tableau de bord
+  &.lvl-no-data  { background: #DADADA; color: $black; }
 
   &.active {
     opacity: 1;
