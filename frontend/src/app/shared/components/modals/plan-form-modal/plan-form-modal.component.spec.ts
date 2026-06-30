@@ -190,6 +190,25 @@ describe('PlanFormModalComponent', () => {
       expect(component.redacteurTypes()).toEqual(mockRedacteurTypes);
     }));
 
+    // #509 — Les champs requis ne doivent afficher qu'un seul astérisque :
+    // celui rendu par <app-form-field [required]="true">. Le libellé ne doit
+    // PAS suffixer un « * » manuel (sinon double astérisque, cf « Rang »).
+    it('should render a single required asterisk per required field', fakeAsync(() => {
+      fixture.detectChanges();
+      tick();
+      fixture.detectChanges();
+
+      const requiredLabels = Array.from(
+        fixture.nativeElement.querySelectorAll('.app-form-field__label')
+      ).filter((label: any) => label.querySelector('.app-form-field__required'));
+
+      expect(requiredLabels.length).toBeGreaterThan(0);
+      requiredLabels.forEach((label: any) => {
+        const asterisks = (label.textContent || '').match(/\*/g) || [];
+        expect(asterisks.length).toBe(1);
+      });
+    }));
+
     it('should call createPlan on submit', fakeAsync(() => {
       fixture.detectChanges();
       tick();

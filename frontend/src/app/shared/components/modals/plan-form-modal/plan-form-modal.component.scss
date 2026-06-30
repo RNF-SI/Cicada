@@ -210,6 +210,23 @@ mat-dialog-content {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: $spacing-md;
+  align-items: stretch;
+
+  // #509 — Aligne horizontalement les champs des deux colonnes même quand le
+  // libellé d'aide d'un champ est plus long que l'autre (ex : « Rang » a une
+  // aide multi-lignes, « Surface » non). On étire chaque app-form-field à la
+  // hauteur de la ligne et on pousse le contrôle (input) en bas.
+  ::ng-deep app-form-field {
+    height: 100%;
+  }
+
+  ::ng-deep .app-form-field {
+    height: 100%;
+  }
+
+  ::ng-deep .app-form-field__control {
+    margin-top: auto;
+  }
 }
 
 .form-row-3 {

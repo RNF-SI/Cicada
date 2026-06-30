@@ -21,7 +21,7 @@
         }
 
         <!-- Nom du plan * -->
-        <app-form-field [label]="('modals.planForm.fields.name' | translate) + ' *'" [required]="true">
+        <app-form-field [label]="'modals.planForm.fields.name' | translate" [required]="true">
   <input formControlName="nom" [placeholder]="'modals.planForm.placeholders.name' | translate">
           @if (form.get('nom')?.hasError('required')) {
             
@@ -106,7 +106,7 @@
 
         <!-- Rang et Surface -->
         <div class="form-row">
-          <app-form-field [label]="('modals.planForm.fields.rang' | translate) + ' *'" [required]="true" [helpText]="'modals.planForm.hints.rang' | translate">
+          <app-form-field [label]="'modals.planForm.fields.rang' | translate" [required]="true" [helpText]="'modals.planForm.hints.rang' | translate">
   <input type="number" formControlName="rang" min="1">
             
             @if (form.get('rang')?.hasError('required')) {
@@ -189,7 +189,7 @@
 
         <!-- Année début et Année fin -->
         <div class="form-row">
-          <app-form-field [label]="('modals.planForm.fields.startYear' | translate) + ' *'" [required]="true">
+          <app-form-field [label]="'modals.planForm.fields.startYear' | translate" [required]="true">
   <input type="number" formControlName="annee_debut" min="1900" max="2100">
             @if (form.get('annee_debut')?.hasError('required')) {
               
@@ -199,7 +199,7 @@
   </ng-container>
 </app-form-field>
 
-          <app-form-field [label]="('modals.planForm.fields.endYear' | translate) + ' *'" [required]="true">
+          <app-form-field [label]="'modals.planForm.fields.endYear' | translate" [required]="true">
   <input type="number" formControlName="annee_fin" min="1900" max="2100">
             @if (form.get('annee_fin')?.hasError('required')) {
               
