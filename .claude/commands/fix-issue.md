@@ -17,12 +17,19 @@ Procédure :
    - B = visuel / perceptuel, à valider à l'œil.
    - C = ambigu, trop large, ou label `needs: discussion`.
 
+1bis. IDENTIFIE le dernier commentaire de retour de test (le plus récent, signé
+      par le mainteneur / KO de validation). C'est LUI qui définit le travail à
+      faire MAINTENANT. L'historique sert de contexte (ce qui a déjà été tenté),
+      pas de cahier des charges. Si le dernier commentaire contredit un ancien
+      « ↳ Fait », c'est le dernier qui gagne : la correction précédente est
+      incomplète ou a régressé.
+
 2. Si C → NE corrige PAS. Commente tes questions précises sur l'issue
    (`gh issue comment $ARGUMENTS --body "..."`), pose le label `needs: discussion`
    (`gh issue edit $ARGUMENTS --add-label "needs: discussion"`), puis ARRÊTE.
 
-3. Sinon, place-toi sur une branche dédiée depuis `develop` :
-   `git checkout develop && git pull && git checkout -b fix/$ARGUMENTS`
+3. Sinon, travaille directement sur `develop`. Assure-toi d'être à jour
+   avant de commencer : `git checkout develop && git pull`.
 
 4. Si la correction n'est pas triviale, expose d'abord un plan court
    (fichiers visés + approche) avant de coder. Respecte les conventions

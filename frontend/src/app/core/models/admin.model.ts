@@ -560,11 +560,13 @@ export interface PlanCreatePayload {
   commentaire?: string;
   referents_ids?: number[];
   /**
-   * Plan validé du rang précédent auquel rattacher ce nouveau plan
-   * (conservation de la chaîne de versions). Posé à la création standard
-   * quand l'utilisateur confirme le rattachement suggéré.
+   * Plan du rang précédent auquel rattacher ce plan (conservation de la
+   * chaîne de versions). Posé à la création standard quand l'utilisateur
+   * confirme le rattachement suggéré, ou modifié depuis le formulaire de
+   * modification pour établir/retirer un lien entre deux PG séparés (#506).
+   * `null` retire explicitement le rattachement.
    */
-  plan_parent_id?: number;
+  plan_parent_id?: number | null;
 }
 
 /**

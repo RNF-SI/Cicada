@@ -30,6 +30,7 @@ describe('PlanFormModalComponent', () => {
   let getUsersMock: jest.Mock;
   let createPlanMock: jest.Mock;
   let updatePlanMock: jest.Mock;
+  let getPlansForSitesMock: jest.Mock;
 
   let isSuperAdminSignal: WritableSignal<boolean>;
   let currentUserSignal: WritableSignal<any>;
@@ -88,6 +89,7 @@ describe('PlanFormModalComponent', () => {
     getUsersMock = jest.fn().mockReturnValue(of({ results: mockUsers }));
     createPlanMock = jest.fn().mockReturnValue(of(mockPlan));
     updatePlanMock = jest.fn().mockReturnValue(of(mockPlan));
+    getPlansForSitesMock = jest.fn().mockReturnValue(of({ sites: [] }));
 
     isSuperAdminSignal = signal(isSuperAdmin);
     currentUserSignal = signal(mockCurrentUser);
@@ -100,7 +102,7 @@ describe('PlanFormModalComponent', () => {
       getUsers: getUsersMock,
       getOrganismes: jest.fn().mockReturnValue(of({ count: 0, results: [] })),
       // #433 — contexte chaîne de versions chargé en mode édition.
-      getPlansForSites: jest.fn().mockReturnValue(of({ sites: [] })),
+      getPlansForSites: getPlansForSitesMock,
       createPlan: createPlanMock,
       updatePlan: updatePlanMock
     };
@@ -644,5 +646,61 @@ describe('PlanFormModalComponent', () => {
         commentaire: undefined
       }));
     }));
+  });
+
+  // ==================== VERSION CHAIN — PARENT LINK (#506) ====================
+
+  describe('Version chain — parent link (#506)', () => {
+    const editPlan: AdminPlan = {
+      ...mockPlan,
+      id_pg: 5,
+      rang: 2,
+      plan_parent_id: null,
+      sites: [{ id_site: 1, nom_site: 'Site Alpha' }]
+    };
+
+    const sitePlans = {
+      sites: [{
+        site_id: 1,
+        site_nom: 'Site Alpha',
+        plans: [
+          { id_pg: 10, nom: 'PG rang 1', slug: 'pg-1', statut: 'valide', statut_display: 'Validé', rang: 1, version: '1', annee_debut: 2010, annee_fin: 2020, is_mi_parcours: false },
+          { id_pg: 5, nom: 'Plan Test', slug: 'pg-5', statut: 'draft', statut_display: 'Brouillon', rang: 2, version: '1', annee_debut: 2020, annee_fin: 2030, is_mi_parcours: false },
+          { id_pg: 20, nom: 'PG rang 3', slug: 'pg-3', statut: 'draft', statut_display: 'Brouillon', rang: 3, version: '1', annee_debut: 2030, annee_fin: 2040, is_mi_parcours: false }
+        ]
+      }]
+    };
+
+    it('exposes only lower-rang plans (excluding self) as candidate parents', async () => {
+      await setupTestBed({ plan: editPlan });
+      getPlansForSitesMock.mockReturnValue(of(sitePlans));
+      fixture.detectChanges();
+
+      const ids = component.candidateParents().map(p => p.id_pg);
+      expect(ids).toEqual([10]); // rang 1 only; self (5) and rang 3 (20) excluded
+    });
+
+    it('sends the selected parent in the update payload', async () => {
+      await setupTestBed({ plan: editPlan });
+      getPlansForSitesMock.mockReturnValue(of(sitePlans));
+      fixture.detectChanges();
+
+      component.onParentChange('10');
+      component.onSubmit();
+
+      expect(updatePlanMock).toHaveBeenCalledWith(5, expect.objectContaining({ plan_parent_id: 10 }));
+    });
+
+    it('sends null to clear the parent link', async () => {
+      await setupTestBed({ plan: { ...editPlan, plan_parent_id: 10 } });
+      getPlansForSitesMock.mockReturnValue(of(sitePlans));
+      fixture.detectChanges();
+
+      expect(component.selectedParentId()).toBe(10);
+      component.onParentChange('');
+      component.onSubmit();
+
+      expect(updatePlanMock).toHaveBeenCalledWith(5, expect.objectContaining({ plan_parent_id: null }));
+    });
   });
 });

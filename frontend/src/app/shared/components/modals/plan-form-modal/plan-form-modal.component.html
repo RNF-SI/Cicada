@@ -127,36 +127,32 @@
 </app-form-field>
         </div>
 
-        <!-- #433 — Contexte de chaîne de versions (lecture seule) : rattachement
-             courant + plans déjà existants sur le(s) site(s). -->
-        @if (isEditMode && (data?.plan?.plan_parent_id || existingPlansBySite().length > 0)) {
+        <!-- #506 — Chaîne de versions : rattachement modifiable (établir un lien
+             entre les rangs de deux PG séparés) + plans existants sur le(s) site(s). -->
+        @if (isEditMode) {
           <div class="form-section version-chain-info">
             <label class="field-label">{{ 'modals.planForm.versionChain.title' | translate }}</label>
-            @if (data?.plan?.plan_parent_nom) {
-              <p class="info-block info-block-success">
-                <i class="fi fi-rr-link"></i>
-                <span>
-                  {{ 'modals.planForm.versionChain.linkedTo' | translate }}
-                  <strong>{{ data?.plan?.plan_parent_nom }}</strong>
-                  @if (data?.plan?.plan_parent_rang || data?.plan?.plan_parent_version) {
-                    <span class="parent-meta">{{ 'modals.planForm.versionChain.linkedToMeta' | translate:{ rang: data?.plan?.plan_parent_rang, version: data?.plan?.plan_parent_version } }}</span>
-                  }
-                </span>
-              </p>
-              <!-- #433 — explication de ce que crée une duplication (rattachement
-                   définitif au cycle de vie + logique version/rang). -->
-              <div class="info-block version-chain-help">
-                <div class="info-block-content">
-                  <ul>
-                    <li>{{ 'modals.planForm.versionChain.explainChain' | translate }}</li>
-                    <li>{{ 'modals.planForm.versionChain.explainVersion' | translate }}</li>
-                    <li>{{ 'modals.planForm.versionChain.explainRang' | translate }}</li>
-                  </ul>
-                </div>
-              </div>
-            } @else {
-              <p class="text-mention">{{ 'modals.planForm.versionChain.notLinked' | translate }}</p>
+
+            <!-- #506 — Sélecteur du plan parent (rang précédent) -->
+            <app-form-field
+              [label]="'modals.planForm.versionChain.parentLabel' | translate"
+              [helpText]="'modals.planForm.versionChain.parentHelp' | translate">
+              <select
+                [value]="selectedParentId() ?? ''"
+                (change)="onParentChange($any($event.target).value)">
+                <option value="">{{ 'modals.planForm.versionChain.parentNone' | translate }}</option>
+                @for (p of candidateParents(); track p.id_pg) {
+                  <option [value]="p.id_pg">
+                    {{ 'modals.planForm.versionChain.rangLabel' | translate:{ rang: p.rang } }} — {{ p.nom }} ({{ p.statut_display }})
+                  </option>
+                }
+              </select>
+            </app-form-field>
+
+            @if (candidateParents().length === 0 && !selectedParentId()) {
+              <p class="text-mention">{{ 'modals.planForm.versionChain.noCandidate' | translate }}</p>
             }
+
             @if (existingPlansBySite().length > 0) {
               <p class="text-mention">{{ 'modals.planForm.versionChain.existingTitle' | translate }}</p>
               <ul class="version-chain-list">

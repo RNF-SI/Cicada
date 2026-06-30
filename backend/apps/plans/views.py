@@ -261,8 +261,48 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
         return bool(plan_sites & parent_sites)
 
     def perform_update(self, serializer):
-        """Définir l'utilisateur modificateur."""
-        serializer.save(id_utilisateur_maj=self.request.user)
+        """Définir l'utilisateur modificateur et, le cas échéant, mettre à jour
+        le rattachement au plan du rang précédent (chaîne de versions).
+
+        Le formulaire de modification peut envoyer `plan_parent_id` pour
+        **établir un lien entre les rangs de deux PG séparés** (#506) :
+        - une valeur valide → pose/remplace le lien (après validation serveur) ;
+        - `null` / `0` / chaîne vide → retire le lien (plan redevenu indépendant).
+        Si la clé est absente du payload, le rattachement courant est inchangé.
+        """
+        plan = serializer.save(id_utilisateur_maj=self.request.user)
+
+        if 'plan_parent_id' not in self.request.data:
+            return
+
+        parent_id = self.request.data.get('plan_parent_id')
+        if not parent_id:
+            # Détacher explicitement le plan de sa chaîne de versions.
+            if plan.plan_parent_id:
+                plan.plan_parent = None
+                plan.save(update_fields=['plan_parent'])
+            return
+
+        parent = PlanGestion.objects.filter(pk=parent_id).first()
+        if parent and self._is_valid_rang_parent(parent, plan) \
+                and not self._would_create_cycle(parent, plan):
+            if plan.plan_parent_id != parent.pk:
+                plan.plan_parent = parent
+                plan.save(update_fields=['plan_parent'])
+
+    @staticmethod
+    def _would_create_cycle(parent, plan):
+        """Vrai si rattacher `plan` sous `parent` créerait un cycle, c.-à-d. si
+        `parent` est lui-même un descendant de `plan` (remonte la chaîne des
+        ancêtres de `parent` jusqu'à la racine)."""
+        ancestor = parent
+        seen = set()
+        while ancestor is not None and ancestor.pk not in seen:
+            if ancestor.pk == plan.pk:
+                return True
+            seen.add(ancestor.pk)
+            ancestor = ancestor.plan_parent
+        return False
     
     @action(detail=False, methods=['get'], url_path=r'by-slug/(?P<slug>[-\w]+)')
     def by_slug(self, request, slug=None):

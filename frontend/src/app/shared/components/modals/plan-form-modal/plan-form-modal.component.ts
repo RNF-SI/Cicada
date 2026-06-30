@@ -30,7 +30,8 @@ import {
   PlanStatut,
   AdminSite,
   AdminUser,
-  SitePlansEntry
+  SitePlansEntry,
+  SitePlanSummary
 } from '../../../../core/models/admin.model';
 
 export interface PlanFormModalData {
@@ -137,8 +138,32 @@ export class PlanFormModalComponent implements OnInit {
   selectedSiteIds = signal<number[]>([]);
   selectedReferentIds = signal<number[]>([]);
 
-  /** #433 — Plans validés/archivés existants sur le(s) site(s) (contexte chaîne de versions, lecture seule). */
+  /** #433 — Plans existants sur le(s) site(s) (contexte chaîne de versions). */
   existingPlansBySite = signal<SitePlansEntry[]>([]);
+
+  /** #506 — Rang courant (miroir du champ `rang`) pour filtrer les parents éligibles. */
+  private rangSignal = signal<number>(1);
+  /** #506 — Parent sélectionné dans le formulaire de modification (null = indépendant). */
+  selectedParentId = signal<number | null>(null);
+
+  /**
+   * #506 — Plans éligibles comme parent (rang précédent) lors de la
+   * modification : tous les PG des sites du plan, dédupliqués, de rang
+   * strictement inférieur au rang courant, en excluant le plan lui-même.
+   */
+  candidateParents = computed<SitePlanSummary[]>(() => {
+    const rang = this.rangSignal();
+    const selfId = this.data?.plan?.id_pg;
+    const byId = new Map<number, SitePlanSummary>();
+    for (const entry of this.existingPlansBySite()) {
+      for (const p of entry.plans) {
+        if (p.id_pg !== selfId && p.rang < rang) {
+          byId.set(p.id_pg, p);
+        }
+      }
+    }
+    return [...byId.values()].sort((a, b) => b.rang - a.rang || a.nom.localeCompare(b.nom));
+  });
 
   // Site scope toggle
   siteScope = signal<ViewScope>('mine');
@@ -277,6 +302,11 @@ export class PlanFormModalComponent implements OnInit {
       id_evaluation: [plan?.id_evaluation || null],
       commentaire: [plan?.commentaire || '']
     });
+
+    // #506 — Miroir du rang pour filtrer les parents éligibles + parent courant
+    this.rangSignal.set(Number(plan?.rang) || 1);
+    this.selectedParentId.set(plan?.plan_parent_id ?? null);
+    this.form.get('rang')?.valueChanges.subscribe(v => this.rangSignal.set(Number(v) || 1));
 
     // Pre-select sites and referents if editing
     if (plan?.sites) {
@@ -509,6 +539,12 @@ export class PlanFormModalComponent implements OnInit {
     this.userSearchSignal.set(this.userSearchQuery);
   }
 
+  /** #506 — Met à jour le parent sélectionné depuis le `<select>` du formulaire. */
+  onParentChange(value: string): void {
+    const id = Number(value);
+    this.selectedParentId.set(id > 0 ? id : null);
+  }
+
   onSubmit(): void {
     if (this.form.invalid) {
       this.form.markAllAsTouched();
@@ -564,6 +600,11 @@ export class PlanFormModalComponent implements OnInit {
         ? [this.selectedOrganisme()!.organismeId!]
         : []
     };
+
+    // #506 — En modification, transmettre le rattachement choisi (null = retiré).
+    if (this.isEditMode) {
+      payload.plan_parent_id = this.selectedParentId();
+    }
 
     const request$ = this.isEditMode
       ? this.adminService.updatePlan(this.data!.plan!.id_pg, payload)

@@ -1930,3 +1930,86 @@ class TestPlansAutoLinkParent:
 
         assert response.status_code == status.HTTP_201_CREATED
         assert PlanGestion.objects.get(nom='Nouveau rang').plan_parent_id is None
+
+
+@pytest.mark.integration
+@pytest.mark.django_db
+class TestPlansUpdateParentLink:
+    """#506 — Établir/retirer un lien entre les rangs de deux PG séparés depuis
+    le formulaire de modification (perform_update)."""
+
+    def _patch(self, api_client, plan, **extra):
+        return api_client.patch(f'/api/plans/plans/{plan.id_pg}/', extra)
+
+    def test_update_sets_parent_link(self, api_client):
+        admin = SuperAdminFactory()
+        site = SiteFactory()
+        parent = PlanGestionValideFactory(nom='PG rang 1', rang=1, sites=[site])
+        plan = PlanGestionFactory(nom='PG rang 2', statut='draft', rang=2, sites=[site])
+
+        api_client.force_authenticate(user=admin)
+        response = self._patch(api_client, plan, plan_parent_id=parent.id_pg)
+
+        assert response.status_code == status.HTTP_200_OK
+        plan.refresh_from_db()
+        assert plan.plan_parent_id == parent.id_pg
+
+    def test_update_clears_parent_link(self, api_client):
+        admin = SuperAdminFactory()
+        site = SiteFactory()
+        parent = PlanGestionValideFactory(nom='PG rang 1', rang=1, sites=[site])
+        plan = PlanGestionFactory(
+            nom='PG rang 2', statut='draft', rang=2, sites=[site], plan_parent=parent
+        )
+
+        api_client.force_authenticate(user=admin)
+        response = self._patch(api_client, plan, plan_parent_id=None)
+
+        assert response.status_code == status.HTTP_200_OK
+        plan.refresh_from_db()
+        assert plan.plan_parent_id is None
+
+    def test_update_ignores_invalid_parent_same_rang(self, api_client):
+        admin = SuperAdminFactory()
+        site = SiteFactory()
+        other = PlanGestionValideFactory(nom='Même rang', rang=2, sites=[site])
+        plan = PlanGestionFactory(nom='PG rang 2', statut='draft', rang=2, sites=[site])
+
+        api_client.force_authenticate(user=admin)
+        response = self._patch(api_client, plan, plan_parent_id=other.id_pg)
+
+        assert response.status_code == status.HTTP_200_OK
+        plan.refresh_from_db()
+        assert plan.plan_parent_id is None
+
+    def test_update_without_key_keeps_parent(self, api_client):
+        admin = SuperAdminFactory()
+        site = SiteFactory()
+        parent = PlanGestionValideFactory(nom='PG rang 1', rang=1, sites=[site])
+        plan = PlanGestionFactory(
+            nom='PG rang 2', statut='draft', rang=2, sites=[site], plan_parent=parent
+        )
+
+        api_client.force_authenticate(user=admin)
+        response = self._patch(api_client, plan, nom='PG rang 2 renommé')
+
+        assert response.status_code == status.HTTP_200_OK
+        plan.refresh_from_db()
+        assert plan.plan_parent_id == parent.id_pg
+
+    def test_update_rejects_cycle(self, api_client):
+        """Rattacher un plan sous l'un de ses descendants est refusé (cycle)."""
+        admin = SuperAdminFactory()
+        site = SiteFactory()
+        root = PlanGestionFactory(nom='Racine', statut='draft', rang=1, sites=[site])
+        child = PlanGestionFactory(
+            nom='Enfant', statut='draft', rang=2, sites=[site], plan_parent=root
+        )
+
+        api_client.force_authenticate(user=admin)
+        # Tenter de faire pointer la racine vers son enfant → cycle (et rang invalide)
+        response = self._patch(api_client, root, plan_parent_id=child.id_pg)
+
+        assert response.status_code == status.HTTP_200_OK
+        root.refresh_from_db()
+        assert root.plan_parent_id is None
