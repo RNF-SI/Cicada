@@ -1163,15 +1163,17 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
     return this.selectedEnjeu()?.facteurs_influence || [];
   });
 
-  // #474 — pressions des enjeux ÉCOLOGIQUES du plan, proposées (de façon
-  // facultative) au rattachement d'un OO de FCR. Un FCR n'a pas de pression
-  // propre structurante ; on liste donc les pressions des autres enjeux du plan,
-  // groupées par « enjeu › facteur d'influence » pour le sélecteur.
+  // #474 — pressions proposées (de façon FACULTATIVE) au rattachement d'un OO de
+  // FCR, groupées par « enjeu › facteur d'influence » pour le sélecteur.
+  // Retour 02/07/2026 : un FCR PEUT porter ses propres pressions ; on les
+  // affiche donc EN PREMIER (premier plan), suivies des pressions des enjeux
+  // ÉCOLOGIQUES du plan.
   ecologicalPressionGroups = computed(() => {
     const data = this.planEnjeuxData();
     if (!data) return [] as { label: string; pressions: { id_pression: number; libelle: string }[] }[];
     const groups: { label: string; pressions: { id_pression: number; libelle: string }[] }[] = [];
-    for (const enjeu of data.enjeux || []) {
+
+    const pushGroups = (enjeu: Enjeu) => {
       const enjeuLibelle = enjeu.intitule_court || enjeu.libelle;
       for (const fi of enjeu.facteurs_influence || []) {
         const pressions = (fi.pressions || []).map(p => ({ id_pression: p.id_pression, libelle: p.libelle }));
@@ -1179,7 +1181,19 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
           groups.push({ label: `${enjeuLibelle} › ${fi.libelle}`, pressions });
         }
       }
+    };
+
+    // 1. Pressions propres au FCR sélectionné → en premier plan (#474 retour 02/07).
+    const selected = this.selectedEnjeu();
+    if (selected && this.isSelectedFcr()) {
+      pushGroups(selected);
     }
+
+    // 2. Pressions des enjeux écologiques du plan.
+    for (const enjeu of data.enjeux || []) {
+      pushGroups(enjeu);
+    }
+
     return groups;
   });
 

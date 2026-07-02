@@ -541,6 +541,76 @@ describe('EnjeuxListComponent', () => {
   });
 
   // =========================================================================
+  // #474 — pressions proposées au rattachement d'un OO de FCR
+  // =========================================================================
+
+  describe('ecologicalPressionGroups (#474)', () => {
+    beforeEach(() => setup());
+
+    it('lists ecological enjeux pressions grouped by « enjeu › facteur »', () => {
+      component['selectedEnjeuSlug'].set('connaissance-scientifique'); // FCR sans pression propre
+      const groups = component.ecologicalPressionGroups();
+      const labels = groups.map(g => g.label);
+      expect(labels).toContain('Protection zones humides › Urbanisation');
+      expect(labels).toContain('Protection zones humides › Agriculture');
+      // Les pressions écologiques sont bien exposées
+      expect(groups.flatMap(g => g.pressions.map(p => p.id_pression))).toEqual(
+        expect.arrayContaining([301, 302]),
+      );
+    });
+
+    it('inclut les pressions propres au FCR sélectionné ET les met en premier', () => {
+      // FCR portant sa propre pression (retour test 02/07/2026)
+      const fcrWithPression: Enjeu = {
+        ...mockFcr,
+        facteurs_influence: [
+          {
+            id_facteur_influence: 201, id_enjeu: mockFcr.id_enjeu, libelle: 'Moyens humains', date_ajout: '', date_maj: '',
+            pressions: [
+              { id_pression: 401, id_facteur_influence: 201, libelle: 'Pression FCR', date_ajout: '', date_maj: '', objectifs_operationnels: [], nb_objectifs_operationnels: 0 },
+            ],
+            nb_pressions: 1,
+          },
+        ],
+      };
+      component.planEnjeuxData.set({ ...mockPlanEnjeuxResponse, fcr: [fcrWithPression] });
+      component['selectedEnjeuSlug'].set('connaissance-scientifique');
+
+      const groups = component.ecologicalPressionGroups();
+      // La pression propre du FCR apparaît…
+      const fcrGroup = groups.find(g => g.pressions.some(p => p.id_pression === 401));
+      expect(fcrGroup).toBeDefined();
+      expect(fcrGroup!.label).toBe('Connaissance scientifique › Moyens humains');
+      // …et en PREMIER (avant les pressions des enjeux écologiques).
+      expect(groups[0].pressions[0].id_pression).toBe(401);
+      // Les pressions écologiques suivent toujours.
+      expect(groups.flatMap(g => g.pressions.map(p => p.id_pression))).toEqual(
+        expect.arrayContaining([401, 301, 302]),
+      );
+    });
+
+    it('n\'ajoute pas les pressions du FCR quand un enjeu écologique est sélectionné', () => {
+      const fcrWithPression: Enjeu = {
+        ...mockFcr,
+        facteurs_influence: [
+          {
+            id_facteur_influence: 201, id_enjeu: mockFcr.id_enjeu, libelle: 'Moyens humains', date_ajout: '', date_maj: '',
+            pressions: [
+              { id_pression: 401, id_facteur_influence: 201, libelle: 'Pression FCR', date_ajout: '', date_maj: '', objectifs_operationnels: [], nb_objectifs_operationnels: 0 },
+            ],
+            nb_pressions: 1,
+          },
+        ],
+      };
+      component.planEnjeuxData.set({ ...mockPlanEnjeuxResponse, fcr: [fcrWithPression] });
+      component['selectedEnjeuSlug'].set('protection-zones-humides'); // enjeu écologique, pas FCR
+
+      const groups = component.ecologicalPressionGroups();
+      expect(groups.flatMap(g => g.pressions.map(p => p.id_pression))).not.toContain(401);
+    });
+  });
+
+  // =========================================================================
   // Navigation
   // =========================================================================
 
