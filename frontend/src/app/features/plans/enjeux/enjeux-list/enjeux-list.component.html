@@ -682,10 +682,13 @@
           <!-- Tab: Vision à long terme -->
           @if (activeTab() === 'olt') {
             <div class="olt-content">
-              <!-- Note contextuelle -->
+              <!-- Note contextuelle + rappel de l'ordre de saisie (#481) -->
               <div class="olt-info-note">
                 <i class="fi fi-rr-info"></i>
-                <span>{{ 'enjeux.olt.usageNote' | translate }}</span>
+                <div class="olt-info-note-text">
+                  <span>{{ 'enjeux.olt.usageNote' | translate }}</span>
+                  <span class="saisie-order-line">{{ 'enjeux.saisieOrderHelp' | translate }}</span>
+                </div>
               </div>
 
               <!-- Barre haut : compteur -->
@@ -1420,10 +1423,13 @@
           <!-- Tab: Vision opérationnelle -->
           @if (activeTab() === 'operations') {
             <div class="oo-content">
-              <!-- Note contextuelle (#337 — variante FCR : pas de pression requise) -->
+              <!-- Note contextuelle (#337 — variante FCR) + rappel de l'ordre de saisie (#481) -->
               <div class="olt-info-note">
                 <i class="fi fi-rr-info"></i>
-                <span>{{ (isSelectedFcr() ? 'enjeux.oo.usageNoteFcr' : 'enjeux.oo.usageNote') | translate }}</span>
+                <div class="olt-info-note-text">
+                  <span>{{ (isSelectedFcr() ? 'enjeux.oo.usageNoteFcr' : 'enjeux.oo.usageNote') | translate }}</span>
+                  <span class="saisie-order-line">{{ 'enjeux.saisieOrderHelpOo' | translate }}</span>
+                </div>
               </div>
 
               <!-- Barre haut : compteur -->

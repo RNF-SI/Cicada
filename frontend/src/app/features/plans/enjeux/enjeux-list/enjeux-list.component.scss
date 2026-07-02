@@ -911,6 +911,17 @@
   }
 }
 
+// #481 — Note d'aide unique : rappel de l'ordre de saisie + note contextuelle
+.olt-info-note-text {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-xxs;
+
+  .saisie-order-line {
+    font-weight: $font-weight-bold;
+  }
+}
+
 .olt-top-bar {
   display: flex;
   align-items: center;

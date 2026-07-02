@@ -685,6 +685,25 @@ describe('EnjeuxListComponent', () => {
       expect(component.enjeuDetailExpanded()).toBe(false);
     });
 
+    // #481 — Rappel de l'ordre de saisie fusionné dans l'unique note d'aide,
+    // en haut des onglets « Vision à long terme » et « Stratégie opérationnelle »
+    // (pas dans le formulaire d'action).
+    it('should show the saisie-order line in a single help note on the OLT and operations tabs', () => {
+      component['selectedEnjeuSlug'].set('protection-zones-humides');
+
+      component.setActiveTab('olt');
+      fixture.detectChanges();
+      const el = fixture.nativeElement as HTMLElement;
+      // Une seule note d'aide, contenant le rappel de l'ordre de saisie.
+      expect(el.querySelectorAll('.olt-content .olt-info-note').length).toBe(1);
+      expect(el.querySelector('.olt-content .olt-info-note .saisie-order-line')).toBeTruthy();
+
+      component.setActiveTab('operations');
+      fixture.detectChanges();
+      expect(el.querySelectorAll('.oo-content .olt-info-note').length).toBe(1);
+      expect(el.querySelector('.oo-content .olt-info-note .saisie-order-line')).toBeTruthy();
+    });
+
     it('should toggle FCR expanded', () => {
       expect(component.isFcrExpanded(2)).toBe(false);
       component.toggleFcr(2);

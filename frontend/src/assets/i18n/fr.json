@@ -2798,6 +2798,8 @@
       "olt": "Vision à long terme",
       "operations": "Stratégie opérationnelle"
     },
+    "saisieOrderHelp": "Ordre de saisie : commencez par les objectifs à long terme (OLT), puis les niveaux d'exigence, ensuite les indicateurs d'état, et enfin les métriques et les actions. Une action se saisit après son indicateur.",
+    "saisieOrderHelpOo": "Ordre de saisie : créez l'objectif opérationnel (OO), puis le résultat attendu, ensuite l'indicateur de pression, et enfin les métriques et l'action. Une action se saisit après son indicateur.",
     "count": "{{count}} enjeu(x) ou FCR saisi(s)",
     "countZero": "Aucun enjeu ou FCR",
     "countOne": "1 enjeu ou FCR saisi",
@@ -3264,7 +3266,6 @@
       "intituleIndicateurReponse": "Intitulé de l'indicateur de réponse",
       "typeMetrique": "Type de grille de métrique",
       "prioriteTooltip": "Pour les actions liées aux OLT : les premières actions de l'enjeu doivent être en priorité 1, en cas de réorientation budgétaire.",
-      "saisieOrderHelp": "Rappel : une action se renseigne après son indicateur. Renseignez d'abord l'indicateur (état, pression ou réponse), puis créez l'action correspondante.",
       "valeurCible": "Valeur cible",
       "indicateurRemove": "Retirer cet indicateur de réponse",
       "newIndicatorDefault": "Nouvel indicateur de réponse",
