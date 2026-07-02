@@ -478,6 +478,65 @@ describe('EnjeuxListComponent', () => {
   });
 
   // =========================================================================
+  // OLT global numbering — auto + manuel (#229 / #442)
+  // =========================================================================
+
+  describe('oltGlobalRank — numérotation manuelle (#442)', () => {
+    beforeEach(() => setup());
+
+    /** Construit un plan à 2 enjeux, chacun avec des OLT donnés. */
+    function setOlts(oltsEnjeu1: any[], oltsEnjeu2: any[] = []): void {
+      const mk = (olts: any[]) => olts.map((o, i) => ({
+        id_olt: o.id, libelle: `OLT ${o.id}`, id_enjeu: 1,
+        ordre: i, numero_manuel: o.numero_manuel ?? null,
+        date_ajout: '', date_maj: '',
+      }));
+      component.planEnjeuxData.set({
+        ...mockPlanEnjeuxResponse,
+        enjeux: [
+          { ...mockEnjeu1, ordre: 0, objectifs_long_terme: mk(oltsEnjeu1) },
+          { ...mockEnjeu2, ordre: 1, objectifs_long_terme: mk(oltsEnjeu2) },
+        ],
+        fcr: [],
+      } as any);
+    }
+
+    it('numérote automatiquement 1..N dans l\'ordre des enjeux quand aucun numéro fixé', () => {
+      setOlts([{ id: 10 }, { id: 11 }], [{ id: 20 }, { id: 21 }]);
+      expect(component.getOltGlobalNumber(10)).toBe(1);
+      expect(component.getOltGlobalNumber(11)).toBe(2);
+      expect(component.getOltGlobalNumber(20)).toBe(3);
+      expect(component.getOltGlobalNumber(21)).toBe(4);
+    });
+
+    it('respecte un numéro fixé manuellement et le maintient stable', () => {
+      // OLT de l'enjeu 2 (id 20) fixé à 1 : il garde le numéro 1.
+      setOlts([{ id: 10 }, { id: 11 }], [{ id: 20, numero_manuel: 1 }]);
+      expect(component.getOltGlobalNumber(20)).toBe(1);
+    });
+
+    it('l\'auto-numérotation saute l\'indice occupé par un numéro fixé', () => {
+      // id 20 fixé à 1 → les OLT auto (10, 11) sautent le 1 : 2 puis 3.
+      setOlts([{ id: 10 }, { id: 11 }], [{ id: 20, numero_manuel: 1 }]);
+      expect(component.getOltGlobalNumber(10)).toBe(2);
+      expect(component.getOltGlobalNumber(11)).toBe(3);
+      expect(component.getOltGlobalNumber(20)).toBe(1);
+    });
+
+    it('supporte plusieurs numéros fixés simultanément', () => {
+      setOlts(
+        [{ id: 10, numero_manuel: 3 }, { id: 11 }],
+        [{ id: 20, numero_manuel: 1 }, { id: 21 }],
+      );
+      // Réservés : 1 et 3. Auto (11, 21) → 2 puis 4.
+      expect(component.getOltGlobalNumber(10)).toBe(3);
+      expect(component.getOltGlobalNumber(11)).toBe(2);
+      expect(component.getOltGlobalNumber(20)).toBe(1);
+      expect(component.getOltGlobalNumber(21)).toBe(4);
+    });
+  });
+
+  // =========================================================================
   // Detail computed properties
   // =========================================================================
 
@@ -1236,6 +1295,31 @@ describe('EnjeuxListComponent', () => {
       expect(mockEnjeuService.updateObjectifLongTerme).toHaveBeenCalledWith(501, {
         libelle: 'OLT modifié',
         description: undefined,
+        numero_manuel: null,
+      });
+    });
+
+    it('should send numero_manuel when a fixed number is set (#442)', () => {
+      component.startEditOlt(mockOlt);
+      component.editOltLibelle = 'OLT fixé';
+      component.editOltNumero = 3;
+      component.saveEditOlt(mockOlt);
+      expect(mockEnjeuService.updateObjectifLongTerme).toHaveBeenCalledWith(501, {
+        libelle: 'OLT fixé',
+        description: undefined,
+        numero_manuel: 3,
+      });
+    });
+
+    it('should reset numero_manuel to null when field is cleared/zero (#442)', () => {
+      component.startEditOlt(mockOlt);
+      component.editOltLibelle = 'OLT auto';
+      component.editOltNumero = 0;
+      component.saveEditOlt(mockOlt);
+      expect(mockEnjeuService.updateObjectifLongTerme).toHaveBeenCalledWith(501, {
+        libelle: 'OLT auto',
+        description: undefined,
+        numero_manuel: null,
       });
     });
 

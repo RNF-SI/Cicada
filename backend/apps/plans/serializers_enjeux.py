@@ -452,7 +452,7 @@ class ObjectifLongTermeSerializer(serializers.ModelSerializer):
         model = ObjectifLongTerme
         fields = [
             'id_olt', 'id_enjeu',
-            'libelle', 'description', 'ordre',
+            'libelle', 'description', 'ordre', 'numero_manuel',
             'niveaux_exigence', 'nb_niveaux_exigence',
             'date_ajout', 'date_maj', 'createur_nom'
         ]
@@ -471,7 +471,7 @@ class ObjectifLongTermeListSerializer(serializers.ModelSerializer):
         model = ObjectifLongTerme
         fields = [
             'id_olt', 'id_enjeu',
-            'libelle', 'description', 'ordre',
+            'libelle', 'description', 'ordre', 'numero_manuel',
             'nb_niveaux_exigence',
             'date_ajout', 'date_maj', 'createur_nom'
         ]
@@ -488,7 +488,7 @@ class ObjectifLongTermeCreateSerializer(serializers.ModelSerializer):
         model = ObjectifLongTerme
         fields = [
             'id_olt', 'id_enjeu',
-            'libelle', 'description', 'ordre'
+            'libelle', 'description', 'ordre', 'numero_manuel'
         ]
         read_only_fields = ['id_olt']
 

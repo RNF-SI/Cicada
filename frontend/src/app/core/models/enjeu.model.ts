@@ -243,6 +243,8 @@ export interface ObjectifLongTerme {
   id_enjeu: number;
   libelle: string;
   description?: string;
+  /** #442 — Numéro global fixé manuellement (null = numérotation automatique). */
+  numero_manuel?: number | null;
   niveaux_exigence?: NiveauExigence[];
   nb_niveaux_exigence?: number;
   date_ajout: string;
@@ -920,6 +922,8 @@ export interface ObjectifLongTermeCreatePayload {
   id_enjeu: number;
   libelle: string;
   description?: string;
+  /** #442 — Numéro global fixé manuellement (null = numérotation automatique). */
+  numero_manuel?: number | null;
 }
 
 /**

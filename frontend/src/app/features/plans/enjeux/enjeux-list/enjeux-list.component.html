@@ -716,6 +716,11 @@
                               <app-form-field class="full-width" [label]="'enjeux.olt.descriptionLabel' | translate">
   <textarea [(ngModel)]="editOltDescription" rows="2"></textarea>
 </app-form-field>
+                              <app-form-field [label]="'enjeux.olt.numeroLabel' | translate"
+                                              [helpText]="'enjeux.olt.numeroHelp' | translate">
+  <input type="number" min="1" step="1" [(ngModel)]="editOltNumero"
+         [placeholder]="'enjeux.olt.numeroPlaceholder' | translate">
+</app-form-field>
                             </div>
                             <div class="inline-form-actions">
                               <button mat-flat-button color="primary" (click)="saveEditOlt(olt)" [disabled]="!editOltLibelle.trim()">
@@ -748,6 +753,11 @@
                               size="md"
                               [showLine]="true">
                               <div sectionActions class="olt-header-actions">
+                                @if (olt.numero_manuel != null) {
+                                  <i class="fi fi-rr-thumbtack olt-pinned-badge"
+                                     [title]="'enjeux.olt.numeroPinned' | translate"
+                                     [attr.aria-label]="'enjeux.olt.numeroPinned' | translate"></i>
+                                }
                                 @if (canEditPlan()) {
                                   <button class="icon-btn-flat" (click)="moveOlt(idx, -1); $event.stopPropagation()"
                                           [disabled]="idx === 0"

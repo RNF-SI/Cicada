@@ -223,6 +223,8 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
   newNeDescription = '';
   editOltLibelle = '';
   editOltDescription = '';
+  // #442 — Numéro fixé manuellement de l'OLL en édition (null = automatique).
+  editOltNumero: number | null = null;
   editNeLibelle = '';
   editNeDescription = '';
 
@@ -322,28 +324,45 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
   });
 
   /**
-   * #229 — Numérotation globale des OLT à travers tous les enjeux du plan,
-   * dans l'ordre de tri des enjeux (`ordre`, puis `id_enjeu`).
+   * #229 / #442 — Numérotation globale des OLT à travers tous les enjeux du
+   * plan, dans l'ordre de tri des enjeux (`ordre`, puis `id_enjeu`).
    *
    * Exemple : enjeu 1 a 2 OLT → OLT 1 et OLT 2 ; enjeu 2 a 2 OLT → OLT 3
    * et OLT 4. Permet aux gestionnaires de désigner un OLT par son numéro
    * sans ambiguïté.
+   *
+   * #442 — Un OLT peut fixer son numéro manuellement (`numero_manuel`). Ce
+   * numéro est alors réservé et l'auto-numérotation des autres OLT le saute
+   * (le calcul automatique se refait sans l'indice occupé).
    */
   oltGlobalRank = computed<Map<number, number>>(() => {
-    const map = new Map<number, number>();
-    let rank = 0;
+    // Collecte tous les OLT dans l'ordre global (enjeux puis FCR).
+    const olts: ObjectifLongTerme[] = [];
     for (const enjeu of this.enjeux()) {
-      for (const olt of enjeu.objectifs_long_terme || []) {
-        rank += 1;
-        map.set(olt.id_olt, rank);
-      }
+      for (const olt of enjeu.objectifs_long_terme || []) olts.push(olt);
     }
     // Les FCR n'ont en principe pas d'OLT, mais on les inclut pour cohérence
     // au cas où un FCR en porterait (le numérotage global continue).
     for (const enjeu of this.fcr()) {
-      for (const olt of enjeu.objectifs_long_terme || []) {
-        rank += 1;
-        map.set(olt.id_olt, rank);
+      for (const olt of enjeu.objectifs_long_terme || []) olts.push(olt);
+    }
+
+    // Indices réservés par les OLT à numéro fixé manuellement.
+    const reserved = new Set<number>();
+    for (const olt of olts) {
+      if (olt.numero_manuel != null) reserved.add(olt.numero_manuel);
+    }
+
+    const map = new Map<number, number>();
+    let auto = 0;
+    for (const olt of olts) {
+      if (olt.numero_manuel != null) {
+        map.set(olt.id_olt, olt.numero_manuel);
+      } else {
+        // Prochain indice automatique libre (non réservé).
+        auto += 1;
+        while (reserved.has(auto)) auto += 1;
+        map.set(olt.id_olt, auto);
       }
     }
     return map;
@@ -1796,22 +1815,28 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
     this.editingOltId.set(olt.id_olt);
     this.editOltLibelle = olt.libelle;
     this.editOltDescription = olt.description || '';
+    this.editOltNumero = olt.numero_manuel ?? null;
   }
 
   cancelEditOlt(): void {
     this.editingOltId.set(null);
     this.editOltLibelle = '';
     this.editOltDescription = '';
+    this.editOltNumero = null;
   }
 
   saveEditOlt(olt: ObjectifLongTerme): void {
     if (!this.editOltLibelle.trim()) return;
     const newLibelle = this.editOltLibelle.trim();
     const newDescription = this.editOltDescription.trim() || undefined;
+    // #442 — Vide/0/invalide → numérotation automatique (null).
+    const rawNumero = this.editOltNumero;
+    const newNumero = rawNumero != null && rawNumero > 0 ? Math.floor(rawNumero) : null;
 
     this.enjeuService.updateObjectifLongTerme(olt.id_olt, {
       libelle: newLibelle,
-      description: newDescription
+      description: newDescription,
+      numero_manuel: newNumero
     }).subscribe({
       next: () => {
         this.snackBar.open(
@@ -1826,7 +1851,7 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
             ...e,
             objectifs_long_terme: (e.objectifs_long_terme || []).map(o =>
               o.id_olt === olt.id_olt
-                ? { ...o, libelle: newLibelle, description: newDescription }
+                ? { ...o, libelle: newLibelle, description: newDescription, numero_manuel: newNumero }
                 : o
             ),
           })));

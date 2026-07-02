@@ -1090,6 +1090,13 @@
   flex-shrink: 0;
 }
 
+// #442 — Indicateur d'un OLT dont le numéro est fixé manuellement.
+.olt-pinned-badge {
+  font-size: 14px;
+  color: $secondary-terra-cotta;
+  flex-shrink: 0;
+}
+
 .expand-arrow-olt {
   font-size: 16px;
   color: $primary-color;
