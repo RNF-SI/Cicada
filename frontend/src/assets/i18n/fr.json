@@ -1,5 +1,6 @@
 {
   "common": {
+    "metriqueFormulaHint": "Chaque bloc est évalué séparément et reçoit un score de 1 à 5. Ces scores sont ensuite combinés : « OU » retient le meilleur score des blocs reliés, « ET » retient le moins bon. « ET » est prioritaire sur « OU » ; les parenthèses priment sur cet ordre. Un bloc non renseigné est ignoré.",
     "actions": {
       "save": "Enregistrer",
       "saveAndQuit": "Enregistrer et quitter",
@@ -1914,7 +1915,7 @@
           },
           "columnHeader": "Global"
         },
-        "searchPlaceholder": "Rechercher une action…",
+        "searchPlaceholder": "Rechercher une action (nom ou code)…",
         "organisme": "Organisme",
         "allOrganismes": "Tous les organismes",
         "filterYear": "Année",
@@ -1987,6 +1988,8 @@
           "metriqueNom": "Métrique",
           "valeurCible": "Valeur cible",
           "valeurRealisee": "Valeur réalisée",
+          "ponderation": "Pondération",
+          "formule": "Formule",
           "noIndicateurs": "Aucun indicateur de réponse n'est rattaché à cette action.",
           "gridRecap": "Grille d'évaluation",
           "gridRecapHint": "Rappel des 5 niveaux de la grille de cet indicateur de réponse."
@@ -2032,6 +2035,8 @@
         "metriquesTitle": "Métriques :",
         "resultatsTitle": "Résultats",
         "resultat": "Résultat",
+        "formule": "Formule",
+        "readonlyNotValidated": "Le plan de gestion doit être validé pour saisir les résultats des indicateurs. Les champs sont en lecture seule tant que le plan n'est pas validé.",
         "resultatIndicateur": "Résultat de l'indicateur",
         "intituleMetrique": "Intitulé de la métrique",
         "switchToManual": "Saisir manuellement le résultat",
@@ -3323,8 +3328,7 @@
       "newTitle": "Nouveau facteur d'influence",
       "addButton": "Ajouter un facteur d'influence",
       "usageNote": "Utilisez cette section pour définir les facteurs d'influence et les pressions de cet enjeu. Il est possible d'en ajouter plusieurs si nécessaire.",
-      "fcrPressureNotMandatory": "Pour un FCR, aucune pression préalable n'est requise.",
-      "fcrPressureNotMandatoryAncrage": "Pour un FCR, aucune pression préalable n'est requise (sauf catégorie ancrage).",
+      "fcrPressureNotMandatory": "Pour un FCR, aucune pression préalable n'est requise (sauf catégorie ancrage).",
       "viewButton": "Voir les facteurs",
       "countSuffix": "facteur(s) d'influence",
       "libelleLabel": "Intitulé du facteur d'influence",

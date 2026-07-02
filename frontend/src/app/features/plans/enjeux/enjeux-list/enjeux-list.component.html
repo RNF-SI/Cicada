@@ -203,11 +203,11 @@
                   <span>{{ 'enjeux.facteurInfluence.usageNote' | translate }}</span>
                 </div>
               } @else {
-                <!-- #492 — Pour les FCR : la pression n'est pas obligatoire
-                     (variante « sauf catégorie ancrage » si FCR d'ancrage). -->
+                <!-- #492 — Pour tous les FCR : la pression n'est pas obligatoire
+                     (même note pour toutes les catégories, cf. commentaire issue). -->
                 <div class="olt-info-note">
                   <i class="fi fi-rr-info"></i>
-                  <span>{{ (selectedFcrIsAncrage() ? 'enjeux.facteurInfluence.fcrPressureNotMandatoryAncrage' : 'enjeux.facteurInfluence.fcrPressureNotMandatory') | translate }}</span>
+                  <span>{{ 'enjeux.facteurInfluence.fcrPressureNotMandatory' | translate }}</span>
                 </div>
               }
 

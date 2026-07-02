@@ -430,12 +430,6 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
     return this.selectedEnjeu()?.categorie_fcr_label || '';
   });
 
-  // #492 — FCR de catégorie « Ancrage territorial » : la note sur la pression
-  // non obligatoire est nuancée (« sauf catégorie ancrage »).
-  selectedFcrIsAncrage = computed(() => {
-    return /ancrage/i.test(this.selectedEnjeu()?.categorie_fcr_label || '');
-  });
-
   // Index d'affichage de l'enjeu sélectionné (1-based)
   selectedDisplayIndex = computed(() => {
     const slug = this.selectedEnjeuSlug();

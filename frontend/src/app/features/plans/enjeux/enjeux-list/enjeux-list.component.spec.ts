@@ -48,6 +48,7 @@ class FakeTranslateLoader implements TranslateLoader {
           deleteTitle: 'Supprimer le facteur',
           deleteConfirm: 'Confirmer suppression ?',
           deleteSuccess: 'Facteur supprimé',
+          fcrPressureNotMandatory: "Pour un FCR, aucune pression préalable n'est requise (sauf catégorie ancrage).",
         },
         pression: {
           createSuccess: 'Pression créée',
@@ -537,6 +538,17 @@ describe('EnjeuxListComponent', () => {
     it('should compute selectedFcrCategoryLabel', () => {
       component['selectedEnjeuSlug'].set('connaissance-scientifique');
       expect(component.selectedFcrCategoryLabel()).toBe('Connaissance');
+    });
+
+    // #492 — La note « pression non obligatoire » est identique pour TOUS les FCR
+    // (y compris hors ancrage) et mentionne toujours « (sauf catégorie ancrage) ».
+    it('should always mention "(sauf catégorie ancrage)" in the FCR pressure note', () => {
+      const translate = TestBed.inject(TranslateService);
+      const note = translate.instant('enjeux.facteurInfluence.fcrPressureNotMandatory');
+      expect(note).toContain('aucune pression préalable');
+      expect(note).toContain('(sauf catégorie ancrage)');
+      // Plus de variante conditionnelle par catégorie.
+      expect((component as any).selectedFcrIsAncrage).toBeUndefined();
     });
   });
 
