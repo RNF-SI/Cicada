@@ -9,6 +9,27 @@
       </div>
     } @else {
       <form [formGroup]="form" class="plan-form">
+        <!-- #501 — Encart de contexte (haut de la modale) : ce que sera ce plan
+             (rang, version, rattachement), réactif au rang et au parent choisis. -->
+        @if (isEditMode) {
+          <div class="info-block version-summary">
+            <i class="fi fi-rr-info version-summary-icon"></i>
+            <div class="version-summary-body">
+              <p class="text-bold">{{ 'modals.planForm.versionChain.summaryTitle' | translate }}</p>
+              <p class="version-summary-line">
+                {{ 'modals.planForm.versionChain.summaryRangVersion' | translate:{ rang: currentRang(), version: predictedVersion() } }}
+              </p>
+              @if (selectedParent(); as parent) {
+                <p class="version-summary-line">
+                  {{ 'modals.planForm.versionChain.summaryLinked' | translate:{ nom: parent.nom, rang: parent.rang, version: parent.version } }}
+                </p>
+              } @else {
+                <p class="version-summary-line">{{ 'modals.planForm.versionChain.summaryIndependent' | translate }}</p>
+              }
+            </div>
+          </div>
+        }
+
         <!-- Note champs obligatoires -->
         <p class="required-note">{{ 'modals.planForm.requiredFieldsNote' | translate }}</p>
 

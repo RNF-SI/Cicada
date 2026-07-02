@@ -703,4 +703,69 @@ describe('PlanFormModalComponent', () => {
       expect(updatePlanMock).toHaveBeenCalledWith(5, expect.objectContaining({ plan_parent_id: null }));
     });
   });
+
+  // ============ VERSION CHAIN — CONTEXTE RÉACTIF (RANG / VERSION / PARENT) (#501) ============
+
+  describe('Version chain — reactive context (#501)', () => {
+    // Chaîne : rang 1 (v1, v2), rang 2 (self v1). La version prédite doit
+    // suivre le rang courant, cohérente avec le backend get_next_version().
+    const chainPlan: AdminPlan = {
+      ...mockPlan,
+      id_pg: 5,
+      rang: 2,
+      version: '1',
+      plan_parent_id: 11,
+      plan_parent_nom: 'PG rang 1 v2',
+      plan_parent_rang: 1,
+      plan_parent_version: '2',
+      sites: [{ id_site: 1, nom_site: 'Site Alpha' }],
+      version_chain: [
+        { id_pg: 10, nom: 'PG rang 1 v1', slug: 'pg-10', version: '1', statut: 'archive', rang: 1, is_current: false },
+        { id_pg: 11, nom: 'PG rang 1 v2', slug: 'pg-11', version: '2', statut: 'valide', rang: 1, is_current: false },
+        { id_pg: 5, nom: 'Plan Test', slug: 'pg-5', version: '1', statut: 'draft', rang: 2, is_current: true },
+      ],
+    };
+
+    it('predicts version 1 for a brand-new rang (no other plan in that rang)', async () => {
+      await setupTestBed({ plan: chainPlan });
+      fixture.detectChanges();
+
+      // Rang 2 : self est la seule version → repart à 1.
+      expect(component.currentRang()).toBe(2);
+      expect(component.predictedVersion()).toBe('1');
+    });
+
+    it('recomputes the predicted version when the rang changes', async () => {
+      await setupTestBed({ plan: chainPlan });
+      fixture.detectChanges();
+
+      // Passer au rang 1 (déjà v1 et v2, hors self) → prochaine version = 3.
+      component.form.get('rang')?.setValue(1);
+      expect(component.predictedVersion()).toBe('3');
+    });
+
+    it('saves the version recomputed from the rang (displayed = persisted)', async () => {
+      await setupTestBed({ plan: chainPlan });
+      fixture.detectChanges();
+
+      component.form.get('rang')?.setValue(1);
+      component.onSubmit();
+
+      expect(updatePlanMock).toHaveBeenCalledWith(5, expect.objectContaining({ rang: 1, version: '3' }));
+    });
+
+    it('exposes the linked parent (falls back to the plan original parent)', async () => {
+      await setupTestBed({ plan: chainPlan });
+      fixture.detectChanges();
+
+      expect(component.selectedParent()).toEqual({ nom: 'PG rang 1 v2', rang: 1, version: '2' });
+    });
+
+    it('reports an independent plan when no parent is linked', async () => {
+      await setupTestBed({ plan: { ...chainPlan, plan_parent_id: null } });
+      fixture.detectChanges();
+
+      expect(component.selectedParent()).toBeNull();
+    });
+  });
 });

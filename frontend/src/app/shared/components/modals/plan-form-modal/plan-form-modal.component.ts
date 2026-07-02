@@ -165,6 +165,54 @@ export class PlanFormModalComponent implements OnInit {
     return [...byId.values()].sort((a, b) => b.rang - a.rang || a.nom.localeCompare(b.nom));
   });
 
+  /** #501 — Rang courant du plan (miroir réactif du champ `rang`), exposé au
+   *  template pour l'encart de contexte. */
+  readonly currentRang = computed<number>(() => this.rangSignal());
+
+  /**
+   * #501 — Version que portera le plan au rang courant, cohérente avec le
+   * backend `get_next_version()` : scopée au rang, elle vaut
+   * `max(versions du même rang dans la chaîne, hors ce plan) + 1`, ou `1` si
+   * ce rang n'a encore aucune autre version. Réactive au champ `rang` : changer
+   * le rang recalcule la version affichée (et enregistrée, cf. onSubmit).
+   */
+  readonly predictedVersion = computed<string>(() => {
+    const rang = this.rangSignal();
+    const selfId = this.data?.plan?.id_pg;
+    const chain = this.data?.plan?.version_chain ?? [];
+    let max = 0;
+    for (const item of chain) {
+      if (item.id_pg === selfId) continue;
+      if ((item.rang ?? rang) !== rang) continue;
+      const v = parseInt(item.version, 10);
+      if (!isNaN(v) && v > max) max = v;
+    }
+    return max > 0 ? String(max + 1) : '1';
+  });
+
+  /**
+   * #501 — Plan parent réellement sélectionné (rattachement de la chaîne de
+   * versions), pour l'encart de contexte. Cherché parmi les plans des sites ;
+   * à défaut, retombe sur le parent d'origine du plan. `null` = plan indépendant.
+   */
+  readonly selectedParent = computed<{ nom: string; rang?: number; version?: string } | null>(() => {
+    const id = this.selectedParentId();
+    if (!id) return null;
+    for (const entry of this.existingPlansBySite()) {
+      const found = entry.plans.find(p => p.id_pg === id);
+      if (found) return { nom: found.nom, rang: found.rang, version: found.version };
+    }
+    const plan = this.data?.plan;
+    if (plan?.plan_parent_id === id) {
+      return {
+        nom: plan.plan_parent_nom ?? '',
+        rang: plan.plan_parent_rang ?? undefined,
+        version: plan.plan_parent_version ?? undefined,
+      };
+    }
+    return null;
+  });
+
   // Site scope toggle
   siteScope = signal<ViewScope>('mine');
   readonly showSiteScopeToggle = computed(() => this.authService.isAdminOrganisme() || this.isSuperAdmin());
@@ -590,7 +638,10 @@ export class PlanFormModalComponent implements OnInit {
 
       // Champs additionnels
       statut: formValue.statut,
-      version: formValue.version || undefined,
+      // #501 — En modification, la version suit le rang courant (recalcul
+      // cohérent avec get_next_version) : ce qui est affiché = ce qui est
+      // enregistré. En création, on garde la valeur du formulaire.
+      version: this.isEditMode ? this.predictedVersion() : (formValue.version || undefined),
       gestion_partagee: formValue.gestion_partagee,
       risque_incendie: formValue.risque_incendie,
       id_evaluation: formValue.id_evaluation || undefined,

@@ -1244,7 +1244,11 @@
         "parentLabel": "Rattacher à un plan du rang précédent",
         "parentHelp": "Établit un lien entre les rangs de deux plans séparés. Sélectionnez « Aucun » pour laisser ce plan indépendant.",
         "parentNone": "Aucun (plan indépendant)",
-        "noCandidate": "Aucun plan d'un rang inférieur n'est disponible sur ce(s) site(s) pour établir un rattachement."
+        "noCandidate": "Aucun plan d'un rang inférieur n'est disponible sur ce(s) site(s) pour établir un rattachement.",
+        "summaryTitle": "Ce que sera ce plan de gestion",
+        "summaryRangVersion": "Rang {{rang}} · Version {{version}}",
+        "summaryLinked": "Rattaché à la suite de « {{nom}} » (rang {{rang}}, version {{version}}) : il rejoint sa chaîne de versions.",
+        "summaryIndependent": "Plan indépendant : il n'est rattaché à aucune version précédente."
       },
       "messages": {
         "siteCreated": "Site créé et sélectionné avec succès",
