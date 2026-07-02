@@ -594,11 +594,12 @@ mat-dialog-actions {
   font-size: $font-size-small;
 }
 
-// #501 — Encart de contexte en haut de la modale de modification :
-// rang, version et rattachement du plan (réactif au formulaire).
+// #501 — Encart de contexte fixé sous le titre (hors zone scrollable) :
+// rang, version et rattachement du plan (réactif au formulaire). Placé entre
+// le titre et le contenu défilant pour rester visible au scroll.
 .version-summary {
   align-items: flex-start;
-  margin-bottom: $spacing-md;
+  margin: $spacing-md 0;
   border-left: $border-width-accent solid $primary-color;
 
   &-icon {

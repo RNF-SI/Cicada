@@ -279,6 +279,16 @@ export class PlanFormModalComponent implements OnInit {
     return !!this.data?.plan;
   }
 
+  /**
+   * #501 — Le plan possède déjà un rattachement (ex. issu d'une duplication) :
+   * le lien de chaîne de versions est acquis. On masque alors le sélecteur de
+   * parent (« Aucun / indépendant ») qui n'a pas de sens dans ce cas ; l'encart
+   * de contexte en haut de la modale rappelle le rattachement.
+   */
+  get hasInitialParent(): boolean {
+    return this.data?.plan?.plan_parent_id != null;
+  }
+
   get modalTitle(): string {
     return this.isEditMode ? 'Modifier le plan de gestion' : 'Nouveau plan de gestion';
   }

@@ -691,16 +691,27 @@ describe('PlanFormModalComponent', () => {
       expect(updatePlanMock).toHaveBeenCalledWith(5, expect.objectContaining({ plan_parent_id: 10 }));
     });
 
-    it('sends null to clear the parent link', async () => {
+    it('shows the parent selector only for a plan without an existing link (#501)', async () => {
+      await setupTestBed({ plan: editPlan }); // plan_parent_id: null
+      getPlansForSitesMock.mockReturnValue(of(sitePlans));
+      fixture.detectChanges();
+
+      expect(component.hasInitialParent).toBe(false);
+      expect(fixture.nativeElement.querySelector('.version-chain-info select')).not.toBeNull();
+    });
+
+    it('hides the parent selector and preserves the link when the plan already has a parent (#501)', async () => {
       await setupTestBed({ plan: { ...editPlan, plan_parent_id: 10 } });
       getPlansForSitesMock.mockReturnValue(of(sitePlans));
       fixture.detectChanges();
 
-      expect(component.selectedParentId()).toBe(10);
-      component.onParentChange('');
-      component.onSubmit();
+      // Après duplication : lien acquis → la question « Aucun / indépendant » disparaît.
+      expect(component.hasInitialParent).toBe(true);
+      expect(fixture.nativeElement.querySelector('.version-chain-info select')).toBeNull();
 
-      expect(updatePlanMock).toHaveBeenCalledWith(5, expect.objectContaining({ plan_parent_id: null }));
+      // Le rattachement d'origine est conservé à l'enregistrement.
+      component.onSubmit();
+      expect(updatePlanMock).toHaveBeenCalledWith(5, expect.objectContaining({ plan_parent_id: 10 }));
     });
   });
 

@@ -1,6 +1,28 @@
 <div class="plan-form-modal">
   <h2 mat-dialog-title>{{ isEditMode ? ('modals.planForm.titleEdit' | translate) : ('modals.planForm.titleCreate' | translate) }}</h2>
 
+  <!-- #501 — Encart de contexte fixé sous le titre (hors zone scrollable) :
+       ce que sera le plan dupliqué (rang, version, rattachement), réactif au
+       rang et au parent choisis dans le formulaire. -->
+  @if (isEditMode) {
+    <div class="info-block version-summary">
+      <i class="fi fi-rr-info version-summary-icon"></i>
+      <div class="version-summary-body">
+        <p class="text-bold">{{ 'modals.planForm.versionChain.summaryTitle' | translate }}</p>
+        <p class="version-summary-line">
+          {{ 'modals.planForm.versionChain.summaryRangVersion' | translate:{ rang: currentRang(), version: predictedVersion() } }}
+        </p>
+        @if (selectedParent(); as parent) {
+          <p class="version-summary-line">
+            {{ 'modals.planForm.versionChain.summaryLinked' | translate:{ nom: parent.nom, rang: parent.rang, version: parent.version } }}
+          </p>
+        } @else {
+          <p class="version-summary-line">{{ 'modals.planForm.versionChain.summaryIndependent' | translate }}</p>
+        }
+      </div>
+    </div>
+  }
+
   <mat-dialog-content>
     @if (isLoadingData()) {
       <div class="loading-container">
@@ -9,27 +31,6 @@
       </div>
     } @else {
       <form [formGroup]="form" class="plan-form">
-        <!-- #501 — Encart de contexte (haut de la modale) : ce que sera ce plan
-             (rang, version, rattachement), réactif au rang et au parent choisis. -->
-        @if (isEditMode) {
-          <div class="info-block version-summary">
-            <i class="fi fi-rr-info version-summary-icon"></i>
-            <div class="version-summary-body">
-              <p class="text-bold">{{ 'modals.planForm.versionChain.summaryTitle' | translate }}</p>
-              <p class="version-summary-line">
-                {{ 'modals.planForm.versionChain.summaryRangVersion' | translate:{ rang: currentRang(), version: predictedVersion() } }}
-              </p>
-              @if (selectedParent(); as parent) {
-                <p class="version-summary-line">
-                  {{ 'modals.planForm.versionChain.summaryLinked' | translate:{ nom: parent.nom, rang: parent.rang, version: parent.version } }}
-                </p>
-              } @else {
-                <p class="version-summary-line">{{ 'modals.planForm.versionChain.summaryIndependent' | translate }}</p>
-              }
-            </div>
-          </div>
-        }
-
         <!-- Note champs obligatoires -->
         <p class="required-note">{{ 'modals.planForm.requiredFieldsNote' | translate }}</p>
 
@@ -154,24 +155,30 @@
           <div class="form-section version-chain-info">
             <label class="field-label">{{ 'modals.planForm.versionChain.title' | translate }}</label>
 
-            <!-- #506 — Sélecteur du plan parent (rang précédent) -->
-            <app-form-field
-              [label]="'modals.planForm.versionChain.parentLabel' | translate"
-              [helpText]="'modals.planForm.versionChain.parentHelp' | translate">
-              <select
-                [value]="selectedParentId() ?? ''"
-                (change)="onParentChange($any($event.target).value)">
-                <option value="">{{ 'modals.planForm.versionChain.parentNone' | translate }}</option>
-                @for (p of candidateParents(); track p.id_pg) {
-                  <option [value]="p.id_pg">
-                    {{ 'modals.planForm.versionChain.rangLabel' | translate:{ rang: p.rang } }} — {{ p.nom }} ({{ p.statut_display }})
-                  </option>
-                }
-              </select>
-            </app-form-field>
+            <!-- #506 / #501 — Sélecteur du plan parent réservé aux plans SANS
+                 rattachement (établir un lien entre deux rangs séparés). Après une
+                 duplication le plan a déjà un parent : le lien est acquis (rappelé
+                 dans l'encart en haut), on masque la question « Aucun / indépendant »
+                 qui n'a pas de sens dans ce cas. -->
+            @if (!hasInitialParent) {
+              <app-form-field
+                [label]="'modals.planForm.versionChain.parentLabel' | translate"
+                [helpText]="'modals.planForm.versionChain.parentHelp' | translate">
+                <select
+                  [value]="selectedParentId() ?? ''"
+                  (change)="onParentChange($any($event.target).value)">
+                  <option value="">{{ 'modals.planForm.versionChain.parentNone' | translate }}</option>
+                  @for (p of candidateParents(); track p.id_pg) {
+                    <option [value]="p.id_pg">
+                      {{ 'modals.planForm.versionChain.rangLabel' | translate:{ rang: p.rang } }} — {{ p.nom }} ({{ p.statut_display }})
+                    </option>
+                  }
+                </select>
+              </app-form-field>
 
-            @if (candidateParents().length === 0 && !selectedParentId()) {
-              <p class="text-mention">{{ 'modals.planForm.versionChain.noCandidate' | translate }}</p>
+              @if (candidateParents().length === 0 && !selectedParentId()) {
+                <p class="text-mention">{{ 'modals.planForm.versionChain.noCandidate' | translate }}</p>
+              }
             }
 
             @if (existingPlansBySite().length > 0) {
