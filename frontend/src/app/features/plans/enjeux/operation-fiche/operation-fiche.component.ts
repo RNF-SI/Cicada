@@ -150,4 +150,13 @@ export class OperationFicheComponent implements OnInit {
       this.router.navigate(['/plans', slug, 'enjeux', 'operations', op.id_operation, 'modifier']);
     }
   }
+
+  /** #521 — Lien vers la page de suivi (vue globale) de cette action. */
+  goToSuivi(): void {
+    const slug = this.planSlug();
+    const op = this.operation();
+    if (slug && op) {
+      this.router.navigate(['/plans', slug, 'suivi-actions', 'action', op.id_operation]);
+    }
+  }
 }
