@@ -866,6 +866,29 @@
 }
 
 // ============================================
+// FIELD HINT (#525) — texte d'aide sous un champ de formulaire
+// ============================================
+// Style « aide » du kit UI : petit, gris foncé, précédé d'une icône info
+// primary, pour bien signaler qu'il s'agit d'une aide (aligné sur
+// .app-form-field__help et .help-icon).
+// Usage : <span class="field-hint"><i class="fi fi-rr-info"></i>…</span>
+.field-hint {
+  display: flex;
+  align-items: center;
+  gap: $spacing-xxs;
+  margin-top: $spacing-xxs;
+  font-size: $font-size-small;
+  font-weight: $font-weight-regular;
+  line-height: $line-height-small;
+  color: $gray-dark;
+
+  i {
+    color: $primary-color;
+    font-size: 0.9rem;
+  }
+}
+
+// ============================================
 // LOCK BANNER (#248) — plan hors brouillon
 // ============================================
 .lock-banner {
