@@ -61,11 +61,9 @@
             <input formControlName="intitule_court"
                    maxlength="25"
                    [placeholder]="'enjeux.fcrForm.intituleCourtPlaceholder' | translate">
-            <button suffixSlot type="button"
-                    [matTooltip]="'enjeux.fcrForm.intituleCourtHint' | translate"
-                    matTooltipPosition="above">
-              <i class="fi fi-rr-interrogation"></i>
-            </button>
+            <i suffixSlot class="fi fi-rr-info help-icon"
+               [matTooltip]="'enjeux.fcrForm.intituleCourtHint' | translate"
+               matTooltipPosition="above"></i>
           </app-form-field>
 
           <!-- Priorité (facultative, #479 — comme les enjeux #441) -->
