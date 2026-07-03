@@ -2401,6 +2401,19 @@ export class OperationFormComponent implements OnInit {
     });
   }
 
+  /**
+   * #520 — Au changement MANUEL du choix « le protocole est-il dans CAMPanule ? »,
+   * vider la sélection CAMPanule et les champs auto-remplis depuis le protocole
+   * (description, objectif, période). Sans cela, en repassant sur « Non » les
+   * valeurs issues de CAMPanule restaient affichées dans les champs éditables
+   * (et inversement, des données saisies restaient sous un protocole CAMPanule).
+   * Branché sur l'événement (change) du radio : ne se déclenche donc PAS lors du
+   * patchValue de chargement en édition (préserve les données enregistrées).
+   */
+  onProtocoleCampanuleChange(): void {
+    this.onCampanuleReset();
+  }
+
   consulterProtocole(): void {
     const cdProtocole = this.form.get('cd_protocole_campanule')?.value;
     if (!cdProtocole) return;

@@ -7,6 +7,7 @@
 import { TestBed } from '@angular/core/testing';
 import { signal, computed } from '@angular/core';
 import { Subject, of, throwError } from 'rxjs';
+import { FormControl, FormGroup } from '@angular/forms';
 import {
   OperationFormComponent,
   buildResponseTypeOptions,
@@ -636,6 +637,39 @@ describe('OperationFormComponent — ventilation budgétaire', () => {
 
     it('faux s\'il n\'y a aucun indicateur de réponse', () => {
       expect(comp([], []).hasMissingResponseTitle()).toBe(false);
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // #520 — Bascule du choix « protocole dans CAMPanule ? »
+  // -------------------------------------------------------------------------
+  describe('#520 — onProtocoleCampanuleChange', () => {
+    function makeComp(): OperationFormComponent {
+      const comp = Object.create(OperationFormComponent.prototype) as OperationFormComponent;
+      (comp as any).selectedCampanule = signal<unknown>({ cd_protocole: 42, lb_protocole_court: 'Proto X' });
+      (comp as any).campanuleSearchCtrl = new FormControl('Proto X');
+      (comp as any).form = new FormGroup({
+        protocole_dans_campanule: new FormControl(false),
+        protocole_campanule_nom: new FormControl('Proto X'),
+        cd_protocole_campanule: new FormControl(42),
+        description_protocole: new FormControl('Description issue de CAMPanule'),
+        objectif_protocole: new FormControl('Objectif CAMPanule'),
+        periode_echantillonnage: new FormControl('Mai; Juin'),
+      });
+      return comp;
+    }
+
+    it('vide les champs auto-remplis et la sélection CAMPanule au changement de choix', () => {
+      const c = makeComp();
+      c.onProtocoleCampanuleChange();
+      const form = (c as any).form as FormGroup;
+      expect(form.get('description_protocole')?.value).toBe('');
+      expect(form.get('objectif_protocole')?.value).toBe('');
+      expect(form.get('periode_echantillonnage')?.value).toBe('');
+      expect(form.get('protocole_campanule_nom')?.value).toBe('');
+      expect(form.get('cd_protocole_campanule')?.value).toBeNull();
+      expect((c as any).selectedCampanule()).toBeNull();
+      expect((c as any).campanuleSearchCtrl.value).toBe('');
     });
   });
 });

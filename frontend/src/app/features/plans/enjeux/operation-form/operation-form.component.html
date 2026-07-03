@@ -370,7 +370,8 @@
                   {{ 'enjeux.operations.protocoleCampanule' | translate }}
                   <span class="required-star">*</span>
                 </span>
-                <mat-radio-group formControlName="protocole_dans_campanule" class="radio-inline">
+                <mat-radio-group formControlName="protocole_dans_campanule" class="radio-inline"
+                                 (change)="onProtocoleCampanuleChange()">
                   <mat-radio-button [value]="true" color="primary">{{ 'common.yes' | translate }}</mat-radio-button>
                   <mat-radio-button [value]="false" color="primary">{{ 'common.no' | translate }}</mat-radio-button>
                 </mat-radio-group>
