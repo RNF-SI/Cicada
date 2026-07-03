@@ -128,6 +128,14 @@
             <h2 class="card-title">{{ 'plans.suivis.indicateur.resultatsTitle' | translate }}</h2>
           </div>
 
+          <!-- #375 — saisie des résultats verrouillée tant que le plan n'est pas validé. -->
+          @if (!canEnterSuivi()) {
+            <div class="readonly-banner">
+              <i class="fi fi-rr-lock"></i>
+              <span>{{ 'plans.suivis.indicateur.readonlyNotValidated' | translate }}</span>
+            </div>
+          }
+
           @switch (mode()) {
 
             <!-- MODE ÉDITION UNIFIÉ (#510) : les métriques restent toujours
@@ -148,6 +156,40 @@
                       <span>{{ 'plans.suivis.indicateur.thresh.ponderation' | translate }} : <strong>{{ m.ponderation || 1 }}</strong></span>
                     </div>
                     <label class="metric-label">{{ 'plans.suivis.indicateur.resultat' | translate }}</label>
+                    @if (isMultiBlock(m)) {
+                      <!-- #247 — une valeur par bloc (principal + complémentaires) ;
+                           le score de la métrique est le combiné ET/OU des blocs. -->
+                      @if (blockFormula(m); as formula) {
+                        <div class="metric-formula">
+                          <span class="metric-formula-label">{{ 'plans.suivis.indicateur.formule' | translate }} :</span>
+                          <span class="metric-formula-value">{{ formula }}</span>
+                          <i class="fi fi-rr-info formula-info"
+                             [matTooltip]="'common.metriqueFormulaHint' | translate"
+                             matTooltipPosition="above"
+                             tabindex="0"
+                             [attr.aria-label]="'common.metriqueFormulaHint' | translate"></i>
+                        </div>
+                      }
+                      @for (bi of blockInputs(m); track bi.ctrl) {
+                        <div class="metric-block-input">
+                          <label class="metric-sublabel">{{ bi.label }}</label>
+                          <div class="metric-input-row">
+                            <input type="text" [formControlName]="bi.ctrl" [placeholder]="bi.unite" />
+                            @let blockScore = valueToScore(form.get(bi.ctrl)?.value, bi.meta);
+                            <div class="threshold-bar">
+                              @for (lvl of scoreLevelsList; track lvl; let i = $index) {
+                                <span class="threshold-cell"
+                                      [class]="'lvl-' + lvl"
+                                      [class.active]="blockScore === i + 1">
+                                  min {{ getScoreBound(bi.meta, i + 1, 'inf') }}
+                                  / max {{ getScoreBound(bi.meta, i + 1, 'sup') }}
+                                </span>
+                              }
+                            </div>
+                          </div>
+                        </div>
+                      }
+                    } @else {
                     <div class="metric-input-row">
                       <!-- #464/#465 — métrique CHIFFRE/TEXTE : choix parmi les
                            options de la grille (libellés / valeurs) ; sinon champ libre. -->
@@ -173,8 +215,7 @@
                                  [placeholder]="m.unite || ''" />
                         }
                       }
-                      <!-- Barre de seuils (NUMERIQUE) : score actif highlighted.
-                           Pour CHIFFRE/TEXTE, les options sont déjà dans le select. -->
+                      <!-- Barre de seuils (NUMERIQUE) : score actif highlighted. -->
                       @if (metricSaisieMode(m) === 'free') {
                         @let activeScore = valueToScore(form.get('m_' + m.id_metrique)?.value, m);
                         <div class="threshold-bar">
@@ -187,8 +228,23 @@
                             </span>
                           }
                         </div>
+                      } @else {
+                        <!-- #464/#465 — grille CHIFFRE/TEXTE à droite du champ : rappelle
+                             la valeur/le libellé de chaque niveau, le niveau du résultat
+                             saisi est mis en évidence. -->
+                        @let gridScore = valueToScore(form.get('m_' + m.id_metrique)?.value, m);
+                        <div class="threshold-bar threshold-bar-grid">
+                          @for (lvl of scoreLevelsList; track lvl; let i = $index) {
+                            <span class="threshold-cell"
+                                  [class]="'lvl-' + lvl"
+                                  [class.active]="gridScore === i + 1">
+                              {{ scoreRange(m, i + 1) }}
+                            </span>
+                          }
+                        </div>
                       }
                     </div>
+                    }
                   </div>
                 }
 
@@ -232,6 +288,7 @@
                   <!-- Case : forcer manuellement le résultat -->
                   <app-checkbox
                     [checked]="manualOverride()"
+                    [disabled]="!canEnterSuivi()"
                     [label]="'plans.suivis.indicateur.forceManual' | translate"
                     [mention]="'plans.suivis.indicateur.forceManualHint' | translate"
                     (checkedChange)="setManualOverride($event)">
@@ -245,6 +302,7 @@
                           <button type="button" class="manual-score-btn"
                                   [class]="'lvl-' + lvl"
                                   [class.active]="scoreOverride() === i + 1"
+                                  [disabled]="!canEnterSuivi()"
                                   (click)="pickManualScore(i + 1)">
                             {{ scoreLabels[lvl] }}
                           </button>
@@ -252,6 +310,7 @@
                         <!-- #519 — état « indéterminé » (aucune donnée) : score 0, rond gris -->
                         <button type="button" class="manual-score-btn lvl-no-data"
                                 [class.active]="scoreOverride() === 0"
+                                [disabled]="!canEnterSuivi()"
                                 (click)="pickManualScore(0)">
                           {{ scoreLabels['no-data'] }}
                         </button>
@@ -260,6 +319,7 @@
                       <textarea rows="3" class="full-width"
                                 [(ngModel)]="commentaireOverrideModel"
                                 [ngModelOptions]="{ standalone: true }"
+                                [disabled]="!canEnterSuivi()"
                                 [placeholder]="'plans.suivis.indicateur.manualReasonPlaceholder' | translate"></textarea>
                     </div>
                   }
@@ -323,9 +383,11 @@
                 </tbody>
               </table>
 
-              <button type="button" class="btn-outlined-pill" (click)="editFromRecap()">
-                {{ 'common.actions.edit' | translate }}
-              </button>
+              @if (canEnterSuivi()) {
+                <button type="button" class="btn-outlined-pill" (click)="editFromRecap()">
+                  {{ 'common.actions.edit' | translate }}
+                </button>
+              }
             }
           }
         </section>
@@ -336,7 +398,8 @@
             <button type="button" mat-stroked-button (click)="goBack()" [disabled]="isSaving()">
               {{ 'common.actions.cancel' | translate }}
             </button>
-            <button type="button" mat-flat-button color="primary" (click)="validate()" [disabled]="isSaving()">
+            <button type="button" mat-flat-button color="primary" (click)="validate()"
+                    [disabled]="isSaving() || !canEnterSuivi()">
               @if (isSaving()) { <mat-spinner diameter="18"></mat-spinner> }
               {{ 'common.actions.save' | translate }}
             </button>

@@ -72,6 +72,47 @@ describe('metriqueRefToFormData', () => {
     expect(fd.unite).toBe('');
     expect(fd.ponderation).toBeNull();
   });
+
+  it('#247/#452 — restaure le bloc principal (intitulé/parenthésage) et les blocs complémentaires', () => {
+    const ref: MetriqueRef = {
+      id_metrique: 42, nom_metrique: 'Neutralisation', indicateur_id: 1, indicateur_nom: 'i',
+      bloc_intitule: 'Linéaire (m)', group_open: 1, group_close: 0,
+      score_blocks: [
+        {
+          position: 1, intitule: 'Ouvrages', unite: 'u', logical_op: 'OR',
+          group_open: 0, group_close: 1, sens_variation: 'CROISSANT',
+          score_1_inf: 0, score_1_sup: 5, score_2_inf: 5, score_2_sup: 15,
+          score_3_inf: null, score_3_sup: null, score_4_inf: null, score_4_sup: null,
+          score_5_inf: null, score_5_sup: null,
+          score_1_sup_inclusive: true, score_2_sup_inclusive: true,
+          score_3_sup_inclusive: true, score_4_sup_inclusive: true,
+          has_borne_score1: true, has_borne_score5: true, inactive_levels: [],
+        },
+        {
+          position: 2, intitule: 'Nappe', unite: 'cm', logical_op: 'AND',
+          group_open: 0, group_close: 0, sens_variation: 'CROISSANT',
+          score_1_inf: '0' as any, score_1_sup: '2' as any,
+          score_2_inf: null, score_2_sup: null, score_3_inf: null, score_3_sup: null,
+          score_4_inf: null, score_4_sup: null, score_5_inf: null, score_5_sup: null,
+          score_1_sup_inclusive: true, score_2_sup_inclusive: true,
+          score_3_sup_inclusive: true, score_4_sup_inclusive: true,
+          has_borne_score1: true, has_borne_score5: true, inactive_levels: [],
+        },
+      ],
+    };
+    const fd = metriqueRefToFormData(ref);
+    expect(fd.bloc_intitule).toBe('Linéaire (m)');
+    expect(fd.group_open).toBe(1);
+    expect(fd._letter).toBe('A');
+    expect(fd.score_blocks).toHaveLength(2);
+    expect(fd.score_blocks![0].logical_op).toBe('OR');
+    expect(fd.score_blocks![0].group_close).toBe(1);
+    expect(fd.score_blocks![0]._letter).toBe('B');
+    expect(fd.score_blocks![1]._letter).toBe('C');
+    // Bornes coercées en nombres.
+    expect(fd.score_blocks![1].score_1_inf).toBe(0);
+    expect(fd.score_blocks![1].score_1_sup).toBe(2);
+  });
 });
 
 describe('buildMetriqueGridFields', () => {
@@ -111,5 +152,37 @@ describe('buildMetriqueGridFields', () => {
     expect(out['score_1_sup_inclusive']).toBe(true);
     expect(out['has_borne_score1']).toBe(false);
     expect(out['inactive_levels']).toEqual([]);
+  });
+
+  it('#247/#452 — NUMERIQUE : émet le parenthésage principal et les score_blocks', () => {
+    const fd = { ...base, scores: { ...base.scores } };
+    fd.bloc_intitule = 'Linéaire (m)';
+    fd.group_open = 1;
+    fd.group_close = 0;
+    fd.score_blocks = [{
+      position: 1, intitule: 'Ouvrages', unite: 'u', logical_op: 'OR',
+      group_open: 0, group_close: 1, sens_variation: 'CROISSANT',
+      score_1_inf: 0, score_1_sup: 5, score_2_inf: 5, score_2_sup: 15,
+      score_3_inf: null, score_3_sup: null, score_4_inf: null, score_4_sup: null,
+      score_5_inf: null, score_5_sup: null,
+      score_1_sup_inclusive: true, score_2_sup_inclusive: true,
+      score_3_sup_inclusive: true, score_4_sup_inclusive: true,
+      has_borne_score1: true, has_borne_score5: true, inactive_levels: [],
+    }];
+    const out = buildMetriqueGridFields(fd, 'NUMERIQUE');
+    expect(out['bloc_intitule']).toBe('Linéaire (m)');
+    expect(out['group_open']).toBe(1);
+    const blocks = out['score_blocks'] as any[];
+    expect(blocks).toHaveLength(1);
+    expect(blocks[0].logical_op).toBe('OR');
+    expect(blocks[0].group_close).toBe(1);
+    expect(blocks[0].intitule).toBe('Ouvrages');
+    expect(blocks[0].score_1_sup).toBe(5);
+  });
+
+  it('#247 — bloc_intitule émis même en mono-bloc (null si vide)', () => {
+    const out = buildMetriqueGridFields({ ...base }, 'NUMERIQUE');
+    expect(out['bloc_intitule']).toBeNull();
+    expect(out['score_blocks']).toBeUndefined();
   });
 });

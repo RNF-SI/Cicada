@@ -1,4 +1,7 @@
-import { computeMetriqueScore, scoreLevelName } from './metrique-seuils.util';
+import {
+  computeMetriqueScore, scoreLevelName,
+  combineBlockScores, computeCombinedScore, formatBlockFormula,
+} from './metrique-seuils.util';
 
 describe('scoreLevelName', () => {
   it('mappe 1-5 vers les noms de niveau', () => {
@@ -80,5 +83,85 @@ describe('computeMetriqueScore', () => {
     it('renvoie null pour une valeur non numérique', () => {
       expect(computeMetriqueScore(met, 'abc')).toBeNull();
     });
+  });
+});
+
+// #247 — score combiné multi-blocs (miroir du backend combine_block_scores)
+describe('combineBlockScores', () => {
+  it('OU prend le max, ET prend le min', () => {
+    expect(combineBlockScores([{ k: 'val', v: 4 }, { k: 'op', v: 'OR' }, { k: 'val', v: 2 }])).toBe(4);
+    expect(combineBlockScores([{ k: 'val', v: 4 }, { k: 'op', v: 'AND' }, { k: 'val', v: 2 }])).toBe(2);
+  });
+  it('respecte les parenthèses : (A OU B) ET C', () => {
+    expect(combineBlockScores([
+      { k: 'lparen' }, { k: 'val', v: 4 }, { k: 'op', v: 'OR' }, { k: 'val', v: 2 }, { k: 'rparen' },
+      { k: 'op', v: 'AND' }, { k: 'val', v: 3 },
+    ])).toBe(3);
+  });
+  it('ET prioritaire sur OU : A OU B ET C = A OU (B ET C)', () => {
+    expect(combineBlockScores([
+      { k: 'val', v: 1 }, { k: 'op', v: 'OR' }, { k: 'val', v: 5 }, { k: 'op', v: 'AND' }, { k: 'val', v: 3 },
+    ])).toBe(3);
+  });
+  it('null est neutre', () => {
+    expect(combineBlockScores([{ k: 'val', v: 4 }, { k: 'op', v: 'AND' }, { k: 'val', v: null }])).toBe(4);
+    expect(combineBlockScores([{ k: 'val', v: null }, { k: 'op', v: 'OR' }, { k: 'val', v: null }])).toBeNull();
+  });
+  it('cas dégénérés', () => {
+    expect(combineBlockScores([])).toBeNull();
+    expect(combineBlockScores([{ k: 'val', v: 3 }])).toBe(3);
+  });
+});
+
+describe('computeCombinedScore', () => {
+  const seuils = {
+    score_1_inf: 0, score_1_sup: 2, score_2_inf: 2, score_2_sup: 4,
+    score_3_inf: 4, score_3_sup: 6, score_4_inf: 6, score_4_sup: 8,
+    score_5_inf: 8, score_5_sup: 10,
+  };
+  it('mono-bloc délègue à computeMetriqueScore', () => {
+    const met = { type_metrique_mnemonique: 'NUMERIQUE', ...seuils, score_blocks: [] };
+    expect(computeCombinedScore(met, '5', {})).toBe(3);
+  });
+  it('multi-bloc OU = max(principal, bloc)', () => {
+    const met = {
+      type_metrique_mnemonique: 'NUMERIQUE', ...seuils,
+      score_blocks: [{ position: 1, logical_op: 'OR', ...seuils }],
+    };
+    expect(computeCombinedScore(met, '5', { '1': '9' })).toBe(5); // 3 OU 5
+  });
+  it('multi-bloc parenthésé : (principal OU b1) ET b2', () => {
+    const met = {
+      type_metrique_mnemonique: 'NUMERIQUE', ...seuils, group_open: 1,
+      score_blocks: [
+        { position: 1, logical_op: 'OR', group_close: 1, ...seuils },
+        { position: 2, logical_op: 'AND', ...seuils },
+      ],
+    };
+    // val=1 (1), b1=9 (5), b2=5 (3) → (max(1,5)=5) ET 3 = 3
+    expect(computeCombinedScore(met, '1', { '1': '9', '2': '5' })).toBe(3);
+  });
+  it('bloc sans valeur est ignoré (neutre)', () => {
+    const met = {
+      type_metrique_mnemonique: 'NUMERIQUE', ...seuils,
+      score_blocks: [{ position: 1, logical_op: 'AND', ...seuils }],
+    };
+    expect(computeCombinedScore(met, '5', {})).toBe(3);
+  });
+});
+
+describe('formatBlockFormula', () => {
+  it('renvoie une chaîne vide en mono-bloc', () => {
+    expect(formatBlockFormula({ score_blocks: [] })).toBe('');
+  });
+  it('reprend les intitulés et les liens ET/OU avec parenthèses', () => {
+    const met = {
+      bloc_intitule: 'Surface', group_open: 1,
+      score_blocks: [
+        { intitule: 'Foyers', logical_op: 'OR', group_close: 1 },
+        { intitule: 'Nappe', logical_op: 'AND' },
+      ],
+    };
+    expect(formatBlockFormula(met)).toBe('(Surface OU Foyers) ET Nappe');
   });
 });

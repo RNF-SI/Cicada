@@ -478,6 +478,9 @@ export interface Mesure {
   id_mesure: number;
   id_metrique: number;
   valeur: string;
+  // #247 — valeurs des blocs de scoring complémentaires (métrique multi-blocs),
+  // indexées par position de bloc. `valeur` = valeur du bloc principal.
+  valeurs_blocs?: Record<string, string>;
   date_mesure?: string;
   commentaire?: string;
   date_ajout: string;
@@ -692,6 +695,13 @@ export interface MetriqueRef {
   score_2_sup_inclusive?: boolean;
   score_3_sup_inclusive?: boolean;
   score_4_sup_inclusive?: boolean;
+  // #247/#452 — bloc principal (intitulé + parenthésage) et blocs de scoring
+  // complémentaires (ET/OU) d'une métrique de réponse NUMERIQUE en grille,
+  // exposés par le backend pour alimenter l'éditeur multi-blocs et les visus.
+  bloc_intitule?: string | null;
+  group_open?: number;
+  group_close?: number;
+  score_blocks?: MetriqueScoreBlock[];
 }
 
 export type OperationStatut = 'draft' | 'valide';
@@ -911,6 +921,8 @@ export interface MetriqueCreatePayload {
 export interface MesureCreatePayload {
   id_metrique: number;
   valeur: string;
+  // #247 — valeurs des blocs complémentaires (métrique multi-blocs), par position.
+  valeurs_blocs?: Record<string, string>;
   date_mesure?: string;
   commentaire?: string;
 }

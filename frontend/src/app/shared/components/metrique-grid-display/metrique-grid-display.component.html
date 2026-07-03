@@ -16,12 +16,12 @@
         </tr>
       </thead>
       <tbody>
-        @for (met of metriques; track met.id_metrique) {
+        @for (met of metriques; track met['id_metrique']) {
           <tr>
-            <td>{{ met.nom_metrique || '-' }}</td>
-            <td>{{ met.unite || '-' }}</td>
-            <td>{{ met.ponderation != null && met.ponderation !== '' ? met.ponderation : '-' }}</td>
-            <td>{{ met.etat_reference || '-' }}</td>
+            <td>{{ met['nom_metrique'] || '-' }}</td>
+            <td>{{ met['unite'] || '-' }}</td>
+            <td>{{ met['ponderation'] != null && met['ponderation'] !== '' ? met['ponderation'] : '-' }}</td>
+            <td>{{ met['etat_reference'] || '-' }}</td>
             <td class="indetermine-cell">
               @if (isIndetermine(met)) {
                 <span class="indetermine-marker">

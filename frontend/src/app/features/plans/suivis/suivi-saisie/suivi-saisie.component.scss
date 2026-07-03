@@ -613,6 +613,32 @@ textarea.full-width {
     color: $black;
     font-weight: 600;
   }
+  // #247 — formule ET/OU des blocs : monospace léger pour la lisibilité.
+  .indic-formula {
+    font-family: 'Courier New', monospace;
+    font-weight: 700;
+    color: $primary-color;
+  }
+  // #247 — icône d'aide (sémantique OU / ET / parenthèses)
+  .formula-info {
+    color: $primary-color;
+    font-size: 14px;
+    cursor: help;
+    &:focus-visible { outline: 2px solid $primary-color; outline-offset: 2px; border-radius: 50%; }
+  }
+}
+
+// #247 — score combiné (badge) d'une métrique de réponse multi-blocs
+.resp-combined-score {
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+  margin-top: $spacing-xs;
+
+  .resp-grid-badge {
+    width: 28px;
+    height: 28px;
+  }
 }
 
 // #452 — Rappel de la grille d'évaluation d'un indicateur de réponse (5 niveaux)

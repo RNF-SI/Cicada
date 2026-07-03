@@ -141,3 +141,127 @@ export function computeMetriqueScore(met: any, value: any): number | null {
   }
   return null;
 }
+
+// =============================================================================
+// #247 — Score combiné multi-blocs (formule ET/OU + parenthèses)
+// Doit refléter exactement le backend `combine_block_scores` / `_mesure_to_score`
+// (apps/plans/views_indicateurs.py).
+// =============================================================================
+
+type ScoreToken =
+  | { k: 'val'; v: number | null }
+  | { k: 'op'; v: 'AND' | 'OR' }
+  | { k: 'lparen' }
+  | { k: 'rparen' };
+
+/**
+ * Évalue une expression de scores de blocs combinés par ET(=min)/OU(=max) avec
+ * parenthèses. Précédence AND > OR (associativité gauche) ; `null` neutre
+ * (`op(null, x) = x`). Shunting-yard, miroir exact du backend.
+ */
+export function combineBlockScores(tokens: ScoreToken[]): number | null {
+  const prec: Record<'AND' | 'OR', number> = { OR: 1, AND: 2 };
+  const apply = (op: 'AND' | 'OR', a: number | null, b: number | null): number | null => {
+    if (a === null) return b;
+    if (b === null) return a;
+    return op === 'AND' ? Math.min(a, b) : Math.max(a, b);
+  };
+  const values: (number | null)[] = [];
+  const ops: ('AND' | 'OR' | '(')[] = [];
+  const reduce = () => {
+    if (values.length < 2 || ops.length === 0) return;
+    const op = ops.pop() as 'AND' | 'OR';
+    const b = values.pop()!;
+    const a = values.pop()!;
+    values.push(apply(op, a, b));
+  };
+  for (const tok of tokens) {
+    if (tok.k === 'val') {
+      values.push(tok.v);
+    } else if (tok.k === 'op') {
+      while (ops.length && ops[ops.length - 1] !== '(' &&
+             prec[ops[ops.length - 1] as 'AND' | 'OR'] >= prec[tok.v]) {
+        reduce();
+      }
+      ops.push(tok.v);
+    } else if (tok.k === 'lparen') {
+      ops.push('(');
+    } else if (tok.k === 'rparen') {
+      while (ops.length && ops[ops.length - 1] !== '(') reduce();
+      if (ops.length && ops[ops.length - 1] === '(') ops.pop();
+    }
+  }
+  while (ops.length) {
+    if (ops[ops.length - 1] === '(') { ops.pop(); continue; }
+    reduce();
+  }
+  return values.length ? values[0] : null;
+}
+
+/**
+ * #247 — Chaîne lisible de la formule ET/OU d'une métrique multi-blocs, avec
+ * parenthèses, en reprenant les intitulés des blocs (ex.
+ * « (Surface arrachée OU Foyers traités) ET Remontée nappe »). Chaîne vide si
+ * mono-bloc. Reflète la formule saisie dans l'éditeur (getFormulaText).
+ */
+export function formatBlockFormula(met: any): string {
+  const blocks: any[] = Array.isArray(met?.score_blocks) ? met.score_blocks : [];
+  if (blocks.length === 0) return '';
+  const label = (intitule: any, fallback: string) =>
+    (intitule ?? '').toString().trim() || fallback;
+  const entries = [
+    {
+      label: label(met.bloc_intitule, met.nom_metrique || 'Bloc A'),
+      open: Number(met.group_open ?? 0), close: Number(met.group_close ?? 0),
+      op: null as string | null,
+    },
+    ...blocks.map((b, idx) => ({
+      label: label(b.intitule, `Bloc ${String.fromCharCode(66 + idx)}`),
+      open: Number(b.group_open ?? 0), close: Number(b.group_close ?? 0),
+      op: b.logical_op === 'AND' ? 'ET' : 'OU',
+    })),
+  ];
+  const parts: string[] = [];
+  entries.forEach((e, i) => {
+    if (i > 0 && e.op) parts.push(e.op);
+    parts.push('('.repeat(e.open) + e.label + ')'.repeat(e.close));
+  });
+  return parts.join(' ');
+}
+
+/**
+ * Score 1-5 combiné d'une métrique multi-blocs à partir d'une valeur par bloc.
+ * Mono-bloc (`score_blocks` vide) → `computeMetriqueScore(met, principalValue)`.
+ * `blockValues` : valeurs des blocs complémentaires indexées par leur `position`.
+ */
+export function computeCombinedScore(
+  met: any,
+  principalValue: any,
+  blockValues: Record<string, any> | null | undefined,
+): number | null {
+  const blocks: any[] = Array.isArray(met?.score_blocks) ? met.score_blocks : [];
+  if (blocks.length === 0) {
+    return computeMetriqueScore(met, principalValue);
+  }
+  const vb = blockValues || {};
+  const tokens: ScoreToken[] = [];
+  // Séquence [principal] + blocs complémentaires.
+  const entries: { met: any; value: any; open: number; close: number; op: 'AND' | 'OR' | null }[] = [
+    { met, value: principalValue, open: Number(met?.group_open ?? 0), close: Number(met?.group_close ?? 0), op: null },
+    ...blocks.map(b => ({
+      // Chaque bloc est scoré comme une grille NUMERIQUE via ses propres seuils.
+      met: { ...b, type_metrique_mnemonique: 'NUMERIQUE' },
+      value: vb[String(b.position)],
+      open: Number(b.group_open ?? 0),
+      close: Number(b.group_close ?? 0),
+      op: (b.logical_op as 'AND' | 'OR') ?? 'OR',
+    })),
+  ];
+  entries.forEach((e, i) => {
+    if (i > 0 && e.op) tokens.push({ k: 'op', v: e.op });
+    for (let n = 0; n < e.open; n++) tokens.push({ k: 'lparen' });
+    tokens.push({ k: 'val', v: computeMetriqueScore(e.met, e.value) });
+    for (let n = 0; n < e.close; n++) tokens.push({ k: 'rparen' });
+  });
+  return combineBlockScores(tokens);
+}

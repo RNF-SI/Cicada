@@ -187,6 +187,14 @@ def _response_metrique_grid(m):
         'has_borne_score1': m.has_borne_score1,
         'has_borne_score5': m.has_borne_score5,
         'inactive_levels': m.inactive_levels or [],
+        # #247/#452 — bloc principal (intitulé + parenthésage) et blocs de scoring
+        # complémentaires (ET/OU) exposés pour que la fiche d'action affiche la
+        # grille multi-blocs des indicateurs de réponse NUMERIQUE, à l'identique de
+        # l'arborescence des enjeux (MetriqueGridDisplayComponent lit `score_blocks`).
+        'bloc_intitule': m.bloc_intitule or '',
+        'group_open': m.group_open,
+        'group_close': m.group_close,
+        'score_blocks': [_score_block_grid(b) for b in m.score_blocks.all()],
     }
     for i in range(1, 6):
         grid[f'score_{i}_inf'] = getattr(m, f'score_{i}_inf')
@@ -196,6 +204,31 @@ def _response_metrique_grid(m):
     for i in range(1, 5):
         grid[f'score_{i}_sup_inclusive'] = getattr(m, f'score_{i}_sup_inclusive')
     return grid
+
+
+def _score_block_grid(b):
+    """#247 — Bloc de scoring complémentaire (ET/OU) d'une métrique numérique,
+    sérialisé pour la grille (mêmes champs que MetriqueScoreBlockSerializer,
+    construits inline pour éviter un import croisé serializers_indicateurs)."""
+    block = {
+        'id_score_block': b.id_score_block,
+        'position': b.position,
+        'intitule': b.intitule,
+        'unite': b.unite,
+        'logical_op': b.logical_op,
+        'group_open': b.group_open,
+        'group_close': b.group_close,
+        'sens_variation': b.sens_variation,
+        'has_borne_score1': b.has_borne_score1,
+        'has_borne_score5': b.has_borne_score5,
+        'inactive_levels': b.inactive_levels or [],
+    }
+    for i in range(1, 6):
+        block[f'score_{i}_inf'] = getattr(b, f'score_{i}_inf')
+        block[f'score_{i}_sup'] = getattr(b, f'score_{i}_sup')
+    for i in range(1, 5):
+        block[f'score_{i}_sup_inclusive'] = getattr(b, f'score_{i}_sup_inclusive')
+    return block
 
 
 # =============================================================================

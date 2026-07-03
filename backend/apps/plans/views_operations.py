@@ -74,6 +74,9 @@ class OperationViewSet(viewsets.ModelViewSet):
             # #452 — type + format exposés pour la grille des indicateurs de réponse
             'type_metrique',
             'format_metrique',
+        ).prefetch_related(
+            # #247/#452 — blocs ET/OU de la grille (fiche d'action) sans N+1
+            'score_blocks',
         )),
         'sites',
         Prefetch('operation_annees', queryset=OperationAnnee.objects.select_related(
@@ -662,18 +665,18 @@ class RealisationOperationAnneeViewSet(viewsets.ModelViewSet):
 
         plan = get_object_or_404(_Plan, pk=plan_id)
 
-        def _compute_score(value, m):
+        def _compute_score(mesure, m):
             """Retourne 1-5 selon la grille de scores de la métrique, ou 0 si hors plage.
-            #423 — délègue à _value_to_score (virgule décimale, bornes ouvertes ET
-            inclusivité des bornes gérées au même endroit)."""
-            from .views_indicateurs import _value_to_score
-            return _value_to_score(value, m) or 0
+            #423 — délègue à _value_to_score (virgule décimale, bornes ouvertes + inclusivité).
+            #247 — via _mesure_to_score : évalue la formule ET/OU des blocs multi-blocs."""
+            from .views_indicateurs import _mesure_to_score
+            return _mesure_to_score(mesure, m) or 0
 
         indicators_qs = Indicateur.objects.filter(
             id_ne__id_olt__id_enjeu__id_pg=plan,
         ).select_related(
             'id_ne__id_olt__id_enjeu',
-        ).prefetch_related('metriques__mesures').distinct()
+        ).prefetch_related('metriques__mesures', 'metriques__score_blocks').distinct()
 
         total = 0
         evalues = 0
@@ -691,7 +694,7 @@ class RealisationOperationAnneeViewSet(viewsets.ModelViewSet):
                 last = m.mesures.order_by('-date_mesure', '-date_ajout').first()
                 if not last:
                     continue
-                score = _compute_score(last.valeur, m)
+                score = _compute_score(last, m)
                 if score > 0:
                     ind_scores.append(score)
             if ind_scores:

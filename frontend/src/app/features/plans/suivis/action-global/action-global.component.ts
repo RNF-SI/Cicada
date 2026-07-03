@@ -16,7 +16,7 @@ import { Operation, OperationAnnee, Mesure } from '../../../../core/models/enjeu
 import {
   ActionStatus, ACTION_LEGEND_ITEMS, getActionIcon, getActionStatusForYear
 } from '../action-status.util';
-import { computeMetriqueScore, scoreLevelName } from '../metrique-seuils.util';
+import { computeMetriqueScore, computeCombinedScore, scoreLevelName } from '../metrique-seuils.util';
 
 interface YearRow {
   annee: number;
@@ -33,6 +33,8 @@ interface ResponseIndicator {
   nom_metrique: string;
   valeur_cible: string;
   byYear: Map<number, string>;
+  // #247 — valeurs par bloc complémentaire, par année (métrique multi-blocs).
+  byYearBlocks: Map<number, Record<string, string>>;
   // #452 — métrique complète (grille) pour calculer un badge de score en visu.
   meta: any;
 }
@@ -130,6 +132,7 @@ export class ActionGlobalComponent implements OnInit {
       // Une métrique peut avoir plusieurs mesures la même année : on retient la
       // PLUS RÉCENTE (date_mesure), pour être cohérent avec le formulaire de suivi.
       const byYear = new Map<number, string>();
+      const byYearBlocks = new Map<number, Record<string, string>>();
       const bestTs = new Map<number, number>();
       for (const mes of (map.get(m.id_metrique) || [])) {
         if (!mes.date_mesure) continue;
@@ -139,6 +142,7 @@ export class ActionGlobalComponent implements OnInit {
         if (!bestTs.has(y) || t >= (bestTs.get(y) as number)) {
           bestTs.set(y, t);
           byYear.set(y, mes.valeur);
+          byYearBlocks.set(y, mes.valeurs_blocs || {});
         }
       }
       return {
@@ -147,6 +151,7 @@ export class ActionGlobalComponent implements OnInit {
         nom_metrique: m.nom_metrique,
         valeur_cible: m.etat_reference || '',
         byYear,
+        byYearBlocks,
         meta: m,
       };
     });
@@ -154,9 +159,14 @@ export class ActionGlobalComponent implements OnInit {
 
   /** #452 — Niveau de score (badge SVG) d'une valeur saisie pour un indicateur
    *  de réponse en grille. Renvoie null si non scorable (format simple / hors grille). */
-  responseScoreLevel(ri: ResponseIndicator, value: string | undefined): string | null {
-    if (!value) return null;
-    const score = computeMetriqueScore(ri.meta, value);
+  responseScoreLevel(ri: ResponseIndicator, year: number): string | null {
+    const value = ri.byYear.get(year);
+    const hasBlocks = (ri.meta?.score_blocks?.length ?? 0) > 0;
+    if (!value && !hasBlocks) return null;
+    // #247 — score combiné multi-blocs (mono-bloc = valeur unique).
+    const score = hasBlocks
+      ? computeCombinedScore(ri.meta, value, ri.byYearBlocks.get(year))
+      : computeMetriqueScore(ri.meta, value);
     return score == null ? null : scoreLevelName(score);
   }
 

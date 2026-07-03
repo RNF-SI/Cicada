@@ -318,6 +318,9 @@
                         <tr [class.row-alt]="idx % 2 === 1"
                             [class.is-draft]="item.operation.statut === 'draft'">
                           <td class="col-action">
+                            @if (actionCodes(item.operation); as codes) {
+                              <span class="action-code">{{ codes }}</span>
+                            }
                             <div class="action-name">
                               {{ item.operation.libelle }}
                               @if (item.operation.statut === 'draft') {
@@ -425,6 +428,9 @@
                       @for (item of group.operations; track item.operation.id_operation; let idx = $index) {
                         <tr [class.row-alt]="idx % 2 === 1">
                           <td class="col-action">
+                            @if (actionCodes(item.operation); as codes) {
+                              <span class="action-code">{{ codes }}</span>
+                            }
                             <div class="action-name">{{ item.operation.libelle }}</div>
                             @if (item.operation.priorite_label) {
                               <div class="action-priority" [ngClass]="getPrioriteClass(item.operation)">
@@ -528,6 +534,9 @@
                       @for (item of group.operations; track item.operation.id_operation; let idx = $index) {
                         <tr [class.row-alt]="idx % 2 === 1">
                           <td class="col-action">
+                            @if (actionCodes(item.operation); as codes) {
+                              <span class="action-code">{{ codes }}</span>
+                            }
                             <div class="action-name">{{ item.operation.libelle }}</div>
                             @if (item.operation.priorite_label) {
                               <div class="action-priority" [ngClass]="getPrioriteClass(item.operation)">

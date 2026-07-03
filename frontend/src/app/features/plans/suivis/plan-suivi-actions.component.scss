@@ -673,6 +673,16 @@
   }
 }
 
+// Code(s) d'action (CS1 · REM-BA02) affiché au-dessus du libellé.
+.action-code {
+  display: block;
+  font-size: $font-size-small;
+  font-weight: $font-weight-bold;
+  color: $gray-dark;
+  letter-spacing: 0.02em;
+  margin-bottom: 2px;
+}
+
 .action-name {
   font-weight: $font-weight-semibold;
   color: $primary-color;

@@ -37,6 +37,11 @@ export function blankMetriqueFormData(): MetriqueFormData {
 
 /** Construit une MetriqueFormData depuis une métrique de réponse sauvegardée
  *  (MetriqueRef enrichie avec la grille par le backend). */
+/** Lettre stable d'un bloc (A pour le principal, B, C, … pour les complémentaires). */
+function blockLetter(index: number): string {
+  return String.fromCharCode(65 + index);
+}
+
 export function metriqueRefToFormData(ref: MetriqueRef): MetriqueFormData {
   const num = (v: number | null | undefined) => (v === null || v === undefined ? null : Number(v));
   return {
@@ -47,7 +52,8 @@ export function metriqueRefToFormData(ref: MetriqueRef): MetriqueFormData {
     // #452 — ré-afficher l'unité/pondération enregistrées (sinon réinitialisées
     // à vide à chaque ouverture de la grille d'un indicateur de réponse).
     unite: ref.unite ?? '',
-    bloc_intitule: '',
+    // #247 — intitulé du bloc principal (pertinent en multi-blocs, était perdu).
+    bloc_intitule: ref.bloc_intitule ?? '',
     ponderation: ref.ponderation == null ? null : Number(ref.ponderation),
     etat_reference: ref.etat_reference || '',
     scores: {
@@ -65,6 +71,34 @@ export function metriqueRefToFormData(ref: MetriqueRef): MetriqueFormData {
     has_score1_optional_bound: ref.has_borne_score1 ?? false,
     has_score5_optional_bound: ref.has_borne_score5 ?? false,
     _inactiveLevels: Array.isArray(ref.inactive_levels) ? [...ref.inactive_levels] : [],
+    // #247 — parenthésage du bloc principal + blocs complémentaires (ET/OU).
+    // Recopiés en profondeur pour que l'éditeur ne mute pas la donnée serveur.
+    group_open: ref.group_open ?? 0,
+    group_close: ref.group_close ?? 0,
+    _letter: blockLetter(0),
+    score_blocks: (ref.score_blocks || []).map((b, i) => ({
+      id_score_block: b.id_score_block,
+      position: b.position,
+      intitule: b.intitule ?? '',
+      unite: b.unite ?? '',
+      logical_op: b.logical_op,
+      group_open: b.group_open,
+      group_close: b.group_close,
+      sens_variation: b.sens_variation,
+      score_1_inf: num(b.score_1_inf), score_1_sup: num(b.score_1_sup),
+      score_2_inf: num(b.score_2_inf), score_2_sup: num(b.score_2_sup),
+      score_3_inf: num(b.score_3_inf), score_3_sup: num(b.score_3_sup),
+      score_4_inf: num(b.score_4_inf), score_4_sup: num(b.score_4_sup),
+      score_5_inf: num(b.score_5_inf), score_5_sup: num(b.score_5_sup),
+      score_1_sup_inclusive: b.score_1_sup_inclusive,
+      score_2_sup_inclusive: b.score_2_sup_inclusive,
+      score_3_sup_inclusive: b.score_3_sup_inclusive,
+      score_4_sup_inclusive: b.score_4_sup_inclusive,
+      has_borne_score1: b.has_borne_score1,
+      has_borne_score5: b.has_borne_score5,
+      inactive_levels: Array.isArray(b.inactive_levels) ? [...b.inactive_levels] : [],
+      _letter: blockLetter(i + 1),
+    })),
     _expanded: true,
   };
 }
@@ -117,6 +151,9 @@ export function buildMetriqueGridFields(
     }
   }
 
+  // Intitulé du bloc principal (multi-blocs) — inoffensif en mono-bloc.
+  payload['bloc_intitule'] = met.bloc_intitule?.trim() || null;
+
   if (mnemonique === 'CHIFFRE' || mnemonique === 'TEXTE') {
     payload['inactive_levels'] = Array.isArray(met._inactiveLevels) ? [...met._inactiveLevels] : [];
   }
@@ -130,6 +167,42 @@ export function buildMetriqueGridFields(
     payload['has_borne_score1'] = met.has_score1_optional_bound;
     payload['has_borne_score5'] = met.has_score5_optional_bound;
     payload['inactive_levels'] = Array.isArray(met._inactiveLevels) ? [...met._inactiveLevels] : [];
+    // #247 — parenthésage du bloc principal + blocs de scoring complémentaires
+    // (ET/OU). Liste envoyée intégralement : le serializer remplace l'ensemble.
+    payload['group_open'] = met.group_open ?? 0;
+    payload['group_close'] = met.group_close ?? 0;
+    if (met.score_blocks !== undefined) {
+      payload['score_blocks'] = (met.score_blocks || []).map(b => {
+        const inactive = Array.isArray(b.inactive_levels) ? [...b.inactive_levels] : [];
+        const block: Record<string, unknown> = {
+          position: b.position,
+          intitule: b.intitule?.trim() || null,
+          unite: b.unite?.trim() || null,
+          logical_op: b.logical_op,
+          group_open: b.group_open,
+          group_close: b.group_close,
+          sens_variation: b.sens_variation,
+          score_1_inf: b.score_1_inf, score_1_sup: b.score_1_sup,
+          score_2_inf: b.score_2_inf, score_2_sup: b.score_2_sup,
+          score_3_inf: b.score_3_inf, score_3_sup: b.score_3_sup,
+          score_4_inf: b.score_4_inf, score_4_sup: b.score_4_sup,
+          score_5_inf: b.score_5_inf, score_5_sup: b.score_5_sup,
+          score_1_sup_inclusive: b.score_1_sup_inclusive,
+          score_2_sup_inclusive: b.score_2_sup_inclusive,
+          score_3_sup_inclusive: b.score_3_sup_inclusive,
+          score_4_sup_inclusive: b.score_4_sup_inclusive,
+          has_borne_score1: b.has_borne_score1,
+          has_borne_score5: b.has_borne_score5,
+          inactive_levels: inactive,
+        };
+        // Niveau « non utilisé » → bornes effacées (cohérent avec le principal).
+        for (const lvl of inactive) {
+          block[`score_${lvl}_inf`] = null;
+          block[`score_${lvl}_sup`] = null;
+        }
+        return block;
+      });
+    }
   }
   return payload;
 }

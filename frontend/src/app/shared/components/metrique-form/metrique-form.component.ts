@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { TranslateModule } from '@ngx-translate/core';
 import { CdkDragDrop, DragDropModule, moveItemInArray } from '@angular/cdk/drag-drop';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { MetriqueFormData, MetriqueScoreBlock } from '../../../core/models/enjeu.model';
 import { MetriqueBlockComponent, ScoreBlockData } from '../metrique-block/metrique-block.component';
 import { FormFieldComponent } from '../form-field/form-field.component';
@@ -44,7 +45,7 @@ export interface FormulaPart {
   standalone: true,
   imports: [
     CommonModule, FormsModule, TranslateModule,
-    DragDropModule,
+    DragDropModule, MatTooltipModule,
     MetriqueBlockComponent,
     FormFieldComponent,
   ],

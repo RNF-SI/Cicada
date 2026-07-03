@@ -134,24 +134,6 @@ class IndicateurViewSet(viewsets.ModelViewSet):
 
         ind = self.get_object()
 
-        def _score(value, m):
-            """1-5 selon la grille de la métrique, 0 si hors plage / non numérique."""
-            try:
-                v = float(value)
-            except (TypeError, ValueError):
-                return 0
-            inactive = set(getattr(m, 'inactive_levels', None) or [])
-            for i in range(1, 6):
-                if i in inactive:
-                    continue
-                inf = getattr(m, f'score_{i}_inf', None)
-                sup = getattr(m, f'score_{i}_sup', None)
-                if inf is None or sup is None:
-                    continue
-                if float(inf) <= v <= float(sup):
-                    return i
-            return 0
-
         def _trend(scores_by_year):
             """Tendance : comparaison premier ↔ dernier score renseigné."""
             years = sorted(scores_by_year.keys())
@@ -167,7 +149,7 @@ class IndicateurViewSet(viewsets.ModelViewSet):
         metriques_payload = []
         ind_year_scores = defaultdict(list)  # année -> [scores métriques]
 
-        for m in ind.metriques.all().prefetch_related('mesures'):
+        for m in ind.metriques.all().prefetch_related('mesures', 'score_blocks'):
             # Dernière mesure par année (par date_mesure puis date_ajout)
             by_year = {}
             for mes in m.mesures.all():
@@ -177,15 +159,17 @@ class IndicateurViewSet(viewsets.ModelViewSet):
                 key = (mes.date_mesure, mes.date_ajout)
                 prev = by_year.get(y)
                 if prev is None or key >= prev['key']:
-                    by_year[y] = {'valeur': mes.valeur, 'key': key}
+                    by_year[y] = {'mesure': mes, 'key': key}
 
             series = []
             scores_by_year = {}
             for y in sorted(by_year.keys()):
-                val = by_year[y]['valeur']
-                sc = _score(val, m)
-                series.append({'annee': y, 'valeur': val, 'score': sc or None})
-                if sc > 0:
+                mes_obj = by_year[y]['mesure']
+                val = mes_obj.valeur
+                # #247 — score combiné multi-blocs (mono-bloc = comportement historique).
+                sc = _mesure_to_score(mes_obj, m)
+                series.append({'annee': y, 'valeur': val, 'score': sc})
+                if sc:
                     scores_by_year[y] = sc
                     ind_year_scores[y].append(sc)
 
@@ -735,12 +719,67 @@ def _palier_inclusivity(metrique, level):
     return inf_inclusive, sup_inclusive
 
 
+def _resolve_metrique_mnemonique(metrique) -> str:
+    """Type de métrique (TEXTE / CHIFFRE / NUMERIQUE). Miroir du frontend
+    ``resolveMnemonique`` : lit ``type_metrique.mnemonique`` si présent, sinon
+    déduit du contenu (libellés → TEXTE, valeurs discrètes → CHIFFRE, seuils →
+    NUMERIQUE). Les ``MetriqueScoreBlock`` (sans ``type_metrique``) sont toujours
+    numériques (seuils uniquement)."""
+    mnem = getattr(getattr(metrique, 'type_metrique', None), 'mnemonique', None)
+    if mnem:
+        return mnem
+    has_labels = any((getattr(metrique, f'score_{l}_label', None) or '').strip() for l in range(1, 6))
+    has_vals = any(getattr(metrique, f'score_{l}_val', None) is not None for l in range(1, 6))
+    has_bounds = any(getattr(metrique, f'score_{l}_inf', None) is not None
+                     or getattr(metrique, f'score_{l}_sup', None) is not None for l in range(1, 6))
+    if has_labels and not has_bounds:
+        return 'TEXTE'
+    if has_vals and not has_bounds:
+        return 'CHIFFRE'
+    return 'NUMERIQUE'
+
+
 def _value_to_score(value, metrique) -> int | None:
-    """Convertit une valeur numérique en score 1-5 via les seuils de la métrique."""
+    """Convertit une valeur en score 1-5 selon la grille de la métrique.
+
+    Type-aware (#452), miroir du frontend ``computeMetriqueScore`` :
+      - TEXTE   : le libellé saisi doit correspondre à un ``score_i_label`` ;
+      - CHIFFRE : la valeur doit correspondre exactement à un ``score_i_val`` ;
+      - NUMERIQUE : intervalle de seuils avec inclusivité des bornes (#423).
+    """
+    inactive = set(getattr(metrique, 'inactive_levels', None) or [])
+    mnem = _resolve_metrique_mnemonique(metrique)
+
+    if mnem == 'TEXTE':
+        if value is None:
+            return None
+        v = str(value).strip()
+        if not v:
+            return None
+        for i in range(1, 6):
+            if i in inactive:
+                continue
+            label = (getattr(metrique, f'score_{i}_label', None) or '').strip()
+            if label and label == v:
+                return i
+        return None
+
+    if mnem == 'CHIFFRE':
+        v = _coerce_float(value)
+        if v is None:
+            return None
+        for i in range(1, 6):
+            if i in inactive:
+                continue
+            val = getattr(metrique, f'score_{i}_val', None)
+            if val is not None and float(val) == v:
+                return i
+        return None
+
+    # NUMERIQUE — seuils
     v = _coerce_float(value)
     if v is None:
         return None
-    inactive = set(getattr(metrique, 'inactive_levels', None) or [])
     for i in range(1, 6):
         if i in inactive:
             continue
@@ -760,6 +799,101 @@ def _value_to_score(value, metrique) -> int | None:
         if lower_ok and upper_ok:
             return i
     return None
+
+
+def combine_block_scores(tokens):
+    """#247 — Évalue une expression de scores de blocs combinés par ET/OU avec
+    parenthèses.
+
+    - Opérandes : score 1-5 d'un bloc, ou ``None`` si non renseigné/non scorable.
+    - Opérateurs : ``'AND'`` (= min, « il faut que tous soient bons ») et ``'OR'``
+      (= max, « il suffit qu'un soit bon »). Précédence **AND > OR**, associativité
+      gauche ; les parenthèses (``'lparen'`` / ``'rparen'``) priment.
+    - ``None`` est neutre : ``op(None, x) == x`` (un bloc non renseigné n'impose rien) ;
+      un groupe entièrement ``None`` vaut ``None``.
+
+    ``tokens`` : liste de tuples ``('val', int|None)`` / ``('op', 'AND'|'OR')`` /
+    ``('lparen',)`` / ``('rparen',)``. Retourne un int 1-5 ou ``None``.
+    """
+    prec = {'OR': 1, 'AND': 2}
+
+    def _apply(op, a, b):
+        if a is None:
+            return b
+        if b is None:
+            return a
+        return min(a, b) if op == 'AND' else max(a, b)
+
+    values = []
+    ops = []
+
+    def _reduce():
+        if len(values) < 2 or not ops:
+            return
+        op = ops.pop()
+        b = values.pop()
+        a = values.pop()
+        values.append(_apply(op, a, b))
+
+    for tok in tokens:
+        kind = tok[0]
+        if kind == 'val':
+            values.append(tok[1])
+        elif kind == 'op':
+            while ops and ops[-1] != '(' and prec[ops[-1]] >= prec[tok[1]]:
+                _reduce()
+            ops.append(tok[1])
+        elif kind == 'lparen':
+            ops.append('(')
+        elif kind == 'rparen':
+            while ops and ops[-1] != '(':
+                _reduce()
+            if ops and ops[-1] == '(':
+                ops.pop()
+    while ops:
+        if ops[-1] == '(':
+            ops.pop()
+            continue
+        _reduce()
+    return values[0] if values else None
+
+
+def _mesure_to_score(mesure, metrique) -> int | None:
+    """Score 1-5 d'une mesure pour une métrique.
+
+    Mono-bloc → ``_value_to_score(mesure.valeur, metrique)`` (comportement historique).
+    Multi-blocs (NUMERIQUE, ``score_blocks`` non vide) → chaque bloc est scoré via sa
+    propre valeur (principal = ``valeur`` ; complémentaire ``b`` = ``valeurs_blocs[position]``)
+    puis la formule ET/OU + parenthèses est évaluée (cf. :func:`combine_block_scores`).
+    """
+    if mesure is None:
+        return None
+    blocks = list(metrique.score_blocks.all())
+    if not blocks:
+        return _value_to_score(mesure.valeur, metrique)
+
+    valeurs_blocs = mesure.valeurs_blocs or {}
+    # Séquence [principal] + blocs complémentaires (ordonnés par position via Meta).
+    entries = [(
+        metrique, mesure.valeur,
+        getattr(metrique, 'group_open', 0) or 0,
+        getattr(metrique, 'group_close', 0) or 0,
+        None,
+    )]
+    for b in blocks:
+        entries.append((
+            b, valeurs_blocs.get(str(b.position)),
+            b.group_open or 0, b.group_close or 0, b.logical_op or 'OR',
+        ))
+
+    tokens = []
+    for i, (block_obj, val, group_open, group_close, op) in enumerate(entries):
+        if i > 0:
+            tokens.append(('op', op))
+        tokens.extend([('lparen',)] * group_open)
+        tokens.append(('val', _value_to_score(val, block_obj)))
+        tokens.extend([('rparen',)] * group_close)
+    return combine_block_scores(tokens)
 
 
 def _compute_indicator_auto_score(indicateur: Indicateur, annee: int):
@@ -791,7 +925,8 @@ def _compute_indicator_auto_score(indicateur: Indicateur, annee: int):
         if mesure is None:
             # Fallback : prendre la mesure la plus récente toutes années
             mesure = met.mesures.order_by('-date_mesure', '-date_ajout').first()
-        score = _value_to_score(mesure.valeur, met) if mesure else None
+        # #247 — score combiné multi-blocs (mono-bloc = comportement historique).
+        score = _mesure_to_score(mesure, met)
         weight = float(met.ponderation) if met.ponderation else 1.0
         per_met.append({
             'id_metrique': met.id_metrique,

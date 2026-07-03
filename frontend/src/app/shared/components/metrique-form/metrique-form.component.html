@@ -73,6 +73,13 @@
   @if (blocks.length > 0 || hasAnyParens()) {
     <div class="formula-preview">
       <span class="formula-label">{{ 'enjeux.metriques.formulaLabel' | translate }}</span>
+      <!-- #247 — bulle d'aide : sémantique OU / ET / parenthèses. -->
+      <i class="fi fi-rr-info formula-info"
+         [matTooltip]="'common.metriqueFormulaHint' | translate"
+         matTooltipPosition="above"
+         matTooltipClass="formula-info-tooltip"
+         tabindex="0"
+         [attr.aria-label]="'common.metriqueFormulaHint' | translate"></i>
       <!-- Drop-list horizontale : seuls les chips de bloc sont draggables.
            Le réordonnancement met automatiquement à jour la liste des cards
            en-dessous (même modèle de données). -->

@@ -17,6 +17,7 @@ import { FormBuilder, FormGroup, FormsModule, ReactiveFormsModule } from '@angul
 import { MatButtonModule } from '@angular/material/button';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { forkJoin, of, Subscription } from 'rxjs';
 import { map } from 'rxjs/operators';
@@ -27,7 +28,7 @@ import { CheckboxComponent } from '../../../../shared/components/checkbox/checkb
 import { AdminService } from '../../../../core/services/admin.service';
 import { EnjeuService } from '../../../../core/services/enjeu.service';
 import { Indicateur, Metrique, Mesure, MesureCreatePayload } from '../../../../core/models/enjeu.model';
-import { formatScoreRange, isMetriqueIndetermine, computeMetriqueScore } from '../metrique-seuils.util';
+import { formatScoreRange, isMetriqueIndetermine, computeMetriqueScore, computeCombinedScore, formatBlockFormula } from '../metrique-seuils.util';
 
 // #510 — un seul mode d'édition cohérent (les anciens 'edit-auto'/'edit-override'
 // sont fusionnés : auto par défaut, forçage manuel optionnel via une case).
@@ -41,7 +42,7 @@ const SCORE_LEVELS: ScoreLevel[] = ['very-bad', 'bad', 'neutral', 'good', 'very-
   standalone: true,
   imports: [
     CommonModule, RouterModule, FormsModule, ReactiveFormsModule,
-    MatButtonModule, MatProgressSpinnerModule, MatSnackBarModule, TranslateModule,
+    MatButtonModule, MatProgressSpinnerModule, MatSnackBarModule, MatTooltipModule, TranslateModule,
     HeaderComponent, PlanSidebarComponent, CheckboxComponent,
   ],
   templateUrl: './indicateur-saisie.component.html',
@@ -59,6 +60,17 @@ export class IndicateurSaisieComponent implements OnInit {
   planSlug = signal<string | null>(null);
   planId = signal<number | null>(null);
   planNom = signal<string>('');
+  planStatut = signal<string | null>(null);
+
+  /** #375 — La saisie des résultats (mesures) n'est possible que sur un plan
+   *  validé et actif (`valide`/`modifie`). En brouillon (plan non terminé), en
+   *  workflow CSRPN ou archivé, les champs sont en lecture seule. */
+  canEnterSuivi = computed<boolean>(() => this.statusAllowsSuivi(this.planStatut()));
+
+  /** #375 — statuts (validés et actifs) autorisant la saisie des résultats. */
+  statusAllowsSuivi(statut: string | null | undefined): boolean {
+    return statut === 'valide' || statut === 'modifie';
+  }
   indicateurId = signal<number | null>(null);
   selectedYear = signal<number>(new Date().getFullYear());
 
@@ -126,6 +138,62 @@ export class IndicateurSaisieComponent implements OnInit {
     return computeMetriqueScore(met, value);
   }
 
+  // #247 — Saisie multi-blocs : une valeur par bloc, score combiné (formule ET/OU).
+
+  /** Vrai si la métrique a des blocs de scoring complémentaires (multi-blocs). */
+  isMultiBlock(met: Metrique): boolean {
+    return ((met as any).score_blocks?.length ?? 0) > 0;
+  }
+
+  /** Étiquette « intitulé (unité) » d'un bloc, avec repli. */
+  private blockLabelText(intitule?: string | null, unite?: string | null, fallback = ''): string {
+    const i = (intitule ?? '').trim();
+    const u = (unite ?? '').trim();
+    if (!i) return fallback;
+    return u ? `${i} (${u})` : i;
+  }
+
+  /**
+   * Descripteurs des champs de saisie d'une métrique multi-blocs : bloc principal
+   * (`m_{id}`) puis chaque bloc complémentaire (`m_{id}_b{position}`). Chaque entrée
+   * porte le `meta` (grille NUMERIQUE) servant à scorer et afficher les seuils.
+   */
+  blockInputs(met: Metrique): { ctrl: string; label: string; unite: string; meta: any }[] {
+    const blocks: any[] = (met as any).score_blocks || [];
+    const out = [{
+      ctrl: `m_${met.id_metrique}`,
+      label: this.blockLabelText((met as any).bloc_intitule, met.unite, met.nom_metrique),
+      unite: (met.unite ?? '').trim(),
+      meta: met,
+    }];
+    blocks.forEach((b, idx) => {
+      out.push({
+        ctrl: `m_${met.id_metrique}_b${b.position}`,
+        label: this.blockLabelText(b.intitule, b.unite, `Bloc ${idx + 2}`),
+        unite: (b.unite ?? '').trim(),
+        meta: { ...b, type_metrique_mnemonique: 'NUMERIQUE' },
+      });
+    });
+    return out;
+  }
+
+  /** Formule ET/OU des blocs (rappel des liens) — vide si mono-bloc. */
+  blockFormula(met: Metrique): string {
+    return formatBlockFormula(met);
+  }
+
+  /** Score 1-5 d'une métrique depuis le formulaire (combiné si multi-blocs). */
+  metricScore(met: Metrique): number | null {
+    if (!this.isMultiBlock(met)) {
+      return computeMetriqueScore(met, this.form.get(`m_${met.id_metrique}`)?.value);
+    }
+    const blockValues: Record<string, any> = {};
+    for (const b of ((met as any).score_blocks || [])) {
+      blockValues[String(b.position)] = this.form.get(`m_${met.id_metrique}_b${b.position}`)?.value;
+    }
+    return computeCombinedScore(met, this.form.get(`m_${met.id_metrique}`)?.value, blockValues);
+  }
+
   // #464/#465 — Saisie d'une métrique CHIFFRE/TEXTE : choix parmi les options de
   // la grille (libellés / valeurs), au lieu d'un champ texte libre.
   metricSaisieMode(met: Metrique): 'text-select' | 'chiffre-select' | 'free' {
@@ -148,10 +216,19 @@ export class IndicateurSaisieComponent implements OnInit {
         if (label) out.push(label);
       } else if (type === 'CHIFFRE') {
         const val = (met as any)[`score_${lvl}_val`];
-        if (val !== null && val !== undefined) out.push(String(val));
+        // #464 — les valeurs CHIFFRE sont stockées en DecimalField (« 2.000 ») :
+        // on affiche exactement la valeur saisie à la création (sans zéros inutiles).
+        if (val !== null && val !== undefined) out.push(this.formatChiffre(val));
       }
     }
     return out;
+  }
+
+  /** Normalise une valeur CHIFFRE : retire les zéros décimaux superflus
+   *  (« 2.000 » → « 2 », « 2.5000 » → « 2.5 »). #464 */
+  private formatChiffre(v: any): string {
+    const n = Number(v);
+    return Number.isNaN(n) ? String(v) : String(parseFloat(n.toFixed(4)));
   }
 
   /** Score auto recalculé à partir des valeurs saisies (en live, #510).
@@ -163,8 +240,8 @@ export class IndicateurSaisieComponent implements OnInit {
     let sum = 0;
     let weight = 0;
     for (const met of ind.metriques) {
-      const ctrl = this.form.get(`m_${met.id_metrique}`);
-      const score = this.valueToScore(ctrl?.value, met);
+      // #247 — score métrique = combiné des blocs (mono-bloc = valeur unique).
+      const score = this.metricScore(met);
       if (score !== null) {
         const w = Number(met.ponderation || 1);
         sum += score * w;
@@ -260,10 +337,12 @@ export class IndicateurSaisieComponent implements OnInit {
       next: (plan) => {
         this.planId.set(plan.id_pg);
         this.planNom.set(plan.nom);
+        this.planStatut.set((plan as any).statut ?? null);
         if (plan.annee_debut && plan.annee_fin) {
           this.planYearStart.set(plan.annee_debut);
           this.planYearEnd.set(plan.annee_fin);
         }
+        this.applyReadonlyState();
       },
     });
 
@@ -287,12 +366,28 @@ export class IndicateurSaisieComponent implements OnInit {
     const group: any = {};
     for (const met of ind?.metriques || []) {
       group[`m_${met.id_metrique}`] = [''];
+      // #247 — un contrôle par bloc complémentaire (métrique multi-blocs).
+      for (const b of ((met as any).score_blocks || [])) {
+        group[`m_${met.id_metrique}_b${b.position}`] = [''];
+      }
     }
     this.form = fb.group(group);
     // #510 — réactivité du score auto : chaque saisie de métrique bumpe le tick
     // dont dépend `liveAutoScore`. On résouscrit à chaque (ré)hydratation du form.
     this.formSub?.unsubscribe();
     this.formSub = this.form.valueChanges.subscribe(() => this.formTick.update(v => v + 1));
+    this.applyReadonlyState();
+  }
+
+  /** #375 — Active/désactive les champs de saisie selon `canEnterSuivi` (plan
+   *  validé). Appelé après (re)construction du form et à réception du statut. */
+  private applyReadonlyState(): void {
+    if (!this.form) return;
+    if (this.canEnterSuivi()) {
+      if (this.form.disabled) this.form.enable({ emitEvent: false });
+    } else if (!this.form.disabled) {
+      this.form.disable({ emitEvent: false });
+    }
   }
 
   /** Charge le score résolu (auto + override) + les Mesures existantes. */
@@ -308,9 +403,20 @@ export class IndicateurSaisieComponent implements OnInit {
       next: ({ resolved, mesures }) => {
         // Hydrate mesures map
         this.mesuresByMetrique.clear();
+        const metById = new Map((this.indicateur()?.metriques || []).map(m => [m.id_metrique, m]));
         for (const [metId, ms] of mesures) {
           this.mesuresByMetrique.set(metId, ms);
-          this.form.get(`m_${metId}`)?.setValue(ms.valeur);
+          // #464 — normaliser une valeur CHIFFRE restaurée (« 2.000 ») pour qu'elle
+          // corresponde à l'option formatée du select.
+          const met = metById.get(metId);
+          const restored = (met as any)?.type_metrique_mnemonique === 'CHIFFRE'
+            ? this.formatChiffre(ms.valeur) : ms.valeur;
+          this.form.get(`m_${metId}`)?.setValue(restored);
+          // #247 — restaurer les valeurs par bloc complémentaire.
+          const vb = ms.valeurs_blocs || {};
+          for (const [pos, val] of Object.entries(vb)) {
+            this.form.get(`m_${metId}_b${pos}`)?.setValue(val);
+          }
         }
         // Hydrate scores
         this.scoreAuto.set(resolved.score_auto);
@@ -326,6 +432,7 @@ export class IndicateurSaisieComponent implements OnInit {
         // Mode initial : recap si on a déjà au moins une mesure ou un override
         const hasAnyData = mesures.length > 0 || resolved.is_overridden;
         this.mode.set(hasAnyData ? 'recap' : 'edit');
+        this.applyReadonlyState();
         this.isLoading.set(false);
       },
       error: () => {
@@ -401,20 +508,36 @@ export class IndicateurSaisieComponent implements OnInit {
     const indId = this.indicateurId();
     const year = this.selectedYear();
     if (!ind || !indId) return;
+    // #375 — sécurité : pas d'enregistrement de résultats sur un plan non validé.
+    if (!this.canEnterSuivi()) {
+      this.snack.open(
+        this.translate.instant('plans.suivis.indicateur.readonlyNotValidated'),
+        this.translate.instant('common.actions.close'), { duration: 4000 });
+      return;
+    }
 
     this.isSaving.set(true);
 
     // 1) Mesures par métrique — toujours enregistrées (la saisie des métriques
     //    reste possible que le résultat soit auto ou forcé manuellement, #510).
     const mesureCalls: any[] = [];
+    const clean = (v: any) => String(v).replace(',', '.').trim();
+    const isEmpty = (v: any) => v === null || v === undefined || String(v).trim() === '';
     for (const met of ind.metriques || []) {
-      const ctrl = this.form.get(`m_${met.id_metrique}`);
-      const value = ctrl?.value;
-      if (value === null || value === undefined || String(value).trim() === '') continue;
+      const value = this.form.get(`m_${met.id_metrique}`)?.value;
+      // #247 — valeurs des blocs complémentaires (métrique multi-blocs).
+      const valeurs_blocs: Record<string, string> = {};
+      for (const b of ((met as any).score_blocks || [])) {
+        const bv = this.form.get(`m_${met.id_metrique}_b${b.position}`)?.value;
+        if (!isEmpty(bv)) valeurs_blocs[String(b.position)] = clean(bv);
+      }
+      // Rien à enregistrer si aucune valeur (ni principal ni bloc).
+      if (isEmpty(value) && Object.keys(valeurs_blocs).length === 0) continue;
       const existing = this.mesuresByMetrique.get(met.id_metrique);
       const payload: MesureCreatePayload = {
         id_metrique: met.id_metrique,
-        valeur: String(value).replace(',', '.'),
+        valeur: isEmpty(value) ? '' : clean(value),
+        valeurs_blocs,
         date_mesure: `${year}-12-31`,
       };
       mesureCalls.push(

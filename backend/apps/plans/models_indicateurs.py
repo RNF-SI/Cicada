@@ -670,7 +670,18 @@ class Mesure(models.Model):
     valeur = models.CharField(
         _("Valeur"),
         max_length=500,
-        help_text=_("Valeur de la mesure (numérique ou qualitative)")
+        help_text=_("Valeur de la mesure (numérique ou qualitative). "
+                    "Pour une métrique multi-blocs, valeur du bloc principal.")
+    )
+    # #247 — Valeurs des blocs de scoring COMPLÉMENTAIRES d'une métrique NUMERIQUE
+    # multi-blocs, indexées par `position` de bloc (str) : { "1": "12.5", "2": "5" }.
+    # `valeur` reste la valeur du bloc principal. Le score combiné évalue la formule
+    # ET/OU (parenthèses) sur les scores de chaque bloc.
+    valeurs_blocs = models.JSONField(
+        _("Valeurs par bloc"),
+        default=dict,
+        blank=True,
+        help_text=_("Valeurs des blocs complémentaires, indexées par position de bloc.")
     )
     date_mesure = models.DateField(
         _("Date de mesure"),

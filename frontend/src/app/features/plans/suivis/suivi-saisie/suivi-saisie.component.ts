@@ -40,7 +40,7 @@ import {
   RealisationUpsertPayload,
   RealisationOrganismeUpsertPayload,
 } from '../../../../core/models/enjeu.model';
-import { formatScoreRange, computeMetriqueScore, scoreLevelName } from '../metrique-seuils.util';
+import { formatScoreRange, computeMetriqueScore, computeCombinedScore, scoreLevelName, formatBlockFormula } from '../metrique-seuils.util';
 
 interface Niveau {
   id_nomenclature: number;
@@ -494,7 +494,7 @@ export class SuiviSaisieComponent implements OnInit {
       const mesures = this.mesuresByMetrique.get(met.id_metrique) ?? [];
       const existing = this.latestMesureForYear(mesures, year);
 
-      fa.push(this.fb.group({
+      const grp = this.fb.group({
         id_metrique: [met.id_metrique],
         nom_metrique: [met.nom_metrique],
         indicateur_nom: [met.indicateur_nom],
@@ -508,7 +508,14 @@ export class SuiviSaisieComponent implements OnInit {
         format_mnemo: [met.format_metrique_mnemonique ?? null],
         type_mnemo: [met.type_metrique_mnemonique ?? null],
         meta: [met],
-      }));
+      });
+      // #247 — un contrôle par bloc complémentaire (métrique multi-blocs),
+      // restauré depuis la mesure existante (valeurs_blocs indexé par position).
+      const vb = existing?.valeurs_blocs || {};
+      for (const b of ((met as any).score_blocks || [])) {
+        (grp as FormGroup).addControl(`bloc_${b.position}`, this.fb.control(vb[String(b.position)] ?? ''));
+      }
+      fa.push(grp);
     }
     this.applyReadOnlyLock();
   }
@@ -571,9 +578,14 @@ export class SuiviSaisieComponent implements OnInit {
    */
   gridLevels(ctrl: AbstractControl): { level: number; name: string; text: string; inactive: boolean; active: boolean }[] {
     const meta: any = ctrl.value?.meta;
+    return this.buildGridLevels(meta, ctrl.value?.valeur);
+  }
+
+  /** Rappel de grille (5 niveaux) pour une métrique/bloc donné + valeur saisie. */
+  private buildGridLevels(meta: any, value: any): { level: number; name: string; text: string; inactive: boolean; active: boolean }[] {
     if (!meta) return [];
     const inactive: number[] = Array.isArray(meta.inactive_levels) ? meta.inactive_levels : [];
-    const activeLevel = computeMetriqueScore(meta, ctrl.value?.valeur);
+    const activeLevel = computeMetriqueScore(meta, value);
     const out: { level: number; name: string; text: string; inactive: boolean; active: boolean }[] = [];
     for (let lvl = 1; lvl <= 5; lvl++) {
       out.push({
@@ -585,6 +597,75 @@ export class SuiviSaisieComponent implements OnInit {
       });
     }
     return out;
+  }
+
+  // #247 — Saisie multi-blocs d'un indicateur de réponse (une valeur par bloc).
+
+  /** Vrai si la métrique de réponse a des blocs complémentaires. */
+  isMultiBlock(ctrl: AbstractControl): boolean {
+    return (ctrl.value?.meta?.score_blocks?.length ?? 0) > 0;
+  }
+
+  private blockLabelText(intitule?: string | null, unite?: string | null, fallback = ''): string {
+    const i = (intitule ?? '').trim();
+    const u = (unite ?? '').trim();
+    if (!i) return fallback;
+    return u ? `${i} (${u})` : i;
+  }
+
+  /** Descripteurs des champs par bloc : principal (`valeur`) + `bloc_{position}`.
+   *  #247 — chaque bloc porte sa propre unité (les blocs peuvent en avoir des différentes). */
+  blockInputs(ctrl: AbstractControl): { ctrl: string; label: string; unite: string; meta: any }[] {
+    const meta: any = ctrl.value?.meta;
+    const blocks: any[] = meta?.score_blocks || [];
+    const out = [{
+      ctrl: 'valeur',
+      label: this.blockLabelText(meta?.bloc_intitule, meta?.unite, meta?.nom_metrique),
+      unite: (meta?.unite ?? '').trim(),
+      meta,
+    }];
+    blocks.forEach((b, idx) => {
+      out.push({
+        ctrl: `bloc_${b.position}`,
+        label: this.blockLabelText(b.intitule, b.unite, `Bloc ${idx + 2}`),
+        unite: (b.unite ?? '').trim(),
+        meta: { ...b, type_metrique_mnemonique: 'NUMERIQUE' },
+      });
+    });
+    return out;
+  }
+
+  /** Pondération de la métrique de réponse (défaut 1). */
+  ponderation(ctrl: AbstractControl): number {
+    const p = ctrl.value?.meta?.ponderation;
+    return p == null || p === '' ? 1 : Number(p);
+  }
+
+  /** Formule ET/OU des blocs (rappel des liens) — vide si mono-bloc. */
+  blockFormula(ctrl: AbstractControl): string {
+    return formatBlockFormula(ctrl.value?.meta);
+  }
+
+  /** Rappel de grille d'un bloc donné (input `bloc_{position}` ou `valeur`). */
+  blockGridLevels(ctrl: AbstractControl, controlName: string, meta: any) {
+    return this.buildGridLevels(meta, ctrl.get(controlName)?.value);
+  }
+
+  /** Score combiné 1-5 (formule ET/OU) de la métrique multi-blocs. */
+  combinedScore(ctrl: AbstractControl): number | null {
+    const meta: any = ctrl.value?.meta;
+    if (!meta) return null;
+    const blockValues: Record<string, any> = {};
+    for (const b of (meta.score_blocks || [])) {
+      blockValues[String(b.position)] = ctrl.get(`bloc_${b.position}`)?.value;
+    }
+    return computeCombinedScore(meta, ctrl.get('valeur')?.value, blockValues);
+  }
+
+  /** Nom de badge (very-bad…very-good) du score combiné, ou null. */
+  combinedScoreName(ctrl: AbstractControl): string | null {
+    const s = this.combinedScore(ctrl);
+    return s == null ? null : scoreLevelName(s);
   }
 
   /**
@@ -761,20 +842,31 @@ export class SuiviSaisieComponent implements OnInit {
       : [];
 
     // 3) Mesures (Indicateurs de réponse) : créer/mettre à jour pour l'année active.
+    // #247 — métrique multi-blocs : `valeur` = bloc principal, `valeurs_blocs` = { position: valeur }.
     const yearActive = this.selectedYear();
+    const notEmpty = (x: any) => (x ?? '').toString().trim() !== '';
     const measureCalls = this.indicateursFA.controls
       .map(c => c.value as any)
-      .filter(v => (v.valeur ?? '').toString().trim() !== '')
       .map(v => {
+        const blocks: any[] = v.meta?.score_blocks || [];
+        const valeurs_blocs: Record<string, string> = {};
+        for (const b of blocks) {
+          const bv = v[`bloc_${b.position}`];
+          if (notEmpty(bv)) valeurs_blocs[String(b.position)] = String(bv);
+        }
+        const hasPrincipal = notEmpty(v.valeur);
+        if (!hasPrincipal && Object.keys(valeurs_blocs).length === 0) return null;
         const payload: MesureCreatePayload = {
           id_metrique: v.id_metrique,
-          valeur: String(v.valeur),
+          valeur: hasPrincipal ? String(v.valeur) : '',
+          valeurs_blocs,
           date_mesure: `${yearActive}-12-31`,
         };
         return v.id_mesure
           ? this.enjeuService.updateMesure(v.id_mesure, payload)
           : this.enjeuService.createMesure(payload);
-      });
+      })
+      .filter((call): call is NonNullable<typeof call> => call !== null);
 
     this.isSaving.set(true);
     const annualCall = this.realisationService.upsert(annualPayload);

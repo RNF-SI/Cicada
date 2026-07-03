@@ -2753,14 +2753,17 @@ class EnjeuxSeeder(BaseSeeder):
             )
             metriques_created.append(met)
 
+            # #247 — valeurs par bloc (métrique phosphore multi-blocs : 3 blocs complémentaires).
             m, _ = Mesure.objects.update_or_create(
                 id_metrique=met, date_mesure=date(2022, 12, 31),
-                defaults={'valeur': '18.5', 'commentaire': 'Moyenne annuelle 2022 - 6 prélèvements', 'id_utilisateur_ajout': admin}
+                defaults={'valeur': '18.5', 'valeurs_blocs': {'1': '16', '2': '30', '3': '12'},
+                          'commentaire': 'Moyenne annuelle 2022 - 6 prélèvements', 'id_utilisateur_ajout': admin}
             )
             mesures_created.append(m)
             m, _ = Mesure.objects.update_or_create(
                 id_metrique=met, date_mesure=date(2023, 12, 31),
-                defaults={'valeur': '21.2', 'commentaire': 'Moyenne annuelle 2023 - dépassement du seuil', 'id_utilisateur_ajout': admin}
+                defaults={'valeur': '21.2', 'valeurs_blocs': {'1': '22', '2': '15', '3': '20'},
+                          'commentaire': 'Moyenne annuelle 2023 - dépassement du seuil', 'id_utilisateur_ajout': admin}
             )
             mesures_created.append(m)
 
@@ -2827,6 +2830,8 @@ class EnjeuxSeeder(BaseSeeder):
                 defaults={
                     'type_metrique': type_met_numerique,
                     'unite': 'kg P/an',
+                    # #247 — pression multi-blocs : « Flux P OU (Flux N ET Turbidité) ».
+                    'bloc_intitule': 'Flux de phosphore (kg P/an)',
                     'sens_variation': 'DECROISSANT',
                     'has_borne_score1': True, 'has_borne_score5': True,
                     'score_1_inf': 200, 'score_1_sup': 1000,
@@ -2843,10 +2848,41 @@ class EnjeuxSeeder(BaseSeeder):
                 }
             )
             metriques_created.append(met_p)
+            # #247 — deux blocs complémentaires : « Flux P OU (Flux N ET Turbidité) ».
+            met_p.score_blocks.all().delete()
+            MetriqueScoreBlock.objects.create(
+                id_metrique=met_p, position=1, logical_op='OR',
+                intitule='Flux d\'azote', unite='kg N/an',
+                group_open=0, group_close=0, sens_variation='DECROISSANT',
+                has_borne_score1=True, has_borne_score5=True,
+                score_1_inf=1500, score_1_sup=5000,
+                score_2_inf=1000, score_2_sup=1500,
+                score_3_inf=600, score_3_sup=1000,
+                score_4_inf=300, score_4_sup=600,
+                score_5_inf=0, score_5_sup=300,
+            )
+            MetriqueScoreBlock.objects.create(
+                id_metrique=met_p, position=2, logical_op='AND',
+                intitule='Turbidité', unite='NTU',
+                group_open=0, group_close=0, sens_variation='DECROISSANT',
+                has_borne_score1=True, has_borne_score5=True,
+                score_1_inf=40, score_1_sup=200,
+                score_2_inf=25, score_2_sup=40,
+                score_3_inf=15, score_3_sup=25,
+                score_4_inf=8, score_4_sup=15,
+                score_5_inf=0, score_5_sup=8,
+            )
 
             m, _ = Mesure.objects.update_or_create(
                 id_metrique=met_p, date_mesure=date(2023, 12, 31),
-                defaults={'valeur': '125', 'commentaire': 'Bilan annuel 2023 - affluents + ruissellement', 'id_utilisateur_ajout': admin}
+                defaults={'valeur': '125', 'valeurs_blocs': {'1': '800', '2': '18'},
+                          'commentaire': 'Bilan annuel 2023 - affluents + ruissellement', 'id_utilisateur_ajout': admin}
+            )
+            mesures_created.append(m)
+            m, _ = Mesure.objects.update_or_create(
+                id_metrique=met_p, date_mesure=date(2024, 12, 31),
+                defaults={'valeur': '90', 'valeurs_blocs': {'1': '450', '2': '10'},
+                          'commentaire': 'Bilan annuel 2024 - baisse après conventions agricoles', 'id_utilisateur_ajout': admin}
             )
             mesures_created.append(m)
 
@@ -4657,6 +4693,296 @@ class EnjeuxSeeder(BaseSeeder):
             _link_op_to_indicateur(op, ind_prairies)
             operations_created.append(op)
             self.log_item('créé' if created else 'mis à jour', f'Opération transversale: {op.libelle[:50]}')
+
+        # =====================================================================
+        # #247/#452 — Indicateurs de RÉPONSE en grille NUMERIQUE MULTI-BLOCS (ET/OU)
+        # Illustrent le système de blocs de scoring complémentaires sur des
+        # indicateurs de réponse : la fiche d'action (onglet « Réponse ») affiche
+        # alors la grille multi-blocs, à l'identique des indicateurs état/pression.
+        #   - REM-SE01 : « Principal OU Bloc1 » (2 blocs, OU simple)
+        #   - REM-TU01 : « (Principal OU Bloc1) ET Bloc2 » (parenthésage ET/OU)
+        # =====================================================================
+        if type_ind_reponse and format_grille and type_met_numerique:
+
+            # --- REM-SE01 (Renouée) : « Principal OU Bloc1 » -----------------
+            op_se01 = Operation.objects.filter(code_operation='REM-SE01').first()
+            if op_se01 and ne_reduction_eee:
+                ind_bl1, created = Indicateur.objects.update_or_create(
+                    id_ne=ne_reduction_eee,
+                    nom_indicateur="Effort d'éradication de la Renouée du Japon",
+                    defaults={
+                        'type_indicateur': type_ind_reponse,
+                        'est_standardise': False,
+                        'description': "Effort d'arrachage de la Renouée : le résultat est "
+                                       "satisfaisant si la surface traitée OU le nombre de foyers "
+                                       "traités atteint le seuil (deux blocs combinés en OU).",
+                        'id_utilisateur_ajout': admin,
+                    },
+                )
+                indicateurs_created.append(ind_bl1)
+                self.log_item('créé' if created else 'mis à jour', f'Indicateur: {ind_bl1.nom_indicateur[:50]}')
+
+                met_bl1, _ = Metrique.objects.update_or_create(
+                    id_indicateur=ind_bl1,
+                    nom_metrique='Maîtrise de la Renouée',
+                    defaults={
+                        'type_metrique': type_met_numerique,
+                        'format_metrique': format_grille,
+                        'unite': 'ha',
+                        'ponderation': 1.0,
+                        'bloc_intitule': 'Surface arrachée (ha)',
+                        'etat_reference': 'Objectif : ≥ 2 ha traités par an',
+                        'sens_variation': 'CROISSANT',
+                        'has_borne_score1': True, 'has_borne_score5': True,
+                        'group_open': 0, 'group_close': 0,
+                        'score_1_inf': 0, 'score_1_sup': 0.5, 'score_1_label': 'Très insuffisant',
+                        'score_2_inf': 0.5, 'score_2_sup': 1, 'score_2_label': 'Insuffisant',
+                        'score_3_inf': 1, 'score_3_sup': 1.5, 'score_3_label': 'Moyen',
+                        'score_4_inf': 1.5, 'score_4_sup': 2, 'score_4_label': 'Satisfaisant',
+                        'score_5_inf': 2, 'score_5_sup': 5, 'score_5_label': 'Optimal',
+                        'id_utilisateur_ajout': admin,
+                    },
+                )
+                metriques_created.append(met_bl1)
+                # Bloc complémentaire : nombre de foyers traités, combiné en OU.
+                met_bl1.score_blocks.all().delete()
+                MetriqueScoreBlock.objects.create(
+                    id_metrique=met_bl1, position=1, logical_op='OR',
+                    intitule='Foyers traités', unite='foyers',
+                    group_open=0, group_close=0, sens_variation='CROISSANT',
+                    has_borne_score1=True, has_borne_score5=True,
+                    score_1_inf=0, score_1_sup=2,
+                    score_2_inf=2, score_2_sup=4,
+                    score_3_inf=4, score_3_sup=6,
+                    score_4_inf=6, score_4_sup=8,
+                    score_5_inf=8, score_5_sup=20,
+                )
+                # #247 — bloc complémentaire (position 1) : nombre de foyers traités.
+                m, _ = Mesure.objects.update_or_create(
+                    id_metrique=met_bl1, date_mesure=date(2024, 10, 1),
+                    defaults={'valeur': '1.2', 'valeurs_blocs': {'1': '5'},
+                              'commentaire': '2024 - 1,2 ha arrachés sur 5 foyers', 'id_utilisateur_ajout': admin},
+                )
+                mesures_created.append(m)
+                m, _ = Mesure.objects.update_or_create(
+                    id_metrique=met_bl1, date_mesure=date(2025, 10, 1),
+                    defaults={'valeur': '2.3', 'valeurs_blocs': {'1': '9'},
+                              'commentaire': '2025 - 2,3 ha arrachés, tous foyers traités', 'id_utilisateur_ajout': admin},
+                )
+                mesures_created.append(m)
+                _link_op_to_indicateur(op_se01, ind_bl1)
+
+            # --- REM-TU01 (drains) : « (Principal OU Bloc1) ET Bloc2 » -------
+            op_tu01 = Operation.objects.filter(code_operation='REM-TU01').first()
+            if op_tu01 and ne_piezo:
+                ind_bl2, created = Indicateur.objects.update_or_create(
+                    id_ne=ne_piezo,
+                    nom_indicateur='Effort de neutralisation du drainage',
+                    defaults={
+                        'type_indicateur': type_ind_reponse,
+                        'est_standardise': False,
+                        'description': "Efficacité du bouchage des drains : (linéaire neutralisé "
+                                       "OU nombre d'ouvrages posés) ET remontée de la nappe. "
+                                       "Structure parenthésée « (A OU B) ET C ».",
+                        'id_utilisateur_ajout': admin,
+                    },
+                )
+                indicateurs_created.append(ind_bl2)
+                self.log_item('créé' if created else 'mis à jour', f'Indicateur: {ind_bl2.nom_indicateur[:50]}')
+
+                met_bl2, _ = Metrique.objects.update_or_create(
+                    id_indicateur=ind_bl2,
+                    nom_metrique='Neutralisation du réseau de drains',
+                    defaults={
+                        'type_metrique': type_met_numerique,
+                        'format_metrique': format_grille,
+                        'unite': 'm',
+                        'ponderation': 1.0,
+                        'bloc_intitule': 'Linéaire neutralisé (m)',
+                        'etat_reference': 'Objectif : réseau de drains historiques neutralisé',
+                        'sens_variation': 'CROISSANT',
+                        'has_borne_score1': True, 'has_borne_score5': True,
+                        # Ouvre la parenthèse du groupe « (Principal OU Bloc1) ».
+                        'group_open': 1, 'group_close': 0,
+                        'score_1_inf': 0, 'score_1_sup': 100, 'score_1_label': 'Amorcé',
+                        'score_2_inf': 100, 'score_2_sup': 300, 'score_2_label': 'Partiel',
+                        'score_3_inf': 300, 'score_3_sup': 600, 'score_3_label': 'Avancé',
+                        'score_4_inf': 600, 'score_4_sup': 1000, 'score_4_label': 'Quasi complet',
+                        'score_5_inf': 1000, 'score_5_sup': 3000, 'score_5_label': 'Complet',
+                        'id_utilisateur_ajout': admin,
+                    },
+                )
+                metriques_created.append(met_bl2)
+                met_bl2.score_blocks.all().delete()
+                # Bloc 1 : nombre d'ouvrages, combiné en OU, ferme la parenthèse.
+                MetriqueScoreBlock.objects.create(
+                    id_metrique=met_bl2, position=1, logical_op='OR',
+                    intitule='Ouvrages de bouchage', unite='ouvrages',
+                    group_open=0, group_close=1, sens_variation='CROISSANT',
+                    has_borne_score1=True, has_borne_score5=True,
+                    score_1_inf=0, score_1_sup=5,
+                    score_2_inf=5, score_2_sup=15,
+                    score_3_inf=15, score_3_sup=30,
+                    score_4_inf=30, score_4_sup=50,
+                    score_5_inf=50, score_5_sup=150,
+                )
+                # Bloc 2 : remontée de la nappe, condition supplémentaire en ET.
+                MetriqueScoreBlock.objects.create(
+                    id_metrique=met_bl2, position=2, logical_op='AND',
+                    intitule='Remontée de la nappe', unite='cm',
+                    group_open=0, group_close=0, sens_variation='CROISSANT',
+                    has_borne_score1=True, has_borne_score5=True,
+                    score_1_inf=0, score_1_sup=2,
+                    score_2_inf=2, score_2_sup=5,
+                    score_3_inf=5, score_3_sup=10,
+                    score_4_inf=10, score_4_sup=20,
+                    score_5_inf=20, score_5_sup=50,
+                )
+                # #247 — blocs complémentaires : ouvrages (pos.1), remontée nappe cm (pos.2).
+                m, _ = Mesure.objects.update_or_create(
+                    id_metrique=met_bl2, date_mesure=date(2024, 11, 15),
+                    defaults={'valeur': '350', 'valeurs_blocs': {'1': '18', '2': '8'},
+                              'commentaire': '2024 - 350 m de drains neutralisés, 18 ouvrages', 'id_utilisateur_ajout': admin},
+                )
+                mesures_created.append(m)
+                m, _ = Mesure.objects.update_or_create(
+                    id_metrique=met_bl2, date_mesure=date(2025, 11, 15),
+                    defaults={'valeur': '820', 'valeurs_blocs': {'1': '40', '2': '12'},
+                              'commentaire': '2025 - 820 m neutralisés, nappe remontée de 12 cm', 'id_utilisateur_ajout': admin},
+                )
+                mesures_created.append(m)
+                _link_op_to_indicateur(op_tu01, ind_bl2)
+
+        # =====================================================================
+        # #452 — Couverture des 3 types de métrique (TEXTE / CHIFFRE / NUMERIQUE)
+        # avec des suivis renseignés (mesures pluriannuelles). Complète le plan
+        # Remoray : la saisie « Résultats des indicateurs » propose alors une
+        # liste de libellés (TEXTE), une liste de valeurs discrètes (CHIFFRE) et
+        # un champ numérique (NUMERIQUE), chacun avec des mesures 2024→2026.
+        # =====================================================================
+        if type_met_texte and type_met_chiffre and type_met_numerique:
+
+            def _seed_mesures(metrique, valeurs_par_annee):
+                """Crée une mesure par année (valeur simple) pour une métrique."""
+                for annee, valeur in valeurs_par_annee.items():
+                    mm, _ = Mesure.objects.update_or_create(
+                        id_metrique=metrique, date_mesure=date(annee, 12, 31),
+                        defaults={'valeur': str(valeur),
+                                  'commentaire': f'Suivi {annee}', 'id_utilisateur_ajout': admin},
+                    )
+                    mesures_created.append(mm)
+
+            # --- ÉTAT (ne_phosphore) : herbiers aquatiques — TEXTE + CHIFFRE ---
+            if type_ind_etat and ne_phosphore:
+                ind_herb, created = Indicateur.objects.update_or_create(
+                    id_ne=ne_phosphore,
+                    nom_indicateur='État de conservation des herbiers aquatiques',
+                    defaults={
+                        'type_indicateur': type_ind_etat,
+                        'est_standardise': False,
+                        'description': "Suivi qualitatif (classe d'état) et quantitatif "
+                                       "(nombre d'herbiers) des herbiers aquatiques du lac.",
+                        'id_utilisateur_ajout': admin,
+                    },
+                )
+                indicateurs_created.append(ind_herb)
+                self.log_item('créé' if created else 'mis à jour', f'Indicateur: {ind_herb.nom_indicateur[:50]}')
+
+                met_txt, _ = Metrique.objects.update_or_create(
+                    id_indicateur=ind_herb, nom_metrique="Classe d'état de conservation",
+                    defaults={
+                        'type_metrique': type_met_texte,
+                        'score_1_label': 'Mauvais', 'score_2_label': 'Défavorable',
+                        'score_3_label': 'Moyen', 'score_4_label': 'Favorable',
+                        'score_5_label': 'Optimal', 'id_utilisateur_ajout': admin,
+                    },
+                )
+                metriques_created.append(met_txt)
+                _seed_mesures(met_txt, {2024: 'Moyen', 2025: 'Favorable', 2026: 'Favorable'})
+
+                met_chf, _ = Metrique.objects.update_or_create(
+                    id_indicateur=ind_herb, nom_metrique="Nombre d'herbiers cartographiés",
+                    defaults={
+                        'type_metrique': type_met_chiffre, 'unite': 'herbiers',
+                        'score_1_val': 1, 'score_2_val': 2, 'score_3_val': 3,
+                        'score_4_val': 5, 'score_5_val': 8, 'id_utilisateur_ajout': admin,
+                    },
+                )
+                metriques_created.append(met_chf)
+                _seed_mesures(met_chf, {2024: 2, 2025: 5, 2026: 8})
+
+            # --- PRESSION (ne_reduction_eee) : envahissement EEE — TEXTE + CHIFFRE ---
+            if type_ind_pression and ne_reduction_eee:
+                ind_env, created = Indicateur.objects.update_or_create(
+                    id_ne=ne_reduction_eee,
+                    nom_indicateur="Pression des espèces exotiques envahissantes",
+                    defaults={
+                        'type_indicateur': type_ind_pression,
+                        'est_standardise': False,
+                        'description': "Niveau d'envahissement (qualitatif) et nombre de "
+                                       "stations d'EEE (quantitatif) sur le site.",
+                        'id_utilisateur_ajout': admin,
+                    },
+                )
+                indicateurs_created.append(ind_env)
+                self.log_item('créé' if created else 'mis à jour', f'Indicateur: {ind_env.nom_indicateur[:50]}')
+
+                met_env_txt, _ = Metrique.objects.update_or_create(
+                    id_indicateur=ind_env, nom_metrique="Niveau d'envahissement",
+                    defaults={
+                        'type_metrique': type_met_texte,
+                        'score_1_label': 'Généralisé', 'score_2_label': 'Fort',
+                        'score_3_label': 'Modéré', 'score_4_label': 'Localisé',
+                        'score_5_label': 'Absent', 'id_utilisateur_ajout': admin,
+                    },
+                )
+                metriques_created.append(met_env_txt)
+                _seed_mesures(met_env_txt, {2024: 'Fort', 2025: 'Modéré', 2026: 'Localisé'})
+
+                met_env_chf, _ = Metrique.objects.update_or_create(
+                    id_indicateur=ind_env, nom_metrique="Nombre de stations d'EEE",
+                    defaults={
+                        'type_metrique': type_met_chiffre, 'unite': 'stations',
+                        'sens_variation': 'DECROISSANT',
+                        'score_1_val': 20, 'score_2_val': 12, 'score_3_val': 6,
+                        'score_4_val': 2, 'score_5_val': 0, 'id_utilisateur_ajout': admin,
+                    },
+                )
+                metriques_created.append(met_env_chf)
+                _seed_mesures(met_env_chf, {2024: 12, 2025: 6, 2026: 2})
+
+            # --- ÉTAT (ne_piezo) : métrique NUMERIQUE supplémentaire, bien suivie ---
+            if type_ind_etat and ne_piezo:
+                ind_temp, created = Indicateur.objects.update_or_create(
+                    id_ne=ne_piezo,
+                    nom_indicateur="Température moyenne estivale de la nappe",
+                    defaults={
+                        'type_indicateur': type_ind_etat,
+                        'est_standardise': False,
+                        'description': "Température moyenne (juin-août) mesurée dans les "
+                                       "piézomètres, indicateur de fonctionnalité des tourbières.",
+                        'id_utilisateur_ajout': admin,
+                    },
+                )
+                indicateurs_created.append(ind_temp)
+                self.log_item('créé' if created else 'mis à jour', f'Indicateur: {ind_temp.nom_indicateur[:50]}')
+
+                met_temp, _ = Metrique.objects.update_or_create(
+                    id_indicateur=ind_temp, nom_metrique="Température estivale moyenne",
+                    defaults={
+                        'type_metrique': type_met_numerique, 'unite': '°C',
+                        'sens_variation': 'DECROISSANT',
+                        'has_borne_score1': True, 'has_borne_score5': True,
+                        'score_1_inf': 18, 'score_1_sup': 30,
+                        'score_2_inf': 16, 'score_2_sup': 18,
+                        'score_3_inf': 14, 'score_3_sup': 16,
+                        'score_4_inf': 12, 'score_4_sup': 14,
+                        'score_5_inf': 0, 'score_5_sup': 12,
+                        'id_utilisateur_ajout': admin,
+                    },
+                )
+                metriques_created.append(met_temp)
+                _seed_mesures(met_temp, {2024: '15.2', 2025: '14.1', 2026: '13.4'})
 
         # ============================================
         # Enrichir les opérations avec données détaillées

@@ -531,6 +531,50 @@
                     <span class="indic-info-label">{{ 'plans.suivis.saisie.fields.valeurCible' | translate }} :</span>
                     <span class="indic-info-value">{{ ind.value.valeur_cible || '—' }}</span>
                   </div>
+                  <!-- #247 — pondération de la métrique (défaut 1). -->
+                  <div class="indic-info">
+                    <span class="indic-info-label">{{ 'plans.suivis.saisie.fields.ponderation' | translate }} :</span>
+                    <span class="indic-info-value">{{ ponderation(ind) }}</span>
+                  </div>
+                  <!-- #247 — métrique multi-blocs : une valeur par bloc + score combiné -->
+                  @if (isMultiBlock(ind)) {
+                    <!-- Rappel de la formule (liens ET/OU entre blocs). -->
+                    @if (blockFormula(ind); as formula) {
+                      <div class="indic-info">
+                        <span class="indic-info-label">{{ 'plans.suivis.saisie.fields.formule' | translate }} :</span>
+                        <span class="indic-info-value indic-formula">{{ formula }}</span>
+                        <i class="fi fi-rr-info formula-info"
+                           [matTooltip]="'common.metriqueFormulaHint' | translate"
+                           matTooltipPosition="above"
+                           tabindex="0"
+                           [attr.aria-label]="'common.metriqueFormulaHint' | translate"></i>
+                      </div>
+                    }
+                    @for (bi of blockInputs(ind); track bi.ctrl) {
+                      <app-form-field [label]="bi.label" [suffix]="bi.unite">
+                        <input type="number" [formControlName]="bi.ctrl"
+                               [placeholder]="'plans.suivis.saisie.fields.valeurRealisee' | translate" />
+                      </app-form-field>
+                      <div class="resp-grid-recap">
+                        <div class="resp-grid-levels">
+                          @for (lv of blockGridLevels(ind, bi.ctrl, bi.meta); track lv.level) {
+                            <div class="resp-grid-cell" [class.active]="lv.active" [class.inactive]="lv.inactive">
+                              <img [src]="'assets/images/icons/score-badges/score-' + lv.name + '.svg'"
+                                   class="resp-grid-badge" alt="" />
+                              <span class="resp-grid-text">{{ lv.text }}</span>
+                            </div>
+                          }
+                        </div>
+                      </div>
+                    }
+                    @if (combinedScoreName(ind); as sc) {
+                      <div class="resp-combined-score">
+                        <span class="resp-grid-recap-label">{{ 'plans.suivis.saisie.fields.gridRecap' | translate }} :</span>
+                        <img [src]="'assets/images/icons/score-badges/score-' + sc + '.svg'"
+                             class="resp-grid-badge" alt="" />
+                      </div>
+                    }
+                  } @else {
                   <!-- #452/#464/#465 — saisie type-aware selon le format/type de la métrique -->
                   <app-form-field [label]="ind.value.nom_metrique || ('plans.suivis.saisie.fields.valeurRealisee' | translate)">
                     @switch (saisieMode(ind)) {
@@ -582,6 +626,7 @@
                         }
                       </div>
                     </div>
+                  }
                   }
                 </div>
               }

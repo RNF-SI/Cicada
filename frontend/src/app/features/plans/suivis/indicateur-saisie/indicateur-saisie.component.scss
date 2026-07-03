@@ -195,6 +195,25 @@
   strong { color: $black; }
   .meta-sep { color: $gray-light; }
 }
+// #247 — rappel de la formule ET/OU des blocs (métrique multi-blocs)
+.metric-formula {
+  font-size: 0.85rem;
+  margin-bottom: $spacing-xs;
+  display: flex; flex-wrap: wrap; gap: $spacing-xs; align-items: baseline;
+  .metric-formula-label { color: $gray-dark; }
+  .metric-formula-value {
+    font-family: 'Courier New', monospace;
+    font-weight: 700;
+    color: $primary-color;
+  }
+  // #247 — icône d'aide (sémantique OU / ET / parenthèses)
+  .formula-info {
+    color: $primary-color;
+    font-size: 14px;
+    cursor: help;
+    &:focus-visible { outline: 2px solid $primary-color; outline-offset: 2px; border-radius: 50%; }
+  }
+}
 .metric-label {
   display: block;
   font-size: 0.85rem; color: $gray-dark; margin-bottom: $spacing-xxs;
@@ -314,6 +333,19 @@
   i { color: $secondary-terra-cotta; font-size: 1.2rem; margin-top: 2px; }
   p { margin: 0; font-size: 0.9rem; color: $black; }
   p + p { margin-top: $spacing-xxs; }
+}
+
+// #375 — bandeau lecture seule (plan non validé)
+.readonly-banner {
+  display: flex; gap: $spacing-sm; align-items: center;
+  padding: $spacing-sm $spacing-md;
+  background: rgba(255, 193, 128, 0.25);
+  border-left: 3px solid $warning-color;
+  border-radius: $border-radius-sm;
+  margin: 0 0 $spacing-md;
+
+  i { color: $warning-color; font-size: 1.1rem; }
+  span { font-size: 0.9rem; color: $black; }
 }
 
 // 5 boutons score manuel

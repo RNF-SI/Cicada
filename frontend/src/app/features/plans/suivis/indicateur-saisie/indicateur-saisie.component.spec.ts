@@ -6,6 +6,7 @@
  * prototype, sans monter le composant complet.
  */
 import { signal } from '@angular/core';
+import { FormControl, FormGroup } from '@angular/forms';
 import { IndicateurSaisieComponent } from './indicateur-saisie.component';
 
 function comp(): IndicateurSaisieComponent {
@@ -180,6 +181,54 @@ describe('IndicateurSaisieComponent — éditeur unifié (#510)', () => {
     it('NUMERIQUE → champ libre', () => {
       expect(c.metricSaisieMode(NUMERIQUE)).toBe('free');
       expect(c.metricGridOptions(NUMERIQUE)).toEqual([]);
+    });
+
+    // #464 — les valeurs CHIFFRE stockées en DecimalField (« 2.000 ») ne doivent
+    // plus afficher les zéros décimaux superflus dans le select.
+    it('CHIFFRE → retire les zéros décimaux superflus (2.000 → « 2 », 2.5000 → « 2.5 »)', () => {
+      const CHIFFRE_DEC: any = {
+        type_metrique_mnemonique: 'CHIFFRE',
+        score_1_val: '0.000', score_2_val: '2.000', score_3_val: '2.5000',
+        score_4_val: '10.2500', score_5_val: '100.0000', inactive_levels: [],
+      };
+      expect(c.metricGridOptions(CHIFFRE_DEC)).toEqual(['0', '2', '2.5', '10.25', '100']);
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // #375 — Saisie des résultats verrouillée tant que le plan n'est pas validé.
+  // ---------------------------------------------------------------------------
+  describe('statusAllowsSuivi / applyReadonlyState', () => {
+    const c = comp();
+
+    it('autorise la saisie uniquement sur un plan validé/actif', () => {
+      expect(c.statusAllowsSuivi('valide')).toBe(true);
+      expect(c.statusAllowsSuivi('modifie')).toBe(true);
+    });
+
+    it('bloque la saisie hors validation (brouillon, CSRPN, archive, null)', () => {
+      for (const s of ['draft', 'avis_csrpn', 'comite_consultatif', 'arrete_pref', 'archive', null, undefined]) {
+        expect(c.statusAllowsSuivi(s)).toBe(false);
+      }
+    });
+
+    it('applyReadonlyState désactive le formulaire quand la saisie est interdite', () => {
+      const c2 = comp();
+      const form = new FormGroup({ m_1: new FormControl('x') });
+      (c2 as any).form = form;
+      (c2 as any).canEnterSuivi = () => false;
+      (c2 as any).applyReadonlyState();
+      expect(form.disabled).toBe(true);
+    });
+
+    it('applyReadonlyState réactive le formulaire quand la saisie est permise', () => {
+      const c2 = comp();
+      const form = new FormGroup({ m_1: new FormControl('x') });
+      form.disable();
+      (c2 as any).form = form;
+      (c2 as any).canEnterSuivi = () => true;
+      (c2 as any).applyReadonlyState();
+      expect(form.enabled).toBe(true);
     });
   });
 });

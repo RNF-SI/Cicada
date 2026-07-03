@@ -81,6 +81,15 @@
     color: $primary-color;
   }
 
+  // #247 — icône d'aide (sémantique OU / ET / parenthèses)
+  .formula-info {
+    color: $primary-color;
+    font-size: 14px;
+    cursor: help;
+    margin-left: 4px;
+    &:focus-visible { outline: 2px solid $primary-color; outline-offset: 2px; border-radius: 50%; }
+  }
+
   .formula-text {
     display: flex;
     flex-wrap: wrap;

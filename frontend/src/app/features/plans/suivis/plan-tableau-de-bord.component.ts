@@ -14,6 +14,7 @@ import { EnjeuService } from '../../../core/services/enjeu.service';
 import {
   Enjeu, ObjectifLongTerme, NiveauExigence, Indicateur, Metrique, Mesure
 } from '../../../core/models/enjeu.model';
+import { computeCombinedScore } from './metrique-seuils.util';
 
 type ScoreLevel = 'very-bad' | 'bad' | 'neutral' | 'good' | 'very-good' | 'no-data';
 
@@ -409,7 +410,7 @@ export class PlanTableauDeBordComponent implements OnInit {
         return new Date(m.date_mesure).getFullYear() === year;
       });
       if (mesure) {
-        return this.valueToScoreLevel(metrique, parseFloat(String(mesure.valeur).replace(',', '.')));
+        return this.mesureToScoreLevel(metrique, mesure);
       }
     }
     return null;
@@ -425,7 +426,7 @@ export class PlanTableauDeBordComponent implements OnInit {
       return new Date(m.date_mesure).getFullYear() === year;
     });
     if (!mesure) return null;
-    return this.valueToScoreLevel(metrique, parseFloat(String(mesure.valeur).replace(',', '.')));
+    return this.mesureToScoreLevel(metrique, mesure);
   }
 
   /**
@@ -441,6 +442,18 @@ export class PlanTableauDeBordComponent implements OnInit {
       if (s && s !== 'no-data') return s;
     }
     return null;
+  }
+
+  /**
+   * #247 — Score d'une mesure pour une métrique : évalue la formule ET/OU des
+   * blocs (multi-blocs) via `computeCombinedScore`, sinon le seul bloc principal.
+   */
+  private mesureToScoreLevel(metrique: Metrique, mesure: Mesure): ScoreLevel {
+    if ((metrique.score_blocks?.length ?? 0) > 0) {
+      const score = computeCombinedScore(metrique, mesure.valeur, mesure.valeurs_blocs);
+      return score ? this.levelToScoreLevel(score) : 'no-data';
+    }
+    return this.valueToScoreLevel(metrique, parseFloat(String(mesure.valeur).replace(',', '.')));
   }
 
   private valueToScoreLevel(metrique: Metrique, value: number): ScoreLevel {

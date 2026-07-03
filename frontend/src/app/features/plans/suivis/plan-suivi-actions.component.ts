@@ -138,7 +138,12 @@ export class PlanSuiviActionsComponent implements OnInit {
       ops = ops.filter(o => o.operation.priorite_label === prio);
     }
     if (text) {
-      ops = ops.filter(o => this.normalize(o.operation.libelle).includes(text));
+      // Recherche sur le libellé ET les codes d'action (code d'affichage CS1 +
+      // code de référence REM-BA02).
+      ops = ops.filter(o =>
+        this.normalize(o.operation.libelle).includes(text)
+        || this.normalize(this.actionCodes(o.operation)).includes(text)
+      );
     }
     if (org) {
       ops = ops.filter(o => this.getOrganismesForOp(o.operation).some(g => g.id_organisme === org));
@@ -197,6 +202,19 @@ export class PlanSuiviActionsComponent implements OnInit {
    * le traduit ensuite en libellé CT88. Repli sur le libellé brut si le préfixe
    * n'est pas connu (ex. type d'action sans code CT88).
    */
+  /**
+   * Code(s) d'action affiché(s) dans le tableau, et servant à la recherche :
+   * code d'affichage (CS1, IP2 — cohérent avec l'arborescence des enjeux) suivi
+   * du code de référence (REM-BA02) quand il est renseigné. Séparés par « · ».
+   */
+  actionCodes(op: Operation): string {
+    const parts: string[] = [];
+    const display = op.code_affichage || op.code_prefix;
+    if (display) parts.push(display);
+    if (op.code_operation) parts.push(op.code_operation);
+    return parts.join(' · ');
+  }
+
   getCategorieAction(op: Operation): string | null {
     const prefix = op.code_prefix?.toUpperCase();
     if (prefix) {
