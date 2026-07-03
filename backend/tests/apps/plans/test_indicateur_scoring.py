@@ -129,6 +129,47 @@ class TestValueToScore:
         assert _value_to_score(5, M()) == 2
 
 
+class TestValueToScoreDoublons:
+    """#453 — un même libellé/chiffre défini sur ≥2 niveaux rend la valeur
+    ambiguë : le score ne peut pas être auto-calculé (→ None, saisie manuelle).
+    Une valeur qui tombe sur un palier unique reste, elle, résolue."""
+
+    def test_texte_libelle_duplique_est_indetermine(self):
+        class M:
+            inactive_levels = []
+            score_1_label = 'Absent'
+            score_2_label = 'Présent'
+            score_3_label = 'Moyen'
+            score_4_label = 'Présent'   # doublon du niveau 2
+            score_5_label = 'Abondant'
+        assert _value_to_score('Présent', M()) is None   # ambigu (2 et 4)
+        assert _value_to_score('Absent', M()) == 1        # unique
+        assert _value_to_score('Moyen', M()) == 3         # unique
+
+    def test_chiffre_valeur_dupliquee_est_indetermine(self):
+        class M:
+            inactive_levels = []
+            score_1_val = 0
+            score_2_val = 10
+            score_3_val = 20
+            score_4_val = 10   # doublon du niveau 2
+            score_5_val = 40
+        assert _value_to_score(10, M()) is None   # ambigu (2 et 4)
+        assert _value_to_score('10', M()) is None
+        assert _value_to_score(0, M()) == 1       # unique
+        assert _value_to_score(20, M()) == 3      # unique
+
+    def test_doublon_leve_si_un_niveau_desactive(self):
+        class M:
+            inactive_levels = [4]   # le doublon niveau 4 est désactivé
+            score_1_label = 'Absent'
+            score_2_label = 'Présent'
+            score_3_label = 'Moyen'
+            score_4_label = 'Présent'
+            score_5_label = 'Abondant'
+        assert _value_to_score('Présent', M()) == 2   # plus qu'une correspondance active
+
+
 # =============================================================================
 # #247 — Score combiné multi-blocs (formule ET/OU + parenthèses)
 # =============================================================================

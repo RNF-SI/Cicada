@@ -756,25 +756,28 @@ def _value_to_score(value, metrique) -> int | None:
         v = str(value).strip()
         if not v:
             return None
-        for i in range(1, 6):
-            if i in inactive:
-                continue
-            label = (getattr(metrique, f'score_{i}_label', None) or '').strip()
-            if label and label == v:
-                return i
-        return None
+        # #453 — un même libellé défini sur ≥2 niveaux rend la valeur ambiguë :
+        # pas d'auto-calcul (score indéterminé → saisie manuelle).
+        matches = [
+            i for i in range(1, 6)
+            if i not in inactive
+            and (getattr(metrique, f'score_{i}_label', None) or '').strip()
+            and (getattr(metrique, f'score_{i}_label', None) or '').strip() == v
+        ]
+        return matches[0] if len(matches) == 1 else None
 
     if mnem == 'CHIFFRE':
         v = _coerce_float(value)
         if v is None:
             return None
-        for i in range(1, 6):
-            if i in inactive:
-                continue
-            val = getattr(metrique, f'score_{i}_val', None)
-            if val is not None and float(val) == v:
-                return i
-        return None
+        # #453 — même valeur chiffrée sur ≥2 niveaux : ambigu → indéterminé.
+        matches = [
+            i for i in range(1, 6)
+            if i not in inactive
+            and getattr(metrique, f'score_{i}_val', None) is not None
+            and float(getattr(metrique, f'score_{i}_val')) == v
+        ]
+        return matches[0] if len(matches) == 1 else None
 
     # NUMERIQUE — seuils
     v = _coerce_float(value)

@@ -105,24 +105,29 @@ export function computeMetriqueScore(met: any, value: any): number | null {
 
   if (mnemo === 'TEXTE') {
     const v = String(value).trim();
+    // #453 — si un même libellé est défini sur ≥2 niveaux, la valeur est
+    // ambiguë : pas d'auto-calcul (score indéterminé → saisie manuelle).
+    const matches: number[] = [];
     for (let i = 1; i <= 5; i++) {
       if (inactive.includes(i)) continue;
       const label = (met[`score_${i}_label`] ?? '').toString().trim();
-      if (label && label === v) return i;
+      if (label && label === v) matches.push(i);
     }
-    return null;
+    return matches.length === 1 ? matches[0] : null;
   }
 
   const num = parseFloat(String(value).replace(',', '.'));
   if (isNaN(num)) return null;
 
   if (mnemo === 'CHIFFRE') {
+    // #453 — même valeur chiffrée sur ≥2 niveaux : ambigu → score indéterminé.
+    const matches: number[] = [];
     for (let i = 1; i <= 5; i++) {
       if (inactive.includes(i)) continue;
       const val = met[`score_${i}_val`];
-      if (val !== null && val !== undefined && Number(val) === num) return i;
+      if (val !== null && val !== undefined && Number(val) === num) matches.push(i);
     }
-    return null;
+    return matches.length === 1 ? matches[0] : null;
   }
 
   // NUMERIQUE — seuils

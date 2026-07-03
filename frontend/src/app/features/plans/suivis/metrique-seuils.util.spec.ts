@@ -63,6 +63,38 @@ describe('computeMetriqueScore', () => {
     });
   });
 
+  describe('#453 — libellé/chiffre dupliqué sur ≥2 niveaux → indéterminé', () => {
+    it('TEXTE : un libellé présent sur 2 niveaux devient ambigu (null)', () => {
+      const met = {
+        type_metrique_mnemonique: 'TEXTE',
+        score_1_label: 'Absent', score_2_label: 'Présent', score_3_label: 'Moyen',
+        score_4_label: 'Présent', score_5_label: 'Abondant',
+      };
+      expect(computeMetriqueScore(met, 'Présent')).toBeNull(); // niveaux 2 et 4
+      expect(computeMetriqueScore(met, 'Absent')).toBe(1);     // unique
+      expect(computeMetriqueScore(met, 'Moyen')).toBe(3);      // unique
+    });
+
+    it('CHIFFRE : une valeur présente sur 2 niveaux devient ambiguë (null)', () => {
+      const met = {
+        type_metrique_mnemonique: 'CHIFFRE',
+        score_1_val: 0, score_2_val: 10, score_3_val: 20, score_4_val: 10, score_5_val: 40,
+      };
+      expect(computeMetriqueScore(met, '10')).toBeNull(); // niveaux 2 et 4
+      expect(computeMetriqueScore(met, 0)).toBe(1);       // unique
+      expect(computeMetriqueScore(met, '20')).toBe(3);    // unique
+    });
+
+    it('le doublon est levé si un des deux niveaux est désactivé', () => {
+      const met = {
+        type_metrique_mnemonique: 'TEXTE', inactive_levels: [4],
+        score_1_label: 'Absent', score_2_label: 'Présent', score_3_label: 'Moyen',
+        score_4_label: 'Présent', score_5_label: 'Abondant',
+      };
+      expect(computeMetriqueScore(met, 'Présent')).toBe(2);
+    });
+  });
+
   describe('NUMERIQUE — seuils avec inclusivité (#423)', () => {
     // 2 paliers croissants : [0;35] = niveau 1, ]35;100] = niveau 2
     const met = {
