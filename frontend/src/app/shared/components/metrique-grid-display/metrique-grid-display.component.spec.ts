@@ -87,6 +87,30 @@ describe('MetriqueGridDisplayComponent (#515)', () => {
     });
   });
 
+  describe('isSimple (#530)', () => {
+    it('vrai pour une métrique au format SIMPLE (grille de scoring décochée)', () => {
+      expect(makeComponent().isSimple({ format_metrique_mnemonique: 'SIMPLE' })).toBe(true);
+    });
+    it('faux au format GRILLE', () => {
+      expect(makeComponent().isSimple({ format_metrique_mnemonique: 'GRILLE' })).toBe(false);
+    });
+    it('faux sans format (métrique état/pression historique)', () => {
+      expect(makeComponent().isSimple({ type_metrique_mnemonique: 'NUMERIQUE' })).toBe(false);
+    });
+  });
+
+  describe('simpleTypeKey (#530)', () => {
+    it('clé « chiffrée » pour CHIFFRE', () => {
+      expect(makeComponent().simpleTypeKey({ type_metrique_mnemonique: 'CHIFFRE' })).toBe('enjeux.metriques.simple.chiffre');
+    });
+    it('clé « textuelle » pour TEXTE', () => {
+      expect(makeComponent().simpleTypeKey({ type_metrique_mnemonique: 'TEXTE' })).toBe('enjeux.metriques.simple.texte');
+    });
+    it('clé générique sinon', () => {
+      expect(makeComponent().simpleTypeKey({})).toBe('enjeux.metriques.simple.generic');
+    });
+  });
+
   describe('hasExtraBlocks', () => {
     it('vrai si score_blocks non vide', () => {
       expect(makeComponent().hasExtraBlocks({ score_blocks: [{}] })).toBe(true);
@@ -127,6 +151,30 @@ describe('MetriqueGridDisplayComponent (#515)', () => {
       fixture.detectChanges();
       const headers = fixture.nativeElement.querySelectorAll('.metrique-scores thead th');
       expect(headers.length).toBe(5);
+    });
+
+    // #530 — une métrique de réponse au format SIMPLE ne doit PAS afficher la
+    // grille de 5 paliers (vide), mais un bloc « saisie libre » descriptif.
+    it('n\'affiche pas la grille pour une métrique SIMPLE (case décochée)', () => {
+      fixture.componentInstance.metriques = [
+        { id_metrique: 1, nom_metrique: 'Nombre de nichoirs', format_metrique_mnemonique: 'SIMPLE', type_metrique_mnemonique: 'CHIFFRE' },
+      ];
+      fixture.detectChanges();
+      const el: HTMLElement = fixture.nativeElement;
+      expect(el.querySelector('.metrique-scores')).toBeNull();
+      expect(el.querySelector('.metrique-simple')).not.toBeNull();
+      // Les métadonnées (nom) restent affichées.
+      expect(el.querySelector('.metrique-meta dd')?.textContent).toContain('Nombre de nichoirs');
+    });
+
+    it('affiche la grille pour une métrique au format GRILLE', () => {
+      fixture.componentInstance.metriques = [
+        { id_metrique: 1, nom_metrique: 'Densité', format_metrique_mnemonique: 'GRILLE', type_metrique_mnemonique: 'NUMERIQUE', score_1_sup: 5 },
+      ];
+      fixture.detectChanges();
+      const el: HTMLElement = fixture.nativeElement;
+      expect(el.querySelector('.metrique-scores')).not.toBeNull();
+      expect(el.querySelector('.metrique-simple')).toBeNull();
     });
   });
 });

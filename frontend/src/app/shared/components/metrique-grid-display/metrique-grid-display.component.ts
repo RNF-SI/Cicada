@@ -51,6 +51,27 @@ export class MetriqueGridDisplayComponent {
     return (met['type_metrique_mnemonique'] || '').toString().toUpperCase() === 'INDETERMINE';
   }
 
+  /**
+   * #530 — Vrai si l'indicateur de réponse n'utilise PAS de grille de scoring
+   * (case « Utiliser une grille de scoring » décochée → format SIMPLE). On
+   * n'affiche alors pas les 5 paliers colorés (vides), mais un bloc « saisie
+   * libre » décrivant le type de réponse attendu (chiffrée / textuelle).
+   */
+  isSimple(met: GridMetrique): boolean {
+    return (met['format_metrique_mnemonique'] || '').toString().toUpperCase() === 'SIMPLE';
+  }
+
+  /**
+   * #530 — Clé i18n décrivant la réponse attendue d'une métrique en saisie
+   * libre selon son type (chiffrée / textuelle, repli générique).
+   */
+  simpleTypeKey(met: GridMetrique): string {
+    const type = (met['type_metrique_mnemonique'] || '').toString().toUpperCase();
+    if (type === 'CHIFFRE') return 'enjeux.metriques.simple.chiffre';
+    if (type === 'TEXTE') return 'enjeux.metriques.simple.texte';
+    return 'enjeux.metriques.simple.generic';
+  }
+
   /** Vrai si la métrique a au moins un bloc complémentaire (désactive la fusion). */
   hasExtraBlocks(met: GridMetrique): boolean {
     return (met['score_blocks']?.length ?? 0) > 0;

@@ -69,6 +69,37 @@
   }
 }
 
+// #530 — Métrique de réponse en saisie libre (sans grille de scoring).
+.metrique-simple {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+  padding: $spacing-sm $spacing-md;
+
+  i {
+    font-size: 18px;
+    color: $primary-color;
+    flex-shrink: 0;
+  }
+
+  .metrique-simple-text {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+  }
+
+  .metrique-simple-title {
+    color: $black;
+    font-size: $font-size-small;
+    font-weight: $font-weight-bold;
+  }
+
+  .metrique-simple-hint {
+    color: $gray-dark;
+    font-size: 12px;
+  }
+}
+
 .metrique-scores {
   width: 100%;
   table-layout: fixed;

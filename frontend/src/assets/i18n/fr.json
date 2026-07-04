@@ -3445,6 +3445,12 @@
         "bon": "Bon",
         "tresBon": "Très bon"
       },
+      "simple": {
+        "title": "Saisie libre (sans grille de scoring)",
+        "chiffre": "Réponse attendue : une valeur chiffrée",
+        "texte": "Réponse attendue : une valeur textuelle",
+        "generic": "Réponse attendue : une valeur libre"
+      },
       "direction": "Sens de variation",
       "sensVariation": "Sens de variation",
       "croissant": "Croissant",

@@ -32,6 +32,17 @@
           }
         </dl>
 
+        @if (isSimple(met)) {
+          <!-- #530 — Saisie libre (sans grille de scoring) : on décrit la réponse
+               attendue au lieu d'afficher 5 paliers colorés vides. -->
+          <div class="metrique-simple">
+            <i class="fi fi-rr-pencil"></i>
+            <div class="metrique-simple-text">
+              <span class="metrique-simple-title">{{ 'enjeux.metriques.simple.title' | translate }}</span>
+              <span class="metrique-simple-hint">{{ simpleTypeKey(met) | translate }}</span>
+            </div>
+          </div>
+        } @else {
         <!-- Grille de scoring : 5 paliers uniquement → tient dans la largeur. -->
         <table class="metrique-scores">
           <thead>
@@ -74,6 +85,7 @@
             </tr>
           </tbody>
         </table>
+        }
       </div>
     }
   </div>
