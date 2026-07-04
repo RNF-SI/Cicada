@@ -77,4 +77,29 @@ describe('PlanTableauDeBordComponent — score manuel (#518)', () => {
     expect(component.getGlobalScoreForRow(makeRow(indicateur))).toBe('very-good');
     spy.mockRestore();
   });
+
+  // #518 (2e retour) — la colonne « Global » doit refléter l'évaluation globale
+  // forcée manuellement depuis la page globale de l'indicateur (#356), qui prime
+  // sur le calcul « état courant » (dernière année). C'est ce cas précis qui
+  // restait KO : seul le calcul automatique s'affichait dans la colonne Global.
+  it('affiche l’évaluation globale forcée manuellement dans la colonne Global', () => {
+    const indicateur = {
+      id_indicateur: 1,
+      // Auto (métrique) = very-bad, mais évaluation globale forcée « good » (4).
+      global_score_override: 4,
+    } as unknown as Indicateur;
+    const spy = jest.spyOn(component, 'yearColumns').mockReturnValue([2024] as any);
+    expect(component.getGlobalScoreForRow(makeRow(indicateur))).toBe('good');
+    spy.mockRestore();
+  });
+
+  it('retombe sur le calcul automatique si l’évaluation globale n’est pas forcée', () => {
+    const indicateur = {
+      id_indicateur: 1,
+      global_score_override: null,
+    } as unknown as Indicateur;
+    const spy = jest.spyOn(component, 'yearColumns').mockReturnValue([2024] as any);
+    expect(component.getGlobalScoreForRow(makeRow(indicateur))).toBe('very-bad');
+    spy.mockRestore();
+  });
 });

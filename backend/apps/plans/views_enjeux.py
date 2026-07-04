@@ -120,6 +120,9 @@ class EnjeuViewSet(viewsets.ModelViewSet):
 
         indicateur_qs = Indicateur.objects.select_related(
             'type_indicateur', 'id_utilisateur_ajout',
+            # #518 — surcharge manuelle de l'évaluation globale (#356), lue par
+            # la colonne « Global » du tableau de bord (reverse OneToOne).
+            'realisation_globale',
         ).exclude(
             # #477 — les indicateurs de RÉPONSE sont propres à une action (créés
             # via la fiche action, rattachés au même NE/RA pour le contexte) et ne

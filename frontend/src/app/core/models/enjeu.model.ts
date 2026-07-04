@@ -337,6 +337,9 @@ export interface Indicateur {
   // #518 — scores forcés manuellement par année (clé = année, valeur = score 1..5).
   // Le tableau de bord les affiche en priorité sur le calcul automatique.
   score_overrides?: Record<string, number>;
+  // #518 — évaluation globale forcée manuellement (#356) : score 1..5 ou null.
+  // Prime sur le calcul « état courant » dans la colonne « Global » du tableau de bord.
+  global_score_override?: number | null;
 }
 
 /**

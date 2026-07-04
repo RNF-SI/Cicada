@@ -890,7 +890,14 @@ class TestByPlanScoreOverrides:
         )
         olt = ObjectifLongTermeFactory(id_enjeu=enjeu_test_data['enjeu1'])
         ne = NiveauExigenceFactory(id_olt=olt)
-        return IndicateurFactory(id_ne=ne)
+        # #518 — type figé sur ETAT : la mnemonique de la factory cycle
+        # ETAT/PRESSION/REPONSE, et un indicateur REPONSE serait exclu de
+        # l'endpoint by-plan (#477), rendant le test dépendant de l'ordre.
+        return IndicateurFactory(
+            id_ne=ne,
+            type_indicateur__cd_nomenclature='ETAT',
+            type_indicateur__mnemonique='ETAT',
+        )
 
     def test_score_overrides_exposes_manual_score(self, api_client, enjeu_test_data):
         """Un IndicateurMesure avec score_override est renvoyé dans score_overrides."""
@@ -921,6 +928,54 @@ class TestByPlanScoreOverrides:
         found = self._find_indicateur(response.data, indic.id_indicateur)
         assert found is not None
         assert found['score_overrides'] == {}
+
+    def test_global_score_override_exposed(self, api_client, enjeu_test_data):
+        """#518 (2e retour) — l'évaluation globale forcée manuellement (#356)
+        est renvoyée dans `global_score_override` pour la colonne « Global »."""
+        from apps.plans.models_indicateurs import IndicateurRealisationGlobale
+        indic = self._indicateur_on_plan(enjeu_test_data)
+        IndicateurRealisationGlobale.objects.create(
+            id_indicateur=indic, score_override=4,
+        )
+
+        api_client.force_authenticate(user=enjeu_test_data['super_admin'])
+        plan_id = enjeu_test_data['plan'].id_pg
+        response = api_client.get(f'/api/plans/enjeux/by-plan/{plan_id}/')
+        assert response.status_code == status.HTTP_200_OK
+
+        found = self._find_indicateur(response.data, indic.id_indicateur)
+        assert found is not None
+        assert found['global_score_override'] == 4
+
+    def test_global_score_override_null_without_force(self, api_client, enjeu_test_data):
+        """Sans évaluation globale forcée, `global_score_override` vaut None."""
+        indic = self._indicateur_on_plan(enjeu_test_data)
+
+        api_client.force_authenticate(user=enjeu_test_data['super_admin'])
+        plan_id = enjeu_test_data['plan'].id_pg
+        response = api_client.get(f'/api/plans/enjeux/by-plan/{plan_id}/')
+        assert response.status_code == status.HTTP_200_OK
+
+        found = self._find_indicateur(response.data, indic.id_indicateur)
+        assert found is not None
+        assert found['global_score_override'] is None
+
+    def test_global_score_override_null_when_comment_only(self, api_client, enjeu_test_data):
+        """Un commentaire global seul (sans score forcé) ne pose pas d'override."""
+        from apps.plans.models_indicateurs import IndicateurRealisationGlobale
+        indic = self._indicateur_on_plan(enjeu_test_data)
+        IndicateurRealisationGlobale.objects.create(
+            id_indicateur=indic, score_override=None, commentaire_override="RAS",
+        )
+
+        api_client.force_authenticate(user=enjeu_test_data['super_admin'])
+        plan_id = enjeu_test_data['plan'].id_pg
+        response = api_client.get(f'/api/plans/enjeux/by-plan/{plan_id}/')
+        assert response.status_code == status.HTTP_200_OK
+
+        found = self._find_indicateur(response.data, indic.id_indicateur)
+        assert found is not None
+        assert found['global_score_override'] is None
 
     def test_upsert_accepts_indetermine_override(self, api_client, enjeu_test_data):
         """#519 — score_override = 0 (« indéterminé ») est accepté et résolu

@@ -430,12 +430,16 @@ export class PlanTableauDeBordComponent implements OnInit {
   }
 
   /**
-   * #355 — Score « global » (état courant) d'un indicateur = score de la
-   * dernière année renseignée. La « globale partielle » découle naturellement :
-   * seules les années déjà saisies comptent. La page globale de l'indicateur
-   * (colonne « Global » cliquable) détaille moyenne et tendance.
+   * #355 / #518 — Score « global » (état courant) d'un indicateur.
+   * Priorité à l'évaluation globale forcée manuellement (#356,
+   * `global_score_override`) : c'est l'icône choisie sur la page globale, qui
+   * doit primer sur le calcul automatique. À défaut, on retombe sur le score de
+   * la dernière année renseignée (la « globale partielle » découle naturellement :
+   * seules les années déjà saisies comptent).
    */
   getGlobalScoreForRow(row: IndicatorRow): ScoreLevel | null {
+    const forced = row.indicateur.global_score_override;
+    if (forced != null) return this.levelToScoreLevel(forced);
     const years = [...this.yearColumns()].sort((a, b) => b - a);
     for (const y of years) {
       const s = this.getScoreForYear(row, y);

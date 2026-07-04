@@ -414,6 +414,11 @@ class IndicateurSerializer(serializers.ModelSerializer):
     # Le tableau de bord doit afficher ces scores forcés en priorité sur le
     # calcul automatique issu des métriques.
     score_overrides = serializers.SerializerMethodField()
+    # #518 — surcharge MANUELLE de l'évaluation globale (#356, `realisation_globale`).
+    # C'est l'icône forcée depuis la page globale de l'indicateur : elle doit
+    # primer sur le calcul « état courant » (dernière année) dans la colonne
+    # « Global » du tableau de bord.
+    global_score_override = serializers.SerializerMethodField()
 
     class Meta:
         model = Indicateur
@@ -428,6 +433,8 @@ class IndicateurSerializer(serializers.ModelSerializer):
             'taxons', 'habitats', 'geologies',
             # Saisie annuelle (override manuel du score)
             'score_overrides',
+            # Surcharge manuelle de l'évaluation globale (#356)
+            'global_score_override',
             # Navigation
             'enjeu_slug',
             # Audit
@@ -450,6 +457,13 @@ class IndicateurSerializer(serializers.ModelSerializer):
             for am in obj.annual_mesures.all()
             if am.score_override is not None
         }
+
+    def get_global_score_override(self, obj):
+        """#518 — Score (1..5) de l'évaluation globale forcée manuellement (#356),
+        ou None si l'évaluation globale reste automatique. Le tableau de bord
+        l'affiche en priorité dans la colonne « Global ».
+        """
+        return obj.get_evaluation_globale_override()
 
     def get_enjeu_slug(self, obj):
         """#420 — Remonte au slug de l'enjeu de l'indicateur.
