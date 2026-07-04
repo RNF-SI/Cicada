@@ -231,4 +231,61 @@ describe('IndicateurSaisieComponent — éditeur unifié (#510)', () => {
       expect(form.enabled).toBe(true);
     });
   });
+
+  // ---------------------------------------------------------------------------
+  // #528 — Effacer les valeurs d'une métrique existante doit supprimer la mesure.
+  // ---------------------------------------------------------------------------
+  describe('validate — effacement des valeurs (#528)', () => {
+    function setupValidate(formValue: string, existing: any) {
+      const c2 = comp();
+      const enjeu: any = {
+        updateMesure: jest.fn(() => ({ subscribe: () => {} })),
+        createMesure: jest.fn(() => ({ subscribe: () => {} })),
+        deleteMesure: jest.fn(() => ({ subscribe: () => {} })),
+        upsertIndicateurMesure: jest.fn(),
+        deleteIndicateurMesure: jest.fn(),
+      };
+      (c2 as any).enjeuService = enjeu;
+      (c2 as any).indicateur = () => ({ metriques: [{ id_metrique: 1, score_blocks: [] }] });
+      (c2 as any).indicateurId = () => 42;
+      (c2 as any).selectedYear = () => 2025;
+      (c2 as any).canEnterSuivi = () => true;
+      (c2 as any).isSaving = signal(false);
+      (c2 as any).manualOverride = () => false;
+      (c2 as any).scoreOverride = () => null;
+      (c2 as any).overrideId = () => null;
+      (c2 as any).commentaireOverride = () => '';
+      (c2 as any).snack = { open: jest.fn() };
+      (c2 as any).translate = { instant: (k: string) => k };
+      (c2 as any).loadResolvedAndMesures = jest.fn();
+      (c2 as any).mode = signal('edit');
+      (c2 as any).form = new FormGroup({ m_1: new FormControl(formValue) });
+      const map = new Map<number, any>();
+      if (existing) map.set(1, existing);
+      (c2 as any).mesuresByMetrique = map;
+      return { c2, enjeu };
+    }
+
+    it('supprime la mesure existante quand toutes les valeurs sont effacées', () => {
+      const { c2, enjeu } = setupValidate('', { id_mesure: 7 });
+      (c2 as any).validate();
+      expect(enjeu.deleteMesure).toHaveBeenCalledWith(7);
+      expect(enjeu.updateMesure).not.toHaveBeenCalled();
+      expect(enjeu.createMesure).not.toHaveBeenCalled();
+    });
+
+    it('ne supprime rien si le champ est vide et aucune mesure préexistante', () => {
+      const { c2, enjeu } = setupValidate('', null);
+      (c2 as any).validate();
+      expect(enjeu.deleteMesure).not.toHaveBeenCalled();
+      expect(enjeu.createMesure).not.toHaveBeenCalled();
+    });
+
+    it('met à jour la mesure existante quand une valeur est saisie', () => {
+      const { c2, enjeu } = setupValidate('5', { id_mesure: 7 });
+      (c2 as any).validate();
+      expect(enjeu.updateMesure).toHaveBeenCalled();
+      expect(enjeu.deleteMesure).not.toHaveBeenCalled();
+    });
+  });
 });

@@ -531,9 +531,14 @@ export class IndicateurSaisieComponent implements OnInit {
         const bv = this.form.get(`m_${met.id_metrique}_b${b.position}`)?.value;
         if (!isEmpty(bv)) valeurs_blocs[String(b.position)] = clean(bv);
       }
-      // Rien à enregistrer si aucune valeur (ni principal ni bloc).
-      if (isEmpty(value) && Object.keys(valeurs_blocs).length === 0) continue;
       const existing = this.mesuresByMetrique.get(met.id_metrique);
+      // #528 — Aucune valeur saisie (ni principal ni bloc) : si une mesure
+      // existait, l'utilisateur a effacé les valeurs → on la supprime pour que
+      // la modification soit persistée. Sinon (rien à créer), on ignore.
+      if (isEmpty(value) && Object.keys(valeurs_blocs).length === 0) {
+        if (existing) mesureCalls.push(this.enjeuService.deleteMesure(existing.id_mesure));
+        continue;
+      }
       const payload: MesureCreatePayload = {
         id_metrique: met.id_metrique,
         valeur: isEmpty(value) ? '' : clean(value),
