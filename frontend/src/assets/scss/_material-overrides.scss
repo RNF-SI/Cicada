@@ -115,9 +115,11 @@
       }
     }
 
-    // Active/pressed state
-    &:active:not([disabled]),
-    &:focus:not([disabled]) {
+    // Active/pressed state uniquement (PAS le focus)
+    // Le focus seul — notamment l'autofocus d'une MatDialog sur son 1er bouton —
+    // ne doit pas délaver le fond en $primary-active (bleu clair) : il resterait
+    // teal. L'anneau de focus Material (cdk-focused) assure la visibilité a11y.
+    &:active:not([disabled]) {
       background-color: $primary-active !important;
     }
 

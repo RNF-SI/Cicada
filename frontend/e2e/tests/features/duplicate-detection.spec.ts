@@ -52,6 +52,31 @@ test.describe('Site Duplicate Detection', () => {
       await expect(dialog.locator('h2')).toContainText(/Créer|nouveau/i);
     });
 
+    // Régression #517 : à l'ouverture de la modale « Rechercher ou créer »,
+    // MatDialog autofocus le bouton « Nouveau site » (mat-flat-button color=primary).
+    // Le fond devait rester teal kit UI (#025359) et NON se délaver en $primary-active
+    // (bleu clair ≈ #0499A4) via l'ancienne règle `:focus` -> couleur pressed.
+    test('create button keeps kit UI teal (#025359) when autofocused (#517)', async ({ adminRnfPage: page }) => {
+      await page.goto('/sites');
+      await page.waitForTimeout(1000);
+
+      // Ouvre uniquement la modale FindOrCreate (pas le formulaire de site)
+      const findOrCreateBtn = page.locator('button.btn-request:has-text("Rechercher"), button:has-text("Gérer mes sites")').first();
+      await findOrCreateBtn.click();
+
+      const dialog = page.locator('mat-dialog-container').first();
+      await expect(dialog).toBeVisible();
+
+      const createBtn = dialog.locator('button.btn-create').first();
+      await expect(createBtn).toBeVisible();
+
+      // Le bouton est autofocus par la MatDialog : son fond doit rester teal.
+      const bg = await createBtn.evaluate((el) => getComputedStyle(el).backgroundColor);
+      expect(bg).toBe('rgb(2, 83, 89)'); // #025359, jamais rgb(4, 153, 164)
+
+      await page.keyboard.press('Escape');
+    });
+
     test('should show form fields in site creation dialog', async ({ adminRnfPage: page }) => {
       await page.goto('/sites');
       await page.waitForTimeout(1000);
