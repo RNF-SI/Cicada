@@ -1,3 +1,5 @@
+import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { TranslateModule } from '@ngx-translate/core';
 import { MetriqueGridDisplayComponent, GridMetrique } from './metrique-grid-display.component';
 
 /** TranslateService minimal : renvoie la clé (suffit pour tester le formatage). */
@@ -91,6 +93,40 @@ describe('MetriqueGridDisplayComponent (#515)', () => {
     });
     it('faux sans blocs complémentaires', () => {
       expect(makeComponent().hasExtraBlocks({})).toBe(false);
+    });
+  });
+
+  // Retour #515 : la grille scrollait horizontalement (table de 10 colonnes).
+  // On garantit désormais que les métadonnées sont séparées de la grille et que
+  // la table de paliers ne compte que 5 colonnes → affichage sans scroll.
+  describe('rendu — pas de table large scrollable (retour #515)', () => {
+    let fixture: ComponentFixture<MetriqueGridDisplayComponent>;
+
+    beforeEach(async () => {
+      await TestBed.configureTestingModule({
+        imports: [MetriqueGridDisplayComponent, TranslateModule.forRoot()],
+      }).compileComponents();
+      fixture = TestBed.createComponent(MetriqueGridDisplayComponent);
+    });
+
+    it('rend les métadonnées hors de la grille de paliers', () => {
+      fixture.componentInstance.metriques = [
+        { id_metrique: 1, nom_metrique: 'Densité', unite: 'ind/ha', type_metrique_mnemonique: 'NUMERIQUE', score_1_sup: 5 },
+      ];
+      fixture.detectChanges();
+      const el: HTMLElement = fixture.nativeElement;
+      // Métadonnées dans une liste de définition dédiée, hors de la table.
+      expect(el.querySelector('.metrique-meta dd')?.textContent).toContain('Densité');
+      expect(el.querySelector('.metrique-scores .metrique-meta')).toBeNull();
+    });
+
+    it('la table de paliers ne compte que 5 colonnes (pas 10)', () => {
+      fixture.componentInstance.metriques = [
+        { id_metrique: 1, nom_metrique: 'Densité', type_metrique_mnemonique: 'NUMERIQUE', score_1_sup: 5 },
+      ];
+      fixture.detectChanges();
+      const headers = fixture.nativeElement.querySelectorAll('.metrique-scores thead th');
+      expect(headers.length).toBe(5);
     });
   });
 });

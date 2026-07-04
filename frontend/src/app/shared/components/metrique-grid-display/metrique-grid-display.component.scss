@@ -1,144 +1,168 @@
 @import 'variables';
 
-// #515 — Grille de scoring en lecture seule. Style mutualisé avec
-// l'arborescence des enjeux (`.metriques-table`) pour une lecture cohérente.
-.metriques-table-wrapper {
-  overflow-x: auto;
+// #515 — Grille de scoring en lecture seule.
+// Refonte (retour #515) : les métadonnées et les 5 paliers étaient dans une même
+// table de 10 colonnes → débordement horizontal dans la fiche d'action. On sépare
+// désormais les métadonnées (ligne d'étiquettes qui passe à la ligne) de la grille
+// des paliers (5 colonnes seulement, réparties sur toute la largeur), pour tout
+// afficher sans scroll horizontal.
+.metriques-cards {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-sm;
   margin-bottom: $spacing-sm;
 }
 
-.metriques-table {
-  width: 100%;
-  border-collapse: separate;
-  border-spacing: 0;
+.metrique-card {
   border: 1px solid $primary-color;
   border-radius: $border-radius-sm;
   overflow: hidden;
-  font-size: $font-size-small;
+}
 
-  thead {
-    th {
-      background-color: $primary-color;
-      color: $white;
-      font-weight: $font-weight-bold;
-      text-align: left;
-      padding: $spacing-sm $spacing-md;
-      white-space: nowrap;
-      border-right: 1px solid rgba($white, 0.2);
-      font-size: 13px;
+.metrique-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spacing-xs $spacing-lg;
+  margin: 0;
+  padding: $spacing-sm $spacing-md;
+  background-color: rgba($gray-lighter, 0.4);
+  border-bottom: 1px solid $gray-light;
 
-      &:last-child {
-        border-right: none;
-      }
+  .metrique-meta-item {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    min-width: 0;
 
-      &.score-col {
-        text-align: center;
-        min-width: 100px;
-      }
-
-      &.score-col-1 { background-color: $score-very-bad; color: $black; }
-      &.score-col-2 { background-color: $score-bad; color: $black; }
-      &.score-col-3 { background-color: $score-neutral; color: $black; }
-      &.score-col-4 { background-color: $score-good; color: $black; }
-      &.score-col-5 { background-color: $score-very-good; color: $black; }
+    &.metrique-meta-name {
+      flex: 1 1 100%;
     }
   }
 
-  tbody {
-    tr {
-      &:nth-child(even) {
-        background-color: rgba($gray-lighter, 0.3);
+  dt {
+    color: $gray-dark;
+    font-size: 11px;
+    font-weight: $font-weight-bold;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+  }
+
+  dd {
+    margin: 0;
+    color: $black;
+    font-size: $font-size-small;
+    word-break: break-word;
+  }
+
+  .metrique-meta-name dd {
+    font-weight: $font-weight-bold;
+  }
+
+  .metrique-meta-indetermine {
+    display: inline-flex;
+    align-items: center;
+    gap: $spacing-xxs;
+    color: $primary-color;
+    font-weight: $font-weight-bold;
+
+    i { font-size: 14px; }
+  }
+}
+
+.metrique-scores {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: $font-size-small;
+
+  thead th {
+    color: $black;
+    font-weight: $font-weight-bold;
+    text-align: center;
+    padding: $spacing-xs $spacing-xs;
+    font-size: 12px;
+    line-height: 1.2;
+    word-break: break-word;
+    border-right: 1px solid rgba($white, 0.4);
+
+    &:last-child { border-right: none; }
+
+    &.score-col-1 { background-color: $score-very-bad; }
+    &.score-col-2 { background-color: $score-bad; }
+    &.score-col-3 { background-color: $score-neutral; }
+    &.score-col-4 { background-color: $score-good; }
+    &.score-col-5 { background-color: $score-very-good; }
+
+    .score-col-label { display: block; }
+
+    .score-col-value {
+      display: block;
+      font-size: 10px;
+      font-weight: $font-weight-semibold;
+      opacity: 0.75;
+    }
+  }
+
+  tbody td {
+    padding: $spacing-xs $spacing-xs;
+    border-right: 1px solid $gray-light;
+    color: $black;
+    vertical-align: middle;
+    text-align: center;
+    font-size: 12px;
+    word-break: break-word;
+
+    &:last-child { border-right: none; }
+
+    &.score-cell-multi {
+      line-height: 1.4;
+
+      .cell-line {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 4px;
+        flex-wrap: wrap;
+
+        + .cell-line { margin-top: 4px; }
+      }
+
+      .cell-op {
+        font-weight: $font-weight-bold;
+        color: $primary-color;
+        font-size: 11px;
+        padding: 0 4px;
+      }
+
+      .cell-paren {
+        font-weight: $font-weight-bold;
+        color: $primary-color;
+        font-size: 14px;
+      }
+
+      .cell-block-label {
+        color: $gray-dark;
+        font-size: 11px;
+        font-weight: $font-weight-bold;
+        text-transform: uppercase;
+        letter-spacing: 0.02em;
+      }
+
+      .cell-interval {
+        color: $black;
+        font-size: 12px;
       }
     }
 
-    td {
-      padding: $spacing-xs $spacing-md;
-      border-right: 1px solid $gray-light;
-      border-top: 1px solid $gray-light;
-      color: $black;
-      vertical-align: middle;
+    &.score-cell-1 { background-color: rgba($score-very-bad, 0.12); }
+    &.score-cell-2 { background-color: rgba($score-bad, 0.12); }
+    &.score-cell-3 { background-color: rgba($score-neutral, 0.12); }
+    &.score-cell-4 { background-color: rgba($score-good, 0.12); }
+    &.score-cell-5 { background-color: rgba($score-very-good, 0.12); }
 
-      &:last-child {
-        border-right: none;
-      }
-
-      &.score-cell {
-        text-align: center;
-        font-size: 12px;
-      }
-
-      &.score-cell-multi {
-        text-align: center;
-        font-size: 12px;
-        line-height: 1.4;
-        padding: $spacing-xs $spacing-sm;
-
-        .cell-line {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          gap: 4px;
-          flex-wrap: wrap;
-
-          + .cell-line { margin-top: 4px; }
-        }
-
-        .cell-op {
-          font-weight: $font-weight-bold;
-          color: $primary-color;
-          font-size: 11px;
-          padding: 0 4px;
-        }
-
-        .cell-paren {
-          font-weight: $font-weight-bold;
-          color: $primary-color;
-          font-size: 14px;
-        }
-
-        .cell-block-label {
-          color: $gray-dark;
-          font-size: 11px;
-          font-weight: $font-weight-bold;
-          text-transform: uppercase;
-          letter-spacing: 0.02em;
-        }
-
-        .cell-interval {
-          color: $black;
-          font-size: 12px;
-        }
-      }
-
-      &.indetermine-cell {
-        text-align: center;
-        font-size: 12px;
-        min-width: 80px;
-
-        .indetermine-marker {
-          display: inline-flex;
-          align-items: center;
-          gap: $spacing-xxs;
-          color: $primary-color;
-          font-weight: $font-weight-bold;
-
-          i { font-size: 14px; }
-        }
-
-        .indetermine-empty {
-          color: $gray-dark;
-        }
-      }
-
-      &.score-cell-1 { background-color: rgba($score-very-bad, 0.12); }
-      &.score-cell-2 { background-color: rgba($score-bad, 0.12); }
-      &.score-cell-3 { background-color: rgba($score-neutral, 0.12); }
-      &.score-cell-4 { background-color: rgba($score-good, 0.12); }
-      &.score-cell-5 { background-color: rgba($score-very-good, 0.12); }
-
-      &.score-cell-merged {
-        font-weight: $font-weight-semibold;
-      }
+    &.score-cell-merged {
+      font-weight: $font-weight-semibold;
     }
   }
 }
