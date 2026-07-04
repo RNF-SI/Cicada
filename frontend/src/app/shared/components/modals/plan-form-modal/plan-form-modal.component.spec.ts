@@ -326,6 +326,39 @@ describe('PlanFormModalComponent', () => {
 
       expect(createPlanMock).not.toHaveBeenCalled();
     }));
+
+    // #527 — les messages d'erreur du rang ne doivent s'afficher que si le champ
+    // est invalide ET touché (avant : ils s'affichaient toujours, ce qui cassait
+    // aussi l'alignement de la colonne « Surface »).
+    // Le FakeTranslateLoader renvoie {} → le pipe translate affiche la CLÉ i18n.
+    it('should not render rang error messages when the field is valid', fakeAsync(() => {
+      tick();
+
+      const rang = component.form.get('rang');
+      rang?.setValue(2);
+      rang?.markAsTouched();
+      fixture.detectChanges();
+      tick();
+
+      const html: string = fixture.nativeElement.textContent;
+      expect(html).not.toContain('modals.planForm.validation.rangRequired');
+      expect(html).not.toContain('modals.planForm.validation.rangMin');
+    }));
+
+    it('should render the required error only after the rang field is touched', fakeAsync(() => {
+      tick();
+
+      const rang = component.form.get('rang');
+      rang?.setValue(null);
+      fixture.detectChanges();
+      tick();
+      expect(fixture.nativeElement.textContent).not.toContain('modals.planForm.validation.rangRequired');
+
+      rang?.markAsTouched();
+      fixture.detectChanges();
+      tick();
+      expect(fixture.nativeElement.textContent).toContain('modals.planForm.validation.rangRequired');
+    }));
   });
 
   // ==================== SITE SELECTION ====================

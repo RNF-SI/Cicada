@@ -129,19 +129,16 @@
         <!-- Rang et Surface -->
         <div class="form-row">
           <app-form-field [label]="'modals.planForm.fields.rang' | translate" [required]="true" [helpText]="'modals.planForm.hints.rang' | translate">
-  <input type="number" formControlName="rang" min="1">
-            
-            @if (form.get('rang')?.hasError('required')) {
-              
-            }
-            @if (form.get('rang')?.hasError('min')) {
-              
-            }
-  <ng-container errorSlot>
-    <p class="form-error-msg"><i class="fi fi-rr-exclamation"></i> {{ 'modals.planForm.validation.rangRequired' | translate }}</p>
-    <p class="form-error-msg"><i class="fi fi-rr-exclamation"></i> {{ 'modals.planForm.validation.rangMin' | translate }}</p>
-  </ng-container>
-</app-form-field>
+            <input type="number" formControlName="rang" min="1">
+            <ng-container errorSlot>
+              @if (form.get('rang')?.touched && form.get('rang')?.hasError('required')) {
+                <p class="form-error-msg"><i class="fi fi-rr-exclamation"></i> {{ 'modals.planForm.validation.rangRequired' | translate }}</p>
+              }
+              @if (form.get('rang')?.touched && form.get('rang')?.hasError('min')) {
+                <p class="form-error-msg"><i class="fi fi-rr-exclamation"></i> {{ 'modals.planForm.validation.rangMin' | translate }}</p>
+              }
+            </ng-container>
+          </app-form-field>
 
           <app-form-field [label]="'modals.planForm.fields.surface' | translate" [helpText]="'modals.planForm.hints.surface' | translate">
   <input type="number" formControlName="surface" step="0.01">
@@ -214,24 +211,22 @@
         <!-- Année début et Année fin -->
         <div class="form-row">
           <app-form-field [label]="'modals.planForm.fields.startYear' | translate" [required]="true">
-  <input type="number" formControlName="annee_debut" min="1900" max="2100">
-            @if (form.get('annee_debut')?.hasError('required')) {
-              
-            }
-  <ng-container errorSlot>
-    <p class="form-error-msg"><i class="fi fi-rr-exclamation"></i> {{ 'common.validation.required' | translate }}</p>
-  </ng-container>
-</app-form-field>
+            <input type="number" formControlName="annee_debut" min="1900" max="2100">
+            <ng-container errorSlot>
+              @if (form.get('annee_debut')?.touched && form.get('annee_debut')?.hasError('required')) {
+                <p class="form-error-msg"><i class="fi fi-rr-exclamation"></i> {{ 'common.validation.required' | translate }}</p>
+              }
+            </ng-container>
+          </app-form-field>
 
           <app-form-field [label]="'modals.planForm.fields.endYear' | translate" [required]="true">
-  <input type="number" formControlName="annee_fin" min="1900" max="2100">
-            @if (form.get('annee_fin')?.hasError('required')) {
-              
-            }
-  <ng-container errorSlot>
-    <p class="form-error-msg"><i class="fi fi-rr-exclamation"></i> {{ 'common.validation.required' | translate }}</p>
-  </ng-container>
-</app-form-field>
+            <input type="number" formControlName="annee_fin" min="1900" max="2100">
+            <ng-container errorSlot>
+              @if (form.get('annee_fin')?.touched && form.get('annee_fin')?.hasError('required')) {
+                <p class="form-error-msg"><i class="fi fi-rr-exclamation"></i> {{ 'common.validation.required' | translate }}</p>
+              }
+            </ng-container>
+          </app-form-field>
         </div>
 
         <!-- Date validation CSPN -->
