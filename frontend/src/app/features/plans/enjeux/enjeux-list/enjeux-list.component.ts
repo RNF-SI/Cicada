@@ -4132,9 +4132,13 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
   navigateToViewOperation(operationId: number): void {
     const slug = this.planSlug();
     if (!slug) return;
+    // #529 — on transmet l'enjeu ouvert pour que le bouton retour de la fiche
+    // revienne à l'action ciblée dans le bon enjeu (fragment `operation-<id>`),
+    // et pas seulement à la page des enjeux.
+    const fromEnjeu = this.selectedEnjeuSlug();
     const url = this.router.serializeUrl(
       this.router.createUrlTree(['/plans', slug, 'enjeux', 'operations', operationId, 'fiche'], {
-        queryParams: { from: 'enjeux' }, // #529 — retour vers la liste des actions
+        queryParams: { from: 'enjeux', ...(fromEnjeu ? { fromEnjeu } : {}) },
       })
     );
     window.open(url, '_blank', 'noopener');

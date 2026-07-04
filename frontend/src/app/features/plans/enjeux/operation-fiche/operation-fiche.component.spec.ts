@@ -51,11 +51,12 @@ function operationWith(metriques: any[]): Operation {
 
 function setup(
   op: Operation,
-  opts: { from?: string; router?: { navigate: jest.Mock } } = {},
+  opts: { from?: string; fromEnjeu?: string; router?: { navigate: jest.Mock } } = {},
 ): ComponentFixture<OperationFicheComponent> {
   const enjeuService = { getOperation: jest.fn().mockReturnValue(of(op)) };
   const queryParamMap = new Map<string, string>();
   if (opts.from) queryParamMap.set('from', opts.from);
+  if (opts.fromEnjeu) queryParamMap.set('fromEnjeu', opts.fromEnjeu);
   const route = {
     snapshot: {
       paramMap: new Map<string, string>([['operationId', '42'], ['slug', 'plan-x']]),
@@ -111,7 +112,18 @@ describe('OperationFicheComponent — grilles/blocs des indicateurs (#516)', () 
 });
 
 describe('OperationFicheComponent — bouton retour vers la page d\'origine (#529)', () => {
-  it('retourne à la liste des actions du plan quand from=enjeux', () => {
+  it('retourne à l\'action ciblée dans le bon enjeu quand from=enjeux + fromEnjeu', () => {
+    const router = { navigate: jest.fn() };
+    const fixture = setup(operationWith([]), { from: 'enjeux', fromEnjeu: 'mon-enjeu', router });
+    fixture.componentInstance.goBack();
+    // op mock : id_operation = 42 → fragment `operation-42` que la liste décode
+    expect(router.navigate).toHaveBeenCalledWith(
+      ['/plans', 'plan-x', 'enjeux', 'mon-enjeu'],
+      { fragment: 'operation-42' },
+    );
+  });
+
+  it('retourne à la liste des enjeux quand from=enjeux sans fromEnjeu', () => {
     const router = { navigate: jest.fn() };
     const fixture = setup(operationWith([]), { from: 'enjeux', router });
     fixture.componentInstance.goBack();

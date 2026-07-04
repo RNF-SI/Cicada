@@ -139,6 +139,10 @@ export class OperationFicheComponent implements OnInit {
    * onglet (#455), on ne peut pas s'appuyer sur l'historique du navigateur :
    * l'origine est transmise via le query param `from` (`enjeux` = liste des
    * actions du plan, sinon le suivi des actions par défaut).
+   *
+   * Cas `enjeux` : on revient sur l'action ciblée dans le bon enjeu ouvert
+   * (route `:enjeuSlug` + fragment `operation-<id>` que la liste sait décoder),
+   * et non sur la page générique des enjeux.
    */
   goBack(): void {
     const slug = this.planSlug();
@@ -146,9 +150,18 @@ export class OperationFicheComponent implements OnInit {
       this.router.navigate(['/plans']);
       return;
     }
-    const from = this.route.snapshot.queryParamMap.get('from');
+    const qp = this.route.snapshot.queryParamMap;
+    const from = qp.get('from');
     if (from === 'enjeux') {
-      this.router.navigate(['/plans', slug, 'enjeux']);
+      const enjeuSlug = qp.get('fromEnjeu');
+      const opId = this.operation()?.id_operation;
+      if (enjeuSlug) {
+        this.router.navigate(['/plans', slug, 'enjeux', enjeuSlug], {
+          fragment: opId ? `operation-${opId}` : undefined,
+        });
+      } else {
+        this.router.navigate(['/plans', slug, 'enjeux']);
+      }
     } else {
       this.router.navigate(['/plans', slug, 'suivi-actions']);
     }
