@@ -134,12 +134,23 @@ export class OperationFicheComponent implements OnInit {
     window.print();
   }
 
+  /**
+   * #529 — Retourne à la page d'origine. La fiche s'ouvrant dans un nouvel
+   * onglet (#455), on ne peut pas s'appuyer sur l'historique du navigateur :
+   * l'origine est transmise via le query param `from` (`enjeux` = liste des
+   * actions du plan, sinon le suivi des actions par défaut).
+   */
   goBack(): void {
     const slug = this.planSlug();
-    if (slug) {
-      this.router.navigate(['/plans', slug, 'suivi-actions']);
-    } else {
+    if (!slug) {
       this.router.navigate(['/plans']);
+      return;
+    }
+    const from = this.route.snapshot.queryParamMap.get('from');
+    if (from === 'enjeux') {
+      this.router.navigate(['/plans', slug, 'enjeux']);
+    } else {
+      this.router.navigate(['/plans', slug, 'suivi-actions']);
     }
   }
 

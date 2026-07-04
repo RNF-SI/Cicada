@@ -4133,7 +4133,9 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
     const slug = this.planSlug();
     if (!slug) return;
     const url = this.router.serializeUrl(
-      this.router.createUrlTree(['/plans', slug, 'enjeux', 'operations', operationId, 'fiche'])
+      this.router.createUrlTree(['/plans', slug, 'enjeux', 'operations', operationId, 'fiche'], {
+        queryParams: { from: 'enjeux' }, // #529 — retour vers la liste des actions
+      })
     );
     window.open(url, '_blank', 'noopener');
   }

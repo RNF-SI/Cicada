@@ -49,10 +49,18 @@ function operationWith(metriques: any[]): Operation {
   } as unknown as Operation;
 }
 
-function setup(op: Operation): ComponentFixture<OperationFicheComponent> {
+function setup(
+  op: Operation,
+  opts: { from?: string; router?: { navigate: jest.Mock } } = {},
+): ComponentFixture<OperationFicheComponent> {
   const enjeuService = { getOperation: jest.fn().mockReturnValue(of(op)) };
+  const queryParamMap = new Map<string, string>();
+  if (opts.from) queryParamMap.set('from', opts.from);
   const route = {
-    snapshot: { paramMap: new Map<string, string>([['operationId', '42'], ['slug', 'plan-x']]) },
+    snapshot: {
+      paramMap: new Map<string, string>([['operationId', '42'], ['slug', 'plan-x']]),
+      queryParamMap,
+    },
     parent: null,
   };
   // Map#get already matches ParamMap.get signature for our usage.
@@ -61,7 +69,7 @@ function setup(op: Operation): ComponentFixture<OperationFicheComponent> {
     providers: [
       { provide: EnjeuService, useValue: enjeuService },
       { provide: ActivatedRoute, useValue: route },
-      { provide: Router, useValue: { navigate: jest.fn() } },
+      { provide: Router, useValue: opts.router ?? { navigate: jest.fn() } },
     ],
   });
   const fixture = TestBed.createComponent(OperationFicheComponent);
@@ -99,5 +107,28 @@ describe('OperationFicheComponent — grilles/blocs des indicateurs (#516)', () 
     // Les cellules multi-blocs listent chaque bloc (intitulé) — trace visible d'un « bloc ».
     expect(text).toContain('Bloc principal');
     expect(text).toContain('Bloc secondaire');
+  });
+});
+
+describe('OperationFicheComponent — bouton retour vers la page d\'origine (#529)', () => {
+  it('retourne à la liste des actions du plan quand from=enjeux', () => {
+    const router = { navigate: jest.fn() };
+    const fixture = setup(operationWith([]), { from: 'enjeux', router });
+    fixture.componentInstance.goBack();
+    expect(router.navigate).toHaveBeenCalledWith(['/plans', 'plan-x', 'enjeux']);
+  });
+
+  it('retourne au suivi des actions quand from=suivi', () => {
+    const router = { navigate: jest.fn() };
+    const fixture = setup(operationWith([]), { from: 'suivi', router });
+    fixture.componentInstance.goBack();
+    expect(router.navigate).toHaveBeenCalledWith(['/plans', 'plan-x', 'suivi-actions']);
+  });
+
+  it('retourne au suivi des actions par défaut (aucun from)', () => {
+    const router = { navigate: jest.fn() };
+    const fixture = setup(operationWith([]), { router });
+    fixture.componentInstance.goBack();
+    expect(router.navigate).toHaveBeenCalledWith(['/plans', 'plan-x', 'suivi-actions']);
   });
 });
