@@ -103,15 +103,7 @@
   dd { margin: 0; color: $black; }
 }
 
-.fiche-list {
-  margin: 0;
-  padding-left: $spacing-md;
-
-  li { margin-bottom: 2px; }
-}
-
-.fiche-ind-type { color: $gray-dark; }
-.fiche-ind-met { color: $gray-dark; }
+.fiche-ind-type { color: $gray-dark; font-weight: $font-weight-regular; }
 
 // #515 — Indicateur de réponse : intitulé + grille de métriques.
 .fiche-ind-block {

@@ -136,19 +136,21 @@
         </section>
       }
 
-      <!-- Autres indicateurs liés (état / pression) -->
+      <!-- Autres indicateurs liés (état / pression) : grille de métriques affichée
+           comme pour les indicateurs de réponse (#516 — les métriques « en blocs »
+           d'état/pression n'apparaissaient pas, seul leur nom était listé). -->
       @if (indicateursEtatPression().length) {
         <section class="fiche-section">
           <h2>{{ 'plans.suivis.actions.fiche.indicateursAutres' | translate }}</h2>
-          <ul class="fiche-list">
-            @for (ind of indicateursEtatPression(); track ind.id) {
-              <li>
-                <strong>{{ ind.nom }}</strong>
+          @for (ind of indicateursEtatPression(); track ind.id) {
+            <div class="fiche-ind-block">
+              <h3 class="fiche-ind-name">
+                {{ ind.nom }}
                 @if (ind.type) { <span class="fiche-ind-type">({{ ind.type }})</span> }
-                @if (ind.metriques.length) { <span class="fiche-ind-met"> — {{ ind.metriques.join(', ') }}</span> }
-              </li>
-            }
-          </ul>
+              </h3>
+              <app-metrique-grid-display [metriques]="ind.metriqueRefs"></app-metrique-grid-display>
+            </div>
+          }
         </section>
       }
 
