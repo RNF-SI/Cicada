@@ -2103,6 +2103,19 @@ export class OperationFormComponent implements OnInit {
   }
 
   /**
+   * #531 — Lien vers la page de suivi (vue globale) de cette action.
+   * Disponible uniquement lorsqu'une action existe (édition / détail), pas en
+   * création (aucune action à suivre tant qu'elle n'est pas enregistrée).
+   */
+  goToSuivi(): void {
+    const slug = this.planSlug();
+    const opId = this.operationId();
+    if (slug && opId) {
+      this.router.navigate(['/plans', slug, 'suivi-actions', 'action', opId]);
+    }
+  }
+
+  /**
    * Navigation après création d'une nouvelle action : on cible l'enjeu d'origine
    * en demandant à la liste de déployer et scroller jusqu'à la nouvelle action.
    */

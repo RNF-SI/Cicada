@@ -43,6 +43,11 @@
               <span>{{ 'plans.suivis.actionGlobal.subtitle' | translate | uppercase }}</span>
             </div>
             <h1 class="plan-title">{{ op.libelle }}</h1>
+            <!-- #531 — accès à la fiche synthétique de l'action -->
+            <button type="button" class="fiche-link-btn" (click)="goToFiche()">
+              <i class="fi fi-rr-document"></i>
+              {{ 'plans.suivis.actions.fiche.voirFiche' | translate }}
+            </button>
           </div>
         </div>
       </section>

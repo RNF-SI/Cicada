@@ -1228,6 +1228,12 @@
     <!-- Action Bar (masquée en lecture seule) -->
     @if (!isReadOnly()) {
       <div class="action-bar">
+        @if (operationId()) {
+          <button class="btn-action-suivi" type="button" (click)="goToSuivi()">
+            <i class="fi fi-rr-chart-histogram"></i>
+            {{ 'plans.suivis.actions.fiche.voirSuivi' | translate }}
+          </button>
+        }
         <button class="btn-action-cancel" type="button" (click)="goBack()" [disabled]="isLoading()">
           {{ 'common.actions.cancel' | translate }}
         </button>
@@ -1252,6 +1258,12 @@
       </div>
     } @else {
       <div class="action-bar">
+        @if (operationId()) {
+          <button class="btn-action-suivi" type="button" (click)="goToSuivi()">
+            <i class="fi fi-rr-chart-histogram"></i>
+            {{ 'plans.suivis.actions.fiche.voirSuivi' | translate }}
+          </button>
+        }
         <button class="btn-action-cancel" type="button" (click)="goBack()">
           {{ 'common.actions.back' | translate }}
         </button>

@@ -1930,6 +1930,7 @@
         "fiche": {
           "export": "Imprimer / Exporter (PDF)",
           "voirSuivi": "Voir le suivi de l'action",
+          "voirFiche": "Voir la fiche de l'action",
           "description": "Description",
           "temporalite": "Temporalité",
           "periode": "Période",

@@ -733,3 +733,39 @@ describe('OperationFormComponent — ventilation budgétaire', () => {
     });
   });
 });
+
+// ===========================================================================
+// #531 — Lien « Voir le suivi de l'action » depuis la page de modification
+// ===========================================================================
+
+describe('OperationFormComponent — lien vers le suivi de l\'action (#531)', () => {
+  function makeInstance(router: { navigate: jest.Mock }): OperationFormComponent {
+    const comp = Object.create(OperationFormComponent.prototype) as OperationFormComponent;
+    (comp as any).router = router;
+    (comp as any).planSlug = signal<string | null>(null);
+    (comp as any).operationId = signal<number | null>(null);
+    return comp;
+  }
+
+  it('navigue vers la page globale de suivi de l\'action en édition', () => {
+    const router = { navigate: jest.fn() };
+    const c = makeInstance(router);
+    (c as any).planSlug.set('plan-x');
+    (c as any).operationId.set(42);
+
+    c.goToSuivi();
+
+    expect(router.navigate).toHaveBeenCalledWith(['/plans', 'plan-x', 'suivi-actions', 'action', 42]);
+  });
+
+  it('ne navigue pas en création (aucune action enregistrée)', () => {
+    const router = { navigate: jest.fn() };
+    const c = makeInstance(router);
+    (c as any).planSlug.set('plan-x');
+    (c as any).operationId.set(null);
+
+    c.goToSuivi();
+
+    expect(router.navigate).not.toHaveBeenCalled();
+  });
+});

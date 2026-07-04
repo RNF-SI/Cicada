@@ -1,7 +1,7 @@
 import { Component, OnInit, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { ActivatedRoute, RouterModule } from '@angular/router';
+import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar } from '@angular/material/snack-bar';
@@ -59,6 +59,7 @@ type ManualResult = 'TERMINE' | 'PARTIEL' | 'NON_REALISE';
 })
 export class ActionGlobalComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
   private readonly adminService = inject(AdminService);
   private readonly authService = inject(AuthService);
   private readonly enjeuService = inject(EnjeuService);
@@ -250,6 +251,21 @@ export class ActionGlobalComponent implements OnInit {
           this.mesuresByMetrique.set(map);
         },
       });
+    }
+  }
+
+  /**
+   * #531 — Lien vers la fiche synthétique de l'action. Le paramètre `from=suivi`
+   * indique à la fiche de revenir vers le suivi des actions au clic « Retour ».
+   */
+  goToFiche(): void {
+    const slug = this.planSlug();
+    const op = this.operation();
+    if (slug && op) {
+      this.router.navigate(
+        ['/plans', slug, 'enjeux', 'operations', op.id_operation, 'fiche'],
+        { queryParams: { from: 'suivi' } },
+      );
     }
   }
 
