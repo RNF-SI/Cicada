@@ -619,12 +619,41 @@ textarea.full-width {
     font-weight: 700;
     color: $primary-color;
   }
-  // #247 — icône d'aide (sémantique OU / ET / parenthèses)
-  .formula-info {
-    color: $primary-color;
-    font-size: 14px;
-    cursor: help;
-    &:focus-visible { outline: 2px solid $primary-color; outline-offset: 2px; border-radius: 50%; }
+}
+
+// #516 — bloc d'aide VISIBLE expliquant le calcul du score combiné (ET / OU).
+// Remplace le tooltip discret : le mode de calcul multi-blocs doit être lisible
+// directement à la saisie.
+.blocs-calcul-help {
+  display: flex;
+  align-items: flex-start;
+  gap: $spacing-xs;
+  margin: $spacing-xs 0 $spacing-sm;
+  padding: $spacing-sm;
+  background-color: $beige;
+  border-left: $border-width-accent solid $info-color;
+  border-radius: $border-radius-sm;
+
+  .blocs-calcul-help-icon {
+    flex-shrink: 0;
+    color: $info-color;
+    font-size: 16px;
+    margin-top: 1px;
+  }
+  .blocs-calcul-help-body {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .blocs-calcul-help-title {
+    font-weight: 700;
+    color: $black;
+    font-size: 0.9rem;
+  }
+  .blocs-calcul-help-text {
+    color: $gray-dark;
+    font-size: 0.85rem;
+    line-height: 1.4;
   }
 }
 

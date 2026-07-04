@@ -105,6 +105,21 @@ describe('SuiviSaisieComponent — indicateurs de réponse', () => {
   });
 
   // ---------------------------------------------------------------------------
+  // Multi-blocs ET/OU (#516 — explication du calcul combiné affichée en clair)
+  // ---------------------------------------------------------------------------
+  describe('isMultiBlock (gate de l\'explication ET/OU)', () => {
+    const c = comp();
+    it('vrai dès qu\'il y a au moins un bloc complémentaire', () => {
+      expect(c.isMultiBlock(ctrlOf({ meta: { score_blocks: [{ position: 1, logical_op: 'OR' }] } }))).toBe(true);
+    });
+    it('faux pour une métrique mono-bloc (aucun bloc complémentaire)', () => {
+      expect(c.isMultiBlock(ctrlOf({ meta: { score_blocks: [] } }))).toBe(false);
+      expect(c.isMultiBlock(ctrlOf({ meta: {} }))).toBe(false);
+      expect(c.isMultiBlock(ctrlOf({}))).toBe(false);
+    });
+  });
+
+  // ---------------------------------------------------------------------------
   // Copie de l'emprise prévue + retour en arrière (#511)
   // ---------------------------------------------------------------------------
   describe('copyPlannedEmprise / undoCopyPlannedEmprise', () => {

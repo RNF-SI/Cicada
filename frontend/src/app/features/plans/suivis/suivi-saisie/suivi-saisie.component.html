@@ -543,13 +543,17 @@
                       <div class="indic-info">
                         <span class="indic-info-label">{{ 'plans.suivis.saisie.fields.formule' | translate }} :</span>
                         <span class="indic-info-value indic-formula">{{ formula }}</span>
-                        <i class="fi fi-rr-info formula-info"
-                           [matTooltip]="'common.metriqueFormulaHint' | translate"
-                           matTooltipPosition="above"
-                           tabindex="0"
-                           [attr.aria-label]="'common.metriqueFormulaHint' | translate"></i>
                       </div>
                     }
+                    <!-- #516 — explication VISIBLE du calcul ET/OU (auparavant en simple
+                         tooltip, difficile à repérer). Toujours affichée en multi-blocs. -->
+                    <div class="blocs-calcul-help">
+                      <i class="fi fi-rr-info blocs-calcul-help-icon"></i>
+                      <div class="blocs-calcul-help-body">
+                        <span class="blocs-calcul-help-title">{{ 'plans.suivis.saisie.fields.blocsCalculTitle' | translate }}</span>
+                        <span class="blocs-calcul-help-text">{{ 'common.metriqueFormulaHint' | translate }}</span>
+                      </div>
+                    </div>
                     @for (bi of blockInputs(ind); track bi.ctrl) {
                       <app-form-field [label]="bi.label" [suffix]="bi.unite">
                         <input type="number" [formControlName]="bi.ctrl"
