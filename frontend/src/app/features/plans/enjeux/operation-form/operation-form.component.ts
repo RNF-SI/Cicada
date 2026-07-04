@@ -2402,16 +2402,86 @@ export class OperationFormComponent implements OnInit {
   }
 
   /**
-   * #520 — Au changement MANUEL du choix « le protocole est-il dans CAMPanule ? »,
-   * vider la sélection CAMPanule et les champs auto-remplis depuis le protocole
-   * (description, objectif, période). Sans cela, en repassant sur « Non » les
-   * valeurs issues de CAMPanule restaient affichées dans les champs éditables
-   * (et inversement, des données saisies restaient sous un protocole CAMPanule).
-   * Branché sur l'événement (change) du radio : ne se déclenche donc PAS lors du
-   * patchValue de chargement en édition (préserve les données enregistrées).
+   * #520 — Mémoire des valeurs saisies MANUELLEMENT (mode « Non ») pour ne pas
+   * les perdre lors d'un aller-retour du choix CAMPanule.
+   */
+  private manualProtocoleSnapshot: {
+    description_protocole: string;
+    objectif_protocole: string;
+    periode_echantillonnage: string;
+  } | null = null;
+
+  /**
+   * #520 — Mémoire de la sélection CAMPanule (mode « Oui ») pour la restaurer
+   * si l'on rebascule sur « Oui » sans avoir à re-rechercher le protocole.
+   */
+  private campanuleSnapshot: {
+    selected: CampanuleAutocomplete | null;
+    protocole_campanule_nom: string;
+    cd_protocole_campanule: number | null;
+    description_protocole: string;
+    objectif_protocole: string;
+    periode_echantillonnage: string;
+  } | null = null;
+
+  /**
+   * #520 — Au changement MANUEL du choix « le protocole est-il dans CAMPanule ? ».
+   *
+   * Les champs description / objectif / période sont partagés entre les deux
+   * modes. On garde donc deux « canaux » indépendants en mémoire :
+   *  - Oui → Non : on archive la sélection CAMPanule (elle ne doit pas rester
+   *    affichée dans les champs éditables — bug initial #520) et on restaure la
+   *    saisie manuelle précédente.
+   *  - Non → Oui : on archive la saisie manuelle et on restaure la sélection
+   *    CAMPanule précédente si elle existe.
+   *
+   * Ainsi un aller-retour du choix ne perd plus les données saisies (retour de
+   * test #520). Branché sur (change) du radio : ne se déclenche PAS au chargement
+   * en édition (patchValue), donc les données enregistrées ne sont pas écrasées.
    */
   onProtocoleCampanuleChange(): void {
-    this.onCampanuleReset();
+    if (this.isCampanule) {
+      // Non → Oui : archiver la saisie manuelle, restaurer la sélection CAMPanule
+      this.manualProtocoleSnapshot = {
+        description_protocole: this.form.get('description_protocole')?.value || '',
+        objectif_protocole: this.form.get('objectif_protocole')?.value || '',
+        periode_echantillonnage: this.form.get('periode_echantillonnage')?.value || '',
+      };
+      if (this.campanuleSnapshot) {
+        const snap = this.campanuleSnapshot;
+        this.selectedCampanule.set(snap.selected);
+        this.campanuleSearchCtrl.setValue(snap.protocole_campanule_nom, { emitEvent: false });
+        this.form.patchValue({
+          protocole_campanule_nom: snap.protocole_campanule_nom,
+          cd_protocole_campanule: snap.cd_protocole_campanule,
+          description_protocole: snap.description_protocole,
+          objectif_protocole: snap.objectif_protocole,
+          periode_echantillonnage: snap.periode_echantillonnage,
+        });
+      } else {
+        this.onCampanuleReset();
+      }
+    } else {
+      // Oui → Non : archiver la sélection CAMPanule, restaurer la saisie manuelle
+      this.campanuleSnapshot = {
+        selected: this.selectedCampanule(),
+        protocole_campanule_nom: this.form.get('protocole_campanule_nom')?.value || '',
+        cd_protocole_campanule: this.form.get('cd_protocole_campanule')?.value ?? null,
+        description_protocole: this.form.get('description_protocole')?.value || '',
+        objectif_protocole: this.form.get('objectif_protocole')?.value || '',
+        periode_echantillonnage: this.form.get('periode_echantillonnage')?.value || '',
+      };
+      this.selectedCampanule.set(null);
+      this.campanuleSearchCtrl.setValue('', { emitEvent: false });
+      const manual = this.manualProtocoleSnapshot;
+      this.form.patchValue({
+        protocole_campanule_nom: '',
+        cd_protocole_campanule: null,
+        description_protocole: manual?.description_protocole ?? '',
+        objectif_protocole: manual?.objectif_protocole ?? '',
+        periode_echantillonnage: manual?.periode_echantillonnage ?? '',
+      });
+    }
   }
 
   consulterProtocole(): void {

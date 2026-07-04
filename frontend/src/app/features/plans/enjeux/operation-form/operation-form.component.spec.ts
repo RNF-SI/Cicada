@@ -671,5 +671,65 @@ describe('OperationFormComponent — ventilation budgétaire', () => {
       expect((c as any).selectedCampanule()).toBeNull();
       expect((c as any).campanuleSearchCtrl.value).toBe('');
     });
+
+    // Retour de test #520 : un aller-retour du choix ne doit pas perdre les données.
+    function makeEmptyComp(): OperationFormComponent {
+      const comp = Object.create(OperationFormComponent.prototype) as OperationFormComponent;
+      (comp as any).selectedCampanule = signal<unknown>(null);
+      (comp as any).campanuleSearchCtrl = new FormControl('');
+      (comp as any).form = new FormGroup({
+        protocole_dans_campanule: new FormControl(false),
+        protocole_campanule_nom: new FormControl(''),
+        cd_protocole_campanule: new FormControl(null),
+        description_protocole: new FormControl(''),
+        objectif_protocole: new FormControl(''),
+        periode_echantillonnage: new FormControl(''),
+      });
+      return comp;
+    }
+
+    it('préserve la saisie manuelle après un aller-retour Non → Oui → Non', () => {
+      const c = makeEmptyComp();
+      const form = (c as any).form as FormGroup;
+
+      // L'utilisateur saisit manuellement en mode « Non »
+      form.patchValue({
+        description_protocole: 'Ma description perso',
+        objectif_protocole: 'Mon objectif perso',
+        periode_echantillonnage: 'Avril; Mai',
+      });
+
+      // Non → Oui
+      form.get('protocole_dans_campanule')?.setValue(true);
+      c.onProtocoleCampanuleChange();
+      expect(form.get('description_protocole')?.value).toBe('');
+
+      // Oui → Non : la saisie manuelle est restaurée
+      form.get('protocole_dans_campanule')?.setValue(false);
+      c.onProtocoleCampanuleChange();
+      expect(form.get('description_protocole')?.value).toBe('Ma description perso');
+      expect(form.get('objectif_protocole')?.value).toBe('Mon objectif perso');
+      expect(form.get('periode_echantillonnage')?.value).toBe('Avril; Mai');
+    });
+
+    it('restaure la sélection CAMPanule après un aller-retour Oui → Non → Oui', () => {
+      const c = makeComp(); // démarre avec un protocole CAMPanule sélectionné
+      const form = (c as any).form as FormGroup;
+      form.get('protocole_dans_campanule')?.setValue(true);
+
+      // Oui → Non : la sélection est archivée, les champs éditables vidés
+      form.get('protocole_dans_campanule')?.setValue(false);
+      c.onProtocoleCampanuleChange();
+      expect(form.get('cd_protocole_campanule')?.value).toBeNull();
+      expect((c as any).selectedCampanule()).toBeNull();
+
+      // Non → Oui : la sélection CAMPanule précédente est restaurée
+      form.get('protocole_dans_campanule')?.setValue(true);
+      c.onProtocoleCampanuleChange();
+      expect(form.get('cd_protocole_campanule')?.value).toBe(42);
+      expect(form.get('protocole_campanule_nom')?.value).toBe('Proto X');
+      expect(form.get('description_protocole')?.value).toBe('Description issue de CAMPanule');
+      expect((c as any).selectedCampanule()).toEqual({ cd_protocole: 42, lb_protocole_court: 'Proto X' });
+    });
   });
 });
