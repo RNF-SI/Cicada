@@ -2041,6 +2041,7 @@
       },
       "indicateur": {
         "subtitle": "Remplir le suivi d'un indicateur",
+        "backToDashboard": "Retour au tableau de bord",
         "editIndicateur": "Modifier l'indicateur",
         "viewGlobal": "Voir l'évaluation globale",
         "metriquesTitle": "Métriques :",

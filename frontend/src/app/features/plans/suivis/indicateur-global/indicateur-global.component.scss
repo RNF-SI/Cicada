@@ -91,6 +91,19 @@
   font-size: 0.8rem; font-weight: 600;
 }
 
+// #518 — retour au tableau de bord depuis la page d'évaluation globale.
+.hero-actions { display: inline-flex; flex-wrap: wrap; gap: $spacing-sm; margin-top: $spacing-sm; }
+.btn-hero-secondary {
+  display: inline-flex; align-items: center; gap: $spacing-xs;
+  padding: $spacing-xs $spacing-lg;
+  background-color: $white; color: $primary-color; border: 1px solid $primary-color;
+  border-radius: 80px;
+  font-family: $font-family; font-weight: 600;
+  text-decoration: none; cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+  &:hover { background: $primary-color; color: $white; }
+}
+
 .content-section {
   max-width: 1400px;
   margin: 0 auto;

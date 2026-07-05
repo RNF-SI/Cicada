@@ -47,6 +47,14 @@
             @if (d.type_indicateur_label) {
               <span class="indicateur-type">{{ d.type_indicateur_label }}</span>
             }
+            <div class="hero-actions">
+              <!-- #518 — retour direct au tableau de bord (données rechargées au retour). -->
+              <a class="btn-hero-secondary"
+                 [routerLink]="['/plans', planSlug(), 'tableau-de-bord']">
+                <i class="fi fi-rr-arrow-left"></i>
+                {{ 'plans.suivis.indicateur.backToDashboard' | translate }}
+              </a>
+            </div>
           </div>
         </div>
       </section>

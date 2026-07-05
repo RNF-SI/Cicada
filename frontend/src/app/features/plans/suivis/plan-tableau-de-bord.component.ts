@@ -221,7 +221,11 @@ export class PlanTableauDeBordComponent implements OnInit {
   private loadData(planId: number): void {
     this.isLoading.set(true);
 
-    this.enjeuService.getPlanEnjeux(planId).subscribe({
+    // #518 — toujours recharger depuis le serveur : au retour d'une saisie de
+    // suivi (page « Remplir le suivi d'un indicateur »), les scores viennent
+    // d'être modifiés. Servir le cache afficherait des données périmées et
+    // obligerait l'utilisateur à rafraîchir la page à la main.
+    this.enjeuService.getPlanEnjeux(planId, true).subscribe({
       next: (response) => {
         const groups: DashboardGroup[] = [];
         const allEnjeux = [...response.enjeux, ...response.fcr];

@@ -102,4 +102,16 @@ describe('PlanTableauDeBordComponent — score manuel (#518)', () => {
     expect(component.getGlobalScoreForRow(makeRow(indicateur))).toBe('very-bad');
     spy.mockRestore();
   });
+
+  // #518 (3e retour) — au retour d'une saisie de suivi, le tableau de bord doit
+  // recharger depuis le serveur (forceRefresh=true) et non servir le cache, sinon
+  // les scores fraîchement saisis n'apparaissent qu'après un rafraîchissement manuel.
+  it('recharge les données depuis le serveur (forceRefresh) au chargement', () => {
+    const svc = (component as unknown as { enjeuService: EnjeuService }).enjeuService;
+    const spy = jest
+      .spyOn(svc, 'getPlanEnjeux')
+      .mockReturnValue(of({ enjeux: [], fcr: [] }) as any);
+    (component as unknown as { loadData: (id: number) => void }).loadData(42);
+    expect(spy).toHaveBeenCalledWith(42, true);
+  });
 });

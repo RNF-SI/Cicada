@@ -45,6 +45,13 @@
             </div>
             <h1 class="plan-title">{{ ind.nom_indicateur }}</h1>
             <div class="hero-actions">
+              <!-- #518 — retour direct au tableau de bord (les données y sont
+                   rechargées automatiquement au retour). -->
+              <a class="btn-hero-secondary"
+                 [routerLink]="['/plans', planSlug(), 'tableau-de-bord']">
+                <i class="fi fi-rr-arrow-left"></i>
+                {{ 'plans.suivis.indicateur.backToDashboard' | translate }}
+              </a>
               <!-- #420 — deep-link vers le détail de l'enjeu, ancré sur l'indicateur -->
               @if (ind.enjeu_slug) {
                 <a class="btn-hero-primary"
