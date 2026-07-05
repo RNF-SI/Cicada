@@ -1931,6 +1931,7 @@
           "export": "Imprimer / Exporter (PDF)",
           "voirSuivi": "Voir le suivi de l'action",
           "voirFiche": "Voir la fiche de l'action",
+          "voirDansPlan": "Voir dans le plan de gestion",
           "description": "Description",
           "temporalite": "Temporalité",
           "periode": "Période",

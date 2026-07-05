@@ -442,6 +442,38 @@ class SuiviInventaireWriteSerializer(serializers.ModelSerializer):
 # Serializer détaillé
 # =============================================================================
 
+def _operation_enjeu_slug(obj):
+    """Slug du premier enjeu atteint via les métriques de l'action.
+
+    Chemins possibles : Indicateur → NE → OLT → Enjeu, ou
+    Indicateur → RA → OO → Pression (M2M) → FI → Enjeu.
+    Sert à ramener l'utilisateur à la position de l'action dans l'architecture
+    du plan depuis la fiche action (#531).
+    """
+    for met in obj.metriques.all():
+        if not met.id_indicateur_id:
+            continue
+        indicateur = met.id_indicateur
+        # Chemin NE (onglet OLT)
+        try:
+            ne = indicateur.id_ne
+            if ne and ne.id_olt and ne.id_olt.id_enjeu:
+                return ne.id_olt.id_enjeu.slug
+        except AttributeError:
+            pass
+        # Chemin RA (onglet Opérations)
+        try:
+            ra = indicateur.id_resultat_attendu
+            if ra and ra.id_oo:
+                pression = ra.id_oo.pressions.select_related(
+                    'id_facteur_influence__id_enjeu').first()
+                if pression and pression.id_facteur_influence and pression.id_facteur_influence.id_enjeu:
+                    return pression.id_facteur_influence.id_enjeu.slug
+        except AttributeError:
+            pass
+    return None
+
+
 class OperationSerializer(serializers.ModelSerializer):
     """Serializer détaillé pour une Opération."""
     priorite_label = serializers.CharField(source='id_priorite.label', read_only=True)
@@ -455,6 +487,9 @@ class OperationSerializer(serializers.ModelSerializer):
     metrique_ids = serializers.SerializerMethodField()
     site_ids = serializers.SerializerMethodField()
     nb_sites = serializers.SerializerMethodField()
+    # #531 — slug de l'enjeu parent, pour naviguer vers la position de l'action
+    # dans l'architecture du plan depuis la fiche action.
+    enjeu_slug = serializers.SerializerMethodField()
     operation_annees = OperationAnneeSerializer(many=True, read_only=True)
     finances = FinanceOperationSerializer(many=True, read_only=True)
     suivi_inventaire = SuiviInventaireSerializer(source='id_suivi', read_only=True)
@@ -500,7 +535,7 @@ class OperationSerializer(serializers.ModelSerializer):
             'geom', 'geom_geojson',
             'id_indicateur',
             'metriques', 'metrique_ids',
-            'site_ids', 'nb_sites',
+            'site_ids', 'nb_sites', 'enjeu_slug',
             'operation_annees', 'finances',
             'niveau_realisation_global_mnemonique',
             'niveau_realisation_global_label',
@@ -509,6 +544,9 @@ class OperationSerializer(serializers.ModelSerializer):
             'date_ajout', 'date_maj', 'createur_nom'
         ]
         read_only_fields = ['id_operation', 'date_ajout', 'date_maj']
+
+    def get_enjeu_slug(self, obj):
+        return _operation_enjeu_slug(obj)
 
     def get_geom_geojson(self, obj):
         """Emprise spatiale au format GeoJSON (consommable par Leaflet)."""

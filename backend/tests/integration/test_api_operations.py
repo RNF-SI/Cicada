@@ -407,6 +407,15 @@ class TestOperationDetailEndpoint:
         response = api_client.get(f'/api/plans/operations/{op_id}/')
         assert response.data['priorite_label'] == 'Priorité 1'
 
+    def test_detail_includes_enjeu_slug(self, api_client, operation_test_data):
+        """#531 — le détail expose l'enjeu parent (via NE → OLT → Enjeu) pour
+        naviguer vers la position de l'action dans l'architecture du plan."""
+        api_client.force_authenticate(user=operation_test_data['super_admin'])
+        op_id = operation_test_data['op1'].id_operation
+        response = api_client.get(f'/api/plans/operations/{op_id}/')
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data['enjeu_slug'] == operation_test_data['enjeu'].slug
+
     def test_detail_includes_createur_nom(self, api_client, operation_test_data):
         """Test detail includes createur_nom."""
         api_client.force_authenticate(user=operation_test_data['super_admin'])

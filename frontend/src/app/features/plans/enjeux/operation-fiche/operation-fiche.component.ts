@@ -212,6 +212,25 @@ export class OperationFicheComponent implements OnInit {
     }
   }
 
+  /**
+   * #531 — Va directement à la POSITION de l'action dans l'architecture du plan,
+   * indépendamment du bouton « Retour ». Utile quand la fiche a été ouverte
+   * depuis le suivi des actions (où « Retour » ramène au suivi). On s'appuie sur
+   * l'enjeu parent (`enjeu_slug`, résolu côté backend via les métriques) et sur
+   * le query param `expandOperation` que la liste des enjeux décode pour ouvrir
+   * le bon onglet (OLT/Opérations), déplier la chaîne et scroller vers l'action.
+   */
+  goToArchitecture(): void {
+    const slug = this.planSlug();
+    const op = this.operation();
+    const enjeuSlug = op?.enjeu_slug;
+    if (slug && op && enjeuSlug) {
+      this.router.navigate(['/plans', slug, 'enjeux', enjeuSlug], {
+        queryParams: { expandOperation: op.id_operation },
+      });
+    }
+  }
+
   /** #521 — Lien vers la page de suivi (vue globale) de cette action. */
   goToSuivi(): void {
     const slug = this.planSlug();

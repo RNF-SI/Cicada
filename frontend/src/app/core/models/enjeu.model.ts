@@ -753,6 +753,9 @@ export interface Operation {
   metrique_ids?: number[];
   site_ids?: number[];
   nb_sites?: number;
+  /** #531 — slug de l'enjeu parent (via les métriques), pour naviguer vers la
+   *  position de l'action dans l'architecture du plan depuis la fiche action. */
+  enjeu_slug?: string | null;
   // Nested relational data
   operation_annees?: OperationAnnee[];
   finances?: FinanceOperation[];

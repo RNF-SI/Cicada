@@ -8,6 +8,11 @@
       <button class="btn-sections" [class.active]="showSectionPicker()" (click)="toggleSectionPicker()">
         <i class="fi fi-rr-list-check"></i> {{ 'plans.suivis.actions.fiche.sections.toggle' | translate }}
       </button>
+      @if (operation()?.enjeu_slug) {
+        <button class="btn-suivi" (click)="goToArchitecture()">
+          <i class="fi fi-rr-marker"></i> {{ 'plans.suivis.actions.fiche.voirDansPlan' | translate }}
+        </button>
+      }
       <button class="btn-suivi" (click)="goToSuivi()">
         <i class="fi fi-rr-chart-histogram"></i> {{ 'plans.suivis.actions.fiche.voirSuivi' | translate }}
       </button>

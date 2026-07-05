@@ -173,3 +173,30 @@ describe('OperationFicheComponent — bouton retour vers la page d\'origine (#52
     expect(router.navigate).toHaveBeenCalledWith(['/plans', 'plan-x', 'suivi-actions']);
   });
 });
+
+describe('OperationFicheComponent — bouton « Voir dans le plan de gestion » (#531)', () => {
+  function operationWithEnjeu(enjeuSlug: string | null): Operation {
+    return {
+      id_operation: 42, libelle: 'Action test', enjeu_slug: enjeuSlug,
+      metriques: [], operation_annees: [], finances: [],
+    } as unknown as Operation;
+  }
+
+  it('navigue vers l\'enjeu parent avec expandOperation, quelle que soit l\'origine', () => {
+    const router = { navigate: jest.fn() };
+    // Ouverte depuis le suivi (from=suivi) : le bouton doit tout de même mener à l'architecture.
+    const fixture = setup(operationWithEnjeu('mon-enjeu'), { from: 'suivi', router });
+    fixture.componentInstance.goToArchitecture();
+    expect(router.navigate).toHaveBeenCalledWith(
+      ['/plans', 'plan-x', 'enjeux', 'mon-enjeu'],
+      { queryParams: { expandOperation: 42 } },
+    );
+  });
+
+  it('ne navigue pas si l\'enjeu parent est inconnu', () => {
+    const router = { navigate: jest.fn() };
+    const fixture = setup(operationWithEnjeu(null), { router });
+    fixture.componentInstance.goToArchitecture();
+    expect(router.navigate).not.toHaveBeenCalled();
+  });
+});
