@@ -11,6 +11,8 @@ import { Observable, of, throwError, Subject } from 'rxjs';
 import { EnjeuxListComponent } from './enjeux-list.component';
 import { EnjeuService } from '../../../../core/services/enjeu.service';
 import { AdminService } from '../../../../core/services/admin.service';
+import { ConfirmDialogComponent } from '../../../../shared/components/confirm-dialog/confirm-dialog.component';
+import { DeleteOperationDialogComponent } from '../../../../shared/components/modals';
 import {
   Enjeu, PlanEnjeuxResponse, FacteurInfluence, Pression,
   ObjectifLongTerme, NiveauExigence, Indicateur,
@@ -280,6 +282,8 @@ describe('EnjeuxListComponent', () => {
     createResultatAttendu: jest.Mock;
     updateResultatAttendu: jest.Mock;
     deleteResultatAttendu: jest.Mock;
+    deleteOperation: jest.Mock;
+    removeMetriqueFromOperation: jest.Mock;
   };
   let mockAdminService: { getPlanBySlug: jest.Mock; getNomenclaturesByType: jest.Mock };
   let routeParamsSubject: Subject<any>;
@@ -322,6 +326,9 @@ describe('EnjeuxListComponent', () => {
       createResultatAttendu: jest.fn().mockReturnValue(of({ id_ra: 1102, id_oo: 1001, libelle: 'Nouveau RA', date_ajout: '', date_maj: '' })),
       updateResultatAttendu: jest.fn().mockReturnValue(of({ id_ra: 1101, id_oo: 1001, libelle: 'RA modifié', date_ajout: '', date_maj: '' })),
       deleteResultatAttendu: jest.fn().mockReturnValue(of(void 0)),
+      // Opérations (#457)
+      deleteOperation: jest.fn().mockReturnValue(of(void 0)),
+      removeMetriqueFromOperation: jest.fn().mockReturnValue(of(void 0)),
       // Cache signal partagé (sidebar) — #228 retour 2026-05-12
       currentPlanEnjeux: jest.fn().mockReturnValue(null),
       updatePlanEnjeuxCache: jest.fn(),
@@ -947,6 +954,65 @@ describe('EnjeuxListComponent', () => {
       mockEnjeuService.deleteEnjeu.mockReturnValue(throwError(() => new Error('fail')));
       component.onEnjeuDelete(mockEnjeu1);
       expect(component.errorMessage()).toBeTruthy();
+    });
+  });
+
+  // =========================================================================
+  // Suppression d'une action / retrait du lien métrique (#457)
+  // =========================================================================
+
+  describe('deleteOperation — choix suppression / retrait lien (#457)', () => {
+    beforeEach(() => setup());
+
+    const opMultiMetriques = (): any => ({
+      id_operation: 42,
+      libelle: 'Action multi',
+      metriques: [
+        { id_metrique: 11, nom_metrique: 'Métrique A', indicateur_type: 'ETAT' },
+        { id_metrique: 22, nom_metrique: 'Métrique B', indicateur_type: 'PRESSION' },
+      ],
+    });
+
+    const opSingleMetrique = (): any => ({
+      id_operation: 43,
+      libelle: 'Action simple',
+      metriques: [
+        { id_metrique: 11, nom_metrique: 'Métrique A', indicateur_type: 'ETAT' },
+      ],
+    });
+
+    it('ouvre le dialogue de choix quand l\'action est liée à plusieurs métriques', () => {
+      const mockDialogRef = { afterClosed: () => of({ action: 'cancel' }) } as MatDialogRef<any>;
+      mockDialogOpen = jest.spyOn(MatDialog.prototype, 'open').mockReturnValue(mockDialogRef);
+      component.deleteOperation(opMultiMetriques());
+      expect(mockDialogOpen).toHaveBeenCalledWith(DeleteOperationDialogComponent, expect.anything());
+      expect(mockEnjeuService.deleteOperation).not.toHaveBeenCalled();
+      expect(mockEnjeuService.removeMetriqueFromOperation).not.toHaveBeenCalled();
+    });
+
+    it('supprime l\'action entièrement quand le choix est « delete »', () => {
+      const mockDialogRef = { afterClosed: () => of({ action: 'delete' }) } as MatDialogRef<any>;
+      jest.spyOn(MatDialog.prototype, 'open').mockReturnValue(mockDialogRef);
+      component.deleteOperation(opMultiMetriques());
+      expect(mockEnjeuService.deleteOperation).toHaveBeenCalledWith(42);
+      expect(mockEnjeuService.removeMetriqueFromOperation).not.toHaveBeenCalled();
+    });
+
+    it('retire seulement le lien quand le choix est « unlink »', () => {
+      const mockDialogRef = { afterClosed: () => of({ action: 'unlink', metriqueId: 22 }) } as MatDialogRef<any>;
+      jest.spyOn(MatDialog.prototype, 'open').mockReturnValue(mockDialogRef);
+      component.deleteOperation(opMultiMetriques());
+      expect(mockEnjeuService.removeMetriqueFromOperation).toHaveBeenCalledWith(42, 22);
+      expect(mockEnjeuService.deleteOperation).not.toHaveBeenCalled();
+    });
+
+    it('utilise la confirmation simple (suppression) pour une action liée à une seule métrique', () => {
+      const mockDialogRef = { afterClosed: () => of(true) } as MatDialogRef<any>;
+      mockDialogOpen = jest.spyOn(MatDialog.prototype, 'open').mockReturnValue(mockDialogRef);
+      component.deleteOperation(opSingleMetrique());
+      expect(mockDialogOpen).toHaveBeenCalledWith(ConfirmDialogComponent, expect.anything());
+      expect(mockDialogOpen).not.toHaveBeenCalledWith(DeleteOperationDialogComponent, expect.anything());
+      expect(mockEnjeuService.deleteOperation).toHaveBeenCalledWith(43);
     });
   });
 

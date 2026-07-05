@@ -1,0 +1,67 @@
+<h2 mat-dialog-title>{{ 'enjeux.operations.deleteDialog.title' | translate }}</h2>
+
+<mat-dialog-content>
+  <p class="dialog-subtitle">
+    {{ 'enjeux.operations.deleteDialog.subtitle' | translate:{ libelle: data.libelle } }}
+  </p>
+
+  <div class="choice-list">
+    <!-- Retirer le lien à une métrique (option non destructive) -->
+    <button type="button" class="choice-card"
+            [class.selected]="mode() === 'unlink'"
+            (click)="setMode('unlink')">
+      <div class="choice-radio">
+        <span class="radio-dot" [class.active]="mode() === 'unlink'"></span>
+      </div>
+      <div class="choice-content">
+        <span class="choice-label">{{ 'enjeux.operations.deleteDialog.unlinkLabel' | translate }}</span>
+        <span class="choice-description">{{ 'enjeux.operations.deleteDialog.unlinkDescription' | translate }}</span>
+
+        @if (mode() === 'unlink') {
+          <div class="metrique-choices" (click)="$event.stopPropagation()">
+            @for (m of metriques(); track m.id_metrique) {
+              <label class="metrique-option" [class.selected]="selectedMetriqueId() === m.id_metrique">
+                <input type="radio" name="metrique"
+                       [value]="m.id_metrique"
+                       [checked]="selectedMetriqueId() === m.id_metrique"
+                       (change)="selectMetrique(m.id_metrique)">
+                <i class="fi fi-rr-ruler-horizontal"></i>
+                <span>{{ m.nom_metrique }}</span>
+              </label>
+            }
+          </div>
+        }
+      </div>
+    </button>
+
+    <!-- Supprimer l'action entièrement (option destructive) -->
+    <button type="button" class="choice-card choice-destructive"
+            [class.selected]="mode() === 'delete'"
+            (click)="setMode('delete')">
+      <div class="choice-radio">
+        <span class="radio-dot" [class.active]="mode() === 'delete'"></span>
+      </div>
+      <div class="choice-content">
+        <span class="choice-label">{{ 'enjeux.operations.deleteDialog.deleteLabel' | translate }}</span>
+        <span class="choice-description">{{ 'enjeux.operations.deleteDialog.deleteDescription' | translate }}</span>
+      </div>
+    </button>
+  </div>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-stroked-button (click)="cancel()">
+    {{ 'common.actions.cancel' | translate }}
+  </button>
+  @if (mode() === 'delete') {
+    <button mat-flat-button color="warn" (click)="confirm()">
+      {{ 'enjeux.operations.deleteDialog.confirmDelete' | translate }}
+    </button>
+  } @else {
+    <button mat-flat-button color="primary"
+            [disabled]="selectedMetriqueId() == null"
+            (click)="confirm()">
+      {{ 'enjeux.operations.deleteDialog.confirmUnlink' | translate }}
+    </button>
+  }
+</mat-dialog-actions>

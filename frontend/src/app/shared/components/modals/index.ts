@@ -19,3 +19,4 @@ export { ExtendDurationDialogComponent, ExtendDurationDialogData, ExtendDuration
 export { LinkPlanToSiteDialogComponent, LinkPlanToSiteDialogData } from './link-plan-to-site-dialog/link-plan-to-site-dialog.component';
 export { ImportListDialogComponent, ImportListDialogData, ImportListDialogResult, ImportedItem } from './import-list-dialog/import-list-dialog.component';
 export { LinkOperationDialogComponent, LinkOperationDialogData, LinkOperationDialogResult } from './link-operation-dialog/link-operation-dialog.component';
+export { DeleteOperationDialogComponent, DeleteOperationDialogData, DeleteOperationDialogResult, DeleteOperationDialogMetrique } from './delete-operation-dialog/delete-operation-dialog.component';

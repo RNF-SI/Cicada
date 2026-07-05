@@ -45,6 +45,7 @@ import {
   DuplicateIndicateurTargetRa,
 } from '../../../../shared/components/modals/duplicate-indicateur-dialog/duplicate-indicateur-dialog.component';
 import { LinkOperationDialogComponent, LinkOperationDialogData, LinkOperationDialogResult } from '../../../../shared/components/modals';
+import { DeleteOperationDialogComponent, DeleteOperationDialogResult } from '../../../../shared/components/modals';
 import { EnjeuService } from '../../../../core/services/enjeu.service';
 import { AdminService } from '../../../../core/services/admin.service';
 import {
@@ -4306,6 +4307,35 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
   }
 
   deleteOperation(operation: Operation): void {
+    // #457 — Quand l'action est liée à plusieurs métriques, proposer le choix
+    // entre supprimer l'action dans sa globalité ou retirer uniquement le lien
+    // à une métrique. Sinon, simple confirmation de suppression.
+    const linkedMetriques = this.visibleMetriques(operation);
+    if (linkedMetriques.length > 1) {
+      const dialogRef = this.dialog.open(DeleteOperationDialogComponent, {
+        width: '480px',
+        data: {
+          libelle: operation.libelle,
+          metriques: linkedMetriques.map(m => ({
+            id_metrique: m.id_metrique,
+            nom_metrique: m.nom_metrique,
+          })),
+        },
+      });
+
+      dialogRef.afterClosed().pipe(
+        takeUntilDestroyed(this.destroyRef)
+      ).subscribe((result: DeleteOperationDialogResult | undefined) => {
+        if (!result || result.action === 'cancel') return;
+        if (result.action === 'unlink' && result.metriqueId != null) {
+          this.removeOperationMetriqueLink(operation, result.metriqueId);
+        } else if (result.action === 'delete') {
+          this.performDeleteOperation(operation);
+        }
+      });
+      return;
+    }
+
     const dialogRef = this.dialog.open(ConfirmDialogComponent, {
       width: '450px',
       data: {
@@ -4321,26 +4351,55 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
       takeUntilDestroyed(this.destroyRef)
     ).subscribe(confirmed => {
       if (confirmed) {
-        this.enjeuService.deleteOperation(operation.id_operation).pipe(
-          takeUntilDestroyed(this.destroyRef)
-        ).subscribe({
-          next: () => {
-            this.snackBar.open(
-              this.translate.instant('enjeux.operations.deleteSuccess'),
-              this.translate.instant('common.actions.close'),
-              { duration: 3000 }
-            );
-            this.loadPlanData(true);
-          },
-          error: (err) => {
-            const detail = err?.error?.detail || this.translate.instant('enjeux.messages.deleteError');
-            this.snackBar.open(
-              detail,
-              this.translate.instant('common.actions.close'),
-              { duration: 5000 }
-            );
-          }
-        });
+        this.performDeleteOperation(operation);
+      }
+    });
+  }
+
+  /** #457 — Suppression complète de l'action (DELETE), avec reload du plan. */
+  private performDeleteOperation(operation: Operation): void {
+    this.enjeuService.deleteOperation(operation.id_operation).pipe(
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe({
+      next: () => {
+        this.snackBar.open(
+          this.translate.instant('enjeux.operations.deleteSuccess'),
+          this.translate.instant('common.actions.close'),
+          { duration: 3000 }
+        );
+        this.loadPlanData(true);
+      },
+      error: (err) => {
+        const detail = err?.error?.detail || this.translate.instant('enjeux.messages.deleteError');
+        this.snackBar.open(
+          detail,
+          this.translate.instant('common.actions.close'),
+          { duration: 5000 }
+        );
+      }
+    });
+  }
+
+  /** #457 — Retrait du seul lien action ↔ métrique (l'action reste accessible
+   *  depuis les autres métriques). Recharge le plan pour rafraîchir les chips. */
+  private removeOperationMetriqueLink(operation: Operation, metriqueId: number): void {
+    this.enjeuService.removeMetriqueFromOperation(operation.id_operation, metriqueId).pipe(
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe({
+      next: () => {
+        this.snackBar.open(
+          this.translate.instant('enjeux.operations.unlinkSuccess'),
+          this.translate.instant('common.actions.close'),
+          { duration: 3000 }
+        );
+        this.loadPlanData(true);
+      },
+      error: () => {
+        this.snackBar.open(
+          this.translate.instant('enjeux.operations.unlinkError'),
+          this.translate.instant('common.actions.close'),
+          { duration: 3000 }
+        );
       }
     });
   }
