@@ -2116,6 +2116,18 @@ export class OperationFormComponent implements OnInit {
   }
 
   /**
+   * #531 — Lien vers la fiche synthétique de cette action, comme depuis le suivi.
+   * Disponible uniquement lorsqu'une action existe (édition / détail).
+   */
+  goToFiche(): void {
+    const slug = this.planSlug();
+    const opId = this.operationId();
+    if (slug && opId) {
+      this.router.navigate(['/plans', slug, 'enjeux', 'operations', opId, 'fiche']);
+    }
+  }
+
+  /**
    * Navigation après création d'une nouvelle action : on cible l'enjeu d'origine
    * en demandant à la liste de déployer et scroller jusqu'à la nouvelle action.
    */

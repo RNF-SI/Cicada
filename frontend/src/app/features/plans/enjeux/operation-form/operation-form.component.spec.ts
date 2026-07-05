@@ -768,4 +768,26 @@ describe('OperationFormComponent — lien vers le suivi de l\'action (#531)', ()
 
     expect(router.navigate).not.toHaveBeenCalled();
   });
+
+  it('navigue vers la fiche synthétique de l\'action en édition', () => {
+    const router = { navigate: jest.fn() };
+    const c = makeInstance(router);
+    (c as any).planSlug.set('plan-x');
+    (c as any).operationId.set(42);
+
+    c.goToFiche();
+
+    expect(router.navigate).toHaveBeenCalledWith(['/plans', 'plan-x', 'enjeux', 'operations', 42, 'fiche']);
+  });
+
+  it('ne navigue pas vers la fiche en création', () => {
+    const router = { navigate: jest.fn() };
+    const c = makeInstance(router);
+    (c as any).planSlug.set('plan-x');
+    (c as any).operationId.set(null);
+
+    c.goToFiche();
+
+    expect(router.navigate).not.toHaveBeenCalled();
+  });
 });

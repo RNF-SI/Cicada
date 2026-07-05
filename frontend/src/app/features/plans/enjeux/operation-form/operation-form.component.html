@@ -1229,10 +1229,16 @@
     @if (!isReadOnly()) {
       <div class="action-bar">
         @if (operationId()) {
-          <button class="btn-action-suivi" type="button" (click)="goToSuivi()">
-            <i class="fi fi-rr-chart-histogram"></i>
-            {{ 'plans.suivis.actions.fiche.voirSuivi' | translate }}
-          </button>
+          <div class="action-bar-nav">
+            <button class="btn-action-suivi" type="button" (click)="goToFiche()">
+              <i class="fi fi-rr-document"></i>
+              {{ 'plans.suivis.actions.fiche.voirFiche' | translate }}
+            </button>
+            <button class="btn-action-suivi" type="button" (click)="goToSuivi()">
+              <i class="fi fi-rr-chart-histogram"></i>
+              {{ 'plans.suivis.actions.fiche.voirSuivi' | translate }}
+            </button>
+          </div>
         }
         <button class="btn-action-cancel" type="button" (click)="goBack()" [disabled]="isLoading()">
           {{ 'common.actions.cancel' | translate }}
@@ -1259,10 +1265,16 @@
     } @else {
       <div class="action-bar">
         @if (operationId()) {
-          <button class="btn-action-suivi" type="button" (click)="goToSuivi()">
-            <i class="fi fi-rr-chart-histogram"></i>
-            {{ 'plans.suivis.actions.fiche.voirSuivi' | translate }}
-          </button>
+          <div class="action-bar-nav">
+            <button class="btn-action-suivi" type="button" (click)="goToFiche()">
+              <i class="fi fi-rr-document"></i>
+              {{ 'plans.suivis.actions.fiche.voirFiche' | translate }}
+            </button>
+            <button class="btn-action-suivi" type="button" (click)="goToSuivi()">
+              <i class="fi fi-rr-chart-histogram"></i>
+              {{ 'plans.suivis.actions.fiche.voirSuivi' | translate }}
+            </button>
+          </div>
         }
         <button class="btn-action-cancel" type="button" (click)="goBack()">
           {{ 'common.actions.back' | translate }}

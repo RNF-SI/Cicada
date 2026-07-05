@@ -843,9 +843,15 @@ app-form-field.finance-categorie {
   background-color: $primary-color;
 }
 
-// #531 — Lien « Voir le suivi de l'action », poussé à gauche de la barre.
-.btn-action-suivi {
+// #531 — Liens « fiche » / « suivi » de l'action, groupés à gauche de la barre.
+.action-bar-nav {
   margin-right: auto;
+  display: flex;
+  align-items: center;
+  gap: $spacing-md;
+}
+
+.btn-action-suivi {
   display: inline-flex;
   align-items: center;
   gap: $spacing-xs;
