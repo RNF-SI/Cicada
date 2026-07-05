@@ -445,6 +445,9 @@
 
                         <!-- Pressions du facteur -->
                         <div cdkDropList
+                             [id]="'pressions-droplist-' + facteur.id_facteur_influence"
+                             [cdkDropListData]="facteur.pressions || []"
+                             [cdkDropListConnectedTo]="connectedPressionDroplistIds(facteur.id_facteur_influence)"
                              class="pressions-droplist"
                              [cdkDropListDisabled]="!canEditPlan()"
                              (cdkDropListDropped)="onPressionDrop($event, facteur)">

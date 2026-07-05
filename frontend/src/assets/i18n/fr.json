@@ -3461,7 +3461,7 @@
       "dragHandle": "Glisser pour réordonner",
       "reorderSuccess": "Ordre mis à jour",
       "reorderError": "Réordonnancement impossible",
-      "moveSuccess": "Indicateur déplacé",
+      "moveSuccess": "Élément déplacé",
       "moveError": "Déplacement impossible",
       "dropHereIndicateur": "Glisser un indicateur ici"
     },

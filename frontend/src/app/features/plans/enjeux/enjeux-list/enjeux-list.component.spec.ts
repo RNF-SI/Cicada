@@ -2448,5 +2448,61 @@ describe('EnjeuxListComponent', () => {
       expect(reorderSpy).not.toHaveBeenCalled();
       reorderSpy.mockRestore();
     });
+
+    // #472 — déplacement de pression entre facteurs d'influence
+    it('onPressionDrop reorders within the same facteur (same container)', () => {
+      setup();
+      const reorderSpy = jest.spyOn(component['reorderService'], 'reorder').mockReturnValue(of({ updated: 2 }));
+      const facteur = {
+        id_facteur_influence: 5,
+        pressions: [{ id_pression: 1 }, { id_pression: 2 }],
+      } as any;
+      const sameContainer = { data: facteur.pressions };
+      const event = {
+        previousIndex: 0,
+        currentIndex: 1,
+        previousContainer: sameContainer,
+        container: sameContainer,
+      } as any;
+
+      component.onPressionDrop(event, facteur);
+
+      expect(reorderSpy).toHaveBeenCalledWith(
+        'pressions',
+        expect.objectContaining({ parent_id: 5, ordered_ids: [2, 1] }),
+      );
+      reorderSpy.mockRestore();
+    });
+
+    it('onPressionDrop moves a pression to another facteur (cross container)', () => {
+      setup();
+      const moveSpy = jest.spyOn(component['reorderService'], 'movePression').mockReturnValue(of({}));
+      const targetFacteur = { id_facteur_influence: 8, pressions: [] } as any;
+      const event = {
+        previousIndex: 0,
+        currentIndex: 0,
+        previousContainer: { data: [{ id_pression: 42 }] },
+        container: { data: targetFacteur.pressions },
+      } as any;
+
+      component.onPressionDrop(event, targetFacteur);
+
+      expect(moveSpy).toHaveBeenCalledWith(42, { new_facteur_id: 8, position: 0 });
+      moveSpy.mockRestore();
+    });
+
+    it('connectedPressionDroplistIds excludes the current facteur', () => {
+      setup();
+      jest.spyOn(component, 'selectedFacteurs').mockReturnValue([
+        { id_facteur_influence: 1 },
+        { id_facteur_influence: 2 },
+        { id_facteur_influence: 3 },
+      ] as any);
+
+      expect(component.connectedPressionDroplistIds(2)).toEqual([
+        'pressions-droplist-1',
+        'pressions-droplist-3',
+      ]);
+    });
   });
 });

@@ -771,6 +771,85 @@ class PressionViewSet(viewsets.ModelViewSet):
         """
         return do_reorder(self, request, parent_filter='id_facteur_influence')
 
+    @action(detail=True, methods=['post'], url_path='move')
+    def move(self, request, pk=None):
+        """
+        Déplace une pression vers un autre facteur d'influence (#472).
+
+        Payload : {"new_facteur_id": <int>, "position": <int>}
+
+        Garde-fous :
+        - Le facteur cible doit exister et être dans le même plan que l'ancien.
+        - Le plan doit être en brouillon (verrou #248).
+        - Renumérote les siblings dans le facteur cible.
+        """
+        pression = self.get_object()
+        new_facteur_id = request.data.get('new_facteur_id')
+        position = request.data.get('position', 0)
+
+        if new_facteur_id is None:
+            return Response(
+                {"detail": "Payload invalide : 'new_facteur_id' requis."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            new_facteur_id = int(new_facteur_id)
+            position = int(position)
+        except (TypeError, ValueError):
+            return Response(
+                {"detail": "'new_facteur_id' et 'position' doivent être des entiers."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            new_facteur = FacteurInfluence.objects.select_related(
+                'id_enjeu'
+            ).get(pk=new_facteur_id)
+        except FacteurInfluence.DoesNotExist:
+            return Response(
+                {"detail": "Facteur d'influence introuvable."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        # Garde : même plan que la source
+        source_plan = pression.get_plan_de_gestion()
+        target_plan = new_facteur.get_plan_de_gestion()
+        if source_plan and target_plan and source_plan.pk != target_plan.pk:
+            return Response(
+                {"detail": "Déplacement entre plans interdit."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Verrou #248 — plan doit être en statut éditable (draft uniquement)
+        if target_plan and target_plan.statut not in CanModifyOnlyDraftPlan.EDITABLE_STATUSES:
+            return Response(
+                {"detail": "Modification interdite hors brouillon."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        with transaction.atomic():
+            pression.id_facteur_influence = new_facteur
+            pression.ordre = position
+            pression.id_utilisateur_maj = request.user
+            pression.save()
+
+            # Renumérotation des siblings dans le facteur cible
+            siblings = (
+                Pression.objects
+                .filter(id_facteur_influence=new_facteur)
+                .exclude(pk=pression.pk)
+                .order_by('ordre', 'id_pression')
+            )
+            for idx, sib in enumerate(siblings):
+                new_pos = idx if idx < position else idx + 1
+                if sib.ordre != new_pos:
+                    sib.ordre = new_pos
+                    sib.save(update_fields=['ordre'])
+
+        serializer = PressionSerializer(pression)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
     @action(detail=False, methods=['get'], url_path=r'by-facteur/(?P<facteur_id>\d+)')
     def by_facteur(self, request, facteur_id=None):
         """

@@ -31,6 +31,11 @@ export interface MoveIndicateurPayload {
   position: number;
 }
 
+export interface MovePressionPayload {
+  new_facteur_id: number;
+  position: number;
+}
+
 @Injectable({ providedIn: 'root' })
 export class ReorderService {
   private readonly http = inject(HttpClient);
@@ -47,6 +52,15 @@ export class ReorderService {
    */
   moveIndicateur(indicateurId: number, payload: MoveIndicateurPayload): Observable<unknown> {
     return this.http.post(`${this.base}/indicateurs/${indicateurId}/move/`, payload);
+  }
+
+  /**
+   * Déplace une pression vers un autre facteur d'influence — #472.
+   * Endpoint dédié car l'opération change le parent (FK `id_facteur_influence`)
+   * en plus de la position.
+   */
+  movePression(pressionId: number, payload: MovePressionPayload): Observable<unknown> {
+    return this.http.post(`${this.base}/pressions/${pressionId}/move/`, payload);
   }
 
   /**

@@ -3077,11 +3077,77 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
     this.applyReorder('facteurs-influence', enjeu.id_enjeu, list, event.previousIndex, event.currentIndex, 'id_facteur_influence');
   }
 
-  /** Drag-and-drop : réordonne les pressions d'un facteur d'influence. */
+  /**
+   * Drag-and-drop : réordonne ou déplace une pression (#472).
+   * - Intra-facteur (`previousContainer === container`) : réordonnancement.
+   * - Inter-facteur (`previousContainer !== container`) : déplacement vers un
+   *   autre facteur d'influence via l'endpoint `move`.
+   */
   onPressionDrop(event: CdkDragDrop<any[]>, facteur: FacteurInfluence): void {
     if (!facteur?.id_facteur_influence) return;
-    const list = facteur.pressions || [];
-    this.applyReorder('pressions', facteur.id_facteur_influence, list, event.previousIndex, event.currentIndex, 'id_pression');
+    if (event.previousContainer === event.container) {
+      const list = facteur.pressions || [];
+      this.applyReorder('pressions', facteur.id_facteur_influence, list, event.previousIndex, event.currentIndex, 'id_pression');
+    } else {
+      this.applyMovePression(event, facteur.id_facteur_influence);
+    }
+  }
+
+  /**
+   * Liste des IDs des droplists de pressions des autres facteurs d'influence
+   * de l'enjeu courant — utilisé par `cdkDropListConnectedTo` pour activer le
+   * DnD inter-facteur (#472).
+   */
+  connectedPressionDroplistIds(currentFacteurId: number): string[] {
+    return this.selectedFacteurs()
+      .filter(f => f.id_facteur_influence !== currentFacteurId)
+      .map(f => `pressions-droplist-${f.id_facteur_influence}`);
+  }
+
+  /**
+   * Déplacement d'une pression vers un autre facteur d'influence via
+   * l'endpoint `move` (#472). Transfert optimiste côté UI + appel API ;
+   * rollback (reload) si erreur.
+   */
+  private applyMovePression(event: CdkDragDrop<any[]>, newFacteurId: number): void {
+    const pression = event.previousContainer.data[event.previousIndex];
+    const pressionId = pression?.id_pression;
+    if (!pressionId) return;
+
+    // Optimistic transfer
+    transferArrayItem(
+      event.previousContainer.data,
+      event.container.data,
+      event.previousIndex,
+      event.currentIndex,
+    );
+    event.container.data.forEach((item: Record<string, any>, i: number) => {
+      item['ordre'] = i;
+    });
+
+    this.reorderService.movePression(pressionId, {
+      new_facteur_id: newFacteurId,
+      position: event.currentIndex,
+    }).pipe(
+      takeUntilDestroyed(this.destroyRef),
+    ).subscribe({
+      next: () => {
+        this.snackBar.open(
+          this.translate.instant('enjeux.dnd.moveSuccess'),
+          this.translate.instant('common.actions.close'),
+          { duration: 2000 },
+        );
+      },
+      error: () => {
+        this.snackBar.open(
+          this.translate.instant('enjeux.dnd.moveError'),
+          this.translate.instant('common.actions.close'),
+          { duration: 4000 },
+        );
+        // Rollback : recharge depuis le serveur.
+        this.loadPlanData(true);
+      },
+    });
   }
 
   /** Drag-and-drop : réordonne les OLT d'un enjeu. */

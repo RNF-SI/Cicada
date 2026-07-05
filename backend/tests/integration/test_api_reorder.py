@@ -618,3 +618,93 @@ class TestIndicateurMove:
             format='json',
         )
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
+
+# =============================================================================
+# PressionViewSet move (#472)
+# =============================================================================
+
+@pytest.mark.django_db
+@pytest.mark.integration
+class TestPressionMove:
+    """Tests POST /api/plans/pressions/{id}/move/
+
+    Déplace une pression vers un autre facteur d'influence (intra-plan, #472).
+    """
+
+    def _url(self, pression_id):
+        return f'/api/plans/pressions/{pression_id}/move/'
+
+    def test_move_pression_to_another_facteur(self, api_client, reorder_test_data):
+        api_client.force_authenticate(user=reorder_test_data['referent'])
+        pression = reorder_test_data['p1']  # sous fi1
+        target_fi = reorder_test_data['fi2']
+        response = api_client.post(
+            self._url(pression.pk),
+            {'new_facteur_id': target_fi.pk, 'position': 0},
+            format='json',
+        )
+        assert response.status_code == status.HTTP_200_OK, response.data
+        pression.refresh_from_db()
+        assert pression.id_facteur_influence_id == target_fi.pk
+        assert pression.ordre == 0
+
+    def test_move_pression_renumbers_siblings_in_target(self, api_client, reorder_test_data):
+        """La pression insérée en tête décale les siblings existants du facteur cible."""
+        api_client.force_authenticate(user=reorder_test_data['referent'])
+        # fi2 a déjà une pression pré-existante
+        Pression.objects.filter(pk=reorder_test_data['p2'].pk).update(
+            id_facteur_influence=reorder_test_data['fi2'], ordre=0
+        )
+        pression = reorder_test_data['p1']
+        target_fi = reorder_test_data['fi2']
+        response = api_client.post(
+            self._url(pression.pk),
+            {'new_facteur_id': target_fi.pk, 'position': 0},
+            format='json',
+        )
+        assert response.status_code == status.HTTP_200_OK, response.data
+        pression.refresh_from_db()
+        p2 = Pression.objects.get(pk=reorder_test_data['p2'].pk)
+        assert pression.ordre == 0
+        assert p2.ordre == 1
+
+    def test_move_to_nonexistent_facteur_returns_404(self, api_client, reorder_test_data):
+        api_client.force_authenticate(user=reorder_test_data['referent'])
+        response = api_client.post(
+            self._url(reorder_test_data['p1'].pk),
+            {'new_facteur_id': 999999, 'position': 0},
+            format='json',
+        )
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+
+    def test_move_without_facteur_id_returns_400(self, api_client, reorder_test_data):
+        api_client.force_authenticate(user=reorder_test_data['referent'])
+        response = api_client.post(
+            self._url(reorder_test_data['p1'].pk),
+            {'position': 0},
+            format='json',
+        )
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+    def test_move_on_validated_plan_returns_403(self, api_client, reorder_test_data):
+        """Verrou #248 : pas de déplacement de pression sur un plan validé."""
+        plan = reorder_test_data['plan']
+        plan.statut = 'valide'
+        plan.save(update_fields=['statut'])
+
+        api_client.force_authenticate(user=reorder_test_data['referent'])
+        response = api_client.post(
+            self._url(reorder_test_data['p1'].pk),
+            {'new_facteur_id': reorder_test_data['fi2'].pk, 'position': 0},
+            format='json',
+        )
+        assert response.status_code == status.HTTP_403_FORBIDDEN, response.data
+
+    def test_move_unauthenticated_returns_401(self, api_client, reorder_test_data):
+        response = api_client.post(
+            self._url(reorder_test_data['p1'].pk),
+            {'new_facteur_id': reorder_test_data['fi2'].pk, 'position': 0},
+            format='json',
+        )
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
