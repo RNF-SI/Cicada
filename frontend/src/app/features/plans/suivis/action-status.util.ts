@@ -38,6 +38,50 @@ export function getActionIcon(status: ActionStatus | null): string {
 }
 
 /**
+ * #460 — Rendu du statut de réalisation GLOBAL d'une action dans le tableau
+ * de suivi. Contrairement aux 3 icônes historiques (réalisé / partiel / non
+ * réalisé), on distingue explicitement « en cours » (sablier, tant que la
+ * dernière année n'est pas renseignée) et « non commencée » (aucune réponse
+ * saisie). ABANDONNE / REPORTE / NON_REALISE restent « non réalisé ».
+ */
+export type GlobalRealisationKind =
+  | 'realise'
+  | 'partiel'
+  | 'en-cours'
+  | 'non-commencee'
+  | 'non-realise';
+
+/** Regroupe le mnémonique NIVEAU_REALISATION global en un « kind » d'affichage. */
+export function getGlobalRealisationKind(
+  mnemonique: string | null | undefined,
+): GlobalRealisationKind {
+  switch (mnemonique) {
+    case 'TERMINE': return 'realise';
+    case 'PARTIEL': return 'partiel';
+    case 'EN_COURS': return 'en-cours';
+    case 'NON_REALISE':
+    case 'ABANDONNE':
+    case 'REPORTE': return 'non-realise';
+    // NON_DEMARRE, null, undefined, aucune année programmée → non commencée
+    default: return 'non-commencee';
+  }
+}
+
+/** Clé i18n du libellé pour chaque « kind » de statut global. */
+export const GLOBAL_REALISATION_LABEL_KEYS: Record<GlobalRealisationKind, string> = {
+  'realise': 'plans.suivis.actionGlobal.statut.realise',
+  'partiel': 'plans.suivis.actionGlobal.statut.partiel',
+  'en-cours': 'plans.suivis.actionGlobal.statut.enCours',
+  'non-commencee': 'plans.suivis.actionGlobal.statut.nonCommencee',
+  'non-realise': 'plans.suivis.actionGlobal.statut.nonRealise',
+};
+
+/** Clé i18n du libellé du statut global à partir du mnémonique. */
+export function getGlobalRealisationLabelKey(mnemonique: string | null | undefined): string {
+  return GLOBAL_REALISATION_LABEL_KEYS[getGlobalRealisationKind(mnemonique)];
+}
+
+/**
  * Statut d'une (opération, année) en combinant la périodicité prévue (planifié)
  * et le niveau de réalisation observé (TERMINE / PARTIEL / NON_REALISE).
  */

@@ -673,6 +673,27 @@
   }
 }
 
+// #460 — statuts globaux rendus en Flaticon (sablier « en cours », cercle
+// vide « non commencée »). L'icône <i> se dimensionne via font-size.
+.global-icon-en-cours,
+.global-icon-non-commencee {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  line-height: 1;
+
+  &.legend-icon { font-size: 26px; }
+}
+
+.global-icon-en-cours {
+  color: $secondary-orange-salmon; // en cours → orange saumon (warning visuel)
+}
+
+.global-icon-non-commencee {
+  color: $gray; // non commencée → gris neutre
+}
+
 // Code(s) d'action (CS1 · REM-BA02) affiché au-dessus du libellé.
 .action-code {
   display: block;

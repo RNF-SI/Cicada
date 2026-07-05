@@ -281,6 +281,15 @@
                 <img src="assets/images/icons/non-realise-seul.svg" class="action-status-icon legend-icon" alt="">
                 <span class="legend-text">{{ 'plans.suivis.actions.actionNonRealiseeSeule' | translate }}</span>
               </div>
+              <!-- #460 — statuts globaux « en cours » (sablier) et « non commencée » -->
+              <div class="legend-item">
+                <i class="fi fi-rr-hourglass action-status-icon legend-icon global-icon-en-cours"></i>
+                <span class="legend-text">{{ 'plans.suivis.actions.actionEnCours' | translate }}</span>
+              </div>
+              <div class="legend-item">
+                <i class="fi fi-rr-circle action-status-icon legend-icon global-icon-non-commencee"></i>
+                <span class="legend-text">{{ 'plans.suivis.actions.actionNonCommencee' | translate }}</span>
+              </div>
             </div>
           </div>
         }
@@ -347,15 +356,28 @@
                               }
                             </td>
                           }
-                          <!-- #379 — Réalisation GLOBALE : 1 des 3 icônes, cliquable → page globale -->
+                          <!-- #460 — Réalisation GLOBALE : en-cours (sablier) et
+                               non-commencée sont distingués des 3 icônes historiques -->
                           <td class="col-global">
                             <a class="global-icon-link"
                                [routerLink]="['/plans', planSlug(), 'suivi-actions', 'action', item.operation.id_operation]"
                                [matTooltip]="(globalRealisationLabelKey(item.operation.niveau_realisation_global_mnemonique) | translate)
                                   + ' — ' + ('plans.suivis.actionGlobal.openTooltip' | translate)">
-                              <img [src]="globalRealisationIcon(item.operation.niveau_realisation_global_mnemonique)"
-                                   class="action-status-icon"
-                                   [alt]="globalRealisationLabelKey(item.operation.niveau_realisation_global_mnemonique) | translate">
+                              @switch (globalRealisationKind(item.operation.niveau_realisation_global_mnemonique)) {
+                                @case ('en-cours') {
+                                  <i class="fi fi-rr-hourglass action-status-icon global-icon-en-cours"
+                                     [attr.aria-label]="globalRealisationLabelKey(item.operation.niveau_realisation_global_mnemonique) | translate"></i>
+                                }
+                                @case ('non-commencee') {
+                                  <i class="fi fi-rr-circle action-status-icon global-icon-non-commencee"
+                                     [attr.aria-label]="globalRealisationLabelKey(item.operation.niveau_realisation_global_mnemonique) | translate"></i>
+                                }
+                                @default {
+                                  <img [src]="globalRealisationIcon(item.operation.niveau_realisation_global_mnemonique)"
+                                       class="action-status-icon"
+                                       [alt]="globalRealisationLabelKey(item.operation.niveau_realisation_global_mnemonique) | translate">
+                                }
+                              }
                             </a>
                           </td>
                           <td class="col-icons">

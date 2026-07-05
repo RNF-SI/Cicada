@@ -1,5 +1,6 @@
 import {
   getActionStatusForYear, getActionIcon, ACTION_LEGEND_ITEMS, ACTION_ICON_MAP,
+  getGlobalRealisationKind, getGlobalRealisationLabelKey,
 } from './action-status.util';
 import { Operation } from '../../../core/models/enjeu.model';
 
@@ -60,5 +61,38 @@ describe('action-status.util', () => {
   it('la légende contient les 6 statuts dont « non réalisée »', () => {
     expect(ACTION_LEGEND_ITEMS.length).toBe(6);
     expect(ACTION_LEGEND_ITEMS.some(i => i.status === 'planned-not-realized')).toBe(true);
+  });
+
+  describe('getGlobalRealisationKind (#460)', () => {
+    it('TERMINE → realise', () => {
+      expect(getGlobalRealisationKind('TERMINE')).toBe('realise');
+    });
+    it('PARTIEL → partiel', () => {
+      expect(getGlobalRealisationKind('PARTIEL')).toBe('partiel');
+    });
+    it('EN_COURS → en-cours (sablier)', () => {
+      expect(getGlobalRealisationKind('EN_COURS')).toBe('en-cours');
+    });
+    it('NON_DEMARRE → non-commencee', () => {
+      expect(getGlobalRealisationKind('NON_DEMARRE')).toBe('non-commencee');
+    });
+    it('null / undefined / aucune réponse → non-commencee', () => {
+      expect(getGlobalRealisationKind(null)).toBe('non-commencee');
+      expect(getGlobalRealisationKind(undefined)).toBe('non-commencee');
+    });
+    it('NON_REALISE / ABANDONNE / REPORTE → non-realise', () => {
+      expect(getGlobalRealisationKind('NON_REALISE')).toBe('non-realise');
+      expect(getGlobalRealisationKind('ABANDONNE')).toBe('non-realise');
+      expect(getGlobalRealisationKind('REPORTE')).toBe('non-realise');
+    });
+  });
+
+  describe('getGlobalRealisationLabelKey (#460)', () => {
+    it('mappe chaque mnémonique vers sa clé i18n', () => {
+      expect(getGlobalRealisationLabelKey('EN_COURS')).toBe('plans.suivis.actionGlobal.statut.enCours');
+      expect(getGlobalRealisationLabelKey('NON_DEMARRE')).toBe('plans.suivis.actionGlobal.statut.nonCommencee');
+      expect(getGlobalRealisationLabelKey(null)).toBe('plans.suivis.actionGlobal.statut.nonCommencee');
+      expect(getGlobalRealisationLabelKey('TERMINE')).toBe('plans.suivis.actionGlobal.statut.realise');
+    });
   });
 });

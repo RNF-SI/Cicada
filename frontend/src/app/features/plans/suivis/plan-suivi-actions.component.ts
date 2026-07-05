@@ -17,7 +17,8 @@ import {
   Enjeu, Indicateur, Operation, OperationAnnee
 } from '../../../core/models/enjeu.model';
 import {
-  ActionStatus, ACTION_LEGEND_ITEMS, getActionIcon, getActionStatusForYear
+  ActionStatus, ACTION_LEGEND_ITEMS, getActionIcon, getActionStatusForYear,
+  GlobalRealisationKind, getGlobalRealisationKind, getGlobalRealisationLabelKey,
 } from './action-status.util';
 
 type SuiviTab = 'planification' | 'realisation' | 'budget' | 'rh';
@@ -505,26 +506,30 @@ export class PlanSuiviActionsComponent implements OnInit {
   // ===========================================================================
 
   /**
-   * Ramène le niveau global aux 3 icônes du suivi : TERMINE → réalisé,
-   * PARTIEL → partiellement réalisé, tout le reste (EN_COURS, NON_REALISE,
-   * NON_DEMARRE, ABANDONNE, REPORTE, aucun) → non réalisé. La surcharge se fait
-   * désormais sur la page globale de l'action.
+   * #460 — « Kind » d'affichage du statut global : réalisé / partiel /
+   * en-cours (sablier) / non-commencée / non-réalisé. Distingue désormais
+   * EN_COURS et NON_DEMARRE (auparavant fondus dans « non réalisé »).
+   */
+  globalRealisationKind(mnemonique: string | null | undefined): GlobalRealisationKind {
+    return getGlobalRealisationKind(mnemonique);
+  }
+
+  /**
+   * Icône image du statut global pour les kinds rendus via <img>
+   * (réalisé / partiel / non réalisé). En-cours et non-commencée utilisent
+   * une icône Flaticon (cf. template).
    */
   globalRealisationIcon(mnemonique: string | null | undefined): string {
-    switch (mnemonique) {
-      case 'TERMINE': return 'assets/images/icons/realise.png';
-      case 'PARTIEL': return 'assets/images/icons/partiellement-realise.png';
+    switch (this.globalRealisationKind(mnemonique)) {
+      case 'realise': return 'assets/images/icons/realise.png';
+      case 'partiel': return 'assets/images/icons/partiellement-realise.png';
       default: return 'assets/images/icons/non-realise-seul.svg';
     }
   }
 
   /** Clé i18n du libellé du statut global (pour alt/tooltip). */
   globalRealisationLabelKey(mnemonique: string | null | undefined): string {
-    switch (mnemonique) {
-      case 'TERMINE': return 'plans.suivis.actionGlobal.statut.realise';
-      case 'PARTIEL': return 'plans.suivis.actionGlobal.statut.partiel';
-      default: return 'plans.suivis.actionGlobal.statut.nonRealise';
-    }
+    return getGlobalRealisationLabelKey(mnemonique);
   }
 
   // ===========================================================================
