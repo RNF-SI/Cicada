@@ -575,4 +575,93 @@ describe('ReferenceItemListComponent', () => {
       expect(component.freeTextControl.value).toBe('');
     });
   });
+
+  // ==========================================
+  // #471 — Taxon introuvable : recherche par synonymes
+  // ==========================================
+  describe('#471 recherche par synonymes', () => {
+    it('allowSynonymSearch vrai uniquement pour les taxons', () => {
+      component.type = 'taxon';
+      expect(component.allowSynonymSearch).toBe(true);
+      component.type = 'habitat';
+      expect(component.allowSynonymSearch).toBe(false);
+    });
+
+    it('enableSynonymSearch active le mode et relance la recherche avec include_synonyms', fakeAsync(() => {
+      component.type = 'taxon';
+      fixture.detectChanges();
+
+      // Terme déjà saisi, recherche standard passée
+      taxonomyService.autocomplete!.mockReturnValue(of([]));
+      component.searchControl.setValue('Rana');
+      tick(300);
+      expect(taxonomyService.autocomplete).toHaveBeenLastCalledWith('Rana', { limit: 50 });
+
+      // Activation de la recherche élargie → même terme, avec synonymes
+      component.enableSynonymSearch();
+      tick(300);
+
+      expect(component.synonymMode()).toBe(true);
+      expect(taxonomyService.autocomplete).toHaveBeenLastCalledWith('Rana', { limit: 50, include_synonyms: true });
+    }));
+
+    it('résout un synonyme sélectionné vers le taxon accepté (cd_ref)', () => {
+      component.type = 'taxon';
+      component.items = [];
+      fixture.detectChanges();
+
+      const event = {
+        option: {
+          value: {
+            cd_nom: 351,           // synonyme
+            cd_ref: 292,           // taxon accepté
+            is_synonyme: true,
+            lb_nom: 'Rana esculenta',
+            nom_valide: 'Pelophylax kl. esculentus',
+            nom_vern: 'Grenouille verte',
+            regne: 'Animalia',
+            id_rang: 'ES',
+          }
+        }
+      } as MatAutocompleteSelectedEvent;
+
+      component.onAutocompleteSelected(event);
+
+      expect(component.items.length).toBe(1);
+      const added = component.items[0] as TaxonRef;
+      expect(added.cd_nom).toBe(292); // cd_ref, pas cd_nom du synonyme
+      expect(added.nom_complet).toBe('Pelophylax kl. esculentus');
+    });
+
+    it('conserve cd_nom pour un taxon valide (non synonyme)', () => {
+      component.type = 'taxon';
+      component.items = [];
+      fixture.detectChanges();
+
+      const event = {
+        option: {
+          value: {
+            cd_nom: 60345, cd_ref: 60345, is_synonyme: false,
+            lb_nom: 'Lynx lynx', nom_valide: 'Lynx lynx', regne: 'Animalia', id_rang: 'ES',
+          }
+        }
+      } as MatAutocompleteSelectedEvent;
+
+      component.onAutocompleteSelected(event);
+
+      expect((component.items[0] as TaxonRef).cd_nom).toBe(60345);
+    });
+
+    it('getResultSynonymHint renvoie le nom valide pour un synonyme, sinon vide', () => {
+      fixture.detectChanges();
+      expect(component.getResultSynonymHint({
+        cd_nom: 351, cd_ref: 292, is_synonyme: true, nom_valide: 'Pelophylax kl. esculentus',
+      } as any)).toBe('Pelophylax kl. esculentus');
+      expect(component.getResultSynonymHint({
+        cd_nom: 60345, is_synonyme: false, nom_valide: 'Lynx lynx',
+      } as any)).toBe('');
+      // habitat → pas de hint synonyme
+      expect(component.getResultSynonymHint({ cd_hab: 1, lb_hab_fr: 'Hêtraies' } as any)).toBe('');
+    });
+  });
 });

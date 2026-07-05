@@ -96,7 +96,11 @@ export class ReferenceItemListComponent implements OnInit, OnDestroy {
     // trouver dans la liste).
     const effectiveLimit = term.length >= 4 ? 50 : 20;
     if (this.type === 'taxon') {
-      this.taxonomyService.autocomplete(term, { limit: effectiveLimit }).subscribe(handler);
+      // #471 — en mode « je ne trouve pas mon taxon », on élargit la recherche
+      // aux synonymes TaxRef (comme le champ habitat libre côté habitats).
+      const opts: { limit: number; include_synonyms?: boolean } = { limit: effectiveLimit };
+      if (this.synonymMode()) opts.include_synonyms = true;
+      this.taxonomyService.autocomplete(term, opts).subscribe(handler);
     } else if (this.type === 'habitat') {
       this.habitatService.autocomplete(term, { limit: effectiveLimit }).subscribe(handler);
     } else {
@@ -110,10 +114,13 @@ export class ReferenceItemListComponent implements OnInit, OnDestroy {
 
     if (this.type === 'taxon') {
       const taxon = selected as TaxrefAutocomplete;
-      const exists = (this.items as TaxonRef[]).some(t => t.cd_nom === taxon.cd_nom);
+      // #471 — un synonyme est résolu vers le taxon accepté (cd_ref) : c'est ce
+      // taxon valide (nom valide) qui est rattaché à l'enjeu.
+      const cdNom = taxon.is_synonyme && taxon.cd_ref ? taxon.cd_ref : taxon.cd_nom;
+      const exists = (this.items as TaxonRef[]).some(t => t.cd_nom === cdNom);
       if (!exists) {
         const newItem: TaxonRef = {
-          cd_nom: taxon.cd_nom,
+          cd_nom: cdNom,
           nom_complet: taxon.nom_valide || taxon.lb_nom,
           nom_vern: taxon.nom_vern || undefined,
           regne: taxon.regne,
@@ -184,6 +191,40 @@ export class ReferenceItemListComponent implements OnInit, OnDestroy {
     if (this.items.some(i => this.itemCode(i) === code)) return;
     this.items = [...this.items, item];
     this.itemsChange.emit(this.items);
+  }
+
+  // ===========================================================================
+  // #471 — Taxon introuvable : recherche élargie aux synonymes TaxRef
+  // ===========================================================================
+
+  /** Recherche élargie aux synonymes activée (lien « je ne trouve pas mon taxon »). */
+  synonymMode = signal(false);
+
+  /** La recherche par synonymes n'est proposée que pour les taxons (#471). */
+  get allowSynonymSearch(): boolean {
+    return this.type === 'taxon';
+  }
+
+  /**
+   * #471 — Active la recherche incluant les synonymes et relance la requête
+   * avec le terme courant (les synonymes sont absents de l'autocomplete
+   * standard qui ne liste que les noms valides).
+   */
+  enableSynonymSearch(): void {
+    if (this.synonymMode()) return;
+    this.synonymMode.set(true);
+    const value = this.searchControl.value;
+    if (typeof value === 'string' && value.length >= 2) {
+      this.search(value);
+    }
+  }
+
+  /** #471 — pour un résultat synonyme, le nom valide accepté (affiché dans l'option). */
+  getResultSynonymHint(result: TaxrefAutocomplete | HabitatAutocomplete | InpgAutocomplete): string {
+    if ('cd_nom' in result && (result as TaxrefAutocomplete).is_synonyme) {
+      return (result as TaxrefAutocomplete).nom_valide || '';
+    }
+    return '';
   }
 
   // ===========================================================================

@@ -88,6 +88,9 @@
         <mat-option [value]="result">
           <div class="autocomplete-option">
             <span class="option-label">{{ getResultLabel(result) }}</span>
+            @if (getResultSynonymHint(result); as validName) {
+              <span class="option-synonym">{{ 'enjeux.taxons.synonymOf' | translate }} {{ validName }}</span>
+            }
             <span class="option-secondary">{{ getResultSecondary(result) }}</span>
           </div>
         </mat-option>
@@ -97,6 +100,21 @@
       <mat-spinner matSuffix diameter="18"></mat-spinner>
     }
   </mat-form-field>
+
+  <!-- #471 — Taxon introuvable : recherche élargie aux synonymes TaxRef -->
+  @if (allowSynonymSearch) {
+    <div class="taxon-synonym">
+      @if (!synonymMode()) {
+        <button type="button" class="taxon-synonym-link link-default" (click)="enableSynonymSearch()">
+          <i class="fi fi-rr-search"></i> {{ 'enjeux.taxons.notFound' | translate }}
+        </button>
+      } @else {
+        <span class="taxon-synonym-hint text-mention">
+          <i class="fi fi-rr-info"></i> {{ 'enjeux.taxons.synonymModeActive' | translate }}
+        </span>
+      }
+    </div>
+  }
 
   <!-- #368 — Habitat introuvable dans HabRef (ex. Outre-mer) : saisie libre -->
   @if (allowFreeText) {

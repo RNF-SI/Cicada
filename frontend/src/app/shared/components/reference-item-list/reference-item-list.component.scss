@@ -119,6 +119,36 @@
     font-size: $font-size-small;
     color: $gray-dark;
   }
+
+  // #471 — indication du taxon valide accepté pour un synonyme
+  .option-synonym {
+    font-size: $font-size-small;
+    font-style: italic;
+    color: $secondary-terra-cotta;
+  }
+}
+
+// #471 — recherche élargie aux synonymes TaxRef (taxon introuvable)
+.taxon-synonym {
+  margin-top: $spacing-xxs;
+}
+
+.taxon-synonym-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font-size: 0.85em;
+}
+
+.taxon-synonym-hint {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.85em;
 }
 
 // Responsive
