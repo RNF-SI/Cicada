@@ -139,15 +139,16 @@ describe('OperationFicheComponent — personnalisation des sections de l\'export
   });
 });
 
-describe('OperationFicheComponent — bouton retour vers la page d\'origine (#529)', () => {
-  it('retourne à l\'action ciblée dans le bon enjeu quand from=enjeux + fromEnjeu', () => {
+describe('OperationFicheComponent — bouton retour vers la page d\'origine (#529, #531)', () => {
+  it('retourne à la position de l\'action dans l\'architecture quand from=enjeux + fromEnjeu', () => {
     const router = { navigate: jest.fn() };
     const fixture = setup(operationWith([]), { from: 'enjeux', fromEnjeu: 'mon-enjeu', router });
     fixture.componentInstance.goBack();
-    // op mock : id_operation = 42 → fragment `operation-42` que la liste décode
+    // #531 — op mock : id_operation = 42 → query param `expandOperation` que la
+    // liste décode pour ouvrir le bon onglet, déplier l'OLT/OO et scroller.
     expect(router.navigate).toHaveBeenCalledWith(
       ['/plans', 'plan-x', 'enjeux', 'mon-enjeu'],
-      { fragment: 'operation-42' },
+      { queryParams: { expandOperation: 42 } },
     );
   });
 

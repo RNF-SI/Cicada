@@ -773,6 +773,39 @@ describe('EnjeuxListComponent', () => {
   });
 
   // =========================================================================
+  // #531 — retour depuis la fiche action vers la position dans l'architecture
+  // =========================================================================
+
+  describe('expandAndScrollToOperation — position de l\'action (#531)', () => {
+    beforeEach(() => setup());
+
+    /** Injecte une chaîne OO → RA → indicateur → métrique → opération(555). */
+    function seedOperationUnderOo(): void {
+      const enjeu = JSON.parse(JSON.stringify(mockEnjeu1));
+      enjeu.facteurs_influence[0].pressions[0].objectifs_operationnels[0]
+        .resultats_attendus[0].indicateurs = [
+          { id_indicateur: 8801, metriques: [{ id_metrique: 9901, operations: [{ id_operation: 555 }] }] },
+        ];
+      component.planEnjeuxData.set({ ...mockPlanEnjeuxResponse, enjeux: [enjeu] });
+      component['selectedEnjeuSlug'].set('protection-zones-humides');
+    }
+
+    it('ouvre l\'onglet operations et déplie la chaîne OO → indicateur → action', () => {
+      seedOperationUnderOo();
+      component['pendingScrollToOperation'].set(555);
+
+      component['expandAndScrollToOperation']();
+
+      // Régression #531 : l'onglet « operations » doit être forcé (sinon le nœud
+      // n'est pas rendu et le scroll échoue), et toute la chaîne parente dépliée.
+      expect(component.activeTab()).toBe('operations');
+      expect(component.expandedOoIds().has(1001)).toBe(true);
+      expect(component.expandedOoIndicateurIds().has(8801)).toBe(true);
+      expect(component.expandedOoOperationIds().has(555)).toBe(true);
+    });
+  });
+
+  // =========================================================================
   // Delete enjeu
   // =========================================================================
 

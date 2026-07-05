@@ -3667,7 +3667,11 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
               for (const met of ind.metriques || []) {
                 for (const op of met.operations || []) {
                   if (op.id_operation === opId) {
-                    // Expand the whole chain: OO → indicateur → operation
+                    // Expand the whole chain: OO → indicateur → operation.
+                    // On force aussi l'onglet « operations » pour que le nœud soit
+                    // rendu même quand l'appelant n'a pas transmis `tab` (retour
+                    // depuis la fiche action, #531).
+                    this.activeTab.set('operations');
                     this.expandedOoIds.update(s => { const ns = new Set(s); ns.add(oo.id_oo); return ns; });
                     this.expandedOoIndicateurIds.update(s => { const ns = new Set(s); ns.add(ind.id_indicateur); return ns; });
                     this.expandedOoOperationIds.update(s => { const ns = new Set(s); ns.add(opId); return ns; });

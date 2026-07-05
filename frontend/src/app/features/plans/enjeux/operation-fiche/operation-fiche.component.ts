@@ -174,9 +174,12 @@ export class OperationFicheComponent implements OnInit {
    * l'origine est transmise via le query param `from` (`enjeux` = liste des
    * actions du plan, sinon le suivi des actions par défaut).
    *
-   * Cas `enjeux` : on revient sur l'action ciblée dans le bon enjeu ouvert
-   * (route `:enjeuSlug` + fragment `operation-<id>` que la liste sait décoder),
-   * et non sur la page générique des enjeux.
+   * Cas `enjeux` : on revient à la POSITION de l'action dans l'architecture du
+   * plan (#531). On passe le query param `expandOperation`, que la liste des
+   * enjeux décode pour ouvrir le bon onglet (OLT ou Opérations), déplier toute
+   * la chaîne parente (OO/OLT → indicateur → action) et scroller/surligner
+   * l'action ciblée. (L'ancien fragment `operation-<id>` n'ouvrait pas l'OLT/OO :
+   * `prepareUiForAnchor` ne gère pas le type `operation`.)
    */
   goBack(): void {
     const slug = this.planSlug();
@@ -191,7 +194,7 @@ export class OperationFicheComponent implements OnInit {
       const opId = this.operation()?.id_operation;
       if (enjeuSlug) {
         this.router.navigate(['/plans', slug, 'enjeux', enjeuSlug], {
-          fragment: opId ? `operation-${opId}` : undefined,
+          queryParams: opId ? { expandOperation: opId } : undefined,
         });
       } else {
         this.router.navigate(['/plans', slug, 'enjeux']);
