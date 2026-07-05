@@ -97,6 +97,17 @@ describe('MetriqueGridDisplayComponent (#515)', () => {
     it('faux sans format (métrique état/pression historique)', () => {
       expect(makeComponent().isSimple({ type_metrique_mnemonique: 'NUMERIQUE' })).toBe(false);
     });
+    // Retour #530 : une case « grille » jamais cochée laisse le format à NULL
+    // (pas SIMPLE). Un indicateur de réponse sans grille doit quand même être
+    // traité comme « saisie libre ».
+    it('vrai pour un indicateur de réponse sans format ni données de grille', () => {
+      expect(makeComponent().isSimple({ indicateur_type: 'REPONSE', type_metrique_mnemonique: 'CHIFFRE' })).toBe(true);
+    });
+    it('faux pour un indicateur de réponse sans format mais AVEC grille héritée (avant #452)', () => {
+      expect(makeComponent().isSimple({
+        indicateur_type: 'REPONSE', type_metrique_mnemonique: 'NUMERIQUE', score_1_sup: 5,
+      })).toBe(false);
+    });
   });
 
   describe('simpleTypeKey (#530)', () => {
@@ -165,6 +176,18 @@ describe('MetriqueGridDisplayComponent (#515)', () => {
       expect(el.querySelector('.metrique-simple')).not.toBeNull();
       // Les métadonnées (nom) restent affichées.
       expect(el.querySelector('.metrique-meta dd')?.textContent).toContain('Nombre de nichoirs');
+    });
+
+    // Retour #530 — symptôme rapporté : un indicateur de réponse sans grille
+    // (format NULL, jamais coché) affichait quand même la grille.
+    it('n\'affiche pas la grille pour un indicateur de réponse sans format ni données', () => {
+      fixture.componentInstance.metriques = [
+        { id_metrique: 1, nom_metrique: 'Nb de mares', indicateur_type: 'REPONSE', type_metrique_mnemonique: 'CHIFFRE' },
+      ];
+      fixture.detectChanges();
+      const el: HTMLElement = fixture.nativeElement;
+      expect(el.querySelector('.metrique-scores')).toBeNull();
+      expect(el.querySelector('.metrique-simple')).not.toBeNull();
     });
 
     it('affiche la grille pour une métrique au format GRILLE', () => {

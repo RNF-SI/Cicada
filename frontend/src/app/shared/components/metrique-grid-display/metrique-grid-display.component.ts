@@ -52,13 +52,39 @@ export class MetriqueGridDisplayComponent {
   }
 
   /**
-   * #530 — Vrai si l'indicateur de réponse n'utilise PAS de grille de scoring
-   * (case « Utiliser une grille de scoring » décochée → format SIMPLE). On
-   * n'affiche alors pas les 5 paliers colorés (vides), mais un bloc « saisie
-   * libre » décrivant le type de réponse attendu (chiffrée / textuelle).
+   * #530 — Vrai si la métrique n'utilise PAS de grille de scoring : on affiche
+   * alors un bloc « saisie libre » au lieu des 5 paliers colorés (vides).
+   *
+   * Règle (retour #530) : pour un indicateur de réponse, la grille est
+   * *opt-in* — elle n'apparaît que si la case « Utiliser une grille de scoring »
+   * a été cochée (format GRILLE). Or une case jamais cochée laisse le format à
+   * NULL (et pas SIMPLE) : il faut donc traiter REPONSE + (SIMPLE ou NULL sans
+   * données de grille) comme « saisie libre ». Les métriques d'état/pression
+   * (sans format) conservent leur grille historique.
    */
   isSimple(met: GridMetrique): boolean {
-    return (met['format_metrique_mnemonique'] || '').toString().toUpperCase() === 'SIMPLE';
+    const format = (met['format_metrique_mnemonique'] || '').toString().toUpperCase();
+    if (format === 'GRILLE') return false;
+    if (format === 'SIMPLE') return true;
+    // Format non renseigné : pas de grille pour un indicateur de réponse SAUF
+    // s'il porte déjà une grille (donnée héritée d'avant #452), pour ne pas la
+    // masquer. État/pression → grille (comportement historique).
+    if ((met['indicateur_type'] || '').toString().toUpperCase() === 'REPONSE') {
+      return !this.hasGridData(met);
+    }
+    return false;
+  }
+
+  /** Vrai si la métrique porte au moins une donnée de grille (borne, valeur,
+   *  libellé de palier ou bloc complémentaire). */
+  private hasGridData(met: GridMetrique): boolean {
+    if ((met['score_blocks']?.length ?? 0) > 0) return true;
+    return this.levels.some(l =>
+      met[`score_${l}_inf`] != null ||
+      met[`score_${l}_sup`] != null ||
+      met[`score_${l}_val`] != null ||
+      (met[`score_${l}_label`]?.toString().trim())
+    );
   }
 
   /**
