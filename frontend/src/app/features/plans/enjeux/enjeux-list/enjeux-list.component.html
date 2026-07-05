@@ -633,10 +633,17 @@
                             </div>
                           </div>
                         } @else if (canEditPlan()) {
-                          <button class="add-item-btn" (click)="startAddPression(facteur.id_facteur_influence)">
-                            <i class="fi fi-rr-plus-small"></i>
-                            {{ 'enjeux.pression.addButton' | translate }}
-                          </button>
+                          <div class="add-item-actions">
+                            <button class="add-item-btn" (click)="startAddPression(facteur.id_facteur_influence)">
+                              <i class="fi fi-rr-plus-small"></i>
+                              {{ 'enjeux.pression.addButton' | translate }}
+                            </button>
+                            @if (!(facteur.pressions && facteur.pressions.length)) {
+                              <button class="none-item-btn" (click)="createUndefinedPression(facteur)">
+                                {{ 'enjeux.pression.noneButton' | translate }}
+                              </button>
+                            }
+                          </div>
                         }
                       </div>
                     }
@@ -670,10 +677,17 @@
                     </div>
                   </div>
                 } @else if (canEditPlan()) {
-                  <button class="add-item-btn" (click)="startAddFacteur()">
-                    <i class="fi fi-rr-plus-small"></i>
-                    {{ 'enjeux.facteurInfluence.addButton' | translate }}
-                  </button>
+                  <div class="add-item-actions">
+                    <button class="add-item-btn" (click)="startAddFacteur()">
+                      <i class="fi fi-rr-plus-small"></i>
+                      {{ 'enjeux.facteurInfluence.addButton' | translate }}
+                    </button>
+                    @if (selectedFacteurs().length === 0) {
+                      <button class="none-item-btn" (click)="createUndefinedFacteur()">
+                        {{ 'enjeux.facteurInfluence.noneButton' | translate }}
+                      </button>
+                    }
+                  </div>
                 }
                 <!-- (fin de la section facteurs d'influence — rendue pour enjeux ET FCR) -->
             </div>
@@ -1335,9 +1349,16 @@
                                         </div>
                                       </div>
                                     } @else if (canEditPlan()) {
-                                      <button class="add-item-btn" (click)="startAddIndicateur(ne.id_ne)">
-                                        <i class="fi fi-rr-plus-small"></i> {{ 'enjeux.indicateurs.addButton' | translate }}
-                                      </button>
+                                      <div class="add-item-actions">
+                                        <button class="add-item-btn" (click)="startAddIndicateur(ne.id_ne)">
+                                          <i class="fi fi-rr-plus-small"></i> {{ 'enjeux.indicateurs.addButton' | translate }}
+                                        </button>
+                                        @if (!(ne.indicateurs && ne.indicateurs.length)) {
+                                          <button class="none-item-btn" (click)="createUndefinedIndicateur(ne)">
+                                            {{ 'enjeux.indicateurs.noneButton' | translate }}
+                                          </button>
+                                        }
+                                      </div>
                                     }
                                     }
                                   </div>
@@ -1370,10 +1391,17 @@
                                   </div>
                                 </div>
                               } @else if (canEditPlan()) {
-                                <button class="add-item-btn" (click)="startAddNe(olt.id_olt)">
-                                  <i class="fi fi-rr-plus-small"></i>
-                                  {{ 'enjeux.niveauExigence.addButton' | translate }}
-                                </button>
+                                <div class="add-item-actions">
+                                  <button class="add-item-btn" (click)="startAddNe(olt.id_olt)">
+                                    <i class="fi fi-rr-plus-small"></i>
+                                    {{ 'enjeux.niveauExigence.addButton' | translate }}
+                                  </button>
+                                  @if (!(olt.niveaux_exigence && olt.niveaux_exigence.length)) {
+                                    <button class="none-item-btn" (click)="createUndefinedNe(olt)">
+                                      {{ 'enjeux.niveauExigence.noneButton' | translate }}
+                                    </button>
+                                  }
+                                </div>
                               }
                             </div>
                           }
@@ -2109,9 +2137,16 @@
                                 </div>
                               </div>
                             } @else if (canEditPlan()) {
-                              <button class="add-item-btn" (click)="startAddIndicateurForRa(ra.id_ra)">
-                                <i class="fi fi-rr-plus-small"></i> {{ 'enjeux.indicateurPression.addButton' | translate }}
-                              </button>
+                              <div class="add-item-actions">
+                                <button class="add-item-btn" (click)="startAddIndicateurForRa(ra.id_ra)">
+                                  <i class="fi fi-rr-plus-small"></i> {{ 'enjeux.indicateurPression.addButton' | translate }}
+                                </button>
+                                @if (!(ra.indicateurs && ra.indicateurs.length)) {
+                                  <button class="none-item-btn" (click)="createUndefinedIndicateurForRa(ra)">
+                                    {{ 'enjeux.indicateurPression.noneButton' | translate }}
+                                  </button>
+                                }
+                              </div>
                             }
                             } <!-- end @if (isRaExpanded) -->
                           </div>
@@ -2145,10 +2180,17 @@
                           </div>
                         </div>
                       } @else if (canEditPlan()) {
-                        <button class="add-item-btn" (click)="startAddRa(oo.id_oo)">
-                          <i class="fi fi-rr-plus-small"></i>
-                          {{ 'enjeux.resultatAttendu.addButton' | translate }}
-                        </button>
+                        <div class="add-item-actions">
+                          <button class="add-item-btn" (click)="startAddRa(oo.id_oo)">
+                            <i class="fi fi-rr-plus-small"></i>
+                            {{ 'enjeux.resultatAttendu.addButton' | translate }}
+                          </button>
+                          @if (!(oo.resultats_attendus && oo.resultats_attendus.length)) {
+                            <button class="none-item-btn" (click)="createUndefinedRa(oo)">
+                              {{ 'enjeux.resultatAttendu.noneButton' | translate }}
+                            </button>
+                          }
+                        </div>
                       }
                     </div>
                   }

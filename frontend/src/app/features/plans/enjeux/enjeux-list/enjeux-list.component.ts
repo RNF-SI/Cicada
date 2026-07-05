@@ -1415,6 +1415,92 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
     });
   }
 
+  // ============================================
+  // Boutons « Je n'ai pas de … » (#523)
+  // Crée un élément placeholder « Non défini » sans passer par le formulaire,
+  // puis rappelle qu'il est préconisé de le renseigner. Aucune modification du modèle.
+  // ============================================
+
+  /** Libellé placeholder « Non défini » commun. */
+  private get undefinedLabel(): string {
+    return this.translate.instant('enjeux.undefined.label');
+  }
+
+  /** Souscrit à la création d'un placeholder et affiche la préconisation. */
+  private createUndefinedElement(request$: Observable<any>): void {
+    request$.subscribe({
+      next: () => {
+        this.snackBar.open(
+          this.translate.instant('enjeux.undefined.recommendation'),
+          this.translate.instant('common.actions.close'),
+          { duration: 5000 }
+        );
+        this.loadPlanData(true);
+      },
+      error: () => {
+        this.errorMessage.set(this.translate.instant('enjeux.messages.createError'));
+      }
+    });
+  }
+
+  createUndefinedFacteur(): void {
+    const enjeu = this.selectedEnjeu();
+    if (!enjeu) return;
+    this.createUndefinedElement(
+      this.enjeuService.createFacteurInfluence({
+        id_enjeu: enjeu.id_enjeu,
+        libelle: this.undefinedLabel
+      })
+    );
+  }
+
+  createUndefinedPression(facteur: FacteurInfluence): void {
+    this.createUndefinedElement(
+      this.enjeuService.createPression({
+        id_facteur_influence: facteur.id_facteur_influence,
+        libelle: this.undefinedLabel
+      })
+    );
+  }
+
+  createUndefinedNe(olt: ObjectifLongTerme): void {
+    this.createUndefinedElement(
+      this.enjeuService.createNiveauExigence({
+        id_olt: olt.id_olt,
+        libelle: this.undefinedLabel
+      })
+    );
+  }
+
+  createUndefinedRa(oo: ObjectifOperationnel): void {
+    this.createUndefinedElement(
+      this.enjeuService.createResultatAttendu({
+        id_oo: oo.id_oo,
+        libelle: this.undefinedLabel
+      })
+    );
+  }
+
+  createUndefinedIndicateur(ne: NiveauExigence): void {
+    this.createUndefinedElement(
+      this.enjeuService.createIndicateur({
+        id_ne: ne.id_ne,
+        nom_indicateur: this.undefinedLabel,
+        est_standardise: false
+      })
+    );
+  }
+
+  createUndefinedIndicateurForRa(ra: ResultatAttendu): void {
+    this.createUndefinedElement(
+      this.enjeuService.createIndicateur({
+        id_resultat_attendu: ra.id_ra,
+        nom_indicateur: this.undefinedLabel,
+        est_standardise: false
+      })
+    );
+  }
+
   deleteFacteur(facteur: FacteurInfluence): void {
     const dialogRef = this.dialog.open(ConfirmDialogComponent, {
       width: '450px',

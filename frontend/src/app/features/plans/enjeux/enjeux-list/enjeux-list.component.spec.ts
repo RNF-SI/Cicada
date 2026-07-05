@@ -1977,6 +1977,92 @@ describe('EnjeuxListComponent', () => {
   });
 
   // =========================================================================
+  // Boutons « Je n'ai pas de … » (#523)
+  // =========================================================================
+
+  describe('boutons « Je n\'ai pas de … » (#523)', () => {
+    beforeEach(() => setup());
+
+    const placeholder = 'enjeux.undefined.label';
+
+    it('createUndefinedFacteur crée un facteur « Non défini » et affiche la préconisation', () => {
+      component['selectedEnjeuSlug'].set('protection-zones-humides');
+      component.createUndefinedFacteur();
+      expect(mockEnjeuService.createFacteurInfluence).toHaveBeenCalledWith({
+        id_enjeu: 1,
+        libelle: placeholder,
+      });
+      expect(mockSnackBarOpen).toHaveBeenCalled();
+    });
+
+    it('createUndefinedPression crée une pression « Non défini »', () => {
+      const facteur: FacteurInfluence = {
+        id_facteur_influence: 101, id_enjeu: 1, libelle: 'F', date_ajout: '', date_maj: '',
+      };
+      component.createUndefinedPression(facteur);
+      expect(mockEnjeuService.createPression).toHaveBeenCalledWith({
+        id_facteur_influence: 101,
+        libelle: placeholder,
+      });
+    });
+
+    it('createUndefinedNe crée un niveau d\'exigence « Non défini »', () => {
+      const olt: ObjectifLongTerme = {
+        id_olt: 501, id_enjeu: 1, libelle: 'OLT', date_ajout: '', date_maj: '',
+      };
+      component.createUndefinedNe(olt);
+      expect(mockEnjeuService.createNiveauExigence).toHaveBeenCalledWith({
+        id_olt: 501,
+        libelle: placeholder,
+      });
+    });
+
+    it('createUndefinedRa crée un résultat attendu « Non défini »', () => {
+      const oo: ObjectifOperationnel = {
+        id_oo: 1001, pressions: [], pression_ids: [], libelle: 'OO', date_ajout: '', date_maj: '',
+      };
+      component.createUndefinedRa(oo);
+      expect(mockEnjeuService.createResultatAttendu).toHaveBeenCalledWith({
+        id_oo: 1001,
+        libelle: placeholder,
+      });
+    });
+
+    it('createUndefinedIndicateur crée un indicateur d\'état « Non défini » sur le NE', () => {
+      const ne: NiveauExigence = {
+        id_ne: 701, id_olt: 501, libelle: 'NE', date_ajout: '', date_maj: '',
+      };
+      component.createUndefinedIndicateur(ne);
+      expect(mockEnjeuService.createIndicateur).toHaveBeenCalledWith({
+        id_ne: 701,
+        nom_indicateur: placeholder,
+        est_standardise: false,
+      });
+    });
+
+    it('createUndefinedIndicateurForRa crée un indicateur de pression « Non défini » sur le RA', () => {
+      const ra: ResultatAttendu = {
+        id_ra: 1101, id_oo: 1001, libelle: 'RA', date_ajout: '', date_maj: '',
+      };
+      component.createUndefinedIndicateurForRa(ra);
+      expect(mockEnjeuService.createIndicateur).toHaveBeenCalledWith({
+        id_resultat_attendu: 1101,
+        nom_indicateur: placeholder,
+        est_standardise: false,
+      });
+    });
+
+    it('affiche errorMessage si la création du placeholder échoue', () => {
+      mockEnjeuService.createNiveauExigence.mockReturnValue(throwError(() => new Error('fail')));
+      const olt: ObjectifLongTerme = {
+        id_olt: 501, id_enjeu: 1, libelle: 'OLT', date_ajout: '', date_maj: '',
+      };
+      component.createUndefinedNe(olt);
+      expect(component.errorMessage()).toBeTruthy();
+    });
+  });
+
+  // =========================================================================
   // Error handling
   // =========================================================================
 
