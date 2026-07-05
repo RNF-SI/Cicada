@@ -2416,6 +2416,12 @@
     "actions": {
       "cancel": "Annuler la demande"
     },
+    "cancelSiteConfirm": {
+      "title": "Annuler la création du site ?",
+      "message": "Le site « {{name}} » n'a pas encore été validé. En annulant votre demande, le site sera définitivement supprimé.",
+      "warning": "Cette action est irréversible.",
+      "confirm": "Annuler et supprimer le site"
+    },
     "loadError": "Erreur lors du chargement des demandes",
     "cancelSuccess": "Demande annulée",
     "cancelError": "Erreur lors de l'annulation"

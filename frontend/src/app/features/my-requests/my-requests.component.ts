@@ -25,6 +25,7 @@ import {
   ValidatorInfo,
 } from '../../core/models/notification.model';
 import { ModuleAccessRequestDialogComponent, ModuleAccessRequestDialogData } from '../../shared/components/module-access-request-dialog/module-access-request-dialog.component';
+import { ConfirmDialogComponent, ConfirmDialogData } from '../../shared/components/confirm-dialog/confirm-dialog.component';
 
 /**
  * Interface pour un module avec son statut d'acces.
@@ -175,10 +176,41 @@ export class MyRequestsComponent implements OnInit {
 
   /**
    * Annule une demande en attente.
+   * Pour une création de site (#467), l'annulation supprime définitivement
+   * le site créé (encore inactif) : on demande une confirmation explicite.
    */
   cancelRequest(request: ValidationRequestListItem): void {
     if (request.status !== 'pending') return;
 
+    if (request.request_type === 'site_creation') {
+      const dialogRef = this.dialog.open(ConfirmDialogComponent, {
+        width: '500px',
+        data: {
+          title: this.translate.instant('myRequests.cancelSiteConfirm.title'),
+          message: this.translate.instant('myRequests.cancelSiteConfirm.message', {
+            name: request.target_name || '',
+          }),
+          warningText: this.translate.instant('myRequests.cancelSiteConfirm.warning'),
+          confirmText: this.translate.instant('myRequests.cancelSiteConfirm.confirm'),
+          destructive: true,
+        } as ConfirmDialogData,
+      });
+
+      dialogRef.afterClosed().subscribe(confirmed => {
+        if (confirmed) {
+          this.performCancel(request);
+        }
+      });
+      return;
+    }
+
+    this.performCancel(request);
+  }
+
+  /**
+   * Effectue l'annulation d'une demande via l'API.
+   */
+  private performCancel(request: ValidationRequestListItem): void {
     this.validationService.cancelRequest(request.id).subscribe({
       next: () => {
         this.snackBar.open(
@@ -235,6 +267,7 @@ export class MyRequestsComponent implements OnInit {
     const icons: Record<string, string> = {
       'user_registration': 'fi-rr-user-add',
       'site_access': 'fi-rr-marker',
+      'site_creation': 'fi-rr-land-layer-location',
       'plan_access': 'fi-rr-document',
       'module_access': 'fi-rr-apps',
       'admin_deactivation': 'fi-rr-user-slash',
