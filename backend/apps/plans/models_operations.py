@@ -452,6 +452,17 @@ class Operation(models.Model):
         null=True,
         help_text=_("Code de l'opération")
     )
+    # #485 / #526 / #442 — Numéro fixé manuellement dans le code d'affichage
+    # (le chiffre de « CS1 », « SP2 »…). NULL = numérotation automatique par
+    # ordre de parcours du plan. Quand renseigné, ce numéro est réservé POUR SON
+    # PRÉFIXE (ex. CS) : l'action le conserve quel que soit l'ordre (drag & drop),
+    # et l'auto-numérotation des autres actions du même préfixe saute cet indice.
+    numero_manuel = models.PositiveIntegerField(
+        _("Numéro fixé manuellement"),
+        null=True,
+        blank=True,
+        help_text=_("Numéro fixé manuellement dans le code (laisser vide pour la numérotation automatique)")
+    )
     description = models.TextField(
         _("Description"),
         blank=True,

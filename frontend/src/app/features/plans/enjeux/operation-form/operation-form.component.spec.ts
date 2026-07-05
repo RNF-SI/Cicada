@@ -312,6 +312,36 @@ describe('OperationFormComponent — ventilation budgétaire', () => {
   });
 
   // -------------------------------------------------------------------------
+  // #485 — numéro fixé manuellement dans le code : normalisation du payload.
+  // Reproduit l'expression de buildPayload : vide/0/négatif → null (retour à la
+  // numérotation automatique), positif → entier.
+  // -------------------------------------------------------------------------
+  describe('#485 normalisation du numéro fixé (numero_manuel)', () => {
+    const normalize = (raw: number | null): number | null =>
+      raw != null && raw > 0 ? Math.floor(raw) : null;
+
+    it('null (champ vide) → null (numérotation automatique)', () => {
+      expect(normalize(null)).toBeNull();
+    });
+
+    it('0 → null (retour à la numérotation automatique)', () => {
+      expect(normalize(0)).toBeNull();
+    });
+
+    it('valeur négative → null', () => {
+      expect(normalize(-3)).toBeNull();
+    });
+
+    it('entier positif → conservé', () => {
+      expect(normalize(4)).toBe(4);
+    });
+
+    it('décimal positif → tronqué à l\'entier', () => {
+      expect(normalize(2.9)).toBe(2);
+    });
+  });
+
+  // -------------------------------------------------------------------------
   // #374 — anneeIndexHasData : détecte une année réellement saisie (sert de
   // départ par défaut dans la modale « Appliquer aux années »).
   // -------------------------------------------------------------------------

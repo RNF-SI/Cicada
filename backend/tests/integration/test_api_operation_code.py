@@ -226,6 +226,68 @@ class TestComputeOperationCodes:
 
 
 # =============================================================================
+# Numéro fixé manuellement dans le code (#485, décline #442 / #526)
+# =============================================================================
+
+@pytest.mark.django_db
+@pytest.mark.integration
+class TestComputeOperationCodesNumeroManuel:
+    """Le chiffre du code (CS1, IP2…) est fixable manuellement (`numero_manuel`).
+    Un numéro fixé est réservé POUR SON PRÉFIXE : l'action le conserve quel que
+    soit l'ordre (drag & drop) et l'auto-numérotation des autres actions du même
+    préfixe saute cet indice."""
+
+    def test_numero_fixe_impose_le_chiffre_du_code(self, plan_with_actions):
+        op_via_type = plan_with_actions['op_via_type']  # préfixe CS via type_action
+        op_via_type.numero_manuel = 1
+        op_via_type.save(update_fields=['numero_manuel'])
+
+        codes = compute_operation_codes_for_plan(plan_with_actions['plan'].pk)
+        # op_via_type garde CS1 bien qu'elle soit en 2e position de lecture (ordre=2).
+        assert codes[op_via_type.pk] == 'CS1'
+        # op_cs (auto, préfixe CS) saute l'indice 1 réservé → CS2.
+        assert codes[plan_with_actions['op_cs'].pk] == 'CS2'
+        # Autre préfixe non impacté.
+        assert codes[plan_with_actions['op_ip'].pk] == 'IP1'
+
+    def test_numero_fixe_persiste_au_reordonnancement(self, plan_with_actions):
+        """Le cœur de #485 : un numéro fixé ne change pas au drag & drop et son
+        indice n'est pas réattribué aux autres actions du même préfixe."""
+        op_cs = plan_with_actions['op_cs']            # CS via cat réserve, ordre 0
+        op_via_type = plan_with_actions['op_via_type']  # CS via type_action, ordre 2
+
+        op_cs.numero_manuel = 2
+        op_cs.save(update_fields=['numero_manuel'])
+
+        codes_before = compute_operation_codes_for_plan(plan_with_actions['plan'].pk)
+        assert codes_before[op_cs.pk] == 'CS2'        # fixé
+        assert codes_before[op_via_type.pk] == 'CS1'  # auto, saute le 2
+
+        # On déplace op_cs (fixé) en tête : son code ne doit PAS bouger.
+        op_cs.ordre = 5
+        op_cs.save(update_fields=['ordre'])
+        op_via_type.ordre = 0
+        op_via_type.save(update_fields=['ordre'])
+
+        codes_after = compute_operation_codes_for_plan(plan_with_actions['plan'].pk)
+        assert codes_after[op_cs.pk] == 'CS2'         # inchangé malgré le déplacement
+        assert codes_after[op_via_type.pk] == 'CS1'   # auto, saute toujours le 2
+
+    def test_reservation_est_par_prefixe(self, plan_with_actions):
+        """Un numéro fixé sur un préfixe (CS) ne réserve rien sur un autre (IP)."""
+        op_cs = plan_with_actions['op_cs']
+        op_cs.numero_manuel = 1
+        op_cs.save(update_fields=['numero_manuel'])
+
+        codes = compute_operation_codes_for_plan(plan_with_actions['plan'].pk)
+        assert codes[op_cs.pk] == 'CS1'
+        # op_via_type (CS auto) saute le 1 réservé → CS2.
+        assert codes[plan_with_actions['op_via_type'].pk] == 'CS2'
+        # op_ip (IP auto) démarre à 1 : la réservation CS ne l'affecte pas.
+        assert codes[plan_with_actions['op_ip'].pk] == 'IP1'
+
+
+# =============================================================================
 # Endpoint by-plan : code_affichage exposé via serializer context
 # =============================================================================
 

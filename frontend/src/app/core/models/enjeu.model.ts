@@ -729,6 +729,8 @@ export interface Operation {
   // Code calculé : préfixe 2 lettres + rang dans le plan (CS1, IP2, ...)
   code_prefix?: string;
   code_affichage?: string;
+  /** #485 — Numéro fixé manuellement dans le code (null = numérotation automatique). */
+  numero_manuel?: number | null;
   id_referentiel_operations?: string;
   code_operation?: string;
   description?: string;
@@ -788,6 +790,8 @@ export interface OperationCreatePayload {
   id_categorie_action_reserve?: number | null;
   id_referentiel_operations?: string;
   code_operation?: string;
+  /** #485 — Numéro fixé manuellement dans le code (null = numérotation automatique). */
+  numero_manuel?: number | null;
   description?: string;
   annee_min?: number;
   annee_max?: number;

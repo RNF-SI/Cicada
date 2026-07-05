@@ -682,6 +682,8 @@ export class OperationFormComponent implements OnInit {
       description: [''],
       // Hidden but kept for backwards compat
       code_operation: [''],
+      // #485 — Numéro fixé manuellement dans le code (vide = numérotation auto).
+      numero_manuel: [null],
       id_referentiel_operations: [''],
       annee_min: [null],
       annee_max: [null],
@@ -1097,6 +1099,7 @@ export class OperationFormComponent implements OnInit {
       id_suivi: op.id_suivi || null,
       id_priorite: op.id_priorite || null,
       code_operation: op.code_operation || '',
+      numero_manuel: op.numero_manuel ?? null,
       id_referentiel_operations: op.id_referentiel_operations || '',
       description: op.description || '',
       annee_min: op.annee_min || null,
@@ -1619,6 +1622,10 @@ export class OperationFormComponent implements OnInit {
       payload.id_categorie_action_reserve = null;
     }
     if (fv.code_operation?.trim()) payload.code_operation = fv.code_operation.trim();
+    // #485 — Numéro fixé manuellement dans le code : vide/0/invalide = retour à
+    // la numérotation automatique (null envoyé explicitement pour l'effacer).
+    const rawNumero = fv.numero_manuel;
+    payload.numero_manuel = rawNumero != null && rawNumero > 0 ? Math.floor(rawNumero) : null;
     if (fv.id_referentiel_operations?.trim()) payload.id_referentiel_operations = fv.id_referentiel_operations.trim();
     if (fv.description?.trim()) payload.description = fv.description.trim();
     if (fv.annee_min != null) payload.annee_min = fv.annee_min;

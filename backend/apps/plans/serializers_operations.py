@@ -148,13 +148,29 @@ def compute_operation_codes_for_plan(plan_id):
                             visit_indicateur_metriques(indicateur)
 
     # Calcul des rangs par préfixe dans l'ordre rencontré.
+    # #485 — Un numéro fixé manuellement (`numero_manuel`) est réservé pour son
+    # préfixe : l'action garde ce numéro quel que soit l'ordre (drag & drop),
+    # et l'auto-numérotation des autres actions du même préfixe saute cet indice.
+    reserved = {}
+    for op_id in seen_op_ids:
+        op = operations_by_id[op_id]
+        if op.numero_manuel:
+            reserved.setdefault(op.code_prefix, set()).add(op.numero_manuel)
+
     counters = {}
     codes = {}
     for op_id in seen_op_ids:
         op = operations_by_id[op_id]
         prefix = op.code_prefix
-        counters[prefix] = counters.get(prefix, 0) + 1
-        codes[op_id] = f"{prefix}{counters[prefix]}"
+        if op.numero_manuel:
+            codes[op_id] = f"{prefix}{op.numero_manuel}"
+            continue
+        # Prochain indice automatique libre (non réservé) pour ce préfixe.
+        n = counters.get(prefix, 0) + 1
+        while n in reserved.get(prefix, ()):
+            n += 1
+        counters[prefix] = n
+        codes[op_id] = f"{prefix}{n}"
     return codes
 
 
@@ -520,7 +536,7 @@ class OperationSerializer(serializers.ModelSerializer):
             'id_type_action', 'type_action_label',
             'id_categorie_action_reserve', 'categorie_action_reserve_label',
             'categorie_action_reserve_code',
-            'code_prefix', 'code_affichage',
+            'code_prefix', 'code_affichage', 'numero_manuel',
             'id_referentiel_operations', 'code_operation',
             'description',
             'annee_min', 'annee_max',
@@ -655,7 +671,7 @@ class OperationListSerializer(serializers.ModelSerializer):
             'id_type_action', 'type_action_label',
             'id_categorie_action_reserve', 'categorie_action_reserve_label',
             'categorie_action_reserve_code',
-            'code_prefix', 'code_affichage',
+            'code_prefix', 'code_affichage', 'numero_manuel',
             'id_referentiel_operations', 'code_operation',
             'description',
             'annee_min', 'annee_max',
@@ -869,7 +885,7 @@ class OperationCreateSerializer(serializers.ModelSerializer):
             'id_priorite', 'id_type_action',
             'id_categorie_action_reserve',
             'id_indicateur',
-            'id_referentiel_operations', 'code_operation',
+            'id_referentiel_operations', 'code_operation', 'numero_manuel',
             'description',
             'annee_min', 'annee_max',
             # Suivi/inventaire

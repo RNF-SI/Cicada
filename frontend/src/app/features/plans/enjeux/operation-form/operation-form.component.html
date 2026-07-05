@@ -105,6 +105,14 @@
             </div>
           }
 
+          <!-- #485 — Numéro fixé manuellement dans le code (le chiffre de CS1, SP2…).
+               Vide = numérotation automatique par ordre de parcours du plan. -->
+          <app-form-field [label]="'enjeux.operations.numeroManuelLabel' | translate"
+                          [helpText]="'enjeux.operations.numeroManuelHelp' | translate">
+            <input type="number" min="1" step="1" formControlName="numero_manuel"
+                   [placeholder]="'enjeux.operations.numeroManuelPlaceholder' | translate">
+          </app-form-field>
+
           <!-- Intitulé de l'action : contrôle formulaire (caché quand CS, affiché en position basse) -->
           <div [style.display]="isCSAction() ? 'none' : ''">
             <app-form-field [label]="'enjeux.operations.libelleLabel' | translate" [helpText]="'enjeux.operations.libelleHint' | translate">
