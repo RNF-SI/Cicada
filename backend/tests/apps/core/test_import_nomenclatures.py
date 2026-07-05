@@ -223,6 +223,33 @@ class TestImportNomenclaturesCommand:
         assert TypeNomenclature.objects.filter(mnemonique='OPERATEUR_TYPE').exists()
         assert TypeNomenclature.objects.filter(mnemonique='CATEGORIE_FINANCE').exists()
 
+        # Catégories de financement — liste revue #454 (nomenclatures, ordre défini)
+        cat_finance = TypeNomenclature.objects.get(mnemonique='CATEGORIE_FINANCE')
+        finances_actives = list(
+            Nomenclature.objects.filter(id_type=cat_finance, actif=True)
+            .order_by('hierarchy', 'label')
+            .values_list('mnemonique', flat=True)
+        )
+        assert finances_actives == [
+            'EUROPE',
+            'PLAN_FRANCE_RELANCE',
+            'ETAT',
+            'REGION',
+            'FONDS_VERTS',
+            'FONDS_EDD',
+            'DEPARTEMENT',
+            'CAISSE_DEPOTS',
+            'COMMUNE',
+            'ETABLISSEMENT_PUBLIC',
+            'COMMUNAUTE_COMMUNES',
+            'PRIVE',
+            'AUTRES_FINANCEURS',
+        ]
+        # « Total » n'est pas une catégorie de financeur : conservé mais désactivé.
+        assert Nomenclature.objects.filter(
+            id_type=cat_finance, mnemonique='TOTAL', actif=False
+        ).exists()
+
         # Types d'action (codification Eden 62 - 318 entrées hiérarchiques)
         type_action = TypeNomenclature.objects.get(mnemonique='TYPE_ACTION')
         actions = Nomenclature.objects.filter(id_type=type_action)
