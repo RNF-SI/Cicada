@@ -6256,6 +6256,111 @@ class EnjeuxSeeder(BaseSeeder):
         if n_drafts:
             self.log_item('mis à jour', f"{n_drafts} opération(s) marquée(s) en brouillon")
 
+        # =====================================================================
+        # #523 — Démonstration des boutons « Je n'ai pas de … »
+        # Enjeu dédié sur un plan EN BROUILLON (Lac de Remoray) → arborescence
+        # éditable, donc les boutons #523 sont réellement visibles. Illustre :
+        #  - le RÉSULTAT du bouton : éléments avec le libellé placeholder « Non défini »
+        #    (facteur, pression, NE, RA, indicateurs d'état et de pression) ;
+        #  - les BRANCHES VIDES où le bouton « Je n'ai pas de … » s'affiche
+        #    (facteur sans pression, OLT sans niveau d'exigence).
+        # =====================================================================
+        if plan_remoray and cat_enjeu:
+            nd = 'Non défini'  # libellé placeholder (identique à enjeux.undefined.label)
+
+            demo_enjeu, created = Enjeu.objects.update_or_create(
+                id_pg=plan_remoray,
+                libelle='Démonstration des boutons « Je n\'ai pas de … » (#523)',
+                defaults={
+                    'id_categorie': cat_enjeu,
+                    'intitule_court': 'Démo « Non défini »',
+                    'rang': 3,
+                    'id_importance': priorite_3,
+                    'categorie_ecologique': True,
+                    'habitat': True,
+                    'etat_enjeu': 'Enjeu de démonstration (#523) : illustre les placeholders '
+                                  '« Non défini » et les branches encore vides où le bouton '
+                                  '« Je n\'ai pas de … » s\'affiche.',
+                    'description': 'Plan en brouillon → arborescence éditable, boutons #523 visibles.',
+                    'id_utilisateur_ajout': admin,
+                }
+            )
+            enjeux_created.append(demo_enjeu)
+            self.log_item('créé' if created else 'mis à jour', f'Enjeu: {demo_enjeu.intitule_court}')
+
+            # Facteur « Non défini » + pression « Non défini » (résultat des boutons)
+            demo_fi, _ = FacteurInfluence.objects.update_or_create(
+                id_enjeu=demo_enjeu, libelle=nd,
+                defaults={'id_utilisateur_ajout': admin}
+            )
+            facteurs_created.append(demo_fi)
+            demo_p, _ = Pression.objects.update_or_create(
+                id_facteur_influence=demo_fi, libelle=nd,
+                defaults={'id_utilisateur_ajout': admin}
+            )
+            pressions_created.append(demo_p)
+
+            # Facteur réel SANS pression → bouton « Je n'ai pas de pression » visible
+            demo_fi_empty, _ = FacteurInfluence.objects.update_or_create(
+                id_enjeu=demo_enjeu,
+                libelle='Facteur sans pression (branche vide — démo bouton)',
+                defaults={'id_utilisateur_ajout': admin}
+            )
+            facteurs_created.append(demo_fi_empty)
+
+            # OLT réel → NE « Non défini » → indicateur d'état « Non défini »
+            demo_olt, _ = ObjectifLongTerme.objects.update_or_create(
+                id_enjeu=demo_enjeu, libelle='OLT de démonstration',
+                defaults={'id_utilisateur_ajout': admin}
+            )
+            olts_created.append(demo_olt)
+            demo_ne, _ = NiveauExigence.objects.update_or_create(
+                id_olt=demo_olt, libelle=nd,
+                defaults={'id_utilisateur_ajout': admin}
+            )
+            nes_created.append(demo_ne)
+            demo_ind_etat, _ = Indicateur.objects.update_or_create(
+                id_ne=demo_ne, nom_indicateur=nd,
+                defaults={
+                    'type_indicateur': type_ind_etat,
+                    'est_standardise': False,
+                    'id_utilisateur_ajout': admin,
+                }
+            )
+            indicateurs_created.append(demo_ind_etat)
+
+            # OLT réel SANS NE → bouton « Je n'ai pas de niveau d'exigence » visible
+            ObjectifLongTerme.objects.update_or_create(
+                id_enjeu=demo_enjeu,
+                libelle='OLT sans niveau d\'exigence (branche vide — démo bouton)',
+                defaults={'id_utilisateur_ajout': admin}
+            )
+
+            # OO réel (lié à la pression « Non défini ») → RA « Non défini »
+            # → indicateur de pression « Non défini »
+            demo_oo, _ = ObjectifOperationnel.objects.update_or_create(
+                libelle='OO de démonstration (#523)',
+                defaults={'id_utilisateur_ajout': admin}
+            )
+            demo_oo.pressions.add(demo_p)
+            oos_created.append(demo_oo)
+            demo_ra, _ = ResultatAttendu.objects.update_or_create(
+                id_oo=demo_oo, libelle=nd,
+                defaults={'id_utilisateur_ajout': admin}
+            )
+            ras_created.append(demo_ra)
+            demo_ind_p, _ = Indicateur.objects.update_or_create(
+                id_resultat_attendu=demo_ra, nom_indicateur=nd,
+                defaults={
+                    'type_indicateur': type_ind_pression,
+                    'est_standardise': False,
+                    'id_utilisateur_ajout': admin,
+                }
+            )
+            indicateurs_created.append(demo_ind_p)
+            self.log_item('créé' if created else 'mis à jour',
+                          'Démo #523 « Non défini » (plan Lac de Remoray, brouillon)')
+
         result = {
             'enjeux': enjeux_created,
             'fcr': fcr_created,
