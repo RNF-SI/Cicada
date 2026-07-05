@@ -154,10 +154,22 @@
   color: $primary-color;
 }
 
+// #468 — un groupe = un référentiel (tag) + ses habitats liés.
+.hchip__relgroup {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin-top: $spacing-xs;
+}
+
+.hchip__relgroup-typo {
+  align-self: flex-start;
+}
+
 .hchip__related {
   list-style: none;
   margin: 0;
-  padding: 0;
+  padding: 0 0 0 $spacing-xs;
   display: flex;
   flex-direction: column;
   gap: 3px;

@@ -36,22 +36,30 @@
 
     @if (loading()) {
       <span class="hchip__muted">{{ 'common.status.loading' | translate }}…</span>
-    } @else if (related().total > 0) {
-      <!-- Habitats liés DANS LE MÊME référentiel (sous-types, associés…) -->
+    } @else if (relatedGroups().total > 0) {
+      <!-- Habitats liés, regroupés par référentiel (#468) : on affiche le nom
+           du référentiel de chaque habitat lié, en plus du code et du libellé. -->
       <div class="hchip__related-head">
-        {{ 'enjeux.accordion.habitatRelated' | translate:{ count: related().total } }}
+        {{ 'enjeux.accordion.habitatRelated' | translate:{ count: relatedGroups().total } }}
       </div>
-      <ul class="hchip__related">
-        @for (r of related().items; track r.code + r.name) {
-          <li class="hchip__relitem">
-            @if (r.code) { <span class="hchip__codepill">{{ r.code }}</span> }
-            <span class="hchip__relname">{{ r.name || '—' }}</span>
-          </li>
-        }
-        @if (related().extra > 0) {
-          <li class="hchip__more">{{ 'enjeux.accordion.habitatRelatedMore' | translate:{ count: related().extra } }}</li>
-        }
-      </ul>
+      @for (group of relatedGroups().groups; track group.typo) {
+        <div class="hchip__relgroup">
+          <span class="hchip__typo-tag hchip__relgroup-typo">
+            {{ group.typo || ('enjeux.accordion.habitatRelatedNoTypo' | translate) }}
+          </span>
+          <ul class="hchip__related">
+            @for (r of group.items; track r.code + r.name) {
+              <li class="hchip__relitem">
+                @if (r.code) { <span class="hchip__codepill">{{ r.code }}</span> }
+                <span class="hchip__relname">{{ r.name || '—' }}</span>
+              </li>
+            }
+          </ul>
+        </div>
+      }
+      @if (relatedGroups().extra > 0) {
+        <div class="hchip__more">{{ 'enjeux.accordion.habitatRelatedMore' | translate:{ count: relatedGroups().extra } }}</div>
+      }
     } @else if (!hasOwnInfo()) {
       <!-- Ni classification d'origine, ni habitat lié (habitat legacy sans
            cd_hab enrichi) : on l'indique. Sinon, on ne montre rien de plus que

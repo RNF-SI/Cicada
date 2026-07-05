@@ -8,6 +8,14 @@ const MAX_RELATED = 12;
 interface RelatedHabitat {
   code: string;
   name: string;
+  /** Nom du référentiel/typologie de l'habitat lié (ex. « EUNIS »). #468 */
+  typo: string;
+}
+
+/** Groupe d'habitats liés partageant le même référentiel (#468). */
+interface RelatedGroup {
+  typo: string;
+  items: RelatedHabitat[];
 }
 
 /**
@@ -54,21 +62,43 @@ export class HabitatChipComponent {
   /** Vrai si on connaît la classification d'origine de l'habitat. */
   hasOwnInfo = computed(() => !!(this.displayCode() || this.displayTypo()));
 
-  /** Habitats liés (même référentiel) : code + nom, dédupliqués et plafonnés. */
-  related = computed<{ items: RelatedHabitat[]; total: number; extra: number }>(() => {
+  /**
+   * Habitats liés : code + nom + référentiel, dédupliqués, plafonnés, puis
+   * regroupés par référentiel (#468). On affiche le nom du référentiel de
+   * chaque habitat lié en plus de son code et de son libellé.
+   */
+  relatedGroups = computed<{ groups: RelatedGroup[]; total: number; extra: number }>(() => {
     const seen = new Set<string>();
     const all: RelatedHabitat[] = [];
     for (const c of this.relatedRaw()) {
       const cd = (c.lb_code_entre || '').trim();
       const name = (c.lb_hab_entre || '').trim();
+      const typo = (c.lb_typo || '').replace(/_/g, ' ').trim();
       if (!cd && !name) continue;
-      const key = `${cd}|${name}`;
+      const key = `${typo}|${cd}|${name}`;
       if (seen.has(key)) continue;
       seen.add(key);
-      all.push({ code: cd, name });
+      all.push({ code: cd, name, typo });
     }
-    all.sort((a, b) => a.code.localeCompare(b.code) || a.name.localeCompare(b.name));
-    return { items: all.slice(0, MAX_RELATED), total: all.length, extra: Math.max(0, all.length - MAX_RELATED) };
+    all.sort((a, b) =>
+      a.typo.localeCompare(b.typo) || a.code.localeCompare(b.code) || a.name.localeCompare(b.name)
+    );
+    const limited = all.slice(0, MAX_RELATED);
+
+    // Regroupe par référentiel en conservant l'ordre trié.
+    const groups: RelatedGroup[] = [];
+    const index = new Map<string, RelatedGroup>();
+    for (const item of limited) {
+      const key = item.typo || '—';
+      let group = index.get(key);
+      if (!group) {
+        group = { typo: item.typo, items: [] };
+        index.set(key, group);
+        groups.push(group);
+      }
+      group.items.push(item);
+    }
+    return { groups, total: all.length, extra: Math.max(0, all.length - MAX_RELATED) };
   });
 
   onRemove(event: Event): void {
