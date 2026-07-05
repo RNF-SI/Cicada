@@ -111,6 +111,34 @@ describe('OperationFicheComponent — grilles/blocs des indicateurs (#516)', () 
   });
 });
 
+describe('OperationFicheComponent — personnalisation des sections de l\'export (#532)', () => {
+  it('affiche toutes les sections par défaut (toutes cochées)', () => {
+    const fixture = setup(operationWith([]));
+    const c = fixture.componentInstance;
+    expect(c.toggleableSections.every(s => c.sectionVisible(s.key))).toBe(true);
+    // La section « Réalisation » (toujours présente) est rendue.
+    expect(fixture.nativeElement.textContent).toContain('plans.suivis.actions.fiche.realisationGlobale');
+  });
+
+  it('retire du DOM une section décochée', () => {
+    const fixture = setup(operationWith([]));
+    const c = fixture.componentInstance;
+    c.setSectionVisible('realisation', false);
+    fixture.detectChanges();
+    expect(c.sectionVisible('realisation')).toBe(false);
+    expect(fixture.nativeElement.textContent).not.toContain('plans.suivis.actions.fiche.realisationGlobale');
+  });
+
+  it('n\'affiche le panneau de choix des sections qu\'après ouverture', () => {
+    const fixture = setup(operationWith([]));
+    const c = fixture.componentInstance;
+    expect(fixture.nativeElement.querySelector('.fiche-section-picker')).toBeNull();
+    c.toggleSectionPicker();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.fiche-section-picker')).not.toBeNull();
+  });
+});
+
 describe('OperationFicheComponent — bouton retour vers la page d\'origine (#529)', () => {
   it('retourne à l\'action ciblée dans le bon enjeu quand from=enjeux + fromEnjeu', () => {
     const router = { navigate: jest.fn() };

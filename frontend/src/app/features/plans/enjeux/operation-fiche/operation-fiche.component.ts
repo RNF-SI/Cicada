@@ -6,6 +6,7 @@ import { EnjeuService } from '../../../../core/services/enjeu.service';
 import { MetriqueRef, Operation } from '../../../../core/models/enjeu.model';
 import { LeafletMapEditComponent } from '../../../../shared/components/leaflet-map-edit/leaflet-map-edit.component';
 import { MetriqueGridDisplayComponent } from '../../../../shared/components/metrique-grid-display/metrique-grid-display.component';
+import { CheckboxComponent } from '../../../../shared/components/checkbox/checkbox.component';
 
 /**
  * #354 — Fiche synthétique d'une action (opération).
@@ -19,7 +20,7 @@ import { MetriqueGridDisplayComponent } from '../../../../shared/components/metr
 @Component({
   selector: 'app-operation-fiche',
   standalone: true,
-  imports: [CommonModule, RouterModule, TranslateModule, LeafletMapEditComponent, MetriqueGridDisplayComponent],
+  imports: [CommonModule, RouterModule, TranslateModule, LeafletMapEditComponent, MetriqueGridDisplayComponent, CheckboxComponent],
   templateUrl: './operation-fiche.component.html',
   styleUrl: './operation-fiche.component.scss',
 })
@@ -32,6 +33,39 @@ export class OperationFicheComponent implements OnInit {
   isLoading = signal(true);
   errorMessage = signal<string | null>(null);
   planSlug = signal<string | null>(null);
+
+  /**
+   * #532 — Sections facultatives que l'utilisateur peut masquer avant
+   * l'impression/export, pour personnaliser le document produit. L'en-tête
+   * (identité de l'action) reste toujours affiché.
+   */
+  readonly toggleableSections = [
+    { key: 'description', labelKey: 'plans.suivis.actions.fiche.description' },
+    { key: 'temporalite', labelKey: 'plans.suivis.actions.fiche.temporalite' },
+    { key: 'acteurs', labelKey: 'plans.suivis.actions.fiche.acteurs' },
+    { key: 'programmation', labelKey: 'plans.suivis.actions.fiche.programmation' },
+    { key: 'indicateursReponse', labelKey: 'plans.suivis.actions.fiche.indicateursReponse' },
+    { key: 'indicateursAutres', labelKey: 'plans.suivis.actions.fiche.indicateursAutres' },
+    { key: 'emprise', labelKey: 'plans.suivis.actions.fiche.emprise' },
+    { key: 'realisation', labelKey: 'plans.suivis.actions.fiche.realisation' },
+  ] as const;
+
+  /** Visibilité par section (toutes cochées/affichées par défaut). */
+  readonly sectionVisibility = signal<Record<string, boolean>>(
+    Object.fromEntries(this.toggleableSections.map(s => [s.key, true])),
+  );
+
+  /** Panneau de choix des sections (replié par défaut, non imprimé). */
+  showSectionPicker = signal(false);
+
+  toggleSectionPicker(): void { this.showSectionPicker.update(v => !v); }
+
+  /** Une section est affichée sauf si elle a été explicitement décochée. */
+  sectionVisible(key: string): boolean { return this.sectionVisibility()[key] !== false; }
+
+  setSectionVisible(key: string, visible: boolean): void {
+    this.sectionVisibility.update(cur => ({ ...cur, [key]: visible }));
+  }
 
   /** Indicateurs liés, dérivés des métriques de l'action, dédupliqués. */
   readonly indicateursLies = computed(() => {

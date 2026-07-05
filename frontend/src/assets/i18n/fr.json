@@ -1954,7 +1954,11 @@
           "realisation": "Réalisation",
           "realisationGlobale": "Niveau global",
           "commentaire": "Commentaire",
-          "generatedNote": "Fiche générée depuis CICADA."
+          "generatedNote": "Fiche générée depuis CICADA.",
+          "sections": {
+            "toggle": "Personnaliser les sections",
+            "hint": "Choisissez les sections à inclure dans l'export"
+          }
         },
         "actionNonRealisee": "Action prévue non réalisée",
         "actionNonRealiseeSeule": "Action non réalisée"

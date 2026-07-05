@@ -5,6 +5,9 @@
       <i class="fi fi-rr-arrow-left"></i> {{ 'common.actions.back' | translate }}
     </button>
     <div class="fiche-toolbar-right">
+      <button class="btn-sections" [class.active]="showSectionPicker()" (click)="toggleSectionPicker()">
+        <i class="fi fi-rr-list-check"></i> {{ 'plans.suivis.actions.fiche.sections.toggle' | translate }}
+      </button>
       <button class="btn-suivi" (click)="goToSuivi()">
         <i class="fi fi-rr-chart-histogram"></i> {{ 'plans.suivis.actions.fiche.voirSuivi' | translate }}
       </button>
@@ -16,6 +19,22 @@
       </button>
     </div>
   </div>
+
+  <!-- #532 — Choix des sections à inclure dans l'export (masqué à l'impression) -->
+  @if (showSectionPicker()) {
+    <div class="fiche-section-picker no-print">
+      <p class="fiche-section-picker-hint">{{ 'plans.suivis.actions.fiche.sections.hint' | translate }}</p>
+      <div class="fiche-section-picker-list">
+        @for (s of toggleableSections; track s.key) {
+          <app-checkbox
+            [checked]="sectionVisible(s.key)"
+            (checkedChange)="setSectionVisible(s.key, $event)"
+            [label]="s.labelKey | translate">
+          </app-checkbox>
+        }
+      </div>
+    </div>
+  }
 
   @if (isLoading()) {
     <p class="fiche-loading">{{ 'common.loading' | translate }}</p>
@@ -35,7 +54,7 @@
         </div>
       </header>
 
-      @if (op.description) {
+      @if (op.description && sectionVisible('description')) {
         <section class="fiche-section">
           <h2>{{ 'plans.suivis.actions.fiche.description' | translate }}</h2>
           <p>{{ op.description }}</p>
@@ -43,6 +62,7 @@
       }
 
       <!-- Temporalité -->
+      @if (sectionVisible('temporalite')) {
       <section class="fiche-section">
         <h2>{{ 'plans.suivis.actions.fiche.temporalite' | translate }}</h2>
         <dl class="fiche-grid">
@@ -54,9 +74,10 @@
           }
         </dl>
       </section>
+      }
 
       <!-- Acteurs -->
-      @if (op.operateurs || op.partenaires || op.financeurs) {
+      @if ((op.operateurs || op.partenaires || op.financeurs) && sectionVisible('acteurs')) {
         <section class="fiche-section">
           <h2>{{ 'plans.suivis.actions.fiche.acteurs' | translate }}</h2>
           <dl class="fiche-grid">
@@ -77,7 +98,7 @@
       }
 
       <!-- Programmation -->
-      @if (programmation().length) {
+      @if (programmation().length && sectionVisible('programmation')) {
         <section class="fiche-section">
           <h2>{{ 'plans.suivis.actions.fiche.programmation' | translate }}</h2>
           <table class="fiche-table">
@@ -124,7 +145,7 @@
       }
 
       <!-- Indicateurs de réponse (mis en avant, avec grille de métriques #515) -->
-      @if (indicateursReponse().length) {
+      @if (indicateursReponse().length && sectionVisible('indicateursReponse')) {
         <section class="fiche-section">
           <h2>{{ 'plans.suivis.actions.fiche.indicateursReponse' | translate }}</h2>
           @for (ind of indicateursReponse(); track ind.id) {
@@ -139,7 +160,7 @@
       <!-- Autres indicateurs liés (état / pression) : grille de métriques affichée
            comme pour les indicateurs de réponse (#516 — les métriques « en blocs »
            d'état/pression n'apparaissaient pas, seul leur nom était listé). -->
-      @if (indicateursEtatPression().length) {
+      @if (indicateursEtatPression().length && sectionVisible('indicateursAutres')) {
         <section class="fiche-section">
           <h2>{{ 'plans.suivis.actions.fiche.indicateursAutres' | translate }}</h2>
           @for (ind of indicateursEtatPression(); track ind.id) {
@@ -155,7 +176,7 @@
       }
 
       <!-- #326 — Emprise spatiale (carte, lecture seule) -->
-      @if (empriseGeom()) {
+      @if (empriseGeom() && sectionVisible('emprise')) {
         <section class="fiche-section fiche-section--map no-print-map">
           <h2>{{ 'plans.suivis.actions.fiche.emprise' | translate }}</h2>
           <app-leaflet-map-edit
@@ -169,6 +190,7 @@
       }
 
       <!-- Réalisation -->
+      @if (sectionVisible('realisation')) {
       <section class="fiche-section">
         <h2>{{ 'plans.suivis.actions.fiche.realisation' | translate }}</h2>
         <dl class="fiche-grid">
@@ -180,6 +202,7 @@
           }
         </dl>
       </section>
+      }
 
       <footer class="fiche-footer">
         {{ 'plans.suivis.actions.fiche.generatedNote' | translate }}
