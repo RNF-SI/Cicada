@@ -539,6 +539,25 @@ class ValidationRequestViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
+        # #467 — Annuler une création de site supprime le site orphelin.
+        # Le site a été créé inactif en attendant la validation ; s'il n'a
+        # jamais été validé (toujours inactif), on le supprime pour ne pas
+        # laisser un site orphelin en base. La demande de validation est
+        # supprimée en cascade (target_site → on_delete=CASCADE).
+        site = validation_request.target_site
+        if (
+            validation_request.request_type == 'site_creation'
+            and site is not None
+            and not site.active
+        ):
+            with transaction.atomic():
+                validation_request.cancel()
+                site.delete()
+            return Response({
+                'status': 'cancelled',
+                'message': 'La création du site a été annulée et le site a été supprimé.'
+            })
+
         validation_request.cancel()
 
         return Response({

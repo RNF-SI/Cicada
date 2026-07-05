@@ -458,6 +458,47 @@ class TestValidationWorkflow:
         assert response.status_code == status.HTTP_200_OK
         assert response.data['status'] == 'cancelled'
 
+    def test_cancel_site_creation_deletes_orphaned_site(self, authenticated_client):
+        """#467 — Annuler une création de site supprime le site orphelin (inactif)
+        et sa demande de validation."""
+        from apps.users.models import Site
+
+        client, user = authenticated_client
+        site = SiteFactory(nom_site='Site en attente', active=False)
+
+        request_obj = ValidationRequest.objects.create(
+            request_type='site_creation', status='pending',
+            requester=user, target_site=site
+        )
+
+        response = client.post(f'/api/validations/{request_obj.id}/cancel/')
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data['status'] == 'cancelled'
+
+        # Le site orphelin et la demande sont supprimés
+        assert not Site.objects.filter(pk=site.pk).exists()
+        assert not ValidationRequest.objects.filter(pk=request_obj.id).exists()
+
+    def test_cancel_site_creation_keeps_active_site(self, authenticated_client):
+        """#467 — Si le site a déjà été validé (actif), l'annulation ne le
+        supprime pas (garde-fou)."""
+        from apps.users.models import Site
+
+        client, user = authenticated_client
+        site = SiteFactory(nom_site='Site validé', active=True)
+
+        request_obj = ValidationRequest.objects.create(
+            request_type='site_creation', status='pending',
+            requester=user, target_site=site
+        )
+
+        response = client.post(f'/api/validations/{request_obj.id}/cancel/')
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data['status'] == 'cancelled'
+
+        # Le site actif est conservé
+        assert Site.objects.filter(pk=site.pk).exists()
+
     def test_cancel_other_users_request_fails(self, authenticated_client):
         """Test user cannot cancel another user's request."""
         client, user = authenticated_client

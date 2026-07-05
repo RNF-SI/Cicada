@@ -1,6 +1,6 @@
 import {
   getActionStatusForYear, getActionIcon, ACTION_LEGEND_ITEMS, ACTION_ICON_MAP,
-  getGlobalRealisationKind, getGlobalRealisationLabelKey,
+  getGlobalRealisationKind, getGlobalRealisationLabelKey, hasActionCellForYear,
 } from './action-status.util';
 import { Operation } from '../../../core/models/enjeu.model';
 
@@ -61,6 +61,24 @@ describe('action-status.util', () => {
   it('la légende contient les 6 statuts dont « non réalisée »', () => {
     expect(ACTION_LEGEND_ITEMS.length).toBe(6);
     expect(ACTION_LEGEND_ITEMS.some(i => i.status === 'planned-not-realized')).toBe(true);
+  });
+
+  describe('hasActionCellForYear (#459)', () => {
+    it('prévu (case non blanche) → true', () => {
+      expect(hasActionCellForYear(op(2025, true, null), 2025)).toBe(true);
+    });
+    it('réalisé (case non blanche) → true', () => {
+      expect(hasActionCellForYear(op(2025, true, 'TERMINE'), 2025)).toBe(true);
+    });
+    it('non prévu mais réalisé (case non blanche) → true', () => {
+      expect(hasActionCellForYear(op(2025, false, 'TERMINE'), 2025)).toBe(true);
+    });
+    it('non prévu sans réalisation (carré blanc) → false', () => {
+      expect(hasActionCellForYear(op(2025, false, null), 2025)).toBe(false);
+    });
+    it('année absente (carré blanc) → false', () => {
+      expect(hasActionCellForYear(op(2025, true, 'TERMINE'), 2030)).toBe(false);
+    });
   });
 
   describe('getGlobalRealisationKind (#460)', () => {

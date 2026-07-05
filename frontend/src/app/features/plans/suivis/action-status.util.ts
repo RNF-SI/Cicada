@@ -38,6 +38,16 @@ export function getActionIcon(status: ActionStatus | null): string {
 }
 
 /**
+ * #459 — Vrai si l'action a une « case » (statut non blanc) à cette année :
+ * prévu, réalisé, partiel, non réalisé, non prévu… Autrement dit, tout ce qui
+ * n'est pas un carré blanc (= aucun statut, `getActionStatusForYear` → null).
+ * Sert au filtre par année du suivi des actions.
+ */
+export function hasActionCellForYear(op: Operation, year: number): boolean {
+  return getActionStatusForYear(op, year) !== null;
+}
+
+/**
  * #460 — Rendu du statut de réalisation GLOBAL d'une action dans le tableau
  * de suivi. Contrairement aux 3 icônes historiques (réalisé / partiel / non
  * réalisé), on distingue explicitement « en cours » (sablier, tant que la

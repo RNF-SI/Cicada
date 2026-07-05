@@ -18,6 +18,7 @@ import {
 } from '../../../core/models/enjeu.model';
 import {
   ActionStatus, ACTION_LEGEND_ITEMS, getActionIcon, getActionStatusForYear,
+  hasActionCellForYear,
   GlobalRealisationKind, getGlobalRealisationKind, getGlobalRealisationLabelKey,
 } from './action-status.util';
 
@@ -113,9 +114,9 @@ export class PlanSuiviActionsComponent implements OnInit {
   });
 
   yearColumns = computed(() => {
-    // #354 — si une année est sélectionnée, on n'affiche que cette colonne.
-    const fy = this.filterYear();
-    if (fy != null) return [fy];
+    // #459 — le filtre d'année ne réduit plus le tableau à une seule colonne :
+    // toutes les années restent affichées, seul l'ensemble des lignes (actions)
+    // est filtré (cf. filteredOperations).
     return this.allYears();
   });
 
@@ -154,11 +155,20 @@ export class PlanSuiviActionsComponent implements OnInit {
 
   filteredOperations = computed(() => {
     let ops = this.baseFilteredOperations();
-    // #354 — filtre par réalisation (sur les années affichées : si une année est
-    // sélectionnée, la réalisation est évaluée sur cette année uniquement).
+    const fy = this.filterYear();
+
+    // #459 — filtre par année : ne garder que les actions ayant une case non
+    // blanche (un statut : prévu, réalisé, partiel, non prévu…) à cette année.
+    // Toutes les colonnes d'années restent affichées.
+    if (fy != null) {
+      ops = ops.filter(o => hasActionCellForYear(o.operation, fy));
+    }
+
+    // #354 — filtre par réalisation. Si une année est sélectionnée, la
+    // réalisation est évaluée sur cette année uniquement, sinon sur toutes.
     const real = this.filterRealisation();
     if (real !== 'all') {
-      const years = this.yearColumns();
+      const years = fy != null ? [fy] : this.yearColumns();
       ops = ops.filter(o => {
         const realized = years.some(y => this.opYearIsRealized(o.operation, y));
         return real === 'realized' ? realized : !realized;
