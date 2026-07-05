@@ -537,6 +537,61 @@ describe('EnjeuxListComponent', () => {
   });
 
   // =========================================================================
+  // OO numbering — auto + manuel (#526, décline #442)
+  // =========================================================================
+
+  describe('ooLocalRank — numérotation manuelle (#526)', () => {
+    beforeEach(() => setup());
+
+    /**
+     * Prépare un FCR sélectionné dont les OO sont rattachés directement
+     * (chemin `objectifs_operationnels`, sans pression). `selectedOos()` les
+     * trie par `ordre`.
+     */
+    function setOos(oos: { id: number; numero_manuel?: number | null }[]): void {
+      const mk = oos.map((o, i) => ({
+        id_oo: o.id, libelle: `OO ${o.id}`, id_enjeu: mockFcr.id_enjeu,
+        pressions: [], pression_ids: [], ordre: i,
+        numero_manuel: o.numero_manuel ?? null,
+        date_ajout: '', date_maj: '',
+      }));
+      component.planEnjeuxData.set({
+        ...mockPlanEnjeuxResponse,
+        fcr: [{ ...mockFcr, objectifs_operationnels: mk } as any],
+      } as any);
+      component['selectedEnjeuSlug'].set('connaissance-scientifique');
+    }
+
+    it('numérote automatiquement 1..N dans l\'ordre quand aucun numéro fixé', () => {
+      setOos([{ id: 10 }, { id: 11 }, { id: 12 }]);
+      expect(component.getOoNumber(10)).toBe(1);
+      expect(component.getOoNumber(11)).toBe(2);
+      expect(component.getOoNumber(12)).toBe(3);
+    });
+
+    it('respecte un numéro fixé manuellement et le maintient stable', () => {
+      setOos([{ id: 10 }, { id: 11, numero_manuel: 1 }]);
+      expect(component.getOoNumber(11)).toBe(1);
+    });
+
+    it('l\'auto-numérotation saute l\'indice occupé par un numéro fixé', () => {
+      // id 11 fixé à 1 → les OO auto (10, 12) sautent le 1 : 2 puis 3.
+      setOos([{ id: 10 }, { id: 11, numero_manuel: 1 }, { id: 12 }]);
+      expect(component.getOoNumber(10)).toBe(2);
+      expect(component.getOoNumber(11)).toBe(1);
+      expect(component.getOoNumber(12)).toBe(3);
+    });
+
+    it('supporte plusieurs numéros fixés simultanément', () => {
+      setOos([{ id: 10, numero_manuel: 3 }, { id: 11 }, { id: 12, numero_manuel: 1 }]);
+      // Réservés : 1 et 3. Auto (11) → 2.
+      expect(component.getOoNumber(10)).toBe(3);
+      expect(component.getOoNumber(11)).toBe(2);
+      expect(component.getOoNumber(12)).toBe(1);
+    });
+  });
+
+  // =========================================================================
   // Detail computed properties
   // =========================================================================
 
@@ -1855,6 +1910,27 @@ describe('EnjeuxListComponent', () => {
       expect(mockEnjeuService.updateObjectifOperationnel).toHaveBeenCalledWith(1001, expect.objectContaining({
         pression_ids: [301],
         libelle: 'OO modifié',
+        numero_manuel: null,
+      }));
+    });
+
+    it('should send numero_manuel when a fixed number is set (#526)', () => {
+      component.startEditOo(mockOo);
+      component.editOoLibelle = 'OO fixé';
+      component.editOoNumero = 3;
+      component.saveEditOo(mockOo);
+      expect(mockEnjeuService.updateObjectifOperationnel).toHaveBeenCalledWith(1001, expect.objectContaining({
+        numero_manuel: 3,
+      }));
+    });
+
+    it('should reset numero_manuel to null when field is cleared/zero (#526)', () => {
+      component.startEditOo(mockOo);
+      component.editOoLibelle = 'OO auto';
+      component.editOoNumero = 0;
+      component.saveEditOo(mockOo);
+      expect(mockEnjeuService.updateObjectifOperationnel).toHaveBeenCalledWith(1001, expect.objectContaining({
+        numero_manuel: null,
       }));
     });
 

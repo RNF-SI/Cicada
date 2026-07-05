@@ -298,7 +298,7 @@ class ObjectifOperationnelSerializer(serializers.ModelSerializer):
         model = ObjectifOperationnel
         fields = [
             'id_oo', 'pressions', 'pression_ids', 'id_enjeu',
-            'libelle', 'description', 'ordre',
+            'libelle', 'description', 'ordre', 'numero_manuel',
             'resultats_attendus', 'nb_resultats_attendus',
             'date_ajout', 'date_maj', 'createur_nom'
         ]
@@ -322,7 +322,7 @@ class ObjectifOperationnelListSerializer(serializers.ModelSerializer):
         model = ObjectifOperationnel
         fields = [
             'id_oo', 'pressions', 'pression_ids', 'id_enjeu',
-            'libelle', 'description', 'ordre',
+            'libelle', 'description', 'ordre', 'numero_manuel',
             'nb_resultats_attendus',
             'date_ajout', 'date_maj', 'createur_nom'
         ]
@@ -352,7 +352,7 @@ class ObjectifOperationnelCreateSerializer(serializers.ModelSerializer):
         model = ObjectifOperationnel
         fields = [
             'id_oo', 'pression_ids', 'id_enjeu',
-            'libelle', 'description', 'ordre'
+            'libelle', 'description', 'ordre', 'numero_manuel'
         ]
         read_only_fields = ['id_oo']
 

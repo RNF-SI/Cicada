@@ -287,6 +287,8 @@ export interface ObjectifOperationnel {
   id_enjeu?: number | null;
   libelle: string;
   description?: string;
+  /** #526 — Numéro fixé manuellement (null = numérotation automatique). */
+  numero_manuel?: number | null;
   resultats_attendus?: ResultatAttendu[];
   nb_resultats_attendus?: number;
   date_ajout: string;
@@ -872,6 +874,8 @@ export interface ObjectifOperationnelCreatePayload {
   id_enjeu?: number;
   libelle: string;
   description?: string;
+  /** #526 — Numéro fixé manuellement (null = numérotation automatique). */
+  numero_manuel?: number | null;
 }
 
 /**

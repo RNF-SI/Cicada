@@ -273,6 +273,8 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
   newOoPressionIds: number[] = [];
   editOoLibelle = '';
   editOoDescription = '';
+  // #526 — Numéro fixé manuellement de l'OO en édition (null = automatique).
+  editOoNumero: number | null = null;
   editOoPressionIds: number[] = [];
 
   // Résultat Attendu state
@@ -1256,6 +1258,40 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
   totalOoCount = computed(() => {
     return this.selectedOos().length;
   });
+
+  /**
+   * #526 / #442 — Numérotation des OO du parent affiché (dérivée de l'ordre
+   * d'affichage), avec possibilité de fixer un numéro manuellement
+   * (`numero_manuel`), sur le même principe que l'OLT. Un numéro fixé est
+   * réservé et l'auto-numérotation des autres OO le saute.
+   */
+  ooLocalRank = computed<Map<number, number>>(() => {
+    const oos = this.selectedOos();
+    // Indices réservés par les OO à numéro fixé manuellement.
+    const reserved = new Set<number>();
+    for (const oo of oos) {
+      if (oo.numero_manuel != null) reserved.add(oo.numero_manuel);
+    }
+    const map = new Map<number, number>();
+    let auto = 0;
+    for (const oo of oos) {
+      if (oo.numero_manuel != null) {
+        map.set(oo.id_oo, oo.numero_manuel);
+      } else {
+        // Prochain indice automatique libre (non réservé).
+        auto += 1;
+        while (reserved.has(auto)) auto += 1;
+        map.set(oo.id_oo, auto);
+      }
+    }
+    return map;
+  });
+
+  /** Numéro affiché d'un OO (fixé ou automatique). Null si inconnu. */
+  getOoNumber(ooId: number | undefined): number | null {
+    if (ooId == null) return null;
+    return this.ooLocalRank().get(ooId) ?? null;
+  }
 
   /** Ouvre la modale de demande d'accès au plan, option « Référent » présélectionnée. */
   requestBecomeReferent(): void {
@@ -4354,6 +4390,7 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
     this.editingOoId.set(oo.id_oo);
     this.editOoLibelle = oo.libelle;
     this.editOoDescription = oo.description || '';
+    this.editOoNumero = oo.numero_manuel ?? null;
     this.editOoPressionIds = [...(oo.pression_ids || [])];
   }
 
@@ -4361,6 +4398,7 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
     this.editingOoId.set(null);
     this.editOoLibelle = '';
     this.editOoDescription = '';
+    this.editOoNumero = null;
     this.editOoPressionIds = [];
   }
 
@@ -4373,10 +4411,15 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
     const isFcr = this.isSelectedFcr();
     if (!isFcr && this.editOoPressionIds.length === 0) return;
 
+    // #526 — Vide/0/invalide → numérotation automatique (null).
+    const rawNumero = this.editOoNumero;
+    const newNumero = rawNumero != null && rawNumero > 0 ? Math.floor(rawNumero) : null;
+
     this.enjeuService.updateObjectifOperationnel(oo.id_oo, {
       pression_ids: this.editOoPressionIds,
       libelle: this.editOoLibelle.trim(),
       description: this.editOoDescription.trim() || undefined,
+      numero_manuel: newNumero,
     }).subscribe({
       next: () => {
         this.snackBar.open(

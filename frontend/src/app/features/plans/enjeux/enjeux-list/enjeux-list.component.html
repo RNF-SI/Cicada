@@ -1495,6 +1495,11 @@
                       <app-form-field class="full-width" [label]="'enjeux.oo.descriptionLabel' | translate">
   <textarea [(ngModel)]="editOoDescription" rows="2"></textarea>
 </app-form-field>
+                      <app-form-field [label]="'enjeux.oo.numeroLabel' | translate"
+                                      [helpText]="'enjeux.oo.numeroHelp' | translate">
+  <input type="number" min="1" step="1" [(ngModel)]="editOoNumero"
+         [placeholder]="'enjeux.oo.numeroPlaceholder' | translate">
+</app-form-field>
                       <!-- #337 — pas de pression pour un FCR : OO rattaché directement -->
                       @if (!isSelectedFcr()) {
                       <label class="app-mat-label">{{ 'enjeux.oo.pressionLabel' | translate }} *</label>
@@ -1549,13 +1554,18 @@
                       </button>
                     }
                     <app-section-title
-                      [title]="('enjeux.oo.label' | translate) + ' ' + (ooIdx + 1) + ' : ' + oo.libelle"
+                      [title]="('enjeux.oo.label' | translate) + ' ' + (getOoNumber(oo.id_oo) || (ooIdx + 1)) + ' : ' + oo.libelle"
                       [tooltip]="'enjeux.oo.tooltip' | translate"
                       icon="fi-rr-edit"
                       ellipseColor="terra-cotta"
                       size="md"
                       [showLine]="true">
                       <div sectionActions class="olt-header-actions">
+                        @if (oo.numero_manuel != null) {
+                          <i class="fi fi-rr-thumbtack olt-pinned-badge"
+                             [title]="'enjeux.oo.numeroPinned' | translate"
+                             [attr.aria-label]="'enjeux.oo.numeroPinned' | translate"></i>
+                        }
                         @if (canEditPlan()) {
                           <button class="icon-btn-flat" (click)="startEditOo(oo); $event.stopPropagation()" [title]="'common.actions.edit' | translate">
                             <i class="fi fi-rr-pencil"></i>
