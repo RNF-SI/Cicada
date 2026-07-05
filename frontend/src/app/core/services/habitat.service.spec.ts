@@ -139,6 +139,24 @@ describe('HabitatService', () => {
       req.flush(mockAutocomplete);
     }));
 
+    it('should pass multiple cd_typo as comma-separated list (#469)', fakeAsync(() => {
+      service.autocomplete('For', { cdTypos: [7, 8] }).subscribe();
+
+      const req = httpMock.expectOne(
+        (r) => r.params.get('cd_typo') === '7,8'
+      );
+      req.flush(mockAutocomplete);
+    }));
+
+    it('should omit cd_typo when typo list is empty (#469)', fakeAsync(() => {
+      service.autocomplete('For', { cdTypos: [] }).subscribe();
+
+      const req = httpMock.expectOne(
+        (r) => r.url === '/api/habref/autocomplete/' && !r.params.has('cd_typo')
+      );
+      req.flush(mockAutocomplete);
+    }));
+
     it('should cache results', fakeAsync(() => {
       // First call
       service.autocomplete('Forêt').subscribe();
@@ -168,6 +186,16 @@ describe('HabitatService', () => {
 
       expect(result!.length).toBe(1);
       expect(result![0].lb_typo).toBe('EUNIS');
+    }));
+
+    it('should request with_habitats when asked (#469)', fakeAsync(() => {
+      service.getTypologies(true).subscribe();
+
+      const req = httpMock.expectOne(
+        (r) => r.url === '/api/habref/typo/' && r.params.get('with_habitats') === '1'
+      );
+      req.flush(mockTypologies);
+      tick();
     }));
   });
 

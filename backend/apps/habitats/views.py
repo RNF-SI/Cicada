@@ -36,7 +36,9 @@ class HabrefViewSet(viewsets.ReadOnlyModelViewSet):
 
         Paramètres :
         - search : terme de recherche (min 2 caractères)
-        - cd_typo : filtre optionnel par code typologie
+        - cd_typo : filtre optionnel par code(s) typologie. Accepte une seule
+          valeur ou plusieurs, séparées par des virgules (#469). Par défaut la
+          recherche porte sur l'ensemble d'HabRef.
         - limit : nombre max de résultats (défaut 20)
         """
         search = request.query_params.get('search', '').strip()
@@ -70,10 +72,15 @@ class HabrefViewSet(viewsets.ReadOnlyModelViewSet):
 
             sql += ")"
 
-            cd_typo = request.query_params.get('cd_typo')
-            if cd_typo:
-                sql += " AND cd_typo = %s"
-                params.append(int(cd_typo))
+            # #469 — filtre par une ou plusieurs typologies (liste séparée par
+            # des virgules). Permet de lever l'ambiguïté quand plusieurs typo
+            # partagent un code équivalent (ex. Cahiers d'habitats vs HIC).
+            cd_typo_raw = request.query_params.get('cd_typo', '')
+            cd_typos = [int(t) for t in cd_typo_raw.split(',') if t.strip().isdigit()]
+            if cd_typos:
+                placeholders = ', '.join(['%s'] * len(cd_typos))
+                sql += f" AND cd_typo IN ({placeholders})"
+                params.extend(cd_typos)
 
             sql += """
                 ORDER BY
@@ -95,8 +102,27 @@ class HabrefViewSet(viewsets.ReadOnlyModelViewSet):
 
     @action(detail=False, methods=['get'])
     def typo(self, request):
-        """Liste des typologies d'habitats."""
-        typos = Typoref.objects.all().order_by('cd_typo')
+        """
+        Liste des typologies d'habitats.
+
+        Paramètre :
+        - with_habitats : si vrai (1/true), ne renvoie que les typologies qui
+          ont effectivement des habitats indexés dans l'autocomplete (#469),
+          triées par libellé — utile pour peupler le filtre de recherche sans
+          polluer la liste avec les 40+ typologies vides.
+        """
+        with_habitats = request.query_params.get('with_habitats', '').lower() in ('1', 'true')
+        if with_habitats:
+            from django.db import connection
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    "SELECT DISTINCT cd_typo FROM ref_habitats.autocomplete_habitat "
+                    "WHERE cd_typo IS NOT NULL"
+                )
+                used = [row[0] for row in cursor.fetchall()]
+            typos = Typoref.objects.filter(cd_typo__in=used).order_by('lb_typo')
+        else:
+            typos = Typoref.objects.all().order_by('cd_typo')
         return Response(TyporefSerializer(typos, many=True).data)
 
     @action(

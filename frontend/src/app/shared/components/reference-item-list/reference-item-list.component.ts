@@ -8,12 +8,13 @@ import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatSelectModule } from '@angular/material/select';
 import { MatDialog } from '@angular/material/dialog';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { Subject, debounceTime, distinctUntilChanged, takeUntil } from 'rxjs';
 
 import { TaxonomyService, TaxrefAutocomplete, getTaxrefRangLabel } from '../../../core/services/taxonomy.service';
-import { HabitatService, HabitatAutocomplete } from '../../../core/services/habitat.service';
+import { HabitatService, HabitatAutocomplete, Typologie } from '../../../core/services/habitat.service';
 import { GeologyService, InpgAutocomplete } from '../../../core/services/geology.service';
 import { TaxonRef, HabitatRef, GeologieRef } from '../../../core/models/enjeu.model';
 import { ImportListDialogComponent, ImportListDialogData, ImportedItem } from '../modals/import-list-dialog/import-list-dialog.component';
@@ -32,6 +33,7 @@ import { HabitatChipComponent } from '../habitat-chip/habitat-chip.component';
     MatButtonModule,
     MatIconModule,
     MatProgressSpinnerModule,
+    MatSelectModule,
     TranslateModule,
     HabitatChipComponent,
   ],
@@ -63,6 +65,12 @@ export class ReferenceItemListComponent implements OnInit, OnDestroy {
   autocompleteResults = signal<(TaxrefAutocomplete | HabitatAutocomplete | InpgAutocomplete)[]>([]);
   isSearching = signal(false);
 
+  // #469 — filtre par typologie(s) pour la recherche d'habitat. Par défaut la
+  // recherche porte sur l'ensemble d'HabRef ; l'utilisateur peut restreindre à
+  // une ou plusieurs typologies (lève l'ambiguïté des codes équivalents).
+  typologies = signal<Typologie[]>([]);
+  selectedTypos = signal<number[]>([]);
+
   ngOnInit(): void {
     this.searchControl.valueChanges.pipe(
       debounceTime(300),
@@ -75,6 +83,33 @@ export class ReferenceItemListComponent implements OnInit, OnDestroy {
         this.autocompleteResults.set([]);
       }
     });
+
+    // #469 — charge la liste des typologies disponibles pour le filtre habitat.
+    if (this.type === 'habitat') {
+      this.habitatService.getTypologies(true).subscribe(typos => {
+        this.typologies.set(typos);
+      });
+    }
+  }
+
+  /**
+   * #469 — Nom de typologie « propre » pour l'affichage (les libellés HabRef
+   * utilisent des underscores, ex. « Cahiers_d'habitats »).
+   */
+  typoLabel(typo: Typologie): string {
+    return (typo.lb_typo || '').replace(/_/g, ' ');
+  }
+
+  /**
+   * #469 — Applique la sélection de typologies et relance la recherche courante
+   * si un terme est déjà saisi.
+   */
+  onTypoFilterChange(typos: number[]): void {
+    this.selectedTypos.set(typos ?? []);
+    const value = this.searchControl.value;
+    if (typeof value === 'string' && value.length >= 2) {
+      this.search(value);
+    }
   }
 
   ngOnDestroy(): void {
@@ -102,7 +137,11 @@ export class ReferenceItemListComponent implements OnInit, OnDestroy {
       if (this.synonymMode()) opts.include_synonyms = true;
       this.taxonomyService.autocomplete(term, opts).subscribe(handler);
     } else if (this.type === 'habitat') {
-      this.habitatService.autocomplete(term, { limit: effectiveLimit }).subscribe(handler);
+      // #469 — restreint aux typologies sélectionnées (vide = tout HabRef).
+      this.habitatService.autocomplete(term, {
+        limit: effectiveLimit,
+        cdTypos: this.selectedTypos(),
+      }).subscribe(handler);
     } else {
       this.geologyService.autocomplete(term, { limit: effectiveLimit }).subscribe(handler);
     }

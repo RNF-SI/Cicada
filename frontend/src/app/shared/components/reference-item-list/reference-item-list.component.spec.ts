@@ -33,7 +33,7 @@ describe('ReferenceItemListComponent', () => {
   let component: ReferenceItemListComponent;
   let fixture: ComponentFixture<ReferenceItemListComponent>;
   let taxonomyService: { autocomplete: jest.Mock; validateBulk: jest.Mock };
-  let habitatService: { autocomplete: jest.Mock; validateBulk: jest.Mock };
+  let habitatService: { autocomplete: jest.Mock; validateBulk: jest.Mock; getTypologies: jest.Mock };
   let geologyService: { autocomplete: jest.Mock; validateBulk: jest.Mock };
   let dialog: { open: jest.Mock };
 
@@ -45,6 +45,7 @@ describe('ReferenceItemListComponent', () => {
     habitatService = {
       autocomplete: jest.fn().mockReturnValue(of([])),
       validateBulk: jest.fn().mockReturnValue(of({ found: [], not_found: [] })),
+      getTypologies: jest.fn().mockReturnValue(of([])),
     };
     geologyService = {
       autocomplete: jest.fn().mockReturnValue(of([])),
@@ -131,7 +132,39 @@ describe('ReferenceItemListComponent', () => {
       component.searchControl.setValue('Hêt');
       tick(300);
 
-      expect(habitatService.autocomplete).toHaveBeenCalledWith('Hêt', { limit: 20 });
+      expect(habitatService.autocomplete).toHaveBeenCalledWith('Hêt', { limit: 20, cdTypos: [] });
+    }));
+
+    it('should restrict habitat search to selected typologies (#469)', fakeAsync(() => {
+      component.type = 'habitat';
+      fixture.detectChanges();
+
+      component.selectedTypos.set([7, 8]);
+      component.searchControl.setValue('Hêt');
+      tick(300);
+
+      expect(habitatService.autocomplete).toHaveBeenCalledWith('Hêt', { limit: 20, cdTypos: [7, 8] });
+    }));
+
+    it('should reload typologies with habitats on init for habitat type (#469)', fakeAsync(() => {
+      component.type = 'habitat';
+      fixture.detectChanges();
+
+      expect(habitatService.getTypologies).toHaveBeenCalledWith(true);
+    }));
+
+    it('should re-run search when typo filter changes (#469)', fakeAsync(() => {
+      component.type = 'habitat';
+      fixture.detectChanges();
+
+      component.searchControl.setValue('Hêt');
+      tick(300);
+      habitatService.autocomplete!.mockClear();
+
+      component.onTypoFilterChange([22]);
+
+      expect(component.selectedTypos()).toEqual([22]);
+      expect(habitatService.autocomplete).toHaveBeenCalledWith('Hêt', { limit: 20, cdTypos: [22] });
     }));
 
     it('should not search with less than 2 characters', fakeAsync(() => {

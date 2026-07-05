@@ -102,6 +102,19 @@ class TestHabrefTypoEndpoint:
         assert 'EUNIS' in typo_names
         assert 'Corine Biotopes' in typo_names
 
+    def test_typo_list_with_habitats_only(self):
+        """#469 — with_habitats ne renvoie que les typologies indexées."""
+        # Typologie sans aucun habitat dans l'autocomplete
+        Typoref.objects.create(cd_typo=99, lb_typo='Typo vide', territoire='X')
+        response = self.client.get(
+            '/api/habref/typo/', {'with_habitats': '1'}
+        )
+        assert response.status_code == 200
+        typo_names = [t['lb_typo'] for t in response.data]
+        assert 'EUNIS' in typo_names
+        assert 'Corine Biotopes' in typo_names
+        assert 'Typo vide' not in typo_names
+
 
 @pytest.mark.django_db
 @pytest.mark.integration
@@ -205,3 +218,31 @@ class TestHabrefAutocompleteEndpoint:
         assert response.status_code == 200
         for r in response.data:
             assert r['cd_typo'] == 8
+
+    def test_autocomplete_filter_by_multiple_cd_typo(self):
+        """#469 — cd_typo accepte plusieurs typologies (liste virgules)."""
+        # 'e' matche des habitats des deux typologies (7 et 8)
+        response = self.client.get(
+            '/api/habref/autocomplete/',
+            {'search': 'es', 'cd_typo': '7,8'},
+        )
+        assert response.status_code == 200
+        typos = {r['cd_typo'] for r in response.data}
+        assert typos <= {7, 8}
+        # La restriction à une seule typo renvoie un sous-ensemble
+        response_single = self.client.get(
+            '/api/habref/autocomplete/',
+            {'search': 'es', 'cd_typo': '8'},
+        )
+        for r in response_single.data:
+            assert r['cd_typo'] == 8
+
+    def test_autocomplete_ignores_invalid_cd_typo(self):
+        """#469 — valeurs non numériques ignorées (pas de crash)."""
+        response = self.client.get(
+            '/api/habref/autocomplete/',
+            {'search': 'Forêts', 'cd_typo': 'abc,7'},
+        )
+        assert response.status_code == 200
+        for r in response.data:
+            assert r['cd_typo'] == 7

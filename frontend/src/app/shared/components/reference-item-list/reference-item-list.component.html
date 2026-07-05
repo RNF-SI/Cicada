@@ -70,6 +70,24 @@
     </div>
   }
 
+  <!-- #469 — Filtre par typologie (habitats uniquement) : restreint la
+       recherche à une ou plusieurs typologies HabRef. Vide = tout HabRef. -->
+  @if (type === 'habitat' && typologies().length > 0) {
+    <label class="app-mat-label">{{ 'enjeux.referenceList.typoFilter' | translate }}</label>
+    <mat-form-field class="app-mat-form-field typo-filter-field" appearance="outline">
+      <mat-label></mat-label>
+      <mat-select multiple
+                  [value]="selectedTypos()"
+                  (valueChange)="onTypoFilterChange($event)"
+                  [placeholder]="'enjeux.referenceList.typoFilterAll' | translate">
+        @for (typo of typologies(); track typo.cd_typo) {
+          <mat-option [value]="typo.cd_typo">{{ typoLabel(typo) }}</mat-option>
+        }
+      </mat-select>
+      <mat-hint>{{ 'enjeux.referenceList.typoFilterHint' | translate }}</mat-hint>
+    </mat-form-field>
+  }
+
   <!-- Autocomplete search -->
   <label class="app-mat-label">{{ (type === 'taxon' ? 'enjeux.referenceList.searchTaxon' : type === 'habitat' ? 'enjeux.referenceList.searchHabitat' : 'enjeux.referenceList.searchGeology') | translate }}</label>
       <mat-form-field class="app-mat-form-field search-field" appearance="outline">

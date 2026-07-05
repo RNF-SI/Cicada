@@ -115,22 +115,30 @@ export class HabitatService {
    */
   autocomplete(search: string, options?: {
     cdTypo?: number;
+    /** #469 — restreint la recherche à une ou plusieurs typologies. */
+    cdTypos?: number[];
     limit?: number;
   }): Observable<HabitatAutocomplete[]> {
     if (search.length < 2) {
       return of([]);
     }
 
+    // #469 — normalise les typologies (valeur unique ou liste) en un seul
+    // paramètre `cd_typo` séparé par des virgules.
+    const typos = (options?.cdTypos ?? (options?.cdTypo != null ? [options.cdTypo] : []))
+      .filter(t => t != null);
+    const cdTypoParam = typos.join(',');
+
     // #238 — inclure `limit` dans la clé pour éviter qu'un appel court
     // (limit=20) ne masque les résultats d'un appel ultérieur plus large.
-    const cacheKey = `${search}|${options?.cdTypo || ''}|${options?.limit || ''}`;
+    const cacheKey = `${search}|${cdTypoParam}|${options?.limit || ''}`;
     const cached = this.autocompleteCache.get(cacheKey);
     if (cached) {
       return of(cached);
     }
 
     let params = new HttpParams().set('search', search);
-    if (options?.cdTypo) params = params.set('cd_typo', options.cdTypo.toString());
+    if (cdTypoParam) params = params.set('cd_typo', cdTypoParam);
     if (options?.limit) params = params.set('limit', options.limit.toString());
 
     return this.http.get<HabitatAutocomplete[]>(
@@ -150,9 +158,13 @@ export class HabitatService {
 
   /**
    * Liste des typologies d'habitats.
+   * @param onlyWithHabitats #469 — ne renvoie que les typologies ayant des
+   *   habitats indexés (pour peupler le filtre de recherche).
    */
-  getTypologies(): Observable<Typologie[]> {
-    return this.http.get<Typologie[]>(`${this.apiUrl}/typo/`);
+  getTypologies(onlyWithHabitats = false): Observable<Typologie[]> {
+    let params = new HttpParams();
+    if (onlyWithHabitats) params = params.set('with_habitats', '1');
+    return this.http.get<Typologie[]>(`${this.apiUrl}/typo/`, { params });
   }
 
   /**
