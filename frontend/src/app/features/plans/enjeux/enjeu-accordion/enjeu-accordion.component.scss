@@ -40,6 +40,13 @@
   margin-left: $spacing-sm;
 }
 
+// #526 — Indicateur d'un enjeu/FCR dont le numéro est fixé manuellement.
+.enjeu-pinned-badge {
+  font-size: 14px;
+  color: $secondary-terra-cotta;
+  flex-shrink: 0;
+}
+
 // Icon buttons
 .action-btn {
   width: 36px;

@@ -314,6 +314,20 @@ describe('EnjeuFormComponent', () => {
       expect(payload.geo_in_situ).toBe(false);
     });
 
+    it('should send numero_manuel when a fixed number is set (#526)', () => {
+      component.form.patchValue({ libelle: 'Enjeu fixé', rang: 1, numero_manuel: 3 });
+      component.onSubmit();
+      const payload = mockEnjeuService.createEnjeu.mock.calls[0][0];
+      expect(payload.numero_manuel).toBe(3);
+    });
+
+    it('should send numero_manuel = null when field is cleared (#526)', () => {
+      component.form.patchValue({ libelle: 'Enjeu auto', rang: 1, numero_manuel: null });
+      component.onSubmit();
+      const payload = mockEnjeuService.createEnjeu.mock.calls[0][0];
+      expect(payload.numero_manuel).toBeNull();
+    });
+
     it('should build correct payload with socio-economic fields', () => {
       component.form.patchValue({
         libelle: 'Enjeu socio',

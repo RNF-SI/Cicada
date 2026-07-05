@@ -60,6 +60,13 @@
                matTooltipPosition="above"></i>
           </app-form-field>
 
+          <!-- Numéro fixé manuellement (#526) -->
+          <app-form-field [label]="'enjeux.enjeuForm.numeroLabel' | translate"
+                          [helpText]="'enjeux.enjeuForm.numeroHelp' | translate">
+            <input type="number" min="1" step="1" formControlName="numero_manuel"
+                   [placeholder]="'enjeux.enjeuForm.numeroPlaceholder' | translate">
+          </app-form-field>
+
           <!-- Priorité (facultative, #441) -->
           <div class="form-group">
             <label class="form-label">{{ 'enjeux.enjeuForm.priorite' | translate }}</label>

@@ -11,6 +11,11 @@
       [showLine]="true">
       <!-- Bouton modifier retiré (revue design Amandine — doublon avec celui du body sub-header) -->
       <div sectionActions class="header-actions">
+        @if (numeroPinned) {
+          <i class="fi fi-rr-thumbtack enjeu-pinned-badge"
+             [title]="'enjeux.enjeuForm.numeroPinned' | translate"
+             [attr.aria-label]="'enjeux.enjeuForm.numeroPinned' | translate"></i>
+        }
         <!-- Accès à la page détail de l'enjeu / FCR (icône œil, comme ailleurs). -->
         <button mat-icon-button
                 class="action-btn view-btn"

@@ -112,6 +112,8 @@ export interface Enjeu {
   libelle: string;
   intitule_court?: string;
   description?: string;
+  /** #526 — Numéro fixé manuellement (null = numérotation automatique). */
+  numero_manuel?: number | null;
 
   // Enjeu-specific fields
   rang?: EnjeuPriorite;
@@ -965,6 +967,8 @@ export interface EnjeuCreatePayload {
   id_categorie: number; // ID nomenclature "ENJEU"
   libelle: string;
   intitule_court?: string;
+  /** #526 — Numéro fixé manuellement (null = numérotation automatique). */
+  numero_manuel?: number | null;
   rang: EnjeuPriorite;
   categorie_ecologique: boolean;
   // Ecological checkboxes
@@ -1014,6 +1018,8 @@ export interface FcrCreatePayload {
   rang?: EnjeuPriorite | null;
   id_categorie_fcr: number;
   description?: string;
+  /** #526 — Numéro fixé manuellement (null = numérotation automatique). */
+  numero_manuel?: number | null;
   // Taxonomic relations (optional for FCR)
   taxon_ids?: number[];
   habitat_ids?: string[];
@@ -1026,6 +1032,8 @@ export interface EnjeuUpdatePayload {
   libelle?: string;
   intitule_court?: string;
   description?: string;
+  /** #526 — Numéro fixé manuellement (null = numérotation automatique). */
+  numero_manuel?: number | null;
   rang?: EnjeuPriorite | null;
   categorie_ecologique?: boolean;
   // Ecological checkboxes

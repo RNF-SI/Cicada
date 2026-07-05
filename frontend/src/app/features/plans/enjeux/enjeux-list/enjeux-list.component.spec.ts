@@ -592,6 +592,62 @@ describe('EnjeuxListComponent', () => {
   });
 
   // =========================================================================
+  // Enjeu / FCR numbering — auto + manuel (#526, décline #442)
+  // =========================================================================
+
+  describe('getEnjeuDisplayNumber — numérotation manuelle Enjeu/FCR (#526)', () => {
+    beforeEach(() => setup());
+
+    /** Prépare des enjeux et FCR avec numéros fixés éventuels. */
+    function setEnjeux(
+      enjeux: { id: number; numero_manuel?: number | null }[],
+      fcrs: { id: number; numero_manuel?: number | null }[] = [],
+    ): void {
+      const mkEnjeu = enjeux.map((e, i) => ({
+        ...mockEnjeu1, id_enjeu: e.id, ordre: i,
+        numero_manuel: e.numero_manuel ?? null,
+      }));
+      const mkFcr = fcrs.map((f, i) => ({
+        ...mockFcr, id_enjeu: f.id, ordre: i,
+        numero_manuel: f.numero_manuel ?? null,
+      }));
+      component.planEnjeuxData.set({
+        ...mockPlanEnjeuxResponse,
+        enjeux: mkEnjeu as any,
+        fcr: mkFcr as any,
+      } as any);
+    }
+
+    it('numérote automatiquement 1..N dans l\'ordre quand aucun numéro fixé', () => {
+      setEnjeux([{ id: 10 }, { id: 11 }, { id: 12 }]);
+      const list = component.enjeux();
+      expect(component.getEnjeuDisplayNumber(list[0], false, 0)).toBe(1);
+      expect(component.getEnjeuDisplayNumber(list[1], false, 1)).toBe(2);
+      expect(component.getEnjeuDisplayNumber(list[2], false, 2)).toBe(3);
+    });
+
+    it('respecte un numéro fixé et fait sauter l\'indice aux autres', () => {
+      setEnjeux([{ id: 10 }, { id: 11, numero_manuel: 1 }, { id: 12 }]);
+      const byId = (id: number) => component.enjeux().find(e => e.id_enjeu === id)!;
+      expect(component.getEnjeuDisplayNumber(byId(11), false, 1)).toBe(1);
+      expect(component.getEnjeuDisplayNumber(byId(10), false, 0)).toBe(2);
+      expect(component.getEnjeuDisplayNumber(byId(12), false, 2)).toBe(3);
+    });
+
+    it('numérote les FCR indépendamment des enjeux', () => {
+      setEnjeux([{ id: 10 }, { id: 11 }], [{ id: 20 }, { id: 21, numero_manuel: 1 }]);
+      const enjeuById = (id: number) => component.enjeux().find(e => e.id_enjeu === id)!;
+      const fcrById = (id: number) => component.fcr().find(e => e.id_enjeu === id)!;
+      // Enjeux : 1, 2 (liste propre)
+      expect(component.getEnjeuDisplayNumber(enjeuById(10), false, 0)).toBe(1);
+      expect(component.getEnjeuDisplayNumber(enjeuById(11), false, 1)).toBe(2);
+      // FCR : 21 fixé à 1, 20 auto saute à 2 (liste FCR propre)
+      expect(component.getEnjeuDisplayNumber(fcrById(21), true, 1)).toBe(1);
+      expect(component.getEnjeuDisplayNumber(fcrById(20), true, 0)).toBe(2);
+    });
+  });
+
+  // =========================================================================
   // Detail computed properties
   // =========================================================================
 

@@ -311,6 +311,20 @@ describe('FcrFormComponent', () => {
       expect(payload.id_categorie_fcr).toBe(201);
     });
 
+    it('should send numero_manuel when a fixed number is set (#526)', () => {
+      component.form.patchValue({ libelle: 'FCR fixé', id_categorie_fcr: 201, numero_manuel: 2 });
+      component.onSubmit();
+      const payload = mockEnjeuService.createFcr.mock.calls[0][0];
+      expect(payload.numero_manuel).toBe(2);
+    });
+
+    it('should send numero_manuel = null when field is cleared (#526)', () => {
+      component.form.patchValue({ libelle: 'FCR auto', id_categorie_fcr: 201, numero_manuel: null });
+      component.onSubmit();
+      const payload = mockEnjeuService.createFcr.mock.calls[0][0];
+      expect(payload.numero_manuel).toBeNull();
+    });
+
     it('should show snackbar and navigate on success', () => {
       component.form.patchValue({ libelle: 'FCR', id_categorie_fcr: 201 });
       component.onSubmit();

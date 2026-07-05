@@ -613,7 +613,7 @@ class EnjeuListSerializer(serializers.ModelSerializer):
         fields = [
             'id_enjeu', 'id_pg', 'plan_nom', 'slug',
             'id_categorie', 'categorie_label', 'categorie_mnemonique',
-            'libelle', 'intitule_court', 'ordre',
+            'libelle', 'intitule_court', 'ordre', 'numero_manuel',
             # Champs Enjeu
             'rang', 'categorie_ecologique',
             'habitat', 'espece', 'patrimoine_geologique', 'geo_ex_situ', 'geo_in_situ', 'geo_documents', 'geo_autre', 'geo_autre_precision', 'fonctionnalite_ecosysteme', 'autre_ecologique', 'autre_ecologique_precision', 'processus',
@@ -685,7 +685,7 @@ class EnjeuDetailSerializer(serializers.ModelSerializer):
         fields = [
             'id_enjeu', 'id_pg', 'plan_nom', 'slug',
             'id_categorie', 'categorie_label', 'categorie_mnemonique',
-            'libelle', 'intitule_court', 'description', 'ordre',
+            'libelle', 'intitule_court', 'description', 'ordre', 'numero_manuel',
             # Champs Enjeu
             'rang', 'categorie_ecologique',
             'habitat', 'espece', 'patrimoine_geologique', 'geo_ex_situ', 'geo_in_situ', 'geo_documents', 'geo_autre', 'geo_autre_precision', 'fonctionnalite_ecosysteme', 'autre_ecologique', 'autre_ecologique_precision', 'processus',
@@ -772,7 +772,7 @@ class EnjeuCreateSerializer(serializers.ModelSerializer):
         model = Enjeu
         fields = [
             'id_enjeu', 'id_pg', 'slug', 'id_categorie',
-            'libelle', 'intitule_court', 'description', 'ordre',
+            'libelle', 'intitule_court', 'description', 'ordre', 'numero_manuel',
             # Champs Enjeu
             'rang', 'categorie_ecologique',
             'habitat', 'espece', 'patrimoine_geologique', 'geo_ex_situ', 'geo_in_situ', 'geo_documents', 'geo_autre', 'geo_autre_precision', 'fonctionnalite_ecosysteme', 'autre_ecologique', 'autre_ecologique_precision', 'processus',

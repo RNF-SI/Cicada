@@ -87,6 +87,9 @@ export class FcrFormComponent implements OnInit {
     this.form = this.fb.group({
       libelle: ['', [Validators.required, Validators.maxLength(500)]],
       intitule_court: ['', [Validators.maxLength(25)]],
+      // #526 — Numéro fixé manuellement (null/0/vide = numérotation automatique).
+      // Pas de Validators.min : 0 est accepté et normalisé en null au submit.
+      numero_manuel: [null as number | null],
       // #479 — priorité facultative pour les FCR aussi (null = « non définie »),
       // au même titre que les enjeux (#441).
       rang: [null as number | null, [Validators.min(1), Validators.max(3)]],
@@ -203,6 +206,7 @@ export class FcrFormComponent implements OnInit {
     this.form.patchValue({
       libelle: fcr.libelle,
       intitule_court: fcr.intitule_court || '',
+      numero_manuel: fcr.numero_manuel ?? null,
       rang: fcr.rang ?? null,
       id_categorie_fcr: fcr.id_categorie_fcr,
       description: fcr.description || ''
@@ -253,6 +257,9 @@ export class FcrFormComponent implements OnInit {
       id_categorie: categorieId,
       libelle: formValue.libelle,
       intitule_court: formValue.intitule_court || undefined,
+      // #526 — vide/0/invalide → numérotation automatique (null)
+      numero_manuel: formValue.numero_manuel != null && formValue.numero_manuel > 0
+        ? Math.floor(formValue.numero_manuel) : null,
       rang: formValue.rang ?? null,
       id_categorie_fcr: formValue.id_categorie_fcr,
       description: formValue.description || undefined
@@ -290,6 +297,9 @@ export class FcrFormComponent implements OnInit {
     const payload: EnjeuUpdatePayload = {
       libelle: formValue.libelle,
       intitule_court: formValue.intitule_court || undefined,
+      // #526 — vide/0/invalide → numérotation automatique (null)
+      numero_manuel: formValue.numero_manuel != null && formValue.numero_manuel > 0
+        ? Math.floor(formValue.numero_manuel) : null,
       rang: formValue.rang ?? null,
       id_categorie_fcr: formValue.id_categorie_fcr,
       description: formValue.description || undefined

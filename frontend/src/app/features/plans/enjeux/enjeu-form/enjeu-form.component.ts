@@ -107,6 +107,9 @@ export class EnjeuFormComponent implements OnInit {
     this.form = this.fb.group({
       libelle: ['', [Validators.required, Validators.maxLength(500)]],
       intitule_court: ['', [Validators.maxLength(25)]],
+      // #526 — Numéro fixé manuellement (null/0/vide = numérotation automatique).
+      // Pas de Validators.min : 0 est accepté et normalisé en null au submit.
+      numero_manuel: [null as number | null],
       // Priorité facultative (#441) : null = « non définie » (on ne force plus 1)
       rang: [null as number | null, [Validators.min(1), Validators.max(3)]],
       categorie_ecologique: [true],
@@ -332,6 +335,7 @@ export class EnjeuFormComponent implements OnInit {
     this.form.patchValue({
       libelle: enjeu.libelle,
       intitule_court: enjeu.intitule_court || '',
+      numero_manuel: enjeu.numero_manuel ?? null,
       rang: enjeu.rang ?? null,
       categorie_ecologique: enjeu.categorie_ecologique ?? true,
       // Écologique
@@ -573,6 +577,9 @@ export class EnjeuFormComponent implements OnInit {
       id_categorie: categorieId || 0,
       libelle: formValue.libelle,
       intitule_court: formValue.intitule_court || undefined,
+      // #526 — vide/0/invalide → numérotation automatique (null)
+      numero_manuel: formValue.numero_manuel != null && formValue.numero_manuel > 0
+        ? Math.floor(formValue.numero_manuel) : null,
       rang: formValue.rang,
       categorie_ecologique: formValue.categorie_ecologique,
       // Écologique
@@ -652,6 +659,9 @@ export class EnjeuFormComponent implements OnInit {
     const payload: EnjeuUpdatePayload = {
       libelle: formValue.libelle,
       intitule_court: formValue.intitule_court || undefined,
+      // #526 — vide/0/invalide → numérotation automatique (null)
+      numero_manuel: formValue.numero_manuel != null && formValue.numero_manuel > 0
+        ? Math.floor(formValue.numero_manuel) : null,
       rang: formValue.rang,
       categorie_ecologique: formValue.categorie_ecologique,
       // Écologique

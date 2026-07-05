@@ -309,6 +309,16 @@ class Enjeu(models.Model):
         help_text=_("Ordre d'affichage parmi les éléments d'un même parent (0 = haut)")
     )
 
+    # #526 / #442 — Numéro fixé manuellement par le gestionnaire (comme l'OLT et
+    # l'OO). NULL = numérotation automatique (dérivée de l'ordre). La réservation
+    # est locale à la liste (enjeux d'un côté, FCR de l'autre).
+    numero_manuel = models.PositiveIntegerField(
+        _("Numéro fixé manuellement"),
+        null=True,
+        blank=True,
+        help_text=_("Numéro fixé manuellement (laisser vide pour la numérotation automatique)")
+    )
+
     # Audit
     date_ajout = models.DateTimeField(_("Date d'ajout"), auto_now_add=True)
     date_maj = models.DateTimeField(_("Date de modification"), auto_now=True)

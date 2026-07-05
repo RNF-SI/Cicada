@@ -36,6 +36,8 @@ export class EnjeuAccordionComponent implements OnInit, AfterViewInit {
   @Input() id: string = '';
   @Input() isFcr: boolean = false;
   @Input() displayIndex: number = 0;
+  /** #526 — Affiche un badge « punaise » quand le numéro est fixé manuellement. */
+  @Input() numeroPinned: boolean = false;
   @Input() initiallyExpanded: boolean = false;
   @Input() canEdit: boolean = true;
 

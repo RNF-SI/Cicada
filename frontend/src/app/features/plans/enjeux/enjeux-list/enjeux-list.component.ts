@@ -326,6 +326,41 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
   });
 
   /**
+   * #526 / #442 — Construit une map id_enjeu → numéro affiché pour une liste
+   * ordonnée (enjeux ou FCR), sur le même principe que l'OLT/OO : un
+   * `numero_manuel` est réservé et l'auto-numérotation des autres saute cet
+   * indice. La numérotation est locale à la liste (les enjeux et les FCR sont
+   * numérotés indépendamment).
+   */
+  private static _buildManualRankMap(list: Enjeu[]): Map<number, number> {
+    const reserved = new Set<number>();
+    for (const e of list) {
+      if (e.numero_manuel != null) reserved.add(e.numero_manuel);
+    }
+    const map = new Map<number, number>();
+    let auto = 0;
+    for (const e of list) {
+      if (e.numero_manuel != null) {
+        map.set(e.id_enjeu, e.numero_manuel);
+      } else {
+        auto += 1;
+        while (reserved.has(auto)) auto += 1;
+        map.set(e.id_enjeu, auto);
+      }
+    }
+    return map;
+  }
+
+  enjeuDisplayRank = computed(() => EnjeuxListComponent._buildManualRankMap(this.enjeux()));
+  fcrDisplayRank = computed(() => EnjeuxListComponent._buildManualRankMap(this.fcr()));
+
+  /** Numéro affiché d'un enjeu/FCR (fixé ou automatique). */
+  getEnjeuDisplayNumber(enjeu: Enjeu, isFcr: boolean, fallbackIdx: number): number {
+    const map = isFcr ? this.fcrDisplayRank() : this.enjeuDisplayRank();
+    return map.get(enjeu.id_enjeu) ?? fallbackIdx + 1;
+  }
+
+  /**
    * #229 / #442 — Numérotation globale des OLT à travers tous les enjeux du
    * plan, dans l'ordre de tri des enjeux (`ordre`, puis `id_enjeu`).
    *
