@@ -249,6 +249,29 @@ export class OperationFormPage {
     }
   }
 
+  /**
+   * Sélectionne le premier objectif principal et la première cible principale
+   * réels (hors placeholder « — »). #461 : ces deux champs sont obligatoires
+   * pour une action de type suivi (CS, nouveau suivi).
+   */
+  async selectObjectifEtCiblePrincipaux() {
+    // Objectif principal (options possiblement dans des mat-optgroup).
+    await this.objectifPrincipalSelect.click();
+    const objOption = this.page.locator('.mat-mdc-select-panel mat-option')
+      .filter({ hasNotText: /^—$/ }).first();
+    await objOption.waitFor({ state: 'visible', timeout: 5000 });
+    await objOption.click();
+    await this.page.waitForTimeout(200);
+
+    // Cible principale.
+    await this.ciblesPrincipalesSelect.click();
+    const cibleOption = this.page.locator('.mat-mdc-select-panel mat-option')
+      .filter({ hasNotText: /^—$/ }).first();
+    await cibleOption.waitFor({ state: 'visible', timeout: 5000 });
+    await cibleOption.click();
+    await this.page.waitForTimeout(200);
+  }
+
   /** Set respect protocole to Yes. */
   async setRespectProtocoleOui() {
     await this.respectProtocoleOui.click();

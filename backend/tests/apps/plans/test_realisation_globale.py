@@ -15,6 +15,7 @@ from tests.factories.enjeux import (
     IndicateurFactory,
     MetriqueFactory,
     MesureFactory,
+    NomenclatureTypeMetriqueFactory,
 )
 from tests.factories.users import (
     SuperAdminFactory,
@@ -173,6 +174,11 @@ class TestIndicateurGlobalEndpoint:
     def _metrique_avec_seuils(self, ind):
         return MetriqueFactory(
             id_indicateur=ind,
+            # Type figé sur NUMERIQUE : la NomenclatureTypeMetriqueFactory cycle
+            # via un factory.Iterator (NUMERIQUE/CHIFFRE/TEXTE), donc sans épinglage
+            # le type dépend de l'ordre d'exécution des tests et les seuils
+            # numériques ci-dessous seraient ignorés (score None) selon l'ordre.
+            type_metrique=NomenclatureTypeMetriqueFactory(mnemonique='NUMERIQUE'),
             score_1_inf=0, score_1_sup=20,
             score_2_inf=20, score_2_sup=40,
             score_3_inf=40, score_3_sup=60,
@@ -222,6 +228,11 @@ class TestIndicateurGlobalEvaluationOverride:
     def _metrique_avec_seuils(self, ind):
         return MetriqueFactory(
             id_indicateur=ind,
+            # Type figé sur NUMERIQUE : la NomenclatureTypeMetriqueFactory cycle
+            # via un factory.Iterator (NUMERIQUE/CHIFFRE/TEXTE), donc sans épinglage
+            # le type dépend de l'ordre d'exécution des tests et les seuils
+            # numériques ci-dessous seraient ignorés (score None) selon l'ordre.
+            type_metrique=NomenclatureTypeMetriqueFactory(mnemonique='NUMERIQUE'),
             score_1_inf=0, score_1_sup=20,
             score_2_inf=20, score_2_sup=40,
             score_3_inf=40, score_3_sup=60,

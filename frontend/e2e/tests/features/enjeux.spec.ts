@@ -1131,7 +1131,9 @@ test.describe('Enjeux - OLT Tab CRUD', () => {
     // Should show inline edit form
     const editForm = page.locator('.olt-inline-form');
     await expect(editForm).toBeVisible();
-    await expect(editForm.locator('input')).toBeVisible();
+    // #442 — le formulaire d'édition OLT contient désormais 2 inputs (libellé + numéro) :
+    // on cible le premier (libellé) pour éviter une violation du strict mode.
+    await expect(editForm.locator('input').first()).toBeVisible();
 
     // Cancel to restore
     await editForm.locator('button[mat-stroked-button]').click();

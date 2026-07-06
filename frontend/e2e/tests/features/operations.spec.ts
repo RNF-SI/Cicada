@@ -188,6 +188,9 @@ test.describe('Operations - Create', () => {
     // CS action requires an intitulé de suivi (validators conditionnels)
     await formPage.fillIntituleSuivi(`E2E Suivi ${Date.now()}`);
 
+    // #461 — objectif principal + cible principale obligatoires pour une action de suivi
+    await formPage.selectObjectifEtCiblePrincipaux();
+
     // Fill protocole
     await formPage.fillProtocoleNonCampanule('Protocole E2E Test', {
       description: 'Description du protocole de test',

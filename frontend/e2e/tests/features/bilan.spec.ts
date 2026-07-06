@@ -14,8 +14,9 @@ test.describe('Bilan page', () => {
     const plan = await findPlan(referentPage, 'Camargue');
     await referentPage.goto(`/plans/${plan.slug}/bilan`);
 
-    await expect(referentPage.locator('.plan-title')).toContainText(/Bilan/i);
-    await expect(referentPage.locator('.breadcrumb-current')).toContainText(/Bilan/i);
+    // #503 — le titre du bilan a été renommé « Bilan de la gestion » → « Graphiques et chiffres clés ».
+    await expect(referentPage.locator('.plan-title')).toContainText(/Graphiques et chiffres clés/i);
+    await expect(referentPage.locator('.breadcrumb-current')).toContainText(/Graphiques et chiffres clés/i);
   });
 
   test('shows summary cards (taux, budget, RH) when realisations exist', async ({ referentPage }) => {
