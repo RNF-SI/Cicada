@@ -266,6 +266,10 @@
                       {{ 'plans.suivis.indicateur.autoResultLabel' | translate }} :
                       @if (liveAutoScore() !== null) {
                         <strong>{{ scoreLabels[scoreToLevel(liveAutoScore())] }}</strong>
+                        <!-- #548 — moyenne pondérée (décimale) pour expliciter le résultat -->
+                        @if (liveAutoAverage() !== null) {
+                          <span class="auto-average text-muted">{{ 'plans.suivis.indicateur.autoAverage' | translate:{ value: liveAutoAverage() } }}</span>
+                        }
                       } @else {
                         <span class="text-muted">{{ 'plans.suivis.indicateur.autoResultPending' | translate }}</span>
                       }

@@ -43,6 +43,33 @@ describe('IndicateurSaisieComponent — éditeur unifié (#510)', () => {
   });
 
   // ---------------------------------------------------------------------------
+  // weightedMetricMean — moyenne pondérée brute (#548) partagée par le score
+  // auto et l'affichage de la moyenne.
+  // ---------------------------------------------------------------------------
+  describe('weightedMetricMean (#548)', () => {
+    const setup = (metriques: any[]) => {
+      const c = comp();
+      (c as any).formTick = () => 0;
+      (c as any).indicateur = () => ({ metriques });
+      (c as any).metricScore = (m: any) => m._score;
+      return c;
+    };
+    it('renvoie la moyenne pondérée non arrondie', () => {
+      const c = setup([{ _score: 1, ponderation: 1 }, { _score: 4, ponderation: 1 }]);
+      expect(c.weightedMetricMean()).toBeCloseTo(2.5, 5);
+    });
+    it('pondère par `ponderation`', () => {
+      const c = setup([{ _score: 1, ponderation: 4 }, { _score: 5, ponderation: 1 }]);
+      expect(c.weightedMetricMean()).toBeCloseTo(1.8, 5); // (1×4 + 5×1) / 5
+    });
+    it('ignore les métriques non scorées et renvoie null si aucune ne l’est', () => {
+      expect(setup([{ _score: null, ponderation: 1 }, { _score: 3, ponderation: 1 }]).weightedMetricMean()).toBeCloseTo(3, 5);
+      expect(setup([{ _score: null, ponderation: 1 }]).weightedMetricMean()).toBeNull();
+      expect(setup([]).weightedMetricMean()).toBeNull();
+    });
+  });
+
+  // ---------------------------------------------------------------------------
   // setManualOverride — la case « Forcer le résultat manuellement »
   // ---------------------------------------------------------------------------
   describe('setManualOverride', () => {

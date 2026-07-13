@@ -233,9 +233,13 @@ export class IndicateurSaisieComponent implements OnInit {
     return Number.isNaN(n) ? String(v) : String(parseFloat(n.toFixed(4)));
   }
 
-  /** Score auto recalculé à partir des valeurs saisies (en live, #510).
-   *  Lit `formTick()` pour se réévaluer à chaque modification du formulaire. */
-  liveAutoScore = computed<number | null>(() => {
+  /**
+   * Moyenne pondérée BRUTE (non arrondie) des scores des métriques saisies, ou
+   * `null` si aucune n'est scorée. Base commune du résultat auto (#510) et de
+   * l'affichage de la moyenne (#548). Lit `formTick()` pour se réévaluer à chaque
+   * modification du formulaire.
+   */
+  weightedMetricMean(): number | null {
     this.formTick(); // dépendance réactive (valueChanges du formulaire)
     const ind = this.indicateur();
     if (!ind?.metriques?.length) return null;
@@ -250,8 +254,20 @@ export class IndicateurSaisieComponent implements OnInit {
         weight += w;
       }
     }
-    if (weight === 0) return null;
-    return Math.max(1, Math.min(5, Math.round(sum / weight)));
+    return weight === 0 ? null : sum / weight;
+  }
+
+  /** Score auto (niveau 1-5) = moyenne pondérée arrondie et bornée (#510). */
+  liveAutoScore = computed<number | null>(() => {
+    const mean = this.weightedMetricMean();
+    return mean === null ? null : Math.max(1, Math.min(5, Math.round(mean)));
+  });
+
+  /** #548 — Moyenne pondérée à 1 décimale, affichée en saisie pour expliciter
+   *  d'où vient le résultat auto (arrondi). */
+  liveAutoAverage = computed<number | null>(() => {
+    const mean = this.weightedMetricMean();
+    return mean === null ? null : Math.round(mean * 10) / 10;
   });
 
   /** Score effectif affiché en récap (override sauvegardé prioritaire). */
