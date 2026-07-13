@@ -67,6 +67,48 @@ describe('PlanTableauDeBordComponent — score manuel (#518)', () => {
     expect(component.getScoreForYear(row, 2024)).toBe('good');
   });
 
+  // #551 — l'état de l'année est la MOYENNE PONDÉRÉE des scores de toutes les
+  // métriques, pas le score de la première : deux métriques 1 et 5 → moyenne 3
+  // (« moyen »), et non « très mauvais ».
+  it('score l’année via la moyenne pondérée de toutes les métriques (#551)', () => {
+    const mVeryBad = {
+      id_metrique: 10, id_indicateur: 5,
+      score_1_inf: 0, score_1_sup: 20,
+      mesures: [{ id_mesure: 10, valeur: '10', date_mesure: '2024-12-31' }],
+    } as unknown as Metrique;
+    const mVeryGood = {
+      id_metrique: 11, id_indicateur: 5,
+      score_5_inf: 80, score_5_sup: 100,
+      mesures: [{ id_mesure: 11, valeur: '90', date_mesure: '2024-12-31' }],
+    } as unknown as Metrique;
+    const row = {
+      subId: 1, subLabel: 'NE1', expanded: false,
+      indicateur: { id_indicateur: 5 } as unknown as Indicateur,
+      metriques: [mVeryBad, mVeryGood],
+    };
+    expect(component.getScoreForYear(row, 2024)).toBe('neutral'); // (1+5)/2 = 3
+  });
+
+  it('pondère la moyenne des métriques selon `ponderation` (#551)', () => {
+    const mVeryBad = {
+      id_metrique: 20, id_indicateur: 6, ponderation: 4,
+      score_1_inf: 0, score_1_sup: 20,
+      mesures: [{ id_mesure: 20, valeur: '10', date_mesure: '2024-12-31' }],
+    } as unknown as Metrique;
+    const mVeryGood = {
+      id_metrique: 21, id_indicateur: 6, ponderation: 1,
+      score_5_inf: 80, score_5_sup: 100,
+      mesures: [{ id_mesure: 21, valeur: '90', date_mesure: '2024-12-31' }],
+    } as unknown as Metrique;
+    const row = {
+      subId: 1, subLabel: 'NE1', expanded: false,
+      indicateur: { id_indicateur: 6 } as unknown as Indicateur,
+      metriques: [mVeryBad, mVeryGood],
+    };
+    // (1×4 + 5×1) / 5 = 1.8 → arrondi 2 → « mauvais »
+    expect(component.getScoreForYear(row, 2024)).toBe('bad');
+  });
+
   it('affiche le score forcé manuellement à la place du score automatique', () => {
     // Override « very-good » (5) pour 2024, alors que l'auto vaut « very-bad ».
     const indicateur = {

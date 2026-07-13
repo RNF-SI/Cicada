@@ -407,17 +407,29 @@ export class PlanTableauDeBordComponent implements OnInit {
   getScoreForYear(row: IndicatorRow, year: number): ScoreLevel | null {
     const override = this.getOverrideForYear(row.indicateur, year);
     if (override) return override;
+    // #551 — état/score de l'année = MOYENNE PONDÉRÉE des scores de TOUTES les
+    // métriques renseignées de l'indicateur (miroir du backend
+    // `_compute_indicator_auto_score` et du `liveAutoScore` de la saisie), et non
+    // le score de la seule première métrique : une moyenne de 2.8 doit ressortir
+    // « moyen » (niveau 3) et non « très mauvais » parce que la 1re métrique l'est.
+    let weightedSum = 0;
+    let weightTotal = 0;
+    let hasMesure = false;
     for (const metrique of row.metriques) {
-      const mesures = metrique.mesures || [];
-      const mesure = mesures.find(m => {
-        if (!m.date_mesure) return false;
-        return new Date(m.date_mesure).getFullYear() === year;
-      });
-      if (mesure) {
-        return this.mesureToScoreLevel(metrique, mesure);
-      }
+      const mesure = (metrique.mesures || []).find(
+        m => m.date_mesure && new Date(m.date_mesure).getFullYear() === year,
+      );
+      if (!mesure) continue;
+      hasMesure = true;
+      const score = this.metriqueNumericScore(metrique, mesure);
+      if (score == null) continue; // métrique indéterminée : exclue de la moyenne
+      const w = Number(metrique.ponderation) || 1;
+      weightedSum += score * w;
+      weightTotal += w;
     }
-    return null;
+    if (weightTotal === 0) return hasMesure ? 'no-data' : null;
+    const avg = Math.max(1, Math.min(5, Math.round(weightedSum / weightTotal)));
+    return this.levelToScoreLevel(avg);
   }
 
   /**
@@ -456,15 +468,21 @@ export class PlanTableauDeBordComponent implements OnInit {
    * #247 — Score d'une mesure pour une métrique : évalue la formule ET/OU des
    * blocs (multi-blocs) via `computeCombinedScore`, sinon le seul bloc principal.
    */
-  private mesureToScoreLevel(metrique: Metrique, mesure: Mesure): ScoreLevel {
-    // #549 — Scorer via le helper partagé qui gère les 3 types de grille
-    // (NUMERIQUE par seuils, CHIFFRE par valeur, TEXTE par libellé), au lieu du
-    // seul `parseFloat` + seuils : une métrique grille TEXTE (valeur = libellé)
-    // donnait `NaN` → rond gris « indéterminé » sur le tableau de bord alors
-    // qu'un résultat était bien enregistré. Symétrique au cas multi-blocs.
-    const score = (metrique.score_blocks?.length ?? 0) > 0
+  /**
+   * #247 / #549 — Score numérique (1-5) d'une mesure pour une métrique via le
+   * helper partagé qui gère les 3 types de grille (NUMERIQUE par seuils, CHIFFRE
+   * par valeur, TEXTE par libellé) et la formule ET/OU des blocs (multi-blocs).
+   * Renvoie `null` si indéterminé. Base commune du rendu par métrique et de la
+   * moyenne pondérée de l'indicateur (#551).
+   */
+  private metriqueNumericScore(metrique: Metrique, mesure: Mesure): number | null {
+    return (metrique.score_blocks?.length ?? 0) > 0
       ? computeCombinedScore(metrique, mesure.valeur, mesure.valeurs_blocs)
       : computeMetriqueScore(metrique, mesure.valeur);
+  }
+
+  private mesureToScoreLevel(metrique: Metrique, mesure: Mesure): ScoreLevel {
+    const score = this.metriqueNumericScore(metrique, mesure);
     return score ? this.levelToScoreLevel(score) : 'no-data';
   }
 
