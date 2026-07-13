@@ -41,6 +41,7 @@ export class OperationFicheComponent implements OnInit {
    */
   readonly toggleableSections = [
     { key: 'description', labelKey: 'plans.suivis.actions.fiche.description' },
+    { key: 'protocole', labelKey: 'plans.suivis.actions.fiche.protocole' },
     { key: 'temporalite', labelKey: 'plans.suivis.actions.fiche.temporalite' },
     { key: 'acteurs', labelKey: 'plans.suivis.actions.fiche.acteurs' },
     { key: 'programmation', labelKey: 'plans.suivis.actions.fiche.programmation' },
@@ -152,6 +153,28 @@ export class OperationFicheComponent implements OnInit {
 
   /** Sources de financement de l'action. */
   readonly financements = computed(() => this.operation()?.finances ?? []);
+
+  /**
+   * #557 — Suivi/inventaire et protocole associés (actions de type « CS »).
+   * Le protocole et ses objectifs/cibles n'étaient pas restitués dans la fiche.
+   */
+  readonly suiviInventaire = computed(() => this.operation()?.suivi_inventaire ?? null);
+  readonly protocole = computed(() => this.suiviInventaire()?.protocole ?? null);
+
+  /** Nom du protocole (saisi librement ou repris du catalogue CAMPanule). */
+  readonly protocoleNom = computed(() => {
+    const p = this.protocole();
+    return p?.nom_protocole || p?.protocole_campanule_nom || null;
+  });
+
+  /** Vrai dès qu'une information de protocole/suivi est renseignée. */
+  readonly hasProtocoleSection = computed(() => {
+    const s = this.suiviInventaire();
+    const p = this.protocole();
+    return !!(this.protocoleNom() || p?.description_protocole || p?.objectif_protocole
+      || s?.objectif_principal || s?.objectif_secondaire
+      || s?.cibles_principales || s?.cible_secondaire);
+  });
 
   /** #326 — Emprise spatiale de l'action (geom), affichée en carte lecture seule. */
   readonly empriseGeom = computed<any>(() => {

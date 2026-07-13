@@ -66,6 +66,43 @@
         </section>
       }
 
+      <!-- #557 — Protocole & objectifs/cibles (actions de type CS / suivi) -->
+      @if (hasProtocoleSection() && sectionVisible('protocole')) {
+        <section class="fiche-section">
+          <h2>{{ 'plans.suivis.actions.fiche.protocole' | translate }}</h2>
+          <dl class="fiche-grid">
+            @if (protocoleNom()) {
+              <dt>{{ 'plans.suivis.actions.fiche.protocoleNom' | translate }}</dt>
+              <dd>{{ protocoleNom() }}</dd>
+            }
+            @if (protocole()?.description_protocole) {
+              <dt>{{ 'plans.suivis.actions.fiche.protocoleDescription' | translate }}</dt>
+              <dd>{{ protocole()?.description_protocole }}</dd>
+            }
+            @if (protocole()?.objectif_protocole) {
+              <dt>{{ 'plans.suivis.actions.fiche.protocoleObjectif' | translate }}</dt>
+              <dd>{{ protocole()?.objectif_protocole }}</dd>
+            }
+            @if (suiviInventaire()?.objectif_principal) {
+              <dt>{{ 'plans.suivis.actions.fiche.objectifPrincipal' | translate }}</dt>
+              <dd>{{ suiviInventaire()?.objectif_principal }}</dd>
+            }
+            @if (suiviInventaire()?.objectif_secondaire) {
+              <dt>{{ 'plans.suivis.actions.fiche.objectifSecondaire' | translate }}</dt>
+              <dd>{{ suiviInventaire()?.objectif_secondaire }}</dd>
+            }
+            @if (suiviInventaire()?.cibles_principales) {
+              <dt>{{ 'plans.suivis.actions.fiche.ciblePrincipale' | translate }}</dt>
+              <dd>{{ suiviInventaire()?.cibles_principales }}</dd>
+            }
+            @if (suiviInventaire()?.cible_secondaire) {
+              <dt>{{ 'plans.suivis.actions.fiche.cibleSecondaire' | translate }}</dt>
+              <dd>{{ suiviInventaire()?.cible_secondaire }}</dd>
+            }
+          </dl>
+        </section>
+      }
+
       <!-- Temporalité -->
       @if (sectionVisible('temporalite')) {
       <section class="fiche-section">

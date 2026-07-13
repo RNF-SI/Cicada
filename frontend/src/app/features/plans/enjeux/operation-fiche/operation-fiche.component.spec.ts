@@ -174,6 +174,48 @@ describe('OperationFicheComponent — programmation détaillée (#556)', () => {
   });
 });
 
+describe('OperationFicheComponent — protocole & objectifs (actions CS, #557)', () => {
+  function operationWithSuivi(suivi: any): Operation {
+    return {
+      id_operation: 42, libelle: 'Action CS',
+      metriques: [], operation_annees: [], finances: [],
+      suivi_inventaire: suivi,
+    } as unknown as Operation;
+  }
+
+  it('n\'affiche pas la section protocole sans donnée de suivi', () => {
+    const fixture = setup(operationWith([]));
+    expect(fixture.componentInstance.hasProtocoleSection()).toBe(false);
+  });
+
+  it('expose le nom, la description et l\'objectif du protocole + les cibles', () => {
+    const fixture = setup(operationWithSuivi({
+      objectif_principal: 'Suivre la qualité de l\'eau',
+      cibles_principales: 'Macro-invertébrés',
+      protocole: {
+        nom_protocole: 'IBGN',
+        description_protocole: 'Prélèvements mensuels standardisés',
+        objectif_protocole: 'Évaluer l\'état écologique',
+      },
+    }));
+    const c = fixture.componentInstance;
+    expect(c.hasProtocoleSection()).toBe(true);
+    expect(c.protocoleNom()).toBe('IBGN');
+    const text: string = fixture.nativeElement.textContent;
+    expect(text).toContain('Prélèvements mensuels standardisés');
+    expect(text).toContain('Évaluer l\'état écologique');
+    expect(text).toContain('Suivre la qualité de l\'eau');
+    expect(text).toContain('Macro-invertébrés');
+  });
+
+  it('reprend le nom CAMPanule si aucun nom libre n\'est saisi', () => {
+    const fixture = setup(operationWithSuivi({
+      protocole: { protocole_campanule_nom: 'Rhoméo — Piézométrie' },
+    }));
+    expect(fixture.componentInstance.protocoleNom()).toBe('Rhoméo — Piézométrie');
+  });
+});
+
 describe('OperationFicheComponent — personnalisation des sections de l\'export (#532)', () => {
   it('affiche toutes les sections par défaut (toutes cochées)', () => {
     const fixture = setup(operationWith([]));
