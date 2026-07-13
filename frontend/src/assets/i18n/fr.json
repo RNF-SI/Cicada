@@ -1891,6 +1891,8 @@
         "enjeu": "Enjeu",
         "priorite": "Priorité",
         "exportTable": "Exporter le tableau",
+        "restantTooltip": "Montant restant (réalisé inférieur au prévisionnel)",
+        "depasseTooltip": "Montant dépassé (réalisé supérieur au prévisionnel)",
         "global": "Global",
         "annuel": "Annuel",
         "legendLabel": "Légende :",
