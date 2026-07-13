@@ -1999,12 +1999,9 @@ export class OperationFormComponent implements OnInit {
     this.applyRequiredValidator('objectif_principal', requireForCS);
     this.applyRequiredValidator('cibles_principales', requireForCS);
     this.applyRequiredValidator('protocole_dans_campanule', requireForCS);
-    // #414 — « Respect strict du protocole » n'est demandé que pour les
-    // protocoles CAMPanule ; masqué (et non requis) pour les protocoles locaux.
-    this.applyRequiredValidator(
-      'respect_protocole',
-      requireForCS && protocoleCampanule === true,
-    );
+    // #561 — « Respectez-vous strictement le protocole ? » n'est plus obligatoire
+    // (le champ reste affiché pour les protocoles CAMPanule mais sa saisie est facultative).
+    this.applyRequiredValidator('respect_protocole', false);
     this.applyRequiredValidator(
       'cd_protocole_campanule',
       requireForCS && protocoleCampanule === true,

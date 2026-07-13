@@ -7,7 +7,7 @@
 import { TestBed } from '@angular/core/testing';
 import { signal, computed } from '@angular/core';
 import { Subject, of, throwError } from 'rxjs';
-import { FormControl, FormGroup } from '@angular/forms';
+import { FormControl, FormGroup, Validators } from '@angular/forms';
 import {
   OperationFormComponent,
   buildResponseTypeOptions,
@@ -760,6 +760,32 @@ describe('OperationFormComponent — ventilation budgétaire', () => {
       expect(form.get('protocole_campanule_nom')?.value).toBe('Proto X');
       expect(form.get('description_protocole')?.value).toBe('Description issue de CAMPanule');
       expect((c as any).selectedCampanule()).toEqual({ cd_protocole: 42, lb_protocole_court: 'Proto X' });
+    });
+  });
+
+  describe('#561 — « Respectez-vous strictement le protocole ? » facultatif', () => {
+    function makeComp(campanule: boolean): OperationFormComponent {
+      const comp = Object.create(OperationFormComponent.prototype) as OperationFormComponent;
+      (comp as any).isCSAction = () => true;
+      (comp as any).estSuiviExistant = () => false;
+      (comp as any).form = new FormGroup({
+        intitule_suivi: new FormControl(''),
+        objectif_principal: new FormControl(''),
+        cibles_principales: new FormControl(null),
+        protocole_dans_campanule: new FormControl(campanule),
+        respect_protocole: new FormControl(null),
+        cd_protocole_campanule: new FormControl(null),
+        nom_protocole: new FormControl(''),
+      });
+      return comp;
+    }
+
+    it('ne rend jamais respect_protocole obligatoire, même en mode CAMPanule', () => {
+      const c = makeComp(true);
+      (c as any).syncConditionalValidators();
+      const ctrl = (c as any).form.get('respect_protocole');
+      expect(ctrl.hasValidator(Validators.required)).toBe(false);
+      expect(ctrl.valid).toBe(true);
     });
   });
 });
