@@ -2349,6 +2349,28 @@
   i { font-size: 0.85rem; }
 }
 
+// #546 — Métriques associées affichées dans le volet ouvert de l'action
+.operation-metriques-detail {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: $spacing-xs;
+  margin-bottom: $spacing-md;
+
+  .meta-label {
+    color: $gray-dark;
+    font-weight: $font-weight-regular;
+    font-size: 15px;
+  }
+
+  .op-metrique-chip { margin-left: 0; }
+}
+
+.op-metrique-indicateur {
+  font-weight: $font-weight-regular;
+  opacity: 0.85;
+}
+
 .operation-header-right {
   display: flex;
   align-items: center;
