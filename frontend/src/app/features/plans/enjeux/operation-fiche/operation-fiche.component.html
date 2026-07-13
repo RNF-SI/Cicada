@@ -111,8 +111,12 @@
               <tr>
                 <th>{{ 'plans.suivis.actions.fiche.annee' | translate }}</th>
                 <th>{{ 'plans.suivis.actions.fiche.programmee' | translate }}</th>
+                @if (hasBudgetTypes()) {
+                  <th class="num">{{ 'plans.suivis.actions.fiche.budgetFonctionnement' | translate }}</th>
+                  <th class="num">{{ 'plans.suivis.actions.fiche.budgetInvestissement' | translate }}</th>
+                }
                 <th class="num">{{ 'plans.suivis.actions.fiche.budget' | translate }}</th>
-                <th class="num">{{ 'plans.suivis.actions.fiche.etp' | translate }}</th>
+                <th class="num">{{ 'plans.suivis.actions.fiche.jours' | translate }}</th>
               </tr>
             </thead>
             <tbody>
@@ -120,21 +124,56 @@
                 <tr>
                   <td>{{ p.annee }}</td>
                   <td>{{ (p.periodicite ? 'common.yes' : 'common.no') | translate }}</td>
+                  @if (hasBudgetTypes()) {
+                    <td class="num">{{ p.fonctionnement != null ? (p.fonctionnement | number:'1.0-2') + ' €' : '—' }}</td>
+                    <td class="num">{{ p.investissement != null ? (p.investissement | number:'1.0-2') + ' €' : '—' }}</td>
+                  }
                   <td class="num">{{ p.budget != null ? (p.budget | number:'1.0-2') + ' €' : '—' }}</td>
-                  <td class="num">{{ p.etp != null ? (p.etp | number:'1.0-2') : '—' }}</td>
+                  <td class="num">{{ p.jours != null ? (p.jours | number:'1.0-2') : '—' }}</td>
                 </tr>
               }
             </tbody>
-            @if (totalBudget() != null || totalEtp() != null) {
+            @if (totalBudget() != null || totalJours() != null) {
               <tfoot>
                 <tr>
                   <td colspan="2">{{ 'plans.suivis.actions.fiche.total' | translate }}</td>
+                  @if (hasBudgetTypes()) {
+                    <td class="num">{{ totalFonctionnement() != null ? (totalFonctionnement() | number:'1.0-2') + ' €' : '—' }}</td>
+                    <td class="num">{{ totalInvestissement() != null ? (totalInvestissement() | number:'1.0-2') + ' €' : '—' }}</td>
+                  }
                   <td class="num">{{ totalBudget() != null ? (totalBudget() | number:'1.0-2') + ' €' : '—' }}</td>
-                  <td class="num">{{ totalEtp() != null ? (totalEtp() | number:'1.0-2') : '—' }}</td>
+                  <td class="num">{{ totalJours() != null ? (totalJours() | number:'1.0-2') : '—' }}</td>
                 </tr>
               </tfoot>
             }
           </table>
+
+          <!-- #556 — Répartition par organisme gestionnaire (si ventilation saisie) -->
+          @if (organismeBreakdown().length) {
+            <h3 class="fiche-subtitle">{{ 'plans.suivis.actions.fiche.repartitionOrganismes' | translate }}</h3>
+            <table class="fiche-table">
+              <thead>
+                <tr>
+                  <th>{{ 'plans.suivis.actions.fiche.organisme' | translate }}</th>
+                  <th class="num">{{ 'plans.suivis.actions.fiche.budgetFonctionnement' | translate }}</th>
+                  <th class="num">{{ 'plans.suivis.actions.fiche.budgetInvestissement' | translate }}</th>
+                  <th class="num">{{ 'plans.suivis.actions.fiche.budget' | translate }}</th>
+                  <th class="num">{{ 'plans.suivis.actions.fiche.jours' | translate }}</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (o of organismeBreakdown(); track o.nom) {
+                  <tr>
+                    <td>{{ o.nom }}</td>
+                    <td class="num">{{ o.fonctionnement | number:'1.0-2' }} €</td>
+                    <td class="num">{{ o.investissement | number:'1.0-2' }} €</td>
+                    <td class="num">{{ o.budget | number:'1.0-2' }} €</td>
+                    <td class="num">{{ o.jours | number:'1.0-2' }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          }
 
           @if (financements().length) {
             <dl class="fiche-grid">

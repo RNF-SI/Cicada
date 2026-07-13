@@ -111,6 +111,69 @@ describe('OperationFicheComponent — grilles/blocs des indicateurs (#516)', () 
   });
 });
 
+describe('OperationFicheComponent — programmation détaillée (#556)', () => {
+  function operationWithAnnees(annees: any[]): Operation {
+    return {
+      id_operation: 42, libelle: 'Action test',
+      metriques: [], operation_annees: annees, finances: [],
+    } as unknown as Operation;
+  }
+
+  it('exprime le travail en jours (colonne « Jours », plus « ETP »)', () => {
+    const fixture = setup(operationWithAnnees([{ annee: 2024, periodicite: true, budget: 100, etp: 3 }]));
+    const text: string = fixture.nativeElement.textContent;
+    expect(text).toContain('plans.suivis.actions.fiche.jours');
+    expect(text).not.toContain('plans.suivis.actions.fiche.etp');
+  });
+
+  it('ventile le budget par type (fonctionnement / investissement) quand saisi', () => {
+    const fixture = setup(operationWithAnnees([
+      { annee: 2024, periodicite: true, budget_fonctionnement: 200, budget_investissement: 50, etp: 2 },
+    ]));
+    const c = fixture.componentInstance;
+    expect(c.hasBudgetTypes()).toBe(true);
+    const row = c.programmation()[0];
+    expect(row.fonctionnement).toBe(200);
+    expect(row.investissement).toBe(50);
+    expect(row.budget).toBe(250);
+    expect(row.jours).toBe(2);
+    expect(c.totalBudget()).toBe(250);
+    expect(c.totalJours()).toBe(2);
+  });
+
+  it('n\'affiche pas les colonnes de type de budget en saisie à plat', () => {
+    const fixture = setup(operationWithAnnees([{ annee: 2024, periodicite: true, budget: 100, etp: 3 }]));
+    expect(fixture.componentInstance.hasBudgetTypes()).toBe(false);
+  });
+
+  it('agrège la répartition par organisme gestionnaire sur les années', () => {
+    const fixture = setup(operationWithAnnees([
+      {
+        annee: 2024, periodicite: true,
+        organismes: [
+          { id_organisme: 1, organisme_nom: 'CEN', budget_fonctionnement: 100, budget_investissement: 0, etp: 2 },
+          { id_organisme: 2, organisme_nom: 'RNF', budget_fonctionnement: 50, budget_investissement: 20, etp: 1 },
+        ],
+      },
+      {
+        annee: 2025, periodicite: true,
+        organismes: [
+          { id_organisme: 1, organisme_nom: 'CEN', budget_fonctionnement: 30, budget_investissement: 10, etp: 1 },
+        ],
+      },
+    ]));
+    const c = fixture.componentInstance;
+    const cen = c.organismeBreakdown().find(o => o.nom === 'CEN')!;
+    expect(cen.fonctionnement).toBe(130);
+    expect(cen.investissement).toBe(10);
+    expect(cen.budget).toBe(140);
+    expect(cen.jours).toBe(3);
+    // Le budget agrégé au niveau année dérive de la ventilation par organisme.
+    expect(c.programmation()[0].budget).toBe(170);
+    expect(c.programmation()[0].jours).toBe(3);
+  });
+});
+
 describe('OperationFicheComponent — personnalisation des sections de l\'export (#532)', () => {
   it('affiche toutes les sections par défaut (toutes cochées)', () => {
     const fixture = setup(operationWith([]));

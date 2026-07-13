@@ -147,6 +147,14 @@
   margin: 0 0 $spacing-xs;
 }
 
+// #556 — sous-titre (répartition par organisme) sous une section
+.fiche-subtitle {
+  font-size: $font-size-base;
+  font-weight: $font-weight-bold;
+  color: $primary-color;
+  margin: $spacing-md 0 $spacing-xs;
+}
+
 .fiche-table {
   width: 100%;
   border-collapse: collapse;

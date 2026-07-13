@@ -90,29 +90,65 @@ export class OperationFicheComponent implements OnInit {
     this.indicateursLies().filter(i => (i.type ?? '').toUpperCase() !== 'REPONSE')
   );
 
-  /** Programmation annuelle : années planifiées avec budget / ETP. */
+  /**
+   * #556 — Programmation annuelle, restituée « telle que saisie » : budget
+   * ventilé par type (fonctionnement / investissement) et travail exprimé en
+   * nombre de jours (et non en ETP). Chaque année agrège, si nécessaire, la
+   * ventilation par organisme gestionnaire (`organismes`) au niveau année.
+   */
   readonly programmation = computed(() =>
     [...(this.operation()?.operation_annees ?? [])]
       .sort((a, b) => a.annee - b.annee)
-      .map(oa => ({
-        annee: oa.annee,
-        periodicite: oa.periodicite,
-        budget: oa.budget,
-        etp: oa.etp,
-      }))
+      .map(oa => {
+        const orgs = oa.organismes ?? [];
+        const sumOrg = (key: 'budget_fonctionnement' | 'budget_investissement' | 'etp'): number | null =>
+          orgs.length ? orgs.reduce((acc, o) => acc + (o[key] ?? 0), 0) : null;
+        const fonctionnement = oa.budget_fonctionnement ?? sumOrg('budget_fonctionnement');
+        const investissement = oa.budget_investissement ?? sumOrg('budget_investissement');
+        const jours = oa.etp ?? sumOrg('etp');
+        const budget = (fonctionnement != null || investissement != null)
+          ? (fonctionnement ?? 0) + (investissement ?? 0)
+          : oa.budget;
+        return { annee: oa.annee, periodicite: oa.periodicite, fonctionnement, investissement, budget, jours };
+      })
   );
 
-  /** Total budget programmé (somme des budgets annuels renseignés). */
-  readonly totalBudget = computed(() => {
-    const vals = this.programmation().map(p => p.budget).filter((v): v is number => v != null);
-    return vals.length ? vals.reduce((a, b) => a + Number(b), 0) : null;
+  /** Vrai si au moins une année distingue fonctionnement / investissement (#556). */
+  readonly hasBudgetTypes = computed(() =>
+    this.programmation().some(p => p.fonctionnement != null || p.investissement != null)
+  );
+
+  /**
+   * #556 — Répartition du budget/travail par organisme gestionnaire, cumulée sur
+   * toutes les années. Affichée uniquement si une ventilation a été saisie.
+   */
+  readonly organismeBreakdown = computed(() => {
+    const byOrg = new Map<number, { nom: string; fonctionnement: number; investissement: number; jours: number }>();
+    for (const oa of this.operation()?.operation_annees ?? []) {
+      for (const org of oa.organismes ?? []) {
+        const entry = byOrg.get(org.id_organisme)
+          ?? { nom: org.organisme_nom || '—', fonctionnement: 0, investissement: 0, jours: 0 };
+        entry.fonctionnement += org.budget_fonctionnement ?? 0;
+        entry.investissement += org.budget_investissement ?? 0;
+        entry.jours += org.etp ?? 0;
+        byOrg.set(org.id_organisme, entry);
+      }
+    }
+    return [...byOrg.values()].map(e => ({ ...e, budget: e.fonctionnement + e.investissement }));
   });
 
-  /** Total ETP programmé (somme des ETP annuels renseignés). */
-  readonly totalEtp = computed(() => {
-    const vals = this.programmation().map(p => p.etp).filter((v): v is number => v != null);
+  /** Somme d'une colonne de la programmation (null si aucune valeur). */
+  private sumProg(key: 'fonctionnement' | 'investissement' | 'budget' | 'jours'): number | null {
+    const vals = this.programmation().map(p => p[key]).filter((v): v is number => v != null);
     return vals.length ? vals.reduce((a, b) => a + Number(b), 0) : null;
-  });
+  }
+
+  readonly totalFonctionnement = computed(() => this.sumProg('fonctionnement'));
+  readonly totalInvestissement = computed(() => this.sumProg('investissement'));
+  /** Total budget programmé (somme des budgets annuels renseignés). */
+  readonly totalBudget = computed(() => this.sumProg('budget'));
+  /** Total du travail programmé, en nombre de jours (#556). */
+  readonly totalJours = computed(() => this.sumProg('jours'));
 
   /** Sources de financement de l'action. */
   readonly financements = computed(() => this.operation()?.finances ?? []);
