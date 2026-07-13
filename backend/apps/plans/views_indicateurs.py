@@ -637,6 +637,26 @@ class MesureViewSet(viewsets.ModelViewSet):
             return MesureCreateSerializer
         return MesureSerializer
 
+    # #542 — Une mesure remonte au plan par le parent de son indicateur, qui est
+    # SOIT un Niveau d'Exigence (id_ne), SOIT un Résultat Attendu
+    # (id_resultat_attendu) — jamais les deux (cf. Indicateur.clean). Le RA passe
+    # par un OO, rattaché soit à des pressions (cas Enjeu), soit directement à un
+    # enjeu (cas FCR, #337). Le scoping ne traitait que le chemin NE : les mesures
+    # des indicateurs de réponse (souvent rattachés à un RA) étaient exclues de
+    # tout GET pour les non super-admins → « le réalisé disparaît » (#542).
+    _PG_PATHS = (
+        'id_metrique__id_indicateur__id_ne__id_olt__id_enjeu__id_pg',
+        'id_metrique__id_indicateur__id_resultat_attendu__id_oo__pressions__id_facteur_influence__id_enjeu__id_pg',
+        'id_metrique__id_indicateur__id_resultat_attendu__id_oo__id_enjeu__id_pg',
+    )
+
+    def _plan_scope_q(self, suffix, value):
+        """OR sur les chemins NE + RA menant au plan, avec un même suffixe/valeur."""
+        q = Q()
+        for path in self._PG_PATHS:
+            q |= Q(**{f'{path}{suffix}': value})
+        return q
+
     def get_queryset(self):
         user = self.request.user
         queryset = self.queryset
@@ -646,14 +666,14 @@ class MesureViewSet(viewsets.ModelViewSet):
 
         if user.is_admin_organisme() and user.id_organisme:
             return queryset.filter(
-                id_metrique__id_indicateur__id_ne__id_olt__id_enjeu__id_pg__sites__site__corogsite__uuid_og=user.id_organisme
+                self._plan_scope_q('__sites__site__corogsite__uuid_og', user.id_organisme)
             ).distinct()
 
         user_plan_ids = CorRolePlan.objects.filter(id_role=user).values_list('plan_de_gestion_id', flat=True)
         return queryset.filter(
-            Q(id_metrique__id_indicateur__id_ne__id_olt__id_enjeu__id_pg__in=user_plan_ids) |
-            Q(id_metrique__id_indicateur__id_ne__id_olt__id_enjeu__id_pg__sites__site__corrolesite__id_role=user) |
-            Q(id_metrique__id_indicateur__id_ne__id_olt__id_enjeu__id_pg__statut='valide')
+            self._plan_scope_q('__in', user_plan_ids) |
+            self._plan_scope_q('__sites__site__corrolesite__id_role', user) |
+            self._plan_scope_q('__statut', 'valide')
         ).distinct()
 
     def perform_create(self, serializer):

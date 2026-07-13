@@ -7,8 +7,9 @@ from rest_framework import status
 from apps.plans.models_indicateurs import Indicateur, Metrique, Mesure, CorIndicateurTaxon
 from tests.factories.enjeux import (
     EnjeuFactory, ObjectifLongTermeFactory, NiveauExigenceFactory,
+    ObjectifOperationnelFactory, ResultatAttenduFactory,
     NomenclatureEnjeuFactory,
-    IndicateurFactory, MetriqueFactory, MesureFactory,
+    IndicateurFactory, IndicateurPressionFactory, MetriqueFactory, MesureFactory,
     NomenclatureTypeIndicateurFactory, NomenclatureTypeMetriqueFactory,
     NomenclatureFormatMetriqueFactory,
     CorIndicateurTaxonFactory,
@@ -805,6 +806,65 @@ class TestMesureByMetrique:
         api_client.force_authenticate(user=indicateur_test_data['super_admin'])
         response = api_client.get('/api/plans/mesures/by-metrique/99999/')
         assert response.status_code == status.HTTP_404_NOT_FOUND
+
+
+# =============================================================================
+# #542 — scoping des mesures d'indicateurs de RÉPONSE (rattachés à un RA)
+# =============================================================================
+
+@pytest.mark.django_db
+@pytest.mark.integration
+class TestMesureResponseIndicatorScoping:
+    """#542 — Un indicateur de réponse est rattaché à un Résultat Attendu (RA),
+    donc `id_ne` est NULL. Le scoping de `MesureViewSet` ne traversait que le
+    chemin NE : les mesures de réponse étaient exclues de tout GET pour les non
+    super-admins → le réalisé « disparaissait » au rechargement. On vérifie que
+    référent et admin d'organisme les voient de nouveau (chemin RA)."""
+
+    def _make_response_mesure(self, data):
+        # OO rattaché directement à l'enjeu du plan (cas FCR, chemin RA direct).
+        oo = ObjectifOperationnelFactory(
+            id_enjeu=data['enjeu'], id_utilisateur_ajout=data['referent'],
+        )
+        ra = ResultatAttenduFactory(id_oo=oo, id_utilisateur_ajout=data['referent'])
+        indic = IndicateurPressionFactory(
+            id_resultat_attendu=ra, nom_indicateur='Indicateur de réponse',
+            type_indicateur=data['type_ind'], id_utilisateur_ajout=data['referent'],
+        )
+        met = MetriqueFactory(
+            id_indicateur=indic, nom_metrique='Métrique réponse',
+            type_metrique=data['type_met'], id_utilisateur_ajout=data['referent'],
+        )
+        mesure = MesureFactory(
+            id_metrique=met, valeur='42', id_utilisateur_ajout=data['referent'],
+        )
+        return met, mesure
+
+    def test_referent_sees_response_mesure(self, api_client, indicateur_test_data):
+        met, mesure = self._make_response_mesure(indicateur_test_data)
+        api_client.force_authenticate(user=indicateur_test_data['referent'])
+        response = api_client.get(f'/api/plans/mesures/by-metrique/{met.id_metrique}/')
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data['total'] == 1
+        assert response.data['mesures'][0]['id_mesure'] == mesure.id_mesure
+
+    def test_admin_og_sees_response_mesure(self, api_client, indicateur_test_data):
+        met, _ = self._make_response_mesure(indicateur_test_data)
+        api_client.force_authenticate(user=indicateur_test_data['admin_og'])
+        response = api_client.get(f'/api/plans/mesures/by-metrique/{met.id_metrique}/')
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data['total'] == 1
+
+    def test_unrelated_user_does_not_see_response_mesure(self, api_client, indicateur_test_data):
+        met, _ = self._make_response_mesure(indicateur_test_data)
+        api_client.force_authenticate(user=indicateur_test_data['user'])
+        response = api_client.get(f'/api/plans/mesures/by-metrique/{met.id_metrique}/')
+        # `IsReferent` refuse d'emblée un utilisateur sans lien référent (403) ;
+        # à défaut, la mesure resterait hors de son scope (total 0).
+        if response.status_code == status.HTTP_200_OK:
+            assert response.data['total'] == 0
+        else:
+            assert response.status_code == status.HTTP_403_FORBIDDEN
 
 
 # =============================================================================

@@ -19,6 +19,32 @@ function comp(): SuiviSaisieComponent {
 
 describe('SuiviSaisieComponent — indicateurs de réponse', () => {
   // ---------------------------------------------------------------------------
+  // #542 — la page de saisie ne concerne que les indicateurs de RÉPONSE :
+  // les métriques d'état/pression liées à l'action ne doivent pas remonter.
+  // ---------------------------------------------------------------------------
+  describe('responseMetriques (#542)', () => {
+    it('ne garde que les métriques des indicateurs de réponse', () => {
+      const c = comp();
+      const op: any = {
+        metriques: [
+          { id_metrique: 1, indicateur_type: 'REPONSE' },
+          { id_metrique: 2, indicateur_type: 'ETAT' },
+          { id_metrique: 3, indicateur_type: 'PRESSION' },
+          { id_metrique: 4, indicateur_type: 'reponse' }, // casse tolérée
+          { id_metrique: 5 }, // type absent → exclu
+        ],
+      };
+      const ids = (c as any).responseMetriques(op).map((m: any) => m.id_metrique);
+      expect(ids).toEqual([1, 4]);
+    });
+
+    it('renvoie une liste vide sans métriques', () => {
+      const c = comp();
+      expect((c as any).responseMetriques({})).toEqual([]);
+    });
+  });
+
+  // ---------------------------------------------------------------------------
   // saisieMode (#452/#464/#465)
   // ---------------------------------------------------------------------------
   describe('saisieMode', () => {

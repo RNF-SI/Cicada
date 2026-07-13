@@ -444,10 +444,22 @@ export class SuiviSaisieComponent implements OnInit {
     });
   }
 
+  /**
+   * #542 — Métriques des seuls indicateurs de RÉPONSE de l'action. La page de
+   * saisie du suivi ne concerne que les indicateurs de réponse ; sans ce filtre,
+   * toutes les métriques d'état/pression liées à l'action remontaient aussi dans
+   * la section « Indicateurs de réponse ». Miroir de `action-global`.
+   */
+  private responseMetriques(op: Operation): any[] {
+    return (op.metriques || []).filter(
+      (m: any) => (m.indicateur_type || '').toString().toUpperCase() === 'REPONSE',
+    );
+  }
+
   /** Charge les Mesures existantes pour chaque métrique de l'opération. */
   private loadMesuresForMetriques(op: Operation): void {
     this.mesuresByMetrique.clear();
-    const metriques = op.metriques || [];
+    const metriques = this.responseMetriques(op);
     if (!metriques.length) {
       this.hydrateIndicateursArray();
       return;
@@ -490,7 +502,8 @@ export class SuiviSaisieComponent implements OnInit {
     const year = this.selectedYear();
     if (!op?.metriques?.length) return;
 
-    for (const met of op.metriques) {
+    // #542 — n'hydrater que les métriques des indicateurs de réponse.
+    for (const met of this.responseMetriques(op)) {
       const mesures = this.mesuresByMetrique.get(met.id_metrique) ?? [];
       const existing = this.latestMesureForYear(mesures, year);
 
@@ -876,8 +889,21 @@ export class SuiviSaisieComponent implements OnInit {
     const mesureCallsObs = measureCalls.length ? forkJoin(measureCalls) : of([]);
 
     forkJoin([annualCall, orgCalls, mesureCallsObs]).subscribe({
-      next: ([savedAnnual, savedOrgs, _savedMesures]) => {
+      next: ([savedAnnual, savedOrgs, savedMesures]) => {
         this.isSaving.set(false);
+        // #542 — réinjecter les mesures renvoyées par le serveur dans le cache et
+        // les contrôles : sans ça, `id_mesure` restait null (ré-enregistrement =
+        // doublon) et `refreshIndicateursForYear` relisait un cache périmé, faisant
+        // « disparaître » la valeur réalisée au changement d'année / rechargement.
+        for (const m of (savedMesures as Mesure[]) ?? []) {
+          const list = this.mesuresByMetrique.get(m.id_metrique) ?? [];
+          const i = list.findIndex(x => x.id_mesure === m.id_mesure);
+          if (i >= 0) list[i] = m; else list.push(m);
+          this.mesuresByMetrique.set(m.id_metrique, list);
+          this.indicateursFA.controls
+            .find(c => c.get('id_metrique')?.value === m.id_metrique)
+            ?.get('id_mesure')?.setValue(m.id_mesure, { emitEvent: false });
+        }
         this.snack.open(
           this.translate.instant('plans.suivis.saisie.messages.saved'),
           this.translate.instant('common.actions.close'),
