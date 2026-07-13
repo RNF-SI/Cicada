@@ -13,6 +13,7 @@ import { HeaderComponent } from '../../../shared/components/header/header.compon
 import { ProtocoleCampanuleDialogComponent } from '../../../shared/components/modals/protocole-campanule-dialog/protocole-campanule-dialog.component';
 import { InventaireService } from '../../../core/services/inventaire.service';
 import { SuiviInventaireDetail } from '../../../core/models/inventaire.model';
+import { taxonRefsToText } from '../../../shared/utils/taxon-ref.utils';
 
 @Component({
   selector: 'app-inventaire-detail',
@@ -42,6 +43,9 @@ export class InventaireDetailComponent implements OnInit {
 
   // Derived values
   titre = computed(() => this.suivi()?.intitule || '');
+
+  /** Taxons référés en texte lisible (le champ peut être du JSON, cf. #563). */
+  taxonRefText = computed(() => taxonRefsToText(this.suivi()?.taxon_taxref));
 
   periode = computed(() => {
     const s = this.suivi();

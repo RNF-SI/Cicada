@@ -164,7 +164,7 @@
           @if (suivi()?.taxon_taxref) {
             <div class="field">
               <span class="field-label">{{ 'inventaires.form.taxonRef' | translate }}</span>
-              <span class="field-value">{{ suivi()?.taxon_taxref }}</span>
+              <span class="field-value">{{ taxonRefText() }}</span>
             </div>
           }
 

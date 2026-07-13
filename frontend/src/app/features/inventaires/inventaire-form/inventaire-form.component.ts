@@ -38,6 +38,7 @@ import {
   getNomenclatureDepth,
   displayNomenclatureFn,
 } from '../../../shared/utils/nomenclature-autocomplete.utils';
+import { serializeTaxonRefs, parseTaxonRefs } from '../../../shared/utils/taxon-ref.utils';
 
 @Component({
   selector: 'app-inventaire-form',
@@ -485,12 +486,9 @@ export class InventaireFormComponent implements OnInit {
   }
 
   private populateForm(suivi: SuiviInventaireDetail): void {
-    // Parse taxon references from stored string
+    // Parse taxon references from stored string (JSON avec cd_nom, cf. #563)
     if (suivi.taxon_taxref) {
-      this.taxonItems = suivi.taxon_taxref.split(',').map(s => s.trim()).filter(s => s).map(name => ({
-        cd_nom: 0,
-        nom_complet: name,
-      }));
+      this.taxonItems = parseTaxonRefs(suivi.taxon_taxref);
     }
     // Parse habitat references from stored string
     if (suivi.habitat_ref) {
@@ -801,8 +799,9 @@ export class InventaireFormComponent implements OnInit {
     if (fv.cibles_principales) payload.cibles_principales = fv.cibles_principales;
     if (fv.cible_secondaire) payload.cible_secondaire = fv.cible_secondaire;
     // Serialize taxon/habitat reference lists to strings
+    // Taxons : JSON (préserve cd_nom, gère les virgules dans les noms) — #563
     if (this.taxonItems.length > 0) {
-      payload.taxon_taxref = this.taxonItems.map(t => t.nom_complet || String(t.cd_nom)).join(', ');
+      payload.taxon_taxref = serializeTaxonRefs(this.taxonItems);
     }
     if (this.habitatItems.length > 0) {
       payload.habitat_ref = this.habitatItems.map(h => h.lb_hab_fr || h.cd_hab).join(', ');

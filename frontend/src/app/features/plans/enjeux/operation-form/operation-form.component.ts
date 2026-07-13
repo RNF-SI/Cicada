@@ -51,6 +51,7 @@ import {
   getNomenclatureDepth,
   displayNomenclatureFn,
 } from '../../../../shared/utils/nomenclature-autocomplete.utils';
+import { serializeTaxonRefs, parseTaxonRefs } from '../../../../shared/utils/taxon-ref.utils';
 import {
   blankMetriqueFormData,
   metriqueRefToFormData,
@@ -1132,12 +1133,9 @@ export class OperationFormComponent implements OnInit {
     // Populate suivi fields from nested suivi_inventaire
     const suivi = op.suivi_inventaire;
     if (suivi) {
-      // Parse taxon references from stored string
+      // Parse taxon references from stored string (JSON avec cd_nom, cf. #563)
       if (suivi.taxon_taxref) {
-        this.taxonItems = suivi.taxon_taxref.split(',').map((s: string) => s.trim()).filter((s: string) => s).map((name: string) => ({
-          cd_nom: 0,
-          nom_complet: name,
-        }));
+        this.taxonItems = parseTaxonRefs(suivi.taxon_taxref);
       }
       // Habitats : on privilégie la liste structurée (avec cd_hab, nécessaire
       // aux correspondances), sinon on retombe sur le texte `habitat_ref`.
@@ -1651,8 +1649,9 @@ export class OperationFormComponent implements OnInit {
       if (rawFv.cibles_principales) suiviData['cibles_principales'] = rawFv.cibles_principales;
       if (rawFv.cible_secondaire) suiviData['cible_secondaire'] = rawFv.cible_secondaire;
       // Serialize taxon/habitat reference lists to strings
+      // Taxons : JSON (préserve cd_nom, gère les virgules dans les noms) — #563
       if (this.taxonItems.length > 0) {
-        suiviData['taxon_taxref'] = this.taxonItems.map(t => t.nom_complet || String(t.cd_nom)).join(', ');
+        suiviData['taxon_taxref'] = serializeTaxonRefs(this.taxonItems);
       }
       if (this.habitatItems.length > 0) {
         // `habitat_ref` (noms) conservé pour l'affichage hérité ; `habitats`
@@ -2234,10 +2233,7 @@ export class OperationFormComponent implements OnInit {
       next: (detail: SuiviInventaireDetail) => {
         // Populate taxon/habitat reference lists
         if (detail.taxon_taxref) {
-          this.taxonItems = detail.taxon_taxref.split(',').map(s => s.trim()).filter(s => s).map(name => ({
-            cd_nom: 0,
-            nom_complet: name,
-          }));
+          this.taxonItems = parseTaxonRefs(detail.taxon_taxref);
         } else {
           this.taxonItems = [];
         }
