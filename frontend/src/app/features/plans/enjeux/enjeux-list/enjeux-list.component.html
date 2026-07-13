@@ -367,10 +367,10 @@
               -->
               <div cdkDropList
                    class="facteurs-droplist"
-                   [cdkDropListDisabled]="!canEditPlan()"
+                   [cdkDropListDisabled]="!canEditPlan() || isAnyInlineEditActive()"
                    (cdkDropListDropped)="onFacteurDrop($event)">
                 @for (facteur of selectedFacteurs(); track facteur.id_facteur_influence) {
-                  <div cdkDrag [cdkDragDisabled]="!canEditPlan()" class="facteur-influence-card facteur-drag-item" [id]="'facteur-' + facteur.id_facteur_influence" [class.expanded]="isFacteurExpanded(facteur.id_facteur_influence)">
+                  <div cdkDrag [cdkDragDisabled]="!canEditPlan() || isAnyInlineEditActive()" class="facteur-influence-card facteur-drag-item" [id]="'facteur-' + facteur.id_facteur_influence" [class.expanded]="isFacteurExpanded(facteur.id_facteur_influence)">
                     <!-- Mode édition facteur -->
                     @if (editingFacteurId() === facteur.id_facteur_influence) {
                       <div class="facteur-card-body">
@@ -449,10 +449,10 @@
                              [cdkDropListData]="facteur.pressions || []"
                              [cdkDropListConnectedTo]="connectedPressionDroplistIds(facteur.id_facteur_influence)"
                              class="pressions-droplist"
-                             [cdkDropListDisabled]="!canEditPlan()"
+                             [cdkDropListDisabled]="!canEditPlan() || isAnyInlineEditActive()"
                              (cdkDropListDropped)="onPressionDrop($event, facteur)">
                         @for (pression of facteur.pressions || []; track pression.id_pression) {
-                          <div cdkDrag [cdkDragDisabled]="!canEditPlan()" class="pression-card pression-drag-item" [id]="'pression-' + pression.id_pression" [class.expanded]="isPressionExpanded(pression.id_pression)">
+                          <div cdkDrag [cdkDragDisabled]="!canEditPlan() || isAnyInlineEditActive()" class="pression-card pression-drag-item" [id]="'pression-' + pression.id_pression" [class.expanded]="isPressionExpanded(pression.id_pression)">
                             <!-- Mode édition pression -->
                             @if (editingPressionId() === pression.id_pression) {
                               <div class="pression-card-body">
@@ -716,10 +716,10 @@
               <!-- Pour chaque OLT de l'enjeu -->
               <div cdkDropList
                    class="olt-droplist"
-                   [cdkDropListDisabled]="!canEditPlan()"
+                   [cdkDropListDisabled]="!canEditPlan() || isAnyInlineEditActive()"
                    (cdkDropListDropped)="onOltDrop($event)">
               @for (olt of selectedEnjeu()?.objectifs_long_terme || []; track olt.id_olt; let idx = $index) {
-                <div cdkDrag [cdkDragDisabled]="!canEditPlan()" class="olt-drag-item">
+                <div cdkDrag [cdkDragDisabled]="!canEditPlan() || isAnyInlineEditActive()" class="olt-drag-item">
                         <!-- Mode édition OLT -->
                         @if (editingOltId() === olt.id_olt) {
                           <div class="inline-form olt-inline-form">
@@ -799,10 +799,10 @@
                               <!-- Niveaux d'exigence -->
                               <div cdkDropList
                                    class="ne-droplist"
-                                   [cdkDropListDisabled]="!canEditPlan()"
+                                   [cdkDropListDisabled]="!canEditPlan() || isAnyInlineEditActive()"
                                    (cdkDropListDropped)="onNeDrop($event, olt)">
                               @for (ne of olt.niveaux_exigence || []; track ne.id_ne) {
-                                <div cdkDrag [cdkDragDisabled]="!canEditPlan()" class="ne-drag-item">
+                                <div cdkDrag [cdkDragDisabled]="!canEditPlan() || isAnyInlineEditActive()" class="ne-drag-item">
                                 <!-- Mode édition NE -->
                                 @if (editingNeId() === ne.id_ne) {
                                   <div class="inline-form ne-inline-form">
@@ -874,7 +874,7 @@
                                          [cdkDropListConnectedTo]="connectedIndicateurNeDroplistIds(ne.id_ne)"
                                          class="indicateurs-droplist"
                                          [class.indicateurs-droplist--empty]="!(ne.indicateurs && ne.indicateurs.length)"
-                                         [cdkDropListDisabled]="!canEditPlan()"
+                                         [cdkDropListDisabled]="!canEditPlan() || isAnyInlineEditActive()"
                                          (cdkDropListDropped)="onIndicateurNeDrop($event, ne)">
                                     @if (!(ne.indicateurs && ne.indicateurs.length) && canEditPlan()) {
                                       <div class="droplist-empty-hint">
@@ -883,7 +883,7 @@
                                       </div>
                                     }
                                     @for (ind of ne.indicateurs || []; track ind.id_indicateur) {
-                                      <div cdkDrag [cdkDragDisabled]="!canEditPlan()" class="indicateur-block indicateur-drag-item" [id]="'indicateur-' + ind.id_indicateur">
+                                      <div cdkDrag [cdkDragDisabled]="!canEditPlan() || isAnyInlineEditActive()" class="indicateur-block indicateur-drag-item" [id]="'indicateur-' + ind.id_indicateur">
                                         @if (editingIndicateurId() === ind.id_indicateur) {
                                           <!-- Edit mode (extended with metriques) -->
                                           <div class="unified-indicateur-form">
@@ -1135,11 +1135,11 @@
                                               <!-- #367 — Actions rattachées directement à l'indicateur (sans métrique) -->
                                               @if (ind.operations && ind.operations.length > 0) {
                                                 <div class="indicateur-direct-operations" cdkDropList
-                                                     [cdkDropListDisabled]="!canEditPlan()"
+                                                     [cdkDropListDisabled]="!canEditPlan() || isAnyInlineEditActive()"
                                                      (cdkDropListDropped)="onOperationDrop($event, ind)">
                                                   @for (op of ind.operations; track op.id_operation) {
                                                     <div class="operation-card operation-drag-item" cdkDrag
-                                                         [cdkDragDisabled]="!canEditPlan()"
+                                                         [cdkDragDisabled]="!canEditPlan() || isAnyInlineEditActive()"
                                                          [class.operation-card-direct]="!visibleMetriques(op).length"
                                                          [class.expanded]="isOperationExpanded(op.id_operation)"
                                                          [class.is-draft]="op.statut === 'draft'"
@@ -1464,10 +1464,10 @@
               <!-- Pour chaque OO de l'enjeu -->
               <div cdkDropList
                    class="oo-droplist"
-                   [cdkDropListDisabled]="!canEditPlan()"
+                   [cdkDropListDisabled]="!canEditPlan() || isAnyInlineEditActive()"
                    (cdkDropListDropped)="onOoDrop($event)">
               @for (oo of selectedOos(); track oo.id_oo; let ooIdx = $index) {
-                <div cdkDrag [cdkDragDisabled]="!canEditPlan()" class="oo-drag-item">
+                <div cdkDrag [cdkDragDisabled]="!canEditPlan() || isAnyInlineEditActive()" class="oo-drag-item">
                 <!-- Mode édition OO -->
                 @if (editingOoId() === oo.id_oo) {
                   <div class="inline-form olt-inline-form">
@@ -1599,10 +1599,10 @@
                       <!-- Résultats attendus -->
                       <div cdkDropList
                            class="ra-droplist"
-                           [cdkDropListDisabled]="!canEditPlan()"
+                           [cdkDropListDisabled]="!canEditPlan() || isAnyInlineEditActive()"
                            (cdkDropListDropped)="onRaDrop($event, oo)">
                       @for (ra of oo.resultats_attendus || []; track ra.id_ra) {
-                        <div cdkDrag [cdkDragDisabled]="!canEditPlan()" class="ra-drag-item">
+                        <div cdkDrag [cdkDragDisabled]="!canEditPlan() || isAnyInlineEditActive()" class="ra-drag-item">
                         <!-- Mode édition RA -->
                         @if (editingRaId() === ra.id_ra) {
                           <div class="inline-form ne-inline-form">
@@ -1674,7 +1674,7 @@
                                  [cdkDropListConnectedTo]="connectedIndicateurRaDroplistIds(ra.id_ra)"
                                  class="indicateurs-droplist"
                                  [class.indicateurs-droplist--empty]="!(ra.indicateurs && ra.indicateurs.length)"
-                                 [cdkDropListDisabled]="!canEditPlan()"
+                                 [cdkDropListDisabled]="!canEditPlan() || isAnyInlineEditActive()"
                                  (cdkDropListDropped)="onIndicateurRaDrop($event, ra)">
                             @if (!(ra.indicateurs && ra.indicateurs.length) && canEditPlan()) {
                               <div class="droplist-empty-hint">
@@ -1683,7 +1683,7 @@
                               </div>
                             }
                             @for (ind of ra.indicateurs || []; track ind.id_indicateur) {
-                              <div cdkDrag [cdkDragDisabled]="!canEditPlan()" class="indicateur-block indicateur-drag-item" [id]="'indicateur-' + ind.id_indicateur">
+                              <div cdkDrag [cdkDragDisabled]="!canEditPlan() || isAnyInlineEditActive()" class="indicateur-block indicateur-drag-item" [id]="'indicateur-' + ind.id_indicateur">
                                 @if (editingOoIndicateurId() === ind.id_indicateur) {
                                   <!-- Edit mode (extended with metriques) -->
                                   <div class="unified-indicateur-form">
@@ -1931,11 +1931,11 @@
                                       <!-- #367 — Actions rattachées directement à l'indicateur (sans métrique) -->
                                       @if (ind.operations && ind.operations.length > 0) {
                                         <div class="indicateur-direct-operations" cdkDropList
-                                             [cdkDropListDisabled]="!canEditPlan()"
+                                             [cdkDropListDisabled]="!canEditPlan() || isAnyInlineEditActive()"
                                              (cdkDropListDropped)="onOperationDrop($event, ind)">
                                           @for (op of ind.operations; track op.id_operation) {
                                             <div class="operation-card operation-drag-item" cdkDrag
-                                                 [cdkDragDisabled]="!canEditPlan()"
+                                                 [cdkDragDisabled]="!canEditPlan() || isAnyInlineEditActive()"
                                                  [class.operation-card-direct]="!visibleMetriques(op).length"
                                                  [class.expanded]="isOoOperationExpanded(op.id_operation)"
                                                  [class.is-draft]="op.statut === 'draft'"
@@ -2351,10 +2351,10 @@
               <div class="enjeux-flat-list">
                 <div cdkDropList
                      class="enjeux-droplist"
-                     [cdkDropListDisabled]="!canEditPlan()"
+                     [cdkDropListDisabled]="!canEditPlan() || isAnyInlineEditActive()"
                      (cdkDropListDropped)="onEnjeuDrop($event)">
                   @for (enjeu of enjeux(); track enjeu.id_enjeu; let idx = $index) {
-                    <div cdkDrag [cdkDragDisabled]="!canEditPlan()" class="enjeu-drag-item">
+                    <div cdkDrag [cdkDragDisabled]="!canEditPlan() || isAnyInlineEditActive()" class="enjeu-drag-item">
                       @if (canEditPlan()) {
                         <button class="icon-btn-flat enjeu-drag-handle" type="button" cdkDragHandle
                                 [title]="'enjeux.dnd.dragHandle' | translate"
@@ -2378,10 +2378,10 @@
                 </div>
                 <div cdkDropList
                      class="enjeux-droplist"
-                     [cdkDropListDisabled]="!canEditPlan()"
+                     [cdkDropListDisabled]="!canEditPlan() || isAnyInlineEditActive()"
                      (cdkDropListDropped)="onFcrDrop($event)">
                   @for (item of fcr(); track item.id_enjeu; let idx = $index) {
-                    <div cdkDrag [cdkDragDisabled]="!canEditPlan()" class="enjeu-drag-item">
+                    <div cdkDrag [cdkDragDisabled]="!canEditPlan() || isAnyInlineEditActive()" class="enjeu-drag-item">
                       @if (canEditPlan()) {
                         <button class="icon-btn-flat enjeu-drag-handle" type="button" cdkDragHandle
                                 [title]="'enjeux.dnd.dragHandle' | translate"

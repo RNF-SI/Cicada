@@ -2447,6 +2447,21 @@ describe('EnjeuxListComponent', () => {
       reorderSpy.mockRestore();
     });
 
+    it('isAnyInlineEditActive locks drag while an inline edit form is open (#559)', () => {
+      setup();
+      expect(component.isAnyInlineEditActive()).toBe(false);
+
+      component.editingOltId.set(42);
+      expect(component.isAnyInlineEditActive()).toBe(true);
+
+      component.editingOltId.set(null);
+      expect(component.isAnyInlineEditActive()).toBe(false);
+
+      component.editingIndicateurId.set(7);
+      expect(component.isAnyInlineEditActive()).toBe(true);
+      component.editingIndicateurId.set(null);
+    });
+
     it('onOperationDrop forwards parent_type=indicateur for actions of an indicator (#544)', () => {
       setup();
       const reorderSpy = jest.spyOn(component['reorderService'], 'reorder').mockReturnValue(of({ updated: 2 }));

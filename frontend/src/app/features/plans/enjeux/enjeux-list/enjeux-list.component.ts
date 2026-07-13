@@ -289,6 +289,24 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
   // Indicateurs pression (for OO tab)
   addingIndicateurForRa = signal<number | null>(null);
   editingOoIndicateurId = signal<number | null>(null);
+
+  /**
+   * #559 — Un formulaire d'édition inline est-il ouvert quelque part dans
+   * l'arborescence ? Tant qu'une modification n'est pas enregistrée ou
+   * annulée, le drag-and-drop de tous les éléments du PG est verrouillé pour
+   * éviter de déplacer un élément en cours d'édition. (La création est déjà
+   * bloquée : le formulaire d'ajout remplace la card, il n'y a rien à glisser.)
+   */
+  readonly isAnyInlineEditActive = computed(() =>
+    this.editingFacteurId() !== null ||
+    this.editingPressionId() !== null ||
+    this.editingOltId() !== null ||
+    this.editingNeId() !== null ||
+    this.editingIndicateurId() !== null ||
+    this.editingOoId() !== null ||
+    this.editingRaId() !== null ||
+    this.editingOoIndicateurId() !== null,
+  );
   newOoIndicateurNom = '';
   newOoIndicateurType: number | null = null;
   newOoIndicateurStandardise = false;
