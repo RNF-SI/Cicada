@@ -7,6 +7,13 @@
 }
 
 .plan-form-modal {
+  // #543 — Colonne flex bornée à la hauteur du dialog (maxHeight 90vh) : seul le
+  // contenu défile, les actions (bouton « Valider ») restent épinglées en bas.
+  // Sans ça, l'encart de contexte #501 (mode édition uniquement) poussait le total
+  // au-delà de 90vh et `overflow: hidden` coupait les boutons → « plus de bouton ».
+  display: flex;
+  flex-direction: column;
+  max-height: 90vh;
   width: 100%;
   padding: 0 $spacing-lg;
   box-sizing: border-box;
@@ -24,6 +31,13 @@ h2[mat-dialog-title] {
 }
 
 mat-dialog-content {
+  // #543 — Zone défilante flexible : occupe l'espace restant et scrolle, au lieu
+  // du max-height 65vh par défaut de Material qui, additionné au titre + encart +
+  // actions, dépassait 90vh.
+  flex: 1 1 auto;
+  min-height: 0;
+  max-height: none;
+  overflow-y: auto;
   padding: $spacing-md $spacing-xs !important;
   overflow-x: hidden;
 }
@@ -429,6 +443,8 @@ mat-dialog-content {
 
 // Dialog actions
 mat-dialog-actions {
+  // #543 — Épinglées en bas du dialog, hors de la zone défilante.
+  flex-shrink: 0;
   padding: $spacing-md 0 0 !important;
   border-top: 1px solid $gray-light;
   margin-top: $spacing-md;
