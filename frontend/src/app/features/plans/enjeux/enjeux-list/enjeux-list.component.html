@@ -776,16 +776,6 @@
                                      [attr.aria-label]="'enjeux.olt.numeroPinned' | translate"></i>
                                 }
                                 @if (canEditPlan()) {
-                                  <button class="icon-btn-flat" (click)="moveOlt(idx, -1); $event.stopPropagation()"
-                                          [disabled]="idx === 0"
-                                          [title]="'enjeux.olt.moveUp' | translate">
-                                    <i class="fi fi-rr-arrow-small-up"></i>
-                                  </button>
-                                  <button class="icon-btn-flat" (click)="moveOlt(idx, 1); $event.stopPropagation()"
-                                          [disabled]="idx === (selectedEnjeu()?.objectifs_long_terme?.length || 0) - 1"
-                                          [title]="'enjeux.olt.moveDown' | translate">
-                                    <i class="fi fi-rr-arrow-small-down"></i>
-                                  </button>
                                   <button class="icon-btn-flat" (click)="startEditOlt(olt); $event.stopPropagation()" [title]="'common.actions.edit' | translate">
                                     <i class="fi fi-rr-pencil"></i>
                                   </button>
