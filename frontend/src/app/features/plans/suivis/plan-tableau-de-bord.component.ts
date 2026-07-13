@@ -14,7 +14,7 @@ import { EnjeuService } from '../../../core/services/enjeu.service';
 import {
   Enjeu, ObjectifLongTerme, NiveauExigence, Indicateur, Metrique, Mesure
 } from '../../../core/models/enjeu.model';
-import { computeCombinedScore } from './metrique-seuils.util';
+import { computeCombinedScore, computeMetriqueScore } from './metrique-seuils.util';
 
 type ScoreLevel = 'very-bad' | 'bad' | 'neutral' | 'good' | 'very-good' | 'no-data';
 
@@ -457,34 +457,15 @@ export class PlanTableauDeBordComponent implements OnInit {
    * blocs (multi-blocs) via `computeCombinedScore`, sinon le seul bloc principal.
    */
   private mesureToScoreLevel(metrique: Metrique, mesure: Mesure): ScoreLevel {
-    if ((metrique.score_blocks?.length ?? 0) > 0) {
-      const score = computeCombinedScore(metrique, mesure.valeur, mesure.valeurs_blocs);
-      return score ? this.levelToScoreLevel(score) : 'no-data';
-    }
-    return this.valueToScoreLevel(metrique, parseFloat(String(mesure.valeur).replace(',', '.')));
-  }
-
-  private valueToScoreLevel(metrique: Metrique, value: number): ScoreLevel {
-    if (isNaN(value)) return 'no-data';
-
-    // Check score ranges from 1 (very-bad) to 5 (very-good)
-    for (let level = 1; level <= 5; level++) {
-      const inf = (metrique as any)[`score_${level}_inf`];
-      const sup = (metrique as any)[`score_${level}_sup`];
-      const hasInf = inf != null;
-      const hasSup = sup != null;
-      if (!hasInf && !hasSup) continue;
-      // #423 — inclusivité des bornes (cohérent avec la notation par crochets).
-      const infIncl = level <= 1 ? true : (metrique as any)[`score_${level - 1}_sup_inclusive`] === false;
-      const supIncl = level >= 5 ? true : (metrique as any)[`score_${level}_sup_inclusive`] !== false;
-      const lowerOk = !hasInf || (infIncl ? value >= Number(inf) : value > Number(inf));
-      const upperOk = !hasSup || (supIncl ? value <= Number(sup) : value < Number(sup));
-      if (lowerOk && upperOk) {
-        return this.levelToScoreLevel(level);
-      }
-    }
-
-    return 'no-data';
+    // #549 — Scorer via le helper partagé qui gère les 3 types de grille
+    // (NUMERIQUE par seuils, CHIFFRE par valeur, TEXTE par libellé), au lieu du
+    // seul `parseFloat` + seuils : une métrique grille TEXTE (valeur = libellé)
+    // donnait `NaN` → rond gris « indéterminé » sur le tableau de bord alors
+    // qu'un résultat était bien enregistré. Symétrique au cas multi-blocs.
+    const score = (metrique.score_blocks?.length ?? 0) > 0
+      ? computeCombinedScore(metrique, mesure.valeur, mesure.valeurs_blocs)
+      : computeMetriqueScore(metrique, mesure.valeur);
+    return score ? this.levelToScoreLevel(score) : 'no-data';
   }
 
   private levelToScoreLevel(level: number): ScoreLevel {

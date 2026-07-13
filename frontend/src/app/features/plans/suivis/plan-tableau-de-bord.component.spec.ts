@@ -50,6 +50,23 @@ describe('PlanTableauDeBordComponent — score manuel (#518)', () => {
     expect(component.getScoreForYear(makeRow(indicateur), 2024)).toBe('very-bad');
   });
 
+  // #549 — une métrique grille TEXTE (valeur = libellé) doit scorer via le
+  // libellé, pas retomber sur « no-data » (rond gris) faute de parseFloat.
+  it('score une métrique grille TEXTE via son libellé (plus de rond gris)', () => {
+    const metriqueTexte = {
+      id_metrique: 2,
+      id_indicateur: 2,
+      score_4_label: 'Bon',
+      mesures: [{ id_mesure: 2, valeur: 'Bon', date_mesure: '2024-12-31' }],
+    } as unknown as Metrique;
+    const row = {
+      subId: 1, subLabel: 'NE1', expanded: false,
+      indicateur: { id_indicateur: 2 } as unknown as Indicateur,
+      metriques: [metriqueTexte],
+    };
+    expect(component.getScoreForYear(row, 2024)).toBe('good');
+  });
+
   it('affiche le score forcé manuellement à la place du score automatique', () => {
     // Override « very-good » (5) pour 2024, alors que l'auto vaut « very-bad ».
     const indicateur = {

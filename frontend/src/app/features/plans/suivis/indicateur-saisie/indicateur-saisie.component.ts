@@ -521,15 +521,24 @@ export class IndicateurSaisieComponent implements OnInit {
     // 1) Mesures par métrique — toujours enregistrées (la saisie des métriques
     //    reste possible que le résultat soit auto ou forcé manuellement, #510).
     const mesureCalls: any[] = [];
-    const clean = (v: any) => String(v).replace(',', '.').trim();
+    // #549 — Ne normaliser la virgule décimale (« 20,6 » → « 20.6 ») QUE pour les
+    // valeurs numériques. Un libellé TEXTE doit être stocké verbatim, sinon un
+    // libellé contenant une virgule (« Bon, fonctionnel ») est corrompu et ne
+    // correspond plus à aucun `score_i_label` au rechargement (dropdown « — »)
+    // ni au scoring backend `_value_to_score`.
+    const cleanNumeric = (v: any) => String(v).replace(',', '.').trim();
+    const cleanText = (v: any) => String(v).trim();
     const isEmpty = (v: any) => v === null || v === undefined || String(v).trim() === '';
     for (const met of ind.metriques || []) {
       const value = this.form.get(`m_${met.id_metrique}`)?.value;
-      // #247 — valeurs des blocs complémentaires (métrique multi-blocs).
+      // Le bloc principal est TEXTE, CHIFFRE ou NUMERIQUE ; seuls les libellés
+      // TEXTE échappent à la normalisation virgule.
+      const cleanMain = (met as any).type_metrique_mnemonique === 'TEXTE' ? cleanText : cleanNumeric;
+      // #247 — valeurs des blocs complémentaires (toujours des seuils numériques).
       const valeurs_blocs: Record<string, string> = {};
       for (const b of ((met as any).score_blocks || [])) {
         const bv = this.form.get(`m_${met.id_metrique}_b${b.position}`)?.value;
-        if (!isEmpty(bv)) valeurs_blocs[String(b.position)] = clean(bv);
+        if (!isEmpty(bv)) valeurs_blocs[String(b.position)] = cleanNumeric(bv);
       }
       const existing = this.mesuresByMetrique.get(met.id_metrique);
       // #528 — Aucune valeur saisie (ni principal ni bloc) : si une mesure
@@ -541,7 +550,7 @@ export class IndicateurSaisieComponent implements OnInit {
       }
       const payload: MesureCreatePayload = {
         id_metrique: met.id_metrique,
-        valeur: isEmpty(value) ? '' : clean(value),
+        valeur: isEmpty(value) ? '' : cleanMain(value),
         valeurs_blocs,
         date_mesure: `${year}-12-31`,
       };
