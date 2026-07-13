@@ -1972,6 +1972,7 @@
         "subtitle": "Remplir le suivi d'une action",
         "editAction": "Modifier l'action",
         "viewGlobal": "Voir le résultat global",
+        "viewFiche": "Voir la fiche action",
         "requiredHint": "Les champs avec * sont obligatoires",
         "yearPlanned": "Année prévue (action programmée)",
         "yearNotPlanned": "Année non prévue",
