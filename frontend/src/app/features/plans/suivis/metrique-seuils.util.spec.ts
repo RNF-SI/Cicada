@@ -1,6 +1,6 @@
 import {
   computeMetriqueScore, scoreLevelName,
-  combineBlockScores, computeCombinedScore, formatBlockFormula,
+  combineBlockScores, computeCombinedScore, formatBlockFormula, formatScoreRange,
 } from './metrique-seuils.util';
 
 describe('scoreLevelName', () => {
@@ -233,5 +233,32 @@ describe('formatBlockFormula', () => {
       score_blocks: [{ logical_op: 'OR' }, { logical_op: 'OR' }],
     };
     expect(formatBlockFormula(met)).toBe('Bloc A OU Bloc B OU Bloc C');
+  });
+});
+
+describe('formatScoreRange', () => {
+  const nbsp = (v: string) => v.replace(/\u00A0/g, ' ');
+  // #555 — précision préservée (≤ 4 décimales), plus d'arrondi à 2 décimales
+  it('n’arrondit plus les bornes à 2 décimales', () => {
+    const met = {
+      type_metrique_mnemonique: 'NUMERIQUE',
+      score_1_inf: 0.665, score_1_sup: null,
+      score_2_inf: null, score_2_sup: 0.665,
+    };
+    // NB : le formateur insère un espace insécable ( ) après l'opérateur.
+    expect(nbsp(formatScoreRange(met, 1))).toBe('≥ 0.665');
+    expect(nbsp(formatScoreRange(met, 2))).toBe('≤ 0.665');
+  });
+  // #545/#554/#558 — intervalle sens-aware, cohérent avec le scoring
+  it('affiche l’intervalle décroissant cohérent (borne sup inclusive)', () => {
+    const dec = {
+      type_metrique_mnemonique: 'NUMERIQUE', sens_variation: 'DECROISSANT',
+      score_1_inf: 50, score_1_sup: null,
+      score_2_inf: 35, score_2_sup: 50,
+      score_2_sup_inclusive: true,
+    };
+    // très mauvais = x > 50 (50 appartient au mauvais), pas « ≥ 50 »
+    expect(nbsp(formatScoreRange(dec, 1))).toBe('> 50');
+    expect(nbsp(formatScoreRange({ ...dec, score_2_sup_inclusive: false }, 1))).toBe('≥ 50');
   });
 });

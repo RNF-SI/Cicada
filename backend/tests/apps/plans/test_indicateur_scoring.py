@@ -141,6 +141,26 @@ class TestValueToScore:
         assert _value_to_score(50, m) == 1   # 50 exclu de mauvais → très mauvais
         assert _value_to_score(49, m) == 2   # 49 reste mauvais
 
+    def test_borne_inf_extreme_bornee_inclusive(self):
+        """#545/#554 — palier extrême BORNÉ (has_borne_score1 en croissant) :
+        le niveau 1 a une borne inf (ex. 0.665) sans voisin de valeur inférieure.
+        Cette borne n'est portée par aucun flag sup voisin → elle doit rester
+        INCLUSIVE (« ≥ 0.665 »), comme dans l'éditeur. Une valeur égale à la
+        borne inf extrême tombe donc bien dans le niveau 1 (et pas hors grille)."""
+        class M:
+            inactive_levels = []
+            sens_variation = 'CROISSANT'
+            score_1_inf = 0.665; score_1_sup = 35; score_1_sup_inclusive = True
+            score_2_inf = 35; score_2_sup = 100; score_2_sup_inclusive = True
+            score_3_inf = score_3_sup = None
+            score_4_inf = score_4_sup = None
+            score_5_inf = score_5_sup = None
+        m = M()
+        assert _value_to_score(0.665, m) == 1   # borne inf extrême incluse
+        assert _value_to_score(10, m) == 1
+        assert _value_to_score(35, m) == 1       # sup inclusive
+        assert _value_to_score(36, m) == 2
+
     def test_les_deux_bornes_nulles_palier_ignore(self):
         class M:
             inactive_levels = []

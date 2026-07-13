@@ -718,10 +718,15 @@ def _palier_inclusivity(metrique, level):
         inf_inclusive = True  # palier ouvert vers le bas
     else:
         lower_neighbour = level + 1 if dec else level - 1
-        flag = getattr(metrique, f'score_{lower_neighbour}_sup_inclusive', None)
-        # La frontière appartient au voisin inférieur si son sup est inclusif ;
-        # donc ce palier-ci ne l'inclut (inf inclusive) que si ce flag est False.
-        inf_inclusive = (flag is False)
+        if lower_neighbour < 1 or lower_neighbour > 5:
+            # Borne extrême (has_borne_scoreN) sans voisin de valeur inférieure :
+            # inclusive par défaut, comme « ≥ » / « ≤ » dans l'éditeur.
+            inf_inclusive = True
+        else:
+            flag = getattr(metrique, f'score_{lower_neighbour}_sup_inclusive', None)
+            # La frontière appartient au voisin inférieur si son sup est inclusif ;
+            # donc ce palier-ci ne l'inclut (inf inclusive) que si ce flag est False.
+            inf_inclusive = (flag is False)
 
     # Borne sup : portée par le propre flag du niveau.
     if getattr(metrique, f'score_{level}_sup', None) is None:

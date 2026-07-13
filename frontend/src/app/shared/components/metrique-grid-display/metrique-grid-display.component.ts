@@ -151,8 +151,10 @@ export class MetriqueGridDisplayComponent {
     const dec = met['sens_variation'] === 'DECROISSANT';
     let infInclusive = true;
     if (inf != null) {
-      const lowerFlag = met[`score_${dec ? level + 1 : level - 1}_sup_inclusive`];
-      infInclusive = (lowerFlag === false);
+      const lower = dec ? level + 1 : level - 1;
+      // Borne extrême (pas de voisin de valeur inférieure) → inclusive (cohérent
+      // avec l'éditeur : « ≥ » / « ≤ » pour les paliers ouverts bornés).
+      infInclusive = (lower < 1 || lower > 5) ? true : (met[`score_${lower}_sup_inclusive`] === false);
     }
     let supInclusive = true;
     if (sup != null) {

@@ -188,8 +188,7 @@
                                 <span class="threshold-cell"
                                       [class]="'lvl-' + lvl"
                                       [class.active]="blockScore === i + 1">
-                                  min {{ getScoreBound(bi.meta, i + 1, 'inf') }}
-                                  / max {{ getScoreBound(bi.meta, i + 1, 'sup') }}
+                                  {{ scoreRange(bi.meta, i + 1) }}
                                 </span>
                               }
                             </div>
@@ -230,8 +229,7 @@
                             <span class="threshold-cell"
                                   [class]="'lvl-' + lvl"
                                   [class.active]="activeScore === i + 1">
-                              min {{ getScoreBound(m, i + 1, 'inf') }}
-                              / max {{ getScoreBound(m, i + 1, 'sup') }}
+                              {{ scoreRange(m, i + 1) }}
                             </span>
                           }
                         </div>

@@ -53,19 +53,18 @@ export function formatScoreRange(met: any, level: number): string {
   const sup = met[`score_${level}_sup`];
   if (inf == null && sup == null) return '- - -';
 
-  // Inclusivité côté inf (dérivée de la borne sup du palier précédent).
-  let infInclusive = true; // niveau 1 : inclusif par défaut
-  if (level > 1) {
-    const prevSupInclusive = met[`score_${level - 1}_sup_inclusive`];
-    infInclusive = !(prevSupInclusive === true || prevSupInclusive == null);
-  }
-
-  // Inclusivité côté sup.
-  let supInclusive = true; // niveau 5 : inclusif par défaut
-  if (level < 5) {
-    const si = met[`score_${level}_sup_inclusive`];
-    supInclusive = (si === true || si == null);
-  }
+  // #545/#554 — inclusivité sens-aware (miroir de computeMetriqueScore /
+  // metrique-grid-display) : la borne inf est portée par le flag sup du voisin de
+  // VALEUR inférieure (level-1 en croissant, level+1 en décroissant) ; une borne
+  // absente = palier ouvert. Les raccourcis niveau 1/5 étaient faux en décroissant.
+  const dec = met?.sens_variation === 'DECROISSANT';
+  const lower = dec ? level + 1 : level - 1;
+  // Borne extrême (pas de voisin de valeur inférieure) → inclusive, comme dans
+  // l'éditeur. Sinon l'inclusivité inf est portée par le flag sup du voisin.
+  const infInclusive = inf != null && lower >= 1 && lower <= 5
+    ? met[`score_${lower}_sup_inclusive`] === false
+    : inf != null; // extrême borné → ≥ / ≤ (inclusif)
+  const supInclusive = sup == null || met[`score_${level}_sup_inclusive`] !== false;
 
   // Intervalle ouvert : une seule borne → notation compacte.
   if (inf != null && sup == null) {
@@ -145,7 +144,10 @@ export function computeMetriqueScore(met: any, value: any): number | null {
     const hasInf = inf !== null && inf !== undefined;
     const hasSup = sup !== null && sup !== undefined;
     if (!hasInf && !hasSup) continue;
-    const infIncl = !hasInf ? true : met[`score_${dec ? i + 1 : i - 1}_sup_inclusive`] === false;
+    const lower = dec ? i + 1 : i - 1;
+    const infIncl = !hasInf ? true
+      : (lower < 1 || lower > 5) ? true          // borne extrême (pas de voisin) → inclusive
+      : met[`score_${lower}_sup_inclusive`] === false;
     const supIncl = !hasSup ? true : met[`score_${i}_sup_inclusive`] !== false;
     const lowerOk = !hasInf || (infIncl ? num >= Number(inf) : num > Number(inf));
     const upperOk = !hasSup || (supIncl ? num <= Number(sup) : num < Number(sup));
