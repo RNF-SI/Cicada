@@ -422,20 +422,29 @@ export class PlanSuiviActionsComponent implements OnInit {
   }
 
   private extractOpsFromIndicateurs(indicateurs: Indicateur[], enjeu: Enjeu, result: FlatOperation[], seenIds: Set<number>): void {
+    const push = (op: Operation) => {
+      if (!seenIds.has(op.id_operation)) {
+        seenIds.add(op.id_operation);
+        result.push({
+          operation: op,
+          enjeuLibelle: enjeu.intitule_court || enjeu.libelle,
+          enjeuId: enjeu.id_enjeu
+        });
+      }
+    };
+
     for (const ind of indicateurs) {
-      const metriques = ind.metriques || [];
-      for (const met of metriques) {
-        const operations = met.operations || [];
-        for (const op of operations) {
-          if (!seenIds.has(op.id_operation)) {
-            seenIds.add(op.id_operation);
-            result.push({
-              operation: op,
-              enjeuLibelle: enjeu.intitule_court || enjeu.libelle,
-              enjeuId: enjeu.id_enjeu
-            });
-          }
+      // Actions rattachées via une métrique de l'indicateur.
+      for (const met of ind.metriques || []) {
+        for (const op of met.operations || []) {
+          push(op);
         }
+      }
+      // #540 — actions rattachées directement à l'indicateur (sans métrique,
+      // #367/#539). Sans cela, une action liée à un indicateur sans métrique
+      // n'apparaissait pas dans le suivi des actions.
+      for (const op of ind.operations || []) {
+        push(op);
       }
     }
   }
