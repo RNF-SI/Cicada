@@ -2528,7 +2528,9 @@
       "description": "Ces sites que vous avez créés sont en attente de validation par un administrateur. Vous pouvez les compléter ou les corriger tant que la validation n'a pas eu lieu.",
       "requestedOn": "Demandé le",
       "awaitingValidation": "En attente de validation",
-      "editTooltip": "Compléter ou corriger ce site avant sa validation"
+      "editTooltip": "Compléter ou corriger ce site avant sa validation",
+      "cancel": "Annuler la demande",
+      "cancelTooltip": "Annuler la demande de création de ce site (supprime le site en attente)"
     },
     "editSite": {
       "success": "Le site a été mis à jour avec succès."

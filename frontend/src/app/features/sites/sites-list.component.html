@@ -282,6 +282,15 @@
                         <i class="fi fi-rr-pencil"></i>
                         {{ 'common.actions.edit' | translate }}
                       </button>
+                      <!-- #536 — annuler la demande de création (supprime le site inactif). -->
+                      <button
+                        mat-stroked-button
+                        class="btn-sm pending-cancel-btn"
+                        (click)="cancelPendingSite(request)"
+                        [matTooltip]="'sites.pendingCreations.cancelTooltip' | translate">
+                        <i class="fi fi-rr-cross-small"></i>
+                        {{ 'sites.pendingCreations.cancel' | translate }}
+                      </button>
                     </div>
                   </div>
                 }

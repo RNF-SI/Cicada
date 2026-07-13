@@ -28,6 +28,7 @@ import { AuthService } from '../../core/services/auth.service';
 import { AdminSite, GeoJSONFeatureCollection } from '../../core/models/admin.model';
 import { ValidationRequestListItem } from '../../core/models/notification.model';
 import { AccessRequestDialogComponent, AccessRequestDialogData, SelectableSite } from '../../shared/components/access-request-dialog/access-request-dialog.component';
+import { ConfirmDialogComponent, ConfirmDialogData } from '../../shared/components/confirm-dialog/confirm-dialog.component';
 import { SiteFormModalComponent, SiteFormModalData, SiteFormModalResult } from '../../shared/components/modals/site-form-modal/site-form-modal.component';
 import { FindOrCreateSiteModalComponent } from '../../shared/components/modals/find-or-create-site-modal/find-or-create-site-modal.component';
 import { BulkSiteImportModalComponent, BulkSiteImportModalResult } from '../../shared/components/modals/bulk-site-import-modal/bulk-site-import-modal.component';
@@ -577,6 +578,50 @@ export class SitesListComponent implements OnInit {
     this.adminService.getSite(site.slug).pipe(
       catchError(() => of(site as unknown as AdminSite))
     ).subscribe((fullSite) => this.openSiteEditModal(fullSite));
+  }
+
+  /**
+   * #536 — Annule la demande de création d'un site encore en attente de validation.
+   * L'annulation supprime définitivement le site créé (encore inactif) : on demande
+   * une confirmation explicite (destructive), comme dans la page « Mes demandes » (#467).
+   */
+  cancelPendingSite(request: ValidationRequestListItem): void {
+    if (request.status !== 'pending') return;
+
+    const dialogRef = this.dialog.open(ConfirmDialogComponent, {
+      width: '500px',
+      data: {
+        title: this.translate.instant('myRequests.cancelSiteConfirm.title'),
+        message: this.translate.instant('myRequests.cancelSiteConfirm.message', {
+          name: request.target_name || '',
+        }),
+        warningText: this.translate.instant('myRequests.cancelSiteConfirm.warning'),
+        confirmText: this.translate.instant('myRequests.cancelSiteConfirm.confirm'),
+        destructive: true,
+      } as ConfirmDialogData,
+    });
+
+    dialogRef.afterClosed().subscribe((confirmed) => {
+      if (!confirmed) return;
+      this.validationService.cancelRequest(request.id).subscribe({
+        next: () => {
+          this.snackBar.open(
+            this.translate.instant('myRequests.cancelSuccess'),
+            this.translate.instant('common.actions.close'),
+            { duration: 3000 }
+          );
+          this.loadData();
+        },
+        error: (error) => {
+          console.error('Erreur annulation demande de création:', error);
+          this.snackBar.open(
+            this.translate.instant('myRequests.cancelError'),
+            this.translate.instant('common.actions.close'),
+            { duration: 3000 }
+          );
+        },
+      });
+    });
   }
 
   /** Ouvre le formulaire de site en mode édition (plein écran) pour un site complet. */

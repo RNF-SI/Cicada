@@ -62,6 +62,7 @@ describe('SitesListComponent', () => {
   let getSitesMock: jest.Mock;
   let getSitesGeoJSONMock: jest.Mock;
   let getMyRequestsMock: jest.Mock;
+  let cancelRequestMock: jest.Mock;
   let dialogOpenMock: jest.Mock;
   let snackBarOpenMock: jest.Mock;
   let logoutMock: jest.Mock;
@@ -147,6 +148,7 @@ describe('SitesListComponent', () => {
 
     getSitesGeoJSONMock = jest.fn().mockReturnValue(of(mockGeoJSON));
     getMyRequestsMock = jest.fn().mockReturnValue(of([mockValidationRequest]));
+    cancelRequestMock = jest.fn().mockReturnValue(of({}));
     dialogOpenMock = jest.fn().mockReturnValue({ afterClosed: () => of(null) });
     snackBarOpenMock = jest.fn();
     logoutMock = jest.fn().mockReturnValue(of(null));
@@ -159,7 +161,8 @@ describe('SitesListComponent', () => {
     };
 
     const validationServiceMock = {
-      getMyRequests: getMyRequestsMock
+      getMyRequests: getMyRequestsMock,
+      cancelRequest: cancelRequestMock
     };
 
     const authServiceMock = {
@@ -806,6 +809,48 @@ describe('SitesListComponent', () => {
       pendingSites.forEach(site => {
         expect(site.accessStatus).toBe('pending');
       });
+    }));
+
+    // #536 — annuler la demande de création d'un site en attente
+    it('should cancel a pending site creation when confirmed', fakeAsync(() => {
+      dialogOpenMock.mockReturnValue({ afterClosed: () => of(true) });
+      fixture.detectChanges();
+      tick();
+
+      const creationRequest: ValidationRequestListItem = {
+        id: 42,
+        request_type: 'site_creation',
+        status: 'pending',
+        requester_id: 1,
+        requester_name: 'Test User',
+        target_name: 'Site à annuler',
+        created_at: new Date().toISOString()
+      };
+
+      component.cancelPendingSite(creationRequest);
+      tick();
+
+      expect(dialogOpenMock).toHaveBeenCalled();
+      expect(cancelRequestMock).toHaveBeenCalledWith(42);
+    }));
+
+    it('should NOT cancel when confirmation is dismissed', fakeAsync(() => {
+      dialogOpenMock.mockReturnValue({ afterClosed: () => of(false) });
+      fixture.detectChanges();
+      tick();
+
+      component.cancelPendingSite({
+        id: 43,
+        request_type: 'site_creation',
+        status: 'pending',
+        requester_id: 1,
+        requester_name: 'Test User',
+        target_name: 'Site conservé',
+        created_at: new Date().toISOString()
+      } as ValidationRequestListItem);
+      tick();
+
+      expect(cancelRequestMock).not.toHaveBeenCalled();
     }));
 
     describe('Pending Org Links', () => {
