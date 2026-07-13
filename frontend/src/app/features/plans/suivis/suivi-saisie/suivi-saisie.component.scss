@@ -340,6 +340,21 @@
       align-items: center;
     }
   }
+
+  // #541 — prévu (lecture seule) à gauche, réalisé (saisissable) à droite.
+  .acteurs-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: $spacing-md;
+    align-items: start;
+    margin-bottom: $spacing-sm;
+
+    .card-field { margin-bottom: 0; }
+
+    @include mobile {
+      grid-template-columns: 1fr;
+    }
+  }
 }
 
 textarea.full-width {

@@ -236,6 +236,24 @@ class TestRealisationUpsertEndpoint:
             id_operation_annee=realisation_test_data['op_annee']
         ).count() == 1
 
+    def test_upsert_persists_operateurs_financeurs_realises(self, api_client, realisation_test_data):
+        """#541 — opérateur(s)/financeur(s) réalisés saisis par année dans le suivi."""
+        api_client.force_authenticate(user=realisation_test_data['referent'])
+        payload = {
+            'id_operation_annee': realisation_test_data['op_annee'].pk,
+            'operateurs_realises': 'Conservateur, Chargé de mission pastoralisme',
+            'financeurs_realises': "Agence de l'Eau, PAC (MAEC)",
+        }
+        response = api_client.post('/api/plans/realisations/upsert/', payload, format='json')
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data['operateurs_realises'] == 'Conservateur, Chargé de mission pastoralisme'
+        assert response.data['financeurs_realises'] == "Agence de l'Eau, PAC (MAEC)"
+        instance = RealisationOperationAnnee.objects.get(
+            id_operation_annee=realisation_test_data['op_annee']
+        )
+        assert instance.operateurs_realises == 'Conservateur, Chargé de mission pastoralisme'
+        assert instance.financeurs_realises == "Agence de l'Eau, PAC (MAEC)"
+
     def test_upsert_requires_id_operation_annee(self, api_client, realisation_test_data):
         api_client.force_authenticate(user=realisation_test_data['referent'])
         response = api_client.post('/api/plans/realisations/upsert/', {}, format='json')

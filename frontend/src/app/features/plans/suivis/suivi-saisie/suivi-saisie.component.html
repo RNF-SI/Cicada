@@ -116,15 +116,30 @@
           <p class="text-mention">{{ 'plans.suivis.saisie.requiredHint' | translate }}</p>
         }
 
-        <!-- Opérateurs / Financeurs (lecture seule) -->
+        <!-- Opérateurs / Financeurs : valeur PRÉVUE (lecture seule) + valeur
+             RÉALISÉE saisissable pour l'année active (#541). -->
         <section class="saisie-card">
-          <div class="card-field">
-            <label class="text-mention">{{ 'plans.suivis.saisie.fields.operateurs' | translate }}</label>
-            <div class="readonly-value">{{ operation()?.operateurs || '—' }}</div>
+          <div class="acteurs-grid">
+            <div class="card-field">
+              <label class="text-mention">{{ 'plans.suivis.saisie.fields.operateurs' | translate }}</label>
+              <div class="readonly-value">{{ operation()?.operateurs || '—' }}</div>
+            </div>
+            <app-form-field
+              [label]="('plans.suivis.saisie.fields.operateursRealises' | translate) + ' (' + selectedYear() + ')'">
+              <input type="text" formControlName="operateurs_realises"
+                     [placeholder]="'plans.suivis.saisie.fields.operateursRealisesPlaceholder' | translate" />
+            </app-form-field>
           </div>
-          <div class="card-field">
-            <label class="text-mention">{{ 'plans.suivis.saisie.fields.financeurs' | translate }}</label>
-            <div class="readonly-value">{{ operation()?.financeurs || '—' }}</div>
+          <div class="acteurs-grid">
+            <div class="card-field">
+              <label class="text-mention">{{ 'plans.suivis.saisie.fields.financeurs' | translate }}</label>
+              <div class="readonly-value">{{ operation()?.financeurs || '—' }}</div>
+            </div>
+            <app-form-field
+              [label]="('plans.suivis.saisie.fields.financeursRealises' | translate) + ' (' + selectedYear() + ')'">
+              <input type="text" formControlName="financeurs_realises"
+                     [placeholder]="'plans.suivis.saisie.fields.financeursRealisesPlaceholder' | translate" />
+            </app-form-field>
           </div>
         </section>
 

@@ -318,6 +318,7 @@ class RealisationOperationAnneeSerializer(serializers.ModelSerializer):
             'budget_realise',
             'budget_fonctionnement_realise', 'budget_investissement_realise',
             'etp_realise',
+            'operateurs_realises', 'financeurs_realises',
             'date_ajout', 'date_maj', 'id_utilisateur_maj',
         ]
         read_only_fields = [

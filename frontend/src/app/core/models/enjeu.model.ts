@@ -594,6 +594,9 @@ export interface RealisationOperationAnnee {
   budget_fonctionnement_realise?: number | null;
   budget_investissement_realise?: number | null;
   etp_realise?: number | null;
+  // #541 — opérateur(s)/financeur(s) réalisés, saisis par année dans le suivi.
+  operateurs_realises?: string | null;
+  financeurs_realises?: string | null;
   date_ajout?: string;
   date_maj?: string;
   id_utilisateur_maj?: number | null;
@@ -646,6 +649,9 @@ export interface RealisationUpsertPayload {
   budget_fonctionnement_realise?: number | null;
   budget_investissement_realise?: number | null;
   etp_realise?: number | null;
+  // #541 — opérateur(s)/financeur(s) réalisés (par année).
+  operateurs_realises?: string | null;
+  financeurs_realises?: string | null;
   /** Emprise spatiale réalisée (GeoJSON), null pour effacer. */
   geom_realisee?: GeoJSONGeometry | null;
 }

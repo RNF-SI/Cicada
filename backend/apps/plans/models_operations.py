@@ -1110,6 +1110,20 @@ class RealisationOperationAnnee(models.Model):
         null=True, blank=True,
         help_text=_("Utilisé quand ventilation_mode ne porte pas sur les organismes")
     )
+    # #541 — Opérateur(s) et financeur(s) RÉALISÉS pour l'année, distincts des
+    # valeurs prévues portées par l'Operation. Saisis dans le suivi (par année).
+    operateurs_realises = models.TextField(
+        _("Opérateur(s) réalisé(s)"),
+        blank=True,
+        default='',
+        help_text=_("Opérateur(s) ayant réellement conduit l'action cette année")
+    )
+    financeurs_realises = models.TextField(
+        _("Financeur(s) réalisé(s)"),
+        blank=True,
+        default='',
+        help_text=_("Financeur(s) et type de financement réellement mobilisés cette année")
+    )
     date_ajout = models.DateTimeField(_("Date d'ajout"), auto_now_add=True)
     date_maj = models.DateTimeField(_("Date de modification"), auto_now=True)
     id_utilisateur_maj = models.ForeignKey(

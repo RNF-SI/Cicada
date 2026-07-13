@@ -1987,6 +1987,10 @@
         "fields": {
           "operateurs": "Opérateur(s) de l'action",
           "financeurs": "Financeurs et type de financement",
+          "operateursRealises": "Opérateur(s) réalisé(s)",
+          "operateursRealisesPlaceholder": "Qui a réellement conduit l'action cette année",
+          "financeursRealises": "Financeur(s) réalisé(s)",
+          "financeursRealisesPlaceholder": "Financeur(s) et type de financement mobilisés cette année",
           "niveau": "Niveau de réalisation",
           "commentairesPlaceholder": "Détails / commentaires libres sur la réalisation de l'année…",
           "empriseEmpty": "Aucune emprise spatiale n'a été définie pour cette action.",

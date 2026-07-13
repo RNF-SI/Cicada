@@ -143,6 +143,9 @@ export class SuiviSaisieComponent implements OnInit {
     budget_fonctionnement_realise: [null],
     budget_investissement_realise: [null],
     etp_realise: [null],
+    // #541 — opérateur(s)/financeur(s) réalisés (par année).
+    operateurs_realises: [''],
+    financeurs_realises: [''],
     commentaires: [''],
     /** Une ligne par organisme quand ventilation_mode ∈ {by_org, by_org_type}. */
     organismes: this.fb.array<FormGroup>([]),
@@ -702,6 +705,8 @@ export class SuiviSaisieComponent implements OnInit {
       budget_fonctionnement_realise: r?.budget_fonctionnement_realise ?? null,
       budget_investissement_realise: r?.budget_investissement_realise ?? null,
       etp_realise: r?.etp_realise ?? null,
+      operateurs_realises: r?.operateurs_realises ?? '',
+      financeurs_realises: r?.financeurs_realises ?? '',
       commentaires: r?.commentaires ?? '',
     });
     this.hydrateOrganismesArray(oa);
@@ -818,6 +823,9 @@ export class SuiviSaisieComponent implements OnInit {
       id_niveau_realisation: v.id_niveau_realisation || null,
       periodicite_realisee: !!v.periodicite_realisee,
       commentaires: v.commentaires || null,
+      // #541 — opérateur(s)/financeur(s) réalisés (niveau année, tous modes).
+      operateurs_realises: v.operateurs_realises || '',
+      financeurs_realises: v.financeurs_realises || '',
     };
     if (!orgVentilation) {
       annualPayload.etp_realise = v.etp_realise ?? null;
