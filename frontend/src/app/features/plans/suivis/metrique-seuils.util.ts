@@ -12,7 +12,9 @@
  */
 
 function formatNum(val: number): string {
-  return parseFloat(val.toFixed(2)).toString();
+  // #555 — préserver la précision saisie (DecimalField 4 décimales) : l'ancien
+  // toFixed(2) arrondissait (0.665 → 0.67) et faussait l'affichage des intervalles.
+  return parseFloat(val.toFixed(4)).toString();
 }
 
 /** Détecte le type de métrique d'après les données présentes si non renseigné. */

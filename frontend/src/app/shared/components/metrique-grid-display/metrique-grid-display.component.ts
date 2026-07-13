@@ -104,7 +104,11 @@ export class MetriqueGridDisplayComponent {
   }
 
   private formatNum(val: number): string {
-    return parseFloat(val.toFixed(2)).toString();
+    // #555 — la base stocke jusqu'à 4 décimales (DecimalField). L'ancien
+    // `toFixed(2)` arrondissait l'affichage (0.665 → 0.67, 0.148 → 0.15), ce qui
+    // faussait les intervalles. On préserve la précision saisie (≤ 4 décimales)
+    // en supprimant seulement les zéros terminaux et les artefacts flottants.
+    return parseFloat(val.toFixed(4)).toString();
   }
 
   /** Intervalle / valeur / libellé d'un palier selon le type de métrique. */
