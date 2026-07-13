@@ -2447,6 +2447,31 @@ describe('EnjeuxListComponent', () => {
       reorderSpy.mockRestore();
     });
 
+    it('onOperationDrop forwards parent_type=indicateur for actions of an indicator (#544)', () => {
+      setup();
+      const reorderSpy = jest.spyOn(component['reorderService'], 'reorder').mockReturnValue(of({ updated: 2 }));
+
+      const ind = {
+        id_indicateur: 55,
+        operations: [
+          { id_operation: 30, libelle: 'CS1' },
+          { id_operation: 31, libelle: 'CS2' },
+        ],
+      } as any;
+
+      component.onOperationDrop(dropEvent(0, 1), ind);
+
+      expect(reorderSpy).toHaveBeenCalledWith(
+        'operations',
+        expect.objectContaining({
+          parent_id: 55,
+          ordered_ids: [31, 30],
+          parent_type: 'indicateur',
+        }),
+      );
+      reorderSpy.mockRestore();
+    });
+
     it('does not call reorder API when previous and current index are equal (no-op)', () => {
       setup();
       component['planId'].set(10);

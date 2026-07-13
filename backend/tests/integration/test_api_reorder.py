@@ -527,6 +527,39 @@ class TestOperationReorder:
         )
         assert response.status_code == status.HTTP_400_BAD_REQUEST
 
+    def test_reorder_by_indicateur_scope(self, api_client, reorder_test_data):
+        """#544 : l'arborescence réordonne les actions à la portée indicateur.
+
+        op1/op2/op3 sont rattachées à ind1 via metrique1 : un `parent_type=indicateur`
+        avec parent_id=ind1 doit donc les réordonner.
+        """
+        api_client.force_authenticate(user=reorder_test_data['referent'])
+        ind1 = reorder_test_data['ind1']
+        ids = [reorder_test_data['op3'].pk, reorder_test_data['op1'].pk, reorder_test_data['op2'].pk]
+        response = api_client.post(
+            self.URL,
+            {'parent_id': ind1.pk, 'ordered_ids': ids, 'parent_type': 'indicateur'},
+            format='json',
+        )
+        assert response.status_code == status.HTTP_200_OK
+        _assert_order(Operation, 'id_operation', ids)
+
+    def test_reorder_by_indicateur_rejects_unrelated_id(self, api_client, reorder_test_data):
+        """#544 : anti-tampering — une action hors de l'indicateur est refusée."""
+        api_client.force_authenticate(user=reorder_test_data['super_admin'])
+        op_unrelated = OperationFactory(
+            libelle='OP_UNRELATED_IND',
+            id_priorite=None,
+            id_utilisateur_ajout=reorder_test_data['referent'],
+        )
+        ids = [reorder_test_data['op1'].pk, op_unrelated.pk]
+        response = api_client.post(
+            self.URL,
+            {'parent_id': reorder_test_data['ind1'].pk, 'ordered_ids': ids, 'parent_type': 'indicateur'},
+            format='json',
+        )
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+
 
 # =============================================================================
 # IndicateurViewSet move (#261)

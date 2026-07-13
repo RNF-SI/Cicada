@@ -190,17 +190,29 @@ class OperationViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['post'], url_path='reorder')
     def reorder(self, request):
         """
-        Réordonne les opérations d'une métrique (#249/#261).
+        Réordonne les opérations d'un indicateur ou d'une métrique (#249/#261/#544).
 
-        L'ordre porte sur les opérations rattachées à une métrique via la M2M
-        `CorOperationMetrique`. Le payload doit indiquer la métrique parent.
+        Deux portées, selon `parent_type` dans le payload :
+          - `indicateur` (#544) : l'ordre porte sur toutes les actions affichées
+            sous un indicateur dans l'arborescence — celles rattachées
+            directement (`id_indicateur`, #367) ou via une de ses métriques.
+            C'est la portée utilisée par le drag-and-drop de l'arborescence.
+          - `metrique` (défaut, legacy) : l'ordre porte sur les opérations
+            rattachées à une métrique via la M2M `CorOperationMetrique`.
 
-        Payload: { "parent_id": <id_metrique>, "ordered_ids": [id1, id2, ...] }
+        Payload: { "parent_id": <id>, "ordered_ids": [id1, ...], "parent_type"?: "indicateur"|"metrique" }
         """
+        parent_type = request.data.get('parent_type', 'metrique')
+        if parent_type == 'indicateur':
+            parent_filter = lambda pid, _req: (
+                Q(id_indicateur=pid) | Q(metriques__id_indicateur=pid)
+            )
+        else:
+            parent_filter = lambda pid, _req: Q(metriques=pid)
         return do_reorder(
             self,
             request,
-            parent_filter=lambda pid, _req: Q(metriques=pid),
+            parent_filter=parent_filter,
         )
 
     @action(detail=False, methods=['get'], url_path=r'by-indicateur/(?P<indicateur_id>\d+)')

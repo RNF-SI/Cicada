@@ -2875,7 +2875,7 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
     fromIndex: number,
     toIndex: number,
     idKey: string,
-    extra?: { parent_type: 'ne' | 'ra' },
+    extra?: { parent_type: 'ne' | 'ra' | 'indicateur' },
   ): void {
     if (fromIndex === toIndex) return;
     moveItemInArray(list, fromIndex, toIndex);
@@ -3218,15 +3218,22 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Drag-and-drop : réordonne les actions/opérations d'une métrique (#228).
-   * Le code calculé (CS1, IP2, ...) se met à jour automatiquement après
-   * la recharge — le rang est plan-wide, donc déplacer une action peut
+   * Drag-and-drop : réordonne les actions/opérations affichées sous un
+   * indicateur (#544). Depuis #367 les actions sont listées une seule fois au
+   * niveau de l'indicateur (`ind.operations`), qu'elles soient rattachées
+   * directement ou via une métrique — l'ordre porte donc sur l'indicateur.
+   * Le code calculé (CS1, IP2, ...) se met à jour automatiquement après la
+   * recharge — le rang est plan-wide, donc déplacer une action peut
    * renuméroter les autres du même préfixe.
    */
-  onOperationDrop(event: CdkDragDrop<any[]>, met: { id_metrique?: number; operations?: any[] }): void {
-    if (!met?.id_metrique) return;
-    const list = met.operations || [];
-    this.applyReorder('operations', met.id_metrique, list, event.previousIndex, event.currentIndex, 'id_operation');
+  onOperationDrop(event: CdkDragDrop<any[]>, ind: { id_indicateur?: number; operations?: any[] }): void {
+    if (!ind?.id_indicateur) return;
+    const list = ind.operations || [];
+    this.applyReorder(
+      'operations', ind.id_indicateur, list,
+      event.previousIndex, event.currentIndex, 'id_operation',
+      { parent_type: 'indicateur' },
+    );
   }
 
   /**

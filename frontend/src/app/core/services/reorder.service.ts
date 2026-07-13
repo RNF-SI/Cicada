@@ -17,8 +17,12 @@ export type ReorderEntity =
 export interface ReorderPayload {
   parent_id: number;
   ordered_ids: number[];
-  /** Pour `indicateurs` : précise si parent est NE ou RA. */
-  parent_type?: 'ne' | 'ra';
+  /**
+   * Pour `indicateurs` : précise si parent est NE ou RA.
+   * Pour `operations` (#544) : `indicateur` réordonne à la portée indicateur
+   * (défaut backend : `metrique`).
+   */
+  parent_type?: 'ne' | 'ra' | 'indicateur';
 }
 
 export interface ReorderResponse {

@@ -1134,14 +1134,26 @@
 
                                               <!-- #367 — Actions rattachées directement à l'indicateur (sans métrique) -->
                                               @if (ind.operations && ind.operations.length > 0) {
-                                                <div class="indicateur-direct-operations">
+                                                <div class="indicateur-direct-operations" cdkDropList
+                                                     [cdkDropListDisabled]="!canEditPlan()"
+                                                     (cdkDropListDropped)="onOperationDrop($event, ind)">
                                                   @for (op of ind.operations; track op.id_operation) {
-                                                    <div class="operation-card" [class.operation-card-direct]="!visibleMetriques(op).length"
+                                                    <div class="operation-card operation-drag-item" cdkDrag
+                                                         [cdkDragDisabled]="!canEditPlan()"
+                                                         [class.operation-card-direct]="!visibleMetriques(op).length"
                                                          [class.expanded]="isOperationExpanded(op.id_operation)"
                                                          [class.is-draft]="op.statut === 'draft'"
                                                          [id]="'operation-' + op.id_operation">
                                                       <div class="operation-header" (click)="toggleOperation(op.id_operation)">
                                                         <div class="operation-header-left">
+                                                          @if (canEditPlan()) {
+                                                            <button class="icon-btn-flat operation-drag-handle" type="button" cdkDragHandle
+                                                                    (click)="$event.stopPropagation()"
+                                                                    [title]="'enjeux.dnd.dragHandle' | translate"
+                                                                    [attr.aria-label]="'enjeux.dnd.dragHandle' | translate">
+                                                              <i class="fi fi-rr-menu-burger"></i>
+                                                            </button>
+                                                          }
                                                           <img src="assets/images/ellipses/ellipse-salmon.png" alt="" class="operation-ellipse">
                                                           @if (op.code_affichage) { <span class="operation-code">{{ op.code_affichage }}</span> }
                                                           <span class="operation-libelle">{{ 'enjeux.operations.label' | translate }} : {{ op.libelle }}</span>
@@ -1918,14 +1930,26 @@
 
                                       <!-- #367 — Actions rattachées directement à l'indicateur (sans métrique) -->
                                       @if (ind.operations && ind.operations.length > 0) {
-                                        <div class="indicateur-direct-operations">
+                                        <div class="indicateur-direct-operations" cdkDropList
+                                             [cdkDropListDisabled]="!canEditPlan()"
+                                             (cdkDropListDropped)="onOperationDrop($event, ind)">
                                           @for (op of ind.operations; track op.id_operation) {
-                                            <div class="operation-card" [class.operation-card-direct]="!visibleMetriques(op).length"
+                                            <div class="operation-card operation-drag-item" cdkDrag
+                                                 [cdkDragDisabled]="!canEditPlan()"
+                                                 [class.operation-card-direct]="!visibleMetriques(op).length"
                                                  [class.expanded]="isOoOperationExpanded(op.id_operation)"
                                                  [class.is-draft]="op.statut === 'draft'"
                                                  [id]="'operation-' + op.id_operation">
                                               <div class="operation-header" (click)="toggleOoOperation(op.id_operation)">
                                                 <div class="operation-header-left">
+                                                  @if (canEditPlan()) {
+                                                    <button class="icon-btn-flat operation-drag-handle" type="button" cdkDragHandle
+                                                            (click)="$event.stopPropagation()"
+                                                            [title]="'enjeux.dnd.dragHandle' | translate"
+                                                            [attr.aria-label]="'enjeux.dnd.dragHandle' | translate">
+                                                      <i class="fi fi-rr-menu-burger"></i>
+                                                    </button>
+                                                  }
                                                   <img src="assets/images/ellipses/ellipse-salmon.png" alt="" class="operation-ellipse">
                                                   @if (op.code_affichage) { <span class="operation-code">{{ op.code_affichage }}</span> }
                                                   <span class="operation-libelle">{{ 'enjeux.operations.label' | translate }} : {{ op.libelle }}</span>
