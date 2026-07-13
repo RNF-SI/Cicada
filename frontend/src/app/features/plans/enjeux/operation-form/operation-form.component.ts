@@ -39,7 +39,7 @@ import { CampanuleService } from '../../../../core/services/campanule.service';
 import { InventaireService } from '../../../../core/services/inventaire.service';
 import { SuiviInventaireDetail } from '../../../../core/models/inventaire.model';
 import { Operation, OperationCreatePayload, OperationStatut, OperationAnnee, OperationAnneeOrganisme, FinanceOperation, SuiviInventaire, TaxonRef, HabitatRef, GeologieRef, MetriqueFormData, MetriqueRef, Enjeu } from '../../../../core/models/enjeu.model';
-import { CampanuleAutocomplete } from '../../../../core/models/campanule.model';
+import { CampanuleAutocomplete, campanuleProtocoleLabel } from '../../../../core/models/campanule.model';
 import { PlanSite, PlanSiteOrganisme } from '../../../../core/models/admin.model';
 import { ProtocoleCampanuleDialogComponent } from '../../../../shared/components/modals/protocole-campanule-dialog/protocole-campanule-dialog.component';
 import { FrequencyApplyDialogComponent, FrequencyApplyDialogResult } from '../../../../shared/components/modals/frequency-apply-dialog/frequency-apply-dialog.component';
@@ -2385,10 +2385,15 @@ export class OperationFormComponent implements OnInit {
     });
   }
 
+  /** Libellé d'affichage d'un protocole (nom court, sinon nom complet). #564 */
+  campanuleLabel(option: CampanuleAutocomplete): string {
+    return campanuleProtocoleLabel(option);
+  }
+
   displayCampanuleFn(option: CampanuleAutocomplete | string): string {
     if (!option) return '';
     if (typeof option === 'string') return option;
-    return option.lb_protocole_court || '';
+    return campanuleProtocoleLabel(option);
   }
 
   onCampanuleSelected(event: any): void {
@@ -2397,7 +2402,7 @@ export class OperationFormComponent implements OnInit {
     // Ne pas appeler setValue ici : Angular Material gère l'affichage via displayWith
 
     this.form.patchValue({
-      protocole_campanule_nom: selected.lb_protocole_court,
+      protocole_campanule_nom: campanuleProtocoleLabel(selected),
       cd_protocole_campanule: selected.cd_protocole,
     });
 

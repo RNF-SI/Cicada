@@ -29,7 +29,7 @@ import { AdminService } from '../../../core/services/admin.service';
 import { CampanuleService } from '../../../core/services/campanule.service';
 import { SuiviInventaireDetail, SuiviInventaireCreatePayload } from '../../../core/models/inventaire.model';
 import { TaxonRef, HabitatRef, GeologieRef } from '../../../core/models/enjeu.model';
-import { CampanuleAutocomplete } from '../../../core/models/campanule.model';
+import { CampanuleAutocomplete, campanuleProtocoleLabel } from '../../../core/models/campanule.model';
 
 import {
   NomenclatureOption,
@@ -583,20 +583,25 @@ export class InventaireFormComponent implements OnInit {
 
   // ─── CAMPanule autocomplete ──────────────────────────────────
 
+  /** Libellé d'affichage d'un protocole (nom court, sinon nom complet). #564 */
+  campanuleLabel(option: CampanuleAutocomplete): string {
+    return campanuleProtocoleLabel(option);
+  }
+
   displayCampanuleFn(option: CampanuleAutocomplete | string): string {
     if (!option) return '';
     if (typeof option === 'string') return option;
-    return option.lb_protocole_court || '';
+    return campanuleProtocoleLabel(option);
   }
 
   onCampanuleSelected(event: any): void {
     const selected: CampanuleAutocomplete = event.option.value;
     this.selectedCampanule.set(selected);
-    this.campanuleSearchCtrl.setValue(selected.lb_protocole_court, { emitEvent: false });
+    this.campanuleSearchCtrl.setValue(campanuleProtocoleLabel(selected), { emitEvent: false });
 
     // Auto-fill form fields from Campanule reference data
     this.form.patchValue({
-      protocole_campanule_nom: selected.lb_protocole_court,
+      protocole_campanule_nom: campanuleProtocoleLabel(selected),
       cd_protocole_campanule: selected.cd_protocole,
     });
 

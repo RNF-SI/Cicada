@@ -54,6 +54,22 @@ export interface CampanuleTechnique {
 }
 
 /**
+ * Libellé d'affichage d'un protocole CAMPanule.
+ *
+ * De nombreux protocoles (~1/4 du référentiel) n'ont pas de `lb_protocole_court` :
+ * on retombe alors sur `lb_protocole_complet`. Sans ce fallback, l'autocomplete
+ * n'affichait que la `cible` (Oiseaux, Habitats…) au lieu du nom du protocole (#564).
+ */
+export function campanuleProtocoleLabel(
+  option: Pick<CampanuleAutocomplete, 'lb_protocole_court' | 'lb_protocole_complet'> | null | undefined,
+): string {
+  if (!option) {
+    return '';
+  }
+  return option.lb_protocole_court?.trim() || option.lb_protocole_complet?.trim() || '';
+}
+
+/**
  * Full detail of a CAMPanule protocol
  */
 export interface CampanuleProtocoleDetail {

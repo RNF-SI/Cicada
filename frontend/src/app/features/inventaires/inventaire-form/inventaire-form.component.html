@@ -318,7 +318,7 @@
                       @for (option of campanuleResults(); track option.cd_protocole) {
                         <mat-option [value]="option">
                           <div class="campanule-option">
-                            <span class="campanule-option-name">{{ option.lb_protocole_court }}</span>
+                            <span class="campanule-option-name">{{ campanuleLabel(option) }}</span>
                             @if (option.cible) {
                               <span class="campanule-option-cible">{{ option.cible }}</span>
                             }
