@@ -4,7 +4,11 @@
   @if (mode() === 'choose') {
     <!-- Phase 1 : Choix entre créer ou lier -->
     <p class="dialog-subtitle">
-      {{ 'enjeux.operations.linkDialog.subtitle' | translate:{ metriqueName: data.metriqueNom } }}
+      @if (isIndicateurMode) {
+        {{ 'enjeux.operations.linkDialog.subtitleIndicateur' | translate:{ indicateurName: contextNom } }}
+      } @else {
+        {{ 'enjeux.operations.linkDialog.subtitle' | translate:{ metriqueName: contextNom } }}
+      }
     </p>
 
     <div class="actions-list">
@@ -14,7 +18,7 @@
         </div>
         <div class="action-content">
           <span class="action-label">{{ 'enjeux.operations.linkDialog.createLabel' | translate }}</span>
-          <span class="action-description">{{ 'enjeux.operations.linkDialog.createDescription' | translate }}</span>
+          <span class="action-description">{{ (isIndicateurMode ? 'enjeux.operations.linkDialog.createDescriptionIndicateur' : 'enjeux.operations.linkDialog.createDescription') | translate }}</span>
         </div>
         <i class="fi fi-rr-angle-right action-arrow"></i>
       </button>
@@ -78,7 +82,7 @@
             @if (allOperations().length === 0) {
               <span>{{ 'enjeux.operations.linkDialog.noResults' | translate }}</span>
             } @else {
-              <span>{{ 'enjeux.operations.linkDialog.allAlreadyLinked' | translate }}</span>
+              <span>{{ (isIndicateurMode ? 'enjeux.operations.linkDialog.allAlreadyLinkedIndicateur' : 'enjeux.operations.linkDialog.allAlreadyLinked') | translate }}</span>
             }
           </div>
         }

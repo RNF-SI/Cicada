@@ -4157,13 +4157,65 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
   openAddActionForIndicateur(ind: any): void {
     const metriques = (ind.metriques || []).filter((m: any) => !m._deleted);
     if (metriques.length === 0) {
-      // #367 — pas de métrique : on crée l'action rattachée directement à l'indicateur.
-      this.navigateToOperationFormForIndicateur(ind.id_indicateur);
+      // #367/#539 — pas de métrique : on propose de créer une action rattachée
+      // directement à l'indicateur OU de lier une action existante à cet
+      // indicateur (sans passer par une métrique).
+      this.openLinkActionForIndicateur(ind.id_indicateur, ind.nom_indicateur || '');
       return;
     }
     const metriqueIds: number[] = metriques.map((m: any) => m.id_metrique).filter(Boolean);
     const indicateurNom: string = ind.nom_indicateur || '';
     this.openAddActionDialogForIds(metriqueIds, indicateurNom);
+  }
+
+  /**
+   * #539 — Ouvre le dialogue « créer ou lier » au niveau d'un indicateur sans
+   * métrique. À la création : form d'action rattaché à l'indicateur. À la
+   * liaison : rattache l'action existante directement à l'indicateur
+   * (id_indicateur), pour que les indicateurs sans métrique puissent aussi
+   * porter des actions.
+   */
+  openLinkActionForIndicateur(indicateurId: number, indicateurNom: string): void {
+    const planId = this.planId();
+    if (!planId || !indicateurId) return;
+
+    const dialogRef = this.dialog.open(LinkOperationDialogComponent, {
+      width: '700px', maxWidth: '95vw', maxHeight: '90vh',
+      data: {
+        planId,
+        indicateurId,
+        indicateurNom,
+      } as LinkOperationDialogData,
+    });
+
+    dialogRef.afterClosed().pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((result: LinkOperationDialogResult | undefined) => {
+        if (!result || result.action === 'cancel') return;
+
+        if (result.action === 'create') {
+          this.navigateToOperationFormForIndicateur(indicateurId);
+        } else if (result.action === 'link' && result.operationId) {
+          this.enjeuService.updateOperation(result.operationId, { id_indicateur: indicateurId }).pipe(
+            takeUntilDestroyed(this.destroyRef)
+          ).subscribe({
+            next: () => {
+              this.snackBar.open(
+                this.translate.instant('enjeux.operations.linkSuccess'),
+                this.translate.instant('common.actions.close'),
+                { duration: 3000 }
+              );
+              this.loadPlanData(true);
+            },
+            error: () => {
+              this.snackBar.open(
+                this.translate.instant('enjeux.operations.linkError'),
+                this.translate.instant('common.actions.close'),
+                { duration: 3000 }
+              );
+            },
+          });
+        }
+      });
   }
 
   /** #367 — Navigation vers le form d'action rattachée directement à un indicateur (sans métrique). */

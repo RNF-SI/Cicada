@@ -14,8 +14,14 @@ import { FormFieldComponent } from '../../form-field/form-field.component';
 
 export interface LinkOperationDialogData {
   planId: number;
-  metriqueId: number;
-  metriqueNom: string;
+  /** Contexte métrique (défaut). Absent en mode indicateur (#539). */
+  metriqueId?: number;
+  metriqueNom?: string;
+  /** #539 — Contexte indicateur : permet de lier une action directement à un
+   *  indicateur (sans passer par une métrique), utile pour les indicateurs qui
+   *  n'ont pas de métrique. */
+  indicateurId?: number;
+  indicateurNom?: string;
 }
 
 export interface LinkOperationDialogResult {
@@ -30,6 +36,7 @@ interface OperationItem {
   type_action_label?: string;
   priorite_label?: string;
   metrique_ids?: number[];
+  id_indicateur?: number | null;
 }
 
 @Component({
@@ -63,15 +70,25 @@ export class LinkOperationDialogComponent {
   allOperations = signal<OperationItem[]>([]);
   selectedOperationId = signal<number | null>(null);
 
+  /** #539 — nom du contexte (métrique ou indicateur) affiché dans le sous-titre. */
+  readonly contextNom = this.data.metriqueNom ?? this.data.indicateurNom ?? '';
+  /** #539 — vrai quand la liaison se fait au niveau indicateur (sans métrique). */
+  readonly isIndicateurMode = this.data.metriqueId == null && this.data.indicateurId != null;
+
   filteredOperations = computed(() => {
     const ops = this.allOperations();
     const term = this.searchTerm().toLowerCase().trim();
     const metriqueId = this.data.metriqueId;
+    const indicateurId = this.data.indicateurId;
 
-    // Exclude operations already linked to this metrique
-    let filtered = ops.filter(op =>
-      !op.metrique_ids || !op.metrique_ids.includes(metriqueId)
-    );
+    // Exclude operations already linked to this metrique (mode métrique) ou déjà
+    // rattachées directement à cet indicateur (#539, mode indicateur).
+    let filtered = ops.filter(op => {
+      if (metriqueId != null) {
+        return !op.metrique_ids || !op.metrique_ids.includes(metriqueId);
+      }
+      return op.id_indicateur !== indicateurId;
+    });
 
     // Apply search filter
     if (term) {
@@ -136,6 +153,7 @@ export class LinkOperationDialogComponent {
               type_action_label: op.type_action_label,
               priorite_label: op.priorite_label,
               metrique_ids: op.metrique_ids,
+              id_indicateur: op.id_indicateur,
             });
           }
         }

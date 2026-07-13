@@ -3358,7 +3358,10 @@
         "noResults": "Aucune action trouvée.",
         "allAlreadyLinked": "Toutes les actions de ce plan sont déjà liées à cette métrique.",
         "confirmLink": "Lier cette action",
-        "back": "Retour"
+        "back": "Retour",
+        "subtitleIndicateur": "Que souhaitez-vous faire pour l'indicateur « {{indicateurName}} » ?",
+        "createDescriptionIndicateur": "Ouvrir le formulaire pour créer une nouvelle action rattachée à cet indicateur.",
+        "allAlreadyLinkedIndicateur": "Toutes les actions de ce plan sont déjà rattachées à cet indicateur."
       },
       "linkSuccess": "Action liée avec succès à cette métrique.",
       "linkError": "Erreur lors de la liaison de l'action.",
