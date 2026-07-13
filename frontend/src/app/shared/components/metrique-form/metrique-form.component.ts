@@ -139,6 +139,7 @@ export class MetriqueFormComponent {
       score_2_sup_inclusive: m.score_2_sup_inclusive,
       score_3_sup_inclusive: m.score_3_sup_inclusive,
       score_4_sup_inclusive: m.score_4_sup_inclusive,
+      score_5_sup_inclusive: m.score_5_sup_inclusive,
       has_borne_score1: m.has_score1_optional_bound,
       has_borne_score5: m.has_score5_optional_bound,
       inactive_levels: m._inactiveLevels,
@@ -158,6 +159,7 @@ export class MetriqueFormComponent {
     m.score_2_sup_inclusive = block.score_2_sup_inclusive;
     m.score_3_sup_inclusive = block.score_3_sup_inclusive;
     m.score_4_sup_inclusive = block.score_4_sup_inclusive;
+    m.score_5_sup_inclusive = block.score_5_sup_inclusive;
     m.has_score1_optional_bound = block.has_borne_score1;
     m.has_score5_optional_bound = block.has_borne_score5;
     m._inactiveLevels = block.inactive_levels;
@@ -192,6 +194,7 @@ export class MetriqueFormComponent {
       score_2_sup_inclusive: true,
       score_3_sup_inclusive: true,
       score_4_sup_inclusive: true,
+      score_5_sup_inclusive: true,
       has_borne_score1: false,
       has_borne_score5: false,
       inactive_levels: [],
@@ -344,6 +347,7 @@ export class MetriqueFormComponent {
       score_2_sup_inclusive: m.score_2_sup_inclusive,
       score_3_sup_inclusive: m.score_3_sup_inclusive,
       score_4_sup_inclusive: m.score_4_sup_inclusive,
+      score_5_sup_inclusive: m.score_5_sup_inclusive,
       has_borne_score1: m.has_score1_optional_bound,
       has_borne_score5: m.has_score5_optional_bound,
       inactive_levels: m._inactiveLevels ? [...m._inactiveLevels] : [],

@@ -23,6 +23,8 @@ export interface ScoreBlockData {
   score_2_sup_inclusive: boolean;
   score_3_sup_inclusive: boolean;
   score_4_sup_inclusive: boolean;
+  // #545/#554 — frontière « très bon » utilisée en sens décroissant.
+  score_5_sup_inclusive?: boolean;
 
   has_borne_score1: boolean;
   has_borne_score5: boolean;

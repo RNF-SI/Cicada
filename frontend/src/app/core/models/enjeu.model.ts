@@ -377,6 +377,7 @@ export interface MetriqueScoreBlock {
   score_2_sup_inclusive: boolean;
   score_3_sup_inclusive: boolean;
   score_4_sup_inclusive: boolean;
+  score_5_sup_inclusive?: boolean;
   has_borne_score1: boolean;
   has_borne_score5: boolean;
   inactive_levels?: number[];       // paliers désactivés (1..5)
@@ -417,6 +418,7 @@ export interface Metrique {
   score_2_sup_inclusive?: boolean;
   score_3_sup_inclusive?: boolean;
   score_4_sup_inclusive?: boolean;
+  score_5_sup_inclusive?: boolean;
   has_borne_score1?: boolean;
   has_borne_score5?: boolean;
   inactive_levels?: number[];
@@ -702,6 +704,7 @@ export interface MetriqueRef {
   score_2_sup_inclusive?: boolean;
   score_3_sup_inclusive?: boolean;
   score_4_sup_inclusive?: boolean;
+  score_5_sup_inclusive?: boolean;
   // #247/#452 — bloc principal (intitulé + parenthésage) et blocs de scoring
   // complémentaires (ET/OU) d'une métrique de réponse NUMERIQUE en grille,
   // exposés par le backend pour alimenter l'éditeur multi-blocs et les visus.
@@ -840,6 +843,7 @@ export interface MetriqueFormData {
   score_2_sup_inclusive: boolean;
   score_3_sup_inclusive: boolean;
   score_4_sup_inclusive: boolean;
+  score_5_sup_inclusive?: boolean;
   has_score1_optional_bound: boolean;  // checkbox: borne extrême score 1 (inf si croissant, sup si décroissant)
   has_score5_optional_bound: boolean;  // checkbox: borne extrême score 5 (sup si croissant, inf si décroissant)
   // Liste des niveaux désactivés via le tag « Niveaux actifs » du nouveau composant
@@ -922,6 +926,7 @@ export interface MetriqueCreatePayload {
   score_2_sup_inclusive?: boolean;
   score_3_sup_inclusive?: boolean;
   score_4_sup_inclusive?: boolean;
+  score_5_sup_inclusive?: boolean;
   has_borne_score1?: boolean;
   has_borne_score5?: boolean;
   inactive_levels?: number[];

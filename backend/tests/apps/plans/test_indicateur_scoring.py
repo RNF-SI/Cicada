@@ -91,12 +91,15 @@ class TestValueToScore:
         met.inactive_levels = []
 
     def test_inclusivite_bornes_partagees(self):
-        """#423 (suite) — grille DÉCROISSANTE type phosphore :
-        ≥50 / ]35;50] / ]20;35] / ]10;20] / ]0;10]. La valeur 35 doit tomber dans
-        le palier dont la borne SUP vaut 35 (35 inclus = Moyen), pas dans celui
-        dont la borne INF vaut 35 (35 exclu = Mauvais)."""
+        """#423 / #554 — grille DÉCROISSANTE type phosphore :
+        ]50;+∞[ (très mauvais) / ]35;50] / ]20;35] / ]10;20] / ]0;10] (très bon).
+        Une valeur-frontière tombe dans le palier dont elle est la borne SUP
+        inclusive (côté valeurs plus basses), pas dans le palier voisin. #554 :
+        50 doit être « mauvais » (50 inclus dans ]35;50]), PAS « très mauvais »
+        (le très mauvais est « x > 50 », borne inf exclusive en décroissant)."""
         class M:
             inactive_levels = []
+            sens_variation = 'DECROISSANT'
             score_1_inf = 50; score_1_sup = None
             score_2_inf = 35; score_2_sup = 50
             score_3_inf = 20; score_3_sup = 35
@@ -107,13 +110,36 @@ class TestValueToScore:
             score_2_sup_inclusive = True
             score_3_sup_inclusive = True
             score_4_sup_inclusive = True
+            score_5_sup_inclusive = True
         m = M()
         assert _value_to_score(35, m) == 3   # Moyen (35 inclus dans ]20;35])
-        assert _value_to_score(50, m) == 1   # ≥50 (palier extrême gagne)
+        assert _value_to_score(50, m) == 2   # #554 — Mauvais (50 inclus dans ]35;50])
+        assert _value_to_score(51, m) == 1   # Très mauvais (x > 50)
         assert _value_to_score(36, m) == 2   # Mauvais ]35;50]
         assert _value_to_score(20, m) == 4   # Bon (20 inclus dans ]10;20])
         assert _value_to_score(10, m) == 5   # Très bon (10 inclus dans ]0;10])
         assert _value_to_score(5, m) == 5    # Très bon
+
+    def test_inclusivite_exclusive_decroissant(self):
+        """#554 — en décroissant, basculer une borne sup en exclusive déplace la
+        valeur-frontière vers le palier voisin de valeur supérieure. Ici la sup
+        de « mauvais » (50) devient exclusive → 50 remonte en « très mauvais »."""
+        class M:
+            inactive_levels = []
+            sens_variation = 'DECROISSANT'
+            score_1_inf = 50; score_1_sup = None
+            score_2_inf = 35; score_2_sup = 50
+            score_3_inf = 20; score_3_sup = 35
+            score_4_inf = 10; score_4_sup = 20
+            score_5_inf = 0;  score_5_sup = 10
+            score_1_sup_inclusive = True
+            score_2_sup_inclusive = False   # 50 exclu de « mauvais »
+            score_3_sup_inclusive = True
+            score_4_sup_inclusive = True
+            score_5_sup_inclusive = True
+        m = M()
+        assert _value_to_score(50, m) == 1   # 50 exclu de mauvais → très mauvais
+        assert _value_to_score(49, m) == 2   # 49 reste mauvais
 
     def test_les_deux_bornes_nulles_palier_ignore(self):
         class M:

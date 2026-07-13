@@ -115,6 +115,36 @@ describe('computeMetriqueScore', () => {
     it('renvoie null pour une valeur non numérique', () => {
       expect(computeMetriqueScore(met, 'abc')).toBeNull();
     });
+
+    // #545/#554 — inclusivité sens-aware en DÉCROISSANT (miroir du backend).
+    // ]50;+∞[ très mauvais / ]35;50] mauvais / ]20;35] moyen / ]10;20] bon / ]0;10] très bon
+    describe('DÉCROISSANT (#545/#554)', () => {
+      const dec = {
+        type_metrique_mnemonique: 'NUMERIQUE',
+        sens_variation: 'DECROISSANT',
+        score_1_inf: 50, score_1_sup: null,
+        score_2_inf: 35, score_2_sup: 50,
+        score_3_inf: 20, score_3_sup: 35,
+        score_4_inf: 10, score_4_sup: 20,
+        score_5_inf: 0, score_5_sup: 10,
+        score_1_sup_inclusive: true, score_2_sup_inclusive: true,
+        score_3_sup_inclusive: true, score_4_sup_inclusive: true,
+        score_5_sup_inclusive: true,
+      };
+      it('50 tombe dans « mauvais » (borne sup inclusive), pas « très mauvais »', () => {
+        expect(computeMetriqueScore(dec, 50)).toBe(2);
+        expect(computeMetriqueScore(dec, 51)).toBe(1);
+      });
+      it('les autres frontières restent cohérentes', () => {
+        expect(computeMetriqueScore(dec, 35)).toBe(3);
+        expect(computeMetriqueScore(dec, 20)).toBe(4);
+        expect(computeMetriqueScore(dec, 10)).toBe(5);
+        expect(computeMetriqueScore(dec, 5)).toBe(5);
+      });
+      it('sup exclusive (score_2) déplace 50 vers « très mauvais »', () => {
+        expect(computeMetriqueScore({ ...dec, score_2_sup_inclusive: false }, 50)).toBe(1);
+      });
+    });
   });
 });
 

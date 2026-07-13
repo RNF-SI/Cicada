@@ -138,17 +138,22 @@ export class MetriqueGridDisplayComponent {
     const sup = met[`score_${level}_sup`];
     if (inf == null && sup == null) return '- - -';
 
-    // Inclusivité de la borne inférieure : déduite de la frontière du palier précédent.
+    // #545/#554 — inclusivité sens-aware, cohérente avec l'éditeur
+    // (metrique-block) et le scoring (computeMetriqueScore / backend). La borne
+    // inf est portée par le flag sup du voisin de VALEUR inférieure (`level-1` en
+    // croissant, `level+1` en décroissant) ; la borne sup par le flag propre du
+    // niveau. Une borne absente = palier ouvert (raccourcis niveau 1/5 supprimés,
+    // faux en décroissant où le niveau 5 est ouvert vers le bas et le 1 vers le haut).
+    const dec = met['sens_variation'] === 'DECROISSANT';
     let infInclusive = true;
-    if (level > 1) {
-      const prevSupInclusive = met[`score_${level - 1}_sup_inclusive`];
-      infInclusive = !(prevSupInclusive === true || prevSupInclusive == null);
+    if (inf != null) {
+      const lowerFlag = met[`score_${dec ? level + 1 : level - 1}_sup_inclusive`];
+      infInclusive = (lowerFlag === false);
     }
-    // Inclusivité de la borne supérieure.
     let supInclusive = true;
-    if (level < 5) {
+    if (sup != null) {
       const si = met[`score_${level}_sup_inclusive`];
-      supInclusive = (si === true || si == null);
+      supInclusive = (si !== false);
     }
 
     if (inf != null && sup == null) {

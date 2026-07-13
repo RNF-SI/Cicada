@@ -2309,6 +2309,7 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
       score_2_sup_inclusive: met.score_2_sup_inclusive ?? true,
       score_3_sup_inclusive: met.score_3_sup_inclusive ?? true,
       score_4_sup_inclusive: met.score_4_sup_inclusive ?? true,
+      score_5_sup_inclusive: met.score_5_sup_inclusive ?? true,
       has_score1_optional_bound: met.has_borne_score1 ?? false,
       has_score5_optional_bound: met.has_borne_score5 ?? false,
       // Restituer les paliers marqués comme inactifs (bug feedback : la
@@ -2339,6 +2340,7 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
         score_2_sup_inclusive: b.score_2_sup_inclusive,
         score_3_sup_inclusive: b.score_3_sup_inclusive,
         score_4_sup_inclusive: b.score_4_sup_inclusive,
+        score_5_sup_inclusive: b.score_5_sup_inclusive,
         has_borne_score1: b.has_borne_score1,
         has_borne_score5: b.has_borne_score5,
         inactive_levels: Array.isArray(b.inactive_levels) ? [...b.inactive_levels] : [],
@@ -2452,6 +2454,7 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
       payload.score_2_sup_inclusive = met.score_2_sup_inclusive;
       payload.score_3_sup_inclusive = met.score_3_sup_inclusive;
       payload.score_4_sup_inclusive = met.score_4_sup_inclusive;
+      payload.score_5_sup_inclusive = met.score_5_sup_inclusive;
       payload.has_borne_score1 = met.has_score1_optional_bound;
       payload.has_borne_score5 = met.has_score5_optional_bound;
       // Persistance des paliers désactivés (sinon l'état est perdu au rechargement).
@@ -2482,6 +2485,7 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
             score_2_sup_inclusive: b.score_2_sup_inclusive,
             score_3_sup_inclusive: b.score_3_sup_inclusive,
             score_4_sup_inclusive: b.score_4_sup_inclusive,
+            score_5_sup_inclusive: b.score_5_sup_inclusive,
             has_borne_score1: b.has_borne_score1,
             has_borne_score5: b.has_borne_score5,
             inactive_levels: inactive,

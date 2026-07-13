@@ -130,7 +130,12 @@ export function computeMetriqueScore(met: any, value: any): number | null {
     return matches.length === 1 ? matches[0] : null;
   }
 
-  // NUMERIQUE — seuils
+  // NUMERIQUE — seuils. #545/#554 — inclusivité sens-aware, miroir exact du
+  // backend `_palier_inclusivity` : l'inclusivité d'une borne inf vient du flag
+  // sup du voisin de VALEUR inférieure (`i-1` en croissant, `i+1` en décroissant) ;
+  // une borne absente = palier ouvert. Les raccourcis niveau 1/5 étaient faux en
+  // décroissant (niveau 5 ouvert vers le bas, niveau 1 ouvert vers le haut).
+  const dec = met.sens_variation === 'DECROISSANT';
   for (let i = 1; i <= 5; i++) {
     if (inactive.includes(i)) continue;
     const inf = met[`score_${i}_inf`];
@@ -138,8 +143,8 @@ export function computeMetriqueScore(met: any, value: any): number | null {
     const hasInf = inf !== null && inf !== undefined;
     const hasSup = sup !== null && sup !== undefined;
     if (!hasInf && !hasSup) continue;
-    const infIncl = i <= 1 ? true : met[`score_${i - 1}_sup_inclusive`] === false;
-    const supIncl = i >= 5 ? true : met[`score_${i}_sup_inclusive`] !== false;
+    const infIncl = !hasInf ? true : met[`score_${dec ? i + 1 : i - 1}_sup_inclusive`] === false;
+    const supIncl = !hasSup ? true : met[`score_${i}_sup_inclusive`] !== false;
     const lowerOk = !hasInf || (infIncl ? num >= Number(inf) : num > Number(inf));
     const upperOk = !hasSup || (supIncl ? num <= Number(sup) : num < Number(sup));
     if (lowerOk && upperOk) return i;

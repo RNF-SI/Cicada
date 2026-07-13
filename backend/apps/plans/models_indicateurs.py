@@ -430,7 +430,11 @@ class Metrique(models.Model):
         help_text=_("Croissant = plus c'est haut mieux c'est, Décroissant = plus c'est bas mieux c'est")
     )
 
-    # Inclusivité des bornes entre niveaux (4 frontières pour 5 niveaux)
+    # Inclusivité des bornes entre niveaux. Il y a 4 frontières pour 5 niveaux,
+    # mais les colonnes utilisées diffèrent selon le sens : croissant → sup des
+    # niveaux 1..4 ; décroissant → sup des niveaux 2..5. On garde donc 5 flags
+    # (un inutilisé selon le sens) — #545/#554 : sans score_5_sup_inclusive, la
+    # frontière « très bon » du sens décroissant n'était pas persistée.
     score_1_sup_inclusive = models.BooleanField(
         _("Borne sup score 1 inclusive"), default=True,
         help_text=_("True: score 1 ≤ seuil, score 2 > seuil. False: score 1 < seuil, score 2 ≥ seuil")
@@ -443,6 +447,10 @@ class Metrique(models.Model):
     )
     score_4_sup_inclusive = models.BooleanField(
         _("Borne sup score 4 inclusive"), default=True
+    )
+    score_5_sup_inclusive = models.BooleanField(
+        _("Borne sup score 5 inclusive"), default=True,
+        help_text=_("Utilisé en sens décroissant (frontière très bon / bon).")
     )
 
     # Bornes extrêmes optionnelles (persiste l'état des checkboxes)
@@ -613,11 +621,13 @@ class MetriqueScoreBlock(models.Model):
     score_5_inf = models.DecimalField(max_digits=12, decimal_places=4, null=True, blank=True)
     score_5_sup = models.DecimalField(max_digits=12, decimal_places=4, null=True, blank=True)
 
-    # Inclusivité des frontières entre paliers (4 frontières pour 5 paliers)
+    # Inclusivité des frontières entre paliers. 5 flags (un inutilisé selon le
+    # sens) : décroissant utilise le sup des niveaux 2..5, d'où score_5 (#545/#554).
     score_1_sup_inclusive = models.BooleanField(default=True)
     score_2_sup_inclusive = models.BooleanField(default=True)
     score_3_sup_inclusive = models.BooleanField(default=True)
     score_4_sup_inclusive = models.BooleanField(default=True)
+    score_5_sup_inclusive = models.BooleanField(default=True)
 
     # Bornes extrêmes optionnelles
     has_borne_score1 = models.BooleanField(default=False)

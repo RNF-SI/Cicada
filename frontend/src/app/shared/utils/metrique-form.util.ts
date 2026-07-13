@@ -28,6 +28,7 @@ export function blankMetriqueFormData(): MetriqueFormData {
     score_2_sup_inclusive: true,
     score_3_sup_inclusive: true,
     score_4_sup_inclusive: true,
+    score_5_sup_inclusive: true,
     has_score1_optional_bound: false,
     has_score5_optional_bound: false,
     _inactiveLevels: [],
@@ -68,6 +69,7 @@ export function metriqueRefToFormData(ref: MetriqueRef): MetriqueFormData {
     score_2_sup_inclusive: ref.score_2_sup_inclusive ?? true,
     score_3_sup_inclusive: ref.score_3_sup_inclusive ?? true,
     score_4_sup_inclusive: ref.score_4_sup_inclusive ?? true,
+    score_5_sup_inclusive: ref.score_5_sup_inclusive ?? true,
     has_score1_optional_bound: ref.has_borne_score1 ?? false,
     has_score5_optional_bound: ref.has_borne_score5 ?? false,
     _inactiveLevels: Array.isArray(ref.inactive_levels) ? [...ref.inactive_levels] : [],
@@ -94,6 +96,7 @@ export function metriqueRefToFormData(ref: MetriqueRef): MetriqueFormData {
       score_2_sup_inclusive: b.score_2_sup_inclusive,
       score_3_sup_inclusive: b.score_3_sup_inclusive,
       score_4_sup_inclusive: b.score_4_sup_inclusive,
+      score_5_sup_inclusive: b.score_5_sup_inclusive,
       has_borne_score1: b.has_borne_score1,
       has_borne_score5: b.has_borne_score5,
       inactive_levels: Array.isArray(b.inactive_levels) ? [...b.inactive_levels] : [],
@@ -164,6 +167,7 @@ export function buildMetriqueGridFields(
     payload['score_2_sup_inclusive'] = met.score_2_sup_inclusive;
     payload['score_3_sup_inclusive'] = met.score_3_sup_inclusive;
     payload['score_4_sup_inclusive'] = met.score_4_sup_inclusive;
+    payload['score_5_sup_inclusive'] = met.score_5_sup_inclusive;
     payload['has_borne_score1'] = met.has_score1_optional_bound;
     payload['has_borne_score5'] = met.has_score5_optional_bound;
     payload['inactive_levels'] = Array.isArray(met._inactiveLevels) ? [...met._inactiveLevels] : [];
@@ -191,6 +195,7 @@ export function buildMetriqueGridFields(
           score_2_sup_inclusive: b.score_2_sup_inclusive,
           score_3_sup_inclusive: b.score_3_sup_inclusive,
           score_4_sup_inclusive: b.score_4_sup_inclusive,
+          score_5_sup_inclusive: b.score_5_sup_inclusive,
           has_borne_score1: b.has_borne_score1,
           has_borne_score5: b.has_borne_score5,
           inactive_levels: inactive,

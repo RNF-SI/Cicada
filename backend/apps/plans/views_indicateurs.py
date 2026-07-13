@@ -697,25 +697,39 @@ def _coerce_float(value):
 
 
 def _palier_inclusivity(metrique, level):
-    """#423 — Inclusivité des bornes d'un palier, cohérente avec l'affichage
-    (notation par crochets, cf. getScoreRange côté front).
+    """#423 / #545 / #554 — Inclusivité des bornes d'un palier, cohérente avec
+    l'affichage (notation par crochets) ET **sens-aware**.
 
-    - Borne inf : inclusive uniquement si le sup du palier précédent est
-      explicitement exclusif (sinon la valeur frontière appartient au palier
-      précédent). Le palier 1 a une inf inclusive par défaut.
-    - Borne sup : inclusive sauf si explicitement marquée exclusive. Le palier 5
-      a une sup inclusive par défaut.
+    L'inclusivité d'une frontière est portée par le flag ``score_L_sup_inclusive``
+    du niveau L qui a cette frontière comme borne SUP ; la valeur-frontière
+    appartient à L si le flag est True (sinon au palier voisin de valeur
+    supérieure). En croissant le voisin de valeur inférieure d'un niveau est
+    ``level-1`` ; en décroissant c'est ``level+1`` (l'ordre des valeurs est
+    inversé). Une borne absente (``None``) = palier ouvert (±∞), inclusivité sans
+    objet. Les anciens raccourcis « niveau 1 → inf inclusive / niveau 5 → sup
+    inclusive » étaient corrects en croissant mais faux en décroissant (où c'est
+    le niveau 5 qui est ouvert vers le bas et le niveau 1 ouvert vers le haut).
     """
-    if level <= 1:
-        inf_inclusive = True
+    dec = getattr(metrique, 'sens_variation', 'CROISSANT') == 'DECROISSANT'
+
+    # Borne inf : frontière partagée avec le voisin de VALEUR inférieure, dont le
+    # flag sup décide de quel côté tombe la valeur-frontière.
+    if getattr(metrique, f'score_{level}_inf', None) is None:
+        inf_inclusive = True  # palier ouvert vers le bas
     else:
-        prev = getattr(metrique, f'score_{level - 1}_sup_inclusive', None)
-        inf_inclusive = (prev is False)
-    if level >= 5:
-        sup_inclusive = True
+        lower_neighbour = level + 1 if dec else level - 1
+        flag = getattr(metrique, f'score_{lower_neighbour}_sup_inclusive', None)
+        # La frontière appartient au voisin inférieur si son sup est inclusif ;
+        # donc ce palier-ci ne l'inclut (inf inclusive) que si ce flag est False.
+        inf_inclusive = (flag is False)
+
+    # Borne sup : portée par le propre flag du niveau.
+    if getattr(metrique, f'score_{level}_sup', None) is None:
+        sup_inclusive = True  # palier ouvert vers le haut
     else:
         cur = getattr(metrique, f'score_{level}_sup_inclusive', None)
         sup_inclusive = (cur is not False)
+
     return inf_inclusive, sup_inclusive
 
 
