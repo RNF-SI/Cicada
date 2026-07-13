@@ -1973,6 +1973,7 @@
         "editAction": "Modifier l'action",
         "viewGlobal": "Voir le résultat global",
         "viewFiche": "Voir la fiche action",
+        "backToSuivi": "Revenir au suivi des actions",
         "requiredHint": "Les champs avec * sont obligatoires",
         "yearPlanned": "Année prévue (action programmée)",
         "yearNotPlanned": "Année non prévue",

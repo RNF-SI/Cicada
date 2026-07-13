@@ -54,6 +54,12 @@
             </div>
             <h1 class="plan-title">{{ operation()?.libelle }}</h1>
             <div class="hero-actions">
+              <!-- #537 — retour rapide vers le suivi des actions du plan -->
+              <a class="btn-hero-secondary"
+                 [routerLink]="['/plans', planSlug(), 'suivi-actions']">
+                <i class="fi fi-rr-arrow-left"></i>
+                <span>{{ 'plans.suivis.saisie.backToSuivi' | translate }}</span>
+              </a>
               <button class="btn-hero-primary" (click)="goEditOperation()">
                 <i class="fi fi-rr-pencil"></i>
                 <span>{{ 'plans.suivis.saisie.editAction' | translate }}</span>
