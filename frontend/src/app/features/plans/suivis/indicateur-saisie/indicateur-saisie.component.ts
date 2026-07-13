@@ -162,14 +162,16 @@ export class IndicateurSaisieComponent implements OnInit {
     const blocks: any[] = (met as any).score_blocks || [];
     const out = [{
       ctrl: `m_${met.id_metrique}`,
-      label: this.blockLabelText((met as any).bloc_intitule, met.unite, met.nom_metrique),
+      // #550 — libellés de blocs cohérents avec la formule : « Bloc A » pour le
+      // bloc principal (et non le nom de la métrique), « Bloc B/C/D » ensuite.
+      label: this.blockLabelText((met as any).bloc_intitule, met.unite, 'Bloc A'),
       unite: (met.unite ?? '').trim(),
       meta: met,
     }];
     blocks.forEach((b, idx) => {
       out.push({
         ctrl: `m_${met.id_metrique}_b${b.position}`,
-        label: this.blockLabelText(b.intitule, b.unite, `Bloc ${idx + 2}`),
+        label: this.blockLabelText(b.intitule, b.unite, `Bloc ${String.fromCharCode(66 + idx)}`),
         unite: (b.unite ?? '').trim(),
         meta: { ...b, type_metrique_mnemonique: 'NUMERIQUE' },
       });
@@ -300,8 +302,8 @@ export class IndicateurSaisieComponent implements OnInit {
       return u ? `${i} (${u})` : i;
     };
     const labels = [
-      fmt(met.bloc_intitule, met.unite, met.nom_metrique),
-      ...blocks.map((b, idx) => fmt(b.intitule, b.unite, `Bloc ${idx + 2}`)),
+      fmt(met.bloc_intitule, met.unite, 'Bloc A'),
+      ...blocks.map((b, idx) => fmt(b.intitule, b.unite, `Bloc ${String.fromCharCode(66 + idx)}`)),
     ].filter(Boolean);
     return labels.length ? labels.join(' / ') : '—';
   }

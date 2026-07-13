@@ -223,7 +223,7 @@ export function formatBlockFormula(met: any): string {
     (intitule ?? '').toString().trim() || fallback;
   const entries = [
     {
-      label: label(met.bloc_intitule, met.nom_metrique || 'Bloc A'),
+      label: label(met.bloc_intitule, 'Bloc A'),
       open: Number(met.group_open ?? 0), close: Number(met.group_close ?? 0),
       op: null as string | null,
     },

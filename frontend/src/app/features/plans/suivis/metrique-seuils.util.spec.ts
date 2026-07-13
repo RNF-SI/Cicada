@@ -226,4 +226,12 @@ describe('formatBlockFormula', () => {
     };
     expect(formatBlockFormula(met)).toBe('(Surface OU Foyers) ET Nappe');
   });
+  // #550 — libellés par défaut = « Bloc A/B/C/D » (et non le nom de la métrique)
+  it('utilise les lettres A/B/C/D quand les blocs n’ont pas d’intitulé', () => {
+    const met = {
+      nom_metrique: 'Phosphore', bloc_intitule: '',
+      score_blocks: [{ logical_op: 'OR' }, { logical_op: 'OR' }],
+    };
+    expect(formatBlockFormula(met)).toBe('Bloc A OU Bloc B OU Bloc C');
+  });
 });
