@@ -4397,8 +4397,8 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
         takeUntilDestroyed(this.destroyRef)
       ).subscribe((result: DeleteOperationDialogResult | undefined) => {
         if (!result || result.action === 'cancel') return;
-        if (result.action === 'unlink' && result.metriqueId != null) {
-          this.removeOperationMetriqueLink(operation, result.metriqueId);
+        if (result.action === 'unlink' && result.metriqueIds?.length) {
+          this.removeOperationMetriqueLinks(operation, result.metriqueIds);
         } else if (result.action === 'delete') {
           this.performDeleteOperation(operation);
         }
@@ -4450,10 +4450,14 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
     });
   }
 
-  /** #457 — Retrait du seul lien action ↔ métrique (l'action reste accessible
-   *  depuis les autres métriques). Recharge le plan pour rafraîchir les chips. */
-  private removeOperationMetriqueLink(operation: Operation, metriqueId: number): void {
-    this.enjeuService.removeMetriqueFromOperation(operation.id_operation, metriqueId).pipe(
+  /** #457/#538 — Retrait des liens action ↔ métrique(s) (l'action reste
+   *  accessible depuis les autres métriques). Plusieurs métriques peuvent être
+   *  déliées en une passe. Recharge le plan pour rafraîchir les chips. */
+  private removeOperationMetriqueLinks(operation: Operation, metriqueIds: number[]): void {
+    const calls$ = metriqueIds.map(id =>
+      this.enjeuService.removeMetriqueFromOperation(operation.id_operation, id)
+    );
+    forkJoin(calls$).pipe(
       takeUntilDestroyed(this.destroyRef)
     ).subscribe({
       next: () => {

@@ -999,10 +999,19 @@ describe('EnjeuxListComponent', () => {
     });
 
     it('retire seulement le lien quand le choix est « unlink »', () => {
-      const mockDialogRef = { afterClosed: () => of({ action: 'unlink', metriqueId: 22 }) } as MatDialogRef<any>;
+      const mockDialogRef = { afterClosed: () => of({ action: 'unlink', metriqueIds: [22] }) } as MatDialogRef<any>;
       jest.spyOn(MatDialog.prototype, 'open').mockReturnValue(mockDialogRef);
       component.deleteOperation(opMultiMetriques());
       expect(mockEnjeuService.removeMetriqueFromOperation).toHaveBeenCalledWith(42, 22);
+      expect(mockEnjeuService.deleteOperation).not.toHaveBeenCalled();
+    });
+
+    it('#538 — retire plusieurs liens en une passe quand plusieurs métriques sont cochées', () => {
+      const mockDialogRef = { afterClosed: () => of({ action: 'unlink', metriqueIds: [22, 11] }) } as MatDialogRef<any>;
+      jest.spyOn(MatDialog.prototype, 'open').mockReturnValue(mockDialogRef);
+      component.deleteOperation(opMultiMetriques());
+      expect(mockEnjeuService.removeMetriqueFromOperation).toHaveBeenCalledWith(42, 22);
+      expect(mockEnjeuService.removeMetriqueFromOperation).toHaveBeenCalledWith(42, 11);
       expect(mockEnjeuService.deleteOperation).not.toHaveBeenCalled();
     });
 

@@ -20,11 +20,10 @@
         @if (mode() === 'unlink') {
           <div class="metrique-choices" (click)="$event.stopPropagation()">
             @for (m of metriques(); track m.id_metrique) {
-              <label class="metrique-option" [class.selected]="selectedMetriqueId() === m.id_metrique">
-                <input type="radio" name="metrique"
-                       [value]="m.id_metrique"
-                       [checked]="selectedMetriqueId() === m.id_metrique"
-                       (change)="selectMetrique(m.id_metrique)">
+              <label class="metrique-option" [class.selected]="isMetriqueSelected(m.id_metrique)">
+                <input type="checkbox" name="metrique"
+                       [checked]="isMetriqueSelected(m.id_metrique)"
+                       (change)="toggleMetrique(m.id_metrique)">
                 <i class="fi fi-rr-ruler-horizontal"></i>
                 <span>{{ m.nom_metrique }}</span>
               </label>
@@ -59,7 +58,7 @@
     </button>
   } @else {
     <button mat-flat-button color="primary"
-            [disabled]="selectedMetriqueId() == null"
+            [disabled]="selectedMetriqueIds().size === 0"
             (click)="confirm()">
       {{ 'enjeux.operations.deleteDialog.confirmUnlink' | translate }}
     </button>

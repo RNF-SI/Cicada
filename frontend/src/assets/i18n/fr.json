@@ -3341,7 +3341,7 @@
         "title": "Supprimer l'action",
         "subtitle": "L'action \"{{libelle}}\" est liée à plusieurs métriques. Que souhaitez-vous faire ?",
         "unlinkLabel": "Retirer le lien à une métrique",
-        "unlinkDescription": "L'action reste accessible depuis les autres métriques. Choisissez la métrique à délier :",
+        "unlinkDescription": "L'action reste accessible depuis les autres métriques. Cochez la ou les métrique(s) à délier :",
         "deleteLabel": "Supprimer l'action entièrement",
         "deleteDescription": "L'action est supprimée définitivement et retirée de toutes ses métriques.",
         "confirmUnlink": "Retirer le lien",
