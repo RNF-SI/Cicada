@@ -56,6 +56,14 @@ export interface BilanBudgetPair {
   realise: number;
 }
 
+/** #560 — bloc RH du bilan : totaux + ventilation financé / non financé. */
+export interface BilanRh extends BilanBudgetPair {
+  previsionnel_finance: number;
+  previsionnel_non_finance: number;
+  realise_finance: number;
+  realise_non_finance: number;
+}
+
 export interface BilanResponse {
   plan_id: number;
   plan_nom: string;
@@ -69,7 +77,7 @@ export interface BilanResponse {
     investissement: BilanBudgetPair;
     total: BilanBudgetPair;
   };
-  rh: BilanBudgetPair;
+  rh: BilanRh;
 }
 
 export interface BilanFilters {

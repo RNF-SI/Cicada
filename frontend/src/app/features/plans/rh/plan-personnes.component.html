@@ -1,0 +1,89 @@
+<app-header></app-header>
+
+<div class="personnes-layout">
+  @if (planSlug(); as slug) {
+    @if (planId(); as id) {
+      <app-plan-sidebar
+        [planId]="id"
+        [planSlug]="slug"
+        [canManage]="canManage()"
+        activePage="personnes">
+      </app-plan-sidebar>
+    }
+  }
+
+  <main class="plan-main">
+    @if (isLoading()) {
+      <div class="loading-container">
+        <mat-spinner diameter="50"></mat-spinner>
+        <p>{{ 'common.loading' | translate }}</p>
+      </div>
+    } @else if (errorMessage()) {
+      <div class="error-container">
+        <i class="fi fi-rr-exclamation"></i>
+        <p>{{ errorMessage() }}</p>
+      </div>
+    } @else {
+      <section class="page-header">
+        <div>
+          <h1>{{ 'plans.personnes.title' | translate }}</h1>
+          <p class="subtitle">{{ 'plans.personnes.intro' | translate }}</p>
+        </div>
+        @if (canManage()) {
+          <button mat-flat-button color="primary" (click)="openCreate()">
+            <i class="fi fi-rr-user-add"></i>
+            {{ 'plans.personnes.addButton' | translate }}
+          </button>
+        }
+      </section>
+
+      @if (!hasPersonnes()) {
+        <div class="empty-state">
+          <i class="fi fi-rr-users-alt"></i>
+          <p>{{ 'plans.personnes.empty' | translate }}</p>
+          @if (canManage()) {
+            <button mat-stroked-button (click)="openCreate()">
+              {{ 'plans.personnes.addButton' | translate }}
+            </button>
+          }
+        </div>
+      } @else {
+        <div class="personnes-list">
+          @for (p of personnes(); track p.id_personne_plan) {
+            <div class="personne-card">
+              <app-entity-tile
+                icon="fi-rr-user"
+                [name]="p.nom"
+                [subtitle]="subtitleFor(p)">
+                @if (canManage()) {
+                  <div tileAction class="tile-actions">
+                    <button type="button" class="icon-btn-flat" (click)="openEdit(p)"
+                            [title]="'common.actions.edit' | translate">
+                      <i class="fi fi-rr-pencil"></i>
+                    </button>
+                    <button type="button" class="icon-btn-flat danger" (click)="deletePersonne(p)"
+                            [title]="'common.actions.delete' | translate">
+                      <i class="fi fi-rr-trash"></i>
+                    </button>
+                  </div>
+                }
+              </app-entity-tile>
+
+              @if (p.fonctions && p.fonctions.length > 0) {
+                <div class="fonction-tags">
+                  @for (f of p.fonctions; track f.id_fonction) {
+                    <app-tag
+                      size="sm"
+                      [variant]="f.finance_par_defaut ? 'info' : 'muted'"
+                      [label]="fonctionTagLabel(f)">
+                    </app-tag>
+                  }
+                </div>
+              }
+            </div>
+          }
+        </div>
+      }
+    }
+  </main>
+</div>

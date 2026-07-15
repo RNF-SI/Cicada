@@ -8,6 +8,8 @@ from .models_operations import (
     Operation, CorOperationSite, CorOperationMetrique,
     OperationAnnee, OperationAnneeOrganisme, FinanceOperation,
     RealisationOperationAnnee, RealisationOperationAnneeOrganisme,
+    Fonction, PersonnePlan, PersonneFonction,
+    OperationAnneeRH, RealisationOperationAnneeRH,
 )
 
 
@@ -276,6 +278,154 @@ class RealisationOperationAnneeOrganismeSerializer(serializers.ModelSerializer):
         read_only_fields = ['id_realisation_op_annee_organisme', 'date_ajout', 'date_maj']
 
 
+# =============================================================================
+# Ressources humaines (#560) — fonctions, personnes du PG, lignes RH
+# =============================================================================
+
+class FonctionSerializer(serializers.ModelSerializer):
+    """Fonction / poste du référentiel global (#560)."""
+
+    class Meta:
+        model = Fonction
+        fields = ['id_fonction', 'libelle', 'finance_par_defaut', 'is_socle', 'actif']
+        read_only_fields = ['id_fonction', 'is_socle']
+
+
+class PersonneFonctionSerializer(serializers.ModelSerializer):
+    """Fonction occupée par une personne (lecture)."""
+    fonction_libelle = serializers.CharField(source='id_fonction.libelle', read_only=True)
+    finance_par_defaut = serializers.BooleanField(
+        source='id_fonction.finance_par_defaut', read_only=True
+    )
+
+    class Meta:
+        model = PersonneFonction
+        fields = [
+            'id_personne_fonction', 'id_fonction', 'fonction_libelle',
+            'finance_par_defaut', 'pourcentage',
+        ]
+        read_only_fields = ['id_personne_fonction']
+
+
+class PersonneFonctionWriteSerializer(serializers.Serializer):
+    """Fonction occupée par une personne (écriture imbriquée)."""
+    id_fonction = serializers.IntegerField()
+    pourcentage = serializers.DecimalField(
+        max_digits=5, decimal_places=2, required=False, allow_null=True
+    )
+
+
+class PersonnePlanSerializer(serializers.ModelSerializer):
+    """Personne rattachée à un plan de gestion (lecture)."""
+    fonctions = PersonneFonctionSerializer(many=True, read_only=True)
+    role_email = serializers.CharField(source='id_role.email', read_only=True)
+    role_nom = serializers.SerializerMethodField()
+
+    class Meta:
+        model = PersonnePlan
+        fields = [
+            'id_personne_plan', 'id_pg', 'nom',
+            'id_role', 'role_email', 'role_nom',
+            'date_arrivee', 'date_depart', 'fonctions',
+            'date_ajout', 'date_maj',
+        ]
+        read_only_fields = ['id_personne_plan', 'date_ajout', 'date_maj']
+
+    def get_role_nom(self, obj):
+        if obj.id_role_id:
+            return obj.id_role.get_full_name()
+        return None
+
+
+class PersonnePlanWriteSerializer(serializers.ModelSerializer):
+    """Personne rattachée à un plan de gestion (écriture, fonctions imbriquées)."""
+    fonctions = PersonneFonctionWriteSerializer(many=True, required=False, default=[])
+
+    class Meta:
+        model = PersonnePlan
+        fields = [
+            'id_personne_plan', 'id_pg', 'nom', 'id_role',
+            'date_arrivee', 'date_depart', 'fonctions',
+        ]
+        read_only_fields = ['id_personne_plan']
+        extra_kwargs = {'id_role': {'required': False, 'allow_null': True}}
+
+    def to_representation(self, instance):
+        return PersonnePlanSerializer(instance, context=self.context).data
+
+    def _set_fonctions(self, personne, fonctions_data):
+        PersonneFonction.objects.filter(id_personne_plan=personne).delete()
+        PersonneFonction.objects.bulk_create([
+            PersonneFonction(
+                id_personne_plan=personne,
+                id_fonction_id=f['id_fonction'],
+                pourcentage=f.get('pourcentage'),
+            )
+            for f in fonctions_data
+        ])
+
+    def create(self, validated_data):
+        fonctions_data = validated_data.pop('fonctions', [])
+        personne = PersonnePlan.objects.create(**validated_data)
+        self._set_fonctions(personne, fonctions_data)
+        return personne
+
+    def update(self, instance, validated_data):
+        fonctions_data = validated_data.pop('fonctions', None)
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save()
+        if fonctions_data is not None:
+            self._set_fonctions(instance, fonctions_data)
+        return instance
+
+
+class OperationAnneeRHSerializer(serializers.ModelSerializer):
+    """Ligne RH prévisionnelle d'une année d'opération (lecture)."""
+    personne_nom = serializers.CharField(source='id_personne_plan.nom', read_only=True)
+    fonction_libelle = serializers.CharField(source='id_fonction.libelle', read_only=True)
+
+    class Meta:
+        model = OperationAnneeRH
+        fields = [
+            'id_operation_annee_rh',
+            'id_personne_plan', 'personne_nom',
+            'id_fonction', 'fonction_libelle',
+            'jours', 'finance',
+        ]
+        read_only_fields = ['id_operation_annee_rh']
+
+
+class OperationAnneeRHWriteSerializer(serializers.Serializer):
+    """Ligne RH prévisionnelle (écriture imbriquée dans operation_annees)."""
+    id_personne_plan = serializers.IntegerField(required=False, allow_null=True)
+    id_fonction = serializers.IntegerField(required=False, allow_null=True)
+    jours = serializers.DecimalField(
+        max_digits=8, decimal_places=2, required=False, allow_null=True
+    )
+    finance = serializers.BooleanField(required=False, default=True)
+
+
+class RealisationOperationAnneeRHSerializer(serializers.ModelSerializer):
+    """Ligne RH réalisée d'une année d'opération (lecture + écriture imbriquée)."""
+    personne_nom = serializers.CharField(source='id_personne_plan.nom', read_only=True)
+    fonction_libelle = serializers.CharField(source='id_fonction.libelle', read_only=True)
+
+    class Meta:
+        model = RealisationOperationAnneeRH
+        fields = [
+            'id_realisation_operation_annee_rh',
+            # Lien vers la ligne prévisionnelle réalisée : permet au suivi de
+            # ré-attribuer le temps (« c'est en fait X qui l'a fait ») sans
+            # que le prévu et le réel se retrouvent dissociés.
+            'id_operation_annee_rh',
+            'id_personne_plan', 'personne_nom',
+            'id_fonction', 'fonction_libelle',
+            'jours', 'finance',
+        ]
+        read_only_fields = ['id_realisation_operation_annee_rh']
+
+
 class GeoJSONGeometryField(serializers.Field):
     """
     Champ DRF pour les `GeometryField` exposés et acceptés en GeoJSON.
@@ -315,6 +465,8 @@ class RealisationOperationAnneeSerializer(serializers.ModelSerializer):
     # Emprise réalisée exposée et acceptée en GeoJSON (cohérent avec
     # `OperationSerializer.geom_geojson`). Lecture + écriture.
     geom_realisee = GeoJSONGeometryField(required=False, allow_null=True)
+    # #560 — lignes RH réalisées (écriture imbriquée, remplacement complet)
+    rh_lignes = RealisationOperationAnneeRHSerializer(many=True, required=False)
 
     class Meta:
         model = RealisationOperationAnnee
@@ -328,11 +480,42 @@ class RealisationOperationAnneeSerializer(serializers.ModelSerializer):
             'budget_fonctionnement_realise', 'budget_investissement_realise',
             'etp_realise',
             'operateurs_realises', 'financeurs_realises',
+            'rh_lignes',
             'date_ajout', 'date_maj', 'id_utilisateur_maj',
         ]
         read_only_fields = [
             'id_realisation_operation_annee', 'date_ajout', 'date_maj', 'id_utilisateur_maj',
         ]
+
+    def _set_rh_lignes(self, instance, rh_data):
+        RealisationOperationAnneeRH.objects.filter(
+            id_realisation_operation_annee=instance
+        ).delete()
+        RealisationOperationAnneeRH.objects.bulk_create([
+            RealisationOperationAnneeRH(
+                id_realisation_operation_annee=instance,
+                id_operation_annee_rh=rh.get('id_operation_annee_rh'),
+                id_personne_plan=rh.get('id_personne_plan'),
+                id_fonction=rh.get('id_fonction'),
+                jours=rh.get('jours'),
+                finance=rh.get('finance', True),
+            )
+            for rh in rh_data
+        ])
+
+    def create(self, validated_data):
+        rh_data = validated_data.pop('rh_lignes', None)
+        instance = super().create(validated_data)
+        if rh_data is not None:
+            self._set_rh_lignes(instance, rh_data)
+        return instance
+
+    def update(self, instance, validated_data):
+        rh_data = validated_data.pop('rh_lignes', None)
+        instance = super().update(instance, validated_data)
+        if rh_data is not None:
+            self._set_rh_lignes(instance, rh_data)
+        return instance
 
 
 class OperationAnneeOrganismeSerializer(serializers.ModelSerializer):
@@ -355,6 +538,7 @@ class OperationAnneeSerializer(serializers.ModelSerializer):
     """Serializer pour la programmation annuelle d'une opération."""
     organismes = OperationAnneeOrganismeSerializer(many=True, read_only=True)
     realisation = RealisationOperationAnneeSerializer(read_only=True)
+    rh_lignes = OperationAnneeRHSerializer(many=True, read_only=True)
 
     class Meta:
         model = OperationAnnee
@@ -362,6 +546,7 @@ class OperationAnneeSerializer(serializers.ModelSerializer):
             'id_operation_annee', 'annee', 'periodicite',
             'budget', 'etp', 'budget_fonctionnement', 'budget_investissement',
             'periodicite_mensuelle', 'geom', 'organismes',
+            'rh_lignes',
             'realisation',
         ]
         read_only_fields = ['id_operation_annee']
@@ -873,6 +1058,7 @@ class OperationAnneeWriteSerializer(serializers.Serializer):
     periodicite_mensuelle = serializers.JSONField(default=dict, required=False)
     geom = serializers.JSONField(required=False, allow_null=True, default=None)
     organismes = OperationAnneeOrganismeWriteSerializer(many=True, required=False, default=[])
+    rh_lignes = OperationAnneeRHWriteSerializer(many=True, required=False, default=[])
 
 
 class OperationCreateSerializer(serializers.ModelSerializer):
@@ -936,6 +1122,7 @@ class OperationCreateSerializer(serializers.ModelSerializer):
             return
         for annee_data in annees_data:
             organismes_data = annee_data.pop('organismes', [])
+            rh_lignes_data = annee_data.pop('rh_lignes', [])
             annee_obj = OperationAnnee.objects.create(id_operation=operation, **annee_data)
             if organismes_data:
                 OperationAnneeOrganisme.objects.bulk_create([
@@ -947,6 +1134,18 @@ class OperationCreateSerializer(serializers.ModelSerializer):
                         etp=org.get('etp'),
                     )
                     for org in organismes_data
+                ])
+            # #560 — lignes RH prévisionnelles (personne/fonction × jours × financé)
+            if rh_lignes_data:
+                OperationAnneeRH.objects.bulk_create([
+                    OperationAnneeRH(
+                        id_operation_annee=annee_obj,
+                        id_personne_plan_id=rh.get('id_personne_plan'),
+                        id_fonction_id=rh.get('id_fonction'),
+                        jours=rh.get('jours'),
+                        finance=rh.get('finance', True),
+                    )
+                    for rh in rh_lignes_data
                 ])
 
     def _create_finances(self, operation, finances_data):

@@ -14,6 +14,7 @@ from django.utils.safestring import mark_safe
 from .models import (
     PlanGestion, CorSitePg, CorRolePlan, CorPgFichier,
     Enjeu, FacteurInfluence, Pression, Responsabilite,
+    CorFacteurEnjeu,
     ObjectifLongTerme, NiveauExigence,
     CorEnjeuTaxon, CorEnjeuHabitat, CorEnjeuGeologie,
     CorResponsabiliteTaxon, CorResponsabiliteHabitat, CorResponsabiliteGeologie,
@@ -839,26 +840,33 @@ class PressionInline(admin.TabularInline):
     ordering = ['libelle']
 
 
+class CorFacteurEnjeuInline(admin.TabularInline):
+    """#552 — Gestion des enjeux (partagés) rattachés à un facteur d'influence."""
+    model = CorFacteurEnjeu
+    extra = 1
+    autocomplete_fields = ['id_enjeu']
+
+
 @admin.register(FacteurInfluence)
 class FacteurInfluenceAdmin(admin.ModelAdmin):
     """Interface d'administration pour les Facteurs d'Influence."""
 
     list_display = [
         'libelle',
-        'id_enjeu',
+        'enjeux_display',
         'nb_pressions',
         'date_maj'
     ]
 
     list_filter = [
-        'id_enjeu__id_pg',
+        'enjeux__id_pg',
         'date_ajout'
     ]
 
     search_fields = [
         'libelle',
         'description',
-        'id_enjeu__libelle'
+        'enjeux__libelle'
     ]
 
     readonly_fields = [
@@ -868,11 +876,10 @@ class FacteurInfluenceAdmin(admin.ModelAdmin):
     ]
 
     autocomplete_fields = [
-        'id_enjeu',
         'id_utilisateur_maj'
     ]
 
-    inlines = [PressionInline]
+    inlines = [CorFacteurEnjeuInline, PressionInline]
 
     list_per_page = 25
 
@@ -880,10 +887,14 @@ class FacteurInfluenceAdmin(admin.ModelAdmin):
         return obj.pressions.count()
     nb_pressions.short_description = "Pressions"
 
+    def enjeux_display(self, obj):
+        return ", ".join(e.libelle for e in obj.enjeux.all()) or "—"
+    enjeux_display.short_description = "Enjeux"
+
     def get_queryset(self, request):
         return super().get_queryset(request).select_related(
-            'id_enjeu', 'id_utilisateur_ajout', 'id_utilisateur_maj'
-        ).prefetch_related('pressions')
+            'id_utilisateur_ajout', 'id_utilisateur_maj'
+        ).prefetch_related('pressions', 'enjeux')
 
     def save_model(self, request, obj, form, change):
         if not change:
@@ -913,7 +924,7 @@ class PressionAdmin(admin.ModelAdmin):
     ]
 
     list_filter = [
-        'id_facteur_influence__id_enjeu__id_pg',
+        'id_facteur_influence__enjeux__id_pg',
         'date_ajout'
     ]
 
@@ -1393,3 +1404,30 @@ class MesureAdmin(admin.ModelAdmin):
             obj.id_utilisateur_ajout = request.user
         obj.id_utilisateur_maj = request.user
         super().save_model(request, obj, form, change)
+
+# =============================================================================
+# Ressources humaines (#560)
+# =============================================================================
+from .models_operations import Fonction, PersonnePlan, PersonneFonction
+
+
+@admin.register(Fonction)
+class FonctionAdmin(admin.ModelAdmin):
+    list_display = ('libelle', 'finance_par_defaut', 'is_socle', 'actif')
+    list_filter = ('finance_par_defaut', 'is_socle', 'actif')
+    search_fields = ('libelle',)
+
+
+class PersonneFonctionInline(admin.TabularInline):
+    model = PersonneFonction
+    extra = 1
+    autocomplete_fields = ('id_fonction',)
+
+
+@admin.register(PersonnePlan)
+class PersonnePlanAdmin(admin.ModelAdmin):
+    list_display = ('nom', 'id_pg', 'id_role', 'date_arrivee', 'date_depart')
+    list_filter = ('id_pg',)
+    search_fields = ('nom',)
+    autocomplete_fields = ('id_pg', 'id_role')
+    inlines = [PersonneFonctionInline]

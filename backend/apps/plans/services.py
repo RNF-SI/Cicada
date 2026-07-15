@@ -124,8 +124,14 @@ class PlanDuplicationService:
                 source_id, new_plan, user, copy_sub_elements
             )
             if copy_sub_elements:
+                # Personnes d'abord : les lignes RH des opérations pointent
+                # dessus et doivent être remappées vers les copies (#560).
+                personne_map = PlanDuplicationService._copy_personnes(
+                    source_id, new_plan, user
+                )
                 PlanDuplicationService._copy_suivis_and_operations(
-                    source_id, new_plan, user, indicateur_map, metrique_map
+                    source_id, new_plan, user, indicateur_map, metrique_map,
+                    personne_map,
                 )
 
         # 7. Recalculate geometry
@@ -249,8 +255,13 @@ class PlanDuplicationService:
         indicateur_map, metrique_map = PlanDuplicationService._copy_enjeux(
             source_id, new_plan, user, copy_sub_elements=True
         )
+        # Les personnes sont copiées AVANT les opérations : les lignes RH
+        # prévisionnelles pointent dessus et doivent être remappées (#560).
+        personne_map = PlanDuplicationService._copy_personnes(
+            source_id, new_plan, user
+        )
         PlanDuplicationService._copy_suivis_and_operations(
-            source_id, new_plan, user, indicateur_map, metrique_map
+            source_id, new_plan, user, indicateur_map, metrique_map, personne_map
         )
 
     @staticmethod
@@ -427,21 +438,54 @@ class PlanDuplicationService:
         return indicateur_map, metrique_map
 
     @staticmethod
+    def _copy_personnes(source_plan_id, new_plan, user):
+        """Copie les personnes du PG et leurs fonctions (#560).
+
+        Les personnes sont rattachées à un plan : une nouvelle version doit
+        avoir les siennes, éditables sans impacter la version source. Les
+        fonctions, elles, sont un référentiel global partagé — on ne les copie
+        pas, on les réutilise.
+
+        Retourne {ancien id_personne_plan: nouvelle PersonnePlan} pour remapper
+        les lignes RH des opérations.
+        """
+        from .models_operations import PersonnePlan, PersonneFonction
+
+        dup = PlanDuplicationService._dup
+        personne_map = {}
+        for old_personne in PersonnePlan.objects.filter(id_pg_id=source_plan_id):
+            new_personne = dup(old_personne, user, id_pg=new_plan)
+            new_personne.save()
+            personne_map[old_personne.id_personne_plan] = new_personne
+            for old_fonction in PersonneFonction.objects.filter(
+                id_personne_plan=old_personne
+            ):
+                new_fonction = dup(
+                    old_fonction, user, id_personne_plan=new_personne
+                )
+                new_fonction.save()
+        return personne_map
+
+    @staticmethod
     def _copy_suivis_and_operations(source_plan_id, new_plan, user,
-                                    indicateur_map, metrique_map):
+                                    indicateur_map, metrique_map,
+                                    personne_map=None):
         """Copie les suivis/inventaires du plan puis les opérations (actions),
         en re-reliant chaque opération aux nouvelles entités copiées (#377).
 
         Une opération est rattachée au plan via son indicateur, ses métriques
-        (M2M) ou son suivi. On la clone avec ses années (+ organismes) et ses
-        financements. Les données « réalisées » (RealisationOperationAnnee) ne
-        sont pas copiées : elles concernent la version d'origine.
+        (M2M) ou son suivi. On la clone avec ses années (+ organismes, + lignes
+        RH prévisionnelles #560) et ses financements. Les données « réalisées »
+        (RealisationOperationAnnee et ses lignes RH) ne sont pas copiées :
+        elles concernent la version d'origine.
         """
         from .models_operations import (
             SuiviInventaire, Operation, OperationAnnee,
-            OperationAnneeOrganisme, FinanceOperation,
+            OperationAnneeOrganisme, OperationAnneeRH, FinanceOperation,
             CorOperationSite, CorOperationMetrique,
         )
+
+        personne_map = personne_map or {}
 
         dup = PlanDuplicationService._dup
 
@@ -496,6 +540,18 @@ class PlanDuplicationService:
                 for old_org in OperationAnneeOrganisme.objects.filter(id_operation_annee=old_oa):
                     new_org = dup(old_org, user, id_operation_annee=new_oa)
                     new_org.save()
+                # Lignes RH prévisionnelles (#560) : la personne est remappée
+                # vers la copie du plan, la fonction est un référentiel global
+                # et reste partagée. Une personne absente de la map (donnée
+                # incohérente) dégrade en « temps non affecté » plutôt que de
+                # pointer vers la version source.
+                for old_rh in OperationAnneeRH.objects.filter(id_operation_annee=old_oa):
+                    new_rh = dup(
+                        old_rh, user,
+                        id_operation_annee=new_oa,
+                        id_personne_plan=personne_map.get(old_rh.id_personne_plan_id),
+                    )
+                    new_rh.save()
 
             # Financements.
             for old_fin in FinanceOperation.objects.filter(id_operation=old_op):

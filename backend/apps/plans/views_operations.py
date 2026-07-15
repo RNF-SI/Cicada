@@ -16,6 +16,7 @@ from .models_operations import (
     Operation, CorOperationMetrique, OperationAnnee, OperationAnneeOrganisme,
     FinanceOperation, RealisationOperationAnnee, RealisationOperationAnneeOrganisme,
     OperationRealisationGlobale,
+    Fonction, PersonnePlan,
 )
 from .models_indicateurs import Indicateur, Metrique
 from .models import PlanGestion, CorRolePlan
@@ -26,6 +27,7 @@ from .reorder import do_reorder
 from .serializers_operations import (
     OperationSerializer, OperationListSerializer, OperationCreateSerializer,
     RealisationOperationAnneeSerializer, RealisationOperationAnneeOrganismeSerializer,
+    FonctionSerializer, PersonnePlanSerializer, PersonnePlanWriteSerializer,
 )
 from .filters_operations import OperationFilter
 
@@ -793,6 +795,9 @@ class RealisationOperationAnneeViewSet(viewsets.ModelViewSet):
             'id_operation_annee__organismes',
             'id_operation_annee__organismes__realisation',
             'id_operation_annee__id_operation__metriques__id_indicateur__id_ne__id_olt__id_enjeu',
+            # #560 — lignes RH prévisionnelles / réalisées pour l'agrégation du travail
+            'id_operation_annee__rh_lignes',
+            'rh_lignes',
         ).distinct()
 
         if enjeu_id:
@@ -825,8 +830,11 @@ class RealisationOperationAnneeViewSet(viewsets.ModelViewSet):
         budget_previsionnel_invest = Decimal('0')
         budget_realise_fonct = Decimal('0')
         budget_realise_invest = Decimal('0')
-        etp_previsionnel = Decimal('0')
-        etp_realise_total = Decimal('0')
+        # #560 — ventilation RH financé / non financé (prévisionnel + réalisé)
+        rh_prev_finance = Decimal('0')
+        rh_prev_non_finance = Decimal('0')
+        rh_reel_finance = Decimal('0')
+        rh_reel_non_finance = Decimal('0')
 
         # Set des operation_annees vues pour ne pas double-compter les budgets prévisionnels.
         seen_op_annees = set()
@@ -896,7 +904,13 @@ class RealisationOperationAnneeViewSet(viewsets.ModelViewSet):
                     for oao in oa.organismes.all():
                         budget_previsionnel_fonct += (oao.budget_fonctionnement or 0)
                         budget_previsionnel_invest += (oao.budget_investissement or 0)
-                etp_previsionnel += (oa.etp or 0)
+                # #560 — travail prévisionnel = somme des lignes RH (financé + non)
+                for rh in oa.rh_lignes.all():
+                    jours = rh.jours or 0
+                    if rh.finance:
+                        rh_prev_finance += jours
+                    else:
+                        rh_prev_non_finance += jours
 
             # Réalisé
             if mode in ('none',):
@@ -910,14 +924,13 @@ class RealisationOperationAnneeViewSet(viewsets.ModelViewSet):
                     if real_oao:
                         budget_realise_fonct += (real_oao.budget_fonctionnement_realise or 0)
                         budget_realise_invest += (real_oao.budget_investissement_realise or 0)
-            # ETP réalisé : par année (champ etp_realise) sauf si ventilation par org
-            if mode in ('none', 'by_type'):
-                etp_realise_total += (r.etp_realise or 0)
-            else:
-                for oao in oa.organismes.all():
-                    real_oao = getattr(oao, 'realisation', None)
-                    if real_oao:
-                        etp_realise_total += (real_oao.etp_realise or 0)
+            # #560 — travail réalisé = somme des lignes RH réalisées (financé + non)
+            for rh in r.rh_lignes.all():
+                jours = rh.jours or 0
+                if rh.finance:
+                    rh_reel_finance += jours
+                else:
+                    rh_reel_non_finance += jours
 
         # #355 — Vue globale : comptage du niveau UNE fois par opération via son
         # statut global (surcharge sinon calcul sur les années programmées).
@@ -1004,8 +1017,14 @@ class RealisationOperationAnneeViewSet(viewsets.ModelViewSet):
                 },
             },
             'rh': {
-                'previsionnel': float(etp_previsionnel),
-                'realise': float(etp_realise_total),
+                # Totaux (compat) = financé + non financé (#560)
+                'previsionnel': float(rh_prev_finance + rh_prev_non_finance),
+                'realise': float(rh_reel_finance + rh_reel_non_finance),
+                # Ventilation financé / non financé (#560)
+                'previsionnel_finance': float(rh_prev_finance),
+                'previsionnel_non_finance': float(rh_prev_non_finance),
+                'realise_finance': float(rh_reel_finance),
+                'realise_non_finance': float(rh_reel_non_finance),
             },
         })
 
@@ -1075,3 +1094,140 @@ class RealisationOperationAnneeOrganismeViewSet(viewsets.ModelViewSet):
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+# =============================================================================
+# Ressources humaines (#560)
+# =============================================================================
+
+def _scope_personne_queryset(queryset, user):
+    """Scope les personnes selon les plans accessibles à l'utilisateur."""
+    if user.is_super_admin() or user.is_redacteur_principal():
+        return queryset
+    if user.is_admin_organisme() and user.id_organisme:
+        return queryset.filter(
+            Q(id_pg__sites__site__corogsite__uuid_og=user.id_organisme) |
+            Q(id_pg__organismes_redacteurs__uuid_og=user.id_organisme)
+        ).distinct()
+    user_plan_ids = CorRolePlan.objects.filter(id_role=user).values_list(
+        'plan_de_gestion_id', flat=True
+    )
+    return queryset.filter(
+        Q(id_pg__in=user_plan_ids) |
+        Q(id_pg__referents=user) |
+        Q(id_pg__sites__site__corrolesite__id_role=user)
+    ).distinct()
+
+
+def _user_can_access_plan(user, plan):
+    """Vrai si l'utilisateur peut gérer les personnes du plan donné (#560)."""
+    if user.is_super_admin() or user.is_redacteur_principal():
+        return True
+    qs = PlanGestion.objects.filter(pk=plan.pk)
+    if user.is_admin_organisme() and user.id_organisme:
+        return qs.filter(
+            Q(sites__site__corogsite__uuid_og=user.id_organisme) |
+            Q(organismes_redacteurs__uuid_og=user.id_organisme)
+        ).exists()
+    user_plan_ids = CorRolePlan.objects.filter(id_role=user).values_list(
+        'plan_de_gestion_id', flat=True
+    )
+    return qs.filter(
+        Q(pk__in=user_plan_ids) |
+        Q(referents=user) |
+        Q(sites__site__corrolesite__id_role=user)
+    ).exists()
+
+
+class FonctionViewSet(viewsets.ModelViewSet):
+    """
+    Référentiel global des fonctions/postes (#560).
+
+    - GET    /api/plans/fonctions/            Liste (autocomplete, filtrable actif)
+    - POST   /api/plans/fonctions/            Créer une fonction à la volée
+    - PATCH  /api/plans/fonctions/{id}/       Modifier (libellé, financé par défaut)
+    - DELETE /api/plans/fonctions/{id}/       Supprimer (interdit sur le socle)
+
+    Lecture : tout utilisateur authentifié. Écriture : référents et plus
+    (ajout à la volée d'une fonction manquante).
+    """
+
+    queryset = Fonction.objects.all()
+    serializer_class = FonctionSerializer
+    filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
+    filterset_fields = {'actif': ['exact'], 'finance_par_defaut': ['exact']}
+    search_fields = ['libelle']
+    ordering_fields = ['libelle']
+    ordering = ['libelle']
+    pagination_class = None
+
+    def get_permissions(self):
+        if self.request.method in permissions.SAFE_METHODS:
+            return [permissions.IsAuthenticated()]
+        return [permissions.IsAuthenticated(), IsReferent()]
+
+    def perform_create(self, serializer):
+        # Réutilise une fonction existante (insensible à la casse) pour éviter
+        # les doublons lors de l'ajout à la volée.
+        libelle = (serializer.validated_data.get('libelle') or '').strip()
+        existing = Fonction.objects.filter(libelle__iexact=libelle).first()
+        if existing:
+            serializer.instance = existing
+            return
+        serializer.save()
+
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        if instance.is_socle:
+            return Response(
+                {'detail': "Les fonctions du socle ne peuvent pas être supprimées."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        return super().destroy(request, *args, **kwargs)
+
+
+class PersonnePlanViewSet(viewsets.ModelViewSet):
+    """
+    Personnes rattachées à un plan de gestion (#560).
+
+    - GET    /api/plans/personnes/?id_pg={id}     Liste (scopée par permissions)
+    - GET    /api/plans/personnes/by-plan/{id}/   Personnes d'un plan
+    - POST   /api/plans/personnes/                Créer (fonctions imbriquées)
+    - PATCH  /api/plans/personnes/{id}/           Modifier
+    - DELETE /api/plans/personnes/{id}/           Supprimer
+
+    La gestion RH d'un PG reste accessible quel que soit le statut du plan
+    (donnée administrative, comme les référents) : pas de verrou brouillon.
+    """
+
+    queryset = PersonnePlan.objects.select_related('id_role', 'id_pg').prefetch_related(
+        'fonctions__id_fonction'
+    )
+    permission_classes = [permissions.IsAuthenticated, IsReferent]
+    filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
+    filterset_fields = {'id_pg': ['exact']}
+    search_fields = ['nom']
+    ordering_fields = ['nom', 'date_arrivee']
+    ordering = ['nom']
+
+    def get_serializer_class(self):
+        if self.request.method in permissions.SAFE_METHODS:
+            return PersonnePlanSerializer
+        return PersonnePlanWriteSerializer
+
+    def get_queryset(self):
+        return _scope_personne_queryset(self.queryset, self.request.user)
+
+    def perform_create(self, serializer):
+        plan = serializer.validated_data.get('id_pg')
+        # Garde-fou : refuser la création sur un plan hors périmètre.
+        if plan is not None and not _user_can_access_plan(self.request.user, plan):
+            from rest_framework.exceptions import PermissionDenied
+            raise PermissionDenied("Vous n'avez pas accès à ce plan de gestion.")
+        serializer.save()
+
+    @action(detail=False, methods=['get'], url_path=r'by-plan/(?P<plan_id>\d+)')
+    def by_plan(self, request, plan_id=None):
+        qs = self.get_queryset().filter(id_pg=plan_id)
+        serializer = PersonnePlanSerializer(qs, many=True, context={'request': request})
+        return Response(serializer.data)

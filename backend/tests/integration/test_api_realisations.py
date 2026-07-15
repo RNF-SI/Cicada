@@ -360,13 +360,12 @@ class TestRealisationBilanEndpoint:
         assert taux['termine'] == 1
 
     def test_bilan_aggregates_budget_for_none_mode(self, api_client, realisation_test_data):
-        """Mode 'none' : budget_realise et etp_realise remontent au niveau année."""
+        """Mode 'none' : budget_realise remonte au niveau année."""
         from decimal import Decimal
         RealisationOperationAnneeFactory(
             id_operation_annee=realisation_test_data['op_annee'],
             id_niveau_realisation=realisation_test_data['niveau_termine'],
             budget_realise=Decimal('800.00'),
-            etp_realise=Decimal('4.00'),
         )
         api_client.force_authenticate(user=realisation_test_data['super_admin'])
         response = api_client.get(
@@ -374,8 +373,45 @@ class TestRealisationBilanEndpoint:
         )
         assert response.data['budget']['fonctionnement']['previsionnel'] == 1000.0  # planifié
         assert response.data['budget']['fonctionnement']['realise'] == 800.0       # réalisé
-        assert response.data['rh']['previsionnel'] == 5.0
-        assert response.data['rh']['realise'] == 4.0
+
+    def test_bilan_rh_lit_les_lignes_rh_et_non_etp(self, api_client, realisation_test_data):
+        """
+        #560 — le temps de travail du bilan vient des lignes RH, plus du champ
+        `etp` (déprécié, conservé en base et converti par la migration 0100).
+
+        Volontairement dissocié de `etp` : si le bilan retombait sur `etp` en
+        l'absence de lignes RH, supprimer toutes les lignes d'une année (= « rien
+        de prévu ») ferait ressurgir l'ancienne valeur.
+        """
+        from decimal import Decimal
+        from apps.plans.models_operations import (
+            OperationAnneeRH, RealisationOperationAnneeRH,
+        )
+        oa = realisation_test_data['op_annee']
+        assert oa.etp == Decimal('5.00'), "le fixture porte bien un etp hérité"
+
+        OperationAnneeRH.objects.create(id_operation_annee=oa, jours=7, finance=True)
+        OperationAnneeRH.objects.create(id_operation_annee=oa, jours=2, finance=False)
+        realisation = RealisationOperationAnneeFactory(
+            id_operation_annee=oa,
+            id_niveau_realisation=realisation_test_data['niveau_termine'],
+            etp_realise=Decimal('4.00'),
+        )
+        RealisationOperationAnneeRH.objects.create(
+            id_realisation_operation_annee=realisation, jours=6, finance=True,
+        )
+
+        api_client.force_authenticate(user=realisation_test_data['super_admin'])
+        response = api_client.get(
+            f'/api/plans/realisations/bilan/{realisation_test_data["plan"].pk}/'
+        )
+        rh = response.data['rh']
+        assert rh['previsionnel'] == 9.0   # 7 + 2, et non les 5.0 de `etp`
+        assert rh['realise'] == 6.0        # et non les 4.0 de `etp_realise`
+        assert rh['previsionnel_finance'] == 7.0
+        assert rh['previsionnel_non_finance'] == 2.0
+        assert rh['realise_finance'] == 6.0
+        assert rh['realise_non_finance'] == 0.0
 
     def test_bilan_groups_by_categorie_action(self, api_client, realisation_test_data):
         """L'agrégation par catégorie utilise id_categorie_action_reserve ou id_type_action."""

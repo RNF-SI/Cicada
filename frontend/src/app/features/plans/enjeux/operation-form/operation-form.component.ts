@@ -35,6 +35,8 @@ import { FormFieldComponent } from '../../../../shared/components/form-field/for
 import { MetriqueFormComponent } from '../../../../shared/components/metrique-form/metrique-form.component';
 import { EnjeuService } from '../../../../core/services/enjeu.service';
 import { AdminService } from '../../../../core/services/admin.service';
+import { RhService } from '../../../../core/services/rh.service';
+import { PersonnePlan, Fonction } from '../../../../core/models/rh.model';
 import { CampanuleService } from '../../../../core/services/campanule.service';
 import { InventaireService } from '../../../../core/services/inventaire.service';
 import { SuiviInventaireDetail } from '../../../../core/models/inventaire.model';
@@ -131,6 +133,7 @@ export class OperationFormComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly enjeuService = inject(EnjeuService);
   private readonly adminService = inject(AdminService);
+  private readonly rhService = inject(RhService);
   private readonly campanuleService = inject(CampanuleService);
   private readonly inventaireService = inject(InventaireService);
   private readonly translate = inject(TranslateService);
@@ -500,6 +503,23 @@ export class OperationFormComponent implements OnInit {
   /** Budget par organisme (mode 'by_org', totaux) : key = `${yearIndex}-${organismeId}` */
   orgByOrgData: Record<string, { budget: number | null; etp: number | null }> = {};
 
+  // ---- Ressources humaines (#560) ----------------------------------------
+  // Le « travail prévisionnel » n'est plus un simple champ de jours : c'est une
+  // liste de lignes RH (personne OU fonction × jours par année × financé/non).
+  // Chaque ligne porte un nombre de jours par année (clé = yearIndex), à l'image
+  // de la table budget.
+  personnes = signal<PersonnePlan[]>([]);
+  fonctions = this.rhService.fonctions;  // signal partagé du référentiel
+  newRhFonctionLibelle = signal<string>('');
+  isCreatingRhFonction = signal(false);
+
+  rhLines: Array<{
+    id_personne_plan: number | null;
+    id_fonction: number | null;
+    finance: boolean;
+    jours: Record<number, number | null>;
+  }> = [];
+
   // Available organismes derived from selected sites
   availableOrganismes = computed(() => {
     this.selectedSiteIdsVersion(); // dependency trigger
@@ -795,6 +815,7 @@ export class OperationFormComponent implements OnInit {
     this.typeBudgets = {};
     this.directTotals = {};
     this.orgByOrgData = {};
+    this.rhLines = [];
     this.selectedSiteIds = {};
     this.selectedSiteIdsVersion.update(v => v + 1);
     this.pendingEmprise.set(undefined);
@@ -859,6 +880,13 @@ export class OperationFormComponent implements OnInit {
         next: (plan) => {
           this.planId.set(plan.id_pg);
           this.planNom.set(plan.nom);
+          // #560 — personnes du PG + référentiel de fonctions pour la saisie RH
+          this.rhService.getPersonnesByPlan(plan.id_pg).subscribe(
+            (list) => this.personnes.set(list),
+          );
+          if (this.fonctions().length === 0) {
+            this.rhService.loadFonctions().subscribe();
+          }
           this.applyPlanReadOnly(plan.statut);
           this.computeYears(plan.annee_debut, plan.annee_fin);
           // Extract plan sites
@@ -1266,6 +1294,32 @@ export class OperationFormComponent implements OnInit {
               etp: org.etp != null ? parseFloat(String(org.etp)) : null,
             };
           }
+        }
+      }
+    }
+
+    // #560 — Restore RH lines: group server rh_lignes across years by
+    // (personne / fonction / financé) into rows carrying a jours per year.
+    if (op.operation_annees && op.operation_annees.length > 0) {
+      this.rhLines = [];
+      const rhMap = new Map<string, (typeof this.rhLines)[number]>();
+      for (const serverAnnee of op.operation_annees) {
+        const yearIdx = this.operationAnnees.findIndex(a => a.annee === serverAnnee.annee);
+        if (yearIdx < 0 || !serverAnnee.rh_lignes) continue;
+        for (const l of serverAnnee.rh_lignes) {
+          const key = `${l.id_personne_plan ?? ''}|${l.id_fonction ?? ''}|${l.finance}`;
+          let line = rhMap.get(key);
+          if (!line) {
+            line = {
+              id_personne_plan: l.id_personne_plan ?? null,
+              id_fonction: l.id_fonction ?? null,
+              finance: !!l.finance,
+              jours: {},
+            };
+            rhMap.set(key, line);
+            this.rhLines.push(line);
+          }
+          line.jours[yearIdx] = l.jours != null ? parseFloat(String(l.jours)) : null;
         }
       }
     }
@@ -1734,6 +1788,19 @@ export class OperationFormComponent implements OnInit {
         annee: a.annee,
         periodicite: a.periodicite,
         periodicite_mensuelle: { ...this.programmationMensuelleDefaut },
+        // #560 — lignes RH de l'année (les lignes sans jours pour cette année
+        // sont ignorées). Indépendant du mode de ventilation budgétaire.
+        rh_lignes: this.rhLines
+          .map(l => ({
+            id_personne_plan: l.id_personne_plan,
+            id_fonction: l.id_fonction,
+            jours: l.jours[idx] ?? null,
+            finance: l.finance,
+          }))
+          // Une ligne sans personne ni fonction reste valide (« temps non
+          // affecté » — état des saisies converties depuis l'ancien champ
+          // `etp`). Seul le nombre de jours est discriminant.
+          .filter(l => l.jours != null),
       };
 
       if (mode === 'none') {
@@ -1789,6 +1856,7 @@ export class OperationFormComponent implements OnInit {
     const hasAnneeData = anneesToSave.some(
       a => a.periodicite || a.budget != null || a.etp != null ||
         a.organismes.length > 0 ||
+        a.rh_lignes.length > 0 ||
         Object.values(a.periodicite_mensuelle).some(v => v)
     );
     if (hasAnneeData) {
@@ -2700,6 +2768,77 @@ export class OperationFormComponent implements OnInit {
     }
     if (polygons.length === 0) return null;
     return { type: 'MultiPolygon', coordinates: polygons };
+  }
+
+  // ════════════════════════════════════════════════
+  // Ressources humaines (#560) — lignes RH par année
+  // ════════════════════════════════════════════════
+
+  addRhLine(): void {
+    this.rhLines = [
+      ...this.rhLines,
+      { id_personne_plan: null, id_fonction: null, finance: true, jours: {} },
+    ];
+  }
+
+  removeRhLine(index: number): void {
+    this.rhLines = this.rhLines.filter((_, i) => i !== index);
+  }
+
+  /** Valeur encodée de la cible d'une ligne : 'p:<id>' | 'f:<id>' | ''. */
+  rhTargetValue(line: { id_personne_plan: number | null; id_fonction: number | null }): string {
+    if (line.id_personne_plan != null) return `p:${line.id_personne_plan}`;
+    if (line.id_fonction != null) return `f:${line.id_fonction}`;
+    return '';
+  }
+
+  setRhTarget(index: number, value: string): void {
+    const line = this.rhLines[index];
+    if (!line) return;
+    if (value && value.startsWith('p:')) {
+      line.id_personne_plan = parseInt(value.slice(2), 10);
+      line.id_fonction = null;
+    } else if (value && value.startsWith('f:')) {
+      const fid = parseInt(value.slice(2), 10);
+      line.id_fonction = fid;
+      line.id_personne_plan = null;
+      // Défaut financé/non financé porté par la fonction.
+      const f = this.fonctions().find(x => x.id_fonction === fid);
+      if (f) line.finance = f.finance_par_defaut;
+    } else {
+      line.id_personne_plan = null;
+      line.id_fonction = null;
+    }
+  }
+
+  getRhJours(index: number, yearIdx: number): number | null {
+    return this.rhLines[index]?.jours[yearIdx] ?? null;
+  }
+
+  setRhJours(index: number, yearIdx: number, value: string): void {
+    const line = this.rhLines[index];
+    if (!line) return;
+    line.jours[yearIdx] = this.parseDecimal(value);
+    this.autoCheckPeriodicite(yearIdx);
+  }
+
+  /** Total des jours RH d'une année (toutes lignes confondues). */
+  getRhYearTotal(yearIdx: number): number {
+    return this.rhLines.reduce((sum, l) => sum + (l.jours[yearIdx] || 0), 0);
+  }
+
+  /** Crée une fonction à la volée et l'ajoute au référentiel partagé. */
+  createRhFonction(): void {
+    const libelle = this.newRhFonctionLibelle().trim();
+    if (!libelle || this.isCreatingRhFonction()) return;
+    this.isCreatingRhFonction.set(true);
+    this.rhService.createFonction(libelle).subscribe({
+      next: () => {
+        this.newRhFonctionLibelle.set('');
+        this.isCreatingRhFonction.set(false);
+      },
+      error: () => this.isCreatingRhFonction.set(false),
+    });
   }
 
   // ════════════════════════════════════════════════

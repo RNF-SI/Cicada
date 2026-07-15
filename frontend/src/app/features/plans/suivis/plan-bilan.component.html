@@ -385,6 +385,30 @@
                   {{ e > 0 ? '+' : '' }}{{ e | number:'1.0-1':'fr-FR' }}%
                 </p>
               }
+
+              <!-- #560 — valorisation du temps financé / non financé
+                   (écovolontaires, bénévoles, partenaires…). -->
+              <table class="rh-split">
+                <thead>
+                  <tr>
+                    <th></th>
+                    <th>{{ 'plans.suivis.bilan.summary.rhPrevisionnel' | translate }}</th>
+                    <th>{{ 'plans.suivis.bilan.summary.rhRealise' | translate }}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>{{ 'plans.rh.finance' | translate }}</td>
+                    <td>{{ b.rh.previsionnel_finance | number:'1.0-1':'fr-FR' }} j</td>
+                    <td>{{ b.rh.realise_finance | number:'1.0-1':'fr-FR' }} j</td>
+                  </tr>
+                  <tr class="non-finance">
+                    <td>{{ 'plans.rh.nonFinance' | translate }}</td>
+                    <td>{{ b.rh.previsionnel_non_finance | number:'1.0-1':'fr-FR' }} j</td>
+                    <td>{{ b.rh.realise_non_finance | number:'1.0-1':'fr-FR' }} j</td>
+                  </tr>
+                </tbody>
+              </table>
             </article>
           </div>
 

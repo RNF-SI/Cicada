@@ -700,22 +700,6 @@
                                 </td>
                               }
                             </tr>
-                            <!-- Travail prévisionnel (jours) -->
-                            <tr>
-                              <td class="label-cell label-indent">{{ 'enjeux.operations.travailPrevisionnel' | translate }}</td>
-                              @for (annee of operationAnnees; track annee.annee; let i = $index) {
-                                <td>
-                                  <div class="prog-input-wrapper">
-                                    <input type="text" inputmode="decimal"
-                                           class="prog-input prog-input-suffixed"
-                                           [disabled]="isYearLocked(i)"
-                                           [value]="formatBudget(getOrgBudget(i, org.id_organisme).etp)"
-                                           (change)="updateOrgEtp(i, org.id_organisme, $any($event.target).value)">
-                                    <span class="prog-input-suffix">j</span>
-                                  </div>
-                                </td>
-                              }
-                            </tr>
                           }
 
                           <!-- TOTAL cross-organismes (computed) -->
@@ -729,14 +713,6 @@
                             @for (annee of operationAnnees; track annee.annee; let i = $index) {
                               <td class="computed-cell">
                                 {{ getYearTotalBudget(i) | number:'1.0-2' }} €
-                              </td>
-                            }
-                          </tr>
-                          <tr>
-                            <td class="label-cell label-indent text-bold">{{ 'enjeux.operations.travailPrevisionnel' | translate }}</td>
-                            @for (annee of operationAnnees; track annee.annee; let i = $index) {
-                              <td class="computed-cell">
-                                {{ getYearTotalEtp(i) | number:'1.0-2' }} j
                               </td>
                             }
                           </tr>
@@ -765,22 +741,6 @@
                                 </td>
                               }
                             </tr>
-                            <!-- Travail par organisme -->
-                            <tr>
-                              <td class="label-cell label-indent">{{ 'enjeux.operations.travailPrevisionnel' | translate }}</td>
-                              @for (annee of operationAnnees; track annee.annee; let i = $index) {
-                                <td>
-                                  <div class="prog-input-wrapper">
-                                    <input type="text" inputmode="decimal"
-                                           class="prog-input prog-input-suffixed"
-                                           [disabled]="isYearLocked(i)"
-                                           [value]="formatBudget(getOrgByOrgData(i, org.id_organisme).etp)"
-                                           (change)="updateOrgByOrgEtp(i, org.id_organisme, $any($event.target).value)">
-                                    <span class="prog-input-suffix">j</span>
-                                  </div>
-                                </td>
-                              }
-                            </tr>
                           }
                           <!-- TOTAL cross-organismes -->
                           <tr class="total-group-header">
@@ -793,14 +753,6 @@
                             @for (annee of operationAnnees; track annee.annee; let i = $index) {
                               <td class="computed-cell">
                                 {{ getByOrgYearTotalBudget(i) | number:'1.0-2' }} €
-                              </td>
-                            }
-                          </tr>
-                          <tr>
-                            <td class="label-cell label-indent text-bold">{{ 'enjeux.operations.travailPrevisionnel' | translate }}</td>
-                            @for (annee of operationAnnees; track annee.annee; let i = $index) {
-                              <td class="computed-cell">
-                                {{ getByOrgYearTotalEtp(i) | number:'1.0-2' }} j
                               </td>
                             }
                           </tr>
@@ -845,21 +797,6 @@
                               </td>
                             }
                           </tr>
-                          <tr>
-                            <td class="label-cell label-indent">{{ 'enjeux.operations.travailPrevisionnel' | translate }}</td>
-                            @for (annee of operationAnnees; track annee.annee; let i = $index) {
-                              <td>
-                                <div class="prog-input-wrapper">
-                                  <input type="text" inputmode="decimal"
-                                         class="prog-input prog-input-suffixed"
-                                           [disabled]="isYearLocked(i)"
-                                         [value]="formatBudget(getTypeBudget(i).etp)"
-                                         (change)="updateTypeEtp(i, $any($event.target).value)">
-                                  <span class="prog-input-suffix">j</span>
-                                </div>
-                              </td>
-                            }
-                          </tr>
 
                         <!-- MODE 1: Pas de ventilation (totaux directs) -->
                         } @else if (ventilationMode() === 'none') {
@@ -874,21 +811,6 @@
                                          [value]="formatBudget(getDirectTotal(i).budget)"
                                          (change)="updateDirectBudget(i, $any($event.target).value)">
                                   <span class="prog-input-suffix">€</span>
-                                </div>
-                              </td>
-                            }
-                          </tr>
-                          <tr>
-                            <td class="label-cell label-indent text-bold">{{ 'enjeux.operations.progTravail' | translate }}</td>
-                            @for (annee of operationAnnees; track annee.annee; let i = $index) {
-                              <td>
-                                <div class="prog-input-wrapper">
-                                  <input type="text" inputmode="decimal"
-                                         class="prog-input prog-input-suffixed"
-                                           [disabled]="isYearLocked(i)"
-                                         [value]="formatBudget(getDirectTotal(i).etp)"
-                                         (change)="updateDirectEtp(i, $any($event.target).value)">
-                                  <span class="prog-input-suffix">j</span>
                                 </div>
                               </td>
                             }
@@ -911,21 +833,6 @@
                               </td>
                             }
                           </tr>
-                          <tr>
-                            <td class="label-cell">{{ 'enjeux.operations.progTravail' | translate }}</td>
-                            @for (annee of operationAnnees; track annee.annee; let i = $index) {
-                              <td>
-                                <div class="prog-input-wrapper">
-                                  <input type="text" inputmode="decimal"
-                                         class="prog-input prog-input-suffixed"
-                                           [disabled]="isYearLocked(i)"
-                                         [value]="formatBudget(annee.etp)"
-                                         (change)="updateEtp(i, $any($event.target).value)">
-                                  <span class="prog-input-suffix">j</span>
-                                </div>
-                              </td>
-                            }
-                          </tr>
                         }
 
                         <!-- Row: Dupliquer -->
@@ -942,6 +849,118 @@
                     </table>
                     <div class="prog-bar"></div>
                   </div>
+                </div>
+
+                <!-- #560 — Ressources humaines : temps de travail par personne /
+                     fonction, financé ou non, réparti par année. Remplace le
+                     « travail prévisionnel (jours) » plat. -->
+                <div class="programmation-section rh-section">
+                  <h4 class="rh-title">{{ 'enjeux.operations.rh.title' | translate }}</h4>
+                  <p class="mensuelle-hint">{{ 'enjeux.operations.rh.hint' | translate }}</p>
+
+                  @if (operationAnnees.length > 0) {
+                    <div class="programmation-table">
+                      <table>
+                        <thead>
+                          <tr class="header-row-primary">
+                            <th class="label-cell rh-target-col">{{ 'enjeux.operations.rh.target' | translate }}</th>
+                            <th class="rh-finance-col">{{ 'plans.rh.finance' | translate }}</th>
+                            @for (annee of operationAnnees; track annee.annee) {
+                              <th>{{ annee.annee }}</th>
+                            }
+                            <th class="rh-actions-col"></th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          @for (line of rhLines; track $index; let li = $index) {
+                            <tr>
+                              <td class="label-cell rh-target-col">
+                                <mat-select class="rh-target-select"
+                                            [value]="rhTargetValue(line)"
+                                            (valueChange)="setRhTarget(li, $event)"
+                                            [disabled]="isReadOnly()"
+                                            [placeholder]="'enjeux.operations.rh.selectTarget' | translate">
+                                  <mat-optgroup [label]="'enjeux.operations.rh.groupPersonnes' | translate">
+                                    @for (p of personnes(); track p.id_personne_plan) {
+                                      <mat-option [value]="'p:' + p.id_personne_plan">{{ p.nom }}</mat-option>
+                                    }
+                                  </mat-optgroup>
+                                  <mat-optgroup [label]="'enjeux.operations.rh.groupFonctions' | translate">
+                                    @for (f of fonctions(); track f.id_fonction) {
+                                      <mat-option [value]="'f:' + f.id_fonction">{{ f.libelle }}</mat-option>
+                                    }
+                                  </mat-optgroup>
+                                </mat-select>
+                              </td>
+                              <td class="rh-finance-col">
+                                <app-checkbox
+                                  [checked]="line.finance"
+                                  [disabled]="isReadOnly()"
+                                  (checkedChange)="line.finance = $event">
+                                </app-checkbox>
+                              </td>
+                              @for (annee of operationAnnees; track annee.annee; let i = $index) {
+                                <td>
+                                  <div class="prog-input-wrapper">
+                                    <input type="text" inputmode="decimal"
+                                           class="prog-input prog-input-suffixed"
+                                           [disabled]="isYearLocked(i)"
+                                           [value]="formatBudget(getRhJours(li, i))"
+                                           (change)="setRhJours(li, i, $any($event.target).value)">
+                                    <span class="prog-input-suffix">j</span>
+                                  </div>
+                                </td>
+                              }
+                              <td class="rh-actions-col">
+                                @if (!isReadOnly()) {
+                                  <button type="button" class="rh-remove-btn"
+                                          (click)="removeRhLine(li)"
+                                          [title]="'common.actions.delete' | translate">
+                                    <i class="fi fi-rr-trash"></i>
+                                  </button>
+                                }
+                              </td>
+                            </tr>
+                          }
+
+                          <!-- Total jours par année -->
+                          <tr>
+                            <td class="label-cell text-bold rh-target-col">{{ 'enjeux.operations.rh.total' | translate }}</td>
+                            <td class="rh-finance-col"></td>
+                            @for (annee of operationAnnees; track annee.annee; let i = $index) {
+                              <td class="computed-cell">{{ getRhYearTotal(i) | number:'1.0-2' }} j</td>
+                            }
+                            <td class="rh-actions-col"></td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+
+                    @if (!isReadOnly()) {
+                      <div class="rh-controls">
+                        <button type="button" mat-stroked-button class="rh-add-btn" (click)="addRhLine()">
+                          <i class="fi fi-rr-plus"></i>
+                          {{ 'enjeux.operations.rh.addLine' | translate }}
+                        </button>
+
+                        <div class="rh-create-fonction">
+                          <input type="text"
+                                 [ngModel]="newRhFonctionLibelle()"
+                                 [ngModelOptions]="{ standalone: true }"
+                                 (ngModelChange)="newRhFonctionLibelle.set($event)"
+                                 (keyup.enter)="createRhFonction()"
+                                 [placeholder]="'enjeux.operations.rh.newFonctionPlaceholder' | translate">
+                          <button type="button" mat-button
+                                  [disabled]="!newRhFonctionLibelle().trim() || isCreatingRhFonction()"
+                                  (click)="createRhFonction()">
+                            {{ 'enjeux.operations.rh.createFonction' | translate }}
+                          </button>
+                        </div>
+                      </div>
+                    }
+                  } @else {
+                    <p class="mensuelle-hint">{{ 'enjeux.operations.rh.noYears' | translate }}</p>
+                  }
                 </div>
 
                 <!-- Programmation mensuelle (mêmes mois chaque année) -->

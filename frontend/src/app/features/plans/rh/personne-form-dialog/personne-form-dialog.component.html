@@ -1,0 +1,109 @@
+<h2 mat-dialog-title>
+  {{ (isEdit ? 'plans.personnes.form.editTitle' : 'plans.personnes.form.createTitle') | translate }}
+</h2>
+
+<mat-dialog-content class="personne-form">
+  <app-form-field
+    [label]="'plans.personnes.form.nom' | translate"
+    [required]="true"
+    [error]="nomInvalid() ? ('plans.personnes.form.nomRequired' | translate) : null">
+    <input
+      type="text"
+      [ngModel]="nom()"
+      (ngModelChange)="nom.set($event)"
+      [placeholder]="'plans.personnes.form.nomPlaceholder' | translate" />
+  </app-form-field>
+
+  <div class="form-row">
+    <app-form-field [label]="'plans.personnes.form.dateArrivee' | translate">
+      <input type="date" [ngModel]="dateArrivee()" (ngModelChange)="dateArrivee.set($event)" />
+    </app-form-field>
+    <app-form-field [label]="'plans.personnes.form.dateDepart' | translate">
+      <input type="date" [ngModel]="dateDepart()" (ngModelChange)="dateDepart.set($event)" />
+    </app-form-field>
+  </div>
+
+  <!-- Fonctions occupées -->
+  <div class="fonctions-block">
+    <label class="block-label">{{ 'plans.personnes.form.fonctions' | translate }}</label>
+
+    @if (fonctions().length === 0) {
+      <p class="text-mention empty-hint">{{ 'plans.personnes.form.noFonction' | translate }}</p>
+    }
+
+    @for (row of fonctions(); track row.id_fonction) {
+      <div class="fonction-row">
+        <span class="fonction-name">{{ row.libelle }}</span>
+        <app-tag
+          size="sm"
+          [variant]="row.finance_par_defaut ? 'info' : 'muted'"
+          [label]="(row.finance_par_defaut ? 'plans.rh.finance' : 'plans.rh.nonFinance') | translate">
+        </app-tag>
+        <div class="pourcentage-field">
+          <input
+            type="number" min="0" max="100" step="1"
+            [ngModel]="row.pourcentage"
+            (ngModelChange)="setPourcentage(row.id_fonction, $event)"
+            [placeholder]="'plans.personnes.form.quotite' | translate" />
+          <span class="suffix">%</span>
+        </div>
+        <button type="button" class="icon-btn-flat" (click)="removeFonction(row.id_fonction)"
+                [title]="'common.actions.delete' | translate">
+          <i class="fi fi-rr-trash"></i>
+        </button>
+      </div>
+    }
+
+    <!-- Ajouter une fonction existante -->
+    <div class="add-fonction-row">
+      <mat-select
+        class="fonction-select"
+        [value]="selectedFonctionId()"
+        (valueChange)="selectedFonctionId.set($event)"
+        [placeholder]="'plans.personnes.form.selectFonction' | translate">
+        @for (f of availableFonctions(); track f.id_fonction) {
+          <mat-option [value]="f.id_fonction">{{ f.libelle }}</mat-option>
+        }
+      </mat-select>
+      <button type="button" mat-stroked-button
+              [disabled]="selectedFonctionId() == null" (click)="addFonction()">
+        {{ 'common.actions.add' | translate }}
+      </button>
+    </div>
+
+    <!-- Créer une fonction à la volée -->
+    <div class="create-fonction-row">
+      <input
+        type="text"
+        [ngModel]="newFonctionLibelle()"
+        (ngModelChange)="newFonctionLibelle.set($event)"
+        (keyup.enter)="createFonction()"
+        [placeholder]="'plans.personnes.form.newFonctionPlaceholder' | translate" />
+      <button type="button" mat-button class="create-btn"
+              [disabled]="!newFonctionLibelle().trim() || isCreatingFonction()"
+              (click)="createFonction()">
+        <i class="fi fi-rr-plus"></i>
+        {{ 'plans.personnes.form.createFonction' | translate }}
+      </button>
+    </div>
+  </div>
+
+  @if (errorMessage()) {
+    <div class="info-block info-block-error">
+      {{ 'plans.personnes.form.saveError' | translate }}
+    </div>
+  }
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-stroked-button (click)="cancel()" [disabled]="isSaving()">
+    {{ 'common.actions.cancel' | translate }}
+  </button>
+  <button mat-flat-button color="primary" (click)="save()" [disabled]="isSaving()">
+    @if (isSaving()) {
+      <mat-spinner diameter="18"></mat-spinner>
+    } @else {
+      {{ 'common.actions.save' | translate }}
+    }
+  </button>
+</mat-dialog-actions>

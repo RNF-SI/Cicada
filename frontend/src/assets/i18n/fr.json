@@ -1372,6 +1372,35 @@
   },
   "plans": {
     "title": "Plans de gestion",
+    "rh": {
+      "finance": "Financé",
+      "nonFinance": "Non financé"
+    },
+    "personnes": {
+      "sidebarEntry": "Personnes / RH",
+      "title": "Personnes / Ressources humaines",
+      "intro": "Gérez les personnes rattachées à ce plan de gestion et leurs fonctions. Elles peuvent ensuite être affectées au temps de travail des fiches actions.",
+      "addButton": "Ajouter une personne",
+      "empty": "Aucune personne n'est rattachée à ce plan pour le moment.",
+      "loadError": "Impossible de charger les personnes.",
+      "deleteConfirm": "Supprimer « {{nom}} » de ce plan de gestion ?",
+      "form": {
+        "createTitle": "Ajouter une personne",
+        "editTitle": "Modifier la personne",
+        "nom": "Nom",
+        "nomPlaceholder": "Nom et prénom",
+        "nomRequired": "Le nom est obligatoire.",
+        "dateArrivee": "Date d'arrivée",
+        "dateDepart": "Date de départ",
+        "fonctions": "Fonctions occupées",
+        "noFonction": "Aucune fonction ajoutée.",
+        "quotite": "Quotité",
+        "selectFonction": "Choisir une fonction…",
+        "newFonctionPlaceholder": "Nouvelle fonction…",
+        "createFonction": "Créer la fonction",
+        "saveError": "L'enregistrement a échoué. Veuillez réessayer."
+      }
+    },
     "newPlan": "NOUVEAU PLAN DE GESTION",
     "redacteurPrincipal": {
       "banner": "Vous avez le rôle de rédacteur général de l'instance de Cicada, vous pouvez éditer tous les plans de gestion."
@@ -2061,6 +2090,17 @@
           "realisee": "Réalisée",
           "partielle": "Partiellement réalisée",
           "nonRealisee": "Non réalisée"
+        },
+        "rh": {
+          "title": "Temps de travail réalisé",
+          "hint": "Qui a réellement réalisé l'action en {{year}}, et combien de jours. Les lignes prévues sont pré-remplies ; vous pouvez les corriger, en supprimer ou en ajouter.",
+          "empty": "Aucun temps de travail prévu pour cette année. Ajoutez une ligne si l'action a mobilisé du temps.",
+          "target": "Personne / fonction",
+          "selectTarget": "Choisir…",
+          "prevu": "Prévu",
+          "realise": "Réalisé",
+          "total": "TOTAL",
+          "addLine": "Ajouter une ligne"
         }
       },
       "indicateur": {
@@ -3251,6 +3291,19 @@
       "sitesLies": "L'action est liée au/aux",
       "progBudget": "Budget prévisionnel (€)",
       "progTravail": "Travail prévisionnel (jours)",
+      "rh": {
+        "title": "Ressources humaines (temps de travail)",
+        "hint": "Répartissez le temps de travail prévisionnel par personne ou fonction, financé ou non, sur chaque année. Les personnes sont gérées sur la page « Personnes / RH » du plan.",
+        "target": "Personne / fonction",
+        "selectTarget": "Choisir…",
+        "groupPersonnes": "Personnes du plan",
+        "groupFonctions": "Fonctions",
+        "total": "Total (jours)",
+        "addLine": "Ajouter une ligne",
+        "newFonctionPlaceholder": "Nouvelle fonction…",
+        "createFonction": "Créer la fonction",
+        "noYears": "Renseignez d'abord la période de l'action pour saisir le temps de travail."
+      },
       "budgetFonctionnement": "Budget prév. OG (€) Fonctionnement",
       "budgetInvestissement": "Budget prév. OG (€) Investissement",
       "budgetTotal": "Budget prév. OG (€) TOTAL",

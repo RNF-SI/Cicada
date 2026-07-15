@@ -80,6 +80,12 @@ export const PLANS_ROUTES: Routes = [
     canActivate: [authGuard]
   },
   {
+    // #560 — Personnes / ressources humaines du plan de gestion
+    path: ':slug/personnes',
+    loadComponent: () => import('./rh/plan-personnes.component').then(m => m.PlanPersonnesComponent),
+    canActivate: [authGuard]
+  },
+  {
     path: ':slug',
     component: PlanDetailComponent,
     canActivate: [authGuard]

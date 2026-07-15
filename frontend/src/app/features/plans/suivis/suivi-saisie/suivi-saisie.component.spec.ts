@@ -6,6 +6,7 @@
  * le composant complet.
  */
 import { computed, signal } from '@angular/core';
+import { FormArray, FormBuilder, FormGroup } from '@angular/forms';
 import { SuiviSaisieComponent } from './suivi-saisie.component';
 
 /** Faux AbstractControl minimal : seul `value` est lu par les helpers. */
@@ -204,6 +205,192 @@ describe('SuiviSaisieComponent — indicateurs de réponse', () => {
       c.pendingGeomRealisee.set(PLANNED);
       c.undoCopyPlannedEmprise();
       expect(c.pendingGeomRealisee()).toBe(PLANNED);
+    });
+  });
+});
+
+// -----------------------------------------------------------------------------
+// #560 — saisie du temps de travail réalisé (lignes RH)
+// -----------------------------------------------------------------------------
+describe('SuiviSaisieComponent — lignes RH (#560)', () => {
+  const fb = new FormBuilder();
+
+  /**
+   * Composant minimal : `hydrateRhArray` / `sumRh` ne touchent que le
+   * FormArray `rhLignes` et le FormBuilder.
+   */
+  function rhComp(): any {
+    const c: any = comp();
+    c.fb = fb;
+    c.form = fb.group({ rhLignes: fb.array<FormGroup>([]) });
+    Object.defineProperty(c, 'rhLignesFA', {
+      get: () => c.form.get('rhLignes') as FormArray<FormGroup>,
+    });
+    return c;
+  }
+
+  // Prévu : la personne 7 (financée) sur 8 j ; un bénévole (non financé) sur 5 j.
+  const P1 = { id_operation_annee_rh: 11, id_personne_plan: 7, id_fonction: null, jours: '8.00', finance: true };
+  const F_BENEVOLE = { id_operation_annee_rh: 12, id_personne_plan: null, id_fonction: 3, jours: '5.00', finance: false };
+  /** Réel rattaché à une ligne prévue via la FK. */
+  const reelDe = (prev: any, extra: any) => ({ ...prev, ...extra });
+
+  describe('hydrateRhArray', () => {
+    it('pré-remplit le prévu et y fusionne le réalisé correspondant', () => {
+      const c = rhComp();
+      c.hydrateRhArray({
+        rh_lignes: [P1],
+        realisation: { rh_lignes: [reelDe(P1, { jours: '6.50' })] },
+      });
+      expect(c.rhLignesFA.length).toBe(1);
+      const v = c.rhLignesFA.at(0).value;
+      expect(v.id_personne_plan).toBe(7);
+      expect(v.plan_jours).toBe('8.00');
+      expect(v.jours).toBe('6.50');
+    });
+
+    it('laisse le réalisé vide quand rien n\'a été saisi', () => {
+      const c = rhComp();
+      c.hydrateRhArray({ rh_lignes: [P1], realisation: null });
+      expect(c.rhLignesFA.at(0).value.jours).toBeNull();
+      expect(c.rhLignesFA.at(0).value.plan_jours).toBe('8.00');
+    });
+
+    it('apparie via la FK, quel que soit l\'ordre renvoyé', () => {
+      const c = rhComp();
+      c.hydrateRhArray({
+        rh_lignes: [P1, F_BENEVOLE],
+        realisation: { rh_lignes: [reelDe(F_BENEVOLE, { jours: '4.25' }), reelDe(P1, { jours: '9.00' })] },
+      });
+      expect(c.rhLignesFA.at(0).value.jours).toBe('9.00');
+      expect(c.rhLignesFA.at(1).value.jours).toBe('4.25');
+    });
+
+    it('garde une seule ligne quand le suivi ré-attribue le temps à quelqu\'un d\'autre', () => {
+      // Le prévu était « personne 7, financé » ; en réalité c'est un bénévole.
+      // La FK maintient le lien : une ligne, pas un prévu orphelin + un réel isolé.
+      const c = rhComp();
+      c.hydrateRhArray({
+        rh_lignes: [P1],
+        realisation: {
+          rh_lignes: [{
+            id_operation_annee_rh: 11,
+            id_personne_plan: null, id_fonction: 3, jours: '7.50', finance: false,
+          }],
+        },
+      });
+      expect(c.rhLignesFA.length).toBe(1);
+      const v = c.rhLignesFA.at(0).value;
+      expect(v.id_fonction).toBe(3);        // cible = celle du réel
+      expect(v.id_personne_plan).toBeNull();
+      expect(v.finance).toBe(false);        // financement du réel
+      expect(v.plan_jours).toBe('8.00');    // référence du prévu conservée
+      expect(v.plan_finance).toBe(true);    // …avec SON financement d'origine
+    });
+
+    it('ajoute les lignes réalisées sans lien (réalisé non prévu)', () => {
+      const c = rhComp();
+      c.hydrateRhArray({
+        rh_lignes: [P1],
+        realisation: {
+          rh_lignes: [{ id_operation_annee_rh: null, id_personne_plan: 42, id_fonction: null, jours: '3.00', finance: true }],
+        },
+      });
+      expect(c.rhLignesFA.length).toBe(2);
+      const ajoutee = c.rhLignesFA.at(1).value;
+      expect(ajoutee.id_personne_plan).toBe(42);
+      expect(ajoutee.plan_jours).toBeNull(); // non prévue
+      expect(ajoutee.jours).toBe('3.00');
+    });
+
+    it('vide le tableau sans année active', () => {
+      const c = rhComp();
+      c.hydrateRhArray({ rh_lignes: [P1], realisation: null });
+      c.hydrateRhArray(null);
+      expect(c.rhLignesFA.length).toBe(0);
+    });
+  });
+
+  describe('sumRh', () => {
+    function seeded() {
+      const c = rhComp();
+      c.hydrateRhArray({
+        rh_lignes: [P1, F_BENEVOLE],
+        realisation: { rh_lignes: [reelDe(P1, { jours: '6.00' }), reelDe(F_BENEVOLE, { jours: '4.00' })] },
+      });
+      return c;
+    }
+
+    it('totalise le prévu et le réalisé', () => {
+      const c = seeded();
+      expect(c.sumRh('plan_jours')).toBe(13);
+      expect(c.sumRh('jours')).toBe(10);
+    });
+
+    it('ventile financé / non financé — la valorisation visée par #560', () => {
+      const c = seeded();
+      expect(c.sumRh('plan_jours', true)).toBe(8);
+      expect(c.sumRh('plan_jours', false)).toBe(5);
+      expect(c.sumRh('jours', true)).toBe(6);
+      expect(c.sumRh('jours', false)).toBe(4);
+    });
+
+    it('ventile chaque colonne selon SON financement après ré-attribution', () => {
+      // Prévu : 8 j financés. Réel : 7,5 j par un bénévole (non financé).
+      // Le prévisionnel doit rester du côté financé.
+      const c = rhComp();
+      c.hydrateRhArray({
+        rh_lignes: [P1],
+        realisation: {
+          rh_lignes: [{ id_operation_annee_rh: 11, id_personne_plan: null, id_fonction: 3, jours: '7.50', finance: false }],
+        },
+      });
+      expect(c.sumRh('plan_jours', true)).toBe(8);
+      expect(c.sumRh('plan_jours', false)).toBe(0);
+      expect(c.sumRh('jours', true)).toBe(0);
+      expect(c.sumRh('jours', false)).toBe(7.5);
+    });
+
+    it('ignore les cellules vides', () => {
+      const c = rhComp();
+      c.hydrateRhArray({ rh_lignes: [P1], realisation: null });
+      expect(c.sumRh('jours')).toBe(0);
+    });
+  });
+
+  describe('setRhTarget', () => {
+    it('bascule vers une personne et efface la fonction', () => {
+      const c = rhComp();
+      c.addRhLigne();
+      const ctrl = c.rhLignesFA.at(0);
+      ctrl.get('id_fonction')!.setValue(3);
+      c.setRhTarget(ctrl, 'p:7');
+      expect(ctrl.value.id_personne_plan).toBe(7);
+      expect(ctrl.value.id_fonction).toBeNull();
+    });
+
+    it('applique le financement par défaut de la fonction choisie', () => {
+      const c = rhComp();
+      c.fonctions = signal([{ id_fonction: 3, libelle: 'Bénévole', finance_par_defaut: false }]);
+      c.addRhLigne();
+      const ctrl = c.rhLignesFA.at(0);
+      expect(ctrl.value.finance).toBe(true);
+      c.setRhTarget(ctrl, 'f:3');
+      expect(ctrl.value.id_fonction).toBe(3);
+      expect(ctrl.value.id_personne_plan).toBeNull();
+      expect(ctrl.value.finance).toBe(false);
+    });
+
+    it('encode la cible courante', () => {
+      const c = rhComp();
+      c.addRhLigne();
+      const ctrl = c.rhLignesFA.at(0);
+      expect(c.rhTargetValue(ctrl)).toBe('');
+      ctrl.get('id_personne_plan')!.setValue(7);
+      expect(c.rhTargetValue(ctrl)).toBe('p:7');
+      ctrl.get('id_personne_plan')!.setValue(null);
+      ctrl.get('id_fonction')!.setValue(3);
+      expect(c.rhTargetValue(ctrl)).toBe('f:3');
     });
   });
 });

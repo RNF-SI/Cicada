@@ -19,6 +19,7 @@ import {
   AbstractControl, FormArray, FormBuilder, FormGroup, FormsModule, ReactiveFormsModule,
 } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
+import { MatSelectModule } from '@angular/material/select';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
@@ -28,10 +29,13 @@ import { forkJoin, of } from 'rxjs';
 import { HeaderComponent } from '../../../../shared/components/header/header.component';
 import { PlanSidebarComponent } from '../../shared/plan-sidebar/plan-sidebar.component';
 import { FormFieldComponent } from '../../../../shared/components/form-field/form-field.component';
+import { CheckboxComponent } from '../../../../shared/components/checkbox/checkbox.component';
 import { EmpriseEditorComponent } from '../../../../shared/components/emprise-editor/emprise-editor.component';
 import { AdminService } from '../../../../core/services/admin.service';
 import { EnjeuService } from '../../../../core/services/enjeu.service';
 import { RealisationService } from '../../../../core/services/realisation.service';
+import { RhService } from '../../../../core/services/rh.service';
+import { PersonnePlan, OperationRHLigne } from '../../../../core/models/rh.model';
 import { Mesure, MesureCreatePayload } from '../../../../core/models/enjeu.model';
 import {
   Operation,
@@ -57,9 +61,10 @@ type ActionStatus = 'planned' | 'planned-realized' | 'planned-partial' | 'realiz
   imports: [
     CommonModule, RouterModule, FormsModule, ReactiveFormsModule,
     MatButtonModule, MatProgressSpinnerModule, MatSnackBarModule,
+    MatSelectModule,
     TranslateModule,
     MatTooltipModule,
-    HeaderComponent, PlanSidebarComponent, FormFieldComponent,
+    HeaderComponent, PlanSidebarComponent, FormFieldComponent, CheckboxComponent,
     EmpriseEditorComponent,
   ],
   templateUrl: './suivi-saisie.component.html',
@@ -74,6 +79,7 @@ export class SuiviSaisieComponent implements OnInit {
   private readonly adminService = inject(AdminService);
   private readonly enjeuService = inject(EnjeuService);
   private readonly realisationService = inject(RealisationService);
+  private readonly rhService = inject(RhService);
 
   // -------- Routing / context --------
   planSlug = signal<string | null>(null);
@@ -151,6 +157,8 @@ export class SuiviSaisieComponent implements OnInit {
     organismes: this.fb.array<FormGroup>([]),
     /** Une ligne par métrique liée à l'opération (indicateurs de réponse). */
     indicateurs: this.fb.array<FormGroup>([]),
+    /** #560 — une ligne par temps de travail réalisé (personne/fonction). */
+    rhLignes: this.fb.array<FormGroup>([]),
   });
 
   /** Helper d'accès typé aux FormArrays. */
@@ -160,6 +168,13 @@ export class SuiviSaisieComponent implements OnInit {
   get indicateursFA(): FormArray<FormGroup> {
     return this.form.get('indicateurs') as FormArray<FormGroup>;
   }
+  get rhLignesFA(): FormArray<FormGroup> {
+    return this.form.get('rhLignes') as FormArray<FormGroup>;
+  }
+
+  // #560 — référentiel RH pour les sélecteurs de la saisie du réalisé.
+  personnes = signal<PersonnePlan[]>([]);
+  fonctions = this.rhService.fonctions;
 
   /** Mesures existantes par metrique_id, pré-chargées au load. */
   private mesuresByMetrique = new Map<number, Mesure[]>();
@@ -417,6 +432,13 @@ export class SuiviSaisieComponent implements OnInit {
         this.planStatut.set(plan.statut ?? null);
         this.planYearStart.set(plan.annee_debut ?? null);
         this.planYearEnd.set(plan.annee_fin ?? null);
+        // #560 — personnes du PG + fonctions, pour la saisie du RH réalisé.
+        this.rhService.getPersonnesByPlan(plan.id_pg).subscribe(
+          (list) => this.personnes.set(list),
+        );
+        if (this.fonctions().length === 0) {
+          this.rhService.loadFonctions().subscribe();
+        }
         this.applyReadOnlyLock();
       },
       error: (err) => {
@@ -710,7 +732,130 @@ export class SuiviSaisieComponent implements OnInit {
       commentaires: r?.commentaires ?? '',
     });
     this.hydrateOrganismesArray(oa);
+    this.hydrateRhArray(oa);
     this.applyReadOnlyLock();
+  }
+
+  /**
+   * #560 — Reconstruit le FormArray RH de l'année active.
+   *
+   * On part des lignes RH **prévisionnelles** de l'année (qui était prévu, et
+   * combien de jours), et on y fusionne le **réalisé** déjà saisi, apparié via
+   * la FK `id_operation_annee_rh` portée par la ligne réelle. C'est ce lien —
+   * et non un rapprochement sur (personne, fonction, financé) — qui permet de
+   * ré-attribuer le temps au moment du suivi (« en fait c'est X qui l'a
+   * fait ») sans que le prévu et le réel se dissocient en deux lignes.
+   *
+   * Les lignes réelles sans lien (`id_operation_annee_rh` NULL) sont du temps
+   * réalisé non prévu : elles s'ajoutent à la suite, sans référence de prévu.
+   */
+  private hydrateRhArray(oa: OperationAnnee | null): void {
+    const fa = this.rhLignesFA;
+    while (fa.length) fa.removeAt(0);
+    if (!oa) return;
+
+    const reelles = oa.realisation?.rh_lignes ?? [];
+    const reelParPrevu = new Map<number, OperationRHLigne>();
+    for (const r of reelles) {
+      if (r.id_operation_annee_rh != null) reelParPrevu.set(r.id_operation_annee_rh, r);
+    }
+
+    for (const prev of oa.rh_lignes ?? []) {
+      const reel = prev.id_operation_annee_rh != null
+        ? reelParPrevu.get(prev.id_operation_annee_rh)
+        : undefined;
+      // La cible affichée est celle du réel dès qu'il existe (le suivi peut
+      // l'avoir ré-attribuée) ; sinon on propose celle du prévisionnel.
+      const source = reel ?? prev;
+      fa.push(this.fb.group({
+        id_operation_annee_rh: [prev.id_operation_annee_rh ?? null],
+        id_personne_plan: [source.id_personne_plan ?? null],
+        id_fonction: [source.id_fonction ?? null],
+        finance: [!!source.finance],
+        /** Prévu (lecture seule, référence affichée). */
+        plan_jours: [prev.jours ?? null],
+        /**
+         * Financement du PRÉVU, distinct de `finance` : une ré-attribution au
+         * suivi (prévu = garde financé, réel = bénévole) ne doit pas
+         * reclasser rétroactivement le prévisionnel dans les sous-totaux.
+         */
+        plan_finance: [!!prev.finance],
+        /** Réalisé (éditable). */
+        jours: [reel?.jours ?? null],
+      }));
+    }
+
+    for (const reel of reelles) {
+      if (reel.id_operation_annee_rh != null) continue;
+      fa.push(this.fb.group({
+        id_operation_annee_rh: [null],
+        id_personne_plan: [reel.id_personne_plan ?? null],
+        id_fonction: [reel.id_fonction ?? null],
+        finance: [!!reel.finance],
+        plan_jours: [null],
+        plan_finance: [!!reel.finance],
+        jours: [reel.jours ?? null],
+      }));
+    }
+  }
+
+  /** #560 — ajoute une ligne RH réalisée (temps non prévu). */
+  addRhLigne(): void {
+    this.rhLignesFA.push(this.fb.group({
+      id_operation_annee_rh: [null],
+      id_personne_plan: [null],
+      id_fonction: [null],
+      finance: [true],
+      plan_jours: [null],
+      plan_finance: [true],
+      jours: [null],
+    }));
+  }
+
+  removeRhLigne(index: number): void {
+    this.rhLignesFA.removeAt(index);
+  }
+
+  /** Valeur encodée de la cible d'une ligne RH : 'p:<id>' | 'f:<id>' | ''. */
+  rhTargetValue(ctrl: AbstractControl): string {
+    const p = ctrl.get('id_personne_plan')?.value;
+    const f = ctrl.get('id_fonction')?.value;
+    if (p != null) return `p:${p}`;
+    if (f != null) return `f:${f}`;
+    return '';
+  }
+
+  setRhTarget(ctrl: AbstractControl, value: string): void {
+    if (value && value.startsWith('p:')) {
+      ctrl.get('id_personne_plan')?.setValue(parseInt(value.slice(2), 10));
+      ctrl.get('id_fonction')?.setValue(null);
+    } else if (value && value.startsWith('f:')) {
+      const fid = parseInt(value.slice(2), 10);
+      ctrl.get('id_fonction')?.setValue(fid);
+      ctrl.get('id_personne_plan')?.setValue(null);
+      const f = this.fonctions().find((x) => x.id_fonction === fid);
+      if (f) ctrl.get('finance')?.setValue(f.finance_par_defaut);
+    } else {
+      ctrl.get('id_personne_plan')?.setValue(null);
+      ctrl.get('id_fonction')?.setValue(null);
+    }
+  }
+
+  /**
+   * Total RH de l'année pour une colonne (prévu ou réalisé), éventuellement
+   * restreint au financé (`true`) ou au non financé (`false`).
+   *
+   * Chaque colonne est ventilée selon SON propre financement : le prévu suit
+   * `plan_finance`, le réalisé suit `finance`. Sans quoi ré-attribuer une
+   * ligne au suivi (garde financé → bénévole) basculerait aussi le
+   * prévisionnel du côté non financé.
+   */
+  sumRh(field: 'plan_jours' | 'jours', finance?: boolean): number {
+    const financeField = field === 'plan_jours' ? 'plan_finance' : 'finance';
+    return this.rhLignesFA.controls.reduce((sum, c) => {
+      if (finance !== undefined && !!c.get(financeField)?.value !== finance) return sum;
+      return sum + (Number(c.get(field)?.value) || 0);
+    }, 0);
   }
 
   /** Reconstruit le FormArray des organismes à partir de l'OperationAnnee active. */
@@ -836,6 +981,26 @@ export class SuiviSaisieComponent implements OnInit {
         annualPayload.budget_realise = v.budget_realise ?? null;
       }
     }
+    // #560 — temps de travail réalisé : lignes RH (personne/fonction × jours ×
+    // financé). Indépendant de la ventilation budgétaire par organisme, d'où
+    // la position hors du bloc ci-dessus. Sémantique « replace-all » côté API :
+    // on envoie l'état complet de l'année, les lignes vides sont écartées.
+    annualPayload.rh_lignes = this.rhLignesFA.controls
+      .map(c => {
+        const val = c.value as any;
+        return {
+          id_operation_annee_rh: val.id_operation_annee_rh ?? null,
+          id_personne_plan: val.id_personne_plan ?? null,
+          id_fonction: val.id_fonction ?? null,
+          jours: val.jours ?? null,
+          finance: !!val.finance,
+        };
+      })
+      // Une ligne sans personne ni fonction reste valide (« temps non
+      // affecté » — c'est l'état des saisies converties depuis l'ancien
+      // champ `etp`). Seul le nombre de jours est discriminant.
+      .filter(l => l.jours != null);
+
     // Emprise réalisée : on n'inclut le champ dans le payload que si
     // l'utilisateur l'a modifié localement (sinon on ne touche pas au
     // serveur). `null` est une valeur valide (effacement explicite).

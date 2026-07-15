@@ -1271,3 +1271,278 @@ class OperationRealisationGlobale(models.Model):
             return self.id_operation.get_plan_de_gestion()
         except Exception:
             return None
+
+
+# ---------------------------------------------------------------------------
+# Ressources humaines (#560) — postes/fonctions, personnes du PG et saisie du
+# temps de travail par poste/personne avec distinction financé / non financé.
+# Remplace la saisie plate « Travail prévisionnel (jours) » (OperationAnnee.etp)
+# par des lignes RH détaillées, au prévisionnel comme au réel (suivi).
+# ---------------------------------------------------------------------------
+
+
+class Fonction(models.Model):
+    """
+    Fonction / poste type d'une réserve (conservateur, garde, animateur,
+    écovolontaire, bénévole…). Référentiel **global** partagé par tous les
+    plans, seedé depuis un socle et librement complétable à la volée (#560).
+
+    Le caractère financé / non financé par défaut est porté par la fonction,
+    mais reste surchargeable à chaque saisie de temps (cf. OperationAnneeRH).
+    """
+
+    id_fonction = models.AutoField(primary_key=True)
+    libelle = models.CharField(_("Libellé"), max_length=150, unique=True)
+    finance_par_defaut = models.BooleanField(
+        _("Financé par défaut"),
+        default=True,
+        help_text=_("Valeur par défaut du caractère financé pour cette fonction "
+                    "(surchargeable à chaque saisie de temps)")
+    )
+    is_socle = models.BooleanField(
+        _("Fonction du socle"),
+        default=False,
+        help_text=_("Fonction issue du socle de référence (protégée en suppression)")
+    )
+    actif = models.BooleanField(_("Active"), default=True)
+    date_ajout = models.DateTimeField(_("Date d'ajout"), auto_now_add=True)
+    date_maj = models.DateTimeField(_("Date de modification"), auto_now=True)
+
+    class Meta:
+        db_table = '"general"."t_fonctions"'
+        db_table_comment = "Référentiel global des fonctions/postes (#560)"
+        verbose_name = _("Fonction")
+        verbose_name_plural = _("Fonctions")
+        ordering = ['libelle']
+
+    def __str__(self):
+        return self.libelle
+
+
+class PersonnePlan(models.Model):
+    """
+    Personne rattachée à un plan de gestion (#560).
+
+    Chaque PG a sa liste de personnes (parfois une dizaine de salariés,
+    parfois un seul conservateur). Entrée autonome (nom), avec un lien
+    facultatif vers un compte utilisateur CICADA. Une personne occupe une ou
+    plusieurs fonctions (cf. PersonneFonction), avec des dates d'arrivée /
+    départ facultatives pour l'historique RH.
+    """
+
+    id_personne_plan = models.AutoField(primary_key=True)
+    id_pg = models.ForeignKey(
+        'plans.PlanGestion',
+        on_delete=models.CASCADE,
+        related_name='personnes',
+        db_column='id_pg',
+        verbose_name=_("Plan de gestion")
+    )
+    nom = models.CharField(_("Nom"), max_length=200)
+    id_role = models.ForeignKey(
+        'users.Role',
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='personnes_plan',
+        db_column='id_role',
+        verbose_name=_("Compte utilisateur lié"),
+        help_text=_("Compte CICADA associé quand la personne en possède un")
+    )
+    date_arrivee = models.DateField(_("Date d'arrivée"), null=True, blank=True)
+    date_depart = models.DateField(_("Date de départ"), null=True, blank=True)
+    date_ajout = models.DateTimeField(_("Date d'ajout"), auto_now_add=True)
+    date_maj = models.DateTimeField(_("Date de modification"), auto_now=True)
+
+    class Meta:
+        db_table = '"general"."t_personnes_plan"'
+        db_table_comment = "Personnes rattachées à un plan de gestion (#560)"
+        verbose_name = _("Personne du plan")
+        verbose_name_plural = _("Personnes du plan")
+        ordering = ['nom']
+
+    def __str__(self):
+        return self.nom
+
+    def get_plan_de_gestion(self):
+        """Permet le scoping par plan (#248)."""
+        try:
+            return self.id_pg
+        except Exception:
+            return None
+
+
+class PersonneFonction(models.Model):
+    """
+    Fonction occupée par une personne du PG, avec une quotité facultative
+    (ex. 50 % garde / 50 % animateur). Une personne peut cumuler plusieurs
+    fonctions (#560).
+    """
+
+    id_personne_fonction = models.AutoField(primary_key=True)
+    id_personne_plan = models.ForeignKey(
+        PersonnePlan,
+        on_delete=models.CASCADE,
+        related_name='fonctions',
+        db_column='id_personne_plan',
+        verbose_name=_("Personne du plan")
+    )
+    id_fonction = models.ForeignKey(
+        Fonction,
+        on_delete=models.PROTECT,
+        related_name='personnes',
+        db_column='id_fonction',
+        verbose_name=_("Fonction")
+    )
+    pourcentage = models.DecimalField(
+        _("Quotité (%)"),
+        max_digits=5, decimal_places=2,
+        null=True, blank=True,
+        help_text=_("Part de temps sur cette fonction (0 à 100), facultative")
+    )
+
+    class Meta:
+        db_table = '"general"."cor_personne_fonction"'
+        db_table_comment = "Fonctions occupées par une personne du PG (#560)"
+        verbose_name = _("Fonction d'une personne")
+        verbose_name_plural = _("Fonctions d'une personne")
+        unique_together = ['id_personne_plan', 'id_fonction']
+        ordering = ['id_fonction__libelle']
+
+    def __str__(self):
+        return f"{self.id_personne_plan_id} - {self.id_fonction_id}"
+
+    def get_plan_de_gestion(self):
+        try:
+            return self.id_personne_plan.get_plan_de_gestion()
+        except Exception:
+            return None
+
+
+class OperationAnneeRH(models.Model):
+    """
+    Ligne de temps de travail **prévisionnel** d'une année d'opération (#560).
+
+    Chaque ligne pointe (facultativement) vers une personne du PG OU une
+    fonction, exprime un nombre de jours et un caractère financé / non financé
+    (par défaut hérité de la fonction, surchargeable ici). Remplace le champ
+    plat OperationAnnee.etp.
+    """
+
+    id_operation_annee_rh = models.AutoField(primary_key=True)
+    id_operation_annee = models.ForeignKey(
+        OperationAnnee,
+        on_delete=models.CASCADE,
+        related_name='rh_lignes',
+        db_column='id_operation_annee',
+        verbose_name=_("Année d'opération")
+    )
+    id_personne_plan = models.ForeignKey(
+        PersonnePlan,
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='rh_lignes_prev',
+        db_column='id_personne_plan',
+        verbose_name=_("Personne")
+    )
+    id_fonction = models.ForeignKey(
+        Fonction,
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='rh_lignes_prev',
+        db_column='id_fonction',
+        verbose_name=_("Fonction")
+    )
+    jours = models.DecimalField(
+        _("Nombre de jours"),
+        max_digits=8, decimal_places=2,
+        null=True, blank=True
+    )
+    finance = models.BooleanField(_("Financé"), default=True)
+
+    class Meta:
+        db_table = '"general"."t_operation_annee_rh"'
+        db_table_comment = "Lignes RH prévisionnelles par année d'opération (#560)"
+        verbose_name = _("Ligne RH prévisionnelle")
+        verbose_name_plural = _("Lignes RH prévisionnelles")
+        ordering = ['id_operation_annee_rh']
+
+    def __str__(self):
+        return f"RH prév OpAnnée {self.id_operation_annee_id} ({self.jours} j)"
+
+    def get_plan_de_gestion(self):
+        """Permet le scoping par plan via OperationAnnee → Operation (#248)."""
+        try:
+            return self.id_operation_annee.id_operation.get_plan_de_gestion()
+        except Exception:
+            return None
+
+
+class RealisationOperationAnneeRH(models.Model):
+    """
+    Ligne de temps de travail **réalisé** d'une année d'opération (#560),
+    saisie au moment du suivi. Miroir de OperationAnneeRH côté réel : permet
+    de préciser qui a réellement conduit l'action et le temps effectif,
+    financé ou non.
+    """
+
+    id_realisation_operation_annee_rh = models.AutoField(primary_key=True)
+    id_realisation_operation_annee = models.ForeignKey(
+        RealisationOperationAnnee,
+        on_delete=models.CASCADE,
+        related_name='rh_lignes',
+        db_column='id_realisation_operation_annee',
+        verbose_name=_("Réalisation annuelle d'opération")
+    )
+    id_operation_annee_rh = models.ForeignKey(
+        OperationAnneeRH,
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='realisations',
+        db_column='id_operation_annee_rh',
+        verbose_name=_("Ligne prévisionnelle réalisée"),
+        help_text=_(
+            "Ligne RH prévisionnelle que cette saisie réalise. Conserve le lien "
+            "prévu ↔ réel même quand la personne (ou la fonction) ayant "
+            "réellement conduit l'action diffère de celle prévue. NULL pour un "
+            "temps réalisé qui n'était pas prévu."
+        )
+    )
+    id_personne_plan = models.ForeignKey(
+        PersonnePlan,
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='rh_lignes_reel',
+        db_column='id_personne_plan',
+        verbose_name=_("Personne")
+    )
+    id_fonction = models.ForeignKey(
+        Fonction,
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='rh_lignes_reel',
+        db_column='id_fonction',
+        verbose_name=_("Fonction")
+    )
+    jours = models.DecimalField(
+        _("Nombre de jours réalisés"),
+        max_digits=8, decimal_places=2,
+        null=True, blank=True
+    )
+    finance = models.BooleanField(_("Financé"), default=True)
+
+    class Meta:
+        db_table = '"general"."t_realisation_operation_annee_rh"'
+        db_table_comment = "Lignes RH réalisées par année d'opération (#560)"
+        verbose_name = _("Ligne RH réalisée")
+        verbose_name_plural = _("Lignes RH réalisées")
+        ordering = ['id_realisation_operation_annee_rh']
+
+    def __str__(self):
+        return f"RH réel RéalOpAnnée {self.id_realisation_operation_annee_id} ({self.jours} j)"
+
+    def get_plan_de_gestion(self):
+        """Permet le scoping par plan via RealisationOperationAnnee (#248)."""
+        try:
+            return self.id_realisation_operation_annee.get_plan_de_gestion()
+        except Exception:
+            return None

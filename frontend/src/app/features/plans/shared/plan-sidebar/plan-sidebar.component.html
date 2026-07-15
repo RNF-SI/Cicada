@@ -30,6 +30,12 @@
             (click)="navigateToSettings()">
             {{ 'plans.settings.openButton' | translate }}
           </button>
+          <button
+            class="submenu-item"
+            [class.active-sub]="activePage() === 'personnes'"
+            (click)="navigateToPersonnes()">
+            {{ 'plans.personnes.sidebarEntry' | translate }}
+          </button>
         </div>
       }
     </div>

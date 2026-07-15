@@ -278,27 +278,7 @@
                     }
                   </tr>
                 }
-
-                <!-- Travail (jours) -->
-                <tr>
-                  <td class="col-field">{{ 'plans.suivis.saisie.table.travailPrev' | translate }}</td>
-                  @for (y of years(); track y) {
-                    <td [class.active]="y === selectedYear()">{{ formatNumber(getOaForYear(y)?.etp, ' j') }}</td>
-                  }
-                </tr>
-                <tr>
-                  <td class="col-field">{{ 'plans.suivis.saisie.table.travailReal' | translate }}</td>
-                  @for (y of years(); track y) {
-                    <td [class.active]="y === selectedYear()">
-                      @if (y === selectedYear()) {
-                        <input type="number" min="0" step="0.25"
-                               formControlName="etp_realise" placeholder="j" />
-                      } @else {
-                        {{ formatNumber(getOaForYear(y)?.realisation?.etp_realise, ' j') }}
-                      }
-                    </td>
-                  }
-                </tr>
+                <!-- #560 — le travail (jours) est saisi dans la section RH ci-dessous. -->
               </tbody>
             </table>
 
@@ -396,29 +376,7 @@
                       }
                     </tr>
                   }
-                  <tr>
-                    <td class="col-field">{{ 'plans.suivis.saisie.table.travailPrev' | translate }}</td>
-                    @for (y of years(); track y) {
-                      <td [class.active]="y === selectedYear()">
-                        {{ formatNumber(getOaoForYearOrg(y, org.id_organisme)?.etp, ' j') }}
-                      </td>
-                    }
-                  </tr>
-                  <tr>
-                    <td class="col-field">{{ 'plans.suivis.saisie.table.travailReal' | translate }}</td>
-                    @for (y of years(); track y) {
-                      <td [class.active]="y === selectedYear()">
-                        @if (y === selectedYear()) {
-                          <ng-container [formGroupName]="orgIdx">
-                            <input type="number" min="0" step="0.25"
-                                   formControlName="etp_realise" placeholder="j" />
-                          </ng-container>
-                        } @else {
-                          {{ formatNumber(getOaoForYearOrg(y, org.id_organisme)?.realisation?.etp_realise, ' j') }}
-                        }
-                      </td>
-                    }
-                  </tr>
+                  <!-- #560 — le travail (jours) est saisi dans la section RH ci-dessous. -->
                 }
 
                 <!-- TOTAL : somme des organismes par année -->
@@ -451,20 +409,113 @@
                     }
                   </tr>
                 }
+              </tbody>
+            </table>
+          }
+        </section>
+
+        <!-- #560 — Temps de travail réalisé (lignes RH) -->
+        <section class="saisie-card rh-card">
+          <div class="card-header">
+            <img src="assets/images/ellipses/ellipse-yellow.png" alt="" class="card-ellipse">
+            <h2 class="card-title">{{ 'plans.suivis.saisie.rh.title' | translate }}</h2>
+          </div>
+          <p class="text-mention rh-hint">
+            {{ 'plans.suivis.saisie.rh.hint' | translate:{ year: selectedYear() } }}
+          </p>
+
+          @if (rhLignesFA.controls.length === 0) {
+            <p class="text-mention">{{ 'plans.suivis.saisie.rh.empty' | translate }}</p>
+          } @else {
+            <table class="rh-table" formArrayName="rhLignes">
+              <thead>
                 <tr>
-                  <td class="col-field">{{ 'plans.suivis.saisie.table.travailPrev' | translate }}</td>
-                  @for (y of years(); track y) {
-                    <td [class.active]="y === selectedYear()">{{ formatNumber(getTotalForYear(y, 'prev_etp'), ' j') }}</td>
-                  }
+                  <th class="rh-target-col">{{ 'plans.suivis.saisie.rh.target' | translate }}</th>
+                  <th class="rh-finance-col">{{ 'plans.rh.finance' | translate }}</th>
+                  <th class="rh-num-col">{{ 'plans.suivis.saisie.rh.prevu' | translate }}</th>
+                  <th class="rh-num-col active">{{ 'plans.suivis.saisie.rh.realise' | translate }}</th>
+                  <th class="rh-actions-col"></th>
                 </tr>
-                <tr>
-                  <td class="col-field">{{ 'plans.suivis.saisie.table.travailReal' | translate }}</td>
-                  @for (y of years(); track y) {
-                    <td [class.active]="y === selectedYear()">{{ formatNumber(getTotalForYear(y, 'real_etp'), ' j') }}</td>
-                  }
+              </thead>
+              <tbody>
+                @for (ctrl of rhLignesFA.controls; track $index; let li = $index) {
+                  <tr [formGroupName]="li">
+                    <td class="rh-target-col">
+                      <mat-select class="rh-target-select"
+                                  [value]="rhTargetValue(ctrl)"
+                                  (valueChange)="setRhTarget(ctrl, $event)"
+                                  [disabled]="planNotValidated()"
+                                  [placeholder]="'plans.suivis.saisie.rh.selectTarget' | translate">
+                        <mat-optgroup [label]="'enjeux.operations.rh.groupPersonnes' | translate">
+                          @for (p of personnes(); track p.id_personne_plan) {
+                            <mat-option [value]="'p:' + p.id_personne_plan">{{ p.nom }}</mat-option>
+                          }
+                        </mat-optgroup>
+                        <mat-optgroup [label]="'enjeux.operations.rh.groupFonctions' | translate">
+                          @for (f of fonctions(); track f.id_fonction) {
+                            <mat-option [value]="'f:' + f.id_fonction">{{ f.libelle }}</mat-option>
+                          }
+                        </mat-optgroup>
+                      </mat-select>
+                    </td>
+                    <td class="rh-finance-col">
+                      <app-checkbox
+                        [checked]="!!ctrl.get('finance')?.value"
+                        [disabled]="planNotValidated()"
+                        (checkedChange)="ctrl.get('finance')?.setValue($event)">
+                      </app-checkbox>
+                    </td>
+                    <td class="rh-num-col rh-plan-cell">
+                      {{ formatNumber(ctrl.get('plan_jours')?.value, ' j') }}
+                    </td>
+                    <td class="rh-num-col active">
+                      <input type="number" min="0" step="0.25"
+                             formControlName="jours" placeholder="j" />
+                    </td>
+                    <td class="rh-actions-col">
+                      @if (!planNotValidated()) {
+                        <button type="button" class="rh-remove-btn"
+                                (click)="removeRhLigne(li)"
+                                [title]="'common.actions.delete' | translate">
+                          <i class="fi fi-rr-trash"></i>
+                        </button>
+                      }
+                    </td>
+                  </tr>
+                }
+
+                <tr class="rh-total-row">
+                  <td class="text-bold">{{ 'plans.suivis.saisie.rh.total' | translate }}</td>
+                  <td></td>
+                  <td class="rh-num-col">{{ sumRh('plan_jours') | number:'1.0-2' }} j</td>
+                  <td class="rh-num-col active">{{ sumRh('jours') | number:'1.0-2' }} j</td>
+                  <td></td>
+                </tr>
+                <tr class="rh-subtotal-row">
+                  <td>{{ 'plans.rh.finance' | translate }}</td>
+                  <td></td>
+                  <td class="rh-num-col">{{ sumRh('plan_jours', true) | number:'1.0-2' }} j</td>
+                  <td class="rh-num-col active">{{ sumRh('jours', true) | number:'1.0-2' }} j</td>
+                  <td></td>
+                </tr>
+                <tr class="rh-subtotal-row">
+                  <td>{{ 'plans.rh.nonFinance' | translate }}</td>
+                  <td></td>
+                  <td class="rh-num-col">{{ sumRh('plan_jours', false) | number:'1.0-2' }} j</td>
+                  <td class="rh-num-col active">{{ sumRh('jours', false) | number:'1.0-2' }} j</td>
+                  <td></td>
                 </tr>
               </tbody>
             </table>
+          }
+
+          @if (!planNotValidated()) {
+            <div class="rh-controls">
+              <button type="button" mat-stroked-button class="btn-sm" (click)="addRhLigne()">
+                <i class="fi fi-rr-plus"></i>
+                {{ 'plans.suivis.saisie.rh.addLine' | translate }}
+              </button>
+            </div>
           }
         </section>
 

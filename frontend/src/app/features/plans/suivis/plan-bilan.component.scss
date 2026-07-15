@@ -546,6 +546,36 @@ text.radar-label {
   &.negative { color: $secondary-terra-cotta; }
 }
 
+// #560 — ventilation financé / non financé du temps de travail.
+.rh-split {
+  width: 100%;
+  margin-top: $spacing-md;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+
+  th {
+    text-align: right;
+    font-weight: 600;
+    color: $gray-dark;
+    font-size: 0.75rem;
+    padding: 0 0 $spacing-xxs;
+    border-bottom: 1px solid $gray-lighter;
+
+    &:first-child { text-align: left; }
+  }
+
+  td {
+    text-align: right;
+    padding: $spacing-xs 0;
+    color: $black;
+    border-bottom: 1px solid $gray-lighter;
+
+    &:first-child { text-align: left; color: $gray-dark; }
+  }
+
+  tr.non-finance td:first-child { font-style: italic; }
+}
+
 // =============================================================================
 // Bar charts (catégorie + enjeu)
 // =============================================================================

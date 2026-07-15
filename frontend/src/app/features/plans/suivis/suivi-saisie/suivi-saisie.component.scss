@@ -474,6 +474,120 @@ textarea.full-width {
   }
 }
 
+// #560 — Saisie du temps de travail réalisé (lignes RH).
+.rh-card {
+  .rh-hint { margin: 0 0 $spacing-sm; }
+}
+
+.rh-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  margin-top: $spacing-sm;
+  font-size: 0.85rem;
+  border-radius: $border-radius-md;
+  overflow: hidden;
+  box-shadow: 0 0 0 1px $gray-lighter;
+
+  thead {
+    background: $primary-color;
+    color: white;
+
+    th {
+      padding: $spacing-xs $spacing-sm;
+      text-align: center;
+      font-weight: 600;
+      font-size: 0.8rem;
+
+      &.rh-target-col { text-align: left; min-width: 220px; }
+      &.active { background: $secondary-terra-cotta; }
+    }
+  }
+
+  tbody tr {
+    border-bottom: 1px solid $gray-lighter;
+
+    td {
+      padding: $spacing-xs $spacing-sm;
+      text-align: center;
+      vertical-align: middle;
+      background: white;
+
+      &.rh-target-col { text-align: left; }
+      // Colonne « Réalisé » : cellule éditable, encadrée terra-cotta (même
+      // repère visuel que l'année active de la matrice de réalisation).
+      &.active {
+        background: rgba(183, 77, 93, 0.06);
+        border-left: 2px solid $secondary-terra-cotta;
+        border-right: 2px solid $secondary-terra-cotta;
+      }
+    }
+
+    // Rappel du prévu : gris, secondaire, non éditable.
+    td.rh-plan-cell { color: $gray-dark; }
+
+    input[type='number'] {
+      width: 80px;
+      padding: $spacing-xxs $spacing-xs;
+      border: 1px solid $secondary-terra-cotta;
+      border-radius: $border-radius-sm;
+      font-family: 'Nunito', sans-serif;
+      text-align: right;
+      background: white;
+
+      &:focus { outline: none; border-color: $primary-color; }
+    }
+  }
+
+  .rh-num-col { min-width: 90px; }
+  .rh-finance-col { width: 90px; }
+  .rh-actions-col { width: 44px; }
+
+  .rh-target-select {
+    width: 100%;
+    font-size: 0.85rem;
+  }
+
+  tr.rh-total-row td {
+    background: $gray-lighter;
+    font-weight: 700;
+    color: $black;
+    text-align: left;
+
+    &.rh-num-col { text-align: center; }
+    &.active { background: rgba(183, 77, 93, 0.12); }
+  }
+
+  tr.rh-subtotal-row td {
+    background: white;
+    color: $gray-dark;
+    text-align: left;
+    font-size: 0.8rem;
+
+    &.rh-num-col { text-align: center; }
+  }
+
+  .rh-remove-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: $gray-dark;
+    padding: $spacing-xxs;
+    line-height: 1;
+
+    &:hover { color: $error-color; }
+  }
+}
+
+.rh-controls {
+  display: flex;
+  gap: $spacing-sm;
+  align-items: center;
+  margin-top: $spacing-sm;
+
+  i { margin-right: $spacing-xxs; }
+}
+
 // Icône statut programmation (mêmes assets que plan-suivi-actions).
 .action-status-icon {
   width: 22px;

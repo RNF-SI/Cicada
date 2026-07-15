@@ -1286,3 +1286,75 @@ app-form-field.finance-categorie {
     text-decoration: underline;
   }
 }
+
+// #560 — Bloc Ressources humaines (temps de travail par personne / fonction)
+.rh-section {
+  margin-top: $spacing-lg;
+
+  .rh-title {
+    margin: 0 0 $spacing-xxs;
+    color: $primary-color;
+    font-weight: 700;
+  }
+
+  .rh-target-col {
+    min-width: 200px;
+  }
+
+  .rh-finance-col {
+    width: 72px;
+    text-align: center;
+  }
+
+  .rh-actions-col {
+    width: 40px;
+    text-align: center;
+  }
+
+  .rh-target-select {
+    width: 100%;
+    padding: 6px 8px;
+    border: 1px solid $gray-light;
+    border-radius: $border-radius-sm;
+    background: $white;
+  }
+
+  .rh-remove-btn {
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    color: $gray-dark;
+    padding: 4px;
+    border-radius: $border-radius-sm;
+
+    &:hover {
+      color: $error-color;
+      background: rgba($error-color, 0.08);
+    }
+  }
+
+  .rh-controls {
+    display: flex;
+    align-items: center;
+    gap: $spacing-md;
+    margin-top: $spacing-sm;
+    flex-wrap: wrap;
+
+    .rh-add-btn i {
+      margin-right: 4px;
+    }
+  }
+
+  .rh-create-fonction {
+    display: flex;
+    align-items: center;
+    gap: $spacing-xs;
+
+    input {
+      padding: 6px 10px;
+      border: 1px solid $gray-light;
+      border-radius: $border-radius-sm;
+      min-width: 180px;
+    }
+  }
+}

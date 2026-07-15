@@ -1,6 +1,7 @@
 /**
  * Models for Enjeux (conservation issues) and FCR (Key Success Factors)
  */
+import { OperationRHLigne } from './rh.model';
 
 /**
  * GeoJSON geometry type for enjeux
@@ -597,6 +598,8 @@ export interface RealisationOperationAnnee {
   // #541 — opérateur(s)/financeur(s) réalisés, saisis par année dans le suivi.
   operateurs_realises?: string | null;
   financeurs_realises?: string | null;
+  // #560 — lignes RH réalisées (personne/fonction × jours × financé).
+  rh_lignes?: OperationRHLigne[];
   date_ajout?: string;
   date_maj?: string;
   id_utilisateur_maj?: number | null;
@@ -629,6 +632,8 @@ export interface OperationAnnee {
   periodicite_mensuelle: Record<string, boolean>;
   geom?: GeoJSONGeometry;
   organismes?: OperationAnneeOrganisme[];
+  // #560 — lignes RH prévisionnelles (personne/fonction × jours × financé).
+  rh_lignes?: OperationRHLigne[];
   realisation?: RealisationOperationAnnee | null;
 }
 
@@ -652,6 +657,8 @@ export interface RealisationUpsertPayload {
   // #541 — opérateur(s)/financeur(s) réalisés (par année).
   operateurs_realises?: string | null;
   financeurs_realises?: string | null;
+  // #560 — lignes RH réalisées (remplacement complet à chaque upsert).
+  rh_lignes?: OperationRHLigne[];
   /** Emprise spatiale réalisée (GeoJSON), null pour effacer. */
   geom_realisee?: GeoJSONGeometry | null;
 }

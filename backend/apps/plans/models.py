@@ -18,6 +18,7 @@ from .models_enjeux import (
     ObjectifOperationnel,
     ResultatAttendu,
     CorOoPression,
+    CorFacteurEnjeu,
     CorResponsabiliteTaxon,
     CorResponsabiliteHabitat,
     CorResponsabiliteGeologie,
@@ -44,6 +45,11 @@ from .models_operations import (
     OperationAnnee,
     FinanceOperation,
     OperationRealisationGlobale,
+    Fonction,
+    PersonnePlan,
+    PersonneFonction,
+    OperationAnneeRH,
+    RealisationOperationAnneeRH,
 )
 
 
