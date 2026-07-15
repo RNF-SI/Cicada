@@ -3,6 +3,7 @@ Serializers pour l'API REST Enjeux, FCR et Responsabilités.
 """
 from rest_framework import serializers
 from django.contrib.gis.geos import GEOSGeometry
+from django.db.models import Max
 from django.utils.translation import gettext_lazy as _
 
 from .models_enjeux import (
@@ -10,7 +11,7 @@ from .models_enjeux import (
     ObjectifLongTerme, NiveauExigence,
     ObjectifOperationnel, ResultatAttendu,
     CorEnjeuTaxon, CorEnjeuHabitat, CorEnjeuGeologie, CorEnjeuObjetGeologique,
-    CorEnjeuFichier,
+    CorEnjeuFichier, CorFacteurEnjeu,
     CorResponsabiliteTaxon, CorResponsabiliteHabitat, CorResponsabiliteGeologie,
     CorResponsabiliteEnjeu
 )
@@ -286,18 +287,36 @@ class PressionLightSerializer(serializers.Serializer):
             return None
 
 
+def _oo_shared_enjeu_ids(obj):
+    """#552 — IDs distincts des enjeux sous lesquels cet OO apparaît.
+
+    Un OO est partagé quand il est rattaché (via ses pressions → facteur →
+    enjeux) à plus d'un enjeu ; on ajoute aussi le rattachement direct FCR
+    (``id_enjeu``). Utilisé pour le bandeau « élément lié » (partagé si > 1).
+    """
+    ids = set()
+    for p in _prefetched_list(obj, 'pressions'):
+        fi = getattr(p, 'id_facteur_influence', None)
+        if fi is not None:
+            ids.update(e.pk for e in fi.enjeux.all())
+    if getattr(obj, 'id_enjeu_id', None):
+        ids.add(obj.id_enjeu_id)
+    return sorted(ids)
+
+
 class ObjectifOperationnelSerializer(serializers.ModelSerializer):
     """Serializer détaillé pour un Objectif Opérationnel avec résultats attendus imbriqués."""
     resultats_attendus = ResultatAttenduSerializer(many=True, read_only=True)
     nb_resultats_attendus = serializers.SerializerMethodField()
     pressions = PressionLightSerializer(many=True, read_only=True)
     pression_ids = serializers.SerializerMethodField()
+    shared_enjeu_ids = serializers.SerializerMethodField()
     createur_nom = serializers.CharField(source='id_utilisateur_ajout.get_full_name', read_only=True)
 
     class Meta:
         model = ObjectifOperationnel
         fields = [
-            'id_oo', 'pressions', 'pression_ids', 'id_enjeu',
+            'id_oo', 'pressions', 'pression_ids', 'id_enjeu', 'shared_enjeu_ids',
             'libelle', 'description', 'ordre', 'numero_manuel',
             'resultats_attendus', 'nb_resultats_attendus',
             'date_ajout', 'date_maj', 'createur_nom'
@@ -310,18 +329,22 @@ class ObjectifOperationnelSerializer(serializers.ModelSerializer):
     def get_pression_ids(self, obj):
         return [p.pk for p in _prefetched_list(obj, 'pressions')]
 
+    def get_shared_enjeu_ids(self, obj):
+        return _oo_shared_enjeu_ids(obj)
+
 
 class ObjectifOperationnelListSerializer(serializers.ModelSerializer):
     """Serializer léger pour la liste des Objectifs Opérationnels."""
     nb_resultats_attendus = serializers.SerializerMethodField()
     pressions = PressionLightSerializer(many=True, read_only=True)
     pression_ids = serializers.SerializerMethodField()
+    shared_enjeu_ids = serializers.SerializerMethodField()
     createur_nom = serializers.CharField(source='id_utilisateur_ajout.get_full_name', read_only=True)
 
     class Meta:
         model = ObjectifOperationnel
         fields = [
-            'id_oo', 'pressions', 'pression_ids', 'id_enjeu',
+            'id_oo', 'pressions', 'pression_ids', 'id_enjeu', 'shared_enjeu_ids',
             'libelle', 'description', 'ordre', 'numero_manuel',
             'nb_resultats_attendus',
             'date_ajout', 'date_maj', 'createur_nom'
@@ -333,6 +356,9 @@ class ObjectifOperationnelListSerializer(serializers.ModelSerializer):
 
     def get_pression_ids(self, obj):
         return [p.pk for p in _prefetched_list(obj, 'pressions')]
+
+    def get_shared_enjeu_ids(self, obj):
+        return _oo_shared_enjeu_ids(obj)
 
 
 class ObjectifOperationnelCreateSerializer(serializers.ModelSerializer):
@@ -410,12 +436,16 @@ class ObjectifOperationnelCreateSerializer(serializers.ModelSerializer):
             parent_pression = (
                 Pression.objects
                 .filter(pk__in=pression_ids)
-                .select_related('id_facteur_influence__id_enjeu__id_categorie')
+                .select_related('id_facteur_influence')
+                .prefetch_related('id_facteur_influence__enjeux__id_categorie')
                 .first()
             )
             if parent_pression is not None:
-                parent_enjeu = parent_pression.id_facteur_influence.id_enjeu
-                if parent_enjeu.is_fcr():
+                # #552 — le facteur peut être partagé entre plusieurs enjeux ;
+                # une pression ne doit remonter à AUCUN FCR (les OO de FCR se
+                # rattachent directement au FCR, cf. #337).
+                facteur = parent_pression.id_facteur_influence
+                if any(e.is_fcr() for e in facteur.enjeux.all()):
                     raise serializers.ValidationError(
                         _("Un objectif opérationnel de FCR doit être rattaché directement au FCR, "
                           "pas à une pression.")
@@ -537,16 +567,32 @@ class PressionCreateSerializer(serializers.ModelSerializer):
 # Serializers pour les Facteurs d'Influence
 # =============================================================================
 
+def _facteur_enjeu_ids(obj):
+    """#552 — IDs des enjeux auxquels ce facteur est rattaché (partagé si > 1)."""
+    return [e.pk for e in obj.enjeux.all()]
+
+
+def _facteur_ordre(obj):
+    """#552 — Ordre du facteur DANS l'enjeu courant.
+
+    Injecté par le serializer parent (``_enjeu_ordre``) quand le facteur est
+    rendu dans le contexte d'un enjeu ; 0 par défaut hors contexte.
+    """
+    return getattr(obj, '_enjeu_ordre', 0)
+
+
 class FacteurInfluenceSerializer(serializers.ModelSerializer):
     """Serializer détaillé pour un Facteur d'Influence avec pressions (et OO imbriqués sous pressions)."""
     pressions = PressionSerializer(many=True, read_only=True)
     nb_pressions = serializers.SerializerMethodField()
+    enjeu_ids = serializers.SerializerMethodField()
+    ordre = serializers.SerializerMethodField()
     createur_nom = serializers.CharField(source='id_utilisateur_ajout.get_full_name', read_only=True)
 
     class Meta:
         model = FacteurInfluence
         fields = [
-            'id_facteur_influence', 'id_enjeu',
+            'id_facteur_influence', 'enjeu_ids',
             'libelle', 'description', 'ordre',
             'pressions', 'nb_pressions',
             'date_ajout', 'date_maj', 'createur_nom'
@@ -556,16 +602,24 @@ class FacteurInfluenceSerializer(serializers.ModelSerializer):
     def get_nb_pressions(self, obj):
         return _prefetched_count(obj, 'pressions')
 
+    def get_enjeu_ids(self, obj):
+        return _facteur_enjeu_ids(obj)
+
+    def get_ordre(self, obj):
+        return _facteur_ordre(obj)
+
 
 class FacteurInfluenceListSerializer(serializers.ModelSerializer):
     """Serializer léger pour la liste des Facteurs d'Influence."""
     nb_pressions = serializers.SerializerMethodField()
+    enjeu_ids = serializers.SerializerMethodField()
+    ordre = serializers.SerializerMethodField()
     createur_nom = serializers.CharField(source='id_utilisateur_ajout.get_full_name', read_only=True)
 
     class Meta:
         model = FacteurInfluence
         fields = [
-            'id_facteur_influence', 'id_enjeu',
+            'id_facteur_influence', 'enjeu_ids',
             'libelle', 'description', 'ordre',
             'nb_pressions',
             'date_ajout', 'date_maj', 'createur_nom'
@@ -575,17 +629,54 @@ class FacteurInfluenceListSerializer(serializers.ModelSerializer):
     def get_nb_pressions(self, obj):
         return _prefetched_count(obj, 'pressions')
 
+    def get_enjeu_ids(self, obj):
+        return _facteur_enjeu_ids(obj)
+
+    def get_ordre(self, obj):
+        return _facteur_ordre(obj)
+
 
 class FacteurInfluenceCreateSerializer(serializers.ModelSerializer):
-    """Serializer pour la création/modification d'un Facteur d'Influence."""
+    """Serializer pour la création/modification d'un Facteur d'Influence.
+
+    #552 — Un facteur est rattaché à un enjeu via la table de liaison
+    ``CorFacteurEnjeu``. À la création on reçoit ``enjeu_id`` (write-only) et on
+    crée la liaison (ordre = dernier de l'enjeu + 1). Le déplacement d'un
+    facteur entre enjeux passe par les actions ``link``/``unlink``, pas par un
+    ``update`` de ce champ.
+    """
+    enjeu_id = serializers.IntegerField(write_only=True, required=False)
 
     class Meta:
         model = FacteurInfluence
         fields = [
-            'id_facteur_influence', 'id_enjeu',
-            'libelle', 'description', 'ordre'
+            'id_facteur_influence', 'enjeu_id',
+            'libelle', 'description'
         ]
         read_only_fields = ['id_facteur_influence']
+
+    def validate_enjeu_id(self, value):
+        if not Enjeu.objects.filter(pk=value).exists():
+            raise serializers.ValidationError(_("L'enjeu indiqué n'existe pas."))
+        return value
+
+    def create(self, validated_data):
+        enjeu_id = validated_data.pop('enjeu_id', None)
+        if enjeu_id is None:
+            raise serializers.ValidationError({'enjeu_id': _("Ce champ est requis.")})
+        facteur = super().create(validated_data)
+        max_ordre = CorFacteurEnjeu.objects.filter(id_enjeu_id=enjeu_id).aggregate(m=Max('ordre'))['m']
+        CorFacteurEnjeu.objects.create(
+            id_facteur_influence=facteur,
+            id_enjeu_id=enjeu_id,
+            ordre=(max_ordre + 1) if max_ordre is not None else 0,
+        )
+        return facteur
+
+    def update(self, instance, validated_data):
+        # Le rattachement aux enjeux se gère via link/unlink (#552), pas ici.
+        validated_data.pop('enjeu_id', None)
+        return super().update(instance, validated_data)
 
 
 # =============================================================================
@@ -661,8 +752,11 @@ class EnjeuDetailSerializer(serializers.ModelSerializer):
     # #237 — documents du patrimoine « Documents » (numériques + références papier)
     documents = CorEnjeuFichierSerializer(source='fichiers', many=True, read_only=True)
 
-    # Facteurs d'influence (nested)
-    facteurs_influence = FacteurInfluenceSerializer(many=True, read_only=True)
+    # Facteurs d'influence (nested). #552 — un facteur peut être partagé entre
+    # plusieurs enjeux ; l'ordre d'affichage est propre à cet enjeu (porté par
+    # CorFacteurEnjeu). On sérialise via les lignes de liaison ``cor_facteurs``
+    # (préchargées, ordonnées) en injectant l'ordre contextuel sur chaque facteur.
+    facteurs_influence = serializers.SerializerMethodField()
     nb_facteurs_influence = serializers.SerializerMethodField()
 
     # Objectifs à long terme (nested, avec NE inclus)
@@ -708,8 +802,21 @@ class EnjeuDetailSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ['id_enjeu', 'slug', 'date_ajout', 'date_maj', 'id_utilisateur_ajout']
 
+    def get_facteurs_influence(self, obj):
+        """#552 — Sérialise les facteurs de cet enjeu via les lignes de liaison
+        ``cor_facteurs`` (préchargées + ordonnées par ``ordre``), en injectant
+        l'ordre contextuel de l'enjeu sur chaque facteur. Le format de sortie
+        est identique à l'ancien ``FacteurInfluenceSerializer(many=True)``.
+        """
+        facteurs = []
+        for cor in obj.cor_facteurs.all():
+            fi = cor.id_facteur_influence
+            fi._enjeu_ordre = cor.ordre
+            facteurs.append(fi)
+        return FacteurInfluenceSerializer(facteurs, many=True, context=self.context).data
+
     def get_nb_facteurs_influence(self, obj):
-        return _prefetched_count(obj, 'facteurs_influence')
+        return len(obj.cor_facteurs.all())
 
     def get_nb_objectifs_long_terme(self, obj):
         return _prefetched_count(obj, 'objectifs_long_terme')

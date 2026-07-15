@@ -37,7 +37,7 @@ def compute_operation_codes_for_plan(plan_id):
     from django.db.models import Prefetch
     from .models import PlanGestion
     from .models_enjeux import (
-        Enjeu, FacteurInfluence, Pression,
+        Enjeu, CorFacteurEnjeu, Pression,
         ObjectifLongTerme, NiveauExigence,
         ObjectifOperationnel, ResultatAttendu,
     )
@@ -94,10 +94,17 @@ def compute_operation_codes_for_plan(plan_id):
         .order_by('ordre', 'id_pression')
         .prefetch_related(Prefetch('objectifs_operationnels', queryset=oo_qs))
     )
-    facteur_qs = (
-        FacteurInfluence.objects
-        .order_by('ordre', 'id_facteur_influence')
-        .prefetch_related(Prefetch('pressions', queryset=pression_qs))
+    # #552 — Un facteur peut être partagé entre plusieurs enjeux : son ordre
+    # d'affichage est propre à chaque enjeu et porté par la table de liaison
+    # CorFacteurEnjeu (et non plus par le facteur). On parcourt donc les liens
+    # triés par `ordre`, en préchargeant le facteur et ses pressions.
+    cor_facteur_qs = (
+        CorFacteurEnjeu.objects
+        .order_by('ordre', 'id')
+        .select_related('id_facteur_influence')
+        .prefetch_related(
+            Prefetch('id_facteur_influence__pressions', queryset=pression_qs)
+        )
     )
     enjeux = (
         Enjeu.objects
@@ -105,7 +112,7 @@ def compute_operation_codes_for_plan(plan_id):
         .order_by('ordre', 'id_enjeu')
         .prefetch_related(
             Prefetch('objectifs_long_terme', queryset=olt_qs),
-            Prefetch('facteurs_influence', queryset=facteur_qs),
+            Prefetch('cor_facteurs', queryset=cor_facteur_qs),
         )
     )
 
@@ -137,7 +144,9 @@ def compute_operation_codes_for_plan(plan_id):
                     visit_indicateur_metriques(indicateur)
 
         # Branche OO/RA : Enjeu → Facteur → Pression → OO → RA → Indic → Met → Action
-        for facteur in enjeu.facteurs_influence.all():
+        # (#552 — via CorFacteurEnjeu, trié par l'ordre propre à cet enjeu)
+        for cor_facteur in enjeu.cor_facteurs.all():
+            facteur = cor_facteur.id_facteur_influence
             for pression in facteur.pressions.all():
                 for oo in pression.objectifs_operationnels.all():
                     if oo.pk in seen_oos:
@@ -774,13 +783,21 @@ class OperationListSerializer(serializers.ModelSerializer):
         return None
 
     def _get_enjeu_and_oo_via_ra(self, indicateur):
-        """Traverse RA path: Indicateur → RA → OO → Pressions (M2M) → FI → Enjeu."""
+        """Traverse RA path: Indicateur → RA → OO → Pressions (M2M) → FI → Enjeu.
+
+        #552 — le facteur d'influence est désormais partagé entre plusieurs
+        enjeux (M2M via CorFacteurEnjeu) et ne porte plus de FK `id_enjeu`.
+        On retient le premier enjeu lié, cohérent avec la sémantique
+        « premier enjeu trouvé » de `get_enjeu_slug`.
+        """
         try:
             ra = indicateur.id_resultat_attendu
             if ra and ra.id_oo:
-                pression = ra.id_oo.pressions.select_related('id_facteur_influence__id_enjeu').first()
-                if pression and pression.id_facteur_influence and pression.id_facteur_influence.id_enjeu:
-                    return pression.id_facteur_influence.id_enjeu, ra.id_oo.id_oo
+                pression = ra.id_oo.pressions.select_related('id_facteur_influence').first()
+                if pression and pression.id_facteur_influence:
+                    enjeu = pression.id_facteur_influence.enjeux.first()
+                    if enjeu:
+                        return enjeu, ra.id_oo.id_oo
         except AttributeError:
             pass
         return None, None

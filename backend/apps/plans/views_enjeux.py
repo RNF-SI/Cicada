@@ -2,7 +2,7 @@
 Vues API REST pour les Enjeux, FCR et Responsabilités.
 """
 from django.db import transaction
-from django.db.models import Q, Prefetch
+from django.db.models import Q, Prefetch, Max
 from django.shortcuts import get_object_or_404
 
 from rest_framework import viewsets, status, permissions
@@ -17,6 +17,7 @@ from .models_enjeux import (
     ObjectifLongTerme, NiveauExigence,
     ObjectifOperationnel, ResultatAttendu,
     CorEnjeuTaxon, CorEnjeuHabitat, CorEnjeuGeologie, CorEnjeuFichier,
+    CorFacteurEnjeu,
     CorResponsabiliteTaxon, CorResponsabiliteHabitat, CorResponsabiliteGeologie
 )
 from .models import PlanGestion, CorRolePlan
@@ -151,7 +152,11 @@ class EnjeuViewSet(viewsets.ModelViewSet):
         oo_qs = ObjectifOperationnel.objects.select_related('id_utilisateur_ajout').prefetch_related(
             Prefetch(
                 'pressions',
-                queryset=Pression.objects.select_related('id_facteur_influence'),
+                # #552 — précharge les enjeux du facteur pour calculer
+                # ``shared_enjeu_ids`` (bandeau « élément lié ») sans N+1.
+                queryset=Pression.objects.select_related('id_facteur_influence').prefetch_related(
+                    'id_facteur_influence__enjeux',
+                ),
             ),
             Prefetch('resultats_attendus', queryset=ra_qs),
         )
@@ -162,16 +167,23 @@ class EnjeuViewSet(viewsets.ModelViewSet):
             Prefetch('objectifs_operationnels', queryset=oo_qs),
         )
 
-        fi_qs = FacteurInfluence.objects.select_related('id_utilisateur_ajout').prefetch_related(
-            Prefetch('pressions', queryset=pression_qs),
-        )
+        # #552 — le facteur est désormais partagé (M2M enjeux) et son ordre est
+        # propre à chaque enjeu : on précharge via les lignes de liaison
+        # ``cor_facteurs`` (ordonnées par ordre), en portant le sous-arbre du
+        # facteur ainsi que ses enjeux (pour ``enjeu_ids``).
+        cor_facteurs_qs = CorFacteurEnjeu.objects.select_related(
+            'id_facteur_influence', 'id_facteur_influence__id_utilisateur_ajout',
+        ).prefetch_related(
+            'id_facteur_influence__enjeux',
+            Prefetch('id_facteur_influence__pressions', queryset=pression_qs),
+        ).order_by('ordre', 'id')
 
         olt_qs = ObjectifLongTerme.objects.select_related('id_utilisateur_ajout').prefetch_related(
             Prefetch('niveaux_exigence', queryset=ne_qs),
         )
 
         return [
-            Prefetch('facteurs_influence', queryset=fi_qs),
+            Prefetch('cor_facteurs', queryset=cor_facteurs_qs),
             Prefetch('objectifs_long_terme', queryset=olt_qs),
             # #337 — OO rattachés directement à l'enjeu/FCR (sans pression)
             Prefetch('objectifs_operationnels_directs', queryset=oo_qs),
@@ -595,8 +607,9 @@ class FacteurInfluenceViewSet(viewsets.ModelViewSet):
     """
 
     queryset = FacteurInfluence.objects.select_related(
-        'id_enjeu', 'id_utilisateur_ajout', 'id_utilisateur_maj'
+        'id_utilisateur_ajout', 'id_utilisateur_maj'
     ).prefetch_related(
+        'enjeux',
         'pressions', 'pressions__id_utilisateur_ajout',
         'pressions__objectifs_operationnels', 'pressions__objectifs_operationnels__id_utilisateur_ajout',
         'pressions__objectifs_operationnels__resultats_attendus',
@@ -615,8 +628,8 @@ class FacteurInfluenceViewSet(viewsets.ModelViewSet):
     ordering = ['id_facteur_influence']
 
     def get_plan_for_payload(self, data):
-        """#248 — check draft à la création via l'enjeu parent."""
-        enjeu_id = data.get('id_enjeu')
+        """#248 — check draft à la création via l'enjeu parent (#552 : enjeu_id)."""
+        enjeu_id = data.get('enjeu_id') or data.get('id_enjeu')
         if not enjeu_id:
             return None
         try:
@@ -643,14 +656,14 @@ class FacteurInfluenceViewSet(viewsets.ModelViewSet):
 
         if user.is_admin_organisme() and user.id_organisme:
             return queryset.filter(
-                id_enjeu__id_pg__sites__site__corogsite__uuid_og=user.id_organisme
+                enjeux__id_pg__sites__site__corogsite__uuid_og=user.id_organisme
             ).distinct()
 
         user_plan_ids = CorRolePlan.objects.filter(id_role=user).values_list('plan_de_gestion_id', flat=True)
         return queryset.filter(
-            Q(id_enjeu__id_pg__in=user_plan_ids) |
-            Q(id_enjeu__id_pg__sites__site__corrolesite__id_role=user) |
-            Q(id_enjeu__id_pg__statut='valide')
+            Q(enjeux__id_pg__in=user_plan_ids) |
+            Q(enjeux__id_pg__sites__site__corrolesite__id_role=user) |
+            Q(enjeux__id_pg__statut='valide')
         ).distinct()
 
     def perform_create(self, serializer):
@@ -659,30 +672,149 @@ class FacteurInfluenceViewSet(viewsets.ModelViewSet):
     def perform_update(self, serializer):
         serializer.save(id_utilisateur_maj=self.request.user)
 
+    @staticmethod
+    def _assert_draft_or_403(plan):
+        """#248/#552 — lève une 403 si le plan n'est pas éditable (hors brouillon)."""
+        if plan is None or plan.statut not in CanModifyOnlyDraftPlan.EDITABLE_STATUSES:
+            return Response(
+                {'detail': CanModifyOnlyDraftPlan.message},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+        return None
+
     @action(detail=False, methods=['post'], url_path='reorder')
     def reorder(self, request):
         """
         Réordonne les facteurs d'influence d'un enjeu (#249/#261).
 
+        #552 — l'ordre est propre à l'enjeu (porté par CorFacteurEnjeu) : on
+        écrit l'ordre sur la ligne de liaison, pas sur le facteur.
+
         Payload: { "parent_id": <id_enjeu>, "ordered_ids": [id1, id2, ...] }
         """
-        return do_reorder(self, request, parent_filter='id_enjeu')
+        def write_ordre(enjeu_id, facteur_id, pos):
+            CorFacteurEnjeu.objects.filter(
+                id_enjeu_id=enjeu_id, id_facteur_influence_id=facteur_id
+            ).update(ordre=pos)
+
+        return do_reorder(self, request, parent_filter='enjeux', ordre_writer=write_ordre)
 
     @action(detail=False, methods=['get'], url_path=r'by-enjeu/(?P<enjeu_id>\d+)')
     def by_enjeu(self, request, enjeu_id=None):
         """
-        Récupérer les facteurs d'influence d'un enjeu.
+        Récupérer les facteurs d'influence d'un enjeu (avec ordre propre à l'enjeu).
 
         GET /api/plans/facteurs-influence/by-enjeu/{enjeu_id}/
         """
         enjeu = get_object_or_404(Enjeu, id_enjeu=enjeu_id)
-        facteurs = self.get_queryset().filter(id_enjeu=enjeu)
+        # Ordonne via les lignes de liaison (ordre propre à l'enjeu) et injecte
+        # l'ordre contextuel sur chaque facteur pour la sérialisation.
+        accessible = set(self.get_queryset().values_list('pk', flat=True))
+        cors = CorFacteurEnjeu.objects.filter(id_enjeu=enjeu).select_related(
+            'id_facteur_influence'
+        ).order_by('ordre', 'id')
+        facteurs = []
+        for cor in cors:
+            if cor.id_facteur_influence_id not in accessible:
+                continue
+            fi = cor.id_facteur_influence
+            fi._enjeu_ordre = cor.ordre
+            facteurs.append(fi)
         return Response({
             'enjeu_id': int(enjeu_id),
             'enjeu_libelle': enjeu.libelle,
-            'facteurs_influence': FacteurInfluenceSerializer(facteurs, many=True).data,
-            'total': facteurs.count()
+            'facteurs_influence': FacteurInfluenceSerializer(
+                facteurs, many=True, context=self.get_serializer_context()
+            ).data,
+            'total': len(facteurs)
         })
+
+    @action(detail=False, methods=['get'], url_path=r'by-plan/(?P<plan_id>\d+)')
+    def by_plan(self, request, plan_id=None):
+        """
+        #552 — Facteurs candidats au « lier » : tous les facteurs du plan
+        (avec leurs enjeu_ids), pour proposer d'en rattacher un à un autre enjeu.
+
+        GET /api/plans/facteurs-influence/by-plan/{plan_id}/
+        """
+        facteurs = self.get_queryset().filter(enjeux__id_pg=plan_id).distinct()
+        return Response({
+            'plan_id': int(plan_id),
+            'facteurs_influence': FacteurInfluenceListSerializer(
+                facteurs, many=True, context=self.get_serializer_context()
+            ).data,
+            'total': facteurs.count(),
+        })
+
+    @action(detail=True, methods=['post'], url_path='link')
+    def link(self, request, pk=None):
+        """
+        #552 — Rattache (partage) ce facteur à un enjeu supplémentaire.
+
+        POST /api/plans/facteurs-influence/{id}/link/  body: { "enjeu_id": <int> }
+        Contraintes : même plan que le facteur, plan en brouillon.
+        """
+        facteur = self.get_object()
+        enjeu_id = request.data.get('enjeu_id')
+        if not enjeu_id:
+            return Response({'detail': "enjeu_id requis."}, status=status.HTTP_400_BAD_REQUEST)
+        enjeu = get_object_or_404(Enjeu, pk=enjeu_id)
+
+        plan = facteur.get_plan_de_gestion()
+        # Même plan uniquement.
+        if plan is None or enjeu.id_pg_id != plan.pk:
+            return Response(
+                {'detail': "Un facteur ne peut être lié qu'à un enjeu du même plan de gestion."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        blocked = self._assert_draft_or_403(plan)
+        if blocked:
+            return blocked
+
+        max_ordre = CorFacteurEnjeu.objects.filter(id_enjeu=enjeu).aggregate(m=Max('ordre'))['m']
+        CorFacteurEnjeu.objects.get_or_create(
+            id_facteur_influence=facteur, id_enjeu=enjeu,
+            defaults={'ordre': (max_ordre + 1) if max_ordre is not None else 0},
+        )
+        facteur.id_utilisateur_maj = request.user
+        facteur.save(update_fields=['id_utilisateur_maj', 'date_maj'])
+        return Response(
+            FacteurInfluenceSerializer(facteur, context=self.get_serializer_context()).data,
+            status=status.HTTP_200_OK,
+        )
+
+    @action(detail=True, methods=['post'], url_path='unlink')
+    def unlink(self, request, pk=None):
+        """
+        #552 — Détache ce facteur d'un enjeu. Si c'était le dernier enjeu lié,
+        le facteur (et tout son sous-arbre) est supprimé.
+
+        POST /api/plans/facteurs-influence/{id}/unlink/  body: { "enjeu_id": <int> }
+        """
+        facteur = self.get_object()
+        enjeu_id = request.data.get('enjeu_id')
+        if not enjeu_id:
+            return Response({'detail': "enjeu_id requis."}, status=status.HTTP_400_BAD_REQUEST)
+
+        plan = facteur.get_plan_de_gestion()
+        blocked = self._assert_draft_or_403(plan)
+        if blocked:
+            return blocked
+
+        with transaction.atomic():
+            CorFacteurEnjeu.objects.filter(
+                id_facteur_influence=facteur, id_enjeu_id=enjeu_id
+            ).delete()
+            if not facteur.enjeux.exists():
+                facteur.delete()
+                return Response(status=status.HTTP_204_NO_CONTENT)
+
+        facteur.id_utilisateur_maj = request.user
+        facteur.save(update_fields=['id_utilisateur_maj', 'date_maj'])
+        return Response(
+            FacteurInfluenceSerializer(facteur, context=self.get_serializer_context()).data,
+            status=status.HTTP_200_OK,
+        )
 
 
 class PressionViewSet(viewsets.ModelViewSet):
@@ -725,7 +857,7 @@ class PressionViewSet(viewsets.ModelViewSet):
         if not fi_id:
             return None
         try:
-            return FacteurInfluence.objects.select_related('id_enjeu').get(pk=fi_id).get_plan_de_gestion()
+            return FacteurInfluence.objects.get(pk=fi_id).get_plan_de_gestion()
         except FacteurInfluence.DoesNotExist:
             return None
 
@@ -746,14 +878,14 @@ class PressionViewSet(viewsets.ModelViewSet):
 
         if user.is_admin_organisme() and user.id_organisme:
             return queryset.filter(
-                id_facteur_influence__id_enjeu__id_pg__sites__site__corogsite__uuid_og=user.id_organisme
+                id_facteur_influence__enjeux__id_pg__sites__site__corogsite__uuid_og=user.id_organisme
             ).distinct()
 
         user_plan_ids = CorRolePlan.objects.filter(id_role=user).values_list('plan_de_gestion_id', flat=True)
         return queryset.filter(
-            Q(id_facteur_influence__id_enjeu__id_pg__in=user_plan_ids) |
-            Q(id_facteur_influence__id_enjeu__id_pg__sites__site__corrolesite__id_role=user) |
-            Q(id_facteur_influence__id_enjeu__id_pg__statut='valide')
+            Q(id_facteur_influence__enjeux__id_pg__in=user_plan_ids) |
+            Q(id_facteur_influence__enjeux__id_pg__sites__site__corrolesite__id_role=user) |
+            Q(id_facteur_influence__enjeux__id_pg__statut='valide')
         ).distinct()
 
     def perform_create(self, serializer):
@@ -803,9 +935,7 @@ class PressionViewSet(viewsets.ModelViewSet):
             )
 
         try:
-            new_facteur = FacteurInfluence.objects.select_related(
-                'id_enjeu'
-            ).get(pk=new_facteur_id)
+            new_facteur = FacteurInfluence.objects.get(pk=new_facteur_id)
         except FacteurInfluence.DoesNotExist:
             return Response(
                 {"detail": "Facteur d'influence introuvable."},
@@ -1072,7 +1202,7 @@ class ObjectifOperationnelViewSet(viewsets.ModelViewSet):
         'id_utilisateur_ajout', 'id_utilisateur_maj', 'id_enjeu',
     ).prefetch_related(
         'pressions', 'pressions__id_facteur_influence',
-        'pressions__id_facteur_influence__id_enjeu',
+        'pressions__id_facteur_influence__enjeux',
         'resultats_attendus', 'resultats_attendus__id_utilisateur_ajout',
         'resultats_attendus__indicateurs',
         'resultats_attendus__indicateurs__type_indicateur',
@@ -1094,7 +1224,7 @@ class ObjectifOperationnelViewSet(viewsets.ModelViewSet):
         if pression_ids:
             try:
                 return Pression.objects.select_related(
-                    'id_facteur_influence__id_enjeu'
+                    'id_facteur_influence'
                 ).get(pk=pression_ids[0]).get_plan_de_gestion()
             except Pression.DoesNotExist:
                 return None
@@ -1127,15 +1257,15 @@ class ObjectifOperationnelViewSet(viewsets.ModelViewSet):
         # l'enjeu (FCR). Les deux chemins sont pris en compte pour le scoping.
         if user.is_admin_organisme() and user.id_organisme:
             return queryset.filter(
-                Q(pressions__id_facteur_influence__id_enjeu__id_pg__sites__site__corogsite__uuid_og=user.id_organisme) |
+                Q(pressions__id_facteur_influence__enjeux__id_pg__sites__site__corogsite__uuid_og=user.id_organisme) |
                 Q(id_enjeu__id_pg__sites__site__corogsite__uuid_og=user.id_organisme)
             ).distinct()
 
         user_plan_ids = CorRolePlan.objects.filter(id_role=user).values_list('plan_de_gestion_id', flat=True)
         return queryset.filter(
-            Q(pressions__id_facteur_influence__id_enjeu__id_pg__in=user_plan_ids) |
-            Q(pressions__id_facteur_influence__id_enjeu__id_pg__sites__site__corrolesite__id_role=user) |
-            Q(pressions__id_facteur_influence__id_enjeu__id_pg__statut='valide') |
+            Q(pressions__id_facteur_influence__enjeux__id_pg__in=user_plan_ids) |
+            Q(pressions__id_facteur_influence__enjeux__id_pg__sites__site__corrolesite__id_role=user) |
+            Q(pressions__id_facteur_influence__enjeux__id_pg__statut='valide') |
             Q(id_enjeu__id_pg__in=user_plan_ids) |
             Q(id_enjeu__id_pg__sites__site__corrolesite__id_role=user) |
             Q(id_enjeu__id_pg__statut='valide')
@@ -1162,7 +1292,7 @@ class ObjectifOperationnelViewSet(viewsets.ModelViewSet):
             self,
             request,
             parent_filter=lambda pid, _req: (
-                Q(pressions__id_facteur_influence__id_enjeu=pid) |
+                Q(pressions__id_facteur_influence__enjeux=pid) |
                 Q(id_enjeu=pid)
             ),
         )
@@ -1182,6 +1312,108 @@ class ObjectifOperationnelViewSet(viewsets.ModelViewSet):
             'objectifs_operationnels': ObjectifOperationnelSerializer(oos, many=True).data,
             'total': oos.count()
         })
+
+    @staticmethod
+    def _assert_draft_or_403(plan):
+        """#248/#552 — 403 si le plan n'est pas éditable (hors brouillon)."""
+        if plan is None or plan.statut not in CanModifyOnlyDraftPlan.EDITABLE_STATUSES:
+            return Response(
+                {'detail': CanModifyOnlyDraftPlan.message},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+        return None
+
+    @action(detail=False, methods=['get'], url_path=r'by-plan/(?P<plan_id>\d+)')
+    def by_plan(self, request, plan_id=None):
+        """
+        #552 — OO candidats au « lier » : tous les OO du plan (avec leurs
+        pressions et shared_enjeu_ids), pour en rattacher un à une pression
+        d'un autre enjeu.
+
+        GET /api/plans/objectifs-operationnels/by-plan/{plan_id}/
+        """
+        oos = self.get_queryset().filter(
+            Q(pressions__id_facteur_influence__enjeux__id_pg=plan_id) |
+            Q(id_enjeu__id_pg=plan_id)
+        ).distinct()
+        return Response({
+            'plan_id': int(plan_id),
+            'objectifs_operationnels': ObjectifOperationnelListSerializer(
+                oos, many=True, context=self.get_serializer_context()
+            ).data,
+            'total': oos.count(),
+        })
+
+    @action(detail=True, methods=['post'], url_path='link')
+    def link(self, request, pk=None):
+        """
+        #552 — Rattache (partage) cet OO à une pression d'un autre enjeu. Tout
+        le sous-arbre de l'OO suit (résultats attendus, indicateurs, suivi…).
+
+        POST /api/plans/objectifs-operationnels/{id}/link/  body: { "pression_id": <int> }
+        Contraintes : même plan que l'OO, plan en brouillon.
+        """
+        oo = self.get_object()
+        pression_id = request.data.get('pression_id')
+        if not pression_id:
+            return Response({'detail': "pression_id requis."}, status=status.HTTP_400_BAD_REQUEST)
+        pression = get_object_or_404(
+            Pression.objects.select_related('id_facteur_influence'), pk=pression_id
+        )
+
+        oo_plan = oo.get_plan_de_gestion()
+        pression_plan = pression.get_plan_de_gestion()
+        if oo_plan is None or pression_plan is None or oo_plan.pk != pression_plan.pk:
+            return Response(
+                {'detail': "Un OO ne peut être lié qu'à une pression du même plan de gestion."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        blocked = self._assert_draft_or_403(oo_plan)
+        if blocked:
+            return blocked
+
+        oo.pressions.add(pression)
+        oo.id_utilisateur_maj = request.user
+        oo.save(update_fields=['id_utilisateur_maj', 'date_maj'])
+        return Response(
+            ObjectifOperationnelSerializer(
+                self.get_queryset().get(pk=oo.pk), context=self.get_serializer_context()
+            ).data,
+            status=status.HTTP_200_OK,
+        )
+
+    @action(detail=True, methods=['post'], url_path='unlink')
+    def unlink(self, request, pk=None):
+        """
+        #552 — Détache cet OO d'une pression. S'il ne reste plus aucune pression
+        ni rattachement direct (FCR), l'OO est supprimé.
+
+        POST /api/plans/objectifs-operationnels/{id}/unlink/  body: { "pression_id": <int> }
+        """
+        oo = self.get_object()
+        pression_id = request.data.get('pression_id')
+        if not pression_id:
+            return Response({'detail': "pression_id requis."}, status=status.HTTP_400_BAD_REQUEST)
+
+        plan = oo.get_plan_de_gestion()
+        blocked = self._assert_draft_or_403(plan)
+        if blocked:
+            return blocked
+
+        with transaction.atomic():
+            oo.pressions.remove(pression_id)
+            if not oo.pressions.exists() and not oo.id_enjeu_id:
+                oo.delete()
+                return Response(status=status.HTTP_204_NO_CONTENT)
+
+        oo.id_utilisateur_maj = request.user
+        oo.save(update_fields=['id_utilisateur_maj', 'date_maj'])
+        return Response(
+            ObjectifOperationnelSerializer(
+                self.get_queryset().get(pk=oo.pk), context=self.get_serializer_context()
+            ).data,
+            status=status.HTTP_200_OK,
+        )
 
 
 class ResultatAttenduViewSet(viewsets.ModelViewSet):
@@ -1234,14 +1466,14 @@ class ResultatAttenduViewSet(viewsets.ModelViewSet):
 
         if user.is_admin_organisme() and user.id_organisme:
             return queryset.filter(
-                id_oo__pressions__id_facteur_influence__id_enjeu__id_pg__sites__site__corogsite__uuid_og=user.id_organisme
+                id_oo__pressions__id_facteur_influence__enjeux__id_pg__sites__site__corogsite__uuid_og=user.id_organisme
             ).distinct()
 
         user_plan_ids = CorRolePlan.objects.filter(id_role=user).values_list('plan_de_gestion_id', flat=True)
         return queryset.filter(
-            Q(id_oo__pressions__id_facteur_influence__id_enjeu__id_pg__in=user_plan_ids) |
-            Q(id_oo__pressions__id_facteur_influence__id_enjeu__id_pg__sites__site__corrolesite__id_role=user) |
-            Q(id_oo__pressions__id_facteur_influence__id_enjeu__id_pg__statut='valide')
+            Q(id_oo__pressions__id_facteur_influence__enjeux__id_pg__in=user_plan_ids) |
+            Q(id_oo__pressions__id_facteur_influence__enjeux__id_pg__sites__site__corrolesite__id_role=user) |
+            Q(id_oo__pressions__id_facteur_influence__enjeux__id_pg__statut='valide')
         ).distinct()
 
     def perform_create(self, serializer):

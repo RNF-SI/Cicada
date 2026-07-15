@@ -484,12 +484,16 @@ class IndicateurSerializer(serializers.ModelSerializer):
             ra = obj.id_resultat_attendu
             if ra and ra.id_oo:
                 oo = ra.id_oo
+                # #552 — le facteur est partagé entre plusieurs enjeux (M2M
+                # via CorFacteurEnjeu) et ne porte plus de FK `id_enjeu` :
+                # on retient le premier enjeu lié.
                 pression = oo.pressions.select_related(
-                    'id_facteur_influence__id_enjeu'
+                    'id_facteur_influence'
                 ).first()
-                if (pression and pression.id_facteur_influence
-                        and pression.id_facteur_influence.id_enjeu):
-                    return pression.id_facteur_influence.id_enjeu.slug
+                if pression and pression.id_facteur_influence:
+                    enjeu = pression.id_facteur_influence.enjeux.first()
+                    if enjeu:
+                        return enjeu.slug
                 # #337 — OO rattaché directement à un enjeu (FCR)
                 if getattr(oo, 'id_enjeu', None):
                     return oo.id_enjeu.slug

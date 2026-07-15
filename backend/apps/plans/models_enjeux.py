@@ -403,12 +403,17 @@ class FacteurInfluence(models.Model):
     """
 
     id_facteur_influence = models.AutoField(primary_key=True)
-    id_enjeu = models.ForeignKey(
+    # #552 — Un facteur d'influence peut être PARTAGÉ entre plusieurs enjeux
+    # (du même plan). C'est le MÊME facteur (et tout son sous-arbre pressions →
+    # OO → indicateurs) qui apparaît sous chaque enjeu lié : toute modification
+    # se répercute partout. L'ordre d'affichage est propre à chaque enjeu, il
+    # est donc porté par la table de liaison ``CorFacteurEnjeu`` (pas ici).
+    enjeux = models.ManyToManyField(
         Enjeu,
-        on_delete=models.CASCADE,
+        through='CorFacteurEnjeu',
         related_name='facteurs_influence',
-        db_column='id_enjeu',
-        verbose_name=_("Enjeu")
+        verbose_name=_("Enjeux"),
+        help_text=_("Enjeux auxquels ce facteur d'influence est rattaché (partagé, #552)")
     )
     libelle = models.CharField(
         _("Intitulé"),
@@ -420,15 +425,6 @@ class FacteurInfluence(models.Model):
         blank=True,
         null=True,
         help_text=_("Description détaillée du facteur d'influence")
-    )
-
-    # #249 / #261 — Ordre d'affichage parmi les pairs (même parent).
-    # Mis à jour côté frontend via drag-and-drop. 0 = en tête.
-    ordre = models.PositiveIntegerField(
-        _("Ordre"),
-        default=0,
-        db_index=True,
-        help_text=_("Ordre d'affichage parmi les éléments d'un même parent (0 = haut)")
     )
 
     # Audit
@@ -456,14 +452,19 @@ class FacteurInfluence(models.Model):
         db_table_comment = "Facteurs d'influence des enjeux"
         verbose_name = _("Facteur d'influence")
         verbose_name_plural = _("Facteurs d'influence")
-        ordering = ['ordre', 'id_facteur_influence']
+        ordering = ['id_facteur_influence']
 
     def __str__(self):
-        return f"{self.libelle} ({self.id_enjeu})"
+        return self.libelle
 
     def get_plan_de_gestion(self):
-        """Implémente l'interface utilisée par CanModifyOnlyDraftPlan (#248)."""
-        return self.id_enjeu.id_pg
+        """Implémente l'interface utilisée par CanModifyOnlyDraftPlan (#248).
+
+        Un facteur peut être partagé entre plusieurs enjeux (#552), tous du
+        même plan : on remonte au plan via le premier enjeu rattaché.
+        """
+        first = self.enjeux.first()
+        return first.id_pg if first is not None else None
 
 
 class Pression(models.Model):
@@ -551,7 +552,7 @@ class Pression(models.Model):
 
     def get_plan_de_gestion(self):
         """Implémente l'interface utilisée par CanModifyOnlyDraftPlan (#248)."""
-        return self.id_facteur_influence.id_enjeu.id_pg
+        return self.id_facteur_influence.get_plan_de_gestion()
 
 
 # ============================================
@@ -915,6 +916,51 @@ class CorOoPression(models.Model):
 
     def __str__(self):
         return f"OO {self.id_oo_id} ↔ Pression {self.id_pression_id}"
+
+
+class CorFacteurEnjeu(models.Model):
+    """
+    Table de liaison M2M entre FacteurInfluence et Enjeu (#552).
+
+    Un facteur d'influence peut être PARTAGÉ entre plusieurs enjeux d'un même
+    plan : c'est le même facteur (et tout son sous-arbre) qui apparaît sous
+    chaque enjeu lié. L'``ordre`` d'affichage est propre à chaque enjeu, il est
+    donc porté ici (et non sur le facteur).
+    """
+
+    id = models.AutoField(primary_key=True)
+    id_facteur_influence = models.ForeignKey(
+        FacteurInfluence,
+        on_delete=models.CASCADE,
+        db_column='id_facteur_influence',
+        related_name='cor_enjeux',
+        verbose_name=_("Facteur d'influence")
+    )
+    id_enjeu = models.ForeignKey(
+        Enjeu,
+        on_delete=models.CASCADE,
+        db_column='id_enjeu',
+        related_name='cor_facteurs',
+        verbose_name=_("Enjeu")
+    )
+    # #249 / #261 / #552 — Ordre d'affichage du facteur dans CET enjeu.
+    ordre = models.PositiveIntegerField(
+        _("Ordre"),
+        default=0,
+        db_index=True,
+        help_text=_("Ordre d'affichage du facteur parmi ceux de cet enjeu (0 = haut)")
+    )
+
+    class Meta:
+        db_table = '"general"."cor_facteur_enjeu"'
+        db_table_comment = "Liaison partagée facteurs d'influence ↔ enjeux (#552)"
+        unique_together = [('id_facteur_influence', 'id_enjeu')]
+        ordering = ['ordre', 'id']
+        verbose_name = _("Lien Facteur-Enjeu")
+        verbose_name_plural = _("Liens Facteur-Enjeu")
+
+    def __str__(self):
+        return f"Facteur {self.id_facteur_influence_id} ↔ Enjeu {self.id_enjeu_id}"
 
 
 class CorResponsabiliteTaxon(models.Model):

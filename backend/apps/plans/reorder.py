@@ -22,7 +22,7 @@ from rest_framework.response import Response
 from .permissions import CanModifyOnlyDraftPlan
 
 
-def do_reorder(viewset, request, *, parent_filter, parent_id=None):
+def do_reorder(viewset, request, *, parent_filter, parent_id=None, ordre_writer=None):
     """
     Implémentation factorisée de l'action `reorder`.
 
@@ -36,6 +36,10 @@ def do_reorder(viewset, request, *, parent_filter, parent_id=None):
         parent_id: si fourni, ignore la valeur du payload (utile pour les vues
             qui ne reçoivent pas explicitement `parent_id`). Sinon, lit
             `parent_id` depuis le body.
+        ordre_writer: callable optionnel `(parent_id, pk, pos) -> None` appliqué
+            pour écrire l'ordre. Par défaut, met à jour ``ordre`` sur le modèle
+            lui-même. #552 — nécessaire quand l'ordre est propre au parent et
+            porté par une table de liaison (facteur partagé → CorFacteurEnjeu).
 
     Payload attendu :
         { "parent_id": <id>, "ordered_ids": [id1, id2, ...] }
@@ -101,6 +105,9 @@ def do_reorder(viewset, request, *, parent_filter, parent_id=None):
     model = viewset.queryset.model
     with transaction.atomic():
         for pos, pk in enumerate(ordered_ids):
-            model.objects.filter(pk=pk).update(ordre=pos)
+            if ordre_writer is not None:
+                ordre_writer(parent_id, pk, pos)
+            else:
+                model.objects.filter(pk=pk).update(ordre=pos)
 
     return Response({"updated": len(ordered_ids)}, status=drf_status.HTTP_200_OK)
