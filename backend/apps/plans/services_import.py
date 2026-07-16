@@ -201,6 +201,8 @@ class _PlanRows:
     ra: list = field(default_factory=list)
     indicateurs: list = field(default_factory=list)
     metriques: list = field(default_factory=list)
+    taxons: list = field(default_factory=list)
+    habitats: list = field(default_factory=list)
 
 
 def _extract_plan(plan) -> _PlanRows:
@@ -232,6 +234,7 @@ def _extract_plan(plan) -> _PlanRows:
                 "description": enjeu.description or "",
             }
         )
+        _emit_bio(rows, e_code, enjeu)
 
         # --- Branche OLT → NE (vision « état ») ---
         for olt in enjeu.objectifs_long_terme.all().order_by("ordre", "id_olt"):
@@ -345,6 +348,26 @@ def _emit_oo(alloc, rows, oo, seen_oo, enjeu_code: str = "") -> None:
             _emit_indicateur(alloc, rows, ind, parent_code=ra_code)
 
 
+def _emit_bio(rows, cible_code: str, obj) -> None:
+    """Émet les taxons et habitats rattachés à un enjeu ou un indicateur."""
+    for taxon in obj.taxons.all().order_by("cd_nom"):
+        rows.taxons.append(
+            {
+                "cible": cible_code,
+                "cd_nom": taxon.cd_nom,
+                "nom": taxon.nom_complet or taxon.nom_vern or "",
+            }
+        )
+    for habitat in obj.habitats.all().order_by("cd_hab"):
+        rows.habitats.append(
+            {
+                "cible": cible_code,
+                "cd_hab": habitat.cd_hab or "",
+                "nom": habitat.lb_hab_fr or "",
+            }
+        )
+
+
 def _emit_indicateur(alloc, rows, ind, parent_code: str) -> None:
     i_code = alloc.code("indicateur", ind.id_indicateur)
     rows.indicateurs.append(
@@ -356,6 +379,7 @@ def _emit_indicateur(alloc, rows, ind, parent_code: str) -> None:
             "description": ind.description or "",
         }
     )
+    _emit_bio(rows, i_code, ind)
     for met in ind.metriques.all().order_by("ordre", "id_metrique"):
         m_code = alloc.code("metrique", met.id_metrique)
         rows.metriques.append(
@@ -686,6 +710,56 @@ def _build_schema() -> list[Sheet]:
                 Column("description", "description", width=40),
             ],
         ),
+        Sheet(
+            key="taxons",
+            name="Taxons",
+            description="Espèces (TaxRef) rattachées à un enjeu ou à un indicateur, "
+            "via le code de la cible.",
+            rows=lambda rows: rows.taxons,
+            columns=[
+                Column(
+                    "cible",
+                    "cible (enjeu ou indicateur)",
+                    required=True,
+                    width=22,
+                    help="Code d'un enjeu (ex : E1) OU d'un indicateur (ex : I1).",
+                ),
+                Column(
+                    "cd_nom",
+                    "cd_nom",
+                    required=True,
+                    width=14,
+                    help="Code TaxRef de l'espèce (nombre entier).",
+                ),
+                Column("nom", "nom", width=45, help="Nom de l'espèce (facultatif)."),
+            ],
+        ),
+        Sheet(
+            key="habitats",
+            name="Habitats",
+            description="Habitats (HabRef) rattachés à un enjeu ou à un indicateur, "
+            "via le code de la cible.",
+            rows=lambda rows: rows.habitats,
+            columns=[
+                Column(
+                    "cible",
+                    "cible (enjeu ou indicateur)",
+                    required=True,
+                    width=22,
+                    help="Code d'un enjeu (ex : E1) OU d'un indicateur (ex : I1).",
+                ),
+                Column(
+                    "cd_hab",
+                    "cd_hab",
+                    required=True,
+                    width=14,
+                    help="Code HabRef de l'habitat.",
+                ),
+                Column(
+                    "nom", "nom", width=45, help="Libellé de l'habitat (facultatif)."
+                ),
+            ],
+        ),
     ]
 
 
@@ -963,8 +1037,15 @@ from .models_enjeux import (
     ObjectifOperationnel,
     CorOoPression,
     ResultatAttendu,
+    CorEnjeuTaxon,
+    CorEnjeuHabitat,
 )
-from .models_indicateurs import Indicateur, Metrique
+from .models_indicateurs import (
+    Indicateur,
+    Metrique,
+    CorIndicateurTaxon,
+    CorIndicateurHabitat,
+)
 
 
 ERROR = "error"
@@ -1468,6 +1549,61 @@ def validate_import(plan, parsed: dict[str, list[dict]]) -> ImportReport:
         _ref("metriques", row, "indicateur", "indicateurs", "indicateur")
         _nomenclature("metriques", row, "type_metrique", "TYPE_METRIQUE", "type")
 
+    # --- Taxons / Habitats (rattachés à un enjeu OU un indicateur) ---
+    def _check_cible(sheet_key, row):
+        value = _cell_str(row.get("cible"))
+        if not value:
+            report.add(
+                _sheet_name(sheet_key),
+                row["_row"],
+                "cible",
+                ERROR,
+                "La cible (enjeu ou indicateur) est obligatoire.",
+            )
+            return
+        in_e = value in code_sets.get("enjeux", set())
+        in_i = value in code_sets.get("indicateurs", set())
+        if in_e and in_i:
+            report.add(
+                _sheet_name(sheet_key),
+                row["_row"],
+                "cible",
+                ERROR,
+                f"Le code « {value} » existe comme enjeu ET comme "
+                "indicateur : rendez-le unique.",
+            )
+        elif not in_e and not in_i:
+            report.add(
+                _sheet_name(sheet_key),
+                row["_row"],
+                "cible",
+                ERROR,
+                f"Cible « {value} » introuvable (ni enjeu ni indicateur).",
+            )
+
+    for row in parsed.get("taxons", []):
+        _check_cible("taxons", row)
+        raw = _cell_str(row.get("cd_nom"))
+        if not raw:
+            report.add(
+                "Taxons", row["_row"], "cd_nom", ERROR, "Le cd_nom est obligatoire."
+            )
+        elif _as_int(raw) is None:
+            report.add(
+                "Taxons",
+                row["_row"],
+                "cd_nom",
+                ERROR,
+                "Le cd_nom doit être un nombre entier (code TaxRef).",
+            )
+
+    for row in parsed.get("habitats", []):
+        _check_cible("habitats", row)
+        if not _cell_str(row.get("cd_hab")):
+            report.add(
+                "Habitats", row["_row"], "cd_hab", ERROR, "Le cd_hab est obligatoire."
+            )
+
     # --- Décompte de ce qui serait créé ---
     report.summary = {
         key: len(parsed.get(key, []))
@@ -1481,6 +1617,8 @@ def validate_import(plan, parsed: dict[str, list[dict]]) -> ImportReport:
             "ra",
             "indicateurs",
             "metriques",
+            "taxons",
+            "habitats",
         )
     }
     return report
@@ -1677,5 +1815,50 @@ def execute_import(plan, parsed: dict[str, list[dict]], user) -> dict:
         )
         n_metriques += 1
     counts["metriques"] = n_metriques
+
+    # --- Taxons / Habitats (cible = enjeu ou indicateur) ---
+    def _resolve_cible(code):
+        """Renvoie ('enjeu', obj) ou ('indicateur', obj) selon le code."""
+        if code in enjeu_map:
+            return "enjeu", enjeu_map[code]
+        if code in indicateur_map:
+            return "indicateur", indicateur_map[code]
+        return None, None
+
+    n_taxons = 0
+    for row in parsed.get("taxons", []):
+        kind, obj = _resolve_cible(_cell_str(row.get("cible")))
+        cd_nom = _as_int(row.get("cd_nom"))
+        if obj is None or cd_nom is None:
+            continue
+        nom_complet = _cell_str(row.get("nom")) or None
+        if kind == "enjeu":
+            CorEnjeuTaxon.objects.create(
+                id_enjeu=obj, cd_nom=cd_nom, nom_complet=nom_complet
+            )
+        else:
+            CorIndicateurTaxon.objects.create(
+                id_indicateur=obj, cd_nom=cd_nom, nom_complet=nom_complet
+            )
+        n_taxons += 1
+    counts["taxons"] = n_taxons
+
+    n_habitats = 0
+    for row in parsed.get("habitats", []):
+        kind, obj = _resolve_cible(_cell_str(row.get("cible")))
+        cd_hab = _cell_str(row.get("cd_hab"))
+        if obj is None or not cd_hab:
+            continue
+        lb_hab_fr = _cell_str(row.get("nom")) or None
+        if kind == "enjeu":
+            CorEnjeuHabitat.objects.create(
+                id_enjeu=obj, cd_hab=cd_hab, lb_hab_fr=lb_hab_fr
+            )
+        else:
+            CorIndicateurHabitat.objects.create(
+                id_indicateur=obj, cd_hab=cd_hab, lb_hab_fr=lb_hab_fr
+            )
+        n_habitats += 1
+    counts["habitats"] = n_habitats
 
     return counts

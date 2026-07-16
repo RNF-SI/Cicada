@@ -25,7 +25,12 @@ from apps.plans.models_enjeux import (
     ObjectifOperationnel,
     ResultatAttendu,
 )
-from apps.plans.models_indicateurs import Indicateur, Metrique
+from apps.plans.models_enjeux import CorEnjeuTaxon, CorEnjeuHabitat
+from apps.plans.models_indicateurs import (
+    Indicateur,
+    Metrique,
+    CorIndicateurTaxon,
+)
 from apps.plans.services_import import (
     build_arborescence_workbook,
     parse_workbook,
@@ -360,6 +365,8 @@ def test_execute_creates_full_arborescence_with_links():
         "ra": 1,
         "indicateurs": 2,
         "metriques": 1,
+        "taxons": 0,
+        "habitats": 0,
     }
 
     # Rattachements : facteur → enjeu E1, OO1 → pression, OO2 → enjeu FCR direct.
@@ -398,3 +405,83 @@ def test_execute_refuses_when_invalid():
 def test_parse_rejects_non_xlsx():
     with pytest.raises(ArborescenceImportError):
         parse_workbook(b"ceci n'est pas un classeur")
+
+
+# ---------------------------------------------------------------------------
+# Taxons / Habitats (TaxRef / HabRef)
+# ---------------------------------------------------------------------------
+
+
+def test_execute_creates_taxons_and_habitats():
+    user = SuperAdminFactory()
+    _base_nomenclatures()
+    plan = PlanGestionFactory(id_utilisateur_ajout=user)
+    parsed = _valid_parsed()
+    parsed["taxons"] = [
+        {"cible": "E1", "cd_nom": 60585, "nom": "Loup gris", "_row": 3},
+        {"cible": "I1", "cd_nom": "99999", "nom": "", "_row": 4},
+    ]
+    parsed["habitats"] = [
+        {"cible": "E1", "cd_hab": "24.1", "nom": "Rivières", "_row": 3},
+        {"cible": "I1", "cd_hab": "22.1", "nom": "Eaux douces", "_row": 4},
+    ]
+
+    counts = execute_import(plan, parsed, user)
+    assert counts["taxons"] == 2
+    assert counts["habitats"] == 2
+
+    enjeu = Enjeu.objects.get(id_pg=plan, libelle="Qualité des eaux")
+    assert enjeu.taxons.count() == 1
+    assert enjeu.taxons.first().cd_nom == 60585
+    assert enjeu.habitats.count() == 1
+
+    ind = Indicateur.objects.get(nom_indicateur="Surface")
+    assert ind.taxons.count() == 1
+    assert ind.habitats.count() == 1
+
+
+def test_roundtrip_preserves_taxons_habitats():
+    user = SuperAdminFactory()
+    _base_nomenclatures()
+    source = _build_source_plan(user)
+    enjeu = source.enjeux.first()
+    CorEnjeuTaxon.objects.create(id_enjeu=enjeu, cd_nom=60585, nom_complet="Loup")
+    CorEnjeuHabitat.objects.create(id_enjeu=enjeu, cd_hab="24.1", lb_hab_fr="Rivières")
+
+    content = build_arborescence_workbook(plan=source)
+    parsed = parse_workbook(content)
+    assert len(parsed["taxons"]) >= 1
+    assert len(parsed["habitats"]) >= 1
+
+    target = PlanGestionFactory(id_utilisateur_ajout=user)
+    execute_import(target, parsed, user)
+    assert CorEnjeuTaxon.objects.filter(id_enjeu__id_pg=target, cd_nom=60585).exists()
+    assert CorEnjeuHabitat.objects.filter(
+        id_enjeu__id_pg=target, cd_hab="24.1"
+    ).exists()
+
+
+def test_validate_taxon_bad_cd_nom():
+    user = RoleFactory()
+    _base_nomenclatures()
+    plan = PlanGestionFactory(id_utilisateur_ajout=user)
+    parsed = _valid_parsed()
+    parsed["taxons"] = [{"cible": "E1", "cd_nom": "abc", "_row": 3}]
+    report = validate_import(plan, parsed)
+    assert not report.can_import
+    assert any(
+        i["sheet"] == "Taxons" and i["column"] == "cd_nom" for i in report.errors
+    )
+
+
+def test_validate_bio_unknown_cible():
+    user = RoleFactory()
+    _base_nomenclatures()
+    plan = PlanGestionFactory(id_utilisateur_ajout=user)
+    parsed = _valid_parsed()
+    parsed["habitats"] = [{"cible": "Z9", "cd_hab": "24.1", "_row": 3}]
+    report = validate_import(plan, parsed)
+    assert not report.can_import
+    assert any(
+        i["sheet"] == "Habitats" and i["column"] == "cible" for i in report.errors
+    )

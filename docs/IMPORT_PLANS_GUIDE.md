@@ -38,7 +38,7 @@ Frontend : section « Import / export » de la page **Paramètres du plan**
 ## Module 1 — Arborescence
 
 Onglets : `Lisez-moi`, `Enjeux`, `Facteurs`, `Pressions`, `OLT`, `NE`, `OO`,
-`RA`, `Indicateurs`, `Metriques`, `Listes` (masqué).
+`RA`, `Indicateurs`, `Metriques`, `Taxons`, `Habitats`, `Listes` (masqué).
 
 Structure représentée :
 
@@ -61,6 +61,10 @@ Points d'attention :
   résultat attendu (`R…`) — jamais les deux.
 - `Metriques` : seul le libellé est importé ; l'indicateur reste
   « indéterminé » (aucune grille de scoring en V1).
+- `Taxons` / `Habitats` : rattachés à un **enjeu** (`E…`) ou un **indicateur**
+  (`I…`) via la colonne `cible`. `cd_nom` (taxon) est un entier obligatoire,
+  `cd_hab` (habitat) est obligatoire ; le nom est facultatif (repris du
+  référentiel INPN à l'affichage).
 
 ---
 
@@ -134,7 +138,7 @@ avec ce même rapport dans le corps.
 
 ## Tests
 
-- `backend/tests/apps/plans/test_import_arborescence.py` (15 tests)
+- `backend/tests/apps/plans/test_import_arborescence.py` (19 tests)
 - `backend/tests/apps/plans/test_import_actions.py` (20 tests, dont budgets/RH)
 - `frontend/src/app/core/services/admin.service.spec.ts` (méthodes d'import)
 
@@ -148,7 +152,7 @@ docker compose exec web pytest tests/apps/plans/test_import_arborescence.py \
 ## Limites connues (V1)
 
 - Pas de grille de scoring des métriques (indicateur « indéterminé »).
-- Pas de taxons / habitats / responsabilités dans l'arborescence.
+- Responsabilités (site/organisme) non gérées dans l'arborescence.
 - Budget par organisme (`OperationAnneeOrganisme`) non géré (seulement la
   ventilation fonctionnement / investissement globale).
 - Pas de suivis / inventaires ni de protocoles CAMPanule.
