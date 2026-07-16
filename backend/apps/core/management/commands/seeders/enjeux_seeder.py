@@ -1,7 +1,10 @@
 """
 Seeder pour les Enjeux, FCR et Responsabilités.
 """
+from collections import defaultdict
 from typing import List
+
+from django.db.models import Max
 
 from apps.core.models import Nomenclature
 from apps.plans.models import PlanGestion
@@ -6392,6 +6395,13 @@ class EnjeuxSeeder(BaseSeeder):
             self.log_item('créé' if created else 'mis à jour',
                           'Démo #523 « Non défini » (plan Lac de Remoray, brouillon)')
 
+        # ==================== #552 — DÉMO ÉLÉMENT PARTAGÉ ====================
+        # Partage un facteur d'influence entre deux enjeux d'un même plan en
+        # brouillon : le facteur (et tout son sous-arbre) devient une ENTITÉ
+        # UNIQUE affichée sous les deux enjeux. Sert de support de démonstration
+        # de la fonctionnalité « Lier » (#552) pour la recette.
+        self._seed_shared_facteur_demo(plans, enjeux_created)
+
         result = {
             'enjeux': enjeux_created,
             'fcr': fcr_created,
@@ -6399,6 +6409,41 @@ class EnjeuxSeeder(BaseSeeder):
         }
         self.context.set('enjeux', result)
         return result
+
+    def _seed_shared_facteur_demo(self, plans, enjeux_created) -> None:
+        """#552 — Lie un facteur d'un enjeu à un second enjeu du même plan
+        brouillon, pour disposer d'un exemple d'élément partagé en base."""
+        enjeux_by_plan = defaultdict(list)
+        for e in enjeux_created:
+            enjeux_by_plan[e.id_pg_id].append(e)
+
+        for plan in plans:
+            if getattr(plan, 'statut', None) != 'draft':
+                continue
+            plan_enjeux = enjeux_by_plan.get(plan.pk, [])
+            if len(plan_enjeux) < 2:
+                continue
+            source_enjeu, target_enjeu = plan_enjeux[0], plan_enjeux[1]
+            facteur = FacteurInfluence.objects.filter(enjeux=source_enjeu).first()
+            if facteur is None:
+                continue
+            if CorFacteurEnjeu.objects.filter(
+                id_facteur_influence=facteur, id_enjeu=target_enjeu
+            ).exists():
+                self.log_item('déjà', f'Facteur partagé « {facteur.libelle} » (#552)')
+                return
+            max_ordre = CorFacteurEnjeu.objects.filter(
+                id_enjeu=target_enjeu
+            ).aggregate(m=Max('ordre'))['m']
+            CorFacteurEnjeu.objects.create(
+                id_facteur_influence=facteur, id_enjeu=target_enjeu,
+                ordre=(max_ordre + 1) if max_ordre is not None else 0,
+            )
+            self.log_item(
+                'créé',
+                f'Facteur « {facteur.libelle} » partagé entre 2 enjeux (#552)',
+            )
+            return
 
     def reset(self) -> int:
         """

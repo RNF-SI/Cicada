@@ -1,0 +1,106 @@
+<h2 mat-dialog-title>
+  {{ 'enjeux.share.' + typeKey + '.title' | translate }}
+</h2>
+
+<mat-dialog-content>
+  <p class="dialog-subtitle">
+    {{ 'enjeux.share.' + typeKey + '.subtitle' | translate:{ label: data.elementLabel } }}
+  </p>
+
+  <!-- Choix Lier / Copier, avec explication sous chaque bouton -->
+  <div class="mode-choice">
+    <button type="button"
+            class="mode-card"
+            [class.selected]="mode() === 'link'"
+            (click)="setMode('link')">
+      <div class="mode-card-head">
+        <i class="fi fi-rr-link-alt"></i>
+        <span class="mode-card-title">{{ 'enjeux.share.linkOption' | translate }}</span>
+      </div>
+      <span class="mode-card-desc">{{ 'enjeux.share.' + typeKey + '.linkDescription' | translate }}</span>
+    </button>
+
+    <button type="button"
+            class="mode-card"
+            [class.selected]="mode() === 'copy'"
+            (click)="setMode('copy')">
+      <div class="mode-card-head">
+        <i class="fi fi-rr-copy-alt"></i>
+        <span class="mode-card-title">{{ 'enjeux.share.copyOption' | translate }}</span>
+      </div>
+      <span class="mode-card-desc">{{ 'enjeux.share.' + typeKey + '.copyDescription' | translate }}</span>
+    </button>
+  </div>
+
+  <!-- Sélection de la cible -->
+  <div class="target-picker">
+    <label class="target-label">
+      {{ 'enjeux.share.' + typeKey + '.targetLabel' | translate }}
+    </label>
+
+    @if (hasTargets()) {
+      <div class="search-box">
+        <i class="fi fi-rr-search"></i>
+        <input type="text"
+               [ngModel]="searchTerm()"
+               (ngModelChange)="onSearchChange($event)"
+               [placeholder]="'enjeux.share.searchPlaceholder' | translate" />
+      </div>
+
+      <div class="target-list">
+        @for (enjeu of filteredEnjeux(); track enjeu.id_enjeu) {
+          @if (isOo) {
+            <!-- OO : on choisit une pression sous chaque enjeu -->
+            <div class="target-group">
+              <span class="target-group-title">{{ enjeu.libelle }}</span>
+              @for (pr of enjeu.pressions; track pr.id_pression) {
+                <div class="target-item"
+                     [class.selected]="selectedPressionId() === pr.id_pression"
+                     (click)="selectPression(pr.id_pression)">
+                  <span class="radio-dot" [class.active]="selectedPressionId() === pr.id_pression"></span>
+                  <div class="target-item-content">
+                    <span class="target-item-label">{{ pr.libelle }}</span>
+                    @if (pr.facteurLibelle) {
+                      <span class="target-item-meta">{{ pr.facteurLibelle }}</span>
+                    }
+                  </div>
+                </div>
+              }
+            </div>
+          } @else {
+            <!-- Facteur : on choisit un enjeu -->
+            <div class="target-item"
+                 [class.selected]="selectedEnjeuId() === enjeu.id_enjeu"
+                 (click)="selectEnjeu(enjeu.id_enjeu)">
+              <span class="radio-dot" [class.active]="selectedEnjeuId() === enjeu.id_enjeu"></span>
+              <div class="target-item-content">
+                <span class="target-item-label">{{ enjeu.libelle }}</span>
+              </div>
+            </div>
+          }
+        } @empty {
+          <div class="empty-state">
+            <i class="fi fi-rr-info"></i>
+            <span>{{ 'enjeux.share.noMatch' | translate }}</span>
+          </div>
+        }
+      </div>
+    } @else {
+      <div class="empty-state">
+        <i class="fi fi-rr-info"></i>
+        <span>{{ 'enjeux.share.' + typeKey + '.noTarget' | translate }}</span>
+      </div>
+    }
+  </div>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-stroked-button (click)="cancel()">
+    {{ 'common.actions.cancel' | translate }}
+  </button>
+  <button mat-flat-button color="primary"
+          [disabled]="!canConfirm()"
+          (click)="confirm()">
+    {{ (mode() === 'copy' ? 'enjeux.share.confirmCopy' : 'enjeux.share.confirmLink') | translate }}
+  </button>
+</mat-dialog-actions>

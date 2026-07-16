@@ -436,6 +436,30 @@ export class EnjeuService {
     return this.http.delete<void>(`${this.apiUrl}/facteurs-influence/${id}/`);
   }
 
+  /**
+   * #552 — Lie (partage) ce facteur à un enjeu supplémentaire. Entité UNIQUE :
+   * toute modification se répercute sous tous les enjeux liés.
+   */
+  linkFacteurToEnjeu(id: number, enjeuId: number): Observable<FacteurInfluence> {
+    return this.http.post<FacteurInfluence>(`${this.apiUrl}/facteurs-influence/${id}/link/`, { enjeu_id: enjeuId });
+  }
+
+  /**
+   * #552 — Retire le partage de ce facteur pour un enjeu (le facteur reste sous
+   * les autres enjeux liés ; supprimé si c'était le dernier).
+   */
+  unlinkFacteurFromEnjeu(id: number, enjeuId: number): Observable<FacteurInfluence | void> {
+    return this.http.post<FacteurInfluence | void>(`${this.apiUrl}/facteurs-influence/${id}/unlink/`, { enjeu_id: enjeuId });
+  }
+
+  /**
+   * #552 — Copie ce facteur (et tout son sous-arbre) vers un enjeu. Duplicata
+   * INDÉPENDANT, modifiable sans impacter l'original.
+   */
+  copyFacteurToEnjeu(id: number, enjeuId: number): Observable<FacteurInfluence> {
+    return this.http.post<FacteurInfluence>(`${this.apiUrl}/facteurs-influence/${id}/copy/`, { enjeu_id: enjeuId });
+  }
+
   // ==========================================================================
   // Pressions CRUD
   // ==========================================================================
@@ -507,6 +531,33 @@ export class EnjeuService {
 
   deleteObjectifOperationnel(id: number): Observable<void> {
     return this.http.delete<void>(`${this.apiUrl}/objectifs-operationnels/${id}/`);
+  }
+
+  /**
+   * #552 — Lie (partage) cet OO à une pression d'un autre enjeu. Entité UNIQUE :
+   * tout le sous-arbre suit et toute modification se répercute partout.
+   */
+  linkOoToPression(id: number, pressionId: number): Observable<ObjectifOperationnel> {
+    return this.http.post<ObjectifOperationnel>(`${this.apiUrl}/objectifs-operationnels/${id}/link/`, { pression_id: pressionId });
+  }
+
+  /**
+   * #552 — Retire le partage de cet OO pour une pression (supprimé s'il ne reste
+   * plus aucun rattachement).
+   */
+  unlinkOoFromPression(id: number, pressionId: number): Observable<ObjectifOperationnel | void> {
+    return this.http.post<ObjectifOperationnel | void>(`${this.apiUrl}/objectifs-operationnels/${id}/unlink/`, { pression_id: pressionId });
+  }
+
+  /**
+   * #552 — Copie cet OO (et son sous-arbre) vers une pression (cas Enjeu) ou
+   * directement vers un enjeu (cas FCR). Duplicata INDÉPENDANT.
+   */
+  copyOo(id: number, target: { pressionId?: number; enjeuId?: number }): Observable<ObjectifOperationnel> {
+    const body = target.pressionId != null
+      ? { pression_id: target.pressionId }
+      : { enjeu_id: target.enjeuId };
+    return this.http.post<ObjectifOperationnel>(`${this.apiUrl}/objectifs-operationnels/${id}/copy/`, body);
   }
 
   // ==========================================================================
@@ -703,6 +754,18 @@ export class EnjeuService {
       `${this.apiUrl}/operations/${operationId}/add-metrique/`,
       { metrique_id: metriqueId }
     );
+  }
+
+  /**
+   * #552 — Copie cette action (et sa programmation) vers une métrique ou un
+   * indicateur cible. Duplicata INDÉPENDANT, à la différence du lien (qui
+   * rattache la MÊME action à une autre métrique).
+   */
+  copyOperation(operationId: number, target: { metriqueId?: number; indicateurId?: number }): Observable<Operation> {
+    const body = target.metriqueId != null
+      ? { metrique_id: target.metriqueId }
+      : { indicateur_id: target.indicateurId };
+    return this.http.post<Operation>(`${this.apiUrl}/operations/${operationId}/copy/`, body);
   }
 
   removeMetriqueFromOperation(operationId: number, metriqueId: number): Observable<Operation> {
