@@ -606,7 +606,14 @@ export class PlanSuiviActionsComponent implements OnInit {
           }
         }
       } else {
-        previsionnel += Number(oa.etp || 0);
+        // #569 — depuis #560, la RH prévisionnelle est saisie en lignes
+        // (rh_lignes : poste/organisme × jours × financé). Le champ scalaire
+        // `etp` n'est plus alimenté : on somme les jours des lignes, avec repli
+        // sur l'ancien champ pour les données antérieures.
+        const prevLignes = oa.rh_lignes || [];
+        previsionnel += prevLignes.length > 0
+          ? this.sumRhJours(prevLignes)
+          : Number(oa.etp || 0);
       }
 
       // RÉALISÉ ---------------------------------------------------------------
@@ -625,7 +632,14 @@ export class PlanSuiviActionsComponent implements OnInit {
           }
         }
       } else {
-        if (mode === 'by_org' || mode === 'by_org_type') {
+        // #569 — RH réalisée : idem, on somme les jours des lignes réalisées
+        // (rh_lignes de la réalisation). Repli sur les anciens champs scalaires
+        // (etp_realise par organisme ou global) pour les données antérieures.
+        const realLignes = r?.rh_lignes || [];
+        if (realLignes.length > 0) {
+          realise += this.sumRhJours(realLignes);
+          hasRealise = true;
+        } else if (mode === 'by_org' || mode === 'by_org_type') {
           for (const o of oa.organismes || []) {
             if (o.realisation?.etp_realise != null) { realise += Number(o.realisation.etp_realise); hasRealise = true; }
           }
@@ -637,5 +651,10 @@ export class PlanSuiviActionsComponent implements OnInit {
 
     const ecartPct = previsionnel > 0 ? ((realise - previsionnel) / previsionnel) * 100 : null;
     return { previsionnel, realise, hasRealise, ecartPct };
+  }
+
+  /** #569 — Somme des jours d'un ensemble de lignes RH (financées ou non). */
+  private sumRhJours(lignes: { jours: number | null }[]): number {
+    return lignes.reduce((sum, l) => sum + Number(l.jours || 0), 0);
   }
 }
