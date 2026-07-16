@@ -86,7 +86,13 @@
           <div class="summary-card">
             <span class="summary-label">{{ 'plans.suivis.indicateurGlobal.moyenne' | translate }}</span>
             @if (d.moyenne_score != null) {
-              <span class="summary-score">{{ d.moyenne_score | number:'1.0-1':'fr-FR' }}/5</span>
+              <!-- #572 — icône propre à la moyenne (arrondie au niveau le plus
+                   proche), distincte de l'état courant (dernière année). -->
+              <div class="summary-value">
+                <img [src]="getScoreBadge(d.moyenne_score)" class="score-badge-icon-lg"
+                     [alt]="'plans.suivis.indicateurGlobal.moyenne' | translate">
+                <span class="summary-score">{{ d.moyenne_score | number:'1.0-1':'fr-FR' }}/5</span>
+              </div>
             } @else {
               <span class="summary-empty">{{ 'plans.suivis.indicateurGlobal.noData' | translate }}</span>
             }
