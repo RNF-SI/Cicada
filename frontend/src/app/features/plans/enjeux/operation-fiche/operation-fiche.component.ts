@@ -7,6 +7,8 @@ import { MetriqueRef, Operation } from '../../../../core/models/enjeu.model';
 import { LeafletMapEditComponent } from '../../../../shared/components/leaflet-map-edit/leaflet-map-edit.component';
 import { MetriqueGridDisplayComponent } from '../../../../shared/components/metrique-grid-display/metrique-grid-display.component';
 import { CheckboxComponent } from '../../../../shared/components/checkbox/checkbox.component';
+import { TagComponent } from '../../../../shared/components/tag/tag.component';
+import { getPrioriteTag, TagAppearance } from '../../../../shared/utils/tag-icons';
 
 /**
  * #354 — Fiche synthétique d'une action (opération).
@@ -20,7 +22,7 @@ import { CheckboxComponent } from '../../../../shared/components/checkbox/checkb
 @Component({
   selector: 'app-operation-fiche',
   standalone: true,
-  imports: [CommonModule, RouterModule, TranslateModule, LeafletMapEditComponent, MetriqueGridDisplayComponent, CheckboxComponent],
+  imports: [CommonModule, RouterModule, TranslateModule, LeafletMapEditComponent, MetriqueGridDisplayComponent, CheckboxComponent, TagComponent],
   templateUrl: './operation-fiche.component.html',
   styleUrl: './operation-fiche.component.scss',
 })
@@ -33,6 +35,11 @@ export class OperationFicheComponent implements OnInit {
   isLoading = signal(true);
   errorMessage = signal<string | null>(null);
   planSlug = signal<string | null>(null);
+
+  /** #566 — apparence du tag de priorité (palette scores), ou null si aucune. */
+  prioriteTag(op: Operation): TagAppearance | null {
+    return getPrioriteTag(op.priorite_label);
+  }
 
   /**
    * #532 — Sections facultatives que l'utilisateur peut masquer avant

@@ -4,7 +4,8 @@ import { Router } from '@angular/router';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
-import { TagComponent } from '../../../shared/components/tag/tag.component';
+import { TagComponent, TagVariant } from '../../../shared/components/tag/tag.component';
+import { getPrioriteTag } from '../../../shared/utils/tag-icons';
 import { Operation } from '../../../core/models/enjeu.model';
 import { ActionStatus, ACTION_LEGEND_ITEMS, getActionIcon, getActionStatusForYear } from './action-status.util';
 
@@ -345,11 +346,9 @@ export class PlanPlanificationMensuelleComponent {
     return this.translate.instant('plans.suivis.planification.wholeYear') + ' ' + item.year;
   }
 
-  prioriteVariant(op: Operation): 'error' | 'warning' | 'neutral' {
-    const l = op.priorite_label || '';
-    if (l.includes('1')) return 'error';
-    if (l.includes('2')) return 'warning';
-    return 'neutral';
+  /** #566 — variante du tag de priorité, unifiée sur la palette scores. */
+  prioriteVariant(op: Operation): TagVariant {
+    return getPrioriteTag(op.priorite_label)?.variant ?? 'neutral';
   }
 
   getOrganismesForOp(op: Operation): string {

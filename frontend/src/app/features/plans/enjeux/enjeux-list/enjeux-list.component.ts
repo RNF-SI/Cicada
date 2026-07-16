@@ -65,6 +65,7 @@ import { EnjeuAccordionComponent } from '../enjeu-accordion/enjeu-accordion.comp
 import { SectionTitleComponent } from '../../../../shared/components/section-title/section-title.component';
 import { HabitatChipComponent } from '../../../../shared/components/habitat-chip/habitat-chip.component';
 import { TagComponent } from '../../../../shared/components/tag/tag.component';
+import { getPrioriteTag, TagAppearance } from '../../../../shared/utils/tag-icons';
 import { MetriqueFormComponent } from '../../../../shared/components/metrique-form/metrique-form.component';
 import {
   NomenclatureOption,
@@ -4742,12 +4743,9 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
     });
   }
 
-  getPrioriteClass(op: Operation): string {
-    if (!op.priorite_label) return '';
-    if (op.priorite_label.includes('1')) return '1';
-    if (op.priorite_label.includes('2')) return '2';
-    if (op.priorite_label.includes('3')) return '3';
-    return '';
+  /** #566 — apparence du tag de priorité (palette scores), ou null si aucune. */
+  prioriteTag(op: Operation): TagAppearance | null {
+    return getPrioriteTag(op.priorite_label);
   }
 
   // ============================================

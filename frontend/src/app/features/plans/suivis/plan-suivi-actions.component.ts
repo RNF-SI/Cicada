@@ -11,6 +11,7 @@ import { PlanSidebarComponent } from '../shared/plan-sidebar/plan-sidebar.compon
 import { SearchBarComponent } from '../../../shared/components/search-bar/search-bar.component';
 import { PaginationComponent } from '../../../shared/components/pagination/pagination.component';
 import { TagComponent } from '../../../shared/components/tag/tag.component';
+import { getPrioriteTag, TagAppearance } from '../../../shared/utils/tag-icons';
 import { PlanPlanificationMensuelleComponent } from './plan-planification-mensuelle.component';
 import { AdminService } from '../../../core/services/admin.service';
 import { EnjeuService } from '../../../core/services/enjeu.service';
@@ -577,12 +578,9 @@ export class PlanSuiviActionsComponent implements OnInit {
       || this.filterYear() != null || this.filterRealisation() !== 'all');
   }
 
-  getPrioriteClass(op: Operation): string {
-    if (!op.priorite_label) return '';
-    if (op.priorite_label.includes('1')) return 'priority-1';
-    if (op.priorite_label.includes('2')) return 'priority-2';
-    if (op.priorite_label.includes('3')) return 'priority-3';
-    return '';
+  /** #566 — apparence du tag de priorité (palette scores), ou null si aucune. */
+  prioriteTag(op: Operation): TagAppearance | null {
+    return getPrioriteTag(op.priorite_label);
   }
 
   /**

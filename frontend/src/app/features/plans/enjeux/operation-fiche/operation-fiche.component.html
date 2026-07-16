@@ -53,7 +53,9 @@
         <span class="fiche-code">{{ op.code_affichage || op.code_prefix || '—' }}</span>
         <h1 class="fiche-titre">{{ op.libelle }}</h1>
         <div class="fiche-tags">
-          @if (op.priorite_label) { <span class="fiche-tag fiche-tag--prio">{{ op.priorite_label }}</span> }
+          @if (prioriteTag(op); as pt) {
+            <app-tag [variant]="pt.variant" [label]="op.priorite_label || ''" size="sm"></app-tag>
+          }
           @if (op.categorie_action_reserve_label) { <span class="fiche-tag">{{ op.categorie_action_reserve_label }}</span> }
           @if (op.type_action_label) { <span class="fiche-tag fiche-tag--type">{{ op.type_action_label }}</span> }
         </div>

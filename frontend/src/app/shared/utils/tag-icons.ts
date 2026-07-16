@@ -73,6 +73,23 @@ export const LOG_LEVEL_TAG: Record<string, TagAppearance> = {
 /** Repli neutre : tag saumon sans icône. */
 export const NEUTRAL_TAG: TagAppearance = { variant: 'neutral' };
 
+/**
+ * Apparence d'un tag de priorité d'action de gestion (#566).
+ *
+ * Priorité 1 / 2 / 3 → palette scores (rouge / orange / jaune), conformément au
+ * CLAUDE.md (« score-* : Scores / priorités ») et au kit UI. Texte noir, AA.
+ * Sans icône (couleur suffisante). Détection sur le libellé (« Priorité 1 »…),
+ * cohérente avec le reste de l'application. Renvoie `null` si aucune priorité.
+ */
+export function getPrioriteTag(prioriteLabel: string | null | undefined): TagAppearance | null {
+  const label = prioriteLabel ?? '';
+  if (!label) return null;
+  if (label.includes('1')) return { variant: 'score-very-bad' };
+  if (label.includes('2')) return { variant: 'score-bad' };
+  if (label.includes('3')) return { variant: 'score-neutral' };
+  return NEUTRAL_TAG;
+}
+
 /** Apparence d'un statut de plan, avec repli neutre si inconnu. */
 export function getPlanStatusTag(statut: string | null | undefined): TagAppearance {
   return PLAN_STATUS_TAG[statut ?? ''] ?? NEUTRAL_TAG;

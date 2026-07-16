@@ -6,6 +6,7 @@ import {
   USER_STATUS_TAG,
   VALIDATION_STATUS_TAG,
   getPlanStatusTag,
+  getPrioriteTag,
   getUserRoleTag,
   getValidationStatusTag,
 } from './tag-icons';
@@ -37,6 +38,24 @@ describe('tag-icons (contrat Figma)', () => {
       expect(getPlanStatusTag('n-importe-quoi')).toEqual(NEUTRAL_TAG);
       expect(getPlanStatusTag(null)).toEqual(NEUTRAL_TAG);
       expect(getPlanStatusTag(undefined)).toEqual(NEUTRAL_TAG);
+    });
+  });
+
+  describe('priorité d\'action (#566)', () => {
+    it('mappe les priorités 1/2/3 sur la palette scores (rouge/orange/jaune), sans icône', () => {
+      expect(getPrioriteTag('Priorité 1')).toEqual({ variant: 'score-very-bad' });
+      expect(getPrioriteTag('Priorité 2')).toEqual({ variant: 'score-bad' });
+      expect(getPrioriteTag('Priorité 3')).toEqual({ variant: 'score-neutral' });
+    });
+
+    it('renvoie null quand aucune priorité n\'est renseignée', () => {
+      expect(getPrioriteTag(null)).toBeNull();
+      expect(getPrioriteTag(undefined)).toBeNull();
+      expect(getPrioriteTag('')).toBeNull();
+    });
+
+    it('retombe sur un tag neutre pour un libellé de priorité non reconnu', () => {
+      expect(getPrioriteTag('Priorité haute')).toEqual(NEUTRAL_TAG);
     });
   });
 

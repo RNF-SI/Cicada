@@ -352,10 +352,11 @@
                                 </app-tag>
                               }
                             </div>
-                            @if (item.operation.priorite_label) {
-                              <div class="action-priority" [ngClass]="getPrioriteClass(item.operation)">
-                                {{ item.operation.priorite_label }}
-                              </div>
+                            @if (prioriteTag(item.operation); as pt) {
+                              <app-tag class="action-priority-tag"
+                                       [variant]="pt.variant"
+                                       [label]="item.operation.priorite_label || ''"
+                                       size="sm"></app-tag>
                             }
                           </td>
                           @for (year of yearColumns(); track year) {
@@ -481,10 +482,11 @@
                               <span class="action-code">{{ codes }}</span>
                             }
                             <div class="action-name">{{ item.operation.libelle }}</div>
-                            @if (item.operation.priorite_label) {
-                              <div class="action-priority" [ngClass]="getPrioriteClass(item.operation)">
-                                {{ item.operation.priorite_label }}
-                              </div>
+                            @if (prioriteTag(item.operation); as pt) {
+                              <app-tag class="action-priority-tag"
+                                       [variant]="pt.variant"
+                                       [label]="item.operation.priorite_label || ''"
+                                       size="sm"></app-tag>
                             }
                           </td>
                           @for (period of ['current', 'past', 'total']; track period) {
@@ -601,10 +603,11 @@
                               <span class="action-code">{{ codes }}</span>
                             }
                             <div class="action-name">{{ item.operation.libelle }}</div>
-                            @if (item.operation.priorite_label) {
-                              <div class="action-priority" [ngClass]="getPrioriteClass(item.operation)">
-                                {{ item.operation.priorite_label }}
-                              </div>
+                            @if (prioriteTag(item.operation); as pt) {
+                              <app-tag class="action-priority-tag"
+                                       [variant]="pt.variant"
+                                       [label]="item.operation.priorite_label || ''"
+                                       size="sm"></app-tag>
                             }
                           </td>
                           @for (period of ['current', 'past', 'total']; track period) {

@@ -760,13 +760,10 @@ tr.is-draft {
   cursor: default;
 }
 
-.action-priority {
-  font-size: $font-size-small;
-  color: $gray-dark;
-
-  &.priority-1 { color: $error-color; font-weight: $font-weight-bold; }
-  &.priority-2 { color: $warning-color; font-weight: $font-weight-semibold; }
-  &.priority-3 { color: $gray-dark; }
+// #566 — la priorité est désormais un tag du kit UI (app-tag, palette scores).
+.action-priority-tag {
+  display: inline-block;
+  margin-top: $spacing-xxs;
 }
 
 .row-actions {
