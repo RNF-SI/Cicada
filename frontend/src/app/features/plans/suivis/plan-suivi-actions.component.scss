@@ -284,6 +284,34 @@
       opacity: 0.8;
       font-size: 0.75rem;
     }
+
+    // #570 — sélecteur d'année de référence dans l'en-tête (fond primary foncé)
+    .year-selector {
+      display: inline-flex;
+      align-items: center;
+      gap: $spacing-xxs;
+      margin-top: $spacing-xxs;
+      padding: 2px $spacing-xs;
+      background: rgba($white, 0.12);
+      border: 1px solid rgba($white, 0.35);
+      border-radius: $border-radius-pill;
+      color: $white;
+      font-family: inherit;
+      font-size: 0.75rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s ease;
+
+      &:hover { background: rgba($white, 0.24); }
+
+      i { font-size: 0.7rem; }
+    }
+  }
+
+  // #570 — année active mise en évidence dans le menu de sélection
+  ::ng-deep .year-selected {
+    font-weight: 700;
+    color: $primary-color;
   }
 
   td.col-agg {

@@ -195,3 +195,44 @@ describe('PlanSuiviActionsComponent — pagination (#568)', () => {
     expect(groups[0].fullOperations.length).toBe(25);
   });
 });
+
+/**
+ * #570 — Le choix de l'année de référence (setCurrentYear) déplace la frontière
+ * « Année en cours » / « Période écoulée » du tableau de synthèse.
+ */
+describe('PlanSuiviActionsComponent — choix de l\'année de synthèse (#570)', () => {
+  let component: PlanSuiviActionsComponent;
+
+  beforeEach(() => {
+    TestBed.configureTestingModule({
+      imports: [PlanSuiviActionsComponent, NoopAnimationsModule, HttpClientTestingModule, TranslateModule.forRoot()],
+      providers: [
+        { provide: ActivatedRoute, useValue: { snapshot: { paramMap: { get: () => null }, queryParamMap: { get: () => null } } } },
+        { provide: Router, useValue: { navigate: jest.fn(), events: of(), createUrlTree: jest.fn(), serializeUrl: jest.fn() } },
+        { provide: AdminService, useValue: { getNomenclaturesByType: () => of([]), getPlanBySlug: () => of(null) } },
+        { provide: EnjeuService, useValue: { getPlanEnjeux: () => of({ enjeux: [], fcr: [] }) } },
+      ],
+    });
+    component = TestBed.createComponent(PlanSuiviActionsComponent).componentInstance;
+  });
+
+  it('réajuste la période écoulée à l\'année sélectionnée', () => {
+    const op: any = {
+      ventilation_mode: 'none',
+      operation_annees: [
+        { annee: 2024, budget: 100 },
+        { annee: 2026, budget: 200 },
+        { annee: 2028, budget: 300 },
+      ],
+    };
+    component.setCurrentYear(2028);
+    expect(component.currentYear()).toBe(2028);
+    // Année en cours = 2028 ; période écoulée = 2024 + 2026.
+    expect(component.aggregateBudget(op, 'current').previsionnel).toBe(300);
+    expect(component.aggregateBudget(op, 'past').previsionnel).toBe(300);
+
+    component.setCurrentYear(2026);
+    expect(component.aggregateBudget(op, 'current').previsionnel).toBe(200);
+    expect(component.aggregateBudget(op, 'past').previsionnel).toBe(100);
+  });
+});

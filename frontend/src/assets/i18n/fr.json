@@ -1934,6 +1934,7 @@
         "allOrganismes": "Tous les organismes",
         "filterYear": "Année",
         "allYears": "Toutes les années",
+        "selectYearTooltip": "Choisir l'année de référence (la période écoulée se réajuste aux années antérieures)",
         "filterRealisation": "Réalisation",
         "realisationDone": "Réalisées",
         "realisationNone": "Non réalisées",

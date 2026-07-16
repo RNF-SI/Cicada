@@ -253,6 +253,16 @@
           </app-search-bar>
         </div>
 
+        <!-- #570 — menu partagé de sélection de l'année de référence (Budget / RH) -->
+        <mat-menu #yearSelMenu="matMenu">
+          @for (y of allYears(); track y) {
+            <button mat-menu-item (click)="setCurrentYear(y)"
+                    [class.year-selected]="y === currentYear()">
+              {{ y }}
+            </button>
+          }
+        </mat-menu>
+
         @if (activeTab() === 'planification') {
           <!-- #xxx — Planification mensuelle : 1er onglet (vue prévisionnelle).
                Reçoit les actions filtrées (hors filtre Réalisation) + l'année. -->
@@ -423,7 +433,12 @@
                       <th class="col-action">{{ 'plans.suivis.actions.tableHeader' | translate }}</th>
                       <th class="col-agg">
                         {{ 'plans.suivis.actions.tabs.col.current' | translate }}
-                        <small>{{ currentYear() }}</small>
+                        <!-- #570 — année de référence sélectionnable -->
+                        <button type="button" class="year-selector" [matMenuTriggerFor]="yearSelMenu"
+                          [matTooltip]="'plans.suivis.actions.selectYearTooltip' | translate">
+                          {{ currentYear() }}
+                          <i class="fi fi-rr-angle-small-down"></i>
+                        </button>
                       </th>
                       <th class="col-agg">{{ 'plans.suivis.actions.tabs.col.past' | translate }}</th>
                       <th class="col-agg">{{ 'plans.suivis.actions.tabs.col.total' | translate }}</th>
@@ -538,7 +553,12 @@
                       <th class="col-action">{{ 'plans.suivis.actions.tableHeader' | translate }}</th>
                       <th class="col-agg">
                         {{ 'plans.suivis.actions.tabs.col.current' | translate }}
-                        <small>{{ currentYear() }}</small>
+                        <!-- #570 — année de référence sélectionnable -->
+                        <button type="button" class="year-selector" [matMenuTriggerFor]="yearSelMenu"
+                          [matTooltip]="'plans.suivis.actions.selectYearTooltip' | translate">
+                          {{ currentYear() }}
+                          <i class="fi fi-rr-angle-small-down"></i>
+                        </button>
                       </th>
                       <th class="col-agg">{{ 'plans.suivis.actions.tabs.col.past' | translate }}</th>
                       <th class="col-agg">{{ 'plans.suivis.actions.tabs.col.total' | translate }}</th>

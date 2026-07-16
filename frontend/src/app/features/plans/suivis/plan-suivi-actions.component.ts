@@ -366,6 +366,15 @@ export class PlanSuiviActionsComponent implements OnInit {
     this.page.set(p);
   }
 
+  /**
+   * #570 — Choix de l'année de référence des tableaux de synthèse Budget / RH.
+   * La colonne « Année en cours » affiche cette année et « Période écoulée » se
+   * réajuste aux années strictement antérieures (cf. aggregate).
+   */
+  setCurrentYear(year: number): void {
+    this.currentYear.set(year);
+  }
+
   /** Total budget/ETP agrégé pour un groupe d'organisme sur une période. */
   groupAggregate(
     items: FlatOperation[],
@@ -429,6 +438,10 @@ export class PlanSuiviActionsComponent implements OnInit {
           if (plan.annee_debut && plan.annee_fin) {
             this.planYearStart.set(plan.annee_debut);
             this.planYearEnd.set(plan.annee_fin);
+            // #570 — année de référence par défaut : l'année courante bornée à
+            // la période du plan (pour que « Année en cours » soit pertinente).
+            const now = new Date().getFullYear();
+            this.currentYear.set(Math.min(Math.max(now, plan.annee_debut), plan.annee_fin));
           }
           this.loadData(plan.id_pg);
         }
