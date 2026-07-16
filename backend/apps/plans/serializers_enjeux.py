@@ -763,6 +763,10 @@ class EnjeuDetailSerializer(serializers.ModelSerializer):
     facteurs_influence = serializers.SerializerMethodField()
     nb_facteurs_influence = serializers.SerializerMethodField()
 
+    # #552 — Ordre des OO propre à cet enjeu ({id_oo: ordre}), pour trier les
+    # OO partagés indépendamment dans chaque enjeu.
+    oo_ordre = serializers.SerializerMethodField()
+
     # Objectifs à long terme (nested, avec NE inclus)
     objectifs_long_terme = ObjectifLongTermeSerializer(many=True, read_only=True)
     nb_objectifs_long_terme = serializers.SerializerMethodField()
@@ -797,6 +801,8 @@ class EnjeuDetailSerializer(serializers.ModelSerializer):
             'taxons', 'habitats', 'geologies', 'objets_geologiques', 'documents',
             # Facteurs d'influence
             'facteurs_influence', 'nb_facteurs_influence',
+            # #552 — ordre des OO propre à cet enjeu
+            'oo_ordre',
             # Objectifs à long terme (avec NE inclus)
             'objectifs_long_terme', 'nb_objectifs_long_terme',
             # #337 — OO rattachés directement (FCR)
@@ -821,6 +827,16 @@ class EnjeuDetailSerializer(serializers.ModelSerializer):
 
     def get_nb_facteurs_influence(self, obj):
         return len(obj.cor_facteurs.all())
+
+    def get_oo_ordre(self, obj):
+        """#552 — Ordre des OO propre à CET enjeu ({id_oo: ordre}).
+
+        Un OO peut être partagé entre plusieurs enjeux avec un ordre différent
+        dans chacun (CorOoEnjeu, surcharge de l'ordre global). Le front applique
+        ce map pour trier les OO de l'enjeu ; un OO absent du map retombe sur son
+        ``ordre`` global. Lu depuis le prefetch ``cor_oos`` (aucun N+1).
+        """
+        return {cor.id_oo_id: cor.ordre for cor in obj.cor_oos.all()}
 
     def get_nb_objectifs_long_terme(self, obj):
         return _prefetched_count(obj, 'objectifs_long_terme')

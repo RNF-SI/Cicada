@@ -668,6 +668,31 @@ class TestOOPressionRemap:
         }
         assert enjeux_du_oo == {'Enjeu A', 'Enjeu B'}
 
+    def test_oo_per_enjeu_order_copied(self, source_plan, user):
+        """#552 — l'ordre d'un OO propre à chaque enjeu (CorOoEnjeu) est copié."""
+        from apps.plans.models_enjeux import CorOoEnjeu
+
+        enjeu = EnjeuFactory(id_pg=source_plan, libelle='E ordre', id_utilisateur_ajout=user)
+        fi = FacteurInfluenceFactory(id_enjeu=enjeu, id_utilisateur_ajout=user)
+        pression = PressionFactory(id_facteur_influence=fi, id_utilisateur_ajout=user)
+        oo = ObjectifOperationnelFactory(
+            libelle='OO ordonné', id_utilisateur_ajout=user, pressions=[pression],
+        )
+        CorOoEnjeu.objects.create(id_oo=oo, id_enjeu=enjeu, ordre=7)
+
+        new_plan = PlanDuplicationService.duplicate_plan(
+            source_plan=source_plan, user=user,
+            copy_sites=False, copy_referents=False,
+            copy_fichiers=False, copy_enjeux=True, copy_sub_elements=True,
+        )
+
+        new_oo = ObjectifOperationnel.objects.get(
+            pressions__id_facteur_influence__enjeux__id_pg=new_plan
+        )
+        new_enjeu = Enjeu.objects.get(id_pg=new_plan, libelle='E ordre')
+        cor = CorOoEnjeu.objects.get(id_oo=new_oo, id_enjeu=new_enjeu)
+        assert cor.ordre == 7
+
     def test_oo_resultat_attendu_indicateur_copied(self, source_plan, user):
         enjeu = EnjeuFactory(id_pg=source_plan, id_utilisateur_ajout=user)
         fi = FacteurInfluenceFactory(id_enjeu=enjeu, id_utilisateur_ajout=user)

@@ -187,6 +187,18 @@ def _assert_facteur_order(enjeu, ids_ordered):
         )
 
 
+def _assert_oo_order(enjeu, ids_ordered):
+    """Ordre des OO propre à un enjeu, porté par CorOoEnjeu (#552)."""
+    from apps.plans.models_enjeux import CorOoEnjeu
+
+    for expected_pos, pk in enumerate(ids_ordered):
+        cor = CorOoEnjeu.objects.get(id_oo_id=pk, id_enjeu=enjeu)
+        assert cor.ordre == expected_pos, (
+            f"CorOoEnjeu(oo={pk}, enjeu={enjeu.pk}): "
+            f"ordre={cor.ordre}, attendu={expected_pos}"
+        )
+
+
 # =============================================================================
 # EnjeuViewSet reorder
 # =============================================================================
@@ -416,7 +428,47 @@ class TestObjectifOperationnelReorder:
             format='json',
         )
         assert response.status_code == status.HTTP_200_OK
-        _assert_order(ObjectifOperationnel, 'id_oo', ids)
+        # #552 — l'ordre est porté par CorOoEnjeu (propre à l'enjeu), pas par oo.ordre
+        _assert_oo_order(enjeu, ids)
+
+    def test_reorder_is_independent_per_enjeu(self, api_client, reorder_test_data):
+        """#552 — réordonner un OO partagé sous un enjeu n'affecte pas l'autre."""
+        from apps.plans.models_enjeux import CorFacteurEnjeu, CorOoEnjeu
+
+        d = reorder_test_data
+        enjeu1, enjeu2 = d['enjeu1'], d['enjeu2']
+        # Partage : le facteur fi1 (dont dépendent oo1/oo2/oo3 via p1/p2/p3) est
+        # aussi rattaché à enjeu2 → les 3 OO deviennent visibles sous enjeu2.
+        CorFacteurEnjeu.objects.get_or_create(
+            id_facteur_influence=d['fi1'], id_enjeu=enjeu2,
+        )
+
+        api_client.force_authenticate(user=d['referent'])
+        ids = [d['oo3'].pk, d['oo2'].pk, d['oo1'].pk]
+        resp = api_client.post(
+            self.URL, {'parent_id': enjeu1.pk, 'ordered_ids': ids}, format='json',
+        )
+        assert resp.status_code == status.HTTP_200_OK
+
+        # enjeu1 a bien ses lignes d'ordre ; enjeu2 n'a rien reçu (indépendant).
+        _assert_oo_order(enjeu1, ids)
+        assert not CorOoEnjeu.objects.filter(id_enjeu=enjeu2).exists()
+
+    def test_reorder_reflected_in_by_plan_oo_ordre(self, api_client, reorder_test_data):
+        """#552 — after a reorder, by-plan exposes the per-enjeu order in oo_ordre."""
+        d = reorder_test_data
+        enjeu = d['enjeu1']
+        api_client.force_authenticate(user=d['referent'])
+        ids = [d['oo2'].pk, d['oo3'].pk, d['oo1'].pk]
+        assert api_client.post(
+            self.URL, {'parent_id': enjeu.pk, 'ordered_ids': ids}, format='json',
+        ).status_code == status.HTTP_200_OK
+
+        resp = api_client.get(f'/api/plans/enjeux/by-plan/{d["plan"].id_pg}/')
+        assert resp.status_code == status.HTTP_200_OK
+        e = next(x for x in resp.data['enjeux'] if x['id_enjeu'] == enjeu.pk)
+        # Le map reflète l'ordre demandé (clés = id_oo, valeurs = position).
+        assert e['oo_ordre'] == {ids[0]: 0, ids[1]: 1, ids[2]: 2}
 
 
 # =============================================================================

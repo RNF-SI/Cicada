@@ -963,6 +963,58 @@ class CorFacteurEnjeu(models.Model):
         return f"Facteur {self.id_facteur_influence_id} ↔ Enjeu {self.id_enjeu_id}"
 
 
+class CorOoEnjeu(models.Model):
+    """
+    Ordre d'affichage d'un OO **propre à chaque enjeu** (#552).
+
+    Un OO peut être partagé entre plusieurs enjeux (via les pressions de deux
+    facteurs, ou directement en FCR). Contrairement au facteur — dont le
+    rattachement à l'enjeu EST la liaison M2M — l'appartenance d'un OO à un
+    enjeu reste **dérivée** (OO → pression → facteur → enjeux, ou ``id_enjeu``
+    direct). Cette table ne porte donc PAS l'appartenance : elle ne stocke que
+    l'``ordre`` d'affichage de l'OO dans un enjeu donné.
+
+    Surcharge **paresseuse** : une ligne n'est créée que lorsqu'on réordonne les
+    OO d'un enjeu (le ``reorder`` écrit une ligne par OO de la liste). En
+    l'absence de ligne, l'affichage retombe sur ``ObjectifOperationnel.ordre``
+    (ordre global historique). Une ligne devenue obsolète (OO plus rattaché à
+    l'enjeu) est inoffensive : l'OO n'apparaît simplement plus sous cet enjeu.
+    """
+
+    id = models.AutoField(primary_key=True)
+    id_oo = models.ForeignKey(
+        ObjectifOperationnel,
+        on_delete=models.CASCADE,
+        db_column='id_oo',
+        related_name='cor_enjeux',
+        verbose_name=_("Objectif opérationnel")
+    )
+    id_enjeu = models.ForeignKey(
+        Enjeu,
+        on_delete=models.CASCADE,
+        db_column='id_enjeu',
+        related_name='cor_oos',
+        verbose_name=_("Enjeu")
+    )
+    ordre = models.PositiveIntegerField(
+        _("Ordre"),
+        default=0,
+        db_index=True,
+        help_text=_("Ordre d'affichage de l'OO parmi ceux de cet enjeu (0 = haut)")
+    )
+
+    class Meta:
+        db_table = '"general"."cor_oo_enjeu"'
+        db_table_comment = "Ordre d'affichage des OO propre à chaque enjeu (#552)"
+        unique_together = [('id_oo', 'id_enjeu')]
+        ordering = ['ordre', 'id']
+        verbose_name = _("Ordre OO-Enjeu")
+        verbose_name_plural = _("Ordres OO-Enjeu")
+
+    def __str__(self):
+        return f"OO {self.id_oo_id} ↔ Enjeu {self.id_enjeu_id} (ordre {self.ordre})"
+
+
 class CorResponsabiliteTaxon(models.Model):
     """
     Liaison entre une responsabilité et des taxons (référentiel TaxRef).

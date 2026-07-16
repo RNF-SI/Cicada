@@ -343,7 +343,7 @@ class PlanDuplicationService:
             ObjectifLongTerme, NiveauExigence,
             ObjectifOperationnel, ResultatAttendu,
             CorEnjeuTaxon, CorEnjeuHabitat, CorEnjeuGeologie,
-            CorFacteurEnjeu,
+            CorFacteurEnjeu, CorOoEnjeu,
         )
         from .models_indicateurs import (
             Indicateur, Metrique, MetriqueScoreBlock,
@@ -363,6 +363,9 @@ class PlanDuplicationService:
         #     rattaché aux pressions de DEUX facteurs, donc de deux enjeux.
         facteur_map = {}
         oo_map = {}
+        # #552 — ancien enjeu → nouvel enjeu, pour recopier l'ordre des OO
+        # propre à chaque enjeu (CorOoEnjeu) une fois tous les OO créés.
+        enjeu_map = {}
 
         def _copy_indicateur(old_ind, **parent_override):
             new_ind = dup(old_ind, user, **parent_override)
@@ -396,6 +399,7 @@ class PlanDuplicationService:
         for old_enjeu in Enjeu.objects.filter(id_pg_id=source_plan_id):
             new_enjeu = dup(old_enjeu, user, id_pg=new_plan, slug='')
             new_enjeu.save()
+            enjeu_map[old_enjeu.pk] = new_enjeu
 
             for cor in CorEnjeuTaxon.objects.filter(id_enjeu=old_enjeu):
                 CorEnjeuTaxon.objects.create(
@@ -464,6 +468,19 @@ class PlanDuplicationService:
                     new_ne.save()
                     for old_ind in Indicateur.objects.filter(id_ne=old_ne):
                         _copy_indicateur(old_ind, id_ne=new_ne, id_resultat_attendu=None)
+
+        # #552 — Ordre des OO propre à chaque enjeu (CorOoEnjeu). Recopié en
+        # dernier, une fois OO et enjeux créés, via les deux maps. Sans ça, une
+        # nouvelle version perdrait l'ordonnancement par enjeu des OO partagés
+        # (retour à l'ordre global).
+        if copy_sub_elements and oo_map and enjeu_map:
+            for cor in CorOoEnjeu.objects.filter(id_enjeu_id__in=enjeu_map.keys()):
+                new_oo = oo_map.get(cor.id_oo_id)
+                new_enjeu = enjeu_map.get(cor.id_enjeu_id)
+                if new_oo is not None and new_enjeu is not None:
+                    CorOoEnjeu.objects.create(
+                        id_oo=new_oo, id_enjeu=new_enjeu, ordre=cor.ordre,
+                    )
 
         return indicateur_map, metrique_map
 

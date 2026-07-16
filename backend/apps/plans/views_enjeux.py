@@ -17,7 +17,7 @@ from .models_enjeux import (
     ObjectifLongTerme, NiveauExigence,
     ObjectifOperationnel, ResultatAttendu,
     CorEnjeuTaxon, CorEnjeuHabitat, CorEnjeuGeologie, CorEnjeuFichier,
-    CorFacteurEnjeu,
+    CorFacteurEnjeu, CorOoEnjeu,
     CorResponsabiliteTaxon, CorResponsabiliteHabitat, CorResponsabiliteGeologie
 )
 from .models import PlanGestion, CorRolePlan
@@ -187,6 +187,9 @@ class EnjeuViewSet(viewsets.ModelViewSet):
             Prefetch('objectifs_long_terme', queryset=olt_qs),
             # #337 — OO rattachés directement à l'enjeu/FCR (sans pression)
             Prefetch('objectifs_operationnels_directs', queryset=oo_qs),
+            # #552 — ordre des OO propre à cet enjeu (surcharge CorOoEnjeu),
+            # exposé au front via le map ``oo_ordre`` du serializer.
+            'cor_oos',
         ]
 
     @classmethod
@@ -1286,8 +1289,19 @@ class ObjectifOperationnelViewSet(viewsets.ModelViewSet):
         (Enjeu → FacteurInfluence → Pression ↔ OO M2M), soit directement via
         ``id_enjeu`` (#337, cas FCR).
 
+        #552 — Un OO peut être partagé entre plusieurs enjeux : son ordre est
+        donc **propre à chaque enjeu** et porté par ``CorOoEnjeu`` (surcharge
+        de l'ordre global). Le reorder upsert une ligne par OU réordonné, sans
+        toucher les autres enjeux.
+
         Payload: { "parent_id": <id_enjeu>, "ordered_ids": [id1, id2, ...] }
         """
+        def write_ordre(enjeu_id, oo_id, pos):
+            CorOoEnjeu.objects.update_or_create(
+                id_oo_id=oo_id, id_enjeu_id=enjeu_id,
+                defaults={'ordre': pos},
+            )
+
         return do_reorder(
             self,
             request,
@@ -1295,6 +1309,7 @@ class ObjectifOperationnelViewSet(viewsets.ModelViewSet):
                 Q(pressions__id_facteur_influence__enjeux=pid) |
                 Q(id_enjeu=pid)
             ),
+            ordre_writer=write_ordre,
         )
 
     @action(detail=False, methods=['get'], url_path=r'by-pression/(?P<pression_id>\d+)')
