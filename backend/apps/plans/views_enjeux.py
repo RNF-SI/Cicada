@@ -314,8 +314,16 @@ class EnjeuViewSet(viewsets.ModelViewSet):
         # serializers d'opération nichés dans EnjeuDetailSerializer. Évite
         # de recalculer le mapping pour chaque opération individuellement.
         from .serializers_operations import compute_operation_codes_for_plan
+        from .serializers_enjeux import compute_oo_numeros_for_plan
         operation_codes = compute_operation_codes_for_plan(plan.pk)
-        ctx = {**self.get_serializer_context(), 'operation_codes': operation_codes}
+        # #552 — numéro d'affichage plan-wide des OO (identique sous tous leurs
+        # enjeux), calculé une fois et passé via context comme les codes d'action.
+        oo_numeros = compute_oo_numeros_for_plan(plan.pk)
+        ctx = {
+            **self.get_serializer_context(),
+            'operation_codes': operation_codes,
+            'oo_numeros': oo_numeros,
+        }
 
         return Response({
             'plan_id': int(plan_id),

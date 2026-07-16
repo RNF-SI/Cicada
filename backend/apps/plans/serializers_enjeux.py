@@ -3,7 +3,7 @@ Serializers pour l'API REST Enjeux, FCR et Responsabilités.
 """
 from rest_framework import serializers
 from django.contrib.gis.geos import GEOSGeometry
-from django.db.models import Max
+from django.db.models import Max, Q
 from django.utils.translation import gettext_lazy as _
 
 from .models_enjeux import (
@@ -304,6 +304,90 @@ def _oo_shared_enjeu_ids(obj):
     return sorted(ids)
 
 
+def compute_oo_numeros_for_plan(plan_id):
+    """Numéro d'affichage **plan-wide** de chaque OO du plan (#552).
+
+    Même principe que le code des actions (``compute_operation_codes_for_plan``) :
+    un seul numéro par OO, attribué à sa **première rencontre** dans l'ordre de
+    lecture du plan — enjeux triés par ``ordre``, puis OO triés par leur ordre
+    **propre à l'enjeu** (surcharge ``CorOoEnjeu``, sinon ordre global). Un OO
+    partagé entre plusieurs enjeux a donc le même numéro partout, celui de son
+    premier enjeu.
+
+    ``numero_manuel`` réserve son indice pour tout le plan : l'OO garde ce
+    numéro et l'auto-numérotation des autres le saute (#485/#526).
+
+    Retour : dict {id_oo: numero}.
+    """
+    from .models import PlanGestion
+    from .models_enjeux import Enjeu, ObjectifOperationnel, CorOoEnjeu
+
+    if PlanGestion.objects.filter(pk=plan_id).first() is None:
+        return {}
+
+    enjeux = list(
+        Enjeu.objects.filter(id_pg_id=plan_id).order_by('ordre', 'id_enjeu')
+    )
+    enjeu_ids = [e.pk for e in enjeux]
+
+    # Ordre propre à l'enjeu : {(id_oo, id_enjeu): ordre}
+    overrides = {
+        (c.id_oo_id, c.id_enjeu_id): c.ordre
+        for c in CorOoEnjeu.objects.filter(id_enjeu_id__in=enjeu_ids)
+    }
+
+    # OO du plan avec leurs enjeux (via pressions → facteur → enjeux, ou direct).
+    oos = (
+        ObjectifOperationnel.objects
+        .filter(
+            Q(pressions__id_facteur_influence__enjeux__id_pg=plan_id)
+            | Q(id_enjeu__id_pg=plan_id)
+        )
+        .distinct()
+        .prefetch_related('pressions__id_facteur_influence__enjeux')
+    )
+
+    # Regroupe les OO par enjeu.
+    by_enjeu = {eid: [] for eid in enjeu_ids}
+    for oo in oos:
+        oo_enjeu_ids = set()
+        for p in oo.pressions.all():
+            fi = p.id_facteur_influence
+            if fi is not None:
+                oo_enjeu_ids.update(e.pk for e in fi.enjeux.all())
+        if oo.id_enjeu_id:
+            oo_enjeu_ids.add(oo.id_enjeu_id)
+        for eid in oo_enjeu_ids:
+            if eid in by_enjeu:
+                by_enjeu[eid].append(oo)
+
+    # Indices réservés par les numéros fixés manuellement (plan-wide).
+    reserved = {
+        oo.numero_manuel
+        for bucket in by_enjeu.values() for oo in bucket
+        if oo.numero_manuel
+    }
+
+    numeros = {}
+    counter = 0
+    for eid in enjeu_ids:
+        bucket = sorted(
+            by_enjeu[eid],
+            key=lambda oo: (overrides.get((oo.id_oo, eid), oo.ordre), oo.id_oo),
+        )
+        for oo in bucket:
+            if oo.id_oo in numeros:
+                continue  # déjà numéroté sous un enjeu précédent (partagé)
+            if oo.numero_manuel:
+                numeros[oo.id_oo] = oo.numero_manuel
+                continue
+            counter += 1
+            while counter in reserved:
+                counter += 1
+            numeros[oo.id_oo] = counter
+    return numeros
+
+
 class ObjectifOperationnelSerializer(serializers.ModelSerializer):
     """Serializer détaillé pour un Objectif Opérationnel avec résultats attendus imbriqués."""
     resultats_attendus = ResultatAttenduSerializer(many=True, read_only=True)
@@ -311,13 +395,16 @@ class ObjectifOperationnelSerializer(serializers.ModelSerializer):
     pressions = PressionLightSerializer(many=True, read_only=True)
     pression_ids = serializers.SerializerMethodField()
     shared_enjeu_ids = serializers.SerializerMethodField()
+    # #552 — numéro d'affichage plan-wide (identique sous tous les enjeux),
+    # calculé par compute_oo_numeros_for_plan et passé via le context by-plan.
+    numero_affichage = serializers.SerializerMethodField()
     createur_nom = serializers.CharField(source='id_utilisateur_ajout.get_full_name', read_only=True)
 
     class Meta:
         model = ObjectifOperationnel
         fields = [
             'id_oo', 'pressions', 'pression_ids', 'id_enjeu', 'shared_enjeu_ids',
-            'libelle', 'description', 'ordre', 'numero_manuel',
+            'libelle', 'description', 'ordre', 'numero_manuel', 'numero_affichage',
             'resultats_attendus', 'nb_resultats_attendus',
             'date_ajout', 'date_maj', 'createur_nom'
         ]
@@ -331,6 +418,9 @@ class ObjectifOperationnelSerializer(serializers.ModelSerializer):
 
     def get_shared_enjeu_ids(self, obj):
         return _oo_shared_enjeu_ids(obj)
+
+    def get_numero_affichage(self, obj):
+        return (self.context.get('oo_numeros') or {}).get(obj.id_oo)
 
 
 class ObjectifOperationnelListSerializer(serializers.ModelSerializer):
