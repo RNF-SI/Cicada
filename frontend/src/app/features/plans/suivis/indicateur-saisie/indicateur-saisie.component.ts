@@ -277,10 +277,52 @@ export class IndicateurSaisieComponent implements OnInit {
 
   scoreLevelsList: ScoreLevel[] = SCORE_LEVELS;
 
+  /** Niveaux de score 1-5 (pour itérer les colonnes du tableau récapitulatif). */
+  readonly numericLevels = [1, 2, 3, 4, 5];
+
   /** Bornes seuil d'une métrique pour un score donné (1-5). */
   /** #421 — intervalle d'un palier formaté comme dans la saisie PG ([50 ; 200], ]30 ; 50]…). */
   scoreRange(met: Metrique, level: number): string {
     return formatScoreRange(met, level);
+  }
+
+  /**
+   * #573 — Lignes d'une cellule de palier pour une métrique multi-blocs : bloc
+   * principal + chaque bloc complémentaire (avec opérateur ET/OU et parenthèses),
+   * afin d'afficher l'ensemble de la métrique et pas seulement le bloc 1 dans le
+   * tableau récapitulatif des seuils. Même rendu que l'arborescence des enjeux.
+   */
+  metriqueCellLines(met: Metrique, level: number): {
+    label: string; text: string; op?: 'AND' | 'OR'; open: boolean; close: boolean;
+  }[] {
+    const anyMet = met as any;
+    const empty = (t: string) => !t || t === '-' || t === '- - -';
+    const lines: { label: string; text: string; op?: 'AND' | 'OR'; open: boolean; close: boolean }[] = [];
+
+    const mainText = formatScoreRange(met, level);
+    if (!empty(mainText)) {
+      lines.push({
+        label: this.blockLabelText(anyMet.bloc_intitule, met.unite, 'Bloc A'),
+        text: mainText,
+        open: (anyMet.group_open ?? 0) > 0,
+        close: (anyMet.group_close ?? 0) > 0,
+      });
+    }
+
+    const blocks: any[] = anyMet.score_blocks || [];
+    blocks.forEach((b, idx) => {
+      const text = formatScoreRange({ ...b, type_metrique_mnemonique: 'NUMERIQUE' }, level);
+      if (empty(text)) return;
+      lines.push({
+        label: this.blockLabelText(b.intitule, b.unite, `Bloc ${String.fromCharCode(66 + idx)}`),
+        text,
+        op: b.logical_op,
+        open: (b.group_open ?? 0) > 0,
+        close: (b.group_close ?? 0) > 0,
+      });
+    });
+
+    return lines;
   }
 
   /** #421 — vrai si la métrique est de type indéterminé. */

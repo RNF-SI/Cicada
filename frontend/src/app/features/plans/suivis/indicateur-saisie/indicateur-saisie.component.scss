@@ -176,6 +176,20 @@
   }
   .indetermine-empty { color: $gray-light; }
   tbody tr:nth-child(even) { background: $gray-lighter; }
+
+  // #573 — cellule multi-blocs : un bloc par ligne (intitulé + intervalle),
+  // relié par l'opérateur ET/OU, pour montrer toute la métrique.
+  td.seuil-cell-multi {
+    font-size: 0.8rem;
+    line-height: 1.35;
+    .seuil-cell-line { white-space: normal; }
+    .seuil-cell-op {
+      color: $primary-color; font-weight: 700; margin-right: 2px;
+      text-transform: uppercase;
+    }
+    .seuil-cell-block { font-weight: 600; margin-right: 2px; }
+    .seuil-cell-paren { color: $gray-dark; }
+  }
 }
 
 // =============================================================================

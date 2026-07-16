@@ -43,6 +43,39 @@ describe('IndicateurSaisieComponent — éditeur unifié (#510)', () => {
   });
 
   // ---------------------------------------------------------------------------
+  // metriqueCellLines — cellule multi-blocs du tableau récap (#573)
+  // ---------------------------------------------------------------------------
+  describe('metriqueCellLines (#573)', () => {
+    const c = comp();
+    const met: any = {
+      bloc_intitule: 'Flux de phosphore', unite: 'kg P/an',
+      score_3_inf: 100, score_3_sup: 150,
+      score_blocks: [
+        {
+          position: 2, logical_op: 'OR', intitule: "Flux d'azote", unite: 'kg N/an',
+          score_3_inf: 600, score_3_sup: 1000,
+        },
+      ],
+    };
+
+    it('produit une ligne par bloc (principal + complémentaires) avec l’opérateur', () => {
+      const lines = c.metriqueCellLines(met, 3);
+      expect(lines.length).toBe(2);
+      expect(lines[0].label).toContain('Flux de phosphore');
+      expect(lines[0].text).toContain('100');
+      expect(lines[0].text).toContain('150');
+      expect(lines[1].label).toContain("Flux d'azote");
+      expect(lines[1].op).toBe('OR');
+      expect(lines[1].text).toContain('600');
+    });
+
+    it('n’ajoute pas de ligne pour un bloc sans intervalle à ce palier', () => {
+      // Au palier 1, aucun des blocs n'a de bornes → cellule vide.
+      expect(c.metriqueCellLines(met, 1).length).toBe(0);
+    });
+  });
+
+  // ---------------------------------------------------------------------------
   // weightedMetricMean — moyenne pondérée brute (#548) partagée par le score
   // auto et l'affichage de la moyenne.
   // ---------------------------------------------------------------------------

@@ -116,11 +116,26 @@
                         <span class="indetermine-marker"><i class="fi fi-rr-check"></i> {{ 'common.yes' | translate }}</span>
                       } @else { <span class="indetermine-empty">—</span> }
                     </td>
-                    <td>{{ scoreRange(m, 1) }}</td>
-                    <td>{{ scoreRange(m, 2) }}</td>
-                    <td>{{ scoreRange(m, 3) }}</td>
-                    <td>{{ scoreRange(m, 4) }}</td>
-                    <td>{{ scoreRange(m, 5) }}</td>
+                    @for (level of numericLevels; track level) {
+                      <td [class.seuil-cell-multi]="isMultiBlock(m)">
+                        @if (isMultiBlock(m)) {
+                          <!-- #573 — afficher tous les blocs (ET/OU), pas seulement le bloc 1 -->
+                          @for (line of metriqueCellLines(m, level); track $index; let i = $index) {
+                            <div class="seuil-cell-line">
+                              @if (i > 0 && line.op) {
+                                <span class="seuil-cell-op">{{ line.op === 'AND' ? ('enjeux.metriques.opAnd' | translate) : ('enjeux.metriques.opOr' | translate) }}</span>
+                              }
+                              @if (line.open) { <span class="seuil-cell-paren">(</span> }
+                              <span class="seuil-cell-block">{{ line.label }} :</span>
+                              <span class="seuil-cell-interval">{{ line.text }}</span>
+                              @if (line.close) { <span class="seuil-cell-paren">)</span> }
+                            </div>
+                          }
+                        } @else {
+                          {{ scoreRange(m, level) }}
+                        }
+                      </td>
+                    }
                   </tr>
                 }
               </tbody>
@@ -379,7 +394,7 @@
                     </td>
                   </tr>
                   @for (m of ind.metriques || []; track m.id_metrique; let mIdx = $index) {
-                    @let mScore = valueToScore(form.get('m_' + m.id_metrique)?.value, m);
+                    @let mScore = metricScore(m);
                     <tr class="recap-metric-row">
                       <td>{{ 'plans.suivis.tableauDeBord.metriquePrefix' | translate:{ n: mIdx + 1 } }} {{ m.nom_metrique }}</td>
                       <td>{{ form.get('m_' + m.id_metrique)?.value || '—' }} {{ m.unite || '' }}</td>
