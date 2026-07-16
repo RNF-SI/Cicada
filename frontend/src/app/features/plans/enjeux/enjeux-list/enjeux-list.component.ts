@@ -5069,8 +5069,15 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
       est_standardise: this.newOoIndicateurStandardise
     }).subscribe({
       next: (indicateur) => {
-        // Create metriques if any
-        const metriquesToCreate = this.ooIndicateurFormMetriques.filter(m => m.nom_metrique.trim());
+        // Create metriques if any.
+        // #574 — aligner sur le flux NE (saveIndicateur) : conserver les
+        // métriques « Indéterminé » même sans intitulé (sinon elles étaient
+        // silencieusement supprimées), et signaler un échec partiel (l'ancien
+        // code avalait l'erreur sans aucun message → « la métrique ne se
+        // sauvegarde pas » sans explication).
+        const metriquesToCreate = this.ooIndicateurFormMetriques.filter(m =>
+          m.nom_metrique.trim() || this.getMetriqueTypeMnemonique(m.type_metrique) === 'INDETERMINE'
+        );
         if (metriquesToCreate.length > 0) {
           const metriqueRequests: Observable<any>[] = metriquesToCreate.map(m =>
             this.enjeuService.createMetrique(this.buildMetriquePayload(indicateur.id_indicateur, m))
@@ -5088,7 +5095,15 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
               this.loadPlanData(true);
             },
             error: () => {
+              // Indicateur créé mais au moins une métrique a échoué : prévenir
+              // l'utilisateur (auparavant : échec silencieux).
               this.isSavingOoIndicateur.set(false);
+              this.snackBar.open(
+                this.translate.instant('enjeux.metriques.partialError'),
+                this.translate.instant('common.actions.close'),
+                { duration: 5000 }
+              );
+              this.cancelAddIndicateurForRa();
               this.loadPlanData(true);
             }
           });
