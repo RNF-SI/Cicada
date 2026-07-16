@@ -48,6 +48,234 @@
             </div>
           </div>
         } @else {
+          <!-- Import / export de l'arborescence (V1) -->
+          <section class="settings-section">
+            <h2 class="section-title">{{ 'plans.import.sectionTitle' | translate }}</h2>
+            <p class="subtitle">{{ 'plans.import.sectionSubtitle' | translate }}</p>
+
+            <div class="import-actions">
+              <button mat-stroked-button [disabled]="downloading()" (click)="downloadTemplate(false)">
+                <i class="fi fi-rr-download"></i>
+                {{ 'plans.import.downloadPrefilled' | translate }}
+              </button>
+              <button mat-button [disabled]="downloading()" (click)="downloadTemplate(true)">
+                <i class="fi fi-rr-file"></i>
+                {{ 'plans.import.downloadEmpty' | translate }}
+              </button>
+              @if (downloading()) {
+                <mat-spinner diameter="18"></mat-spinner>
+              }
+            </div>
+
+            @if (!isDraft()) {
+              <div class="info-block info-block-warning">
+                <span class="info-block-icon"></span>
+                <div class="info-block-content">
+                  <p class="info-block-content-text">{{ 'plans.import.draftOnly' | translate }}</p>
+                </div>
+              </div>
+            } @else {
+              <div class="import-upload">
+                <label class="import-file-label">
+                  <input
+                    type="file"
+                    accept=".xlsx"
+                    (change)="onImportFileSelected($event)"
+                    [disabled]="importValidating() || importing()" />
+                </label>
+
+                @if (importValidating()) {
+                  <div class="import-status">
+                    <mat-spinner diameter="18"></mat-spinner>
+                    <span>{{ 'plans.import.validating' | translate }}</span>
+                  </div>
+                }
+
+                @if (importReport(); as report) {
+                  @if (report.can_import) {
+                    <div class="info-block info-block-success">
+                      <span class="info-block-icon"></span>
+                      <div class="info-block-content">
+                        <p class="info-block-content-text">
+                          {{ 'plans.import.readySummary' | translate:{
+                            enjeux: report.summary['enjeux'],
+                            indicateurs: report.summary['indicateurs'],
+                            metriques: report.summary['metriques']
+                          } }}
+                        </p>
+                      </div>
+                    </div>
+                  } @else {
+                    <div class="info-block info-block-error">
+                      <span class="info-block-icon"></span>
+                      <div class="info-block-content">
+                        <p class="info-block-content-text">
+                          {{ 'plans.import.errorsCount' | translate:{ count: report.n_errors } }}
+                        </p>
+                      </div>
+                    </div>
+                  }
+
+                  @if (importErrors().length) {
+                    <ul class="import-issues import-issues-error">
+                      @for (issue of importErrors(); track $index) {
+                        <li>
+                          @if (issue.sheet) {
+                            <span class="issue-loc">{{ issue.sheet }}@if (issue.row) { · L{{ issue.row }} }@if (issue.column) { · {{ issue.column }} }</span>
+                          }
+                          <span class="issue-msg">{{ issue.message }}</span>
+                        </li>
+                      }
+                    </ul>
+                  }
+
+                  @if (importWarnings().length) {
+                    <ul class="import-issues import-issues-warning">
+                      @for (issue of importWarnings(); track $index) {
+                        <li>
+                          @if (issue.sheet) {
+                            <span class="issue-loc">{{ issue.sheet }}@if (issue.row) { · L{{ issue.row }} }</span>
+                          }
+                          <span class="issue-msg">{{ issue.message }}</span>
+                        </li>
+                      }
+                    </ul>
+                  }
+
+                  <div class="import-buttons">
+                    <button
+                      mat-flat-button
+                      color="primary"
+                      [disabled]="!report.can_import || importing()"
+                      (click)="runImport()">
+                      @if (importing()) {
+                        <mat-spinner diameter="16"></mat-spinner>
+                      } @else {
+                        <i class="fi fi-rr-cloud-upload"></i>
+                      }
+                      {{ 'plans.import.doImport' | translate }}
+                    </button>
+                    <button mat-button [disabled]="importing()" (click)="clearImport()">
+                      {{ 'common.actions.cancel' | translate }}
+                    </button>
+                  </div>
+                }
+              </div>
+            }
+          </section>
+
+          <!-- Import des actions (module 2) -->
+          <section class="settings-section">
+            <h2 class="section-title">{{ 'plans.import.actionsSectionTitle' | translate }}</h2>
+            <p class="subtitle">{{ 'plans.import.actionsSectionSubtitle' | translate }}</p>
+
+            <div class="import-actions">
+              <button mat-stroked-button [disabled]="downloadingActions()" (click)="downloadActionsTemplate()">
+                <i class="fi fi-rr-download"></i>
+                {{ 'plans.import.downloadActions' | translate }}
+              </button>
+              @if (downloadingActions()) {
+                <mat-spinner diameter="18"></mat-spinner>
+              }
+            </div>
+
+            @if (!isDraft()) {
+              <div class="info-block info-block-warning">
+                <span class="info-block-icon"></span>
+                <div class="info-block-content">
+                  <p class="info-block-content-text">{{ 'plans.import.draftOnly' | translate }}</p>
+                </div>
+              </div>
+            } @else {
+              <div class="import-upload">
+                <label class="import-file-label">
+                  <input
+                    type="file"
+                    accept=".xlsx"
+                    (change)="onActionsFileSelected($event)"
+                    [disabled]="actionsValidating() || actionsImporting()" />
+                </label>
+
+                @if (actionsValidating()) {
+                  <div class="import-status">
+                    <mat-spinner diameter="18"></mat-spinner>
+                    <span>{{ 'plans.import.validating' | translate }}</span>
+                  </div>
+                }
+
+                @if (actionsReport(); as report) {
+                  @if (report.can_import) {
+                    <div class="info-block info-block-success">
+                      <span class="info-block-icon"></span>
+                      <div class="info-block-content">
+                        <p class="info-block-content-text">
+                          {{ 'plans.import.actionsReadySummary' | translate:{
+                            actions: report.summary['actions'],
+                            budgets: report.summary['budgets'],
+                            rh: report.summary['rh']
+                          } }}
+                        </p>
+                      </div>
+                    </div>
+                  } @else {
+                    <div class="info-block info-block-error">
+                      <span class="info-block-icon"></span>
+                      <div class="info-block-content">
+                        <p class="info-block-content-text">
+                          {{ 'plans.import.errorsCount' | translate:{ count: report.n_errors } }}
+                        </p>
+                      </div>
+                    </div>
+                  }
+
+                  @if (actionsErrors().length) {
+                    <ul class="import-issues import-issues-error">
+                      @for (issue of actionsErrors(); track $index) {
+                        <li>
+                          @if (issue.sheet) {
+                            <span class="issue-loc">{{ issue.sheet }}@if (issue.row) { · L{{ issue.row }} }@if (issue.column) { · {{ issue.column }} }</span>
+                          }
+                          <span class="issue-msg">{{ issue.message }}</span>
+                        </li>
+                      }
+                    </ul>
+                  }
+
+                  @if (actionsWarnings().length) {
+                    <ul class="import-issues import-issues-warning">
+                      @for (issue of actionsWarnings(); track $index) {
+                        <li>
+                          @if (issue.sheet) {
+                            <span class="issue-loc">{{ issue.sheet }}@if (issue.row) { · L{{ issue.row }} }</span>
+                          }
+                          <span class="issue-msg">{{ issue.message }}</span>
+                        </li>
+                      }
+                    </ul>
+                  }
+
+                  <div class="import-buttons">
+                    <button
+                      mat-flat-button
+                      color="primary"
+                      [disabled]="!report.can_import || actionsImporting()"
+                      (click)="runActionsImport()">
+                      @if (actionsImporting()) {
+                        <mat-spinner diameter="16"></mat-spinner>
+                      } @else {
+                        <i class="fi fi-rr-cloud-upload"></i>
+                      }
+                      {{ 'plans.import.doImportActions' | translate }}
+                    </button>
+                    <button mat-button [disabled]="actionsImporting()" (click)="clearActionsImport()">
+                      {{ 'common.actions.cancel' | translate }}
+                    </button>
+                  </div>
+                }
+              </div>
+            }
+          </section>
+
           <!-- Suppression de la version affichée -->
           <section class="settings-section danger-zone">
             <h2 class="section-title">{{ 'plans.settings.deleteSectionTitle' | translate }}</h2>

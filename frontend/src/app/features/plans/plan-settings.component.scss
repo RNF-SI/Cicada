@@ -189,3 +189,88 @@
     stroke: $white;
   }
 }
+
+// -------------------------------------------------------------------------
+// Import / export de l'arborescence
+// -------------------------------------------------------------------------
+.import-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: $spacing-sm;
+  margin-bottom: $spacing-md;
+
+  i {
+    margin-right: $spacing-xxs;
+  }
+}
+
+.import-upload {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-sm;
+}
+
+.import-file-label input[type='file'] {
+  font-family: inherit;
+  font-size: $font-size-base;
+  color: $black;
+}
+
+.import-status {
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+  color: $gray-dark;
+}
+
+.import-issues {
+  list-style: none;
+  margin: 0;
+  padding: $spacing-xs $spacing-sm;
+  border-radius: $border-radius-sm;
+  max-height: 260px;
+  overflow-y: auto;
+
+  li {
+    padding: $spacing-xxs 0;
+    font-size: $font-size-small;
+    border-bottom: 1px solid rgba($black, 0.06);
+
+    &:last-child {
+      border-bottom: none;
+    }
+  }
+
+  .issue-loc {
+    font-weight: 700;
+    margin-right: $spacing-xxs;
+  }
+}
+
+.import-issues-error {
+  background: rgba($error-color, 0.06);
+
+  .issue-loc {
+    color: $error-color;
+  }
+}
+
+.import-issues-warning {
+  background: rgba($secondary-orange-salmon, 0.15);
+
+  .issue-loc {
+    color: $gray-dark;
+  }
+}
+
+.import-buttons {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+  margin-top: $spacing-xs;
+
+  i {
+    margin-right: $spacing-xxs;
+  }
+}

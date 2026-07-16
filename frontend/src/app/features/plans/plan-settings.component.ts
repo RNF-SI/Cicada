@@ -8,9 +8,17 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 
+import { HttpErrorResponse } from '@angular/common/http';
+
 import { AuthService } from '../../core/services/auth.service';
 import { AdminService } from '../../core/services/admin.service';
-import { AdminPlan, PlanStatut, PlanVersionChainItem } from '../../core/models/admin.model';
+import {
+  AdminPlan,
+  PlanStatut,
+  PlanVersionChainItem,
+  ArborescenceImportReport,
+  ArborescenceImportIssue,
+} from '../../core/models/admin.model';
 import { HeaderComponent } from '../../shared/components/header/header.component';
 import { PlanSidebarComponent } from './shared/plan-sidebar/plan-sidebar.component';
 import { TagComponent } from '../../shared/components/tag/tag.component';
@@ -158,6 +166,221 @@ export class PlanSettingsComponent {
       error: err => {
         this.deleting.set(false);
         const detail = err?.message || this.translate.instant('plans.settings.deleteError');
+        this.snackBar.open(detail, this.translate.instant('common.actions.close'), { duration: 5000 });
+      },
+    });
+  }
+
+  // -------------------------------------------------------------------------
+  // Import / export de l'arborescence (V1, sans IA)
+  // -------------------------------------------------------------------------
+
+  readonly downloading = signal(false);
+  readonly importFile = signal<File | null>(null);
+  readonly importReport = signal<ArborescenceImportReport | null>(null);
+  readonly importValidating = signal(false);
+  readonly importing = signal(false);
+
+  /** L'import n'est possible que sur un plan en brouillon. */
+  readonly isDraft = computed<boolean>(() => this.plan()?.statut === 'draft');
+
+  /** Anomalies bloquantes du dernier rapport de validation. */
+  readonly importErrors = computed<ArborescenceImportIssue[]>(
+    () => this.importReport()?.issues.filter(i => i.level === 'error') ?? [],
+  );
+
+  /** Avertissements (non bloquants) du dernier rapport de validation. */
+  readonly importWarnings = computed<ArborescenceImportIssue[]>(
+    () => this.importReport()?.issues.filter(i => i.level === 'warning') ?? [],
+  );
+
+  /** Télécharge le classeur (pré-rempli ou vierge) et déclenche le download. */
+  downloadTemplate(empty: boolean): void {
+    const p = this.plan();
+    if (!p) return;
+    this.downloading.set(true);
+    this.adminService.downloadArborescenceTemplate(p.id_pg, empty).subscribe({
+      next: blob => {
+        this.downloading.set(false);
+        const suffix = empty ? 'modele' : p.slug || `plan-${p.id_pg}`;
+        this.triggerBlobDownload(blob, `arborescence-${suffix}.xlsx`);
+      },
+      error: err => {
+        this.downloading.set(false);
+        const detail = err?.message || this.translate.instant('plans.import.downloadError');
+        this.snackBar.open(detail, this.translate.instant('common.actions.close'), { duration: 5000 });
+      },
+    });
+  }
+
+  /** Fichier choisi : on lance immédiatement une validation (dry-run). */
+  onImportFileSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0] ?? null;
+    this.importReport.set(null);
+    this.importFile.set(file);
+    if (file) {
+      this.validateImport(file);
+    }
+  }
+
+  private validateImport(file: File): void {
+    const p = this.plan();
+    if (!p) return;
+    this.importValidating.set(true);
+    this.adminService.validateArborescenceImport(p.id_pg, file).subscribe({
+      next: report => {
+        this.importValidating.set(false);
+        this.importReport.set(report);
+      },
+      error: err => {
+        this.importValidating.set(false);
+        const detail = err?.message || this.translate.instant('plans.import.validateError');
+        this.snackBar.open(detail, this.translate.instant('common.actions.close'), { duration: 5000 });
+      },
+    });
+  }
+
+  /** Annule la sélection de fichier. */
+  clearImport(): void {
+    this.importFile.set(null);
+    this.importReport.set(null);
+  }
+
+  /** Exécute l'import (création seule). */
+  runImport(): void {
+    const p = this.plan();
+    const file = this.importFile();
+    const report = this.importReport();
+    if (!p || !file || !report?.can_import) return;
+    this.importing.set(true);
+    this.adminService.importArborescence(p.id_pg, file).subscribe({
+      next: result => {
+        this.importing.set(false);
+        this.snackBar.open(
+          this.translate.instant('plans.import.importSuccess', { total: result.total }),
+          this.translate.instant('common.actions.close'),
+          { duration: 5000 },
+        );
+        // L'arborescence a été créée : diriger vers la page des enjeux.
+        this.router.navigate(['/plans', p.slug, 'enjeux']);
+      },
+      error: (err: HttpErrorResponse) => {
+        this.importing.set(false);
+        // 400 = échec de validation : le corps porte le rapport.
+        const body = err?.error as ArborescenceImportReport | { error?: string } | undefined;
+        if (body && 'issues' in body) {
+          this.importReport.set(body);
+        }
+        const detail =
+          (body && 'error' in body && body.error) ||
+          this.translate.instant('plans.import.importError');
+        this.snackBar.open(detail, this.translate.instant('common.actions.close'), { duration: 5000 });
+      },
+    });
+  }
+
+  private triggerBlobDownload(blob: Blob, filename: string): void {
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+
+  // -------------------------------------------------------------------------
+  // Module 2 : import des actions
+  // -------------------------------------------------------------------------
+
+  readonly downloadingActions = signal(false);
+  readonly actionsFile = signal<File | null>(null);
+  readonly actionsReport = signal<ArborescenceImportReport | null>(null);
+  readonly actionsValidating = signal(false);
+  readonly actionsImporting = signal(false);
+
+  readonly actionsErrors = computed<ArborescenceImportIssue[]>(
+    () => this.actionsReport()?.issues.filter(i => i.level === 'error') ?? [],
+  );
+  readonly actionsWarnings = computed<ArborescenceImportIssue[]>(
+    () => this.actionsReport()?.issues.filter(i => i.level === 'warning') ?? [],
+  );
+
+  /** Télécharge le classeur d'actions (indicateurs du plan pré-remplis). */
+  downloadActionsTemplate(): void {
+    const p = this.plan();
+    if (!p) return;
+    this.downloadingActions.set(true);
+    this.adminService.downloadActionsTemplate(p.id_pg).subscribe({
+      next: blob => {
+        this.downloadingActions.set(false);
+        this.triggerBlobDownload(blob, `actions-${p.slug || `plan-${p.id_pg}`}.xlsx`);
+      },
+      error: err => {
+        this.downloadingActions.set(false);
+        const detail = err?.message || this.translate.instant('plans.import.downloadError');
+        this.snackBar.open(detail, this.translate.instant('common.actions.close'), { duration: 5000 });
+      },
+    });
+  }
+
+  onActionsFileSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0] ?? null;
+    this.actionsReport.set(null);
+    this.actionsFile.set(file);
+    if (file) {
+      this.validateActionsImport(file);
+    }
+  }
+
+  private validateActionsImport(file: File): void {
+    const p = this.plan();
+    if (!p) return;
+    this.actionsValidating.set(true);
+    this.adminService.validateActionsImport(p.id_pg, file).subscribe({
+      next: report => {
+        this.actionsValidating.set(false);
+        this.actionsReport.set(report);
+      },
+      error: err => {
+        this.actionsValidating.set(false);
+        const detail = err?.message || this.translate.instant('plans.import.validateError');
+        this.snackBar.open(detail, this.translate.instant('common.actions.close'), { duration: 5000 });
+      },
+    });
+  }
+
+  clearActionsImport(): void {
+    this.actionsFile.set(null);
+    this.actionsReport.set(null);
+  }
+
+  runActionsImport(): void {
+    const p = this.plan();
+    const file = this.actionsFile();
+    const report = this.actionsReport();
+    if (!p || !file || !report?.can_import) return;
+    this.actionsImporting.set(true);
+    this.adminService.importActions(p.id_pg, file).subscribe({
+      next: result => {
+        this.actionsImporting.set(false);
+        this.snackBar.open(
+          this.translate.instant('plans.import.actionsImportSuccess', { total: result.total }),
+          this.translate.instant('common.actions.close'),
+          { duration: 5000 },
+        );
+        this.router.navigate(['/plans', p.slug, 'enjeux']);
+      },
+      error: (err: HttpErrorResponse) => {
+        this.actionsImporting.set(false);
+        const body = err?.error as ArborescenceImportReport | { error?: string } | undefined;
+        if (body && 'issues' in body) {
+          this.actionsReport.set(body);
+        }
+        const detail =
+          (body && 'error' in body && body.error) ||
+          this.translate.instant('plans.import.importError');
         this.snackBar.open(detail, this.translate.instant('common.actions.close'), { duration: 5000 });
       },
     });

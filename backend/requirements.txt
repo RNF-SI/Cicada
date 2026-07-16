@@ -31,6 +31,9 @@ django-extensions==3.2.3
 # API documentation (optionnel)
 drf-spectacular==0.27.2
 
+# Import/export Excel (arborescence des plans de gestion)
+openpyxl==3.1.5
+
 # Testing
 pytest==7.4.4
 pytest-django==4.8.0
