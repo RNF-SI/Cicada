@@ -4639,9 +4639,15 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
     if (!slug) return;
     this.lastScrollAnchor = { type: 'operation', id: operationId };
     const enjeuSlug = this.selectedEnjeuSlug();
+    // #576 — transmettre l'onglet courant (OLT / Opérations) : sans lui, le
+    // formulaire retombe sur `returnTab='operations'` par défaut et renvoie
+    // l'utilisateur « sur les OO » après enregistrement, même si l'action était
+    // affichée dans l'onglet OLT.
+    const queryParams: Record<string, string> = { returnTab: this.activeTab() };
+    if (enjeuSlug) queryParams['returnEnjeu'] = enjeuSlug;
     this.router.navigate(
       ['/plans', slug, 'enjeux', 'operations', operationId, 'modifier'],
-      { queryParams: enjeuSlug ? { returnEnjeu: enjeuSlug } : {} }
+      { queryParams }
     );
   }
 

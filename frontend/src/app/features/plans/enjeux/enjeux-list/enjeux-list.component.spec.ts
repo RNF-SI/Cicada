@@ -831,6 +831,16 @@ describe('EnjeuxListComponent', () => {
       expect(router.navigate).toHaveBeenCalledWith(['/plans', 'plan-test', 'enjeux', 'protection-zones-humides']);
     });
 
+    it('should carry the current tab when editing an action so the user returns to it, not the OO tab (#576)', () => {
+      component['selectedEnjeuSlug'].set('protection-zones-humides');
+      component.setActiveTab('olt');
+      component.navigateToEditOperation(2445);
+      expect(router.navigate).toHaveBeenCalledWith(
+        ['/plans', 'plan-test', 'enjeux', 'operations', 2445, 'modifier'],
+        { queryParams: { returnTab: 'olt', returnEnjeu: 'protection-zones-humides' } }
+      );
+    });
+
     it('should open the action fiche (not the form) in a new tab (#494, #455)', () => {
       const openSpy = jest.spyOn(window, 'open').mockReturnValue(null);
       component.navigateToViewOperation(2445);
