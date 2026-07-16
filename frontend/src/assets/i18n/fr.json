@@ -2348,6 +2348,27 @@
       "deleteSuccess": "La version a été supprimée.",
       "deleteError": "La suppression de la version a échoué."
     },
+    "import": {
+      "sectionTitle": "Import / export de l'arborescence",
+      "sectionSubtitle": "Téléchargez un classeur Excel (pré-rempli avec ce plan ou vierge), complétez-le, puis importez-le pour créer l'arborescence des enjeux, objectifs, indicateurs et métriques.",
+      "downloadPrefilled": "Télécharger (pré-rempli)",
+      "downloadEmpty": "Modèle vierge",
+      "downloadError": "Le téléchargement du modèle a échoué.",
+      "draftOnly": "L'import n'est possible que sur un plan en brouillon ne contenant pas encore d'arborescence. Repassez le plan en brouillon ou créez une nouvelle version pour importer.",
+      "validating": "Vérification du fichier…",
+      "validateError": "La vérification du fichier a échoué.",
+      "readySummary": "Fichier valide : {{enjeux}} enjeu(x), {{indicateurs}} indicateur(s) et {{metriques}} métrique(s) seront créés.",
+      "errorsCount": "{{count}} anomalie(s) bloquante(s) à corriger avant l'import.",
+      "doImport": "Importer l'arborescence",
+      "importSuccess": "Import réussi : {{total}} élément(s) créé(s).",
+      "importError": "L'import a échoué.",
+      "actionsSectionTitle": "Import des actions",
+      "actionsSectionSubtitle": "Une fois l'arborescence en place, téléchargez le classeur des actions (indicateurs et postes du plan listés en référence), renseignez vos actions, budgets et temps de travail (RH), puis importez le tout.",
+      "downloadActions": "Télécharger le classeur des actions",
+      "actionsReadySummary": "Fichier valide : {{actions}} action(s), {{budgets}} ligne(s) de budget et {{rh}} ligne(s) de RH seront créées.",
+      "doImportActions": "Importer les actions",
+      "actionsImportSuccess": "Import réussi : {{total}} action(s) créée(s)."
+    },
     "postes": {
       "sidebarEntry": "Postes / RH",
       "title": "Postes / Ressources humaines",

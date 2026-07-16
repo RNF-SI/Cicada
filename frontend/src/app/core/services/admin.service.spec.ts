@@ -858,4 +858,86 @@ describe('AdminService', () => {
       req.error(new ProgressEvent('error'), { status: 0 });
     });
   });
+
+  // ==================== IMPORT ARBORESCENCE / ACTIONS ====================
+
+  describe('Import Excel (arborescence + actions)', () => {
+    const mockReport = {
+      can_import: true,
+      n_errors: 0,
+      n_warnings: 0,
+      issues: [],
+      summary: { enjeux: 2, indicateurs: 3, metriques: 3 },
+    };
+
+    it('should download the arborescence template (prefilled) as a blob', () => {
+      service.downloadArborescenceTemplate(7, false).subscribe(blob => {
+        expect(blob).toBeInstanceOf(Blob);
+      });
+      const req = httpMock.expectOne('/api/plans/plans/7/export-arborescence-xlsx/');
+      expect(req.request.method).toBe('GET');
+      expect(req.request.responseType).toBe('blob');
+      req.flush(new Blob(['xlsx']));
+    });
+
+    it('should request the empty arborescence template with ?empty=1', () => {
+      service.downloadArborescenceTemplate(7, true).subscribe();
+      const req = httpMock.expectOne('/api/plans/plans/7/export-arborescence-xlsx/?empty=1');
+      expect(req.request.method).toBe('GET');
+      req.flush(new Blob(['xlsx']));
+    });
+
+    it('should validate an arborescence import (multipart)', () => {
+      const file = new File(['xlsx'], 'arbo.xlsx');
+      service.validateArborescenceImport(7, file).subscribe(report => {
+        expect(report.can_import).toBe(true);
+        expect(report.summary['enjeux']).toBe(2);
+      });
+      const req = httpMock.expectOne('/api/plans/plans/7/import-arborescence/validate/');
+      expect(req.request.method).toBe('POST');
+      expect(req.request.body instanceof FormData).toBe(true);
+      req.flush(mockReport);
+    });
+
+    it('should execute an arborescence import', () => {
+      const file = new File(['xlsx'], 'arbo.xlsx');
+      service.importArborescence(7, file).subscribe(result => {
+        expect(result.total).toBe(8);
+      });
+      const req = httpMock.expectOne('/api/plans/plans/7/import-arborescence/');
+      expect(req.request.method).toBe('POST');
+      req.flush({ created: { enjeux: 2 }, total: 8 });
+    });
+
+    it('should download the actions template as a blob', () => {
+      service.downloadActionsTemplate(7).subscribe(blob => {
+        expect(blob).toBeInstanceOf(Blob);
+      });
+      const req = httpMock.expectOne('/api/plans/plans/7/export-actions-xlsx/');
+      expect(req.request.method).toBe('GET');
+      expect(req.request.responseType).toBe('blob');
+      req.flush(new Blob(['xlsx']));
+    });
+
+    it('should validate an actions import (multipart)', () => {
+      const file = new File(['xlsx'], 'actions.xlsx');
+      service.validateActionsImport(7, file).subscribe(report => {
+        expect(report.can_import).toBe(true);
+      });
+      const req = httpMock.expectOne('/api/plans/plans/7/import-actions/validate/');
+      expect(req.request.method).toBe('POST');
+      expect(req.request.body instanceof FormData).toBe(true);
+      req.flush({ ...mockReport, summary: { actions: 1, budgets: 1, rh: 1 } });
+    });
+
+    it('should execute an actions import', () => {
+      const file = new File(['xlsx'], 'actions.xlsx');
+      service.importActions(7, file).subscribe(result => {
+        expect(result.total).toBe(1);
+      });
+      const req = httpMock.expectOne('/api/plans/plans/7/import-actions/');
+      expect(req.request.method).toBe('POST');
+      req.flush({ created: { actions: 1, annees: 2, budgets: 1, rh: 1 }, total: 1 });
+    });
+  });
 });

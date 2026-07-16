@@ -753,3 +753,34 @@ export interface BulkImportJobStatus {
   created_at: string | null;
   completed_at: string | null;
 }
+
+/**
+ * Import Excel de l'arborescence d'un plan (V1). Voir backend
+ * `apps/plans/services_import.py`.
+ */
+export interface ArborescenceImportIssue {
+  /** Onglet concerné (null pour une anomalie globale). */
+  sheet: string | null;
+  /** Ligne Excel (null pour une anomalie globale). */
+  row: number | null;
+  /** Colonne concernée (null si non applicable). */
+  column: string | null;
+  level: 'error' | 'warning';
+  message: string;
+}
+
+/** Rapport de validation (dry-run) d'un fichier d'import d'arborescence. */
+export interface ArborescenceImportReport {
+  can_import: boolean;
+  n_errors: number;
+  n_warnings: number;
+  issues: ArborescenceImportIssue[];
+  /** Décompte de ce qui serait créé, par onglet. */
+  summary: Record<string, number>;
+}
+
+/** Résultat d'un import d'arborescence exécuté. */
+export interface ArborescenceImportResult {
+  created: Record<string, number>;
+  total: number;
+}

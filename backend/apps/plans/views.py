@@ -27,6 +27,20 @@ from .serializers import (
     CorSitePgSerializer, CorPgFichierSerializer
 )
 from .services import PlanDuplicationService
+from .services_import import (
+    build_arborescence_workbook,
+    parse_workbook,
+    validate_import,
+    execute_import,
+    ArborescenceImportError,
+)
+from .services_import_actions import (
+    build_actions_workbook,
+    parse_actions_workbook,
+    validate_actions_import,
+    execute_actions_import,
+)
+from urllib.parse import quote as _url_quote
 from .filters import PlanGestionFilter, CorPgFichierFilter
 from apps.users.permissions import (
     IsReferent, IsSuperAdmin, IsAdminOrganisme
@@ -1192,6 +1206,170 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
 
         result_serializer = PlanGestionDetailSerializer(new_plan)
         return Response(result_serializer.data, status=status.HTTP_201_CREATED)
+
+    @action(detail=True, methods=['get'], url_path='export-arborescence-xlsx')
+    def export_arborescence_xlsx(self, request, pk=None):
+        """
+        Exporter l'arborescence d'un plan au format Excel (modèle d'import).
+
+        GET /api/plans/plans/{id}/export-arborescence-xlsx/
+        Query params:
+            - empty=1 : produire un modèle vierge (ne pas pré-remplir avec le
+              contenu du plan).
+
+        Le classeur suit le format multi-onglets d'import (V1). Pré-rempli avec
+        l'arborescence du plan par défaut ; sert aussi d'export / sauvegarde et
+        de point de départ pour dériver un autre plan.
+        """
+        plan = self.get_object()
+        empty = request.query_params.get('empty') in ('1', 'true', 'True')
+
+        content = build_arborescence_workbook(plan=None if empty else plan)
+
+        suffix = 'modele' if empty else (plan.slug or f'plan-{plan.pk}')
+        filename = f'arborescence-{suffix}.xlsx'
+        response = HttpResponse(
+            content,
+            content_type=(
+                'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+            ),
+        )
+        response['Content-Disposition'] = (
+            f"attachment; filename*=UTF-8''{_url_quote(filename)}"
+        )
+        return response
+
+    @action(detail=True, methods=['post'], url_path='import-arborescence/validate',
+            parser_classes=[MultiPartParser, FormParser])
+    def import_arborescence_validate(self, request, pk=None):
+        """
+        Valider (sans écrire) un fichier d'import d'arborescence.
+
+        POST /api/plans/plans/{id}/import-arborescence/validate/
+        multipart/form-data : champ « file » = classeur .xlsx.
+
+        Renvoie le rapport de validation (anomalies par onglet/ligne + décompte
+        de ce qui serait créé). N'écrit rien en base.
+        """
+        return self._run_import(request, execute=False)
+
+    @action(detail=True, methods=['post'], url_path='import-arborescence',
+            parser_classes=[MultiPartParser, FormParser])
+    def import_arborescence(self, request, pk=None):
+        """
+        Importer l'arborescence dans le plan (création seule, transaction).
+
+        POST /api/plans/plans/{id}/import-arborescence/
+        multipart/form-data : champ « file » = classeur .xlsx.
+
+        Refuse si le plan contient déjà une arborescence ou si la validation
+        échoue (le rapport est renvoyé en 400).
+        """
+        return self._run_import(request, execute=True)
+
+    def _run_import(self, request, execute):
+        plan = self.get_object()
+
+        uploaded = request.FILES.get('file')
+        if uploaded is None:
+            return Response(
+                {'error': "Aucun fichier reçu (champ « file » attendu)."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            parsed = parse_workbook(uploaded)
+        except ArborescenceImportError as exc:
+            return Response({'error': str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+
+        if not execute:
+            report = validate_import(plan, parsed)
+            return Response(report.as_dict(), status=status.HTTP_200_OK)
+
+        try:
+            counts = execute_import(plan, parsed, request.user)
+        except ValueError as exc:
+            # Validation échouée : le rapport est joint à l'exception.
+            report = exc.args[0] if exc.args else None
+            payload = report.as_dict() if hasattr(report, 'as_dict') else {'error': str(exc)}
+            return Response(payload, status=status.HTTP_400_BAD_REQUEST)
+
+        return Response(
+            {'created': counts, 'total': sum(counts.values())},
+            status=status.HTTP_201_CREATED,
+        )
+
+    @action(detail=True, methods=['get'], url_path='export-actions-xlsx')
+    def export_actions_xlsx(self, request, pk=None):
+        """
+        Exporter le classeur d'import des actions d'un plan (module 2).
+
+        GET /api/plans/plans/{id}/export-actions-xlsx/
+
+        L'onglet « Indicateurs » est pré-rempli avec les indicateurs existants du
+        plan (référence de rattachement) ; l'onglet « Actions » est vierge (ou
+        pré-rempli si des actions existent déjà).
+        """
+        plan = self.get_object()
+        content = build_actions_workbook(plan=plan)
+        filename = f'actions-{plan.slug or f"plan-{plan.pk}"}.xlsx'
+        response = HttpResponse(
+            content,
+            content_type=(
+                'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+            ),
+        )
+        response['Content-Disposition'] = (
+            f"attachment; filename*=UTF-8''{_url_quote(filename)}"
+        )
+        return response
+
+    @action(detail=True, methods=['post'], url_path='import-actions/validate',
+            parser_classes=[MultiPartParser, FormParser])
+    def import_actions_validate(self, request, pk=None):
+        """
+        Valider (sans écrire) un fichier d'import d'actions.
+        POST /api/plans/plans/{id}/import-actions/validate/ — champ « file ».
+        """
+        return self._run_actions_import(request, execute=False)
+
+    @action(detail=True, methods=['post'], url_path='import-actions',
+            parser_classes=[MultiPartParser, FormParser])
+    def import_actions(self, request, pk=None):
+        """
+        Importer les actions dans le plan (création seule, transaction).
+        POST /api/plans/plans/{id}/import-actions/ — champ « file ».
+        """
+        return self._run_actions_import(request, execute=True)
+
+    def _run_actions_import(self, request, execute):
+        plan = self.get_object()
+        uploaded = request.FILES.get('file')
+        if uploaded is None:
+            return Response(
+                {'error': "Aucun fichier reçu (champ « file » attendu)."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        try:
+            parsed = parse_actions_workbook(uploaded)
+        except ArborescenceImportError as exc:
+            return Response({'error': str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+
+        if not execute:
+            report = validate_actions_import(plan, parsed)
+            return Response(report.as_dict(), status=status.HTTP_200_OK)
+
+        try:
+            counts = execute_actions_import(plan, parsed, request.user)
+        except ValueError as exc:
+            report = exc.args[0] if exc.args else None
+            payload = report.as_dict() if hasattr(report, 'as_dict') else {'error': str(exc)}
+            return Response(payload, status=status.HTTP_400_BAD_REQUEST)
+
+        return Response(
+            {'created': counts, 'total': counts.get('actions', 0)},
+            status=status.HTTP_201_CREATED,
+        )
 
     @action(detail=True, methods=['post'], url_path='change-status',
             permission_classes=[permissions.IsAuthenticated, IsReferent])

@@ -28,7 +28,9 @@ import {
   BulkImportResult,
   BulkImportJobStatus,
   PlanDuplicateOptions,
-  PlanVersionChainItem
+  PlanVersionChainItem,
+  ArborescenceImportReport,
+  ArborescenceImportResult
 } from '../models/admin.model';
 import { SiteCreationValidatorsResponse } from '../models/notification.model';
 
@@ -731,6 +733,96 @@ export class AdminService {
   duplicatePlan(planId: number, options: PlanDuplicateOptions): Observable<AdminPlan> {
     return this.http.post<AdminPlan>(`${this.plansApiUrl}/plans/${planId}/duplicate/`, options)
       .pipe(catchError(this.handleError));
+  }
+
+  /**
+   * Télécharge le classeur Excel d'import d'arborescence.
+   * GET /api/plans/plans/{id}/export-arborescence-xlsx/
+   * @param empty true = modèle vierge ; false = pré-rempli avec le plan.
+   */
+  downloadArborescenceTemplate(planId: number, empty: boolean): Observable<Blob> {
+    const suffix = empty ? '?empty=1' : '';
+    return this.http
+      .get(`${this.plansApiUrl}/plans/${planId}/export-arborescence-xlsx/${suffix}`, {
+        responseType: 'blob',
+      })
+      .pipe(catchError(this.handleError));
+  }
+
+  /**
+   * Valide (sans écrire) un fichier d'import d'arborescence.
+   * POST /api/plans/plans/{id}/import-arborescence/validate/
+   */
+  validateArborescenceImport(planId: number, file: File): Observable<ArborescenceImportReport> {
+    const formData = new FormData();
+    formData.append('file', file);
+    return this.http
+      .post<ArborescenceImportReport>(
+        `${this.plansApiUrl}/plans/${planId}/import-arborescence/validate/`,
+        formData,
+      )
+      .pipe(catchError(this.handleError));
+  }
+
+  /**
+   * Importe l'arborescence dans le plan (création seule, transaction).
+   * POST /api/plans/plans/{id}/import-arborescence/
+   *
+   * Ne passe PAS par `handleError` : en cas d'échec de validation (400), le
+   * corps de la réponse porte le rapport (`ArborescenceImportReport`), que le
+   * composant lit via `err.error`.
+   */
+  importArborescence(planId: number, file: File): Observable<ArborescenceImportResult> {
+    const formData = new FormData();
+    formData.append('file', file);
+    return this.http.post<ArborescenceImportResult>(
+      `${this.plansApiUrl}/plans/${planId}/import-arborescence/`,
+      formData,
+    );
+  }
+
+  // --- Module 2 : import des actions -------------------------------------
+
+  /**
+   * Télécharge le classeur d'import des actions (onglet de référence des
+   * indicateurs pré-rempli + onglet Actions).
+   * GET /api/plans/plans/{id}/export-actions-xlsx/
+   */
+  downloadActionsTemplate(planId: number): Observable<Blob> {
+    return this.http
+      .get(`${this.plansApiUrl}/plans/${planId}/export-actions-xlsx/`, {
+        responseType: 'blob',
+      })
+      .pipe(catchError(this.handleError));
+  }
+
+  /**
+   * Valide (sans écrire) un fichier d'import d'actions.
+   * POST /api/plans/plans/{id}/import-actions/validate/
+   */
+  validateActionsImport(planId: number, file: File): Observable<ArborescenceImportReport> {
+    const formData = new FormData();
+    formData.append('file', file);
+    return this.http
+      .post<ArborescenceImportReport>(
+        `${this.plansApiUrl}/plans/${planId}/import-actions/validate/`,
+        formData,
+      )
+      .pipe(catchError(this.handleError));
+  }
+
+  /**
+   * Importe les actions dans le plan (création seule, transaction).
+   * POST /api/plans/plans/{id}/import-actions/
+   * Ne passe PAS par `handleError` : le rapport 400 est lu via `err.error`.
+   */
+  importActions(planId: number, file: File): Observable<ArborescenceImportResult> {
+    const formData = new FormData();
+    formData.append('file', file);
+    return this.http.post<ArborescenceImportResult>(
+      `${this.plansApiUrl}/plans/${planId}/import-actions/`,
+      formData,
+    );
   }
 
   /**
