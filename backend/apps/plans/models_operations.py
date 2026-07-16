@@ -571,6 +571,13 @@ class Operation(models.Model):
         default='none',
         help_text=_("Mode de ventilation du budget (aucune, par organisme, par type, les deux)")
     )
+    declinaison_par_poste = models.BooleanField(
+        _("Déclinaison par poste"),
+        default=False,
+        help_text=_("Détaille le temps de travail poste par poste (#560). Sinon "
+                    "le temps est saisi par organisme quand le budget est "
+                    "ventilé par organisme, et reste facultatif autrement.")
+    )
 
     # Emprise spatiale (PostGIS)
     geom = models.GeometryField(
@@ -1319,49 +1326,89 @@ class Fonction(models.Model):
         return self.libelle
 
 
-class PersonnePlan(models.Model):
+class Poste(models.Model):
     """
-    Personne rattachée à un plan de gestion (#560).
+    Poste d'un plan de gestion (#560).
 
-    Chaque PG a sa liste de personnes (parfois une dizaine de salariés,
-    parfois un seul conservateur). Entrée autonome (nom), avec un lien
-    facultatif vers un compte utilisateur CICADA. Une personne occupe une ou
-    plusieurs fonctions (cf. PersonneFonction), avec des dates d'arrivée /
-    départ facultatives pour l'historique RH.
+    **Aucune donnée nominative** (RGPD) : on décrit des postes, pas des
+    personnes. Un poste représente un type d'emploi du PG, en `nombre`
+    exemplaires (ex. 3 stagiaires) pour une enveloppe de `etp` ETP au total,
+    rattaché à un organisme.
+
+    Le poste porte une ou plusieurs fonctions (cf. PosteFonction) :
+
+    - **sans quotité** → poste combiné : un « garde animateur » à 1 ETP cumule
+      les deux casquettes sur l'ensemble de son temps ;
+    - **avec quotités** → répartition explicite du temps (50 % garde /
+      50 % animateur), dont la somme doit faire 100 %.
     """
 
-    id_personne_plan = models.AutoField(primary_key=True)
+    id_poste = models.AutoField(primary_key=True)
     id_pg = models.ForeignKey(
         'plans.PlanGestion',
         on_delete=models.CASCADE,
-        related_name='personnes',
+        related_name='postes',
         db_column='id_pg',
         verbose_name=_("Plan de gestion")
     )
-    nom = models.CharField(_("Nom"), max_length=200)
-    id_role = models.ForeignKey(
-        'users.Role',
+    id_organisme = models.ForeignKey(
+        'users.BibOrganismes',
         on_delete=models.SET_NULL,
         null=True, blank=True,
-        related_name='personnes_plan',
-        db_column='id_role',
-        verbose_name=_("Compte utilisateur lié"),
-        help_text=_("Compte CICADA associé quand la personne en possède un")
+        related_name='postes',
+        db_column='id_organisme',
+        verbose_name=_("Organisme"),
+        help_text=_("Organisme employeur / porteur du poste")
     )
-    date_arrivee = models.DateField(_("Date d'arrivée"), null=True, blank=True)
-    date_depart = models.DateField(_("Date de départ"), null=True, blank=True)
+    nombre = models.PositiveSmallIntegerField(
+        _("Nombre de postes"),
+        default=1,
+        help_text=_("Combien de postes de ce type (ex. 3 stagiaires)")
+    )
+    etp = models.DecimalField(
+        _("ETP total"),
+        max_digits=6, decimal_places=2,
+        null=True, blank=True,
+        help_text=_("Nombre d'ETP pour ce poste, TOTAL sur les `nombre` postes")
+    )
     date_ajout = models.DateTimeField(_("Date d'ajout"), auto_now_add=True)
     date_maj = models.DateTimeField(_("Date de modification"), auto_now=True)
 
     class Meta:
-        db_table = '"general"."t_personnes_plan"'
-        db_table_comment = "Personnes rattachées à un plan de gestion (#560)"
-        verbose_name = _("Personne du plan")
-        verbose_name_plural = _("Personnes du plan")
-        ordering = ['nom']
+        db_table = '"general"."t_postes"'
+        db_table_comment = "Postes d'un plan de gestion, sans nominatif (#560)"
+        verbose_name = _("Poste du plan")
+        verbose_name_plural = _("Postes du plan")
+        ordering = ['id_poste']
 
     def __str__(self):
-        return self.nom
+        return self.libelle or f"Poste {self.pk}"
+
+    @property
+    def libelle(self):
+        """
+        Libellé dérivé des fonctions : « Garde · Animateur » (poste combiné)
+        ou « Garde 50 % · Animateur 50 % » (quotités explicites).
+        """
+        parts = []
+        for pf in self.fonctions.all():
+            if pf.pourcentage is None:
+                parts.append(pf.id_fonction.libelle)
+            else:
+                pct = pf.pourcentage.normalize()
+                parts.append(f"{pf.id_fonction.libelle} {pct:f} %")
+        return ' · '.join(parts)
+
+    def is_finance_par_defaut(self):
+        """
+        Un poste est financé par défaut sauf si TOUTES ses fonctions sont non
+        financées (bénévole, écovolontaire…). Sert de valeur initiale aux
+        lignes RH, qui restent surchargeables.
+        """
+        fonctions = [pf.id_fonction for pf in self.fonctions.all()]
+        if not fonctions:
+            return True
+        return any(f.finance_par_defaut for f in fonctions)
 
     def get_plan_de_gestion(self):
         """Permet le scoping par plan (#248)."""
@@ -1371,25 +1418,27 @@ class PersonnePlan(models.Model):
             return None
 
 
-class PersonneFonction(models.Model):
+class PosteFonction(models.Model):
     """
-    Fonction occupée par une personne du PG, avec une quotité facultative
-    (ex. 50 % garde / 50 % animateur). Une personne peut cumuler plusieurs
-    fonctions (#560).
+    Fonction portée par un poste, avec une quotité facultative (#560).
+
+    Quotité NULL = la fonction s'applique à tout le temps du poste (cumul de
+    casquettes). Quotité renseignée = part explicite du temps ; la somme des
+    quotités d'un poste doit alors valoir 100 %.
     """
 
-    id_personne_fonction = models.AutoField(primary_key=True)
-    id_personne_plan = models.ForeignKey(
-        PersonnePlan,
+    id_poste_fonction = models.AutoField(primary_key=True)
+    id_poste = models.ForeignKey(
+        Poste,
         on_delete=models.CASCADE,
         related_name='fonctions',
-        db_column='id_personne_plan',
-        verbose_name=_("Personne du plan")
+        db_column='id_poste',
+        verbose_name=_("Poste")
     )
     id_fonction = models.ForeignKey(
         Fonction,
         on_delete=models.PROTECT,
-        related_name='personnes',
+        related_name='postes',
         db_column='id_fonction',
         verbose_name=_("Fonction")
     )
@@ -1397,23 +1446,24 @@ class PersonneFonction(models.Model):
         _("Quotité (%)"),
         max_digits=5, decimal_places=2,
         null=True, blank=True,
-        help_text=_("Part de temps sur cette fonction (0 à 100), facultative")
+        help_text=_("Part de temps sur cette fonction (0 à 100). Laisser vide "
+                    "pour un poste qui cumule les fonctions sur tout son temps.")
     )
 
     class Meta:
-        db_table = '"general"."cor_personne_fonction"'
-        db_table_comment = "Fonctions occupées par une personne du PG (#560)"
-        verbose_name = _("Fonction d'une personne")
-        verbose_name_plural = _("Fonctions d'une personne")
-        unique_together = ['id_personne_plan', 'id_fonction']
+        db_table = '"general"."cor_poste_fonction"'
+        db_table_comment = "Fonctions portées par un poste du PG (#560)"
+        verbose_name = _("Fonction d'un poste")
+        verbose_name_plural = _("Fonctions d'un poste")
+        unique_together = ['id_poste', 'id_fonction']
         ordering = ['id_fonction__libelle']
 
     def __str__(self):
-        return f"{self.id_personne_plan_id} - {self.id_fonction_id}"
+        return f"{self.id_poste_id} - {self.id_fonction_id}"
 
     def get_plan_de_gestion(self):
         try:
-            return self.id_personne_plan.get_plan_de_gestion()
+            return self.id_poste.get_plan_de_gestion()
         except Exception:
             return None
 
@@ -1422,10 +1472,17 @@ class OperationAnneeRH(models.Model):
     """
     Ligne de temps de travail **prévisionnel** d'une année d'opération (#560).
 
-    Chaque ligne pointe (facultativement) vers une personne du PG OU une
-    fonction, exprime un nombre de jours et un caractère financé / non financé
-    (par défaut hérité de la fonction, surchargeable ici). Remplace le champ
-    plat OperationAnnee.etp.
+    La cible dépend du mode d'affichage de l'action :
+
+    - **déclinaison par poste** (`Operation.declinaison_par_poste`) → une ligne
+      par poste du PG (`id_poste`) ;
+    - **ventilation budgétaire par organisme** → une ligne par organisme
+      (`id_organisme`) ;
+    - sinon → ligne sans cible (temps global, saisie facultative).
+
+    Le caractère financé / non financé est initialisé depuis les fonctions du
+    poste mais reste surchargeable ici. Remplace le champ plat
+    OperationAnnee.etp.
     """
 
     id_operation_annee_rh = models.AutoField(primary_key=True)
@@ -1436,21 +1493,21 @@ class OperationAnneeRH(models.Model):
         db_column='id_operation_annee',
         verbose_name=_("Année d'opération")
     )
-    id_personne_plan = models.ForeignKey(
-        PersonnePlan,
+    id_poste = models.ForeignKey(
+        Poste,
         on_delete=models.SET_NULL,
         null=True, blank=True,
         related_name='rh_lignes_prev',
-        db_column='id_personne_plan',
-        verbose_name=_("Personne")
+        db_column='id_poste',
+        verbose_name=_("Poste")
     )
-    id_fonction = models.ForeignKey(
-        Fonction,
+    id_organisme = models.ForeignKey(
+        'users.BibOrganismes',
         on_delete=models.SET_NULL,
         null=True, blank=True,
         related_name='rh_lignes_prev',
-        db_column='id_fonction',
-        verbose_name=_("Fonction")
+        db_column='id_organisme',
+        verbose_name=_("Organisme")
     )
     jours = models.DecimalField(
         _("Nombre de jours"),
@@ -1481,8 +1538,8 @@ class RealisationOperationAnneeRH(models.Model):
     """
     Ligne de temps de travail **réalisé** d'une année d'opération (#560),
     saisie au moment du suivi. Miroir de OperationAnneeRH côté réel : permet
-    de préciser qui a réellement conduit l'action et le temps effectif,
-    financé ou non.
+    de préciser quel poste (ou quel organisme) a réellement conduit l'action
+    et pour quel temps effectif, financé ou non.
     """
 
     id_realisation_operation_annee_rh = models.AutoField(primary_key=True)
@@ -1502,26 +1559,26 @@ class RealisationOperationAnneeRH(models.Model):
         verbose_name=_("Ligne prévisionnelle réalisée"),
         help_text=_(
             "Ligne RH prévisionnelle que cette saisie réalise. Conserve le lien "
-            "prévu ↔ réel même quand la personne (ou la fonction) ayant "
-            "réellement conduit l'action diffère de celle prévue. NULL pour un "
-            "temps réalisé qui n'était pas prévu."
+            "prévu ↔ réel même quand le poste (ou l'organisme) ayant réellement "
+            "conduit l'action diffère de celui prévu. NULL pour un temps réalisé "
+            "qui n'était pas prévu."
         )
     )
-    id_personne_plan = models.ForeignKey(
-        PersonnePlan,
+    id_poste = models.ForeignKey(
+        Poste,
         on_delete=models.SET_NULL,
         null=True, blank=True,
         related_name='rh_lignes_reel',
-        db_column='id_personne_plan',
-        verbose_name=_("Personne")
+        db_column='id_poste',
+        verbose_name=_("Poste")
     )
-    id_fonction = models.ForeignKey(
-        Fonction,
+    id_organisme = models.ForeignKey(
+        'users.BibOrganismes',
         on_delete=models.SET_NULL,
         null=True, blank=True,
         related_name='rh_lignes_reel',
-        db_column='id_fonction',
-        verbose_name=_("Fonction")
+        db_column='id_organisme',
+        verbose_name=_("Organisme")
     )
     jours = models.DecimalField(
         _("Nombre de jours réalisés"),

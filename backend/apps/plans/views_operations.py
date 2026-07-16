@@ -16,7 +16,7 @@ from .models_operations import (
     Operation, CorOperationMetrique, OperationAnnee, OperationAnneeOrganisme,
     FinanceOperation, RealisationOperationAnnee, RealisationOperationAnneeOrganisme,
     OperationRealisationGlobale,
-    Fonction, PersonnePlan,
+    Fonction, Poste,
 )
 from .models_indicateurs import Indicateur, Metrique
 from .models import PlanGestion, CorRolePlan
@@ -27,7 +27,7 @@ from .reorder import do_reorder
 from .serializers_operations import (
     OperationSerializer, OperationListSerializer, OperationCreateSerializer,
     RealisationOperationAnneeSerializer, RealisationOperationAnneeOrganismeSerializer,
-    FonctionSerializer, PersonnePlanSerializer, PersonnePlanWriteSerializer,
+    FonctionSerializer, PosteSerializer, PosteWriteSerializer,
 )
 from .filters_operations import OperationFilter
 
@@ -246,10 +246,10 @@ class OperationViewSet(viewsets.ModelViewSet):
         plan = get_object_or_404(PlanGestion, id_pg=plan_id)
         operations = self.get_queryset().filter(
             Q(metriques__id_indicateur__id_ne__id_olt__id_enjeu__id_pg=plan) |
-            Q(metriques__id_indicateur__id_resultat_attendu__id_oo__pressions__id_facteur_influence__id_enjeu__id_pg=plan) |
+            Q(metriques__id_indicateur__id_resultat_attendu__id_oo__pressions__id_facteur_influence__enjeux__id_pg=plan) |
             # #367 — actions rattachées directement à un indicateur (sans métrique)
             Q(id_indicateur__id_ne__id_olt__id_enjeu__id_pg=plan) |
-            Q(id_indicateur__id_resultat_attendu__id_oo__pressions__id_facteur_influence__id_enjeu__id_pg=plan)
+            Q(id_indicateur__id_resultat_attendu__id_oo__pressions__id_facteur_influence__enjeux__id_pg=plan)
         ).distinct()
 
         grouped = defaultdict(list)
@@ -1100,8 +1100,8 @@ class RealisationOperationAnneeOrganismeViewSet(viewsets.ModelViewSet):
 # Ressources humaines (#560)
 # =============================================================================
 
-def _scope_personne_queryset(queryset, user):
-    """Scope les personnes selon les plans accessibles à l'utilisateur."""
+def _scope_poste_queryset(queryset, user):
+    """Scope les postes selon les plans accessibles à l'utilisateur."""
     if user.is_super_admin() or user.is_redacteur_principal():
         return queryset
     if user.is_admin_organisme() and user.id_organisme:
@@ -1120,7 +1120,7 @@ def _scope_personne_queryset(queryset, user):
 
 
 def _user_can_access_plan(user, plan):
-    """Vrai si l'utilisateur peut gérer les personnes du plan donné (#560)."""
+    """Vrai si l'utilisateur peut gérer les postes du plan donné (#560)."""
     if user.is_super_admin() or user.is_redacteur_principal():
         return True
     qs = PlanGestion.objects.filter(pk=plan.pk)
@@ -1186,37 +1186,40 @@ class FonctionViewSet(viewsets.ModelViewSet):
         return super().destroy(request, *args, **kwargs)
 
 
-class PersonnePlanViewSet(viewsets.ModelViewSet):
+class PosteViewSet(viewsets.ModelViewSet):
     """
-    Personnes rattachées à un plan de gestion (#560).
+    Postes d'un plan de gestion (#560).
 
-    - GET    /api/plans/personnes/?id_pg={id}     Liste (scopée par permissions)
-    - GET    /api/plans/personnes/by-plan/{id}/   Personnes d'un plan
-    - POST   /api/plans/personnes/                Créer (fonctions imbriquées)
-    - PATCH  /api/plans/personnes/{id}/           Modifier
-    - DELETE /api/plans/personnes/{id}/           Supprimer
+    - GET    /api/plans/postes/?id_pg={id}     Liste (scopée par permissions)
+    - GET    /api/plans/postes/by-plan/{id}/   Postes d'un plan
+    - POST   /api/plans/postes/                Créer (fonctions imbriquées)
+    - PATCH  /api/plans/postes/{id}/           Modifier
+    - DELETE /api/plans/postes/{id}/           Supprimer
+
+    Aucune donnée nominative n'est stockée (RGPD) : un poste est décrit par
+    ses fonctions, son nombre d'exemplaires, son ETP et son organisme.
 
     La gestion RH d'un PG reste accessible quel que soit le statut du plan
     (donnée administrative, comme les référents) : pas de verrou brouillon.
     """
 
-    queryset = PersonnePlan.objects.select_related('id_role', 'id_pg').prefetch_related(
+    queryset = Poste.objects.select_related('id_pg', 'id_organisme').prefetch_related(
         'fonctions__id_fonction'
     )
     permission_classes = [permissions.IsAuthenticated, IsReferent]
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
-    filterset_fields = {'id_pg': ['exact']}
-    search_fields = ['nom']
-    ordering_fields = ['nom', 'date_arrivee']
-    ordering = ['nom']
+    filterset_fields = {'id_pg': ['exact'], 'id_organisme': ['exact']}
+    search_fields = ['fonctions__id_fonction__libelle']
+    ordering_fields = ['id_poste', 'nombre', 'etp']
+    ordering = ['id_poste']
 
     def get_serializer_class(self):
         if self.request.method in permissions.SAFE_METHODS:
-            return PersonnePlanSerializer
-        return PersonnePlanWriteSerializer
+            return PosteSerializer
+        return PosteWriteSerializer
 
     def get_queryset(self):
-        return _scope_personne_queryset(self.queryset, self.request.user)
+        return _scope_poste_queryset(self.queryset, self.request.user)
 
     def perform_create(self, serializer):
         plan = serializer.validated_data.get('id_pg')
@@ -1229,5 +1232,5 @@ class PersonnePlanViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['get'], url_path=r'by-plan/(?P<plan_id>\d+)')
     def by_plan(self, request, plan_id=None):
         qs = self.get_queryset().filter(id_pg=plan_id)
-        serializer = PersonnePlanSerializer(qs, many=True, context={'request': request})
+        serializer = PosteSerializer(qs, many=True, context={'request': request})
         return Response(serializer.data)

@@ -1,6 +1,6 @@
 """
 Tests d'intégration pour l'API RH des plans de gestion (#560) :
-référentiel de fonctions, personnes du PG et lignes de temps de travail.
+référentiel de fonctions, postes du PG et lignes de temps de travail.
 """
 import pytest
 from rest_framework.test import APIClient
@@ -8,12 +8,13 @@ from rest_framework.test import APIClient
 from apps.plans.models_operations import (
     Fonction,
     OperationAnneeRH,
-    PersonnePlan,
+    Poste,
     RealisationOperationAnnee,
     RealisationOperationAnneeRH,
 )
 from tests.factories.users import SuperAdminFactory
 from tests.factories.plans import PlanGestionFactory
+from tests.factories.users import OrganismeFactory
 from tests.factories.enjeux import (
     OperationAnneeFactory,
     OperationFactory,
@@ -67,47 +68,142 @@ class TestFonctionEndpoint:
 
 @pytest.mark.django_db
 @pytest.mark.integration
-class TestPersonnePlanEndpoint:
-    """Personnes rattachées à un plan de gestion, avec leurs fonctions."""
+class TestPosteEndpoint:
+    """Postes d'un plan de gestion. Aucune donnée nominative (RGPD)."""
 
     def test_create_avec_fonctions(self, admin_client):
         plan = PlanGestionFactory()
+        organisme = OrganismeFactory()
         fonction = Fonction.objects.get(libelle='Conservateur')
         payload = {
             'id_pg': plan.id_pg,
-            'nom': 'Marie Dupont',
-            'fonctions': [{'id_fonction': fonction.id_fonction, 'pourcentage': '50.00'}],
+            'id_organisme': organisme.id_organisme,
+            'nombre': 1,
+            'etp': '1.00',
+            'fonctions': [{'id_fonction': fonction.id_fonction}],
         }
-        r = admin_client.post('/api/plans/personnes/', payload, format='json')
+        r = admin_client.post('/api/plans/postes/', payload, format='json')
         assert r.status_code == 201, r.content
         body = r.json()
-        assert body['nom'] == 'Marie Dupont'
+        assert body['libelle'] == 'Conservateur'
+        assert body['organisme_nom'] == organisme.nom_organisme
+        assert body['nombre'] == 1
         assert len(body['fonctions']) == 1
-        assert body['fonctions'][0]['fonction_libelle'] == 'Conservateur'
-        assert body['fonctions'][0]['pourcentage'] == '50.00'
+
+    def test_plusieurs_exemplaires_pour_un_etp_total(self, admin_client):
+        """3 stagiaires pour 1,5 ETP au total (et non 1,5 ETP chacun)."""
+        plan = PlanGestionFactory()
+        fonction = Fonction.objects.get(libelle='Stagiaire')
+        r = admin_client.post('/api/plans/postes/', {
+            'id_pg': plan.id_pg, 'nombre': 3, 'etp': '1.50',
+            'fonctions': [{'id_fonction': fonction.id_fonction}],
+        }, format='json')
+        assert r.status_code == 201, r.content
+        assert r.json()['nombre'] == 3
+        assert r.json()['etp'] == '1.50'
+
+    def test_poste_combine_sans_quotite(self, admin_client):
+        """Un « garde animateur » cumule ses deux fonctions sur tout son temps."""
+        plan = PlanGestionFactory()
+        garde = Fonction.objects.get(libelle='Garde')
+        animateur = Fonction.objects.get(libelle='Animateur nature')
+        r = admin_client.post('/api/plans/postes/', {
+            'id_pg': plan.id_pg, 'nombre': 1, 'etp': '1.00',
+            'fonctions': [
+                {'id_fonction': garde.id_fonction},
+                {'id_fonction': animateur.id_fonction},
+            ],
+        }, format='json')
+        assert r.status_code == 201, r.content
+        assert r.json()['libelle'] == 'Animateur nature · Garde'
+        assert all(f['pourcentage'] is None for f in r.json()['fonctions'])
+
+    def test_poste_avec_quotites(self, admin_client):
+        """50 % garde / 50 % animateur : le libellé porte la répartition."""
+        plan = PlanGestionFactory()
+        garde = Fonction.objects.get(libelle='Garde')
+        animateur = Fonction.objects.get(libelle='Animateur nature')
+        r = admin_client.post('/api/plans/postes/', {
+            'id_pg': plan.id_pg, 'nombre': 1, 'etp': '1.00',
+            'fonctions': [
+                {'id_fonction': garde.id_fonction, 'pourcentage': '50.00'},
+                {'id_fonction': animateur.id_fonction, 'pourcentage': '50.00'},
+            ],
+        }, format='json')
+        assert r.status_code == 201, r.content
+        assert r.json()['libelle'] == 'Animateur nature 50 % · Garde 50 %'
+
+    def test_quotites_doivent_faire_100(self, admin_client):
+        plan = PlanGestionFactory()
+        garde = Fonction.objects.get(libelle='Garde')
+        animateur = Fonction.objects.get(libelle='Animateur nature')
+        r = admin_client.post('/api/plans/postes/', {
+            'id_pg': plan.id_pg, 'nombre': 1,
+            'fonctions': [
+                {'id_fonction': garde.id_fonction, 'pourcentage': '50.00'},
+                {'id_fonction': animateur.id_fonction, 'pourcentage': '30.00'},
+            ],
+        }, format='json')
+        assert r.status_code == 400
+        assert 'fonctions' in r.json()
+
+    def test_quotites_toutes_ou_aucune(self, admin_client):
+        """Un mélange quotité / pas de quotité est ambigu : on le refuse."""
+        plan = PlanGestionFactory()
+        garde = Fonction.objects.get(libelle='Garde')
+        animateur = Fonction.objects.get(libelle='Animateur nature')
+        r = admin_client.post('/api/plans/postes/', {
+            'id_pg': plan.id_pg, 'nombre': 1,
+            'fonctions': [
+                {'id_fonction': garde.id_fonction, 'pourcentage': '100.00'},
+                {'id_fonction': animateur.id_fonction},
+            ],
+        }, format='json')
+        assert r.status_code == 400
+
+    def test_poste_sans_fonction_refuse(self, admin_client):
+        plan = PlanGestionFactory()
+        r = admin_client.post('/api/plans/postes/', {
+            'id_pg': plan.id_pg, 'nombre': 1, 'fonctions': [],
+        }, format='json')
+        assert r.status_code == 400
+
+    def test_finance_par_defaut_derive_des_fonctions(self, admin_client):
+        """Un poste n'est non financé que si TOUTES ses fonctions le sont."""
+        plan = PlanGestionFactory()
+        benevole = Fonction.objects.get(libelle='Bénévole')
+        r = admin_client.post('/api/plans/postes/', {
+            'id_pg': plan.id_pg, 'nombre': 10, 'etp': '0.50',
+            'fonctions': [{'id_fonction': benevole.id_fonction}],
+        }, format='json')
+        assert r.status_code == 201, r.content
+        assert r.json()['finance_par_defaut'] is False
 
     def test_by_plan(self, admin_client):
         plan = PlanGestionFactory()
-        PersonnePlan.objects.create(id_pg=plan, nom='Alice')
         autre = PlanGestionFactory()
-        PersonnePlan.objects.create(id_pg=autre, nom='Bob')
-        r = admin_client.get(f'/api/plans/personnes/by-plan/{plan.id_pg}/')
+        conservateur = Fonction.objects.get(libelle='Conservateur')
+        for pg in (plan, autre):
+            poste = Poste.objects.create(id_pg=pg, nombre=1)
+            poste.fonctions.create(id_fonction=conservateur)
+        r = admin_client.get(f'/api/plans/postes/by-plan/{plan.id_pg}/')
         assert r.status_code == 200
-        noms = [p['nom'] for p in r.json()]
-        assert noms == ['Alice']
+        assert len(r.json()) == 1
+        assert r.json()[0]['id_pg'] == plan.id_pg
 
     def test_update_remplace_fonctions(self, admin_client):
         plan = PlanGestionFactory()
-        personne = PersonnePlan.objects.create(id_pg=plan, nom='Yann')
-        fonction = Fonction.objects.get(libelle='Garde')
+        poste = Poste.objects.create(id_pg=plan, nombre=1)
+        poste.fonctions.create(id_fonction=Fonction.objects.get(libelle='Conservateur'))
+        garde = Fonction.objects.get(libelle='Garde')
         r = admin_client.patch(
-            f'/api/plans/personnes/{personne.id_personne_plan}/',
-            {'fonctions': [{'id_fonction': fonction.id_fonction}]},
+            f'/api/plans/postes/{poste.id_poste}/',
+            {'fonctions': [{'id_fonction': garde.id_fonction}]},
             format='json',
         )
         assert r.status_code == 200
-        assert personne.fonctions.count() == 1
-        assert personne.fonctions.first().id_fonction.libelle == 'Garde'
+        assert poste.fonctions.count() == 1
+        assert poste.fonctions.first().id_fonction.libelle == 'Garde'
 
 
 @pytest.mark.django_db
@@ -137,13 +233,13 @@ class TestRealisationRhLignes:
 
     def test_upsert_cree_les_lignes(self, admin_client, operation_annee):
         oa = operation_annee
-        personne = PersonnePlan.objects.create(
-            id_pg=oa.id_operation.get_plan_de_gestion(), nom='Camille',
+        poste = Poste.objects.create(
+            id_pg=oa.id_operation.get_plan_de_gestion(), nombre=1,
         )
-        benevole = Fonction.objects.get(libelle='Bénévole')
+        organisme = OrganismeFactory()
         r = self._upsert(admin_client, oa, [
-            {'id_personne_plan': personne.id_personne_plan, 'jours': '6.50', 'finance': True},
-            {'id_fonction': benevole.id_fonction, 'jours': '2.00', 'finance': False},
+            {'id_poste': poste.id_poste, 'jours': '6.50', 'finance': True},
+            {'id_organisme': organisme.id_organisme, 'jours': '2.00', 'finance': False},
         ])
         assert r.status_code == 200, r.content
         lignes = r.json()['rh_lignes']
@@ -151,7 +247,7 @@ class TestRealisationRhLignes:
         realisation = RealisationOperationAnnee.objects.get(id_operation_annee=oa)
         assert realisation.rh_lignes.count() == 2
         non_finance = realisation.rh_lignes.get(finance=False)
-        assert non_finance.id_fonction_id == benevole.id_fonction
+        assert non_finance.id_organisme_id == organisme.id_organisme
 
     def test_upsert_remplace_les_lignes(self, admin_client, operation_annee):
         oa = operation_annee
@@ -174,11 +270,11 @@ class TestRealisationRhLignes:
         assert r.status_code == 200, r.content
         assert realisation.rh_lignes.count() == 0
 
-    def test_ligne_sans_personne_ni_fonction_acceptee(self, admin_client, operation_annee):
+    def test_ligne_sans_cible_acceptee(self, admin_client, operation_annee):
         """
         « Temps non affecté » : c'est l'état des saisies converties depuis
-        l'ancien champ `etp` par la migration 0100. Le couple doit rester
-        facultatif, sinon ces lignes seraient perdues au premier ré-enregistrement.
+        l'ancien champ `etp` par la migration 0100. La cible doit rester
+        facultative, sinon ces lignes seraient perdues au premier ré-enregistrement.
         """
         oa = operation_annee
         r = self._upsert(admin_client, oa, [{'jours': '4.00', 'finance': True}])
@@ -186,48 +282,54 @@ class TestRealisationRhLignes:
         ligne = RealisationOperationAnnee.objects.get(
             id_operation_annee=oa,
         ).rh_lignes.first()
-        assert ligne.id_personne_plan_id is None
-        assert ligne.id_fonction_id is None
+        assert ligne.id_poste_id is None
+        assert ligne.id_organisme_id is None
         assert float(ligne.jours) == 4.0
 
-    def test_duplication_copie_personnes_et_lignes_rh(self, operation_annee):
+    def test_duplication_copie_postes_et_lignes_rh(self, operation_annee):
         """
-        #377 + #560 — une nouvelle version doit emporter les personnes du PG et
-        le temps de travail prévisionnel, remappés vers ses propres copies :
-        sans cela le prévisionnel RH serait silencieusement perdu, et les
-        lignes copiées pointeraient sur les personnes de la version source.
+        #377 + #560 — une nouvelle version doit emporter les postes du PG et le
+        temps de travail prévisionnel, remappés vers ses propres copies : sans
+        cela le prévisionnel RH serait silencieusement perdu, et les lignes
+        copiées pointeraient sur les postes de la version source.
         """
         from apps.plans.services import PlanDuplicationService
 
         oa = operation_annee
         source = oa.id_operation.get_plan_de_gestion()
-        personne = PersonnePlan.objects.create(id_pg=source, nom='Camille')
+        organisme = OrganismeFactory()
+        poste = Poste.objects.create(
+            id_pg=source, id_organisme=organisme, nombre=3, etp='1.50',
+        )
         conservateur = Fonction.objects.get(libelle='Conservateur')
-        personne.fonctions.create(id_fonction=conservateur, pourcentage=80)
+        poste.fonctions.create(id_fonction=conservateur, pourcentage=None)
         OperationAnneeRH.objects.create(
-            id_operation_annee=oa, id_personne_plan=personne, jours=9, finance=True,
+            id_operation_annee=oa, id_poste=poste, jours=9, finance=True,
         )
 
         cible = PlanGestionFactory()
         PlanDuplicationService.copy_content(source, cible, SuperAdminFactory())
 
-        # Personne copiée (nouvelle instance) + ses fonctions.
-        copies = PersonnePlan.objects.filter(id_pg=cible)
-        assert [p.nom for p in copies] == ['Camille']
+        # Poste copié (nouvelle instance) + ses fonctions et son organisme.
+        copies = Poste.objects.filter(id_pg=cible)
+        assert copies.count() == 1
         copie = copies.first()
-        assert copie.id_personne_plan != personne.id_personne_plan
+        assert copie.id_poste != poste.id_poste
+        assert copie.nombre == 3
+        assert float(copie.etp) == 1.5
+        assert copie.id_organisme_id == organisme.id_organisme
         assert copie.fonctions.first().id_fonction_id == conservateur.id_fonction
 
-        # Ligne RH copiée et repointée vers la personne du NOUVEAU plan.
+        # Ligne RH copiée et repointée vers le poste du NOUVEAU plan.
         lignes = OperationAnneeRH.objects.filter(
             id_operation_annee__id_operation__id_suivi__id_pg=cible,
         )
         assert lignes.count() == 1
         assert float(lignes.first().jours) == 9.0
-        assert lignes.first().id_personne_plan_id == copie.id_personne_plan
+        assert lignes.first().id_poste_id == copie.id_poste
 
         # La version source reste intacte.
-        assert PersonnePlan.objects.filter(id_pg=source).count() == 1
+        assert Poste.objects.filter(id_pg=source).count() == 1
         assert OperationAnneeRH.objects.filter(id_operation_annee=oa).count() == 1
 
     def test_bilan_ventile_finance_et_non_finance(self, admin_client, operation_annee):

@@ -21,7 +21,7 @@ from .views_operations import (
     RealisationOperationAnneeViewSet,
     RealisationOperationAnneeOrganismeViewSet,
     FonctionViewSet,
-    PersonnePlanViewSet,
+    PosteViewSet,
 )
 
 # Router pour les ViewSets
@@ -45,7 +45,7 @@ router.register(r'operations', OperationViewSet, basename='operation')
 router.register(r'realisations', RealisationOperationAnneeViewSet, basename='realisation')
 router.register(r'realisations-organismes', RealisationOperationAnneeOrganismeViewSet, basename='realisation-organisme')
 router.register(r'fonctions', FonctionViewSet, basename='fonction')
-router.register(r'personnes', PersonnePlanViewSet, basename='personne-plan')
+router.register(r'postes', PosteViewSet, basename='poste')
 
 # URLs spécifiques
 # NOTE: Specific paths must come BEFORE the router to avoid being captured by router patterns

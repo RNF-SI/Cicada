@@ -1,6 +1,7 @@
 """
 Serializers pour l'API REST Opérations (Actions).
 """
+from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
 from .models_operations import (
@@ -8,7 +9,7 @@ from .models_operations import (
     Operation, CorOperationSite, CorOperationMetrique,
     OperationAnnee, OperationAnneeOrganisme, FinanceOperation,
     RealisationOperationAnnee, RealisationOperationAnneeOrganisme,
-    Fonction, PersonnePlan, PersonneFonction,
+    Fonction, Poste, PosteFonction,
     OperationAnneeRH, RealisationOperationAnneeRH,
 )
 
@@ -279,7 +280,7 @@ class RealisationOperationAnneeOrganismeSerializer(serializers.ModelSerializer):
 
 
 # =============================================================================
-# Ressources humaines (#560) — fonctions, personnes du PG, lignes RH
+# Ressources humaines (#560) — fonctions, postes du PG, lignes RH
 # =============================================================================
 
 class FonctionSerializer(serializers.ModelSerializer):
@@ -291,73 +292,97 @@ class FonctionSerializer(serializers.ModelSerializer):
         read_only_fields = ['id_fonction', 'is_socle']
 
 
-class PersonneFonctionSerializer(serializers.ModelSerializer):
-    """Fonction occupée par une personne (lecture)."""
+class PosteFonctionSerializer(serializers.ModelSerializer):
+    """Fonction portée par un poste (lecture)."""
     fonction_libelle = serializers.CharField(source='id_fonction.libelle', read_only=True)
     finance_par_defaut = serializers.BooleanField(
         source='id_fonction.finance_par_defaut', read_only=True
     )
 
     class Meta:
-        model = PersonneFonction
+        model = PosteFonction
         fields = [
-            'id_personne_fonction', 'id_fonction', 'fonction_libelle',
+            'id_poste_fonction', 'id_fonction', 'fonction_libelle',
             'finance_par_defaut', 'pourcentage',
         ]
-        read_only_fields = ['id_personne_fonction']
+        read_only_fields = ['id_poste_fonction']
 
 
-class PersonneFonctionWriteSerializer(serializers.Serializer):
-    """Fonction occupée par une personne (écriture imbriquée)."""
+class PosteFonctionWriteSerializer(serializers.Serializer):
+    """Fonction portée par un poste (écriture imbriquée)."""
     id_fonction = serializers.IntegerField()
     pourcentage = serializers.DecimalField(
         max_digits=5, decimal_places=2, required=False, allow_null=True
     )
 
 
-class PersonnePlanSerializer(serializers.ModelSerializer):
-    """Personne rattachée à un plan de gestion (lecture)."""
-    fonctions = PersonneFonctionSerializer(many=True, read_only=True)
-    role_email = serializers.CharField(source='id_role.email', read_only=True)
-    role_nom = serializers.SerializerMethodField()
+class PosteSerializer(serializers.ModelSerializer):
+    """Poste d'un plan de gestion (lecture). Aucun nominatif (RGPD)."""
+    fonctions = PosteFonctionSerializer(many=True, read_only=True)
+    organisme_nom = serializers.CharField(source='id_organisme.nom_organisme', read_only=True)
+    libelle = serializers.CharField(read_only=True)
+    finance_par_defaut = serializers.SerializerMethodField()
 
     class Meta:
-        model = PersonnePlan
+        model = Poste
         fields = [
-            'id_personne_plan', 'id_pg', 'nom',
-            'id_role', 'role_email', 'role_nom',
-            'date_arrivee', 'date_depart', 'fonctions',
+            'id_poste', 'id_pg', 'libelle',
+            'id_organisme', 'organisme_nom',
+            'nombre', 'etp', 'fonctions', 'finance_par_defaut',
             'date_ajout', 'date_maj',
         ]
-        read_only_fields = ['id_personne_plan', 'date_ajout', 'date_maj']
+        read_only_fields = ['id_poste', 'libelle', 'date_ajout', 'date_maj']
 
-    def get_role_nom(self, obj):
-        if obj.id_role_id:
-            return obj.id_role.get_full_name()
-        return None
+    def get_finance_par_defaut(self, obj):
+        return obj.is_finance_par_defaut()
 
 
-class PersonnePlanWriteSerializer(serializers.ModelSerializer):
-    """Personne rattachée à un plan de gestion (écriture, fonctions imbriquées)."""
-    fonctions = PersonneFonctionWriteSerializer(many=True, required=False, default=[])
+class PosteWriteSerializer(serializers.ModelSerializer):
+    """Poste d'un plan de gestion (écriture, fonctions imbriquées)."""
+    fonctions = PosteFonctionWriteSerializer(many=True, required=False, default=[])
 
     class Meta:
-        model = PersonnePlan
-        fields = [
-            'id_personne_plan', 'id_pg', 'nom', 'id_role',
-            'date_arrivee', 'date_depart', 'fonctions',
-        ]
-        read_only_fields = ['id_personne_plan']
-        extra_kwargs = {'id_role': {'required': False, 'allow_null': True}}
+        model = Poste
+        fields = ['id_poste', 'id_pg', 'id_organisme', 'nombre', 'etp', 'fonctions']
+        read_only_fields = ['id_poste']
+        extra_kwargs = {'id_organisme': {'required': False, 'allow_null': True}}
+
+    def validate_fonctions(self, value):
+        """
+        Un poste se décrit de deux façons, pas d'un mélange des deux :
+
+        - toutes les quotités vides → poste combiné (« garde animateur ») :
+          chaque fonction s'applique à l'ensemble du temps ;
+        - toutes renseignées → répartition explicite, dont la somme fait 100 %.
+        """
+        if not value:
+            raise serializers.ValidationError(
+                _("Un poste doit porter au moins une fonction.")
+            )
+        renseignees = [f for f in value if f.get('pourcentage') is not None]
+        if not renseignees:
+            return value
+        if len(renseignees) != len(value):
+            raise serializers.ValidationError(
+                _("Renseignez la quotité de toutes les fonctions, ou d'aucune "
+                  "(poste cumulant les fonctions sur tout son temps).")
+            )
+        total = sum(f['pourcentage'] for f in renseignees)
+        if total != 100:
+            raise serializers.ValidationError(
+                _("La somme des quotités doit faire 100 %% (actuellement %(total)s %%).")
+                % {'total': total}
+            )
+        return value
 
     def to_representation(self, instance):
-        return PersonnePlanSerializer(instance, context=self.context).data
+        return PosteSerializer(instance, context=self.context).data
 
-    def _set_fonctions(self, personne, fonctions_data):
-        PersonneFonction.objects.filter(id_personne_plan=personne).delete()
-        PersonneFonction.objects.bulk_create([
-            PersonneFonction(
-                id_personne_plan=personne,
+    def _set_fonctions(self, poste, fonctions_data):
+        PosteFonction.objects.filter(id_poste=poste).delete()
+        PosteFonction.objects.bulk_create([
+            PosteFonction(
+                id_poste=poste,
                 id_fonction_id=f['id_fonction'],
                 pourcentage=f.get('pourcentage'),
             )
@@ -366,9 +391,9 @@ class PersonnePlanWriteSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         fonctions_data = validated_data.pop('fonctions', [])
-        personne = PersonnePlan.objects.create(**validated_data)
-        self._set_fonctions(personne, fonctions_data)
-        return personne
+        poste = Poste.objects.create(**validated_data)
+        self._set_fonctions(poste, fonctions_data)
+        return poste
 
     def update(self, instance, validated_data):
         fonctions_data = validated_data.pop('fonctions', None)
@@ -382,15 +407,21 @@ class PersonnePlanWriteSerializer(serializers.ModelSerializer):
 
 class OperationAnneeRHSerializer(serializers.ModelSerializer):
     """Ligne RH prévisionnelle d'une année d'opération (lecture)."""
-    personne_nom = serializers.CharField(source='id_personne_plan.nom', read_only=True)
-    fonction_libelle = serializers.CharField(source='id_fonction.libelle', read_only=True)
+    poste_libelle = serializers.CharField(source='id_poste.libelle', read_only=True)
+    organisme_nom = serializers.CharField(
+        source='id_organisme.nom_organisme', read_only=True
+    )
+    # Organisme du poste : affiché sous le libellé du poste en déclinaison.
+    poste_organisme_nom = serializers.CharField(
+        source='id_poste.id_organisme.nom_organisme', read_only=True
+    )
 
     class Meta:
         model = OperationAnneeRH
         fields = [
             'id_operation_annee_rh',
-            'id_personne_plan', 'personne_nom',
-            'id_fonction', 'fonction_libelle',
+            'id_poste', 'poste_libelle', 'poste_organisme_nom',
+            'id_organisme', 'organisme_nom',
             'jours', 'finance',
         ]
         read_only_fields = ['id_operation_annee_rh']
@@ -398,8 +429,8 @@ class OperationAnneeRHSerializer(serializers.ModelSerializer):
 
 class OperationAnneeRHWriteSerializer(serializers.Serializer):
     """Ligne RH prévisionnelle (écriture imbriquée dans operation_annees)."""
-    id_personne_plan = serializers.IntegerField(required=False, allow_null=True)
-    id_fonction = serializers.IntegerField(required=False, allow_null=True)
+    id_poste = serializers.IntegerField(required=False, allow_null=True)
+    id_organisme = serializers.IntegerField(required=False, allow_null=True)
     jours = serializers.DecimalField(
         max_digits=8, decimal_places=2, required=False, allow_null=True
     )
@@ -408,19 +439,24 @@ class OperationAnneeRHWriteSerializer(serializers.Serializer):
 
 class RealisationOperationAnneeRHSerializer(serializers.ModelSerializer):
     """Ligne RH réalisée d'une année d'opération (lecture + écriture imbriquée)."""
-    personne_nom = serializers.CharField(source='id_personne_plan.nom', read_only=True)
-    fonction_libelle = serializers.CharField(source='id_fonction.libelle', read_only=True)
+    poste_libelle = serializers.CharField(source='id_poste.libelle', read_only=True)
+    organisme_nom = serializers.CharField(
+        source='id_organisme.nom_organisme', read_only=True
+    )
+    poste_organisme_nom = serializers.CharField(
+        source='id_poste.id_organisme.nom_organisme', read_only=True
+    )
 
     class Meta:
         model = RealisationOperationAnneeRH
         fields = [
             'id_realisation_operation_annee_rh',
             # Lien vers la ligne prévisionnelle réalisée : permet au suivi de
-            # ré-attribuer le temps (« c'est en fait X qui l'a fait ») sans
-            # que le prévu et le réel se retrouvent dissociés.
+            # ré-attribuer le temps (« c'est en fait ce poste-là qui l'a
+            # fait ») sans que le prévu et le réel se retrouvent dissociés.
             'id_operation_annee_rh',
-            'id_personne_plan', 'personne_nom',
-            'id_fonction', 'fonction_libelle',
+            'id_poste', 'poste_libelle', 'poste_organisme_nom',
+            'id_organisme', 'organisme_nom',
             'jours', 'finance',
         ]
         read_only_fields = ['id_realisation_operation_annee_rh']
@@ -495,8 +531,8 @@ class RealisationOperationAnneeSerializer(serializers.ModelSerializer):
             RealisationOperationAnneeRH(
                 id_realisation_operation_annee=instance,
                 id_operation_annee_rh=rh.get('id_operation_annee_rh'),
-                id_personne_plan=rh.get('id_personne_plan'),
-                id_fonction=rh.get('id_fonction'),
+                id_poste=rh.get('id_poste'),
+                id_organisme=rh.get('id_organisme'),
                 jours=rh.get('jours'),
                 finance=rh.get('finance', True),
             )
@@ -660,6 +696,10 @@ def _operation_enjeu_slug(obj):
     Indicateur → RA → OO → Pression (M2M) → FI → Enjeu.
     Sert à ramener l'utilisateur à la position de l'action dans l'architecture
     du plan depuis la fiche action (#531).
+
+    #552 — le facteur d'influence est partagé entre plusieurs enjeux (M2M via
+    CorFacteurEnjeu) et ne porte plus de FK `id_enjeu` : on retient le premier
+    enjeu lié, cohérent avec la sémantique « premier enjeu trouvé ».
     """
     for met in obj.metriques.all():
         if not met.id_indicateur_id:
@@ -677,9 +717,11 @@ def _operation_enjeu_slug(obj):
             ra = indicateur.id_resultat_attendu
             if ra and ra.id_oo:
                 pression = ra.id_oo.pressions.select_related(
-                    'id_facteur_influence__id_enjeu').first()
-                if pression and pression.id_facteur_influence and pression.id_facteur_influence.id_enjeu:
-                    return pression.id_facteur_influence.id_enjeu.slug
+                    'id_facteur_influence').first()
+                if pression and pression.id_facteur_influence:
+                    enjeu = pression.id_facteur_influence.enjeux.first()
+                    if enjeu:
+                        return enjeu.slug
         except AttributeError:
             pass
     return None
@@ -742,7 +784,7 @@ class OperationSerializer(serializers.ModelSerializer):
             'operateurs', 'partenaires', 'financeurs',
             'programmation_annuelle', 'programmation_mensuelle',
             'programmation_mensuelle_defaut',
-            'ventilation_mode',
+            'ventilation_mode', 'declinaison_par_poste',
             'geom', 'geom_geojson',
             'id_indicateur',
             'metriques', 'metrique_ids',
@@ -1032,7 +1074,8 @@ class OperationNestedSerializer(OperationListSerializer):
         fields = [
             f for f in OperationListSerializer.Meta.fields
             if f not in ('nb_operation_annees', 'nb_finances', 'enjeu_slug', 'oo_id')
-        ] + ['operation_annees', 'finances', 'ventilation_mode']
+        ] + ['operation_annees', 'finances', 'ventilation_mode',
+             'declinaison_par_poste']
 
 
 # =============================================================================
@@ -1099,7 +1142,7 @@ class OperationCreateSerializer(serializers.ModelSerializer):
             'operateurs', 'partenaires', 'financeurs',
             'programmation_annuelle', 'programmation_mensuelle',
             'programmation_mensuelle_defaut',
-            'ventilation_mode',
+            'ventilation_mode', 'declinaison_par_poste',
             'geom_geojson',
             'metrique_ids', 'site_ids',
             'operation_annees', 'finances'
@@ -1135,13 +1178,13 @@ class OperationCreateSerializer(serializers.ModelSerializer):
                     )
                     for org in organismes_data
                 ])
-            # #560 — lignes RH prévisionnelles (personne/fonction × jours × financé)
+            # #560 — lignes RH prévisionnelles (poste/organisme × jours × financé)
             if rh_lignes_data:
                 OperationAnneeRH.objects.bulk_create([
                     OperationAnneeRH(
                         id_operation_annee=annee_obj,
-                        id_personne_plan_id=rh.get('id_personne_plan'),
-                        id_fonction_id=rh.get('id_fonction'),
+                        id_poste_id=rh.get('id_poste'),
+                        id_organisme_id=rh.get('id_organisme'),
                         jours=rh.get('jours'),
                         finance=rh.get('finance', True),
                     )

@@ -46,8 +46,8 @@ from .models_operations import (
     FinanceOperation,
     OperationRealisationGlobale,
     Fonction,
-    PersonnePlan,
-    PersonneFonction,
+    Poste,
+    PosteFonction,
     OperationAnneeRH,
     RealisationOperationAnneeRH,
 )

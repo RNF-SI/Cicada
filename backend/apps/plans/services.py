@@ -124,14 +124,14 @@ class PlanDuplicationService:
                 source_id, new_plan, user, copy_sub_elements
             )
             if copy_sub_elements:
-                # Personnes d'abord : les lignes RH des opérations pointent
+                # Postes d'abord : les lignes RH des opérations pointent
                 # dessus et doivent être remappées vers les copies (#560).
-                personne_map = PlanDuplicationService._copy_personnes(
+                poste_map = PlanDuplicationService._copy_postes(
                     source_id, new_plan, user
                 )
                 PlanDuplicationService._copy_suivis_and_operations(
                     source_id, new_plan, user, indicateur_map, metrique_map,
-                    personne_map,
+                    poste_map,
                 )
 
         # 7. Recalculate geometry
@@ -255,13 +255,13 @@ class PlanDuplicationService:
         indicateur_map, metrique_map = PlanDuplicationService._copy_enjeux(
             source_id, new_plan, user, copy_sub_elements=True
         )
-        # Les personnes sont copiées AVANT les opérations : les lignes RH
+        # Les postes sont copiés AVANT les opérations : les lignes RH
         # prévisionnelles pointent dessus et doivent être remappées (#560).
-        personne_map = PlanDuplicationService._copy_personnes(
+        poste_map = PlanDuplicationService._copy_postes(
             source_id, new_plan, user
         )
         PlanDuplicationService._copy_suivis_and_operations(
-            source_id, new_plan, user, indicateur_map, metrique_map, personne_map
+            source_id, new_plan, user, indicateur_map, metrique_map, poste_map
         )
 
     @staticmethod
@@ -343,6 +343,7 @@ class PlanDuplicationService:
             ObjectifLongTerme, NiveauExigence,
             ObjectifOperationnel, ResultatAttendu,
             CorEnjeuTaxon, CorEnjeuHabitat, CorEnjeuGeologie,
+            CorFacteurEnjeu,
         )
         from .models_indicateurs import (
             Indicateur, Metrique, MetriqueScoreBlock,
@@ -352,6 +353,16 @@ class PlanDuplicationService:
         dup = PlanDuplicationService._dup
         indicateur_map = {}
         metrique_map = {}
+        # #552 — Facteurs et OO peuvent être partagés entre plusieurs enjeux du
+        # plan. Ces maps vivent donc HORS de la boucle enjeu (portée = plan) :
+        # l'élément et son sous-arbre ne sont copiés qu'une fois, puis re-liés à
+        # chaque nouvel enjeu. Sinon le partage se perdrait à la duplication
+        # (N copies indépendantes au lieu d'un élément commun).
+        #   - facteur partagé  → M2M `enjeux` (CorFacteurEnjeu)
+        #   - OO partagé       → M2M `pressions`, un même OO pouvant être
+        #     rattaché aux pressions de DEUX facteurs, donc de deux enjeux.
+        facteur_map = {}
+        oo_map = {}
 
         def _copy_indicateur(old_ind, **parent_override):
             new_ind = dup(old_ind, user, **parent_override)
@@ -403,11 +414,30 @@ class PlanDuplicationService:
             if not copy_sub_elements:
                 continue
 
-            # Facteurs → Pressions → OO (M2M, dédupliqués) → RA → Indicateurs
-            oo_map = {}
-            for old_fi in FacteurInfluence.objects.filter(id_enjeu=old_enjeu):
-                new_fi = dup(old_fi, user, id_enjeu=new_enjeu)
+            # Facteurs (partagés, #552) → Pressions → OO (M2M, dédupliqués)
+            # → RA → Indicateurs
+            for old_cor in CorFacteurEnjeu.objects.filter(id_enjeu=old_enjeu):
+                old_fi = old_cor.id_facteur_influence
+
+                # Facteur déjà copié via un autre enjeu : on le re-lie au nouvel
+                # enjeu sans recopier son sous-arbre (il est partagé, #552).
+                if old_fi.pk in facteur_map:
+                    CorFacteurEnjeu.objects.create(
+                        id_facteur_influence=facteur_map[old_fi.pk],
+                        id_enjeu=new_enjeu,
+                        ordre=old_cor.ordre,
+                    )
+                    continue
+
+                new_fi = dup(old_fi, user)
                 new_fi.save()
+                facteur_map[old_fi.pk] = new_fi
+                # L'ordre est porté par la liaison, propre à chaque enjeu (#552).
+                CorFacteurEnjeu.objects.create(
+                    id_facteur_influence=new_fi,
+                    id_enjeu=new_enjeu,
+                    ordre=old_cor.ordre,
+                )
                 for old_pr in Pression.objects.filter(id_facteur_influence=old_fi):
                     new_pr = dup(old_pr, user, id_facteur_influence=new_fi)
                     new_pr.save()
@@ -438,38 +468,35 @@ class PlanDuplicationService:
         return indicateur_map, metrique_map
 
     @staticmethod
-    def _copy_personnes(source_plan_id, new_plan, user):
-        """Copie les personnes du PG et leurs fonctions (#560).
+    def _copy_postes(source_plan_id, new_plan, user):
+        """Copie les postes du PG et leurs fonctions (#560).
 
-        Les personnes sont rattachées à un plan : une nouvelle version doit
-        avoir les siennes, éditables sans impacter la version source. Les
-        fonctions, elles, sont un référentiel global partagé — on ne les copie
-        pas, on les réutilise.
+        Les postes sont rattachés à un plan : une nouvelle version doit avoir
+        les siens, éditables sans impacter la version source. Les fonctions,
+        elles, sont un référentiel global partagé — on ne les copie pas, on
+        les réutilise. L'organisme du poste est repris tel quel (entité
+        indépendante du plan).
 
-        Retourne {ancien id_personne_plan: nouvelle PersonnePlan} pour remapper
-        les lignes RH des opérations.
+        Retourne {ancien id_poste: nouveau Poste} pour remapper les lignes RH
+        des opérations.
         """
-        from .models_operations import PersonnePlan, PersonneFonction
+        from .models_operations import Poste, PosteFonction
 
         dup = PlanDuplicationService._dup
-        personne_map = {}
-        for old_personne in PersonnePlan.objects.filter(id_pg_id=source_plan_id):
-            new_personne = dup(old_personne, user, id_pg=new_plan)
-            new_personne.save()
-            personne_map[old_personne.id_personne_plan] = new_personne
-            for old_fonction in PersonneFonction.objects.filter(
-                id_personne_plan=old_personne
-            ):
-                new_fonction = dup(
-                    old_fonction, user, id_personne_plan=new_personne
-                )
+        poste_map = {}
+        for old_poste in Poste.objects.filter(id_pg_id=source_plan_id):
+            new_poste = dup(old_poste, user, id_pg=new_plan)
+            new_poste.save()
+            poste_map[old_poste.id_poste] = new_poste
+            for old_fonction in PosteFonction.objects.filter(id_poste=old_poste):
+                new_fonction = dup(old_fonction, user, id_poste=new_poste)
                 new_fonction.save()
-        return personne_map
+        return poste_map
 
     @staticmethod
     def _copy_suivis_and_operations(source_plan_id, new_plan, user,
                                     indicateur_map, metrique_map,
-                                    personne_map=None):
+                                    poste_map=None):
         """Copie les suivis/inventaires du plan puis les opérations (actions),
         en re-reliant chaque opération aux nouvelles entités copiées (#377).
 
@@ -485,7 +512,7 @@ class PlanDuplicationService:
             CorOperationSite, CorOperationMetrique,
         )
 
-        personne_map = personne_map or {}
+        poste_map = poste_map or {}
 
         dup = PlanDuplicationService._dup
 
@@ -540,16 +567,16 @@ class PlanDuplicationService:
                 for old_org in OperationAnneeOrganisme.objects.filter(id_operation_annee=old_oa):
                     new_org = dup(old_org, user, id_operation_annee=new_oa)
                     new_org.save()
-                # Lignes RH prévisionnelles (#560) : la personne est remappée
-                # vers la copie du plan, la fonction est un référentiel global
-                # et reste partagée. Une personne absente de la map (donnée
-                # incohérente) dégrade en « temps non affecté » plutôt que de
-                # pointer vers la version source.
+                # Lignes RH prévisionnelles (#560) : le poste est remappé vers
+                # la copie du plan ; l'organisme, entité indépendante du plan,
+                # reste partagé. Un poste absent de la map (donnée incohérente)
+                # dégrade en « temps non affecté » plutôt que de pointer vers
+                # la version source.
                 for old_rh in OperationAnneeRH.objects.filter(id_operation_annee=old_oa):
                     new_rh = dup(
                         old_rh, user,
                         id_operation_annee=new_oa,
-                        id_personne_plan=personne_map.get(old_rh.id_personne_plan_id),
+                        id_poste=poste_map.get(old_rh.id_poste_id),
                     )
                     new_rh.save()
 

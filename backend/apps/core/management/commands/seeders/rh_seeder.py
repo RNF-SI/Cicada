@@ -1,12 +1,22 @@
 """
-Seeder RH (#560) — personnes, fonctions et lignes de temps de travail.
+Seeder RH (#560) — postes, fonctions et lignes de temps de travail.
 
 Enrichit le plan de gestion « Lacs et zones humides continentales » (créé par
-MinimalPlansSeeder) avec des personnes, leurs fonctions, et des lignes de temps
-de travail prévisionnel (et réalisé quand un suivi existe) sur ses actions. Les
-lignes RH génériques issues de la migration #560 sont remplacées par des lignes
-réalistes pointant vers des personnes/fonctions, avec ventilation financé /
-non financé.
+MinimalPlansSeeder) avec des **postes** (aucun nominatif, RGPD) et des lignes
+de temps de travail prévisionnel — et réalisé quand un suivi existe.
+
+Les postes couvrent volontairement les cas de figure du modèle :
+  - poste simple (1 fonction, 1 ETP) ;
+  - poste **combiné sans quotité** : un « garde animateur » à 1 ETP cumule les
+    deux casquettes sur tout son temps ;
+  - poste à **quotités explicites** (50 % / 50 %) ;
+  - poste en **plusieurs exemplaires** (3 stagiaires pour 1,5 ETP au total) ;
+  - poste **non financé** (bénévoles).
+
+Les actions couvrent les trois façons de saisir la RH :
+  - `declinaison_par_poste=True` → une ligne par poste ;
+  - ventilation budgétaire par organisme → une ligne par organisme ;
+  - ni l'un ni l'autre → aucune ligne (la saisie RH est alors facultative).
 """
 from decimal import Decimal
 
@@ -14,27 +24,55 @@ from django.db.models import Q
 
 from apps.plans.models import PlanGestion
 from apps.plans.models_operations import (
-    Operation, OperationAnnee, OperationAnneeRH,
+    Operation, OperationAnnee, OperationAnneeOrganisme, OperationAnneeRH,
     RealisationOperationAnneeRH,
-    Fonction, PersonnePlan, PersonneFonction,
+    Fonction, Poste, PosteFonction,
 )
+from apps.users.models import BibOrganismes
 
 from .base import BaseSeeder
 
 
 _PLAN_SLUG = 'plan-de-gestion-2023-2033-lacs-et-zones-humides-continentales'
 
-# Personnes du PG : (nom, [(fonction, quotité %)]).
-_PERSONNES = [
-    ('Camille Rivière', [('Conservateur', 100)]),
-    ('Louis Marchand', [('Garde-technicien', 100)]),
-    ('Sarah Benali', [('Animateur nature', 60), ('Chargé de communication', 40)]),
-    ('Théo Lefèvre', [('Service civique', 100)]),
-    ('Bénévoles LPO', [('Bénévole', None)]),
+# Postes du PG : (clé, organisme, nombre, ETP total, [(fonction, quotité %)]).
+# Quotité None = le poste cumule ses fonctions sur l'ensemble de son temps.
+_POSTES = [
+    ('conservateur', 'Réserves Naturelles de France', 1, '1.00',
+     [('Conservateur', None)]),
+    # Le cas « garde animateur » : deux casquettes, 1 ETP, pas de quotité.
+    ('garde_animateur', 'Réserves Naturelles de France', 1, '1.00',
+     [('Garde-technicien', None), ('Animateur nature', None)]),
+    # Le même métier, mais avec une répartition explicite du temps.
+    ('anim_com', 'CEN Auvergne-Rhône-Alpes', 1, '1.00',
+     [('Animateur nature', '50.00'), ('Chargé de communication', '50.00')]),
+    # Plusieurs exemplaires du même poste, pour une enveloppe d'ETP commune.
+    ('stagiaires', 'CEN Auvergne-Rhône-Alpes', 3, '1.50',
+     [('Stagiaire', None)]),
+    ('service_civique', 'CEN Auvergne-Rhône-Alpes', 2, '2.00',
+     [('Service civique', None)]),
+    # Temps non financé — la valorisation visée par #560.
+    ('benevoles', 'Réserves Naturelles de France', 10, '0.50',
+     [('Bénévole', None)]),
 ]
 
 # Fonctions non financées par défaut (cohérent avec le socle #560).
 _NON_FINANCEES = {'bénévole', 'écovolontaire', 'partenaire'}
+
+# Répartition des jours par poste, variée d'une action à l'autre.
+_VARIANTES_POSTES = [
+    [('conservateur', '8', True), ('garde_animateur', '12', True), ('benevoles', '5', False)],
+    [('anim_com', '6', True), ('service_civique', '10', True)],
+    [('garde_animateur', '15', True)],
+    [('conservateur', '4', True), ('stagiaires', '20', True), ('benevoles', '8', False)],
+]
+
+# Jours par organisme, pour les actions ventilées par organisme.
+_VARIANTES_ORGANISMES = [
+    [('9', True), ('6', True)],
+    [('12', True), ('3', False)],
+    [('7', True)],
+]
 
 
 class RhSeeder(BaseSeeder):
@@ -46,94 +84,121 @@ class RhSeeder(BaseSeeder):
         plan = PlanGestion.objects.filter(slug=_PLAN_SLUG).first()
         if not plan:
             self.log('Plan zones humides introuvable, RH ignoré.', 'WARNING')
-            return {'personnes': 0, 'lignes_prev': 0, 'lignes_reel': 0}
+            return {'postes': 0, 'lignes_prev': 0, 'lignes_reel': 0}
 
-        # 1. Personnes + fonctions
-        personnes = {}
-        for nom, fonctions in _PERSONNES:
-            personne, _ = PersonnePlan.objects.get_or_create(id_pg=plan, nom=nom)
-            PersonneFonction.objects.filter(id_personne_plan=personne).delete()
-            for libelle, pct in fonctions:
-                fonction = self._get_fonction(libelle)
-                PersonneFonction.objects.create(
-                    id_personne_plan=personne,
-                    id_fonction=fonction,
-                    pourcentage=Decimal(str(pct)) if pct is not None else None,
-                )
-            personnes[nom] = personne
+        postes = self._seed_postes(plan)
 
-        fonction_benevole = self._get_fonction('Bénévole')
-
-        # 2. Lignes RH sur les actions du plan
         operations = self._plan_operations(plan)
         lignes_prev = 0
         lignes_reel = 0
+        nb_declinees = 0
         for idx, op in enumerate(operations):
-            variant = self._variant_for(idx, personnes, fonction_benevole)
+            # Une action sur trois détaille sa RH poste par poste ; les autres
+            # s'appuient sur la ventilation budgétaire par organisme.
+            declinee = idx % 3 == 0
+            par_organisme = not declinee and op.ventilation_mode in ('by_org', 'by_org_type')
+            if op.declinaison_par_poste != declinee:
+                op.declinaison_par_poste = declinee
+                op.save(update_fields=['declinaison_par_poste'])
+            if declinee:
+                nb_declinees += 1
+
             for oa in OperationAnnee.objects.filter(id_operation=op):
-                # Remplace les lignes génériques migrées par des lignes réalistes.
+                # Remplace les lignes génériques issues de la migration #560.
                 OperationAnneeRH.objects.filter(id_operation_annee=oa).delete()
-                prevues = []
-                for line in variant:
-                    prevues.append(
-                        OperationAnneeRH.objects.create(id_operation_annee=oa, **line)
-                    )
-                    lignes_prev += 1
+                if declinee:
+                    lignes = self._lignes_postes(idx, postes)
+                elif par_organisme:
+                    lignes = self._lignes_organismes(idx, oa)
+                else:
+                    # Ni déclinaison ni ventilation par organisme : la saisie RH
+                    # est facultative et le tableau n'est pas affiché.
+                    lignes = []
+
+                prevues = [
+                    OperationAnneeRH.objects.create(id_operation_annee=oa, **ligne)
+                    for ligne in lignes
+                ]
+                lignes_prev += len(prevues)
 
                 # Réel : quand un suivi de l'année existe, saisir ~85 % du prévu.
                 real = getattr(oa, 'realisation', None)
-                if real is not None:
-                    RealisationOperationAnneeRH.objects.filter(
-                        id_realisation_operation_annee=real
-                    ).delete()
-                    for prevue, line in zip(prevues, variant):
-                        reel = dict(line)
-                        if reel['jours'] is not None:
-                            reel['jours'] = round(reel['jours'] * Decimal('0.85'), 2)
-                        RealisationOperationAnneeRH.objects.create(
-                            id_realisation_operation_annee=real,
-                            # Le réel réalise la ligne prévue correspondante :
-                            # sans ce lien il remonterait en « non prévu ».
-                            id_operation_annee_rh=prevue,
-                            **reel,
-                        )
-                        lignes_reel += 1
+                if real is None:
+                    continue
+                RealisationOperationAnneeRH.objects.filter(
+                    id_realisation_operation_annee=real
+                ).delete()
+                for prevue, ligne in zip(prevues, lignes):
+                    reel = dict(ligne)
+                    if reel['jours'] is not None:
+                        reel['jours'] = round(reel['jours'] * Decimal('0.85'), 2)
+                    RealisationOperationAnneeRH.objects.create(
+                        id_realisation_operation_annee=real,
+                        # Le réel réalise la ligne prévue correspondante :
+                        # sans ce lien il remonterait en « non prévu ».
+                        id_operation_annee_rh=prevue,
+                        **reel,
+                    )
+                    lignes_reel += 1
 
-        self.log_summary(len(personnes), 'personnes créées')
+        self.log_summary(len(postes), 'postes créés')
+        self.log_summary(nb_declinees, 'actions déclinées par poste')
         self.log_summary(lignes_prev, 'lignes RH prévisionnelles créées')
         self.log_summary(lignes_reel, 'lignes RH réalisées créées')
         return {
-            'personnes': len(personnes),
+            'postes': len(postes),
             'lignes_prev': lignes_prev,
             'lignes_reel': lignes_reel,
         }
 
-    def _variant_for(self, idx, personnes, fonction_benevole):
-        """Composition RH déterministe variée selon l'action."""
-        conservateur = personnes['Camille Rivière']
-        garde = personnes['Louis Marchand']
-        animateur = personnes['Sarah Benali']
-        service_civique = personnes['Théo Lefèvre']
-        benevoles = personnes['Bénévoles LPO']
-        variants = [
-            [
-                dict(id_personne_plan=conservateur, id_fonction=None, jours=Decimal('8'), finance=True),
-                dict(id_personne_plan=garde, id_fonction=None, jours=Decimal('12'), finance=True),
-                dict(id_personne_plan=benevoles, id_fonction=fonction_benevole, jours=Decimal('5'), finance=False),
-            ],
-            [
-                dict(id_personne_plan=animateur, id_fonction=None, jours=Decimal('6'), finance=True),
-                dict(id_personne_plan=service_civique, id_fonction=None, jours=Decimal('10'), finance=False),
-            ],
-            [
-                dict(id_personne_plan=garde, id_fonction=None, jours=Decimal('15'), finance=True),
-            ],
-            [
-                dict(id_personne_plan=conservateur, id_fonction=None, jours=Decimal('4'), finance=True),
-                dict(id_personne_plan=benevoles, id_fonction=fonction_benevole, jours=Decimal('8'), finance=False),
-            ],
+    def _seed_postes(self, plan) -> dict:
+        """Crée les postes du PG (idempotent) et retourne {clé: Poste}."""
+        # Les postes n'ont pas de nom : on les ré-identifie par leur rang,
+        # d'où une purge préalable plutôt qu'un get_or_create.
+        Poste.objects.filter(id_pg=plan).delete()
+        postes = {}
+        for cle, org_nom, nombre, etp, fonctions in _POSTES:
+            poste = Poste.objects.create(
+                id_pg=plan,
+                id_organisme=self._get_organisme(org_nom),
+                nombre=nombre,
+                etp=Decimal(etp),
+            )
+            for libelle, pct in fonctions:
+                PosteFonction.objects.create(
+                    id_poste=poste,
+                    id_fonction=self._get_fonction(libelle),
+                    pourcentage=Decimal(pct) if pct is not None else None,
+                )
+            postes[cle] = poste
+        return postes
+
+    def _lignes_postes(self, idx, postes) -> list:
+        """Lignes RH d'une action déclinée par poste."""
+        variante = _VARIANTES_POSTES[idx % len(_VARIANTES_POSTES)]
+        return [
+            dict(id_poste=postes[cle], id_organisme=None,
+                 jours=Decimal(jours), finance=finance)
+            for cle, jours, finance in variante
         ]
-        return variants[idx % len(variants)]
+
+    def _lignes_organismes(self, idx, oa) -> list:
+        """Lignes RH d'une action dont le budget est ventilé par organisme."""
+        organismes = [
+            oao.id_organisme
+            for oao in OperationAnneeOrganisme.objects.filter(
+                id_operation_annee=oa
+            ).select_related('id_organisme')
+        ]
+        variante = _VARIANTES_ORGANISMES[idx % len(_VARIANTES_ORGANISMES)]
+        return [
+            dict(id_poste=None, id_organisme=organisme,
+                 jours=Decimal(jours), finance=finance)
+            for organisme, (jours, finance) in zip(organismes, variante)
+        ]
+
+    def _get_organisme(self, nom):
+        return BibOrganismes.objects.filter(nom_organisme=nom).first()
 
     def _get_fonction(self, libelle):
         fonction = Fonction.objects.filter(libelle__iexact=libelle).first()
@@ -150,7 +215,7 @@ class RhSeeder(BaseSeeder):
             Operation.objects.filter(
                 Q(metriques__id_indicateur__id_ne__id_olt__id_enjeu__id_pg=plan)
                 | Q(id_suivi__id_pg=plan)
-            ).distinct()
+            ).distinct().order_by('id_operation')
         )
 
     def reset(self) -> int:
@@ -159,6 +224,9 @@ class RhSeeder(BaseSeeder):
             return 0
         count = 0
         for op in self._plan_operations(plan):
+            if op.declinaison_par_poste:
+                op.declinaison_par_poste = False
+                op.save(update_fields=['declinaison_par_poste'])
             for oa in OperationAnnee.objects.filter(id_operation=op):
                 count += OperationAnneeRH.objects.filter(id_operation_annee=oa).delete()[0]
                 real = getattr(oa, 'realisation', None)
@@ -166,11 +234,14 @@ class RhSeeder(BaseSeeder):
                     count += RealisationOperationAnneeRH.objects.filter(
                         id_realisation_operation_annee=real
                     ).delete()[0]
-        count += PersonnePlan.objects.filter(id_pg=plan).delete()[0]
+        count += Poste.objects.filter(id_pg=plan).delete()[0]
         return count
 
     def get_dry_run_summary(self) -> list:
         return [
-            f'{len(_PERSONNES)} personnes sur le plan « Lacs et zones humides continentales »',
-            'lignes RH prévisionnelles (et réalisées) sur ses actions, financé / non financé',
+            f'{len(_POSTES)} postes sur le plan « Lacs et zones humides continentales » '
+            '(dont un garde animateur combiné, un poste à quotités 50/50, '
+            '3 stagiaires pour 1,5 ETP et des bénévoles non financés)',
+            'lignes RH prévisionnelles (et réalisées) par poste ou par organisme '
+            'selon le mode de saisie de chaque action',
         ]

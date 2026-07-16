@@ -1408,7 +1408,7 @@ class MesureAdmin(admin.ModelAdmin):
 # =============================================================================
 # Ressources humaines (#560)
 # =============================================================================
-from .models_operations import Fonction, PersonnePlan, PersonneFonction
+from .models_operations import Fonction, Poste, PosteFonction
 
 
 @admin.register(Fonction)
@@ -1418,16 +1418,16 @@ class FonctionAdmin(admin.ModelAdmin):
     search_fields = ('libelle',)
 
 
-class PersonneFonctionInline(admin.TabularInline):
-    model = PersonneFonction
+class PosteFonctionInline(admin.TabularInline):
+    model = PosteFonction
     extra = 1
     autocomplete_fields = ('id_fonction',)
 
 
-@admin.register(PersonnePlan)
-class PersonnePlanAdmin(admin.ModelAdmin):
-    list_display = ('nom', 'id_pg', 'id_role', 'date_arrivee', 'date_depart')
-    list_filter = ('id_pg',)
-    search_fields = ('nom',)
-    autocomplete_fields = ('id_pg', 'id_role')
-    inlines = [PersonneFonctionInline]
+@admin.register(Poste)
+class PosteAdmin(admin.ModelAdmin):
+    # Aucun champ nominatif (RGPD) : le poste est décrit par ses fonctions.
+    list_display = ('libelle', 'id_pg', 'id_organisme', 'nombre', 'etp')
+    list_filter = ('id_pg', 'id_organisme')
+    autocomplete_fields = ('id_pg', 'id_organisme')
+    inlines = [PosteFonctionInline]
