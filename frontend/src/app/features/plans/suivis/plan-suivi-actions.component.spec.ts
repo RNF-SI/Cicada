@@ -141,3 +141,57 @@ describe('PlanSuiviActionsComponent — agrégation RH (#569)', () => {
     expect(cell.realise).toBe(3);
   });
 });
+
+/**
+ * #568 — Pagination des tableaux (actions à plat + tableaux groupés budget/RH).
+ */
+describe('PlanSuiviActionsComponent — pagination (#568)', () => {
+  let component: PlanSuiviActionsComponent;
+
+  beforeEach(() => {
+    TestBed.configureTestingModule({
+      imports: [PlanSuiviActionsComponent, NoopAnimationsModule, HttpClientTestingModule, TranslateModule.forRoot()],
+      providers: [
+        { provide: ActivatedRoute, useValue: { snapshot: { paramMap: { get: () => null }, queryParamMap: { get: () => null } } } },
+        { provide: Router, useValue: { navigate: jest.fn(), events: of(), createUrlTree: jest.fn(), serializeUrl: jest.fn() } },
+        { provide: AdminService, useValue: { getNomenclaturesByType: () => of([]), getPlanBySlug: () => of(null) } },
+        { provide: EnjeuService, useValue: { getPlanEnjeux: () => of({ enjeux: [], fcr: [] }) } },
+      ],
+    });
+    component = TestBed.createComponent(PlanSuiviActionsComponent).componentInstance;
+  });
+
+  function seed(n: number) {
+    const ops = Array.from({ length: n }, (_, i) => ({
+      operation: { id_operation: i + 1, libelle: `Op ${i + 1}` },
+      enjeuLibelle: 'E1',
+      enjeuId: 1,
+    }));
+    component.allOperations.set(ops as any);
+  }
+
+  it('découpe la liste à plat des actions par page (pageSize=20)', () => {
+    seed(25);
+    expect(component.pageSize).toBe(20);
+    component.page.set(1);
+    expect(component.pagedOperations().length).toBe(20);
+    expect(component.pagedOperations()[0].operation.id_operation).toBe(1);
+    component.page.set(2);
+    expect(component.pagedOperations().length).toBe(5);
+    expect(component.pagedOperations()[0].operation.id_operation).toBe(21);
+  });
+
+  it('pagine les tableaux groupés en conservant le groupe complet pour les sous-totaux', () => {
+    seed(25); // actions non ventilées → un seul groupe « plan général »
+    expect(component.orgGroupsRowCount()).toBe(25);
+    component.page.set(1);
+    let groups = component.pagedOrgGroups();
+    expect(groups.length).toBe(1);
+    expect(groups[0].operations.length).toBe(20);       // lignes de la page
+    expect(groups[0].fullOperations.length).toBe(25);   // total pour le sous-total
+    component.page.set(2);
+    groups = component.pagedOrgGroups();
+    expect(groups[0].operations.length).toBe(5);
+    expect(groups[0].fullOperations.length).toBe(25);
+  });
+});

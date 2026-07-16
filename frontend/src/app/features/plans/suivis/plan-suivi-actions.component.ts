@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal, computed } from '@angular/core';
+import { Component, OnInit, inject, signal, computed, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
@@ -9,6 +9,7 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { HeaderComponent } from '../../../shared/components/header/header.component';
 import { PlanSidebarComponent } from '../shared/plan-sidebar/plan-sidebar.component';
 import { SearchBarComponent } from '../../../shared/components/search-bar/search-bar.component';
+import { PaginationComponent } from '../../../shared/components/pagination/pagination.component';
 import { TagComponent } from '../../../shared/components/tag/tag.component';
 import { PlanPlanificationMensuelleComponent } from './plan-planification-mensuelle.component';
 import { AdminService } from '../../../core/services/admin.service';
@@ -48,7 +49,7 @@ interface FlatOperation {
     CommonModule, RouterModule, MatButtonModule, MatMenuModule,
     MatProgressSpinnerModule, MatTooltipModule, TranslateModule,
     HeaderComponent, PlanSidebarComponent, SearchBarComponent,
-    PlanPlanificationMensuelleComponent, TagComponent
+    PlanPlanificationMensuelleComponent, TagComponent, PaginationComponent
   ],
   templateUrl: './plan-suivi-actions.component.html',
   styleUrl: './plan-suivi-actions.component.scss'
@@ -83,6 +84,19 @@ export class PlanSuiviActionsComponent implements OnInit {
   // Tabs principaux (Phase 3)
   activeTab = signal<SuiviTab>('realisation');
   currentYear = signal<number>(new Date().getFullYear());
+
+  // #568 — pagination des tableaux (actions / budget / RH).
+  readonly pageSize = 20;
+  page = signal<number>(1);
+
+  constructor() {
+    // #568 — revenir à la page 1 dès que la liste filtrée change (filtres,
+    // recherche, données), pour ne pas rester bloqué sur une page hors bornes.
+    effect(() => {
+      this.filteredOperations();
+      this.page.set(1);
+    });
+  }
 
   // Filters
   filterCategorieAction = signal<string | null>(null);
@@ -298,6 +312,59 @@ export class PlanSuiviActionsComponent implements OnInit {
     }
     return result;
   });
+
+  // ===========================================================================
+  // #568 — Pagination
+  // ===========================================================================
+
+  /** Onglet Réalisation : page courante de la liste à plat des actions. */
+  pagedOperations = computed<FlatOperation[]>(() => {
+    const start = (this.page() - 1) * this.pageSize;
+    return this.filteredOperations().slice(start, start + this.pageSize);
+  });
+
+  /** Nombre total de lignes d'action affichées dans les tableaux groupés
+   *  Budget / RH (une action ventilée sur N organismes compte N fois). */
+  orgGroupsRowCount = computed<number>(() =>
+    this.operationsByOrganisme().reduce((sum, g) => sum + g.operations.length, 0)
+  );
+
+  /**
+   * Onglets Budget / RH : groupes d'organisme dont seules les lignes de la page
+   * courante sont affichées. Les sous-totaux d'en-tête restent calculés sur le
+   * groupe COMPLET (`fullOperations`) pour ne pas fausser « Total Plan de gestion ».
+   */
+  pagedOrgGroups = computed<{
+    id_organisme: number;
+    nom: string;
+    fullOperations: FlatOperation[];
+    operations: FlatOperation[];
+  }[]>(() => {
+    const start = (this.page() - 1) * this.pageSize;
+    const end = start + this.pageSize;
+    let globalIdx = 0;
+    const out: { id_organisme: number; nom: string; fullOperations: FlatOperation[]; operations: FlatOperation[] }[] = [];
+    for (const group of this.operationsByOrganisme()) {
+      const onPage: FlatOperation[] = [];
+      for (const op of group.operations) {
+        if (globalIdx >= start && globalIdx < end) onPage.push(op);
+        globalIdx++;
+      }
+      if (onPage.length > 0) {
+        out.push({
+          id_organisme: group.id_organisme,
+          nom: group.nom,
+          fullOperations: group.operations,
+          operations: onPage,
+        });
+      }
+    }
+    return out;
+  });
+
+  onPageChange(p: number): void {
+    this.page.set(p);
+  }
 
   /** Total budget/ETP agrégé pour un groupe d'organisme sur une période. */
   groupAggregate(
@@ -557,6 +624,7 @@ export class PlanSuiviActionsComponent implements OnInit {
 
   setTab(tab: SuiviTab): void {
     this.activeTab.set(tab);
+    this.page.set(1); // #568 — repartir en page 1 en changeant d'onglet
     // #379 — persister l'onglet dans l'URL pour le retrouver après « précédent »
     // depuis la saisie (sinon on revenait toujours sur Réalisation).
     this.router.navigate([], {

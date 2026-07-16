@@ -323,7 +323,7 @@
                   <tbody>
                     <!-- #379 — liste à plat : la réalisation d'une action est unique,
                          indépendante de l'organisme (pas de bandeaux organisme ici) -->
-                    @for (item of filteredOperations(); track item.operation.id_operation; let idx = $index) {
+                    @for (item of pagedOperations(); track item.operation.id_operation; let idx = $index) {
                         <tr [class.row-alt]="idx % 2 === 1"
                             [class.is-draft]="item.operation.statut === 'draft'">
                           <td class="col-action">
@@ -403,6 +403,13 @@
                   </tbody>
                 </table>
               </div>
+              <!-- #568 — pagination du tableau de suivi des actions -->
+              <app-pagination
+                [totalItems]="filteredOperations().length"
+                [pageSize]="pageSize"
+                [currentPage]="page()"
+                (pageChange)="onPageChange($event)">
+              </app-pagination>
             }
 
             <!-- ============================================================ -->
@@ -425,8 +432,8 @@
                     </tr>
                   </thead>
                   <tbody>
-                    @for (group of operationsByOrganisme(); track group.id_organisme) {
-                      <!-- En-tête organisme avec totaux agrégés -->
+                    @for (group of pagedOrgGroups(); track group.id_organisme) {
+                      <!-- En-tête organisme avec totaux agrégés (sur le groupe COMPLET) -->
                       <tr class="org-header-row org-header-row-totals">
                         <td class="col-action">
                           {{ group.nom === '__plan_general__'
@@ -435,7 +442,7 @@
                           <span class="org-total-suffix">— {{ 'plans.suivis.actions.tabs.col.total' | translate }}</span>
                         </td>
                         @for (period of ['current', 'past', 'total']; track period) {
-                          @let gcell = groupAggregate(group.operations, $any(period), 'budget');
+                          @let gcell = groupAggregate(group.fullOperations, $any(period), 'budget');
                           <td class="col-agg">
                             <div class="agg-prev">{{ gcell.previsionnel | number:'1.0-0':'fr-FR' }} €</div>
                             @if (gcell.hasRealise) {
@@ -511,6 +518,13 @@
                   </tbody>
                 </table>
               </div>
+              <!-- #568 — pagination du tableau Budget -->
+              <app-pagination
+                [totalItems]="orgGroupsRowCount()"
+                [pageSize]="pageSize"
+                [currentPage]="page()"
+                (pageChange)="onPageChange($event)">
+              </app-pagination>
             }
 
             <!-- ============================================================ -->
@@ -533,8 +547,8 @@
                     </tr>
                   </thead>
                   <tbody>
-                    @for (group of operationsByOrganisme(); track group.id_organisme) {
-                      <!-- En-tête organisme avec totaux RH -->
+                    @for (group of pagedOrgGroups(); track group.id_organisme) {
+                      <!-- En-tête organisme avec totaux RH (sur le groupe COMPLET) -->
                       <tr class="org-header-row org-header-row-totals">
                         <td class="col-action">
                           {{ group.nom === '__plan_general__'
@@ -543,7 +557,7 @@
                           <span class="org-total-suffix">— {{ 'plans.suivis.actions.tabs.col.total' | translate }}</span>
                         </td>
                         @for (period of ['current', 'past', 'total']; track period) {
-                          @let gcell = groupAggregate(group.operations, $any(period), 'etp');
+                          @let gcell = groupAggregate(group.fullOperations, $any(period), 'etp');
                           <td class="col-agg">
                             <div class="agg-prev">{{ gcell.previsionnel | number:'1.0-1':'fr-FR' }} {{ 'plans.suivis.actions.tabs.jours' | translate }}</div>
                             @if (gcell.hasRealise) {
@@ -619,6 +633,13 @@
                   </tbody>
                 </table>
               </div>
+              <!-- #568 — pagination du tableau RH -->
+              <app-pagination
+                [totalItems]="orgGroupsRowCount()"
+                [pageSize]="pageSize"
+                [currentPage]="page()"
+                (pageChange)="onPageChange($event)">
+              </app-pagination>
             }
           }
         }
