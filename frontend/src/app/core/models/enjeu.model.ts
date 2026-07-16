@@ -555,9 +555,15 @@ export interface SuiviInventaire {
   actif?: boolean;
   // Détails
   objectif_principal?: string;
+  // #571 — libellés lisibles résolus depuis la nomenclature (le champ brut
+  // porte le mnémonique, ex. OBJ_PHYSICO_CHIMIQUES).
+  objectif_principal_label?: string;
   objectif_secondaire?: string;
+  objectif_secondaire_label?: string;
   cibles_principales?: string;
+  cibles_principales_label?: string;
   cible_secondaire?: string;
+  cible_secondaire_label?: string;
   taxon_taxref?: string;
   habitat_ref?: string;
   /** Habitats structurés [{cd_hab, lb_hab_fr}] — pour les correspondances. */

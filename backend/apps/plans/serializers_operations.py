@@ -624,6 +624,12 @@ class SuiviInventaireSerializer(serializers.ModelSerializer):
     protocole = ProtocoleSerializer(source='id_protocole', read_only=True)
     bancarisation_label = serializers.SerializerMethodField()
     outil_saisie_label = serializers.SerializerMethodField()
+    # #571 — libellés lisibles des nomenclatures objectif/cible (les champs bruts
+    # stockent le mnémonique, ex. OBJ_PHYSICO_CHIMIQUES / ABIOTIQUE).
+    objectif_principal_label = serializers.SerializerMethodField()
+    objectif_secondaire_label = serializers.SerializerMethodField()
+    cibles_principales_label = serializers.SerializerMethodField()
+    cible_secondaire_label = serializers.SerializerMethodField()
 
     class Meta:
         model = SuiviInventaire
@@ -631,8 +637,10 @@ class SuiviInventaireSerializer(serializers.ModelSerializer):
             'id_suivi_inventaire',
             'intitule', 'actif',
             # Détails
-            'objectif_principal', 'objectif_secondaire',
-            'cibles_principales', 'cible_secondaire',
+            'objectif_principal', 'objectif_principal_label',
+            'objectif_secondaire', 'objectif_secondaire_label',
+            'cibles_principales', 'cibles_principales_label',
+            'cible_secondaire', 'cible_secondaire_label',
             'taxon_taxref', 'habitat_ref', 'habitats',
             'date_lancement_suivi',
             # Protocole (nested)
@@ -661,6 +669,18 @@ class SuiviInventaireSerializer(serializers.ModelSerializer):
 
     def get_outil_saisie_label(self, obj):
         return self._resolve_nomenclature_label(obj.outil_saisie, 'OUTIL_SAISIE')
+
+    def get_objectif_principal_label(self, obj):
+        return self._resolve_nomenclature_label(obj.objectif_principal, 'OBJECTIF_SUIVI')
+
+    def get_objectif_secondaire_label(self, obj):
+        return self._resolve_nomenclature_label(obj.objectif_secondaire, 'OBJECTIF_SUIVI')
+
+    def get_cibles_principales_label(self, obj):
+        return self._resolve_nomenclature_label(obj.cibles_principales, 'CIBLE_SUIVI')
+
+    def get_cible_secondaire_label(self, obj):
+        return self._resolve_nomenclature_label(obj.cible_secondaire, 'CIBLE_SUIVI')
 
 
 class SuiviInventaireWriteSerializer(serializers.ModelSerializer):

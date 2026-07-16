@@ -87,19 +87,19 @@
             }
             @if (suiviInventaire()?.objectif_principal) {
               <dt>{{ 'plans.suivis.actions.fiche.objectifPrincipal' | translate }}</dt>
-              <dd>{{ suiviInventaire()?.objectif_principal }}</dd>
+              <dd>{{ suiviInventaire()?.objectif_principal_label || suiviInventaire()?.objectif_principal }}</dd>
             }
             @if (suiviInventaire()?.objectif_secondaire) {
               <dt>{{ 'plans.suivis.actions.fiche.objectifSecondaire' | translate }}</dt>
-              <dd>{{ suiviInventaire()?.objectif_secondaire }}</dd>
+              <dd>{{ suiviInventaire()?.objectif_secondaire_label || suiviInventaire()?.objectif_secondaire }}</dd>
             }
             @if (suiviInventaire()?.cibles_principales) {
               <dt>{{ 'plans.suivis.actions.fiche.ciblePrincipale' | translate }}</dt>
-              <dd>{{ suiviInventaire()?.cibles_principales }}</dd>
+              <dd>{{ suiviInventaire()?.cibles_principales_label || suiviInventaire()?.cibles_principales }}</dd>
             }
             @if (suiviInventaire()?.cible_secondaire) {
               <dt>{{ 'plans.suivis.actions.fiche.cibleSecondaire' | translate }}</dt>
-              <dd>{{ suiviInventaire()?.cible_secondaire }}</dd>
+              <dd>{{ suiviInventaire()?.cible_secondaire_label || suiviInventaire()?.cible_secondaire }}</dd>
             }
           </dl>
         </section>

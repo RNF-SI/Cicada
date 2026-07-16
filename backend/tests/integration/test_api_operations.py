@@ -456,6 +456,36 @@ class TestOperationDetailEndpoint:
         assert response.data['suivi_inventaire']['protocole'] is not None
         assert response.data['suivi_inventaire']['protocole']['protocole_campanule_nom'] == 'Proto Detail Test'
 
+    def test_detail_resolves_objectif_cible_labels(self, api_client, operation_test_data):
+        """#571 — objectif/cible exposent le libellé de nomenclature (pas le mnémonique)."""
+        from tests.factories.core import NomenclatureFactory, TypeNomenclatureFactory
+        obj_type = TypeNomenclatureFactory(mnemonique='OBJECTIF_SUIVI', label='Objectif suivi')
+        cible_type = TypeNomenclatureFactory(mnemonique='CIBLE_SUIVI', label='Cible suivi')
+        NomenclatureFactory(
+            id_type=obj_type, mnemonique='OBJ_PHYSICO_CHIMIQUES',
+            label='Paramètres physico-chimiques et climatiques',
+        )
+        NomenclatureFactory(
+            id_type=cible_type, mnemonique='ABIOTIQUE', label='Composante abiotique',
+        )
+        suivi = SuiviInventaireFactory(
+            objectif_principal='OBJ_PHYSICO_CHIMIQUES',
+            cibles_principales='ABIOTIQUE',
+            id_utilisateur_ajout=operation_test_data['referent'],
+        )
+        op = operation_test_data['op1']
+        op.id_suivi = suivi
+        op.save(update_fields=['id_suivi'])
+
+        api_client.force_authenticate(user=operation_test_data['super_admin'])
+        response = api_client.get(f'/api/plans/operations/{op.id_operation}/')
+        assert response.status_code == status.HTTP_200_OK
+        suivi_data = response.data['suivi_inventaire']
+        # Le mnémonique brut reste exposé, mais un label lisible est ajouté.
+        assert suivi_data['objectif_principal'] == 'OBJ_PHYSICO_CHIMIQUES'
+        assert suivi_data['objectif_principal_label'] == 'Paramètres physico-chimiques et climatiques'
+        assert suivi_data['cibles_principales_label'] == 'Composante abiotique'
+
     def test_detail_campanule_protocole_roundtrip(self, api_client, operation_test_data):
         """Test create + GET detail with Campanule protocol returns all fields for edit form."""
         api_client.force_authenticate(user=operation_test_data['super_admin'])
