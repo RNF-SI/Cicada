@@ -18,7 +18,10 @@ from tests.factories.plans import (
     PlanGestionFactory, PlanGestionValideFactory, PlanGestionArchiveFactory,
     CorSitePgFactory, CorPgFichierFactory
 )
-from tests.factories.enjeux import EnjeuFactory
+from tests.factories.enjeux import (
+    EnjeuFactory, ObjectifLongTermeFactory, NiveauExigenceFactory,
+    IndicateurFactory, MetriqueFactory, OperationFactory,
+)
 
 
 @pytest.fixture
@@ -1350,6 +1353,48 @@ class TestPlansMindmapEndpoint:
 
         assert response.status_code == status.HTTP_200_OK
         assert response.data['children'] == []
+
+    @staticmethod
+    def _find_operation(node, op_id):
+        """Recherche récursive d'un nœud opération par id dans un arbre mindmap."""
+        if node.get('entityType') == 'operation' and node.get('id') == op_id:
+            return True
+        return any(
+            TestPlansMindmapEndpoint._find_operation(child, op_id)
+            for child in node.get('children', [])
+        )
+
+    def test_mindmap_action_linked_to_indicateur_without_metrique(self, api_client):
+        """#567 — une action rattachée directement à un indicateur (sans
+        métrique) doit apparaître dans l'arbre normal ET l'arbre inverse."""
+        admin = SuperAdminFactory()
+        plan = PlanGestionFactory(nom='Plan #567')
+        enjeu = EnjeuFactory(id_pg=plan)
+        olt = ObjectifLongTermeFactory(id_enjeu=enjeu)
+        ne = NiveauExigenceFactory(id_olt=olt)
+        indicateur = IndicateurFactory(id_ne=ne)
+        # Action rattachée à l'indicateur, sans aucune métrique.
+        op_directe = OperationFactory(
+            libelle='Action indicateur direct', id_indicateur=indicateur
+        )
+        # Action classique rattachée via une métrique (non-régression).
+        metrique = MetriqueFactory(id_indicateur=indicateur)
+        op_metrique = OperationFactory(
+            libelle='Action via métrique', metriques=[metrique]
+        )
+
+        api_client.force_authenticate(user=admin)
+        normal = api_client.get(f'/api/plans/plans/{plan.id_pg}/mindmap/')
+        inverse = api_client.get(f'/api/plans/plans/{plan.id_pg}/mindmap-inverse/')
+
+        assert normal.status_code == status.HTTP_200_OK
+        assert inverse.status_code == status.HTTP_200_OK
+        # Arbre normal : les deux actions présentes.
+        assert self._find_operation(normal.data, op_directe.id_operation)
+        assert self._find_operation(normal.data, op_metrique.id_operation)
+        # Arbre inverse : les deux actions présentes.
+        assert self._find_operation(inverse.data, op_directe.id_operation)
+        assert self._find_operation(inverse.data, op_metrique.id_operation)
 
 
 # =============================================================================

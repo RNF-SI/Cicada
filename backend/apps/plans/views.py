@@ -778,8 +778,10 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
                     'facteurs_influence__pressions',
                     'objectifs_long_terme__niveaux_exigence__indicateurs__metriques__mesures',
                     'objectifs_long_terme__niveaux_exigence__indicateurs__metriques__operations',
+                    'objectifs_long_terme__niveaux_exigence__indicateurs__operations',
                     'facteurs_influence__pressions__objectifs_operationnels__resultats_attendus__indicateurs__metriques__mesures',
                     'facteurs_influence__pressions__objectifs_operationnels__resultats_attendus__indicateurs__metriques__operations',
+                    'facteurs_influence__pressions__objectifs_operationnels__resultats_attendus__indicateurs__operations',
                 )
                 .order_by('id_enjeu')
             )
@@ -816,6 +818,14 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
                             'id': op.id_operation,
                         })
                     ind_node['children'].append(met_node)
+                # #567 — actions rattachées directement à l'indicateur (#367),
+                # sans passer par une métrique : les afficher aussi dans l'arbre.
+                for op in ind.operations.all():
+                    ind_node['children'].append({
+                        'name': op.libelle,
+                        'entityType': 'operation',
+                        'id': op.id_operation,
+                    })
                 return ind_node
 
             for enjeu in enjeux:
@@ -957,10 +967,23 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
             Operation.objects
             .filter(
                 Q(metriques__id_indicateur__id_ne__id_olt__id_enjeu__id_pg=plan) |
-                Q(metriques__id_indicateur__id_resultat_attendu__id_oo__pressions__id_facteur_influence__enjeux__id_pg=plan)
+                Q(metriques__id_indicateur__id_resultat_attendu__id_oo__pressions__id_facteur_influence__enjeux__id_pg=plan) |
+                # #567 — actions rattachées directement à un indicateur (#367)
+                Q(id_indicateur__id_ne__id_olt__id_enjeu__id_pg=plan) |
+                Q(id_indicateur__id_resultat_attendu__id_oo__pressions__id_facteur_influence__enjeux__id_pg=plan)
             )
             .distinct()
+            .select_related(
+                'id_indicateur',
+                'id_indicateur__id_ne',
+                'id_indicateur__id_ne__id_olt',
+                'id_indicateur__id_ne__id_olt__id_enjeu',
+                'id_indicateur__id_ne__id_olt__id_enjeu__id_categorie',
+                'id_indicateur__id_resultat_attendu',
+                'id_indicateur__id_resultat_attendu__id_oo',
+            )
             .prefetch_related(
+                'id_indicateur__id_resultat_attendu__id_oo__pressions__id_facteur_influence__enjeux',
                 Prefetch('metriques', queryset=Metrique.objects.select_related(
                     'id_indicateur',
                     'id_indicateur__id_ne',
@@ -982,49 +1005,51 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
             'children': []
         }
 
-        def build_olt_ancestry(met):
-            """Build inverted path: Métrique → Indicateur → NE → OLT → État de l'enjeu → Enjeu"""
-            ind = met.id_indicateur
+        def build_ind_olt_ancestry(ind):
+            """Ascendance au niveau indicateur : Indicateur → NE → OLT → État de l'enjeu → Enjeu"""
             ne = ind.id_ne
             olt = ne.id_olt
             enjeu = olt.id_enjeu
             is_fcr = enjeu.id_categorie and enjeu.id_categorie.mnemonique == 'FCR'
 
             return {
-                'name': met.nom_metrique,
-                'entityType': 'metrique',
-                'id': met.id_metrique,
+                'name': ind.nom_indicateur,
+                'entityType': 'indicateur',
+                'id': ind.id_indicateur,
                 'children': [{
-                    'name': ind.nom_indicateur,
-                    'entityType': 'indicateur',
-                    'id': ind.id_indicateur,
+                    'name': ne.libelle,
+                    'entityType': 'niveau_exigence',
+                    'id': ne.id_ne,
                     'children': [{
-                        'name': ne.libelle,
-                        'entityType': 'niveau_exigence',
-                        'id': ne.id_ne,
+                        'name': olt.libelle,
+                        'entityType': 'olt',
+                        'id': olt.id_olt,
                         'children': [{
-                            'name': olt.libelle,
-                            'entityType': 'olt',
-                            'id': olt.id_olt,
+                            'name': enjeu.etat_enjeu or 'État de l\'enjeu',
+                            'entityType': 'etat_enjeu',
+                            'id': enjeu.id_enjeu,
                             'children': [{
-                                'name': enjeu.etat_enjeu or 'État de l\'enjeu',
-                                'entityType': 'etat_enjeu',
+                                'name': enjeu.intitule_court or enjeu.libelle,
+                                'entityType': 'fcr' if is_fcr else 'enjeu',
                                 'id': enjeu.id_enjeu,
-                                'children': [{
-                                    'name': enjeu.intitule_court or enjeu.libelle,
-                                    'entityType': 'fcr' if is_fcr else 'enjeu',
-                                    'id': enjeu.id_enjeu,
-                                }]
                             }]
                         }]
                     }]
                 }]
             }
 
-        def build_oo_ancestry(met):
-            """Build inverted path: Métrique → Indicateur → RA → OO → Pression → Facteur → Enjeu
+        def build_olt_ancestry(met):
+            """Build inverted path: Métrique → Indicateur → NE → OLT → État de l'enjeu → Enjeu"""
+            return {
+                'name': met.nom_metrique,
+                'entityType': 'metrique',
+                'id': met.id_metrique,
+                'children': [build_ind_olt_ancestry(met.id_indicateur)]
+            }
+
+        def build_ind_oo_ancestry(ind):
+            """Ascendance au niveau indicateur : Indicateur → RA → OO → Pression → Facteur → Enjeu
             Note: OO is M2M with Pression, we pick the first pression for the ancestry path."""
-            ind = met.id_indicateur
             ra = ind.id_resultat_attendu
             oo = ra.id_oo
             # M2M: pick first pression (prefetched)
@@ -1041,34 +1066,29 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
             is_fcr = enjeu.id_categorie and enjeu.id_categorie.mnemonique == 'FCR'
 
             return {
-                'name': met.nom_metrique,
-                'entityType': 'metrique',
-                'id': met.id_metrique,
+                'name': ind.nom_indicateur,
+                'entityType': 'indicateur',
+                'id': ind.id_indicateur,
                 'children': [{
-                    'name': ind.nom_indicateur,
-                    'entityType': 'indicateur',
-                    'id': ind.id_indicateur,
+                    'name': ra.libelle,
+                    'entityType': 'resultat_attendu',
+                    'id': ra.id_ra,
                     'children': [{
-                        'name': ra.libelle,
-                        'entityType': 'resultat_attendu',
-                        'id': ra.id_ra,
+                        'name': oo.libelle,
+                        'entityType': 'oo',
+                        'id': oo.id_oo,
                         'children': [{
-                            'name': oo.libelle,
-                            'entityType': 'oo',
-                            'id': oo.id_oo,
+                            'name': pression.libelle,
+                            'entityType': 'pression',
+                            'id': pression.id_pression,
                             'children': [{
-                                'name': pression.libelle,
-                                'entityType': 'pression',
-                                'id': pression.id_pression,
+                                'name': facteur.libelle,
+                                'entityType': 'facteur',
+                                'id': facteur.id_facteur_influence,
                                 'children': [{
-                                    'name': facteur.libelle,
-                                    'entityType': 'facteur',
-                                    'id': facteur.id_facteur_influence,
-                                    'children': [{
-                                        'name': enjeu.intitule_court or enjeu.libelle,
-                                        'entityType': 'fcr' if is_fcr else 'enjeu',
-                                        'id': enjeu.id_enjeu,
-                                    }]
+                                    'name': enjeu.intitule_court or enjeu.libelle,
+                                    'entityType': 'fcr' if is_fcr else 'enjeu',
+                                    'id': enjeu.id_enjeu,
                                 }]
                             }]
                         }]
@@ -1076,25 +1096,51 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
                 }]
             }
 
+        def build_oo_ancestry(met):
+            """Build inverted path: Métrique → Indicateur → RA → OO → Pression → Facteur → Enjeu"""
+            node = build_ind_oo_ancestry(met.id_indicateur)
+            if node is None:
+                return None
+            return {
+                'name': met.nom_metrique,
+                'entityType': 'metrique',
+                'id': met.id_metrique,
+                'children': [node]
+            }
+
+        def build_ancestry_from_indicateur(ind):
+            """#567 — ascendance d'une action rattachée directement à un indicateur."""
+            if ind.id_ne:
+                return build_ind_olt_ancestry(ind)
+            if ind.id_resultat_attendu:
+                return build_ind_oo_ancestry(ind)
+            return None
+
         # Build operation nodes — group all métriques under each operation
         for op in operations:
-            metrique_children = []
+            ancestry_children = []
             for met in op.metriques.all():
                 ind = met.id_indicateur
                 if not ind:
                     continue
                 if ind.id_ne:
-                    metrique_children.append(build_olt_ancestry(met))
+                    ancestry_children.append(build_olt_ancestry(met))
                 elif ind.id_resultat_attendu:
                     node = build_oo_ancestry(met)
                     if node:
-                        metrique_children.append(node)
-            if metrique_children:
+                        ancestry_children.append(node)
+            # #567 — action rattachée directement à un indicateur (#367), sans
+            # métrique : son ascendance part du nœud indicateur.
+            if op.id_indicateur:
+                node = build_ancestry_from_indicateur(op.id_indicateur)
+                if node:
+                    ancestry_children.append(node)
+            if ancestry_children:
                 op_node = {
                     'name': op.libelle,
                     'entityType': 'operation',
                     'id': op.id_operation,
-                    'children': metrique_children
+                    'children': ancestry_children
                 }
                 root['children'].append(op_node)
 
