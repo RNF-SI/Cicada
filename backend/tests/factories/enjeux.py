@@ -10,6 +10,7 @@ from apps.plans.models_enjeux import (
     ObjectifLongTerme, NiveauExigence,
     ObjectifOperationnel, ResultatAttendu,
     CorEnjeuTaxon, CorEnjeuHabitat, CorEnjeuGeologie,
+    CorFacteurEnjeu,
 )
 from apps.plans.models_indicateurs import (
     Indicateur, Metrique, Mesure, CorIndicateurTaxon,
@@ -120,15 +121,50 @@ class FcrFactory(EnjeuFactory):
 # =============================================================================
 
 class FacteurInfluenceFactory(DjangoModelFactory):
-    """Factory for FacteurInfluence model."""
+    """Factory for FacteurInfluence model.
+
+    #552 — le facteur n'a plus de FK `id_enjeu` : il est partagé entre plusieurs
+    enjeux via `CorFacteurEnjeu`. Le kwarg `id_enjeu=` reste accepté (et crée la
+    liaison) car c'est ainsi que les tests expriment « un facteur sous cet
+    enjeu » ; sans argument, un enjeu est créé, comme avant.
+    Pour un facteur partagé : `FacteurInfluenceFactory(enjeux=[e1, e2])`.
+    """
 
     class Meta:
         model = FacteurInfluence
+        skip_postgeneration_save = True
 
-    id_enjeu = factory.SubFactory(EnjeuFactory)
     libelle = factory.Sequence(lambda n: f'Facteur Influence Test {n}')
     description = factory.Faker('sentence', locale='fr_FR')
     id_utilisateur_ajout = factory.SubFactory(RoleFactory)
+
+    # NB : les hooks post_generation s'exécutent dans l'ordre de déclaration.
+    # `enjeux` doit donc passer AVANT `id_enjeu`, qui ne crée un enjeu par
+    # défaut que si aucune liaison n'a déjà été posée.
+
+    @factory.post_generation
+    def enjeux(obj, create, extracted, **kwargs):
+        """Rattache le facteur à plusieurs enjeux (partage, #552)."""
+        if not create or not extracted:
+            return
+        for enjeu in extracted:
+            CorFacteurEnjeu.objects.get_or_create(
+                id_facteur_influence=obj, id_enjeu=enjeu
+            )
+
+    @factory.post_generation
+    def id_enjeu(obj, create, extracted, **kwargs):
+        """Rattache le facteur à un enjeu unique (cas courant)."""
+        if not create:
+            return
+        if extracted is not None:
+            CorFacteurEnjeu.objects.get_or_create(
+                id_facteur_influence=obj, id_enjeu=extracted
+            )
+        elif not obj.enjeux.exists():
+            CorFacteurEnjeu.objects.create(
+                id_facteur_influence=obj, id_enjeu=EnjeuFactory()
+            )
 
 
 class PressionFactory(DjangoModelFactory):

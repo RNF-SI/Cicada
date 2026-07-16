@@ -450,13 +450,40 @@ class TestCopySubElements:
         )
 
         new_enjeu = Enjeu.objects.get(id_pg=new_plan)
-        new_fis = FacteurInfluence.objects.filter(id_enjeu=new_enjeu)
+        new_fis = FacteurInfluence.objects.filter(enjeux=new_enjeu)
         assert new_fis.count() == 1
         assert new_fis.first().libelle == 'Facteur A'
 
         new_pressions = Pression.objects.filter(id_facteur_influence=new_fis.first())
         assert new_pressions.count() == 1
         assert new_pressions.first().libelle == 'Pression A'
+
+    def test_shared_facteur_copied_once_and_stays_shared(self, source_plan, user):
+        """#552 — un facteur partagé entre 2 enjeux reste UN seul facteur copié.
+
+        Sans déduplication, la copie produirait deux facteurs indépendants et le
+        partage serait silencieusement perdu dans la nouvelle version.
+        """
+        enjeu_a = EnjeuFactory(id_pg=source_plan, libelle='Enjeu A', id_utilisateur_ajout=user)
+        enjeu_b = EnjeuFactory(id_pg=source_plan, libelle='Enjeu B', id_utilisateur_ajout=user)
+        fi = FacteurInfluenceFactory(
+            enjeux=[enjeu_a, enjeu_b], libelle='Facteur partagé', id_utilisateur_ajout=user
+        )
+        PressionFactory(id_facteur_influence=fi, libelle='Pression A', id_utilisateur_ajout=user)
+
+        new_plan = PlanDuplicationService.duplicate_plan(
+            source_plan=source_plan, user=user,
+            copy_sites=False, copy_referents=False,
+            copy_fichiers=False, copy_enjeux=True, copy_sub_elements=True,
+        )
+
+        new_fis = FacteurInfluence.objects.filter(enjeux__id_pg=new_plan).distinct()
+        assert new_fis.count() == 1
+        new_fi = new_fis.first()
+        # Le facteur copié est bien rattaché aux DEUX nouveaux enjeux...
+        assert set(new_fi.enjeux.values_list('libelle', flat=True)) == {'Enjeu A', 'Enjeu B'}
+        # ...et son sous-arbre n'a été copié qu'une fois.
+        assert Pression.objects.filter(id_facteur_influence=new_fi).count() == 1
 
     def test_olt_copied(self, source_plan, user):
         enjeu = EnjeuFactory(id_pg=source_plan, id_utilisateur_ajout=user)
@@ -595,13 +622,51 @@ class TestOOPressionRemap:
         )
 
         new_enjeu = Enjeu.objects.get(id_pg=new_plan)
-        new_fi = FacteurInfluence.objects.get(id_enjeu=new_enjeu)
+        new_fi = FacteurInfluence.objects.get(enjeux=new_enjeu)
         new_pression = Pression.objects.get(id_facteur_influence=new_fi)
         new_oo = new_pression.objectifs_operationnels.first()
         assert new_oo is not None
         assert new_oo.libelle == 'OO linked'
         assert new_pression in new_oo.pressions.all()
         assert pression not in new_oo.pressions.all()
+
+    def test_shared_oo_copied_once_across_enjeux(self, source_plan, user):
+        """#552 — un OO partagé entre 2 enjeux reste UN seul OO copié.
+
+        C'est le mécanisme de partage des OO : un même OO rattaché aux pressions
+        de DEUX facteurs, donc de deux enjeux. Sans déduplication à l'échelle du
+        plan, la copie en produirait deux et le partage serait perdu.
+        """
+        enjeu_a = EnjeuFactory(id_pg=source_plan, libelle='Enjeu A', id_utilisateur_ajout=user)
+        enjeu_b = EnjeuFactory(id_pg=source_plan, libelle='Enjeu B', id_utilisateur_ajout=user)
+        fi_a = FacteurInfluenceFactory(id_enjeu=enjeu_a, id_utilisateur_ajout=user)
+        fi_b = FacteurInfluenceFactory(id_enjeu=enjeu_b, id_utilisateur_ajout=user)
+        pression_a = PressionFactory(id_facteur_influence=fi_a, id_utilisateur_ajout=user)
+        pression_b = PressionFactory(id_facteur_influence=fi_b, id_utilisateur_ajout=user)
+        ObjectifOperationnelFactory(
+            libelle='OO partagé',
+            id_utilisateur_ajout=user,
+            pressions=[pression_a, pression_b],
+        )
+
+        new_plan = PlanDuplicationService.duplicate_plan(
+            source_plan=source_plan, user=user,
+            copy_sites=False, copy_referents=False,
+            copy_fichiers=False, copy_enjeux=True, copy_sub_elements=True,
+        )
+
+        new_oos = ObjectifOperationnel.objects.filter(
+            pressions__id_facteur_influence__enjeux__id_pg=new_plan
+        ).distinct()
+        assert new_oos.count() == 1
+        # ...et il reste rattaché aux pressions des DEUX enjeux copiés.
+        new_oo = new_oos.first()
+        enjeux_du_oo = {
+            e.libelle
+            for p in new_oo.pressions.all()
+            for e in p.id_facteur_influence.enjeux.all()
+        }
+        assert enjeux_du_oo == {'Enjeu A', 'Enjeu B'}
 
     def test_oo_resultat_attendu_indicateur_copied(self, source_plan, user):
         enjeu = EnjeuFactory(id_pg=source_plan, id_utilisateur_ajout=user)
@@ -619,7 +684,7 @@ class TestOOPressionRemap:
         )
 
         new_enjeu = Enjeu.objects.get(id_pg=new_plan)
-        new_fi = FacteurInfluence.objects.get(id_enjeu=new_enjeu)
+        new_fi = FacteurInfluence.objects.get(enjeux=new_enjeu)
         new_pression = Pression.objects.get(id_facteur_influence=new_fi)
         new_oo = new_pression.objectifs_operationnels.first()
         assert new_oo is not None
@@ -693,7 +758,7 @@ class TestSubElementsDependency:
         # Neither enjeux nor sub-elements should be copied
         assert Enjeu.objects.filter(id_pg=new_plan).count() == 0
         assert FacteurInfluence.objects.filter(
-            id_enjeu__id_pg=new_plan
+            enjeux__id_pg=new_plan
         ).count() == 0
 
 
@@ -859,7 +924,7 @@ class TestFullHierarchyDuplication:
         assert CorEnjeuTaxon.objects.filter(id_enjeu=new_enjeu).count() == 1
 
         # Verify facteur + pression
-        new_fi = FacteurInfluence.objects.get(id_enjeu=new_enjeu)
+        new_fi = FacteurInfluence.objects.get(enjeux=new_enjeu)
         assert Pression.objects.filter(id_facteur_influence=new_fi).count() == 1
 
         # Verify OLT chain

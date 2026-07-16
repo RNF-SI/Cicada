@@ -536,15 +536,35 @@ class TestEnjeuDeleteEndpoint:
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
     def test_cascade_facteurs_deleted(self, api_client, enjeu_test_data):
-        """Test deleting enjeu cascades to facteurs_influence."""
+        """Test deleting enjeu deletes its facteurs_influence (non partagés)."""
         enjeu = enjeu_test_data['enjeu1']
-        FacteurInfluenceFactory(id_enjeu=enjeu, id_utilisateur_ajout=enjeu_test_data['referent'])
-        enjeu_id = enjeu.id_enjeu
+        facteur = FacteurInfluenceFactory(
+            id_enjeu=enjeu, id_utilisateur_ajout=enjeu_test_data['referent']
+        )
+        facteur_id = facteur.id_facteur_influence
 
         api_client.force_authenticate(user=enjeu_test_data['super_admin'])
-        response = api_client.delete(f'/api/plans/enjeux/{enjeu_id}/')
+        response = api_client.delete(f'/api/plans/enjeux/{enjeu.id_enjeu}/')
         assert response.status_code == status.HTTP_204_NO_CONTENT
-        assert not FacteurInfluence.objects.filter(id_enjeu_id=enjeu_id).exists()
+        # #552 — plus de FK : le facteur est supprimé parce qu'il devient
+        # orphelin (aucun autre enjeu lié), pas par cascade de la base.
+        assert not FacteurInfluence.objects.filter(pk=facteur_id).exists()
+
+    def test_shared_facteur_survives_enjeu_deletion(self, api_client, enjeu_test_data):
+        """#552 — un facteur partagé survit à la suppression de l'un de ses enjeux."""
+        enjeu1 = enjeu_test_data['enjeu1']
+        enjeu2 = enjeu_test_data['enjeu2']
+        facteur = FacteurInfluenceFactory(
+            enjeux=[enjeu1, enjeu2], id_utilisateur_ajout=enjeu_test_data['referent']
+        )
+        facteur_id = facteur.id_facteur_influence
+
+        api_client.force_authenticate(user=enjeu_test_data['super_admin'])
+        response = api_client.delete(f'/api/plans/enjeux/{enjeu1.id_enjeu}/')
+        assert response.status_code == status.HTTP_204_NO_CONTENT
+
+        facteur.refresh_from_db()
+        assert list(facteur.enjeux.all()) == [enjeu2]
 
     def test_cascade_pressions_deleted(self, api_client, enjeu_test_data):
         """Test deleting enjeu cascades to pressions via facteurs."""

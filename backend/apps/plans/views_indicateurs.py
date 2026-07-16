@@ -97,17 +97,17 @@ class IndicateurViewSet(viewsets.ModelViewSet):
         if user.is_admin_organisme() and user.id_organisme:
             return queryset.filter(
                 Q(id_ne__id_olt__id_enjeu__id_pg__sites__site__corogsite__uuid_og=user.id_organisme) |
-                Q(id_resultat_attendu__id_oo__pressions__id_facteur_influence__id_enjeu__id_pg__sites__site__corogsite__uuid_og=user.id_organisme)
+                Q(id_resultat_attendu__id_oo__pressions__id_facteur_influence__enjeux__id_pg__sites__site__corogsite__uuid_og=user.id_organisme)
             ).distinct()
 
         user_plan_ids = CorRolePlan.objects.filter(id_role=user).values_list('plan_de_gestion_id', flat=True)
         return queryset.filter(
             Q(id_ne__id_olt__id_enjeu__id_pg__in=user_plan_ids) |
-            Q(id_resultat_attendu__id_oo__pressions__id_facteur_influence__id_enjeu__id_pg__in=user_plan_ids) |
+            Q(id_resultat_attendu__id_oo__pressions__id_facteur_influence__enjeux__id_pg__in=user_plan_ids) |
             Q(id_ne__id_olt__id_enjeu__id_pg__sites__site__corrolesite__id_role=user) |
-            Q(id_resultat_attendu__id_oo__pressions__id_facteur_influence__id_enjeu__id_pg__sites__site__corrolesite__id_role=user) |
+            Q(id_resultat_attendu__id_oo__pressions__id_facteur_influence__enjeux__id_pg__sites__site__corrolesite__id_role=user) |
             Q(id_ne__id_olt__id_enjeu__id_pg__statut='valide') |
-            Q(id_resultat_attendu__id_oo__pressions__id_facteur_influence__id_enjeu__id_pg__statut='valide')
+            Q(id_resultat_attendu__id_oo__pressions__id_facteur_influence__enjeux__id_pg__statut='valide')
         ).distinct()
 
     def perform_create(self, serializer):
@@ -646,7 +646,7 @@ class MesureViewSet(viewsets.ModelViewSet):
     # tout GET pour les non super-admins → « le réalisé disparaît » (#542).
     _PG_PATHS = (
         'id_metrique__id_indicateur__id_ne__id_olt__id_enjeu__id_pg',
-        'id_metrique__id_indicateur__id_resultat_attendu__id_oo__pressions__id_facteur_influence__id_enjeu__id_pg',
+        'id_metrique__id_indicateur__id_resultat_attendu__id_oo__pressions__id_facteur_influence__enjeux__id_pg',
         'id_metrique__id_indicateur__id_resultat_attendu__id_oo__id_enjeu__id_pg',
     )
 

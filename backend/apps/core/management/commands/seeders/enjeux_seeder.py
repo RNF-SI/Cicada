@@ -10,7 +10,7 @@ from apps.plans.models_enjeux import (
     ObjectifLongTerme, NiveauExigence,
     ObjectifOperationnel, ResultatAttendu,
     CorEnjeuTaxon, CorEnjeuHabitat, CorEnjeuGeologie, CorEnjeuObjetGeologique,
-    CorEnjeuFichier,
+    CorEnjeuFichier, CorFacteurEnjeu,
     CorResponsabiliteTaxon, CorResponsabiliteHabitat, CorResponsabiliteGeologie,
     CorResponsabiliteEnjeu
 )
@@ -66,6 +66,37 @@ class EnjeuxSeeder(BaseSeeder):
             id_type__mnemonique='TYPE_PRESSION',
             cd_nomenclature=cd_nomenclature
         ).first()
+
+    def _upsert_facteur(self, id_enjeu, libelle, defaults=None):
+        """Crée/met à jour un facteur d'influence rattaché à un enjeu (#552).
+
+        Remplace `self._upsert_facteur(id_enjeu=…)` : le
+        facteur ne porte plus de FK vers l'enjeu mais un M2M via
+        ``CorFacteurEnjeu``. Le libellé n'étant pas unique en base (deux plans
+        peuvent avoir le même facteur), la clé naturelle du seed reste
+        **(enjeu lié, libellé)** — résolue à travers la liaison, sans quoi on
+        récupérerait le facteur d'un autre plan.
+
+        Garde la signature de `update_or_create` et retourne `(facteur, created)`.
+        """
+        defaults = defaults or {}
+        facteur = FacteurInfluence.objects.filter(
+            enjeux=id_enjeu, libelle=libelle
+        ).first()
+        created = facteur is None
+
+        if created:
+            facteur = FacteurInfluence.objects.create(libelle=libelle, **defaults)
+        else:
+            for field, value in defaults.items():
+                setattr(facteur, field, value)
+            facteur.save()
+
+        # Idempotent : le seeder peut être rejoué sur une base déjà peuplée.
+        CorFacteurEnjeu.objects.get_or_create(
+            id_facteur_influence=facteur, id_enjeu=id_enjeu
+        )
+        return facteur, created
 
     def seed(self) -> dict:
         """
@@ -1186,7 +1217,7 @@ class EnjeuxSeeder(BaseSeeder):
         # Camargue - Habitats humides : facteurs d'influence
         enjeu_hab_humides = next((e for e in enjeux_created if 'habitats humides' in e.libelle), None)
         if enjeu_hab_humides:
-            fi, created = FacteurInfluence.objects.update_or_create(
+            fi, created = self._upsert_facteur(
                 id_enjeu=enjeu_hab_humides,
                 libelle='Modification du régime hydrologique',
                 defaults={
@@ -1220,7 +1251,7 @@ class EnjeuxSeeder(BaseSeeder):
             )
             pressions_created.append(p)
 
-            fi, created = FacteurInfluence.objects.update_or_create(
+            fi, created = self._upsert_facteur(
                 id_enjeu=enjeu_hab_humides,
                 libelle='Urbanisation et artificialisation',
                 defaults={
@@ -1245,7 +1276,7 @@ class EnjeuxSeeder(BaseSeeder):
         # Camargue - Flamant rose : facteur d'influence
         enjeu_flamant = next((e for e in enjeux_created if 'Flamant' in e.libelle), None)
         if enjeu_flamant:
-            fi, created = FacteurInfluence.objects.update_or_create(
+            fi, created = self._upsert_facteur(
                 id_enjeu=enjeu_flamant,
                 libelle='Fréquentation touristique',
                 defaults={
@@ -1281,7 +1312,7 @@ class EnjeuxSeeder(BaseSeeder):
         # Aiguilles Rouges - Pelouses alpines : facteur d'influence
         enjeu_pelouses = next((e for e in enjeux_created if 'pelouses alpines' in e.libelle), None)
         if enjeu_pelouses:
-            fi, created = FacteurInfluence.objects.update_or_create(
+            fi, created = self._upsert_facteur(
                 id_enjeu=enjeu_pelouses,
                 libelle='Changement climatique',
                 defaults={
@@ -1303,7 +1334,7 @@ class EnjeuxSeeder(BaseSeeder):
             )
             pressions_created.append(p)
 
-            fi, created = FacteurInfluence.objects.update_or_create(
+            fi, created = self._upsert_facteur(
                 id_enjeu=enjeu_pelouses,
                 libelle='Surfréquentation des sentiers',
                 defaults={
@@ -1328,7 +1359,7 @@ class EnjeuxSeeder(BaseSeeder):
         # Aiguilles Rouges - Tétras-lyre : facteur d'influence
         enjeu_tetras = next((e for e in enjeux_created if 'Tétras-lyre' in e.libelle), None)
         if enjeu_tetras:
-            fi, created = FacteurInfluence.objects.update_or_create(
+            fi, created = self._upsert_facteur(
                 id_enjeu=enjeu_tetras,
                 libelle='Activités hivernales',
                 defaults={
@@ -1352,7 +1383,7 @@ class EnjeuxSeeder(BaseSeeder):
         # Remoray - Qualité eaux : facteur d'influence
         enjeu_qualite = next((e for e in enjeux_created if 'qualité des eaux' in e.libelle), None)
         if enjeu_qualite:
-            fi, created = FacteurInfluence.objects.update_or_create(
+            fi, created = self._upsert_facteur(
                 id_enjeu=enjeu_qualite,
                 libelle='Activités agricoles du bassin versant',
                 defaults={
@@ -1386,7 +1417,7 @@ class EnjeuxSeeder(BaseSeeder):
         # Remoray - Tourbières : facteur d'influence
         enjeu_tourbieres = next((e for e in enjeux_created if 'tourbières' in e.libelle.lower()), None)
         if enjeu_tourbieres:
-            fi, created = FacteurInfluence.objects.update_or_create(
+            fi, created = self._upsert_facteur(
                 id_enjeu=enjeu_tourbieres,
                 libelle='Assèchement des zones humides',
                 defaults={
@@ -1929,7 +1960,7 @@ class EnjeuxSeeder(BaseSeeder):
 
             # OO 2 : Restauration végétation turficole
             # Créer un facteur d'influence pour la colonisation ligneuse
-            fi_colonisation, _ = FacteurInfluence.objects.update_or_create(
+            fi_colonisation, _ = self._upsert_facteur(
                 id_enjeu=enjeu_tourbieres,
                 libelle='Colonisation ligneuse des tourbières',
                 defaults={
@@ -2026,7 +2057,7 @@ class EnjeuxSeeder(BaseSeeder):
         enjeu_eee = next((e for e in enjeux_created if 'exotiques envahissantes' in e.libelle.lower()), None)
         if enjeu_eee:
             # Créer un facteur d'influence pour les EEE
-            fi_eee, _ = FacteurInfluence.objects.update_or_create(
+            fi_eee, _ = self._upsert_facteur(
                 id_enjeu=enjeu_eee,
                 libelle='Propagation des espèces exotiques envahissantes',
                 defaults={
@@ -2128,7 +2159,7 @@ class EnjeuxSeeder(BaseSeeder):
         )
         if fcr_partenariats_camargue:
             # Facteur d'influence DESCRIPTIF rattaché au FCR (n'ancre aucun OO).
-            fi_fcr, created = FacteurInfluence.objects.update_or_create(
+            fi_fcr, created = self._upsert_facteur(
                 id_enjeu=fcr_partenariats_camargue,
                 libelle='Multiplicité des acteurs du territoire',
                 defaults={
@@ -6108,7 +6139,7 @@ class EnjeuxSeeder(BaseSeeder):
             self.log_item('créé', f'Enjeu brouillon Camargue: {enjeu_brouillon.libelle[:50]}')
 
             # Facteur d'influence + pression
-            facteur_b, _ = FacteurInfluence.objects.update_or_create(
+            facteur_b, _ = self._upsert_facteur(
                 id_enjeu=enjeu_brouillon,
                 libelle='Évolution hydrologique du marais',
                 defaults={'description': "Variations du niveau d'eau.", 'id_utilisateur_ajout': admin},
@@ -6289,7 +6320,7 @@ class EnjeuxSeeder(BaseSeeder):
             self.log_item('créé' if created else 'mis à jour', f'Enjeu: {demo_enjeu.intitule_court}')
 
             # Facteur « Non défini » + pression « Non défini » (résultat des boutons)
-            demo_fi, _ = FacteurInfluence.objects.update_or_create(
+            demo_fi, _ = self._upsert_facteur(
                 id_enjeu=demo_enjeu, libelle=nd,
                 defaults={'id_utilisateur_ajout': admin}
             )
@@ -6301,7 +6332,7 @@ class EnjeuxSeeder(BaseSeeder):
             pressions_created.append(demo_p)
 
             # Facteur réel SANS pression → bouton « Je n'ai pas de pression » visible
-            demo_fi_empty, _ = FacteurInfluence.objects.update_or_create(
+            demo_fi_empty, _ = self._upsert_facteur(
                 id_enjeu=demo_enjeu,
                 libelle='Facteur sans pression (branche vide — démo bouton)',
                 defaults={'id_utilisateur_ajout': admin}

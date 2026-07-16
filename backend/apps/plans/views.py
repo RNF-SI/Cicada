@@ -957,7 +957,7 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
             Operation.objects
             .filter(
                 Q(metriques__id_indicateur__id_ne__id_olt__id_enjeu__id_pg=plan) |
-                Q(metriques__id_indicateur__id_resultat_attendu__id_oo__pressions__id_facteur_influence__id_enjeu__id_pg=plan)
+                Q(metriques__id_indicateur__id_resultat_attendu__id_oo__pressions__id_facteur_influence__enjeux__id_pg=plan)
             )
             .distinct()
             .prefetch_related(
@@ -970,7 +970,7 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
                     'id_indicateur__id_resultat_attendu',
                     'id_indicateur__id_resultat_attendu__id_oo',
                 ).prefetch_related(
-                    'id_indicateur__id_resultat_attendu__id_oo__pressions__id_facteur_influence__id_enjeu',
+                    'id_indicateur__id_resultat_attendu__id_oo__pressions__id_facteur_influence__enjeux',
                 ))
             )
         )
@@ -1033,7 +1033,11 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
             if not pression:
                 return None
             facteur = pression.id_facteur_influence
-            enjeu = facteur.id_enjeu
+            # #552 — facteur partagé entre plusieurs enjeux (M2M) : on retient le
+            # premier lié, comme pour la pression ci-dessus (chemin d'ascendance).
+            enjeu = facteur.enjeux.first()
+            if not enjeu:
+                return None
             is_fcr = enjeu.id_categorie and enjeu.id_categorie.mnemonique == 'FCR'
 
             return {

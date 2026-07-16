@@ -79,13 +79,27 @@ class TestEnjeuModel:
         assert enjeu.nb_facteurs_influence == 2
 
     def test_cascade_delete_facteurs_influence(self):
-        """Test deleting enjeu cascades to facteurs_influence."""
+        """Test deleting enjeu deletes its facteurs_influence (non partagés)."""
         enjeu = EnjeuFactory()
-        FacteurInfluenceFactory(id_enjeu=enjeu)
-        FacteurInfluenceFactory(id_enjeu=enjeu)
-        enjeu_id = enjeu.id_enjeu
+        f1 = FacteurInfluenceFactory(id_enjeu=enjeu)
+        f2 = FacteurInfluenceFactory(id_enjeu=enjeu)
         enjeu.delete()
-        assert not FacteurInfluence.objects.filter(id_enjeu_id=enjeu_id).exists()
+        # #552 — plus de FK : les facteurs sont supprimés parce qu'ils deviennent
+        # orphelins (aucun autre enjeu lié), pas par cascade de la base.
+        assert not FacteurInfluence.objects.filter(
+            pk__in=[f1.pk, f2.pk]
+        ).exists()
+
+    def test_shared_facteur_survives_enjeu_delete(self):
+        """#552 — un facteur partagé n'est pas supprimé avec l'un de ses enjeux."""
+        enjeu_a = EnjeuFactory()
+        enjeu_b = EnjeuFactory(id_pg=enjeu_a.id_pg)
+        facteur = FacteurInfluenceFactory(enjeux=[enjeu_a, enjeu_b])
+
+        enjeu_a.delete()
+
+        facteur.refresh_from_db()
+        assert list(facteur.enjeux.all()) == [enjeu_b]
 
     def test_cascade_delete_taxons(self):
         """Test deleting enjeu cascades to cor_enjeu_taxon."""
@@ -177,7 +191,8 @@ class TestFacteurInfluenceModel:
         facteur = FacteurInfluenceFactory()
         assert facteur.id_facteur_influence is not None
         assert facteur.libelle is not None
-        assert facteur.id_enjeu is not None
+        # #552 — rattaché aux enjeux via le M2M CorFacteurEnjeu (plus de FK).
+        assert facteur.enjeux.exists()
 
     def test_str_returns_libelle_and_enjeu(self):
         """Test __str__ returns libelle with enjeu info."""
@@ -226,7 +241,7 @@ class TestFacteurInfluenceModel:
         FacteurInfluenceFactory(id_enjeu=enjeu, libelle='Zzz', id_utilisateur_ajout=user)
         FacteurInfluenceFactory(id_enjeu=enjeu, libelle='Aaa', id_utilisateur_ajout=user)
 
-        facteurs = list(FacteurInfluence.objects.filter(id_enjeu=enjeu).order_by('libelle'))
+        facteurs = list(FacteurInfluence.objects.filter(enjeux=enjeu).order_by('libelle'))
         assert facteurs[0].libelle == 'Aaa'
         assert facteurs[1].libelle == 'Zzz'
 

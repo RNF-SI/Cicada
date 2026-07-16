@@ -508,7 +508,7 @@ class MinimalPlansSeeder(BaseSeeder):
             id_enjeu__id_pg=plan, libelle__in=target_olt_libelles,
         ).distinct()
         oos = ObjectifOperationnel.objects.filter(
-            pressions__id_facteur_influence__id_enjeu__id_pg=plan,
+            pressions__id_facteur_influence__enjeux__id_pg=plan,
             libelle__in=target_oo_libelles,
         ).distinct()
 
@@ -717,7 +717,7 @@ class MinimalPlansSeeder(BaseSeeder):
                     continue
             else:
                 oo = ObjectifOperationnel.objects.filter(
-                    pressions__id_facteur_influence__id_enjeu__id_pg=plan,
+                    pressions__id_facteur_influence__enjeux__id_pg=plan,
                     libelle=spec['parent_libelle'],
                 ).first()
                 if not oo:

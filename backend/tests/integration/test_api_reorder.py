@@ -169,6 +169,24 @@ def _assert_order(model_cls, pk_field, ids_ordered):
         )
 
 
+def _assert_facteur_order(enjeu, ids_ordered):
+    """Idem pour les facteurs d'influence (#552).
+
+    L'ordre n'est plus porté par le facteur mais par sa liaison à l'enjeu : un
+    facteur partagé a un ordre propre à chacun de ses enjeux.
+    """
+    from apps.plans.models_enjeux import CorFacteurEnjeu
+
+    for expected_pos, pk in enumerate(ids_ordered):
+        cor = CorFacteurEnjeu.objects.get(
+            id_facteur_influence_id=pk, id_enjeu=enjeu
+        )
+        assert cor.ordre == expected_pos, (
+            f"CorFacteurEnjeu(facteur={pk}, enjeu={enjeu.pk}): "
+            f"ordre={cor.ordre}, attendu={expected_pos}"
+        )
+
+
 # =============================================================================
 # EnjeuViewSet reorder
 # =============================================================================
@@ -285,7 +303,7 @@ class TestFacteurInfluenceReorder:
             format='json',
         )
         assert response.status_code == status.HTTP_200_OK
-        _assert_order(FacteurInfluence, 'id_facteur_influence', ids)
+        _assert_facteur_order(enjeu, ids)
 
     def test_reorder_with_id_from_other_parent_returns_400(self, api_client, reorder_test_data):
         api_client.force_authenticate(user=reorder_test_data['super_admin'])

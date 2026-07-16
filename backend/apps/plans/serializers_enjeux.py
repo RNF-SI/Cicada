@@ -640,30 +640,34 @@ class FacteurInfluenceCreateSerializer(serializers.ModelSerializer):
     """Serializer pour la création/modification d'un Facteur d'Influence.
 
     #552 — Un facteur est rattaché à un enjeu via la table de liaison
-    ``CorFacteurEnjeu``. À la création on reçoit ``enjeu_id`` (write-only) et on
+    ``CorFacteurEnjeu``. À la création on reçoit ``id_enjeu`` (write-only) et on
     crée la liaison (ordre = dernier de l'enjeu + 1). Le déplacement d'un
     facteur entre enjeux passe par les actions ``link``/``unlink``, pas par un
     ``update`` de ce champ.
+
+    Le champ garde le nom ``id_enjeu`` (et non ``enjeu_id``) bien qu'il ne
+    corresponde plus à une FK : c'est la convention de nommage du projet, et
+    c'est ce que le frontend envoie déjà.
     """
-    enjeu_id = serializers.IntegerField(write_only=True, required=False)
+    id_enjeu = serializers.IntegerField(write_only=True, required=False)
 
     class Meta:
         model = FacteurInfluence
         fields = [
-            'id_facteur_influence', 'enjeu_id',
+            'id_facteur_influence', 'id_enjeu',
             'libelle', 'description'
         ]
         read_only_fields = ['id_facteur_influence']
 
-    def validate_enjeu_id(self, value):
+    def validate_id_enjeu(self, value):
         if not Enjeu.objects.filter(pk=value).exists():
             raise serializers.ValidationError(_("L'enjeu indiqué n'existe pas."))
         return value
 
     def create(self, validated_data):
-        enjeu_id = validated_data.pop('enjeu_id', None)
+        enjeu_id = validated_data.pop('id_enjeu', None)
         if enjeu_id is None:
-            raise serializers.ValidationError({'enjeu_id': _("Ce champ est requis.")})
+            raise serializers.ValidationError({'id_enjeu': _("Ce champ est requis.")})
         facteur = super().create(validated_data)
         max_ordre = CorFacteurEnjeu.objects.filter(id_enjeu_id=enjeu_id).aggregate(m=Max('ordre'))['m']
         CorFacteurEnjeu.objects.create(
@@ -675,7 +679,7 @@ class FacteurInfluenceCreateSerializer(serializers.ModelSerializer):
 
     def update(self, instance, validated_data):
         # Le rattachement aux enjeux se gère via link/unlink (#552), pas ici.
-        validated_data.pop('enjeu_id', None)
+        validated_data.pop('id_enjeu', None)
         return super().update(instance, validated_data)
 
 
