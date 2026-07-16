@@ -794,6 +794,41 @@ class FacteurInfluenceViewSet(viewsets.ModelViewSet):
             status=status.HTTP_200_OK,
         )
 
+    @action(detail=True, methods=['post'], url_path='copy')
+    def copy(self, request, pk=None):
+        """
+        #552 — Copie ce facteur (et tout son sous-arbre) vers un enjeu.
+
+        Contrairement à ``link`` (entité unique partagée), produit un duplicata
+        INDÉPENDANT, modifiable sans impacter l'original.
+
+        POST /api/plans/facteurs-influence/{id}/copy/  body: { "enjeu_id": <int> }
+        Contraintes : même plan que le facteur, plan en brouillon.
+        """
+        from .element_copy import ElementCopyService
+
+        facteur = self.get_object()
+        enjeu_id = request.data.get('enjeu_id')
+        if not enjeu_id:
+            return Response({'detail': "enjeu_id requis."}, status=status.HTTP_400_BAD_REQUEST)
+        enjeu = get_object_or_404(Enjeu, pk=enjeu_id)
+
+        plan = facteur.get_plan_de_gestion()
+        if plan is None or enjeu.id_pg_id != plan.pk:
+            return Response(
+                {'detail': "Un facteur ne peut être copié que vers un enjeu du même plan de gestion."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        blocked = self._assert_draft_or_403(plan)
+        if blocked:
+            return blocked
+
+        new_fi = ElementCopyService.copy_facteur(facteur, request.user, target_enjeu=enjeu)
+        return Response(
+            FacteurInfluenceSerializer(new_fi, context=self.get_serializer_context()).data,
+            status=status.HTTP_201_CREATED,
+        )
+
     @action(detail=True, methods=['post'], url_path='unlink')
     def unlink(self, request, pk=None):
         """
@@ -1403,6 +1438,59 @@ class ObjectifOperationnelViewSet(viewsets.ModelViewSet):
                 self.get_queryset().get(pk=oo.pk), context=self.get_serializer_context()
             ).data,
             status=status.HTTP_200_OK,
+        )
+
+    @action(detail=True, methods=['post'], url_path='copy')
+    def copy(self, request, pk=None):
+        """
+        #552 — Copie cet OO (et tout son sous-arbre) vers une pression (cas
+        Enjeu) ou directement vers un enjeu/FCR. Duplicata INDÉPENDANT, à la
+        différence de ``link`` (entité unique partagée).
+
+        POST /api/plans/objectifs-operationnels/{id}/copy/
+          body: { "pression_id": <int> }  OU  { "enjeu_id": <int> }
+        Contraintes : cible du même plan, plan en brouillon.
+        """
+        from .element_copy import ElementCopyService
+
+        oo = self.get_object()
+        pression_id = request.data.get('pression_id')
+        enjeu_id = request.data.get('enjeu_id')
+        if bool(pression_id) == bool(enjeu_id):
+            return Response(
+                {'detail': "Fournir soit pression_id, soit enjeu_id (exclusif)."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        oo_plan = oo.get_plan_de_gestion()
+        target_pression = target_enjeu = None
+        if pression_id:
+            target_pression = get_object_or_404(
+                Pression.objects.select_related('id_facteur_influence'), pk=pression_id
+            )
+            target_plan = target_pression.get_plan_de_gestion()
+        else:
+            target_enjeu = get_object_or_404(Enjeu, pk=enjeu_id)
+            target_plan = target_enjeu.id_pg
+
+        if oo_plan is None or target_plan is None or oo_plan.pk != target_plan.pk:
+            return Response(
+                {'detail': "Un OO ne peut être copié que vers une cible du même plan de gestion."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        blocked = self._assert_draft_or_403(oo_plan)
+        if blocked:
+            return blocked
+
+        new_oo = ElementCopyService.copy_oo(
+            oo, request.user,
+            target_pression=target_pression, target_enjeu=target_enjeu,
+        )
+        return Response(
+            ObjectifOperationnelSerializer(
+                self.get_queryset().get(pk=new_oo.pk), context=self.get_serializer_context()
+            ).data,
+            status=status.HTTP_201_CREATED,
         )
 
     @action(detail=True, methods=['post'], url_path='unlink')

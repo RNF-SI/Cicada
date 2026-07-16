@@ -317,6 +317,52 @@ class OperationViewSet(viewsets.ModelViewSet):
         operation = Operation.objects.get(pk=operation.pk)
         return Response(OperationSerializer(operation).data)
 
+    @action(detail=True, methods=['post'], url_path='copy')
+    def copy(self, request, pk=None):
+        """
+        #552 — Copie cette action (et sa programmation) vers une métrique ou un
+        indicateur cible. Duplicata INDÉPENDANT, à la différence du lien (qui
+        rattache la MÊME action à une autre métrique).
+
+        POST /api/plans/operations/{id}/copy/
+          body: { "metrique_id": <int> }  OU  { "indicateur_id": <int> }
+        Contraintes : cible du même plan, plan en brouillon (permission).
+        """
+        from .element_copy import ElementCopyService
+
+        operation = self.get_object()
+        metrique_id = request.data.get('metrique_id')
+        indicateur_id = request.data.get('indicateur_id')
+        if bool(metrique_id) == bool(indicateur_id):
+            return Response(
+                {'detail': "Fournir soit metrique_id, soit indicateur_id (exclusif)."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        src_plan = operation.get_plan_de_gestion()
+        target_metrique = target_indicateur = None
+        if metrique_id:
+            target_metrique = get_object_or_404(Metrique, id_metrique=metrique_id)
+            target_plan = target_metrique.get_plan_de_gestion()
+        else:
+            target_indicateur = get_object_or_404(Indicateur, id_indicateur=indicateur_id)
+            target_plan = target_indicateur.get_plan_de_gestion()
+
+        if src_plan is None or target_plan is None or src_plan.pk != target_plan.pk:
+            return Response(
+                {'detail': "Une action ne peut être copiée que vers une cible du même plan de gestion."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        new_op = ElementCopyService.copy_operation(
+            operation, request.user,
+            target_metrique=target_metrique, target_indicateur=target_indicateur,
+        )
+        return Response(
+            OperationSerializer(Operation.objects.get(pk=new_op.pk)).data,
+            status=status.HTTP_201_CREATED,
+        )
+
     @action(detail=True, methods=['post'], url_path='create-indicator')
     def create_indicator(self, request, pk=None):
         """
