@@ -1883,6 +1883,46 @@ describe('EnjeuxListComponent', () => {
       expect(payload.score_blocks[0].score_2_sup).toBeNull();
     });
 
+    it('arrondit les bornes de seuil à 4 décimales dans le payload (#575)', () => {
+      const met = component.createEmptyMetrique();
+      met.nom_metrique = 'Précision';
+      met.scores[3] = { inf: 1.111, sup: 4.12345, val: null, label: '' }; // 5 déc.
+      met.score_blocks = [{
+        position: 1, intitule: 'b', unite: 'u', logical_op: 'OR',
+        group_open: 0, group_close: 0, sens_variation: 'CROISSANT',
+        score_1_inf: null, score_1_sup: null,
+        score_2_inf: null, score_2_sup: null,
+        score_3_inf: null, score_3_sup: 2.111119, // 6 déc.
+        score_4_inf: null, score_4_sup: null,
+        score_5_inf: null, score_5_sup: null,
+        score_1_sup_inclusive: true, score_2_sup_inclusive: true,
+        score_3_sup_inclusive: true, score_4_sup_inclusive: true,
+        has_borne_score1: false, has_borne_score5: false,
+        inactive_levels: [],
+      }];
+      const payload = component.buildMetriquePayload(801, met) as any;
+      const decimals = (n: number) => (n.toString().split('.')[1] || '').length;
+      // Une saisie ≤ 4 décimales est préservée.
+      expect(payload.score_3_inf).toBe(1.111);
+      // Une saisie plus précise est ramenée à 4 décimales (max backend).
+      expect(decimals(payload.score_3_sup)).toBeLessThanOrEqual(4);
+      expect(payload.score_3_sup).toBeCloseTo(4.1235, 4);
+      expect(decimals(payload.score_blocks[0].score_3_sup)).toBeLessThanOrEqual(4);
+    });
+
+    it('getScoreRange conserve jusqu\'à 4 décimales (#575)', () => {
+      const met: any = {
+        type_metrique_mnemonique: 'NUMERIQUE',
+        sens_variation: 'CROISSANT',
+        score_3_inf: 1.111, score_3_sup: 2.111,
+        score_2_sup_inclusive: false, score_3_sup_inclusive: true,
+      };
+      const range = component.getScoreRange(met, 3);
+      expect(range).toContain('1.111');
+      expect(range).toContain('2.111');
+      expect(range).not.toContain('1.11 ');
+    });
+
     it('getScoreRange masque un niveau NUMERIQUE inactif (données résiduelles)', () => {
       const met: any = {
         type_metrique_mnemonique: 'NUMERIQUE',

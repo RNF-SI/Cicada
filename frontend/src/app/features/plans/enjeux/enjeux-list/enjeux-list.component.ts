@@ -2664,6 +2664,27 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
       }
     }
 
+    // #575 — la base stocke au plus 4 décimales : normaliser les bornes
+    // numériques (principal + blocs) à 4 décimales avant l'envoi, pour qu'une
+    // saisie plus précise (ou un artefact flottant) ne soit pas rejetée par le
+    // backend (« pas plus de 4 chiffres après la virgule »).
+    const round4 = (v: any) => {
+      if (v == null || v === '') return v;
+      const n = Number(v);
+      return Number.isFinite(n) ? parseFloat(n.toFixed(4)) : v;
+    };
+    const isSeuilKey = (k: string) => /^score_\d_(inf|sup|val)$/.test(k);
+    for (const k of Object.keys(payload)) {
+      if (isSeuilKey(k)) (payload as any)[k] = round4((payload as any)[k]);
+    }
+    if (Array.isArray(payload.score_blocks)) {
+      for (const b of payload.score_blocks) {
+        for (const k of Object.keys(b)) {
+          if (isSeuilKey(k)) (b as any)[k] = round4((b as any)[k]);
+        }
+      }
+    }
+
     return payload;
   }
 
@@ -3786,7 +3807,10 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
   }
 
   private formatNum(val: number): string {
-    return parseFloat(val.toFixed(2)).toString();
+    // #575 — la base stocke jusqu'à 4 décimales : ne pas tronquer l'affichage à
+    // 2 (un seuil 4,111 s'affichait « 4.11 »). Cohérent avec metrique-seuils.util
+    // et metrique-grid-display. Les zéros terminaux restent supprimés.
+    return parseFloat(val.toFixed(4)).toString();
   }
 
   getScoreRange(met: any, level: number): string {
