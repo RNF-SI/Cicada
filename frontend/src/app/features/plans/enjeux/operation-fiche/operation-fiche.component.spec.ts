@@ -128,7 +128,11 @@ describe('OperationFicheComponent — programmation détaillée (#556)', () => {
 
   it('ventile le budget par type (fonctionnement / investissement) quand saisi', () => {
     const fixture = setup(operationWithAnnees([
-      { annee: 2024, periodicite: true, budget_fonctionnement: 200, budget_investissement: 50, etp: 2 },
+      {
+        annee: 2024, periodicite: true,
+        budget_fonctionnement: 200, budget_investissement: 50,
+        rh_lignes: [{ id_poste: 1, poste_libelle: 'Garde', jours: 2, finance: true }],
+      },
     ]));
     const c = fixture.componentInstance;
     expect(c.hasBudgetTypes()).toBe(true);
@@ -139,6 +143,58 @@ describe('OperationFicheComponent — programmation détaillée (#556)', () => {
     expect(row.jours).toBe(2);
     expect(c.totalBudget()).toBe(250);
     expect(c.totalJours()).toBe(2);
+  });
+
+  // #560 — les jours viennent des lignes RH, plus du champ `etp` déprécié.
+  it('ignore le champ etp déprécié pour le travail', () => {
+    const fixture = setup(operationWithAnnees([
+      { annee: 2024, periodicite: true, budget: 100, etp: 99 },
+    ]));
+    expect(fixture.componentInstance.programmation()[0].jours).toBeNull();
+    expect(fixture.componentInstance.totalJours()).toBeNull();
+  });
+
+  it('détaille le temps de travail par poste et valorise le non financé (#560)', () => {
+    const fixture = setup(operationWithAnnees([
+      {
+        annee: 2024, periodicite: true,
+        rh_lignes: [
+          { id_poste: 1, poste_libelle: 'Garde', poste_organisme_nom: 'RNF', jours: 8, finance: true },
+          { id_poste: 2, poste_libelle: 'Bénévole', poste_organisme_nom: 'RNF', jours: 5, finance: false },
+        ],
+      },
+      {
+        annee: 2025, periodicite: true,
+        rh_lignes: [
+          { id_poste: 1, poste_libelle: 'Garde', poste_organisme_nom: 'RNF', jours: 4, finance: true },
+        ],
+      },
+    ]));
+    const c = fixture.componentInstance;
+    const rows = c.rhBreakdown();
+    expect(rows.length).toBe(2);
+    // Les jours d'une même cible se cumulent sur les années.
+    expect(rows.find(r => r.libelle === 'Garde')!.jours).toBe(12);
+    expect(rows.find(r => r.libelle === 'Bénévole')!.organisme).toBe('RNF');
+    expect(c.hasRhNonFinance()).toBe(true);
+    expect(c.totalJoursFinance()).toBe(12);
+    expect(c.totalJoursNonFinance()).toBe(5);
+    expect(c.totalJours()).toBe(17);
+  });
+
+  it('sépare deux lots d\'une même cible selon leur financement (#560)', () => {
+    const fixture = setup(operationWithAnnees([
+      {
+        annee: 2024, periodicite: true,
+        rh_lignes: [
+          { id_organisme: 1, organisme_nom: 'CEN', jours: 6, finance: true },
+          { id_organisme: 1, organisme_nom: 'CEN', jours: 2, finance: false },
+        ],
+      },
+    ]));
+    const rows = fixture.componentInstance.rhBreakdown();
+    expect(rows.length).toBe(2);
+    expect(rows.map(r => r.finance).sort()).toEqual([false, true]);
   });
 
   it('n\'affiche pas les colonnes de type de budget en saisie à plat', () => {
@@ -167,10 +223,8 @@ describe('OperationFicheComponent — programmation détaillée (#556)', () => {
     expect(cen.fonctionnement).toBe(130);
     expect(cen.investissement).toBe(10);
     expect(cen.budget).toBe(140);
-    expect(cen.jours).toBe(3);
     // Le budget agrégé au niveau année dérive de la ventilation par organisme.
     expect(c.programmation()[0].budget).toBe(170);
-    expect(c.programmation()[0].jours).toBe(3);
   });
 });
 

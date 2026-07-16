@@ -424,7 +424,11 @@
             {{ 'plans.suivis.saisie.rh.hint' | translate:{ year: selectedYear() } }}
           </p>
 
-          @if (rhLignesFA.controls.length === 0) {
+          @if (rhMode() === 'hidden' && rhLignesFA.controls.length === 0) {
+            <!-- L'action ne décline pas sa RH et son budget n'est pas ventilé
+                 par organisme : la saisie du temps de travail est facultative. -->
+            <p class="text-mention">{{ 'plans.suivis.saisie.rh.optional' | translate }}</p>
+          } @else if (rhLignesFA.controls.length === 0) {
             <p class="text-mention">{{ 'plans.suivis.saisie.rh.empty' | translate }}</p>
           } @else {
             <table class="rh-table" formArrayName="rhLignes">
@@ -441,22 +445,26 @@
                 @for (ctrl of rhLignesFA.controls; track $index; let li = $index) {
                   <tr [formGroupName]="li">
                     <td class="rh-target-col">
+                      <!-- La cible reste modifiable au suivi : le temps a pu
+                           être réalisé par un autre poste que celui prévu. -->
                       <mat-select class="rh-target-select"
                                   [value]="rhTargetValue(ctrl)"
                                   (valueChange)="setRhTarget(ctrl, $event)"
                                   [disabled]="planNotValidated()"
                                   [placeholder]="'plans.suivis.saisie.rh.selectTarget' | translate">
-                        <mat-optgroup [label]="'enjeux.operations.rh.groupPersonnes' | translate">
-                          @for (p of personnes(); track p.id_personne_plan) {
-                            <mat-option [value]="'p:' + p.id_personne_plan">{{ p.nom }}</mat-option>
+                        @if (rhMode() === 'organismes') {
+                          @for (o of rhOrganismes(); track o.id_organisme) {
+                            <mat-option [value]="o.id_organisme">{{ o.nom_organisme }}</mat-option>
                           }
-                        </mat-optgroup>
-                        <mat-optgroup [label]="'enjeux.operations.rh.groupFonctions' | translate">
-                          @for (f of fonctions(); track f.id_fonction) {
-                            <mat-option [value]="'f:' + f.id_fonction">{{ f.libelle }}</mat-option>
+                        } @else {
+                          @for (p of postes(); track p.id_poste) {
+                            <mat-option [value]="p.id_poste">{{ p.libelle }}</mat-option>
                           }
-                        </mat-optgroup>
+                        }
                       </mat-select>
+                      @if (rhLineSubLabel(ctrl); as org) {
+                        <span class="rh-line-sublabel">{{ org }}</span>
+                      }
                     </td>
                     <td class="rh-finance-col">
                       <app-checkbox

@@ -94,19 +94,25 @@ export class OperationFicheComponent implements OnInit {
   /**
    * #556 — Programmation annuelle, restituée « telle que saisie » : budget
    * ventilé par type (fonctionnement / investissement) et travail exprimé en
-   * nombre de jours (et non en ETP). Chaque année agrège, si nécessaire, la
-   * ventilation par organisme gestionnaire (`organismes`) au niveau année.
+   * nombre de jours. Chaque année agrège, si nécessaire, la ventilation par
+   * organisme gestionnaire (`organismes`) au niveau année.
+   *
+   * #560 — le travail vient des lignes RH (poste / organisme × financé), et
+   * non plus du champ `etp` déprécié.
    */
   readonly programmation = computed(() =>
     [...(this.operation()?.operation_annees ?? [])]
       .sort((a, b) => a.annee - b.annee)
       .map(oa => {
         const orgs = oa.organismes ?? [];
-        const sumOrg = (key: 'budget_fonctionnement' | 'budget_investissement' | 'etp'): number | null =>
+        const sumOrg = (key: 'budget_fonctionnement' | 'budget_investissement'): number | null =>
           orgs.length ? orgs.reduce((acc, o) => acc + (o[key] ?? 0), 0) : null;
         const fonctionnement = oa.budget_fonctionnement ?? sumOrg('budget_fonctionnement');
         const investissement = oa.budget_investissement ?? sumOrg('budget_investissement');
-        const jours = oa.etp ?? sumOrg('etp');
+        const rh = oa.rh_lignes ?? [];
+        const jours = rh.length
+          ? rh.reduce((acc, l) => acc + Number(l.jours ?? 0), 0)
+          : null;
         const budget = (fonctionnement != null || investissement != null)
           ? (fonctionnement ?? 0) + (investissement ?? 0)
           : oa.budget;
@@ -124,19 +130,57 @@ export class OperationFicheComponent implements OnInit {
    * toutes les années. Affichée uniquement si une ventilation a été saisie.
    */
   readonly organismeBreakdown = computed(() => {
-    const byOrg = new Map<number, { nom: string; fonctionnement: number; investissement: number; jours: number }>();
+    const byOrg = new Map<number, { nom: string; fonctionnement: number; investissement: number }>();
     for (const oa of this.operation()?.operation_annees ?? []) {
       for (const org of oa.organismes ?? []) {
         const entry = byOrg.get(org.id_organisme)
-          ?? { nom: org.organisme_nom || '—', fonctionnement: 0, investissement: 0, jours: 0 };
+          ?? { nom: org.organisme_nom || '—', fonctionnement: 0, investissement: 0 };
         entry.fonctionnement += org.budget_fonctionnement ?? 0;
         entry.investissement += org.budget_investissement ?? 0;
-        entry.jours += org.etp ?? 0;
         byOrg.set(org.id_organisme, entry);
       }
     }
     return [...byOrg.values()].map(e => ({ ...e, budget: e.fonctionnement + e.investissement }));
   });
+
+  /**
+   * #560 — Temps de travail cumulé sur toutes les années, par cible (poste ou
+   * organisme selon le mode de saisie de l'action) et par financement. Une même
+   * cible peut porter deux lots (financé / non financé) : ils restent
+   * distincts, c'est tout l'objet de la valorisation du temps non financé.
+   */
+  readonly rhBreakdown = computed(() => {
+    const rows = new Map<string, {
+      libelle: string; organisme: string; finance: boolean; jours: number;
+    }>();
+    for (const oa of this.operation()?.operation_annees ?? []) {
+      for (const l of oa.rh_lignes ?? []) {
+        const key = `${l.id_poste ?? ''}|${l.id_organisme ?? ''}|${l.finance}`;
+        const entry = rows.get(key) ?? {
+          libelle: l.poste_libelle || l.organisme_nom || '—',
+          organisme: l.id_poste != null ? (l.poste_organisme_nom || '') : '',
+          finance: !!l.finance,
+          jours: 0,
+        };
+        entry.jours += Number(l.jours ?? 0);
+        rows.set(key, entry);
+      }
+    }
+    return [...rows.values()].sort((a, b) => a.libelle.localeCompare(b.libelle));
+  });
+
+  /** Vrai si l'action porte du temps non financé (bénévoles, écovolontaires…). */
+  readonly hasRhNonFinance = computed(() =>
+    this.rhBreakdown().some(r => !r.finance && r.jours > 0)
+  );
+
+  /** Total du temps de travail, ventilé financé / non financé (#560). */
+  readonly totalJoursFinance = computed(() =>
+    this.rhBreakdown().filter(r => r.finance).reduce((a, r) => a + r.jours, 0)
+  );
+  readonly totalJoursNonFinance = computed(() =>
+    this.rhBreakdown().filter(r => !r.finance).reduce((a, r) => a + r.jours, 0)
+  );
 
   /** Somme d'une colonne de la programmation (null si aucune valeur). */
   private sumProg(key: 'fonctionnement' | 'investissement' | 'budget' | 'jours'): number | null {

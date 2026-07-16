@@ -757,18 +757,8 @@ describe('SitesListComponent', () => {
       expect(component.isPageNumber('...')).toBe(false);
     });
 
-    it('should return correct status class', fakeAsync(() => {
-      fixture.detectChanges();
-      tick();
-
-      const referentSite = { ...mockSite, accessStatus: 'granted' as const, isReferent: true, isDirectlyLinked: true };
-      const grantedSite = { ...mockSite, accessStatus: 'granted' as const, isReferent: false, isDirectlyLinked: true };
-      const otherSite = { ...mockSite, accessStatus: 'none' as const, isReferent: false, isDirectlyLinked: false };
-
-      expect(component.getStatusClass(referentSite)).toBe('status-success');
-      expect(component.getStatusClass(grantedSite)).toBe('status-info');
-      expect(component.getStatusClass(otherSite)).toBe('status-neutre');
-    }));
+    // Le statut d'accès est désormais rendu directement par <app-tag> dans le
+    // template (variantes canoniques Figma) : plus de helper de classe CSS.
   });
 
   // ==================== VALIDATION REQUESTS ====================

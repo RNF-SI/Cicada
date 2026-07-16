@@ -229,19 +229,23 @@
               <td mat-cell *matCellDef="let site">
                 @switch (getSiteStatus(site)) {
                   @case ('valid') {
-                    <span class="status-chip status-success">{{ 'modals.bulkImport.preview.status.valid' | translate }}</span>
+                    <app-tag size="sm" variant="success" icon="fi-rr-check"
+                             [label]="'modals.bulkImport.preview.status.valid' | translate"></app-tag>
                   }
                   @case ('error') {
-                    <span class="status-chip status-error"
-                          [matTooltip]="site.errors.join('; ')">{{ 'modals.bulkImport.preview.status.error' | translate }}</span>
+                    <app-tag size="sm" variant="error" icon="fi-rr-cross"
+                             [label]="'modals.bulkImport.preview.status.error' | translate"
+                             [matTooltip]="site.errors.join('; ')"></app-tag>
                   }
                   @case ('duplicate') {
-                    <span class="status-chip status-warning"
-                          [matTooltip]="site.errors.join('; ')">{{ 'modals.bulkImport.preview.status.duplicate' | translate }}</span>
+                    <app-tag size="sm" variant="warning" icon="fi-rr-copy"
+                             [label]="'modals.bulkImport.preview.status.duplicate' | translate"
+                             [matTooltip]="site.errors.join('; ')"></app-tag>
                   }
                   @case ('warning') {
-                    <span class="status-chip status-info"
-                          [matTooltip]="site.warnings.join('; ')">{{ 'modals.bulkImport.preview.status.warning' | translate }}</span>
+                    <app-tag size="sm" variant="info" icon="fi-rr-info"
+                             [label]="'modals.bulkImport.preview.status.warning' | translate"
+                             [matTooltip]="site.warnings.join('; ')"></app-tag>
                   }
                 }
               </td>
@@ -309,13 +313,20 @@
                       <tr [class]="'result-' + detail.status">
                         <td>{{ detail.nom_site }}</td>
                         <td>
-                          <span class="status-chip" [ngClass]="{
-                            'status-success': detail.status === 'created',
-                            'status-warning': detail.status === 'validation_pending',
-                            'status-error': detail.status === 'failed'
-                          }">
-                            {{ 'modals.bulkImport.results.itemStatus.' + detail.status | translate }}
-                          </span>
+                          @switch (detail.status) {
+                            @case ('created') {
+                              <app-tag size="sm" variant="success" icon="fi-rr-check"
+                                       [label]="'modals.bulkImport.results.itemStatus.created' | translate"></app-tag>
+                            }
+                            @case ('validation_pending') {
+                              <app-tag size="sm" variant="warning" icon="fi-rr-edit"
+                                       [label]="'modals.bulkImport.results.itemStatus.validation_pending' | translate"></app-tag>
+                            }
+                            @case ('failed') {
+                              <app-tag size="sm" variant="error" icon="fi-rr-cross"
+                                       [label]="'modals.bulkImport.results.itemStatus.failed' | translate"></app-tag>
+                            }
+                          }
                         </td>
                         <td>{{ detail.error || '' }}</td>
                       </tr>
@@ -330,20 +341,27 @@
   }
 </mat-dialog-content>
 
-<mat-dialog-actions align="end">
+<!-- Le bouton « Précédent » reste toujours à gauche, quelle que soit l'étape
+     (annotation Figma « 🔢 Composant étapes ») : les étapes 1 et 2 le placent
+     déjà à gauche de leur `.step-actions`. -->
+<mat-dialog-actions class="bulk-import-actions">
   @if (currentStep() === 2) {
     <button mat-stroked-button (click)="stepPrevious()">
       <i class="fi fi-rr-angle-left"></i>
       {{ 'modals.bulkImport.actions.previous' | translate }}
     </button>
-    <button mat-flat-button color="primary"
-            [disabled]="!canImport()"
-            (click)="startImport()">
-      <i class="fi fi-rr-cloud-upload-alt"></i>
-      {{ 'modals.bulkImport.actions.import' | translate }}
-    </button>
   }
-  <button mat-stroked-button (click)="close()">
-    {{ 'modals.bulkImport.actions.close' | translate }}
-  </button>
+  <div class="bulk-import-actions-right">
+    @if (currentStep() === 2) {
+      <button mat-flat-button color="primary"
+              [disabled]="!canImport()"
+              (click)="startImport()">
+        <i class="fi fi-rr-cloud-upload-alt"></i>
+        {{ 'modals.bulkImport.actions.import' | translate }}
+      </button>
+    }
+    <button mat-stroked-button (click)="close()">
+      {{ 'modals.bulkImport.actions.close' | translate }}
+    </button>
+  </div>
 </mat-dialog-actions>

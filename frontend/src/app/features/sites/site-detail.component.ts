@@ -7,7 +7,6 @@ import { CommonModule } from '@angular/common';
 import { Router, RouterLink, ActivatedRoute } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
-import { MatChipsModule } from '@angular/material/chips';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatIconModule } from '@angular/material/icon';
@@ -16,7 +15,8 @@ import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { AnchorNavComponent, AnchorNavItem } from '../../shared/components/anchor-nav/anchor-nav.component';
 import { EntityTileComponent } from '../../shared/components/entity-tile/entity-tile.component';
 import { StatusChipComponent } from '../../shared/components/status-chip/status-chip.component';
-import { TagComponent, TagVariant } from '../../shared/components/tag/tag.component';
+import { TagComponent } from '../../shared/components/tag/tag.component';
+import { NEUTRAL_TAG, TagAppearance, USER_ROLE_TAG } from '../../shared/utils/tag-icons';
 import { forkJoin, of } from 'rxjs';
 import { catchError, switchMap } from 'rxjs/operators';
 
@@ -26,7 +26,6 @@ import { AuthService } from '../../core/services/auth.service';
 import { ValidationService } from '../../core/services/validation.service';
 import { AdminSite, GeoJSONFeature, AdminPlan } from '../../core/models/admin.model';
 import {
-  getPlanStatusClass as planStatusClass,
   getPlanStatusKey,
   getPlanStatusTooltipKey,
 } from '../../shared/utils/plan-status.utils';
@@ -69,7 +68,6 @@ interface SiteUserAssignment {
     RouterLink,
     MatCardModule,
     MatButtonModule,
-    MatChipsModule,
     MatProgressSpinnerModule,
     MatSnackBarModule,
     MatIconModule,
@@ -258,14 +256,6 @@ export class SiteDetailComponent implements OnInit {
       return `Depuis ${plan.annee_debut}`;
     }
     return '-';
-  }
-
-  /**
-   * Classe CSS du chip statut d'un plan (centralisé dans plan-status.utils).
-   * Couvre les 4 statuts : draft / valide / modifie / archive.
-   */
-  getPlanStatusClass(statut: string): string {
-    return planStatusClass(statut);
   }
 
   /**
@@ -459,13 +449,18 @@ export class SiteDetailComponent implements OnInit {
   }
 
   /**
-   * Variante du composant Kit UI `<app-tag>` pour afficher le rôle.
-   * Aligné sur les couleurs des chips statut pour cohérence visuelle.
+   * Apparence du tag `<app-tag>` (variante + icône) selon le rôle de
+   * l'utilisateur dans le site.
+   *
+   * Mappings canoniques Figma « 🧩 Tags » (cf. shared/utils/tag-icons) : seuls
+   * les rôles principaux (référent, utilisateur) portent une icône et une
+   * couleur. Le rôle « conservateur », absent du kit, prend le tag neutre sans
+   * icône pour ne pas multiplier icônes et couleurs.
    */
-  getUserRoleVariant(ua: SiteUserAssignment): TagVariant {
-    if (ua.conservateur) return 'success';                            // Vert — rôle principal
-    if (ua.referent && ua.referent_valid) return 'warning';           // Salmon — référent (distinctif)
-    return 'muted';                                                   // Gris — utilisateur standard
+  getUserRoleTag(ua: SiteUserAssignment): TagAppearance {
+    if (ua.conservateur) return NEUTRAL_TAG;
+    if (ua.referent && ua.referent_valid) return USER_ROLE_TAG['referent'];
+    return USER_ROLE_TAG['user'];
   }
 
   // ===================

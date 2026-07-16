@@ -1301,6 +1301,23 @@ app-form-field.finance-categorie {
     min-width: 200px;
   }
 
+  .rh-line-label {
+    display: block;
+  }
+
+  // Sous-totaux financé / non financé, en retrait du TOTAL.
+  tr.rh-subtotal-row td {
+    color: $gray-dark;
+    font-size: 13px;
+  }
+
+  .rh-line-sublabel {
+    display: block;
+    font-size: 12px;
+    font-weight: 400;
+    color: $gray-dark;
+  }
+
   .rh-finance-col {
     width: 72px;
     text-align: center;

@@ -8,7 +8,7 @@ import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { FormsModule, FormControl, ReactiveFormsModule } from '@angular/forms';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { forkJoin, Observable } from 'rxjs';
+import { forkJoin, Observable, of, switchMap } from 'rxjs';
 import { PlanStatut } from '../../../../core/models/admin.model';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatButtonModule } from '@angular/material/button';
@@ -46,6 +46,13 @@ import {
 } from '../../../../shared/components/modals/duplicate-indicateur-dialog/duplicate-indicateur-dialog.component';
 import { LinkOperationDialogComponent, LinkOperationDialogData, LinkOperationDialogResult } from '../../../../shared/components/modals';
 import { DeleteOperationDialogComponent, DeleteOperationDialogResult } from '../../../../shared/components/modals';
+import {
+  ShareElementDialogComponent,
+  ShareElementDialogData,
+  ShareElementDialogResult,
+  ShareEnjeuTarget,
+  SharePressionTarget,
+} from '../../../../shared/components/modals';
 import { EnjeuService } from '../../../../core/services/enjeu.service';
 import { AdminService } from '../../../../core/services/admin.service';
 import {
@@ -57,6 +64,7 @@ import {
 import { EnjeuAccordionComponent } from '../enjeu-accordion/enjeu-accordion.component';
 import { SectionTitleComponent } from '../../../../shared/components/section-title/section-title.component';
 import { HabitatChipComponent } from '../../../../shared/components/habitat-chip/habitat-chip.component';
+import { TagComponent } from '../../../../shared/components/tag/tag.component';
 import { MetriqueFormComponent } from '../../../../shared/components/metrique-form/metrique-form.component';
 import {
   NomenclatureOption,
@@ -99,7 +107,8 @@ type TabType = 'detail' | 'olt' | 'operations';
     SectionTitleComponent,
     MetriqueFormComponent,
     DragDropModule,
-    HabitatChipComponent
+    HabitatChipComponent,
+    TagComponent
   ],
   templateUrl: './enjeux-list.component.html',
   styleUrl: './enjeux-list.component.scss'
@@ -1301,9 +1310,15 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
       seen.add(oo.id_oo);
       return true;
     });
+    // #552 — l'ordre d'un OO est propre à l'enjeu affiché : on applique la
+    // surcharge `oo_ordre` de l'enjeu (portée par CorOoEnjeu côté back), et on
+    // retombe sur l'ordre global de l'OO s'il n'y a pas de surcharge.
+    const overrides = enjeu?.oo_ordre || {};
+    const ordreOf = (oo: ObjectifOperationnel) =>
+      overrides[oo.id_oo] ?? (oo as any).ordre ?? 0;
     return [...unique].sort((a, b) => {
-      const ordreA = (a as any).ordre ?? 0;
-      const ordreB = (b as any).ordre ?? 0;
+      const ordreA = ordreOf(a);
+      const ordreB = ordreOf(b);
       if (ordreA !== ordreB) return ordreA - ordreB;
       return a.id_oo - b.id_oo;
     });
@@ -1321,12 +1336,24 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
    */
   ooLocalRank = computed<Map<number, number>>(() => {
     const oos = this.selectedOos();
-    // Indices réservés par les OO à numéro fixé manuellement.
+    const map = new Map<number, number>();
+
+    // #552 — Numéro plan-wide fourni par le back (`numero_affichage`) :
+    // identique sous tous les enjeux où l'OO est partagé. On l'utilise dès
+    // qu'il est présent ; sinon (réponse plate sans by-plan) on retombe sur
+    // l'ancienne numérotation par enjeu.
+    if (oos.some(oo => oo.numero_affichage != null)) {
+      for (const oo of oos) {
+        if (oo.numero_affichage != null) map.set(oo.id_oo, oo.numero_affichage);
+      }
+      return map;
+    }
+
+    // Repli — numérotation par enjeu (indices manuels réservés).
     const reserved = new Set<number>();
     for (const oo of oos) {
       if (oo.numero_manuel != null) reserved.add(oo.numero_manuel);
     }
-    const map = new Map<number, number>();
     let auto = 0;
     for (const oo of oos) {
       if (oo.numero_manuel != null) {
@@ -1744,6 +1771,124 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
   // ============================================
   // Facteurs d'influence — édition inline
   // ============================================
+
+  /** Tous les enjeux et FCR du plan (source des cibles de partage/copie). */
+  private allEnjeuxAndFcr(): Enjeu[] {
+    return [...this.enjeux(), ...this.fcr()];
+  }
+
+  /** #552 — Enjeux sous lesquels un facteur est déjà présent (partage M2M). */
+  facteurEnjeuIds(facteur: FacteurInfluence): number[] {
+    return facteur.enjeu_ids?.length ? facteur.enjeu_ids : [facteur.id_enjeu];
+  }
+
+  /** #552 — Vrai si le facteur est partagé entre plusieurs enjeux. */
+  isFacteurShared(facteur: FacteurInfluence): boolean {
+    return this.facteurEnjeuIds(facteur).length > 1;
+  }
+
+  /** #552 — Vrai si l'OO est partagé entre plusieurs enjeux. */
+  isOoShared(oo: ObjectifOperationnel): boolean {
+    return (oo.shared_enjeu_ids?.length ?? 0) > 1;
+  }
+
+  /**
+   * #552 — Ouvre le dialogue « Lier / Copier » pour partager un facteur vers un
+   * autre enjeu (élément unique) ou en créer une copie indépendante.
+   */
+  openShareFacteur(facteur: FacteurInfluence, mode: 'link' | 'copy'): void {
+    if (!this.canEditPlan()) return;
+    const currentEnjeuIds = new Set(this.facteurEnjeuIds(facteur));
+    const targets: ShareEnjeuTarget[] = this.allEnjeuxAndFcr()
+      .filter((e) => !currentEnjeuIds.has(e.id_enjeu))
+      .map((e) => ({ id_enjeu: e.id_enjeu, libelle: e.libelle }));
+
+    const dialogRef = this.dialog.open(ShareElementDialogComponent, {
+      width: '640px', maxWidth: '95vw', maxHeight: '90vh',
+      data: {
+        elementType: 'facteur',
+        elementLabel: facteur.libelle,
+        mode,
+        enjeux: targets,
+      } as ShareElementDialogData,
+    });
+
+    dialogRef.afterClosed().pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((result: ShareElementDialogResult | null) => {
+        if (!result || result.targetEnjeuId == null) return;
+        const isCopy = result.mode === 'copy';
+        const call$ = isCopy
+          ? this.enjeuService.copyFacteurToEnjeu(facteur.id_facteur_influence, result.targetEnjeuId)
+          : this.enjeuService.linkFacteurToEnjeu(facteur.id_facteur_influence, result.targetEnjeuId);
+        this.runShareCall(call$, isCopy ? 'enjeux.share.facteur.copySuccess' : 'enjeux.share.facteur.linkSuccess',
+          isCopy ? 'enjeux.share.facteur.copyError' : 'enjeux.share.facteur.linkError');
+      });
+  }
+
+  /**
+   * #552 — Ouvre le dialogue « Lier / Copier » pour partager un OO vers une
+   * pression d'un autre enjeu (élément unique) ou en créer une copie
+   * indépendante.
+   */
+  openShareOo(oo: ObjectifOperationnel, mode: 'link' | 'copy'): void {
+    if (!this.canEditPlan()) return;
+    const linkedPressionIds = new Set(oo.pression_ids || []);
+    const targets: ShareEnjeuTarget[] = [];
+    for (const e of this.allEnjeuxAndFcr()) {
+      const pressions: SharePressionTarget[] = [];
+      for (const fi of e.facteurs_influence || []) {
+        for (const pr of fi.pressions || []) {
+          if (linkedPressionIds.has(pr.id_pression)) continue;
+          pressions.push({ id_pression: pr.id_pression, libelle: pr.libelle, facteurLibelle: fi.libelle });
+        }
+      }
+      if (pressions.length) {
+        targets.push({ id_enjeu: e.id_enjeu, libelle: e.libelle, pressions });
+      }
+    }
+
+    const dialogRef = this.dialog.open(ShareElementDialogComponent, {
+      width: '640px', maxWidth: '95vw', maxHeight: '90vh',
+      data: {
+        elementType: 'oo',
+        elementLabel: oo.libelle,
+        mode,
+        enjeux: targets,
+      } as ShareElementDialogData,
+    });
+
+    dialogRef.afterClosed().pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((result: ShareElementDialogResult | null) => {
+        if (!result || result.targetPressionId == null) return;
+        const isCopy = result.mode === 'copy';
+        const call$ = isCopy
+          ? this.enjeuService.copyOo(oo.id_oo, { pressionId: result.targetPressionId })
+          : this.enjeuService.linkOoToPression(oo.id_oo, result.targetPressionId);
+        this.runShareCall(call$, isCopy ? 'enjeux.share.oo.copySuccess' : 'enjeux.share.oo.linkSuccess',
+          isCopy ? 'enjeux.share.oo.copyError' : 'enjeux.share.oo.linkError');
+      });
+  }
+
+  /** Exécute un appel de partage/copie et rafraîchit la vue avec feedback. */
+  private runShareCall(call$: Observable<unknown>, okKey: string, errKey: string): void {
+    call$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: () => {
+        this.snackBar.open(
+          this.translate.instant(okKey),
+          this.translate.instant('common.actions.close'),
+          { duration: 3000 },
+        );
+        this.loadPlanData(true);
+      },
+      error: () => {
+        this.snackBar.open(
+          this.translate.instant(errKey),
+          this.translate.instant('common.actions.close'),
+          { duration: 3000 },
+        );
+      },
+    });
+  }
 
   startEditFacteur(facteur: FacteurInfluence): void {
     this.editingFacteurId.set(facteur.id_facteur_influence);
@@ -4224,8 +4369,36 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
               );
             },
           });
+        } else if (result.action === 'copy' && result.operationId) {
+          this.copyOperationTo(result.operationId, { indicateurId });
         }
       });
+  }
+
+  /**
+   * #552 — Copie une action existante vers une cible (métrique ou indicateur) et
+   * rafraîchit la vue. Duplicata indépendant, contrairement au lien.
+   */
+  private copyOperationTo(operationId: number, target: { metriqueId?: number; indicateurId?: number }): void {
+    this.enjeuService.copyOperation(operationId, target).pipe(
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe({
+      next: () => {
+        this.snackBar.open(
+          this.translate.instant('enjeux.operations.copySuccess'),
+          this.translate.instant('common.actions.close'),
+          { duration: 3000 }
+        );
+        this.loadPlanData(true);
+      },
+      error: () => {
+        this.snackBar.open(
+          this.translate.instant('enjeux.operations.copyError'),
+          this.translate.instant('common.actions.close'),
+          { duration: 3000 }
+        );
+      },
+    });
   }
 
   /** #367 — Navigation vers le form d'action rattachée directement à un indicateur (sans métrique). */
@@ -4281,6 +4454,33 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
             error: () => {
               this.snackBar.open(
                 this.translate.instant('enjeux.operations.linkError'),
+                this.translate.instant('common.actions.close'),
+                { duration: 3000 }
+              );
+            },
+          });
+        } else if (result.action === 'copy' && result.operationId) {
+          // Copie indépendante rattachée à la 1re métrique, puis liée aux autres.
+          const [first, ...rest] = metriqueIds;
+          this.enjeuService.copyOperation(result.operationId, { metriqueId: first }).pipe(
+            switchMap((newOp) =>
+              rest.length
+                ? forkJoin(rest.map(id => this.enjeuService.addMetriqueToOperation(newOp.id_operation, id)))
+                : of(newOp)
+            ),
+            takeUntilDestroyed(this.destroyRef)
+          ).subscribe({
+            next: () => {
+              this.snackBar.open(
+                this.translate.instant('enjeux.operations.copySuccess'),
+                this.translate.instant('common.actions.close'),
+                { duration: 3000 }
+              );
+              this.loadPlanData(true);
+            },
+            error: () => {
+              this.snackBar.open(
+                this.translate.instant('enjeux.operations.copyError'),
                 this.translate.instant('common.actions.close'),
                 { duration: 3000 }
               );
@@ -4347,6 +4547,8 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
             );
           }
         });
+      } else if (result.action === 'copy' && result.operationId) {
+        this.copyOperationTo(result.operationId, { metriqueId });
       }
     });
   }

@@ -184,61 +184,22 @@
               </thead>
               <tbody>
                 @for (plan of paginatedPlans(); track plan.id_pg; let odd = $odd) {
-                  <!-- Lignes ancêtres AU-DESSUS du plan courant -->
-                  @if (linkedPlansById().has(plan.id_pg)) {
-                    @for (ancestor of linkedPlansById().get(plan.id_pg)!; track ancestor.id_pg; let first = $first; let last = $last) {
-                      <tr class="ancestor-row" [class.ancestor-first]="first" [class.ancestor-last]="last">
-                        <td class="col-name">
-                          <div class="ancestor-indent">
-                            <span class="tree-line" [class.first]="first" [class.last]="false"></span>
-                            <div class="ancestor-name-block">
-                              <span class="ancestor-name">{{ ancestor.nom }}</span>
-                              <!-- Tags type/version sur une ligne en dessous (revue design #313) -->
-                              @if (ancestor.type_document_display || ancestor.version) {
-                                <div class="ancestor-meta-line">
-                                  @if (ancestor.type_document_display) {
-                                    <span class="ancestor-type">{{ ancestor.type_document_display }}</span>
-                                  }
-                                  @if (ancestor.version) {
-                                    <span class="ancestor-version">v{{ ancestor.version }}</span>
-                                  }
-                                </div>
-                              }
-                            </div>
-                          </div>
-                        </td>
-                        <td class="col-period">
-                          <span class="ancestor-text">{{ formatPeriod(ancestor) }}</span>
-                        </td>
-                        <td class="col-status">
-                          <app-status-chip [statut]="ancestor.statut"></app-status-chip>
-                        </td>
-                        <td class="col-actions">
-                          <button class="btn-action" (click)="viewPlan(ancestor)">
-                            <span>{{ 'plans.list.actions.view' | translate }}</span>
-                            <i class="fi fi-rr-eye"></i>
-                          </button>
-                        </td>
-                      </tr>
-                    }
-                  }
-                  <!-- Ligne principale du plan -->
-                  <tr [class.odd]="odd" [class.is-child]="linkedPlansById().has(plan.id_pg)">
+                  <!-- Ligne principale du plan : alignée avec les plans sans versions -->
+                  <tr [class.odd]="odd">
                     <td class="col-name">
-                      <div [class.child-indent]="linkedPlansById().has(plan.id_pg)">
-                        @if (linkedPlansById().has(plan.id_pg)) {
-                          <span class="tree-line last"></span>
-                        }
+                      <div class="plan-name-cell">
                         <span class="plan-name">{{ plan.nom }}</span>
                         @if (plan.sites && plan.sites.length > 1) {
                           <span class="plan-separator">-</span>
                           <span class="plan-multisites">{{ 'plans.list.multisites' | translate }}</span>
                         }
                         @if (plan.isReferent) {
-                          <mat-chip class="referent-chip">
-                            <i class="fi fi-rr-star chip-icon"></i>
-                            {{ 'plans.myPlans.referent' | translate }}
-                          </mat-chip>
+                          <app-tag
+                            variant="warning"
+                            icon="fi-rr-star"
+                            size="sm"
+                            [label]="'plans.myPlans.referent' | translate">
+                          </app-tag>
                         }
                       </div>
                     </td>
@@ -280,6 +241,59 @@
                       </div>
                     </td>
                   </tr>
+
+                  <!-- Versions précédentes, décalées sous le plan courant.
+                       Elles reprennent le fond du plan parent pour rester lisibles
+                       comme un même groupe. -->
+                  @for (version of linkedPlansById().get(plan.id_pg) || []; track version.id_pg; let versionLast = $last) {
+                    <tr class="version-row"
+                        [class.odd]="odd"
+                        [class.version-row--last]="versionLast">
+                      <td class="col-name">
+                        <div class="version-name-cell">
+                          <span class="version-name-line">
+                            <span class="version-name">{{ version.nom }}</span>
+                            @if (version.sites && version.sites.length > 1) {
+                              <span class="plan-separator">-</span>
+                              <span class="plan-multisites">{{ 'plans.list.multisites' | translate }}</span>
+                            }
+                          </span>
+                          <span class="version-meta">{{ versionLabel(version) }}</span>
+                        </div>
+                      </td>
+                      <td class="col-period">
+                        <div class="period-content">
+                          <span class="period-dates">{{ formatPeriod(version) }}</span>
+                          @if (version.annee_debut && version.annee_fin) {
+                            <app-plan-gauge
+                              [status]="version.gaugeStatus"
+                              [startYear]="version.annee_debut"
+                              [endYear]="version.annee_fin">
+                            </app-plan-gauge>
+                          }
+                        </div>
+                      </td>
+                      <td class="col-status">
+                        <app-status-chip [statut]="version.statut"></app-status-chip>
+                      </td>
+                      <td class="col-actions">
+                        <div class="actions-content">
+                          <button class="btn-action"
+                                  (click)="followPlan(version)"
+                                  [disabled]="version.statut !== 'valide'"
+                                  [matTooltip]="version.statut !== 'valide' ? ('plans.list.actions.followDisabledTooltip' | translate) : ''"
+                                  [class.btn-disabled]="version.statut !== 'valide'">
+                            <span>{{ 'plans.list.actions.follow' | translate }}</span>
+                            <i class="fi fi-rr-stats"></i>
+                          </button>
+                          <button class="btn-action" (click)="viewPlan(version)">
+                            <span>{{ 'plans.list.actions.view' | translate }}</span>
+                            <i class="fi fi-rr-eye"></i>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  }
                 }
               </tbody>
             </table>
@@ -361,10 +375,11 @@
                       } @else { - }
                     </td>
                     <td class="col-status">
-                      <mat-chip class="status-warning">
-                        <i class="fi fi-rr-hourglass-end chip-icon"></i>
-                        {{ 'plans.pendingPlans.waiting' | translate }}
-                      </mat-chip>
+                      <app-tag
+                        variant="warning"
+                        icon="fi-rr-edit"
+                        [label]="'plans.pendingPlans.waiting' | translate">
+                      </app-tag>
                     </td>
                   </tr>
                 }
@@ -437,10 +452,12 @@
                     @if (plan.accessStatus === 'rejected') {
                       <!-- Plan avec demande refusée : peut re-demander -->
                       <div class="action-with-status">
-                        <mat-chip class="status-error status-chip-small">
-                          <i class="fi fi-rr-cross-circle chip-icon"></i>
-                          {{ 'plans.requestAccess.rejected' | translate }}
-                        </mat-chip>
+                        <app-tag
+                          variant="error"
+                          icon="fi-rr-cross"
+                          size="sm"
+                          [label]="'plans.requestAccess.rejected' | translate">
+                        </app-tag>
                         <button
                           mat-stroked-button
                           color="primary"

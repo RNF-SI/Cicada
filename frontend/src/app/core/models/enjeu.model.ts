@@ -168,6 +168,11 @@ export interface Enjeu {
   facteurs_influence?: FacteurInfluence[];
   nb_facteurs_influence?: number;
 
+  // #552 — Ordre des OO propre à CET enjeu ({id_oo: ordre}). Un OO partagé
+  // entre plusieurs enjeux peut y être ordonné différemment ; un OO absent du
+  // map retombe sur son `ordre` global.
+  oo_ordre?: Record<number, number>;
+
   // Objectifs à long terme (avec NE imbriqués)
   objectifs_long_terme?: ObjectifLongTerme[];
   nb_objectifs_long_terme?: number;
@@ -209,6 +214,12 @@ export interface Pression {
 export interface FacteurInfluence {
   id_facteur_influence: number;
   id_enjeu: number;
+  /**
+   * #552 — Identifiants de TOUS les enjeux sous lesquels ce facteur est partagé
+   * (M2M CorFacteurEnjeu). Longueur > 1 ⇒ élément lié : toute modification se
+   * répercute partout.
+   */
+  enjeu_ids?: number[];
   libelle: string;
   description?: string;
   pressions?: Pression[];
@@ -292,6 +303,18 @@ export interface ObjectifOperationnel {
   description?: string;
   /** #526 — Numéro fixé manuellement (null = numérotation automatique). */
   numero_manuel?: number | null;
+  /**
+   * #552 — Numéro d'affichage plan-wide, identique sous tous les enjeux où l'OO
+   * est partagé (calculé par le back à la première rencontre). Fourni par
+   * l'endpoint by-plan ; absent des réponses plates → repli sur la
+   * numérotation par enjeu.
+   */
+  numero_affichage?: number | null;
+  /**
+   * #552 — Identifiants des enjeux sous lesquels cet OO est partagé (via ses
+   * pressions M2M et/ou rattachement direct FCR). Longueur > 1 ⇒ élément lié.
+   */
+  shared_enjeu_ids?: number[];
   resultats_attendus?: ResultatAttendu[];
   nb_resultats_attendus?: number;
   date_ajout: string;
@@ -766,6 +789,8 @@ export interface Operation {
   programmation_mensuelle?: Record<string, Record<string, boolean>>;
   programmation_mensuelle_defaut?: Record<string, boolean>;
   ventilation_mode?: 'none' | 'by_org' | 'by_type' | 'by_org_type';
+  /** #560 — détaille le temps de travail poste par poste. */
+  declinaison_par_poste?: boolean;
   geom?: GeoJSONGeometry | string;
   geom_geojson?: GeoJSONGeometry | null;
   // M2M to Metriques
@@ -825,6 +850,8 @@ export interface OperationCreatePayload {
   programmation_mensuelle?: Record<string, Record<string, boolean>>;
   programmation_mensuelle_defaut?: Record<string, boolean>;
   ventilation_mode?: 'none' | 'by_org' | 'by_type' | 'by_org_type';
+  /** #560 — détaille le temps de travail poste par poste. */
+  declinaison_par_poste?: boolean;
   metrique_ids?: number[];
   site_ids?: number[];
   // Nested relational data

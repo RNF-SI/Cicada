@@ -20,9 +20,12 @@
         </span>
         <span class="app-stepper__label">{{ step.label }}</span>
       </button>
-      @if (!isLast) {
-        <span class="app-stepper__line" [class.app-stepper__line--done]="isCompleted(step, i)" aria-hidden="true"></span>
-      }
     </li>
+    @if (!isLast) {
+      <li
+        class="app-stepper__line"
+        [class.app-stepper__line--done]="isCompleted(step, i)"
+        aria-hidden="true"></li>
+    }
   }
 </ol>

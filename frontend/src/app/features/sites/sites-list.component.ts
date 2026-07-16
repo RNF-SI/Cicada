@@ -10,7 +10,6 @@ import { FormsModule } from '@angular/forms';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatTableModule } from '@angular/material/table';
-import { MatChipsModule } from '@angular/material/chips';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -34,6 +33,7 @@ import { FindOrCreateSiteModalComponent } from '../../shared/components/modals/f
 import { BulkSiteImportModalComponent, BulkSiteImportModalResult } from '../../shared/components/modals/bulk-site-import-modal/bulk-site-import-modal.component';
 import { HeaderComponent } from '../../shared/components/header/header.component';
 import { SearchBarComponent } from '../../shared/components/search-bar/search-bar.component';
+import { TagComponent } from '../../shared/components/tag/tag.component';
 import { LeafletMapComponent } from '../../shared/components/leaflet-map/leaflet-map.component';
 import { ViewScopeToggleComponent, ViewScope } from '../../shared/components/view-scope-toggle/view-scope-toggle.component';
 import { SiteTypeDisplayPipe } from '../../shared/pipes/site-type-display.pipe';
@@ -67,7 +67,6 @@ interface SiteWithAccess extends SiteWithUsers {
     MatCardModule,
     MatButtonModule,
     MatTableModule,
-    MatChipsModule,
     MatProgressSpinnerModule,
     MatSnackBarModule,
     MatFormFieldModule,
@@ -81,6 +80,7 @@ interface SiteWithAccess extends SiteWithUsers {
     ViewScopeToggleComponent,
     SiteTypeDisplayPipe,
     SearchBarComponent,
+    TagComponent,
   ],
   templateUrl: './sites-list.component.html',
   styleUrl: './sites-list.component.scss'
@@ -463,15 +463,6 @@ export class SitesListComponent implements OnInit {
         this.loadData();
       }
     });
-  }
-
-  /**
-   * Obtient la classe CSS du statut.
-   */
-  getStatusClass(site: SiteWithAccess): string {
-    if (site.isReferent) return 'status-success';
-    if (site.accessStatus === 'granted') return 'status-info';
-    return 'status-neutre';
   }
 
   /**

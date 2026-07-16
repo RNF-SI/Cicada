@@ -200,11 +200,7 @@ $white: #fff;
   }
 }
 
-.role-chip {
-  background-color: $primary-bg-light !important;
-  color: $primary-color !important;
-  font-size: 11px;
-}
+// Rôle : rendu par <app-tag> (cf. shared/utils/tag-icons.ts)
 
 // Section demandes
 .requests-section {
@@ -261,26 +257,7 @@ $white: #fff;
   font-style: italic;
 }
 
-// Statuts
-.status-success {
-  background-color: rgba($success-color, 0.15) !important;
-  color: $success-color !important;
-}
-
-.status-error {
-  background-color: rgba($error-color, 0.15) !important;
-  color: $error-color !important;
-}
-
-.status-warning {
-  background-color: rgba($warning-color, 0.15) !important;
-  color: darken($warning-color, 15%) !important;
-}
-
-.status-neutre {
-  background-color: $gray-light !important;
-  color: $gray !important;
-}
+// Statuts : rendus par <app-tag> (cf. shared/utils/tag-icons.ts)
 
 // Etats
 .loading-container {

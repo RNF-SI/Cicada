@@ -36,6 +36,18 @@ $score-neutral: #F7D35C;    // Jaune moutarde - Score neutre (décoratif/fond)
 $score-good: #82DB8A;       // Vert clair - Bon score (décoratif/fond)
 $score-very-good: #81C9D8;  // Bleu ciel - Très bon score (décoratif/fond)
 
+// Tag Colors (Figma « 🧩 Tags » — node 4487:30877)
+// Palette pastel dédiée au composant `<app-tag>`. Le texte est TOUJOURS $black :
+// ces fonds sont volontairement désaturés pour rester AA avec du noir.
+// Ne pas réutiliser $success-color / $error-color pour un tag : ces couleurs
+// pleines exigent du texte blanc et ne correspondent plus aux maquettes.
+$tag-green: #CFF1D3;   // Validé, Approuvé, Actif (+ icône check)
+$tag-cyan: #C1E5EC;    // Modifié, Utilisateur (+ icône file-check / user)
+$tag-orange: #FFE6CC;  // Brouillon, En attente, Référent (+ icône edit / star)
+$tag-red: #FFC7C9;     // Rejeté, Annulé, Expiré, Inactif, Erreur (+ icône cross)
+$tag-salmon: #F9CFBE;  // Neutre — libellés sans icône (prolongation, mi-parcours…)
+$tag-gray: #E4E4E4;    // Archivé (+ icône box)
+
 // Neutral Colors
 $black: #343433;          // Textes
 $gray-dark: #746F6E;      // Textes mention (AA)

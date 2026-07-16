@@ -507,12 +507,20 @@ describe('SiteDetailComponent', () => {
       expect(component.getUserRoleLabel(conservateur)).toBe('sites.detail.roles.conservateur');
     });
 
-    it('should get correct role variant (#296 <app-tag>)', () => {
+    it('should get correct role tag appearance (Figma « 🧩 Tags »)', () => {
       const referentUser = component.siteUsers()[0];
       const regularUser = component.siteUsers()[1];
 
-      expect(component.getUserRoleVariant(referentUser)).toBe('warning');
-      expect(component.getUserRoleVariant(regularUser)).toBe('muted');
+      // Statuts principaux : couleur + icône (mappings canoniques).
+      expect(component.getUserRoleTag(referentUser)).toEqual({ variant: 'warning', icon: 'fi-rr-star' });
+      expect(component.getUserRoleTag(regularUser)).toEqual({ variant: 'info', icon: 'fi-rr-user' });
+    });
+
+    it('should use the neutral tag (no icon) for conservateur', () => {
+      // Rôle hors du kit → couleur unique, sans icône.
+      const conservateur = { ...component.siteUsers()[0], conservateur: true };
+
+      expect(component.getUserRoleTag(conservateur)).toEqual({ variant: 'neutral' });
     });
   });
 
@@ -786,14 +794,6 @@ describe('SiteDetailComponent', () => {
     it('should format plan period with no years', () => {
       const planNoYears = { ...mockPlan, annee_debut: undefined, annee_fin: undefined };
       expect(component.formatPlanPeriod(planNoYears)).toBe('-');
-    });
-
-    it('should return correct plan status class', () => {
-      expect(component.getPlanStatusClass('valide')).toBe('status-success');
-      expect(component.getPlanStatusClass('draft')).toBe('status-warning');
-      expect(component.getPlanStatusClass('archive')).toBe('status-neutre');
-      // Util centralisé (plan-status.utils) : statut inconnu → pas de classe.
-      expect(component.getPlanStatusClass('unknown')).toBe('');
     });
 
     it('should return correct plan status i18n key', () => {

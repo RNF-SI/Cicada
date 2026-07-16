@@ -1,457 +1,221 @@
 @import 'variables';
 
+// Cycle de vie — accordéon par rang
+// Design : Figma « ⏳ Cycle de vie » (node 4487:31081)
+
+:host {
+  display: block;
+}
+
 .version-timeline {
-  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-xs;
+  font-family: $font-family;
 }
 
-// Section par rang : un rang = un plan de gestion distinct.
-// Les rangs précédents/suivants sont affichés en mode résumé cliquable ;
-// seul le rang courant montre les versions en détail.
+// ============================================
+// SECTION DE RANG
+// ============================================
+
 .rang-section {
-  margin-bottom: $spacing-sm;
-
-  &.rang-current {
-    background: rgba($primary-color, 0.025);
-    border-radius: $border-radius-sm;
-    padding: $spacing-xxs;
-    margin: $spacing-xs (-$spacing-xxs);
-  }
+  display: flex;
+  flex-direction: column;
 }
 
-// Header de section rang
 .rang-header {
   display: flex;
   align-items: center;
   gap: $spacing-xs;
-  padding: $spacing-xs $spacing-sm;
-  font-size: $font-size-small;
+  width: 100%;
+  padding: $spacing-xs 0;
+  background: transparent;
+  border: none;
+  border-radius: $border-radius-sm;
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+
+  &:hover .rang-label {
+    text-decoration: underline;
+  }
+}
+
+.rang-label {
+  flex: 1;
+  min-width: 0;
+  font-size: $font-size-base;
   font-weight: $font-weight-bold;
   color: $primary-color;
-  text-decoration: none;
-  border-radius: $border-radius-sm;
-
-  i {
-    font-size: 0.75rem;
-    flex-shrink: 0;
-  }
-
-  .rang-label {
-    flex: 1;
-    display: flex;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: $spacing-xs;
-  }
-
-  .rang-position-tag {
-    font-size: 0.65rem;
-    font-weight: $font-weight-regular;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    color: $gray-dark;
-    padding: 1px $spacing-xs;
-    border-radius: $border-radius-sm;
-    background: rgba($gray, 0.15);
-  }
-
-  .rang-summary-versions {
-    font-size: 0.7rem;
-    font-weight: $font-weight-regular;
-    color: $gray-dark;
-  }
-
-  .rang-chevron {
-    color: $gray-dark;
-    font-size: 0.85rem;
-  }
+  line-height: 1.6;
 }
 
-// Rang précédent ou suivant : cliquable, fond gris léger au hover
-.rang-header-link {
-  cursor: pointer;
-  border: 1px solid $gray-lighter;
-  transition: background-color 0.15s ease, border-color 0.15s ease;
-
-  &:hover {
-    background-color: $primary-bg-soft;
-    border-color: $primary-bg-medium;
-
-    .rang-chevron {
-      color: $primary-color;
-    }
-  }
+.rang-versions-count {
+  font-size: $font-size-small;
+  font-weight: $font-weight-regular;
+  color: $gray-dark;
+  white-space: nowrap;
 }
 
-// Rang courant : tag "actuel" en couleur terra cotta
-.rang-header-current {
-  .rang-position-current {
-    color: $white;
-    background: $secondary-terra-cotta;
-    font-weight: $font-weight-bold;
-  }
+.rang-chevron {
+  display: flex;
+  font-size: 20px;
+  color: $primary-color;
+  flex-shrink: 0;
 }
 
-// Rang suivant : tag colorée primary avec bordure pointillée
-.rang-section.rang-next .rang-header-link {
-  .rang-position-tag {
-    color: $primary-color;
-    background: $primary-bg-subtle;
-    border: 1px dashed rgba($primary-color, 0.3);
-  }
+.rang-separator {
+  display: block;
+  height: 1px;
+  background-color: $gray-light;
+  margin-top: $spacing-xs;
 }
 
-.timeline-track {
+// ============================================
+// VERSIONS D'UN RANG
+// ============================================
+
+.rang-versions {
   display: flex;
   flex-direction: column;
+  gap: $spacing-md;
+  padding-bottom: $spacing-xs;
 }
 
-// ============================================
-// NODE ROW
-// ============================================
-
-.timeline-node-row {
+.version-row {
   display: flex;
-  align-items: center;
+  align-items: stretch;
   gap: $spacing-sm;
-  text-decoration: none;
-  padding: $spacing-xxs $spacing-xs;
-  border-radius: $border-radius-sm;
-  transition: background-color 0.15s ease;
   position: relative;
-
-  &.clickable {
-    cursor: pointer;
-
-    &:hover {
-      background-color: rgba($primary-color, 0.04);
-    }
-  }
-
-  &.current {
-    background-color: rgba($secondary-terra-cotta, 0.06);
-    border-left: 2px solid $secondary-terra-cotta;
-
-    .node-version {
-      color: $secondary-terra-cotta;
-      font-weight: $font-weight-bold;
-    }
-
-    .node-type {
-      font-weight: $font-weight-semibold;
-      color: $black;
-    }
-  }
 }
 
-// ============================================
-// VERTICAL RAIL — line as pseudo-element
-// ============================================
-
-.timeline-rail {
+// Rail : une pastille par version, reliées par un filet pointillé.
+// La pastille du plan consulté porte une icône « œil ».
+.version-rail {
   position: relative;
+  flex: 0 0 20px;
   display: flex;
-  align-items: center;
   justify-content: center;
-  width: 24px;
-  flex-shrink: 0;
-  // Height is driven by the row content
-  align-self: stretch;
-
-  // Continuous vertical line behind the dot
-  &::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    bottom: 0;
-    left: 50%;
-    width: 1.5px;
-    background-color: $gray-light;
-    transform: translateX(-50%);
-  }
-
-  // First node: line starts from dot center
-  &.rail-first::before {
-    top: 50%;
-  }
-
-  // Last node: line ends at dot center
-  &.rail-last::before {
-    bottom: 50%;
-  }
-
-  // Single node (first AND last): no line
-  &.rail-first.rail-last::before {
-    display: none;
-  }
+  padding-top: $spacing-md;
 }
 
-// ============================================
-// DOT
-// ============================================
+.version-row:not(:last-child) .version-rail::after {
+  content: '';
+  position: absolute;
+  top: calc(#{$spacing-md} + 20px);
+  bottom: -#{$spacing-md};
+  left: 50%;
+  width: 0;
+  border-left: 1px dashed $gray;
+}
 
 .rail-dot {
-  position: relative; // above the ::before line
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 24px;
-  height: 24px;
-  border-radius: $border-radius-round;
-  border: 2px solid $gray-light;
-  background: $white;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background-color: $white;
+  border: 1px solid $gray;
   flex-shrink: 0;
-  z-index: 1;
+
+  &--current {
+    border: 1.5px solid $primary-color;
+    color: $primary-color;
+  }
 
   i {
-    font-size: 0.65rem;
-    color: $gray;
-  }
-
-  &.dot-valide {
-    border-color: $success-color;
-    background: rgba($success-color, 0.08);
-
-    i { color: $success-color; }
-  }
-
-  &.dot-draft {
-    border-color: $warning-color;
-    border-style: dashed;
-    background: rgba($warning-color, 0.06);
-
-    i { color: $warning-color; }
-  }
-
-  &.dot-archive {
-    border-color: $gray;
-    background: $gray-lighter;
-    opacity: 0.7;
-
-    i { color: $gray-dark; }
-  }
-
-  // #275 — Modifié : variante du `valide` (vert) avec une teinte plus soutenue.
-  &.dot-modifie {
-    border-color: $success-color;
-    background: rgba($success-color, 0.16);
-
-    i { color: $success-color; }
-  }
-
-  // #277 — Statuts CSRPN : couleur warning avec bordure pleine. La
-  // distinction étape se fait par le label (chip), le dot signale
-  // "en cours réglementaire".
-  &.dot-avis_csrpn,
-  &.dot-comite_consultatif,
-  &.dot-arrete_pref {
-    border-color: $warning-color;
-    background: rgba($warning-color, 0.1);
-
-    i { color: $warning-color; }
-  }
-
-  &.dot-current {
-    border-color: $secondary-terra-cotta;
-    border-width: 2.5px;
-    box-shadow: 0 0 0 2px rgba($secondary-terra-cotta, 0.15);
-
-    i { color: $secondary-terra-cotta; }
-  }
-
-  // #280 — Brouillon du rang suivant : cadre pointillé sur la teinte primary
-  // (cf. maquette Mermaid de la note Cycle de vie d'un plan de gestion).
-  &.dot-next-rang {
-    border-color: $primary-color;
-    border-style: dashed;
-    background: $white;
-
-    i { color: $primary-color; }
+    display: flex;
+    font-size: 11px;
   }
 }
 
 // ============================================
-// NODE INFO
+// CARTE DE VERSION
 // ============================================
 
-.node-info {
+.version-card {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: flex-end;
+  gap: $spacing-xs;
+  padding: $spacing-xs $spacing-md;
+  border: 1px solid $gray;
+  border-radius: 8px;
+  background-color: $white;
+
+  // Le plan consulté est cerclé en primary épais
+  &--current {
+    border: 2px solid $primary-color;
+  }
+}
+
+.version-info {
   display: flex;
   flex-direction: column;
-  justify-content: center;
-  gap: 1px;
-  padding: $spacing-xxs 0;
+  gap: $spacing-xxs;
   min-width: 0;
 }
 
-.node-header {
+.version-heading {
   display: flex;
   align-items: center;
   gap: $spacing-xs;
-
-  mat-chip-set {
-    mat-chip {
-      font-size: 0.6rem;
-      min-height: 18px;
-      padding: 0 6px;
-    }
-  }
-}
-
-.node-version {
-  font-size: $font-size-small;
-  font-weight: $font-weight-semibold;
   color: $black;
 }
 
-.current-badge {
-  font-size: 0.6rem;
+.version-number,
+.version-dot {
+  font-size: $font-size-base;
   font-weight: $font-weight-bold;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  color: $secondary-terra-cotta;
-  background: rgba($secondary-terra-cotta, 0.1);
-  padding: 1px 5px;
-  border-radius: $border-radius-sm;
-  line-height: 1.4;
+  line-height: 1.6;
+  white-space: nowrap;
 }
 
-// #280 — Badge "Rang N+1" pour le brouillon du rang suivant
-.next-rang-badge {
-  font-size: 0.6rem;
-  font-weight: $font-weight-bold;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  color: $primary-color;
-  background: $primary-bg-subtle;
-  padding: 1px 5px;
-  border-radius: $border-radius-sm;
-  line-height: 1.4;
-  border: 1px dashed rgba($primary-color, 0.3);
-}
-
-.node-type {
-  font-size: 0.75rem;
-  color: $gray-dark;
-  line-height: 1.3;
-}
-
-// ============================================
-// ACTIONS CONTEXTUELLES
-// ============================================
-
-.timeline-actions {
-  display: flex;
-  flex-direction: column;
-  gap: $spacing-xs;
-  margin-top: $spacing-md;
-  padding-top: $spacing-sm;
-  border-top: 1px solid $gray-lighter;
-}
-
-.timeline-action-btn {
-  display: flex;
-  align-items: center;
-  gap: $spacing-xs;
-  width: 100%;
-  padding: $spacing-xs $spacing-sm;
-  border: 1px solid $gray-light;
-  border-radius: $border-radius-sm;
-  background: $white;
-  font-family: $font-family;
+.version-type {
   font-size: $font-size-small;
-  font-weight: $font-weight-semibold;
-  cursor: pointer;
-  transition: all 0.15s ease;
+  font-weight: $font-weight-regular;
+  line-height: 1.45;
+}
+
+.version-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spacing-xxs;
+}
+
+.version-action {
+  flex: 1;
+  display: flex;
+  justify-content: flex-end;
+  align-items: flex-end;
+}
+
+.version-current-hint {
+  font-size: $font-size-small;
+  font-weight: $font-weight-bold;
+  color: $primary-color;
+  line-height: 1.45;
+  text-align: right;
+}
+
+.version-goto {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: $primary-color;
+  text-decoration: none;
+  border-radius: 50%;
+  transition: background-color 0.15s ease;
 
   i {
-    font-size: 0.75rem;
-    flex-shrink: 0;
+    display: flex;
+    font-size: 20px;
   }
 
   &:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
-  }
-
-  &.action-success {
-    color: $success-color;
-    border-color: rgba($success-color, 0.3);
-
-    &:hover {
-      background: rgba($success-color, 0.06);
-    }
-  }
-
-  &.action-terra-cotta {
-    color: $secondary-terra-cotta;
-    border-color: rgba($secondary-terra-cotta, 0.3);
-
-    &:hover {
-      background: rgba($secondary-terra-cotta, 0.06);
-    }
-  }
-
-  &.action-neutral {
-    color: $gray-dark;
-    border-color: $gray-light;
-
-    &:hover {
-      background: $gray-lighter;
-    }
-  }
-
-  &.action-warning {
-    color: $warning-color;
-    border-color: rgba($warning-color, 0.3);
-
-    &:hover {
-      background: rgba($warning-color, 0.06);
-    }
-  }
-}
-
-.action-hint {
-  font-size: 0.65rem;
-  font-weight: $font-weight-regular;
-  opacity: 0.7;
-  margin-left: auto;
-}
-
-// #250 — Badge "Étendu" affiché à côté du chip de statut quand le plan est
-// prolongé (annees_extension > 0). Couleur info (cyan) pour bien le distinguer
-// du statut de base.
-:host ::ng-deep mat-chip.extension-badge {
-  background-color: rgba($info-color, 0.15) !important;
-  color: darken($info-color, 15%) !important;
-  font-weight: $font-weight-bold;
-
-  i {
-    font-size: 11px;
-    margin-right: $spacing-xxs;
-  }
-}
-
-// #278 — Badge "En cours de révision" affiché à côté du chip de statut quand
-// le plan est en cours de révision (en_revision=true). Variante info (cyan).
-:host ::ng-deep mat-chip.revision-badge {
-  background-color: rgba($info-color, 0.15) !important;
-  color: darken($info-color, 15%) !important;
-  font-weight: $font-weight-bold;
-
-  i {
-    font-size: 11px;
-    margin-right: $spacing-xxs;
-  }
-}
-
-// #276 — Badge "Évaluation mi-parcours" affiché à côté du chip de statut.
-// Variante terra cotta pour marquer le caractère exceptionnel (unique par chaîne).
-:host ::ng-deep mat-chip.mi-parcours-badge {
-  background-color: rgba($secondary-terra-cotta, 0.15) !important;
-  color: $secondary-terra-cotta !important;
-  font-weight: $font-weight-bold;
-
-  i {
-    font-size: 11px;
-    margin-right: $spacing-xxs;
+    background-color: $primary-bg-subtle;
   }
 }

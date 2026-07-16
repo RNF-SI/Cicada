@@ -851,19 +851,56 @@
                   </div>
                 </div>
 
-                <!-- #560 — Ressources humaines : temps de travail par personne /
-                     fonction, financé ou non, réparti par année. Remplace le
-                     « travail prévisionnel (jours) » plat. -->
+                <!-- #560 — Ressources humaines : temps de travail (jours par
+                     année, financé ou non). Les lignes sont dérivées du mode de
+                     saisie : un poste par ligne si l'action est déclinée, sinon
+                     un organisme par ligne quand le budget est ventilé par
+                     organisme. Sans l'un ni l'autre, la saisie est facultative
+                     et le tableau n'est pas affiché. -->
                 <div class="programmation-section rh-section">
                   <h4 class="rh-title">{{ 'enjeux.operations.rh.title' | translate }}</h4>
-                  <p class="mensuelle-hint">{{ 'enjeux.operations.rh.hint' | translate }}</p>
 
-                  @if (operationAnnees.length > 0) {
+                  <div class="rh-declinaison">
+                    <app-checkbox
+                      [checked]="declinaisonParPoste()"
+                      [disabled]="isReadOnly()"
+                      [label]="'enjeux.operations.rh.declinaisonLabel' | translate"
+                      [mention]="'enjeux.operations.rh.declinaisonMention' | translate"
+                      (checkedChange)="toggleDeclinaisonParPoste($event)">
+                    </app-checkbox>
+                  </div>
+
+                  @if (rhMode() === 'hidden') {
+                    <!-- Ni déclinaison par poste, ni ventilation par organisme :
+                         rien à ventiler, la saisie RH n'est pas requise. -->
+                    <p class="mensuelle-hint rh-optional">
+                      {{ 'enjeux.operations.rh.optionalHint' | translate }}
+                    </p>
+                  } @else if (operationAnnees.length === 0) {
+                    <p class="mensuelle-hint">{{ 'enjeux.operations.rh.noYears' | translate }}</p>
+                  } @else if (rhMode() === 'postes' && postes().length === 0) {
+                    <div class="info-block info-block-warning rh-no-postes">
+                      {{ 'enjeux.operations.rh.noPostes' | translate }}
+                      <a [routerLink]="['/plans', planSlug(), 'postes']">
+                        {{ 'enjeux.operations.rh.managePostes' | translate }}
+                      </a>
+                    </div>
+                  } @else {
+                    <p class="mensuelle-hint">
+                      {{ (rhMode() === 'postes'
+                            ? 'enjeux.operations.rh.hintPostes'
+                            : 'enjeux.operations.rh.hintOrganismes') | translate }}
+                    </p>
+
                     <div class="programmation-table">
                       <table>
                         <thead>
                           <tr class="header-row-primary">
-                            <th class="label-cell rh-target-col">{{ 'enjeux.operations.rh.target' | translate }}</th>
+                            <th class="label-cell rh-target-col">
+                              {{ (rhMode() === 'postes'
+                                    ? 'enjeux.operations.rh.colPoste'
+                                    : 'enjeux.operations.rh.colOrganisme') | translate }}
+                            </th>
                             <th class="rh-finance-col">{{ 'plans.rh.finance' | translate }}</th>
                             @for (annee of operationAnnees; track annee.annee) {
                               <th>{{ annee.annee }}</th>
@@ -875,22 +912,30 @@
                           @for (line of rhLines; track $index; let li = $index) {
                             <tr>
                               <td class="label-cell rh-target-col">
-                                <mat-select class="rh-target-select"
-                                            [value]="rhTargetValue(line)"
-                                            (valueChange)="setRhTarget(li, $event)"
-                                            [disabled]="isReadOnly()"
-                                            [placeholder]="'enjeux.operations.rh.selectTarget' | translate">
-                                  <mat-optgroup [label]="'enjeux.operations.rh.groupPersonnes' | translate">
-                                    @for (p of personnes(); track p.id_personne_plan) {
-                                      <mat-option [value]="'p:' + p.id_personne_plan">{{ p.nom }}</mat-option>
+                                @if (line.derived) {
+                                  <!-- Ligne de référence : la cible est fixe. -->
+                                  <span class="rh-line-label">{{ rhLineLabel(line) }}</span>
+                                  @if (rhMode() === 'postes' && rhLineSubLabel(line)) {
+                                    <span class="rh-line-sublabel">{{ rhLineSubLabel(line) }}</span>
+                                  }
+                                } @else {
+                                  <!-- Lot ajouté à la main : cible au choix. -->
+                                  <mat-select class="rh-target-select"
+                                              [value]="rhTargetValue(line)"
+                                              (valueChange)="setRhTarget(li, $event)"
+                                              [disabled]="isReadOnly()"
+                                              [placeholder]="'enjeux.operations.rh.selectTarget' | translate">
+                                    @if (rhMode() === 'postes') {
+                                      @for (p of postes(); track p.id_poste) {
+                                        <mat-option [value]="p.id_poste">{{ p.libelle }}</mat-option>
+                                      }
+                                    } @else {
+                                      @for (o of availableOrganismes(); track o.id_organisme) {
+                                        <mat-option [value]="o.id_organisme">{{ o.nom_organisme }}</mat-option>
+                                      }
                                     }
-                                  </mat-optgroup>
-                                  <mat-optgroup [label]="'enjeux.operations.rh.groupFonctions' | translate">
-                                    @for (f of fonctions(); track f.id_fonction) {
-                                      <mat-option [value]="'f:' + f.id_fonction">{{ f.libelle }}</mat-option>
-                                    }
-                                  </mat-optgroup>
-                                </mat-select>
+                                  </mat-select>
+                                }
                               </td>
                               <td class="rh-finance-col">
                                 <app-checkbox
@@ -912,7 +957,9 @@
                                 </td>
                               }
                               <td class="rh-actions-col">
-                                @if (!isReadOnly()) {
+                                <!-- Seuls les lots ajoutés se suppriment : les
+                                     lignes dérivées sont la liste de référence. -->
+                                @if (!isReadOnly() && !line.derived) {
                                   <button type="button" class="rh-remove-btn"
                                           (click)="removeRhLine(li)"
                                           [title]="'common.actions.delete' | translate">
@@ -932,6 +979,24 @@
                             }
                             <td class="rh-actions-col"></td>
                           </tr>
+                          @if (hasRhNonFinance()) {
+                            <tr class="rh-subtotal-row">
+                              <td class="label-cell rh-target-col">{{ 'plans.rh.finance' | translate }}</td>
+                              <td class="rh-finance-col"></td>
+                              @for (annee of operationAnnees; track annee.annee; let i = $index) {
+                                <td>{{ getRhYearTotalByFinance(i, true) | number:'1.0-2' }} j</td>
+                              }
+                              <td class="rh-actions-col"></td>
+                            </tr>
+                            <tr class="rh-subtotal-row">
+                              <td class="label-cell rh-target-col">{{ 'plans.rh.nonFinance' | translate }}</td>
+                              <td class="rh-finance-col"></td>
+                              @for (annee of operationAnnees; track annee.annee; let i = $index) {
+                                <td>{{ getRhYearTotalByFinance(i, false) | number:'1.0-2' }} j</td>
+                              }
+                              <td class="rh-actions-col"></td>
+                            </tr>
+                          }
                         </tbody>
                       </table>
                     </div>
@@ -942,24 +1007,9 @@
                           <i class="fi fi-rr-plus"></i>
                           {{ 'enjeux.operations.rh.addLine' | translate }}
                         </button>
-
-                        <div class="rh-create-fonction">
-                          <input type="text"
-                                 [ngModel]="newRhFonctionLibelle()"
-                                 [ngModelOptions]="{ standalone: true }"
-                                 (ngModelChange)="newRhFonctionLibelle.set($event)"
-                                 (keyup.enter)="createRhFonction()"
-                                 [placeholder]="'enjeux.operations.rh.newFonctionPlaceholder' | translate">
-                          <button type="button" mat-button
-                                  [disabled]="!newRhFonctionLibelle().trim() || isCreatingRhFonction()"
-                                  (click)="createRhFonction()">
-                            {{ 'enjeux.operations.rh.createFonction' | translate }}
-                          </button>
-                        </div>
+                        <span class="text-mention">{{ 'enjeux.operations.rh.addLineHint' | translate }}</span>
                       </div>
                     }
-                  } @else {
-                    <p class="mensuelle-hint">{{ 'enjeux.operations.rh.noYears' | translate }}</p>
                   }
                 </div>
 

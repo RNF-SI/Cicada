@@ -416,10 +416,24 @@
                              [matTooltip]="'enjeux.facteurInfluence.tooltip' | translate"
                              matTooltipPosition="right"
                              (click)="$event.stopPropagation()"></i>
+                          @if (isFacteurShared(facteur)) {
+                            <span class="shared-badge"
+                                  [matTooltip]="'enjeux.share.sharedBannerFacteur' | translate:{ count: facteurEnjeuIds(facteur).length }"
+                                  (click)="$event.stopPropagation()">
+                              <i class="fi fi-rr-link-alt"></i>
+                              {{ 'enjeux.share.facteur.sharedBadge' | translate }}
+                            </span>
+                          }
                         </h3>
                       </div>
                       <div class="facteur-card-actions">
                         @if (canEditPlan()) {
+                          <button class="icon-btn-flat" (click)="openShareFacteur(facteur, 'link'); $event.stopPropagation()" [title]="'enjeux.share.linkAction' | translate">
+                            <i class="fi fi-rr-link-alt"></i>
+                          </button>
+                          <button class="icon-btn-flat" (click)="openShareFacteur(facteur, 'copy'); $event.stopPropagation()" [title]="'enjeux.share.copyAction' | translate">
+                            <i class="fi fi-rr-copy-alt"></i>
+                          </button>
                           <button class="icon-btn-flat" (click)="startEditFacteur(facteur); $event.stopPropagation()" [title]="'common.actions.edit' | translate">
                             <i class="fi fi-rr-pencil"></i>
                           </button>
@@ -1162,7 +1176,7 @@
                                                             <span class="operation-priority-chip" (click)="$event.stopPropagation()" [title]="'enjeux.operations.prioriteTooltip' | translate">{{ op.priorite_label }}</span>
                                                           }
                                                           @if (op.statut === 'draft') {
-                                                            <span class="operation-draft-chip status-warning" (click)="$event.stopPropagation()">{{ 'enjeux.operations.draftChip' | translate }}</span>
+                                                            <app-tag class="operation-draft-chip" variant="draft" icon="fi-rr-edit" size="sm" [label]="'enjeux.operations.draftChip' | translate" (click)="$event.stopPropagation()"></app-tag>
                                                           }
                                                         </div>
                                                         <div class="operation-header-right">
@@ -1552,7 +1566,21 @@
                              [title]="'enjeux.oo.numeroPinned' | translate"
                              [attr.aria-label]="'enjeux.oo.numeroPinned' | translate"></i>
                         }
+                        @if (isOoShared(oo)) {
+                          <span class="shared-badge"
+                                [matTooltip]="'enjeux.share.sharedBannerOo' | translate:{ count: oo.shared_enjeu_ids?.length || 0 }"
+                                (click)="$event.stopPropagation()">
+                            <i class="fi fi-rr-link-alt"></i>
+                            {{ 'enjeux.share.oo.sharedBadge' | translate }}
+                          </span>
+                        }
                         @if (canEditPlan()) {
+                          <button class="icon-btn-flat" (click)="openShareOo(oo, 'link'); $event.stopPropagation()" [title]="'enjeux.share.linkAction' | translate">
+                            <i class="fi fi-rr-link-alt"></i>
+                          </button>
+                          <button class="icon-btn-flat" (click)="openShareOo(oo, 'copy'); $event.stopPropagation()" [title]="'enjeux.share.copyAction' | translate">
+                            <i class="fi fi-rr-copy-alt"></i>
+                          </button>
                           <button class="icon-btn-flat" (click)="startEditOo(oo); $event.stopPropagation()" [title]="'common.actions.edit' | translate">
                             <i class="fi fi-rr-pencil"></i>
                           </button>
@@ -1958,7 +1986,7 @@
                                                     <span class="operation-priority-chip" (click)="$event.stopPropagation()" [title]="'enjeux.operations.prioriteTooltip' | translate">{{ op.priorite_label }}</span>
                                                   }
                                                   @if (op.statut === 'draft') {
-                                                    <span class="operation-draft-chip status-warning" (click)="$event.stopPropagation()">{{ 'enjeux.operations.draftChip' | translate }}</span>
+                                                    <app-tag class="operation-draft-chip" variant="draft" icon="fi-rr-edit" size="sm" [label]="'enjeux.operations.draftChip' | translate" (click)="$event.stopPropagation()"></app-tag>
                                                   }
                                                 </div>
                                                 <div class="operation-header-right">

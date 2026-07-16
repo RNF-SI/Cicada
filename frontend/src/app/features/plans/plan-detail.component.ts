@@ -5,7 +5,6 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
-import { MatChipsModule } from '@angular/material/chips';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatMenuModule } from '@angular/material/menu';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
@@ -118,7 +117,6 @@ interface SubAccordion {
     MatProgressSpinnerModule,
     MatSnackBarModule,
     MatDialogModule,
-    MatChipsModule,
     MatTooltipModule,
     MatMenuModule,
     TranslateModule,

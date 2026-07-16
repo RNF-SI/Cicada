@@ -24,6 +24,8 @@ import { AuthService } from '../../../../core/services/auth.service';
 import { ViewScopeToggleComponent, ViewScope } from '../../view-scope-toggle/view-scope-toggle.component';
 import { CheckboxComponent } from '../../checkbox/checkbox.component';
 import { FormFieldComponent } from '../../form-field/form-field.component';
+import { TagComponent } from '../../tag/tag.component';
+import { getUserRoleTag, TagAppearance } from '../../../utils/tag-icons';
 import {
   AdminPlan,
   PlanCreatePayload,
@@ -95,6 +97,7 @@ interface OrganismeEntry {
     RouterModule,
     ViewScopeToggleComponent,
     FormFieldComponent,
+    TagComponent,
   ],
   templateUrl: './plan-form-modal.component.html',
   styleUrl: './plan-form-modal.component.scss'
@@ -549,6 +552,16 @@ export class PlanFormModalComponent implements OnInit {
 
   getSelectedSitesCount(): number {
     return this.selectedSiteIds().length;
+  }
+
+  /**
+   * Apparence du tag de niveau d'accès au site (couleur + icône).
+   * Seuls les rôles connus (référent, admin_og, super_admin…) portent une icône ;
+   * les autres niveaux (membre, organisme…) retombent sur le tag neutre sans
+   * icône, cf. `shared/utils/tag-icons`.
+   */
+  accessTag(site: SelectableSite): TagAppearance {
+    return getUserRoleTag(site.accessType);
   }
 
   filterSites(): void {

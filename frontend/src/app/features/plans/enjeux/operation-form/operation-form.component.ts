@@ -5,10 +5,10 @@
  * Refactorisé pour utiliser OperationAnnee[] (table relationnelle)
  * au lieu de JSONField programmation_annuelle/programmation_mensuelle.
  */
-import { Component, OnInit, inject, signal, computed, ElementRef, DestroyRef } from '@angular/core';
+import { Component, OnInit, inject, signal, computed, effect, ElementRef, DestroyRef } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule, Location } from '@angular/common';
-import { ActivatedRoute, Router } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FormBuilder, FormControl, FormGroup, Validators, ReactiveFormsModule, FormsModule } from '@angular/forms';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
@@ -36,7 +36,7 @@ import { MetriqueFormComponent } from '../../../../shared/components/metrique-fo
 import { EnjeuService } from '../../../../core/services/enjeu.service';
 import { AdminService } from '../../../../core/services/admin.service';
 import { RhService } from '../../../../core/services/rh.service';
-import { PersonnePlan, Fonction } from '../../../../core/models/rh.model';
+import { Poste } from '../../../../core/models/rh.model';
 import { CampanuleService } from '../../../../core/services/campanule.service';
 import { InventaireService } from '../../../../core/services/inventaire.service';
 import { SuiviInventaireDetail } from '../../../../core/models/inventaire.model';
@@ -98,6 +98,7 @@ export function buildGridTypeMetriqueOptions(
   standalone: true,
   imports: [
     CommonModule,
+    RouterLink,
     ReactiveFormsModule,
     FormsModule,
     MatFormFieldModule,
@@ -505,19 +506,33 @@ export class OperationFormComponent implements OnInit {
 
   // ---- Ressources humaines (#560) ----------------------------------------
   // Le « travail prévisionnel » n'est plus un simple champ de jours : c'est une
-  // liste de lignes RH (personne OU fonction × jours par année × financé/non).
-  // Chaque ligne porte un nombre de jours par année (clé = yearIndex), à l'image
-  // de la table budget.
-  personnes = signal<PersonnePlan[]>([]);
-  fonctions = this.rhService.fonctions;  // signal partagé du référentiel
-  newRhFonctionLibelle = signal<string>('');
-  isCreatingRhFonction = signal(false);
+  // liste de lignes RH (jours par année × financé/non financé), dont les lignes
+  // sont DÉRIVÉES du mode de saisie de l'action :
+  //   - « Déclinaison par poste » cochée  → une ligne par poste du PG ;
+  //   - décochée + budget ventilé par organisme → une ligne par organisme ;
+  //   - décochée sans ventilation par organisme → tableau masqué (saisie
+  //     facultative, non requise).
+  // Chaque ligne porte un nombre de jours par année (clé = yearIndex), à
+  // l'image de la table budget.
+  postes = signal<Poste[]>([]);
+
+  /** Case « Déclinaison par poste », décochée par défaut. */
+  declinaisonParPoste = signal(false);
+
+  /** Ce que le tableau RH affiche, selon la déclinaison et la ventilation. */
+  rhMode = computed<'postes' | 'organismes' | 'hidden'>(() => {
+    if (this.declinaisonParPoste()) return 'postes';
+    const mode = this.ventilationMode();
+    return mode === 'by_org' || mode === 'by_org_type' ? 'organismes' : 'hidden';
+  });
 
   rhLines: Array<{
-    id_personne_plan: number | null;
-    id_fonction: number | null;
+    id_poste: number | null;
+    id_organisme: number | null;
     finance: boolean;
     jours: Record<number, number | null>;
+    /** Ligne de référence (un poste / un organisme) vs lot ajouté à la main. */
+    derived: boolean;
   }> = [];
 
   // Available organismes derived from selected sites
@@ -535,6 +550,18 @@ export class OperationFormComponent implements OnInit {
       }
     }
     return Array.from(orgMap.values()).sort((a, b) => a.nom_organisme.localeCompare(b.nom_organisme));
+  });
+
+  // #560 — Les cibles du tableau RH (postes du PG, ou organismes des sites
+  // sélectionnés) arrivent de requêtes indépendantes de celle de l'action :
+  // on resynchronise dès qu'elles changent, sinon les lignes restaurées du
+  // serveur restent orphelines (affichées comme des lots ajoutés à la main).
+  // `syncRhLines()` est idempotent : il réconcilie sans perdre les jours saisis.
+  private readonly rhTargetsSync = effect(() => {
+    this.rhMode();
+    this.postes();
+    this.availableOrganismes();
+    this.syncRhLines();
   });
 
   // Sites M2M checkboxes — use signal so computed can react
@@ -821,6 +848,7 @@ export class OperationFormComponent implements OnInit {
     this.pendingEmprise.set(undefined);
     this.useSiteEmprise.set(false);
     this.ventilationMode.set('none');
+    this.declinaisonParPoste.set(false);
   }
 
   /**
@@ -880,13 +908,12 @@ export class OperationFormComponent implements OnInit {
         next: (plan) => {
           this.planId.set(plan.id_pg);
           this.planNom.set(plan.nom);
-          // #560 — personnes du PG + référentiel de fonctions pour la saisie RH
-          this.rhService.getPersonnesByPlan(plan.id_pg).subscribe(
-            (list) => this.personnes.set(list),
-          );
-          if (this.fonctions().length === 0) {
-            this.rhService.loadFonctions().subscribe();
-          }
+          // #560 — postes du PG : ils constituent les lignes du tableau RH
+          // quand l'action est déclinée par poste.
+          this.rhService.getPostesByPlan(plan.id_pg).subscribe((list) => {
+            this.postes.set(list);
+            this.syncRhLines();
+          });
           this.applyPlanReadOnly(plan.statut);
           this.computeYears(plan.annee_debut, plan.annee_fin);
           // Extract plan sites
@@ -1298,8 +1325,11 @@ export class OperationFormComponent implements OnInit {
       }
     }
 
-    // #560 — Restore RH lines: group server rh_lignes across years by
-    // (personne / fonction / financé) into rows carrying a jours per year.
+    // #560 — Restore RH lines: les lignes serveur sont par année ; on les
+    // regroupe par (cible, financé) en lignes portant un nombre de jours par
+    // année. `syncRhLines()` remettra ensuite ces lignes dans l'ordre des
+    // postes / organismes de référence.
+    this.declinaisonParPoste.set(!!op.declinaison_par_poste);
     if (op.operation_annees && op.operation_annees.length > 0) {
       this.rhLines = [];
       const rhMap = new Map<string, (typeof this.rhLines)[number]>();
@@ -1307,14 +1337,15 @@ export class OperationFormComponent implements OnInit {
         const yearIdx = this.operationAnnees.findIndex(a => a.annee === serverAnnee.annee);
         if (yearIdx < 0 || !serverAnnee.rh_lignes) continue;
         for (const l of serverAnnee.rh_lignes) {
-          const key = `${l.id_personne_plan ?? ''}|${l.id_fonction ?? ''}|${l.finance}`;
+          const key = `${l.id_poste ?? ''}|${l.id_organisme ?? ''}|${l.finance}`;
           let line = rhMap.get(key);
           if (!line) {
             line = {
-              id_personne_plan: l.id_personne_plan ?? null,
-              id_fonction: l.id_fonction ?? null,
+              id_poste: l.id_poste ?? null,
+              id_organisme: l.id_organisme ?? null,
               finance: !!l.finance,
               jours: {},
+              derived: false,
             };
             rhMap.set(key, line);
             this.rhLines.push(line);
@@ -1322,6 +1353,7 @@ export class OperationFormComponent implements OnInit {
           line.jours[yearIdx] = l.jours != null ? parseFloat(String(l.jours)) : null;
         }
       }
+      this.syncRhLines();
     }
 
     // Restore ventilation mode from backend (or infer for legacy data)
@@ -1779,6 +1811,7 @@ export class OperationFormComponent implements OnInit {
     // Mode de ventilation du budget
     const mode = this.ventilationMode();
     payload.ventilation_mode = mode;
+    payload.declinaison_par_poste = this.declinaisonParPoste();
 
     // Operation annees: apply the monthly template to all years + per-organisme data
     const orgs = this.availableOrganismes();
@@ -1792,14 +1825,14 @@ export class OperationFormComponent implements OnInit {
         // sont ignorées). Indépendant du mode de ventilation budgétaire.
         rh_lignes: this.rhLines
           .map(l => ({
-            id_personne_plan: l.id_personne_plan,
-            id_fonction: l.id_fonction,
+            id_poste: l.id_poste,
+            id_organisme: l.id_organisme,
             jours: l.jours[idx] ?? null,
             finance: l.finance,
           }))
-          // Une ligne sans personne ni fonction reste valide (« temps non
-          // affecté » — état des saisies converties depuis l'ancien champ
-          // `etp`). Seul le nombre de jours est discriminant.
+          // Une ligne sans cible reste valide (« temps non affecté »). Seul le
+          // nombre de jours est discriminant : les lignes dérivées laissées
+          // vides ne sont pas enregistrées.
           .filter(l => l.jours != null),
       };
 
@@ -2774,10 +2807,88 @@ export class OperationFormComponent implements OnInit {
   // Ressources humaines (#560) — lignes RH par année
   // ════════════════════════════════════════════════
 
+  /**
+   * Reconstruit les lignes du tableau RH à partir du mode courant.
+   *
+   * Les lignes sont dérivées des postes du PG (déclinaison) ou des organismes
+   * de la ventilation budgétaire. On conserve les jours déjà saisis en
+   * ré-appariant chaque ligne existante à sa cible ; les lignes surnuméraires
+   * visant la même cible sont des lots ajoutés à la main (typiquement un
+   * second lot non financé) et sont préservées à la suite.
+   *
+   * Les lignes qui ne correspondent pas au mode (ex. des lignes par poste
+   * alors qu'on affiche les organismes) sont écartées : leur sens dépend du
+   * mode, les garder n'aurait aucune signification.
+   */
+  private syncRhLines(): void {
+    const mode = this.rhMode();
+    // Mode masqué : la saisie RH est facultative, on ne touche à rien.
+    if (mode === 'hidden') return;
+
+    const isPostes = mode === 'postes';
+    const targets = isPostes
+      ? this.postes().map(p => ({
+          id_poste: p.id_poste ?? null,
+          id_organisme: null,
+          finance: p.finance_par_defaut ?? true,
+        }))
+      : this.availableOrganismes().map(o => ({
+          id_poste: null,
+          id_organisme: o.id_organisme,
+          finance: true,
+        }));
+
+    const rest = this.rhLines.filter(l =>
+      isPostes ? l.id_poste != null : l.id_organisme != null,
+    );
+    const rows: typeof this.rhLines = [];
+    for (const t of targets) {
+      const idx = rest.findIndex(l =>
+        isPostes ? l.id_poste === t.id_poste : l.id_organisme === t.id_organisme,
+      );
+      if (idx >= 0) {
+        const [found] = rest.splice(idx, 1);
+        rows.push({ ...found, derived: true });
+      } else {
+        rows.push({ ...t, jours: {}, derived: true });
+      }
+    }
+    // Lots supplémentaires sur une cible déjà listée (ou cible disparue).
+    for (const l of rest) rows.push({ ...l, derived: false });
+    this.rhLines = rows;
+  }
+
+  /** Bascule « Déclinaison par poste » : le tableau RH change de lignes. */
+  toggleDeclinaisonParPoste(value: boolean): void {
+    this.declinaisonParPoste.set(value);
+    this.syncRhLines();
+  }
+
+  /** Libellé d'une ligne RH dérivée. */
+  rhLineLabel(line: { id_poste: number | null; id_organisme: number | null }): string {
+    if (line.id_poste != null) {
+      const poste = this.postes().find(p => p.id_poste === line.id_poste);
+      return poste?.libelle || this.translate.instant('plans.postes.untitled');
+    }
+    if (line.id_organisme != null) {
+      const org = this.availableOrganismes().find(o => o.id_organisme === line.id_organisme);
+      return org?.nom_organisme || '';
+    }
+    return '';
+  }
+
+  /** Organisme d'un poste, affiché sous son libellé (déclinaison par poste). */
+  rhLineSubLabel(line: { id_poste: number | null }): string {
+    if (line.id_poste == null) return '';
+    const poste = this.postes().find(p => p.id_poste === line.id_poste);
+    return poste?.organisme_nom || '';
+  }
+
+  /** Ajoute un lot supplémentaire (ex. du temps non financé sur une cible). */
   addRhLine(): void {
     this.rhLines = [
       ...this.rhLines,
-      { id_personne_plan: null, id_fonction: null, finance: true, jours: {} },
+      { id_poste: null, id_organisme: null, finance: true, jours: {}, derived: false },
     ];
   }
 
@@ -2785,29 +2896,23 @@ export class OperationFormComponent implements OnInit {
     this.rhLines = this.rhLines.filter((_, i) => i !== index);
   }
 
-  /** Valeur encodée de la cible d'une ligne : 'p:<id>' | 'f:<id>' | ''. */
-  rhTargetValue(line: { id_personne_plan: number | null; id_fonction: number | null }): string {
-    if (line.id_personne_plan != null) return `p:${line.id_personne_plan}`;
-    if (line.id_fonction != null) return `f:${line.id_fonction}`;
-    return '';
+  /** Cible d'un lot ajouté : l'id du poste ou de l'organisme, null si aucune. */
+  rhTargetValue(line: { id_poste: number | null; id_organisme: number | null }): number | null {
+    return line.id_poste ?? line.id_organisme ?? null;
   }
 
-  setRhTarget(index: number, value: string): void {
+  setRhTarget(index: number, id: number | null): void {
     const line = this.rhLines[index];
     if (!line) return;
-    if (value && value.startsWith('p:')) {
-      line.id_personne_plan = parseInt(value.slice(2), 10);
-      line.id_fonction = null;
-    } else if (value && value.startsWith('f:')) {
-      const fid = parseInt(value.slice(2), 10);
-      line.id_fonction = fid;
-      line.id_personne_plan = null;
-      // Défaut financé/non financé porté par la fonction.
-      const f = this.fonctions().find(x => x.id_fonction === fid);
-      if (f) line.finance = f.finance_par_defaut;
+    if (this.rhMode() === 'postes') {
+      line.id_poste = id;
+      line.id_organisme = null;
+      // Défaut financé/non financé porté par les fonctions du poste.
+      const poste = this.postes().find(p => p.id_poste === id);
+      if (poste) line.finance = poste.finance_par_defaut ?? true;
     } else {
-      line.id_personne_plan = null;
-      line.id_fonction = null;
+      line.id_organisme = id;
+      line.id_poste = null;
     }
   }
 
@@ -2827,19 +2932,18 @@ export class OperationFormComponent implements OnInit {
     return this.rhLines.reduce((sum, l) => sum + (l.jours[yearIdx] || 0), 0);
   }
 
-  /** Crée une fonction à la volée et l'ajoute au référentiel partagé. */
-  createRhFonction(): void {
-    const libelle = this.newRhFonctionLibelle().trim();
-    if (!libelle || this.isCreatingRhFonction()) return;
-    this.isCreatingRhFonction.set(true);
-    this.rhService.createFonction(libelle).subscribe({
-      next: () => {
-        this.newRhFonctionLibelle.set('');
-        this.isCreatingRhFonction.set(false);
-      },
-      error: () => this.isCreatingRhFonction.set(false),
-    });
+  /** Total des jours RH d'une année, restreint au financé / non financé. */
+  getRhYearTotalByFinance(yearIdx: number, finance: boolean): number {
+    return this.rhLines
+      .filter(l => l.finance === finance)
+      .reduce((sum, l) => sum + (l.jours[yearIdx] || 0), 0);
   }
+
+  /** Vrai si au moins une ligne RH non financée est saisie (affiche le détail). */
+  hasRhNonFinance(): boolean {
+    return this.rhLines.some(l => !l.finance && Object.values(l.jours).some(j => j));
+  }
+
 
   // ════════════════════════════════════════════════
   // Per-organisme budget/travail
@@ -3062,6 +3166,9 @@ export class OperationFormComponent implements OnInit {
 
   onModeToggle(mode: string): void {
     this.ventilationMode.set(mode as 'none' | 'by_org' | 'by_type' | 'by_org_type');
+    // Hors déclinaison par poste, les lignes RH suivent les organismes de la
+    // ventilation : le tableau doit se reconstruire (ou disparaître).
+    this.syncRhLines();
   }
 
   getDirectTotal(yearIdx: number): { budget: number | null; etp: number | null } {

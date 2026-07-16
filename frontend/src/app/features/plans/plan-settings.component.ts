@@ -13,7 +13,8 @@ import { AdminService } from '../../core/services/admin.service';
 import { AdminPlan, PlanStatut, PlanVersionChainItem } from '../../core/models/admin.model';
 import { HeaderComponent } from '../../shared/components/header/header.component';
 import { PlanSidebarComponent } from './shared/plan-sidebar/plan-sidebar.component';
-import { TagComponent, TagVariant } from '../../shared/components/tag/tag.component';
+import { TagComponent } from '../../shared/components/tag/tag.component';
+import { TagAppearance, getPlanStatusTag } from '../../shared/utils/tag-icons';
 import {
   ConfirmDialogComponent,
   ConfirmDialogData,
@@ -110,20 +111,12 @@ export class PlanSettingsComponent {
     });
   }
 
-  /** Variante de tag selon le statut, alignée sur l'UI plans. */
-  tagVariant(statut: PlanStatut): TagVariant {
-    switch (statut) {
-      case 'valide':
-        return 'success';
-      case 'modifie':
-        return 'info';
-      case 'draft':
-        return 'draft';
-      case 'archive':
-        return 'muted';
-      default:
-        return 'warning'; // statuts CSRPN (avis_csrpn, comite_consultatif, arrete_pref)
-    }
+  /**
+   * Apparence du tag de statut (variante + icône), issue de la source de
+   * vérité unique `shared/utils/tag-icons.ts` (Figma « 🧩 Tags »).
+   */
+  statusTag(statut: PlanStatut): TagAppearance {
+    return getPlanStatusTag(statut);
   }
 
   /** Confirme et supprime la version actuellement affichée. */

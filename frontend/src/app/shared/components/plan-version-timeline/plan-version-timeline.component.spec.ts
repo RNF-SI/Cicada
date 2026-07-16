@@ -11,6 +11,10 @@ class FakeTranslateLoader implements TranslateLoader {
     return of({
       'plans.lifecycle.timeline.current': 'actuel',
       'plans.lifecycle.timeline.planInitial': 'Plan initial',
+      'plans.lifecycle.timeline.rang': 'Rang',
+      'plans.lifecycle.timeline.versionsSingular': 'version',
+      'plans.lifecycle.timeline.versionsPlural': 'versions',
+      'plans.lifecycle.timeline.viewingThisPlan': 'Vous visualisez ce plan',
       'plans.status.draft': 'Brouillon',
       'plans.status.valide': 'Validé',
       'plans.status.archive': 'Archivé',
@@ -71,46 +75,104 @@ describe('PlanVersionTimelineComponent', () => {
     });
   });
 
-  // ==================== getNodeIcon ====================
+  // ==================== statusTag (couleur + icône Figma) ====================
 
-  describe('getNodeIcon', () => {
-    it('should return time-forward icon for EVAL_MI_PARCOURS', () => {
-      const item = createChainItem({ type_document_mnemonique: 'EVAL_MI_PARCOURS' });
-      expect(component.getNodeIcon(item)).toBe('fi-rr-time-forward');
+  describe('statusTag', () => {
+    it('mappe draft sur la variante draft avec icône edit', () => {
+      expect(component.statusTag(createChainItem({ statut: 'draft' }))).toEqual({
+        variant: 'draft',
+        icon: 'fi-rr-edit',
+      });
     });
 
-    it('should return refresh icon for PLAN_REVISE', () => {
-      const item = createChainItem({ type_document_mnemonique: 'PLAN_REVISE' });
-      expect(component.getNodeIcon(item)).toBe('fi-rr-refresh');
+    it('mappe valide sur la variante success avec icône check', () => {
+      expect(component.statusTag(createChainItem({ statut: 'valide' }))).toEqual({
+        variant: 'success',
+        icon: 'fi-rr-check',
+      });
     });
 
-    it('should return document icon for default/PLAN_INITIAL', () => {
-      const item = createChainItem({ type_document_mnemonique: 'PLAN_INITIAL' });
-      expect(component.getNodeIcon(item)).toBe('fi-rr-document');
+    it('mappe archive sur la variante muted avec icône box', () => {
+      expect(component.statusTag(createChainItem({ statut: 'archive' }))).toEqual({
+        variant: 'muted',
+        icon: 'fi-rr-box',
+      });
+    });
+
+    it('retombe sur un tag neutre sans icône pour un statut inconnu', () => {
+      const tag = component.statusTag(createChainItem({ statut: 'unknown' as PlanStatut }));
+      expect(tag.variant).toBe('neutral');
+      expect(tag.icon).toBeUndefined();
     });
   });
 
-  // ==================== getStatusClass ====================
+  // ==================== rangGroups (sections par rang) ====================
 
-  describe('getStatusClass', () => {
-    it('should return status-warning for draft', () => {
-      const item = createChainItem({ statut: 'draft' });
-      expect(component.getStatusClass(item)).toBe('status-warning');
+  describe('rangGroups', () => {
+    it('regroupe par rang, du plus récent au plus ancien', () => {
+      component.chain = [
+        createChainItem({ id_pg: 1, rang: 1, statut: 'archive' }),
+        createChainItem({ id_pg: 2, rang: 2, statut: 'valide', is_current: true }),
+        createChainItem({ id_pg: 3, rang: 3, statut: 'draft' }),
+      ];
+      fixture.detectChanges();
+      expect(component.rangGroups().map(g => g.rang)).toEqual([3, 2, 1]);
     });
 
-    it('should return status-success for valide', () => {
-      const item = createChainItem({ statut: 'valide' });
-      expect(component.getStatusClass(item)).toBe('status-success');
+    it('marque le rang qui contient le plan consulté', () => {
+      component.chain = [
+        createChainItem({ id_pg: 1, rang: 1, statut: 'archive' }),
+        createChainItem({ id_pg: 2, rang: 2, statut: 'valide', is_current: true }),
+      ];
+      fixture.detectChanges();
+      expect(component.rangGroups().find(g => g.hasCurrent)?.rang).toBe(2);
     });
 
-    it('should return status-neutre for archive', () => {
-      const item = createChainItem({ statut: 'archive' });
-      expect(component.getStatusClass(item)).toBe('status-neutre');
+    it('trie les versions d\'un rang de la plus récente à la plus ancienne', () => {
+      component.chain = [
+        createChainItem({ id_pg: 1, rang: 1, version: '1' }),
+        createChainItem({ id_pg: 3, rang: 1, version: '3', is_current: true }),
+        createChainItem({ id_pg: 2, rang: 1, version: '2' }),
+      ];
+      fixture.detectChanges();
+      expect(component.rangGroups()[0].items.map(i => i.version)).toEqual(['3', '2', '1']);
+    });
+  });
+
+  // ==================== expansion des rangs ====================
+
+  describe('expansion', () => {
+    beforeEach(() => {
+      component.chain = [
+        createChainItem({ id_pg: 1, rang: 1, statut: 'archive' }),
+        createChainItem({ id_pg: 2, rang: 2, statut: 'valide', is_current: true }),
+      ];
+      fixture.detectChanges();
     });
 
-    it('should return empty string for unknown status', () => {
-      const item = createChainItem({ statut: 'unknown' as PlanStatut });
-      expect(component.getStatusClass(item)).toBe('');
+    it('ouvre par défaut le rang du plan consulté et garde les autres fermés', () => {
+      expect(component.isExpanded(2)).toBe(true);
+      expect(component.isExpanded(1)).toBe(false);
+    });
+
+    it('déplie un autre rang sans refermer celui du plan consulté', () => {
+      component.toggleRang(1);
+      expect(component.isExpanded(1)).toBe(true);
+      expect(component.isExpanded(2)).toBe(true);
+    });
+
+    it('replie le rang du plan consulté au clic', () => {
+      component.toggleRang(2);
+      expect(component.isExpanded(2)).toBe(false);
+    });
+
+    it('réinitialise l\'état déplié quand la chaîne change', () => {
+      component.toggleRang(1);
+      expect(component.isExpanded(1)).toBe(true);
+
+      component.chain = [createChainItem({ id_pg: 9, rang: 5, is_current: true })];
+      fixture.detectChanges();
+      expect(component.isExpanded(5)).toBe(true);
     });
   });
 
@@ -118,34 +180,51 @@ describe('PlanVersionTimelineComponent', () => {
 
   describe('DOM rendering', () => {
     it('should always render the timeline (read-only)', () => {
-      component.chain = [
-        createChainItem({ id_pg: 1, is_current: true }),
-      ];
+      component.chain = [createChainItem({ id_pg: 1, is_current: true })];
       fixture.detectChanges();
-      const timeline = fixture.nativeElement.querySelector('.version-timeline');
-      expect(timeline).toBeTruthy();
+      expect(fixture.nativeElement.querySelector('.version-timeline')).toBeTruthy();
     });
 
-    it('should display current badge for current item', () => {
+    it('affiche une section par rang', () => {
       component.chain = [
-        createChainItem({ id_pg: 1, version: '1' }),
-        createChainItem({ id_pg: 2, version: '2', is_current: true }),
+        createChainItem({ id_pg: 1, rang: 1 }),
+        createChainItem({ id_pg: 2, rang: 2, is_current: true }),
       ];
       fixture.detectChanges();
-      const badge = fixture.nativeElement.querySelector('.current-badge');
-      expect(badge).toBeTruthy();
-      expect(badge.textContent).toContain('actuel');
+      expect(fixture.nativeElement.querySelectorAll('.rang-section').length).toBe(2);
     });
 
-    it('should render correct number of timeline nodes', () => {
+    it('n\'affiche que les versions du rang déplié', () => {
       component.chain = [
-        createChainItem({ id_pg: 1 }),
-        createChainItem({ id_pg: 2 }),
-        createChainItem({ id_pg: 3, is_current: true }),
+        createChainItem({ id_pg: 1, rang: 1, version: '1' }),
+        createChainItem({ id_pg: 2, rang: 2, version: '1', is_current: true }),
+        createChainItem({ id_pg: 3, rang: 2, version: '2' }),
       ];
       fixture.detectChanges();
-      const nodes = fixture.nativeElement.querySelectorAll('.timeline-node-row');
-      expect(nodes.length).toBe(3);
+      // Seul le rang 2 (celui du plan consulté) est ouvert → ses 2 versions
+      expect(fixture.nativeElement.querySelectorAll('.version-card').length).toBe(2);
+    });
+
+    it('indique « Vous visualisez ce plan » sur la version courante et une flèche sur les autres', () => {
+      component.chain = [
+        createChainItem({ id_pg: 1, rang: 1, version: '1' }),
+        createChainItem({ id_pg: 2, rang: 1, version: '2', is_current: true }),
+      ];
+      fixture.detectChanges();
+
+      const hints = fixture.nativeElement.querySelectorAll('.version-current-hint');
+      expect(hints.length).toBe(1);
+      expect(hints[0].textContent).toContain('Vous visualisez ce plan');
+      expect(fixture.nativeElement.querySelectorAll('.version-goto').length).toBe(1);
+    });
+
+    it('cercle la carte du plan consulté', () => {
+      component.chain = [
+        createChainItem({ id_pg: 1, rang: 1, version: '1' }),
+        createChainItem({ id_pg: 2, rang: 1, version: '2', is_current: true }),
+      ];
+      fixture.detectChanges();
+      expect(fixture.nativeElement.querySelectorAll('.version-card--current').length).toBe(1);
     });
 
     it('should not render any action buttons (read-only timeline)', () => {
@@ -154,100 +233,7 @@ describe('PlanVersionTimelineComponent', () => {
         createChainItem({ id_pg: 2, is_current: true }),
       ];
       fixture.detectChanges();
-      const actions = fixture.nativeElement.querySelector('.timeline-actions');
-      expect(actions).toBeNull();
-    });
-  });
-
-  // ==================== isNextRangDraft (#280) ====================
-
-  describe('isNextRangDraft', () => {
-    it('renvoie false pour le plan courant', () => {
-      const current = createChainItem({ id_pg: 1, statut: 'valide', rang: 1, is_current: true });
-      component.chain = [current];
-      expect(component.isNextRangDraft(current)).toBe(false);
-    });
-
-    it('renvoie false pour un brouillon de même rang (évaluation mi-parcours)', () => {
-      const current = createChainItem({ id_pg: 1, statut: 'valide', rang: 1, is_current: true });
-      const evalDraft = createChainItem({ id_pg: 2, statut: 'draft', rang: 1 });
-      component.chain = [current, evalDraft];
-      expect(component.isNextRangDraft(evalDraft)).toBe(false);
-    });
-
-    it('renvoie true pour un brouillon de rang supérieur', () => {
-      const current = createChainItem({ id_pg: 1, statut: 'valide', rang: 1, is_current: true });
-      const nextRang = createChainItem({ id_pg: 2, statut: 'draft', rang: 2 });
-      component.chain = [current, nextRang];
-      expect(component.isNextRangDraft(nextRang)).toBe(true);
-    });
-
-    it('renvoie false pour un plan validé de rang supérieur (déjà validé, pas brouillon)', () => {
-      const current = createChainItem({ id_pg: 1, statut: 'valide', rang: 1, is_current: true });
-      const nextRangValide = createChainItem({ id_pg: 2, statut: 'valide', rang: 2 });
-      component.chain = [current, nextRangValide];
-      expect(component.isNextRangDraft(nextRangValide)).toBe(false);
-    });
-
-    it('renvoie false si rang manquant sur l\'élément testé', () => {
-      const current = createChainItem({ id_pg: 1, statut: 'valide', rang: 1, is_current: true });
-      const unknown = createChainItem({ id_pg: 2, statut: 'draft', rang: undefined });
-      component.chain = [current, unknown];
-      expect(component.isNextRangDraft(unknown)).toBe(false);
-    });
-
-    it('rend un header cliquable pour le rang suivant (pas de timeline-node-row)', () => {
-      component.chain = [
-        createChainItem({ id_pg: 1, statut: 'valide', rang: 1, is_current: true }),
-        createChainItem({ id_pg: 2, statut: 'draft', rang: 2, slug: 'rang-2-draft' }),
-      ];
-      fixture.detectChanges();
-      // Le rang courant montre 1 timeline-node-row, le rang suivant montre un header link
-      const nodes = fixture.nativeElement.querySelectorAll('.timeline-node-row');
-      expect(nodes.length).toBe(1);
-      const nextRangLink = fixture.nativeElement.querySelector('.rang-next .rang-header-link');
-      expect(nextRangLink).toBeTruthy();
-    });
-  });
-
-  // ==================== rangGroups (sections par rang) ====================
-
-  describe('rangGroups', () => {
-    it('regroupe les items par rang et marque previous/current/next', () => {
-      component.chain = [
-        createChainItem({ id_pg: 1, rang: 1, statut: 'archive' }),
-        createChainItem({ id_pg: 2, rang: 2, statut: 'valide', is_current: true }),
-        createChainItem({ id_pg: 3, rang: 3, statut: 'draft' }),
-      ];
-      fixture.detectChanges();
-      const groups = component.rangGroups();
-      expect(groups.length).toBe(3);
-      expect(groups[0].position).toBe('previous');
-      expect(groups[1].position).toBe('current');
-      expect(groups[2].position).toBe('next');
-    });
-
-    it('choisit la dernière version validée comme cible de navigation', () => {
-      component.chain = [
-        createChainItem({ id_pg: 1, rang: 1, statut: 'archive', version: '1' }),
-        createChainItem({ id_pg: 2, rang: 1, statut: 'archive', version: '2' }),
-        createChainItem({ id_pg: 3, rang: 2, statut: 'valide', is_current: true }),
-      ];
-      fixture.detectChanges();
-      const previous = component.rangGroups().find(g => g.position === 'previous');
-      expect(previous?.navigationTarget?.id_pg).toBe(2);  // v2 archive
-    });
-
-    it('prefere valide/modifie a archive a draft pour la navigation', () => {
-      component.chain = [
-        createChainItem({ id_pg: 1, rang: 1, statut: 'valide', is_current: true }),
-        createChainItem({ id_pg: 2, rang: 2, statut: 'draft', version: '1' }),
-        createChainItem({ id_pg: 3, rang: 2, statut: 'archive', version: '2' }),
-        createChainItem({ id_pg: 4, rang: 2, statut: 'modifie', version: '3' }),
-      ];
-      fixture.detectChanges();
-      const next = component.rangGroups().find(g => g.position === 'next');
-      expect(next?.navigationTarget?.id_pg).toBe(4);  // modifie wins
+      expect(fixture.nativeElement.querySelector('.timeline-actions')).toBeNull();
     });
   });
 });

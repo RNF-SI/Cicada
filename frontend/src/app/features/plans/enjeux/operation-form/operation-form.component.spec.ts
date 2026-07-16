@@ -30,9 +30,18 @@ function createComponentInstance(): OperationFormComponent {
   comp.typeBudgets = {};
   comp.orgByOrgData = {};
   comp.programmationMensuelleDefaut = {};
+  // #560 — lignes RH (dérivées des postes ou des organismes selon le mode)
+  comp.rhLines = [];
 
   // Signals (reproduits manuellement car pas d'injection Angular)
   (comp as any).ventilationMode = signal<'none' | 'by_org' | 'by_type' | 'by_org_type'>('none');
+  (comp as any).declinaisonParPoste = signal(false);
+  (comp as any).postes = signal<any[]>([]);
+  (comp as any).rhMode = computed(() => {
+    if ((comp as any).declinaisonParPoste()) return 'postes';
+    const mode = (comp as any).ventilationMode();
+    return mode === 'by_org' || mode === 'by_org_type' ? 'organismes' : 'hidden';
+  });
   (comp as any).directTotalMode = computed(() => (comp as any).ventilationMode() === 'none');
   (comp as any).selectedSiteIdsVersion = signal(0);
   (comp as any).planSites = signal([
@@ -788,6 +797,93 @@ describe('OperationFormComponent — ventilation budgétaire', () => {
       expect(ctrl.valid).toBe(true);
     });
   });
+
+  // -------------------------------------------------------------------------
+  // #560 — Tableau RH dérivé (déclinaison par poste / ventilation par organisme)
+  // -------------------------------------------------------------------------
+
+  describe('lignes RH dérivées (#560)', () => {
+    beforeEach(() => {
+      comp.rhLines = [];
+      (comp as any).declinaisonParPoste.set(false);
+      (comp as any).ventilationMode.set('none');
+      (comp as any).postes.set([
+        { id_poste: 1, libelle: 'Conservateur', organisme_nom: 'RNF', finance_par_defaut: true },
+        { id_poste: 2, libelle: 'Bénévole', organisme_nom: 'RNF', finance_par_defaut: false },
+      ]);
+    });
+
+    it('masque le tableau sans déclinaison ni ventilation par organisme', () => {
+      expect((comp as any).rhMode()).toBe('hidden');
+    });
+
+    it('décline une ligne par poste quand la case est cochée', () => {
+      comp.toggleDeclinaisonParPoste(true);
+      expect((comp as any).rhMode()).toBe('postes');
+      expect(comp.rhLines.map(l => l.id_poste)).toEqual([1, 2]);
+      expect(comp.rhLines.every(l => l.derived)).toBe(true);
+    });
+
+    it('hérite du financement des fonctions du poste', () => {
+      comp.toggleDeclinaisonParPoste(true);
+      expect(comp.rhLines.find(l => l.id_poste === 1)!.finance).toBe(true);
+      expect(comp.rhLines.find(l => l.id_poste === 2)!.finance).toBe(false);
+    });
+
+    it('décline une ligne par organisme quand le budget est ventilé par organisme', () => {
+      comp.onModeToggle('by_org');
+      expect((comp as any).rhMode()).toBe('organismes');
+      expect(comp.rhLines.map(l => l.id_organisme)).toEqual([100, 101]);
+      expect(comp.rhLines.every(l => l.id_poste === null)).toBe(true);
+    });
+
+    it('préserve les jours déjà saisis en reconstruisant les lignes', () => {
+      comp.toggleDeclinaisonParPoste(true);
+      comp.setRhJours(0, 0, '8');
+      // Une nouvelle synchronisation (ex. postes rechargés) ne doit rien perdre.
+      comp.toggleDeclinaisonParPoste(true);
+      expect(comp.getRhJours(0, 0)).toBe(8);
+    });
+
+    it('écarte les lignes qui ne correspondent plus au mode', () => {
+      comp.toggleDeclinaisonParPoste(true);
+      comp.setRhJours(0, 0, '8');
+      // Passage en ventilation par organisme : les lignes par poste n'ont plus
+      // de sens, seules les lignes par organisme subsistent.
+      comp.toggleDeclinaisonParPoste(false);
+      comp.onModeToggle('by_org');
+      expect(comp.rhLines.every(l => l.id_poste === null)).toBe(true);
+      expect(comp.rhLines.map(l => l.id_organisme)).toEqual([100, 101]);
+    });
+
+    it('conserve un lot ajouté à la main sur une cible déjà listée', () => {
+      comp.toggleDeclinaisonParPoste(true);
+      comp.addRhLine();
+      comp.setRhTarget(2, 1); // second lot sur le poste 1
+      comp.rhLines[2].finance = false;
+      comp.toggleDeclinaisonParPoste(true); // resynchronisation
+      expect(comp.rhLines.length).toBe(3);
+      const lots = comp.rhLines.filter(l => l.id_poste === 1);
+      expect(lots.length).toBe(2);
+      expect(lots.filter(l => l.derived).length).toBe(1);
+    });
+
+    it('totalise les jours par année, financé et non financé séparément', () => {
+      comp.toggleDeclinaisonParPoste(true);
+      comp.setRhJours(0, 0, '8');   // Conservateur, financé
+      comp.setRhJours(1, 0, '5');   // Bénévole, non financé
+      expect(comp.getRhYearTotal(0)).toBe(13);
+      expect(comp.getRhYearTotalByFinance(0, true)).toBe(8);
+      expect(comp.getRhYearTotalByFinance(0, false)).toBe(5);
+      expect(comp.hasRhNonFinance()).toBe(true);
+    });
+
+    it('affiche l\'organisme sous le libellé du poste', () => {
+      comp.toggleDeclinaisonParPoste(true);
+      expect(comp.rhLineLabel(comp.rhLines[0])).toBe('Conservateur');
+      expect(comp.rhLineSubLabel(comp.rhLines[0])).toBe('RNF');
+    });
+  });
 });
 
 // ===========================================================================
@@ -846,4 +942,5 @@ describe('OperationFormComponent — lien vers le suivi de l\'action (#531)', ()
 
     expect(router.navigate).not.toHaveBeenCalled();
   });
+
 });

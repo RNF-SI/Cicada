@@ -9,30 +9,16 @@ import {
   getPlanStatusTooltipKey,
 } from '../../utils/plan-status.utils';
 import { TagComponent, TagSize, TagVariant } from '../tag/tag.component';
-
-/**
- * Mapping statut de plan → variante du composant Kit UI {@link TagComponent}.
- * Source de vérité unique des couleurs des chips statut dans l'app.
- *
- * - draft   → warning   (salmon $secondary-orange-salmon)
- * - valide  → score-good (vert $score-good — comme la liste des plans)
- * - modifie → score-very-good (cyan $score-very-good)
- * - archive → muted     (gris $gray-light)
- */
-const STATUS_TO_TAG_VARIANT: Record<string, TagVariant> = {
-  draft: 'warning',
-  valide: 'score-good',
-  modifie: 'score-very-good',
-  archive: 'muted',
-};
+import { getPlanStatusTag } from '../../utils/tag-icons';
 
 /**
  * Source de vérité unique pour l'affichage d'un chip statut de plan de
  * gestion dans toute l'application (Mes plans, Plan détail, Site associé,
  * Admin plans, etc.).
  *
- * Wrapper du composant Kit UI `<app-tag>` : map `PlanStatut` → `TagVariant`
- * + label/tooltip i18n centralisés via `plan-status.utils.ts`.
+ * Wrapper du composant Kit UI `<app-tag>` : couleur et icône du statut prises
+ * dans `tag-icons.ts` (source Figma), label/tooltip i18n centralisés via
+ * `plan-status.utils.ts`.
  *
  * @example
  * <app-status-chip [statut]="plan.statut" />
@@ -50,6 +36,7 @@ const STATUS_TO_TAG_VARIANT: Record<string, TagVariant> = {
       matTooltipPosition="above">
       <app-tag
         [variant]="variant()"
+        [icon]="icon()"
         [label]="labelKey() | translate"
         [size]="size">
       </app-tag>
@@ -81,7 +68,6 @@ export class StatusChipComponent {
 
   readonly labelKey = computed(() => getPlanStatusKey(this._statut()));
   readonly tooltipKey = computed(() => getPlanStatusTooltipKey(this._statut()));
-  readonly variant = computed<TagVariant>(() =>
-    STATUS_TO_TAG_VARIANT[this._statut()] ?? 'muted',
-  );
+  readonly variant = computed<TagVariant>(() => getPlanStatusTag(this._statut()).variant);
+  readonly icon = computed<string | undefined>(() => getPlanStatusTag(this._statut()).icon);
 }

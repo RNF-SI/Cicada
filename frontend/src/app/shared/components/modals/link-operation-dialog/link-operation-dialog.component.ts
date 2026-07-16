@@ -3,7 +3,6 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
-import { MatChipsModule } from '@angular/material/chips';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
@@ -11,6 +10,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { EnjeuService } from '../../../../core/services/enjeu.service';
 import { FormFieldComponent } from '../../form-field/form-field.component';
+import { TagComponent } from '../../tag/tag.component';
 
 export interface LinkOperationDialogData {
   planId: number;
@@ -25,7 +25,7 @@ export interface LinkOperationDialogData {
 }
 
 export interface LinkOperationDialogResult {
-  action: 'create' | 'link' | 'cancel';
+  action: 'create' | 'link' | 'copy' | 'cancel';
   operationId?: number;
 }
 
@@ -47,13 +47,13 @@ interface OperationItem {
     FormsModule,
     MatDialogModule,
     MatButtonModule,
-    MatChipsModule,
     MatFormFieldModule,
     MatInputModule,
     MatProgressSpinnerModule,
     MatTooltipModule,
     TranslateModule,
     FormFieldComponent,
+    TagComponent,
   ],
   templateUrl: './link-operation-dialog.component.html',
   styleUrl: './link-operation-dialog.component.scss',
@@ -64,7 +64,7 @@ export class LinkOperationDialogComponent {
   private readonly enjeuService = inject(EnjeuService);
   private readonly translate = inject(TranslateService);
 
-  mode = signal<'choose' | 'link'>('choose');
+  mode = signal<'choose' | 'link' | 'copy'>('choose');
   isLoading = signal(false);
   searchTerm = signal('');
   allOperations = signal<OperationItem[]>([]);
@@ -111,6 +111,11 @@ export class LinkOperationDialogComponent {
     this.loadOperations();
   }
 
+  selectCopy(): void {
+    this.mode.set('copy');
+    this.loadOperations();
+  }
+
   goBack(): void {
     this.mode.set('choose');
     this.selectedOperationId.set(null);
@@ -123,11 +128,12 @@ export class LinkOperationDialogComponent {
     );
   }
 
-  confirmLink(): void {
+  /** Valide la phase 2 selon le mode courant (lier une action existante ou en copier une). */
+  confirmSelection(): void {
     const opId = this.selectedOperationId();
-    if (opId) {
-      this.dialogRef.close({ action: 'link', operationId: opId } as LinkOperationDialogResult);
-    }
+    if (!opId) return;
+    const action = this.mode() === 'copy' ? 'copy' : 'link';
+    this.dialogRef.close({ action, operationId: opId } as LinkOperationDialogResult);
   }
 
   cancel(): void {

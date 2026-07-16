@@ -27,25 +27,11 @@ export function getPlanStatusTooltipKey(statut: PlanStatut | string): string {
   return `plans.status.${statut}Tooltip`;
 }
 
-/**
- * Classe CSS du chip statut. Aligné sur les chips globaux Material
- * (`_material-overrides.scss`). Source de vérité unique pour l'affichage
- * du statut d'un plan partout dans l'application.
- *
- * - draft   → status-warning (orange)
- * - valide  → status-success (vert)
- * - modifie → status-info (bleu ciel)
- * - archive → status-neutre (terra-cotta)
- */
-export function getPlanStatusClass(statut: PlanStatut | string): string {
-  const map: Record<string, string> = {
-    draft: 'status-warning',
-    valide: 'status-success',
-    modifie: 'status-info',
-    archive: 'status-neutre',
-  };
-  return map[statut] || '';
-}
+// `getPlanStatusClass()` a été supprimé avec la refonte des tags (Figma
+// « 🧩 Tags » 4487:30877) : les couleurs de statut ne passent plus par les
+// classes `.status-*` de Material mais par `<app-tag>` / `<app-status-chip>`.
+// Le mapping statut → couleur + icône vit désormais dans
+// `shared/utils/tag-icons.ts` (`getPlanStatusTag()`).
 
 /**
  * Clé i18n du badge "Étendu" affiché en complément du statut, lorsque

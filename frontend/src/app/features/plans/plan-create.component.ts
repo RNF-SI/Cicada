@@ -20,7 +20,6 @@ import { MatRadioModule } from '@angular/material/radio';
 import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatNativeDateModule } from '@angular/material/core';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { MatChipsModule } from '@angular/material/chips';
 import { MatAutocompleteModule, MatAutocompleteSelectedEvent } from '@angular/material/autocomplete';
 import { MatIconModule } from '@angular/material/icon';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
@@ -33,6 +32,7 @@ import { HeaderComponent } from '../../shared/components/header/header.component
 import { SearchBarComponent } from '../../shared/components/search-bar/search-bar.component';
 import { CheckboxComponent } from '../../shared/components/checkbox/checkbox.component';
 import { FormFieldComponent } from '../../shared/components/form-field/form-field.component';
+import { TagComponent } from '../../shared/components/tag/tag.component';
 import { ViewScopeToggleComponent, ViewScope } from '../../shared/components/view-scope-toggle/view-scope-toggle.component';
 import { SiteFormModalComponent, SiteFormModalResult } from '../../shared/components/modals/site-form-modal/site-form-modal.component';
 import {
@@ -83,7 +83,6 @@ interface OrganismeEntry {
     MatDatepickerModule,
     MatNativeDateModule,
     MatTooltipModule,
-    MatChipsModule,
     MatAutocompleteModule,
     MatIconModule,
     MatDialogModule,
@@ -94,6 +93,7 @@ interface OrganismeEntry {
     SearchBarComponent,
     CheckboxComponent,
     FormFieldComponent,
+    TagComponent,
   ],
   templateUrl: './plan-create.component.html',
   styleUrl: './plan-create.component.scss'

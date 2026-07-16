@@ -1,11 +1,11 @@
 import { Component, inject, input, signal, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatCardModule } from '@angular/material/card';
-import { MatChipsModule } from '@angular/material/chips';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { TranslateModule } from '@ngx-translate/core';
 
 import { TaxonomyService, TaxrefDetail } from '../../../core/services/taxonomy.service';
+import { TagComponent } from '../tag/tag.component';
 
 @Component({
   selector: 'app-taxon-detail',
@@ -13,9 +13,9 @@ import { TaxonomyService, TaxrefDetail } from '../../../core/services/taxonomy.s
   imports: [
     CommonModule,
     MatCardModule,
-    MatChipsModule,
     MatProgressSpinnerModule,
     TranslateModule,
+    TagComponent,
   ],
   templateUrl: './taxon-detail.component.html',
   styleUrl: './taxon-detail.component.scss',

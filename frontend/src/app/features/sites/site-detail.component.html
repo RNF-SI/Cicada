@@ -37,15 +37,18 @@
             </div>
             <h1>{{ site()!.nom_site }}</h1>
             <div class="status-badges">
+              <!-- Statut « inactif » : statut principal → tag rouge + croix (Figma « 🧩 Tags »). -->
               @if (site()!.active === false) {
-                <mat-chip class="status-inactive">
-                  <i class="fi fi-rr-ban chip-icon"></i>
-                  {{ 'sites.detail.inactive' | translate }}
-                </mat-chip>
+                <app-tag
+                  variant="error"
+                  icon="fi-rr-cross"
+                  [label]="'sites.detail.inactive' | translate">
+                </app-tag>
               }
+              <!-- Rôle de l'utilisateur courant : référent (étoile) ou simple accès (utilisateur). -->
               @if (site()!.current_user_access) {
                 <app-tag
-                  [variant]="isReferent() ? 'warning' : 'muted'"
+                  [variant]="isReferent() ? 'warning' : 'info'"
                   [icon]="isReferent() ? 'fi-rr-star' : 'fi-rr-user'"
                   [label]="site()!.current_user_access!.role_label">
                 </app-tag>
@@ -177,16 +180,14 @@
                         }
                       </div>
                       <div class="organisme-role">
-                        <!-- Tag organisme principal : étoile retirée (revue design #310) -->
-                        @if (org.principal) {
-                          <mat-chip class="role-principal">
-                            {{ 'sites.detail.principalOrg' | translate }}
-                          </mat-chip>
-                        } @else {
-                          <mat-chip class="role-gestionnaire">
-                            {{ 'sites.detail.gestionnaireOrg' | translate }}
-                          </mat-chip>
-                        }
+                        <!-- Rôle de l'organisme : hors des statuts principaux du kit → une
+                             couleur unique de tag, sans icône (Figma « 🧩 Tags »). Le libellé
+                             porte seul la distinction principal / gestionnaire. -->
+                        <app-tag
+                          variant="neutral"
+                          size="sm"
+                          [label]="(org.principal ? 'sites.detail.principalOrg' : 'sites.detail.gestionnaireOrg') | translate">
+                        </app-tag>
                       </div>
                     </div>
                   }
@@ -229,7 +230,8 @@
                         <span class="user-org">{{ ua.user.organisme }}</span>
                       }
                       <app-tag tileAction
-                        [variant]="getUserRoleVariant(ua)"
+                        [variant]="getUserRoleTag(ua).variant"
+                        [icon]="getUserRoleTag(ua).icon"
                         [label]="getUserRoleLabel(ua)"
                         size="sm">
                       </app-tag>
@@ -293,7 +295,12 @@
                       <div class="plan-card plan-card-pending">
                         <div class="plan-info">
                           <span class="plan-name">{{ req.target_plan_name }}</span>
-                          <span class="status-badge status-warning">{{ 'common.status.pending' | translate }}</span>
+                          <app-tag
+                            variant="warning"
+                            icon="fi-rr-edit"
+                            size="sm"
+                            [label]="'common.status.pending' | translate">
+                          </app-tag>
                         </div>
                         <i class="fi fi-rr-hourglass"></i>
                       </div>

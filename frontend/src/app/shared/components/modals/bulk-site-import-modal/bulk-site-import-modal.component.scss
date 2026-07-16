@@ -234,6 +234,21 @@
 }
 
 // Step actions - navigation buttons
+// Barre d'actions de la modale : « Précédent » ancré à gauche, le reste à
+// droite (annotation Figma « 🔢 Composant étapes »).
+.bulk-import-actions {
+  display: flex;
+  gap: $spacing-sm;
+  align-items: center;
+}
+
+.bulk-import-actions-right {
+  display: flex;
+  gap: $spacing-sm;
+  align-items: center;
+  margin-left: auto;
+}
+
 .step-actions {
   display: flex;
   gap: $spacing-sm;
@@ -310,36 +325,7 @@
   }
 }
 
-// Status chips
-.status-chip {
-  display: inline-block;
-  padding: 2px 9px;
-  border-radius: $border-radius-pill;
-  font-size: 0.75rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.status-success {
-  background-color: rgba($success-color, 0.1);
-  color: $success-color;
-}
-
-.status-error {
-  background-color: rgba($error-color, 0.1);
-  color: $error-color;
-}
-
-.status-warning {
-  background-color: rgba($warning-color, 0.1);
-  color: $black;
-}
-
-.status-info {
-  background-color: rgba($info-color, 0.1);
-  color: $primary-color;
-}
+// Les statuts sont rendus par <app-tag> (cf. shared/components/tag)
 
 .no-valid-text {
   text-align: center;

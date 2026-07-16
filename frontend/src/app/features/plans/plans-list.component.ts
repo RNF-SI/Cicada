@@ -24,6 +24,7 @@ import { catchError } from 'rxjs/operators';
 import { HeaderComponent } from '../../shared/components/header/header.component';
 import { SearchBarComponent } from '../../shared/components/search-bar/search-bar.component';
 import { StatusChipComponent } from '../../shared/components/status-chip/status-chip.component';
+import { TagComponent } from '../../shared/components/tag/tag.component';
 import { PlanGaugeComponent, GaugeStatus } from '../../shared/components/plan-gauge/plan-gauge.component';
 import { ViewScopeToggleComponent, ViewScope } from '../../shared/components/view-scope-toggle/view-scope-toggle.component';
 import { AdminService } from '../../core/services/admin.service';
@@ -80,6 +81,7 @@ interface PlanWithAccess extends AdminPlan {
     ViewScopeToggleComponent,
     SearchBarComponent,
     StatusChipComponent,
+    TagComponent,
   ],
   templateUrl: './plans-list.component.html',
   styleUrl: './plans-list.component.scss'
@@ -265,10 +267,13 @@ export class PlansListComponent implements OnInit {
     return map;
   });
 
-  // Plans parents liés, affichés AU-DESSUS de chaque feuille.
+  // Versions précédentes d'un plan, affichées EN DESSOUS de lui et décalées
+  // vers la droite (Figma « 🔄 Tableau PdG - gestion des versions », 4487:31254 :
+  // « affichage d'abord du plan actuel modifiable, et en dessous les versions »).
+  // Ordre : de la plus récente à la plus ancienne.
   // - Toggle OFF : seul le parent immédiat est montré si la feuille est un brouillon
   //   (l'utilisateur voit le plan qu'il édite + le plan actuel qu'il remplace)
-  // - Toggle ON : toute la chaîne d'ancêtres (du plus ancien au plus récent)
+  // - Toggle ON : toute la chaîne d'ancêtres
   readonly linkedPlansById = computed(() => {
     const result = new Map<number, PlanWithAccess[]>();
     const byId = this.plansById();
@@ -295,8 +300,9 @@ export class PlansListComponent implements OnInit {
       }
 
       if (ancestors.length > 0) {
-        // Inverser : le plus ancien ancêtre en premier (affiché en haut)
-        result.set(plan.id_pg, ancestors.reverse());
+        // Déjà du plus récent au plus ancien : on remonte la chaîne depuis le parent
+        // immédiat, et c'est l'ordre d'affichage attendu sous le plan courant.
+        result.set(plan.id_pg, ancestors);
       }
     }
     return result;
@@ -781,6 +787,15 @@ export class PlansListComponent implements OnInit {
       return `${plan.annee_debut}`;
     }
     return '-';
+  }
+
+  /**
+   * Libellé d'une version précédente affichée sous son plan : « Plan initial - V1 ».
+   */
+  versionLabel(version: PlanWithAccess): string {
+    const type = version.type_document_display
+      || this.translate.instant('plans.lifecycle.timeline.planInitial');
+    return version.version ? `${type} - V${version.version}` : type;
   }
 
   /**

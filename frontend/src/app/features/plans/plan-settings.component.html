@@ -61,9 +61,13 @@
             <div class="current-version">
               <div class="current-version-info">
                 <span class="version-rang">{{ 'plans.settings.versionLabel' | translate }} {{ p.version ?? '1' }}</span>
-                <app-tag [variant]="tagVariant(p.statut)" [label]="'plans.status.' + p.statut | translate" size="sm"></app-tag>
+                <app-tag [variant]="statusTag(p.statut).variant"
+                         [icon]="statusTag(p.statut).icon"
+                         [label]="'plans.status.' + p.statut | translate"
+                         size="sm"></app-tag>
+                <!-- Évaluation mi-parcours : tag neutre sans icône (Figma). -->
                 @if (p.is_mi_parcours) {
-                  <app-tag variant="warning" [label]="'plans.settings.miParcoursBadge' | translate" size="sm"></app-tag>
+                  <app-tag variant="neutral" [label]="'plans.settings.miParcoursBadge' | translate" size="sm"></app-tag>
                 }
               </div>
               <button
@@ -89,9 +93,13 @@
                   <li class="version-row" [class.is-current]="v.is_current">
                     <div class="version-main">
                       <span class="version-rang">{{ 'plans.settings.versionLabel' | translate }} {{ v.version }}</span>
-                      <app-tag [variant]="tagVariant(v.statut)" [label]="'plans.status.' + v.statut | translate" size="sm"></app-tag>
+                      <app-tag [variant]="statusTag(v.statut).variant"
+                               [icon]="statusTag(v.statut).icon"
+                               [label]="'plans.status.' + v.statut | translate"
+                               size="sm"></app-tag>
+                      <!-- Évaluation mi-parcours : tag neutre sans icône (Figma). -->
                       @if (v.is_mi_parcours) {
-                        <app-tag variant="warning" [label]="'plans.settings.miParcoursBadge' | translate" size="sm"></app-tag>
+                        <app-tag variant="neutral" [label]="'plans.settings.miParcoursBadge' | translate" size="sm"></app-tag>
                       }
                       @if (v.is_current) {
                         <span class="current-badge">{{ 'plans.settings.currentBadge' | translate }}</span>

@@ -1,108 +1,91 @@
 <div class="version-timeline">
-  @for (group of rangGroups(); track group.rang) {
-    <div class="rang-section"
-         [class.rang-previous]="group.position === 'previous'"
-         [class.rang-current]="group.position === 'current'"
-         [class.rang-next]="group.position === 'next'">
+  @for (group of rangGroups(); track group.rang; let last = $last) {
+    <div class="rang-section" [class.rang-section--expanded]="isExpanded(group.rang)">
 
-      <!-- Rangs précédents/suivants : header cliquable, pas de détails -->
-      @if (group.position !== 'current') {
-        @if (group.navigationTarget) {
-          <a class="rang-header rang-header-link"
-             [routerLink]="['/plans', group.navigationTarget.slug]">
-            <i class="fi" [ngClass]="group.position === 'previous' ? 'fi-rr-arrow-up' : 'fi-rr-arrow-down'"></i>
-            <span class="rang-label">
-              {{ 'plans.lifecycle.timeline.rang' | translate }} {{ group.rang }}
-              <span class="rang-position-tag">
-                @if (group.position === 'previous') {
-                  {{ 'plans.lifecycle.timeline.previousRang' | translate }}
-                } @else {
-                  {{ 'plans.lifecycle.timeline.nextRang' | translate }}
-                }
-              </span>
-            </span>
-            <span class="rang-summary-versions">
-              {{ group.items.length }}
-              {{ (group.items.length > 1
-                  ? 'plans.lifecycle.timeline.versionsPlural'
-                  : 'plans.lifecycle.timeline.versionsSingular') | translate }}
-            </span>
-            <i class="fi fi-rr-angle-small-right rang-chevron"></i>
-          </a>
-        } @else {
-          <div class="rang-header">
-            <i class="fi" [ngClass]="group.position === 'previous' ? 'fi-rr-arrow-up' : 'fi-rr-arrow-down'"></i>
-            <span class="rang-label">
-              {{ 'plans.lifecycle.timeline.rang' | translate }} {{ group.rang }}
-            </span>
-          </div>
-        }
-      }
+      <!-- En-tête de rang : toujours cliquable pour déplier/replier -->
+      <button
+        type="button"
+        class="rang-header"
+        [attr.aria-expanded]="isExpanded(group.rang)"
+        (click)="toggleRang(group.rang)">
+        <span class="rang-label">
+          {{ 'plans.lifecycle.timeline.rang' | translate }} {{ group.rang }}
+        </span>
+        <span class="rang-versions-count">
+          {{ group.items.length }}
+          {{ (group.items.length > 1
+              ? 'plans.lifecycle.timeline.versionsPlural'
+              : 'plans.lifecycle.timeline.versionsSingular') | translate }}
+        </span>
+        <i class="fi rang-chevron"
+           [ngClass]="isExpanded(group.rang) ? 'fi-rr-angle-small-up' : 'fi-rr-angle-small-down'"
+           aria-hidden="true"></i>
+      </button>
 
-      <!-- Rang courant : header avec tag « actuel » + détails complets -->
-      @if (group.position === 'current') {
-        <div class="rang-header rang-header-current">
-          <i class="fi fi-rr-circle-small"></i>
-          <span class="rang-label">
-            {{ 'plans.lifecycle.timeline.rang' | translate }} {{ group.rang }}
-            <span class="rang-position-tag rang-position-current">
-              {{ 'plans.lifecycle.timeline.currentRang' | translate }}
-            </span>
-          </span>
-        </div>
-
-        <div class="timeline-track">
-          @for (item of group.items; track item.id_pg; let first = $first; let last = $last) {
-            <a class="timeline-node-row"
-               [routerLink]="item.is_current ? null : ['/plans', item.slug]"
-               [class.clickable]="!item.is_current"
-               [class.current]="item.is_current">
-              <div class="timeline-rail"
-                   [class.rail-first]="first"
-                   [class.rail-last]="last">
-                <div class="rail-dot"
-                     [ngClass]="'dot-' + item.statut"
-                     [class.dot-current]="item.is_current">
-                  <i class="fi" [ngClass]="getNodeIcon(item)"></i>
-                </div>
-              </div>
-              <div class="node-info">
-                <div class="node-header">
-                  <span class="node-version">v{{ item.version }}</span>
+      <!-- Versions du rang, de la plus récente à la plus ancienne -->
+      @if (isExpanded(group.rang)) {
+        <div class="rang-versions">
+          @for (item of group.items; track item.id_pg) {
+            <div class="version-row">
+              <span class="version-rail" aria-hidden="true">
+                <span class="rail-dot" [class.rail-dot--current]="item.is_current">
                   @if (item.is_current) {
-                    <span class="current-badge">{{ 'plans.lifecycle.timeline.current' | translate }}</span>
+                    <i class="fi fi-rr-eye"></i>
                   }
-                  <mat-chip-set>
-                    <mat-chip [ngClass]="getStatusClass(item)" highlighted
-                              [matTooltip]="item.statut === 'modifie' ? ('plans.status.modifieTooltip' | translate) : ''"
-                              matTooltipPosition="above">
-                      {{ getStatusLabelKey(item) | translate }}
-                    </mat-chip>
+                </span>
+              </span>
+
+              <div class="version-card" [class.version-card--current]="item.is_current">
+                <div class="version-info">
+                  <div class="version-heading">
+                    <span class="version-number">V{{ item.version }}</span>
+                    <span class="version-dot">·</span>
+                    <span class="version-type">
+                      {{ item.type_document || ('plans.lifecycle.timeline.planInitial' | translate) }}
+                    </span>
+                  </div>
+                  <div class="version-tags">
+                    <app-tag
+                      [variant]="statusTag(item).variant"
+                      [icon]="statusTag(item).icon"
+                      [label]="getStatusLabelKey(item) | translate">
+                    </app-tag>
                     @if (isItemExtended(item)) {
-                      <mat-chip class="extension-badge" highlighted>
-                        <i class="fi fi-rr-time-add"></i>
-                        {{ getExtensionBadgeLabelKey() | translate }} +{{ item.annees_extension }}
-                      </mat-chip>
+                      <app-tag
+                        variant="neutral"
+                        [label]="(getExtensionBadgeLabelKey() | translate) + ' +' + item.annees_extension">
+                      </app-tag>
                     }
                     @if (isItemInRevision(item)) {
-                      <mat-chip class="revision-badge" highlighted>
-                        <i class="fi fi-rr-refresh"></i>
-                        {{ 'plans.revision.badge' | translate }}
-                      </mat-chip>
+                      <app-tag variant="neutral" [label]="'plans.revision.badge' | translate"></app-tag>
                     }
                     @if (isItemMiParcours(item)) {
-                      <mat-chip class="mi-parcours-badge" highlighted>
-                        <i class="fi fi-rr-time-forward"></i>
-                        {{ 'plans.miParcours.badge' | translate }}
-                      </mat-chip>
+                      <app-tag variant="neutral" [label]="'plans.miParcours.badge' | translate"></app-tag>
                     }
-                  </mat-chip-set>
+                  </div>
                 </div>
-                <span class="node-type">{{ item.type_document || ('plans.lifecycle.timeline.planInitial' | translate) }}</span>
+
+                <div class="version-action">
+                  @if (item.is_current) {
+                    <span class="version-current-hint">
+                      {{ 'plans.lifecycle.timeline.viewingThisPlan' | translate }}
+                    </span>
+                  } @else {
+                    <a class="version-goto"
+                       [routerLink]="['/plans', item.slug]"
+                       [attr.aria-label]="('plans.lifecycle.timeline.goToVersion' | translate) + ' V' + item.version">
+                      <i class="fi fi-rr-arrow-small-right" aria-hidden="true"></i>
+                    </a>
+                  }
+                </div>
               </div>
-            </a>
+            </div>
           }
         </div>
+      }
+
+      @if (!last) {
+        <span class="rang-separator" aria-hidden="true"></span>
       }
     </div>
   }

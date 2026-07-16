@@ -134,30 +134,17 @@ Les couleurs suivantes ne doivent etre utilisees que pour des elements decoratif
 
 ### Statuts de validation
 
+> ⚠️ **Obsolete** : ne plus ecrire de `mat-chip` + `.status-*` pour un statut.
+> Utiliser `<app-tag>` (ou `<app-status-chip>` pour un statut de plan) — voir
+> « Tags/Chips de statut » plus bas. Les classes `.status-*` restent definies
+> dans `_material-overrides.scss`, realignees sur la palette pastel des tags,
+> uniquement comme filet de securite pour le code non encore migre.
+
 ```scss
-// Valide / Approuve
-.status-success, .status-valide {
-  --mdc-chip-elevated-container-color: rgba(#04854B, 0.15);
-  --mdc-chip-label-text-color: #04854B;
-}
-
-// En attente
-.status-warning, .status-pending {
-  --mdc-chip-elevated-container-color: rgba(#FA9965, 0.15);
-  --mdc-chip-label-text-color: #343433;
-}
-
-// Rejete / Erreur
-.status-error, .status-rejected {
-  --mdc-chip-elevated-container-color: rgba(#E12329, 0.15);
-  --mdc-chip-label-text-color: #E12329;
-}
-
-// Neutre / Info
-.status-neutre, .status-info {
-  --mdc-chip-elevated-container-color: rgba(#81C9D8, 0.15);
-  --mdc-chip-label-text-color: #025359;
-}
+// Valide / Approuve       → <app-tag variant="success" icon="fi-rr-check">
+// En attente / Brouillon  → <app-tag variant="warning" icon="fi-rr-edit">
+// Rejete / Erreur         → <app-tag variant="error" icon="fi-rr-cross">
+// Neutre                  → <app-tag variant="neutral">  (sans icone)
 ```
 
 ### Scores (jauges, evaluations)
@@ -771,12 +758,40 @@ Liste compacte avec puces colorees.
 
 ### Tags/Chips de statut
 
-| Statut | Fond | Texte |
-|--------|------|-------|
-| Valide | `#04854B` | Blanc |
-| Invalide | `#E12329` | Blanc |
-| En cours | `#FEC180` | `#343433` |
-| Brouillon | `#C6C6C6` | `#343433` |
+> **Source Figma** : « 🧩 Tags » (node `4487-30877`). Composant : `<app-tag>`
+> (`shared/components/tag/`). Mapping statut → couleur + icone :
+> `shared/utils/tag-icons.ts` (source de verite unique).
+
+Palette pastel, **texte toujours noir `#343433`** (les fonds sont desatures
+pour rester AA avec du noir). Pill `border-radius: 40px`, hauteur 24px,
+padding `2px 10px`, libelle Nunito Regular 13px, icone 12px.
+
+| Variante | Fond | Variable SCSS | Icone | Usage |
+|----------|------|---------------|-------|-------|
+| `success` | `#CFF1D3` | `$tag-green` | `fi-rr-check` | Valide, Approuve, Actif |
+| `error` | `#FFC7C9` | `$tag-red` | `fi-rr-cross` | Rejete, Annule, Expire, Inactif, Erreur |
+| `info` / `primary` | `#C1E5EC` | `$tag-cyan` | `fi-rr-memo-circle-check` / `fi-rr-user` | Modifie, Utilisateur |
+| `warning` / `draft` | `#FFE6CC` | `$tag-orange` | `fi-rr-edit` / `fi-rr-star` | Brouillon, En attente, Referent |
+| `neutral` | `#F9CFBE` | `$tag-salmon` | **aucune** | Libelle neutre |
+| `muted` | `#E4E4E4` | `$tag-gray` | `fi-rr-box` | Archive |
+
+**Regles issues des annotations de la maquette :**
+
+1. « Tag avec icone pour les statuts principaux ou la couleur et l'icone font
+   sens. Pour les autres, une couleur unique de tag, sans icone, afin de ne pas
+   multiplier les icones et les couleurs. » → tout libelle qui n'est pas un
+   statut connu utilise `variant="neutral"` **sans icone**.
+2. « Ne pas utiliser de composant tag/chips, mettre simplement le libelle en
+   texte normal » pour deux categories : le **type d'aire protegee**
+   (RNN, RNR, PNR, ENS…) et la **reference d'un site / d'un organisme**
+   (code INPN). La valeur ajoutee du tag y est jugee limitee et il prend trop
+   de place dans les tableaux.
+3. Ne jamais reutiliser `$success-color` (#04854B) / `$error-color` (#E12329)
+   pour un tag : ce sont des couleurs pleines qui exigent du texte blanc.
+   Elles restent valables pour les messages et les puces, pas pour les tags.
+4. Verifier qu'une icone existe dans le set **Uicons Rounded Regular 2.6.0**
+   avant usage : le nom de la maquette ne correspond pas toujours a un glyphe
+   reel (ex. `fi-rr-file-check` n'existe pas → `fi-rr-memo-circle-check`).
 
 ### Separateur
 

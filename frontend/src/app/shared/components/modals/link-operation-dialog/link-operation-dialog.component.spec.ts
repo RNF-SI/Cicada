@@ -61,9 +61,19 @@ describe('LinkOperationDialogComponent — mode indicateur (#539)', () => {
     const { component, dialogRef } = setup({ planId: 1, indicateurId: 7, indicateurNom: 'Ind 7' }, opsResponse);
     component.selectLink();
     component.selectOperation(2);
-    component.confirmLink();
+    component.confirmSelection();
     const result = dialogRef.close.mock.calls[0][0] as LinkOperationDialogResult;
     expect(result).toEqual({ action: 'link', operationId: 2 });
+  });
+
+  it('renvoie action=copy quand on choisit « Copier » (#552)', () => {
+    const { component, dialogRef } = setup({ planId: 1, indicateurId: 7, indicateurNom: 'Ind 7' }, opsResponse);
+    component.selectCopy();
+    expect(component.mode()).toBe('copy');
+    component.selectOperation(2);
+    component.confirmSelection();
+    const result = dialogRef.close.mock.calls[0][0] as LinkOperationDialogResult;
+    expect(result).toEqual({ action: 'copy', operationId: 2 });
   });
 });
 

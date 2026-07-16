@@ -1,13 +1,13 @@
 <app-header></app-header>
 
-<div class="personnes-layout">
+<div class="postes-layout">
   @if (planSlug(); as slug) {
     @if (planId(); as id) {
       <app-plan-sidebar
         [planId]="id"
         [planSlug]="slug"
         [canManage]="canManage()"
-        activePage="personnes">
+        activePage="postes">
       </app-plan-sidebar>
     }
   }
@@ -26,34 +26,43 @@
     } @else {
       <section class="page-header">
         <div>
-          <h1>{{ 'plans.personnes.title' | translate }}</h1>
-          <p class="subtitle">{{ 'plans.personnes.intro' | translate }}</p>
+          <h1>{{ 'plans.postes.title' | translate }}</h1>
+          <p class="subtitle">{{ 'plans.postes.intro' | translate }}</p>
         </div>
         @if (canManage()) {
           <button mat-flat-button color="primary" (click)="openCreate()">
-            <i class="fi fi-rr-user-add"></i>
-            {{ 'plans.personnes.addButton' | translate }}
+            <i class="fi fi-rr-briefcase"></i>
+            {{ 'plans.postes.addButton' | translate }}
           </button>
         }
       </section>
 
-      @if (!hasPersonnes()) {
+      @if (hasPostes()) {
+        <div class="postes-recap">
+          <span>{{ 'plans.postes.recap' | translate:{
+            postes: totalPostes(),
+            etp: (totalEtp() | number:'1.0-2')
+          } }}</span>
+        </div>
+      }
+
+      @if (!hasPostes()) {
         <div class="empty-state">
-          <i class="fi fi-rr-users-alt"></i>
-          <p>{{ 'plans.personnes.empty' | translate }}</p>
+          <i class="fi fi-rr-briefcase"></i>
+          <p>{{ 'plans.postes.empty' | translate }}</p>
           @if (canManage()) {
             <button mat-stroked-button (click)="openCreate()">
-              {{ 'plans.personnes.addButton' | translate }}
+              {{ 'plans.postes.addButton' | translate }}
             </button>
           }
         </div>
       } @else {
-        <div class="personnes-list">
-          @for (p of personnes(); track p.id_personne_plan) {
-            <div class="personne-card">
+        <div class="postes-list">
+          @for (p of postes(); track p.id_poste) {
+            <div class="poste-card">
               <app-entity-tile
-                icon="fi-rr-user"
-                [name]="p.nom"
+                icon="fi-rr-briefcase"
+                [name]="titleFor(p)"
                 [subtitle]="subtitleFor(p)">
                 @if (canManage()) {
                   <div tileAction class="tile-actions">
@@ -61,7 +70,7 @@
                             [title]="'common.actions.edit' | translate">
                       <i class="fi fi-rr-pencil"></i>
                     </button>
-                    <button type="button" class="icon-btn-flat danger" (click)="deletePersonne(p)"
+                    <button type="button" class="icon-btn-flat danger" (click)="deletePoste(p)"
                             [title]="'common.actions.delete' | translate">
                       <i class="fi fi-rr-trash"></i>
                     </button>

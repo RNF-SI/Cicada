@@ -29,7 +29,7 @@ import { RouterLink } from '@angular/router';
  *   subtitle="admin.rnf@test.fr"
  *   [clickable]="true"
  *   (click)="goToUser()">
- *   <app-tag tileAction variant="warning" label="Référent" />
+ *   <app-tag tileAction variant="warning" icon="fi-rr-star" label="Référent" />
  * </app-entity-tile>
  */
 @Component({

@@ -2,9 +2,10 @@ import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
-import { MatChipsModule } from '@angular/material/chips';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { PlanStatut } from '../../../../core/models/admin.model';
+import { TagComponent } from '../../tag/tag.component';
+import { getPlanStatusTag, TagAppearance } from '../../../utils/tag-icons';
 
 export interface StatusChangeDialogData {
   planId: number;
@@ -35,8 +36,8 @@ interface StatusAction {
     CommonModule,
     MatDialogModule,
     MatButtonModule,
-    MatChipsModule,
     TranslateModule,
+    TagComponent,
   ],
   templateUrl: './status-change-dialog.component.html',
   styleUrl: './status-change-dialog.component.scss',
@@ -111,15 +112,9 @@ export class StatusChangeDialogComponent {
     return this.translate.instant(`plans.status.${this.data.currentStatus}`);
   }
 
-  get statusClass(): string {
-    const classes: Record<string, string> = {
-      draft: 'status-warning',
-      valide: 'status-success',
-      modifie: 'status-success',
-      mi_parcours: 'status-success',
-      archive: 'status-neutre',
-    };
-    return classes[this.data.currentStatus] || '';
+  /** Apparence du tag de statut (couleur + icône), cf. `shared/utils/tag-icons`. */
+  get statusTag(): TagAppearance {
+    return getPlanStatusTag(this.data.currentStatus);
   }
 
   selectAction(action: StatusAction): void {

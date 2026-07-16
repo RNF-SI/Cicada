@@ -35,7 +35,7 @@ import { AdminService } from '../../../../core/services/admin.service';
 import { EnjeuService } from '../../../../core/services/enjeu.service';
 import { RealisationService } from '../../../../core/services/realisation.service';
 import { RhService } from '../../../../core/services/rh.service';
-import { PersonnePlan, OperationRHLigne } from '../../../../core/models/rh.model';
+import { Poste, OperationRHLigne } from '../../../../core/models/rh.model';
 import { Mesure, MesureCreatePayload } from '../../../../core/models/enjeu.model';
 import {
   Operation,
@@ -157,7 +157,7 @@ export class SuiviSaisieComponent implements OnInit {
     organismes: this.fb.array<FormGroup>([]),
     /** Une ligne par métrique liée à l'opération (indicateurs de réponse). */
     indicateurs: this.fb.array<FormGroup>([]),
-    /** #560 — une ligne par temps de travail réalisé (personne/fonction). */
+    /** #560 — une ligne par temps de travail réalisé (poste/organisme). */
     rhLignes: this.fb.array<FormGroup>([]),
   });
 
@@ -172,9 +172,38 @@ export class SuiviSaisieComponent implements OnInit {
     return this.form.get('rhLignes') as FormArray<FormGroup>;
   }
 
-  // #560 — référentiel RH pour les sélecteurs de la saisie du réalisé.
-  personnes = signal<PersonnePlan[]>([]);
-  fonctions = this.rhService.fonctions;
+  // #560 — postes du PG, cibles possibles du temps de travail réalisé.
+  postes = signal<Poste[]>([]);
+
+  /**
+   * Ce que le tableau RH cible, aligné sur le mode de saisie de l'action :
+   * ses postes si elle est déclinée, sinon les organismes de la ventilation
+   * budgétaire, sinon rien (saisie facultative).
+   */
+  rhMode = computed<'postes' | 'organismes' | 'hidden'>(() => {
+    const op = this.operation();
+    if (op?.declinaison_par_poste) return 'postes';
+    const mode = op?.ventilation_mode;
+    return mode === 'by_org' || mode === 'by_org_type' ? 'organismes' : 'hidden';
+  });
+
+  /** Organismes de la ventilation de l'action (cibles en mode organisme). */
+  rhOrganismes = computed<{ id_organisme: number; nom_organisme: string }[]>(() => {
+    const map = new Map<number, { id_organisme: number; nom_organisme: string }>();
+    for (const oa of this.operation()?.operation_annees ?? []) {
+      for (const oao of oa.organismes ?? []) {
+        if (oao.id_organisme != null && !map.has(oao.id_organisme)) {
+          map.set(oao.id_organisme, {
+            id_organisme: oao.id_organisme,
+            nom_organisme: oao.organisme_nom ?? '',
+          });
+        }
+      }
+    }
+    return Array.from(map.values()).sort((a, b) =>
+      a.nom_organisme.localeCompare(b.nom_organisme),
+    );
+  });
 
   /** Mesures existantes par metrique_id, pré-chargées au load. */
   private mesuresByMetrique = new Map<number, Mesure[]>();
@@ -432,13 +461,10 @@ export class SuiviSaisieComponent implements OnInit {
         this.planStatut.set(plan.statut ?? null);
         this.planYearStart.set(plan.annee_debut ?? null);
         this.planYearEnd.set(plan.annee_fin ?? null);
-        // #560 — personnes du PG + fonctions, pour la saisie du RH réalisé.
-        this.rhService.getPersonnesByPlan(plan.id_pg).subscribe(
-          (list) => this.personnes.set(list),
+        // #560 — postes du PG, pour la saisie / ré-attribution du RH réalisé.
+        this.rhService.getPostesByPlan(plan.id_pg).subscribe(
+          (list) => this.postes.set(list),
         );
-        if (this.fonctions().length === 0) {
-          this.rhService.loadFonctions().subscribe();
-        }
         this.applyReadOnlyLock();
       },
       error: (err) => {
@@ -742,9 +768,9 @@ export class SuiviSaisieComponent implements OnInit {
    * On part des lignes RH **prévisionnelles** de l'année (qui était prévu, et
    * combien de jours), et on y fusionne le **réalisé** déjà saisi, apparié via
    * la FK `id_operation_annee_rh` portée par la ligne réelle. C'est ce lien —
-   * et non un rapprochement sur (personne, fonction, financé) — qui permet de
-   * ré-attribuer le temps au moment du suivi (« en fait c'est X qui l'a
-   * fait ») sans que le prévu et le réel se dissocient en deux lignes.
+   * et non un rapprochement sur (cible, financé) — qui permet de ré-attribuer
+   * le temps au moment du suivi (« en fait c'est ce poste-là qui l'a fait »)
+   * sans que le prévu et le réel se dissocient en deux lignes.
    *
    * Les lignes réelles sans lien (`id_operation_annee_rh` NULL) sont du temps
    * réalisé non prévu : elles s'ajoutent à la suite, sans référence de prévu.
@@ -769,8 +795,8 @@ export class SuiviSaisieComponent implements OnInit {
       const source = reel ?? prev;
       fa.push(this.fb.group({
         id_operation_annee_rh: [prev.id_operation_annee_rh ?? null],
-        id_personne_plan: [source.id_personne_plan ?? null],
-        id_fonction: [source.id_fonction ?? null],
+        id_poste: [source.id_poste ?? null],
+        id_organisme: [source.id_organisme ?? null],
         finance: [!!source.finance],
         /** Prévu (lecture seule, référence affichée). */
         plan_jours: [prev.jours ?? null],
@@ -789,8 +815,8 @@ export class SuiviSaisieComponent implements OnInit {
       if (reel.id_operation_annee_rh != null) continue;
       fa.push(this.fb.group({
         id_operation_annee_rh: [null],
-        id_personne_plan: [reel.id_personne_plan ?? null],
-        id_fonction: [reel.id_fonction ?? null],
+        id_poste: [reel.id_poste ?? null],
+        id_organisme: [reel.id_organisme ?? null],
         finance: [!!reel.finance],
         plan_jours: [null],
         plan_finance: [!!reel.finance],
@@ -803,8 +829,8 @@ export class SuiviSaisieComponent implements OnInit {
   addRhLigne(): void {
     this.rhLignesFA.push(this.fb.group({
       id_operation_annee_rh: [null],
-      id_personne_plan: [null],
-      id_fonction: [null],
+      id_poste: [null],
+      id_organisme: [null],
       finance: [true],
       plan_jours: [null],
       plan_finance: [true],
@@ -816,29 +842,43 @@ export class SuiviSaisieComponent implements OnInit {
     this.rhLignesFA.removeAt(index);
   }
 
-  /** Valeur encodée de la cible d'une ligne RH : 'p:<id>' | 'f:<id>' | ''. */
-  rhTargetValue(ctrl: AbstractControl): string {
-    const p = ctrl.get('id_personne_plan')?.value;
-    const f = ctrl.get('id_fonction')?.value;
-    if (p != null) return `p:${p}`;
-    if (f != null) return `f:${f}`;
+  /** Cible d'une ligne RH : id du poste ou de l'organisme, null si aucune. */
+  rhTargetValue(ctrl: AbstractControl): number | null {
+    return ctrl.get('id_poste')?.value ?? ctrl.get('id_organisme')?.value ?? null;
+  }
+
+  setRhTarget(ctrl: AbstractControl, id: number | null): void {
+    if (this.rhMode() === 'postes') {
+      ctrl.get('id_poste')?.setValue(id);
+      ctrl.get('id_organisme')?.setValue(null);
+      // Défaut financé/non financé porté par les fonctions du poste.
+      const poste = this.postes().find((p) => p.id_poste === id);
+      if (poste) ctrl.get('finance')?.setValue(poste.finance_par_defaut ?? true);
+    } else {
+      ctrl.get('id_organisme')?.setValue(id);
+      ctrl.get('id_poste')?.setValue(null);
+    }
+  }
+
+  /** Libellé de la cible d'une ligne RH (poste ou organisme). */
+  rhLineLabel(ctrl: AbstractControl): string {
+    const posteId = ctrl.get('id_poste')?.value;
+    if (posteId != null) {
+      const poste = this.postes().find((p) => p.id_poste === posteId);
+      return poste?.libelle || this.translate.instant('plans.postes.untitled');
+    }
+    const orgId = ctrl.get('id_organisme')?.value;
+    if (orgId != null) {
+      return this.rhOrganismes().find((o) => o.id_organisme === orgId)?.nom_organisme || '';
+    }
     return '';
   }
 
-  setRhTarget(ctrl: AbstractControl, value: string): void {
-    if (value && value.startsWith('p:')) {
-      ctrl.get('id_personne_plan')?.setValue(parseInt(value.slice(2), 10));
-      ctrl.get('id_fonction')?.setValue(null);
-    } else if (value && value.startsWith('f:')) {
-      const fid = parseInt(value.slice(2), 10);
-      ctrl.get('id_fonction')?.setValue(fid);
-      ctrl.get('id_personne_plan')?.setValue(null);
-      const f = this.fonctions().find((x) => x.id_fonction === fid);
-      if (f) ctrl.get('finance')?.setValue(f.finance_par_defaut);
-    } else {
-      ctrl.get('id_personne_plan')?.setValue(null);
-      ctrl.get('id_fonction')?.setValue(null);
-    }
+  /** Organisme du poste, affiché sous son libellé. */
+  rhLineSubLabel(ctrl: AbstractControl): string {
+    const posteId = ctrl.get('id_poste')?.value;
+    if (posteId == null) return '';
+    return this.postes().find((p) => p.id_poste === posteId)?.organisme_nom || '';
   }
 
   /**
@@ -981,7 +1021,7 @@ export class SuiviSaisieComponent implements OnInit {
         annualPayload.budget_realise = v.budget_realise ?? null;
       }
     }
-    // #560 — temps de travail réalisé : lignes RH (personne/fonction × jours ×
+    // #560 — temps de travail réalisé : lignes RH (poste/organisme × jours ×
     // financé). Indépendant de la ventilation budgétaire par organisme, d'où
     // la position hors du bloc ci-dessus. Sémantique « replace-all » côté API :
     // on envoie l'état complet de l'année, les lignes vides sont écartées.
@@ -990,15 +1030,15 @@ export class SuiviSaisieComponent implements OnInit {
         const val = c.value as any;
         return {
           id_operation_annee_rh: val.id_operation_annee_rh ?? null,
-          id_personne_plan: val.id_personne_plan ?? null,
-          id_fonction: val.id_fonction ?? null,
+          id_poste: val.id_poste ?? null,
+          id_organisme: val.id_organisme ?? null,
           jours: val.jours ?? null,
           finance: !!val.finance,
         };
       })
-      // Une ligne sans personne ni fonction reste valide (« temps non
-      // affecté » — c'est l'état des saisies converties depuis l'ancien
-      // champ `etp`). Seul le nombre de jours est discriminant.
+      // Une ligne sans cible reste valide (« temps non affecté »). Seul le
+      // nombre de jours est discriminant : les lignes laissées vides ne sont
+      // pas enregistrées.
       .filter(l => l.jours != null);
 
     // Emprise réalisée : on n'inclut le champ dans le payload que si

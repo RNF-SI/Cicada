@@ -61,7 +61,11 @@ export class StepperComponent {
   }
 
   isCurrent(step: StepperStep): boolean {
-    return step.id === this.currentStep || this.steps.indexOf(step) + 1 === this.currentStep;
+    // Résolution via `indexOfStep` (id d'abord, puis index 1-based) : comparer
+    // séparément `step.id` et `index + 1` marquait DEUX étapes comme courantes
+    // chez un appelant dont les id sont 0-based (import en masse), l'id de
+    // l'étape N tombant sur l'index 1-based de l'étape N-1.
+    return this.steps.indexOf(step) === this.indexOfStep(this.currentStep);
   }
 
   isClickable(step: StepperStep, index: number): boolean {

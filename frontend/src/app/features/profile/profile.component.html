@@ -31,7 +31,11 @@
               <div class="info-item">
                 <span class="info-label">{{ 'profile.info.role' | translate }}</span>
                 <span class="info-value">
-                  <mat-chip class="role-chip">{{ getRoleLevelLabel() }}</mat-chip>
+                  <app-tag
+                    [variant]="getRoleTag().variant"
+                    [icon]="getRoleTag().icon"
+                    [label]="getRoleLevelLabel()"
+                  ></app-tag>
                 </span>
               </div>
               <div class="info-item identifiant-item">

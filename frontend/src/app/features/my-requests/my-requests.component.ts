@@ -8,7 +8,6 @@ import { RouterLink } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatTableModule } from '@angular/material/table';
-import { MatChipsModule } from '@angular/material/chips';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
@@ -26,6 +25,8 @@ import {
 } from '../../core/models/notification.model';
 import { ModuleAccessRequestDialogComponent, ModuleAccessRequestDialogData } from '../../shared/components/module-access-request-dialog/module-access-request-dialog.component';
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../shared/components/confirm-dialog/confirm-dialog.component';
+import { TagComponent } from '../../shared/components/tag/tag.component';
+import { TagAppearance, getValidationStatusTag } from '../../shared/utils/tag-icons';
 
 /**
  * Interface pour un module avec son statut d'acces.
@@ -43,11 +44,11 @@ interface ModuleWithStatus extends Module {
     MatCardModule,
     MatButtonModule,
     MatTableModule,
-    MatChipsModule,
     MatProgressSpinnerModule,
     MatSnackBarModule,
     MatTooltipModule,
     MatDialogModule,
+    TagComponent,
     TranslateModule
   ],
   templateUrl: './my-requests.component.html',
@@ -78,6 +79,11 @@ export class MyRequestsComponent implements OnInit {
 
   // Colonnes du tableau des demandes
   readonly requestColumns = ['type', 'target', 'date', 'validated_at', 'status', 'validator', 'actions'];
+
+  // Apparence des tags d'accès aux modules : mêmes statuts que les demandes de
+  // validation (mapping centralisé, cf. shared/utils/tag-icons.ts).
+  readonly pendingTag = getValidationStatusTag('pending');
+  readonly rejectedTag = getValidationStatusTag('rejected');
 
   // Modules avec statut d'acces calcule
   readonly modulesWithStatus = computed(() => {
@@ -247,17 +253,11 @@ export class MyRequestsComponent implements OnInit {
   }
 
   /**
-   * Obtient la classe CSS du statut.
+   * Obtient l'apparence du tag de statut (couleur + icône).
+   * Mapping centralisé dans `shared/utils/tag-icons.ts`.
    */
-  getStatusClass(status: ValidationStatus): string {
-    const classes: Record<string, string> = {
-      'pending': 'status-warning',
-      'approved': 'status-success',
-      'rejected': 'status-error',
-      'cancelled': 'status-neutre',
-      'expired': 'status-neutre',
-    };
-    return classes[status] || 'status-neutre';
+  getStatusTag(status: ValidationStatus): TagAppearance {
+    return getValidationStatusTag(status);
   }
 
   /**

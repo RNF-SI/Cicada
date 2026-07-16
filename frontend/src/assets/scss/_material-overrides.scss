@@ -896,31 +896,34 @@ a[mat-raised-button][color="primary"] {
     color: $black !important;
   }
 
-  // Status chips (Kit UI)
+  // Status chips — palette pastel des tags (Figma « 🧩 Tags » 4487:30877).
+  // Alignées sur `<app-tag>` : fond pastel + texte TOUJOURS noir.
+  // Ces classes ne sont qu'un filet de sécurité pour les `mat-chip` restants ;
+  // pour tout nouveau code, utiliser `<app-tag>` / `<app-status-chip>`.
   &.status-success,
   &.status-valide {
-    background-color: $success-color !important;
-    color: $white !important;
+    background-color: $tag-green !important;
+    color: $black !important;
   }
 
   &.status-error {
-    background-color: $error-color !important;
-    color: $white !important;
+    background-color: $tag-red !important;
+    color: $black !important;
   }
 
   &.status-warning {
-    background-color: $warning-color !important;
-    color: $black !important;  // Kit UI: noir sur orange
+    background-color: $tag-orange !important;
+    color: $black !important;
   }
 
   &.status-info {
-    background-color: $info-color !important;
-    color: $black !important;  // Kit UI: noir sur bleu ciel
+    background-color: $tag-cyan !important;
+    color: $black !important;
   }
 
   &.status-neutre {
-    background-color: $secondary-terra-cotta !important;
-    color: $white !important;
+    background-color: $tag-salmon !important;
+    color: $black !important;
   }
 
   // Score chips (Kit UI 11/2025 - 5 niveaux)

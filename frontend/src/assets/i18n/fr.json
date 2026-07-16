@@ -1376,31 +1376,6 @@
       "finance": "Financé",
       "nonFinance": "Non financé"
     },
-    "personnes": {
-      "sidebarEntry": "Personnes / RH",
-      "title": "Personnes / Ressources humaines",
-      "intro": "Gérez les personnes rattachées à ce plan de gestion et leurs fonctions. Elles peuvent ensuite être affectées au temps de travail des fiches actions.",
-      "addButton": "Ajouter une personne",
-      "empty": "Aucune personne n'est rattachée à ce plan pour le moment.",
-      "loadError": "Impossible de charger les personnes.",
-      "deleteConfirm": "Supprimer « {{nom}} » de ce plan de gestion ?",
-      "form": {
-        "createTitle": "Ajouter une personne",
-        "editTitle": "Modifier la personne",
-        "nom": "Nom",
-        "nomPlaceholder": "Nom et prénom",
-        "nomRequired": "Le nom est obligatoire.",
-        "dateArrivee": "Date d'arrivée",
-        "dateDepart": "Date de départ",
-        "fonctions": "Fonctions occupées",
-        "noFonction": "Aucune fonction ajoutée.",
-        "quotite": "Quotité",
-        "selectFonction": "Choisir une fonction…",
-        "newFonctionPlaceholder": "Nouvelle fonction…",
-        "createFonction": "Créer la fonction",
-        "saveError": "L'enregistrement a échoué. Veuillez réessayer."
-      }
-    },
     "newPlan": "NOUVEAU PLAN DE GESTION",
     "redacteurPrincipal": {
       "banner": "Vous avez le rôle de rédacteur général de l'instance de Cicada, vous pouvez éditer tous les plans de gestion."
@@ -1695,7 +1670,9 @@
         "nextRang": "à venir",
         "currentRang": "actuel",
         "versionsSingular": "version",
-        "versionsPlural": "versions"
+        "versionsPlural": "versions",
+        "viewingThisPlan": "Vous visualisez ce plan",
+        "goToVersion": "Accéder à la version"
       }
     },
     "detail": {
@@ -2005,7 +1982,9 @@
           "sections": {
             "toggle": "Personnaliser les sections",
             "hint": "Choisissez les sections à inclure dans l'export"
-          }
+          },
+          "rhTitle": "Temps de travail",
+          "rhCible": "Poste / organisme"
         },
         "actionNonRealisee": "Action prévue non réalisée",
         "actionNonRealiseeSeule": "Action non réalisée"
@@ -2093,14 +2072,15 @@
         },
         "rh": {
           "title": "Temps de travail réalisé",
-          "hint": "Qui a réellement réalisé l'action en {{year}}, et combien de jours. Les lignes prévues sont pré-remplies ; vous pouvez les corriger, en supprimer ou en ajouter.",
+          "hint": "Quel poste a réellement réalisé l'action en {{year}}, et pour combien de jours. Les lignes prévues sont pré-remplies ; vous pouvez les corriger, les ré-attribuer, en supprimer ou en ajouter.",
           "empty": "Aucun temps de travail prévu pour cette année. Ajoutez une ligne si l'action a mobilisé du temps.",
-          "target": "Personne / fonction",
+          "target": "Poste / organisme",
           "selectTarget": "Choisir…",
           "prevu": "Prévu",
           "realise": "Réalisé",
           "total": "TOTAL",
-          "addLine": "Ajouter une ligne"
+          "addLine": "Ajouter une ligne",
+          "optional": "La saisie du temps de travail est facultative pour cette action : elle n'est ni déclinée par poste, ni ventilée par organisme."
         }
       },
       "indicateur": {
@@ -2366,6 +2346,46 @@
       "deleteVersionConfirmMessage": "La version « {{name}} » (v{{version}}) et tout son contenu seront supprimés définitivement. Ses liens avec les sites, utilisateurs et organismes seront retirés, et les versions restantes seront renumérotées. Cette action est irréversible.",
       "deleteSuccess": "La version a été supprimée.",
       "deleteError": "La suppression de la version a échoué."
+    },
+    "postes": {
+      "sidebarEntry": "Postes / RH",
+      "title": "Postes / Ressources humaines",
+      "intro": "Décrivez les postes de ce plan de gestion : leurs fonctions, leur nombre et leur ETP. Aucune donnée nominative n'est enregistrée. Ces postes alimentent ensuite le temps de travail des fiches actions.",
+      "addButton": "Ajouter un poste",
+      "untitled": "Poste sans fonction",
+      "empty": "Aucun poste n'est rattaché à ce plan pour le moment.",
+      "loadError": "Impossible de charger les postes.",
+      "deleteConfirm": "Supprimer le poste « {{libelle}} » de ce plan de gestion ?",
+      "recap": "{{postes}} postes · {{etp}} ETP au total",
+      "countPlural": "{{count}} postes",
+      "etpLabel": "{{etp}} ETP",
+      "form": {
+        "createTitle": "Ajouter un poste",
+        "editTitle": "Modifier le poste",
+        "rgpdHint": "Un poste est décrit par ses fonctions, pas par la personne qui l'occupe : aucun nom n'est enregistré.",
+        "nombre": "Nombre de postes",
+        "nombreHelp": "Combien de postes de ce type (ex. 3 stagiaires)",
+        "etp": "ETP total",
+        "etpHelp": "Nombre d'ETP pour l'ensemble des {{count}} poste(s)",
+        "organisme": "Organisme",
+        "fonctions": "Fonctions du poste",
+        "fonctionsHelp": "Laissez les quotités vides si le poste cumule ses fonctions sur tout son temps (ex. un garde animateur à 1 ETP). Renseignez-les pour répartir explicitement le temps (ex. 50 % garde / 50 % animateur).",
+        "noFonction": "Aucune fonction ajoutée.",
+        "quotite": "Quotité",
+        "combineHint": "Poste cumulant ses fonctions sur tout son temps.",
+        "splitQuotites": "Répartir le temps",
+        "clearQuotites": "Cumuler les fonctions",
+        "totalQuotite": "Total : {{total}} %",
+        "selectFonction": "Choisir une fonction…",
+        "newFonctionPlaceholder": "Nouvelle fonction…",
+        "createFonction": "Créer la fonction",
+        "saveError": "L'enregistrement a échoué. Veuillez réessayer.",
+        "errors": {
+          "noFonction": "Ajoutez au moins une fonction au poste.",
+          "partialQuotite": "Renseignez la quotité de toutes les fonctions, ou d'aucune.",
+          "sumQuotite": "La somme des quotités doit faire 100 % (actuellement {{total}} %)."
+        }
+      }
     }
   },
   "profile": {
@@ -3292,17 +3312,21 @@
       "progBudget": "Budget prévisionnel (€)",
       "progTravail": "Travail prévisionnel (jours)",
       "rh": {
-        "title": "Ressources humaines (temps de travail)",
-        "hint": "Répartissez le temps de travail prévisionnel par personne ou fonction, financé ou non, sur chaque année. Les personnes sont gérées sur la page « Personnes / RH » du plan.",
-        "target": "Personne / fonction",
+        "title": "Temps de travail",
+        "declinaisonLabel": "Déclinaison par poste",
+        "declinaisonMention": "Détaille le temps de travail poste par poste, à partir des postes du plan de gestion.",
+        "optionalHint": "La saisie du temps de travail est facultative pour cette action. Cochez « Déclinaison par poste » pour la détailler poste par poste, ou ventilez le budget par organisme pour la saisir organisme par organisme.",
+        "hintPostes": "Un poste par ligne. Indiquez le nombre de jours prévus par année, et décochez « Financé » pour valoriser du temps non financé (bénévoles, écovolontaires…).",
+        "hintOrganismes": "Un organisme par ligne, repris de la ventilation du budget. Indiquez le nombre de jours prévus par année.",
+        "colPoste": "Poste",
+        "colOrganisme": "Organisme",
+        "noPostes": "Aucun poste n'est encore défini sur ce plan de gestion.",
+        "managePostes": "Gérer les postes",
         "selectTarget": "Choisir…",
-        "groupPersonnes": "Personnes du plan",
-        "groupFonctions": "Fonctions",
-        "total": "Total (jours)",
+        "total": "TOTAL",
         "addLine": "Ajouter une ligne",
-        "newFonctionPlaceholder": "Nouvelle fonction…",
-        "createFonction": "Créer la fonction",
-        "noYears": "Renseignez d'abord la période de l'action pour saisir le temps de travail."
+        "addLineHint": "Pour un second lot sur une même cible (ex. du temps non financé).",
+        "noYears": "Renseignez d'abord les années de programmation."
       },
       "budgetFonctionnement": "Budget prév. OG (€) Fonctionnement",
       "budgetInvestissement": "Budget prév. OG (€) Investissement",
@@ -3425,11 +3449,14 @@
         "createLabel": "Créer une nouvelle action",
         "createDescription": "Ouvrir le formulaire pour créer une nouvelle action associée à cette métrique.",
         "linkLabel": "Lier une action existante",
-        "linkDescription": "Rechercher et sélectionner une action déjà existante dans ce plan.",
+        "linkDescription": "Rechercher et sélectionner une action déjà existante dans ce plan. C'est la MÊME action : toute modification se répercute sous chaque métrique liée.",
+        "copyLabel": "Copier une action existante",
+        "copyDescription": "Créer une copie indépendante d'une action existante. La copie est modifiable séparément, sans impacter l'action d'origine.",
         "searchPlaceholder": "Rechercher une action par intitulé...",
         "noResults": "Aucune action trouvée.",
         "allAlreadyLinked": "Toutes les actions de ce plan sont déjà liées à cette métrique.",
         "confirmLink": "Lier cette action",
+        "confirmCopy": "Copier cette action",
         "back": "Retour",
         "subtitleIndicateur": "Que souhaitez-vous faire pour l'indicateur « {{indicateurName}} » ?",
         "createDescriptionIndicateur": "Ouvrir le formulaire pour créer une nouvelle action rattachée à cet indicateur.",
@@ -3437,6 +3464,8 @@
       },
       "linkSuccess": "Action liée avec succès à cette métrique.",
       "linkError": "Erreur lors de la liaison de l'action.",
+      "copySuccess": "Action copiée avec succès (copie indépendante).",
+      "copyError": "Erreur lors de la copie de l'action.",
       "unlinkTitle": "Délier de cette métrique",
       "unlinkSuccess": "Action déliée de cette métrique.",
       "unlinkError": "Erreur lors de la suppression du lien.",
@@ -3461,6 +3490,44 @@
       "periodeEchantillonnage": "Période d'échantillonnage",
       "periodeEchantillonnagePlaceholder": "Ex: Avril - Juin",
       "bancarisationTitle": "Bancarisation et stockage de la donnée"
+    },
+    "share": {
+      "linkOption": "Lier",
+      "copyOption": "Copier",
+      "linkAction": "Lier à un autre enjeu",
+      "copyAction": "Copier vers un autre enjeu",
+      "searchPlaceholder": "Rechercher un enjeu, un facteur, une pression...",
+      "noMatch": "Aucun résultat pour cette recherche.",
+      "confirmLink": "Lier",
+      "confirmCopy": "Copier",
+      "facteur": {
+        "title": "Partager ou copier ce facteur d'influence",
+        "subtitle": "« {{label}} » — choisissez de le lier à un autre enjeu (élément unique partagé) ou d'en créer une copie indépendante.",
+        "linkDescription": "Le facteur reste UN SEUL élément, affiché sous plusieurs enjeux. Toute modification (nom, pressions, objectifs, actions…) se répercute partout.",
+        "copyDescription": "Crée un duplicata indépendant du facteur et de tout son sous-arbre, rattaché à l'enjeu choisi. Modifiable séparément, sans impacter l'original.",
+        "targetLabel": "Enjeu de destination",
+        "noTarget": "Aucun autre enjeu disponible dans ce plan.",
+        "linkSuccess": "Facteur lié à l'enjeu (élément partagé).",
+        "linkError": "Erreur lors de la liaison du facteur.",
+        "copySuccess": "Facteur copié vers l'enjeu (copie indépendante).",
+        "copyError": "Erreur lors de la copie du facteur.",
+        "sharedBadge": "Lié à plusieurs enjeux"
+      },
+      "oo": {
+        "title": "Partager ou copier cet objectif opérationnel",
+        "subtitle": "« {{label}} » — choisissez de le lier à une pression d'un autre enjeu (élément unique partagé) ou d'en créer une copie indépendante.",
+        "linkDescription": "L'objectif reste UN SEUL élément, rattaché à plusieurs pressions. Tout son sous-arbre suit et toute modification se répercute partout.",
+        "copyDescription": "Crée un duplicata indépendant de l'objectif et de son sous-arbre, rattaché à la pression choisie. Modifiable séparément, sans impacter l'original.",
+        "targetLabel": "Pression de destination",
+        "noTarget": "Aucune pression disponible sous un autre enjeu de ce plan.",
+        "linkSuccess": "Objectif lié à la pression (élément partagé).",
+        "linkError": "Erreur lors de la liaison de l'objectif.",
+        "copySuccess": "Objectif copié vers la pression (copie indépendante).",
+        "copyError": "Erreur lors de la copie de l'objectif.",
+        "sharedBadge": "Lié à plusieurs enjeux"
+      },
+      "sharedBannerFacteur": "Ce facteur est partagé entre {{count}} enjeux. Toute modification s'applique partout.",
+      "sharedBannerOo": "Cet objectif est partagé entre {{count}} enjeux. Toute modification s'applique partout."
     },
     "facteurInfluence": {
       "label": "Facteur d'influence",

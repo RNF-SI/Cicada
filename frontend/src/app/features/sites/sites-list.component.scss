@@ -180,16 +180,9 @@ h1 { @include sites-h1; }
 .col-status { width: 15%; min-width: 108px; }
 .col-actions { width: 5%; min-width: 90px; }
 .site-name { font-weight: $font-weight-bold; color: $black; }
-.type-chip { background-color: $gray-lighter !important; font-size: $font-size-small; color: $black !important; }
+// Type d'aire protégée : libellé en texte simple (plus de tag, cf. Figma « 🧩 Tags »).
+.site-type-label { font-family: $font-family; font-size: $font-size-small; color: $gray-dark; }
 .others { font-size: $font-size-small; color: $gray; margin-left: 4px; }
-.chip-icon { @include sites-chip-icon; font-size: 13px; }
-
-// Status chips
-.status-success { @include sites-status-success; font-size: $font-size-small; }
-.status-info { background-color: $secondary-pale-green !important; color: $black !important; font-size: $font-size-small; }
-.status-warning { @include sites-status-warning; font-size: $font-size-small; }
-.status-error { background-color: $error-color !important; color: $white !important; font-size: $font-size-small; }
-.status-neutre { @include sites-status-neutre; font-size: $font-size-small; }
 
 // Buttons
 .btn-action {

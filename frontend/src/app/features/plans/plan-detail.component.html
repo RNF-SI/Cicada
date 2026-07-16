@@ -165,19 +165,26 @@
                       <span class="av-count">{{ adminValidationsSummary() }}</span>
                     </span>
                   }
+                  <!-- Badges de cycle de vie : tag neutre sans icône (Figma
+                       « 🧩 Tags » — une couleur unique pour les libellés annexes,
+                       afin de ne pas multiplier icônes et couleurs). -->
                   @if (isPlanExtended()) {
                     <span class="meta-separator">|</span>
-                    <span class="meta-value extension-badge">
-                      <i class="fi fi-rr-time-add"></i>
-                      {{ extensionBadgeKey() | translate }} +{{ p.annees_extension }}{{ (p.annees_extension ?? 0) > 1 ? ' ans' : ' an' }}
-                    </span>
+                    <app-tag
+                      class="lifecycle-badge"
+                      variant="neutral"
+                      size="sm"
+                      [label]="(extensionBadgeKey() | translate) + ' +' + p.annees_extension + ((p.annees_extension ?? 0) > 1 ? ' ans' : ' an')">
+                    </app-tag>
                   }
                   @if (isPlanInRevision()) {
                     <span class="meta-separator">|</span>
-                    <span class="meta-value revision-badge">
-                      <i class="fi fi-rr-refresh"></i>
-                      {{ 'plans.revision.badge' | translate }}
-                    </span>
+                    <app-tag
+                      class="lifecycle-badge"
+                      variant="neutral"
+                      size="sm"
+                      [label]="'plans.revision.badge' | translate">
+                    </app-tag>
                     @if (p.next_rang_plan_slug && p.next_rang_plan_nom) {
                       <a class="next-rang-link"
                          [routerLink]="['/plans', p.next_rang_plan_slug]">
@@ -188,10 +195,12 @@
                   }
                   @if (isPlanMiParcours()) {
                     <span class="meta-separator">|</span>
-                    <span class="meta-value mi-parcours-badge">
-                      <i class="fi fi-rr-time-forward"></i>
-                      {{ 'plans.miParcours.badge' | translate }}
-                    </span>
+                    <app-tag
+                      class="lifecycle-badge"
+                      variant="neutral"
+                      size="sm"
+                      [label]="'plans.miParcours.badge' | translate">
+                    </app-tag>
                   }
                 </div>
               </div>
@@ -394,11 +403,14 @@
                                         <img src="assets/images/puces/puce-terra-cotta.png" alt="" class="action-bullet">
                                         <span class="action-text">{{ item.label }}</span>
                                         @if (item.statut === 'draft') {
-                                          <mat-chip class="operation-draft-chip status-warning"
-                                                    [matTooltip]="'enjeux.operations.draftChipTooltip' | translate"
-                                                    (click)="$event.stopPropagation()">
-                                            {{ 'enjeux.operations.draftChip' | translate }}
-                                          </mat-chip>
+                                          <app-tag class="operation-draft-chip"
+                                                   variant="draft"
+                                                   icon="fi-rr-edit"
+                                                   size="sm"
+                                                   [label]="'enjeux.operations.draftChip' | translate"
+                                                   [matTooltip]="'enjeux.operations.draftChipTooltip' | translate"
+                                                   (click)="$event.stopPropagation()">
+                                          </app-tag>
                                         }
                                         <!-- Flèche retirée (revue design #315 : cohérence avec autres items cliquables sans flèche) -->
                                       </li>
@@ -585,7 +597,8 @@
                     <app-entity-tile
                       icon="fi-rr-hourglass"
                       [name]="req.target_name || ''">
-                      <span tileAction class="status-badge status-warning">{{ 'common.status.pending' | translate }}</span>
+                      <app-tag tileAction variant="warning" icon="fi-rr-edit" size="sm"
+                               [label]="'common.status.pending' | translate"></app-tag>
                     </app-entity-tile>
                   }
                 </div>
@@ -616,12 +629,14 @@
                   <app-entity-tile
                     icon="fi-rr-user"
                     [name]="member.nom_complet || member.email">
-                    <span tileAction
-                          class="user-role-chip"
-                          [class.role-referent]="member.referent"
-                          [class.role-member]="!member.referent">
-                      {{ (member.referent ? 'plans.detail.referent' : 'plans.detail.member') | translate }}
-                    </span>
+                    <!-- Rôle sur le plan : référent = orange + étoile,
+                         membre = cyan + utilisateur (cf. tag-icons.ts). -->
+                    <app-tag tileAction
+                             size="sm"
+                             [variant]="member.referent ? 'warning' : 'info'"
+                             [icon]="member.referent ? 'fi-rr-star' : 'fi-rr-user'"
+                             [label]="(member.referent ? 'plans.detail.referent' : 'plans.detail.member') | translate">
+                    </app-tag>
                   </app-entity-tile>
                 }
               </div>

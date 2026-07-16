@@ -113,23 +113,7 @@
   }
 }
 
-.status-chip {
-  display: inline-block;
-  padding: $spacing-xxs $spacing-sm;
-  border-radius: $border-radius-pill;
-  font-size: 0.85rem;
-  font-weight: 500;
-
-  &.status-success {
-    background-color: rgba($success-color, 0.15);
-    color: $success-color;
-  }
-
-  &.status-warning {
-    background-color: rgba($warning-color, 0.15);
-    color: darken($warning-color, 15%);
-  }
-}
+// Statuts de compte : rendus par <app-tag> (cf. shared/utils/tag-icons.ts)
 
 .action-buttons {
   display: flex;

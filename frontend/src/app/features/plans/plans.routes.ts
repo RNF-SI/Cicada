@@ -81,8 +81,8 @@ export const PLANS_ROUTES: Routes = [
   },
   {
     // #560 — Personnes / ressources humaines du plan de gestion
-    path: ':slug/personnes',
-    loadComponent: () => import('./rh/plan-personnes.component').then(m => m.PlanPersonnesComponent),
+    path: ':slug/postes',
+    loadComponent: () => import('./rh/plan-postes.component').then(m => m.PlanPostesComponent),
     canActivate: [authGuard]
   },
   {

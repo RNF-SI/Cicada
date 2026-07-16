@@ -2,9 +2,9 @@
  * Service pour la gestion des ressources humaines des plans de gestion (#560).
  *
  * Expose :
- * - le référentiel global des fonctions/postes (`/api/plans/fonctions/`),
- *   avec création à la volée d'une fonction manquante ;
- * - les personnes rattachées à un plan (`/api/plans/personnes/`).
+ * - le référentiel global des fonctions (`/api/plans/fonctions/`), avec
+ *   création à la volée d'une fonction manquante ;
+ * - les postes d'un plan (`/api/plans/postes/`). Aucun nominatif (RGPD).
  *
  * Les lignes de temps de travail (prévisionnel / réalisé) sont portées par les
  * opérations et leurs réalisations (voir enjeu.service / realisation.service).
@@ -13,7 +13,7 @@ import { Injectable, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, tap } from 'rxjs';
 
-import { Fonction, PersonnePlan, PersonnePlanPayload } from '../models/rh.model';
+import { Fonction, Poste, PostePayload } from '../models/rh.model';
 
 @Injectable({ providedIn: 'root' })
 export class RhService {
@@ -61,21 +61,21 @@ export class RhService {
     return this.http.delete<void>(`${this.apiUrl}/fonctions/${id}/`);
   }
 
-  // ---- Personnes du plan --------------------------------------------------
+  // ---- Postes du plan -----------------------------------------------------
 
-  getPersonnesByPlan(planId: number): Observable<PersonnePlan[]> {
-    return this.http.get<PersonnePlan[]>(`${this.apiUrl}/personnes/by-plan/${planId}/`);
+  getPostesByPlan(planId: number): Observable<Poste[]> {
+    return this.http.get<Poste[]>(`${this.apiUrl}/postes/by-plan/${planId}/`);
   }
 
-  createPersonne(payload: PersonnePlanPayload): Observable<PersonnePlan> {
-    return this.http.post<PersonnePlan>(`${this.apiUrl}/personnes/`, payload);
+  createPoste(payload: PostePayload): Observable<Poste> {
+    return this.http.post<Poste>(`${this.apiUrl}/postes/`, payload);
   }
 
-  updatePersonne(id: number, payload: Partial<PersonnePlanPayload>): Observable<PersonnePlan> {
-    return this.http.patch<PersonnePlan>(`${this.apiUrl}/personnes/${id}/`, payload);
+  updatePoste(id: number, payload: Partial<PostePayload>): Observable<Poste> {
+    return this.http.patch<Poste>(`${this.apiUrl}/postes/${id}/`, payload);
   }
 
-  deletePersonne(id: number): Observable<void> {
-    return this.http.delete<void>(`${this.apiUrl}/personnes/${id}/`);
+  deletePoste(id: number): Observable<void> {
+    return this.http.delete<void>(`${this.apiUrl}/postes/${id}/`);
   }
 }

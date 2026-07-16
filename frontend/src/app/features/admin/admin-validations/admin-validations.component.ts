@@ -9,7 +9,6 @@ import { ActivatedRoute } from '@angular/router';
 import { MatTableModule } from '@angular/material/table';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { MatChipsModule } from '@angular/material/chips';
 import { MatSelectModule } from '@angular/material/select';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
@@ -27,6 +26,9 @@ import {
   ValidationRequestType
 } from '../../../core/models/notification.model';
 
+import { TagComponent } from '../../../shared/components/tag/tag.component';
+import { TagAppearance, getValidationStatusTag } from '../../../shared/utils/tag-icons';
+
 import { ValidationDetailDialogComponent } from './validation-detail-dialog.component';
 
 @Component({
@@ -38,10 +40,10 @@ import { ValidationDetailDialogComponent } from './validation-detail-dialog.comp
     MatTableModule,
     MatButtonModule,
     MatIconModule,
-    MatChipsModule,
     MatSelectModule,
     MatFormFieldModule,
     MatInputModule,
+    TagComponent,
     MatDialogModule,
     MatSnackBarModule,
     MatProgressSpinnerModule,
@@ -243,17 +245,11 @@ export class AdminValidationsComponent implements OnInit {
   }
 
   /**
-   * Obtient la classe CSS du statut.
+   * Obtient l'apparence du tag de statut (couleur + icône).
+   * Mapping centralisé dans `shared/utils/tag-icons.ts`.
    */
-  getStatusClass(status: ValidationStatus): string {
-    const classes: Record<string, string> = {
-      'pending': 'status-warning',
-      'approved': 'status-success',
-      'rejected': 'status-error',
-      'cancelled': 'status-neutre',
-      'expired': 'status-neutre',
-    };
-    return classes[status] || 'status-neutre';
+  getStatusTag(status: ValidationStatus): TagAppearance {
+    return getValidationStatusTag(status);
   }
 
   /**

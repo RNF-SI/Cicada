@@ -286,14 +286,16 @@
 
             @if (selectedOrganisme(); as org) {
               <!-- Organisme sélectionné -->
+              <!-- Libellé libre (nom d'organisme) : tag neutre sans icône
+                   (Figma « 🧩 Tags »), avec action de retrait dissociée. -->
               <div class="selected-organisme">
-                <mat-chip-row (removed)="clearOrganisme()">
-                  <i class="fi fi-rr-building chip-icon"></i>
-                  {{ org.displayName }}
-                  <button matChipRemove>
-                    <i class="fi fi-rr-cross-small"></i>
-                  </button>
-                </mat-chip-row>
+                <app-tag variant="neutral" [label]="org.displayName"></app-tag>
+                <button type="button"
+                        class="btn-clear-organisme"
+                        (click)="clearOrganisme()"
+                        [title]="'common.actions.delete' | translate">
+                  <i class="fi fi-rr-cross-small"></i>
+                </button>
               </div>
             } @else {
               <!-- Input avec autocomplete -->

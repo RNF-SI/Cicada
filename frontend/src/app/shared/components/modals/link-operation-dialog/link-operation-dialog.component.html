@@ -33,6 +33,17 @@
         </div>
         <i class="fi fi-rr-angle-right action-arrow"></i>
       </button>
+
+      <button class="action-card action-copy" (click)="selectCopy()">
+        <div class="action-icon">
+          <i class="fi fi-rr-copy-alt"></i>
+        </div>
+        <div class="action-content">
+          <span class="action-label">{{ 'enjeux.operations.linkDialog.copyLabel' | translate }}</span>
+          <span class="action-description">{{ 'enjeux.operations.linkDialog.copyDescription' | translate }}</span>
+        </div>
+        <i class="fi fi-rr-angle-right action-arrow"></i>
+      </button>
     </div>
   } @else {
     <!-- Phase 2 : Recherche et sélection d'une action existante -->
@@ -60,10 +71,12 @@
               <span class="operation-item-libelle">
                 {{ op.libelle }}
                 @if (op.statut === 'draft') {
-                  <mat-chip class="operation-draft-chip status-warning"
-                            [matTooltip]="'enjeux.operations.draftChipTooltip' | translate">
-                    {{ 'enjeux.operations.draftChip' | translate }}
-                  </mat-chip>
+                  <app-tag
+                    size="sm"
+                    variant="draft"
+                    icon="fi-rr-edit"
+                    [label]="'enjeux.operations.draftChip' | translate"
+                    [matTooltip]="'enjeux.operations.draftChipTooltip' | translate"></app-tag>
                 }
               </span>
               <div class="operation-item-meta">
@@ -92,14 +105,14 @@
 </mat-dialog-content>
 
 <mat-dialog-actions align="end">
-  @if (mode() === 'link') {
+  @if (mode() !== 'choose') {
     <button mat-stroked-button (click)="goBack()">
       {{ 'enjeux.operations.linkDialog.back' | translate }}
     </button>
     <button mat-flat-button color="primary"
             [disabled]="!selectedOperationId()"
-            (click)="confirmLink()">
-      {{ 'enjeux.operations.linkDialog.confirmLink' | translate }}
+            (click)="confirmSelection()">
+      {{ (mode() === 'copy' ? 'enjeux.operations.linkDialog.confirmCopy' : 'enjeux.operations.linkDialog.confirmLink') | translate }}
     </button>
   } @else {
     <button mat-stroked-button (click)="cancel()">

@@ -497,6 +497,9 @@
 .organisme-section {
   .selected-organisme {
     margin-top: $spacing-sm;
+    display: flex;
+    align-items: center;
+    gap: $spacing-xs;
   }
 
   // Espace entre le hint du champ de recherche et le bouton "Créer un organisme"
@@ -505,41 +508,24 @@
   }
 }
 
-// Chips styling
-.chips-field {
-  mat-chip-grid {
-    width: 100%;
-  }
-}
+// Retrait de l'organisme sélectionné (remplace l'ancien `matChipRemove`).
+.btn-clear-organisme {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: none;
+  border-radius: $border-radius-round;
+  background: transparent;
+  color: $gray-dark;
+  cursor: pointer;
+  transition: all $transition-fast;
 
-.chip-icon {
-  font-size: $font-size-small;
-  margin-right: $spacing-xxs;
-  color: $white;
-}
-
-// Chip row dans les formulaires (redacteurs, relecteurs, organisme)
-.selected-organisme,
-.chips-field {
-  ::ng-deep {
-    .mat-mdc-chip-row {
-      background-color: $primary-color !important;
-      color: $white !important;
-
-      .mdc-evolution-chip__text-label,
-      .mat-mdc-chip-action-label {
-        color: $white !important;
-        font-family: $font-family;
-      }
-
-      .mat-mdc-chip-remove {
-        color: rgba($white, 0.7) !important;
-
-        &:hover {
-          color: $white !important;
-        }
-      }
-    }
+  &:hover {
+    background-color: rgba($primary-color, 0.1);
+    color: $primary-color;
   }
 }
 

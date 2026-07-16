@@ -160,6 +160,13 @@
   border-collapse: collapse;
   font-size: $font-size-small;
 
+  // #560 — Organisme du poste, en second niveau sous son libellé.
+  .fiche-sublabel {
+    display: block;
+    font-size: 11px;
+    color: $gray-dark;
+  }
+
   th, td {
     text-align: left;
     padding: 4px $spacing-sm;

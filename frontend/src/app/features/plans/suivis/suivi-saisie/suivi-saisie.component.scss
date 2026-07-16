@@ -548,6 +548,13 @@ textarea.full-width {
     font-size: 0.85rem;
   }
 
+  // Organisme du poste, en second niveau sous son libellé.
+  .rh-line-sublabel {
+    display: block;
+    font-size: 0.75rem;
+    color: $gray-dark;
+  }
+
   tr.rh-total-row td {
     background: $gray-lighter;
     font-weight: 700;

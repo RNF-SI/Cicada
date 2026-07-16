@@ -333,10 +333,13 @@
                             <div class="action-name">
                               {{ item.operation.libelle }}
                               @if (item.operation.statut === 'draft') {
-                                <mat-chip class="operation-draft-chip status-warning"
-                                          [matTooltip]="'enjeux.operations.draftChipTooltip' | translate">
-                                  {{ 'enjeux.operations.draftChip' | translate }}
-                                </mat-chip>
+                                <app-tag class="operation-draft-chip"
+                                         variant="draft"
+                                         icon="fi-rr-edit"
+                                         size="sm"
+                                         [label]="'enjeux.operations.draftChip' | translate"
+                                         [matTooltip]="'enjeux.operations.draftChipTooltip' | translate">
+                                </app-tag>
                               }
                             </div>
                             @if (item.operation.priorite_label) {

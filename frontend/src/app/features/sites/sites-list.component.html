@@ -164,7 +164,9 @@
                         <span class="site-name">{{ site.nom_site }}</span>
                       </td>
                       <td class="col-type">
-                        <mat-chip class="type-chip">{{ site | siteTypeDisplay }}</mat-chip>
+                        <!-- Type d'aire protégée en texte simple, sans tag (Figma « 🧩 Tags ») :
+                             le tag apportait peu de valeur et prenait de la place dans le tableau. -->
+                        <span class="site-type-label">{{ site | siteTypeDisplay }}</span>
                       </td>
                       <td class="col-surface">{{ formatSurface(site.surf_off) }}</td>
                       <td class="col-organisme">
@@ -183,15 +185,22 @@
                         }
                       </td>
                       <td class="col-status">
-                        <!-- Tag référent : étoile retirée (revue design #310) -->
+                        <!-- Rôle sur le site : statut principal → tag avec icône + couleur
+                             (mappings canoniques Figma « 🧩 Tags », cf. shared/utils/tag-icons). -->
                         @if (site.isReferent) {
-                          <mat-chip class="status-success">
-                            {{ 'sites.mySites.referent' | translate }}
-                          </mat-chip>
+                          <app-tag
+                            variant="warning"
+                            icon="fi-rr-star"
+                            size="sm"
+                            [label]="'sites.mySites.referent' | translate">
+                          </app-tag>
                         } @else {
-                          <mat-chip class="status-info">
-                            {{ 'sites.mySites.access' | translate }}
-                          </mat-chip>
+                          <app-tag
+                            variant="info"
+                            icon="fi-rr-user"
+                            size="sm"
+                            [label]="'sites.mySites.access' | translate">
+                          </app-tag>
                         }
                       </td>
                       <td class="col-actions">
@@ -268,10 +277,13 @@
                       <span class="card-date">{{ 'sites.pendingCreations.requestedOn' | translate }} {{ request.created_at | date:'dd/MM/yyyy' }}</span>
                     </div>
                     <div class="card-status">
-                      <mat-chip class="status-warning">
-                        <i class="fi fi-rr-hourglass-end chip-icon"></i>
-                        {{ 'sites.pendingCreations.awaitingValidation' | translate }}
-                      </mat-chip>
+                      <!-- Demande en attente → tag « pending » canonique (warning + icône). -->
+                      <app-tag
+                        variant="warning"
+                        icon="fi-rr-edit"
+                        size="sm"
+                        [label]="'sites.pendingCreations.awaitingValidation' | translate">
+                      </app-tag>
                       <!-- #440 — le créateur peut corriger son site (ex. ajouter le type)
                            tant que la validation est en attente. -->
                       <button
@@ -319,10 +331,12 @@
                       <span class="card-date">{{ 'sites.pendingCreations.requestedOn' | translate }} {{ request.created_at | date:'dd/MM/yyyy' }}</span>
                     </div>
                     <div class="card-status">
-                      <mat-chip class="status-warning">
-                        <i class="fi fi-rr-hourglass-end chip-icon"></i>
-                        {{ 'sites.pendingOrgLinks.waiting' | translate }}
-                      </mat-chip>
+                      <app-tag
+                        variant="warning"
+                        icon="fi-rr-edit"
+                        size="sm"
+                        [label]="'sites.pendingOrgLinks.waiting' | translate">
+                      </app-tag>
                     </div>
                   </div>
                 }
@@ -357,8 +371,9 @@
                           <span class="site-name">{{ site.nom_site }}</span>
                         </td>
                         <td class="col-type">
+                          <!-- Type d'aire protégée en texte simple, sans tag (Figma « 🧩 Tags »). -->
                           @if (site.type_site_label) {
-                            <mat-chip class="type-chip">{{ site | siteTypeDisplay }}</mat-chip>
+                            <span class="site-type-label">{{ site | siteTypeDisplay }}</span>
                           } @else {
                             -
                           }
@@ -371,10 +386,12 @@
                           }
                         </td>
                         <td class="col-status">
-                          <mat-chip class="status-warning">
-                            <i class="fi fi-rr-hourglass-end chip-icon"></i>
-                            {{ 'sites.pendingSites.waiting' | translate }}
-                          </mat-chip>
+                          <app-tag
+                            variant="warning"
+                            icon="fi-rr-edit"
+                            size="sm"
+                            [label]="'sites.pendingSites.waiting' | translate">
+                          </app-tag>
                         </td>
                       </tr>
                     }

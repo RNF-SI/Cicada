@@ -78,10 +78,11 @@
         <ng-container matColumnDef="level">
           <th mat-header-cell *matHeaderCellDef>{{ 'admin.logs.table.level' | translate }}</th>
           <td mat-cell *matCellDef="let log">
-            <mat-chip [ngClass]="getLevelClass(log.level)">
-              <i class="fi" [ngClass]="getLevelIcon(log.level)"></i>
-              {{ log.level_display }}
-            </mat-chip>
+            <app-tag
+              [variant]="getLevelTag(log.level).variant"
+              [icon]="getLevelTag(log.level).icon"
+              [label]="log.level_display"
+            ></app-tag>
           </td>
         </ng-container>
 

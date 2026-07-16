@@ -195,7 +195,6 @@
                   <th class="num">{{ 'plans.suivis.actions.fiche.budgetFonctionnement' | translate }}</th>
                   <th class="num">{{ 'plans.suivis.actions.fiche.budgetInvestissement' | translate }}</th>
                   <th class="num">{{ 'plans.suivis.actions.fiche.budget' | translate }}</th>
-                  <th class="num">{{ 'plans.suivis.actions.fiche.jours' | translate }}</th>
                 </tr>
               </thead>
               <tbody>
@@ -205,10 +204,54 @@
                     <td class="num">{{ o.fonctionnement | number:'1.0-2' }} €</td>
                     <td class="num">{{ o.investissement | number:'1.0-2' }} €</td>
                     <td class="num">{{ o.budget | number:'1.0-2' }} €</td>
-                    <td class="num">{{ o.jours | number:'1.0-2' }}</td>
                   </tr>
                 }
               </tbody>
+            </table>
+          }
+
+          <!-- #560 — Temps de travail par poste / organisme, avec valorisation
+               du temps non financé (bénévoles, écovolontaires…). -->
+          @if (rhBreakdown().length) {
+            <h3 class="fiche-subtitle">{{ 'plans.suivis.actions.fiche.rhTitle' | translate }}</h3>
+            <table class="fiche-table">
+              <thead>
+                <tr>
+                  <th>{{ 'plans.suivis.actions.fiche.rhCible' | translate }}</th>
+                  <th>{{ 'plans.rh.finance' | translate }}</th>
+                  <th class="num">{{ 'plans.suivis.actions.fiche.jours' | translate }}</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (r of rhBreakdown(); track $index) {
+                  <tr>
+                    <td>
+                      {{ r.libelle }}
+                      @if (r.organisme) {
+                        <span class="fiche-sublabel">{{ r.organisme }}</span>
+                      }
+                    </td>
+                    <td>{{ (r.finance ? 'plans.rh.finance' : 'plans.rh.nonFinance') | translate }}</td>
+                    <td class="num">{{ r.jours | number:'1.0-2' }}</td>
+                  </tr>
+                }
+              </tbody>
+              <tfoot>
+                <tr>
+                  <td colspan="2">{{ 'plans.suivis.actions.fiche.total' | translate }}</td>
+                  <td class="num">{{ totalJours() != null ? (totalJours() | number:'1.0-2') : '—' }}</td>
+                </tr>
+                @if (hasRhNonFinance()) {
+                  <tr>
+                    <td colspan="2">{{ 'plans.rh.finance' | translate }}</td>
+                    <td class="num">{{ totalJoursFinance() | number:'1.0-2' }}</td>
+                  </tr>
+                  <tr>
+                    <td colspan="2">{{ 'plans.rh.nonFinance' | translate }}</td>
+                    <td class="num">{{ totalJoursNonFinance() | number:'1.0-2' }}</td>
+                  </tr>
+                }
+              </tfoot>
             </table>
           }
 

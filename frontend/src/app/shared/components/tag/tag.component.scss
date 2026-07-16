@@ -1,23 +1,30 @@
 @import 'variables';
 
-// Composant Tag unifié (issue #296)
-// Style pill, sans bordure, compact
+// Composant Tag unifié (issue #296, recoloré d'après Figma « 🧩 Tags » 4487:30877)
+//
+// Règle de la maquette : une palette pastel unique, texte TOUJOURS noir.
+// L'icône n'est présente que sur les statuts principaux où couleur + icône
+// font sens (validé, modifié, archivé, brouillon…). Les autres libellés
+// utilisent la variante `neutral`, sans icône, pour ne pas multiplier les
+// icônes et les couleurs.
 
 .app-tag {
   display: inline-flex;
   align-items: center;
-  gap: $spacing-xxs;
-  border-radius: $border-radius-pill;
+  gap: $spacing-xs;
+  border-radius: 40px;
   font-family: $font-family;
-  font-weight: $font-weight-semibold;
-  line-height: 1.2;
+  font-weight: $font-weight-regular;
+  color: $black;
+  line-height: 19px;
   white-space: nowrap;
   border: none;
   user-select: none;
 
-  // Taille md (par défaut)
+  // Taille md (par défaut) — 24px de haut
   &--md {
-    padding: 4px 12px;
+    min-height: 24px;
+    padding: 2px 10px;
     font-size: $font-size-small;
 
     i {
@@ -27,7 +34,8 @@
 
   // Taille sm (compacte, pour tableaux denses)
   &--sm {
-    padding: 2px 8px;
+    min-height: 20px;
+    padding: 1px 8px;
     font-size: 11px;
 
     i {
@@ -36,76 +44,63 @@
   }
 
   // ============================================
-  // VARIANTES SÉMANTIQUES (texte blanc sur fond)
+  // VARIANTES (fond pastel, texte noir — AA)
   // ============================================
 
+  // Vert — issue positive : Validé, Approuvé, Actif
   &--success {
-    background-color: $success-color;
-    color: $white;
+    background-color: $tag-green;
   }
 
+  // Rouge — issue négative : Rejeté, Annulé, Expiré, Inactif, Erreur
   &--error {
-    background-color: $error-color;
-    color: $white;
+    background-color: $tag-red;
   }
 
+  // Cyan — information / état dérivé : Modifié, Utilisateur
   &--info,
   &--primary {
-    background-color: $primary-color;
-    color: $white;
+    background-color: $tag-cyan;
   }
 
-  // ============================================
-  // VARIANTES DÉCORATIVES (texte noir/primary sur pastel)
-  // ============================================
-
-  &--warning {
-    background-color: $secondary-orange-salmon;
-    color: $black;
-  }
-
+  // Orange — action en cours / en attente : Brouillon, En attente, Référent
+  &--warning,
   &--draft {
-    background-color: $secondary-yellow;
-    color: $black;
+    background-color: $tag-orange;
   }
 
+  // Saumon — libellé neutre, sans icône (prolongation, mi-parcours, CSRPN…)
   &--neutral {
-    background-color: $secondary-pale-green;
-    color: $black;
+    background-color: $tag-salmon;
   }
 
+  // Gris — hors du flux actif : Archivé
   &--muted {
-    background-color: $gray-light;
-    color: $black;
+    background-color: $tag-gray;
   }
 
   // ============================================
-  // SCORES (texte noir sur pastel, AA)
+  // SCORES (palette des scores, texte noir — AA)
   // ============================================
 
   &--score-very-bad {
     background-color: $score-very-bad;
-    color: $black;
   }
 
   &--score-bad {
     background-color: $score-bad;
-    color: $black;
   }
 
   &--score-neutral {
     background-color: $score-neutral;
-    color: $black;
   }
 
   &--score-good {
     background-color: $score-good;
-    color: $black;
   }
 
   &--score-very-good {
     background-color: $score-very-good;
-    color: $black;
   }
 
   // ============================================

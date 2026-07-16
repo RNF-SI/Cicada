@@ -5,13 +5,14 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatChipsModule } from '@angular/material/chips';
 import { MatCardModule } from '@angular/material/card';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { AdminService } from '../../../core/services/admin.service';
 import { RgpdRequest } from '../../../core/models/admin.model';
+import { TagComponent } from '../../../shared/components/tag/tag.component';
+import { USER_STATUS_TAG } from '../../../shared/utils/tag-icons';
 
 @Component({
   selector: 'app-admin-rgpd',
@@ -24,8 +25,8 @@ import { RgpdRequest } from '../../../core/models/admin.model';
     MatIconModule,
     MatTooltipModule,
     MatProgressSpinnerModule,
-    MatChipsModule,
     MatCardModule,
+    TagComponent,
     MatSnackBarModule,
     MatDialogModule,
     TranslateModule
@@ -47,6 +48,10 @@ export class AdminRgpdComponent implements OnInit {
 
   // Table columns
   readonly displayedColumns = ['user', 'email', 'organisme', 'requested_at', 'days', 'status', 'actions'];
+
+  // Apparence des tags de statut de compte (mapping centralisé, cf. shared/utils/tag-icons.ts)
+  readonly activeTag = USER_STATUS_TAG['active'];
+  readonly inactiveTag = USER_STATUS_TAG['inactive'];
 
   // Computed
   readonly isKeycloak = computed(() => this.authProvider() === 'keycloak');

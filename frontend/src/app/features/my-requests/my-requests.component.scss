@@ -204,11 +204,6 @@
   }
 }
 
-.chip-icon {
-  font-size: 11px;
-  margin-right: $spacing-xxs;
-}
-
 /* Content */
 .content-section {
   min-height: 270px;
@@ -329,7 +324,7 @@
   color: #04854B;
 }
 
-/* Status chips - using global classes from _material-overrides.scss */
+/* Statuts : rendus par <app-tag> (cf. shared/utils/tag-icons.ts) */
 
 /* Responsive */
 @media (max-width: 768px) {

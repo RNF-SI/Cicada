@@ -5,9 +5,10 @@
   <div class="plan-info">
     <span class="plan-name">{{ data.planName }}</span>
     <div class="plan-meta">
-      <mat-chip-set>
-        <mat-chip [ngClass]="statusClass" highlighted>{{ statusLabel }}</mat-chip>
-      </mat-chip-set>
+      <app-tag
+        [variant]="statusTag.variant"
+        [icon]="statusTag.icon"
+        [label]="statusLabel"></app-tag>
       @if (data.period) {
         <span class="plan-period">{{ data.period }}</span>
       }

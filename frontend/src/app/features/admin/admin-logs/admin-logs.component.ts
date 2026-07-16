@@ -8,12 +8,13 @@ import { FormsModule } from '@angular/forms';
 import { MatTableModule } from '@angular/material/table';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { MatChipsModule } from '@angular/material/chips';
 import { MatSelectModule } from '@angular/material/select';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { FormFieldComponent } from '../../../shared/components/form-field/form-field.component';
 import { SearchBarComponent } from '../../../shared/components/search-bar/search-bar.component';
+import { TagComponent } from '../../../shared/components/tag/tag.component';
+import { TagAppearance, getLogLevelTag } from '../../../shared/utils/tag-icons';
 import { MatDialogModule, MatDialog } from '@angular/material/dialog';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
@@ -40,12 +41,12 @@ import { ErrorLogDetailDialogComponent } from './error-log-detail-dialog.compone
     MatTableModule,
     MatButtonModule,
     MatIconModule,
-    MatChipsModule,
     MatSelectModule,
     MatFormFieldModule,
     MatInputModule,
     FormFieldComponent,
     SearchBarComponent,
+    TagComponent,
     MatDialogModule,
     MatSnackBarModule,
     MatProgressSpinnerModule,
@@ -249,27 +250,11 @@ export class AdminLogsComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Obtient la classe CSS du niveau.
+   * Obtient l'apparence du tag de niveau (couleur + icône).
+   * Mapping centralisé dans `shared/utils/tag-icons.ts`.
    */
-  getLevelClass(level: ErrorLogLevel): string {
-    const classes: Record<string, string> = {
-      'WARNING': 'status-warning',
-      'ERROR': 'status-error',
-      'CRITICAL': 'status-critical'
-    };
-    return classes[level] || 'status-neutre';
-  }
-
-  /**
-   * Obtient l'icone du niveau.
-   */
-  getLevelIcon(level: ErrorLogLevel): string {
-    const icons: Record<string, string> = {
-      'WARNING': 'fi-rr-exclamation',
-      'ERROR': 'fi-rr-cross-circle',
-      'CRITICAL': 'fi-rr-flame'
-    };
-    return icons[level] || 'fi-rr-info';
+  getLevelTag(level: ErrorLogLevel): TagAppearance {
+    return getLogLevelTag(level);
   }
 
   /**

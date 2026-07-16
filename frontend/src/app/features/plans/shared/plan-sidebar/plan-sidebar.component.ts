@@ -18,7 +18,7 @@ export class PlanSidebarComponent implements OnInit {
 
   planId = input.required<number>();
   planSlug = input.required<string>();
-  activePage = input<'overview' | 'enjeux' | 'bilan' | 'suivi-actions' | 'tableau-de-bord' | 'mindmap' | 'settings' | 'personnes'>('overview');
+  activePage = input<'overview' | 'enjeux' | 'bilan' | 'suivi-actions' | 'tableau-de-bord' | 'mindmap' | 'settings' | 'postes'>('overview');
   selectedEnjeuSlug = input<string | null>(null);
   /** #348 — Affiche l'entrée « Paramètres » (gestion avancée des versions),
    *  réservée au référent du plan, admin organisme et super admin. */
@@ -127,7 +127,7 @@ export class PlanSidebarComponent implements OnInit {
     this.router.navigate(['/plans', this.planSlug(), 'parametres']);
   }
 
-  navigateToPersonnes(): void {
-    this.router.navigate(['/plans', this.planSlug(), 'personnes']);
+  navigateToPostes(): void {
+    this.router.navigate(['/plans', this.planSlug(), 'postes']);
   }
 }

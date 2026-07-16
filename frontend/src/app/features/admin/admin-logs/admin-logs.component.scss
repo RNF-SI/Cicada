@@ -173,50 +173,7 @@
     }
   }
 
-  // Status classes pour les chips - Regles d'accessibilite WCAG AA selon Figma
-  // WARNING: Orange (#FA9965) avec texte noir (#343433)
-  .status-warning {
-    --mdc-chip-elevated-container-color: #{$warning-color};
-    --mdc-chip-label-text-color: #{$black};
-    color: $black;
-
-    i {
-      color: $black;
-    }
-  }
-
-  // ERROR: Rouge (#E12329) avec texte blanc
-  .status-error {
-    --mdc-chip-elevated-container-color: #{$error-color};
-    --mdc-chip-label-text-color: #{$white};
-    color: $white;
-
-    i {
-      color: $white;
-    }
-  }
-
-  // CRITICAL: Bleu-vert primaire (#025359) avec texte blanc
-  .status-critical {
-    --mdc-chip-elevated-container-color: #{$primary-color};
-    --mdc-chip-label-text-color: #{$white};
-    color: $white;
-
-    i {
-      color: $white;
-    }
-  }
-
-  mat-chip {
-    // Filet retiré autour des chips de logs (revue design #319 : harmoniser kit UI)
-    --mdc-chip-outline-color: transparent;
-    --mdc-chip-outline-width: 0;
-
-    i {
-      margin-right: $spacing-xxs;
-      font-size: 0.9rem;
-    }
-  }
+  // Niveaux de log : rendus par <app-tag> (cf. shared/utils/tag-icons.ts)
 
   mat-paginator {
     background: transparent;

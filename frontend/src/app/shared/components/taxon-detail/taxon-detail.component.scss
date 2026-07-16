@@ -62,16 +62,6 @@
   gap: $spacing-xs;
 }
 
-.hierarchy-label {
-  font-size: 0.75em;
-  color: $gray-dark;
-  margin-right: 4px;
-}
-
-.hierarchy-value {
-  font-weight: 600;
-}
-
 .hierarchy-arrow {
   color: $gray;
   margin: 0 $spacing-xs;
@@ -90,15 +80,6 @@
   display: flex;
   flex-wrap: wrap;
   gap: $spacing-xs;
-}
-
-.group-chip {
-  background-color: $secondary-pale-green;
-  color: $primary-color;
-  padding: 4px 12px;
-  border-radius: $border-radius-pill;
-  font-size: 0.85em;
-  font-weight: 600;
 }
 
 .taxon-names {

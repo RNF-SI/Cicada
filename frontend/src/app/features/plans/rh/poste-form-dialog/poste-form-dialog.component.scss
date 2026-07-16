@@ -1,6 +1,6 @@
 @import 'variables';
 
-.personne-form {
+.poste-form {
   display: flex;
   flex-direction: column;
   gap: $spacing-md;
@@ -18,6 +18,10 @@
   }
 }
 
+.rgpd-hint {
+  margin: 0;
+}
+
 .fonctions-block {
   display: flex;
   flex-direction: column;
@@ -28,9 +32,28 @@
     color: $black;
   }
 
+  .block-help,
   .empty-hint {
     margin: 0;
   }
+}
+
+// Bascule « poste combiné » <-> « quotités explicites ».
+.quotite-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: $spacing-sm;
+
+  .quotite-btn {
+    white-space: nowrap;
+  }
+}
+
+.field-error {
+  margin: 0;
+  color: $error-color;
+  font-size: 0.8rem;
 }
 
 .fonction-row {

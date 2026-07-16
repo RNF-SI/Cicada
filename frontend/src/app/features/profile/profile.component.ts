@@ -8,7 +8,6 @@ import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
-import { MatChipsModule } from '@angular/material/chips';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
@@ -18,6 +17,8 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { AuthService } from '../../core/services/auth.service';
 import { DeleteAccountModalComponent, DeleteAccountModalData, DeleteAccountModalResult } from '../../shared/components/modals';
+import { TagComponent } from '../../shared/components/tag/tag.component';
+import { TagAppearance, NEUTRAL_TAG, getUserRoleTag } from '../../shared/utils/tag-icons';
 
 @Component({
   selector: 'app-profile',
@@ -28,10 +29,10 @@ import { DeleteAccountModalComponent, DeleteAccountModalData, DeleteAccountModal
     RouterLink,
     MatCardModule,
     MatButtonModule,
-    MatChipsModule,
     MatFormFieldModule,
     MatInputModule,
     MatProgressSpinnerModule,
+    TagComponent,
     TranslateModule
   ],
   templateUrl: './profile.component.html',
@@ -88,6 +89,16 @@ export class ProfileComponent {
     }
 
     return labels[user.niveau_role] || user.niveau_role;
+  }
+
+  /**
+   * Retourne l'apparence du tag de rôle (couleur + icône).
+   * Mapping centralisé dans `shared/utils/tag-icons.ts`.
+   */
+  getRoleTag(): TagAppearance {
+    const user = this.currentUser();
+    if (!user) return NEUTRAL_TAG;
+    return getUserRoleTag(user.niveau_role, user.is_referent);
   }
 
   /**

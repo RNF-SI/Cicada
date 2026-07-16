@@ -34,6 +34,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 | `#F5B399` (Orange saumon) | Noir `#343433` ou Primary `#025359` |
 | `#C0E3CF` (Vert pâle) | Noir `#343433` ou Primary `#025359` |
 | Scores (`#FF7579`, `#FA9965`, `#F7D35C`, `#82DB8A`, `#81C9D8`) | Noir `#343433` uniquement |
+| Tags (`#CFF1D3`, `#C1E5EC`, `#FFE6CC`, `#FFC7C9`, `#F9CFBE`, `#E4E4E4`) | Noir `#343433` uniquement |
 | Blanc | Primary `#025359`, Noir `#343433`, Gris foncé `#746F6E` |
 
 **NE JAMAIS utiliser :**
@@ -268,14 +269,25 @@ Les composants standalone sont dans `frontend/src/app/shared/components/`.
 | `size` | `'sm' \| 'md'` | `'md'` | Taille (sm pour tableaux denses) |
 | `clickable` | `boolean` | `false` | Active curseur pointer + effet hover |
 
-**Variantes disponibles** :
-- Sémantiques (texte blanc, AA) : `success` (vert #04854B), `error` (rouge #E12329), `info`/`primary` (bleu-vert #025359)
-- Décoratives (texte noir, AA) : `warning` (saumon #F5B399), `draft` (jaune #FEC180), `neutral` (vert pâle #C0E3CF), `muted` (gris clair)
-- Scores (texte noir, AA) : `score-very-bad`, `score-bad`, `score-neutral`, `score-good`, `score-very-good`
+**Variantes disponibles** (palette pastel Figma « 🧩 Tags » — **texte toujours noir `#343433`**) :
+
+| Variante | Fond | Variable SCSS | Usage |
+|----------|------|---------------|-------|
+| `success` | #CFF1D3 (vert) | `$tag-green` | Validé, Approuvé, Actif |
+| `error` | #FFC7C9 (rouge) | `$tag-red` | Rejeté, Annulé, Expiré, Inactif, Erreur |
+| `info` / `primary` | #C1E5EC (cyan) | `$tag-cyan` | Modifié, Utilisateur |
+| `warning` / `draft` | #FFE6CC (orange) | `$tag-orange` | Brouillon, En attente, Référent |
+| `neutral` | #F9CFBE (saumon) | `$tag-salmon` | Libellé neutre **sans icône** |
+| `muted` | #E4E4E4 (gris) | `$tag-gray` | Archivé |
+| `score-*` | palette scores | `$score-*` | Scores / priorités |
 
 **Règles** :
-- Pas de bordure par défaut
-- Pas de hover si `clickable=false`
+- **Texte toujours noir** : les fonds sont pastel pour rester AA avec `$black`. Ne jamais réutiliser `$success-color` / `$error-color` (couleurs pleines, texte blanc) pour un tag.
+- **Icône uniquement sur les statuts principaux** où couleur + icône font sens. Sinon → `neutral` sans icône, « afin de ne pas multiplier les icônes et les couleurs » (annotation Figma).
+- **Source de vérité des couleurs + icônes** : `shared/utils/tag-icons.ts` (`PLAN_STATUS_TAG`, `VALIDATION_STATUS_TAG`, `USER_ROLE_TAG`, `USER_STATUS_TAG`, `LOG_LEVEL_TAG` + helpers `getPlanStatusTag()`…). Ne pas redéfinir un mapping statut→couleur dans un composant : importer depuis ce fichier.
+- **Deux catégories sans tag du tout** (annotation Figma « ne pas utiliser de composant tag/chips, mettre simplement le libellé en texte normal ») : le **type d'aire protégée** (RNN, RNR, PNR, ENS…) et la **référence d'un site / d'un organisme** (code INPN).
+- Vérifier qu'une icône existe bien dans le set Uicons Rounded Regular **2.6.0** (chargé par `index.html`) avant de l'utiliser : le nom de la maquette ne correspond pas toujours à un glyphe réel (ex. `fi-rr-file-check` n'existe pas → `fi-rr-memo-circle-check`).
+- Pas de bordure par défaut ; pas de hover si `clickable=false`
 - Combinaisons WCAG AA respectées — voir [docs/DESIGN_SYSTEM.md](docs/DESIGN_SYSTEM.md)
 
 #### `HeaderComponent`

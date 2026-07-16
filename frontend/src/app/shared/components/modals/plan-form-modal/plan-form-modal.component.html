@@ -102,9 +102,12 @@
                     <span class="item-type">{{ site.type }}</span>
                   }
                   @if (site.accessLabel) {
-                    <span class="item-access" [ngClass]="'access-' + site.accessType">
-                      {{ site.accessLabel }}
-                    </span>
+                    <app-tag
+                      class="item-access"
+                      size="sm"
+                      [variant]="accessTag(site).variant"
+                      [icon]="accessTag(site).icon"
+                      [label]="site.accessLabel"></app-tag>
                   }
                 </div>
               </div>

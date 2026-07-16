@@ -1,11 +1,14 @@
 /**
  * Modèles pour la gestion des ressources humaines des plans de gestion (#560) :
- * référentiel de fonctions/postes, personnes rattachées à un PG et lignes de
- * temps de travail (prévisionnel / réalisé) par personne ou fonction, avec
- * distinction financé / non financé.
+ * référentiel de fonctions, postes d'un PG et lignes de temps de travail
+ * (prévisionnel / réalisé) par poste ou par organisme, avec distinction
+ * financé / non financé.
+ *
+ * Aucune donnée nominative n'est manipulée (RGPD) : on décrit des postes, pas
+ * des personnes.
  */
 
-/** Fonction / poste du référentiel global (conservateur, garde, écovolontaire…). */
+/** Fonction du référentiel global (conservateur, garde, écovolontaire…). */
 export interface Fonction {
   id_fonction: number;
   libelle: string;
@@ -16,53 +19,64 @@ export interface Fonction {
   actif?: boolean;
 }
 
-/** Fonction occupée par une personne, avec quotité optionnelle (0-100). */
-export interface PersonneFonction {
-  id_personne_fonction?: number;
+/**
+ * Fonction portée par un poste, avec quotité optionnelle (0-100).
+ *
+ * Quotité vide = le poste cumule ses fonctions sur tout son temps
+ * (« garde animateur » à 1 ETP). Quotités renseignées = répartition explicite,
+ * dont la somme doit faire 100 %.
+ */
+export interface PosteFonction {
+  id_poste_fonction?: number;
   id_fonction: number;
   fonction_libelle?: string;
   finance_par_defaut?: boolean;
   pourcentage?: number | string | null;
 }
 
-/** Personne rattachée à un plan de gestion. */
-export interface PersonnePlan {
-  id_personne_plan?: number;
+/** Poste d'un plan de gestion. Décrit par ses fonctions, jamais par un nom. */
+export interface Poste {
+  id_poste?: number;
   id_pg: number;
-  nom: string;
-  /** Lien facultatif vers un compte utilisateur CICADA. */
-  id_role?: number | null;
-  role_email?: string | null;
-  role_nom?: string | null;
-  date_arrivee?: string | null;
-  date_depart?: string | null;
-  fonctions?: PersonneFonction[];
+  /** Libellé dérivé des fonctions, calculé côté serveur (lecture seule). */
+  libelle?: string;
+  id_organisme?: number | null;
+  organisme_nom?: string | null;
+  /** Combien de postes de ce type (ex. 3 stagiaires). */
+  nombre: number;
+  /** ETP pour ce poste, TOTAL sur les `nombre` postes. */
+  etp?: number | string | null;
+  fonctions?: PosteFonction[];
+  /** Faux seulement si toutes les fonctions sont non financées. */
+  finance_par_defaut?: boolean;
   date_ajout?: string;
   date_maj?: string;
 }
 
-/** Payload d'écriture d'une personne (fonctions imbriquées). */
-export interface PersonnePlanPayload {
+/** Payload d'écriture d'un poste (fonctions imbriquées). */
+export interface PostePayload {
   id_pg: number;
-  nom: string;
-  id_role?: number | null;
-  date_arrivee?: string | null;
-  date_depart?: string | null;
+  id_organisme?: number | null;
+  nombre: number;
+  etp?: number | string | null;
   fonctions?: Array<{ id_fonction: number; pourcentage?: number | string | null }>;
 }
 
 /**
- * Ligne RH d'une année d'opération (prévisionnel comme réalisé) : pointe
- * facultativement vers une personne OU une fonction, exprime des jours et un
- * caractère financé / non financé.
+ * Ligne RH d'une année d'opération (prévisionnel comme réalisé).
+ *
+ * La cible dépend du mode de saisie de l'action : un poste (déclinaison par
+ * poste), un organisme (budget ventilé par organisme), ou rien.
  */
 export interface OperationRHLigne {
-  id_operation_annee_rh?: number;
+  id_operation_annee_rh?: number | null;
   id_realisation_operation_annee_rh?: number;
-  id_personne_plan?: number | null;
-  personne_nom?: string | null;
-  id_fonction?: number | null;
-  fonction_libelle?: string | null;
+  id_poste?: number | null;
+  poste_libelle?: string | null;
+  /** Organisme du poste, affiché sous son libellé en déclinaison par poste. */
+  poste_organisme_nom?: string | null;
+  id_organisme?: number | null;
+  organisme_nom?: string | null;
   jours: number | null;
   finance: boolean;
 }

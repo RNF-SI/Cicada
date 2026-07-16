@@ -4,11 +4,11 @@ import { FormsModule } from '@angular/forms';
 import { MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
 import { StepperComponent, StepperStep } from '../../stepper/stepper.component';
+import { TagComponent } from '../../tag/tag.component';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatSelectModule } from '@angular/material/select';
 import { MatTableModule } from '@angular/material/table';
 import { MatCheckboxModule } from '@angular/material/checkbox';
-import { MatChipsModule } from '@angular/material/chips';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatIconModule } from '@angular/material/icon';
@@ -55,12 +55,12 @@ const TARGET_FIELDS = [
     MatSelectModule,
     MatTableModule,
     MatCheckboxModule,
-    MatChipsModule,
     MatProgressBarModule,
     MatProgressSpinnerModule,
     MatIconModule,
     MatTooltipModule,
     TranslateModule,
+    TagComponent,
   ],
   templateUrl: './bulk-site-import-modal.component.html',
   styleUrl: './bulk-site-import-modal.component.scss',
@@ -218,10 +218,10 @@ export class BulkSiteImportModalComponent {
         }));
         this.sites.set(sitesWithSelection);
 
-        // Auto-advance to mapping step if not already there
-        if (this.currentStep() === 0) {
-          this.currentStep.set(1);
-        }
+        // Pas de passage automatique à l'étape suivante une fois le fichier
+        // analysé : le changement d'étape reste à la main de l'utilisateur, qui
+        // valide via le bouton « Suivant » (annotation Figma « 🔢 Composant
+        // étapes »). Ce bouton s'active dès que `validationResult()` est posé.
       },
       error: (err) => {
         this.uploading.set(false);

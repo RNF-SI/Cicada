@@ -1,6 +1,6 @@
 @import 'variables';
 
-.personnes-layout {
+.postes-layout {
   display: flex;
   min-height: calc(100vh - 64px);
   background: $gray-lighter;
@@ -44,6 +44,19 @@
   }
 }
 
+.postes-recap {
+  display: inline-flex;
+  align-items: center;
+  gap: $spacing-xs;
+  margin-bottom: $spacing-md;
+  padding: $spacing-xs $spacing-sm;
+  background: $secondary-pale-green;
+  color: $primary-color;
+  border-radius: $border-radius-pill;
+  font-weight: 600;
+  font-size: 0.85rem;
+}
+
 .empty-state {
   display: flex;
   flex-direction: column;
@@ -60,13 +73,13 @@
   }
 }
 
-.personnes-list {
+.postes-list {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
   gap: $spacing-md;
 }
 
-.personne-card {
+.poste-card {
   background: $white;
   border-radius: $border-radius-md;
   padding: $spacing-sm;

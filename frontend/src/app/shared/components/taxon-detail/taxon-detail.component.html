@@ -56,12 +56,7 @@
           <h4>{{ 'taxonomy.hierarchy' | translate }}</h4>
           <div class="hierarchy-chain">
             @for (item of hierarchy; track item.label; let last = $last) {
-              <mat-chip-set>
-                <mat-chip>
-                  <span class="hierarchy-label">{{ item.label }}</span>
-                  <span class="hierarchy-value">{{ item.value }}</span>
-                </mat-chip>
-              </mat-chip-set>
+              <app-tag size="sm" variant="neutral" [label]="item.label + ' : ' + item.value"></app-tag>
               @if (!last) {
                 <span class="hierarchy-arrow">&rarr;</span>
               }
@@ -76,13 +71,13 @@
           <h4>{{ 'taxonomy.groups' | translate }}</h4>
           <div class="groups-list">
             @if (t.group1_inpn) {
-              <span class="group-chip">{{ t.group1_inpn }}</span>
+              <app-tag size="sm" variant="neutral" [label]="t.group1_inpn"></app-tag>
             }
             @if (t.group2_inpn) {
-              <span class="group-chip">{{ t.group2_inpn }}</span>
+              <app-tag size="sm" variant="neutral" [label]="t.group2_inpn"></app-tag>
             }
             @if (t.group3_inpn) {
-              <span class="group-chip">{{ t.group3_inpn }}</span>
+              <app-tag size="sm" variant="neutral" [label]="t.group3_inpn"></app-tag>
             }
           </div>
         </div>
