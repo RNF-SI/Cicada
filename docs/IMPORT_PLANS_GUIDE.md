@@ -54,11 +54,20 @@ Frontend : section « Import / export » de la page **Paramètres du plan**
 - **Correction interactive (#9)** : après validation, les données sont éditables
   dans une grille (cellules en erreur surlignées). On corrige, on **revalide**
   (`validate-data`) et on **importe** (`import-data`) sans repasser par Excel.
-- **Import « mapping » (#10)** : on peut téléverser un fichier Excel de structure
-  **quelconque** ; `read-xlsx` en lit les onglets/colonnes, l'utilisateur associe
-  ses colonnes au format cible, et la suite passe par la grille de correction.
-- L'import est **en création seule** : il refuse un plan qui contient déjà une
-  arborescence (module 1) ou déjà des actions (module 2).
+- **Import « mapping » (#10)** : téléverser un fichier Excel de structure
+  **quelconque**, `read-xlsx` en lit les onglets/colonnes, l'utilisateur associe
+  ses colonnes au format cible. *Fonctionnel en backend mais présenté « Prochainement »
+  côté UI (désactivé) en attendant des formats réels d'utilisateurs.*
+- **Trois modes d'import** (paramètre `mode`) sur un plan qui a déjà du contenu :
+  - `create` (défaut) : refuse un plan non vide ;
+  - `add` : **ajoute** sans toucher à l'existant (refuse un libellé d'enjeu déjà présent) ;
+  - `replace` : **supprime** l'arborescence existante (les deux branches +
+    opérations/budgets/RH/suivis en cascade) puis recrée — **destructif**,
+    confirmation forte côté UI (modale listant ce qui sera perdu).
+- La page **Paramètres du plan** présente l'import en **parcours guidé** (3 étapes
+  numérotées + « Comment ça marche ? » dépliable + options avancées repliées).
+- Le module **actions** a aussi son explication : le classeur embarque déjà les
+  indicateurs/postes du plan (onglets de référence non modifiables).
 - Deux temps : **valider** (dry-run, aucun écrit) puis **importer** (transaction).
 
 ---
