@@ -86,10 +86,33 @@ class EnjeuViewSet(viewsets.ModelViewSet):
             FacteurInfluence, Pression, ObjectifLongTerme, NiveauExigence,
             ObjectifOperationnel, ResultatAttendu,
         )
-        from .models_indicateurs import Indicateur, Metrique
-        from .models_operations import Operation, OperationAnnee, OperationAnneeOrganisme, FinanceOperation
+        from .models_indicateurs import Indicateur, Metrique, Mesure
+        from .models_operations import (
+            Operation, OperationAnnee, OperationAnneeOrganisme, FinanceOperation,
+            OperationAnneeRH, RealisationOperationAnneeRH,
+        )
 
-        op_annee_organisme_qs = OperationAnneeOrganisme.objects.select_related('id_organisme')
+        # #560 — La chaîne RH est sérialisée sous chaque année d'opération
+        # (`OperationAnneeSerializer.rh_lignes` + réalisations). Chaque ligne lit
+        # `id_poste.libelle`, une PROPRIÉTÉ calculée qui parcourt
+        # `poste.fonctions → fonction`. Sans préchargement, une seule page
+        # « suivi des actions » d'un plan complet générait des milliers de
+        # requêtes (poste + cor_poste_fonction + t_fonctions PAR ligne RH) et
+        # ~7 s de latence. On précharge poste, organisme et fonctions pour que
+        # la propriété `libelle` tape le cache.
+        poste_prefetch = 'id_poste__fonctions__id_fonction'
+        op_annee_rh_qs = OperationAnneeRH.objects.select_related(
+            'id_poste', 'id_poste__id_organisme', 'id_organisme',
+        ).prefetch_related(poste_prefetch)
+        real_rh_qs = RealisationOperationAnneeRH.objects.select_related(
+            'id_poste', 'id_poste__id_organisme', 'id_organisme',
+        ).prefetch_related(poste_prefetch)
+
+        op_annee_organisme_qs = OperationAnneeOrganisme.objects.select_related(
+            'id_organisme',
+            # ventilation réalisée par organisme (reverse OneToOne)
+            'realisation',
+        )
         finance_qs = FinanceOperation.objects.select_related('id_categorie')
 
         op_qs = Operation.objects.select_related(
@@ -98,7 +121,12 @@ class EnjeuViewSet(viewsets.ModelViewSet):
             # #355 — surcharge manuelle du niveau global (reverse OneToOne)
             'realisation_globale', 'realisation_globale__id_niveau_realisation',
         ).prefetch_related(
-            Prefetch('metriques', queryset=Metrique.objects.select_related('id_indicateur')),
+            # #452 — grille (score_blocks) + type/format lus par get_metriques,
+            # sinon un N+1 par métrique d'action.
+            Prefetch('metriques', queryset=Metrique.objects.select_related(
+                'id_indicateur', 'id_indicateur__type_indicateur',
+                'type_metrique', 'format_metrique',
+            ).prefetch_related('score_blocks')),
             'sites',
             Prefetch(
                 'operation_annees',
@@ -107,6 +135,9 @@ class EnjeuViewSet(viewsets.ModelViewSet):
                     'realisation', 'realisation__id_niveau_realisation',
                 ).prefetch_related(
                     Prefetch('organismes', queryset=op_annee_organisme_qs),
+                    # #560 — lignes RH prévisionnelles et réalisées (voir note ci-dessus)
+                    Prefetch('rh_lignes', queryset=op_annee_rh_qs),
+                    Prefetch('realisation__rh_lignes', queryset=real_rh_qs),
                 ),
             ),
             Prefetch('finances', queryset=finance_qs),
@@ -115,7 +146,10 @@ class EnjeuViewSet(viewsets.ModelViewSet):
         metrique_qs = Metrique.objects.select_related(
             'type_metrique', 'id_indicateur', 'id_utilisateur_ajout',
         ).prefetch_related(
-            'mesures', 'score_blocks',
+            # createur_nom lit `id_utilisateur_ajout.get_full_name` sur chaque
+            # mesure → select_related pour éviter un N+1 par mesure (tableau de bord).
+            Prefetch('mesures', queryset=Mesure.objects.select_related('id_utilisateur_ajout')),
+            'score_blocks',
             Prefetch('operations', queryset=op_qs),
         )
 
