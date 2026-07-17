@@ -147,11 +147,20 @@ avec ce même rapport dans le corps.
   export (tout statut, MIME), validation multipart, import réel, **verrou
   brouillon (403 hors draft)**, authentification, fichier manquant.
 - `frontend/src/app/core/services/admin.service.spec.ts` (méthodes d'import)
+- `frontend/e2e/tests/features/import-plan.spec.ts` (2 tests E2E Playwright) —
+  round-trip **par l'interface** : export du classeur pré-rempli d'un plan
+  seedé → import dans un brouillon vide via la page « Paramètres du plan » →
+  vérification de l'arborescence créée ; + verrou brouillon (upload masqué sur
+  un plan validé). Le fichier Excel est produit à la volée par l'export (pas de
+  fixture binaire committée).
 
 ```bash
+# Backend
 docker compose exec web pytest tests/apps/plans/test_import_arborescence.py \
                                 tests/apps/plans/test_import_actions.py \
                                 tests/apps/plans/test_import_endpoints.py
+# E2E (stack lancée + seed ; voir docs/TESTING.md)
+cd frontend && npm run e2e -- e2e/tests/features/import-plan.spec.ts
 ```
 
 ---

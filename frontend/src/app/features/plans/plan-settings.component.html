@@ -55,7 +55,7 @@
             <p class="subtitle">{{ 'plans.import.sectionSubtitle' | translate }}</p>
 
             <div class="import-actions">
-              <button mat-stroked-button [disabled]="downloading()" (click)="downloadTemplate(false)">
+              <button mat-stroked-button data-testid="arbo-export-prefilled" [disabled]="downloading()" (click)="downloadTemplate(false)">
                 <i class="fi fi-rr-download"></i>
                 {{ 'plans.import.downloadPrefilled' | translate }}
               </button>
@@ -82,6 +82,7 @@
                     <input
                       type="file"
                       accept=".xlsx"
+                      data-testid="arbo-import-file"
                       (change)="onImportFileSelected($event)"
                       [disabled]="importValidating() || importing()"
                       hidden />
@@ -157,6 +158,7 @@
                     <button
                       mat-flat-button
                       color="primary"
+                      data-testid="arbo-import-submit"
                       [disabled]="!report.can_import || importing()"
                       (click)="runImport()">
                       @if (importing()) {
