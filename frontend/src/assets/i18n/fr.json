@@ -2389,10 +2389,11 @@
       },
       "howto": {
         "title": "Comment ça marche ?",
-        "s1": "Téléchargez le modèle à remplir (ou l'exemple complet pour comprendre le format).",
-        "s2": "Complétez-le dans Excel : un onglet par niveau (enjeux, objectifs, indicateurs…) ; les listes déroulantes vous guident.",
-        "s3": "Ré-importez votre fichier plus bas : tout est vérifié et vous corrigez les erreurs directement en ligne si besoin.",
-        "s4": "L'import ne fonctionne que sur un plan en brouillon ne contenant pas encore d'arborescence."
+        "s1": "Téléchargez le modèle à remplir, ou l'exemple complet (fictif) pour voir comment le format fonctionne.",
+        "s2": "Complétez-le dans Excel : un onglet par niveau (enjeux, facteurs, objectifs, indicateurs, métriques…), reliés par des codes ; les listes déroulantes vous guident et une ligne « (exemple) » montre quoi écrire.",
+        "s3": "Ré-importez votre fichier à l'étape 3 : tout est vérifié (y compris les taxons et habitats) et vous corrigez les éventuelles erreurs directement dans un tableau, sans repasser par Excel.",
+        "s4": "Sur un plan en brouillon encore vide, l'import crée l'arborescence. S'il contient déjà du contenu, vous choisissez d'y ajouter de nouveaux éléments ou de tout remplacer.",
+        "s5": "L'import n'est possible que sur un plan en brouillon."
       },
       "step1": { "title": "Partir d'un modèle" },
       "step2": {
