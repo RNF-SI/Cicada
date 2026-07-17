@@ -769,6 +769,11 @@ export interface ArborescenceImportIssue {
   message: string;
 }
 
+/** Une ligne de données (clés de colonne → valeur) + numéro de ligne Excel. */
+export type ParsedRow = Record<string, unknown> & { _row?: number | null };
+/** Données parsées, une liste de lignes par onglet. */
+export type ParsedData = Record<string, ParsedRow[]>;
+
 /** Rapport de validation (dry-run) d'un fichier d'import d'arborescence. */
 export interface ArborescenceImportReport {
   can_import: boolean;
@@ -777,6 +782,36 @@ export interface ArborescenceImportReport {
   issues: ArborescenceImportIssue[];
   /** Décompte de ce qui serait créé, par onglet. */
   summary: Record<string, number>;
+  /** Données parsées (pour la correction interactive #9). */
+  data?: ParsedData;
+}
+
+/** Description d'une colonne du format (schéma d'import). */
+export interface ImportColumn {
+  key: string;
+  header: string;
+  required: boolean;
+  multi: boolean;
+  boolean: boolean;
+  nomenclature: string | null;
+  ref: string | null;
+  vocab: string | null;
+  help: string;
+}
+
+/** Description d'un onglet du format d'import. */
+export interface ImportSheet {
+  key: string;
+  name: string;
+  description: string;
+  columns: ImportColumn[];
+}
+
+/** Onglet d'un classeur Excel quelconque (lecture pour le mapping #10). */
+export interface ForeignSheet {
+  name: string;
+  headers: string[];
+  rows: string[][];
 }
 
 /** Résultat d'un import d'arborescence exécuté. */

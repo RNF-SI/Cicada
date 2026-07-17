@@ -30,7 +30,10 @@ import {
   PlanDuplicateOptions,
   PlanVersionChainItem,
   ArborescenceImportReport,
-  ArborescenceImportResult
+  ArborescenceImportResult,
+  ImportSheet,
+  ParsedData,
+  ForeignSheet
 } from '../models/admin.model';
 import { SiteCreationValidatorsResponse } from '../models/notification.model';
 
@@ -791,6 +794,54 @@ export class AdminService {
       `${this.plansApiUrl}/plans/${planId}/import-arborescence/`,
       formData,
     );
+  }
+
+  /**
+   * Schéma du format d'arborescence (onglets + colonnes).
+   * GET /api/plans/plans/import-arborescence-schema/
+   */
+  getImportSchema(): Observable<{ sheets: ImportSheet[] }> {
+    return this.http
+      .get<{ sheets: ImportSheet[] }>(
+        `${this.plansApiUrl}/plans/import-arborescence-schema/`,
+      )
+      .pipe(catchError(this.handleError));
+  }
+
+  /**
+   * Valide des données d'arborescence éditées (JSON), sans fichier (#9).
+   * POST /api/plans/plans/{id}/import-arborescence/validate-data/
+   */
+  validateArborescenceData(planId: number, data: ParsedData): Observable<ArborescenceImportReport> {
+    return this.http
+      .post<ArborescenceImportReport>(
+        `${this.plansApiUrl}/plans/${planId}/import-arborescence/validate-data/`,
+        { data },
+      )
+      .pipe(catchError(this.handleError));
+  }
+
+  /**
+   * Importe des données d'arborescence éditées (JSON), sans fichier (#9/#10).
+   * Ne pipe PAS handleError : le rapport d'échec (400) est lu via err.error.
+   */
+  importArborescenceData(planId: number, data: ParsedData): Observable<ArborescenceImportResult> {
+    return this.http.post<ArborescenceImportResult>(
+      `${this.plansApiUrl}/plans/${planId}/import-arborescence/import-data/`,
+      { data },
+    );
+  }
+
+  /**
+   * Lit un classeur Excel quelconque (mapping #10).
+   * POST /api/plans/plans/read-xlsx/
+   */
+  readForeignXlsx(file: File): Observable<{ sheets: ForeignSheet[] }> {
+    const formData = new FormData();
+    formData.append('file', file);
+    return this.http
+      .post<{ sheets: ForeignSheet[] }>(`${this.plansApiUrl}/plans/read-xlsx/`, formData)
+      .pipe(catchError(this.handleError));
   }
 
   // --- Module 2 : import des actions -------------------------------------

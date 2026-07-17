@@ -1,0 +1,68 @@
+<div class="import-grid" data-testid="import-grid">
+  <div class="grid-toolbar">
+    <div class="grid-status">
+      @if (errorCount() > 0) {
+        <span class="status-errors">{{ 'plans.import.grid.errors' | translate:{ count: errorCount() } }}</span>
+      } @else {
+        <span class="status-ok">{{ 'plans.import.grid.noError' | translate }}</span>
+      }
+      @if (warningCount() > 0) {
+        <span class="status-warnings">{{ 'plans.import.grid.warnings' | translate:{ count: warningCount() } }}</span>
+      }
+    </div>
+    <div class="grid-actions">
+      <button mat-stroked-button [disabled]="validating() || importing()" (click)="revalidate()" data-testid="grid-revalidate">
+        @if (validating()) { <mat-spinner diameter="16"></mat-spinner> } @else { <i class="fi fi-rr-refresh"></i> }
+        {{ 'plans.import.grid.revalidate' | translate }}
+      </button>
+      <button mat-flat-button color="primary" [disabled]="!canImport() || importing()" (click)="runImport()" data-testid="grid-import">
+        @if (importing()) { <mat-spinner diameter="16"></mat-spinner> } @else { <i class="fi fi-rr-cloud-upload"></i> }
+        {{ 'plans.import.grid.import' | translate }}
+      </button>
+      <button mat-button [disabled]="importing()" (click)="cancel()">{{ 'common.actions.cancel' | translate }}</button>
+    </div>
+  </div>
+
+  <p class="text-mention">{{ 'plans.import.grid.help' | translate }}</p>
+
+  @for (sheet of visibleSheets(); track sheet.key) {
+    <section class="grid-sheet">
+      <h3 class="grid-sheet-title">{{ sheet.name }}</h3>
+      <div class="grid-table-wrap">
+        <table class="grid-table">
+          <thead>
+            <tr>
+              <th class="col-row">#</th>
+              @for (col of sheet.columns; track col.key) {
+                <th [class.col-required]="col.required" [title]="col.help">{{ col.header }}</th>
+              }
+              <th class="col-actions"></th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (row of rowsOf(sheet.key); track $index) {
+              <tr>
+                <td class="col-row">{{ row['_row'] }}</td>
+                @for (col of sheet.columns; track col.key) {
+                  <td [class.cell-error]="cellError(sheet.name, row, col.key)"
+                      [title]="cellError(sheet.name, row, col.key) || ''">
+                    <input
+                      type="text"
+                      [value]="cellValue(row, col.key)"
+                      (input)="onCellInput(row, col.key, $any($event.target).value)" />
+                  </td>
+                }
+                <td class="col-actions">
+                  <button type="button" class="icon-btn-flat" [title]="'common.actions.delete' | translate"
+                          (click)="removeRow(sheet.key, $index)">
+                    <i class="fi fi-rr-trash"></i>
+                  </button>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </section>
+  }
+</div>

@@ -18,9 +18,11 @@ import {
   PlanVersionChainItem,
   ArborescenceImportReport,
   ArborescenceImportIssue,
+  ImportSheet,
 } from '../../core/models/admin.model';
 import { HeaderComponent } from '../../shared/components/header/header.component';
 import { PlanSidebarComponent } from './shared/plan-sidebar/plan-sidebar.component';
+import { ImportGridComponent } from './import-grid/import-grid.component';
 import { TagComponent } from '../../shared/components/tag/tag.component';
 import { TagAppearance, getPlanStatusTag } from '../../shared/utils/tag-icons';
 import {
@@ -49,6 +51,7 @@ import {
     TranslateModule,
     HeaderComponent,
     PlanSidebarComponent,
+    ImportGridComponent,
     TagComponent,
   ],
   templateUrl: './plan-settings.component.html',
@@ -182,6 +185,10 @@ export class PlanSettingsComponent {
   readonly importValidating = signal(false);
   readonly importing = signal(false);
 
+  /** Correction interactive (#9). */
+  readonly importSchema = signal<ImportSheet[]>([]);
+  readonly showGrid = signal(false);
+
   /** L'import n'est possible que sur un plan en brouillon. */
   readonly isDraft = computed<boolean>(() => this.plan()?.statut === 'draft');
 
@@ -295,6 +302,43 @@ export class PlanSettingsComponent {
         this.snackBar.open(detail, this.translate.instant('common.actions.close'), { duration: 5000 });
       },
     });
+  }
+
+  /** Ouvre la grille de correction interactive (#9). Charge le schéma au besoin. */
+  openGrid(): void {
+    if (!this.importReport()?.data) return;
+    if (this.importSchema().length) {
+      this.showGrid.set(true);
+      return;
+    }
+    this.adminService.getImportSchema().subscribe({
+      next: res => {
+        this.importSchema.set(res.sheets);
+        this.showGrid.set(true);
+      },
+      error: () => {
+        this.snackBar.open(
+          this.translate.instant('plans.import.validateError'),
+          this.translate.instant('common.actions.close'),
+          { duration: 5000 },
+        );
+      },
+    });
+  }
+
+  onGridImported(total: number): void {
+    const p = this.plan();
+    this.showGrid.set(false);
+    this.snackBar.open(
+      this.translate.instant('plans.import.importSuccess', { total }),
+      this.translate.instant('common.actions.close'),
+      { duration: 5000 },
+    );
+    if (p) this.router.navigate(['/plans', p.slug, 'enjeux']);
+  }
+
+  onGridCancelled(): void {
+    this.showGrid.set(false);
   }
 
   private triggerBlobDownload(blob: Blob, filename: string): void {

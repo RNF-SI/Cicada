@@ -2365,6 +2365,17 @@
       "validateError": "La vérification du fichier a échoué.",
       "readySummary": "Fichier valide : {{enjeux}} enjeu(x), {{indicateurs}} indicateur(s) et {{metriques}} métrique(s) seront créés.",
       "errorsCount": "{{count}} anomalie(s) bloquante(s) à corriger avant l'import.",
+      "grid": {
+        "open": "Corriger dans un tableau",
+        "help": "Corrigez directement les cellules en rouge, puis revalidez. Inutile de repasser par Excel. Les taxons/habitats reconnus par leur nom sont corrigés automatiquement.",
+        "revalidate": "Revalider",
+        "import": "Importer",
+        "errors": "{{count}} erreur(s) à corriger",
+        "noError": "Aucune erreur",
+        "warnings": "{{count}} avertissement(s)",
+        "revalidateOk": "Validation OK : plus d'erreur, vous pouvez importer.",
+        "revalidateErrors": "{{count}} erreur(s) restante(s)."
+      },
       "doImport": "Importer l'arborescence",
       "importSuccess": "Import réussi : {{total}} élément(s) créé(s).",
       "importError": "L'import a échoué.",

@@ -1,0 +1,98 @@
+@import 'variables';
+
+.import-grid {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-md;
+}
+
+.grid-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: $spacing-md;
+  flex-wrap: wrap;
+  position: sticky;
+  top: 0;
+  background: $white;
+  padding: $spacing-xs 0;
+  z-index: 2;
+}
+
+.grid-status {
+  display: flex;
+  gap: $spacing-md;
+  align-items: center;
+
+  .status-errors { color: $error-color; font-weight: 700; }
+  .status-ok { color: $success-color; font-weight: 700; }
+  .status-warnings { color: $gray-dark; }
+}
+
+.grid-actions {
+  display: flex;
+  gap: $spacing-sm;
+  align-items: center;
+}
+
+.grid-sheet-title {
+  margin: $spacing-sm 0 $spacing-xs;
+  color: $primary-color;
+}
+
+.grid-table-wrap {
+  overflow-x: auto;
+  border: 1px solid $gray-light;
+  border-radius: $border-radius-sm;
+}
+
+.grid-table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 0.85rem;
+
+  th, td {
+    border: 1px solid $gray-lighter;
+    padding: 0;
+    text-align: left;
+    white-space: nowrap;
+  }
+
+  th {
+    background: $beige;
+    padding: $spacing-xxs $spacing-xs;
+    font-weight: 600;
+    color: $black;
+
+    &.col-required { color: $error-color; }
+  }
+
+  .col-row {
+    width: 44px;
+    text-align: center;
+    color: $gray-dark;
+    padding: 0 $spacing-xxs;
+  }
+
+  .col-actions { width: 40px; text-align: center; }
+
+  td input {
+    border: none;
+    background: transparent;
+    padding: $spacing-xxs $spacing-xs;
+    width: 100%;
+    min-width: 120px;
+    font: inherit;
+
+    &:focus {
+      outline: 2px solid $primary-color;
+      background: $white;
+    }
+  }
+
+  td.cell-error {
+    background: rgba($error-color, 0.08);
+    input { color: $error-color; }
+    box-shadow: inset 0 0 0 2px rgba($error-color, 0.5);
+  }
+}

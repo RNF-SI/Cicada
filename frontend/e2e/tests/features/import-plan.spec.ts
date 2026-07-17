@@ -124,4 +124,47 @@ test.describe('Import arborescence via Excel', () => {
     ]);
     expect(await dlActions.path()).toBeTruthy();
   });
+
+  test('correction interactive : ouvrir la grille et importer (#9)', async ({ superAdminPage }) => {
+    const page = superAdminPage;
+    const source = await findPlan(page, 'Lac');
+    const { data: sourceDetail } = await apiGet(page, `plans/plans/${source.id_pg}/`);
+    const siteId = (sourceDetail.sites || [])[0]?.id_site as number;
+    const sourceCount = await enjeuxCount(page, source.id_pg);
+
+    await page.goto(`/plans/${source.slug}/parametres`);
+    const [download] = await Promise.all([
+      page.waitForEvent('download'),
+      page.getByTestId('arbo-export-prefilled').click(),
+    ]);
+    const filePath = await download.path();
+
+    const created = await apiPost(page, 'plans/plans/', {
+      nom: `E2E Grille ${Date.now()}`,
+      rang: 1,
+      annee_debut: 2024,
+      annee_fin: 2034,
+      sites_ids: [siteId],
+    });
+    const target = { id_pg: created.data.id_pg as number, slug: created.data.slug as string };
+
+    try {
+      await page.goto(`/plans/${target.slug}/parametres`);
+      await page.getByTestId('arbo-import-file').setInputFiles(filePath!);
+      // Bouton « Corriger dans un tableau » visible dès que les données sont là.
+      const correct = page.getByTestId('arbo-correct');
+      await expect(correct).toBeVisible({ timeout: 20000 });
+      await correct.click();
+
+      // La grille éditable s'affiche puis on importe directement depuis elle.
+      await expect(page.getByTestId('import-grid')).toBeVisible();
+      await Promise.all([
+        page.waitForURL(/\/plans\/.+\/enjeux/, { timeout: 20000 }),
+        page.getByTestId('grid-import').click(),
+      ]);
+      expect(await enjeuxCount(page, target.id_pg)).toBe(sourceCount);
+    } finally {
+      await apiDelete(page, `plans/plans/${target.id_pg}/`).catch(() => undefined);
+    }
+  });
 });

@@ -163,24 +163,43 @@
                     </ul>
                   }
 
-                  <div class="import-buttons">
-                    <button
-                      mat-flat-button
-                      color="primary"
-                      data-testid="arbo-import-submit"
-                      [disabled]="!report.can_import || importing()"
-                      (click)="runImport()">
-                      @if (importing()) {
-                        <mat-spinner diameter="16"></mat-spinner>
-                      } @else {
-                        <i class="fi fi-rr-cloud-upload"></i>
+                  @if (!showGrid()) {
+                    <div class="import-buttons">
+                      <button
+                        mat-flat-button
+                        color="primary"
+                        data-testid="arbo-import-submit"
+                        [disabled]="!report.can_import || importing()"
+                        (click)="runImport()">
+                        @if (importing()) {
+                          <mat-spinner diameter="16"></mat-spinner>
+                        } @else {
+                          <i class="fi fi-rr-cloud-upload"></i>
+                        }
+                        {{ 'plans.import.doImport' | translate }}
+                      </button>
+                      @if (report.data) {
+                        <button mat-stroked-button data-testid="arbo-correct" [disabled]="importing()" (click)="openGrid()">
+                          <i class="fi fi-rr-pencil"></i>
+                          {{ 'plans.import.grid.open' | translate }}
+                        </button>
                       }
-                      {{ 'plans.import.doImport' | translate }}
-                    </button>
-                    <button mat-button [disabled]="importing()" (click)="clearImport()">
-                      {{ 'common.actions.cancel' | translate }}
-                    </button>
-                  </div>
+                      <button mat-button [disabled]="importing()" (click)="clearImport()">
+                        {{ 'common.actions.cancel' | translate }}
+                      </button>
+                    </div>
+                  }
+
+                  @if (showGrid() && report.data) {
+                    <app-import-grid
+                      [planId]="p.id_pg"
+                      [sheets]="importSchema()"
+                      [initialData]="report.data"
+                      [initialReport]="report"
+                      (imported)="onGridImported($event)"
+                      (cancelled)="onGridCancelled()">
+                    </app-import-grid>
+                  }
                 }
               </div>
             }
