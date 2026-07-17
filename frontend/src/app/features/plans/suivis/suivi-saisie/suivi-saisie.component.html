@@ -424,9 +424,9 @@
             {{ 'plans.suivis.saisie.rh.hint' | translate:{ year: selectedYear() } }}
           </p>
 
-          @if (rhMode() === 'hidden' && rhLignesFA.controls.length === 0) {
-            <!-- L'action ne décline pas sa RH et son budget n'est pas ventilé
-                 par organisme : la saisie du temps de travail est facultative. -->
+          @if (rhMode() === 'global' && rhLignesFA.controls.length === 0) {
+            <!-- Action non déclinée et budget non ventilé par organisme (#580) :
+                 saisie d'un temps total ; aucune ligne prévue pour cette année. -->
             <p class="text-mention">{{ 'plans.suivis.saisie.rh.optional' | translate }}</p>
           } @else if (rhLignesFA.controls.length === 0) {
             <p class="text-mention">{{ 'plans.suivis.saisie.rh.empty' | translate }}</p>
@@ -445,25 +445,30 @@
                 @for (ctrl of rhLignesFA.controls; track $index; let li = $index) {
                   <tr [formGroupName]="li">
                     <td class="rh-target-col">
-                      <!-- La cible reste modifiable au suivi : le temps a pu
-                           être réalisé par un autre poste que celui prévu. -->
-                      <mat-select class="rh-target-select"
-                                  [value]="rhTargetValue(ctrl)"
-                                  (valueChange)="setRhTarget(ctrl, $event)"
-                                  [disabled]="planNotValidated()"
-                                  [placeholder]="'plans.suivis.saisie.rh.selectTarget' | translate">
-                        @if (rhMode() === 'organismes') {
-                          @for (o of rhOrganismes(); track o.id_organisme) {
-                            <mat-option [value]="o.id_organisme">{{ o.nom_organisme }}</mat-option>
+                      @if (rhMode() === 'global') {
+                        <!-- Temps total, sans cible (#580). -->
+                        <span class="rh-line-label">{{ 'plans.suivis.saisie.rh.globalRowLabel' | translate }}</span>
+                      } @else {
+                        <!-- La cible reste modifiable au suivi : le temps a pu
+                             être réalisé par un autre poste que celui prévu. -->
+                        <mat-select class="rh-target-select"
+                                    [value]="rhTargetValue(ctrl)"
+                                    (valueChange)="setRhTarget(ctrl, $event)"
+                                    [disabled]="planNotValidated()"
+                                    [placeholder]="'plans.suivis.saisie.rh.selectTarget' | translate">
+                          @if (rhMode() === 'organismes') {
+                            @for (o of rhOrganismes(); track o.id_organisme) {
+                              <mat-option [value]="o.id_organisme">{{ o.nom_organisme }}</mat-option>
+                            }
+                          } @else {
+                            @for (p of postes(); track p.id_poste) {
+                              <mat-option [value]="p.id_poste">{{ p.libelle }}</mat-option>
+                            }
                           }
-                        } @else {
-                          @for (p of postes(); track p.id_poste) {
-                            <mat-option [value]="p.id_poste">{{ p.libelle }}</mat-option>
-                          }
+                        </mat-select>
+                        @if (rhLineSubLabel(ctrl); as org) {
+                          <span class="rh-line-sublabel">{{ org }}</span>
                         }
-                      </mat-select>
-                      @if (rhLineSubLabel(ctrl); as org) {
-                        <span class="rh-line-sublabel">{{ org }}</span>
                       }
                     </td>
                     <td class="rh-finance-col">

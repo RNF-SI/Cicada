@@ -40,7 +40,7 @@ function createComponentInstance(): OperationFormComponent {
   (comp as any).rhMode = computed(() => {
     if ((comp as any).declinaisonParPoste()) return 'postes';
     const mode = (comp as any).ventilationMode();
-    return mode === 'by_org' || mode === 'by_org_type' ? 'organismes' : 'hidden';
+    return mode === 'by_org' || mode === 'by_org_type' ? 'organismes' : 'global';
   });
   (comp as any).directTotalMode = computed(() => (comp as any).ventilationMode() === 'none');
   (comp as any).selectedSiteIdsVersion = signal(0);
@@ -813,8 +813,29 @@ describe('OperationFormComponent — ventilation budgétaire', () => {
       ]);
     });
 
-    it('masque le tableau sans déclinaison ni ventilation par organisme', () => {
-      expect((comp as any).rhMode()).toBe('hidden');
+    it('affiche une saisie globale sans déclinaison ni ventilation par organisme (#580)', () => {
+      expect((comp as any).rhMode()).toBe('global');
+    });
+
+    it('propose une ligne de temps total sans cible en mode global (#580)', () => {
+      (comp as any).syncRhLines();
+      expect(comp.rhLines.length).toBe(1);
+      const [line] = comp.rhLines;
+      expect(line.id_poste).toBeNull();
+      expect(line.id_organisme).toBeNull();
+      expect(line.derived).toBe(true);
+    });
+
+    it('préserve le temps total saisi lors d\'une resynchronisation en mode global (#580)', () => {
+      (comp as any).syncRhLines();
+      comp.setRhJours(0, 0, '12');
+      // Une resynchronisation (ex. cibles rechargées) est idempotente : la ligne
+      // globale et ses jours doivent subsister.
+      (comp as any).syncRhLines();
+      const global = comp.rhLines.find(l => l.id_poste == null && l.id_organisme == null);
+      expect(global).toBeDefined();
+      expect(global!.jours[0]).toBe(12);
+      expect(comp.rhLines.length).toBe(1);
     });
 
     it('décline une ligne par poste quand la case est cochée', () => {

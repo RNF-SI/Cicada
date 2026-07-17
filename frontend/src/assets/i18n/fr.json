@@ -2076,12 +2076,13 @@
           "hint": "Quel poste a réellement réalisé l'action en {{year}}, et pour combien de jours. Les lignes prévues sont pré-remplies ; vous pouvez les corriger, les ré-attribuer, en supprimer ou en ajouter.",
           "empty": "Aucun temps de travail prévu pour cette année. Ajoutez une ligne si l'action a mobilisé du temps.",
           "target": "Poste / organisme",
+          "globalRowLabel": "Temps de travail total",
           "selectTarget": "Choisir…",
           "prevu": "Prévu",
           "realise": "Réalisé",
           "total": "TOTAL",
           "addLine": "Ajouter une ligne",
-          "optional": "La saisie du temps de travail est facultative pour cette action : elle n'est ni déclinée par poste, ni ventilée par organisme."
+          "optional": "Aucun temps de travail n'a été prévu pour cette année. Ajoutez une ligne si l'action a mobilisé du temps."
         }
       },
       "indicateur": {
@@ -3407,11 +3408,13 @@
         "title": "Temps de travail",
         "declinaisonLabel": "Déclinaison par poste",
         "declinaisonMention": "Détaille le temps de travail poste par poste, à partir des postes du plan de gestion.",
-        "optionalHint": "La saisie du temps de travail est facultative pour cette action. Cochez « Déclinaison par poste » pour la détailler poste par poste, ou ventilez le budget par organisme pour la saisir organisme par organisme.",
+        "hintGlobal": "Indiquez le nombre de jours prévus par année. Cochez « Déclinaison par poste » pour le détailler poste par poste, ou décochez « Financé » pour valoriser du temps non financé (bénévoles, écovolontaires…).",
         "hintPostes": "Un poste par ligne. Indiquez le nombre de jours prévus par année, et décochez « Financé » pour valoriser du temps non financé (bénévoles, écovolontaires…).",
         "hintOrganismes": "Un organisme par ligne, repris de la ventilation du budget. Indiquez le nombre de jours prévus par année.",
         "colPoste": "Poste",
         "colOrganisme": "Organisme",
+        "colGlobal": "Temps de travail",
+        "globalRowLabel": "Temps de travail total",
         "noPostes": "Aucun poste n'est encore défini sur ce plan de gestion.",
         "managePostes": "Gérer les postes",
         "selectTarget": "Choisir…",

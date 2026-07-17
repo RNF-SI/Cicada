@@ -1,7 +1,7 @@
 import { Component, OnInit, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
-import { TranslateModule } from '@ngx-translate/core';
+import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { EnjeuService } from '../../../../core/services/enjeu.service';
 import { MetriqueRef, Operation } from '../../../../core/models/enjeu.model';
 import { LeafletMapEditComponent } from '../../../../shared/components/leaflet-map-edit/leaflet-map-edit.component';
@@ -30,6 +30,7 @@ export class OperationFicheComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly enjeuService = inject(EnjeuService);
+  private readonly translate = inject(TranslateService);
 
   operation = signal<Operation | null>(null);
   isLoading = signal(true);
@@ -163,8 +164,11 @@ export class OperationFicheComponent implements OnInit {
     for (const oa of this.operation()?.operation_annees ?? []) {
       for (const l of oa.rh_lignes ?? []) {
         const key = `${l.id_poste ?? ''}|${l.id_organisme ?? ''}|${l.finance}`;
+        // #580 — une ligne sans cible (poste ou organisme) est un temps de
+        // travail total, saisi sans déclinaison ni ventilation par organisme.
+        const globalLabel = this.translate.instant('enjeux.operations.rh.globalRowLabel');
         const entry = rows.get(key) ?? {
-          libelle: l.poste_libelle || l.organisme_nom || '—',
+          libelle: l.poste_libelle || l.organisme_nom || globalLabel,
           organisme: l.id_poste != null ? (l.poste_organisme_nom || '') : '',
           finance: !!l.finance,
           jours: 0,

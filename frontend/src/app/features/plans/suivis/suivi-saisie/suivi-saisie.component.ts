@@ -178,13 +178,13 @@ export class SuiviSaisieComponent implements OnInit {
   /**
    * Ce que le tableau RH cible, aligné sur le mode de saisie de l'action :
    * ses postes si elle est déclinée, sinon les organismes de la ventilation
-   * budgétaire, sinon rien (saisie facultative).
+   * budgétaire, sinon un temps total sans cible (#580 — mode global).
    */
-  rhMode = computed<'postes' | 'organismes' | 'hidden'>(() => {
+  rhMode = computed<'postes' | 'organismes' | 'global'>(() => {
     const op = this.operation();
     if (op?.declinaison_par_poste) return 'postes';
     const mode = op?.ventilation_mode;
-    return mode === 'by_org' || mode === 'by_org_type' ? 'organismes' : 'hidden';
+    return mode === 'by_org' || mode === 'by_org_type' ? 'organismes' : 'global';
   });
 
   /** Organismes de la ventilation de l'action (cibles en mode organisme). */

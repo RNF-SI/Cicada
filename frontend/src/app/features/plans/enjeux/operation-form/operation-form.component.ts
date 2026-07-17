@@ -519,11 +519,18 @@ export class OperationFormComponent implements OnInit {
   /** Case « Déclinaison par poste », décochée par défaut. */
   declinaisonParPoste = signal(false);
 
-  /** Ce que le tableau RH affiche, selon la déclinaison et la ventilation. */
-  rhMode = computed<'postes' | 'organismes' | 'hidden'>(() => {
+  /**
+   * Ce que le tableau RH affiche, selon la déclinaison et la ventilation :
+   *  - `postes`     → une ligne par poste du PG (déclinaison cochée) ;
+   *  - `organismes` → une ligne par organisme (budget ventilé par organisme) ;
+   *  - `global`     → une seule ligne de temps total, sans cible (#580 — le
+   *                   gestionnaire doit pouvoir saisir le temps total même sans
+   *                   déclinaison ni ventilation par organisme).
+   */
+  rhMode = computed<'postes' | 'organismes' | 'global'>(() => {
     if (this.declinaisonParPoste()) return 'postes';
     const mode = this.ventilationMode();
-    return mode === 'by_org' || mode === 'by_org_type' ? 'organismes' : 'hidden';
+    return mode === 'by_org' || mode === 'by_org_type' ? 'organismes' : 'global';
   });
 
   rhLines: Array<{
@@ -2822,8 +2829,19 @@ export class OperationFormComponent implements OnInit {
    */
   private syncRhLines(): void {
     const mode = this.rhMode();
-    // Mode masqué : la saisie RH est facultative, on ne touche à rien.
-    if (mode === 'hidden') return;
+    // Mode global (#580) : une seule ligne de temps total, sans cible. On
+    // préserve les lignes déjà saisies sans cible (dont un éventuel second lot
+    // non financé) ; les lignes visant un poste / un organisme héritées d'un
+    // autre mode n'ont plus de sens ici et sont écartées. La première ligne
+    // globale est la ligne de référence (non supprimable), les suivantes sont
+    // des lots ajoutés à la main.
+    if (mode === 'global') {
+      const globals = this.rhLines.filter(l => l.id_poste == null && l.id_organisme == null);
+      this.rhLines = globals.length
+        ? globals.map((l, i) => ({ ...l, derived: i === 0 }))
+        : [{ id_poste: null, id_organisme: null, finance: true, jours: {}, derived: true }];
+      return;
+    }
 
     const isPostes = mode === 'postes';
     const targets = isPostes

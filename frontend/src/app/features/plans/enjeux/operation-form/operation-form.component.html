@@ -870,13 +870,7 @@
                     </app-checkbox>
                   </div>
 
-                  @if (rhMode() === 'hidden') {
-                    <!-- Ni déclinaison par poste, ni ventilation par organisme :
-                         rien à ventiler, la saisie RH n'est pas requise. -->
-                    <p class="mensuelle-hint rh-optional">
-                      {{ 'enjeux.operations.rh.optionalHint' | translate }}
-                    </p>
-                  } @else if (operationAnnees.length === 0) {
+                  @if (operationAnnees.length === 0) {
                     <p class="mensuelle-hint">{{ 'enjeux.operations.rh.noYears' | translate }}</p>
                   } @else if (rhMode() === 'postes' && postes().length === 0) {
                     <div class="info-block info-block-warning rh-no-postes">
@@ -889,7 +883,9 @@
                     <p class="mensuelle-hint">
                       {{ (rhMode() === 'postes'
                             ? 'enjeux.operations.rh.hintPostes'
-                            : 'enjeux.operations.rh.hintOrganismes') | translate }}
+                            : rhMode() === 'organismes'
+                              ? 'enjeux.operations.rh.hintOrganismes'
+                              : 'enjeux.operations.rh.hintGlobal') | translate }}
                     </p>
 
                     <div class="programmation-table">
@@ -899,7 +895,9 @@
                             <th class="label-cell rh-target-col">
                               {{ (rhMode() === 'postes'
                                     ? 'enjeux.operations.rh.colPoste'
-                                    : 'enjeux.operations.rh.colOrganisme') | translate }}
+                                    : rhMode() === 'organismes'
+                                      ? 'enjeux.operations.rh.colOrganisme'
+                                      : 'enjeux.operations.rh.colGlobal') | translate }}
                             </th>
                             <th class="rh-finance-col">{{ 'plans.rh.finance' | translate }}</th>
                             @for (annee of operationAnnees; track annee.annee) {
@@ -912,7 +910,10 @@
                           @for (line of rhLines; track $index; let li = $index) {
                             <tr>
                               <td class="label-cell rh-target-col">
-                                @if (line.derived) {
+                                @if (rhMode() === 'global') {
+                                  <!-- Temps total, sans cible (#580). -->
+                                  <span class="rh-line-label">{{ 'enjeux.operations.rh.globalRowLabel' | translate }}</span>
+                                } @else if (line.derived) {
                                   <!-- Ligne de référence : la cible est fixe. -->
                                   <span class="rh-line-label">{{ rhLineLabel(line) }}</span>
                                   @if (rhMode() === 'postes' && rhLineSubLabel(line)) {
