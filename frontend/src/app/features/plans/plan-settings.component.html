@@ -398,23 +398,44 @@
                     </ul>
                   }
 
-                  <div class="import-buttons">
-                    <button
-                      mat-flat-button
-                      color="primary"
-                      [disabled]="!report.can_import || actionsImporting()"
-                      (click)="runActionsImport()">
-                      @if (actionsImporting()) {
-                        <mat-spinner diameter="16"></mat-spinner>
-                      } @else {
-                        <i class="fi fi-rr-cloud-upload"></i>
+                  @if (!showActionsGrid()) {
+                    <div class="import-buttons">
+                      <button
+                        mat-flat-button
+                        color="primary"
+                        data-testid="actions-import-submit"
+                        [disabled]="!report.can_import || actionsImporting()"
+                        (click)="runActionsImport()">
+                        @if (actionsImporting()) {
+                          <mat-spinner diameter="16"></mat-spinner>
+                        } @else {
+                          <i class="fi fi-rr-cloud-upload"></i>
+                        }
+                        {{ 'plans.import.doImportActions' | translate }}
+                      </button>
+                      @if (report.data) {
+                        <button mat-stroked-button data-testid="actions-correct" [disabled]="actionsImporting()" (click)="openActionsGrid()">
+                          <i class="fi fi-rr-pencil"></i>
+                          {{ 'plans.import.grid.open' | translate }}
+                        </button>
                       }
-                      {{ 'plans.import.doImportActions' | translate }}
-                    </button>
-                    <button mat-button [disabled]="actionsImporting()" (click)="clearActionsImport()">
-                      {{ 'common.actions.cancel' | translate }}
-                    </button>
-                  </div>
+                      <button mat-button [disabled]="actionsImporting()" (click)="clearActionsImport()">
+                        {{ 'common.actions.cancel' | translate }}
+                      </button>
+                    </div>
+                  }
+
+                  @if (showActionsGrid() && report.data) {
+                    <app-import-grid
+                      kind="actions"
+                      [planId]="p.id_pg"
+                      [sheets]="actionsSchema()"
+                      [initialData]="report.data"
+                      [initialReport]="report"
+                      (imported)="onActionsGridImported($event)"
+                      (cancelled)="onActionsGridCancelled()">
+                    </app-import-grid>
+                  }
                 }
               </div>
             }

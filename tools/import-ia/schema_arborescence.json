@@ -1,0 +1,804 @@
+{
+  "sheets": [
+    {
+      "key": "enjeux",
+      "name": "Enjeux",
+      "description": "Un enjeu (ou FCR) par ligne. Le code sert à rattacher facteurs, OLT et OO.",
+      "columns": [
+        {
+          "key": "code",
+          "header": "code",
+          "required": true,
+          "multi": false,
+          "boolean": false,
+          "nomenclature": null,
+          "ref": null,
+          "vocab": null,
+          "help": "Identifiant libre et unique de l'enjeu (ex : E1). Réutilisé dans les autres onglets pour le rattachement."
+        },
+        {
+          "key": "categorie",
+          "header": "catégorie",
+          "required": true,
+          "multi": false,
+          "boolean": false,
+          "nomenclature": "CATEGORIE_ENJEU",
+          "ref": null,
+          "vocab": null,
+          "help": "Enjeu écologique/socio-éco ou FCR (facteur clé de réussite).",
+          "values": [
+            "Enjeu de conservation",
+            "Facteur Clé de Réussite"
+          ]
+        },
+        {
+          "key": "categorie_fcr",
+          "header": "catégorie FCR",
+          "required": false,
+          "multi": false,
+          "boolean": false,
+          "nomenclature": "CATEGORIE_FCR",
+          "ref": null,
+          "vocab": null,
+          "help": "À renseigner uniquement pour les FCR.",
+          "values": [
+            "Connaissance",
+            "Ancrage territorial",
+            "Fonctionnement de l'aire protégée",
+            "Autre",
+            "Surveillance"
+          ]
+        },
+        {
+          "key": "importance",
+          "header": "importance",
+          "required": false,
+          "multi": false,
+          "boolean": false,
+          "nomenclature": "IMPORTANCE_ENJEU",
+          "ref": null,
+          "vocab": null,
+          "help": "",
+          "values": [
+            "Priorité 1",
+            "Priorité 2",
+            "Priorité 3"
+          ]
+        },
+        {
+          "key": "rang",
+          "header": "rang (priorité)",
+          "required": false,
+          "multi": false,
+          "boolean": false,
+          "nomenclature": null,
+          "ref": null,
+          "vocab": null,
+          "help": "Priorité de l'enjeu (1 à 3). Facultatif."
+        },
+        {
+          "key": "libelle",
+          "header": "libellé",
+          "required": true,
+          "multi": false,
+          "boolean": false,
+          "nomenclature": null,
+          "ref": null,
+          "vocab": null,
+          "help": "Libellé de l'enjeu. Unique au sein du plan."
+        },
+        {
+          "key": "intitule_court",
+          "header": "intitulé court",
+          "required": false,
+          "multi": false,
+          "boolean": false,
+          "nomenclature": null,
+          "ref": null,
+          "vocab": null,
+          "help": "25 caractères maximum."
+        },
+        {
+          "key": "categorie_ecologique",
+          "header": "écologique ?",
+          "required": false,
+          "multi": false,
+          "boolean": true,
+          "nomenclature": null,
+          "ref": null,
+          "vocab": null,
+          "help": "Oui = enjeu de conservation du patrimoine naturel ; Non = enjeu socio-économique."
+        },
+        {
+          "key": "types_ecologiques",
+          "header": "types écologiques",
+          "required": false,
+          "multi": true,
+          "boolean": false,
+          "nomenclature": null,
+          "ref": null,
+          "vocab": "ecolo",
+          "help": "Un ou plusieurs, séparés par des virgules : Habitat, Espèce, Patrimoine géologique, Fonctionnalité écosystème, Autre",
+          "values": [
+            "Habitat",
+            "Espèce",
+            "Patrimoine géologique",
+            "Fonctionnalité écosystème",
+            "Autre"
+          ]
+        },
+        {
+          "key": "types_socioeco",
+          "header": "types socio-éco",
+          "required": false,
+          "multi": true,
+          "boolean": false,
+          "nomenclature": null,
+          "ref": null,
+          "vocab": "socio",
+          "help": "Un ou plusieurs, séparés par des virgules : Valeur paysagère, Patrimoine culturel, Développement durable, Usages, Valeur ajoutée, Autre",
+          "values": [
+            "Valeur paysagère",
+            "Patrimoine culturel",
+            "Développement durable",
+            "Usages",
+            "Valeur ajoutée",
+            "Autre"
+          ]
+        },
+        {
+          "key": "etat_enjeu",
+          "header": "état de l'enjeu",
+          "required": false,
+          "multi": false,
+          "boolean": false,
+          "nomenclature": null,
+          "ref": null,
+          "vocab": null,
+          "help": ""
+        },
+        {
+          "key": "description",
+          "header": "description",
+          "required": false,
+          "multi": false,
+          "boolean": false,
+          "nomenclature": null,
+          "ref": null,
+          "vocab": null,
+          "help": ""
+        }
+      ]
+    },
+    {
+      "key": "facteurs",
+      "name": "Facteurs",
+      "description": "Facteurs d'influence. Un facteur peut être partagé entre plusieurs enjeux.",
+      "columns": [
+        {
+          "key": "code",
+          "header": "code",
+          "required": true,
+          "multi": false,
+          "boolean": false,
+          "nomenclature": null,
+          "ref": null,
+          "vocab": null,
+          "help": "Identifiant libre et unique du facteur (ex : F1)."
+        },
+        {
+          "key": "libelle",
+          "header": "libellé",
+          "required": true,
+          "multi": false,
+          "boolean": false,
+          "nomenclature": null,
+          "ref": null,
+          "vocab": null,
+          "help": ""
+        },
+        {
+          "key": "enjeux",
+          "header": "enjeux",
+          "required": true,
+          "multi": true,
+          "boolean": false,
+          "nomenclature": null,
+          "ref": "enjeux",
+          "vocab": null,
+          "help": "Code(s) d'enjeu, séparés par des virgules pour un facteur partagé (ex : E1,E3)."
+        },
+        {
+          "key": "description",
+          "header": "description",
+          "required": false,
+          "multi": false,
+          "boolean": false,
+          "nomenclature": null,
+          "ref": null,
+          "vocab": null,
+          "help": ""
+        }
+      ]
+    },
+    {
+      "key": "pressions",
+      "name": "Pressions",
+      "description": "Pressions rattachées à un facteur d'influence.",
+      "columns": [
+        {
+          "key": "code",
+          "header": "code",
+          "required": true,
+          "multi": false,
+          "boolean": false,
+          "nomenclature": null,
+          "ref": null,
+          "vocab": null,
+          "help": "Identifiant libre et unique de la pression (ex : P1)."
+        },
+        {
+          "key": "facteur",
+          "header": "facteur",
+          "required": true,
+          "multi": false,
+          "boolean": false,
+          "nomenclature": null,
+          "ref": "facteurs",
+          "vocab": null,
+          "help": "Code du facteur parent (ex : F1)."
+        },
+        {
+          "key": "libelle",
+          "header": "libellé",
+          "required": true,
+          "multi": false,
+          "boolean": false,
+          "nomenclature": null,
+          "ref": null,
+          "vocab": null,
+          "help": ""
+        },
+        {
+          "key": "type_pression",
+          "header": "type de pression",
+          "required": false,
+          "multi": false,
+          "boolean": false,
+          "nomenclature": "TYPE_PRESSION",
+          "ref": null,
+          "vocab": null,
+          "help": "Type PressRef (facultatif).",
+          "values": [
+            "Physiques",
+            "Perte physique permanente de l'habitat naturel ou semi-naturel",
+            "Modification permanente de type d'habitat naturel ou semi-naturel",
+            "Perturbation physique temporaire du substrat (eg. sol, fond marin)",
+            "Abrasion du substrat",
+            "Extraction du substrat",
+            "Compression verticale du substrat",
+            "Remaniement du substrat",
+            "Dépôt de matériel sur le substrat",
+            "Interaction avec les espèces sauvages",
+            "Obstacle au mouvement des espèces sauvages",
+            "Dérangement des espèces sauvages",
+            "Interaction physique non intentionnelle avec des espèces sauvages",
+            "Prélèvement d'espèces sauvages",
+            "Prélèvement intentionnel d'espèces sauvages",
+            "Prélèvement accidentel d'espèces sauvages",
+            "Pollutions et modifications physico-chimiques",
+            "Modifications hydrologiques",
+            "Modification des conditions hydrodynamiques",
+            "Modification de la charge en particules",
+            "Modifications des paramètres physico-chimiques du milieu",
+            "Modification de la salinité du milieu",
+            "Modification de la température du milieu",
+            "Modification du régime éolien du milieu",
+            "Modification du pH du milieu",
+            "Modifications des apports en nutriments dans le milieu",
+            "Modification des apports en matériel organique dans le milieu",
+            "Désoxygénation du milieu",
+            "Modification des champs électromagnétiques du milieu",
+            "Modification de l'intensité lumineuse dans le milieu",
+            "Augmentation de l'intensité lumineuse dans le milieu",
+            "Diminution de l'intensité lumineuse dans le milieu",
+            "Modification des émissions d'ondes sonores dans le milieu",
+            "Introduction de déchets solides dans le milieu",
+            "Introduction de déchets plastiques dans le milieu",
+            "Introduction de déchets textiles dans le milieu",
+            "Introduction de déchets en verre dans le milieu",
+            "Introduction de déchets en métaux dans le milieu",
+            "Introduction de déchets en matériau naturel dans le milieu",
+            "Introduction de déchet à caractère visqueux dans le milieu",
+            "Introduction de substances chimiques dans le milieu",
+            "Introduction de métaux, métalloïdes et ETM dans le milieu",
+            "Introduction d'hydrocarbures et HAP dans le milieu",
+            "Introduction de composés synthéthiques dans le milieu",
+            "Biologiques",
+            "Introduction ou propagation d'espèces non indigènes-exotiques",
+            "Introduction ou propagation d'agents pathogènes non indigènes exotiques",
+            "Prolifération d'espèces ou d'agent pathogène indigènes",
+            "Introduction ou translocation d'espèces, identiques aux espèces indigènes, non génétiquement modifiées",
+            "Introduction ou translocation d'espèces, identiques aux espèces indigènes, génétiquement modifiées (OGM)",
+            "Appauvrissement génétique des populations naturelles",
+            "Autre (pression non répertoriée)"
+          ]
+        },
+        {
+          "key": "description",
+          "header": "description",
+          "required": false,
+          "multi": false,
+          "boolean": false,
+          "nomenclature": null,
+          "ref": null,
+          "vocab": null,
+          "help": ""
+        }
+      ]
+    },
+    {
+      "key": "olt",
+      "name": "OLT",
+      "description": "Objectifs à long terme, rattachés à un enjeu (vision « état »).",
+      "columns": [
+        {
+          "key": "code",
+          "header": "code",
+          "required": true,
+          "multi": false,
+          "boolean": false,
+          "nomenclature": null,
+          "ref": null,
+          "vocab": null,
+          "help": "Identifiant libre et unique de l'OLT (ex : O1)."
+        },
+        {
+          "key": "enjeu",
+          "header": "enjeu",
+          "required": true,
+          "multi": false,
+          "boolean": false,
+          "nomenclature": null,
+          "ref": "enjeux",
+          "vocab": null,
+          "help": "Code de l'enjeu parent (ex : E1)."
+        },
+        {
+          "key": "libelle",
+          "header": "libellé",
+          "required": true,
+          "multi": false,
+          "boolean": false,
+          "nomenclature": null,
+          "ref": null,
+          "vocab": null,
+          "help": ""
+        },
+        {
+          "key": "numero_manuel",
+          "header": "numéro manuel",
+          "required": false,
+          "multi": false,
+          "boolean": false,
+          "nomenclature": null,
+          "ref": null,
+          "vocab": null,
+          "help": "Numéro imposé (facultatif). Vide = numérotation automatique."
+        },
+        {
+          "key": "description",
+          "header": "description",
+          "required": false,
+          "multi": false,
+          "boolean": false,
+          "nomenclature": null,
+          "ref": null,
+          "vocab": null,
+          "help": ""
+        }
+      ]
+    },
+    {
+      "key": "ne",
+      "name": "NE",
+      "description": "Niveaux d'exigence, rattachés à un OLT.",
+      "columns": [
+        {
+          "key": "code",
+          "header": "code",
+          "required": true,
+          "multi": false,
+          "boolean": false,
+          "nomenclature": null,
+          "ref": null,
+          "vocab": null,
+          "help": "Identifiant libre et unique du niveau d'exigence (ex : N1)."
+        },
+        {
+          "key": "olt",
+          "header": "OLT",
+          "required": true,
+          "multi": false,
+          "boolean": false,
+          "nomenclature": null,
+          "ref": "olt",
+          "vocab": null,
+          "help": "Code de l'OLT parent (ex : O1)."
+        },
+        {
+          "key": "libelle",
+          "header": "libellé",
+          "required": true,
+          "multi": false,
+          "boolean": false,
+          "nomenclature": null,
+          "ref": null,
+          "vocab": null,
+          "help": ""
+        },
+        {
+          "key": "description",
+          "header": "description",
+          "required": false,
+          "multi": false,
+          "boolean": false,
+          "nomenclature": null,
+          "ref": null,
+          "vocab": null,
+          "help": ""
+        }
+      ]
+    },
+    {
+      "key": "oo",
+      "name": "OO",
+      "description": "Objectifs opérationnels : rattachés à une/des pression(s), ou directement à un FCR.",
+      "columns": [
+        {
+          "key": "code",
+          "header": "code",
+          "required": true,
+          "multi": false,
+          "boolean": false,
+          "nomenclature": null,
+          "ref": null,
+          "vocab": null,
+          "help": "Identifiant libre et unique de l'OO (ex : OO1)."
+        },
+        {
+          "key": "pressions",
+          "header": "pressions",
+          "required": false,
+          "multi": true,
+          "boolean": false,
+          "nomenclature": null,
+          "ref": "pressions",
+          "vocab": null,
+          "help": "Code(s) de pression, séparés par des virgules (ex : P1,P2). Laisser vide si l'OO est rattaché à un FCR."
+        },
+        {
+          "key": "enjeu",
+          "header": "enjeu (FCR)",
+          "required": false,
+          "multi": false,
+          "boolean": false,
+          "nomenclature": null,
+          "ref": "enjeux",
+          "vocab": null,
+          "help": "Code de l'enjeu FCR parent, uniquement pour un OO sans pression."
+        },
+        {
+          "key": "libelle",
+          "header": "libellé",
+          "required": true,
+          "multi": false,
+          "boolean": false,
+          "nomenclature": null,
+          "ref": null,
+          "vocab": null,
+          "help": ""
+        },
+        {
+          "key": "numero_manuel",
+          "header": "numéro manuel",
+          "required": false,
+          "multi": false,
+          "boolean": false,
+          "nomenclature": null,
+          "ref": null,
+          "vocab": null,
+          "help": "Numéro imposé (facultatif)."
+        },
+        {
+          "key": "description",
+          "header": "description",
+          "required": false,
+          "multi": false,
+          "boolean": false,
+          "nomenclature": null,
+          "ref": null,
+          "vocab": null,
+          "help": ""
+        }
+      ]
+    },
+    {
+      "key": "ra",
+      "name": "RA",
+      "description": "Résultats attendus, rattachés à un objectif opérationnel.",
+      "columns": [
+        {
+          "key": "code",
+          "header": "code",
+          "required": true,
+          "multi": false,
+          "boolean": false,
+          "nomenclature": null,
+          "ref": null,
+          "vocab": null,
+          "help": "Identifiant libre et unique du résultat attendu (ex : R1)."
+        },
+        {
+          "key": "oo",
+          "header": "OO",
+          "required": true,
+          "multi": false,
+          "boolean": false,
+          "nomenclature": null,
+          "ref": "oo",
+          "vocab": null,
+          "help": "Code de l'OO parent (ex : OO1)."
+        },
+        {
+          "key": "libelle",
+          "header": "libellé",
+          "required": true,
+          "multi": false,
+          "boolean": false,
+          "nomenclature": null,
+          "ref": null,
+          "vocab": null,
+          "help": ""
+        },
+        {
+          "key": "description",
+          "header": "description",
+          "required": false,
+          "multi": false,
+          "boolean": false,
+          "nomenclature": null,
+          "ref": null,
+          "vocab": null,
+          "help": ""
+        }
+      ]
+    },
+    {
+      "key": "indicateurs",
+      "name": "Indicateurs",
+      "description": "Indicateurs. Rattachés à un niveau d'exigence (état) OU à un résultat attendu (pression/réponse).",
+      "columns": [
+        {
+          "key": "code",
+          "header": "code",
+          "required": true,
+          "multi": false,
+          "boolean": false,
+          "nomenclature": null,
+          "ref": null,
+          "vocab": null,
+          "help": "Identifiant libre et unique de l'indicateur (ex : I1)."
+        },
+        {
+          "key": "parent",
+          "header": "parent (NE ou RA)",
+          "required": true,
+          "multi": false,
+          "boolean": false,
+          "nomenclature": null,
+          "ref": null,
+          "vocab": null,
+          "help": "Code d'un niveau d'exigence (ex : N1) OU d'un résultat attendu (ex : R1) — un seul des deux."
+        },
+        {
+          "key": "type",
+          "header": "type",
+          "required": false,
+          "multi": false,
+          "boolean": false,
+          "nomenclature": "TYPE_INDICATEUR",
+          "ref": null,
+          "vocab": null,
+          "help": "État, Pression ou Réponse.",
+          "values": [
+            "État",
+            "Pression",
+            "Réponse"
+          ]
+        },
+        {
+          "key": "nom_indicateur",
+          "header": "nom",
+          "required": true,
+          "multi": false,
+          "boolean": false,
+          "nomenclature": null,
+          "ref": null,
+          "vocab": null,
+          "help": ""
+        },
+        {
+          "key": "description",
+          "header": "description",
+          "required": false,
+          "multi": false,
+          "boolean": false,
+          "nomenclature": null,
+          "ref": null,
+          "vocab": null,
+          "help": ""
+        }
+      ]
+    },
+    {
+      "key": "metriques",
+      "name": "Metriques",
+      "description": "Métriques d'un indicateur. En V1, seul le libellé est importé : l'indicateur reste « indéterminé » tant qu'aucune grille n'est saisie.",
+      "columns": [
+        {
+          "key": "code",
+          "header": "code",
+          "required": true,
+          "multi": false,
+          "boolean": false,
+          "nomenclature": null,
+          "ref": null,
+          "vocab": null,
+          "help": "Identifiant libre et unique de la métrique (ex : M1)."
+        },
+        {
+          "key": "indicateur",
+          "header": "indicateur",
+          "required": true,
+          "multi": false,
+          "boolean": false,
+          "nomenclature": null,
+          "ref": "indicateurs",
+          "vocab": null,
+          "help": "Code de l'indicateur parent (ex : I1)."
+        },
+        {
+          "key": "nom_metrique",
+          "header": "nom",
+          "required": true,
+          "multi": false,
+          "boolean": false,
+          "nomenclature": null,
+          "ref": null,
+          "vocab": null,
+          "help": ""
+        },
+        {
+          "key": "type_metrique",
+          "header": "type",
+          "required": false,
+          "multi": false,
+          "boolean": false,
+          "nomenclature": "TYPE_METRIQUE",
+          "ref": null,
+          "vocab": null,
+          "help": "",
+          "values": [
+            "Intervalle numérique",
+            "Chiffre",
+            "Texte",
+            "Indéterminé"
+          ]
+        },
+        {
+          "key": "unite",
+          "header": "unité",
+          "required": false,
+          "multi": false,
+          "boolean": false,
+          "nomenclature": null,
+          "ref": null,
+          "vocab": null,
+          "help": ""
+        },
+        {
+          "key": "description",
+          "header": "description",
+          "required": false,
+          "multi": false,
+          "boolean": false,
+          "nomenclature": null,
+          "ref": null,
+          "vocab": null,
+          "help": ""
+        }
+      ]
+    },
+    {
+      "key": "taxons",
+      "name": "Taxons",
+      "description": "Espèces (TaxRef) rattachées à un enjeu ou à un indicateur, via le code de la cible.",
+      "columns": [
+        {
+          "key": "cible",
+          "header": "cible (enjeu ou indicateur)",
+          "required": true,
+          "multi": false,
+          "boolean": false,
+          "nomenclature": null,
+          "ref": null,
+          "vocab": null,
+          "help": "Code d'un enjeu (ex : E1) OU d'un indicateur (ex : I1)."
+        },
+        {
+          "key": "cd_nom",
+          "header": "cd_nom",
+          "required": true,
+          "multi": false,
+          "boolean": false,
+          "nomenclature": null,
+          "ref": null,
+          "vocab": null,
+          "help": "Code TaxRef de l'espèce (nombre entier)."
+        },
+        {
+          "key": "nom",
+          "header": "nom",
+          "required": false,
+          "multi": false,
+          "boolean": false,
+          "nomenclature": null,
+          "ref": null,
+          "vocab": null,
+          "help": "Nom de l'espèce (facultatif)."
+        }
+      ]
+    },
+    {
+      "key": "habitats",
+      "name": "Habitats",
+      "description": "Habitats (HabRef) rattachés à un enjeu ou à un indicateur, via le code de la cible.",
+      "columns": [
+        {
+          "key": "cible",
+          "header": "cible (enjeu ou indicateur)",
+          "required": true,
+          "multi": false,
+          "boolean": false,
+          "nomenclature": null,
+          "ref": null,
+          "vocab": null,
+          "help": "Code d'un enjeu (ex : E1) OU d'un indicateur (ex : I1)."
+        },
+        {
+          "key": "cd_hab",
+          "header": "cd_hab",
+          "required": true,
+          "multi": false,
+          "boolean": false,
+          "nomenclature": null,
+          "ref": null,
+          "vocab": null,
+          "help": "Code HabRef de l'habitat."
+        },
+        {
+          "key": "nom",
+          "header": "nom",
+          "required": false,
+          "multi": false,
+          "boolean": false,
+          "nomenclature": null,
+          "ref": null,
+          "vocab": null,
+          "help": "Libellé de l'habitat (facultatif)."
+        }
+      ]
+    }
+  ]
+}

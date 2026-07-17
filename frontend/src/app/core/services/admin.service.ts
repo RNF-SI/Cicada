@@ -929,6 +929,51 @@ export class AdminService {
   }
 
   /**
+   * Schéma du format actions + indicateurs/postes de référence du plan.
+   * GET /api/plans/plans/{id}/import-actions-schema/
+   * Pilote la grille de correction (#9) et l'extraction IA.
+   */
+  getActionsImportSchema(
+    planId: number,
+  ): Observable<{ sheets: ImportSheet[]; references?: Record<string, unknown[]> }> {
+    return this.http
+      .get<{ sheets: ImportSheet[]; references?: Record<string, unknown[]> }>(
+        `${this.plansApiUrl}/plans/${planId}/import-actions-schema/`,
+      )
+      .pipe(catchError(this.handleError));
+  }
+
+  /**
+   * Valide des données d'actions éditées (JSON), sans fichier (#9).
+   * POST /api/plans/plans/{id}/import-actions/validate-data/
+   */
+  validateActionsData(
+    planId: number,
+    data: ParsedData,
+  ): Observable<ArborescenceImportReport> {
+    return this.http
+      .post<ArborescenceImportReport>(
+        `${this.plansApiUrl}/plans/${planId}/import-actions/validate-data/`,
+        { data },
+      )
+      .pipe(catchError(this.handleError));
+  }
+
+  /**
+   * Importe des données d'actions éditées (JSON), sans fichier (#9).
+   * Ne pipe PAS handleError : le rapport d'échec (400) est lu via err.error.
+   */
+  importActionsData(
+    planId: number,
+    data: ParsedData,
+  ): Observable<ArborescenceImportResult> {
+    return this.http.post<ArborescenceImportResult>(
+      `${this.plansApiUrl}/plans/${planId}/import-actions/import-data/`,
+      { data },
+    );
+  }
+
+  /**
    * Assign a single site to a plan
    * POST /api/plans/plans/{id}/assign_site/
    */

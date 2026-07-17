@@ -531,4 +531,46 @@ export class PlanSettingsComponent {
       },
     });
   }
+
+  // Grille de correction interactive (#9) pour les actions.
+  readonly actionsSchema = signal<ImportSheet[]>([]);
+  readonly showActionsGrid = signal(false);
+
+  /** Ouvre la grille de correction des actions. Charge le schéma du plan au besoin. */
+  openActionsGrid(): void {
+    const p = this.plan();
+    if (!p || !this.actionsReport()?.data) return;
+    if (this.actionsSchema().length) {
+      this.showActionsGrid.set(true);
+      return;
+    }
+    this.adminService.getActionsImportSchema(p.id_pg).subscribe({
+      next: res => {
+        this.actionsSchema.set(res.sheets);
+        this.showActionsGrid.set(true);
+      },
+      error: () => {
+        this.snackBar.open(
+          this.translate.instant('plans.import.validateError'),
+          this.translate.instant('common.actions.close'),
+          { duration: 5000 },
+        );
+      },
+    });
+  }
+
+  onActionsGridImported(total: number): void {
+    const p = this.plan();
+    this.showActionsGrid.set(false);
+    this.snackBar.open(
+      this.translate.instant('plans.import.actionsImportSuccess', { total }),
+      this.translate.instant('common.actions.close'),
+      { duration: 5000 },
+    );
+    if (p) this.router.navigate(['/plans', p.slug, 'enjeux']);
+  }
+
+  onActionsGridCancelled(): void {
+    this.showActionsGrid.set(false);
+  }
 }

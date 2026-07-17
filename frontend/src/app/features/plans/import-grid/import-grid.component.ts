@@ -52,6 +52,12 @@ export class ImportGridComponent {
   readonly initialData = input.required<ParsedData>();
   readonly initialReport = input.required<ArborescenceImportReport>();
   readonly mode = input<ImportMode>('create');
+  /**
+   * Nature de l'import : arborescence (défaut) ou actions. Détermine les
+   * endpoints validate-data / import-data appelés. Les actions n'ont pas de
+   * mode (création seule).
+   */
+  readonly kind = input<'arborescence' | 'actions'>('arborescence');
 
   readonly imported = output<number>();
   readonly cancelled = output<void>();
@@ -113,9 +119,21 @@ export class ImportGridComponent {
     this.data.set(d);
   }
 
+  private validate$() {
+    return this.kind() === 'actions'
+      ? this.adminService.validateActionsData(this.planId(), this.data())
+      : this.adminService.validateArborescenceData(this.planId(), this.data(), this.mode());
+  }
+
+  private import$() {
+    return this.kind() === 'actions'
+      ? this.adminService.importActionsData(this.planId(), this.data())
+      : this.adminService.importArborescenceData(this.planId(), this.data(), this.mode());
+  }
+
   revalidate(): void {
     this.validating.set(true);
-    this.adminService.validateArborescenceData(this.planId(), this.data(), this.mode()).subscribe({
+    this.validate$().subscribe({
       next: report => {
         this.validating.set(false);
         this.report.set(report);
@@ -143,7 +161,7 @@ export class ImportGridComponent {
   runImport(): void {
     if (!this.canImport()) return;
     this.importing.set(true);
-    this.adminService.importArborescenceData(this.planId(), this.data(), this.mode()).subscribe({
+    this.import$().subscribe({
       next: result => {
         this.importing.set(false);
         this.imported.emit(result.total);

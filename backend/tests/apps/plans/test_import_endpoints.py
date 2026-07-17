@@ -354,3 +354,212 @@ def test_import_data_create_mode_refuses_non_empty():
         format="json",
     )
     assert resp.status_code == 400  # création seule refuse un plan non vide
+
+
+# ---------------------------------------------------------------------------
+# Actions — couture JSON (schéma, validate-data, import-data) : socle de l'IA
+# ---------------------------------------------------------------------------
+
+
+def test_actions_import_schema_endpoint():
+    """Le schéma actions expose les onglets de saisie + les indicateurs de
+    référence du plan (codes de rattachement pour la grille / l'extraction IA)."""
+    from tests.apps.plans.test_import_actions import _plan_with_indicateur
+
+    user = SuperAdminFactory()
+    plan, ind = _plan_with_indicateur(user)
+    client = APIClient()
+    client.force_authenticate(user=user)
+
+    resp = client.get(f"/api/plans/plans/{plan.pk}/import-actions-schema/")
+    assert resp.status_code == 200
+    body = resp.json()
+    assert {s["key"] for s in body["sheets"]} == {"actions", "budgets", "rh"}
+    actions = next(s for s in body["sheets"] if s["key"] == "actions")
+    indic_col = next(c for c in actions["columns"] if c["key"] == "indicateur")
+    assert indic_col["required"] and indic_col["ref"] == "indicateurs"
+    refs = body["references"]["indicateurs"]
+    assert len(refs) == 1
+    assert refs[0]["id"] == ind.id_indicateur
+    assert refs[0]["code"]  # code de rattachement non vide (ex : I1)
+
+
+def test_actions_validate_data_roundtrip():
+    from apps.plans.models_operations import Operation
+    from tests.apps.plans.test_import_actions import _plan_with_indicateur, _type_action
+
+    user = SuperAdminFactory()
+    _type_action()
+    plan, ind = _plan_with_indicateur(user)
+    client = APIClient()
+    client.force_authenticate(user=user)
+
+    schema = client.get(f"/api/plans/plans/{plan.pk}/import-actions-schema/").json()
+    code = schema["references"]["indicateurs"][0]["code"]
+
+    body = {
+        "data": {
+            "actions": [
+                {"code": "A1", "indicateur": code, "libelle": "Débroussaillage"}
+            ]
+        }
+    }
+    resp = client.post(
+        f"/api/plans/plans/{plan.pk}/import-actions/validate-data/",
+        body,
+        format="json",
+    )
+    assert resp.status_code == 200
+    j = resp.json()
+    assert j["can_import"] is True
+    assert len(j["data"]["actions"]) == 1
+    assert Operation.objects.filter(id_indicateur=ind).count() == 0  # dry-run
+
+
+def test_actions_import_data_creates_operations():
+    from apps.plans.models_operations import Operation
+    from tests.apps.plans.test_import_actions import _plan_with_indicateur
+
+    user = SuperAdminFactory()
+    plan, ind = _plan_with_indicateur(user)
+    client = APIClient()
+    client.force_authenticate(user=user)
+
+    schema = client.get(f"/api/plans/plans/{plan.pk}/import-actions-schema/").json()
+    code = schema["references"]["indicateurs"][0]["code"]
+
+    body = {
+        "data": {
+            "actions": [
+                {
+                    "code": "A1",
+                    "indicateur": code,
+                    "libelle": "Débroussaillage",
+                    "annee_min": 2024,
+                    "annee_max": 2026,
+                }
+            ]
+        }
+    }
+    resp = client.post(
+        f"/api/plans/plans/{plan.pk}/import-actions/import-data/",
+        body,
+        format="json",
+    )
+    assert resp.status_code == 201, resp.content
+    assert resp.json()["created"]["actions"] == 1
+    assert Operation.objects.filter(id_indicateur=ind).count() == 1
+
+
+def test_actions_import_data_refused_on_validated_plan():
+    """Verrou #248 : import JSON d'actions bloqué (403) hors brouillon."""
+    from tests.factories.plans import PlanGestionValideFactory
+
+    user = SuperAdminFactory()
+    plan = PlanGestionValideFactory(id_utilisateur_ajout=user)
+    client = APIClient()
+    client.force_authenticate(user=user)
+    resp = client.post(
+        f"/api/plans/plans/{plan.pk}/import-actions/import-data/",
+        {"data": {"actions": [{"code": "A1", "indicateur": "I1", "libelle": "X"}]}},
+        format="json",
+    )
+    assert resp.status_code == 403
+
+
+# ---------------------------------------------------------------------------
+# Contrat « format IA » : un payload tel que produit par tools/import-ia
+# (colonnes complètes, valeurs vides = chaîne vide, nomenclatures par LIBELLÉ)
+# doit s'importer par la couture JSON. Garantit que l'extracteur IA vise le
+# bon format sans dépendre du classeur Excel.
+# ---------------------------------------------------------------------------
+
+
+def test_import_data_ai_shaped_payload_imports():
+    from apps.core.models import Nomenclature
+
+    user = SuperAdminFactory()
+    _base_nomenclatures()
+    plan = PlanGestionFactory(id_utilisateur_ajout=user)
+
+    # Libellés réels (l'IA émet les libellés autorisés, pas les mnémoniques).
+    lbl_enjeu = Nomenclature.objects.get(mnemonique="ENJEU").label
+    lbl_etat = Nomenclature.objects.get(mnemonique="ETAT").label
+    lbl_num = Nomenclature.objects.get(mnemonique="NUMERIQUE").label
+
+    def row(**vals):
+        # Toutes les colonnes présentes, non renseignées = "" (comme to_payload).
+        return vals
+
+    data = {
+        "enjeux": [
+            row(
+                code="E1",
+                categorie=lbl_enjeu,
+                libelle="Qualité des eaux",
+                categorie_fcr="",
+                importance="",
+                rang="",
+                intitule_court="",
+                categorie_ecologique="",
+                types_ecologiques="",
+                types_socioeco="",
+                etat_enjeu="",
+                description="",
+            )
+        ],
+        "olt": [
+            row(
+                code="O1",
+                enjeu="E1",
+                libelle="Maintenir le bon état",
+                numero_manuel="",
+                description="",
+            )
+        ],
+        "ne": [row(code="N1", olt="O1", libelle="Seuil 18 ha", description="")],
+        "indicateurs": [
+            row(
+                code="I1",
+                parent="N1",
+                type=lbl_etat,
+                nom_indicateur="Surface",
+                description="",
+            )
+        ],
+        "metriques": [
+            row(
+                code="M1",
+                indicateur="I1",
+                nom_metrique="Surface (ha)",
+                type_metrique=lbl_num,
+                unite="ha",
+                description="",
+            )
+        ],
+    }
+
+    client = APIClient()
+    client.force_authenticate(user=user)
+
+    # Dry-run : le rapport doit être importable (libellés résolus).
+    val = client.post(
+        f"/api/plans/plans/{plan.pk}/import-arborescence/validate-data/",
+        {"data": data},
+        format="json",
+    )
+    assert val.status_code == 200
+    assert val.json()["can_import"] is True, val.json()["issues"]
+
+    # Import réel.
+    resp = client.post(
+        f"/api/plans/plans/{plan.pk}/import-arborescence/import-data/",
+        {"data": data},
+        format="json",
+    )
+    assert resp.status_code == 201, resp.content
+    created = resp.json()["created"]
+    assert created["enjeux"] == 1
+    assert created["indicateurs"] == 1
+    assert created["metriques"] == 1
+    assert plan.enjeux.count() == 1

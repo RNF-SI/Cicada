@@ -1383,3 +1383,162 @@ def execute_actions_import(plan, parsed: dict, user) -> dict:
         "budgets": n_budgets,
         "rh": n_rh,
     }
+
+
+# ---------------------------------------------------------------------------
+# Couture JSON (sans fichier) — parité avec l'arborescence (grille #9, IA)
+# ---------------------------------------------------------------------------
+#
+# Ces fonctions permettent d'alimenter le pipeline validate/execute des actions
+# à partir de données JSON plutôt que d'un classeur : grille de correction
+# interactive (#9) et surtout **extraction IA** (PDF → JSON au format ci-dessous
+# → relecture → import). Le contrat est identique à celui de l'arborescence
+# (``describe_schema`` / ``public_parsed`` / ``sanitize_parsed`` dans
+# ``services_import``), transposé aux onglets Actions / Budgets / RH.
+
+# Clés de colonne autorisées par onglet de saisie (les onglets « Indicateurs » et
+# « Postes » sont des références en lecture seule, exposées séparément).
+_ACTIONS_SHEET_KEYS = {
+    "actions": [c[0] for c in _ACTION_COLUMNS],
+    "budgets": [c[0] for c in _BUDGET_COLUMNS],
+    "rh": [c[0] for c in _RH_COLUMNS],
+}
+
+
+def _actions_reference(plan):
+    """Codes de rattachement (identiques à ceux des onglets de référence du
+    classeur) et maps ``{code: id}`` pour indicateurs et postes du plan."""
+    indicateurs = _plan_indicateurs(plan)
+    ind_code_by_id = {
+        ind.id_indicateur: f"I{i}" for i, (ind, _) in enumerate(indicateurs, start=1)
+    }
+    postes = _plan_postes(plan)
+    poste_code_by_id = {p.id_poste: f"Q{i}" for i, p in enumerate(postes, start=1)}
+    return indicateurs, ind_code_by_id, postes, poste_code_by_id
+
+
+def _describe_action_columns() -> list[dict]:
+    refs = {"indicateur": "indicateurs"}
+    return [
+        {
+            "key": key,
+            "header": header,
+            "required": bool(required),
+            "nomenclature": nomenclature,
+            "ref": refs.get(key),
+            "help": help_,
+        }
+        for key, header, required, help_, nomenclature, _width in _ACTION_COLUMNS
+    ]
+
+
+def _describe_flat_columns(columns, refs) -> list[dict]:
+    return [
+        {
+            "key": key,
+            "header": header,
+            "required": bool(required),
+            "nomenclature": None,
+            "ref": refs.get(key),
+            "help": help_,
+        }
+        for key, header, required, help_, _width in columns
+    ]
+
+
+def describe_actions_schema(plan) -> dict:
+    """Décrit les onglets/colonnes du format actions et les listes de référence
+    du plan (indicateurs, postes).
+
+    Sert à piloter la grille de correction (#9) et à fournir à l'extracteur IA la
+    liste des **codes valides** (indicateurs/postes) pour le rattachement.
+    """
+    indicateurs, ind_code_by_id, postes, poste_code_by_id = _actions_reference(plan)
+    ref_indicateurs = [
+        {
+            "code": ind_code_by_id[ind.id_indicateur],
+            "indicateur": ind.nom_indicateur,
+            "enjeu": enjeu_libelle,
+            "id": ind.id_indicateur,
+        }
+        for ind, enjeu_libelle in indicateurs
+    ]
+    ref_postes = [
+        {
+            "code": poste_code_by_id[p.id_poste],
+            "poste": p.libelle,
+            "organisme": str(p.id_organisme) if p.id_organisme else "",
+            "id": p.id_poste,
+        }
+        for p in postes
+    ]
+    sheets = [
+        {"key": "actions", "name": "Actions", "columns": _describe_action_columns()},
+        {
+            "key": "budgets",
+            "name": "Budgets",
+            "columns": _describe_flat_columns(_BUDGET_COLUMNS, {"action": "actions"}),
+        },
+        {
+            "key": "rh",
+            "name": "RH",
+            "columns": _describe_flat_columns(
+                _RH_COLUMNS, {"action": "actions", "poste": "postes"}
+            ),
+        },
+    ]
+    return {
+        "sheets": sheets,
+        "references": {"indicateurs": ref_indicateurs, "postes": ref_postes},
+    }
+
+
+def sanitize_actions_parsed(plan, data: dict) -> dict:
+    """Convertit des données JSON (grille #9 / extraction IA) → format ``parsed``
+    interne attendu par ``validate_actions_import`` / ``execute_actions_import``.
+
+    Ne conserve que les colonnes connues + ``_row`` ; ignore les lignes vides et
+    les clés internes. Les maps de référence ``indicateurs`` / ``postes``
+    (``{code: id}``) sont **reconstruites depuis le plan** (autorité serveur), et
+    non lues depuis le client.
+    """
+    data = data if isinstance(data, dict) else {}
+    _indics, ind_code_by_id, _postes, poste_code_by_id = _actions_reference(plan)
+
+    out: dict = {}
+    for sheet_key, keys in _ACTIONS_SHEET_KEYS.items():
+        rows = data.get(sheet_key)
+        clean = []
+        for i, r in enumerate(rows or []):
+            if not isinstance(r, dict):
+                continue
+            row = {k: r.get(k) for k in keys}
+            if not any(_cell_str(v) for v in row.values()):
+                continue  # ligne entièrement vide
+            row["_row"] = _as_int(r.get("_row")) or (i + _FIRST_DATA_ROW)
+            clean.append(row)
+        out[sheet_key] = clean
+
+    out["indicateurs"] = {code: ident for ident, code in ind_code_by_id.items()}
+    out["postes"] = {code: ident for ident, code in poste_code_by_id.items()}
+    return out
+
+
+def public_actions_parsed(parsed: dict) -> dict:
+    """Copie « publique » des lignes parsées (colonnes + ``_row``) pour renvoyer
+    les données à éditer dans la grille (#9).
+
+    Ne renvoie que les onglets de saisie (comme ``public_parsed`` pour l'arbo) :
+    les maps de référence indicateurs/postes sont reconstruites côté serveur par
+    ``sanitize_actions_parsed`` à chaque appel, inutile de les exposer.
+    """
+    out: dict = {}
+    for sheet_key, keys in _ACTIONS_SHEET_KEYS.items():
+        rows = parsed.get(sheet_key) or []
+        clean = []
+        for r in rows:
+            row = {k: r.get(k) for k in keys}
+            row["_row"] = r.get("_row")
+            clean.append(row)
+        out[sheet_key] = clean
+    return out

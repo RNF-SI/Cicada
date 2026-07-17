@@ -46,6 +46,9 @@ from .services_import_actions import (
     parse_actions_workbook,
     validate_actions_import,
     execute_actions_import,
+    describe_actions_schema,
+    sanitize_actions_parsed,
+    public_actions_parsed,
 )
 from urllib.parse import quote as _url_quote
 from .filters import PlanGestionFilter, CorPgFichierFilter
@@ -1502,7 +1505,10 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
 
         if not execute:
             report = validate_actions_import(plan, parsed)
-            return Response(report.as_dict(), status=status.HTTP_200_OK)
+            payload = report.as_dict()
+            # Données parsées renvoyées pour la correction interactive (#9).
+            payload['data'] = public_actions_parsed(parsed)
+            return Response(payload, status=status.HTTP_200_OK)
 
         try:
             counts = execute_actions_import(plan, parsed, request.user)
@@ -1511,6 +1517,57 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
             payload = report.as_dict() if hasattr(report, 'as_dict') else {'error': str(exc)}
             return Response(payload, status=status.HTTP_400_BAD_REQUEST)
 
+        return Response(
+            {'created': counts, 'total': counts.get('actions', 0)},
+            status=status.HTTP_201_CREATED,
+        )
+
+    @action(detail=True, methods=['get'], url_path='import-actions-schema',
+            permission_classes=[permissions.IsAuthenticated])
+    def import_actions_schema(self, request, pk=None):
+        """
+        Décrit le format actions + les indicateurs/postes de référence du plan.
+
+        GET /api/plans/plans/{id}/import-actions-schema/
+        Sert à piloter la grille de correction (#9) et à fournir à l'extraction
+        IA les codes de rattachement (indicateurs, postes) valides.
+        """
+        plan = self.get_object()
+        return Response(describe_actions_schema(plan), status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=['post'], url_path='import-actions/validate-data')
+    def import_actions_validate_data(self, request, pk=None):
+        """
+        Valider des données d'actions éditées (JSON), sans fichier (#9 / IA).
+
+        POST /api/plans/plans/{id}/import-actions/validate-data/
+        Body : { "data": { "actions": [...], "budgets": [...], "rh": [...] } }.
+        """
+        plan = self.get_object()
+        parsed = sanitize_actions_parsed(plan, (request.data or {}).get('data') or {})
+        report = validate_actions_import(plan, parsed)
+        payload = report.as_dict()
+        payload['data'] = public_actions_parsed(parsed)
+        return Response(payload, status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=['post'], url_path='import-actions/import-data')
+    def import_actions_import_data(self, request, pk=None):
+        """
+        Importer des données d'actions éditées (JSON), sans fichier (#9 / IA).
+
+        POST /api/plans/plans/{id}/import-actions/import-data/
+        Body : { "data": { ... } }.
+        """
+        plan = self.get_object()
+        parsed = sanitize_actions_parsed(plan, (request.data or {}).get('data') or {})
+        try:
+            counts = execute_actions_import(plan, parsed, request.user)
+        except ValueError as exc:
+            report = exc.args[0] if exc.args else None
+            payload = (
+                report.as_dict() if hasattr(report, 'as_dict') else {'error': str(exc)}
+            )
+            return Response(payload, status=status.HTTP_400_BAD_REQUEST)
         return Response(
             {'created': counts, 'total': counts.get('actions', 0)},
             status=status.HTTP_201_CREATED,
