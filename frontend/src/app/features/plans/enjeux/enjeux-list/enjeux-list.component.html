@@ -1171,12 +1171,10 @@
                                                           <img src="assets/images/ellipses/ellipse-salmon.png" alt="" class="operation-ellipse">
                                                           @if (op.code_affichage) { <span class="operation-code">{{ op.code_affichage }}</span> }
                                                           <span class="operation-libelle">{{ 'enjeux.operations.label' | translate }} : {{ op.libelle }}</span>
-                                                          <!-- #489 / #566 — Priorité en tag kit UI (palette scores) à côté du titre -->
-                                                          @if (prioriteTag(op); as pt) {
-                                                            <app-tag class="operation-priority-tag" (click)="$event.stopPropagation()"
-                                                                     [title]="'enjeux.operations.prioriteTooltip' | translate"
-                                                                     [variant]="pt.variant" [label]="op.priorite_label || ''" size="sm"></app-tag>
-                                                          }
+                                                          <!-- #489 / #566 — Priorité : pastille ronde kit UI à côté du titre -->
+                                                          <app-priority-badge class="operation-priority-tag" (click)="$event.stopPropagation()"
+                                                                              [title]="'enjeux.operations.prioriteTooltip' | translate"
+                                                                              [label]="op.priorite_label"></app-priority-badge>
                                                           @if (op.statut === 'draft') {
                                                             <app-tag class="operation-draft-chip" variant="draft" icon="fi-rr-edit" size="sm" [label]="'enjeux.operations.draftChip' | translate" (click)="$event.stopPropagation()"></app-tag>
                                                           }
@@ -1983,12 +1981,10 @@
                                                   <img src="assets/images/ellipses/ellipse-salmon.png" alt="" class="operation-ellipse">
                                                   @if (op.code_affichage) { <span class="operation-code">{{ op.code_affichage }}</span> }
                                                   <span class="operation-libelle">{{ 'enjeux.operations.label' | translate }} : {{ op.libelle }}</span>
-                                                  <!-- #489 / #566 — Priorité en tag kit UI (palette scores) à côté du titre -->
-                                                  @if (prioriteTag(op); as pt) {
-                                                    <app-tag class="operation-priority-tag" (click)="$event.stopPropagation()"
-                                                             [title]="'enjeux.operations.prioriteTooltip' | translate"
-                                                             [variant]="pt.variant" [label]="op.priorite_label || ''" size="sm"></app-tag>
-                                                  }
+                                                  <!-- #489 / #566 — Priorité : pastille ronde kit UI à côté du titre -->
+                                                  <app-priority-badge class="operation-priority-tag" (click)="$event.stopPropagation()"
+                                                                      [title]="'enjeux.operations.prioriteTooltip' | translate"
+                                                                      [label]="op.priorite_label"></app-priority-badge>
                                                   @if (op.statut === 'draft') {
                                                     <app-tag class="operation-draft-chip" variant="draft" icon="fi-rr-edit" size="sm" [label]="'enjeux.operations.draftChip' | translate" (click)="$event.stopPropagation()"></app-tag>
                                                   }

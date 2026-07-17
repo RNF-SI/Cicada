@@ -352,12 +352,8 @@
                                 </app-tag>
                               }
                             </div>
-                            @if (prioriteTag(item.operation); as pt) {
-                              <app-tag class="action-priority-tag"
-                                       [variant]="pt.variant"
-                                       [label]="item.operation.priorite_label || ''"
-                                       size="sm"></app-tag>
-                            }
+                            <app-priority-badge class="action-priority-tag"
+                                                [label]="item.operation.priorite_label"></app-priority-badge>
                           </td>
                           @for (year of yearColumns(); track year) {
                             <td
@@ -482,12 +478,8 @@
                               <span class="action-code">{{ codes }}</span>
                             }
                             <div class="action-name">{{ item.operation.libelle }}</div>
-                            @if (prioriteTag(item.operation); as pt) {
-                              <app-tag class="action-priority-tag"
-                                       [variant]="pt.variant"
-                                       [label]="item.operation.priorite_label || ''"
-                                       size="sm"></app-tag>
-                            }
+                            <app-priority-badge class="action-priority-tag"
+                                                [label]="item.operation.priorite_label"></app-priority-badge>
                           </td>
                           @for (period of ['current', 'past', 'total']; track period) {
                             @let cell = aggregateBudget(item.operation, $any(period));
@@ -603,12 +595,8 @@
                               <span class="action-code">{{ codes }}</span>
                             }
                             <div class="action-name">{{ item.operation.libelle }}</div>
-                            @if (prioriteTag(item.operation); as pt) {
-                              <app-tag class="action-priority-tag"
-                                       [variant]="pt.variant"
-                                       [label]="item.operation.priorite_label || ''"
-                                       size="sm"></app-tag>
-                            }
+                            <app-priority-badge class="action-priority-tag"
+                                                [label]="item.operation.priorite_label"></app-priority-badge>
                           </td>
                           @for (period of ['current', 'past', 'total']; track period) {
                             @let cell = aggregateEtp(item.operation, $any(period));

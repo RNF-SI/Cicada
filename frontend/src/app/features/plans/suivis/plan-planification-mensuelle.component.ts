@@ -4,8 +4,7 @@ import { Router } from '@angular/router';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
-import { TagComponent, TagVariant } from '../../../shared/components/tag/tag.component';
-import { getPrioriteTag } from '../../../shared/utils/tag-icons';
+import { PriorityBadgeComponent } from '../../../shared/components/priority-badge/priority-badge.component';
 import { Operation } from '../../../core/models/enjeu.model';
 import { ActionStatus, ACTION_LEGEND_ITEMS, getActionIcon, getActionStatusForYear } from './action-status.util';
 
@@ -58,7 +57,7 @@ interface CalendarRow {
 @Component({
   selector: 'app-plan-planification-mensuelle',
   standalone: true,
-  imports: [CommonModule, MatMenuModule, MatTooltipModule, TranslateModule, TagComponent],
+  imports: [CommonModule, MatMenuModule, MatTooltipModule, TranslateModule, PriorityBadgeComponent],
   templateUrl: './plan-planification-mensuelle.component.html',
   styleUrl: './plan-planification-mensuelle.component.scss'
 })
@@ -344,11 +343,6 @@ export class PlanPlanificationMensuelleComponent {
   deadlineLabel(item: AgendaItem): string {
     if (item.month != null) return this.monthsShort()[item.month - 1] + ' ' + item.year;
     return this.translate.instant('plans.suivis.planification.wholeYear') + ' ' + item.year;
-  }
-
-  /** #566 — variante du tag de priorité, unifiée sur la palette scores. */
-  prioriteVariant(op: Operation): TagVariant {
-    return getPrioriteTag(op.priorite_label)?.variant ?? 'neutral';
   }
 
   getOrganismesForOp(op: Operation): string {

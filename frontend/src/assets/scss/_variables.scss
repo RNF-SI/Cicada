@@ -213,10 +213,8 @@ $action-planned-partial: $primary-color;      // Prévue et partiellement réali
 $action-realized-unplanned: $gray-dark;       // Réalisée non prévue (rond plein)
 $action-partial-unplanned: $gray-dark;        // Partiellement réalisée non prévue (rond mi-plein)
 
-// Priority tags
-$priority-1: $error-color;           // Priorité 1 (rouge)
-$priority-2: $warning-color;         // Priorité 2 (orange)
-$priority-3: $score-neutral;         // Priorité 3 (jaune)
+// Priorité d'action : rendue par PriorityBadgeComponent (pastille ronde,
+// palette scores 1→very-bad / 2→neutral / 3→very-good). Cf. #566.
 
 // ============================================
 // MODULE THEMES (cohérence avec tuiles d'accueil)

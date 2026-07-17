@@ -11,7 +11,7 @@ import { PlanSidebarComponent } from '../shared/plan-sidebar/plan-sidebar.compon
 import { SearchBarComponent } from '../../../shared/components/search-bar/search-bar.component';
 import { PaginationComponent } from '../../../shared/components/pagination/pagination.component';
 import { TagComponent } from '../../../shared/components/tag/tag.component';
-import { getPrioriteTag, TagAppearance } from '../../../shared/utils/tag-icons';
+import { PriorityBadgeComponent } from '../../../shared/components/priority-badge/priority-badge.component';
 import { PlanPlanificationMensuelleComponent } from './plan-planification-mensuelle.component';
 import { AdminService } from '../../../core/services/admin.service';
 import { EnjeuService } from '../../../core/services/enjeu.service';
@@ -50,7 +50,7 @@ interface FlatOperation {
     CommonModule, RouterModule, MatButtonModule, MatMenuModule,
     MatProgressSpinnerModule, MatTooltipModule, TranslateModule,
     HeaderComponent, PlanSidebarComponent, SearchBarComponent,
-    PlanPlanificationMensuelleComponent, TagComponent, PaginationComponent
+    PlanPlanificationMensuelleComponent, TagComponent, PriorityBadgeComponent, PaginationComponent
   ],
   templateUrl: './plan-suivi-actions.component.html',
   styleUrl: './plan-suivi-actions.component.scss'
@@ -576,11 +576,6 @@ export class PlanSuiviActionsComponent implements OnInit {
     return !!(this.filterCategorieAction() || this.filterEnjeu() || this.filterPriorite()
       || this.filterText() || this.filterOrganisme()
       || this.filterYear() != null || this.filterRealisation() !== 'all');
-  }
-
-  /** #566 — apparence du tag de priorité (palette scores), ou null si aucune. */
-  prioriteTag(op: Operation): TagAppearance | null {
-    return getPrioriteTag(op.priorite_label);
   }
 
   /**

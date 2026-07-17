@@ -1,0 +1,38 @@
+@import 'variables';
+
+// Priorité d'une action de gestion — kit UI « Priorité d'un enjeu » (#566).
+// « Priorité » (gris mention) + pastille ronde colorée portant le chiffre.
+.priority-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: $spacing-xs;
+  white-space: nowrap;
+  vertical-align: middle;
+
+  &__label {
+    font-family: $font-family;
+    font-size: 13px;
+    line-height: 1;
+    color: $gray-dark;
+  }
+
+  &__circle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    font-family: $font-family;
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1;
+    color: $black; // chiffre noir — AA sur les fonds scores
+
+    // Palette scores (« score-* : Scores / priorités » du kit UI)
+    &--1 { background-color: $score-very-bad; }  // rouge  #FF7579
+    &--2 { background-color: $score-neutral; }   // jaune  #F7D35C
+    &--3 { background-color: $score-very-good; } // bleu   #81C9D8
+  }
+}

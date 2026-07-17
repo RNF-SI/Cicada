@@ -6,7 +6,7 @@ import {
   USER_STATUS_TAG,
   VALIDATION_STATUS_TAG,
   getPlanStatusTag,
-  getPrioriteTag,
+  getPrioriteLevel,
   getUserRoleTag,
   getValidationStatusTag,
 } from './tag-icons';
@@ -42,20 +42,23 @@ describe('tag-icons (contrat Figma)', () => {
   });
 
   describe('priorité d\'action (#566)', () => {
-    it('mappe les priorités 1/2/3 sur la palette scores (rouge/orange/jaune), sans icône', () => {
-      expect(getPrioriteTag('Priorité 1')).toEqual({ variant: 'score-very-bad' });
-      expect(getPrioriteTag('Priorité 2')).toEqual({ variant: 'score-bad' });
-      expect(getPrioriteTag('Priorité 3')).toEqual({ variant: 'score-neutral' });
+    // Kit UI « Priorité d'un enjeu » : pastille ronde 1→rouge / 2→jaune / 3→bleu.
+    // La couleur est portée par la classe SCSS de PriorityBadgeComponent ; ici on
+    // verrouille uniquement l'extraction du niveau depuis le libellé.
+    it('déduit le niveau 1/2/3 du libellé', () => {
+      expect(getPrioriteLevel('Priorité 1')).toBe(1);
+      expect(getPrioriteLevel('Priorité 2')).toBe(2);
+      expect(getPrioriteLevel('Priorité 3')).toBe(3);
     });
 
     it('renvoie null quand aucune priorité n\'est renseignée', () => {
-      expect(getPrioriteTag(null)).toBeNull();
-      expect(getPrioriteTag(undefined)).toBeNull();
-      expect(getPrioriteTag('')).toBeNull();
+      expect(getPrioriteLevel(null)).toBeNull();
+      expect(getPrioriteLevel(undefined)).toBeNull();
+      expect(getPrioriteLevel('')).toBeNull();
     });
 
-    it('retombe sur un tag neutre pour un libellé de priorité non reconnu', () => {
-      expect(getPrioriteTag('Priorité haute')).toEqual(NEUTRAL_TAG);
+    it('renvoie null pour un libellé de priorité sans niveau reconnu', () => {
+      expect(getPrioriteLevel('Priorité haute')).toBeNull();
     });
   });
 

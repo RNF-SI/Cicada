@@ -952,21 +952,8 @@ a[mat-raised-button][color="primary"] {
     color: $black !important;
   }
 
-  // Priority chips (Kit UI)
-  &.priority-1 {
-    background-color: $priority-1 !important;  // Rouge
-    color: $white !important;
-  }
-
-  &.priority-2 {
-    background-color: $priority-2 !important;  // Orange
-    color: $black !important;
-  }
-
-  &.priority-3 {
-    background-color: $priority-3 !important;  // Jaune
-    color: $black !important;
-  }
+  // Priorité : voir PriorityBadgeComponent (app-priority-badge) — pastille ronde
+  // colorée (1 rouge / 2 jaune / 3 bleu) conforme au kit UI, cf. #566.
 }
 
 // ============================================

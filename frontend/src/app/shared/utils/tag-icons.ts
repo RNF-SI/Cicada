@@ -73,21 +73,24 @@ export const LOG_LEVEL_TAG: Record<string, TagAppearance> = {
 /** Repli neutre : tag saumon sans icône. */
 export const NEUTRAL_TAG: TagAppearance = { variant: 'neutral' };
 
+/** Niveau de priorité d'une action de gestion (1 = plus prioritaire). */
+export type PrioriteLevel = 1 | 2 | 3;
+
 /**
- * Apparence d'un tag de priorité d'action de gestion (#566).
+ * Niveau de priorité déduit d'un libellé (« Priorité 1 »…), ou `null` si absent.
  *
- * Priorité 1 / 2 / 3 → palette scores (rouge / orange / jaune), conformément au
- * CLAUDE.md (« score-* : Scores / priorités ») et au kit UI. Texte noir, AA.
- * Sans icône (couleur suffisante). Détection sur le libellé (« Priorité 1 »…),
- * cohérente avec le reste de l'application. Renvoie `null` si aucune priorité.
+ * Format et palette conformes au kit UI Figma « 🧩 Tags » (« Priorité d'un
+ * enjeu », nodes 4487:30880 / 30907 / 30934) : le libellé « Priorité » en gris
+ * suivi d'une **pastille ronde** portant le chiffre, colorée selon le niveau —
+ * 1 → rouge (#FF7579), 2 → jaune (#F7D35C), 3 → bleu (#81C9D8), chiffre en noir.
+ * Rendu par `PriorityBadgeComponent` (`app-priority-badge`). Cf. #566.
  */
-export function getPrioriteTag(prioriteLabel: string | null | undefined): TagAppearance | null {
+export function getPrioriteLevel(prioriteLabel: string | null | undefined): PrioriteLevel | null {
   const label = prioriteLabel ?? '';
-  if (!label) return null;
-  if (label.includes('1')) return { variant: 'score-very-bad' };
-  if (label.includes('2')) return { variant: 'score-bad' };
-  if (label.includes('3')) return { variant: 'score-neutral' };
-  return NEUTRAL_TAG;
+  if (label.includes('1')) return 1;
+  if (label.includes('2')) return 2;
+  if (label.includes('3')) return 3;
+  return null;
 }
 
 /** Apparence d'un statut de plan, avec repli neutre si inconnu. */

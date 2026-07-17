@@ -2634,27 +2634,6 @@
   }
 }
 
-.priority-chip {
-  display: inline-block;
-  padding: 2px 10px;
-  border-radius: $border-radius-pill;
-  font-size: 12px;
-  font-weight: $font-weight-semibold;
-  color: $white;
-
-  &.priority-1 {
-    background: $error-color;
-  }
-
-  &.priority-2 {
-    background: $warning-color;
-  }
-
-  &.priority-3 {
-    background: $info-color;
-  }
-}
-
 // Operation form
 .operation-form {
   border: 1px solid $secondary-orange-salmon;

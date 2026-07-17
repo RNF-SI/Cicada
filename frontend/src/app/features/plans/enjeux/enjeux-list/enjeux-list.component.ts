@@ -65,7 +65,7 @@ import { EnjeuAccordionComponent } from '../enjeu-accordion/enjeu-accordion.comp
 import { SectionTitleComponent } from '../../../../shared/components/section-title/section-title.component';
 import { HabitatChipComponent } from '../../../../shared/components/habitat-chip/habitat-chip.component';
 import { TagComponent } from '../../../../shared/components/tag/tag.component';
-import { getPrioriteTag, TagAppearance } from '../../../../shared/utils/tag-icons';
+import { PriorityBadgeComponent } from '../../../../shared/components/priority-badge/priority-badge.component';
 import { MetriqueFormComponent } from '../../../../shared/components/metrique-form/metrique-form.component';
 import {
   NomenclatureOption,
@@ -84,6 +84,7 @@ type TabType = 'detail' | 'olt' | 'operations';
   imports: [
     CommonModule,
     RouterModule,
+    PriorityBadgeComponent,
     FormsModule,
     ReactiveFormsModule,
     MatProgressSpinnerModule,
@@ -4773,10 +4774,6 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
     });
   }
 
-  /** #566 — apparence du tag de priorité (palette scores), ou null si aucune. */
-  prioriteTag(op: Operation): TagAppearance | null {
-    return getPrioriteTag(op.priorite_label);
-  }
 
   // ============================================
   // Objectifs Opérationnels (OO)

@@ -75,10 +75,7 @@
                 </div>
               </div>
               <div class="agenda-tags">
-                @if (item.fop.operation.priorite_label) {
-                  <app-tag [variant]="prioriteVariant(item.fop.operation)"
-                           [label]="item.fop.operation.priorite_label" size="sm"></app-tag>
-                }
+                <app-priority-badge [label]="item.fop.operation.priorite_label"></app-priority-badge>
                 <button class="icon-btn-flat" [title]="'common.actions.view' | translate"
                         (click)="navigateToViewOperation(item.fop.operation.id_operation)">
                   <i class="fi fi-rr-eye"></i>
