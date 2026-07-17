@@ -1884,21 +1884,129 @@ def _resolve_bio_refs(parsed: dict[str, list[dict]]) -> None:
                 r["_cd_hab"], r["_bio"] = None, "missing"
 
 
-def validate_import(plan, parsed: dict[str, list[dict]]) -> ImportReport:
-    """Valide les lignes parsées et produit un rapport (sans rien écrire)."""
+IMPORT_MODES = ("create", "add", "replace")
+
+
+def _count_arborescence(plan) -> dict[str, int]:
+    """Compte le contenu existant d'un plan (pour la confirmation de remplacement)."""
+    from django.db.models import Q
+
+    from .models_operations import Operation
+
+    enjeux_ids = list(plan.enjeux.values_list("id_enjeu", flat=True))
+    facteurs = FacteurInfluence.objects.filter(enjeux__id_pg=plan).distinct()
+    oo = ObjectifOperationnel.objects.filter(
+        Q(id_enjeu__id_pg=plan) | Q(pressions__id_facteur_influence__enjeux__id_pg=plan)
+    ).distinct()
+    indicateurs = Indicateur.objects.filter(
+        Q(id_ne__id_olt__id_enjeu__id_pg=plan) | Q(id_resultat_attendu__id_oo__in=oo)
+    ).distinct()
+    operations = Operation.objects.filter(id_indicateur__in=indicateurs).distinct()
+    return {
+        "enjeux": len(enjeux_ids),
+        "facteurs": facteurs.count(),
+        "objectifs_operationnels": oo.count(),
+        "indicateurs": indicateurs.count(),
+        "operations": operations.count(),
+    }
+
+
+def count_existing_arborescence(plan) -> dict[str, int]:
+    """Compteur public du contenu existant (0 partout si le plan est vide)."""
+    if not plan.enjeux.exists():
+        return {
+            "enjeux": 0,
+            "facteurs": 0,
+            "objectifs_operationnels": 0,
+            "indicateurs": 0,
+            "operations": 0,
+        }
+    return _count_arborescence(plan)
+
+
+def _purge_arborescence(plan) -> None:
+    """Supprime TOUTE l'arborescence d'un plan (les deux branches) et son contenu
+    rattaché (opérations, budgets, RH, suivis via CASCADE). Destructif — réservé
+    au mode ``replace``, sous confirmation côté appelant.
+    """
+    from django.db.models import Q
+
+    # Capturer la branche opérationnelle AVANT de couper les liens enjeu (M2M).
+    facteur_ids = list(
+        FacteurInfluence.objects.filter(enjeux__id_pg=plan).values_list(
+            "id_facteur_influence", flat=True
+        )
+    )
+    oo_ids = list(
+        ObjectifOperationnel.objects.filter(
+            Q(id_enjeu__id_pg=plan)
+            | Q(pressions__id_facteur_influence__enjeux__id_pg=plan)
+        )
+        .values_list("id_oo", flat=True)
+        .distinct()
+    )
+    # 1) Enjeux → OLT/NE/indicateurs état/métriques/opérations + CorFacteurEnjeu + OO FCR.
+    plan.enjeux.all().delete()
+    # 2) Facteurs (désormais orphelins) → pressions + CorOoPression.
+    FacteurInfluence.objects.filter(id_facteur_influence__in=facteur_ids).delete()
+    # 3) OO restants (branche pression) → RA → indicateurs réponse → opérations.
+    ObjectifOperationnel.objects.filter(id_oo__in=oo_ids).delete()
+
+
+def validate_import(
+    plan, parsed: dict[str, list[dict]], mode: str = "create"
+) -> ImportReport:
+    """Valide les lignes parsées et produit un rapport (sans rien écrire).
+
+    ``mode`` :
+    - ``create`` (défaut) : refuse un plan qui a déjà une arborescence ;
+    - ``add`` : ajoute le contenu au plan existant (refuse un libellé d'enjeu déjà
+      présent, pour éviter les doublons) ;
+    - ``replace`` : l'arborescence existante sera SUPPRIMÉE puis remplacée
+      (avertissement listant ce qui sera perdu).
+    """
+    if mode not in IMPORT_MODES:
+        mode = "create"
     report = ImportReport()
     resolver = _NomenclatureResolver()
 
-    # Création seule : refuser si le plan a déjà une arborescence.
     if plan.enjeux.exists():
-        report.add(
-            None,
-            None,
-            None,
-            ERROR,
-            "Ce plan contient déjà une arborescence. L'import n'est possible "
-            "que sur un plan en brouillon sans enjeux.",
-        )
+        if mode == "replace":
+            counts = _count_arborescence(plan)
+            report.add(
+                None,
+                None,
+                None,
+                WARNING,
+                "L'arborescence existante sera SUPPRIMÉE puis remplacée : "
+                f"{counts['enjeux']} enjeu(x), {counts['indicateurs']} indicateur(s), "
+                f"{counts['operations']} action(s) et leurs données liées.",
+            )
+        elif mode == "add":
+            existing = {
+                _norm(lbl)
+                for lbl in plan.enjeux.values_list("libelle", flat=True)
+                if lbl
+            }
+            for row in parsed.get("enjeux", []):
+                lbl = _cell_str(row.get("libelle"))
+                if lbl and _norm(lbl) in existing:
+                    report.add(
+                        "Enjeux",
+                        row["_row"],
+                        "libelle",
+                        ERROR,
+                        f"Un enjeu « {lbl} » existe déjà dans ce plan (mode ajout).",
+                    )
+        else:  # create
+            report.add(
+                None,
+                None,
+                None,
+                ERROR,
+                "Ce plan contient déjà une arborescence. Choisissez « Ajouter » "
+                "ou « Remplacer », ou importez sur un plan vide.",
+            )
 
     # --- Collecte des codes par onglet (unicité) ---
     code_sets: dict[str, set[str]] = {}
@@ -2320,15 +2428,24 @@ def _sheet_name(sheet_key: str) -> str:
 
 
 @transaction.atomic
-def execute_import(plan, parsed: dict[str, list[dict]], user) -> dict:
+def execute_import(
+    plan, parsed: dict[str, list[dict]], user, mode: str = "create"
+) -> dict:
     """Crée l'arborescence dans le plan (transaction). Suppose la validation OK.
+
+    ``mode`` : ``create`` (plan vide), ``add`` (ajoute au contenu existant) ou
+    ``replace`` (SUPPRIME l'arborescence existante puis recrée — destructif).
 
     Retourne un décompte des objets créés. Lève ``ValueError`` si la validation
     échoue (le rapport est joint via ``args``).
     """
-    report = validate_import(plan, parsed)
+    report = validate_import(plan, parsed, mode=mode)
     if not report.can_import:
         raise ValueError(report)
+
+    # Mode remplacement : purge du contenu existant AVANT de recréer.
+    if mode == "replace":
+        _purge_arborescence(plan)
 
     resolver = _NomenclatureResolver()
     counts = {}

@@ -38,6 +38,7 @@ from .services_import import (
     public_parsed,
     sanitize_parsed,
     read_any_workbook,
+    count_existing_arborescence,
 )
 from .services_import_actions import (
     build_actions_workbook,
@@ -1300,6 +1301,8 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
 
     def _run_import(self, request, execute):
         plan = self.get_object()
+        # Mode : create (défaut), add (ajout), replace (remplacement destructif).
+        mode = request.data.get('mode') or request.query_params.get('mode') or 'create'
 
         uploaded = request.FILES.get('file')
         if uploaded is None:
@@ -1314,14 +1317,14 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
             return Response({'error': str(exc)}, status=status.HTTP_400_BAD_REQUEST)
 
         if not execute:
-            report = validate_import(plan, parsed)
+            report = validate_import(plan, parsed, mode=mode)
             payload = report.as_dict()
             # Données parsées renvoyées pour la correction interactive (#9).
             payload['data'] = public_parsed(parsed)
             return Response(payload, status=status.HTTP_200_OK)
 
         try:
-            counts = execute_import(plan, parsed, request.user)
+            counts = execute_import(plan, parsed, request.user, mode=mode)
         except ValueError as exc:
             # Validation échouée : le rapport est joint à l'exception.
             report = exc.args[0] if exc.args else None
@@ -1353,11 +1356,22 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
         Body : { "data": { "enjeux": [...], ... } }.
         """
         plan = self.get_object()
+        mode = (request.data or {}).get('mode') or 'create'
         parsed = sanitize_parsed((request.data or {}).get('data') or {})
-        report = validate_import(plan, parsed)
+        report = validate_import(plan, parsed, mode=mode)
         payload = report.as_dict()
         payload['data'] = public_parsed(parsed)
         return Response(payload, status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=['get'], url_path='import-arborescence/existing-summary')
+    def import_arborescence_existing_summary(self, request, pk=None):
+        """
+        Résumé du contenu existant du plan (pour la confirmation de remplacement).
+
+        GET /api/plans/plans/{id}/import-arborescence/existing-summary/
+        """
+        plan = self.get_object()
+        return Response(count_existing_arborescence(plan), status=status.HTTP_200_OK)
 
     @action(detail=True, methods=['post'], url_path='import-arborescence/import-data')
     def import_arborescence_import_data(self, request, pk=None):
@@ -1365,12 +1379,13 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
         Importer des données d'arborescence éditées (JSON), sans fichier (#9/#10).
 
         POST /api/plans/plans/{id}/import-arborescence/import-data/
-        Body : { "data": { ... } }. Même moteur que l'import fichier.
+        Body : { "data": { ... }, "mode": "create|add|replace" }.
         """
         plan = self.get_object()
+        mode = (request.data or {}).get('mode') or 'create'
         parsed = sanitize_parsed((request.data or {}).get('data') or {})
         try:
-            counts = execute_import(plan, parsed, request.user)
+            counts = execute_import(plan, parsed, request.user, mode=mode)
         except ValueError as exc:
             report = exc.args[0] if exc.args else None
             payload = (

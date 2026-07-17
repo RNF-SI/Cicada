@@ -293,3 +293,64 @@ def test_read_xlsx_endpoint():
     assert resp.status_code == 200
     sheets = resp.json()["sheets"]
     assert any(s["name"] == "Enjeux" for s in sheets)
+
+
+# ---------------------------------------------------------------------------
+# Modes d'import : add / replace + résumé du contenu existant
+# ---------------------------------------------------------------------------
+
+
+def test_existing_summary_endpoint():
+    from tests.factories.enjeux import EnjeuFactory
+
+    user = SuperAdminFactory()
+    plan = PlanGestionFactory(id_utilisateur_ajout=user)
+    EnjeuFactory(id_pg=plan, id_utilisateur_ajout=user)
+    client = APIClient()
+    client.force_authenticate(user=user)
+    resp = client.get(
+        f"/api/plans/plans/{plan.pk}/import-arborescence/existing-summary/"
+    )
+    assert resp.status_code == 200
+    assert resp.json()["enjeux"] == 1
+
+
+def test_import_data_add_mode_appends():
+    from tests.factories.enjeux import EnjeuFactory
+
+    user = SuperAdminFactory()
+    _base_nomenclatures()
+    plan = PlanGestionFactory(id_utilisateur_ajout=user)
+    EnjeuFactory(id_pg=plan, id_utilisateur_ajout=user, libelle="Existant")
+    client = APIClient()
+    client.force_authenticate(user=user)
+    body = {
+        "mode": "add",
+        "data": {
+            "enjeux": [{"code": "E1", "categorie": "ENJEU", "libelle": "Nouveau"}]
+        },
+    }
+    resp = client.post(
+        f"/api/plans/plans/{plan.pk}/import-arborescence/import-data/",
+        body,
+        format="json",
+    )
+    assert resp.status_code == 201, resp.content
+    assert plan.enjeux.count() == 2
+
+
+def test_import_data_create_mode_refuses_non_empty():
+    from tests.factories.enjeux import EnjeuFactory
+
+    user = SuperAdminFactory()
+    _base_nomenclatures()
+    plan = PlanGestionFactory(id_utilisateur_ajout=user)
+    EnjeuFactory(id_pg=plan, id_utilisateur_ajout=user)
+    client = APIClient()
+    client.force_authenticate(user=user)
+    resp = client.post(
+        f"/api/plans/plans/{plan.pk}/import-arborescence/import-data/",
+        {"data": {"enjeux": [{"code": "E1", "categorie": "ENJEU", "libelle": "X"}]}},
+        format="json",
+    )
+    assert resp.status_code == 400  # création seule refuse un plan non vide

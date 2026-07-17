@@ -32,6 +32,7 @@ from apps.plans.models_indicateurs import (
     Metrique,
     CorIndicateurTaxon,
 )
+from apps.plans.models_operations import Operation
 from apps.plans.services_import import (
     build_arborescence_workbook,
     build_example_workbook,
@@ -58,6 +59,7 @@ from tests.factories.enjeux import (
     NomenclatureFcrFactory,
     NomenclatureTypeIndicateurFactory,
     NomenclatureTypeMetriqueFactory,
+    OperationFactory,
 )
 
 pytestmark = [pytest.mark.django_db, pytest.mark.integration]
@@ -657,6 +659,74 @@ def test_validate_habitat_resolved_by_typology_code():
     assert counts["habitats"] == 1
     # Le vrai cd_hab HabRef (5432) est retenu, pas le code typologique.
     assert CorEnjeuHabitat.objects.filter(id_enjeu__id_pg=plan, cd_hab="5432").exists()
+
+
+# ---------------------------------------------------------------------------
+# Modes d'import : create / add / replace
+# ---------------------------------------------------------------------------
+
+
+def test_import_mode_add_appends_without_touching_existing():
+    user = SuperAdminFactory()
+    _base_nomenclatures()
+    plan = PlanGestionFactory(id_utilisateur_ajout=user)
+    EnjeuFactory(id_pg=plan, id_utilisateur_ajout=user, libelle="Enjeu existant")
+    parsed = {"enjeux": [_row(code="E1", categorie="ENJEU", libelle="Nouvel enjeu")]}
+
+    report = validate_import(plan, parsed, mode="add")
+    assert report.can_import, report.errors
+    counts = execute_import(plan, parsed, user, mode="add")
+    assert counts["enjeux"] == 1
+    assert plan.enjeux.count() == 2  # l'existant est conservé
+
+
+def test_import_mode_add_rejects_duplicate_libelle():
+    user = SuperAdminFactory()
+    _base_nomenclatures()
+    plan = PlanGestionFactory(id_utilisateur_ajout=user)
+    EnjeuFactory(id_pg=plan, id_utilisateur_ajout=user, libelle="Qualité des eaux")
+    parsed = _valid_parsed()  # contient « Qualité des eaux »
+
+    report = validate_import(plan, parsed, mode="add")
+    assert not report.can_import
+    assert any(
+        i["column"] == "libelle" and "existe déjà" in i["message"]
+        for i in report.errors
+    )
+
+
+def test_import_mode_create_still_refuses_non_empty():
+    user = SuperAdminFactory()
+    _base_nomenclatures()
+    plan = PlanGestionFactory(id_utilisateur_ajout=user)
+    EnjeuFactory(id_pg=plan, id_utilisateur_ajout=user)
+    report = validate_import(plan, _valid_parsed(), mode="create")
+    assert not report.can_import
+
+
+def test_import_mode_replace_purges_both_branches_and_recreates():
+    user = SuperAdminFactory()
+    _base_nomenclatures()
+    source = _build_source_plan(user)  # 1 enjeu, 2 branches, 2 indicateurs
+    ind = Indicateur.objects.filter(id_ne__id_olt__id_enjeu__id_pg=source).first()
+    OperationFactory(id_indicateur=ind, id_utilisateur_ajout=user)
+    old_enjeux = list(source.enjeux.values_list("id_enjeu", flat=True))
+    assert source.enjeux.count() == 1
+    assert FacteurInfluence.objects.filter(enjeux__id_pg=source).exists()
+
+    parsed = _valid_parsed()
+    report = validate_import(source, parsed, mode="replace")
+    assert report.can_import, report.errors
+    assert any(i["level"] == "warning" for i in report.issues)
+
+    execute_import(source, parsed, user, mode="replace")
+
+    # Ancien contenu (les deux branches + opération) supprimé.
+    assert not Enjeu.objects.filter(id_enjeu__in=old_enjeux).exists()
+    assert not Operation.objects.filter(id_indicateur=ind).exists()
+    # Nouveau contenu créé (2 enjeux du jeu valide, 1 facteur).
+    assert source.enjeux.count() == 2
+    assert FacteurInfluence.objects.filter(enjeux__id_pg=source).count() == 1
 
 
 # ---------------------------------------------------------------------------
