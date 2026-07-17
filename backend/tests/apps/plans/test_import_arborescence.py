@@ -198,6 +198,18 @@ def test_build_prefilled_workbook_writes_rows():
     assert wb["Indicateurs"].max_row >= 4  # 2 indicateurs
 
 
+def test_empty_plan_export_shows_example_row():
+    """Un plan sans arborescence exporte aussi la ligne exemple (comme le modèle)."""
+    user = RoleFactory()
+    _base_nomenclatures()
+    plan = PlanGestionFactory(id_utilisateur_ajout=user)  # brouillon vide
+    content = build_arborescence_workbook(plan=plan)
+    wb = load_workbook(io.BytesIO(content))
+    assert wb["Enjeux"].cell(row=3, column=1).value == "(exemple)"
+    # …et elle reste ignorée à l'import.
+    assert parse_workbook(content)["enjeux"] == []
+
+
 def test_reference_dropdowns_link_tabs():
     """Les colonnes de rattachement proposent la liste des codes de l'onglet cible."""
     wb = load_workbook(io.BytesIO(build_arborescence_workbook(plan=None)))

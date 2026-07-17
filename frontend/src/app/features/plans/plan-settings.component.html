@@ -59,19 +59,23 @@
                 <i class="fi fi-rr-graduation-cap"></i>
                 {{ 'plans.import.downloadExample' | translate }}
               </button>
-              <button mat-stroked-button data-testid="arbo-export-prefilled" [disabled]="downloading()" (click)="downloadTemplate(false)">
-                <i class="fi fi-rr-download"></i>
-                {{ 'plans.import.downloadPrefilled' | translate }}
-              </button>
-              <button mat-button [disabled]="downloading()" (click)="downloadTemplate(true)">
+              <button mat-stroked-button data-testid="arbo-template" [disabled]="downloading()" (click)="downloadTemplate(true)">
                 <i class="fi fi-rr-file"></i>
                 {{ 'plans.import.downloadEmpty' | translate }}
+              </button>
+              <button mat-button data-testid="arbo-export-prefilled" [disabled]="downloading()" (click)="downloadTemplate(false)">
+                <i class="fi fi-rr-download"></i>
+                {{ 'plans.import.downloadPrefilled' | translate }}
               </button>
               @if (downloading() || downloadingExample()) {
                 <mat-spinner diameter="18"></mat-spinner>
               }
             </div>
-            <p class="text-mention">{{ 'plans.import.downloadExampleHint' | translate }}</p>
+            <ul class="text-mention import-download-hints">
+              <li>{{ 'plans.import.hintExample' | translate }}</li>
+              <li>{{ 'plans.import.hintTemplate' | translate }}</li>
+              <li>{{ 'plans.import.hintExport' | translate }}</li>
+            </ul>
 
             @if (!isDraft()) {
               <div class="info-block info-block-warning">

@@ -1470,7 +1470,10 @@ def build_arborescence_workbook(plan=None) -> bytes:
     :returns: le contenu binaire du fichier ``.xlsx``.
     """
     plan_rows = _extract_plan(plan) if plan is not None else None
-    return _render_workbook(plan_rows, plan=plan, with_hints=(plan is None))
+    # Ligne exemple tant que le plan n'a pas d'arborescence (modèle vierge ET
+    # export d'un plan encore vide) ; jamais sur un plan déjà rempli.
+    with_hints = plan_rows is None or not plan_rows.enjeux
+    return _render_workbook(plan_rows, plan=plan, with_hints=with_hints)
 
 
 def build_example_workbook() -> bytes:
