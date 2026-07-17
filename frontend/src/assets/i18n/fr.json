@@ -2387,6 +2387,27 @@
         "readError": "Le fichier n'a pas pu être lu.",
         "nothingMapped": "Associez au moins une colonne avant de continuer."
       },
+      "howto": {
+        "title": "Comment ça marche ?",
+        "s1": "Téléchargez le modèle à remplir (ou l'exemple complet pour comprendre le format).",
+        "s2": "Complétez-le dans Excel : un onglet par niveau (enjeux, objectifs, indicateurs…) ; les listes déroulantes vous guident.",
+        "s3": "Ré-importez votre fichier plus bas : tout est vérifié et vous corrigez les erreurs directement en ligne si besoin.",
+        "s4": "L'import ne fonctionne que sur un plan en brouillon ne contenant pas encore d'arborescence."
+      },
+      "step1": { "title": "Partir d'un modèle" },
+      "step2": {
+        "title": "Remplir le fichier dans Excel",
+        "text": "Chaque onglet correspond à un niveau de l'arborescence, reliés par des codes (E1, F1…). Une ligne « (exemple) » grisée montre quoi écrire — elle n'est jamais importée. Les listes déroulantes proposent les valeurs et les rattachements possibles."
+      },
+      "step3": { "title": "Importer votre fichier" },
+      "advanced": { "title": "Options avancées" },
+      "actionsHowto": {
+        "title": "Comment ça marche ?",
+        "s1": "Créez d'abord l'arborescence du plan : les actions se rattachent à ses indicateurs.",
+        "s2": "Téléchargez le classeur des actions : il contient déjà, en onglets de référence (non modifiables), les indicateurs et les postes de ce plan avec leur code.",
+        "s3": "Saisissez vos actions, budgets et temps de travail (RH) en reportant les codes des indicateurs et des postes proposés.",
+        "s4": "Ré-importez le classeur : les opérations, budgets et RH sont créés dans le plan (brouillon)."
+      },
       "doImport": "Importer l'arborescence",
       "importSuccess": "Import réussi : {{total}} élément(s) créé(s).",
       "importError": "L'import a échoué.",

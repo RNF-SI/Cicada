@@ -49,33 +49,58 @@
             </div>
           </div>
         } @else {
-          <!-- Import / export de l'arborescence (V1) -->
-          <section class="settings-section">
+          <!-- Import de l'arborescence (V1) — parcours guidé -->
+          <section class="settings-section import-guided">
             <h2 class="section-title">{{ 'plans.import.sectionTitle' | translate }}</h2>
-            <p class="subtitle">{{ 'plans.import.sectionSubtitle' | translate }}</p>
 
-            <div class="import-actions">
-              <button mat-flat-button color="primary" data-testid="arbo-example" [disabled]="downloadingExample()" (click)="downloadExample()">
-                <i class="fi fi-rr-graduation-cap"></i>
-                {{ 'plans.import.downloadExample' | translate }}
-              </button>
-              <button mat-stroked-button data-testid="arbo-template" [disabled]="downloading()" (click)="downloadTemplate(true)">
-                <i class="fi fi-rr-file"></i>
-                {{ 'plans.import.downloadEmpty' | translate }}
-              </button>
-              <button mat-button data-testid="arbo-export-prefilled" [disabled]="downloading()" (click)="downloadTemplate(false)">
-                <i class="fi fi-rr-download"></i>
-                {{ 'plans.import.downloadPrefilled' | translate }}
-              </button>
-              @if (downloading() || downloadingExample()) {
-                <mat-spinner diameter="18"></mat-spinner>
-              }
+            <app-accordion variant="subtle" [title]="'plans.import.howto.title' | translate">
+              <ol class="import-howto">
+                <li>{{ 'plans.import.howto.s1' | translate }}</li>
+                <li>{{ 'plans.import.howto.s2' | translate }}</li>
+                <li>{{ 'plans.import.howto.s3' | translate }}</li>
+                <li>{{ 'plans.import.howto.s4' | translate }}</li>
+              </ol>
+            </app-accordion>
+
+            <!-- Étape 1 : partir d'un modèle -->
+            <div class="import-step">
+              <span class="import-step-num">1</span>
+              <div class="import-step-body">
+                <h3 class="import-step-title">{{ 'plans.import.step1.title' | translate }}</h3>
+                <div class="import-actions">
+                  <button mat-flat-button color="primary" data-testid="arbo-example" [disabled]="downloadingExample()" (click)="downloadExample()">
+                    <i class="fi fi-rr-graduation-cap"></i>
+                    {{ 'plans.import.downloadExample' | translate }}
+                  </button>
+                  <button mat-stroked-button data-testid="arbo-template" [disabled]="downloading()" (click)="downloadTemplate(true)">
+                    <i class="fi fi-rr-file"></i>
+                    {{ 'plans.import.downloadEmpty' | translate }}
+                  </button>
+                  @if (downloading() || downloadingExample()) {
+                    <mat-spinner diameter="18"></mat-spinner>
+                  }
+                </div>
+                <ul class="text-mention import-download-hints">
+                  <li>{{ 'plans.import.hintExample' | translate }}</li>
+                  <li>{{ 'plans.import.hintTemplate' | translate }}</li>
+                </ul>
+              </div>
             </div>
-            <ul class="text-mention import-download-hints">
-              <li>{{ 'plans.import.hintExample' | translate }}</li>
-              <li>{{ 'plans.import.hintTemplate' | translate }}</li>
-              <li>{{ 'plans.import.hintExport' | translate }}</li>
-            </ul>
+
+            <!-- Étape 2 : remplir dans Excel -->
+            <div class="import-step">
+              <span class="import-step-num">2</span>
+              <div class="import-step-body">
+                <h3 class="import-step-title">{{ 'plans.import.step2.title' | translate }}</h3>
+                <p class="text-mention">{{ 'plans.import.step2.text' | translate }}</p>
+              </div>
+            </div>
+
+            <!-- Étape 3 : importer -->
+            <div class="import-step">
+              <span class="import-step-num">3</span>
+              <div class="import-step-body">
+                <h3 class="import-step-title">{{ 'plans.import.step3.title' | translate }}</h3>
 
             @if (!isDraft()) {
               <div class="info-block info-block-warning">
@@ -210,22 +235,48 @@
                     (imported)="onMappingImported($event)"
                     (cancelled)="showMapping.set(false)">
                   </app-import-mapping>
-                } @else {
-                  <p class="mapping-toggle">
-                    <button mat-button data-testid="arbo-mapping-open" (click)="showMapping.set(true)">
-                      <i class="fi fi-rr-shuffle"></i>
-                      {{ 'plans.import.mapping.open' | translate }}
-                    </button>
-                  </p>
                 }
               </div>
             }
+              </div>
+            </div>
+
+            <!-- Options avancées : mapping et export du contenu -->
+            <app-accordion variant="subtle" [title]="'plans.import.advanced.title' | translate">
+              <div class="import-advanced">
+                <div class="advanced-item">
+                  <button mat-stroked-button data-testid="arbo-export-prefilled" [disabled]="downloading()" (click)="downloadTemplate(false)">
+                    <i class="fi fi-rr-download"></i>
+                    {{ 'plans.import.downloadPrefilled' | translate }}
+                  </button>
+                  <span class="text-mention">{{ 'plans.import.hintExport' | translate }}</span>
+                </div>
+                @if (isDraft()) {
+                  <div class="advanced-item">
+                    <button mat-stroked-button data-testid="arbo-mapping-open" [disabled]="showMapping()" (click)="showMapping.set(true)">
+                      <i class="fi fi-rr-shuffle"></i>
+                      {{ 'plans.import.mapping.open' | translate }}
+                    </button>
+                    <span class="text-mention">{{ 'plans.import.mapping.help' | translate }}</span>
+                  </div>
+                }
+              </div>
+            </app-accordion>
           </section>
 
           <!-- Import des actions (module 2) -->
           <section class="settings-section">
             <h2 class="section-title">{{ 'plans.import.actionsSectionTitle' | translate }}</h2>
             <p class="subtitle">{{ 'plans.import.actionsSectionSubtitle' | translate }}</p>
+
+            <app-accordion variant="subtle" [title]="'plans.import.actionsHowto.title' | translate">
+              <ol class="import-howto">
+                <li>{{ 'plans.import.actionsHowto.s1' | translate }}</li>
+                <li>{{ 'plans.import.actionsHowto.s2' | translate }}</li>
+                <li>{{ 'plans.import.actionsHowto.s3' | translate }}</li>
+                <li>{{ 'plans.import.actionsHowto.s4' | translate }}</li>
+              </ol>
+            </app-accordion>
 
             <div class="import-actions">
               <button mat-flat-button color="primary" data-testid="actions-example" [disabled]="downloadingActionsExample()" (click)="downloadActionsExample()">

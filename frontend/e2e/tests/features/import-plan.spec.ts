@@ -27,6 +27,14 @@ async function enjeuxCount(page: any, planId: number): Promise<number> {
   return (data.enjeux || []).length;
 }
 
+/** Déplie l'accordéon « Options avancées » (contient export + mapping). */
+async function openAdvanced(page: any): Promise<void> {
+  const header = page
+    .locator('.app-accordion__header', { hasText: 'Options avancées' })
+    .first();
+  await header.click();
+}
+
 test.describe('Import arborescence via Excel', () => {
   test('round-trip export → import remplit un brouillon vide', async ({ superAdminPage }) => {
     const page = superAdminPage;
@@ -43,6 +51,7 @@ test.describe('Import arborescence via Excel', () => {
 
     // 2. Export pré-rempli depuis la page Paramètres → capture du téléchargement.
     await page.goto(`/plans/${source.slug}/parametres`);
+    await openAdvanced(page);
     const exportBtn = page.getByTestId('arbo-export-prefilled');
     await expect(exportBtn).toBeVisible({ timeout: 15000 });
     const [download] = await Promise.all([
@@ -95,10 +104,11 @@ test.describe('Import arborescence via Excel', () => {
     const validated = await findValidatedPlan(page);
 
     await page.goto(`/plans/${validated.slug}/parametres`);
-    // L'export (lecture) reste disponible…
-    await expect(page.getByTestId('arbo-export-prefilled')).toBeVisible({ timeout: 15000 });
-    // …mais le sélecteur de fichier d'import est masqué hors brouillon (#248).
+    // …le sélecteur de fichier d'import est masqué hors brouillon (#248).
     await expect(page.getByTestId('arbo-import-file')).toHaveCount(0);
+    // L'export (lecture) reste disponible dans les options avancées.
+    await openAdvanced(page);
+    await expect(page.getByTestId('arbo-export-prefilled')).toBeVisible({ timeout: 15000 });
   });
 
   test('les boutons « exemple » téléchargent un classeur (arborescence + actions)', async ({ superAdminPage }) => {
@@ -133,6 +143,7 @@ test.describe('Import arborescence via Excel', () => {
     const sourceCount = await enjeuxCount(page, source.id_pg);
 
     await page.goto(`/plans/${source.slug}/parametres`);
+    await openAdvanced(page);
     const [download] = await Promise.all([
       page.waitForEvent('download'),
       page.getByTestId('arbo-export-prefilled').click(),
@@ -174,13 +185,14 @@ test.describe('Import arborescence via Excel', () => {
 
     // On récupère un .xlsx à téléverser comme « fichier source ».
     await page.goto(`/plans/${draft.slug}/parametres`);
+    await openAdvanced(page);
     const [download] = await Promise.all([
       page.waitForEvent('download'),
       page.getByTestId('arbo-export-prefilled').click(),
     ]);
     const filePath = await download.path();
 
-    // Ouvre le mode mapping et téléverse le fichier.
+    // Ouvre le mode mapping et téléverse le fichier (options avancées déjà dépliées).
     const openBtn = page.getByTestId('arbo-mapping-open');
     await expect(openBtn).toBeVisible({ timeout: 15000 });
     await openBtn.click();

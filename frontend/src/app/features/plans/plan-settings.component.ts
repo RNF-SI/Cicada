@@ -24,6 +24,7 @@ import { HeaderComponent } from '../../shared/components/header/header.component
 import { PlanSidebarComponent } from './shared/plan-sidebar/plan-sidebar.component';
 import { ImportGridComponent } from './import-grid/import-grid.component';
 import { ImportMappingComponent } from './import-mapping/import-mapping.component';
+import { AccordionComponent } from '../../shared/components/accordion/accordion.component';
 import { TagComponent } from '../../shared/components/tag/tag.component';
 import { TagAppearance, getPlanStatusTag } from '../../shared/utils/tag-icons';
 import {
@@ -54,6 +55,7 @@ import {
     PlanSidebarComponent,
     ImportGridComponent,
     ImportMappingComponent,
+    AccordionComponent,
     TagComponent,
   ],
   templateUrl: './plan-settings.component.html',

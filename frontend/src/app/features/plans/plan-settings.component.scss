@@ -221,6 +221,67 @@
   }
 }
 
+/* Parcours guidé en étapes numérotées */
+.import-guided app-accordion {
+  display: block;
+  margin-bottom: $spacing-md;
+}
+
+.import-howto {
+  margin: 0;
+  padding-left: $spacing-md;
+  color: $gray-dark;
+
+  li { margin-bottom: $spacing-xxs; }
+}
+
+.import-step {
+  display: flex;
+  gap: $spacing-md;
+  padding: $spacing-sm 0;
+
+  & + .import-step {
+    border-top: 1px dashed $gray-light;
+  }
+}
+
+.import-step-num {
+  flex: 0 0 auto;
+  width: 28px;
+  height: 28px;
+  border-radius: $border-radius-round;
+  background: $primary-color;
+  color: $white;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.import-step-body {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.import-step-title {
+  margin: 2px 0 $spacing-xs;
+  color: $primary-color;
+}
+
+.import-advanced {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-sm;
+}
+
+.advanced-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+
+  .text-mention { margin: 0; }
+}
+
 .import-upload {
   display: flex;
   flex-direction: column;
