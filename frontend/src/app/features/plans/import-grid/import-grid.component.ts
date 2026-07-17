@@ -17,6 +17,7 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { AdminService } from '../../../core/services/admin.service';
 import {
   ArborescenceImportReport,
+  ImportMode,
   ImportSheet,
   ParsedData,
   ParsedRow,
@@ -50,6 +51,7 @@ export class ImportGridComponent {
   /** Données initiales (issues de la validation fichier). */
   readonly initialData = input.required<ParsedData>();
   readonly initialReport = input.required<ArborescenceImportReport>();
+  readonly mode = input<ImportMode>('create');
 
   readonly imported = output<number>();
   readonly cancelled = output<void>();
@@ -113,7 +115,7 @@ export class ImportGridComponent {
 
   revalidate(): void {
     this.validating.set(true);
-    this.adminService.validateArborescenceData(this.planId(), this.data()).subscribe({
+    this.adminService.validateArborescenceData(this.planId(), this.data(), this.mode()).subscribe({
       next: report => {
         this.validating.set(false);
         this.report.set(report);
@@ -141,7 +143,7 @@ export class ImportGridComponent {
   runImport(): void {
     if (!this.canImport()) return;
     this.importing.set(true);
-    this.adminService.importArborescenceData(this.planId(), this.data()).subscribe({
+    this.adminService.importArborescenceData(this.planId(), this.data(), this.mode()).subscribe({
       next: result => {
         this.importing.set(false);
         this.imported.emit(result.total);

@@ -111,6 +111,23 @@
               </div>
             } @else {
               <div class="import-upload">
+                @if (hasExistingContent() && !showMapping()) {
+                  <div class="import-mode-choice" data-testid="import-mode-choice">
+                    <span class="mode-choice-title">{{ 'plans.import.mode.title' | translate }}</span>
+                    <label>
+                      <input type="radio" name="importMode" value="add"
+                             [checked]="importMode() === 'add'"
+                             (change)="importMode.set('add'); revalidateCurrentFile()" />
+                      <span>{{ 'plans.import.mode.add' | translate }}</span>
+                    </label>
+                    <label>
+                      <input type="radio" name="importMode" value="replace" data-testid="import-mode-replace"
+                             [checked]="importMode() === 'replace'"
+                             (change)="importMode.set('replace'); revalidateCurrentFile()" />
+                      <span class="mode-danger">{{ 'plans.import.mode.replace' | translate }}</span>
+                    </label>
+                  </div>
+                }
                 @if (!showMapping()) {
                 <div class="file-picker" [class.is-disabled]="importValidating() || importing()">
                   <label class="file-picker-btn">
@@ -222,6 +239,7 @@
                       [sheets]="importSchema()"
                       [initialData]="report.data"
                       [initialReport]="report"
+                      [mode]="effectiveMode()"
                       (imported)="onGridImported($event)"
                       (cancelled)="onGridCancelled()">
                     </app-import-grid>
@@ -253,9 +271,10 @@
                 </div>
                 @if (isDraft()) {
                   <div class="advanced-item">
-                    <button mat-stroked-button data-testid="arbo-mapping-open" [disabled]="showMapping()" (click)="showMapping.set(true)">
+                    <button mat-stroked-button data-testid="arbo-mapping-open" disabled>
                       <i class="fi fi-rr-shuffle"></i>
                       {{ 'plans.import.mapping.open' | translate }}
+                      <span class="soon-badge">{{ 'plans.import.comingSoon' | translate }}</span>
                     </button>
                     <span class="text-mention">{{ 'plans.import.mapping.help' | translate }}</span>
                   </div>

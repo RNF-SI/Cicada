@@ -19,6 +19,7 @@ import {
   ArborescenceImportReport,
   ArborescenceImportIssue,
   ImportSheet,
+  ImportMode,
 } from '../../core/models/admin.model';
 import { HeaderComponent } from '../../shared/components/header/header.component';
 import { PlanSidebarComponent } from './shared/plan-sidebar/plan-sidebar.component';
@@ -118,6 +119,12 @@ export class PlanSettingsComponent {
       next: plan => {
         this.plan.set(plan);
         this.isLoading.set(false);
+        // Contenu existant (pour proposer ajout / remplacement).
+        if (plan.statut === 'draft') {
+          this.adminService.getArborescenceExistingSummary(plan.id_pg).subscribe({
+            next: summary => this.existingSummary.set(summary),
+          });
+        }
       },
       error: err => {
         this.errorMessage.set(err?.message || this.translate.instant('plans.settings.deleteError'));
@@ -196,6 +203,17 @@ export class PlanSettingsComponent {
   /** Import depuis un autre fichier Excel via mapping (#10). */
   readonly showMapping = signal(false);
 
+  /** Contenu existant du plan + mode d'import (ajout / remplacement). */
+  readonly existingSummary = signal<Record<string, number> | null>(null);
+  readonly hasExistingContent = computed<boolean>(
+    () => (this.existingSummary()?.['enjeux'] ?? 0) > 0,
+  );
+  readonly importMode = signal<'add' | 'replace'>('add');
+  /** Mode effectif : create si le plan est vide, sinon le choix de l'utilisateur. */
+  readonly effectiveMode = computed<ImportMode>(() =>
+    this.hasExistingContent() ? this.importMode() : 'create',
+  );
+
   /** L'import n'est possible que sur un plan en brouillon. */
   readonly isDraft = computed<boolean>(() => this.plan()?.statut === 'draft');
 
@@ -255,11 +273,17 @@ export class PlanSettingsComponent {
     }
   }
 
+  /** Re-valide le fichier courant (ex. après changement de mode add/replace). */
+  revalidateCurrentFile(): void {
+    const file = this.importFile();
+    if (file) this.validateImport(file);
+  }
+
   private validateImport(file: File): void {
     const p = this.plan();
     if (!p) return;
     this.importValidating.set(true);
-    this.adminService.validateArborescenceImport(p.id_pg, file).subscribe({
+    this.adminService.validateArborescenceImport(p.id_pg, file, this.effectiveMode()).subscribe({
       next: report => {
         this.importValidating.set(false);
         this.importReport.set(report);
@@ -278,14 +302,40 @@ export class PlanSettingsComponent {
     this.importReport.set(null);
   }
 
-  /** Exécute l'import (création seule). */
+  /** Exécute l'import. En mode remplacement, exige une confirmation forte. */
   runImport(): void {
     const p = this.plan();
     const file = this.importFile();
     const report = this.importReport();
     if (!p || !file || !report?.can_import) return;
+
+    if (this.effectiveMode() === 'replace') {
+      const s = this.existingSummary() ?? {};
+      const data: ConfirmDialogData = {
+        title: this.translate.instant('plans.import.replace.confirmTitle'),
+        message: this.translate.instant('plans.import.replace.confirmMessage', {
+          enjeux: s['enjeux'] ?? 0,
+          indicateurs: s['indicateurs'] ?? 0,
+          operations: s['operations'] ?? 0,
+        }),
+        confirmText: this.translate.instant('plans.import.replace.confirmButton'),
+        cancelText: this.translate.instant('common.actions.cancel'),
+        confirmColor: 'warn',
+      };
+      this.dialog
+        .open(ConfirmDialogComponent, { width: '560px', data })
+        .afterClosed()
+        .subscribe(confirmed => {
+          if (confirmed) this._doImport(p, file);
+        });
+      return;
+    }
+    this._doImport(p, file);
+  }
+
+  private _doImport(p: AdminPlan, file: File): void {
     this.importing.set(true);
-    this.adminService.importArborescence(p.id_pg, file).subscribe({
+    this.adminService.importArborescence(p.id_pg, file, this.effectiveMode()).subscribe({
       next: result => {
         this.importing.set(false);
         this.snackBar.open(

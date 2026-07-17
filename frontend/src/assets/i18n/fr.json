@@ -2401,6 +2401,17 @@
       },
       "step3": { "title": "Importer votre fichier" },
       "advanced": { "title": "Options avancées" },
+      "comingSoon": "Prochainement",
+      "mode": {
+        "title": "Ce plan contient déjà une arborescence. Que faire ?",
+        "add": "Ajouter au contenu existant (les éléments actuels sont conservés).",
+        "replace": "Remplacer tout le contenu existant (supprime l'arborescence actuelle et ce qui en dépend)."
+      },
+      "replace": {
+        "confirmTitle": "Remplacer toute l'arborescence ?",
+        "confirmMessage": "Action IRRÉVERSIBLE. Seront définitivement supprimés : {{enjeux}} enjeu(x), {{indicateurs}} indicateur(s), {{operations}} action(s) et toutes leurs données liées (budgets, RH, suivis). Le contenu du fichier importé les remplacera. À ne faire qu'en phase d'import, en tant que référent.",
+        "confirmButton": "Oui, supprimer et remplacer"
+      },
       "actionsHowto": {
         "title": "Comment ça marche ?",
         "s1": "Créez d'abord l'arborescence du plan : les actions se rattachent à ses indicateurs.",

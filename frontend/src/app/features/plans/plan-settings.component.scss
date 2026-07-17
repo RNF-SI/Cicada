@@ -282,6 +282,42 @@
   .text-mention { margin: 0; }
 }
 
+.soon-badge {
+  margin-left: $spacing-xs;
+  padding: 1px $spacing-xs;
+  border-radius: $border-radius-pill;
+  background: $secondary-yellow;
+  color: $black;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+/* Choix du mode quand le plan a déjà du contenu */
+.import-mode-choice {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-xs;
+  padding: $spacing-sm;
+  margin-bottom: $spacing-sm;
+  border: 1px solid $gray-light;
+  border-radius: $border-radius-sm;
+  background: $beige;
+
+  .mode-choice-title { font-weight: 700; color: $black; }
+
+  label {
+    display: flex;
+    align-items: flex-start;
+    gap: $spacing-xs;
+    cursor: pointer;
+
+    input { margin-top: 3px; }
+  }
+
+  .mode-danger { color: $error-color; font-weight: 700; }
+}
+
 .import-upload {
   display: flex;
   flex-direction: column;

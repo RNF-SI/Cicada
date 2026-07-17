@@ -769,6 +769,9 @@ export interface ArborescenceImportIssue {
   message: string;
 }
 
+/** Mode d'import : create (plan vide), add (ajout), replace (remplacement). */
+export type ImportMode = 'create' | 'add' | 'replace';
+
 /** Une ligne de données (clés de colonne → valeur) + numéro de ligne Excel. */
 export type ParsedRow = Record<string, unknown> & { _row?: number | null };
 /** Données parsées, une liste de lignes par onglet. */

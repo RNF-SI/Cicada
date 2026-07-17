@@ -179,27 +179,23 @@ test.describe('Import arborescence via Excel', () => {
     }
   });
 
-  test('mapping : ouvrir, lire un fichier et afficher le mapping (#10)', async ({ superAdminPage }) => {
+  test('mapping : proposé comme « prochainement disponible » (désactivé)', async ({ superAdminPage }) => {
     const page = superAdminPage;
-    const draft = await findPlan(page, 'Lac'); // brouillon → section import visible
-
-    // On récupère un .xlsx à téléverser comme « fichier source ».
+    const draft = await findPlan(page, 'Lac');
     await page.goto(`/plans/${draft.slug}/parametres`);
     await openAdvanced(page);
-    const [download] = await Promise.all([
-      page.waitForEvent('download'),
-      page.getByTestId('arbo-export-prefilled').click(),
-    ]);
-    const filePath = await download.path();
+    const mappingBtn = page.getByTestId('arbo-mapping-open');
+    await expect(mappingBtn).toBeVisible({ timeout: 15000 });
+    await expect(mappingBtn).toBeDisabled();
+  });
 
-    // Ouvre le mode mapping et téléverse le fichier (options avancées déjà dépliées).
-    const openBtn = page.getByTestId('arbo-mapping-open');
-    await expect(openBtn).toBeVisible({ timeout: 15000 });
-    await openBtn.click();
-    await expect(page.getByTestId('import-mapping')).toBeVisible();
-    await page.getByTestId('mapping-file').setInputFiles(filePath!);
-
-    // Après lecture, le sélecteur d'onglet source pour « Enjeux » apparaît.
-    await expect(page.getByTestId('map-source-enjeux')).toBeVisible({ timeout: 20000 });
+  test('modes : le choix ajouter / remplacer apparaît sur un plan déjà rempli', async ({ superAdminPage }) => {
+    // Plan brouillon avec arborescence → l'utilisateur doit choisir ajout/remplacement.
+    // (Test non destructif : on vérifie seulement l'affichage du choix.)
+    const page = superAdminPage;
+    const draft = await findPlan(page, 'Lac');
+    await page.goto(`/plans/${draft.slug}/parametres`);
+    await expect(page.getByTestId('import-mode-choice')).toBeVisible({ timeout: 15000 });
+    await expect(page.getByTestId('import-mode-replace')).toBeVisible();
   });
 });

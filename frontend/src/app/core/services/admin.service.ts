@@ -32,6 +32,7 @@ import {
   ArborescenceImportReport,
   ArborescenceImportResult,
   ImportSheet,
+  ImportMode,
   ParsedData,
   ForeignSheet
 } from '../models/admin.model';
@@ -768,13 +769,27 @@ export class AdminService {
    * Valide (sans écrire) un fichier d'import d'arborescence.
    * POST /api/plans/plans/{id}/import-arborescence/validate/
    */
-  validateArborescenceImport(planId: number, file: File): Observable<ArborescenceImportReport> {
+  validateArborescenceImport(
+    planId: number,
+    file: File,
+    mode: ImportMode = 'create',
+  ): Observable<ArborescenceImportReport> {
     const formData = new FormData();
     formData.append('file', file);
+    formData.append('mode', mode);
     return this.http
       .post<ArborescenceImportReport>(
         `${this.plansApiUrl}/plans/${planId}/import-arborescence/validate/`,
         formData,
+      )
+      .pipe(catchError(this.handleError));
+  }
+
+  /** Résumé du contenu existant (pour la confirmation de remplacement). */
+  getArborescenceExistingSummary(planId: number): Observable<Record<string, number>> {
+    return this.http
+      .get<Record<string, number>>(
+        `${this.plansApiUrl}/plans/${planId}/import-arborescence/existing-summary/`,
       )
       .pipe(catchError(this.handleError));
   }
@@ -787,9 +802,14 @@ export class AdminService {
    * corps de la réponse porte le rapport (`ArborescenceImportReport`), que le
    * composant lit via `err.error`.
    */
-  importArborescence(planId: number, file: File): Observable<ArborescenceImportResult> {
+  importArborescence(
+    planId: number,
+    file: File,
+    mode: ImportMode = 'create',
+  ): Observable<ArborescenceImportResult> {
     const formData = new FormData();
     formData.append('file', file);
+    formData.append('mode', mode);
     return this.http.post<ArborescenceImportResult>(
       `${this.plansApiUrl}/plans/${planId}/import-arborescence/`,
       formData,
@@ -812,11 +832,15 @@ export class AdminService {
    * Valide des données d'arborescence éditées (JSON), sans fichier (#9).
    * POST /api/plans/plans/{id}/import-arborescence/validate-data/
    */
-  validateArborescenceData(planId: number, data: ParsedData): Observable<ArborescenceImportReport> {
+  validateArborescenceData(
+    planId: number,
+    data: ParsedData,
+    mode: ImportMode = 'create',
+  ): Observable<ArborescenceImportReport> {
     return this.http
       .post<ArborescenceImportReport>(
         `${this.plansApiUrl}/plans/${planId}/import-arborescence/validate-data/`,
-        { data },
+        { data, mode },
       )
       .pipe(catchError(this.handleError));
   }
@@ -825,10 +849,14 @@ export class AdminService {
    * Importe des données d'arborescence éditées (JSON), sans fichier (#9/#10).
    * Ne pipe PAS handleError : le rapport d'échec (400) est lu via err.error.
    */
-  importArborescenceData(planId: number, data: ParsedData): Observable<ArborescenceImportResult> {
+  importArborescenceData(
+    planId: number,
+    data: ParsedData,
+    mode: ImportMode = 'create',
+  ): Observable<ArborescenceImportResult> {
     return this.http.post<ArborescenceImportResult>(
       `${this.plansApiUrl}/plans/${planId}/import-arborescence/import-data/`,
-      { data },
+      { data, mode },
     );
   }
 
