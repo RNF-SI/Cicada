@@ -2547,3 +2547,124 @@ def execute_import(plan, parsed: dict[str, list[dict]], user) -> dict:
     counts["habitats"] = n_habitats
 
     return counts
+
+
+# ===========================================================================
+# Édition assistée (correction interactive #9) et mapping (#10)
+# ===========================================================================
+
+
+def describe_schema() -> list[dict]:
+    """Décrit les onglets et colonnes du format (pour piloter les UI).
+
+    Sert à construire la grille de correction interactive (#9) et la liste des
+    champs cibles du mapping (#10).
+    """
+    out = []
+    for sheet in _build_schema():
+        out.append(
+            {
+                "key": sheet.key,
+                "name": sheet.name,
+                "description": sheet.description,
+                "columns": [
+                    {
+                        "key": c.key,
+                        "header": c.header,
+                        "required": c.required,
+                        "multi": c.multi,
+                        "boolean": c.boolean,
+                        "nomenclature": c.nomenclature,
+                        "ref": c.ref,
+                        "vocab": c.vocab,
+                        "help": c.help,
+                    }
+                    for c in sheet.columns
+                ],
+            }
+        )
+    return out
+
+
+def _schema_keys() -> dict[str, set]:
+    return {s.key: {c.key for c in s.columns} for s in _build_schema()}
+
+
+def public_parsed(parsed: dict) -> dict:
+    """Copie « publique » des lignes parsées (clés de colonne + _row), sans les
+    champs internes (_bio, _cd_nom…). Pour renvoyer les données à éditer (#9)."""
+    keys_by_sheet = _schema_keys()
+    out: dict[str, list[dict]] = {}
+    for sheet in _build_schema():
+        allowed = keys_by_sheet[sheet.key]
+        rows = parsed.get(sheet.key) or []
+        clean = []
+        for r in rows:
+            row = {k: r.get(k) for k in allowed}
+            row["_row"] = r.get("_row")
+            clean.append(row)
+        out[sheet.key] = clean
+    return out
+
+
+def sanitize_parsed(data: dict) -> dict:
+    """Nettoie des données JSON reçues du frontend → format ``parsed`` interne.
+
+    Ne conserve que les colonnes connues + ``_row``, ignore les lignes vides et
+    les clés internes. Robuste à un dict partiel ou mal formé.
+    """
+    keys_by_sheet = _schema_keys()
+    out: dict[str, list[dict]] = {}
+    for sheet in _build_schema():
+        allowed = keys_by_sheet[sheet.key]
+        rows = data.get(sheet.key) if isinstance(data, dict) else None
+        clean = []
+        for i, r in enumerate(rows or []):
+            if not isinstance(r, dict):
+                continue
+            row = {k: r.get(k) for k in allowed}
+            if not any(_cell_str(v) for v in row.values()):
+                continue  # ligne entièrement vide
+            row["_row"] = _as_int(r.get("_row")) or (i + _FIRST_DATA_ROW)
+            clean.append(row)
+        out[sheet.key] = clean
+    return out
+
+
+def read_any_workbook(source) -> list[dict]:
+    """Lit un classeur Excel **quelconque** (structure libre) pour le mapping #10.
+
+    Renvoie, par onglet : ``{name, headers, rows}`` où ``headers`` est la 1re
+    ligne (en-têtes présumés) et ``rows`` les lignes suivantes (valeurs brutes).
+    Ne présuppose rien de la structure — c'est l'utilisateur qui mappe ensuite.
+    """
+    if isinstance(source, (bytes, bytearray)):
+        source = io.BytesIO(source)
+    elif hasattr(source, "read"):
+        source = io.BytesIO(source.read())
+    try:
+        wb = load_workbook(source, data_only=True, read_only=True)
+    except Exception as exc:  # noqa: BLE001
+        raise ArborescenceImportError(
+            "Le fichier n'a pas pu être lu. Vérifiez qu'il s'agit d'un classeur "
+            "Excel (.xlsx)."
+        ) from exc
+
+    sheets = []
+    for ws in wb.worksheets:
+        rows_iter = ws.iter_rows(values_only=True)
+        first = next(rows_iter, None)
+        if first is None:
+            sheets.append({"name": ws.title, "headers": [], "rows": []})
+            continue
+        headers = [_cell_str(c) for c in first]
+        data_rows = []
+        for values in rows_iter:
+            row = [("" if v is None else _cell_str(v)) for v in values]
+            if any(row):
+                data_rows.append(row)
+            if len(data_rows) >= 500:  # garde-fou aperçu/import
+                break
+        sheets.append({"name": ws.title, "headers": headers, "rows": data_rows})
+    wb.close()
+    return sheets

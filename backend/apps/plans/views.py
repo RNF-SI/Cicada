@@ -34,6 +34,10 @@ from .services_import import (
     validate_import,
     execute_import,
     ArborescenceImportError,
+    describe_schema,
+    public_parsed,
+    sanitize_parsed,
+    read_any_workbook,
 )
 from .services_import_actions import (
     build_actions_workbook,
@@ -1311,7 +1315,10 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
 
         if not execute:
             report = validate_import(plan, parsed)
-            return Response(report.as_dict(), status=status.HTTP_200_OK)
+            payload = report.as_dict()
+            # Données parsées renvoyées pour la correction interactive (#9).
+            payload['data'] = public_parsed(parsed)
+            return Response(payload, status=status.HTTP_200_OK)
 
         try:
             counts = execute_import(plan, parsed, request.user)
@@ -1325,6 +1332,77 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
             {'created': counts, 'total': sum(counts.values())},
             status=status.HTTP_201_CREATED,
         )
+
+    @action(detail=False, methods=['get'], url_path='import-arborescence-schema',
+            permission_classes=[permissions.IsAuthenticated])
+    def import_arborescence_schema(self, request):
+        """
+        Décrit les onglets/colonnes du format d'arborescence.
+
+        GET /api/plans/plans/import-arborescence-schema/
+        Sert à piloter la grille de correction (#9) et les cibles du mapping (#10).
+        """
+        return Response({'sheets': describe_schema()}, status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=['post'], url_path='import-arborescence/validate-data')
+    def import_arborescence_validate_data(self, request, pk=None):
+        """
+        Valider des données d'arborescence éditées (JSON), sans fichier (#9).
+
+        POST /api/plans/plans/{id}/import-arborescence/validate-data/
+        Body : { "data": { "enjeux": [...], ... } }.
+        """
+        plan = self.get_object()
+        parsed = sanitize_parsed((request.data or {}).get('data') or {})
+        report = validate_import(plan, parsed)
+        payload = report.as_dict()
+        payload['data'] = public_parsed(parsed)
+        return Response(payload, status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=['post'], url_path='import-arborescence/import-data')
+    def import_arborescence_import_data(self, request, pk=None):
+        """
+        Importer des données d'arborescence éditées (JSON), sans fichier (#9/#10).
+
+        POST /api/plans/plans/{id}/import-arborescence/import-data/
+        Body : { "data": { ... } }. Même moteur que l'import fichier.
+        """
+        plan = self.get_object()
+        parsed = sanitize_parsed((request.data or {}).get('data') or {})
+        try:
+            counts = execute_import(plan, parsed, request.user)
+        except ValueError as exc:
+            report = exc.args[0] if exc.args else None
+            payload = (
+                report.as_dict() if hasattr(report, 'as_dict') else {'error': str(exc)}
+            )
+            return Response(payload, status=status.HTTP_400_BAD_REQUEST)
+        return Response(
+            {'created': counts, 'total': sum(counts.values())},
+            status=status.HTTP_201_CREATED,
+        )
+
+    @action(detail=False, methods=['post'], url_path='read-xlsx',
+            parser_classes=[MultiPartParser, FormParser],
+            permission_classes=[permissions.IsAuthenticated])
+    def read_xlsx(self, request):
+        """
+        Lire un classeur Excel quelconque (mapping #10).
+
+        POST /api/plans/plans/read-xlsx/ — multipart, champ « file ».
+        Renvoie { "sheets": [ { "name", "headers", "rows" } ] }.
+        """
+        uploaded = request.FILES.get('file')
+        if uploaded is None:
+            return Response(
+                {'error': "Aucun fichier reçu (champ « file » attendu)."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        try:
+            sheets = read_any_workbook(uploaded)
+        except ArborescenceImportError as exc:
+            return Response({'error': str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({'sheets': sheets}, status=status.HTTP_200_OK)
 
     @action(detail=False, methods=['get'], url_path='example-actions-xlsx',
             permission_classes=[permissions.IsAuthenticated])

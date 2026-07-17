@@ -198,6 +198,98 @@ def test_example_endpoints_require_auth():
     assert APIClient().get(
         "/api/plans/plans/example-arborescence-xlsx/"
     ).status_code in (401, 403)
-    assert APIClient().get(
-        "/api/plans/plans/example-actions-xlsx/"
-    ).status_code in (401, 403)
+    assert APIClient().get("/api/plans/plans/example-actions-xlsx/").status_code in (
+        401,
+        403,
+    )
+
+
+# ---------------------------------------------------------------------------
+# Édition assistée (#9) : schéma, validate-data, import-data, read-xlsx (#10)
+# ---------------------------------------------------------------------------
+
+
+def test_import_schema_endpoint():
+    client = APIClient()
+    client.force_authenticate(user=SuperAdminFactory())
+    resp = client.get("/api/plans/plans/import-arborescence-schema/")
+    assert resp.status_code == 200
+    sheets = resp.json()["sheets"]
+    assert any(s["key"] == "enjeux" for s in sheets)
+    enjeux = next(s for s in sheets if s["key"] == "enjeux")
+    assert any(c["key"] == "code" and c["required"] for c in enjeux["columns"])
+
+
+def test_validate_data_roundtrip():
+    user = SuperAdminFactory()
+    _base_nomenclatures()
+    target = PlanGestionFactory(id_utilisateur_ajout=user)
+    client = APIClient()
+    client.force_authenticate(user=user)
+    body = {
+        "data": {
+            "enjeux": [
+                {"code": "E1", "categorie": "ENJEU", "libelle": "Qualité des eaux"}
+            ]
+        }
+    }
+    resp = client.post(
+        f"/api/plans/plans/{target.pk}/import-arborescence/validate-data/",
+        body,
+        format="json",
+    )
+    assert resp.status_code == 200
+    j = resp.json()
+    assert j["can_import"] is True
+    assert len(j["data"]["enjeux"]) == 1
+    assert target.enjeux.count() == 0  # dry-run
+
+
+def test_import_data_creates_arborescence():
+    user = SuperAdminFactory()
+    _base_nomenclatures()
+    target = PlanGestionFactory(id_utilisateur_ajout=user)
+    client = APIClient()
+    client.force_authenticate(user=user)
+    body = {
+        "data": {
+            "enjeux": [
+                {"code": "E1", "categorie": "ENJEU", "libelle": "Qualité des eaux"}
+            ]
+        }
+    }
+    resp = client.post(
+        f"/api/plans/plans/{target.pk}/import-arborescence/import-data/",
+        body,
+        format="json",
+    )
+    assert resp.status_code == 201, resp.content
+    assert target.enjeux.count() == 1
+
+
+def test_import_data_refused_on_validated_plan():
+    user = SuperAdminFactory()
+    _base_nomenclatures()
+    target = PlanGestionValideFactory(id_utilisateur_ajout=user)
+    client = APIClient()
+    client.force_authenticate(user=user)
+    resp = client.post(
+        f"/api/plans/plans/{target.pk}/import-arborescence/import-data/",
+        {"data": {"enjeux": [{"code": "E1", "categorie": "ENJEU", "libelle": "X"}]}},
+        format="json",
+    )
+    assert resp.status_code == 403
+
+
+def test_read_xlsx_endpoint():
+    user = SuperAdminFactory()
+    client = APIClient()
+    client.force_authenticate(user=user)
+    content = build_arborescence_workbook(plan=None)
+    upload = SimpleUploadedFile("foreign.xlsx", content, content_type=XLSX_MIME)
+    resp = client.post(
+        "/api/plans/plans/read-xlsx/", {"file": upload}, format="multipart"
+    )
+    assert resp.status_code == 200
+    sheets = resp.json()["sheets"]
+    assert any(s["name"] == "Enjeux" for s in sheets)
