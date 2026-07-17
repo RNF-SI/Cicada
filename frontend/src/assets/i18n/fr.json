@@ -2435,13 +2435,13 @@
     "postes": {
       "sidebarEntry": "Postes / RH",
       "title": "Postes / Ressources humaines",
-      "intro": "Décrivez les postes de ce plan de gestion : leurs fonctions, leur nombre et leur ETP. Aucune donnée nominative n'est enregistrée. Ces postes alimentent ensuite le temps de travail des fiches actions.",
+      "intro": "Décrivez les types de postes de ce plan de gestion : leur fonction, le nombre de personnes et leur organisme. Aucune donnée nominative n'est enregistrée. Ces postes alimentent ensuite le temps de travail des fiches actions.",
       "addButton": "Ajouter un type de poste",
       "untitled": "Poste sans fonction",
       "empty": "Aucun poste n'est rattaché à ce plan pour le moment.",
       "loadError": "Impossible de charger les postes.",
       "deleteConfirm": "Supprimer le poste « {{libelle}} » de ce plan de gestion ?",
-      "recap": "{{postes}} postes · {{etp}} ETP au total",
+      "recap": "{{postes}} postes au total",
       "countPlural": "{{count}} postes",
       "etpLabel": "{{etp}} ETP",
       "form": {

@@ -39,10 +39,7 @@
 
       @if (hasPostes()) {
         <div class="postes-recap">
-          <span>{{ 'plans.postes.recap' | translate:{
-            postes: totalPostes(),
-            etp: (totalEtp() | number:'1.0-2')
-          } }}</span>
+          <span>{{ 'plans.postes.recap' | translate:{ postes: totalPostes() } }}</span>
         </div>
       }
 

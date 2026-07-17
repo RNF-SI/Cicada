@@ -60,11 +60,6 @@ export class PlanPostesComponent implements OnInit {
 
   hasPostes = computed(() => this.postes().length > 0);
 
-  /** ETP cumulé de tous les postes du PG, affiché en en-tête. */
-  totalEtp = computed(() =>
-    this.postes().reduce((sum, p) => sum + (Number(p.etp) || 0), 0),
-  );
-
   /** Nombre total de postes (un poste peut exister en plusieurs exemplaires). */
   totalPostes = computed(() =>
     this.postes().reduce((sum, p) => sum + (Number(p.nombre) || 0), 0),
@@ -136,16 +131,12 @@ export class PlanPostesComponent implements OnInit {
     return p.libelle || this.translate.instant('plans.postes.untitled');
   }
 
-  /** Sous-titre : organisme · nombre d'exemplaires · ETP total. */
+  /** Sous-titre : organisme · nombre d'exemplaires. */
   subtitleFor(p: Poste): string {
     const parts: string[] = [];
     if (p.organisme_nom) parts.push(p.organisme_nom);
     if (p.nombre > 1) {
       parts.push(this.translate.instant('plans.postes.countPlural', { count: p.nombre }));
-    }
-    if (p.etp != null && p.etp !== '') {
-      const etp = parseFloat(Number(p.etp).toFixed(2));
-      parts.push(this.translate.instant('plans.postes.etpLabel', { etp }));
     }
     return parts.join(' · ');
   }
