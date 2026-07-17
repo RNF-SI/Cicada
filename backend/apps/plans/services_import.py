@@ -354,7 +354,7 @@ def _emit_oo(alloc, rows, oo, seen_oo, enjeu_code: str = "") -> None:
 
 
 def _emit_bio(rows, cible_code: str, obj) -> None:
-    """Émet les taxons et habitats rattachés à un enjeu ou un indicateur."""
+    """Émet les taxons et habitats rattachés à un enjeu."""
     for taxon in obj.taxons.all().order_by("cd_nom"):
         rows.taxons.append(
             {
@@ -384,7 +384,6 @@ def _emit_indicateur(alloc, rows, ind, parent_code: str) -> None:
             "description": ind.description or "",
         }
     )
-    _emit_bio(rows, i_code, ind)
     for met in ind.metriques.all().order_by("ordre", "id_metrique"):
         m_code = alloc.code("metrique", met.id_metrique)
         rows.metriques.append(
@@ -713,7 +712,7 @@ def _example_plan_rows() -> "_PlanRows":
         taxons=[
             {"cible": "E1", "cd_nom": 104398, "nom": "Drosera rotundifolia"},
             {"cible": "E2", "cd_nom": 2878, "nom": "Circus aeruginosus"},
-            {"cible": "I2", "cd_nom": 4187, "nom": "Acrocephalus schoenobaenus"},
+            {"cible": "E2", "cd_nom": 4187, "nom": "Acrocephalus schoenobaenus"},
         ],
         habitats=[
             {"cible": "E1", "cd_hab": "7110", "nom": "Tourbières hautes actives"},
@@ -1047,16 +1046,16 @@ def _build_schema() -> list[Sheet]:
         Sheet(
             key="taxons",
             name="Taxons",
-            description="Espèces (TaxRef) rattachées à un enjeu ou à un indicateur, "
+            description="Espèces (TaxRef) rattachées à un enjeu, "
             "via le code de la cible.",
             rows=lambda rows: rows.taxons,
             columns=[
                 Column(
                     "cible",
-                    "cible (enjeu ou indicateur)",
+                    "cible (enjeu)",
                     required=True,
                     width=22,
-                    help="Code d'un enjeu (ex : E1) OU d'un indicateur (ex : I1).",
+                    help="Code d'un enjeu (ex : E1).",
                 ),
                 Column(
                     "cd_nom",
@@ -1071,16 +1070,16 @@ def _build_schema() -> list[Sheet]:
         Sheet(
             key="habitats",
             name="Habitats",
-            description="Habitats (HabRef) rattachés à un enjeu ou à un indicateur, "
+            description="Habitats (HabRef) rattachés à un enjeu, "
             "via le code de la cible.",
             rows=lambda rows: rows.habitats,
             columns=[
                 Column(
                     "cible",
-                    "cible (enjeu ou indicateur)",
+                    "cible (enjeu)",
                     required=True,
                     width=22,
-                    help="Code d'un enjeu (ex : E1) OU d'un indicateur (ex : I1).",
+                    help="Code d'un enjeu (ex : E1).",
                 ),
                 Column(
                     "cd_hab",
@@ -1542,8 +1541,6 @@ from .models_enjeux import (
 from .models_indicateurs import (
     Indicateur,
     Metrique,
-    CorIndicateurTaxon,
-    CorIndicateurHabitat,
 )
 
 
@@ -2269,7 +2266,7 @@ def validate_import(
         _ref("metriques", row, "indicateur", "indicateurs", "indicateur")
         _nomenclature("metriques", row, "type_metrique", "TYPE_METRIQUE", "type")
 
-    # --- Taxons / Habitats (rattachés à un enjeu OU un indicateur) ---
+    # --- Taxons / Habitats (rattachés à un enjeu) ---
     def _check_cible(sheet_key, row):
         value = _cell_str(row.get("cible"))
         if not value:
@@ -2278,27 +2275,27 @@ def validate_import(
                 row["_row"],
                 "cible",
                 ERROR,
-                "La cible (enjeu ou indicateur) est obligatoire.",
+                "La cible (enjeu) est obligatoire.",
             )
             return
-        in_e = value in code_sets.get("enjeux", set())
-        in_i = value in code_sets.get("indicateurs", set())
-        if in_e and in_i:
+        if value in code_sets.get("enjeux", set()):
+            return
+        if value in code_sets.get("indicateurs", set()):
             report.add(
                 _sheet_name(sheet_key),
                 row["_row"],
                 "cible",
                 ERROR,
-                f"Le code « {value} » existe comme enjeu ET comme "
-                "indicateur : rendez-le unique.",
+                f"Le code « {value} » est un indicateur : un taxon ou un "
+                "habitat se rattache uniquement à un enjeu.",
             )
-        elif not in_e and not in_i:
+        else:
             report.add(
                 _sheet_name(sheet_key),
                 row["_row"],
                 "cible",
                 ERROR,
-                f"Cible « {value} » introuvable (ni enjeu ni indicateur).",
+                f"Cible « {value} » introuvable (aucun enjeu avec ce code).",
             )
 
     # Validation / correction des taxons et habitats contre TaxRef / HabRef.
@@ -2616,50 +2613,32 @@ def execute_import(
         n_metriques += 1
     counts["metriques"] = n_metriques
 
-    # --- Taxons / Habitats (cible = enjeu ou indicateur) ---
-    def _resolve_cible(code):
-        """Renvoie ('enjeu', obj) ou ('indicateur', obj) selon le code."""
-        if code in enjeu_map:
-            return "enjeu", enjeu_map[code]
-        if code in indicateur_map:
-            return "indicateur", indicateur_map[code]
-        return None, None
-
+    # --- Taxons / Habitats (cible = enjeu) ---
     n_taxons = 0
     for row in parsed.get("taxons", []):
-        kind, obj = _resolve_cible(_cell_str(row.get("cible")))
+        obj = enjeu_map.get(_cell_str(row.get("cible")))
         # Code retenu par la résolution TaxRef (corrigé le cas échéant).
         cd_nom = row.get("_cd_nom", _as_int(row.get("cd_nom")))
         if obj is None or cd_nom is None:
             continue
         nom_complet = _cell_str(row.get("nom")) or None
-        if kind == "enjeu":
-            CorEnjeuTaxon.objects.create(
-                id_enjeu=obj, cd_nom=cd_nom, nom_complet=nom_complet
-            )
-        else:
-            CorIndicateurTaxon.objects.create(
-                id_indicateur=obj, cd_nom=cd_nom, nom_complet=nom_complet
-            )
+        CorEnjeuTaxon.objects.create(
+            id_enjeu=obj, cd_nom=cd_nom, nom_complet=nom_complet
+        )
         n_taxons += 1
     counts["taxons"] = n_taxons
 
     n_habitats = 0
     for row in parsed.get("habitats", []):
-        kind, obj = _resolve_cible(_cell_str(row.get("cible")))
+        obj = enjeu_map.get(_cell_str(row.get("cible")))
         # Code retenu par la résolution HabRef (corrigé le cas échéant).
         cd_hab = row.get("_cd_hab") or _cell_str(row.get("cd_hab"))
         if obj is None or not cd_hab:
             continue
         lb_hab_fr = _cell_str(row.get("nom")) or None
-        if kind == "enjeu":
-            CorEnjeuHabitat.objects.create(
-                id_enjeu=obj, cd_hab=cd_hab, lb_hab_fr=lb_hab_fr
-            )
-        else:
-            CorIndicateurHabitat.objects.create(
-                id_indicateur=obj, cd_hab=cd_hab, lb_hab_fr=lb_hab_fr
-            )
+        CorEnjeuHabitat.objects.create(
+            id_enjeu=obj, cd_hab=cd_hab, lb_hab_fr=lb_hab_fr
+        )
         n_habitats += 1
     counts["habitats"] = n_habitats
 

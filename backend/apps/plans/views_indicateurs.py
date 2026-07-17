@@ -14,7 +14,7 @@ from django.db import transaction
 
 from .models_indicateurs import (
     Indicateur, Metrique, Mesure, IndicateurMesure, IndicateurRealisationGlobale,
-    CorIndicateurTaxon, CorIndicateurHabitat, CorIndicateurGeologie,
+    CorIndicateurGeologie,
 )
 from .models_enjeux import NiveauExigence, ResultatAttendu
 from .models import CorRolePlan
@@ -48,7 +48,7 @@ class IndicateurViewSet(viewsets.ModelViewSet):
     ).prefetch_related(
         'metriques', 'metriques__type_metrique', 'metriques__id_utilisateur_ajout',
         'metriques__mesures', 'metriques__mesures__id_utilisateur_ajout',
-        'taxons', 'habitats', 'geologies',
+        'geologies',
         'metriques__operations', 'metriques__operations__id_priorite', 'metriques__operations__id_utilisateur_ajout'
     )
 
@@ -478,20 +478,7 @@ class IndicateurViewSet(viewsets.ModelViewSet):
                 score_5_inf=met.score_5_inf, score_5_sup=met.score_5_sup,
                 id_utilisateur_ajout=user,
             )
-        # Cloner les liens taxonomiques
-        for cor in source.taxons.all():
-            CorIndicateurTaxon.objects.create(
-                id_indicateur=new_ind,
-                cd_nom=cor.cd_nom,
-                nom_complet=cor.nom_complet,
-                nom_vern=cor.nom_vern,
-            )
-        for cor in source.habitats.all():
-            CorIndicateurHabitat.objects.create(
-                id_indicateur=new_ind,
-                cd_hab=cor.cd_hab,
-                lb_hab_fr=cor.lb_hab_fr,
-            )
+        # Cloner les liens géologiques
         for cor in source.geologies.all():
             CorIndicateurGeologie.objects.create(
                 id_indicateur=new_ind,

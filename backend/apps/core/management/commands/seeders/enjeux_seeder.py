@@ -18,8 +18,7 @@ from apps.plans.models_enjeux import (
     CorResponsabiliteEnjeu
 )
 from apps.plans.models_indicateurs import (
-    Indicateur, CorIndicateurTaxon, CorIndicateurHabitat,
-    CorIndicateurGeologie, Metrique, MetriqueScoreBlock, Mesure
+    Indicateur, CorIndicateurGeologie, Metrique, MetriqueScoreBlock, Mesure
 )
 from apps.plans.models_operations import (
     Protocole, SuiviInventaire, Operation,
@@ -2255,12 +2254,6 @@ class EnjeuxSeeder(BaseSeeder):
             indicateurs_created.append(ind)
             self.log_item('créé' if created else 'mis à jour', f'Indicateur: {ind.nom_indicateur[:50]}')
 
-            # Taxon lié à l'indicateur
-            CorIndicateurHabitat.objects.get_or_create(
-                id_indicateur=ind, cd_hab='1150',
-                defaults={'lb_hab_fr': 'Lagunes côtières'}
-            )
-
             # Métrique 1 : numérique avec seuils
             met, created = Metrique.objects.update_or_create(
                 id_indicateur=ind,
@@ -2380,11 +2373,6 @@ class EnjeuxSeeder(BaseSeeder):
             )
             indicateurs_created.append(ind)
             self.log_item('créé' if created else 'mis à jour', f'Indicateur: {ind.nom_indicateur[:50]}')
-
-            CorIndicateurTaxon.objects.get_or_create(
-                id_indicateur=ind, cd_nom=2517,
-                defaults={'nom_complet': 'Phoenicopterus roseus', 'nom_vern': 'Flamant rose'}
-            )
 
             met, created = Metrique.objects.update_or_create(
                 id_indicateur=ind,
@@ -2620,11 +2608,6 @@ class EnjeuxSeeder(BaseSeeder):
             )
             indicateurs_created.append(ind)
             self.log_item('créé' if created else 'mis à jour', f'Indicateur: {ind.nom_indicateur[:50]}')
-
-            CorIndicateurTaxon.objects.get_or_create(
-                id_indicateur=ind, cd_nom=2923,
-                defaults={'nom_complet': 'Lyrurus tetrix', 'nom_vern': 'Tétras lyre'}
-            )
 
             met, created = Metrique.objects.update_or_create(
                 id_indicateur=ind,
@@ -2937,11 +2920,6 @@ class EnjeuxSeeder(BaseSeeder):
             indicateurs_created.append(ind)
             self.log_item('créé' if created else 'mis à jour', f'Indicateur: {ind.nom_indicateur[:50]}')
 
-            CorIndicateurHabitat.objects.get_or_create(
-                id_indicateur=ind, cd_hab='7110',
-                defaults={'lb_hab_fr': 'Tourbières hautes actives'}
-            )
-
             met, created = Metrique.objects.update_or_create(
                 id_indicateur=ind,
                 nom_metrique='Profondeur moyenne de la nappe en saison de végétation',
@@ -3065,11 +3043,6 @@ class EnjeuxSeeder(BaseSeeder):
             )
             indicateurs_created.append(ind)
             self.log_item('créé' if created else 'mis à jour', f'Indicateur: {ind.nom_indicateur[:50]}')
-
-            CorIndicateurTaxon.objects.get_or_create(
-                id_indicateur=ind, cd_nom=2840,
-                defaults={'nom_complet': 'Pandion haliaetus', 'nom_vern': 'Balbuzard pêcheur'}
-            )
 
             met, created = Metrique.objects.update_or_create(
                 id_indicateur=ind,
@@ -3269,11 +3242,6 @@ class EnjeuxSeeder(BaseSeeder):
             indicateurs_created.append(ind)
             self.log_item('créé' if created else 'mis à jour', f'Indicateur: {ind.nom_indicateur[:50]}')
 
-            CorIndicateurHabitat.objects.get_or_create(
-                id_indicateur=ind, cd_hab='6520',
-                defaults={'lb_hab_fr': 'Prairies de fauche de montagne'}
-            )
-
             met, created = Metrique.objects.update_or_create(
                 id_indicateur=ind,
                 nom_metrique='Surface totale en fauche tardive',
@@ -3366,11 +3334,6 @@ class EnjeuxSeeder(BaseSeeder):
             )
             indicateurs_created.append(ind)
             self.log_item('créé' if created else 'mis à jour', f'Indicateur: {ind.nom_indicateur[:50]}')
-
-            CorIndicateurTaxon.objects.get_or_create(
-                id_indicateur=ind, cd_nom=117835,
-                defaults={'nom_complet': 'Reynoutria japonica', 'nom_vern': 'Renouée du Japon'}
-            )
 
             met, created = Metrique.objects.update_or_create(
                 id_indicateur=ind,
@@ -6463,8 +6426,6 @@ class EnjeuxSeeder(BaseSeeder):
         count += Protocole.objects.all().delete()[0]
         count += Mesure.objects.all().delete()[0]
         count += Metrique.objects.all().delete()[0]
-        count += CorIndicateurTaxon.objects.all().delete()[0]
-        count += CorIndicateurHabitat.objects.all().delete()[0]
         count += CorIndicateurGeologie.objects.all().delete()[0]
         count += Indicateur.objects.all().delete()[0]
         count += ResultatAttendu.objects.all().delete()[0]

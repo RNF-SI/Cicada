@@ -98,10 +98,10 @@ Points d'attention :
   résultat attendu (`R…`) — jamais les deux.
 - `Metriques` : seul le libellé est importé ; l'indicateur reste
   « indéterminé » (aucune grille de scoring en V1).
-- `Taxons` / `Habitats` : rattachés à un **enjeu** (`E…`) ou un **indicateur**
-  (`I…`) via la colonne `cible`. `cd_nom` (taxon) est un entier obligatoire,
-  `cd_hab` (habitat) est obligatoire ; le nom est facultatif (repris du
-  référentiel INPN à l'affichage).
+- `Taxons` / `Habitats` : rattachés à un **enjeu** (`E…`) via la colonne
+  `cible`. `cd_nom` (taxon) est un entier obligatoire, `cd_hab` (habitat) est
+  obligatoire ; le nom est facultatif (repris du référentiel INPN à
+  l'affichage).
 
 ---
 

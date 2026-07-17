@@ -35,8 +35,7 @@ from apps.plans.models_enjeux import (
     CorResponsabiliteEnjeu
 )
 from apps.plans.models_indicateurs import (
-    Indicateur, CorIndicateurTaxon, CorIndicateurHabitat,
-    CorIndicateurGeologie, Metrique, Mesure
+    Indicateur, CorIndicateurGeologie, Metrique, Mesure
 )
 from apps.plans.models_operations import (
     Protocole, SuiviInventaire, Operation,
@@ -244,8 +243,6 @@ class Command(BaseCommand):
         # Indicateurs et dépendances
         count += Mesure.objects.all().delete()[0]
         count += Metrique.objects.all().delete()[0]
-        count += CorIndicateurTaxon.objects.all().delete()[0]
-        count += CorIndicateurHabitat.objects.all().delete()[0]
         count += CorIndicateurGeologie.objects.all().delete()[0]
         count += Indicateur.objects.all().delete()[0]
         # Enjeux sous-entités

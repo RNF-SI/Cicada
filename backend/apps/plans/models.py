@@ -29,8 +29,6 @@ from .models_enjeux import (
 )
 from .models_indicateurs import (
     Indicateur,
-    CorIndicateurTaxon,
-    CorIndicateurHabitat,
     CorIndicateurGeologie,
     Metrique,
     Mesure,

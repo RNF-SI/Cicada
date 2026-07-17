@@ -6,7 +6,7 @@ from rest_framework import serializers
 from .serializers_enjeux import _prefetched_count
 
 from .models_indicateurs import (
-    Indicateur, CorIndicateurTaxon, CorIndicateurHabitat, CorIndicateurGeologie,
+    Indicateur, CorIndicateurGeologie,
     Metrique, MetriqueScoreBlock, Mesure, IndicateurMesure,
 )
 
@@ -14,24 +14,6 @@ from .models_indicateurs import (
 # =============================================================================
 # Serializers pour les tables de corrélation
 # =============================================================================
-
-class CorIndicateurTaxonSerializer(serializers.ModelSerializer):
-    """Serializer pour les relations Indicateur-Taxon."""
-
-    class Meta:
-        model = CorIndicateurTaxon
-        fields = ['id', 'id_indicateur', 'cd_nom', 'nom_complet', 'nom_vern']
-        read_only_fields = ['id']
-
-
-class CorIndicateurHabitatSerializer(serializers.ModelSerializer):
-    """Serializer pour les relations Indicateur-Habitat."""
-
-    class Meta:
-        model = CorIndicateurHabitat
-        fields = ['id', 'id_indicateur', 'cd_hab', 'lb_hab_fr']
-        read_only_fields = ['id']
-
 
 class CorIndicateurGeologieSerializer(serializers.ModelSerializer):
     """Serializer pour les relations Indicateur-Géologie."""
@@ -403,8 +385,6 @@ class IndicateurSerializer(serializers.ModelSerializer):
     metriques = MetriqueSerializer(many=True, read_only=True)
     # #367 — actions rattachées directement à l'indicateur (sans métrique)
     operations = serializers.SerializerMethodField()
-    taxons = CorIndicateurTaxonSerializer(many=True, read_only=True)
-    habitats = CorIndicateurHabitatSerializer(many=True, read_only=True)
     geologies = CorIndicateurGeologieSerializer(many=True, read_only=True)
     nb_metriques = serializers.SerializerMethodField()
     createur_nom = serializers.CharField(source='id_utilisateur_ajout.get_full_name', read_only=True)
@@ -433,7 +413,7 @@ class IndicateurSerializer(serializers.ModelSerializer):
             # Relations
             'metriques', 'nb_metriques',
             'operations',
-            'taxons', 'habitats', 'geologies',
+            'geologies',
             # Saisie annuelle (override manuel du score)
             'score_overrides',
             # Surcharge manuelle de l'évaluation globale (#356)

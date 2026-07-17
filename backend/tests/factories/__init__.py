@@ -54,7 +54,6 @@ from tests.factories.enjeux import (
     IndicateurFactory,
     MetriqueFactory,
     MesureFactory,
-    CorIndicateurTaxonFactory,
 )
 
 __all__ = [
@@ -107,5 +106,4 @@ __all__ = [
     'IndicateurFactory',
     'MetriqueFactory',
     'MesureFactory',
-    'CorIndicateurTaxonFactory',
 ]

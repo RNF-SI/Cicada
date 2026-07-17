@@ -16,7 +16,7 @@ from tests.factories.enjeux import (
     ObjectifLongTermeFactory, NiveauExigenceFactory,
     CorEnjeuTaxonFactory, CorEnjeuHabitatFactory, CorEnjeuGeologieFactory,
     NomenclatureEnjeuFactory, NomenclatureFcrFactory,
-    IndicateurFactory, MetriqueFactory, MesureFactory, CorIndicateurTaxonFactory,
+    IndicateurFactory, MetriqueFactory, MesureFactory,
 )
 from tests.factories.plans import PlanGestionFactory
 from tests.factories.users import RoleFactory
@@ -715,43 +715,3 @@ class TestMesureModel:
         mesure = MesureFactory()
         assert mesure.date_ajout is not None
         assert mesure.date_maj is not None
-
-
-# =============================================================================
-# TestCorIndicateurTaxon
-# =============================================================================
-
-@pytest.mark.django_db
-@pytest.mark.unit
-class TestCorIndicateurTaxon:
-    """Tests for CorIndicateurTaxon unique_together."""
-
-    def test_create(self):
-        """Test creating a cor_indicateur_taxon."""
-        cor = CorIndicateurTaxonFactory()
-        assert cor.id is not None
-        assert cor.cd_nom is not None
-
-    def test_unique_together(self):
-        """Test unique_together constraint on (id_indicateur, cd_nom)."""
-        from apps.plans.models_indicateurs import CorIndicateurTaxon
-        cor = CorIndicateurTaxonFactory()
-        with pytest.raises(Exception):
-            CorIndicateurTaxon.objects.create(
-                id_indicateur=cor.id_indicateur,
-                cd_nom=cor.cd_nom,
-            )
-
-    def test_cascade_delete_on_indicateur(self):
-        """Test cascade delete when indicateur is deleted."""
-        from apps.plans.models_indicateurs import CorIndicateurTaxon
-        indicateur = IndicateurFactory()
-        CorIndicateurTaxonFactory(id_indicateur=indicateur)
-        indicateur_id = indicateur.id_indicateur
-        indicateur.delete()
-        assert not CorIndicateurTaxon.objects.filter(id_indicateur_id=indicateur_id).exists()
-
-    def test_str(self):
-        """Test __str__ method."""
-        cor = CorIndicateurTaxonFactory(cd_nom=99999)
-        assert '99999' in str(cor)

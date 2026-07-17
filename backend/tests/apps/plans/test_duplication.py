@@ -18,7 +18,7 @@ from apps.plans.models_enjeux import (
 )
 from apps.plans.models_indicateurs import (
     Indicateur, Metrique, Mesure, MetriqueScoreBlock,
-    CorIndicateurTaxon, CorIndicateurHabitat, CorIndicateurGeologie,
+    CorIndicateurGeologie,
 )
 from apps.plans.models_operations import (
     SuiviInventaire, Operation, OperationAnnee,
@@ -43,7 +43,6 @@ from tests.factories.enjeux import (
     ObjectifOperationnelFactory, ResultatAttenduFactory,
     CorEnjeuTaxonFactory, CorEnjeuHabitatFactory, CorEnjeuGeologieFactory,
     IndicateurFactory, IndicateurPressionFactory, MetriqueFactory, MesureFactory,
-    CorIndicateurTaxonFactory,
     SuiviInventaireFactory, OperationFactory, OperationAnneeFactory,
 )
 
@@ -573,27 +572,6 @@ class TestCopySubElements:
         assert new_met.score_3_sup_inclusive is False
         assert new_met.score_4_sup_inclusive is True
 
-    def test_indicateur_m2m_taxon_copied(self, source_plan, user):
-        enjeu = EnjeuFactory(id_pg=source_plan, id_utilisateur_ajout=user)
-        olt = ObjectifLongTermeFactory(id_enjeu=enjeu, id_utilisateur_ajout=user)
-        ne = NiveauExigenceFactory(id_olt=olt, id_utilisateur_ajout=user)
-        ind = IndicateurFactory(id_ne=ne, id_utilisateur_ajout=user)
-        CorIndicateurTaxonFactory(id_indicateur=ind, cd_nom=99999, nom_complet='Taxon Ind')
-
-        new_plan = PlanDuplicationService.duplicate_plan(
-            source_plan=source_plan, user=user,
-            copy_sites=False, copy_referents=False,
-            copy_fichiers=False, copy_enjeux=True, copy_sub_elements=True,
-        )
-
-        new_enjeu = Enjeu.objects.get(id_pg=new_plan)
-        new_olt = ObjectifLongTerme.objects.get(id_enjeu=new_enjeu)
-        new_ne = NiveauExigence.objects.get(id_olt=new_olt)
-        new_ind = Indicateur.objects.get(id_ne=new_ne)
-        taxons = CorIndicateurTaxon.objects.filter(id_indicateur=new_ind)
-        assert taxons.count() == 1
-        assert taxons.first().cd_nom == 99999
-
 
 # =============================================================================
 # Service: OO FK remap
@@ -909,7 +887,6 @@ class TestFullHierarchyDuplication:
         ne = NiveauExigenceFactory(id_olt=olt, id_utilisateur_ajout=user)
         ind_ne = IndicateurFactory(id_ne=ne, id_utilisateur_ajout=user)
         MetriqueFactory(id_indicateur=ind_ne, id_utilisateur_ajout=user)
-        CorIndicateurTaxonFactory(id_indicateur=ind_ne, cd_nom=22222)
 
         # OO linked to Pression under FI + RA + Indicateur (on RA) + Metrique
         pression = Pression.objects.filter(id_facteur_influence=fi).first()
@@ -957,7 +934,6 @@ class TestFullHierarchyDuplication:
         new_ne = NiveauExigence.objects.get(id_olt=new_olt)
         new_ind_ne = Indicateur.objects.get(id_ne=new_ne)
         assert Metrique.objects.filter(id_indicateur=new_ind_ne).count() == 1
-        assert CorIndicateurTaxon.objects.filter(id_indicateur=new_ind_ne).count() == 1
 
         # Verify OO chain under pression (M2M)
         new_pression = Pression.objects.filter(id_facteur_influence=new_fi).first()

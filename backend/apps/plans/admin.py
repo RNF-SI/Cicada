@@ -19,7 +19,7 @@ from .models import (
     CorEnjeuTaxon, CorEnjeuHabitat, CorEnjeuGeologie,
     CorResponsabiliteTaxon, CorResponsabiliteHabitat, CorResponsabiliteGeologie,
     CorResponsabiliteEnjeu,
-    Indicateur, CorIndicateurTaxon, CorIndicateurHabitat, CorIndicateurGeologie,
+    Indicateur, CorIndicateurGeologie,
     Metrique, Mesure,
 )
 
@@ -1181,22 +1181,6 @@ class NiveauExigenceAdmin(admin.ModelAdmin):
 # Administration des Indicateurs, Métriques et Mesures
 # =============================================================================
 
-class CorIndicateurTaxonInline(admin.TabularInline):
-    """Inline pour les taxons liés à un indicateur."""
-    model = CorIndicateurTaxon
-    extra = 0
-    fields = ['cd_nom', 'nom_complet', 'nom_vern']
-    ordering = ['nom_complet']
-
-
-class CorIndicateurHabitatInline(admin.TabularInline):
-    """Inline pour les habitats liés à un indicateur."""
-    model = CorIndicateurHabitat
-    extra = 0
-    fields = ['cd_hab', 'lb_hab_fr']
-    ordering = ['lb_hab_fr']
-
-
 class CorIndicateurGeologieInline(admin.TabularInline):
     """Inline pour les éléments géologiques liés à un indicateur."""
     model = CorIndicateurGeologie
@@ -1243,7 +1227,7 @@ class IndicateurAdmin(admin.ModelAdmin):
         'id_utilisateur_maj'
     ]
 
-    inlines = [CorIndicateurTaxonInline, CorIndicateurHabitatInline, CorIndicateurGeologieInline]
+    inlines = [CorIndicateurGeologieInline]
 
     list_per_page = 25
 

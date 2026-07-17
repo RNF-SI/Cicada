@@ -4,7 +4,7 @@ Tests d'intégration pour l'API REST Indicateurs, Métriques et Mesures.
 import pytest
 from rest_framework import status
 
-from apps.plans.models_indicateurs import Indicateur, Metrique, Mesure, CorIndicateurTaxon
+from apps.plans.models_indicateurs import Indicateur, Metrique, Mesure
 from tests.factories.enjeux import (
     EnjeuFactory, ObjectifLongTermeFactory, NiveauExigenceFactory,
     ObjectifOperationnelFactory, ResultatAttenduFactory,
@@ -12,7 +12,6 @@ from tests.factories.enjeux import (
     IndicateurFactory, IndicateurPressionFactory, MetriqueFactory, MesureFactory,
     NomenclatureTypeIndicateurFactory, NomenclatureTypeMetriqueFactory,
     NomenclatureFormatMetriqueFactory,
-    CorIndicateurTaxonFactory,
 )
 from tests.factories.plans import PlanGestionFactory, CorSitePgFactory
 from tests.factories.users import (

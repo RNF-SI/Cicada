@@ -13,7 +13,7 @@ from apps.plans.models_enjeux import (
     CorFacteurEnjeu,
 )
 from apps.plans.models_indicateurs import (
-    Indicateur, Metrique, Mesure, CorIndicateurTaxon,
+    Indicateur, Metrique, Mesure,
 )
 from apps.plans.models_operations import (
     Protocole, SuiviInventaire, Operation,
@@ -382,18 +382,6 @@ class MesureFactory(DjangoModelFactory):
     date_mesure = factory.Faker('date_object')
     commentaire = factory.Faker('sentence', locale='fr_FR')
     id_utilisateur_ajout = factory.SubFactory(RoleFactory)
-
-
-class CorIndicateurTaxonFactory(DjangoModelFactory):
-    """Factory for CorIndicateurTaxon."""
-
-    class Meta:
-        model = CorIndicateurTaxon
-
-    id_indicateur = factory.SubFactory(IndicateurFactory)
-    cd_nom = factory.Sequence(lambda n: 200000 + n)
-    nom_complet = factory.Sequence(lambda n: f'Taxon indicateur {n}')
-    nom_vern = factory.Sequence(lambda n: f'Taxon vern indicateur {n}')
 
 
 # =============================================================================

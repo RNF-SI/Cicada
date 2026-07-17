@@ -71,11 +71,11 @@ class ElementCopyService:
     # -------------------------------------------------------------- indicateurs
     @staticmethod
     def _copy_indicateur(old_ind, user, **parent_override):
-        """Clone un indicateur + cor taxons/habitats/géol + métriques (+ blocs)
+        """Clone un indicateur + cor géol + métriques (+ blocs)
         + les actions rattachées (directement ou via ses métriques)."""
         from .models_indicateurs import (
             Indicateur, Metrique, MetriqueScoreBlock,
-            CorIndicateurTaxon, CorIndicateurHabitat, CorIndicateurGeologie,
+            CorIndicateurGeologie,
         )
         from .models_operations import Operation
 
@@ -83,15 +83,6 @@ class ElementCopyService:
         new_ind = dup(old_ind, user, **parent_override)
         new_ind.save()
 
-        for cor in CorIndicateurTaxon.objects.filter(id_indicateur=old_ind):
-            CorIndicateurTaxon.objects.create(
-                id_indicateur=new_ind, cd_nom=cor.cd_nom,
-                nom_complet=cor.nom_complet, nom_vern=cor.nom_vern,
-            )
-        for cor in CorIndicateurHabitat.objects.filter(id_indicateur=old_ind):
-            CorIndicateurHabitat.objects.create(
-                id_indicateur=new_ind, cd_hab=cor.cd_hab, lb_hab_fr=cor.lb_hab_fr,
-            )
         for cor in CorIndicateurGeologie.objects.filter(id_indicateur=old_ind):
             CorIndicateurGeologie.objects.create(
                 id_indicateur=new_ind, id_inpg=cor.id_inpg, nom=cor.nom,
