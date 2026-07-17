@@ -10,19 +10,19 @@
     <div class="menu-item-wrapper">
       <button
         class="menu-item"
-        [class.has-children]="canManage()"
+        [class.has-children]="effectiveCanManage()"
         [class.active]="activePage() === 'overview'"
         (click)="navigateToOverview()">
         <i class="fi fi-rr-comment-info"></i>
         <span>{{ 'plans.detail.sidebar.overview' | translate }}</span>
-        @if (canManage()) {
+        @if (effectiveCanManage()) {
           <i class="fi fi-rr-angle-small-up chevron"
              [class.collapsed]="!overviewMenuExpanded()"
              (click)="$event.stopPropagation(); toggleOverviewMenu()"></i>
         }
       </button>
 
-      @if (canManage() && overviewMenuExpanded()) {
+      @if (effectiveCanManage() && overviewMenuExpanded()) {
         <div class="submenu">
           <button
             class="submenu-item"

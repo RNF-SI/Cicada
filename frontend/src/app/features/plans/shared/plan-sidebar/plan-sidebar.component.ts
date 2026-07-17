@@ -3,6 +3,8 @@ import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { TranslateModule } from '@ngx-translate/core';
 import { EnjeuService } from '../../../../core/services/enjeu.service';
+import { AuthService } from '../../../../core/services/auth.service';
+import { AdminService } from '../../../../core/services/admin.service';
 import { Enjeu } from '../../../../core/models/enjeu.model';
 
 @Component({
@@ -15,14 +17,42 @@ import { Enjeu } from '../../../../core/models/enjeu.model';
 export class PlanSidebarComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly enjeuService = inject(EnjeuService);
+  private readonly authService = inject(AuthService);
+  private readonly adminService = inject(AdminService);
 
   planId = input.required<number>();
   planSlug = input.required<string>();
   activePage = input<'overview' | 'enjeux' | 'bilan' | 'suivi-actions' | 'tableau-de-bord' | 'mindmap' | 'settings' | 'postes'>('overview');
   selectedEnjeuSlug = input<string | null>(null);
   /** #348 — Affiche l'entrée « Paramètres » (gestion avancée des versions),
-   *  réservée au référent du plan, admin organisme et super admin. */
-  canManage = input<boolean>(false);
+   *  réservée au référent du plan, admin organisme et super admin.
+   *  #578 — Override optionnel : `null` (défaut) → la sidebar calcule le droit
+   *  elle-même (voir `effectiveCanManage`) pour que le sous-menu « Vue d'ensemble »
+   *  reste visible sur TOUTES les pages du PG, pas seulement overview/paramètres/postes.
+   *  Une valeur explicite (fournie par la page) court-circuite ce calcul et le fetch. */
+  canManage = input<boolean | null>(null);
+
+  /** #578 — Référents du plan, chargés à la demande pour évaluer le droit de gestion
+   *  quand aucun override n'est fourni et que le rôle seul ne suffit pas. */
+  private readonly planReferentIds = signal<number[]>([]);
+
+  /** Accès gestion via le rôle seul (aucune donnée du plan requise). */
+  private readonly roleCanManage = computed(() =>
+    this.authService.isSuperAdmin() ||
+    this.authService.isRedacteurPrincipal() ||
+    this.authService.isAdminOrganisme()
+  );
+
+  /** #578 — Droit effectif d'afficher le sous-menu « Vue d'ensemble »
+   *  (Paramètres, Postes). Réservé au référent du plan, admin_og, super_admin
+   *  et rédacteur principal — aligné sur `canManageLifecycle` de plan-detail. */
+  effectiveCanManage = computed(() => {
+    const override = this.canManage();
+    if (override !== null) return override;
+    if (this.roleCanManage()) return true;
+    const userId = this.authService.currentUser()?.id;
+    return userId != null && this.planReferentIds().includes(userId);
+  });
 
   // Signal partagé service : la sidebar reflète automatiquement les
   // mutations faites côté enjeux-list (DnD, CRUD…). Voir
@@ -75,6 +105,22 @@ export class PlanSidebarComponent implements OnInit {
         const cached = this.enjeuService.currentPlanEnjeux();
         if (cached && cached.plan_id === planId) return; // sidebar bénéficie déjà du cache
         this.enjeuService.getPlanEnjeux(planId, true).subscribe();
+      });
+    });
+
+    // #578 — Récupère les référents du plan pour déterminer le droit de gestion
+    // quand aucun override n'est fourni et que le rôle seul ne suffit pas (cas
+    // d'un simple utilisateur référent du plan). Évite tout fetch inutile sinon.
+    effect(() => {
+      const planId = this.planId();
+      if (this.canManage() !== null) return; // la page fournit déjà le droit
+      if (this.roleCanManage()) return;       // rôle suffisant, référents inutiles
+      if (!planId) return;
+      untracked(() => {
+        this.adminService.getPlan(planId).subscribe({
+          next: p => this.planReferentIds.set((p.referents || []).map(r => r.id_role)),
+          error: () => this.planReferentIds.set([]),
+        });
       });
     });
   }

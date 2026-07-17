@@ -285,7 +285,7 @@ describe('EnjeuxListComponent', () => {
     deleteOperation: jest.Mock;
     removeMetriqueFromOperation: jest.Mock;
   };
-  let mockAdminService: { getPlanBySlug: jest.Mock; getNomenclaturesByType: jest.Mock };
+  let mockAdminService: { getPlanBySlug: jest.Mock; getNomenclaturesByType: jest.Mock; getPlan: jest.Mock };
   let routeParamsSubject: Subject<any>;
 
   function setup(parentParams: Record<string, string> = { slug: 'plan-test' }, routeParams: Record<string, string> = {}): void {
@@ -336,6 +336,8 @@ describe('EnjeuxListComponent', () => {
     mockAdminService = {
       getPlanBySlug: jest.fn().mockReturnValue(of({ id_pg: 10, nom: 'Plan Test', annee_debut: null, annee_fin: null })),
       getNomenclaturesByType: jest.fn().mockReturnValue(of([])),
+      // #578 — la sidebar interroge getPlan pour évaluer le droit de gestion.
+      getPlan: jest.fn().mockReturnValue(of({ referents: [] })),
     };
 
     const activatedRoute = {
@@ -2366,6 +2368,7 @@ describe('EnjeuxListComponent', () => {
       const errorAdminService = {
         getPlanBySlug: jest.fn().mockReturnValue(of({ id_pg: 10, nom: 'Plan Test', annee_debut: null, annee_fin: null })),
         getNomenclaturesByType: jest.fn().mockReturnValue(of([])),
+        getPlan: jest.fn().mockReturnValue(of({ referents: [] })),
       };
 
       routeParamsSubject = new Subject<any>();

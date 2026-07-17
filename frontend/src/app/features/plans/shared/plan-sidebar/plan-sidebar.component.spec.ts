@@ -7,6 +7,8 @@ import { Observable, of } from 'rxjs';
 
 import { PlanSidebarComponent } from './plan-sidebar.component';
 import { EnjeuService } from '../../../../core/services/enjeu.service';
+import { AuthService } from '../../../../core/services/auth.service';
+import { AdminService } from '../../../../core/services/admin.service';
 import { PlanEnjeuxResponse, Enjeu } from '../../../../core/models/enjeu.model';
 
 class FakeTranslateLoader implements TranslateLoader {
@@ -95,6 +97,13 @@ describe('PlanSidebarComponent', () => {
   let fixture: ComponentFixture<PlanSidebarComponent>;
   let mockEnjeuService: { getPlanEnjeux: jest.Mock; currentPlanEnjeux: jest.Mock };
   let mockRouter: { navigate: jest.Mock };
+  let mockAuthService: {
+    isSuperAdmin: jest.Mock;
+    isRedacteurPrincipal: jest.Mock;
+    isAdminOrganisme: jest.Mock;
+    currentUser: jest.Mock;
+  };
+  let mockAdminService: { getPlan: jest.Mock };
 
   beforeEach(async () => {
     // `currentPlanEnjeux()` retourne null avant le premier chargement —
@@ -114,6 +123,17 @@ describe('PlanSidebarComponent', () => {
       navigate: jest.fn(),
     };
 
+    // Par défaut : simple utilisateur, non référent, aucun droit de gestion.
+    mockAuthService = {
+      isSuperAdmin: jest.fn().mockReturnValue(false),
+      isRedacteurPrincipal: jest.fn().mockReturnValue(false),
+      isAdminOrganisme: jest.fn().mockReturnValue(false),
+      currentUser: jest.fn().mockReturnValue({ id: 42 }),
+    };
+    mockAdminService = {
+      getPlan: jest.fn().mockReturnValue(of({ referents: [] })),
+    };
+
     await TestBed.configureTestingModule({
       imports: [
         PlanSidebarComponent,
@@ -125,6 +145,8 @@ describe('PlanSidebarComponent', () => {
       providers: [
         { provide: EnjeuService, useValue: mockEnjeuService },
         { provide: Router, useValue: mockRouter },
+        { provide: AuthService, useValue: mockAuthService },
+        { provide: AdminService, useValue: mockAdminService },
       ],
     }).compileComponents();
 
@@ -182,5 +204,54 @@ describe('PlanSidebarComponent', () => {
   it('should navigate to enjeu detail on selectEnjeu', () => {
     component.selectEnjeu(mockEnjeu);
     expect(mockRouter.navigate).toHaveBeenCalledWith(['/plans', 'plan-test', 'enjeux', 'protection-zones-humides']);
+  });
+
+  // #578 — Le sous-menu « Vue d'ensemble » (Paramètres, Postes) doit être visible
+  // sur toutes les pages du PG, sans que chaque page fournisse `canManage`.
+  describe('effectiveCanManage (#578)', () => {
+    it('honours an explicit canManage override (true) without fetching the plan', () => {
+      mockAdminService.getPlan.mockClear();
+      componentRef.setInput('canManage', true);
+      fixture.detectChanges();
+      expect(component.effectiveCanManage()).toBe(true);
+      expect(mockAdminService.getPlan).not.toHaveBeenCalled();
+    });
+
+    it('honours an explicit canManage override (false) without fetching the plan', () => {
+      mockAdminService.getPlan.mockClear();
+      componentRef.setInput('canManage', false);
+      fixture.detectChanges();
+      expect(component.effectiveCanManage()).toBe(false);
+      expect(mockAdminService.getPlan).not.toHaveBeenCalled();
+    });
+
+    it('grants management to an admin/super admin from role alone (no plan fetch)', () => {
+      // `roleCanManage` est un computed : il fige sa valeur au 1er calcul. En
+      // prod `isSuperAdmin` est un signal réactif ; ici le mock jest.fn() ne
+      // l'est pas, donc on positionne le flag AVANT de créer le composant.
+      mockAuthService.isSuperAdmin.mockReturnValue(true);
+      mockAdminService.getPlan.mockClear();
+      const fx = TestBed.createComponent(PlanSidebarComponent);
+      fx.componentRef.setInput('planId', 30);
+      fx.componentRef.setInput('planSlug', 'plan-test');
+      fx.detectChanges();
+      expect(fx.componentInstance.effectiveCanManage()).toBe(true);
+      expect(mockAdminService.getPlan).not.toHaveBeenCalled();
+    });
+
+    it('grants management to a plain user who is a referent of the plan', () => {
+      mockAdminService.getPlan.mockReturnValue(of({ referents: [{ id_role: 42 }] }));
+      componentRef.setInput('planId', 31); // re-déclenche l'effect de fetch
+      fixture.detectChanges();
+      expect(mockAdminService.getPlan).toHaveBeenCalledWith(31);
+      expect(component.effectiveCanManage()).toBe(true);
+    });
+
+    it('denies management to a plain user who is not a referent', () => {
+      mockAdminService.getPlan.mockReturnValue(of({ referents: [{ id_role: 99 }] }));
+      componentRef.setInput('planId', 32);
+      fixture.detectChanges();
+      expect(component.effectiveCanManage()).toBe(false);
+    });
   });
 });
