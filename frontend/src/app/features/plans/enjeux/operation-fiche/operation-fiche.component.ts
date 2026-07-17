@@ -113,17 +113,20 @@ export class OperationFicheComponent implements OnInit {
       .sort((a, b) => a.annee - b.annee)
       .map(oa => {
         const orgs = oa.organismes ?? [];
+        // #581 — DRF sérialise les décimaux en chaînes ("500.00") : sans
+        // coercition, l'addition les concatène ("500.00" + "200.00") et le
+        // budget ventilé (type / organisme) devient illisible dans la fiche.
         const sumOrg = (key: 'budget_fonctionnement' | 'budget_investissement'): number | null =>
-          orgs.length ? orgs.reduce((acc, o) => acc + (o[key] ?? 0), 0) : null;
-        const fonctionnement = oa.budget_fonctionnement ?? sumOrg('budget_fonctionnement');
-        const investissement = oa.budget_investissement ?? sumOrg('budget_investissement');
+          orgs.length ? orgs.reduce((acc, o) => acc + (this.toNum(o[key]) ?? 0), 0) : null;
+        const fonctionnement = this.toNum(oa.budget_fonctionnement) ?? sumOrg('budget_fonctionnement');
+        const investissement = this.toNum(oa.budget_investissement) ?? sumOrg('budget_investissement');
         const rh = oa.rh_lignes ?? [];
         const jours = rh.length
           ? rh.reduce((acc, l) => acc + Number(l.jours ?? 0), 0)
           : null;
         const budget = (fonctionnement != null || investissement != null)
           ? (fonctionnement ?? 0) + (investissement ?? 0)
-          : oa.budget;
+          : this.toNum(oa.budget);
         return { annee: oa.annee, periodicite: oa.periodicite, fonctionnement, investissement, budget, jours };
       })
   );
@@ -143,8 +146,8 @@ export class OperationFicheComponent implements OnInit {
       for (const org of oa.organismes ?? []) {
         const entry = byOrg.get(org.id_organisme)
           ?? { nom: org.organisme_nom || '—', fonctionnement: 0, investissement: 0 };
-        entry.fonctionnement += org.budget_fonctionnement ?? 0;
-        entry.investissement += org.budget_investissement ?? 0;
+        entry.fonctionnement += this.toNum(org.budget_fonctionnement) ?? 0;
+        entry.investissement += this.toNum(org.budget_investissement) ?? 0;
         byOrg.set(org.id_organisme, entry);
       }
     }
@@ -192,6 +195,17 @@ export class OperationFicheComponent implements OnInit {
   readonly totalJoursNonFinance = computed(() =>
     this.rhBreakdown().filter(r => !r.finance).reduce((a, r) => a + r.jours, 0)
   );
+
+  /**
+   * #581 — Coercition d'un décimal DRF (souvent une chaîne "500.00") en nombre.
+   * Renvoie `null` pour null/undefined/vide/non numérique afin de préserver la
+   * distinction « pas de valeur » (→ `—`) de « valeur nulle ».
+   */
+  private toNum(v: number | string | null | undefined): number | null {
+    if (v == null || v === '') return null;
+    const n = Number(v);
+    return Number.isNaN(n) ? null : n;
+  }
 
   /** Somme d'une colonne de la programmation (null si aucune valeur). */
   private sumProg(key: 'fonctionnement' | 'investissement' | 'budget' | 'jours'): number | null {

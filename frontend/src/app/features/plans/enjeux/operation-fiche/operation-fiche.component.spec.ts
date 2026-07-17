@@ -145,6 +145,51 @@ describe('OperationFicheComponent — programmation détaillée (#556)', () => {
     expect(c.totalJours()).toBe(2);
   });
 
+  // #581 — DRF sérialise les décimaux en chaînes ("200.00"). Sans coercition,
+  // l'addition concatène les chaînes et le budget devient illisible dans la
+  // fiche. On reproduit ici la forme réelle de la réponse API (chaînes).
+  it('additionne le budget ventilé par type reçu en chaînes (#581)', () => {
+    const fixture = setup(operationWithAnnees([
+      {
+        annee: 2024, periodicite: true,
+        budget_fonctionnement: '200.00', budget_investissement: '50.00',
+      },
+    ]));
+    const c = fixture.componentInstance;
+    const row = c.programmation()[0];
+    expect(row.fonctionnement).toBe(200);
+    expect(row.investissement).toBe(50);
+    expect(row.budget).toBe(250);        // et non "200.0050.00"
+    expect(c.totalBudget()).toBe(250);   // et non NaN
+  });
+
+  it('affiche le budget total (mode direct) reçu en chaîne (#581)', () => {
+    const fixture = setup(operationWithAnnees([
+      { annee: 2024, periodicite: true, budget: '1234.50' },
+    ]));
+    const c = fixture.componentInstance;
+    expect(c.programmation()[0].budget).toBe(1234.5);
+    expect(c.totalBudget()).toBe(1234.5);
+  });
+
+  it('agrège la répartition par organisme reçue en chaînes (#581)', () => {
+    const fixture = setup(operationWithAnnees([
+      {
+        annee: 2024, periodicite: true,
+        organismes: [
+          { id_organisme: 1, organisme_nom: 'CEN', budget_fonctionnement: '100.00', budget_investissement: '0.00' },
+          { id_organisme: 2, organisme_nom: 'RNF', budget_fonctionnement: '50.00', budget_investissement: '20.00' },
+        ],
+      },
+    ]));
+    const c = fixture.componentInstance;
+    const cen = c.organismeBreakdown().find(o => o.nom === 'CEN')!;
+    expect(cen.fonctionnement).toBe(100);
+    expect(cen.budget).toBe(100);
+    // Budget de l'année dérivé de la ventilation par organisme (chaînes).
+    expect(c.programmation()[0].budget).toBe(170);
+  });
+
   // #560 — les jours viennent des lignes RH, plus du champ `etp` déprécié.
   it('ignore le champ etp déprécié pour le travail', () => {
     const fixture = setup(operationWithAnnees([
