@@ -51,6 +51,12 @@ Frontend : section « Import / export » de la page **Paramètres du plan**
   « 7110 »), le bon code est **retrouvé automatiquement** et signalé par un
   avertissement ; un code introuvable ou ambigu est une erreur. La validation
   est neutralisée si le référentiel n'est pas chargé en base.
+- **Correction interactive (#9)** : après validation, les données sont éditables
+  dans une grille (cellules en erreur surlignées). On corrige, on **revalide**
+  (`validate-data`) et on **importe** (`import-data`) sans repasser par Excel.
+- **Import « mapping » (#10)** : on peut téléverser un fichier Excel de structure
+  **quelconque** ; `read-xlsx` en lit les onglets/colonnes, l'utilisateur associe
+  ses colonnes au format cible, et la suite passe par la grille de correction.
 - L'import est **en création seule** : il refuse un plan qui contient déjà une
   arborescence (module 1) ou déjà des actions (module 2).
 - Deux temps : **valider** (dry-run, aucun écrit) puis **importer** (transaction).
