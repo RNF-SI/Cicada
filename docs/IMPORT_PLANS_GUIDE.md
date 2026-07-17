@@ -27,8 +27,21 @@ Frontend : section « Import / export » de la page **Paramètres du plan**
   dans une colonne dédiée. Les liens N-N (un facteur partagé entre plusieurs
   enjeux, un OO rattaché à plusieurs pressions) s'expriment en **cellules
   multi-valeurs** séparées par des virgules (`E1,E3`).
+- **Listes déroulantes de rattachement** : les colonnes de code parent proposent
+  la liste des codes de l'onglet cible (ex : la colonne `enjeux` d'un facteur
+  propose tous les codes de l'onglet `Enjeux` ; la colonne `action` des onglets
+  `Budgets`/`RH` propose les codes de l'onglet `Actions`). La liste se met à jour
+  au fur et à mesure. Pour les colonnes multi-valeurs, la liste est une aide
+  non bloquante (on peut saisir plusieurs codes séparés par des virgules).
 - Un onglet `Listes` **masqué** alimente les listes déroulantes des colonnes de
   nomenclature (catégorie, type, priorité…).
+- **Ligne exemple** : le modèle vierge contient, dans chaque onglet de saisie,
+  une première ligne grisée dont la 1re colonne vaut `(exemple)`. Elle montre
+  quoi écrire et **n'est jamais importée** (ignorée au parsing). On peut la
+  laisser, la remplacer ou la supprimer.
+- **Exemples complets téléchargeables** : deux classeurs pédagogiques fictifs et
+  entièrement remplis (arborescence et actions) illustrent tous les onglets et
+  leurs liens. Indépendants d'un plan, accessibles via un bouton dédié.
 - L'import est **en création seule** : il refuse un plan qui contient déjà une
   arborescence (module 1) ou déjà des actions (module 2).
 - Deux temps : **valider** (dry-run, aucun écrit) puis **importer** (transaction).
@@ -100,7 +113,9 @@ bloquées hors brouillon.
 
 | Méthode | URL | Rôle |
 |--------|-----|------|
-| `GET` | `export-arborescence-xlsx/` | Classeur arborescence (pré-rempli). `?empty=1` = modèle vierge |
+| `GET` | `example-arborescence-xlsx/` | **Exemple** complet d'arborescence (indépendant d'un plan) |
+| `GET` | `example-actions-xlsx/` | **Exemple** complet d'actions (indépendant d'un plan) |
+| `GET` | `export-arborescence-xlsx/` | Classeur arborescence (pré-rempli). `?empty=1` = modèle vierge (avec ligne exemple) |
 | `POST` | `import-arborescence/validate/` | Validation (dry-run), renvoie le rapport |
 | `POST` | `import-arborescence/` | Import de l'arborescence (transaction) |
 | `GET` | `export-actions-xlsx/` | Classeur actions (indicateurs/postes en référence) |
@@ -138,14 +153,20 @@ avec ce même rapport dans le corps.
 
 ## Tests
 
-- `backend/tests/apps/plans/test_import_arborescence.py` (21 tests) — logique
+- `backend/tests/apps/plans/test_import_arborescence.py` (23 tests) — logique
   arborescence : build, aller-retour, facteur partagé #552, FCR direct, XOR
-  indicateur (état/réponse), taxons/habitats, flags types d'enjeu, validations.
-- `backend/tests/apps/plans/test_import_actions.py` (20 tests) — actions,
-  budgets, RH.
-- `backend/tests/apps/plans/test_import_endpoints.py` (8 tests) — couche HTTP :
+  indicateur (état/réponse), taxons/habitats, flags types d'enjeu, **listes
+  déroulantes inter-onglets**, **ligne exemple ignorée**, **exemple complet**,
+  validations.
+- `backend/tests/apps/plans/test_import_actions.py` (23 tests) — actions,
+  budgets, RH, **dropdown action des onglets Budgets/RH**, **ligne exemple
+  ignorée**, **exemple complet**.
+- `backend/tests/apps/plans/test_import_endpoints.py` (11 tests) — couche HTTP :
   export (tout statut, MIME), validation multipart, import réel, **verrou
-  brouillon (403 hors draft)**, authentification, fichier manquant.
+  brouillon (403 hors draft)**, **endpoints exemple**, authentification, fichier
+  manquant.
+- `frontend/e2e/tests/features/import-plan.spec.ts` (3 tests E2E) — round-trip
+  d'import par l'UI, verrou brouillon, **téléchargement des exemples**.
 - `frontend/src/app/core/services/admin.service.spec.ts` (méthodes d'import)
 - `frontend/e2e/tests/features/import-plan.spec.ts` (2 tests E2E Playwright) —
   round-trip **par l'interface** : export du classeur pré-rempli d'un plan

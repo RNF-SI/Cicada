@@ -2353,6 +2353,8 @@
       "sectionSubtitle": "Téléchargez un classeur Excel (pré-rempli avec ce plan ou vierge), complétez-le, puis importez-le pour créer l'arborescence des enjeux, objectifs, indicateurs et métriques.",
       "downloadPrefilled": "Télécharger (pré-rempli)",
       "downloadEmpty": "Modèle vierge",
+      "downloadExample": "Télécharger un exemple complet",
+      "downloadExampleHint": "L'exemple est un plan fictif entièrement rempli qui illustre tous les onglets et les liens entre eux (un facteur relié à plusieurs enjeux, indicateurs rattachés aux niveaux d'exigence ou résultats attendus…). À consulter pour comprendre le format ; à ne pas importer tel quel.",
       "downloadError": "Le téléchargement du modèle a échoué.",
       "draftOnly": "L'import n'est possible que sur un plan en brouillon ne contenant pas encore d'arborescence. Repassez le plan en brouillon ou créez une nouvelle version pour importer.",
       "validating": "Vérification du fichier…",
@@ -2367,6 +2369,8 @@
       "actionsSectionTitle": "Import des actions",
       "actionsSectionSubtitle": "Une fois l'arborescence en place, téléchargez le classeur des actions (indicateurs et postes du plan listés en référence), renseignez vos actions, budgets et temps de travail (RH), puis importez le tout.",
       "downloadActions": "Télécharger le classeur des actions",
+      "downloadActionsExample": "Télécharger un exemple complet",
+      "downloadActionsExampleHint": "L'exemple d'actions est fictif et entièrement rempli : il montre des actions rattachées à leurs indicateurs, avec budgets et temps de travail (RH), et illustre les liens entre onglets. À consulter pour comprendre le format ; à ne pas importer tel quel.",
       "actionsReadySummary": "Fichier valide : {{actions}} action(s), {{budgets}} ligne(s) de budget et {{rh}} ligne(s) de RH seront créées.",
       "doImportActions": "Importer les actions",
       "actionsImportSuccess": "Import réussi : {{total}} action(s) créée(s)."

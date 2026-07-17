@@ -55,6 +55,10 @@
             <p class="subtitle">{{ 'plans.import.sectionSubtitle' | translate }}</p>
 
             <div class="import-actions">
+              <button mat-flat-button color="primary" data-testid="arbo-example" [disabled]="downloadingExample()" (click)="downloadExample()">
+                <i class="fi fi-rr-graduation-cap"></i>
+                {{ 'plans.import.downloadExample' | translate }}
+              </button>
               <button mat-stroked-button data-testid="arbo-export-prefilled" [disabled]="downloading()" (click)="downloadTemplate(false)">
                 <i class="fi fi-rr-download"></i>
                 {{ 'plans.import.downloadPrefilled' | translate }}
@@ -63,10 +67,11 @@
                 <i class="fi fi-rr-file"></i>
                 {{ 'plans.import.downloadEmpty' | translate }}
               </button>
-              @if (downloading()) {
+              @if (downloading() || downloadingExample()) {
                 <mat-spinner diameter="18"></mat-spinner>
               }
             </div>
+            <p class="text-mention">{{ 'plans.import.downloadExampleHint' | translate }}</p>
 
             @if (!isDraft()) {
               <div class="info-block info-block-warning">
@@ -183,14 +188,19 @@
             <p class="subtitle">{{ 'plans.import.actionsSectionSubtitle' | translate }}</p>
 
             <div class="import-actions">
+              <button mat-flat-button color="primary" data-testid="actions-example" [disabled]="downloadingActionsExample()" (click)="downloadActionsExample()">
+                <i class="fi fi-rr-graduation-cap"></i>
+                {{ 'plans.import.downloadActionsExample' | translate }}
+              </button>
               <button mat-stroked-button [disabled]="downloadingActions()" (click)="downloadActionsTemplate()">
                 <i class="fi fi-rr-download"></i>
                 {{ 'plans.import.downloadActions' | translate }}
               </button>
-              @if (downloadingActions()) {
+              @if (downloadingActions() || downloadingActionsExample()) {
                 <mat-spinner diameter="18"></mat-spinner>
               }
             </div>
+            <p class="text-mention">{{ 'plans.import.downloadActionsExampleHint' | translate }}</p>
 
             @if (!isDraft()) {
               <div class="info-block info-block-warning">

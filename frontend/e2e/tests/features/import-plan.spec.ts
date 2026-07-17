@@ -100,4 +100,28 @@ test.describe('Import arborescence via Excel', () => {
     // …mais le sélecteur de fichier d'import est masqué hors brouillon (#248).
     await expect(page.getByTestId('arbo-import-file')).toHaveCount(0);
   });
+
+  test('les boutons « exemple » téléchargent un classeur (arborescence + actions)', async ({ superAdminPage }) => {
+    const page = superAdminPage;
+    const plan = await findPlan(page, 'Lac');
+    await page.goto(`/plans/${plan.slug}/parametres`);
+
+    // Exemple d'arborescence.
+    const exArbo = page.getByTestId('arbo-example');
+    await expect(exArbo).toBeVisible({ timeout: 15000 });
+    const [dlArbo] = await Promise.all([
+      page.waitForEvent('download'),
+      exArbo.click(),
+    ]);
+    expect(await dlArbo.path()).toBeTruthy();
+
+    // Exemple d'actions.
+    const exActions = page.getByTestId('actions-example');
+    await expect(exActions).toBeVisible();
+    const [dlActions] = await Promise.all([
+      page.waitForEvent('download'),
+      exActions.click(),
+    ]);
+    expect(await dlActions.path()).toBeTruthy();
+  });
 });

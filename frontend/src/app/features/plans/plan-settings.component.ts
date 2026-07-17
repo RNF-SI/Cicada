@@ -176,6 +176,7 @@ export class PlanSettingsComponent {
   // -------------------------------------------------------------------------
 
   readonly downloading = signal(false);
+  readonly downloadingExample = signal(false);
   readonly importFile = signal<File | null>(null);
   readonly importReport = signal<ArborescenceImportReport | null>(null);
   readonly importValidating = signal(false);
@@ -207,6 +208,22 @@ export class PlanSettingsComponent {
       },
       error: err => {
         this.downloading.set(false);
+        const detail = err?.message || this.translate.instant('plans.import.downloadError');
+        this.snackBar.open(detail, this.translate.instant('common.actions.close'), { duration: 5000 });
+      },
+    });
+  }
+
+  /** Télécharge l'exemple d'arborescence complet (indépendant du plan). */
+  downloadExample(): void {
+    this.downloadingExample.set(true);
+    this.adminService.downloadArborescenceExample().subscribe({
+      next: blob => {
+        this.downloadingExample.set(false);
+        this.triggerBlobDownload(blob, 'exemple-arborescence-plan-de-gestion.xlsx');
+      },
+      error: err => {
+        this.downloadingExample.set(false);
         const detail = err?.message || this.translate.instant('plans.import.downloadError');
         this.snackBar.open(detail, this.translate.instant('common.actions.close'), { duration: 5000 });
       },
@@ -294,6 +311,7 @@ export class PlanSettingsComponent {
   // -------------------------------------------------------------------------
 
   readonly downloadingActions = signal(false);
+  readonly downloadingActionsExample = signal(false);
   readonly actionsFile = signal<File | null>(null);
   readonly actionsReport = signal<ArborescenceImportReport | null>(null);
   readonly actionsValidating = signal(false);
@@ -318,6 +336,22 @@ export class PlanSettingsComponent {
       },
       error: err => {
         this.downloadingActions.set(false);
+        const detail = err?.message || this.translate.instant('plans.import.downloadError');
+        this.snackBar.open(detail, this.translate.instant('common.actions.close'), { duration: 5000 });
+      },
+    });
+  }
+
+  /** Télécharge l'exemple d'actions complet (indépendant du plan). */
+  downloadActionsExample(): void {
+    this.downloadingActionsExample.set(true);
+    this.adminService.downloadActionsExample().subscribe({
+      next: blob => {
+        this.downloadingActionsExample.set(false);
+        this.triggerBlobDownload(blob, 'exemple-actions-plan-de-gestion.xlsx');
+      },
+      error: err => {
+        this.downloadingActionsExample.set(false);
         const detail = err?.message || this.translate.instant('plans.import.downloadError');
         this.snackBar.open(detail, this.translate.instant('common.actions.close'), { duration: 5000 });
       },

@@ -168,3 +168,36 @@ def test_import_refused_on_validated_plan():
     assert resp.status_code == 403
     # Aucune écriture sur le plan validé.
     assert target.enjeux.count() == 0
+
+
+# ---------------------------------------------------------------------------
+# Exemples téléchargeables (indépendants d'un plan)
+# ---------------------------------------------------------------------------
+
+
+def test_example_arborescence_endpoint_ok():
+    user = SuperAdminFactory()
+    client = APIClient()
+    client.force_authenticate(user=user)
+    resp = client.get("/api/plans/plans/example-arborescence-xlsx/")
+    assert resp.status_code == 200
+    assert resp["Content-Type"] == XLSX_MIME
+    assert resp.content[:2] == b"PK"
+
+
+def test_example_actions_endpoint_ok():
+    user = SuperAdminFactory()
+    client = APIClient()
+    client.force_authenticate(user=user)
+    resp = client.get("/api/plans/plans/example-actions-xlsx/")
+    assert resp.status_code == 200
+    assert resp["Content-Type"] == XLSX_MIME
+
+
+def test_example_endpoints_require_auth():
+    assert APIClient().get(
+        "/api/plans/plans/example-arborescence-xlsx/"
+    ).status_code in (401, 403)
+    assert APIClient().get(
+        "/api/plans/plans/example-actions-xlsx/"
+    ).status_code in (401, 403)

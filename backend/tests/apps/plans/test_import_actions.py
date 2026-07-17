@@ -22,6 +22,7 @@ from apps.plans.models_operations import (
 )
 from apps.plans.services_import_actions import (
     build_actions_workbook,
+    build_actions_example_workbook,
     parse_actions_workbook,
     validate_actions_import,
     execute_actions_import,
@@ -409,3 +410,51 @@ def test_validate_budget_year_outside_span_is_warning():
     assert any(
         i["level"] == "warning" and i["sheet"] == "Budgets" for i in report.issues
     )
+
+
+# ---------------------------------------------------------------------------
+# Listes déroulantes inter-onglets, ligne exemple, classeur exemple
+# ---------------------------------------------------------------------------
+
+
+def test_budgets_rh_have_action_dropdown():
+    """Les onglets Budgets et RH proposent la liste des codes d'actions."""
+    user = SuperAdminFactory()
+    plan, _ind = _plan_with_indicateur(user)
+    wb = load_workbook(io.BytesIO(build_actions_workbook(plan)))
+
+    def _formulas(sheet):
+        return [dv.formula1 for dv in wb[sheet].data_validations.dataValidation]
+
+    # La colonne « action » de Budgets et de RH pointe vers l'onglet Actions.
+    assert any("Actions" in f for f in _formulas("Budgets"))
+    assert any("Actions" in f for f in _formulas("RH"))
+
+
+def test_actions_hint_rows_ignored_on_parse():
+    """La ligne exemple des onglets Actions/Budgets/RH n'est pas importée."""
+    user = SuperAdminFactory()
+    plan, _ind = _plan_with_indicateur(user)
+    wb = load_workbook(io.BytesIO(build_actions_workbook(plan)))
+    # Une ligne exemple grisée est présente en L3.
+    assert wb["Actions"].cell(row=3, column=1).value == "(exemple)"
+    assert wb["Budgets"].cell(row=3, column=1).value == "(exemple)"
+    assert wb["RH"].cell(row=3, column=1).value == "(exemple)"
+    # …mais le parse d'un modèle vide ne renvoie aucune donnée.
+    parsed = parse_actions_workbook(build_actions_workbook(plan))
+    assert parsed["actions"] == []
+    assert parsed["budgets"] == []
+    assert parsed["rh"] == []
+
+
+def test_actions_example_workbook_full_structure():
+    """L'exemple d'actions téléchargeable est complet et cohérent."""
+    parsed = parse_actions_workbook(build_actions_example_workbook())
+    assert len(parsed["actions"]) == 3
+    assert len(parsed["budgets"]) == 3
+    assert len(parsed["rh"]) == 3
+    # Indicateurs de référence disponibles pour le rattachement des actions.
+    assert len(parsed["indicateurs"]) == 3
+    # Chaque action référence un indicateur listé en référence.
+    for action in parsed["actions"]:
+        assert action["indicateur"] in parsed["indicateurs"]

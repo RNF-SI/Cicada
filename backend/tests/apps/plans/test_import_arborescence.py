@@ -33,6 +33,7 @@ from apps.plans.models_indicateurs import (
 )
 from apps.plans.services_import import (
     build_arborescence_workbook,
+    build_example_workbook,
     parse_workbook,
     validate_import,
     execute_import,
@@ -178,8 +179,12 @@ def test_build_empty_workbook_has_all_sheets():
         "Metriques",
     ):
         assert name in wb.sheetnames
-    # Un modèle vide n'a pas de ligne de données (au-delà des en-têtes).
-    assert wb["Enjeux"].max_row <= 2
+    assert "Taxons" in wb.sheetnames and "Habitats" in wb.sheetnames
+    # Le modèle vide porte une ligne « exemple » (grisée) en L3, marquée par
+    # « (exemple) » dans la 1re colonne — jamais importée (cf. test dédié).
+    assert wb["Enjeux"].cell(row=3, column=1).value == "(exemple)"
+    # …mais aucune donnée réelle : le parse d'un modèle vide ne renvoie rien.
+    assert parse_workbook(content)["enjeux"] == []
 
 
 def test_build_prefilled_workbook_writes_rows():
@@ -188,9 +193,46 @@ def test_build_prefilled_workbook_writes_rows():
     plan = _build_source_plan(user)
     content = build_arborescence_workbook(plan=plan)
     wb = load_workbook(io.BytesIO(content))
-    # Première ligne de données = ligne 3.
+    # Première ligne de données = ligne 3 (pas de ligne exemple si pré-rempli).
     assert wb["Enjeux"].cell(row=3, column=1).value == "E1"
     assert wb["Indicateurs"].max_row >= 4  # 2 indicateurs
+
+
+def test_reference_dropdowns_link_tabs():
+    """Les colonnes de rattachement proposent la liste des codes de l'onglet cible."""
+    wb = load_workbook(io.BytesIO(build_arborescence_workbook(plan=None)))
+
+    def _formulas(sheet):
+        return [dv.formula1 for dv in wb[sheet].data_validations.dataValidation]
+
+    # La colonne « enjeux » d'un facteur pointe vers l'onglet Enjeux.
+    assert any("Enjeux" in f for f in _formulas("Facteurs"))
+    # La colonne « facteur » d'une pression pointe vers l'onglet Facteurs.
+    assert any("Facteurs" in f for f in _formulas("Pressions"))
+    # La colonne « indicateur » d'une métrique pointe vers l'onglet Indicateurs.
+    assert any("Indicateurs" in f for f in _formulas("Metriques"))
+
+
+def test_example_workbook_full_structure():
+    """L'exemple téléchargeable est complet et cohérent (parse sans erreur)."""
+    content = build_example_workbook()
+    parsed = parse_workbook(content)
+    assert len(parsed["enjeux"]) == 4  # dont un FCR
+    assert len(parsed["facteurs"]) == 3
+    assert len(parsed["indicateurs"]) == 7
+    assert len(parsed["taxons"]) == 3 and len(parsed["habitats"]) == 3
+    # Facteur partagé entre deux enjeux (#552) : cellule multi-valeurs.
+    partages = [f for f in parsed["facteurs"] if "," in _cell_str_test(f["enjeux"])]
+    assert partages, "l'exemple doit illustrer un facteur partagé"
+    # Un OO FCR rattaché directement à un enjeu (sans pression).
+    assert any(
+        _cell_str_test(oo.get("enjeu")) and not _cell_str_test(oo.get("pressions"))
+        for oo in parsed["oo"]
+    )
+
+
+def _cell_str_test(value):
+    return "" if value is None else str(value).strip()
 
 
 # ---------------------------------------------------------------------------

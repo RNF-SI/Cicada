@@ -50,11 +50,15 @@ from .services_import import (
     _NomenclatureResolver,
     _as_int,
     _cell_str,
+    _is_example_row,
     _norm,
     _parse_bool,
     _BORDER,
+    _EXAMPLE_MARKER,
     _HEADER_FILL,
     _HEADER_FONT,
+    _HINT_FILL,
+    _HINT_FONT,
     _PRIMARY,
     _REQUIRED_FILL,
     _TITLE_FONT,
@@ -231,16 +235,68 @@ def _nomenclature_values() -> dict[str, list[str]]:
     return values
 
 
+def _actions_code_range(n_action_rows: int) -> str:
+    """Plage de la colonne « code » de l'onglet Actions (source des dropdowns
+    « action » des onglets Budgets et RH)."""
+    last = _HEADER_ROW + max(n_action_rows, 0) + _BLANK_ROWS
+    return f"'Actions'!$A${_FIRST_DATA_ROW}:$A${last}"
+
+
+def _render_actions_workbook(
+    indicateurs,
+    code_by_id,
+    postes,
+    poste_code_by_id,
+    action_rows,
+    budget_rows,
+    rh_rows,
+    plan=None,
+    with_hints=False,
+    example_name=None,
+) -> bytes:
+    """Assemble le classeur des actions à partir de données déjà préparées."""
+    wb = Workbook()
+    wb.remove(wb.active)
+
+    # Codes de rattachement pour les dropdowns.
+    first_ind_code = next(iter(code_by_id.values()), "I1")
+    first_poste_code = next(iter(poste_code_by_id.values()), "Q1")
+    actions_range = _actions_code_range(len(action_rows) + (1 if with_hints else 0))
+
+    hints = _actions_hint_rows(first_ind_code, first_poste_code) if with_hints else {}
+
+    _write_lisez_moi(wb, plan, example_name=example_name, with_hints=with_hints)
+    ref_code_range = _write_indicateurs_ref(wb, indicateurs, code_by_id)
+    poste_code_range = _write_postes_ref(wb, postes, poste_code_by_id)
+    list_ranges = _write_listes(wb)
+    _write_actions(
+        wb,
+        action_rows,
+        ref_code_range,
+        list_ranges,
+        hint_row=hints.get("actions"),
+    )
+    _write_budgets(wb, budget_rows, actions_range, hint_row=hints.get("budgets"))
+    _write_rh(
+        wb,
+        rh_rows,
+        poste_code_range,
+        actions_range,
+        hint_row=hints.get("rh"),
+    )
+
+    buffer = io.BytesIO()
+    wb.save(buffer)
+    return buffer.getvalue()
+
+
 def build_actions_workbook(plan) -> bytes:
     """Construit le classeur d'import des actions pour un plan donné.
 
     L'onglet ``Indicateurs`` est pré-rempli avec les indicateurs existants du
-    plan ; l'onglet ``Actions`` est vierge (ou pré-rempli si des actions
-    existent déjà — utile comme export/sauvegarde).
+    plan ; l'onglet ``Actions`` est vierge (avec une ligne exemple) ou
+    pré-rempli si des actions existent déjà (export/sauvegarde).
     """
-    wb = Workbook()
-    wb.remove(wb.active)
-
     indicateurs = _plan_indicateurs(plan)
     code_by_id = {
         ind.id_indicateur: f"I{i}" for i, (ind, _) in enumerate(indicateurs, start=1)
@@ -248,20 +304,208 @@ def build_actions_workbook(plan) -> bytes:
     postes = _plan_postes(plan)
     poste_code_by_id = {p.id_poste: f"Q{i}" for i, p in enumerate(postes, start=1)}
 
-    _write_lisez_moi(wb, plan)
-    ref_code_range = _write_indicateurs_ref(wb, indicateurs, code_by_id)
-    poste_code_range = _write_postes_ref(wb, postes, poste_code_by_id)
-    list_ranges = _write_listes(wb)
-    _write_actions(wb, plan, code_by_id, ref_code_range, list_ranges)
-    _write_budgets(wb, plan)
-    _write_rh(wb, plan, poste_code_by_id, poste_code_range)
+    action_rows = _extract_actions(plan, code_by_id)
+    budget_rows = _extract_budgets(plan)
+    rh_rows = _extract_rh(plan, poste_code_by_id)
 
-    buffer = io.BytesIO()
-    wb.save(buffer)
-    return buffer.getvalue()
+    return _render_actions_workbook(
+        indicateurs,
+        code_by_id,
+        postes,
+        poste_code_by_id,
+        action_rows,
+        budget_rows,
+        rh_rows,
+        plan=plan,
+        with_hints=not action_rows,
+    )
 
 
-def _write_lisez_moi(wb: Workbook, plan) -> None:
+ACTIONS_EXAMPLE_NAME = "Réserve naturelle d'une zone humide (exemple)"
+
+
+def _actions_hint_rows(first_ind_code: str, first_poste_code: str) -> dict[str, dict]:
+    """Une ligne « exemple » par onglet de saisie (Actions, Budgets, RH).
+
+    La 1re colonne porte le marqueur ``(exemple)`` (ignoré à l'import) ; les
+    colonnes de rattachement montrent des codes réels (indicateur, poste) pour
+    illustrer les liens.
+    """
+    return {
+        "actions": {
+            "code": _EXAMPLE_MARKER,
+            "indicateur": first_ind_code,
+            "libelle": "Faucher tardivement les prairies humides",
+            "annee_min": 2024,
+            "annee_max": 2028,
+            "operateurs": "Équipe technique de la réserve",
+            "financeurs": "Agence de l'eau",
+            "description": "Fauche annuelle avec exportation, après le 15 juillet.",
+        },
+        "budgets": {
+            "action": _EXAMPLE_MARKER,
+            "annee": 2024,
+            "budget_fonctionnement": 1500,
+            "budget_investissement": 0,
+        },
+        "rh": {
+            "action": _EXAMPLE_MARKER,
+            "annee": 2024,
+            "poste": first_poste_code,
+            "jours": 6,
+            "finance": "Oui",
+        },
+    }
+
+
+def _actions_example_data():
+    """Données fictives (indicateurs/postes/actions/budgets/RH) pour l'exemple."""
+    from types import SimpleNamespace
+
+    indicateurs = [
+        (
+            SimpleNamespace(
+                id_indicateur=9001,
+                nom_indicateur="État de conservation des habitats tourbeux",
+            ),
+            "Habitats tourbeux",
+        ),
+        (
+            SimpleNamespace(
+                id_indicateur=9002,
+                nom_indicateur="Richesse en passereaux paludicoles nicheurs",
+            ),
+            "Avifaune paludicole",
+        ),
+        (
+            SimpleNamespace(
+                id_indicateur=9003,
+                nom_indicateur="Surface colonisée par la Jussie",
+            ),
+            "Habitats tourbeux",
+        ),
+    ]
+    code_by_id = {9001: "I1", 9002: "I2", 9003: "I3"}
+    postes = [
+        SimpleNamespace(
+            id_poste=8001, libelle="Chargé·e de mission", id_organisme=None
+        ),
+        SimpleNamespace(
+            id_poste=8002, libelle="Garde technicien·ne", id_organisme=None
+        ),
+    ]
+    poste_code_by_id = {8001: "Q1", 8002: "Q2"}
+
+    # Valeurs de nomenclature réelles (si disponibles) pour un rendu réaliste.
+    noms = _nomenclature_values()
+    type_action = (noms.get(_TYPE_ACTION) or [""])[0]
+    priorite = (noms.get(_PRIORITE) or [""])[0]
+
+    action_rows = [
+        {
+            "code": "A1",
+            "indicateur": "I1",
+            "libelle": "Faucher tardivement les prairies humides",
+            "type_action": type_action,
+            "priorite": priorite,
+            "annee_min": 2024,
+            "annee_max": 2028,
+            "operateurs": "Équipe technique de la réserve",
+            "financeurs": "Agence de l'eau",
+            "description": "Fauche annuelle avec exportation, après le 15 juillet.",
+        },
+        {
+            "code": "A2",
+            "indicateur": "I2",
+            "libelle": "Poser des panneaux de mise en défens des roselières",
+            "type_action": type_action,
+            "priorite": priorite,
+            "annee_min": 2024,
+            "annee_max": 2025,
+            "operateurs": "Garde technicien·ne",
+            "financeurs": "Région",
+            "description": "Balisage des zones de quiétude au printemps.",
+        },
+        {
+            "code": "A3",
+            "indicateur": "I3",
+            "libelle": "Arrachage manuel de la Jussie",
+            "type_action": type_action,
+            "priorite": priorite,
+            "annee_min": 2024,
+            "annee_max": 2029,
+            "operateurs": "Chantier bénévole",
+            "financeurs": "Agence de l'eau",
+            "description": "Campagnes d'arrachage estivales répétées.",
+        },
+    ]
+    budget_rows = [
+        {
+            "action": "A1",
+            "annee": 2024,
+            "budget_fonctionnement": 1500,
+            "budget_investissement": 0,
+        },
+        {
+            "action": "A1",
+            "annee": 2025,
+            "budget_fonctionnement": 1500,
+            "budget_investissement": 0,
+        },
+        {
+            "action": "A3",
+            "annee": 2024,
+            "budget_fonctionnement": 800,
+            "budget_investissement": 1200,
+        },
+    ]
+    rh_rows = [
+        {"action": "A1", "annee": 2024, "poste": "Q1", "jours": 6, "finance": "Oui"},
+        {"action": "A1", "annee": 2024, "poste": "Q2", "jours": 4, "finance": "Non"},
+        {"action": "A3", "annee": 2024, "poste": "Q2", "jours": 10, "finance": "Oui"},
+    ]
+    return (
+        indicateurs,
+        code_by_id,
+        postes,
+        poste_code_by_id,
+        action_rows,
+        budget_rows,
+        rh_rows,
+    )
+
+
+def build_actions_example_workbook() -> bytes:
+    """Classeur **exemple** des actions, entièrement rempli (indépendant d'un plan).
+
+    Reprend le thème de l'exemple d'arborescence : montre des actions rattachées
+    à des indicateurs (onglet de référence), avec budgets et RH renseignés, et
+    illustre les liens entre onglets. Fictif : à consulter, pas à importer tel
+    quel (les indicateurs de référence n'existent dans aucun plan réel).
+    """
+    (
+        indicateurs,
+        code_by_id,
+        postes,
+        poste_code_by_id,
+        action_rows,
+        budget_rows,
+        rh_rows,
+    ) = _actions_example_data()
+    return _render_actions_workbook(
+        indicateurs,
+        code_by_id,
+        postes,
+        poste_code_by_id,
+        action_rows,
+        budget_rows,
+        rh_rows,
+        with_hints=False,
+        example_name=ACTIONS_EXAMPLE_NAME,
+    )
+
+
+def _write_lisez_moi(wb: Workbook, plan, example_name=None, with_hints=False) -> None:
     ws = wb.create_sheet("Lisez-moi", 0)
     ws.sheet_properties.tabColor = _PRIMARY
     ws.column_dimensions["A"].width = 4
@@ -306,7 +550,32 @@ def _write_lisez_moi(wb: Workbook, plan) -> None:
             "les référencer ici.",
             None,
         ),
+        (
+            "• Les onglets Budgets et RH proposent une liste déroulante « action » "
+            "avec les codes que vous saisissez dans l'onglet « Actions ».",
+            None,
+        ),
     ]
+    if with_hints:
+        lines += [
+            ("", None),
+            (
+                "• La première ligne grisée des onglets Actions, Budgets et RH est "
+                "un EXEMPLE (commence par « (exemple) ») : elle montre quoi écrire "
+                "et n'est jamais importée. Saisissez vos données sur les lignes "
+                "suivantes.",
+                Font(italic=True, color="9A8F86"),
+            ),
+        ]
+    if example_name is not None:
+        lines += [
+            ("", None),
+            (
+                f"⚠ EXEMPLE PÉDAGOGIQUE FICTIF — {example_name}. Illustre le format "
+                "et les liens entre onglets ; remplacez son contenu par le vôtre.",
+                Font(bold=True, italic=True, color="B74D5D"),
+            ),
+        ]
     if plan is not None:
         lines += [("", None), (f"Plan : {plan.nom}", Font(italic=True, color="746F6E"))]
     for i, (text, font) in enumerate(lines, start=1):
@@ -367,7 +636,7 @@ def _write_listes(wb) -> dict[str, str]:
     return ranges
 
 
-def _write_actions(wb, plan, code_by_id, ref_code_range, list_ranges) -> None:
+def _write_actions(wb, rows, ref_code_range, list_ranges, hint_row=None) -> None:
     ws = wb.create_sheet("Actions")
     desc = ws.cell(
         row=1,
@@ -395,15 +664,25 @@ def _write_actions(wb, plan, code_by_id, ref_code_range, list_ranges) -> None:
             )
         ws.column_dimensions[get_column_letter(c)].width = width
 
-    # Pré-remplissage : actions existantes du plan (le cas échéant).
-    rows = _extract_actions(plan, code_by_id)
-    for r, row in enumerate(rows, start=_FIRST_DATA_ROW):
+    r = _FIRST_DATA_ROW
+    n_hint = 0
+    if hint_row and not rows:
+        for c, (key, *_rest) in enumerate(_ACTION_COLUMNS, start=1):
+            cell = ws.cell(row=r, column=c, value=hint_row.get(key, ""))
+            cell.alignment = _WRAP_TOP
+            cell.border = _BORDER
+            cell.font = _HINT_FONT
+            cell.fill = _HINT_FILL
+        r += 1
+        n_hint = 1
+    for row in rows:
         for c, (key, *_rest) in enumerate(_ACTION_COLUMNS, start=1):
             cell = ws.cell(row=r, column=c, value=row.get(key, ""))
             cell.alignment = _WRAP_TOP
             cell.border = _BORDER
+        r += 1
 
-    last_row = _HEADER_ROW + max(len(rows), 0) + _BLANK_ROWS
+    last_row = _HEADER_ROW + n_hint + max(len(rows), 0) + _BLANK_ROWS
     for c, (key, header, required, help_text, nomencl, width) in enumerate(
         _ACTION_COLUMNS, start=1
     ):
@@ -492,11 +771,14 @@ def _write_postes_ref(wb, postes, poste_code_by_id) -> str:
     return f"'Postes'!$A${_FIRST_DATA_ROW}:$A${last}"
 
 
-def _write_simple_sheet(wb, name, description, columns, rows, dropdowns=None) -> None:
+def _write_simple_sheet(
+    wb, name, description, columns, rows, dropdowns=None, hint_row=None
+) -> None:
     """Écrit un onglet de saisie « à plat » (Budgets, RH).
 
     ``columns`` : liste de (key, header, required, help, width).
     ``dropdowns`` : {key: (type_or_range)} — 'oui_non' ou une référence de plage.
+    ``hint_row`` : ligne exemple (grisée, jamais importée) si l'onglet est vide.
     """
     dropdowns = dropdowns or {}
     ws = wb.create_sheet(name)
@@ -518,13 +800,25 @@ def _write_simple_sheet(wb, name, description, columns, rows, dropdowns=None) ->
             )
         ws.column_dimensions[get_column_letter(c)].width = width
 
-    for r, row in enumerate(rows, start=_FIRST_DATA_ROW):
+    r = _FIRST_DATA_ROW
+    n_hint = 0
+    if hint_row and not rows:
+        for c, (key, *_rest) in enumerate(columns, start=1):
+            cell = ws.cell(row=r, column=c, value=hint_row.get(key, ""))
+            cell.alignment = _WRAP_TOP
+            cell.border = _BORDER
+            cell.font = _HINT_FONT
+            cell.fill = _HINT_FILL
+        r += 1
+        n_hint = 1
+    for row in rows:
         for c, (key, *_rest) in enumerate(columns, start=1):
             cell = ws.cell(row=r, column=c, value=row.get(key, ""))
             cell.alignment = _WRAP_TOP
             cell.border = _BORDER
+        r += 1
 
-    last_row = _HEADER_ROW + max(len(rows), 0) + _BLANK_ROWS
+    last_row = _HEADER_ROW + n_hint + max(len(rows), 0) + _BLANK_ROWS
     for c, (key, *_rest) in enumerate(columns, start=1):
         spec = dropdowns.get(key)
         if not spec:
@@ -544,8 +838,7 @@ def _write_simple_sheet(wb, name, description, columns, rows, dropdowns=None) ->
     ws.sheet_view.showGridLines = False
 
 
-def _write_budgets(wb, plan) -> None:
-    rows = _extract_budgets(plan)
+def _write_budgets(wb, rows, actions_range, hint_row=None) -> None:
     _write_simple_sheet(
         wb,
         "Budgets",
@@ -553,18 +846,24 @@ def _write_budgets(wb, plan) -> None:
         "investissement).",
         _BUDGET_COLUMNS,
         rows,
+        dropdowns={"action": actions_range},
+        hint_row=hint_row,
     )
 
 
-def _write_rh(wb, plan, poste_code_by_id, poste_code_range) -> None:
-    rows = _extract_rh(plan, poste_code_by_id)
+def _write_rh(wb, rows, poste_code_range, actions_range, hint_row=None) -> None:
     _write_simple_sheet(
         wb,
         "RH",
         "Temps de travail en jours par action, année et poste (#560).",
         _RH_COLUMNS,
         rows,
-        dropdowns={"poste": poste_code_range, "finance": "oui_non"},
+        dropdowns={
+            "action": actions_range,
+            "poste": poste_code_range,
+            "finance": "oui_non",
+        },
+        hint_row=hint_row,
     )
 
 
@@ -687,9 +986,12 @@ def parse_actions_workbook(source) -> dict:
             if _cell_str(value):
                 has_value = True
             record[key] = value
-        if has_value:
-            record["_row"] = r
-            actions.append(record)
+        if not has_value:
+            continue
+        if _is_example_row(record.get("code")):  # ligne exemple du modèle
+            continue
+        record["_row"] = r
+        actions.append(record)
 
     # Référence postes (facultative) : code (col 1) → id_poste (col 4).
     poste_map: dict[str, int] = {}
@@ -737,9 +1039,12 @@ def _parse_flat_sheet(ws, headers_map) -> list[dict]:
             if _cell_str(value):
                 has_value = True
             record[key] = value
-        if has_value:
-            record["_row"] = r
-            rows.append(record)
+        if not has_value:
+            continue
+        if _is_example_row(record.get("action")):  # ligne exemple du modèle
+            continue
+        record["_row"] = r
+        rows.append(record)
     return rows
 
 

@@ -750,6 +750,18 @@ export class AdminService {
   }
 
   /**
+   * Télécharge l'exemple d'arborescence complet (indépendant d'un plan).
+   * GET /api/plans/plans/example-arborescence-xlsx/
+   */
+  downloadArborescenceExample(): Observable<Blob> {
+    return this.http
+      .get(`${this.plansApiUrl}/plans/example-arborescence-xlsx/`, {
+        responseType: 'blob',
+      })
+      .pipe(catchError(this.handleError));
+  }
+
+  /**
    * Valide (sans écrire) un fichier d'import d'arborescence.
    * POST /api/plans/plans/{id}/import-arborescence/validate/
    */
@@ -791,6 +803,18 @@ export class AdminService {
   downloadActionsTemplate(planId: number): Observable<Blob> {
     return this.http
       .get(`${this.plansApiUrl}/plans/${planId}/export-actions-xlsx/`, {
+        responseType: 'blob',
+      })
+      .pipe(catchError(this.handleError));
+  }
+
+  /**
+   * Télécharge l'exemple d'actions complet (indépendant d'un plan).
+   * GET /api/plans/plans/example-actions-xlsx/
+   */
+  downloadActionsExample(): Observable<Blob> {
+    return this.http
+      .get(`${this.plansApiUrl}/plans/example-actions-xlsx/`, {
         responseType: 'blob',
       })
       .pipe(catchError(this.handleError));

@@ -61,6 +61,9 @@ class Column:
     ``nomenclature`` mnémonique du *type* de nomenclature → liste déroulante ;
     ``boolean``   colonne Oui/Non → liste déroulante ;
     ``multi``     cellule multi-valeurs (codes séparés par des virgules) ;
+    ``ref``       clé de l'onglet référencé → liste déroulante des codes de cet
+                  onglet (rattachement, ex : la colonne « enjeux » d'un facteur
+                  propose tous les codes de l'onglet Enjeux) ;
     ``width``     largeur de colonne ;
     ``value``     fonction ``obj -> valeur`` pour le pré-remplissage.
     """
@@ -72,6 +75,7 @@ class Column:
     nomenclature: Optional[str] = None
     boolean: bool = False
     multi: bool = False
+    ref: Optional[str] = None
     width: int = 24
     value: Optional[Callable] = None
 
@@ -399,6 +403,325 @@ def _emit_indicateur(alloc, rows, ind, parent_code: str) -> None:
 # ---------------------------------------------------------------------------
 
 
+EXAMPLE_PLAN_NAME = "Réserve naturelle d'une zone humide (exemple)"
+
+
+def _example_plan_rows() -> "_PlanRows":
+    """Contenu d'exemple, cohérent et complet, illustrant les liens entre onglets.
+
+    Thème fictif : réserve de zone humide tourbeuse. Montre notamment un facteur
+    partagé entre deux enjeux (F1 → E1,E3 ; F3 → E1,E2), les deux branches de
+    l'arborescence, un FCR (OO4 rattaché directement à l'enjeu E4) et des
+    taxons/habitats sur enjeux et indicateurs.
+    """
+    return _PlanRows(
+        enjeux=[
+            {
+                "code": "E1",
+                "categorie": "Enjeu de conservation",
+                "importance": "Priorité 1",
+                "rang": 1,
+                "libelle": "Habitats tourbeux et prairies humides",
+                "intitule_court": "Habitats tourbeux",
+                "categorie_ecologique": "Oui",
+                "types_ecologiques": "Habitat",
+                "etat_enjeu": "État de conservation variable : tourbière active bien conservée, marge en voie d'assèchement.",
+                "description": "Préserver et restaurer les habitats tourbeux et prairies humides de la réserve.",
+            },
+            {
+                "code": "E2",
+                "categorie": "Enjeu de conservation",
+                "importance": "Priorité 1",
+                "rang": 1,
+                "libelle": "Avifaune paludicole nicheuse",
+                "intitule_court": "Avifaune paludicole",
+                "categorie_ecologique": "Oui",
+                "types_ecologiques": "Espèce",
+                "etat_enjeu": "Population de passereaux paludicoles fragile, dépendante des roselières.",
+                "description": "Conserver des populations nicheuses viables d'oiseaux des roselières.",
+            },
+            {
+                "code": "E3",
+                "categorie": "Enjeu de conservation",
+                "importance": "Priorité 2",
+                "rang": 2,
+                "libelle": "Fonctionnalité hydrologique de la zone humide",
+                "intitule_court": "Hydrologie",
+                "categorie_ecologique": "Oui",
+                "types_ecologiques": "Fonctionnalité écosystème",
+                "etat_enjeu": "Alimentation en eau perturbée par d'anciens drainages.",
+                "description": "Restaurer un fonctionnement hydrologique naturel de la zone humide.",
+            },
+            {
+                "code": "E4",
+                "categorie": "Facteur Clé de Réussite",
+                "categorie_fcr": "Ancrage territorial",
+                "importance": "Priorité 2",
+                "rang": 2,
+                "libelle": "Ancrage territorial et adhésion des acteurs",
+                "intitule_court": "Ancrage territorial",
+                "categorie_ecologique": "Non",
+                "types_socioeco": "Usages,Développement durable",
+                "etat_enjeu": "Relations établies avec les communes et exploitants, à consolider.",
+                "description": "Impliquer durablement les acteurs du territoire dans la gestion de la réserve.",
+            },
+        ],
+        facteurs=[
+            {
+                "code": "F1",
+                "libelle": "Gestion des niveaux d'eau",
+                "enjeux": "E1,E3",  # facteur partagé entre deux enjeux (#552)
+                "description": "La maîtrise des niveaux d'eau conditionne à la fois les habitats tourbeux et l'hydrologie.",
+            },
+            {
+                "code": "F2",
+                "libelle": "Fréquentation et dérangement",
+                "enjeux": "E2",
+                "description": "La fréquentation du public peut déranger l'avifaune nicheuse.",
+            },
+            {
+                "code": "F3",
+                "libelle": "Espèces exotiques envahissantes",
+                "enjeux": "E1,E2",  # facteur partagé
+                "description": "La Jussie et l'écrevisse de Californie dégradent habitats et ressources.",
+            },
+        ],
+        pressions=[
+            {
+                "code": "P1",
+                "facteur": "F1",
+                "libelle": "Assèchement estival",
+                "type_pression": "Modifications hydrologiques",
+                "description": "Baisse des niveaux d'eau en été, défavorable aux sphaignes.",
+            },
+            {
+                "code": "P2",
+                "facteur": "F1",
+                "libelle": "Atterrissement et comblement",
+                "type_pression": "Modification des apports en matériel organique dans le milieu",
+                "description": "Accumulation de matière organique et fermeture des milieux ouverts.",
+            },
+            {
+                "code": "P3",
+                "facteur": "F2",
+                "libelle": "Dérangement en période de nidification",
+                "type_pression": "Dérangement des espèces sauvages",
+                "description": "Passages hors sentiers au printemps sur les zones de nidification.",
+            },
+            {
+                "code": "P4",
+                "facteur": "F3",
+                "libelle": "Colonisation par la Jussie",
+                "type_pression": "Introduction ou propagation d'espèces non indigènes-exotiques",
+                "description": "Progression de la Jussie dans les gouilles et fossés.",
+            },
+        ],
+        olt=[
+            {
+                "code": "O1",
+                "enjeu": "E1",
+                "libelle": "Maintenir les habitats tourbeux en bon état de conservation",
+                "description": "Vision à long terme : une tourbière active fonctionnelle.",
+            },
+            {
+                "code": "O2",
+                "enjeu": "E2",
+                "libelle": "Conserver des populations nicheuses viables de passereaux paludicoles",
+                "description": "Des roselières accueillantes et une reproduction régulière.",
+            },
+            {
+                "code": "O3",
+                "enjeu": "E3",
+                "libelle": "Restaurer un régime hydrologique naturel",
+                "description": "Des niveaux d'eau proches du fonctionnement de référence.",
+            },
+        ],
+        ne=[
+            {
+                "code": "N1",
+                "olt": "O1",
+                "libelle": "Au moins 80 % de la surface de tourbière en bon état",
+                "description": "Seuil d'exigence sur l'état de conservation des habitats.",
+            },
+            {
+                "code": "N2",
+                "olt": "O2",
+                "libelle": "Au moins 5 espèces paludicoles nicheuses chaque année",
+                "description": "Diversité minimale attendue de l'avifaune nicheuse.",
+            },
+            {
+                "code": "N3",
+                "olt": "O3",
+                "libelle": "Niveau d'eau estival maintenu au-dessus de -20 cm/sol",
+                "description": "Seuil piézométrique compatible avec les tourbières.",
+            },
+        ],
+        oo=[
+            {
+                "code": "OO1",
+                "pressions": "P1,P2",
+                "libelle": "Restaurer un régime hydraulique favorable",
+                "description": "Agir sur les ouvrages et le règlement d'eau.",
+            },
+            {
+                "code": "OO2",
+                "pressions": "P3",
+                "libelle": "Maîtriser la fréquentation en période sensible",
+                "description": "Canaliser le public et créer des zones de quiétude.",
+            },
+            {
+                "code": "OO3",
+                "pressions": "P4",
+                "libelle": "Contenir la Jussie",
+                "description": "Limiter puis réduire l'emprise de la Jussie.",
+            },
+            {
+                "code": "OO4",
+                "enjeu": "E4",  # FCR : rattaché directement à l'enjeu
+                "libelle": "Animer un comité local de concertation",
+                "description": "Réunir élus, agriculteurs et usagers autour du plan de gestion.",
+            },
+        ],
+        ra=[
+            {
+                "code": "R1",
+                "oo": "OO1",
+                "libelle": "Niveaux d'eau conformes au règlement d'eau",
+                "description": "Les niveaux respectent la consigne saisonnière.",
+            },
+            {
+                "code": "R2",
+                "oo": "OO1",
+                "libelle": "Ouvrages hydrauliques fonctionnels et entretenus",
+                "description": "Vannes et seuils opérationnels toute l'année.",
+            },
+            {
+                "code": "R3",
+                "oo": "OO2",
+                "libelle": "Zones de quiétude respectées au printemps",
+                "description": "Absence de pénétration sur les secteurs sensibles.",
+            },
+            {
+                "code": "R4",
+                "oo": "OO3",
+                "libelle": "Surface de Jussie réduite de 50 %",
+                "description": "Réduction mesurée de l'emprise sur cinq ans.",
+            },
+            {
+                "code": "R5",
+                "oo": "OO4",
+                "libelle": "Un comité de concertation réuni au moins une fois par an",
+                "description": "Gouvernance locale active et régulière.",
+            },
+        ],
+        indicateurs=[
+            {
+                "code": "I1",
+                "parent": "N1",
+                "type": "État",
+                "nom_indicateur": "État de conservation des habitats tourbeux",
+                "description": "Évaluation périodique de l'état des habitats.",
+            },
+            {
+                "code": "I2",
+                "parent": "N2",
+                "type": "État",
+                "nom_indicateur": "Richesse en passereaux paludicoles nicheurs",
+                "description": "Nombre d'espèces paludicoles nicheuses.",
+            },
+            {
+                "code": "I3",
+                "parent": "N3",
+                "type": "État",
+                "nom_indicateur": "Niveau piézométrique estival",
+                "description": "Suivi du niveau de la nappe en été.",
+            },
+            {
+                "code": "I4",
+                "parent": "R1",
+                "type": "Réponse",
+                "nom_indicateur": "Conformité des niveaux d'eau au règlement",
+                "description": "Écart aux consignes du règlement d'eau.",
+            },
+            {
+                "code": "I5",
+                "parent": "R3",
+                "type": "Pression",
+                "nom_indicateur": "Dérangement observé sur les zones de quiétude",
+                "description": "Événements de dérangement recensés au printemps.",
+            },
+            {
+                "code": "I6",
+                "parent": "R4",
+                "type": "Réponse",
+                "nom_indicateur": "Surface colonisée par la Jussie",
+                "description": "Emprise de la Jussie mesurée chaque année.",
+            },
+            {
+                "code": "I7",
+                "parent": "R5",
+                "type": "Réponse",
+                "nom_indicateur": "Nombre de réunions du comité local",
+                "description": "Fréquence des réunions de concertation.",
+            },
+        ],
+        metriques=[
+            {
+                "code": "M1",
+                "indicateur": "I1",
+                "nom_metrique": "Surface en bon état de conservation",
+                "unite": "ha",
+            },
+            {
+                "code": "M2",
+                "indicateur": "I2",
+                "nom_metrique": "Nombre d'espèces paludicoles nicheuses",
+                "unite": "espèces",
+            },
+            {
+                "code": "M3",
+                "indicateur": "I3",
+                "nom_metrique": "Niveau piézométrique moyen estival",
+                "unite": "cm",
+            },
+            {
+                "code": "M4",
+                "indicateur": "I4",
+                "nom_metrique": "Jours hors consigne du règlement d'eau",
+                "unite": "jours",
+            },
+            {
+                "code": "M5",
+                "indicateur": "I5",
+                "nom_metrique": "Événements de dérangement recensés",
+                "unite": "évén./an",
+            },
+            {
+                "code": "M6",
+                "indicateur": "I6",
+                "nom_metrique": "Surface de Jussie",
+                "unite": "m²",
+            },
+            {
+                "code": "M7",
+                "indicateur": "I7",
+                "nom_metrique": "Réunions du comité par an",
+                "unite": "réunions/an",
+            },
+        ],
+        taxons=[
+            {"cible": "E1", "cd_nom": 104398, "nom": "Drosera rotundifolia"},
+            {"cible": "E2", "cd_nom": 2878, "nom": "Circus aeruginosus"},
+            {"cible": "I2", "cd_nom": 4187, "nom": "Acrocephalus schoenobaenus"},
+        ],
+        habitats=[
+            {"cible": "E1", "cd_hab": "7110", "nom": "Tourbières hautes actives"},
+            {"cible": "E1", "cd_hab": "7230", "nom": "Tourbières basses alcalines"},
+            {"cible": "E3", "cd_hab": "3150", "nom": "Lacs eutrophes naturels"},
+        ],
+    )
+
+
 def _build_schema() -> list[Sheet]:
     """Définit les onglets et leurs colonnes (structure du format V1)."""
     return [
@@ -496,6 +819,7 @@ def _build_schema() -> list[Sheet]:
                     "enjeux",
                     required=True,
                     multi=True,
+                    ref="enjeux",
                     width=20,
                     help="Code(s) d'enjeu, séparés par des virgules pour un facteur "
                     "partagé (ex : E1,E3).",
@@ -520,6 +844,7 @@ def _build_schema() -> list[Sheet]:
                     "facteur",
                     "facteur",
                     required=True,
+                    ref="facteurs",
                     width=12,
                     help="Code du facteur parent (ex : F1).",
                 ),
@@ -551,6 +876,7 @@ def _build_schema() -> list[Sheet]:
                     "enjeu",
                     "enjeu",
                     required=True,
+                    ref="enjeux",
                     width=12,
                     help="Code de l'enjeu parent (ex : E1).",
                 ),
@@ -581,6 +907,7 @@ def _build_schema() -> list[Sheet]:
                     "olt",
                     "OLT",
                     required=True,
+                    ref="olt",
                     width=12,
                     help="Code de l'OLT parent (ex : O1).",
                 ),
@@ -606,6 +933,7 @@ def _build_schema() -> list[Sheet]:
                     "pressions",
                     "pressions",
                     multi=True,
+                    ref="pressions",
                     width=20,
                     help="Code(s) de pression, séparés par des virgules (ex : P1,P2). "
                     "Laisser vide si l'OO est rattaché à un FCR.",
@@ -613,6 +941,7 @@ def _build_schema() -> list[Sheet]:
                 Column(
                     "enjeu",
                     "enjeu (FCR)",
+                    ref="enjeux",
                     width=14,
                     help="Code de l'enjeu FCR parent, uniquement pour un OO sans pression.",
                 ),
@@ -643,6 +972,7 @@ def _build_schema() -> list[Sheet]:
                     "oo",
                     "OO",
                     required=True,
+                    ref="oo",
                     width=12,
                     help="Code de l'OO parent (ex : OO1).",
                 ),
@@ -701,6 +1031,7 @@ def _build_schema() -> list[Sheet]:
                     "indicateur",
                     "indicateur",
                     required=True,
+                    ref="indicateurs",
                     width=14,
                     help="Code de l'indicateur parent (ex : I1).",
                 ),
@@ -777,6 +1108,13 @@ _THIN = Side(style="thin", color="D0D0D0")
 _BORDER = Border(left=_THIN, right=_THIN, top=_THIN, bottom=_THIN)
 _WRAP_TOP = Alignment(vertical="top", wrap_text=True)
 
+# Ligne « exemple » du modèle vide : stylée en gris italique, jamais importée.
+_HINT_FONT = Font(name="Calibri", italic=True, color="9A8F86", size=10)
+_HINT_FILL = PatternFill("solid", fgColor="F7F3EE")
+# Marqueur placé dans la 1re colonne (code / cible) de la ligne exemple. Toute
+# ligne dont la 1re colonne commence par ce marqueur est ignorée à l'import.
+_EXAMPLE_MARKER = "(exemple)"
+
 
 # ---------------------------------------------------------------------------
 # Construction du classeur
@@ -802,7 +1140,7 @@ def _load_nomenclature_values() -> dict[str, list[str]]:
     return values
 
 
-def _write_lisez_moi(wb: Workbook, plan) -> None:
+def _write_lisez_moi(wb: Workbook, plan, example_name=None, with_hints=False) -> None:
     ws = wb.create_sheet("Lisez-moi", 0)
     ws.sheet_properties.tabColor = _PRIMARY
     ws.column_dimensions["A"].width = 4
@@ -839,6 +1177,14 @@ def _write_lisez_moi(wb: Workbook, plan) -> None:
             None,
         ),
         (
+            "• Les colonnes de rattachement proposent aussi une liste : le code "
+            "d'un parent se choisit dans la liste des codes de l'onglet concerné "
+            "(ex : la colonne « enjeux » d'un facteur propose tous les enjeux). "
+            "Cette liste se met à jour au fur et à mesure que vous ajoutez des "
+            "lignes dans l'onglet référencé.",
+            None,
+        ),
+        (
             "• Les en-têtes en rouge sont obligatoires ; survolez un en-tête pour "
             "afficher son aide.",
             None,
@@ -869,12 +1215,33 @@ def _write_lisez_moi(wb: Workbook, plan) -> None:
             None,
         ),
     ]
+    if with_hints:
+        lines += [
+            ("", None),
+            (
+                "• La première ligne grisée de chaque onglet est un EXEMPLE (elle "
+                "commence par « (exemple) ») : elle montre quoi écrire et n'est "
+                "jamais importée. Vous pouvez la laisser, la remplacer ou la "
+                "supprimer ; saisissez vos données sur les lignes suivantes.",
+                Font(italic=True, color="9A8F86"),
+            ),
+        ]
     if plan is not None:
         lines += [
             ("", None),
             (
                 f"Ce fichier a été pré-rempli à partir du plan : {plan.nom}",
                 Font(italic=True, color="746F6E"),
+            ),
+        ]
+    if example_name is not None:
+        lines += [
+            ("", None),
+            (
+                f"⚠ EXEMPLE PÉDAGOGIQUE FICTIF — {example_name}. "
+                "Ce fichier illustre le format et les liens entre onglets ; "
+                "remplacez son contenu par le vôtre avant de l'importer.",
+                Font(bold=True, italic=True, color="B74D5D"),
             ),
         ]
 
@@ -929,7 +1296,28 @@ def _write_listes(
 _BLANK_ROWS = 100
 
 
-def _write_sheet(wb: Workbook, sheet: Sheet, plan_rows, list_ranges) -> None:
+def _sheet_code_ranges(schema: list[Sheet], plan_rows) -> dict[str, str]:
+    """Retourne, par clé d'onglet, la plage Excel absolue de sa colonne « code ».
+
+    Sert de source aux listes déroulantes de rattachement (ex : la colonne
+    « enjeux » d'un facteur propose les codes de l'onglet Enjeux). La plage
+    couvre les lignes pré-remplies **et** la zone de saisie vierge, pour que les
+    codes ajoutés par l'utilisateur apparaissent dans les listes.
+    """
+    ranges: dict[str, str] = {}
+    for sheet in schema:
+        data_rows = (
+            sheet.rows(plan_rows) if (plan_rows is not None and sheet.rows) else []
+        )
+        last_row = 2 + max(len(data_rows), 0) + _BLANK_ROWS
+        # La colonne « code » est toujours la première (A), les données à L3.
+        ranges[sheet.key] = f"'{sheet.name}'!$A$3:$A${last_row}"
+    return ranges
+
+
+def _write_sheet(
+    wb: Workbook, sheet: Sheet, plan_rows, list_ranges, code_ranges=None, hint_row=None
+) -> None:
     ws = wb.create_sheet(sheet.name)
 
     # Ligne 1 : description de l'onglet.
@@ -958,29 +1346,61 @@ def _write_sheet(wb: Workbook, sheet: Sheet, plan_rows, list_ranges) -> None:
     # Données (pré-remplissage) ou lignes vierges.
     data_rows = sheet.rows(plan_rows) if (plan_rows is not None and sheet.rows) else []
     first_data = header_row + 1
-    for r, row in enumerate(data_rows, start=first_data):
+    r = first_data
+
+    # Ligne « exemple » (modèle vide uniquement) : stylée à part, jamais importée.
+    n_hint = 0
+    if hint_row and not data_rows:
         for c, col in enumerate(sheet.columns, start=1):
-            value = row.get(col.key, "")
-            cell = ws.cell(row=r, column=c, value=value)
+            cell = ws.cell(row=r, column=c, value=hint_row.get(col.key, ""))
             cell.alignment = _WRAP_TOP
             cell.border = _BORDER
+            cell.font = _HINT_FONT
+            cell.fill = _HINT_FILL
+        r += 1
+        n_hint = 1
+
+    for row in data_rows:
+        for c, col in enumerate(sheet.columns, start=1):
+            cell = ws.cell(row=r, column=c, value=row.get(col.key, ""))
+            cell.alignment = _WRAP_TOP
+            cell.border = _BORDER
+        r += 1
 
     # Validation (listes déroulantes) sur toute la zone de saisie.
-    n_rows = max(len(data_rows), 0) + _BLANK_ROWS
+    n_rows = n_hint + max(len(data_rows), 0) + _BLANK_ROWS
     last_row = header_row + n_rows
+    code_ranges = code_ranges or {}
     for c, col in enumerate(sheet.columns, start=1):
         letter = get_column_letter(c)
         dv = None
+        strict = True  # la liste rejette une valeur hors liste
         if col.boolean:
             dv = DataValidation(type="list", formula1='"Oui,Non"', allow_blank=True)
         elif col.nomenclature and not col.multi:
             ref = list_ranges.get(f"nom:{col.nomenclature}")
             if ref:
                 dv = DataValidation(type="list", formula1=ref, allow_blank=True)
+        elif col.ref:
+            ref = code_ranges.get(col.ref)
+            if ref:
+                dv = DataValidation(type="list", formula1=ref, allow_blank=True)
+                # Colonnes multi-valeurs (E1,E3) : la liste est une aide à la
+                # saisie, elle ne doit pas bloquer une saisie multiple.
+                strict = not col.multi
         if dv is not None:
-            dv.error = "Choisissez une valeur dans la liste proposée."
-            dv.errorTitle = "Valeur non autorisée"
-            dv.prompt = None
+            if strict:
+                dv.error = "Choisissez une valeur dans la liste proposée."
+                dv.errorTitle = "Valeur non autorisée"
+                dv.showErrorMessage = True
+            else:
+                dv.showErrorMessage = False
+                dv.promptTitle = "Rattachement multiple"
+                dv.prompt = (
+                    "Choisissez un code dans la liste, ou saisissez-en plusieurs "
+                    "séparés par des virgules (ex : E1,E3)."
+                )
+                dv.showInputMessage = True
             ws.add_data_validation(dv)
             dv.add(f"{letter}{first_data}:{letter}{last_row}")
 
@@ -991,29 +1411,78 @@ def _write_sheet(wb: Workbook, sheet: Sheet, plan_rows, list_ranges) -> None:
     ws.sheet_view.showGridLines = False
 
 
-def build_arborescence_workbook(plan=None) -> bytes:
-    """Construit le classeur modèle d'import d'arborescence.
+def _example_hint_rows() -> dict[str, dict]:
+    """Une ligne « exemple » par onglet, pour le modèle vide.
 
-    :param plan: si fourni, le classeur est pré-rempli avec l'arborescence du
-        plan ; sinon un modèle vide est produit.
-    :returns: le contenu binaire du fichier ``.xlsx``.
+    Reprend la 1re ligne du contenu d'exemple et remplace la 1re colonne (code
+    ou cible) par le marqueur ``(exemple)``, afin que la ligne soit ignorée à
+    l'import tout en montrant, sur les autres colonnes, ce qu'il faut écrire et
+    comment rattacher (colonnes de rattachement renseignées avec des codes).
+    """
+    example = _example_plan_rows()
+    hints: dict[str, dict] = {}
+    for sheet in _build_schema():
+        rows = sheet.rows(example) if sheet.rows else []
+        if not rows:
+            continue
+        hint = dict(rows[0])
+        hint[sheet.columns[0].key] = _EXAMPLE_MARKER
+        hints[sheet.key] = hint
+    return hints
+
+
+def _render_workbook(
+    plan_rows, plan=None, example_name=None, with_hints=False
+) -> bytes:
+    """Assemble le classeur à partir de lignes déjà extraites (ou ``None``).
+
+    :param plan_rows: un ``_PlanRows`` (pré-rempli/exemple) ou ``None`` (vide).
+    :param plan: plan source, pour la mention de l'onglet « Lisez-moi ».
+    :param example_name: nom d'exemple à mentionner dans « Lisez-moi ».
+    :param with_hints: ajoute une ligne « exemple » (modèle vide uniquement).
     """
     wb = Workbook()
     # Retirer la feuille par défaut ; les onglets sont créés explicitement.
     wb.remove(wb.active)
 
     nomenclature_values = _load_nomenclature_values()
-    plan_rows = _extract_plan(plan) if plan is not None else None
+    schema = _build_schema()
+    code_ranges = _sheet_code_ranges(schema, plan_rows)
+    hints = _example_hint_rows() if with_hints else {}
 
-    _write_lisez_moi(wb, plan)
+    _write_lisez_moi(wb, plan, example_name=example_name, with_hints=with_hints)
     list_ranges = _write_listes(wb, nomenclature_values)
-    for sheet in _build_schema():
-        _write_sheet(wb, sheet, plan_rows, list_ranges)
+    for sheet in schema:
+        _write_sheet(
+            wb, sheet, plan_rows, list_ranges, code_ranges, hints.get(sheet.key)
+        )
 
-    # « Listes » en dernier (déjà masqué) ; placer « Lisez-moi » en tête.
     buffer = io.BytesIO()
     wb.save(buffer)
     return buffer.getvalue()
+
+
+def build_arborescence_workbook(plan=None) -> bytes:
+    """Construit le classeur modèle d'import d'arborescence.
+
+    :param plan: si fourni, le classeur est pré-rempli avec l'arborescence du
+        plan ; sinon un modèle vide (avec ligne exemple) est produit.
+    :returns: le contenu binaire du fichier ``.xlsx``.
+    """
+    plan_rows = _extract_plan(plan) if plan is not None else None
+    return _render_workbook(plan_rows, plan=plan, with_hints=(plan is None))
+
+
+def build_example_workbook() -> bytes:
+    """Construit un classeur **exemple**, entièrement pré-rempli et cohérent.
+
+    Contenu pédagogique fictif (réserve de zone humide) illustrant tous les
+    onglets et surtout les **liens entre onglets** : un facteur partagé entre
+    deux enjeux (#552), les deux branches (état via OLT/NE, pression via
+    Facteur/Pression/OO/RA), un FCR relié directement à un enjeu, des taxons et
+    habitats. Indépendant de la base : sert de référence téléchargeable.
+    """
+    return _render_workbook(_example_plan_rows(), example_name=EXAMPLE_PLAN_NAME)
 
 
 # ===========================================================================
@@ -1075,6 +1544,12 @@ def _cell_str(value) -> str:
     if isinstance(value, float) and value.is_integer():
         return str(int(value))
     return str(value).strip()
+
+
+def _is_example_row(value) -> bool:
+    """Vrai si la 1re colonne porte le marqueur « (exemple) » du modèle vide."""
+    s = _cell_str(value).lower().lstrip("(").strip()
+    return s.startswith("exemple")
 
 
 def _split_multi(value) -> list[str]:
@@ -1228,6 +1703,7 @@ def parse_workbook(source) -> dict[str, list[dict]]:
                     f"« {sheet.name} »."
                 )
 
+        first_key = sheet.columns[0].key  # code (ou cible) : porte le marqueur exemple
         rows: list[dict] = []
         for r, values in enumerate(
             ws.iter_rows(min_row=_FIRST_DATA_ROW, values_only=True),
@@ -1240,9 +1716,13 @@ def parse_workbook(source) -> dict[str, list[dict]]:
                 if _cell_str(value):
                     has_value = True
                 record[key] = value
-            if has_value:
-                record["_row"] = r
-                rows.append(record)
+            if not has_value:
+                continue
+            # Ligne « exemple » du modèle : jamais importée.
+            if _is_example_row(record.get(first_key)):
+                continue
+            record["_row"] = r
+            rows.append(record)
         parsed[sheet.key] = rows
 
     return parsed

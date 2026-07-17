@@ -29,6 +29,7 @@ from .serializers import (
 from .services import PlanDuplicationService
 from .services_import import (
     build_arborescence_workbook,
+    build_example_workbook,
     parse_workbook,
     validate_import,
     execute_import,
@@ -36,6 +37,7 @@ from .services_import import (
 )
 from .services_import_actions import (
     build_actions_workbook,
+    build_actions_example_workbook,
     parse_actions_workbook,
     validate_actions_import,
     execute_actions_import,
@@ -1207,6 +1209,31 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
         result_serializer = PlanGestionDetailSerializer(new_plan)
         return Response(result_serializer.data, status=status.HTTP_201_CREATED)
 
+    @action(detail=False, methods=['get'], url_path='example-arborescence-xlsx',
+            permission_classes=[permissions.IsAuthenticated])
+    def example_arborescence_xlsx(self, request):
+        """
+        Télécharger un exemple complet d'arborescence (indépendant d'un plan).
+
+        GET /api/plans/plans/example-arborescence-xlsx/
+
+        Classeur pédagogique fictif, entièrement rempli, illustrant tous les
+        onglets et les liens entre eux. Sert de référence aux utilisateurs pour
+        comprendre le format avant de remplir le leur.
+        """
+        content = build_example_workbook()
+        filename = 'exemple-arborescence-plan-de-gestion.xlsx'
+        response = HttpResponse(
+            content,
+            content_type=(
+                'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+            ),
+        )
+        response['Content-Disposition'] = (
+            f"attachment; filename*=UTF-8''{_url_quote(filename)}"
+        )
+        return response
+
     @action(detail=True, methods=['get'], url_path='export-arborescence-xlsx')
     def export_arborescence_xlsx(self, request, pk=None):
         """
@@ -1298,6 +1325,31 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
             {'created': counts, 'total': sum(counts.values())},
             status=status.HTTP_201_CREATED,
         )
+
+    @action(detail=False, methods=['get'], url_path='example-actions-xlsx',
+            permission_classes=[permissions.IsAuthenticated])
+    def example_actions_xlsx(self, request):
+        """
+        Télécharger un exemple complet de classeur d'actions (indépendant).
+
+        GET /api/plans/plans/example-actions-xlsx/
+
+        Classeur pédagogique fictif : actions rattachées à des indicateurs de
+        référence, avec budgets et RH renseignés, illustrant les liens entre
+        onglets. À consulter (pas à importer tel quel).
+        """
+        content = build_actions_example_workbook()
+        filename = 'exemple-actions-plan-de-gestion.xlsx'
+        response = HttpResponse(
+            content,
+            content_type=(
+                'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+            ),
+        )
+        response['Content-Disposition'] = (
+            f"attachment; filename*=UTF-8''{_url_quote(filename)}"
+        )
+        return response
 
     @action(detail=True, methods=['get'], url_path='export-actions-xlsx')
     def export_actions_xlsx(self, request, pk=None):
