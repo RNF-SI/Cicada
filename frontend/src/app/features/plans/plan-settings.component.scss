@@ -11,8 +11,14 @@
 .plan-main {
   flex: 1;
   min-width: 0;
-  padding: $spacing-lg $spacing-lg $spacing-xxl 0;
+  padding: $spacing-lg $spacing-xl $spacing-xxl;
   overflow-x: hidden;
+}
+
+// Conteneur du contenu : occupe davantage l'espace horizontal (#577)
+// tout en gardant une longueur de lecture confortable sur très grand écran.
+.settings-content {
+  max-width: 1100px;
 }
 
 .settings-loading {
@@ -59,10 +65,17 @@
   margin: 0;
 }
 
-// ── Sections ──────────────────────────────────────────────────────────
+// ── Sections (cartes kit UI) ──────────────────────────────────────────
 .settings-section {
-  max-width: 760px;
   margin-top: $spacing-lg;
+  padding: $spacing-lg;
+  background-color: $white;
+  border: 1px solid $gray-light;
+  border-radius: $border-radius-lg;
+
+  &.danger-zone {
+    border-left: $border-width-accent solid $error-color;
+  }
 }
 
 .section-title {
@@ -70,7 +83,12 @@
   margin: 0 0 $spacing-sm;
 }
 
-// Version affichée (zone de suppression)
+// Sous-titre juste sous un titre de section : petit rappel d'espacement.
+.section-title + .subtitle {
+  margin-bottom: $spacing-md;
+}
+
+// Version affichée (zone de suppression) — la carte porte déjà le fond blanc.
 .current-version {
   display: flex;
   flex-wrap: wrap;
@@ -79,9 +97,7 @@
   gap: $spacing-sm $spacing-md;
   margin-top: $spacing-md;
   padding: $spacing-md;
-  background-color: $white;
-  border: 1px solid $gray-light;
-  border-left: $border-width-accent solid $error-color;
+  background-color: $beige;
   border-radius: $border-radius-md;
 }
 
@@ -211,10 +227,41 @@
   gap: $spacing-sm;
 }
 
-.import-file-label input[type='file'] {
-  font-family: inherit;
-  font-size: $font-size-base;
-  color: $black;
+// Sélecteur de fichier stylé « kit UI » (#577) : bouton + nom du fichier,
+// l'input natif est masqué (`hidden`).
+.file-picker {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: $spacing-sm $spacing-md;
+
+  &.is-disabled {
+    opacity: 0.6;
+    pointer-events: none;
+  }
+}
+
+.file-picker-btn {
+  display: inline-flex;
+  cursor: pointer;
+  margin: 0;
+
+  i {
+    margin-right: $spacing-xxs;
+  }
+}
+
+.file-picker-name {
+  color: $gray-dark;
+  font-size: $font-size-small;
+  font-style: italic;
+  word-break: break-all;
+
+  &.has-file {
+    color: $black;
+    font-style: normal;
+    font-weight: $font-weight-bold;
+  }
 }
 
 .import-status {

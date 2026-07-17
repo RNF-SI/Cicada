@@ -35,3 +35,10 @@
 - [ ] #575 — Seuils de métrique : saisir 3-4 décimales (ex. 4,111) → s'affiche
       entièrement après enregistrement ; une saisie à 5+ décimales s'enregistre
       (arrondie à 4).
+- [ ] #577 — Design page paramètres du plan de gestion : ouvrir
+      `/plans/:slug/parametres` (menu « Paramètres » de la sidebar, brouillon).
+      Vérifier : le contenu occupe plus de largeur (≈1100px, plus les 760px),
+      chaque section est une carte blanche arrondie avec bordure (danger-zone =
+      bordure gauche rouge) ; les sections d'import affichent un bouton « Choisir
+      un fichier… » (outline kit UI, icône dossier) + le nom du fichier
+      sélectionné (au lieu de l'input natif) ; marges/paddings homogènes.

@@ -2356,6 +2356,8 @@
       "downloadError": "Le téléchargement du modèle a échoué.",
       "draftOnly": "L'import n'est possible que sur un plan en brouillon ne contenant pas encore d'arborescence. Repassez le plan en brouillon ou créez une nouvelle version pour importer.",
       "validating": "Vérification du fichier…",
+      "chooseFile": "Choisir un fichier…",
+      "noFileSelected": "Aucun fichier sélectionné",
       "validateError": "La vérification du fichier a échoué.",
       "readySummary": "Fichier valide : {{enjeux}} enjeu(x), {{indicateurs}} indicateur(s) et {{metriques}} métrique(s) seront créés.",
       "errorsCount": "{{count}} anomalie(s) bloquante(s) à corriger avant l'import.",

@@ -26,6 +26,7 @@
       </div>
     } @else if (plan()) {
       @if (plan(); as p) {
+      <div class="settings-content">
         <!-- En-tête -->
         <div class="settings-header">
           <a [routerLink]="['/plans', p.slug]" class="back-link">
@@ -76,13 +77,23 @@
               </div>
             } @else {
               <div class="import-upload">
-                <label class="import-file-label">
-                  <input
-                    type="file"
-                    accept=".xlsx"
-                    (change)="onImportFileSelected($event)"
-                    [disabled]="importValidating() || importing()" />
-                </label>
+                <div class="file-picker" [class.is-disabled]="importValidating() || importing()">
+                  <label class="file-picker-btn">
+                    <input
+                      type="file"
+                      accept=".xlsx"
+                      (change)="onImportFileSelected($event)"
+                      [disabled]="importValidating() || importing()"
+                      hidden />
+                    <span mat-stroked-button class="file-picker-btn-content">
+                      <i class="fi fi-rr-folder-upload"></i>
+                      {{ 'plans.import.chooseFile' | translate }}
+                    </span>
+                  </label>
+                  <span class="file-picker-name" [class.has-file]="importFile()">
+                    {{ importFile()?.name || ('plans.import.noFileSelected' | translate) }}
+                  </span>
+                </div>
 
                 @if (importValidating()) {
                   <div class="import-status">
@@ -188,13 +199,23 @@
               </div>
             } @else {
               <div class="import-upload">
-                <label class="import-file-label">
-                  <input
-                    type="file"
-                    accept=".xlsx"
-                    (change)="onActionsFileSelected($event)"
-                    [disabled]="actionsValidating() || actionsImporting()" />
-                </label>
+                <div class="file-picker" [class.is-disabled]="actionsValidating() || actionsImporting()">
+                  <label class="file-picker-btn">
+                    <input
+                      type="file"
+                      accept=".xlsx"
+                      (change)="onActionsFileSelected($event)"
+                      [disabled]="actionsValidating() || actionsImporting()"
+                      hidden />
+                    <span mat-stroked-button class="file-picker-btn-content">
+                      <i class="fi fi-rr-folder-upload"></i>
+                      {{ 'plans.import.chooseFile' | translate }}
+                    </span>
+                  </label>
+                  <span class="file-picker-name" [class.has-file]="actionsFile()">
+                    {{ actionsFile()?.name || ('plans.import.noFileSelected' | translate) }}
+                  </span>
+                </div>
 
                 @if (actionsValidating()) {
                   <div class="import-status">
@@ -346,6 +367,7 @@
             </section>
           }
         }
+      </div>
       }
     }
   </main>
