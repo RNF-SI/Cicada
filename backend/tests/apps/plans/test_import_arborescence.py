@@ -343,6 +343,21 @@ def test_validate_oo_without_parent():
     assert any(i["sheet"] == "OO" for i in report.errors)
 
 
+def test_validate_intitule_court_too_long():
+    """L'intitulé court est plafonné à 25 caractères."""
+    user = RoleFactory()
+    _base_nomenclatures()
+    plan = PlanGestionFactory(id_utilisateur_ajout=user)
+    parsed = _valid_parsed()
+    parsed["enjeux"][0]["intitule_court"] = "x" * 26
+    report = validate_import(plan, parsed)
+    assert not report.can_import
+    assert any(
+        i["sheet"] == "Enjeux" and i["column"] == "intitule_court"
+        for i in report.errors
+    )
+
+
 # ---------------------------------------------------------------------------
 # Exécution
 # ---------------------------------------------------------------------------
@@ -485,3 +500,31 @@ def test_validate_bio_unknown_cible():
     assert any(
         i["sheet"] == "Habitats" and i["column"] == "cible" for i in report.errors
     )
+
+
+# ---------------------------------------------------------------------------
+# Types écologiques / socio-éco (colonnes multi-valeurs → booléens de l'enjeu)
+# ---------------------------------------------------------------------------
+
+
+def test_execute_maps_enjeu_type_flags():
+    """Les types écologiques/socio-éco (multi-valeurs) alimentent les booléens."""
+    user = SuperAdminFactory()
+    _base_nomenclatures()
+    plan = PlanGestionFactory(id_utilisateur_ajout=user)
+    parsed = _valid_parsed()
+    parsed["enjeux"][0]["categorie_ecologique"] = "Oui"
+    parsed["enjeux"][0]["types_ecologiques"] = "Habitat,Espèce"
+    parsed["enjeux"][1]["categorie_ecologique"] = "Non"
+    parsed["enjeux"][1]["types_socioeco"] = "Usages,Développement durable"
+
+    execute_import(plan, parsed, user)
+
+    eco = Enjeu.objects.get(id_pg=plan, libelle="Qualité des eaux")
+    assert eco.categorie_ecologique is True
+    assert eco.habitat is True and eco.espece is True
+    assert eco.patrimoine_geologique is False
+
+    socio = Enjeu.objects.get(id_pg=plan, libelle="Ancrage territorial")
+    assert socio.categorie_ecologique is False
+    assert socio.usages is True and socio.developpement_durable is True

@@ -138,13 +138,20 @@ avec ce même rapport dans le corps.
 
 ## Tests
 
-- `backend/tests/apps/plans/test_import_arborescence.py` (19 tests)
-- `backend/tests/apps/plans/test_import_actions.py` (20 tests, dont budgets/RH)
+- `backend/tests/apps/plans/test_import_arborescence.py` (21 tests) — logique
+  arborescence : build, aller-retour, facteur partagé #552, FCR direct, XOR
+  indicateur (état/réponse), taxons/habitats, flags types d'enjeu, validations.
+- `backend/tests/apps/plans/test_import_actions.py` (20 tests) — actions,
+  budgets, RH.
+- `backend/tests/apps/plans/test_import_endpoints.py` (8 tests) — couche HTTP :
+  export (tout statut, MIME), validation multipart, import réel, **verrou
+  brouillon (403 hors draft)**, authentification, fichier manquant.
 - `frontend/src/app/core/services/admin.service.spec.ts` (méthodes d'import)
 
 ```bash
 docker compose exec web pytest tests/apps/plans/test_import_arborescence.py \
-                                tests/apps/plans/test_import_actions.py
+                                tests/apps/plans/test_import_actions.py \
+                                tests/apps/plans/test_import_endpoints.py
 ```
 
 ---
