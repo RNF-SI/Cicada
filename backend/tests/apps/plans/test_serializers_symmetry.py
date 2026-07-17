@@ -68,6 +68,11 @@ class TestSuiviInventaireSerializerSymmetry:
                 # Labels calculés (résolus depuis nomenclature)
                 "bancarisation_label",
                 "outil_saisie_label",
+                # Labels objectif/cible du suivi (#571 — affichés dans la fiche action)
+                "objectif_principal_label",
+                "objectif_secondaire_label",
+                "cibles_principales_label",
+                "cible_secondaire_label",
                 # Audit
                 "date_ajout",
                 "date_maj",
