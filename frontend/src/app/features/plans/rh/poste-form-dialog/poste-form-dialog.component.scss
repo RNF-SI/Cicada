@@ -9,45 +9,8 @@
   padding-top: $spacing-xs;
 }
 
-.form-row {
-  display: flex;
-  gap: $spacing-md;
-
-  > * {
-    flex: 1;
-  }
-}
-
 .rgpd-hint {
   margin: 0;
-}
-
-.fonctions-block {
-  display: flex;
-  flex-direction: column;
-  gap: $spacing-sm;
-
-  .block-label {
-    font-weight: 700;
-    color: $black;
-  }
-
-  .block-help,
-  .empty-hint {
-    margin: 0;
-  }
-}
-
-// Bascule « poste combiné » <-> « quotités explicites ».
-.quotite-actions {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: $spacing-sm;
-
-  .quotite-btn {
-    white-space: nowrap;
-  }
 }
 
 .field-error {
@@ -56,49 +19,12 @@
   font-size: 0.8rem;
 }
 
-.fonction-row {
-  display: flex;
-  align-items: center;
-  gap: $spacing-sm;
-  padding: $spacing-xs $spacing-sm;
-  background: $gray-lighter;
-  border-radius: $border-radius-sm;
+// Bouton « La fonction n'est pas dans la liste – ajouter une nouvelle fonction »
+.add-new-fonction-btn {
+  align-self: flex-start;
 
-  .fonction-name {
-    flex: 1;
-    font-weight: 600;
-  }
-
-  .pourcentage-field {
-    display: flex;
-    align-items: center;
-    gap: 2px;
-
-    input {
-      width: 64px;
-      padding: 4px 6px;
-      border: 1px solid $gray-light;
-      border-radius: $border-radius-sm;
-      text-align: right;
-    }
-
-    .suffix {
-      color: $gray-dark;
-    }
-  }
-}
-
-.add-fonction-row {
-  display: flex;
-  align-items: center;
-  gap: $spacing-sm;
-
-  .fonction-select {
-    flex: 1;
-    padding: 6px 10px;
-    border: 1px solid $gray-light;
-    border-radius: $border-radius-sm;
-    background: $white;
+  i {
+    margin-right: 4px;
   }
 }
 
@@ -116,25 +42,14 @@
 
   .create-btn {
     white-space: nowrap;
-
-    i {
-      margin-right: 4px;
-    }
   }
 }
 
-.icon-btn-flat {
-  border: none;
-  background: transparent;
-  cursor: pointer;
-  color: $gray-dark;
-  padding: 4px;
-  border-radius: $border-radius-sm;
-
-  &:hover {
-    color: $error-color;
-    background: rgba($error-color, 0.08);
-  }
+// Une ligne (organisme) par personne ayant ce type de poste.
+.instances-block {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-sm;
 }
 
 .info-block-error {

@@ -1,15 +1,18 @@
 /**
- * Formulaire de création / édition d'un poste d'un plan de gestion (#560).
+ * Formulaire d'ajout / édition d'un « type de poste » d'un plan de gestion (#560, #579).
  *
- * Aucun champ nominatif (RGPD) : un poste est décrit par ses fonctions, le
- * nombre d'exemplaires (ex. 3 stagiaires), l'ETP TOTAL de l'ensemble et son
- * organisme.
+ * Aucun champ nominatif (RGPD) : un poste est décrit par sa fonction et son
+ * organisme, jamais par la personne qui l'occupe.
  *
- * Deux façons de décrire les fonctions, exclusives l'une de l'autre :
- * - **quotités vides** → poste combiné (« garde animateur » à 1 ETP) : chaque
- *   fonction s'applique à tout le temps du poste ;
- * - **quotités renseignées** → répartition explicite (50 % / 50 %), dont la
- *   somme doit faire 100 %.
+ * Parcours d'ajout (#579) :
+ *   1. Choisir la fonction (menu déroulant unique) ;
+ *   2. si absente, « ajouter une nouvelle fonction » à la volée ;
+ *   3. Nombre de personnes ayant ce type de poste → une ligne par personne
+ *      (« Stagiaire 1 », « Stagiaire 2 »…), chacune avec SON organisme.
+ *
+ * Chaque personne devient un enregistrement `Poste` distinct (`nombre = 1`)
+ * partageant la même fonction : c'est le seul moyen de porter un organisme
+ * par personne sans changer le modèle. L'ETP n'est plus saisi ici (#579).
  */
 import { Component, inject, signal, OnInit, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
@@ -17,8 +20,8 @@ import { FormsModule } from '@angular/forms';
 import { MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatSelectModule } from '@angular/material/select';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
+import { forkJoin } from 'rxjs';
 
 import { FormFieldComponent } from '../../../../shared/components/form-field/form-field.component';
 import { RhService } from '../../../../core/services/rh.service';
@@ -31,11 +34,9 @@ export interface PosteFormDialogData {
   poste: Poste | null;
 }
 
-interface FonctionRow {
-  id_fonction: number;
-  libelle: string;
-  finance_par_defaut: boolean;
-  pourcentage: number | null;
+interface InstanceRow {
+  /** Organisme de cette personne (ex. Stagiaire 1). */
+  id_organisme: number | null;
 }
 
 interface OrganismeOption {
@@ -48,7 +49,7 @@ interface OrganismeOption {
   standalone: true,
   imports: [
     CommonModule, FormsModule, TranslateModule,
-    MatDialogModule, MatButtonModule, MatProgressSpinnerModule, MatSelectModule,
+    MatDialogModule, MatButtonModule, MatProgressSpinnerModule,
     FormFieldComponent,
   ],
   templateUrl: './poste-form-dialog.component.html',
@@ -65,56 +66,40 @@ export class PosteFormDialogComponent implements OnInit {
   isSaving = signal(false);
   errorMessage = signal<string | null>(null);
 
-  // Champs du formulaire
+  // Fonction choisie (une seule par type de poste, #579)
+  selectedFonctionId = signal<number | null>(null);
+
+  // Ajout d'une fonction à la volée
+  showNewFonction = signal(false);
+  newFonctionLibelle = signal<string>('');
+  isCreatingFonction = signal(false);
+
+  // Création : une ligne (organisme) par personne ayant ce type de poste
   nombre = signal<number>(1);
-  etp = signal<number | null>(null);
+  instances = signal<InstanceRow[]>([{ id_organisme: null }]);
+
+  // Édition : un poste unique porte un seul organisme
   idOrganisme = signal<number | null>(null);
-  fonctions = signal<FonctionRow[]>([]);
 
   // Référentiels
   allFonctions = signal<Fonction[]>([]);
   organismes = signal<OrganismeOption[]>([]);
-  selectedFonctionId = signal<number | null>(null);
-  newFonctionLibelle = signal<string>('');
-  isCreatingFonction = signal(false);
 
-  /** Fonctions du référentiel pas encore ajoutées au poste. */
-  availableFonctions = computed<Fonction[]>(() => {
-    const used = new Set(this.fonctions().map((f) => f.id_fonction));
-    return this.allFonctions().filter((f) => !used.has(f.id_fonction));
+  showError = signal(false);
+
+  /** Libellé de la fonction choisie, pour intituler les lignes « Stagiaire 1 »… */
+  selectedFonctionLabel = computed<string>(() => {
+    const id = this.selectedFonctionId();
+    return this.allFonctions().find((f) => f.id_fonction === id)?.libelle ?? '';
   });
 
-  /** Le poste cumule ses fonctions (aucune quotité saisie). */
-  isCombine = computed(() =>
-    this.fonctions().length > 0 && this.fonctions().every((f) => f.pourcentage == null),
-  );
-
-  /** Somme des quotités, pour le contrôle des 100 %. */
-  totalQuotite = computed(() =>
-    this.fonctions().reduce((sum, f) => sum + (f.pourcentage ?? 0), 0),
-  );
-
-  /**
-   * Message d'erreur des fonctions, ou null. Reproduit la règle du backend :
-   * toutes les quotités, ou aucune ; et si quotités, somme = 100.
-   */
-  fonctionsError = computed<string | null>(() => {
-    const rows = this.fonctions();
-    if (rows.length === 0) return this.translate.instant('plans.postes.form.errors.noFonction');
-    const renseignees = rows.filter((f) => f.pourcentage != null);
-    if (renseignees.length === 0) return null;
-    if (renseignees.length !== rows.length) {
-      return this.translate.instant('plans.postes.form.errors.partialQuotite');
-    }
-    if (this.totalQuotite() !== 100) {
-      return this.translate.instant('plans.postes.form.errors.sumQuotite', {
-        total: this.totalQuotite(),
-      });
+  /** Erreur de formulaire, ou null. Une fonction est obligatoire. */
+  formError = computed<string | null>(() => {
+    if (this.selectedFonctionId() == null) {
+      return this.translate.instant('plans.postes.form.errors.noFonctionSelected');
     }
     return null;
   });
-
-  showFonctionsError = signal(false);
 
   ngOnInit(): void {
     this.rhService.loadFonctions().subscribe((list) => this.allFonctions.set(list));
@@ -122,18 +107,10 @@ export class PosteFormDialogComponent implements OnInit {
 
     const p = this.data.poste;
     if (p) {
-      this.nombre.set(p.nombre ?? 1);
-      this.etp.set(p.etp != null && p.etp !== '' ? Number(p.etp) : null);
+      // Édition : on repart sur une fonction unique (la première du poste).
+      this.selectedFonctionId.set(p.fonctions?.[0]?.id_fonction ?? null);
       this.idOrganisme.set(p.id_organisme ?? null);
-      this.fonctions.set(
-        (p.fonctions || []).map((f) => ({
-          id_fonction: f.id_fonction,
-          libelle: f.fonction_libelle || '',
-          finance_par_defaut: f.finance_par_defaut ?? true,
-          pourcentage:
-            f.pourcentage != null && f.pourcentage !== '' ? Number(f.pourcentage) : null,
-        })),
-      );
+      this.nombre.set(p.nombre ?? 1);
     }
   }
 
@@ -161,56 +138,39 @@ export class PosteFormDialogComponent implements OnInit {
     });
   }
 
-  addFonction(): void {
-    const id = this.selectedFonctionId();
-    if (id == null) return;
-    const f = this.allFonctions().find((x) => x.id_fonction === id);
-    if (!f) return;
-    this.fonctions.update((rows) => [
-      ...rows,
-      {
-        id_fonction: f.id_fonction,
-        libelle: f.libelle,
-        finance_par_defaut: f.finance_par_defaut,
-        pourcentage: null,
-      },
-    ]);
-    this.selectedFonctionId.set(null);
+  /** Intitulé d'une ligne personne : « Stagiaire 1 », « Stagiaire 2 »… */
+  instanceLabel(index: number): string {
+    const fonction =
+      this.selectedFonctionLabel() ||
+      this.translate.instant('plans.postes.form.instanceGeneric');
+    return this.translate.instant('plans.postes.form.instanceLabel', {
+      fonction,
+      index: index + 1,
+    });
   }
 
-  removeFonction(id: number): void {
-    this.fonctions.update((rows) => rows.filter((r) => r.id_fonction !== id));
+  /** Ajuste le nombre de lignes personnes en préservant les organismes déjà saisis. */
+  setNombre(value: number | string): void {
+    const n = Math.max(1, Math.floor(Number(value) || 1));
+    this.nombre.set(n);
+    this.instances.update((rows) => {
+      const next = rows.slice(0, n);
+      while (next.length < n) next.push({ id_organisme: null });
+      return next;
+    });
   }
 
-  setPourcentage(id: number, value: string): void {
-    const num = value === '' ? null : Number(value);
-    this.fonctions.update((rows) =>
-      rows.map((r) => (r.id_fonction === id ? { ...r, pourcentage: num } : r)),
+  setInstanceOrganisme(index: number, value: number | null): void {
+    this.instances.update((rows) =>
+      rows.map((r, i) => (i === index ? { ...r, id_organisme: value } : r)),
     );
   }
 
-  /** Répartit les quotités à parts égales entre les fonctions du poste. */
-  repartirQuotites(): void {
-    const rows = this.fonctions();
-    if (rows.length === 0) return;
-    const part = Math.round((100 / rows.length) * 100) / 100;
-    this.fonctions.set(
-      rows.map((r, i) => ({
-        ...r,
-        // La dernière absorbe l'arrondi pour que la somme fasse exactement 100.
-        pourcentage: i === rows.length - 1
-          ? Math.round((100 - part * (rows.length - 1)) * 100) / 100
-          : part,
-      })),
-    );
+  toggleNewFonction(): void {
+    this.showNewFonction.update((v) => !v);
   }
 
-  /** Repasse le poste en « cumul de fonctions » (aucune quotité). */
-  effacerQuotites(): void {
-    this.fonctions.update((rows) => rows.map((r) => ({ ...r, pourcentage: null })));
-  }
-
-  /** Crée une fonction à la volée et l'ajoute directement au poste. */
+  /** Crée une fonction à la volée et la sélectionne directement. */
   createFonction(): void {
     const libelle = this.newFonctionLibelle().trim();
     if (!libelle || this.isCreatingFonction()) return;
@@ -222,18 +182,9 @@ export class PosteFormDialogComponent implements OnInit {
             [...list, f].sort((a, b) => a.libelle.localeCompare(b.libelle)),
           );
         }
-        if (!this.fonctions().some((r) => r.id_fonction === f.id_fonction)) {
-          this.fonctions.update((rows) => [
-            ...rows,
-            {
-              id_fonction: f.id_fonction,
-              libelle: f.libelle,
-              finance_par_defaut: f.finance_par_defaut,
-              pourcentage: null,
-            },
-          ]);
-        }
+        this.selectedFonctionId.set(f.id_fonction);
         this.newFonctionLibelle.set('');
+        this.showNewFonction.set(false);
         this.isCreatingFonction.set(false);
       },
       error: () => this.isCreatingFonction.set(false),
@@ -241,31 +192,44 @@ export class PosteFormDialogComponent implements OnInit {
   }
 
   save(): void {
-    if (this.fonctionsError()) {
-      this.showFonctionsError.set(true);
+    if (this.formError()) {
+      this.showError.set(true);
       return;
     }
-    this.showFonctionsError.set(false);
+    this.showError.set(false);
     this.isSaving.set(true);
     this.errorMessage.set(null);
 
-    const payload: PostePayload = {
-      id_pg: this.data.planId,
-      id_organisme: this.idOrganisme() ?? null,
-      nombre: this.nombre() || 1,
-      etp: this.etp(),
-      fonctions: this.fonctions().map((f) => ({
-        id_fonction: f.id_fonction,
-        pourcentage: f.pourcentage,
-      })),
-    };
+    const fonctions = [{ id_fonction: this.selectedFonctionId()!, pourcentage: null }];
 
-    const request$ = this.isEdit
-      ? this.rhService.updatePoste(this.data.poste!.id_poste!, payload)
-      : this.rhService.createPoste(payload);
+    if (this.isEdit) {
+      const payload: Partial<PostePayload> = {
+        id_pg: this.data.planId,
+        id_organisme: this.idOrganisme() ?? null,
+        nombre: this.data.poste!.nombre || 1,
+        fonctions,
+      };
+      this.rhService.updatePoste(this.data.poste!.id_poste!, payload).subscribe({
+        next: (poste) => this.dialogRef.close(poste),
+        error: () => {
+          this.errorMessage.set('error');
+          this.isSaving.set(false);
+        },
+      });
+      return;
+    }
 
-    request$.subscribe({
-      next: (poste) => this.dialogRef.close(poste),
+    // Création : un poste (nombre = 1) par personne, chacun avec son organisme.
+    const requests = this.instances().map((inst) =>
+      this.rhService.createPoste({
+        id_pg: this.data.planId,
+        id_organisme: inst.id_organisme ?? null,
+        nombre: 1,
+        fonctions,
+      }),
+    );
+    forkJoin(requests).subscribe({
+      next: (postes) => this.dialogRef.close(postes),
       error: () => {
         this.errorMessage.set('error');
         this.isSaving.set(false);

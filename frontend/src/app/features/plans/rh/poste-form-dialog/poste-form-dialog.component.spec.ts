@@ -1,9 +1,9 @@
 /**
- * Tests du formulaire de poste (#560).
+ * Tests du formulaire « type de poste » (#560, #579).
  *
- * L'essentiel porte sur la règle des quotités, qui double celle du backend
- * (`PosteWriteSerializer.validate_fonctions`) : toutes les quotités, ou
- * aucune ; et si quotités, la somme doit faire 100 %.
+ * Depuis #579 : une fonction unique par type de poste, N personnes → N
+ * enregistrements `Poste` (nombre = 1), un organisme par personne, aucun ETP
+ * saisi ici. Aucune donnée nominative (RGPD).
  */
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
@@ -19,7 +19,7 @@ import { Fonction, Poste } from '../../../../core/models/rh.model';
 const FONCTIONS: Fonction[] = [
   { id_fonction: 1, libelle: 'Garde-technicien', finance_par_defaut: true },
   { id_fonction: 2, libelle: 'Animateur nature', finance_par_defaut: true },
-  { id_fonction: 3, libelle: 'Bénévole', finance_par_defaut: false },
+  { id_fonction: 3, libelle: 'Stagiaire', finance_par_defaut: false },
 ];
 
 const PLAN = {
@@ -40,7 +40,7 @@ describe('PosteFormDialogComponent', () => {
     rhService = {
       loadFonctions: jest.fn().mockReturnValue(of(FONCTIONS)),
       createFonction: jest.fn(),
-      createPoste: jest.fn().mockReturnValue(of({ id_poste: 99 })),
+      createPoste: jest.fn().mockImplementation((p: any) => of({ id_poste: 90 + (p.id_organisme ?? 0) })),
       updatePoste: jest.fn().mockReturnValue(of({ id_poste: 42 })),
     } as any;
     dialogRef = { close: jest.fn() };
@@ -64,11 +64,6 @@ describe('PosteFormDialogComponent', () => {
     fixture.detectChanges();
   }
 
-  function addFonction(id: number) {
-    comp.selectedFonctionId.set(id);
-    comp.addFonction();
-  }
-
   it('charge le référentiel des fonctions et les organismes des sites du plan', async () => {
     await setup();
     expect(comp.allFonctions()).toHaveLength(3);
@@ -76,128 +71,113 @@ describe('PosteFormDialogComponent', () => {
     expect(comp.organismes().map((o) => o.nom_organisme)).toEqual(['CEN AURA', 'RNF']);
   });
 
-  it('ne propose plus une fonction déjà ajoutée au poste', async () => {
+  it('démarre avec une seule ligne personne', async () => {
     await setup();
-    addFonction(1);
-    expect(comp.availableFonctions().map((f) => f.id_fonction)).toEqual([2, 3]);
+    expect(comp.instances()).toHaveLength(1);
+    expect(comp.selectedFonctionId()).toBeNull();
   });
 
-  it('sans quotité, le poste est combiné (garde animateur à 1 ETP)', async () => {
+  it('setNombre ajoute des lignes personnes en préservant les organismes saisis', async () => {
     await setup();
-    addFonction(1);
-    addFonction(2);
-    expect(comp.isCombine()).toBe(true);
-    expect(comp.fonctionsError()).toBeNull();
+    comp.setInstanceOrganisme(0, 5);
+    comp.setNombre(3);
+    expect(comp.instances()).toHaveLength(3);
+    expect(comp.instances()[0].id_organisme).toBe(5); // préservé
+    expect(comp.instances()[1].id_organisme).toBeNull();
   });
 
-  it('refuse des quotités partielles (toutes ou aucune)', async () => {
+  it('setNombre réduit le nombre de lignes (et jamais sous 1)', async () => {
     await setup();
-    addFonction(1);
-    addFonction(2);
-    comp.setPourcentage(1, '50');
-    expect(comp.isCombine()).toBe(false);
-    expect(comp.fonctionsError()).toBe('plans.postes.form.errors.partialQuotite');
+    comp.setNombre(4);
+    comp.setNombre(2);
+    expect(comp.instances()).toHaveLength(2);
+    comp.setNombre(0);
+    expect(comp.instances()).toHaveLength(1);
+    expect(comp.nombre()).toBe(1);
   });
 
-  it('refuse une somme de quotités différente de 100', async () => {
+  it('formError signale une fonction manquante', async () => {
     await setup();
-    addFonction(1);
-    addFonction(2);
-    comp.setPourcentage(1, '50');
-    comp.setPourcentage(2, '30');
-    expect(comp.totalQuotite()).toBe(80);
-    expect(comp.fonctionsError()).toBe('plans.postes.form.errors.sumQuotite');
+    expect(comp.formError()).toBe('plans.postes.form.errors.noFonctionSelected');
+    comp.selectedFonctionId.set(3);
+    expect(comp.formError()).toBeNull();
   });
 
-  it('accepte 50 / 50', async () => {
+  it('createFonction ajoute la fonction, la sélectionne et referme le champ', async () => {
     await setup();
-    addFonction(1);
-    addFonction(2);
-    comp.setPourcentage(1, '50');
-    comp.setPourcentage(2, '50');
-    expect(comp.fonctionsError()).toBeNull();
+    (rhService.createFonction as jest.Mock).mockReturnValue(
+      of({ id_fonction: 9, libelle: 'Bénévole', finance_par_defaut: false }),
+    );
+    comp.toggleNewFonction();
+    expect(comp.showNewFonction()).toBe(true);
+    comp.newFonctionLibelle.set('Bénévole');
+    comp.createFonction();
+    expect(comp.allFonctions().some((f) => f.id_fonction === 9)).toBe(true);
+    expect(comp.selectedFonctionId()).toBe(9);
+    expect(comp.showNewFonction()).toBe(false);
   });
 
-  it('refuse un poste sans fonction', async () => {
+  it('save() bloque et affiche l’erreur quand aucune fonction n’est choisie', async () => {
     await setup();
-    expect(comp.fonctionsError()).toBe('plans.postes.form.errors.noFonction');
-  });
-
-  it('repartirQuotites répartit à parts égales et la somme fait exactement 100', async () => {
-    await setup();
-    addFonction(1);
-    addFonction(2);
-    addFonction(3);
-    comp.repartirQuotites();
-    // 3 fonctions : 33,33 / 33,33 / 33,34 — la dernière absorbe l'arrondi.
-    expect(comp.totalQuotite()).toBe(100);
-    expect(comp.fonctionsError()).toBeNull();
-  });
-
-  it('effacerQuotites repasse le poste en cumul de fonctions', async () => {
-    await setup();
-    addFonction(1);
-    addFonction(2);
-    comp.repartirQuotites();
-    expect(comp.isCombine()).toBe(false);
-    comp.effacerQuotites();
-    expect(comp.isCombine()).toBe(true);
-    expect(comp.fonctionsError()).toBeNull();
-  });
-
-  it('setPourcentage avec une chaîne vide remet la quotité à null', async () => {
-    await setup();
-    addFonction(1);
-    comp.setPourcentage(1, '100');
-    comp.setPourcentage(1, '');
-    expect(comp.isCombine()).toBe(true);
-  });
-
-  it('save() bloque et affiche l’erreur quand les quotités sont invalides', async () => {
-    await setup();
-    addFonction(1);
-    addFonction(2);
-    comp.setPourcentage(1, '50');
     comp.save();
-    expect(comp.showFonctionsError()).toBe(true);
+    expect(comp.showError()).toBe(true);
     expect(rhService.createPoste).not.toHaveBeenCalled();
   });
 
-  it('save() envoie le nombre, l’ETP total et les fonctions, sans aucun nom (RGPD)', async () => {
+  it('save() crée un poste (nombre = 1) par personne, chacun avec son organisme, sans ETP ni nom (RGPD)', async () => {
     await setup();
-    addFonction(1);
-    comp.nombre.set(3);
-    comp.etp.set(1.5);
-    comp.idOrganisme.set(5);
+    comp.selectedFonctionId.set(3);
+    comp.setNombre(2);
+    comp.setInstanceOrganisme(0, 5);
+    comp.setInstanceOrganisme(1, 10);
     comp.save();
 
-    expect(rhService.createPoste).toHaveBeenCalledWith({
+    expect(rhService.createPoste).toHaveBeenCalledTimes(2);
+    expect(rhService.createPoste).toHaveBeenNthCalledWith(1, {
       id_pg: 7,
       id_organisme: 5,
-      nombre: 3,
-      etp: 1.5,
-      fonctions: [{ id_fonction: 1, pourcentage: null }],
+      nombre: 1,
+      fonctions: [{ id_fonction: 3, pourcentage: null }],
     });
-    expect(dialogRef.close).toHaveBeenCalledWith({ id_poste: 99 });
+    expect(rhService.createPoste).toHaveBeenNthCalledWith(2, {
+      id_pg: 7,
+      id_organisme: 10,
+      nombre: 1,
+      fonctions: [{ id_fonction: 3, pourcentage: null }],
+    });
+    // Aucun champ etp dans le payload (#579).
+    expect((rhService.createPoste as jest.Mock).mock.calls[0][0]).not.toHaveProperty('etp');
+    expect(dialogRef.close).toHaveBeenCalled();
   });
 
   it('save() sans organisme envoie null', async () => {
     await setup();
-    addFonction(1);
+    comp.selectedFonctionId.set(1);
     comp.save();
     expect(rhService.createPoste).toHaveBeenCalledWith(
-      expect.objectContaining({ id_organisme: null, nombre: 1, etp: null }),
+      expect.objectContaining({ id_organisme: null, nombre: 1 }),
     );
   });
 
   it('save() en erreur ne ferme pas la modale et relâche le bouton', async () => {
     await setup();
     (rhService.createPoste as jest.Mock).mockReturnValue(throwError(() => new Error('boom')));
-    addFonction(1);
+    comp.selectedFonctionId.set(1);
     comp.save();
     expect(dialogRef.close).not.toHaveBeenCalled();
     expect(comp.isSaving()).toBe(false);
     expect(comp.errorMessage()).not.toBeNull();
+  });
+
+  it('instanceLabel intitule les lignes avec la fonction choisie', async () => {
+    await setup();
+    comp.selectedFonctionId.set(3);
+    comp.instanceLabel(0);
+    const translate = TestBed.inject(TranslateService);
+    expect(translate.instant).toHaveBeenCalledWith(
+      'plans.postes.form.instanceLabel',
+      { fonction: 'Stagiaire', index: 1 },
+    );
   });
 
   describe('édition', () => {
@@ -205,28 +185,31 @@ describe('PosteFormDialogComponent', () => {
       id_poste: 42,
       id_pg: 7,
       id_organisme: 10,
-      nombre: 3,
+      nombre: 1,
       etp: '1.50',
       fonctions: [
-        { id_fonction: 1, fonction_libelle: 'Garde-technicien', finance_par_defaut: true, pourcentage: '50.00' },
-        { id_fonction: 2, fonction_libelle: 'Animateur nature', finance_par_defaut: true, pourcentage: '50.00' },
+        { id_fonction: 1, fonction_libelle: 'Garde-technicien', finance_par_defaut: true, pourcentage: null },
       ],
     } as Poste;
 
     it('hydrate le formulaire depuis le poste existant', async () => {
       await setup({ poste: POSTE });
       expect(comp.isEdit).toBe(true);
-      expect(comp.nombre()).toBe(3);
-      expect(comp.etp()).toBe(1.5);
+      expect(comp.selectedFonctionId()).toBe(1);
       expect(comp.idOrganisme()).toBe(10);
-      expect(comp.totalQuotite()).toBe(100);
-      expect(comp.fonctionsError()).toBeNull();
     });
 
-    it('save() appelle updatePoste sur l’identifiant du poste', async () => {
+    it('save() appelle updatePoste avec la fonction et l’organisme, sans créer de poste', async () => {
       await setup({ poste: POSTE });
+      comp.idOrganisme.set(5);
       comp.save();
-      expect(rhService.updatePoste).toHaveBeenCalledWith(42, expect.objectContaining({ nombre: 3 }));
+      expect(rhService.updatePoste).toHaveBeenCalledWith(
+        42,
+        expect.objectContaining({
+          id_organisme: 5,
+          fonctions: [{ id_fonction: 1, pourcentage: null }],
+        }),
+      );
       expect(rhService.createPoste).not.toHaveBeenCalled();
     });
   });

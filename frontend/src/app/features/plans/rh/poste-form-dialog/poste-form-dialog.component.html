@@ -5,99 +5,27 @@
 <mat-dialog-content class="poste-form">
   <p class="text-mention rgpd-hint">{{ 'plans.postes.form.rgpdHint' | translate }}</p>
 
-  <div class="form-row">
-    <app-form-field
-      [label]="'plans.postes.form.nombre' | translate"
-      [helpText]="'plans.postes.form.nombreHelp' | translate">
-      <input type="number" min="1" step="1"
-             [ngModel]="nombre()" (ngModelChange)="nombre.set($event)" />
-    </app-form-field>
-    <app-form-field
-      [label]="'plans.postes.form.etp' | translate"
-      [helpText]="'plans.postes.form.etpHelp' | translate:{ count: nombre() }"
-      suffix="ETP">
-      <input type="number" min="0" step="0.01"
-             [ngModel]="etp()" (ngModelChange)="etp.set($event)" />
-    </app-form-field>
-  </div>
-
-  <app-form-field [label]="'plans.postes.form.organisme' | translate">
-    <select [ngModel]="idOrganisme()" (ngModelChange)="idOrganisme.set($event)">
-      <option [ngValue]="null">—</option>
-      @for (o of organismes(); track o.id_organisme) {
-        <option [ngValue]="o.id_organisme">{{ o.nom_organisme }}</option>
+  <!-- 1. Choisir la fonction -->
+  <app-form-field [label]="'plans.postes.form.selectFonctionLabel' | translate" [required]="true">
+    <select [ngModel]="selectedFonctionId()" (ngModelChange)="selectedFonctionId.set($event)">
+      <option [ngValue]="null">{{ 'plans.postes.form.selectFonction' | translate }}</option>
+      @for (f of allFonctions(); track f.id_fonction) {
+        <option [ngValue]="f.id_fonction">{{ f.libelle }}</option>
       }
     </select>
   </app-form-field>
 
-  <!-- Fonctions du poste -->
-  <div class="fonctions-block">
-    <label class="block-label">{{ 'plans.postes.form.fonctions' | translate }}</label>
-    <p class="text-mention block-help">{{ 'plans.postes.form.fonctionsHelp' | translate }}</p>
+  @if (showError() && formError()) {
+    <p class="field-error">{{ formError() }}</p>
+  }
 
-    @if (fonctions().length === 0) {
-      <p class="text-mention empty-hint">{{ 'plans.postes.form.noFonction' | translate }}</p>
-    }
-
-    @for (row of fonctions(); track row.id_fonction) {
-      <div class="fonction-row">
-        <span class="fonction-name">{{ row.libelle }}</span>
-        <div class="pourcentage-field">
-          <input
-            type="number" min="0" max="100" step="1"
-            [ngModel]="row.pourcentage"
-            (ngModelChange)="setPourcentage(row.id_fonction, $event)"
-            [placeholder]="'plans.postes.form.quotite' | translate" />
-          <span class="suffix">%</span>
-        </div>
-        <button type="button" class="icon-btn-flat" (click)="removeFonction(row.id_fonction)"
-                [title]="'common.actions.delete' | translate">
-          <i class="fi fi-rr-trash"></i>
-        </button>
-      </div>
-    }
-
-    @if (fonctions().length > 1) {
-      <div class="quotite-actions">
-        @if (isCombine()) {
-          <span class="text-mention">{{ 'plans.postes.form.combineHint' | translate }}</span>
-          <button type="button" mat-button class="quotite-btn" (click)="repartirQuotites()">
-            {{ 'plans.postes.form.splitQuotites' | translate }}
-          </button>
-        } @else {
-          <span class="text-mention"
-                [class.text-error]="totalQuotite() !== 100">
-            {{ 'plans.postes.form.totalQuotite' | translate:{ total: totalQuotite() } }}
-          </span>
-          <button type="button" mat-button class="quotite-btn" (click)="effacerQuotites()">
-            {{ 'plans.postes.form.clearQuotites' | translate }}
-          </button>
-        }
-      </div>
-    }
-
-    @if (showFonctionsError() && fonctionsError()) {
-      <p class="field-error">{{ fonctionsError() }}</p>
-    }
-
-    <!-- Ajouter une fonction existante -->
-    <div class="add-fonction-row">
-      <mat-select
-        class="fonction-select"
-        [value]="selectedFonctionId()"
-        (valueChange)="selectedFonctionId.set($event)"
-        [placeholder]="'plans.postes.form.selectFonction' | translate">
-        @for (f of availableFonctions(); track f.id_fonction) {
-          <mat-option [value]="f.id_fonction">{{ f.libelle }}</mat-option>
-        }
-      </mat-select>
-      <button type="button" mat-stroked-button
-              [disabled]="selectedFonctionId() == null" (click)="addFonction()">
-        {{ 'common.actions.add' | translate }}
-      </button>
-    </div>
-
-    <!-- Créer une fonction à la volée -->
+  <!-- 2. La fonction n'est pas dans la liste → en ajouter une -->
+  @if (!showNewFonction()) {
+    <button type="button" mat-button class="add-new-fonction-btn" (click)="toggleNewFonction()">
+      <i class="fi fi-rr-plus"></i>
+      {{ 'plans.postes.form.addNewFonctionToggle' | translate }}
+    </button>
+  } @else {
     <div class="create-fonction-row">
       <input
         type="text"
@@ -105,14 +33,51 @@
         (ngModelChange)="newFonctionLibelle.set($event)"
         (keyup.enter)="createFonction()"
         [placeholder]="'plans.postes.form.newFonctionPlaceholder' | translate" />
-      <button type="button" mat-button class="create-btn"
+      <button type="button" mat-flat-button color="primary" class="create-btn"
               [disabled]="!newFonctionLibelle().trim() || isCreatingFonction()"
               (click)="createFonction()">
-        <i class="fi fi-rr-plus"></i>
         {{ 'plans.postes.form.createFonction' | translate }}
       </button>
+      <button type="button" mat-button (click)="toggleNewFonction()">
+        {{ 'common.actions.cancel' | translate }}
+      </button>
     </div>
-  </div>
+  }
+
+  @if (isEdit) {
+    <!-- Édition : un poste unique porte un seul organisme -->
+    <app-form-field [label]="'plans.postes.form.organisme' | translate">
+      <select [ngModel]="idOrganisme()" (ngModelChange)="idOrganisme.set($event)">
+        <option [ngValue]="null">—</option>
+        @for (o of organismes(); track o.id_organisme) {
+          <option [ngValue]="o.id_organisme">{{ o.nom_organisme }}</option>
+        }
+      </select>
+    </app-form-field>
+  } @else {
+    <!-- 3. Nombre de personnes ayant ce type de poste -->
+    <app-form-field
+      [label]="'plans.postes.form.nombrePersonnes' | translate"
+      [helpText]="'plans.postes.form.nombrePersonnesHelp' | translate">
+      <input type="number" min="1" step="1"
+             [ngModel]="nombre()" (ngModelChange)="setNombre($event)" />
+    </app-form-field>
+
+    <!-- 4. Une ligne par personne : choix de l'organisme -->
+    <div class="instances-block">
+      @for (inst of instances(); track $index) {
+        <app-form-field [label]="instanceLabel($index)">
+          <select [ngModel]="inst.id_organisme"
+                  (ngModelChange)="setInstanceOrganisme($index, $event)">
+            <option [ngValue]="null">—</option>
+            @for (o of organismes(); track o.id_organisme) {
+              <option [ngValue]="o.id_organisme">{{ o.nom_organisme }}</option>
+            }
+          </select>
+        </app-form-field>
+      }
+    </div>
+  }
 
   @if (errorMessage()) {
     <div class="info-block info-block-error">
