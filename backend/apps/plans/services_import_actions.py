@@ -615,6 +615,7 @@ def _write_indicateurs_ref(wb, indicateurs, code_by_id) -> str:
             ws.cell(row=r, column=c).alignment = _WRAP_TOP
     ws.freeze_panes = f"A{_FIRST_DATA_ROW}"
     ws.sheet_view.showGridLines = False
+    ws.protection.sheet = True  # onglet de référence : non modifiable
     last = max(len(indicateurs) + _HEADER_ROW, _HEADER_ROW + 1)
     return f"'Indicateurs'!$A${_FIRST_DATA_ROW}:$A${last}"
 
@@ -633,6 +634,7 @@ def _write_listes(wb) -> dict[str, str]:
             ranges[type_mnemo] = f"'Listes'!${letter}$2:${letter}${len(labels) + 1}"
         ws.column_dimensions[letter].width = 28
     ws.sheet_state = "hidden"
+    ws.protection.sheet = True  # onglet de référence : non modifiable
     return ranges
 
 
@@ -767,6 +769,7 @@ def _write_postes_ref(wb, postes, poste_code_by_id) -> str:
             ws.cell(row=r, column=c).alignment = _WRAP_TOP
     ws.freeze_panes = f"A{_FIRST_DATA_ROW}"
     ws.sheet_view.showGridLines = False
+    ws.protection.sheet = True  # onglet de référence : non modifiable
     last = max(len(postes) + _HEADER_ROW, _HEADER_ROW + 1)
     return f"'Postes'!$A${_FIRST_DATA_ROW}:$A${last}"
 

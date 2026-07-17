@@ -42,6 +42,15 @@ Frontend : section « Import / export » de la page **Paramètres du plan**
 - **Exemples complets téléchargeables** : deux classeurs pédagogiques fictifs et
   entièrement remplis (arborescence et actions) illustrent tous les onglets et
   leurs liens. Indépendants d'un plan, accessibles via un bouton dédié.
+- **Onglets de référence non modifiables** : dans le classeur d'actions, les
+  onglets `Indicateurs`, `Postes` et `Listes` sont protégés (lecture seule) pour
+  éviter de corrompre les identifiants techniques.
+- **Validation des taxons / habitats contre les référentiels** : `cd_nom` est
+  vérifié dans TaxRef et `cd_hab` dans HabRef. Si le code est absent mais le
+  **nom** est renseigné (ou, pour un habitat, le **code typologique** type
+  « 7110 »), le bon code est **retrouvé automatiquement** et signalé par un
+  avertissement ; un code introuvable ou ambigu est une erreur. La validation
+  est neutralisée si le référentiel n'est pas chargé en base.
 - L'import est **en création seule** : il refuse un plan qui contient déjà une
   arborescence (module 1) ou déjà des actions (module 2).
 - Deux temps : **valider** (dry-run, aucun écrit) puis **importer** (transaction).

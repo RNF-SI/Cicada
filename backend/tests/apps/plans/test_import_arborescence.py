@@ -577,6 +577,89 @@ def test_validate_bio_unknown_cible():
 
 
 # ---------------------------------------------------------------------------
+# Validation contre les référentiels TaxRef / HabRef (résolution à la volée)
+# ---------------------------------------------------------------------------
+
+
+def _seed_taxref(cd_nom=60585, lb_nom="Canis lupus"):
+    from apps.taxonomy.models import Taxref
+
+    return Taxref.objects.create(
+        cd_nom=cd_nom, lb_nom=lb_nom, nom_complet=f"{lb_nom} Linné"
+    )
+
+
+def _seed_habref(cd_hab=5432, lb_code="7110", lb_hab_fr="Tourbières hautes actives"):
+    from apps.habitats.models import Habref
+
+    return Habref.objects.create(cd_hab=cd_hab, lb_code=lb_code, lb_hab_fr=lb_hab_fr)
+
+
+def test_validate_taxon_unknown_in_taxref():
+    user = SuperAdminFactory()
+    _base_nomenclatures()
+    _seed_taxref()  # référentiel « chargé » → validation d'existence active
+    plan = PlanGestionFactory(id_utilisateur_ajout=user)
+    parsed = _valid_parsed()
+    parsed["taxons"] = [{"cible": "E1", "cd_nom": 999999, "nom": "", "_row": 3}]
+    report = validate_import(plan, parsed)
+    assert not report.can_import
+    assert any(
+        i["sheet"] == "Taxons" and "introuvable" in i["message"] for i in report.errors
+    )
+
+
+def test_validate_taxon_resolved_by_name():
+    """cd_nom absent + nom reconnu → correction à la volée (avertissement)."""
+    user = SuperAdminFactory()
+    _base_nomenclatures()
+    _seed_taxref(cd_nom=60585, lb_nom="Canis lupus")
+    plan = PlanGestionFactory(id_utilisateur_ajout=user)
+    parsed = _valid_parsed()
+    parsed["taxons"] = [{"cible": "E1", "cd_nom": "", "nom": "Canis lupus", "_row": 3}]
+    report = validate_import(plan, parsed)
+    assert report.can_import, report.errors
+    assert any(
+        i["level"] == "warning" and i["sheet"] == "Taxons" for i in report.issues
+    )
+    # L'exécution retient le cd_nom résolu.
+    counts = execute_import(plan, parsed, user)
+    assert counts["taxons"] == 1
+    assert CorEnjeuTaxon.objects.filter(id_enjeu__id_pg=plan, cd_nom=60585).exists()
+
+
+def test_validate_habitat_unknown_in_habref():
+    user = SuperAdminFactory()
+    _base_nomenclatures()
+    _seed_habref()
+    plan = PlanGestionFactory(id_utilisateur_ajout=user)
+    parsed = _valid_parsed()
+    parsed["habitats"] = [{"cible": "E1", "cd_hab": 999999, "nom": "", "_row": 3}]
+    report = validate_import(plan, parsed)
+    assert not report.can_import
+    assert any(
+        i["sheet"] == "Habitats" and "introuvable" in i["message"]
+        for i in report.errors
+    )
+
+
+def test_validate_habitat_resolved_by_typology_code():
+    """L'utilisateur saisit le code typologique (lb_code) au lieu du cd_hab."""
+    user = SuperAdminFactory()
+    _base_nomenclatures()
+    _seed_habref(cd_hab=5432, lb_code="7110")
+    plan = PlanGestionFactory(id_utilisateur_ajout=user)
+    parsed = _valid_parsed()
+    parsed["habitats"] = [{"cible": "E1", "cd_hab": "7110", "nom": "", "_row": 3}]
+    report = validate_import(plan, parsed)
+    assert report.can_import, report.errors
+    counts = execute_import(plan, parsed, user)
+    assert counts["habitats"] == 1
+    # Le vrai cd_hab HabRef (5432) est retenu, pas le code typologique.
+    assert CorEnjeuHabitat.objects.filter(id_enjeu__id_pg=plan, cd_hab="5432").exists()
+
+
+# ---------------------------------------------------------------------------
 # Types écologiques / socio-éco (colonnes multi-valeurs → booléens de l'enjeu)
 # ---------------------------------------------------------------------------
 

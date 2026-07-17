@@ -1308,6 +1308,7 @@ def _write_listes(
         col_idx += 1
 
     ws.sheet_state = "hidden"
+    ws.protection.sheet = True  # onglet de référence : non modifiable
     return ranges
 
 
@@ -1781,6 +1782,108 @@ def _parse_bool(value):
     return None
 
 
+def _resolve_bio_refs(parsed: dict[str, list[dict]]) -> None:
+    """Valide/corrige taxons et habitats contre TaxRef/HabRef (in place).
+
+    Ajoute à chaque ligne ``_cd_nom`` / ``_cd_hab`` (code retenu, ou None) et
+    ``_bio`` (statut : ``ok``, ``resolved`` = corrigé par le nom / le code
+    typologique, ``unknown`` = code fourni introuvable, ``ambiguous`` = plusieurs
+    correspondances, ``missing`` = ni code ni nom). Idempotent.
+
+    **Défensif** : si le référentiel n'est pas chargé en base (dev/test sans
+    import INPN), la validation est neutralisée (tout ``ok``) — on ne peut pas
+    valider contre un référentiel absent.
+    """
+    from django.db.models import Q
+
+    from apps.taxonomy.models import Taxref
+    from apps.habitats.models import Habref
+
+    taxons = parsed.get("taxons", [])
+    habitats = parsed.get("habitats", [])
+    if not taxons and not habitats:
+        return
+    if any("_bio" in r for r in taxons) or any("_bio" in r for r in habitats):
+        return  # déjà résolu
+
+    # --- Taxons : cd_nom ∈ TaxRef, sinon résolution par nom (unique) ---
+    taxref_loaded = Taxref.objects.exists()
+    cd_noms = {_as_int(r.get("cd_nom")) for r in taxons}
+    cd_noms.discard(None)
+    known = (
+        set(Taxref.objects.filter(cd_nom__in=cd_noms).values_list("cd_nom", flat=True))
+        if (taxref_loaded and cd_noms)
+        else set()
+    )
+    names = {_cell_str(r.get("nom")) for r in taxons if _cell_str(r.get("nom"))}
+    by_name: dict[str, set] = {}
+    if taxref_loaded and names:
+        for cd, lb, nc in Taxref.objects.filter(
+            Q(lb_nom__in=names) | Q(nom_complet__in=names)
+        ).values_list("cd_nom", "lb_nom", "nom_complet"):
+            for label in (lb, nc):
+                if label:
+                    by_name.setdefault(_norm(label), set()).add(cd)
+    for r in taxons:
+        cd = _as_int(r.get("cd_nom"))
+        name = _norm(_cell_str(r.get("nom")))
+        if not taxref_loaded:
+            r["_cd_nom"], r["_bio"] = cd, "ok"
+        elif cd is not None and cd in known:
+            r["_cd_nom"], r["_bio"] = cd, "ok"
+        else:
+            cands = by_name.get(name, set()) if name else set()
+            if len(cands) == 1:
+                r["_cd_nom"], r["_bio"] = next(iter(cands)), "resolved"
+            elif len(cands) > 1:
+                r["_cd_nom"], r["_bio"] = None, "ambiguous"
+            elif cd is not None:
+                r["_cd_nom"], r["_bio"] = None, "unknown"
+            else:
+                r["_cd_nom"], r["_bio"] = None, "missing"
+
+    # --- Habitats : cd_hab (entier HabRef) ∈ HabRef, sinon résolution par le
+    #     code typologique (lb_code, ex : « 7110 ») ou le libellé (lb_hab_fr) ---
+    habref_loaded = Habref.objects.exists()
+    hab_ints = {_as_int(r.get("cd_hab")) for r in habitats}
+    hab_ints.discard(None)
+    known_hab = (
+        set(Habref.objects.filter(cd_hab__in=hab_ints).values_list("cd_hab", flat=True))
+        if (habref_loaded and hab_ints)
+        else set()
+    )
+    codes = {_cell_str(r.get("cd_hab")) for r in habitats if _cell_str(r.get("cd_hab"))}
+    hab_names = {_cell_str(r.get("nom")) for r in habitats if _cell_str(r.get("nom"))}
+    hab_by_key: dict[str, set] = {}
+    if habref_loaded and (codes or hab_names):
+        for cd, code, lbfr in Habref.objects.filter(
+            Q(lb_code__in=codes) | Q(lb_hab_fr__in=hab_names)
+        ).values_list("cd_hab", "lb_code", "lb_hab_fr"):
+            for label in (code, lbfr):
+                if label:
+                    hab_by_key.setdefault(_norm(label), set()).add(cd)
+    for r in habitats:
+        raw = _cell_str(r.get("cd_hab"))
+        cd = _as_int(raw)
+        key = _norm(raw) or _norm(_cell_str(r.get("nom")))
+        if not habref_loaded:
+            r["_cd_hab"], r["_bio"] = raw or None, "ok"
+        elif cd is not None and cd in known_hab:
+            r["_cd_hab"], r["_bio"] = str(cd), "ok"
+        else:
+            cands = hab_by_key.get(_norm(raw), set()) or hab_by_key.get(
+                _norm(_cell_str(r.get("nom"))), set()
+            )
+            if len(cands) == 1:
+                r["_cd_hab"], r["_bio"] = str(next(iter(cands))), "resolved"
+            elif len(cands) > 1:
+                r["_cd_hab"], r["_bio"] = None, "ambiguous"
+            elif raw:
+                r["_cd_hab"], r["_bio"] = None, "unknown"
+            else:
+                r["_cd_hab"], r["_bio"] = None, "missing"
+
+
 def validate_import(plan, parsed: dict[str, list[dict]]) -> ImportReport:
     """Valide les lignes parsées et produit un rapport (sans rien écrire)."""
     report = ImportReport()
@@ -2090,27 +2193,98 @@ def validate_import(plan, parsed: dict[str, list[dict]]) -> ImportReport:
                 f"Cible « {value} » introuvable (ni enjeu ni indicateur).",
             )
 
+    # Validation / correction des taxons et habitats contre TaxRef / HabRef.
+    _resolve_bio_refs(parsed)
+
     for row in parsed.get("taxons", []):
         _check_cible("taxons", row)
         raw = _cell_str(row.get("cd_nom"))
-        if not raw:
-            report.add(
-                "Taxons", row["_row"], "cd_nom", ERROR, "Le cd_nom est obligatoire."
-            )
-        elif _as_int(raw) is None:
+        name = _cell_str(row.get("nom"))
+        # 1) Format / obligation (toujours vérifié).
+        if not raw and not name:
             report.add(
                 "Taxons",
                 row["_row"],
                 "cd_nom",
                 ERROR,
-                "Le cd_nom doit être un nombre entier (code TaxRef).",
+                "Renseignez le cd_nom (entier, code TaxRef) ou le nom de l'espèce.",
+            )
+            continue
+        if raw and _as_int(raw) is None and not name:
+            report.add(
+                "Taxons",
+                row["_row"],
+                "cd_nom",
+                ERROR,
+                "Le cd_nom doit être un nombre entier (code TaxRef), ou renseignez "
+                "le nom.",
+            )
+            continue
+        # 2) Existence / correction contre TaxRef (si le référentiel est chargé).
+        status = row.get("_bio")
+        if status == "resolved":
+            report.add(
+                "Taxons",
+                row["_row"],
+                "cd_nom",
+                WARNING,
+                f"Taxon reconnu par son nom → cd_nom {row.get('_cd_nom')} retenu.",
+            )
+        elif status == "ambiguous":
+            report.add(
+                "Taxons",
+                row["_row"],
+                "nom",
+                ERROR,
+                f"Le nom « {name} » correspond à plusieurs taxons : précisez le "
+                "cd_nom.",
+            )
+        elif status == "unknown":
+            report.add(
+                "Taxons",
+                row["_row"],
+                "cd_nom",
+                ERROR,
+                f"Le cd_nom « {raw} » est introuvable dans TaxRef.",
             )
 
     for row in parsed.get("habitats", []):
         _check_cible("habitats", row)
-        if not _cell_str(row.get("cd_hab")):
+        raw = _cell_str(row.get("cd_hab"))
+        name = _cell_str(row.get("nom"))
+        if not raw and not name:
             report.add(
-                "Habitats", row["_row"], "cd_hab", ERROR, "Le cd_hab est obligatoire."
+                "Habitats",
+                row["_row"],
+                "cd_hab",
+                ERROR,
+                "Renseignez le cd_hab (code HabRef) ou le libellé de l'habitat.",
+            )
+            continue
+        status = row.get("_bio")
+        if status == "resolved":
+            report.add(
+                "Habitats",
+                row["_row"],
+                "cd_hab",
+                WARNING,
+                f"Habitat reconnu → cd_hab {row.get('_cd_hab')} retenu.",
+            )
+        elif status == "ambiguous":
+            report.add(
+                "Habitats",
+                row["_row"],
+                "cd_hab",
+                ERROR,
+                f"« {raw} » correspond à plusieurs habitats : précisez le cd_hab.",
+            )
+        elif status == "unknown":
+            report.add(
+                "Habitats",
+                row["_row"],
+                "cd_hab",
+                ERROR,
+                f"Le cd_hab « {raw} » est introuvable dans HabRef.",
             )
 
     # --- Décompte de ce qui serait créé ---
@@ -2337,7 +2511,8 @@ def execute_import(plan, parsed: dict[str, list[dict]], user) -> dict:
     n_taxons = 0
     for row in parsed.get("taxons", []):
         kind, obj = _resolve_cible(_cell_str(row.get("cible")))
-        cd_nom = _as_int(row.get("cd_nom"))
+        # Code retenu par la résolution TaxRef (corrigé le cas échéant).
+        cd_nom = row.get("_cd_nom", _as_int(row.get("cd_nom")))
         if obj is None or cd_nom is None:
             continue
         nom_complet = _cell_str(row.get("nom")) or None
@@ -2355,7 +2530,8 @@ def execute_import(plan, parsed: dict[str, list[dict]], user) -> dict:
     n_habitats = 0
     for row in parsed.get("habitats", []):
         kind, obj = _resolve_cible(_cell_str(row.get("cible")))
-        cd_hab = _cell_str(row.get("cd_hab"))
+        # Code retenu par la résolution HabRef (corrigé le cas échéant).
+        cd_hab = row.get("_cd_hab") or _cell_str(row.get("cd_hab"))
         if obj is None or not cd_hab:
             continue
         lb_hab_fr = _cell_str(row.get("nom")) or None
