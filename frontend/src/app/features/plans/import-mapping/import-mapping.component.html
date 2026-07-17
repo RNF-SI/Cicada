@@ -1,0 +1,68 @@
+<div class="import-mapping" data-testid="import-mapping">
+  @if (!prepared()) {
+    <p class="text-mention">{{ 'plans.import.mapping.help' | translate }}</p>
+
+    <div class="mapping-upload">
+      <label class="file-picker-btn">
+        <input type="file" accept=".xlsx" data-testid="mapping-file" (change)="onFileSelected($event)" hidden />
+        <span mat-stroked-button>
+          <i class="fi fi-rr-folder-upload"></i>
+          {{ 'plans.import.mapping.chooseFile' | translate }}
+        </span>
+      </label>
+      <span class="file-name">{{ fileName() || ('plans.import.noFileSelected' | translate) }}</span>
+      @if (reading()) { <mat-spinner diameter="18"></mat-spinner> }
+    </div>
+
+    @if (foreignSheets().length && targetSheets().length) {
+      <p class="mapping-intro">{{ 'plans.import.mapping.intro' | translate }}</p>
+
+      @for (sheet of targetSheets(); track sheet.key) {
+        <section class="mapping-sheet">
+          <div class="mapping-sheet-head">
+            <h4>{{ sheet.name }}</h4>
+            <select [(ngModel)]="mapping[sheet.key].source" [attr.data-testid]="'map-source-' + sheet.key">
+              <option value="">{{ 'plans.import.mapping.ignoreSheet' | translate }}</option>
+              @for (fs of foreignSheets(); track fs.name) {
+                <option [value]="fs.name">{{ fs.name }}</option>
+              }
+            </select>
+          </div>
+
+          @if (mapping[sheet.key].source) {
+            <div class="mapping-cols">
+              @for (col of sheet.columns; track col.key) {
+                <div class="mapping-col">
+                  <span class="mapping-col-label" [class.required]="col.required">{{ col.header }}</span>
+                  <select [(ngModel)]="mapping[sheet.key].columns[col.key]">
+                    <option value="">{{ 'plans.import.mapping.ignoreColumn' | translate }}</option>
+                    @for (h of headersOf(mapping[sheet.key].source); track h) {
+                      <option [value]="h">{{ h }}</option>
+                    }
+                  </select>
+                </div>
+              }
+            </div>
+          }
+        </section>
+      }
+
+      <div class="mapping-actions">
+        <button mat-flat-button color="primary" data-testid="mapping-prepare" [disabled]="preparing()" (click)="prepare()">
+          @if (preparing()) { <mat-spinner diameter="16"></mat-spinner> } @else { <i class="fi fi-rr-arrow-right"></i> }
+          {{ 'plans.import.mapping.prepare' | translate }}
+        </button>
+        <button mat-button (click)="cancel()">{{ 'common.actions.cancel' | translate }}</button>
+      </div>
+    }
+  } @else {
+    <app-import-grid
+      [planId]="planId()"
+      [sheets]="targetSheets()"
+      [initialData]="prepared()!.data"
+      [initialReport]="prepared()!.report"
+      (imported)="onGridImported($event)"
+      (cancelled)="onGridCancelled()">
+    </app-import-grid>
+  }
+</div>

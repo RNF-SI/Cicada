@@ -2376,6 +2376,17 @@
         "revalidateOk": "Validation OK : plus d'erreur, vous pouvez importer.",
         "revalidateErrors": "{{count}} erreur(s) restante(s)."
       },
+      "mapping": {
+        "open": "Importer depuis un autre fichier Excel (mapping)",
+        "help": "Vous avez déjà un plan dans un fichier Excel à vous ? Importez-le tel quel : vous associerez ensuite vos colonnes à celles attendues.",
+        "chooseFile": "Choisir mon fichier Excel…",
+        "intro": "Pour chaque onglet cible, choisissez l'onglet de votre fichier qui le contient, puis associez les colonnes.",
+        "ignoreSheet": "— ignorer cet onglet —",
+        "ignoreColumn": "— ignorer —",
+        "prepare": "Préparer et vérifier",
+        "readError": "Le fichier n'a pas pu être lu.",
+        "nothingMapped": "Associez au moins une colonne avant de continuer."
+      },
       "doImport": "Importer l'arborescence",
       "importSuccess": "Import réussi : {{total}} élément(s) créé(s).",
       "importError": "L'import a échoué.",

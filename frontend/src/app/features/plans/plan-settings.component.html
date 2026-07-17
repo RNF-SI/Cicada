@@ -86,6 +86,7 @@
               </div>
             } @else {
               <div class="import-upload">
+                @if (!showMapping()) {
                 <div class="file-picker" [class.is-disabled]="importValidating() || importing()">
                   <label class="file-picker-btn">
                     <input
@@ -200,6 +201,22 @@
                       (cancelled)="onGridCancelled()">
                     </app-import-grid>
                   }
+                }
+                }
+
+                @if (showMapping()) {
+                  <app-import-mapping
+                    [planId]="p.id_pg"
+                    (imported)="onMappingImported($event)"
+                    (cancelled)="showMapping.set(false)">
+                  </app-import-mapping>
+                } @else {
+                  <p class="mapping-toggle">
+                    <button mat-button data-testid="arbo-mapping-open" (click)="showMapping.set(true)">
+                      <i class="fi fi-rr-shuffle"></i>
+                      {{ 'plans.import.mapping.open' | translate }}
+                    </button>
+                  </p>
                 }
               </div>
             }

@@ -23,6 +23,7 @@ import {
 import { HeaderComponent } from '../../shared/components/header/header.component';
 import { PlanSidebarComponent } from './shared/plan-sidebar/plan-sidebar.component';
 import { ImportGridComponent } from './import-grid/import-grid.component';
+import { ImportMappingComponent } from './import-mapping/import-mapping.component';
 import { TagComponent } from '../../shared/components/tag/tag.component';
 import { TagAppearance, getPlanStatusTag } from '../../shared/utils/tag-icons';
 import {
@@ -52,6 +53,7 @@ import {
     HeaderComponent,
     PlanSidebarComponent,
     ImportGridComponent,
+    ImportMappingComponent,
     TagComponent,
   ],
   templateUrl: './plan-settings.component.html',
@@ -188,6 +190,9 @@ export class PlanSettingsComponent {
   /** Correction interactive (#9). */
   readonly importSchema = signal<ImportSheet[]>([]);
   readonly showGrid = signal(false);
+
+  /** Import depuis un autre fichier Excel via mapping (#10). */
+  readonly showMapping = signal(false);
 
   /** L'import n'est possible que sur un plan en brouillon. */
   readonly isDraft = computed<boolean>(() => this.plan()?.statut === 'draft');
@@ -339,6 +344,17 @@ export class PlanSettingsComponent {
 
   onGridCancelled(): void {
     this.showGrid.set(false);
+  }
+
+  onMappingImported(total: number): void {
+    const p = this.plan();
+    this.showMapping.set(false);
+    this.snackBar.open(
+      this.translate.instant('plans.import.importSuccess', { total }),
+      this.translate.instant('common.actions.close'),
+      { duration: 5000 },
+    );
+    if (p) this.router.navigate(['/plans', p.slug, 'enjeux']);
   }
 
   private triggerBlobDownload(blob: Blob, filename: string): void {

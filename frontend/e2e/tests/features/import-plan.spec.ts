@@ -167,4 +167,27 @@ test.describe('Import arborescence via Excel', () => {
       await apiDelete(page, `plans/plans/${target.id_pg}/`).catch(() => undefined);
     }
   });
+
+  test('mapping : ouvrir, lire un fichier et afficher le mapping (#10)', async ({ superAdminPage }) => {
+    const page = superAdminPage;
+    const draft = await findPlan(page, 'Lac'); // brouillon → section import visible
+
+    // On récupère un .xlsx à téléverser comme « fichier source ».
+    await page.goto(`/plans/${draft.slug}/parametres`);
+    const [download] = await Promise.all([
+      page.waitForEvent('download'),
+      page.getByTestId('arbo-export-prefilled').click(),
+    ]);
+    const filePath = await download.path();
+
+    // Ouvre le mode mapping et téléverse le fichier.
+    const openBtn = page.getByTestId('arbo-mapping-open');
+    await expect(openBtn).toBeVisible({ timeout: 15000 });
+    await openBtn.click();
+    await expect(page.getByTestId('import-mapping')).toBeVisible();
+    await page.getByTestId('mapping-file').setInputFiles(filePath!);
+
+    // Après lecture, le sélecteur d'onglet source pour « Enjeux » apparaît.
+    await expect(page.getByTestId('map-source-enjeux')).toBeVisible({ timeout: 20000 });
+  });
 });
