@@ -14,6 +14,7 @@ import io
 
 import pytest
 from openpyxl import load_workbook
+from openpyxl.utils import get_column_letter as get_col_letter
 
 from apps.plans.models import PlanGestion
 from apps.plans.models_enjeux import (
@@ -223,6 +224,25 @@ def test_reference_dropdowns_link_tabs():
     assert any("Facteurs" in f for f in _formulas("Pressions"))
     # La colonne « indicateur » d'une métrique pointe vers l'onglet Indicateurs.
     assert any("Indicateurs" in f for f in _formulas("Metriques"))
+
+
+def test_type_columns_have_nonblocking_dropdown():
+    """Types écologiques / socio-éco = listes déroulantes (aide non bloquante)."""
+    wb = load_workbook(io.BytesIO(build_arborescence_workbook(plan=None)))
+    ws = wb["Enjeux"]
+    headers = [c.value for c in ws[2]]
+    col_eco = headers.index("types écologiques") + 1
+    col_socio = headers.index("types socio-éco") + 1
+    letters = {get_col_letter(col_eco), get_col_letter(col_socio)}
+    covered = set()
+    for dv in ws.data_validations.dataValidation:
+        # Une DV multi-valeurs ne doit pas bloquer la saisie.
+        for rng in str(dv.sqref).split():
+            letter = "".join(ch for ch in rng.split(":")[0] if ch.isalpha())
+            if letter in letters:
+                covered.add(letter)
+                assert dv.showErrorMessage is False
+    assert covered == letters, "les deux colonnes de types doivent avoir une liste"
 
 
 def test_example_workbook_full_structure():

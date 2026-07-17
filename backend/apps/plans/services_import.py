@@ -76,6 +76,7 @@ class Column:
     boolean: bool = False
     multi: bool = False
     ref: Optional[str] = None
+    vocab: Optional[str] = None  # vocabulaire « maison » (ecolo / socio) → dropdown
     width: int = 24
     value: Optional[Callable] = None
 
@@ -784,6 +785,7 @@ def _build_schema() -> list[Sheet]:
                     "types_ecologiques",
                     "types écologiques",
                     multi=True,
+                    vocab="ecolo",
                     width=30,
                     help="Un ou plusieurs, séparés par des virgules : "
                     + ", ".join(TYPES_ECOLOGIQUES),
@@ -792,6 +794,7 @@ def _build_schema() -> list[Sheet]:
                     "types_socioeco",
                     "types socio-éco",
                     multi=True,
+                    vocab="socio",
                     width=30,
                     help="Un ou plusieurs, séparés par des virgules : "
                     + ", ".join(TYPES_SOCIOECO),
@@ -1185,6 +1188,18 @@ def _write_lisez_moi(wb: Workbook, plan, example_name=None, with_hints=False) ->
             None,
         ),
         (
+            "• Les colonnes « types écologiques » et « types socio-éco » proposent "
+            "aussi une liste : choisissez un type, ou saisissez-en plusieurs "
+            "séparés par des virgules (ex : Habitat,Espèce).",
+            None,
+        ),
+        (
+            "• Astuce codes : tapez « E1 » dans la première ligne puis faites "
+            "glisser la poignée de recopie (petit carré en bas à droite de la "
+            "cellule) vers le bas — Excel incrémente automatiquement E2, E3, E4…",
+            None,
+        ),
+        (
             "• Les en-têtes en rouge sont obligatoires ; survolez un en-tête pour "
             "afficher son aide.",
             None,
@@ -1275,16 +1290,20 @@ def _write_listes(
         ws.column_dimensions[letter].width = 28
         col_idx += 1
 
-    # Vocabulaires maison (types écologiques / socio-éco) — pour information,
-    # non utilisés en liste déroulante (colonnes multi-valeurs).
-    for name, vocab in (
-        ("Types écologiques", TYPES_ECOLOGIQUES),
-        ("Types socio-éco", TYPES_SOCIOECO),
+    # Vocabulaires maison (types écologiques / socio-éco) : source des listes
+    # déroulantes (aide à la saisie, non bloquante car colonnes multi-valeurs).
+    for vocab_key, name, vocab in (
+        ("ecolo", "Types écologiques", TYPES_ECOLOGIQUES),
+        ("socio", "Types socio-éco", TYPES_SOCIOECO),
     ):
         letter = get_column_letter(col_idx)
         ws.cell(row=1, column=col_idx, value=name).font = Font(bold=True)
         for r, label in enumerate(vocab, start=2):
             ws.cell(row=r, column=col_idx, value=label)
+        if vocab:
+            ranges[
+                f"vocab:{vocab_key}"
+            ] = f"'Listes'!${letter}$2:${letter}${len(vocab) + 1}"
         ws.column_dimensions[letter].width = 28
         col_idx += 1
 
@@ -1375,6 +1394,7 @@ def _write_sheet(
         letter = get_column_letter(c)
         dv = None
         strict = True  # la liste rejette une valeur hors liste
+        multi_example = "E1,E3"  # exemple de saisie multiple (aide non bloquante)
         if col.boolean:
             dv = DataValidation(type="list", formula1='"Oui,Non"', allow_blank=True)
         elif col.nomenclature and not col.multi:
@@ -1388,6 +1408,12 @@ def _write_sheet(
                 # Colonnes multi-valeurs (E1,E3) : la liste est une aide à la
                 # saisie, elle ne doit pas bloquer une saisie multiple.
                 strict = not col.multi
+        elif col.vocab:
+            ref = list_ranges.get(f"vocab:{col.vocab}")
+            if ref:
+                dv = DataValidation(type="list", formula1=ref, allow_blank=True)
+                strict = False  # types multiples possibles → aide non bloquante
+                multi_example = "Habitat,Espèce"
         if dv is not None:
             if strict:
                 dv.error = "Choisissez une valeur dans la liste proposée."
@@ -1395,10 +1421,10 @@ def _write_sheet(
                 dv.showErrorMessage = True
             else:
                 dv.showErrorMessage = False
-                dv.promptTitle = "Rattachement multiple"
+                dv.promptTitle = "Sélection multiple"
                 dv.prompt = (
-                    "Choisissez un code dans la liste, ou saisissez-en plusieurs "
-                    "séparés par des virgules (ex : E1,E3)."
+                    "Choisissez une valeur dans la liste, ou saisissez-en "
+                    f"plusieurs séparées par des virgules (ex : {multi_example})."
                 )
                 dv.showInputMessage = True
             ws.add_data_validation(dv)
