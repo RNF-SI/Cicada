@@ -42,3 +42,10 @@
       bordure gauche rouge) ; les sections d'import affichent un bouton « Choisir
       un fichier… » (outline kit UI, icône dossier) + le nom du fichier
       sélectionné (au lieu de l'input natif) ; marges/paddings homogènes.
+- [ ] #582 — Légende « année » du suivi (marqueur trait au lieu d'un rond) :
+      ouvrir la saisie d'un suivi/inventaire (`/plans/:slug/.../suivi/.../saisie`).
+      Sous la barre des années, vérifier que la légende affiche désormais des
+      **traits** et non des ronds : « Année prévue (action programmée) » = trait
+      plein bleu-vert (primary), « Année non prévue » = trait pointillé gris,
+      chacun aligné visuellement sur le soulignement des onglets d'années
+      correspondants.

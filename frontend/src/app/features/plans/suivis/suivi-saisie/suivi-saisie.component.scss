@@ -264,16 +264,19 @@
     gap: $spacing-xxs;
   }
 
-  .dot {
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
+  // #582 — un trait (et non un rond, qui évoquait un autre élément) reprenant
+  // le style de soulignement des onglets d'années : ligne pleine = prévue,
+  // ligne pointillée = non prévue.
+  .marker {
+    width: 18px;
+    height: 0;
     display: inline-block;
+    border-bottom: 2px solid transparent;
 
-    &.dot-planned { background: $primary-color; }
-    &.dot-not-planned {
-      background: transparent;
-      border: 1.5px dashed $gray;
+    &.marker-planned { border-bottom-color: $primary-color; }
+    &.marker-not-planned {
+      border-bottom-style: dashed;
+      border-bottom-color: $gray;
     }
   }
 }
