@@ -124,7 +124,14 @@ def plan_with_actions(db, cat_reserve_nomenclatures, type_action_nomenclatures):
     enjeu = EnjeuFactory(id_pg=plan, id_categorie=cat_enjeu, libelle='E1', id_utilisateur_ajout=referent)
     olt = ObjectifLongTermeFactory(id_enjeu=enjeu, libelle='OLT1', id_utilisateur_ajout=referent)
     ne = NiveauExigenceFactory(id_olt=olt, libelle='NE1', id_utilisateur_ajout=referent)
-    type_ind = NomenclatureTypeIndicateurFactory()
+    # #576 — épingler le type ETAT : cet indicateur est rattaché à un NE (branche
+    # OLT/état), donc la vue by-plan ne le niche sous le NE que s'il est de type
+    # ETAT. Sans ce pin, IndicateurFactory tire son type d'un factory.Iterator
+    # (['ETAT','PRESSION','REPONSE']) dont l'état fuit entre tests : selon l'ordre
+    # d'exécution, l'indicateur pouvait être créé en REPONSE et disparaître de la
+    # branche OLT → aucune opération trouvée → test flaky (échec en suite complète,
+    # OK en isolation).
+    type_ind = NomenclatureTypeIndicateurFactory(cd_nomenclature='ETAT', mnemonique='ETAT')
     type_met = NomenclatureTypeMetriqueFactory()
     ind = IndicateurFactory(id_ne=ne, nom_indicateur='IND1', type_indicateur=type_ind, id_utilisateur_ajout=referent)
     met = MetriqueFactory(id_indicateur=ind, nom_metrique='M1', type_metrique=type_met, id_utilisateur_ajout=referent)
