@@ -70,3 +70,49 @@
          présélectionné, les paliers concernés sont entourés en pointillés et un
          bandeau invite à confirmer le niveau ; après enregistrement, le bandeau
          disparaît définitivement.
+
+- [ ] #591 — Tableau d'arborescence : affichage à revoir — validation visuelle
+      1. ouvrir un plan → **Tableau d'arborescence** ;
+      2. vérifier qu'il n'y a **plus de légende** en haut ;
+      3. vérifier la palette par colonne : enjeu bleu-vert (texte blanc), état
+         actuel / facteur / pression vert pâle, OLT et niveau d'exigence saumon,
+         OO et résultat attendu jaune, indicateurs et métriques dans la teinte
+         claire de leur branche, action terra cotta (texte blanc) ;
+      4. vérifier que la case **« État actuel » occupe deux colonnes**, si bien
+         que les OLT s'alignent sur les OO et que les deux branches d'un enjeu se
+         terminent sur la même colonne « Action » ;
+      5. vérifier les libellés : « Action » (et non « Opération »),
+         « Indicateur d'état » sur la branche haute, « Indicateur de réponse »
+         sur la branche basse ;
+      6. basculer sur la vue **Actions → Enjeux** : mêmes couleurs et libellés ;
+      7. déplier / replier et zoomer sur une case : la largeur des colonnes se
+         recalcule correctement malgré la case à double largeur.
+
+- [ ] #585 — Icônes copier / lier sur les actions — validation visuelle
+      1. sur un plan **en brouillon**, ouvrir un enjeu → onglet OLT puis onglet
+         Opérations ;
+      2. vérifier la présence des icônes 🔗 et ⧉ sur l'entête de chaque action,
+         avant le crayon et la corbeille ;
+      3. « lier » : la cible « Directement sur l'indicateur » est **grisée**
+         (infobulle explicative), seules les métriques sont sélectionnables ;
+      4. après avoir lié une action à une seconde métrique, vérifier le badge
+         « Liée à plusieurs métriques » sur sa carte ;
+      5. « copier » : la cible « Directement sur l'indicateur » est cette fois
+         sélectionnable ; vérifier que la copie est bien indépendante
+         (renommer la copie ne renomme pas l'originale) ;
+      6. sur un plan **validé**, vérifier que les deux icônes n'apparaissent pas.
+
+- [ ] #586 — Drag and drop d'une action entre indicateurs — validation visuelle
+      1. sur un plan en brouillon, glisser une action d'un indicateur d'état
+         vers un autre indicateur d'état ;
+      2. glisser une action d'un indicateur d'état vers un indicateur de
+         **réponse** (et l'inverse) ;
+      3. déposer sur un indicateur **sans aucune action** : la zone en pointillés
+         « Glisser une action ici » doit apparaître et accepter le dépôt ;
+      4. glisser une action **rattachée à une métrique** : une confirmation
+         nommant les métriques perdues doit s'afficher ; refuser → rien ne bouge,
+         accepter → l'action est déplacée et le bandeau de métriques nettoyé ;
+      5. vérifier que le code d'action (CS1, IP2…) se met à jour après le
+         déplacement, sans rechargement complet de la page ;
+      6. réordonner une action **dans** son propre indicateur : comportement
+         inchangé.
