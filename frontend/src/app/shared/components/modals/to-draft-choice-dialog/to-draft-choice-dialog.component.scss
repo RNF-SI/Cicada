@@ -1,0 +1,81 @@
+@import 'variables';
+
+:host {
+  display: block;
+  min-width: 480px;
+}
+
+.intro {
+  margin-top: 0;
+  margin-bottom: $spacing-md;
+  line-height: 1.5;
+}
+
+.choice-card {
+  padding: $spacing-sm $spacing-md;
+  border: 1px solid $gray-light;
+  border-radius: $border-radius-sm;
+  margin-bottom: $spacing-sm;
+}
+
+.choice-card-recommended {
+  border-color: $primary-color;
+  background: rgba($primary-color, 0.04);
+}
+
+.choice-card-warning {
+  border-color: $secondary-terra-cotta;
+  background: rgba($secondary-terra-cotta, 0.06);
+}
+
+.choice-header {
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+
+  i {
+    color: $primary-color;
+  }
+}
+
+.choice-card-warning .choice-header i {
+  color: $secondary-terra-cotta;
+}
+
+.choice-title {
+  font-weight: $font-weight-semibold;
+  color: $black;
+}
+
+.choice-badge {
+  padding: 2px $spacing-xs;
+  border-radius: $border-radius-pill;
+  background: $tag-cyan;
+  color: $black;
+  font-size: $font-size-small;
+}
+
+.choice-implications {
+  margin: $spacing-xs 0 0;
+  padding-left: $spacing-md;
+  font-size: $font-size-small;
+  color: $gray-dark;
+  line-height: 1.5;
+}
+
+.hint {
+  margin-top: $spacing-sm;
+  font-size: $font-size-small;
+  color: $gray-dark;
+  font-style: italic;
+}
+
+.btn-to-draft {
+  --mdc-outlined-button-label-text-color: #{$secondary-terra-cotta};
+  --mdc-outlined-button-outline-color: #{$secondary-terra-cotta};
+
+  &:hover {
+    background-color: $secondary-terra-cotta;
+    --mdc-outlined-button-label-text-color: #{$white};
+  }
+}

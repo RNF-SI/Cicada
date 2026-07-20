@@ -1522,7 +1522,7 @@
         "createEvaluation": "Lancer une évaluation mi-parcours",
         "createEvaluationDesc": "Créer un nouveau document d'évaluation mi-parcours lié à ce plan.",
         "toDraft": "Modifier ce plan de gestion",
-        "toDraftDesc": "Repasse le plan en brouillon pour le modifier (corrections, coquilles, mises à jour d'informations). Sa validation devra ensuite être refaite. Pour faire évoluer le plan en une nouvelle version, utilisez plutôt la duplication depuis la liste des plans.",
+        "toDraftDesc": "Repasse le plan en brouillon pour le modifier (corrections, coquilles, mises à jour d'informations). Sa validation devra ensuite être refaite. Un choix vous sera proposé pour créer plutôt une nouvelle version, en conservant la version validée intacte.",
         "extendDuration": "Étendre la durée du plan",
         "extendDurationDesc": "Créer une version étendue (+1 ou +2 ans) en copiant le contenu et le suivi, pour ajouter des actions et poursuivre le suivi sur les années ajoutées.",
         "revertExtension": "Annuler l'extension",
@@ -1553,9 +1553,6 @@
         "validateWarning3": "La validation CSRPN sera gérée dans une future version.",
         "archiveTitle": "Archiver le plan de gestion",
         "archiveWarning": "Ce plan ne sera plus actif. Il restera consultable mais le suivi ne sera plus accessible.",
-        "toDraftTitle": "Remettre en brouillon",
-        "toDraftWarning": "Attention : remettre ce plan en brouillon annulera sa validation. Le suivi ne sera plus accessible.",
-        "toDraftConfirm": "Je confirme vouloir remettre en brouillon",
         "reactivateTitle": "Réactiver le plan",
         "reactivateWarning": "Ce plan sera remis en statut valide et redeviendra actif.",
         "revertExtensionTitle": "Annuler l'extension du plan",
@@ -1679,6 +1676,26 @@
         "versionsPlural": "versions",
         "viewingThisPlan": "Vous visualisez ce plan",
         "goToVersion": "Accéder à la version"
+      },
+      "toDraftChoice": {
+        "title": "Modifier ce plan validé",
+        "intro": "Le plan « {{name}} » est validé : son contenu est figé en lecture seule. Souhaitez-vous plutôt créer une nouvelle version ?",
+        "recommended": "Recommandé",
+        "newVersion": {
+          "title": "Créer une nouvelle version",
+          "point1": "Le contenu du plan est copié dans un nouveau brouillon, que vous modifiez librement.",
+          "point2": "La version validée reste intacte, consultable et figée : aucun risque de perte de données.",
+          "point3": "L'historique des versions du plan est conservé.",
+          "action": "Créer une nouvelle version"
+        },
+        "toDraft": {
+          "title": "Remettre cette version en brouillon",
+          "point1": "La validation de cette version est annulée : elle n'est plus figée.",
+          "point2": "Vos modifications écrasent le contenu validé, sans possibilité de revenir à l'état validé.",
+          "point3": "Le suivi des actions et des indicateurs n'est plus accessible tant que le plan reste en brouillon.",
+          "action": "Remettre en brouillon quand même"
+        },
+        "newVersionUnavailable": "Un brouillon est déjà en cours sur ce plan : impossible de créer une nouvelle version tant qu'il n'est pas validé ou supprimé."
       }
     },
     "detail": {
@@ -2403,13 +2420,19 @@
         "s4": "Sur un plan en brouillon encore vide, l'import crée l'arborescence. S'il contient déjà du contenu, vous choisissez d'y ajouter de nouveaux éléments ou de tout remplacer.",
         "s5": "L'import n'est possible que sur un plan en brouillon."
       },
-      "step1": { "title": "Partir d'un modèle" },
+      "step1": {
+        "title": "Partir d'un modèle"
+      },
       "step2": {
         "title": "Remplir le fichier dans Excel",
         "text": "Chaque onglet correspond à un niveau de l'arborescence, reliés par des codes (E1, F1…). Une ligne « (exemple) » grisée montre quoi écrire — elle n'est jamais importée. Les listes déroulantes proposent les valeurs et les rattachements possibles."
       },
-      "step3": { "title": "Importer votre fichier" },
-      "advanced": { "title": "Options avancées" },
+      "step3": {
+        "title": "Importer votre fichier"
+      },
+      "advanced": {
+        "title": "Options avancées"
+      },
       "comingSoon": "Prochainement",
       "mode": {
         "title": "Ce plan contient déjà une arborescence. Que faire ?",

@@ -76,6 +76,11 @@ import {
   MiParcoursPromptDialogResult,
 } from '../../shared/components/modals/mi-parcours-prompt-dialog/mi-parcours-prompt-dialog.component';
 import {
+  ToDraftChoiceDialogComponent,
+  ToDraftChoiceDialogData,
+  ToDraftChoiceDialogResult,
+} from '../../shared/components/modals/to-draft-choice-dialog/to-draft-choice-dialog.component';
+import {
   CsrpnStepDialogComponent,
   CsrpnStepDialogData,
   CsrpnStepDialogResult,
@@ -656,16 +661,35 @@ export class PlanDetailComponent implements OnInit, OnDestroy {
     });
   }
 
+  /**
+   * #436 — Au clic sur « Remettre en brouillon » depuis un plan validé, on
+   * propose d'abord de **créer une nouvelle version** (option recommandée :
+   * la version validée reste intacte) plutôt que de dégrader la version
+   * validée. Les implications des deux choix sont détaillées dans la modale.
+   */
   confirmToDraft(): void {
-    const message = '⚠ ' + this.translate.instant('plans.lifecycle.warnings.toDraftWarning') + '\n\n' +
-      this.translate.instant('plans.lifecycle.warnings.toDraftConfirm') + ' ?';
-    this.openLifecycleConfirm({
-      title: this.translate.instant('plans.lifecycle.warnings.toDraftTitle'),
-      message,
-      confirmText: this.translate.instant('plans.lifecycle.actions.toDraft'),
-      confirmColor: 'warn',
-      onConfirm: () => this.changeStatus('draft'),
-    });
+    const p = this.plan();
+    if (!p) return;
+
+    const data: ToDraftChoiceDialogData = {
+      planName: p.nom,
+      canCreateNewVersion: this.canCreateNewVersion(),
+    };
+
+    this.dialog
+      .open<ToDraftChoiceDialogComponent, ToDraftChoiceDialogData, ToDraftChoiceDialogResult>(
+        ToDraftChoiceDialogComponent,
+        { data, width: '680px', maxWidth: '95vw' }
+      )
+      .afterClosed()
+      .subscribe(result => {
+        if (!result || result.choice === 'cancel') return;
+        if (result.choice === 'new-version') {
+          this.openCreateNewVersionDialog();
+          return;
+        }
+        this.changeStatus('draft');
+      });
   }
 
   confirmReactivate(): void {

@@ -1,0 +1,52 @@
+<h2 mat-dialog-title>{{ 'plans.lifecycle.toDraftChoice.title' | translate }}</h2>
+
+<mat-dialog-content>
+  <p class="intro">
+    {{ 'plans.lifecycle.toDraftChoice.intro' | translate:{ name: data.planName } }}
+  </p>
+
+  @if (data.canCreateNewVersion) {
+    <div class="choice-card choice-card-recommended">
+      <div class="choice-header">
+        <i class="fi fi-rr-copy-alt"></i>
+        <span class="choice-title">{{ 'plans.lifecycle.toDraftChoice.newVersion.title' | translate }}</span>
+        <span class="choice-badge">{{ 'plans.lifecycle.toDraftChoice.recommended' | translate }}</span>
+      </div>
+      <ul class="choice-implications">
+        <li>{{ 'plans.lifecycle.toDraftChoice.newVersion.point1' | translate }}</li>
+        <li>{{ 'plans.lifecycle.toDraftChoice.newVersion.point2' | translate }}</li>
+        <li>{{ 'plans.lifecycle.toDraftChoice.newVersion.point3' | translate }}</li>
+      </ul>
+    </div>
+  }
+
+  <div class="choice-card choice-card-warning">
+    <div class="choice-header">
+      <i class="fi fi-rr-triangle-warning"></i>
+      <span class="choice-title">{{ 'plans.lifecycle.toDraftChoice.toDraft.title' | translate }}</span>
+    </div>
+    <ul class="choice-implications">
+      <li>{{ 'plans.lifecycle.toDraftChoice.toDraft.point1' | translate }}</li>
+      <li>{{ 'plans.lifecycle.toDraftChoice.toDraft.point2' | translate }}</li>
+      <li>{{ 'plans.lifecycle.toDraftChoice.toDraft.point3' | translate }}</li>
+    </ul>
+  </div>
+
+  @if (!data.canCreateNewVersion) {
+    <p class="hint">{{ 'plans.lifecycle.toDraftChoice.newVersionUnavailable' | translate }}</p>
+  }
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-stroked-button (click)="cancel()">
+    {{ 'common.actions.cancel' | translate }}
+  </button>
+  <button mat-stroked-button class="btn-to-draft" (click)="pickToDraft()">
+    {{ 'plans.lifecycle.toDraftChoice.toDraft.action' | translate }}
+  </button>
+  @if (data.canCreateNewVersion) {
+    <button mat-flat-button color="primary" (click)="pickNewVersion()">
+      {{ 'plans.lifecycle.toDraftChoice.newVersion.action' | translate }}
+    </button>
+  }
+</mat-dialog-actions>

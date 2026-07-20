@@ -18,6 +18,11 @@ import { ImpersonationGuardService } from '../../core/services/impersonation-gua
 import { ModuleService } from '../../core/services/module.service';
 import { NotificationService } from '../../core/services/notification.service';
 import { AdminPlan, PlanStatut, PlanVersionChainItem } from '../../core/models/admin.model';
+import {
+  ToDraftChoiceDialogComponent,
+  ToDraftChoiceDialogResult,
+  ToDraftChoice,
+} from '../../shared/components/modals/to-draft-choice-dialog/to-draft-choice-dialog.component';
 
 // ==================== Helpers ====================
 
@@ -795,17 +800,69 @@ describe('PlanDetailComponent', () => {
       });
     });
 
-    describe('confirmToDraft', () => {
-      it('should call changePlanStatus with draft when dialog is confirmed', () => {
-        mockDialogConfirmed(true);
+    // #436 — « Remettre en brouillon » ouvre désormais une modale à 2 choix
+    // (créer une nouvelle version / remettre cette version en brouillon).
+    describe('confirmToDraft (#436)', () => {
+      const mockToDraftChoice = (choice: ToDraftChoice) => {
+        mockDialog.open.mockReturnValue({
+          afterClosed: () => of({ choice } as ToDraftChoiceDialogResult),
+        } as any);
+      };
+
+      it('ouvre la modale de choix avec le nom du plan et la dispo « nouvelle version »', () => {
+        component.plan.set(
+          createMockPlan({ id_pg: 10, statut: 'valide', nom: 'Plan Test', can_create_modification: true })
+        );
+        mockToDraftChoice('cancel');
+
+        component.confirmToDraft();
+
+        expect(mockDialog.open).toHaveBeenCalledWith(
+          ToDraftChoiceDialogComponent,
+          expect.objectContaining({
+            data: { planName: 'Plan Test', canCreateNewVersion: true },
+          })
+        );
+      });
+
+      it('choix « nouvelle version » → ouvre la duplication, sans dégrader le plan validé', () => {
+        mockToDraftChoice('new-version');
+        const spy = jest.spyOn(component, 'openCreateNewVersionDialog').mockImplementation(() => {});
+
+        component.confirmToDraft();
+
+        expect(spy).toHaveBeenCalled();
+        expect(mockAdminService.changePlanStatus).not.toHaveBeenCalled();
+      });
+
+      it('choix « remettre en brouillon » → change bien le statut en draft', () => {
+        mockToDraftChoice('to-draft');
         component.confirmToDraft();
         expect(mockAdminService.changePlanStatus).toHaveBeenCalledWith(10, 'draft', {});
       });
 
-      it('should NOT call changePlanStatus when dialog is cancelled', () => {
-        mockDialogConfirmed(false);
+      it('annulation → aucun changement de statut ni duplication', () => {
+        mockToDraftChoice('cancel');
+        const spy = jest.spyOn(component, 'openCreateNewVersionDialog').mockImplementation(() => {});
+
         component.confirmToDraft();
+
         expect(mockAdminService.changePlanStatus).not.toHaveBeenCalled();
+        expect(spy).not.toHaveBeenCalled();
+      });
+
+      it('sans droit de créer une version, la modale désactive l’option nouvelle version', () => {
+        component.plan.set(createMockPlan({ id_pg: 10, statut: 'valide', can_create_modification: false }));
+        mockToDraftChoice('cancel');
+
+        component.confirmToDraft();
+
+        expect(mockDialog.open).toHaveBeenCalledWith(
+          ToDraftChoiceDialogComponent,
+          expect.objectContaining({
+            data: expect.objectContaining({ canCreateNewVersion: false }),
+          })
+        );
       });
     });
 
