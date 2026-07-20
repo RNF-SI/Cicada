@@ -2593,6 +2593,44 @@ describe('EnjeuxListComponent', () => {
       moveSpy.mockRestore();
     });
 
+    // #472 (retour de test) — un facteur d'influence SANS pression doit tout de
+    // même offrir une cible de dépôt. Sans la zone vide, la droplist fait 0px de
+    // haut et le CDK ne la détecte jamais : on peut déplacer une pression vers un
+    // facteur déjà rempli, mais pas vers un facteur vide.
+    it('renders a drop zone in a facteur with no pression', () => {
+      setup();
+      jest.spyOn(component, 'canEditPlan').mockReturnValue(true);
+
+      const enjeu = component.enjeux().find(e => e.id_enjeu === 1)!;
+      const originalFacteurs = enjeu.facteurs_influence;
+      enjeu.facteurs_influence = [
+        ...(originalFacteurs || []),
+        {
+          id_facteur_influence: 103, id_enjeu: 1, libelle: 'Facteur vide',
+          pressions: [], nb_pressions: 0, date_ajout: '', date_maj: '',
+        } as any,
+      ];
+
+      try {
+        component.selectedEnjeuSlug.set(enjeu.slug ?? null);
+        component.toggleFacteur(103);
+        component.toggleFacteur(101);
+        fixture.detectChanges();
+
+        const emptyDroplist = fixture.nativeElement.querySelector('#pressions-droplist-103');
+        expect(emptyDroplist).toBeTruthy();
+        // La classe --empty porte le min-height qui rend la zone survolable.
+        expect(emptyDroplist.classList).toContain('pressions-droplist--empty');
+        expect(emptyDroplist.querySelector('.droplist-empty-hint')).toBeTruthy();
+
+        // Contre-exemple : un facteur qui a déjà une pression n'affiche pas la zone.
+        const filledDroplist = fixture.nativeElement.querySelector('#pressions-droplist-101');
+        expect(filledDroplist.classList).not.toContain('pressions-droplist--empty');
+      } finally {
+        enjeu.facteurs_influence = originalFacteurs;
+      }
+    });
+
     it('connectedPressionDroplistIds excludes the current facteur', () => {
       setup();
       jest.spyOn(component, 'selectedFacteurs').mockReturnValue([

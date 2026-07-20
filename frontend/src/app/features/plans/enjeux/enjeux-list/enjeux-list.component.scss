@@ -1805,6 +1805,9 @@
 // #261 — Zone de drop visible quand la liste d'indicateurs est vide.
 // Sans cela, le conteneur se replie à 0 px et il devient impossible
 // de re-déposer un indicateur dans son ancien parent après un déplacement.
+// #472 — même traitement pour une droplist de pressions vide : sans hauteur
+// propre, le CDK n'a aucune cible à détecter et le drop inter-facteur échoue.
+.pressions-droplist--empty,
 .indicateurs-droplist--empty {
   min-height: 64px;
   border: 2px dashed rgba($primary-color, 0.3);

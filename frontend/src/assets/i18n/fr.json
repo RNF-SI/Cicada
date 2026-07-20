@@ -3707,7 +3707,8 @@
       "reorderError": "Réordonnancement impossible",
       "moveSuccess": "Élément déplacé",
       "moveError": "Déplacement impossible",
-      "dropHereIndicateur": "Glisser un indicateur ici"
+      "dropHereIndicateur": "Glisser un indicateur ici",
+      "dropHerePression": "Glisser une pression ici"
     },
     "metriques": {
       "label": "Métrique",
