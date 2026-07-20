@@ -167,7 +167,13 @@ class EnjeuViewSet(viewsets.ModelViewSet):
             # restent gérés à part via la fiche action et l'onglet « Réponse ».
             type_indicateur__mnemonique='REPONSE',
         ).prefetch_related(
-            'taxons', 'habitats', 'geologies',
+            # `Indicateur` n'a QUE `geologies` (via `CorIndicateurGeologie`). `taxons` et
+            # `habitats` n'existent que sur `Enjeu` et `Responsabilite` : les précharger ici
+            # levait `AttributeError: Cannot find 'taxons' on Indicateur object` et renvoyait
+            # un 500. Le bug restait latent car Django n'évalue les préchargements que si le
+            # queryset ramène au moins une ligne — il ne se déclenchait donc que sur un plan
+            # ayant au moins un indicateur non-RÉPONSE.
+            'geologies',
             # #518 — overrides manuels du score par année (tableau de bord)
             'annual_mesures',
             Prefetch('metriques', queryset=metrique_qs),
