@@ -30,7 +30,8 @@
       "collapse": "Replier",
       "clear": "Effacer",
       "home": "Retour à l'accueil",
-      "all": "Tous"
+      "all": "Tous",
+      "expand": "Déplier"
     },
     "emprise": {
       "empty": "Aucune emprise définie",
@@ -83,7 +84,16 @@
       "allRoles": "Tous les rôles",
       "allOrganismes": "Tous les organismes",
       "allStatus": "Tous les statuts",
-      "allTypes": "Tous les types"
+      "allTypes": "Tous les types",
+      "label": "Filtrer",
+      "search": "Rechercher",
+      "select": "Sélectionner",
+      "showMore": "Voir plus",
+      "showLess": "Voir moins",
+      "allData": "Toutes les données",
+      "noResults": "Aucun résultat",
+      "reset": "Réinitialiser",
+      "activeCount": "{{count}} filtre(s) actif(s)"
     },
     "table": {
       "actions": "Actions",

@@ -78,6 +78,16 @@
     border-color: $primary-color;
   }
 
+  // Indéterminé (case maître / parent partiellement sélectionné)
+  &--indeterminate &__box {
+    background-color: $primary-color;
+    border-color: $primary-color;
+
+    i {
+      font-size: 14px;
+    }
+  }
+
   // Focus (sur l'input invisible)
   &__input:focus-visible + &__box {
     box-shadow: 0 0 0 2px rgba($primary-color, 0.25);
@@ -102,5 +112,56 @@
   &--disabled.app-checkbox--checked .app-checkbox__box {
     background-color: $gray;
     border-color: $gray;
+  }
+
+  // ============================================
+  // VARIANTES (#592 — kit UI filtres)
+  // ============================================
+
+  // Taille `md` : spec Figma des listes d'options de filtre
+  &--md &__box {
+    width: 20px;
+    height: 20px;
+    border-width: $border-width;
+    border-radius: 6px;
+    margin-top: 0;
+  }
+
+  &--md &__label {
+    line-height: 24px;
+  }
+
+  // Thème sombre : sur carte primary #025359 (sidebar filtres)
+  &--dark {
+    .app-checkbox__box {
+      background-color: transparent;
+      border-color: $white;
+    }
+
+    .app-checkbox__label {
+      color: $white;
+    }
+
+    .app-checkbox__mention {
+      color: rgba($white, 0.75);
+    }
+
+    &.app-checkbox--checked .app-checkbox__box,
+    &.app-checkbox--indeterminate .app-checkbox__box {
+      background-color: $white;
+      border-color: $white;
+
+      i {
+        color: $primary-color;
+      }
+    }
+
+    &:not(.app-checkbox--disabled):hover .app-checkbox__box {
+      border-color: $white;
+    }
+
+    .app-checkbox__input:focus-visible + .app-checkbox__box {
+      box-shadow: 0 0 0 2px rgba($white, 0.4);
+    }
   }
 }

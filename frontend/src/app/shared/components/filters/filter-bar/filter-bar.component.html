@@ -1,0 +1,18 @@
+<div class="filter-bar">
+  <span class="filter-bar__label">{{ label() || ('common.filters.label' | translate) }}</span>
+
+  <div class="filter-bar__items">
+    <ng-content></ng-content>
+  </div>
+
+  @if (showReset()) {
+    <button
+      type="button"
+      class="filter-bar__reset"
+      [attr.data-testid]="testId() ? testId() + '-reset' : null"
+      (click)="reset.emit()">
+      <i class="fi fi-rr-cross-small" aria-hidden="true"></i>
+      {{ 'common.filters.reset' | translate }}
+    </button>
+  }
+</div>

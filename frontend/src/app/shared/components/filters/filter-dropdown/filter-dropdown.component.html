@@ -1,0 +1,63 @@
+<button
+  #trigger
+  type="button"
+  class="filter-trigger"
+  cdkOverlayOrigin
+  #origin="cdkOverlayOrigin"
+  [class.filter-trigger--open]="open()"
+  [class.filter-trigger--active]="activeCount() > 0"
+  [disabled]="disabled()"
+  [attr.aria-expanded]="open()"
+  [attr.aria-controls]="open() ? panelId : null"
+  [attr.aria-label]="variant() === 'field' ? label() : null"
+  [attr.data-testid]="testId() || null"
+  aria-haspopup="listbox"
+  (click)="toggle()"
+  (keydown)="onTriggerKeydown($event)">
+
+  @if (variant() === 'field') {
+    <span class="filter-trigger__text" [class.filter-trigger__text--placeholder]="!summary()">
+      {{ fieldText() }}
+    </span>
+  } @else {
+    <span class="filter-trigger__label">{{ label() }}</span>
+    @if (activeCount() > 0) {
+      <span class="filter-trigger__badge">{{ activeCount() }}</span>
+    }
+  }
+
+  <i class="fi filter-trigger__chevron"
+     [class.fi-rr-angle-small-down]="!open()"
+     [class.fi-rr-angle-small-up]="open()"
+     aria-hidden="true"></i>
+</button>
+
+<ng-template
+  cdkConnectedOverlay
+  [cdkConnectedOverlayOrigin]="origin"
+  [cdkConnectedOverlayOpen]="open()"
+  [cdkConnectedOverlayPositions]="overlayPositions"
+  [cdkConnectedOverlayWidth]="overlayWidth() ?? ''"
+  [cdkConnectedOverlayHasBackdrop]="true"
+  cdkConnectedOverlayBackdropClass="cdk-overlay-transparent-backdrop"
+  [cdkConnectedOverlayPanelClass]="panelClasses()"
+  (backdropClick)="close()"
+  (detach)="close()">
+
+  <!--
+    Conteneur générique, volontairement sans `role="listbox"` : le panneau peut contenir une
+    zone de recherche, qu'une listbox n'a pas le droit d'héberger. C'est le corps projeté
+    (`app-filter-option-list`, `app-filter-tree`) qui porte la sémantique listbox / tree.
+  -->
+  <div
+    class="filter-panel"
+    [class.filter-panel--dark]="theme() === 'dark'"
+    [class.filter-panel--field]="variant() === 'field'"
+    [id]="panelId"
+    [attr.data-testid]="testId() ? testId() + '-panel' : null"
+    (keydown)="onPanelKeydown($event)">
+    @if (panel(); as panelTpl) {
+      <ng-container *ngTemplateOutlet="panelTpl.templateRef"></ng-container>
+    }
+  </div>
+</ng-template>

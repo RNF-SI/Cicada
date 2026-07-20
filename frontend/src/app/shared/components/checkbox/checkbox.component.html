@@ -1,20 +1,27 @@
 <label
   class="app-checkbox"
   [class.app-checkbox--checked]="checked"
+  [class.app-checkbox--indeterminate]="!checked && indeterminate"
   [class.app-checkbox--disabled]="disabled"
   [class.app-checkbox--with-mention]="!!mention"
+  [class.app-checkbox--md]="size === 'md'"
+  [class.app-checkbox--dark]="theme === 'dark'"
   [attr.for]="inputId">
   <input
     type="checkbox"
     class="app-checkbox__input"
     [id]="inputId"
     [checked]="checked"
+    [indeterminate]="!checked && indeterminate"
     [disabled]="disabled"
+    [attr.aria-checked]="!checked && indeterminate ? 'mixed' : checked"
     (change)="toggle($event)"
   />
   <span class="app-checkbox__box" aria-hidden="true">
     @if (checked) {
       <i class="fi fi-rr-check"></i>
+    } @else if (indeterminate) {
+      <i class="fi fi-rr-minus-small"></i>
     }
   </span>
   <span class="app-checkbox__text">

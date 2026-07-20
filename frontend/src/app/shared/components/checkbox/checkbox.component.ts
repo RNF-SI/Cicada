@@ -53,6 +53,25 @@ export class CheckboxComponent implements ControlValueAccessor {
   /** ID unique pour l'association label/input (auto-généré sinon) */
   @Input() inputId: string = `app-checkbox-${Math.random().toString(36).slice(2, 9)}`;
 
+  /**
+   * État indéterminé (case maître / parent d'arbre à sélection partielle).
+   * Ignoré quand `checked` est vrai. Rend un tiret et expose `aria-checked="mixed"`.
+   */
+  @Input() indeterminate: boolean = false;
+
+  /**
+   * Taille de la case.
+   * - `sm` (défaut) : 18px, bordure 1.5px — rendu historique, ne pas modifier.
+   * - `md` : 20px, bordure 1px, radius 6px — spec kit UI des filtres (#592).
+   */
+  @Input() size: 'sm' | 'md' = 'sm';
+
+  /**
+   * Contexte de rendu. `dark` = sur carte primary #025359 (sidebar filtres).
+   * Les couleurs sont résolues via les custom properties `--checkbox-*`.
+   */
+  @Input() theme: 'light' | 'dark' = 'light';
+
   /** Callbacks ControlValueAccessor */
   private onChange: (value: boolean) => void = () => {};
   private onTouched: () => void = () => {};
@@ -62,7 +81,9 @@ export class CheckboxComponent implements ControlValueAccessor {
       return;
     }
     event?.preventDefault();
-    this.checked = !this.checked;
+    // Un clic sur une case indéterminée coche (convention usuelle), il ne décoche pas.
+    this.checked = this.indeterminate ? true : !this.checked;
+    this.indeterminate = false;
     this.checkedChange.emit(this.checked);
     this.onChange(this.checked);
     this.onTouched();

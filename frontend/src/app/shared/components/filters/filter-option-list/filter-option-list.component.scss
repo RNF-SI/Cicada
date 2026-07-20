@@ -1,0 +1,203 @@
+@import 'variables';
+
+// Corps de panneau d'un filtre à liste plate (#592, Figma node 4487:31534)
+
+:host {
+  display: block;
+  font-family: $font-family;
+}
+
+// ============================================
+// RECHERCHE
+// ============================================
+
+.option-search {
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+  height: 44px;
+  padding: $spacing-sm $spacing-md;
+  border-bottom: $border-width solid $gray-light;
+
+  &__icon {
+    flex-shrink: 0;
+    font-size: 20px;
+    line-height: 1;
+    color: $gray-dark;
+    display: inline-flex;
+  }
+
+  &__input {
+    flex: 1 1 auto;
+    min-width: 0;
+    border: none;
+    outline: none;
+    background: transparent;
+    font-family: $font-family;
+    font-size: $font-size-base;
+    line-height: 24px;
+    color: $black;
+
+    &::placeholder {
+      color: $gray-dark;
+    }
+  }
+
+  &__clear {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    padding: 0;
+    border: none;
+    background: none;
+    cursor: pointer;
+    color: $gray-dark;
+    font-size: 20px;
+
+    &:hover {
+      color: $black;
+    }
+  }
+}
+
+// ============================================
+// CASE MAÎTRE
+// ============================================
+
+.option-master {
+  padding: $spacing-sm $spacing-md;
+  border-bottom: $border-width solid $gray-light;
+}
+
+// ============================================
+// OPTIONS
+// ============================================
+
+.option-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.option-row {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+  width: 100%;
+  padding: $spacing-xs $spacing-md;
+  border: none;
+  background: none;
+  cursor: pointer;
+  text-align: left;
+  font-family: $font-family;
+  font-size: $font-size-base;
+  font-weight: $font-weight-regular;
+  line-height: 24px;
+  color: $black;
+
+  &:hover:not(:disabled) {
+    background-color: $gray-lightest;
+  }
+
+  &:focus-visible {
+    outline: 2px solid $primary-color;
+    outline-offset: -2px;
+  }
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.55;
+  }
+
+  // La case décorative ne doit jamais intercepter le clic : c'est le bouton qui l'écoute.
+  &__check {
+    flex-shrink: 0;
+    display: inline-flex;
+    pointer-events: none;
+  }
+
+  &__label {
+    flex: 1 1 auto;
+    min-width: 0;
+
+    strong {
+      font-weight: $font-weight-bold;
+    }
+  }
+
+  &__count {
+    margin-left: $spacing-xxs;
+    color: $gray-dark;
+  }
+}
+
+.option-empty {
+  margin: 0;
+  padding: $spacing-md;
+  font-size: $font-size-base;
+  color: $gray-dark;
+}
+
+.option-more {
+  display: block;
+  padding: $spacing-xs $spacing-md $spacing-sm;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-family: $font-family;
+  font-size: $font-size-small;
+  color: $primary-color;
+  text-decoration: underline;
+
+  &:hover {
+    color: $secondary-terra-cotta;
+  }
+}
+
+// ============================================
+// THÈME SOMBRE — carte primary de sidebar
+// ============================================
+
+:host(.theme-dark) {
+  .option-search {
+    border-bottom-color: rgba($white, 0.4);
+
+    &__icon,
+    &__clear {
+      color: $white;
+    }
+
+    &__input {
+      color: $white;
+
+      &::placeholder {
+        color: rgba($white, 0.7);
+      }
+    }
+  }
+
+  .option-master {
+    border-bottom-color: rgba($white, 0.4);
+  }
+
+  .option-row {
+    color: $white;
+
+    &:hover:not(:disabled) {
+      background-color: rgba($white, 0.1);
+    }
+
+    &:focus-visible {
+      outline-color: $white;
+    }
+  }
+
+  .option-row__count,
+  .option-empty {
+    color: rgba($white, 0.75);
+  }
+
+  .option-more {
+    color: $white;
+  }
+}

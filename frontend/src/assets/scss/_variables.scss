@@ -134,6 +134,10 @@ $shadow-light: 0 2px 4px rgba(0, 0, 0, 0.1);
 $shadow-medium: 0 4px 7px rgba(0, 0, 0, 0.15);
 $shadow-heavy: 0 7px 14px rgba(0, 0, 0, 0.2);
 
+// Kit UI — filtres / dropdowns (Figma « 🔎 Filtres », node 4487:31534)
+$shadow-xs: 0 1px 2px rgba(10, 13, 18, 0.05);
+$shadow-dropdown: 0 12px 16px -4px rgba(10, 13, 18, 0.08), 0 4px 6px -2px rgba(10, 13, 18, 0.03);
+
 // ============================================
 // TRANSITIONS
 // ============================================

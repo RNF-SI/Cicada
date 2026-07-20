@@ -1,0 +1,149 @@
+@import 'variables';
+
+// Barre de filtres horizontale (#592, Figma node 4487:31534 « Filtres horizontaux »)
+
+:host {
+  display: block;
+}
+
+.filter-bar {
+  display: flex;
+  align-items: stretch;
+  min-height: 36px;
+  font-family: $font-family;
+
+  // Pastille « FILTRER »
+  &__label {
+    display: inline-flex;
+    align-items: center;
+    flex-shrink: 0;
+    padding: 0 $spacing-lg;
+    background-color: $secondary-pale-green;
+    color: $black;
+    font-size: $font-size-base;
+    font-weight: $font-weight-bold;
+    line-height: 24px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  &__items {
+    display: flex;
+    align-items: center;
+    flex: 1 1 auto;
+    min-width: 0;
+    padding-left: $spacing-lg;
+    border: $border-width solid $secondary-pale-green;
+    border-right: none;
+
+    // Le séparateur vertical suit CHAQUE déclencheur, y compris le dernier (cf. Figma).
+    // Une bordure droite sur tous les enfants directs l'obtient sans élément dédié — les six
+    // `<div class="filter-separator">` de l'ancien `plan-suivi-actions` disparaissent ainsi.
+    > * {
+      border-right: $border-width solid $secondary-pale-green;
+      padding-right: $spacing-md;
+      margin-right: $spacing-md;
+    }
+  }
+
+  &__reset {
+    display: inline-flex;
+    align-items: center;
+    gap: $spacing-xxs;
+    flex-shrink: 0;
+    padding: 0 $spacing-md;
+    border: $border-width solid $secondary-pale-green;
+    border-left: none;
+    background: none;
+    cursor: pointer;
+    font-family: $font-family;
+    font-size: $font-size-base;
+    font-weight: $font-weight-bold;
+    color: $primary-color;
+    white-space: nowrap;
+
+    &:hover {
+      background-color: rgba($primary-color, 0.06);
+    }
+
+    &:focus-visible {
+      outline: 2px solid $primary-color;
+      outline-offset: -2px;
+    }
+  }
+}
+
+// ============================================
+// THÈME SOMBRE — carte primary
+// ============================================
+
+:host(.theme-dark) .filter-bar {
+  &__label {
+    background-color: rgba($white, 0.15);
+    color: $white;
+  }
+
+  &__items,
+  &__reset {
+    border-color: rgba($white, 0.3);
+  }
+
+  &__items > * {
+    border-right-color: rgba($white, 0.3);
+  }
+
+  &__reset {
+    color: $white;
+
+    &:hover {
+      background-color: rgba($white, 0.12);
+    }
+  }
+}
+
+// ============================================
+// RESPONSIVE
+// ============================================
+//
+// Sous tablette, la construction « bordure + séparateurs » ne se replie pas : on empile les
+// déclencheurs en pleine largeur, on supprime les séparateurs verticaux au profit de filets
+// horizontaux, et la pastille reprend une largeur pleine.
+
+@media (max-width: $breakpoint-tablet) {
+  .filter-bar {
+    flex-direction: column;
+    align-items: stretch;
+
+    &__label {
+      justify-content: center;
+      padding: $spacing-xs $spacing-md;
+      letter-spacing: 1.5px;
+    }
+
+    &__items {
+      flex-direction: column;
+      align-items: stretch;
+      padding-left: 0;
+      border-right: $border-width solid $secondary-pale-green;
+
+      > * {
+        border-right: none;
+        border-bottom: $border-width solid $secondary-pale-green;
+        padding-right: 0;
+        margin-right: 0;
+
+        &:last-child {
+          border-bottom: none;
+        }
+      }
+    }
+
+    &__reset {
+      justify-content: center;
+      border-left: $border-width solid $secondary-pale-green;
+      border-top: none;
+      padding: $spacing-xs $spacing-md;
+    }
+  }
+}

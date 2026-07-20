@@ -1,0 +1,85 @@
+@if (searchable()) {
+  <div class="tree-search">
+    <i class="fi fi-rr-search tree-search__icon" aria-hidden="true"></i>
+    <input
+      type="text"
+      class="tree-search__input"
+      [value]="query()"
+      [placeholder]="searchPlaceholder() || ('common.filters.search' | translate)"
+      [attr.aria-label]="searchPlaceholder() || ('common.filters.search' | translate)"
+      [attr.data-testid]="testId() ? testId() + '-search' : null"
+      (input)="onSearchInput($event)"
+    />
+    @if (query()) {
+      <button
+        type="button"
+        class="tree-search__clear"
+        [attr.aria-label]="'common.actions.clear' | translate"
+        (click)="clearSearch()">
+        <i class="fi fi-rr-cross-circle" aria-hidden="true"></i>
+      </button>
+    }
+  </div>
+}
+
+@if (isEmpty()) {
+  <p class="tree-empty">{{ 'common.filters.noResults' | translate }}</p>
+} @else {
+  <ul class="tree-list" role="tree" [attr.aria-multiselectable]="true">
+    @for (row of rows(); track row.node.value) {
+      <li
+        class="tree-item"
+        role="treeitem"
+        [attr.aria-level]="row.depth + 1"
+        [attr.aria-selected]="row.state === 'checked'"
+        [attr.aria-expanded]="row.hasChildren ? row.expanded : null">
+
+        <div class="tree-row" [style.padding-left.px]="row.depth * 24">
+          <button
+            type="button"
+            class="tree-row__main"
+            [disabled]="row.node.disabled"
+            [attr.data-testid]="rowTestId(row)"
+            (click)="toggleNode(row)">
+            <span class="tree-row__check" aria-hidden="true">
+              <app-checkbox
+                size="md"
+                [theme]="theme()"
+                [checked]="row.state === 'checked'"
+                [indeterminate]="row.state === 'indeterminate'"
+                [disabled]="!!row.node.disabled"
+              />
+            </span>
+            <span class="tree-row__label">
+              @for (seg of row.node.label | highlightMatch: query(); track $index) {
+                @if (seg.match) {<strong>{{ seg.text }}</strong>} @else {{{ seg.text }}}
+              }
+              @if (row.node.count !== undefined) {
+                <span class="tree-row__count">({{ row.node.count }})</span>
+              }
+            </span>
+          </button>
+
+          @if (row.hasChildren) {
+            <button
+              type="button"
+              class="tree-row__toggle"
+              [attr.aria-label]="(row.expanded ? 'common.actions.collapse' : 'common.actions.expand') | translate"
+              (click)="toggleExpand(row, $event)">
+              <i class="fi"
+                 [class.fi-rr-angle-small-up]="row.expanded"
+                 [class.fi-rr-angle-small-down]="!row.expanded"
+                 aria-hidden="true"></i>
+            </button>
+          }
+        </div>
+      </li>
+    }
+  </ul>
+
+  @if (hiddenCount() > 0) {
+    <button type="button" class="tree-more" (click)="showAll.set(true)">
+      {{ 'common.filters.showMore' | translate }}
+    </button>
+  }
+}

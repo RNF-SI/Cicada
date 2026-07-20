@@ -1,0 +1,171 @@
+@import 'variables';
+
+// Déclencheur + panneau de filtre (#592, Figma node 4487:31534)
+//
+// Le panneau est déclaré dans le template de CE composant, donc Angular lui applique
+// l'attribut d'encapsulation du composant même s'il est rendu dans le conteneur d'overlay
+// du CDK : les styles ci-dessous l'atteignent sans `::ng-deep` ni `!important`.
+
+:host {
+  display: inline-flex;
+}
+
+// ============================================
+// DÉCLENCHEUR
+// ============================================
+
+.filter-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: $spacing-xs;
+  font-family: $font-family;
+  cursor: pointer;
+  background: none;
+  border: none;
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.55;
+  }
+
+  &__chevron {
+    flex-shrink: 0;
+    font-size: 20px;
+    line-height: 1;
+    display: inline-flex;
+  }
+}
+
+// Variante `inline` — barres de filtres horizontales (famille B)
+:host(.variant-inline) {
+  .filter-trigger {
+    height: 36px;
+    padding: $spacing-xs $spacing-md;
+    font-size: $font-size-base;
+    font-weight: $font-weight-bold;
+    line-height: 24px;
+    color: $primary-color;
+    white-space: nowrap;
+
+    &:not(:disabled):hover,
+    &--open {
+      background-color: rgba($primary-color, 0.06);
+    }
+
+    &:focus-visible {
+      outline: 2px solid $primary-color;
+      outline-offset: -2px;
+    }
+  }
+
+  // Pastille compteur de valeurs actives
+  .filter-trigger__badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 28px;
+    height: 21px;
+    padding: 0 $spacing-xxs;
+    border-radius: $border-radius-pill;
+    background-color: $secondary-pale-green;
+    color: $primary-color;
+    font-size: $font-size-base;
+    font-weight: $font-weight-bold;
+    line-height: 1;
+  }
+}
+
+// Variante `field` — champ blanc bordé (famille A, sidebar)
+:host(.variant-field) {
+  display: flex;
+
+  .filter-trigger {
+    width: 100%;
+    height: 44px;
+    padding: 10px 14px;
+    background-color: $white;
+    border: $border-width solid $gray;
+    border-radius: $border-radius-md;
+    box-shadow: $shadow-xs;
+    font-size: $font-size-base;
+    font-weight: $font-weight-regular;
+    line-height: 24px;
+    color: $black;
+    text-align: left;
+
+    // Ouvert : le panneau vient s'accoler dessous, sans interstice.
+    &--open {
+      border-bottom-left-radius: 0;
+      border-bottom-right-radius: 0;
+    }
+
+    &:focus-visible {
+      outline: 2px solid $primary-color;
+      outline-offset: 1px;
+    }
+  }
+
+  .filter-trigger__text {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+
+    &--placeholder {
+      color: $gray-dark;
+    }
+  }
+
+  .filter-trigger__chevron {
+    color: $black;
+  }
+}
+
+// Sur carte primary, le déclencheur `inline` doit rester lisible.
+:host(.theme-dark.variant-inline) {
+  .filter-trigger {
+    color: $white;
+
+    &:not(:disabled):hover,
+    &--open {
+      background-color: rgba($white, 0.12);
+    }
+
+    &:focus-visible {
+      outline-color: $white;
+    }
+  }
+
+  .filter-trigger__badge {
+    background-color: $white;
+    color: $primary-color;
+  }
+}
+
+// ============================================
+// PANNEAU
+// ============================================
+
+.filter-panel {
+  background-color: $white;
+  border: $border-width solid $gray;
+  border-radius: $border-radius-md;
+  box-shadow: $shadow-dropdown;
+  overflow: hidden;
+  max-height: 60vh;
+  overflow-y: auto;
+
+  // Accolé au déclencheur : pas de bordure haute, coins bas seuls arrondis.
+  &--field {
+    border-top: none;
+    border-radius: 0 0 $border-radius-sm $border-radius-sm;
+  }
+
+  // Le corps du panneau reste blanc même en thème sombre (cf. Figma) ; seule la variante
+  // `field` de sidebar hérite des couleurs claires. On propage néanmoins le thème aux
+  // enfants via une custom property, pour les corps qui voudraient s'y adapter.
+  &--dark {
+    --filter-panel-theme: dark;
+  }
+}

@@ -1,0 +1,216 @@
+@import 'variables';
+
+// Filtre hiérarchique à cases (#592, Figma « Filtre checkbox avec recherche »)
+
+:host {
+  display: block;
+  font-family: $font-family;
+}
+
+// ============================================
+// RECHERCHE
+// ============================================
+//
+// En sidebar, la recherche n'est pas dans un champ bordé mais posée sur la carte primary,
+// soulignée d'un simple filet (cf. Figma).
+
+.tree-search {
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+  padding: $spacing-xs 0;
+  border-bottom: $border-width solid $gray-light;
+
+  &__icon {
+    flex-shrink: 0;
+    font-size: 16px;
+    line-height: 1;
+    color: $gray-dark;
+    display: inline-flex;
+  }
+
+  &__input {
+    flex: 1 1 auto;
+    min-width: 0;
+    border: none;
+    outline: none;
+    background: transparent;
+    font-family: $font-family;
+    font-size: $font-size-base;
+    line-height: 24px;
+    color: $black;
+
+    &::placeholder {
+      color: $gray-dark;
+    }
+  }
+
+  &__clear {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    padding: 0;
+    border: none;
+    background: none;
+    cursor: pointer;
+    color: $gray-dark;
+    font-size: 20px;
+  }
+}
+
+// ============================================
+// ARBRE
+// ============================================
+
+.tree-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.tree-row {
+  display: flex;
+  align-items: center;
+  gap: $spacing-xxs;
+
+  &__main {
+    display: flex;
+    align-items: center;
+    gap: $spacing-sm;
+    flex: 1 1 auto;
+    min-width: 0;
+    padding: $spacing-xxs 0;
+    border: none;
+    background: none;
+    cursor: pointer;
+    text-align: left;
+    font-family: $font-family;
+    font-size: $font-size-base;
+    font-weight: $font-weight-regular;
+    line-height: 24px;
+    color: $black;
+
+    &:disabled {
+      cursor: not-allowed;
+      opacity: 0.55;
+    }
+
+    &:focus-visible {
+      outline: 2px solid $primary-color;
+      outline-offset: 2px;
+    }
+  }
+
+  // Case décorative : le clic est écouté par le bouton parent.
+  &__check {
+    flex-shrink: 0;
+    display: inline-flex;
+    pointer-events: none;
+  }
+
+  &__label {
+    flex: 1 1 auto;
+    min-width: 0;
+
+    strong {
+      font-weight: $font-weight-bold;
+    }
+  }
+
+  &__count {
+    margin-left: $spacing-xxs;
+    color: $gray-dark;
+  }
+
+  &__toggle {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    padding: 0;
+    border: none;
+    background: none;
+    cursor: pointer;
+    color: $black;
+    font-size: 16px;
+
+    &:focus-visible {
+      outline: 2px solid $primary-color;
+      outline-offset: 1px;
+    }
+  }
+}
+
+.tree-empty {
+  margin: 0;
+  padding: $spacing-sm 0;
+  font-size: $font-size-base;
+  color: $gray-dark;
+}
+
+.tree-more {
+  display: block;
+  padding: $spacing-xs 0 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-family: $font-family;
+  font-size: $font-size-small;
+  color: $primary-color;
+  text-decoration: underline;
+}
+
+// ============================================
+// THÈME SOMBRE — carte primary de sidebar
+// ============================================
+
+:host(.theme-dark) {
+  .tree-search {
+    border-bottom-color: rgba($white, 0.5);
+
+    &__icon,
+    &__clear {
+      color: $white;
+    }
+
+    &__input {
+      color: $white;
+
+      &::placeholder {
+        color: rgba($white, 0.7);
+      }
+    }
+  }
+
+  .tree-row {
+    &__main {
+      color: $white;
+
+      &:focus-visible {
+        outline-color: $white;
+      }
+    }
+
+    &__count {
+      color: rgba($white, 0.75);
+    }
+
+    &__toggle {
+      color: $white;
+
+      &:focus-visible {
+        outline-color: $white;
+      }
+    }
+  }
+
+  .tree-empty {
+    color: rgba($white, 0.75);
+  }
+
+  .tree-more {
+    color: $white;
+  }
+}

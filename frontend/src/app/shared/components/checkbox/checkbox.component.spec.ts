@@ -50,4 +50,69 @@ describe('CheckboxComponent', () => {
     expect(emissions).toEqual([]);
     expect(component.checked).toBe(false);
   });
+
+  // ============================================
+  // Extensions #592 (système de filtres unifié)
+  // ============================================
+
+  function boxEl(): HTMLElement {
+    return fixture.nativeElement.querySelector('.app-checkbox__box');
+  }
+
+  describe('état indéterminé', () => {
+    beforeEach(() => {
+      component.indeterminate = true;
+      fixture.detectChanges();
+    });
+
+    it('rend un tiret plutôt qu\'une coche', () => {
+      expect(boxEl().querySelector('i')?.className).toContain('fi-rr-minus-small');
+    });
+
+    it('positionne la PROPRIÉTÉ DOM indeterminate (ce n\'est pas un attribut HTML)', () => {
+      expect(inputEl().indeterminate).toBe(true);
+      expect(inputEl().hasAttribute('indeterminate')).toBe(false);
+    });
+
+    it('expose aria-checked="mixed"', () => {
+      expect(inputEl().getAttribute('aria-checked')).toBe('mixed');
+    });
+
+    it('coche — et ne décoche pas — au clic, puis lève l\'état indéterminé', () => {
+      labelEl().click();
+      fixture.detectChanges();
+
+      expect(component.checked).toBe(true);
+      expect(component.indeterminate).toBe(false);
+      expect(inputEl().indeterminate).toBe(false);
+    });
+
+    it('cède le pas à checked quand les deux sont vrais', () => {
+      component.checked = true;
+      fixture.detectChanges();
+
+      expect(boxEl().querySelector('i')?.className).toContain('fi-rr-check');
+      expect(inputEl().indeterminate).toBe(false);
+    });
+  });
+
+  describe('variantes size / theme', () => {
+    it('n\'applique aucune classe de variante par défaut', () => {
+      // Garde-fou : les ~60 instances existantes ne doivent pas bouger d'un pixel.
+      expect(labelEl().classList.contains('app-checkbox--md')).toBe(false);
+      expect(labelEl().classList.contains('app-checkbox--dark')).toBe(false);
+    });
+
+    it('applique la classe md quand size="md"', () => {
+      component.size = 'md';
+      fixture.detectChanges();
+      expect(labelEl().classList.contains('app-checkbox--md')).toBe(true);
+    });
+
+    it('applique la classe sombre quand theme="dark"', () => {
+      component.theme = 'dark';
+      fixture.detectChanges();
+      expect(labelEl().classList.contains('app-checkbox--dark')).toBe(true);
+    });
+  });
 });
