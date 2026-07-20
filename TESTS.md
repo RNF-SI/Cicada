@@ -49,3 +49,19 @@
       plein bleu-vert (primary), « Année non prévue » = trait pointillé gris,
       chacun aligné visuellement sur le soulignement des onglets d'années
       correspondants.
+- [ ] #453 — Grille de métrique à paliers dupliqués (retour de test 06/07) :
+      dans l'arborescence d'un PG en brouillon, créer une métrique de type
+      **Texte** dont deux niveaux portent le même libellé (ex. la grille du
+      retour : `Bien / Bien / Cool / Très cool / Très cool`). Ouvrir ensuite la
+      saisie de l'indicateur (`/plans/:slug/.../indicateur/.../saisie`) et
+      choisir « Bien » dans la liste déroulante. Vérifier que :
+      1. les **deux paliers en conflit** (niveaux 1 et 2) sont entourés d'un
+         contour pointillé noir — auparavant aucun palier n'était mis en
+         évidence et rien n'expliquait pourquoi ;
+      2. un bandeau orange sous la grille explique que le résultat ne peut pas
+         être calculé automatiquement et renvoie vers « Forcer le résultat
+         manuellement » ;
+      3. cocher « Forcer le résultat manuellement » permet bien de choisir le
+         résultat de l'indicateur, et l'enregistrement le conserve ;
+      4. choisir « Cool » (libellé unique) met en évidence le seul palier 3,
+         sans bandeau, et le résultat automatique est calculé normalement.

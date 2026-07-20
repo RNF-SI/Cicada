@@ -2127,6 +2127,7 @@
         "manualReason": "Raisons de la saisie manuelle",
         "manualReasonPlaceholder": "Pourquoi avez-vous choisi de saisir un score différent du calcul auto ?",
         "metriquesSaisieTitle": "Saisie des métriques",
+        "ambiguousGrid": "Plusieurs niveaux de cette grille portent la même valeur (entourés ci-dessus) : le résultat ne peut pas être calculé automatiquement. Cochez « Forcer le résultat manuellement » ci-dessous pour le choisir, ou modifiez la grille de la métrique pour rendre chaque niveau distinct.",
         "autoResultLabel": "Résultat automatique",
         "autoResultPending": "À calculer — saisissez au moins une métrique",
         "autoResultDisabled": "(désactivé — résultat forcé manuellement)",

@@ -1,6 +1,7 @@
 import {
   computeMetriqueScore, scoreLevelName,
   combineBlockScores, computeCombinedScore, formatBlockFormula, formatScoreRange,
+  matchingGridLevels,
 } from './metrique-seuils.util';
 
 describe('scoreLevelName', () => {
@@ -92,6 +93,55 @@ describe('computeMetriqueScore', () => {
         score_4_label: 'Présent', score_5_label: 'Abondant',
       };
       expect(computeMetriqueScore(met, 'Présent')).toBe(2);
+    });
+  });
+
+  // #453 (retour de test 06/07) — la grille restait muette : aucun palier mis en
+  // évidence et aucune explication. `matchingGridLevels` expose les paliers en
+  // conflit pour que la saisie puisse les montrer.
+  describe('#453 — matchingGridLevels expose les paliers en conflit', () => {
+    // Grille du retour de test : Bien / Bien / Cool / Très cool / Très cool.
+    const grilleKO = {
+      type_metrique_mnemonique: 'TEXTE',
+      score_1_label: 'Bien', score_2_label: 'Bien', score_3_label: 'Cool',
+      score_4_label: 'Très cool', score_5_label: 'Très cool',
+    };
+
+    it('renvoie les deux niveaux portant le libellé choisi', () => {
+      expect(matchingGridLevels(grilleKO, 'Bien')).toEqual([1, 2]);
+      expect(matchingGridLevels(grilleKO, 'Très cool')).toEqual([4, 5]);
+    });
+
+    it('renvoie un seul niveau pour un libellé unique (score auto conservé)', () => {
+      expect(matchingGridLevels(grilleKO, 'Cool')).toEqual([3]);
+      expect(computeMetriqueScore(grilleKO, 'Cool')).toBe(3);
+    });
+
+    it('renvoie [] pour une valeur absente de la grille ou vide', () => {
+      expect(matchingGridLevels(grilleKO, 'Inconnu')).toEqual([]);
+      expect(matchingGridLevels(grilleKO, '')).toEqual([]);
+      expect(matchingGridLevels(grilleKO, null)).toEqual([]);
+    });
+
+    it('ignore les niveaux désactivés', () => {
+      expect(matchingGridLevels({ ...grilleKO, inactive_levels: [2] }, 'Bien')).toEqual([1]);
+    });
+
+    it('CHIFFRE : renvoie les niveaux partageant la même valeur', () => {
+      const met = {
+        type_metrique_mnemonique: 'CHIFFRE',
+        score_1_val: 0, score_2_val: 10, score_3_val: 20, score_4_val: 10, score_5_val: 40,
+      };
+      expect(matchingGridLevels(met, '10')).toEqual([2, 4]);
+      expect(matchingGridLevels(met, '20')).toEqual([3]);
+    });
+
+    it('NUMERIQUE : non concerné (paliers = intervalles)', () => {
+      const met = {
+        type_metrique_mnemonique: 'NUMERIQUE',
+        score_1_inf: 0, score_1_sup: 10, score_2_inf: 10, score_2_sup: 20,
+      };
+      expect(matchingGridLevels(met, '5')).toEqual([]);
     });
   });
 

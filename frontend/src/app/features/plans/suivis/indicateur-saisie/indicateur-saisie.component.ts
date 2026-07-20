@@ -28,7 +28,7 @@ import { CheckboxComponent } from '../../../../shared/components/checkbox/checkb
 import { AdminService } from '../../../../core/services/admin.service';
 import { EnjeuService } from '../../../../core/services/enjeu.service';
 import { Indicateur, Metrique, Mesure, MesureCreatePayload } from '../../../../core/models/enjeu.model';
-import { formatScoreRange, isMetriqueIndetermine, computeMetriqueScore, computeCombinedScore, formatBlockFormula } from '../metrique-seuils.util';
+import { formatScoreRange, isMetriqueIndetermine, computeMetriqueScore, computeCombinedScore, formatBlockFormula, matchingGridLevels } from '../metrique-seuils.util';
 
 // #510 — un seul mode d'édition cohérent (les anciens 'edit-auto'/'edit-override'
 // sont fusionnés : auto par défaut, forçage manuel optionnel via une case).
@@ -194,6 +194,27 @@ export class IndicateurSaisieComponent implements OnInit {
       blockValues[String(b.position)] = this.form.get(`m_${met.id_metrique}_b${b.position}`)?.value;
     }
     return computeCombinedScore(met, this.form.get(`m_${met.id_metrique}`)?.value, blockValues);
+  }
+
+  /**
+   * #453 — Paliers en conflit pour la valeur actuellement saisie sur une
+   * métrique Texte/Chiffre : ≥2 niveaux portent le même libellé / le même
+   * chiffre, donc le score ne peut pas être déduit du choix.
+   *
+   * Renvoie `[]` tant qu'il n'y a pas d'ambiguïté. Sert à mettre en évidence
+   * les paliers fautifs et à expliquer pourquoi la grille reste sans résultat
+   * (auparavant : aucun palier actif et aucun message → écran sans issue).
+   */
+  ambiguousLevels(met: Metrique): number[] {
+    if (this.isMultiBlock(met)) return [];
+    const value = this.form.get(`m_${met.id_metrique}`)?.value;
+    const matches = matchingGridLevels(met, value);
+    return matches.length > 1 ? matches : [];
+  }
+
+  /** #453 — Vrai si la valeur choisie tombe sur des paliers dupliqués. */
+  hasAmbiguousGrid(met: Metrique): boolean {
+    return this.ambiguousLevels(met).length > 0;
   }
 
   // #464/#465 — Saisie d'une métrique CHIFFRE/TEXTE : choix parmi les options de

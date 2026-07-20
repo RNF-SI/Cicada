@@ -255,17 +255,27 @@
                              la valeur/le libellé de chaque niveau, le niveau du résultat
                              saisi est mis en évidence. -->
                         @let gridScore = valueToScore(form.get('m_' + m.id_metrique)?.value, m);
+                        @let ambiguous = ambiguousLevels(m);
                         <div class="threshold-bar threshold-bar-grid">
                           @for (lvl of scoreLevelsList; track lvl; let i = $index) {
                             <span class="threshold-cell"
                                   [class]="'lvl-' + lvl"
-                                  [class.active]="gridScore === i + 1">
+                                  [class.active]="gridScore === i + 1"
+                                  [class.ambiguous]="ambiguous.includes(i + 1)">
                               {{ scoreRange(m, i + 1) }}
                             </span>
                           }
                         </div>
                       }
                     </div>
+                    <!-- #453 — Paliers dupliqués : expliciter pourquoi la grille
+                         reste sans résultat et renvoyer vers le forçage manuel. -->
+                    @if (hasAmbiguousGrid(m)) {
+                      <div class="info-block info-block-warning metric-ambiguous">
+                        <i class="fi fi-rr-exclamation"></i>
+                        <span>{{ 'plans.suivis.indicateur.ambiguousGrid' | translate }}</span>
+                      </div>
+                    }
                     }
                   </div>
                 }

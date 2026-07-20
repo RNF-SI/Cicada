@@ -260,6 +260,49 @@ describe('IndicateurSaisieComponent — éditeur unifié (#510)', () => {
   // ---------------------------------------------------------------------------
   // #375 — Saisie des résultats verrouillée tant que le plan n'est pas validé.
   // ---------------------------------------------------------------------------
+  // ---------------------------------------------------------------------------
+  // #453 (retour de test 06/07) — grille à paliers dupliqués : la saisie doit
+  // désigner les paliers en conflit au lieu de rester muette.
+  // ---------------------------------------------------------------------------
+  describe('ambiguousLevels / hasAmbiguousGrid (#453)', () => {
+    // Grille exacte du retour de test : Bien / Bien / Cool / Très cool / Très cool.
+    const MET: any = {
+      id_metrique: 7,
+      type_metrique_mnemonique: 'TEXTE',
+      score_1_label: 'Bien', score_2_label: 'Bien', score_3_label: 'Cool',
+      score_4_label: 'Très cool', score_5_label: 'Très cool',
+      inactive_levels: [],
+    };
+
+    function withValue(value: string) {
+      const c = comp();
+      (c as any).form = new FormGroup({ m_7: new FormControl(value) });
+      return c;
+    }
+
+    it('désigne les deux paliers en conflit quand le libellé est dupliqué', () => {
+      const c = withValue('Bien');
+      expect(c.ambiguousLevels(MET)).toEqual([1, 2]);
+      expect(c.hasAmbiguousGrid(MET)).toBe(true);
+    });
+
+    it('désigne le second groupe de doublons', () => {
+      const c = withValue('Très cool');
+      expect(c.ambiguousLevels(MET)).toEqual([4, 5]);
+    });
+
+    it('reste silencieux sur un libellé unique (score auto)', () => {
+      const c = withValue('Cool');
+      expect(c.ambiguousLevels(MET)).toEqual([]);
+      expect(c.hasAmbiguousGrid(MET)).toBe(false);
+    });
+
+    it('reste silencieux quand aucune valeur n\'est choisie', () => {
+      const c = withValue('');
+      expect(c.hasAmbiguousGrid(MET)).toBe(false);
+    });
+  });
+
   describe('statusAllowsSuivi / applyReadonlyState', () => {
     const c = comp();
 

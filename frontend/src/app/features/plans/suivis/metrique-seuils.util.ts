@@ -94,6 +94,52 @@ export function scoreLevelName(score: number | null | undefined): ScoreLevelName
 }
 
 /**
+ * #453 — Niveaux d'une grille discrète (Texte / Chiffre) auxquels une valeur
+ * correspond. Renvoie :
+ *   - `[]`     : la valeur ne figure dans aucun palier actif ;
+ *   - `[n]`    : palier unique → score auto-calculable ;
+ *   - `[n, m]` : **paliers dupliqués** (même libellé / même chiffre sur
+ *                plusieurs niveaux) → la valeur est ambiguë, le score ne peut
+ *                pas être déduit et doit être forcé manuellement.
+ *
+ * Exposé (et pas seulement interne à `computeMetriqueScore`) pour que la saisie
+ * puisse *montrer* les paliers en conflit : sans cela l'utilisateur qui choisit
+ * un libellé dupliqué voit une grille sans aucun palier mis en évidence, sans
+ * explication (« la grille ne trouve pas le résultat »).
+ *
+ * Les grilles NUMERIQUE ne sont pas concernées (paliers = intervalles) → `[]`.
+ */
+export function matchingGridLevels(met: any, value: any): number[] {
+  if (!met || value === null || value === undefined || String(value).trim() === '') return [];
+  const mnemo = resolveMnemonique(met);
+  const inactive: number[] = Array.isArray(met.inactive_levels) ? met.inactive_levels : [];
+  const matches: number[] = [];
+
+  if (mnemo === 'TEXTE') {
+    const v = String(value).trim();
+    for (let i = 1; i <= 5; i++) {
+      if (inactive.includes(i)) continue;
+      const label = (met[`score_${i}_label`] ?? '').toString().trim();
+      if (label && label === v) matches.push(i);
+    }
+    return matches;
+  }
+
+  if (mnemo === 'CHIFFRE') {
+    const num = parseFloat(String(value).replace(',', '.'));
+    if (isNaN(num)) return [];
+    for (let i = 1; i <= 5; i++) {
+      if (inactive.includes(i)) continue;
+      const val = met[`score_${i}_val`];
+      if (val !== null && val !== undefined && Number(val) === num) matches.push(i);
+    }
+    return matches;
+  }
+
+  return [];
+}
+
+/**
  * #452 — Calcule le score 1-5 d'une valeur saisie selon la grille d'une
  * métrique : TEXTE = libellé sélectionné, CHIFFRE = valeur discrète,
  * NUMERIQUE = seuils (avec inclusivité des bornes, cf. #423). Renvoie null si
@@ -104,32 +150,16 @@ export function computeMetriqueScore(met: any, value: any): number | null {
   const mnemo = resolveMnemonique(met);
   const inactive: number[] = Array.isArray(met.inactive_levels) ? met.inactive_levels : [];
 
-  if (mnemo === 'TEXTE') {
-    const v = String(value).trim();
-    // #453 — si un même libellé est défini sur ≥2 niveaux, la valeur est
-    // ambiguë : pas d'auto-calcul (score indéterminé → saisie manuelle).
-    const matches: number[] = [];
-    for (let i = 1; i <= 5; i++) {
-      if (inactive.includes(i)) continue;
-      const label = (met[`score_${i}_label`] ?? '').toString().trim();
-      if (label && label === v) matches.push(i);
-    }
+  if (mnemo === 'TEXTE' || mnemo === 'CHIFFRE') {
+    // #453 — si un même libellé (Texte) ou un même chiffre (Chiffre) est défini
+    // sur ≥2 niveaux, la valeur est ambiguë : pas d'auto-calcul (score
+    // indéterminé → le résultat doit être forcé manuellement).
+    const matches = matchingGridLevels(met, value);
     return matches.length === 1 ? matches[0] : null;
   }
 
   const num = parseFloat(String(value).replace(',', '.'));
   if (isNaN(num)) return null;
-
-  if (mnemo === 'CHIFFRE') {
-    // #453 — même valeur chiffrée sur ≥2 niveaux : ambigu → score indéterminé.
-    const matches: number[] = [];
-    for (let i = 1; i <= 5; i++) {
-      if (inactive.includes(i)) continue;
-      const val = met[`score_${i}_val`];
-      if (val !== null && val !== undefined && Number(val) === num) matches.push(i);
-    }
-    return matches.length === 1 ? matches[0] : null;
-  }
 
   // NUMERIQUE — seuils. #545/#554 — inclusivité sens-aware, miroir exact du
   // backend `_palier_inclusivity` : l'inclusivité d'une borne inf vient du flag
