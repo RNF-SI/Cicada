@@ -1840,6 +1840,63 @@ describe('EnjeuxListComponent', () => {
       expect(mockEnjeuService.deleteMetrique).toHaveBeenCalledWith(901);
     });
 
+    // #574 — saisir un indicateur ET sa métrique d'un coup (sans enregistrer
+    // l'indicateur au préalable) ne passait pas par la garde « type obligatoire »
+    // du flux métrique-seule (#401) : la métrique partait sans type_metrique et
+    // ses seuils étaient perdus.
+    describe('type de métrique obligatoire à la création inline (#574)', () => {
+      it('blocks saveIndicateur when a new named metrique has no type', () => {
+        const met = component.createEmptyMetrique();
+        met.nom_metrique = 'Effectifs';
+        met.type_metrique = null;
+        component.indicateurFormMetriques = [met];
+        component.newIndicateurNom = 'Indic';
+        const snackSpy = jest.spyOn((component as any).snackBar, 'open');
+
+        component.saveIndicateur({ id_ne: 1 });
+
+        expect(snackSpy).toHaveBeenCalled();
+        expect(mockEnjeuService.createIndicateur).not.toHaveBeenCalled();
+      });
+
+      it('blocks saveIndicateurForRa when a new named metrique has no type', () => {
+        const met = component.createEmptyMetrique();
+        met.nom_metrique = 'Effectifs';
+        met.type_metrique = null;
+        component.ooIndicateurFormMetriques = [met];
+        component.newOoIndicateurNom = 'Indic';
+        const snackSpy = jest.spyOn((component as any).snackBar, 'open');
+
+        component.saveIndicateurForRa({ id_ra: 1 } as any);
+
+        expect(snackSpy).toHaveBeenCalled();
+        expect(mockEnjeuService.createIndicateur).not.toHaveBeenCalled();
+      });
+
+      it('does not block on an untouched empty metrique row', () => {
+        // Ligne vide laissée par l'utilisateur : filtrée silencieusement, pas bloquante.
+        component.indicateurFormMetriques = [component.createEmptyMetrique()];
+        component.newIndicateurNom = 'Indic';
+
+        component.saveIndicateur({ id_ne: 1 });
+
+        expect(mockEnjeuService.createIndicateur).toHaveBeenCalled();
+      });
+
+      it('does not block editing an existing metrique that has no type (legacy)', () => {
+        const met = component.createEmptyMetrique();
+        met.nom_metrique = 'Ancienne métrique';
+        met.type_metrique = null;
+        met.id_metrique = 42;
+        component.editIndicateurMetriques = [met];
+        component.editIndicateurNom = 'Indic';
+
+        component.saveEditIndicateur({ id_indicateur: 7 });
+
+        expect(mockEnjeuService.updateIndicateur).toHaveBeenCalled();
+      });
+    });
+
     it('blocks save when a CHIFFRE active level has no value', () => {
       jest.spyOn(mockEnjeuService, 'createIndicateur');
       const met = component.createEmptyMetrique();
@@ -1861,6 +1918,8 @@ describe('EnjeuxListComponent', () => {
       const met = component.createEmptyMetrique();
       met.nom_metrique = 'Effectifs';
       jest.spyOn(component, 'getMetriqueTypeMnemonique').mockReturnValue('CHIFFRE');
+      // Choisir « Chiffre » dans l'UI renseigne toujours un id de nomenclature (#574).
+      met.type_metrique = 1351;
       met.scores[1].val = 1; met.scores[3].val = 3; met.scores[4].val = 4; met.scores[5].val = 5;
       met._inactiveLevels = [2];
       component.indicateurFormMetriques = [met];

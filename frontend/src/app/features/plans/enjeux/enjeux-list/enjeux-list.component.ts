@@ -2842,6 +2842,37 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
     return true;
   }
 
+  /**
+   * #574 / #401 — Le type de grille est obligatoire pour toute métrique **nouvelle**.
+   *
+   * Le flux « ajouter une métrique à un indicateur déjà enregistré »
+   * (`saveStandaloneMetrique`) imposait déjà ce contrôle, mais pas les flux de
+   * création inline (indicateur + métriques saisis d'un seul tenant). Une
+   * métrique sans type partait donc sans `type_metrique` : `resolveFormMnemonique`
+   * devinait alors le format et les seuils saisis n'étaient pas envoyés — la
+   * métrique apparaissait vide après enregistrement.
+   *
+   * Seules les métriques non encore persistées sont contrôlées, pour ne pas
+   * bloquer l'édition d'anciennes métriques enregistrées sans type.
+   */
+  private validateNewMetriquesType(metriques: MetriqueFormData[]): boolean {
+    for (const met of metriques) {
+      if (met._deleted || met.id_metrique) continue;
+      // Ligne encore vierge (ni intitulé ni type) : elle sera filtrée
+      // silencieusement, inutile de bloquer l'enregistrement dessus.
+      if (!met.nom_metrique.trim() && met.type_metrique == null) continue;
+      if (met.type_metrique == null) {
+        this.snackBar.open(
+          this.translate.instant('enjeux.metriques.typeRequired'),
+          this.translate.instant('common.actions.close'),
+          { duration: 4000 }
+        );
+        return false;
+      }
+    }
+    return true;
+  }
+
   saveIndicateur(ne: any): void {
     if (!this.newIndicateurNom.trim()) return;
 
@@ -2850,6 +2881,9 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
     const validMetriques = this.indicateurFormMetriques.filter(m =>
       m.nom_metrique.trim() || this.getMetriqueTypeMnemonique(m.type_metrique) === 'INDETERMINE'
     );
+    // Type de grille obligatoire (#574) — contrôlé après le filtre pour qu'une
+    // ligne de métrique vide restée dans le formulaire n'empêche pas la sauvegarde.
+    if (!this.validateNewMetriquesType(validMetriques)) return;
     // Niveaux actifs (Chiffre / Texte) : saisie obligatoire.
     if (!this.validateMetriquesActiveLevels(validMetriques)) return;
 
@@ -3540,6 +3574,8 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
 
   saveEditIndicateur(ind: any): void {
     if (!this.editIndicateurNom.trim()) return;
+    // #574 — une métrique ajoutée pendant l'édition doit elle aussi porter un type.
+    if (!this.validateNewMetriquesType(this.editIndicateurMetriques)) return;
     if (!this.validateMetriquesActiveLevels(this.editIndicateurMetriques)) return;
     this.isSavingIndicateur.set(true);
 
@@ -3561,7 +3597,9 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
           if (met._deleted && met.id_metrique) {
             // Delete existing metrique
             metriqueOps.push(this.enjeuService.deleteMetrique(met.id_metrique));
-          } else if (!met._deleted && met.nom_metrique.trim()) {
+          } else if (!met._deleted && (met.nom_metrique.trim() || this.getMetriqueTypeMnemonique(met.type_metrique) === 'INDETERMINE')) {
+            // #574/#339 — les métriques « Indéterminé » sont conservées même sans
+            // intitulé (elles étaient auparavant écartées silencieusement).
             if (met.id_metrique) {
               // Update existing metrique
               metriqueOps.push(this.enjeuService.updateMetrique(met.id_metrique, this.buildMetriquePayload(ind.id_indicateur, met)));
@@ -5085,7 +5123,14 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
 
   saveIndicateurForRa(ra: ResultatAttendu): void {
     if (!this.newOoIndicateurNom.trim()) return;
-    if (!this.validateMetriquesActiveLevels(this.ooIndicateurFormMetriques)) return;
+    // #574 — mêmes garanties que le flux niveau d'exigence : on ne contrôle que
+    // les métriques réellement retenues (cf. filtre plus bas), afin qu'une ligne
+    // vide laissée dans le formulaire ne bloque pas l'enregistrement.
+    const metriquesRetenues = this.ooIndicateurFormMetriques.filter(m =>
+      m.nom_metrique.trim() || this.getMetriqueTypeMnemonique(m.type_metrique) === 'INDETERMINE'
+    );
+    if (!this.validateNewMetriquesType(metriquesRetenues)) return;
+    if (!this.validateMetriquesActiveLevels(metriquesRetenues)) return;
 
     this.isSavingOoIndicateur.set(true);
     this.enjeuService.createIndicateur({
@@ -5198,6 +5243,8 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
 
   saveEditOoIndicateur(ind: Indicateur): void {
     if (!this.editOoIndicateurNom.trim()) return;
+    // #574 — une métrique ajoutée pendant l'édition doit elle aussi porter un type.
+    if (!this.validateNewMetriquesType(this.editOoIndicateurMetriques)) return;
     if (!this.validateMetriquesActiveLevels(this.editOoIndicateurMetriques)) return;
     this.isSavingOoIndicateur.set(true);
 
