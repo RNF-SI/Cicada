@@ -39,6 +39,7 @@ import { RhService } from '../../../../core/services/rh.service';
 import { Poste } from '../../../../core/models/rh.model';
 import { CampanuleService } from '../../../../core/services/campanule.service';
 import { InventaireService } from '../../../../core/services/inventaire.service';
+import { ReorderService, OperationCodePreviewParams } from '../../../../core/services/reorder.service';
 import { SuiviInventaireDetail } from '../../../../core/models/inventaire.model';
 import { Operation, OperationCreatePayload, OperationStatut, OperationAnnee, OperationAnneeOrganisme, FinanceOperation, SuiviInventaire, TaxonRef, HabitatRef, GeologieRef, MetriqueFormData, MetriqueRef, Enjeu } from '../../../../core/models/enjeu.model';
 import { CampanuleAutocomplete, campanuleProtocoleLabel } from '../../../../core/models/campanule.model';
@@ -137,6 +138,7 @@ export class OperationFormComponent implements OnInit {
   private readonly rhService = inject(RhService);
   private readonly campanuleService = inject(CampanuleService);
   private readonly inventaireService = inject(InventaireService);
+  private readonly reorderService = inject(ReorderService);
   private readonly translate = inject(TranslateService);
   private readonly snackBar = inject(MatSnackBar);
   private readonly dialog = inject(MatDialog);
@@ -313,12 +315,21 @@ export class OperationFormComponent implements OnInit {
   categorieActionReserveCtrl = new FormControl<number | null>(null);
 
   /**
-   * Préfixe 2 lettres calculé côté UI pour aperçu en temps réel — priorité
+   * #486 — Valeur du contrôle reflétée en signal. Sans cela, les `computed`
+   * qui dérivent le code (`previewCode`, `codePreviewParams`) ne se
+   * recalculent pas quand l'utilisateur change la catégorie : Angular ne
+   * pistant que les signaux, `categorieActionReserveCtrl.value` lu dans un
+   * computed n'est jamais une dépendance.
+   */
+  private categorieActionReserveSig = signal<number | null>(null);
+
+  /**
+   * Préfixe 2 lettres calculé côté UI pour aperçu immédiat — priorité
    * à la catégorie d'action réserve, sinon lettres de tête du type d'action.
-   * Le code complet (avec rang) est calculé côté backend.
+   * Le code complet (avec rang) vient du backend, cf. `resolvedCode` (#486).
    */
   previewCode = computed<string | null>(() => {
-    const catId = this.categorieActionReserveCtrl.value;
+    const catId = this.categorieActionReserveSig();
     if (catId != null) {
       const cat = this.categorieActionReserveOptions().find(c => c.id_nomenclature === catId);
       if (cat?.cd_nomenclature) {
@@ -336,6 +347,108 @@ export class OperationFormComponent implements OnInit {
     }
     return null;
   });
+
+  // ===========================================================================
+  // #486 — Code complet affiché AVANT enregistrement
+  // ===========================================================================
+  // `previewCode` ne donne que le préfixe (calculable localement). Le rang, lui,
+  // dépend du parcours de tout l'arbre du plan et des numéros réservés
+  // manuellement (#485) : il est demandé au backend, qui rejoue le calcul sur
+  // les valeurs du formulaire sans rien persister.
+
+  /** Numéro fixé saisi, reflété en signal pour alimenter l'aperçu. */
+  private numeroManuelSig = signal<number | null>(null);
+
+  /** Code complet renvoyé par le backend (`CS3`), null tant qu'inconnu. */
+  resolvedCode = signal<string | null>(null);
+  codePreviewLoading = signal(false);
+
+  /** Déclencheur debouncé des appels d'aperçu. */
+  private codePreview$ = new Subject<OperationCodePreviewParams>();
+
+  /**
+   * Code à afficher : le code complet dès qu'il est connu, sinon le préfixe
+   * suivi de « … » (état transitoire, ~300 ms) pour ne jamais vider le bloc.
+   */
+  displayCode = computed<string | null>(() => {
+    const full = this.resolvedCode();
+    if (full) return full;
+    const prefix = this.previewCode();
+    return prefix ? `${prefix}…` : null;
+  });
+
+  /** Paramètres d'aperçu dérivés de l'état courant du formulaire. */
+  private codePreviewParams = computed<OperationCodePreviewParams | null>(() => {
+    const planId = this.planId();
+    if (planId == null) return null;
+
+    const opId = this.operationId();
+    const metriqueId = this.selectedMetriqueIdsSig()[0]
+      ?? this.prelinkedMetriqueIds()[0]
+      ?? this.prelinkedMetriqueId();
+
+    return {
+      operation_id: opId,
+      type_action_id: this.selectedTypeAction()?.id_nomenclature ?? null,
+      categorie_action_reserve_id: this.categorieActionReserveSig(),
+      numero_manuel: this.numeroManuelSig(),
+      // En édition, l'action est déjà positionnée dans l'arbre : inutile (et
+      // faux) de lui donner un parent « futur ».
+      metrique_id: opId != null ? null : metriqueId ?? null,
+      indicateur_id: opId != null ? null : this.prelinkedIndicateurId(),
+    };
+  });
+
+  /** Relance l'aperçu à chaque changement des entrées du code. */
+  private readonly codePreviewSync = effect(() => {
+    const params = this.codePreviewParams();
+    if (!params) return;
+    this.codePreviewLoading.set(true);
+    this.codePreview$.next(params);
+  });
+
+  /** Branche le pipeline debouncé (appelé depuis le constructeur). */
+  private initCodePreview(): void {
+    this.codePreview$
+      .pipe(
+        debounceTime(300),
+        distinctUntilChanged((a, b) => JSON.stringify(a) === JSON.stringify(b)),
+        switchMap(params => {
+          const planId = this.planId();
+          if (planId == null) return of(null);
+          return this.reorderService.getOperationCodePreview(planId, params).pipe(
+            catchError(() => of(null)),
+          );
+        }),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe(preview => {
+        this.codePreviewLoading.set(false);
+        this.resolvedCode.set(preview?.code ?? null);
+      });
+  }
+
+  /** Reflète la catégorie d'action réserve (contrôle hors form) dans son signal. */
+  private initCategorieActionReserveSync(): void {
+    this.categorieActionReserveSig.set(this.categorieActionReserveCtrl.value);
+    this.categorieActionReserveCtrl.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(value => this.categorieActionReserveSig.set(value));
+  }
+
+  /** Reflète `numero_manuel` (contrôle formulaire) dans son signal. */
+  private initNumeroManuelSync(): void {
+    const ctrl = this.form.get('numero_manuel');
+    if (!ctrl) return;
+    const normalize = (v: unknown): number | null => {
+      const n = Number(v);
+      return v != null && v !== '' && Number.isFinite(n) && n > 0 ? Math.floor(n) : null;
+    };
+    this.numeroManuelSig.set(normalize(ctrl.value));
+    ctrl.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(value => this.numeroManuelSig.set(normalize(value)));
+  }
 
   /**
    * Libellé de la catégorie d'action réserve sélectionnée, pour l'affichage du
@@ -605,6 +718,10 @@ export class OperationFormComponent implements OnInit {
     this.loadFrequenceNomenclature();
     this.initForm();
     this.initMetriqueIdsSync();
+    // #486 — aperçu du code d'action en direct (avant enregistrement).
+    this.initCategorieActionReserveSync();
+    this.initNumeroManuelSync();
+    this.initCodePreview();
     this.initSuiviLibelleSync();
     this.initTypeActionAutocomplete();
     this.initCampanuleAutocomplete();

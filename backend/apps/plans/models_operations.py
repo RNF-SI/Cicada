@@ -390,6 +390,38 @@ class SuiviInventaire(models.Model):
         return self.id_pg
 
 
+def compute_code_prefix(categorie_action_reserve, type_action):
+    """
+    Préfixe 2 lettres utilisé pour calculer le code d'affichage d'une action.
+
+    Priorité : `categorie_action_reserve.cd_nomenclature` (CT88, code 2 lettres
+    comme SP/CS/IP/...). À défaut, on extrait les lettres de tête de
+    `type_action.cd_nomenclature` (CS1.2 → 'CS', IP1 → 'IP'). Si aucun type
+    n'est défini, retourne 'AC' (action) par sécurité.
+
+    Fonction module (et non simple propriété) pour être appelable sur des
+    valeurs non persistées : la prévisualisation du code avant enregistrement
+    (#486) doit appliquer exactement la même règle que `Operation.code_prefix`.
+    """
+    if categorie_action_reserve is not None:
+        code = (getattr(categorie_action_reserve, 'cd_nomenclature', '') or '').strip()
+        if code:
+            return code[:2].upper()
+    if type_action is not None:
+        code = (getattr(type_action, 'cd_nomenclature', '') or '').strip()
+        if code:
+            # Extraire les lettres de tête (CS1 → CS, IP1.1 → IP, SE → SE)
+            letters = ''
+            for ch in code:
+                if ch.isalpha():
+                    letters += ch
+                else:
+                    break
+            if letters:
+                return letters[:2].upper()
+    return 'AC'
+
+
 class Operation(models.Model):
     """
     Opération (action) rattachée à une métrique (FK simple).
@@ -715,34 +747,23 @@ class Operation(models.Model):
         """
         Préfixe 2 lettres utilisé pour calculer le code d'affichage.
 
-        Priorité : `id_categorie_action_reserve.cd_nomenclature` (CT88, code 2
-        lettres comme SP/CS/IP/...). À défaut, on extrait les lettres de tête
-        de `id_type_action.cd_nomenclature` (CS1.2 → 'CS', IP1 → 'IP'). Si
-        aucun type n'est défini, retourne 'AC' (action) par sécurité.
+        Délègue à `compute_code_prefix()` (#486 : la prévisualisation avant
+        enregistrement doit appliquer exactement la même règle sur des valeurs
+        de formulaire non encore persistées).
         """
+        categorie = None
         if self.id_categorie_action_reserve_id:
             try:
-                code = (self.id_categorie_action_reserve.cd_nomenclature or '').strip()
-                if code:
-                    return code[:2].upper()
+                categorie = self.id_categorie_action_reserve
             except Exception:
-                pass
+                categorie = None
+        type_action = None
         if self.id_type_action_id:
             try:
-                code = (self.id_type_action.cd_nomenclature or '').strip()
-                if code:
-                    # Extraire les lettres de tête (CS1 → CS, IP1.1 → IP, SE → SE)
-                    letters = ''
-                    for ch in code:
-                        if ch.isalpha():
-                            letters += ch
-                        else:
-                            break
-                    if letters:
-                        return letters[:2].upper()
+                type_action = self.id_type_action
             except Exception:
-                pass
-        return 'AC'
+                type_action = None
+        return compute_code_prefix(categorie, type_action)
 
     # #355 — Réalisation GLOBALE (sur toute la période du PG).
     # Libellés des niveaux (alignés sur la nomenclature NIVEAU_REALISATION) pour

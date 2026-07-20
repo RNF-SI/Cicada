@@ -12,7 +12,9 @@ import pytest
 from rest_framework import status
 
 from apps.plans.models_operations import Operation, CorOperationMetrique
-from apps.plans.serializers_operations import compute_operation_codes_for_plan
+from apps.plans.serializers_operations import (
+    compute_operation_codes_for_plan, PENDING_OPERATION_KEY,
+)
 from apps.core.models import Nomenclature, TypeNomenclature
 from tests.factories.enjeux import (
     EnjeuFactory, ObjectifLongTermeFactory, NiveauExigenceFactory,
@@ -322,6 +324,206 @@ class TestByPlanCodeAffichage:
         assert 'CS1' in found_codes
         assert 'IP1' in found_codes
         assert 'CS2' in found_codes
+
+
+# =============================================================================
+# Prévisualisation du code AVANT enregistrement (#486)
+# =============================================================================
+
+@pytest.mark.django_db
+@pytest.mark.integration
+class TestOperationCodePreviewHelper:
+    """`compute_operation_codes_for_plan(overrides=…, pending=…)` simule les
+    valeurs du formulaire sans rien persister (#486)."""
+
+    def test_pending_recoit_le_prochain_code_libre(self, plan_with_actions):
+        """Une action en création sur la métrique prend le rang suivant.
+        Le plan contient déjà CS1 (op_cs) et CS2 (op_via_type) → CS3."""
+        codes = compute_operation_codes_for_plan(
+            plan_with_actions['plan'].pk,
+            pending={
+                'code_prefix': 'CS',
+                'numero_manuel': None,
+                'id_metrique': plan_with_actions['metrique'].pk,
+            },
+        )
+        assert codes[PENDING_OPERATION_KEY] == 'CS3'
+        # Les actions existantes gardent leur code : la simulation n'en décale aucune.
+        assert codes[plan_with_actions['op_cs'].pk] == 'CS1'
+        assert codes[plan_with_actions['op_via_type'].pk] == 'CS2'
+
+    def test_pending_respecte_les_numeros_reserves(self, plan_with_actions):
+        """#485 × #486 — l'aperçu saute les indices réservés manuellement."""
+        op_cs = plan_with_actions['op_cs']
+        op_cs.numero_manuel = 3
+        op_cs.save(update_fields=['numero_manuel'])
+
+        codes = compute_operation_codes_for_plan(
+            plan_with_actions['plan'].pk,
+            pending={
+                'code_prefix': 'CS',
+                'numero_manuel': None,
+                'id_metrique': plan_with_actions['metrique'].pk,
+            },
+        )
+        assert codes[op_cs.pk] == 'CS3'                               # fixé
+        assert codes[plan_with_actions['op_via_type'].pk] == 'CS1'    # auto
+        assert codes[PENDING_OPERATION_KEY] == 'CS2'                  # auto, saute le 3
+
+    def test_pending_avec_numero_manuel_impose_le_chiffre(self, plan_with_actions):
+        codes = compute_operation_codes_for_plan(
+            plan_with_actions['plan'].pk,
+            pending={
+                'code_prefix': 'CS',
+                'numero_manuel': 9,
+                'id_metrique': plan_with_actions['metrique'].pk,
+            },
+        )
+        assert codes[PENDING_OPERATION_KEY] == 'CS9'
+
+    def test_pending_sans_parent_connu_recoit_quand_meme_un_code(self, plan_with_actions):
+        """Métrique non encore choisie : l'aperçu reste affiché (rang de fin)."""
+        codes = compute_operation_codes_for_plan(
+            plan_with_actions['plan'].pk,
+            pending={'code_prefix': 'IP', 'numero_manuel': None},
+        )
+        assert codes[PENDING_OPERATION_KEY] == 'IP2'  # après op_ip (IP1)
+
+    def test_override_change_le_prefixe_sans_rien_persister(self, plan_with_actions):
+        """Édition : passer op_ip de IP à CS la renumérote dans la file CS."""
+        op_ip = plan_with_actions['op_ip']
+        codes = compute_operation_codes_for_plan(
+            plan_with_actions['plan'].pk,
+            overrides={op_ip.pk: {'code_prefix': 'CS', 'numero_manuel': None}},
+        )
+        # Ordre de lecture : op_cs (0), op_ip (1), op_via_type (2) → tous CS.
+        assert codes[plan_with_actions['op_cs'].pk] == 'CS1'
+        assert codes[op_ip.pk] == 'CS2'
+        assert codes[plan_with_actions['op_via_type'].pk] == 'CS3'
+
+        op_ip.refresh_from_db()
+        assert op_ip.id_categorie_action_reserve.cd_nomenclature == 'IP'
+
+    def test_override_numero_manuel_a_none_revient_a_lauto(self, plan_with_actions):
+        """Effacer le champ dans le formulaire doit relâcher l'indice réservé."""
+        op_via_type = plan_with_actions['op_via_type']
+        op_via_type.numero_manuel = 1
+        op_via_type.save(update_fields=['numero_manuel'])
+
+        # Sans override : le 1 est réservé, op_cs prend CS2.
+        codes = compute_operation_codes_for_plan(plan_with_actions['plan'].pk)
+        assert codes[op_via_type.pk] == 'CS1'
+        assert codes[plan_with_actions['op_cs'].pk] == 'CS2'
+
+        # Avec override à None : retour à la numérotation automatique.
+        codes = compute_operation_codes_for_plan(
+            plan_with_actions['plan'].pk,
+            overrides={op_via_type.pk: {'code_prefix': 'CS', 'numero_manuel': None}},
+        )
+        assert codes[plan_with_actions['op_cs'].pk] == 'CS1'
+        assert codes[op_via_type.pk] == 'CS2'
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+class TestOperationCodePreviewEndpoint:
+    """GET /api/plans/plans/{id}/operation-code-preview/ (#486)."""
+
+    def _url(self, plan):
+        return f'/api/plans/plans/{plan.pk}/operation-code-preview/'
+
+    def test_creation_renvoie_code_complet_et_prefixe(
+        self, api_client, plan_with_actions, cat_reserve_nomenclatures
+    ):
+        api_client.force_authenticate(user=plan_with_actions['referent'])
+        response = api_client.get(self._url(plan_with_actions['plan']), {
+            'categorie_action_reserve_id': cat_reserve_nomenclatures['CS'].pk,
+            'metrique_id': plan_with_actions['metrique'].pk,
+        })
+        assert response.status_code == status.HTTP_200_OK, response.data
+        assert response.json() == {'code': 'CS3', 'prefix': 'CS'}
+
+    def test_prefixe_deduit_du_type_action_a_defaut_de_categorie(
+        self, api_client, plan_with_actions, type_action_nomenclatures
+    ):
+        api_client.force_authenticate(user=plan_with_actions['referent'])
+        response = api_client.get(self._url(plan_with_actions['plan']), {
+            'type_action_id': type_action_nomenclatures['IP1'].pk,
+            'metrique_id': plan_with_actions['metrique'].pk,
+        })
+        assert response.status_code == status.HTTP_200_OK
+        assert response.json() == {'code': 'IP2', 'prefix': 'IP'}
+
+    def test_sans_type_ni_categorie_prefixe_par_defaut(self, api_client, plan_with_actions):
+        api_client.force_authenticate(user=plan_with_actions['referent'])
+        response = api_client.get(self._url(plan_with_actions['plan']), {
+            'metrique_id': plan_with_actions['metrique'].pk,
+        })
+        assert response.status_code == status.HTTP_200_OK
+        assert response.json() == {'code': 'AC1', 'prefix': 'AC'}
+
+    def test_edition_reflete_le_prefixe_saisi_sans_persister(
+        self, api_client, plan_with_actions, cat_reserve_nomenclatures
+    ):
+        """L'action éditée est déjà dans l'arbre : on substitue ses valeurs."""
+        api_client.force_authenticate(user=plan_with_actions['referent'])
+        op_ip = plan_with_actions['op_ip']
+        response = api_client.get(self._url(plan_with_actions['plan']), {
+            'operation_id': op_ip.pk,
+            'categorie_action_reserve_id': cat_reserve_nomenclatures['CS'].pk,
+        })
+        assert response.status_code == status.HTTP_200_OK
+        assert response.json() == {'code': 'CS2', 'prefix': 'CS'}
+
+        op_ip.refresh_from_db()
+        assert op_ip.id_categorie_action_reserve.cd_nomenclature == 'IP'
+
+    def test_edition_numero_manuel_saisi_non_persiste(
+        self, api_client, plan_with_actions, cat_reserve_nomenclatures
+    ):
+        api_client.force_authenticate(user=plan_with_actions['referent'])
+        op_cs = plan_with_actions['op_cs']
+        response = api_client.get(self._url(plan_with_actions['plan']), {
+            'operation_id': op_cs.pk,
+            'categorie_action_reserve_id': cat_reserve_nomenclatures['CS'].pk,
+            'numero_manuel': '7',
+        })
+        assert response.status_code == status.HTTP_200_OK
+        assert response.json()['code'] == 'CS7'
+
+        op_cs.refresh_from_db()
+        assert op_cs.numero_manuel is None
+
+    def test_numero_manuel_vide_ou_nul_revient_a_lauto(
+        self, api_client, plan_with_actions, cat_reserve_nomenclatures
+    ):
+        api_client.force_authenticate(user=plan_with_actions['referent'])
+        for raw in ('', '0', '-3', 'abc'):
+            response = api_client.get(self._url(plan_with_actions['plan']), {
+                'operation_id': plan_with_actions['op_cs'].pk,
+                'categorie_action_reserve_id': cat_reserve_nomenclatures['CS'].pk,
+                'numero_manuel': raw,
+            })
+            assert response.status_code == status.HTTP_200_OK
+            assert response.json()['code'] == 'CS1', f"numero_manuel={raw!r}"
+
+    def test_preview_disponible_sur_plan_verrouille(self, api_client, plan_with_actions):
+        """#248 — l'aperçu est une lecture : il reste servi hors brouillon."""
+        plan = plan_with_actions['plan']
+        plan.statut = 'valide'
+        plan.save(update_fields=['statut'])
+
+        api_client.force_authenticate(user=plan_with_actions['referent'])
+        response = api_client.get(self._url(plan), {
+            'metrique_id': plan_with_actions['metrique'].pk,
+        })
+        assert response.status_code == status.HTTP_200_OK
+
+    def test_preview_refuse_sans_authentification(self, api_client, plan_with_actions):
+        response = api_client.get(self._url(plan_with_actions['plan']))
+        assert response.status_code in (
+            status.HTTP_401_UNAUTHORIZED, status.HTTP_403_FORBIDDEN,
+        )
 
 
 # =============================================================================

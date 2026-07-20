@@ -321,6 +321,51 @@ describe('OperationFormComponent — ventilation budgétaire', () => {
   });
 
   // -------------------------------------------------------------------------
+  // #486 — code complet affiché AVANT enregistrement : le backend fournit le
+  // rang ; tant qu'il n'a pas répondu on montre le préfixe suivi de « … », pour
+  // ne jamais vider le bloc pendant la frappe.
+  // -------------------------------------------------------------------------
+  describe('#486 displayCode (aperçu avant enregistrement)', () => {
+    function makeDisplay() {
+      const resolvedCode = signal<string | null>(null);
+      const previewCode = signal<string | null>(null);
+      const displayCode = computed<string | null>(() => {
+        const full = resolvedCode();
+        if (full) return full;
+        const prefix = previewCode();
+        return prefix ? `${prefix}…` : null;
+      });
+      return { resolvedCode, previewCode, displayCode };
+    }
+
+    it('affiche le code complet dès que le backend a répondu', () => {
+      const d = makeDisplay();
+      d.previewCode.set('CS');
+      d.resolvedCode.set('CS3');
+      expect(d.displayCode()).toBe('CS3');
+    });
+
+    it('affiche le préfixe suivi de « … » tant que le rang est inconnu', () => {
+      const d = makeDisplay();
+      d.previewCode.set('IP');
+      expect(d.displayCode()).toBe('IP…');
+    });
+
+    it('repasse en préfixe seul si le backend ne sait pas situer l\'action', () => {
+      const d = makeDisplay();
+      d.previewCode.set('CS');
+      d.resolvedCode.set('CS2');
+      d.resolvedCode.set(null); // ex. plan non résolu / erreur réseau
+      expect(d.displayCode()).toBe('CS…');
+    });
+
+    it('n\'affiche rien tant qu\'aucun type ni catégorie n\'est choisi', () => {
+      const d = makeDisplay();
+      expect(d.displayCode()).toBeNull();
+    });
+  });
+
+  // -------------------------------------------------------------------------
   // #485 — numéro fixé manuellement dans le code : normalisation du payload.
   // Reproduit l'expression de buildPayload : vide/0/négatif → null (retour à la
   // numérotation automatique), positif → entier.

@@ -2574,6 +2574,86 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
         codes = compute_operation_codes_for_plan(plan.pk)
         return Response(codes)
 
+    @action(detail=True, methods=['get'], url_path='operation-code-preview')
+    def operation_code_preview(self, request, pk=None):
+        """
+        #486 — Code d'affichage qu'aurait une action AVANT son enregistrement.
+
+        GET /api/plans/plans/{id}/operation-code-preview/
+            ?operation_id=      (édition : action déjà en base, repositionnée)
+            &type_action_id=    (nomenclature type d'action)
+            &categorie_action_reserve_id=  (nomenclature CT88, prioritaire)
+            &numero_manuel=     (numéro fixé, vide = numérotation auto)
+            &metrique_id=       (création : métrique parente)
+            &indicateur_id=     (création : indicateur parent, sans métrique)
+
+        Le code complet (`préfixe` + `rang calculé sur tout le plan`) ne peut
+        pas être déduit côté client : il dépend du parcours de l'arbre entier
+        et des numéros réservés manuellement (#485). Cet endpoint rejoue donc
+        `compute_operation_codes_for_plan` en simulant les valeurs du
+        formulaire, sans rien persister.
+
+        Réponse : {"code": "CS3", "prefix": "CS"}.
+        """
+        plan = self.get_object()
+        from .models_operations import compute_code_prefix
+        from .serializers_operations import (
+            compute_operation_codes_for_plan, PENDING_OPERATION_KEY,
+        )
+        from apps.core.models import Nomenclature
+
+        def get_int(name):
+            raw = (request.query_params.get(name) or '').strip()
+            if not raw:
+                return None
+            try:
+                value = int(raw)
+            except (TypeError, ValueError):
+                return None
+            return value
+
+        def get_nomenclature(name):
+            value = get_int(name)
+            if value is None:
+                return None
+            return Nomenclature.objects.filter(pk=value).first()
+
+        prefix = compute_code_prefix(
+            get_nomenclature('categorie_action_reserve_id'),
+            get_nomenclature('type_action_id'),
+        )
+        numero_manuel = get_int('numero_manuel')
+        # 0 ou négatif = retour à la numérotation automatique (cf. buildPayload).
+        if numero_manuel is not None and numero_manuel <= 0:
+            numero_manuel = None
+
+        operation_id = get_int('operation_id')
+        if operation_id is not None:
+            # Édition : l'action est déjà dans l'arbre, on ne fait que
+            # substituer les valeurs en cours de saisie à celles en base.
+            codes = compute_operation_codes_for_plan(
+                plan.pk,
+                overrides={operation_id: {
+                    'code_prefix': prefix,
+                    'numero_manuel': numero_manuel,
+                }},
+            )
+            code = codes.get(operation_id)
+        else:
+            # Création : l'action est insérée en fin de liste de son parent.
+            codes = compute_operation_codes_for_plan(
+                plan.pk,
+                pending={
+                    'code_prefix': prefix,
+                    'numero_manuel': numero_manuel,
+                    'id_metrique': get_int('metrique_id'),
+                    'id_indicateur': get_int('indicateur_id'),
+                },
+            )
+            code = codes.get(PENDING_OPERATION_KEY)
+
+        return Response({'code': code, 'prefix': prefix})
+
     @action(detail=False, methods=['get'])
     def stats(self, request):
         """

@@ -97,11 +97,14 @@
             <mat-hint>{{ 'enjeux.operations.categorieActionReserveHint' | translate }}</mat-hint>
           </mat-form-field>
 
-          @if (previewCode()) {
+          <!-- #486 — Code complet affiché AVANT enregistrement (préfixe + rang
+               calculé sur tout le plan), rafraîchi à chaque changement de type
+               d'action, de catégorie ou de numéro fixé. -->
+          @if (displayCode()) {
             <div class="preview-code-info">
               <i class="fi fi-rr-info"></i>
-              <span>{{ 'enjeux.operations.previewCodeLabel' | translate }} : <strong>{{ previewCode() }}…</strong></span>
-              <small>{{ 'enjeux.operations.previewCodeHelp' | translate }}</small>
+              <span>{{ 'enjeux.operations.previewCodeLabel' | translate }} : <strong>{{ displayCode() }}</strong></span>
+              <small>{{ (resolvedCode() ? 'enjeux.operations.previewCodeHelp' : 'enjeux.operations.previewCodeComputing') | translate }}</small>
             </div>
           }
 

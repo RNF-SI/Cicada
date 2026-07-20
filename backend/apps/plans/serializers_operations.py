@@ -18,7 +18,13 @@ from .models_operations import (
 # Helpers — code d'affichage des opérations (#228 / 2026-05-12)
 # =============================================================================
 
-def compute_operation_codes_for_plan(plan_id):
+# #486 — Clé sous laquelle le code d'une action *pas encore enregistrée* est
+# renvoyé par `compute_operation_codes_for_plan(..., pending=...)`. Volontairement
+# non entière pour ne jamais entrer en collision avec un `id_operation`.
+PENDING_OPERATION_KEY = '__pending__'
+
+
+def compute_operation_codes_for_plan(plan_id, overrides=None, pending=None):
     """
     Calcule pour chaque Operation rattachée au plan son code d'affichage
     `<prefix><rang>` (ex: 'CS1', 'SP2'), basé sur l'ordre de lecture naturel
@@ -34,8 +40,21 @@ def compute_operation_codes_for_plan(plan_id):
     décale donc le rang d'une action localement (typiquement de ±1) et
     n'affecte pas les actions des autres branches/métriques.
 
+    #486 — Prévisualisation avant enregistrement. Deux paramètres optionnels
+    permettent de simuler l'état du formulaire sans rien persister :
+
+      - `overrides` : {id_operation: {'code_prefix': 'CS', 'numero_manuel': 3}}
+        remplace, pour l'action en cours d'édition, les valeurs en base. Une
+        clé présente à None est honorée (retour à la numérotation auto).
+      - `pending` : {'code_prefix': 'CS', 'numero_manuel': None,
+        'id_metrique': X} ou {'…', 'id_indicateur': Y} — action pas encore
+        créée, insérée en FIN de la liste d'actions de son parent (c'est la
+        position que lui donnera la création). Son code est renvoyé sous la
+        clé `PENDING_OPERATION_KEY`.
+
     Retour : dict {id_operation: 'CS1', ...}.
     """
+    overrides = overrides or {}
     # Import local pour éviter les cycles d'import.
     from django.db.models import Prefetch
     from .models import PlanGestion
@@ -123,6 +142,19 @@ def compute_operation_codes_for_plan(plan_id):
     operations_by_id = {}
     seen_oos = set()
 
+    # #486 — parent de l'action en cours de création (non enregistrée).
+    pending_metrique_id = (pending or {}).get('id_metrique')
+    pending_indicateur_id = (pending or {}).get('id_indicateur')
+
+    def append_pending_if_parent(kind, parent_id):
+        """Insère l'action pending en fin de liste de son parent (#486)."""
+        if pending is None or PENDING_OPERATION_KEY in operations_by_id:
+            return
+        expected = pending_metrique_id if kind == 'metrique' else pending_indicateur_id
+        if expected is not None and expected == parent_id:
+            operations_by_id[PENDING_OPERATION_KEY] = None
+            seen_op_ids.append(PENDING_OPERATION_KEY)
+
     def visit_indicateur_metriques(indicateur):
         # `metriques.all()` et `operations.all()` puisent dans le prefetch
         # (déjà trié au niveau de la queryset) — aucune nouvelle requête.
@@ -132,12 +164,14 @@ def compute_operation_codes_for_plan(plan_id):
                     continue
                 operations_by_id[op.pk] = op
                 seen_op_ids.append(op.pk)
+            append_pending_if_parent('metrique', metrique.pk)
         # #367 — actions rattachées directement à l'indicateur (sans métrique)
         for op in indicateur.operations.all():
             if op.pk in operations_by_id:
                 continue
             operations_by_id[op.pk] = op
             seen_op_ids.append(op.pk)
+        append_pending_if_parent('indicateur', indicateur.pk)
 
     for enjeu in enjeux:
         # Branche NE : Enjeu → OLT → NE → Indicateur → Métrique → Action
@@ -159,23 +193,41 @@ def compute_operation_codes_for_plan(plan_id):
                         for indicateur in ra.indicateurs.all():
                             visit_indicateur_metriques(indicateur)
 
+    # #486 — L'action en création dont le parent n'a pas été atteint (métrique
+    # orpheline, indicateur hors arbre…) est tout de même numérotée, en fin de
+    # parcours, pour ne jamais laisser le formulaire sans aperçu.
+    if pending is not None and PENDING_OPERATION_KEY not in operations_by_id:
+        operations_by_id[PENDING_OPERATION_KEY] = None
+        seen_op_ids.append(PENDING_OPERATION_KEY)
+
+    def resolve(op_id):
+        """(prefix, numero_manuel) effectifs, overrides #486 appliqués."""
+        if op_id == PENDING_OPERATION_KEY:
+            return pending.get('code_prefix') or 'AC', pending.get('numero_manuel')
+        op = operations_by_id[op_id]
+        override = overrides.get(op_id)
+        if override is None:
+            return op.code_prefix, op.numero_manuel
+        prefix = override['code_prefix'] if 'code_prefix' in override else op.code_prefix
+        numero = override['numero_manuel'] if 'numero_manuel' in override else op.numero_manuel
+        return prefix or 'AC', numero
+
     # Calcul des rangs par préfixe dans l'ordre rencontré.
     # #485 — Un numéro fixé manuellement (`numero_manuel`) est réservé pour son
     # préfixe : l'action garde ce numéro quel que soit l'ordre (drag & drop),
     # et l'auto-numérotation des autres actions du même préfixe saute cet indice.
     reserved = {}
     for op_id in seen_op_ids:
-        op = operations_by_id[op_id]
-        if op.numero_manuel:
-            reserved.setdefault(op.code_prefix, set()).add(op.numero_manuel)
+        prefix, numero_manuel = resolve(op_id)
+        if numero_manuel:
+            reserved.setdefault(prefix, set()).add(numero_manuel)
 
     counters = {}
     codes = {}
     for op_id in seen_op_ids:
-        op = operations_by_id[op_id]
-        prefix = op.code_prefix
-        if op.numero_manuel:
-            codes[op_id] = f"{prefix}{op.numero_manuel}"
+        prefix, numero_manuel = resolve(op_id)
+        if numero_manuel:
+            codes[op_id] = f"{prefix}{numero_manuel}"
             continue
         # Prochain indice automatique libre (non réservé) pour ce préfixe.
         n = counters.get(prefix, 0) + 1

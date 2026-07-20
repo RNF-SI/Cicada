@@ -1,5 +1,5 @@
 import { Injectable, inject } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 
 export type ReorderEntity =
@@ -40,6 +40,25 @@ export interface MovePressionPayload {
   position: number;
 }
 
+/** #486 — Valeurs de formulaire simulées pour l'aperçu du code d'action. */
+export interface OperationCodePreviewParams {
+  /** Édition : id de l'action déjà en base (absent en création). */
+  operation_id?: number | null;
+  type_action_id?: number | null;
+  categorie_action_reserve_id?: number | null;
+  numero_manuel?: number | null;
+  /** Création : parent qui déterminera la position dans le parcours du plan. */
+  metrique_id?: number | null;
+  indicateur_id?: number | null;
+}
+
+export interface OperationCodePreview {
+  /** Code complet (`CS3`), ou null si le plan ne permet pas de le situer. */
+  code: string | null;
+  /** Préfixe seul (`CS`), toujours renseigné. */
+  prefix: string;
+}
+
 @Injectable({ providedIn: 'root' })
 export class ReorderService {
   private readonly http = inject(HttpClient);
@@ -74,5 +93,27 @@ export class ReorderService {
    */
   getOperationCodes(planId: number): Observable<Record<number, string>> {
     return this.http.get<Record<number, string>>(`${this.base}/plans/${planId}/operation-codes/`);
+  }
+
+  /**
+   * #486 — Code d'affichage qu'aurait une action AVANT son enregistrement.
+   *
+   * Le rang du code dépend du parcours de tout l'arbre du plan et des numéros
+   * réservés manuellement (#485) : il ne peut pas être déduit côté client. Le
+   * backend rejoue donc le calcul en simulant les valeurs du formulaire, sans
+   * rien persister.
+   */
+  getOperationCodePreview(
+    planId: number,
+    params: OperationCodePreviewParams,
+  ): Observable<OperationCodePreview> {
+    let httpParams = new HttpParams();
+    for (const [key, value] of Object.entries(params)) {
+      if (value != null) httpParams = httpParams.set(key, String(value));
+    }
+    return this.http.get<OperationCodePreview>(
+      `${this.base}/plans/${planId}/operation-code-preview/`,
+      { params: httpParams },
+    );
   }
 }
