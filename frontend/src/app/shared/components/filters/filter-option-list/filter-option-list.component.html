@@ -35,16 +35,31 @@
   </div>
 }
 
-@if (isEmpty()) {
-  <p class="option-empty">{{ emptyLabel() || ('common.filters.noResults' | translate) }}</p>
-} @else {
-  <!--
-    La case à cocher est purement décorative (`aria-hidden`) : l'état sélectionné est porté
-    par `aria-selected` sur l'option. Cela évite un contrôle interactif imbriqué dans un
-    `role="option"` — et le double déclenchement qui allait avec.
-  -->
-  <ul class="option-list" role="listbox" [attr.aria-multiselectable]="multiple()">
-    @for (option of visible(); track option.value) {
+<!--
+  La case à cocher est purement décorative (`aria-hidden`) : l'état sélectionné est porté
+  par `aria-selected` sur l'option. Cela évite un contrôle interactif imbriqué dans un
+  `role="option"` — et le double déclenchement qui allait avec.
+
+  La ligne « tout » reste rendue même quand la recherche ne donne rien : c'est une commande
+  de remise à zéro, pas un résultat de recherche.
+-->
+<ul class="option-list" role="listbox" [attr.aria-multiselectable]="multiple()">
+  @if (allLabel(); as all) {
+    <li class="option-item">
+      <button
+        type="button"
+        role="option"
+        class="option-row option-row--all"
+        [class.option-row--selected]="selected().length === 0"
+        [attr.aria-selected]="selected().length === 0"
+        [attr.data-testid]="testId() ? testId() + '-option-all' : null"
+        (click)="selectAllNone()">
+        <span class="option-row__label"><em>{{ all }}</em></span>
+      </button>
+    </li>
+  }
+
+  @for (option of visible(); track option.value) {
       <li class="option-item">
         <button
           type="button"
@@ -76,13 +91,16 @@
             }
           </span>
         </button>
-      </li>
-    }
-  </ul>
-
-  @if (hiddenCount() > 0) {
-    <button type="button" class="option-more" (click)="expanded.set(true)">
-      {{ 'common.filters.showMore' | translate }}
-    </button>
+    </li>
   }
+</ul>
+
+@if (isEmpty()) {
+  <p class="option-empty">{{ emptyLabel() || ('common.filters.noResults' | translate) }}</p>
+}
+
+@if (hiddenCount() > 0) {
+  <button type="button" class="option-more" (click)="expanded.set(true)">
+    {{ 'common.filters.showMore' | translate }}
+  </button>
 }

@@ -1229,14 +1229,9 @@ label.app-mat-label + app-form-field,
   max-width: 360px !important;
 }
 
-// #426 — menus de filtres multi-sélection (tableau de bord) : la case à cocher
-// ne ferme pas le menu (stopPropagation côté template). Rendu dans un overlay
-// CDK → styles globaux nécessaires.
-.multiselect-menu {
-  .filter-check {
-    font-size: 16px !important;
-    margin-right: 8px;
-    color: #025359;
-    vertical-align: middle;
-  }
-}
+// #592 — le bloc `.multiselect-menu` a disparu avec `mat-menu`.
+// Il n'existait que parce que le contenu d'un `mat-menu` est rendu hors de la portée
+// de style du composant, ce qui imposait des styles globaux, un hex en dur et un
+// `!important`. Le panneau de `app-filter-dropdown` étant déclaré dans le composant,
+// il conserve son attribut d'encapsulation : tout son style vit désormais dans
+// `filter-dropdown.component.scss` / `filter-option-list.component.scss`.

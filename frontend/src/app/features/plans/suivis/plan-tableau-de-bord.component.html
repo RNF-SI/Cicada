@@ -98,59 +98,52 @@
           </button>
         </div>
 
-        <!-- Filters (#356) — alignés sur « Suivi des actions » : filtres puis recherche, une ligne -->
-        <div class="filter-bar">
-          <div class="filter-bar-left">
-            <div class="filter-label">{{ 'plans.suivis.tableauDeBord.filterLabel' | translate }}</div>
-            <div class="filter-buttons">
-              <!-- Nom d'objectif (multi-sélection #426) -->
-              <button class="filter-btn" [matMenuTriggerFor]="nomMenu"
-                      [class.filter-active]="filterObjectifs().length">
-                {{ 'plans.suivis.tableauDeBord.nomObjectif' | translate }}
-                @if (filterObjectifs().length) { <span class="filter-count">{{ filterObjectifs().length }}</span> }
-                <i class="fi fi-rr-angle-small-down"></i>
-              </button>
-              <mat-menu #nomMenu="matMenu" class="multiselect-menu">
-                @for (name of objectifNames(); track name) {
-                  <button mat-menu-item (click)="toggleObjectifFilter(name); $event.stopPropagation()">
-                    <i class="fi filter-check" [class.fi-rr-square]="!isObjectifSelected(name)" [class.fi-rr-checkbox]="isObjectifSelected(name)"></i>
-                    <span>{{ name }}</span>
-                  </button>
-                }
-              </mat-menu>
-              <div class="filter-separator"></div>
+        <!-- Filtres (#356, #426) — kit UI #592 : app-filter-bar + dropdowns partagés -->
+        <div class="filter-bar-row">
+          <app-filter-bar
+            class="tdb-filters"
+            testId="tdb-filters"
+            [label]="'plans.suivis.tableauDeBord.filterLabel' | translate"
+            [showReset]="filters.hasActive()"
+            (reset)="filters.reset()">
 
-              <!-- Enjeu (mode ensemble uniquement, multi-sélection #426) -->
-              @if (activeTab() === 'ensemble' && enjeuOptions().length > 0) {
-                <button class="filter-btn" [matMenuTriggerFor]="enjeuMenu"
-                        [class.filter-active]="filterEnjeuIds().length">
-                  {{ 'plans.suivis.tableauDeBord.enjeu' | translate }}
-                  @if (filterEnjeuIds().length) { <span class="filter-count">{{ filterEnjeuIds().length }}</span> }
-                  <i class="fi fi-rr-angle-small-down"></i>
-                </button>
-                <mat-menu #enjeuMenu="matMenu" class="multiselect-menu">
-                  @for (e of enjeuOptions(); track e.id) {
-                    <button mat-menu-item (click)="toggleEnjeuFilter(e.id); $event.stopPropagation()">
-                      <i class="fi filter-check" [class.fi-rr-square]="!isEnjeuSelected(e.id)" [class.fi-rr-checkbox]="isEnjeuSelected(e.id)"></i>
-                      <span>{{ e.libelle }}</span>
-                    </button>
-                  }
-                </mat-menu>
-                <div class="filter-separator"></div>
-              }
+            <!-- Nom d'objectif (multi-sélection) -->
+            <app-filter-dropdown
+              testId="tdb-objectif"
+              [label]="'plans.suivis.tableauDeBord.nomObjectif' | translate"
+              [activeCount]="filters.objectifs().length">
+              <ng-template appFilterPanel>
+                <app-filter-option-list
+                  testId="tdb-objectif"
+                  searchable
+                  [options]="objectifFilterOptions()"
+                  [(selected)]="filters.objectifs">
+                </app-filter-option-list>
+              </ng-template>
+            </app-filter-dropdown>
 
-              @if (hasActiveFilters()) {
-                <button class="filter-btn filter-btn-reset" (click)="clearFilters()">
-                  <i class="fi fi-rr-cross-small"></i>
-                  {{ 'common.actions.reset' | translate }}
-                </button>
-              }
-            </div>
-          </div>
+            <!-- Enjeu (mode ensemble uniquement) -->
+            @if (activeTab() === 'ensemble' && enjeuFilterOptions().length > 0) {
+              <app-filter-dropdown
+                testId="tdb-enjeu"
+                [label]="'plans.suivis.tableauDeBord.enjeu' | translate"
+                [activeCount]="filters.enjeuIds().length">
+                <ng-template appFilterPanel>
+                  <app-filter-option-list
+                    testId="tdb-enjeu"
+                    searchable
+                    [options]="enjeuFilterOptions()"
+                    [(selected)]="filters.enjeuIds">
+                  </app-filter-option-list>
+                </ng-template>
+              </app-filter-dropdown>
+            }
+          </app-filter-bar>
+
           <!-- Recherche textuelle après les filtres (style Suivi des actions) -->
           <app-search-bar class="tdb-search"
-            [value]="filterName()"
-            (valueChange)="filterName.set($event)"
+            [value]="filters.name()"
+            (valueChange)="filters.name.set($event)"
             [placeholder]="'plans.suivis.tableauDeBord.searchPlaceholder' | translate"
             [ariaLabel]="'plans.suivis.tableauDeBord.searchPlaceholder' | translate">
           </app-search-bar>

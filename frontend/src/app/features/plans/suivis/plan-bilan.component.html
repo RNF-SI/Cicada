@@ -104,37 +104,52 @@
           </div>
         }
 
-        <!-- Filter row -->
+        <!-- Filtres (kit UI #592) -->
         <div class="filter-row">
-          <button class="filter-pill active">
-            {{ 'plans.suivis.actions.filterLabel' | translate }}
-          </button>
-          <div class="filter-separator"></div>
-          <button class="filter-pill" [matMenuTriggerFor]="enjeuMenu" [class.filter-active]="filterEnjeu()">
-            {{ 'plans.suivis.bilan.filterEnjeu' | translate }}
-            <i class="fi fi-rr-angle-small-down"></i>
-          </button>
-          <mat-menu #enjeuMenu="matMenu">
-            <button mat-menu-item (click)="setEnjeuFilter(null)"><em>{{ 'plans.suivis.bilan.allEnjeux' | translate }}</em></button>
-            @for (e of enjeuOptions(); track e.enjeu_id) {
-              <button mat-menu-item (click)="setEnjeuFilter(e.enjeu_id)">{{ e.libelle }}</button>
-            }
-          </mat-menu>
-          <div class="filter-separator"></div>
-          <button class="filter-pill" [matMenuTriggerFor]="orgMenu">
-            {{ 'plans.suivis.bilan.filterOrganismes' | translate }}
-            <i class="fi fi-rr-angle-small-down"></i>
-          </button>
-          <mat-menu #orgMenu="matMenu">
-            <button mat-menu-item><em>{{ 'plans.suivis.bilan.allOrganismes' | translate }}</em></button>
-            <button mat-menu-item disabled>{{ 'plans.suivis.bilan.orgFilterComingSoon' | translate }}</button>
-          </mat-menu>
-          @if (hasActiveFilters()) {
-            <button class="filter-pill filter-pill-reset" (click)="clearFilters()">
-              <i class="fi fi-rr-cross-small"></i>
-              {{ 'common.actions.reset' | translate }}
-            </button>
-          }
+          <app-filter-bar
+            class="bilan-filters"
+            testId="bilan-filters"
+            [label]="'plans.suivis.actions.filterLabel' | translate"
+            [showReset]="filters.hasActive()"
+            (reset)="filters.reset()">
+
+            <app-filter-dropdown #bilanEnjeuDd
+              testId="bilan-enjeu"
+              [label]="'plans.suivis.bilan.filterEnjeu' | translate"
+              [activeCount]="filters.enjeu().length">
+              <ng-template appFilterPanel>
+                <app-filter-option-list
+                  testId="bilan-enjeu"
+                  searchable
+                  [multiple]="false"
+                  [allLabel]="'plans.suivis.bilan.allEnjeux' | translate"
+                  [options]="enjeuFilterOptions()"
+                  [selected]="filters.enjeu()"
+                  (selectedChange)="onEnjeuFilterChange($event)"
+                  (optionPicked)="bilanEnjeuDd.close()">
+                </app-filter-option-list>
+              </ng-template>
+            </app-filter-dropdown>
+
+            <!-- Filtre organisme : non encore implémenté côté API (jalon conservé). -->
+            <app-filter-dropdown
+              testId="bilan-organisme"
+              [label]="'plans.suivis.bilan.filterOrganismes' | translate">
+              <ng-template appFilterPanel>
+                <app-filter-option-list
+                  testId="bilan-organisme"
+                  [multiple]="false"
+                  [allLabel]="'plans.suivis.bilan.allOrganismes' | translate"
+                  [options]="[{
+                    value: 'soon',
+                    label: ('plans.suivis.bilan.orgFilterComingSoon' | translate),
+                    disabled: true
+                  }]"
+                  [selected]="[]">
+                </app-filter-option-list>
+              </ng-template>
+            </app-filter-dropdown>
+          </app-filter-bar>
           <button class="export-link">
             <i class="fi fi-rr-download"></i>
             {{ 'plans.suivis.bilan.exportGraphs' | translate }}

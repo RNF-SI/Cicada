@@ -13,6 +13,14 @@ import { PaginationComponent } from '../../../shared/components/pagination/pagin
 import { TagComponent } from '../../../shared/components/tag/tag.component';
 import { PriorityBadgeComponent } from '../../../shared/components/priority-badge/priority-badge.component';
 import { PlanPlanificationMensuelleComponent } from './plan-planification-mensuelle.component';
+import {
+  FilterBarComponent,
+  FilterDropdownComponent,
+  FilterOptionListComponent,
+  FilterPanelDirective,
+  FilterOption,
+} from '../../../shared/components/filters';
+import { createFilterSet } from '../../../shared/utils/filter-set';
 import { AdminService } from '../../../core/services/admin.service';
 import { EnjeuService } from '../../../core/services/enjeu.service';
 import {
@@ -50,7 +58,8 @@ interface FlatOperation {
     CommonModule, RouterModule, MatButtonModule, MatMenuModule,
     MatProgressSpinnerModule, MatTooltipModule, TranslateModule,
     HeaderComponent, PlanSidebarComponent, SearchBarComponent,
-    PlanPlanificationMensuelleComponent, TagComponent, PriorityBadgeComponent, PaginationComponent
+    PlanPlanificationMensuelleComponent, TagComponent, PriorityBadgeComponent, PaginationComponent,
+    FilterBarComponent, FilterDropdownComponent, FilterOptionListComponent, FilterPanelDirective
   ],
   templateUrl: './plan-suivi-actions.component.html',
   styleUrl: './plan-suivi-actions.component.scss'
@@ -100,15 +109,25 @@ export class PlanSuiviActionsComponent implements OnInit {
   }
 
   // Filters
-  filterCategorieAction = signal<string | null>(null);
-  filterEnjeu = signal<number | null>(null);
-  filterPriorite = signal<string | null>(null);
-  // #379 — recherche textuelle sur le libellé d'action + filtre organisme.
-  filterText = signal<string>('');
-  filterOrganisme = signal<number | null>(null);
-  // #354 — filtre par année (affiche une seule année) + par réalisation.
-  filterYear = signal<number | null>(null);
-  filterRealisation = signal<'all' | 'realized' | 'not-realized'>('all');
+  //
+  // #592 — état porté par `createFilterSet` (`reset()` / `hasActive()` dérivés).
+  // Les filtres mono-sélection sont stockés en tableau : c'est le contrat unique de
+  // `app-filter-option-list`, un tableau vide valant « pas de filtre ». Cela unifie aussi
+  // le calcul du compteur de valeurs actives entre mono et multi-sélection.
+  readonly filters = createFilterSet({
+    categorieAction: [] as string[],
+    enjeu: [] as number[],
+    priorite: [] as string[],
+    // #379 — recherche textuelle sur le libellé d'action + filtre organisme.
+    text: '',
+    organisme: [] as number[],
+    // #354 — filtre par année (affiche une seule année) + par réalisation.
+    year: [] as number[],
+    realisation: 'all' as 'all' | 'realized' | 'not-realized',
+  }, {
+    // « all » est la valeur neutre de ce filtre, pas une valeur active.
+    isActive: { realisation: (v) => v !== 'all' },
+  });
 
   // Libellés des 9 catégories d'action réserve CT88, indexés par code 2 lettres
   // (SP, CS, IP, PA…). Sert à afficher la catégorie CT88 dans le filtre, même
@@ -139,20 +158,21 @@ export class PlanSuiviActionsComponent implements OnInit {
    *  « Réalisation ». Sert de base au tableau et à la planification mensuelle. */
   baseFilteredOperations = computed(() => {
     let ops = this.allOperations();
-    const cat = this.filterCategorieAction();
-    const enjeu = this.filterEnjeu();
-    const prio = this.filterPriorite();
-    const text = this.normalize(this.filterText());
-    const org = this.filterOrganisme();
+    // Un tableau vide vaut « pas de filtre » (#592).
+    const cat = this.filters.categorieAction();
+    const enjeu = this.filters.enjeu();
+    const prio = this.filters.priorite();
+    const text = this.normalize(this.filters.text());
+    const org = this.filters.organisme();
 
-    if (cat) {
-      ops = ops.filter(o => this.getCategorieAction(o.operation) === cat);
+    if (cat.length) {
+      ops = ops.filter(o => cat.includes(this.getCategorieAction(o.operation) ?? ''));
     }
-    if (enjeu) {
-      ops = ops.filter(o => o.enjeuId === enjeu);
+    if (enjeu.length) {
+      ops = ops.filter(o => enjeu.includes(o.enjeuId));
     }
-    if (prio) {
-      ops = ops.filter(o => o.operation.priorite_label === prio);
+    if (prio.length) {
+      ops = ops.filter(o => prio.includes(o.operation.priorite_label ?? ''));
     }
     if (text) {
       // Recherche sur le libellé ET les codes d'action (code d'affichage CS1 +
@@ -162,15 +182,16 @@ export class PlanSuiviActionsComponent implements OnInit {
         || this.normalize(this.actionCodes(o.operation)).includes(text)
       );
     }
-    if (org) {
-      ops = ops.filter(o => this.getOrganismesForOp(o.operation).some(g => g.id_organisme === org));
+    if (org.length) {
+      ops = ops.filter(o =>
+        this.getOrganismesForOp(o.operation).some(g => org.includes(g.id_organisme)));
     }
     return ops;
   });
 
   filteredOperations = computed(() => {
     let ops = this.baseFilteredOperations();
-    const fy = this.filterYear();
+    const fy = this.selectedYear();
 
     // #459 — filtre par année : ne garder que les actions ayant une case non
     // blanche (un statut : prévu, réalisé, partiel, non prévu…) à cette année.
@@ -181,7 +202,7 @@ export class PlanSuiviActionsComponent implements OnInit {
 
     // #354 — filtre par réalisation. Si une année est sélectionnée, la
     // réalisation est évaluée sur cette année uniquement, sinon sur toutes.
-    const real = this.filterRealisation();
+    const real = this.filters.realisation();
     if (real !== 'all') {
       const years = fy != null ? [fy] : this.yearColumns();
       ops = ops.filter(o => {
@@ -405,6 +426,57 @@ export class PlanSuiviActionsComponent implements OnInit {
     return Array.from(labels).sort();
   });
 
+  // ============================================
+  // #592 — options des filtres, au format du kit UI
+  // ============================================
+
+  categorieFilterOptions = computed<FilterOption<string>[]>(() =>
+    this.categorieActions().map((c) => ({ value: c, label: c })),
+  );
+
+  enjeuFilterOptions = computed<FilterOption<number>[]>(() =>
+    this.enjeux().map((e) => ({ value: e.id, label: e.libelle })),
+  );
+
+  prioriteFilterOptions = computed<FilterOption<string>[]>(() =>
+    this.priorites().map((p) => ({ value: p, label: p })),
+  );
+
+  organismeFilterOptions = computed<FilterOption<number>[]>(() =>
+    this.availableOrganismes().map((o) => ({ value: o.id_organisme, label: o.nom })),
+  );
+
+  yearFilterOptions = computed<FilterOption<number>[]>(() =>
+    this.allYears().map((y) => ({ value: y, label: String(y) })),
+  );
+
+  /** Année filtrée (mono-sélection stockée en tableau), ou `null` si « toutes ». */
+  selectedYear = computed<number | null>(() => this.filters.year()[0] ?? null);
+
+  /** #354 — les trois états de réalisation, libellés traduits. */
+  realisationFilterOptions = computed<FilterOption<string>[]>(() => [
+    {
+      value: 'realized',
+      label: this.translate.instant('plans.suivis.actions.realisationDone'),
+    },
+    {
+      value: 'not-realized',
+      label: this.translate.instant('plans.suivis.actions.realisationNone'),
+    },
+  ]);
+
+  /** Le filtre « réalisation » n'est pas un tableau : adaptation vers/depuis la liste. */
+  realisationSelection = computed<string[]>(() =>
+    this.filters.realisation() === 'all' ? [] : [this.filters.realisation()],
+  );
+
+  onRealisationChange(values: string[]): void {
+    const next = values[0];
+    this.filters.realisation.set(
+      next === 'realized' || next === 'not-realized' ? next : 'all',
+    );
+  }
+
   // #379 — légende partagée (util action-status)
   legendItems = ACTION_LEGEND_ITEMS;
 
@@ -544,38 +616,6 @@ export class PlanSuiviActionsComponent implements OnInit {
    */
   getActionStatusForYear(op: Operation, year: number): ActionStatus | null {
     return getActionStatusForYear(op, year);
-  }
-
-  setCategorieFilter(value: string | null): void {
-    this.filterCategorieAction.set(value);
-  }
-
-  setEnjeuFilter(value: number | null): void {
-    this.filterEnjeu.set(value);
-  }
-
-  setPrioriteFilter(value: string | null): void {
-    this.filterPriorite.set(value);
-  }
-
-  setOrganismeFilter(value: number | null): void {
-    this.filterOrganisme.set(value);
-  }
-
-  clearFilters(): void {
-    this.filterCategorieAction.set(null);
-    this.filterEnjeu.set(null);
-    this.filterPriorite.set(null);
-    this.filterText.set('');
-    this.filterOrganisme.set(null);
-    this.filterYear.set(null);
-    this.filterRealisation.set('all');
-  }
-
-  hasActiveFilters(): boolean {
-    return !!(this.filterCategorieAction() || this.filterEnjeu() || this.filterPriorite()
-      || this.filterText() || this.filterOrganisme()
-      || this.filterYear() != null || this.filterRealisation() !== 'all');
   }
 
   /**

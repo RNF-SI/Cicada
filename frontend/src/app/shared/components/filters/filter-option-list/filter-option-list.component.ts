@@ -43,6 +43,13 @@ export class FilterOptionListComponent<T extends FilterValue = FilterValue> {
   /** Libellé de la case maître (« Toutes les données »). `null` = pas de case maître. */
   readonly masterLabel = input<string | null>(null);
 
+  /**
+   * Libellé de la ligne « tout » d'un filtre mono-sélection (« Toutes », « Tous les
+   * organismes »…). Vider la sélection équivaut à ne pas filtrer, d'où une simple ligne
+   * de remise à zéro plutôt qu'une option porteuse d'une valeur sentinelle.
+   */
+  readonly allLabel = input<string | null>(null);
+
   /** Au-delà de N options, tronque et affiche « Voir plus ». */
   readonly maxVisible = input<number | null>(null);
 
@@ -52,8 +59,11 @@ export class FilterOptionListComponent<T extends FilterValue = FilterValue> {
   /** Racine des `data-testid` des options, propagée par le dropdown parent. */
   readonly testId = input<string>('');
 
-  /** Émis à chaque changement — utile en mono-sélection pour refermer le panneau. */
-  readonly optionPicked = output<T>();
+  /**
+   * Émis à chaque choix — utile en mono-sélection pour refermer le panneau.
+   * `null` correspond à la ligne « tout » (sélection vidée).
+   */
+  readonly optionPicked = output<T | null>();
 
   protected readonly query = signal('');
   protected readonly expanded = signal(false);
@@ -124,6 +134,12 @@ export class FilterOptionListComponent<T extends FilterValue = FilterValue> {
     this.selected.set(
       this.masterState() === 'checked' ? [] : selectable.map((o) => o.value),
     );
+  }
+
+  /** Vide la sélection depuis la ligne « tout » (mono-sélection). */
+  protected selectAllNone(): void {
+    this.selected.set([]);
+    this.optionPicked.emit(null);
   }
 
   protected clearSearch(): void {

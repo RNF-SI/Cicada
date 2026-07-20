@@ -120,134 +120,128 @@
           </button>
         </div>
 
-        <!-- Filters (toujours visibles) -->
-        <div class="filter-bar">
-          <div class="filter-bar-left">
-            <div class="filter-label">{{ 'plans.suivis.actions.filterLabel' | translate }}</div>
-            <div class="filter-buttons">
-              <!-- Catégorie d'action -->
-              <button class="filter-btn" [matMenuTriggerFor]="catMenu"
-                [class.filter-active]="filterCategorieAction()">
-                {{ 'plans.suivis.actions.categorieAction' | translate }}
-                <i class="fi fi-rr-angle-small-down"></i>
-              </button>
-              <mat-menu #catMenu="matMenu">
-                <button mat-menu-item (click)="setCategorieFilter(null)">
-                  <em>Toutes</em>
-                </button>
-                @for (cat of categorieActions(); track cat) {
-                  <button mat-menu-item (click)="setCategorieFilter(cat)">
-                    {{ cat }}
-                  </button>
-                }
-              </mat-menu>
-              <div class="filter-separator"></div>
+        <!-- Filtres (kit UI #592) — app-filter-bar + dropdowns partagés -->
+        <div class="filter-bar-row">
+          <app-filter-bar
+            class="action-filters"
+            testId="actions-filters"
+            [label]="'plans.suivis.actions.filterLabel' | translate"
+            [showReset]="filters.hasActive()"
+            (reset)="filters.reset()">
 
-              <!-- Enjeu -->
-              <button class="filter-btn" [matMenuTriggerFor]="enjeuMenu"
-                [class.filter-active]="filterEnjeu()">
-                {{ 'plans.suivis.actions.enjeu' | translate }}
-                <i class="fi fi-rr-angle-small-down"></i>
-              </button>
-              <mat-menu #enjeuMenu="matMenu">
-                <button mat-menu-item (click)="setEnjeuFilter(null)">
-                  <em>Tous</em>
-                </button>
-                @for (e of enjeux(); track e.id) {
-                  <button mat-menu-item (click)="setEnjeuFilter(e.id)">
-                    {{ e.libelle }}
-                  </button>
-                }
-              </mat-menu>
-              <div class="filter-separator"></div>
+            <!-- Catégorie d'action -->
+            <app-filter-dropdown #catDd
+              testId="actions-categorie"
+              [label]="'plans.suivis.actions.categorieAction' | translate"
+              [activeCount]="filters.categorieAction().length">
+              <ng-template appFilterPanel>
+                <app-filter-option-list
+                  testId="actions-categorie"
+                  searchable
+                  [multiple]="false"
+                  [allLabel]="'common.filters.all' | translate"
+                  [options]="categorieFilterOptions()"
+                  [(selected)]="filters.categorieAction"
+                  (optionPicked)="catDd.close()">
+                </app-filter-option-list>
+              </ng-template>
+            </app-filter-dropdown>
 
-              <!-- Priorité -->
-              <button class="filter-btn" [matMenuTriggerFor]="prioMenu"
-                [class.filter-active]="filterPriorite()">
-                {{ 'plans.suivis.actions.priorite' | translate }}
-                <i class="fi fi-rr-angle-small-down"></i>
-              </button>
-              <mat-menu #prioMenu="matMenu">
-                <button mat-menu-item (click)="setPrioriteFilter(null)">
-                  <em>Toutes</em>
-                </button>
-                @for (p of priorites(); track p) {
-                  <button mat-menu-item (click)="setPrioriteFilter(p)">
-                    {{ p }}
-                  </button>
-                }
-              </mat-menu>
-              <div class="filter-separator"></div>
+            <!-- Enjeu -->
+            <app-filter-dropdown #enjeuDd
+              testId="actions-enjeu"
+              [label]="'plans.suivis.actions.enjeu' | translate"
+              [activeCount]="filters.enjeu().length">
+              <ng-template appFilterPanel>
+                <app-filter-option-list
+                  testId="actions-enjeu"
+                  searchable
+                  [multiple]="false"
+                  [allLabel]="'common.filters.all' | translate"
+                  [options]="enjeuFilterOptions()"
+                  [(selected)]="filters.enjeu"
+                  (optionPicked)="enjeuDd.close()">
+                </app-filter-option-list>
+              </ng-template>
+            </app-filter-dropdown>
 
-              <!-- #379 — Organisme -->
-              @if (availableOrganismes().length > 0) {
-                <button class="filter-btn" [matMenuTriggerFor]="orgMenu"
-                  [class.filter-active]="filterOrganisme()">
-                  {{ 'plans.suivis.actions.organisme' | translate }}
-                  <i class="fi fi-rr-angle-small-down"></i>
-                </button>
-                <mat-menu #orgMenu="matMenu">
-                  <button mat-menu-item (click)="setOrganismeFilter(null)">
-                    <em>{{ 'plans.suivis.actions.allOrganismes' | translate }}</em>
-                  </button>
-                  @for (org of availableOrganismes(); track org.id_organisme) {
-                    <button mat-menu-item (click)="setOrganismeFilter(org.id_organisme)">
-                      {{ org.nom }}
-                    </button>
-                  }
-                </mat-menu>
-                <div class="filter-separator"></div>
-              }
+            <!-- Priorité -->
+            <app-filter-dropdown #prioDd
+              testId="actions-priorite"
+              [label]="'plans.suivis.actions.priorite' | translate"
+              [activeCount]="filters.priorite().length">
+              <ng-template appFilterPanel>
+                <app-filter-option-list
+                  testId="actions-priorite"
+                  [multiple]="false"
+                  [allLabel]="'common.filters.all' | translate"
+                  [options]="prioriteFilterOptions()"
+                  [(selected)]="filters.priorite"
+                  (optionPicked)="prioDd.close()">
+                </app-filter-option-list>
+              </ng-template>
+            </app-filter-dropdown>
 
-              <!-- #354 — Année -->
-              <button class="filter-btn" [matMenuTriggerFor]="yearMenu"
-                [class.filter-active]="filterYear() != null">
-                {{ 'plans.suivis.actions.filterYear' | translate }}
-                @if (filterYear() != null) { <span>&nbsp;: {{ filterYear() }}</span> }
-                <i class="fi fi-rr-angle-small-down"></i>
-              </button>
-              <mat-menu #yearMenu="matMenu">
-                <button mat-menu-item (click)="filterYear.set(null)">
-                  <em>{{ 'plans.suivis.actions.allYears' | translate }}</em>
-                </button>
-                @for (y of allYears(); track y) {
-                  <button mat-menu-item (click)="filterYear.set(y)">{{ y }}</button>
-                }
-              </mat-menu>
-              <div class="filter-separator"></div>
+            <!-- #379 — Organisme -->
+            @if (organismeFilterOptions().length > 0) {
+              <app-filter-dropdown #orgDd
+                testId="actions-organisme"
+                [label]="'plans.suivis.actions.organisme' | translate"
+                [activeCount]="filters.organisme().length">
+                <ng-template appFilterPanel>
+                  <app-filter-option-list
+                    testId="actions-organisme"
+                    searchable
+                    [multiple]="false"
+                    [allLabel]="'plans.suivis.actions.allOrganismes' | translate"
+                    [options]="organismeFilterOptions()"
+                    [(selected)]="filters.organisme"
+                    (optionPicked)="orgDd.close()">
+                  </app-filter-option-list>
+                </ng-template>
+              </app-filter-dropdown>
+            }
 
-              <!-- #354 — Réalisation -->
-              <button class="filter-btn" [matMenuTriggerFor]="realMenu"
-                [class.filter-active]="filterRealisation() !== 'all'">
-                {{ 'plans.suivis.actions.filterRealisation' | translate }}
-                <i class="fi fi-rr-angle-small-down"></i>
-              </button>
-              <mat-menu #realMenu="matMenu">
-                <button mat-menu-item (click)="filterRealisation.set('all')">
-                  <em>{{ 'common.filters.all' | translate }}</em>
-                </button>
-                <button mat-menu-item (click)="filterRealisation.set('realized')">
-                  {{ 'plans.suivis.actions.realisationDone' | translate }}
-                </button>
-                <button mat-menu-item (click)="filterRealisation.set('not-realized')">
-                  {{ 'plans.suivis.actions.realisationNone' | translate }}
-                </button>
-              </mat-menu>
-              <div class="filter-separator"></div>
+            <!-- #354 — Année -->
+            <app-filter-dropdown #yearDd
+              testId="actions-year"
+              [label]="'plans.suivis.actions.filterYear' | translate"
+              [activeCount]="filters.year().length">
+              <ng-template appFilterPanel>
+                <app-filter-option-list
+                  testId="actions-year"
+                  [multiple]="false"
+                  [allLabel]="'plans.suivis.actions.allYears' | translate"
+                  [options]="yearFilterOptions()"
+                  [(selected)]="filters.year"
+                  (optionPicked)="yearDd.close()">
+                </app-filter-option-list>
+              </ng-template>
+            </app-filter-dropdown>
 
-              <!-- Bouton réinitialiser les filtres (revue design #317) -->
-              @if (hasActiveFilters()) {
-                <button class="filter-btn filter-btn-reset" (click)="clearFilters()">
-                  <i class="fi fi-rr-cross-small"></i>
-                  {{ 'common.actions.reset' | translate }}
-                </button>
-              }
-            </div>
-          </div>
+            <!-- #354 — Réalisation -->
+            <app-filter-dropdown #realDd
+              testId="actions-realisation"
+              [label]="'plans.suivis.actions.filterRealisation' | translate"
+              [activeCount]="realisationSelection().length">
+              <ng-template appFilterPanel>
+                <app-filter-option-list
+                  testId="actions-realisation"
+                  [multiple]="false"
+                  [allLabel]="'common.filters.all' | translate"
+                  [options]="realisationFilterOptions()"
+                  [selected]="realisationSelection()"
+                  (selectedChange)="onRealisationChange($event)"
+                  (optionPicked)="realDd.close()">
+                </app-filter-option-list>
+              </ng-template>
+            </app-filter-dropdown>
+          </app-filter-bar>
+
           <!-- #379 — recherche juste à côté des filtres (Figma 4366-24484) -->
           <app-search-bar class="action-search"
-            [value]="filterText()"
-            (valueChange)="filterText.set($event)"
+            [value]="filters.text()"
+            (valueChange)="filters.text.set($event)"
             [placeholder]="'plans.suivis.actions.searchPlaceholder' | translate"
             [ariaLabel]="'plans.suivis.actions.searchPlaceholder' | translate">
           </app-search-bar>
@@ -271,7 +265,7 @@
             [planYearStart]="planYearStart()"
             [planYearEnd]="planYearEnd()"
             [planSlug]="planSlug() || ''"
-            [filterYear]="filterYear()">
+            [filterYear]="selectedYear()">
           </app-plan-planification-mensuelle>
         } @else {
 

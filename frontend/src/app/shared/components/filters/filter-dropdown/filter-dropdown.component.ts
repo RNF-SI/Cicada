@@ -73,8 +73,13 @@ export class FilterDropdownComponent {
 
   readonly disabled = input(false, { transform: booleanAttribute });
 
-  /** `trigger` aligne la largeur du panneau sur celle du déclencheur (spec variante `field`). */
-  readonly panelWidth = input<'trigger' | 'auto'>('trigger');
+  /**
+   * Largeur du panneau. Par défaut (`null`), elle découle de la variante :
+   * - `field` → `trigger` : le panneau s'accole au champ, bord à bord (spec Figma) ;
+   * - `inline` → `auto` : le panneau se dimensionne à son contenu. Le forcer à la largeur
+   *   d'un bouton étroit ferait passer les libellés à la ligne.
+   */
+  readonly panelWidth = input<'trigger' | 'auto' | null>(null);
 
   /** Racine des `data-testid` (déclencheur, panneau, options) — ancrage E2E stable. */
   readonly testId = input<string>('');
@@ -93,8 +98,13 @@ export class FilterDropdownComponent {
   /** Largeur mesurée du déclencheur, pour aligner le panneau en variante `field`. */
   private readonly triggerWidth = signal<number | null>(null);
 
+  /** Largeur effective, après application du défaut lié à la variante. */
+  protected readonly effectivePanelWidth = computed<'trigger' | 'auto'>(
+    () => this.panelWidth() ?? (this.variant() === 'field' ? 'trigger' : 'auto'),
+  );
+
   protected readonly overlayWidth = computed(() =>
-    this.panelWidth() === 'trigger' ? (this.triggerWidth() ?? undefined) : undefined,
+    this.effectivePanelWidth() === 'trigger' ? (this.triggerWidth() ?? undefined) : undefined,
   );
 
   protected readonly panelClasses = computed(() => [

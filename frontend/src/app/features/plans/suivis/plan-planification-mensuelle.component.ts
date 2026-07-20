@@ -1,9 +1,14 @@
 import { Component, inject, input, signal, computed, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
-import { MatMenuModule } from '@angular/material/menu';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
+import {
+  FilterDropdownComponent,
+  FilterOptionListComponent,
+  FilterPanelDirective,
+  FilterOption,
+} from '../../../shared/components/filters';
 import { PriorityBadgeComponent } from '../../../shared/components/priority-badge/priority-badge.component';
 import { Operation } from '../../../core/models/enjeu.model';
 import { ActionStatus, ACTION_LEGEND_ITEMS, getActionIcon, getActionStatusForYear } from './action-status.util';
@@ -57,7 +62,10 @@ interface CalendarRow {
 @Component({
   selector: 'app-plan-planification-mensuelle',
   standalone: true,
-  imports: [CommonModule, MatMenuModule, MatTooltipModule, TranslateModule, PriorityBadgeComponent],
+  imports: [
+    CommonModule, MatTooltipModule, TranslateModule, PriorityBadgeComponent,
+    FilterDropdownComponent, FilterOptionListComponent, FilterPanelDirective,
+  ],
   templateUrl: './plan-planification-mensuelle.component.html',
   styleUrl: './plan-planification-mensuelle.component.scss'
 })
@@ -82,6 +90,20 @@ export class PlanPlanificationMensuelleComponent {
   calendarYear = signal<number>(this.now.getFullYear());
   /** Filtre mois du calendrier (#459 décliné aux mois) : null = tous les mois. */
   calendarMonth = signal<number | null>(null);
+
+  /** #592 — mois au format du kit UI ; la mono-sélection transite par un tableau. */
+  monthFilterOptions = computed<FilterOption<number>[]>(() =>
+    this.monthLabels().map((label, i) => ({ value: i + 1, label })),
+  );
+
+  monthSelection = computed<number[]>(() => {
+    const m = this.calendarMonth();
+    return m == null ? [] : [m];
+  });
+
+  onMonthFilterChange(values: number[]): void {
+    this.calendarMonth.set(values[0] ?? null);
+  }
 
   // Pagination de l'agenda.
   readonly pageSize = 15;

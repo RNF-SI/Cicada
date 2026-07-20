@@ -155,11 +155,18 @@
   overflow: hidden;
   max-height: 60vh;
   overflow-y: auto;
+  // Le panneau `inline` se dimensionne à son contenu : on borne pour éviter à la fois
+  // un panneau minuscule sous un bouton étroit et un panneau démesuré sur de longs libellés.
+  min-width: 220px;
+  max-width: 420px;
 
   // Accolé au déclencheur : pas de bordure haute, coins bas seuls arrondis.
+  // Sa largeur est imposée par le CDK (celle du champ) : les bornes ne s'appliquent pas.
   &--field {
     border-top: none;
     border-radius: 0 0 $border-radius-sm $border-radius-sm;
+    min-width: 0;
+    max-width: none;
   }
 
   // Le corps du panneau reste blanc même en thème sombre (cf. Figma) ; seule la variante

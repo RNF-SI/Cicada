@@ -15,6 +15,14 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatMenuModule } from '@angular/material/menu';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 
+import {
+  FilterBarComponent,
+  FilterDropdownComponent,
+  FilterOptionListComponent,
+  FilterPanelDirective,
+  FilterOption,
+} from '../../../shared/components/filters';
+import { createFilterSet } from '../../../shared/utils/filter-set';
 import { HeaderComponent } from '../../../shared/components/header/header.component';
 import { PlanSidebarComponent } from '../shared/plan-sidebar/plan-sidebar.component';
 import { AdminService } from '../../../core/services/admin.service';
@@ -39,6 +47,8 @@ const NIVEAUX: Array<{ key: keyof BilanCounts; cssClass: string; i18n: string }>
     CommonModule, RouterModule, FormsModule, TranslateModule,
     MatProgressSpinnerModule, MatMenuModule,
     HeaderComponent, PlanSidebarComponent,
+    FilterBarComponent, FilterDropdownComponent, FilterOptionListComponent,
+    FilterPanelDirective,
   ],
   templateUrl: './plan-bilan.component.html',
   styleUrl: './plan-bilan.component.scss',
@@ -74,9 +84,15 @@ export class PlanBilanComponent implements OnInit {
     5: '#81C9D8',  // très bon
   };
 
-  // Filtres
-  filterEnjeu = signal<number | null>(null);
-  filterOrganisme = signal<number | null>(null);
+  // Filtres (#592 — état porté par `createFilterSet`, mono-sélection stockée en tableau).
+  // Le filtre « organisme » reste un jalon non implémenté côté API (cf. template).
+  readonly filters = createFilterSet({
+    enjeu: [] as number[],
+    organisme: [] as number[],
+  }, {
+    // Réinitialiser doit aussi relancer la requête serveur du bilan.
+    onReset: () => this.reloadWithFilter(),
+  });
 
   legendItems = NIVEAUX.map(n => ({ cssClass: n.cssClass, i18n: n.i18n, key: n.key }));
 
@@ -249,22 +265,25 @@ export class PlanBilanComponent implements OnInit {
       this.reloadWithFilter();
     }
   }
-  setEnjeuFilter(id: number | null): void { this.filterEnjeu.set(id); this.reloadWithFilter(); }
-  clearFilters(): void {
-    this.filterEnjeu.set(null);
-    this.filterOrganisme.set(null);
+  /** #592 — options du filtre « enjeu » au format du kit UI. */
+  enjeuFilterOptions = computed<FilterOption<number>[]>(() =>
+    this.enjeuOptions().map((e) => ({ value: e.enjeu_id, label: e.libelle })),
+  );
+
+  /** Le bilan est calculé côté serveur : tout changement relance la requête. */
+  onEnjeuFilterChange(values: number[]): void {
+    this.filters.enjeu.set(values);
     this.reloadWithFilter();
-  }
-  hasActiveFilters(): boolean {
-    return this.filterEnjeu() !== null || this.filterOrganisme() !== null;
   }
 
   private reloadWithFilter(): void {
     const id = this.planId();
     if (!id) return;
     const filters: any = {};
-    if (this.filterEnjeu()) filters.enjeu_id = this.filterEnjeu();
-    if (this.filterOrganisme()) filters.organisme_id = this.filterOrganisme();
+    const enjeuId = this.filters.enjeu()[0];
+    const organismeId = this.filters.organisme()[0];
+    if (enjeuId) filters.enjeu_id = enjeuId;
+    if (organismeId) filters.organisme_id = organismeId;
     // En vue « annuel », scoper les agrégations à l'année sélectionnée (#101).
     if (this.scope() === 'annuel') filters.annee = this.selectedYear();
     this.realisationService.bilan(id, filters).subscribe({

@@ -401,19 +401,17 @@
   }
 }
 
-// Filter bar
-.filter-bar {
+// Filtres (#592) — le châssis (pastille FILTRER, bordures, séparateurs, compteur,
+// bouton de réinitialisation) et son responsive vivent dans `app-filter-bar`.
+// Il ne reste ici que la mise en page de la ligne « filtres + recherche ».
+.filter-bar-row {
   display: flex;
   align-items: center;
   gap: $spacing-md;
   margin-bottom: $spacing-md;
 }
 
-// #379 — FILTRER + boutons à gauche (largeur du contenu)
-.filter-bar-left {
-  display: flex;
-  align-items: center;
-  gap: 0;
+.action-filters {
   flex: 0 0 auto;
   min-width: 0;
 }
@@ -423,71 +421,6 @@
   display: block;
   flex: 1 1 auto;
   min-width: 200px;
-}
-
-.filter-label {
-  padding: $spacing-xs $spacing-md;
-  font-family: $font-family;
-  font-size: $font-size-base;
-  font-weight: $font-weight-bold;
-  color: $primary-color;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  background-color: $secondary-pale-green;
-  border-radius: $border-radius-sm 0 0 $border-radius-sm;
-  height: 36px;
-  display: flex;
-  align-items: center;
-}
-
-.filter-buttons {
-  display: flex;
-  align-items: center;
-  height: 36px;
-  border: 1px solid rgba($primary-color, 0.15);
-  border-left: none;
-  border-radius: 0 $border-radius-sm $border-radius-sm 0;
-  background: $white;
-}
-
-.filter-btn {
-  display: flex;
-  align-items: center;
-  gap: $spacing-xxs;
-  padding: $spacing-xs $spacing-md;
-  font-family: $font-family;
-  font-size: $font-size-base;
-  color: $primary-color;
-  background: transparent;
-  border: none;
-  cursor: pointer;
-  white-space: nowrap;
-  height: 100%;
-
-  i { font-size: 12px; }
-
-  &.filter-active {
-    font-weight: $font-weight-bold;
-    background-color: $primary-bg-soft;
-    // Indicateur visuel d'un filtre actif (revue design #317)
-    border-bottom: 2px solid $primary-color;
-  }
-
-  // Bouton de réinitialisation (revue design #317)
-  &.filter-btn-reset {
-    color: $error-color;
-    font-weight: $font-weight-semibold;
-
-    &:hover {
-      background-color: rgba($error-color, 0.08);
-    }
-  }
-}
-
-.filter-separator {
-  width: 1px;
-  height: 36px;
-  background-color: rgba($primary-color, 0.15);
 }
 
 // #356 — « Exporter tableau » sur la ligne des onglets, à droite (Figma 240-44699)
@@ -837,9 +770,9 @@ tr.is-draft {
     line-height: 36px;
   }
 
-  .filter-bar {
+  .filter-bar-row {
     flex-direction: column;
-    align-items: flex-start;
+    align-items: stretch;
     gap: $spacing-sm;
   }
   .action-search { width: 100%; }

@@ -6,11 +6,18 @@ import { CommonModule } from '@angular/common';
 import { Router, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
-import { MatMenuModule } from '@angular/material/menu';
 // MatPaginator removed — using custom pagination matching plans-list style
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 
+import {
+  FilterBarComponent,
+  FilterDropdownComponent,
+  FilterOptionListComponent,
+  FilterPanelDirective,
+  FilterOption,
+} from '../../../shared/components/filters';
+import { createFilterSet } from '../../../shared/utils/filter-set';
 import { HeaderComponent } from '../../../shared/components/header/header.component';
 import { SearchBarComponent } from '../../../shared/components/search-bar/search-bar.component';
 import { InventaireService } from '../../../core/services/inventaire.service';
@@ -25,9 +32,12 @@ import { SuiviInventaireList } from '../../../core/models/inventaire.model';
     FormsModule,
     RouterLink,
     MatButtonModule,
-    MatMenuModule,
     MatProgressSpinnerModule,
     TranslateModule,
+    FilterBarComponent,
+    FilterDropdownComponent,
+    FilterOptionListComponent,
+    FilterPanelDirective,
     HeaderComponent,
     SearchBarComponent,
   ],
@@ -74,14 +84,24 @@ export class InventairesListComponent implements OnInit {
   });
 
   // Filters
+  // La recherche reste hors du jeu de filtres : `hasActive()` ne doit pas la compter
+  // (le bouton « réinitialiser » ne porte que sur les filtres, cf. #358).
   searchQuery = signal('');
-  statutFilter = signal<number | undefined>(undefined);
   statutOptions = signal<{ id: number; label: string }[]>([]);
-
-  // #358 — filtres supplémentaires : site + date de début (à partir de).
-  siteFilter = signal<number | undefined>(undefined);
-  dateDebutMin = signal<string>('');
   siteOptions = signal<{ id_site: number; nom_site: string }[]>([]);
+
+  // #358 / #592 — statut, site et date de début, mono-sélection stockée en tableau.
+  readonly filters = createFilterSet({
+    statut: [] as number[],
+    site: [] as number[],
+    dateDebutMin: '',
+  }, {
+    // Le listing est paginé côté serveur : toute remise à zéro relance la requête.
+    onReset: () => {
+      this.currentPage.set(1);
+      this.loadData();
+    },
+  });
 
   ngOnInit(): void {
     this.loadStatutOptions();
@@ -117,9 +137,9 @@ export class InventairesListComponent implements OnInit {
 
     this.inventaireService.getInventaires({
       search: this.searchQuery() || undefined,
-      id_statut: this.statutFilter(),
-      site: this.siteFilter(),
-      annee_min: this.dateDebutMin() || undefined,
+      id_statut: this.filters.statut()[0],
+      site: this.filters.site()[0],
+      annee_min: this.filters.dateDebutMin() || undefined,
       page: this.currentPage(),
       page_size: this.pageSize,
     }).subscribe({
@@ -143,37 +163,36 @@ export class InventairesListComponent implements OnInit {
     this.loadData();
   }
 
-  setStatutFilter(statutId: number | undefined): void {
-    this.statutFilter.set(statutId);
+  /** Tout changement de filtre relance la requête paginée. */
+  private applyFilterChange(): void {
     this.currentPage.set(1);
     this.loadData();
+  }
+
+  setStatutFilter(values: number[]): void {
+    this.filters.statut.set(values);
+    this.applyFilterChange();
   }
 
   // #358 — filtres site + date de début
-  setSiteFilter(siteId: number | undefined): void {
-    this.siteFilter.set(siteId);
-    this.currentPage.set(1);
-    this.loadData();
+  setSiteFilter(values: number[]): void {
+    this.filters.site.set(values);
+    this.applyFilterChange();
   }
 
   setDateDebutMin(date: string): void {
-    this.dateDebutMin.set(date || '');
-    this.currentPage.set(1);
-    this.loadData();
+    this.filters.dateDebutMin.set(date || '');
+    this.applyFilterChange();
   }
 
-  /** Vrai si au moins un filtre (hors recherche) est actif (#358). */
-  hasActiveFilters(): boolean {
-    return this.statutFilter() !== undefined || this.siteFilter() !== undefined || !!this.dateDebutMin();
-  }
+  /** #592 — options des filtres au format du kit UI. */
+  statutFilterOptions = computed<FilterOption<number>[]>(() =>
+    this.statutOptions().map((s) => ({ value: s.id, label: s.label })),
+  );
 
-  clearFilters(): void {
-    this.statutFilter.set(undefined);
-    this.siteFilter.set(undefined);
-    this.dateDebutMin.set('');
-    this.currentPage.set(1);
-    this.loadData();
-  }
+  siteFilterOptions = computed<FilterOption<number>[]>(() =>
+    this.siteOptions().map((s) => ({ value: s.id_site, label: s.nom_site })),
+  );
 
   goToPage(page: number | string): void {
     if (typeof page === 'number' && page >= 1 && page <= this.totalPages()) {

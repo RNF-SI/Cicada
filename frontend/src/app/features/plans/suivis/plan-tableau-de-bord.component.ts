@@ -9,6 +9,14 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { HeaderComponent } from '../../../shared/components/header/header.component';
 import { PlanSidebarComponent } from '../shared/plan-sidebar/plan-sidebar.component';
 import { SearchBarComponent } from '../../../shared/components/search-bar/search-bar.component';
+import {
+  FilterBarComponent,
+  FilterDropdownComponent,
+  FilterOptionListComponent,
+  FilterPanelDirective,
+  FilterOption,
+} from '../../../shared/components/filters';
+import { createFilterSet } from '../../../shared/utils/filter-set';
 import { AdminService } from '../../../core/services/admin.service';
 import { EnjeuService } from '../../../core/services/enjeu.service';
 import {
@@ -52,7 +60,9 @@ interface IndicatorRow {
   imports: [
     CommonModule, RouterModule, MatButtonModule, MatMenuModule,
     MatProgressSpinnerModule, MatTooltipModule, TranslateModule,
-    HeaderComponent, PlanSidebarComponent, SearchBarComponent
+    HeaderComponent, PlanSidebarComponent, SearchBarComponent,
+    FilterBarComponent, FilterDropdownComponent, FilterOptionListComponent,
+    FilterPanelDirective
   ],
   templateUrl: './plan-tableau-de-bord.component.html',
   styleUrl: './plan-tableau-de-bord.component.scss'
@@ -90,9 +100,9 @@ export class PlanTableauDeBordComponent implements OnInit {
    */
   filteredGroups = computed<DashboardGroup[]>(() => {
     const tab = this.activeTab();
-    const objectifs = this.filterObjectifs();
-    const name = this.normalize(this.filterName());
-    const enjeuIds = this.filterEnjeuIds();
+    const objectifs = this.filters.objectifs();
+    const name = this.normalize(this.filters.name());
+    const enjeuIds = this.filters.enjeuIds();
 
     return this.dashboardGroups()
       .filter(g => tab === 'ensemble' ? true : (tab === 'etat' ? g.kind === 'olt' : g.kind === 'oo'))
@@ -140,6 +150,16 @@ export class PlanTableauDeBordComponent implements OnInit {
       .sort((a, b) => a.libelle.localeCompare(b.libelle));
   });
 
+  /** #592 — options du filtre « nom d'objectif », au format attendu par le kit UI. */
+  objectifFilterOptions = computed<FilterOption<string>[]>(() =>
+    this.objectifNames().map((name) => ({ value: name, label: name })),
+  );
+
+  /** #592 — options du filtre « enjeu ». */
+  enjeuFilterOptions = computed<FilterOption<number>[]>(() =>
+    this.enjeuOptions().map((e) => ({ value: e.id, label: e.libelle })),
+  );
+
   private normalize(s: string): string {
     return (s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
   }
@@ -151,9 +171,14 @@ export class PlanTableauDeBordComponent implements OnInit {
   activeTab = signal<'etat' | 'pression' | 'ensemble'>('etat');
   // #356 — filtres : nom d'objectif (OLT/OO), recherche libre, enjeu (mode ensemble).
   // #426 — filtres multi-sélection (plusieurs objectifs / enjeux à la fois).
-  filterObjectifs = signal<string[]>([]);
-  filterName = signal<string>('');
-  filterEnjeuIds = signal<number[]>([]);
+  // #592 — état porté par `createFilterSet` : `reset()` et `hasActive()` sont dérivés,
+  // les anciennes méthodes toggle/isSelected/clearFilters/hasActiveFilters ont disparu
+  // (la bascule est désormais assurée par `app-filter-option-list`).
+  readonly filters = createFilterSet({
+    objectifs: [] as string[],
+    name: '',
+    enjeuIds: [] as number[],
+  });
 
   yearColumns = computed(() => {
     const start = this.planYearStart();
@@ -307,31 +332,8 @@ export class PlanTableauDeBordComponent implements OnInit {
     this.activeTab.set(tab);
     // Le filtre objectif dépend de l'onglet ; le filtre enjeu n'existe qu'en
     // mode ensemble → on réinitialise pour éviter un filtrage fantôme.
-    this.filterObjectifs.set([]);
-    if (tab !== 'ensemble') this.filterEnjeuIds.set([]);
-  }
-
-  // #426 — bascule la présence d'une valeur dans le filtre multi-sélection.
-  toggleObjectifFilter(value: string): void {
-    this.filterObjectifs.update(arr =>
-      arr.includes(value) ? arr.filter(v => v !== value) : [...arr, value]);
-  }
-  isObjectifSelected(value: string): boolean { return this.filterObjectifs().includes(value); }
-
-  toggleEnjeuFilter(value: number): void {
-    this.filterEnjeuIds.update(arr =>
-      arr.includes(value) ? arr.filter(v => v !== value) : [...arr, value]);
-  }
-  isEnjeuSelected(value: number): boolean { return this.filterEnjeuIds().includes(value); }
-
-  clearFilters(): void {
-    this.filterObjectifs.set([]);
-    this.filterName.set('');
-    this.filterEnjeuIds.set([]);
-  }
-
-  hasActiveFilters(): boolean {
-    return !!(this.filterObjectifs().length || this.filterName() || this.filterEnjeuIds().length);
+    this.filters.objectifs.set([]);
+    if (tab !== 'ensemble') this.filters.enjeuIds.set([]);
   }
 
   /** #356 — Début d'un bloc enjeu (en-tête enjeu) en mode ensemble. */

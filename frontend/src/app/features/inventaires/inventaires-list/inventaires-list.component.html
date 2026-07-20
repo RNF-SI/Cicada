@@ -44,67 +44,56 @@
 
       <!-- Filter Bar + Add Button Row -->
       <div class="toolbar-row">
-        <div class="filter-bar">
-          <span class="filter-label">
-            {{ 'inventaires.filters.label' | translate }}
-          </span>
-          <div class="filter-options">
-            <button class="filter-btn" [class.filter-active]="statutFilter()"
-              [matMenuTriggerFor]="statutMenu">
-              {{ 'inventaires.table.statut' | translate }}
-              @if (statutFilter()) {
-                <span class="filter-badge">1</span>
-              }
-              <i class="fi fi-rr-angle-small-down"></i>
-            </button>
-            <mat-menu #statutMenu="matMenu">
-              <button mat-menu-item (click)="setStatutFilter(undefined)">
-                <span>{{ 'common.filters.all' | translate }}</span>
-              </button>
-              @for (statut of statutOptions(); track statut.id) {
-                <button mat-menu-item (click)="setStatutFilter(statut.id)">
-                  <span>{{ statut.label }}</span>
-                </button>
-              }
-            </mat-menu>
+        <app-filter-bar
+          class="inventaires-filters"
+          testId="inv-filters"
+          [label]="'inventaires.filters.label' | translate"
+          [showReset]="filters.hasActive()"
+          (reset)="filters.reset()">
 
-            <!-- #358 — filtre par site -->
-            <button class="filter-btn" [class.filter-active]="siteFilter()"
-              [matMenuTriggerFor]="siteMenu">
-              {{ 'inventaires.filters.site' | translate }}
-              @if (siteFilter()) {
-                <span class="filter-badge">1</span>
-              }
-              <i class="fi fi-rr-angle-small-down"></i>
-            </button>
-            <mat-menu #siteMenu="matMenu">
-              <button mat-menu-item (click)="setSiteFilter(undefined)">
-                <span>{{ 'common.filters.all' | translate }}</span>
-              </button>
-              @for (site of siteOptions(); track site.id_site) {
-                <button mat-menu-item (click)="setSiteFilter(site.id_site)">
-                  <span>{{ site.nom_site }}</span>
-                </button>
-              }
-            </mat-menu>
+          <app-filter-dropdown #invStatutDd
+            testId="inv-statut"
+            [label]="'inventaires.table.statut' | translate"
+            [activeCount]="filters.statut().length">
+            <ng-template appFilterPanel>
+              <app-filter-option-list
+                testId="inv-statut"
+                [multiple]="false"
+                [allLabel]="'common.filters.all' | translate"
+                [options]="statutFilterOptions()"
+                [selected]="filters.statut()"
+                (selectedChange)="setStatutFilter($event)"
+                (optionPicked)="invStatutDd.close()">
+              </app-filter-option-list>
+            </ng-template>
+          </app-filter-dropdown>
 
-            <!-- #358 — filtre par date de début (à partir de) -->
-            <label class="filter-date">
-              <span>{{ 'inventaires.filters.dateDebut' | translate }}</span>
-              <input type="date" [value]="dateDebutMin()"
-                     (change)="setDateDebutMin($any($event.target).value)" />
-            </label>
+          <!-- #358 — filtre par site -->
+          <app-filter-dropdown #invSiteDd
+            testId="inv-site"
+            [label]="'inventaires.filters.site' | translate"
+            [activeCount]="filters.site().length">
+            <ng-template appFilterPanel>
+              <app-filter-option-list
+                testId="inv-site"
+                searchable
+                [multiple]="false"
+                [allLabel]="'common.filters.all' | translate"
+                [options]="siteFilterOptions()"
+                [selected]="filters.site()"
+                (selectedChange)="setSiteFilter($event)"
+                (optionPicked)="invSiteDd.close()">
+              </app-filter-option-list>
+            </ng-template>
+          </app-filter-dropdown>
 
-            <!-- #358 — réinitialiser les filtres -->
-            @if (hasActiveFilters()) {
-              <button class="filter-btn filter-clear" (click)="clearFilters()">
-                <i class="fi fi-rr-cross-small"></i>
-                {{ 'inventaires.filters.clear' | translate }}
-              </button>
-            }
-          </div>
-          <div class="filter-separator"></div>
-        </div>
+          <!-- #358 — filtre par date de début (à partir de) -->
+          <label class="filter-date">
+            <span>{{ 'inventaires.filters.dateDebut' | translate }}</span>
+            <input type="date" [value]="filters.dateDebutMin()"
+                   (change)="setDateDebutMin($any($event.target).value)" />
+          </label>
+        </app-filter-bar>
 
         <button class="btn-add" (click)="navigateToCreate()">
           <i class="fi fi-rr-plus-small"></i>

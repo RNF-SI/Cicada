@@ -124,21 +124,24 @@
 
         <!-- #459 décliné aux mois : ne montrer que les actions ayant une réponse au mois choisi -->
         <div class="calendar-monthfilter">
-          <button class="cal-filter-btn" [class.active]="calendarMonth() != null" [matMenuTriggerFor]="monthMenu">
-            <i class="fi fi-rr-filter"></i>
-            {{ calendarMonth() == null
-                ? ('plans.suivis.planification.calendar.allMonths' | translate)
-                : monthLabels()[calendarMonth()! - 1] }}
-            <i class="fi fi-rr-angle-small-down"></i>
-          </button>
-          <mat-menu #monthMenu="matMenu">
-            <button mat-menu-item (click)="calendarMonth.set(null)">
-              <em>{{ 'plans.suivis.planification.calendar.allMonths' | translate }}</em>
-            </button>
-            @for (m of monthLabels(); track $index) {
-              <button mat-menu-item (click)="calendarMonth.set($index + 1)">{{ m }}</button>
-            }
-          </mat-menu>
+          <app-filter-dropdown #monthDd
+            testId="calendar-month"
+            [label]="calendarMonth() == null
+              ? ('plans.suivis.planification.calendar.allMonths' | translate)
+              : monthLabels()[calendarMonth()! - 1]"
+            [activeCount]="monthSelection().length">
+            <ng-template appFilterPanel>
+              <app-filter-option-list
+                testId="calendar-month"
+                [multiple]="false"
+                [allLabel]="'plans.suivis.planification.calendar.allMonths' | translate"
+                [options]="monthFilterOptions()"
+                [selected]="monthSelection()"
+                (selectedChange)="onMonthFilterChange($event)"
+                (optionPicked)="monthDd.close()">
+              </app-filter-option-list>
+            </ng-template>
+          </app-filter-dropdown>
           @if (calendarMonth() != null) {
             <button class="cal-clear" (click)="calendarMonth.set(null)" [title]="'common.actions.reset' | translate">
               <i class="fi fi-rr-cross-small"></i>
