@@ -14,7 +14,7 @@
         </div>
       }
 
-      <app-form-field class="full-width" [label]="'auth.login.username' | translate">
+      <app-form-field class="full-width" [label]="'auth.login.username' | translate" [required]="true">
         <i prefixSlot class="fi fi-rr-user field-icon"></i>
         <input
           type="text"
@@ -29,7 +29,7 @@
         </ng-container>
       </app-form-field>
 
-      <app-form-field class="full-width" [label]="'auth.login.password' | translate">
+      <app-form-field class="full-width" [label]="'auth.login.password' | translate" [required]="true">
         <i prefixSlot class="fi fi-rr-lock field-icon"></i>
         <input
           [type]="hidePassword() ? 'password' : 'text'"

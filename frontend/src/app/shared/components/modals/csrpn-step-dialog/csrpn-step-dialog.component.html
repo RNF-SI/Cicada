@@ -14,7 +14,8 @@
 
     <label class="app-mat-label">@if (data.step === 'csrpn') { {{ 'plans.lifecycle.csrpnStep.csrpnDateLabel' | translate }} }
         @if (data.step === 'comite') { {{ 'plans.lifecycle.csrpnStep.comiteDateLabel' | translate }} }
-        @if (data.step === 'arrete') { {{ 'plans.lifecycle.csrpnStep.arreteDateLabel' | translate }} }</label>
+        @if (data.step === 'arrete') { {{ 'plans.lifecycle.csrpnStep.arreteDateLabel' | translate }} }
+        <span class="required-star">*</span></label>
       <mat-form-field class="app-mat-form-field full-width" appearance="outline">
       <mat-label></mat-label>
       <input matInput [matDatepicker]="picker" formControlName="date" required>
