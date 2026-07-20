@@ -117,3 +117,112 @@ describe('ShareElementDialogComponent — OO (cible pression)', () => {
     expect(groups[0].pressions!.map(p => p.id_pression)).toEqual([101]);
   });
 });
+
+describe('ShareElementDialogComponent — action (#585)', () => {
+  const data: ShareElementDialogData = {
+    elementType: 'operation',
+    elementLabel: 'Fauche tardive',
+    mode: 'link',
+    enjeux: [],
+    indicateurs: [
+      {
+        id_indicateur: 1,
+        nom: 'Surface de roselière',
+        contexte: 'Enjeu A › NE 1',
+        metriques: [
+          { id_metrique: 11, nom: 'Surface (ha)' },
+          { id_metrique: 12, nom: 'Recouvrement (%)' },
+        ],
+      },
+      {
+        id_indicateur: 2,
+        nom: 'Pression de pâturage',
+        contexte: 'Enjeu B › RA 1',
+        metriques: [],
+      },
+    ],
+  };
+
+  it('expose les indicateurs comme cibles', () => {
+    const { component } = setup(data);
+    expect(component.isOperation).toBe(true);
+    expect(component.typeKey).toBe('operation');
+    expect(component.hasTargets()).toBe(true);
+    expect(component.canConfirm()).toBe(false);
+  });
+
+  it('confirme un lien vers la métrique choisie', () => {
+    const { component, dialogRef } = setup(data);
+    component.selectMetrique(12);
+    expect(component.canConfirm()).toBe(true);
+    component.confirm();
+    const result = dialogRef.close.mock.calls[0][0] as ShareElementDialogResult;
+    expect(result).toEqual({ mode: 'link', targetMetriqueId: 12 });
+  });
+
+  it('interdit de cibler un indicateur en mode « lier »', () => {
+    // Une action n'a qu'un seul indicateur porteur (FK) : le partage exige une métrique.
+    const { component } = setup(data);
+    expect(component.canTargetIndicateurDirectly()).toBe(false);
+    component.selectIndicateur(1);
+    expect(component.selectedIndicateurId()).toBeNull();
+    expect(component.canConfirm()).toBe(false);
+  });
+
+  it('autorise l\'indicateur comme cible en mode « copier »', () => {
+    const { component, dialogRef } = setup({ ...data, mode: 'copy' });
+    expect(component.canTargetIndicateurDirectly()).toBe(true);
+    component.selectIndicateur(2);
+    expect(component.canConfirm()).toBe(true);
+    component.confirm();
+    const result = dialogRef.close.mock.calls[0][0] as ShareElementDialogResult;
+    expect(result).toEqual({ mode: 'copy', targetIndicateurId: 2 });
+  });
+
+  it('les cibles indicateur et métrique sont exclusives', () => {
+    const { component } = setup({ ...data, mode: 'copy' });
+    component.selectIndicateur(1);
+    component.selectMetrique(11);
+    expect(component.selectedIndicateurId()).toBeNull();
+    expect(component.selectedMetriqueId()).toBe(11);
+
+    component.selectIndicateur(1);
+    expect(component.selectedMetriqueId()).toBeNull();
+    expect(component.selectedIndicateurId()).toBe(1);
+  });
+
+  it('repasser en « lier » annule une cible indicateur déjà choisie', () => {
+    const { component } = setup({ ...data, mode: 'copy' });
+    component.selectIndicateur(1);
+    component.setMode('link');
+    expect(component.selectedIndicateurId()).toBeNull();
+    expect(component.canConfirm()).toBe(false);
+  });
+
+  const sansMetrique: ShareElementDialogData = {
+    ...data,
+    indicateurs: [{ id_indicateur: 2, nom: 'X', metriques: [] }],
+  };
+
+  it('hasTargets est faux en mode « lier » quand aucun indicateur n\'a de métrique', () => {
+    expect(setup(sansMetrique).component.hasTargets()).toBe(false);
+  });
+
+  it('hasTargets est vrai en mode « copier » : l\'indicateur seul reste une cible', () => {
+    expect(setup({ ...sansMetrique, mode: 'copy' }).component.hasTargets()).toBe(true);
+  });
+
+  it('la recherche filtre par nom d\'indicateur, de contexte ou de métrique', () => {
+    const { component } = setup(data);
+
+    component.onSearchChange('recouvrement');
+    expect(component.filteredIndicateurs().map(i => i.id_indicateur)).toEqual([1]);
+    expect(component.filteredIndicateurs()[0].metriques).toHaveLength(1);
+
+    component.onSearchChange('Enjeu B');
+    expect(component.filteredIndicateurs().map(i => i.id_indicateur)).toEqual([2]);
+
+    component.onSearchChange('roselière');
+    expect(component.filteredIndicateurs()[0].metriques).toHaveLength(2);
+  });
+});

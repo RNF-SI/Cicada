@@ -1188,10 +1188,20 @@
                                                           @if (op.statut === 'draft') {
                                                             <app-tag class="operation-draft-chip" variant="draft" icon="fi-rr-edit" size="sm" [label]="'enjeux.operations.draftChip' | translate" (click)="$event.stopPropagation()"></app-tag>
                                                           }
+                                                          @if (isOperationShared(op)) {
+                                                            <span class="shared-badge"
+                                                                  [matTooltip]="'enjeux.share.operation.sharedBadge' | translate"
+                                                                  (click)="$event.stopPropagation()">
+                                                              <i class="fi fi-rr-link-alt"></i>
+                                                              {{ 'enjeux.share.operation.sharedBadge' | translate }}
+                                                            </span>
+                                                          }
                                                         </div>
                                                         <div class="operation-header-right">
                                                           <button class="icon-btn-flat" (click)="navigateToViewOperation(op.id_operation); $event.stopPropagation()" [title]="'common.actions.view' | translate"><i class="fi fi-rr-eye"></i></button>
                                                           @if (canEditPlan()) {
+                                                            <button class="icon-btn-flat" (click)="openShareOperation(op, 'link'); $event.stopPropagation()" [title]="'enjeux.share.operation.linkAction' | translate"><i class="fi fi-rr-link-alt"></i></button>
+                                                            <button class="icon-btn-flat" (click)="openShareOperation(op, 'copy'); $event.stopPropagation()" [title]="'enjeux.share.operation.copyAction' | translate"><i class="fi fi-rr-copy-alt"></i></button>
                                                             <button class="icon-btn-flat" (click)="navigateToEditOperation(op.id_operation); $event.stopPropagation()" [title]="'common.actions.edit' | translate"><i class="fi fi-rr-pencil"></i></button>
                                                             <button class="icon-btn-flat" (click)="deleteOperation(op); $event.stopPropagation()" [title]="'common.actions.delete' | translate"><i class="fi fi-rr-trash"></i></button>
                                                           }
@@ -1998,10 +2008,20 @@
                                                   @if (op.statut === 'draft') {
                                                     <app-tag class="operation-draft-chip" variant="draft" icon="fi-rr-edit" size="sm" [label]="'enjeux.operations.draftChip' | translate" (click)="$event.stopPropagation()"></app-tag>
                                                   }
+                                                  @if (isOperationShared(op)) {
+                                                    <span class="shared-badge"
+                                                          [matTooltip]="'enjeux.share.operation.sharedBadge' | translate"
+                                                          (click)="$event.stopPropagation()">
+                                                      <i class="fi fi-rr-link-alt"></i>
+                                                      {{ 'enjeux.share.operation.sharedBadge' | translate }}
+                                                    </span>
+                                                  }
                                                 </div>
                                                 <div class="operation-header-right">
                                                   <button class="icon-btn-flat" (click)="navigateToViewOperation(op.id_operation); $event.stopPropagation()" [title]="'common.actions.view' | translate"><i class="fi fi-rr-eye"></i></button>
                                                   @if (canEditPlan()) {
+                                                    <button class="icon-btn-flat" (click)="openShareOperation(op, 'link'); $event.stopPropagation()" [title]="'enjeux.share.operation.linkAction' | translate"><i class="fi fi-rr-link-alt"></i></button>
+                                                    <button class="icon-btn-flat" (click)="openShareOperation(op, 'copy'); $event.stopPropagation()" [title]="'enjeux.share.operation.copyAction' | translate"><i class="fi fi-rr-copy-alt"></i></button>
                                                     <button class="icon-btn-flat" (click)="navigateToEditOperation(op.id_operation); $event.stopPropagation()" [title]="'common.actions.edit' | translate"><i class="fi fi-rr-pencil"></i></button>
                                                     <button class="icon-btn-flat" (click)="deleteOperation(op); $event.stopPropagation()" [title]="'common.actions.delete' | translate"><i class="fi fi-rr-trash"></i></button>
                                                   }

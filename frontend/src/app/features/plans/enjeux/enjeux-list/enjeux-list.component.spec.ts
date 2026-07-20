@@ -2705,3 +2705,143 @@ describe('EnjeuxListComponent', () => {
     });
   });
 });
+
+describe('EnjeuxListComponent — partage/copie d\'une action (#585)', () => {
+  let component: EnjeuxListComponent;
+  let fixture: ComponentFixture<EnjeuxListComponent>;
+
+  /**
+   * Plan minimal couvrant les deux branches : un indicateur d'état (via NE) et
+   * un indicateur de réponse (via RA), chacun porteur de métriques.
+   */
+  const planData = {
+    plan: { id_pg: 1, nom: 'Plan', slug: 'plan-test', statut: 'draft' },
+    enjeux: [
+      {
+        id_enjeu: 1,
+        libelle: 'Enjeu A',
+        objectifs_long_terme: [
+          {
+            id_olt: 10,
+            libelle: 'OLT 1',
+            niveaux_exigence: [
+              {
+                id_ne: 100,
+                libelle: 'NE 1',
+                indicateurs: [
+                  {
+                    id_indicateur: 1000,
+                    nom_indicateur: 'Surface de roselière',
+                    metriques: [
+                      { id_metrique: 1, nom_metrique: 'Surface (ha)' },
+                      { id_metrique: 2, nom_metrique: 'Recouvrement (%)' },
+                      { id_metrique: 3, nom_metrique: '   ' },
+                    ],
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+        facteurs_influence: [
+          {
+            id_facteur_influence: 20,
+            libelle: 'FI 1',
+            pressions: [
+              {
+                id_pression: 30,
+                libelle: 'Pression 1',
+                objectifs_operationnels: [
+                  {
+                    id_oo: 40,
+                    libelle: 'OO 1',
+                    resultats_attendus: [
+                      {
+                        id_ra: 50,
+                        libelle: 'RA 1',
+                        indicateurs: [
+                          {
+                            id_indicateur: 2000,
+                            nom_indicateur: 'Pression de pâturage',
+                            metriques: [{ id_metrique: 4, nom_metrique: 'Charge (UGB)' }],
+                          },
+                        ],
+                      },
+                    ],
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      },
+    ],
+    fcr: [],
+  };
+
+  beforeEach(async () => {
+    await TestBed.configureTestingModule({
+      imports: [
+        EnjeuxListComponent,
+        NoopAnimationsModule,
+        HttpClientTestingModule,
+        RouterTestingModule,
+        TranslateModule.forRoot(),
+      ],
+      providers: [
+        {
+          provide: ActivatedRoute,
+          useValue: {
+            params: of({}),
+            queryParams: of({}),
+            fragment: of(null),
+            snapshot: { paramMap: new Map(), queryParamMap: new Map() },
+            parent: { params: of({ slug: 'plan-test' }), snapshot: { paramMap: new Map() } },
+          },
+        },
+      ],
+    }).compileComponents();
+
+    fixture = TestBed.createComponent(EnjeuxListComponent);
+    component = fixture.componentInstance;
+    component['planEnjeuxData'].set(planData as never);
+  });
+
+  const targets = () => component['operationShareTargets']({ id_operation: 7, libelle: 'Action' } as never);
+
+  it('propose les indicateurs des deux branches avec leur contexte', () => {
+    const t = targets();
+    expect(t.map(i => i.id_indicateur)).toEqual([1000, 2000]);
+    expect(t[0].contexte).toBe('Enjeu A › NE 1');
+    expect(t[1].contexte).toBe('Enjeu A › RA 1');
+  });
+
+  it('écarte les métriques sans nom', () => {
+    expect(targets()[0].metriques.map(m => m.id_metrique)).toEqual([1, 2]);
+  });
+
+  it('écarte les métriques auxquelles l\'action est déjà liée', () => {
+    const t = component['operationShareTargets']({
+      id_operation: 7,
+      libelle: 'Action',
+      metriques: [{ id_metrique: 1, nom_metrique: 'Surface (ha)' }],
+    } as never);
+    expect(t[0].metriques.map(m => m.id_metrique)).toEqual([2]);
+  });
+
+  it('masque l\'indicateur porteur quand il n\'offre plus aucune métrique libre', () => {
+    const t = component['operationShareTargets']({
+      id_operation: 7,
+      libelle: 'Action',
+      id_indicateur: 2000,
+      metriques: [{ id_metrique: 4, nom_metrique: 'Charge (UGB)' }],
+    } as never);
+    expect(t.map(i => i.id_indicateur)).toEqual([1000]);
+  });
+
+  it('isOperationShared ne vaut que pour une action liée à plusieurs métriques', () => {
+    expect(component.isOperationShared({ metriques: [] } as never)).toBe(false);
+    expect(component.isOperationShared({ metriques: [{ id_metrique: 1 }] } as never)).toBe(false);
+    expect(component.isOperationShared({ metriques: [{ id_metrique: 1 }, { id_metrique: 2 }] } as never)).toBe(true);
+  });
+});

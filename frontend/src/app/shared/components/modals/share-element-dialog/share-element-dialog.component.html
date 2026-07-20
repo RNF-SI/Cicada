@@ -47,6 +47,44 @@
                [placeholder]="'enjeux.share.searchPlaceholder' | translate" />
       </div>
 
+      @if (isOperation) {
+        <!-- Action (#585) : on choisit une métrique, ou l'indicateur lui-même -->
+        <div class="target-list">
+          @for (ind of filteredIndicateurs(); track ind.id_indicateur) {
+            <div class="target-group">
+              <span class="target-group-title">{{ ind.nom }}</span>
+              @if (ind.contexte) {
+                <span class="target-group-meta">{{ ind.contexte }}</span>
+              }
+              <div class="target-item"
+                   [class.selected]="selectedIndicateurId() === ind.id_indicateur"
+                   [class.disabled]="!canTargetIndicateurDirectly()"
+                   [matTooltip]="canTargetIndicateurDirectly() ? '' : ('enjeux.share.operation.directLinkUnavailable' | translate)"
+                   (click)="selectIndicateur(ind.id_indicateur)">
+                <span class="radio-dot" [class.active]="selectedIndicateurId() === ind.id_indicateur"></span>
+                <div class="target-item-content">
+                  <span class="target-item-label">{{ 'enjeux.share.operation.directTarget' | translate }}</span>
+                </div>
+              </div>
+              @for (met of ind.metriques; track met.id_metrique) {
+                <div class="target-item"
+                     [class.selected]="selectedMetriqueId() === met.id_metrique"
+                     (click)="selectMetrique(met.id_metrique)">
+                  <span class="radio-dot" [class.active]="selectedMetriqueId() === met.id_metrique"></span>
+                  <div class="target-item-content">
+                    <span class="target-item-label">{{ met.nom }}</span>
+                  </div>
+                </div>
+              }
+            </div>
+          } @empty {
+            <div class="empty-state">
+              <i class="fi fi-rr-info"></i>
+              <span>{{ 'enjeux.share.noMatch' | translate }}</span>
+            </div>
+          }
+        </div>
+      } @else {
       <div class="target-list">
         @for (enjeu of filteredEnjeux(); track enjeu.id_enjeu) {
           @if (isOo) {
@@ -85,6 +123,7 @@
           </div>
         }
       </div>
+      }
     } @else {
       <div class="empty-state">
         <i class="fi fi-rr-info"></i>

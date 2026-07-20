@@ -130,6 +130,26 @@
   &.selected {
     background: rgba($primary-color, 0.1);
   }
+
+  // #585 — cible indisponible (ex. rattachement direct à l'indicateur en mode
+  // « lier », impossible tant qu'une action n'a qu'un seul indicateur porteur).
+  &.disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+
+    &:hover {
+      background: transparent;
+    }
+  }
+}
+
+// Contexte d'un groupe de cibles (enjeu / NE ou RA d'origine d'un indicateur).
+.target-group-meta {
+  display: block;
+  padding: 0 $spacing-sm $spacing-xs;
+  font-size: 0.75rem;
+  color: $gray-dark;
+  background: $gray-lighter;
 }
 
 .radio-dot {

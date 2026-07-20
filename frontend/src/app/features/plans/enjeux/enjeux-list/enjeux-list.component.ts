@@ -52,6 +52,7 @@ import {
   ShareElementDialogResult,
   ShareEnjeuTarget,
   SharePressionTarget,
+  ShareIndicateurTarget,
 } from '../../../../shared/components/modals';
 import { EnjeuService } from '../../../../core/services/enjeu.service';
 import { AdminService } from '../../../../core/services/admin.service';
@@ -1868,6 +1869,106 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
           : this.enjeuService.linkOoToPression(oo.id_oo, result.targetPressionId);
         this.runShareCall(call$, isCopy ? 'enjeux.share.oo.copySuccess' : 'enjeux.share.oo.linkSuccess',
           isCopy ? 'enjeux.share.oo.copyError' : 'enjeux.share.oo.linkError');
+      });
+  }
+
+  /** #585 — Vrai si l'action est rattachée à plusieurs métriques (élément partagé). */
+  isOperationShared(op: Operation): boolean {
+    return (op.metriques?.length ?? 0) > 1;
+  }
+
+  /**
+   * #585 — Cibles de partage/copie d'une action : tous les indicateurs du plan
+   * (branche état via NE, branche réponse via RA) avec leurs métriques. On exclut
+   * l'indicateur porteur de l'action et les métriques auxquelles elle est déjà
+   * liée, qui ne sont pas des destinations valides.
+   */
+  private operationShareTargets(op: Operation): ShareIndicateurTarget[] {
+    const linkedMetriqueIds = new Set((op.metriques || []).map((m) => m.id_metrique));
+    const currentIndicateurId = op.id_indicateur ?? null;
+    const targets: ShareIndicateurTarget[] = [];
+
+    const push = (ind: Indicateur, contexte: string) => {
+      const metriques = (ind.metriques || [])
+        .filter((m) => !linkedMetriqueIds.has(m.id_metrique))
+        .map((m) => ({ id_metrique: m.id_metrique, nom: m.nom_metrique || '' }))
+        .filter((m) => m.nom.trim().length > 0);
+      // Un indicateur déjà porteur de l'action et sans métrique libre n'offre
+      // aucune destination : inutile de l'afficher.
+      if (ind.id_indicateur === currentIndicateurId && !metriques.length) return;
+      targets.push({
+        id_indicateur: ind.id_indicateur,
+        nom: ind.nom_indicateur,
+        contexte,
+        metriques,
+      });
+    };
+
+    for (const enjeu of this.allEnjeuxAndFcr()) {
+      for (const olt of enjeu.objectifs_long_terme || []) {
+        for (const ne of olt.niveaux_exigence || []) {
+          for (const ind of ne.indicateurs || []) {
+            push(ind, `${enjeu.libelle} › ${ne.libelle}`);
+          }
+        }
+      }
+      for (const fi of enjeu.facteurs_influence || []) {
+        for (const pression of fi.pressions || []) {
+          for (const oo of pression.objectifs_operationnels || []) {
+            for (const ra of oo.resultats_attendus || []) {
+              for (const ind of ra.indicateurs || []) {
+                push(ind, `${enjeu.libelle} › ${ra.libelle}`);
+              }
+            }
+          }
+        }
+      }
+    }
+    return targets;
+  }
+
+  /**
+   * #585 — Ouvre le dialogue « Lier / Copier » depuis la carte d'une action.
+   *
+   * « Lier » rattache la MÊME action à une métrique supplémentaire (M2M) ;
+   * « Copier » en crée un duplicata indépendant sous une métrique ou
+   * directement sous un indicateur.
+   */
+  openShareOperation(op: Operation, mode: 'link' | 'copy'): void {
+    if (!this.canEditPlan()) return;
+
+    const dialogRef = this.dialog.open(ShareElementDialogComponent, {
+      width: '640px', maxWidth: '95vw', maxHeight: '90vh',
+      data: {
+        elementType: 'operation',
+        elementLabel: op.libelle,
+        mode,
+        enjeux: [],
+        indicateurs: this.operationShareTargets(op),
+      } as ShareElementDialogData,
+    });
+
+    dialogRef.afterClosed().pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((result: ShareElementDialogResult | null) => {
+        if (!result) return;
+        const isCopy = result.mode === 'copy';
+        let call$: Observable<unknown>;
+        if (isCopy) {
+          if (result.targetMetriqueId == null && result.targetIndicateurId == null) return;
+          call$ = this.enjeuService.copyOperation(op.id_operation, {
+            metriqueId: result.targetMetriqueId,
+            indicateurId: result.targetIndicateurId,
+          });
+        } else {
+          // Le partage passe forcément par une métrique (cf. dialogue).
+          if (result.targetMetriqueId == null) return;
+          call$ = this.enjeuService.addMetriqueToOperation(op.id_operation, result.targetMetriqueId);
+        }
+        this.runShareCall(
+          call$,
+          isCopy ? 'enjeux.share.operation.copySuccess' : 'enjeux.share.operation.linkSuccess',
+          isCopy ? 'enjeux.share.operation.copyError' : 'enjeux.share.operation.linkError',
+        );
       });
   }
 

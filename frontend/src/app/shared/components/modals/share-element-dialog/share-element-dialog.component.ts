@@ -24,9 +24,24 @@ export interface ShareEnjeuTarget {
   pressions?: SharePressionTarget[];
 }
 
+/** Métrique candidate (cible d'un partage/copie d'action). */
+export interface ShareMetriqueTarget {
+  id_metrique: number;
+  nom: string;
+}
+
+/** Indicateur candidat, porteur de ses métriques (cas action, #585). */
+export interface ShareIndicateurTarget {
+  id_indicateur: number;
+  nom: string;
+  /** Contexte affiché sous le nom (enjeu / NE ou RA d'origine). */
+  contexte?: string;
+  metriques: ShareMetriqueTarget[];
+}
+
 export interface ShareElementDialogData {
   /** Type d'élément partagé/copié. */
-  elementType: 'facteur' | 'oo';
+  elementType: 'facteur' | 'oo' | 'operation';
   /** Libellé de l'élément source (affiché dans l'entête). */
   elementLabel: string;
   /** Mode présélectionné selon le bouton cliqué. */
@@ -35,16 +50,23 @@ export interface ShareElementDialogData {
    * Enjeux candidats du même plan. Pour un facteur, on choisit un enjeu ; pour
    * un OO, on choisit une pression parmi celles listées sous chaque enjeu.
    * Les enjeux/pressions où l'élément est déjà présent doivent être exclus par
-   * l'appelant.
+   * l'appelant. Inutilisé pour une action (cf. `indicateurs`).
    */
   enjeux: ShareEnjeuTarget[];
+  /**
+   * #585 — Indicateurs candidats, pour le partage/copie d'une action. On choisit
+   * soit une métrique, soit l'indicateur lui-même (rattachement direct #367).
+   */
+  indicateurs?: ShareIndicateurTarget[];
 }
 
 export interface ShareElementDialogResult {
   mode: 'link' | 'copy';
-  /** Cible retenue : un enjeu (facteur) ou une pression (OO). */
+  /** Cible retenue : un enjeu (facteur), une pression (OO), un indicateur ou une métrique (action). */
   targetEnjeuId?: number;
   targetPressionId?: number;
+  targetIndicateurId?: number;
+  targetMetriqueId?: number;
 }
 
 @Component({
@@ -73,10 +95,39 @@ export class ShareElementDialogComponent {
   readonly selectedEnjeuId = signal<number | null>(null);
   readonly selectedPressionId = signal<number | null>(null);
 
+  /** Cible retenue pour une action (#585) : une métrique ou l'indicateur lui-même. */
+  readonly selectedIndicateurId = signal<number | null>(null);
+  readonly selectedMetriqueId = signal<number | null>(null);
+
   readonly isOo = this.data.elementType === 'oo';
+  readonly isOperation = this.data.elementType === 'operation';
 
   /** i18n racine des libellés selon le type d'élément. */
-  readonly typeKey = this.isOo ? 'oo' : 'facteur';
+  readonly typeKey = this.data.elementType;
+
+  /**
+   * #585 — Une action ne peut être rattachée directement qu'à UN seul indicateur
+   * (FK `id_indicateur`) : le partage passe forcément par une métrique. En mode
+   * « lier », la cible « directement sur l'indicateur » est donc désactivée ;
+   * elle reste disponible en mode « copier ».
+   */
+  readonly canTargetIndicateurDirectly = computed(() => this.mode() === 'copy');
+
+  readonly filteredIndicateurs = computed<ShareIndicateurTarget[]>(() => {
+    const term = this.searchTerm().toLowerCase().trim();
+    const indicateurs = this.data.indicateurs || [];
+    if (!term) return indicateurs;
+    return indicateurs
+      .map((ind) => {
+        const indMatch =
+          ind.nom.toLowerCase().includes(term) ||
+          (ind.contexte || '').toLowerCase().includes(term);
+        if (indMatch) return ind;
+        const metriques = ind.metriques.filter((m) => m.nom.toLowerCase().includes(term));
+        return metriques.length ? { ...ind, metriques } : null;
+      })
+      .filter((ind): ind is ShareIndicateurTarget => ind !== null);
+  });
 
   readonly filteredEnjeux = computed<ShareEnjeuTarget[]>(() => {
     const term = this.searchTerm().toLowerCase().trim();
@@ -98,18 +149,43 @@ export class ShareElementDialogComponent {
   });
 
   readonly hasTargets = computed(() => {
+    if (this.isOperation) {
+      const indicateurs = this.data.indicateurs || [];
+      // En mode « lier », seules les métriques sont des cibles valides.
+      return this.canTargetIndicateurDirectly()
+        ? indicateurs.length > 0
+        : indicateurs.some((ind) => ind.metriques.length > 0);
+    }
     if (this.isOo) {
       return this.data.enjeux.some((e) => (e.pressions || []).length > 0);
     }
     return this.data.enjeux.length > 0;
   });
 
-  readonly canConfirm = computed(() =>
-    this.isOo ? this.selectedPressionId() !== null : this.selectedEnjeuId() !== null,
-  );
+  readonly canConfirm = computed(() => {
+    if (this.isOperation) {
+      return this.selectedMetriqueId() !== null || this.selectedIndicateurId() !== null;
+    }
+    return this.isOo ? this.selectedPressionId() !== null : this.selectedEnjeuId() !== null;
+  });
 
   setMode(mode: 'link' | 'copy'): void {
     this.mode.set(mode);
+    // Repasser en « lier » invalide une cible « indicateur direct » déjà choisie.
+    if (mode === 'link') {
+      this.selectedIndicateurId.set(null);
+    }
+  }
+
+  selectIndicateur(id: number): void {
+    if (!this.canTargetIndicateurDirectly()) return;
+    this.selectedMetriqueId.set(null);
+    this.selectedIndicateurId.set(this.selectedIndicateurId() === id ? null : id);
+  }
+
+  selectMetrique(id: number): void {
+    this.selectedIndicateurId.set(null);
+    this.selectedMetriqueId.set(this.selectedMetriqueId() === id ? null : id);
   }
 
   selectEnjeu(id: number): void {
@@ -127,7 +203,13 @@ export class ShareElementDialogComponent {
   confirm(): void {
     if (!this.canConfirm()) return;
     const result: ShareElementDialogResult = { mode: this.mode() };
-    if (this.isOo) {
+    if (this.isOperation) {
+      if (this.selectedMetriqueId() !== null) {
+        result.targetMetriqueId = this.selectedMetriqueId()!;
+      } else {
+        result.targetIndicateurId = this.selectedIndicateurId()!;
+      }
+    } else if (this.isOo) {
       result.targetPressionId = this.selectedPressionId()!;
     } else {
       result.targetEnjeuId = this.selectedEnjeuId()!;

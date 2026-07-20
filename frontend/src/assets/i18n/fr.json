@@ -3677,6 +3677,23 @@
         "copyError": "Erreur lors de la copie de l'objectif.",
         "sharedBadge": "Lié à plusieurs enjeux"
       },
+      "operation": {
+        "title": "Partager ou copier cette action",
+        "subtitle": "« {{label}} » — choisissez de la lier à une autre métrique (élément unique partagé) ou d'en créer une copie indépendante.",
+        "linkDescription": "L'action reste UNE SEULE action, rattachée à plusieurs métriques. Toute modification (libellé, programmation, budget…) se répercute partout.",
+        "copyDescription": "Crée un duplicata indépendant de l'action et de sa programmation, rattaché à la cible choisie. Modifiable séparément, sans impacter l'original.",
+        "targetLabel": "Indicateur ou métrique de destination",
+        "noTarget": "Aucune autre cible disponible dans ce plan.",
+        "directTarget": "Directement sur l'indicateur (sans métrique)",
+        "directLinkUnavailable": "Une action ne peut être rattachée directement qu'à un seul indicateur : pour la partager, choisissez une métrique. Le rattachement direct reste possible en mode « Copier ».",
+        "linkAction": "Lier à une autre métrique",
+        "copyAction": "Copier vers un autre indicateur ou métrique",
+        "linkSuccess": "Action liée à la métrique (élément partagé).",
+        "linkError": "Erreur lors de la liaison de l'action.",
+        "copySuccess": "Action copiée (copie indépendante).",
+        "copyError": "Erreur lors de la copie de l'action.",
+        "sharedBadge": "Liée à plusieurs métriques"
+      },
       "sharedBannerFacteur": "Ce facteur est partagé entre {{count}} enjeux. Toute modification s'applique partout.",
       "sharedBannerOo": "Cet objectif est partagé entre {{count}} enjeux. Toute modification s'applique partout."
     },

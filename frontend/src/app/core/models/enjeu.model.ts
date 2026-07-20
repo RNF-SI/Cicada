@@ -804,6 +804,8 @@ export interface Operation {
   declinaison_par_poste?: boolean;
   geom?: GeoJSONGeometry | string;
   geom_geojson?: GeoJSONGeometry | null;
+  // #367 — rattachement direct à un indicateur (action sans métrique préalable)
+  id_indicateur?: number | null;
   // M2M to Metriques
   metriques?: MetriqueRef[];
   metrique_ids?: number[];
