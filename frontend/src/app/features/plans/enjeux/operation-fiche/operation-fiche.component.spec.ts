@@ -13,7 +13,10 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { TranslateModule } from '@ngx-translate/core';
 import { of } from 'rxjs';
 
+import { MatDialog } from '@angular/material/dialog';
+
 import { OperationFicheComponent } from './operation-fiche.component';
+import { ProtocoleCampanuleDialogComponent } from '../../../../shared/components/modals/protocole-campanule-dialog/protocole-campanule-dialog.component';
 import { EnjeuService } from '../../../../core/services/enjeu.service';
 import { Operation } from '../../../../core/models/enjeu.model';
 
@@ -312,6 +315,53 @@ describe('OperationFicheComponent — protocole & objectifs (actions CS, #557)',
       protocole: { protocole_campanule_nom: 'Rhoméo — Piézométrie' },
     }));
     expect(fixture.componentInstance.protocoleNom()).toBe('Rhoméo — Piézométrie');
+  });
+
+  // #593 — lien vers le détail du/des protocole(s) depuis la fiche action.
+  it('rend un lien de consultation par protocole CAMPanule', () => {
+    const fixture = setup(operationWithSuivi({
+      protocoles: [
+        { protocole_campanule_nom: 'Rhoméo — Piézométrie', cd_protocole_campanule: 7 },
+        { protocole_campanule_nom: 'STOC EPS', cd_protocole_campanule: 12 },
+      ],
+    }));
+    const links = fixture.nativeElement.querySelectorAll('.protocole-link');
+    expect(links.length).toBe(2);
+    expect(links[0].textContent).toContain('Rhoméo — Piézométrie');
+    expect(links[1].textContent).toContain('STOC EPS');
+  });
+
+  it('n\'affiche pas de lien pour un protocole libre (hors CAMPanule)', () => {
+    const fixture = setup(operationWithSuivi({
+      protocoles: [{ nom_protocole: 'Protocole maison' }],
+    }));
+    expect(fixture.nativeElement.querySelectorAll('.protocole-link').length).toBe(0);
+    expect(fixture.nativeElement.textContent).toContain('Protocole maison');
+  });
+
+  it('ouvre la modale CAMPanule au clic sur le lien', () => {
+    const fixture = setup(operationWithSuivi({
+      protocoles: [{ protocole_campanule_nom: 'STOC EPS', cd_protocole_campanule: 12 }],
+    }));
+    const dialog = TestBed.inject(MatDialog);
+    const openSpy = jest.spyOn(dialog, 'open').mockReturnValue({} as any);
+
+    fixture.nativeElement.querySelector('.protocole-link').click();
+
+    expect(openSpy).toHaveBeenCalledWith(
+      ProtocoleCampanuleDialogComponent,
+      expect.objectContaining({ data: { cdProtocole: 12 } }),
+    );
+  });
+
+  it('n\'ouvre rien pour un protocole sans code CAMPanule', () => {
+    const fixture = setup(operationWithSuivi({ protocoles: [{ nom_protocole: 'Maison' }] }));
+    const dialog = TestBed.inject(MatDialog);
+    const openSpy = jest.spyOn(dialog, 'open');
+
+    fixture.componentInstance.consulterProtocole({ nom_protocole: 'Maison' } as any);
+
+    expect(openSpy).not.toHaveBeenCalled();
   });
 });
 

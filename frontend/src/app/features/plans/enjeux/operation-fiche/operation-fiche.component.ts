@@ -8,6 +8,8 @@ import { LeafletMapEditComponent } from '../../../../shared/components/leaflet-m
 import { MetriqueGridDisplayComponent } from '../../../../shared/components/metrique-grid-display/metrique-grid-display.component';
 import { CheckboxComponent } from '../../../../shared/components/checkbox/checkbox.component';
 import { PriorityBadgeComponent } from '../../../../shared/components/priority-badge/priority-badge.component';
+import { MatDialog } from '@angular/material/dialog';
+import { ProtocoleCampanuleDialogComponent } from '../../../../shared/components/modals/protocole-campanule-dialog/protocole-campanule-dialog.component';
 
 /**
  * #354 — Fiche synthétique d'une action (opération).
@@ -30,6 +32,7 @@ export class OperationFicheComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly enjeuService = inject(EnjeuService);
   private readonly translate = inject(TranslateService);
+  private readonly dialog = inject(MatDialog);
 
   operation = signal<Operation | null>(null);
   isLoading = signal(true);
@@ -249,6 +252,25 @@ export class OperationFicheComponent implements OnInit {
 
   /** Le détail (description, objectif) n'est affiché que pour un protocole unique. */
   readonly showProtocoleDetail = computed(() => this.protocoles().length === 1);
+
+  /** Libellé compact d'un protocole (nom CAMPanule sinon nom libre). */
+  protocoleLabel(p: Protocole): string {
+    return p.protocole_campanule_nom?.trim() || p.nom_protocole?.trim() || '';
+  }
+
+  /**
+   * #593 — Ouvre la fiche CAMPanule d'un protocole depuis la fiche action, pour
+   * consulter son détail sans quitter la page.
+   */
+  consulterProtocole(p: Protocole): void {
+    if (!p.cd_protocole_campanule) return;
+    this.dialog.open(ProtocoleCampanuleDialogComponent, {
+      width: '900px',
+      maxWidth: '95vw',
+      maxHeight: '90vh',
+      data: { cdProtocole: p.cd_protocole_campanule },
+    });
+  }
 
   /** Vrai dès qu'une information de protocole/suivi est renseignée. */
   readonly hasProtocoleSection = computed(() => {

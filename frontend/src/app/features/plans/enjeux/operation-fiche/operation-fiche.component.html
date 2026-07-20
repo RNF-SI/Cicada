@@ -73,7 +73,24 @@
           <dl class="fiche-grid">
             @if (protocoleNom()) {
               <dt>{{ 'plans.suivis.actions.fiche.protocoleNom' | translate }}</dt>
-              <dd>{{ protocoleNom() }}</dd>
+              <!-- #593 — chaque protocole CAMPanule renvoie vers le détail du protocole -->
+              <dd class="protocoles-dd">
+                @for (p of protocoles(); track $index) {
+                  @if (protocoleLabel(p)) {
+                    @if (!$first) { <span class="protocole-sep">·</span> }
+                    @if (p.cd_protocole_campanule) {
+                      <button type="button" class="protocole-link"
+                              [title]="'plans.suivis.actions.fiche.consulterProtocole' | translate"
+                              (click)="consulterProtocole(p)">
+                        {{ protocoleLabel(p) }}
+                        <i class="fi fi-rr-eye" aria-hidden="true"></i>
+                      </button>
+                    } @else {
+                      <span>{{ protocoleLabel(p) }}</span>
+                    }
+                  }
+                }
+              </dd>
             }
             @if (showProtocoleDetail() && protocole()?.description_protocole) {
               <dt>{{ 'plans.suivis.actions.fiche.protocoleDescription' | translate }}</dt>

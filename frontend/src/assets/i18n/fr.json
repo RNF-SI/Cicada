@@ -1970,6 +1970,7 @@
           "description": "Description",
           "protocole": "Protocole & objectifs",
           "protocoleNom": "Protocole",
+          "consulterProtocole": "Consulter le détail du protocole",
           "protocoleDescription": "Description du protocole",
           "protocoleObjectif": "Objectif du protocole",
           "objectifPrincipal": "Objectif principal",

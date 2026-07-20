@@ -131,6 +131,43 @@
   dd { margin: 0; color: $black; }
 }
 
+// #593 — lien vers le détail CAMPanule d'un protocole depuis la fiche action.
+.protocoles-dd {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: $spacing-xxs;
+}
+
+.protocole-sep { color: $gray-dark; }
+
+.protocole-link {
+  display: inline-flex;
+  align-items: center;
+  gap: $spacing-xxs;
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  color: $primary-color;
+  text-decoration: underline;
+  cursor: pointer;
+
+  &:hover { opacity: 0.8; }
+
+  i { font-size: 0.85em; }
+}
+
+// À l'impression, le lien n'a plus de sens : rendu en texte simple.
+@media print {
+  .protocole-link {
+    color: $black;
+    text-decoration: none;
+
+    i { display: none; }
+  }
+}
+
 .fiche-ind-type { color: $gray-dark; font-weight: $font-weight-regular; }
 
 // #515 — Indicateur de réponse : intitulé + grille de métriques.
