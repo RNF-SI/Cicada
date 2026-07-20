@@ -59,7 +59,9 @@ test.describe.serial('Validation Workflow - Multi-user', () => {
 
     // The page should display the user's requests
     // Look for a pending status indicator
-    const pendingBadge = page.locator('.status-badge, mat-chip').filter({ hasText: /attente|pending/i });
+    // La page « Mes demandes » rend des `app-tag` depuis la refonte du composant Tag
+    // (#296) : les sélecteurs `.status-badge` / `mat-chip` ne correspondaient plus à rien.
+    const pendingBadge = page.locator('app-tag .app-tag__label').filter({ hasText: /attente|pending/i });
     await expect(pendingBadge.first()).toBeVisible({ timeout: 10000 });
   });
 
@@ -109,7 +111,7 @@ test.describe.serial('Validation Workflow - Multi-user', () => {
     await page.waitForTimeout(2000);
 
     // The request should now show as approved
-    const approvedBadge = page.locator('.status-badge, mat-chip').filter({ hasText: /approuv|approved|valid/i });
+    const approvedBadge = page.locator('app-tag .app-tag__label').filter({ hasText: /approuv|approved|valid/i });
 
     // It's possible the request moved to history - check both active and history sections
     const isVisible = await approvedBadge.first().isVisible({ timeout: 5000 }).catch(() => false);
