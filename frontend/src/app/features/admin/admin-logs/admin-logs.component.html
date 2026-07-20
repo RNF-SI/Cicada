@@ -5,7 +5,7 @@
       <p class="subtitle">{{ 'admin.logs.subtitle' | translate }}</p>
     </div>
     <div class="header-actions">
-      @if (errorLogs().length > 0 && acknowledgedFilter !== 'true') {
+      @if (errorLogs().length > 0 && filters.acknowledged()[0] !== 'true') {
         <button
           mat-stroked-button
           (click)="acknowledgeAll()"
@@ -20,25 +20,46 @@
 
   <!-- Filtres -->
   <div class="filters-bar">
-    <label class="app-mat-label">{{ 'admin.logs.filters.level' | translate }}</label>
-      <mat-form-field class="app-mat-form-field filter-field" appearance="outline">
-      <mat-label></mat-label>
-      <mat-select [(ngModel)]="levelFilter" (selectionChange)="applyFilters()">
-        @for (option of levelOptions; track option.value) {
-          <mat-option [value]="option.value">{{ option.label }}</mat-option>
-        }
-      </mat-select>
-    </mat-form-field>
+    <app-filter-bar
+      class="logs-filters"
+      testId="logs-filters"
+      [showReset]="filters.hasActive() || !!searchFilter"
+      (reset)="resetFilters()">
 
-    <label class="app-mat-label">{{ 'admin.logs.filters.acknowledged' | translate }}</label>
-      <mat-form-field class="app-mat-form-field filter-field" appearance="outline">
-      <mat-label></mat-label>
-      <mat-select [(ngModel)]="acknowledgedFilter" (selectionChange)="applyFilters()">
-        @for (option of acknowledgedOptions; track option.value) {
-          <mat-option [value]="option.value">{{ option.label }}</mat-option>
-        }
-      </mat-select>
-    </mat-form-field>
+      <app-filter-dropdown #levelDd
+        testId="logs-level"
+        [label]="'admin.logs.filters.level' | translate"
+        [activeCount]="filters.level().length">
+        <ng-template appFilterPanel>
+          <app-filter-option-list
+            testId="logs-level"
+            [multiple]="false"
+            allLabel="Tous les niveaux"
+            [options]="levelOptions"
+            [selected]="filters.level()"
+            (selectedChange)="filters.level.set($event); applyFilters()"
+            (optionPicked)="levelDd.close()">
+          </app-filter-option-list>
+        </ng-template>
+      </app-filter-dropdown>
+
+      <app-filter-dropdown #ackDd
+        testId="logs-acknowledged"
+        [label]="'admin.logs.filters.acknowledged' | translate"
+        [activeCount]="filters.acknowledged().length">
+        <ng-template appFilterPanel>
+          <app-filter-option-list
+            testId="logs-acknowledged"
+            [multiple]="false"
+            [allLabel]="'common.filters.all' | translate"
+            [options]="acknowledgedOptions"
+            [selected]="filters.acknowledged()"
+            (selectedChange)="filters.acknowledged.set($event); applyFilters()"
+            (optionPicked)="ackDd.close()">
+          </app-filter-option-list>
+        </ng-template>
+      </app-filter-dropdown>
+    </app-filter-bar>
 
     <!-- Recherche manuelle avec composant kit UI (revue design) -->
     <app-search-bar
@@ -50,13 +71,6 @@
       (search)="applyFilters()"
       (cleared)="applyFilters()">
     </app-search-bar>
-
-    @if (levelFilter || acknowledgedFilter || searchFilter) {
-      <button mat-button (click)="resetFilters()">
-        <i class="fi fi-rr-refresh"></i>
-        {{ 'admin.logs.filters.reset' | translate }}
-      </button>
-    }
   </div>
 
   <!-- Loading -->

@@ -23,6 +23,14 @@ import { ActivityService } from '../../core/services/activity.service';
 import { AuthService } from '../../core/services/auth.service';
 import { SearchBarComponent } from '../../shared/components/search-bar/search-bar.component';
 import {
+  FilterBarComponent,
+  FilterDropdownComponent,
+  FilterOptionListComponent,
+  FilterPanelDirective,
+  FilterOption,
+} from '../../shared/components/filters';
+import { createFilterSet } from '../../shared/utils/filter-set';
+import {
   ActivityLogListItem,
   ActivityFilters,
   DEFAULT_TAB_CONFIGS,
@@ -51,6 +59,10 @@ import {
     MatExpansionModule,
     TranslateModule,
     SearchBarComponent,
+    FilterBarComponent,
+    FilterDropdownComponent,
+    FilterOptionListComponent,
+    FilterPanelDirective,
   ],
   templateUrl: './activity.component.html',
   styleUrl: './activity.component.scss'
@@ -75,10 +87,16 @@ export class ActivityComponent implements OnInit {
   readonly isSuperAdmin = this.authService.isSuperAdmin;
   readonly isAdminOrganisme = this.authService.isAdminOrganisme;
 
-  // Filtres
-  searchQuery = '';
-  entityTypeFilter = '';
-  actionFilter = '';
+  // Filtres (#592 — état porté par `createFilterSet`).
+  //
+  // Le champ `actionFilter` a été supprimé : il alimentait la requête et conditionnait
+  // l'affichage du bouton « réinitialiser », mais aucun contrôle ne le renseignait —
+  // la visibilité du bouton dépendait donc d'une valeur inatteignable. Ajouter un filtre
+  // « action » à cette page serait une évolution produit, hors périmètre du kit UI.
+  readonly filters = createFilterSet({
+    search: '',
+    entityType: [] as string[],
+  });
 
   // Onglets visibles selon le role
   readonly visibleTabs = computed(() => {
@@ -119,14 +137,13 @@ export class ActivityComponent implements OnInit {
       page: this.currentPage()
     };
 
-    if (this.searchQuery) {
-      filters.search = this.searchQuery;
+    const search = this.filters.search();
+    const entityType = this.filters.entityType()[0];
+    if (search) {
+      filters.search = search;
     }
-    if (this.entityTypeFilter) {
-      filters.entity_type = this.entityTypeFilter as ActivityFilters['entity_type'];
-    }
-    if (this.actionFilter) {
-      filters.action = this.actionFilter as ActivityFilters['action'];
+    if (entityType) {
+      filters.entity_type = entityType as ActivityFilters['entity_type'];
     }
 
     this.activityService.getActivitiesByTab(tab, filters).subscribe({
@@ -169,13 +186,22 @@ export class ActivityComponent implements OnInit {
     this.loadData();
   }
 
-  /**
-   * Reinitialise les filtres.
-   */
+  /** #592 — options du filtre « type d'entité », au format du kit UI. */
+  readonly entityTypeOptions = computed<FilterOption<string>[]>(() =>
+    ['site', 'plan', 'user', 'organisme', 'validation'].map((value) => ({
+      value,
+      label: this.translate.instant(`activity.entityTypes.${value}`),
+    })),
+  );
+
+  /** Applique un changement de filtre (le listing est rechargé côté serveur). */
+  onFilterChange(): void {
+    this.applyFilters();
+  }
+
   resetFilters(): void {
-    this.searchQuery = '';
-    this.entityTypeFilter = '';
-    this.actionFilter = '';
+    this.filters.reset();
+    this.applyFilters();
   }
 
   /**

@@ -21,7 +21,9 @@ export class ActivityPage {
     this.subtitle = page.locator('.page-header .subtitle');
     this.tabs = page.locator('mat-tab-group .mat-mdc-tab');
     this.searchInput = page.locator('.filters-bar input');
-    this.entityTypeFilter = page.locator('.filter-field mat-select');
+    // #592 — le filtre est un `app-filter-dropdown` adressé par data-testid, donc
+    // indépendant de l'i18n et de la structure Material.
+    this.entityTypeFilter = page.getByTestId('activity-entity-type');
     this.resetButton = page.locator('.filters-bar button', { hasText: 'Réinitialiser' });
     this.timelineGroups = page.locator('.timeline-group');
     this.timelineItems = page.locator('.timeline-item');
@@ -58,9 +60,10 @@ export class ActivityPage {
     await this.searchInput.press('Enter');
   }
 
+  /** @param type valeur d'entité (`site`, `plan`, `user`, `organisme`, `validation`). */
   async filterByEntityType(type: string) {
     await this.entityTypeFilter.click();
-    await this.page.locator('mat-option', { hasText: type }).click();
+    await this.page.getByTestId(`activity-entity-type-option-${type}`).click();
   }
 
   async resetFilters() {

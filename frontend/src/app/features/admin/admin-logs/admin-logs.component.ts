@@ -12,6 +12,14 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { FormFieldComponent } from '../../../shared/components/form-field/form-field.component';
+import {
+  FilterBarComponent,
+  FilterDropdownComponent,
+  FilterOptionListComponent,
+  FilterPanelDirective,
+  FilterOption,
+} from '../../../shared/components/filters';
+import { createFilterSet } from '../../../shared/utils/filter-set';
 import { SearchBarComponent } from '../../../shared/components/search-bar/search-bar.component';
 import { TagComponent } from '../../../shared/components/tag/tag.component';
 import { TagAppearance, getLogLevelTag } from '../../../shared/utils/tag-icons';
@@ -46,6 +54,10 @@ import { ErrorLogDetailDialogComponent } from './error-log-detail-dialog.compone
     MatInputModule,
     FormFieldComponent,
     SearchBarComponent,
+    FilterBarComponent,
+    FilterDropdownComponent,
+    FilterOptionListComponent,
+    FilterPanelDirective,
     TagComponent,
     MatDialogModule,
     MatSnackBarModule,
@@ -73,23 +85,26 @@ export class AdminLogsComponent implements OnInit, OnDestroy {
   readonly pageSize = 20;
 
   // Filtres
-  levelFilter: ErrorLogLevel | '' = '';
-  acknowledgedFilter: string = '';
+  // #592 — mono-sélection stockée en tableau (contrat d'`app-filter-option-list`).
+  readonly filters = createFilterSet({
+    level: [] as string[],
+    acknowledged: [] as string[],
+  });
   searchFilter = '';
 
   // Colonnes du tableau
   readonly displayedColumns = ['level', 'message', 'path', 'user', 'correlation_id', 'date', 'acknowledged', 'actions'];
 
   // Options de filtres
-  readonly levelOptions = [
-    { value: '', label: 'Tous les niveaux' },
+  // La valeur « tout » n'est plus une option porteuse d'une chaîne vide : c'est la ligne
+  // `allLabel` du composant, qui vide la sélection.
+  readonly levelOptions: FilterOption<string>[] = [
     { value: 'WARNING', label: 'Avertissement' },
     { value: 'ERROR', label: 'Erreur' },
     { value: 'CRITICAL', label: 'Critique' }
   ];
 
-  readonly acknowledgedOptions = [
-    { value: '', label: 'Tous' },
+  readonly acknowledgedOptions: FilterOption<string>[] = [
     { value: 'true', label: 'Acquittes' },
     { value: 'false', label: 'Non acquittes' }
   ];
@@ -114,11 +129,13 @@ export class AdminLogsComponent implements OnInit, OnDestroy {
       page: this.currentPage(),
     };
 
-    if (this.levelFilter) {
-      filters.level = this.levelFilter as ErrorLogLevel;
+    const level = this.filters.level()[0];
+    const acknowledged = this.filters.acknowledged()[0];
+    if (level) {
+      filters.level = level as ErrorLogLevel;
     }
-    if (this.acknowledgedFilter !== '') {
-      filters.acknowledged = this.acknowledgedFilter === 'true';
+    if (acknowledged !== undefined) {
+      filters.acknowledged = acknowledged === 'true';
     }
     if (this.searchFilter) {
       filters.search = this.searchFilter;
@@ -162,8 +179,7 @@ export class AdminLogsComponent implements OnInit, OnDestroy {
    * Reinitialise les filtres.
    */
   resetFilters(): void {
-    this.levelFilter = '';
-    this.acknowledgedFilter = '';
+    this.filters.reset();
     this.searchFilter = '';
     this.currentPage.set(1);
     this.loadErrorLogs();
@@ -222,8 +238,9 @@ export class AdminLogsComponent implements OnInit, OnDestroy {
   acknowledgeAll(): void {
     const filters: ErrorLogFilters = {};
 
-    if (this.levelFilter) {
-      filters.level = this.levelFilter as ErrorLogLevel;
+    const levelForAck = this.filters.level()[0];
+    if (levelForAck) {
+      filters.level = levelForAck as ErrorLogLevel;
     }
     if (this.searchFilter) {
       filters.search = this.searchFilter;

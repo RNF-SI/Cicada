@@ -161,10 +161,15 @@
   max-width: 420px;
 
   // Accolé au déclencheur : pas de bordure haute, coins bas seuls arrondis.
-  // Sa largeur est imposée par le CDK (celle du champ) : les bornes ne s'appliquent pas.
+  //
+  // `cdkConnectedOverlayWidth` dimensionne le *panneau d'overlay*, pas cet élément :
+  // sans `width: 100%`, la carte se réduirait à son contenu et serait plus étroite que
+  // le champ auquel elle est censée s'accoler. Les bornes min/max ne s'appliquent pas
+  // ici, la largeur étant imposée par le déclencheur.
   &--field {
     border-top: none;
     border-radius: 0 0 $border-radius-sm $border-radius-sm;
+    width: 100%;
     min-width: 0;
     max-width: none;
   }

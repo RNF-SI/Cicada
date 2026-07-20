@@ -53,18 +53,26 @@
           <!-- Filtre par organisme -->
           @if (linkedOrganismes().length > 1) {
             <div class="organisme-filter">
-              <label class="app-mat-label">{{ 'modals.manageSiteUsers.filterByOrganisme' | translate }}</label>
-      <mat-form-field class="app-mat-form-field filter-field" appearance="outline">
-                <mat-label></mat-label>
-                <mat-select [value]="selectedOrganismeFilter()" (selectionChange)="onOrganismeFilterChange($event.value)">
-                  <mat-option [value]="null">{{ 'modals.manageSiteUsers.allOrganismes' | translate }}</mat-option>
-                  @for (org of linkedOrganismes(); track org.id_organisme) {
-                    <mat-option [value]="org.id_organisme">
-                      {{ org.nom_organisme }}
-                    </mat-option>
-                  }
-                </mat-select>
-              </mat-form-field>
+              <app-filter-dropdown #orgFilterDd
+                variant="field"
+                testId="site-users-org"
+                [label]="'modals.manageSiteUsers.filterByOrganisme' | translate"
+                [placeholder]="'modals.manageSiteUsers.allOrganismes' | translate"
+                [summary]="organismeFilterSummary()"
+                [activeCount]="organismeFilterSelection().length">
+                <ng-template appFilterPanel>
+                  <app-filter-option-list
+                    testId="site-users-org"
+                    searchable
+                    [multiple]="false"
+                    [allLabel]="'modals.manageSiteUsers.allOrganismes' | translate"
+                    [options]="organismeFilterOptions()"
+                    [selected]="organismeFilterSelection()"
+                    (selectedChange)="onOrganismeFilterSelection($event)"
+                    (optionPicked)="orgFilterDd.close()">
+                  </app-filter-option-list>
+                </ng-template>
+              </app-filter-dropdown>
             </div>
           }
 

@@ -109,7 +109,7 @@ test.describe('Activity Page', () => {
       await activityPage.waitForData();
 
       // Apply a filter
-      await activityPage.filterByEntityType('Site');
+      await activityPage.filterByEntityType('site');
       await page.waitForTimeout(500);
 
       // Switch tabs
@@ -135,7 +135,7 @@ test.describe('Activity Page', () => {
       const initialCount = await activityPage.getTimelineItemCount();
 
       // Filter by site
-      await activityPage.filterByEntityType('Site');
+      await activityPage.filterByEntityType('site');
       await page.waitForTimeout(1000);
 
       // Results should change (or stay same if all were sites)
@@ -153,7 +153,7 @@ test.describe('Activity Page', () => {
       await page.waitForTimeout(500);
 
       // Reset button (with cross icon) should appear
-      const resetVisible = await page.locator('.filters-bar button .fi-rr-cross-small').isVisible().catch(() => false);
+      const resetVisible = await page.getByTestId('activity-filters-reset').isVisible().catch(() => false);
       // If filters are active and results changed, we're testing filtering works
       expect(typeof resetVisible).toBe('boolean');
     });

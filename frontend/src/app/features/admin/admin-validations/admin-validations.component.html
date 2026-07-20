@@ -6,25 +6,46 @@
 
   <!-- Filtres -->
   <div class="filters-bar">
-    <label class="app-mat-label">Statut</label>
-      <mat-form-field class="app-mat-form-field filter-field" appearance="outline">
-      <mat-label></mat-label>
-      <mat-select [(ngModel)]="statusFilter" (selectionChange)="applyFilters()">
-        @for (option of statusOptions(); track option.value) {
-          <mat-option [value]="option.value">{{ option.label }}</mat-option>
-        }
-      </mat-select>
-    </mat-form-field>
+    <app-filter-bar
+      class="validations-filters"
+      testId="validations-filters"
+      [showReset]="filters.hasActive()"
+      (reset)="filters.reset(); applyFilters()">
 
-    <label class="app-mat-label">Type de demande</label>
-      <mat-form-field class="app-mat-form-field filter-field" appearance="outline">
-      <mat-label></mat-label>
-      <mat-select [(ngModel)]="typeFilter" (selectionChange)="applyFilters()">
-        @for (option of typeOptions(); track option.value) {
-          <mat-option [value]="option.value">{{ option.label }}</mat-option>
-        }
-      </mat-select>
-    </mat-form-field>
+      <app-filter-dropdown #statusDd
+        testId="validations-status"
+        label="Statut"
+        [activeCount]="filters.status().length">
+        <ng-template appFilterPanel>
+          <app-filter-option-list
+            testId="validations-status"
+            [multiple]="false"
+            allLabel="Tous les statuts"
+            [options]="statusOptions()"
+            [selected]="filters.status()"
+            (selectedChange)="filters.status.set($event); applyFilters()"
+            (optionPicked)="statusDd.close()">
+          </app-filter-option-list>
+        </ng-template>
+      </app-filter-dropdown>
+
+      <app-filter-dropdown #typeDd
+        testId="validations-type"
+        label="Type de demande"
+        [activeCount]="filters.requestType().length">
+        <ng-template appFilterPanel>
+          <app-filter-option-list
+            testId="validations-type"
+            [multiple]="false"
+            allLabel="Tous les types"
+            [options]="typeOptions()"
+            [selected]="filters.requestType()"
+            (selectedChange)="filters.requestType.set($event); applyFilters()"
+            (optionPicked)="typeDd.close()">
+          </app-filter-option-list>
+        </ng-template>
+      </app-filter-dropdown>
+    </app-filter-bar>
   </div>
 
   <!-- Loading -->

@@ -27,6 +27,13 @@ import {
 } from '../../../core/models/notification.model';
 
 import { TagComponent } from '../../../shared/components/tag/tag.component';
+import {
+  FilterBarComponent,
+  FilterDropdownComponent,
+  FilterOptionListComponent,
+  FilterPanelDirective,
+} from '../../../shared/components/filters';
+import { createFilterSet } from '../../../shared/utils/filter-set';
 import { TagAppearance, getValidationStatusTag } from '../../../shared/utils/tag-icons';
 
 import { ValidationDetailDialogComponent } from './validation-detail-dialog.component';
@@ -48,7 +55,11 @@ import { ValidationDetailDialogComponent } from './validation-detail-dialog.comp
     MatSnackBarModule,
     MatProgressSpinnerModule,
     MatPaginatorModule,
-    MatTooltipModule
+    MatTooltipModule,
+    FilterBarComponent,
+    FilterDropdownComponent,
+    FilterOptionListComponent,
+    FilterPanelDirective
   ],
   templateUrl: './admin-validations.component.html',
   styleUrl: './admin-validations.component.scss'
@@ -68,19 +79,20 @@ export class AdminValidationsComponent implements OnInit {
   readonly pageSize = 20;
 
   // Filtres (proprietes simples pour ngModel)
-  statusFilter = '';
-  typeFilter = '';
+  // #592 — mono-sélection stockée en tableau (contrat d'`app-filter-option-list`).
+  readonly filters = createFilterSet({
+    status: [] as string[],
+    requestType: [] as string[],
+  });
 
   // Colonnes du tableau
   readonly displayedColumns = ['type', 'requester', 'target', 'date', 'validated_at', 'status', 'validator', 'actions'];
 
   // Options de filtres (chargées dynamiquement depuis l'API)
-  readonly statusOptions = signal<ValidationTypeOption[]>([
-    { value: '', label: 'Tous les statuts' }
-  ]);
-  readonly typeOptions = signal<ValidationTypeOption[]>([
-    { value: '', label: 'Tous les types' }
-  ]);
+  // L'option « Tous » n'est plus une entrée à valeur vide : c'est la ligne `allLabel`
+  // du composant de liste, qui vide la sélection.
+  readonly statusOptions = signal<ValidationTypeOption[]>([]);
+  readonly typeOptions = signal<ValidationTypeOption[]>([]);
 
   ngOnInit(): void {
     this.loadTypes();
@@ -101,15 +113,8 @@ export class AdminValidationsComponent implements OnInit {
   private loadTypes(): void {
     this.validationService.getTypes().subscribe({
       next: (response) => {
-        // Ajouter l'option "Tous" au début de chaque liste
-        this.statusOptions.set([
-          { value: '', label: 'Tous les statuts' },
-          ...response.statuses
-        ]);
-        this.typeOptions.set([
-          { value: '', label: 'Tous les types' },
-          ...response.request_types
-        ]);
+        this.statusOptions.set(response.statuses);
+        this.typeOptions.set(response.request_types);
       },
       error: (error) => {
         console.error('Erreur chargement des types:', error);
@@ -145,11 +150,13 @@ export class AdminValidationsComponent implements OnInit {
       page: this.currentPage(),
     };
 
-    if (this.statusFilter) {
-      filters.status = this.statusFilter;
+    const status = this.filters.status()[0];
+    const requestType = this.filters.requestType()[0];
+    if (status) {
+      filters.status = status;
     }
-    if (this.typeFilter) {
-      filters.request_type = this.typeFilter;
+    if (requestType) {
+      filters.request_type = requestType;
     }
 
     this.validationService.getValidationRequests(filters).subscribe({

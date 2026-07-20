@@ -34,31 +34,36 @@
       <app-search-bar
         class="search-field"
         mode="manual"
-        [(value)]="searchQuery"
+        [value]="filters.search()"
+        (valueChange)="filters.search.set($event)"
         [placeholder]="'common.actions.search' | translate"
         [ariaLabel]="'common.actions.search' | translate"
-        (search)="applyFilters()">
+        (search)="onFilterChange()">
       </app-search-bar>
 
-      <label class="app-mat-label">{{ 'activity.filters.entityType' | translate }}</label>
-      <mat-form-field class="app-mat-form-field filter-field" appearance="outline">
-        <mat-label></mat-label>
-        <mat-select [(ngModel)]="entityTypeFilter" (selectionChange)="applyFilters()">
-          <mat-option value="">{{ 'common.all' | translate }}</mat-option>
-          <mat-option value="site">{{ 'activity.entityTypes.site' | translate }}</mat-option>
-          <mat-option value="plan">{{ 'activity.entityTypes.plan' | translate }}</mat-option>
-          <mat-option value="user">{{ 'activity.entityTypes.user' | translate }}</mat-option>
-          <mat-option value="organisme">{{ 'activity.entityTypes.organisme' | translate }}</mat-option>
-          <mat-option value="validation">{{ 'activity.entityTypes.validation' | translate }}</mat-option>
-        </mat-select>
-      </mat-form-field>
+      <app-filter-bar
+        class="activity-filters"
+        testId="activity-filters"
+        [showReset]="filters.hasActive()"
+        (reset)="resetFilters()">
+        <app-filter-dropdown #entityDd
+          testId="activity-entity-type"
+          [label]="'activity.filters.entityType' | translate"
+          [activeCount]="filters.entityType().length">
+          <ng-template appFilterPanel>
+            <app-filter-option-list
+              testId="activity-entity-type"
+              [multiple]="false"
+              [allLabel]="'common.all' | translate"
+              [options]="entityTypeOptions()"
+              [selected]="filters.entityType()"
+              (selectedChange)="filters.entityType.set($event); onFilterChange()"
+              (optionPicked)="entityDd.close()">
+            </app-filter-option-list>
+          </ng-template>
+        </app-filter-dropdown>
+      </app-filter-bar>
 
-    @if (searchQuery || entityTypeFilter || actionFilter) {
-      <button mat-button (click)="resetFilters(); applyFilters()">
-        <i class="fi-rr-cross-small"></i>
-        {{ 'common.actions.reset' | translate }}
-      </button>
-    }
   </div>
 
   <!-- Content -->

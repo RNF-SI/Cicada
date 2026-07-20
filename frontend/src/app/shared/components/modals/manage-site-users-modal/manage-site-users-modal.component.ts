@@ -3,6 +3,12 @@
  * Permet d'ajouter des utilisateurs des organismes lies au site.
  */
 import { Component, inject, signal, OnInit, computed } from '@angular/core';
+import {
+  FilterDropdownComponent,
+  FilterOptionListComponent,
+  FilterPanelDirective,
+  FilterOption,
+} from '../../filters';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormControl } from '@angular/forms';
 import { MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
@@ -64,6 +70,9 @@ export interface ManageSiteUsersModalData {
     MatIconModule,
     MatChipsModule,
     MatTabsModule,
+    FilterDropdownComponent,
+    FilterOptionListComponent,
+    FilterPanelDirective,
     MatTooltipModule,
     TranslateModule
   ],
@@ -252,6 +261,27 @@ export class ManageSiteUsersModalComponent implements OnInit {
   onOrganismeFilterChange(orgId: number | null): void {
     this.selectedOrganismeFilter.set(orgId);
     this.filterUsers(this.userSearchControl.value);
+  }
+
+  /** #592 — options du filtre organisme, au format du kit UI. */
+  readonly organismeFilterOptions = computed<FilterOption<number>[]>(() =>
+    this.linkedOrganismes().map((o) => ({ value: o.id_organisme, label: o.nom_organisme })),
+  );
+
+  /** Adaptation entre le `number | null` du composant et le tableau du kit UI. */
+  readonly organismeFilterSelection = computed<number[]>(() => {
+    const id = this.selectedOrganismeFilter();
+    return id === null ? [] : [id];
+  });
+
+  /** Libellé de l'organisme filtré, affiché sur le déclencheur fermé. */
+  readonly organismeFilterSummary = computed<string>(() => {
+    const id = this.selectedOrganismeFilter();
+    return this.organismeFilterOptions().find((o) => o.value === id)?.label ?? '';
+  });
+
+  onOrganismeFilterSelection(values: number[]): void {
+    this.onOrganismeFilterChange(values[0] ?? null);
   }
 
   addUser(user: AdminUser): void {
