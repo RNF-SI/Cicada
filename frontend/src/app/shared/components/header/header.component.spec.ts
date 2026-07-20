@@ -161,10 +161,20 @@ describe('HeaderComponent', () => {
 
     it('should have sidebar modules defined', () => {
       fixture.detectChanges();
-      expect(component.sidebarModules.length).toBe(4);
+      expect(component.sidebarModules.length).toBe(5);
       expect(component.sidebarModules[0].code).toBe('plans');
       expect(component.sidebarModules[1].code).toBe('sites');
-      expect(component.sidebarModules.some(m => m.code === 'inventaires')).toBe(false);
+    });
+
+    it('should expose the inventaires module as a developed sidebar entry (#590)', () => {
+      fixture.detectChanges();
+      const inventaires = component.sidebarModules.find(m => m.code === 'inventaires');
+      expect(inventaires).toBeDefined();
+      expect(inventaires!.route).toBe('/inventaires');
+      expect(inventaires!.isDeveloped).toBe(true);
+      expect(inventaires!.requiresAccess).toBe(false);
+      expect(component.shouldShowModule(inventaires!)).toBe(true);
+      expect(component.hasModuleAccess(inventaires!)).toBe(true);
     });
   });
 
