@@ -725,6 +725,49 @@ describe('OperationFormComponent — ventilation budgétaire', () => {
   });
 
   // -------------------------------------------------------------------------
+  // #584 — Liste alphabétique proposée dès le clic dans le champ CAMPanule
+  // -------------------------------------------------------------------------
+  describe('#584 — onCampanuleFocus', () => {
+    function makeComp(searchValue: string, results: unknown[]) {
+      const comp = Object.create(OperationFormComponent.prototype) as OperationFormComponent;
+      const autocomplete = jest.fn().mockReturnValue(of([
+        { cd_protocole: 1, lb_protocole_court: 'Aile de papillon' },
+        { cd_protocole: 2, lb_protocole_court: 'Comptage oiseaux' },
+      ]));
+      (comp as any).campanuleSearchCtrl = new FormControl(searchValue);
+      (comp as any).campanuleResults = signal<unknown[]>(results);
+      (comp as any).campanuleService = { autocomplete };
+      return { comp, autocomplete };
+    }
+
+    it('charge la liste par défaut quand le champ est vide et qu\'aucun résultat n\'est affiché', () => {
+      const { comp, autocomplete } = makeComp('', []);
+      comp.onCampanuleFocus();
+      expect(autocomplete).toHaveBeenCalledWith('', 100);
+      expect((comp as any).campanuleResults().length).toBe(2);
+    });
+
+    it('ne recharge rien si un terme est déjà saisi', () => {
+      const { comp, autocomplete } = makeComp('oiseaux', []);
+      comp.onCampanuleFocus();
+      expect(autocomplete).not.toHaveBeenCalled();
+    });
+
+    it('ne recharge rien si des résultats sont déjà affichés', () => {
+      const { comp, autocomplete } = makeComp('', [{ cd_protocole: 9 }]);
+      comp.onCampanuleFocus();
+      expect(autocomplete).not.toHaveBeenCalled();
+    });
+
+    it('vide la liste en cas d\'erreur API', () => {
+      const { comp } = makeComp('', []);
+      (comp as any).campanuleService = { autocomplete: () => throwError(() => new Error('boom')) };
+      comp.onCampanuleFocus();
+      expect((comp as any).campanuleResults()).toEqual([]);
+    });
+  });
+
+  // -------------------------------------------------------------------------
   // #520 — Bascule du choix « protocole dans CAMPanule ? »
   // -------------------------------------------------------------------------
   describe('#520 — onProtocoleCampanuleChange', () => {

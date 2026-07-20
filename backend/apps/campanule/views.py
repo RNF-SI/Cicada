@@ -52,13 +52,11 @@ class CampanuleViewSet(viewsets.ReadOnlyModelViewSet):
         Autocomplete sur les protocoles CAMPanule via trigrammes + unaccent.
 
         Paramètres :
-        - search : terme de recherche (min 1 caractère)
+        - search : terme de recherche (optionnel — vide = liste alphabétique, #584)
         - limit : nombre max de résultats (défaut 20, max 100)
         - cible : filtre optionnel par cible (ex: "Oiseaux")
         """
         search = request.query_params.get('search', '').strip()
-        if len(search) < 1:
-            return Response([])
 
         limit = min(int(request.query_params.get('limit', 20)), 100)
 
@@ -69,21 +67,35 @@ class CampanuleViewSet(viewsets.ReadOnlyModelViewSet):
                        lb_protocole_court, lb_protocole_complet,
                        cible, categorie_prot, prot_auteur
                 FROM ref_campanule.autocomplete_protocole
-                WHERE (unaccent(lb_protocole_court) ILIKE unaccent(%s)
-                       OR unaccent(lb_protocole_complet) ILIKE unaccent(%s))
+                WHERE 1 = 1
             """
-            params = [f'%{search}%', f'%{search}%']
+            params = []
+
+            if search:
+                sql += """
+                    AND (unaccent(lb_protocole_court) ILIKE unaccent(%s)
+                         OR unaccent(lb_protocole_complet) ILIKE unaccent(%s))
+                """
+                params.extend([f'%{search}%', f'%{search}%'])
 
             cible = request.query_params.get('cible')
             if cible:
                 sql += " AND cible ILIKE %s"
                 params.append(f'%{cible}%')
 
-            sql += """
-                ORDER BY similarity(unaccent(lb_protocole_court), unaccent(%s)) DESC
-                LIMIT %s
-            """
-            params.extend([search, limit])
+            if search:
+                sql += """
+                    ORDER BY similarity(unaccent(lb_protocole_court), unaccent(%s)) DESC
+                """
+                params.append(search)
+            else:
+                # #584 — sans terme de recherche, on propose la liste alphabétique
+                sql += """
+                    ORDER BY COALESCE(lb_protocole_court, lb_protocole_complet) ASC
+                """
+
+            sql += " LIMIT %s"
+            params.append(limit)
 
             cursor.execute(sql, params)
             columns = [col[0] for col in cursor.description]

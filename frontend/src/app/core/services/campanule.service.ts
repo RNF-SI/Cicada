@@ -13,7 +13,7 @@ export class CampanuleService {
 
   /**
    * Autocomplete sur les protocoles CAMPanule.
-   * @param search Terme de recherche (min 2 caractères)
+   * @param search Terme de recherche — vide = liste alphabétique (#584)
    * @param limit Nombre max de résultats (défaut 20)
    * @param cible Filtre optionnel par cible (ex: "Oiseaux")
    */

@@ -451,6 +451,7 @@
                   <input matInput
                     [formControl]="campanuleSearchCtrl"
                     [matAutocomplete]="campanuleAuto"
+                    (focus)="onCampanuleFocus()"
                     [placeholder]="'enjeux.operations.campanuleSearchPlaceholder' | translate">
                   <mat-autocomplete #campanuleAuto="matAutocomplete"
                     [displayWith]="displayCampanuleFn"

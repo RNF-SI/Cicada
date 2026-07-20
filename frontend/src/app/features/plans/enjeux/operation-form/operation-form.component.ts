@@ -2665,16 +2665,40 @@ export class OperationFormComponent implements OnInit {
   // CAMPanule autocomplete
   // ════════════════════════════════════════════════
 
+  /** #584 — nombre de protocoles proposés quand aucun terme n'est saisi. */
+  private static readonly CAMPANULE_DEFAULT_LIMIT = 100;
+
   private initCampanuleAutocomplete(): void {
     this.campanuleSearchCtrl.valueChanges.pipe(
       debounceTime(300),
       distinctUntilChanged(),
-      filter((val): val is string => typeof val === 'string' && val.length >= 1),
-      switchMap((search) => this.campanuleService.autocomplete(search))
+      // Une chaîne vide est acceptée : elle recharge la liste alphabétique (#584).
+      filter((val): val is string => typeof val === 'string'),
+      switchMap((search) => this.campanuleService.autocomplete(
+        search,
+        search ? 20 : OperationFormComponent.CAMPANULE_DEFAULT_LIMIT,
+      ))
     ).subscribe({
       next: (results) => this.campanuleResults.set(results),
       error: () => this.campanuleResults.set([]),
     });
+  }
+
+  /**
+   * #584 — Au clic dans le champ, on affiche d'emblée les protocoles par ordre
+   * alphabétique plutôt qu'une liste vide en attente de saisie.
+   */
+  onCampanuleFocus(): void {
+    const search = this.campanuleSearchCtrl.value;
+    if (typeof search === 'string' && search.length > 0) return;
+    if (this.campanuleResults().length > 0) return;
+
+    this.campanuleService
+      .autocomplete('', OperationFormComponent.CAMPANULE_DEFAULT_LIMIT)
+      .subscribe({
+        next: (results) => this.campanuleResults.set(results),
+        error: () => this.campanuleResults.set([]),
+      });
   }
 
   /** Libellé d'affichage d'un protocole (nom court, sinon nom complet). #564 */

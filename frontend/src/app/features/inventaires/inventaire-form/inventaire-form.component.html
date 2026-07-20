@@ -329,6 +329,7 @@
                     <input matInput
                       [formControl]="campanuleSearchCtrls[$index]"
                       [matAutocomplete]="campanuleAuto"
+                      (focus)="onCampanuleFocus($index)"
                       (blur)="onCampanuleBlur($index)"
                       [placeholder]="'inventaires.form.campanuleSearchPlaceholder' | translate">
                     <mat-autocomplete #campanuleAuto="matAutocomplete"

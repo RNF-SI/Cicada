@@ -413,13 +413,37 @@ export class InventaireFormComponent implements OnInit {
     );
   }
 
+  /** #584 — nombre de protocoles proposés quand aucun terme n'est saisi. */
+  private static readonly CAMPANULE_DEFAULT_LIMIT = 100;
+
+  /**
+   * #584 — Au clic dans le champ, on affiche d'emblée les protocoles par ordre
+   * alphabétique plutôt qu'une liste vide en attente de saisie.
+   */
+  onCampanuleFocus(index: number): void {
+    const search = this.campanuleSearchCtrls[index]?.value;
+    if (typeof search === 'string' && search.length > 0) return;
+    if (this.campanuleResultsAt(index).length > 0) return;
+
+    this.campanuleService
+      .autocomplete('', InventaireFormComponent.CAMPANULE_DEFAULT_LIMIT)
+      .subscribe({
+        next: (results) => this.setCampanuleResults(index, results),
+        error: () => this.setCampanuleResults(index, []),
+      });
+  }
+
   private bindCampanuleAutocomplete(searchCtrl: FormControl, index: number): void {
     this.campanuleSubs.push(
       searchCtrl.valueChanges.pipe(
         debounceTime(300),
         distinctUntilChanged(),
-        filter((val): val is string => typeof val === 'string' && val.length >= 1),
-        switchMap((search) => this.campanuleService.autocomplete(search))
+        // Une chaîne vide est acceptée : elle recharge la liste alphabétique (#584).
+        filter((val): val is string => typeof val === 'string'),
+        switchMap((search) => this.campanuleService.autocomplete(
+          search,
+          search ? 20 : InventaireFormComponent.CAMPANULE_DEFAULT_LIMIT,
+        ))
       ).subscribe({
         next: (results) => this.setCampanuleResults(index, results),
         error: () => this.setCampanuleResults(index, []),
