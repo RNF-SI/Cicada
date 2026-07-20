@@ -52,13 +52,15 @@
                 <i class="fi fi-rr-arrow-left"></i>
                 {{ 'plans.suivis.indicateur.backToDashboard' | translate }}
               </a>
-              <!-- #420 — deep-link vers le détail de l'enjeu, ancré sur l'indicateur -->
+              <!-- #420 — deep-link vers le détail de l'enjeu, ancré sur l'indicateur.
+                   #589 — consultation, plus modification : la page enjeu est une
+                   page de lecture (l'édition dépend du statut du plan). -->
               @if (ind.enjeu_slug) {
                 <a class="btn-hero-primary"
                    [routerLink]="['/plans', planSlug(), 'enjeux', ind.enjeu_slug]"
                    [fragment]="'indicateur-' + ind.id_indicateur">
-                  <i class="fi fi-rr-pencil"></i>
-                  {{ 'plans.suivis.indicateur.editIndicateur' | translate }}
+                  <i class="fi fi-rr-eye"></i>
+                  {{ 'plans.suivis.indicateur.viewIndicateur' | translate }}
                 </a>
               }
               <!-- #356 — Accès à la page globale de l'indicateur -->

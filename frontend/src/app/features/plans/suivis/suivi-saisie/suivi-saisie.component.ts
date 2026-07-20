@@ -981,12 +981,6 @@ export class SuiviSaisieComponent implements OnInit {
     }
   }
 
-  goEditOperation(): void {
-    const opId = this.operationId();
-    if (!opId) return;
-    this.router.navigate(['/plans', this.planSlug(), 'enjeux', 'operations', opId, 'modifier']);
-  }
-
   submit(quit = false): void {
     // #379 — interdire toute sauvegarde si le plan n'est pas validé.
     if (this.planNotValidated()) {

@@ -2016,7 +2016,6 @@
       },
       "saisie": {
         "subtitle": "Remplir le suivi d'une action",
-        "editAction": "Modifier l'action",
         "viewGlobal": "Voir le résultat global",
         "viewFiche": "Voir la fiche action",
         "backToSuivi": "Revenir au suivi des actions",
@@ -2112,7 +2111,7 @@
       "indicateur": {
         "subtitle": "Remplir le suivi d'un indicateur",
         "backToDashboard": "Retour au tableau de bord",
-        "editIndicateur": "Modifier l'indicateur",
+        "viewIndicateur": "Voir l'indicateur",
         "viewGlobal": "Voir l'évaluation globale",
         "metriquesTitle": "Métriques :",
         "resultatsTitle": "Résultats",

@@ -5,6 +5,8 @@
  * réouverture depuis le récap, scoring d'une métrique) via des méthodes
  * prototype, sans monter le composant complet.
  */
+import { readFileSync } from 'fs';
+import { join } from 'path';
 import { signal } from '@angular/core';
 import { FormControl, FormGroup } from '@angular/forms';
 import { IndicateurSaisieComponent } from './indicateur-saisie.component';
@@ -346,6 +348,31 @@ describe('IndicateurSaisieComponent — éditeur unifié (#510)', () => {
       (c2 as any).validate();
       expect(enjeu.updateMesure).toHaveBeenCalled();
       expect(enjeu.deleteMesure).not.toHaveBeenCalled();
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // #589 — « Modifier l'indicateur » remplacé par « Voir l'indicateur »
+  // ---------------------------------------------------------------------------
+  describe('actions du hero (#589)', () => {
+    const template = readFileSync(join(__dirname, 'indicateur-saisie.component.html'), 'utf8');
+
+    it('n\'expose plus de bouton de modification de l\'indicateur', () => {
+      expect(template).not.toContain('plans.suivis.indicateur.editIndicateur');
+    });
+
+    it('expose un bouton « Voir l\'indicateur » vers le détail de l\'enjeu', () => {
+      expect(template).toContain('plans.suivis.indicateur.viewIndicateur');
+      expect(template).toContain('fi-rr-eye');
+    });
+
+    it('déclare la clé i18n viewIndicateur et plus editIndicateur', () => {
+      const i18n = JSON.parse(
+        readFileSync(join(__dirname, '../../../../../assets/i18n/fr.json'), 'utf8'),
+      );
+      const bloc = i18n.plans.suivis.indicateur;
+      expect(bloc.viewIndicateur).toBe("Voir l'indicateur");
+      expect(bloc.editIndicateur).toBeUndefined();
     });
   });
 });

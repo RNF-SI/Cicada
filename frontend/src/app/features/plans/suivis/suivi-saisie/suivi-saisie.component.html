@@ -60,10 +60,8 @@
                 <i class="fi fi-rr-arrow-left"></i>
                 <span>{{ 'plans.suivis.saisie.backToSuivi' | translate }}</span>
               </a>
-              <button class="btn-hero-primary" (click)="goEditOperation()">
-                <i class="fi fi-rr-pencil"></i>
-                <span>{{ 'plans.suivis.saisie.editAction' | translate }}</span>
-              </button>
+              <!-- #589 — le bouton « Modifier l'action » a été retiré : depuis le
+                   suivi, on consulte l'action via sa fiche, on ne l'édite pas. -->
               <!-- #534 — Accès à la fiche action (synthèse imprimable/exportable) -->
               <a class="btn-hero-secondary"
                  [routerLink]="['/plans', planSlug(), 'enjeux', 'operations', operationId(), 'fiche']"

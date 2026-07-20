@@ -76,8 +76,10 @@ test.describe('Suivi - Saisie page', () => {
       await expect(referentPage.getByRole('heading', { name: 'Réalisation', exact: true })).toBeVisible();
       await expect(referentPage.getByRole('heading', { name: 'Détails', exact: true })).toBeVisible();
 
-      // Modify action button in hero
-      await expect(referentPage.locator('.btn-hero-primary')).toContainText(/Modifier l'action/);
+      // #589 — plus de bouton « Modifier l'action » depuis le suivi : on
+      // consulte l'action via sa fiche, on ne l'édite pas d'ici.
+      await expect(referentPage.locator('.hero-actions')).not.toContainText(/Modifier l'action/);
+      await expect(referentPage.locator('.hero-actions')).toContainText(/Voir la fiche action/);
     } finally {
       await apiDelete(referentPage, `plans/operations/${op.id_operation}/`);
     }

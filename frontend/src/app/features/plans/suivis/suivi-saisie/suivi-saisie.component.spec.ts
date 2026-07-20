@@ -5,6 +5,8 @@
  * On teste les helpers purs (qui ne dépendent que de `ctrl.value`) sans monter
  * le composant complet.
  */
+import { readFileSync } from 'fs';
+import { join } from 'path';
 import { computed, signal } from '@angular/core';
 import { FormArray, FormBuilder, FormGroup } from '@angular/forms';
 import { SuiviSaisieComponent } from './suivi-saisie.component';
@@ -409,5 +411,29 @@ describe('SuiviSaisieComponent — lignes RH (#560)', () => {
       ctrl.get('id_organisme')!.setValue(3);
       expect(c.rhTargetValue(ctrl)).toBe(3);
     });
+  });
+});
+
+// -----------------------------------------------------------------------------
+// #589 — retrait du bouton « Modifier l'action » depuis le suivi
+// -----------------------------------------------------------------------------
+describe('SuiviSaisieComponent — actions du hero (#589)', () => {
+  const template = readFileSync(join(__dirname, 'suivi-saisie.component.html'), 'utf8');
+
+  it('n\'expose plus de bouton de modification de l\'action', () => {
+    expect(template).not.toContain('plans.suivis.saisie.editAction');
+    expect(template).not.toContain('goEditOperation()');
+  });
+
+  it('conserve l\'accès en consultation à la fiche action', () => {
+    expect(template).toContain('plans.suivis.saisie.viewFiche');
+  });
+
+  it('ne déclare plus la clé i18n editAction', () => {
+    const i18n = JSON.parse(
+      readFileSync(join(__dirname, '../../../../../assets/i18n/fr.json'), 'utf8'),
+    );
+    expect(i18n.plans.suivis.saisie.editAction).toBeUndefined();
+    expect(i18n.plans.suivis.saisie.viewFiche).toBeDefined();
   });
 });
