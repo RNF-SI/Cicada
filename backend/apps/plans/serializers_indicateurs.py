@@ -36,7 +36,8 @@ class MesureSerializer(serializers.ModelSerializer):
         model = Mesure
         fields = [
             'id_mesure', 'id_metrique',
-            'valeur', 'valeurs_blocs', 'date_mesure', 'commentaire',
+            # #453 — `niveau` : palier explicitement choisi sur une grille discrète.
+            'valeur', 'niveau', 'valeurs_blocs', 'date_mesure', 'commentaire',
             'date_ajout', 'date_maj', 'createur_nom'
         ]
         read_only_fields = ['id_mesure', 'date_ajout', 'date_maj']
@@ -49,7 +50,7 @@ class MesureCreateSerializer(serializers.ModelSerializer):
         model = Mesure
         fields = [
             'id_mesure', 'id_metrique',
-            'valeur', 'valeurs_blocs', 'date_mesure', 'commentaire'
+            'valeur', 'niveau', 'valeurs_blocs', 'date_mesure', 'commentaire'
         ]
         read_only_fields = ['id_mesure']
 

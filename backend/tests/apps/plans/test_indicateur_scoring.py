@@ -14,7 +14,13 @@ import pytest
 # Charger d'abord serializers_enjeux pour éviter un import circulaire au
 # chargement isolé de views_indicateurs (ordre d'import only).
 import apps.plans.serializers_enjeux  # noqa: F401
-from apps.plans.views_indicateurs import _value_to_score, _coerce_float
+from apps.plans.views_indicateurs import _value_to_score, _coerce_float, _mesure_to_score
+
+
+class _NoBlocks:
+    """Stub de `metrique.score_blocks` sans bloc complémentaire (mono-bloc)."""
+    def all(self):
+        return []
 
 
 class _MetriqueStub:
@@ -214,6 +220,82 @@ class TestValueToScoreDoublons:
             score_4_label = 'Présent'
             score_5_label = 'Abondant'
         assert _value_to_score('Présent', M()) == 2   # plus qu'une correspondance active
+
+
+class TestExplicitNiveau:
+    """#453 (suite) — le palier explicitement choisi dans la liste déroulante est
+    persisté (``Mesure.niveau``) et fait foi : c'est ce qui permet de relier deux
+    options homonymes à deux cases distinctes de la grille.
+
+    Le repli sur la déduction par valeur est conservé partout où le niveau
+    mémorisé n'est plus exploitable, pour qu'une grille modifiée après coup ne
+    fige jamais un score faux.
+    """
+
+    class _Grille:
+        """Grille du retour de test : Bien / Bien / Cool / Très cool / Très cool."""
+        inactive_levels = []
+        score_1_label = 'Bien'
+        score_2_label = 'Bien'
+        score_3_label = 'Cool'
+        score_4_label = 'Très cool'
+        score_5_label = 'Très cool'
+
+    class _Mesure:
+        def __init__(self, valeur, niveau=None):
+            self.valeur = valeur
+            self.niveau = niveau
+            self.valeurs_blocs = {}
+
+    def _score(self, mesure, metrique):
+        """_mesure_to_score sans blocs complémentaires (mono-bloc)."""
+        metrique.score_blocks = _NoBlocks()
+        return _mesure_to_score(mesure, metrique)
+
+    def test_niveau_choisi_desambiguise_deux_libelles_identiques(self):
+        """Le cœur de la demande : « Bien » niveau 1 et « Bien » niveau 2 sont
+        deux résultats distincts, alors que la valeur seule reste ambiguë."""
+        grille = self._Grille()
+        assert _value_to_score('Bien', grille) is None  # ambigu sans le niveau
+        assert self._score(self._Mesure('Bien', niveau=1), grille) == 1
+        assert self._score(self._Mesure('Bien', niveau=2), grille) == 2
+        assert self._score(self._Mesure('Très cool', niveau=4), grille) == 4
+        assert self._score(self._Mesure('Très cool', niveau=5), grille) == 5
+
+    def test_sans_niveau_on_retombe_sur_la_deduction(self):
+        """Mesures antérieures au champ : comportement inchangé."""
+        grille = self._Grille()
+        assert self._score(self._Mesure('Cool'), grille) == 3        # unique
+        assert self._score(self._Mesure('Bien'), grille) is None     # ambigu
+
+    def test_niveau_ignore_si_palier_desactive_depuis(self):
+        grille = self._Grille()
+        grille.inactive_levels = [2]
+        # Le niveau 2 n'existe plus : on retombe sur la valeur, qui n'est alors
+        # plus ambiguë (seul le niveau 1 porte « Bien »).
+        assert self._score(self._Mesure('Bien', niveau=2), grille) == 1
+
+    def test_niveau_ignore_si_palier_vide_depuis(self):
+        grille = self._Grille()
+        grille.score_2_label = ''   # le palier a été vidé après la saisie
+        assert self._score(self._Mesure('Bien', niveau=2), grille) == 1
+
+    def test_niveau_ignore_sur_grille_numerique(self):
+        """Les paliers NUMERIQUE sont des intervalles : le niveau n'a pas de sens."""
+        class Num:
+            inactive_levels = []
+            score_1_inf, score_1_sup = 0, 10
+            score_2_inf, score_2_sup = 10, 20
+        # niveau=2 incohérent avec la valeur → la valeur fait foi.
+        assert self._score(self._Mesure('5', niveau=2), Num()) == 1
+
+    def test_niveau_ignore_si_valeur_vide(self):
+        assert self._score(self._Mesure('', niveau=3), self._Grille()) is None
+
+    @pytest.mark.parametrize('niveau', [0, 6, -1, None])
+    def test_niveau_hors_bornes_ignore(self, niveau):
+        grille = self._Grille()
+        assert self._score(self._Mesure('Cool', niveau=niveau), grille) == 3
 
 
 # =============================================================================

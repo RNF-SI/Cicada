@@ -511,6 +511,10 @@ export interface Mesure {
   id_mesure: number;
   id_metrique: number;
   valeur: string;
+  // #453 — palier 1-5 explicitement choisi dans une grille Texte/Chiffre.
+  // `null` = mesure antérieure au champ, ou grille libre/NUMERIQUE : le score
+  // est alors déduit de `valeur`.
+  niveau?: number | null;
   // #247 — valeurs des blocs de scoring complémentaires (métrique multi-blocs),
   // indexées par position de bloc. `valeur` = valeur du bloc principal.
   valeurs_blocs?: Record<string, string>;
@@ -989,6 +993,8 @@ export interface MetriqueCreatePayload {
 export interface MesureCreatePayload {
   id_metrique: number;
   valeur: string;
+  // #453 — palier explicitement choisi (grilles Texte/Chiffre), sinon null.
+  niveau?: number | null;
   // #247 — valeurs des blocs complémentaires (métrique multi-blocs), par position.
   valeurs_blocs?: Record<string, string>;
   date_mesure?: string;

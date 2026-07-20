@@ -220,6 +220,10 @@ describe('IndicateurSaisieComponent — éditeur unifié (#510)', () => {
   // ---------------------------------------------------------------------------
   describe('metricSaisieMode / metricGridOptions', () => {
     const c = comp();
+    // #453 — le suffixe « (niveau N) » des libellés dupliqués passe par i18n.
+    (c as any).translate = {
+      instant: (_k: string, p: any) => `${p.label} (niveau ${p.level})`,
+    };
     const TEXTE: any = {
       type_metrique_mnemonique: 'TEXTE',
       score_1_label: 'Très mauvais', score_2_label: 'Mauvais', score_3_label: 'Moyen',
@@ -234,11 +238,15 @@ describe('IndicateurSaisieComponent — éditeur unifié (#510)', () => {
 
     it('TEXTE → select des libellés', () => {
       expect(c.metricSaisieMode(TEXTE)).toBe('text-select');
-      expect(c.metricGridOptions(TEXTE)).toEqual(['Très mauvais', 'Mauvais', 'Moyen', 'Bon', 'Très bon']);
+      expect(c.metricGridOptions(TEXTE).map(o => o.display))
+        .toEqual(['Très mauvais', 'Mauvais', 'Moyen', 'Bon', 'Très bon']);
+      // #453 — chaque option porte son niveau de grille.
+      expect(c.metricGridOptions(TEXTE).map(o => o.level)).toEqual([1, 2, 3, 4, 5]);
     });
     it('CHIFFRE → select des valeurs (niveaux inactifs exclus)', () => {
       expect(c.metricSaisieMode(CHIFFRE)).toBe('chiffre-select');
-      expect(c.metricGridOptions(CHIFFRE)).toEqual(['0', '50', '75', '100']); // niveau 2 inactif exclu
+      expect(c.metricGridOptions(CHIFFRE).map(o => o.display)).toEqual(['0', '50', '75', '100']);
+      expect(c.metricGridOptions(CHIFFRE).map(o => o.level)).toEqual([1, 3, 4, 5]); // niveau 2 inactif exclu
     });
     it('NUMERIQUE → champ libre', () => {
       expect(c.metricSaisieMode(NUMERIQUE)).toBe('free');
@@ -253,7 +261,8 @@ describe('IndicateurSaisieComponent — éditeur unifié (#510)', () => {
         score_1_val: '0.000', score_2_val: '2.000', score_3_val: '2.5000',
         score_4_val: '10.2500', score_5_val: '100.0000', inactive_levels: [],
       };
-      expect(c.metricGridOptions(CHIFFRE_DEC)).toEqual(['0', '2', '2.5', '10.25', '100']);
+      expect(c.metricGridOptions(CHIFFRE_DEC).map(o => o.display))
+        .toEqual(['0', '2', '2.5', '10.25', '100']);
     });
   });
 
@@ -264,7 +273,7 @@ describe('IndicateurSaisieComponent — éditeur unifié (#510)', () => {
   // #453 (retour de test 06/07) — grille à paliers dupliqués : la saisie doit
   // désigner les paliers en conflit au lieu de rester muette.
   // ---------------------------------------------------------------------------
-  describe('ambiguousLevels / hasAmbiguousGrid (#453)', () => {
+  describe('paliers homonymes — niveau choisi (#453)', () => {
     // Grille exacte du retour de test : Bien / Bien / Cool / Très cool / Très cool.
     const MET: any = {
       id_metrique: 7,
@@ -274,31 +283,49 @@ describe('IndicateurSaisieComponent — éditeur unifié (#510)', () => {
       inactive_levels: [],
     };
 
-    function withValue(value: string) {
+    /** Composant dont le formulaire porte le NIVEAU sélectionné. */
+    function withLevel(level: string) {
       const c = comp();
-      (c as any).form = new FormGroup({ m_7: new FormControl(value) });
+      (c as any).form = new FormGroup({ m_7: new FormControl(level) });
+      (c as any).mesuresByMetrique = new Map();
+      (c as any).needsLevelConfirmation = signal(new Set<number>());
+      (c as any).translate = { instant: (_k: string, p: any) => `${p.label} (niveau ${p.level})` };
       return c;
     }
 
-    it('désigne les deux paliers en conflit quand le libellé est dupliqué', () => {
-      const c = withValue('Bien');
-      expect(c.ambiguousLevels(MET)).toEqual([1, 2]);
-      expect(c.hasAmbiguousGrid(MET)).toBe(true);
+    it('suffixe « (niveau N) » uniquement les libellés dupliqués', () => {
+      const c = withLevel('');
+      expect(c.metricGridOptions(MET).map(o => o.display)).toEqual([
+        'Bien (niveau 1)', 'Bien (niveau 2)', 'Cool', 'Très cool (niveau 4)', 'Très cool (niveau 5)',
+      ]);
     });
 
-    it('désigne le second groupe de doublons', () => {
-      const c = withValue('Très cool');
-      expect(c.ambiguousLevels(MET)).toEqual([4, 5]);
+    it('chaque option homonyme est reliée à son propre palier', () => {
+      // Le cœur du retour de test : le 1er « Bien » → niveau 1, le 2e → niveau 2.
+      expect(withLevel('1').metricScore(MET)).toBe(1);
+      expect(withLevel('2').metricScore(MET)).toBe(2);
+      expect(withLevel('4').metricScore(MET)).toBe(4);
+      expect(withLevel('5').metricScore(MET)).toBe(5);
     });
 
-    it('reste silencieux sur un libellé unique (score auto)', () => {
-      const c = withValue('Cool');
-      expect(c.ambiguousLevels(MET)).toEqual([]);
+    it('aucun niveau choisi → pas de score', () => {
+      expect(withLevel('').metricScore(MET)).toBeNull();
+    });
+
+    it('une saisie neuve n\'est jamais signalée comme ambiguë', () => {
+      const c = withLevel('2');
       expect(c.hasAmbiguousGrid(MET)).toBe(false);
     });
 
-    it('reste silencieux quand aucune valeur n\'est choisie', () => {
-      const c = withValue('');
+    it('mesure reprise sans niveau enregistré → paliers homonymes à confirmer', () => {
+      const c = withLevel('1');
+      (c as any).mesuresByMetrique = new Map([[7, { valeur: 'Bien', niveau: null }]]);
+      (c as any).needsLevelConfirmation = signal(new Set([7]));
+      expect(c.ambiguousLevels(MET)).toEqual([1, 2]);
+      expect(c.hasAmbiguousGrid(MET)).toBe(true);
+
+      // Dès que l'utilisateur tranche, l'avertissement disparaît.
+      c.onGridLevelPicked(MET);
       expect(c.hasAmbiguousGrid(MET)).toBe(false);
     });
   });

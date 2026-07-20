@@ -217,19 +217,23 @@
                       <!-- #464/#465 — métrique CHIFFRE/TEXTE : choix parmi les
                            options de la grille (libellés / valeurs) ; sinon champ libre. -->
                       @switch (metricSaisieMode(m)) {
+                        <!-- #453 — l'option porte son NIVEAU (et non le libellé) :
+                             deux paliers homonymes restent ainsi distinguables. -->
                         @case ('text-select') {
-                          <select [formControlName]="'m_' + m.id_metrique">
+                          <select [formControlName]="'m_' + m.id_metrique"
+                                  (change)="onGridLevelPicked(m)">
                             <option value="">—</option>
-                            @for (opt of metricGridOptions(m); track opt) {
-                              <option [value]="opt">{{ opt }}</option>
+                            @for (opt of metricGridOptions(m); track opt.level) {
+                              <option [value]="opt.level">{{ opt.display }}</option>
                             }
                           </select>
                         }
                         @case ('chiffre-select') {
-                          <select [formControlName]="'m_' + m.id_metrique">
+                          <select [formControlName]="'m_' + m.id_metrique"
+                                  (change)="onGridLevelPicked(m)">
                             <option value="">—</option>
-                            @for (opt of metricGridOptions(m); track opt) {
-                              <option [value]="opt">{{ opt }}</option>
+                            @for (opt of metricGridOptions(m); track opt.level) {
+                              <option [value]="opt.level">{{ opt.display }}</option>
                             }
                           </select>
                         }
@@ -254,7 +258,7 @@
                         <!-- #464/#465 — grille CHIFFRE/TEXTE à droite du champ : rappelle
                              la valeur/le libellé de chaque niveau, le niveau du résultat
                              saisi est mis en évidence. -->
-                        @let gridScore = valueToScore(form.get('m_' + m.id_metrique)?.value, m);
+                        @let gridScore = metricScore(m);
                         @let ambiguous = ambiguousLevels(m);
                         <div class="threshold-bar threshold-bar-grid">
                           @for (lvl of scoreLevelsList; track lvl; let i = $index) {

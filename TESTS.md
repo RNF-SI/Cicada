@@ -49,19 +49,24 @@
       plein bleu-vert (primary), « Année non prévue » = trait pointillé gris,
       chacun aligné visuellement sur le soulignement des onglets d'années
       correspondants.
-- [ ] #453 — Grille de métrique à paliers dupliqués (retour de test 06/07) :
+- [ ] #453 — Paliers homonymes reliés chacun à leur case de grille :
       dans l'arborescence d'un PG en brouillon, créer une métrique de type
-      **Texte** dont deux niveaux portent le même libellé (ex. la grille du
-      retour : `Bien / Bien / Cool / Très cool / Très cool`). Ouvrir ensuite la
-      saisie de l'indicateur (`/plans/:slug/.../indicateur/.../saisie`) et
-      choisir « Bien » dans la liste déroulante. Vérifier que :
-      1. les **deux paliers en conflit** (niveaux 1 et 2) sont entourés d'un
-         contour pointillé noir — auparavant aucun palier n'était mis en
-         évidence et rien n'expliquait pourquoi ;
-      2. un bandeau orange sous la grille explique que le résultat ne peut pas
-         être calculé automatiquement et renvoie vers « Forcer le résultat
-         manuellement » ;
-      3. cocher « Forcer le résultat manuellement » permet bien de choisir le
-         résultat de l'indicateur, et l'enregistrement le conserve ;
-      4. choisir « Cool » (libellé unique) met en évidence le seul palier 3,
-         sans bandeau, et le résultat automatique est calculé normalement.
+      **Texte** dont deux niveaux portent le même libellé (grille du retour de
+      test : `Bien / Bien / Cool / Très cool / Très cool`). Ouvrir la saisie de
+      l'indicateur (`/plans/:slug/.../indicateur/.../saisie`) et vérifier que :
+      1. la liste déroulante affiche « Bien (niveau 1) » et « Bien (niveau 2) »,
+         mais « Cool » **sans** suffixe (seuls les doublons sont désambiguïsés) ;
+      2. choisir « Bien (niveau 1) » met en évidence la **1re** case de la
+         grille, et « Bien (niveau 2) » la **2e** — c'était le symptôme du
+         retour de test : aucune case ne s'allumait ;
+      3. enregistrer, quitter la page, revenir : le niveau choisi est bien
+         restauré (et pas retombé sur le premier homonyme) ;
+      4. idem sur une métrique de type **Chiffre** avec deux paliers de même
+         valeur ;
+      5. une grille sans doublon est inchangée (pas de suffixe, score auto
+         calculé normalement) ;
+      6. **reprise de l'existant** : sur une mesure enregistrée AVANT cette
+         version avec un libellé dupliqué, le premier palier homonyme est
+         présélectionné, les paliers concernés sont entourés en pointillés et un
+         bandeau invite à confirmer le niveau ; après enregistrement, le bandeau
+         disparaît définitivement.

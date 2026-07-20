@@ -91,6 +91,10 @@ export class IndicateurSaisieComponent implements OnInit {
   // des métriques (toujours possible).
   manualOverride = signal(false);
 
+  // #453 — Métriques dont la mesure reprise porte un libellé présent sur
+  // plusieurs niveaux, sans niveau enregistré : le palier doit être confirmé.
+  needsLevelConfirmation = signal<Set<number>>(new Set<number>());
+
   // #510 — Tick incrémenté à chaque changement de valeur du formulaire pour
   // rendre `liveAutoScore` réellement réactif (les FormControl ne sont pas des
   // signals : sans cette dépendance, le computed restait figé).
@@ -187,6 +191,9 @@ export class IndicateurSaisieComponent implements OnInit {
   /** Score 1-5 d'une métrique depuis le formulaire (combiné si multi-blocs). */
   metricScore(met: Metrique): number | null {
     if (!this.isMultiBlock(met)) {
+      // #453 — grille discrète : le formulaire porte directement le niveau choisi,
+      // il n'y a donc plus rien à déduire (et plus d'ambiguïté possible).
+      if (this.metricSaisieMode(met) !== 'free') return this.selectedLevel(met);
       return computeMetriqueScore(met, this.form.get(`m_${met.id_metrique}`)?.value);
     }
     const blockValues: Record<string, any> = {};
@@ -197,24 +204,34 @@ export class IndicateurSaisieComponent implements OnInit {
   }
 
   /**
-   * #453 — Paliers en conflit pour la valeur actuellement saisie sur une
-   * métrique Texte/Chiffre : ≥2 niveaux portent le même libellé / le même
-   * chiffre, donc le score ne peut pas être déduit du choix.
+   * #453 — Paliers en conflit pour une mesure **enregistrée avant** que le
+   * niveau choisi ne soit persisté (`Mesure.niveau` vide) et dont le libellé
+   * existe sur plusieurs niveaux : on ne peut pas savoir lequel était visé.
    *
-   * Renvoie `[]` tant qu'il n'y a pas d'ambiguïté. Sert à mettre en évidence
-   * les paliers fautifs et à expliquer pourquoi la grille reste sans résultat
-   * (auparavant : aucun palier actif et aucun message → écran sans issue).
+   * Depuis que la liste déroulante porte le niveau, une saisie *nouvelle* n'est
+   * jamais ambiguë — ce cas ne concerne donc que la reprise de l'existant. Les
+   * paliers concernés sont mis en évidence et un bandeau invite à confirmer le
+   * niveau ; l'ambiguïté disparaît définitivement au premier enregistrement.
    */
   ambiguousLevels(met: Metrique): number[] {
     if (this.isMultiBlock(met)) return [];
-    const value = this.form.get(`m_${met.id_metrique}`)?.value;
-    const matches = matchingGridLevels(met, value);
-    return matches.length > 1 ? matches : [];
+    if (!this.needsLevelConfirmation().has(met.id_metrique)) return [];
+    const mesure = this.mesuresByMetrique.get(met.id_metrique);
+    return matchingGridLevels(met, mesure?.valeur);
   }
 
-  /** #453 — Vrai si la valeur choisie tombe sur des paliers dupliqués. */
+  /** #453 — Vrai si le niveau d'une mesure reprise reste à confirmer. */
   hasAmbiguousGrid(met: Metrique): boolean {
     return this.ambiguousLevels(met).length > 0;
+  }
+
+  /** #453 — L'utilisateur a tranché : l'avertissement de reprise disparaît. */
+  onGridLevelPicked(met: Metrique): void {
+    const pending = this.needsLevelConfirmation();
+    if (!pending.has(met.id_metrique)) return;
+    const next = new Set(pending);
+    next.delete(met.id_metrique);
+    this.needsLevelConfirmation.set(next);
   }
 
   // #464/#465 — Saisie d'une métrique CHIFFRE/TEXTE : choix parmi les options de
@@ -227,24 +244,62 @@ export class IndicateurSaisieComponent implements OnInit {
     return 'free';
   }
 
-  /** Options sélectionnables d'une métrique CHIFFRE/TEXTE (niveaux actifs). */
-  metricGridOptions(met: Metrique): string[] {
+  /**
+   * Options sélectionnables d'une métrique CHIFFRE/TEXTE (niveaux actifs).
+   *
+   * #453 — chaque option porte **son niveau** : c'est lui qui est stocké dans le
+   * formulaire (et persisté via `Mesure.niveau`), pas le libellé. Sans cela, deux
+   * niveaux portant le même libellé produisent deux `<option>` indiscernables :
+   * le navigateur sélectionne toujours la première et le palier réellement
+   * choisi est perdu.
+   *
+   * `display` ajoute « (niveau N) » **uniquement** sur les libellés dupliqués,
+   * pour que l'utilisateur puisse les distinguer sans alourdir les grilles
+   * normales.
+   */
+  metricGridOptions(met: Metrique): { level: number; value: string; display: string }[] {
     const inactive: number[] = Array.isArray((met as any).inactive_levels) ? (met as any).inactive_levels : [];
     const type = (met as any).type_metrique_mnemonique;
-    const out: string[] = [];
+    const out: { level: number; value: string; display: string }[] = [];
     for (let lvl = 1; lvl <= 5; lvl++) {
       if (inactive.includes(lvl)) continue;
       if (type === 'TEXTE') {
         const label = ((met as any)[`score_${lvl}_label`] ?? '').toString().trim();
-        if (label) out.push(label);
+        if (label) out.push({ level: lvl, value: label, display: label });
       } else if (type === 'CHIFFRE') {
         const val = (met as any)[`score_${lvl}_val`];
         // #464 — les valeurs CHIFFRE sont stockées en DecimalField (« 2.000 ») :
         // on affiche exactement la valeur saisie à la création (sans zéros inutiles).
-        if (val !== null && val !== undefined) out.push(this.formatChiffre(val));
+        if (val !== null && val !== undefined) {
+          const v = this.formatChiffre(val);
+          out.push({ level: lvl, value: v, display: v });
+        }
+      }
+    }
+    // Désambiguïsation ciblée : seuls les libellés présents ≥2 fois sont suffixés.
+    const counts = new Map<string, number>();
+    for (const o of out) counts.set(o.value, (counts.get(o.value) ?? 0) + 1);
+    for (const o of out) {
+      if ((counts.get(o.value) ?? 0) > 1) {
+        o.display = this.translate.instant('plans.suivis.indicateur.gridOptionLevel', {
+          label: o.value, level: o.level,
+        });
       }
     }
     return out;
+  }
+
+  /** #453 — Libellé/valeur de grille correspondant à un niveau (pour `Mesure.valeur`). */
+  private gridValueForLevel(met: Metrique, level: number | null): string {
+    if (!level) return '';
+    return this.metricGridOptions(met).find(o => o.level === level)?.value ?? '';
+  }
+
+  /** #453 — Niveau actuellement sélectionné dans le formulaire (grilles discrètes). */
+  selectedLevel(met: Metrique): number | null {
+    const raw = this.form?.get(`m_${met.id_metrique}`)?.value;
+    const n = parseInt(String(raw ?? ''), 10);
+    return Number.isNaN(n) || n < 1 || n > 5 ? null : n;
   }
 
   /** Normalise une valeur CHIFFRE : retire les zéros décimaux superflus
@@ -485,6 +540,7 @@ export class IndicateurSaisieComponent implements OnInit {
         // Hydrate mesures map
         this.mesuresByMetrique.clear();
         const metById = new Map((this.indicateur()?.metriques || []).map(m => [m.id_metrique, m]));
+        const toConfirm = new Set<number>();
         for (const [metId, ms] of mesures) {
           this.mesuresByMetrique.set(metId, ms);
           // #464 — normaliser une valeur CHIFFRE restaurée (« 2.000 ») pour qu'elle
@@ -492,13 +548,30 @@ export class IndicateurSaisieComponent implements OnInit {
           const met = metById.get(metId);
           const restored = (met as any)?.type_metrique_mnemonique === 'CHIFFRE'
             ? this.formatChiffre(ms.valeur) : ms.valeur;
-          this.form.get(`m_${metId}`)?.setValue(restored);
+
+          // #453 — grille discrète : le contrôle porte le NIVEAU, pas le libellé.
+          if (met && this.metricSaisieMode(met) !== 'free') {
+            const matches = matchingGridLevels(met, restored);
+            // Priorité au niveau enregistré ; sinon on le déduit de la valeur.
+            let level = ms.niveau ?? (matches.length ? matches[0] : null);
+            if (!ms.niveau && matches.length > 1) {
+              // Mesure antérieure au champ `niveau` et libellé dupliqué : le
+              // palier visé est indevinable, on présélectionne le premier et on
+              // demande confirmation plutôt que d'inventer un score.
+              toConfirm.add(metId);
+              level = matches[0];
+            }
+            this.form.get(`m_${metId}`)?.setValue(level != null ? String(level) : '');
+          } else {
+            this.form.get(`m_${metId}`)?.setValue(restored);
+          }
           // #247 — restaurer les valeurs par bloc complémentaire.
           const vb = ms.valeurs_blocs || {};
           for (const [pos, val] of Object.entries(vb)) {
             this.form.get(`m_${metId}_b${pos}`)?.setValue(val);
           }
         }
+        this.needsLevelConfirmation.set(toConfirm);
         // Hydrate scores
         this.scoreAuto.set(resolved.score_auto);
         this.scoreOverride.set(resolved.score_override);
@@ -611,7 +684,13 @@ export class IndicateurSaisieComponent implements OnInit {
     const cleanText = (v: any) => String(v).trim();
     const isEmpty = (v: any) => v === null || v === undefined || String(v).trim() === '';
     for (const met of ind.metriques || []) {
-      const value = this.form.get(`m_${met.id_metrique}`)?.value;
+      const rawValue = this.form.get(`m_${met.id_metrique}`)?.value;
+      // #453 — grille discrète : le formulaire porte le NIVEAU choisi. On
+      // persiste le niveau (source de vérité du score) ET le libellé/chiffre
+      // correspondant, pour que `valeur` reste lisible telle quelle partout
+      // ailleurs (récap, exports, historique).
+      const pickedLevel = this.metricSaisieMode(met) !== 'free' ? this.selectedLevel(met) : null;
+      const value = pickedLevel !== null ? this.gridValueForLevel(met, pickedLevel) : rawValue;
       // Le bloc principal est TEXTE, CHIFFRE ou NUMERIQUE ; seuls les libellés
       // TEXTE échappent à la normalisation virgule.
       const cleanMain = (met as any).type_metrique_mnemonique === 'TEXTE' ? cleanText : cleanNumeric;
@@ -632,6 +711,9 @@ export class IndicateurSaisieComponent implements OnInit {
       const payload: MesureCreatePayload = {
         id_metrique: met.id_metrique,
         valeur: isEmpty(value) ? '' : cleanMain(value),
+        // #453 — null sur une grille libre/NUMERIQUE : le score reste déduit de
+        // la valeur (et un ancien niveau est effacé si la grille a changé de type).
+        niveau: pickedLevel,
         valeurs_blocs,
         date_mesure: `${year}-12-31`,
       };

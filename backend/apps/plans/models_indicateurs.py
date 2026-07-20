@@ -606,6 +606,24 @@ class Mesure(models.Model):
         help_text=_("Valeur de la mesure (numérique ou qualitative). "
                     "Pour une métrique multi-blocs, valeur du bloc principal.")
     )
+    # #453 — Niveau de la grille explicitement choisi par l'utilisateur, pour les
+    # grilles discrètes (TEXTE / CHIFFRE) saisies via une liste déroulante.
+    #
+    # `valeur` seule ne suffit pas quand un même libellé (ou un même chiffre) est
+    # défini sur plusieurs niveaux : « test » peut désigner le niveau 1 comme le
+    # niveau 2, et le score ne peut pas être déduit après coup. On mémorise donc
+    # le palier retenu au moment du choix.
+    #
+    # NULL = comportement historique (score déduit de `valeur`) : les mesures
+    # déjà enregistrées et les grilles NUMERIQUE ne sont pas concernées.
+    niveau = models.PositiveSmallIntegerField(
+        _("Niveau de grille choisi"),
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(1), MaxValueValidator(5)],
+        help_text=_("Palier 1-5 explicitement sélectionné dans une grille Texte/Chiffre. "
+                    "Vide = le score est déduit de la valeur.")
+    )
     # #247 — Valeurs des blocs de scoring COMPLÉMENTAIRES d'une métrique NUMERIQUE
     # multi-blocs, indexées par `position` de bloc (str) : { "1": "12.5", "2": "5" }.
     # `valeur` reste la valeur du bloc principal. Le score combiné évalue la formule

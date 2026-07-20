@@ -887,6 +887,38 @@ def combine_block_scores(tokens):
     return values[0] if values else None
 
 
+def _explicit_niveau(mesure, metrique) -> int | None:
+    """#453 — Palier explicitement choisi sur une grille discrète, s'il est valide.
+
+    Renvoie ``None`` (→ déduction par la valeur) dès que le niveau mémorisé n'est
+    plus exploitable :
+      - aucun niveau enregistré (mesures antérieures au champ, saisie libre) ;
+      - grille NUMERIQUE (les paliers sont des intervalles, pas des choix) ;
+      - palier désactivé ou vidé depuis la saisie (la grille a été modifiée) ;
+      - mesure vidée de sa valeur.
+
+    Ce repli garantit qu'un niveau devenu incohérent ne fige pas un score faux.
+    """
+    niveau = getattr(mesure, 'niveau', None)
+    if not niveau or not (1 <= niveau <= 5):
+        return None
+    if not str(mesure.valeur or '').strip():
+        return None
+
+    mnem = _resolve_metrique_mnemonique(metrique)
+    if mnem not in ('TEXTE', 'CHIFFRE'):
+        return None
+    if niveau in set(getattr(metrique, 'inactive_levels', None) or []):
+        return None
+
+    # Le palier doit toujours exister dans la grille.
+    field = f'score_{niveau}_label' if mnem == 'TEXTE' else f'score_{niveau}_val'
+    palier = getattr(metrique, field, None)
+    if palier is None or (mnem == 'TEXTE' and not str(palier).strip()):
+        return None
+    return niveau
+
+
 def _mesure_to_score(mesure, metrique) -> int | None:
     """Score 1-5 d'une mesure pour une métrique.
 
@@ -899,6 +931,14 @@ def _mesure_to_score(mesure, metrique) -> int | None:
         return None
     blocks = list(metrique.score_blocks.all())
     if not blocks:
+        # #453 — grille discrète : si l'utilisateur a explicitement choisi un
+        # palier (liste déroulante), il fait foi. Indispensable quand plusieurs
+        # niveaux portent le même libellé / le même chiffre : la valeur seule est
+        # alors ambiguë. Le niveau n'est retenu que s'il est encore cohérent avec
+        # la grille (palier actif), sinon on retombe sur la déduction par valeur.
+        niveau = _explicit_niveau(mesure, metrique)
+        if niveau is not None:
+            return niveau
         return _value_to_score(mesure.valeur, metrique)
 
     valeurs_blocs = mesure.valeurs_blocs or {}
