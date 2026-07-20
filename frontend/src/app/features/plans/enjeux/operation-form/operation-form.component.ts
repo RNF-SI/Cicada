@@ -2531,6 +2531,9 @@ export class OperationFormComponent implements OnInit {
   displayTypeActionFn = displayNomenclatureFn;
 
   onTypeActionSelected(option: NomenclatureOption): void {
+    // #483 — changer le type d'action ne doit effacer aucune saisie. On mémorise
+    // l'état CS précédent pour savoir si l'on franchit la frontière CS / non-CS.
+    const wasCS = this.isCSAction();
     this.selectedTypeAction.set(option);
     this.form.get('id_type_action')?.setValue(option.id_nomenclature);
 
@@ -2539,10 +2542,26 @@ export class OperationFormComponent implements OnInit {
     if (code.startsWith('CS')) {
       this.loadInventairesByTypeAction(code);
       this.form.get('libelle')?.disable();
+      // #483 — non-CS → CS : le libellé déjà saisi devient l'intitulé du suivi
+      // (en mode CS, le libellé est piloté par l'intitulé et affiché en lecture
+      // seule). Sans ça, la saisie disparaissait de l'écran et devait être
+      // retapée dans « Intitulé de l'inventaire ou suivi ».
+      const libelle = (this.form.getRawValue().libelle || '').trim();
+      const intitule = (this.form.get('intitule_suivi')?.value || '').trim();
+      if (!wasCS && libelle && !intitule && !this.estSuiviExistant()) {
+        this.form.get('intitule_suivi')?.setValue(libelle);
+      }
+      this.libelleDisplay.set(this.form.getRawValue().libelle || '');
     } else {
       this.availableInventaires.set([]);
       this.estSuiviExistant.set(false);
       this.form.get('libelle')?.enable();
+      // #483 — CS → non-CS : on retombe sur l'intitulé du suivi comme libellé
+      // de l'action plutôt que de laisser le champ vide.
+      if (!(this.form.get('libelle')?.value || '').trim()) {
+        const intitule = (this.form.get('intitule_suivi')?.value || '').trim();
+        if (intitule) this.form.get('libelle')?.setValue(intitule);
+      }
     }
     this.syncConditionalValidators();
   }
@@ -2567,9 +2586,30 @@ export class OperationFormComponent implements OnInit {
           type_action_code: inv.type_action_code,
         }));
         this.availableInventaires.set(items);
+        this.dropStaleSuiviSelection(items);
       },
       error: () => this.availableInventaires.set([]),
     });
+  }
+
+  /**
+   * #483 — CS → autre CS : le suivi existant sélectionné peut ne plus faire
+   * partie des inventaires du nouveau type d'action. On abandonne alors la
+   * sélection (qui pointerait dans le vide) et on repasse en « nouveau suivi »
+   * SANS effacer les champs déjà renseignés (contrairement à
+   * `setEstSuiviExistant(false)` qui, lui, réinitialise tout).
+   */
+  private dropStaleSuiviSelection(items: { id_suivi_inventaire: number }[]): void {
+    const idSuivi = this.form.get('id_suivi')?.value;
+    if (!idSuivi) return;
+    if (items.some(i => i.id_suivi_inventaire === idSuivi)) return;
+
+    this.form.get('id_suivi')?.setValue(null, { emitEvent: false });
+    if (this.estSuiviExistant()) {
+      this.estSuiviExistant.set(false);
+      this.setSuiviFieldsEnabled(true);
+      this.syncConditionalValidators();
+    }
   }
 
   private restoreTypeActionAutocomplete(typeActionId: number, options?: NomenclatureOption[]): void {

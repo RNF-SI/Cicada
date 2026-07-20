@@ -817,6 +817,116 @@ describe('OperationFormComponent — ventilation budgétaire', () => {
     });
   });
 
+  // -------------------------------------------------------------------------
+  // #483 — changer le type d'action ne doit effacer aucune saisie
+  // -------------------------------------------------------------------------
+  describe('#483 — onTypeActionSelected conserve les saisies', () => {
+    function makeComp(): OperationFormComponent {
+      const comp = Object.create(OperationFormComponent.prototype) as OperationFormComponent;
+      const selected = signal<any>(null);
+      (comp as any).selectedTypeAction = selected;
+      (comp as any).isCSAction = computed(() => {
+        const s = selected();
+        return !!s && String(s.cd_nomenclature || '').startsWith('CS');
+      });
+      (comp as any).estSuiviExistant = signal(false);
+      (comp as any).availableInventaires = signal<any[]>([]);
+      (comp as any).libelleDisplay = signal('');
+      (comp as any).loadInventairesByTypeAction = jest.fn();
+      (comp as any).syncConditionalValidators = jest.fn();
+      (comp as any).setSuiviFieldsEnabled = jest.fn();
+      (comp as any).form = new FormGroup({
+        id_type_action: new FormControl(null),
+        libelle: new FormControl(''),
+        intitule_suivi: new FormControl(''),
+        id_suivi: new FormControl(null),
+        objectif_principal: new FormControl(''),
+      });
+      return comp;
+    }
+
+    const GA = { id_nomenclature: 1, cd_nomenclature: 'GA1' } as any;
+    const CS1 = { id_nomenclature: 2, cd_nomenclature: 'CS1' } as any;
+    const CS2 = { id_nomenclature: 3, cd_nomenclature: 'CS2' } as any;
+
+    it('non-CS → CS : le libellé saisi devient l\'intitulé du suivi', () => {
+      const c = makeComp();
+      const form = (c as any).form as FormGroup;
+      c.onTypeActionSelected(GA);
+      form.get('libelle')?.setValue('Comptage des oiseaux nicheurs');
+
+      c.onTypeActionSelected(CS1);
+
+      expect(form.get('intitule_suivi')?.value).toBe('Comptage des oiseaux nicheurs');
+      expect(form.getRawValue().libelle).toBe('Comptage des oiseaux nicheurs');
+      expect((c as any).libelleDisplay()).toBe('Comptage des oiseaux nicheurs');
+    });
+
+    it('CS → CS : ne réécrit pas l\'intitulé déjà saisi', () => {
+      const c = makeComp();
+      const form = (c as any).form as FormGroup;
+      c.onTypeActionSelected(CS1);
+      form.get('intitule_suivi')?.setValue('Suivi avifaune');
+      form.get('libelle')?.setValue('Suivi avifaune');
+      form.get('objectif_principal')?.setValue('Évaluer la population');
+
+      c.onTypeActionSelected(CS2);
+
+      expect(form.get('intitule_suivi')?.value).toBe('Suivi avifaune');
+      expect(form.get('objectif_principal')?.value).toBe('Évaluer la population');
+    });
+
+    it('CS → non-CS : l\'intitulé du suivi est conservé comme libellé', () => {
+      const c = makeComp();
+      const form = (c as any).form as FormGroup;
+      c.onTypeActionSelected(CS1);
+      form.get('intitule_suivi')?.setValue('Suivi avifaune');
+
+      c.onTypeActionSelected(GA);
+
+      expect(form.get('libelle')?.value).toBe('Suivi avifaune');
+      expect(form.get('intitule_suivi')?.value).toBe('Suivi avifaune');
+    });
+
+    it('aller-retour non-CS → CS → non-CS : aucune perte', () => {
+      const c = makeComp();
+      const form = (c as any).form as FormGroup;
+      c.onTypeActionSelected(GA);
+      form.get('libelle')?.setValue('Comptage des oiseaux nicheurs');
+
+      c.onTypeActionSelected(CS1);
+      c.onTypeActionSelected(GA);
+
+      expect(form.get('libelle')?.value).toBe('Comptage des oiseaux nicheurs');
+    });
+
+    it('abandonne un suivi existant absent du nouveau type, sans vider les champs', () => {
+      const c = makeComp();
+      const form = (c as any).form as FormGroup;
+      (c as any).estSuiviExistant.set(true);
+      form.get('id_suivi')?.setValue(42);
+      form.get('objectif_principal')?.setValue('Évaluer la population');
+
+      (c as any).dropStaleSuiviSelection([{ id_suivi_inventaire: 99 }]);
+
+      expect(form.get('id_suivi')?.value).toBeNull();
+      expect((c as any).estSuiviExistant()).toBe(false);
+      expect(form.get('objectif_principal')?.value).toBe('Évaluer la population');
+    });
+
+    it('conserve la sélection si le suivi existe toujours pour le nouveau type', () => {
+      const c = makeComp();
+      const form = (c as any).form as FormGroup;
+      (c as any).estSuiviExistant.set(true);
+      form.get('id_suivi')?.setValue(42);
+
+      (c as any).dropStaleSuiviSelection([{ id_suivi_inventaire: 42 }]);
+
+      expect(form.get('id_suivi')?.value).toBe(42);
+      expect((c as any).estSuiviExistant()).toBe(true);
+    });
+  });
+
   describe('#561 — « Respectez-vous strictement le protocole ? » facultatif', () => {
     function makeComp(campanule: boolean): OperationFormComponent {
       const comp = Object.create(OperationFormComponent.prototype) as OperationFormComponent;
