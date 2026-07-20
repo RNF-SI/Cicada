@@ -7,7 +7,7 @@
 import { TestBed } from '@angular/core/testing';
 import { signal, computed } from '@angular/core';
 import { Subject, of, throwError } from 'rxjs';
-import { FormControl, FormGroup, Validators } from '@angular/forms';
+import { FormBuilder, FormControl, FormGroup, Validators } from '@angular/forms';
 import {
   OperationFormComponent,
   buildResponseTypeOptions,
@@ -950,6 +950,31 @@ describe('OperationFormComponent — ventilation budgétaire', () => {
       const ctrl = (c as any).form.get('respect_protocole');
       expect(ctrl.hasValidator(Validators.required)).toBe(false);
       expect(ctrl.valid).toBe(true);
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // #588 — Le type d'action est obligatoire (et doit être marqué par une *)
+  // -------------------------------------------------------------------------
+
+  describe("#588 — type d'action obligatoire", () => {
+    function makeForm(): FormGroup {
+      const comp = Object.create(OperationFormComponent.prototype) as OperationFormComponent;
+      (comp as any).fb = new FormBuilder();
+      (comp as any).initForm();
+      return (comp as any).form as FormGroup;
+    }
+
+    it('applique Validators.required sur id_type_action', () => {
+      const ctrl = makeForm().get('id_type_action')!;
+      expect(ctrl.hasValidator(Validators.required)).toBe(true);
+    });
+
+    it('rend le formulaire invalide tant que le type d\'action est vide', () => {
+      const form = makeForm();
+      expect(form.get('id_type_action')!.valid).toBe(false);
+      form.get('id_type_action')!.setValue(42);
+      expect(form.get('id_type_action')!.valid).toBe(true);
     });
   });
 

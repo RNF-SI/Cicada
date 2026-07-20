@@ -826,7 +826,9 @@ export class OperationFormComponent implements OnInit {
     this.form = this.fb.group({
       // Main card
       libelle: ['', [Validators.maxLength(500)]],
-      id_type_action: [null],
+      // #588 — le type d'action conditionne tout le formulaire : obligatoire
+      // (marqué par une * dans le template).
+      id_type_action: [null, [Validators.required]],
       id_suivi: [null],
       intitule_suivi: [''],
       metrique_ids: [[] as number[]],
