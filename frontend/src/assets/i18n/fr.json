@@ -392,7 +392,7 @@
         "total": "Total",
         "valides": "Valides",
         "brouillons": "Brouillons",
-        "archives": "Archivés"
+        "archives": "Terminés"
       },
       "table": {
         "name": "Nom du plan",
@@ -412,7 +412,7 @@
         "valide": "Validé",
         "modifie": "Modifié",
         "mi_parcours": "Évaluation mi-parcours",
-        "archive": "Archivé"
+        "archive": "Terminé"
       },
       "periode": {
         "since": "Depuis {{year}}",
@@ -423,7 +423,7 @@
         "manageSites": "Gérer les sites",
         "manageReferents": "Gérer les référents",
         "validate": "Valider le plan",
-        "archive": "Archiver",
+        "archive": "Terminer",
         "restore": "Restaurer en brouillon",
         "delete": "Supprimer le plan"
       },
@@ -440,8 +440,8 @@
         "referentsUpdated": "Référents du plan mis à jour",
         "onlyDraftCanBeValidated": "Seuls les plans en brouillon peuvent être validés",
         "validated": "Plan validé avec succès",
-        "alreadyArchived": "Ce plan est déjà archivé",
-        "archived": "Plan archivé avec succès",
+        "alreadyArchived": "Ce plan est déjà terminé",
+        "archived": "Plan terminé avec succès",
         "restored": "Plan restauré en brouillon"
       },
       "delete": {
@@ -1419,13 +1419,13 @@
       "draft": "Brouillon",
       "valide": "Valide",
       "modifie": "Modifié",
-      "archive": "Archivé",
+      "archive": "Terminé",
       "inProgress": "En cours de révision",
       "midterm": "Évaluation mi-parcours",
       "draftTooltip": "Plan en cours de rédaction. Seul statut qui autorise les modifications du contenu du plan.",
       "valideTooltip": "Plan validé : il a été approuvé et n'est plus modifiable. Pour le faire évoluer, créez une nouvelle version (modification ou évaluation à mi-parcours).",
       "modifieTooltip": "Plan validé puis modifié au moins une fois. Une nouvelle version a été créée et validée à partir d'une version antérieure de la même chaîne.",
-      "archiveTooltip": "Plan archivé : terminé et conservé pour historique. Une nouvelle version validée a pris le relais."
+      "archiveTooltip": "Plan terminé : il reste consultable et conservé pour l'historique, mais n'est plus actif. Une nouvelle version validée a pris le relais."
     },
     "validationStep": {
       "avis_csrpn": "Avis CSRPN demandé",
@@ -1536,12 +1536,12 @@
       "actions": {
         "validate": "Valider le plan",
         "validateDesc": "Passer le plan en statut validé. Il sera considéré comme le plan officiel en vigueur.",
-        "archive": "Archiver",
+        "archive": "Terminer",
         "archiveHint": "Rend le plan inactif",
-        "archiveDesc": "Archiver ce plan. Il restera consultable mais ne sera plus actif.",
+        "archiveDesc": "Terminer ce plan. Il restera consultable mais ne sera plus actif.",
         "reactivate": "Réactiver",
         "reactivateHint": "Rend le plan actif",
-        "reactivateDesc": "Réactiver ce plan archivé pour le remettre en brouillon et le modifier.",
+        "reactivateDesc": "Réactiver ce plan terminé pour le remettre en brouillon et le modifier.",
         "createEvaluation": "Lancer une évaluation mi-parcours",
         "createEvaluationDesc": "Créer un nouveau document d'évaluation mi-parcours lié à ce plan.",
         "toDraft": "Modifier ce plan de gestion",
@@ -1574,7 +1574,7 @@
         "validateWarning1": "Une fois validé, le plan ne sera modifiable que sous la forme d'une nouvelle version.",
         "validateWarning2": "Le suivi des plans de gestion n'est disponible qu'aux plans validés.",
         "validateWarning3": "La validation CSRPN sera gérée dans une future version.",
-        "archiveTitle": "Archiver le plan de gestion",
+        "archiveTitle": "Terminer le plan de gestion",
         "archiveWarning": "Ce plan ne sera plus actif. Il restera consultable mais le suivi ne sera plus accessible.",
         "reactivateTitle": "Réactiver le plan",
         "reactivateWarning": "Ce plan sera remis en statut valide et redeviendra actif.",
@@ -1590,8 +1590,8 @@
         "statusError": "Erreur lors du changement de statut.",
         "evaluationCreated": "L'évaluation mi-parcours a été créée avec succès.",
         "evaluationError": "Erreur lors de la création de l'évaluation.",
-        "previousArchived": "Le plan précédent a été archivé.",
-        "previousArchiveError": "Erreur lors de l'archivage du plan précédent.",
+        "previousArchived": "Le plan précédent a été terminé.",
+        "previousArchiveError": "Erreur lors de la clôture du plan précédent.",
         "extensionApplied": "Plan prolongé de {{years}} an(s).",
         "extensionDraftCreated": "Brouillon de version étendue créé. Complétez les actions et le suivi, puis validez-le.",
         "extensionRemoved": "L'extension du plan a été retirée.",
@@ -1612,11 +1612,11 @@
         "requestButton": "Demander à devenir référent"
       },
       "archivePrevious": {
-        "title": "Archiver le plan précédent ?",
+        "title": "Terminer le plan précédent ?",
         "intro": "Vous venez de valider un nouveau plan de gestion. Un plan de la chaîne de versions est encore actif.",
-        "hint": "Si vous archivez, le plan précédent restera consultable mais ne sera plus considéré comme actif. Vous pouvez aussi conserver les deux plans en parallèle (cohabitation) pendant une période transitoire.",
+        "hint": "Si vous le terminez, le plan précédent restera consultable mais ne sera plus considéré comme actif. Vous pouvez aussi conserver les deux plans en parallèle (cohabitation) pendant une période transitoire.",
         "keep": "Conserver les deux plans",
-        "archive": "Archiver le précédent"
+        "archive": "Terminer le précédent"
       },
       "miParcoursPrompt": {
         "title": "Évaluation à mi-parcours ?",
@@ -1649,7 +1649,7 @@
         "intro": "Le plan « {{name}} » se termine en {{year}}. Choisissez le nombre d'années à ajouter : une version étendue (brouillon) sera créée en copiant tout le contenu et le suivi.",
         "introReconduction": "Le plan « {{name}} » est prolongé jusqu'en {{year}}. Vous pouvez le reconduire d'une année supplémentaire (cumul maximum de 2 ans). Une nouvelle version étendue (brouillon) sera créée.",
         "newEnd": "Nouvelle échéance",
-        "hint": "Le brouillon créé est librement modifiable : ajoutez des actions et poursuivez le suivi sur les années ajoutées, puis validez-le. Le plan d'origine pourra alors être archivé."
+        "hint": "Le brouillon créé est librement modifiable : ajoutez des actions et poursuivez le suivi sur les années ajoutées, puis validez-le. Le plan d'origine pourra alors être terminé."
       },
       "startRevision": {
         "title": "Marquer en cours de révision",

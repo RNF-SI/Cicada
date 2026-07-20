@@ -296,7 +296,7 @@ Un plan passe par plusieurs **statuts** :
 | **Brouillon** | En cours de saisie. **C'est le seul statut où le contenu est modifiable.** |
 | **Validé** | Plan approuvé. Le contenu passe en lecture seule. |
 | **Modifié** | Plan validé puis modifié au sein du même cycle. |
-| **Archivé** | Plan clôturé, conservé pour l'historique. |
+| **Terminé** | Plan clôturé, conservé pour l'historique. |
 
 Lorsqu'un plan **n'est pas en brouillon**, un **bandeau de verrouillage** s'affiche en haut de la
 page : le contenu ne peut plus être modifié. Pour le retravailler, il faut le repasser en brouillon

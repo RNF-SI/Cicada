@@ -135,8 +135,8 @@ test.describe('Plan archive-previous prompt (#246)', () => {
       const dialog = page.locator('app-archive-previous-plan-dialog');
       await expect(dialog).toBeVisible({ timeout: 10000 });
 
-      // Confirm: archive the previous plan.
-      await dialog.getByRole('button', { name: /Archiver le précédent/i }).click();
+      // Confirm: archive the previous plan (libellé « Terminer » depuis #205).
+      await dialog.getByRole('button', { name: /Terminer le précédent/i }).click();
       await expect(dialog).not.toBeVisible({ timeout: 5000 });
 
       // Verify the parent was archived via API. L'archivage du précédent est un

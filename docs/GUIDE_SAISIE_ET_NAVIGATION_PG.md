@@ -114,7 +114,7 @@ Un plan passe par une série de **statuts**. Le statut détermine **si le plan e
 | **Brouillon** | ✅ Oui | Plan en cours de saisie. **Seul statut où le contenu peut être modifié.** |
 | **Validé** | ❌ Non | Plan officiel en vigueur. Le suivi devient possible. |
 | **Modifié** | ❌ Non | Plan validé puis modifié au moins une fois au sein du même rang. |
-| **Archivé** | ❌ Non | Plan clôturé : consultable mais plus actif, suivi inaccessible. |
+| **Terminé** | ❌ Non | Plan clôturé : consultable mais plus actif, suivi inaccessible. |
 
 À ces statuts s'ajoute, pour certains plans, un **circuit de validation réglementaire** (CSRPN) :
 
@@ -146,10 +146,10 @@ Enfin, trois **attributs** peuvent s'ajouter à un plan **validé** sans changer
         └─────────────┘                          └──────────┘
               ▲   ▲    « Remettre en brouillon »      │   │
               │   └──────────────────────────────────┘   │
-              │                                            │ « Archiver »
+              │                                            │ « Terminer »
    « Réactiver »                                           ▼
         ┌──────────┐                                  ┌──────────┐
-        │  Validé  │ ◄──────────────────────────────  │ Archivé  │
+        │  Validé  │ ◄──────────────────────────────  │ Terminé  │
         └──────────┘            « Réactiver »          └──────────┘
 
    Depuis un plan « Validé », sans changer le statut :

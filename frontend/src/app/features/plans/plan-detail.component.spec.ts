@@ -91,7 +91,7 @@ class FakeTranslateLoader implements TranslateLoader {
           actions: {
             validate: 'Valider le plan',
             toDraft: 'Remettre en brouillon',
-            archive: 'Archiver',
+            archive: 'Terminer',
             reactivate: 'R\u00e9activer',
           },
           warnings: {
@@ -99,7 +99,7 @@ class FakeTranslateLoader implements TranslateLoader {
             validateWarning1: 'Avertissement 1',
             validateWarning2: 'Info 1',
             validateWarning3: 'Info 2',
-            archiveTitle: 'Archiver le plan ?',
+            archiveTitle: 'Terminer le plan ?',
             archiveWarning: 'Le plan sera archiv\u00e9',
             toDraftTitle: 'Remettre en brouillon ?',
             toDraftWarning: 'Le plan repassera en brouillon',

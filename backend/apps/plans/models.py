@@ -84,7 +84,7 @@ class PlanGestion(models.Model):
         ('draft', _('Brouillon')),
         ('valide', _('Validé')),
         ('modifie', _('Modifié')),
-        ('archive', _('Archivé')),
+        ('archive', _('Terminé')),
     ]
 
     # #277 — Étapes du workflow de validation CSRPN. Attribut orthogonal au

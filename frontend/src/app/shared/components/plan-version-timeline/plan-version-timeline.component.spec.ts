@@ -17,7 +17,7 @@ class FakeTranslateLoader implements TranslateLoader {
       'plans.lifecycle.timeline.viewingThisPlan': 'Vous visualisez ce plan',
       'plans.status.draft': 'Brouillon',
       'plans.status.valide': 'Validé',
-      'plans.status.archive': 'Archivé',
+      'plans.status.archive': 'Terminé',
     });
   }
 }

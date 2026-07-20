@@ -53,7 +53,7 @@ class FakeTranslateLoader implements TranslateLoader {
         status: {
           draft: 'Brouillon',
           valide: 'Validé',
-          archive: 'Archivé',
+          archive: 'Terminé',
         },
         list: {
           oldVersions: 'Anciennes versions',

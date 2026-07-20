@@ -63,9 +63,9 @@ def archiver_plans(modeladmin, request, queryset):
     plans_non_archives.update(statut='archive', id_utilisateur_maj=request.user)
     modeladmin.message_user(
         request,
-        f"{count} plan(s) archivé(s) avec succès."
+        f"{count} plan(s) terminé(s) avec succès."
     )
-archiver_plans.short_description = "📦 Archiver les plans sélectionnés"
+archiver_plans.short_description = "📦 Terminer les plans sélectionnés"
 
 
 def remettre_en_brouillon(modeladmin, request, queryset):
@@ -361,7 +361,7 @@ class PlanGestionAdmin(GISModelAdmin):
         statut_config = {
             'draft': ('orange', '📝', 'Brouillon'),
             'valide': ('green', '✓', 'Validé'),
-            'archive': ('gray', '📦', 'Archivé'),
+            'archive': ('gray', '📦', 'Terminé'),
         }
         color, icon, label = statut_config.get(obj.statut, ('black', '?', obj.statut))
         return mark_safe(f'<span style="color: {color}; font-weight: bold;">{icon} {label}</span>')
