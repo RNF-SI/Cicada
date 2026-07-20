@@ -15,9 +15,13 @@ export class AdminUsersPage {
     this.page = page;
     this.pageTitle = page.locator('.page-header h1');
     this.searchInput = page.locator('.filters-bar input[type="text"]');
-    this.roleFilter = page.locator('.filters-bar select').first();
-    this.statusFilter = page.locator('.filters-bar select').last();
-    this.organismeFilter = page.locator('.filters-bar select').nth(1);
+    // #592 — les filtres sont des `app-filter-dropdown` adressés par data-testid.
+    // Les anciens locators positionnels (`.nth(1)`) étaient de surcroît fragiles :
+    // le filtre organisme n'est rendu que pour un super admin, donc l'index glissait
+    // selon la fixture utilisée.
+    this.roleFilter = page.getByTestId('users-role');
+    this.statusFilter = page.getByTestId('users-status');
+    this.organismeFilter = page.getByTestId('users-organisme');
     this.tableRows = page.locator('.users-table tbody tr');
     this.emptyState = page.locator('.empty-cell');
     this.loadingSpinner = page.locator('mat-spinner');
@@ -41,11 +45,18 @@ export class AdminUsersPage {
   }
 
   async filterByRole(role: string) {
-    await this.roleFilter.selectOption(role);
+    await this.roleFilter.click();
+    await this.page.getByTestId(`users-role-option-${role}`).click();
   }
 
   async filterByStatus(status: string) {
-    await this.statusFilter.selectOption(status);
+    await this.statusFilter.click();
+    await this.page.getByTestId(`users-status-option-${status}`).click();
+  }
+
+  async filterByOrganisme(organismeId: number | string) {
+    await this.organismeFilter.click();
+    await this.page.getByTestId(`users-organisme-option-${organismeId}`).click();
   }
 
   getRowByEmail(email: string): Locator {

@@ -162,10 +162,10 @@
 
   // Accolé au déclencheur : pas de bordure haute, coins bas seuls arrondis.
   //
-  // `cdkConnectedOverlayWidth` dimensionne le *panneau d'overlay*, pas cet élément :
+  // `cdkConnectedOverlayMinWidth` dimensionne le *panneau d'overlay*, pas cet élément :
   // sans `width: 100%`, la carte se réduirait à son contenu et serait plus étroite que
-  // le champ auquel elle est censée s'accoler. Les bornes min/max ne s'appliquent pas
-  // ici, la largeur étant imposée par le déclencheur.
+  // le champ auquel elle est censée s'accoler. La largeur du déclencheur n'étant qu'un
+  // minimum, le panneau peut s'élargir si une option est plus longue que le champ.
   &--field {
     border-top: none;
     border-radius: 0 0 $border-radius-sm $border-radius-sm;

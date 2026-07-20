@@ -373,6 +373,11 @@
         "deletionPending": "Suppression en cours",
         "deletionTooltip": "Compte sera supprimé dans {{days}} jours",
         "anonymized": "Anonymisé"
+      },
+      "filters": {
+        "role": "Rôle",
+        "organisme": "Organisme",
+        "status": "Statut"
       }
     },
     "plans": {
@@ -448,7 +453,11 @@
         "success": "Plan \"{{name}}\" supprimé avec succès",
         "error": "Erreur lors de la suppression du plan"
       },
-      "summary": "{{count}} plan(s) de gestion"
+      "summary": "{{count}} plan(s) de gestion",
+      "filters": {
+        "statut": "Statut",
+        "organisme": "Organisme"
+      }
     },
     "sites": {
       "title": "Gestion des sites",
@@ -503,7 +512,11 @@
       },
       "others": "+{{count}} autres",
       "referent": "Référent",
-      "summary": "{{count}} site(s) - Surface totale: {{surface}} ha"
+      "summary": "{{count}} site(s) - Surface totale: {{surface}} ha",
+      "filters": {
+        "type": "Type d'aire protégée",
+        "organisme": "Organisme"
+      }
     },
     "organismes": {
       "title": "Gestion des organismes",

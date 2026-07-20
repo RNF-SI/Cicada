@@ -17,6 +17,14 @@ import { LinkPlanSiteModalComponent } from '../../shared/components/modals/link-
 import { LinkPlanReferentModalComponent } from '../../shared/components/modals/link-plan-referent-modal/link-plan-referent-modal.component';
 import { ConfirmDialogComponent } from '../../shared/components/confirm-dialog/confirm-dialog.component';
 import { PaginationComponent } from '../../shared/components/pagination/pagination.component';
+import {
+  FilterBarComponent,
+  FilterDropdownComponent,
+  FilterOptionListComponent,
+  FilterPanelDirective,
+  FilterOption,
+} from '../../shared/components/filters';
+import { createFilterSet } from '../../shared/utils/filter-set';
 import { SearchBarComponent } from '../../shared/components/search-bar/search-bar.component';
 import { StatusChipComponent } from '../../shared/components/status-chip/status-chip.component';
 
@@ -94,6 +102,10 @@ interface DisplayOrganisme {
     TranslateModule,
     PaginationComponent,
     SearchBarComponent,
+    FilterBarComponent,
+    FilterDropdownComponent,
+    FilterOptionListComponent,
+    FilterPanelDirective,
     StatusChipComponent,
   ],
   templateUrl: './admin-plans.component.html',
@@ -121,8 +133,22 @@ export class AdminPlansComponent implements OnInit, OnDestroy {
 
   // Filter state
   searchQuery = '';
-  filterStatut: PlanStatut | '' = '';
-  filterOrganisme = '';
+  // #592 — mono-sélection stockée en tableau (contrat d'`app-filter-option-list`).
+  readonly filters = createFilterSet({
+    statut: [] as string[],
+    organisme: [] as string[],
+  });
+
+  readonly statutOptions = computed<FilterOption<string>[]>(() =>
+    ['draft', 'valide', 'archive'].map((value) => ({
+      value,
+      label: this.translate.instant(`admin.plans.status.${value}`),
+    })),
+  );
+
+  readonly organismeOptions = computed<FilterOption<string>[]>(() =>
+    this.organismes().map((o) => ({ value: String(o.id), label: o.nom })),
+  );
   isLoading = signal(false);
 
   // Pagination state
@@ -185,8 +211,8 @@ export class AdminPlansComponent implements OnInit, OnDestroy {
 
     const currentOrgId = this.currentUser()?.organisme?.id_organisme;
     // Priorité au filtre sélectionné par l'utilisateur, sinon scoping par rôle
-    const organismeFilter = this.filterOrganisme
-      ? parseInt(this.filterOrganisme, 10)
+    const organismeFilter = this.filters.organisme()[0]
+      ? parseInt(this.filters.organisme()[0], 10)
       : (!this.hasGlobalAccess() && this.isAdminOrganisme() && currentOrgId
         ? currentOrgId
         : undefined);
@@ -194,7 +220,7 @@ export class AdminPlansComponent implements OnInit, OnDestroy {
     const scope = !this.isSuperAdmin() && !this.isAdminOrganisme() ? 'mine' as const : undefined;
     const commonFilters = {
       search: this.searchQuery || undefined,
-      statut: this.filterStatut || undefined,
+      statut: (this.filters.statut()[0] as PlanStatut) || undefined,
       organisme: organismeFilter,
       scope,
     };

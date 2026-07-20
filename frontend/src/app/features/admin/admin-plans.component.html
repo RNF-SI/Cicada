@@ -65,23 +65,49 @@
       (valueChange)="onSearchChange()">
     </app-search-bar>
 
-    <div class="filters">
-      <select [(ngModel)]="filterStatut" (ngModelChange)="onFilterChange()">
-        <option value="">{{ 'common.filters.allStatus' | translate }}</option>
-        <option value="draft">{{ 'admin.plans.status.draft' | translate }}</option>
-        <option value="valide">{{ 'admin.plans.status.valide' | translate }}</option>
-        <option value="archive">{{ 'admin.plans.status.archive' | translate }}</option>
-      </select>
+    <app-filter-bar
+      class="plans-filters"
+      testId="plans-filters"
+      [showReset]="filters.hasActive()"
+      (reset)="filters.reset(); onFilterChange()">
+
+      <app-filter-dropdown #statutDd
+        testId="plans-statut"
+        [label]="'admin.plans.filters.statut' | translate"
+        [activeCount]="filters.statut().length">
+        <ng-template appFilterPanel>
+          <app-filter-option-list
+            testId="plans-statut"
+            [multiple]="false"
+            [allLabel]="'common.filters.allStatus' | translate"
+            [options]="statutOptions()"
+            [selected]="filters.statut()"
+            (selectedChange)="filters.statut.set($event); onFilterChange()"
+            (optionPicked)="statutDd.close()">
+          </app-filter-option-list>
+        </ng-template>
+      </app-filter-dropdown>
 
       @if (isSuperAdmin()) {
-        <select [(ngModel)]="filterOrganisme" (ngModelChange)="onFilterChange()">
-          <option value="">{{ 'common.filters.allOrganismes' | translate }}</option>
-          @for (org of organismes(); track org.id) {
-            <option [value]="org.id">{{ org.nom }}</option>
-          }
-        </select>
+        <app-filter-dropdown #orgDd
+          testId="plans-organisme"
+          [label]="'admin.plans.filters.organisme' | translate"
+          [activeCount]="filters.organisme().length">
+          <ng-template appFilterPanel>
+            <app-filter-option-list
+              testId="plans-organisme"
+              searchable
+              [multiple]="false"
+              [allLabel]="'common.filters.allOrganismes' | translate"
+              [options]="organismeOptions()"
+              [selected]="filters.organisme()"
+              (selectedChange)="filters.organisme.set($event); onFilterChange()"
+              (optionPicked)="orgDd.close()">
+            </app-filter-option-list>
+          </ng-template>
+        </app-filter-dropdown>
       }
-    </div>
+    </app-filter-bar>
   </div>
 
   <!-- Loading -->

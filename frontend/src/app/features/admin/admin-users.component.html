@@ -24,31 +24,66 @@
       (valueChange)="onSearchChange()">
     </app-search-bar>
 
-    <div class="filters">
-      <select [(ngModel)]="filterRole" (ngModelChange)="onFilterChange()">
-        <option value="">{{ 'common.filters.allRoles' | translate }}</option>
-        <option value="super_admin">{{ 'admin.users.roles.super_admin' | translate }}</option>
-        <option value="redacteur_principal">{{ 'admin.users.roles.redacteur_principal' | translate }}</option>
-        <option value="admin_og">{{ 'admin.users.roles.admin_og' | translate }}</option>
-        <option value="utilisateur">{{ 'admin.users.roles.utilisateur' | translate }}</option>
-      </select>
+    <app-filter-bar
+      class="users-filters"
+      testId="users-filters"
+      [showReset]="filters.hasActive()"
+      (reset)="filters.reset(); onFilterChange()">
+
+      <app-filter-dropdown #roleDd
+        testId="users-role"
+        [label]="'admin.users.filters.role' | translate"
+        [activeCount]="filters.role().length">
+        <ng-template appFilterPanel>
+          <app-filter-option-list
+            testId="users-role"
+            [multiple]="false"
+            [allLabel]="'common.filters.allRoles' | translate"
+            [options]="roleOptions()"
+            [selected]="filters.role()"
+            (selectedChange)="filters.role.set($event); onFilterChange()"
+            (optionPicked)="roleDd.close()">
+          </app-filter-option-list>
+        </ng-template>
+      </app-filter-dropdown>
 
       @if (isSuperAdmin()) {
-        <select [(ngModel)]="filterOrganisme" (ngModelChange)="onFilterChange()">
-          <option value="">{{ 'common.filters.allOrganismes' | translate }}</option>
-          @for (org of organismes(); track org.id) {
-            <option [value]="org.id">{{ org.nom }}</option>
-          }
-        </select>
+        <app-filter-dropdown #orgDd
+          testId="users-organisme"
+          [label]="'admin.users.filters.organisme' | translate"
+          [activeCount]="filters.organisme().length">
+          <ng-template appFilterPanel>
+            <app-filter-option-list
+              testId="users-organisme"
+              searchable
+              [multiple]="false"
+              [allLabel]="'common.filters.allOrganismes' | translate"
+              [options]="organismeOptions()"
+              [selected]="filters.organisme()"
+              (selectedChange)="filters.organisme.set($event); onFilterChange()"
+              (optionPicked)="orgDd.close()">
+            </app-filter-option-list>
+          </ng-template>
+        </app-filter-dropdown>
       }
 
-      <select [(ngModel)]="filterStatus" (ngModelChange)="onFilterChange()">
-        <option value="">{{ 'common.filters.allStatus' | translate }}</option>
-        <option value="active">{{ 'common.status.active' | translate }}</option>
-        <option value="inactive">{{ 'common.status.inactive' | translate }}</option>
-        <option value="deletion_pending">{{ 'admin.users.status.deletionPending' | translate }}</option>
-      </select>
-    </div>
+      <app-filter-dropdown #statusDd
+        testId="users-status"
+        [label]="'admin.users.filters.status' | translate"
+        [activeCount]="filters.status().length">
+        <ng-template appFilterPanel>
+          <app-filter-option-list
+            testId="users-status"
+            [multiple]="false"
+            [allLabel]="'common.filters.allStatus' | translate"
+            [options]="statusOptions()"
+            [selected]="filters.status()"
+            (selectedChange)="filters.status.set($event); onFilterChange()"
+            (optionPicked)="statusDd.close()">
+          </app-filter-option-list>
+        </ng-template>
+      </app-filter-dropdown>
+    </app-filter-bar>
   </div>
 
   <!-- Loading -->

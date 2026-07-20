@@ -8,30 +8,66 @@
   <div class="logs-toolbar">
     <label class="logs-field">
       <span>{{ 'admin.serverLogs.file' | translate }}</span>
-      <select [ngModel]="selectedFile()" (ngModelChange)="selectFile($event)">
-        @for (f of files(); track f.name) {
-          <option [value]="f.name">{{ f.name }} ({{ formatSize(f.size) }})</option>
-        }
-      </select>
+      <app-filter-dropdown #fileDd
+        variant="field"
+        testId="serverlogs-file"
+        [label]="'admin.serverLogs.file' | translate"
+        [summary]="selectedFile() || ''"
+        [placeholder]="'common.filters.select' | translate">
+        <ng-template appFilterPanel>
+          <app-filter-option-list
+            testId="serverlogs-file"
+            searchable
+            [multiple]="false"
+            [options]="fileOptions()"
+            [selected]="fileSelection()"
+            (selectedChange)="onFileSelection($event)"
+            (optionPicked)="fileDd.close()">
+          </app-filter-option-list>
+        </ng-template>
+      </app-filter-dropdown>
     </label>
 
     <label class="logs-field">
       <span>{{ 'admin.serverLogs.level' | translate }}</span>
-      <select [ngModel]="level()" (ngModelChange)="onLevelChange($event)">
-        @for (lvl of levelOptions; track lvl) {
-          <option [value]="lvl">{{ lvl || ('common.filters.all' | translate) }}</option>
-        }
-      </select>
+      <app-filter-dropdown #lvlDd
+        variant="field"
+        testId="serverlogs-level"
+        [label]="'admin.serverLogs.level' | translate"
+        [summary]="level()"
+        [placeholder]="'common.filters.all' | translate">
+        <ng-template appFilterPanel>
+          <app-filter-option-list
+            testId="serverlogs-level"
+            [multiple]="false"
+            [allLabel]="'common.filters.all' | translate"
+            [options]="levelOptions"
+            [selected]="levelSelection()"
+            (selectedChange)="onLevelSelection($event)"
+            (optionPicked)="lvlDd.close()">
+          </app-filter-option-list>
+        </ng-template>
+      </app-filter-dropdown>
     </label>
 
     <label class="logs-field">
       <span>{{ 'admin.serverLogs.lines' | translate }}</span>
-      <select [ngModel]="lines()" (ngModelChange)="onLinesChange($event)">
-        <option [ngValue]="100">100</option>
-        <option [ngValue]="300">300</option>
-        <option [ngValue]="500">500</option>
-        <option [ngValue]="1000">1000</option>
-      </select>
+      <app-filter-dropdown #linesDd
+        variant="field"
+        testId="serverlogs-lines"
+        [label]="'admin.serverLogs.lines' | translate"
+        [summary]="lines().toString()">
+        <ng-template appFilterPanel>
+          <app-filter-option-list
+            testId="serverlogs-lines"
+            [multiple]="false"
+            [options]="lineOptions"
+            [selected]="lineSelection()"
+            (selectedChange)="onLinesSelection($event)"
+            (optionPicked)="linesDd.close()">
+          </app-filter-option-list>
+        </ng-template>
+      </app-filter-dropdown>
     </label>
 
     <div class="logs-actions">

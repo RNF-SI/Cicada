@@ -16,8 +16,9 @@ export class AdminSitesPage {
     this.page = page;
     this.pageTitle = page.locator('.page-header h1');
     this.searchInput = page.locator('.filters-bar input[type="text"]');
-    this.typeFilter = page.locator('.filters-bar select').first();
-    this.organismeFilter = page.locator('.filters-bar select').nth(1);
+    // #592 — filtres kit UI adressés par data-testid (cf. admin-users.page.ts).
+    this.typeFilter = page.getByTestId('sites-type');
+    this.organismeFilter = page.getByTestId('sites-organisme');
     this.addSiteButton = page.locator('button.btn-primary');
     this.tableRows = page.locator('.sites-table tbody tr');
     this.emptyState = page.locator('.empty-cell');
@@ -42,7 +43,13 @@ export class AdminSitesPage {
   }
 
   async filterByType(type: string) {
-    await this.typeFilter.selectOption(type);
+    await this.typeFilter.click();
+    await this.page.getByTestId(`sites-type-option-${type}`).click();
+  }
+
+  async filterByOrganisme(organismeId: number | string) {
+    await this.organismeFilter.click();
+    await this.page.getByTestId(`sites-organisme-option-${organismeId}`).click();
   }
 
   getRowByName(name: string): Locator {

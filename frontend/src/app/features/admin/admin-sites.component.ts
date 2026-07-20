@@ -12,6 +12,14 @@ import { AuthService } from '../../core/services/auth.service';
 import { AdminService } from '../../core/services/admin.service';
 import { AdminSite as ApiSite, AdminOrganisme } from '../../core/models/admin.model';
 import { PaginationComponent } from '../../shared/components/pagination/pagination.component';
+import {
+  FilterBarComponent,
+  FilterDropdownComponent,
+  FilterOptionListComponent,
+  FilterPanelDirective,
+  FilterOption,
+} from '../../shared/components/filters';
+import { createFilterSet } from '../../shared/utils/filter-set';
 import { SearchBarComponent } from '../../shared/components/search-bar/search-bar.component';
 import {
   LinkUserSiteModalComponent,
@@ -69,6 +77,10 @@ interface DisplayOrganisme {
     TranslateModule,
     PaginationComponent,
     SearchBarComponent,
+    FilterBarComponent,
+    FilterDropdownComponent,
+    FilterOptionListComponent,
+    FilterPanelDirective,
   ],
   templateUrl: './admin-sites.component.html',
   styleUrl: './admin-sites.component.scss'
@@ -86,8 +98,22 @@ export class AdminSitesComponent implements OnInit, OnDestroy {
 
   // Filter state
   searchQuery = '';
-  filterType = '';
-  filterOrganisme = '';
+  // #592 — mono-sélection stockée en tableau (contrat d'`app-filter-option-list`).
+  readonly filters = createFilterSet({
+    type: [] as string[],
+    organisme: [] as string[],
+  });
+
+  readonly typeOptions = computed<FilterOption<string>[]>(() =>
+    ['RNN', 'RNR', 'PNR', 'ENS', 'ENSD'].map((value) => ({
+      value,
+      label: this.translate.instant(`admin.sites.types.${value}`),
+    })),
+  );
+
+  readonly organismeOptions = computed<FilterOption<string>[]>(() =>
+    this.organismes().map((o) => ({ value: String(o.id), label: o.nom })),
+  );
   isLoading = signal(false);
 
   // Pagination state
@@ -147,8 +173,8 @@ export class AdminSitesComponent implements OnInit, OnDestroy {
       search: this.searchQuery || undefined,
       page: this.currentPage(),
       page_size: this.pageSize,
-      type: this.filterType || undefined,
-      organisme: this.filterOrganisme ? parseInt(this.filterOrganisme) : undefined
+      type: this.filters.type()[0] || undefined,
+      organisme: this.filters.organisme()[0] ? parseInt(this.filters.organisme()[0]) : undefined
     }).subscribe({
       next: (response: any) => {
         const mapped = response.results.map((site: ApiSite) => this.mapSite(site));

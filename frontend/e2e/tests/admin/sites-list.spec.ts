@@ -28,12 +28,10 @@ test.describe('Admin Sites - List', () => {
     await sitesPage.goto();
     await sitesPage.waitForData();
 
-    // Try filtering by a type that exists in seed data
-    const firstTypeOption = await sitesPage.typeFilter.locator('option').nth(1).getAttribute('value');
-    if (firstTypeOption) {
-      await sitesPage.filterByType(firstTypeOption);
-      await page.waitForTimeout(500);
-    }
+    // #592 — plus d'`<option>` natives à énumérer : le filtre est un dropdown kit UI.
+    // On cible un type présent dans les données de test (RNN).
+    await sitesPage.filterByType('RNN');
+    await page.waitForTimeout(500);
   });
 
   test('should display site details in table rows', async ({ superAdminPage: page }) => {

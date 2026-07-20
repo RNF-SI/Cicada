@@ -103,7 +103,14 @@ export class FilterDropdownComponent {
     () => this.panelWidth() ?? (this.variant() === 'field' ? 'trigger' : 'auto'),
   );
 
-  protected readonly overlayWidth = computed(() =>
+  /**
+   * Largeur du déclencheur appliquée en **minimum**, jamais en largeur fixe.
+   *
+   * Le panneau doit s'accoler au champ (donc au moins aussi large que lui), mais une
+   * largeur fixe le tronquerait dès que le champ est étroit : dans la barre d'outils des
+   * logs serveur, un champ « Niveau » compact rognait l'option « WARNING ».
+   */
+  protected readonly overlayMinWidth = computed(() =>
     this.effectivePanelWidth() === 'trigger' ? (this.triggerWidth() ?? undefined) : undefined,
   );
 

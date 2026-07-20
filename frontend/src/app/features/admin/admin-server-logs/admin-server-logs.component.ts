@@ -1,10 +1,16 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import { MatButtonModule } from '@angular/material/button';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import {
+  FilterDropdownComponent,
+  FilterOptionListComponent,
+  FilterPanelDirective,
+  FilterOption,
+} from '../../../shared/components/filters';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 
 interface LogFile { name: string; size: number; }
@@ -22,6 +28,7 @@ interface LogContent { file: string; lines: string[]; returned: number; total: n
   imports: [
     CommonModule, FormsModule, MatButtonModule,
     MatProgressSpinnerModule, MatSnackBarModule, TranslateModule,
+    FilterDropdownComponent, FilterOptionListComponent, FilterPanelDirective,
   ],
   templateUrl: './admin-server-logs.component.html',
   styleUrl: './admin-server-logs.component.scss',
@@ -41,7 +48,51 @@ export class AdminServerLogsComponent implements OnInit {
 
   level = signal<string>('');
   lines = signal<number>(300);
-  readonly levelOptions = ['', 'ERROR', 'WARNING', 'INFO'];
+  // #592 — options au format du kit UI. La valeur « tout » n'est plus une entrée à
+  // chaîne vide : c'est la ligne `allLabel` du composant, qui vide la sélection.
+  readonly levelOptions: FilterOption<string>[] = [
+    { value: 'ERROR', label: 'ERROR' },
+    { value: 'WARNING', label: 'WARNING' },
+    { value: 'INFO', label: 'INFO' },
+  ];
+
+  readonly lineOptions: FilterOption<number>[] = [100, 300, 500, 1000].map((n) => ({
+    value: n,
+    label: String(n),
+  }));
+
+  /** Fichiers de log disponibles, au format du kit UI. */
+  readonly fileOptions = computed<FilterOption<string>[]>(() =>
+    this.files().map((f) => ({
+      value: f.name,
+      label: `${f.name} (${this.formatSize(f.size)})`,
+    })),
+  );
+
+  /** Adaptations vers/depuis le tableau attendu par `app-filter-option-list`. */
+  readonly fileSelection = computed<string[]>(() => {
+    const f = this.selectedFile();
+    return f ? [f] : [];
+  });
+
+  readonly levelSelection = computed<string[]>(() => (this.level() ? [this.level()] : []));
+  readonly lineSelection = computed<number[]>(() => [this.lines()]);
+
+  onFileSelection(values: string[]): void {
+    if (values[0]) {
+      this.selectFile(values[0]);
+    }
+  }
+
+  onLevelSelection(values: string[]): void {
+    this.onLevelChange(values[0] ?? '');
+  }
+
+  onLinesSelection(values: number[]): void {
+    if (values[0]) {
+      this.onLinesChange(values[0]);
+    }
+  }
 
   ngOnInit(): void {
     this.loadFiles();

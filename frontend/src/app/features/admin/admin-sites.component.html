@@ -31,25 +31,49 @@
       (valueChange)="onSearchChange()">
     </app-search-bar>
 
-    <div class="filters">
-      <select [(ngModel)]="filterType" (ngModelChange)="onFilterChange()">
-        <option value="">{{ 'common.filters.allTypes' | translate }}</option>
-        <option value="RNN">{{ 'admin.sites.types.RNN' | translate }}</option>
-        <option value="RNR">{{ 'admin.sites.types.RNR' | translate }}</option>
-        <option value="PNR">{{ 'admin.sites.types.PNR' | translate }}</option>
-        <option value="ENS">{{ 'admin.sites.types.ENS' | translate }}</option>
-        <option value="ENSD">{{ 'admin.sites.types.ENSD' | translate }}</option>
-      </select>
+    <app-filter-bar
+      class="sites-filters"
+      testId="sites-filters"
+      [showReset]="filters.hasActive()"
+      (reset)="filters.reset(); onFilterChange()">
+
+      <app-filter-dropdown #typeDd
+        testId="sites-type"
+        [label]="'admin.sites.filters.type' | translate"
+        [activeCount]="filters.type().length">
+        <ng-template appFilterPanel>
+          <app-filter-option-list
+            testId="sites-type"
+            [multiple]="false"
+            [allLabel]="'common.filters.allTypes' | translate"
+            [options]="typeOptions()"
+            [selected]="filters.type()"
+            (selectedChange)="filters.type.set($event); onFilterChange()"
+            (optionPicked)="typeDd.close()">
+          </app-filter-option-list>
+        </ng-template>
+      </app-filter-dropdown>
 
       @if (isSuperAdmin()) {
-        <select [(ngModel)]="filterOrganisme" (ngModelChange)="onFilterChange()">
-          <option value="">{{ 'common.filters.allOrganismes' | translate }}</option>
-          @for (org of organismes(); track org.id) {
-            <option [value]="org.id">{{ org.nom }}</option>
-          }
-        </select>
+        <app-filter-dropdown #orgDd
+          testId="sites-organisme"
+          [label]="'admin.sites.filters.organisme' | translate"
+          [activeCount]="filters.organisme().length">
+          <ng-template appFilterPanel>
+            <app-filter-option-list
+              testId="sites-organisme"
+              searchable
+              [multiple]="false"
+              [allLabel]="'common.filters.allOrganismes' | translate"
+              [options]="organismeOptions()"
+              [selected]="filters.organisme()"
+              (selectedChange)="filters.organisme.set($event); onFilterChange()"
+              (optionPicked)="orgDd.close()">
+            </app-filter-option-list>
+          </ng-template>
+        </app-filter-dropdown>
       }
-    </div>
+    </app-filter-bar>
   </div>
 
   <!-- Loading -->

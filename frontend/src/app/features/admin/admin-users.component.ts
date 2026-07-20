@@ -14,6 +14,14 @@ import { AdminService } from '../../core/services/admin.service';
 import { AdminUser as ApiUser, AdminOrganisme, UserSiteRelation } from '../../core/models/admin.model';
 import { UserRole } from '../../core/models/user.model';
 import { PaginationComponent } from '../../shared/components/pagination/pagination.component';
+import {
+  FilterBarComponent,
+  FilterDropdownComponent,
+  FilterOptionListComponent,
+  FilterPanelDirective,
+  FilterOption,
+} from '../../shared/components/filters';
+import { createFilterSet } from '../../shared/utils/filter-set';
 import { SearchBarComponent } from '../../shared/components/search-bar/search-bar.component';
 import {
   LinkUserOrganismeModalComponent,
@@ -80,6 +88,10 @@ interface DisplayOrganisme {
     TranslateModule,
     PaginationComponent,
     SearchBarComponent,
+    FilterBarComponent,
+    FilterDropdownComponent,
+    FilterOptionListComponent,
+    FilterPanelDirective,
   ],
   templateUrl: './admin-users.component.html',
   styleUrl: './admin-users.component.scss'
@@ -99,9 +111,34 @@ export class AdminUsersComponent implements OnInit, OnDestroy {
 
   // Filter state
   searchQuery = '';
-  filterRole = '';
-  filterOrganisme = '';
-  filterStatus = '';
+  // #592 — mono-sélection stockée en tableau (contrat d'`app-filter-option-list`).
+  readonly filters = createFilterSet({
+    role: [] as string[],
+    organisme: [] as string[],
+    status: [] as string[],
+  });
+
+  /** Rôles proposés au filtre. */
+  readonly roleOptions = computed<FilterOption<string>[]>(() =>
+    ['super_admin', 'redacteur_principal', 'admin_og', 'utilisateur'].map((value) => ({
+      value,
+      label: this.translate.instant(`admin.users.roles.${value}`),
+    })),
+  );
+
+  readonly statusOptions = computed<FilterOption<string>[]>(() => [
+    { value: 'active', label: this.translate.instant('common.status.active') },
+    { value: 'inactive', label: this.translate.instant('common.status.inactive') },
+    {
+      value: 'deletion_pending',
+      label: this.translate.instant('admin.users.status.deletionPending'),
+    },
+  ]);
+
+  /** Organismes proposés au filtre (super admin uniquement). */
+  readonly organismeOptions = computed<FilterOption<string>[]>(() =>
+    this.organismes().map((o) => ({ value: String(o.id), label: o.nom })),
+  );
   isLoading = signal(false);
 
   // Pagination state
@@ -140,9 +177,7 @@ export class AdminUsersComponent implements OnInit, OnDestroy {
         this.previousUserId = currentUserId;
         // Reset filters and reload data
         this.searchQuery = '';
-        this.filterRole = '';
-        this.filterOrganisme = '';
-        this.filterStatus = '';
+        this.filters.reset();
         this.loadData();
       }
     });
@@ -188,9 +223,13 @@ export class AdminUsersComponent implements OnInit, OnDestroy {
       search: this.searchQuery || undefined,
       page: this.currentPage(),
       page_size: this.pageSize,
-      role: this.filterRole || undefined,
-      organisme: this.filterOrganisme ? parseInt(this.filterOrganisme) : undefined,
-      active: this.filterStatus === 'active' ? true : this.filterStatus === 'inactive' ? false : undefined
+      role: this.filters.role()[0] || undefined,
+      organisme: this.filters.organisme()[0] ? parseInt(this.filters.organisme()[0]) : undefined,
+      active: this.filters.status()[0] === 'active'
+        ? true
+        : this.filters.status()[0] === 'inactive'
+          ? false
+          : undefined
     }).subscribe({
       next: (response: any) => {
         const mapped = response.results.map((user: any) => this.mapUser(user));
