@@ -4,41 +4,46 @@
   </div>
 
   <nav class="sidebar-nav">
-    <!-- Vue d'ensemble — dépliable (avec « Paramètres ») pour les gestionnaires.
-         Le clic sur le label navigue vers la vue d'ensemble ; le chevron déplie
-         le sous-menu (#348). -->
-    <div class="menu-item-wrapper">
-      <button
-        class="menu-item"
-        [class.has-children]="effectiveCanManage()"
-        [class.active]="activePage() === 'overview'"
-        (click)="navigateToOverview()">
-        <i class="fi fi-rr-comment-info"></i>
-        <span>{{ 'plans.detail.sidebar.overview' | translate }}</span>
-        @if (effectiveCanManage()) {
-          <i class="fi fi-rr-angle-small-up chevron"
-             [class.collapsed]="!overviewMenuExpanded()"
-             (click)="$event.stopPropagation(); toggleOverviewMenu()"></i>
-        }
-      </button>
+    <!-- Paramétrage — section réservée aux gestionnaires, placée en tête du menu
+         (#583). Regroupe « Paramètres » (#348) et « Postes / RH » (#560). -->
+    @if (effectiveCanManage()) {
+      <div class="menu-item-wrapper">
+        <button
+          class="menu-item has-children"
+          [class.active]="isParametrageActive()"
+          (click)="toggleParametrageMenu()">
+          <i class="fi fi-rr-settings"></i>
+          <span>{{ 'plans.detail.sidebar.parametrage' | translate }}</span>
+          <i class="fi fi-rr-angle-small-up chevron" [class.collapsed]="!parametrageMenuExpanded()"></i>
+        </button>
 
-      @if (effectiveCanManage() && overviewMenuExpanded()) {
-        <div class="submenu">
-          <button
-            class="submenu-item"
-            [class.active-sub]="activePage() === 'settings'"
-            (click)="navigateToSettings()">
-            {{ 'plans.settings.openButton' | translate }}
-          </button>
-          <button
-            class="submenu-item"
-            [class.active-sub]="activePage() === 'postes'"
-            (click)="navigateToPostes()">
-            {{ 'plans.postes.sidebarEntry' | translate }}
-          </button>
-        </div>
-      }
-    </div>
+        @if (parametrageMenuExpanded()) {
+          <div class="submenu">
+            <button
+              class="submenu-item"
+              [class.active-sub]="activePage() === 'settings'"
+              (click)="navigateToSettings()">
+              {{ 'plans.settings.openButton' | translate }}
+            </button>
+            <button
+              class="submenu-item"
+              [class.active-sub]="activePage() === 'postes'"
+              (click)="navigateToPostes()">
+              {{ 'plans.postes.sidebarEntry' | translate }}
+            </button>
+          </div>
+        }
+      </div>
+    }
+
+    <!-- Vue d'ensemble — entrée plate (#583) -->
+    <button
+      class="menu-item"
+      [class.active]="activePage() === 'overview'"
+      (click)="navigateToOverview()">
+      <i class="fi fi-rr-comment-info"></i>
+      <span>{{ 'plans.detail.sidebar.overview' | translate }}</span>
+    </button>
 
     <!-- Détails et saisie -->
     <div class="menu-item-wrapper">

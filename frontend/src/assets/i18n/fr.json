@@ -1758,6 +1758,7 @@
       },
       "sidebar": {
         "title": "PLANS DE GESTION",
+        "parametrage": "Paramétrage",
         "overview": "Vue d'ensemble",
         "detailsEntry": "Détails et saisie",
         "generalInfo": "Informations générales",

@@ -27,7 +27,7 @@ export class PlanSidebarComponent implements OnInit {
   /** #348 — Affiche l'entrée « Paramètres » (gestion avancée des versions),
    *  réservée au référent du plan, admin organisme et super admin.
    *  #578 — Override optionnel : `null` (défaut) → la sidebar calcule le droit
-   *  elle-même (voir `effectiveCanManage`) pour que le sous-menu « Vue d'ensemble »
+   *  elle-même (voir `effectiveCanManage`) pour que la section « Paramétrage »
    *  reste visible sur TOUTES les pages du PG, pas seulement overview/paramètres/postes.
    *  Une valeur explicite (fournie par la page) court-circuite ce calcul et le fetch. */
   canManage = input<boolean | null>(null);
@@ -43,7 +43,7 @@ export class PlanSidebarComponent implements OnInit {
     this.authService.isAdminOrganisme()
   );
 
-  /** #578 — Droit effectif d'afficher le sous-menu « Vue d'ensemble »
+  /** #578 — Droit effectif d'afficher la section « Paramétrage »
    *  (Paramètres, Postes). Réservé au référent du plan, admin_og, super_admin
    *  et rédacteur principal — aligné sur `canManageLifecycle` de plan-detail. */
   effectiveCanManage = computed(() => {
@@ -79,7 +79,7 @@ export class PlanSidebarComponent implements OnInit {
       return a.id_enjeu - b.id_enjeu;
     });
   });
-  overviewMenuExpanded = signal(true);
+  parametrageMenuExpanded = signal(true);
   detailsMenuExpanded = signal(true);
   suivisMenuExpanded = signal(true);
 
@@ -89,6 +89,12 @@ export class PlanSidebarComponent implements OnInit {
   });
 
   isMindmapActive = computed(() => this.activePage() === 'mindmap');
+
+  /** #583 — La section « Paramétrage » couvre les pages Paramètres et Postes/RH. */
+  isParametrageActive = computed(() => {
+    const page = this.activePage();
+    return page === 'settings' || page === 'postes';
+  });
 
   constructor() {
     // Charge les enjeux si le cache service ne les a pas (ou pour un autre
@@ -129,8 +135,8 @@ export class PlanSidebarComponent implements OnInit {
     // Le chargement initial est géré par l'effect dans le constructeur
   }
 
-  toggleOverviewMenu(): void {
-    this.overviewMenuExpanded.update(v => !v);
+  toggleParametrageMenu(): void {
+    this.parametrageMenuExpanded.update(v => !v);
   }
 
   toggleDetailsMenu(): void {

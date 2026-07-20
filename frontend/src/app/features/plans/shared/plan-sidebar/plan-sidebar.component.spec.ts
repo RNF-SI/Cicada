@@ -179,6 +179,29 @@ describe('PlanSidebarComponent', () => {
     expect(component.fcr()).toEqual([mockFcr]);
   });
 
+  it('should start with parametrageMenuExpanded true', () => {
+    expect(component.parametrageMenuExpanded()).toBe(true);
+  });
+
+  it('should toggle parametrageMenuExpanded', () => {
+    component.toggleParametrageMenu();
+    expect(component.parametrageMenuExpanded()).toBe(false);
+    component.toggleParametrageMenu();
+    expect(component.parametrageMenuExpanded()).toBe(true);
+  });
+
+  it('should flag parametrage as active on settings and postes pages', () => {
+    componentRef.setInput('activePage', 'settings');
+    fixture.detectChanges();
+    expect(component.isParametrageActive()).toBe(true);
+    componentRef.setInput('activePage', 'postes');
+    fixture.detectChanges();
+    expect(component.isParametrageActive()).toBe(true);
+    componentRef.setInput('activePage', 'overview');
+    fixture.detectChanges();
+    expect(component.isParametrageActive()).toBe(false);
+  });
+
   it('should start with detailsMenuExpanded true', () => {
     expect(component.detailsMenuExpanded()).toBe(true);
   });
@@ -206,7 +229,50 @@ describe('PlanSidebarComponent', () => {
     expect(mockRouter.navigate).toHaveBeenCalledWith(['/plans', 'plan-test', 'enjeux', 'protection-zones-humides']);
   });
 
-  // #578 — Le sous-menu « Vue d'ensemble » (Paramètres, Postes) doit être visible
+  // #583 — La section « Paramétrage » (Paramètres, Postes/RH) est le premier
+  // item du menu, au-dessus de « Vue d'ensemble » qui redevient une entrée plate.
+  describe('menu order (#583)', () => {
+    it('renders Paramétrage first, then Vue d\'ensemble, for a manager', () => {
+      componentRef.setInput('canManage', true);
+      fixture.detectChanges();
+      const labels: string[] = Array.from(
+        fixture.nativeElement.querySelectorAll('.menu-item span')
+      ).map((el: any) => el.textContent.trim());
+      expect(labels[0]).toBe('plans.detail.sidebar.parametrage');
+      expect(labels[1]).toBe('plans.detail.sidebar.overview');
+    });
+
+    it('nests Paramètres and Postes/RH under Paramétrage', () => {
+      componentRef.setInput('canManage', true);
+      fixture.detectChanges();
+      const subLabels: string[] = Array.from(
+        fixture.nativeElement.querySelectorAll('.menu-item-wrapper')[0].querySelectorAll('.submenu-item')
+      ).map((el: any) => el.textContent.trim());
+      expect(subLabels).toEqual(['plans.settings.openButton', 'plans.postes.sidebarEntry']);
+    });
+
+    it('hides the Paramétrage section for a non-manager', () => {
+      componentRef.setInput('canManage', false);
+      fixture.detectChanges();
+      const labels: string[] = Array.from(
+        fixture.nativeElement.querySelectorAll('.menu-item span')
+      ).map((el: any) => el.textContent.trim());
+      expect(labels).not.toContain('plans.detail.sidebar.parametrage');
+      expect(labels[0]).toBe('plans.detail.sidebar.overview');
+    });
+
+    it('renders Vue d\'ensemble without a chevron (flat entry)', () => {
+      componentRef.setInput('canManage', true);
+      fixture.detectChanges();
+      const overview = Array.from(
+        fixture.nativeElement.querySelectorAll('.menu-item')
+      ).find((el: any) => el.textContent.includes('plans.detail.sidebar.overview')) as HTMLElement;
+      expect(overview.querySelector('.chevron')).toBeNull();
+      expect(overview.classList).not.toContain('has-children');
+    });
+  });
+
+  // #578 — Le sous-menu « Paramétrage » (Paramètres, Postes) doit être visible
   // sur toutes les pages du PG, sans que chaque page fournisse `canManage`.
   describe('effectiveCanManage (#578)', () => {
     it('honours an explicit canManage override (true) without fetching the plan', () => {
