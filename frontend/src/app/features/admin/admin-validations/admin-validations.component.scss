@@ -32,14 +32,6 @@
   gap: $spacing-md;
   margin-bottom: $spacing-lg;
   flex-wrap: wrap;
-
-  .filter-field {
-    min-width: 180px;
-
-    @media (max-width: $breakpoint-mobile) {
-      min-width: 100%;
-    }
-  }
 }
 
 // Loading
@@ -264,9 +256,6 @@ mat-paginator {
   .filters-bar {
     flex-direction: column;
 
-    .filter-field {
-      width: 100%;
-    }
   }
 
   .page-header h1 {

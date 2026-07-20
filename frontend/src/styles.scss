@@ -29,8 +29,11 @@
 // CUSTOM COMPONENTS (Not in Material)
 // ============================================
 
-// Advanced filters (filter panels, active filters, pagination, sort controls)
-@import 'assets/scss/filters';
+// `_filters.scss` a été supprimé (#592). Ses 739 lignes n'étaient plus référencées par
+// aucun template : la feuille et le markup livré avaient divergé, et chaque page stylait
+// sa propre pagination localement. Le style des filtres vit désormais dans les composants
+// `shared/components/filters/`. Sa classe `.filter-panel` entrait de surcroît en collision
+// de nom avec le panneau du nouveau dropdown, auquel elle injectait un `padding` global.
 
 // Kit UI custom components (jauges, indicateurs, tuiles, breadcrumb, etc.)
 @import 'assets/scss/components';

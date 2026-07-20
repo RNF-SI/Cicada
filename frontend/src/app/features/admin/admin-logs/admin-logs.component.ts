@@ -8,9 +8,6 @@ import { FormsModule } from '@angular/forms';
 import { MatTableModule } from '@angular/material/table';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { MatSelectModule } from '@angular/material/select';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
 import { FormFieldComponent } from '../../../shared/components/form-field/form-field.component';
 import {
   FilterBarComponent,
@@ -49,9 +46,6 @@ import { ErrorLogDetailDialogComponent } from './error-log-detail-dialog.compone
     MatTableModule,
     MatButtonModule,
     MatIconModule,
-    MatSelectModule,
-    MatFormFieldModule,
-    MatInputModule,
     FormFieldComponent,
     SearchBarComponent,
     FilterBarComponent,

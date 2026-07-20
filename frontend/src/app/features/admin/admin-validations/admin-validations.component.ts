@@ -9,9 +9,6 @@ import { ActivatedRoute } from '@angular/router';
 import { MatTableModule } from '@angular/material/table';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { MatSelectModule } from '@angular/material/select';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
 import { MatDialogModule, MatDialog } from '@angular/material/dialog';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
@@ -47,9 +44,6 @@ import { ValidationDetailDialogComponent } from './validation-detail-dialog.comp
     MatTableModule,
     MatButtonModule,
     MatIconModule,
-    MatSelectModule,
-    MatFormFieldModule,
-    MatInputModule,
     TagComponent,
     MatDialogModule,
     MatSnackBarModule,
@@ -78,7 +72,7 @@ export class AdminValidationsComponent implements OnInit {
   readonly currentPage = signal(1);
   readonly pageSize = 20;
 
-  // Filtres (proprietes simples pour ngModel)
+  // Filtres
   // #592 — mono-sélection stockée en tableau (contrat d'`app-filter-option-list`).
   readonly filters = createFilterSet({
     status: [] as string[],
