@@ -116,11 +116,11 @@ test.describe('Activity Page', () => {
       await activityPage.selectTab(1);
       await page.waitForTimeout(500);
 
-      // Filter should be reset to default value (which is "Tout" or equivalent)
-      // The filter resets to default, but default might be "Tout", so we just check it still works
-      const filterValue = await activityPage.entityTypeFilter.locator('.mat-mdc-select-value-text').textContent();
-      // After tab change, filter resets to "Tout" which is the default - this is expected behavior
-      expect(filterValue === 'Tout' || filterValue === '' || filterValue === null).toBeTruthy();
+      // #592 — le filtre est un `app-filter-dropdown` : « aucune valeur active » se lit
+      // à l'absence de pastille compteur sur le déclencheur, et non plus dans le texte
+      // interne d'un mat-select.
+      const badge = activityPage.entityTypeFilter.locator('.filter-trigger__badge');
+      await expect(badge).toHaveCount(0);
     });
 
   });

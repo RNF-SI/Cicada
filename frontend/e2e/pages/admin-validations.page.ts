@@ -13,8 +13,9 @@ export class AdminValidationsPage {
   constructor(page: Page) {
     this.page = page;
     this.pageTitle = page.locator('.page-header h1');
-    this.statusFilter = page.locator('mat-select').first();
-    this.typeFilter = page.locator('mat-select').nth(1);
+    // #592 — filtres kit UI adressés par data-testid.
+    this.statusFilter = page.getByTestId('validations-status');
+    this.typeFilter = page.getByTestId('validations-type');
     this.tableRows = page.locator('tr[mat-row]');
     this.emptyState = page.locator('.empty-state');
     this.loadingSpinner = page.locator('mat-spinner');
@@ -33,14 +34,16 @@ export class AdminValidationsPage {
     ]).catch(() => {});
   }
 
-  async selectStatusFilter(label: string) {
+  /** @param value valeur de statut (ex. `pending`, `approved`). */
+  async selectStatusFilter(value: string) {
     await this.statusFilter.click();
-    await this.page.locator('mat-option').filter({ hasText: label }).click();
+    await this.page.getByTestId(`validations-status-option-${value}`).click();
   }
 
-  async selectTypeFilter(label: string) {
+  /** @param value valeur de type de demande (ex. `site_access`). */
+  async selectTypeFilter(value: string) {
     await this.typeFilter.click();
-    await this.page.locator('mat-option').filter({ hasText: label }).click();
+    await this.page.getByTestId(`validations-type-option-${value}`).click();
   }
 
   getApproveButton(row: Locator): Locator {

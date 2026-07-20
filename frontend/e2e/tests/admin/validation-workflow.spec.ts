@@ -72,7 +72,7 @@ test.describe.serial('Validation Workflow - Multi-user', () => {
 
     // Filter to show pending requests
     if (await validationsPage.statusFilter.isVisible()) {
-      await validationsPage.selectStatusFilter('En attente');
+      await validationsPage.selectStatusFilter('pending');
       await page.waitForTimeout(1000);
     }
 
@@ -132,7 +132,7 @@ test.describe.serial('Validation Workflow - Multi-user', () => {
 
     // Filter to show approved requests
     if (await validationsPage.statusFilter.isVisible()) {
-      await validationsPage.selectStatusFilter('Approuvé');
+      await validationsPage.selectStatusFilter('approved');
       await page.waitForTimeout(1000);
     }
 
@@ -215,7 +215,7 @@ test.describe('Validation Workflow - UI approval flow', () => {
 
     // Filter to pending
     if (await validationsPage.statusFilter.isVisible()) {
-      await validationsPage.selectStatusFilter('En attente');
+      await validationsPage.selectStatusFilter('pending');
       await page.waitForTimeout(1000);
     }
 

@@ -19,7 +19,7 @@ test.describe.serial('Admin Validations', () => {
     await validationsPage.waitForData();
 
     if (await validationsPage.statusFilter.isVisible()) {
-      await validationsPage.selectStatusFilter('En attente');
+      await validationsPage.selectStatusFilter('pending');
       await page.waitForTimeout(1000);
       // Filter applied - page should not crash
       await expect(page.locator('.admin-validations')).toBeVisible();
@@ -31,11 +31,12 @@ test.describe.serial('Admin Validations', () => {
     await validationsPage.goto();
     await validationsPage.waitForData();
 
+    // #592 — les options sont des lignes du kit UI, plus des `mat-option`.
     if (await validationsPage.typeFilter.isVisible()) {
       await validationsPage.typeFilter.click();
-      const options = page.locator('mat-option');
-      const optionCount = await options.count();
-      if (optionCount > 1) {
+      const options = page.locator('[data-testid^="validations-type-option-"]');
+      if ((await options.count()) > 1) {
+        // On saute la ligne « tout » (`…-option-all`) pour filtrer réellement.
         await options.nth(1).click();
         await page.waitForTimeout(1000);
       } else {
