@@ -811,3 +811,129 @@ class TestPressionMove:
             format='json',
         )
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
+
+# =============================================================================
+# OperationViewSet move (#586)
+# =============================================================================
+
+@pytest.mark.django_db
+@pytest.mark.integration
+class TestOperationMove:
+    """Tests POST /api/plans/operations/{id}/move/
+
+    Déplace une action d'un indicateur (état ou pression) vers un autre.
+    """
+
+    def _url(self, operation_id):
+        return f'/api/plans/operations/{operation_id}/move/'
+
+    def test_move_operation_to_another_indicateur(self, api_client, reorder_test_data):
+        """op1 est liée à metrique1 (sous ind1) : elle passe sous ind2."""
+        api_client.force_authenticate(user=reorder_test_data['referent'])
+        op = reorder_test_data['op1']
+        target = reorder_test_data['ind2']
+
+        response = api_client.post(
+            self._url(op.pk),
+            {'new_indicateur_id': target.pk, 'position': 0},
+            format='json',
+        )
+
+        assert response.status_code == status.HTTP_200_OK, response.data
+        op.refresh_from_db()
+        assert op.id_indicateur_id == target.pk
+        assert op.ordre == 0
+
+    def test_move_cuts_links_to_source_indicateur_metriques(self, api_client, reorder_test_data):
+        """Les liens vers les métriques de l'indicateur QUITTÉ sont supprimés."""
+        api_client.force_authenticate(user=reorder_test_data['referent'])
+        op = reorder_test_data['op1']
+        metrique1 = reorder_test_data['metrique1']  # portée par ind1
+        assert op.metriques.filter(pk=metrique1.pk).exists()
+
+        api_client.post(
+            self._url(op.pk),
+            {'new_indicateur_id': reorder_test_data['ind2'].pk, 'position': 0},
+            format='json',
+        )
+
+        assert not op.metriques.filter(pk=metrique1.pk).exists()
+
+    def test_move_between_branches_etat_and_pression(self, api_client, reorder_test_data):
+        """Une action peut passer d'un indicateur d'état à un indicateur de réponse."""
+        api_client.force_authenticate(user=reorder_test_data['referent'])
+        op = reorder_test_data['op2']
+        target = reorder_test_data['ind_ra_1']
+
+        response = api_client.post(
+            self._url(op.pk),
+            {'new_indicateur_id': target.pk, 'position': 0},
+            format='json',
+        )
+
+        assert response.status_code == status.HTTP_200_OK, response.data
+        op.refresh_from_db()
+        assert op.id_indicateur_id == target.pk
+
+    def test_move_renumbers_target_siblings(self, api_client, reorder_test_data):
+        """L'action déplacée prend la position demandée, les autres se décalent."""
+        api_client.force_authenticate(user=reorder_test_data['referent'])
+        target = reorder_test_data['ind2']
+
+        # op3 arrive en premier sous ind2, puis op1 s'insère en position 0.
+        api_client.post(
+            self._url(reorder_test_data['op3'].pk),
+            {'new_indicateur_id': target.pk, 'position': 0},
+            format='json',
+        )
+        api_client.post(
+            self._url(reorder_test_data['op1'].pk),
+            {'new_indicateur_id': target.pk, 'position': 0},
+            format='json',
+        )
+
+        op1 = reorder_test_data['op1']
+        op3 = reorder_test_data['op3']
+        op1.refresh_from_db()
+        op3.refresh_from_db()
+        assert op1.ordre == 0
+        assert op3.ordre == 1
+
+    def test_move_without_indicateur_id_returns_400(self, api_client, reorder_test_data):
+        api_client.force_authenticate(user=reorder_test_data['referent'])
+        response = api_client.post(
+            self._url(reorder_test_data['op1'].pk), {'position': 0}, format='json',
+        )
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+    def test_move_to_nonexistent_indicateur_returns_404(self, api_client, reorder_test_data):
+        api_client.force_authenticate(user=reorder_test_data['referent'])
+        response = api_client.post(
+            self._url(reorder_test_data['op1'].pk),
+            {'new_indicateur_id': 999999, 'position': 0},
+            format='json',
+        )
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+
+    def test_move_on_validated_plan_returns_403(self, api_client, reorder_test_data):
+        """Verrou #248 : pas de déplacement sur un plan hors brouillon."""
+        plan = reorder_test_data['plan']
+        plan.statut = 'valide'
+        plan.save(update_fields=['statut'])
+
+        api_client.force_authenticate(user=reorder_test_data['referent'])
+        response = api_client.post(
+            self._url(reorder_test_data['op1'].pk),
+            {'new_indicateur_id': reorder_test_data['ind2'].pk, 'position': 0},
+            format='json',
+        )
+        assert response.status_code == status.HTTP_403_FORBIDDEN, response.data
+
+    def test_move_unauthenticated_returns_401(self, api_client, reorder_test_data):
+        response = api_client.post(
+            self._url(reorder_test_data['op1'].pk),
+            {'new_indicateur_id': reorder_test_data['ind2'].pk, 'position': 0},
+            format='json',
+        )
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED

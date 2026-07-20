@@ -3779,7 +3779,11 @@
       "moveSuccess": "Élément déplacé",
       "moveError": "Déplacement impossible",
       "dropHereIndicateur": "Glisser un indicateur ici",
-      "dropHerePression": "Glisser une pression ici"
+      "dropHerePression": "Glisser une pression ici",
+      "dropHereOperation": "Glisser une action ici",
+      "moveOperationConfirmTitle": "Déplacer cette action ?",
+      "moveOperationConfirmMessage": "L'action est associée à la/aux métrique(s) suivante(s) : {{metriques}}. Ces associations seront supprimées, car elles appartiennent à l'indicateur que l'action quitte. L'action elle-même et sa programmation sont conservées.",
+      "moveOperationConfirmAction": "Déplacer"
     },
     "metriques": {
       "label": "Métrique",

@@ -1156,65 +1156,75 @@
                                                 <!-- #227/#367 — Bloc « actions regroupées par métrique » supprimé : les actions sont listées une seule fois au niveau de l'indicateur (ind.operations), métriques rappelées dans le bandeau de chaque action. -->
                                               }
 
-                                              <!-- #367 — Actions rattachées directement à l'indicateur (sans métrique) -->
-                                              @if (ind.operations && ind.operations.length > 0) {
-                                                <div class="indicateur-direct-operations" cdkDropList
-                                                     [cdkDropListDisabled]="!canEditPlan() || isAnyInlineEditActive()"
-                                                     (cdkDropListDropped)="onOperationDrop($event, ind)">
-                                                  @for (op of ind.operations; track op.id_operation) {
-                                                    <div class="operation-card operation-drag-item" cdkDrag
-                                                         [cdkDragDisabled]="!canEditPlan() || isAnyInlineEditActive()"
-                                                         [class.operation-card-direct]="!visibleMetriques(op).length"
-                                                         [class.expanded]="isOperationExpanded(op.id_operation)"
-                                                         [class.is-draft]="op.statut === 'draft'"
-                                                         [id]="'operation-' + op.id_operation">
-                                                      <div class="operation-header" (click)="toggleOperation(op.id_operation)">
-                                                        <div class="operation-header-left">
-                                                          @if (canEditPlan()) {
-                                                            <button class="icon-btn-flat operation-drag-handle" type="button" cdkDragHandle
-                                                                    (click)="$event.stopPropagation()"
-                                                                    [title]="'enjeux.dnd.dragHandle' | translate"
-                                                                    [attr.aria-label]="'enjeux.dnd.dragHandle' | translate">
-                                                              <i class="fi fi-rr-menu-burger"></i>
-                                                            </button>
-                                                          }
-                                                          <img src="assets/images/ellipses/ellipse-salmon.png" alt="" class="operation-ellipse">
-                                                          @if (op.code_affichage) { <span class="operation-code">{{ op.code_affichage }}</span> }
-                                                          <span class="operation-libelle">{{ 'enjeux.operations.label' | translate }} : {{ op.libelle }}</span>
-                                                          <!-- #489 / #566 — Priorité : pastille ronde kit UI à côté du titre -->
-                                                          <app-priority-badge class="operation-priority-tag" (click)="$event.stopPropagation()"
-                                                                              [title]="'enjeux.operations.prioriteTooltip' | translate"
-                                                                              [label]="op.priorite_label"></app-priority-badge>
-                                                          @if (op.statut === 'draft') {
-                                                            <app-tag class="operation-draft-chip" variant="draft" icon="fi-rr-edit" size="sm" [label]="'enjeux.operations.draftChip' | translate" (click)="$event.stopPropagation()"></app-tag>
-                                                          }
-                                                          @if (isOperationShared(op)) {
-                                                            <span class="shared-badge"
-                                                                  [matTooltip]="'enjeux.share.operation.sharedBadge' | translate"
-                                                                  (click)="$event.stopPropagation()">
-                                                              <i class="fi fi-rr-link-alt"></i>
-                                                              {{ 'enjeux.share.operation.sharedBadge' | translate }}
-                                                            </span>
-                                                          }
-                                                        </div>
-                                                        <div class="operation-header-right">
-                                                          <button class="icon-btn-flat" (click)="navigateToViewOperation(op.id_operation); $event.stopPropagation()" [title]="'common.actions.view' | translate"><i class="fi fi-rr-eye"></i></button>
-                                                          @if (canEditPlan()) {
-                                                            <button class="icon-btn-flat" (click)="openShareOperation(op, 'link'); $event.stopPropagation()" [title]="'enjeux.share.operation.linkAction' | translate"><i class="fi fi-rr-link-alt"></i></button>
-                                                            <button class="icon-btn-flat" (click)="openShareOperation(op, 'copy'); $event.stopPropagation()" [title]="'enjeux.share.operation.copyAction' | translate"><i class="fi fi-rr-copy-alt"></i></button>
-                                                            <button class="icon-btn-flat" (click)="navigateToEditOperation(op.id_operation); $event.stopPropagation()" [title]="'common.actions.edit' | translate"><i class="fi fi-rr-pencil"></i></button>
-                                                            <button class="icon-btn-flat" (click)="deleteOperation(op); $event.stopPropagation()" [title]="'common.actions.delete' | translate"><i class="fi fi-rr-trash"></i></button>
-                                                          }
-                                                          <i class="fi expand-arrow-op" [class.fi-rr-angle-small-down]="!isOperationExpanded(op.id_operation)" [class.fi-rr-angle-small-up]="isOperationExpanded(op.id_operation)"></i>
-                                                        </div>
+                                              <!-- #367 — Actions rattachées directement à l'indicateur (sans métrique).
+                                                   #586 — droplist connectée aux autres indicateurs (état et réponse), et
+                                                   rendue même vide pour rester une cible de dépôt. -->
+                                              <div class="indicateur-direct-operations" cdkDropList
+                                                   [id]="'operations-droplist-' + ind.id_indicateur"
+                                                   [cdkDropListData]="ind.operations || []"
+                                                   [cdkDropListConnectedTo]="connectedOperationDroplistIds(ind.id_indicateur)"
+                                                   [class.indicateurs-droplist--empty]="!(ind.operations && ind.operations.length)"
+                                                   [cdkDropListDisabled]="!canEditPlan() || isAnyInlineEditActive()"
+                                                   (cdkDropListDropped)="onOperationDrop($event, ind)">
+                                                @if (!(ind.operations && ind.operations.length) && canEditPlan()) {
+                                                  <div class="droplist-empty-hint">
+                                                    <i class="fi fi-rr-arrow-down"></i>
+                                                    <span>{{ 'enjeux.dnd.dropHereOperation' | translate }}</span>
+                                                  </div>
+                                                }
+                                                @for (op of ind.operations || []; track op.id_operation) {
+                                                  <div class="operation-card operation-drag-item" cdkDrag
+                                                       [cdkDragDisabled]="!canEditPlan() || isAnyInlineEditActive()"
+                                                       [class.operation-card-direct]="!visibleMetriques(op).length"
+                                                       [class.expanded]="isOperationExpanded(op.id_operation)"
+                                                       [class.is-draft]="op.statut === 'draft'"
+                                                       [id]="'operation-' + op.id_operation">
+                                                    <div class="operation-header" (click)="toggleOperation(op.id_operation)">
+                                                      <div class="operation-header-left">
+                                                        @if (canEditPlan()) {
+                                                          <button class="icon-btn-flat operation-drag-handle" type="button" cdkDragHandle
+                                                                  (click)="$event.stopPropagation()"
+                                                                  [title]="'enjeux.dnd.dragHandle' | translate"
+                                                                  [attr.aria-label]="'enjeux.dnd.dragHandle' | translate">
+                                                            <i class="fi fi-rr-menu-burger"></i>
+                                                          </button>
+                                                        }
+                                                        <img src="assets/images/ellipses/ellipse-salmon.png" alt="" class="operation-ellipse">
+                                                        @if (op.code_affichage) { <span class="operation-code">{{ op.code_affichage }}</span> }
+                                                        <span class="operation-libelle">{{ 'enjeux.operations.label' | translate }} : {{ op.libelle }}</span>
+                                                        <!-- #489 / #566 — Priorité : pastille ronde kit UI à côté du titre -->
+                                                        <app-priority-badge class="operation-priority-tag" (click)="$event.stopPropagation()"
+                                                                            [title]="'enjeux.operations.prioriteTooltip' | translate"
+                                                                            [label]="op.priorite_label"></app-priority-badge>
+                                                        @if (op.statut === 'draft') {
+                                                          <app-tag class="operation-draft-chip" variant="draft" icon="fi-rr-edit" size="sm" [label]="'enjeux.operations.draftChip' | translate" (click)="$event.stopPropagation()"></app-tag>
+                                                        }
+                                                        @if (isOperationShared(op)) {
+                                                          <span class="shared-badge"
+                                                                [matTooltip]="'enjeux.share.operation.sharedBadge' | translate"
+                                                                (click)="$event.stopPropagation()">
+                                                            <i class="fi fi-rr-link-alt"></i>
+                                                            {{ 'enjeux.share.operation.sharedBadge' | translate }}
+                                                          </span>
+                                                        }
                                                       </div>
-                                                      @if (isOperationExpanded(op.id_operation)) {
-                                                        <ng-container [ngTemplateOutlet]="opExpandedContent" [ngTemplateOutletContext]="{ op: op, metId: null }"></ng-container>
-                                                      }
+                                                      <div class="operation-header-right">
+                                                        <button class="icon-btn-flat" (click)="navigateToViewOperation(op.id_operation); $event.stopPropagation()" [title]="'common.actions.view' | translate"><i class="fi fi-rr-eye"></i></button>
+                                                        @if (canEditPlan()) {
+                                                          <button class="icon-btn-flat" (click)="openShareOperation(op, 'link'); $event.stopPropagation()" [title]="'enjeux.share.operation.linkAction' | translate"><i class="fi fi-rr-link-alt"></i></button>
+                                                          <button class="icon-btn-flat" (click)="openShareOperation(op, 'copy'); $event.stopPropagation()" [title]="'enjeux.share.operation.copyAction' | translate"><i class="fi fi-rr-copy-alt"></i></button>
+                                                          <button class="icon-btn-flat" (click)="navigateToEditOperation(op.id_operation); $event.stopPropagation()" [title]="'common.actions.edit' | translate"><i class="fi fi-rr-pencil"></i></button>
+                                                          <button class="icon-btn-flat" (click)="deleteOperation(op); $event.stopPropagation()" [title]="'common.actions.delete' | translate"><i class="fi fi-rr-trash"></i></button>
+                                                        }
+                                                        <i class="fi expand-arrow-op" [class.fi-rr-angle-small-down]="!isOperationExpanded(op.id_operation)" [class.fi-rr-angle-small-up]="isOperationExpanded(op.id_operation)"></i>
+                                                      </div>
                                                     </div>
-                                                  }
-                                                </div>
-                                              }
+                                                    @if (isOperationExpanded(op.id_operation)) {
+                                                      <ng-container [ngTemplateOutlet]="opExpandedContent" [ngTemplateOutletContext]="{ op: op, metId: null }"></ng-container>
+                                                    }
+                                                  </div>
+                                                }
+                                              </div>
 
                                               <!-- #1/#367 : bouton « Ajouter une action » au niveau indicateur.
                                                    Disponible même sans métrique (action rattachée directement à l'indicateur). -->
@@ -1976,65 +1986,75 @@
                                         <!-- #227/#367 — Bloc « actions regroupées par métrique » supprimé : les actions sont listées une seule fois au niveau de l'indicateur (ind.operations), métriques rappelées dans le bandeau de chaque action. -->
                                       }
 
-                                      <!-- #367 — Actions rattachées directement à l'indicateur (sans métrique) -->
-                                      @if (ind.operations && ind.operations.length > 0) {
-                                        <div class="indicateur-direct-operations" cdkDropList
-                                             [cdkDropListDisabled]="!canEditPlan() || isAnyInlineEditActive()"
-                                             (cdkDropListDropped)="onOperationDrop($event, ind)">
-                                          @for (op of ind.operations; track op.id_operation) {
-                                            <div class="operation-card operation-drag-item" cdkDrag
-                                                 [cdkDragDisabled]="!canEditPlan() || isAnyInlineEditActive()"
-                                                 [class.operation-card-direct]="!visibleMetriques(op).length"
-                                                 [class.expanded]="isOoOperationExpanded(op.id_operation)"
-                                                 [class.is-draft]="op.statut === 'draft'"
-                                                 [id]="'operation-' + op.id_operation">
-                                              <div class="operation-header" (click)="toggleOoOperation(op.id_operation)">
-                                                <div class="operation-header-left">
-                                                  @if (canEditPlan()) {
-                                                    <button class="icon-btn-flat operation-drag-handle" type="button" cdkDragHandle
-                                                            (click)="$event.stopPropagation()"
-                                                            [title]="'enjeux.dnd.dragHandle' | translate"
-                                                            [attr.aria-label]="'enjeux.dnd.dragHandle' | translate">
-                                                      <i class="fi fi-rr-menu-burger"></i>
-                                                    </button>
-                                                  }
-                                                  <img src="assets/images/ellipses/ellipse-salmon.png" alt="" class="operation-ellipse">
-                                                  @if (op.code_affichage) { <span class="operation-code">{{ op.code_affichage }}</span> }
-                                                  <span class="operation-libelle">{{ 'enjeux.operations.label' | translate }} : {{ op.libelle }}</span>
-                                                  <!-- #489 / #566 — Priorité : pastille ronde kit UI à côté du titre -->
-                                                  <app-priority-badge class="operation-priority-tag" (click)="$event.stopPropagation()"
-                                                                      [title]="'enjeux.operations.prioriteTooltip' | translate"
-                                                                      [label]="op.priorite_label"></app-priority-badge>
-                                                  @if (op.statut === 'draft') {
-                                                    <app-tag class="operation-draft-chip" variant="draft" icon="fi-rr-edit" size="sm" [label]="'enjeux.operations.draftChip' | translate" (click)="$event.stopPropagation()"></app-tag>
-                                                  }
-                                                  @if (isOperationShared(op)) {
-                                                    <span class="shared-badge"
-                                                          [matTooltip]="'enjeux.share.operation.sharedBadge' | translate"
-                                                          (click)="$event.stopPropagation()">
-                                                      <i class="fi fi-rr-link-alt"></i>
-                                                      {{ 'enjeux.share.operation.sharedBadge' | translate }}
-                                                    </span>
-                                                  }
-                                                </div>
-                                                <div class="operation-header-right">
-                                                  <button class="icon-btn-flat" (click)="navigateToViewOperation(op.id_operation); $event.stopPropagation()" [title]="'common.actions.view' | translate"><i class="fi fi-rr-eye"></i></button>
-                                                  @if (canEditPlan()) {
-                                                    <button class="icon-btn-flat" (click)="openShareOperation(op, 'link'); $event.stopPropagation()" [title]="'enjeux.share.operation.linkAction' | translate"><i class="fi fi-rr-link-alt"></i></button>
-                                                    <button class="icon-btn-flat" (click)="openShareOperation(op, 'copy'); $event.stopPropagation()" [title]="'enjeux.share.operation.copyAction' | translate"><i class="fi fi-rr-copy-alt"></i></button>
-                                                    <button class="icon-btn-flat" (click)="navigateToEditOperation(op.id_operation); $event.stopPropagation()" [title]="'common.actions.edit' | translate"><i class="fi fi-rr-pencil"></i></button>
-                                                    <button class="icon-btn-flat" (click)="deleteOperation(op); $event.stopPropagation()" [title]="'common.actions.delete' | translate"><i class="fi fi-rr-trash"></i></button>
-                                                  }
-                                                  <i class="fi expand-arrow-op" [class.fi-rr-angle-small-down]="!isOoOperationExpanded(op.id_operation)" [class.fi-rr-angle-small-up]="isOoOperationExpanded(op.id_operation)"></i>
-                                                </div>
+                                      <!-- #367 — Actions rattachées directement à l'indicateur (sans métrique).
+                                           #586 — droplist connectée aux autres indicateurs (état et réponse), et
+                                           rendue même vide pour rester une cible de dépôt. -->
+                                      <div class="indicateur-direct-operations" cdkDropList
+                                           [id]="'operations-droplist-' + ind.id_indicateur"
+                                           [cdkDropListData]="ind.operations || []"
+                                           [cdkDropListConnectedTo]="connectedOperationDroplistIds(ind.id_indicateur)"
+                                           [class.indicateurs-droplist--empty]="!(ind.operations && ind.operations.length)"
+                                           [cdkDropListDisabled]="!canEditPlan() || isAnyInlineEditActive()"
+                                           (cdkDropListDropped)="onOperationDrop($event, ind)">
+                                        @if (!(ind.operations && ind.operations.length) && canEditPlan()) {
+                                          <div class="droplist-empty-hint">
+                                            <i class="fi fi-rr-arrow-down"></i>
+                                            <span>{{ 'enjeux.dnd.dropHereOperation' | translate }}</span>
+                                          </div>
+                                        }
+                                        @for (op of ind.operations || []; track op.id_operation) {
+                                          <div class="operation-card operation-drag-item" cdkDrag
+                                               [cdkDragDisabled]="!canEditPlan() || isAnyInlineEditActive()"
+                                               [class.operation-card-direct]="!visibleMetriques(op).length"
+                                               [class.expanded]="isOoOperationExpanded(op.id_operation)"
+                                               [class.is-draft]="op.statut === 'draft'"
+                                               [id]="'operation-' + op.id_operation">
+                                            <div class="operation-header" (click)="toggleOoOperation(op.id_operation)">
+                                              <div class="operation-header-left">
+                                                @if (canEditPlan()) {
+                                                  <button class="icon-btn-flat operation-drag-handle" type="button" cdkDragHandle
+                                                          (click)="$event.stopPropagation()"
+                                                          [title]="'enjeux.dnd.dragHandle' | translate"
+                                                          [attr.aria-label]="'enjeux.dnd.dragHandle' | translate">
+                                                    <i class="fi fi-rr-menu-burger"></i>
+                                                  </button>
+                                                }
+                                                <img src="assets/images/ellipses/ellipse-salmon.png" alt="" class="operation-ellipse">
+                                                @if (op.code_affichage) { <span class="operation-code">{{ op.code_affichage }}</span> }
+                                                <span class="operation-libelle">{{ 'enjeux.operations.label' | translate }} : {{ op.libelle }}</span>
+                                                <!-- #489 / #566 — Priorité : pastille ronde kit UI à côté du titre -->
+                                                <app-priority-badge class="operation-priority-tag" (click)="$event.stopPropagation()"
+                                                                    [title]="'enjeux.operations.prioriteTooltip' | translate"
+                                                                    [label]="op.priorite_label"></app-priority-badge>
+                                                @if (op.statut === 'draft') {
+                                                  <app-tag class="operation-draft-chip" variant="draft" icon="fi-rr-edit" size="sm" [label]="'enjeux.operations.draftChip' | translate" (click)="$event.stopPropagation()"></app-tag>
+                                                }
+                                                @if (isOperationShared(op)) {
+                                                  <span class="shared-badge"
+                                                        [matTooltip]="'enjeux.share.operation.sharedBadge' | translate"
+                                                        (click)="$event.stopPropagation()">
+                                                    <i class="fi fi-rr-link-alt"></i>
+                                                    {{ 'enjeux.share.operation.sharedBadge' | translate }}
+                                                  </span>
+                                                }
                                               </div>
-                                              @if (isOoOperationExpanded(op.id_operation)) {
-                                                <ng-container [ngTemplateOutlet]="opExpandedContent" [ngTemplateOutletContext]="{ op: op, metId: null }"></ng-container>
-                                              }
+                                              <div class="operation-header-right">
+                                                <button class="icon-btn-flat" (click)="navigateToViewOperation(op.id_operation); $event.stopPropagation()" [title]="'common.actions.view' | translate"><i class="fi fi-rr-eye"></i></button>
+                                                @if (canEditPlan()) {
+                                                  <button class="icon-btn-flat" (click)="openShareOperation(op, 'link'); $event.stopPropagation()" [title]="'enjeux.share.operation.linkAction' | translate"><i class="fi fi-rr-link-alt"></i></button>
+                                                  <button class="icon-btn-flat" (click)="openShareOperation(op, 'copy'); $event.stopPropagation()" [title]="'enjeux.share.operation.copyAction' | translate"><i class="fi fi-rr-copy-alt"></i></button>
+                                                  <button class="icon-btn-flat" (click)="navigateToEditOperation(op.id_operation); $event.stopPropagation()" [title]="'common.actions.edit' | translate"><i class="fi fi-rr-pencil"></i></button>
+                                                  <button class="icon-btn-flat" (click)="deleteOperation(op); $event.stopPropagation()" [title]="'common.actions.delete' | translate"><i class="fi fi-rr-trash"></i></button>
+                                                }
+                                                <i class="fi expand-arrow-op" [class.fi-rr-angle-small-down]="!isOoOperationExpanded(op.id_operation)" [class.fi-rr-angle-small-up]="isOoOperationExpanded(op.id_operation)"></i>
+                                              </div>
                                             </div>
-                                          }
-                                        </div>
-                                      }
+                                            @if (isOoOperationExpanded(op.id_operation)) {
+                                              <ng-container [ngTemplateOutlet]="opExpandedContent" [ngTemplateOutletContext]="{ op: op, metId: null }"></ng-container>
+                                            }
+                                          </div>
+                                        }
+                                      </div>
 
                                       <!-- #1/#367 : bouton « Ajouter une action » au niveau indicateur (OO).
                                            Disponible même sans métrique (action rattachée directement à l'indicateur). -->

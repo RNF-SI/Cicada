@@ -40,6 +40,12 @@ export interface MovePressionPayload {
   position: number;
 }
 
+/** #586 — Déplacement d'une action vers un autre indicateur (état ou réponse). */
+export interface MoveOperationPayload {
+  new_indicateur_id: number;
+  position: number;
+}
+
 /** #486 — Valeurs de formulaire simulées pour l'aperçu du code d'action. */
 export interface OperationCodePreviewParams {
   /** Édition : id de l'action déjà en base (absent en création). */
@@ -84,6 +90,15 @@ export class ReorderService {
    */
   movePression(pressionId: number, payload: MovePressionPayload): Observable<unknown> {
     return this.http.post(`${this.base}/pressions/${pressionId}/move/`, payload);
+  }
+
+  /**
+   * Déplace une action vers un autre indicateur, d'état ou de réponse — #586.
+   * Endpoint dédié : l'opération rattache l'action au nouvel indicateur et coupe
+   * ses liens vers les métriques de l'indicateur quitté, en plus de la position.
+   */
+  moveOperation(operationId: number, payload: MoveOperationPayload): Observable<unknown> {
+    return this.http.post(`${this.base}/operations/${operationId}/move/`, payload);
   }
 
   /**

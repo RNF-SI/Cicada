@@ -3549,12 +3549,118 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
    */
   onOperationDrop(event: CdkDragDrop<any[]>, ind: { id_indicateur?: number; operations?: any[] }): void {
     if (!ind?.id_indicateur) return;
+    if (event.previousContainer !== event.container) {
+      this.applyMoveOperation(event, ind.id_indicateur);
+      return;
+    }
     const list = ind.operations || [];
     this.applyReorder(
       'operations', ind.id_indicateur, list,
       event.previousIndex, event.currentIndex, 'id_operation',
       { parent_type: 'indicateur' },
     );
+  }
+
+  /**
+   * Liste des IDs des droplists d'actions des AUTRES indicateurs de l'enjeu
+   * courant, toutes branches confondues (état via NE, réponse via RA) — utilisé
+   * par `cdkDropListConnectedTo` pour activer le DnD inter-indicateurs (#586).
+   */
+  connectedOperationDroplistIds(currentIndicateurId: number): string[] {
+    const ids: string[] = [];
+    const push = (indId: number) => {
+      if (indId !== currentIndicateurId) ids.push(`operations-droplist-${indId}`);
+    };
+
+    const enjeu = this.selectedEnjeu();
+    for (const olt of enjeu?.objectifs_long_terme || []) {
+      for (const ne of olt.niveaux_exigence || []) {
+        for (const ind of ne.indicateurs || []) push(ind.id_indicateur);
+      }
+    }
+    for (const oo of this.selectedOos() || []) {
+      for (const ra of oo.resultats_attendus || []) {
+        for (const ind of ra.indicateurs || []) push(ind.id_indicateur);
+      }
+    }
+    return ids;
+  }
+
+  /**
+   * Déplacement d'une action vers un autre indicateur via l'endpoint `move`
+   * (#586). Le backend coupe les liens vers les métriques de l'indicateur
+   * quitté : on demande confirmation quand l'action en portait, pour que la
+   * perte de ces associations soit explicite.
+   */
+  private applyMoveOperation(event: CdkDragDrop<any[]>, newIndicateurId: number): void {
+    const operation = event.previousContainer.data[event.previousIndex] as Operation | undefined;
+    const operationId = operation?.id_operation;
+    if (!operationId) return;
+
+    const droppedMetriques = this.visibleMetriques(operation!);
+    if (!droppedMetriques.length) {
+      this.runMoveOperation(event, operationId, newIndicateurId);
+      return;
+    }
+
+    this.dialog.open(ConfirmDialogComponent, {
+      width: '520px', maxWidth: '95vw',
+      data: {
+        title: this.translate.instant('enjeux.dnd.moveOperationConfirmTitle'),
+        message: this.translate.instant('enjeux.dnd.moveOperationConfirmMessage', {
+          metriques: droppedMetriques.map((m) => m.nom_metrique).join(', '),
+        }),
+        confirmText: this.translate.instant('enjeux.dnd.moveOperationConfirmAction'),
+        cancelText: this.translate.instant('common.actions.cancel'),
+      },
+    }).afterClosed().pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((confirmed: boolean) => {
+        if (!confirmed) {
+          // Annulé : l'élément n'a pas encore bougé côté UI, rien à défaire.
+          return;
+        }
+        this.runMoveOperation(event, operationId, newIndicateurId);
+      });
+  }
+
+  /** Transfert optimiste puis appel à l'endpoint `move` d'une action (#586). */
+  private runMoveOperation(event: CdkDragDrop<any[]>, operationId: number, newIndicateurId: number): void {
+    transferArrayItem(
+      event.previousContainer.data,
+      event.container.data,
+      event.previousIndex,
+      event.currentIndex,
+    );
+    event.container.data.forEach((item: Record<string, any>, i: number) => {
+      item['ordre'] = i;
+    });
+
+    this.reorderService.moveOperation(operationId, {
+      new_indicateur_id: newIndicateurId,
+      position: event.currentIndex,
+    }).pipe(
+      takeUntilDestroyed(this.destroyRef),
+    ).subscribe({
+      next: () => {
+        this.snackBar.open(
+          this.translate.instant('enjeux.dnd.moveSuccess'),
+          this.translate.instant('common.actions.close'),
+          { duration: 2000 },
+        );
+        // Le code d'action (CS1, IP2…) dépend du rang plan-wide : le rafraîchir
+        // sans recharger tout l'arbre, qui casserait le drop suivant (cf. #261).
+        this.refreshUiAndCodes();
+      },
+      error: () => {
+        this.snackBar.open(
+          this.translate.instant('enjeux.dnd.moveError'),
+          this.translate.instant('common.actions.close'),
+          { duration: 4000 },
+        );
+        // Rollback : recharge depuis le serveur.
+        this.loadPlanData(true);
+      },
+    });
   }
 
   /**

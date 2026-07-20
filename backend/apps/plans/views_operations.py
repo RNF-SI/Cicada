@@ -1,6 +1,7 @@
 """
 Vues API REST pour les Opérations (Actions).
 """
+from django.db import transaction
 from django.db.models import Q, Prefetch
 from django.shortcuts import get_object_or_404
 
@@ -268,6 +269,107 @@ class OperationViewSet(viewsets.ModelViewSet):
             'groups': groups,
             'total': operations.count()
         })
+
+    @action(detail=True, methods=['post'], url_path='move')
+    def move(self, request, pk=None):
+        """
+        Déplace une action d'un indicateur vers un autre — #586.
+
+        Payload : {"new_indicateur_id": <int>, "position": <int>}
+
+        Une action apparaît sous un indicateur soit par rattachement direct
+        (`id_indicateur`, #367), soit via l'une de ses métriques. Le déplacement
+        rattache donc l'action directement à l'indicateur cible ET coupe les
+        liens vers les métriques de l'indicateur SOURCE, qui n'ont plus de sens
+        une fois l'action partie. Les liens vers les métriques d'autres
+        indicateurs (action partagée, #585) sont conservés.
+
+        Garde-fous :
+        - L'indicateur cible doit exister et appartenir au même plan.
+        - Le plan doit être en brouillon (verrou #248).
+        - Renumérote les actions de l'indicateur cible.
+        """
+        operation = self.get_object()
+        new_indicateur_id = request.data.get('new_indicateur_id')
+        position = request.data.get('position', 0)
+
+        if new_indicateur_id is None:
+            return Response(
+                {"detail": "Payload invalide : 'new_indicateur_id' requis."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        try:
+            new_indicateur_id = int(new_indicateur_id)
+            position = int(position)
+        except (TypeError, ValueError):
+            return Response(
+                {"detail": "'new_indicateur_id' et 'position' doivent être des entiers."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            target = Indicateur.objects.get(pk=new_indicateur_id)
+        except Indicateur.DoesNotExist:
+            return Response(
+                {"detail": "Indicateur cible introuvable."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        source_plan = operation.get_plan_de_gestion()
+        target_plan = target.get_plan_de_gestion()
+        if source_plan and target_plan and source_plan.pk != target_plan.pk:
+            return Response(
+                {"detail": "Déplacement entre plans interdit."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Verrou #248 — plan doit être en statut éditable (draft uniquement)
+        if target_plan and target_plan.statut not in CanModifyOnlyDraftPlan.EDITABLE_STATUSES:
+            return Response(
+                {"detail": "Modification interdite hors brouillon."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        # Indicateur(s) source : le rattachement direct et ceux atteints via
+        # les métriques liées. Seules leurs métriques doivent être déliées.
+        source_indicateur_ids = set()
+        if operation.id_indicateur_id:
+            source_indicateur_ids.add(operation.id_indicateur_id)
+        source_indicateur_ids.update(
+            operation.metriques.values_list('id_indicateur', flat=True)
+        )
+        source_indicateur_ids.discard(target.pk)
+
+        with transaction.atomic():
+            if source_indicateur_ids:
+                CorOperationMetrique.objects.filter(
+                    id_operation=operation,
+                    id_metrique__id_indicateur__in=source_indicateur_ids,
+                ).delete()
+
+            operation.id_indicateur = target
+            operation.ordre = position
+            operation.save(update_fields=['id_indicateur', 'ordre'])
+
+            # Renumérotation des actions de l'indicateur cible (rattachement
+            # direct ou via une de ses métriques), en respectant la position
+            # demandée pour l'action déplacée.
+            siblings = (
+                Operation.objects
+                .filter(Q(id_indicateur=target) | Q(metriques__id_indicateur=target))
+                .exclude(pk=operation.pk)
+                .distinct()
+                .order_by('ordre', 'id_operation')
+            )
+            for idx, sib in enumerate(siblings):
+                new_ordre = idx if idx < position else idx + 1
+                if sib.ordre != new_ordre:
+                    Operation.objects.filter(pk=sib.pk).update(ordre=new_ordre)
+
+        return Response(
+            OperationSerializer(Operation.objects.get(pk=operation.pk)).data,
+            status=status.HTTP_200_OK,
+        )
 
     @action(detail=True, methods=['post'], url_path='add-metrique')
     def add_metrique(self, request, pk=None):

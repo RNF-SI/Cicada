@@ -481,7 +481,7 @@ describe('EnjeuxListComponent', () => {
     });
 
     it('should return null selectedEnjeu when no slug', () => {
-      component['selectedEnjeuSlug'].set(null);
+      component['selectedEnjeuSlug'].set('enjeu-a');
       expect(component.selectedEnjeu()).toBeNull();
     });
   });
@@ -2843,5 +2843,195 @@ describe('EnjeuxListComponent — partage/copie d\'une action (#585)', () => {
     expect(component.isOperationShared({ metriques: [] } as never)).toBe(false);
     expect(component.isOperationShared({ metriques: [{ id_metrique: 1 }] } as never)).toBe(false);
     expect(component.isOperationShared({ metriques: [{ id_metrique: 1 }, { id_metrique: 2 }] } as never)).toBe(true);
+  });
+});
+
+describe('EnjeuxListComponent — déplacement d\'une action entre indicateurs (#586)', () => {
+  let component: EnjeuxListComponent;
+  let fixture: ComponentFixture<EnjeuxListComponent>;
+  let moveOperation: jest.SpyInstance;
+  let reorderOperations: jest.SpyInstance;
+  let dialogOpen: jest.SpyInstance;
+
+  const planData = {
+    plan: { id_pg: 1, nom: 'Plan', slug: 'plan-test', statut: 'draft' },
+    enjeux: [
+      {
+        id_enjeu: 1,
+        slug: 'enjeu-a',
+        libelle: 'Enjeu A',
+        objectifs_long_terme: [
+          {
+            id_olt: 10,
+            libelle: 'OLT 1',
+            niveaux_exigence: [
+              {
+                id_ne: 100,
+                libelle: 'NE 1',
+                indicateurs: [
+                  { id_indicateur: 1000, nom_indicateur: 'IND état 1', metriques: [], operations: [] },
+                  { id_indicateur: 1001, nom_indicateur: 'IND état 2', metriques: [], operations: [] },
+                ],
+              },
+            ],
+          },
+        ],
+        facteurs_influence: [
+          {
+            id_facteur_influence: 20,
+            libelle: 'FI 1',
+            pressions: [
+              {
+                id_pression: 30,
+                libelle: 'Pression 1',
+                objectifs_operationnels: [
+                  {
+                    id_oo: 40,
+                    libelle: 'OO 1',
+                    resultats_attendus: [
+                      {
+                        id_ra: 50,
+                        libelle: 'RA 1',
+                        indicateurs: [
+                          { id_indicateur: 2000, nom_indicateur: 'IND réponse', metriques: [], operations: [] },
+                        ],
+                      },
+                    ],
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      },
+    ],
+    fcr: [],
+  };
+
+  /** Simule un drop cdk entre deux conteneurs (ou dans le même). */
+  const dropEvent = (sourceList: unknown[], targetList: unknown[], previousIndex = 0, currentIndex = 0) => {
+    const container = { data: targetList };
+    const previousContainer = sourceList === targetList ? container : { data: sourceList };
+    return { previousContainer, container, previousIndex, currentIndex } as never;
+  };
+
+  beforeEach(async () => {
+    await TestBed.configureTestingModule({
+      imports: [
+        EnjeuxListComponent,
+        NoopAnimationsModule,
+        HttpClientTestingModule,
+        RouterTestingModule,
+        TranslateModule.forRoot(),
+      ],
+      providers: [
+        {
+          provide: ActivatedRoute,
+          useValue: {
+            params: of({}),
+            queryParams: of({}),
+            fragment: of(null),
+            snapshot: { paramMap: new Map(), queryParamMap: new Map() },
+            parent: { params: of({ slug: 'plan-test' }), snapshot: { paramMap: new Map() } },
+          },
+        },
+      ],
+    }).compileComponents();
+
+    fixture = TestBed.createComponent(EnjeuxListComponent);
+    component = fixture.componentInstance;
+    component['planEnjeuxData'].set(planData as never);
+    component['selectedEnjeuSlug'].set('enjeu-a');
+
+    const reorderService = component['reorderService'];
+    moveOperation = jest.spyOn(reorderService, 'moveOperation').mockReturnValue(of({}));
+    reorderOperations = jest.spyOn(reorderService, 'reorder').mockReturnValue(of({ updated: 0 }));
+    jest.spyOn(reorderService, 'getOperationCodes').mockReturnValue(of({}));
+    dialogOpen = jest.spyOn(component['dialog'], 'open');
+  });
+
+  afterEach(() => jest.restoreAllMocks());
+
+  describe('droplists connectées', () => {
+    it('connecte un indicateur d\'état aux autres indicateurs, réponse comprise', () => {
+      const ids = component.connectedOperationDroplistIds(1000);
+      expect(ids).toContain('operations-droplist-1001');
+      expect(ids).toContain('operations-droplist-2000');
+    });
+
+    it('n\'inclut jamais le droplist de l\'indicateur courant', () => {
+      expect(component.connectedOperationDroplistIds(1000)).not.toContain('operations-droplist-1000');
+      expect(component.connectedOperationDroplistIds(2000)).not.toContain('operations-droplist-2000');
+    });
+  });
+
+  describe('drop', () => {
+    it('réordonne sans appeler move quand la cible est le même indicateur', () => {
+      const list = [{ id_operation: 1 }, { id_operation: 2 }];
+      component.onOperationDrop(dropEvent(list, list, 0, 1), { id_indicateur: 1000, operations: list });
+
+      expect(moveOperation).not.toHaveBeenCalled();
+      expect(reorderOperations).toHaveBeenCalled();
+    });
+
+    it('déplace sans confirmation une action sans métrique', () => {
+      const source = [{ id_operation: 7, metriques: [] }];
+      const target: unknown[] = [];
+      component.onOperationDrop(dropEvent(source, target, 0, 0), { id_indicateur: 1001, operations: target });
+
+      expect(dialogOpen).not.toHaveBeenCalled();
+      expect(moveOperation).toHaveBeenCalledWith(7, { new_indicateur_id: 1001, position: 0 });
+      expect(target).toHaveLength(1);
+      expect(source).toHaveLength(0);
+    });
+
+    it('déplace vers un indicateur de réponse (branche opposée)', () => {
+      const source = [{ id_operation: 7, metriques: [] }];
+      const target: unknown[] = [];
+      component.onOperationDrop(dropEvent(source, target, 0, 0), { id_indicateur: 2000, operations: target });
+
+      expect(moveOperation).toHaveBeenCalledWith(7, { new_indicateur_id: 2000, position: 0 });
+    });
+
+    it('demande confirmation quand des associations de métrique seront perdues', () => {
+      dialogOpen.mockReturnValue({ afterClosed: () => of(true) } as never);
+      const source = [{
+        id_operation: 7,
+        metriques: [{ id_metrique: 1, nom_metrique: 'Surface (ha)', indicateur_type: 'ETAT' }],
+      }];
+      const target: unknown[] = [];
+
+      component.onOperationDrop(dropEvent(source, target, 0, 0), { id_indicateur: 1001, operations: target });
+
+      expect(dialogOpen).toHaveBeenCalled();
+      expect(moveOperation).toHaveBeenCalledWith(7, { new_indicateur_id: 1001, position: 0 });
+    });
+
+    it('n\'effectue aucun déplacement si la confirmation est refusée', () => {
+      dialogOpen.mockReturnValue({ afterClosed: () => of(false) } as never);
+      const source = [{
+        id_operation: 7,
+        metriques: [{ id_metrique: 1, nom_metrique: 'Surface (ha)', indicateur_type: 'ETAT' }],
+      }];
+      const target: unknown[] = [];
+
+      component.onOperationDrop(dropEvent(source, target, 0, 0), { id_indicateur: 1001, operations: target });
+
+      expect(moveOperation).not.toHaveBeenCalled();
+      expect(source).toHaveLength(1);
+      expect(target).toHaveLength(0);
+    });
+
+    it('recharge le plan si le déplacement échoue (rollback)', () => {
+      moveOperation.mockReturnValue(throwError(() => new Error('boom')));
+      const loadPlanData = jest
+        .spyOn(component as unknown as { loadPlanData: (silent?: boolean) => void }, 'loadPlanData')
+        .mockImplementation(() => undefined);
+      const source = [{ id_operation: 7, metriques: [] }];
+
+      component.onOperationDrop(dropEvent(source, [], 0, 0), { id_indicateur: 1001, operations: [] });
+
+      expect(loadPlanData).toHaveBeenCalledWith(true);
+    });
   });
 });
