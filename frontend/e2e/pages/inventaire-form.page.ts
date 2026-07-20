@@ -41,6 +41,9 @@ export class InventaireFormPage {
   readonly objectifProtocole: Locator;
   readonly periodeEchantillonnage: Locator;
   readonly frequenceInput: Locator;
+  // #252 — protocoles multiples
+  readonly protocoleBlocks: Locator;
+  readonly addProtocoleBtn: Locator;
   readonly frequenceDecrementBtn: Locator;
   readonly frequenceIncrementBtn: Locator;
 
@@ -86,16 +89,20 @@ export class InventaireFormPage {
     this.sectionBancarisation = page.locator('.app-accordion__header').filter({ hasText: /bancarisation/i });
     this.sectionDetails = page.locator('.app-accordion__header').filter({ hasText: /détail/i });
 
-    // Protocole
-    this.protocoleCampanuleOui = page.locator('mat-radio-group[formControlName="protocole_dans_campanule"] mat-radio-button').first();
-    this.protocoleCampanuleNon = page.locator('mat-radio-group[formControlName="protocole_dans_campanule"] mat-radio-button').nth(1);
-    this.nomProtocoleInput = page.locator('input[formControlName="nom_protocole"]');
-    this.respectProtocoleOui = page.locator('mat-radio-group[formControlName="respect_protocole"] mat-radio-button').first();
-    this.respectProtocoleNon = page.locator('mat-radio-group[formControlName="respect_protocole"] mat-radio-button').nth(1);
-    this.nbEtpCycleInput = page.locator('input[formControlName="nb_etp_cycle"]');
-    this.descriptionProtocole = page.locator('textarea[formControlName="description_protocole"]');
-    this.objectifProtocole = page.locator('textarea[formControlName="objectif_protocole"]');
-    this.periodeEchantillonnage = page.locator('input[formControlName="periode_echantillonnage"]');
+    // Protocole — #252 : les champs vivent dans un bloc répétable, on cible le
+    // premier par défaut (les tests multi-protocoles utilisent protocoleBlock(i)).
+    const proto0 = page.locator('.protocole-block').first();
+    this.protocoleBlocks = page.locator('.protocole-block');
+    this.addProtocoleBtn = page.locator('.protocole-add-row button');
+    this.protocoleCampanuleOui = proto0.locator('mat-radio-group[formControlName="protocole_dans_campanule"] mat-radio-button').first();
+    this.protocoleCampanuleNon = proto0.locator('mat-radio-group[formControlName="protocole_dans_campanule"] mat-radio-button').nth(1);
+    this.nomProtocoleInput = proto0.locator('input[formControlName="nom_protocole"]');
+    this.respectProtocoleOui = proto0.locator('mat-radio-group[formControlName="respect_protocole"] mat-radio-button').first();
+    this.respectProtocoleNon = proto0.locator('mat-radio-group[formControlName="respect_protocole"] mat-radio-button').nth(1);
+    this.nbEtpCycleInput = proto0.locator('input[formControlName="nb_etp_cycle"]');
+    this.descriptionProtocole = proto0.locator('textarea[formControlName="description_protocole"]');
+    this.objectifProtocole = proto0.locator('textarea[formControlName="objectif_protocole"]');
+    this.periodeEchantillonnage = proto0.locator('input[formControlName="periode_echantillonnage"]');
     this.frequenceInput = page.locator('input[formControlName="frequence_nombre"]');
     this.frequenceDecrementBtn = page.locator('.frequence-number .freq-btn').first();
     this.frequenceIncrementBtn = page.locator('.frequence-number .freq-btn').nth(1);
@@ -192,7 +199,7 @@ export class InventaireFormPage {
     // #413 — `respect_protocole` n'est demandé que pour les protocoles CAMPanule.
     // En hors-CAMPanule, seuls `documentation_disponible` et `nb_etp_cycle` sont requis.
     // documentation_disponible=Non
-    await this.page.locator('mat-radio-group[formControlName="documentation_disponible"] mat-radio-button').nth(1).click();
+    await this.protocoleBlocks.first().locator('mat-radio-group[formControlName="documentation_disponible"] mat-radio-button').nth(1).click();
     // Fréquence : 1 fois par AN
     await this.frequenceInput.fill('1');
     await this.page.locator('mat-select[formControlName="frequence_unite"]').click();

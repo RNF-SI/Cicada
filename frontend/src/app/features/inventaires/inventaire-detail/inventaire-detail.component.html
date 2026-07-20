@@ -198,119 +198,134 @@
         </div>
       </div>
 
+
       <!-- ═══════════════════════════════════════ -->
-      <!-- CARD: Détails du protocole              -->
+      <!-- CARD: Détails des protocoles (#252)     -->
       <!-- ═══════════════════════════════════════ -->
       @if (hasProtocole()) {
         <div class="detail-card">
           <div class="section-header">
             <span class="section-label">{{ 'inventaires.form.sections.protocole' | translate }}</span>
+            @if (protocolesAffichables().length > 1) {
+              <span class="protocoles-count">{{ protocolesAffichables().length }}</span>
+            }
           </div>
           <div class="section-underline"></div>
 
           <div class="section-content">
-            <div class="detail-grid">
-              <!-- Protocole Campanule ? -->
-              <div class="field">
-                <span class="field-label">{{ 'inventaires.form.protocoleCampanule' | translate }}</span>
-                <span class="field-value">{{ formatBoolean(suivi()?.protocole?.protocole_dans_campanule) }}</span>
-              </div>
+            @for (p of protocolesAffichables(); track $index) {
+              <div class="protocole-detail-block">
+                @if (protocolesAffichables().length > 1) {
+                  <h4 class="protocole-detail-title">{{ protocoleNom(p, $index) }}</h4>
+                }
 
-              <!-- MODE CAMPANULE -->
-              @if (isCampanule()) {
-                <div class="field">
-                  <span class="field-label">{{ 'inventaires.form.protocoleCampanuleNom' | translate }}</span>
-                  <span class="field-value field-value-highlight">
-                    {{ suivi()?.protocole?.protocole_campanule_nom || '—' }}
-                    @if (suivi()?.protocole?.cd_protocole_campanule) {
-                      <a class="consulter-link" (click)="consulterProtocole()">
-                        {{ 'inventaires.form.consulterProtocole' | translate }}
-                      </a>
-                    }
-                  </span>
-                </div>
-              }
-
-              <!-- MODE NON-CAMPANULE -->
-              @if (isNotCampanule()) {
-                <div class="field">
-                  <span class="field-label">{{ 'inventaires.form.nomProtocole' | translate }}</span>
-                  <span class="field-value">{{ suivi()?.protocole?.nom_protocole || '—' }}</span>
-                </div>
-
-                @if (suivi()?.protocole?.nb_etp_cycle != null) {
+                <div class="detail-grid">
+                  <!-- Protocole Campanule ? -->
                   <div class="field">
-                    <span class="field-label">{{ 'inventaires.form.nbEtpCycle' | translate }}</span>
-                    <span class="field-value">{{ suivi()?.protocole?.nb_etp_cycle }}</span>
+                    <span class="field-label">{{ 'inventaires.form.protocoleCampanule' | translate }}</span>
+                    <span class="field-value">{{ formatBoolean(p.protocole_dans_campanule) }}</span>
                   </div>
-                }
-              }
 
-              <!-- Description du protocole -->
-              @if (suivi()?.protocole?.description_protocole) {
-                <div class="field field-full">
-                  <span class="field-label">{{ 'inventaires.form.descriptionProtocole' | translate }}</span>
-                  <span class="field-value field-value-multiline">{{ suivi()?.protocole?.description_protocole }}</span>
+                  <!-- MODE CAMPANULE -->
+                  @if (isCampanule(p)) {
+                    <div class="field">
+                      <span class="field-label">{{ 'inventaires.form.protocoleCampanuleNom' | translate }}</span>
+                      <span class="field-value field-value-highlight">
+                        {{ p.protocole_campanule_nom || '—' }}
+                        @if (p.cd_protocole_campanule) {
+                          <a class="consulter-link" (click)="consulterProtocole(p)">
+                            {{ 'inventaires.form.consulterProtocole' | translate }}
+                          </a>
+                        }
+                      </span>
+                    </div>
+                  }
+
+                  <!-- MODE NON-CAMPANULE -->
+                  @if (isNotCampanule(p)) {
+                    <div class="field">
+                      <span class="field-label">{{ 'inventaires.form.nomProtocole' | translate }}</span>
+                      <span class="field-value">{{ p.nom_protocole || '—' }}</span>
+                    </div>
+
+                    @if (p.nb_etp_cycle != null) {
+                      <div class="field">
+                        <span class="field-label">{{ 'inventaires.form.nbEtpCycle' | translate }}</span>
+                        <span class="field-value">{{ p.nb_etp_cycle }}</span>
+                      </div>
+                    }
+                  }
+
+                  <!-- Description du protocole -->
+                  @if (p.description_protocole) {
+                    <div class="field field-full">
+                      <span class="field-label">{{ 'inventaires.form.descriptionProtocole' | translate }}</span>
+                      <span class="field-value field-value-multiline">{{ p.description_protocole }}</span>
+                    </div>
+                  }
+
+                  <!-- Objectif du protocole -->
+                  @if (p.objectif_protocole) {
+                    <div class="field field-full">
+                      <span class="field-label">{{ 'inventaires.form.objectifProtocole' | translate }}</span>
+                      <span class="field-value field-value-multiline">{{ p.objectif_protocole }}</span>
+                    </div>
+                  }
+
+                  <!-- Période d'échantillonnage -->
+                  @if (p.periode_echantillonnage) {
+                    <div class="field">
+                      <span class="field-label">{{ 'inventaires.form.periodeEchantillonnage' | translate }}</span>
+                      <span class="field-value">{{ p.periode_echantillonnage }}</span>
+                    </div>
+                  }
+
+                  <!-- Mode de validation -->
+                  @if (isNotCampanule(p) && p.mode_validation) {
+                    <div class="field">
+                      <span class="field-label">{{ 'inventaires.form.modeValidation' | translate }}</span>
+                      <span class="field-value">{{ p.mode_validation }}</span>
+                    </div>
+                  }
+
+                  <!-- Respect du protocole -->
+                  <div class="field">
+                    <span class="field-label">{{ 'inventaires.form.respectProtocole' | translate }}</span>
+                    <span class="field-value">{{ formatBoolean(p.respect_protocole) }}</span>
+                  </div>
+
+                  <!-- Non-respect fields -->
+                  @if (isNonRespect(p)) {
+                    @if (p.justification_non_respect) {
+                      <div class="field field-full">
+                        <span class="field-label">{{ 'inventaires.form.justificationNonRespect' | translate }}</span>
+                        <span class="field-value field-value-multiline">{{ p.justification_non_respect }}</span>
+                      </div>
+                    }
+                    @if (p.differences_protocole) {
+                      <div class="field field-full">
+                        <span class="field-label">{{ 'inventaires.form.differencesProtocole' | translate }}</span>
+                        <span class="field-value field-value-multiline">{{ p.differences_protocole }}</span>
+                      </div>
+                    }
+                  }
                 </div>
-              }
-
-              <!-- Objectif du protocole -->
-              @if (suivi()?.protocole?.objectif_protocole) {
-                <div class="field field-full">
-                  <span class="field-label">{{ 'inventaires.form.objectifProtocole' | translate }}</span>
-                  <span class="field-value field-value-multiline">{{ suivi()?.protocole?.objectif_protocole }}</span>
-                </div>
-              }
-
-              <!-- Période d'échantillonnage -->
-              @if (suivi()?.protocole?.periode_echantillonnage) {
-                <div class="field">
-                  <span class="field-label">{{ 'inventaires.form.periodeEchantillonnage' | translate }}</span>
-                  <span class="field-value">{{ suivi()?.protocole?.periode_echantillonnage }}</span>
-                </div>
-              }
-
-              <!-- Mode de validation -->
-              @if (isNotCampanule() && suivi()?.protocole?.mode_validation) {
-                <div class="field">
-                  <span class="field-label">{{ 'inventaires.form.modeValidation' | translate }}</span>
-                  <span class="field-value">{{ suivi()?.protocole?.mode_validation }}</span>
-                </div>
-              }
-
-              <!-- Respect du protocole -->
-              <div class="field">
-                <span class="field-label">{{ 'inventaires.form.respectProtocole' | translate }}</span>
-                <span class="field-value">{{ formatBoolean(suivi()?.protocole?.respect_protocole) }}</span>
               </div>
+            }
 
-              <!-- Non-respect fields -->
-              @if (isNonRespect()) {
-                @if (suivi()?.protocole?.justification_non_respect) {
-                  <div class="field field-full">
-                    <span class="field-label">{{ 'inventaires.form.justificationNonRespect' | translate }}</span>
-                    <span class="field-value field-value-multiline">{{ suivi()?.protocole?.justification_non_respect }}</span>
-                  </div>
-                }
-                @if (suivi()?.protocole?.differences_protocole) {
-                  <div class="field field-full">
-                    <span class="field-label">{{ 'inventaires.form.differencesProtocole' | translate }}</span>
-                    <span class="field-value field-value-multiline">{{ suivi()?.protocole?.differences_protocole }}</span>
-                  </div>
-                }
-              }
-
-              <!-- Fréquence -->
-              @if (frequenceLabel()) {
+            <!-- Fréquence : portée par le suivi, commune aux protocoles -->
+            @if (frequenceLabel()) {
+              <div class="detail-grid">
                 <div class="field">
                   <span class="field-label">{{ 'inventaires.form.frequence' | translate }}</span>
                   <span class="field-value">{{ frequenceLabel() }}</span>
                 </div>
-              }
-            </div>
+              </div>
+            }
           </div>
         </div>
       }
+
 
       <!-- ═══════════════════════════════════════ -->
       <!-- CARD: Bancarisation et stockage         -->

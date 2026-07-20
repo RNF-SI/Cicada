@@ -33,9 +33,9 @@ class SuiviInventaireViewSet(viewsets.ModelViewSet):
     """
 
     queryset = SuiviInventaire.objects.select_related(
-        'id_statut', 'id_type_action', 'id_protocole',
+        'id_statut', 'id_type_action',
         'id_pg', 'id_utilisateur_ajout', 'id_utilisateur_maj'
-    ).prefetch_related('operations')
+    ).prefetch_related('operations', 'protocoles')
 
     permission_classes = [permissions.IsAuthenticated, CanModifyOnlyDraftPlan]
     pagination_class = UsersPagination

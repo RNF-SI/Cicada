@@ -421,11 +421,16 @@ class SuiviInventaireFactory(DjangoModelFactory):
     cibles_principales = 'ESPECES'
     taxon_taxref = ''
     date_lancement_suivi = None
-    id_protocole = None
     outil_bancarisation = ''
     outil_saisie = ''
     transmission_donnee = None
     id_utilisateur_ajout = factory.SubFactory(RoleFactory)
+
+    @factory.post_generation
+    def protocoles(self, create, extracted, **kwargs):
+        """Permet `SuiviInventaireFactory(protocoles=[proto1, proto2])` (#252)."""
+        if create and extracted:
+            self.protocoles.set(extracted)
 
 
 class PrioriteOperationTypeFactory(TypeNomenclatureFactory):

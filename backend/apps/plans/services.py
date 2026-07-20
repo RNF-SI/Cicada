@@ -526,9 +526,18 @@ class PlanDuplicationService:
 
         # 1. Suivis / inventaires (rattachés directement au plan).
         suivi_map = {}
-        for old_suivi in SuiviInventaire.objects.filter(id_pg_id=source_plan_id):
+        for old_suivi in SuiviInventaire.objects.filter(
+            id_pg_id=source_plan_id
+        ).prefetch_related('protocoles'):
             new_suivi = dup(old_suivi, user, id_pg=new_plan)
             new_suivi.save()
+            # Les protocoles sont clonés et non partagés : sans cela le plan copié
+            # pointerait les mêmes lignes que la source, et les éditer depuis la
+            # nouvelle version modifierait aussi l'ancienne (#252).
+            for old_proto in old_suivi.protocoles.all():
+                new_proto = dup(old_proto, user)
+                new_proto.save()
+                new_suivi.protocoles.add(new_proto)
             suivi_map[old_suivi.id_suivi_inventaire] = new_suivi
 
         # 2. Identifier les opérations du plan (indicateur, métriques ou suivi).

@@ -200,6 +200,56 @@ test.describe('Inventaires - Create', () => {
     await formPage.waitForSnackbar();
     await referentPage.waitForURL(/\/inventaires/, { timeout: 10000 });
   });
+
+  // #252 — un suivi peut mobiliser plusieurs protocoles complémentaires.
+  test('should create inventaire with two protocoles', async ({ referentPage }) => {
+    const formPage = new InventaireFormPage(referentPage);
+    await formPage.gotoCreate();
+    await formPage.waitForForm();
+
+    const uniqueName = `E2E Inventaire MultiProto ${Date.now()}`;
+    await formPage.fillAllRequiredFields(uniqueName);
+
+    // Un seul bloc protocole au départ.
+    await expect(formPage.protocoleBlocks).toHaveCount(1);
+
+    // Ajout d'un second protocole, hors CAMPanule lui aussi.
+    await formPage.addProtocoleBtn.click();
+    await referentPage.waitForTimeout(300);
+    await expect(formPage.protocoleBlocks).toHaveCount(2);
+
+    const bloc2 = formPage.protocoleBlocks.nth(1);
+    await bloc2.locator('mat-radio-group[formControlName="protocole_dans_campanule"] mat-radio-button').nth(1).click();
+    await referentPage.waitForTimeout(300);
+    await bloc2.locator('input[formControlName="nom_protocole"]').fill('IPA');
+    await bloc2.locator('mat-radio-group[formControlName="documentation_disponible"] mat-radio-button').nth(1).click();
+    await bloc2.locator('input[formControlName="nb_etp_cycle"]').fill('2');
+
+    await formPage.submit();
+    await formPage.waitForSnackbar();
+    await referentPage.waitForURL(/\/inventaires/, { timeout: 10000 });
+
+    // La fiche du suivi doit restituer les deux protocoles.
+    const detail = referentPage.locator('.protocole-detail-block');
+    await expect(detail).toHaveCount(2);
+  });
+
+  test('should remove an added protocole before saving', async ({ referentPage }) => {
+    const formPage = new InventaireFormPage(referentPage);
+    await formPage.gotoCreate();
+    await formPage.waitForForm();
+
+    await expect(formPage.protocoleBlocks).toHaveCount(1);
+    await formPage.addProtocoleBtn.click();
+    await referentPage.waitForTimeout(300);
+    await expect(formPage.protocoleBlocks).toHaveCount(2);
+
+    // Le bouton de retrait n'apparaît qu'à partir de 2 blocs.
+    await formPage.protocoleBlocks.nth(1).locator('.protocole-remove-btn').click();
+    await referentPage.waitForTimeout(300);
+    await expect(formPage.protocoleBlocks).toHaveCount(1);
+    await expect(formPage.protocoleBlocks.first().locator('.protocole-remove-btn')).toHaveCount(0);
+  });
 });
 
 // =========================================================================

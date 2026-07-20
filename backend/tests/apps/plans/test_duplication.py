@@ -44,6 +44,7 @@ from tests.factories.enjeux import (
     CorEnjeuTaxonFactory, CorEnjeuHabitatFactory, CorEnjeuGeologieFactory,
     IndicateurFactory, IndicateurPressionFactory, MetriqueFactory, MesureFactory,
     SuiviInventaireFactory, OperationFactory, OperationAnneeFactory,
+    ProtocoleFactory,
 )
 
 
@@ -1314,6 +1315,31 @@ class TestDuplicateContentDeep:
         assert new_suivis.first().intitule == 'Suivi flore'
         # L'original reste rattaché à l'ancien plan.
         assert SuiviInventaire.objects.filter(id_pg=source_plan).count() == 1
+
+    def test_suivi_protocoles_cloned_not_shared(self, source_plan, user):
+        """#252 — les protocoles d'un suivi sont clonés, pas partagés avec la source.
+
+        Sans clonage explicite, le plan copié pointerait les mêmes lignes
+        `t_protocoles` que la source : éditer le protocole depuis la nouvelle
+        version modifierait aussi l'ancienne.
+        """
+        p1 = ProtocoleFactory(nom_protocole='Proto 1', id_utilisateur_ajout=user)
+        p2 = ProtocoleFactory(nom_protocole='Proto 2', id_utilisateur_ajout=user)
+        SuiviInventaireFactory(
+            id_pg=source_plan, intitule='Suivi multi',
+            protocoles=[p1, p2], id_utilisateur_ajout=user,
+        )
+
+        new_plan = self._duplicate(source_plan, user)
+        new_suivi = SuiviInventaire.objects.get(id_pg=new_plan)
+
+        # Les deux protocoles sont bien repris...
+        assert new_suivi.protocoles.count() == 2
+        assert {p.nom_protocole for p in new_suivi.protocoles.all()} == {'Proto 1', 'Proto 2'}
+        # ...mais sur de NOUVELLES lignes.
+        anciens_ids = {p1.id_protocole, p2.id_protocole}
+        nouveaux_ids = set(new_suivi.protocoles.values_list('id_protocole', flat=True))
+        assert nouveaux_ids.isdisjoint(anciens_ids)
 
     def test_operation_copied_and_relinked(self, source_plan, user):
         """Une opération liée à un indicateur est copiée et re-reliée au nouvel

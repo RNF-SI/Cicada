@@ -938,7 +938,7 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
             suivis = (
                 SuiviInventaire.objects
                 .filter(id_pg=plan)
-                .select_related('id_protocole')
+                .prefetch_related('protocoles')
             )
             if suivis.exists():
                 suivis_group = {
@@ -953,11 +953,11 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
                         'id': s.id_suivi_inventaire,
                         'children': []
                     }
-                    if s.id_protocole:
+                    for proto in s.protocoles.all():
                         s_node['children'].append({
-                            'name': s.id_protocole.protocole_campanule_nom or s.id_protocole.nom_protocole or f"Protocole #{s.id_protocole.id_protocole}",
+                            'name': proto.protocole_campanule_nom or proto.nom_protocole or f"Protocole #{proto.id_protocole}",
                             'entityType': 'protocole',
-                            'id': s.id_protocole.id_protocole
+                            'id': proto.id_protocole
                         })
                     suivis_group['children'].append(s_node)
                 root['children'].append(suivis_group)

@@ -4,7 +4,8 @@
 import { Component, OnInit, inject, signal, computed, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
-import { FormBuilder, FormControl, FormGroup, Validators, ReactiveFormsModule, FormsModule } from '@angular/forms';
+import { AbstractControl, FormArray, FormBuilder, FormControl, FormGroup, Validators, ReactiveFormsModule, FormsModule } from '@angular/forms';
+import { Subscription } from 'rxjs';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
@@ -123,16 +124,16 @@ export class InventaireFormComponent implements OnInit {
     details: true
   };
 
-  // CAMPanule autocomplete
-  campanuleSearchCtrl = new FormControl('');
-  campanuleResults = signal<CampanuleAutocomplete[]>([]);
-  selectedCampanule = signal<CampanuleAutocomplete | null>(null);
+  // CAMPanule autocomplete — un état par protocole (#252)
+  campanuleSearchCtrls: FormControl[] = [];
+  campanuleResults = signal<CampanuleAutocomplete[][]>([]);
+  selectedCampanules = signal<(CampanuleAutocomplete | null)[]>([]);
+  private campanuleSubs: Subscription[] = [];
 
   ngOnInit(): void {
     this.initForm();
     this.initTypeActionAutocomplete();
     this.loadNomenclatures();
-    this.initCampanuleAutocomplete();
     this.initValidatorsSync();
     this.loadRouteParams();
   }
@@ -146,9 +147,7 @@ export class InventaireFormComponent implements OnInit {
     const watched = [
       'integre_plan_gestion',
       'suit_indicateur',
-      'protocole_dans_campanule',
       'frequence_unite',
-      'documentation_disponible',
     ];
     for (const name of watched) {
       this.form.get(name)?.valueChanges.subscribe(() => this.syncConditionalValidators());
@@ -171,7 +170,6 @@ export class InventaireFormComponent implements OnInit {
     this.applyRequiredValidator('objectif_principal', true);
     this.applyRequiredValidator('cibles_principales', true);
     this.applyRequiredValidator('date_lancement_suivi', true);
-    this.applyRequiredValidator('protocole_dans_campanule', true);
 
     // Indicateurs (conditionnels)
     this.applyRequiredValidator('suit_indicateur', v('integre_plan_gestion') === true);
@@ -180,22 +178,29 @@ export class InventaireFormComponent implements OnInit {
       v('integre_plan_gestion') === true && v('suit_indicateur') === true,
     );
 
-    // Protocole : exclusif Oui/Non
-    const isCampanule = v('protocole_dans_campanule') === true;
-    const isNotCampanule = v('protocole_dans_campanule') === false;
-    const protocoleSet = isCampanule || isNotCampanule;
+    // Chaque protocole porte ses propres validators conditionnels (#252).
+    let auMoinsUnProtocoleRenseigne = false;
+    for (const group of this.protocolesArray.controls) {
+      const gv = (name: string) => group.get(name)?.value;
+      const isCampanule = gv('protocole_dans_campanule') === true;
+      const isNotCampanule = gv('protocole_dans_campanule') === false;
+      if (isCampanule || isNotCampanule) auMoinsUnProtocoleRenseigne = true;
 
-    this.applyRequiredValidator('cd_protocole_campanule', isCampanule);
-    // #413 — le nom d'un protocole non-CAMPanule (nom local) est facultatif.
-    this.applyRequiredValidator('nom_protocole', false);
-    // Champs visibles dans les 2 modes (dès qu'un mode est choisi)
-    this.applyRequiredValidator('frequence_nombre', protocoleSet);
-    this.applyRequiredValidator('frequence_unite', protocoleSet);
-    // #414 — « Respect strict du protocole » réservé aux protocoles CAMPanule.
-    this.applyRequiredValidator('respect_protocole', isCampanule);
-    // Champs visibles uniquement en mode hors-CAMPanule
-    this.applyRequiredValidator('documentation_disponible', isNotCampanule);
-    this.applyRequiredValidator('nb_etp_cycle', isNotCampanule);
+      this.setRequired(group.get('protocole_dans_campanule'), true);
+      this.setRequired(group.get('cd_protocole_campanule'), isCampanule);
+      // #413 — le nom d'un protocole non-CAMPanule (nom local) est facultatif.
+      this.setRequired(group.get('nom_protocole'), false);
+      // #414 — « Respect strict du protocole » réservé aux protocoles CAMPanule.
+      this.setRequired(group.get('respect_protocole'), isCampanule);
+      // Champs visibles uniquement en mode hors-CAMPanule
+      this.setRequired(group.get('documentation_disponible'), isNotCampanule);
+      this.setRequired(group.get('nb_etp_cycle'), isNotCampanule);
+    }
+
+    // La fréquence est portée par le suivi : requise dès qu'un protocole est
+    // renseigné, quel qu'il soit.
+    this.applyRequiredValidator('frequence_nombre', auMoinsUnProtocoleRenseigne);
+    this.applyRequiredValidator('frequence_unite', auMoinsUnProtocoleRenseigne);
   }
 
   private applyRequiredValidator(controlName: string, required: boolean): void {
@@ -218,6 +223,16 @@ export class InventaireFormComponent implements OnInit {
     ctrl.updateValueAndValidity({ emitEvent: false });
   }
 
+  private setRequired(ctrl: AbstractControl | null, required: boolean): void {
+    if (!ctrl) return;
+    if (required) {
+      ctrl.setValidators([Validators.required]);
+    } else {
+      ctrl.clearValidators();
+    }
+    ctrl.updateValueAndValidity({ emitEvent: false });
+  }
+
   private initForm(): void {
     this.form = this.fb.group({
       // Main card
@@ -233,7 +248,42 @@ export class InventaireFormComponent implements OnInit {
       date_lancement_suivi: [null],
       id_statut: [null],
       annee_fin_suivi: [null],
-      // Protocole section
+      // Protocoles (#252 — un suivi peut en mobiliser plusieurs)
+      protocoles: this.fb.array([]),
+      // Fréquence : portée par le suivi, pas par le protocole, mais affichée
+      // dans la section protocole.
+      frequence_nombre: [null],
+      frequence_unite: [''],
+      frequence_unite_precision: [''],
+      // Bancarisation section
+      outil_bancarisation: [''],
+      outil_saisie: [''],
+      transmission_donnee: [null],
+      // Details section
+      commentaires: [''],
+    });
+
+    // Un formulaire vierge démarre avec un protocole (cas très majoritaire).
+    this.addProtocole();
+  }
+
+  // ════════════════════════════════════════════════
+  // Protocoles (FormArray) — #252
+  // ════════════════════════════════════════════════
+
+  get protocolesArray(): FormArray<FormGroup> {
+    return this.form.get('protocoles') as FormArray<FormGroup>;
+  }
+
+  /** Nombre de protocoles au-delà duquel on affiche une mention d'ergonomie. */
+  private readonly protocolesSoftLimit = 3;
+
+  get showProtocolesSoftLimitHint(): boolean {
+    return this.protocolesArray.length > this.protocolesSoftLimit;
+  }
+
+  private createProtocoleGroup(): FormGroup {
+    return this.fb.group({
       protocole_dans_campanule: [null],
       protocole_campanule_nom: [''],
       cd_protocole_campanule: [null],
@@ -249,16 +299,65 @@ export class InventaireFormComponent implements OnInit {
       periode_suivi: [[] as string[]],
       documentation_disponible: [null],
       url_documentation: [''],
-      frequence_nombre: [null],
-      frequence_unite: [''],
-      frequence_unite_precision: [''],
-      // Bancarisation section
-      outil_bancarisation: [''],
-      outil_saisie: [''],
-      transmission_donnee: [null],
-      // Details section
-      commentaires: [''],
     });
+  }
+
+  /**
+   * Ajoute un protocole vide et lui attache son propre état d'autocomplete
+   * CAMPanule (chaque ligne a sa recherche et sa sélection indépendantes).
+   */
+  addProtocole(): void {
+    const group = this.createProtocoleGroup();
+    this.protocolesArray.push(group);
+
+    const searchCtrl = new FormControl('');
+    this.campanuleSearchCtrls.push(searchCtrl);
+    this.campanuleResults.update((all) => [...all, []]);
+    this.selectedCampanules.update((all) => [...all, null]);
+    this.bindCampanuleAutocomplete(searchCtrl, this.campanuleSearchCtrls.length - 1);
+
+    // Le nouveau groupe doit recevoir ses validators conditionnels.
+    group.valueChanges.subscribe(() => this.syncConditionalValidators());
+    this.syncConditionalValidators();
+  }
+
+  /** Retire un protocole (le dernier restant n'est pas supprimable). */
+  removeProtocole(index: number): void {
+    if (this.protocolesArray.length <= 1) return;
+    this.protocolesArray.removeAt(index);
+    this.campanuleSearchCtrls.splice(index, 1);
+    this.campanuleResults.update((all) => all.filter((_, i) => i !== index));
+    this.selectedCampanules.update((all) => all.filter((_, i) => i !== index));
+    // Les souscriptions restantes portent un index devenu faux : on rebranche.
+    this.rebindCampanuleAutocompletes();
+    this.syncConditionalValidators();
+  }
+
+  protocoleGroup(index: number): FormGroup {
+    return this.protocolesArray.at(index);
+  }
+
+  /** Vide le FormArray et le reconstruit avec `count` blocs vierges. */
+  private resetProtocoles(count: number): void {
+    this.protocolesArray.clear();
+    this.campanuleSearchCtrls = [];
+    this.campanuleResults.set([]);
+    this.selectedCampanules.set([]);
+    this.campanuleSubs.forEach((sub) => sub.unsubscribe());
+    this.campanuleSubs = [];
+    for (let i = 0; i < count; i++) {
+      this.addProtocole();
+    }
+  }
+
+  /** Titre affiché dans l'en-tête d'un bloc protocole. */
+  protocoleTitle(index: number): string {
+    const group = this.protocolesArray.at(index);
+    const nom =
+      group?.get('protocole_campanule_nom')?.value?.trim() ||
+      group?.get('nom_protocole')?.value?.trim();
+    const defaut = this.translate.instant('inventaires.form.protocoleIndex', { index: index + 1 });
+    return nom || defaut;
   }
 
   // ════════════════════════════════════════════════
@@ -305,34 +404,63 @@ export class InventaireFormComponent implements OnInit {
   // CAMPanule autocomplete
   // ════════════════════════════════════════════════
 
-  private initCampanuleAutocomplete(): void {
-    this.campanuleSearchCtrl.valueChanges.pipe(
-      debounceTime(300),
-      distinctUntilChanged(),
-      filter((val): val is string => typeof val === 'string' && val.length >= 1),
-      switchMap((search) => this.campanuleService.autocomplete(search))
-    ).subscribe({
-      next: (results) => this.campanuleResults.set(results),
-      error: () => this.campanuleResults.set([]),
-    });
+  /** (Re)branche les souscriptions d'autocomplete sur les index courants. */
+  private rebindCampanuleAutocompletes(): void {
+    this.campanuleSubs.forEach((sub) => sub.unsubscribe());
+    this.campanuleSubs = [];
+    this.campanuleSearchCtrls.forEach((ctrl, index) =>
+      this.bindCampanuleAutocomplete(ctrl, index),
+    );
+  }
+
+  private bindCampanuleAutocomplete(searchCtrl: FormControl, index: number): void {
+    this.campanuleSubs.push(
+      searchCtrl.valueChanges.pipe(
+        debounceTime(300),
+        distinctUntilChanged(),
+        filter((val): val is string => typeof val === 'string' && val.length >= 1),
+        switchMap((search) => this.campanuleService.autocomplete(search))
+      ).subscribe({
+        next: (results) => this.setCampanuleResults(index, results),
+        error: () => this.setCampanuleResults(index, []),
+      })
+    );
 
     // Si l'utilisateur édite le texte après une sélection, on invalide la
     // sélection — sinon le formulaire conserverait un cd_protocole qui ne
     // correspond plus à ce qui est affiché.
-    this.campanuleSearchCtrl.valueChanges.subscribe((val) => {
-      if (typeof val !== 'string') return; // option object → géré par onCampanuleSelected
-      const selected = this.selectedCampanule();
-      if (selected && val !== selected.lb_protocole_court) {
-        this.selectedCampanule.set(null);
-        this.form.patchValue({
-          protocole_campanule_nom: '',
-          cd_protocole_campanule: null,
-          description_protocole: '',
-          objectif_protocole: '',
-          periode_echantillonnage: '',
-        });
-      }
-    });
+    this.campanuleSubs.push(
+      searchCtrl.valueChanges.subscribe((val) => {
+        if (typeof val !== 'string') return; // option object → géré par onCampanuleSelected
+        const selected = this.selectedCampanules()[index];
+        if (selected && val !== selected.lb_protocole_court) {
+          this.setSelectedCampanule(index, null);
+          this.protocolesArray.at(index)?.patchValue({
+            protocole_campanule_nom: '',
+            cd_protocole_campanule: null,
+            description_protocole: '',
+            objectif_protocole: '',
+            periode_echantillonnage: '',
+          });
+        }
+      })
+    );
+  }
+
+  private setCampanuleResults(index: number, results: CampanuleAutocomplete[]): void {
+    this.campanuleResults.update((all) => all.map((r, i) => (i === index ? results : r)));
+  }
+
+  private setSelectedCampanule(index: number, value: CampanuleAutocomplete | null): void {
+    this.selectedCampanules.update((all) => all.map((s, i) => (i === index ? value : s)));
+  }
+
+  campanuleResultsAt(index: number): CampanuleAutocomplete[] {
+    return this.campanuleResults()[index] || [];
+  }
+
+  selectedCampanuleAt(index: number): CampanuleAutocomplete | null {
+    return this.selectedCampanules()[index] || null;
   }
 
   /**
@@ -340,15 +468,16 @@ export class InventaireFormComponent implements OnInit {
    * saisi mais qu'aucun protocole n'a été sélectionné dans la liste, on vide
    * le champ — l'utilisateur doit obligatoirement choisir une option.
    */
-  onCampanuleBlur(): void {
-    const val = this.campanuleSearchCtrl.value;
-    const selected = this.selectedCampanule();
+  onCampanuleBlur(index: number): void {
+    const ctrl = this.campanuleSearchCtrls[index];
+    const val = ctrl?.value;
+    const selected = this.selectedCampanuleAt(index);
     if (typeof val === 'string' && val.trim() && !selected) {
-      this.campanuleSearchCtrl.setValue('', { emitEvent: false });
-      this.campanuleResults.set([]);
+      ctrl.setValue('', { emitEvent: false });
+      this.setCampanuleResults(index, []);
     }
     // Marque le contrôle requis comme touched pour afficher l'erreur si besoin.
-    this.form.get('cd_protocole_campanule')?.markAsTouched();
+    this.protocolesArray.at(index)?.get('cd_protocole_campanule')?.markAsTouched();
   }
 
   private loadNomenclatures(): void {
@@ -448,8 +577,16 @@ export class InventaireFormComponent implements OnInit {
   }
 
   /** Show documentation URL when documentation_disponible == true */
-  get showDocumentationUrl(): boolean {
-    return this.form.get('documentation_disponible')?.value === true;
+  showDocumentationUrl(index: number): boolean {
+    return this.protocolesArray.at(index)?.get('documentation_disponible')?.value === true;
+  }
+
+  /** Au moins un protocole a un mode (CAMPanule ou non) choisi. */
+  get hasAnyProtocoleRenseigne(): boolean {
+    return this.protocolesArray.controls.some((g) => {
+      const v = g.get('protocole_dans_campanule')?.value;
+      return v === true || v === false;
+    });
   }
 
   /** Show frequency precision field when frequence_unite == 'AUTRE' */
@@ -522,38 +659,46 @@ export class InventaireFormComponent implements OnInit {
       commentaires: suivi.commentaires || '',
     });
 
-    // Populate protocole fields
-    if (suivi.protocole) {
-      const p = suivi.protocole;
-      this.form.patchValue({
-        protocole_dans_campanule: p.protocole_dans_campanule,
-        protocole_campanule_nom: p.protocole_campanule_nom || '',
-        cd_protocole_campanule: p.cd_protocole_campanule,
-        nb_etp_cycle: p.nb_etp_cycle,
-        nom_protocole: p.nom_protocole || '',
-        description_protocole: p.description_protocole || '',
-        objectif_protocole: p.objectif_protocole || '',
-        periode_echantillonnage: p.periode_echantillonnage || '',
-        respect_protocole: p.respect_protocole,
-        justification_non_respect: p.justification_non_respect || '',
-        differences_protocole: p.differences_protocole || '',
-        mode_validation: p.mode_validation || '',
-        periode_suivi: p.periode_suivi ? p.periode_suivi.split(',').map(s => s.trim()).filter(Boolean) : [],
-        documentation_disponible: p.documentation_disponible ?? null,
-        url_documentation: p.url_documentation || '',
-      });
+    // Populate protocoles (#252) — `protocole` singulier conservé en repli pour
+    // les réponses d'API antérieures.
+    const protocoles = suivi.protocoles?.length
+      ? suivi.protocoles
+      : (suivi.protocole ? [suivi.protocole] : []);
 
-      // Restore autocomplete display if Campanule was selected
-      if (p.protocole_dans_campanule && p.protocole_campanule_nom) {
-        this.campanuleSearchCtrl.setValue(p.protocole_campanule_nom, { emitEvent: false });
-        if (p.cd_protocole_campanule) {
-          this.selectedCampanule.set({
-            cd_protocole: p.cd_protocole_campanule,
-            search_name: p.protocole_campanule_nom,
-            lb_protocole_court: p.protocole_campanule_nom,
-          });
+    if (protocoles.length > 0) {
+      this.resetProtocoles(protocoles.length);
+
+      protocoles.forEach((p, index) => {
+        this.protocolesArray.at(index).patchValue({
+          protocole_dans_campanule: p.protocole_dans_campanule,
+          protocole_campanule_nom: p.protocole_campanule_nom || '',
+          cd_protocole_campanule: p.cd_protocole_campanule,
+          nb_etp_cycle: p.nb_etp_cycle,
+          nom_protocole: p.nom_protocole || '',
+          description_protocole: p.description_protocole || '',
+          objectif_protocole: p.objectif_protocole || '',
+          periode_echantillonnage: p.periode_echantillonnage || '',
+          respect_protocole: p.respect_protocole,
+          justification_non_respect: p.justification_non_respect || '',
+          differences_protocole: p.differences_protocole || '',
+          mode_validation: p.mode_validation || '',
+          periode_suivi: p.periode_suivi ? p.periode_suivi.split(',').map(s => s.trim()).filter(Boolean) : [],
+          documentation_disponible: p.documentation_disponible ?? null,
+          url_documentation: p.url_documentation || '',
+        });
+
+        // Restore autocomplete display if Campanule was selected
+        if (p.protocole_dans_campanule && p.protocole_campanule_nom) {
+          this.campanuleSearchCtrls[index]?.setValue(p.protocole_campanule_nom, { emitEvent: false });
+          if (p.cd_protocole_campanule) {
+            this.setSelectedCampanule(index, {
+              cd_protocole: p.cd_protocole_campanule,
+              search_name: p.protocole_campanule_nom,
+              lb_protocole_court: p.protocole_campanule_nom,
+            });
+          }
         }
-      }
+      });
     }
 
     // Réajuster les validators d'après l'état chargé (sinon les conditionnels
@@ -592,13 +737,16 @@ export class InventaireFormComponent implements OnInit {
     return campanuleProtocoleLabel(option);
   }
 
-  onCampanuleSelected(event: any): void {
+  onCampanuleSelected(event: any, index: number): void {
     const selected: CampanuleAutocomplete = event.option.value;
-    this.selectedCampanule.set(selected);
-    this.campanuleSearchCtrl.setValue(campanuleProtocoleLabel(selected), { emitEvent: false });
+    const group = this.protocolesArray.at(index);
+    if (!group) return;
+
+    this.setSelectedCampanule(index, selected);
+    this.campanuleSearchCtrls[index]?.setValue(campanuleProtocoleLabel(selected), { emitEvent: false });
 
     // Auto-fill form fields from Campanule reference data
-    this.form.patchValue({
+    group.patchValue({
       protocole_campanule_nom: campanuleProtocoleLabel(selected),
       cd_protocole_campanule: selected.cd_protocole,
     });
@@ -606,7 +754,7 @@ export class InventaireFormComponent implements OnInit {
     // Fetch full protocol details to populate description/objectif/période
     this.campanuleService.getProtocole(selected.cd_protocole).subscribe({
       next: (detail) => {
-        this.form.patchValue({
+        group.patchValue({
           description_protocole: detail.description || '',
           objectif_protocole: detail.descr_objectif_prot || '',
         });
@@ -617,17 +765,17 @@ export class InventaireFormComponent implements OnInit {
             .map(e => e.periode_an)
             .join('; ');
           if (periodes) {
-            this.form.patchValue({ periode_echantillonnage: periodes });
+            group.patchValue({ periode_echantillonnage: periodes });
           }
         }
       },
     });
   }
 
-  onCampanuleReset(): void {
-    this.selectedCampanule.set(null);
-    this.campanuleSearchCtrl.setValue('');
-    this.form.patchValue({
+  onCampanuleReset(index: number): void {
+    this.setSelectedCampanule(index, null);
+    this.campanuleSearchCtrls[index]?.setValue('');
+    this.protocolesArray.at(index)?.patchValue({
       protocole_campanule_nom: '',
       cd_protocole_campanule: null,
       description_protocole: '',
@@ -636,8 +784,8 @@ export class InventaireFormComponent implements OnInit {
     });
   }
 
-  consulterProtocole(): void {
-    const cdProtocole = this.form.get('cd_protocole_campanule')?.value;
+  consulterProtocole(index: number): void {
+    const cdProtocole = this.protocolesArray.at(index)?.get('cd_protocole_campanule')?.value;
     if (!cdProtocole) return;
 
     this.dialog.open(ProtocoleCampanuleDialogComponent, {
@@ -648,20 +796,36 @@ export class InventaireFormComponent implements OnInit {
     });
   }
 
-  get isCampanule(): boolean {
-    return this.form.get('protocole_dans_campanule')?.value === true;
+  isCampanule(index: number): boolean {
+    return this.protocolesArray.at(index)?.get('protocole_dans_campanule')?.value === true;
   }
 
-  get isNotCampanule(): boolean {
-    return this.form.get('protocole_dans_campanule')?.value === false;
+  isNotCampanule(index: number): boolean {
+    return this.protocolesArray.at(index)?.get('protocole_dans_campanule')?.value === false;
   }
 
-  get isNonRespect(): boolean {
-    return this.form.get('respect_protocole')?.value === false;
+  isNonRespect(index: number): boolean {
+    return this.protocolesArray.at(index)?.get('respect_protocole')?.value === false;
   }
 
-  get hasCampanuleSelected(): boolean {
-    return !!this.form.get('cd_protocole_campanule')?.value;
+  hasCampanuleSelected(index: number): boolean {
+    return !!this.protocolesArray.at(index)?.get('cd_protocole_campanule')?.value;
+  }
+
+  /** Erreur d'un contrôle d'un bloc protocole (équivalent indexé de shouldShowError). */
+  shouldShowProtocoleError(index: number, controlName: string): boolean {
+    const ctrl = this.protocolesArray.at(index)?.get(controlName);
+    if (!ctrl) return false;
+    return ctrl.invalid && (ctrl.touched || ctrl.dirty);
+  }
+
+  getProtocoleErrorMessage(index: number, controlName: string): string | null {
+    const ctrl = this.protocolesArray.at(index)?.get(controlName);
+    if (!ctrl || !ctrl.errors) return null;
+    if (ctrl.errors['required']) {
+      return this.translate.instant('common.validation.required');
+    }
+    return null;
   }
 
   /** Format date to ISO string (YYYY-MM-DD) for backend */
@@ -737,6 +901,14 @@ export class InventaireFormComponent implements OnInit {
         labels.add(this.translate.instant(this.fieldLabelKeys[name]));
       }
     }
+    // Les champs protocole vivent dans un FormArray : on les parcourt à part (#252).
+    for (const group of this.protocolesArray.controls) {
+      for (const [name, control] of Object.entries(group.controls)) {
+        if (control.invalid && this.fieldLabelKeys[name]) {
+          labels.add(this.translate.instant(this.fieldLabelKeys[name]));
+        }
+      }
+    }
     const list = Array.from(labels);
     if (list.length > 0) {
       this.errorMessage.set(
@@ -768,6 +940,34 @@ export class InventaireFormComponent implements OnInit {
       const banner = this.elRef.nativeElement.querySelector('.error-banner');
       banner?.scrollIntoView({ behavior: 'smooth', block: 'center' });
     });
+  }
+
+  /** Sérialise un bloc protocole du FormArray vers le format attendu par l'API. */
+  private buildProtocolePayload(pv: Record<string, any>): Record<string, unknown> {
+    const data: Record<string, unknown> = {};
+    if (pv['protocole_dans_campanule'] != null) data['protocole_dans_campanule'] = pv['protocole_dans_campanule'];
+    if (pv['protocole_campanule_nom']?.trim()) data['protocole_campanule_nom'] = pv['protocole_campanule_nom'].trim();
+    if (pv['cd_protocole_campanule'] != null) data['cd_protocole_campanule'] = pv['cd_protocole_campanule'];
+    if (pv['nb_etp_cycle'] != null) data['nb_etp_cycle'] = pv['nb_etp_cycle'];
+    if (pv['nom_protocole']?.trim()) data['nom_protocole'] = pv['nom_protocole'].trim();
+    if (pv['description_protocole']?.trim()) data['description_protocole'] = pv['description_protocole'].trim();
+    if (pv['objectif_protocole']?.trim()) data['objectif_protocole'] = pv['objectif_protocole'].trim();
+    if (pv['periode_echantillonnage']?.trim()) data['periode_echantillonnage'] = pv['periode_echantillonnage'].trim();
+    if (pv['respect_protocole'] != null) data['respect_protocole'] = pv['respect_protocole'];
+    if (pv['justification_non_respect']?.trim()) data['justification_non_respect'] = pv['justification_non_respect'].trim();
+    if (pv['differences_protocole']?.trim()) data['differences_protocole'] = pv['differences_protocole'].trim();
+    if (pv['mode_validation']?.trim()) data['mode_validation'] = pv['mode_validation'].trim();
+    if (Array.isArray(pv['periode_suivi']) && pv['periode_suivi'].length > 0) {
+      data['periode_suivi'] = pv['periode_suivi'].join(',');
+    } else if (typeof pv['periode_suivi'] === 'string' && pv['periode_suivi']) {
+      // Rétrocompat si jamais on reçoit une string
+      data['periode_suivi'] = pv['periode_suivi'];
+    }
+    if (pv['documentation_disponible'] != null) data['documentation_disponible'] = pv['documentation_disponible'];
+    if (pv['documentation_disponible'] === true && pv['url_documentation']?.trim()) {
+      data['url_documentation'] = pv['url_documentation'].trim();
+    }
+    return data;
   }
 
   save(): void {
@@ -826,34 +1026,10 @@ export class InventaireFormComponent implements OnInit {
     // Details
     if (fv.commentaires?.trim()) payload.commentaires = fv.commentaires.trim();
 
-    // Build nested protocole
-    const protocoleData: Record<string, unknown> = {};
-    if (fv.protocole_dans_campanule != null) protocoleData['protocole_dans_campanule'] = fv.protocole_dans_campanule;
-    if (fv.protocole_campanule_nom?.trim()) protocoleData['protocole_campanule_nom'] = fv.protocole_campanule_nom.trim();
-    if (fv.cd_protocole_campanule != null) protocoleData['cd_protocole_campanule'] = fv.cd_protocole_campanule;
-    if (fv.nb_etp_cycle != null) protocoleData['nb_etp_cycle'] = fv.nb_etp_cycle;
-    if (fv.nom_protocole?.trim()) protocoleData['nom_protocole'] = fv.nom_protocole.trim();
-    if (fv.description_protocole?.trim()) protocoleData['description_protocole'] = fv.description_protocole.trim();
-    if (fv.objectif_protocole?.trim()) protocoleData['objectif_protocole'] = fv.objectif_protocole.trim();
-    if (fv.periode_echantillonnage?.trim()) protocoleData['periode_echantillonnage'] = fv.periode_echantillonnage.trim();
-    if (fv.respect_protocole != null) protocoleData['respect_protocole'] = fv.respect_protocole;
-    if (fv.justification_non_respect?.trim()) protocoleData['justification_non_respect'] = fv.justification_non_respect.trim();
-    if (fv.differences_protocole?.trim()) protocoleData['differences_protocole'] = fv.differences_protocole.trim();
-    if (fv.mode_validation?.trim()) protocoleData['mode_validation'] = fv.mode_validation.trim();
-    if (Array.isArray(fv.periode_suivi) && fv.periode_suivi.length > 0) {
-      protocoleData['periode_suivi'] = fv.periode_suivi.join(',');
-    } else if (typeof fv.periode_suivi === 'string' && fv.periode_suivi) {
-      // Rétrocompat si jamais on reçoit une string
-      protocoleData['periode_suivi'] = fv.periode_suivi;
-    }
-    if (fv.documentation_disponible != null) protocoleData['documentation_disponible'] = fv.documentation_disponible;
-    if (fv.documentation_disponible === true && fv.url_documentation?.trim()) {
-      protocoleData['url_documentation'] = fv.url_documentation.trim();
-    }
-
-    if (Object.keys(protocoleData).length > 0) {
-      payload.protocole = protocoleData;
-    }
+    // Build nested protocoles (#252) — la liste envoyée fait foi côté backend.
+    payload.protocoles = (fv.protocoles || [])
+      .map((pv: Record<string, any>) => this.buildProtocolePayload(pv))
+      .filter((p: Record<string, unknown>) => Object.keys(p).length > 0);
 
     const request$ = this.isEditMode()
       ? this.inventaireService.updateInventaire(this.suiviId()!, payload)

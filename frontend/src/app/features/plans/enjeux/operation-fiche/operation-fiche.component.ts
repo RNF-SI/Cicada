@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { EnjeuService } from '../../../../core/services/enjeu.service';
-import { MetriqueRef, Operation } from '../../../../core/models/enjeu.model';
+import { MetriqueRef, Operation, Protocole } from '../../../../core/models/enjeu.model';
 import { LeafletMapEditComponent } from '../../../../shared/components/leaflet-map-edit/leaflet-map-edit.component';
 import { MetriqueGridDisplayComponent } from '../../../../shared/components/metrique-grid-display/metrique-grid-display.component';
 import { CheckboxComponent } from '../../../../shared/components/checkbox/checkbox.component';
@@ -222,13 +222,33 @@ export class OperationFicheComponent implements OnInit {
    * Le protocole et ses objectifs/cibles n'étaient pas restitués dans la fiche.
    */
   readonly suiviInventaire = computed(() => this.operation()?.suivi_inventaire ?? null);
-  readonly protocole = computed(() => this.suiviInventaire()?.protocole ?? null);
 
-  /** Nom du protocole (saisi librement ou repris du catalogue CAMPanule). */
-  readonly protocoleNom = computed(() => {
-    const p = this.protocole();
-    return p?.nom_protocole || p?.protocole_campanule_nom || null;
+  /**
+   * Protocoles du suivi (#252). Repli sur `protocole` singulier pour les
+   * réponses d'API antérieures.
+   */
+  readonly protocoles = computed(() => {
+    const s = this.suiviInventaire();
+    if (s?.protocoles?.length) return s.protocoles;
+    return s?.protocole ? [s.protocole] : [];
   });
+
+  /** Premier protocole — sert au détail quand il n'y en a qu'un. */
+  readonly protocole = computed<Protocole | null>(() => this.protocoles()[0] ?? null);
+
+  /**
+   * Nom des protocoles, compacté sur une ligne (#252, réponse 5 de l'issue :
+   * « il faut que les protocoles soient compactés dans la visualisation »).
+   */
+  readonly protocoleNom = computed(() => {
+    const noms = this.protocoles()
+      .map((p) => p.nom_protocole || p.protocole_campanule_nom)
+      .filter((n): n is string => !!n);
+    return noms.length ? noms.join(' · ') : null;
+  });
+
+  /** Le détail (description, objectif) n'est affiché que pour un protocole unique. */
+  readonly showProtocoleDetail = computed(() => this.protocoles().length === 1);
 
   /** Vrai dès qu'une information de protocole/suivi est renseignée. */
   readonly hasProtocoleSection = computed(() => {

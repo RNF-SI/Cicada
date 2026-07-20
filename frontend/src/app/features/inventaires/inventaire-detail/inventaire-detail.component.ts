@@ -13,6 +13,7 @@ import { HeaderComponent } from '../../../shared/components/header/header.compon
 import { ProtocoleCampanuleDialogComponent } from '../../../shared/components/modals/protocole-campanule-dialog/protocole-campanule-dialog.component';
 import { InventaireService } from '../../../core/services/inventaire.service';
 import { SuiviInventaireDetail } from '../../../core/models/inventaire.model';
+import { Protocole } from '../../../core/models/enjeu.model';
 import { taxonRefsToText } from '../../../shared/utils/taxon-ref.utils';
 
 @Component({
@@ -66,14 +67,45 @@ export class InventaireDetailComponent implements OnInit {
     return `${s.frequence_nombre} ${this.translate.instant('inventaires.form.frequenceFoisPar')} ${unite}`;
   });
 
-  isCampanule = computed(() => this.suivi()?.protocole?.protocole_dans_campanule === true);
-  isNotCampanule = computed(() => this.suivi()?.protocole?.protocole_dans_campanule === false);
-  isNonRespect = computed(() => this.suivi()?.protocole?.respect_protocole === false);
-
-  hasProtocole = computed(() => {
-    const p = this.suivi()?.protocole;
-    return p && (p.protocole_dans_campanule === true || p.protocole_dans_campanule === false);
+  /**
+   * Protocoles du suivi (#252). Repli sur `protocole` singulier pour les
+   * réponses d'API antérieures.
+   */
+  protocoles = computed<Protocole[]>(() => {
+    const s = this.suivi();
+    if (s?.protocoles?.length) return s.protocoles;
+    return s?.protocole ? [s.protocole] : [];
   });
+
+  /** N'affiche que les protocoles dont le mode (CAMPanule ou non) est renseigné. */
+  protocolesAffichables = computed<Protocole[]>(() =>
+    this.protocoles().filter(
+      (p) => p.protocole_dans_campanule === true || p.protocole_dans_campanule === false,
+    ),
+  );
+
+  hasProtocole = computed(() => this.protocolesAffichables().length > 0);
+
+  isCampanule(p: Protocole): boolean {
+    return p.protocole_dans_campanule === true;
+  }
+
+  isNotCampanule(p: Protocole): boolean {
+    return p.protocole_dans_campanule === false;
+  }
+
+  isNonRespect(p: Protocole): boolean {
+    return p.respect_protocole === false;
+  }
+
+  /** Libellé compact d'un protocole, pour l'en-tête de son bloc. */
+  protocoleNom(p: Protocole, index: number): string {
+    return (
+      p.protocole_campanule_nom?.trim() ||
+      p.nom_protocole?.trim() ||
+      this.translate.instant('inventaires.form.protocoleIndex', { index: index + 1 })
+    );
+  }
 
   ngOnInit(): void {
     const idStr = this.route.snapshot.paramMap.get('suiviId');
@@ -108,8 +140,8 @@ export class InventaireDetailComponent implements OnInit {
     }
   }
 
-  consulterProtocole(): void {
-    const cdProtocole = this.suivi()?.protocole?.cd_protocole_campanule;
+  consulterProtocole(p: Protocole): void {
+    const cdProtocole = p.cd_protocole_campanule;
     if (!cdProtocole) return;
     this.dialog.open(ProtocoleCampanuleDialogComponent, {
       width: '900px',

@@ -560,3 +560,44 @@ $form-side-margin: $page-gutter;
     padding: $spacing-xs $spacing-md;
   }
 }
+
+// ═══════════════════════════════════════════════════════
+// Protocoles multiples (#252)
+// ═══════════════════════════════════════════════════════
+
+.protocole-block {
+  & + & {
+    margin-top: $spacing-lg;
+    padding-top: $spacing-lg;
+    border-top: 1px solid $gray-lighter;
+  }
+}
+
+.protocole-block-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: $spacing-sm;
+  margin-bottom: $spacing-sm;
+}
+
+.protocole-block-title {
+  font-weight: 700;
+  color: $primary-color;
+}
+
+.protocole-remove-btn {
+  color: $error-color;
+}
+
+.protocole-add-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: $spacing-sm;
+  margin-top: $spacing-lg;
+}
+
+.protocole-limit-hint {
+  color: $gray-dark;
+}

@@ -59,7 +59,8 @@ export interface SuiviInventaireDetail {
   cibles_principales?: string;
   taxon_taxref?: string;
   date_lancement_suivi?: string;
-  // Protocole (nested)
+  // Protocoles (#252) — `protocole` = premier de la liste, déprécié
+  protocoles?: Protocole[];
   protocole?: Protocole;
   // Bancarisation
   outil_bancarisation?: string;
@@ -102,7 +103,8 @@ export interface SuiviInventaireCreatePayload {
   cibles_principales?: string;
   taxon_taxref?: string;
   date_lancement_suivi?: string;
-  // Protocole (nested writable)
+  // Protocoles (nested writable, #252) — `protocole` singulier déprécié
+  protocoles?: Omit<Protocole, 'id_protocole' | 'date_ajout' | 'date_maj'>[];
   protocole?: Omit<Protocole, 'id_protocole' | 'date_ajout' | 'date_maj'>;
   // Bancarisation
   outil_bancarisation?: string;

@@ -375,6 +375,58 @@
         <app-accordion variant="default" size="lg" [title]="'enjeux.operations.protocoleTitle' | translate" [expanded]="sectionsOpen['protocole']" (expandedChange)="sectionsOpen['protocole'] = $event" [class.readonly-section]="estSuiviExistant()">
   <img accordionIcon src="assets/images/ellipses/ellipse-yellow.png" alt="" class="section-dot">
   <div class="section-content">
+<!-- #252 — suivi existant à plusieurs protocoles : liste complète en lecture seule.
+     Les protocoles se saisissent dans la fiche du suivi, pas depuis l'action. -->
+@if (estSuiviExistant() && suiviProtocoles().length > 1) {
+  <p class="text-mention protocoles-readonly-intro">
+    {{ 'enjeux.operations.protocolesMultiplesHint' | translate }}
+  </p>
+  @for (p of suiviProtocoles(); track $index) {
+    <div class="protocole-readonly-block">
+      <h4 class="protocole-readonly-title">
+        {{ protocoleNom(p, $index) }}
+        @if (p.cd_protocole_campanule) {
+          <a class="consulter-link" (click)="consulterProtocoleDeLaListe(p)">
+            {{ 'enjeux.operations.consulterProtocole' | translate }}
+          </a>
+        }
+      </h4>
+
+      @if (p.description_protocole) {
+        <div class="readonly-field">
+          <label class="readonly-label">{{ 'enjeux.operations.descriptionProtocole' | translate }}</label>
+          <div class="readonly-value">{{ p.description_protocole }}</div>
+        </div>
+      }
+      @if (p.objectif_protocole) {
+        <div class="readonly-field">
+          <label class="readonly-label">{{ 'enjeux.operations.objectifProtocole' | translate }}</label>
+          <div class="readonly-value">{{ p.objectif_protocole }}</div>
+        </div>
+      }
+      @if (p.periode_echantillonnage) {
+        <div class="readonly-field">
+          <label class="readonly-label">{{ 'enjeux.operations.periodeEchantillonnage' | translate }}</label>
+          <div class="readonly-value">{{ p.periode_echantillonnage }}</div>
+        </div>
+      }
+      @if (p.respect_protocole === false) {
+        @if (p.justification_non_respect) {
+          <div class="readonly-field">
+            <label class="readonly-label">{{ 'enjeux.operations.justificationNonRespect' | translate }}</label>
+            <div class="readonly-value">{{ p.justification_non_respect }}</div>
+          </div>
+        }
+        @if (p.differences_protocole) {
+          <div class="readonly-field">
+            <label class="readonly-label">{{ 'enjeux.operations.differencesProtocole' | translate }}</label>
+            <div class="readonly-value">{{ p.differences_protocole }}</div>
+          </div>
+        }
+      }
+    </div>
+  }
+} @else {
 <!-- Protocole répertorié dans Campanule -->
               <div class="radio-field-row">
                 <span class="radio-field-label">
@@ -507,6 +559,7 @@
                          [placeholder]="'enjeux.operations.periodeEchantillonnagePlaceholder' | translate">
 </app-form-field>
               }
+}
 
               <!-- Fréquence de l'action -->
               <div class="frequence-row">

@@ -348,9 +348,10 @@ class TestOperationCreateEndpoint:
         assert op.id_suivi is not None
         assert op.id_suivi.objectif_principal == 'OBJ_ETAT_CONSERVATION'
         assert op.id_suivi.cibles_principales == 'ESPECES'
-        assert op.id_suivi.id_protocole is not None
-        assert op.id_suivi.id_protocole.protocole_dans_campanule is True
-        assert op.id_suivi.id_protocole.protocole_campanule_nom == 'Proto Test'
+        assert op.id_suivi.protocoles.count() == 1
+        proto = op.id_suivi.protocoles.first()
+        assert proto.protocole_dans_campanule is True
+        assert proto.protocole_campanule_nom == 'Proto Test'
 
     def test_create_without_suivi_inventaire(self, api_client, operation_test_data):
         """Test creating operation without suivi_inventaire."""
@@ -441,7 +442,7 @@ class TestOperationDetailEndpoint:
         )
         suivi = SuiviInventaireFactory(
             objectif_principal='OBJ_INVENTAIRE_INITIAL',
-            id_protocole=protocole,
+            protocoles=[protocole],
             id_utilisateur_ajout=operation_test_data['referent']
         )
         op = operation_test_data['op1']

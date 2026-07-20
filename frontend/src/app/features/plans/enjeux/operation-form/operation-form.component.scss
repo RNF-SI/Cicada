@@ -1375,3 +1375,31 @@ app-form-field.finance-categorie {
     }
   }
 }
+
+// ═══════════════════════════════════════════════════════
+// Protocoles multiples du suivi lié, en lecture seule (#252)
+// ═══════════════════════════════════════════════════════
+
+.protocoles-readonly-intro {
+  margin: 0 0 $spacing-md;
+  color: $gray-dark;
+}
+
+.protocole-readonly-block {
+  & + & {
+    margin-top: $spacing-md;
+    padding-top: $spacing-md;
+    border-top: 1px solid $gray-lighter;
+  }
+}
+
+.protocole-readonly-title {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: $spacing-sm;
+  margin: 0 0 $spacing-sm;
+  color: $primary-color;
+  font-size: 1rem;
+  font-weight: 700;
+}

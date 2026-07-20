@@ -41,7 +41,7 @@ import { CampanuleService } from '../../../../core/services/campanule.service';
 import { InventaireService } from '../../../../core/services/inventaire.service';
 import { ReorderService, OperationCodePreviewParams } from '../../../../core/services/reorder.service';
 import { SuiviInventaireDetail } from '../../../../core/models/inventaire.model';
-import { Operation, OperationCreatePayload, OperationStatut, OperationAnnee, OperationAnneeOrganisme, FinanceOperation, SuiviInventaire, TaxonRef, HabitatRef, GeologieRef, MetriqueFormData, MetriqueRef, Enjeu } from '../../../../core/models/enjeu.model';
+import { Operation, OperationCreatePayload, OperationStatut, OperationAnnee, OperationAnneeOrganisme, FinanceOperation, SuiviInventaire, TaxonRef, HabitatRef, GeologieRef, MetriqueFormData, MetriqueRef, Enjeu, Protocole } from '../../../../core/models/enjeu.model';
 import { CampanuleAutocomplete, campanuleProtocoleLabel } from '../../../../core/models/campanule.model';
 import { PlanSite, PlanSiteOrganisme } from '../../../../core/models/admin.model';
 import { ProtocoleCampanuleDialogComponent } from '../../../../shared/components/modals/protocole-campanule-dialog/protocole-campanule-dialog.component';
@@ -699,6 +699,13 @@ export class OperationFormComponent implements OnInit {
   campanuleResults = signal<CampanuleAutocomplete[]>([]);
   selectedCampanule = signal<CampanuleAutocomplete | null>(null);
 
+  /**
+   * Protocoles du suivi lié (#252). Une action CS rattachée à un suivi
+   * existant affiche la liste complète en lecture seule ; la saisie d'un
+   * protocole depuis l'action ne concerne que la création d'un nouveau suivi.
+   */
+  suiviProtocoles = signal<Protocole[]>([]);
+
   // Collapsible sections state
   sectionsOpen: Record<string, boolean> = {
     details_suivi: true,
@@ -1339,8 +1346,16 @@ export class OperationFormComponent implements OnInit {
         transmission_donnee: suivi.transmission_donnee ?? null,
       });
 
+      // #252 — liste complète des protocoles du suivi (affichée en lecture
+      // seule pour une action rattachée à un suivi existant).
+      this.suiviProtocoles.set(
+        suivi.protocoles?.length
+          ? suivi.protocoles
+          : (suivi.protocole ? [suivi.protocole] : []),
+      );
+
       // Populate protocole fields from nested protocole
-      const proto = suivi.protocole;
+      const proto = this.suiviProtocoles()[0];
       if (proto) {
         this.form.patchValue({
           protocole_dans_campanule: proto.protocole_dans_campanule ?? null,
@@ -1901,8 +1916,16 @@ export class OperationFormComponent implements OnInit {
       if (rawFv.objectif_protocole?.trim()) protocoleData['objectif_protocole'] = rawFv.objectif_protocole.trim();
       if (rawFv.periode_echantillonnage?.trim()) protocoleData['periode_echantillonnage'] = rawFv.periode_echantillonnage.trim();
 
-      if (Object.keys(protocoleData).length > 0) {
-        suiviData['protocole'] = protocoleData;
+      // #252 — le suivi porte une liste de protocoles. Depuis le formulaire
+      // d'action on n'en saisit qu'un (cas majoritaire) ; pour un suivi
+      // existant, la liste déjà enregistrée est conservée telle quelle.
+      if (this.estSuiviExistant()) {
+        const existants = this.suiviProtocoles();
+        if (existants.length > 0) {
+          suiviData['protocoles'] = existants.map((p) => this.stripProtocoleMeta(p));
+        }
+      } else if (Object.keys(protocoleData).length > 0) {
+        suiviData['protocoles'] = [protocoleData];
       }
 
       if (Object.keys(suiviData).length > 0) {
@@ -2485,8 +2508,17 @@ export class OperationFormComponent implements OnInit {
           transmission_donnee: detail.transmission_donnee ?? null,
         });
 
+        // #252 — le suivi peut porter plusieurs protocoles : on mémorise la
+        // liste complète (affichée en lecture seule) et on pré-remplit les
+        // champs à plat avec le premier, pour rester cohérent avec l'existant.
+        this.suiviProtocoles.set(
+          detail.protocoles?.length
+            ? detail.protocoles
+            : (detail.protocole ? [detail.protocole] : []),
+        );
+
         // Populate protocole fields
-        const proto = detail.protocole;
+        const proto = this.suiviProtocoles()[0];
         if (proto) {
           this.form.patchValue({
             protocole_dans_campanule: proto.protocole_dans_campanule ?? null,
@@ -2791,6 +2823,37 @@ export class OperationFormComponent implements OnInit {
     });
   }
 
+  // ─── Protocoles du suivi lié (lecture seule) — #252 ──────────
+
+  /** Ouvre la fiche CAMPanule d'un protocole de la liste. */
+  consulterProtocoleDeLaListe(p: Protocole): void {
+    if (!p.cd_protocole_campanule) return;
+    this.dialog.open(ProtocoleCampanuleDialogComponent, {
+      width: '900px',
+      maxWidth: '95vw',
+      maxHeight: '90vh',
+      data: { cdProtocole: p.cd_protocole_campanule },
+    });
+  }
+
+  /** Libellé compact d'un protocole de la liste. */
+  protocoleNom(p: Protocole, index: number): string {
+    return (
+      p.protocole_campanule_nom?.trim() ||
+      p.nom_protocole?.trim() ||
+      this.translate.instant('inventaires.form.protocoleIndex', { index: index + 1 })
+    );
+  }
+
+  /**
+   * Retire les champs non inscriptibles avant de renvoyer un protocole existant
+   * au backend (le serializer les refuserait / les ignorerait).
+   */
+  private stripProtocoleMeta(p: Protocole): Record<string, unknown> {
+    const { id_protocole, date_ajout, date_maj, ...rest } = p as Record<string, any>;
+    return rest;
+  }
+
   get isCampanule(): boolean {
     return this.form.get('protocole_dans_campanule')?.value === true;
   }
@@ -2879,6 +2942,7 @@ export class OperationFormComponent implements OnInit {
     for (const field of fields) {
       this.form.get(field)?.reset();
     }
+    this.suiviProtocoles.set([]);
   }
 
   private setSuiviFieldsEnabled(enabled: boolean): void {

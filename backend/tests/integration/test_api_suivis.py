@@ -202,8 +202,8 @@ class TestSuivisCreateEndpoint:
         }, format='json')
         assert response.status_code == status.HTTP_201_CREATED
         suivi = SuiviInventaire.objects.get(intitule='Suivi avec protocole')
-        assert suivi.id_protocole is not None
-        assert suivi.id_protocole.protocole_campanule_nom == 'Proto Test'
+        assert suivi.protocoles.count() == 1
+        assert suivi.protocoles.first().protocole_campanule_nom == 'Proto Test'
 
     def test_create_campanule_protocole(self, api_client, suivi_test_data):
         """Test creating suivi with Campanule protocol (cd_protocole_campanule)."""
@@ -225,7 +225,7 @@ class TestSuivisCreateEndpoint:
         }, format='json')
         assert response.status_code == status.HTTP_201_CREATED
         suivi = SuiviInventaire.objects.get(intitule='Suivi Campanule')
-        proto = suivi.id_protocole
+        proto = suivi.protocoles.first()
         assert proto is not None
         assert proto.protocole_dans_campanule is True
         assert proto.cd_protocole_campanule == 42
@@ -255,7 +255,7 @@ class TestSuivisCreateEndpoint:
         }, format='json')
         assert response.status_code == status.HTTP_201_CREATED
         suivi = SuiviInventaire.objects.get(intitule='Suivi Custom')
-        proto = suivi.id_protocole
+        proto = suivi.protocoles.first()
         assert proto is not None
         assert proto.protocole_dans_campanule is False
         assert proto.cd_protocole_campanule is None
@@ -322,7 +322,7 @@ class TestSuivisDetailEndpoint:
         )
         suivi_with_proto = SuiviInventaireFactory(
             intitule='Suivi avec proto detail',
-            id_protocole=protocole,
+            protocoles=[protocole],
             id_utilisateur_ajout=suivi_test_data['referent'],
         )
 
@@ -448,7 +448,7 @@ class TestSuivisUpdateEndpoint:
         }, format='json')
         assert response.status_code == status.HTTP_200_OK
         suivi_test_data['suivi1'].refresh_from_db()
-        assert suivi_test_data['suivi1'].id_protocole is not None
+        assert suivi_test_data['suivi1'].protocoles.count() == 1
 
     def test_audit_field_set_on_update(self, api_client, suivi_test_data):
         """Test id_utilisateur_maj is set on update."""
@@ -555,3 +555,166 @@ class TestSuivisTypeAction:
         ids = [s['id_suivi_inventaire'] for s in response.data['results']]
         assert suivi1.id_suivi_inventaire in ids
         assert suivi2.id_suivi_inventaire in ids
+
+
+@pytest.mark.django_db
+class TestSuiviMultiProtocoles:
+    """#252 — un suivi peut porter plusieurs protocoles."""
+
+    def test_create_with_several_protocoles(self, api_client, suivi_test_data):
+        """POST avec N protocoles → les N sont rattachés au suivi."""
+        api_client.force_authenticate(user=suivi_test_data['super_admin'])
+        response = api_client.post('/api/inventaires/suivis/', {
+            'intitule': 'Inventaire ornithologique',
+            'id_type_action': suivi_test_data['type_action_cs8'].id_nomenclature,
+            'protocoles': [
+                {
+                    'protocole_dans_campanule': True,
+                    'protocole_campanule_nom': "Points d'écoute",
+                    'cd_protocole_campanule': 42,
+                },
+                {
+                    'protocole_dans_campanule': False,
+                    'nom_protocole': 'IPA',
+                    'nb_etp_cycle': 1.5,
+                },
+            ],
+        }, format='json')
+        assert response.status_code == status.HTTP_201_CREATED
+
+        suivi = SuiviInventaire.objects.get(intitule='Inventaire ornithologique')
+        assert suivi.protocoles.count() == 2
+        noms = {
+            p.protocole_campanule_nom or p.nom_protocole
+            for p in suivi.protocoles.all()
+        }
+        assert noms == {"Points d'écoute", 'IPA'}
+
+    def test_detail_exposes_protocoles_list(self, api_client, suivi_test_data):
+        """GET détail expose `protocoles` (liste) et `protocole` (1er, déprécié)."""
+        p1 = ProtocoleFactory(
+            protocole_campanule_nom='Proto A',
+            id_utilisateur_ajout=suivi_test_data['referent'],
+        )
+        p2 = ProtocoleFactory(
+            nom_protocole='Proto B',
+            id_utilisateur_ajout=suivi_test_data['referent'],
+        )
+        suivi = SuiviInventaireFactory(
+            intitule='Suivi multi',
+            protocoles=[p1, p2],
+            id_utilisateur_ajout=suivi_test_data['referent'],
+        )
+
+        api_client.force_authenticate(user=suivi_test_data['super_admin'])
+        response = api_client.get(f'/api/inventaires/suivis/{suivi.id_suivi_inventaire}/')
+        assert response.status_code == status.HTTP_200_OK
+        assert len(response.data['protocoles']) == 2
+        # Alias singulier conservé pour les clients antérieurs à #252.
+        assert response.data['protocole']['protocole_campanule_nom'] == 'Proto A'
+
+    def test_update_replaces_the_whole_list(self, api_client, suivi_test_data):
+        """PATCH avec une nouvelle liste remplace l'ancienne et purge les orphelins."""
+        p1 = ProtocoleFactory(
+            nom_protocole='Ancien',
+            id_utilisateur_ajout=suivi_test_data['referent'],
+        )
+        suivi = SuiviInventaireFactory(
+            intitule='Suivi à mettre à jour',
+            protocoles=[p1],
+            id_utilisateur_ajout=suivi_test_data['referent'],
+        )
+        ancien_id = p1.id_protocole
+
+        api_client.force_authenticate(user=suivi_test_data['super_admin'])
+        response = api_client.patch(
+            f'/api/inventaires/suivis/{suivi.id_suivi_inventaire}/',
+            {
+                'protocoles': [
+                    {'protocole_dans_campanule': False, 'nom_protocole': 'Nouveau 1'},
+                    {'protocole_dans_campanule': False, 'nom_protocole': 'Nouveau 2'},
+                ],
+            },
+            format='json',
+        )
+        assert response.status_code == status.HTTP_200_OK
+
+        suivi.refresh_from_db()
+        assert suivi.protocoles.count() == 2
+        assert {p.nom_protocole for p in suivi.protocoles.all()} == {'Nouveau 1', 'Nouveau 2'}
+        # L'ancien protocole n'est plus référencé nulle part → supprimé.
+        assert not Protocole.objects.filter(id_protocole=ancien_id).exists()
+
+    def test_update_with_empty_list_detaches_all(self, api_client, suivi_test_data):
+        """PATCH avec une liste vide retire tous les protocoles."""
+        p1 = ProtocoleFactory(
+            nom_protocole='À retirer',
+            id_utilisateur_ajout=suivi_test_data['referent'],
+        )
+        suivi = SuiviInventaireFactory(
+            intitule='Suivi à vider',
+            protocoles=[p1],
+            id_utilisateur_ajout=suivi_test_data['referent'],
+        )
+
+        api_client.force_authenticate(user=suivi_test_data['super_admin'])
+        response = api_client.patch(
+            f'/api/inventaires/suivis/{suivi.id_suivi_inventaire}/',
+            {'protocoles': []},
+            format='json',
+        )
+        assert response.status_code == status.HTTP_200_OK
+        suivi.refresh_from_db()
+        assert suivi.protocoles.count() == 0
+
+    def test_update_without_protocoles_key_leaves_list_untouched(self, api_client, suivi_test_data):
+        """PATCH partiel sans clé protocole(s) ne touche pas la liste existante."""
+        p1 = ProtocoleFactory(
+            nom_protocole='Conservé',
+            id_utilisateur_ajout=suivi_test_data['referent'],
+        )
+        suivi = SuiviInventaireFactory(
+            intitule='Suivi intact',
+            protocoles=[p1],
+            id_utilisateur_ajout=suivi_test_data['referent'],
+        )
+
+        api_client.force_authenticate(user=suivi_test_data['super_admin'])
+        response = api_client.patch(
+            f'/api/inventaires/suivis/{suivi.id_suivi_inventaire}/',
+            {'intitule': 'Suivi intact renommé'},
+            format='json',
+        )
+        assert response.status_code == status.HTTP_200_OK
+        suivi.refresh_from_db()
+        assert suivi.protocoles.count() == 1
+        assert suivi.protocoles.first().nom_protocole == 'Conservé'
+
+    def test_shared_protocole_is_not_deleted_while_still_used(self, api_client, suivi_test_data):
+        """Un protocole partagé avec un autre suivi survit à la purge des orphelins."""
+        partage = ProtocoleFactory(
+            nom_protocole='Partagé',
+            id_utilisateur_ajout=suivi_test_data['referent'],
+        )
+        suivi_a = SuiviInventaireFactory(
+            intitule='Suivi A',
+            protocoles=[partage],
+            id_utilisateur_ajout=suivi_test_data['referent'],
+        )
+        suivi_b = SuiviInventaireFactory(
+            intitule='Suivi B',
+            protocoles=[partage],
+            id_utilisateur_ajout=suivi_test_data['referent'],
+        )
+
+        api_client.force_authenticate(user=suivi_test_data['super_admin'])
+        response = api_client.patch(
+            f'/api/inventaires/suivis/{suivi_a.id_suivi_inventaire}/',
+            {'protocoles': [{'protocole_dans_campanule': False, 'nom_protocole': 'Autre'}]},
+            format='json',
+        )
+        assert response.status_code == status.HTTP_200_OK
+
+        # Le protocole reste rattaché à suivi_b, donc il n'est pas supprimé.
+        assert Protocole.objects.filter(id_protocole=partage.id_protocole).exists()
+        assert suivi_b.protocoles.count() == 1

@@ -277,16 +277,35 @@
           </div>
         </div>
 
+
         <!-- ═══════════════════════════════════════ -->
-        <!-- SECTION: Protocole                      -->
+        <!-- SECTION: Protocoles (#252 — N par suivi) -->
         <!-- ═══════════════════════════════════════ -->
         <!-- #412 — design aligné sur la saisie d'une action (accordéons « default lg » + pastille jaune) -->
         <app-accordion variant="default" size="lg" [title]="'inventaires.form.sections.protocole' | translate" [expanded]="sectionsOpen['protocole']" (expandedChange)="sectionsOpen['protocole'] = $event">
   <img accordionIcon src="assets/images/ellipses/ellipse-yellow.png" alt="" class="section-dot">
   <div class="section-content">
-<div class="form-grid">
+
+    <div formArrayName="protocoles">
+      @for (protoGroup of protocolesArray.controls; track $index) {
+        <div class="protocole-block" [formGroupName]="$index">
+
+          <!-- En-tête du bloc : titre + retrait -->
+          <div class="protocole-block-header">
+            <span class="protocole-block-title">{{ protocoleTitle($index) }}</span>
+            @if (protocolesArray.length > 1) {
+              <button type="button" class="icon-btn-flat protocole-remove-btn"
+                (click)="removeProtocole($index)"
+                [attr.aria-label]="'inventaires.form.retirerProtocole' | translate"
+                [title]="'inventaires.form.retirerProtocole' | translate">
+                <i class="fi fi-rr-trash"></i>
+              </button>
+            }
+          </div>
+
+          <div class="form-grid">
                 <!-- Protocole répertorié dans Campanule ? -->
-                <div class="radio-field-row" [class.has-error]="shouldShowError('protocole_dans_campanule')">
+                <div class="radio-field-row" [class.has-error]="shouldShowProtocoleError($index, 'protocole_dans_campanule')">
                   <span class="radio-field-label">
                     {{ 'inventaires.form.protocoleCampanule' | translate }}
                     <span class="required-star">*</span>
@@ -296,26 +315,26 @@
                     <mat-radio-button [value]="false" color="primary">{{ 'common.no' | translate }}</mat-radio-button>
                   </mat-radio-group>
                 </div>
-                @if (shouldShowError('protocole_dans_campanule')) {
-                  <p class="field-error"><i class="fi fi-rr-exclamation"></i>{{ getErrorMessage('protocole_dans_campanule') }}</p>
+                @if (shouldShowProtocoleError($index, 'protocole_dans_campanule')) {
+                  <p class="field-error"><i class="fi fi-rr-exclamation"></i>{{ getProtocoleErrorMessage($index, 'protocole_dans_campanule') }}</p>
                 }
 
                 <!-- ═══ MODE CAMPANULE (Oui) ═══ -->
-                @if (isCampanule) {
+                @if (isCampanule($index)) {
                   <!-- Autocomplete Protocole Campanule -->
                   <label class="app-mat-label">{{ 'inventaires.form.protocoleCampanuleNom' | translate }}
                       <span class="required-star">*</span></label>
       <mat-form-field class="app-mat-form-field" appearance="outline">
                     <mat-label></mat-label>
                     <input matInput
-                      [formControl]="campanuleSearchCtrl"
+                      [formControl]="campanuleSearchCtrls[$index]"
                       [matAutocomplete]="campanuleAuto"
-                      (blur)="onCampanuleBlur()"
+                      (blur)="onCampanuleBlur($index)"
                       [placeholder]="'inventaires.form.campanuleSearchPlaceholder' | translate">
                     <mat-autocomplete #campanuleAuto="matAutocomplete"
                       [displayWith]="displayCampanuleFn"
-                      (optionSelected)="onCampanuleSelected($event)">
-                      @for (option of campanuleResults(); track option.cd_protocole) {
+                      (optionSelected)="onCampanuleSelected($event, $index)">
+                      @for (option of campanuleResultsAt($index); track option.cd_protocole) {
                         <mat-option [value]="option">
                           <div class="campanule-option">
                             <span class="campanule-option-name">{{ campanuleLabel(option) }}</span>
@@ -326,14 +345,14 @@
                         </mat-option>
                       }
                     </mat-autocomplete>
-                    @if (hasCampanuleSelected) {
-                      <button matSuffix type="button" class="clear-btn" (click)="onCampanuleReset()">
+                    @if (hasCampanuleSelected($index)) {
+                      <button matSuffix type="button" class="clear-btn" (click)="onCampanuleReset($index)">
                         <i class="fi fi-rr-cross-small"></i>
                       </button>
                     }
                     <mat-hint>{{ 'inventaires.form.campanuleSearchHint' | translate }}</mat-hint>
                   </mat-form-field>
-                  @if (shouldShowError('cd_protocole_campanule')) {
+                  @if (shouldShowProtocoleError($index, 'cd_protocole_campanule')) {
                     <p class="field-error field-error-form-field">
                       <i class="fi fi-rr-exclamation"></i>
                       {{ 'inventaires.form.campanuleSelectionRequired' | translate }}
@@ -342,54 +361,15 @@
                 }
 
                 <!-- ═══ MODE NON-CAMPANULE (Non) ═══ -->
-                @if (isNotCampanule) {
+                @if (isNotCampanule($index)) {
                   <!-- #413 — Nom du protocole (libre, facultatif) + aide nom local -->
                   <app-form-field [label]="'inventaires.form.nomProtocole' | translate" [helpText]="'inventaires.form.nomProtocoleNonCampanuleHint' | translate">
   <input formControlName="nom_protocole">
 </app-form-field>
                 }
 
-                <!-- Fréquence de mise en oeuvre (both modes) -->
-                @if (isCampanule || isNotCampanule) {
-                  <div class="frequence-row">
-                    <label class="field-label">
-                      {{ 'inventaires.form.frequence' | translate }}
-                      <span class="required-star">*</span>
-                    </label>
-                    <div class="frequence-controls">
-                      <div class="frequence-number" [class.has-error]="shouldShowError('frequence_nombre')">
-                        <button type="button" class="freq-btn" (click)="incrementFrequence(-1)">−</button>
-                        <input type="number" formControlName="frequence_nombre" class="freq-input">
-                        <button type="button" class="freq-btn" (click)="incrementFrequence(1)">+</button>
-                      </div>
-                      <span class="frequence-separator">{{ 'inventaires.form.frequenceFoisPar' | translate }}</span>
-                      <mat-form-field appearance="outline" class="frequence-unite-field app-mat-form-field">
-                        <mat-select formControlName="frequence_unite">
-                          <mat-option value="">—</mat-option>
-                          @for (opt of frequenceEmboitementOptions(); track opt.id_nomenclature) {
-                            <mat-option [value]="opt.mnemonique">{{ opt.label }}</mat-option>
-                          }
-                        </mat-select>
-                      </mat-form-field>
-                    </div>
-                    @if (shouldShowError('frequence_nombre') || shouldShowError('frequence_unite')) {
-                      <p class="field-error">
-                        <i class="fi fi-rr-exclamation"></i>
-                        {{ getErrorMessage('frequence_nombre') || getErrorMessage('frequence_unite') }}
-                      </p>
-                    }
-                    <!-- Precision for "Autre" -->
-                    @if (showFrequencePrecision) {
-                      <app-form-field [label]="'inventaires.form.frequencePrecision' | translate">
-        <input formControlName="frequence_unite_precision"
-                          [placeholder]="'inventaires.form.frequencePrecisionPlaceholder' | translate">
-      </app-form-field>
-                    }
-                  </div>
-                }
-
                 <!-- ═══ NON-CAMPANULE only fields ═══ -->
-                @if (isNotCampanule) {
+                @if (isNotCampanule($index)) {
                   <!-- Période de suivi (multi-mois) -->
                   <label class="app-mat-label">{{ 'inventaires.form.periodeSuivi' | translate }}</label>
       <mat-form-field class="app-mat-form-field" appearance="outline">
@@ -403,7 +383,7 @@
                   </mat-form-field>
 
                   <!-- Documentation disponible ? -->
-                  <div class="radio-field-row" [class.has-error]="shouldShowError('documentation_disponible')">
+                  <div class="radio-field-row" [class.has-error]="shouldShowProtocoleError($index, 'documentation_disponible')">
                     <span class="radio-field-label">
                       {{ 'inventaires.form.documentationDisponible' | translate }}
                       <span class="required-star">*</span>
@@ -413,12 +393,12 @@
                       <mat-radio-button [value]="false" color="primary">{{ 'common.no' | translate }}</mat-radio-button>
                     </mat-radio-group>
                   </div>
-                  @if (shouldShowError('documentation_disponible')) {
-                    <p class="field-error"><i class="fi fi-rr-exclamation"></i>{{ getErrorMessage('documentation_disponible') }}</p>
+                  @if (shouldShowProtocoleError($index, 'documentation_disponible')) {
+                    <p class="field-error"><i class="fi fi-rr-exclamation"></i>{{ getProtocoleErrorMessage($index, 'documentation_disponible') }}</p>
                   }
 
                   <!-- URL de la documentation (conditional) -->
-                  @if (showDocumentationUrl) {
+                  @if (showDocumentationUrl($index)) {
                     <app-form-field [label]="'inventaires.form.urlDocumentation' | translate">
         <input formControlName="url_documentation"
                         [placeholder]="'inventaires.form.urlDocumentationPlaceholder' | translate">
@@ -428,10 +408,6 @@
                   <!-- Nombre d'ETP par cycle de collecte -->
                   <app-form-field [label]="'inventaires.form.nbEtpCycle' | translate" [required]="true" [helpText]="'inventaires.form.nbEtpCycleHint' | translate">
   <input type="number" formControlName="nb_etp_cycle">
-                    
-                    @if (shouldShowError('nb_etp_cycle')) {
-                      
-                    }
 </app-form-field>
 
                   <!-- Descriptif du protocole -->
@@ -441,12 +417,12 @@
                 }
 
                 <!-- ═══ CAMPANULE readonly fields ═══ -->
-                @if (isCampanule && hasCampanuleSelected) {
+                @if (isCampanule($index) && hasCampanuleSelected($index)) {
                   <!-- Description du protocole (readonly) -->
                   <div class="readonly-field">
                     <label class="readonly-label">{{ 'inventaires.form.descriptionProtocole' | translate }}</label>
                     <div class="readonly-value readonly-value-multiline">
-                      {{ form.get('description_protocole')?.value || '—' }}
+                      {{ protoGroup.get('description_protocole')?.value || '—' }}
                     </div>
                   </div>
 
@@ -454,7 +430,7 @@
                   <div class="readonly-field">
                     <label class="readonly-label">{{ 'inventaires.form.objectifProtocole' | translate }}</label>
                     <div class="readonly-value">
-                      {{ form.get('objectif_protocole')?.value || '—' }}
+                      {{ protoGroup.get('objectif_protocole')?.value || '—' }}
                     </div>
                   </div>
 
@@ -462,13 +438,13 @@
                   <div class="readonly-field">
                     <label class="readonly-label">{{ 'inventaires.form.periodeEchantillonnage' | translate }}</label>
                     <div class="readonly-value">
-                      {{ form.get('periode_echantillonnage')?.value || '—' }}
+                      {{ protoGroup.get('periode_echantillonnage')?.value || '—' }}
                     </div>
                   </div>
                 }
 
                 <!-- ═══ NON-CAMPANULE: Objectif du protocole + Période d'échantillonnage ═══ -->
-                @if (isNotCampanule) {
+                @if (isNotCampanule($index)) {
                   <app-form-field [label]="'inventaires.form.objectifProtocole' | translate">
         <textarea formControlName="objectif_protocole" rows="2"></textarea>
       </app-form-field>
@@ -480,10 +456,10 @@
                 }
 
                 <!-- #414 — « Respect strict du protocole » réservé aux protocoles CAMPanule -->
-                @if (isCampanule) {
+                @if (isCampanule($index)) {
                   <!-- Respect strict du protocole + Consulter le protocole -->
                   <div class="radio-field-row radio-field-row-with-link"
-                    [class.has-error]="shouldShowError('respect_protocole')">
+                    [class.has-error]="shouldShowProtocoleError($index, 'respect_protocole')">
                     <span class="radio-field-label">
                       {{ 'inventaires.form.respectProtocole' | translate }}
                       <span class="required-star">*</span>
@@ -492,18 +468,18 @@
                       <mat-radio-button [value]="true" color="primary">{{ 'common.yes' | translate }}</mat-radio-button>
                       <mat-radio-button [value]="false" color="primary">{{ 'common.no' | translate }}</mat-radio-button>
                     </mat-radio-group>
-                    @if (hasCampanuleSelected) {
-                      <a class="consulter-link" (click)="consulterProtocole()">
+                    @if (hasCampanuleSelected($index)) {
+                      <a class="consulter-link" (click)="consulterProtocole($index)">
                         {{ 'inventaires.form.consulterProtocole' | translate }}
                       </a>
                     }
                   </div>
-                  @if (shouldShowError('respect_protocole')) {
-                    <p class="field-error"><i class="fi fi-rr-exclamation"></i>{{ getErrorMessage('respect_protocole') }}</p>
+                  @if (shouldShowProtocoleError($index, 'respect_protocole')) {
+                    <p class="field-error"><i class="fi fi-rr-exclamation"></i>{{ getProtocoleErrorMessage($index, 'respect_protocole') }}</p>
                   }
 
                   <!-- Conditional: non-respect fields -->
-                  @if (isNonRespect) {
+                  @if (isNonRespect($index)) {
                     <app-form-field [label]="'inventaires.form.justificationNonRespect' | translate">
         <textarea formControlName="justification_non_respect" rows="2"></textarea>
       </app-form-field>
@@ -515,12 +491,69 @@
                 }
 
                 <!-- Nombre d'ETP (campanule mode) -->
-                @if (isCampanule) {
+                @if (isCampanule($index)) {
                   <app-form-field [label]="'inventaires.form.nbEtpCycle' | translate" [helpText]="'inventaires.form.nbEtpCycleHint' | translate">
         <input type="number" formControlName="nb_etp_cycle">
       </app-form-field>
                 }
-              </div>
+          </div>
+        </div>
+      }
+    </div>
+
+    <!-- Ajout d'un protocole complémentaire -->
+    <div class="protocole-add-row">
+      <button type="button" mat-stroked-button class="btn-sm" (click)="addProtocole()">
+        <i class="fi fi-rr-plus"></i>
+        {{ 'inventaires.form.ajouterProtocole' | translate }}
+      </button>
+      @if (showProtocolesSoftLimitHint) {
+        <span class="text-mention protocole-limit-hint">
+          {{ 'inventaires.form.protocolesSoftLimitHint' | translate }}
+        </span>
+      }
+    </div>
+
+    <!-- Fréquence de mise en œuvre : portée par le suivi, commune aux protocoles -->
+    @if (hasAnyProtocoleRenseigne) {
+      <div class="form-grid">
+        <div class="frequence-row">
+          <label class="field-label">
+            {{ 'inventaires.form.frequence' | translate }}
+            <span class="required-star">*</span>
+          </label>
+          <div class="frequence-controls">
+            <div class="frequence-number" [class.has-error]="shouldShowError('frequence_nombre')">
+              <button type="button" class="freq-btn" (click)="incrementFrequence(-1)">−</button>
+              <input type="number" formControlName="frequence_nombre" class="freq-input">
+              <button type="button" class="freq-btn" (click)="incrementFrequence(1)">+</button>
+            </div>
+            <span class="frequence-separator">{{ 'inventaires.form.frequenceFoisPar' | translate }}</span>
+            <mat-form-field appearance="outline" class="frequence-unite-field app-mat-form-field">
+              <mat-select formControlName="frequence_unite">
+                <mat-option value="">—</mat-option>
+                @for (opt of frequenceEmboitementOptions(); track opt.id_nomenclature) {
+                  <mat-option [value]="opt.mnemonique">{{ opt.label }}</mat-option>
+                }
+              </mat-select>
+            </mat-form-field>
+          </div>
+          @if (shouldShowError('frequence_nombre') || shouldShowError('frequence_unite')) {
+            <p class="field-error">
+              <i class="fi fi-rr-exclamation"></i>
+              {{ getErrorMessage('frequence_nombre') || getErrorMessage('frequence_unite') }}
+            </p>
+          }
+          <!-- Precision for "Autre" -->
+          @if (showFrequencePrecision) {
+            <app-form-field [label]="'inventaires.form.frequencePrecision' | translate">
+              <input formControlName="frequence_unite_precision"
+                [placeholder]="'inventaires.form.frequencePrecisionPlaceholder' | translate">
+            </app-form-field>
+          }
+        </div>
+      </div>
+    }
   </div>
 </app-accordion>
 

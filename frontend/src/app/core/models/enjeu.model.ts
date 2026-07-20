@@ -570,6 +570,7 @@ export interface SuiviInventaire {
   habitats?: { cd_hab: string; lb_hab_fr?: string }[];
   date_lancement_suivi?: string;
   // Protocole (nested)
+  protocoles?: Protocole[];
   protocole?: Protocole;
   // Bancarisation
   outil_bancarisation?: string;

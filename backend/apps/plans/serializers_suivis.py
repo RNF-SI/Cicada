@@ -3,8 +3,12 @@ Serializers pour l'API REST Suivis/Inventaires (standalone).
 """
 from rest_framework import serializers
 
-from .models_operations import Protocole, SuiviInventaire
-from .serializers_operations import ProtocoleSerializer
+from .models_operations import SuiviInventaire
+from .serializers_operations import (
+    ProtocoleSerializer,
+    pop_protocoles_data,
+    sync_suivi_protocoles,
+)
 
 
 # =============================================================================
@@ -51,7 +55,8 @@ class SuiviInventaireListSerializer(serializers.ModelSerializer):
 
 class SuiviInventaireDetailSerializer(serializers.ModelSerializer):
     """Serializer détaillé pour un suivi/inventaire."""
-    protocole = ProtocoleSerializer(source='id_protocole', read_only=True)
+    protocoles = ProtocoleSerializer(many=True, read_only=True)
+    protocole = serializers.SerializerMethodField()
     statut_label = serializers.CharField(source='id_statut.label', read_only=True, default=None)
     type_action_code = serializers.CharField(source='id_type_action.cd_nomenclature', read_only=True, default=None)
     type_action_label = serializers.CharField(source='id_type_action.label', read_only=True, default=None)
@@ -81,8 +86,8 @@ class SuiviInventaireDetailSerializer(serializers.ModelSerializer):
             'objectif_principal', 'objectif_secondaire',
             'cibles_principales', 'taxon_taxref',
             'date_lancement_suivi',
-            # Protocole (nested)
-            'protocole',
+            # Protocoles (#252 — `protocole` = premier de la liste, déprécié)
+            'protocoles', 'protocole',
             # Bancarisation
             'outil_bancarisation', 'bancarisation_label',
             'outil_saisie', 'outil_saisie_label',
@@ -96,6 +101,11 @@ class SuiviInventaireDetailSerializer(serializers.ModelSerializer):
 
     def get_nb_operations(self, obj):
         return obj.operations.count()
+
+    def get_protocole(self, obj):
+        """Premier protocole, pour les clients antérieurs à #252."""
+        premier = obj.protocoles.first()
+        return ProtocoleSerializer(premier).data if premier else None
 
     def _resolve_nomenclature_label(self, mnemonique, type_mnemonique):
         """Resolve a nomenclature label from its mnemonique."""
@@ -121,6 +131,7 @@ class SuiviInventaireDetailSerializer(serializers.ModelSerializer):
 
 class SuiviInventaireCreateSerializer(serializers.ModelSerializer):
     """Serializer pour la création/modification d'un suivi/inventaire standalone."""
+    protocoles = ProtocoleSerializer(many=True, required=False)
     protocole = ProtocoleSerializer(required=False, allow_null=True)
 
     class Meta:
@@ -143,8 +154,8 @@ class SuiviInventaireCreateSerializer(serializers.ModelSerializer):
             'objectif_principal', 'objectif_secondaire',
             'cibles_principales', 'taxon_taxref',
             'date_lancement_suivi',
-            # Protocole (nested writable)
-            'protocole',
+            # Protocoles (nested writable) — `protocole` singulier déprécié (#252)
+            'protocoles', 'protocole',
             # Bancarisation
             'outil_bancarisation', 'outil_saisie', 'transmission_donnee',
         ]
@@ -154,45 +165,20 @@ class SuiviInventaireCreateSerializer(serializers.ModelSerializer):
         }
 
     def create(self, validated_data):
-        protocole_data = validated_data.pop('protocole', None)
+        protocoles_data = pop_protocoles_data(validated_data)
         user = validated_data.get('id_utilisateur_ajout')
 
-        # Create Protocole if provided
-        protocole = None
-        if protocole_data:
-            protocole = Protocole.objects.create(
-                id_utilisateur_ajout=user,
-                **protocole_data
-            )
-
-        suivi = SuiviInventaire.objects.create(
-            id_protocole=protocole,
-            **validated_data
-        )
+        suivi = SuiviInventaire.objects.create(**validated_data)
+        sync_suivi_protocoles(suivi, protocoles_data, user)
         return suivi
 
     def update(self, instance, validated_data):
-        protocole_data = validated_data.pop('protocole', None)
+        protocoles_data = pop_protocoles_data(validated_data)
         user = validated_data.get('id_utilisateur_maj') or instance.id_utilisateur_ajout
-
-        # Handle nested protocole
-        if protocole_data is not None:
-            if instance.id_protocole:
-                # Update existing Protocole
-                for attr, value in protocole_data.items():
-                    setattr(instance.id_protocole, attr, value)
-                instance.id_protocole.id_utilisateur_maj = user
-                instance.id_protocole.save()
-            else:
-                # Create new Protocole
-                protocole = Protocole.objects.create(
-                    id_utilisateur_ajout=user,
-                    **protocole_data
-                )
-                instance.id_protocole = protocole
 
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
         instance.save()
 
+        sync_suivi_protocoles(instance, protocoles_data, user)
         return instance

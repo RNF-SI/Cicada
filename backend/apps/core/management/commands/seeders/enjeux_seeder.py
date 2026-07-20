@@ -5666,12 +5666,13 @@ class EnjeuxSeeder(BaseSeeder):
                 id_statut=config.get('id_statut'),
                 id_type_action=config.get('id_type_action'),
 
-                id_protocole=protocole,
                 outil_bancarisation=config.get('outil_bancarisation', ''),
                 outil_saisie=config.get('outil_saisie', ''),
                 transmission_donnee=config.get('transmission_donnee'),
                 id_utilisateur_ajout=admin,
             )
+            if protocole:
+                suivi.protocoles.add(protocole)
             op.est_suivi_existant = False
             op.id_suivi = suivi
             op.save()
@@ -6033,7 +6034,7 @@ class EnjeuxSeeder(BaseSeeder):
             },
         ]
 
-        for data in standalone_data:
+        for index, data in enumerate(standalone_data):
             # Créer un Protocole minimal pour chaque suivi standalone afin que
             # l'édition via le formulaire d'inventaire passe les validators
             # conditionnels (protocole_dans_campanule, respect_protocole, etc.).
@@ -6051,9 +6052,29 @@ class EnjeuxSeeder(BaseSeeder):
             protocoles_created += 1
             suivi = SuiviInventaire.objects.create(
                 id_utilisateur_ajout=admin,
-                id_protocole=protocole,
                 **data,
             )
+            suivi.protocoles.add(protocole)
+
+            # Le premier suivi porte un second protocole complémentaire, pour
+            # disposer d'un cas multi-protocoles dans les données de test (#252).
+            if index == 0:
+                protocole_complementaire = Protocole.objects.create(
+                    protocole_dans_campanule=False,
+                    nom_protocole=f"Protocole complémentaire {data['intitule'][:60]}",
+                    respect_protocole=False,
+                    justification_non_respect='Adapté aux contraintes de terrain du site.',
+                    differences_protocole='Points d\'écoute réduits de 20 à 12.',
+                    description_protocole='Protocole complémentaire mobilisé sur le même suivi.',
+                    objectif_protocole=data.get('objectif_principal', '') or '',
+                    periode_echantillonnage='',
+                    documentation_disponible=False,
+                    nb_etp_cycle=0.5,
+                    id_utilisateur_ajout=admin,
+                )
+                protocoles_created += 1
+                suivi.protocoles.add(protocole_complementaire)
+
             standalone_suivis_created += 1
             self.log_item('créé', f'Standalone suivi: {suivi.intitule[:50]}')
 

@@ -322,16 +322,14 @@ class SuiviInventaire(models.Model):
         help_text=_("Date de lancement du suivi")
     )
 
-    # Protocole (FK vers table dédiée)
-    id_protocole = models.ForeignKey(
+    # Protocoles (N-N vers table dédiée) — #252
+    protocoles = models.ManyToManyField(
         Protocole,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
         related_name='suivis',
-        db_column='id_protocole',
-        verbose_name=_("Protocole"),
-        help_text=_("Protocole associé au suivi/inventaire")
+        db_table='"general"."cor_suivi_protocole"',
+        blank=True,
+        verbose_name=_("Protocoles"),
+        help_text=_("Protocoles associés au suivi/inventaire")
     )
 
     # Bancarisation et stockage

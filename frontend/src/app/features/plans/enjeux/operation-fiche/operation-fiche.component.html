@@ -75,11 +75,11 @@
               <dt>{{ 'plans.suivis.actions.fiche.protocoleNom' | translate }}</dt>
               <dd>{{ protocoleNom() }}</dd>
             }
-            @if (protocole()?.description_protocole) {
+            @if (showProtocoleDetail() && protocole()?.description_protocole) {
               <dt>{{ 'plans.suivis.actions.fiche.protocoleDescription' | translate }}</dt>
               <dd>{{ protocole()?.description_protocole }}</dd>
             }
-            @if (protocole()?.objectif_protocole) {
+            @if (showProtocoleDetail() && protocole()?.objectif_protocole) {
               <dt>{{ 'plans.suivis.actions.fiche.protocoleObjectif' | translate }}</dt>
               <dd>{{ protocole()?.objectif_protocole }}</dd>
             }

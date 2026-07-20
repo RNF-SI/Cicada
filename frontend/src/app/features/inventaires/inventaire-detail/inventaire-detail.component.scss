@@ -468,3 +468,37 @@ $detail-side-margin: $page-gutter;
     gap: $spacing-md;
   }
 }
+
+// ═══════════════════════════════════════════════════════
+// Protocoles multiples (#252)
+// ═══════════════════════════════════════════════════════
+
+.protocole-detail-block {
+  & + & {
+    margin-top: $spacing-lg;
+    padding-top: $spacing-lg;
+    border-top: 1px solid $gray-lighter;
+  }
+}
+
+.protocole-detail-title {
+  margin: 0 0 $spacing-sm;
+  color: $primary-color;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.protocoles-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  margin-left: $spacing-xs;
+  padding: 0 6px;
+  border-radius: $border-radius-pill;
+  background: $tag-cyan;
+  color: $black;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
