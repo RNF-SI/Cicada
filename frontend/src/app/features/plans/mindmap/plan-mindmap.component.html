@@ -79,16 +79,6 @@
             </div>
           </div>
 
-          <!-- Legend -->
-          <div class="mindmap-legend">
-            @for (item of legendItems; track item.type) {
-              <div class="legend-entry">
-                <span class="legend-dot" [style.background-color]="item.color"></span>
-                <span class="legend-label">{{ item.label }}</span>
-              </div>
-            }
-          </div>
-
           <!-- Hint -->
           <p class="tree-hint">{{ 'plans.mindmap.clickHint' | translate }}</p>
 
@@ -100,8 +90,8 @@
                 {{ 'plans.mindmap.overview' | translate }}
               </button>
               <span class="focus-current">
-                <span class="focus-current-dot" [style.background-color]="getEntityColor(f.entityType)"></span>
-                <span class="focus-current-type">{{ getEntityLabel(f.entityType) }}</span>
+                <span class="focus-current-dot" [style.background-color]="getEntityColor(f)"></span>
+                <span class="focus-current-type">{{ getEntityLabelKey(f) | translate }}</span>
                 <span class="focus-current-name">{{ f.name }}</span>
               </span>
             </div>
@@ -126,14 +116,15 @@
   <ng-template #nodeTpl let-node>
     <div class="tree-row">
       <button type="button" class="tree-cell"
-              [style.background-color]="getEntityColor(node.entityType)"
-              [style.color]="getTextColor(getEntityColor(node.entityType))"
+              [style.background-color]="getEntityColor(node)"
+              [style.color]="getTextColor(node)"
+              [style.--cell-span]="getSpan(node)"
               (click)="onCellClick(node)"
               (dblclick)="onCellDblClick(node, $event)"
               (mouseenter)="onCellEnter(node, $event)"
               (mousemove)="onCellMove($event)"
               (mouseleave)="onCellLeave()">
-        <span class="cell-type">{{ getEntityLabel(node.entityType) }}</span>
+        <span class="cell-type">{{ getEntityLabelKey(node) | translate }}</span>
         <span class="cell-name">{{ node.name }}</span>
         @if (hasChildren(node)) {
           <span class="cell-toggle"
@@ -160,8 +151,8 @@
     <div class="mindmap-tooltip"
          [style.left.px]="tooltipX() + 12"
          [style.top.px]="tooltipY() + 12">
-      <span class="mindmap-tooltip-type" [style.color]="getEntityColor(t.entityType)">
-        {{ getEntityLabel(t.entityType) }}
+      <span class="mindmap-tooltip-type" [style.color]="getEntityColor(t)">
+        {{ getEntityLabelKey(t) | translate }}
       </span>
       <span class="mindmap-tooltip-name">{{ t.name }}</span>
     </div>

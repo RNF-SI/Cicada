@@ -817,11 +817,18 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
                 ),
             )
 
-            def build_indicateur_node(ind):
-                """Build an indicateur node with metriques and their operations nested."""
+            def build_indicateur_node(ind, branche):
+                """Build an indicateur node with metriques and their operations nested.
+
+                `branche` (#591) distingue la branche « état actuel → OLT → NE »
+                de la branche « facteur → pression → OO → RA » : les deux portent
+                des indicateurs et des métriques, mais forment des colonnes
+                distinctes (couleur et libellé) dans le tableau d'arborescence.
+                """
                 ind_node = {
                     'name': ind.nom_indicateur,
                     'entityType': 'indicateur',
+                    'branche': branche,
                     'id': ind.id_indicateur,
                     'children': []
                 }
@@ -829,6 +836,7 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
                     met_node = {
                         'name': met.nom_metrique,
                         'entityType': 'metrique',
+                        'branche': branche,
                         'id': met.id_metrique,
                         'children': [],
                     }
@@ -893,7 +901,7 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
                                     'children': []
                                 }
                                 for ind in ra.indicateurs.all():
-                                    ra_node['children'].append(build_indicateur_node(ind))
+                                    ra_node['children'].append(build_indicateur_node(ind, 'reponse'))
                                 oo_node['children'].append(ra_node)
                             pression_node['children'].append(oo_node)
                         facteur_node['children'].append(pression_node)
@@ -924,7 +932,7 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
                             'children': []
                         }
                         for ind in ne.indicateurs.all():
-                            ne_node['children'].append(build_indicateur_node(ind))
+                            ne_node['children'].append(build_indicateur_node(ind, 'etat'))
                         olt_node['children'].append(ne_node)
 
                     etat_node['children'].append(olt_node)
@@ -1036,6 +1044,7 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
             return {
                 'name': ind.nom_indicateur,
                 'entityType': 'indicateur',
+                'branche': 'etat',
                 'id': ind.id_indicateur,
                 'children': [{
                     'name': ne.libelle,
@@ -1064,6 +1073,7 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
             return {
                 'name': met.nom_metrique,
                 'entityType': 'metrique',
+                'branche': 'etat',
                 'id': met.id_metrique,
                 'children': [build_ind_olt_ancestry(met.id_indicateur)]
             }
@@ -1089,6 +1099,7 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
             return {
                 'name': ind.nom_indicateur,
                 'entityType': 'indicateur',
+                'branche': 'reponse',
                 'id': ind.id_indicateur,
                 'children': [{
                     'name': ra.libelle,
@@ -1125,6 +1136,7 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
             return {
                 'name': met.nom_metrique,
                 'entityType': 'metrique',
+                'branche': 'reponse',
                 'id': met.id_metrique,
                 'children': [node]
             }

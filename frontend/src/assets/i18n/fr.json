@@ -2299,7 +2299,29 @@
       "expand": "Déplier",
       "collapse": "Replier",
       "loading": "Chargement du tableau d'arborescence...",
-      "empty": "Aucune donnée à afficher"
+      "empty": "Aucune donnée à afficher",
+      "entities": {
+        "plan": "Plan de gestion",
+        "enjeu": "Enjeu",
+        "fcr": "FCR",
+        "facteur": "Facteur d'influence",
+        "pression": "Pression",
+        "olt": "Objectif long terme",
+        "etat_enjeu": "État actuel",
+        "niveau_exigence": "Niveau d'exigence",
+        "oo": "Objectif opérationnel",
+        "resultat_attendu": "Résultat attendu",
+        "indicateur": "Indicateur d'état",
+        "indicateur_reponse": "Indicateur de réponse",
+        "metrique": "Métrique",
+        "metrique_reponse": "Métrique",
+        "mesure": "Mesure",
+        "operation": "Action",
+        "operation_annee": "Programmation annuelle",
+        "finance": "Finance",
+        "suivi": "Suivi / Inventaire",
+        "protocole": "Protocole"
+      }
     },
     "duplicate": {
       "title": "Créer à partir d'un plan existant",

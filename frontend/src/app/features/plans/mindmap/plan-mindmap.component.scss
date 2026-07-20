@@ -340,8 +340,11 @@ $tree-row-min: 56px;
 
 .tree-cell {
   position: relative;
-  flex: 0 0 var(--col-w, #{$tree-col-width});
-  width: var(--col-w, #{$tree-col-width});
+  // --cell-span (#591) : nombre de colonnes occupées par la case. L'état actuel
+  // en occupe 2 pour que les OLT s'alignent sur les OO, et donc que les deux
+  // branches d'un enjeu se terminent sur la même colonne « Action ».
+  flex: 0 0 calc(var(--col-w, #{$tree-col-width}) * var(--cell-span, 1));
+  width: calc(var(--col-w, #{$tree-col-width}) * var(--cell-span, 1));
   box-sizing: border-box;
   // padding-top généreux → espace au-dessus du titre dans chaque case.
   padding: $spacing-sm $spacing-sm 10px;
@@ -419,37 +422,6 @@ $tree-row-min: 56px;
   i { font-size: 14px; line-height: 1; }
 }
 
-// Legend
-.mindmap-legend {
-  display: flex;
-  flex-wrap: wrap;
-  gap: $spacing-sm $spacing-lg;
-  padding: $spacing-md;
-  margin-bottom: $spacing-md;
-  background-color: $white;
-  border-radius: $border-radius-sm;
-  border: 1px solid $primary-bg-subtle;
-}
-
-.legend-entry {
-  display: flex;
-  align-items: center;
-  gap: $spacing-xs;
-}
-
-.legend-dot {
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-
-.legend-label {
-  font-family: $font-family;
-  font-size: 12px;
-  color: $black;
-}
-
 // Toolbar (revue design Amandine) : view-toggle gauche + actions droites
 .mindmap-toolbar {
   display: flex;
@@ -520,10 +492,6 @@ $tree-row-min: 56px;
     // --col-w est piloté dynamiquement (style inline) selon la largeur réelle.
     max-height: 70vh;
     min-height: 360px;
-  }
-
-  .mindmap-legend {
-    gap: $spacing-xs $spacing-md;
   }
 
   .mindmap-controls {

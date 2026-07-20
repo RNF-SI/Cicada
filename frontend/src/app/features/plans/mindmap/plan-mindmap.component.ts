@@ -15,8 +15,9 @@ import { PlanSidebarComponent } from '../shared/plan-sidebar/plan-sidebar.compon
 import { AdminService } from '../../../core/services/admin.service';
 import { EnjeuService } from '../../../core/services/enjeu.service';
 import {
-  MindmapNode, MindmapEntityType,
-  MINDMAP_COLORS, MINDMAP_LABELS
+  MindmapNode,
+  MINDMAP_COLORS, MINDMAP_TEXT_COLORS, MINDMAP_SPANS, MINDMAP_LABEL_KEYS,
+  mindmapStyleKey
 } from '../../../core/models/mindmap.model';
 
 /**
@@ -62,8 +63,6 @@ export class PlanMindmapComponent implements OnInit, OnDestroy {
 
   // View mode: 'enjeux' (normal) or 'actions' (inverted)
   viewMode = signal<'enjeux' | 'actions'>('enjeux');
-
-  legendItems: { type: MindmapEntityType; color: string; label: string }[] = [];
 
   // Custom tooltip (#257) — surface le nom complet d'une cellule au survol
   // (le texte de la case est tronqué à quelques lignes quand il est trop long).
@@ -112,12 +111,32 @@ export class PlanMindmapComponent implements OnInit, OnDestroy {
     return children.filter(c => c.entityType === 'operation');
   });
 
-  getEntityLabel(type: MindmapEntityType | undefined): string {
-    return type ? (MINDMAP_LABELS[type] || type) : '';
+  /** Clé i18n du libellé de type d'un nœud (à passer au pipe `translate`). */
+  getEntityLabelKey(node: MindmapNode | null | undefined): string {
+    if (!node?.entityType) return '';
+    return MINDMAP_LABEL_KEYS[mindmapStyleKey(node)] || node.entityType;
   }
 
-  getEntityColor(type: MindmapEntityType | undefined): string {
-    return type ? (MINDMAP_COLORS[type] || '#555') : '#555';
+  getEntityColor(node: MindmapNode | null | undefined): string {
+    if (!node?.entityType) return '#555';
+    return MINDMAP_COLORS[mindmapStyleKey(node)] || '#555';
+  }
+
+  /**
+   * Couleur de texte d'une case : celle imposée par la maquette (#591), sinon
+   * un calcul de luminance pour les types hors tableau principal.
+   */
+  getTextColor(node: MindmapNode | null | undefined): string {
+    if (!node?.entityType) return '#343433';
+    const explicit = MINDMAP_TEXT_COLORS[mindmapStyleKey(node)];
+    if (explicit) return explicit;
+    return this.contrastingTextColor(this.getEntityColor(node));
+  }
+
+  /** Nombre de colonnes occupées par la case d'un nœud (#591). */
+  getSpan(node: MindmapNode | null | undefined): number {
+    if (!node?.entityType) return 1;
+    return MINDMAP_SPANS[mindmapStyleKey(node)] ?? 1;
   }
 
   ngOnInit(): void {
@@ -276,22 +295,26 @@ export class PlanMindmapComponent implements OnInit, OnDestroy {
     requestAnimationFrame(() => this.recomputeColWidth());
   }
 
-  /** Profondeur du sous-arbre (0 pour une feuille). */
-  private subtreeDepth(node: MindmapNode): number {
+  /**
+   * Largeur d'un sous-arbre en nombre de colonnes, en tenant compte des cases
+   * qui en occupent plusieurs (#591 : l'état actuel en occupe deux).
+   */
+  private subtreeColumns(node: MindmapNode): number {
+    const span = this.getSpan(node);
     const children = node.children;
-    if (!children || children.length === 0) return 0;
+    if (!children || children.length === 0) return span;
     let max = 0;
     for (const child of children) {
-      const d = this.subtreeDepth(child);
-      if (d > max) max = d;
+      const c = this.subtreeColumns(child);
+      if (c > max) max = c;
     }
-    return max + 1;
+    return span + max;
   }
 
   private recomputeColWidth(): void {
     const roots = this.displayRoots();
     if (!roots.length) return;
-    const columns = Math.max(...roots.map(r => this.subtreeDepth(r))) + 1;
+    const columns = Math.max(...roots.map(r => this.subtreeColumns(r)));
     const avail = this.treeScrollRef?.nativeElement?.clientWidth ?? 0;
     if (avail > 0 && columns > 0) {
       const w = Math.floor((avail - 4) / columns);
@@ -371,7 +394,7 @@ export class PlanMindmapComponent implements OnInit, OnDestroy {
     this.router.navigate(['/plans', slug, 'enjeux'], { fragment });
   }
 
-  getTextColor(hexColor: string): string {
+  private contrastingTextColor(hexColor: string): string {
     const hex = hexColor.replace('#', '');
     const r = parseInt(hex.substring(0, 2), 16);
     const g = parseInt(hex.substring(2, 4), 16);
@@ -381,19 +404,6 @@ export class PlanMindmapComponent implements OnInit, OnDestroy {
   }
 
   constructor() {
-    const legendTypes: MindmapEntityType[] = [
-      'plan', 'enjeu', 'fcr', 'facteur', 'pression',
-      'olt', 'etat_enjeu', 'niveau_exigence',
-      'oo', 'resultat_attendu',
-      'indicateur', 'metrique', 'mesure',
-      'operation', 'suivi', 'protocole'
-    ];
-    this.legendItems = legendTypes.map(t => ({
-      type: t,
-      color: MINDMAP_COLORS[t],
-      label: MINDMAP_LABELS[t]
-    }));
-
     // Recalcule la largeur des colonnes dès que l'ensemble affiché change
     // (chargement initial, bascule de vue, zoom/dézoom). On mesure dans un
     // requestAnimationFrame pour que le conteneur soit mis en page au préalable.
