@@ -679,6 +679,12 @@
         "remove": "Retirer le logo",
         "none": "Aucun logo"
       },
+      "instance": {
+        "title": "Paramètres de l'instance",
+        "description": "Fonctionnalités activables spécifiquement sur cette instance.",
+        "docGestionFcen": "Afficher le champ ID Doc'Gestion FCEN",
+        "docGestionFcenHint": "Ajoute le champ ID_Doc'Gestion FCEN aux formulaires de plan de gestion. À n'activer que sur l'instance de la FCEN."
+      },
       "homepage": {
         "title": "Image de la page d'accueil",
         "description": "Cette image s'affiche sur la page d'accueil pour les visiteurs non connectés.",

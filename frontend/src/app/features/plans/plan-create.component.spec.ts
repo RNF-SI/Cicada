@@ -12,6 +12,7 @@ import { PlanCreateComponent } from './plan-create.component';
 import { SitePlanSummary } from '../../core/models/admin.model';
 import { AdminService } from '../../core/services/admin.service';
 import { AuthService } from '../../core/services/auth.service';
+import { SettingsService } from '../../core/services/settings.service';
 import { ImpersonationGuardService } from '../../core/services/impersonation-guard.service';
 import { ModuleService } from '../../core/services/module.service';
 import { NotificationService } from '../../core/services/notification.service';
@@ -109,6 +110,8 @@ describe('PlanCreateComponent', () => {
   let isAuthenticatedSignal: WritableSignal<boolean>;
   let currentUserSignal: WritableSignal<any>;
   let canAccessAdminSignal: WritableSignal<boolean>;
+  /** #458 — Config d'instance pilotable (champ ID Doc'Gestion FCEN). */
+  let siteConfigSignal: WritableSignal<any>;
 
   function setup(opts: { isSuperAdmin?: boolean } = {}): void {
     const isSuperAdmin = opts.isSuperAdmin ?? true;
@@ -156,6 +159,14 @@ describe('PlanCreateComponent', () => {
       organisme: { id_organisme: 1, nom_organisme: 'RNF' },
     });
     canAccessAdminSignal = signal(true);
+
+    // #458 — Par défaut le champ ID Doc'Gestion FCEN est désactivé sur l'instance.
+    siteConfigSignal = signal({ enable_docgestion_fcen: false });
+
+    const settingsServiceMock = {
+      config: siteConfigSignal.asReadonly(),
+      loadSettings: jest.fn().mockReturnValue(of(siteConfigSignal()))
+    };
 
     const authServiceMock = {
       isAuthenticated: isAuthenticatedSignal.asReadonly(),
@@ -207,6 +218,7 @@ describe('PlanCreateComponent', () => {
       providers: [
         { provide: AdminService, useValue: mockAdminService },
         { provide: AuthService, useValue: authServiceMock },
+        { provide: SettingsService, useValue: settingsServiceMock },
         { provide: ImpersonationGuardService, useValue: impersonationGuardMock },
         { provide: ModuleService, useValue: moduleServiceMock },
         { provide: NotificationService, useValue: notificationServiceMock },
@@ -710,6 +722,28 @@ describe('PlanCreateComponent', () => {
 
       const payload = mockAdminService.createPlan.mock.calls[0][0];
       expect(payload.plan_parent_id).toBeUndefined();
+    });
+  });
+
+  // #458 — L'ID Doc'Gestion FCEN est un paramètre d'instance : le champ n'est
+  // affiché que sur une instance qui l'a explicitement activé (FCEN).
+  describe("ID Doc'Gestion FCEN (#458)", () => {
+    beforeEach(() => setup());
+
+    const docGestionInput = () =>
+      fixture.nativeElement.querySelector('input[formControlName="id_docgestion_fcen"]');
+
+    it('hides the field when the instance has not enabled it', () => {
+      expect(component.showDocGestionFcen()).toBe(false);
+      expect(docGestionInput()).toBeNull();
+    });
+
+    it('shows the field once the instance enables it', () => {
+      siteConfigSignal.set({ enable_docgestion_fcen: true });
+      fixture.detectChanges();
+
+      expect(component.showDocGestionFcen()).toBe(true);
+      expect(docGestionInput()).not.toBeNull();
     });
   });
 });

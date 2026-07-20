@@ -263,10 +263,12 @@
             <mat-datepicker #cspnPicker></mat-datepicker>
           </mat-form-field>
 
-          <!-- ID Doc'Gestion FCEN -->
-          <app-form-field [label]="'modals.planForm.fields.docGestion' | translate" [helpText]="'modals.planForm.hints.docGestion' | translate">
+          <!-- ID Doc'Gestion FCEN (#458 — paramètre d'instance, masqué par défaut) -->
+          @if (showDocGestionFcen()) {
+            <app-form-field [label]="'modals.planForm.fields.docGestion' | translate" [helpText]="'modals.planForm.hints.docGestion' | translate">
   <input formControlName="id_docgestion_fcen">
 </app-form-field>
+          }
 
           <!-- Type organisme rédacteur -->
           <label class="app-mat-label">{{ 'modals.planForm.fields.editorType' | translate }}</label>

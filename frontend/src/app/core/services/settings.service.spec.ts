@@ -13,6 +13,7 @@ describe('SettingsService', () => {
     header_color: '#025359',
     structure_logo: null,
     structure_logo_url: null,
+    enable_docgestion_fcen: false,
     updated_at: '2024-01-15T10:30:00Z',
     updated_by: 1,
     updated_by_name: 'Admin User'
@@ -95,6 +96,48 @@ describe('SettingsService', () => {
   });
 
   // =============================================================================
+  // #458 — ID Doc'Gestion FCEN : paramètre d'instance
+  // =============================================================================
+
+  describe('isDocGestionFcenEnabled (#458)', () => {
+    it('should be false before the configuration is loaded', () => {
+      expect(service.isDocGestionFcenEnabled()).toBe(false);
+    });
+
+    it('should be false when the instance has not enabled it', fakeAsync(() => {
+      service.loadSettings().subscribe();
+
+      httpMock.expectOne('/api/settings/').flush(mockConfig);
+      tick();
+
+      expect(service.isDocGestionFcenEnabled()).toBe(false);
+    }));
+
+    it('should be true when the instance has enabled it', fakeAsync(() => {
+      service.loadSettings().subscribe();
+
+      httpMock.expectOne('/api/settings/').flush({
+        ...mockConfig,
+        enable_docgestion_fcen: true
+      });
+      tick();
+
+      expect(service.isDocGestionFcenEnabled()).toBe(true);
+    }));
+
+    it('should stay false when the configuration fails to load', fakeAsync(() => {
+      service.loadSettings().subscribe();
+
+      httpMock
+        .expectOne('/api/settings/')
+        .flush('error', { status: 500, statusText: 'Server Error' });
+      tick();
+
+      expect(service.isDocGestionFcenEnabled()).toBe(false);
+    }));
+  });
+
+  // =============================================================================
   // loadSettings TESTS
   // =============================================================================
 
@@ -138,6 +181,7 @@ describe('SettingsService', () => {
         header_color: '#FFFFFF',
         structure_logo: null,
         structure_logo_url: null,
+        enable_docgestion_fcen: false,
         updated_at: '',
         updated_by: null,
         updated_by_name: null

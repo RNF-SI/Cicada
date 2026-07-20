@@ -28,6 +28,7 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { Observable, map, startWith, debounceTime } from 'rxjs';
 import { AdminService } from '../../core/services/admin.service';
 import { AuthService } from '../../core/services/auth.service';
+import { SettingsService } from '../../core/services/settings.service';
 import { HeaderComponent } from '../../shared/components/header/header.component';
 import { SearchBarComponent } from '../../shared/components/search-bar/search-bar.component';
 import { CheckboxComponent } from '../../shared/components/checkbox/checkbox.component';
@@ -106,6 +107,15 @@ export class PlanCreateComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly adminService = inject(AdminService);
   private readonly authService = inject(AuthService);
+  private readonly settingsService = inject(SettingsService);
+
+  /**
+   * #458 — Le champ ID Doc'Gestion FCEN n'a de sens que sur l'instance de la
+   * FCEN : c'est un paramètre d'instance, désactivé par défaut.
+   */
+  readonly showDocGestionFcen = computed(
+    () => this.settingsService.config()?.enable_docgestion_fcen === true
+  );
   private readonly translate = inject(TranslateService);
   private readonly dialog = inject(MatDialog);
   private readonly snackBar = inject(MatSnackBar);

@@ -278,3 +278,94 @@ class TestSiteConfigurationSingleton:
 
         # Still only one instance
         assert SiteConfiguration.objects.count() == 1
+
+
+# =============================================================================
+# #458 — ID DOC'GESTION FCEN : PARAMÈTRE D'INSTANCE
+# =============================================================================
+
+@pytest.mark.django_db
+@pytest.mark.integration
+class TestDocGestionFcenInstanceSetting:
+    """
+    Tests pour le parametre d'instance `enable_docgestion_fcen` (#458).
+
+    Le champ ID Doc'Gestion FCEN n'a de sens que sur l'instance de la FCEN :
+    il est donc desactive par defaut (absent de l'instance RNF) et activable
+    par un super_admin.
+    """
+
+    def test_disabled_by_default(self, api_client):
+        """Le parametre est desactive par defaut (retire de l'instance RNF)."""
+        response = api_client.get('/api/settings/')
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data['enable_docgestion_fcen'] is False
+
+    def test_exposed_to_anonymous_users(self, api_client):
+        """Le parametre est lisible sans authentification (endpoint public)."""
+        config = SiteConfiguration.get_instance()
+        config.enable_docgestion_fcen = True
+        config.save()
+
+        response = api_client.get('/api/settings/')
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data['enable_docgestion_fcen'] is True
+
+    def test_super_admin_can_enable(self, api_client):
+        """Un super_admin peut activer le parametre pour son instance."""
+        api_client.force_authenticate(user=SuperAdminFactory())
+
+        response = api_client.patch(
+            '/api/settings/',
+            {'enable_docgestion_fcen': True},
+            format='json',
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data['enable_docgestion_fcen'] is True
+        assert SiteConfiguration.get_instance().enable_docgestion_fcen is True
+
+    def test_super_admin_can_disable(self, api_client):
+        """Un super_admin peut desactiver le parametre."""
+        config = SiteConfiguration.get_instance()
+        config.enable_docgestion_fcen = True
+        config.save()
+        api_client.force_authenticate(user=SuperAdminFactory())
+
+        response = api_client.patch(
+            '/api/settings/',
+            {'enable_docgestion_fcen': False},
+            format='json',
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data['enable_docgestion_fcen'] is False
+        assert SiteConfiguration.get_instance().enable_docgestion_fcen is False
+
+    def test_regular_user_cannot_enable(self, api_client):
+        """Un utilisateur standard ne peut pas modifier le parametre."""
+        api_client.force_authenticate(user=RoleFactory())
+
+        response = api_client.patch(
+            '/api/settings/',
+            {'enable_docgestion_fcen': True},
+            format='json',
+        )
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+        assert SiteConfiguration.get_instance().enable_docgestion_fcen is False
+
+    def test_admin_organisme_cannot_enable(self, api_client):
+        """Un admin d'organisme ne peut pas modifier le parametre (instance-wide)."""
+        api_client.force_authenticate(user=AdminOrganismeFactory())
+
+        response = api_client.patch(
+            '/api/settings/',
+            {'enable_docgestion_fcen': True},
+            format='json',
+        )
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+        assert SiteConfiguration.get_instance().enable_docgestion_fcen is False

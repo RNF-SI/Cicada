@@ -21,6 +21,7 @@ import { Observable, map, startWith, debounceTime } from 'rxjs';
 import { AdminService } from '../../../../core/services/admin.service';
 import { OrganismeFormModalComponent } from '../organisme-form-modal/organisme-form-modal.component';
 import { AuthService } from '../../../../core/services/auth.service';
+import { SettingsService } from '../../../../core/services/settings.service';
 import { ViewScopeToggleComponent, ViewScope } from '../../view-scope-toggle/view-scope-toggle.component';
 import { CheckboxComponent } from '../../checkbox/checkbox.component';
 import { FormFieldComponent } from '../../form-field/form-field.component';
@@ -106,6 +107,7 @@ export class PlanFormModalComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly adminService = inject(AdminService);
   private readonly authService = inject(AuthService);
+  private readonly settingsService = inject(SettingsService);
   readonly dialogRef = inject(MatDialogRef<PlanFormModalComponent>);
   private readonly translate = inject(TranslateService);
   private readonly snackBar = inject(MatSnackBar);
@@ -265,15 +267,17 @@ export class PlanFormModalComponent implements OnInit {
     );
   });
 
-  // Détecter si un organisme CEN est lié (réactif aux sites sélectionnés)
-  hasCenOrganisme = computed(() => {
-    const selectedIds = this.selectedSiteIds();
-    const sites = this.availableSites();
-    // Vérifier si l'un des sites sélectionnés a un organisme CEN
-    return sites
-      .filter(s => selectedIds.includes(s.id))
-      .some(s => s.organismes?.some(org => org.type_organisme_code === 'CEN'));
-  });
+  /**
+   * #458 — Affichage du champ ID Doc'Gestion FCEN.
+   *
+   * Auparavant déduit de la présence d'un organisme CEN parmi les sites
+   * sélectionnés. C'est désormais un paramètre d'instance (`SiteConfiguration`) :
+   * le champ n'a de sens que sur l'instance de la FCEN et reste masqué partout
+   * ailleurs (dont l'instance RNF), quel que soit l'organisme des sites.
+   */
+  showDocGestionFcen = computed(
+    () => this.settingsService.config()?.enable_docgestion_fcen === true
+  );
 
   // Current year for validation
   currentYear = new Date().getFullYear();

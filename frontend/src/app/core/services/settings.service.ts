@@ -14,6 +14,11 @@ export interface SiteConfiguration {
   structure_logo: string | null;
   /** #448 — URL relative du logo de la structure. */
   structure_logo_url: string | null;
+  /**
+   * #458 — Paramètre d'instance : affiche le champ ID Doc'Gestion FCEN dans les
+   * formulaires de plan. Désactivé par défaut (n'a de sens que sur l'instance FCEN).
+   */
+  enable_docgestion_fcen: boolean;
   updated_at: string;
   updated_by: number | null;
   updated_by_name: string | null;
@@ -59,6 +64,14 @@ export class SettingsService {
     return this.configSignal()?.header_color || this.defaultHeaderColor;
   }
 
+  /**
+   * #458 — Le champ ID Doc'Gestion FCEN est-il activé sur cette instance ?
+   * Faux tant que la configuration n'est pas chargée (le champ reste masqué).
+   */
+  isDocGestionFcenEnabled(): boolean {
+    return this.configSignal()?.enable_docgestion_fcen === true;
+  }
+
   /** #448 — URL du logo de la structure (null si non défini). */
   getStructureLogoUrl(): string | null {
     return this.configSignal()?.structure_logo_url || null;
@@ -96,6 +109,7 @@ export class SettingsService {
           header_color: this.defaultHeaderColor,
           structure_logo: null,
           structure_logo_url: null,
+          enable_docgestion_fcen: false,
           updated_at: '',
           updated_by: null,
           updated_by_name: null

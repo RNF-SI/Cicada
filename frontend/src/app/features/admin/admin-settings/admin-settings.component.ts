@@ -9,6 +9,7 @@ import { MatButtonToggleModule } from '@angular/material/button-toggle';
 import { FormsModule } from '@angular/forms';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { SettingsService, SiteConfiguration, ImagePosition } from '../../../core/services/settings.service';
+import { CheckboxComponent } from '../../../shared/components/checkbox/checkbox.component';
 
 @Component({
   selector: 'app-admin-settings',
@@ -22,7 +23,8 @@ import { SettingsService, SiteConfiguration, ImagePosition } from '../../../core
     MatSnackBarModule,
     MatProgressSpinnerModule,
     MatButtonToggleModule,
-    TranslateModule
+    TranslateModule,
+    CheckboxComponent
   ],
   templateUrl: './admin-settings.component.html',
   styleUrl: './admin-settings.component.scss'
@@ -43,6 +45,12 @@ export class AdminSettingsComponent implements OnInit {
 
   // Image position
   selectedPosition = signal<ImagePosition>('center');
+
+  /**
+   * #458 — Le champ ID Doc'Gestion FCEN est un paramètre d'instance : il n'a de
+   * sens que sur l'instance de la FCEN et reste désactivé partout ailleurs.
+   */
+  readonly docGestionFcenEnabled = signal<boolean>(false);
 
   // #448 — Personnalisation : couleur du bandeau + logo structure.
   // Bandeau blanc par défaut (comportement historique).
@@ -72,6 +80,8 @@ export class AdminSettingsComponent implements OnInit {
       if (config?.header_color) {
         this.headerColor.set(config.header_color);
       }
+      // #458 — Paramètre d'instance : champ ID Doc'Gestion FCEN.
+      this.docGestionFcenEnabled.set(config?.enable_docgestion_fcen === true);
     });
   }
 
@@ -230,6 +240,37 @@ export class AdminSettingsComponent implements OnInit {
   }
 
   /** Enregistre la couleur du bandeau. */
+  /**
+   * #458 — Active/désactive le champ ID Doc'Gestion FCEN pour cette instance.
+   * Enregistré immédiatement au changement (pas de bouton dédié).
+   */
+  onDocGestionFcenToggle(enabled: boolean): void {
+    this.docGestionFcenEnabled.set(enabled);
+    this.isSaving.set(true);
+    const formData = new FormData();
+    formData.append('enable_docgestion_fcen', String(enabled));
+    this.settingsService.updateSettings(formData).subscribe({
+      next: () => {
+        this.isSaving.set(false);
+        this.snackBar.open(
+          this.translate.instant('admin.settings.messages.saved'),
+          this.translate.instant('common.actions.close'),
+          { duration: 3000 }
+        );
+      },
+      error: () => {
+        this.isSaving.set(false);
+        // Rétablir l'état précédent : la sauvegarde a échoué.
+        this.docGestionFcenEnabled.set(!enabled);
+        this.snackBar.open(
+          this.translate.instant('admin.settings.messages.error'),
+          this.translate.instant('common.actions.close'),
+          { duration: 3000 }
+        );
+      }
+    });
+  }
+
   saveHeaderColor(): void {
     this.isSaving.set(true);
     const formData = new FormData();

@@ -44,6 +44,7 @@ class SiteConfigurationSerializer(serializers.ModelSerializer):
             'header_color',
             'structure_logo',
             'structure_logo_url',
+            'enable_docgestion_fcen',
             'updated_at',
             'updated_by',
             'updated_by_name',
@@ -86,7 +87,14 @@ class SiteConfigurationUpdateSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = SiteConfiguration
-        fields = ['homepage_image', 'homepage_image_position', 'header_color', 'structure_logo']
+        fields = [
+            'homepage_image',
+            'homepage_image_position',
+            'header_color',
+            'structure_logo',
+            # #458 — Paramètre d'instance : affichage du champ ID Doc'Gestion FCEN.
+            'enable_docgestion_fcen',
+        ]
 
 
 class ModuleSerializer(serializers.ModelSerializer):

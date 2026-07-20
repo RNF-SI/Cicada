@@ -36,7 +36,9 @@ test.describe('Plan Create - Form Display', () => {
     // Optional fields
     await expect(createPage.surfaceInput).toBeVisible();
     await expect(createPage.dateAvisCsrpnInput).toBeVisible();
-    await expect(createPage.docGestionInput).toBeVisible();
+    // #458 — L'ID Doc'Gestion FCEN est un paramètre d'instance désactivé par
+    // défaut : le champ est absent tant qu'un super_admin ne l'active pas.
+    await expect(createPage.docGestionInput).toBeHidden();
     await expect(createPage.redacteurTypeSelect).toBeVisible();
     await expect(createPage.organismeSection).toBeVisible();
     await expect(createPage.redacteursInput).toBeVisible();

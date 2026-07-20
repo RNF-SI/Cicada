@@ -9,6 +9,7 @@ import { of, throwError } from 'rxjs';
 import { PlanFormModalComponent, PlanFormModalData } from './plan-form-modal.component';
 import { AdminService } from '../../../../core/services/admin.service';
 import { AuthService } from '../../../../core/services/auth.service';
+import { SettingsService } from '../../../../core/services/settings.service';
 import { AdminPlan, AdminSite, AdminUser } from '../../../../core/models/admin.model';
 
 // Fake translate loader for testing
@@ -34,6 +35,8 @@ describe('PlanFormModalComponent', () => {
 
   let isSuperAdminSignal: WritableSignal<boolean>;
   let currentUserSignal: WritableSignal<any>;
+  /** #458 — Config d'instance pilotable (champ ID Doc'Gestion FCEN). */
+  let siteConfigSignal: WritableSignal<any>;
 
   const mockEvaluationTypes = [
     { id_nomenclature: 1, cd_nomenclature: 'EVAL1', label: 'Evaluation 1' },
@@ -93,6 +96,8 @@ describe('PlanFormModalComponent', () => {
 
     isSuperAdminSignal = signal(isSuperAdmin);
     currentUserSignal = signal(mockCurrentUser);
+    // #458 — Par défaut le champ ID Doc'Gestion FCEN est désactivé sur l'instance.
+    siteConfigSignal = signal({ enable_docgestion_fcen: false });
 
     const adminServiceMock = {
       getEvaluationTypes: getEvaluationTypesMock,
@@ -105,6 +110,11 @@ describe('PlanFormModalComponent', () => {
       getPlansForSites: getPlansForSitesMock,
       createPlan: createPlanMock,
       updatePlan: updatePlanMock
+    };
+
+    const settingsServiceMock = {
+      config: siteConfigSignal.asReadonly(),
+      loadSettings: jest.fn().mockReturnValue(of(siteConfigSignal()))
     };
 
     const authServiceMock = {
@@ -126,6 +136,7 @@ describe('PlanFormModalComponent', () => {
         { provide: MAT_DIALOG_DATA, useValue: dialogData },
         { provide: AdminService, useValue: adminServiceMock },
         { provide: AuthService, useValue: authServiceMock },
+        { provide: SettingsService, useValue: settingsServiceMock },
         { provide: ActivatedRoute, useValue: { snapshot: { params: {} } } }
       ]
     }).compileComponents();
@@ -810,6 +821,39 @@ describe('PlanFormModalComponent', () => {
       fixture.detectChanges();
 
       expect(component.selectedParent()).toBeNull();
+    });
+  });
+
+  // ==================== #458 — ID DOC'GESTION FCEN ====================
+
+  describe("ID Doc'Gestion FCEN (#458)", () => {
+    const docGestionInput = () =>
+      fixture.nativeElement.querySelector('input[formControlName="id_docgestion_fcen"]');
+
+    it('hides the field when the instance parameter is disabled', async () => {
+      await setupTestBed();
+      fixture.detectChanges();
+
+      expect(component.showDocGestionFcen()).toBe(false);
+      expect(docGestionInput()).toBeNull();
+    });
+
+    it('shows the field when the instance parameter is enabled', async () => {
+      await setupTestBed();
+      siteConfigSignal.set({ enable_docgestion_fcen: true });
+      fixture.detectChanges();
+
+      expect(component.showDocGestionFcen()).toBe(true);
+      expect(docGestionInput()).not.toBeNull();
+    });
+
+    it('stays hidden when the site configuration is unavailable', async () => {
+      await setupTestBed();
+      siteConfigSignal.set(null);
+      fixture.detectChanges();
+
+      expect(component.showDocGestionFcen()).toBe(false);
+      expect(docGestionInput()).toBeNull();
     });
   });
 });

@@ -348,6 +348,18 @@ class SiteConfiguration(models.Model):
         blank=True,
         help_text=_('Logo de la structure affiché en haut à gauche du bandeau')
     )
+    # #458 — L'ID Doc'Gestion FCEN n'a de sens que sur l'instance de la FCEN.
+    # Il devient donc un paramètre d'instance, désactivé par défaut : le champ
+    # disparaît des formulaires de plan (création et édition) tant qu'un
+    # super_admin ne l'a pas activé pour son instance.
+    enable_docgestion_fcen = models.BooleanField(
+        _("Champ ID Doc'Gestion FCEN"),
+        default=False,
+        help_text=_(
+            "Affiche le champ ID Doc'Gestion FCEN dans les formulaires de plan "
+            "de gestion. À n'activer que sur l'instance de la FCEN."
+        )
+    )
     updated_at = models.DateTimeField(
         _('Mis à jour le'),
         auto_now=True
