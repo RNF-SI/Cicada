@@ -399,6 +399,8 @@ CAMPanule (CATalogue des Méthodes et des Protocoles) est le référentiel natio
 - **Source** : CSV embarqués dans le projet (`backend/apps/campanule/data/`)
 - **Source originale** : https://inpn.mnhn.fr/programme/campanule (format Access .accdb)
 
+> **Note (issue #565) — protocoles standardisés MhéO** : côté interface, on parle désormais de **« protocole standardisé »** plutôt que de « Campanule » (MhéO n'est pas dans CAMPanule, mais a vocation à y être intégré). En plus du catalogue INPN, 5 protocoles standardisés **MhéO** (boîte à outils Milieux humides — Amphibiens, Flore, Odonates, Pédologie, Piézométrie) sont chargés dans les mêmes tables `ref_campanule.*`, dans une **plage de codes réservée** (`cd_protocole >= 900000`, cf. `MHEO_BASE`). Définis en Python dans `backend/apps/campanule/data_mheo.py` (et non en CSV), ils sont ajoutés par `import_campanule` : au premier import complet, et en **top-up idempotent** au démarrage suivant si le catalogue est déjà installé mais que MhéO manque (pas besoin de `--force`).
+
 ### Tables
 
 | Table | Description | Taille |

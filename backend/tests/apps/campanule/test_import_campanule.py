@@ -138,3 +138,66 @@ class TestImportCampanule:
         """L'import --force recharge correctement."""
         call_command('import_campanule', '--force')
         assert CampanuleProtocole.objects.count() > 200
+
+
+@pytest.mark.django_db(transaction=True)
+class TestImportMheo:
+    """Protocoles standardisés MhéO ajoutés au catalogue (#565)."""
+
+    @pytest.fixture(autouse=True)
+    def setup(self):
+        _ensure_imported()
+
+    def test_five_mheo_protocoles_present(self):
+        """Les 5 protocoles MhéO sont chargés dans la plage réservée."""
+        from apps.campanule.data_mheo import MHEO_BASE
+
+        mheo = CampanuleProtocole.objects.filter(cd_protocole__gt=MHEO_BASE)
+        assert mheo.count() == 5
+        courts = set(mheo.values_list('lb_protocole_court', flat=True))
+        assert courts == {
+            'MhéO — Amphibiens', 'MhéO — Flore', 'MhéO — Odonates',
+            'MhéO — Pédologie', 'MhéO — Piézométrie',
+        }
+
+    def test_mheo_in_autocomplete(self):
+        """Les protocoles MhéO (non obsolètes) sont dans l'autocomplete."""
+        from apps.campanule.data_mheo import MHEO_BASE
+
+        assert AutocompleteProtocole.objects.filter(
+            cd_protocole__gt=MHEO_BASE
+        ).count() == 5
+
+    def test_mheo_detail_has_nested_data(self):
+        """Un protocole MhéO expose échantillonnage, méthode et techniques."""
+        from apps.campanule.data_mheo import MHEO_BASE
+        from apps.campanule.serializers import (
+            CampanuleProtocoleDetailSerializer,
+        )
+
+        amphibiens = CampanuleProtocole.objects.get(cd_protocole=MHEO_BASE + 1)
+        data = CampanuleProtocoleDetailSerializer(amphibiens).data
+        assert data['cible'] == 'Amphibiens'
+        assert data['prot_auteur'] == 'Collectif MhéO'
+        assert data['indicateur']
+        assert len(data['echantillonnages']) == 1
+        assert data['echantillonnages'][0]['commentaire']
+        assert len(data['methodes']) == 1
+        assert len(data['techniques']) == 4
+
+    def test_mheo_relations_not_orphan(self):
+        """Les relations MhéO pointent vers des protocoles/techniques réels."""
+        from apps.campanule.data_mheo import MHEO_BASE
+
+        prot_ids = set(
+            CampanuleProtocole.objects.values_list('cd_protocole', flat=True)
+        )
+        tech_ids = set(
+            CampanuleTechnique.objects.values_list('cd_technique', flat=True)
+        )
+        mheo_rels = CampanuleProtTechRel.objects.filter(
+            cd_protocole__gt=MHEO_BASE
+        )
+        assert mheo_rels.exists()
+        assert mheo_rels.exclude(cd_protocole__in=prot_ids).count() == 0
+        assert mheo_rels.exclude(cd_technique__in=tech_ids).count() == 0

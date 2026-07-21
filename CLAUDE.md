@@ -960,7 +960,7 @@ The backend follows a modular architecture with distinct Django apps:
 - **notifications**: Validation requests system, email notifications, Celery async tasks
 - **taxonomy**: Référentiel taxonomique TaxRef (INPN) — schemas `taxonomie`, autocomplete trigramme, import via COPY
 - **habitats**: Référentiel des habitats HabRef (INPN) — schema `ref_habitats`, autocomplete, correspondances
-- **campanule**: Catalogue des protocoles CAMPanule (INPN/PatriNat) — schema `ref_campanule`, protocoles/méthodes/techniques, autocomplete
+- **campanule**: Catalogue des protocoles CAMPanule (INPN/PatriNat) — schema `ref_campanule`, protocoles/méthodes/techniques, autocomplete. **Côté UI on parle de « protocole standardisé » (plus de « Campanule »).** Inclut aussi les 5 protocoles standardisés **MhéO** (#565, zones humides) chargés dans les mêmes tables via `data_mheo.py` (codes `>= 900000`, cf. `MHEO_BASE`)
 - **api**: Public API endpoints with token auth *(à venir)*
 - **core**: Shared utilities, base models (nomenclatures), common middleware
   - See [docs/NOMENCLATURES.md](docs/NOMENCLATURES.md) for reference data management (nomenclatures, TaxRef, HabRef, CAMPanule)

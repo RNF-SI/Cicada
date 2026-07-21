@@ -102,6 +102,15 @@
                 <span class="detail-value">{{ ech.unite }}</span>
               </div>
             }
+            @if (ech.plan_ech) {
+              <div class="detail-row">
+                <span class="detail-label">{{ 'campanule.dialog.planEch' | translate }}</span>
+                <span class="detail-value">{{ ech.plan_ech }}</span>
+              </div>
+            }
+            @if (ech.commentaire) {
+              <p class="section-text">{{ ech.commentaire }}</p>
+            }
           </div>
         }
       </div>
@@ -141,6 +150,12 @@
     <div class="protocol-section">
       <h4 class="section-label">{{ 'campanule.dialog.infos' | translate }}</h4>
       <div class="detail-card">
+        @if (p.indicateur) {
+          <div class="detail-row">
+            <span class="detail-label">{{ 'campanule.dialog.indicateur' | translate }}</span>
+            <span class="detail-value">{{ p.indicateur }}</span>
+          </div>
+        }
         @if (p.nature_donnees) {
           <div class="detail-row">
             <span class="detail-label">{{ 'campanule.dialog.natureDonnees' | translate }}</span>

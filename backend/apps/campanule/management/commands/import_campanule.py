@@ -257,10 +257,21 @@ class Command(BaseCommand):
 
         # Vérifier si déjà installé
         if not force and self._is_installed():
-            self.stdout.write(self.style.SUCCESS(
-                'CAMPanule est déjà installé. '
-                'Utilisez --force pour forcer le rechargement.'
-            ))
+            # Le catalogue INPN est déjà chargé : on s'assure au minimum que les
+            # protocoles standardisés MhéO (#565) sont présents, sans recharger
+            # tout le référentiel (idempotent, appliqué au démarrage suivant).
+            if not self._mheo_installed():
+                with transaction.atomic():
+                    self._load_mheo()
+                    self._generate_autocomplete_data()
+                self.stdout.write(self.style.SUCCESS(
+                    'Protocoles standardisés MhéO ajoutés.'
+                ))
+            else:
+                self.stdout.write(self.style.SUCCESS(
+                    'CAMPanule est déjà installé. '
+                    'Utilisez --force pour forcer le rechargement.'
+                ))
             return
 
         data_dir = os.path.normpath(DATA_DIR)
@@ -273,6 +284,7 @@ class Command(BaseCommand):
         with transaction.atomic():
             self._ensure_schema()
             self._load_all_csv(data_dir)
+            self._load_mheo()
             self._generate_autocomplete_data()
 
         self.stdout.write(self.style.SUCCESS(
@@ -289,6 +301,98 @@ class Command(BaseCommand):
                 return cursor.fetchone()[0] > 0
         except Exception:
             return False
+
+    def _mheo_installed(self):
+        """Vérifie si les protocoles standardisés MhéO sont déjà présents."""
+        from apps.campanule.data_mheo import MHEO_BASE
+        from apps.campanule.models import CampanuleProtocole
+        return CampanuleProtocole.objects.filter(
+            cd_protocole__gt=MHEO_BASE
+        ).exists()
+
+    def _load_mheo(self):
+        """
+        Charge les protocoles standardisés MhéO (#565) via l'ORM.
+
+        Ces protocoles ne sont pas dans le catalogue INPN : ils sont ajoutés en
+        plus des lignes issues des CSV, dans une plage de codes réservée
+        (>= MHEO_BASE). L'opération est idempotente : les éventuelles lignes
+        MhéO existantes sont d'abord supprimées.
+        """
+        from apps.campanule.data_mheo import MHEO_BASE, MHEO_PROTOCOLES
+        from apps.campanule.models import (
+            CampanuleProtocole,
+            CampanuleProtEchantillonnage,
+            CampanuleMethode,
+            CampanuleTechnique,
+            CampanuleProtMethRel,
+            CampanuleProtTechRel,
+        )
+
+        self.stdout.write('  Chargement des protocoles standardisés MhéO ...')
+
+        # Nettoyage idempotent de la plage MhéO.
+        CampanuleProtTechRel.objects.filter(
+            cd_protocole__gt=MHEO_BASE).delete()
+        CampanuleProtMethRel.objects.filter(
+            cd_protocole__gt=MHEO_BASE).delete()
+        CampanuleProtEchantillonnage.objects.filter(
+            cd_protocole__gt=MHEO_BASE).delete()
+        CampanuleTechnique.objects.filter(
+            cd_technique__gt=MHEO_BASE).delete()
+        CampanuleMethode.objects.filter(
+            cd_methode__gt=MHEO_BASE).delete()
+        CampanuleProtocole.objects.filter(
+            cd_protocole__gt=MHEO_BASE).delete()
+
+        # Codes séquentiels pour les méthodes / techniques / échantillonnages.
+        next_methode = MHEO_BASE + 1
+        next_technique = MHEO_BASE + 1
+        next_ech = MHEO_BASE + 1
+
+        for proto in MHEO_PROTOCOLES:
+            cd_protocole = proto['cd_protocole']
+            CampanuleProtocole.objects.create(
+                cd_protocole=cd_protocole, **proto['fields']
+            )
+
+            ech = proto.get('echantillonnage')
+            if ech:
+                CampanuleProtEchantillonnage.objects.create(
+                    cd_prot_echantillonnage=next_ech,
+                    cd_protocole=cd_protocole,
+                    **ech,
+                )
+                next_ech += 1
+
+            methode = proto.get('methode')
+            if methode:
+                CampanuleMethode.objects.create(
+                    cd_methode=next_methode,
+                    lb_methode_court='Méthodes de collecte',
+                    descr_methode=methode,
+                )
+                CampanuleProtMethRel.objects.create(
+                    cd_protocole=cd_protocole,
+                    cd_methode=next_methode,
+                )
+                next_methode += 1
+
+            for lb_technique, descr in proto.get('techniques', []):
+                CampanuleTechnique.objects.create(
+                    cd_technique=next_technique,
+                    lb_technique_fr=lb_technique,
+                    descr_technique=descr,
+                )
+                CampanuleProtTechRel.objects.create(
+                    cd_protocole=cd_protocole,
+                    cd_technique=next_technique,
+                )
+                next_technique += 1
+
+        self.stdout.write(self.style.SUCCESS(
+            f'    {len(MHEO_PROTOCOLES)} protocoles MhéO chargés'
+        ))
 
     def _ensure_schema(self):
         """S'assure que le schema existe."""
