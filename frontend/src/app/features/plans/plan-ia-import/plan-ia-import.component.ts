@@ -13,8 +13,13 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 
 import { AdminService } from '../../../core/services/admin.service';
+import { TaxonomyService } from '../../../core/services/taxonomy.service';
+import { HabitatService } from '../../../core/services/habitat.service';
 import { HeaderComponent } from '../../../shared/components/header/header.component';
 import { AdminPlan, ParsedData, ParsedRow } from '../../../core/models/admin.model';
+
+/** Option de nomenclature (catégorie, type PressRef). */
+interface NomOption { label: string; }
 
 /**
  * Module d'import IA d'un plan de gestion.
@@ -122,8 +127,21 @@ const DETAIL_FIELDS: Record<string, DetailField[]> = {
 })
 export class PlanIaImportComponent {
   private readonly adminService = inject(AdminService);
+  private readonly taxonomyService = inject(TaxonomyService);
+  private readonly habitatService = inject(HabitatService);
   private readonly snackBar = inject(MatSnackBar);
   private readonly translate = inject(TranslateService);
+
+  /** Options de nomenclature pour les sélecteurs du panneau de détail. */
+  readonly catEnjeuOpts = signal<NomOption[]>([]);
+  readonly catFcrOpts = signal<NomOption[]>([]);
+  readonly typePressionOpts = signal<NomOption[]>([]);
+
+  /** État de la recherche d'habitat/espèce à ajouter (panneau de détail). */
+  readonly bioSearchSheet = signal<'taxons' | 'habitats' | null>(null);
+  readonly bioSearchTerm = signal('');
+  readonly bioSuggestions = signal<BioRef[]>([]);
+  readonly bioSearching = signal(false);
 
   readonly view = signal<'list' | 'review'>('list');
   readonly pending = signal<AdminPlan[]>([]);
@@ -163,6 +181,27 @@ export class PlanIaImportComponent {
 
   constructor() {
     this.loadPending();
+    this.loadNomenclatures();
+  }
+
+  private loadNomenclatures(): void {
+    const toOpts = (list: { label: string }[]) => list.map(n => ({ label: n.label }));
+    this.adminService.getNomenclaturesByType('CATEGORIE_ENJEU')
+      .subscribe({ next: l => this.catEnjeuOpts.set(toOpts(l)), error: () => {} });
+    this.adminService.getNomenclaturesByType('CATEGORIE_FCR')
+      .subscribe({ next: l => this.catFcrOpts.set(toOpts(l)), error: () => {} });
+    this.adminService.getNomenclaturesByType('TYPE_PRESSION')
+      .subscribe({ next: l => this.typePressionOpts.set(toOpts(l)), error: () => {} });
+  }
+
+  /** Options du sélecteur pour un champ de détail de type « select ». */
+  selectOptions(key: string): NomOption[] {
+    switch (key) {
+      case 'categorie': return this.catEnjeuOpts();
+      case 'categorie_fcr': return this.catFcrOpts();
+      case 'type_pression': return this.typePressionOpts();
+      default: return [];
+    }
   }
 
   // --- Liste des plans en attente ----------------------------------------
@@ -250,6 +289,82 @@ export class PlanIaImportComponent {
     return ((this.rawData()[sheet] as ParsedRow[]) ?? [])
       .filter(r => String(r['cible'] ?? '').trim() === code)
       .map(r => ({ code: String(r[keyField] ?? ''), nom: String(r['nom'] ?? '') }));
+  }
+
+  // --- Ajout / retrait d'habitats et d'espèces ---------------------------
+
+  /** Ouvre (ou bascule) le champ de recherche bio pour la feuille donnée. */
+  toggleBioSearch(sheet: 'taxons' | 'habitats'): void {
+    if (this.bioSearchSheet() === sheet) {
+      this.closeBioSearch();
+    } else {
+      this.bioSearchSheet.set(sheet);
+      this.bioSearchTerm.set('');
+      this.bioSuggestions.set([]);
+    }
+  }
+
+  closeBioSearch(): void {
+    this.bioSearchSheet.set(null);
+    this.bioSearchTerm.set('');
+    this.bioSuggestions.set([]);
+  }
+
+  onBioSearch(term: string): void {
+    this.bioSearchTerm.set(term);
+    const sheet = this.bioSearchSheet();
+    if (!sheet || term.trim().length < 2) { this.bioSuggestions.set([]); return; }
+    this.bioSearching.set(true);
+    if (sheet === 'taxons') {
+      this.taxonomyService.autocomplete(term, { limit: 10 }).subscribe({
+        next: rows => {
+          this.bioSuggestions.set(rows.map(r => ({
+            code: String(r.cd_nom), nom: r.nom_valide || r.lb_nom || r.search_name,
+          })));
+          this.bioSearching.set(false);
+        },
+        error: () => this.bioSearching.set(false),
+      });
+    } else {
+      this.habitatService.autocomplete(term, { limit: 10 }).subscribe({
+        next: rows => {
+          this.bioSuggestions.set(rows.map(r => ({
+            code: String(r.cd_hab),
+            nom: [r.lb_code, r.lb_hab_fr].filter(Boolean).join(' — ') || r.search_name,
+          })));
+          this.bioSearching.set(false);
+        },
+        error: () => this.bioSearching.set(false),
+      });
+    }
+  }
+
+  /** Ajoute l'habitat/espèce sélectionné à l'enjeu affiché. */
+  chooseBio(node: TreeNode, item: BioRef): void {
+    const sheet = this.bioSearchSheet();
+    if (!sheet || node.sheet !== 'enjeux') return;
+    const cible = String(node.row['code'] ?? '').trim();
+    if (!cible) return;
+    const keyField = sheet === 'taxons' ? 'cd_nom' : 'cd_hab';
+    const current = (this.rawData()[sheet] as ParsedRow[]) ?? [];
+    // Pas de doublon (même cible + même code).
+    if (current.some(r => String(r['cible']) === cible && String(r[keyField]) === item.code)) {
+      this.closeBioSearch();
+      return;
+    }
+    const next = { ...this.rawData(), [sheet]: [...current, { cible, [keyField]: item.code, nom: item.nom }] };
+    this.rawData.set(next);
+    this.closeBioSearch();
+  }
+
+  /** Retire un habitat/espèce de l'enjeu affiché. */
+  removeBio(node: TreeNode, sheet: 'taxons' | 'habitats', code: string): void {
+    if (node.sheet !== 'enjeux') return;
+    const cible = String(node.row['code'] ?? '').trim();
+    const keyField = sheet === 'taxons' ? 'cd_nom' : 'cd_hab';
+    const kept = ((this.rawData()[sheet] as ParsedRow[]) ?? [])
+      .filter(r => !(String(r['cible']) === cible && String(r[keyField]) === code));
+    this.rawData.set({ ...this.rawData(), [sheet]: kept });
   }
 
   // --- Construction / aplatissement de l'arbre ---------------------------

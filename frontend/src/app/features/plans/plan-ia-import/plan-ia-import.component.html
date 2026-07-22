@@ -122,8 +122,15 @@
                   @if (f.kind === 'textarea') {
                     <textarea rows="3" [ngModel]="fieldValue(node, f.key)"
                               (ngModelChange)="setFieldValue(node, f.key, $event)"></textarea>
-                  } @else if (f.kind === 'select' || f.kind === 'readonly') {
-                    <!-- Édition par sélecteur : commit suivant. Affichage seul pour l'instant. -->
+                  } @else if (f.kind === 'select') {
+                    <select [ngModel]="fieldValue(node, f.key)"
+                            (ngModelChange)="setFieldValue(node, f.key, $event)">
+                      <option value="">—</option>
+                      @for (opt of selectOptions(f.key); track opt.label) {
+                        <option [value]="opt.label">{{ opt.label }}</option>
+                      }
+                    </select>
+                  } @else if (f.kind === 'readonly') {
                     <span class="detail-value">{{ fieldValue(node, f.key) || '—' }}</span>
                   } @else {
                     <input type="text" [ngModel]="fieldValue(node, f.key)"
@@ -135,27 +142,77 @@
               <!-- Habitats / espèces de l'enjeu -->
               @if (node.sheet === 'enjeux') {
                 <div class="detail-field">
-                  <span class="detail-label">Habitats associés (HabRef)</span>
+                  <span class="detail-label">
+                    Habitats associés (HabRef)
+                    <button class="bio-add-btn" (click)="toggleBioSearch('habitats')" title="Ajouter un habitat">
+                      <i class="fi fi-rr-plus-small"></i>
+                    </button>
+                  </span>
                   @if (bioForEnjeu(node, 'habitats').length) {
                     <ul class="bio-list">
                       @for (h of bioForEnjeu(node, 'habitats'); track h.code) {
-                        <li><span class="bio-code">{{ h.code }}</span> {{ h.nom || '—' }}</li>
+                        <li>
+                          <span class="bio-code">{{ h.code }}</span>
+                          <span class="bio-name">{{ h.nom || '—' }}</span>
+                          <button class="bio-del" (click)="removeBio(node, 'habitats', h.code)" title="Retirer">
+                            <i class="fi fi-rr-cross-small"></i>
+                          </button>
+                        </li>
                       }
                     </ul>
                   } @else {
                     <span class="detail-value">Aucun</span>
                   }
+                  @if (bioSearchSheet() === 'habitats') {
+                    <div class="bio-search">
+                      <input type="text" placeholder="Rechercher un habitat…"
+                             [ngModel]="bioSearchTerm()" (ngModelChange)="onBioSearch($event)">
+                      @if (bioSearching()) { <span class="bio-hint">Recherche…</span> }
+                      @if (bioSuggestions().length) {
+                        <ul class="bio-suggest">
+                          @for (s of bioSuggestions(); track s.code) {
+                            <li (click)="chooseBio(node, s)"><span class="bio-code">{{ s.code }}</span> {{ s.nom }}</li>
+                          }
+                        </ul>
+                      }
+                    </div>
+                  }
                 </div>
                 <div class="detail-field">
-                  <span class="detail-label">Espèces associées (TaxRef)</span>
+                  <span class="detail-label">
+                    Espèces associées (TaxRef)
+                    <button class="bio-add-btn" (click)="toggleBioSearch('taxons')" title="Ajouter une espèce">
+                      <i class="fi fi-rr-plus-small"></i>
+                    </button>
+                  </span>
                   @if (bioForEnjeu(node, 'taxons').length) {
                     <ul class="bio-list">
                       @for (t of bioForEnjeu(node, 'taxons'); track t.code) {
-                        <li><span class="bio-code">{{ t.code }}</span> {{ t.nom || '—' }}</li>
+                        <li>
+                          <span class="bio-code">{{ t.code }}</span>
+                          <span class="bio-name">{{ t.nom || '—' }}</span>
+                          <button class="bio-del" (click)="removeBio(node, 'taxons', t.code)" title="Retirer">
+                            <i class="fi fi-rr-cross-small"></i>
+                          </button>
+                        </li>
                       }
                     </ul>
                   } @else {
                     <span class="detail-value">Aucune</span>
+                  }
+                  @if (bioSearchSheet() === 'taxons') {
+                    <div class="bio-search">
+                      <input type="text" placeholder="Rechercher une espèce…"
+                             [ngModel]="bioSearchTerm()" (ngModelChange)="onBioSearch($event)">
+                      @if (bioSearching()) { <span class="bio-hint">Recherche…</span> }
+                      @if (bioSuggestions().length) {
+                        <ul class="bio-suggest">
+                          @for (s of bioSuggestions(); track s.code) {
+                            <li (click)="chooseBio(node, s)"><span class="bio-code">{{ s.code }}</span> {{ s.nom }}</li>
+                          }
+                        </ul>
+                      }
+                    </div>
                   }
                 </div>
               }
