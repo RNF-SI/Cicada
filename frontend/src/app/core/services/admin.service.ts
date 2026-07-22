@@ -974,6 +974,70 @@ export class AdminService {
   }
 
   /**
+   * Lance l'extraction IA d'un plan à partir d'un ou plusieurs PDF (POC).
+   * POST /api/plans/plans/{id}/extract-ia/ — renvoie un task_id (Celery).
+   */
+  extractIa(
+    planId: number,
+    target: 'arborescence' | 'actions',
+    files: File[],
+  ): Observable<{ task_id: string }> {
+    const fd = new FormData();
+    fd.append('target', target);
+    for (const f of files) fd.append('files', f);
+    return this.http
+      .post<{ task_id: string }>(`${this.plansApiUrl}/plans/${planId}/extract-ia/`, fd)
+      .pipe(catchError(this.handleError));
+  }
+
+  /**
+   * État d'une extraction IA. Quand state==='SUCCESS' : { data, report, meta }.
+   * GET /api/plans/plans/{id}/extract-ia/status/?task_id=...
+   */
+  extractIaStatus(
+    planId: number,
+    taskId: string,
+  ): Observable<{ state: string; data?: ParsedData; report?: ArborescenceImportReport; meta?: Record<string, unknown>; error?: string }> {
+    return this.http
+      .get<{ state: string; data?: ParsedData; report?: ArborescenceImportReport; meta?: Record<string, unknown>; error?: string }>(
+        `${this.plansApiUrl}/plans/${planId}/extract-ia/status/`,
+        { params: { task_id: taskId } },
+      )
+      .pipe(catchError(this.handleError));
+  }
+
+  /** Plans pré-remplis par IA, en attente de relecture (module d'import IA). */
+  getIaPendingPlans(): Observable<AdminPlan[]> {
+    return this.http
+      .get<{ results?: AdminPlan[] } | AdminPlan[]>(`${this.plansApiUrl}/plans/`, {
+        params: { import_ia_en_attente: 'true', page_size: '100' },
+      })
+      .pipe(
+        map(res => (Array.isArray(res) ? res : res.results ?? [])),
+        catchError(this.handleError),
+      );
+  }
+
+  /** Arborescence ACTUELLE d'un plan, au format plat (pour l'éditeur du module). */
+  getCurrentArborescence(planId: number): Observable<{ data: ParsedData }> {
+    return this.http
+      .get<{ data: ParsedData }>(
+        `${this.plansApiUrl}/plans/${planId}/import-arborescence/current-data/`,
+      )
+      .pipe(catchError(this.handleError));
+  }
+
+  /** Marque un plan comme relu (sort de la file d'attente IA). */
+  markIaReviewed(planId: number): Observable<{ import_ia_en_attente: boolean }> {
+    return this.http
+      .post<{ import_ia_en_attente: boolean }>(
+        `${this.plansApiUrl}/plans/${planId}/import-ia/mark-reviewed/`,
+        {},
+      )
+      .pipe(catchError(this.handleError));
+  }
+
+  /**
    * Assign a single site to a plan
    * POST /api/plans/plans/{id}/assign_site/
    */

@@ -446,6 +446,12 @@ export interface AdminPlan {
   id_cdr?: number;
   rang?: number;
   statut: PlanStatut;
+  statut_display?: string;
+  /** Nombre d'enjeux (serializer liste). */
+  enjeux_count?: number;
+  /** Import IA : plan pré-rempli par l'IA, en attente de relecture. */
+  import_ia_en_attente?: boolean;
+  import_ia_date?: string | null;
   version?: string;
   annee_debut?: number;
   annee_fin?: number;

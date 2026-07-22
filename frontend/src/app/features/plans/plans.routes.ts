@@ -16,6 +16,13 @@ export const PLANS_ROUTES: Routes = [
     canActivate: [authGuard]
   },
   {
+    path: 'import-ia',
+    loadComponent: () =>
+      import('./plan-ia-import/plan-ia-import.component').then(m => m.PlanIaImportComponent),
+    canActivate: [authGuard],
+    title: 'Import IA d\'un plan · CICADA',
+  },
+  {
     path: 'dupliquer',
     loadComponent: () => import('./plan-duplicate.component').then(m => m.PlanDuplicateComponent),
     canActivate: [authGuard]

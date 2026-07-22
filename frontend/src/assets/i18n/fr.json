@@ -2349,6 +2349,12 @@
       "deleteError": "La suppression de la version a échoué."
     },
     "import": {
+      "ia": {
+        "title": "Extraction assistée par IA (bêta)",
+        "help": "Déposez le PDF du plan de gestion : l'IA le lit et pré-remplit la grille de correction ci-dessous. Vous relisez et validez ensuite — rien n'est importé sans votre confirmation.",
+        "button": "Extraire depuis un PDF",
+        "running": "Extraction en cours… (cela peut prendre quelques minutes)"
+      },
       "sectionTitle": "Import / export de l'arborescence",
       "sectionSubtitle": "Téléchargez un classeur Excel (pré-rempli avec ce plan ou vierge), complétez-le, puis importez-le pour créer l'arborescence des enjeux, objectifs, indicateurs et métriques.",
       "downloadPrefilled": "Exporter le contenu de ce plan",

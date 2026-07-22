@@ -1,0 +1,213 @@
+<app-header></app-header>
+
+<main class="ia-page">
+  <header class="ia-hero">
+    <h1>Import de plans de gestion par IA</h1>
+    <p class="subtitle">
+      Plans pré-remplis par l'IA, <strong>en attente de relecture</strong>. Ouvrez-en un
+      pour vérifier ce que l'IA a trouvé, réorganiser les éléments, puis valider.
+    </p>
+  </header>
+
+  @if (error()) {
+    <p class="ia-error"><i class="fi fi-rr-exclamation"></i> {{ error() }}</p>
+  }
+
+  <!-- Vue liste -->
+  @if (view() === 'list') {
+    <section class="ia-card">
+      @if (loadingList()) {
+        <div class="ia-loading"><mat-spinner diameter="28"></mat-spinner> Chargement…</div>
+      } @else if (!pending().length) {
+        <div class="ia-empty">
+          <i class="fi fi-rr-inbox"></i>
+          <p>Aucun plan en attente de relecture pour le moment.</p>
+        </div>
+      } @else {
+        <table class="ia-table">
+          <thead>
+            <tr>
+              <th>Plan de gestion</th>
+              <th>Statut</th>
+              <th class="num">Enjeux</th>
+              <th>Importé le</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (p of pending(); track p.id_pg) {
+              <tr>
+                <td class="strong">{{ p.nom }}</td>
+                <td><span class="chip">{{ p.statut_display || p.statut }}</span></td>
+                <td class="num">{{ p.enjeux_count ?? '—' }}</td>
+                <td>{{ p.import_ia_date ? (p.import_ia_date | date:'dd/MM/yyyy HH:mm') : '—' }}</td>
+                <td class="right">
+                  <button mat-flat-button color="primary" (click)="open(p)">
+                    <i class="fi fi-rr-pencil"></i> Relire
+                  </button>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      }
+    </section>
+  }
+
+  <!-- Vue relecture -->
+  @if (view() === 'review') {
+    <section class="ia-card">
+      <div class="review-head">
+        <button class="link-back" (click)="backToList()">
+          <i class="fi fi-rr-arrow-left"></i> Retour à la liste
+        </button>
+        <div class="review-title">
+          <h2>{{ selected()?.nom }}</h2>
+          <span class="text-mention">{{ countLabel() }} · éditez les libellés, réordonnez (↑ ↓), cliquez un élément pour le détail.</span>
+        </div>
+        <button mat-flat-button color="primary" [disabled]="validating() || loadingTree()"
+                (click)="validate()">
+          @if (validating()) { <mat-spinner diameter="16"></mat-spinner> }
+          @else { <i class="fi fi-rr-check"></i> }
+          Valider la relecture
+        </button>
+      </div>
+
+      @if (loadingTree()) {
+        <div class="ia-loading"><mat-spinner diameter="28"></mat-spinner> Chargement de l'arborescence…</div>
+      } @else {
+        <!-- Onglets : un par enjeu -->
+        <nav class="enjeu-tabs" role="tablist">
+          @for (root of roots(); track $index) {
+            <button class="enjeu-tab" role="tab"
+                    [class.active]="activeEnjeu() === $index"
+                    [attr.aria-selected]="activeEnjeu() === $index"
+                    (click)="selectEnjeu($index)">
+              <span class="tab-kind" [class.fcr]="isFcr(root)">{{ isFcr(root) ? 'FCR' : 'Enjeu ' + ($index + 1) }}</span>
+              <span class="tab-name">{{ tabLabel(root, $index) }}</span>
+            </button>
+          }
+        </nav>
+
+        <div class="review-body" [class.with-detail]="detailNode()">
+          <!-- Arbre de l'enjeu actif -->
+          <div class="tree">
+            @if (activeRoot(); as root) {
+              <ng-container *ngTemplateOutlet="nodeTpl; context: { $implicit: root }"></ng-container>
+            } @else {
+              <p class="text-mention">Aucun enjeu à afficher.</p>
+            }
+          </div>
+
+          <!-- Panneau de détail -->
+          @if (detailNode(); as node) {
+            <aside class="detail-panel">
+              <div class="detail-head">
+                <span class="node-tag" [attr.data-kind]="isFcr(node) ? 'fcr' : node.sheet">
+                  {{ node.sheet === 'enjeux' && isFcr(node) ? 'FCR' : SHEET_LABEL[node.sheet] }}
+                </span>
+                <button class="detail-close" (click)="closeDetail()" title="Fermer">
+                  <i class="fi fi-rr-cross-small"></i>
+                </button>
+              </div>
+
+              <label class="detail-field">
+                <span class="detail-label">Intitulé</span>
+                <textarea rows="2" [ngModel]="label(node)" (ngModelChange)="setLabel(node, $event)"></textarea>
+              </label>
+
+              @for (f of detailFields(); track f.key) {
+                <div class="detail-field">
+                  <span class="detail-label">{{ f.label }}</span>
+                  @if (f.kind === 'textarea') {
+                    <textarea rows="3" [ngModel]="fieldValue(node, f.key)"
+                              (ngModelChange)="setFieldValue(node, f.key, $event)"></textarea>
+                  } @else if (f.kind === 'select' || f.kind === 'readonly') {
+                    <!-- Édition par sélecteur : commit suivant. Affichage seul pour l'instant. -->
+                    <span class="detail-value">{{ fieldValue(node, f.key) || '—' }}</span>
+                  } @else {
+                    <input type="text" [ngModel]="fieldValue(node, f.key)"
+                           (ngModelChange)="setFieldValue(node, f.key, $event)">
+                  }
+                </div>
+              }
+
+              <!-- Habitats / espèces de l'enjeu -->
+              @if (node.sheet === 'enjeux') {
+                <div class="detail-field">
+                  <span class="detail-label">Habitats associés (HabRef)</span>
+                  @if (bioForEnjeu(node, 'habitats').length) {
+                    <ul class="bio-list">
+                      @for (h of bioForEnjeu(node, 'habitats'); track h.code) {
+                        <li><span class="bio-code">{{ h.code }}</span> {{ h.nom || '—' }}</li>
+                      }
+                    </ul>
+                  } @else {
+                    <span class="detail-value">Aucun</span>
+                  }
+                </div>
+                <div class="detail-field">
+                  <span class="detail-label">Espèces associées (TaxRef)</span>
+                  @if (bioForEnjeu(node, 'taxons').length) {
+                    <ul class="bio-list">
+                      @for (t of bioForEnjeu(node, 'taxons'); track t.code) {
+                        <li><span class="bio-code">{{ t.code }}</span> {{ t.nom || '—' }}</li>
+                      }
+                    </ul>
+                  } @else {
+                    <span class="detail-value">Aucune</span>
+                  }
+                </div>
+              }
+            </aside>
+          }
+        </div>
+      }
+    </section>
+  }
+
+  <!-- Nœud récursif -->
+  <ng-template #nodeTpl let-node>
+    <div class="node" [attr.data-sheet]="node.sheet">
+      <div class="node-row" [class.selected]="detailNode() === node" (click)="showDetail(node)">
+        <span class="node-tag" [attr.data-kind]="isFcr(node) ? 'fcr' : node.sheet">
+          {{ node.sheet === 'enjeux' && isFcr(node) ? 'FCR' : SHEET_LABEL[node.sheet] }}
+        </span>
+        <input class="node-label" [ngModel]="label(node)" (click)="$event.stopPropagation()"
+               (ngModelChange)="setLabel(node, $event)" placeholder="(libellé vide)">
+        @if (pressRef(node); as pr) {
+          <span class="node-chip pressref" title="Type de pression PressRef">{{ pr }}</span>
+        }
+        @if (node.sheet === 'enjeux') {
+          @if (bioForEnjeu(node, 'habitats').length; as n) {
+            <span class="node-chip bio" title="Habitats associés"><i class="fi fi-rr-leaf"></i> {{ n }}</span>
+          }
+          @if (bioForEnjeu(node, 'taxons').length; as n) {
+            <span class="node-chip bio" title="Espèces associées"><i class="fi fi-rr-paw"></i> {{ n }}</span>
+          }
+        }
+        <span class="node-actions" (click)="$event.stopPropagation()">
+          <button type="button" title="Détail" (click)="showDetail(node)">
+            <i class="fi fi-rr-info"></i>
+          </button>
+          <button type="button" title="Monter" [disabled]="!canMoveUp(node)" (click)="move(node, -1)">
+            <i class="fi fi-rr-arrow-small-up"></i>
+          </button>
+          <button type="button" title="Descendre" [disabled]="!canMoveDown(node)" (click)="move(node, 1)">
+            <i class="fi fi-rr-arrow-small-down"></i>
+          </button>
+          <button type="button" class="danger" title="Supprimer" (click)="remove(node)">
+            <i class="fi fi-rr-trash"></i>
+          </button>
+        </span>
+      </div>
+      @if (node.children.length) {
+        <div class="node-children">
+          @for (child of node.children; track $index) {
+            <ng-container *ngTemplateOutlet="nodeTpl; context: { $implicit: child }"></ng-container>
+          }
+        </div>
+      }
+    </div>
+  </ng-template>
+</main>
