@@ -1027,6 +1027,15 @@ export class AdminService {
       .pipe(catchError(this.handleError));
   }
 
+  /** Actions/opérations ACTUELLES d'un plan (codes indicateur alignés sur l'arborescence). */
+  getCurrentActions(planId: number): Observable<{ data: ParsedData }> {
+    return this.http
+      .get<{ data: ParsedData }>(
+        `${this.plansApiUrl}/plans/${planId}/import-actions/current-data/`,
+      )
+      .pipe(catchError(this.handleError));
+  }
+
   /** Marque un plan comme relu (sort de la file d'attente IA). */
   markIaReviewed(planId: number): Observable<{ import_ia_en_attente: boolean }> {
     return this.http

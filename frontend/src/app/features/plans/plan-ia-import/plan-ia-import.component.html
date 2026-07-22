@@ -235,6 +235,9 @@
         @if (pressRef(node); as pr) {
           <span class="node-chip pressref" title="Type de pression PressRef">{{ pr }}</span>
         }
+        @if (actionMeta(node); as m) {
+          <span class="node-chip action" title="Action">{{ m }}</span>
+        }
         @if (node.sheet === 'enjeux') {
           @if (bioForEnjeu(node, 'habitats').length; as n) {
             <span class="node-chip bio" title="Habitats associés"><i class="fi fi-rr-leaf"></i> {{ n }}</span>

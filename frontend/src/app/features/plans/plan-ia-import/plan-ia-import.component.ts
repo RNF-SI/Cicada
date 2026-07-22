@@ -56,18 +56,23 @@ const HIERARCHY: Record<string, { sheet: string; via: string; multi?: boolean }[
   pressions: [{ sheet: 'oo', via: 'pressions', multi: true }],
   oo: [{ sheet: 'ra', via: 'oo' }],
   ra: [{ sheet: 'indicateurs', via: 'parent' }],
-  indicateurs: [{ sheet: 'metriques', via: 'indicateur' }],
+  indicateurs: [
+    { sheet: 'metriques', via: 'indicateur' },
+    { sheet: 'operations', via: 'indicateur' },
+  ],
   metriques: [],
+  operations: [],
 };
 const LABEL_FIELD: Record<string, string> = {
   enjeux: 'libelle', olt: 'libelle', ne: 'libelle', facteurs: 'libelle',
   pressions: 'libelle', oo: 'libelle', ra: 'libelle',
-  indicateurs: 'nom_indicateur', metriques: 'nom_metrique',
+  indicateurs: 'nom_indicateur', metriques: 'nom_metrique', operations: 'libelle',
 };
 const SHEET_LABEL: Record<string, string> = {
   enjeux: 'Enjeu', olt: 'Objectif à long terme', ne: "Niveau d'exigence",
   facteurs: "Facteur d'influence", pressions: 'Pression', oo: 'Objectif opérationnel',
   ra: 'Résultat attendu', indicateurs: 'Indicateur', metriques: 'Métrique',
+  operations: 'Action / opération',
 };
 
 /**
@@ -110,6 +115,15 @@ const DETAIL_FIELDS: Record<string, DetailField[]> = {
   metriques: [
     { key: 'type', label: 'Type de métrique', kind: 'readonly' },
     { key: 'unité', label: 'Unité', kind: 'text' },
+    { key: 'description', label: 'Description', kind: 'textarea' },
+  ],
+  operations: [
+    { key: 'type_action', label: "Type d'action", kind: 'readonly' },
+    { key: 'priorite', label: 'Priorité', kind: 'readonly' },
+    { key: 'annee_min', label: 'Année min', kind: 'text' },
+    { key: 'annee_max', label: 'Année max', kind: 'text' },
+    { key: 'operateurs', label: 'Opérateurs', kind: 'text' },
+    { key: 'financeurs', label: 'Financeurs', kind: 'text' },
     { key: 'description', label: 'Description', kind: 'textarea' },
   ],
 };
@@ -226,15 +240,26 @@ export class PlanIaImportComponent {
     this.view.set('review');
     this.adminService.getCurrentArborescence(plan.id_pg).subscribe({
       next: ({ data }) => {
-        this.rawData.set(data ?? {});
-        this.roots.set(this.buildTree(data));
-        this.loadingTree.set(false);
+        const merged: ParsedData = { ...(data ?? {}) };
+        // Les actions arrivent séparément (pipeline distinct) mais leurs codes
+        // d'indicateur sont alignés : on les fusionne pour les rattacher dans
+        // l'arbre. Un échec de ce second appel n'empêche pas la relecture.
+        this.adminService.getCurrentActions(plan.id_pg).subscribe({
+          next: res => this.finishOpen({ ...merged, operations: res.data?.['operations'] ?? res.data?.['actions'] ?? [] }),
+          error: () => this.finishOpen(merged),
+        });
       },
       error: () => {
         this.loadingTree.set(false);
         this.error.set('Impossible de charger l\'arborescence de ce plan.');
       },
     });
+  }
+
+  private finishOpen(data: ParsedData): void {
+    this.rawData.set(data);
+    this.roots.set(this.buildTree(data));
+    this.loadingTree.set(false);
   }
 
   backToList(): void {
@@ -278,6 +303,19 @@ export class PlanIaImportComponent {
   /** Type PressRef d'une pression (affiché en chip). */
   pressRef(node: TreeNode): string {
     return node.sheet === 'pressions' ? String(node.row['type_pression'] ?? '').trim() : '';
+  }
+
+  /** Résumé d'une action pour la ligne (type · priorité · années). */
+  actionMeta(node: TreeNode): string {
+    if (node.sheet !== 'operations') return '';
+    const parts = [
+      String(node.row['type_action'] ?? '').trim(),
+      String(node.row['priorite'] ?? '').trim(),
+    ].filter(Boolean);
+    const y1 = String(node.row['annee_min'] ?? '').trim();
+    const y2 = String(node.row['annee_max'] ?? '').trim();
+    if (y1 || y2) parts.push(`${y1 || '?'}–${y2 || '?'}`);
+    return parts.join(' · ');
   }
 
   /** Habitats / espèces rattachés à un enjeu (via le code de la cible). */
@@ -396,12 +434,16 @@ export class PlanIaImportComponent {
     const out: ParsedData = {};
     const seen: Record<string, Set<string>> = {};
     const walk = (node: TreeNode) => {
-      const bucket = (out[node.sheet] ??= []) as ParsedRow[];
-      const code = String(node.row['code'] ?? '');
-      seen[node.sheet] ??= new Set();
-      if (!code || !seen[node.sheet].has(code)) {
-        if (code) seen[node.sheet].add(code);
-        bucket.push(node.row);
+      // Les opérations relèvent du pipeline « actions », pas de l'import
+      // arborescence : on ne les émet pas ici (réinjectées via collectOperations).
+      if (node.sheet !== 'operations') {
+        const bucket = (out[node.sheet] ??= []) as ParsedRow[];
+        const code = String(node.row['code'] ?? '');
+        seen[node.sheet] ??= new Set();
+        if (!code || !seen[node.sheet].has(code)) {
+          if (code) seen[node.sheet].add(code);
+          bucket.push(node.row);
+        }
       }
       node.children.forEach(walk);
     };
@@ -421,6 +463,24 @@ export class PlanIaImportComponent {
       if (kept.length) out[sheet] = kept;
     }
     return out;
+  }
+
+  /** Rassemble les actions de l'arbre au format du pipeline « actions ». */
+  private collectOperations(): ParsedData {
+    const actions: ParsedRow[] = [];
+    const seen = new Set<string>();
+    const walk = (node: TreeNode) => {
+      if (node.sheet === 'operations') {
+        const code = String(node.row['code'] ?? '');
+        if (!code || !seen.has(code)) {
+          if (code) seen.add(code);
+          actions.push(node.row);
+        }
+      }
+      node.children.forEach(walk);
+    };
+    this.roots().forEach(walk);
+    return { actions };
   }
 
   private countNodes(nodes: TreeNode[]): number {
@@ -479,29 +539,50 @@ export class PlanIaImportComponent {
     if (!plan) return;
     this.validating.set(true);
     this.error.set(null);
-    // Réécrit l'arborescence (mode remplacement), puis sort de la file d'attente.
+    // 1) Réécrit l'arborescence (mode remplacement). Cela purge et recrée les
+    //    indicateurs — les opérations (FK CASCADE) sont donc supprimées ici.
     this.adminService.importArborescenceData(plan.id_pg, this.flatten(), 'replace').subscribe({
-      next: () => {
-        this.adminService.markIaReviewed(plan.id_pg).subscribe({
-          next: () => {
-            this.validating.set(false);
-            this.snackBar.open(
-              'Plan relu et validé. Il n\'est plus en attente.',
-              this.translate.instant('common.actions.close'),
-              { duration: 4000 },
-            );
-            this.pending.set(this.pending().filter(p => p.id_pg !== plan.id_pg));
-            this.backToList();
-          },
-          error: () => { this.validating.set(false); this.error.set('Réécriture faite, mais le marquage a échoué.'); },
-        });
-      },
+      next: () => this.persistOperations(plan),
       error: err => {
         this.validating.set(false);
         const body = err?.error as { issues?: { level: string; message: string }[] } | undefined;
         const first = body?.issues?.find(i => i.level === 'error')?.message;
         this.error.set(first || err?.message || 'Échec de la validation.');
       },
+    });
+  }
+
+  /**
+   * 2) Réimporte les actions après le `replace` : les indicateurs ont été
+   *    recréés avec les mêmes codes déterministes, donc les actions se
+   *    rattachent aux bons indicateurs. Sans ça, la validation détruirait les
+   *    opérations (cascade sur l'indicateur).
+   */
+  private persistOperations(plan: AdminPlan): void {
+    const ops = this.collectOperations();
+    if (!(ops['actions'] as ParsedRow[]).length) { this.finalizeValidation(plan); return; }
+    this.adminService.importActionsData(plan.id_pg, ops).subscribe({
+      next: () => this.finalizeValidation(plan),
+      error: () => {
+        this.validating.set(false);
+        this.error.set('Arborescence enregistrée, mais la réimportation des actions a échoué.');
+      },
+    });
+  }
+
+  private finalizeValidation(plan: AdminPlan): void {
+    this.adminService.markIaReviewed(plan.id_pg).subscribe({
+      next: () => {
+        this.validating.set(false);
+        this.snackBar.open(
+          'Plan relu et validé. Il n\'est plus en attente.',
+          this.translate.instant('common.actions.close'),
+          { duration: 4000 },
+        );
+        this.pending.set(this.pending().filter(p => p.id_pg !== plan.id_pg));
+        this.backToList();
+      },
+      error: () => { this.validating.set(false); this.error.set('Réécriture faite, mais le marquage a échoué.'); },
     });
   }
 }

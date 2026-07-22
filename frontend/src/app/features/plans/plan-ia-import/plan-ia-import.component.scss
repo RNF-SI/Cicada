@@ -144,6 +144,7 @@
 .node[data-sheet='ne'] > .node-row .node-tag { background: $secondary-orange-salmon; color: $black; }
 .node[data-sheet='oo'] > .node-row .node-tag,
 .node[data-sheet='ra'] > .node-row .node-tag { background: $secondary-yellow; color: $black; }
+.node[data-sheet='operations'] > .node-row .node-tag { background: $tag-orange; color: $black; }
 
 .node-row {
   cursor: pointer;
@@ -162,6 +163,7 @@
   border-radius: 12px;
   &.pressref { background: $tag-cyan; color: $black; max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   &.bio { background: $tag-green; color: $black; i { font-size: 11px; } }
+  &.action { background: $tag-orange; color: $black; max-width: 260px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 }
 
 /* Onglets : un par enjeu */
