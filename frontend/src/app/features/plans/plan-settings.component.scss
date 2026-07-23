@@ -418,3 +418,24 @@
     margin-right: $spacing-xxs;
   }
 }
+
+/* POC — extraction IA */
+.ia-extract-box {
+  margin-top: 16px;
+  padding: 14px 16px;
+  border: 1px dashed var(--primary-color, #025359);
+  border-radius: 10px;
+  background: rgba(2, 83, 89, 0.04);
+
+  .ia-extract-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 600;
+    color: var(--primary-color, #025359);
+    margin-bottom: 4px;
+  }
+
+  p { margin: 4px 0 10px; }
+  .text-error { margin-top: 8px; }
+}

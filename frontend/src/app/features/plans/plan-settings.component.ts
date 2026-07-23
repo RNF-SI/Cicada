@@ -200,6 +200,10 @@ export class PlanSettingsComponent {
   readonly importSchema = signal<ImportSheet[]>([]);
   readonly showGrid = signal(false);
 
+  // Extraction IA (POC) : dépose un PDF → tâche Celery → grille pré-remplie.
+  readonly iaExtracting = signal(false);
+  readonly iaError = signal<string | null>(null);
+
   /** Import depuis un autre fichier Excel via mapping (#10). */
   readonly showMapping = signal(false);
 
@@ -396,6 +400,59 @@ export class PlanSettingsComponent {
 
   onGridCancelled(): void {
     this.showGrid.set(false);
+  }
+
+  // -------------------------------------------------------------------------
+  // Extraction IA (POC) — dépose un PDF, l'IA pré-remplit la grille de correction
+  // -------------------------------------------------------------------------
+
+  /** Dépôt d'un/de PDF → lance l'extraction IA de l'arborescence. */
+  extractArboWithIa(event: Event): void {
+    const p = this.plan();
+    const input = event.target as HTMLInputElement;
+    const files = input.files ? Array.from(input.files) : [];
+    input.value = '';
+    if (!p || !files.length) return;
+    this.iaError.set(null);
+    this.iaExtracting.set(true);
+    this.adminService.extractIa(p.id_pg, 'arborescence', files).subscribe({
+      next: ({ task_id }) => this.pollIa(p.id_pg, task_id),
+      error: (err: HttpErrorResponse) => {
+        this.iaExtracting.set(false);
+        this.iaError.set(err?.message || this.translate.instant('plans.import.validateError'));
+      },
+    });
+  }
+
+  /** Sonde l'avancement de la tâche d'extraction (Celery) toutes les 2,5 s. */
+  private pollIa(planId: number, taskId: string, tries = 0): void {
+    this.adminService.extractIaStatus(planId, taskId).subscribe({
+      next: res => {
+        if (res.state === 'SUCCESS') {
+          this.iaExtracting.set(false);
+          this.onIaResult(res);
+        } else if (res.state === 'FAILURE') {
+          this.iaExtracting.set(false);
+          this.iaError.set(res.error || 'Échec de l\'extraction IA.');
+        } else if (tries < 160) {
+          setTimeout(() => this.pollIa(planId, taskId, tries + 1), 2500);
+        } else {
+          this.iaExtracting.set(false);
+          this.iaError.set('Extraction trop longue, réessayez.');
+        }
+      },
+      error: () => {
+        this.iaExtracting.set(false);
+        this.iaError.set(this.translate.instant('plans.import.validateError'));
+      },
+    });
+  }
+
+  /** Résultat de l'IA → alimente la grille de correction (#9) pour relecture. */
+  private onIaResult(res: { data?: ArborescenceImportReport['data']; report?: ArborescenceImportReport }): void {
+    const base = res.report ?? ({ can_import: false, issues: [], n_errors: 0, n_warnings: 0, summary: {} } as ArborescenceImportReport);
+    this.importReport.set({ ...base, data: res.data });
+    this.openGrid();
   }
 
   onMappingImported(total: number): void {

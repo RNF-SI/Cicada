@@ -81,6 +81,32 @@
                     <mat-spinner diameter="18"></mat-spinner>
                   }
                 </div>
+
+                <!-- POC — extraction IA : dépose un PDF, l'IA pré-remplit la grille -->
+                <div class="ia-extract-box">
+                  <div class="ia-extract-head">
+                    <i class="fi fi-rr-cloud-upload"></i>
+                    <span>{{ 'plans.import.ia.title' | translate }}</span>
+                  </div>
+                  <p class="text-mention">{{ 'plans.import.ia.help' | translate }}</p>
+                  <div class="import-actions">
+                    <input #iaFile type="file" accept="application/pdf" multiple hidden
+                           (change)="extractArboWithIa($event)">
+                    <button mat-flat-button color="primary" data-testid="arbo-ia"
+                            [disabled]="iaExtracting()" (click)="iaFile.click()">
+                      <i class="fi fi-rr-cloud-upload"></i>
+                      {{ 'plans.import.ia.button' | translate }}
+                    </button>
+                    @if (iaExtracting()) {
+                      <mat-spinner diameter="18"></mat-spinner>
+                      <span class="text-mention">{{ 'plans.import.ia.running' | translate }}</span>
+                    }
+                  </div>
+                  @if (iaError()) {
+                    <p class="text-error">{{ iaError() }}</p>
+                  }
+                </div>
+
                 <ul class="text-mention import-download-hints">
                   <li>{{ 'plans.import.hintExample' | translate }}</li>
                   <li>{{ 'plans.import.hintTemplate' | translate }}</li>
