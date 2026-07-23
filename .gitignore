@@ -112,3 +112,8 @@ cicada_*.deb
 
 # Fichiers de test d'import de sites (locaux, non versionnés)
 frontend/src/assets/templates/import-sites-test*
+
+# Documentation de travail / notes de cadrage (non versionnées)
+docs/GUIDE_CICADA_COMPLET.docx
+docs/GUIDE_CICADA_COMPLET.md
+/Import-IA-*.docx
