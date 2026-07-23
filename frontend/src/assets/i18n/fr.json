@@ -2520,7 +2520,8 @@
       "loadError": "Impossible de charger les postes.",
       "deleteConfirm": "Supprimer le poste « {{libelle}} » de ce plan de gestion ?",
       "recap": "{{postes}} postes au total",
-      "countPlural": "{{count}} postes",
+      "recapDetail": "{{postes}} postes · {{personnes}} personnes au total",
+      "personnesCount": "{{count}} personnes",
       "etpLabel": "{{etp}} ETP",
       "form": {
         "createTitle": "Ajouter un type de poste",

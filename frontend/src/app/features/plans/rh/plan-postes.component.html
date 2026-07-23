@@ -39,7 +39,11 @@
 
       @if (hasPostes()) {
         <div class="postes-recap">
-          <span>{{ 'plans.postes.recap' | translate:{ postes: totalPostes() } }}</span>
+          @if (totalPersonnes() > totalPostes()) {
+            <span>{{ 'plans.postes.recapDetail' | translate:{ postes: totalPostes(), personnes: totalPersonnes() } }}</span>
+          } @else {
+            <span>{{ 'plans.postes.recap' | translate:{ postes: totalPostes() } }}</span>
+          }
         </div>
       }
 

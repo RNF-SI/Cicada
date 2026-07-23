@@ -60,8 +60,11 @@ export class PlanPostesComponent implements OnInit {
 
   hasPostes = computed(() => this.postes().length > 0);
 
-  /** Nombre total de postes (un poste peut exister en plusieurs exemplaires). */
-  totalPostes = computed(() =>
+  /** Nombre de postes distincts (une tuile = un poste). #598 */
+  totalPostes = computed(() => this.postes().length);
+
+  /** Nombre total de personnes, tous postes confondus (un poste peut compter plusieurs personnes). */
+  totalPersonnes = computed(() =>
     this.postes().reduce((sum, p) => sum + (Number(p.nombre) || 0), 0),
   );
 
@@ -136,7 +139,7 @@ export class PlanPostesComponent implements OnInit {
     const parts: string[] = [];
     if (p.organisme_nom) parts.push(p.organisme_nom);
     if (p.nombre > 1) {
-      parts.push(this.translate.instant('plans.postes.countPlural', { count: p.nombre }));
+      parts.push(this.translate.instant('plans.postes.personnesCount', { count: p.nombre }));
     }
     return parts.join(' · ');
   }
