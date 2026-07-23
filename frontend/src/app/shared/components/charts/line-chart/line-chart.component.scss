@@ -1,0 +1,29 @@
+@import 'variables';
+
+.line-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  font-family: $font-family;
+}
+
+.line-grid {
+  stroke: $gray-lighter;
+  stroke-width: 1;
+}
+
+.line-tick {
+  fill: $gray-dark;
+  font-size: 10px;
+}
+
+.line-xlabel {
+  fill: $black;
+  font-size: 10px;
+}
+
+.line-axis-title {
+  fill: $gray-dark;
+  font-size: 10px;
+  font-style: italic;
+}

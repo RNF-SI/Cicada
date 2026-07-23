@@ -1,0 +1,40 @@
+@import 'variables';
+
+.bar-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  font-family: $font-family;
+}
+
+.bar-grid {
+  stroke: $gray-lighter;
+  stroke-width: 1;
+}
+
+.bar-rect {
+  transition: opacity 0.15s ease;
+  &:hover { opacity: 0.85; }
+}
+
+.bar-tick {
+  fill: $gray-dark;
+  font-size: 10px;
+}
+
+.bar-xlabel {
+  fill: $black;
+  font-size: 11px;
+}
+
+.bar-value {
+  fill: $primary-color;
+  font-size: 12px;
+  font-weight: $font-weight-bold;
+}
+
+.bar-axis-title {
+  fill: $gray-dark;
+  font-size: 10px;
+  font-style: italic;
+}

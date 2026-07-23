@@ -485,6 +485,29 @@ Navigation interne par ancres : boutons tertiaires bleu-vert séparés par `/`. 
 
 Les sections cibles doivent avoir un `id` correspondant (ex: `<section id="overview">...`).
 
+### Bibliothèque de graphiques (`shared/components/charts/`)
+
+Composants graphiques **standalone, data-driven, sans dépendance externe** (SVG maison), issus de la page Figma « Graphiques » (kit UI). Palette du design system uniquement. Importer via le barrel `shared/components/charts`. Utilisés par la page **Bilan de la gestion** (`features/plans/suivis/plan-bilan.component`).
+
+| Composant | Sélecteur | Rôle |
+|-----------|-----------|------|
+| `ChartCardComponent` | `app-chart-card` | Tuile graphique (titre capitales + sous-titre + slot `[cardActions]`). `[accent]="true"` = fond vert pâle. |
+| `ChartLegendComponent` | `app-chart-legend` | Légende (pastille aplat/motif + libellé + valeur). `[inline]` pour disposition horizontale. |
+| `DonutChartComponent` | `app-donut-chart` | Donut évidé : `[slices]` (`DonutSlice[]`), infobulle au survol, légende, motifs hachurés. |
+| `BarChartComponent` | `app-bar-chart` | Barres `mode="simple\|stacked\|grouped"`, grille Y « propre », motifs par segment. |
+| `LineChartComponent` | `app-line-chart` | Courbes + bande de confiance (min–max pointillé + écart-type ombré). |
+| `RadarChartComponent` | `app-radar-chart` | Radar avec fond dégradé arc-en-ciel, grille graduée, points colorés par score. |
+
+**Motifs (hachures / croix / points)** : chaque `DonutSlice`/`BarSegment` accepte `pattern?: 'solid'\|'hatch'\|'cross'\|'dots'` (aplat blanc + traits de la couleur). `ChartDefsComponent` (`<svg:g ccdChartDefs [defs]="…">`) génère les `<pattern>` uniques par instance via `PatternRegistry`.
+
+**Helpers** (`chart.types.ts`) : `SCORE_PALETTE` (0..5), `scoreColor(v)` (couleur du score le plus proche), `nextChartUid()`.
+
+**Séries par année du Bilan** : les graphiques « évolution » sont alimentés par `GET /api/plans/realisations/bilan-series/{plan_id}/` (`RealisationService.bilanSeries()`), aligné sur `years` (plan.annee_debut..annee_fin), filtrable par `?enjeu_id=` :
+- `indicateurs_evolution` : `mean`/`min`/`max`/`std` des scores d'indicateurs par année (dernière mesure de chaque métrique dans l'année) → `LineChartComponent` + bande de confiance
+- `rh_par_annee` : `previsionnel`/`realise` (jours) par année → `BarChartComponent` mode `grouped` (cohérent avec les totaux RH de `/bilan/`)
+- `actions_par_annee.niveaux` : counts par niveau × année → `BarChartComponent` mode `stacked`
+Ces tuiles ne s'affichent qu'en portée **Global / Mi-parcours** (masquées en Annuel).
+
 ## Common Development Commands
 
 ### Project Setup (Current Implementation)

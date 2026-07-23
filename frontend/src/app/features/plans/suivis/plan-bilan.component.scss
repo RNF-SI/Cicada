@@ -2,10 +2,8 @@
 @import 'responsive';
 
 // =============================================================================
-// Layout (mirrors plan-suivi-actions)
+// Layout (aligné sur plan-suivi-actions)
 // =============================================================================
-
-// Aligné sur plan-suivi-actions (Figma node 50:11287)
 .suivis-layout {
   display: flex;
   min-height: calc(100vh - 58px);
@@ -32,21 +30,12 @@
   i { font-size: 2.5rem; color: $error-color; }
 }
 
-// Hero — aligné sur Suivi des actions (Figma #4359-32918) : fond orange,
-// textes et bouton en $primary-color, breadcrumb rond avec lignes décoratives.
-.hero-section {
-  @include plan-page-hero-suivi(280px);
-}
-
-.hero-background {
-  @include plan-page-hero-background;
-}
-
-.hero-pattern {
-  // #383 — vagues pleinement visibles à droite (comme les autres pages de suivi)
-  @include plan-page-hero-pattern;
-}
-
+// =============================================================================
+// Hero (fond orange, textes primaires — Figma #4359-32918)
+// =============================================================================
+.hero-section { @include plan-page-hero-suivi(260px); }
+.hero-background { @include plan-page-hero-background; }
+.hero-pattern { @include plan-page-hero-pattern; }
 .hero-content {
   @include plan-page-hero-content;
   max-width: 1400px;
@@ -121,20 +110,10 @@
   text-underline-offset: 3px;
 }
 
-.breadcrumb-chevron {
-  color: $primary-color;
-  font-size: $font-size-base;
-}
+.breadcrumb-chevron { color: $primary-color; font-size: $font-size-base; }
+.breadcrumb-current { color: $primary-color; font-family: $font-family; font-size: $font-size-base; }
 
-.breadcrumb-current {
-  color: $primary-color;
-  font-family: $font-family;
-  font-size: $font-size-base;
-}
-
-.plan-header {
-  margin-top: $spacing-md;
-}
+.plan-header { margin-top: $spacing-md; }
 
 .plan-subtitle {
   display: flex;
@@ -155,21 +134,10 @@
   font-weight: $font-weight-bold;
   font-family: $font-family;
   line-height: 1.1;
-  margin: 0 0 $spacing-sm 0;
+  margin: 0 0 $spacing-md 0;
 }
 
-.hero-meta {
-  color: $primary-color;
-  font-weight: 600;
-  opacity: 0.85;
-  margin: 0 0 $spacing-md;
-}
-
-.hero-actions {
-  display: flex;
-  gap: $spacing-md;
-  margin-top: $spacing-md;
-}
+.hero-actions { display: flex; gap: $spacing-md; margin-top: $spacing-md; }
 
 .btn-hero-primary {
   display: inline-flex;
@@ -199,18 +167,50 @@
 }
 
 // =============================================================================
-// Toggles Annuel/Global + Indicateurs/Actions (maquette Figma 4043)
+// Onglets Indicateurs / Actions
 // =============================================================================
-.toggle-row {
+.big-tabs {
+  display: flex;
+  border-bottom: 2px solid $primary-color;
+}
+
+.big-tab {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: $spacing-sm;
+  padding: $spacing-md $spacing-lg;
+  background: transparent;
+  border: none;
+  border-radius: $border-radius-lg $border-radius-lg 0 0;
+  font-family: $font-family;
+  font-size: 1rem;
+  font-weight: $font-weight-semibold;
+  color: $gray-dark;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  i { font-size: 18px; }
+
+  &:not(.active):hover { color: $primary-color; }
+  &.active {
+    background: $primary-color;
+    color: $white;
+    font-weight: $font-weight-bold;
+  }
+}
+
+// =============================================================================
+// Portée Global / Mi-parcours / Annuel
+// =============================================================================
+.scope-row {
   display: flex;
   justify-content: center;
-  gap: $spacing-md;
-  flex-wrap: wrap;
 }
 
 .pill-toggle {
   display: inline-flex;
-  background: white;
+  background: $white;
   border-radius: $border-radius-pill;
   padding: 4px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
@@ -219,25 +219,22 @@
 .pill-btn {
   background: transparent;
   border: none;
-  padding: $spacing-xs $spacing-md;
+  padding: $spacing-xs $spacing-lg;
   border-radius: $border-radius-pill;
-  font-family: 'Nunito', sans-serif;
-  font-weight: 600;
+  font-family: $font-family;
+  font-weight: $font-weight-semibold;
   font-size: 0.9rem;
   color: $primary-color;
   cursor: pointer;
-  min-width: 100px;
+  min-width: 96px;
   transition: background 0.15s, color 0.15s;
 
   &:hover { background: rgba(2, 83, 89, 0.06); }
-  &.active {
-    background: $primary-color;
-    color: white;
-  }
+  &.active { background: $primary-color; color: $white; }
 }
 
 // =============================================================================
-// Year timeline
+// Timeline des années
 // =============================================================================
 .year-timeline {
   display: flex;
@@ -252,9 +249,9 @@
   background: transparent;
   border: none;
   padding: $spacing-xxs $spacing-sm;
-  font-family: 'Nunito', sans-serif;
+  font-family: $font-family;
   font-size: 0.95rem;
-  font-weight: 600;
+  font-weight: $font-weight-semibold;
   color: $gray-dark;
   cursor: pointer;
   border-bottom: 2px solid transparent;
@@ -262,14 +259,11 @@
   transition: color 0.15s, border-color 0.15s;
 
   &:hover { color: $primary-color; }
-  &.active {
-    color: $primary-color;
-    border-bottom-color: $primary-color;
-  }
+  &.active { color: $primary-color; border-bottom-color: $primary-color; }
 }
 
 // =============================================================================
-// Filter row
+// Filtres + export
 // =============================================================================
 .filter-row {
   display: flex;
@@ -277,122 +271,8 @@
   gap: $spacing-xs;
   flex-wrap: wrap;
   padding: $spacing-sm;
-  background: white;
-  border-radius: 8px;
-}
-
-.filter-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: $spacing-xxs;
-  background: transparent;
-  border: none;
-  padding: $spacing-xxs $spacing-sm;
-  border-radius: $border-radius-pill;
-  font-family: 'Nunito', sans-serif;
-  font-weight: 600;
-  font-size: 0.85rem;
-  color: $primary-color;
-  cursor: pointer;
-  transition: background 0.15s;
-
-  &:hover { background: rgba(2, 83, 89, 0.06); }
-  &.active {
-    background: $secondary-pale-green;
-    color: $primary-color;
-  }
-  &.filter-active {
-    background: rgba(2, 83, 89, 0.1);
-  }
-  &.filter-pill-reset {
-    background: rgba(183, 77, 93, 0.1);
-    color: $secondary-terra-cotta;
-    &:hover { background: rgba(183, 77, 93, 0.2); }
-  }
-  i.fi-rr-angle-small-down { font-size: 0.7rem; }
-}
-
-.filter-separator {
-  width: 1px;
-  height: 20px;
-  background: $gray-light;
-}
-
-// =============================================================================
-// Onglet Indicateurs - graphiques SVG (camembert + barres + radar)
-// =============================================================================
-.indic-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
-  gap: $spacing-md;
-}
-
-.chart-svg {
-  width: 100%;
-  height: auto;
-  max-height: 260px;
-  display: block;
-}
-
-.chart-with-legend {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: $spacing-sm;
-  align-items: center;
-}
-
-.chart-legend {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: $spacing-xxs;
-  font-size: 0.85rem;
-
-  li {
-    display: grid;
-    grid-template-columns: 14px 1fr auto;
-    gap: $spacing-xs;
-    align-items: center;
-    color: $black;
-    strong { color: $primary-color; font-weight: 700; }
-  }
-}
-
-.legend-dot {
-  display: inline-block;
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-}
-
-text.pie-label {
-  fill: $black;
-  font-size: 14px;
-  font-family: 'Nunito', sans-serif;
-  font-weight: 700;
-  pointer-events: none;
-}
-
-text.bar-count {
-  fill: $primary-color;
-  font-family: 'Nunito', sans-serif;
-  font-size: 13px;
-  font-weight: 700;
-}
-
-text.bar-label {
-  fill: $gray-dark;
-  font-family: 'Nunito', sans-serif;
-  font-size: 10px;
-}
-
-text.radar-label {
-  fill: $gray-dark;
-  font-family: 'Nunito', sans-serif;
-  font-size: 11px;
-  font-weight: 600;
+  background: $white;
+  border-radius: $border-radius-md;
 }
 
 .export-link {
@@ -403,267 +283,140 @@ text.radar-label {
   background: transparent;
   border: none;
   color: $primary-color;
-  font-family: 'Nunito', sans-serif;
-  font-weight: 600;
+  font-family: $font-family;
+  font-weight: $font-weight-semibold;
   font-size: 0.85rem;
   cursor: pointer;
   &:hover { text-decoration: underline; }
+  i { font-size: 14px; }
+}
+
+// =============================================================================
+// Grille des graphiques
+// =============================================================================
+.chart-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: $spacing-lg;
+  align-items: stretch;
+
+  app-chart-card { display: block; }
+
+  .span-2 { grid-column: 1 / -1; }
+
+  @include tablet {
+    grid-template-columns: 1fr;
+    .span-2 { grid-column: auto; }
+  }
+}
+
+// Placeholder « données par année à venir »
+.chart-soon {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: $spacing-sm;
+  min-height: 170px;
+  text-align: center;
+  color: $gray-dark;
+  i { font-size: 2rem; color: $gray; }
+  p { max-width: 340px; font-size: $font-size-small; margin: 0; }
+}
+
+.text-mention {
+  color: $gray-dark;
+  font-size: $font-size-small;
+}
+
+// =============================================================================
+// Carte budget (fond vert pâle)
+// =============================================================================
+.budget-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: $spacing-lg;
+}
+
+.budget-table {
+  border-collapse: collapse;
+  font-family: $font-family;
+
+  th {
+    text-align: left;
+    padding: 0 $spacing-lg $spacing-sm 0;
+    color: $primary-color;
+    font-size: $font-size-small;
+    font-weight: $font-weight-bold;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  td {
+    padding: $spacing-xs $spacing-lg $spacing-xs 0;
+    color: $black;
+    font-size: 1.25rem;
+    font-weight: $font-weight-bold;
+
+    &:first-child {
+      font-size: $font-size-base;
+      font-weight: $font-weight-regular;
+      color: $gray-dark;
+      padding-right: $spacing-xl;
+    }
+  }
+
+  .total-row td { border-top: 1px solid rgba(2, 83, 89, 0.2); color: $primary-color; }
+  .total-row td:first-child { color: $primary-color; font-weight: $font-weight-bold; }
+}
+
+.budget-icon {
+  font-size: 3rem;
+  color: $primary-color;
+  flex-shrink: 0;
+}
+
+// =============================================================================
+// Synthèse RH (fond vert pâle)
+// =============================================================================
+.rh-summary {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-md;
+}
+
+.rh-icon {
+  font-size: 2.4rem;
+  color: $primary-color;
+}
+
+.rh-kpi__label {
+  margin: 0;
+  color: $primary-color;
+  font-size: $font-size-small;
+  font-weight: $font-weight-bold;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.rh-kpi__value {
+  margin: $spacing-xxs 0 0;
+  color: $black;
+  font-size: 1.6rem;
+  font-weight: $font-weight-bold;
+  line-height: 1.1;
 }
 
 // =============================================================================
 // Empty state
 // =============================================================================
 .empty-state {
-  background: white;
-  border-radius: 12px;
+  background: $white;
+  border-radius: $border-radius-lg;
   padding: $spacing-xxl;
   text-align: center;
   i { font-size: 2.5rem; color: $primary-color; }
   h2 { margin: $spacing-sm 0 $spacing-xs; color: $primary-color; }
   p { color: $gray-dark; }
-}
-
-// =============================================================================
-// Summary grid + cards
-// =============================================================================
-.summary-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: $spacing-md;
-}
-
-.summary-card,
-.chart-card {
-  background: white;
-  border-radius: 12px;
-  padding: $spacing-lg;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
-
-  .card-title {
-    margin: 0 0 $spacing-md;
-    font-size: 0.9rem;
-    letter-spacing: 0.05em;
-    text-transform: uppercase;
-    color: $primary-color;
-    font-weight: 700;
-  }
-}
-
-.big-number {
-  font-size: 2.8rem;
-  font-weight: 700;
-  color: $primary-color;
-  line-height: 1;
-}
-.big-number-label {
-  margin: $spacing-xxs 0 0;
-  color: $gray-dark;
-  font-size: 0.9rem;
-}
-
-.taux-detail {
-  list-style: none;
-  padding: 0;
-  margin: $spacing-md 0 0;
-  display: flex;
-  flex-direction: column;
-  gap: $spacing-xxs;
-  font-size: 0.85rem;
-
-  li {
-    display: grid;
-    grid-template-columns: 16px 1fr auto;
-    align-items: center;
-    gap: $spacing-xs;
-    color: $black;
-    strong { color: $primary-color; }
-  }
-}
-
-.bar-dot {
-  display: inline-block;
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-}
-
-// Couleurs des niveaux (palette design system)
-.bar-termine     { background: #04854B; }
-.bar-partiel     { background: #82DB8A; }
-.bar-en-cours    { background: $primary-color; }
-.bar-reporte     { background: #F7D35C; }
-.bar-non-demarre { background: $gray-light; }
-.bar-abandonne   { background: #E12329; }
-
-// =============================================================================
-// KPI table (budget)
-// =============================================================================
-.kpi-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 0.9rem;
-
-  th {
-    text-align: right;
-    padding: $spacing-xxs $spacing-xs;
-    color: $gray-dark;
-    font-weight: 600;
-    font-size: 0.8rem;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-  }
-  th:first-child { text-align: left; }
-
-  td {
-    padding: $spacing-xxs $spacing-xs;
-    text-align: right;
-    border-top: 1px solid $gray-lighter;
-  }
-  td:first-child { text-align: left; color: $black; }
-
-  .total-row {
-    font-weight: 700;
-    td { border-top: 2px solid $primary-color; color: $primary-color; }
-  }
-
-  .positive { color: #04854B; font-weight: 600; }
-  .negative { color: $secondary-terra-cotta; font-weight: 600; }
-}
-
-// =============================================================================
-// RH section
-// =============================================================================
-.rh-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: $spacing-md;
-}
-
-.ecart-summary {
-  margin: $spacing-sm 0 0;
-  font-weight: 600;
-  &.positive { color: #04854B; }
-  &.negative { color: $secondary-terra-cotta; }
-}
-
-// #560 — ventilation financé / non financé du temps de travail.
-.rh-split {
-  width: 100%;
-  margin-top: $spacing-md;
-  border-collapse: collapse;
-  font-size: 0.85rem;
-
-  th {
-    text-align: right;
-    font-weight: 600;
-    color: $gray-dark;
-    font-size: 0.75rem;
-    padding: 0 0 $spacing-xxs;
-    border-bottom: 1px solid $gray-lighter;
-
-    &:first-child { text-align: left; }
-  }
-
-  td {
-    text-align: right;
-    padding: $spacing-xs 0;
-    color: $black;
-    border-bottom: 1px solid $gray-lighter;
-
-    &:first-child { text-align: left; color: $gray-dark; }
-  }
-
-  tr.non-finance td:first-child { font-style: italic; }
-}
-
-// =============================================================================
-// Bar charts (catégorie + enjeu)
-// =============================================================================
-.legend {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: $spacing-md;
-  padding: $spacing-sm $spacing-md;
-  background: white;
-  border-radius: 8px;
-  font-size: 0.85rem;
-
-  .legend-label {
-    font-weight: 700;
-    color: $gray-dark;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    font-size: 0.75rem;
-  }
-  .legend-item {
-    display: inline-flex;
-    align-items: center;
-    gap: $spacing-xxs;
-  }
-}
-
-.bar-list {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  display: flex;
-  flex-direction: column;
-  gap: $spacing-md;
-
-  li {
-    display: flex;
-    flex-direction: column;
-    gap: $spacing-xxs;
-  }
-}
-
-.bar-row-label {
-  display: flex;
-  align-items: baseline;
-  gap: $spacing-sm;
-  font-size: 0.9rem;
-
-  strong {
-    background: $primary-color;
-    color: white;
-    padding: 2px 8px;
-    border-radius: $border-radius-sm;
-    font-size: 0.8rem;
-  }
-  .enjeu-label { font-weight: 600; color: $black; flex: 1; }
-  .bar-total {
-    margin-left: auto;
-    color: $primary-color;
-    font-weight: 700;
-  }
-}
-
-.stacked-bar {
-  display: flex;
-  width: 100%;
-  height: 24px;
-  border-radius: $border-radius-sm;
-  overflow: hidden;
-  background: $gray-lighter;
-
-  .segment {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: white;
-    font-size: 0.75rem;
-    font-weight: 600;
-    transition: opacity 0.15s;
-    min-width: 0;
-
-    &:hover { opacity: 0.85; }
-
-    .seg-label { padding: 0 4px; }
-
-    // Texte sombre sur les couleurs claires
-    &.bar-partiel, &.bar-reporte, &.bar-non-demarre {
-      color: $black;
-    }
-  }
 }

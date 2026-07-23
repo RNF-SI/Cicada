@@ -438,6 +438,77 @@ class TestRealisationBilanEndpoint:
 
 
 # =============================================================================
+# API — Bilan : séries par année (graphiques « évolution »)
+# =============================================================================
+
+@pytest.mark.django_db
+@pytest.mark.integration
+class TestRealisationBilanSeriesEndpoint:
+
+    def test_series_structure_and_empty(self, api_client, realisation_test_data):
+        """Plan sans réalisation : séries alignées sur les années, tout à None/0."""
+        plan = realisation_test_data['plan']
+        api_client.force_authenticate(user=realisation_test_data['super_admin'])
+        response = api_client.get(f'/api/plans/realisations/bilan-series/{plan.pk}/')
+
+        assert response.status_code == status.HTTP_200_OK
+        years = response.data['years']
+        assert years == list(range(plan.annee_debut, plan.annee_fin + 1))
+        n = len(years)
+
+        ev = response.data['indicateurs_evolution']
+        for key in ('mean', 'min', 'max', 'std'):
+            assert len(ev[key]) == n
+            assert all(v is None for v in ev[key])  # aucune mesure → tout None
+
+        assert response.data['rh_par_annee']['previsionnel'] == [0.0] * n
+        assert response.data['rh_par_annee']['realise'] == [0.0] * n
+
+        niveaux = response.data['actions_par_annee']['niveaux']
+        assert {'termine', 'partiel', 'en_cours', 'reporte',
+                'non_demarre', 'abandonne', 'inconnu'}.issubset(niveaux.keys())
+        assert all(sum(v) == 0 for v in niveaux.values())
+
+    def test_series_rh_and_actions_bucketed_by_year(self, api_client, realisation_test_data):
+        """RH (prévi/réel) et niveau de réalisation atterrissent dans la bonne année."""
+        from decimal import Decimal
+        from apps.plans.models_operations import (
+            OperationAnneeRH, RealisationOperationAnneeRH,
+        )
+        plan = realisation_test_data['plan']
+        year = plan.annee_debut  # dans la fenêtre du plan
+        oa = OperationAnneeFactory(
+            id_operation=realisation_test_data['operation'], annee=year,
+            periodicite=True, budget=Decimal('500.00'),
+        )
+        OperationAnneeRH.objects.create(id_operation_annee=oa, jours=10, finance=True)
+        realisation = RealisationOperationAnneeFactory(
+            id_operation_annee=oa,
+            id_niveau_realisation=realisation_test_data['niveau_termine'],
+        )
+        RealisationOperationAnneeRH.objects.create(
+            id_realisation_operation_annee=realisation, jours=8, finance=True,
+        )
+
+        api_client.force_authenticate(user=realisation_test_data['super_admin'])
+        response = api_client.get(f'/api/plans/realisations/bilan-series/{plan.pk}/')
+
+        assert response.status_code == status.HTTP_200_OK
+        i = response.data['years'].index(year)
+        assert response.data['rh_par_annee']['previsionnel'][i] == 10.0
+        assert response.data['rh_par_annee']['realise'][i] == 8.0
+        assert response.data['actions_par_annee']['niveaux']['termine'][i] == 1
+
+    def test_series_forbidden_for_isolated_user(self, api_client, realisation_test_data):
+        """Même scoping IsReferent que /bilan/."""
+        api_client.force_authenticate(user=realisation_test_data['other_user'])
+        response = api_client.get(
+            f'/api/plans/realisations/bilan-series/{realisation_test_data["plan"].pk}/'
+        )
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+
+# =============================================================================
 # API — Réalisations par organisme (ventilation)
 # =============================================================================
 

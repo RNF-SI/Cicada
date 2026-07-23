@@ -1,0 +1,44 @@
+@import 'variables';
+
+.radar-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-width: 340px;
+  margin: 0 auto;
+  font-family: $font-family;
+  overflow: visible;
+}
+
+.radar-ring {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.75);
+  stroke-width: 1;
+}
+
+.radar-ring-label {
+  fill: $gray-dark;
+  font-size: 9px;
+}
+
+.radar-axis {
+  stroke: rgba(255, 255, 255, 0.85);
+  stroke-width: 1;
+}
+
+.radar-axis-label {
+  fill: $black;
+  font-size: 11px;
+  font-weight: $font-weight-semibold;
+}
+
+.radar-shape {
+  fill: rgba(2, 83, 89, 0.12);
+  stroke: $primary-color;
+  stroke-width: 2;
+}
+
+.radar-point {
+  stroke: $white;
+  stroke-width: 1.5;
+}

@@ -1176,6 +1176,139 @@ class RealisationOperationAnneeViewSet(viewsets.ModelViewSet):
             },
         })
 
+    @action(detail=False, methods=['get'], url_path=r'bilan-series/(?P<plan_id>\d+)')
+    def bilan_series(self, request, plan_id=None):
+        """
+        Séries temporelles (par année) pour la page Bilan (graphiques « par année »).
+
+        Retourne, alignés sur `years` (plan.annee_debut..annee_fin) :
+          - indicateurs_evolution : moyenne / min / max / écart-type des scores
+            d'indicateurs par année (dernière mesure de chaque métrique dans l'année)
+          - rh_par_annee : jours de travail prévisionnel / réalisé par année
+          - actions_par_annee : counts par niveau de réalisation par année (barres empilées)
+
+        Filtre optionnel : ?enjeu_id= (comme /bilan/). Le scoping suit get_queryset.
+        Cohérence avec /bilan/ : le prévisionnel (RH) n'est compté que pour les
+        OperationAnnee ayant une réalisation, une seule fois par OperationAnnee.
+        """
+        import statistics
+        from collections import defaultdict
+        from .models_indicateurs import Indicateur
+        from .views_indicateurs import _mesure_to_score
+
+        plan = get_object_or_404(PlanGestion, pk=plan_id)
+        enjeu_id = request.query_params.get('enjeu_id')
+
+        y0, y1 = plan.annee_debut, plan.annee_fin
+        years = list(range(y0, y1 + 1)) if (y0 and y1 and y1 >= y0) else []
+        year_index = {y: i for i, y in enumerate(years)}
+        n = len(years)
+
+        # ------------------------------------------------------------------
+        # 1) Évolution des scores d'indicateurs par année
+        # ------------------------------------------------------------------
+        indicators_qs = Indicateur.objects.filter(
+            id_ne__id_olt__id_enjeu__id_pg=plan,
+        ).select_related('id_ne__id_olt__id_enjeu').prefetch_related(
+            'metriques__mesures', 'metriques__score_blocks',
+        ).distinct()
+        if enjeu_id:
+            indicators_qs = indicators_qs.filter(id_ne__id_olt__id_enjeu_id=enjeu_id)
+
+        # Par année : une valeur continue par indicateur (moyenne de ses métriques,
+        # chacune évaluée sur sa dernière mesure de l'année).
+        scores_by_year = defaultdict(list)
+        for ind in indicators_qs:
+            metrique_scores_by_year = defaultdict(list)
+            for m in ind.metriques.all():
+                last_by_year = {}
+                for mes in m.mesures.all():
+                    if not mes.date_mesure:
+                        continue
+                    yy = mes.date_mesure.year
+                    cur = last_by_year.get(yy)
+                    if cur is None or (mes.date_mesure, mes.date_ajout) > (cur.date_mesure, cur.date_ajout):
+                        last_by_year[yy] = mes
+                for yy, mes in last_by_year.items():
+                    sc = _mesure_to_score(mes, m) or 0
+                    if sc > 0:
+                        metrique_scores_by_year[yy].append(sc)
+            for yy, sclist in metrique_scores_by_year.items():
+                if sclist:
+                    scores_by_year[yy].append(sum(sclist) / len(sclist))
+
+        ind_mean = [None] * n
+        ind_min = [None] * n
+        ind_max = [None] * n
+        ind_std = [None] * n
+        for yy, vals in scores_by_year.items():
+            i = year_index.get(yy)
+            if i is None or not vals:
+                continue
+            ind_mean[i] = round(sum(vals) / len(vals), 2)
+            ind_min[i] = round(min(vals), 2)
+            ind_max[i] = round(max(vals), 2)
+            ind_std[i] = round(statistics.pstdev(vals), 2) if len(vals) > 1 else 0.0
+
+        # ------------------------------------------------------------------
+        # 2 & 3) RH + niveaux de réalisation des actions par année
+        # ------------------------------------------------------------------
+        realisations_qs = self.get_queryset().filter(
+            Q(id_operation_annee__id_operation__metriques__id_indicateur__id_ne__id_olt__id_enjeu__id_pg=plan) |
+            Q(id_operation_annee__id_operation__id_suivi__id_pg=plan)
+        ).select_related(
+            'id_operation_annee', 'id_operation_annee__id_operation', 'id_niveau_realisation',
+        ).prefetch_related(
+            'id_operation_annee__rh_lignes', 'rh_lignes',
+        ).distinct()
+        if enjeu_id:
+            realisations_qs = realisations_qs.filter(
+                id_operation_annee__id_operation__metriques__id_indicateur__id_ne__id_olt__id_enjeu_id=enjeu_id
+            ).distinct()
+
+        niveau_map = {
+            'NON_DEMARRE': 'non_demarre', 'EN_COURS': 'en_cours',
+            'PARTIEL': 'partiel', 'TERMINE': 'termine',
+            'ABANDONNE': 'abandonne', 'REPORTE': 'reporte',
+        }
+        niveau_keys = ['termine', 'partiel', 'en_cours', 'reporte', 'non_demarre', 'abandonne', 'inconnu']
+        actions_by_year = {k: [0] * n for k in niveau_keys}
+        rh_prev = [0.0] * n
+        rh_real = [0.0] * n
+        seen_oa = set()
+
+        for r in realisations_qs:
+            oa = r.id_operation_annee
+            i = year_index.get(oa.annee)
+            if i is None:
+                continue
+
+            mnem = r.id_niveau_realisation.mnemonique if r.id_niveau_realisation else None
+            actions_by_year[niveau_map.get(mnem, 'inconnu')][i] += 1
+
+            if oa.id_operation_annee not in seen_oa:
+                seen_oa.add(oa.id_operation_annee)
+                for rh in oa.rh_lignes.all():
+                    rh_prev[i] += float(rh.jours or 0)
+            for rh in r.rh_lignes.all():
+                rh_real[i] += float(rh.jours or 0)
+
+        return Response({
+            'plan_id': int(plan_id),
+            'plan_nom': plan.nom,
+            'years': years,
+            'indicateurs_evolution': {
+                'mean': ind_mean, 'min': ind_min, 'max': ind_max, 'std': ind_std,
+            },
+            'rh_par_annee': {
+                'previsionnel': [round(v, 1) for v in rh_prev],
+                'realise': [round(v, 1) for v in rh_real],
+            },
+            'actions_par_annee': {
+                'niveaux': actions_by_year,
+            },
+        })
+
 
 class RealisationOperationAnneeOrganismeViewSet(viewsets.ModelViewSet):
     """

@@ -1,0 +1,71 @@
+@import 'variables';
+
+.donut {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: $spacing-md;
+
+  &--row {
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    gap: $spacing-lg;
+  }
+}
+
+.donut__plot {
+  position: relative;
+  width: 100%;
+}
+
+.donut__svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.donut__arc {
+  cursor: pointer;
+  transition: opacity 0.15s ease, stroke-width 0.15s ease;
+
+  &.is-dim {
+    opacity: 0.45;
+  }
+}
+
+.donut__center-value {
+  fill: $primary-color;
+  font-family: $font-family;
+  font-weight: $font-weight-bold;
+  font-size: 22px;
+}
+
+.donut__center-label {
+  fill: $gray-dark;
+  font-family: $font-family;
+  font-size: 11px;
+}
+
+// Infobulle au survol (kit UI : « Très mauvais : 25% »).
+.donut__tip {
+  position: absolute;
+  transform: translate(-50%, -125%);
+  background: $white;
+  border: 1px solid $gray-light;
+  border-radius: $border-radius-md;
+  padding: $spacing-xxs $spacing-sm;
+  font-family: $font-family;
+  font-size: $font-size-small;
+  color: $black;
+  white-space: nowrap;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+  pointer-events: none;
+  z-index: 2;
+
+  strong {
+    color: $primary-color;
+    font-weight: $font-weight-bold;
+  }
+}

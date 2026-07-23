@@ -110,6 +110,27 @@ export interface BilanIndicateursResponse {
   by_enjeu: BilanIndicateursEnjeuEntry[];
 }
 
+/** Séries temporelles (par année) du bilan — graphiques « par année ». */
+export interface BilanSeriesResponse {
+  plan_id: number;
+  plan_nom: string;
+  years: number[];
+  indicateurs_evolution: {
+    mean: (number | null)[];
+    min: (number | null)[];
+    max: (number | null)[];
+    std: (number | null)[];
+  };
+  rh_par_annee: {
+    previsionnel: number[];
+    realise: number[];
+  };
+  actions_par_annee: {
+    /** { termine: [...], partiel: [...], ... } alignés sur `years`. */
+    niveaux: Record<string, number[]>;
+  };
+}
+
 
 @Injectable({ providedIn: 'root' })
 export class RealisationService {
@@ -157,6 +178,17 @@ export class RealisationService {
     if (filters?.annee) params = params.set('annee', String(filters.annee));
     return this.http.get<BilanResponse>(
       `${this.apiUrl}/realisations/bilan/${planId}/`,
+      { params },
+    );
+  }
+
+  /** Séries par année pour les graphiques « évolution » du Bilan. */
+  bilanSeries(planId: number, filters?: Pick<BilanFilters, 'enjeu_id' | 'organisme_id'>): Observable<BilanSeriesResponse> {
+    let params = new HttpParams();
+    if (filters?.enjeu_id) params = params.set('enjeu_id', String(filters.enjeu_id));
+    if (filters?.organisme_id) params = params.set('organisme_id', String(filters.organisme_id));
+    return this.http.get<BilanSeriesResponse>(
+      `${this.apiUrl}/realisations/bilan-series/${planId}/`,
       { params },
     );
   }
