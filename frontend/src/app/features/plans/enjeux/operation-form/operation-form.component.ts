@@ -36,7 +36,7 @@ import { MetriqueFormComponent } from '../../../../shared/components/metrique-fo
 import { EnjeuService } from '../../../../core/services/enjeu.service';
 import { AdminService } from '../../../../core/services/admin.service';
 import { RhService } from '../../../../core/services/rh.service';
-import { Poste } from '../../../../core/models/rh.model';
+import { Poste, CategorieDepense } from '../../../../core/models/rh.model';
 import { CampanuleService } from '../../../../core/services/campanule.service';
 import { InventaireService } from '../../../../core/services/inventaire.service';
 import { ReorderService, OperationCodePreviewParams } from '../../../../core/services/reorder.service';
@@ -649,11 +649,29 @@ export class OperationFormComponent implements OnInit {
   rhLines: Array<{
     id_poste: number | null;
     id_organisme: number | null;
+    /** Financé — dérivé de `categorie_depense` (#597), conservé pour les totaux. */
     finance: boolean;
+    /** Catégorie de dépense (#597), source de vérité côté saisie. */
+    categorie_depense: CategorieDepense;
     jours: Record<number, number | null>;
     /** Ligne de référence (un poste / un organisme) vs lot ajouté à la main. */
     derived: boolean;
   }> = [];
+
+  /** Options de la colonne « Catégorie de dépense » (#597). */
+  readonly categorieDepenseOptions: CategorieDepense[] = [
+    'fonctionnement', 'investissement', 'benevolat_partenariat',
+  ];
+
+  /** Financé = tout sauf « bénévolat partenariat » (#597). */
+  private financeFromCategorie(cat: CategorieDepense): boolean {
+    return cat !== 'benevolat_partenariat';
+  }
+
+  /** Catégorie par défaut dérivée du booléen financé (compat / valeur initiale). */
+  private categorieFromFinance(finance: boolean): CategorieDepense {
+    return finance ? 'fonctionnement' : 'benevolat_partenariat';
+  }
 
   // Available organismes derived from selected sites
   availableOrganismes = computed(() => {
@@ -1478,13 +1496,16 @@ export class OperationFormComponent implements OnInit {
         const yearIdx = this.operationAnnees.findIndex(a => a.annee === serverAnnee.annee);
         if (yearIdx < 0 || !serverAnnee.rh_lignes) continue;
         for (const l of serverAnnee.rh_lignes) {
-          const key = `${l.id_poste ?? ''}|${l.id_organisme ?? ''}|${l.finance}`;
+          const categorie: CategorieDepense =
+            l.categorie_depense ?? this.categorieFromFinance(!!l.finance);
+          const key = `${l.id_poste ?? ''}|${l.id_organisme ?? ''}|${categorie}`;
           let line = rhMap.get(key);
           if (!line) {
             line = {
               id_poste: l.id_poste ?? null,
               id_organisme: l.id_organisme ?? null,
-              finance: !!l.finance,
+              finance: this.financeFromCategorie(categorie),
+              categorie_depense: categorie,
               jours: {},
               derived: false,
             };
@@ -1978,6 +1999,7 @@ export class OperationFormComponent implements OnInit {
             id_organisme: l.id_organisme,
             jours: l.jours[idx] ?? null,
             finance: l.finance,
+            categorie_depense: l.categorie_depense,
           }))
           // Une ligne sans cible reste valide (« temps non affecté »). Seul le
           // nombre de jours est discriminant : les lignes dérivées laissées
@@ -3086,21 +3108,26 @@ export class OperationFormComponent implements OnInit {
       const globals = this.rhLines.filter(l => l.id_poste == null && l.id_organisme == null);
       this.rhLines = globals.length
         ? globals.map((l, i) => ({ ...l, derived: i === 0 }))
-        : [{ id_poste: null, id_organisme: null, finance: true, jours: {}, derived: true }];
+        : [{ id_poste: null, id_organisme: null, finance: true, categorie_depense: 'fonctionnement', jours: {}, derived: true }];
       return;
     }
 
     const isPostes = mode === 'postes';
     const targets = isPostes
-      ? this.postes().map(p => ({
-          id_poste: p.id_poste ?? null,
-          id_organisme: null,
-          finance: p.finance_par_defaut ?? true,
-        }))
+      ? this.postes().map(p => {
+          const finance = p.finance_par_defaut ?? true;
+          return {
+            id_poste: p.id_poste ?? null,
+            id_organisme: null,
+            finance,
+            categorie_depense: this.categorieFromFinance(finance),
+          };
+        })
       : this.availableOrganismes().map(o => ({
           id_poste: null,
           id_organisme: o.id_organisme,
           finance: true,
+          categorie_depense: 'fonctionnement' as CategorieDepense,
         }));
 
     const rest = this.rhLines.filter(l =>
@@ -3153,7 +3180,7 @@ export class OperationFormComponent implements OnInit {
   addRhLine(): void {
     this.rhLines = [
       ...this.rhLines,
-      { id_poste: null, id_organisme: null, finance: true, jours: {}, derived: false },
+      { id_poste: null, id_organisme: null, finance: true, categorie_depense: 'fonctionnement', jours: {}, derived: false },
     ];
   }
 
@@ -3174,11 +3201,22 @@ export class OperationFormComponent implements OnInit {
       line.id_organisme = null;
       // Défaut financé/non financé porté par les fonctions du poste.
       const poste = this.postes().find(p => p.id_poste === id);
-      if (poste) line.finance = poste.finance_par_defaut ?? true;
+      if (poste) {
+        line.finance = poste.finance_par_defaut ?? true;
+        line.categorie_depense = this.categorieFromFinance(line.finance);
+      }
     } else {
       line.id_organisme = id;
       line.id_poste = null;
     }
+  }
+
+  /** Change la catégorie de dépense d'une ligne RH et resynchronise `finance` (#597). */
+  setRhCategorie(index: number, cat: CategorieDepense): void {
+    const line = this.rhLines[index];
+    if (!line) return;
+    line.categorie_depense = cat;
+    line.finance = this.financeFromCategorie(cat);
   }
 
   getRhJours(index: number, yearIdx: number): number | null {

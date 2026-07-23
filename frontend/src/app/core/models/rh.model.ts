@@ -85,6 +85,9 @@ export interface PostePayload {
  * La cible dépend du mode de saisie de l'action : un poste (déclinaison par
  * poste), un organisme (budget ventilé par organisme), ou rien.
  */
+/** Catégorie de dépense d'une ligne de temps de travail (#597). */
+export type CategorieDepense = 'fonctionnement' | 'investissement' | 'benevolat_partenariat';
+
 export interface OperationRHLigne {
   id_operation_annee_rh?: number | null;
   id_realisation_operation_annee_rh?: number;
@@ -95,5 +98,9 @@ export interface OperationRHLigne {
   id_organisme?: number | null;
   organisme_nom?: string | null;
   jours: number | null;
+  /** Financé (dérivé de la catégorie : tout sauf « bénévolat partenariat »). */
   finance: boolean;
+  /** Catégorie de dépense (#597) — source de vérité côté saisie. */
+  categorie_depense?: CategorieDepense;
+  categorie_depense_display?: string | null;
 }

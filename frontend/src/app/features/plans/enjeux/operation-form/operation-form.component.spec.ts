@@ -229,6 +229,21 @@ describe('OperationFormComponent — ventilation budgétaire', () => {
     });
   });
 
+  describe('#597 catégorie de dépense — setRhCategorie', () => {
+    it('synchronise finance : investissement/fonctionnement = financé', () => {
+      comp.addRhLine();
+      comp.setRhCategorie(0, 'investissement');
+      expect(comp.rhLines[0].categorie_depense).toBe('investissement');
+      expect(comp.rhLines[0].finance).toBe(true);
+    });
+
+    it('bénévolat partenariat = non financé', () => {
+      comp.addRhLine();
+      comp.setRhCategorie(0, 'benevolat_partenariat');
+      expect(comp.rhLines[0].finance).toBe(false);
+    });
+  });
+
   // -------------------------------------------------------------------------
   // formatNum (limiter à 2 décimales — via getScoreRange upstream, mais
   // vérifions aussi les helpers numériques)

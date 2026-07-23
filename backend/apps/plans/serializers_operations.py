@@ -11,6 +11,7 @@ from .models_operations import (
     RealisationOperationAnnee, RealisationOperationAnneeOrganisme,
     Fonction, Poste, PosteFonction,
     OperationAnneeRH, RealisationOperationAnneeRH,
+    CategorieDepense,
 )
 
 
@@ -478,6 +479,9 @@ class OperationAnneeRHSerializer(serializers.ModelSerializer):
     poste_organisme_nom = serializers.CharField(
         source='id_poste.id_organisme.nom_organisme', read_only=True
     )
+    categorie_depense_display = serializers.CharField(
+        source='get_categorie_depense_display', read_only=True
+    )
 
     class Meta:
         model = OperationAnneeRH
@@ -485,7 +489,7 @@ class OperationAnneeRHSerializer(serializers.ModelSerializer):
             'id_operation_annee_rh',
             'id_poste', 'poste_libelle', 'poste_organisme_nom',
             'id_organisme', 'organisme_nom',
-            'jours', 'finance',
+            'jours', 'finance', 'categorie_depense', 'categorie_depense_display',
         ]
         read_only_fields = ['id_operation_annee_rh']
 
@@ -498,6 +502,9 @@ class OperationAnneeRHWriteSerializer(serializers.Serializer):
         max_digits=8, decimal_places=2, required=False, allow_null=True
     )
     finance = serializers.BooleanField(required=False, default=True)
+    categorie_depense = serializers.ChoiceField(
+        choices=CategorieDepense.CHOICES, required=False, allow_blank=True, default=''
+    )
 
 
 class RealisationOperationAnneeRHSerializer(serializers.ModelSerializer):
@@ -508,6 +515,9 @@ class RealisationOperationAnneeRHSerializer(serializers.ModelSerializer):
     )
     poste_organisme_nom = serializers.CharField(
         source='id_poste.id_organisme.nom_organisme', read_only=True
+    )
+    categorie_depense_display = serializers.CharField(
+        source='get_categorie_depense_display', read_only=True
     )
 
     class Meta:
@@ -520,9 +530,9 @@ class RealisationOperationAnneeRHSerializer(serializers.ModelSerializer):
             'id_operation_annee_rh',
             'id_poste', 'poste_libelle', 'poste_organisme_nom',
             'id_organisme', 'organisme_nom',
-            'jours', 'finance',
+            'jours', 'finance', 'categorie_depense', 'categorie_depense_display',
         ]
-        read_only_fields = ['id_realisation_operation_annee_rh']
+        read_only_fields = ['id_realisation_operation_annee_rh', 'categorie_depense_display']
 
 
 class GeoJSONGeometryField(serializers.Field):
@@ -597,7 +607,11 @@ class RealisationOperationAnneeSerializer(serializers.ModelSerializer):
                 id_poste=rh.get('id_poste'),
                 id_organisme=rh.get('id_organisme'),
                 jours=rh.get('jours'),
-                finance=rh.get('finance', True),
+                # bulk_create contourne save() : on réconcilie ici (#597).
+                **dict(zip(
+                    ('categorie_depense', 'finance'),
+                    CategorieDepense.resolve(rh.get('categorie_depense'), rh.get('finance')),
+                )),
             )
             for rh in rh_data
         ])
@@ -1321,7 +1335,11 @@ class OperationCreateSerializer(serializers.ModelSerializer):
                         id_poste_id=rh.get('id_poste'),
                         id_organisme_id=rh.get('id_organisme'),
                         jours=rh.get('jours'),
-                        finance=rh.get('finance', True),
+                        # bulk_create contourne save() : on réconcilie ici (#597).
+                        **dict(zip(
+                            ('categorie_depense', 'finance'),
+                            CategorieDepense.resolve(rh.get('categorie_depense'), rh.get('finance')),
+                        )),
                     )
                     for rh in rh_lignes_data
                 ])

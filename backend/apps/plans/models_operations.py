@@ -1547,7 +1547,62 @@ class PosteFonction(models.Model):
             return None
 
 
-class OperationAnneeRH(models.Model):
+class CategorieDepense:
+    """
+    Catégorie de dépense d'une ligne de temps de travail (#597).
+
+    Remplace, côté saisie, le booléen « Financé » : « Bénévolat partenariat »
+    correspond au temps non financé, le reste au temps financé. Le booléen
+    `finance` est conservé (dérivé) pour toute la logique d'agrégation existante.
+    """
+    FONCTIONNEMENT = 'fonctionnement'
+    INVESTISSEMENT = 'investissement'
+    BENEVOLAT_PARTENARIAT = 'benevolat_partenariat'
+    CHOICES = [
+        (FONCTIONNEMENT, _("Fonctionnement")),
+        (INVESTISSEMENT, _("Investissement")),
+        (BENEVOLAT_PARTENARIAT, _("Bénévolat partenariat")),
+    ]
+
+    @classmethod
+    def resolve(cls, categorie, finance):
+        """
+        Réconcilie (categorie_depense, finance). La catégorie prime ; à défaut
+        (écritures legacy / import qui ne posent que `finance`), elle est
+        dérivée du booléen. Retourne le couple (categorie, finance) cohérent.
+        """
+        if categorie:
+            return categorie, categorie != cls.BENEVOLAT_PARTENARIAT
+        finance = True if finance is None else bool(finance)
+        return (cls.FONCTIONNEMENT if finance else cls.BENEVOLAT_PARTENARIAT), finance
+
+
+class _RhLigneBase(models.Model):
+    """
+    Base abstraite des lignes RH (prév. / réel) : porte la catégorie de
+    dépense (#597) et garantit sa cohérence avec le booléen `finance` (défini
+    par les modèles concrets) à chaque `save()`.
+    """
+    categorie_depense = models.CharField(
+        _("Catégorie de dépense"),
+        max_length=30,
+        choices=CategorieDepense.CHOICES,
+        blank=True, default='',
+        help_text=_("Catégorie budgétaire de la ligne. « Bénévolat partenariat » "
+                    "correspond au temps non financé.")
+    )
+
+    class Meta:
+        abstract = True
+
+    def save(self, *args, **kwargs):
+        self.categorie_depense, self.finance = CategorieDepense.resolve(
+            self.categorie_depense, self.finance
+        )
+        super().save(*args, **kwargs)
+
+
+class OperationAnneeRH(_RhLigneBase):
     """
     Ligne de temps de travail **prévisionnel** d'une année d'opération (#560).
 
@@ -1613,7 +1668,7 @@ class OperationAnneeRH(models.Model):
             return None
 
 
-class RealisationOperationAnneeRH(models.Model):
+class RealisationOperationAnneeRH(_RhLigneBase):
     """
     Ligne de temps de travail **réalisé** d'une année d'opération (#560),
     saisie au moment du suivi. Miroir de OperationAnneeRH côté réel : permet

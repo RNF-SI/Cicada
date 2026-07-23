@@ -4,6 +4,7 @@ import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { EnjeuService } from '../../../../core/services/enjeu.service';
 import { MetriqueRef, Operation, Protocole } from '../../../../core/models/enjeu.model';
+import { CategorieDepense } from '../../../../core/models/rh.model';
 import { LeafletMapEditComponent } from '../../../../shared/components/leaflet-map-edit/leaflet-map-edit.component';
 import { MetriqueGridDisplayComponent } from '../../../../shared/components/metrique-grid-display/metrique-grid-display.component';
 import { CheckboxComponent } from '../../../../shared/components/checkbox/checkbox.component';
@@ -159,18 +160,22 @@ export class OperationFicheComponent implements OnInit {
    */
   readonly rhBreakdown = computed(() => {
     const rows = new Map<string, {
-      libelle: string; organisme: string; finance: boolean; jours: number;
+      libelle: string; organisme: string; finance: boolean;
+      categorie: CategorieDepense; jours: number;
     }>();
     for (const oa of this.operation()?.operation_annees ?? []) {
       for (const l of oa.rh_lignes ?? []) {
-        const key = `${l.id_poste ?? ''}|${l.id_organisme ?? ''}|${l.finance}`;
+        const categorie: CategorieDepense =
+          l.categorie_depense ?? (l.finance ? 'fonctionnement' : 'benevolat_partenariat');
+        const key = `${l.id_poste ?? ''}|${l.id_organisme ?? ''}|${categorie}`;
         // #580 — une ligne sans cible (poste ou organisme) est un temps de
         // travail total, saisi sans déclinaison ni ventilation par organisme.
         const globalLabel = this.translate.instant('enjeux.operations.rh.globalRowLabel');
         const entry = rows.get(key) ?? {
           libelle: l.poste_libelle || l.organisme_nom || globalLabel,
           organisme: l.id_poste != null ? (l.poste_organisme_nom || '') : '',
-          finance: !!l.finance,
+          finance: categorie !== 'benevolat_partenariat',
+          categorie,
           jours: 0,
         };
         entry.jours += Number(l.jours ?? 0);

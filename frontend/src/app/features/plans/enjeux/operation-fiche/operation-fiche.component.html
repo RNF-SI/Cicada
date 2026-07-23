@@ -235,7 +235,7 @@
               <thead>
                 <tr>
                   <th>{{ 'plans.suivis.actions.fiche.rhCible' | translate }}</th>
-                  <th>{{ 'plans.rh.finance' | translate }}</th>
+                  <th>{{ 'enjeux.operations.rh.colCategorie' | translate }}</th>
                   <th class="num">{{ 'plans.suivis.actions.fiche.jours' | translate }}</th>
                 </tr>
               </thead>
@@ -248,7 +248,7 @@
                         <span class="fiche-sublabel">{{ r.organisme }}</span>
                       }
                     </td>
-                    <td>{{ (r.finance ? 'plans.rh.finance' : 'plans.rh.nonFinance') | translate }}</td>
+                    <td>{{ 'plans.rh.categorieDepense.' + r.categorie | translate }}</td>
                     <td class="num">{{ r.jours | number:'1.0-2' }}</td>
                   </tr>
                 }

@@ -1403,7 +1403,12 @@
     "title": "Plans de gestion",
     "rh": {
       "finance": "Financé",
-      "nonFinance": "Non financé"
+      "nonFinance": "Non financé",
+      "categorieDepense": {
+        "fonctionnement": "Fonctionnement",
+        "investissement": "Investissement",
+        "benevolat_partenariat": "Bénévolat partenariat"
+      }
     },
     "newPlan": "NOUVEAU PLAN DE GESTION",
     "redacteurPrincipal": {
@@ -3504,6 +3509,7 @@
         "colPoste": "Poste",
         "colOrganisme": "Organisme",
         "colGlobal": "Temps de travail",
+        "colCategorie": "Catégorie de dépense",
         "globalRowLabel": "Temps de travail total",
         "noPostes": "Aucun poste n'est encore défini sur ce plan de gestion.",
         "managePostes": "Gérer les postes",

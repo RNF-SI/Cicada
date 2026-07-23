@@ -957,7 +957,7 @@
                                       ? 'enjeux.operations.rh.colOrganisme'
                                       : 'enjeux.operations.rh.colGlobal') | translate }}
                             </th>
-                            <th class="rh-finance-col">{{ 'plans.rh.finance' | translate }}</th>
+                            <th class="rh-finance-col">{{ 'enjeux.operations.rh.colCategorie' | translate }}</th>
                             @for (annee of operationAnnees; track annee.annee) {
                               <th>{{ annee.annee }}</th>
                             }
@@ -997,11 +997,16 @@
                                 }
                               </td>
                               <td class="rh-finance-col">
-                                <app-checkbox
-                                  [checked]="line.finance"
-                                  [disabled]="isReadOnly()"
-                                  (checkedChange)="line.finance = $event">
-                                </app-checkbox>
+                                <mat-select class="rh-categorie-select"
+                                            [value]="line.categorie_depense"
+                                            (valueChange)="setRhCategorie(li, $event)"
+                                            [disabled]="isReadOnly()">
+                                  @for (cat of categorieDepenseOptions; track cat) {
+                                    <mat-option [value]="cat">
+                                      {{ 'plans.rh.categorieDepense.' + cat | translate }}
+                                    </mat-option>
+                                  }
+                                </mat-select>
                               </td>
                               @for (annee of operationAnnees; track annee.annee; let i = $index) {
                                 <td>
