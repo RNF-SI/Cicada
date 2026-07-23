@@ -1,0 +1,6411 @@
+{
+ "meta": {
+  "nom": "Bac à sable — Plan rang 2 (brouillon) 2030-2040",
+  "rang": 2,
+  "annee_debut": 2030,
+  "annee_fin": 2040,
+  "type_document": "PLAN_REVISE",
+  "referents": [
+   "admin@test.fr"
+  ]
+ },
+ "arborescence": {
+  "enjeux": [
+   {
+    "code": "E1",
+    "categorie": "Enjeu de conservation",
+    "categorie_fcr": "",
+    "importance": "",
+    "rang": "",
+    "libelle": "Complexe de pelouses-ourlets-fruticées-chênaies pubescentes",
+    "intitule_court": "",
+    "categorie_ecologique": "Oui",
+    "types_ecologiques": "Habitat,Espèce",
+    "types_socioeco": "",
+    "etat_enjeu": "",
+    "description": ""
+   },
+   {
+    "code": "E2",
+    "categorie": "Enjeu de conservation",
+    "categorie_fcr": "",
+    "importance": "",
+    "rang": "",
+    "libelle": "Milieux rocheux",
+    "intitule_court": "Milieux rocheux",
+    "categorie_ecologique": "Oui",
+    "types_ecologiques": "Habitat,Espèce",
+    "types_socioeco": "",
+    "etat_enjeu": "",
+    "description": ""
+   },
+   {
+    "code": "E3",
+    "categorie": "Facteur Clé de Réussite",
+    "categorie_fcr": "Ancrage territorial",
+    "importance": "",
+    "rang": "",
+    "libelle": "Appropriation et intégration dans le territoire",
+    "intitule_court": "Ancrage territorial",
+    "categorie_ecologique": "Oui",
+    "types_ecologiques": "",
+    "types_socioeco": "",
+    "etat_enjeu": "La RNR-FE est appréciée par le territoire et les acteurs locaux qui s'y impliquent modestement. Elle est encore relativement méconnue du Grand Public et des acteurs du territoire élargi (Patrimoines et aménités, réglementation). La Forêt Domaniale est labellisée Forêt d'Exception® mais la démarche reste mal connue auprès des acteurs internes, externes et du Grand Public. Elle n'exprime pas pleinement son potentiel (innovation, expérimentation).",
+    "description": ""
+   },
+   {
+    "code": "E4",
+    "categorie": "Enjeu de conservation",
+    "categorie_fcr": "",
+    "importance": "",
+    "rang": "",
+    "libelle": "Forêts de versants et de combes",
+    "intitule_court": "Forêts versants/combes",
+    "categorie_ecologique": "Oui",
+    "types_ecologiques": "Habitat,Espèce",
+    "types_socioeco": "",
+    "etat_enjeu": "",
+    "description": ""
+   },
+   {
+    "code": "E5",
+    "categorie": "Facteur Clé de Réussite",
+    "categorie_fcr": "Connaissance",
+    "importance": "",
+    "rang": "",
+    "libelle": "Amélioration des connaissances naturalistes et scientifiques",
+    "intitule_court": "Connaissances",
+    "categorie_ecologique": "Oui",
+    "types_ecologiques": "",
+    "types_socioeco": "",
+    "etat_enjeu": "",
+    "description": ""
+   },
+   {
+    "code": "E6",
+    "categorie": "Enjeu de conservation",
+    "categorie_fcr": "",
+    "importance": "",
+    "rang": "",
+    "libelle": "Sources et milieux humides tufeux",
+    "intitule_court": "Sources et MH tufeux",
+    "categorie_ecologique": "Oui",
+    "types_ecologiques": "Habitat,Espèce",
+    "types_socioeco": "",
+    "etat_enjeu": "",
+    "description": ""
+   },
+   {
+    "code": "E7",
+    "categorie": "Facteur Clé de Réussite",
+    "categorie_fcr": "Fonctionnement de l'aire protégée",
+    "importance": "",
+    "rang": "",
+    "libelle": "Gouvernance, gestion administrative et financière de la RNR-FE",
+    "intitule_court": "Fonctionnement",
+    "categorie_ecologique": "Oui",
+    "types_ecologiques": "",
+    "types_socioeco": "",
+    "etat_enjeu": "",
+    "description": ""
+   },
+   {
+    "code": "E8",
+    "categorie": "Enjeu de conservation",
+    "categorie_fcr": "",
+    "importance": "",
+    "rang": "",
+    "libelle": "Paysage et patrimoine culturel",
+    "intitule_court": "Paysage et patrimoine",
+    "categorie_ecologique": "Non",
+    "types_ecologiques": "",
+    "types_socioeco": "Valeur paysagère,Patrimoine culturel",
+    "etat_enjeu": "",
+    "description": ""
+   }
+  ],
+  "facteurs": [
+   {
+    "code": "F1",
+    "libelle": "L'éco-complexe est présent sur un nombre important de secteurs individualisés géographiquement, ayant leurs caractéristiques propres.",
+    "enjeux": "E1",
+    "description": ""
+   },
+   {
+    "code": "F2",
+    "libelle": "Les habitats de milieux ouverts peuvent être soumis à la dynamique naturelle de la végétation et se refermer progressivement.",
+    "enjeux": "E1",
+    "description": ""
+   },
+   {
+    "code": "F3",
+    "libelle": "La majorité des milieux sensibles sont situés en zone « cœur de forêt » ; certains sont soumis à la fréquentation par le public.",
+    "enjeux": "E1",
+    "description": ""
+   },
+   {
+    "code": "F4",
+    "libelle": "La pression du gibier, notamment du sanglier, peut avoir des conséquences importantes pour ces milieux ouverts.",
+    "enjeux": "E1",
+    "description": ""
+   },
+   {
+    "code": "F5",
+    "libelle": "La nature et la répartition des éboulis sont mal connues. Ceci empêche la caractérisation de leur état actuel et la définition d'indicateurs de suivi pertinents",
+    "enjeux": "E2",
+    "description": ""
+   },
+   {
+    "code": "F6",
+    "libelle": "Les connaissances actuelles sur les corniches et falaises sèches thermophiles ne permettent pas de choisir des indicateurs de suivi pertinent",
+    "enjeux": "E2",
+    "description": ""
+   },
+   {
+    "code": "F7",
+    "libelle": "Les falaises froides ombragées sont sensibles à une potentielle mise en lumière brutale",
+    "enjeux": "E2",
+    "description": ""
+   },
+   {
+    "code": "F8",
+    "libelle": "Certains milieux et certaines espèces restent potentiellement sensibles à la fréquentation par le public malgré leur prise en compte dans le schéma d'accueil du public",
+    "enjeux": "E2",
+    "description": ""
+   },
+   {
+    "code": "F9",
+    "libelle": "Développement touristique du territoire",
+    "enjeux": "E3",
+    "description": ""
+   },
+   {
+    "code": "F10",
+    "libelle": "Fréquentation du site",
+    "enjeux": "E3",
+    "description": ""
+   },
+   {
+    "code": "F11",
+    "libelle": "Niveau de conscience du statut de Réserve et du label « Forêt d'Exception® » par le territoire",
+    "enjeux": "E3",
+    "description": ""
+   },
+   {
+    "code": "F12",
+    "libelle": "Participation active des acteurs dans les actions de la RNR-FE",
+    "enjeux": "E3",
+    "description": ""
+   },
+   {
+    "code": "F13",
+    "libelle": "Présence du Site Natura 2000",
+    "enjeux": "E3",
+    "description": ""
+   },
+   {
+    "code": "F14",
+    "libelle": "Cohérence géographique du périmètre de la Réserve",
+    "enjeux": "E3",
+    "description": ""
+   },
+   {
+    "code": "F15",
+    "libelle": "Labellisation Forêt d'Exception®",
+    "enjeux": "E3",
+    "description": ""
+   },
+   {
+    "code": "F16",
+    "libelle": "Les pratiques liées à la gestion forestière et à la valorisation économique des bois peuvent entraîner un affaiblissement de la qualité de la composition et de la structure végétale des habitats forestiers. A contrario, dans les jeunes peuplements à structure régulière et dans les rares plantations de résineux, cette gestion forestière peut avoir une influence positive.",
+    "enjeux": "E4",
+    "description": ""
+   },
+   {
+    "code": "F17",
+    "libelle": "Les habitats forestiers ne sont pas cartographiés avec précision",
+    "enjeux": "E4",
+    "description": ""
+   },
+   {
+    "code": "F18",
+    "libelle": "Certaines espèces sont particulièrement sensibles aux périodes d'intervention pour le fauchage/broyage des lignes et accotements de routes forestières",
+    "enjeux": "E4",
+    "description": ""
+   },
+   {
+    "code": "F19",
+    "libelle": "Le dérèglement climatique représente un risque important pour les habitats et les espèces forestières",
+    "enjeux": "E4",
+    "description": ""
+   },
+   {
+    "code": "F20",
+    "libelle": "Méconnaissance des orthoptères",
+    "enjeux": "E5",
+    "description": ""
+   },
+   {
+    "code": "F21",
+    "libelle": "Méconnaissance de l'occupation de la RNR-FE par les rapaces diurnes",
+    "enjeux": "E5",
+    "description": ""
+   },
+   {
+    "code": "F22",
+    "libelle": "Lacunes dans la typologie des groupements végétaux",
+    "enjeux": "E5",
+    "description": ""
+   },
+   {
+    "code": "F23",
+    "libelle": "Déclin national du Crapaud commun",
+    "enjeux": "E5",
+    "description": ""
+   },
+   {
+    "code": "F24",
+    "libelle": "Méconnaissance de la Vipère aspic",
+    "enjeux": "E5",
+    "description": ""
+   },
+   {
+    "code": "F25",
+    "libelle": "Données historiques de localisation d'espèces",
+    "enjeux": "E5",
+    "description": ""
+   },
+   {
+    "code": "F26",
+    "libelle": "Méconnaissance des bryophytes corticoles",
+    "enjeux": "E5",
+    "description": ""
+   },
+   {
+    "code": "F27",
+    "libelle": "Méconnaissance de la diversité mycologique et lichénologique",
+    "enjeux": "E5",
+    "description": ""
+   },
+   {
+    "code": "F28",
+    "libelle": "Méconnaissance de la diversité des mammifères",
+    "enjeux": "E5",
+    "description": ""
+   },
+   {
+    "code": "F29",
+    "libelle": "Méconnaissance de la diversité malacologique",
+    "enjeux": "E5",
+    "description": ""
+   },
+   {
+    "code": "F30",
+    "libelle": "Méconnaissance de l'entomofaune et des araignées",
+    "enjeux": "E5",
+    "description": ""
+   },
+   {
+    "code": "F31",
+    "libelle": "Méconnaissance des liens entre la RNR-FE et son environnement pour les chiroptères",
+    "enjeux": "E5",
+    "description": ""
+   },
+   {
+    "code": "F32",
+    "libelle": "Biodiversité des forêts de plateau",
+    "enjeux": "E5",
+    "description": ""
+   },
+   {
+    "code": "F33",
+    "libelle": "Méconnaissance de l'impact de la non-gestion sur les jeunes peuplements et les forêts de plateau",
+    "enjeux": "E5",
+    "description": ""
+   },
+   {
+    "code": "F34",
+    "libelle": "Changement climatique",
+    "enjeux": "E5",
+    "description": ""
+   },
+   {
+    "code": "F35",
+    "libelle": "Qualité de l'eau des sources captées (eaux souterraines)",
+    "enjeux": "E5",
+    "description": ""
+   },
+   {
+    "code": "F36",
+    "libelle": "Implication du monde de la recherche dans la RNR-FE",
+    "enjeux": "E5",
+    "description": ""
+   },
+   {
+    "code": "F37",
+    "libelle": "Recherche sur le patrimoine archéologique",
+    "enjeux": "E5",
+    "description": ""
+   },
+   {
+    "code": "F38",
+    "libelle": "Méconnaissance de l'impact historique de l'homme sur la forêt",
+    "enjeux": "E5",
+    "description": ""
+   },
+   {
+    "code": "F39",
+    "libelle": "Méconnaissance de la truffe de Bourgogne",
+    "enjeux": "E5",
+    "description": ""
+   },
+   {
+    "code": "F40",
+    "libelle": "Le fonctionnement et les différentes caractéristiques des milieux humides tufeux (répartition des habitats et espèces, taux d'embroussaillement…) sont mal connus",
+    "enjeux": "E6",
+    "description": ""
+   },
+   {
+    "code": "F41",
+    "libelle": "Il subsiste un déficit de connaissances sur la localisation et les différents types de sources et ruisselets à l'échelle de la RNR-FE",
+    "enjeux": "E6",
+    "description": ""
+   },
+   {
+    "code": "F42",
+    "libelle": "La dynamique végétale peut porter préjudice à certains habitats et espèces en provoquant la fermeture du milieu",
+    "enjeux": "E6",
+    "description": ""
+   },
+   {
+    "code": "F43",
+    "libelle": "Le fonctionnement hydrologique de ces milieux a pu être altéré dans le passé provoquant des dysfonctionnements toujours sensibles actuellement",
+    "enjeux": "E6",
+    "description": ""
+   },
+   {
+    "code": "F44",
+    "libelle": "La circulation routière sur la route départementale 7 a un impact significatif sur les populations d'amphibiens (Crapaud commun et Salamandre)",
+    "enjeux": "E6",
+    "description": ""
+   },
+   {
+    "code": "F45",
+    "libelle": "Composantes dépréciatives",
+    "enjeux": "E8",
+    "description": ""
+   },
+   {
+    "code": "F46",
+    "libelle": "Potentialités existantes peu valorisées",
+    "enjeux": "E8",
+    "description": ""
+   },
+   {
+    "code": "F47",
+    "libelle": "Composantes valorisantes et identitaires altérées et/ou dangereuses",
+    "enjeux": "E8",
+    "description": ""
+   }
+  ],
+  "pressions": [
+   {
+    "code": "P1",
+    "facteur": "F1",
+    "libelle": "Moyens pour la gestion",
+    "type_pression": "",
+    "description": ""
+   },
+   {
+    "code": "P2",
+    "facteur": "F2",
+    "libelle": "Fermeture des milieux ouverts de l'éco-complexe",
+    "type_pression": "",
+    "description": ""
+   },
+   {
+    "code": "P3",
+    "facteur": "F3",
+    "libelle": "Impacts potentiels (piétinement, dérangement…)",
+    "type_pression": "",
+    "description": ""
+   },
+   {
+    "code": "P4",
+    "facteur": "F4",
+    "libelle": "Mise en œuvre de l'agrainage",
+    "type_pression": "",
+    "description": ""
+   },
+   {
+    "code": "P5",
+    "facteur": "F5",
+    "libelle": "Incapacité à renseigner des indicateurs d'état de conservation des éboulis",
+    "type_pression": "",
+    "description": ""
+   },
+   {
+    "code": "P6",
+    "facteur": "F6",
+    "libelle": "Incapacité à renseigner des indicateurs d'état de conservation des falaises et corniches sèches thermophiles",
+    "type_pression": "",
+    "description": ""
+   },
+   {
+    "code": "P7",
+    "facteur": "F7",
+    "libelle": "Gestion forestière ou entretiens divers (sentiers, …)",
+    "type_pression": "",
+    "description": ""
+   },
+   {
+    "code": "P8",
+    "facteur": "F8",
+    "libelle": "Piétinement / Dérangement de la faune",
+    "type_pression": "",
+    "description": ""
+   },
+   {
+    "code": "P9",
+    "facteur": "F9",
+    "libelle": "RNR-FE peu identifiée comme un outil de développement du territoire",
+    "type_pression": "",
+    "description": ""
+   },
+   {
+    "code": "P10",
+    "facteur": "F10",
+    "libelle": "Fréquentation mal connue",
+    "type_pression": "",
+    "description": ""
+   },
+   {
+    "code": "P11",
+    "facteur": "F10",
+    "libelle": "Offre en équipements d'accueil insuffisante ou secteurs d'accueil mal entretenus",
+    "type_pression": "",
+    "description": ""
+   },
+   {
+    "code": "P12",
+    "facteur": "F10",
+    "libelle": "Offre pédagogique insuffisante",
+    "type_pression": "",
+    "description": ""
+   },
+   {
+    "code": "P13",
+    "facteur": "F10",
+    "libelle": "Conflits d'usage (chasse et autres usagers)",
+    "type_pression": "",
+    "description": ""
+   },
+   {
+    "code": "P14",
+    "facteur": "F10",
+    "libelle": "Manifestations sportives",
+    "type_pression": "",
+    "description": ""
+   },
+   {
+    "code": "P15",
+    "facteur": "F11",
+    "libelle": "Communication sur la RNR-FE",
+    "type_pression": "",
+    "description": ""
+   },
+   {
+    "code": "P16",
+    "facteur": "F11",
+    "libelle": "Méconnaissance par certains acteurs du territoire de la RNR-FE (existence, limites, réglementation, etc.)",
+    "type_pression": "",
+    "description": ""
+   },
+   {
+    "code": "P17",
+    "facteur": "F11",
+    "libelle": "Partenariat avec les associations (randonneurs, clubs de sport, etc.)",
+    "type_pression": "",
+    "description": ""
+   },
+   {
+    "code": "P18",
+    "facteur": "F11",
+    "libelle": "Pratiques inadéquates (non respect de la réglementation, dégradations, circulation de véhicules à moteur, feux, etc.)",
+    "type_pression": "",
+    "description": ""
+   },
+   {
+    "code": "P19",
+    "facteur": "F11",
+    "libelle": "Gestionnaire identifiable sur le terrain avec la spécificité Réserve",
+    "type_pression": "",
+    "description": ""
+   },
+   {
+    "code": "P20",
+    "facteur": "F11",
+    "libelle": "Valeurs ajoutées apportées par la RNR-FE mal connues",
+    "type_pression": "",
+    "description": ""
+   },
+   {
+    "code": "P21",
+    "facteur": "F11",
+    "libelle": "Savoir-faire de la RNR-FE",
+    "type_pression": "",
+    "description": ""
+   },
+   {
+    "code": "P22",
+    "facteur": "F11",
+    "libelle": "Manque d'expérimentation et d'innovation",
+    "type_pression": "",
+    "description": ""
+   },
+   {
+    "code": "P23",
+    "facteur": "F12",
+    "libelle": "Manque d'implication des acteurs dans les projets",
+    "type_pression": "",
+    "description": ""
+   },
+   {
+    "code": "P24",
+    "facteur": "F13",
+    "libelle": "Complémentarité spatiale",
+    "type_pression": "",
+    "description": ""
+   },
+   {
+    "code": "P25",
+    "facteur": "F13",
+    "libelle": "Complémentarité dans les moyens",
+    "type_pression": "",
+    "description": ""
+   },
+   {
+    "code": "P26",
+    "facteur": "F14",
+    "libelle": "Périmètre de la RNR-FE",
+    "type_pression": "",
+    "description": ""
+   },
+   {
+    "code": "P27",
+    "facteur": "F15",
+    "libelle": "Forêt domaniale labellisée Forêt d'Exception®",
+    "type_pression": "",
+    "description": ""
+   },
+   {
+    "code": "P28",
+    "facteur": "F16",
+    "libelle": "Faible source de bois mort",
+    "type_pression": "",
+    "description": ""
+   },
+   {
+    "code": "P29",
+    "facteur": "F16",
+    "libelle": "Peu d'arbres à micro habitats",
+    "type_pression": "",
+    "description": ""
+   },
+   {
+    "code": "P30",
+    "facteur": "F16",
+    "libelle": "Faible quantité de GB et TGB",
+    "type_pression": "",
+    "description": ""
+   },
+   {
+    "code": "P31",
+    "facteur": "F16",
+    "libelle": "Anciennes plantations de résineux",
+    "type_pression": "",
+    "description": ""
+   },
+   {
+    "code": "P32",
+    "facteur": "F17",
+    "libelle": "Limites des groupements forestiers imprécises",
+    "type_pression": "",
+    "description": ""
+   },
+   {
+    "code": "P33",
+    "facteur": "F18",
+    "libelle": "Périodes de fauche/broyage",
+    "type_pression": "",
+    "description": ""
+   },
+   {
+    "code": "P34",
+    "facteur": "F19",
+    "libelle": "Conditions climatiques",
+    "type_pression": "",
+    "description": ""
+   },
+   {
+    "code": "P35",
+    "facteur": "F40",
+    "libelle": "Difficulté à définir des actions de gestion",
+    "type_pression": "",
+    "description": ""
+   },
+   {
+    "code": "P36",
+    "facteur": "F41",
+    "libelle": "Difficulté à définir des actions de suivi",
+    "type_pression": "",
+    "description": ""
+   },
+   {
+    "code": "P37",
+    "facteur": "F42",
+    "libelle": "Fermeture des milieux humides",
+    "type_pression": "",
+    "description": ""
+   },
+   {
+    "code": "P38",
+    "facteur": "F43",
+    "libelle": "Ouvrages anthropiques",
+    "type_pression": "",
+    "description": ""
+   },
+   {
+    "code": "P39",
+    "facteur": "F44",
+    "libelle": "Impact de la circulation routière",
+    "type_pression": "",
+    "description": ""
+   },
+   {
+    "code": "P40",
+    "facteur": "F45",
+    "libelle": "Lisières à caractère artificiel et/ou monotone",
+    "type_pression": "",
+    "description": ""
+   },
+   {
+    "code": "P41",
+    "facteur": "F45",
+    "libelle": "Sources de pollution visuelle et sonore",
+    "type_pression": "",
+    "description": ""
+   },
+   {
+    "code": "P42",
+    "facteur": "F45",
+    "libelle": "Pratiques inappropriées lors de travaux",
+    "type_pression": "",
+    "description": ""
+   },
+   {
+    "code": "P43",
+    "facteur": "F46",
+    "libelle": "Connexions paysagères et réciprocités visuelles déficientes",
+    "type_pression": "",
+    "description": ""
+   },
+   {
+    "code": "P44",
+    "facteur": "F46",
+    "libelle": "Composantes végétales et minérales remarquables non mises en valeur",
+    "type_pression": "",
+    "description": ""
+   },
+   {
+    "code": "P45",
+    "facteur": "F47",
+    "libelle": "Composante minérale remarquable, naturelle ou anthropique, altérée",
+    "type_pression": "",
+    "description": ""
+   },
+   {
+    "code": "P46",
+    "facteur": "F47",
+    "libelle": "Point de vue non mis en valeur",
+    "type_pression": "",
+    "description": ""
+   }
+  ],
+  "olt": [
+   {
+    "code": "O1",
+    "enjeu": "E1",
+    "libelle": "Maintenir l'état de conservation du Complexe « pelouses-ourlets-fruticées-chênaies pubescentes »",
+    "numero_manuel": "",
+    "description": ""
+   },
+   {
+    "code": "O2",
+    "enjeu": "E2",
+    "libelle": "Maintenir le bon état de conservation des falaises et éboulis",
+    "numero_manuel": "",
+    "description": ""
+   },
+   {
+    "code": "O3",
+    "enjeu": "E3",
+    "libelle": "Pérenniser et renforcer l'appropriation et l'intégration dans le Territoire",
+    "numero_manuel": "",
+    "description": ""
+   },
+   {
+    "code": "O4",
+    "enjeu": "E3",
+    "libelle": "Conforter la dimension Forêt d'Exception®",
+    "numero_manuel": "",
+    "description": ""
+   },
+   {
+    "code": "O5",
+    "enjeu": "E4",
+    "libelle": "Conserver voire améliorer l'état de conservation des forêts de versants et de combes",
+    "numero_manuel": "",
+    "description": ""
+   },
+   {
+    "code": "O6",
+    "enjeu": "E5",
+    "libelle": "Actualiser et valoriser en continu les connaissances naturalistes et scientifiques",
+    "numero_manuel": "",
+    "description": ""
+   },
+   {
+    "code": "O7",
+    "enjeu": "E6",
+    "libelle": "Améliorer l'état de conservation des milieux humides et des sources tufeuses",
+    "numero_manuel": "",
+    "description": ""
+   },
+   {
+    "code": "O8",
+    "enjeu": "E7",
+    "libelle": "Assurer le fonctionnement optimal de la RNR",
+    "numero_manuel": "",
+    "description": ""
+   },
+   {
+    "code": "O9",
+    "enjeu": "E8",
+    "libelle": "Préserver, améliorer et valoriser le paysage et le patrimoine culturel",
+    "numero_manuel": "",
+    "description": ""
+   }
+  ],
+  "ne": [
+   {
+    "code": "N1",
+    "olt": "O1",
+    "libelle": "Les surfaces actuellement occupées par des pelouses seront au moins maintenues",
+    "description": ""
+   },
+   {
+    "code": "N2",
+    "olt": "O1",
+    "libelle": "Les connexions entre les pelouses seront mesurées et maintenues si possible en l'état actuel",
+    "description": ""
+   },
+   {
+    "code": "N3",
+    "olt": "O1",
+    "libelle": "La structure des pelouses sera maintenue (peu de recouvrement par les ligneux)",
+    "description": ""
+   },
+   {
+    "code": "N4",
+    "olt": "O1",
+    "libelle": "Les pelouses conserveront l'intégrité de leur composition floristique",
+    "description": ""
+   },
+   {
+    "code": "N5",
+    "olt": "O1",
+    "libelle": "Les espèces végétales à fort enjeu de conservation seront préservées",
+    "description": ""
+   },
+   {
+    "code": "N6",
+    "olt": "O1",
+    "libelle": "Les populations d'espèces d'oiseaux typiques seront conservées",
+    "description": ""
+   },
+   {
+    "code": "N7",
+    "olt": "O2",
+    "libelle": "Le cortège caractéristique d'espèces végétales et bryophytiques des falaises froides ombragées sera préservé",
+    "description": ""
+   },
+   {
+    "code": "N8",
+    "olt": "O2",
+    "libelle": "Les espèces végétales à fort enjeu de conservation des falaises et corniches sèches thermophiles seront conservées",
+    "description": ""
+   },
+   {
+    "code": "N9",
+    "olt": "O2",
+    "libelle": "Le Faucon pèlerin continuera de nidifier",
+    "description": ""
+   },
+   {
+    "code": "N10",
+    "olt": "O3",
+    "libelle": "Connaissance de la RNR-FE",
+    "description": ""
+   },
+   {
+    "code": "N11",
+    "olt": "O3",
+    "libelle": "Intérêt des habitants et acteurs du territoire",
+    "description": ""
+   },
+   {
+    "code": "N12",
+    "olt": "O3",
+    "libelle": "Implication des habitants et acteurs du territoire",
+    "description": ""
+   },
+   {
+    "code": "N13",
+    "olt": "O3",
+    "libelle": "Interactions écologiques",
+    "description": ""
+   },
+   {
+    "code": "N14",
+    "olt": "O3",
+    "libelle": "Interactions socio-écologiques",
+    "description": ""
+   },
+   {
+    "code": "N15",
+    "olt": "O3",
+    "libelle": "Interactions socio-politiques",
+    "description": ""
+   },
+   {
+    "code": "N16",
+    "olt": "O4",
+    "libelle": "Implication dans la démarche Forêt d'Exception®",
+    "description": ""
+   },
+   {
+    "code": "N17",
+    "olt": "O4",
+    "libelle": "Connaissance de la démarche Forêt d'Exception®",
+    "description": ""
+   },
+   {
+    "code": "N18",
+    "olt": "O5",
+    "libelle": "Les habitats forestiers concernés auront une composition végétale caractéristique des forêts naturelles",
+    "description": ""
+   },
+   {
+    "code": "N19",
+    "olt": "O5",
+    "libelle": "Les habitats forestiers concernés auront une structure végétale caractéristique des forêts naturelles",
+    "description": ""
+   },
+   {
+    "code": "N20",
+    "olt": "O5",
+    "libelle": "L'intégrité écologique et le fonctionnement des habitats forestiers seront préservés",
+    "description": ""
+   },
+   {
+    "code": "N21",
+    "olt": "O5",
+    "libelle": "Les espèces à fort enjeu de conservation seront suivies et conservées",
+    "description": ""
+   },
+   {
+    "code": "N22",
+    "olt": "O7",
+    "libelle": "Les milieux humides tufeux conserveront leur fonctionnement hydrologique",
+    "description": ""
+   },
+   {
+    "code": "N23",
+    "olt": "O7",
+    "libelle": "Le faible niveau trophique des milieux humides tufeux sera maintenu",
+    "description": ""
+   },
+   {
+    "code": "N24",
+    "olt": "O7",
+    "libelle": "Le cortège d'espèces caractéristiques des milieux humides tufeux sera préservé",
+    "description": ""
+   },
+   {
+    "code": "N25",
+    "olt": "O7",
+    "libelle": "Les habitats ouverts de milieux humides conserveront leur structure (faible recouvrement par les ligneux)",
+    "description": ""
+   },
+   {
+    "code": "N26",
+    "olt": "O7",
+    "libelle": "Les sources pétrifiantes et les marais tufeux actifs conserveront leur cortège d'espèces caractéristiques",
+    "description": ""
+   },
+   {
+    "code": "N27",
+    "olt": "O7",
+    "libelle": "Les sources et ruisselets conserveront leur régime hydrique et certaines espèces caractéristiques et patrimoniales",
+    "description": ""
+   },
+   {
+    "code": "N28",
+    "olt": "O7",
+    "libelle": "Les espèces caractéristiques et patrimoniales des mares temporaires sur calcaire seront préservées",
+    "description": ""
+   },
+   {
+    "code": "N29",
+    "olt": "O9",
+    "libelle": "Paysage et patrimoine culturel, valorisés avec une identité renforcée",
+    "description": "État actuel : paysage et patrimoine culturel préservés avec une identité à conforter et des points noirs à résorber."
+   }
+  ],
+  "oo": [
+   {
+    "code": "OO1",
+    "pressions": "P1",
+    "enjeu": "",
+    "libelle": "Optimiser la gestion des pelouses et ourlets méso et xérophiles",
+    "numero_manuel": "",
+    "description": ""
+   },
+   {
+    "code": "OO2",
+    "pressions": "P2",
+    "enjeu": "",
+    "libelle": "Maintenir un équilibre dans l'éco-complexe",
+    "numero_manuel": "",
+    "description": ""
+   },
+   {
+    "code": "OO3",
+    "pressions": "P3",
+    "enjeu": "",
+    "libelle": "Assurer une veille des impacts potentiels liés à la fréquentation",
+    "numero_manuel": "",
+    "description": ""
+   },
+   {
+    "code": "OO4",
+    "pressions": "P4",
+    "enjeu": "",
+    "libelle": "Mieux encadrer la pratique de l'agrainage dans la RNR-FE",
+    "numero_manuel": "",
+    "description": ""
+   },
+   {
+    "code": "OO5",
+    "pressions": "P5",
+    "enjeu": "",
+    "libelle": "Améliorer les connaissances sur les éboulis",
+    "numero_manuel": "",
+    "description": ""
+   },
+   {
+    "code": "OO6",
+    "pressions": "P6",
+    "enjeu": "",
+    "libelle": "Choisir des indicateurs de suivi des falaises et corniches sèches thermophiles",
+    "numero_manuel": "",
+    "description": ""
+   },
+   {
+    "code": "OO7",
+    "pressions": "P7",
+    "enjeu": "",
+    "libelle": "Favoriser la libre évolution à proximité des falaises ombragées",
+    "numero_manuel": "",
+    "description": ""
+   },
+   {
+    "code": "OO8",
+    "pressions": "P8",
+    "enjeu": "",
+    "libelle": "Eviter les impacts potentiels liés à la fréquentation",
+    "numero_manuel": "",
+    "description": ""
+   },
+   {
+    "code": "OO9",
+    "pressions": "P9",
+    "enjeu": "",
+    "libelle": "Faire de la RNR-FE un outil de développement du territoire",
+    "numero_manuel": "",
+    "description": ""
+   },
+   {
+    "code": "OO10",
+    "pressions": "P10",
+    "enjeu": "",
+    "libelle": "Mieux connaitre la fréquentation de la RNR-FE",
+    "numero_manuel": "",
+    "description": ""
+   },
+   {
+    "code": "OO11",
+    "pressions": "P11",
+    "enjeu": "",
+    "libelle": "Accueillir le public dans un cadre de qualité et dans le respect des enjeux de conservation",
+    "numero_manuel": "",
+    "description": ""
+   },
+   {
+    "code": "OO12",
+    "pressions": "P12",
+    "enjeu": "",
+    "libelle": "Développer une offre pédagogique dans la RNR-FE",
+    "numero_manuel": "",
+    "description": ""
+   },
+   {
+    "code": "OO13",
+    "pressions": "P13",
+    "enjeu": "",
+    "libelle": "Prévenir d'éventuels conflits d'usage",
+    "numero_manuel": "",
+    "description": ""
+   },
+   {
+    "code": "OO14",
+    "pressions": "P14",
+    "enjeu": "",
+    "libelle": "Encadrer les manifestations sportives",
+    "numero_manuel": "",
+    "description": ""
+   },
+   {
+    "code": "OO15",
+    "pressions": "P15",
+    "enjeu": "",
+    "libelle": "Communiquer sur la RNR-FE",
+    "numero_manuel": "",
+    "description": ""
+   },
+   {
+    "code": "OO16",
+    "pressions": "P16",
+    "enjeu": "",
+    "libelle": "Se faire connaitre en tant qu'acteur du territoire",
+    "numero_manuel": "",
+    "description": ""
+   },
+   {
+    "code": "OO17",
+    "pressions": "P17",
+    "enjeu": "",
+    "libelle": "Poursuivre les partenariats engagés et développer d'autres partenariats",
+    "numero_manuel": "",
+    "description": ""
+   },
+   {
+    "code": "OO18",
+    "pressions": "P18",
+    "enjeu": "",
+    "libelle": "Diminuer les pratiques inadéquates",
+    "numero_manuel": "",
+    "description": ""
+   },
+   {
+    "code": "OO19",
+    "pressions": "P19",
+    "enjeu": "",
+    "libelle": "Équiper le personnel de terrain d'éléments caractéristiques du statut de Réserve",
+    "numero_manuel": "",
+    "description": ""
+   },
+   {
+    "code": "OO20",
+    "pressions": "P20",
+    "enjeu": "",
+    "libelle": "Mieux connaître les valeurs ajoutées existantes et potentielles de la RNR-FE pour le territoire",
+    "numero_manuel": "",
+    "description": ""
+   },
+   {
+    "code": "OO21",
+    "pressions": "P21",
+    "enjeu": "",
+    "libelle": "Être associé aux projets de territoire dans lesquels les compétences de la RNR-FE peuvent être valorisées",
+    "numero_manuel": "",
+    "description": ""
+   },
+   {
+    "code": "OO22",
+    "pressions": "P22",
+    "enjeu": "",
+    "libelle": "Développer des dimensions innovantes dans la mise en œuvre des actions",
+    "numero_manuel": "",
+    "description": ""
+   },
+   {
+    "code": "OO23",
+    "pressions": "P23",
+    "enjeu": "",
+    "libelle": "Impliquer les acteurs dans la réalisation des opérations",
+    "numero_manuel": "",
+    "description": ""
+   },
+   {
+    "code": "OO24",
+    "pressions": "P24",
+    "enjeu": "",
+    "libelle": "Mettre en œuvre des actions conjointes avec le site Natura 2000 (tous enjeux et FCR)",
+    "numero_manuel": "",
+    "description": ""
+   },
+   {
+    "code": "OO25",
+    "pressions": "P24",
+    "enjeu": "",
+    "libelle": "Accompagner la révision du DOCOB",
+    "numero_manuel": "",
+    "description": ""
+   },
+   {
+    "code": "OO26",
+    "pressions": "P25",
+    "enjeu": "",
+    "libelle": "Mettre en œuvre des contrats Natura 2000 dans la RNR-FE",
+    "numero_manuel": "",
+    "description": ""
+   },
+   {
+    "code": "OO27",
+    "pressions": "P26",
+    "enjeu": "",
+    "libelle": "Proposer un projet d'extension de la Réserve pour la 3ème révision de l'acte de classement",
+    "numero_manuel": "",
+    "description": ""
+   },
+   {
+    "code": "OO28",
+    "pressions": "P27",
+    "enjeu": "",
+    "libelle": "Renouveler la labellisation Forêt d'Exception®",
+    "numero_manuel": "",
+    "description": ""
+   },
+   {
+    "code": "OO29",
+    "pressions": "P28,P29,P30",
+    "enjeu": "",
+    "libelle": "Permettre la libre évolution des habitats forestiers à enjeu",
+    "numero_manuel": "",
+    "description": ""
+   },
+   {
+    "code": "OO30",
+    "pressions": "P30",
+    "enjeu": "",
+    "libelle": "Amélioration de l'état de conservation des jeunes peuplements réguliers",
+    "numero_manuel": "",
+    "description": ""
+   },
+   {
+    "code": "OO31",
+    "pressions": "P31",
+    "enjeu": "",
+    "libelle": "Favoriser le retour progressif des essences feuillues autochtones dans les quelques plantations de résineux",
+    "numero_manuel": "",
+    "description": ""
+   },
+   {
+    "code": "OO32",
+    "pressions": "P32",
+    "enjeu": "",
+    "libelle": "Affiner la cartographie des habitats forestiers pour optimiser le suivi des indicateurs",
+    "numero_manuel": "",
+    "description": ""
+   },
+   {
+    "code": "OO33",
+    "pressions": "P33",
+    "enjeu": "",
+    "libelle": "Recenser et cadrer les pratiques de fauche/broyage des lignes et accotements de routes forestières",
+    "numero_manuel": "",
+    "description": ""
+   },
+   {
+    "code": "OO34",
+    "pressions": "P34",
+    "enjeu": "",
+    "libelle": "Améliorer les connaissances sur les conditions climatiques locales et la vulnérabilité des habitats et espèces de la RNR-FE face à divers scénarios",
+    "numero_manuel": "",
+    "description": ""
+   },
+   {
+    "code": "OO35",
+    "pressions": "P35",
+    "enjeu": "",
+    "libelle": "Mieux connaitre le fonctionnement des milieux humides tufeux et leur répartition",
+    "numero_manuel": "",
+    "description": ""
+   },
+   {
+    "code": "OO36",
+    "pressions": "P35",
+    "enjeu": "",
+    "libelle": "Mieux caractériser les milieux humides tufeux",
+    "numero_manuel": "",
+    "description": ""
+   },
+   {
+    "code": "OO37",
+    "pressions": "P36",
+    "enjeu": "",
+    "libelle": "Mieux connaitre les différents types de sources et ruisselets et leur répartition",
+    "numero_manuel": "",
+    "description": ""
+   },
+   {
+    "code": "OO38",
+    "pressions": "P37",
+    "enjeu": "",
+    "libelle": "Limiter la fermeture des milieux tufeux (selon les résultats de l'état des lieux)",
+    "numero_manuel": "",
+    "description": ""
+   },
+   {
+    "code": "OO39",
+    "pressions": "P38",
+    "enjeu": "",
+    "libelle": "Restaurer le fonctionnement hydrologique des milieux humides tufeux si besoin (selon les résultats de l'état des lieux)",
+    "numero_manuel": "",
+    "description": ""
+   },
+   {
+    "code": "OO40",
+    "pressions": "P39",
+    "enjeu": "",
+    "libelle": "Diminuer l'impact de la circulation routière sur les populations d'amphibiens",
+    "numero_manuel": "",
+    "description": ""
+   },
+   {
+    "code": "OO41",
+    "pressions": "P40",
+    "enjeu": "",
+    "libelle": "Traiter les lisières dépréciatives",
+    "numero_manuel": "",
+    "description": ""
+   },
+   {
+    "code": "OO42",
+    "pressions": "P41",
+    "enjeu": "",
+    "libelle": "Traiter les sources de pollution visuelle et sonore",
+    "numero_manuel": "",
+    "description": ""
+   },
+   {
+    "code": "OO43",
+    "pressions": "P42",
+    "enjeu": "",
+    "libelle": "Affirmer une exemplarité dans la réalisation de travaux",
+    "numero_manuel": "",
+    "description": ""
+   },
+   {
+    "code": "OO44",
+    "pressions": "P43",
+    "enjeu": "",
+    "libelle": "Révéler les connexions paysagères et réciprocités visuelles au sein du site",
+    "numero_manuel": "",
+    "description": ""
+   },
+   {
+    "code": "OO45",
+    "pressions": "P44",
+    "enjeu": "",
+    "libelle": "Révéler les composantes remarquables",
+    "numero_manuel": "",
+    "description": ""
+   },
+   {
+    "code": "OO46",
+    "pressions": "P45",
+    "enjeu": "",
+    "libelle": "Restaurer les composantes minérales altérées",
+    "numero_manuel": "",
+    "description": ""
+   },
+   {
+    "code": "OO47",
+    "pressions": "P46",
+    "enjeu": "",
+    "libelle": "Valoriser les points de vue altérés",
+    "numero_manuel": "",
+    "description": ""
+   },
+   {
+    "code": "OO48",
+    "pressions": "",
+    "enjeu": "E5",
+    "libelle": "Mieux connaitre le groupe des orthoptères",
+    "numero_manuel": "",
+    "description": "Facteur d'influence : Méconnaissance des orthoptères"
+   },
+   {
+    "code": "OO49",
+    "pressions": "",
+    "enjeu": "E5",
+    "libelle": "Mieux connaître l'occupation de la RNR-FE par les rapaces diurnes",
+    "numero_manuel": "",
+    "description": "Facteur d'influence : Méconnaissance de l'occupation de la RNR-FE par les rapaces diurnes"
+   },
+   {
+    "code": "OO50",
+    "pressions": "",
+    "enjeu": "E5",
+    "libelle": "Obtenir une typologie complète des groupements végétaux de la RNR",
+    "numero_manuel": "",
+    "description": "Facteur d'influence : Lacunes dans la typologie des groupements végétaux"
+   },
+   {
+    "code": "OO51",
+    "pressions": "",
+    "enjeu": "E5",
+    "libelle": "Mieux connaitre la population du crapaud commun dans la RNR",
+    "numero_manuel": "",
+    "description": "Facteur d'influence : Déclin national du Crapaud commun"
+   },
+   {
+    "code": "OO52",
+    "pressions": "",
+    "enjeu": "E5",
+    "libelle": "Mieux caractériser les populations de vipères aspics",
+    "numero_manuel": "",
+    "description": "Facteur d'influence : Méconnaissance de la Vipère aspic"
+   },
+   {
+    "code": "OO53",
+    "pressions": "",
+    "enjeu": "E5",
+    "libelle": "Rechercher les anciennes localisations d'espèces citées historiquement dans la RNR",
+    "numero_manuel": "",
+    "description": "Facteur d'influence : Données historiques de localisation d'espèces"
+   },
+   {
+    "code": "OO54",
+    "pressions": "",
+    "enjeu": "E5",
+    "libelle": "Connaître les bryophytes corticoles",
+    "numero_manuel": "",
+    "description": "Facteur d'influence : Méconnaissance des bryophytes corticoles"
+   },
+   {
+    "code": "OO55",
+    "pressions": "",
+    "enjeu": "E5",
+    "libelle": "Poursuivre le développement des connaissances mycologiques et lichénologiques",
+    "numero_manuel": "",
+    "description": "Facteur d'influence : Méconnaissance de la diversité mycologique et lichénologique"
+   },
+   {
+    "code": "OO56",
+    "pressions": "",
+    "enjeu": "E5",
+    "libelle": "Développer les connaissances sur les mammifères et leur répartition",
+    "numero_manuel": "",
+    "description": "Facteur d'influence : Méconnaissance de la diversité des mammifères"
+   },
+   {
+    "code": "OO57",
+    "pressions": "",
+    "enjeu": "E5",
+    "libelle": "Développer les connaissances sur les mollusques (gastéropodes en particulier)",
+    "numero_manuel": "",
+    "description": "Facteur d'influence : Méconnaissance de la diversité malacologique"
+   },
+   {
+    "code": "OO58",
+    "pressions": "",
+    "enjeu": "E5",
+    "libelle": "Développer les connaissances sur l'entomofaune et les araignées",
+    "numero_manuel": "",
+    "description": "Facteur d'influence : Méconnaissance de l'entomofaune et des araignées"
+   },
+   {
+    "code": "OO59",
+    "pressions": "",
+    "enjeu": "E5",
+    "libelle": "Appréhender les continuités entre la RNR-FE et son environnement proche favorables aux chiroptères",
+    "numero_manuel": "",
+    "description": "Facteur d'influence : Méconnaissance des liens entre la RNR-FE et son environnement pour les chiroptères"
+   },
+   {
+    "code": "OO60",
+    "pressions": "",
+    "enjeu": "E5",
+    "libelle": "Mieux appréhender la biodiversité des forêts de plateau",
+    "numero_manuel": "",
+    "description": "Facteur d'influence : Biodiversité des forêts de plateau"
+   },
+   {
+    "code": "OO61",
+    "pressions": "",
+    "enjeu": "E5",
+    "libelle": "Appréhender les différences entre peuplements gérés et non gérés",
+    "numero_manuel": "",
+    "description": "Facteur d'influence : Méconnaissance de l'impact de la non-gestion sur les jeunes peuplements et les forêts de plateau"
+   },
+   {
+    "code": "OO62",
+    "pressions": "",
+    "enjeu": "E5",
+    "libelle": "Connaitre les impacts du changement climatique sur la RNR-FE",
+    "numero_manuel": "",
+    "description": "Facteur d'influence : Changement climatique"
+   },
+   {
+    "code": "OO63",
+    "pressions": "",
+    "enjeu": "E5",
+    "libelle": "Connaître et suivre les conditions climatiques et microclimatiques locales",
+    "numero_manuel": "",
+    "description": "Facteur d'influence : Changement climatique"
+   },
+   {
+    "code": "OO64",
+    "pressions": "",
+    "enjeu": "E5",
+    "libelle": "Compiler les suivis d'espèces sensibles aux conditions fraiches",
+    "numero_manuel": "",
+    "description": "Facteur d'influence : Changement climatique"
+   },
+   {
+    "code": "OO65",
+    "pressions": "",
+    "enjeu": "E5",
+    "libelle": "Suivre la qualité des eaux des sources captées pour l'alimentation en eau potable",
+    "numero_manuel": "",
+    "description": "Facteur d'influence : Qualité de l'eau des sources captées (eaux souterraines)"
+   },
+   {
+    "code": "OO66",
+    "pressions": "",
+    "enjeu": "E5",
+    "libelle": "Faire de la RNR-FE un territoire privilégié d'expérimentation et de recherche",
+    "numero_manuel": "",
+    "description": "Facteur d'influence : Implication du monde de la recherche dans la RNR-FE"
+   },
+   {
+    "code": "OO67",
+    "pressions": "",
+    "enjeu": "E5",
+    "libelle": "Poursuivre les partenariats de recherche sur le patrimoine archéologique",
+    "numero_manuel": "",
+    "description": "Facteur d'influence : Recherche sur le patrimoine archéologique"
+   },
+   {
+    "code": "OO68",
+    "pressions": "",
+    "enjeu": "E5",
+    "libelle": "Mieux connaître l'évolution du couvert végétal et renseigner sur les modalités d'exploitation de la forêt sur plusieurs siècles",
+    "numero_manuel": "",
+    "description": "Facteur d'influence : Méconnaissance de l'impact historique de l'homme sur la forêt"
+   },
+   {
+    "code": "OO69",
+    "pressions": "",
+    "enjeu": "E5",
+    "libelle": "Poursuivre le projet BIJOU",
+    "numero_manuel": "",
+    "description": "Facteur d'influence : Méconnaissance de la truffe de Bourgogne"
+   },
+   {
+    "code": "OO70",
+    "pressions": "",
+    "enjeu": "E7",
+    "libelle": "Organiser et participer aux réunions en lien avec la gestion administrative de la réserve",
+    "numero_manuel": "",
+    "description": ""
+   },
+   {
+    "code": "OO71",
+    "pressions": "",
+    "enjeu": "E7",
+    "libelle": "Participer aux différents réseaux",
+    "numero_manuel": "",
+    "description": ""
+   },
+   {
+    "code": "OO72",
+    "pressions": "",
+    "enjeu": "E7",
+    "libelle": "Évaluer et adapter le plan de gestion",
+    "numero_manuel": "",
+    "description": ""
+   },
+   {
+    "code": "OO73",
+    "pressions": "",
+    "enjeu": "E7",
+    "libelle": "Alimenter les bases de données",
+    "numero_manuel": "",
+    "description": ""
+   },
+   {
+    "code": "OO74",
+    "pressions": "",
+    "enjeu": "E7",
+    "libelle": "Alimenter les bases de données du Ministère",
+    "numero_manuel": "",
+    "description": ""
+   },
+   {
+    "code": "OO75",
+    "pressions": "",
+    "enjeu": "E7",
+    "libelle": "Organiser la gestion administrative, documentaire et financière de la réserve",
+    "numero_manuel": "",
+    "description": ""
+   },
+   {
+    "code": "OO76",
+    "pressions": "",
+    "enjeu": "E7",
+    "libelle": "Gérer le personnel et les stagiaires",
+    "numero_manuel": "",
+    "description": ""
+   },
+   {
+    "code": "OO77",
+    "pressions": "",
+    "enjeu": "E7",
+    "libelle": "Acquérir le petit matériel nécessaire à la gestion de la RNR-FE et aux animations pédagogiques",
+    "numero_manuel": "",
+    "description": ""
+   }
+  ],
+  "ra": [
+   {
+    "code": "R1",
+    "oo": "OO1",
+    "libelle": "100 % des complexes avec des modalités de gestion",
+    "description": ""
+   },
+   {
+    "code": "R2",
+    "oo": "OO2",
+    "libelle": "Pourcentage de milieux ouverts à définir",
+    "description": ""
+   },
+   {
+    "code": "R3",
+    "oo": "OO3",
+    "libelle": "Absence d'impacts liés à la fréquentation",
+    "description": ""
+   },
+   {
+    "code": "R4",
+    "oo": "OO4",
+    "libelle": "Respect du cadre prévu pour l'agrainage",
+    "description": ""
+   },
+   {
+    "code": "R5",
+    "oo": "OO5",
+    "libelle": "Etat des lieux des éboulis",
+    "description": ""
+   },
+   {
+    "code": "R6",
+    "oo": "OO6",
+    "libelle": "Indicateurs pertinents",
+    "description": ""
+   },
+   {
+    "code": "R7",
+    "oo": "OO7",
+    "libelle": "A minima zones tampon en libre évolution à proximité immédiate des falaises ombragées",
+    "description": ""
+   },
+   {
+    "code": "R8",
+    "oo": "OO8",
+    "libelle": "Absence d'impacts liés à la fréquentation",
+    "description": ""
+   },
+   {
+    "code": "R9",
+    "oo": "OO9",
+    "libelle": "Visibilité de la RNR-FE",
+    "description": ""
+   },
+   {
+    "code": "R10",
+    "oo": "OO9",
+    "libelle": "Intégration de la RNR-FE dans l'offre touristique de territoire",
+    "description": ""
+   },
+   {
+    "code": "R11",
+    "oo": "OO9",
+    "libelle": "Intégration de la RNR-FE dans les actions de la Charte Forestière de territoire",
+    "description": ""
+   },
+   {
+    "code": "R12",
+    "oo": "OO10",
+    "libelle": "La fréquentation sera évaluée qualitativement et quantitativement",
+    "description": ""
+   },
+   {
+    "code": "R13",
+    "oo": "OO11",
+    "libelle": "La RNR-FE offrira au public un cadre d'accueil propre et sécurisé, avec des informations sur la RNR-FE (réglementation, orientation, sentiers, activités, etc.)",
+    "description": ""
+   },
+   {
+    "code": "R14",
+    "oo": "OO12",
+    "libelle": "Une stratégie d'éducation à l'environnement sera construite et mise en œuvre. En parallèle, le développement de l'offre en animations pour les scolaires et le Grand Public sera poursuivie",
+    "description": ""
+   },
+   {
+    "code": "R15",
+    "oo": "OO13",
+    "libelle": "Absence de conflits d'usage",
+    "description": ""
+   },
+   {
+    "code": "R16",
+    "oo": "OO14",
+    "libelle": "Un cadre sera défini par la RNR-FE pour les manifestations sportives et respecté",
+    "description": ""
+   },
+   {
+    "code": "R17",
+    "oo": "OO15",
+    "libelle": "Une communication structurée en fonction des actions et des cibles visées sera mise en œuvre",
+    "description": ""
+   },
+   {
+    "code": "R18",
+    "oo": "OO15",
+    "libelle": "Une information personnalisée sur les enjeux du site et sa réglementation sera réalisée",
+    "description": ""
+   },
+   {
+    "code": "R19",
+    "oo": "OO15",
+    "libelle": "Le matériel de délimitation de la RNR-FE sera complété selon le plan de circulation dirigé du schéma d'accueil. Le matériel existant sera entretenu",
+    "description": ""
+   },
+   {
+    "code": "R20",
+    "oo": "OO16",
+    "libelle": "La RNR-FE sera systématiquement consultée pour les projets d'aménagement du territoire l'impactant potentiellement (milieux, paysage, ressources, etc.)",
+    "description": ""
+   },
+   {
+    "code": "R21",
+    "oo": "OO17",
+    "libelle": "Actions communes entre RNR-FE et associations (gestion des sentiers de grande et petite randonnée, interventions lors de regroupement, etc.)",
+    "description": ""
+   },
+   {
+    "code": "R22",
+    "oo": "OO18",
+    "libelle": "Les comportements inadéquats auront baissé",
+    "description": ""
+   },
+   {
+    "code": "R23",
+    "oo": "OO19",
+    "libelle": "Identification visuelle du personnel de terrain comme gestionnaire de Réserve",
+    "description": ""
+   },
+   {
+    "code": "R24",
+    "oo": "OO20",
+    "libelle": "Les valeurs ajoutées existantes et potentielles seront identifiées et évaluées",
+    "description": ""
+   },
+   {
+    "code": "R25",
+    "oo": "OO21",
+    "libelle": "Le gestionnaire sera reconnu comme référent pour certaines compétences spécifiques",
+    "description": ""
+   },
+   {
+    "code": "R26",
+    "oo": "OO22",
+    "libelle": "La RNR-FE sera reconnue comme un territoire d'innovation et d'expérimentation",
+    "description": ""
+   },
+   {
+    "code": "R27",
+    "oo": "OO23",
+    "libelle": "Les acteurs prennent une part active dans certaines opérations",
+    "description": ""
+   },
+   {
+    "code": "R28",
+    "oo": "OO24",
+    "libelle": "Des actions communes seront développées avec le site Natura 2000",
+    "description": ""
+   },
+   {
+    "code": "R29",
+    "oo": "OO25",
+    "libelle": "Prise en compte du plan de gestion dans le DOCOB",
+    "description": ""
+   },
+   {
+    "code": "R30",
+    "oo": "OO26",
+    "libelle": "Actions financées par des contrats Natura 2000",
+    "description": ""
+   },
+   {
+    "code": "R31",
+    "oo": "OO27",
+    "libelle": "Un projet d'extension de la RNR-FE sera défini et évalué",
+    "description": ""
+   },
+   {
+    "code": "R32",
+    "oo": "OO28",
+    "libelle": "Labellisation Forêt d'Exception® renouvelée",
+    "description": ""
+   },
+   {
+    "code": "R33",
+    "oo": "OO29",
+    "libelle": "100 % des peuplements à structure irrégulière en libre évolution",
+    "description": ""
+   },
+   {
+    "code": "R34",
+    "oo": "OO30",
+    "libelle": "Maintien de la sylviculture dans les peuplements réguliers",
+    "description": ""
+   },
+   {
+    "code": "R35",
+    "oo": "OO31",
+    "libelle": "Diminution progressive des résineux",
+    "description": ""
+   },
+   {
+    "code": "R36",
+    "oo": "OO32",
+    "libelle": "Suivi des indicateurs forestiers de manière efficace",
+    "description": ""
+   },
+   {
+    "code": "R37",
+    "oo": "OO33",
+    "libelle": "Pratiques recensées et cadrées (notamment dates)",
+    "description": ""
+   },
+   {
+    "code": "R38",
+    "oo": "OO34",
+    "libelle": "Connaissances",
+    "description": ""
+   },
+   {
+    "code": "R39",
+    "oo": "OO35",
+    "libelle": "Définition d'actions de gestion et de suivi (fonctionnement et répartition des milieux humides tufeux)",
+    "description": ""
+   },
+   {
+    "code": "R40",
+    "oo": "OO36",
+    "libelle": "Définition d'actions de gestion et de suivi (caractérisation des milieux humides tufeux)",
+    "description": ""
+   },
+   {
+    "code": "R41",
+    "oo": "OO37",
+    "libelle": "Définition d'actions de gestion et de suivi (sources et ruisselets)",
+    "description": ""
+   },
+   {
+    "code": "R42",
+    "oo": "OO38",
+    "libelle": "Limitation de la fermeture des milieux",
+    "description": ""
+   },
+   {
+    "code": "R43",
+    "oo": "OO39",
+    "libelle": "Compensation des effets d'ouvrages d'origine anthropique",
+    "description": ""
+   },
+   {
+    "code": "R44",
+    "oo": "OO40",
+    "libelle": "Limitation de l'impact",
+    "description": ""
+   },
+   {
+    "code": "R45",
+    "oo": "OO41",
+    "libelle": "Diminution des lisières dépréciatives",
+    "description": ""
+   },
+   {
+    "code": "R46",
+    "oo": "OO42",
+    "libelle": "Diminution des sources de pollution visuelle et sonore",
+    "description": ""
+   },
+   {
+    "code": "R47",
+    "oo": "OO43",
+    "libelle": "Diminution des impacts visuels des travaux (exploitations, travaux forestiers et d'aménagement)",
+    "description": ""
+   },
+   {
+    "code": "R48",
+    "oo": "OO44",
+    "libelle": "Augmentation du nombre de connexions visuelles valorisantes",
+    "description": ""
+   },
+   {
+    "code": "R49",
+    "oo": "OO45",
+    "libelle": "Augmentation du nombre de composantes remarquables mises en valeur",
+    "description": ""
+   },
+   {
+    "code": "R50",
+    "oo": "OO46",
+    "libelle": "Diminution du nombre de composantes minérales remarquables altérées",
+    "description": ""
+   },
+   {
+    "code": "R51",
+    "oo": "OO47",
+    "libelle": "Diminution du nombre de points de vue non valorisés",
+    "description": ""
+   },
+   {
+    "code": "R52",
+    "oo": "OO48",
+    "libelle": "Choisir des indicateurs",
+    "description": ""
+   },
+   {
+    "code": "R53",
+    "oo": "OO49",
+    "libelle": "Données",
+    "description": ""
+   },
+   {
+    "code": "R54",
+    "oo": "OO50",
+    "libelle": "Typologie complétée au fur et à mesure",
+    "description": ""
+   },
+   {
+    "code": "R55",
+    "oo": "OO51",
+    "libelle": "Données",
+    "description": ""
+   },
+   {
+    "code": "R56",
+    "oo": "OO52",
+    "libelle": "Données",
+    "description": ""
+   },
+   {
+    "code": "R57",
+    "oo": "OO53",
+    "libelle": "Vérification de l'existence des espèces citées dans la bibliographie",
+    "description": ""
+   },
+   {
+    "code": "R58",
+    "oo": "OO54",
+    "libelle": "Données",
+    "description": ""
+   },
+   {
+    "code": "R59",
+    "oo": "OO55",
+    "libelle": "Données",
+    "description": ""
+   },
+   {
+    "code": "R60",
+    "oo": "OO56",
+    "libelle": "Données",
+    "description": ""
+   },
+   {
+    "code": "R61",
+    "oo": "OO57",
+    "libelle": "Données",
+    "description": ""
+   },
+   {
+    "code": "R62",
+    "oo": "OO58",
+    "libelle": "Données",
+    "description": ""
+   },
+   {
+    "code": "R63",
+    "oo": "OO59",
+    "libelle": "Données",
+    "description": ""
+   },
+   {
+    "code": "R64",
+    "oo": "OO60",
+    "libelle": "Données",
+    "description": ""
+   },
+   {
+    "code": "R65",
+    "oo": "OO61",
+    "libelle": "Données",
+    "description": ""
+   },
+   {
+    "code": "R66",
+    "oo": "OO62",
+    "libelle": "Ajustement des actions",
+    "description": ""
+   },
+   {
+    "code": "R67",
+    "oo": "OO63",
+    "libelle": "Données sur les conditions météo locales",
+    "description": ""
+   },
+   {
+    "code": "R68",
+    "oo": "OO64",
+    "libelle": "Données extraites et compilées",
+    "description": ""
+   },
+   {
+    "code": "R69",
+    "oo": "OO65",
+    "libelle": "Données extraites et compilées",
+    "description": ""
+   },
+   {
+    "code": "R70",
+    "oo": "OO66",
+    "libelle": "Programmes/projets de recherche",
+    "description": ""
+   },
+   {
+    "code": "R71",
+    "oo": "OO67",
+    "libelle": "Programmes/projets de recherche en archéologie",
+    "description": ""
+   },
+   {
+    "code": "R72",
+    "oo": "OO68",
+    "libelle": "Données",
+    "description": ""
+   },
+   {
+    "code": "R73",
+    "oo": "OO69",
+    "libelle": "Connaissances sur les stations favorables à la truffe et sur l'influence des éclaircies sylvicoles sur la production de truffes",
+    "description": ""
+   },
+   {
+    "code": "R74",
+    "oo": "OO70",
+    "libelle": "Organiser et participer aux réunions en lien avec la gestion administrative de la réserve",
+    "description": "Résultat attendu non défini dans le plan source (échafaudage d'import)."
+   },
+   {
+    "code": "R75",
+    "oo": "OO71",
+    "libelle": "Participer aux différents réseaux",
+    "description": "Résultat attendu non défini dans le plan source (échafaudage d'import)."
+   },
+   {
+    "code": "R76",
+    "oo": "OO72",
+    "libelle": "Évaluer et adapter le plan de gestion",
+    "description": "Résultat attendu non défini dans le plan source (échafaudage d'import)."
+   },
+   {
+    "code": "R77",
+    "oo": "OO73",
+    "libelle": "Alimenter les bases de données",
+    "description": "Résultat attendu non défini dans le plan source (échafaudage d'import)."
+   },
+   {
+    "code": "R78",
+    "oo": "OO74",
+    "libelle": "Alimenter les bases de données du Ministère",
+    "description": "Résultat attendu non défini dans le plan source (échafaudage d'import)."
+   },
+   {
+    "code": "R79",
+    "oo": "OO75",
+    "libelle": "Organiser la gestion administrative, documentaire et financière de la réserve",
+    "description": "Résultat attendu non défini dans le plan source (échafaudage d'import)."
+   },
+   {
+    "code": "R80",
+    "oo": "OO76",
+    "libelle": "Gérer le personnel et les stagiaires",
+    "description": "Résultat attendu non défini dans le plan source (échafaudage d'import)."
+   },
+   {
+    "code": "R81",
+    "oo": "OO77",
+    "libelle": "Acquérir le petit matériel nécessaire à la gestion de la RNR-FE et aux animations pédagogiques",
+    "description": "Résultat attendu non défini dans le plan source (échafaudage d'import)."
+   }
+  ],
+  "indicateurs": [
+   {
+    "code": "I1",
+    "parent": "N1",
+    "type": "État",
+    "nom_indicateur": "Surface",
+    "description": ""
+   },
+   {
+    "code": "I2",
+    "parent": "N2",
+    "type": "État",
+    "nom_indicateur": "Morcellement et fragmentation",
+    "description": ""
+   },
+   {
+    "code": "I3",
+    "parent": "N3",
+    "type": "État",
+    "nom_indicateur": "Recouvrement des ligneux dans les surfaces de pelouses",
+    "description": ""
+   },
+   {
+    "code": "I4",
+    "parent": "N4",
+    "type": "État",
+    "nom_indicateur": "Espèces eutrophiles",
+    "description": ""
+   },
+   {
+    "code": "I5",
+    "parent": "N4",
+    "type": "État",
+    "nom_indicateur": "Espèces indicatrices du régime agropastoral",
+    "description": ""
+   },
+   {
+    "code": "I6",
+    "parent": "N4",
+    "type": "État",
+    "nom_indicateur": "Recouvrement du Brachypode",
+    "description": ""
+   },
+   {
+    "code": "I7",
+    "parent": "N4",
+    "type": "État",
+    "nom_indicateur": "Recouvrement des espèces d'ourlet",
+    "description": ""
+   },
+   {
+    "code": "I8",
+    "parent": "N4",
+    "type": "État",
+    "nom_indicateur": "Recouvrement des espèces exotiques envahissantes",
+    "description": ""
+   },
+   {
+    "code": "I9",
+    "parent": "N5",
+    "type": "État",
+    "nom_indicateur": "Valériane tubéreuse",
+    "description": ""
+   },
+   {
+    "code": "I10",
+    "parent": "N5",
+    "type": "État",
+    "nom_indicateur": "Gesse blanchâtre",
+    "description": ""
+   },
+   {
+    "code": "I11",
+    "parent": "N5",
+    "type": "État",
+    "nom_indicateur": "Grande Orobanche",
+    "description": ""
+   },
+   {
+    "code": "I12",
+    "parent": "N5",
+    "type": "État",
+    "nom_indicateur": "Séseli faux peucédan",
+    "description": ""
+   },
+   {
+    "code": "I13",
+    "parent": "N5",
+    "type": "État",
+    "nom_indicateur": "Cotonéaster vulgaire",
+    "description": ""
+   },
+   {
+    "code": "I14",
+    "parent": "N6",
+    "type": "État",
+    "nom_indicateur": "Pouillot de Bonelli",
+    "description": ""
+   },
+   {
+    "code": "I15",
+    "parent": "N6",
+    "type": "État",
+    "nom_indicateur": "Engoulevent d'Europe",
+    "description": ""
+   },
+   {
+    "code": "I16",
+    "parent": "N7",
+    "type": "État",
+    "nom_indicateur": "Espèces végétales caractéristiques et patrimoniales",
+    "description": ""
+   },
+   {
+    "code": "I17",
+    "parent": "N7",
+    "type": "État",
+    "nom_indicateur": "Espèces bryophytiques caractéristiques et patrimoniales",
+    "description": ""
+   },
+   {
+    "code": "I18",
+    "parent": "N8",
+    "type": "État",
+    "nom_indicateur": "Lunetière lisse",
+    "description": ""
+   },
+   {
+    "code": "I19",
+    "parent": "N9",
+    "type": "État",
+    "nom_indicateur": "Faucon pèlerin",
+    "description": ""
+   },
+   {
+    "code": "I20",
+    "parent": "N10",
+    "type": "État",
+    "nom_indicateur": "Connaissance du périmètre de la RNR-FE",
+    "description": ""
+   },
+   {
+    "code": "I21",
+    "parent": "N10",
+    "type": "État",
+    "nom_indicateur": "Connaissance du site (points d'accès, équipements, sentiers, etc.)",
+    "description": ""
+   },
+   {
+    "code": "I22",
+    "parent": "N10",
+    "type": "État",
+    "nom_indicateur": "Connaissance des enjeux et fonctions de la RNR-FE par les acteurs locaux (structure gestionnaire, élus et partenaires locaux, usagers et habitants locaux, usagers et partenaires à l'échelle régionale)",
+    "description": ""
+   },
+   {
+    "code": "I23",
+    "parent": "N10",
+    "type": "État",
+    "nom_indicateur": "Connaissance des moyens de communication produits par la RNR-FE",
+    "description": ""
+   },
+   {
+    "code": "I24",
+    "parent": "N10",
+    "type": "État",
+    "nom_indicateur": "Connaissance de la réglementation",
+    "description": ""
+   },
+   {
+    "code": "I25",
+    "parent": "N10",
+    "type": "État",
+    "nom_indicateur": "Renommée de la RNR-FE",
+    "description": ""
+   },
+   {
+    "code": "I26",
+    "parent": "N11",
+    "type": "État",
+    "nom_indicateur": "Intérêt pour les activités scolaires organisées au sein de la RNR-FE",
+    "description": ""
+   },
+   {
+    "code": "I27",
+    "parent": "N11",
+    "type": "État",
+    "nom_indicateur": "Intérêt pour les activités organisées au sein de la RNR-FE en dehors des animations scolaires",
+    "description": ""
+   },
+   {
+    "code": "I28",
+    "parent": "N11",
+    "type": "État",
+    "nom_indicateur": "Intérêt des usagers professionnels ou de loisirs pour la RNR-FE",
+    "description": ""
+   },
+   {
+    "code": "I29",
+    "parent": "N11",
+    "type": "État",
+    "nom_indicateur": "Intérêt des riverains pour la RNR-FE",
+    "description": ""
+   },
+   {
+    "code": "I30",
+    "parent": "N11",
+    "type": "État",
+    "nom_indicateur": "Intérêt des élus pour la RNR-FE",
+    "description": ""
+   },
+   {
+    "code": "I31",
+    "parent": "N11",
+    "type": "État",
+    "nom_indicateur": "Respect de la réglementation",
+    "description": ""
+   },
+   {
+    "code": "I32",
+    "parent": "N12",
+    "type": "État",
+    "nom_indicateur": "Implication des bénévoles sur la RNR-FE / an",
+    "description": ""
+   },
+   {
+    "code": "I33",
+    "parent": "N12",
+    "type": "État",
+    "nom_indicateur": "Implication des acteurs dans le comité consultatif de gestion",
+    "description": ""
+   },
+   {
+    "code": "I34",
+    "parent": "N12",
+    "type": "État",
+    "nom_indicateur": "Implication des acteurs dans les autres instances de gouvernance",
+    "description": ""
+   },
+   {
+    "code": "I35",
+    "parent": "N13",
+    "type": "État",
+    "nom_indicateur": "Coordination entre la RNR-FE et les politiques environnementales ou les acteurs naturalistes",
+    "description": ""
+   },
+   {
+    "code": "I36",
+    "parent": "N13",
+    "type": "État",
+    "nom_indicateur": "Perception par les acteurs locaux du gestionnaire en tant que référent environnement",
+    "description": ""
+   },
+   {
+    "code": "I37",
+    "parent": "N14",
+    "type": "État",
+    "nom_indicateur": "Place des interactions entre la RNR-FE et son territoire",
+    "description": ""
+   },
+   {
+    "code": "I38",
+    "parent": "N14",
+    "type": "État",
+    "nom_indicateur": "Capacité d'interaction de l'équipe de gestion",
+    "description": ""
+   },
+   {
+    "code": "I39",
+    "parent": "N14",
+    "type": "État",
+    "nom_indicateur": "Fonctionnalité des instances collectives",
+    "description": ""
+   },
+   {
+    "code": "I40",
+    "parent": "N14",
+    "type": "État",
+    "nom_indicateur": "Intégration des usagers",
+    "description": ""
+   },
+   {
+    "code": "I41",
+    "parent": "N14",
+    "type": "État",
+    "nom_indicateur": "Place de l'avis de la RNR-FE par rapport aux projets de territoire pouvant impacter les patrimoines naturel, paysager et culturel",
+    "description": ""
+   },
+   {
+    "code": "I42",
+    "parent": "N15",
+    "type": "État",
+    "nom_indicateur": "Positionnement de l'organisme gestionnaire par rapport aux objectifs de la RNR-FE",
+    "description": ""
+   },
+   {
+    "code": "I43",
+    "parent": "N15",
+    "type": "État",
+    "nom_indicateur": "Coordination entre la RNR-FE et d'autres types de politiques ou d'acteurs non naturalistes",
+    "description": ""
+   },
+   {
+    "code": "I44",
+    "parent": "N15",
+    "type": "État",
+    "nom_indicateur": "Part du budget de la RNR-FE provenant d'acteurs autres que les autorités de classement",
+    "description": ""
+   },
+   {
+    "code": "I45",
+    "parent": "N16",
+    "type": "État",
+    "nom_indicateur": "Implication des acteurs dans les actions nationales Forêt d'Exception®",
+    "description": ""
+   },
+   {
+    "code": "I46",
+    "parent": "N17",
+    "type": "État",
+    "nom_indicateur": "Connaissances des valeurs et objectifs de la démarche Forêt d'Exception®",
+    "description": ""
+   },
+   {
+    "code": "I47",
+    "parent": "N17",
+    "type": "État",
+    "nom_indicateur": "Connaissance du projet local Forêt d'Exception®",
+    "description": ""
+   },
+   {
+    "code": "I48",
+    "parent": "N18",
+    "type": "État",
+    "nom_indicateur": "Composition dendrologique",
+    "description": ""
+   },
+   {
+    "code": "I49",
+    "parent": "N18",
+    "type": "État",
+    "nom_indicateur": "Strate herbacée et muscinale",
+    "description": ""
+   },
+   {
+    "code": "I50",
+    "parent": "N18",
+    "type": "État",
+    "nom_indicateur": "Arbustes et arbrisseaux typiques",
+    "description": ""
+   },
+   {
+    "code": "I51",
+    "parent": "N18",
+    "type": "État",
+    "nom_indicateur": "Espèces ligneuses caractéristiques de la phase optimale de l'habitat",
+    "description": ""
+   },
+   {
+    "code": "I52",
+    "parent": "N18",
+    "type": "État",
+    "nom_indicateur": "Espèces arbustives et lianescentes exotiques envahissantes",
+    "description": ""
+   },
+   {
+    "code": "I53",
+    "parent": "N18",
+    "type": "État",
+    "nom_indicateur": "Régénération des espèces arborescentes exotiques envahissantes",
+    "description": ""
+   },
+   {
+    "code": "I54",
+    "parent": "N18",
+    "type": "État",
+    "nom_indicateur": "Espèces herbacées exotiques envahissantes",
+    "description": ""
+   },
+   {
+    "code": "I55",
+    "parent": "N19",
+    "type": "État",
+    "nom_indicateur": "Structure horizontale",
+    "description": ""
+   },
+   {
+    "code": "I56",
+    "parent": "N19",
+    "type": "État",
+    "nom_indicateur": "Structure verticale",
+    "description": ""
+   },
+   {
+    "code": "I57",
+    "parent": "N19",
+    "type": "État",
+    "nom_indicateur": "Bois mort",
+    "description": ""
+   },
+   {
+    "code": "I58",
+    "parent": "N19",
+    "type": "État",
+    "nom_indicateur": "Arbres à microhabitats",
+    "description": ""
+   },
+   {
+    "code": "I59",
+    "parent": "N20",
+    "type": "État",
+    "nom_indicateur": "Syrphes",
+    "description": ""
+   },
+   {
+    "code": "I60",
+    "parent": "N20",
+    "type": "État",
+    "nom_indicateur": "Coléoptères saproxyliques",
+    "description": ""
+   },
+   {
+    "code": "I61",
+    "parent": "N20",
+    "type": "État",
+    "nom_indicateur": "Avifaune",
+    "description": ""
+   },
+   {
+    "code": "I62",
+    "parent": "N20",
+    "type": "État",
+    "nom_indicateur": "Champignons",
+    "description": ""
+   },
+   {
+    "code": "I63",
+    "parent": "N20",
+    "type": "État",
+    "nom_indicateur": "Damier du Frêne",
+    "description": ""
+   },
+   {
+    "code": "I64",
+    "parent": "N21",
+    "type": "État",
+    "nom_indicateur": "Chiroptères",
+    "description": ""
+   },
+   {
+    "code": "I65",
+    "parent": "N21",
+    "type": "État",
+    "nom_indicateur": "Rapaces nocturnes",
+    "description": ""
+   },
+   {
+    "code": "I66",
+    "parent": "N21",
+    "type": "État",
+    "nom_indicateur": "Pic cendré",
+    "description": ""
+   },
+   {
+    "code": "I67",
+    "parent": "N22",
+    "type": "État",
+    "nom_indicateur": "Engorgement du sol",
+    "description": ""
+   },
+   {
+    "code": "I68",
+    "parent": "N23",
+    "type": "État",
+    "nom_indicateur": "Phragmites australis",
+    "description": ""
+   },
+   {
+    "code": "I69",
+    "parent": "N24",
+    "type": "État",
+    "nom_indicateur": "Espèces végétales (dont espèces patrimoniales)",
+    "description": ""
+   },
+   {
+    "code": "I70",
+    "parent": "N25",
+    "type": "État",
+    "nom_indicateur": "Recouvrement des ligneux",
+    "description": ""
+   },
+   {
+    "code": "I71",
+    "parent": "N26",
+    "type": "État",
+    "nom_indicateur": "Communauté bryophytique",
+    "description": ""
+   },
+   {
+    "code": "I72",
+    "parent": "N26",
+    "type": "État",
+    "nom_indicateur": "Espèces végétales des sources pétrifiantes",
+    "description": ""
+   },
+   {
+    "code": "I73",
+    "parent": "N26",
+    "type": "État",
+    "nom_indicateur": "Cordulegaster bidentata",
+    "description": ""
+   },
+   {
+    "code": "I74",
+    "parent": "N27",
+    "type": "État",
+    "nom_indicateur": "Bythinelle de Dijon",
+    "description": ""
+   },
+   {
+    "code": "I75",
+    "parent": "N27",
+    "type": "État",
+    "nom_indicateur": "Période d'écoulement",
+    "description": ""
+   },
+   {
+    "code": "I76",
+    "parent": "N28",
+    "type": "État",
+    "nom_indicateur": "Canche intermédiaire",
+    "description": ""
+   },
+   {
+    "code": "I77",
+    "parent": "N28",
+    "type": "État",
+    "nom_indicateur": "Jonc à fruits globuleux, Pâturin de Baden",
+    "description": ""
+   },
+   {
+    "code": "I78",
+    "parent": "N29",
+    "type": "État",
+    "nom_indicateur": "Composantes caractéristiques de l'identité paysagère",
+    "description": ""
+   },
+   {
+    "code": "I79",
+    "parent": "N29",
+    "type": "État",
+    "nom_indicateur": "Patrimoine culturel",
+    "description": ""
+   },
+   {
+    "code": "I80",
+    "parent": "R1",
+    "type": "Pression",
+    "nom_indicateur": "Modalités de gestion définies pour chaque complexe",
+    "description": ""
+   },
+   {
+    "code": "I81",
+    "parent": "R2",
+    "type": "Pression",
+    "nom_indicateur": "Strate arbustive/arborée",
+    "description": ""
+   },
+   {
+    "code": "I82",
+    "parent": "R3",
+    "type": "Pression",
+    "nom_indicateur": "Dégradations",
+    "description": ""
+   },
+   {
+    "code": "I83",
+    "parent": "R4",
+    "type": "Pression",
+    "nom_indicateur": "Pratiques",
+    "description": ""
+   },
+   {
+    "code": "I84",
+    "parent": "R5",
+    "type": "Pression",
+    "nom_indicateur": "Données",
+    "description": ""
+   },
+   {
+    "code": "I85",
+    "parent": "R6",
+    "type": "Pression",
+    "nom_indicateur": "Données",
+    "description": ""
+   },
+   {
+    "code": "I86",
+    "parent": "R7",
+    "type": "Pression",
+    "nom_indicateur": "Zone tampon",
+    "description": ""
+   },
+   {
+    "code": "I87",
+    "parent": "R8",
+    "type": "Pression",
+    "nom_indicateur": "Impacts",
+    "description": ""
+   },
+   {
+    "code": "I88",
+    "parent": "R9",
+    "type": "Pression",
+    "nom_indicateur": "Signalétique routière sur le site et sur le territoire voisin",
+    "description": ""
+   },
+   {
+    "code": "I89",
+    "parent": "R9",
+    "type": "Pression",
+    "nom_indicateur": "Application des mesures du plan de communication",
+    "description": ""
+   },
+   {
+    "code": "I90",
+    "parent": "R10",
+    "type": "Pression",
+    "nom_indicateur": "Outils de communication produits par les acteurs du territoire mentionnant la RNR-FE",
+    "description": ""
+   },
+   {
+    "code": "I91",
+    "parent": "R11",
+    "type": "Pression",
+    "nom_indicateur": "Actions de la Charte Forestière intégrant la RNR-FE",
+    "description": ""
+   },
+   {
+    "code": "I92",
+    "parent": "R12",
+    "type": "Pression",
+    "nom_indicateur": "Données sur la fréquentation qualitative",
+    "description": ""
+   },
+   {
+    "code": "I93",
+    "parent": "R12",
+    "type": "Pression",
+    "nom_indicateur": "Données sur la fréquentation quantitative",
+    "description": ""
+   },
+   {
+    "code": "I94",
+    "parent": "R13",
+    "type": "Pression",
+    "nom_indicateur": "État des aires d'accueil (propreté, sécurité, dégradations)",
+    "description": ""
+   },
+   {
+    "code": "I95",
+    "parent": "R13",
+    "type": "Pression",
+    "nom_indicateur": "État des sentiers balisés (balisage, sécurité)",
+    "description": ""
+   },
+   {
+    "code": "I96",
+    "parent": "R13",
+    "type": "Pression",
+    "nom_indicateur": "Offre en sentiers balisés familiaux",
+    "description": ""
+   },
+   {
+    "code": "I97",
+    "parent": "R13",
+    "type": "Pression",
+    "nom_indicateur": "Points d'accueil du scénario d'accueil défini par le schéma d'accueil aménagés",
+    "description": ""
+   },
+   {
+    "code": "I98",
+    "parent": "R13",
+    "type": "Pression",
+    "nom_indicateur": "Existence d'un accueil abrité",
+    "description": ""
+   },
+   {
+    "code": "I99",
+    "parent": "R13",
+    "type": "Pression",
+    "nom_indicateur": "Usage pédestre des routes ou bords de routes départementales",
+    "description": ""
+   },
+   {
+    "code": "I100",
+    "parent": "R13",
+    "type": "Pression",
+    "nom_indicateur": "Présence de points d'accueil « d'usage » non aménagés (le long de la RD7 en particulier)",
+    "description": ""
+   },
+   {
+    "code": "I101",
+    "parent": "R14",
+    "type": "Pression",
+    "nom_indicateur": "Stratégie d'éducation à l'environnement définie",
+    "description": ""
+   },
+   {
+    "code": "I102",
+    "parent": "R14",
+    "type": "Pression",
+    "nom_indicateur": "Animations pour les scolaires",
+    "description": ""
+   },
+   {
+    "code": "I103",
+    "parent": "R14",
+    "type": "Pression",
+    "nom_indicateur": "Animations pour le Grand Public",
+    "description": ""
+   },
+   {
+    "code": "I104",
+    "parent": "R14",
+    "type": "Pression",
+    "nom_indicateur": "Animations pour un public spécifique (université, réseaux, spécialistes, etc.)",
+    "description": ""
+   },
+   {
+    "code": "I105",
+    "parent": "R14",
+    "type": "Pression",
+    "nom_indicateur": "Offre pédagogique libre accès",
+    "description": ""
+   },
+   {
+    "code": "I106",
+    "parent": "R15",
+    "type": "Pression",
+    "nom_indicateur": "Conflits d'usage",
+    "description": ""
+   },
+   {
+    "code": "I107",
+    "parent": "R16",
+    "type": "Pression",
+    "nom_indicateur": "Infractions au cadre",
+    "description": ""
+   },
+   {
+    "code": "I108",
+    "parent": "R17",
+    "type": "Pression",
+    "nom_indicateur": "Application des mesures du plan de communication",
+    "description": ""
+   },
+   {
+    "code": "I109",
+    "parent": "R18",
+    "type": "Pression",
+    "nom_indicateur": "Personnes contactées",
+    "description": ""
+   },
+   {
+    "code": "I110",
+    "parent": "R19",
+    "type": "Pression",
+    "nom_indicateur": "Plan de circulation dirigée",
+    "description": ""
+   },
+   {
+    "code": "I111",
+    "parent": "R19",
+    "type": "Pression",
+    "nom_indicateur": "État du matériel de délimitation de la RNR-FE",
+    "description": ""
+   },
+   {
+    "code": "I112",
+    "parent": "R20",
+    "type": "Pression",
+    "nom_indicateur": "Consultations en amont pour les projets concernant directement ou indirectement la RNR",
+    "description": ""
+   },
+   {
+    "code": "I113",
+    "parent": "R21",
+    "type": "Pression",
+    "nom_indicateur": "Conventions signées",
+    "description": ""
+   },
+   {
+    "code": "I114",
+    "parent": "R22",
+    "type": "Pression",
+    "nom_indicateur": "Existence de pratiques inadéquates",
+    "description": ""
+   },
+   {
+    "code": "I115",
+    "parent": "R23",
+    "type": "Pression",
+    "nom_indicateur": "Équipement du personnel (tenue, véhicules, etc.)",
+    "description": ""
+   },
+   {
+    "code": "I116",
+    "parent": "R24",
+    "type": "Pression",
+    "nom_indicateur": "Mise en œuvre d'une évaluation des valeurs ajoutées de la RNR-FE pour le territoire",
+    "description": ""
+   },
+   {
+    "code": "I117",
+    "parent": "R25",
+    "type": "Pression",
+    "nom_indicateur": "Sollicitations",
+    "description": ""
+   },
+   {
+    "code": "I118",
+    "parent": "R26",
+    "type": "Pression",
+    "nom_indicateur": "Projets avec des dimensions innovantes",
+    "description": ""
+   },
+   {
+    "code": "I119",
+    "parent": "R27",
+    "type": "Pression",
+    "nom_indicateur": "Projets avec une dimension participative",
+    "description": ""
+   },
+   {
+    "code": "I120",
+    "parent": "R28",
+    "type": "Pression",
+    "nom_indicateur": "Actions communes",
+    "description": ""
+   },
+   {
+    "code": "I121",
+    "parent": "R29",
+    "type": "Pression",
+    "nom_indicateur": "Cohérence entre le DOCOB et le plan de gestion",
+    "description": ""
+   },
+   {
+    "code": "I122",
+    "parent": "R30",
+    "type": "Pression",
+    "nom_indicateur": "Contrats Natura 2000",
+    "description": ""
+   },
+   {
+    "code": "I123",
+    "parent": "R31",
+    "type": "Pression",
+    "nom_indicateur": "Étude de faisabilité de l'extension de la Réserve",
+    "description": ""
+   },
+   {
+    "code": "I124",
+    "parent": "R32",
+    "type": "Pression",
+    "nom_indicateur": "Forêt labellisée",
+    "description": ""
+   },
+   {
+    "code": "I125",
+    "parent": "R33",
+    "type": "Pression",
+    "nom_indicateur": "Secteurs en libre évolution dans les peuplements à structure irrégulière",
+    "description": ""
+   },
+   {
+    "code": "I126",
+    "parent": "R35",
+    "type": "Pression",
+    "nom_indicateur": "Résineux",
+    "description": ""
+   },
+   {
+    "code": "I127",
+    "parent": "R36",
+    "type": "Pression",
+    "nom_indicateur": "Finesse de la cartographie",
+    "description": ""
+   },
+   {
+    "code": "I128",
+    "parent": "R37",
+    "type": "Pression",
+    "nom_indicateur": "Pratiques",
+    "description": ""
+   },
+   {
+    "code": "I129",
+    "parent": "R38",
+    "type": "Pression",
+    "nom_indicateur": "Données",
+    "description": ""
+   },
+   {
+    "code": "I130",
+    "parent": "R39",
+    "type": "Pression",
+    "nom_indicateur": "Données sur le fonctionnement et la répartition",
+    "description": ""
+   },
+   {
+    "code": "I131",
+    "parent": "R40",
+    "type": "Pression",
+    "nom_indicateur": "Données sur la composition floristique et faunistique",
+    "description": ""
+   },
+   {
+    "code": "I132",
+    "parent": "R41",
+    "type": "Pression",
+    "nom_indicateur": "Données sur les types et la répartition",
+    "description": ""
+   },
+   {
+    "code": "I133",
+    "parent": "R42",
+    "type": "Pression",
+    "nom_indicateur": "Ligneux",
+    "description": ""
+   },
+   {
+    "code": "I134",
+    "parent": "R43",
+    "type": "Pression",
+    "nom_indicateur": "Ouvrages",
+    "description": ""
+   },
+   {
+    "code": "I135",
+    "parent": "R44",
+    "type": "Pression",
+    "nom_indicateur": "Dispositif",
+    "description": ""
+   },
+   {
+    "code": "I136",
+    "parent": "R45",
+    "type": "Pression",
+    "nom_indicateur": "Nombre de lisières dépréciatives",
+    "description": ""
+   },
+   {
+    "code": "I137",
+    "parent": "R46",
+    "type": "Pression",
+    "nom_indicateur": "Nombre de sources de pollution visuelle et sonore",
+    "description": ""
+   },
+   {
+    "code": "I138",
+    "parent": "R47",
+    "type": "Pression",
+    "nom_indicateur": "Nombre de chantiers intégrant des préconisations paysagères",
+    "description": ""
+   },
+   {
+    "code": "I139",
+    "parent": "R48",
+    "type": "Pression",
+    "nom_indicateur": "Nombre de connexions paysagères et réciprocités visuelles créées",
+    "description": ""
+   },
+   {
+    "code": "I140",
+    "parent": "R49",
+    "type": "Pression",
+    "nom_indicateur": "Nombre de composantes minérales et végétales révélées",
+    "description": ""
+   },
+   {
+    "code": "I141",
+    "parent": "R50",
+    "type": "Pression",
+    "nom_indicateur": "Nombre de composantes minérales remarquables altérées",
+    "description": ""
+   },
+   {
+    "code": "I142",
+    "parent": "R51",
+    "type": "Pression",
+    "nom_indicateur": "Nombre de points de vue altérés mis en valeur",
+    "description": ""
+   },
+   {
+    "code": "I143",
+    "parent": "R52",
+    "type": "Réponse",
+    "nom_indicateur": "Liste d'espèces et définition des responsabilités éventuelles de la RNR",
+    "description": ""
+   },
+   {
+    "code": "I144",
+    "parent": "R53",
+    "type": "Réponse",
+    "nom_indicateur": "Nombre d'aires, aires occupées, espèces observées",
+    "description": ""
+   },
+   {
+    "code": "I145",
+    "parent": "R54",
+    "type": "Réponse",
+    "nom_indicateur": "Fait / pas fait",
+    "description": ""
+   },
+   {
+    "code": "I146",
+    "parent": "R55",
+    "type": "Réponse",
+    "nom_indicateur": "Fait / pas fait",
+    "description": ""
+   },
+   {
+    "code": "I147",
+    "parent": "R56",
+    "type": "Réponse",
+    "nom_indicateur": "Fait / pas fait",
+    "description": ""
+   },
+   {
+    "code": "I148",
+    "parent": "R57",
+    "type": "Réponse",
+    "nom_indicateur": "Fait / pas fait",
+    "description": ""
+   },
+   {
+    "code": "I149",
+    "parent": "R58",
+    "type": "Réponse",
+    "nom_indicateur": "Liste d'espèces et définition des responsabilités éventuelles de la RNR",
+    "description": ""
+   },
+   {
+    "code": "I150",
+    "parent": "R59",
+    "type": "Réponse",
+    "nom_indicateur": "Liste d'espèces et définition des responsabilités éventuelles de la RNR",
+    "description": ""
+   },
+   {
+    "code": "I151",
+    "parent": "R60",
+    "type": "Réponse",
+    "nom_indicateur": "Liste d'espèces et définition des responsabilités éventuelles de la RNR",
+    "description": ""
+   },
+   {
+    "code": "I152",
+    "parent": "R61",
+    "type": "Réponse",
+    "nom_indicateur": "Liste d'espèces et définition des responsabilités éventuelles de la RNR",
+    "description": ""
+   },
+   {
+    "code": "I153",
+    "parent": "R62",
+    "type": "Réponse",
+    "nom_indicateur": "Liste d'espèces et définition des responsabilités éventuelles de la RNR",
+    "description": ""
+   },
+   {
+    "code": "I154",
+    "parent": "R63",
+    "type": "Réponse",
+    "nom_indicateur": "Fait / pas fait",
+    "description": ""
+   },
+   {
+    "code": "I155",
+    "parent": "R64",
+    "type": "Réponse",
+    "nom_indicateur": "Fait / pas fait",
+    "description": ""
+   },
+   {
+    "code": "I156",
+    "parent": "R65",
+    "type": "Réponse",
+    "nom_indicateur": "Fait / pas fait",
+    "description": ""
+   },
+   {
+    "code": "I157",
+    "parent": "R66",
+    "type": "Réponse",
+    "nom_indicateur": "Liste de mesures d'adaptation",
+    "description": ""
+   },
+   {
+    "code": "I158",
+    "parent": "R67",
+    "type": "Réponse",
+    "nom_indicateur": "Fait / pas fait",
+    "description": ""
+   },
+   {
+    "code": "I159",
+    "parent": "R68",
+    "type": "Réponse",
+    "nom_indicateur": "Fait / pas fait",
+    "description": ""
+   },
+   {
+    "code": "I160",
+    "parent": "R69",
+    "type": "Réponse",
+    "nom_indicateur": "Fait / pas fait",
+    "description": ""
+   },
+   {
+    "code": "I161",
+    "parent": "R70",
+    "type": "Réponse",
+    "nom_indicateur": "Fait / pas fait",
+    "description": ""
+   },
+   {
+    "code": "I162",
+    "parent": "R71",
+    "type": "Réponse",
+    "nom_indicateur": "Fait / pas fait",
+    "description": ""
+   },
+   {
+    "code": "I163",
+    "parent": "R72",
+    "type": "Réponse",
+    "nom_indicateur": "Rapports / Publications",
+    "description": ""
+   },
+   {
+    "code": "I164",
+    "parent": "R73",
+    "type": "Réponse",
+    "nom_indicateur": "Fait / pas fait",
+    "description": ""
+   },
+   {
+    "code": "I165",
+    "parent": "R74",
+    "type": "Réponse",
+    "nom_indicateur": "Organiser et participer aux réunions en lien avec la gestion administrative de la réserve",
+    "description": "Indicateur non défini dans le plan source (échafaudage d'import)."
+   },
+   {
+    "code": "I166",
+    "parent": "R75",
+    "type": "Réponse",
+    "nom_indicateur": "Participer aux différents réseaux",
+    "description": "Indicateur non défini dans le plan source (échafaudage d'import)."
+   },
+   {
+    "code": "I167",
+    "parent": "R76",
+    "type": "Réponse",
+    "nom_indicateur": "Évaluer et adapter le plan de gestion",
+    "description": "Indicateur non défini dans le plan source (échafaudage d'import)."
+   },
+   {
+    "code": "I168",
+    "parent": "R77",
+    "type": "Réponse",
+    "nom_indicateur": "Alimenter les bases de données",
+    "description": "Indicateur non défini dans le plan source (échafaudage d'import)."
+   },
+   {
+    "code": "I169",
+    "parent": "R78",
+    "type": "Réponse",
+    "nom_indicateur": "Alimenter les bases de données du Ministère",
+    "description": "Indicateur non défini dans le plan source (échafaudage d'import)."
+   },
+   {
+    "code": "I170",
+    "parent": "R79",
+    "type": "Réponse",
+    "nom_indicateur": "Organiser la gestion administrative, documentaire et financière de la réserve",
+    "description": "Indicateur non défini dans le plan source (échafaudage d'import)."
+   },
+   {
+    "code": "I171",
+    "parent": "R80",
+    "type": "Réponse",
+    "nom_indicateur": "Gérer le personnel et les stagiaires",
+    "description": "Indicateur non défini dans le plan source (échafaudage d'import)."
+   },
+   {
+    "code": "I172",
+    "parent": "R81",
+    "type": "Réponse",
+    "nom_indicateur": "Acquérir le petit matériel nécessaire à la gestion de la RNR-FE et aux animations pédagogiques",
+    "description": "Indicateur non défini dans le plan source (échafaudage d'import)."
+   }
+  ],
+  "metriques": [
+   {
+    "code": "M1",
+    "indicateur": "I1",
+    "nom_metrique": "Surface",
+    "type_metrique": "Intervalle numérique",
+    "unite": "ha",
+    "description": "A minima maintien de la surface actuelle"
+   },
+   {
+    "code": "M2",
+    "indicateur": "I2",
+    "nom_metrique": "Morcellement et fragmentation",
+    "type_metrique": "Indéterminé",
+    "unite": "",
+    "description": "A minima maintien de la connectivité actuelle (à définir après première étude)"
+   },
+   {
+    "code": "M3",
+    "indicateur": "I3",
+    "nom_metrique": "Pourcentage de recouvrement",
+    "type_metrique": "Intervalle numérique",
+    "unite": "%",
+    "description": "Moins de 20 %"
+   },
+   {
+    "code": "M4",
+    "indicateur": "I4",
+    "nom_metrique": "Proportion d'espèces eutrophiles dans la richesse spécifique",
+    "type_metrique": "Intervalle numérique",
+    "unite": "%",
+    "description": "Moins de 10 % de la richesse spécifique"
+   },
+   {
+    "code": "M5",
+    "indicateur": "I5",
+    "nom_metrique": "Pourcentage d'espèces de la liste",
+    "type_metrique": "Intervalle numérique",
+    "unite": "%",
+    "description": "Plus de 40 % d'espèces de la liste"
+   },
+   {
+    "code": "M6",
+    "indicateur": "I6",
+    "nom_metrique": "Pourcentage de recouvrement du Brachypode",
+    "type_metrique": "Intervalle numérique",
+    "unite": "%",
+    "description": "Moins de 33 %"
+   },
+   {
+    "code": "M7",
+    "indicateur": "I7",
+    "nom_metrique": "Pourcentage de recouvrement des espèces d'ourlet",
+    "type_metrique": "Intervalle numérique",
+    "unite": "%",
+    "description": "Moins de 15 %"
+   },
+   {
+    "code": "M8",
+    "indicateur": "I8",
+    "nom_metrique": "Pourcentage de recouvrement des espèces exotiques envahissantes",
+    "type_metrique": "Intervalle numérique",
+    "unite": "%",
+    "description": "Absence totale"
+   },
+   {
+    "code": "M9",
+    "indicateur": "I9",
+    "nom_metrique": "Nombre de pieds stériles/fertiles - Fréquence",
+    "type_metrique": "Chiffre",
+    "unite": "",
+    "description": "A minima autant qu'en 2014-2015"
+   },
+   {
+    "code": "M10",
+    "indicateur": "I10",
+    "nom_metrique": "Nombre de pieds stériles/fertiles",
+    "type_metrique": "Chiffre",
+    "unite": "",
+    "description": "A minima autant qu'en 2014"
+   },
+   {
+    "code": "M11",
+    "indicateur": "I11",
+    "nom_metrique": "Nombre de pieds",
+    "type_metrique": "Chiffre",
+    "unite": "",
+    "description": "A minima autant qu'en 2017"
+   },
+   {
+    "code": "M12",
+    "indicateur": "I12",
+    "nom_metrique": "Nombre de contacts par mètre linéaire",
+    "type_metrique": "Chiffre",
+    "unite": "",
+    "description": "A minima autant qu'en 2015 (moyenne : 0,13)"
+   },
+   {
+    "code": "M13",
+    "indicateur": "I13",
+    "nom_metrique": "Nombre de stations occupées",
+    "type_metrique": "Chiffre",
+    "unite": "",
+    "description": "A minima autant qu'en 2017"
+   },
+   {
+    "code": "M14",
+    "indicateur": "I14",
+    "nom_metrique": "Densité (IKA) / Abondance (IPA)",
+    "type_metrique": "Chiffre",
+    "unite": "",
+    "description": "A minima autant qu'en 2018 (IKA : 0,65/km ; IPA : 0,37)"
+   },
+   {
+    "code": "M15",
+    "indicateur": "I15",
+    "nom_metrique": "Nombre de cantons",
+    "type_metrique": "Chiffre",
+    "unite": "",
+    "description": "A minima autant qu'en 2013 (16 cantons)"
+   },
+   {
+    "code": "M16",
+    "indicateur": "I16",
+    "nom_metrique": "Effectifs d'Athamante de Crète",
+    "type_metrique": "Chiffre",
+    "unite": "pieds",
+    "description": "A minima maintien des populations (165 pieds en 2016)"
+   },
+   {
+    "code": "M17",
+    "indicateur": "I16",
+    "nom_metrique": "Effectifs de Doradille des sources",
+    "type_metrique": "Chiffre",
+    "unite": "pieds",
+    "description": "A minima maintien des populations (27 pieds en 2017)"
+   },
+   {
+    "code": "M18",
+    "indicateur": "I17",
+    "nom_metrique": "Liste complète à définir (Neckera menziesii, Orthothecium rufescens…)",
+    "type_metrique": "Indéterminé",
+    "unite": "",
+    "description": "A définir après état des lieux"
+   },
+   {
+    "code": "M19",
+    "indicateur": "I18",
+    "nom_metrique": "Nombre de pieds de Lunetière lisse",
+    "type_metrique": "Chiffre",
+    "unite": "pieds",
+    "description": "A minima maintien des populations (396 pieds en 2017)"
+   },
+   {
+    "code": "M20",
+    "indicateur": "I19",
+    "nom_metrique": "Couples nicheurs et jeunes à l'envol",
+    "type_metrique": "Chiffre",
+    "unite": "",
+    "description": "A minima autant qu'en 2018 (2 couples et 3 jeunes)"
+   },
+   {
+    "code": "M21",
+    "indicateur": "I20",
+    "nom_metrique": "Niveau de connaissance des limites / réalité",
+    "type_metrique": "Chiffre",
+    "unite": "",
+    "description": "Valeur idéale à atteindre : 4"
+   },
+   {
+    "code": "M22",
+    "indicateur": "I21",
+    "nom_metrique": "Niveau de connaissance par les acteurs locaux (usagers notamment)",
+    "type_metrique": "Chiffre",
+    "unite": "",
+    "description": "Valeur idéale à atteindre : 4"
+   },
+   {
+    "code": "M23",
+    "indicateur": "I22",
+    "nom_metrique": "Comparaison des enjeux et fonctions principaux de la RNR-FE perçues par les acteurs locaux par rapport à celles définies par le gestionnaire",
+    "type_metrique": "Chiffre",
+    "unite": "",
+    "description": "Valeur idéale à atteindre : 4"
+   },
+   {
+    "code": "M24",
+    "indicateur": "I23",
+    "nom_metrique": "Niveau de connaissance des moyens de communication produits par la RN (panneaux d'information, présence du gestionnaire dans un objectif de sensibilisation, brochure, plaquettes…)",
+    "type_metrique": "Chiffre",
+    "unite": "",
+    "description": "Valeur idéale à atteindre : 3"
+   },
+   {
+    "code": "M25",
+    "indicateur": "I24",
+    "nom_metrique": "Niveau de connaissance de la réglementation appliquée dans la RNR-FE et dans son périmètre de protection",
+    "type_metrique": "Chiffre",
+    "unite": "",
+    "description": "Valeur idéale à atteindre : 4"
+   },
+   {
+    "code": "M26",
+    "indicateur": "I25",
+    "nom_metrique": "Identification de la RNR-FE au-delà du territoire proche",
+    "type_metrique": "Chiffre",
+    "unite": "",
+    "description": "Valeur idéale à atteindre : 4"
+   },
+   {
+    "code": "M27",
+    "indicateur": "I26",
+    "nom_metrique": "Évolution du nombre de participants aux animations scolaires / an",
+    "type_metrique": "Chiffre",
+    "unite": "",
+    "description": "Valeur idéale à atteindre : 4"
+   },
+   {
+    "code": "M28",
+    "indicateur": "I27",
+    "nom_metrique": "Évolution du nombre de participants aux animations/évènements « grand public » / an",
+    "type_metrique": "Chiffre",
+    "unite": "",
+    "description": "Valeur idéale à atteindre : 4"
+   },
+   {
+    "code": "M29",
+    "indicateur": "I28",
+    "nom_metrique": "Niveau d'intérêt des usagers professionnels ou de loisirs pour la RNR-FE",
+    "type_metrique": "Chiffre",
+    "unite": "",
+    "description": "Valeur idéale à atteindre : 4"
+   },
+   {
+    "code": "M30",
+    "indicateur": "I29",
+    "nom_metrique": "Niveau d'intérêt des riverains pour la RNR-FE",
+    "type_metrique": "Chiffre",
+    "unite": "",
+    "description": "Valeur idéale à atteindre : 4"
+   },
+   {
+    "code": "M31",
+    "indicateur": "I30",
+    "nom_metrique": "Niveau d'intérêt des élus pour la RNR-FE",
+    "type_metrique": "Chiffre",
+    "unite": "",
+    "description": "Valeur idéale à atteindre : 5"
+   },
+   {
+    "code": "M32",
+    "indicateur": "I31",
+    "nom_metrique": "Fréquence des rappels à l'ordre, infractions, PV ou questionnement du garde par les usagers",
+    "type_metrique": "Chiffre",
+    "unite": "",
+    "description": "Valeur idéale à atteindre : 3"
+   },
+   {
+    "code": "M33",
+    "indicateur": "I32",
+    "nom_metrique": "Évolution du niveau d'implication des bénévoles sur la RNR-FE",
+    "type_metrique": "Chiffre",
+    "unite": "",
+    "description": "Valeur idéale à atteindre : 4"
+   },
+   {
+    "code": "M34",
+    "indicateur": "I33",
+    "nom_metrique": "Taux de participation des acteurs lors des comités consultatifs de gestion",
+    "type_metrique": "Chiffre",
+    "unite": "",
+    "description": "Valeur idéale à atteindre : 4"
+   },
+   {
+    "code": "M35",
+    "indicateur": "I34",
+    "nom_metrique": "Taux de participation des acteurs lors des autres instances de gouvernance (groupes de travail…)",
+    "type_metrique": "Chiffre",
+    "unite": "",
+    "description": "Valeur idéale à atteindre : 4"
+   },
+   {
+    "code": "M36",
+    "indicateur": "I35",
+    "nom_metrique": "Niveau d'interactions entre la RNR-FE et d'autres types de politiques environnementales ou acteurs naturalistes",
+    "type_metrique": "Chiffre",
+    "unite": "",
+    "description": "Valeur idéale à atteindre : 4"
+   },
+   {
+    "code": "M37",
+    "indicateur": "I36",
+    "nom_metrique": "Crédibilité du gestionnaire auprès des acteurs locaux au regard de ses compétences jusqu'à sa considération comme référent environnement local",
+    "type_metrique": "Chiffre",
+    "unite": "",
+    "description": "Valeur idéale à atteindre : 4"
+   },
+   {
+    "code": "M38",
+    "indicateur": "I37",
+    "nom_metrique": "Part du temps de gestion dédié aux interactions de la RNR-FE avec son territoire",
+    "type_metrique": "Chiffre",
+    "unite": "",
+    "description": "Valeur idéale à atteindre : 3"
+   },
+   {
+    "code": "M39",
+    "indicateur": "I38",
+    "nom_metrique": "Capacité d'interaction de l'équipe dédiée à la gestion de la RNR-FE évaluée au regard de sa taille, des intérêts de ses membres pour la multifonctionnalité de la RNR-FE et des compétences qu'elle couvre",
+    "type_metrique": "Chiffre",
+    "unite": "",
+    "description": "Valeur idéale à atteindre : 4"
+   },
+   {
+    "code": "M40",
+    "indicateur": "I39",
+    "nom_metrique": "Degré de capacité des instances collectives (comités consultatifs et autres instances) à aboutir à une co-construction des décisions prises",
+    "type_metrique": "Chiffre",
+    "unite": "",
+    "description": "Valeur idéale à atteindre : 3"
+   },
+   {
+    "code": "M41",
+    "indicateur": "I40",
+    "nom_metrique": "Niveau d'intégration des usages au sein de la RNR-FE, de l'existence de tensions jusqu'à un soutien actif de ces usages, en passant par leur internalisation voire leur contractualisation",
+    "type_metrique": "Chiffre",
+    "unite": "",
+    "description": "Valeur idéale à atteindre : 4"
+   },
+   {
+    "code": "M42",
+    "indicateur": "I41",
+    "nom_metrique": "Niveau de prise en compte par les maîtres d'ouvrage des avis émis par le gestionnaire de la RN dans le cadre de projets pouvant impacter les patrimoines",
+    "type_metrique": "Chiffre",
+    "unite": "",
+    "description": "Valeur idéale à atteindre : 5"
+   },
+   {
+    "code": "M43",
+    "indicateur": "I42",
+    "nom_metrique": "Niveau de conciliation des objectifs du gestionnaire, dans le cadre de sa structure, par rapport aux objectifs portés par la RNR-FE dans son territoire",
+    "type_metrique": "Chiffre",
+    "unite": "",
+    "description": "Valeur idéale à atteindre : 4"
+   },
+   {
+    "code": "M44",
+    "indicateur": "I43",
+    "nom_metrique": "Niveau d'interactions entre la RNR-FE et d'autres types de politiques ou acteurs en dehors des politiques ou des acteurs naturalistes",
+    "type_metrique": "Chiffre",
+    "unite": "",
+    "description": "Valeur idéale à atteindre : 4"
+   },
+   {
+    "code": "M45",
+    "indicateur": "I44",
+    "nom_metrique": "Contributions ou soutiens financiers provenant d'acteurs autres que les autorités de classement",
+    "type_metrique": "Chiffre",
+    "unite": "",
+    "description": "Valeur idéale à atteindre : 3"
+   },
+   {
+    "code": "M46",
+    "indicateur": "I45",
+    "nom_metrique": "Taux de participation des acteurs locaux sollicités aux actions nationales Forêt d'Exception®",
+    "type_metrique": "Chiffre",
+    "unite": "",
+    "description": "Valeur idéale à atteindre : 3"
+   },
+   {
+    "code": "M47",
+    "indicateur": "I45",
+    "nom_metrique": "Taux de réponse à l'évaluation nationale",
+    "type_metrique": "Chiffre",
+    "unite": "",
+    "description": "Valeur idéale à atteindre : 3"
+   },
+   {
+    "code": "M48",
+    "indicateur": "I46",
+    "nom_metrique": "Comparaison des valeurs et objectifs de la démarche Forêt d'Exception® perçus par les acteurs à ceux définis par le Comité National d'Orientation Forêt d'Exception®",
+    "type_metrique": "Chiffre",
+    "unite": "",
+    "description": "Valeur idéale à atteindre : 3"
+   },
+   {
+    "code": "M49",
+    "indicateur": "I47",
+    "nom_metrique": "% d'acteurs connaissant bien le projet de labellisation local (date, contrat, etc.)",
+    "type_metrique": "Chiffre",
+    "unite": "",
+    "description": "Valeur idéale à atteindre : 4"
+   },
+   {
+    "code": "M50",
+    "indicateur": "I48",
+    "nom_metrique": "Proportion en surface terrière (G) des espèces ligneuses allochtones",
+    "type_metrique": "Intervalle numérique",
+    "unite": "%",
+    "description": "G ess. alloch ≤ 5 %"
+   },
+   {
+    "code": "M51",
+    "indicateur": "I49",
+    "nom_metrique": "Nb d'espèces diagnostiques herbacées et muscinales",
+    "type_metrique": "Chiffre",
+    "unite": "",
+    "description": "Possibilité de décrire l'habitat potentiel"
+   },
+   {
+    "code": "M52",
+    "indicateur": "I50",
+    "nom_metrique": "Nb d'arbustes et arbrisseaux",
+    "type_metrique": "Chiffre",
+    "unite": "",
+    "description": "9 espèces au moins dans 10 % des placettes"
+   },
+   {
+    "code": "M53",
+    "indicateur": "I51",
+    "nom_metrique": "Fréquence relative des espèces ligneuses caractéristiques de la phase optimale / classe de diamètres",
+    "type_metrique": "Intervalle numérique",
+    "unite": "%",
+    "description": "Toutes les espèces ligneuses caractéristiques de la phase optimale de l'habitat, dans toutes les classes de diamètres"
+   },
+   {
+    "code": "M54",
+    "indicateur": "I52",
+    "nom_metrique": "Fréquence des espèces ligneuses arbustives et lianescentes envahissantes",
+    "type_metrique": "Intervalle numérique",
+    "unite": "%",
+    "description": "Fréquence nulle"
+   },
+   {
+    "code": "M55",
+    "indicateur": "I53",
+    "nom_metrique": "Fréquence en % des semis des espèces arborescentes exotiques envahissantes",
+    "type_metrique": "Intervalle numérique",
+    "unite": "%",
+    "description": "Fréquence nulle"
+   },
+   {
+    "code": "M56",
+    "indicateur": "I54",
+    "nom_metrique": "Fréquence d'observation des espèces envahissantes",
+    "type_metrique": "Intervalle numérique",
+    "unite": "%",
+    "description": "Fréquence nulle"
+   },
+   {
+    "code": "M57",
+    "indicateur": "I55",
+    "nom_metrique": "Structure horizontale (classe de diamètre)",
+    "type_metrique": "Chiffre",
+    "unite": "classes",
+    "description": "Au moins 5 classes représentées"
+   },
+   {
+    "code": "M58",
+    "indicateur": "I55",
+    "nom_metrique": "Structure horizontale (TGB)",
+    "type_metrique": "Intervalle numérique",
+    "unite": "%",
+    "description": "10 % < G TGB < 15 %"
+   },
+   {
+    "code": "M59",
+    "indicateur": "I56",
+    "nom_metrique": "Structure verticale (strates de la végétation)",
+    "type_metrique": "Chiffre",
+    "unite": "strates",
+    "description": "> 5 strates"
+   },
+   {
+    "code": "M60",
+    "indicateur": "I57",
+    "nom_metrique": "Volume bois mort / volume bois total",
+    "type_metrique": "Intervalle numérique",
+    "unite": "%",
+    "description": "> 15 %"
+   },
+   {
+    "code": "M61",
+    "indicateur": "I57",
+    "nom_metrique": "Volume bois morts > 30 cm / volume bois mort total",
+    "type_metrique": "Intervalle numérique",
+    "unite": "%",
+    "description": "> 75 %"
+   },
+   {
+    "code": "M62",
+    "indicateur": "I57",
+    "nom_metrique": "Volume de bois morts / stade de décomposition",
+    "type_metrique": "Indéterminé",
+    "unite": "",
+    "description": "Tous les stades (minimum 5 % de volume total)"
+   },
+   {
+    "code": "M63",
+    "indicateur": "I58",
+    "nom_metrique": "Nb d'arbres à microhabitats / ha",
+    "type_metrique": "Chiffre",
+    "unite": "arbres/ha",
+    "description": "> 5"
+   },
+   {
+    "code": "M64",
+    "indicateur": "I59",
+    "nom_metrique": "Espèces attendues / espèces observées",
+    "type_metrique": "Indéterminé",
+    "unite": "",
+    "description": "A définir après état initial"
+   },
+   {
+    "code": "M65",
+    "indicateur": "I60",
+    "nom_metrique": "Cortège spécifique des coléoptères saproxyliques",
+    "type_metrique": "Indéterminé",
+    "unite": "",
+    "description": "A définir après état initial"
+   },
+   {
+    "code": "M66",
+    "indicateur": "I61",
+    "nom_metrique": "Cortège spécifique de l'avifaune",
+    "type_metrique": "Indéterminé",
+    "unite": "",
+    "description": "A minima maintien de la richesse spécifique"
+   },
+   {
+    "code": "M67",
+    "indicateur": "I62",
+    "nom_metrique": "Polypores et croûtes",
+    "type_metrique": "Indéterminé",
+    "unite": "",
+    "description": "A définir après état initial"
+   },
+   {
+    "code": "M68",
+    "indicateur": "I63",
+    "nom_metrique": "Présence / absence / abondance",
+    "type_metrique": "Indéterminé",
+    "unite": "",
+    "description": "A définir"
+   },
+   {
+    "code": "M69",
+    "indicateur": "I64",
+    "nom_metrique": "Cortège spécifique des chiroptères",
+    "type_metrique": "Chiffre",
+    "unite": "espèces",
+    "description": "19 espèces a minima"
+   },
+   {
+    "code": "M70",
+    "indicateur": "I65",
+    "nom_metrique": "Présence / absence par espèces",
+    "type_metrique": "Indéterminé",
+    "unite": "",
+    "description": "A définir"
+   },
+   {
+    "code": "M71",
+    "indicateur": "I66",
+    "nom_metrique": "Densités",
+    "type_metrique": "Chiffre",
+    "unite": "couples/km²",
+    "description": "Densité actuelle a minima (0,36-0,42 couples / km² en 2016)"
+   },
+   {
+    "code": "M72",
+    "indicateur": "I67",
+    "nom_metrique": "Espèces végétales hygrophiles (engorgement du sol)",
+    "type_metrique": "Indéterminé",
+    "unite": "",
+    "description": "A définir"
+   },
+   {
+    "code": "M73",
+    "indicateur": "I68",
+    "nom_metrique": "Recouvrement Phragmites australis",
+    "type_metrique": "Intervalle numérique",
+    "unite": "%",
+    "description": "< 5 % de recouvrement"
+   },
+   {
+    "code": "M74",
+    "indicateur": "I69",
+    "nom_metrique": "Présence / absence / abondance",
+    "type_metrique": "Indéterminé",
+    "unite": "",
+    "description": "A définir (espèces caractéristiques d'alliance Molinion)"
+   },
+   {
+    "code": "M75",
+    "indicateur": "I70",
+    "nom_metrique": "Pourcentage de recouvrement des ligneux",
+    "type_metrique": "Intervalle numérique",
+    "unite": "%",
+    "description": "< 10 % de recouvrement"
+   },
+   {
+    "code": "M76",
+    "indicateur": "I71",
+    "nom_metrique": "Recouvrement Communauté bryophytique",
+    "type_metrique": "Intervalle numérique",
+    "unite": "%",
+    "description": "A définir après état des lieux"
+   },
+   {
+    "code": "M77",
+    "indicateur": "I72",
+    "nom_metrique": "Présence / absence / abondance",
+    "type_metrique": "Indéterminé",
+    "unite": "",
+    "description": "A définir (espèces caractéristiques d'alliance Caricion davallianae)"
+   },
+   {
+    "code": "M78",
+    "indicateur": "I73",
+    "nom_metrique": "Présence / absence",
+    "type_metrique": "Indéterminé",
+    "unite": "",
+    "description": "A minima maintien du nombre de sites accueillant l'espèce"
+   },
+   {
+    "code": "M79",
+    "indicateur": "I74",
+    "nom_metrique": "Présence / absence Bythinelle de Dijon",
+    "type_metrique": "Indéterminé",
+    "unite": "",
+    "description": "A minima maintien du nombre de sources accueillant l'espèce"
+   },
+   {
+    "code": "M80",
+    "indicateur": "I75",
+    "nom_metrique": "Nombre de semaines d'écoulement",
+    "type_metrique": "Chiffre",
+    "unite": "semaines",
+    "description": "A définir"
+   },
+   {
+    "code": "M81",
+    "indicateur": "I76",
+    "nom_metrique": "Fréquence",
+    "type_metrique": "Chiffre",
+    "unite": "",
+    "description": "A minima maintien de la fréquence actuelle dans sa zone de présence (0,45 en 2018)"
+   },
+   {
+    "code": "M82",
+    "indicateur": "I77",
+    "nom_metrique": "Nombre de stations",
+    "type_metrique": "Chiffre",
+    "unite": "stations",
+    "description": "A minima maintien des stations actuelles"
+   },
+   {
+    "code": "M83",
+    "indicateur": "I80",
+    "nom_metrique": "Nb de modalités / nb de complexes",
+    "type_metrique": "Chiffre",
+    "unite": "",
+    "description": "100 % des complexes avec des modalités de gestion"
+   },
+   {
+    "code": "M84",
+    "indicateur": "I81",
+    "nom_metrique": "Pourcentage de recouvrement des strates arbustive/arborée",
+    "type_metrique": "Intervalle numérique",
+    "unite": "%",
+    "description": "Pourcentage de milieux ouverts à définir"
+   },
+   {
+    "code": "M85",
+    "indicateur": "I82",
+    "nom_metrique": "Types, nature des dégradations",
+    "type_metrique": "Texte",
+    "unite": "",
+    "description": "Absence de dégradations liées à la fréquentation"
+   },
+   {
+    "code": "M86",
+    "indicateur": "I83",
+    "nom_metrique": "Nb de pratiques hors cahier des charges",
+    "type_metrique": "Chiffre",
+    "unite": "",
+    "description": "Respect du cadre prévu pour l'agrainage"
+   },
+   {
+    "code": "M87",
+    "indicateur": "I86",
+    "nom_metrique": "Surface de la zone tampon",
+    "type_metrique": "Intervalle numérique",
+    "unite": "ha",
+    "description": "A minima zones tampon en libre évolution à proximité immédiate des falaises ombragées"
+   },
+   {
+    "code": "M88",
+    "indicateur": "I87",
+    "nom_metrique": "Nb et type d'impacts liés à la fréquentation",
+    "type_metrique": "Texte",
+    "unite": "",
+    "description": "Absence d'impacts liés à la fréquentation"
+   },
+   {
+    "code": "M89",
+    "indicateur": "I88",
+    "nom_metrique": "Taux d'équipement en signalétique d'orientation",
+    "type_metrique": "Indéterminé",
+    "unite": "",
+    "description": "Visibilité de la RNR-FE pour les automobilistes et les usagers"
+   },
+   {
+    "code": "M90",
+    "indicateur": "I89",
+    "nom_metrique": "Mesures appliquées / Mesures prévues",
+    "type_metrique": "Indéterminé",
+    "unite": "",
+    "description": "100 % des actions prévues appliquées"
+   },
+   {
+    "code": "M91",
+    "indicateur": "I90",
+    "nom_metrique": "Nb et types d'outils de communication produits par les acteurs du territoire mentionnant la RNR-FE",
+    "type_metrique": "Indéterminé",
+    "unite": "",
+    "description": "Être intégrée dans l'offre touristique du territoire"
+   },
+   {
+    "code": "M92",
+    "indicateur": "I91",
+    "nom_metrique": "Nb et nature des actions de la Charte Forestière intégrant la RNR-FE",
+    "type_metrique": "Indéterminé",
+    "unite": "",
+    "description": "Être intégrée dans les actions de la Charte Forestière de Territoire"
+   },
+   {
+    "code": "M93",
+    "indicateur": "I92",
+    "nom_metrique": "Typologie des usagers et attentes",
+    "type_metrique": "Indéterminé",
+    "unite": "",
+    "description": "Connaissance qualitative de la fréquentation"
+   },
+   {
+    "code": "M94",
+    "indicateur": "I93",
+    "nom_metrique": "Comptages",
+    "type_metrique": "Indéterminé",
+    "unite": "",
+    "description": "Connaissance quantitative de la fréquentation"
+   },
+   {
+    "code": "M95",
+    "indicateur": "I94",
+    "nom_metrique": "Nombre d'aires d'accueil en bon état / Nombre total d'aires d'accueil",
+    "type_metrique": "Indéterminé",
+    "unite": "",
+    "description": "100 % des aires d'accueil en bon état"
+   },
+   {
+    "code": "M96",
+    "indicateur": "I95",
+    "nom_metrique": "Nombre de sentiers balisés d'accueil en bon état / totalité des sentiers balisés",
+    "type_metrique": "Indéterminé",
+    "unite": "",
+    "description": "100 % des sentiers en bon état"
+   },
+   {
+    "code": "M97",
+    "indicateur": "I96",
+    "nom_metrique": "Nombre de sentiers balisés opérationnels / Nombre de sentiers balisés existants ou prévus",
+    "type_metrique": "Indéterminé",
+    "unite": "",
+    "description": "100 % des sentiers opérationnels"
+   },
+   {
+    "code": "M98",
+    "indicateur": "I97",
+    "nom_metrique": "Taux de points d'accueil aménagés",
+    "type_metrique": "Indéterminé",
+    "unite": "",
+    "description": "100 %"
+   },
+   {
+    "code": "M99",
+    "indicateur": "I98",
+    "nom_metrique": "Nombre d'infrastructures d'accueil permettant un abri",
+    "type_metrique": "Indéterminé",
+    "unite": "",
+    "description": "1"
+   },
+   {
+    "code": "M100",
+    "indicateur": "I99",
+    "nom_metrique": "Nombre d'usages pédestres traités / Nombre d'usages pédestres",
+    "type_metrique": "Indéterminé",
+    "unite": "",
+    "description": "100 %"
+   },
+   {
+    "code": "M101",
+    "indicateur": "I100",
+    "nom_metrique": "Nombre de points d'accueil d'usage traités / Nombre de points d'accueil d'usage non aménagés",
+    "type_metrique": "Indéterminé",
+    "unite": "",
+    "description": "100 %"
+   },
+   {
+    "code": "M102",
+    "indicateur": "I101",
+    "nom_metrique": "Nombre de stratégie d'éducation à l'environnement",
+    "type_metrique": "Indéterminé",
+    "unite": "",
+    "description": "1"
+   },
+   {
+    "code": "M103",
+    "indicateur": "I102",
+    "nom_metrique": "Nombre de sorties réalisées par école",
+    "type_metrique": "Indéterminé",
+    "unite": "",
+    "description": "À définir"
+   },
+   {
+    "code": "M104",
+    "indicateur": "I103",
+    "nom_metrique": "Nombre de personnes accueillies",
+    "type_metrique": "Indéterminé",
+    "unite": "",
+    "description": "À définir"
+   },
+   {
+    "code": "M105",
+    "indicateur": "I104",
+    "nom_metrique": "Public accueilli (nombre, nature)",
+    "type_metrique": "Indéterminé",
+    "unite": "",
+    "description": "À définir"
+   },
+   {
+    "code": "M106",
+    "indicateur": "I105",
+    "nom_metrique": "Sentiers familiaux équipés / Nombre total de sentiers familiaux",
+    "type_metrique": "Indéterminé",
+    "unite": "",
+    "description": "20 %"
+   },
+   {
+    "code": "M107",
+    "indicateur": "I106",
+    "nom_metrique": "Nombre et type de conflits d'usage",
+    "type_metrique": "Indéterminé",
+    "unite": "",
+    "description": "Absence de conflits d'usage"
+   },
+   {
+    "code": "M108",
+    "indicateur": "I107",
+    "nom_metrique": "Nombre et type d'infractions au cadre",
+    "type_metrique": "Indéterminé",
+    "unite": "",
+    "description": "Zéro infraction"
+   },
+   {
+    "code": "M109",
+    "indicateur": "I108",
+    "nom_metrique": "Mesures appliquées / Mesures prévues",
+    "type_metrique": "Indéterminé",
+    "unite": "",
+    "description": "100 % des actions prévues appliquées"
+   },
+   {
+    "code": "M110",
+    "indicateur": "I109",
+    "nom_metrique": "Nombre de personnes contactées",
+    "type_metrique": "Indéterminé",
+    "unite": "",
+    "description": "Information personnalisée sur la réglementation"
+   },
+   {
+    "code": "M111",
+    "indicateur": "I110",
+    "nom_metrique": "Taux d'équipements mis en place / Taux d'équipements prévus",
+    "type_metrique": "Indéterminé",
+    "unite": "",
+    "description": "80 % des équipements prévus mis en place"
+   },
+   {
+    "code": "M112",
+    "indicateur": "I111",
+    "nom_metrique": "Matériel en bon état / Ensemble du matériel",
+    "type_metrique": "Indéterminé",
+    "unite": "",
+    "description": "Matériel d'identification de la RNR-FE en bon état"
+   },
+   {
+    "code": "M113",
+    "indicateur": "I112",
+    "nom_metrique": "Nombre de sollicitations en amont des projets d'aménagement / totalité des aménagements prévus concernant la RNR",
+    "type_metrique": "Indéterminé",
+    "unite": "",
+    "description": "Prise en compte de la RN dans les projets d'aménagement du territoire impactant potentiellement la RN"
+   },
+   {
+    "code": "M114",
+    "indicateur": "I113",
+    "nom_metrique": "Nombre et nature des conventions signées",
+    "type_metrique": "Indéterminé",
+    "unite": "",
+    "description": "Actions communes"
+   },
+   {
+    "code": "M115",
+    "indicateur": "I114",
+    "nom_metrique": "Nombre de pratiques inadéquates existantes / Nombre de pratiques inadéquates potentielles",
+    "type_metrique": "Indéterminé",
+    "unite": "",
+    "description": "0 %"
+   },
+   {
+    "code": "M116",
+    "indicateur": "I115",
+    "nom_metrique": "Nombre et nature des équipements estampillés Réserve",
+    "type_metrique": "Indéterminé",
+    "unite": "",
+    "description": "À définir"
+   },
+   {
+    "code": "M117",
+    "indicateur": "I116",
+    "nom_metrique": "Valeurs d'aménité de la RNR-FE",
+    "type_metrique": "Indéterminé",
+    "unite": "",
+    "description": "1"
+   },
+   {
+    "code": "M118",
+    "indicateur": "I117",
+    "nom_metrique": "Nature et sens de la sollicitation",
+    "type_metrique": "Indéterminé",
+    "unite": "",
+    "description": "Être reconnu comme référent sur les compétences spécifiques du gestionnaire"
+   },
+   {
+    "code": "M119",
+    "indicateur": "I118",
+    "nom_metrique": "Nb et nature des projets innovants",
+    "type_metrique": "Indéterminé",
+    "unite": "",
+    "description": "20 %"
+   },
+   {
+    "code": "M120",
+    "indicateur": "I119",
+    "nom_metrique": "Nb et nature des projets participatifs",
+    "type_metrique": "Indéterminé",
+    "unite": "",
+    "description": "À définir"
+   },
+   {
+    "code": "M121",
+    "indicateur": "I120",
+    "nom_metrique": "Nombre d'actions",
+    "type_metrique": "Indéterminé",
+    "unite": "",
+    "description": "À définir"
+   },
+   {
+    "code": "M122",
+    "indicateur": "I121",
+    "nom_metrique": "Nature des actions du DOCOB dans la RNR-FE",
+    "type_metrique": "Indéterminé",
+    "unite": "",
+    "description": "Reprise des actions du plan de gestion dans le DOCOB"
+   },
+   {
+    "code": "M123",
+    "indicateur": "I122",
+    "nom_metrique": "Nature et nb de contrats mis en œuvre",
+    "type_metrique": "Indéterminé",
+    "unite": "",
+    "description": "À définir"
+   },
+   {
+    "code": "M124",
+    "indicateur": "I123",
+    "nom_metrique": "Nombre d'étude réalisée",
+    "type_metrique": "Indéterminé",
+    "unite": "",
+    "description": "1"
+   },
+   {
+    "code": "M125",
+    "indicateur": "I124",
+    "nom_metrique": "Label obtenu",
+    "type_metrique": "Indéterminé",
+    "unite": "",
+    "description": "1"
+   },
+   {
+    "code": "M126",
+    "indicateur": "I125",
+    "nom_metrique": "Surface en libre évolution / surface en gestion",
+    "type_metrique": "Intervalle numérique",
+    "unite": "%",
+    "description": "100 % des peuplements à structure irrégulière en libre évolution"
+   },
+   {
+    "code": "M127",
+    "indicateur": "I126",
+    "nom_metrique": "Part des essences résineuses dans la surface terrière (PSDRF)",
+    "type_metrique": "Intervalle numérique",
+    "unite": "%",
+    "description": "Diminution progressive des résineux"
+   },
+   {
+    "code": "M128",
+    "indicateur": "I133",
+    "nom_metrique": "Recouvrement des ligneux",
+    "type_metrique": "Intervalle numérique",
+    "unite": "%",
+    "description": "< 10 % de recouvrement"
+   },
+   {
+    "code": "M129",
+    "indicateur": "I134",
+    "nom_metrique": "Nombre d'ouvrages",
+    "type_metrique": "Chiffre",
+    "unite": "ouvrages",
+    "description": "Fonctionnement restauré"
+   },
+   {
+    "code": "M130",
+    "indicateur": "I136",
+    "nom_metrique": "% de lisières traitées",
+    "type_metrique": "Intervalle numérique",
+    "unite": "%",
+    "description": "50 %"
+   },
+   {
+    "code": "M131",
+    "indicateur": "I137",
+    "nom_metrique": "% de sources de pollution visuelle et sonore traitées",
+    "type_metrique": "Intervalle numérique",
+    "unite": "%",
+    "description": "50 %"
+   },
+   {
+    "code": "M132",
+    "indicateur": "I138",
+    "nom_metrique": "% de chantiers intégrant des préconisations paysagères",
+    "type_metrique": "Intervalle numérique",
+    "unite": "%",
+    "description": "100 %"
+   },
+   {
+    "code": "M133",
+    "indicateur": "I139",
+    "nom_metrique": "% de connexions visuelles créées",
+    "type_metrique": "Intervalle numérique",
+    "unite": "%",
+    "description": "50 %"
+   },
+   {
+    "code": "M134",
+    "indicateur": "I140",
+    "nom_metrique": "% de composantes végétales et minérales mises en valeur",
+    "type_metrique": "Intervalle numérique",
+    "unite": "%",
+    "description": "50 %"
+   },
+   {
+    "code": "M135",
+    "indicateur": "I141",
+    "nom_metrique": "% de composantes minérales altérées, restaurées",
+    "type_metrique": "Intervalle numérique",
+    "unite": "%",
+    "description": "100 %"
+   },
+   {
+    "code": "M136",
+    "indicateur": "I142",
+    "nom_metrique": "% de points de vue altérés, restaurés",
+    "type_metrique": "Intervalle numérique",
+    "unite": "%",
+    "description": "100 %"
+   },
+   {
+    "code": "M137",
+    "indicateur": "I143",
+    "nom_metrique": "Liste d'espèces et définition des responsabilités éventuelles de la RNR",
+    "type_metrique": "Indéterminé",
+    "unite": "",
+    "description": ""
+   },
+   {
+    "code": "M138",
+    "indicateur": "I144",
+    "nom_metrique": "Nombre d'aires, aires occupées, espèces observées",
+    "type_metrique": "Indéterminé",
+    "unite": "",
+    "description": ""
+   },
+   {
+    "code": "M139",
+    "indicateur": "I145",
+    "nom_metrique": "Fait / pas fait",
+    "type_metrique": "Indéterminé",
+    "unite": "",
+    "description": ""
+   },
+   {
+    "code": "M140",
+    "indicateur": "I146",
+    "nom_metrique": "Fait / pas fait",
+    "type_metrique": "Indéterminé",
+    "unite": "",
+    "description": ""
+   },
+   {
+    "code": "M141",
+    "indicateur": "I147",
+    "nom_metrique": "Fait / pas fait",
+    "type_metrique": "Indéterminé",
+    "unite": "",
+    "description": ""
+   },
+   {
+    "code": "M142",
+    "indicateur": "I148",
+    "nom_metrique": "Fait / pas fait",
+    "type_metrique": "Indéterminé",
+    "unite": "",
+    "description": ""
+   },
+   {
+    "code": "M143",
+    "indicateur": "I149",
+    "nom_metrique": "Liste d'espèces et définition des responsabilités éventuelles de la RNR",
+    "type_metrique": "Indéterminé",
+    "unite": "",
+    "description": ""
+   },
+   {
+    "code": "M144",
+    "indicateur": "I150",
+    "nom_metrique": "Liste d'espèces et définition des responsabilités éventuelles de la RNR",
+    "type_metrique": "Indéterminé",
+    "unite": "",
+    "description": ""
+   },
+   {
+    "code": "M145",
+    "indicateur": "I151",
+    "nom_metrique": "Liste d'espèces et définition des responsabilités éventuelles de la RNR",
+    "type_metrique": "Indéterminé",
+    "unite": "",
+    "description": ""
+   },
+   {
+    "code": "M146",
+    "indicateur": "I152",
+    "nom_metrique": "Liste d'espèces et définition des responsabilités éventuelles de la RNR",
+    "type_metrique": "Indéterminé",
+    "unite": "",
+    "description": ""
+   },
+   {
+    "code": "M147",
+    "indicateur": "I153",
+    "nom_metrique": "Liste d'espèces et définition des responsabilités éventuelles de la RNR",
+    "type_metrique": "Indéterminé",
+    "unite": "",
+    "description": ""
+   },
+   {
+    "code": "M148",
+    "indicateur": "I154",
+    "nom_metrique": "Fait / pas fait",
+    "type_metrique": "Indéterminé",
+    "unite": "",
+    "description": ""
+   },
+   {
+    "code": "M149",
+    "indicateur": "I155",
+    "nom_metrique": "Fait / pas fait",
+    "type_metrique": "Indéterminé",
+    "unite": "",
+    "description": ""
+   },
+   {
+    "code": "M150",
+    "indicateur": "I156",
+    "nom_metrique": "Fait / pas fait",
+    "type_metrique": "Indéterminé",
+    "unite": "",
+    "description": ""
+   },
+   {
+    "code": "M151",
+    "indicateur": "I157",
+    "nom_metrique": "Liste de mesures d'adaptation",
+    "type_metrique": "Indéterminé",
+    "unite": "",
+    "description": ""
+   },
+   {
+    "code": "M152",
+    "indicateur": "I158",
+    "nom_metrique": "Fait / pas fait",
+    "type_metrique": "Indéterminé",
+    "unite": "",
+    "description": ""
+   },
+   {
+    "code": "M153",
+    "indicateur": "I159",
+    "nom_metrique": "Fait / pas fait",
+    "type_metrique": "Indéterminé",
+    "unite": "",
+    "description": ""
+   },
+   {
+    "code": "M154",
+    "indicateur": "I160",
+    "nom_metrique": "Fait / pas fait",
+    "type_metrique": "Indéterminé",
+    "unite": "",
+    "description": ""
+   },
+   {
+    "code": "M155",
+    "indicateur": "I161",
+    "nom_metrique": "Fait / pas fait",
+    "type_metrique": "Indéterminé",
+    "unite": "",
+    "description": ""
+   },
+   {
+    "code": "M156",
+    "indicateur": "I162",
+    "nom_metrique": "Fait / pas fait",
+    "type_metrique": "Indéterminé",
+    "unite": "",
+    "description": ""
+   },
+   {
+    "code": "M157",
+    "indicateur": "I163",
+    "nom_metrique": "Rapports / Publications",
+    "type_metrique": "Indéterminé",
+    "unite": "",
+    "description": ""
+   },
+   {
+    "code": "M158",
+    "indicateur": "I164",
+    "nom_metrique": "Fait / pas fait",
+    "type_metrique": "Indéterminé",
+    "unite": "",
+    "description": ""
+   },
+   {
+    "code": "M159",
+    "indicateur": "I165",
+    "nom_metrique": "Fait / Pas fait",
+    "type_metrique": "Texte",
+    "unite": "",
+    "description": ""
+   },
+   {
+    "code": "M160",
+    "indicateur": "I166",
+    "nom_metrique": "Fait / Pas fait",
+    "type_metrique": "Texte",
+    "unite": "",
+    "description": ""
+   },
+   {
+    "code": "M161",
+    "indicateur": "I167",
+    "nom_metrique": "Fait / Pas fait",
+    "type_metrique": "Texte",
+    "unite": "",
+    "description": ""
+   },
+   {
+    "code": "M162",
+    "indicateur": "I168",
+    "nom_metrique": "Fait / Pas fait",
+    "type_metrique": "Texte",
+    "unite": "",
+    "description": ""
+   },
+   {
+    "code": "M163",
+    "indicateur": "I169",
+    "nom_metrique": "Fait / Pas fait",
+    "type_metrique": "Texte",
+    "unite": "",
+    "description": ""
+   },
+   {
+    "code": "M164",
+    "indicateur": "I170",
+    "nom_metrique": "Fait / Pas fait",
+    "type_metrique": "Texte",
+    "unite": "",
+    "description": ""
+   },
+   {
+    "code": "M165",
+    "indicateur": "I171",
+    "nom_metrique": "Fait / Pas fait",
+    "type_metrique": "Texte",
+    "unite": "",
+    "description": ""
+   },
+   {
+    "code": "M166",
+    "indicateur": "I172",
+    "nom_metrique": "Fait / Pas fait",
+    "type_metrique": "Texte",
+    "unite": "",
+    "description": ""
+   }
+  ],
+  "taxons": [],
+  "habitats": []
+ },
+ "actions": [
+  {
+   "code": "CS 1.1",
+   "indicateur": "I1",
+   "libelle": "Suivi cartographique de la surface des pelouses",
+   "type_action": "",
+   "priorite": "Priorité 1",
+   "annee_min": 2028,
+   "annee_max": 2028,
+   "operateurs": "",
+   "financeurs": "",
+   "description": "Plan de gestion Val Suzon 2020-2029 — opération CS 1.1 (rattachement OLT)."
+  },
+  {
+   "code": "CS 1.2",
+   "indicateur": "I2",
+   "libelle": "Suivi de la connectivité des pelouses",
+   "type_action": "",
+   "priorite": "Priorité 2",
+   "annee_min": 2025,
+   "annee_max": 2025,
+   "operateurs": "",
+   "financeurs": "",
+   "description": "Plan de gestion Val Suzon 2020-2029 — opération CS 1.2 (rattachement OLT)."
+  },
+  {
+   "code": "CS 1.3",
+   "indicateur": "I3",
+   "libelle": "Suivi phyto-dynamique des pelouses",
+   "type_action": "",
+   "priorite": "Priorité 1",
+   "annee_min": 2022,
+   "annee_max": 2022,
+   "operateurs": "",
+   "financeurs": "",
+   "description": "Plan de gestion Val Suzon 2020-2029 — opération CS 1.3 (rattachement OLT)."
+  },
+  {
+   "code": "CS 1.4",
+   "indicateur": "I9",
+   "libelle": "Suivi de la Valériane tubéreuse",
+   "type_action": "",
+   "priorite": "Priorité 1",
+   "annee_min": 2020,
+   "annee_max": 2025,
+   "operateurs": "",
+   "financeurs": "",
+   "description": "Plan de gestion Val Suzon 2020-2029 — opération CS 1.4 (rattachement OLT)."
+  },
+  {
+   "code": "CS 1.5",
+   "indicateur": "I10",
+   "libelle": "Suivi de la Gesse blanchâtre",
+   "type_action": "",
+   "priorite": "Priorité 1",
+   "annee_min": 2020,
+   "annee_max": 2025,
+   "operateurs": "",
+   "financeurs": "",
+   "description": "Plan de gestion Val Suzon 2020-2029 — opération CS 1.5 (rattachement OLT)."
+  },
+  {
+   "code": "CS 1.6",
+   "indicateur": "I11",
+   "libelle": "Suivi de la Grande Orobanche",
+   "type_action": "",
+   "priorite": "Priorité 1",
+   "annee_min": 2022,
+   "annee_max": 2027,
+   "operateurs": "",
+   "financeurs": "",
+   "description": "Plan de gestion Val Suzon 2020-2029 — opération CS 1.6 (rattachement OLT)."
+  },
+  {
+   "code": "CS 1.7",
+   "indicateur": "I12",
+   "libelle": "Suivi du Séséli faux peucédan",
+   "type_action": "",
+   "priorite": "Priorité 1",
+   "annee_min": 2020,
+   "annee_max": 2025,
+   "operateurs": "",
+   "financeurs": "",
+   "description": "Plan de gestion Val Suzon 2020-2029 — opération CS 1.7 (rattachement OLT)."
+  },
+  {
+   "code": "CS 1.8",
+   "indicateur": "I13",
+   "libelle": "Suivi des stations du Cotonéaster",
+   "type_action": "",
+   "priorite": "Priorité 2",
+   "annee_min": 2022,
+   "annee_max": 2027,
+   "operateurs": "",
+   "financeurs": "",
+   "description": "Plan de gestion Val Suzon 2020-2029 — opération CS 1.8 (rattachement OLT)."
+  },
+  {
+   "code": "CS 1.9",
+   "indicateur": "I14",
+   "libelle": "Suivi du Pouillot de Bonelli",
+   "type_action": "",
+   "priorite": "Priorité 1",
+   "annee_min": 2023,
+   "annee_max": 2024,
+   "operateurs": "",
+   "financeurs": "",
+   "description": "Plan de gestion Val Suzon 2020-2029 — opération CS 1.9 (rattachement OLT)."
+  },
+  {
+   "code": "CS 1.10",
+   "indicateur": "I15",
+   "libelle": "Suivi de l'Engoulevent",
+   "type_action": "",
+   "priorite": "Priorité 1",
+   "annee_min": 2023,
+   "annee_max": 2023,
+   "operateurs": "",
+   "financeurs": "",
+   "description": "Plan de gestion Val Suzon 2020-2029 — opération CS 1.10 (rattachement OLT)."
+  },
+  {
+   "code": "EI 1.11",
+   "indicateur": "I80",
+   "libelle": "Élaboration de notices de gestion pour chaque entité de l'éco-complexe",
+   "type_action": "",
+   "priorite": "Priorité 1",
+   "annee_min": 2020,
+   "annee_max": 2021,
+   "operateurs": "",
+   "financeurs": "",
+   "description": "Plan de gestion Val Suzon 2020-2029 — opération EI 1.11 (rattachement OO)."
+  },
+  {
+   "code": "IP 1.12",
+   "indicateur": "I81",
+   "libelle": "Débroussaillage mécanique",
+   "type_action": "",
+   "priorite": "Priorité 2",
+   "annee_min": 2022,
+   "annee_max": 2028,
+   "operateurs": "",
+   "financeurs": "",
+   "description": "Plan de gestion Val Suzon 2020-2029 — opération IP 1.12 (rattachement OO)."
+  },
+  {
+   "code": "IP 1.13",
+   "indicateur": "I81",
+   "libelle": "Expérimentation d'écopâturage",
+   "type_action": "",
+   "priorite": "Priorité 2",
+   "annee_min": 2020,
+   "annee_max": 2029,
+   "operateurs": "",
+   "financeurs": "",
+   "description": "Plan de gestion Val Suzon 2020-2029 — opération IP 1.13 (rattachement OO)."
+  },
+  {
+   "code": "CS 1.14",
+   "indicateur": "I81",
+   "libelle": "Suivi du recouvrement arbustif/arboré",
+   "type_action": "",
+   "priorite": "Priorité 2",
+   "annee_min": 2028,
+   "annee_max": 2028,
+   "operateurs": "",
+   "financeurs": "",
+   "description": "Plan de gestion Val Suzon 2020-2029 — opération CS 1.14 (rattachement OO)."
+  },
+  {
+   "code": "CS 1.15",
+   "indicateur": "I82",
+   "libelle": "Suivi des dégradations potentielles liées à la fréquentation – respect et adaptation éventuelle du schéma d'accueil",
+   "type_action": "",
+   "priorite": "Priorité 1",
+   "annee_min": 2020,
+   "annee_max": 2029,
+   "operateurs": "",
+   "financeurs": "",
+   "description": "Plan de gestion Val Suzon 2020-2029 — opération CS 1.15 (rattachement OO)."
+  },
+  {
+   "code": "MS 1.16",
+   "indicateur": "I83",
+   "libelle": "Rédiger un cahier des charges pour l'agrainage (zones autorisées, périodes…)",
+   "type_action": "",
+   "priorite": "Priorité 1",
+   "annee_min": 2023,
+   "annee_max": 2023,
+   "operateurs": "",
+   "financeurs": "",
+   "description": "Plan de gestion Val Suzon 2020-2029 — opération MS 1.16 (rattachement OO)."
+  },
+  {
+   "code": "CS 2.1",
+   "indicateur": "I16",
+   "libelle": "Suivi de l'Athamante de Crète",
+   "type_action": "",
+   "priorite": "Priorité 1",
+   "annee_min": 2021,
+   "annee_max": 2026,
+   "operateurs": "",
+   "financeurs": "",
+   "description": "Plan de gestion Val Suzon 2020-2029 — opération CS 2.1 (rattachement OLT)."
+  },
+  {
+   "code": "CS 2.2",
+   "indicateur": "I16",
+   "libelle": "Suivi de la Doradille des sources",
+   "type_action": "",
+   "priorite": "Priorité 1",
+   "annee_min": 2022,
+   "annee_max": 2027,
+   "operateurs": "",
+   "financeurs": "",
+   "description": "Plan de gestion Val Suzon 2020-2029 — opération CS 2.2 (rattachement OLT)."
+  },
+  {
+   "code": "CS 2.3",
+   "indicateur": "I17",
+   "libelle": "Suivi des espèces de la bryoflore des falaises ombragées",
+   "type_action": "",
+   "priorite": "Priorité 1",
+   "annee_min": 2023,
+   "annee_max": 2023,
+   "operateurs": "",
+   "financeurs": "",
+   "description": "Plan de gestion Val Suzon 2020-2029 — opération CS 2.3 (rattachement OLT)."
+  },
+  {
+   "code": "CS 2.4",
+   "indicateur": "I18",
+   "libelle": "Suivi de la Lunetière lisse",
+   "type_action": "",
+   "priorite": "Priorité 1",
+   "annee_min": 2022,
+   "annee_max": 2027,
+   "operateurs": "",
+   "financeurs": "",
+   "description": "Plan de gestion Val Suzon 2020-2029 — opération CS 2.4 (rattachement OLT)."
+  },
+  {
+   "code": "CS 2.5",
+   "indicateur": "I19",
+   "libelle": "Suivi du Faucon pèlerin",
+   "type_action": "",
+   "priorite": "Priorité 1",
+   "annee_min": 2020,
+   "annee_max": 2029,
+   "operateurs": "",
+   "financeurs": "",
+   "description": "Plan de gestion Val Suzon 2020-2029 — opération CS 2.5 (rattachement OLT)."
+  },
+  {
+   "code": "EI 2.6",
+   "indicateur": "I84",
+   "libelle": "Inventaire et localisation des éboulis",
+   "type_action": "",
+   "priorite": "Priorité 1",
+   "annee_min": 2022,
+   "annee_max": 2023,
+   "operateurs": "",
+   "financeurs": "",
+   "description": "Plan de gestion Val Suzon 2020-2029 — opération EI 2.6 (rattachement OO)."
+  },
+  {
+   "code": "EI 2.7",
+   "indicateur": "I84",
+   "libelle": "Tests d'indicateurs de suivis des éboulis sur des secteurs identifiés (Ragot, Couvriotte…)",
+   "type_action": "",
+   "priorite": "Priorité 2",
+   "annee_min": 2024,
+   "annee_max": 2024,
+   "operateurs": "",
+   "financeurs": "",
+   "description": "Plan de gestion Val Suzon 2020-2029 — opération EI 2.7 (rattachement OO)."
+  },
+  {
+   "code": "EI 2.8",
+   "indicateur": "I85",
+   "libelle": "Tests d'indicateurs de suivi des falaises et corniches sèches thermophiles",
+   "type_action": "",
+   "priorite": "Priorité 1",
+   "annee_min": 2021,
+   "annee_max": 2021,
+   "operateurs": "",
+   "financeurs": "",
+   "description": "Plan de gestion Val Suzon 2020-2029 — opération EI 2.8 (rattachement OO)."
+  },
+  {
+   "code": "IP 2.9",
+   "indicateur": "I86",
+   "libelle": "Délimitation des zones tampon (cf. aménagement forestier) et veille des projets divers (entretiens, restaurations…)",
+   "type_action": "",
+   "priorite": "Priorité 1",
+   "annee_min": 2020,
+   "annee_max": 2029,
+   "operateurs": "",
+   "financeurs": "",
+   "description": "Plan de gestion Val Suzon 2020-2029 — opération IP 2.9 (rattachement OO)."
+  },
+  {
+   "code": "SP 2.10",
+   "indicateur": "I87",
+   "libelle": "Tournées de police / maraudage",
+   "type_action": "",
+   "priorite": "Priorité 1",
+   "annee_min": 2020,
+   "annee_max": 2029,
+   "operateurs": "",
+   "financeurs": "",
+   "description": "Plan de gestion Val Suzon 2020-2029 — opération SP 2.10 (rattachement OO)."
+  },
+  {
+   "code": "CS 3.1",
+   "indicateur": "I48",
+   "libelle": "Mise en place du protocole de suivi dendrométrique des réserves forestières (PSDRF)",
+   "type_action": "",
+   "priorite": "Priorité 1",
+   "annee_min": 2020,
+   "annee_max": 2021,
+   "operateurs": "",
+   "financeurs": "",
+   "description": "Plan de gestion Val Suzon 2020-2029 — opération CS 3.1 (rattachement OLT)."
+  },
+  {
+   "code": "CS 3.2",
+   "indicateur": "I59",
+   "libelle": "Syrph the Net",
+   "type_action": "",
+   "priorite": "Priorité 1",
+   "annee_min": 2022,
+   "annee_max": 2027,
+   "operateurs": "",
+   "financeurs": "",
+   "description": "Plan de gestion Val Suzon 2020-2029 — opération CS 3.2 (rattachement OLT)."
+  },
+  {
+   "code": "CS 3.3",
+   "indicateur": "I60",
+   "libelle": "Suivi des insectes saproxyliques",
+   "type_action": "",
+   "priorite": "Priorité 2",
+   "annee_min": 2026,
+   "annee_max": 2028,
+   "operateurs": "",
+   "financeurs": "",
+   "description": "Plan de gestion Val Suzon 2020-2029 — opération CS 3.3 (rattachement OLT)."
+  },
+  {
+   "code": "CS 3.4",
+   "indicateur": "I61",
+   "libelle": "Suivi des Indices Ponctuels d'Abondance",
+   "type_action": "",
+   "priorite": "Priorité 1",
+   "annee_min": 2027,
+   "annee_max": 2028,
+   "operateurs": "",
+   "financeurs": "",
+   "description": "Plan de gestion Val Suzon 2020-2029 — opération CS 3.4 (rattachement OLT)."
+  },
+  {
+   "code": "CS 3.5",
+   "indicateur": "I62",
+   "libelle": "Suivi mycologique",
+   "type_action": "",
+   "priorite": "Priorité 3",
+   "annee_min": 2027,
+   "annee_max": 2029,
+   "operateurs": "",
+   "financeurs": "",
+   "description": "Plan de gestion Val Suzon 2020-2029 — opération CS 3.5 (rattachement OLT)."
+  },
+  {
+   "code": "CS 3.6",
+   "indicateur": "I63",
+   "libelle": "État des lieux et suivi du Damier du Frêne",
+   "type_action": "",
+   "priorite": "Priorité 1",
+   "annee_min": 2021,
+   "annee_max": 2029,
+   "operateurs": "",
+   "financeurs": "",
+   "description": "Plan de gestion Val Suzon 2020-2029 — opération CS 3.6 (rattachement OLT)."
+  },
+  {
+   "code": "CS 3.7",
+   "indicateur": "I64",
+   "libelle": "Suivi des chauves-souris",
+   "type_action": "",
+   "priorite": "Priorité 1",
+   "annee_min": 2024,
+   "annee_max": 2025,
+   "operateurs": "",
+   "financeurs": "",
+   "description": "Plan de gestion Val Suzon 2020-2029 — opération CS 3.7 (rattachement OLT)."
+  },
+  {
+   "code": "CS 3.8",
+   "indicateur": "I65",
+   "libelle": "Écoutes nocturnes de l'avifaune",
+   "type_action": "",
+   "priorite": "Priorité 1",
+   "annee_min": 2020,
+   "annee_max": 2029,
+   "operateurs": "",
+   "financeurs": "",
+   "description": "Plan de gestion Val Suzon 2020-2029 — opération CS 3.8 (rattachement OLT)."
+  },
+  {
+   "code": "CS 3.9",
+   "indicateur": "I66",
+   "libelle": "Suivi du Pic cendré",
+   "type_action": "",
+   "priorite": "Priorité 1",
+   "annee_min": 2026,
+   "annee_max": 2027,
+   "operateurs": "",
+   "financeurs": "",
+   "description": "Plan de gestion Val Suzon 2020-2029 — opération CS 3.9 (rattachement OLT)."
+  },
+  {
+   "code": "IP 3.10",
+   "indicateur": "I125",
+   "libelle": "Mettre les peuplements en cours de transition vers une structure irrégulière en libre évolution dans les aménagements",
+   "type_action": "",
+   "priorite": "Priorité 1",
+   "annee_min": 2020,
+   "annee_max": 2021,
+   "operateurs": "",
+   "financeurs": "",
+   "description": "Plan de gestion Val Suzon 2020-2029 — opération IP 3.10 (rattachement OO)."
+  },
+  {
+   "code": "IP 3.11",
+   "indicateur": "I125",
+   "libelle": "Réalisation d'éclaircies dans les jeunes peuplements en vue d'une amélioration de leur structure",
+   "type_action": "",
+   "priorite": "Priorité 1",
+   "annee_min": 2020,
+   "annee_max": 2020,
+   "operateurs": "",
+   "financeurs": "",
+   "description": "Plan de gestion Val Suzon 2020-2029 — opération IP 3.11 (rattachement OO)."
+  },
+  {
+   "code": "IP 3.12",
+   "indicateur": "I126",
+   "libelle": "Gestion sylvicole favorable au retour progressif des feuillus dans les quelques plantations de résineux",
+   "type_action": "",
+   "priorite": "Priorité 2",
+   "annee_min": 2020,
+   "annee_max": 2020,
+   "operateurs": "",
+   "financeurs": "",
+   "description": "Plan de gestion Val Suzon 2020-2029 — opération IP 3.12 (rattachement OO)."
+  },
+  {
+   "code": "EI 3.13",
+   "indicateur": "I127",
+   "libelle": "Réalisation d'une cartographie (actualisation et précision de la cartographie des habitats)",
+   "type_action": "",
+   "priorite": "Priorité 2",
+   "annee_min": 2022,
+   "annee_max": 2022,
+   "operateurs": "",
+   "financeurs": "",
+   "description": "Plan de gestion Val Suzon 2020-2029 — opération EI 3.13 (rattachement OO)."
+  },
+  {
+   "code": "MS 3.14",
+   "indicateur": "I128",
+   "libelle": "Recensement et cadrage des pratiques de fauche/broyage des lignes et accotements de routes forestières",
+   "type_action": "",
+   "priorite": "Priorité 1",
+   "annee_min": 2021,
+   "annee_max": 2021,
+   "operateurs": "",
+   "financeurs": "",
+   "description": "Plan de gestion Val Suzon 2020-2029 — opération MS 3.14 (rattachement OO)."
+  },
+  {
+   "code": "CS 4.1",
+   "indicateur": "I67",
+   "libelle": "Transects phyto-dynamiques dans les moliniaies",
+   "type_action": "",
+   "priorite": "Priorité 1",
+   "annee_min": 2023,
+   "annee_max": 2023,
+   "operateurs": "",
+   "financeurs": "",
+   "description": "Plan de gestion Val Suzon 2020-2029 — opération CS 4.1 (rattachement OLT)."
+  },
+  {
+   "code": "CS 4.2",
+   "indicateur": "I71",
+   "libelle": "Suivi phyto-bryophytique (quadrats)",
+   "type_action": "",
+   "priorite": "Priorité 1",
+   "annee_min": 2024,
+   "annee_max": 2024,
+   "operateurs": "",
+   "financeurs": "",
+   "description": "Plan de gestion Val Suzon 2020-2029 — opération CS 4.2 (rattachement OLT)."
+  },
+  {
+   "code": "CS 4.3",
+   "indicateur": "I73",
+   "libelle": "Inventaire et suivi des odonates",
+   "type_action": "",
+   "priorite": "Priorité 1",
+   "annee_min": 2023,
+   "annee_max": 2023,
+   "operateurs": "",
+   "financeurs": "",
+   "description": "Plan de gestion Val Suzon 2020-2029 — opération CS 4.3 (rattachement OLT)."
+  },
+  {
+   "code": "CS 4.4",
+   "indicateur": "I74",
+   "libelle": "Inventaire et suivi des stations de Bythinelle de Dijon",
+   "type_action": "",
+   "priorite": "Priorité 1",
+   "annee_min": 2023,
+   "annee_max": 2028,
+   "operateurs": "",
+   "financeurs": "",
+   "description": "Plan de gestion Val Suzon 2020-2029 — opération CS 4.4 (rattachement OLT)."
+  },
+  {
+   "code": "CS 4.5",
+   "indicateur": "I75",
+   "libelle": "Observatoire photographique de l'écoulement des sources",
+   "type_action": "",
+   "priorite": "Priorité 2",
+   "annee_min": 2024,
+   "annee_max": 2029,
+   "operateurs": "",
+   "financeurs": "",
+   "description": "Plan de gestion Val Suzon 2020-2029 — opération CS 4.5 (rattachement OLT)."
+  },
+  {
+   "code": "CS 4.6",
+   "indicateur": "I76",
+   "libelle": "Suivi de la Canche intermédiaire",
+   "type_action": "",
+   "priorite": "Priorité 1",
+   "annee_min": 2023,
+   "annee_max": 2028,
+   "operateurs": "",
+   "financeurs": "",
+   "description": "Plan de gestion Val Suzon 2020-2029 — opération CS 4.6 (rattachement OLT)."
+  },
+  {
+   "code": "CS 4.7",
+   "indicateur": "I77",
+   "libelle": "Suivi des stations de Jonc à fruits globuleux et Pâturin de Baden",
+   "type_action": "",
+   "priorite": "Priorité 2",
+   "annee_min": 2023,
+   "annee_max": 2028,
+   "operateurs": "",
+   "financeurs": "",
+   "description": "Plan de gestion Val Suzon 2020-2029 — opération CS 4.7 (rattachement OLT)."
+  },
+  {
+   "code": "EI 4.8",
+   "indicateur": "I152",
+   "libelle": "État des lieux des milieux humides tufeux",
+   "type_action": "",
+   "priorite": "Priorité 1",
+   "annee_min": 2020,
+   "annee_max": 2022,
+   "operateurs": "",
+   "financeurs": "",
+   "description": "Plan de gestion Val Suzon 2020-2029 — opération EI 4.8 (rattachement OO)."
+  },
+  {
+   "code": "EI 4.9",
+   "indicateur": "I154",
+   "libelle": "État des lieux des sources et ruisselets",
+   "type_action": "",
+   "priorite": "Priorité 1",
+   "annee_min": 2023,
+   "annee_max": 2023,
+   "operateurs": "",
+   "financeurs": "",
+   "description": "Plan de gestion Val Suzon 2020-2029 — opération EI 4.9 (rattachement OO)."
+  },
+  {
+   "code": "IP 4.10",
+   "indicateur": "I155",
+   "libelle": "Débroussaillage/abattage des ligneux",
+   "type_action": "",
+   "priorite": "Priorité 2",
+   "annee_min": 2024,
+   "annee_max": 2024,
+   "operateurs": "",
+   "financeurs": "",
+   "description": "Plan de gestion Val Suzon 2020-2029 — opération IP 4.10 (rattachement OO)."
+  },
+  {
+   "code": "IP 4.11",
+   "indicateur": "I156",
+   "libelle": "Restauration du fonctionnement hydraulique (selon résultats de l'état des lieux)",
+   "type_action": "",
+   "priorite": "Priorité 3",
+   "annee_min": 2025,
+   "annee_max": 2025,
+   "operateurs": "",
+   "financeurs": "",
+   "description": "Plan de gestion Val Suzon 2020-2029 — opération IP 4.11 (rattachement OO)."
+  },
+  {
+   "code": "IP 4.12",
+   "indicateur": "I157",
+   "libelle": "Mise en place d'un dispositif permanent de traversée des amphibiens",
+   "type_action": "",
+   "priorite": "Priorité 1",
+   "annee_min": 2020,
+   "annee_max": 2020,
+   "operateurs": "",
+   "financeurs": "",
+   "description": "Plan de gestion Val Suzon 2020-2029 — opération IP 4.12 (rattachement OO)."
+  },
+  {
+   "code": "CS 5.1",
+   "indicateur": "I78",
+   "libelle": "État des lieux du paysage",
+   "type_action": "",
+   "priorite": "Priorité 1",
+   "annee_min": 2029,
+   "annee_max": 2029,
+   "operateurs": "",
+   "financeurs": "",
+   "description": "Plan de gestion Val Suzon 2020-2029 — opération CS 5.1 (rattachement OLT)."
+  },
+  {
+   "code": "CS 5.2",
+   "indicateur": "I79",
+   "libelle": "État des lieux du patrimoine culturel",
+   "type_action": "",
+   "priorite": "Priorité 1",
+   "annee_min": 2029,
+   "annee_max": 2029,
+   "operateurs": "",
+   "financeurs": "",
+   "description": "Plan de gestion Val Suzon 2020-2029 — opération CS 5.2 (rattachement OLT)."
+  },
+  {
+   "code": "IP 5.3",
+   "indicateur": "I166",
+   "libelle": "Traitement paysager sur les lisières dotées d'un caractère artificiel et/ou monotone",
+   "type_action": "",
+   "priorite": "Priorité 1",
+   "annee_min": 2020,
+   "annee_max": 2029,
+   "operateurs": "",
+   "financeurs": "",
+   "description": "Plan de gestion Val Suzon 2020-2029 — opération IP 5.3 (rattachement OLT)."
+  },
+  {
+   "code": "IP 5.4",
+   "indicateur": "I167",
+   "libelle": "Travaux de résorption des sources de pollution visuelle et sonore",
+   "type_action": "",
+   "priorite": "Priorité 1",
+   "annee_min": 2020,
+   "annee_max": 2025,
+   "operateurs": "",
+   "financeurs": "",
+   "description": "Plan de gestion Val Suzon 2020-2029 — opération IP 5.4 (rattachement OLT)."
+  },
+  {
+   "code": "IP 5.5",
+   "indicateur": "I168",
+   "libelle": "Intégration des enjeux paysagers dans les chantiers",
+   "type_action": "",
+   "priorite": "Priorité 1",
+   "annee_min": 2020,
+   "annee_max": 2029,
+   "operateurs": "",
+   "financeurs": "",
+   "description": "Plan de gestion Val Suzon 2020-2029 — opération IP 5.5 (rattachement OLT)."
+  },
+  {
+   "code": "IP 5.6",
+   "indicateur": "I169",
+   "libelle": "Réalisation de chantiers d'ouverture de connexions visuelles",
+   "type_action": "",
+   "priorite": "Priorité 2",
+   "annee_min": 2020,
+   "annee_max": 2029,
+   "operateurs": "",
+   "financeurs": "",
+   "description": "Plan de gestion Val Suzon 2020-2029 — opération IP 5.6 (rattachement OLT)."
+  },
+  {
+   "code": "IP 5.7",
+   "indicateur": "I170",
+   "libelle": "Réalisation de chantiers de valorisation de composantes végétales et minérales remarquables",
+   "type_action": "",
+   "priorite": "Priorité 2",
+   "annee_min": 2022,
+   "annee_max": 2029,
+   "operateurs": "",
+   "financeurs": "",
+   "description": "Plan de gestion Val Suzon 2020-2029 — opération IP 5.7 (rattachement OLT)."
+  },
+  {
+   "code": "IP 5.8",
+   "indicateur": "I171",
+   "libelle": "Réalisation de chantiers de restauration de composantes minérales remarquables",
+   "type_action": "",
+   "priorite": "Priorité 1",
+   "annee_min": 2021,
+   "annee_max": 2029,
+   "operateurs": "",
+   "financeurs": "",
+   "description": "Plan de gestion Val Suzon 2020-2029 — opération IP 5.8 (rattachement OO)."
+  },
+  {
+   "code": "IP 5.9",
+   "indicateur": "I172",
+   "libelle": "Réalisation de chantiers de restauration de points de vue",
+   "type_action": "",
+   "priorite": "Priorité 1",
+   "annee_min": 2023,
+   "annee_max": 2023,
+   "operateurs": "",
+   "financeurs": "",
+   "description": "Plan de gestion Val Suzon 2020-2029 — opération IP 5.9 (rattachement OO)."
+  },
+  {
+   "code": "MS 6.1",
+   "indicateur": "I20",
+   "libelle": "Enquête (perception des acteurs locaux)",
+   "type_action": "",
+   "priorite": "Priorité 1",
+   "annee_min": 2029,
+   "annee_max": 2029,
+   "operateurs": "",
+   "financeurs": "",
+   "description": "Plan de gestion Val Suzon 2020-2029 — opération MS 6.1 (rattachement OLT)."
+  },
+  {
+   "code": "MS 6.2",
+   "indicateur": "I26",
+   "libelle": "Carnet de suivi de la réserve",
+   "type_action": "",
+   "priorite": "Priorité 1",
+   "annee_min": 2020,
+   "annee_max": 2029,
+   "operateurs": "",
+   "financeurs": "",
+   "description": "Plan de gestion Val Suzon 2020-2029 — opération MS 6.2 (rattachement OLT)."
+  },
+  {
+   "code": "MS 6.3",
+   "indicateur": "I38",
+   "libelle": "Perception du conservateur",
+   "type_action": "",
+   "priorite": "Priorité 1",
+   "annee_min": 2020,
+   "annee_max": 2029,
+   "operateurs": "",
+   "financeurs": "",
+   "description": "Plan de gestion Val Suzon 2020-2029 — opération MS 6.3 (rattachement OLT)."
+  },
+  {
+   "code": "MS 6.4",
+   "indicateur": "I25",
+   "libelle": "Enquête de renommée",
+   "type_action": "",
+   "priorite": "Priorité 1",
+   "annee_min": 2024,
+   "annee_max": 2024,
+   "operateurs": "",
+   "financeurs": "",
+   "description": "Plan de gestion Val Suzon 2020-2029 — opération MS 6.4 (rattachement OLT)."
+  },
+  {
+   "code": "MS 6.5",
+   "indicateur": "I45",
+   "libelle": "Évaluation nationale Forêt d'Exception®",
+   "type_action": "",
+   "priorite": "Priorité 1",
+   "annee_min": 2024,
+   "annee_max": 2029,
+   "operateurs": "",
+   "financeurs": "",
+   "description": "Plan de gestion Val Suzon 2020-2029 — opération MS 6.5 (rattachement OLT)."
+  },
+  {
+   "code": "CI 6.6",
+   "indicateur": "I88",
+   "libelle": "Étude et mise en place d'une signalisation routière indiquant la RNR-FE et les points d'accueil",
+   "type_action": "",
+   "priorite": "Priorité 1",
+   "annee_min": 2021,
+   "annee_max": 2022,
+   "operateurs": "",
+   "financeurs": "",
+   "description": "Plan de gestion Val Suzon 2020-2029 — opération CI 6.6 (rattachement OO)."
+  },
+  {
+   "code": "CC 6.7",
+   "indicateur": "I89",
+   "libelle": "Mise en œuvre du plan de communication",
+   "type_action": "",
+   "priorite": "Priorité 1",
+   "annee_min": 2020,
+   "annee_max": 2029,
+   "operateurs": "",
+   "financeurs": "",
+   "description": "Plan de gestion Val Suzon 2020-2029 — opération CC 6.7 (rattachement OO)."
+  },
+  {
+   "code": "EI 6.8",
+   "indicateur": "I90",
+   "libelle": "Bilan de l'offre touristique existante et proposition de la RNR-FE comme atout touristique pour le territoire",
+   "type_action": "",
+   "priorite": "Priorité 1",
+   "annee_min": 2021,
+   "annee_max": 2021,
+   "operateurs": "",
+   "financeurs": "",
+   "description": "Plan de gestion Val Suzon 2020-2029 — opération EI 6.8 (rattachement OO)."
+  },
+  {
+   "code": "MS 6.9",
+   "indicateur": "I91",
+   "libelle": "Accompagnement de la révision de la Charte Forestière de Territoire",
+   "type_action": "",
+   "priorite": "Priorité 1",
+   "annee_min": 2021,
+   "annee_max": 2021,
+   "operateurs": "",
+   "financeurs": "",
+   "description": "Plan de gestion Val Suzon 2020-2029 — opération MS 6.9 (rattachement OO)."
+  },
+  {
+   "code": "EI 6.10",
+   "indicateur": "I92",
+   "libelle": "Enquête qualitative de fréquentation",
+   "type_action": "",
+   "priorite": "Priorité 1",
+   "annee_min": 2022,
+   "annee_max": 2022,
+   "operateurs": "",
+   "financeurs": "",
+   "description": "Plan de gestion Val Suzon 2020-2029 — opération EI 6.10 (rattachement OO)."
+  },
+  {
+   "code": "CI 6.11",
+   "indicateur": "I93",
+   "libelle": "Agrandissement du parc d'écocompteurs",
+   "type_action": "",
+   "priorite": "Priorité 1",
+   "annee_min": 2020,
+   "annee_max": 2028,
+   "operateurs": "",
+   "financeurs": "",
+   "description": "Plan de gestion Val Suzon 2020-2029 — opération CI 6.11 (rattachement OO)."
+  },
+  {
+   "code": "MS 6.12",
+   "indicateur": "I93",
+   "libelle": "Suivi des écocompteurs",
+   "type_action": "",
+   "priorite": "Priorité 1",
+   "annee_min": 2020,
+   "annee_max": 2029,
+   "operateurs": "",
+   "financeurs": "",
+   "description": "Plan de gestion Val Suzon 2020-2029 — opération MS 6.12 (rattachement OO)."
+  },
+  {
+   "code": "EI 6.13",
+   "indicateur": "I93",
+   "libelle": "Étude de fréquentation de la route départementale",
+   "type_action": "",
+   "priorite": "Priorité 2",
+   "annee_min": 2023,
+   "annee_max": 2023,
+   "operateurs": "",
+   "financeurs": "",
+   "description": "Plan de gestion Val Suzon 2020-2029 — opération EI 6.13 (rattachement OO)."
+  },
+  {
+   "code": "CI 6.14",
+   "indicateur": "I94",
+   "libelle": "Entretien des aires d'accueil",
+   "type_action": "",
+   "priorite": "Priorité 1",
+   "annee_min": 2020,
+   "annee_max": 2029,
+   "operateurs": "",
+   "financeurs": "",
+   "description": "Plan de gestion Val Suzon 2020-2029 — opération CI 6.14 (rattachement OO)."
+  },
+  {
+   "code": "CI 6.15",
+   "indicateur": "I95",
+   "libelle": "Entretien des sentiers balisés et sécurisation",
+   "type_action": "",
+   "priorite": "Priorité 1",
+   "annee_min": 2020,
+   "annee_max": 2029,
+   "operateurs": "",
+   "financeurs": "",
+   "description": "Plan de gestion Val Suzon 2020-2029 — opération CI 6.15 (rattachement OO)."
+  },
+  {
+   "code": "CI 6.16",
+   "indicateur": "I96",
+   "libelle": "Enrichissement de l'offre en sentiers balisés familiaux",
+   "type_action": "",
+   "priorite": "Priorité 2",
+   "annee_min": 2023,
+   "annee_max": 2026,
+   "operateurs": "",
+   "financeurs": "",
+   "description": "Plan de gestion Val Suzon 2020-2029 — opération CI 6.16 (rattachement OO)."
+  },
+  {
+   "code": "CI 6.17",
+   "indicateur": "I97",
+   "libelle": "Aménagement du site de Jouvence",
+   "type_action": "",
+   "priorite": "Priorité 1",
+   "annee_min": 2020,
+   "annee_max": 2022,
+   "operateurs": "",
+   "financeurs": "",
+   "description": "Plan de gestion Val Suzon 2020-2029 — opération CI 6.17 (rattachement OO)."
+  },
+  {
+   "code": "EI 6.18",
+   "indicateur": "I98",
+   "libelle": "Étude de faisabilité d'une infrastructure d'accueil abrité (Maison de la Réserve, etc.)",
+   "type_action": "",
+   "priorite": "Priorité 2",
+   "annee_min": 2021,
+   "annee_max": 2021,
+   "operateurs": "",
+   "financeurs": "",
+   "description": "Plan de gestion Val Suzon 2020-2029 — opération EI 6.18 (rattachement OO)."
+  },
+  {
+   "code": "PA 6.19",
+   "indicateur": "I98",
+   "libelle": "Aménagement d'une infrastructure d'accueil abritée",
+   "type_action": "",
+   "priorite": "Priorité 2",
+   "annee_min": 2022,
+   "annee_max": 2029,
+   "operateurs": "",
+   "financeurs": "",
+   "description": "Plan de gestion Val Suzon 2020-2029 — opération PA 6.19 (rattachement OO)."
+  },
+  {
+   "code": "MS 6.20",
+   "indicateur": "I99",
+   "libelle": "Traitement des usages pédestres des routes ou bords de routes en concertation avec les acteurs",
+   "type_action": "",
+   "priorite": "Priorité 2",
+   "annee_min": 2024,
+   "annee_max": 2024,
+   "operateurs": "",
+   "financeurs": "",
+   "description": "Plan de gestion Val Suzon 2020-2029 — opération MS 6.20 (rattachement OO)."
+  },
+  {
+   "code": "CI 6.21",
+   "indicateur": "I100",
+   "libelle": "Traitement des points d'accueil « d'usage »",
+   "type_action": "",
+   "priorite": "Priorité 2",
+   "annee_min": 2024,
+   "annee_max": 2025,
+   "operateurs": "",
+   "financeurs": "",
+   "description": "Plan de gestion Val Suzon 2020-2029 — opération CI 6.21 (rattachement OO)."
+  },
+  {
+   "code": "EI 6.22",
+   "indicateur": "I101",
+   "libelle": "Élaboration d'une stratégie d'éducation à l'environnement",
+   "type_action": "",
+   "priorite": "Priorité 1",
+   "annee_min": 2029,
+   "annee_max": 2029,
+   "operateurs": "",
+   "financeurs": "",
+   "description": "Plan de gestion Val Suzon 2020-2029 — opération EI 6.22 (rattachement OO)."
+  },
+  {
+   "code": "PA 6.23",
+   "indicateur": "I102",
+   "libelle": "Organisation d'animations pour les scolaires",
+   "type_action": "",
+   "priorite": "Priorité 1",
+   "annee_min": 2020,
+   "annee_max": 2029,
+   "operateurs": "",
+   "financeurs": "",
+   "description": "Plan de gestion Val Suzon 2020-2029 — opération PA 6.23 (rattachement OO)."
+  },
+  {
+   "code": "PA 6.24",
+   "indicateur": "I103",
+   "libelle": "Organisation d'animations pour le grand public",
+   "type_action": "",
+   "priorite": "Priorité 1",
+   "annee_min": 2020,
+   "annee_max": 2029,
+   "operateurs": "",
+   "financeurs": "",
+   "description": "Plan de gestion Val Suzon 2020-2029 — opération PA 6.24 (rattachement OO)."
+  },
+  {
+   "code": "PA 6.25",
+   "indicateur": "I104",
+   "libelle": "Organisation de sorties spécialisées",
+   "type_action": "",
+   "priorite": "Priorité 2",
+   "annee_min": 2020,
+   "annee_max": 2029,
+   "operateurs": "",
+   "financeurs": "",
+   "description": "Plan de gestion Val Suzon 2020-2029 — opération PA 6.25 (rattachement OO)."
+  },
+  {
+   "code": "PA 6.26",
+   "indicateur": "I105",
+   "libelle": "Enrichir les sentiers balisés familiaux avec une démarche d'interprétation",
+   "type_action": "",
+   "priorite": "Priorité 2",
+   "annee_min": 2028,
+   "annee_max": 2028,
+   "operateurs": "",
+   "financeurs": "",
+   "description": "Plan de gestion Val Suzon 2020-2029 — opération PA 6.26 (rattachement OO)."
+  },
+  {
+   "code": "MS 6.27",
+   "indicateur": "I106",
+   "libelle": "Traitement des conflits d'usage",
+   "type_action": "",
+   "priorite": "Priorité 3",
+   "annee_min": 2020,
+   "annee_max": 2029,
+   "operateurs": "",
+   "financeurs": "",
+   "description": "Plan de gestion Val Suzon 2020-2029 — opération MS 6.27 (rattachement OO)."
+  },
+  {
+   "code": "EI 6.28",
+   "indicateur": "I107",
+   "libelle": "Élaboration d'un cahier des charges pour encadrer les manifestations sportives",
+   "type_action": "",
+   "priorite": "Priorité 2",
+   "annee_min": 2021,
+   "annee_max": 2021,
+   "operateurs": "",
+   "financeurs": "",
+   "description": "Plan de gestion Val Suzon 2020-2029 — opération EI 6.28 (rattachement OO)."
+  },
+  {
+   "code": "MS 6.29",
+   "indicateur": "I107",
+   "libelle": "Suivi de l'application des cahiers des charges des manifestations sportives",
+   "type_action": "",
+   "priorite": "Priorité 2",
+   "annee_min": 2022,
+   "annee_max": 2029,
+   "operateurs": "",
+   "financeurs": "",
+   "description": "Plan de gestion Val Suzon 2020-2029 — opération MS 6.29 (rattachement OO)."
+  },
+  {
+   "code": "SP 6.30",
+   "indicateur": "I109",
+   "libelle": "Réalisation de tournées de maraudage",
+   "type_action": "",
+   "priorite": "Priorité 1",
+   "annee_min": 2021,
+   "annee_max": 2029,
+   "operateurs": "",
+   "financeurs": "",
+   "description": "Plan de gestion Val Suzon 2020-2029 — opération SP 6.30 (rattachement OO)."
+  },
+  {
+   "code": "CI 6.31",
+   "indicateur": "I110",
+   "libelle": "Poursuite de la matérialisation des limites de la RNR et mise en œuvre du plan de circulation dirigée",
+   "type_action": "",
+   "priorite": "Priorité 1",
+   "annee_min": 2020,
+   "annee_max": 2029,
+   "operateurs": "",
+   "financeurs": "",
+   "description": "Plan de gestion Val Suzon 2020-2029 — opération CI 6.31 (rattachement OO)."
+  },
+  {
+   "code": "CI 6.32",
+   "indicateur": "I111",
+   "libelle": "Entretien des infrastructures de plan de circulation",
+   "type_action": "",
+   "priorite": "Priorité 1",
+   "annee_min": 2020,
+   "annee_max": 2029,
+   "operateurs": "",
+   "financeurs": "",
+   "description": "Plan de gestion Val Suzon 2020-2029 — opération CI 6.32 (rattachement OO)."
+  },
+  {
+   "code": "PA 6.33",
+   "indicateur": "I112",
+   "libelle": "Sensibilisation des acteurs du territoire",
+   "type_action": "",
+   "priorite": "Priorité 1",
+   "annee_min": 2021,
+   "annee_max": 2021,
+   "operateurs": "",
+   "financeurs": "",
+   "description": "Plan de gestion Val Suzon 2020-2029 — opération PA 6.33 (rattachement OO)."
+  },
+  {
+   "code": "PA 6.34",
+   "indicateur": "I113",
+   "libelle": "Rencontres / réponses aux sollicitations / participation à des évènements (randonnées, …)",
+   "type_action": "",
+   "priorite": "Priorité 2",
+   "annee_min": 2020,
+   "annee_max": 2029,
+   "operateurs": "",
+   "financeurs": "",
+   "description": "Plan de gestion Val Suzon 2020-2029 — opération PA 6.34 (rattachement OO)."
+  },
+  {
+   "code": "PA 6.35",
+   "indicateur": "I114",
+   "libelle": "Nettoyage des pratiques inadéquates ou remise en état",
+   "type_action": "",
+   "priorite": "Priorité 1",
+   "annee_min": 2020,
+   "annee_max": 2029,
+   "operateurs": "",
+   "financeurs": "",
+   "description": "Plan de gestion Val Suzon 2020-2029 — opération PA 6.35 (rattachement OO)."
+  },
+  {
+   "code": "SP 6.36",
+   "indicateur": "I114",
+   "libelle": "Surveillance",
+   "type_action": "",
+   "priorite": "Priorité 1",
+   "annee_min": 2020,
+   "annee_max": 2029,
+   "operateurs": "",
+   "financeurs": "",
+   "description": "Plan de gestion Val Suzon 2020-2029 — opération SP 6.36 (rattachement OO)."
+  },
+  {
+   "code": "SP 6.37",
+   "indicateur": "I114",
+   "libelle": "Élaboration d'un protocole de surveillance",
+   "type_action": "",
+   "priorite": "Priorité 1",
+   "annee_min": 2021,
+   "annee_max": 2021,
+   "operateurs": "",
+   "financeurs": "",
+   "description": "Plan de gestion Val Suzon 2020-2029 — opération SP 6.37 (rattachement OO)."
+  },
+  {
+   "code": "MS 6.38",
+   "indicateur": "I114",
+   "libelle": "Veille sur les nouvelles activités potentielles",
+   "type_action": "",
+   "priorite": "Priorité 2",
+   "annee_min": 2020,
+   "annee_max": 2029,
+   "operateurs": "",
+   "financeurs": "",
+   "description": "Plan de gestion Val Suzon 2020-2029 — opération MS 6.38 (rattachement OO)."
+  },
+  {
+   "code": "MS 6.39",
+   "indicateur": "I115",
+   "libelle": "Mise en place d'une identification visuelle RN dans les équipements du personnel",
+   "type_action": "",
+   "priorite": "Priorité 1",
+   "annee_min": 2021,
+   "annee_max": 2021,
+   "operateurs": "",
+   "financeurs": "",
+   "description": "Plan de gestion Val Suzon 2020-2029 — opération MS 6.39 (rattachement OO)."
+  },
+  {
+   "code": "EI 6.40",
+   "indicateur": "I116",
+   "libelle": "Étude des valeurs ajoutées de la RNR-FE",
+   "type_action": "",
+   "priorite": "Priorité 3",
+   "annee_min": 2029,
+   "annee_max": 2029,
+   "operateurs": "",
+   "financeurs": "",
+   "description": "Plan de gestion Val Suzon 2020-2029 — opération EI 6.40 (rattachement OO)."
+  },
+  {
+   "code": "PA 6.41",
+   "indicateur": "I117",
+   "libelle": "Identification des bons interlocuteurs pour suivre et développer les partenariats",
+   "type_action": "",
+   "priorite": "Priorité 3",
+   "annee_min": 2020,
+   "annee_max": 2029,
+   "operateurs": "",
+   "financeurs": "",
+   "description": "Plan de gestion Val Suzon 2020-2029 — opération PA 6.41 (rattachement OO)."
+  },
+  {
+   "code": "MS 6.42",
+   "indicateur": "I118",
+   "libelle": "Étude de définition d'une stratégie d'innovation",
+   "type_action": "",
+   "priorite": "Priorité 2",
+   "annee_min": 2029,
+   "annee_max": 2029,
+   "operateurs": "",
+   "financeurs": "",
+   "description": "Plan de gestion Val Suzon 2020-2029 — opération MS 6.42 (rattachement OO)."
+  },
+  {
+   "code": "MS 6.43",
+   "indicateur": "I119",
+   "libelle": "Intégration d'une dimension participative dans les projets",
+   "type_action": "",
+   "priorite": "Priorité 2",
+   "annee_min": 2021,
+   "annee_max": 2021,
+   "operateurs": "",
+   "financeurs": "",
+   "description": "Plan de gestion Val Suzon 2020-2029 — opération MS 6.43 (rattachement OO)."
+  },
+  {
+   "code": "MS 6.44",
+   "indicateur": "I120",
+   "libelle": "Développement des actions communes sur un territoire RNR-FE / Site Natura 2000",
+   "type_action": "",
+   "priorite": "Priorité 1",
+   "annee_min": 2020,
+   "annee_max": 2029,
+   "operateurs": "",
+   "financeurs": "",
+   "description": "Plan de gestion Val Suzon 2020-2029 — opération MS 6.44 (rattachement OO)."
+  },
+  {
+   "code": "MS 6.45",
+   "indicateur": "I121",
+   "libelle": "Participation à la révision du DOCOB",
+   "type_action": "",
+   "priorite": "Priorité 1",
+   "annee_min": 2020,
+   "annee_max": 2020,
+   "operateurs": "",
+   "financeurs": "",
+   "description": "Plan de gestion Val Suzon 2020-2029 — opération MS 6.45 (rattachement OO)."
+  },
+  {
+   "code": "MS 6.46",
+   "indicateur": "I122",
+   "libelle": "Mise en place des contrats Natura 2000",
+   "type_action": "",
+   "priorite": "Priorité 1",
+   "annee_min": 2021,
+   "annee_max": 2029,
+   "operateurs": "",
+   "financeurs": "",
+   "description": "Plan de gestion Val Suzon 2020-2029 — opération MS 6.46 (rattachement OO)."
+  },
+  {
+   "code": "EI 6.47",
+   "indicateur": "I123",
+   "libelle": "Étude d'extension de la Réserve",
+   "type_action": "",
+   "priorite": "Priorité 3",
+   "annee_min": 2027,
+   "annee_max": 2027,
+   "operateurs": "",
+   "financeurs": "",
+   "description": "Plan de gestion Val Suzon 2020-2029 — opération EI 6.47 (rattachement OO)."
+  },
+  {
+   "code": "MS 6.48",
+   "indicateur": "I124",
+   "libelle": "Renouvellement de la labellisation Forêt d'Exception®",
+   "type_action": "",
+   "priorite": "Priorité 1",
+   "annee_min": 2021,
+   "annee_max": 2021,
+   "operateurs": "",
+   "financeurs": "",
+   "description": "Plan de gestion Val Suzon 2020-2029 — opération MS 6.48 (rattachement OO)."
+  },
+  {
+   "code": "EI 7.1",
+   "indicateur": "I130",
+   "libelle": "Inventaires des orthoptères",
+   "type_action": "",
+   "priorite": "Priorité 1",
+   "annee_min": 2021,
+   "annee_max": 2023,
+   "operateurs": "",
+   "financeurs": "",
+   "description": "Plan de gestion Val Suzon 2020-2029 — opération EI 7.1 (rattachement OLT)."
+  },
+  {
+   "code": "CS 7.2",
+   "indicateur": "I131",
+   "libelle": "Recherche et pointage des aires et observation à vue des rapaces diurnes",
+   "type_action": "",
+   "priorite": "Priorité 1",
+   "annee_min": 2020,
+   "annee_max": 2029,
+   "operateurs": "",
+   "financeurs": "",
+   "description": "Plan de gestion Val Suzon 2020-2029 — opération CS 7.2 (rattachement OLT)."
+  },
+  {
+   "code": "EI 7.3",
+   "indicateur": "I132",
+   "libelle": "Typologie des groupements végétaux de la RNR",
+   "type_action": "",
+   "priorite": "Priorité 2",
+   "annee_min": 2028,
+   "annee_max": 2028,
+   "operateurs": "",
+   "financeurs": "",
+   "description": "Plan de gestion Val Suzon 2020-2029 — opération EI 7.3 (rattachement OLT)."
+  },
+  {
+   "code": "CS 7.4",
+   "indicateur": "I133",
+   "libelle": "Suivi des amphibiens",
+   "type_action": "",
+   "priorite": "Priorité 1",
+   "annee_min": 2020,
+   "annee_max": 2029,
+   "operateurs": "",
+   "financeurs": "",
+   "description": "Plan de gestion Val Suzon 2020-2029 — opération CS 7.4 (rattachement OLT)."
+  },
+  {
+   "code": "EI 7.5",
+   "indicateur": "I134",
+   "libelle": "Inventaire des populations de Vipère aspic",
+   "type_action": "",
+   "priorite": "Priorité 2",
+   "annee_min": 2024,
+   "annee_max": 2025,
+   "operateurs": "",
+   "financeurs": "",
+   "description": "Plan de gestion Val Suzon 2020-2029 — opération EI 7.5 (rattachement OLT)."
+  },
+  {
+   "code": "EI 7.6",
+   "indicateur": "I135",
+   "libelle": "Rechercher les espèces anciennement citées sur la RNR-FE",
+   "type_action": "",
+   "priorite": "Priorité 2",
+   "annee_min": 2022,
+   "annee_max": 2029,
+   "operateurs": "",
+   "financeurs": "",
+   "description": "Plan de gestion Val Suzon 2020-2029 — opération EI 7.6 (rattachement OLT)."
+  },
+  {
+   "code": "EI 7.7",
+   "indicateur": "I136",
+   "libelle": "Inventaires des bryophytes corticoles",
+   "type_action": "",
+   "priorite": "Priorité 1",
+   "annee_min": 2021,
+   "annee_max": 2021,
+   "operateurs": "",
+   "financeurs": "",
+   "description": "Plan de gestion Val Suzon 2020-2029 — opération EI 7.7 (rattachement OLT)."
+  },
+  {
+   "code": "CS 7.8",
+   "indicateur": "I137",
+   "libelle": "Inventaire des champignons, champignons lichénicoles et des lichens",
+   "type_action": "",
+   "priorite": "Priorité 1",
+   "annee_min": 2020,
+   "annee_max": 2029,
+   "operateurs": "",
+   "financeurs": "",
+   "description": "Plan de gestion Val Suzon 2020-2029 — opération CS 7.8 (rattachement OLT)."
+  },
+  {
+   "code": "EI 7.9",
+   "indicateur": "I138",
+   "libelle": "Connaissance des mammifères / micromammifères",
+   "type_action": "",
+   "priorite": "Priorité 2",
+   "annee_min": 2021,
+   "annee_max": 2029,
+   "operateurs": "",
+   "financeurs": "",
+   "description": "Plan de gestion Val Suzon 2020-2029 — opération EI 7.9 (rattachement OLT)."
+  },
+  {
+   "code": "EI 7.10",
+   "indicateur": "I139",
+   "libelle": "Connaissances des gastéropodes",
+   "type_action": "",
+   "priorite": "Priorité 3",
+   "annee_min": 2021,
+   "annee_max": 2029,
+   "operateurs": "",
+   "financeurs": "",
+   "description": "Plan de gestion Val Suzon 2020-2029 — opération EI 7.10 (rattachement OO)."
+  },
+  {
+   "code": "CS 7.11",
+   "indicateur": "I140",
+   "libelle": "Poursuite des inventaires de l'entomofaune et développement des connaissances sur les araignées",
+   "type_action": "",
+   "priorite": "Priorité 1",
+   "annee_min": 2020,
+   "annee_max": 2029,
+   "operateurs": "",
+   "financeurs": "",
+   "description": "Plan de gestion Val Suzon 2020-2029 — opération CS 7.11 (rattachement OLT)."
+  },
+  {
+   "code": "EI 7.12",
+   "indicateur": "I141",
+   "libelle": "Étude des chiroptères en lien avec l'environnement proche de la RNR-FE",
+   "type_action": "",
+   "priorite": "Priorité 1",
+   "annee_min": 2024,
+   "annee_max": 2025,
+   "operateurs": "",
+   "financeurs": "",
+   "description": "Plan de gestion Val Suzon 2020-2029 — opération EI 7.12 (rattachement OLT)."
+  },
+  {
+   "code": "IP 7.13",
+   "indicateur": "I142",
+   "libelle": "Inventaires / relevés floristiques dans les forêts de plateau",
+   "type_action": "",
+   "priorite": "Priorité 2",
+   "annee_min": 2020,
+   "annee_max": 2020,
+   "operateurs": "",
+   "financeurs": "",
+   "description": "Plan de gestion Val Suzon 2020-2029 — opération IP 7.13 (rattachement OLT)."
+  },
+  {
+   "code": "EI 7.14",
+   "indicateur": "I143",
+   "libelle": "Mettre en place des secteurs en libre évolution sur le plateau et dans les jeunes peuplements réguliers",
+   "type_action": "",
+   "priorite": "Priorité 1",
+   "annee_min": 2021,
+   "annee_max": 2029,
+   "operateurs": "",
+   "financeurs": "",
+   "description": "Plan de gestion Val Suzon 2020-2029 — opération EI 7.14 (rattachement OLT)."
+  },
+  {
+   "code": "EI 7.15",
+   "indicateur": "I144",
+   "libelle": "Diagnostic de vulnérabilité et d'opportunités de la RNR-FE face aux changements climatiques et ses effets",
+   "type_action": "",
+   "priorite": "Priorité 1",
+   "annee_min": 2021,
+   "annee_max": 2029,
+   "operateurs": "",
+   "financeurs": "",
+   "description": "Plan de gestion Val Suzon 2020-2029 — opération EI 7.15 (rattachement OLT)."
+  },
+  {
+   "code": "CS 7.16",
+   "indicateur": "I145",
+   "libelle": "Installation et suivi de station météo",
+   "type_action": "",
+   "priorite": "Priorité 1",
+   "annee_min": 2021,
+   "annee_max": 2029,
+   "operateurs": "",
+   "financeurs": "",
+   "description": "Plan de gestion Val Suzon 2020-2029 — opération CS 7.16 (rattachement OLT)."
+  },
+  {
+   "code": "CS 7.17",
+   "indicateur": "I146",
+   "libelle": "Extraire des suivis prévus les données et infos sur des espèces sensibles aux conditions froides/fraiches",
+   "type_action": "",
+   "priorite": "Priorité 2",
+   "annee_min": 2020,
+   "annee_max": 2029,
+   "operateurs": "",
+   "financeurs": "",
+   "description": "Plan de gestion Val Suzon 2020-2029 — opération CS 7.17 (rattachement OLT)."
+  },
+  {
+   "code": "CS 7.18",
+   "indicateur": "I147",
+   "libelle": "Récolte, analyse et bilan des données de qualité de l'eau des sources captées",
+   "type_action": "",
+   "priorite": "Priorité 1",
+   "annee_min": 2020,
+   "annee_max": 2029,
+   "operateurs": "",
+   "financeurs": "",
+   "description": "Plan de gestion Val Suzon 2020-2029 — opération CS 7.18 (rattachement OLT)."
+  },
+  {
+   "code": "MS 7.19",
+   "indicateur": "I148",
+   "libelle": "Développement de partenariats de recherche sur la RNR-FE",
+   "type_action": "",
+   "priorite": "Priorité 1",
+   "annee_min": 2020,
+   "annee_max": 2029,
+   "operateurs": "",
+   "financeurs": "",
+   "description": "Plan de gestion Val Suzon 2020-2029 — opération MS 7.19 (rattachement OLT)."
+  },
+  {
+   "code": "MS 7.20",
+   "indicateur": "I149",
+   "libelle": "Rencontre avec l'université de Bourgogne (programmes de recherche en archéologie)",
+   "type_action": "",
+   "priorite": "Priorité 1",
+   "annee_min": 2020,
+   "annee_max": 2029,
+   "operateurs": "",
+   "financeurs": "",
+   "description": "Plan de gestion Val Suzon 2020-2029 — opération MS 7.20 (rattachement OLT)."
+  },
+  {
+   "code": "PR 7.21",
+   "indicateur": "I150",
+   "libelle": "Analyses anthracologiques de charbonnières et études des sols",
+   "type_action": "",
+   "priorite": "Priorité 3",
+   "annee_min": 2026,
+   "annee_max": 2026,
+   "operateurs": "",
+   "financeurs": "",
+   "description": "Plan de gestion Val Suzon 2020-2029 — opération PR 7.21 (rattachement OLT)."
+  },
+  {
+   "code": "EI 7.22",
+   "indicateur": "I151",
+   "libelle": "Poursuite du projet BIJOU",
+   "type_action": "",
+   "priorite": "Priorité 1",
+   "annee_min": 2020,
+   "annee_max": 2023,
+   "operateurs": "",
+   "financeurs": "",
+   "description": "Plan de gestion Val Suzon 2020-2029 — opération EI 7.22 (rattachement OLT)."
+  },
+  {
+   "code": "MS 8.1",
+   "indicateur": "I158",
+   "libelle": "Organisation et participation au Comité Consultatif de la RNR-FE",
+   "type_action": "",
+   "priorite": "Priorité 1",
+   "annee_min": 2020,
+   "annee_max": 2029,
+   "operateurs": "",
+   "financeurs": "",
+   "description": "Plan de gestion Val Suzon 2020-2029 — opération MS 8.1 (rattachement OLT)."
+  },
+  {
+   "code": "MS 8.2",
+   "indicateur": "I158",
+   "libelle": "Participation aux réunions des autres instances consultatives internes et externes (Natura 2000, service forêt ONF…)",
+   "type_action": "",
+   "priorite": "Priorité 1",
+   "annee_min": 2020,
+   "annee_max": 2029,
+   "operateurs": "",
+   "financeurs": "",
+   "description": "Plan de gestion Val Suzon 2020-2029 — opération MS 8.2 (rattachement OLT)."
+  },
+  {
+   "code": "MS 8.3",
+   "indicateur": "I159",
+   "libelle": "Participation aux différents réseaux (Forêt d'Exception®, RNF, CENB, RNR BFC…)",
+   "type_action": "",
+   "priorite": "Priorité 1",
+   "annee_min": 2020,
+   "annee_max": 2029,
+   "operateurs": "",
+   "financeurs": "",
+   "description": "Plan de gestion Val Suzon 2020-2029 — opération MS 8.3 (rattachement OLT)."
+  },
+  {
+   "code": "MS 8.4",
+   "indicateur": "I160",
+   "libelle": "Évaluation annuelle du plan de gestion (rapport d'activités, suivi des indicateurs…)",
+   "type_action": "",
+   "priorite": "Priorité 1",
+   "annee_min": 2020,
+   "annee_max": 2029,
+   "operateurs": "",
+   "financeurs": "",
+   "description": "Plan de gestion Val Suzon 2020-2029 — opération MS 8.4 (rattachement OLT)."
+  },
+  {
+   "code": "MS 8.5",
+   "indicateur": "I160",
+   "libelle": "Évaluation quinquennale du plan de gestion",
+   "type_action": "",
+   "priorite": "Priorité 1",
+   "annee_min": 2020,
+   "annee_max": 2029,
+   "operateurs": "",
+   "financeurs": "",
+   "description": "Plan de gestion Val Suzon 2020-2029 — opération MS 8.5 (rattachement OLT)."
+  },
+  {
+   "code": "MS 8.6",
+   "indicateur": "I160",
+   "libelle": "Mise à jour de la programmation 2025-2029",
+   "type_action": "",
+   "priorite": "Priorité 1",
+   "annee_min": 2020,
+   "annee_max": 2029,
+   "operateurs": "",
+   "financeurs": "",
+   "description": "Plan de gestion Val Suzon 2020-2029 — opération MS 8.6 (rattachement OLT)."
+  },
+  {
+   "code": "MS 8.7",
+   "indicateur": "I160",
+   "libelle": "Élaboration du nouveau plan de gestion",
+   "type_action": "",
+   "priorite": "Priorité 1",
+   "annee_min": 2020,
+   "annee_max": 2029,
+   "operateurs": "",
+   "financeurs": "",
+   "description": "Plan de gestion Val Suzon 2020-2029 — opération MS 8.7 (rattachement OLT)."
+  },
+  {
+   "code": "MS 8.8",
+   "indicateur": "I161",
+   "libelle": "Compléter régulièrement la BDN",
+   "type_action": "",
+   "priorite": "Priorité 1",
+   "annee_min": 2020,
+   "annee_max": 2029,
+   "operateurs": "",
+   "financeurs": "",
+   "description": "Plan de gestion Val Suzon 2020-2029 — opération MS 8.8 (rattachement OLT)."
+  },
+  {
+   "code": "MS 8.9",
+   "indicateur": "I161",
+   "libelle": "Organiser et compléter la base de données SIG RNR-FE",
+   "type_action": "",
+   "priorite": "Priorité 1",
+   "annee_min": 2020,
+   "annee_max": 2029,
+   "operateurs": "",
+   "financeurs": "",
+   "description": "Plan de gestion Val Suzon 2020-2029 — opération MS 8.9 (rattachement OLT)."
+  },
+  {
+   "code": "MS 8.10",
+   "indicateur": "I162",
+   "libelle": "Compléter la base de données GRENAT (données administratives)",
+   "type_action": "",
+   "priorite": "Priorité 1",
+   "annee_min": 2020,
+   "annee_max": 2029,
+   "operateurs": "",
+   "financeurs": "",
+   "description": "Plan de gestion Val Suzon 2020-2029 — opération MS 8.10 (rattachement OLT)."
+  },
+  {
+   "code": "MS 8.11",
+   "indicateur": "I163",
+   "libelle": "Montage et suivi administratif et financier des opérations",
+   "type_action": "",
+   "priorite": "Priorité 1",
+   "annee_min": 2020,
+   "annee_max": 2029,
+   "operateurs": "",
+   "financeurs": "",
+   "description": "Plan de gestion Val Suzon 2020-2029 — opération MS 8.11 (rattachement OLT)."
+  },
+  {
+   "code": "MS 8.12",
+   "indicateur": "I163",
+   "libelle": "Recherche de partenaires financiers",
+   "type_action": "",
+   "priorite": "Priorité 1",
+   "annee_min": 2020,
+   "annee_max": 2029,
+   "operateurs": "",
+   "financeurs": "",
+   "description": "Plan de gestion Val Suzon 2020-2029 — opération MS 8.12 (rattachement OLT)."
+  },
+  {
+   "code": "MS 8.13",
+   "indicateur": "I163",
+   "libelle": "Gestion des achats (prestations, fournitures…)",
+   "type_action": "",
+   "priorite": "Priorité 1",
+   "annee_min": 2020,
+   "annee_max": 2029,
+   "operateurs": "",
+   "financeurs": "",
+   "description": "Plan de gestion Val Suzon 2020-2029 — opération MS 8.13 (rattachement OLT)."
+  },
+  {
+   "code": "MS 8.14",
+   "indicateur": "I163",
+   "libelle": "Gestion administrative (secrétariat, documentation, classement…)",
+   "type_action": "",
+   "priorite": "Priorité 1",
+   "annee_min": 2020,
+   "annee_max": 2029,
+   "operateurs": "",
+   "financeurs": "",
+   "description": "Plan de gestion Val Suzon 2020-2029 — opération MS 8.14 (rattachement OLT)."
+  },
+  {
+   "code": "MS 8.15",
+   "indicateur": "I164",
+   "libelle": "Formation permanente du personnel (OFB, ONF…)",
+   "type_action": "",
+   "priorite": "Priorité 1",
+   "annee_min": 2020,
+   "annee_max": 2029,
+   "operateurs": "",
+   "financeurs": "",
+   "description": "Plan de gestion Val Suzon 2020-2029 — opération MS 8.15 (rattachement OLT)."
+  },
+  {
+   "code": "MS 8.16",
+   "indicateur": "I164",
+   "libelle": "Organisation et participation aux réunions d'équipe de gestion de la RNR-FE",
+   "type_action": "",
+   "priorite": "Priorité 1",
+   "annee_min": 2020,
+   "annee_max": 2029,
+   "operateurs": "",
+   "financeurs": "",
+   "description": "Plan de gestion Val Suzon 2020-2029 — opération MS 8.16 (rattachement OLT)."
+  },
+  {
+   "code": "MS 8.17",
+   "indicateur": "I164",
+   "libelle": "Recrutement et encadrement (stagiaires/vacataires/prestataires/chargé d'études, …)",
+   "type_action": "",
+   "priorite": "Priorité 1",
+   "annee_min": 2020,
+   "annee_max": 2029,
+   "operateurs": "",
+   "financeurs": "",
+   "description": "Plan de gestion Val Suzon 2020-2029 — opération MS 8.17 (rattachement OLT)."
+  },
+  {
+   "code": "MS 8.18",
+   "indicateur": "I165",
+   "libelle": "Achat de matériel divers",
+   "type_action": "",
+   "priorite": "Priorité 1",
+   "annee_min": 2020,
+   "annee_max": 2029,
+   "operateurs": "",
+   "financeurs": "",
+   "description": "Plan de gestion Val Suzon 2020-2029 — opération MS 8.18 (rattachement OLT)."
+  }
+ ]
+}

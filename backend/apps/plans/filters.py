@@ -83,7 +83,9 @@ class PlanGestionFilter(filters.FilterSet):
     multi_sites = filters.BooleanFilter(method='filter_multi_sites')
     avec_fichiers = filters.BooleanFilter(method='filter_avec_fichiers')
     avec_referents = filters.BooleanFilter(method='filter_avec_referents')
-    
+    # Plans pré-remplis par IA en attente de relecture (module d'import IA).
+    import_ia_en_attente = filters.BooleanFilter()
+
     class Meta:
         model = PlanGestion
         fields = {

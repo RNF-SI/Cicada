@@ -354,23 +354,39 @@ def _emit_oo(alloc, rows, oo, seen_oo, enjeu_code: str = "") -> None:
 
 
 def _emit_bio(rows, cible_code: str, obj) -> None:
-    """Émet les taxons et habitats rattachés à un enjeu ou un indicateur."""
-    for taxon in obj.taxons.all().order_by("cd_nom"):
-        rows.taxons.append(
-            {
-                "cible": cible_code,
-                "cd_nom": taxon.cd_nom,
-                "nom": taxon.nom_complet or taxon.nom_vern or "",
-            }
-        )
-    for habitat in obj.habitats.all().order_by("cd_hab"):
-        rows.habitats.append(
-            {
-                "cible": cible_code,
-                "cd_hab": habitat.cd_hab or "",
-                "nom": habitat.lb_hab_fr or "",
-            }
-        )
+    """Émet les taxons et habitats rattachés à un enjeu ou un indicateur.
+
+    Défensif : si les tables de corrélation bio ne sont pas présentes dans la
+    base (référentiels non déployés), on ignore taxons/habitats plutôt que de
+    faire échouer tout l'export/lecture de l'arborescence.
+    """
+    from django.db import transaction
+    from django.db.utils import DatabaseError
+
+    # Savepoint : si la table de corrélation manque, on annule juste ce bloc
+    # sans casser la transaction de la requête englobante.
+    try:
+        with transaction.atomic():
+            taxons = [
+                {
+                    "cible": cible_code,
+                    "cd_nom": taxon.cd_nom,
+                    "nom": taxon.nom_complet or taxon.nom_vern or "",
+                }
+                for taxon in obj.taxons.all().order_by("cd_nom")
+            ]
+            habitats = [
+                {
+                    "cible": cible_code,
+                    "cd_hab": habitat.cd_hab or "",
+                    "nom": habitat.lb_hab_fr or "",
+                }
+                for habitat in obj.habitats.all().order_by("cd_hab")
+            ]
+        rows.taxons.extend(taxons)
+        rows.habitats.extend(habitats)
+    except DatabaseError:
+        pass
 
 
 def _emit_indicateur(alloc, rows, ind, parent_code: str) -> None:

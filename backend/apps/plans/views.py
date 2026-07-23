@@ -1573,6 +1573,137 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
             status=status.HTTP_201_CREATED,
         )
 
+    @action(detail=True, methods=['post'], url_path='extract-ia',
+            parser_classes=[MultiPartParser, FormParser])
+    def extract_ia(self, request, pk=None):
+        """
+        Lance l'extraction IA (Anthropic) d'un plan à partir d'un ou plusieurs PDF.
+
+        POST /api/plans/plans/{id}/extract-ia/ — multipart :
+          - champ « files » (répétable) ou « file » : PDF du plan.
+          - « target » : « arborescence » ou « actions ».
+          - « model » (optionnel).
+        Renvoie { "task_id": ... } ; l'extraction tourne en tâche de fond (Celery).
+        Le plan doit être en brouillon (verrou #248). L'IA n'importe rien : le
+        résultat alimente la grille de correction, le gestionnaire valide.
+        """
+        import base64
+        from .tasks import extract_plan_ia
+        from .services_import_ia import DEFAULT_MODEL
+
+        plan = self.get_object()
+        target = (request.data.get('target') or '').strip()
+        if target not in ('arborescence', 'actions'):
+            return Response(
+                {'error': "« target » doit valoir « arborescence » ou « actions »."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        files = request.FILES.getlist('files') or list(
+            filter(None, [request.FILES.get('file')])
+        )
+        if not files:
+            return Response(
+                {'error': "Aucun PDF reçu (champ « files » attendu)."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        pdf_b64 = [base64.standard_b64encode(f.read()).decode('ascii') for f in files]
+        model = request.data.get('model') or DEFAULT_MODEL
+        task = extract_plan_ia.delay(plan.pk, target, pdf_b64, model)
+        return Response({'task_id': task.id}, status=status.HTTP_202_ACCEPTED)
+
+    @action(detail=True, methods=['get'], url_path='extract-ia/status')
+    def extract_ia_status(self, request, pk=None):
+        """
+        État d'une extraction IA lancée par extract-ia.
+
+        GET /api/plans/plans/{id}/extract-ia/status/?task_id=...
+        Renvoie { "state": PENDING|STARTED|SUCCESS|FAILURE, ... }. Quand SUCCESS :
+        { "data": ..., "report": ..., "meta": ... } (forme identique à validate-data).
+        """
+        from celery.result import AsyncResult
+
+        task_id = request.query_params.get('task_id')
+        if not task_id:
+            return Response({'error': "« task_id » manquant."},
+                            status=status.HTTP_400_BAD_REQUEST)
+        res = AsyncResult(task_id)
+        if res.successful():
+            payload = res.result if isinstance(res.result, dict) else {}
+            return Response({'state': 'SUCCESS', **payload}, status=status.HTTP_200_OK)
+        if res.failed():
+            return Response({'state': 'FAILURE', 'error': str(res.result)},
+                            status=status.HTTP_200_OK)
+        return Response({'state': res.state}, status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=['get'], url_path='import-arborescence/current-data')
+    def import_arborescence_current_data(self, request, pk=None):
+        """
+        Arborescence ACTUELLE du plan, au format plat (comme validate-data).
+
+        GET /api/plans/plans/{id}/import-arborescence/current-data/
+        Sert au module d'import IA : charger ce qui est en base pour le relire /
+        réorganiser dans l'arbre éditable. Réutilise `_extract_plan` (codes E/O/N/…).
+        """
+        from dataclasses import asdict
+        from .services_import import _extract_plan
+
+        plan = self.get_object()
+        rows = asdict(_extract_plan(plan))
+        data = {}
+        for sheet, lst in rows.items():
+            data[sheet] = [
+                {**r, '_row': i + 3} for i, r in enumerate(lst)
+            ]
+        return Response({'data': data}, status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=['get'], url_path='import-actions/current-data')
+    def import_actions_current_data(self, request, pk=None):
+        """
+        Actions/opérations ACTUELLES du plan, au format plat.
+
+        GET /api/plans/plans/{id}/import-actions/current-data/
+        Sert au module d'import IA : afficher les actions rattachées aux
+        indicateurs dans l'arbre de relecture. Les codes d'indicateur sont
+        alignés sur ceux de `import-arborescence/current-data` (même schéma
+        `I{n}`, même ordre de traversée), donc chaque action se rattache au bon
+        nœud indicateur côté frontend.
+        """
+        from .services_import_actions import _actions_reference, _extract_actions
+
+        plan = self.get_object()
+        _, ind_code_by_id, _, _ = _actions_reference(plan)
+        actions = _extract_actions(plan, ind_code_by_id)
+        data = {'actions': [{**r, '_row': i + 3} for i, r in enumerate(actions)]}
+        return Response({'data': data}, status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=['post'], url_path='import-ia/mark-reviewed')
+    def import_ia_mark_reviewed(self, request, pk=None):
+        """
+        Marque le plan comme relu (sort de la file « en attente de relecture IA »).
+
+        POST /api/plans/plans/{id}/import-ia/mark-reviewed/
+        """
+        plan = self.get_object()
+        plan.import_ia_en_attente = False
+        plan.save(update_fields=['import_ia_en_attente'])
+        return Response({'import_ia_en_attente': False}, status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=['post'], url_path='import-ia/mark-pending')
+    def import_ia_mark_pending(self, request, pk=None):
+        """
+        Marque le plan comme pré-rempli par IA, en attente de relecture.
+
+        POST /api/plans/plans/{id}/import-ia/mark-pending/
+        Appelé après un import IA (l'extraction a rempli le brouillon).
+        """
+        from django.utils import timezone
+
+        plan = self.get_object()
+        plan.import_ia_en_attente = True
+        plan.import_ia_date = timezone.now()
+        plan.save(update_fields=['import_ia_en_attente', 'import_ia_date'])
+        return Response({'import_ia_en_attente': True}, status=status.HTTP_200_OK)
+
     @action(detail=True, methods=['post'], url_path='change-status',
             permission_classes=[permissions.IsAuthenticated, IsReferent])
     def change_status(self, request, pk=None):

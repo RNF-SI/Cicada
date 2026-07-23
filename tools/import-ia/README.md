@@ -83,6 +83,33 @@ Puis, dans Cicada, ouvrir la page **Paramètres du plan → Import** et coller /
 importer le JSON via la grille de correction (#9), ou poster directement sur
 `…/import-{cible}/import-data/`.
 
+### Pipeline POC complet — `run_poc.py`
+
+Orchestrateur : un PDF → **brouillon rempli** dans CICADA (arborescence **puis**
+actions), en un appel. Le gestionnaire relit et valide ensuite dans la grille.
+
+```bash
+export ANTHROPIC_API_KEY=sk-ant-...
+JWT=$(curl -s -X POST http://localhost:8000/api/auth/login/ \
+  -H 'Content-Type: application/json' \
+  -d '{"username":"admin@test.fr","password":"Test123!"}' \
+  | python3 -c 'import sys,json;print(json.load(sys.stdin)["access"])')
+
+# Plan cible = un BROUILLON VIDE (l'import arbo est en création seule)
+python run_poc.py plan.pdf --plan 1444 --token "$JWT"
+
+# Dry-run : extrait et valide sans rien écrire (rapport d'erreurs)
+python run_poc.py plan.pdf --plan 1444 --token "$JWT" --dry-run
+
+# Comparer un modèle / cibler des pages / une seule phase
+python run_poc.py plan.pdf --plan 1444 --token "$JWT" \
+  --model claude-sonnet-5 --only arbo --arbo-pages 30-60 --out-dir ./sorties
+```
+
+Flags : `--plan` (id, brouillon vide) · `--token` (JWT gestionnaire) · `--base-url`
+(défaut localhost:8000) · `--model` · `--only arbo|actions|both` · `--pages` /
+`--arbo-pages` / `--actions-pages` · `--dry-run` · `--out-dir`.
+
 ### Debug du format (sans clé API)
 
 ```bash

@@ -254,6 +254,19 @@ class PlanGestion(models.Model):
         help_text=_("Étape du workflow CSRPN en cours (avis CSRPN, comité consultatif, arrêté préfectoral).")
     )
 
+    # Import IA : ce plan a été pré-rempli par l'IA et attend la relecture d'un
+    # gestionnaire dans le module d'import. Retombe à False une fois relu/validé.
+    import_ia_en_attente = models.BooleanField(
+        _("Import IA en attente de relecture"),
+        default=False,
+        db_index=True,
+        help_text=_("Plan pré-rempli par l'IA, en attente de relecture."),
+    )
+    import_ia_date = models.DateTimeField(
+        _("Date de l'import IA"),
+        null=True, blank=True,
+    )
+
     version = models.CharField(
         _("Version"),
         max_length=20,

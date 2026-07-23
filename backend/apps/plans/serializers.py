@@ -231,6 +231,7 @@ class PlanGestionListSerializer(serializers.ModelSerializer):
             'next_rang_plan_id', 'next_rang_plan_slug',
             'plan_parent_id', 'type_document_display', 'children_count', 'enjeux_count',
             'sites', 'referents', 'membres',
+            'import_ia_en_attente', 'import_ia_date',
         ]
 
     def get_is_extended(self, obj):

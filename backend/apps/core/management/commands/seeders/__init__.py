@@ -32,6 +32,7 @@ from .enjeux_seeder import EnjeuxSeeder
 from .minimal_plans_seeder import MinimalPlansSeeder
 from .realisations_seeder import RealisationsSeeder
 from .rh_seeder import RhSeeder
+from .ia_import_seeder import IaImportSeeder
 from .pending_users_seeder import PendingUsersSeeder
 from .validation_requests_seeder import ValidationRequestsSeeder
 from .notifications_seeder import NotificationsSeeder
@@ -55,6 +56,7 @@ SEEDER_CLASSES: List[Type[BaseSeeder]] = [
     MinimalPlansSeeder,  # deps: enjeux (chaîne minimale pour Brouage, Scandola, Remoray)
     RealisationsSeeder,  # deps: enjeux (utilise les OperationAnnee seedées)
     RhSeeder,            # deps: minimal_plans, realisations (#560 — personnes + RH)
+    IaImportSeeder,      # deps: users (rejoue les extractions IA → module de relecture)
     PendingUsersSeeder,  # deps: organismes
 
     # Phase 3: Seeders complexes
