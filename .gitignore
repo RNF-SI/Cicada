@@ -112,3 +112,7 @@ cicada_*.deb
 
 # Fichiers de test d'import de sites (locaux, non versionnés)
 frontend/src/assets/templates/import-sites-test*
+
+# Données IA de seed (plans nommés, non versionnés sur GitHub)
+backend/apps/core/management/commands/seeders/data/ia_plans/
+/Import-IA-*.docx
