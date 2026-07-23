@@ -1409,6 +1409,14 @@ class Poste(models.Model):
         verbose_name=_("Organisme"),
         help_text=_("Organisme employeur / porteur du poste")
     )
+    organisme_libre = models.CharField(
+        _("Organisme (saisi)"),
+        max_length=150,
+        blank=True,
+        default='',
+        help_text=_("Nom d'organisme saisi librement, hors référentiel — "
+                    "notamment pour un prestataire (ex. « presta1 »). Facultatif.")
+    )
     nombre = models.PositiveSmallIntegerField(
         _("Nombre de postes"),
         default=1,
@@ -1466,6 +1474,20 @@ class Poste(models.Model):
         if not fonctions:
             return True
         return any(f.finance_par_defaut for f in fonctions)
+
+    def is_prestataire(self):
+        """Vrai si au moins une fonction du poste est de type prestataire (#599)."""
+        return any(
+            pf.id_fonction.type_poste == Fonction.TYPE_PRESTATAIRE
+            for pf in self.fonctions.all()
+        )
+
+    @property
+    def organisme_affichage(self):
+        """Organisme à afficher : le référentiel s'il existe, sinon la saisie libre."""
+        if self.id_organisme_id:
+            return self.id_organisme.nom_organisme
+        return self.organisme_libre or None
 
     def get_plan_de_gestion(self):
         """Permet le scoping par plan (#248)."""

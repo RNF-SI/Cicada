@@ -136,6 +136,7 @@ describe('PosteFormDialogComponent', () => {
     expect(rhService.createPoste).toHaveBeenNthCalledWith(1, {
       id_pg: 7,
       id_organisme: 5,
+      organisme_libre: '',
       nombre: 1,
       cout_jour: null,
       fonctions: [{ id_fonction: 3, pourcentage: null }],
@@ -143,6 +144,7 @@ describe('PosteFormDialogComponent', () => {
     expect(rhService.createPoste).toHaveBeenNthCalledWith(2, {
       id_pg: 7,
       id_organisme: 10,
+      organisme_libre: '',
       nombre: 1,
       cout_jour: null,
       fonctions: [{ id_fonction: 3, pourcentage: null }],
@@ -210,6 +212,35 @@ describe('PosteFormDialogComponent', () => {
       comp.save();
       expect(rhService.createPoste).toHaveBeenCalledWith(
         expect.objectContaining({ cout_jour: 350 }),
+      );
+    });
+  });
+
+  describe('prestataire (#599)', () => {
+    function addPresta() {
+      comp.allFonctions.update((l) => [
+        ...l,
+        { id_fonction: 4, libelle: 'Presta SIG', finance_par_defaut: true, type_poste: 'prestataire' },
+      ]);
+    }
+
+    it('préremplit les organismes libres « presta1 », « presta2 »', async () => {
+      await setup();
+      addPresta();
+      comp.setNombre(2);
+      comp.onFonctionChange(4);
+      expect(comp.isPrestataire()).toBe(true);
+      expect(comp.instances().map((i) => i.organisme_libre)).toEqual(['presta1', 'presta2']);
+    });
+
+    it('envoie organisme_libre et id_organisme null au save', async () => {
+      await setup();
+      addPresta();
+      comp.onFonctionChange(4);
+      comp.setInstanceOrganismeLibre(0, 'Bureau SIG');
+      comp.save();
+      expect(rhService.createPoste).toHaveBeenCalledWith(
+        expect.objectContaining({ id_organisme: null, organisme_libre: 'Bureau SIG', cout_jour: null }),
       );
     });
   });

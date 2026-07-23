@@ -137,7 +137,8 @@ export class PlanPostesComponent implements OnInit {
   /** Sous-titre : organisme · nombre d'exemplaires. */
   subtitleFor(p: Poste): string {
     const parts: string[] = [];
-    if (p.organisme_nom) parts.push(p.organisme_nom);
+    const organisme = p.organisme_affichage || p.organisme_nom || p.organisme_libre;
+    if (organisme) parts.push(organisme);
     if (p.nombre > 1) {
       parts.push(this.translate.instant('plans.postes.personnesCount', { count: p.nombre }));
     }

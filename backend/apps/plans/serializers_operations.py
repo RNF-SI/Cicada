@@ -379,6 +379,7 @@ class PosteSerializer(serializers.ModelSerializer):
     """Poste d'un plan de gestion (lecture). Aucun nominatif (RGPD)."""
     fonctions = PosteFonctionSerializer(many=True, read_only=True)
     organisme_nom = serializers.CharField(source='id_organisme.nom_organisme', read_only=True)
+    organisme_affichage = serializers.CharField(read_only=True)
     libelle = serializers.CharField(read_only=True)
     finance_par_defaut = serializers.SerializerMethodField()
 
@@ -386,11 +387,11 @@ class PosteSerializer(serializers.ModelSerializer):
         model = Poste
         fields = [
             'id_poste', 'id_pg', 'libelle',
-            'id_organisme', 'organisme_nom',
+            'id_organisme', 'organisme_nom', 'organisme_libre', 'organisme_affichage',
             'nombre', 'etp', 'cout_jour', 'fonctions', 'finance_par_defaut',
             'date_ajout', 'date_maj',
         ]
-        read_only_fields = ['id_poste', 'libelle', 'date_ajout', 'date_maj']
+        read_only_fields = ['id_poste', 'libelle', 'organisme_affichage', 'date_ajout', 'date_maj']
 
     def get_finance_par_defaut(self, obj):
         return obj.is_finance_par_defaut()
@@ -402,7 +403,10 @@ class PosteWriteSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Poste
-        fields = ['id_poste', 'id_pg', 'id_organisme', 'nombre', 'etp', 'cout_jour', 'fonctions']
+        fields = [
+            'id_poste', 'id_pg', 'id_organisme', 'organisme_libre',
+            'nombre', 'etp', 'cout_jour', 'fonctions',
+        ]
         read_only_fields = ['id_poste']
         extra_kwargs = {'id_organisme': {'required': False, 'allow_null': True}}
 

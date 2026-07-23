@@ -35,8 +35,10 @@ export interface PosteFormDialogData {
 }
 
 interface InstanceRow {
-  /** Organisme de cette personne (ex. Stagiaire 1). */
+  /** Organisme de cette personne (ex. Stagiaire 1), référentiel. */
   id_organisme: number | null;
+  /** Organisme saisi librement (prestataire hors référentiel, #599). */
+  organisme_libre: string;
 }
 
 interface OrganismeOption {
@@ -84,10 +86,12 @@ export class PosteFormDialogComponent implements OnInit {
 
   // Création : une ligne (organisme) par personne ayant ce type de poste
   nombre = signal<number>(1);
-  instances = signal<InstanceRow[]>([{ id_organisme: null }]);
+  instances = signal<InstanceRow[]>([{ id_organisme: null, organisme_libre: '' }]);
 
   // Édition : un poste unique porte un seul organisme
   idOrganisme = signal<number | null>(null);
+  // Organisme saisi librement en édition (prestataire, #599)
+  organismeLibre = signal<string>('');
 
   // Référentiels
   allFonctions = signal<Fonction[]>([]);
@@ -110,6 +114,9 @@ export class PosteFormDialogComponent implements OnInit {
     () => this.selectedFonctionId() != null && this.selectedType() !== 'prestataire',
   );
 
+  /** Poste de prestataire : organisme saisi librement, non obligatoire (#599). */
+  isPrestataire = computed<boolean>(() => this.selectedType() === 'prestataire');
+
   /** Libellé de la fonction choisie, pour intituler les lignes « Stagiaire 1 »… */
   selectedFonctionLabel = computed<string>(() => this.selectedFonction()?.libelle ?? '');
 
@@ -130,15 +137,42 @@ export class PosteFormDialogComponent implements OnInit {
       // Édition : on repart sur une fonction unique (la première du poste).
       this.selectedFonctionId.set(p.fonctions?.[0]?.id_fonction ?? null);
       this.idOrganisme.set(p.id_organisme ?? null);
+      this.organismeLibre.set(p.organisme_libre ?? '');
       this.nombre.set(p.nombre ?? 1);
       this.coutJour.set(p.cout_jour != null ? Number(p.cout_jour) : null);
     }
   }
 
-  /** Sélection d'une fonction → applique les règles de coût jour (#596). */
+  /** Sélection d'une fonction → applique coût jour (#596) et défauts presta (#599). */
   onFonctionChange(id: number | null): void {
     this.selectedFonctionId.set(id);
     this.applyCoutJourDefaults();
+    this.applyPrestataireDefaults();
+  }
+
+  /** Nom d'organisme par défaut d'un prestataire : « presta1 », « presta2 »… (#599). */
+  private prestaDefault(index: number): string {
+    return `presta${index + 1}`;
+  }
+
+  /** Préremplit les organismes libres des instances quand la fonction est prestataire. */
+  private applyPrestataireDefaults(): void {
+    if (this.selectedType() !== 'prestataire') return;
+    this.instances.update((rows) =>
+      rows.map((r, i) => ({
+        ...r,
+        organisme_libre: r.organisme_libre || this.prestaDefault(i),
+      })),
+    );
+    if (this.isEdit && !this.organismeLibre().trim()) {
+      this.organismeLibre.set(this.prestaDefault(0));
+    }
+  }
+
+  setInstanceOrganismeLibre(index: number, value: string): void {
+    this.instances.update((rows) =>
+      rows.map((r, i) => (i === index ? { ...r, organisme_libre: value } : r)),
+    );
   }
 
   setCoutJour(value: number | string | null): void {
@@ -204,9 +238,10 @@ export class PosteFormDialogComponent implements OnInit {
     this.nombre.set(n);
     this.instances.update((rows) => {
       const next = rows.slice(0, n);
-      while (next.length < n) next.push({ id_organisme: null });
+      while (next.length < n) next.push({ id_organisme: null, organisme_libre: '' });
       return next;
     });
+    this.applyPrestataireDefaults();
   }
 
   setInstanceOrganisme(index: number, value: number | null): void {
@@ -256,11 +291,14 @@ export class PosteFormDialogComponent implements OnInit {
     const fonctions = [{ id_fonction: this.selectedFonctionId()!, pourcentage: null }];
     // Coût jour : null pour un prestataire (champ masqué), sinon la valeur saisie.
     const coutJour = this.showCoutJour() ? this.coutJour() : null;
+    const presta = this.isPrestataire();
 
     if (this.isEdit) {
       const payload: Partial<PostePayload> = {
         id_pg: this.data.planId,
-        id_organisme: this.idOrganisme() ?? null,
+        // Prestataire → organisme saisi librement ; sinon référentiel (#599).
+        id_organisme: presta ? null : (this.idOrganisme() ?? null),
+        organisme_libre: presta ? this.organismeLibre().trim() : '',
         nombre: this.data.poste!.nombre || 1,
         cout_jour: coutJour,
         fonctions,
@@ -279,7 +317,8 @@ export class PosteFormDialogComponent implements OnInit {
     const requests = this.instances().map((inst) =>
       this.rhService.createPoste({
         id_pg: this.data.planId,
-        id_organisme: inst.id_organisme ?? null,
+        id_organisme: presta ? null : (inst.id_organisme ?? null),
+        organisme_libre: presta ? inst.organisme_libre.trim() : '',
         nombre: 1,
         cout_jour: coutJour,
         fonctions,

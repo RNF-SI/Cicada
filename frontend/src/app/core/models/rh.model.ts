@@ -51,6 +51,10 @@ export interface Poste {
   libelle?: string;
   id_organisme?: number | null;
   organisme_nom?: string | null;
+  /** Nom d'organisme saisi librement (prestataire hors référentiel, #599). */
+  organisme_libre?: string | null;
+  /** Organisme à afficher : référentiel s'il existe, sinon saisie libre (lecture). */
+  organisme_affichage?: string | null;
   /** Combien de postes de ce type (ex. 3 stagiaires). */
   nombre: number;
   /** ETP pour ce poste, TOTAL sur les `nombre` postes. */
@@ -68,6 +72,7 @@ export interface Poste {
 export interface PostePayload {
   id_pg: number;
   id_organisme?: number | null;
+  organisme_libre?: string | null;
   nombre: number;
   etp?: number | string | null;
   cout_jour?: number | string | null;
