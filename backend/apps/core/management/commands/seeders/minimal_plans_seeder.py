@@ -807,15 +807,21 @@ class MinimalPlansSeeder(BaseSeeder):
         ]
         etp_profiles = [4, 8, 12, 6, 10]
 
-        # Modes de ventilation alternés pour couvrir les 4 cas.
-        ventilation_modes = ['none', 'by_org', 'by_type', 'by_org_type']
+        # Modes de ventilation alternés pour couvrir tous les cas (#600 inclus).
+        ventilation_modes = [
+            'none', 'by_org', 'by_type', 'by_org_type',
+            'by_type_poste', 'by_org_type_poste',
+        ]
+        # Modes qui déclinent le temps de travail par poste (#600).
+        poste_modes = ('by_type_poste', 'by_org_type_poste')
 
         organismes = list(BibOrganismes.objects.all()[:2])  # 2 orgs pour ventilation
 
         for idx, op in enumerate(operations):
-            v_mode = ventilation_modes[idx % 4]
+            v_mode = ventilation_modes[idx % len(ventilation_modes)]
             op.ventilation_mode = v_mode
-            op.save(update_fields=['ventilation_mode'])
+            op.declinaison_par_poste = v_mode in poste_modes
+            op.save(update_fields=['ventilation_mode', 'declinaison_par_poste'])
 
             if not op.annee_min or not op.annee_max:
                 continue
@@ -831,13 +837,13 @@ class MinimalPlansSeeder(BaseSeeder):
                 if v_mode == 'none':
                     defaults['budget'] = budget
                     defaults['etp'] = etp
-                elif v_mode == 'by_type':
+                elif v_mode in ('by_type', 'by_type_poste'):
                     defaults['budget_fonctionnement'] = round(budget * 0.6, 2)
                     defaults['budget_investissement'] = round(budget * 0.4, 2)
                     defaults['budget'] = budget
                     defaults['etp'] = etp
                 else:
-                    # by_org / by_org_type : budget total sera l'agrégation des orgs.
+                    # by_org / by_org_type(_poste) : budget total = agrégation des orgs.
                     defaults['budget'] = budget
                     defaults['etp'] = etp
 
@@ -846,7 +852,7 @@ class MinimalPlansSeeder(BaseSeeder):
                 )
 
                 # Ventilation par organismes
-                if v_mode in ('by_org', 'by_org_type') and organismes:
+                if v_mode in ('by_org', 'by_org_type', 'by_org_type_poste') and organismes:
                     per_org_budget = budget / len(organismes)
                     per_org_etp = etp / len(organismes)
                     for org in organismes:
@@ -857,9 +863,14 @@ class MinimalPlansSeeder(BaseSeeder):
                                 'etp': round(per_org_etp, 2),
                             }
                         else:
+                            # by_org_type(_poste) : fonct/invest + coûts additionnels (#600).
                             org_defaults = {
                                 'budget_fonctionnement': round(per_org_budget * 0.6, 2),
                                 'budget_investissement': round(per_org_budget * 0.4, 2),
+                                'cout_stage': round(per_org_budget * 0.1, 2),
+                                'cout_prestataire': round(per_org_budget * 0.15, 2),
+                                'autre_cout': round(per_org_budget * 0.05, 2),
+                                'autre_cout_commentaire': 'Frais divers',
                                 'etp': round(per_org_etp, 2),
                             }
                         OperationAnneeOrganisme.objects.update_or_create(

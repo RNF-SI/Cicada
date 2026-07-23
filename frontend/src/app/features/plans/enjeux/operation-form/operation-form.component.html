@@ -661,7 +661,7 @@
                 </div>
               }
 
-              <!-- Sélecteur mode de ventilation budgétaire (4 modes) -->
+              <!-- Sélecteur mode de ventilation (#600 : 6 modes) -->
               <div class="programmation-mode-toggle">
                 <span class="field-label">{{ 'enjeux.operations.modeVentilationLabel' | translate }}</span>
                 <mat-button-toggle-group
@@ -678,6 +678,12 @@
                   </mat-button-toggle>
                   <mat-button-toggle value="by_org_type" [disabled]="availableOrganismes().length === 0">
                     {{ 'enjeux.operations.modeByOrgType' | translate }}
+                  </mat-button-toggle>
+                  <mat-button-toggle value="by_type_poste">
+                    {{ 'enjeux.operations.modeByTypePoste' | translate }}
+                  </mat-button-toggle>
+                  <mat-button-toggle value="by_org_type_poste" [disabled]="availableOrganismes().length === 0">
+                    {{ 'enjeux.operations.modeByOrgTypePoste' | translate }}
                   </mat-button-toggle>
                 </mat-button-toggle-group>
               </div>
@@ -709,7 +715,7 @@
                         </tr>
 
                         <!-- MODE 4: Ventilation par organisme + type budget -->
-                        @if (ventilationMode() === 'by_org_type') {
+                        @if (budgetMode() === 'by_org_type') {
                           @for (org of availableOrganismes(); track org.id_organisme) {
                             <!-- Org group header -->
                             <tr class="org-group-header">
@@ -749,6 +755,75 @@
                                 </td>
                               }
                             </tr>
+                            <!-- Coût salarial (auto = jours × coût jour des postes, #600) -->
+                            <tr>
+                              <td class="label-cell label-indent">{{ 'enjeux.operations.coutSalarial' | translate }}</td>
+                              @for (annee of operationAnnees; track annee.annee; let i = $index) {
+                                <td class="computed-cell">
+                                  {{ getOrgCoutSalarial(i, org.id_organisme) | number:'1.0-2' }} €
+                                </td>
+                              }
+                            </tr>
+                            <!-- Coût stage (saisie manuelle, #600) -->
+                            <tr>
+                              <td class="label-cell label-indent">{{ 'enjeux.operations.coutStage' | translate }}</td>
+                              @for (annee of operationAnnees; track annee.annee; let i = $index) {
+                                <td>
+                                  <div class="prog-input-wrapper">
+                                    <input type="text" inputmode="decimal"
+                                           class="prog-input prog-input-suffixed"
+                                           [disabled]="isYearLocked(i)"
+                                           [value]="formatBudget(getOrgBudget(i, org.id_organisme).coutStage)"
+                                           (change)="updateOrgCoutStage(i, org.id_organisme, $any($event.target).value)">
+                                    <span class="prog-input-suffix">€</span>
+                                  </div>
+                                </td>
+                              }
+                            </tr>
+                            <!-- Coût prestataire (saisie manuelle, #600) -->
+                            <tr>
+                              <td class="label-cell label-indent">{{ 'enjeux.operations.coutPrestataire' | translate }}</td>
+                              @for (annee of operationAnnees; track annee.annee; let i = $index) {
+                                <td>
+                                  <div class="prog-input-wrapper">
+                                    <input type="text" inputmode="decimal"
+                                           class="prog-input prog-input-suffixed"
+                                           [disabled]="isYearLocked(i)"
+                                           [value]="formatBudget(getOrgBudget(i, org.id_organisme).coutPresta)"
+                                           (change)="updateOrgCoutPresta(i, org.id_organisme, $any($event.target).value)">
+                                    <span class="prog-input-suffix">€</span>
+                                  </div>
+                                </td>
+                              }
+                            </tr>
+                            <!-- Autre coût : montant + commentaire (#600) -->
+                            <tr>
+                              <td class="label-cell label-indent">{{ 'enjeux.operations.autreCout' | translate }}</td>
+                              @for (annee of operationAnnees; track annee.annee; let i = $index) {
+                                <td>
+                                  <div class="prog-input-wrapper">
+                                    <input type="text" inputmode="decimal"
+                                           class="prog-input prog-input-suffixed"
+                                           [disabled]="isYearLocked(i)"
+                                           [value]="formatBudget(getOrgBudget(i, org.id_organisme).autreCout)"
+                                           (change)="updateOrgAutreCout(i, org.id_organisme, $any($event.target).value)">
+                                    <span class="prog-input-suffix">€</span>
+                                  </div>
+                                </td>
+                              }
+                            </tr>
+                            <tr>
+                              <td class="label-cell label-indent">{{ 'enjeux.operations.autreCoutCommentaire' | translate }}</td>
+                              @for (annee of operationAnnees; track annee.annee; let i = $index) {
+                                <td>
+                                  <input type="text" class="prog-input"
+                                         [disabled]="isYearLocked(i)"
+                                         [value]="getOrgBudget(i, org.id_organisme).autreComment"
+                                         (change)="updateOrgAutreComment(i, org.id_organisme, $any($event.target).value)"
+                                         [placeholder]="'enjeux.operations.autreCoutCommentairePlaceholder' | translate">
+                                </td>
+                              }
+                            </tr>
                             <!-- Budget TOTAL (computed, read-only) -->
                             <tr>
                               <td class="label-cell label-indent text-bold">{{ 'enjeux.operations.budgetTotal' | translate }}</td>
@@ -776,7 +851,7 @@
                           </tr>
 
                         <!-- MODE 2: Par organisme (totaux uniquement) -->
-                        } @else if (ventilationMode() === 'by_org') {
+                        } @else if (budgetMode() === 'by_org') {
                           @for (org of availableOrganismes(); track org.id_organisme) {
                             <tr class="org-group-header">
                               <td class="label-cell org-name" [attr.colspan]="operationAnnees.length + 1">
@@ -816,7 +891,7 @@
                           </tr>
 
                         <!-- MODE 3: Par type de budget (global) -->
-                        } @else if (ventilationMode() === 'by_type') {
+                        } @else if (budgetMode() === 'by_type') {
                           <tr>
                             <td class="label-cell label-indent">{{ 'enjeux.operations.budgetFonctionnement' | translate }}</td>
                             @for (annee of operationAnnees; track annee.annee; let i = $index) {
@@ -857,7 +932,7 @@
                           </tr>
 
                         <!-- MODE 1: Pas de ventilation (totaux directs) -->
-                        } @else if (ventilationMode() === 'none') {
+                        } @else if (budgetMode() === 'none') {
                           <tr>
                             <td class="label-cell label-indent text-bold">{{ 'enjeux.operations.progBudget' | translate }}</td>
                             @for (annee of operationAnnees; track annee.annee; let i = $index) {
@@ -918,15 +993,11 @@
                 <div class="programmation-section rh-section">
                   <h4 class="rh-title">{{ 'enjeux.operations.rh.title' | translate }}</h4>
 
-                  <div class="rh-declinaison">
-                    <app-checkbox
-                      [checked]="declinaisonParPoste()"
-                      [disabled]="isReadOnly()"
-                      [label]="'enjeux.operations.rh.declinaisonLabel' | translate"
-                      [mention]="'enjeux.operations.rh.declinaisonMention' | translate"
-                      (checkedChange)="toggleDeclinaisonParPoste($event)">
-                    </app-checkbox>
-                  </div>
+                  <!-- #600 — la déclinaison par poste est pilotée par les modes
+                       de ventilation « + type de poste » (plus de case dédiée). -->
+                  <p class="text-mention rh-declinaison-hint">
+                    {{ 'enjeux.operations.rh.declinaisonHint' | translate }}
+                  </p>
 
                   @if (operationAnnees.length === 0) {
                     <p class="mensuelle-hint">{{ 'enjeux.operations.rh.noYears' | translate }}</p>

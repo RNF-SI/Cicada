@@ -64,6 +64,22 @@ import {
 /** Option de type de métrique brute (nomenclature TYPE_METRIQUE). */
 type TypeMetriqueNomenclature = { id_nomenclature: number; mnemonique?: string; label: string };
 
+/** Modes de ventilation (#600), incluant les modes « + type de poste ». */
+type VentilationMode =
+  | 'none' | 'by_org' | 'by_type' | 'by_org_type'
+  | 'by_type_poste' | 'by_org_type_poste';
+
+/** Cellule budget d'un organisme/année : budgets + coûts additionnels (#600). */
+interface OrgBudgetCell {
+  fonct: number | null;
+  invest: number | null;
+  etp: number | null;
+  coutStage: number | null;
+  coutPresta: number | null;
+  autreCout: number | null;
+  autreComment: string;
+}
+
 /**
  * #452 — Types de métrique proposés pour un indicateur de réponse en saisie SIMPLE
  * (case « grille de scoring » décochée) : uniquement « Chiffrée » (CHIFFRE) et
@@ -600,10 +616,27 @@ export class OperationFormComponent implements OnInit {
   finances: FinanceOperation[] = [];
 
   // Per-organisme budget data: key = `${yearIndex}-${organismeId}`
-  orgBudgets: Record<string, { fonct: number | null; invest: number | null; etp: number | null }> = {};
+  // #600 — s'ajoutent aux coûts (stage / prestataire / autre + commentaire).
+  orgBudgets: Record<string, OrgBudgetCell> = {};
 
-  /** Mode de ventilation budgétaire : none, by_org, by_type, by_org_type */
-  ventilationMode = signal<'none' | 'by_org' | 'by_type' | 'by_org_type'>('none');
+  /** Mode de ventilation (#600) : + « type de poste » qui décline le temps de travail. */
+  ventilationMode = signal<VentilationMode>('none');
+
+  /**
+   * Layout du tableau budget : les modes « + type de poste » réutilisent le
+   * même rendu budget que leur mode de base (#600).
+   */
+  budgetMode = computed<'none' | 'by_org' | 'by_type' | 'by_org_type'>(() => {
+    const m = this.ventilationMode();
+    if (m === 'by_type_poste') return 'by_type';
+    if (m === 'by_org_type_poste') return 'by_org_type';
+    return m;
+  });
+
+  /** Vrai si le mode décline le temps de travail par poste (#600). */
+  isPosteVentilation = computed<boolean>(() =>
+    this.ventilationMode() === 'by_type_poste' || this.ventilationMode() === 'by_org_type_poste',
+  );
 
   /** Raccourci pour rétrocompatibilité avec le code existant */
   directTotalMode = computed(() => this.ventilationMode() === 'none');
@@ -641,7 +674,10 @@ export class OperationFormComponent implements OnInit {
    *                   déclinaison ni ventilation par organisme).
    */
   rhMode = computed<'postes' | 'organismes' | 'global'>(() => {
-    if (this.declinaisonParPoste()) return 'postes';
+    // #600 — les modes « + type de poste » déclinent le temps de travail par
+    // poste (remplacent l'ancienne case). `declinaisonParPoste` reste lu pour
+    // les données déjà enregistrées.
+    if (this.isPosteVentilation() || this.declinaisonParPoste()) return 'postes';
     const mode = this.ventilationMode();
     return mode === 'by_org' || mode === 'by_org_type' ? 'organismes' : 'global';
   });
@@ -1478,6 +1514,11 @@ export class OperationFormComponent implements OnInit {
               fonct: org.budget_fonctionnement != null ? parseFloat(String(org.budget_fonctionnement)) : null,
               invest: org.budget_investissement != null ? parseFloat(String(org.budget_investissement)) : null,
               etp: org.etp != null ? parseFloat(String(org.etp)) : null,
+              // #600 — coûts additionnels.
+              coutStage: org.cout_stage != null ? parseFloat(String(org.cout_stage)) : null,
+              coutPresta: org.cout_prestataire != null ? parseFloat(String(org.cout_prestataire)) : null,
+              autreCout: org.autre_cout != null ? parseFloat(String(org.autre_cout)) : null,
+              autreComment: org.autre_cout_commentaire ?? '',
             };
           }
         }
@@ -1519,11 +1560,14 @@ export class OperationFormComponent implements OnInit {
     }
 
     // Restore ventilation mode from backend (or infer for legacy data)
-    const savedMode = op.ventilation_mode || 'none';
+    const savedMode = (op.ventilation_mode || 'none') as VentilationMode;
     this.ventilationMode.set(savedMode);
+    // #600 — les modes « + type de poste » réutilisent le layout budget de base.
+    const savedBudgetMode = savedMode === 'by_type_poste' ? 'by_type'
+      : savedMode === 'by_org_type_poste' ? 'by_org_type' : savedMode;
 
     if (op.operation_annees && op.operation_annees.length > 0) {
-      if (savedMode === 'by_org') {
+      if (savedBudgetMode === 'by_org') {
         for (const serverAnnee of op.operation_annees) {
           const yearIdx = this.operationAnnees.findIndex(a => a.annee === serverAnnee.annee);
           if (yearIdx >= 0 && serverAnnee.organismes) {
@@ -1535,7 +1579,7 @@ export class OperationFormComponent implements OnInit {
             }
           }
         }
-      } else if (savedMode === 'by_type') {
+      } else if (savedBudgetMode === 'by_type') {
         for (const serverAnnee of op.operation_annees) {
           const yearIdx = this.operationAnnees.findIndex(a => a.annee === serverAnnee.annee);
           if (yearIdx >= 0) {
@@ -1546,7 +1590,7 @@ export class OperationFormComponent implements OnInit {
             };
           }
         }
-      } else if (savedMode === 'none') {
+      } else if (savedBudgetMode === 'none') {
         for (const serverAnnee of op.operation_annees) {
           const yearIdx = this.operationAnnees.findIndex(a => a.annee === serverAnnee.annee);
           if (yearIdx >= 0) {
@@ -1978,14 +2022,21 @@ export class OperationFormComponent implements OnInit {
     // Template mensuel (mêmes mois chaque année)
     payload.programmation_mensuelle_defaut = { ...this.programmationMensuelleDefaut };
 
-    // Mode de ventilation du budget
-    const mode = this.ventilationMode();
-    payload.ventilation_mode = mode;
-    payload.declinaison_par_poste = this.declinaisonParPoste();
+    // Mode de ventilation du budget (#600 : le layout budget suit budgetMode()).
+    const mode = this.budgetMode();
+    payload.ventilation_mode = this.ventilationMode();
+    // #600 — la déclinaison par poste est désormais portée par le mode.
+    payload.declinaison_par_poste = this.isPosteVentilation();
 
     // Operation annees: apply the monthly template to all years + per-organisme data
     const orgs = this.availableOrganismes();
-    type OrgEntry = { id_organisme: number; budget_fonctionnement: number | null; budget_investissement: number | null; etp: number | null };
+    type OrgEntry = {
+      id_organisme: number;
+      budget_fonctionnement: number | null; budget_investissement: number | null;
+      cout_stage: number | null; cout_prestataire: number | null;
+      autre_cout: number | null; autre_cout_commentaire: string;
+      etp: number | null;
+    };
     const anneesToSave = this.operationAnnees.map((a, idx) => {
       const base = {
         annee: a.annee,
@@ -2030,6 +2081,8 @@ export class OperationFormComponent implements OnInit {
               id_organisme: org.id_organisme,
               budget_fonctionnement: data.budget,
               budget_investissement: null,
+              cout_stage: null, cout_prestataire: null,
+              autre_cout: null, autre_cout_commentaire: '',
               etp: data.etp,
             });
           }
@@ -2039,15 +2092,22 @@ export class OperationFormComponent implements OnInit {
         return { ...base, budget: orgEntries.length > 0 ? totalBudget : null, etp: orgEntries.length > 0 ? totalEtp : null, budget_fonctionnement: null, budget_investissement: null, organismes: orgEntries };
       }
 
-      // Mode 4: by_org_type — Par organisme + type (mode actuel ventilation)
+      // Mode 4: by_org_type — Par organisme + type de budget (+ coûts #600)
       const orgEntries: OrgEntry[] = [];
       for (const org of orgs) {
         const data = this.getOrgBudget(idx, org.id_organisme);
-        if (data.fonct != null || data.invest != null || data.etp != null) {
+        const hasData = data.fonct != null || data.invest != null || data.etp != null
+          || data.coutStage != null || data.coutPresta != null
+          || data.autreCout != null || (data.autreComment ?? '') !== '';
+        if (hasData) {
           orgEntries.push({
             id_organisme: org.id_organisme,
             budget_fonctionnement: data.fonct,
             budget_investissement: data.invest,
+            cout_stage: data.coutStage,
+            cout_prestataire: data.coutPresta,
+            autre_cout: data.autreCout,
+            autre_cout_commentaire: data.autreComment ?? '',
             etp: data.etp,
           });
         }
@@ -3256,10 +3316,13 @@ export class OperationFormComponent implements OnInit {
     return `${yearIdx}-${orgId}`;
   }
 
-  getOrgBudget(yearIdx: number, orgId: number): { fonct: number | null; invest: number | null; etp: number | null } {
+  getOrgBudget(yearIdx: number, orgId: number): OrgBudgetCell {
     const key = this.orgKey(yearIdx, orgId);
     if (!this.orgBudgets[key]) {
-      this.orgBudgets[key] = { fonct: null, invest: null, etp: null };
+      this.orgBudgets[key] = {
+        fonct: null, invest: null, etp: null,
+        coutStage: null, coutPresta: null, autreCout: null, autreComment: '',
+      };
     }
     return this.orgBudgets[key];
   }
@@ -3274,14 +3337,54 @@ export class OperationFormComponent implements OnInit {
     this.autoCheckPeriodicite(yearIdx);
   }
 
+  // #600 — coûts additionnels par organisme/année.
+  updateOrgCoutStage(yearIdx: number, orgId: number, value: string): void {
+    this.getOrgBudget(yearIdx, orgId).coutStage = this.parseDecimal(value);
+    this.autoCheckPeriodicite(yearIdx);
+  }
+
+  updateOrgCoutPresta(yearIdx: number, orgId: number, value: string): void {
+    this.getOrgBudget(yearIdx, orgId).coutPresta = this.parseDecimal(value);
+    this.autoCheckPeriodicite(yearIdx);
+  }
+
+  updateOrgAutreCout(yearIdx: number, orgId: number, value: string): void {
+    this.getOrgBudget(yearIdx, orgId).autreCout = this.parseDecimal(value);
+    this.autoCheckPeriodicite(yearIdx);
+  }
+
+  updateOrgAutreComment(yearIdx: number, orgId: number, value: string): void {
+    this.getOrgBudget(yearIdx, orgId).autreComment = value ?? '';
+  }
+
   updateOrgEtp(yearIdx: number, orgId: number, value: string): void {
     this.getOrgBudget(yearIdx, orgId).etp = this.parseDecimal(value);
     this.autoCheckPeriodicite(yearIdx);
   }
 
+  /**
+   * #600 — coût salarial d'un organisme/année : Σ (jours × coût jour) des
+   * postes de cet organisme dans le tableau de temps de travail. Calculé, non
+   * saisi. Nul si aucun poste décliné.
+   */
+  getOrgCoutSalarial(yearIdx: number, orgId: number): number {
+    let total = 0;
+    for (const line of this.rhLines) {
+      if (line.id_poste == null) continue;
+      const poste = this.postes().find(p => p.id_poste === line.id_poste);
+      if (!poste || poste.id_organisme !== orgId) continue;
+      const jours = line.jours[yearIdx] || 0;
+      const coutJour = Number(poste.cout_jour ?? 0) || 0;
+      total += jours * coutJour;
+    }
+    return total;
+  }
+
   getOrgTotal(yearIdx: number, orgId: number): number {
     const data = this.getOrgBudget(yearIdx, orgId);
-    return (data.fonct || 0) + (data.invest || 0);
+    return (data.fonct || 0) + (data.invest || 0)
+      + this.getOrgCoutSalarial(yearIdx, orgId)
+      + (data.coutStage || 0) + (data.coutPresta || 0) + (data.autreCout || 0);
   }
 
   getYearTotalBudget(yearIdx: number): number {
@@ -3328,7 +3431,10 @@ export class OperationFormComponent implements OnInit {
     this.typeBudgets[index] = { fonct: null, invest: null, etp: null };
     for (const org of this.availableOrganismes()) {
       const key = this.orgKey(index, org.id_organisme);
-      this.orgBudgets[key] = { fonct: null, invest: null, etp: null };
+      this.orgBudgets[key] = {
+        fonct: null, invest: null, etp: null,
+        coutStage: null, coutPresta: null, autreCout: null, autreComment: '',
+      };
       this.orgByOrgData[key] = { budget: null, etp: null };
     }
   }
@@ -3468,9 +3574,9 @@ export class OperationFormComponent implements OnInit {
   }
 
   onModeToggle(mode: string): void {
-    this.ventilationMode.set(mode as 'none' | 'by_org' | 'by_type' | 'by_org_type');
-    // Hors déclinaison par poste, les lignes RH suivent les organismes de la
-    // ventilation : le tableau doit se reconstruire (ou disparaître).
+    this.ventilationMode.set(mode as VentilationMode);
+    // Le tableau RH suit le mode : postes en « + type de poste », sinon
+    // organismes de la ventilation, sinon global (#600).
     this.syncRhLines();
   }
 

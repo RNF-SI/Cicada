@@ -641,7 +641,9 @@ class OperationAnneeOrganismeSerializer(serializers.ModelSerializer):
         fields = [
             'id_operation_annee_organisme',
             'id_organisme', 'organisme_nom',
-            'budget_fonctionnement', 'budget_investissement', 'etp',
+            'budget_fonctionnement', 'budget_investissement',
+            'cout_stage', 'cout_prestataire', 'autre_cout', 'autre_cout_commentaire',
+            'etp',
             'realisation',
         ]
         read_only_fields = ['id_operation_annee_organisme']
@@ -1236,6 +1238,11 @@ class OperationAnneeOrganismeWriteSerializer(serializers.Serializer):
     id_organisme = serializers.IntegerField()
     budget_fonctionnement = serializers.DecimalField(max_digits=12, decimal_places=2, required=False, allow_null=True)
     budget_investissement = serializers.DecimalField(max_digits=12, decimal_places=2, required=False, allow_null=True)
+    # #600 — coûts additionnels par organisme/année.
+    cout_stage = serializers.DecimalField(max_digits=12, decimal_places=2, required=False, allow_null=True)
+    cout_prestataire = serializers.DecimalField(max_digits=12, decimal_places=2, required=False, allow_null=True)
+    autre_cout = serializers.DecimalField(max_digits=12, decimal_places=2, required=False, allow_null=True)
+    autre_cout_commentaire = serializers.CharField(max_length=255, required=False, allow_blank=True, default='')
     etp = serializers.DecimalField(max_digits=8, decimal_places=2, required=False, allow_null=True)
 
 
@@ -1323,6 +1330,10 @@ class OperationCreateSerializer(serializers.ModelSerializer):
                         id_organisme_id=org['id_organisme'],
                         budget_fonctionnement=org.get('budget_fonctionnement'),
                         budget_investissement=org.get('budget_investissement'),
+                        cout_stage=org.get('cout_stage'),
+                        cout_prestataire=org.get('cout_prestataire'),
+                        autre_cout=org.get('autre_cout'),
+                        autre_cout_commentaire=org.get('autre_cout_commentaire', '') or '',
                         etp=org.get('etp'),
                     )
                     for org in organismes_data

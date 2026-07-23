@@ -593,10 +593,17 @@ class Operation(models.Model):
         ('by_org', _("Par organisme")),
         ('by_type', _("Par type de budget")),
         ('by_org_type', _("Par organisme et type de budget")),
+        # #600 — modes « + type de poste » : même budget, mais le temps de
+        # travail se décline par poste (remplace la case « Déclinaison par poste »).
+        ('by_type_poste', _("Par type de budget et type de poste")),
+        ('by_org_type_poste', _("Par organisme, type de budget et type de poste")),
     ]
+    # Modes qui déclinent le temps de travail par poste (#600).
+    VENTILATION_POSTE_MODES = ('by_type_poste', 'by_org_type_poste')
+
     ventilation_mode = models.CharField(
         _("Mode de ventilation"),
-        max_length=20,
+        max_length=30,
         choices=VENTILATION_CHOICES,
         default='none',
         help_text=_("Mode de ventilation du budget (aucune, par organisme, par type, les deux)")
@@ -1009,6 +1016,27 @@ class OperationAnneeOrganisme(models.Model):
         _("Budget investissement (€)"),
         max_digits=12, decimal_places=2,
         null=True, blank=True
+    )
+    # #600 — coûts additionnels par organisme/année. Le coût salarial n'est pas
+    # stocké : il se calcule (jours des postes × coût jour).
+    cout_stage = models.DecimalField(
+        _("Coût stage (€)"),
+        max_digits=12, decimal_places=2,
+        null=True, blank=True
+    )
+    cout_prestataire = models.DecimalField(
+        _("Coût prestataire (€)"),
+        max_digits=12, decimal_places=2,
+        null=True, blank=True
+    )
+    autre_cout = models.DecimalField(
+        _("Autre coût (€)"),
+        max_digits=12, decimal_places=2,
+        null=True, blank=True
+    )
+    autre_cout_commentaire = models.CharField(
+        _("Commentaire autre coût"),
+        max_length=255, blank=True, default=''
     )
     etp = models.DecimalField(
         _("Travail prévisionnel (jours)"),

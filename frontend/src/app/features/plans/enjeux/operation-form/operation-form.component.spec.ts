@@ -34,11 +34,22 @@ function createComponentInstance(): OperationFormComponent {
   comp.rhLines = [];
 
   // Signals (reproduits manuellement car pas d'injection Angular)
-  (comp as any).ventilationMode = signal<'none' | 'by_org' | 'by_type' | 'by_org_type'>('none');
+  (comp as any).ventilationMode = signal<string>('none');
   (comp as any).declinaisonParPoste = signal(false);
   (comp as any).postes = signal<any[]>([]);
+  // #600 — computeds dérivés du mode.
+  (comp as any).budgetMode = computed(() => {
+    const m = (comp as any).ventilationMode();
+    if (m === 'by_type_poste') return 'by_type';
+    if (m === 'by_org_type_poste') return 'by_org_type';
+    return m;
+  });
+  (comp as any).isPosteVentilation = computed(() => {
+    const m = (comp as any).ventilationMode();
+    return m === 'by_type_poste' || m === 'by_org_type_poste';
+  });
   (comp as any).rhMode = computed(() => {
-    if ((comp as any).declinaisonParPoste()) return 'postes';
+    if ((comp as any).isPosteVentilation() || (comp as any).declinaisonParPoste()) return 'postes';
     const mode = (comp as any).ventilationMode();
     return mode === 'by_org' || mode === 'by_org_type' ? 'organismes' : 'global';
   });
@@ -182,24 +193,57 @@ describe('OperationFormComponent — ventilation budgétaire', () => {
   describe('mode by_org_type — helpers', () => {
     it('getOrgBudget should initialise empty entry', () => {
       const entry = comp.getOrgBudget(0, 100);
-      expect(entry).toEqual({ fonct: null, invest: null, etp: null });
+      expect(entry).toEqual({
+        fonct: null, invest: null, etp: null,
+        coutStage: null, coutPresta: null, autreCout: null, autreComment: '',
+      });
     });
 
     it('should compute org total from fonct+invest', () => {
-      comp.orgBudgets['0-100'] = { fonct: 3000, invest: 2000, etp: 5 };
+      comp.orgBudgets['0-100'] = { fonct: 3000, invest: 2000, etp: 5, coutStage: null, coutPresta: null, autreCout: null, autreComment: '' };
       expect(comp.getOrgTotal(0, 100)).toBe(5000);
     });
 
+    it('org total inclut coût stage + prestataire + autre coût (#600)', () => {
+      comp.orgBudgets['0-100'] = { fonct: 3000, invest: 2000, etp: 5, coutStage: 800, coutPresta: 1200, autreCout: 500, autreComment: 'div' };
+      expect(comp.getOrgTotal(0, 100)).toBe(7500);
+    });
+
     it('getYearTotalBudget should sum fonct+invest across all orgs', () => {
-      comp.orgBudgets['0-100'] = { fonct: 2000, invest: 1000, etp: 4 };
-      comp.orgBudgets['0-101'] = { fonct: 1500, invest: 500, etp: 3 };
+      comp.orgBudgets['0-100'] = { fonct: 2000, invest: 1000, etp: 4, coutStage: null, coutPresta: null, autreCout: null, autreComment: '' };
+      comp.orgBudgets['0-101'] = { fonct: 1500, invest: 500, etp: 3, coutStage: null, coutPresta: null, autreCout: null, autreComment: '' };
       expect(comp.getYearTotalBudget(0)).toBe(5000);
     });
 
     it('getYearTotalEtp should sum etp across all orgs', () => {
-      comp.orgBudgets['0-100'] = { fonct: 0, invest: 0, etp: 4 };
-      comp.orgBudgets['0-101'] = { fonct: 0, invest: 0, etp: 3 };
+      comp.orgBudgets['0-100'] = { fonct: 0, invest: 0, etp: 4, coutStage: null, coutPresta: null, autreCout: null, autreComment: '' };
+      comp.orgBudgets['0-101'] = { fonct: 0, invest: 0, etp: 3, coutStage: null, coutPresta: null, autreCout: null, autreComment: '' };
       expect(comp.getYearTotalEtp(0)).toBe(7);
+    });
+  });
+
+  describe('#600 modes « + type de poste » et coût salarial', () => {
+    it('budgetMode mappe les modes « + type de poste » et isPosteVentilation', () => {
+      comp.onModeToggle('by_type_poste');
+      expect(comp.budgetMode()).toBe('by_type');
+      expect(comp.isPosteVentilation()).toBe(true);
+
+      comp.onModeToggle('by_org_type_poste');
+      expect(comp.budgetMode()).toBe('by_org_type');
+      expect(comp.isPosteVentilation()).toBe(true);
+
+      comp.onModeToggle('by_org_type');
+      expect(comp.isPosteVentilation()).toBe(false);
+    });
+
+    it('getOrgCoutSalarial = Σ jours × coût jour des postes de l’organisme', () => {
+      comp.postes.set([{ id_poste: 5, id_pg: 1, id_organisme: 100, cout_jour: 300, nombre: 1 } as any]);
+      comp.rhLines = [{
+        id_poste: 5, id_organisme: null, finance: true,
+        categorie_depense: 'fonctionnement', jours: { 0: 10 }, derived: true,
+      }];
+      expect(comp.getOrgCoutSalarial(0, 100)).toBe(3000);
+      expect(comp.getOrgCoutSalarial(0, 999)).toBe(0);
     });
   });
 

@@ -648,6 +648,11 @@ export interface OperationAnneeOrganisme {
   organisme_nom?: string;
   budget_fonctionnement: number | null;
   budget_investissement: number | null;
+  // #600 — coûts additionnels par organisme/année.
+  cout_stage?: number | null;
+  cout_prestataire?: number | null;
+  autre_cout?: number | null;
+  autre_cout_commentaire?: string | null;
   etp: number | null;
   realisation?: RealisationOperationAnneeOrganisme | null;
 }
@@ -799,7 +804,7 @@ export interface Operation {
   programmation_annuelle?: Record<string, ProgrammationAnnuelleRow>;
   programmation_mensuelle?: Record<string, Record<string, boolean>>;
   programmation_mensuelle_defaut?: Record<string, boolean>;
-  ventilation_mode?: 'none' | 'by_org' | 'by_type' | 'by_org_type';
+  ventilation_mode?: 'none' | 'by_org' | 'by_type' | 'by_org_type' | 'by_type_poste' | 'by_org_type_poste';
   /** #560 — détaille le temps de travail poste par poste. */
   declinaison_par_poste?: boolean;
   geom?: GeoJSONGeometry | string;
@@ -862,7 +867,7 @@ export interface OperationCreatePayload {
   programmation_annuelle?: Record<string, ProgrammationAnnuelleRow>;
   programmation_mensuelle?: Record<string, Record<string, boolean>>;
   programmation_mensuelle_defaut?: Record<string, boolean>;
-  ventilation_mode?: 'none' | 'by_org' | 'by_type' | 'by_org_type';
+  ventilation_mode?: 'none' | 'by_org' | 'by_type' | 'by_org_type' | 'by_type_poste' | 'by_org_type_poste';
   /** #560 — détaille le temps de travail poste par poste. */
   declinaison_par_poste?: boolean;
   metrique_ids?: number[];

@@ -209,18 +209,23 @@ export class SuiviSaisieComponent implements OnInit {
   private mesuresByMetrique = new Map<number, Mesure[]>();
 
   // -------- Computed --------
-  ventilationMode = computed<'none' | 'by_org' | 'by_type' | 'by_org_type'>(() => {
+  ventilationMode = computed<
+    'none' | 'by_org' | 'by_type' | 'by_org_type' | 'by_type_poste' | 'by_org_type_poste'
+  >(() => {
     return this.operation()?.ventilation_mode ?? 'none';
   });
 
-  /** Mode supporté par le MVP : pas de ventilation par organisme. */
+  /** Mode supporté par le MVP : pas de ventilation par organisme (#600 inclus). */
   isOrgVentilation = computed(() => {
     const mode = this.ventilationMode();
-    return mode === 'by_org' || mode === 'by_org_type';
+    return mode === 'by_org' || mode === 'by_org_type' || mode === 'by_org_type_poste';
   });
 
   /** Affiche la décomposition fonctionnement/investissement. */
-  isByType = computed(() => this.ventilationMode() === 'by_type');
+  isByType = computed(() => {
+    const m = this.ventilationMode();
+    return m === 'by_type' || m === 'by_type_poste';
+  });
 
   /**
    * Années affichées en onglets. #418 — on couvre toute la plage du PLAN (et non
