@@ -26,7 +26,7 @@ import { forkJoin } from 'rxjs';
 import { FormFieldComponent } from '../../../../shared/components/form-field/form-field.component';
 import { RhService } from '../../../../core/services/rh.service';
 import { AdminService } from '../../../../core/services/admin.service';
-import { Fonction, Poste, PostePayload } from '../../../../core/models/rh.model';
+import { Fonction, Poste, PostePayload, TypePoste } from '../../../../core/models/rh.model';
 
 export interface PosteFormDialogData {
   planId: number;
@@ -69,10 +69,18 @@ export class PosteFormDialogComponent implements OnInit {
   // Fonction choisie (une seule par type de poste, #579)
   selectedFonctionId = signal<number | null>(null);
 
+  // Coût jour (€) du poste (#596). Non demandé pour un prestataire ; 0 par
+  // défaut pour un bénévole.
+  coutJour = signal<number | null>(null);
+
   // Ajout d'une fonction à la volée
   showNewFonction = signal(false);
   newFonctionLibelle = signal<string>('');
+  newFonctionType = signal<TypePoste>('salarie');
   isCreatingFonction = signal(false);
+
+  /** Types de poste proposés à la création d'une fonction (#596). */
+  readonly typePosteOptions: TypePoste[] = ['salarie', 'stagiaire', 'prestataire', 'benevole'];
 
   // Création : une ligne (organisme) par personne ayant ce type de poste
   nombre = signal<number>(1);
@@ -87,11 +95,23 @@ export class PosteFormDialogComponent implements OnInit {
 
   showError = signal(false);
 
+  /** Fonction choisie, ou undefined. */
+  selectedFonction = computed<Fonction | undefined>(() =>
+    this.allFonctions().find((f) => f.id_fonction === this.selectedFonctionId()),
+  );
+
+  /** Type de poste de la fonction choisie (#596). */
+  selectedType = computed<TypePoste | null>(
+    () => this.selectedFonction()?.type_poste ?? null,
+  );
+
+  /** Le coût jour est demandé sauf pour un prestataire (#596). */
+  showCoutJour = computed<boolean>(
+    () => this.selectedFonctionId() != null && this.selectedType() !== 'prestataire',
+  );
+
   /** Libellé de la fonction choisie, pour intituler les lignes « Stagiaire 1 »… */
-  selectedFonctionLabel = computed<string>(() => {
-    const id = this.selectedFonctionId();
-    return this.allFonctions().find((f) => f.id_fonction === id)?.libelle ?? '';
-  });
+  selectedFonctionLabel = computed<string>(() => this.selectedFonction()?.libelle ?? '');
 
   /** Erreur de formulaire, ou null. Une fonction est obligatoire. */
   formError = computed<string | null>(() => {
@@ -111,6 +131,35 @@ export class PosteFormDialogComponent implements OnInit {
       this.selectedFonctionId.set(p.fonctions?.[0]?.id_fonction ?? null);
       this.idOrganisme.set(p.id_organisme ?? null);
       this.nombre.set(p.nombre ?? 1);
+      this.coutJour.set(p.cout_jour != null ? Number(p.cout_jour) : null);
+    }
+  }
+
+  /** Sélection d'une fonction → applique les règles de coût jour (#596). */
+  onFonctionChange(id: number | null): void {
+    this.selectedFonctionId.set(id);
+    this.applyCoutJourDefaults();
+  }
+
+  setCoutJour(value: number | string | null): void {
+    if (value === null || value === '') {
+      this.coutJour.set(null);
+      return;
+    }
+    const n = Number(value);
+    this.coutJour.set(isFinite(n) ? n : null);
+  }
+
+  /**
+   * Règles de coût jour selon le type de la fonction choisie (#596) :
+   * prestataire → pas de coût jour ; bénévole → 0 par défaut (si vide).
+   */
+  private applyCoutJourDefaults(): void {
+    const type = this.selectedType();
+    if (type === 'prestataire') {
+      this.coutJour.set(null);
+    } else if (type === 'benevole' && this.coutJour() == null) {
+      this.coutJour.set(0);
     }
   }
 
@@ -170,12 +219,14 @@ export class PosteFormDialogComponent implements OnInit {
     this.showNewFonction.update((v) => !v);
   }
 
-  /** Crée une fonction à la volée et la sélectionne directement. */
+  /** Crée une fonction à la volée (avec son type de poste) et la sélectionne. */
   createFonction(): void {
     const libelle = this.newFonctionLibelle().trim();
     if (!libelle || this.isCreatingFonction()) return;
+    const type = this.newFonctionType();
     this.isCreatingFonction.set(true);
-    this.rhService.createFonction(libelle).subscribe({
+    // Un bénévole n'est pas financé par défaut (#596).
+    this.rhService.createFonction(libelle, type !== 'benevole', type).subscribe({
       next: (f) => {
         if (!this.allFonctions().some((x) => x.id_fonction === f.id_fonction)) {
           this.allFonctions.update((list) =>
@@ -183,7 +234,9 @@ export class PosteFormDialogComponent implements OnInit {
           );
         }
         this.selectedFonctionId.set(f.id_fonction);
+        this.applyCoutJourDefaults();
         this.newFonctionLibelle.set('');
+        this.newFonctionType.set('salarie');
         this.showNewFonction.set(false);
         this.isCreatingFonction.set(false);
       },
@@ -201,12 +254,15 @@ export class PosteFormDialogComponent implements OnInit {
     this.errorMessage.set(null);
 
     const fonctions = [{ id_fonction: this.selectedFonctionId()!, pourcentage: null }];
+    // Coût jour : null pour un prestataire (champ masqué), sinon la valeur saisie.
+    const coutJour = this.showCoutJour() ? this.coutJour() : null;
 
     if (this.isEdit) {
       const payload: Partial<PostePayload> = {
         id_pg: this.data.planId,
         id_organisme: this.idOrganisme() ?? null,
         nombre: this.data.poste!.nombre || 1,
+        cout_jour: coutJour,
         fonctions,
       };
       this.rhService.updatePoste(this.data.poste!.id_poste!, payload).subscribe({
@@ -225,6 +281,7 @@ export class PosteFormDialogComponent implements OnInit {
         id_pg: this.data.planId,
         id_organisme: inst.id_organisme ?? null,
         nombre: 1,
+        cout_jour: coutJour,
         fonctions,
       }),
     );

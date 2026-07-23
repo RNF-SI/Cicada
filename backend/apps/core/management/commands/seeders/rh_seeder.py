@@ -59,6 +59,24 @@ _POSTES = [
 # Fonctions non financées par défaut (cohérent avec le socle #560).
 _NON_FINANCEES = {'bénévole', 'écovolontaire', 'partenaire'}
 
+# Type de poste par défaut d'après le libellé de la fonction (#596).
+_TYPE_PAR_LIBELLE = [
+    ('stagiaire', Fonction.TYPE_STAGIAIRE),
+    ('service civique', Fonction.TYPE_STAGIAIRE),
+    ('bénévole', Fonction.TYPE_BENEVOLE),
+    ('écovolontaire', Fonction.TYPE_BENEVOLE),
+    ('prestataire', Fonction.TYPE_PRESTATAIRE),
+]
+
+# Coût jour indicatif par type de poste (€), pour rendre visible le calcul du
+# coût salarial (#596). Un prestataire n'a pas de coût jour (None).
+_COUT_JOUR_PAR_TYPE = {
+    Fonction.TYPE_SALARIE: Decimal('300.00'),
+    Fonction.TYPE_STAGIAIRE: Decimal('80.00'),
+    Fonction.TYPE_BENEVOLE: Decimal('0.00'),
+    Fonction.TYPE_PRESTATAIRE: None,
+}
+
 # Répartition des jours par poste, variée d'une action à l'autre.
 _VARIANTES_POSTES = [
     [('conservateur', '8', True), ('garde_animateur', '12', True), ('benevoles', '5', False)],
@@ -170,6 +188,13 @@ class RhSeeder(BaseSeeder):
                     id_fonction=self._get_fonction(libelle),
                     pourcentage=Decimal(pct) if pct is not None else None,
                 )
+            # Coût jour indicatif d'après le type de la 1re fonction (#596).
+            first = poste.fonctions.first()
+            if first:
+                poste.cout_jour = _COUT_JOUR_PAR_TYPE.get(
+                    first.id_fonction.type_poste, Decimal('300.00')
+                )
+                poste.save(update_fields=['cout_jour'])
             postes[cle] = poste
         return postes
 
@@ -204,8 +229,14 @@ class RhSeeder(BaseSeeder):
         fonction = Fonction.objects.filter(libelle__iexact=libelle).first()
         if fonction:
             return fonction
+        key = libelle.lower()
+        type_poste = next(
+            (t for needle, t in _TYPE_PAR_LIBELLE if needle in key),
+            Fonction.TYPE_SALARIE,
+        )
         return Fonction.objects.create(
             libelle=libelle,
+            type_poste=type_poste,
             finance_par_defaut=libelle.lower() not in _NON_FINANCEES,
             is_socle=False,
         )

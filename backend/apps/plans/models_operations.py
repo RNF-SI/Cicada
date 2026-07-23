@@ -1317,8 +1317,30 @@ class Fonction(models.Model):
     mais reste surchargeable à chaque saisie de temps (cf. OperationAnneeRH).
     """
 
+    # Type de poste porté par la fonction (#596) : conditionne la saisie du
+    # coût jour dans la fiche action / le dialog poste.
+    TYPE_SALARIE = 'salarie'
+    TYPE_STAGIAIRE = 'stagiaire'
+    TYPE_PRESTATAIRE = 'prestataire'
+    TYPE_BENEVOLE = 'benevole'
+    TYPE_POSTE_CHOICES = [
+        (TYPE_SALARIE, _("Salarié")),
+        (TYPE_STAGIAIRE, _("Stagiaire")),
+        (TYPE_PRESTATAIRE, _("Prestataire")),
+        (TYPE_BENEVOLE, _("Bénévole")),
+    ]
+
     id_fonction = models.AutoField(primary_key=True)
     libelle = models.CharField(_("Libellé"), max_length=150, unique=True)
+    type_poste = models.CharField(
+        _("Type de poste"),
+        max_length=20,
+        choices=TYPE_POSTE_CHOICES,
+        default=TYPE_SALARIE,
+        help_text=_("Catégorie de la fonction. Conditionne la saisie du coût "
+                    "jour : pas de coût jour pour un prestataire, 0 par défaut "
+                    "pour un bénévole.")
+    )
     finance_par_defaut = models.BooleanField(
         _("Financé par défaut"),
         default=True,
@@ -1343,6 +1365,14 @@ class Fonction(models.Model):
 
     def __str__(self):
         return self.libelle
+
+    def demande_cout_jour(self):
+        """Un prestataire ne se saisit pas au coût jour (coût forfaitaire)."""
+        return self.type_poste != self.TYPE_PRESTATAIRE
+
+    def cout_jour_defaut(self):
+        """Coût jour proposé par défaut : 0 pour un bénévole, sinon rien."""
+        return 0 if self.type_poste == self.TYPE_BENEVOLE else None
 
 
 class Poste(models.Model):
@@ -1389,6 +1419,14 @@ class Poste(models.Model):
         max_digits=6, decimal_places=2,
         null=True, blank=True,
         help_text=_("Nombre d'ETP pour ce poste, TOTAL sur les `nombre` postes")
+    )
+    cout_jour = models.DecimalField(
+        _("Coût jour (€)"),
+        max_digits=10, decimal_places=2,
+        null=True, blank=True,
+        help_text=_("Coût journalier du poste (€), utilisé pour le calcul du "
+                    "coût salarial. Vide pour un prestataire (coût forfaitaire), "
+                    "0 pour un bénévole.")
     )
     date_ajout = models.DateTimeField(_("Date d'ajout"), auto_now_add=True)
     date_maj = models.DateTimeField(_("Date de modification"), auto_now=True)

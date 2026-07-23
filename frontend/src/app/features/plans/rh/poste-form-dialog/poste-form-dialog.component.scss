@@ -40,6 +40,13 @@
     border-radius: $border-radius-sm;
   }
 
+  .new-fonction-type {
+    padding: 6px 10px;
+    border: 1px solid $gray-light;
+    border-radius: $border-radius-sm;
+    background: $white;
+  }
+
   .create-btn {
     white-space: nowrap;
   }

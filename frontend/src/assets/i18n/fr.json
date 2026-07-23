@@ -2522,6 +2522,12 @@
       "recap": "{{postes}} postes au total",
       "recapDetail": "{{postes}} postes · {{personnes}} personnes au total",
       "personnesCount": "{{count}} personnes",
+      "typePoste": {
+        "salarie": "Salarié",
+        "stagiaire": "Stagiaire",
+        "prestataire": "Prestataire",
+        "benevole": "Bénévole"
+      },
       "etpLabel": "{{etp}} ETP",
       "form": {
         "createTitle": "Ajouter un type de poste",
@@ -2533,6 +2539,8 @@
         "etpHelp": "Nombre d'ETP pour l'ensemble des {{count}} poste(s)",
         "organisme": "Organisme",
         "selectFonctionLabel": "Choisir la fonction",
+        "coutJourLabel": "Coût jour",
+        "coutJourHelp": "Coût journalier du poste, utilisé pour calculer le coût salarial. À 0 pour un bénévole.",
         "addNewFonctionToggle": "La fonction n'est pas dans la liste – ajouter une nouvelle fonction",
         "nombrePersonnes": "Nombre de personnes ayant ce type de poste",
         "nombrePersonnesHelp": "Ces personnes travaillent sur ce plan de gestion (ex. 2 stagiaires). Précisez l'organisme de chacune ci-dessous.",

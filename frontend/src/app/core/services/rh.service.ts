@@ -13,7 +13,7 @@ import { Injectable, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, tap } from 'rxjs';
 
-import { Fonction, Poste, PostePayload } from '../models/rh.model';
+import { Fonction, Poste, PostePayload, TypePoste } from '../models/rh.model';
 
 @Injectable({ providedIn: 'root' })
 export class RhService {
@@ -36,11 +36,16 @@ export class RhService {
    * Crée une fonction à la volée. Le backend déduplique (insensible à la
    * casse) et renvoie la fonction existante le cas échéant.
    */
-  createFonction(libelle: string, financeParDefaut: boolean = true): Observable<Fonction> {
+  createFonction(
+    libelle: string,
+    financeParDefaut: boolean = true,
+    typePoste: TypePoste = 'salarie',
+  ): Observable<Fonction> {
     return this.http
       .post<Fonction>(`${this.apiUrl}/fonctions/`, {
         libelle,
         finance_par_defaut: financeParDefaut,
+        type_poste: typePoste,
       })
       .pipe(
         tap((f) => {

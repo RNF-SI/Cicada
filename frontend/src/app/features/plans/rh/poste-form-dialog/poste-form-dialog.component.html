@@ -7,7 +7,7 @@
 
   <!-- 1. Choisir la fonction -->
   <app-form-field [label]="'plans.postes.form.selectFonctionLabel' | translate" [required]="true">
-    <select [ngModel]="selectedFonctionId()" (ngModelChange)="selectedFonctionId.set($event)">
+    <select [ngModel]="selectedFonctionId()" (ngModelChange)="onFonctionChange($event)">
       <option [ngValue]="null">{{ 'plans.postes.form.selectFonction' | translate }}</option>
       @for (f of allFonctions(); track f.id_fonction) {
         <option [ngValue]="f.id_fonction">{{ f.libelle }}</option>
@@ -33,6 +33,12 @@
         (ngModelChange)="newFonctionLibelle.set($event)"
         (keyup.enter)="createFonction()"
         [placeholder]="'plans.postes.form.newFonctionPlaceholder' | translate" />
+      <select class="new-fonction-type"
+              [ngModel]="newFonctionType()" (ngModelChange)="newFonctionType.set($event)">
+        @for (t of typePosteOptions; track t) {
+          <option [ngValue]="t">{{ 'plans.postes.typePoste.' + t | translate }}</option>
+        }
+      </select>
       <button type="button" mat-flat-button color="primary" class="create-btn"
               [disabled]="!newFonctionLibelle().trim() || isCreatingFonction()"
               (click)="createFonction()">
@@ -42,6 +48,17 @@
         {{ 'common.actions.cancel' | translate }}
       </button>
     </div>
+  }
+
+  <!-- Coût jour du poste — masqué pour un prestataire (#596) -->
+  @if (showCoutJour()) {
+    <app-form-field
+      [label]="'plans.postes.form.coutJourLabel' | translate"
+      [helpText]="'plans.postes.form.coutJourHelp' | translate"
+      suffix="€">
+      <input type="number" min="0" step="0.01"
+             [ngModel]="coutJour()" (ngModelChange)="setCoutJour($event)" />
+    </app-form-field>
   }
 
   @if (isEdit) {

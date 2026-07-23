@@ -336,12 +336,18 @@ class RealisationOperationAnneeOrganismeSerializer(serializers.ModelSerializer):
 # =============================================================================
 
 class FonctionSerializer(serializers.ModelSerializer):
-    """Fonction / poste du référentiel global (#560)."""
+    """Fonction / poste du référentiel global (#560, #596)."""
+    type_poste_display = serializers.CharField(
+        source='get_type_poste_display', read_only=True
+    )
 
     class Meta:
         model = Fonction
-        fields = ['id_fonction', 'libelle', 'finance_par_defaut', 'is_socle', 'actif']
-        read_only_fields = ['id_fonction', 'is_socle']
+        fields = [
+            'id_fonction', 'libelle', 'type_poste', 'type_poste_display',
+            'finance_par_defaut', 'is_socle', 'actif',
+        ]
+        read_only_fields = ['id_fonction', 'is_socle', 'type_poste_display']
 
 
 class PosteFonctionSerializer(serializers.ModelSerializer):
@@ -350,12 +356,13 @@ class PosteFonctionSerializer(serializers.ModelSerializer):
     finance_par_defaut = serializers.BooleanField(
         source='id_fonction.finance_par_defaut', read_only=True
     )
+    type_poste = serializers.CharField(source='id_fonction.type_poste', read_only=True)
 
     class Meta:
         model = PosteFonction
         fields = [
             'id_poste_fonction', 'id_fonction', 'fonction_libelle',
-            'finance_par_defaut', 'pourcentage',
+            'finance_par_defaut', 'type_poste', 'pourcentage',
         ]
         read_only_fields = ['id_poste_fonction']
 
@@ -380,7 +387,7 @@ class PosteSerializer(serializers.ModelSerializer):
         fields = [
             'id_poste', 'id_pg', 'libelle',
             'id_organisme', 'organisme_nom',
-            'nombre', 'etp', 'fonctions', 'finance_par_defaut',
+            'nombre', 'etp', 'cout_jour', 'fonctions', 'finance_par_defaut',
             'date_ajout', 'date_maj',
         ]
         read_only_fields = ['id_poste', 'libelle', 'date_ajout', 'date_maj']
@@ -395,7 +402,7 @@ class PosteWriteSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Poste
-        fields = ['id_poste', 'id_pg', 'id_organisme', 'nombre', 'etp', 'fonctions']
+        fields = ['id_poste', 'id_pg', 'id_organisme', 'nombre', 'etp', 'cout_jour', 'fonctions']
         read_only_fields = ['id_poste']
         extra_kwargs = {'id_organisme': {'required': False, 'allow_null': True}}
 

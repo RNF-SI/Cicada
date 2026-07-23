@@ -17,9 +17,9 @@ import { AdminService } from '../../../../core/services/admin.service';
 import { Fonction, Poste } from '../../../../core/models/rh.model';
 
 const FONCTIONS: Fonction[] = [
-  { id_fonction: 1, libelle: 'Garde-technicien', finance_par_defaut: true },
-  { id_fonction: 2, libelle: 'Animateur nature', finance_par_defaut: true },
-  { id_fonction: 3, libelle: 'Stagiaire', finance_par_defaut: false },
+  { id_fonction: 1, libelle: 'Garde-technicien', finance_par_defaut: true, type_poste: 'salarie' },
+  { id_fonction: 2, libelle: 'Animateur nature', finance_par_defaut: true, type_poste: 'salarie' },
+  { id_fonction: 3, libelle: 'Stagiaire', finance_par_defaut: false, type_poste: 'stagiaire' },
 ];
 
 const PLAN = {
@@ -137,12 +137,14 @@ describe('PosteFormDialogComponent', () => {
       id_pg: 7,
       id_organisme: 5,
       nombre: 1,
+      cout_jour: null,
       fonctions: [{ id_fonction: 3, pourcentage: null }],
     });
     expect(rhService.createPoste).toHaveBeenNthCalledWith(2, {
       id_pg: 7,
       id_organisme: 10,
       nombre: 1,
+      cout_jour: null,
       fonctions: [{ id_fonction: 3, pourcentage: null }],
     });
     // Aucun champ etp dans le payload (#579).
@@ -167,6 +169,49 @@ describe('PosteFormDialogComponent', () => {
     expect(dialogRef.close).not.toHaveBeenCalled();
     expect(comp.isSaving()).toBe(false);
     expect(comp.errorMessage()).not.toBeNull();
+  });
+
+  describe('coût jour (#596)', () => {
+    it('demande le coût jour pour un salarié / stagiaire', async () => {
+      await setup();
+      comp.onFonctionChange(1); // salarié
+      expect(comp.showCoutJour()).toBe(true);
+      expect(comp.coutJour()).toBeNull();
+    });
+
+    it('masque le coût jour pour un prestataire et l’efface', async () => {
+      await setup();
+      comp.allFonctions.update((l) => [
+        ...l,
+        { id_fonction: 4, libelle: 'Presta SIG', finance_par_defaut: true, type_poste: 'prestataire' },
+      ]);
+      comp.setCoutJour(120);
+      comp.onFonctionChange(4);
+      expect(comp.showCoutJour()).toBe(false);
+      expect(comp.coutJour()).toBeNull();
+    });
+
+    it('met le coût jour à 0 par défaut pour un bénévole', async () => {
+      await setup();
+      comp.allFonctions.update((l) => [
+        ...l,
+        { id_fonction: 5, libelle: 'Bénévole', finance_par_defaut: false, type_poste: 'benevole' },
+      ]);
+      comp.onFonctionChange(5);
+      expect(comp.showCoutJour()).toBe(true);
+      expect(comp.coutJour()).toBe(0);
+    });
+
+    it('inclut le coût jour saisi dans le payload de création', async () => {
+      await setup();
+      comp.onFonctionChange(1);
+      comp.setCoutJour(350);
+      comp.setInstanceOrganisme(0, 5);
+      comp.save();
+      expect(rhService.createPoste).toHaveBeenCalledWith(
+        expect.objectContaining({ cout_jour: 350 }),
+      );
+    });
   });
 
   it('instanceLabel intitule les lignes avec la fonction choisie', async () => {

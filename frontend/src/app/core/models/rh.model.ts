@@ -8,10 +8,17 @@
  * des personnes.
  */
 
+/** Type de poste porté par une fonction (#596). */
+export type TypePoste = 'salarie' | 'stagiaire' | 'prestataire' | 'benevole';
+
 /** Fonction du référentiel global (conservateur, garde, écovolontaire…). */
 export interface Fonction {
   id_fonction: number;
   libelle: string;
+  /** Catégorie de la fonction : conditionne la saisie du coût jour (#596). */
+  type_poste?: TypePoste;
+  /** Libellé lisible du type de poste (lecture seule). */
+  type_poste_display?: string;
   /** Caractère financé par défaut, surchargeable à chaque saisie de temps. */
   finance_par_defaut: boolean;
   /** Fonction issue du socle de référence (protégée en suppression). */
@@ -31,6 +38,8 @@ export interface PosteFonction {
   id_fonction: number;
   fonction_libelle?: string;
   finance_par_defaut?: boolean;
+  /** Type de poste de la fonction (lecture seule, #596). */
+  type_poste?: TypePoste;
   pourcentage?: number | string | null;
 }
 
@@ -46,6 +55,8 @@ export interface Poste {
   nombre: number;
   /** ETP pour ce poste, TOTAL sur les `nombre` postes. */
   etp?: number | string | null;
+  /** Coût jour (€) du poste — sert au calcul du coût salarial (#596). */
+  cout_jour?: number | string | null;
   fonctions?: PosteFonction[];
   /** Faux seulement si toutes les fonctions sont non financées. */
   finance_par_defaut?: boolean;
@@ -59,6 +70,7 @@ export interface PostePayload {
   id_organisme?: number | null;
   nombre: number;
   etp?: number | string | null;
+  cout_jour?: number | string | null;
   fonctions?: Array<{ id_fonction: number; pourcentage?: number | string | null }>;
 }
 
