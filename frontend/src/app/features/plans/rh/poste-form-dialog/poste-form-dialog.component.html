@@ -50,8 +50,8 @@
     </div>
   }
 
-  <!-- Coût jour du poste — masqué pour un prestataire (#596) -->
-  @if (showCoutJour()) {
+  <!-- Coût jour global : bénévole en création, ou tout poste au coût jour en édition -->
+  @if (showCoutJourGlobal()) {
     <app-form-field
       [label]="'plans.postes.form.coutJourLabel' | translate"
       [helpText]="'plans.postes.form.coutJourHelp' | translate"
@@ -62,9 +62,14 @@
   }
 
   @if (isEdit) {
-    <!-- Édition : un poste unique porte un seul organisme -->
-    @if (isPrestataire()) {
-      <!-- Prestataire : organisme saisi à la main, facultatif (#599) -->
+    <!-- Édition : nombre + organisme modifiables (#604) -->
+    <app-form-field [label]="nombreLabel()">
+      <input type="number" min="1" step="1"
+             [ngModel]="nombre()" (ngModelChange)="setNombre($event)" />
+    </app-form-field>
+
+    @if (isOrganismeLibre()) {
+      <!-- Prestataire / partenaire : organisme saisi à la main (#599/#605) -->
       <app-form-field
         [label]="'plans.postes.form.organismePresta' | translate"
         [helpText]="'plans.postes.form.organismePrestaHelp' | translate">
@@ -72,7 +77,7 @@
                [ngModel]="organismeLibre()" (ngModelChange)="organismeLibre.set($event)"
                [placeholder]="'plans.postes.form.organismePrestaPlaceholder' | translate" />
       </app-form-field>
-    } @else {
+    } @else if (!isBenevole()) {
       <app-form-field [label]="'plans.postes.form.organisme' | translate">
         <select [ngModel]="idOrganisme()" (ngModelChange)="idOrganisme.set($event)">
           <option [ngValue]="null">—</option>
@@ -83,38 +88,63 @@
       </app-form-field>
     }
   } @else {
-    <!-- 3. Nombre de personnes ayant ce type de poste -->
+    <!-- 3. Nombre de personnes / bénévoles / partenaires -->
     <app-form-field
-      [label]="'plans.postes.form.nombrePersonnes' | translate"
+      [label]="nombreLabel()"
       [helpText]="'plans.postes.form.nombrePersonnesHelp' | translate">
       <input type="number" min="1" step="1"
              [ngModel]="nombre()" (ngModelChange)="setNombre($event)" />
     </app-form-field>
 
-    <!-- 4. Une ligne par personne : organisme (référentiel, ou libre pour un prestataire) -->
-    <div class="instances-block">
-      @for (inst of instances(); track $index) {
-        @if (isPrestataire()) {
-          <app-form-field [label]="instanceLabel($index)"
-                          [helpText]="$index === 0 ? ('plans.postes.form.organismePrestaHelp' | translate) : null">
-            <input type="text"
-                   [ngModel]="inst.organisme_libre"
-                   (ngModelChange)="setInstanceOrganismeLibre($index, $event)"
-                   [placeholder]="'plans.postes.form.organismePrestaPlaceholder' | translate" />
-          </app-form-field>
-        } @else {
-          <app-form-field [label]="instanceLabel($index)">
-            <select [ngModel]="inst.id_organisme"
-                    (ngModelChange)="setInstanceOrganisme($index, $event)">
-              <option [ngValue]="null">—</option>
-              @for (o of organismes(); track o.id_organisme) {
-                <option [ngValue]="o.id_organisme">{{ o.nom_organisme }}</option>
-              }
-            </select>
-          </app-form-field>
-        }
+    @if (isGrouped()) {
+      <!-- Bénévoles / partenaires regroupés : un seul enregistrement (#605) -->
+      @if (isOrganismeLibre()) {
+        <app-form-field
+          [label]="'plans.postes.form.organismePresta' | translate"
+          [helpText]="'plans.postes.form.organismePrestaHelp' | translate">
+          <input type="text"
+                 [ngModel]="organismeLibre()" (ngModelChange)="organismeLibre.set($event)"
+                 [placeholder]="'plans.postes.form.organismePrestaPlaceholder' | translate" />
+        </app-form-field>
       }
-    </div>
+    } @else {
+      <!-- 4. Une ligne par personne : organisme (+ coût jour pour salarié/stagiaire, #603) -->
+      <div class="instances-block">
+        @for (inst of instances(); track $index) {
+          <div class="instance-row">
+            @if (isOrganismeLibre()) {
+              <app-form-field [label]="instanceLabel($index)"
+                              [helpText]="$index === 0 ? ('plans.postes.form.organismePrestaHelp' | translate) : null">
+                <input type="text"
+                       [ngModel]="inst.organisme_libre"
+                       (ngModelChange)="setInstanceOrganismeLibre($index, $event)"
+                       [placeholder]="'plans.postes.form.organismePrestaPlaceholder' | translate" />
+              </app-form-field>
+            } @else {
+              <app-form-field [label]="instanceLabel($index)">
+                <select [ngModel]="inst.id_organisme"
+                        (ngModelChange)="setInstanceOrganisme($index, $event)">
+                  <option [ngValue]="null">—</option>
+                  @for (o of organismes(); track o.id_organisme) {
+                    <option [ngValue]="o.id_organisme">{{ o.nom_organisme }}</option>
+                  }
+                </select>
+              </app-form-field>
+
+              @if (coutJourPerInstance()) {
+                <app-form-field
+                  [label]="'plans.postes.form.coutJourLabel' | translate"
+                  suffix="€">
+                  <input type="number" min="0" step="0.01"
+                         [ngModel]="inst.cout_jour"
+                         (ngModelChange)="setInstanceCoutJour($index, $event)" />
+                </app-form-field>
+              }
+            }
+          </div>
+        }
+      </div>
+    }
   }
 
   @if (errorMessage()) {

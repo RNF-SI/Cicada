@@ -52,11 +52,26 @@
   }
 }
 
-// Une ligne (organisme) par personne ayant ce type de poste.
+// Une ligne (organisme [+ coût jour]) par personne ayant ce type de poste.
 .instances-block {
   display: flex;
   flex-direction: column;
   gap: $spacing-sm;
+}
+
+// Organisme + coût jour côte à côte pour un salarié / stagiaire (#603).
+.instance-row {
+  display: flex;
+  gap: $spacing-sm;
+  align-items: flex-start;
+
+  app-form-field {
+    flex: 1;
+
+    &:last-child:not(:first-child) {
+      flex: 0 0 8rem;
+    }
+  }
 }
 
 .info-block-error {

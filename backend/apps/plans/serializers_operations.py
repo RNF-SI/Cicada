@@ -643,6 +643,7 @@ class OperationAnneeOrganismeSerializer(serializers.ModelSerializer):
             'id_organisme', 'organisme_nom',
             'budget_fonctionnement', 'budget_investissement',
             'cout_stage', 'cout_prestataire', 'autre_cout', 'autre_cout_commentaire',
+            'cout_prestataire_invest', 'autre_cout_invest', 'autre_cout_invest_commentaire',
             'etp',
             'realisation',
         ]
@@ -1243,6 +1244,10 @@ class OperationAnneeOrganismeWriteSerializer(serializers.Serializer):
     cout_prestataire = serializers.DecimalField(max_digits=12, decimal_places=2, required=False, allow_null=True)
     autre_cout = serializers.DecimalField(max_digits=12, decimal_places=2, required=False, allow_null=True)
     autre_cout_commentaire = serializers.CharField(max_length=255, required=False, allow_blank=True, default='')
+    # #602 — détail investissement (mode « par organisme + type budget + type poste »).
+    cout_prestataire_invest = serializers.DecimalField(max_digits=12, decimal_places=2, required=False, allow_null=True)
+    autre_cout_invest = serializers.DecimalField(max_digits=12, decimal_places=2, required=False, allow_null=True)
+    autre_cout_invest_commentaire = serializers.CharField(max_length=255, required=False, allow_blank=True, default='')
     etp = serializers.DecimalField(max_digits=8, decimal_places=2, required=False, allow_null=True)
 
 
@@ -1334,6 +1339,9 @@ class OperationCreateSerializer(serializers.ModelSerializer):
                         cout_prestataire=org.get('cout_prestataire'),
                         autre_cout=org.get('autre_cout'),
                         autre_cout_commentaire=org.get('autre_cout_commentaire', '') or '',
+                        cout_prestataire_invest=org.get('cout_prestataire_invest'),
+                        autre_cout_invest=org.get('autre_cout_invest'),
+                        autre_cout_invest_commentaire=org.get('autre_cout_invest_commentaire', '') or '',
                         etp=org.get('etp'),
                     )
                     for org in organismes_data

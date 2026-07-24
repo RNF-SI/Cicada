@@ -41,7 +41,6 @@ function createComponentInstance(): OperationFormComponent {
   (comp as any).budgetMode = computed(() => {
     const m = (comp as any).ventilationMode();
     if (m === 'by_type_poste') return 'by_type';
-    if (m === 'by_org_type_poste') return 'by_org_type';
     return m;
   });
   (comp as any).isPosteVentilation = computed(() => {
@@ -196,28 +195,38 @@ describe('OperationFormComponent — ventilation budgétaire', () => {
       expect(entry).toEqual({
         fonct: null, invest: null, etp: null,
         coutStage: null, coutPresta: null, autreCout: null, autreComment: '',
+        coutPrestaInvest: null, autreCoutInvest: null, autreCommentInvest: '',
       });
     });
 
-    it('should compute org total from fonct+invest', () => {
-      comp.orgBudgets['0-100'] = { fonct: 3000, invest: 2000, etp: 5, coutStage: null, coutPresta: null, autreCout: null, autreComment: '' };
+    it('should compute org total from fonct+invest (#602c)', () => {
+      comp.orgBudgets['0-100'] = { fonct: 3000, invest: 2000, etp: 5, coutStage: null, coutPresta: null, autreCout: null, autreComment: '', coutPrestaInvest: null, autreCoutInvest: null, autreCommentInvest: '' };
       expect(comp.getOrgTotal(0, 100)).toBe(5000);
     });
 
-    it('org total inclut coût stage + prestataire + autre coût (#600)', () => {
-      comp.orgBudgets['0-100'] = { fonct: 3000, invest: 2000, etp: 5, coutStage: 800, coutPresta: 1200, autreCout: 500, autreComment: 'div' };
-      expect(comp.getOrgTotal(0, 100)).toBe(7500);
+    it('mode type de poste : totaux fonct/invest calculés depuis leurs composants (#602)', () => {
+      comp.postes.set([{ id_poste: 5, id_pg: 1, id_organisme: 100, cout_jour: 300, nombre: 1 } as any]);
+      comp.rhLines = [{
+        id_poste: 5, id_organisme: null, finance: true,
+        categorie_depense: 'fonctionnement', jours: { 0: 10 }, derived: false,
+      }];
+      comp.orgBudgets['0-100'] = { fonct: null, invest: null, etp: null, coutStage: null, coutPresta: 1200, autreCout: 500, autreComment: '', coutPrestaInvest: 700, autreCoutInvest: 300, autreCommentInvest: '' };
+      // fonctionnement = salarial (10 × 300 = 3000) + prestataire (1200) + autres (500)
+      expect(comp.getOrgFonctTotal(0, 100)).toBe(4700);
+      // investissement = salarial (aucune ligne invest) + prestataire (700) + autres (300)
+      expect(comp.getOrgInvestTotal(0, 100)).toBe(1000);
+      expect(comp.getOrgPosteTotal(0, 100)).toBe(5700);
     });
 
     it('getYearTotalBudget should sum fonct+invest across all orgs', () => {
-      comp.orgBudgets['0-100'] = { fonct: 2000, invest: 1000, etp: 4, coutStage: null, coutPresta: null, autreCout: null, autreComment: '' };
-      comp.orgBudgets['0-101'] = { fonct: 1500, invest: 500, etp: 3, coutStage: null, coutPresta: null, autreCout: null, autreComment: '' };
+      comp.orgBudgets['0-100'] = { fonct: 2000, invest: 1000, etp: 4, coutStage: null, coutPresta: null, autreCout: null, autreComment: '', coutPrestaInvest: null, autreCoutInvest: null, autreCommentInvest: '' };
+      comp.orgBudgets['0-101'] = { fonct: 1500, invest: 500, etp: 3, coutStage: null, coutPresta: null, autreCout: null, autreComment: '', coutPrestaInvest: null, autreCoutInvest: null, autreCommentInvest: '' };
       expect(comp.getYearTotalBudget(0)).toBe(5000);
     });
 
     it('getYearTotalEtp should sum etp across all orgs', () => {
-      comp.orgBudgets['0-100'] = { fonct: 0, invest: 0, etp: 4, coutStage: null, coutPresta: null, autreCout: null, autreComment: '' };
-      comp.orgBudgets['0-101'] = { fonct: 0, invest: 0, etp: 3, coutStage: null, coutPresta: null, autreCout: null, autreComment: '' };
+      comp.orgBudgets['0-100'] = { fonct: 0, invest: 0, etp: 4, coutStage: null, coutPresta: null, autreCout: null, autreComment: '', coutPrestaInvest: null, autreCoutInvest: null, autreCommentInvest: '' };
+      comp.orgBudgets['0-101'] = { fonct: 0, invest: 0, etp: 3, coutStage: null, coutPresta: null, autreCout: null, autreComment: '', coutPrestaInvest: null, autreCoutInvest: null, autreCommentInvest: '' };
       expect(comp.getYearTotalEtp(0)).toBe(7);
     });
   });
@@ -229,7 +238,7 @@ describe('OperationFormComponent — ventilation budgétaire', () => {
       expect(comp.isPosteVentilation()).toBe(true);
 
       comp.onModeToggle('by_org_type_poste');
-      expect(comp.budgetMode()).toBe('by_org_type');
+      expect(comp.budgetMode()).toBe('by_org_type_poste');
       expect(comp.isPosteVentilation()).toBe(true);
 
       comp.onModeToggle('by_org_type');
@@ -1120,17 +1129,30 @@ describe('OperationFormComponent — ventilation budgétaire', () => {
       expect(comp.rhLines.length).toBe(1);
     });
 
-    it('décline une ligne par poste quand la case est cochée', () => {
+    it('démarre vide en mode postes : saisie manuelle (#606)', () => {
       comp.toggleDeclinaisonParPoste(true);
       expect((comp as any).rhMode()).toBe('postes');
-      expect(comp.rhLines.map(l => l.id_poste)).toEqual([1, 2]);
-      expect(comp.rhLines.every(l => l.derived)).toBe(true);
+      // Plus d'auto-remplissage d'une ligne par poste (#606).
+      expect(comp.rhLines.length).toBe(0);
     });
 
-    it('hérite du financement des fonctions du poste', () => {
+    it('ajoute manuellement une ligne pour un poste (#606)', () => {
       comp.toggleDeclinaisonParPoste(true);
-      expect(comp.rhLines.find(l => l.id_poste === 1)!.finance).toBe(true);
-      expect(comp.rhLines.find(l => l.id_poste === 2)!.finance).toBe(false);
+      comp.addRhLine();
+      comp.setRhTarget(0, 1);
+      expect(comp.rhLines[0].id_poste).toBe(1);
+      // Une ligne ajoutée reste éditable / supprimable.
+      expect(comp.rhLines[0].derived).toBe(false);
+    });
+
+    it('hérite du financement de la fonction du poste ciblé', () => {
+      comp.toggleDeclinaisonParPoste(true);
+      comp.addRhLine();
+      comp.setRhTarget(0, 1);
+      expect(comp.rhLines[0].finance).toBe(true);
+      comp.addRhLine();
+      comp.setRhTarget(1, 2);
+      expect(comp.rhLines[1].finance).toBe(false);
     });
 
     it('décline une ligne par organisme quand le budget est ventilé par organisme', () => {
@@ -1140,16 +1162,21 @@ describe('OperationFormComponent — ventilation budgétaire', () => {
       expect(comp.rhLines.every(l => l.id_poste === null)).toBe(true);
     });
 
-    it('préserve les jours déjà saisis en reconstruisant les lignes', () => {
+    it('préserve les jours saisis lors d\'une resynchronisation en mode postes', () => {
       comp.toggleDeclinaisonParPoste(true);
+      comp.addRhLine();
+      comp.setRhTarget(0, 1);
       comp.setRhJours(0, 0, '8');
       // Une nouvelle synchronisation (ex. postes rechargés) ne doit rien perdre.
-      comp.toggleDeclinaisonParPoste(true);
+      (comp as any).syncRhLines();
       expect(comp.getRhJours(0, 0)).toBe(8);
+      expect(comp.rhLines.length).toBe(1);
     });
 
     it('écarte les lignes qui ne correspondent plus au mode', () => {
       comp.toggleDeclinaisonParPoste(true);
+      comp.addRhLine();
+      comp.setRhTarget(0, 1);
       comp.setRhJours(0, 0, '8');
       // Passage en ventilation par organisme : les lignes par poste n'ont plus
       // de sens, seules les lignes par organisme subsistent.
@@ -1159,22 +1186,14 @@ describe('OperationFormComponent — ventilation budgétaire', () => {
       expect(comp.rhLines.map(l => l.id_organisme)).toEqual([100, 101]);
     });
 
-    it('conserve un lot ajouté à la main sur une cible déjà listée', () => {
-      comp.toggleDeclinaisonParPoste(true);
-      comp.addRhLine();
-      comp.setRhTarget(2, 1); // second lot sur le poste 1
-      comp.rhLines[2].finance = false;
-      comp.toggleDeclinaisonParPoste(true); // resynchronisation
-      expect(comp.rhLines.length).toBe(3);
-      const lots = comp.rhLines.filter(l => l.id_poste === 1);
-      expect(lots.length).toBe(2);
-      expect(lots.filter(l => l.derived).length).toBe(1);
-    });
-
     it('totalise les jours par année, financé et non financé séparément', () => {
       comp.toggleDeclinaisonParPoste(true);
-      comp.setRhJours(0, 0, '8');   // Conservateur, financé
-      comp.setRhJours(1, 0, '5');   // Bénévole, non financé
+      comp.addRhLine();
+      comp.setRhTarget(0, 1); // Conservateur, financé
+      comp.addRhLine();
+      comp.setRhTarget(1, 2); // Bénévole, non financé
+      comp.setRhJours(0, 0, '8');
+      comp.setRhJours(1, 0, '5');
       expect(comp.getRhYearTotal(0)).toBe(13);
       expect(comp.getRhYearTotalByFinance(0, true)).toBe(8);
       expect(comp.getRhYearTotalByFinance(0, false)).toBe(5);
@@ -1183,6 +1202,8 @@ describe('OperationFormComponent — ventilation budgétaire', () => {
 
     it('affiche l\'organisme sous le libellé du poste', () => {
       comp.toggleDeclinaisonParPoste(true);
+      comp.addRhLine();
+      comp.setRhTarget(0, 1);
       expect(comp.rhLineLabel(comp.rhLines[0])).toBe('Conservateur');
       expect(comp.rhLineSubLabel(comp.rhLines[0])).toBe('RNF');
     });

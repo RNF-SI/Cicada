@@ -8,8 +8,19 @@
  * des personnes.
  */
 
-/** Type de poste porté par une fonction (#596). */
-export type TypePoste = 'salarie' | 'stagiaire' | 'prestataire' | 'benevole';
+/** Type de poste porté par une fonction (#596, #605). */
+export type TypePoste = 'salarie' | 'stagiaire' | 'prestataire' | 'benevole' | 'partenaire';
+
+/** Types dont l'organisme se saisit librement (hors référentiel), sans coût jour. */
+export const TYPES_ORGANISME_LIBRE: TypePoste[] = ['prestataire', 'partenaire'];
+
+/**
+ * Types « regroupés » (#605/#606) : une seule carte / ligne de temps pour N
+ * exemplaires (bénévoles, partenaires) au lieu d'un enregistrement par personne.
+ */
+export function isGroupedPoste(type: TypePoste | null | undefined): boolean {
+  return type === 'benevole' || type === 'partenaire';
+}
 
 /** Fonction du référentiel global (conservateur, garde, écovolontaire…). */
 export interface Fonction {

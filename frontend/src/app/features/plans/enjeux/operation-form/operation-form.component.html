@@ -760,7 +760,9 @@
                                       ? 'enjeux.operations.rh.colOrganisme'
                                       : 'enjeux.operations.rh.colGlobal') | translate }}
                             </th>
-                            <th class="rh-finance-col">{{ 'enjeux.operations.rh.colCategorie' | translate }}</th>
+                            @if (showRhCategorie()) {
+                              <th class="rh-finance-col">{{ 'enjeux.operations.rh.colCategorie' | translate }}</th>
+                            }
                             @for (annee of operationAnnees; track annee.annee) {
                               <th>{{ annee.annee }}</th>
                             }
@@ -799,18 +801,20 @@
                                   </mat-select>
                                 }
                               </td>
-                              <td class="rh-finance-col">
-                                <mat-select class="rh-categorie-select"
-                                            [value]="line.categorie_depense"
-                                            (valueChange)="setRhCategorie(li, $event)"
-                                            [disabled]="isReadOnly()">
-                                  @for (cat of categorieDepenseOptions; track cat) {
-                                    <mat-option [value]="cat">
-                                      {{ 'plans.rh.categorieDepense.' + cat | translate }}
-                                    </mat-option>
-                                  }
-                                </mat-select>
-                              </td>
+                              @if (showRhCategorie()) {
+                                <td class="rh-finance-col">
+                                  <mat-select class="rh-categorie-select"
+                                              [value]="line.categorie_depense"
+                                              (valueChange)="setRhCategorie(li, $event)"
+                                              [disabled]="isReadOnly()">
+                                    @for (cat of categorieDepenseOptions; track cat) {
+                                      <mat-option [value]="cat">
+                                        {{ 'plans.rh.categorieDepense.' + cat | translate }}
+                                      </mat-option>
+                                    }
+                                  </mat-select>
+                                </td>
+                              }
                               @for (annee of operationAnnees; track annee.annee; let i = $index) {
                                 <td>
                                   <div class="prog-input-wrapper">
@@ -840,7 +844,7 @@
                           <!-- Total jours par année -->
                           <tr>
                             <td class="label-cell text-bold rh-target-col">{{ 'enjeux.operations.rh.total' | translate }}</td>
-                            <td class="rh-finance-col"></td>
+                            @if (showRhCategorie()) { <td class="rh-finance-col"></td> }
                             @for (annee of operationAnnees; track annee.annee; let i = $index) {
                               <td class="computed-cell">{{ getRhYearTotal(i) | number:'1.0-2' }} j</td>
                             }
@@ -849,7 +853,7 @@
                           @if (hasRhNonFinance()) {
                             <tr class="rh-subtotal-row">
                               <td class="label-cell rh-target-col">{{ 'plans.rh.finance' | translate }}</td>
-                              <td class="rh-finance-col"></td>
+                              @if (showRhCategorie()) { <td class="rh-finance-col"></td> }
                               @for (annee of operationAnnees; track annee.annee; let i = $index) {
                                 <td>{{ getRhYearTotalByFinance(i, true) | number:'1.0-2' }} j</td>
                               }
@@ -857,7 +861,7 @@
                             </tr>
                             <tr class="rh-subtotal-row">
                               <td class="label-cell rh-target-col">{{ 'plans.rh.nonFinance' | translate }}</td>
-                              <td class="rh-finance-col"></td>
+                              @if (showRhCategorie()) { <td class="rh-finance-col"></td> }
                               @for (annee of operationAnnees; track annee.annee; let i = $index) {
                                 <td>{{ getRhYearTotalByFinance(i, false) | number:'1.0-2' }} j</td>
                               }
@@ -894,10 +898,9 @@
                       </thead>
                       <tbody>
                         <!-- Périodicité extraite dans son propre tableau au-dessus (#595) -->
-                        <!-- MODE 4: Ventilation par organisme + type budget -->
+                        <!-- MODE 4: Par organisme + type de budget — Fonct / Invest / Total (#602c) -->
                         @if (budgetMode() === 'by_org_type') {
                           @for (org of availableOrganismes(); track org.id_organisme) {
-                            <!-- Org group header -->
                             <tr class="org-group-header">
                               <td class="label-cell org-name" [attr.colspan]="operationAnnees.length + 1">
                                 {{ org.nom_organisme }}
@@ -935,32 +938,53 @@
                                 </td>
                               }
                             </tr>
-                            <!-- Coût salarial (auto = jours × coût jour des postes, #600) -->
+                            <!-- Budget total OG (computed = fonct + invest) -->
+                            <tr>
+                              <td class="label-cell label-indent text-bold">{{ 'enjeux.operations.budgetTotal' | translate }}</td>
+                              @for (annee of operationAnnees; track annee.annee; let i = $index) {
+                                <td class="computed-cell">
+                                  {{ getOrgTotal(i, org.id_organisme) | number:'1.0-2' }} €
+                                </td>
+                              }
+                            </tr>
+                          }
+
+                          <!-- TOTAL cross-organismes (computed) -->
+                          <tr class="total-group-header">
+                            <td class="label-cell org-name" [attr.colspan]="operationAnnees.length + 1">
+                              {{ 'enjeux.operations.totalLabel' | translate }}
+                            </td>
+                          </tr>
+                          <tr>
+                            <td class="label-cell label-indent text-bold">{{ 'enjeux.operations.budgetTotal' | translate }}</td>
+                            @for (annee of operationAnnees; track annee.annee; let i = $index) {
+                              <td class="computed-cell">
+                                {{ getYearTotalBudget(i) | number:'1.0-2' }} €
+                              </td>
+                            }
+                          </tr>
+
+                        <!-- MODE 6: Par organisme + type de budget + type de poste (#602, modèle Excel) -->
+                        } @else if (budgetMode() === 'by_org_type_poste') {
+                          @for (org of availableOrganismes(); track org.id_organisme) {
+                            <tr class="org-group-header">
+                              <td class="label-cell org-name" [attr.colspan]="operationAnnees.length + 1">
+                                {{ org.nom_organisme }}
+                              </td>
+                            </tr>
+
+                            <!-- ── Fonctionnement ── -->
+                            <tr class="budget-subheader">
+                              <td class="label-cell label-indent text-bold" [attr.colspan]="operationAnnees.length + 1">
+                                {{ 'enjeux.operations.budgetFonctionnement' | translate }}
+                              </td>
+                            </tr>
                             <tr>
                               <td class="label-cell label-indent">{{ 'enjeux.operations.coutSalarial' | translate }}</td>
                               @for (annee of operationAnnees; track annee.annee; let i = $index) {
-                                <td class="computed-cell">
-                                  {{ getOrgCoutSalarial(i, org.id_organisme) | number:'1.0-2' }} €
-                                </td>
+                                <td class="computed-cell">{{ getOrgCoutSalarial(i, org.id_organisme, 'fonctionnement') | number:'1.0-2' }} €</td>
                               }
                             </tr>
-                            <!-- Coût stage (saisie manuelle, #600) -->
-                            <tr>
-                              <td class="label-cell label-indent">{{ 'enjeux.operations.coutStage' | translate }}</td>
-                              @for (annee of operationAnnees; track annee.annee; let i = $index) {
-                                <td>
-                                  <div class="prog-input-wrapper">
-                                    <input type="text" inputmode="decimal"
-                                           class="prog-input prog-input-suffixed"
-                                           [disabled]="isYearLocked(i)"
-                                           [value]="formatBudget(getOrgBudget(i, org.id_organisme).coutStage)"
-                                           (change)="updateOrgCoutStage(i, org.id_organisme, $any($event.target).value)">
-                                    <span class="prog-input-suffix">€</span>
-                                  </div>
-                                </td>
-                              }
-                            </tr>
-                            <!-- Coût prestataire (saisie manuelle, #600) -->
                             <tr>
                               <td class="label-cell label-indent">{{ 'enjeux.operations.coutPrestataire' | translate }}</td>
                               @for (annee of operationAnnees; track annee.annee; let i = $index) {
@@ -976,9 +1000,8 @@
                                 </td>
                               }
                             </tr>
-                            <!-- Autre coût : montant + commentaire (#600) -->
                             <tr>
-                              <td class="label-cell label-indent">{{ 'enjeux.operations.autreCout' | translate }}</td>
+                              <td class="label-cell label-indent">{{ 'enjeux.operations.autresCoutsFonct' | translate }}</td>
                               @for (annee of operationAnnees; track annee.annee; let i = $index) {
                                 <td>
                                   <div class="prog-input-wrapper">
@@ -1004,13 +1027,79 @@
                                 </td>
                               }
                             </tr>
-                            <!-- Budget TOTAL (computed, read-only) -->
                             <tr>
-                              <td class="label-cell label-indent text-bold">{{ 'enjeux.operations.budgetTotal' | translate }}</td>
+                              <td class="label-cell label-indent text-bold">{{ 'enjeux.operations.budgetTotalFonct' | translate }}</td>
                               @for (annee of operationAnnees; track annee.annee; let i = $index) {
-                                <td class="computed-cell">
-                                  {{ getOrgTotal(i, org.id_organisme) | number:'1.0-2' }} €
+                                <td class="computed-cell">{{ getOrgFonctTotal(i, org.id_organisme) | number:'1.0-2' }} €</td>
+                              }
+                            </tr>
+
+                            <!-- ── Investissement ── -->
+                            <tr class="budget-subheader">
+                              <td class="label-cell label-indent text-bold" [attr.colspan]="operationAnnees.length + 1">
+                                {{ 'enjeux.operations.budgetInvestissement' | translate }}
+                              </td>
+                            </tr>
+                            <tr>
+                              <td class="label-cell label-indent">{{ 'enjeux.operations.coutSalarial' | translate }}</td>
+                              @for (annee of operationAnnees; track annee.annee; let i = $index) {
+                                <td class="computed-cell">{{ getOrgCoutSalarial(i, org.id_organisme, 'investissement') | number:'1.0-2' }} €</td>
+                              }
+                            </tr>
+                            <tr>
+                              <td class="label-cell label-indent">{{ 'enjeux.operations.coutPrestataire' | translate }}</td>
+                              @for (annee of operationAnnees; track annee.annee; let i = $index) {
+                                <td>
+                                  <div class="prog-input-wrapper">
+                                    <input type="text" inputmode="decimal"
+                                           class="prog-input prog-input-suffixed"
+                                           [disabled]="isYearLocked(i)"
+                                           [value]="formatBudget(getOrgBudget(i, org.id_organisme).coutPrestaInvest)"
+                                           (change)="setOrgCoutPrestaInvest(i, org.id_organisme, $any($event.target).value)">
+                                    <span class="prog-input-suffix">€</span>
+                                  </div>
                                 </td>
+                              }
+                            </tr>
+                            <tr>
+                              <td class="label-cell label-indent">{{ 'enjeux.operations.autresCoutsInvest' | translate }}</td>
+                              @for (annee of operationAnnees; track annee.annee; let i = $index) {
+                                <td>
+                                  <div class="prog-input-wrapper">
+                                    <input type="text" inputmode="decimal"
+                                           class="prog-input prog-input-suffixed"
+                                           [disabled]="isYearLocked(i)"
+                                           [value]="formatBudget(getOrgBudget(i, org.id_organisme).autreCoutInvest)"
+                                           (change)="setOrgAutreCoutInvest(i, org.id_organisme, $any($event.target).value)">
+                                    <span class="prog-input-suffix">€</span>
+                                  </div>
+                                </td>
+                              }
+                            </tr>
+                            <tr>
+                              <td class="label-cell label-indent">{{ 'enjeux.operations.autreCoutCommentaire' | translate }}</td>
+                              @for (annee of operationAnnees; track annee.annee; let i = $index) {
+                                <td>
+                                  <input type="text" class="prog-input"
+                                         [disabled]="isYearLocked(i)"
+                                         [value]="getOrgBudget(i, org.id_organisme).autreCommentInvest"
+                                         (change)="setOrgAutreCommentInvest(i, org.id_organisme, $any($event.target).value)"
+                                         [placeholder]="'enjeux.operations.autreCoutCommentairePlaceholder' | translate">
+                                </td>
+                              }
+                            </tr>
+                            <tr>
+                              <td class="label-cell label-indent text-bold">{{ 'enjeux.operations.budgetTotalInvest' | translate }}</td>
+                              @for (annee of operationAnnees; track annee.annee; let i = $index) {
+                                <td class="computed-cell">{{ getOrgInvestTotal(i, org.id_organisme) | number:'1.0-2' }} €</td>
+                              }
+                            </tr>
+
+                            <!-- Budget total OG -->
+                            <tr class="org-total-row">
+                              <td class="label-cell label-indent text-bold">{{ 'enjeux.operations.budgetTotalOG' | translate }}</td>
+                              @for (annee of operationAnnees; track annee.annee; let i = $index) {
+                                <td class="computed-cell">{{ getOrgPosteTotal(i, org.id_organisme) | number:'1.0-2' }} €</td>
                               }
                             </tr>
                           }
@@ -1022,11 +1111,21 @@
                             </td>
                           </tr>
                           <tr>
+                            <td class="label-cell label-indent">{{ 'enjeux.operations.budgetFonctionnement' | translate }}</td>
+                            @for (annee of operationAnnees; track annee.annee; let i = $index) {
+                              <td class="computed-cell">{{ getYearFonctTotal(i) | number:'1.0-2' }} €</td>
+                            }
+                          </tr>
+                          <tr>
+                            <td class="label-cell label-indent">{{ 'enjeux.operations.budgetInvestissement' | translate }}</td>
+                            @for (annee of operationAnnees; track annee.annee; let i = $index) {
+                              <td class="computed-cell">{{ getYearInvestTotal(i) | number:'1.0-2' }} €</td>
+                            }
+                          </tr>
+                          <tr>
                             <td class="label-cell label-indent text-bold">{{ 'enjeux.operations.budgetTotal' | translate }}</td>
                             @for (annee of operationAnnees; track annee.annee; let i = $index) {
-                              <td class="computed-cell">
-                                {{ getYearTotalBudget(i) | number:'1.0-2' }} €
-                              </td>
+                              <td class="computed-cell">{{ getYearPosteTotal(i) | number:'1.0-2' }} €</td>
                             }
                           </tr>
 

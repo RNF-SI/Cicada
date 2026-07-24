@@ -204,11 +204,11 @@ describe('PosteFormDialogComponent', () => {
       expect(comp.coutJour()).toBe(0);
     });
 
-    it('inclut le coût jour saisi dans le payload de création', async () => {
+    it('inclut le coût jour saisi par personne dans le payload de création (#603)', async () => {
       await setup();
       comp.onFonctionChange(1);
-      comp.setCoutJour(350);
       comp.setInstanceOrganisme(0, 5);
+      comp.setInstanceCoutJour(0, 350);
       comp.save();
       expect(rhService.createPoste).toHaveBeenCalledWith(
         expect.objectContaining({ cout_jour: 350 }),
@@ -229,7 +229,7 @@ describe('PosteFormDialogComponent', () => {
       addPresta();
       comp.setNombre(2);
       comp.onFonctionChange(4);
-      expect(comp.isPrestataire()).toBe(true);
+      expect(comp.isOrganismeLibre()).toBe(true);
       expect(comp.instances().map((i) => i.organisme_libre)).toEqual(['presta1', 'presta2']);
     });
 

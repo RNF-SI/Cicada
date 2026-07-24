@@ -75,9 +75,14 @@ interface OrgBudgetCell {
   invest: number | null;
   etp: number | null;
   coutStage: number | null;
+  // Coûts de FONCTIONNEMENT (variante historique).
   coutPresta: number | null;
   autreCout: number | null;
   autreComment: string;
+  // #602 — coûts d'INVESTISSEMENT (mode « par organisme + type budget + type poste »).
+  coutPrestaInvest: number | null;
+  autreCoutInvest: number | null;
+  autreCommentInvest: string;
 }
 
 /**
@@ -623,13 +628,15 @@ export class OperationFormComponent implements OnInit {
   ventilationMode = signal<VentilationMode>('none');
 
   /**
-   * Layout du tableau budget : les modes « + type de poste » réutilisent le
-   * même rendu budget que leur mode de base (#600).
+   * Layout du tableau budget (#600, #602).
+   * - `by_type_poste` réutilise le rendu simple « par type de budget ».
+   * - `by_org_type` (sans poste) : Fonct / Invest / Total seulement (#602c).
+   * - `by_org_type_poste` : détail des coûts par organisme, séparé
+   *   fonctionnement / investissement (modèle Excel de #602).
    */
-  budgetMode = computed<'none' | 'by_org' | 'by_type' | 'by_org_type'>(() => {
+  budgetMode = computed<'none' | 'by_org' | 'by_type' | 'by_org_type' | 'by_org_type_poste'>(() => {
     const m = this.ventilationMode();
     if (m === 'by_type_poste') return 'by_type';
-    if (m === 'by_org_type_poste') return 'by_org_type';
     return m;
   });
 
@@ -637,6 +644,17 @@ export class OperationFormComponent implements OnInit {
   isPosteVentilation = computed<boolean>(() =>
     this.ventilationMode() === 'by_type_poste' || this.ventilationMode() === 'by_org_type_poste',
   );
+
+  /**
+   * #602a/b — la colonne « Catégorie de dépense » du temps de travail n'a de
+   * sens que lorsque le mode ventile par « type de budget » (fonctionnement /
+   * investissement). Sinon la catégorie est dérivée automatiquement.
+   */
+  showRhCategorie = computed<boolean>(() => {
+    const m = this.ventilationMode();
+    return m === 'by_type' || m === 'by_org_type'
+      || m === 'by_type_poste' || m === 'by_org_type_poste';
+  });
 
   /** Raccourci pour rétrocompatibilité avec le code existant */
   directTotalMode = computed(() => this.ventilationMode() === 'none');
@@ -1519,6 +1537,10 @@ export class OperationFormComponent implements OnInit {
               coutPresta: org.cout_prestataire != null ? parseFloat(String(org.cout_prestataire)) : null,
               autreCout: org.autre_cout != null ? parseFloat(String(org.autre_cout)) : null,
               autreComment: org.autre_cout_commentaire ?? '',
+              // #602 — coûts d'investissement (mode « + type de poste »).
+              coutPrestaInvest: org.cout_prestataire_invest != null ? parseFloat(String(org.cout_prestataire_invest)) : null,
+              autreCoutInvest: org.autre_cout_invest != null ? parseFloat(String(org.autre_cout_invest)) : null,
+              autreCommentInvest: org.autre_cout_invest_commentaire ?? '',
             };
           }
         }
@@ -2035,6 +2057,8 @@ export class OperationFormComponent implements OnInit {
       budget_fonctionnement: number | null; budget_investissement: number | null;
       cout_stage: number | null; cout_prestataire: number | null;
       autre_cout: number | null; autre_cout_commentaire: string;
+      cout_prestataire_invest?: number | null;
+      autre_cout_invest?: number | null; autre_cout_invest_commentaire?: string;
       etp: number | null;
     };
     const anneesToSave = this.operationAnnees.map((a, idx) => {
@@ -2092,27 +2116,62 @@ export class OperationFormComponent implements OnInit {
         return { ...base, budget: orgEntries.length > 0 ? totalBudget : null, etp: orgEntries.length > 0 ? totalEtp : null, budget_fonctionnement: null, budget_investissement: null, organismes: orgEntries };
       }
 
-      // Mode 4: by_org_type — Par organisme + type de budget (+ coûts #600)
+      if (mode === 'by_org_type') {
+        // Mode 4: by_org_type — Par organisme + type de budget (#602c :
+        // fonctionnement / investissement saisis, sans détail des coûts).
+        const orgEntries: OrgEntry[] = [];
+        for (const org of orgs) {
+          const data = this.getOrgBudget(idx, org.id_organisme);
+          if (data.fonct != null || data.invest != null || data.etp != null) {
+            orgEntries.push({
+              id_organisme: org.id_organisme,
+              budget_fonctionnement: data.fonct,
+              budget_investissement: data.invest,
+              cout_stage: null, cout_prestataire: null,
+              autre_cout: null, autre_cout_commentaire: '',
+              etp: data.etp,
+            });
+          }
+        }
+        const totalBudget = orgEntries.reduce((sum, o) => sum + (o.budget_fonctionnement || 0) + (o.budget_investissement || 0), 0);
+        const totalEtp = orgEntries.reduce((sum, o) => sum + (o.etp || 0), 0);
+        return { ...base, budget: orgEntries.length > 0 ? totalBudget : a.budget, etp: orgEntries.length > 0 ? totalEtp : a.etp, budget_fonctionnement: null, budget_investissement: null, organismes: orgEntries };
+      }
+
+      // Mode 6: by_org_type_poste — Par organisme + type de budget + type de
+      // poste (#602). Budgets fonct/invest CALCULÉS depuis leurs composants
+      // (coût salarial auto + prestataire + autres, séparés fonct/invest).
       const orgEntries: OrgEntry[] = [];
       for (const org of orgs) {
         const data = this.getOrgBudget(idx, org.id_organisme);
-        const hasData = data.fonct != null || data.invest != null || data.etp != null
-          || data.coutStage != null || data.coutPresta != null
-          || data.autreCout != null || (data.autreComment ?? '') !== '';
+        const fonctTotal = this.getOrgFonctTotal(idx, org.id_organisme);
+        const investTotal = this.getOrgInvestTotal(idx, org.id_organisme);
+        const hasData = data.coutPresta != null || data.autreCout != null
+          || (data.autreComment ?? '') !== ''
+          || data.coutPrestaInvest != null || data.autreCoutInvest != null
+          || (data.autreCommentInvest ?? '') !== ''
+          || fonctTotal !== 0 || investTotal !== 0 || data.etp != null;
         if (hasData) {
           orgEntries.push({
             id_organisme: org.id_organisme,
-            budget_fonctionnement: data.fonct,
-            budget_investissement: data.invest,
-            cout_stage: data.coutStage,
+            // Les budgets fonct/invest sont DÉRIVÉS des composants (coût salarial
+            // auto + prestataire + autres) : on ne les stocke pas, sinon l'export
+            // les recompterait par-dessus le détail des coûts.
+            budget_fonctionnement: null,
+            budget_investissement: null,
+            cout_stage: null,
             cout_prestataire: data.coutPresta,
             autre_cout: data.autreCout,
             autre_cout_commentaire: data.autreComment ?? '',
+            cout_prestataire_invest: data.coutPrestaInvest,
+            autre_cout_invest: data.autreCoutInvest,
+            autre_cout_invest_commentaire: data.autreCommentInvest ?? '',
             etp: data.etp,
           });
         }
       }
-      const totalBudget = orgEntries.reduce((sum, o) => sum + (o.budget_fonctionnement || 0) + (o.budget_investissement || 0), 0);
+      // Total grand budget = somme des totaux organisme (fonct + invest calculés).
+      const totalBudget = orgs.reduce((sum, org) => sum + this.getOrgPosteTotal(idx, org.id_organisme), 0);
       const totalEtp = orgEntries.reduce((sum, o) => sum + (o.etp || 0), 0);
       return { ...base, budget: orgEntries.length > 0 ? totalBudget : a.budget, etp: orgEntries.length > 0 ? totalEtp : a.etp, budget_fonctionnement: null, budget_investissement: null, organismes: orgEntries };
     });
@@ -3172,32 +3231,31 @@ export class OperationFormComponent implements OnInit {
       return;
     }
 
-    const isPostes = mode === 'postes';
-    const targets = isPostes
-      ? this.postes().map(p => {
-          const finance = p.finance_par_defaut ?? true;
-          return {
-            id_poste: p.id_poste ?? null,
-            id_organisme: null,
-            finance,
-            categorie_depense: this.categorieFromFinance(finance),
-          };
-        })
-      : this.availableOrganismes().map(o => ({
-          id_poste: null,
-          id_organisme: o.id_organisme,
-          finance: true,
-          categorie_depense: 'fonctionnement' as CategorieDepense,
-        }));
+    // Mode « postes » (#606) : saisie MANUELLE. On ne dérive plus une ligne par
+    // poste du plan (un tableau auto de 15 personnes + 10 prestataires était
+    // ingérable). Le tableau démarre vide ; le gestionnaire ajoute chaque poste
+    // via « Ajouter une ligne ». On conserve les lignes déjà présentes (chargées
+    // du serveur ou ajoutées), toutes éditables / supprimables. Les lignes
+    // héritées d'un autre mode (ciblant un organisme) sont écartées.
+    if (mode === 'postes') {
+      this.rhLines = this.rhLines
+        .filter(l => l.id_organisme == null)
+        .map(l => ({ ...l, id_organisme: null, derived: false }));
+      return;
+    }
 
-    const rest = this.rhLines.filter(l =>
-      isPostes ? l.id_poste != null : l.id_organisme != null,
-    );
+    // Mode « organismes » : une ligne dérivée par organisme (inchangé).
+    const targets = this.availableOrganismes().map(o => ({
+      id_poste: null,
+      id_organisme: o.id_organisme,
+      finance: true,
+      categorie_depense: 'fonctionnement' as CategorieDepense,
+    }));
+
+    const rest = this.rhLines.filter(l => l.id_organisme != null);
     const rows: typeof this.rhLines = [];
     for (const t of targets) {
-      const idx = rest.findIndex(l =>
-        isPostes ? l.id_poste === t.id_poste : l.id_organisme === t.id_organisme,
-      );
+      const idx = rest.findIndex(l => l.id_organisme === t.id_organisme);
       if (idx >= 0) {
         const [found] = rest.splice(idx, 1);
         rows.push({ ...found, derived: true });
@@ -3322,6 +3380,7 @@ export class OperationFormComponent implements OnInit {
       this.orgBudgets[key] = {
         fonct: null, invest: null, etp: null,
         coutStage: null, coutPresta: null, autreCout: null, autreComment: '',
+        coutPrestaInvest: null, autreCoutInvest: null, autreCommentInvest: '',
       };
     }
     return this.orgBudgets[key];
@@ -3363,14 +3422,15 @@ export class OperationFormComponent implements OnInit {
   }
 
   /**
-   * #600 — coût salarial d'un organisme/année : Σ (jours × coût jour) des
+   * #600/#602 — coût salarial d'un organisme/année : Σ (jours × coût jour) des
    * postes de cet organisme dans le tableau de temps de travail. Calculé, non
-   * saisi. Nul si aucun poste décliné.
+   * saisi. `categorie` filtre sur fonctionnement / investissement (#602).
    */
-  getOrgCoutSalarial(yearIdx: number, orgId: number): number {
+  getOrgCoutSalarial(yearIdx: number, orgId: number, categorie?: CategorieDepense): number {
     let total = 0;
     for (const line of this.rhLines) {
       if (line.id_poste == null) continue;
+      if (categorie && line.categorie_depense !== categorie) continue;
       const poste = this.postes().find(p => p.id_poste === line.id_poste);
       if (!poste || poste.id_organisme !== orgId) continue;
       const jours = line.jours[yearIdx] || 0;
@@ -3380,11 +3440,10 @@ export class OperationFormComponent implements OnInit {
     return total;
   }
 
+  /** #602c — total simplifié par organisme (Fonct + Invest saisis). */
   getOrgTotal(yearIdx: number, orgId: number): number {
     const data = this.getOrgBudget(yearIdx, orgId);
-    return (data.fonct || 0) + (data.invest || 0)
-      + this.getOrgCoutSalarial(yearIdx, orgId)
-      + (data.coutStage || 0) + (data.coutPresta || 0) + (data.autreCout || 0);
+    return (data.fonct || 0) + (data.invest || 0);
   }
 
   getYearTotalBudget(yearIdx: number): number {
@@ -3393,6 +3452,58 @@ export class OperationFormComponent implements OnInit {
       total += this.getOrgTotal(yearIdx, org.id_organisme);
     }
     return total;
+  }
+
+  // ---- Mode « par organisme + type de budget + type de poste » (#602) -------
+  // Le budget fonctionnement / investissement est CALCULÉ à partir de ses
+  // composants (coût salarial auto + coût prestataire + autres coûts saisis).
+
+  /** Total fonctionnement d'un organisme/année = salarial + prestataire + autres. */
+  getOrgFonctTotal(yearIdx: number, orgId: number): number {
+    const data = this.getOrgBudget(yearIdx, orgId);
+    return this.getOrgCoutSalarial(yearIdx, orgId, 'fonctionnement')
+      + (data.coutPresta || 0) + (data.autreCout || 0);
+  }
+
+  /** Total investissement d'un organisme/année = salarial + prestataire + autres. */
+  getOrgInvestTotal(yearIdx: number, orgId: number): number {
+    const data = this.getOrgBudget(yearIdx, orgId);
+    return this.getOrgCoutSalarial(yearIdx, orgId, 'investissement')
+      + (data.coutPrestaInvest || 0) + (data.autreCoutInvest || 0);
+  }
+
+  /** Budget total d'un organisme/année (mode type de poste). */
+  getOrgPosteTotal(yearIdx: number, orgId: number): number {
+    return this.getOrgFonctTotal(yearIdx, orgId) + this.getOrgInvestTotal(yearIdx, orgId);
+  }
+
+  /** Cumul fonctionnement inter-organismes (mode type de poste). */
+  getYearFonctTotal(yearIdx: number): number {
+    return this.availableOrganismes()
+      .reduce((s, o) => s + this.getOrgFonctTotal(yearIdx, o.id_organisme), 0);
+  }
+
+  /** Cumul investissement inter-organismes (mode type de poste). */
+  getYearInvestTotal(yearIdx: number): number {
+    return this.availableOrganismes()
+      .reduce((s, o) => s + this.getOrgInvestTotal(yearIdx, o.id_organisme), 0);
+  }
+
+  /** Budget total inter-organismes (mode type de poste). */
+  getYearPosteTotal(yearIdx: number): number {
+    return this.getYearFonctTotal(yearIdx) + this.getYearInvestTotal(yearIdx);
+  }
+
+  setOrgCoutPrestaInvest(yearIdx: number, orgId: number, value: string): void {
+    this.getOrgBudget(yearIdx, orgId).coutPrestaInvest = this.parseDecimal(value);
+  }
+
+  setOrgAutreCoutInvest(yearIdx: number, orgId: number, value: string): void {
+    this.getOrgBudget(yearIdx, orgId).autreCoutInvest = this.parseDecimal(value);
+  }
+
+  setOrgAutreCommentInvest(yearIdx: number, orgId: number, value: string): void {
+    this.getOrgBudget(yearIdx, orgId).autreCommentInvest = value ?? '';
   }
 
   getYearTotalEtp(yearIdx: number): number {
@@ -3434,6 +3545,7 @@ export class OperationFormComponent implements OnInit {
       this.orgBudgets[key] = {
         fonct: null, invest: null, etp: null,
         coutStage: null, coutPresta: null, autreCout: null, autreComment: '',
+        coutPrestaInvest: null, autreCoutInvest: null, autreCommentInvest: '',
       };
       this.orgByOrgData[key] = { budget: null, etp: null };
     }

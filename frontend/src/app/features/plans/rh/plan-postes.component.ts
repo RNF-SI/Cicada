@@ -129,9 +129,21 @@ export class PlanPostesComponent implements OnInit {
     return `${libelle} ${parseFloat(pct.toFixed(2))} %`;
   }
 
-  /** Titre d'une tuile : le libellé dérivé des fonctions du poste. */
+  /**
+   * Titre d'une tuile : le libellé dérivé des fonctions du poste. Quand
+   * plusieurs postes du plan partagent le même libellé (ex. deux animateurs
+   * nature créés d'un coup), on suffixe l'indice — « Animateur nature 1 / 2 »
+   * (#605). Les postes regroupés (bénévoles / partenaires, uniques) ne sont
+   * pas numérotés.
+   */
   titleFor(p: Poste): string {
-    return p.libelle || this.translate.instant('plans.postes.untitled');
+    const base = p.libelle || this.translate.instant('plans.postes.untitled');
+    const sameLabel = this.postes().filter(
+      (x) => (x.libelle || '') === (p.libelle || ''),
+    );
+    if (sameLabel.length <= 1) return base;
+    const index = sameLabel.findIndex((x) => x.id_poste === p.id_poste);
+    return `${base} ${index + 1}`;
   }
 
   /** Sous-titre : organisme · nombre d'exemplaires. */

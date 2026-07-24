@@ -1024,18 +1024,35 @@ class OperationAnneeOrganisme(models.Model):
         max_digits=12, decimal_places=2,
         null=True, blank=True
     )
+    # #602 — coûts de FONCTIONNEMENT (variante historique conservée telle quelle).
     cout_prestataire = models.DecimalField(
-        _("Coût prestataire (€)"),
+        _("Coût prestataire — fonctionnement (€)"),
         max_digits=12, decimal_places=2,
         null=True, blank=True
     )
     autre_cout = models.DecimalField(
-        _("Autre coût (€)"),
+        _("Autre coût — fonctionnement (€)"),
         max_digits=12, decimal_places=2,
         null=True, blank=True
     )
     autre_cout_commentaire = models.CharField(
-        _("Commentaire autre coût"),
+        _("Commentaire autre coût — fonctionnement"),
+        max_length=255, blank=True, default=''
+    )
+    # #602 — variantes INVESTISSEMENT (mode « par organisme + type de budget +
+    # type de poste » : détail des coûts séparé fonctionnement / investissement).
+    cout_prestataire_invest = models.DecimalField(
+        _("Coût prestataire — investissement (€)"),
+        max_digits=12, decimal_places=2,
+        null=True, blank=True
+    )
+    autre_cout_invest = models.DecimalField(
+        _("Autre coût — investissement (€)"),
+        max_digits=12, decimal_places=2,
+        null=True, blank=True
+    )
+    autre_cout_invest_commentaire = models.CharField(
+        _("Commentaire autre coût — investissement"),
         max_length=255, blank=True, default=''
     )
     etp = models.DecimalField(
@@ -1351,12 +1368,20 @@ class Fonction(models.Model):
     TYPE_STAGIAIRE = 'stagiaire'
     TYPE_PRESTATAIRE = 'prestataire'
     TYPE_BENEVOLE = 'benevole'
+    TYPE_PARTENAIRE = 'partenaire'
     TYPE_POSTE_CHOICES = [
         (TYPE_SALARIE, _("Salarié")),
         (TYPE_STAGIAIRE, _("Stagiaire")),
         (TYPE_PRESTATAIRE, _("Prestataire")),
         (TYPE_BENEVOLE, _("Bénévole")),
+        (TYPE_PARTENAIRE, _("Partenaire")),
     ]
+    # Types dont l'organisme se saisit librement (hors référentiel) : pas de
+    # coût jour non plus (coût forfaitaire / hors salaire).
+    TYPES_ORGANISME_LIBRE = (TYPE_PRESTATAIRE, TYPE_PARTENAIRE)
+    # Types « regroupés » : une seule carte/ligne pour N exemplaires (bénévoles,
+    # partenaires), au lieu d'un enregistrement par personne (#605/#606).
+    TYPES_GROUPES = (TYPE_BENEVOLE, TYPE_PARTENAIRE)
 
     id_fonction = models.AutoField(primary_key=True)
     libelle = models.CharField(_("Libellé"), max_length=150, unique=True)
@@ -1395,8 +1420,8 @@ class Fonction(models.Model):
         return self.libelle
 
     def demande_cout_jour(self):
-        """Un prestataire ne se saisit pas au coût jour (coût forfaitaire)."""
-        return self.type_poste != self.TYPE_PRESTATAIRE
+        """Un prestataire / partenaire ne se saisit pas au coût jour (forfait)."""
+        return self.type_poste not in self.TYPES_ORGANISME_LIBRE
 
     def cout_jour_defaut(self):
         """Coût jour proposé par défaut : 0 pour un bénévole, sinon rien."""
@@ -1507,6 +1532,14 @@ class Poste(models.Model):
         """Vrai si au moins une fonction du poste est de type prestataire (#599)."""
         return any(
             pf.id_fonction.type_poste == Fonction.TYPE_PRESTATAIRE
+            for pf in self.fonctions.all()
+        )
+
+    def is_organisme_libre(self):
+        """Vrai si l'organisme du poste se saisit librement (prestataire ou
+        partenaire, #605)."""
+        return any(
+            pf.id_fonction.type_poste in Fonction.TYPES_ORGANISME_LIBRE
             for pf in self.fonctions.all()
         )
 

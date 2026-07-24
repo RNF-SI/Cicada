@@ -653,6 +653,10 @@ export interface OperationAnneeOrganisme {
   cout_prestataire?: number | null;
   autre_cout?: number | null;
   autre_cout_commentaire?: string | null;
+  // #602 — coûts d'investissement (mode « par organisme + type budget + type poste »).
+  cout_prestataire_invest?: number | null;
+  autre_cout_invest?: number | null;
+  autre_cout_invest_commentaire?: string | null;
   etp: number | null;
   realisation?: RealisationOperationAnneeOrganisme | null;
 }
