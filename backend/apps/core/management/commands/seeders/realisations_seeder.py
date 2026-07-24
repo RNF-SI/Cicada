@@ -132,9 +132,9 @@ class RealisationsSeeder(BaseSeeder):
 
             mode = oa.id_operation.ventilation_mode
 
-            # Périodicité réalisée : vrai uniquement si l'action a effectivement
-            # avancé (TERMINE, PARTIEL, EN_COURS) — pas pour NON_DEMARRE/ABANDONNE/REPORTE.
-            has_progressed = niveau_mnemo in ('TERMINE', 'PARTIEL', 'EN_COURS')
+            # #609 — Périodicité réalisée DÉRIVÉE du niveau : cochée uniquement
+            # pour « réalisé » (TERMINE) ou « partiellement réalisé » (PARTIEL).
+            has_progressed = niveau_mnemo in ('TERMINE', 'PARTIEL')
 
             defaults = {
                 'id_niveau_realisation': niveau,
@@ -174,7 +174,7 @@ class RealisationsSeeder(BaseSeeder):
             )
 
             # Ventilation par organisme : 1 réalisation par OperationAnneeOrganisme
-            if mode in ('by_org', 'by_org_type'):
+            if mode in ('by_org', 'by_org_type', 'by_org_type_poste'):
                 for oao in oa.organismes.all():
                     org_defaults = {
                         'etp_realise': self._mul(oao.etp, ratio),
@@ -186,6 +186,18 @@ class RealisationsSeeder(BaseSeeder):
                             oao.budget_fonctionnement, ratio
                         )
                         org_defaults['budget_investissement_realise'] = None
+                    elif mode == 'by_org_type_poste':
+                        # #608 — ventilation maximale : détail des coûts réalisés
+                        # (budgets fonct/invest calculés, non stockés). Le coût
+                        # salarial réalisé provient des lignes RH (rh_seeder).
+                        org_defaults['budget_fonctionnement_realise'] = None
+                        org_defaults['budget_investissement_realise'] = None
+                        org_defaults['cout_prestataire_realise'] = self._mul(oao.cout_prestataire, ratio)
+                        org_defaults['autre_cout_realise'] = self._mul(oao.autre_cout, ratio)
+                        org_defaults['autre_cout_commentaire_realise'] = 'Frais divers réalisés (seed)'
+                        org_defaults['cout_prestataire_invest_realise'] = self._mul(oao.cout_prestataire_invest, ratio)
+                        org_defaults['autre_cout_invest_realise'] = self._mul(oao.autre_cout_invest, ratio)
+                        org_defaults['autre_cout_invest_commentaire_realise'] = 'Matériel réalisé (seed)'
                     else:
                         org_defaults['budget_fonctionnement_realise'] = self._mul(
                             oao.budget_fonctionnement, ratio

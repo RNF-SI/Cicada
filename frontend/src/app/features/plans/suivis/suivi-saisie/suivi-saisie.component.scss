@@ -475,6 +475,22 @@ textarea.full-width {
     text-transform: uppercase;
     letter-spacing: 0.05em;
   }
+
+  // #608 — sous-en-tête « Fonctionnement » / « Investissement » d'un organisme.
+  tr.budget-subheader td {
+    background: lighten($secondary-pale-green, 8%) !important;
+    color: $primary-color;
+    font-weight: 700;
+    text-align: left !important;
+    padding: $spacing-xs $spacing-md;
+    font-size: 0.82rem;
+  }
+
+  // #608 — lignes de sous-total (Total fonct / invest / OG).
+  tr.subtotal-row td {
+    font-weight: 700;
+    color: $primary-color;
+  }
 }
 
 // #560 — Saisie du temps de travail réalisé (lignes RH).

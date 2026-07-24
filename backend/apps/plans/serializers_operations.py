@@ -327,6 +327,10 @@ class RealisationOperationAnneeOrganismeSerializer(serializers.ModelSerializer):
             'budget_fonctionnement_realise',
             'budget_investissement_realise',
             'etp_realise',
+            # #608 — détail des coûts réalisés (ventilation maximale).
+            'cout_prestataire_realise', 'autre_cout_realise', 'autre_cout_commentaire_realise',
+            'cout_prestataire_invest_realise', 'autre_cout_invest_realise',
+            'autre_cout_invest_commentaire_realise',
             'date_ajout', 'date_maj',
         ]
         read_only_fields = ['id_realisation_op_annee_organisme', 'date_ajout', 'date_maj']
@@ -595,6 +599,22 @@ class RealisationOperationAnneeSerializer(serializers.ModelSerializer):
         read_only_fields = [
             'id_realisation_operation_annee', 'date_ajout', 'date_maj', 'id_utilisateur_maj',
         ]
+
+    # #609 — mnémoniques des niveaux « réalisé » qui impliquent une périodicité
+    # réalisée cochée. « Non réalisé » (ou vide) → périodicité décochée.
+    _PERIODICITE_NIVEAUX = {'TERMINE', 'PARTIEL'}
+
+    def validate(self, attrs):
+        """
+        #609 — La périodicité réalisée est DÉRIVÉE du niveau de réalisation :
+        « réalisé » ou « partiellement réalisé » ⇒ cochée, « non réalisé » ⇒
+        décochée. Le client ne saisit plus la case (supprimée de l'UI).
+        """
+        if 'id_niveau_realisation' in attrs:
+            niveau = attrs.get('id_niveau_realisation')
+            mnem = getattr(niveau, 'mnemonique', None)
+            attrs['periodicite_realisee'] = mnem in self._PERIODICITE_NIVEAUX
+        return attrs
 
     def _set_rh_lignes(self, instance, rh_data):
         RealisationOperationAnneeRH.objects.filter(

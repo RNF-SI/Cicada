@@ -17,6 +17,7 @@ import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import {
   AbstractControl, FormArray, FormBuilder, FormGroup, FormsModule, ReactiveFormsModule,
+  Validators,
 } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatSelectModule } from '@angular/material/select';
@@ -126,6 +127,24 @@ export class SuiviSaisieComponent implements OnInit {
   isSaving = signal(false);
   errorMessage = signal<string | null>(null);
 
+  /** #609 — affiche l'erreur « niveau obligatoire » après une tentative d'enregistrement. */
+  showNiveauError = signal(false);
+
+  /** Mnémonique d'un niveau de réalisation depuis son id (ou null). */
+  private niveauMnemo(id: number | null | undefined): string | null {
+    if (id == null) return null;
+    return this.niveaux().find(n => n.id_nomenclature === id)?.mnemonique ?? null;
+  }
+
+  /**
+   * #609 — Périodicité réalisée dérivée du niveau : « réalisé » (TERMINE) ou
+   * « partiellement réalisé » (PARTIEL) ⇒ cochée ; sinon décochée.
+   */
+  private periodiciteFromNiveau(niveauId: number | null | undefined): boolean {
+    const m = this.niveauMnemo(niveauId);
+    return m === 'TERMINE' || m === 'PARTIEL';
+  }
+
   /**
    * Mode édition de l'emprise réalisée. Quand `true`, on remplace la
    * `app-leaflet-map` (lecture seule) par `app-leaflet-map-edit`
@@ -143,7 +162,11 @@ export class SuiviSaisieComponent implements OnInit {
 
   // -------- Form --------
   form: FormGroup = this.fb.group({
-    id_niveau_realisation: [null],
+    // #609 — le niveau de réalisation est obligatoire pour enregistrer un suivi.
+    id_niveau_realisation: [null, Validators.required],
+    // #609 — la périodicité réalisée n'est plus saisie : elle est dérivée du
+    // niveau (réalisé / partiel → cochée, non réalisé → décochée). Conservée dans
+    // le form pour la rétro-compat des données existantes.
     periodicite_realisee: [false],
     budget_realise: [null],
     budget_fonctionnement_realise: [null],
@@ -226,6 +249,88 @@ export class SuiviSaisieComponent implements OnInit {
     const m = this.ventilationMode();
     return m === 'by_type' || m === 'by_type_poste';
   });
+
+  /**
+   * #608 — ventilation maximale : le tableau de réalisation détaille les coûts
+   * (salarial auto + prestataire + autres) par organisme et par type de budget.
+   */
+  isMaxVentilation = computed(() => this.ventilationMode() === 'by_org_type_poste');
+
+  // ---- #608 — coûts salariaux RÉALISÉS calculés (jours réalisés × coût jour) --
+
+  /**
+   * Coût salarial réalisé d'un organisme pour une année et une catégorie de
+   * dépense (fonctionnement / investissement). Pour l'année active, on lit les
+   * lignes RH en cours d'édition (form) ; pour les autres années, les lignes
+   * réalisées enregistrées côté serveur.
+   */
+  realCoutSalarial(year: number, orgId: number, categorie: 'fonctionnement' | 'investissement'): number {
+    const posteById = (id: number | null | undefined) =>
+      id == null ? undefined : this.postes().find(p => p.id_poste === id);
+
+    if (year === this.selectedYear()) {
+      let total = 0;
+      for (const c of this.rhLignesFA.controls) {
+        const poste = posteById(c.get('id_poste')?.value);
+        if (!poste || poste.id_organisme !== orgId) continue;
+        if ((c.get('categorie_depense')?.value ?? 'fonctionnement') !== categorie) continue;
+        total += (Number(c.get('jours')?.value) || 0) * (Number(poste.cout_jour ?? 0) || 0);
+      }
+      return total;
+    }
+
+    const oa = this.getOaForYear(year);
+    let total = 0;
+    for (const r of oa?.realisation?.rh_lignes ?? []) {
+      const poste = posteById(r.id_poste);
+      if (!poste || poste.id_organisme !== orgId) continue;
+      if ((r.categorie_depense ?? 'fonctionnement') !== categorie) continue;
+      total += (Number(r.jours) || 0) * (Number(poste.cout_jour ?? 0) || 0);
+    }
+    return total;
+  }
+
+  /** Valeur d'un champ coût réalisé d'un organisme pour une année (form si active, sinon serveur). */
+  private realOrgCost(year: number, orgId: number, field:
+    'cout_prestataire_realise' | 'autre_cout_realise'
+    | 'cout_prestataire_invest_realise' | 'autre_cout_invest_realise'): number {
+    if (year === this.selectedYear()) {
+      const grp = this.organismesFA.controls.find(c => c.get('id_organisme')?.value === orgId);
+      return Number(grp?.get(field)?.value) || 0;
+    }
+    const oao = this.getOaoForYearOrg(year, orgId);
+    return Number((oao?.realisation as any)?.[field]) || 0;
+  }
+
+  /** Total fonctionnement réalisé d'un organisme/année (salarial + prestataire + autres). */
+  realOrgFonctTotal(year: number, orgId: number): number {
+    return this.realCoutSalarial(year, orgId, 'fonctionnement')
+      + this.realOrgCost(year, orgId, 'cout_prestataire_realise')
+      + this.realOrgCost(year, orgId, 'autre_cout_realise');
+  }
+
+  /** Total investissement réalisé d'un organisme/année. */
+  realOrgInvestTotal(year: number, orgId: number): number {
+    return this.realCoutSalarial(year, orgId, 'investissement')
+      + this.realOrgCost(year, orgId, 'cout_prestataire_invest_realise')
+      + this.realOrgCost(year, orgId, 'autre_cout_invest_realise');
+  }
+
+  /** Budget total réalisé d'un organisme/année (fonct + invest). */
+  realOrgTotal(year: number, orgId: number): number {
+    return this.realOrgFonctTotal(year, orgId) + this.realOrgInvestTotal(year, orgId);
+  }
+
+  /** Cumuls inter-organismes réalisés (mode ventilation maximale). */
+  realYearFonctTotal(year: number): number {
+    return this.organismesList().reduce((s, o) => s + this.realOrgFonctTotal(year, o.id_organisme), 0);
+  }
+  realYearInvestTotal(year: number): number {
+    return this.organismesList().reduce((s, o) => s + this.realOrgInvestTotal(year, o.id_organisme), 0);
+  }
+  realYearTotal(year: number): number {
+    return this.realYearFonctTotal(year) + this.realYearInvestTotal(year);
+  }
 
   /**
    * Années affichées en onglets. #418 — on couvre toute la plage du PLAN (et non
@@ -803,6 +908,9 @@ export class SuiviSaisieComponent implements OnInit {
         id_poste: [source.id_poste ?? null],
         id_organisme: [source.id_organisme ?? null],
         finance: [!!source.finance],
+        // #608 — catégorie de dépense (héritée du prévisionnel) : sert au calcul
+        // du coût salarial réalisé séparé fonctionnement / investissement.
+        categorie_depense: [prev.categorie_depense ?? source.categorie_depense ?? 'fonctionnement'],
         /** Prévu (lecture seule, référence affichée). */
         plan_jours: [prev.jours ?? null],
         /**
@@ -823,6 +931,7 @@ export class SuiviSaisieComponent implements OnInit {
         id_poste: [reel.id_poste ?? null],
         id_organisme: [reel.id_organisme ?? null],
         finance: [!!reel.finance],
+        categorie_depense: [reel.categorie_depense ?? 'fonctionnement'],
         plan_jours: [null],
         plan_finance: [!!reel.finance],
         jours: [reel.jours ?? null],
@@ -837,6 +946,7 @@ export class SuiviSaisieComponent implements OnInit {
       id_poste: [null],
       id_organisme: [null],
       finance: [true],
+      categorie_depense: ['fonctionnement'],
       plan_jours: [null],
       plan_finance: [true],
       jours: [null],
@@ -924,6 +1034,13 @@ export class SuiviSaisieComponent implements OnInit {
         budget_fonctionnement_realise: [r?.budget_fonctionnement_realise ?? null],
         budget_investissement_realise: [r?.budget_investissement_realise ?? null],
         etp_realise: [r?.etp_realise ?? null],
+        // #608 — détail des coûts réalisés (mode ventilation maximale).
+        cout_prestataire_realise: [r?.cout_prestataire_realise ?? null],
+        autre_cout_realise: [r?.autre_cout_realise ?? null],
+        autre_cout_commentaire_realise: [r?.autre_cout_commentaire_realise ?? ''],
+        cout_prestataire_invest_realise: [r?.cout_prestataire_invest_realise ?? null],
+        autre_cout_invest_realise: [r?.autre_cout_invest_realise ?? null],
+        autre_cout_invest_commentaire_realise: [r?.autre_cout_invest_commentaire_realise ?? ''],
       }));
     }
   }
@@ -991,6 +1108,17 @@ export class SuiviSaisieComponent implements OnInit {
     if (this.planNotValidated()) {
       return;
     }
+    // #609 — le niveau de réalisation est obligatoire pour enregistrer.
+    if (!this.form.get('id_niveau_realisation')?.value) {
+      this.showNiveauError.set(true);
+      this.snack.open(
+        this.translate.instant('plans.suivis.saisie.errors.niveauRequired'),
+        this.translate.instant('common.actions.close'),
+        { duration: 4000 },
+      );
+      return;
+    }
+    this.showNiveauError.set(false);
     const oa = this.currentOperationAnnee();
     const v = this.form.value;
     const orgVentilation = this.isOrgVentilation();
@@ -1005,7 +1133,8 @@ export class SuiviSaisieComponent implements OnInit {
         ? { id_operation_annee: oa.id_operation_annee }
         : { id_operation: this.operationId() ?? undefined, annee: this.selectedYear() }),
       id_niveau_realisation: v.id_niveau_realisation || null,
-      periodicite_realisee: !!v.periodicite_realisee,
+      // #609 — périodicité dérivée du niveau (le backend la recalcule aussi).
+      periodicite_realisee: this.periodiciteFromNiveau(v.id_niveau_realisation),
       commentaires: v.commentaires || null,
       // #541 — opérateur(s)/financeur(s) réalisés (niveau année, tous modes).
       operateurs_realises: v.operateurs_realises || '',
@@ -1033,6 +1162,8 @@ export class SuiviSaisieComponent implements OnInit {
           id_organisme: val.id_organisme ?? null,
           jours: val.jours ?? null,
           finance: !!val.finance,
+          // #608 — conserver la catégorie pour le calcul du coût salarial réalisé.
+          categorie_depense: val.categorie_depense ?? 'fonctionnement',
         };
       })
       // Une ligne sans cible reste valide (« temps non affecté »). Seul le
@@ -1061,6 +1192,19 @@ export class SuiviSaisieComponent implements OnInit {
             };
             if (this.ventilationMode() === 'by_org_type') {
               p.budget_investissement_realise = val.budget_investissement_realise ?? null;
+            }
+            // #608 — ventilation maximale : détail des coûts réalisés. Les budgets
+            // fonct/invest restent calculés (salarial auto + prestataire + autres),
+            // on ne stocke donc que les composants saisis.
+            if (this.isMaxVentilation()) {
+              p.budget_fonctionnement_realise = null;
+              p.budget_investissement_realise = null;
+              p.cout_prestataire_realise = val.cout_prestataire_realise ?? null;
+              p.autre_cout_realise = val.autre_cout_realise ?? null;
+              p.autre_cout_commentaire_realise = val.autre_cout_commentaire_realise ?? '';
+              p.cout_prestataire_invest_realise = val.cout_prestataire_invest_realise ?? null;
+              p.autre_cout_invest_realise = val.autre_cout_invest_realise ?? null;
+              p.autre_cout_invest_commentaire_realise = val.autre_cout_invest_commentaire_realise ?? '';
             }
             return p;
           })

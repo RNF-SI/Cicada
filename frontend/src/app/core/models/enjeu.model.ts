@@ -608,6 +608,13 @@ export interface RealisationOperationAnneeOrganisme {
   budget_fonctionnement_realise: number | null;
   budget_investissement_realise: number | null;
   etp_realise: number | null;
+  // #608 — détail des coûts réalisés (ventilation maximale).
+  cout_prestataire_realise?: number | null;
+  autre_cout_realise?: number | null;
+  autre_cout_commentaire_realise?: string | null;
+  cout_prestataire_invest_realise?: number | null;
+  autre_cout_invest_realise?: number | null;
+  autre_cout_invest_commentaire_realise?: string | null;
   date_ajout?: string;
   date_maj?: string;
 }
@@ -714,6 +721,13 @@ export interface RealisationOrganismeUpsertPayload {
   budget_fonctionnement_realise?: number | null;
   budget_investissement_realise?: number | null;
   etp_realise?: number | null;
+  // #608 — détail des coûts réalisés (ventilation maximale).
+  cout_prestataire_realise?: number | null;
+  autre_cout_realise?: number | null;
+  autre_cout_commentaire_realise?: string | null;
+  cout_prestataire_invest_realise?: number | null;
+  autre_cout_invest_realise?: number | null;
+  autre_cout_invest_commentaire_realise?: string | null;
 }
 
 /**

@@ -236,6 +236,49 @@ class TestRealisationUpsertEndpoint:
             id_operation_annee=realisation_test_data['op_annee']
         ).count() == 1
 
+    def test_upsert_derives_periodicite_from_niveau(self, api_client, realisation_test_data):
+        """#609 — la périodicité réalisée est dérivée du niveau (TERMINE → cochée)."""
+        api_client.force_authenticate(user=realisation_test_data['referent'])
+        response = api_client.post('/api/plans/realisations/upsert/', {
+            'id_operation_annee': realisation_test_data['op_annee'].pk,
+            'id_niveau_realisation': realisation_test_data['niveau_termine'].pk,
+            # périodicité non transmise : elle doit être déduite du niveau.
+        }, format='json')
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data['periodicite_realisee'] is True
+
+    def test_upsert_non_realise_unchecks_periodicite(self, api_client, realisation_test_data):
+        """#609 — « non réalisé » ⇒ périodicité décochée, même envoyée à True."""
+        niveau_non = NomenclatureNiveauRealisationFactory(mnemonique='NON_REALISE')
+        api_client.force_authenticate(user=realisation_test_data['referent'])
+        response = api_client.post('/api/plans/realisations/upsert/', {
+            'id_operation_annee': realisation_test_data['op_annee'].pk,
+            'id_niveau_realisation': niveau_non.pk,
+            'periodicite_realisee': True,  # tentative : doit être ignorée (#609)
+        }, format='json')
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data['periodicite_realisee'] is False
+
+    def test_org_upsert_persists_realised_cost_detail(self, api_client, realisation_test_data):
+        """#608 — détail des coûts réalisés (ventilation maximale) enregistré."""
+        oao = OperationAnneeOrganismeFactory(
+            id_operation_annee=realisation_test_data['op_annee'],
+            id_organisme=realisation_test_data['organisme'],
+        )
+        api_client.force_authenticate(user=realisation_test_data['referent'])
+        response = api_client.post('/api/plans/realisations-organismes/upsert/', {
+            'id_operation_annee_organisme': oao.pk,
+            'cout_prestataire_realise': '1200.00',
+            'autre_cout_realise': '500.00',
+            'autre_cout_commentaire_realise': 'Frais divers',
+            'cout_prestataire_invest_realise': '700.00',
+            'autre_cout_invest_realise': '300.00',
+        }, format='json')
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data['cout_prestataire_realise'] == '1200.00'
+        assert response.data['autre_cout_invest_realise'] == '300.00'
+        assert response.data['autre_cout_commentaire_realise'] == 'Frais divers'
+
     def test_upsert_persists_operateurs_financeurs_realises(self, api_client, realisation_test_data):
         """#541 — opérateur(s)/financeur(s) réalisés saisis par année dans le suivi."""
         api_client.force_authenticate(user=realisation_test_data['referent'])

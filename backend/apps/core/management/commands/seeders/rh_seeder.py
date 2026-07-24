@@ -54,6 +54,10 @@ _POSTES = [
     # Temps non financé — la valorisation visée par #560.
     ('benevoles', 'Réserves Naturelles de France', 10, '0.50',
      [('Bénévole', None)]),
+    # #605 — type « partenaire » : regroupé (nombre>1), organisme saisi
+    # librement, catégorie de dépense « bénévolat / partenariat ».
+    ('partenaires', None, 3, '0.30',
+     [('Partenaire', None)]),
 ]
 
 # Fonctions non financées par défaut (cohérent avec le socle #560).
@@ -66,21 +70,23 @@ _TYPE_PAR_LIBELLE = [
     ('bénévole', Fonction.TYPE_BENEVOLE),
     ('écovolontaire', Fonction.TYPE_BENEVOLE),
     ('prestataire', Fonction.TYPE_PRESTATAIRE),
+    ('partenaire', Fonction.TYPE_PARTENAIRE),
 ]
 
 # Coût jour indicatif par type de poste (€), pour rendre visible le calcul du
-# coût salarial (#596). Un prestataire n'a pas de coût jour (None).
+# coût salarial (#596). Prestataire et partenaire n'ont pas de coût jour (None).
 _COUT_JOUR_PAR_TYPE = {
     Fonction.TYPE_SALARIE: Decimal('300.00'),
     Fonction.TYPE_STAGIAIRE: Decimal('80.00'),
     Fonction.TYPE_BENEVOLE: Decimal('0.00'),
     Fonction.TYPE_PRESTATAIRE: None,
+    Fonction.TYPE_PARTENAIRE: None,
 }
 
 # Répartition des jours par poste, variée d'une action à l'autre.
 _VARIANTES_POSTES = [
     [('conservateur', '8', True), ('garde_animateur', '12', True), ('benevoles', '5', False)],
-    [('anim_com', '6', True), ('service_civique', '10', True)],
+    [('anim_com', '6', True), ('service_civique', '10', True), ('partenaires', '4', False)],
     [('garde_animateur', '15', True)],
     [('conservateur', '4', True), ('stagiaires', '20', True), ('benevoles', '8', False)],
 ]
@@ -176,9 +182,12 @@ class RhSeeder(BaseSeeder):
         Poste.objects.filter(id_pg=plan).delete()
         postes = {}
         for cle, org_nom, nombre, etp, fonctions in _POSTES:
+            # #605 — un poste « partenaire » (org_nom None) porte un organisme
+            # saisi librement, comme un prestataire.
             poste = Poste.objects.create(
                 id_pg=plan,
-                id_organisme=self._get_organisme(org_nom),
+                id_organisme=self._get_organisme(org_nom) if org_nom else None,
+                organisme_libre='' if org_nom else 'Association partenaire',
                 nombre=nombre,
                 etp=Decimal(etp),
             )

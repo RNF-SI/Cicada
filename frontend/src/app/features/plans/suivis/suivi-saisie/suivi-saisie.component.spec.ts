@@ -437,3 +437,92 @@ describe('SuiviSaisieComponent — actions du hero (#589)', () => {
     expect(i18n.plans.suivis.saisie.viewFiche).toBeDefined();
   });
 });
+
+// ===========================================================================
+// #609 — niveau obligatoire + périodicité dérivée du niveau
+// ===========================================================================
+describe('SuiviSaisieComponent — périodicité dérivée du niveau (#609)', () => {
+  const NIVEAUX = [
+    { id_nomenclature: 10, mnemonique: 'TERMINE', label: 'Réalisée' },
+    { id_nomenclature: 11, mnemonique: 'PARTIEL', label: 'Partiellement réalisée' },
+    { id_nomenclature: 12, mnemonique: 'NON_REALISE', label: 'Non réalisée' },
+  ];
+
+  function instance(): any {
+    const c = comp() as any;
+    c.niveaux = signal(NIVEAUX);
+    return c;
+  }
+
+  it('« réalisé » ou « partiel » ⇒ périodicité cochée', () => {
+    const c = instance();
+    expect(c.periodiciteFromNiveau(10)).toBe(true);
+    expect(c.periodiciteFromNiveau(11)).toBe(true);
+  });
+
+  it('« non réalisé » ou vide ⇒ périodicité décochée', () => {
+    const c = instance();
+    expect(c.periodiciteFromNiveau(12)).toBe(false);
+    expect(c.periodiciteFromNiveau(null)).toBe(false);
+  });
+
+  it('submit bloque sans niveau et signale l\'erreur (#609)', () => {
+    const c = instance();
+    const fb = new FormBuilder();
+    c.form = fb.group({ id_niveau_realisation: [null] });
+    c.showNiveauError = signal(false);
+    c.planNotValidated = () => false;
+    c.snack = { open: jest.fn() };
+    c.translate = { instant: (k: string) => k };
+    c.realisationService = { upsert: jest.fn() };
+
+    c.submit();
+
+    expect(c.showNiveauError()).toBe(true);
+    expect(c.realisationService.upsert).not.toHaveBeenCalled();
+  });
+});
+
+// ===========================================================================
+// #608 — coût salarial réalisé calculé (ventilation maximale)
+// ===========================================================================
+describe('SuiviSaisieComponent — coût salarial réalisé (#608)', () => {
+  function instance(): any {
+    const c = comp() as any;
+    const fb = new FormBuilder();
+    c.selectedYear = signal(2025);
+    c.postes = signal([
+      { id_poste: 1, id_organisme: 100, cout_jour: 300 },
+      { id_poste: 2, id_organisme: 100, cout_jour: 80 },
+      { id_poste: 3, id_organisme: 200, cout_jour: 300 },
+    ]);
+    // 3 lignes RH réalisées : poste 1 (fonct, 10j), poste 2 (invest, 5j), poste 3 (fonct, 4j)
+    c.form = fb.group({
+      rhLignes: fb.array([
+        fb.group({ id_poste: [1], categorie_depense: ['fonctionnement'], jours: [10] }),
+        fb.group({ id_poste: [2], categorie_depense: ['investissement'], jours: [5] }),
+        fb.group({ id_poste: [3], categorie_depense: ['fonctionnement'], jours: [4] }),
+      ]),
+      organismes: fb.array([
+        fb.group({ id_organisme: [100], cout_prestataire_realise: [1000], autre_cout_realise: [500] }),
+      ]),
+    });
+    return c;
+  }
+
+  it('somme jours × coût jour des postes de l\'organisme, par catégorie', () => {
+    const c = instance();
+    // Org 100 fonctionnement : poste 1 → 10 × 300 = 3000
+    expect(c.realCoutSalarial(2025, 100, 'fonctionnement')).toBe(3000);
+    // Org 100 investissement : poste 2 → 5 × 80 = 400
+    expect(c.realCoutSalarial(2025, 100, 'investissement')).toBe(400);
+    // Org 200 fonctionnement : poste 3 → 4 × 300 = 1200
+    expect(c.realCoutSalarial(2025, 200, 'fonctionnement')).toBe(1200);
+  });
+
+  it('total fonctionnement réalisé = salarial + prestataire + autres', () => {
+    const c = instance();
+    // 3000 (salarial) + 1000 (presta) + 500 (autres) = 4500
+    expect(c.realOrgFonctTotal(2025, 100)).toBe(4500);
+  });
+});

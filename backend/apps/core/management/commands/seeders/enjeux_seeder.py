@@ -5212,11 +5212,18 @@ class EnjeuxSeeder(BaseSeeder):
             op.save()
 
             # Create OperationAnnee entries with varied data
-            # Alternate ventilation modes across operations
-            ventilation_modes = ['none', 'by_org', 'by_type', 'by_org_type']
-            v_mode = ventilation_modes[idx % 4]
+            # Alternate ventilation modes across operations (#602 : inclut les
+            # deux modes « + type de poste »).
+            ventilation_modes = [
+                'none', 'by_org', 'by_type', 'by_org_type',
+                'by_type_poste', 'by_org_type_poste',
+            ]
+            v_mode = ventilation_modes[idx % len(ventilation_modes)]
             op.ventilation_mode = v_mode
-            op.save(update_fields=['ventilation_mode'])
+            # #602/#606 — les modes « + type de poste » déclinent le temps de
+            # travail par poste.
+            op.declinaison_par_poste = v_mode in ('by_type_poste', 'by_org_type_poste')
+            op.save(update_fields=['ventilation_mode', 'declinaison_par_poste'])
 
             if op.annee_min and op.annee_max:
                 mens = enrich['mens'] if enrich else (
@@ -5238,13 +5245,14 @@ class EnjeuxSeeder(BaseSeeder):
                     if v_mode == 'none':
                         defaults['budget'] = budget
                         defaults['etp'] = etp
-                    elif v_mode == 'by_type':
+                    elif v_mode in ('by_type', 'by_type_poste'):
                         defaults['budget'] = budget
                         defaults['etp'] = etp
                         defaults['budget_fonctionnement'] = round(budget * 0.6, 2)
                         defaults['budget_investissement'] = round(budget * 0.4, 2)
                     else:
-                        # by_org / by_org_type: budget total is sum of org data
+                        # by_org / by_org_type / by_org_type_poste : budget total
+                        # = somme des données par organisme.
                         defaults['budget'] = budget
                         defaults['etp'] = etp
 
@@ -5859,7 +5867,7 @@ class EnjeuxSeeder(BaseSeeder):
         from apps.users.models import CorOgSite
         orgs_created = 0
         for op in operations_created:
-            if op.ventilation_mode not in ('by_org', 'by_org_type'):
+            if op.ventilation_mode not in ('by_org', 'by_org_type', 'by_org_type_poste'):
                 continue
             plan_sites = op.sites.all()
             if not plan_sites.exists():
@@ -5887,6 +5895,21 @@ class EnjeuxSeeder(BaseSeeder):
                             'budget_fonctionnement': round(per_org_budget, 2),
                             'budget_investissement': None,
                             'etp': round(per_org_etp, 2),
+                        }
+                    elif op.ventilation_mode == 'by_org_type_poste':
+                        # #602 — ventilation maximale : budgets fonct/invest
+                        # dérivés des composants ; on seed le détail des coûts
+                        # (le coût salarial vient des lignes RH par poste).
+                        defaults = {
+                            'budget_fonctionnement': None,
+                            'budget_investissement': None,
+                            'etp': round(per_org_etp, 2),
+                            'cout_prestataire': round(per_org_budget * 0.2, 2),
+                            'autre_cout': round(per_org_budget * 0.1, 2),
+                            'autre_cout_commentaire': 'Frais divers (seed)',
+                            'cout_prestataire_invest': round(per_org_budget * 0.15, 2),
+                            'autre_cout_invest': round(per_org_budget * 0.05, 2),
+                            'autre_cout_invest_commentaire': 'Matériel (seed)',
                         }
                     else:
                         # by_org_type: split fonct/invest per org

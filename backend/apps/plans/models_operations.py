@@ -1254,6 +1254,33 @@ class RealisationOperationAnneeOrganisme(models.Model):
         max_digits=8, decimal_places=2,
         null=True, blank=True
     )
+    # #608 — détail des coûts RÉALISÉS quand la ventilation est maximale
+    # (« par organisme + type de budget + type de poste »). Le coût salarial
+    # réalisé n'est pas stocké : il se calcule (jours réalisés × coût jour).
+    cout_prestataire_realise = models.DecimalField(
+        _("Coût prestataire réalisé — fonctionnement (€)"),
+        max_digits=12, decimal_places=2, null=True, blank=True
+    )
+    autre_cout_realise = models.DecimalField(
+        _("Autre coût réalisé — fonctionnement (€)"),
+        max_digits=12, decimal_places=2, null=True, blank=True
+    )
+    autre_cout_commentaire_realise = models.CharField(
+        _("Commentaire autre coût réalisé — fonctionnement"),
+        max_length=255, blank=True, default=''
+    )
+    cout_prestataire_invest_realise = models.DecimalField(
+        _("Coût prestataire réalisé — investissement (€)"),
+        max_digits=12, decimal_places=2, null=True, blank=True
+    )
+    autre_cout_invest_realise = models.DecimalField(
+        _("Autre coût réalisé — investissement (€)"),
+        max_digits=12, decimal_places=2, null=True, blank=True
+    )
+    autre_cout_invest_commentaire_realise = models.CharField(
+        _("Commentaire autre coût réalisé — investissement"),
+        max_length=255, blank=True, default=''
+    )
     date_ajout = models.DateTimeField(_("Date d'ajout"), auto_now_add=True)
     date_maj = models.DateTimeField(_("Date de modification"), auto_now=True)
 
