@@ -2146,7 +2146,7 @@ export class OperationFormComponent implements OnInit {
         const data = this.getOrgBudget(idx, org.id_organisme);
         const fonctTotal = this.getOrgFonctTotal(idx, org.id_organisme);
         const investTotal = this.getOrgInvestTotal(idx, org.id_organisme);
-        const hasData = data.coutPresta != null || data.autreCout != null
+        const hasData = data.coutStage != null || data.coutPresta != null || data.autreCout != null
           || (data.autreComment ?? '') !== ''
           || data.coutPrestaInvest != null || data.autreCoutInvest != null
           || (data.autreCommentInvest ?? '') !== ''
@@ -2155,11 +2155,12 @@ export class OperationFormComponent implements OnInit {
           orgEntries.push({
             id_organisme: org.id_organisme,
             // Les budgets fonct/invest sont DÉRIVÉS des composants (coût salarial
-            // auto + prestataire + autres) : on ne les stocke pas, sinon l'export
-            // les recompterait par-dessus le détail des coûts.
+            // auto + stage + prestataire + autres) : on ne les stocke pas, sinon
+            // l'export les recompterait par-dessus le détail des coûts.
             budget_fonctionnement: null,
             budget_investissement: null,
-            cout_stage: null,
+            // #600 Q2b — coût stage (fonctionnement) réintégré.
+            cout_stage: data.coutStage,
             cout_prestataire: data.coutPresta,
             autre_cout: data.autreCout,
             autre_cout_commentaire: data.autreComment ?? '',
@@ -3458,11 +3459,11 @@ export class OperationFormComponent implements OnInit {
   // Le budget fonctionnement / investissement est CALCULÉ à partir de ses
   // composants (coût salarial auto + coût prestataire + autres coûts saisis).
 
-  /** Total fonctionnement d'un organisme/année = salarial + prestataire + autres. */
+  /** Total fonctionnement d'un organisme/année = salarial + stage + prestataire + autres. */
   getOrgFonctTotal(yearIdx: number, orgId: number): number {
     const data = this.getOrgBudget(yearIdx, orgId);
     return this.getOrgCoutSalarial(yearIdx, orgId, 'fonctionnement')
-      + (data.coutPresta || 0) + (data.autreCout || 0);
+      + (data.coutStage || 0) + (data.coutPresta || 0) + (data.autreCout || 0);
   }
 
   /** Total investissement d'un organisme/année = salarial + prestataire + autres. */

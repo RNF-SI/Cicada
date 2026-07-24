@@ -608,6 +608,8 @@ export interface RealisationOperationAnneeOrganisme {
   budget_fonctionnement_realise: number | null;
   budget_investissement_realise: number | null;
   etp_realise: number | null;
+  // #600 Q2b — coût stage réalisé (fonctionnement).
+  cout_stage_realise?: number | null;
   // #608 — détail des coûts réalisés (ventilation maximale).
   cout_prestataire_realise?: number | null;
   autre_cout_realise?: number | null;
@@ -721,6 +723,8 @@ export interface RealisationOrganismeUpsertPayload {
   budget_fonctionnement_realise?: number | null;
   budget_investissement_realise?: number | null;
   etp_realise?: number | null;
+  // #600 Q2b — coût stage réalisé (fonctionnement).
+  cout_stage_realise?: number | null;
   // #608 — détail des coûts réalisés (ventilation maximale).
   cout_prestataire_realise?: number | null;
   autre_cout_realise?: number | null;

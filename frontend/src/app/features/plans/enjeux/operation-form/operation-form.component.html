@@ -985,6 +985,22 @@
                                 <td class="computed-cell">{{ getOrgCoutSalarial(i, org.id_organisme, 'fonctionnement') | number:'1.0-2' }} €</td>
                               }
                             </tr>
+                            <!-- Coût stage (fonctionnement) — #600 Q2b, réintégré -->
+                            <tr>
+                              <td class="label-cell label-indent">{{ 'enjeux.operations.coutStage' | translate }}</td>
+                              @for (annee of operationAnnees; track annee.annee; let i = $index) {
+                                <td>
+                                  <div class="prog-input-wrapper">
+                                    <input type="text" inputmode="decimal"
+                                           class="prog-input prog-input-suffixed"
+                                           [disabled]="isYearLocked(i)"
+                                           [value]="formatBudget(getOrgBudget(i, org.id_organisme).coutStage)"
+                                           (change)="updateOrgCoutStage(i, org.id_organisme, $any($event.target).value)">
+                                    <span class="prog-input-suffix">€</span>
+                                  </div>
+                                </td>
+                              }
+                            </tr>
                             <tr>
                               <td class="label-cell label-indent">{{ 'enjeux.operations.coutPrestataire' | translate }}</td>
                               @for (annee of operationAnnees; track annee.annee; let i = $index) {

@@ -327,6 +327,8 @@ class RealisationOperationAnneeOrganismeSerializer(serializers.ModelSerializer):
             'budget_fonctionnement_realise',
             'budget_investissement_realise',
             'etp_realise',
+            # #600 (Q2b) — coût stage réalisé (miroir du prévisionnel).
+            'cout_stage_realise',
             # #608 — détail des coûts réalisés (ventilation maximale).
             'cout_prestataire_realise', 'autre_cout_realise', 'autre_cout_commentaire_realise',
             'cout_prestataire_invest_realise', 'autre_cout_invest_realise',

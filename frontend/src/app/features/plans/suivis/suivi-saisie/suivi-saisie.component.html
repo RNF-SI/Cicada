@@ -315,6 +315,19 @@
                           <td [class.active]="y === selectedYear()">{{ formatNumber(realCoutSalarial(y, org.id_organisme, 'fonctionnement'), ' €') }}</td>
                         }
                       </tr>
+                      <!-- Coût stage réalisé (#600 Q2b) -->
+                      <tr>
+                        <td class="col-field">{{ 'plans.suivis.saisie.table.coutStage' | translate }}</td>
+                        @for (y of years(); track y) {
+                          <td [class.active]="y === selectedYear()">
+                            @if (y === selectedYear()) {
+                              <input type="number" min="0" step="0.01" formControlName="cout_stage_realise" placeholder="€" />
+                            } @else {
+                              {{ formatNumber(getOaoForYearOrg(y, org.id_organisme)?.realisation?.cout_stage_realise, ' €') }}
+                            }
+                          </td>
+                        }
+                      </tr>
                       <tr>
                         <td class="col-field">{{ 'plans.suivis.saisie.table.coutPrestataire' | translate }}</td>
                         @for (y of years(); track y) {

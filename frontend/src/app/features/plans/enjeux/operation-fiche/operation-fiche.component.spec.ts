@@ -193,7 +193,7 @@ describe('OperationFicheComponent — programmation détaillée (#556)', () => {
     expect(c.programmation()[0].budget).toBe(170);
   });
 
-  it('#600 fiche : coûts par organisme (salarial calculé + stage/presta/autre)', () => {
+  it('#600/#602 fiche : totaux fonct/invest par organisme (coûts inclus, salarial ventilé par catégorie)', () => {
     const fixture = setup(operationWithAnnees([
       {
         annee: 2024, periodicite: true,
@@ -202,22 +202,24 @@ describe('OperationFicheComponent — programmation détaillée (#556)', () => {
             id_organisme: 1, organisme_nom: 'CEN',
             budget_fonctionnement: '100.00', budget_investissement: '0.00',
             cout_stage: '80.00', cout_prestataire: '120.00', autre_cout: '50.00',
+            cout_prestataire_invest: '200.00', autre_cout_invest: '30.00',
           },
         ],
         rh_lignes: [
-          // 10 jours × 300 €/j attribués à l'organisme 1 = 3000 € de coût salarial.
-          { id_poste: 5, poste_id_organisme: 1, poste_cout_jour: '300.00', jours: 10, finance: true },
+          // 10 j × 300 €/j en fonctionnement = 3000 €.
+          { id_poste: 5, poste_id_organisme: 1, poste_cout_jour: '300.00', jours: 10, finance: true, categorie_depense: 'fonctionnement' },
+          // 4 j × 300 €/j en investissement = 1200 €.
+          { id_poste: 5, poste_id_organisme: 1, poste_cout_jour: '300.00', jours: 4, finance: true, categorie_depense: 'investissement' },
         ],
       },
     ]));
     const c = fixture.componentInstance;
-    expect(c.hasOrgExtraCosts()).toBe(true);
     const cen = c.organismeBreakdown().find(o => o.nom === 'CEN')!;
-    expect(cen.coutSalarial).toBe(3000);
-    expect(cen.coutStage).toBe(80);
-    expect(cen.coutPresta).toBe(120);
-    expect(cen.autreCout).toBe(50);
-    expect(cen.budget).toBe(3350); // 100 + 0 + 3000 + 80 + 120 + 50
+    // Fonct = 100 + 80 + 120 + 50 + 3000 (salarial fonct) = 3350
+    expect(cen.fonctionnement).toBe(3350);
+    // Invest = 0 + 200 + 30 + 1200 (salarial invest) = 1430
+    expect(cen.investissement).toBe(1430);
+    expect(cen.budget).toBe(4780);
   });
 
   // #560 — les jours viennent des lignes RH, plus du champ `etp` déprécié.

@@ -192,6 +192,8 @@ class RealisationsSeeder(BaseSeeder):
                         # salarial réalisé provient des lignes RH (rh_seeder).
                         org_defaults['budget_fonctionnement_realise'] = None
                         org_defaults['budget_investissement_realise'] = None
+                        # #600 Q2b — coût stage réalisé (miroir du prévisionnel).
+                        org_defaults['cout_stage_realise'] = self._mul(oao.cout_stage, ratio)
                         org_defaults['cout_prestataire_realise'] = self._mul(oao.cout_prestataire, ratio)
                         org_defaults['autre_cout_realise'] = self._mul(oao.autre_cout, ratio)
                         org_defaults['autre_cout_commentaire_realise'] = 'Frais divers réalisés (seed)'

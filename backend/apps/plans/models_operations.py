@@ -1257,6 +1257,11 @@ class RealisationOperationAnneeOrganisme(models.Model):
     # #608 — détail des coûts RÉALISÉS quand la ventilation est maximale
     # (« par organisme + type de budget + type de poste »). Le coût salarial
     # réalisé n'est pas stocké : il se calcule (jours réalisés × coût jour).
+    # #600 (Q2b) — coût stage réalisé (fonctionnement), miroir du prévisionnel.
+    cout_stage_realise = models.DecimalField(
+        _("Coût stage réalisé (€)"),
+        max_digits=12, decimal_places=2, null=True, blank=True
+    )
     cout_prestataire_realise = models.DecimalField(
         _("Coût prestataire réalisé — fonctionnement (€)"),
         max_digits=12, decimal_places=2, null=True, blank=True

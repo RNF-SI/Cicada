@@ -292,7 +292,7 @@ export class SuiviSaisieComponent implements OnInit {
 
   /** Valeur d'un champ coût réalisé d'un organisme pour une année (form si active, sinon serveur). */
   private realOrgCost(year: number, orgId: number, field:
-    'cout_prestataire_realise' | 'autre_cout_realise'
+    'cout_stage_realise' | 'cout_prestataire_realise' | 'autre_cout_realise'
     | 'cout_prestataire_invest_realise' | 'autre_cout_invest_realise'): number {
     if (year === this.selectedYear()) {
       const grp = this.organismesFA.controls.find(c => c.get('id_organisme')?.value === orgId);
@@ -302,9 +302,10 @@ export class SuiviSaisieComponent implements OnInit {
     return Number((oao?.realisation as any)?.[field]) || 0;
   }
 
-  /** Total fonctionnement réalisé d'un organisme/année (salarial + prestataire + autres). */
+  /** Total fonctionnement réalisé d'un organisme/année (salarial + stage + prestataire + autres). */
   realOrgFonctTotal(year: number, orgId: number): number {
     return this.realCoutSalarial(year, orgId, 'fonctionnement')
+      + this.realOrgCost(year, orgId, 'cout_stage_realise')
       + this.realOrgCost(year, orgId, 'cout_prestataire_realise')
       + this.realOrgCost(year, orgId, 'autre_cout_realise');
   }
@@ -1034,6 +1035,8 @@ export class SuiviSaisieComponent implements OnInit {
         budget_fonctionnement_realise: [r?.budget_fonctionnement_realise ?? null],
         budget_investissement_realise: [r?.budget_investissement_realise ?? null],
         etp_realise: [r?.etp_realise ?? null],
+        // #600 Q2b — coût stage réalisé (fonctionnement).
+        cout_stage_realise: [r?.cout_stage_realise ?? null],
         // #608 — détail des coûts réalisés (mode ventilation maximale).
         cout_prestataire_realise: [r?.cout_prestataire_realise ?? null],
         autre_cout_realise: [r?.autre_cout_realise ?? null],
@@ -1199,6 +1202,8 @@ export class SuiviSaisieComponent implements OnInit {
             if (this.isMaxVentilation()) {
               p.budget_fonctionnement_realise = null;
               p.budget_investissement_realise = null;
+              // #600 Q2b — coût stage réalisé (fonctionnement).
+              p.cout_stage_realise = val.cout_stage_realise ?? null;
               p.cout_prestataire_realise = val.cout_prestataire_realise ?? null;
               p.autre_cout_realise = val.autre_cout_realise ?? null;
               p.autre_cout_commentaire_realise = val.autre_cout_commentaire_realise ?? '';

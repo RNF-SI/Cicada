@@ -2150,6 +2150,7 @@
           "fonctionnement": "Fonctionnement",
           "investissement": "Investissement",
           "coutSalarial": "Coût salarial (réalisé, auto)",
+          "coutStage": "Coût stage (réalisé)",
           "coutPrestataire": "Coût prestataire (réalisé)",
           "autresCoutsFonct": "Autres coûts de fonctionnement (réalisé)",
           "autresCoutsInvest": "Autres coûts d'investissement (réalisé)",
