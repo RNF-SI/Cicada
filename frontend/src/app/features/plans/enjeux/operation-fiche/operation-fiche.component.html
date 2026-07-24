@@ -211,6 +211,12 @@
                   <th>{{ 'plans.suivis.actions.fiche.organisme' | translate }}</th>
                   <th class="num">{{ 'plans.suivis.actions.fiche.budgetFonctionnement' | translate }}</th>
                   <th class="num">{{ 'plans.suivis.actions.fiche.budgetInvestissement' | translate }}</th>
+                  @if (hasOrgExtraCosts()) {
+                    <th class="num">{{ 'enjeux.operations.coutSalarial' | translate }}</th>
+                    <th class="num">{{ 'enjeux.operations.coutStage' | translate }}</th>
+                    <th class="num">{{ 'enjeux.operations.coutPrestataire' | translate }}</th>
+                    <th class="num">{{ 'enjeux.operations.autreCout' | translate }}</th>
+                  }
                   <th class="num">{{ 'plans.suivis.actions.fiche.budget' | translate }}</th>
                 </tr>
               </thead>
@@ -220,6 +226,12 @@
                     <td>{{ o.nom }}</td>
                     <td class="num">{{ o.fonctionnement | number:'1.0-2' }} €</td>
                     <td class="num">{{ o.investissement | number:'1.0-2' }} €</td>
+                    @if (hasOrgExtraCosts()) {
+                      <td class="num">{{ o.coutSalarial | number:'1.0-2' }} €</td>
+                      <td class="num">{{ o.coutStage | number:'1.0-2' }} €</td>
+                      <td class="num">{{ o.coutPresta | number:'1.0-2' }} €</td>
+                      <td class="num">{{ o.autreCout | number:'1.0-2' }} €</td>
+                    }
                     <td class="num">{{ o.budget | number:'1.0-2' }} €</td>
                   </tr>
                 }

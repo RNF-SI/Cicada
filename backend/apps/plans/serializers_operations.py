@@ -483,6 +483,10 @@ class OperationAnneeRHSerializer(serializers.ModelSerializer):
     poste_organisme_nom = serializers.CharField(
         source='id_poste.id_organisme.nom_organisme', read_only=True
     )
+    # #600 — coût jour et organisme du poste, pour le calcul du coût salarial
+    # (jours × coût jour) attribué à l'organisme, notamment dans la fiche action.
+    poste_cout_jour = serializers.SerializerMethodField()
+    poste_id_organisme = serializers.SerializerMethodField()
     categorie_depense_display = serializers.CharField(
         source='get_categorie_depense_display', read_only=True
     )
@@ -492,10 +496,17 @@ class OperationAnneeRHSerializer(serializers.ModelSerializer):
         fields = [
             'id_operation_annee_rh',
             'id_poste', 'poste_libelle', 'poste_organisme_nom',
+            'poste_cout_jour', 'poste_id_organisme',
             'id_organisme', 'organisme_nom',
             'jours', 'finance', 'categorie_depense', 'categorie_depense_display',
         ]
         read_only_fields = ['id_operation_annee_rh']
+
+    def get_poste_cout_jour(self, obj):
+        return obj.id_poste.cout_jour if obj.id_poste_id else None
+
+    def get_poste_id_organisme(self, obj):
+        return obj.id_poste.id_organisme_id if obj.id_poste_id else None
 
 
 class OperationAnneeRHWriteSerializer(serializers.Serializer):

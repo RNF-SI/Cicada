@@ -106,6 +106,9 @@ export interface OperationRHLigne {
   poste_libelle?: string | null;
   /** Organisme du poste, affiché sous son libellé en déclinaison par poste. */
   poste_organisme_nom?: string | null;
+  /** Coût jour du poste + son organisme, pour le coût salarial de la fiche (#600). */
+  poste_cout_jour?: number | string | null;
+  poste_id_organisme?: number | null;
   id_organisme?: number | null;
   organisme_nom?: string | null;
   jours: number | null;

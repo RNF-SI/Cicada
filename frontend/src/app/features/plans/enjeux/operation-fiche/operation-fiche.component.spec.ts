@@ -193,6 +193,33 @@ describe('OperationFicheComponent — programmation détaillée (#556)', () => {
     expect(c.programmation()[0].budget).toBe(170);
   });
 
+  it('#600 fiche : coûts par organisme (salarial calculé + stage/presta/autre)', () => {
+    const fixture = setup(operationWithAnnees([
+      {
+        annee: 2024, periodicite: true,
+        organismes: [
+          {
+            id_organisme: 1, organisme_nom: 'CEN',
+            budget_fonctionnement: '100.00', budget_investissement: '0.00',
+            cout_stage: '80.00', cout_prestataire: '120.00', autre_cout: '50.00',
+          },
+        ],
+        rh_lignes: [
+          // 10 jours × 300 €/j attribués à l'organisme 1 = 3000 € de coût salarial.
+          { id_poste: 5, poste_id_organisme: 1, poste_cout_jour: '300.00', jours: 10, finance: true },
+        ],
+      },
+    ]));
+    const c = fixture.componentInstance;
+    expect(c.hasOrgExtraCosts()).toBe(true);
+    const cen = c.organismeBreakdown().find(o => o.nom === 'CEN')!;
+    expect(cen.coutSalarial).toBe(3000);
+    expect(cen.coutStage).toBe(80);
+    expect(cen.coutPresta).toBe(120);
+    expect(cen.autreCout).toBe(50);
+    expect(cen.budget).toBe(3350); // 100 + 0 + 3000 + 80 + 120 + 50
+  });
+
   // #560 — les jours viennent des lignes RH, plus du champ `etp` déprécié.
   it('ignore le champ etp déprécié pour le travail', () => {
     const fixture = setup(operationWithAnnees([

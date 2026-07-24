@@ -139,18 +139,49 @@ export class OperationFicheComponent implements OnInit {
    * toutes les années. Affichée uniquement si une ventilation a été saisie.
    */
   readonly organismeBreakdown = computed(() => {
-    const byOrg = new Map<number, { nom: string; fonctionnement: number; investissement: number }>();
+    interface OrgRow {
+      nom: string; fonctionnement: number; investissement: number;
+      coutSalarial: number; coutStage: number; coutPresta: number; autreCout: number;
+    }
+    const byOrg = new Map<number, OrgRow>();
+    const ensure = (id: number, nom: string): OrgRow => {
+      let e = byOrg.get(id);
+      if (!e) {
+        e = { nom, fonctionnement: 0, investissement: 0, coutSalarial: 0, coutStage: 0, coutPresta: 0, autreCout: 0 };
+        byOrg.set(id, e);
+      }
+      return e;
+    };
     for (const oa of this.operation()?.operation_annees ?? []) {
       for (const org of oa.organismes ?? []) {
-        const entry = byOrg.get(org.id_organisme)
-          ?? { nom: org.organisme_nom || '—', fonctionnement: 0, investissement: 0 };
-        entry.fonctionnement += this.toNum(org.budget_fonctionnement) ?? 0;
-        entry.investissement += this.toNum(org.budget_investissement) ?? 0;
-        byOrg.set(org.id_organisme, entry);
+        const e = ensure(org.id_organisme, org.organisme_nom || '—');
+        e.fonctionnement += this.toNum(org.budget_fonctionnement) ?? 0;
+        e.investissement += this.toNum(org.budget_investissement) ?? 0;
+        // #600 — coûts additionnels saisis par organisme/année.
+        e.coutStage += this.toNum(org.cout_stage) ?? 0;
+        e.coutPresta += this.toNum(org.cout_prestataire) ?? 0;
+        e.autreCout += this.toNum(org.autre_cout) ?? 0;
+      }
+      // #600 — coût salarial = jours × coût jour, attribué à l'organisme du poste.
+      for (const l of oa.rh_lignes ?? []) {
+        const orgId = l.poste_id_organisme;
+        const coutJour = this.toNum(l.poste_cout_jour);
+        if (orgId == null || coutJour == null) continue;
+        const e = byOrg.get(orgId);
+        if (!e) continue; // poste hors des organismes ventilés : ignoré ici
+        e.coutSalarial += Number(l.jours ?? 0) * coutJour;
       }
     }
-    return [...byOrg.values()].map(e => ({ ...e, budget: e.fonctionnement + e.investissement }));
+    return [...byOrg.values()].map(e => ({
+      ...e,
+      budget: e.fonctionnement + e.investissement + e.coutSalarial + e.coutStage + e.coutPresta + e.autreCout,
+    }));
   });
+
+  /** Vrai si un organisme porte au moins un coût additionnel (#600) — pour n'afficher les colonnes que si utile. */
+  readonly hasOrgExtraCosts = computed(() =>
+    this.organismeBreakdown().some(o => o.coutSalarial || o.coutStage || o.coutPresta || o.autreCout)
+  );
 
   /**
    * #560 — Temps de travail cumulé sur toutes les années, par cible (poste ou
