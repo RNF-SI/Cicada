@@ -1,0 +1,614 @@
+"""
+Export Excel « de présentation » de l'arborescence d'un plan de gestion.
+
+Distinct du format d'import round-trip (``services_import.py``) : ce module
+produit un classeur **lisible / imprimable**, calqué sur le modèle
+« Modèle_Export_CICADA_Arborescence » fourni par l'équipe :
+
+- **un onglet par enjeu et par FCR** ;
+- un bloc haut « Vision à long terme » (état de conservation) :
+  OLT → niveau d'exigence → indicateurs d'état → métriques → actions ;
+- un bloc bas « Stratégie d'action » (pressions) :
+  facteurs d'influence → pressions → OO → résultats attendus →
+  indicateurs de pression → métriques → actions ;
+- une « grille de lecture des métriques » (scores 1..5) à droite de chaque bloc.
+
+Le point d'entrée public est :func:`build_presentation_workbook`.
+"""
+
+from __future__ import annotations
+
+import io
+from typing import Optional
+
+from openpyxl import Workbook
+from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
+from openpyxl.utils import get_column_letter
+
+# ---------------------------------------------------------------------------
+# Couleurs — résolues en ARGB concrets pour être indépendantes du thème du
+# classeur (le modèle d'origine s'appuyait sur des couleurs de thème Office).
+# Bases issues du thème du modèle : accent1 bleu, accent2 rouge, accent3 vert,
+# lt2 beige. Les teintes (tint) sont appliquées par le formule OOXML linéaire.
+# ---------------------------------------------------------------------------
+
+_THEME = {
+    "blue": (0x4F, 0x81, 0xBD),   # accent1 — colonne Enjeu / influences
+    "red": (0xC0, 0x50, 0x4D),    # accent2 — bandeau stratégie d'action
+    "green": (0x9B, 0xBB, 0x59),  # accent3 — bandeau vision long terme
+    "beige": (0xEE, 0xEC, 0xE1),  # lt2 — bandeau grille de lecture
+}
+
+
+def _tint(base: tuple[int, int, int], tint: float) -> str:
+    """Applique une teinte OOXML (approximation linéaire par canal) → 'FFrrggbb'."""
+    out = []
+    for c in base:
+        if tint < 0:
+            v = c * (1 + tint)
+        else:
+            v = c * (1 - tint) + 255 * tint
+        out.append(max(0, min(255, int(round(v)))))
+    return "FF{:02X}{:02X}{:02X}".format(*out)
+
+
+# Palette dérivée du modèle
+_C_ENJEU = _tint(_THEME["blue"], -0.5)        # A6 — en-tête Enjeu
+_C_ENJEU_DATA = _tint(_THEME["blue"], 0.6)    # cellule nom d'enjeu
+_C_ETAT_DATA = _tint(_THEME["blue"], 0.8)     # état actuel
+_C_VLT = _tint(_THEME["green"], -0.25)        # D6 — VISION A LONG TERME
+_C_VLT_HDR = _tint(_THEME["green"], 0.4)      # sous-en-têtes bloc haut
+_C_VLT_DATA = _tint(_THEME["green"], 0.6)     # cellules données bloc haut
+_C_STRAT = _tint(_THEME["red"], -0.5)         # D19 — STRATEGIE D'ACTION
+_C_STRAT_HDR = _tint(_THEME["red"], 0.4)      # sous-en-têtes bloc bas
+_C_STRAT_DATA = _tint(_THEME["red"], 0.6)     # cellules données bloc bas
+_C_INFLU = _tint(_THEME["blue"], -0.25)       # A19 — Influences sur l'enjeu
+_C_INFLU_HDR = _tint(_THEME["blue"], 0.4)     # sous-en-têtes influences
+_C_GRILLE = _tint(_THEME["beige"], 0.0)       # bandeau grille de lecture
+_WHITE = "FFFFFFFF"
+
+# Couleurs des scores (palette du modèle, indexées héritées Excel)
+_SCORE_FILLS = {
+    "indet": "FFC0C0C0",  # Indéterminé — gris
+    1: "FFFF0000",        # très mauvais — rouge
+    2: "FFFFCC00",        # mauvais — ambre
+    3: "FFFFFF00",        # moyen — jaune
+    4: "FF99CC00",        # bon — vert
+    5: "FF00CCFF",        # très bon — cyan
+}
+
+# ---------------------------------------------------------------------------
+# Styles
+# ---------------------------------------------------------------------------
+
+_FONT_TITLE = Font(name="Calibri", bold=True, size=14, color="FF025359")
+_FONT_FLAG = Font(name="Calibri", bold=True, size=16, color="FFB74D5D")
+_FONT_HDR = Font(name="Calibri", bold=True, size=11, color="FF000000")
+_FONT_HDR_LIGHT = Font(name="Calibri", bold=True, size=11, color=_WHITE)
+_FONT_DATA = Font(name="Calibri", size=10, color="FF000000")
+_FONT_ACTION = Font(name="Calibri", size=10, color="FF000000")
+_FONT_CODE = Font(name="Calibri", bold=True, size=10, color="FF025359")
+
+_thin = Side(style="thin", color="FF9A8F86")
+_med = Side(style="medium", color="FF746F6E")
+_BORDER = Border(left=_thin, right=_thin, top=_thin, bottom=_thin)
+_BORDER_MED = Border(left=_med, right=_med, top=_med, bottom=_med)
+
+_AL_CTR = Alignment(horizontal="center", vertical="center", wrap_text=True)
+_AL_LEFT = Alignment(horizontal="left", vertical="top", wrap_text=True)
+_AL_CTR_TOP = Alignment(horizontal="center", vertical="top", wrap_text=True)
+
+# Largeurs de colonnes (issues du modèle)
+_COL_WIDTHS = {
+    1: 22.5, 2: 18.5, 3: 20.0, 4: 34.0, 5: 30.0, 6: 27.5, 7: 38.0,
+    8: 10.0, 9: 46.0, 10: 30.0, 11: 12.5, 12: 4.0, 13: 4.0,
+    14: 20.0, 15: 18.0, 16: 18.0, 17: 18.0, 18: 18.0, 19: 18.0, 20: 20.0,
+}
+
+# Indices de colonnes (1-based)
+COL_A, COL_B, COL_C, COL_D, COL_E = 1, 2, 3, 4, 5
+COL_F, COL_G, COL_H, COL_I, COL_J, COL_K = 6, 7, 8, 9, 10, 11
+GR_MET, GR_INDET, GR_S1, GR_S2, GR_S3, GR_S4, GR_S5 = 14, 15, 16, 17, 18, 19, 20
+
+
+def _set(ws, row, col, value, *, fill=None, font=None, align=None, border=_BORDER):
+    cell = ws.cell(row=row, column=col, value=value)
+    if fill:
+        cell.fill = PatternFill("solid", fgColor=fill)
+    cell.font = font or _FONT_DATA
+    cell.alignment = align or _AL_LEFT
+    cell.border = border
+    return cell
+
+
+def _merge(ws, r1, c1, r2, c2, value=None, **kw):
+    ws.merge_cells(start_row=r1, start_column=c1, end_row=r2, end_column=c2)
+    cell = _set(ws, r1, c1, value, **kw)
+    # borde toutes les cellules de la plage fusionnée
+    for r in range(r1, r2 + 1):
+        for c in range(c1, c2 + 1):
+            ws.cell(row=r, column=c).border = kw.get("border", _BORDER)
+    return cell
+
+
+def _sanitize_sheet_title(title: str, used: set) -> str:
+    """Titre d'onglet valide Excel (<=31 car., pas de []:*?/\\), unique."""
+    for ch in '[]:*?/\\':
+        title = title.replace(ch, " ")
+    title = title.strip() or "Feuille"
+    title = title[:31]
+    base = title
+    i = 2
+    while title.lower() in used:
+        suffix = f" ({i})"
+        title = base[: 31 - len(suffix)] + suffix
+        i += 1
+    used.add(title.lower())
+    return title
+
+
+# ---------------------------------------------------------------------------
+# Extraction des données
+# ---------------------------------------------------------------------------
+
+def _txt(value) -> str:
+    return (value or "").strip() if isinstance(value, str) else (value or "")
+
+
+def _ind_type(ind) -> str:
+    t = getattr(ind, "type_indicateur", None)
+    return (getattr(t, "mnemonique", "") or "").upper()
+
+
+def _score_labels(met) -> list[str]:
+    """Retourne [s1..s5] pour la grille de lecture (label sinon plage de seuils)."""
+    labels = []
+    for i in range(1, 6):
+        lbl = _txt(getattr(met, f"score_{i}_label", None))
+        if not lbl:
+            inf = getattr(met, f"score_{i}_inf", None)
+            sup = getattr(met, f"score_{i}_sup", None)
+            if inf is not None or sup is not None:
+                lbl = f"{'' if inf is None else inf} – {'' if sup is None else sup}".strip(" –")
+        labels.append(lbl or "")
+    return labels
+
+
+def _priorite(op) -> str:
+    p = getattr(op, "id_priorite", None)
+    if not p:
+        return ""
+    # « Priorité 1 » → « 1 »
+    lbl = _txt(getattr(p, "label", "")) or ""
+    return lbl.replace("Priorité", "").strip() or lbl
+
+
+def _actions_for(metrique=None, indicateur=None):
+    """Actions (opérations) rattachées à une métrique et/ou directement à l'indicateur."""
+    ops = []
+    if metrique is not None:
+        ops.extend(list(metrique.operations.all()))
+    if indicateur is not None:
+        ops.extend(list(indicateur.operations.all()))
+    # dédoublonne en conservant l'ordre
+    seen, out = set(), []
+    for o in ops:
+        if o.id_operation in seen:
+            continue
+        seen.add(o.id_operation)
+        out.append(o)
+    return out
+
+
+def _leaf_rows_for_indicateurs(indicateurs, group_prefix):
+    """Génère les lignes feuilles (indicateur → métrique → action) d'un groupe.
+
+    ``group_prefix`` : tuple identifiant le parent (olt/ne ou facteur/pression/oo/ra)
+    utilisé pour calculer les fusions verticales sans coller des valeurs
+    identiques de parents distincts.
+    Retourne une liste de dicts {path, ind, met, code, action, priorite}.
+    """
+    rows = []
+    metriques_grille = []  # (ordre) pour la grille de lecture
+    for ind in indicateurs:
+        mets = list(ind.metriques.all())
+        if not mets:
+            rows.append({
+                "path": group_prefix + (("i", ind.id_indicateur),),
+                "ind": ind.nom_indicateur, "met": "", "code": "",
+                "action": "", "priorite": "",
+            })
+            continue
+        for met in mets:
+            metriques_grille.append(met)
+            actions = _actions_for(metrique=met)
+            base = group_prefix + (("i", ind.id_indicateur), ("m", met.id_metrique))
+            if not actions:
+                rows.append({
+                    "path": base, "ind": ind.nom_indicateur,
+                    "met": met.nom_metrique, "code": "", "action": "",
+                    "priorite": "",
+                })
+                continue
+            for op in actions:
+                rows.append({
+                    "path": base,
+                    "ind": ind.nom_indicateur, "met": met.nom_metrique,
+                    "code": _txt(op.code_operation) or _txt(op.numero_manuel),
+                    "action": op.libelle, "priorite": _priorite(op),
+                })
+        # actions rattachées directement à l'indicateur (sans métrique)
+        for op in _actions_for(indicateur=ind):
+            rows.append({
+                "path": group_prefix + (("i", ind.id_indicateur), ("m", 0)),
+                "ind": ind.nom_indicateur, "met": "",
+                "code": _txt(op.code_operation) or _txt(op.numero_manuel),
+                "action": op.libelle, "priorite": _priorite(op),
+            })
+    return rows, metriques_grille
+
+
+def _split_indicateurs(indicateurs):
+    """(indicateurs non-réponse, indicateurs réponse)."""
+    non_rep = [i for i in indicateurs if _ind_type(i) != "REPONSE"]
+    rep = [i for i in indicateurs if _ind_type(i) == "REPONSE"]
+    return non_rep, rep
+
+
+def _collect_top(enjeu):
+    """Bloc haut (vision long terme / état). Retourne (rows, grille)."""
+    rows = []
+    grille = []
+    for olt in enjeu.objectifs_long_terme.all():
+        for ne in olt.niveaux_exigence.all():
+            inds = list(ne.indicateurs.all())
+            non_rep, rep = _split_indicateurs(inds)
+            reponse = " ; ".join(i.nom_indicateur for i in rep)
+            prefix = (("o", olt.id_olt), ("n", ne.id_ne))
+            leaf, mets = _leaf_rows_for_indicateurs(non_rep, prefix)
+            if not leaf:
+                leaf = [{
+                    "path": prefix, "ind": "", "met": "", "code": "",
+                    "action": "", "priorite": "",
+                }]
+            for r in leaf:
+                r["olt"] = olt.libelle
+                r["ne"] = ne.libelle
+                r["reponse"] = reponse
+                r["ne_key"] = prefix
+            rows.extend(leaf)
+            grille.extend(mets)
+    return rows, grille
+
+
+def _collect_bottom(enjeu):
+    """Bloc bas (stratégie d'action / pressions). Retourne (rows, grille)."""
+    from .models_enjeux import ObjectifOperationnel
+
+    rows = []
+    grille = []
+    seen_oo = set()
+
+    def emit_oo(oo, facteur_lbl, pression_lbl, keyprefix):
+        for ra in oo.resultats_attendus.all():
+            inds = list(ra.indicateurs.all())
+            non_rep, rep = _split_indicateurs(inds)
+            reponse = " ; ".join(i.nom_indicateur for i in rep)
+            prefix = keyprefix + (("oo", oo.id_oo), ("ra", ra.id_ra))
+            leaf, mets = _leaf_rows_for_indicateurs(non_rep, prefix)
+            if not leaf:
+                leaf = [{
+                    "path": prefix, "ind": "", "met": "", "code": "",
+                    "action": "", "priorite": "",
+                }]
+            for r in leaf:
+                r["facteur"] = facteur_lbl
+                r["pression"] = pression_lbl
+                r["oo"] = oo.libelle
+                r["ra"] = ra.libelle
+                r["reponse"] = reponse
+            rows.extend(leaf)
+            grille.extend(mets)
+        if not oo.resultats_attendus.all():
+            prefix = keyprefix + (("oo", oo.id_oo),)
+            rows.append({
+                "path": prefix, "facteur": facteur_lbl, "pression": pression_lbl,
+                "oo": oo.libelle, "ra": "", "ind": "", "met": "", "code": "",
+                "action": "", "priorite": "", "reponse": "",
+            })
+
+    # Via facteurs → pressions → OO
+    for facteur in enjeu.facteurs_influence.all():
+        for pression in facteur.pressions.all():
+            oos = list(pression.objectifs_operationnels.all())
+            if not oos:
+                rows.append({
+                    "path": (("f", facteur.id_facteur_influence), ("p", pression.id_pression)),
+                    "facteur": facteur.libelle, "pression": pression.libelle,
+                    "oo": "", "ra": "", "ind": "", "met": "", "code": "",
+                    "action": "", "priorite": "", "reponse": "",
+                })
+                continue
+            for oo in oos:
+                seen_oo.add(oo.id_oo)
+                emit_oo(oo, facteur.libelle, pression.libelle,
+                        (("f", facteur.id_facteur_influence), ("p", pression.id_pression)))
+
+    # OO rattachés directement à l'enjeu (cas FCR notamment)
+    direct = ObjectifOperationnel.objects.filter(id_enjeu=enjeu).exclude(
+        id_oo__in=seen_oo
+    ).prefetch_related(
+        "resultats_attendus__indicateurs__metriques",
+        "resultats_attendus__indicateurs__type_indicateur",
+    )
+    for oo in direct:
+        if oo.id_oo in seen_oo:
+            continue
+        seen_oo.add(oo.id_oo)
+        emit_oo(oo, "", "", (("oo", oo.id_oo),))
+
+    return rows, grille
+
+
+# ---------------------------------------------------------------------------
+# Rendu d'un onglet
+# ---------------------------------------------------------------------------
+
+def _merge_runs(ws, col, start_row, keys, values, *, fill, font=None):
+    """Fusionne verticalement les lignes consécutives de même clé et écrit la valeur.
+
+    ``keys`` : clé de regroupement par ligne (identité du parent).
+    ``values`` : valeur affichée par ligne.
+    """
+    n = len(keys)
+    i = 0
+    while i < n:
+        j = i
+        while j + 1 < n and keys[j + 1] == keys[i]:
+            j += 1
+        r1, r2 = start_row + i, start_row + j
+        val = values[i]
+        if r2 > r1:
+            _merge(ws, r1, col, r2, col, val, fill=fill, font=font or _FONT_DATA,
+                   align=_AL_LEFT)
+        else:
+            _set(ws, r1, col, val, fill=fill, font=font or _FONT_DATA, align=_AL_LEFT)
+        i = j + 1
+
+
+def _write_grille(ws, start_row, metriques, *, is_etat):
+    """Écrit la grille de lecture (N..T) à droite d'un bloc."""
+    if not metriques:
+        return
+    for idx, met in enumerate(metriques):
+        r = start_row + idx
+        _set(ws, r, GR_MET, met.nom_metrique, fill=_C_GRILLE, font=_FONT_DATA,
+             align=_AL_LEFT)
+        _set(ws, r, GR_INDET, "", fill=_SCORE_FILLS["indet"], align=_AL_CTR)
+        labels = _score_labels(met)
+        for s, col in zip(range(1, 6), (GR_S1, GR_S2, GR_S3, GR_S4, GR_S5)):
+            _set(ws, r, col, labels[s - 1], fill=_SCORE_FILLS[s], align=_AL_CTR)
+
+
+def _grille_header(ws, row, title):
+    _merge(ws, row, GR_MET, row, GR_S5, title, fill=_C_GRILLE, font=_FONT_HDR,
+           align=_AL_CTR)
+
+
+def _grille_subheader(ws, row, met_label):
+    _set(ws, row, GR_MET, met_label, fill=_C_GRILLE, font=_FONT_HDR, align=_AL_CTR)
+    _set(ws, row, GR_INDET, "Indéterminé", fill=_SCORE_FILLS["indet"],
+         font=_FONT_HDR, align=_AL_CTR)
+    heads = [
+        (GR_S1, "très mauvais\nScore = 1", 1),
+        (GR_S2, "Mauvais\nScore = 2", 2),
+        (GR_S3, "Score moyen\n= 3", 3),
+        (GR_S4, "Bon\nScore = 4", 4),
+        (GR_S5, "Très bon\nScore = 5", 5),
+    ]
+    for col, label, s in heads:
+        _set(ws, row, col, label, fill=_SCORE_FILLS[s], font=_FONT_HDR, align=_AL_CTR)
+
+
+def _render_enjeu_sheet(ws, enjeu, *, is_fcr):
+    for col, w in _COL_WIDTHS.items():
+        ws.column_dimensions[get_column_letter(col)].width = w
+
+    name = _txt(enjeu.intitule_court) or _txt(enjeu.libelle) or f"Enjeu {enjeu.id_enjeu}"
+    importance = getattr(getattr(enjeu, "id_importance", None), "label", "") or ""
+    is_prioritaire = "1" in importance
+
+    # Ligne 1 : drapeau prioritaire
+    if is_prioritaire:
+        _set(ws, 1, COL_A, "Enjeu prioritaire", font=_FONT_FLAG, align=_AL_LEFT,
+             border=Border())
+    # Ligne 2 : titre
+    cat = "FCR" if is_fcr else "enjeu"
+    fcr_cat = getattr(getattr(enjeu, "id_categorie_fcr", None), "label", "") or ""
+    title = (
+        f"Tableau d'arborescence pour un {cat}"
+        + (f" « {fcr_cat} »" if is_fcr and fcr_cat else "")
+        + " avec grille de lecture des indicateurs"
+    )
+    _merge(ws, 2, COL_A, 2, COL_K, title, font=_FONT_TITLE, align=_AL_LEFT,
+           border=Border())
+
+    top_rows, top_grille = _collect_top(enjeu)
+    bottom_rows, bottom_grille = _collect_bottom(enjeu)
+
+    # ============================ BLOC HAUT ============================
+    h1 = 4  # bandeau
+    h2 = 5  # sous-en-têtes
+    data_start = 6
+    _set(ws, h1, COL_A, "Enjeu", fill=_C_ENJEU, font=_FONT_HDR_LIGHT, align=_AL_CTR,
+         border=_BORDER_MED)
+    _merge(ws, h1, COL_B, h1, COL_C, "État de l'enjeu", fill=_C_ENJEU,
+           font=_FONT_HDR_LIGHT, align=_AL_CTR, border=_BORDER_MED)
+    _merge(ws, h1, COL_D, h1, COL_K, "VISION À LONG TERME", fill=_C_VLT,
+           font=_FONT_HDR_LIGHT, align=_AL_CTR, border=_BORDER_MED)
+    _grille_header(ws, h1, "Grille de lecture des métriques des indicateurs d'état de conservation")
+
+    _set(ws, h2, COL_A, "", fill=_C_ENJEU, border=_BORDER_MED)
+    _merge(ws, h2, COL_B, h2, COL_C, "État actuel de l'enjeu", fill=_C_VLT_HDR,
+           font=_FONT_HDR, align=_AL_CTR)
+    top_heads = [
+        (COL_D, "Objectifs à long terme"),
+        (COL_E, "Niveau d'exigence\n(État visé sur le LT)"),
+        (COL_F, "Indicateurs d'état"),
+        (COL_G, "Métriques"),
+        (COL_H, "Code"),
+        (COL_I, "Actions de gestion"),
+        (COL_J, "Indicateurs de réponse\n(réalisation)"),
+        (COL_K, "Priorité"),
+    ]
+    for col, label in top_heads:
+        _set(ws, h2, col, label, fill=_C_VLT_HDR, font=_FONT_HDR, align=_AL_CTR)
+    _grille_subheader(ws, h2, "Métriques")
+
+    n_top = max(len(top_rows), 1)
+    # Colonne A (enjeu) + B:C (état actuel) fusionnées sur tout le bloc
+    _merge(ws, data_start, COL_A, data_start + n_top - 1, COL_A, name,
+           fill=_C_ENJEU_DATA, font=_FONT_HDR, align=_AL_CTR)
+    _merge(ws, data_start, COL_B, data_start + n_top - 1, COL_C,
+           _txt(enjeu.etat_enjeu), fill=_C_ETAT_DATA, font=_FONT_DATA, align=_AL_LEFT)
+
+    if top_rows:
+        keys_olt = [r["path"][0] for r in top_rows]
+        keys_ne = [r["ne_key"] for r in top_rows]
+        _merge_runs(ws, COL_D, data_start, keys_olt, [r["olt"] for r in top_rows],
+                    fill=_C_VLT_DATA)
+        _merge_runs(ws, COL_E, data_start, keys_ne, [r["ne"] for r in top_rows],
+                    fill=_C_VLT_DATA)
+        keys_ind = [r["path"][:3] if len(r["path"]) >= 3 else r["path"] for r in top_rows]
+        _merge_runs(ws, COL_F, data_start, keys_ind, [r["ind"] for r in top_rows],
+                    fill=_C_VLT_DATA)
+        keys_met = [r["path"] for r in top_rows]
+        _merge_runs(ws, COL_G, data_start, keys_met, [r["met"] for r in top_rows],
+                    fill=_C_VLT_DATA)
+        for i, r in enumerate(top_rows):
+            rr = data_start + i
+            _set(ws, rr, COL_H, r["code"], fill=_C_VLT_DATA, font=_FONT_CODE, align=_AL_CTR)
+            _set(ws, rr, COL_I, r["action"], fill=_C_VLT_DATA, font=_FONT_ACTION)
+            _set(ws, rr, COL_K, r["priorite"], fill=_C_VLT_DATA, align=_AL_CTR)
+        _merge_runs(ws, COL_J, data_start, keys_ne, [r["reponse"] for r in top_rows],
+                    fill=_C_VLT_DATA)
+
+    _write_grille(ws, data_start, top_grille, is_etat=True)
+
+    # ============================ BLOC BAS ============================
+    gap = 1
+    b_h1 = data_start + n_top + gap
+    b_h2 = b_h1 + 1
+    b_data = b_h2 + 1
+
+    _merge(ws, b_h1, COL_A, b_h1, COL_C, "Influences sur l'enjeu", fill=_C_INFLU,
+           font=_FONT_HDR_LIGHT, align=_AL_CTR, border=_BORDER_MED)
+    _merge(ws, b_h1, COL_D, b_h1, COL_K, "STRATÉGIE D'ACTION (Durée du plan)",
+           fill=_C_STRAT, font=_FONT_HDR_LIGHT, align=_AL_CTR, border=_BORDER_MED)
+    _grille_header(ws, b_h1, "Grille de lecture des métriques des indicateurs de pression")
+
+    bottom_heads = [
+        (COL_A, "Niveau d'exigence"),
+        (COL_B, "Facteurs d'influence"),
+        (COL_C, "Pressions à gérer"),
+        (COL_D, "Objectifs opérationnels"),
+        (COL_E, "Résultats attendus"),
+        (COL_F, "Indicateurs de pression"),
+        (COL_G, "Métriques"),
+        (COL_H, "Code"),
+        (COL_I, "Actions de gestion"),
+        (COL_J, "Indicateurs de réponse\n(réalisation)"),
+        (COL_K, "Priorité"),
+    ]
+    for col, label in bottom_heads:
+        fill = _C_INFLU_HDR if col in (COL_A, COL_B, COL_C) else _C_STRAT_HDR
+        _set(ws, b_h2, col, label, fill=fill, font=_FONT_HDR, align=_AL_CTR)
+    _grille_subheader(ws, b_h2, "Métriques")
+
+    if bottom_rows:
+        def keyslice(r, depth):
+            p = r["path"]
+            return p[:depth] if len(p) >= depth else p
+        keys_f = [keyslice(r, 1) for r in bottom_rows]
+        keys_p = [keyslice(r, 2) for r in bottom_rows]
+        keys_oo = [keyslice(r, 3) for r in bottom_rows]
+        keys_ra = [keyslice(r, 4) for r in bottom_rows]
+        _merge_runs(ws, COL_B, b_data, keys_f, [r.get("facteur", "") for r in bottom_rows],
+                    fill=_C_STRAT_DATA)
+        _merge_runs(ws, COL_C, b_data, keys_p, [r.get("pression", "") for r in bottom_rows],
+                    fill=_C_STRAT_DATA)
+        _merge_runs(ws, COL_D, b_data, keys_oo, [r.get("oo", "") for r in bottom_rows],
+                    fill=_C_STRAT_DATA)
+        _merge_runs(ws, COL_E, b_data, keys_ra, [r.get("ra", "") for r in bottom_rows],
+                    fill=_C_STRAT_DATA)
+        keys_ind_b = [r["path"] if r.get("met") else keyslice(r, 5) for r in bottom_rows]
+        keys_met_b = [r["path"] for r in bottom_rows]
+        _merge_runs(ws, COL_F, b_data, keys_ind_b, [r.get("ind", "") for r in bottom_rows],
+                    fill=_C_STRAT_DATA)
+        _merge_runs(ws, COL_G, b_data, keys_met_b, [r.get("met", "") for r in bottom_rows],
+                    fill=_C_STRAT_DATA)
+        for i, r in enumerate(bottom_rows):
+            rr = b_data + i
+            _set(ws, rr, COL_A, "", fill=_C_INFLU_HDR)
+            _set(ws, rr, COL_H, r.get("code", ""), fill=_C_STRAT_DATA, font=_FONT_CODE,
+                 align=_AL_CTR)
+            _set(ws, rr, COL_I, r.get("action", ""), fill=_C_STRAT_DATA, font=_FONT_ACTION)
+            _set(ws, rr, COL_K, r.get("priorite", ""), fill=_C_STRAT_DATA, align=_AL_CTR)
+        _merge_runs(ws, COL_J, b_data, keys_ra, [r.get("reponse", "") for r in bottom_rows],
+                    fill=_C_STRAT_DATA)
+
+    _write_grille(ws, b_data, bottom_grille, is_etat=False)
+
+    ws.sheet_view.showGridLines = False
+    ws.freeze_panes = "A6"
+
+
+# ---------------------------------------------------------------------------
+# Point d'entrée
+# ---------------------------------------------------------------------------
+
+def _prefetched_enjeux(plan):
+    from .models_enjeux import Enjeu
+    qs = (
+        Enjeu.objects.filter(id_pg=plan)
+        .select_related("id_categorie", "id_categorie_fcr", "id_importance")
+        .prefetch_related(
+            "objectifs_long_terme__niveaux_exigence__indicateurs__type_indicateur",
+            "objectifs_long_terme__niveaux_exigence__indicateurs__metriques__operations",
+            "objectifs_long_terme__niveaux_exigence__indicateurs__operations",
+            "facteurs_influence__pressions__objectifs_operationnels__resultats_attendus__indicateurs__type_indicateur",
+            "facteurs_influence__pressions__objectifs_operationnels__resultats_attendus__indicateurs__metriques__operations",
+        )
+    )
+    enjeux = list(qs)
+    enjeux.sort(key=lambda e: (
+        1 if (e.id_categorie and e.id_categorie.mnemonique == "FCR") else 0,
+        e.ordre if e.ordre is not None else 0,
+        e.id_enjeu,
+    ))
+    return enjeux
+
+
+def build_presentation_workbook(plan) -> bytes:
+    """Construit le classeur de présentation de l'arborescence du plan."""
+    wb = Workbook()
+    wb.remove(wb.active)
+    used_titles: set = set()
+
+    enjeux = _prefetched_enjeux(plan)
+    if not enjeux:
+        ws = wb.create_sheet(_sanitize_sheet_title("Arborescence", used_titles))
+        ws["A1"] = "Ce plan ne contient pas encore d'arborescence."
+        ws["A1"].font = _FONT_TITLE
+    else:
+        for enjeu in enjeux:
+            is_fcr = bool(enjeu.id_categorie and enjeu.id_categorie.mnemonique == "FCR")
+            label = _txt(enjeu.intitule_court) or _txt(enjeu.libelle) or f"Enjeu {enjeu.id_enjeu}"
+            prefix = "FCR" if is_fcr else "Enjeu"
+            title = _sanitize_sheet_title(f"{prefix} - {label}", used_titles)
+            ws = wb.create_sheet(title)
+            _render_enjeu_sheet(ws, enjeu, is_fcr=is_fcr)
+
+    buf = io.BytesIO()
+    wb.save(buf)
+    return buf.getvalue()

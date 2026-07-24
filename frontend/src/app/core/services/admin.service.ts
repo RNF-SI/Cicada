@@ -754,6 +754,72 @@ export class AdminService {
   }
 
   /**
+   * Télécharge l'arborescence au format « présentation » (modèle CICADA :
+   * un onglet par enjeu/FCR + grille de lecture des métriques).
+   * GET /api/plans/plans/{id}/export-arborescence-presentation-xlsx/
+   */
+  downloadArborescencePresentation(planId: number): Observable<Blob> {
+    return this.http
+      .get(
+        `${this.plansApiUrl}/plans/${planId}/export-arborescence-presentation-xlsx/`,
+        { responseType: 'blob' },
+      )
+      .pipe(catchError(this.handleError));
+  }
+
+  /**
+   * Télécharge les fiches action du plan (Excel, un onglet par action).
+   * GET /api/plans/plans/{id}/export-fiches-actions-xlsx/
+   */
+  downloadFichesActions(planId: number): Observable<Blob> {
+    return this.http
+      .get(`${this.plansApiUrl}/plans/${planId}/export-fiches-actions-xlsx/`, {
+        responseType: 'blob',
+      })
+      .pipe(catchError(this.handleError));
+  }
+
+  /**
+   * Télécharge la fiche « plan de gestion » (Word : enjeux + FCR).
+   * GET /api/plans/plans/{id}/export-plan-docx/
+   */
+  downloadPlanDocx(planId: number): Observable<Blob> {
+    return this.http
+      .get(`${this.plansApiUrl}/plans/${planId}/export-plan-docx/`, {
+        responseType: 'blob',
+      })
+      .pipe(catchError(this.handleError));
+  }
+
+  /** Télécharge les RH prévisionnelles (Excel). */
+  downloadRhPrevisionnel(planId: number): Observable<Blob> {
+    return this.http
+      .get(`${this.plansApiUrl}/plans/${planId}/export-rh-previsionnel-xlsx/`, { responseType: 'blob' })
+      .pipe(catchError(this.handleError));
+  }
+
+  /** Télécharge le suivi RH (Excel, prévu/réalisé). */
+  downloadRhSuivi(planId: number): Observable<Blob> {
+    return this.http
+      .get(`${this.plansApiUrl}/plans/${planId}/export-rh-suivi-xlsx/`, { responseType: 'blob' })
+      .pipe(catchError(this.handleError));
+  }
+
+  /** Télécharge le budget prévisionnel (Excel). */
+  downloadBudgetPrevisionnel(planId: number): Observable<Blob> {
+    return this.http
+      .get(`${this.plansApiUrl}/plans/${planId}/export-budget-previsionnel-xlsx/`, { responseType: 'blob' })
+      .pipe(catchError(this.handleError));
+  }
+
+  /** Télécharge le suivi budgétaire (Excel, prévu/réalisé). */
+  downloadBudgetSuivi(planId: number): Observable<Blob> {
+    return this.http
+      .get(`${this.plansApiUrl}/plans/${planId}/export-budget-suivi-xlsx/`, { responseType: 'blob' })
+      .pipe(catchError(this.handleError));
+  }
+
+  /**
    * Télécharge l'exemple d'arborescence complet (indépendant d'un plan).
    * GET /api/plans/plans/example-arborescence-xlsx/
    */

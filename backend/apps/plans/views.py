@@ -40,6 +40,15 @@ from .services_import import (
     read_any_workbook,
     count_existing_arborescence,
 )
+from .services_export_arbo import build_presentation_workbook
+from .services_export_word import build_plan_docx
+from .services_export_fiche_action import build_fiche_action_workbook
+from .services_export_budget_rh import (
+    build_rh_previsionnel_workbook,
+    build_rh_suivi_workbook,
+    build_budget_previsionnel_workbook,
+    build_budget_suivi_workbook,
+)
 from .services_import_actions import (
     build_actions_workbook,
     build_actions_example_workbook,
@@ -1276,6 +1285,135 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
             content,
             content_type=(
                 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+            ),
+        )
+        response['Content-Disposition'] = (
+            f"attachment; filename*=UTF-8''{_url_quote(filename)}"
+        )
+        return response
+
+    @action(detail=True, methods=['get'], url_path='export-arborescence-presentation-xlsx')
+    def export_arborescence_presentation_xlsx(self, request, pk=None):
+        """
+        Exporter l'arborescence au format « présentation » (modèle CICADA).
+
+        GET /api/plans/plans/{id}/export-arborescence-presentation-xlsx/
+
+        Classeur lisible / imprimable : un onglet par enjeu et par FCR, avec la
+        grille OLT → niveau d'exigence → indicateurs → actions et la grille de
+        lecture des métriques (scores 1..5). Distinct du format d'import
+        round-trip (« export-arborescence-xlsx »).
+        """
+        plan = self.get_object()
+        content = build_presentation_workbook(plan)
+
+        suffix = plan.slug or f'plan-{plan.pk}'
+        filename = f'arborescence-presentation-{suffix}.xlsx'
+        response = HttpResponse(
+            content,
+            content_type=(
+                'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+            ),
+        )
+        response['Content-Disposition'] = (
+            f"attachment; filename*=UTF-8''{_url_quote(filename)}"
+        )
+        return response
+
+    @action(detail=True, methods=['get'], url_path='export-fiches-actions-xlsx')
+    def export_fiches_actions_xlsx(self, request, pk=None):
+        """
+        Exporter les fiches action du plan au format Excel (modèle CICADA).
+
+        GET /api/plans/plans/{id}/export-fiches-actions-xlsx/
+
+        Un onglet par opération : variante « Action CS » (catégorie Connaissance
+        et suivi) ou « Action hors CS » selon la catégorie de l'action. Chaque
+        fiche comprend le cadre (indicateur / niveau d'exigence ou résultat
+        attendu / OLT ou OO / enjeu), les détails, et le volet financier
+        (programmation, budgets par organisme, financeurs, indicateurs de réponse).
+        """
+        plan = self.get_object()
+        content = build_fiche_action_workbook(plan)
+
+        suffix = plan.slug or f'plan-{plan.pk}'
+        filename = f'fiches-actions-{suffix}.xlsx'
+        response = HttpResponse(
+            content,
+            content_type=(
+                'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+            ),
+        )
+        response['Content-Disposition'] = (
+            f"attachment; filename*=UTF-8''{_url_quote(filename)}"
+        )
+        return response
+
+    def _xlsx_response(self, content, filename):
+        response = HttpResponse(
+            content,
+            content_type=(
+                'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+            ),
+        )
+        response['Content-Disposition'] = (
+            f"attachment; filename*=UTF-8''{_url_quote(filename)}"
+        )
+        return response
+
+    @action(detail=True, methods=['get'], url_path='export-rh-previsionnel-xlsx')
+    def export_rh_previsionnel_xlsx(self, request, pk=None):
+        """Exporter les RH prévisionnelles (jours) par organisme. Modèle CICADA."""
+        plan = self.get_object()
+        suffix = plan.slug or f'plan-{plan.pk}'
+        return self._xlsx_response(
+            build_rh_previsionnel_workbook(plan), f'rh-previsionnel-{suffix}.xlsx')
+
+    @action(detail=True, methods=['get'], url_path='export-rh-suivi-xlsx')
+    def export_rh_suivi_xlsx(self, request, pk=None):
+        """Exporter le suivi RH (jours prévus / réalisés) par organisme."""
+        plan = self.get_object()
+        suffix = plan.slug or f'plan-{plan.pk}'
+        return self._xlsx_response(
+            build_rh_suivi_workbook(plan), f'rh-suivi-{suffix}.xlsx')
+
+    @action(detail=True, methods=['get'], url_path='export-budget-previsionnel-xlsx')
+    def export_budget_previsionnel_xlsx(self, request, pk=None):
+        """Exporter le budget prévisionnel (fonctionnement / investissement) par organisme."""
+        plan = self.get_object()
+        suffix = plan.slug or f'plan-{plan.pk}'
+        return self._xlsx_response(
+            build_budget_previsionnel_workbook(plan), f'budget-previsionnel-{suffix}.xlsx')
+
+    @action(detail=True, methods=['get'], url_path='export-budget-suivi-xlsx')
+    def export_budget_suivi_xlsx(self, request, pk=None):
+        """Exporter le suivi budgétaire (prévu / réalisé) par organisme."""
+        plan = self.get_object()
+        suffix = plan.slug or f'plan-{plan.pk}'
+        return self._xlsx_response(
+            build_budget_suivi_workbook(plan), f'budget-suivi-{suffix}.xlsx')
+
+    @action(detail=True, methods=['get'], url_path='export-plan-docx')
+    def export_plan_docx(self, request, pk=None):
+        """
+        Exporter la fiche « plan de gestion » (enjeux + FCR) au format Word.
+
+        GET /api/plans/plans/{id}/export-plan-docx/
+
+        Document rédigé (modèle CICADA) : enjeux écologiques puis socio-économiques,
+        chaque enjeu avec son état, le tableau espèces/habitats/patrimoine
+        géologique, ses OLT → niveaux d'exigence et ses facteurs d'influence →
+        pressions ; enfin les facteurs clés de réussite.
+        """
+        plan = self.get_object()
+        content = build_plan_docx(plan)
+
+        suffix = plan.slug or f'plan-{plan.pk}'
+        filename = f'plan-de-gestion-{suffix}.docx'
+        response = HttpResponse(
+            content,
+            content_type=(
+                'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
             ),
         )
         response['Content-Disposition'] = (
