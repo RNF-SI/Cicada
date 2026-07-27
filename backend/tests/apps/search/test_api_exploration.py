@@ -16,7 +16,8 @@ from apps.search.indexing import index_plan
 from tests.factories.core import SiteTypeNomenclatureFactory
 from tests.factories.enjeux import (
     EnjeuFactory, FacteurInfluenceFactory, IndicateurFactory,
-    NiveauExigenceFactory, ObjectifLongTermeFactory, PressionFactory,
+    NiveauExigenceFactory, ObjectifLongTermeFactory, OperationFactory,
+    PressionFactory,
 )
 from tests.factories.plans import CorSitePgFactory, PlanGestionFactory
 from tests.factories.users import (
@@ -82,10 +83,12 @@ def _plan_avec_contenu(nom, libelle_enjeu, prefixe, site=None, statut='valide'):
     PressionFactory(id_facteur_influence=facteur, libelle=f'Pression {prefixe}')
     olt = ObjectifLongTermeFactory(id_enjeu=enjeu, libelle=f'Objectif {prefixe}')
     niveau = NiveauExigenceFactory(id_olt=olt)
-    IndicateurFactory(id_ne=niveau, nom_indicateur=f'Indicateur {prefixe}')
+    indicateur = IndicateurFactory(id_ne=niveau, nom_indicateur=f'Indicateur {prefixe}')
 
     plan.statut = statut
     plan.save()
+    # Exposé pour les tests qui ont besoin d'accrocher une action à la branche.
+    plan.indicateur_racine = indicateur
     return plan
 
 
@@ -436,3 +439,129 @@ class TestRequetes:
         with django_assert_max_num_queries(12):
             reponse = client_connecte.get(URL_CONTENUS, {'page_size': 100})
         assert reponse.data['pagination']['count'] == 40
+
+
+# --------------------------------------------------------------------------- #
+# Fiche publique
+# --------------------------------------------------------------------------- #
+
+def url_fiche(plan):
+    return f'/api/exploration/plans/{plan.slug}/'
+
+
+def _cles_profondes(donnees, prefixe=''):
+    """Toutes les clés d'une charge utile JSON, chemins imbriqués compris."""
+    if isinstance(donnees, dict):
+        for cle, valeur in donnees.items():
+            chemin = f'{prefixe}.{cle}' if prefixe else cle
+            yield chemin
+            yield from _cles_profondes(valeur, chemin)
+    elif isinstance(donnees, list):
+        for element in donnees:
+            yield from _cles_profondes(element, prefixe)
+
+
+@pytest.mark.integration
+class TestFichePublique:
+
+    def test_la_fiche_expose_larborescence_du_plan(
+        self, client_connecte, jeu_de_donnees
+    ):
+        reponse = client_connecte.get(url_fiche(jeu_de_donnees['plans']['ouest']))
+
+        assert reponse.status_code == 200
+        assert reponse.data['nom'] == 'Plan Ouest'
+
+        enjeux = reponse.data['enjeux']
+        assert [e['libelle'] for e in enjeux] == ['Protection des limicoles']
+
+        enjeu = enjeux[0]
+        assert [f['libelle'] for f in enjeu['facteurs']] == ['Facteur Ouest']
+        assert [p['libelle'] for p in enjeu['facteurs'][0]['pressions']] == [
+            'Pression Ouest'
+        ]
+        assert [o['libelle'] for o in enjeu['objectifs_long_terme']] == [
+            'Objectif Ouest'
+        ]
+
+        indicateurs = [
+            indicateur['nom_indicateur']
+            for objectif in enjeu['objectifs_long_terme']
+            for niveau in objectif['niveaux_exigence']
+            for indicateur in niveau['indicateurs']
+        ]
+        assert indicateurs == ['Indicateur Ouest']
+
+    def test_un_utilisateur_dun_autre_organisme_peut_consulter(
+        self, client_connecte, jeu_de_donnees
+    ):
+        """C'est la raison d'être de la fiche : partager entre gestionnaires."""
+        assert client_connecte.get(
+            url_fiche(jeu_de_donnees['plans']['est'])
+        ).status_code == 200
+
+    def test_un_brouillon_na_pas_de_fiche(self, client_connecte, jeu_de_donnees):
+        assert client_connecte.get(
+            url_fiche(jeu_de_donnees['plans']['brouillon'])
+        ).status_code == 404
+
+    def test_la_fiche_exige_detre_connecte(self, jeu_de_donnees):
+        assert APIClient().get(
+            url_fiche(jeu_de_donnees['plans']['ouest'])
+        ).status_code in (401, 403)
+
+    def test_un_plan_inconnu_renvoie_404(self, client_connecte, jeu_de_donnees):
+        assert client_connecte.get('/api/exploration/plans/inexistant/').status_code == 404
+
+
+@pytest.mark.integration
+class TestFichePubliqueCloisonnement:
+    """
+    La fiche est le seul endroit où le contenu d'un plan sort de son périmètre
+    de lecture (#610). Ces tests verrouillent ce qui en sort.
+    """
+
+    #: Fragments de noms de champs qui n'ont rien à faire dans une fiche
+    #: publique : budget, RH, données empiriques et traçabilité interne.
+    INTERDITS = [
+        'budget', 'cout', 'etp', 'montant', 'financ',
+        'poste', 'fonction', 'salaire', 'jours',
+        'mesure', 'realisation', 'realise',
+        'utilisateur', 'date_ajout', 'date_maj',
+    ]
+
+    def test_aucun_champ_de_gestion_nest_expose(
+        self, client_connecte, jeu_de_donnees
+    ):
+        reponse = client_connecte.get(url_fiche(jeu_de_donnees['plans']['ouest']))
+
+        fautifs = [
+            cle for cle in _cles_profondes(reponse.data)
+            if any(interdit in cle.lower() for interdit in self.INTERDITS)
+        ]
+        assert fautifs == [], f'Champs interdits exposés : {fautifs}'
+
+    def test_les_actions_nexposent_pas_leurs_financeurs(
+        self, client_connecte, jeu_de_donnees
+    ):
+        """
+        `operateurs` et `partenaires` disent qui agit — c'est de la structure.
+        `financeurs` dit qui paie : c'est du budget, donc hors périmètre.
+        """
+        plan = jeu_de_donnees['plans']['ouest']
+        OperationFactory(
+            libelle='Action financée',
+            id_indicateur=plan.indicateur_racine,
+            operateurs='Équipe technique',
+            partenaires='CEN voisin',
+            financeurs='Agence de l\'eau',
+        )
+        index_plan(plan)
+
+        action = next(
+            a for a in client_connecte.get(url_fiche(plan)).data['actions']
+            if a['libelle'] == 'Action financée'
+        )
+
+        assert action['operateurs'] == 'Équipe technique'
+        assert 'financeurs' not in action

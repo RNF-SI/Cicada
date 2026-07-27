@@ -1,0 +1,324 @@
+<app-header></app-header>
+
+<main class="fiche-main">
+  <div class="fiche-container">
+
+    <!-- L'alias `as` n'est autorisé que sur le @if principal : la fiche est
+         donc la branche primaire, les états transitoires les branches @else. -->
+    @if (plan(); as p) {
+
+      <!-- Bandeau -->
+      <section class="fiche-bandeau">
+        <nav class="exploration-fil" aria-label="Fil d'Ariane">
+          <a routerLink="/exploration" class="exploration-fil-home" aria-label="Accueil">
+            <i class="fi fi-rr-home" aria-hidden="true"></i>
+          </a>
+          <a routerLink="/exploration" class="exploration-fil-lien">
+            {{ 'exploration.title' | translate }}
+          </a>
+          <span class="exploration-fil-separateur">&rsaquo;</span>
+          <span>{{ p.nom }}</span>
+        </nav>
+
+        <h1 class="fiche-titre">{{ p.nom }}</h1>
+
+        <ul class="fiche-meta">
+          @if (p.sites.length) {
+            <li>
+              <i class="fi fi-rr-marker" aria-hidden="true"></i>
+              @if (p.sites.length > 1) {
+                <span class="fiche-meta-label">
+                  {{ 'exploration.results.multisites' | translate }}
+                </span>
+              }
+              <span>
+                @for (site of p.sites; track site.id_site) {
+                  <span>{{ site.nom_site }}@if (!$last) {, }</span>
+                }
+              </span>
+            </li>
+          }
+          @if (p.gestionnaire_principal) {
+            <li>
+              <i class="fi fi-rr-building" aria-hidden="true"></i>
+              <span class="fiche-meta-label">
+                {{ 'exploration.results.gestionnaire' | translate }}
+              </span>
+              <span>{{ p.gestionnaire_principal }}</span>
+            </li>
+          }
+          @if (periode()) {
+            <li>
+              <i class="fi fi-rr-calendar" aria-hidden="true"></i>
+              <span>{{ periode() }}</span>
+            </li>
+          }
+          @if (p.type_document) {
+            <li>
+              <i class="fi fi-rr-dashboard" aria-hidden="true"></i>
+              <span>{{ p.type_document }}</span>
+            </li>
+          }
+        </ul>
+      </section>
+
+      <!-- Périmètre de la fiche -->
+      <p class="fiche-lecture-seule">
+        <i class="fi fi-rr-lock" aria-hidden="true"></i>
+        <span>{{ 'exploration.fiche.lectureSeule' | translate }}</span>
+      </p>
+
+      <app-anchor-nav [items]="ancres()"></app-anchor-nav>
+
+      <!-- Aperçu -->
+      <section id="apercu" class="fiche-section">
+        <h2 class="fiche-section-titre">{{ 'exploration.fiche.apercu' | translate }}</h2>
+        <div class="fiche-chiffres">
+          <div class="fiche-chiffre">
+            <span class="fiche-chiffre-valeur">{{ p.enjeux.length }}</span>
+            <span class="fiche-chiffre-label">
+              {{ 'exploration.types.enjeu.pluriel' | translate }}
+            </span>
+          </div>
+          <div class="fiche-chiffre">
+            <span class="fiche-chiffre-valeur">{{ p.actions.length }}</span>
+            <span class="fiche-chiffre-label">
+              {{ 'exploration.types.action.pluriel' | translate }}
+            </span>
+          </div>
+          <div class="fiche-chiffre">
+            <span class="fiche-chiffre-valeur">{{ p.sites.length }}</span>
+            <span class="fiche-chiffre-label">
+              {{ 'exploration.fiche.sites' | translate }}
+            </span>
+          </div>
+          @if (p.surface) {
+            <div class="fiche-chiffre">
+              <span class="fiche-chiffre-valeur">{{ p.surface }}</span>
+              <span class="fiche-chiffre-label">
+                {{ 'exploration.fiche.surface' | translate }}
+              </span>
+            </div>
+          }
+        </div>
+      </section>
+
+      <!-- Enjeux -->
+      @if (p.enjeux.length) {
+        <section id="enjeux" class="fiche-section">
+          <h2 class="fiche-section-titre">
+            {{ 'exploration.types.enjeu.pluriel' | translate }}
+          </h2>
+
+          @for (enjeu of p.enjeux; track enjeu.id_enjeu) {
+            <app-accordion
+              variant="enjeu"
+              [title]="enjeu.libelle"
+              [expanded]="estOuvert(enjeu)"
+              (expandedChange)="basculerEnjeu(enjeu, $event)">
+
+              <div
+                class="fiche-enjeu"
+                [id]="ancreDe('enjeu:' + enjeu.id_enjeu)"
+                [class.cible]="estCible('enjeu', enjeu.id_enjeu)">
+
+                <div class="fiche-tags">
+                  @if (enjeu.categorie) {
+                    <app-tag variant="info" size="sm" [label]="enjeu.categorie"></app-tag>
+                  }
+                  @if (enjeu.rang) {
+                    <app-tag
+                      variant="warning"
+                      size="sm"
+                      [label]="('exploration.fiche.priorite' | translate) + ' ' + enjeu.rang">
+                    </app-tag>
+                  }
+                  @for (taxon of enjeu.taxons; track taxon.cd_nom) {
+                    <app-tag
+                      variant="success"
+                      size="sm"
+                      [label]="taxon.nom_vern || taxon.nom_complet">
+                    </app-tag>
+                  }
+                  @for (habitat of enjeu.habitats; track habitat.cd_hab) {
+                    <app-tag
+                      variant="neutral"
+                      size="sm"
+                      [label]="habitat.lb_hab_fr || habitat.cd_hab">
+                    </app-tag>
+                  }
+                </div>
+
+                @if (enjeu.description) {
+                  <p class="fiche-texte">{{ enjeu.description }}</p>
+                }
+                @if (enjeu.etat_enjeu) {
+                  <p class="fiche-texte">
+                    <span class="fiche-meta-label">
+                      {{ 'exploration.fiche.etat' | translate }}
+                    </span>
+                    {{ enjeu.etat_enjeu }}
+                  </p>
+                }
+
+                <!-- Facteurs d'influence et pressions -->
+                @if (enjeu.facteurs.length) {
+                  <h3 class="fiche-sous-titre">
+                    {{ 'exploration.types.facteur.pluriel' | translate }}
+                  </h3>
+                  <ul class="fiche-arbre">
+                    @for (facteur of enjeu.facteurs; track facteur.id_facteur_influence) {
+                      <li
+                        [id]="ancreDe('facteur:' + facteur.id_facteur_influence)"
+                        [class.cible]="estCible('facteur', facteur.id_facteur_influence)">
+                        <span class="fiche-arbre-titre type-facteur">{{ facteur.libelle }}</span>
+                        @if (facteur.pressions.length) {
+                          <ul class="fiche-arbre">
+                            @for (pression of facteur.pressions; track pression.id_pression) {
+                              <li
+                                [id]="ancreDe('pression:' + pression.id_pression)"
+                                [class.cible]="estCible('pression', pression.id_pression)">
+                                <span class="fiche-arbre-titre type-pression">
+                                  {{ pression.libelle }}
+                                </span>
+                              </li>
+                            }
+                          </ul>
+                        }
+                      </li>
+                    }
+                  </ul>
+                }
+
+                <!-- Objectifs à long terme -->
+                @if (enjeu.objectifs_long_terme.length) {
+                  <h3 class="fiche-sous-titre">
+                    {{ 'exploration.types.objectif_lt.pluriel' | translate }}
+                  </h3>
+                  <ul class="fiche-arbre">
+                    @for (olt of enjeu.objectifs_long_terme; track olt.id_olt) {
+                      <li
+                        [id]="ancreDe('objectif_lt:' + olt.id_olt)"
+                        [class.cible]="estCible('objectif_lt', olt.id_olt)">
+                        <span class="fiche-arbre-titre type-objectif">{{ olt.libelle }}</span>
+                        @for (niveau of olt.niveaux_exigence; track niveau.id_ne) {
+                          <ul class="fiche-arbre">
+                            <li>
+                              <span class="fiche-arbre-niveau">{{ niveau.libelle }}</span>
+                              @if (niveau.indicateurs.length) {
+                                <ul class="fiche-arbre">
+                                  @for (ind of niveau.indicateurs; track ind.id_indicateur) {
+                                    <li
+                                      [id]="ancreDe('indicateur:' + ind.id_indicateur)"
+                                      [class.cible]="estCible('indicateur', ind.id_indicateur)">
+                                      <span class="fiche-arbre-titre type-indicateur">
+                                        {{ ind.nom_indicateur }}
+                                      </span>
+                                      @if (ind.type_indicateur) {
+                                        <span class="fiche-arbre-mention">
+                                          {{ ind.type_indicateur }}
+                                        </span>
+                                      }
+                                    </li>
+                                  }
+                                </ul>
+                              }
+                            </li>
+                          </ul>
+                        }
+                      </li>
+                    }
+                  </ul>
+                }
+
+                <!-- Objectifs opérationnels -->
+                @if (enjeu.objectifs_operationnels.length) {
+                  <h3 class="fiche-sous-titre">
+                    {{ 'exploration.types.objectif_op.pluriel' | translate }}
+                  </h3>
+                  <ul class="fiche-arbre">
+                    @for (oo of enjeu.objectifs_operationnels; track oo.id_oo) {
+                      <li
+                        [id]="ancreDe('objectif_op:' + oo.id_oo)"
+                        [class.cible]="estCible('objectif_op', oo.id_oo)">
+                        <span class="fiche-arbre-titre type-objectif">{{ oo.libelle }}</span>
+                        @for (ra of oo.resultats_attendus; track ra.id_ra) {
+                          <ul class="fiche-arbre">
+                            <li>
+                              <span class="fiche-arbre-niveau">{{ ra.libelle }}</span>
+                              @if (ra.indicateurs.length) {
+                                <ul class="fiche-arbre">
+                                  @for (ind of ra.indicateurs; track ind.id_indicateur) {
+                                    <li
+                                      [id]="ancreDe('indicateur:' + ind.id_indicateur)"
+                                      [class.cible]="estCible('indicateur', ind.id_indicateur)">
+                                      <span class="fiche-arbre-titre type-indicateur">
+                                        {{ ind.nom_indicateur }}
+                                      </span>
+                                    </li>
+                                  }
+                                </ul>
+                              }
+                            </li>
+                          </ul>
+                        }
+                      </li>
+                    }
+                  </ul>
+                }
+              </div>
+            </app-accordion>
+          }
+        </section>
+      }
+
+      <!-- Actions -->
+      @if (p.actions.length) {
+        <section id="actions" class="fiche-section">
+          <h2 class="fiche-section-titre">
+            {{ 'exploration.types.action.pluriel' | translate }}
+          </h2>
+
+          <div class="fiche-tableau-scroll">
+            <table class="fiche-tableau">
+              <thead>
+                <tr>
+                  <th>{{ 'exploration.fiche.code' | translate }}</th>
+                  <th>{{ 'exploration.fiche.action' | translate }}</th>
+                  <th>{{ 'exploration.fiche.typeAction' | translate }}</th>
+                  <th>{{ 'exploration.fiche.periode' | translate }}</th>
+                  <th>{{ 'exploration.fiche.prioriteCourt' | translate }}</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (action of p.actions; track action.id_operation) {
+                  <tr
+                    [id]="ancreDe('action:' + action.id_operation)"
+                    [class.cible]="estCible('action', action.id_operation)">
+                    <td class="fiche-tableau-code">{{ action.code_operation }}</td>
+                    <td>
+                      <span class="fiche-arbre-titre type-action">{{ action.libelle }}</span>
+                      @if (action.description) {
+                        <p class="fiche-tableau-description">{{ action.description }}</p>
+                      }
+                    </td>
+                    <td>{{ action.categorie }}</td>
+                    <td>{{ periodeAction(action) }}</td>
+                    <td>{{ action.priorite }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </section>
+      }
+
+    } @else if (chargement()) {
+      <p class="fiche-etat">{{ 'common.loading' | translate }}</p>
+    } @else {
+      <p class="fiche-etat info-block-error">
+        {{ 'exploration.fiche.introuvable' | translate }}
+      </p>
+    }
+  </div>
+</main>

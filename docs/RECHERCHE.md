@@ -123,9 +123,10 @@ un moindre mal comparé à une validation de plan qui échoue.
 ## API
 
 ```
-GET /api/exploration/contenus/    # rechercher dans le contenu des plans
-GET /api/exploration/plans/       # rechercher un plan de gestion
-GET /api/geo/zones/               # arbre régions → départements (filtre)
+GET /api/exploration/contenus/       # rechercher dans le contenu des plans
+GET /api/exploration/plans/          # rechercher un plan de gestion
+GET /api/exploration/plans/<slug>/   # fiche publique d'un plan, en lecture seule
+GET /api/geo/zones/                  # arbre régions → départements (filtre)
 ```
 
 **Périmètre volontairement transverse.** Ces deux vues n'appliquent **pas** le
@@ -176,6 +177,38 @@ pressions et actions : les onglets restent utilisables. *Hypothèse de lecture
 de la maquette, à confirmer avec la maîtrise d'ouvrage* — l'autre lecture
 possible serait que cocher une facette restreigne la recherche au type
 correspondant.
+
+### La fiche publique
+
+`GET /api/exploration/plans/<slug>/` renvoie la **structure** d'un plan validé :
+enjeux, facteurs d'influence, pressions, objectifs à long terme et
+opérationnels, niveaux d'exigence, résultats attendus, indicateurs, métriques et
+actions programmées.
+
+C'est le seul endroit du projet où le contenu d'un plan sort de son périmètre de
+lecture (#610). Ses sérialiseurs (`apps/search/serializers_fiche.py`) sont donc
+**écrits à la main, sans réutiliser ceux de `apps.plans`** : en hériter ferait
+entrer ici, à la première évolution de ceux-ci, des champs que personne n'aurait
+décidé de publier.
+
+Ne sortent jamais de cet endpoint :
+
+| Exclusion | Ce que ça couvre |
+|---|---|
+| Budget et financement | `OperationAnnee`, `FinanceOperation`, `Operation.financeurs` |
+| Ressources humaines | `Poste`, `Fonction`, `OperationAnneeRH` |
+| Données empiriques | mesures d'indicateurs (`Mesure`), réalisations annuelles |
+| Traçabilité interne | auteurs, dates de création et de modification |
+
+`TestFichePubliqueCloisonnement` parcourt récursivement la charge utile et
+échoue si un nom de champ contient l'un des fragments interdits (`budget`,
+`etp`, `poste`, `mesure`, `realisation`, `utilisateur`…). Ajouter un champ
+sensible à la fiche casse donc le test, même en le nichant profondément.
+
+Côté interface, une tuile de résultat mène à `/exploration/plans/<slug>` avec
+`?focus=<type>:<id>` : la fiche ouvre l'enjeu contenant l'objet trouvé et le
+souligne. Sans cela, arriver sur un plan de deux cents objets pour en retrouver
+un seul serait pénible.
 
 ### Tolérance aux fautes de frappe
 

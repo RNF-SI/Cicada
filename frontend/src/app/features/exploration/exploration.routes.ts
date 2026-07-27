@@ -27,4 +27,13 @@ export const EXPLORATION_ROUTES: Routes = [
     canActivate: [authGuard],
     title: 'Rechercher un plan de gestion',
   },
+  {
+    path: 'plans/:slug',
+    loadComponent: () =>
+      import('./fiche/exploration-fiche.component').then(
+        (m) => m.ExplorationFicheComponent,
+      ),
+    canActivate: [authGuard],
+    title: 'Plan de gestion',
+  },
 ];

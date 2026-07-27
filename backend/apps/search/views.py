@@ -18,6 +18,7 @@ budget, ni RH, ni données empiriques.
 """
 
 from django.db.models import Count, Prefetch
+from django.shortcuts import get_object_or_404
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.viewsets import ViewSet
@@ -25,6 +26,7 @@ from rest_framework.viewsets import ViewSet
 from apps.plans.models import CorSitePg, PlanGestion
 from apps.users.models import CorOgSite
 
+from .fiche import construire_fiche
 from .filters import (
     filtrer_contenus, filtrer_plans, liste, trier_contenus, trier_plans,
 )
@@ -32,6 +34,7 @@ from .indexing import INDEXED_STATUSES
 from .models import ContenuIndexe
 from .pagination import ExplorationPagination
 from .serializers import ContenuResultatSerializer, PlanResultatSerializer
+from .serializers_fiche import FichePubliqueSerializer
 
 
 def _prefetch_sites():
@@ -111,9 +114,28 @@ class ExplorationContenuViewSet(ViewSet):
 
 
 class ExplorationPlanViewSet(ViewSet):
-    """Recherche d'un plan de gestion par nom, site, département ou région."""
+    """Recherche d'un plan de gestion, et consultation de sa fiche publique."""
 
     permission_classes = [IsAuthenticated]
+    lookup_field = 'slug'
+    lookup_value_regex = '[-\\w]+'
+
+    def retrieve(self, request, slug=None):
+        """
+        Fiche publique en lecture seule d'un plan de gestion.
+
+        Le plan doit être validé, modifié ou archivé : un brouillon n'est pas
+        explorable, donc pas consultable ici. Le contenu exposé est strictement
+        celui de `serializers_fiche` — structure du plan, sans budget, RH,
+        mesures ni réalisations.
+        """
+        plan = get_object_or_404(
+            PlanGestion.objects.filter(statut__in=INDEXED_STATUSES)
+            .select_related('id_type_document')
+            .prefetch_related(_prefetch_sites()),
+            slug=slug,
+        )
+        return Response(FichePubliqueSerializer(construire_fiche(plan)).data)
 
     def list(self, request):
         base = (

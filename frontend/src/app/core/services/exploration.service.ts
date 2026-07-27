@@ -2,6 +2,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject, signal } from '@angular/core';
 import { Observable, map, shareReplay } from 'rxjs';
 
+import { FichePlan } from '../models/exploration-fiche.model';
 import {
   ExplorationContenu,
   ExplorationCriteres,
@@ -90,6 +91,17 @@ export class ExplorationService {
     return this.http.get<ExplorationReponse<ExplorationPlan>>(this.urlPlans, {
       params: this.parametres(criteres),
     });
+  }
+
+  /**
+   * Fiche publique d'un plan de gestion, en lecture seule.
+   *
+   * Accessible à tout utilisateur connecté, y compris hors de l'organisme
+   * gestionnaire : c'est la contrepartie de l'exploration transverse. Le
+   * serveur n'y publie que la structure du plan.
+   */
+  fiche(slug: string): Observable<FichePlan> {
+    return this.http.get<FichePlan>(`${this.urlPlans}${slug}/`);
   }
 
   /** Arbre régions → départements du filtre « zone géographique ». */

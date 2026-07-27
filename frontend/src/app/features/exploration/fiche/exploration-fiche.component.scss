@@ -1,0 +1,311 @@
+@import 'variables';
+@import 'responsive';
+
+.fiche-main {
+  background-color: $beige;
+  min-height: calc(100vh - 58px);
+  padding-bottom: $spacing-xxl;
+}
+
+.fiche-container {
+  max-width: 1300px;
+  margin: 0 auto;
+  padding: $spacing-xl $spacing-xxl;
+}
+
+.fiche-etat {
+  padding: $spacing-xxl;
+  text-align: center;
+  color: $gray-dark;
+}
+
+/* ------------------------------------------------------------------ */
+/* Bandeau                                                            */
+/* ------------------------------------------------------------------ */
+
+.fiche-bandeau {
+  position: relative;
+  overflow: hidden;
+  background-color: $secondary-pale-green;
+  border-radius: $border-radius-lg;
+  padding: $spacing-lg;
+
+  &::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 35%;
+    height: 100%;
+    background: url('/assets/images/data-waves.png') no-repeat right center / contain;
+    opacity: 0.4;
+    pointer-events: none;
+  }
+
+  > * {
+    position: relative;
+    z-index: 1;
+  }
+}
+
+.exploration-fil {
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+  color: $primary-color;
+  font-size: $font-size-small;
+}
+
+.exploration-fil-home {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background-color: $primary-color;
+  color: $white;
+  flex: 0 0 auto;
+}
+
+.exploration-fil-lien {
+  color: $primary-color;
+  text-decoration: underline;
+}
+
+.fiche-titre {
+  color: $primary-color;
+  font-size: $font-size-h2;
+  margin: $spacing-md 0 $spacing-sm;
+}
+
+.fiche-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spacing-xs $spacing-lg;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+
+  li {
+    display: inline-flex;
+    align-items: center;
+    gap: $spacing-xxs;
+  }
+
+  i {
+    color: $primary-color;
+    font-size: 14px;
+  }
+}
+
+.fiche-meta-label {
+  color: $gray-dark;
+}
+
+/**
+ * Rappel du périmètre. Reprend le ton de la bannière de verrouillage des plans
+ * validés (#248) : l'utilisateur doit comprendre du premier coup d'œil qu'il
+ * consulte un plan qui ne lui appartient pas, et qu'il n'en voit qu'une partie.
+ */
+.fiche-lecture-seule {
+  display: flex;
+  align-items: flex-start;
+  gap: $spacing-xs;
+  margin: $spacing-md 0;
+  padding: $spacing-sm $spacing-md;
+  background-color: rgba($secondary-yellow, 0.35);
+  border-left: 4px solid $secondary-yellow;
+  border-radius: $border-radius-sm;
+  font-size: $font-size-small;
+
+  i {
+    color: $black;
+    margin-top: 2px;
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* Sections                                                           */
+/* ------------------------------------------------------------------ */
+
+.fiche-section {
+  margin-top: $spacing-xl;
+  scroll-margin-top: $spacing-xl;
+}
+
+.fiche-section-titre {
+  color: $primary-color;
+  font-size: $font-size-h3;
+  margin: 0 0 $spacing-md;
+}
+
+.fiche-chiffres {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spacing-md;
+}
+
+.fiche-chiffre {
+  flex: 1 1 160px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  background-color: $white;
+  border-radius: $border-radius-lg;
+  padding: $spacing-md $spacing-lg;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+}
+
+.fiche-chiffre-valeur {
+  font-size: $font-size-h3;
+  font-weight: $font-weight-bold;
+  color: $primary-color;
+}
+
+.fiche-chiffre-label {
+  font-size: $font-size-small;
+  color: $gray-dark;
+}
+
+/* ------------------------------------------------------------------ */
+/* Contenu d'un enjeu                                                 */
+/* ------------------------------------------------------------------ */
+
+.fiche-enjeu {
+  padding: $spacing-xs 0;
+}
+
+.fiche-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spacing-xxs;
+  margin-bottom: $spacing-sm;
+}
+
+.fiche-texte {
+  margin: 0 0 $spacing-sm;
+}
+
+.fiche-sous-titre {
+  font-size: $font-size-base;
+  font-weight: $font-weight-bold;
+  color: $primary-color;
+  margin: $spacing-md 0 $spacing-xs;
+}
+
+/**
+ * Arborescence en listes imbriquées : la profondeur est portée par
+ * l'indentation, et chaque niveau reprend la couleur de type des tuiles de
+ * résultat, pour que l'œil retrouve ici ce qu'il a vu là-bas.
+ */
+.fiche-arbre {
+  list-style: none;
+  margin: 0;
+  padding-left: $spacing-md;
+
+  li {
+    position: relative;
+    padding: 2px 0 2px $spacing-md;
+    scroll-margin-top: 120px;
+
+    &::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 12px;
+      width: 8px;
+      height: 1px;
+      background-color: $gray;
+    }
+  }
+}
+
+.fiche-arbre-titre {
+  border-left: 3px solid $gray-light;
+  padding-left: $spacing-xs;
+
+  &.type-facteur { border-left-color: $secondary-pale-green; }
+  &.type-pression { border-left-color: $secondary-orange-salmon; }
+  &.type-objectif { border-left-color: $primary-color; }
+  &.type-indicateur { border-left-color: $info-color; }
+  &.type-action { border-left-color: $secondary-yellow; }
+}
+
+.fiche-arbre-niveau {
+  color: $gray-dark;
+  font-style: italic;
+}
+
+.fiche-arbre-mention {
+  margin-left: $spacing-xs;
+  font-size: $font-size-small;
+  color: $gray-dark;
+}
+
+/**
+ * Objet ciblé par la recherche.
+ *
+ * Un simple filet jaune et une teinte à peine perceptible : un aplat plus
+ * franc noierait les tags posés par-dessus, dont plusieurs sont eux-mêmes
+ * pastel, et rendrait la zone illisible.
+ */
+.cible {
+  background-color: rgba($secondary-yellow, 0.15);
+  border-left: 4px solid $secondary-yellow;
+  border-radius: $border-radius-sm;
+  padding-left: $spacing-sm;
+}
+
+/* Sur un enjeu entier, le filet suffit : la teinte s'étendrait sur tout le bloc. */
+.fiche-enjeu.cible {
+  background-color: transparent;
+}
+
+/* ------------------------------------------------------------------ */
+/* Tableau des actions                                                */
+/* ------------------------------------------------------------------ */
+
+.fiche-tableau-scroll {
+  overflow-x: auto;
+  background-color: $white;
+  border-radius: $border-radius-lg;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+}
+
+.fiche-tableau {
+  width: 100%;
+  border-collapse: collapse;
+
+  th,
+  td {
+    padding: $spacing-sm $spacing-md;
+    text-align: left;
+    vertical-align: top;
+  }
+
+  thead th {
+    background-color: $primary-color;
+    color: $white;
+    font-size: $font-size-small;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+  }
+
+  tbody tr {
+    border-top: 1px solid $gray-light;
+    scroll-margin-top: 120px;
+  }
+}
+
+.fiche-tableau-code {
+  white-space: nowrap;
+  color: $gray-dark;
+}
+
+.fiche-tableau-description {
+  margin: $spacing-xxs 0 0;
+  font-size: $font-size-small;
+  color: $gray-dark;
+}

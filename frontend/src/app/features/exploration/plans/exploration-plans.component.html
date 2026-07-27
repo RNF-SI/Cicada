@@ -94,7 +94,9 @@
       <ul class="exploration-tuiles" data-testid="exploration-plans-resultats">
         @for (plan of resultats(); track plan.id_pg) {
           <li class="exploration-tuile exploration-tuile-plan">
-            <a class="exploration-tuile-lien" [routerLink]="['/plans', plan.slug]">
+            <a
+              class="exploration-tuile-lien"
+              [routerLink]="['/exploration/plans', plan.slug]">
               <div class="exploration-tuile-corps">
                 <p class="exploration-tuile-titre">{{ plan.nom }}</p>
 
