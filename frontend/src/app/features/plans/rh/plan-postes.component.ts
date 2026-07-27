@@ -25,6 +25,7 @@ import { AdminService } from '../../../core/services/admin.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { RhService } from '../../../core/services/rh.service';
 import { Poste, PosteFonction } from '../../../core/models/rh.model';
+import { posteDisplayLabel } from '../../../shared/utils/poste-label';
 import {
   PosteFormDialogComponent,
   PosteFormDialogData,
@@ -137,13 +138,11 @@ export class PlanPostesComponent implements OnInit {
    * pas numérotés.
    */
   titleFor(p: Poste): string {
-    const base = p.libelle || this.translate.instant('plans.postes.untitled');
-    const sameLabel = this.postes().filter(
-      (x) => (x.libelle || '') === (p.libelle || ''),
+    // #611 — même numérotation que dans les listes de choix du temps de
+    // travail (formulaire d'action, saisie de suivi).
+    return posteDisplayLabel(
+      p, this.postes(), this.translate.instant('plans.postes.untitled'),
     );
-    if (sameLabel.length <= 1) return base;
-    const index = sameLabel.findIndex((x) => x.id_poste === p.id_poste);
-    return `${base} ${index + 1}`;
   }
 
   /** Sous-titre : organisme · nombre d'exemplaires. */

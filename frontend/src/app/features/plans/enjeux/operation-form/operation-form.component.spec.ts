@@ -1269,6 +1269,23 @@ describe('OperationFormComponent — ventilation budgétaire', () => {
       expect(comp.hasRhNonFinance()).toBe(true);
     });
 
+    // #611 — deux postes homonymes sont indiscernables dans le menu déroulant.
+    it('numérote les postes homonymes dans la liste de choix', () => {
+      comp.postes.set([
+        { id_poste: 1, id_pg: 1, libelle: 'Conservateur', nombre: 1 } as any,
+        { id_poste: 2, id_pg: 1, libelle: 'Animateur nature', nombre: 1 } as any,
+        { id_poste: 3, id_pg: 1, libelle: 'Animateur nature', nombre: 1 } as any,
+      ]);
+      expect(comp.posteLabel(comp.postes()[0])).toBe('Conservateur');
+      expect(comp.posteLabel(comp.postes()[1])).toBe('Animateur nature 1');
+      expect(comp.posteLabel(comp.postes()[2])).toBe('Animateur nature 2');
+      // Le libellé d'une ligne RH dérivée suit la même numérotation.
+      comp.toggleDeclinaisonParPoste(true);
+      comp.addRhLine();
+      comp.setRhTarget(0, 3);
+      expect(comp.rhLineLabel(comp.rhLines[0])).toBe('Animateur nature 2');
+    });
+
     it('affiche l\'organisme sous le libellé du poste', () => {
       comp.toggleDeclinaisonParPoste(true);
       comp.addRhLine();

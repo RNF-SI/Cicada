@@ -791,7 +791,7 @@
                                               [placeholder]="'enjeux.operations.rh.selectTarget' | translate">
                                     @if (rhMode() === 'postes') {
                                       @for (p of postes(); track p.id_poste) {
-                                        <mat-option [value]="p.id_poste">{{ p.libelle }}</mat-option>
+                                        <mat-option [value]="p.id_poste">{{ posteLabel(p) }}</mat-option>
                                       }
                                     } @else {
                                       @for (o of availableOrganismes(); track o.id_organisme) {

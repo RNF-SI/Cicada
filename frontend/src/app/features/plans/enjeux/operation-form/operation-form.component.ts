@@ -60,6 +60,7 @@ import {
   metriqueRefToFormData,
   buildMetriqueGridFields,
 } from '../../../../shared/utils/metrique-form.util';
+import { posteDisplayLabel, posteDisplayLabelById } from '../../../../shared/utils/poste-label';
 
 /** Option de type de métrique brute (nomenclature TYPE_METRIQUE). */
 type TypeMetriqueNomenclature = { id_nomenclature: number; mnemonique?: string; label: string };
@@ -3341,11 +3342,20 @@ export class OperationFormComponent implements OnInit {
     this.syncRhLines();
   }
 
+  /**
+   * Libellé d'un poste dans les listes de choix : suffixé de son indice quand
+   * plusieurs postes du plan portent le même libellé (#611).
+   */
+  posteLabel(poste: Poste): string {
+    return posteDisplayLabel(poste, this.postes())
+      || this.translate.instant('plans.postes.untitled');
+  }
+
   /** Libellé d'une ligne RH dérivée. */
   rhLineLabel(line: { id_poste: number | null; id_organisme: number | null }): string {
     if (line.id_poste != null) {
-      const poste = this.postes().find(p => p.id_poste === line.id_poste);
-      return poste?.libelle || this.translate.instant('plans.postes.untitled');
+      return posteDisplayLabelById(line.id_poste, this.postes())
+        || this.translate.instant('plans.postes.untitled');
     }
     if (line.id_organisme != null) {
       const org = this.availableOrganismes().find(o => o.id_organisme === line.id_organisme);

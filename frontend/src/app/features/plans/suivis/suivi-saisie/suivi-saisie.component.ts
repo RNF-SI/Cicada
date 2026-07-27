@@ -45,6 +45,7 @@ import {
   RealisationOrganismeUpsertPayload,
 } from '../../../../core/models/enjeu.model';
 import { formatScoreRange, computeMetriqueScore, computeCombinedScore, scoreLevelName, formatBlockFormula } from '../metrique-seuils.util';
+import { posteDisplayLabel, posteDisplayLabelById } from '../../../../shared/utils/poste-label';
 
 interface Niveau {
   id_nomenclature: number;
@@ -1220,12 +1221,21 @@ export class SuiviSaisieComponent implements OnInit {
     ctrl.get('finance')?.setValue(this.financeFromCategorie(cat));
   }
 
+  /**
+   * Libellé d'un poste dans les listes de choix : suffixé de son indice quand
+   * plusieurs postes du plan portent le même libellé (#611).
+   */
+  posteLabel(poste: Poste): string {
+    return posteDisplayLabel(poste, this.postes())
+      || this.translate.instant('plans.postes.untitled');
+  }
+
   /** Libellé de la cible d'une ligne RH (poste ou organisme). */
   rhLineLabel(ctrl: AbstractControl): string {
     const posteId = ctrl.get('id_poste')?.value;
     if (posteId != null) {
-      const poste = this.postes().find((p) => p.id_poste === posteId);
-      return poste?.libelle || this.translate.instant('plans.postes.untitled');
+      return posteDisplayLabelById(posteId, this.postes())
+        || this.translate.instant('plans.postes.untitled');
     }
     const orgId = ctrl.get('id_organisme')?.value;
     if (orgId != null) {
