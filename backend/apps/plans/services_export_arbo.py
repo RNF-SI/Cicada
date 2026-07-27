@@ -104,13 +104,16 @@ _AL_CTR_TOP = Alignment(horizontal="center", vertical="top", wrap_text=True)
 _COL_WIDTHS = {
     1: 22.5, 2: 18.5, 3: 20.0, 4: 34.0, 5: 30.0, 6: 27.5, 7: 38.0,
     8: 10.0, 9: 46.0, 10: 30.0, 11: 12.5, 12: 4.0, 13: 4.0,
-    14: 20.0, 15: 18.0, 16: 18.0, 17: 18.0, 18: 18.0, 19: 18.0, 20: 20.0,
+    14: 26.0, 15: 10.0, 16: 18.0, 17: 18.0, 18: 18.0, 19: 18.0, 20: 18.0,
+    21: 20.0,
 }
 
 # Indices de colonnes (1-based)
 COL_A, COL_B, COL_C, COL_D, COL_E = 1, 2, 3, 4, 5
 COL_F, COL_G, COL_H, COL_I, COL_J, COL_K = 6, 7, 8, 9, 10, 11
-GR_MET, GR_INDET, GR_S1, GR_S2, GR_S3, GR_S4, GR_S5 = 14, 15, 16, 17, 18, 19, 20
+# Grille de lecture — #619 : colonne « Unité » intercalée après « Métriques »
+GR_MET, GR_UNITE, GR_INDET = 14, 15, 16
+GR_S1, GR_S2, GR_S3, GR_S4, GR_S5 = 17, 18, 19, 20, 21
 
 
 def _set(ws, row, col, value, *, fill=None, font=None, align=None, border=_BORDER):
@@ -162,18 +165,52 @@ def _ind_type(ind) -> str:
     return (getattr(t, "mnemonique", "") or "").upper()
 
 
-def _score_labels(met) -> list[str]:
-    """Retourne [s1..s5] pour la grille de lecture (label sinon plage de seuils)."""
+def _score_labels(block) -> list[str]:
+    """Retourne [s1..s5] pour la grille de lecture (label sinon plage de seuils).
+
+    ``block`` est indifféremment une :class:`Metrique` (bloc principal) ou un
+    :class:`MetriqueScoreBlock` (bloc complémentaire) : les deux exposent les
+    mêmes champs ``score_N_inf/sup`` et ``inactive_levels`` (#619).
+    """
+    inactifs = set(getattr(block, "inactive_levels", None) or [])
     labels = []
     for i in range(1, 6):
-        lbl = _txt(getattr(met, f"score_{i}_label", None))
+        if i in inactifs:
+            labels.append("")
+            continue
+        lbl = _txt(getattr(block, f"score_{i}_label", None))
         if not lbl:
-            inf = getattr(met, f"score_{i}_inf", None)
-            sup = getattr(met, f"score_{i}_sup", None)
+            inf = getattr(block, f"score_{i}_inf", None)
+            sup = getattr(block, f"score_{i}_sup", None)
             if inf is not None or sup is not None:
                 lbl = f"{'' if inf is None else inf} – {'' if sup is None else sup}".strip(" –")
         labels.append(lbl or "")
     return labels
+
+
+def _grille_lignes(met) -> list[tuple[str, str, list[str]]]:
+    """Lignes de la grille de lecture d'une métrique : (libellé, unité, scores).
+
+    #619 — une métrique multi-blocs (#247) produit une ligne PAR bloc : le bloc
+    principal porté par la métrique, puis chaque bloc complémentaire avec son
+    opérateur logique (ET / OU) et sa propre unité.
+    """
+    principal = _txt(met.nom_metrique)
+    intitule = _txt(getattr(met, "bloc_intitule", ""))
+    lignes = [(
+        f"{principal} — {intitule}" if intitule else principal,
+        _txt(getattr(met, "unite", "")),
+        _score_labels(met),
+    )]
+    for bloc in met.score_blocks.all():
+        op = "ET" if bloc.logical_op == "AND" else "OU"
+        libelle = _txt(bloc.intitule) or f"bloc {bloc.position + 1}"
+        lignes.append((
+            f"    {op} — {libelle}",
+            _txt(bloc.unite),
+            _score_labels(bloc),
+        ))
+    return lignes
 
 
 def _priorite(op) -> str:
@@ -202,12 +239,28 @@ def _actions_for(metrique=None, indicateur=None):
     return out
 
 
-def _leaf_rows_for_indicateurs(indicateurs, group_prefix):
+def _code_action(op, codes) -> str:
+    """Code affiché d'une action — #619.
+
+    Le « code action » du plan est le code **calculé** (CS1, IP2…), celui que
+    l'application affiche partout ; `code_operation` est un champ libre quasi
+    toujours vide, d'où la colonne « Code » vide dans les exports.
+    Même convention que ``services_export_finance`` (#618).
+    """
+    return (
+        _txt(codes.get(op.id_operation))
+        or _txt(op.code_operation)
+        or (f"n°{op.numero_manuel}" if op.numero_manuel else "")
+    )
+
+
+def _leaf_rows_for_indicateurs(indicateurs, group_prefix, codes):
     """Génère les lignes feuilles (indicateur → métrique → action) d'un groupe.
 
     ``group_prefix`` : tuple identifiant le parent (olt/ne ou facteur/pression/oo/ra)
     utilisé pour calculer les fusions verticales sans coller des valeurs
     identiques de parents distincts.
+    ``codes`` : {id_operation: code local du plan} (#619).
     Retourne une liste de dicts {path, ind, met, code, action, priorite}.
     """
     rows = []
@@ -236,7 +289,7 @@ def _leaf_rows_for_indicateurs(indicateurs, group_prefix):
                 rows.append({
                     "path": base,
                     "ind": ind.nom_indicateur, "met": met.nom_metrique,
-                    "code": _txt(op.code_operation) or _txt(op.numero_manuel),
+                    "code": _code_action(op, codes),
                     "action": op.libelle, "priorite": _priorite(op),
                 })
         # actions rattachées directement à l'indicateur (sans métrique)
@@ -244,7 +297,7 @@ def _leaf_rows_for_indicateurs(indicateurs, group_prefix):
             rows.append({
                 "path": group_prefix + (("i", ind.id_indicateur), ("m", 0)),
                 "ind": ind.nom_indicateur, "met": "",
-                "code": _txt(op.code_operation) or _txt(op.numero_manuel),
+                "code": _code_action(op, codes),
                 "action": op.libelle, "priorite": _priorite(op),
             })
     return rows, metriques_grille
@@ -257,7 +310,7 @@ def _split_indicateurs(indicateurs):
     return non_rep, rep
 
 
-def _collect_top(enjeu):
+def _collect_top(enjeu, codes):
     """Bloc haut (vision long terme / état). Retourne (rows, grille)."""
     rows = []
     grille = []
@@ -267,7 +320,7 @@ def _collect_top(enjeu):
             non_rep, rep = _split_indicateurs(inds)
             reponse = " ; ".join(i.nom_indicateur for i in rep)
             prefix = (("o", olt.id_olt), ("n", ne.id_ne))
-            leaf, mets = _leaf_rows_for_indicateurs(non_rep, prefix)
+            leaf, mets = _leaf_rows_for_indicateurs(non_rep, prefix, codes)
             if not leaf:
                 leaf = [{
                     "path": prefix, "ind": "", "met": "", "code": "",
@@ -283,7 +336,7 @@ def _collect_top(enjeu):
     return rows, grille
 
 
-def _collect_bottom(enjeu):
+def _collect_bottom(enjeu, codes):
     """Bloc bas (stratégie d'action / pressions). Retourne (rows, grille)."""
     from .models_enjeux import ObjectifOperationnel
 
@@ -297,7 +350,7 @@ def _collect_bottom(enjeu):
             non_rep, rep = _split_indicateurs(inds)
             reponse = " ; ".join(i.nom_indicateur for i in rep)
             prefix = keyprefix + (("oo", oo.id_oo), ("ra", ra.id_ra))
-            leaf, mets = _leaf_rows_for_indicateurs(non_rep, prefix)
+            leaf, mets = _leaf_rows_for_indicateurs(non_rep, prefix, codes)
             if not leaf:
                 leaf = [{
                     "path": prefix, "ind": "", "met": "", "code": "",
@@ -380,18 +433,35 @@ def _merge_runs(ws, col, start_row, keys, values, *, fill, font=None, col_end=No
         i = j + 1
 
 
+def _grille_hauteur(metriques) -> int:
+    """Nombre de lignes qu'occupera la grille de lecture (#619).
+
+    Une métrique multi-blocs pesant plusieurs lignes, la grille peut être plus
+    haute que le bloc de données qu'elle accompagne : le bloc suivant doit en
+    tenir compte pour ne pas la recouvrir.
+    """
+    return sum(len(_grille_lignes(met)) for met in metriques)
+
+
 def _write_grille(ws, start_row, metriques, *, is_etat):
-    """Écrit la grille de lecture (N..T) à droite d'un bloc."""
+    """Écrit la grille de lecture (N..U) à droite d'un bloc.
+
+    #619 — une ligne par bloc de scoring (et non par métrique) : les métriques
+    multi-blocs sortent désormais en entier.
+    """
     if not metriques:
         return
-    for idx, met in enumerate(metriques):
-        r = start_row + idx
-        _set(ws, r, GR_MET, met.nom_metrique, fill=_C_GRILLE, font=_FONT_DATA,
-             align=_AL_LEFT)
-        _set(ws, r, GR_INDET, "", fill=_SCORE_FILLS["indet"], align=_AL_CTR)
-        labels = _score_labels(met)
-        for s, col in zip(range(1, 6), (GR_S1, GR_S2, GR_S3, GR_S4, GR_S5)):
-            _set(ws, r, col, labels[s - 1], fill=_SCORE_FILLS[s], align=_AL_CTR)
+    r = start_row
+    for met in metriques:
+        for libelle, unite, labels in _grille_lignes(met):
+            _set(ws, r, GR_MET, libelle, fill=_C_GRILLE, font=_FONT_DATA,
+                 align=_AL_LEFT)
+            _set(ws, r, GR_UNITE, unite, fill=_C_GRILLE, font=_FONT_DATA,
+                 align=_AL_CTR)
+            _set(ws, r, GR_INDET, "", fill=_SCORE_FILLS["indet"], align=_AL_CTR)
+            for s, col in zip(range(1, 6), (GR_S1, GR_S2, GR_S3, GR_S4, GR_S5)):
+                _set(ws, r, col, labels[s - 1], fill=_SCORE_FILLS[s], align=_AL_CTR)
+            r += 1
 
 
 def _grille_header(ws, row, title):
@@ -401,6 +471,7 @@ def _grille_header(ws, row, title):
 
 def _grille_subheader(ws, row, met_label):
     _set(ws, row, GR_MET, met_label, fill=_C_GRILLE, font=_FONT_HDR, align=_AL_CTR)
+    _set(ws, row, GR_UNITE, "Unité", fill=_C_GRILLE, font=_FONT_HDR, align=_AL_CTR)
     _set(ws, row, GR_INDET, "Indéterminé", fill=_SCORE_FILLS["indet"],
          font=_FONT_HDR, align=_AL_CTR)
     heads = [
@@ -414,7 +485,7 @@ def _grille_subheader(ws, row, met_label):
         _set(ws, row, col, label, fill=_SCORE_FILLS[s], font=_FONT_HDR, align=_AL_CTR)
 
 
-def _render_enjeu_sheet(ws, enjeu, *, is_fcr):
+def _render_enjeu_sheet(ws, enjeu, *, is_fcr, codes):
     for col, w in _COL_WIDTHS.items():
         ws.column_dimensions[get_column_letter(col)].width = w
 
@@ -437,8 +508,8 @@ def _render_enjeu_sheet(ws, enjeu, *, is_fcr):
     _merge(ws, 2, COL_A, 2, COL_K, title, font=_FONT_TITLE, align=_AL_LEFT,
            border=Border())
 
-    top_rows, top_grille = _collect_top(enjeu)
-    bottom_rows, bottom_grille = _collect_bottom(enjeu)
+    top_rows, top_grille = _collect_top(enjeu, codes)
+    bottom_rows, bottom_grille = _collect_bottom(enjeu, codes)
 
     # ============================ BLOC HAUT ============================
     h1 = 4  # bandeau
@@ -501,8 +572,11 @@ def _render_enjeu_sheet(ws, enjeu, *, is_fcr):
     _write_grille(ws, data_start, top_grille, is_etat=True)
 
     # ============================ BLOC BAS ============================
+    # #619 — la grille de lecture peut dépasser le bloc de données (métriques
+    # multi-blocs) : le bloc bas démarre après la plus haute des deux.
     gap = 1
-    b_h1 = data_start + n_top + gap
+    h_top = max(n_top, _grille_hauteur(top_grille))
+    b_h1 = data_start + h_top + gap
     b_h2 = b_h1 + 1
     b_data = b_h2 + 1
 
@@ -586,9 +660,12 @@ def _prefetched_enjeux(plan):
         .prefetch_related(
             "objectifs_long_terme__niveaux_exigence__indicateurs__type_indicateur",
             "objectifs_long_terme__niveaux_exigence__indicateurs__metriques__operations",
+            # #619 — blocs de scoring complémentaires (grille multi-blocs)
+            "objectifs_long_terme__niveaux_exigence__indicateurs__metriques__score_blocks",
             "objectifs_long_terme__niveaux_exigence__indicateurs__operations",
             "facteurs_influence__pressions__objectifs_operationnels__resultats_attendus__indicateurs__type_indicateur",
             "facteurs_influence__pressions__objectifs_operationnels__resultats_attendus__indicateurs__metriques__operations",
+            "facteurs_influence__pressions__objectifs_operationnels__resultats_attendus__indicateurs__metriques__score_blocks",
         )
     )
     enjeux = list(qs)
@@ -602,10 +679,14 @@ def _prefetched_enjeux(plan):
 
 def build_presentation_workbook(plan) -> bytes:
     """Construit le classeur de présentation de l'arborescence du plan."""
+    # #619 — codes d'action locaux au plan (CS1, IP2…), calculés une seule fois.
+    from .serializers_operations import compute_operation_codes_for_plan
+
     wb = Workbook()
     wb.remove(wb.active)
     used_titles: set = set()
 
+    codes = compute_operation_codes_for_plan(plan.pk)
     enjeux = _prefetched_enjeux(plan)
     if not enjeux:
         ws = wb.create_sheet(_sanitize_sheet_title("Arborescence", used_titles))
@@ -618,7 +699,7 @@ def build_presentation_workbook(plan) -> bytes:
             prefix = "FCR" if is_fcr else "Enjeu"
             title = _sanitize_sheet_title(f"{prefix} - {label}", used_titles)
             ws = wb.create_sheet(title)
-            _render_enjeu_sheet(ws, enjeu, is_fcr=is_fcr)
+            _render_enjeu_sheet(ws, enjeu, is_fcr=is_fcr, codes=codes)
 
     buf = io.BytesIO()
     wb.save(buf)

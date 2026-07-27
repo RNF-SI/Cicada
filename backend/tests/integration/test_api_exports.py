@@ -329,6 +329,64 @@ class TestExportArborescencePresentation:
         assert _fill(ws, b_data, 4) == _C_STRAT_DATA
         assert _C_STRAT_DATA == 'FFFCD5B5', _C_STRAT_DATA
 
+    # ---- #619 : grille de lecture et code action --------------------------
+
+    def test_grille_a_une_colonne_unite(self, plan_arbo):
+        """La grille de lecture porte une colonne « Unité » (#619)."""
+        from apps.plans.services_export_arbo import GR_MET, GR_UNITE
+        ws = self._sheet(plan_arbo['plan'])
+        r = _find_row(ws, "Métriques", col=GR_MET)
+        assert r is not None, "sous-en-tête « Métriques » de la grille absent"
+        assert ws.cell(r, GR_UNITE).value == "Unité"
+        # l'unité de la métrique apparaît en face de sa ligne
+        unites = [ws.cell(rr, GR_UNITE).value
+                  for rr in range(r + 1, r + 4)]
+        assert '%' in unites, unites
+
+    def test_grille_exporte_tous_les_blocs(self, plan_arbo):
+        """Une métrique multi-blocs sort une ligne PAR bloc (#619).
+
+        Auparavant seul le bloc principal était écrit.
+        """
+        from apps.plans.services_export_arbo import GR_MET, GR_UNITE
+        ws = self._sheet(plan_arbo['plan'])
+        r = _find_row(ws, "Métriques", col=GR_MET)
+        libelles = [ws.cell(rr, GR_MET).value or '' for rr in range(r + 1, r + 5)]
+        unites = [ws.cell(rr, GR_UNITE).value or '' for rr in range(r + 1, r + 5)]
+        # bloc principal : nom de la métrique + intitulé du bloc, unité « % »
+        assert any('Recouvrement' in v and 'Surface' in v for v in libelles), libelles
+        # bloc complémentaire : intitulé + opérateur logique, unité « cm »
+        assert any('Hauteur' in v and 'ET' in v for v in libelles), libelles
+        assert '%' in unites and 'cm' in unites, unites
+
+    def test_grille_haute_ne_recouvre_pas_le_bloc_bas(self, plan_arbo):
+        """Une grille plus haute que ses données décale le bloc bas (#619)."""
+        from apps.plans.models_indicateurs import MetriqueScoreBlock
+        from apps.plans.services_export_arbo import GR_MET
+        met = plan_arbo['met']
+        for pos in range(2, 6):   # 4 blocs de plus → grille de 6 lignes
+            MetriqueScoreBlock.objects.create(
+                id_metrique=met, position=pos, intitule=f'Bloc {pos}',
+                logical_op='OR', score_1_inf=0, score_1_sup=pos)
+        ws = self._sheet(plan_arbo['plan'])
+        r_influ = _find_row(ws, "Influences sur l'enjeu")
+        r_grille_top = _find_row(ws, "Métriques", col=GR_MET) + 1
+        # les 6 lignes de grille du bloc haut tiennent avant le bandeau bas
+        assert r_influ >= r_grille_top + 6, (r_influ, r_grille_top)
+        assert ws.cell(r_influ, GR_MET).value != 'Bloc 5'
+
+    def test_code_action_est_le_code_local_du_plan(self, plan_arbo):
+        """La colonne « Code » porte le code calculé du plan (CS1…) — #619.
+
+        L'action de la fixture n'a ni `code_operation` ni `numero_manuel` :
+        la colonne restait vide.
+        """
+        ws = self._sheet(plan_arbo['plan'])
+        h2 = _find_row(ws, "Code", col=8)
+        codes = [ws.cell(r, 8).value for r in range(h2 + 1, h2 + 4)]
+        assert 'CS1' in codes, codes
+
+
 
 # ---------------------------------------------------------------------------
 # Endpoints
