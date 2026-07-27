@@ -138,6 +138,12 @@ class TestExportFinance:
         assert c.rj_fonct == 8
         assert c.rsal_fonct == 8 * 300
 
+    def test_code_action_pg_est_le_code_affichage(self, plan_finance):
+        """#618 — la colonne « Code action PG » porte le code calculé (CS1…)."""
+        from apps.plans.services_export_finance import build_plan_finance
+        af = build_plan_finance(plan_finance['plan']).actions[0]
+        assert af.code == 'CS1'
+
     def test_mode_none_non_ventile(self, plan_finance):
         """Une action en mode 'none' n'est pas ventilée par organisme (#607 Q3)."""
         from apps.plans.services_export_finance import build_action_finance, poste_entry_factory
@@ -192,7 +198,29 @@ class TestExportWorkbooks:
         # 10 jours prévus en 2024 pour l'action, colonne TOTAL = 10
         ws = next(wb[s] for s in wb.sheetnames if 'Org Alpha' in s)
         data_row = [ws.cell(4, c).value for c in range(1, ws.max_column + 1)]
-        assert 'CS01' in data_row
+        # #618 — colonne « Code action PG » = code local du plan (et non le
+        # champ libre `code_operation`)
+        assert 'CS1' in data_row
+
+    def test_budget_suivi_totaux_fonct_invest(self, plan_finance):
+        """#618 — sous-totaux Fonctionnement / Investissement sur la feuille TOTAL."""
+        from apps.plans.services_export_budget_rh import build_budget_suivi_workbook
+        wb = self._load(build_budget_suivi_workbook(plan_finance['plan']))
+        ws = wb['Total par type de dépense']
+        labels = {ws.cell(r, 1).value: r for r in range(1, ws.max_row + 1)}
+        assert 'TOTAL Fonctionnement' in labels
+        assert 'TOTAL Investissement' in labels
+        # colonnes TOTAL (prévu / réalisé) en fin de feuille
+        c_prev, c_real = ws.max_column - 1, ws.max_column
+        # fonctionnement 2024 : 3000 (salarial) + 500 (presta) + 100 (autres)
+        assert ws.cell(labels['TOTAL Fonctionnement'], c_prev).value == '3 600'
+        # réalisé : 8 jours × 300 €/j
+        assert ws.cell(labels['TOTAL Fonctionnement'], c_real).value == '2 400'
+        # investissement 2024 : 200 (presta) + 50 (autres)
+        assert ws.cell(labels['TOTAL Investissement'], c_prev).value == '250'
+        assert ws.cell(labels['TOTAL Investissement'], c_real).value == '0'
+        # cohérence avec le TOTAL général
+        assert ws.cell(labels['TOTAL'], c_prev).value == '3 850'
 
     def test_rh_suivi(self, plan_finance):
         from apps.plans.services_export_budget_rh import build_rh_suivi_workbook

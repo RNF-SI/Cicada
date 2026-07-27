@@ -403,9 +403,16 @@ class PlanFinance:
 
 
 def build_plan_finance(plan) -> PlanFinance:
+    # #618 — Le « code action PG » affiché partout dans l'application est le code
+    # calculé (CS1, IP2…), pas le champ libre `code_operation` (quasi toujours
+    # vide). On le calcule une fois pour tout le plan.
+    from .serializers_operations import compute_operation_codes_for_plan
+
     y0 = plan.annee_debut or 0
     y1 = plan.annee_fin or y0
     years = list(range(y0, y1 + 1)) if y0 else []
+
+    codes = compute_operation_codes_for_plan(plan.pk)
 
     org_names: dict = {}
     poste_jours: dict = defaultdict(poste_entry_factory)
@@ -415,7 +422,11 @@ def build_plan_finance(plan) -> PlanFinance:
         cat = getattr(op, "id_categorie_action_reserve", None)
         af.categorie = _txt(getattr(cat, "mnemonique", "")) if cat else ""
         af.is_cs = af.categorie.upper() == "CS"
-        af.code = _txt(op.code_operation) or (f"n°{op.numero_manuel}" if op.numero_manuel else "")
+        af.code = (
+            _txt(codes.get(op.id_operation))
+            or _txt(op.code_operation)
+            or (f"n°{op.numero_manuel}" if op.numero_manuel else "")
+        )
         af.libelle = _txt(op.libelle)
         af.enjeu_label = _enjeu_label(op)
         actions.append(af)

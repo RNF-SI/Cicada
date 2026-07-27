@@ -586,6 +586,10 @@ def _budget_par_poste_sheet(wb, pf, used, *, suivi):
           _plan_cost_by_year_real(pf, "rprest_fonct") if suivi else None, cout="/")
     m.row("Autres coûts de fonctionnement", _plan_cost_by_year(pf, "autre_fonct"),
           _plan_cost_by_year_real(pf, "rautre_fonct") if suivi else None, cout="/")
+    # #618 — sous-total du bloc fonctionnement (salarial + autres coûts)
+    m.row("TOTAL Fonctionnement", _plan_cost_by_year(pf, "tot_fonct"),
+          _plan_cost_by_year_real(pf, "rtot_fonct") if suivi else None,
+          cout="", total_style=True)
     # Investissement - salarial
     m.section("Investissement — Coût salarial")
     for lab in salaried:
@@ -598,6 +602,10 @@ def _budget_par_poste_sheet(wb, pf, used, *, suivi):
           _plan_cost_by_year_real(pf, "rprest_invest") if suivi else None, cout="/")
     m.row("Autres coûts d'investissement", _plan_cost_by_year(pf, "autre_invest"),
           _plan_cost_by_year_real(pf, "rautre_invest") if suivi else None, cout="/")
+    # #618 — sous-total du bloc investissement (salarial + autres coûts)
+    m.row("TOTAL Investissement", _plan_cost_by_year(pf, "tot_invest"),
+          _plan_cost_by_year_real(pf, "rtot_invest") if suivi else None,
+          cout="", total_style=True)
     # TOTAL
     tot_prev = {y: _ZERO for y in pf.years}
     for af in pf.actions:
