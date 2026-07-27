@@ -191,7 +191,9 @@
               <thead>
                 <tr>
                   <th class="rh-target-col">{{ 'plans.suivis.saisie.rh.target' | translate }}</th>
-                  <th class="rh-finance-col">{{ 'plans.rh.finance' | translate }}</th>
+                  <!-- #615 — catégorie de dépense (menu déroulant), comme dans la
+                       saisie de l'action, à la place de la case « Financé ». -->
+                  <th class="rh-categorie-col">{{ 'plans.rh.colCategorie' | translate }}</th>
                   <th class="rh-num-col">{{ 'plans.suivis.saisie.rh.prevu' | translate }}</th>
                   <th class="rh-num-col active">{{ 'plans.suivis.saisie.rh.realise' | translate }}</th>
                   <th class="rh-actions-col"></th>
@@ -227,12 +229,19 @@
                         }
                       }
                     </td>
-                    <td class="rh-finance-col">
-                      <app-checkbox
-                        [checked]="!!ctrl.get('finance')?.value"
-                        [disabled]="planNotValidated()"
-                        (checkedChange)="ctrl.get('finance')?.setValue($event)">
-                      </app-checkbox>
+                    <!-- #615 — la nature de la dépense se choisit dans un menu
+                         déroulant ; « financé » en est dérivé pour les sous-totaux. -->
+                    <td class="rh-categorie-col">
+                      <mat-select class="rh-categorie-select"
+                                  [value]="ctrl.get('categorie_depense')?.value"
+                                  (valueChange)="setRhCategorie(ctrl, $event)"
+                                  [disabled]="planNotValidated()">
+                        @for (cat of categorieDepenseOptions; track cat) {
+                          <mat-option [value]="cat">
+                            {{ 'plans.rh.categorieDepense.' + cat | translate }}
+                          </mat-option>
+                        }
+                      </mat-select>
                     </td>
                     <td class="rh-num-col rh-plan-cell">
                       {{ formatNumber(ctrl.get('plan_jours')?.value, ' j') }}

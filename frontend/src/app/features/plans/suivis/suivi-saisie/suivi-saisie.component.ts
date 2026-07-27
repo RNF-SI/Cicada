@@ -30,13 +30,12 @@ import { forkJoin, of } from 'rxjs';
 import { HeaderComponent } from '../../../../shared/components/header/header.component';
 import { PlanSidebarComponent } from '../../shared/plan-sidebar/plan-sidebar.component';
 import { FormFieldComponent } from '../../../../shared/components/form-field/form-field.component';
-import { CheckboxComponent } from '../../../../shared/components/checkbox/checkbox.component';
 import { EmpriseEditorComponent } from '../../../../shared/components/emprise-editor/emprise-editor.component';
 import { AdminService } from '../../../../core/services/admin.service';
 import { EnjeuService } from '../../../../core/services/enjeu.service';
 import { RealisationService } from '../../../../core/services/realisation.service';
 import { RhService } from '../../../../core/services/rh.service';
-import { Poste, OperationRHLigne } from '../../../../core/models/rh.model';
+import { Poste, OperationRHLigne, CategorieDepense } from '../../../../core/models/rh.model';
 import { Mesure, MesureCreatePayload } from '../../../../core/models/enjeu.model';
 import {
   Operation,
@@ -65,7 +64,7 @@ type ActionStatus = 'planned' | 'planned-realized' | 'planned-partial' | 'realiz
     MatSelectModule,
     TranslateModule,
     MatTooltipModule,
-    HeaderComponent, PlanSidebarComponent, FormFieldComponent, CheckboxComponent,
+    HeaderComponent, PlanSidebarComponent, FormFieldComponent,
     EmpriseEditorComponent,
   ],
   templateUrl: './suivi-saisie.component.html',
@@ -909,9 +908,12 @@ export class SuiviSaisieComponent implements OnInit {
         id_poste: [source.id_poste ?? null],
         id_organisme: [source.id_organisme ?? null],
         finance: [!!source.finance],
-        // #608 — catégorie de dépense (héritée du prévisionnel) : sert au calcul
-        // du coût salarial réalisé séparé fonctionnement / investissement.
-        categorie_depense: [prev.categorie_depense ?? source.categorie_depense ?? 'fonctionnement'],
+        // #608 — catégorie de dépense : sert au calcul du coût salarial réalisé
+        // séparé fonctionnement / investissement.
+        // #615 — désormais saisissable au suivi : la valeur du RÉALISÉ prime,
+        // sinon on hérite du prévisionnel (et à défaut de son financement).
+        categorie_depense: [this.rhCategorie(reel) ?? this.rhCategorie(prev)
+          ?? this.categorieFromFinance(!!source.finance)],
         /** Prévu (lecture seule, référence affichée). */
         plan_jours: [prev.jours ?? null],
         /**
@@ -932,12 +934,18 @@ export class SuiviSaisieComponent implements OnInit {
         id_poste: [reel.id_poste ?? null],
         id_organisme: [reel.id_organisme ?? null],
         finance: [!!reel.finance],
-        categorie_depense: [reel.categorie_depense ?? 'fonctionnement'],
+        categorie_depense: [this.rhCategorie(reel) ?? this.categorieFromFinance(!!reel.finance)],
         plan_jours: [null],
         plan_finance: [!!reel.finance],
         jours: [reel.jours ?? null],
       }));
     }
+  }
+
+  /** Catégorie de dépense portée par une ligne RH, ou null si absente (données
+   *  antérieures à #597, où seul le booléen `finance` existait). */
+  private rhCategorie(ligne: OperationRHLigne | null | undefined): CategorieDepense | null {
+    return ligne?.categorie_depense ?? null;
   }
 
   /** #560 — ajoute une ligne RH réalisée (temps non prévu). */
@@ -969,11 +977,44 @@ export class SuiviSaisieComponent implements OnInit {
       ctrl.get('id_organisme')?.setValue(null);
       // Défaut financé/non financé porté par les fonctions du poste.
       const poste = this.postes().find((p) => p.id_poste === id);
-      if (poste) ctrl.get('finance')?.setValue(poste.finance_par_defaut ?? true);
+      if (poste) {
+        const finance = poste.finance_par_defaut ?? true;
+        ctrl.get('finance')?.setValue(finance);
+        // #615 — la catégorie suit le défaut du poste (bénévolat si non financé).
+        ctrl.get('categorie_depense')?.setValue(this.categorieFromFinance(finance));
+      }
     } else {
       ctrl.get('id_organisme')?.setValue(id);
       ctrl.get('id_poste')?.setValue(null);
     }
+  }
+
+  /**
+   * #615 — Options de la colonne « Catégorie de dépense » du temps de travail,
+   * identiques à celles de la saisie de l'action (`operation-form`).
+   */
+  readonly categorieDepenseOptions: CategorieDepense[] = [
+    'fonctionnement', 'investissement', 'benevolat_partenariat',
+  ];
+
+  /** Financé = tout sauf « bénévolat partenariat » (#597). */
+  private financeFromCategorie(cat: CategorieDepense): boolean {
+    return cat !== 'benevolat_partenariat';
+  }
+
+  /** Catégorie par défaut dérivée du booléen financé (compat / valeur initiale). */
+  private categorieFromFinance(finance: boolean): CategorieDepense {
+    return finance ? 'fonctionnement' : 'benevolat_partenariat';
+  }
+
+  /**
+   * #615 — Change la catégorie de dépense d'une ligne RH réalisée et
+   * resynchronise `finance`, qui reste la clé des sous-totaux financé /
+   * non financé et n'est plus saisi directement.
+   */
+  setRhCategorie(ctrl: AbstractControl, cat: CategorieDepense): void {
+    ctrl.get('categorie_depense')?.setValue(cat);
+    ctrl.get('finance')?.setValue(this.financeFromCategorie(cat));
   }
 
   /** Libellé de la cible d'une ligne RH (poste ou organisme). */

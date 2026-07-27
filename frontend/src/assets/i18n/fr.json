@@ -1404,6 +1404,7 @@
     "rh": {
       "finance": "Financé",
       "nonFinance": "Non financé",
+      "colCategorie": "Catégorie de dépense",
       "categorieDepense": {
         "fonctionnement": "Fonctionnement",
         "investissement": "Investissement",

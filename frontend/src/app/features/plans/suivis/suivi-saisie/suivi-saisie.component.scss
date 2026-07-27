@@ -559,10 +559,13 @@ textarea.full-width {
   }
 
   .rh-num-col { min-width: 90px; }
-  .rh-finance-col { width: 90px; }
+  // #615 — colonne « Catégorie de dépense » (menu déroulant) en remplacement de
+  // l'ancienne case à cocher « Financé », plus étroite.
+  .rh-categorie-col { width: 190px; text-align: left; }
   .rh-actions-col { width: 44px; }
 
-  .rh-target-select {
+  .rh-target-select,
+  .rh-categorie-select {
     width: 100%;
     font-size: 0.85rem;
   }

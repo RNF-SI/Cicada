@@ -439,6 +439,81 @@ describe('SuiviSaisieComponent — actions du hero (#589)', () => {
 });
 
 // -----------------------------------------------------------------------------
+// #615 — catégorie de dépense (menu déroulant) au lieu de « financé » (case)
+// -----------------------------------------------------------------------------
+describe('SuiviSaisieComponent — catégorie de dépense du temps de travail (#615)', () => {
+  const fb = new FormBuilder();
+
+  function catComp(): any {
+    const c: any = comp();
+    c.fb = fb;
+    c.form = fb.group({ rhLignes: fb.array<FormGroup>([]) });
+    Object.defineProperty(c, 'rhLignesFA', {
+      get: () => c.form.get('rhLignes') as FormArray<FormGroup>,
+    });
+    return c;
+  }
+
+  it('dérive « financé » de la catégorie choisie', () => {
+    const c = catComp();
+    c.addRhLigne();
+    const ctrl = c.rhLignesFA.at(0);
+
+    c.setRhCategorie(ctrl, 'investissement');
+    expect(ctrl.value.categorie_depense).toBe('investissement');
+    expect(ctrl.value.finance).toBe(true);
+
+    c.setRhCategorie(ctrl, 'benevolat_partenariat');
+    expect(ctrl.value.categorie_depense).toBe('benevolat_partenariat');
+    expect(ctrl.value.finance).toBe(false);
+
+    c.setRhCategorie(ctrl, 'fonctionnement');
+    expect(ctrl.value.finance).toBe(true);
+  });
+
+  it('conserve la catégorie saisie au suivi (le réalisé prime sur le prévu)', () => {
+    const c = catComp();
+    c.hydrateRhArray({
+      rh_lignes: [{ id_operation_annee_rh: 1, id_poste: 7, jours: '8.00', finance: true, categorie_depense: 'fonctionnement' }],
+      realisation: {
+        rh_lignes: [{ id_operation_annee_rh: 1, id_poste: 7, jours: '8.00', finance: true, categorie_depense: 'investissement' }],
+      },
+    });
+    expect(c.rhLignesFA.at(0).value.categorie_depense).toBe('investissement');
+  });
+
+  it('déduit la catégorie du financement pour les lignes antérieures à #597', () => {
+    const c = catComp();
+    c.hydrateRhArray({
+      rh_lignes: [
+        { id_operation_annee_rh: 1, id_poste: 7, jours: '8.00', finance: true },
+        { id_operation_annee_rh: 2, id_poste: 3, jours: '5.00', finance: false },
+      ],
+      realisation: null,
+    });
+    expect(c.rhLignesFA.at(0).value.categorie_depense).toBe('fonctionnement');
+    expect(c.rhLignesFA.at(1).value.categorie_depense).toBe('benevolat_partenariat');
+  });
+
+  it('remplace la case « Financé » par le menu déroulant dans le template', () => {
+    const template = readFileSync(join(__dirname, 'suivi-saisie.component.html'), 'utf8');
+    expect(template).not.toContain('<app-checkbox');
+    expect(template).toContain('setRhCategorie(ctrl, $event)');
+    expect(template).toContain('plans.rh.colCategorie');
+  });
+
+  it('déclare la clé i18n de l\'en-tête de colonne', () => {
+    const i18n = JSON.parse(
+      readFileSync(join(__dirname, '../../../../../assets/i18n/fr.json'), 'utf8'),
+    );
+    expect(i18n.plans.rh.colCategorie).toBeDefined();
+    expect(Object.keys(i18n.plans.rh.categorieDepense)).toEqual([
+      'fonctionnement', 'investissement', 'benevolat_partenariat',
+    ]);
+  });
+});
+
+// -----------------------------------------------------------------------------
 // #612 — ordre de saisie : le temps de travail (RH) AVANT le budget
 // -----------------------------------------------------------------------------
 describe('SuiviSaisieComponent — ordre de saisie RH puis budget (#612)', () => {
