@@ -438,6 +438,36 @@ describe('SuiviSaisieComponent — actions du hero (#589)', () => {
   });
 });
 
+// -----------------------------------------------------------------------------
+// #612 — ordre de saisie : le temps de travail (RH) AVANT le budget
+// -----------------------------------------------------------------------------
+describe('SuiviSaisieComponent — ordre de saisie RH puis budget (#612)', () => {
+  const template = readFileSync(join(__dirname, 'suivi-saisie.component.html'), 'utf8');
+
+  it('place la carte « Temps de travail réalisé » avant la matrice budgétaire', () => {
+    const rh = template.indexOf('plans.suivis.saisie.rh.title');
+    const budget = template.indexOf('plans.suivis.saisie.sections.programmationBudget');
+    const matrix = template.indexOf('class="realisation-matrix"');
+    expect(rh).toBeGreaterThan(-1);
+    expect(budget).toBeGreaterThan(-1);
+    expect(rh).toBeLessThan(budget);
+    expect(budget).toBeLessThan(matrix);
+  });
+
+  it('laisse le niveau de réalisation en tête de formulaire', () => {
+    const niveau = template.indexOf('plans.suivis.saisie.fields.niveau');
+    const rh = template.indexOf('plans.suivis.saisie.rh.title');
+    expect(niveau).toBeLessThan(rh);
+  });
+
+  it('déclare la clé i18n du nouveau titre de carte', () => {
+    const i18n = JSON.parse(
+      readFileSync(join(__dirname, '../../../../../assets/i18n/fr.json'), 'utf8'),
+    );
+    expect(i18n.plans.suivis.saisie.sections.programmationBudget).toBeDefined();
+  });
+});
+
 // ===========================================================================
 // #609 — niveau obligatoire + périodicité dérivée du niveau
 // ===========================================================================

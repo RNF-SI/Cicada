@@ -2094,6 +2094,7 @@
         "orgVentilationComingSoon": "La saisie ventilée par organisme arrive dans une prochaine itération.",
         "sections": {
           "realisation": "Réalisation",
+          "programmationBudget": "Programmation et budget",
           "details": "Détails",
           "emprise": "Emprise spatiale réalisée",
           "indicateurs": "Indicateurs de réponse"

@@ -166,6 +166,134 @@
               }
             </select>
           </app-form-field>
+        </section>
+
+        <!-- #612 — TEMPS DE TRAVAIL puis BUDGET : la RH se saisit d'abord, car
+             les coûts salariaux réalisés du tableau budgétaire en découlent.
+             Bloc déplacé au-dessus de « Programmation et budget ». -->
+        <section class="saisie-card rh-card">
+          <div class="card-header">
+            <img src="assets/images/ellipses/ellipse-yellow.png" alt="" class="card-ellipse">
+            <h2 class="card-title">{{ 'plans.suivis.saisie.rh.title' | translate }}</h2>
+          </div>
+          <p class="text-mention rh-hint">
+            {{ 'plans.suivis.saisie.rh.hint' | translate:{ year: selectedYear() } }}
+          </p>
+
+          @if (rhMode() === 'global' && rhLignesFA.controls.length === 0) {
+            <!-- Action non déclinée et budget non ventilé par organisme (#580) :
+                 saisie d'un temps total ; aucune ligne prévue pour cette année. -->
+            <p class="text-mention">{{ 'plans.suivis.saisie.rh.optional' | translate }}</p>
+          } @else if (rhLignesFA.controls.length === 0) {
+            <p class="text-mention">{{ 'plans.suivis.saisie.rh.empty' | translate }}</p>
+          } @else {
+            <table class="rh-table" formArrayName="rhLignes">
+              <thead>
+                <tr>
+                  <th class="rh-target-col">{{ 'plans.suivis.saisie.rh.target' | translate }}</th>
+                  <th class="rh-finance-col">{{ 'plans.rh.finance' | translate }}</th>
+                  <th class="rh-num-col">{{ 'plans.suivis.saisie.rh.prevu' | translate }}</th>
+                  <th class="rh-num-col active">{{ 'plans.suivis.saisie.rh.realise' | translate }}</th>
+                  <th class="rh-actions-col"></th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (ctrl of rhLignesFA.controls; track $index; let li = $index) {
+                  <tr [formGroupName]="li">
+                    <td class="rh-target-col">
+                      @if (rhMode() === 'global') {
+                        <!-- Temps total, sans cible (#580). -->
+                        <span class="rh-line-label">{{ 'plans.suivis.saisie.rh.globalRowLabel' | translate }}</span>
+                      } @else {
+                        <!-- La cible reste modifiable au suivi : le temps a pu
+                             être réalisé par un autre poste que celui prévu. -->
+                        <mat-select class="rh-target-select"
+                                    [value]="rhTargetValue(ctrl)"
+                                    (valueChange)="setRhTarget(ctrl, $event)"
+                                    [disabled]="planNotValidated()"
+                                    [placeholder]="'plans.suivis.saisie.rh.selectTarget' | translate">
+                          @if (rhMode() === 'organismes') {
+                            @for (o of rhOrganismes(); track o.id_organisme) {
+                              <mat-option [value]="o.id_organisme">{{ o.nom_organisme }}</mat-option>
+                            }
+                          } @else {
+                            @for (p of postes(); track p.id_poste) {
+                              <mat-option [value]="p.id_poste">{{ p.libelle }}</mat-option>
+                            }
+                          }
+                        </mat-select>
+                        @if (rhLineSubLabel(ctrl); as org) {
+                          <span class="rh-line-sublabel">{{ org }}</span>
+                        }
+                      }
+                    </td>
+                    <td class="rh-finance-col">
+                      <app-checkbox
+                        [checked]="!!ctrl.get('finance')?.value"
+                        [disabled]="planNotValidated()"
+                        (checkedChange)="ctrl.get('finance')?.setValue($event)">
+                      </app-checkbox>
+                    </td>
+                    <td class="rh-num-col rh-plan-cell">
+                      {{ formatNumber(ctrl.get('plan_jours')?.value, ' j') }}
+                    </td>
+                    <td class="rh-num-col active">
+                      <input type="number" min="0" step="0.25"
+                             formControlName="jours" placeholder="j" />
+                    </td>
+                    <td class="rh-actions-col">
+                      @if (!planNotValidated()) {
+                        <button type="button" class="rh-remove-btn"
+                                (click)="removeRhLigne(li)"
+                                [title]="'common.actions.delete' | translate">
+                          <i class="fi fi-rr-trash"></i>
+                        </button>
+                      }
+                    </td>
+                  </tr>
+                }
+
+                <tr class="rh-total-row">
+                  <td class="text-bold">{{ 'plans.suivis.saisie.rh.total' | translate }}</td>
+                  <td></td>
+                  <td class="rh-num-col">{{ sumRh('plan_jours') | number:'1.0-2' }} j</td>
+                  <td class="rh-num-col active">{{ sumRh('jours') | number:'1.0-2' }} j</td>
+                  <td></td>
+                </tr>
+                <tr class="rh-subtotal-row">
+                  <td>{{ 'plans.rh.finance' | translate }}</td>
+                  <td></td>
+                  <td class="rh-num-col">{{ sumRh('plan_jours', true) | number:'1.0-2' }} j</td>
+                  <td class="rh-num-col active">{{ sumRh('jours', true) | number:'1.0-2' }} j</td>
+                  <td></td>
+                </tr>
+                <tr class="rh-subtotal-row">
+                  <td>{{ 'plans.rh.nonFinance' | translate }}</td>
+                  <td></td>
+                  <td class="rh-num-col">{{ sumRh('plan_jours', false) | number:'1.0-2' }} j</td>
+                  <td class="rh-num-col active">{{ sumRh('jours', false) | number:'1.0-2' }} j</td>
+                  <td></td>
+                </tr>
+              </tbody>
+            </table>
+          }
+
+          @if (!planNotValidated()) {
+            <div class="rh-controls">
+              <button type="button" mat-stroked-button class="btn-sm" (click)="addRhLigne()">
+                <i class="fi fi-rr-plus"></i>
+                {{ 'plans.suivis.saisie.rh.addLine' | translate }}
+              </button>
+            </div>
+          }
+        </section>
+
+        <!-- #612 — Programmation et budget, saisi APRÈS le temps de travail. -->
+        <section class="saisie-card">
+          <div class="card-header">
+            <img src="assets/images/ellipses/ellipse-yellow.png" alt="" class="card-ellipse">
+            <h2 class="card-title">{{ 'plans.suivis.saisie.sections.programmationBudget' | translate }}</h2>
+          </div>
 
           <!-- Matrice Champs × Années (Figma 161-20144 / 4290-22241) :
                seules les cellules réalisé × année active sont éditables.
@@ -536,124 +664,6 @@
                 }
               </tbody>
             </table>
-          }
-        </section>
-
-        <!-- #560 — Temps de travail réalisé (lignes RH) -->
-        <section class="saisie-card rh-card">
-          <div class="card-header">
-            <img src="assets/images/ellipses/ellipse-yellow.png" alt="" class="card-ellipse">
-            <h2 class="card-title">{{ 'plans.suivis.saisie.rh.title' | translate }}</h2>
-          </div>
-          <p class="text-mention rh-hint">
-            {{ 'plans.suivis.saisie.rh.hint' | translate:{ year: selectedYear() } }}
-          </p>
-
-          @if (rhMode() === 'global' && rhLignesFA.controls.length === 0) {
-            <!-- Action non déclinée et budget non ventilé par organisme (#580) :
-                 saisie d'un temps total ; aucune ligne prévue pour cette année. -->
-            <p class="text-mention">{{ 'plans.suivis.saisie.rh.optional' | translate }}</p>
-          } @else if (rhLignesFA.controls.length === 0) {
-            <p class="text-mention">{{ 'plans.suivis.saisie.rh.empty' | translate }}</p>
-          } @else {
-            <table class="rh-table" formArrayName="rhLignes">
-              <thead>
-                <tr>
-                  <th class="rh-target-col">{{ 'plans.suivis.saisie.rh.target' | translate }}</th>
-                  <th class="rh-finance-col">{{ 'plans.rh.finance' | translate }}</th>
-                  <th class="rh-num-col">{{ 'plans.suivis.saisie.rh.prevu' | translate }}</th>
-                  <th class="rh-num-col active">{{ 'plans.suivis.saisie.rh.realise' | translate }}</th>
-                  <th class="rh-actions-col"></th>
-                </tr>
-              </thead>
-              <tbody>
-                @for (ctrl of rhLignesFA.controls; track $index; let li = $index) {
-                  <tr [formGroupName]="li">
-                    <td class="rh-target-col">
-                      @if (rhMode() === 'global') {
-                        <!-- Temps total, sans cible (#580). -->
-                        <span class="rh-line-label">{{ 'plans.suivis.saisie.rh.globalRowLabel' | translate }}</span>
-                      } @else {
-                        <!-- La cible reste modifiable au suivi : le temps a pu
-                             être réalisé par un autre poste que celui prévu. -->
-                        <mat-select class="rh-target-select"
-                                    [value]="rhTargetValue(ctrl)"
-                                    (valueChange)="setRhTarget(ctrl, $event)"
-                                    [disabled]="planNotValidated()"
-                                    [placeholder]="'plans.suivis.saisie.rh.selectTarget' | translate">
-                          @if (rhMode() === 'organismes') {
-                            @for (o of rhOrganismes(); track o.id_organisme) {
-                              <mat-option [value]="o.id_organisme">{{ o.nom_organisme }}</mat-option>
-                            }
-                          } @else {
-                            @for (p of postes(); track p.id_poste) {
-                              <mat-option [value]="p.id_poste">{{ p.libelle }}</mat-option>
-                            }
-                          }
-                        </mat-select>
-                        @if (rhLineSubLabel(ctrl); as org) {
-                          <span class="rh-line-sublabel">{{ org }}</span>
-                        }
-                      }
-                    </td>
-                    <td class="rh-finance-col">
-                      <app-checkbox
-                        [checked]="!!ctrl.get('finance')?.value"
-                        [disabled]="planNotValidated()"
-                        (checkedChange)="ctrl.get('finance')?.setValue($event)">
-                      </app-checkbox>
-                    </td>
-                    <td class="rh-num-col rh-plan-cell">
-                      {{ formatNumber(ctrl.get('plan_jours')?.value, ' j') }}
-                    </td>
-                    <td class="rh-num-col active">
-                      <input type="number" min="0" step="0.25"
-                             formControlName="jours" placeholder="j" />
-                    </td>
-                    <td class="rh-actions-col">
-                      @if (!planNotValidated()) {
-                        <button type="button" class="rh-remove-btn"
-                                (click)="removeRhLigne(li)"
-                                [title]="'common.actions.delete' | translate">
-                          <i class="fi fi-rr-trash"></i>
-                        </button>
-                      }
-                    </td>
-                  </tr>
-                }
-
-                <tr class="rh-total-row">
-                  <td class="text-bold">{{ 'plans.suivis.saisie.rh.total' | translate }}</td>
-                  <td></td>
-                  <td class="rh-num-col">{{ sumRh('plan_jours') | number:'1.0-2' }} j</td>
-                  <td class="rh-num-col active">{{ sumRh('jours') | number:'1.0-2' }} j</td>
-                  <td></td>
-                </tr>
-                <tr class="rh-subtotal-row">
-                  <td>{{ 'plans.rh.finance' | translate }}</td>
-                  <td></td>
-                  <td class="rh-num-col">{{ sumRh('plan_jours', true) | number:'1.0-2' }} j</td>
-                  <td class="rh-num-col active">{{ sumRh('jours', true) | number:'1.0-2' }} j</td>
-                  <td></td>
-                </tr>
-                <tr class="rh-subtotal-row">
-                  <td>{{ 'plans.rh.nonFinance' | translate }}</td>
-                  <td></td>
-                  <td class="rh-num-col">{{ sumRh('plan_jours', false) | number:'1.0-2' }} j</td>
-                  <td class="rh-num-col active">{{ sumRh('jours', false) | number:'1.0-2' }} j</td>
-                  <td></td>
-                </tr>
-              </tbody>
-            </table>
-          }
-
-          @if (!planNotValidated()) {
-            <div class="rh-controls">
-              <button type="button" mat-stroked-button class="btn-sm" (click)="addRhLigne()">
-                <i class="fi fi-rr-plus"></i>
-                {{ 'plans.suivis.saisie.rh.addLine' | translate }}
-              </button>
-            </div>
           }
         </section>
 
