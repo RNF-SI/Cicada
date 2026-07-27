@@ -57,6 +57,7 @@ $types-couleurs: (
   border: 1px solid $primary-color;
   border-radius: $border-radius-pill;
   font-size: $font-size-small;
+  line-height: $line-height-small;
   color: $black;
   background-color: $white;
   white-space: nowrap;
@@ -70,7 +71,7 @@ $types-couleurs: (
 
   i {
     color: $primary-color;
-    font-size: 14px;
+    font-size: $font-size-base;
   }
 }
 

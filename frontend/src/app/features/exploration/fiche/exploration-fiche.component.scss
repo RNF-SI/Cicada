@@ -30,21 +30,31 @@
   border-radius: $border-radius-lg;
   padding: $spacing-lg;
 
-  &::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    right: 0;
-    width: 35%;
-    height: 100%;
-    background: url('/assets/images/data-waves.png') no-repeat right center / contain;
-    opacity: 0.4;
-    pointer-events: none;
-  }
-
-  > * {
+  > *:not(.exploration-bandeau-waves) {
     position: relative;
     z-index: 1;
+  }
+}
+
+/** Courbes de fond — cf. `.exploration-hero-waves` de la page d'accueil. */
+.exploration-bandeau-waves {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 50%;
+  z-index: 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  overflow: hidden;
+  pointer-events: none;
+
+  img {
+    height: 100%;
+    width: auto;
+    object-fit: contain;
+    object-position: right center;
   }
 }
 
@@ -76,6 +86,7 @@
 .fiche-titre {
   color: $primary-color;
   font-size: $font-size-h2;
+  line-height: $line-height-h2;
   margin: $spacing-md 0 $spacing-sm;
 }
 
@@ -95,7 +106,7 @@
 
   i {
     color: $primary-color;
-    font-size: 14px;
+    font-size: $font-size-base;
   }
 }
 
@@ -118,6 +129,7 @@
   border-left: 4px solid $secondary-yellow;
   border-radius: $border-radius-sm;
   font-size: $font-size-small;
+  line-height: $line-height-small;
 
   i {
     color: $black;
@@ -137,6 +149,7 @@
 .fiche-section-titre {
   color: $primary-color;
   font-size: $font-size-h3;
+  line-height: $line-height-h3;
   margin: 0 0 $spacing-md;
 }
 
@@ -154,17 +167,19 @@
   background-color: $white;
   border-radius: $border-radius-lg;
   padding: $spacing-md $spacing-lg;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+  box-shadow: $shadow-light;
 }
 
 .fiche-chiffre-valeur {
   font-size: $font-size-h3;
+  line-height: $line-height-h3;
   font-weight: $font-weight-bold;
   color: $primary-color;
 }
 
 .fiche-chiffre-label {
   font-size: $font-size-small;
+  line-height: $line-height-small;
   color: $gray-dark;
 }
 
@@ -240,6 +255,7 @@
 .fiche-arbre-mention {
   margin-left: $spacing-xs;
   font-size: $font-size-small;
+  line-height: $line-height-small;
   color: $gray-dark;
 }
 
@@ -270,7 +286,7 @@
   overflow-x: auto;
   background-color: $white;
   border-radius: $border-radius-lg;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+  box-shadow: $shadow-light;
 }
 
 .fiche-tableau {
@@ -287,9 +303,10 @@
   thead th {
     background-color: $primary-color;
     color: $white;
-    font-size: $font-size-small;
+    font-size: $font-size-subtitle;
+    font-weight: $font-weight-bold;
     text-transform: uppercase;
-    letter-spacing: 0.04em;
+    letter-spacing: $letter-spacing-subtitle;
     white-space: nowrap;
   }
 
@@ -307,5 +324,6 @@
 .fiche-tableau-description {
   margin: $spacing-xxs 0 0;
   font-size: $font-size-small;
+  line-height: $line-height-small;
   color: $gray-dark;
 }

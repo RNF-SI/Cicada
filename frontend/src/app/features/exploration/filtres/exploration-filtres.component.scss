@@ -26,7 +26,7 @@
   gap: $spacing-xs;
   padding: $spacing-lg $spacing-md;
   font-weight: $font-weight-bold;
-  border-bottom: 1px solid rgba($white, 0.25);
+  border-bottom: 1px solid rgba($white, 0.4);
 }
 
 .exploration-filtres-switch {
@@ -34,12 +34,12 @@
   align-items: flex-start;
   gap: $spacing-sm;
   padding: $spacing-md;
-  border-bottom: 1px solid rgba($white, 0.25);
+  border-bottom: 1px solid rgba($white, 0.4);
 }
 
 .exploration-filtres-switch-label {
   font-size: $font-size-small;
-  line-height: 1.3;
+  line-height: $line-height-small;
 
   i {
     margin-left: $spacing-xxs;
@@ -79,14 +79,12 @@
 
 .exploration-filtres-groupe {
   padding: $spacing-md;
-  border-bottom: 1px solid rgba($white, 0.25);
+  border-bottom: 1px solid rgba($white, 0.4);
 }
 
+/* La typographie vient de la classe `.subtitle` du kit, posée sur l'élément :
+   on ne redéfinit ici que la couleur et la marge. */
 .exploration-filtres-titre {
-  font-size: $font-size-small;
-  font-weight: $font-weight-bold;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
   margin: 0 0 $spacing-sm;
   color: $white;
 }
@@ -102,7 +100,19 @@
   color: $white;
   font-family: $font-family;
   font-size: $font-size-small;
+  line-height: $line-height-small;
   font-weight: $font-weight-bold;
   text-decoration: underline;
   cursor: pointer;
 }
+
+/**
+ * Interrupteur du panneau sombre.
+ *
+ * Le kit s'appuie sur `mat-slide-toggle` (cf. `_material-overrides.scss`), mais
+ * ses jetons de couleur sont calibrés pour un fond clair : sur la carte primary
+ * de cette barre, l'état actif (piste `$primary-color`) disparaîtrait dans le
+ * fond. La maquette définit d'ailleurs un composant Switch propre à ce panneau
+ * (node 4515:77071). On le reproduit ici, avec les jetons du kit et la
+ * sémantique ARIA d'un vrai interrupteur.
+ */

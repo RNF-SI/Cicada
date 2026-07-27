@@ -47,21 +47,31 @@
   border-radius: $border-radius-lg;
   padding: $spacing-lg;
 
-  &::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    right: 0;
-    width: 40%;
-    height: 100%;
-    background: url('/assets/images/data-waves.png') no-repeat right center / contain;
-    opacity: 0.4;
-    pointer-events: none;
-  }
-
-  > * {
+  > *:not(.exploration-bandeau-waves) {
     position: relative;
     z-index: 1;
+  }
+}
+
+/** Courbes de fond — cf. `.exploration-hero-waves` de la page d'accueil. */
+.exploration-bandeau-waves {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 50%;
+  z-index: 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  overflow: hidden;
+  pointer-events: none;
+
+  img {
+    height: 100%;
+    width: auto;
+    object-fit: contain;
+    object-position: right center;
   }
 }
 
@@ -71,6 +81,7 @@
   gap: $spacing-xs;
   color: $primary-color;
   font-size: $font-size-small;
+  line-height: $line-height-small;
 }
 
 .exploration-fil-home {
@@ -94,9 +105,12 @@
   color: $primary-color;
 }
 
+/* h1 rétrogradé à la taille H3 : la ligne de base doit suivre, sinon
+   l'interlignage H1 (65 px) laisse un blanc démesuré sous le titre. */
 .exploration-bandeau-titre {
   color: $primary-color;
   font-size: $font-size-h3;
+  line-height: $line-height-h3;
   margin: $spacing-md 0;
 }
 
@@ -139,6 +153,7 @@
 
 .exploration-bandeau-label {
   font-size: $font-size-small;
+  line-height: $line-height-small;
   font-weight: $font-weight-bold;
   color: $primary-color;
 }
@@ -152,7 +167,7 @@
   border: none;
   color: $gray-dark;
   cursor: pointer;
-  font-size: 18px;
+  font-size: $font-size-h4;
 }
 
 .exploration-bandeau-submit {
@@ -218,7 +233,7 @@
 .exploration-tuile {
   background-color: $white;
   border-radius: $border-radius-lg;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+  box-shadow: $shadow-light;
   /* Le bandeau de couleur à gauche identifie le type de résultat. */
   border-left: 6px solid $primary-color;
   overflow: hidden;
@@ -226,7 +241,7 @@
 
   &:hover {
     border-color: $secondary-orange-salmon;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.12);
+    box-shadow: $shadow-medium;
   }
 }
 
@@ -262,12 +277,13 @@
 
   i {
     color: $primary-color;
-    font-size: 14px;
+    font-size: $font-size-base;
   }
 }
 
 .exploration-tuile-meta {
   font-size: $font-size-small;
+  line-height: $line-height-small;
   color: $gray-dark;
 }
 
@@ -292,5 +308,5 @@
 .exploration-tuile-fleche {
   flex: 0 0 auto;
   color: $primary-color;
-  font-size: 24px;
+  font-size: $font-size-h3;
 }
