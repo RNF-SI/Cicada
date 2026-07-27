@@ -73,7 +73,7 @@
                     <i class="fi fi-rr-graduation-cap"></i>
                     {{ 'plans.import.downloadExample' | translate }}
                   </button>
-                  <button mat-stroked-button data-testid="arbo-template" [disabled]="downloading()" (click)="downloadTemplate(true)">
+                  <button mat-stroked-button data-testid="arbo-template" [disabled]="downloading()" (click)="downloadTemplate()">
                     <i class="fi fi-rr-file"></i>
                     {{ 'plans.import.downloadEmpty' | translate }}
                   </button>
@@ -260,77 +260,16 @@
               </div>
             </div>
 
-            <!-- Options avancées : mapping et export du contenu -->
+            <!-- Options avancées : mapping. Les exports du plan ont leur propre
+                 rubrique (#617), accessible à tous les utilisateurs du plan. -->
             <app-accordion variant="subtle" [title]="'plans.import.advanced.title' | translate">
               <div class="import-advanced">
                 <div class="advanced-item">
-                  <button mat-stroked-button data-testid="arbo-export-prefilled" [disabled]="downloading()" (click)="downloadTemplate(false)">
+                  <a mat-stroked-button data-testid="exports-link" [routerLink]="['/plans', p.slug, 'exports']">
                     <i class="fi fi-rr-download"></i>
-                    {{ 'plans.import.downloadPrefilled' | translate }}
-                  </button>
-                  <span class="text-mention">{{ 'plans.import.hintExport' | translate }}</span>
-                </div>
-                <div class="advanced-item">
-                  <button mat-stroked-button data-testid="arbo-export-presentation" [disabled]="downloadingPresentation()" (click)="downloadPresentation()">
-                    <i class="fi fi-rr-file-spreadsheet"></i>
-                    {{ 'plans.import.downloadPresentation' | translate }}
-                    @if (downloadingPresentation()) {
-                      <mat-spinner diameter="16"></mat-spinner>
-                    }
-                  </button>
-                  <span class="text-mention">{{ 'plans.import.hintPresentation' | translate }}</span>
-                </div>
-                <div class="advanced-item">
-                  <button mat-stroked-button data-testid="fiches-actions-export" [disabled]="downloadingFiches()" (click)="downloadFiches()">
-                    <i class="fi fi-rr-clipboard-list"></i>
-                    {{ 'plans.import.downloadFiches' | translate }}
-                    @if (downloadingFiches()) {
-                      <mat-spinner diameter="16"></mat-spinner>
-                    }
-                  </button>
-                  <span class="text-mention">{{ 'plans.import.hintFiches' | translate }}</span>
-                </div>
-                <div class="advanced-item">
-                  <button mat-stroked-button data-testid="plan-docx-export" [disabled]="downloadingDocx()" (click)="downloadDocx()">
-                    <i class="fi fi-rr-file-word"></i>
-                    {{ 'plans.import.downloadDocx' | translate }}
-                    @if (downloadingDocx()) {
-                      <mat-spinner diameter="16"></mat-spinner>
-                    }
-                  </button>
-                  <span class="text-mention">{{ 'plans.import.hintDocx' | translate }}</span>
-                </div>
-                <div class="advanced-item">
-                  <button mat-stroked-button data-testid="budget-prev-export" [disabled]="downloadingBudgetPrev()" (click)="downloadBudgetPrev()">
-                    <i class="fi fi-rr-coins"></i>
-                    {{ 'plans.import.downloadBudgetPrev' | translate }}
-                    @if (downloadingBudgetPrev()) { <mat-spinner diameter="16"></mat-spinner> }
-                  </button>
-                  <span class="text-mention">{{ 'plans.import.hintBudgetPrev' | translate }}</span>
-                </div>
-                <div class="advanced-item">
-                  <button mat-stroked-button data-testid="budget-suivi-export" [disabled]="downloadingBudgetSuivi()" (click)="downloadBudgetSuivi()">
-                    <i class="fi fi-rr-coins"></i>
-                    {{ 'plans.import.downloadBudgetSuivi' | translate }}
-                    @if (downloadingBudgetSuivi()) { <mat-spinner diameter="16"></mat-spinner> }
-                  </button>
-                  <span class="text-mention">{{ 'plans.import.hintBudgetSuivi' | translate }}</span>
-                </div>
-                <div class="advanced-item">
-                  <button mat-stroked-button data-testid="rh-prev-export" [disabled]="downloadingRhPrev()" (click)="downloadRhPrev()">
-                    <i class="fi fi-rr-users"></i>
-                    {{ 'plans.import.downloadRhPrev' | translate }}
-                    @if (downloadingRhPrev()) { <mat-spinner diameter="16"></mat-spinner> }
-                  </button>
-                  <span class="text-mention">{{ 'plans.import.hintRhPrev' | translate }}</span>
-                </div>
-                <div class="advanced-item">
-                  <button mat-stroked-button data-testid="rh-suivi-export" [disabled]="downloadingRhSuivi()" (click)="downloadRhSuivi()">
-                    <i class="fi fi-rr-users"></i>
-                    {{ 'plans.import.downloadRhSuivi' | translate }}
-                    @if (downloadingRhSuivi()) { <mat-spinner diameter="16"></mat-spinner> }
-                  </button>
-                  <span class="text-mention">{{ 'plans.import.hintRhSuivi' | translate }}</span>
+                    {{ 'plans.import.exportsMoved' | translate }}
+                  </a>
+                  <span class="text-mention">{{ 'plans.import.exportsMovedHint' | translate }}</span>
                 </div>
                 @if (isDraft()) {
                   <div class="advanced-item">

@@ -2,8 +2,8 @@
  * E2E — Import Excel de l'arborescence d'un plan de gestion (#478).
  *
  * Round-trip complet PAR L'INTERFACE :
- *   1. sur un plan seedé riche, on clique « Exporter (pré-rempli) » et on
- *      capture le fichier .xlsx téléchargé ;
+ *   1. sur un plan seedé riche, on clique « Exporter le contenu de ce plan »
+ *      depuis la page « Exports » (#617) et on capture le .xlsx téléchargé ;
  *   2. on crée un brouillon vide (API) ;
  *   3. sur sa page « Paramètres du plan », on téléverse le fichier, on attend
  *      le rapport de validation, puis on clique « Importer » ;
@@ -27,12 +27,29 @@ async function enjeuxCount(page: any, planId: number): Promise<number> {
   return (data.enjeux || []).length;
 }
 
-/** Déplie l'accordéon « Options avancées » (contient export + mapping). */
+/** Déplie l'accordéon « Options avancées » (contient le mapping). */
 async function openAdvanced(page: any): Promise<void> {
   const header = page
     .locator('.app-accordion__header', { hasText: 'Options avancées' })
     .first();
   await header.click();
+}
+
+/**
+ * #617 — L'export du contenu vit désormais sur la page « Exports » du plan,
+ * hors des paramètres (accessible à tout utilisateur ayant accès au plan).
+ */
+async function exportArborescence(page: any, slug: string): Promise<string> {
+  await page.goto(`/plans/${slug}/exports`);
+  const exportBtn = page.getByTestId('arbo-export-prefilled');
+  await expect(exportBtn).toBeVisible({ timeout: 15000 });
+  const [download] = await Promise.all([
+    page.waitForEvent('download'),
+    exportBtn.click(),
+  ]);
+  const filePath = await download.path();
+  expect(filePath).toBeTruthy();
+  return filePath!;
 }
 
 test.describe('Import arborescence via Excel', () => {
@@ -49,17 +66,8 @@ test.describe('Import arborescence via Excel', () => {
     const siteId = (sourceDetail.sites || [])[0]?.id_site as number;
     expect(siteId, 'le plan source doit avoir un site').toBeTruthy();
 
-    // 2. Export pré-rempli depuis la page Paramètres → capture du téléchargement.
-    await page.goto(`/plans/${source.slug}/parametres`);
-    await openAdvanced(page);
-    const exportBtn = page.getByTestId('arbo-export-prefilled');
-    await expect(exportBtn).toBeVisible({ timeout: 15000 });
-    const [download] = await Promise.all([
-      page.waitForEvent('download'),
-      exportBtn.click(),
-    ]);
-    const filePath = await download.path();
-    expect(filePath).toBeTruthy();
+    // 2. Export pré-rempli depuis la page Exports → capture du téléchargement.
+    const filePath = await exportArborescence(page, source.slug);
 
     // 3. Brouillon vide cible (API).
     const created = await apiPost(page, 'plans/plans/', {
@@ -79,7 +87,7 @@ test.describe('Import arborescence via Excel', () => {
       await page.goto(`/plans/${target.slug}/parametres`);
       const fileInput = page.getByTestId('arbo-import-file');
       await expect(fileInput).toBeAttached({ timeout: 15000 });
-      await fileInput.setInputFiles(filePath!);
+      await fileInput.setInputFiles(filePath);
 
       // La validation (dry-run) se lance : le bouton Importer apparaît et
       // devient actif si le rapport autorise l'import.
@@ -106,8 +114,8 @@ test.describe('Import arborescence via Excel', () => {
     await page.goto(`/plans/${validated.slug}/parametres`);
     // …le sélecteur de fichier d'import est masqué hors brouillon (#248).
     await expect(page.getByTestId('arbo-import-file')).toHaveCount(0);
-    // L'export (lecture) reste disponible dans les options avancées.
-    await openAdvanced(page);
+    // L'export (lecture) reste disponible dans la rubrique « Exports » (#617).
+    await page.goto(`/plans/${validated.slug}/exports`);
     await expect(page.getByTestId('arbo-export-prefilled')).toBeVisible({ timeout: 15000 });
   });
 
@@ -142,13 +150,7 @@ test.describe('Import arborescence via Excel', () => {
     const siteId = (sourceDetail.sites || [])[0]?.id_site as number;
     const sourceCount = await enjeuxCount(page, source.id_pg);
 
-    await page.goto(`/plans/${source.slug}/parametres`);
-    await openAdvanced(page);
-    const [download] = await Promise.all([
-      page.waitForEvent('download'),
-      page.getByTestId('arbo-export-prefilled').click(),
-    ]);
-    const filePath = await download.path();
+    const filePath = await exportArborescence(page, source.slug);
 
     const created = await apiPost(page, 'plans/plans/', {
       nom: `E2E Grille ${Date.now()}`,
@@ -161,7 +163,7 @@ test.describe('Import arborescence via Excel', () => {
 
     try {
       await page.goto(`/plans/${target.slug}/parametres`);
-      await page.getByTestId('arbo-import-file').setInputFiles(filePath!);
+      await page.getByTestId('arbo-import-file').setInputFiles(filePath);
       // Bouton « Corriger dans un tableau » visible dès que les données sont là.
       const correct = page.getByTestId('arbo-correct');
       await expect(correct).toBeVisible({ timeout: 20000 });

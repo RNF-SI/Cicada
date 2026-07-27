@@ -190,13 +190,6 @@ export class PlanSettingsComponent {
   // -------------------------------------------------------------------------
 
   readonly downloading = signal(false);
-  readonly downloadingPresentation = signal(false);
-  readonly downloadingFiches = signal(false);
-  readonly downloadingDocx = signal(false);
-  readonly downloadingRhPrev = signal(false);
-  readonly downloadingRhSuivi = signal(false);
-  readonly downloadingBudgetPrev = signal(false);
-  readonly downloadingBudgetSuivi = signal(false);
   readonly downloadingExample = signal(false);
   readonly importFile = signal<File | null>(null);
   readonly importReport = signal<ArborescenceImportReport | null>(null);
@@ -234,16 +227,16 @@ export class PlanSettingsComponent {
     () => this.importReport()?.issues.filter(i => i.level === 'warning') ?? [],
   );
 
-  /** Télécharge le classeur (pré-rempli ou vierge) et déclenche le download. */
-  downloadTemplate(empty: boolean): void {
+  /** Télécharge le classeur vierge à remplir puis importer.
+   *  Les exports du contenu du plan sont sur la page dédiée (#617). */
+  downloadTemplate(): void {
     const p = this.plan();
     if (!p) return;
     this.downloading.set(true);
-    this.adminService.downloadArborescenceTemplate(p.id_pg, empty).subscribe({
+    this.adminService.downloadArborescenceTemplate(p.id_pg, true).subscribe({
       next: blob => {
         this.downloading.set(false);
-        const suffix = empty ? 'modele' : p.slug || `plan-${p.id_pg}`;
-        this.triggerBlobDownload(blob, `arborescence-${suffix}.xlsx`);
+        this.triggerBlobDownload(blob, 'arborescence-modele.xlsx');
       },
       error: err => {
         this.downloading.set(false);
@@ -251,100 +244,6 @@ export class PlanSettingsComponent {
         this.snackBar.open(detail, this.translate.instant('common.actions.close'), { duration: 5000 });
       },
     });
-  }
-
-  /** Télécharge l'arborescence au format « présentation » (modèle CICADA). */
-  downloadPresentation(): void {
-    const p = this.plan();
-    if (!p) return;
-    this.downloadingPresentation.set(true);
-    this.adminService.downloadArborescencePresentation(p.id_pg).subscribe({
-      next: blob => {
-        this.downloadingPresentation.set(false);
-        const suffix = p.slug || `plan-${p.id_pg}`;
-        this.triggerBlobDownload(blob, `arborescence-presentation-${suffix}.xlsx`);
-      },
-      error: err => {
-        this.downloadingPresentation.set(false);
-        const detail = err?.message || this.translate.instant('plans.import.downloadError');
-        this.snackBar.open(detail, this.translate.instant('common.actions.close'), { duration: 5000 });
-      },
-    });
-  }
-
-  /** Télécharge les fiches action (Excel). */
-  downloadFiches(): void {
-    const p = this.plan();
-    if (!p) return;
-    this.downloadingFiches.set(true);
-    this.adminService.downloadFichesActions(p.id_pg).subscribe({
-      next: blob => {
-        this.downloadingFiches.set(false);
-        this.triggerBlobDownload(blob, `fiches-actions-${p.slug || `plan-${p.id_pg}`}.xlsx`);
-      },
-      error: err => {
-        this.downloadingFiches.set(false);
-        const detail = err?.message || this.translate.instant('plans.import.downloadError');
-        this.snackBar.open(detail, this.translate.instant('common.actions.close'), { duration: 5000 });
-      },
-    });
-  }
-
-  /** Télécharge la fiche « plan de gestion » (Word). */
-  downloadDocx(): void {
-    const p = this.plan();
-    if (!p) return;
-    this.downloadingDocx.set(true);
-    this.adminService.downloadPlanDocx(p.id_pg).subscribe({
-      next: blob => {
-        this.downloadingDocx.set(false);
-        this.triggerBlobDownload(blob, `plan-de-gestion-${p.slug || `plan-${p.id_pg}`}.docx`);
-      },
-      error: err => {
-        this.downloadingDocx.set(false);
-        const detail = err?.message || this.translate.instant('plans.import.downloadError');
-        this.snackBar.open(detail, this.translate.instant('common.actions.close'), { duration: 5000 });
-      },
-    });
-  }
-
-  /** Helper générique de téléchargement d'un export lié au plan. */
-  private downloadPlanFile(
-    flag: ReturnType<typeof signal<boolean>>,
-    request: (id: number) => import('rxjs').Observable<Blob>,
-    filename: (slug: string) => string,
-  ): void {
-    const p = this.plan();
-    if (!p) return;
-    flag.set(true);
-    request(p.id_pg).subscribe({
-      next: blob => {
-        flag.set(false);
-        this.triggerBlobDownload(blob, filename(p.slug || `plan-${p.id_pg}`));
-      },
-      error: err => {
-        flag.set(false);
-        const detail = err?.message || this.translate.instant('plans.import.downloadError');
-        this.snackBar.open(detail, this.translate.instant('common.actions.close'), { duration: 5000 });
-      },
-    });
-  }
-
-  downloadRhPrev(): void {
-    this.downloadPlanFile(this.downloadingRhPrev,
-      id => this.adminService.downloadRhPrevisionnel(id), s => `rh-previsionnel-${s}.xlsx`);
-  }
-  downloadRhSuivi(): void {
-    this.downloadPlanFile(this.downloadingRhSuivi,
-      id => this.adminService.downloadRhSuivi(id), s => `rh-suivi-${s}.xlsx`);
-  }
-  downloadBudgetPrev(): void {
-    this.downloadPlanFile(this.downloadingBudgetPrev,
-      id => this.adminService.downloadBudgetPrevisionnel(id), s => `budget-previsionnel-${s}.xlsx`);
-  }
-  downloadBudgetSuivi(): void {
-    this.downloadPlanFile(this.downloadingBudgetSuivi,
-      id => this.adminService.downloadBudgetSuivi(id), s => `budget-suivi-${s}.xlsx`);
   }
 
   /** Télécharge l'exemple d'arborescence complet (indépendant du plan). */

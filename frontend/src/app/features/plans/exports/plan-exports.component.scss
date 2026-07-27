@@ -1,0 +1,100 @@
+@import 'variables';
+
+.exports-layout {
+  display: flex;
+  min-height: calc(100vh - 64px);
+  background: $gray-lighter;
+}
+
+.plan-main {
+  flex: 1;
+  padding: $spacing-lg $spacing-xl;
+  max-width: 1100px;
+}
+
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: $spacing-sm;
+  padding: $spacing-xxl;
+  color: $gray-dark;
+}
+
+.page-header {
+  margin-bottom: $spacing-lg;
+
+  h1 {
+    margin: 0 0 $spacing-xs;
+
+    i {
+      margin-right: $spacing-xs;
+    }
+  }
+
+  .back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: $spacing-xxs;
+    margin-bottom: $spacing-sm;
+    color: $primary-color;
+    text-decoration: none;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+
+  .exports-plan-name {
+    margin: 0 0 $spacing-xxs;
+    font-weight: 700;
+    color: $primary-color;
+  }
+
+  .subtitle {
+    margin: 0 0 $spacing-xxs;
+    color: $gray-dark;
+    max-width: 720px;
+  }
+
+  .exports-intro {
+    margin: 0;
+    max-width: 720px;
+  }
+}
+
+.exports-section {
+  margin-bottom: $spacing-lg;
+  padding: $spacing-md;
+  background: $white;
+  border-radius: $border-radius-md;
+}
+
+.section-title {
+  margin: 0 0 $spacing-sm;
+  color: $primary-color;
+}
+
+.exports-list {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-sm;
+}
+
+.export-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+
+  button {
+    align-self: flex-start;
+
+    i {
+      margin-right: $spacing-xxs;
+    }
+  }
+
+  .text-mention {
+    margin: 0;
+  }
+}

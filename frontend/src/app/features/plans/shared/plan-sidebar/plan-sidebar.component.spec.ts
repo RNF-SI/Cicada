@@ -272,6 +272,36 @@ describe('PlanSidebarComponent', () => {
     });
   });
 
+  // #617 — Les exports ont leur propre entrée, hors de la section
+  // « Paramétrage » : ils doivent rester accessibles aux simples utilisateurs.
+  describe('exports entry (#617)', () => {
+    it('renders the Exports entry for a non-manager', () => {
+      componentRef.setInput('canManage', false);
+      fixture.detectChanges();
+      const labels: string[] = Array.from(
+        fixture.nativeElement.querySelectorAll('.menu-item span')
+      ).map((el: any) => el.textContent.trim());
+      expect(labels).toContain('plans.detail.sidebar.exports');
+      expect(labels).not.toContain('plans.detail.sidebar.parametrage');
+    });
+
+    it('navigates to the exports page', () => {
+      component.navigateToExports();
+      expect(mockRouter.navigate).toHaveBeenCalledWith(['/plans', 'plan-test', 'exports']);
+    });
+
+    it('marks the Exports entry active on the exports page', () => {
+      componentRef.setInput('activePage', 'exports');
+      fixture.detectChanges();
+      const exportsEntry = Array.from(
+        fixture.nativeElement.querySelectorAll('.menu-item')
+      ).find((el: any) => el.textContent.includes('plans.detail.sidebar.exports')) as HTMLElement;
+      expect(exportsEntry.classList).toContain('active');
+      // Une page « exports » ne colore pas la section réservée aux gestionnaires.
+      expect(component.isParametrageActive()).toBe(false);
+    });
+  });
+
   // #578 — Le sous-menu « Paramétrage » (Paramètres, Postes) doit être visible
   // sur toutes les pages du PG, sans que chaque page fournisse `canManage`.
   describe('effectiveCanManage (#578)', () => {

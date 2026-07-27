@@ -1,0 +1,67 @@
+<app-header></app-header>
+
+<div class="exports-layout">
+  @if (planSlug(); as slug) {
+    @if (planId(); as id) {
+      <app-plan-sidebar
+        [planId]="id"
+        [planSlug]="slug"
+        activePage="exports">
+      </app-plan-sidebar>
+    }
+  }
+
+  <main class="plan-main">
+    @if (isLoading()) {
+      <div class="loading-container">
+        <mat-spinner diameter="50"></mat-spinner>
+        <p>{{ 'common.loading' | translate }}</p>
+      </div>
+    } @else if (errorMessage()) {
+      <div class="info-block info-block-error">
+        <span class="info-block-icon"></span>
+        <div class="info-block-content">
+          <p class="info-block-content-text">{{ errorMessage() }}</p>
+        </div>
+      </div>
+    } @else {
+      <section class="page-header">
+        <a [routerLink]="['/plans', planSlug()]" class="back-link">
+          <i class="fi fi-rr-arrow-left"></i>
+          {{ 'plans.settings.back' | translate }}
+        </a>
+        <h1>
+          <i class="fi fi-rr-download"></i>
+          {{ 'plans.exports.title' | translate }}
+        </h1>
+        <p class="exports-plan-name">{{ planNom() }}</p>
+        <p class="subtitle">{{ 'plans.exports.subtitle' | translate }}</p>
+        <p class="text-mention exports-intro">{{ 'plans.exports.intro' | translate }}</p>
+      </section>
+
+      @for (group of groups; track group.titleKey) {
+        <section class="exports-section">
+          <h2 class="section-title">{{ group.titleKey | translate }}</h2>
+          <div class="exports-list">
+            @for (item of group.items; track item.key) {
+              <div class="export-item">
+                <button
+                  mat-stroked-button
+                  [attr.data-testid]="item.testId"
+                  [disabled]="isDownloading(item.key)"
+                  (click)="download(item)">
+                  <i class="fi" [ngClass]="item.icon"></i>
+                  {{ item.labelKey | translate }}
+                  @if (isDownloading(item.key)) {
+                    <mat-spinner diameter="16"></mat-spinner>
+                  }
+                </button>
+                <span class="text-mention">{{ item.hintKey | translate }}</span>
+              </div>
+            }
+          </div>
+        </section>
+      }
+    }
+  </main>
+</div>

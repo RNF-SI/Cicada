@@ -80,6 +80,13 @@ export const PLANS_ROUTES: Routes = [
     canActivate: [authGuard]
   },
   {
+    // #617 — Exports du plan, accessibles à tout utilisateur ayant accès au plan
+    // (hors « Paramètres », réservés aux gestionnaires).
+    path: ':slug/exports',
+    loadComponent: () => import('./exports/plan-exports.component').then(m => m.PlanExportsComponent),
+    canActivate: [authGuard]
+  },
+  {
     // #560 — Personnes / ressources humaines du plan de gestion
     path: ':slug/postes',
     loadComponent: () => import('./rh/plan-postes.component').then(m => m.PlanPostesComponent),
