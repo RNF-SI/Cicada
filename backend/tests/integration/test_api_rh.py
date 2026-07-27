@@ -44,6 +44,21 @@ class TestFonctionEndpoint:
         assert any(f['finance_par_defaut'] is False for f in data)
         assert all(f['is_socle'] for f in data)
 
+    def test_prestataire_retire_du_referentiel_actif(self, admin_client):
+        """
+        #622 — un prestataire n'a pas de coût jour, donc pas de temps de travail
+        à programmer : sa fonction n'est plus proposée. Elle est désactivée et
+        non supprimée, pour que les postes existants restent valides (son coût
+        continue de se saisir en « Coût prestataire » du budget de l'action).
+        """
+        actives = admin_client.get('/api/plans/fonctions/?actif=true').json()
+        assert all(f['type_poste'] != 'prestataire' for f in actives), actives
+        assert 'Prestataire' not in [f['libelle'] for f in actives]
+        # La fonction socle existe toujours, simplement inactive.
+        prestataire = Fonction.objects.filter(libelle='Prestataire').first()
+        assert prestataire is not None
+        assert prestataire.actif is False
+
     def test_create_a_la_volee(self, admin_client):
         r = admin_client.post(
             '/api/plans/fonctions/',

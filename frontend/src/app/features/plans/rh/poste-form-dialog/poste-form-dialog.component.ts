@@ -93,9 +93,17 @@ export class PosteFormDialogComponent implements OnInit {
   newFonctionType = signal<TypePoste>('salarie');
   isCreatingFonction = signal(false);
 
-  /** Types de poste proposés à la création d'une fonction (#596, #605). */
+  /**
+   * Types de poste proposés à la création d'une fonction (#596, #605).
+   *
+   * #622 — « prestataire » n'en fait plus partie : un prestataire n'a pas de
+   * coût jour, donc pas de temps de travail à programmer. Son coût se saisit
+   * là où il a du sens, en « Coût prestataire » du budget de l'action (saisie
+   * et suivi), qui reste inchangé. Le type existe toujours en base pour les
+   * postes déjà créés.
+   */
   readonly typePosteOptions: TypePoste[] = [
-    'salarie', 'stagiaire', 'prestataire', 'benevole', 'partenaire',
+    'salarie', 'stagiaire', 'benevole', 'partenaire',
   ];
 
   // Création : une ligne (organisme + coût jour) par personne
@@ -173,7 +181,9 @@ export class PosteFormDialogComponent implements OnInit {
   });
 
   ngOnInit(): void {
-    this.rhService.loadFonctions().subscribe((list) => this.allFonctions.set(list));
+    this.rhService.loadFonctions().subscribe((list) => {
+      this.allFonctions.set(this.withEditedFonction(list));
+    });
     this.loadOrganismes();
 
     const p = this.data.poste;
@@ -185,6 +195,27 @@ export class PosteFormDialogComponent implements OnInit {
       this.nombre.set(p.nombre ?? 1);
       this.coutJour.set(p.cout_jour != null ? Number(p.cout_jour) : null);
     }
+  }
+
+  /**
+   * #622 — Le référentiel n'expose que les fonctions actives. En édition, la
+   * fonction du poste peut avoir été désactivée depuis (c'est le cas de
+   * « Prestataire ») : sans elle dans la liste, le menu s'afficherait vide et
+   * l'enregistrement perdrait la fonction. On la réinjecte donc.
+   */
+  private withEditedFonction(list: Fonction[]): Fonction[] {
+    const pf = this.data.poste?.fonctions?.[0];
+    if (!pf || list.some((f) => f.id_fonction === pf.id_fonction)) return list;
+    return [
+      ...list,
+      {
+        id_fonction: pf.id_fonction,
+        libelle: pf.fonction_libelle ?? '',
+        type_poste: pf.type_poste,
+        finance_par_defaut: pf.finance_par_defaut ?? true,
+        actif: false,
+      },
+    ];
   }
 
   /** Sélection d'une fonction → applique coût jour (#596) et défauts presta (#599). */

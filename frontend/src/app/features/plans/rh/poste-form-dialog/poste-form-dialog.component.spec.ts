@@ -216,6 +216,45 @@ describe('PosteFormDialogComponent', () => {
     });
   });
 
+  // #622 — un prestataire n'a pas de coût jour, donc pas de temps de travail à
+  // programmer : on ne peut plus en créer. Son coût reste saisissable en
+  // « Coût prestataire » du budget de l'action (saisie et suivi).
+  describe('type « prestataire » retiré (#622)', () => {
+    it('ne propose plus « prestataire » à la création d’une fonction', async () => {
+      await setup();
+      expect(comp.typePosteOptions).toEqual(['salarie', 'stagiaire', 'benevole', 'partenaire']);
+      expect(comp.typePosteOptions).not.toContain('prestataire');
+    });
+
+    it('réinjecte la fonction du poste édité si elle a été désactivée', async () => {
+      // La fonction « Prestataire » n'est plus renvoyée par le référentiel
+      // actif : sans réinjection, le menu s'afficherait vide et
+      // l'enregistrement perdrait la fonction du poste.
+      await setup({
+        poste: {
+          id_poste: 42, id_pg: 7, id_organisme: null, organisme_libre: 'Bureau SIG', nombre: 1,
+          fonctions: [
+            { id_fonction: 99, fonction_libelle: 'Prestataire', finance_par_defaut: true, type_poste: 'prestataire', pourcentage: null },
+          ],
+        } as unknown as Poste,
+      });
+      expect(comp.allFonctions().map((f) => f.id_fonction)).toContain(99);
+      expect(comp.selectedFonctionId()).toBe(99);
+      expect(comp.selectedType()).toBe('prestataire');
+      expect(comp.selectedFonctionLabel()).toBe('Prestataire');
+    });
+
+    it('ne duplique pas une fonction déjà présente dans le référentiel', async () => {
+      await setup({
+        poste: {
+          id_poste: 42, id_pg: 7, id_organisme: 10, nombre: 1,
+          fonctions: [{ id_fonction: 1, fonction_libelle: 'Garde-technicien', pourcentage: null }],
+        } as unknown as Poste,
+      });
+      expect(comp.allFonctions()).toHaveLength(3);
+    });
+  });
+
   describe('prestataire (#599)', () => {
     function addPresta() {
       comp.allFonctions.update((l) => [
