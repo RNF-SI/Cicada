@@ -533,6 +533,27 @@ describe('SuiviSaisieComponent — budget prévisionnel (#614)', () => {
   });
 });
 
+// ===========================================================================
+// #623 — « Financé / Non financé » remplacés par un vocabulaire métier
+// ===========================================================================
+describe('Libellés RH financé / non financé (#623)', () => {
+  const i18n = JSON.parse(
+    readFileSync(join(__dirname, '../../../../../assets/i18n/fr.json'), 'utf8'),
+  );
+
+  it('nomme les sous-totaux RH « Temps agent » / « Temps partenaire / bénévole »', () => {
+    expect(i18n.plans.rh.finance).toBe('Temps agent (gestionnaire)');
+    expect(i18n.plans.rh.nonFinance).toBe('Temps partenaire / bénévole (valorisé)');
+  });
+
+  it('ne mentionne plus « financé » dans les aides de saisie du temps de travail', () => {
+    const rh = i18n.enjeux.operations.rh;
+    for (const key of ['hintGlobal', 'addLineHint']) {
+      expect(rh[key].toLowerCase()).not.toContain('financé');
+    }
+  });
+});
+
 // -----------------------------------------------------------------------------
 // #615 — catégorie de dépense (menu déroulant) au lieu de « financé » (case)
 // -----------------------------------------------------------------------------

@@ -1402,8 +1402,8 @@
   "plans": {
     "title": "Plans de gestion",
     "rh": {
-      "finance": "Financé",
-      "nonFinance": "Non financé",
+      "finance": "Temps agent (gestionnaire)",
+      "nonFinance": "Temps partenaire / bénévole (valorisé)",
       "colCategorie": "Catégorie de dépense",
       "categorieDepense": {
         "fonctionnement": "Fonctionnement",
@@ -3584,7 +3584,7 @@
         "declinaisonLabel": "Déclinaison par poste",
         "declinaisonMention": "Détaille le temps de travail poste par poste, à partir des postes du plan de gestion.",
         "declinaisonHint": "Le temps de travail se décline par poste dès que le mode de ventilation choisi contient « type de poste ».",
-        "hintGlobal": "Indiquez le nombre de jours prévus par année. Cochez « Déclinaison par poste » pour le détailler poste par poste, ou décochez « Financé » pour valoriser du temps non financé (bénévoles, écovolontaires…).",
+        "hintGlobal": "Indiquez le nombre de jours prévus par année. Cochez « Déclinaison par poste » pour le détailler poste par poste, ou choisissez la catégorie « Bénévolat partenariat » pour valoriser du temps partenaire / bénévole (bénévoles, écovolontaires…).",
         "hintPostes": "Ajoutez chaque poste concerné avec « Ajouter une ligne », puis indiquez le nombre de jours prévus par année. Une seule ligne suffit pour un groupe de bénévoles ou de partenaires.",
         "hintOrganismes": "Un organisme par ligne, repris de la ventilation du budget. Indiquez le nombre de jours prévus par année.",
         "colPoste": "Poste",
@@ -3597,7 +3597,7 @@
         "selectTarget": "Choisir…",
         "total": "TOTAL",
         "addLine": "Ajouter une ligne",
-        "addLineHint": "Pour un second lot sur une même cible (ex. du temps non financé).",
+        "addLineHint": "Pour un second lot sur une même cible (ex. du temps partenaire / bénévole valorisé).",
         "noYears": "Renseignez d'abord les années de programmation."
       },
       "budgetFonctionnement": "Budget prév. OG (€) Fonctionnement",
