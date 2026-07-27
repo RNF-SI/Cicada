@@ -16,15 +16,38 @@ export type ExplorationType =
   | 'indicateur'
   | 'action';
 
-/** Ordre d'affichage des onglets de résultats, conforme à la maquette. */
-export const EXPLORATION_TYPES: ExplorationType[] = [
-  'pression',
-  'facteur',
-  'objectif_lt',
-  'objectif_op',
-  'indicateur',
-  'enjeu',
-  'action',
+/**
+ * Onglets de résultats et entrées du dropdown « Type de données », dans
+ * l'ordre de la maquette.
+ *
+ * Un onglet peut couvrir plusieurs types : la maquette n'affiche qu'un onglet
+ * « Objectifs », la distinction long terme / opérationnel étant reléguée au
+ * groupe de facettes correspondant de la barre latérale.
+ */
+export interface ExplorationOnglet {
+  /** Identifiant de l'onglet, utilisé dans l'URL. */
+  cle: string;
+  /** Types de contenu qu'il regroupe. */
+  types: ExplorationType[];
+  /** Clé de traduction du libellé. */
+  label: string;
+}
+
+export const EXPLORATION_ONGLETS: ExplorationOnglet[] = [
+  { cle: 'pression', types: ['pression'], label: 'exploration.types.pression.pluriel' },
+  { cle: 'facteur', types: ['facteur'], label: 'exploration.types.facteur.pluriel' },
+  {
+    cle: 'objectif',
+    types: ['objectif_lt', 'objectif_op'],
+    label: 'exploration.filters.objectifs',
+  },
+  {
+    cle: 'indicateur',
+    types: ['indicateur'],
+    label: 'exploration.types.indicateur.pluriel',
+  },
+  { cle: 'enjeu', types: ['enjeu'], label: 'exploration.types.enjeu.pluriel' },
+  { cle: 'action', types: ['action'], label: 'exploration.types.action.pluriel' },
 ];
 
 /** Statuts proposés par le filtre « statut du plan de gestion ». */
@@ -107,7 +130,8 @@ export interface ExplorationCriteres {
   q?: string;
   titresSeulement?: boolean;
   types?: ExplorationType[];
-  onglet?: ExplorationType | 'tout';
+  /** Types couverts par l'onglet actif. Vide = onglet « Tout ». */
+  onglet?: ExplorationType[];
   zones?: number[];
   organismes?: number[];
   typesSite?: string[];

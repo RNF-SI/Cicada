@@ -142,7 +142,7 @@ contiennent ni budget, ni RH, ni données empiriques.
 | `q` | ✓ | ✓ | Mot-clé. Côté plans : nom du plan, du site, du département ou de la région |
 | `titres_seulement` | ✓ | | `true` (défaut) = `search_titre`, `false` = `search_full` |
 | `types` | ✓ | | Types de données (dropdown de la barre de recherche) |
-| `onglet` | ✓ | | Onglet actif — filtre la liste **sans** toucher aux compteurs |
+| `onglet` | ✓ | | Onglet actif — filtre la liste **sans** toucher aux compteurs. Accepte plusieurs types : la maquette n'affiche qu'un onglet « Objectifs », qui vaut `onglet=objectif_lt,objectif_op` |
 | `zones` | ✓ | ✓ | IDs `ref_geo` (départements et/ou régions, indifféremment) |
 | `organismes` | ✓ | ✓ | IDs d'organismes gestionnaires |
 | `types_site` | ✓ | ✓ | Mnémoniques (`RNN`, `RNR`, `PNR`, `ENS`…) |

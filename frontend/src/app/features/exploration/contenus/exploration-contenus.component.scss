@@ -1,0 +1,185 @@
+@import '../resultats';
+
+/**
+ * Couleur par type de contenu.
+ *
+ * Les cinq premières sont relevées au pixel sur les maquettes (nodes
+ * 4515:76129 et 4515:76825) et correspondent toutes à des variables du design
+ * system, conformément à l'annotation Figma : « couleurs à harmoniser avec le
+ * tableau d'arborescence, en choisissant de préférence parmi les couleurs
+ * principales de la librairie ».
+ *
+ * Les maquettes ne montrent aucune tuile d'enjeu ni d'indicateur : leurs deux
+ * couleurs sont déduites (terra cotta, seule couleur principale restante, pour
+ * l'entité de plus haut niveau ; bleu info pour l'indicateur). À faire valider.
+ */
+$types-couleurs: (
+  'enjeu': $secondary-terra-cotta,
+  'facteur': $secondary-pale-green,
+  'pression': $secondary-orange-salmon,
+  'objectif_lt': $primary-color,
+  'objectif_op': $primary-color,
+  'indicateur': $info-color,
+  'action': $secondary-yellow,
+);
+
+@each $type, $couleur in $types-couleurs {
+  .exploration-tuile.type-#{$type} {
+    border-left-color: $couleur;
+
+    .exploration-type-tag {
+      border-color: $couleur;
+    }
+  }
+}
+
+/* Le survol souligne la tuile entière, indépendamment de son type. */
+.exploration-tuile:hover {
+  border-color: $secondary-orange-salmon;
+}
+
+.exploration-tuile-entete {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: $spacing-md;
+}
+
+/**
+ * Pastille de type : contour seul, texte noir. Plusieurs couleurs de type sont
+ * des pastels (#C0E3CF, #FEC180, #F5B399) sur lesquels du texte blanc serait
+ * illisible — d'où le contour plutôt qu'un aplat.
+ */
+.exploration-type-tag {
+  flex: 0 0 auto;
+  display: inline-block;
+  padding: 2px $spacing-sm;
+  border: 1px solid $primary-color;
+  border-radius: $border-radius-pill;
+  font-size: $font-size-small;
+  color: $black;
+  background-color: $white;
+  white-space: nowrap;
+}
+
+.exploration-tuile-parent {
+  display: flex;
+  align-items: center;
+  gap: $spacing-xxs;
+  margin: 0 0 $spacing-xs;
+
+  i {
+    color: $primary-color;
+    font-size: 14px;
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* Onglets                                                            */
+/* ------------------------------------------------------------------ */
+
+.exploration-onglets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spacing-lg;
+  border-bottom: 1px solid $gray-light;
+  margin-top: $spacing-lg;
+}
+
+.exploration-onglet {
+  background: none;
+  border: none;
+  border-bottom: 3px solid transparent;
+  padding: $spacing-xs 0 $spacing-sm;
+  font-family: $font-family;
+  font-size: $font-size-base;
+  color: $gray-dark;
+  cursor: pointer;
+  transition: color $transition-fast, border-color $transition-fast;
+
+  &:hover {
+    color: $primary-color;
+  }
+
+  &.actif {
+    color: $primary-color;
+    font-weight: $font-weight-bold;
+    border-bottom-color: $primary-color;
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* Puces de filtres actifs                                            */
+/* ------------------------------------------------------------------ */
+
+.exploration-puces {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: $spacing-xs;
+  margin-top: $spacing-lg;
+}
+
+.exploration-puce {
+  display: inline-flex;
+  align-items: center;
+  gap: $spacing-xxs;
+  padding: 2px $spacing-sm;
+  border: 1px solid $gray;
+  border-radius: $border-radius-pill;
+  background-color: $white;
+  font-family: $font-family;
+  font-size: $font-size-small;
+  color: $black;
+  cursor: pointer;
+
+  &:hover {
+    border-color: $primary-color;
+  }
+}
+
+.exploration-puces-reset {
+  display: inline-flex;
+  align-items: center;
+  gap: $spacing-xxs;
+  margin-left: auto;
+  padding: 0;
+  background: none;
+  border: none;
+  font-family: $font-family;
+  font-size: $font-size-small;
+  font-weight: $font-weight-bold;
+  color: $primary-color;
+  cursor: pointer;
+}
+
+/* ------------------------------------------------------------------ */
+/* Barre de recherche du bandeau (variante à trois champs)            */
+/* ------------------------------------------------------------------ */
+
+.exploration-bandeau-types {
+  flex: 0 0 240px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+  background-color: $white;
+  border: 1px solid $primary-color;
+  border-radius: $border-radius-pill;
+  padding: $spacing-xs $spacing-lg;
+  min-height: 56px;
+
+  @include mobile {
+    flex: 1 1 auto;
+  }
+
+  /* Le déclencheur est déjà dans un champ : sans cette neutralisation, deux
+     cadres apparaîtraient l'un dans l'autre. */
+  :host ::ng-deep & app-filter-dropdown.variant-field .filter-trigger {
+    border: none;
+    background: transparent;
+    padding-left: 0;
+    padding-right: 0;
+    min-height: auto;
+  }
+}

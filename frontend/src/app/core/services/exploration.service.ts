@@ -56,9 +56,7 @@ export class ExplorationService {
       params = params.set('titres_seulement', 'false');
     }
     multiple('types', criteres.types);
-    if (criteres.onglet && criteres.onglet !== 'tout') {
-      params = params.set('onglet', criteres.onglet);
-    }
+    multiple('onglet', criteres.onglet);
     multiple('zones', criteres.zones);
     multiple('organismes', criteres.organismes);
     multiple('types_site', criteres.typesSite);

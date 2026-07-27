@@ -57,11 +57,17 @@ describe('exploration-url', () => {
     });
 
     it('omet les valeurs par défaut', () => {
-      const params = criteresVersUrl({ tri: 'pertinence', onglet: 'tout', page: 1 });
+      const params = criteresVersUrl({ tri: 'pertinence', onglet: [], page: 1 });
 
       expect(params['tri']).toBeNull();
       expect(params['onglet']).toBeNull();
       expect(params['page']).toBeNull();
+    });
+
+    it("sérialise l'onglet groupé « Objectifs » comme ses deux types", () => {
+      expect(
+        criteresVersUrl({ onglet: ['objectif_lt', 'objectif_op'] })['onglet'],
+      ).toBe('objectif_lt,objectif_op');
     });
 
     it('sérialise les listes en valeurs séparées par des virgules', () => {
@@ -74,7 +80,7 @@ describe('exploration-url', () => {
       q: 'limicole',
       titresSeulement: false,
       types: ['enjeu', 'indicateur'],
-      onglet: 'indicateur',
+      onglet: ['objectif_lt', 'objectif_op'],
       zones: [12, 34],
       organismes: [7],
       typesSite: ['RNN'],

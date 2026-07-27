@@ -237,6 +237,20 @@ class TestCompteurs:
         assert reponse.data['compteurs']['tout'] == 10
         assert reponse.data['compteurs']['enjeu'] == 2
 
+    def test_un_onglet_peut_couvrir_plusieurs_types(
+        self, client_connecte, jeu_de_donnees
+    ):
+        """
+        La maquette n'affiche qu'un onglet « Objectifs » : il doit couvrir les
+        objectifs à long terme et les objectifs opérationnels d'un seul tenant.
+        """
+        reponse = client_connecte.get(
+            URL_CONTENUS, {'onglet': 'objectif_lt,objectif_op'}
+        )
+
+        assert set(titres(reponse)) == {'Objectif Ouest', 'Objectif Est'}
+        assert reponse.data['compteurs']['tout'] == 10
+
     def test_les_compteurs_suivent_les_filtres(self, client_connecte, jeu_de_donnees):
         reponse = client_connecte.get(URL_CONTENUS, {'q': 'limicole'})
 

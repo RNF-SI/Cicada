@@ -26,7 +26,7 @@ from apps.plans.models import CorSitePg, PlanGestion
 from apps.users.models import CorOgSite
 
 from .filters import (
-    filtrer_contenus, filtrer_plans, trier_contenus, trier_plans,
+    filtrer_contenus, filtrer_plans, liste, trier_contenus, trier_plans,
 )
 from .indexing import INDEXED_STATUSES
 from .models import ContenuIndexe
@@ -83,10 +83,15 @@ class ExplorationContenuViewSet(ViewSet):
             .annotate(total=Count('id')).order_by()
         }
 
+        # L'onglet peut couvrir plusieurs types : la maquette n'affiche qu'un
+        # onglet « Objectifs » pour les objectifs à long terme et opérationnels.
         resultats = filtres
-        onglet = request.query_params.get('onglet')
-        if onglet and onglet != 'tout':
-            resultats = resultats.filter(type_contenu=onglet)
+        onglet = [
+            type_contenu for type_contenu in liste(request.query_params, 'onglet')
+            if type_contenu != 'tout'
+        ]
+        if onglet:
+            resultats = resultats.filter(type_contenu__in=onglet)
         resultats = trier_contenus(resultats, request.query_params)
 
         paginateur = ExplorationPagination()

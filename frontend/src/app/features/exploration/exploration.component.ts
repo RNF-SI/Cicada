@@ -4,10 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 
-import {
-  EXPLORATION_TYPES,
-  ExplorationType,
-} from '../../core/models/exploration.model';
+import { EXPLORATION_ONGLETS } from '../../core/models/exploration.model';
 import {
   FilterDropdownComponent,
   FilterOptionListComponent,
@@ -47,13 +44,13 @@ export class ExplorationComponent {
 
   readonly mode = signal<ModeExploration>('contenu');
   readonly motCle = signal('');
-  readonly types = signal<ExplorationType[]>([]);
+  /** Clés d'onglet cochées dans le dropdown « Type de données ». */
+  readonly types = signal<string[]>([]);
 
-  /** Types de données proposés par le dropdown, dans l'ordre de la maquette. */
   readonly optionsTypes = computed(() =>
-    EXPLORATION_TYPES.map((type) => ({
-      value: type,
-      label: this.translate.instant(`exploration.types.${type}.pluriel`),
+    EXPLORATION_ONGLETS.map((onglet) => ({
+      value: onglet.cle,
+      label: this.translate.instant(onglet.label),
     })),
   );
 
@@ -63,8 +60,8 @@ export class ExplorationComponent {
     if (!choisis.length) {
       return this.translate.instant('exploration.search.allData');
     }
-    return choisis
-      .map((type) => this.translate.instant(`exploration.types.${type}.pluriel`))
+    return EXPLORATION_ONGLETS.filter((onglet) => choisis.includes(onglet.cle))
+      .map((onglet) => this.translate.instant(onglet.label))
       .join(', ');
   });
 
@@ -84,8 +81,12 @@ export class ExplorationComponent {
       return;
     }
 
-    if (this.types().length) {
-      params['types'] = this.types().join(',');
+    // Le dropdown raisonne en onglets ; l'URL, en types de contenu.
+    const types = EXPLORATION_ONGLETS.filter((onglet) =>
+      this.types().includes(onglet.cle),
+    ).flatMap((onglet) => onglet.types);
+    if (types.length) {
+      params['types'] = types.join(',');
     }
     this.router.navigate(['/exploration/contenus'], { queryParams: params });
   }

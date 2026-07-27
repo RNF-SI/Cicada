@@ -41,7 +41,7 @@ export function criteresDepuisUrl(params: ParamMap): ExplorationCriteres {
     // apparaît dans l'URL.
     titresSeulement: params.get('titres_seulement') === 'false' ? false : undefined,
     types: texte(params, 'types') as ExplorationType[] | undefined,
-    onglet: (params.get('onglet') as ExplorationType | 'tout' | null) ?? undefined,
+    onglet: texte(params, 'onglet') as ExplorationType[] | undefined,
     zones: entiers(params, 'zones'),
     organismes: entiers(params, 'organismes'),
     typesSite: texte(params, 'types_site'),
@@ -70,7 +70,7 @@ export function criteresVersUrl(
     q: criteres.q?.trim() || null,
     titres_seulement: criteres.titresSeulement === false ? 'false' : null,
     types: multiple(criteres.types),
-    onglet: criteres.onglet && criteres.onglet !== 'tout' ? criteres.onglet : null,
+    onglet: multiple(criteres.onglet),
     zones: multiple(criteres.zones),
     organismes: multiple(criteres.organismes),
     types_site: multiple(criteres.typesSite),

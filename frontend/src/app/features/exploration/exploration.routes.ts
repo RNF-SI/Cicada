@@ -10,6 +10,15 @@ export const EXPLORATION_ROUTES: Routes = [
     title: 'Exploration des données',
   },
   {
+    path: 'contenus',
+    loadComponent: () =>
+      import('./contenus/exploration-contenus.component').then(
+        (m) => m.ExplorationContenusComponent,
+      ),
+    canActivate: [authGuard],
+    title: "Rechercher un contenu d'un plan de gestion",
+  },
+  {
     path: 'plans',
     loadComponent: () =>
       import('./plans/exploration-plans.component').then(
