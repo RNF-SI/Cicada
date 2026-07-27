@@ -26,7 +26,8 @@ from apps.users.permissions import IsReferent
 from .permissions import CanModifyOnlyDraftPlan, IsReferentOrReadOnly
 from .access import (
     INDICATEUR_TO_PG_PATHS, OPERATION_TO_PG_PATHS, assert_plan_access,
-    prefix_paths, scope_by_plan, user_can_access_plan,
+    assert_suivi_access, prefix_paths, scope_by_plan, scope_suivi_by_plan,
+    user_can_access_plan,
 )
 from .reorder import do_reorder
 from .serializers_operations import (
@@ -554,8 +555,11 @@ def _scope_realisation_queryset(queryset, user, op_path):
     Scope un queryset de réalisations selon le rôle de l'utilisateur,
     en passant par la chaîne `op_path` qui mène jusqu'à l'Operation.
     Ex: 'id_operation_annee__id_operation' pour RealisationOperationAnnee.
+
+    #610 — les réalisations relèvent du SUIVI : périmètre réservé aux référents
+    et gestionnaires (le créateur d'une réalisation garde la sienne).
     """
-    return scope_by_plan(
+    return scope_suivi_by_plan(
         queryset, user,
         tuple(f'{op_path}__{path}' for path in OperationViewSet._PG_PATHS),
         extra=Q(**{f'{op_path}__id_utilisateur_ajout': user}),
@@ -760,7 +764,7 @@ class RealisationOperationAnneeViewSet(viewsets.ModelViewSet):
     def by_plan(self, request, plan_id=None):
         """Liste les réalisations d'un plan (toutes opérations × années)."""
         plan = get_object_or_404(PlanGestion, pk=plan_id)
-        assert_plan_access(request.user, plan)
+        assert_suivi_access(request.user, plan)          # #610 — suivi réservé
         realisations = self.get_queryset().filter(
             Q(id_operation_annee__id_operation__metriques__id_indicateur__id_ne__id_olt__id_enjeu__id_pg=plan) |
             Q(id_operation_annee__id_operation__id_suivi__id_pg=plan)
@@ -789,7 +793,7 @@ class RealisationOperationAnneeViewSet(viewsets.ModelViewSet):
 
         plan = get_object_or_404(_Plan, pk=plan_id)
         # Agrégations calculées hors get_queryset() : contrôle d'accès explicite.
-        assert_plan_access(request.user, plan)
+        assert_suivi_access(request.user, plan)          # #610 — bilan réservé
 
         def _compute_score(mesure, m):
             """Retourne 1-5 selon la grille de scores de la métrique, ou 0 si hors plage.
@@ -877,7 +881,7 @@ class RealisationOperationAnneeViewSet(viewsets.ModelViewSet):
         from collections import defaultdict
 
         plan = get_object_or_404(PlanGestion, pk=plan_id)
-        assert_plan_access(request.user, plan)
+        assert_suivi_access(request.user, plan)          # #610 — bilan réservé
 
         # Filtres optionnels
         enjeu_id = request.query_params.get('enjeu_id')
@@ -1163,7 +1167,7 @@ class RealisationOperationAnneeViewSet(viewsets.ModelViewSet):
 
         plan = get_object_or_404(PlanGestion, pk=plan_id)
         # Agrégations calculées hors get_queryset() : contrôle d'accès explicite.
-        assert_plan_access(request.user, plan)
+        assert_suivi_access(request.user, plan)          # #610 — bilan réservé
         enjeu_id = request.query_params.get('enjeu_id')
 
         y0, y1 = plan.annee_debut, plan.annee_fin

@@ -88,6 +88,12 @@ export class PlanSidebarComponent implements OnInit {
     return page === 'bilan' || page === 'suivi-actions' || page === 'tableau-de-bord';
   });
 
+  /** #610 — La section « Suivis » (Bilan, Suivi des actions, Tableau de bord)
+   *  est réservée aux référents du plan et gestionnaires (admin_og, super_admin,
+   *  rédacteur principal) — même audience que « Paramétrage ». Un utilisateur
+   *  simplement lié au plan (non référent) ne doit pas voir les suivis. */
+  canViewSuivis = computed(() => this.effectiveCanManage());
+
   isMindmapActive = computed(() => this.activePage() === 'mindmap');
 
   /** #583 — La section « Paramétrage » couvre les pages Paramètres et Postes/RH. */

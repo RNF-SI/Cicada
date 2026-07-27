@@ -135,3 +135,70 @@ def assert_plan_access(user, plan):
     """
     if not user_can_access_plan(user, plan):
         raise PermissionDenied("Vous n'avez pas accès à ce plan de gestion.")
+
+
+# ---------------------------------------------------------------------------
+# Accès aux SUIVIS (bilan, suivi des actions, tableau de bord) — #610
+#
+# Contrairement au contenu du plan (arborescence, fiches action prévisionnelles),
+# les suivis ne sont PAS ouverts à tout utilisateur simplement lié : ils sont
+# réservés aux référents (du plan ou d'un de ses sites) et aux gestionnaires
+# (admin de l'organisme du plan, super admin, rédacteur principal). Un simple
+# membre ou un utilisateur lié par organisme/site n'y accède pas.
+# ---------------------------------------------------------------------------
+
+def suivi_scope_q(user) -> Q:
+    """``Q`` des plans dont ``user`` peut voir les suivis (#610).
+
+    Ne doit pas être appelé pour un utilisateur à accès global
+    (cf. :func:`has_global_plan_access`)."""
+    scope = (
+        Q(referents=user) |
+        Q(sites__site__corrolesite__id_role=user,
+          sites__site__corrolesite__referent=True,
+          sites__site__corrolesite__referent_valid=True)
+    )
+    if user.is_admin_organisme() and user.id_organisme_id:
+        organisme = user.id_organisme
+        scope |= Q(organismes_redacteurs__uuid_og=organisme)
+        scope |= Q(sites__site__corogsite__uuid_og=organisme)
+    return scope
+
+
+def suivi_accessible_plan_ids(user):
+    """IDs des plans dont ``user`` peut voir les suivis (``None`` si accès global)."""
+    if has_global_plan_access(user):
+        return None
+    return PlanGestion.objects.filter(suivi_scope_q(user)).values('id_pg')
+
+
+def scope_suivi_by_plan(queryset, user, paths='', extra=None):
+    """Comme :func:`scope_by_plan`, mais borné au périmètre SUIVI (#610)."""
+    plan_ids = suivi_accessible_plan_ids(user)
+    if plan_ids is None:
+        return queryset
+
+    if isinstance(paths, str):
+        paths = (paths,)
+
+    scope = Q()
+    for path in paths:
+        scope |= Q(**{f'{path}__in' if path else 'pk__in': plan_ids})
+    if extra is not None:
+        scope |= extra
+    return queryset.filter(scope).distinct()
+
+
+def user_can_access_suivi(user, plan) -> bool:
+    """Vrai si ``user`` peut voir les suivis du plan (#610)."""
+    if has_global_plan_access(user):
+        return True
+    return PlanGestion.objects.filter(pk=plan.pk).filter(suivi_scope_q(user)).exists()
+
+
+def assert_suivi_access(user, plan):
+    """Lève une 403 si ``user`` n'a pas accès aux suivis du plan (#610)."""
+    if not user_can_access_suivi(user, plan):
+        raise PermissionDenied(
+            "Les suivis de ce plan sont réservés à ses référents et gestionnaires."
+        )

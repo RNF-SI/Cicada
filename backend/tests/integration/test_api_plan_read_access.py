@@ -3,8 +3,10 @@ Tests d'intégration — #610 : accès en LECTURE SEULE au contenu d'un plan pou
 un utilisateur lié au plan sans être « référent ».
 
 Un membre du plan (`CorRolePlan`, `referent=False`) doit pouvoir consulter le
-plan et toute son arborescence (enjeux, indicateurs, opérations, suivis, RH),
-qu'il soit en brouillon ou validé, sans pouvoir écrire.
+plan et toute son arborescence (enjeux, indicateurs, opérations, RH),
+qu'il soit en brouillon ou validé, sans pouvoir écrire. Les SUIVIS (bilan,
+réalisations) restent réservés aux référents/gestionnaires — cf. #610 et
+`TestPlanSuiviAccess`.
 
 Vérifie aussi le corollaire : le contenu d'un plan validé n'est PAS visible
 d'un utilisateur sans aucun lien avec ce plan.
@@ -37,12 +39,16 @@ def plan_read_access_data(db):
     membre = RoleFactory(role_level='utilisateur', id_organisme=OrganismeFactory())
     CorRolePlanFactory(id_role=membre, plan_de_gestion=plan, referent=False)
 
+    # Référent du plan (#610 — voit les suivis).
+    referent = RoleFactory(role_level='utilisateur', id_organisme=OrganismeFactory())
+    plan.referents.add(referent)
+
     # Utilisateur sans aucun lien avec le plan.
     etranger = RoleFactory(role_level='utilisateur', id_organisme=OrganismeFactory())
 
     return {
         'plan': plan, 'site': site, 'enjeu': enjeu,
-        'membre': membre, 'etranger': etranger,
+        'membre': membre, 'referent': referent, 'etranger': etranger,
     }
 
 
@@ -65,10 +71,11 @@ CONTENT_ENDPOINTS = [
     '/api/plans/mesures/',
     '/api/plans/indicateur-mesures/',
     '/api/plans/operations/',
-    '/api/plans/realisations/',
     '/api/plans/postes/',
     '/api/inventaires/suivis/',
 ]
+# #610 — les SUIVIS (réalisations, bilan) ne sont PAS du contenu ouvert : ils
+# sont réservés aux référents/gestionnaires (voir TestPlanSuiviAccess).
 
 
 @pytest.mark.django_db
@@ -153,3 +160,42 @@ class TestPlanContentIsolation:
             f'/api/plans/plans/by-slug/{plan.slug}/'
         )
         assert response.status_code == status.HTTP_403_FORBIDDEN
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+class TestPlanSuiviAccess:
+    """#610 — les suivis (bilan, réalisations) sont réservés aux référents et
+    gestionnaires ; un simple membre lié au plan n'y accède pas."""
+
+    def test_membre_non_referent_ne_voit_pas_les_realisations(self, plan_read_access_data):
+        plan = plan_read_access_data['plan']
+        response = _client(plan_read_access_data['membre']).get(
+            f'/api/plans/realisations/by-plan/{plan.id_pg}/'
+        )
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    def test_membre_non_referent_ne_voit_pas_le_bilan(self, plan_read_access_data):
+        plan = plan_read_access_data['plan']
+        response = _client(plan_read_access_data['membre']).get(
+            f'/api/plans/realisations/bilan/{plan.id_pg}/'
+        )
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    def test_liste_realisations_scopee_hors_suivi_est_vide_pour_le_membre(
+        self, plan_read_access_data
+    ):
+        """La liste reste 200 mais ne fuit aucune réalisation (queryset scopé)."""
+        response = _client(plan_read_access_data['membre']).get('/api/plans/realisations/')
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data['results'] == []
+
+    def test_referent_voit_les_realisations_et_le_bilan(self, plan_read_access_data):
+        plan = plan_read_access_data['plan']
+        client = _client(plan_read_access_data['referent'])
+        assert client.get(
+            f'/api/plans/realisations/by-plan/{plan.id_pg}/'
+        ).status_code == status.HTTP_200_OK
+        assert client.get(
+            f'/api/plans/realisations/bilan/{plan.id_pg}/'
+        ).status_code == status.HTTP_200_OK
