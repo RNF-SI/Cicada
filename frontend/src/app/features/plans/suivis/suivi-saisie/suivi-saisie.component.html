@@ -60,6 +60,13 @@
                 <i class="fi fi-rr-arrow-left"></i>
                 <span>{{ 'plans.suivis.saisie.backToSuivi' | translate }}</span>
               </a>
+              <!-- #630 — retour vers la vue globale de l'action (réalisation
+                   globale, récap annuel), disparue lors de #534. -->
+              <a class="btn-hero-secondary"
+                 [routerLink]="['/plans', planSlug(), 'suivi-actions', 'action', operationId()]">
+                <i class="fi fi-rr-stats"></i>
+                <span>{{ 'plans.suivis.saisie.viewGlobal' | translate }}</span>
+              </a>
               <!-- #589 — le bouton « Modifier l'action » a été retiré : depuis le
                    suivi, on consulte l'action via sa fiche, on ne l'édite pas. -->
               <!-- #534 — Accès à la fiche action (synthèse imprimable/exportable) -->
