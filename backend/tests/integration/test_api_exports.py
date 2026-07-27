@@ -339,6 +339,15 @@ class TestExportWorkbooks:
         wb = self._load(build_presentation_workbook(plan_finance['plan']))
         assert len(wb.sheetnames) >= 1
 
+    def test_word_prefixe_numero_enjeu_et_olt(self, plan_arbo):
+        """#628 — intitulés préfixés « Enjeu N : … » et « OLT N : … »."""
+        from docx import Document
+        from apps.plans.services_export_word import build_plan_docx
+        doc = Document(io.BytesIO(build_plan_docx(plan_arbo['plan'])))
+        texts = [p.text for p in doc.paragraphs]
+        assert any(t.startswith('Enjeu 1 : ') for t in texts), texts
+        assert any(t.startswith('OLT 1 : ') for t in texts), texts
+
 
 # ---------------------------------------------------------------------------
 # Export arborescence « de présentation » (#619 / #620)

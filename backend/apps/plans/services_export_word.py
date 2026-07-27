@@ -219,8 +219,34 @@ def _add_bio_table(doc, enjeu, table_index, enjeu_name, hab_codes=None):
 # Rendu d'un enjeu / FCR
 # ---------------------------------------------------------------------------
 
-def _render_enjeu(doc, enjeu, table_counter, *, is_fcr=False, hab_codes=None):
+def _manual_rank_map(items, id_getter):
+    """id → numéro d'affichage, réplique de la numérotation du frontend (#442/#526).
+
+    Un ``numero_manuel`` fixé est réservé ; l'auto-numérotation des autres saute
+    les indices occupés. ``items`` doit être dans l'ordre d'affichage voulu.
+    """
+    reserved = {it.numero_manuel for it in items if getattr(it, "numero_manuel", None)}
+    ranks = {}
+    auto = 0
+    for it in items:
+        manuel = getattr(it, "numero_manuel", None)
+        if manuel:
+            ranks[id_getter(it)] = manuel
+        else:
+            auto += 1
+            while auto in reserved:
+                auto += 1
+            ranks[id_getter(it)] = auto
+    return ranks
+
+
+def _render_enjeu(doc, enjeu, table_counter, *, is_fcr=False, hab_codes=None,
+                  enjeu_rank=None, olt_ranks=None):
+    olt_ranks = olt_ranks or {}
     name = _txt(enjeu.libelle) or _txt(enjeu.intitule_court) or f"Enjeu {enjeu.id_enjeu}"
+    # #628 — préfixer par le numéro d'affichage (« Enjeu 1 : … »), hors FCR
+    if not is_fcr and enjeu_rank:
+        name = f"Enjeu {enjeu_rank} : {name}"
     _enjeu_title(doc, name, _priorite_label(enjeu))
     _label_value(doc, "Précision sur l'état de l'enjeu", enjeu.etat_enjeu)
     _body(doc, enjeu.description)
@@ -231,8 +257,10 @@ def _render_enjeu(doc, enjeu, table_counter, *, is_fcr=False, hab_codes=None):
 
     # Objectifs à long terme → niveaux d'exigence
     for olt in enjeu.objectifs_long_terme.all():
-        # #628 — préfixer par « OLT : » pour lever l'ambiguïté sur la nature du titre
-        _sub_title(doc, f"OLT : {_txt(olt.libelle)}")
+        # #628 — préfixer par le numéro global de l'OLT (« OLT 1 : … »)
+        olt_rank = olt_ranks.get(olt.id_olt)
+        olt_prefix = f"OLT {olt_rank} : " if olt_rank else "OLT : "
+        _sub_title(doc, f"{olt_prefix}{_txt(olt.libelle)}")
         _body(doc, olt.description)
         niveaux = list(olt.niveaux_exigence.all())
         if niveaux:
@@ -298,24 +326,35 @@ def build_plan_docx(plan) -> bytes:
     socioeco = [e for e in enjeux if not _is_fcr(e) and not _is_ecologique(e)]
     fcrs = [e for e in enjeux if _is_fcr(e)]
 
+    # #628 — numéros d'affichage. Enjeux : sur la liste non-FCR ordonnée (comme
+    # le frontend). OLT : numérotation globale continue (enjeux puis FCR).
+    non_fcr = [e for e in enjeux if not _is_fcr(e)]
+    enjeu_ranks = _manual_rank_map(non_fcr, lambda e: e.id_enjeu)
+    olt_items = [olt for e in non_fcr for olt in e.objectifs_long_terme.all()]
+    olt_items += [olt for e in fcrs for olt in e.objectifs_long_terme.all()]
+    olt_ranks = _manual_rank_map(olt_items, lambda o: o.id_olt)
+
     _heading(doc, "Les enjeux écologiques", 2)
     if ecologiques:
         for enjeu in ecologiques:
-            _render_enjeu(doc, enjeu, table_counter, hab_codes=hab_codes)
+            _render_enjeu(doc, enjeu, table_counter, hab_codes=hab_codes,
+                          enjeu_rank=enjeu_ranks.get(enjeu.id_enjeu), olt_ranks=olt_ranks)
     else:
         _body(doc, "Aucun enjeu écologique renseigné.", italic=True, gray=True)
 
     _heading(doc, "Les enjeux socio-économiques et paysagers", 2)
     if socioeco:
         for enjeu in socioeco:
-            _render_enjeu(doc, enjeu, table_counter, hab_codes=hab_codes)
+            _render_enjeu(doc, enjeu, table_counter, hab_codes=hab_codes,
+                          enjeu_rank=enjeu_ranks.get(enjeu.id_enjeu), olt_ranks=olt_ranks)
     else:
         _body(doc, "Aucun enjeu socio-économique ou paysager renseigné.", italic=True, gray=True)
 
     _heading(doc, "Les facteurs clés de réussite", 2)
     if fcrs:
         for fcr in fcrs:
-            _render_enjeu(doc, fcr, table_counter, is_fcr=True, hab_codes=hab_codes)
+            _render_enjeu(doc, fcr, table_counter, is_fcr=True, hab_codes=hab_codes,
+                          olt_ranks=olt_ranks)
     else:
         _body(doc, "Aucun facteur clé de réussite renseigné.", italic=True, gray=True)
 
