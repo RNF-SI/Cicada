@@ -83,6 +83,12 @@ def _get_signal_registry() -> List[Tuple[Any, Callable, Any]]:
         # Validations
         (pre_save, activity_signals.track_validation_previous_status, ValidationRequest),
         (post_save, activity_signals.log_validation_activity_on_save, ValidationRequest),
+
+        # Note : les signaux de apps.geo (rattachement administratif des sites)
+        # ne sont volontairement PAS désactivés. Ils ne produisent ni
+        # notification ni log d'activité, et les sites de test ont besoin de
+        # leur rattachement département/région pour que les filtres de
+        # l'exploration des données soient testables.
     ]
 
 

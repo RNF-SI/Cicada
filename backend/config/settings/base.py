@@ -43,6 +43,7 @@ INSTALLED_APPS = [
     'apps.taxonomy',
     'apps.habitats',
     'apps.geology',
+    'apps.geo',
     'apps.campanule',
     'apps.system',
 ]
@@ -249,6 +250,14 @@ CELERY_BEAT_SCHEDULE = {
     # Note: Le traitement des demandes RGPD est maintenant manuel via l'interface admin
     # Les super_admins decident quand desactiver ou anonymiser les comptes
 }
+
+# Fond de carte des cartes incluses aux exports (#629)
+# Gabarit XYZ ({z}/{x}/{y}). Laisser vide pour desactiver le fond de carte
+# (les emprises sont alors dessinees sur un aplat, comme avant #629).
+EXPORT_MAP_TILE_URL = os.environ.get(
+    'EXPORT_MAP_TILE_URL', 'https://tile.openstreetmap.org/{z}/{x}/{y}.png'
+)
+EXPORT_MAP_ATTRIBUTION = os.environ.get('EXPORT_MAP_ATTRIBUTION', '© OpenStreetMap')
 
 # Email backend (sera configure differemment en dev/prod)
 EMAIL_BACKEND = os.environ.get('EMAIL_BACKEND', 'django.core.mail.backends.console.EmailBackend')

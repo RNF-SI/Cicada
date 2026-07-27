@@ -85,6 +85,9 @@ python manage.py import_inpg || echo "WARN: import_inpg a échoué (non bloquant
 echo "=== Import CAMPanule ==="
 python manage.py import_campanule || echo "WARN: import_campanule a échoué (non bloquant)"
 
+echo "=== Import référentiel géographique (régions/départements) ==="
+python manage.py import_ref_geo || echo "WARN: import_ref_geo a échoué (non bloquant)"
+
 echo "=== Collecte des fichiers statiques ==="
 python manage.py collectstatic --noinput --clear
 

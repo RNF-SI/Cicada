@@ -255,8 +255,113 @@ def _paren(text, group_open, group_close) -> str:
 
 
 # ---------------------------------------------------------------------------
-# Carte de localisation (#626) — contour de l'emprise, rendu PNG
+# Carte de localisation (#626, #629) — emprise sur fond de carte, rendu PNG
 # ---------------------------------------------------------------------------
+
+# #629 : le contour seul, étiré sur toute l'image, se lisait comme « un carré
+# vert ». On rend désormais une vraie mini-carte : projection Web Mercator,
+# tuiles XYZ du fond de carte, puis l'emprise en surcouche semi-transparente.
+# Le fond est optionnel : réseau indisponible (prod isolée, CI) → repli sur le
+# fond uni, l'export n'échoue jamais pour une tuile manquante.
+
+_MAP_W, _MAP_H = 520, 360        # taille de la vignette (px)
+_MAP_ROWS = 20                   # lignes Excel réservées (~20 px par ligne)
+_TILE_SIZE = 256
+_TILE_ZOOM_MAX = 16
+_TILE_ZOOM_MIN = 3
+_TILE_PAD = 0.14                 # marge autour de l'emprise (fraction de l'image)
+_TILE_TIMEOUT = 4                # secondes, par tuile
+_TILE_MAX = 24                   # garde-fou : nombre de tuiles téléchargées
+_TILE_CACHE: dict[str, bytes | None] = {}
+
+
+def _tile_url_template() -> str:
+    from django.conf import settings
+
+    return getattr(
+        settings, "EXPORT_MAP_TILE_URL",
+        "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+    )
+
+
+def _tile_attribution() -> str:
+    from django.conf import settings
+
+    return getattr(settings, "EXPORT_MAP_ATTRIBUTION", "© OpenStreetMap")
+
+
+def _fetch_tile(url):
+    """Télécharge une tuile (bytes) ou None. Mémoïsé : les actions d'un même
+    plan partagent le plus souvent la même emprise (site)."""
+    if url in _TILE_CACHE:
+        return _TILE_CACHE[url]
+    data = None
+    try:
+        import requests
+
+        resp = requests.get(
+            url, timeout=_TILE_TIMEOUT,
+            headers={"User-Agent": "CICADA/export-plan-de-gestion"},
+        )
+        if resp.status_code == 200 and resp.content:
+            data = resp.content
+    except Exception:            # réseau coupé, DNS, proxy… → pas de fond
+        data = None
+    if len(_TILE_CACHE) > 512:   # borne mémoire sur un export volumineux
+        _TILE_CACHE.clear()
+    _TILE_CACHE[url] = data
+    return data
+
+
+def _merc(lon, lat):
+    """Web Mercator normalisé : (x, y) dans [0, 1], origine en haut à gauche."""
+    lat = max(min(lat, 85.05112878), -85.05112878)
+    s = math.sin(math.radians(lat))
+    return ((lon + 180.0) / 360.0,
+            0.5 - math.log((1 + s) / (1 - s)) / (4 * math.pi))
+
+
+def _fit_zoom(span_x, span_y, width, height):
+    """Plus grand zoom XYZ où l'emprise tient dans l'image, marges comprises."""
+    usable_w, usable_h = width * (1 - 2 * _TILE_PAD), height * (1 - 2 * _TILE_PAD)
+    for z in range(_TILE_ZOOM_MAX, _TILE_ZOOM_MIN - 1, -1):
+        world = _TILE_SIZE * (2 ** z)
+        if span_x * world <= usable_w and span_y * world <= usable_h:
+            return z
+    return _TILE_ZOOM_MIN
+
+
+def _paste_basemap(img, left, top, zoom):
+    """Colle les tuiles couvrant la fenêtre (left, top, +taille de `img`).
+    Retourne True si au moins une tuile a pu être posée."""
+    from PIL import Image as PILImage
+
+    template = _tile_url_template()
+    if not template:         # fond de carte desactivé par configuration
+        return False
+    width, height = img.size
+    ntiles = 2 ** zoom
+    x0, x1 = math.floor(left / _TILE_SIZE), math.floor((left + width - 1) / _TILE_SIZE)
+    y0, y1 = math.floor(top / _TILE_SIZE), math.floor((top + height - 1) / _TILE_SIZE)
+    if (x1 - x0 + 1) * (y1 - y0 + 1) > _TILE_MAX:
+        return False
+    pasted = False
+    for ty in range(y0, y1 + 1):
+        if not 0 <= ty < ntiles:
+            continue
+        for tx in range(x0, x1 + 1):
+            url = template.format(z=zoom, x=tx % ntiles, y=ty)
+            raw = _fetch_tile(url)
+            if not raw:
+                continue
+            try:
+                tile = PILImage.open(io.BytesIO(raw)).convert("RGB")
+            except Exception:
+                continue
+            img.paste(tile, (int(tx * _TILE_SIZE - left), int(ty * _TILE_SIZE - top)))
+            pasted = True
+    return pasted
+
 
 def _geom_rings(geom, out=None):
     """Anneaux [(lon, lat), …] d'une géométrie GEOS (polygones, lignes, points)."""
@@ -281,8 +386,8 @@ def _geom_rings(geom, out=None):
     return out
 
 
-def _geom_png(geom, width=440, height=300, margin=14):
-    """Petite carte du contour de la zone (PNG), ou None si impossible."""
+def _geom_png(geom, width=_MAP_W, height=_MAP_H):
+    """Carte de localisation (PNG) : emprise sur fond de carte, ou None."""
     try:
         from PIL import Image as PILImage, ImageDraw
     except ImportError:      # Pillow absent → pas de carte, le reste s'exporte
@@ -292,32 +397,51 @@ def _geom_png(geom, width=440, height=300, margin=14):
     if not rings:
         return None
 
-    lats = [y for ring in rings for _, y in ring]
-    kx = math.cos(math.radians(sum(lats) / len(lats))) or 1.0
-    proj = [[(x * kx, y) for x, y in ring] for ring in rings]
+    proj = [[_merc(lon, lat) for lon, lat in ring] for ring in rings]
     xs = [p[0] for ring in proj for p in ring]
     ys = [p[1] for ring in proj for p in ring]
-    dx, dy = max(xs) - min(xs), max(ys) - min(ys)
-    scale = min((width - 2 * margin) / dx if dx > 0 else float("inf"),
-                (height - 2 * margin) / dy if dy > 0 else float("inf"))
-    if scale == float("inf"):    # point isolé / géométrie dégénérée
-        scale = 1.0
-    ox = (width - dx * scale) / 2 - min(xs) * scale
-    oy = (height - dy * scale) / 2 + max(ys) * scale
+    span_x, span_y = max(xs) - min(xs), max(ys) - min(ys)
+    zoom = _fit_zoom(span_x, span_y, width, height)
+    world = _TILE_SIZE * (2 ** zoom)
+    # fenêtre de rendu centrée sur l'emprise, exprimée en pixels « monde »
+    left = (max(xs) + min(xs)) / 2 * world - width / 2
+    top = (max(ys) + min(ys)) / 2 * world - height / 2
 
     img = PILImage.new("RGB", (width, height), "#F3EFEA")
-    draw = ImageDraw.Draw(img)
-    draw.rectangle([0, 0, width - 1, height - 1], outline="#9DB3B4")
+    has_tiles = False
+    try:
+        has_tiles = _paste_basemap(img, left, top, zoom)
+    except Exception:        # un fond de carte indisponible ne casse rien
+        has_tiles = False
+
+    # L'emprise passe en surcouche translucide pour laisser voir le fond.
+    overlay = PILImage.new("RGBA", (width, height), (0, 0, 0, 0))
+    odraw = ImageDraw.Draw(overlay)
     for ring in proj:
-        pts = [(x * scale + ox, oy - y * scale) for x, y in ring]
+        pts = [(x * world - left, y * world - top) for x, y in ring]
         if len(pts) >= 3:
-            draw.polygon(pts, fill="#C0E3CF", outline="#025359")
-            draw.line(pts + [pts[0]], fill="#025359", width=2)
+            odraw.polygon(pts, fill=(192, 227, 207, 110))
+            odraw.line(pts + [pts[0]], fill=(2, 83, 89, 255), width=3, joint="curve")
         elif len(pts) == 2:
-            draw.line(pts, fill="#025359", width=2)
+            odraw.line(pts, fill=(2, 83, 89, 255), width=3)
         else:
             x, y = pts[0]
-            draw.ellipse([x - 4, y - 4, x + 4, y + 4], fill="#B74D5D", outline="#025359")
+            odraw.ellipse([x - 6, y - 6, x + 6, y + 6],
+                          fill=(183, 77, 93, 255), outline=(255, 255, 255, 255), width=2)
+    img = PILImage.alpha_composite(img.convert("RGBA"), overlay).convert("RGB")
+
+    draw = ImageDraw.Draw(img)
+    draw.rectangle([0, 0, width - 1, height - 1], outline="#9DB3B4")
+    if has_tiles:            # attribution obligatoire du fournisseur de tuiles
+        label = _tile_attribution()
+        try:
+            box = draw.textbbox((0, 0), label)
+            tw, th = box[2] - box[0], box[3] - box[1]
+        except Exception:
+            tw, th = 7 * len(label), 10
+        draw.rectangle([width - tw - 8, height - th - 7, width - 2, height - 2],
+                       fill="#FFFFFF")
+        draw.text((width - tw - 5, height - th - 5), label, fill="#343433")
 
     buf = io.BytesIO()
     img.save(buf, format="PNG")
@@ -554,7 +678,7 @@ class _Writer:
         ws.row_dimensions[self.r].height = 34
         self.r += 1
 
-    def picture(self, png, *, rows=16):
+    def picture(self, png, *, rows=_MAP_ROWS):
         """Insère une image PNG à la ligne courante et réserve `rows` lignes."""
         from openpyxl.drawing.image import Image as XLImage
 

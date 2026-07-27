@@ -14,9 +14,11 @@ Couvre les manques remontés en recette :
 import io
 
 import pytest
+from django.contrib.gis.geos import MultiPolygon, Polygon
 from openpyxl import load_workbook
 
 from apps.core.models import Nomenclature, TypeNomenclature
+from apps.plans import services_export_fiche_action as fiche
 from tests.factories.enjeux import (
     EnjeuFactory, IndicateurFactory, MetriqueFactory, NiveauExigenceFactory,
     ObjectifLongTermeFactory, OperationFactory,
@@ -154,3 +156,71 @@ class TestExportFicheAction:
     def test_carte_de_localisation(self, sheet):
         assert "Emprise de l'action" in self._values(sheet)
         assert len(sheet._images) == 1
+
+
+@pytest.mark.django_db
+class TestCarteFondDeCarte:
+    """#629 — la carte de localisation embarque le fond de carte (tuiles XYZ)
+    et se replie proprement sur l'aplat quand le réseau est indisponible."""
+
+    GEOM = MultiPolygon(Polygon(((4.60, 43.50), (4.62, 43.50),
+                                 (4.62, 43.52), (4.60, 43.52), (4.60, 43.50))))
+
+    @staticmethod
+    def _tile_png(color):
+        from PIL import Image as PILImage
+
+        buf = io.BytesIO()
+        PILImage.new('RGB', (256, 256), color).save(buf, format='PNG')
+        return buf.getvalue()
+
+    @staticmethod
+    def _pixels(png):
+        from PIL import Image as PILImage
+
+        img = PILImage.open(io.BytesIO(png)).convert('RGB')
+        return img, list(img.getdata())
+
+    def test_tuiles_collees_sur_le_fond(self, monkeypatch):
+        """Les tuiles téléchargées composent le fond : plus d'aplat beige."""
+        urls = []
+
+        def fake_fetch(url):
+            urls.append(url)
+            return self._tile_png('#8899AA')
+
+        monkeypatch.setattr(fiche, '_TILE_CACHE', {})
+        monkeypatch.setattr(fiche, '_fetch_tile', fake_fetch)
+
+        png = fiche._geom_png(self.GEOM)
+        img, pixels = self._pixels(png)
+
+        assert urls, 'aucune tuile demandée'
+        assert all(u.startswith('https://tile.openstreetmap.org/') for u in urls)
+        # Le coin haut-gauche est du fond de carte, pas l'aplat beige (#F3EFEA).
+        assert img.getpixel((3, 3)) == (136, 153, 170)
+        assert (243, 239, 234) not in pixels
+        # L'emprise ne couvre pas toute l'image (le « carré vert » de #629).
+        assert pixels.count((136, 153, 170)) > len(pixels) * 0.3
+
+    def test_repli_sans_reseau(self, monkeypatch):
+        """Tuiles inaccessibles → aplat + contour, l'export ne casse pas."""
+        monkeypatch.setattr(fiche, '_TILE_CACHE', {})
+        monkeypatch.setattr(fiche, '_fetch_tile', lambda url: None)
+
+        png = fiche._geom_png(self.GEOM)
+        img, pixels = self._pixels(png)
+
+        assert png
+        assert img.getpixel((3, 3)) == (243, 239, 234)
+        assert any(p != (243, 239, 234) for p in pixels)  # contour dessiné
+
+    def test_fond_desactivable_par_configuration(self, monkeypatch, settings):
+        """`EXPORT_MAP_TILE_URL` vide → aucun appel réseau."""
+        calls = []
+        monkeypatch.setattr(fiche, '_TILE_CACHE', {})
+        monkeypatch.setattr(fiche, '_fetch_tile', lambda url: calls.append(url))
+        settings.EXPORT_MAP_TILE_URL = ''
+
+        assert fiche._geom_png(self.GEOM)
+        assert calls == []
