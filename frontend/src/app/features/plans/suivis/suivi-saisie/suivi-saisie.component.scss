@@ -381,11 +381,21 @@ textarea.full-width {
 // gauche colorée sur les organismes : seul l'arrière-plan vert pâle distingue
 // les en-têtes.
 
+// #625 — La matrice a autant de colonnes que le plan compte d'années : la somme
+// des largeurs minimales des colonnes finissait par dépasser la carte, et le
+// tableau débordait sur la droite (clippé par `.plan-main`, d'où l'impression
+// de mauvais alignement). Il défile désormais dans son propre conteneur.
+.matrix-scroll {
+  margin-top: $spacing-md;
+  overflow-x: auto;
+  // Laisse respirer le contour (box-shadow) du tableau à l'intérieur du cadre.
+  padding-bottom: 2px;
+}
+
 .realisation-matrix {
   width: 100%;
   border-collapse: separate;
   border-spacing: 0;
-  margin-top: $spacing-md;
   table-layout: auto;
   font-size: 0.85rem;
   // Coins arrondis : on coupe ce qui dépasse du conteneur.
@@ -432,11 +442,11 @@ textarea.full-width {
       }
     }
 
-    // Zebra : on alterne uniquement sur les lignes de données (pas sur les
-    // org-header-row) pour éviter les "trous" visuels.
-    &:not(.org-header-row):nth-of-type(odd) td:not(.active) {
-      background: $gray-lighter;
-    }
+    // #625 — Plus de zébrage `nth-of-type` : il comptait aussi les lignes
+    // d'en-tête (organisme, sous-en-tête budget, TOTAL), si bien que la parité
+    // repartait à l'envers après chacune d'elles — un même libellé changeait de
+    // fond d'un bloc à l'autre. Le fond suit maintenant la nature de la ligne :
+    // prévisionnel = gris, réalisé (à saisir) = blanc. Cf. `tr.prev-row`.
 
     input[type='number'] {
       width: 80px;
@@ -495,9 +505,13 @@ textarea.full-width {
   // #614 — lignes PRÉVISIONNELLES : rappel en lecture seule, en gris, juste
   // au-dessus de leur pendant réalisé. Déclarées après `.subtotal-row` pour
   // griser aussi les totaux prévus (qui restent en gras).
+  // #625 — leur fond gris remplace le zébrage : le banding devient prévisible
+  // (une paire grise / blanche par concept) au lieu de dériver au fil des
+  // lignes d'en-tête.
   tr.prev-row td,
   tr.prev-row td.col-field {
     color: $gray-dark;
+    background: $gray-lighter;
   }
 }
 

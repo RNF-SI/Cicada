@@ -311,7 +311,10 @@
             <p class="text-mention">{{ 'plans.suivis.saisie.noProgrammation' | translate }}</p>
           } @else if (!isOrgVentilation()) {
 
-            <!-- Mode none / by_type : un seul tableau matriciel -->
+            <!-- Mode none / by_type : un seul tableau matriciel.
+                 #625 — enveloppé dans un conteneur défilant : avec 10 années ou
+                 plus, la largeur minimale des colonnes dépassait la carte. -->
+            <div class="matrix-scroll">
             <table class="realisation-matrix">
               <thead>
                 <tr>
@@ -341,7 +344,7 @@
 
                 <!-- Budget (selon mode) -->
                 @if (isByType()) {
-                  <tr>
+                  <tr class="prev-row">
                     <td class="col-field">{{ 'plans.suivis.saisie.table.budgetFonct' | translate }} (prévi.)</td>
                     @for (y of years(); track y) {
                       <td [class.active]="y === selectedYear()">{{ formatNumber(getOaForYear(y)?.budget_fonctionnement, ' €') }}</td>
@@ -360,7 +363,7 @@
                       </td>
                     }
                   </tr>
-                  <tr>
+                  <tr class="prev-row">
                     <td class="col-field">{{ 'plans.suivis.saisie.table.budgetInvest' | translate }} (prévi.)</td>
                     @for (y of years(); track y) {
                       <td [class.active]="y === selectedYear()">{{ formatNumber(getOaForYear(y)?.budget_investissement, ' €') }}</td>
@@ -403,12 +406,15 @@
                 <!-- #560 — le travail (jours) est saisi dans la section RH ci-dessous. -->
               </tbody>
             </table>
+            </div>
 
           } @else {
 
             <!-- Mode by_org / by_org_type : un seul tableau avec lignes d'en-tête organisme.
                  (Inspiré de plan-suivi-actions.component.html : .org-header-row inline,
-                 puis lignes de l'organisme, puis bloc TOTAL en bas.) -->
+                 puis lignes de l'organisme, puis bloc TOTAL en bas.)
+                 #625 — même conteneur défilant que ci-dessus. -->
+            <div class="matrix-scroll">
             <table class="realisation-matrix" formArrayName="organismes">
               <thead>
                 <tr>
@@ -629,7 +635,7 @@
                       </tr>
                     </ng-container>
                   } @else {
-                    <tr>
+                    <tr class="prev-row">
                       <td class="col-field">{{ 'plans.suivis.saisie.table.budgetFonct' | translate }} (prévi.)</td>
                       @for (y of years(); track y) {
                         <td [class.active]="y === selectedYear()">
@@ -653,7 +659,7 @@
                       }
                     </tr>
                     @if (ventilationMode() === 'by_org_type') {
-                      <tr>
+                      <tr class="prev-row">
                         <td class="col-field">{{ 'plans.suivis.saisie.table.budgetInvest' | translate }} (prévi.)</td>
                         @for (y of years(); track y) {
                           <td [class.active]="y === selectedYear()">
@@ -725,7 +731,7 @@
                     }
                   </tr>
                 } @else {
-                  <tr>
+                  <tr class="prev-row">
                     <td class="col-field">{{ 'plans.suivis.saisie.table.budgetFonct' | translate }} (prévi.)</td>
                     @for (y of years(); track y) {
                       <td [class.active]="y === selectedYear()">{{ formatNumber(getTotalForYear(y, 'prev_fonct'), ' €') }}</td>
@@ -738,7 +744,7 @@
                     }
                   </tr>
                   @if (ventilationMode() === 'by_org_type') {
-                    <tr>
+                    <tr class="prev-row">
                       <td class="col-field">{{ 'plans.suivis.saisie.table.budgetInvest' | translate }} (prévi.)</td>
                       @for (y of years(); track y) {
                         <td [class.active]="y === selectedYear()">{{ formatNumber(getTotalForYear(y, 'prev_invest'), ' €') }}</td>
@@ -754,6 +760,7 @@
                 }
               </tbody>
             </table>
+            </div>
           }
         </section>
 

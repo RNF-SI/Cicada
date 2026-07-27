@@ -116,3 +116,18 @@
          déplacement, sans rechargement complet de la page ;
       6. réordonner une action **dans** son propre indicateur : comportement
          inchangé.
+
+- [ ] #625 — Alignement du tableau du suivi budgétaire — validation visuelle
+      1. ouvrir la saisie du suivi d'une action d'un plan **validé** dont le
+         budget est ventilé par organisme (`/plans/<slug>/suivis/saisie/<id>/<année>`) ;
+      2. carte « Programmation et budget » : le tableau ne doit **plus dépasser**
+         le bord droit de la carte blanche — s'il est plus large que la carte, il
+         défile horizontalement à l'intérieur de celle-ci ;
+      3. vérifier sur une fenêtre étroite (~1400 px) et sur un plan de 10 ans ou
+         plus (le plus grand nombre de colonnes années) ;
+      4. fonds de lignes : chaque ligne « (prévi.) » est grise, chaque ligne
+         « (réalisé) » est blanche — y compris **après** les lignes d'en-tête
+         (nom d'organisme, « Fonctionnement » / « Investissement », « TOTAL ») ;
+         un même libellé ne doit plus changer de fond d'un bloc à l'autre ;
+      5. la colonne de l'année active reste surlignée terra-cotta sur toutes les
+         lignes, prévisionnelles comprises.
