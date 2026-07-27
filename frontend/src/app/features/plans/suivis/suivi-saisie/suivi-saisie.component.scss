@@ -491,6 +491,14 @@ textarea.full-width {
     font-weight: 700;
     color: $primary-color;
   }
+
+  // #614 — lignes PRÉVISIONNELLES : rappel en lecture seule, en gris, juste
+  // au-dessus de leur pendant réalisé. Déclarées après `.subtotal-row` pour
+  // griser aussi les totaux prévus (qui restent en gras).
+  tr.prev-row td,
+  tr.prev-row td.col-field {
+    color: $gray-dark;
+  }
 }
 
 // #560 — Saisie du temps de travail réalisé (lignes RH).

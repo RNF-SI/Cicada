@@ -438,6 +438,101 @@ describe('SuiviSaisieComponent — actions du hero (#589)', () => {
   });
 });
 
+// ===========================================================================
+// #614 — budget PRÉVISIONNEL réaffiché dans le suivi (ventilation maximale)
+// ===========================================================================
+describe('SuiviSaisieComponent — budget prévisionnel (#614)', () => {
+  /**
+   * Année 2025, deux organismes. Le prévisionnel est reconstruit depuis les
+   * lignes RH prévues (jours × coût jour) + les coûts saisis sur l'organisme,
+   * puisqu'en ventilation maximale `budget_fonctionnement` n'est pas stocké.
+   */
+  function instance(): any {
+    const c: any = comp();
+    c.selectedYear = signal(2025);
+    c.postes = signal([
+      { id_poste: 1, id_organisme: 100, cout_jour: 300 },
+      { id_poste: 2, id_organisme: 100, cout_jour: 80 },
+      { id_poste: 3, id_organisme: 200, cout_jour: 300 },
+    ]);
+    c.operation = signal({
+      operation_annees: [{
+        annee: 2025,
+        rh_lignes: [
+          { id_poste: 1, categorie_depense: 'fonctionnement', jours: '10.00', finance: true },
+          { id_poste: 2, categorie_depense: 'investissement', jours: '5.00', finance: true },
+          { id_poste: 3, categorie_depense: 'fonctionnement', jours: '4.00', finance: true },
+        ],
+        organismes: [
+          {
+            id_organisme: 100, cout_stage: '200.00', cout_prestataire: '1000.00',
+            autre_cout: '500.00', cout_prestataire_invest: '300.00', autre_cout_invest: null,
+          },
+          { id_organisme: 200, cout_prestataire: '150.00' },
+        ],
+      }],
+    });
+    c.organismesList = () => [{ id_organisme: 100, nom: 'A' }, { id_organisme: 200, nom: 'B' }];
+    return c;
+  }
+
+  it('calcule le coût salarial prévu depuis les lignes RH prévues, par catégorie', () => {
+    const c = instance();
+    expect(c.prevCoutSalarial(2025, 100, 'fonctionnement')).toBe(3000); // 10 × 300
+    expect(c.prevCoutSalarial(2025, 100, 'investissement')).toBe(400);  // 5 × 80
+    expect(c.prevCoutSalarial(2025, 200, 'fonctionnement')).toBe(1200); // 4 × 300
+    expect(c.prevCoutSalarial(2025, 200, 'investissement')).toBe(0);
+  });
+
+  it('totalise le prévu d\'un organisme (salarial + stage + prestataire + autres)', () => {
+    const c = instance();
+    // 3000 + 200 + 1000 + 500
+    expect(c.prevOrgFonctTotal(2025, 100)).toBe(4700);
+    // 400 + 300 + 0
+    expect(c.prevOrgInvestTotal(2025, 100)).toBe(700);
+    expect(c.prevOrgTotal(2025, 100)).toBe(5400);
+  });
+
+  it('cumule le prévu de tous les organismes', () => {
+    const c = instance();
+    expect(c.prevYearFonctTotal(2025)).toBe(4700 + 1200 + 150);
+    expect(c.prevYearInvestTotal(2025)).toBe(700);
+    expect(c.prevYearTotal(2025)).toBe(4700 + 1350 + 700);
+  });
+
+  it('renvoie 0 sur une année sans programmation', () => {
+    const c = instance();
+    expect(c.prevOrgTotal(2031, 100)).toBe(0);
+    expect(c.prevYearTotal(2031)).toBe(0);
+  });
+
+  it('affiche une ligne prévisionnelle en regard de chaque coût réalisé', () => {
+    const template = readFileSync(join(__dirname, 'suivi-saisie.component.html'), 'utf8');
+    for (const key of [
+      'table.coutSalarialPrev', 'table.coutStagePrev', 'table.coutPrestatairePrev',
+      'table.autresCoutsFonctPrev', 'table.autresCoutsInvestPrev',
+      'table.totalFonctPrev', 'table.totalInvestPrev',
+      'table.budgetTotalOGPrev', 'table.budgetTotalPrev',
+    ]) {
+      expect(template).toContain(key);
+    }
+  });
+
+  it('déclare toutes les clés i18n prévisionnelles', () => {
+    const i18n = JSON.parse(
+      readFileSync(join(__dirname, '../../../../../assets/i18n/fr.json'), 'utf8'),
+    );
+    const t = i18n.plans.suivis.saisie.table;
+    for (const key of [
+      'coutSalarialPrev', 'coutStagePrev', 'coutPrestatairePrev',
+      'autresCoutsFonctPrev', 'autresCoutsInvestPrev',
+      'totalFonctPrev', 'totalInvestPrev', 'budgetTotalOGPrev', 'budgetTotalPrev',
+    ]) {
+      expect(t[key]).toBeDefined();
+    }
+  });
+});
+
 // -----------------------------------------------------------------------------
 // #615 — catégorie de dépense (menu déroulant) au lieu de « financé » (case)
 // -----------------------------------------------------------------------------

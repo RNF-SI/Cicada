@@ -2152,15 +2152,24 @@
           "fonctionnement": "Fonctionnement",
           "investissement": "Investissement",
           "coutSalarial": "Coût salarial (réalisé, auto)",
+          "coutSalarialPrev": "Coût salarial (prévi., auto)",
           "coutStage": "Coût stage (réalisé)",
+          "coutStagePrev": "Coût stage (prévi.)",
           "coutPrestataire": "Coût prestataire (réalisé)",
+          "coutPrestatairePrev": "Coût prestataire (prévi.)",
           "autresCoutsFonct": "Autres coûts de fonctionnement (réalisé)",
+          "autresCoutsFonctPrev": "Autres coûts de fonctionnement (prévi.)",
           "autresCoutsInvest": "Autres coûts d'investissement (réalisé)",
+          "autresCoutsInvestPrev": "Autres coûts d'investissement (prévi.)",
           "commentaire": "Commentaire (autre coût)",
           "totalFonct": "Total Budget de fonctionnement réalisé (€)",
+          "totalFonctPrev": "Total Budget de fonctionnement prévu (€)",
           "totalInvest": "Total Budget d'investissement réalisé (€)",
+          "totalInvestPrev": "Total Budget d'investissement prévu (€)",
           "budgetTotalOG": "Budget total OG réalisé (€)",
-          "budgetTotalReal": "Budget total réalisé (€)"
+          "budgetTotalOGPrev": "Budget total OG prévu (€)",
+          "budgetTotalReal": "Budget total réalisé (€)",
+          "budgetTotalPrev": "Budget total prévu (€)"
         },
         "messages": {
           "saved": "Modifications enregistrées."

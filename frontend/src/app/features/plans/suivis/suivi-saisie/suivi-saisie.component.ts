@@ -332,6 +332,78 @@ export class SuiviSaisieComponent implements OnInit {
     return this.realYearFonctTotal(year) + this.realYearInvestTotal(year);
   }
 
+  // ---- #614 — mêmes coûts, côté PRÉVISIONNEL, pour comparer prévu / réalisé --
+
+  /**
+   * Coût jour + organisme d'une ligne RH prévisionnelle. Le serializer porte
+   * déjà `poste_cout_jour` / `poste_id_organisme` sur la ligne ; on retombe sur
+   * les postes du plan si l'API ne les a pas dénormalisés.
+   */
+  private rhPosteInfo(ligne: OperationRHLigne): { orgId: number | null; coutJour: number } {
+    const poste = ligne.id_poste == null
+      ? undefined
+      : this.postes().find(p => p.id_poste === ligne.id_poste);
+    return {
+      orgId: ligne.poste_id_organisme ?? poste?.id_organisme ?? ligne.id_organisme ?? null,
+      coutJour: Number(ligne.poste_cout_jour ?? poste?.cout_jour ?? 0) || 0,
+    };
+  }
+
+  /**
+   * Coût salarial PRÉVISIONNEL d'un organisme pour une année et une catégorie
+   * de dépense — calculé depuis les lignes RH prévues (jours × coût jour), comme
+   * son pendant réalisé `realCoutSalarial`.
+   */
+  prevCoutSalarial(year: number, orgId: number, categorie: 'fonctionnement' | 'investissement'): number {
+    let total = 0;
+    for (const l of this.getOaForYear(year)?.rh_lignes ?? []) {
+      const { orgId: lineOrg, coutJour } = this.rhPosteInfo(l);
+      if (lineOrg !== orgId) continue;
+      if ((l.categorie_depense ?? 'fonctionnement') !== categorie) continue;
+      total += (Number(l.jours) || 0) * coutJour;
+    }
+    return total;
+  }
+
+  /** Valeur d'un coût PRÉVISIONNEL saisi sur l'organisme/année (0 si absent). */
+  private prevOrgCost(year: number, orgId: number, field:
+    'cout_stage' | 'cout_prestataire' | 'autre_cout'
+    | 'cout_prestataire_invest' | 'autre_cout_invest'): number {
+    const oao = this.getOaoForYearOrg(year, orgId);
+    return Number((oao as any)?.[field]) || 0;
+  }
+
+  /** Total fonctionnement prévu d'un organisme/année (salarial + stage + prestataire + autres). */
+  prevOrgFonctTotal(year: number, orgId: number): number {
+    return this.prevCoutSalarial(year, orgId, 'fonctionnement')
+      + this.prevOrgCost(year, orgId, 'cout_stage')
+      + this.prevOrgCost(year, orgId, 'cout_prestataire')
+      + this.prevOrgCost(year, orgId, 'autre_cout');
+  }
+
+  /** Total investissement prévu d'un organisme/année. */
+  prevOrgInvestTotal(year: number, orgId: number): number {
+    return this.prevCoutSalarial(year, orgId, 'investissement')
+      + this.prevOrgCost(year, orgId, 'cout_prestataire_invest')
+      + this.prevOrgCost(year, orgId, 'autre_cout_invest');
+  }
+
+  /** Budget total prévu d'un organisme/année (fonct + invest). */
+  prevOrgTotal(year: number, orgId: number): number {
+    return this.prevOrgFonctTotal(year, orgId) + this.prevOrgInvestTotal(year, orgId);
+  }
+
+  /** Cumuls inter-organismes prévus (mode ventilation maximale). */
+  prevYearFonctTotal(year: number): number {
+    return this.organismesList().reduce((s, o) => s + this.prevOrgFonctTotal(year, o.id_organisme), 0);
+  }
+  prevYearInvestTotal(year: number): number {
+    return this.organismesList().reduce((s, o) => s + this.prevOrgInvestTotal(year, o.id_organisme), 0);
+  }
+  prevYearTotal(year: number): number {
+    return this.prevYearFonctTotal(year) + this.prevYearInvestTotal(year);
+  }
+
   /**
    * Années affichées en onglets. #418 — on couvre toute la plage du PLAN (et non
    * la seule plage de l'action), afin de permettre la saisie d'un suivi sur une
