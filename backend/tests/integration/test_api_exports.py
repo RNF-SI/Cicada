@@ -444,37 +444,51 @@ class TestExportArborescencePresentation:
                   for rr in range(r + 1, r + 4)]
         assert '%' in unites, unites
 
-    def test_grille_exporte_tous_les_blocs(self, plan_arbo):
-        """Une métrique multi-blocs sort une ligne PAR bloc (#619).
-
-        Auparavant seul le bloc principal était écrit.
-        """
-        from apps.plans.services_export_arbo import GR_MET, GR_UNITE
+    def test_grille_multibloc_dans_une_seule_case(self, plan_arbo):
+        """Une métrique multi-blocs tient sur UNE ligne, blocs combinés par
+        colonne de score dans la même cellule (#619)."""
+        from apps.plans.services_export_arbo import GR_MET, GR_UNITE, GR_S1
         ws = self._sheet(plan_arbo['plan'])
         r = _find_row(ws, "Métriques", col=GR_MET)
-        libelles = [ws.cell(rr, GR_MET).value or '' for rr in range(r + 1, r + 5)]
-        unites = [ws.cell(rr, GR_UNITE).value or '' for rr in range(r + 1, r + 5)]
-        # bloc principal : nom de la métrique + intitulé du bloc, unité « % »
-        assert any('Recouvrement' in v and 'Surface' in v for v in libelles), libelles
-        # bloc complémentaire : intitulé + opérateur logique, unité « cm »
-        assert any('Hauteur' in v and 'ET' in v for v in libelles), libelles
-        assert '%' in unites and 'cm' in unites, unites
+        row = r + 1
+        # une seule ligne de données pour la métrique
+        assert ws.cell(row, GR_MET).value == 'Recouvrement'
+        assert ws.cell(row, GR_UNITE).value == '%'
+        # le bloc complémentaire ne crée plus de ligne « Hauteur » séparée
+        assert 'Hauteur' not in (ws.cell(row + 1, GR_MET).value or '')
+        # colonne score 1 : les deux blocs dans la MÊME cellule, sur deux lignes
+        cell = ws.cell(row, GR_S1).value or ''
+        assert 'surface' in cell.lower(), cell
+        assert 'hauteur' in cell.lower(), cell
+        assert '\n' in cell, cell
 
-    def test_grille_haute_ne_recouvre_pas_le_bloc_bas(self, plan_arbo):
-        """Une grille plus haute que ses données décale le bloc bas (#619)."""
+    def test_grille_seuils_sans_zeros_superflus(self, plan_arbo):
+        """Les seuils reprennent les décimales saisies : « 10 », pas « 10.0000 » (#619)."""
+        from apps.plans.services_export_arbo import GR_MET, GR_S1
+        ws = self._sheet(plan_arbo['plan'])
+        r = _find_row(ws, "Métriques", col=GR_MET)
+        cell = ws.cell(r + 1, GR_S1).value or ''
+        assert '.0000' not in cell, cell
+        assert '10' in cell, cell   # score_1_sup=10 du bloc principal
+
+    def test_grille_multibloc_reste_sur_une_ligne(self, plan_arbo):
+        """Ajouter des blocs n'ajoute plus de lignes à la grille (#619) : ils sont
+        empilés dans la même cellule, pas en lignes séparées."""
         from apps.plans.models_indicateurs import MetriqueScoreBlock
-        from apps.plans.services_export_arbo import GR_MET
+        from apps.plans.services_export_arbo import GR_MET, GR_S1
         met = plan_arbo['met']
-        for pos in range(2, 6):   # 4 blocs de plus → grille de 6 lignes
+        for pos in range(2, 6):   # 4 blocs de plus
             MetriqueScoreBlock.objects.create(
                 id_metrique=met, position=pos, intitule=f'Bloc {pos}',
                 logical_op='OR', score_1_inf=0, score_1_sup=pos)
         ws = self._sheet(plan_arbo['plan'])
-        r_influ = _find_row(ws, "Influences sur l'enjeu")
-        r_grille_top = _find_row(ws, "Métriques", col=GR_MET) + 1
-        # les 6 lignes de grille du bloc haut tiennent avant le bandeau bas
-        assert r_influ >= r_grille_top + 6, (r_influ, r_grille_top)
-        assert ws.cell(r_influ, GR_MET).value != 'Bloc 5'
+        r = _find_row(ws, "Métriques", col=GR_MET)
+        # toujours une seule ligne de données pour la métrique
+        assert ws.cell(r + 1, GR_MET).value == 'Recouvrement'
+        assert (ws.cell(r + 2, GR_MET).value or '') == ''
+        # les 5 blocs empilés dans la cellule de score 1 (principal + 4 « Bloc N »)
+        cell = ws.cell(r + 1, GR_S1).value or ''
+        assert cell.count('\n') >= 4, cell
 
     def test_code_action_est_le_code_local_du_plan(self, plan_arbo):
         """La colonne « Code » porte le code calculé du plan (CS1…) — #619.

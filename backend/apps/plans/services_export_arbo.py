@@ -19,6 +19,7 @@ Le point d'entrée public est :func:`build_presentation_workbook`.
 from __future__ import annotations
 
 import io
+from decimal import Decimal, InvalidOperation
 from typing import Optional
 
 from openpyxl import Workbook
@@ -165,12 +166,25 @@ def _ind_type(ind) -> str:
     return (getattr(t, "mnemonique", "") or "").upper()
 
 
+def _num(x) -> str:
+    """Formate un seuil sans zéros superflus (#619 : « 10 », pas « 10.0000 »)."""
+    if x is None or x == "":
+        return ""
+    try:
+        d = Decimal(str(x)).normalize()
+        # `normalize` peut produire une notation exponentielle (1E+2) : format 'f'.
+        return format(d, "f")
+    except (InvalidOperation, ValueError):
+        return str(x)
+
+
 def _score_labels(block) -> list[str]:
     """Retourne [s1..s5] pour la grille de lecture (label sinon plage de seuils).
 
     ``block`` est indifféremment une :class:`Metrique` (bloc principal) ou un
     :class:`MetriqueScoreBlock` (bloc complémentaire) : les deux exposent les
-    mêmes champs ``score_N_inf/sup`` et ``inactive_levels`` (#619).
+    mêmes champs ``score_N_inf/sup`` et ``inactive_levels`` (#619). Les seuils
+    reprennent le nombre de décimales saisi (pas de padding, #619).
     """
     inactifs = set(getattr(block, "inactive_levels", None) or [])
     labels = []
@@ -183,34 +197,41 @@ def _score_labels(block) -> list[str]:
             inf = getattr(block, f"score_{i}_inf", None)
             sup = getattr(block, f"score_{i}_sup", None)
             if inf is not None or sup is not None:
-                lbl = f"{'' if inf is None else inf} – {'' if sup is None else sup}".strip(" –")
+                lbl = f"{_num(inf)} – {_num(sup)}".strip(" –")
         labels.append(lbl or "")
     return labels
 
 
 def _grille_lignes(met) -> list[tuple[str, str, list[str]]]:
-    """Lignes de la grille de lecture d'une métrique : (libellé, unité, scores).
+    """Ligne de la grille de lecture d'une métrique : (libellé, unité, scores).
 
-    #619 — une métrique multi-blocs (#247) produit une ligne PAR bloc : le bloc
-    principal porté par la métrique, puis chaque bloc complémentaire avec son
-    opérateur logique (ET / OU) et sa propre unité.
+    #619 — une métrique multi-blocs (#247) tient sur UNE seule ligne : chaque
+    colonne de score combine tous les blocs dans la même cellule (comme à la
+    saisie), le bloc principal puis chaque bloc complémentaire préfixé de son
+    opérateur logique (ET / OU). Un bloc unique n'affiche que la plage, sans
+    préfixe d'intitulé.
     """
-    principal = _txt(met.nom_metrique)
-    intitule = _txt(getattr(met, "bloc_intitule", ""))
-    lignes = [(
-        f"{principal} — {intitule}" if intitule else principal,
-        _txt(getattr(met, "unite", "")),
-        _score_labels(met),
-    )]
-    for bloc in met.score_blocks.all():
-        op = "ET" if bloc.logical_op == "AND" else "OU"
-        libelle = _txt(bloc.intitule) or f"bloc {bloc.position + 1}"
-        lignes.append((
-            f"    {op} — {libelle}",
-            _txt(bloc.unite),
-            _score_labels(bloc),
-        ))
-    return lignes
+    blocks = [met] + list(met.score_blocks.all())
+    scores = [_score_labels(b) for b in blocks]
+    single = len(blocks) == 1
+
+    def _prefix(i, block) -> str:
+        if i == 0:
+            return _txt(getattr(met, "bloc_intitule", "")) or _txt(met.nom_metrique)
+        op = "ET" if block.logical_op == "AND" else "OU"
+        return f"{op} {_txt(block.intitule) or f'bloc {block.position + 1}'}"
+
+    labels = []
+    for s in range(5):
+        parts = []
+        for i, block in enumerate(blocks):
+            val = scores[i][s]
+            if not val:
+                continue
+            parts.append(val if single else f"{_prefix(i, block).upper()} : {val}")
+        labels.append("\n".join(parts))
+
+    return [(_txt(met.nom_metrique), _txt(getattr(met, "unite", "")), labels)]
 
 
 def _priorite(op) -> str:
@@ -461,6 +482,11 @@ def _write_grille(ws, start_row, metriques, *, is_etat):
             _set(ws, r, GR_INDET, "", fill=_SCORE_FILLS["indet"], align=_AL_CTR)
             for s, col in zip(range(1, 6), (GR_S1, GR_S2, GR_S3, GR_S4, GR_S5)):
                 _set(ws, r, col, labels[s - 1], fill=_SCORE_FILLS[s], align=_AL_CTR)
+            # #619 — une case multi-blocs porte plusieurs lignes : hauteur adaptée.
+            nlines = max((lbl.count("\n") + 1 for lbl in labels), default=1)
+            if nlines > 1:
+                cur = ws.row_dimensions[r].height or 15
+                ws.row_dimensions[r].height = max(cur, 15 * nlines)
             r += 1
 
 
