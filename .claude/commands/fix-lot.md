@@ -1,7 +1,7 @@
 ---
 description: Traite un lot d'issues « mêmes fichiers » en séquentiel dans une seule session (un commit par issue)
 argument-hint: <numéros d'issues du lot, ex: "534 540 541">
-allowed-tools: Bash(gh:*), Bash(git:*), Bash(docker compose exec:*), Edit, Read, Write
+allowed-tools: Bash(gh:*), Bash(git:*), Bash(docker compose exec:*), Edit, Read, Write, AskUserQuestion
 ---
 
 Lot à traiter : #$ARGUMENTS
@@ -47,19 +47,30 @@ Procédure :
         `- [ ] #<n> — <titre> — étapes de validation manuelle`.
    d. Commit ATOMIQUE, un par issue : `fix(<scope>): <résumé> (#<n>)`.
       Ne regroupe JAMAIS plusieurs issues dans un même commit.
-   e. Commente le résumé sur l'issue (`gh issue comment <n>`) et pose le label
-      `à tester` (`gh issue edit <n> --add-label "à tester"`).
+   e. OBLIGATOIRE — ne passe PAS à l'issue suivante sans ces deux actions, et
+      vérifie qu'elles ont abouti :
+      - commente le résumé sur l'issue : `gh issue comment <n> --body "..."` ;
+      - pose le label `à tester` : `gh issue edit <n> --add-label "à tester"`.
+      Si une des deux échoue, corrige et relance avant de continuer.
    f. Ne FERME JAMAIS l'issue — c'est le mainteneur qui valide et ferme.
 
-5. Pour CHAQUE issue bac C : ne corrige pas. Commente tes questions précises
-   (`gh issue comment <n>`), pose le label `needs: discussion`
-   (`gh issue edit <n> --add-label "needs: discussion"`), et passe à la suivante.
+5. Pour CHAQUE issue bac C : ne corrige pas. POSE-MOI d'abord tes questions
+   directement dans le terminal (outil AskUserQuestion) au lieu de trancher seul
+   ou de commenter l'issue sans me consulter.
+   - Si mes réponses lèvent l'ambiguïté → reclasse l'issue en A/B et traite-la
+     dans le flux (étape 4).
+   - Si l'ambiguïté persiste (vraie décision produit, hors de ta portée) → alors
+     SEULEMENT commente tes questions précises (`gh issue comment <n>`), pose le
+     label `needs: discussion` (`gh issue edit <n> --add-label "needs: discussion"`),
+     et passe à la suivante.
 
 6. À la fin du lot, lance une passe de tests groupée sur les fichiers communs
    touchés (un seul `jest --findRelatedTests` / `pytest` sur l'ensemble) pour
    vérifier qu'aucune correction n'en a cassé une autre du même lot.
 
 7. Termine par un RÉCAP du lot sous forme de tableau :
-   | Issue | Bac | Fichiers | Commit | Test auto | Statut (fait / discussion / manuel) |
-   Puis liste les points de validation manuelle (bac B) et les questions posées
-   (bac C), et ARRÊTE pour que je fasse le point avant le lot suivant.
+   | Issue | Bac | Fichiers | Commit | Test auto | Commenté (oui/non) | Statut (fait / discussion / manuel) |
+   La colonne « Commenté » doit être `oui` pour toute issue A/B traitée (étape 4e) :
+   une case `non` signale un travail non terminé. Puis liste les points de
+   validation manuelle (bac B) et les questions posées (bac C), et ARRÊTE pour que
+   je fasse le point avant le lot suivant.

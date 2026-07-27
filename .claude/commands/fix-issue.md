@@ -1,7 +1,7 @@
 ---
 description: Traite une issue GitHub de bout en bout (classe, corrige, teste, commente)
 argument-hint: <numéro d'issue>
-allowed-tools: Bash(gh:*), Bash(git:*), Bash(docker compose exec:*), Edit, Read, Write
+allowed-tools: Bash(gh:*), Bash(git:*), Bash(docker compose exec:*), Edit, Read, Write, AskUserQuestion
 ---
 
 Issue à traiter : #$ARGUMENTS
@@ -24,9 +24,15 @@ Procédure :
       « ↳ Fait », c'est le dernier qui gagne : la correction précédente est
       incomplète ou a régressé.
 
-2. Si C → NE corrige PAS. Commente tes questions précises sur l'issue
-   (`gh issue comment $ARGUMENTS --body "..."`), pose le label `needs: discussion`
-   (`gh issue edit $ARGUMENTS --add-label "needs: discussion"`), puis ARRÊTE.
+2. Si C → NE corrige PAS tout de suite. POSE-MOI d'abord tes questions
+   directement dans le terminal (outil AskUserQuestion) au lieu de trancher seul
+   ou de commenter l'issue sans me consulter.
+   - Si mes réponses lèvent l'ambiguïté → reclasse l'issue en A/B et reprends à
+     l'étape 3.
+   - Si l'ambiguïté persiste (vraie décision produit, hors de ta portée) → alors
+     SEULEMENT commente tes questions précises sur l'issue
+     (`gh issue comment $ARGUMENTS --body "..."`), pose le label `needs: discussion`
+     (`gh issue edit $ARGUMENTS --add-label "needs: discussion"`), puis ARRÊTE.
 
 3. Sinon, travaille directement sur `develop`. Assure-toi d'être à jour
    avant de commencer : `git checkout develop && git pull`.
@@ -48,10 +54,17 @@ Procédure :
 7. Commit atomique au format conventional commits :
    `fix(<scope>): <résumé> (#$ARGUMENTS)`  — un seul commit pour cette issue.
 
-8. Commente le résumé de la correction sur l'issue (`gh issue comment $ARGUMENTS`)
-   et pose le label `à tester` (`gh issue edit $ARGUMENTS --add-label "à tester"`).
+8. OBLIGATOIRE — ne conclus JAMAIS sans ces deux actions, et vérifie qu'elles
+   ont bien réussi avant de passer à l'étape 9 :
+   a. Commente le résumé de la correction sur l'issue :
+      `gh issue comment $ARGUMENTS --body "..."`
+   b. Pose le label `à tester` :
+      `gh issue edit $ARGUMENTS --add-label "à tester"`
+   Si l'une des deux commandes échoue, corrige et relance — ne termine pas tant
+   qu'elles n'ont pas abouti.
 
 9. Ne FERME JAMAIS l'issue — c'est moi qui valide et ferme.
 
 10. Termine par un récap compact : bac (A/B/C), fichiers touchés,
-    test auto oui/non, étapes manuelles s'il y en a.
+    test auto oui/non, étapes manuelles s'il y en a, et confirme explicitement
+    que le commentaire de l'étape 8 a bien été posté (l'omettre = travail non fini).
