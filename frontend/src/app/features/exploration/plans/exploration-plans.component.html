@@ -1,0 +1,178 @@
+<app-header></app-header>
+
+<div class="exploration-resultats">
+
+  <app-exploration-filtres
+    class="exploration-resultats-sidebar"
+    [criteres]="criteres()"
+    (criteresChange)="criteres.set($event)">
+  </app-exploration-filtres>
+
+  <main class="exploration-resultats-main">
+
+    <!-- Bandeau : fil d'Ariane + recherche -->
+    <section class="exploration-bandeau">
+      <nav class="exploration-fil" aria-label="Fil d'Ariane">
+        <a routerLink="/exploration" class="exploration-fil-home" aria-label="Accueil">
+          <i class="fi fi-rr-home" aria-hidden="true"></i>
+        </a>
+        <a routerLink="/exploration" class="exploration-fil-lien">
+          {{ 'exploration.title' | translate }}
+        </a>
+        <span class="exploration-fil-separateur">&rsaquo;</span>
+        <span>{{ 'exploration.modes.planLong' | translate }}</span>
+      </nav>
+
+      <h1 class="exploration-bandeau-titre">
+        {{ 'exploration.modes.planLong' | translate }}
+      </h1>
+
+      <form class="exploration-bandeau-recherche" (ngSubmit)="lancerRecherche()">
+        <div class="exploration-bandeau-champ">
+          <label class="exploration-bandeau-label" for="exploration-plans-q">
+            {{ 'exploration.search.keyword' | translate }}
+          </label>
+          <input
+            id="exploration-plans-q"
+            type="text"
+            [ngModel]="motCle()"
+            (ngModelChange)="motCle.set($event)"
+            name="q"
+            [placeholder]="'exploration.search.placeholder.plan' | translate"
+            data-testid="exploration-plans-q" />
+          @if (motCle()) {
+            <button
+              type="button"
+              class="exploration-bandeau-effacer"
+              (click)="effacerMotCle()"
+              [attr.aria-label]="'common.actions.clear' | translate">
+              <i class="fi fi-rr-cross-circle" aria-hidden="true"></i>
+            </button>
+          }
+        </div>
+        <button type="submit" class="exploration-bandeau-submit">
+          <i class="fi fi-rr-search" aria-hidden="true"></i>
+          {{ 'exploration.search.submit' | translate }}
+        </button>
+      </form>
+    </section>
+
+    <!-- Total + tri -->
+    <div class="exploration-barre">
+      <span class="exploration-total" data-testid="exploration-plans-total">
+        {{ 'exploration.results.count' | translate: { count: total() } }}
+      </span>
+
+      <div class="exploration-tri">
+        <span>{{ 'exploration.sort.label' | translate }}</span>
+        <app-filter-dropdown
+          testId="exploration-plans-tri"
+          [label]="'exploration.sort.' + triCourant() | translate">
+          <ng-template appFilterPanel>
+            <app-filter-option-list
+              testId="exploration-plans-tri"
+              [multiple]="false"
+              [options]="optionsTri"
+              [selected]="[triCourant()]"
+              (optionPicked)="changerTri($event)">
+            </app-filter-option-list>
+          </ng-template>
+        </app-filter-dropdown>
+      </div>
+    </div>
+
+    <!-- Résultats -->
+    @if (chargement()) {
+      <p class="exploration-etat">{{ 'common.loading' | translate }}</p>
+    } @else if (erreur()) {
+      <p class="exploration-etat info-block-error">
+        {{ 'exploration.results.error' | translate }}
+      </p>
+    } @else if (!resultats().length) {
+      <p class="exploration-etat">{{ 'exploration.results.empty' | translate }}</p>
+    } @else {
+      <ul class="exploration-tuiles" data-testid="exploration-plans-resultats">
+        @for (plan of resultats(); track plan.id_pg) {
+          <li class="exploration-tuile exploration-tuile-plan">
+            <a class="exploration-tuile-lien" [routerLink]="['/plans', plan.slug]">
+              <div class="exploration-tuile-corps">
+                <p class="exploration-tuile-titre">{{ plan.nom }}</p>
+
+                @if (plan.sites.length) {
+                  <p class="exploration-tuile-ligne">
+                    <i class="fi fi-rr-marker" aria-hidden="true"></i>
+                    @if (plan.sites.length > 1) {
+                      <span class="exploration-tuile-label">
+                        {{ 'exploration.results.multisites' | translate }}
+                      </span>
+                    }
+                    <span>{{ libelleSites(plan) }}</span>
+                  </p>
+                }
+
+                @if (plan.gestionnaire_principal) {
+                  <p class="exploration-tuile-ligne exploration-tuile-meta">
+                    <span class="exploration-tuile-label">
+                      {{ 'exploration.results.gestionnaire' | translate }}
+                    </span>
+                    <span>{{ plan.gestionnaire_principal }}</span>
+                  </p>
+                }
+
+                <p class="exploration-tuile-ligne exploration-tuile-meta">
+                  @if (periode(plan)) {
+                    <span class="exploration-tuile-info">
+                      <i class="fi fi-rr-calendar" aria-hidden="true"></i>
+                      {{ periode(plan) }}
+                    </span>
+                  }
+                  @if (plan.type_document) {
+                    <span class="exploration-tuile-separateur"></span>
+                    <span class="exploration-tuile-info">
+                      <i class="fi fi-rr-dashboard" aria-hidden="true"></i>
+                      {{ plan.type_document }}
+                    </span>
+                  }
+                </p>
+              </div>
+
+              <i class="fi fi-rr-arrow-small-right exploration-tuile-fleche" aria-hidden="true"></i>
+            </a>
+          </li>
+        }
+      </ul>
+
+      <!-- Pagination -->
+      @if (nombrePages() > 1) {
+        <nav class="pagination-custom" aria-label="Pagination">
+          <button
+            type="button"
+            class="pagination-custom-btn"
+            [disabled]="pageCourante() === 1"
+            (click)="allerPage(pageCourante() - 1)"
+            [attr.aria-label]="'common.pagination.previous' | translate">
+            <i class="fi fi-rr-arrow-small-left" aria-hidden="true"></i>
+          </button>
+          @for (page of pages(); track page) {
+            <button
+              type="button"
+              class="pagination-custom-btn"
+              [class.active]="page === pageCourante()"
+              (click)="allerPage(page)">
+              {{ page }}
+            </button>
+          }
+          <button
+            type="button"
+            class="pagination-custom-btn"
+            [disabled]="pageCourante() === nombrePages()"
+            (click)="allerPage(pageCourante() + 1)"
+            [attr.aria-label]="'common.pagination.next' | translate">
+            <i class="fi fi-rr-arrow-small-right" aria-hidden="true"></i>
+          </button>
+        </nav>
+      }
+    }
+
+  </main>
+</div>

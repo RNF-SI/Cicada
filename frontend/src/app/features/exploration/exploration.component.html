@@ -1,80 +1,120 @@
-<!-- Header -->
 <app-header></app-header>
 
 <main class="exploration-main">
   <div class="exploration-container">
-    <!-- Breadcrumb / Back link -->
-    <nav class="exploration-nav">
-      <a routerLink="/" class="back-link">
-        <i class="fi fi-rr-arrow-left"></i>
-        {{ 'exploration.backToHome' | translate }}
-      </a>
-    </nav>
 
-    <!-- Page Header -->
-    <header class="exploration-header">
-      <h1 class="exploration-title">
-        <i class="fi fi-rr-search"></i>
-        {{ 'exploration.title' | translate }}
-      </h1>
-      <p class="exploration-subtitle">{{ 'exploration.subtitle' | translate }}</p>
-    </header>
+    <!-- Bandeau de recherche -->
+    <section class="exploration-hero">
+      <h1 class="exploration-hero-title">{{ 'exploration.title' | translate }}</h1>
 
-    <!-- Stats Section -->
-    <section class="stats-section">
-      <div class="stats-header">
-        <h2 class="stats-title">{{ 'exploration.stats.title' | translate }}</h2>
-        <p class="stats-subtitle">{{ 'exploration.stats.subtitle' | translate }}</p>
+      <p class="exploration-hero-label">{{ 'exploration.search.label' | translate }}</p>
+
+      <div class="segmented-control exploration-modes">
+        <button
+          type="button"
+          class="segmented-control-option"
+          [class.active]="mode() === 'contenu'"
+          (click)="changerMode('contenu')"
+          data-testid="exploration-mode-contenu">
+          {{ 'exploration.modes.contenu' | translate }}
+        </button>
+        <button
+          type="button"
+          class="segmented-control-option"
+          [class.active]="mode() === 'plan'"
+          (click)="changerMode('plan')"
+          data-testid="exploration-mode-plan">
+          {{ 'exploration.modes.plan' | translate }}
+        </button>
       </div>
 
-      <div class="stats-grid">
-        <div class="stat-card">
-          <div class="stat-icon stat-icon--sites">
-            <i class="fi fi-rr-map-marker"></i>
-          </div>
-          @if (statsLoading()) {
-            <div class="stat-value stat-value--loading">...</div>
-          } @else {
-            <div class="stat-value">{{ stats()?.sites_count || 0 }}</div>
-          }
-          <div class="stat-label">{{ 'exploration.stats.sites' | translate }}</div>
+      <!-- Ce que le mode permet de trouver -->
+      <p class="exploration-hero-intro">
+        {{ 'exploration.hints.' + mode() + '.intro' | translate }}
+      </p>
+      <ul class="exploration-hints">
+        @for (astuce of ('exploration.hints.' + mode() + '.items' | translate); track astuce) {
+          <li class="exploration-hint">
+            <i class="fi fi-rr-arrow-right" aria-hidden="true"></i>
+            {{ astuce }}
+          </li>
+        }
+      </ul>
+
+      <!-- Barre de recherche -->
+      <form class="exploration-search" (ngSubmit)="rechercher()">
+        <div class="exploration-search-field">
+          <label class="exploration-search-label" for="exploration-keyword">
+            {{ 'exploration.search.keyword' | translate }}
+          </label>
+          <input
+            id="exploration-keyword"
+            type="text"
+            class="exploration-search-input"
+            [ngModel]="motCle()"
+            (ngModelChange)="motCle.set($event)"
+            name="q"
+            [placeholder]="'exploration.search.placeholder.' + mode() | translate"
+            data-testid="exploration-keyword" />
         </div>
 
-        <div class="stat-card">
-          <div class="stat-icon stat-icon--plans">
-            <i class="fi fi-rr-document"></i>
+        @if (mode() === 'contenu') {
+          <div class="exploration-search-types">
+            <span class="exploration-search-label">
+              {{ 'exploration.search.dataType' | translate }}
+            </span>
+            <app-filter-dropdown
+              testId="exploration-types"
+              variant="field"
+              [label]="'exploration.search.dataType' | translate"
+              [summary]="resumeTypes()"
+              [activeCount]="types().length">
+              <ng-template appFilterPanel>
+                <app-filter-option-list
+                  testId="exploration-types"
+                  [options]="optionsTypes()"
+                  [masterLabel]="'exploration.search.allData' | translate"
+                  [selected]="types()"
+                  (selectedChange)="types.set($event)">
+                </app-filter-option-list>
+              </ng-template>
+            </app-filter-dropdown>
           </div>
-          @if (statsLoading()) {
-            <div class="stat-value stat-value--loading">...</div>
-          } @else {
-            <div class="stat-value">{{ stats()?.plans_count || 0 }}</div>
-          }
-          <div class="stat-label">{{ 'exploration.stats.plans' | translate }}</div>
-        </div>
+        }
 
-        <div class="stat-card">
-          <div class="stat-icon stat-icon--orgs">
-            <i class="fi fi-rr-building"></i>
-          </div>
-          @if (statsLoading()) {
-            <div class="stat-value stat-value--loading">...</div>
-          } @else {
-            <div class="stat-value">{{ stats()?.organismes_count || 0 }}</div>
-          }
-          <div class="stat-label">{{ 'exploration.stats.organismes' | translate }}</div>
-        </div>
-      </div>
+        <button
+          type="submit"
+          class="exploration-search-submit"
+          data-testid="exploration-submit">
+          <i class="fi fi-rr-search" aria-hidden="true"></i>
+          {{ 'exploration.search.submit' | translate }}
+        </button>
+      </form>
+
+      @if (mode() === 'contenu') {
+        <p class="exploration-hero-note">
+          <i class="fi fi-rr-comment-info" aria-hidden="true"></i>
+          <span>{{ 'exploration.search.note' | translate }}</span>
+        </p>
+      }
     </section>
 
-    <!-- Coming Soon Section -->
-    <section class="coming-soon-section">
-      <div class="coming-soon-card">
-        <div class="coming-soon-icon">
-          <i class="fi fi-rr-rocket"></i>
+    <!-- Exemples de recherche -->
+    @if (mode() === 'contenu') {
+      <section class="exploration-examples info-block">
+        <i class="fi fi-rr-bulb exploration-examples-icon" aria-hidden="true"></i>
+        <div>
+          <p class="exploration-examples-title">
+            {{ 'exploration.examples.title' | translate }}
+          </p>
+          <ul class="exploration-examples-liste">
+            @for (exemple of ('exploration.examples.items' | translate); track exemple) {
+              <li>{{ exemple }}</li>
+            }
+          </ul>
         </div>
-        <h3 class="coming-soon-title">{{ 'exploration.comingSoon.title' | translate }}</h3>
-        <p class="coming-soon-message">{{ 'exploration.comingSoon.message' | translate }}</p>
-      </div>
-    </section>
+      </section>
+    }
+
   </div>
 </main>

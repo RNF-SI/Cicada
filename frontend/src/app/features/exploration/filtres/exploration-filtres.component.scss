@@ -1,0 +1,108 @@
+@import 'variables';
+
+/**
+ * Carte primary de la barre latérale (thème « dark » du système de filtres).
+ * Les composants de filtre gèrent eux-mêmes leur rendu sur ce fond : on ne
+ * redéfinit ici que la structure et les séparateurs.
+ *
+ * Le fond est porté par l'hôte et non par l'`aside` : la barre doit courir sur
+ * toute la hauteur de la page, y compris sous le dernier groupe de filtres,
+ * alors que son contenu s'arrête bien avant sur une recherche à peu de facettes.
+ */
+:host {
+  display: block;
+  background-color: $primary-color;
+  border-radius: 0 $border-radius-lg $border-radius-lg 0;
+}
+
+.exploration-filtres {
+  color: $white;
+  padding-bottom: $spacing-lg;
+}
+
+.exploration-filtres-header {
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+  padding: $spacing-lg $spacing-md;
+  font-weight: $font-weight-bold;
+  border-bottom: 1px solid rgba($white, 0.25);
+}
+
+.exploration-filtres-switch {
+  display: flex;
+  align-items: flex-start;
+  gap: $spacing-sm;
+  padding: $spacing-md;
+  border-bottom: 1px solid rgba($white, 0.25);
+}
+
+.exploration-filtres-switch-label {
+  font-size: $font-size-small;
+  line-height: 1.3;
+
+  i {
+    margin-left: $spacing-xxs;
+    cursor: help;
+  }
+}
+
+.exploration-switch {
+  flex: 0 0 auto;
+  width: 40px;
+  height: 24px;
+  border-radius: $border-radius-pill;
+  border: 1px solid $white;
+  background-color: transparent;
+  padding: 2px;
+  cursor: pointer;
+  transition: background-color $transition-fast;
+
+  &.on {
+    background-color: $white;
+
+    .exploration-switch-knob {
+      background-color: $primary-color;
+      transform: translateX(16px);
+    }
+  }
+}
+
+.exploration-switch-knob {
+  display: block;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background-color: $white;
+  transition: transform $transition-fast, background-color $transition-fast;
+}
+
+.exploration-filtres-groupe {
+  padding: $spacing-md;
+  border-bottom: 1px solid rgba($white, 0.25);
+}
+
+.exploration-filtres-titre {
+  font-size: $font-size-small;
+  font-weight: $font-weight-bold;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  margin: 0 0 $spacing-sm;
+  color: $white;
+}
+
+.exploration-filtres-reset {
+  display: inline-flex;
+  align-items: center;
+  gap: $spacing-xxs;
+  margin: $spacing-md $spacing-md 0;
+  padding: 0;
+  background: none;
+  border: none;
+  color: $white;
+  font-family: $font-family;
+  font-size: $font-size-small;
+  font-weight: $font-weight-bold;
+  text-decoration: underline;
+  cursor: pointer;
+}

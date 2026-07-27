@@ -1,321 +1,239 @@
 @import 'variables';
+@import 'responsive';
 
 .exploration-main {
-  min-height: calc(100vh - 58px);
   background-color: $beige;
+  min-height: calc(100vh - 58px);
+  padding-bottom: $spacing-xxl;
 }
 
 .exploration-container {
-  max-width: 1200px;
+  max-width: 1300px;
   margin: 0 auto;
-  padding: 32px $spacing-xxl;
+  padding: $spacing-xl $spacing-xxl;
 }
 
-.exploration-nav {
-  margin-bottom: $spacing-lg;
+/* ------------------------------------------------------------------ */
+/* Bandeau                                                            */
+/* ------------------------------------------------------------------ */
+
+.exploration-hero {
+  position: relative;
+  overflow: hidden;
+  background-color: $secondary-pale-green;
+  border-radius: $border-radius-lg;
+  padding: $spacing-xxl $spacing-lg;
+  text-align: center;
+
+  /* Le motif d'ondes est décoratif : il reste derrière le contenu et ne doit
+     jamais gêner la lecture du titre. */
+  &::after {
+    content: '';
+    position: absolute;
+    top: 10%;
+    right: 0;
+    width: 45%;
+    height: 40%;
+    background: url('/assets/images/data-waves.png') no-repeat right center / contain;
+    opacity: 0.5;
+    pointer-events: none;
+  }
+
+  > * {
+    position: relative;
+    z-index: 1;
+  }
 }
 
-.back-link {
+.exploration-hero-title {
+  color: $primary-color;
+  margin: 0 0 $spacing-lg;
+}
+
+.exploration-hero-label {
+  color: $primary-color;
+  font-weight: $font-weight-bold;
+  margin: 0 0 $spacing-sm;
+}
+
+.exploration-modes {
+  background-color: $white;
+}
+
+.exploration-hero-intro {
+  margin: $spacing-lg 0 $spacing-xs;
+  color: $black;
+}
+
+.exploration-hints {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: $spacing-xs $spacing-lg;
+  list-style: none;
+  margin: 0 0 $spacing-lg;
+  padding: 0;
+}
+
+.exploration-hint {
   display: inline-flex;
   align-items: center;
-  gap: $spacing-xs;
-  color: $primary-color;
-  text-decoration: none;
-  font-family: $font-family;
-  font-size: $font-size-small;
-  font-weight: 600;
-  transition: opacity 200ms ease-out;
-
-  &:hover {
-    opacity: 0.7;
-  }
+  gap: $spacing-xxs;
+  color: $black;
 
   i {
-    font-size: $font-size-base;
-  }
-}
-
-.exploration-header {
-  margin-bottom: 36px;
-}
-
-.exploration-title {
-  font-family: $font-family;
-  font-size: 32px;
-  font-weight: 700;
-  color: $primary-color;
-  margin: 0 0 12px 0;
-  display: flex;
-  align-items: center;
-  gap: $spacing-md;
-
-  i {
-    font-size: 36px;
-    color: $secondary-yellow;
-  }
-}
-
-.exploration-subtitle {
-  font-family: $font-family;
-  font-size: 16px;
-  font-weight: 400;
-  color: $gray-dark;
-  margin: 0;
-}
-
-/* Stats Section */
-.stats-section {
-  background: $white;
-  border-radius: $border-radius-xl;
-  padding: $spacing-xl;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
-  margin-bottom: $spacing-xl;
-}
-
-.stats-header {
-  text-align: center;
-  margin-bottom: $spacing-xl;
-}
-
-.stats-title {
-  font-family: $font-family;
-  font-size: $font-size-h3;
-  font-weight: 700;
-  color: $primary-color;
-  margin: 0 0 8px 0;
-}
-
-.stats-subtitle {
-  font-family: $font-family;
-  font-size: $font-size-base;
-  font-weight: 400;
-  color: $gray-dark;
-  margin: 0;
-}
-
-.stats-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: $spacing-lg;
-}
-
-.stat-card {
-  text-align: center;
-  padding: 32px $spacing-lg;
-  background: linear-gradient(135deg, rgba($primary-color, 0.03) 0%, rgba($secondary-yellow, 0.05) 100%);
-  border-radius: $border-radius-lg;
-  transition: transform 200ms ease-out, box-shadow 200ms ease-out;
-
-  &:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
-  }
-}
-
-.stat-icon {
-  width: 65px;
-  height: 65px;
-  margin: 0 auto 18px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-
-  i {
-    font-size: $font-size-h2;
-    color: $white;
-  }
-
-  &--sites {
-    background: linear-gradient(135deg, $primary-color 0%, lighten($primary-color, 10%) 100%);
-  }
-
-  &--plans {
-    background: linear-gradient(135deg, $secondary-terra-cotta 0%, lighten($secondary-terra-cotta, 10%) 100%);
-  }
-
-  &--orgs {
-    background: linear-gradient(135deg, $success-color 0%, lighten($success-color, 10%) 100%);
-  }
-}
-
-.stat-value {
-  font-family: $font-family;
-  font-size: $font-size-h1;
-  font-weight: 700;
-  color: $primary-color;
-  line-height: 1.1;
-  margin-bottom: $spacing-xs;
-}
-
-.stat-label {
-  font-family: $font-family;
-  font-size: $font-size-base;
-  font-weight: 600;
-  color: $gray-dark;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-
-.stat-value--loading {
-  animation: pulse 1.5s ease-in-out infinite;
-}
-
-/* Coming Soon Section */
-.coming-soon-section {
-  margin-top: $spacing-lg;
-}
-
-.coming-soon-card {
-  background: $white;
-  border-radius: $border-radius-lg;
-  padding: $spacing-xxl;
-  text-align: center;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-  border: 2px dashed $gray-light;
-}
-
-.coming-soon-icon {
-  width: 72px;
-  height: 72px;
-  margin: 0 auto $spacing-lg;
-  background: linear-gradient(135deg, $secondary-yellow 0%, $secondary-orange-salmon 100%);
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  i {
-    font-size: 32px;
     color: $primary-color;
+    font-size: 14px;
   }
 }
 
-.coming-soon-title {
-  font-family: $font-family;
-  font-size: $font-size-h4;
-  font-weight: 700;
-  color: $primary-color;
-  margin: 0 0 12px 0;
+/* ------------------------------------------------------------------ */
+/* Barre de recherche                                                 */
+/* ------------------------------------------------------------------ */
+
+.exploration-search {
+  display: flex;
+  align-items: stretch;
+  gap: $spacing-md;
+  max-width: 980px;
+  margin: 0 auto;
+  text-align: left;
+
+  @include mobile {
+    flex-direction: column;
+  }
 }
 
-.coming-soon-message {
+.exploration-search-field {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  background-color: $white;
+  border: 1px solid $primary-color;
+  border-radius: $border-radius-pill;
+  padding: $spacing-xs $spacing-lg;
+  min-height: 60px;
+}
+
+.exploration-search-label {
+  font-size: $font-size-small;
+  font-weight: $font-weight-bold;
+  color: $primary-color;
+}
+
+.exploration-search-input {
+  border: none;
+  outline: none;
+  background: transparent;
   font-family: $font-family;
   font-size: $font-size-base;
-  font-weight: 400;
+  color: $black;
+  width: 100%;
+
+  &::placeholder {
+    color: $gray-dark;
+  }
+}
+
+.exploration-search-types {
+  flex: 0 0 260px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+  background-color: $white;
+  border: 1px solid $primary-color;
+  border-radius: $border-radius-pill;
+  padding: $spacing-xs $spacing-lg;
+  min-height: 60px;
+
+  @include mobile {
+    flex: 1 1 auto;
+  }
+
+  /* Le déclencheur du dropdown porte sa propre bordure de champ. Ici il est
+     déjà dans un champ (le bloc arrondi ci-dessus, jumeau de « Mot-clé ») :
+     sans cette neutralisation, la maquette montrerait deux cadres imbriqués. */
+  :host ::ng-deep & app-filter-dropdown.variant-field .filter-trigger {
+    border: none;
+    background: transparent;
+    padding-left: 0;
+    padding-right: 0;
+    min-height: auto;
+  }
+}
+
+.exploration-search-submit {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: $spacing-xs;
+  min-height: 60px;
+  padding: 0 $spacing-lg;
+  border: none;
+  border-radius: $border-radius-pill;
+  background-color: $primary-color;
+  color: $white;
+  font-family: $font-family;
+  font-size: $font-size-base;
+  font-weight: $font-weight-bold;
+  cursor: pointer;
+  transition: background-color $transition-fast;
+
+  &:hover {
+    background-color: darken($primary-color, 6%);
+  }
+}
+
+.exploration-hero-note {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  gap: $spacing-xs;
+  max-width: 980px;
+  margin: $spacing-md auto 0;
+  text-align: left;
+  font-size: $font-size-small;
   color: $gray-dark;
+
+  i {
+    color: $primary-color;
+    margin-top: 2px;
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* Exemples                                                           */
+/* ------------------------------------------------------------------ */
+
+.exploration-examples {
+  display: flex;
+  align-items: flex-start;
+  gap: $spacing-md;
+  margin-top: $spacing-xxl;
+  background-color: rgba($secondary-orange-salmon, 0.25);
+  border-radius: $border-radius-lg;
+  padding: $spacing-lg;
+}
+
+.exploration-examples-icon {
+  color: $secondary-orange-salmon;
+  font-size: 22px;
+  flex: 0 0 auto;
+}
+
+.exploration-examples-title {
+  font-weight: $font-weight-bold;
+  margin: 0 0 $spacing-xs;
+}
+
+.exploration-examples-liste {
   margin: 0;
-  max-width: 540px;
-  margin: 0 auto;
-  line-height: 1.6;
-}
+  padding-left: $spacing-lg;
 
-@keyframes pulse {
-  0%, 100% {
-    opacity: 0.4;
-  }
-  50% {
-    opacity: 1;
-  }
-}
-
-/* Responsive */
-@media (max-width: 1024px) {
-  .exploration-container {
-    padding: 24px $spacing-xl;
-  }
-
-  .stats-grid {
-    grid-template-columns: repeat(3, 1fr);
-    gap: $spacing-md;
-  }
-
-  .stat-card {
-    padding: 24px $spacing-md;
-  }
-
-  .stat-value {
-    font-size: 32px;
-  }
-
-  .stat-icon {
-    width: 54px;
-    height: 54px;
-
-    i {
-      font-size: 25px;
-    }
-  }
-}
-
-@media (max-width: 768px) {
-  .exploration-container {
-    padding: 20px $spacing-md;
-  }
-
-  .exploration-title {
-    font-size: 25px;
-
-    i {
-      font-size: $font-size-h2;
-    }
-  }
-
-  .exploration-subtitle {
-    font-size: $font-size-base;
-  }
-
-  .stats-section {
-    padding: 24px $spacing-md;
-  }
-
-  .stats-grid {
-    grid-template-columns: 1fr;
-    gap: $spacing-md;
-  }
-
-  .stat-card {
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    text-align: left;
-    gap: 18px;
-    padding: 18px;
-  }
-
-  .stat-icon {
-    margin: 0;
-    flex-shrink: 0;
-  }
-
-  .stat-value {
-    font-size: $font-size-h2;
+  li {
     margin-bottom: $spacing-xxs;
-  }
-
-  .stat-label {
-    font-size: $font-size-small;
-  }
-
-  .coming-soon-card {
-    padding: 32px 18px;
-  }
-
-  .coming-soon-icon {
-    width: 58px;
-    height: 58px;
-
-    i {
-      font-size: 25px;
-    }
-  }
-
-  .coming-soon-title {
-    font-size: 16px;
-  }
-
-  .coming-soon-message {
-    font-size: $font-size-small;
   }
 }

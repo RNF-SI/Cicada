@@ -1,0 +1,184 @@
+<aside class="exploration-filtres" data-testid="exploration-filtres">
+
+  <header class="exploration-filtres-header">
+    <i class="fi fi-rr-filter" aria-hidden="true"></i>
+    <span>{{ 'exploration.filters.title' | translate }}</span>
+  </header>
+
+  <!-- Rechercher dans les titres uniquement (mode contenu seulement) -->
+  @if (contenu()) {
+    <div class="exploration-filtres-switch">
+      <button
+        type="button"
+        role="switch"
+        class="exploration-switch"
+        [class.on]="criteres().titresSeulement !== false"
+        [attr.aria-checked]="criteres().titresSeulement !== false"
+        (click)="majCritere('titresSeulement', criteres().titresSeulement === false)"
+        data-testid="exploration-titres-seulement">
+        <span class="exploration-switch-knob"></span>
+      </button>
+      <label class="exploration-filtres-switch-label">
+        {{ 'exploration.filters.titlesOnly' | translate }}
+        <i
+          class="fi fi-rr-comment-info"
+          [title]="'exploration.filters.titlesOnlyHelp' | translate"
+          aria-hidden="true"></i>
+      </label>
+    </div>
+  }
+
+  <!-- Zone géographique -->
+  <section class="exploration-filtres-groupe">
+    <h2 class="exploration-filtres-titre">
+      {{ 'exploration.filters.zone' | translate }}
+    </h2>
+    <app-filter-tree
+      testId="exploration-zones"
+      theme="dark"
+      searchable
+      [maxVisible]="4"
+      [searchPlaceholder]="'common.actions.search' | translate"
+      [nodes]="arbreZones()"
+      [expanded]="zonesEtendues()"
+      (expandedChange)="zonesEtendues.set($event)"
+      [selected]="criteres().zones ?? []"
+      (selectedChange)="majCritere('zones', $event)">
+    </app-filter-tree>
+  </section>
+
+  <!-- Organismes gestionnaires -->
+  <section class="exploration-filtres-groupe">
+    <h2 class="exploration-filtres-titre">
+      {{ 'exploration.filters.organismes' | translate }}
+    </h2>
+    <app-filter-dropdown
+      testId="exploration-organismes"
+      variant="field"
+      theme="dark"
+      [label]="'exploration.filters.organismes' | translate"
+      [placeholder]="'common.actions.select' | translate"
+      [activeCount]="criteres().organismes?.length ?? 0">
+      <ng-template appFilterPanel>
+        <app-filter-option-list
+          testId="exploration-organismes"
+          searchable
+          [searchPlaceholder]="'common.actions.search' | translate"
+          [options]="optionsOrganismes()"
+          [selected]="criteres().organismes ?? []"
+          (selectedChange)="majCritere('organismes', $event)">
+        </app-filter-option-list>
+      </ng-template>
+    </app-filter-dropdown>
+  </section>
+
+  <!-- Types d'aires protégées -->
+  <section class="exploration-filtres-groupe">
+    <h2 class="exploration-filtres-titre">
+      {{ 'exploration.filters.typesSite' | translate }}
+    </h2>
+    <app-filter-option-list
+      testId="exploration-types-site"
+      theme="dark"
+      [maxVisible]="4"
+      [options]="optionsTypesSite()"
+      [selected]="criteres().typesSite ?? []"
+      (selectedChange)="majCritere('typesSite', $event)">
+    </app-filter-option-list>
+  </section>
+
+  @if (contenu()) {
+    <!-- Enjeux -->
+    <section class="exploration-filtres-groupe">
+      <h2 class="exploration-filtres-titre">
+        {{ 'exploration.types.enjeu.pluriel' | translate }}
+      </h2>
+      <app-filter-option-list
+        testId="exploration-categories-enjeu"
+        theme="dark"
+        [options]="optionsEnjeux()"
+        [selected]="criteres().categoriesEnjeu ?? []"
+        (selectedChange)="majCritere('categoriesEnjeu', $event)">
+      </app-filter-option-list>
+    </section>
+
+    <!-- Indicateurs -->
+    <section class="exploration-filtres-groupe">
+      <h2 class="exploration-filtres-titre">
+        {{ 'exploration.types.indicateur.pluriel' | translate }}
+      </h2>
+      <app-filter-option-list
+        testId="exploration-types-indicateur"
+        theme="dark"
+        [options]="optionsIndicateurs()"
+        [selected]="criteres().typesIndicateur ?? []"
+        (selectedChange)="majCritere('typesIndicateur', $event)">
+      </app-filter-option-list>
+    </section>
+
+    <!-- Objectifs -->
+    <section class="exploration-filtres-groupe">
+      <h2 class="exploration-filtres-titre">
+        {{ 'exploration.filters.objectifs' | translate }}
+      </h2>
+      <app-filter-option-list
+        testId="exploration-objectifs"
+        theme="dark"
+        [options]="optionsObjectifs()"
+        [selected]="objectifsSelectionnes()"
+        (selectedChange)="majObjectifs($event)">
+      </app-filter-option-list>
+    </section>
+
+    <!-- Actions de gestion -->
+    <section class="exploration-filtres-groupe">
+      <h2 class="exploration-filtres-titre">
+        {{ 'exploration.filters.actions' | translate }}
+      </h2>
+      <app-filter-dropdown
+        testId="exploration-categories-action"
+        variant="field"
+        theme="dark"
+        [label]="'exploration.filters.actions' | translate"
+        [placeholder]="'common.actions.search' | translate"
+        [activeCount]="criteres().categoriesAction?.length ?? 0">
+        <ng-template appFilterPanel>
+          <app-filter-option-list
+            testId="exploration-categories-action"
+            searchable
+            [searchPlaceholder]="'common.actions.search' | translate"
+            [options]="optionsActions()"
+            [selected]="criteres().categoriesAction ?? []"
+            (selectedChange)="majCritere('categoriesAction', $event)">
+          </app-filter-option-list>
+        </ng-template>
+      </app-filter-dropdown>
+    </section>
+  }
+
+  <!-- Statut du plan de gestion -->
+  <section class="exploration-filtres-groupe">
+    <h2 class="exploration-filtres-titre">
+      {{ 'exploration.filters.statut.title' | translate }}
+    </h2>
+    <app-filter-option-list
+      testId="exploration-statuts"
+      theme="dark"
+      [options]="optionsStatuts()"
+      [selected]="criteres().statuts ?? []"
+      (selectedChange)="majStatuts($event)">
+    </app-filter-option-list>
+  </section>
+
+  @if (nombreFiltresActifs() > 0) {
+    <button
+      type="button"
+      class="exploration-filtres-reset"
+      (click)="reinitialiser()"
+      data-testid="exploration-reset">
+      {{ 'exploration.filters.reset' | translate }}
+      <i class="fi fi-rr-cross-circle" aria-hidden="true"></i>
+    </button>
+  }
+
+</aside>

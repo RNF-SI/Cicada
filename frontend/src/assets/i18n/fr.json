@@ -77,7 +77,9 @@
     },
     "pagination": {
       "showing": "{{count}} sur {{total}}",
-      "noItems": "Aucun élément"
+      "noItems": "Aucun élément",
+      "previous": "Page précédente",
+      "next": "Page suivante"
     },
     "filters": {
       "all": "Tous",
@@ -3141,19 +3143,149 @@
     "partialUnplanned": "Action partiellement réalisée non prévue"
   },
   "exploration": {
-    "title": "Exploration des données",
+    "title": "Exploration des données des plans de gestion",
     "subtitle": "Explorez les données et les indicateurs de la plateforme",
     "backToHome": "Retour à l'accueil",
+    "modes": {
+      "contenu": "Un contenu d'un plan de gestion",
+      "plan": "Un plan de gestion",
+      "contenuLong": "Rechercher un contenu d'un plan de gestion",
+      "planLong": "Rechercher un plan de gestion"
+    },
+    "hints": {
+      "contenu": {
+        "intro": "Avoir un aperçu des données d'un plan de gestion partageant en commun :",
+        "items": [
+          "un indicateur",
+          "une action de suivi",
+          "une pression",
+          "un facteur d'influence",
+          "un objectif",
+          "un enjeu"
+        ]
+      },
+      "plan": {
+        "intro": "Retrouver les plans de gestion :",
+        "items": [
+          "d'un site",
+          "d'un département",
+          "d'une région",
+          "ou en saisissant le nom du plan de gestion"
+        ]
+      }
+    },
+    "search": {
+      "label": "Rechercher :",
+      "keyword": "Mot-clé",
+      "placeholder": {
+        "contenu": "Ex : Limicole, fréquentation...",
+        "plan": "Nom du plan de gestion, du site, du département ou de la région"
+      },
+      "dataType": "Type de données",
+      "allData": "Toutes les données",
+      "submit": "Rechercher",
+      "note": "Pour rechercher les contenus d'un département ou d'une région, sélectionnez le type de données recherché et lancez la recherche sans saisir de mot-clé. Vous pourrez ensuite filtrer la zone géographique souhaitée."
+    },
+    "examples": {
+      "title": "Exemples de recherche :",
+      "items": [
+        "les indicateurs ou les actions de suivi sur les « limicoles »",
+        "les pressions sur la « fréquentation »",
+        "les indicateurs pour lesquels il y a un enjeu autour des « limicoles » (pour cela, vous devez inclure les résultats plus élargis en désactivant le bouton « Rechercher dans les titres uniquement » en haut du panneau de filtres)",
+        "les enjeux du département de l'Allier (pour cela, ne saisissez pas de mot-clé dans la barre de recherche mais sélectionnez « enjeu » comme type de données, lancez la recherche, puis cochez Allier dans le filtre de zone géographique)"
+      ]
+    },
+    "types": {
+      "enjeu": {
+        "singulier": "Enjeu",
+        "pluriel": "Enjeux"
+      },
+      "facteur": {
+        "singulier": "Facteur d'influence",
+        "pluriel": "Facteurs d'influence"
+      },
+      "pression": {
+        "singulier": "Pression",
+        "pluriel": "Pressions"
+      },
+      "objectif_lt": {
+        "singulier": "Objectif à long terme",
+        "pluriel": "Objectifs à long terme"
+      },
+      "objectif_op": {
+        "singulier": "Objectif opérationnel",
+        "pluriel": "Objectifs opérationnels"
+      },
+      "indicateur": {
+        "singulier": "Indicateur",
+        "pluriel": "Indicateurs"
+      },
+      "action": {
+        "singulier": "Action",
+        "pluriel": "Actions"
+      },
+      "suivi": {
+        "singulier": "Suivi",
+        "pluriel": "Suivis"
+      }
+    },
+    "filters": {
+      "title": "Filtrer les résultats",
+      "titlesOnly": "Rechercher dans les titres uniquement",
+      "titlesOnlyHelp": "Désactivez pour élargir la recherche aux descriptions, aux objets parents et aux espèces ou habitats rattachés.",
+      "zone": "Zone géographique",
+      "organismes": "Organismes gestionnaires",
+      "typesSite": "Types d'aires protégées",
+      "objectifs": "Objectifs",
+      "actions": "Actions de gestion",
+      "reset": "Réinitialiser les filtres",
+      "enjeu": {
+        "ecologique": "Écologiques",
+        "socioeco": "Socio-économiques"
+      },
+      "indicateur": {
+        "etat": "Indicateur d'état",
+        "pression": "Indicateur pression",
+        "reponse": "Indicateur réponse"
+      },
+      "statut": {
+        "title": "Statut plan de gestion",
+        "enCours": "En cours",
+        "archive": "Archivé",
+        "valide": "Validé"
+      }
+    },
+    "sort": {
+      "label": "Trier par :",
+      "pertinence": "Pertinence",
+      "alphabetique": "Ordre alphabétique",
+      "recent": "Plus récents"
+    },
+    "results": {
+      "count": "{{count}} résultat(s)",
+      "all": "Tout",
+      "empty": "Aucun résultat ne correspond à votre recherche.",
+      "error": "La recherche a échoué. Réessayez dans quelques instants.",
+      "plan": "Plan de gestion :",
+      "gestionnaire": "Gestionnaire principal :",
+      "typeAction": "Type d'action :",
+      "multisites": "Multisites :",
+      "parent": {
+        "enjeu": "Enjeu :",
+        "facteur": "Facteur d'influence :",
+        "pression": "Pression :",
+        "objectif_lt": "Objectif :",
+        "objectif_op": "Objectif :",
+        "indicateur": "Indicateur :",
+        "suivi": "Suivi :"
+      }
+    },
     "stats": {
       "title": "En quelques chiffres",
       "subtitle": "Les données clés de la plateforme",
       "sites": "Sites protégés",
       "plans": "Plans de gestion",
       "organismes": "Organismes gestionnaires"
-    },
-    "comingSoon": {
-      "title": "Fonctionnalité en cours de développement",
-      "message": "L'exploration des données sera bientôt disponible. Vous pourrez découvrir les espaces naturels protégés, comparer les indicateurs et filtrer par territoire."
     }
   },
   "errors": {

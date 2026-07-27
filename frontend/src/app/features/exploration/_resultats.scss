@@ -1,0 +1,296 @@
+/**
+ * Styles partagés par les deux pages de résultats de l'exploration
+ * (mode « plan de gestion » et mode « contenu »).
+ *
+ * Les deux pages ont la même charpente — barre latérale primary, bandeau vert,
+ * barre total/tri, liste de tuiles, pagination — et ne diffèrent que par le
+ * contenu des tuiles et la présence des onglets.
+ */
+
+@import 'variables';
+@import 'responsive';
+
+.exploration-resultats {
+  display: flex;
+  align-items: stretch;
+  min-height: calc(100vh - 58px);
+  background-color: $beige;
+
+  @include mobile {
+    flex-direction: column;
+  }
+}
+
+.exploration-resultats-sidebar {
+  flex: 0 0 252px;
+  align-self: stretch;
+
+  @include mobile {
+    flex: 1 1 auto;
+  }
+}
+
+.exploration-resultats-main {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: $spacing-lg $spacing-xl $spacing-xxl;
+}
+
+/* ------------------------------------------------------------------ */
+/* Bandeau                                                            */
+/* ------------------------------------------------------------------ */
+
+.exploration-bandeau {
+  position: relative;
+  overflow: hidden;
+  background-color: $secondary-pale-green;
+  border-radius: $border-radius-lg;
+  padding: $spacing-lg;
+
+  &::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 40%;
+    height: 100%;
+    background: url('/assets/images/data-waves.png') no-repeat right center / contain;
+    opacity: 0.4;
+    pointer-events: none;
+  }
+
+  > * {
+    position: relative;
+    z-index: 1;
+  }
+}
+
+.exploration-fil {
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+  color: $primary-color;
+  font-size: $font-size-small;
+}
+
+.exploration-fil-home {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background-color: $primary-color;
+  color: $white;
+  flex: 0 0 auto;
+}
+
+.exploration-fil-lien {
+  color: $primary-color;
+  text-decoration: underline;
+}
+
+.exploration-fil-separateur {
+  color: $primary-color;
+}
+
+.exploration-bandeau-titre {
+  color: $primary-color;
+  font-size: $font-size-h3;
+  margin: $spacing-md 0;
+}
+
+.exploration-bandeau-recherche {
+  display: flex;
+  align-items: stretch;
+  gap: $spacing-md;
+
+  @include mobile {
+    flex-direction: column;
+  }
+}
+
+.exploration-bandeau-champ {
+  position: relative;
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  background-color: $white;
+  border: 1px solid $primary-color;
+  border-radius: $border-radius-pill;
+  padding: $spacing-xs $spacing-lg;
+  min-height: 56px;
+
+  input {
+    border: none;
+    outline: none;
+    background: transparent;
+    font-family: $font-family;
+    font-size: $font-size-base;
+    color: $black;
+    width: calc(100% - 24px);
+
+    &::placeholder {
+      color: $gray-dark;
+    }
+  }
+}
+
+.exploration-bandeau-label {
+  font-size: $font-size-small;
+  font-weight: $font-weight-bold;
+  color: $primary-color;
+}
+
+.exploration-bandeau-effacer {
+  position: absolute;
+  right: $spacing-md;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: $gray-dark;
+  cursor: pointer;
+  font-size: 18px;
+}
+
+.exploration-bandeau-submit {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: $spacing-xs;
+  min-height: 56px;
+  padding: 0 $spacing-lg;
+  border: none;
+  border-radius: $border-radius-pill;
+  background-color: $primary-color;
+  color: $white;
+  font-family: $font-family;
+  font-weight: $font-weight-bold;
+  cursor: pointer;
+}
+
+/* ------------------------------------------------------------------ */
+/* Barre total / tri                                                  */
+/* ------------------------------------------------------------------ */
+
+.exploration-barre {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: $spacing-md;
+  margin: $spacing-lg 0 $spacing-md;
+  flex-wrap: wrap;
+}
+
+.exploration-total {
+  font-weight: $font-weight-bold;
+}
+
+.exploration-tri {
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+  color: $black;
+}
+
+.exploration-etat {
+  padding: $spacing-lg;
+  text-align: center;
+  color: $gray-dark;
+}
+
+/* ------------------------------------------------------------------ */
+/* Tuiles de résultat                                                 */
+/* ------------------------------------------------------------------ */
+
+.exploration-tuiles {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-md;
+}
+
+.exploration-tuile {
+  background-color: $white;
+  border-radius: $border-radius-lg;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+  /* Le bandeau de couleur à gauche identifie le type de résultat. */
+  border-left: 6px solid $primary-color;
+  overflow: hidden;
+  transition: border-color $transition-fast, box-shadow $transition-fast;
+
+  &:hover {
+    border-color: $secondary-orange-salmon;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.12);
+  }
+}
+
+.exploration-tuile-plan {
+  border-left-color: $secondary-terra-cotta;
+}
+
+.exploration-tuile-lien {
+  display: flex;
+  align-items: center;
+  gap: $spacing-md;
+  padding: $spacing-md $spacing-lg;
+  color: $black;
+  text-decoration: none;
+}
+
+.exploration-tuile-corps {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.exploration-tuile-titre {
+  font-weight: $font-weight-bold;
+  margin: 0 0 $spacing-xxs;
+}
+
+.exploration-tuile-ligne {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: $spacing-xxs;
+  margin: 0 0 2px;
+
+  i {
+    color: $primary-color;
+    font-size: 14px;
+  }
+}
+
+.exploration-tuile-meta {
+  font-size: $font-size-small;
+  color: $gray-dark;
+}
+
+.exploration-tuile-label {
+  color: $gray-dark;
+}
+
+.exploration-tuile-info {
+  display: inline-flex;
+  align-items: center;
+  gap: $spacing-xxs;
+}
+
+.exploration-tuile-separateur {
+  display: inline-block;
+  width: 1px;
+  height: 14px;
+  background-color: $gray-light;
+  margin: 0 $spacing-xs;
+}
+
+.exploration-tuile-fleche {
+  flex: 0 0 auto;
+  color: $primary-color;
+  font-size: 24px;
+}

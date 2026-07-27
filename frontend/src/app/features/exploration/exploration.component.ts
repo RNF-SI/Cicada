@@ -1,33 +1,92 @@
-import { Component, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterModule } from '@angular/router';
-import { TranslateModule } from '@ngx-translate/core';
-import { HeaderComponent } from '../../shared/components/header/header.component';
-import { PublicStatsService } from '../../core/services/public-stats.service';
+import { Component, computed, inject, signal } from '@angular/core';
+import { FormsModule } from '@angular/forms';
+import { Router, RouterModule } from '@angular/router';
+import { TranslateModule, TranslateService } from '@ngx-translate/core';
 
+import {
+  EXPLORATION_TYPES,
+  ExplorationType,
+} from '../../core/models/exploration.model';
+import {
+  FilterDropdownComponent,
+  FilterOptionListComponent,
+  FilterPanelDirective,
+} from '../../shared/components/filters';
+import { HeaderComponent } from '../../shared/components/header/header.component';
+
+/** Les deux modes du sélecteur « Rechercher : ». */
+type ModeExploration = 'contenu' | 'plan';
+
+/**
+ * Page d'accueil de l'exploration des données.
+ *
+ * Porte le choix du mode et la saisie initiale, puis délègue à la page de
+ * résultats correspondante. Les critères transitent par l'URL : un résultat
+ * reste ainsi partageable par simple copie du lien.
+ */
 @Component({
   selector: 'app-exploration',
   standalone: true,
   imports: [
     CommonModule,
+    FormsModule,
     RouterModule,
     TranslateModule,
-    HeaderComponent
+    HeaderComponent,
+    FilterDropdownComponent,
+    FilterOptionListComponent,
+    FilterPanelDirective,
   ],
   templateUrl: './exploration.component.html',
-  styleUrl: './exploration.component.scss'
+  styleUrl: './exploration.component.scss',
 })
-export class ExplorationComponent implements OnInit {
-  private readonly publicStatsService = inject(PublicStatsService);
+export class ExplorationComponent {
+  private readonly router = inject(Router);
+  private readonly translate = inject(TranslateService);
 
-  // Public stats
-  readonly stats = this.publicStatsService.stats;
-  readonly statsLoading = this.publicStatsService.isLoading;
+  readonly mode = signal<ModeExploration>('contenu');
+  readonly motCle = signal('');
+  readonly types = signal<ExplorationType[]>([]);
 
-  ngOnInit(): void {
-    // Load stats if not already loaded
-    if (!this.stats()) {
-      this.publicStatsService.loadStats().subscribe();
+  /** Types de données proposés par le dropdown, dans l'ordre de la maquette. */
+  readonly optionsTypes = computed(() =>
+    EXPLORATION_TYPES.map((type) => ({
+      value: type,
+      label: this.translate.instant(`exploration.types.${type}.pluriel`),
+    })),
+  );
+
+  /** Résumé affiché sous le libellé du dropdown : « Toutes » ou la liste choisie. */
+  readonly resumeTypes = computed(() => {
+    const choisis = this.types();
+    if (!choisis.length) {
+      return this.translate.instant('exploration.search.allData');
     }
+    return choisis
+      .map((type) => this.translate.instant(`exploration.types.${type}.pluriel`))
+      .join(', ');
+  });
+
+  changerMode(mode: ModeExploration): void {
+    this.mode.set(mode);
+  }
+
+  rechercher(): void {
+    const params: Record<string, string> = {};
+    const motCle = this.motCle().trim();
+    if (motCle) {
+      params['q'] = motCle;
+    }
+
+    if (this.mode() === 'plan') {
+      this.router.navigate(['/exploration/plans'], { queryParams: params });
+      return;
+    }
+
+    if (this.types().length) {
+      params['types'] = this.types().join(',');
+    }
+    this.router.navigate(['/exploration/contenus'], { queryParams: params });
   }
 }
