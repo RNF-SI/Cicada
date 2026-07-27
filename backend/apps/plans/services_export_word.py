@@ -138,15 +138,42 @@ def _label_value(doc, label, value):
 # Tableau espèces / habitats / patrimoine géologique
 # ---------------------------------------------------------------------------
 
-def _bio_lists(enjeu):
+def _habitat_codes(enjeux) -> dict:
+    """cd_hab (str) → code de l'habitat dans sa typologie (`lb_code`), #628.
+
+    Une seule requête HabRef pour tout le plan. Renvoie un dict vide si le
+    référentiel n'est pas chargé (dev/tests) ou si aucun habitat n'a de code.
+    """
+    from apps.habitats.models import Habref
+
+    ints = set()
+    for enjeu in enjeux:
+        for hab in enjeu.habitats.all():
+            raw = _txt(getattr(hab, "cd_hab", ""))
+            if raw.isdigit():
+                ints.add(int(raw))
+    if not ints:
+        return {}
+    return {
+        str(cd): _txt(code)
+        for cd, code in Habref.objects.filter(cd_hab__in=ints).values_list("cd_hab", "lb_code")
+        if _txt(code)
+    }
+
+
+def _bio_lists(enjeu, hab_codes=None):
+    hab_codes = hab_codes or {}
     especes = [
         (_txt(t.nom_complet) + (f" ({_txt(t.nom_vern)})" if _txt(getattr(t, "nom_vern", "")) else "")).strip()
         for t in enjeu.taxons.all()
     ]
-    habitats = [
-        _txt(getattr(h, "lb_hab_fr", "")) or _txt(getattr(h, "cd_hab", ""))
-        for h in enjeu.habitats.all()
-    ]
+    habitats = []
+    for h in enjeu.habitats.all():
+        cd_hab = _txt(getattr(h, "cd_hab", ""))
+        label = _txt(getattr(h, "lb_hab_fr", "")) or cd_hab
+        # #628 — le code affiché est celui de la typologie (lb_code), pas le cd_hab HabRef
+        code = hab_codes.get(cd_hab, "")
+        habitats.append(f"{label} ({code})" if code and label else label)
     geol = [_txt(g.nom) or _txt(g.id_inpg) for g in enjeu.geologies.all()]
     for og in enjeu.objets_geologiques.all():
         lbl = _txt(getattr(og.id_objet_geologique, "label", ""))
@@ -158,8 +185,8 @@ def _bio_lists(enjeu):
     return especes, habitats, geol
 
 
-def _add_bio_table(doc, enjeu, table_index, enjeu_name):
-    especes, habitats, geol = _bio_lists(enjeu)
+def _add_bio_table(doc, enjeu, table_index, enjeu_name, hab_codes=None):
+    especes, habitats, geol = _bio_lists(enjeu, hab_codes)
     if not (especes or habitats or geol):
         return
     cap = doc.add_paragraph()
@@ -192,7 +219,7 @@ def _add_bio_table(doc, enjeu, table_index, enjeu_name):
 # Rendu d'un enjeu / FCR
 # ---------------------------------------------------------------------------
 
-def _render_enjeu(doc, enjeu, table_counter, *, is_fcr=False):
+def _render_enjeu(doc, enjeu, table_counter, *, is_fcr=False, hab_codes=None):
     name = _txt(enjeu.libelle) or _txt(enjeu.intitule_court) or f"Enjeu {enjeu.id_enjeu}"
     _enjeu_title(doc, name, _priorite_label(enjeu))
     _label_value(doc, "Précision sur l'état de l'enjeu", enjeu.etat_enjeu)
@@ -200,13 +227,18 @@ def _render_enjeu(doc, enjeu, table_counter, *, is_fcr=False):
 
     if not is_fcr:
         table_counter[0] += 1
-        _add_bio_table(doc, enjeu, table_counter[0], name)
+        _add_bio_table(doc, enjeu, table_counter[0], name, hab_codes)
 
     # Objectifs à long terme → niveaux d'exigence
     for olt in enjeu.objectifs_long_terme.all():
-        _sub_title(doc, _txt(olt.libelle))
+        # #628 — préfixer par « OLT : » pour lever l'ambiguïté sur la nature du titre
+        _sub_title(doc, f"OLT : {_txt(olt.libelle)}")
         _body(doc, olt.description)
-        for ne in olt.niveaux_exigence.all():
+        niveaux = list(olt.niveaux_exigence.all())
+        if niveaux:
+            # #628 — intertitre explicite, comme pour « Facteurs d'influence »
+            _sub_title(doc, "Niveaux d'exigence", color=_TERRA)
+        for ne in niveaux:
             _bullet(doc, ne.libelle)
             _body(doc, ne.description, gray=True)
 
@@ -261,6 +293,7 @@ def build_plan_docx(plan) -> bytes:
     _heading(doc, "LES ENJEUX ET FACTEURS CLÉS DE RÉUSSITE", 1)
 
     enjeux = _prefetched_enjeux(plan)
+    hab_codes = _habitat_codes(enjeux)
     ecologiques = [e for e in enjeux if not _is_fcr(e) and _is_ecologique(e)]
     socioeco = [e for e in enjeux if not _is_fcr(e) and not _is_ecologique(e)]
     fcrs = [e for e in enjeux if _is_fcr(e)]
@@ -268,21 +301,21 @@ def build_plan_docx(plan) -> bytes:
     _heading(doc, "Les enjeux écologiques", 2)
     if ecologiques:
         for enjeu in ecologiques:
-            _render_enjeu(doc, enjeu, table_counter)
+            _render_enjeu(doc, enjeu, table_counter, hab_codes=hab_codes)
     else:
         _body(doc, "Aucun enjeu écologique renseigné.", italic=True, gray=True)
 
     _heading(doc, "Les enjeux socio-économiques et paysagers", 2)
     if socioeco:
         for enjeu in socioeco:
-            _render_enjeu(doc, enjeu, table_counter)
+            _render_enjeu(doc, enjeu, table_counter, hab_codes=hab_codes)
     else:
         _body(doc, "Aucun enjeu socio-économique ou paysager renseigné.", italic=True, gray=True)
 
     _heading(doc, "Les facteurs clés de réussite", 2)
     if fcrs:
         for fcr in fcrs:
-            _render_enjeu(doc, fcr, table_counter, is_fcr=True)
+            _render_enjeu(doc, fcr, table_counter, is_fcr=True, hab_codes=hab_codes)
     else:
         _body(doc, "Aucun facteur clé de réussite renseigné.", italic=True, gray=True)
 
