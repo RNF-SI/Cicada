@@ -120,6 +120,72 @@ un moindre mal comparé à une validation de plan qui échoue.
 
 ---
 
+## API
+
+```
+GET /api/exploration/contenus/    # rechercher dans le contenu des plans
+GET /api/exploration/plans/       # rechercher un plan de gestion
+GET /api/geo/zones/               # arbre régions → départements (filtre)
+```
+
+**Périmètre volontairement transverse.** Ces deux vues n'appliquent **pas** le
+périmètre de lecture de `apps/plans/access.py` (#610) : l'exploration est un
+outil de partage inter-organismes, tout utilisateur connecté voit les plans de
+tous les organismes. Ce qui la borne, c'est l'index lui-même — seuls les plans
+validés, modifiés ou archivés y figurent — et les champs exposés, qui ne
+contiennent ni budget, ni RH, ni données empiriques.
+
+### Paramètres
+
+| Paramètre | Contenus | Plans | Effet |
+|---|:-:|:-:|---|
+| `q` | ✓ | ✓ | Mot-clé. Côté plans : nom du plan, du site, du département ou de la région |
+| `titres_seulement` | ✓ | | `true` (défaut) = `search_titre`, `false` = `search_full` |
+| `types` | ✓ | | Types de données (dropdown de la barre de recherche) |
+| `onglet` | ✓ | | Onglet actif — filtre la liste **sans** toucher aux compteurs |
+| `zones` | ✓ | ✓ | IDs `ref_geo` (départements et/ou régions, indifféremment) |
+| `organismes` | ✓ | ✓ | IDs d'organismes gestionnaires |
+| `types_site` | ✓ | ✓ | Mnémoniques (`RNN`, `RNR`, `PNR`, `ENS`…) |
+| `categories_enjeu` | ✓ | | `ecologique` / `socioeco` |
+| `types_indicateur` | ✓ | | `ETAT` / `PRESSION` / `REPONSE` |
+| `categories_action` | ✓ | | `SP`, `CS`, `EI`, `IP`… |
+| `statuts` | ✓ | ✓ | `en_cours` / `valide` / `archive` |
+| `tri` | ✓ | ✓ | `pertinence` (défaut) / `alphabetique` / `recent` |
+| `page`, `page_size` | ✓ | ✓ | Pagination (20 par défaut, 100 max) |
+
+Les paramètres multi-valeurs acceptent la forme `?types=enjeu,pression` comme
+la forme répétée `?types=enjeu&types=pression`.
+
+### Deux conventions à connaître
+
+**Les compteurs ignorent l'onglet actif.** Ils sont calculés avant `onglet`,
+sinon sélectionner « Pressions » ferait tomber tous les autres onglets à zéro
+et l'utilisateur ne pourrait plus revenir en arrière.
+
+```json
+{
+  "pagination": { "count": 2, "current_page": 1, "...": "..." },
+  "compteurs": { "tout": 24, "enjeu": 8, "pression": 2, "action": 16, "...": 0 },
+  "results": [ ... ]
+}
+```
+
+**Chaque groupe de facettes ne raffine que son propre type.** Cocher
+« Indicateur d'état » restreint les indicateurs mais laisse passer les enjeux,
+pressions et actions : les onglets restent utilisables. *Hypothèse de lecture
+de la maquette, à confirmer avec la maîtrise d'ouvrage* — l'autre lecture
+possible serait que cocher une facette restreigne la recherche au type
+correspondant.
+
+### Tolérance aux fautes de frappe
+
+La recherche combine `tsquery` et similarité trigramme par mot : `flamand`,
+`flammant` ou `hydrolique` retrouvent bien « Flamant rose » et « régime
+hydrologique ». Le seuil `pg_trgm` par défaut (0,6) laisse toutefois passer les
+fautes qui suppriment une syllabe entière (`flamnt`).
+
+---
+
 ## Commandes
 
 ```bash
