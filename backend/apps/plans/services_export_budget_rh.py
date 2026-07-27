@@ -266,10 +266,28 @@ class _LabelMatrix:
         else:
             self.r = hr + 1
 
-    def section(self, label):
+    def section(self, label, prev=None, real=None):
         ws = self.ws
-        ws.merge_cells(start_row=self.r, start_column=1, end_row=self.r, end_column=self.ncols)
+        if prev is None:
+            # En-tête simple, sans valeur : on fusionne toute la ligne.
+            ws.merge_cells(start_row=self.r, start_column=1, end_row=self.r, end_column=self.ncols)
+            _set(ws, self.r, 1, f"► {label}", fill=_SECTION_FILL, font=_F_SECTION, align=_AL_L)
+            self.r += 1
+            return
+        # #618 — en-tête AVEC sous-total par année (total du poste de dépense).
         _set(ws, self.r, 1, f"► {label}", fill=_SECTION_FILL, font=_F_SECTION, align=_AL_L)
+        if self.cout_col:
+            _set(ws, self.r, 2, "", fill=_SECTION_FILL, font=_F_SECTION, align=_AL_C)
+        tp = tr = _ZERO
+        for i, y in enumerate(self.years):
+            pv = prev.get(y, _ZERO); tp += pv
+            _set(ws, self.r, self._yc(i), self.fmt(pv), fill=_SECTION_FILL, font=_F_SECTION)
+            if self.suivi:
+                rv = (real or {}).get(y, _ZERO); tr += rv
+                _set(ws, self.r, self._yc(i, True), self.fmt(rv), fill=_SECTION_FILL, font=_F_SECTION)
+        _set(ws, self.r, self._tc(), self.fmt(tp), fill=_SECTION_FILL, font=_F_SECTION)
+        if self.suivi:
+            _set(ws, self.r, self._tc(True), self.fmt(tr), fill=_SECTION_FILL, font=_F_SECTION)
         self.r += 1
 
     def row(self, label, prev, real=None, *, cout=None, total_style=False):
@@ -559,6 +577,16 @@ def _plan_cost_by_year(pf, attr):
     return out
 
 
+def _plan_cost_by_year_sum(pf, *attrs):
+    """{année: Σ sur actions/organismes de plusieurs composants de coût} (#618)."""
+    out = {y: _ZERO for y in pf.years}
+    for af in pf.actions:
+        for y in pf.years:
+            yt = af.year_total(y)
+            out[y] += sum(getattr(yt, a) for a in attrs)
+    return out
+
+
 def _budget_par_poste_sheet(wb, pf, used, *, suivi):
     name = "Total par type de dépense" if suivi else "TOTAL par poste de dépense"
     m = _LabelMatrix(wb.create_sheet(_title(name, used)), pf.years, suivi=suivi,
@@ -575,13 +603,17 @@ def _budget_par_poste_sheet(wb, pf, used, *, suivi):
         return sum(prev.values()) != 0 or (real and sum(real.values()) != 0)
 
     # Fonctionnement - salarial
-    m.section("Fonctionnement — Coût salarial")
+    m.section("Fonctionnement — Coût salarial",
+              _plan_cost_by_year(pf, "sal_fonct"),
+              _plan_cost_by_year(pf, "rsal_fonct") if suivi else None)
     for lab in salaried:
         prev, real = poste_prev_real(lab, "salf_prev", "salf_real")
         if _nonzero(prev, real):
             m.row(lab, prev, real, cout=_poste_cout_jour(pf, lab))
     # Fonctionnement - autres
-    m.section("Fonctionnement — autres coûts")
+    m.section("Fonctionnement — autres coûts",
+              _plan_cost_by_year_sum(pf, "prest_fonct", "autre_fonct"),
+              _plan_cost_by_year_sum(pf, "rprest_fonct", "rautre_fonct") if suivi else None)
     m.row("Prestataire", _plan_cost_by_year(pf, "prest_fonct"),
           _plan_cost_by_year_real(pf, "rprest_fonct") if suivi else None, cout="/")
     m.row("Autres coûts de fonctionnement", _plan_cost_by_year(pf, "autre_fonct"),
@@ -591,13 +623,17 @@ def _budget_par_poste_sheet(wb, pf, used, *, suivi):
           _plan_cost_by_year_real(pf, "rtot_fonct") if suivi else None,
           cout="", total_style=True)
     # Investissement - salarial
-    m.section("Investissement — Coût salarial")
+    m.section("Investissement — Coût salarial",
+              _plan_cost_by_year(pf, "sal_invest"),
+              _plan_cost_by_year(pf, "rsal_invest") if suivi else None)
     for lab in salaried:
         prev, real = poste_prev_real(lab, "sali_prev", "sali_real")
         if _nonzero(prev, real):
             m.row(lab, prev, real, cout=_poste_cout_jour(pf, lab))
     # Investissement - autres
-    m.section("Investissement — autres coûts")
+    m.section("Investissement — autres coûts",
+              _plan_cost_by_year_sum(pf, "prest_invest", "autre_invest"),
+              _plan_cost_by_year_sum(pf, "rprest_invest", "rautre_invest") if suivi else None)
     m.row("Prestataire", _plan_cost_by_year(pf, "prest_invest"),
           _plan_cost_by_year_real(pf, "rprest_invest") if suivi else None, cout="/")
     m.row("Autres coûts d'investissement", _plan_cost_by_year(pf, "autre_invest"),

@@ -326,6 +326,20 @@ class TestExportWorkbooks:
         assert ws.cell(labels['TOTAL'], c_prev).value == '3 850'
 
 
+    def test_budget_suivi_sous_totaux_par_categorie(self, plan_finance):
+        """#618 — les en-têtes de catégorie portent leur sous-total (plus de ligne vide)."""
+        from apps.plans.services_export_budget_rh import build_budget_suivi_workbook
+        wb = self._load(build_budget_suivi_workbook(plan_finance['plan']))
+        ws = wb['Total par type de dépense']
+        labels = {ws.cell(r, 1).value: r for r in range(1, ws.max_row + 1)}
+        c_prev = ws.max_column - 1
+        # Fonctionnement — Coût salarial 2024 = 10 j × 300 = 3000
+        assert ws.cell(labels['► Fonctionnement — Coût salarial'], c_prev).value == '3 000'
+        # Fonctionnement — autres coûts = 500 (presta) + 100 (autres) = 600
+        assert ws.cell(labels['► Fonctionnement — autres coûts'], c_prev).value == '600'
+        # Investissement — autres coûts = 200 (presta) + 50 (autres) = 250
+        assert ws.cell(labels['► Investissement — autres coûts'], c_prev).value == '250'
+
     def test_rh_suivi(self, plan_finance):
         from apps.plans.services_export_budget_rh import build_rh_suivi_workbook
         wb = self._load(build_rh_suivi_workbook(plan_finance['plan']))
