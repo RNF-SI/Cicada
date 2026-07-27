@@ -570,6 +570,12 @@ class _Writer:
         vc.alignment = _AL_LT
         for col in range(1, self.ncols + 1):
             ws.cell(self.r, col).border = _B
+        # #626 — une valeur multi-lignes (ex. « Détails du suivi » + protocoles)
+        # doit disposer de la hauteur nécessaire pour s'afficher.
+        nlines = str(value).count("\n") + 1 if value else 1
+        if nlines > 1:
+            ws.row_dimensions[self.r].height = max(
+                ws.row_dimensions[self.r].height or 15, 15 * nlines)
         self.r += 1
 
     def year_header(self, label, years):
@@ -740,20 +746,24 @@ def _render_action(ws, op, years, *, is_cs, code_local=""):
     w.section("2) Détails de l'opération")
     details = _txt(op.description)
     if is_cs:
-        w.kv("Détails du suivi", details)
-        # #626 — pour chaque protocole (standardisé ou non) : nom, descriptif et
-        # objectifs, qui manquaient à la fiche.
+        # #626 — protocole(s) intégrés TEXTUELLEMENT dans « Détails du suivi »
+        # (nom, descriptif, objectifs) plutôt qu'en lignes séparées.
+        blocs = [details] if details else []
         suivi = getattr(op, "id_suivi", None)
         for pr in (suivi.protocoles.all() if suivi else []):
             standardise = bool(pr.protocole_dans_campanule)
             nom = _txt(pr.protocole_campanule_nom) if standardise else _txt(pr.nom_protocole)
             nom = nom or _txt(pr.nom_protocole) or _txt(pr.protocole_campanule_nom)
             libelle = "Protocole standardisé" if standardise else "Protocole non standardisé"
-            w.kv(libelle, nom)
-            w.kv("Descriptif du protocole", _txt(pr.description_protocole),
-                 fill=_SUBLABEL_FILL, font_label=_F_SUBLABEL)
-            w.kv("Objectifs du protocole", _txt(pr.objectif_protocole),
-                 fill=_SUBLABEL_FILL, font_label=_F_SUBLABEL)
+            lignes = [f"{libelle} : {nom}" if nom else libelle]
+            desc = _txt(pr.description_protocole)
+            obj = _txt(pr.objectif_protocole)
+            if desc:
+                lignes.append(f"Descriptif du protocole : {desc}")
+            if obj:
+                lignes.append(f"Objectifs du protocole : {obj}")
+            blocs.append("\n".join(lignes))
+        w.kv("Détails du suivi", "\n\n".join(blocs))
     else:
         w.kv("Détails de l'action", details)
     w.kv("Opérateurs", _txt(op.operateurs))
@@ -922,18 +932,17 @@ def _render_monthly(w, months, month_flags):
 
 
 def _reponse_indicateurs(op):
-    """Indicateurs de réponse de l'action : ceux qui lui sont liés, plus ceux qui
-    partagent son NE ou son RA. Dédupliqués, dans l'ordre de rencontre."""
+    """Indicateurs de réponse liés à CETTE action (via ses métriques ou son
+    indicateur direct), dédupliqués dans l'ordre de rencontre.
+
+    #626 — on ne remonte plus aux indicateurs « frères » partageant le NE/RA :
+    comme tout indicateur (réponse compris) a un parent NE/RA, cette expansion
+    faisait apparaître un indicateur de réponse ajouté à une action sur TOUTES
+    les fiches partageant ce NE/RA."""
     out = {}
     for ind in _linked_indicateurs(op):
         if _is_reponse(ind):
             out[ind.pk] = ind
-        for parent in (getattr(ind, "id_ne", None), getattr(ind, "id_resultat_attendu", None)):
-            if not parent:
-                continue
-            for sib in parent.indicateurs.all():
-                if _is_reponse(sib):
-                    out.setdefault(sib.pk, sib)
     return list(out.values())
 
 

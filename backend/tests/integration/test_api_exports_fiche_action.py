@@ -147,11 +147,32 @@ class TestExportFicheAction:
         assert 'Aucun panneau' in texts
         assert 'Tout posé' in texts
 
-    def test_protocole_descriptif_et_objectifs(self, sheet):
+    def test_protocole_dans_details_du_suivi(self, sheet):
+        """#626 — protocole (nom, descriptif, objectifs) intégré textuellement
+        dans « Détails du suivi », sans lignes séparées."""
         vals = self._values(sheet)
-        assert vals['Protocole standardisé'] == 'STOC EPS'
-        assert vals['Descriptif du protocole'] == 'Écoutes ponctuelles standardisées'
-        assert vals['Objectifs du protocole'] == 'Suivre les tendances des oiseaux communs'
+        details = vals['Détails du suivi'] or ''
+        assert 'STOC EPS' in details, details
+        assert 'Écoutes ponctuelles standardisées' in details, details
+        assert 'Suivre les tendances des oiseaux communs' in details, details
+        # plus de lignes séparées pour le protocole
+        assert 'Descriptif du protocole' not in vals
+        assert 'Objectifs du protocole' not in vals
+
+    def test_indicateur_reponse_ne_contamine_pas_les_autres_actions(self, plan_fiche):
+        """#626 — un indicateur de réponse lié à UNE action n'apparaît pas sur une
+        autre action qui ne partage que le NE (via son indicateur d'état)."""
+        from apps.plans.services_export_fiche_action import _reponse_indicateurs
+        from tests.factories.enjeux import OperationFactory
+        op_rep = plan_fiche['op']
+        met_etat = op_rep.metriques.get(nom_metrique='Recouvrement')
+        # action liée uniquement à la métrique d'état (même NE, aucune réponse)
+        op_etat_seul = OperationFactory(metriques=[met_etat])
+        # l'action liée à la réponse la voit toujours...
+        assert any(i.nom_indicateur == 'Panneaux posés'
+                   for i in _reponse_indicateurs(op_rep))
+        # ...mais l'action « état seul » n'hérite pas de l'indicateur du NE
+        assert _reponse_indicateurs(op_etat_seul) == []
 
     def test_carte_de_localisation(self, sheet):
         assert "Emprise de l'action" in self._values(sheet)
