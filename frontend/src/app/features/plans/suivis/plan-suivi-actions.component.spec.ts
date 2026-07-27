@@ -236,3 +236,92 @@ describe('PlanSuiviActionsComponent — choix de l\'année de synthèse (#570)',
     expect(component.aggregateBudget(op, 'past').previsionnel).toBe(100);
   });
 });
+
+/**
+ * #616 — la vue globale du budget restait à 0 € : elle ne lisait que les
+ * enveloppes `budget_fonctionnement` / `_investissement`, jamais alimentées
+ * dans les modes « + type de poste » (le budget y est dérivé des coûts).
+ */
+describe('PlanSuiviActionsComponent — agrégation budget / RH (#616)', () => {
+  let component: PlanSuiviActionsComponent;
+
+  beforeEach(() => {
+    TestBed.configureTestingModule({
+      imports: [PlanSuiviActionsComponent, NoopAnimationsModule, HttpClientTestingModule, TranslateModule.forRoot()],
+      providers: [
+        { provide: ActivatedRoute, useValue: { snapshot: { paramMap: { get: () => null }, queryParamMap: { get: () => null } } } },
+        { provide: Router, useValue: { navigate: jest.fn(), events: of(), createUrlTree: jest.fn(), serializeUrl: jest.fn() } },
+        { provide: AdminService, useValue: { getNomenclaturesByType: () => of([]), getPlanBySlug: () => of(null) } },
+        { provide: EnjeuService, useValue: { getPlanEnjeux: () => of({ enjeux: [], fcr: [] }) } },
+      ],
+    });
+    component = TestBed.createComponent(PlanSuiviActionsComponent).componentInstance;
+    component.currentYear.set(2027);
+  });
+
+  /** Action en ventilation maximale : coûts par organisme + lignes RH. */
+  const action: any = {
+    id_operation: 1, ventilation_mode: 'by_org_type_poste',
+    operation_annees: [{
+      annee: 2027,
+      budget: null, etp: null, budget_fonctionnement: null, budget_investissement: null,
+      organismes: [{
+        id_organisme: 100, budget_fonctionnement: null, budget_investissement: null,
+        cout_stage: '200.00', cout_prestataire: '1000.00', autre_cout: '500.00',
+        realisation: { cout_prestataire_realise: '800.00' },
+      }],
+      rh_lignes: [
+        { id_poste: 1, jours: '10.00', finance: true, categorie_depense: 'fonctionnement', poste_cout_jour: '300.00' },
+      ],
+      realisation: {
+        rh_lignes: [
+          { id_poste: 1, jours: '8.00', finance: true, categorie_depense: 'fonctionnement', poste_cout_jour: '300.00' },
+        ],
+      },
+    }],
+  };
+
+  it('agrège le budget dérivé des coûts saisis, prévu et réalisé', () => {
+    const cell = component.aggregateBudget(action, 'total');
+    expect(cell.previsionnel).toBe(4700);   // 3000 salarial + 200 + 1000 + 500
+    expect(cell.realise).toBe(3200);        // 2400 salarial réalisé + 800
+    expect(cell.hasRealise).toBe(true);
+  });
+
+  it('agrège les jours depuis les lignes RH', () => {
+    const cell = component.aggregateEtp(action, 'total');
+    expect(cell.previsionnel).toBe(10);
+    expect(cell.realise).toBe(8);
+    expect(cell.hasRealise).toBe(true);
+  });
+
+  it('restreint l\'agrégation à la période demandée', () => {
+    expect(component.aggregateBudget(action, 'current').previsionnel).toBe(4700);
+    // 2027 n'est pas une année écoulée : rien à agréger.
+    expect(component.aggregateBudget(action, 'past').previsionnel).toBe(0);
+  });
+
+  it('n\'affiche aucun réalisé tant qu\'aucun suivi n\'est saisi', () => {
+    const sansSuivi = {
+      ...action,
+      operation_annees: [{ ...action.operation_annees[0], realisation: null, organismes: [{ id_organisme: 100, cout_prestataire: '1000.00' }] }],
+    };
+    const cell = component.aggregateBudget(sansSuivi as any, 'total');
+    expect(cell.previsionnel).toBe(4000);   // 3000 salarial + 1000
+    expect(cell.hasRealise).toBe(false);
+  });
+
+  it('conserve le mode « totaux directs »', () => {
+    const directe: any = {
+      id_operation: 2, ventilation_mode: 'none',
+      operation_annees: [{
+        annee: 2027, budget: '1500.00', etp: '3.00', rh_lignes: [],
+        realisation: { budget_realise: '1200.00', rh_lignes: [] },
+      }],
+    };
+    expect(component.aggregateBudget(directe, 'total').previsionnel).toBe(1500);
+    expect(component.aggregateBudget(directe, 'total').realise).toBe(1200);
+    // Repli sur l'ancien champ `etp` pour les données antérieures à #560.
+    expect(component.aggregateEtp(directe, 'total').previsionnel).toBe(3);
+  });
+});

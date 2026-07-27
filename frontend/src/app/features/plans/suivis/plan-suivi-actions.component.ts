@@ -21,6 +21,9 @@ import {
   FilterOption,
 } from '../../../shared/components/filters';
 import { createFilterSet } from '../../../shared/utils/filter-set';
+import {
+  yearBudgetPrev, yearBudgetReal, yearJoursPrev, yearJoursReal,
+} from '../../../shared/utils/operation-budget';
 import { AdminService } from '../../../core/services/admin.service';
 import { EnjeuService } from '../../../core/services/enjeu.service';
 import {
@@ -702,63 +705,29 @@ export class PlanSuiviActionsComponent implements OnInit {
       return true; // total
     });
 
-    const mode = op.ventilation_mode || 'none';
     let previsionnel = 0;
     let realise = 0;
     let hasRealise = false;
 
+    // #616 — budget et RH sont DÉRIVÉS de ce qui est réellement saisi (détail
+    // des coûts, coût salarial des lignes RH), quel que soit le mode de
+    // ventilation : la vue globale lisait les seules enveloppes
+    // `budget_fonctionnement` / `_investissement`, jamais alimentées dans les
+    // modes « + type de poste », et affichait donc 0 € partout.
     for (const oa of annees) {
-      // PRÉVISIONNEL ----------------------------------------------------------
       if (metric === 'budget') {
-        if (mode === 'none') {
-          previsionnel += Number(oa.budget || 0);
-        } else if (mode === 'by_type') {
-          previsionnel += Number(oa.budget_fonctionnement || 0) + Number(oa.budget_investissement || 0);
-        } else {
-          for (const o of oa.organismes || []) {
-            previsionnel += Number(o.budget_fonctionnement || 0) + Number(o.budget_investissement || 0);
-          }
-        }
-      } else {
-        // #569 — depuis #560, la RH prévisionnelle est saisie en lignes
-        // (rh_lignes : poste/organisme × jours × financé). Le champ scalaire
-        // `etp` n'est plus alimenté : on somme les jours des lignes, avec repli
-        // sur l'ancien champ pour les données antérieures.
-        const prevLignes = oa.rh_lignes || [];
-        previsionnel += prevLignes.length > 0
-          ? this.sumRhJours(prevLignes)
-          : Number(oa.etp || 0);
-      }
-
-      // RÉALISÉ ---------------------------------------------------------------
-      const r = oa.realisation;
-      if (metric === 'budget') {
-        if (mode === 'none') {
-          if (r?.budget_realise != null) { realise += Number(r.budget_realise); hasRealise = true; }
-        } else if (mode === 'by_type') {
-          if (r?.budget_fonctionnement_realise != null) { realise += Number(r.budget_fonctionnement_realise); hasRealise = true; }
-          if (r?.budget_investissement_realise != null) { realise += Number(r.budget_investissement_realise); hasRealise = true; }
-        } else {
-          for (const o of oa.organismes || []) {
-            const ro = o.realisation;
-            if (ro?.budget_fonctionnement_realise != null) { realise += Number(ro.budget_fonctionnement_realise); hasRealise = true; }
-            if (ro?.budget_investissement_realise != null) { realise += Number(ro.budget_investissement_realise); hasRealise = true; }
-          }
-        }
-      } else {
-        // #569 — RH réalisée : idem, on somme les jours des lignes réalisées
-        // (rh_lignes de la réalisation). Repli sur les anciens champs scalaires
-        // (etp_realise par organisme ou global) pour les données antérieures.
-        const realLignes = r?.rh_lignes || [];
-        if (realLignes.length > 0) {
-          realise += this.sumRhJours(realLignes);
+        previsionnel += yearBudgetPrev(op, oa).total ?? 0;
+        const real = yearBudgetReal(op, oa);
+        if (real.hasValue) {
+          realise += real.total ?? 0;
           hasRealise = true;
-        } else if (mode === 'by_org' || mode === 'by_org_type') {
-          for (const o of oa.organismes || []) {
-            if (o.realisation?.etp_realise != null) { realise += Number(o.realisation.etp_realise); hasRealise = true; }
-          }
-        } else {
-          if (r?.etp_realise != null) { realise += Number(r.etp_realise); hasRealise = true; }
+        }
+      } else {
+        previsionnel += yearJoursPrev(oa, true) ?? 0;
+        const jours = yearJoursReal(oa);
+        if (jours != null) {
+          realise += jours;
+          hasRealise = true;
         }
       }
     }
@@ -767,8 +736,4 @@ export class PlanSuiviActionsComponent implements OnInit {
     return { previsionnel, realise, hasRealise, ecartPct };
   }
 
-  /** #569 — Somme des jours d'un ensemble de lignes RH (financées ou non). */
-  private sumRhJours(lignes: { jours: number | null }[]): number {
-    return lignes.reduce((sum, l) => sum + Number(l.jours || 0), 0);
-  }
 }

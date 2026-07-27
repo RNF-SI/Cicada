@@ -533,6 +533,11 @@ class RealisationOperationAnneeRHSerializer(serializers.ModelSerializer):
     poste_organisme_nom = serializers.CharField(
         source='id_poste.id_organisme.nom_organisme', read_only=True
     )
+    # #616 — coût jour et organisme du poste, miroir de la ligne prévisionnelle :
+    # sans eux, les vues de synthèse ne peuvent pas valoriser le temps RÉALISÉ
+    # (jours × coût jour) et affichaient un budget réalisé à 0 €.
+    poste_cout_jour = serializers.SerializerMethodField()
+    poste_id_organisme = serializers.SerializerMethodField()
     categorie_depense_display = serializers.CharField(
         source='get_categorie_depense_display', read_only=True
     )
@@ -546,10 +551,17 @@ class RealisationOperationAnneeRHSerializer(serializers.ModelSerializer):
             # fait ») sans que le prévu et le réel se retrouvent dissociés.
             'id_operation_annee_rh',
             'id_poste', 'poste_libelle', 'poste_organisme_nom',
+            'poste_cout_jour', 'poste_id_organisme',
             'id_organisme', 'organisme_nom',
             'jours', 'finance', 'categorie_depense', 'categorie_depense_display',
         ]
         read_only_fields = ['id_realisation_operation_annee_rh', 'categorie_depense_display']
+
+    def get_poste_cout_jour(self, obj):
+        return obj.id_poste.cout_jour if obj.id_poste_id else None
+
+    def get_poste_id_organisme(self, obj):
+        return obj.id_poste.id_organisme_id if obj.id_poste_id else None
 
 
 class GeoJSONGeometryField(serializers.Field):

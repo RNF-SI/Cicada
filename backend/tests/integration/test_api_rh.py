@@ -249,6 +249,26 @@ class TestRealisationRhLignes:
         non_finance = realisation.rh_lignes.get(finance=False)
         assert non_finance.id_organisme_id == organisme.id_organisme
 
+    def test_lignes_realisees_portent_le_cout_jour_du_poste(self, admin_client, operation_annee):
+        """
+        #616 — les vues de synthèse valorisent le temps RÉALISÉ (jours × coût
+        jour du poste). Sans ces champs dénormalisés — que la ligne
+        prévisionnelle expose déjà — le budget réalisé restait à 0 €.
+        """
+        oa = operation_annee
+        organisme = OrganismeFactory()
+        poste = Poste.objects.create(
+            id_pg=oa.id_operation.get_plan_de_gestion(),
+            id_organisme=organisme, nombre=1, cout_jour=300,
+        )
+        r = self._upsert(admin_client, oa, [
+            {'id_poste': poste.id_poste, 'jours': '8.00', 'finance': True},
+        ])
+        assert r.status_code == 200, r.content
+        ligne = r.json()['rh_lignes'][0]
+        assert float(ligne['poste_cout_jour']) == 300.0
+        assert ligne['poste_id_organisme'] == organisme.id_organisme
+
     def test_upsert_remplace_les_lignes(self, admin_client, operation_annee):
         oa = operation_annee
         realisation = RealisationOperationAnnee.objects.create(id_operation_annee=oa)

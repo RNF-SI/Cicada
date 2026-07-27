@@ -17,6 +17,9 @@ import {
   ActionStatus, ACTION_LEGEND_ITEMS, getActionIcon, getActionStatusForYear
 } from '../action-status.util';
 import { computeMetriqueScore, computeCombinedScore, scoreLevelName } from '../metrique-seuils.util';
+import {
+  yearBudgetPrev, yearBudgetReal, yearJoursPrev, yearJoursReal,
+} from '../../../../shared/utils/operation-budget';
 
 interface YearRow {
   annee: number;
@@ -179,10 +182,13 @@ export class ActionGlobalComponent implements OnInit {
       .map(oa => ({
         annee: oa.annee,
         status: getActionStatusForYear(op, oa.annee),
-        budgetPrev: this.budgetPrev(op, oa),
-        budgetReal: this.budgetReal(op, oa),
-        etpPrev: Number(oa.etp || 0),
-        etpReal: Number(oa.realisation?.etp_realise || 0),
+        // #616 — budget et temps de travail DÉRIVÉS de ce qui est réellement
+        // saisi (détail des coûts, lignes RH), sinon les modes « + type de
+        // poste » et les suivis n'apparaissaient jamais dans les totaux.
+        budgetPrev: yearBudgetPrev(op, oa).total ?? 0,
+        budgetReal: yearBudgetReal(op, oa).total ?? 0,
+        etpPrev: yearJoursPrev(oa, true) ?? 0,
+        etpReal: yearJoursReal(oa) ?? 0,
       }));
   });
 
@@ -384,33 +390,6 @@ export class ActionGlobalComponent implements OnInit {
       niveau_realisation_global_manuel: res.niveau_realisation_global_manuel,
       niveau_realisation_global_commentaire: res.niveau_realisation_global_commentaire ?? '',
     } as Operation : cur);
-  }
-
-  // --- Agrégation budget selon le mode de ventilation ---
-  private budgetPrev(op: Operation, oa: OperationAnnee): number {
-    const mode = op.ventilation_mode;
-    if (mode === 'by_org' || mode === 'by_org_type') {
-      return (oa.organismes || []).reduce(
-        (s, o) => s + Number(o.budget_fonctionnement || 0) + Number(o.budget_investissement || 0), 0);
-    }
-    if (mode === 'by_type') {
-      return Number(oa.budget_fonctionnement || 0) + Number(oa.budget_investissement || 0);
-    }
-    return Number(oa.budget || 0);
-  }
-
-  private budgetReal(op: Operation, oa: OperationAnnee): number {
-    const mode = op.ventilation_mode;
-    const r: any = oa.realisation;
-    if (mode === 'by_org' || mode === 'by_org_type') {
-      return (oa.organismes || []).reduce(
-        (s, o: any) => s + Number(o.realisation?.budget_fonctionnement_realise || 0)
-          + Number(o.realisation?.budget_investissement_realise || 0), 0);
-    }
-    if (mode === 'by_type') {
-      return Number(r?.budget_fonctionnement_realise || 0) + Number(r?.budget_investissement_realise || 0);
-    }
-    return Number(r?.budget_realise || 0);
   }
 
   ecartPct(prev: number, real: number): number | null {
