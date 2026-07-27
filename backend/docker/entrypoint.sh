@@ -88,6 +88,11 @@ python manage.py import_campanule || echo "WARN: import_campanule a échoué (no
 echo "=== Import référentiel géographique (régions/départements) ==="
 python manage.py import_ref_geo || echo "WARN: import_ref_geo a échoué (non bloquant)"
 
+# Amorçage de l'index de recherche : ne fait rien si l'index est déjà peuplé.
+# En régime courant il est maintenu par les signaux (validation d'un plan).
+echo "=== Index de recherche ==="
+python manage.py rebuild_search_index --if-empty || echo "WARN: rebuild_search_index a échoué (non bloquant)"
+
 echo "=== Collecte des fichiers statiques ==="
 python manage.py collectstatic --noinput --clear
 

@@ -984,6 +984,8 @@ The backend follows a modular architecture with distinct Django apps:
 - **taxonomy**: Référentiel taxonomique TaxRef (INPN) — schemas `taxonomie`, autocomplete trigramme, import via COPY
 - **habitats**: Référentiel des habitats HabRef (INPN) — schema `ref_habitats`, autocomplete, correspondances
 - **campanule**: Catalogue des protocoles CAMPanule (INPN/PatriNat) — schema `ref_campanule`, protocoles/méthodes/techniques, autocomplete. **Côté UI on parle de « protocole standardisé » (plus de « Campanule »).** Inclut aussi les 5 protocoles standardisés **MhéO** (#565, zones humides) chargés dans les mêmes tables via `data_mheo.py` (codes `>= 900000`, cf. `MHEO_BASE`)
+- **geo**: Découpage administratif (régions/départements) — schema `ref_geo`, structure GeoNature (`bib_areas_types` + `l_areas`), rattachement des sites calculé par intersection PostGIS (`cor_site_area`). Voir [docs/NOMENCLATURES.md](docs/NOMENCLATURES.md#découpage-administratif-ref_geo)
+- **search**: Index de recherche du contenu des plans — schema `ccd_search`, table dénormalisée + `tsvector`/`pg_trgm`. Alimente l'**exploration des données**. Voir [docs/RECHERCHE.md](docs/RECHERCHE.md)
 - **api**: Public API endpoints with token auth *(à venir)*
 - **core**: Shared utilities, base models (nomenclatures), common middleware
   - See [docs/NOMENCLATURES.md](docs/NOMENCLATURES.md) for reference data management (nomenclatures, TaxRef, HabRef, CAMPanule)
@@ -1054,11 +1056,19 @@ The application is named **Cicada** (`ccd_` prefix for custom schemas).
     - `prot_*_rel`, `meth_*_rel`, `tech_*_rel`: Tables de correspondance N-N
     - `autocomplete_protocole`: Table dénormalisée avec index trigramme
 
+12. **ref_geo schema** (GeoNature compatible): Découpage administratif
+    - `bib_areas_types`: Types de zones (`REG`, `DEP`)
+    - `l_areas`: 109 départements + 26 régions (géométrie 4326, `id_area_parent` = région du département)
+    - `cor_site_area`: Rattachement site ↔ zone, calculé par intersection PostGIS (`source` : `intersect` / `nearest` / `manual`)
+
+13. **ccd_search schema** (Cicada): Index de recherche de l'exploration des données
+    - `t_recherche_contenu`: une ligne par objet explorable (enjeu, facteur, pression, objectif LT/OP, indicateur, action) d'un plan **validé/modifié/archivé**, avec facettes dénormalisées et deux `tsvector` **générés** (`search_titre` pour le mode « titres uniquement », `search_full` pour le mode élargi)
+
 **Database Configuration**:
 ```python
 # search_path configured in settings/base.py
 OPTIONS = {
-    'options': '-c search_path=utilisateurs,referentiels,ref_nomenclatures,ref_geo,general,fichiers,ccd_commons,ccd_notifications,taxonomie,ref_habitats,ref_inpg,ref_campanule,public'
+    'options': '-c search_path=utilisateurs,referentiels,ref_nomenclatures,ref_geo,general,fichiers,ccd_commons,ccd_notifications,ccd_search,taxonomie,ref_habitats,ref_inpg,ref_campanule,public'
 }
 ```
 

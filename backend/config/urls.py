@@ -26,6 +26,7 @@ urlpatterns = [
     path('api/taxref/', include('apps.taxonomy.urls')),
     path('api/habref/', include('apps.habitats.urls')),
     path('api/inpg/', include('apps.geology.urls')),
+    path('api/geo/', include('apps.geo.urls')),
     path('api/campanule/', include('apps.campanule.urls')),
     path('admin/system/', include('apps.system.urls')),
     path('api/system/', include('apps.system.api_urls')),

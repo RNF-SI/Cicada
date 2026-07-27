@@ -25,8 +25,8 @@ from apps.core.models import Nomenclature
 from apps.users.permissions import IsReferent
 from .permissions import CanModifyOnlyDraftPlan, IsReferentOrReadOnly
 from .access import (
-    INDICATEUR_TO_PG_PATHS, assert_plan_access, prefix_paths, scope_by_plan,
-    user_can_access_plan,
+    INDICATEUR_TO_PG_PATHS, OPERATION_TO_PG_PATHS, assert_plan_access,
+    prefix_paths, scope_by_plan, user_can_access_plan,
 )
 from .reorder import do_reorder
 from .serializers_operations import (
@@ -119,11 +119,8 @@ class OperationViewSet(viewsets.ModelViewSet):
     # - son suivi/inventaire (id_suivi→SuiviInventaire.id_pg)
     # Tous les chemins sont pris en compte pour qu'une opération créée avec un
     # suivi mais sans métrique reste visible.
-    _PG_PATHS = (
-        prefix_paths('metriques__id_indicateur', INDICATEUR_TO_PG_PATHS)
-        + prefix_paths('id_indicateur', INDICATEUR_TO_PG_PATHS)
-        + ('id_suivi__id_pg',)
-    )
+    # Constante partagée avec l'indexation de recherche (apps/search).
+    _PG_PATHS = OPERATION_TO_PG_PATHS
 
     def get_queryset(self):
         # Le créateur d'une opération orpheline (sans plan résolu) la voit toujours.

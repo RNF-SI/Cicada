@@ -29,6 +29,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'django.contrib.gis',
+    'django.contrib.postgres',
     'rest_framework',
     'rest_framework_simplejwt',
     # 'rest_framework_gis',  # Sera réactivé après build container
@@ -44,6 +45,7 @@ INSTALLED_APPS = [
     'apps.habitats',
     'apps.geology',
     'apps.geo',
+    'apps.search',
     'apps.campanule',
     'apps.system',
 ]
@@ -97,7 +99,7 @@ DATABASES = {
         'HOST': os.environ.get('POSTGRES_HOST', 'db'),
         'PORT': os.environ.get('POSTGRES_PORT', '5432'),
         'OPTIONS': {
-            'options': '-c search_path=utilisateurs,referentiels,ref_nomenclatures,ref_geo,general,fichiers,ccd_commons,ccd_notifications,taxonomie,ref_habitats,ref_inpg,ref_campanule,public'
+            'options': '-c search_path=utilisateurs,referentiels,ref_nomenclatures,ref_geo,general,fichiers,ccd_commons,ccd_notifications,ccd_search,taxonomie,ref_habitats,ref_inpg,ref_campanule,public'
         },
     }
 }

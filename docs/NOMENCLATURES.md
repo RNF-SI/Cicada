@@ -15,6 +15,7 @@ Ce document explique l'intégration et la gestion des données de référence da
 | **TaxRef** (taxonomie) | `taxonomie` | INPN via geonature.fr | ~700 000 taxons | Automatique au démarrage |
 | **INPG** (géologie) | `ref_inpg` | Projet socle (base INPG de l'INPN) | ~3 956 sites | Automatique au démarrage |
 | **CAMPanule** (protocoles) | `ref_campanule` | INPN (PatriNat) | ~4 500 entrées | Automatique au démarrage |
+| **Découpage administratif** | `ref_geo` | GeoJSON embarqué (IGN via OpenDataSoft) | 109 départements + 26 régions | Automatique au démarrage |
 
 ### Provenance des données
 
@@ -22,6 +23,7 @@ Ce document explique l'intégration et la gestion des données de référence da
 - **HabRef** : Référentiel des habitats naturels publié par le MNHN/INPN. Contient les habitats des principales typologies françaises et européennes (EUNIS, Corine Biotope, Natura 2000, etc.). Téléchargé depuis `geonature.fr/data/inpn/habitats/`. Mises à jour très rares.
 - **INPG** : Inventaire National du Patrimoine Géologique, géré par le BRGM pour le compte du MNHN. Contient les sites géologiques d'intérêt patrimonial de France. Les données sont extraites du « projet socle » (base INPG de l'INPN), filtrées pour ne conserver que les sites à diffusion publique (`niveau_de_diffusion = 'Public'`). Stockées dans un fichier SQL interne au projet (`backend/inpg_data/inpg_inserts.sql`). **⚠️ L'intégration INPG est susceptible d'évoluer** : le mode de récupération des données pourrait changer à terme (API, téléchargement automatique, etc.).
 - **CAMPanule** : CATalogue des Méthodes et des Protocoles de collecte de données naturalistes, publié par PatriNat (OFB/CNRS/MNHN) via l'INPN. Contient les protocoles standardisés, les méthodes et techniques de collecte utilisés en France. Données publiques embarquées dans le projet en CSV (`backend/apps/campanule/data/`). Version 1, septembre 2022.
+- **Découpage administratif** : contours des départements et collectivités françaises (métropole, DROM, COM, TAAF), dérivés du découpage IGN et embarqués en GeoJSON dans le projet (`backend/apps/geo/data/departements.geojson`, ~550 Ko). Les régions sont reconstruites en base par agrégation `ST_Union` des départements. Sert au filtre « zone géographique » de l'exploration des données. Voir la section dédiée ci-dessous.
 
 ### Mode lite pour les tests
 
@@ -551,6 +553,76 @@ L'autocomplete sur 700k taxons fonctionne en <50ms grâce à :
 2. **Index trigramme** (`gin_trgm_ops`) : recherche partielle performante
 3. **`unaccent()`** : insensibilité aux accents sans pénalité de performance
 4. **`similarity()`** : tri par pertinence (les résultats les plus proches en premier)
+
+---
+
+## Découpage administratif (`ref_geo`)
+
+### Présentation
+
+Référentiel des **régions et départements**, utilisé par le filtre « zone géographique »
+de l'exploration des données. Les sites de CICADA n'ont aucun champ administratif : leur
+rattachement est **calculé géométriquement** à partir de leur emprise PostGIS.
+
+Le schéma reprend la structure de GeoNature (`bib_areas_types` + `l_areas`), avec deux
+écarts assumés : les géométries sont en EPSG:4326 comme le reste de CICADA (GeoNature les
+stocke dans le SRID local), et `l_areas.id_area_parent` matérialise le lien
+département → région, nécessaire à l'arbre du filtre.
+
+### Tables
+
+| Table | Contenu |
+|---|---|
+| `ref_geo.bib_areas_types` | Types de zones : `REG`, `DEP` |
+| `ref_geo.l_areas` | 109 départements + 26 régions, avec géométrie et centroïde |
+| `ref_geo.cor_site_area` | Rattachement site ↔ zone, avec l'origine du lien |
+
+Un site rattaché à un département l'est aussi à la région correspondante, pour que le
+filtre puisse interroger indifféremment l'un ou l'autre niveau.
+
+### Origine d'un rattachement (`cor_site_area.source`)
+
+| Valeur | Signification |
+|---|---|
+| `intersect` | L'emprise du site intersecte le département. Cas normal. |
+| `nearest` | Aucune intersection terrestre (réserve marine, géométrie approximative au large) : rattachement au département le plus proche, dans la limite de 1° (~110 km). Au-delà, le site n'est rattaché à rien. |
+| `manual` | Saisie manuelle. **Jamais écrasé** par un recalcul. |
+
+### Commandes
+
+```bash
+# Import du référentiel + recalcul du rattachement des sites (auto au démarrage)
+docker compose exec web python manage.py import_ref_geo
+
+# Réimport complet
+docker compose exec web python manage.py import_ref_geo --force
+
+# Import sans recalculer les sites
+docker compose exec web python manage.py import_ref_geo --no-link
+
+# Recalcul du rattachement seul
+docker compose exec web python manage.py refresh_site_areas
+docker compose exec web python manage.py refresh_site_areas --site 12
+docker compose exec web python manage.py refresh_site_areas --missing
+```
+
+Le rattachement est aussi recalculé automatiquement à la création d'un site et à chaque
+modification de sa géométrie (signal `apps/geo/signals.py`). Un échec de recalcul est
+journalisé sans jamais bloquer l'enregistrement du site : le rattachement peut être
+rejoué avec `refresh_site_areas --missing`.
+
+### API
+
+```bash
+GET /api/geo/zones/        # Arbre régions → départements (sans géométries)
+```
+
+### Mise à jour des contours
+
+Les données sont **versionnées dans le dépôt** plutôt que téléchargées au démarrage :
+CICADA est installé chez des clients dont les serveurs n'ont pas toujours d'accès
+Internet sortant. La procédure de mise à jour est décrite dans
+`backend/apps/geo/data/README.md`.
 
 ---
 

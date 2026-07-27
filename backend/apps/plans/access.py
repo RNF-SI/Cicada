@@ -40,6 +40,15 @@ def prefix_paths(prefix, paths):
     return tuple(f'{prefix}__{path}' for path in paths)
 
 
+# Chemins ORM menant d'une Operation à son plan : par son suivi/inventaire en
+# priorité, sinon par son indicateur ou par une de ses métriques.
+OPERATION_TO_PG_PATHS = (
+    prefix_paths('metriques__id_indicateur', INDICATEUR_TO_PG_PATHS)
+    + prefix_paths('id_indicateur', INDICATEUR_TO_PG_PATHS)
+    + ('id_suivi__id_pg',)
+)
+
+
 def has_global_plan_access(user) -> bool:
     """Vrai pour les rôles qui voient tous les plans (super admin, rédacteur principal)."""
     return user.is_super_admin() or user.is_redacteur_principal()
