@@ -966,6 +966,45 @@ class OperationAnnee(models.Model):
         null=True, blank=True,
         help_text=_("Utilisé en mode ventilation par type de budget (sans organismes)")
     )
+    # #624 — détail des coûts au niveau de l'année, miroir exact de
+    # `OperationAnneeOrganisme` : le mode « par type de budget + type de poste »
+    # affiche la même décomposition que la ventilation maximale, simplement
+    # sans déclinaison par organisme gestionnaire. Le coût salarial n'est pas
+    # stocké : il se calcule (jours des postes × coût jour).
+    cout_stage = models.DecimalField(
+        _("Coût stage (€)"),
+        max_digits=12, decimal_places=2,
+        null=True, blank=True,
+        help_text=_("Utilisé en mode ventilation 'by_type_poste' (sans organismes)")
+    )
+    cout_prestataire = models.DecimalField(
+        _("Coût prestataire — fonctionnement (€)"),
+        max_digits=12, decimal_places=2,
+        null=True, blank=True
+    )
+    autre_cout = models.DecimalField(
+        _("Autre coût — fonctionnement (€)"),
+        max_digits=12, decimal_places=2,
+        null=True, blank=True
+    )
+    autre_cout_commentaire = models.CharField(
+        _("Commentaire autre coût — fonctionnement"),
+        max_length=255, blank=True, default=''
+    )
+    cout_prestataire_invest = models.DecimalField(
+        _("Coût prestataire — investissement (€)"),
+        max_digits=12, decimal_places=2,
+        null=True, blank=True
+    )
+    autre_cout_invest = models.DecimalField(
+        _("Autre coût — investissement (€)"),
+        max_digits=12, decimal_places=2,
+        null=True, blank=True
+    )
+    autre_cout_invest_commentaire = models.CharField(
+        _("Commentaire autre coût — investissement"),
+        max_length=255, blank=True, default=''
+    )
     periodicite_mensuelle = models.JSONField(
         _("Périodicité mensuelle"),
         default=dict, blank=True,
@@ -1180,6 +1219,37 @@ class RealisationOperationAnnee(models.Model):
         max_digits=8, decimal_places=2,
         null=True, blank=True,
         help_text=_("Utilisé quand ventilation_mode ne porte pas sur les organismes")
+    )
+    # #624 — détail des coûts RÉALISÉS au niveau de l'année, miroir du
+    # prévisionnel porté par `OperationAnnee` (mode « par type de budget +
+    # type de poste »). Le coût salarial réalisé se calcule (jours × coût jour).
+    cout_stage_realise = models.DecimalField(
+        _("Coût stage réalisé (€)"),
+        max_digits=12, decimal_places=2, null=True, blank=True
+    )
+    cout_prestataire_realise = models.DecimalField(
+        _("Coût prestataire réalisé — fonctionnement (€)"),
+        max_digits=12, decimal_places=2, null=True, blank=True
+    )
+    autre_cout_realise = models.DecimalField(
+        _("Autre coût réalisé — fonctionnement (€)"),
+        max_digits=12, decimal_places=2, null=True, blank=True
+    )
+    autre_cout_commentaire_realise = models.CharField(
+        _("Commentaire autre coût réalisé — fonctionnement"),
+        max_length=255, blank=True, default=''
+    )
+    cout_prestataire_invest_realise = models.DecimalField(
+        _("Coût prestataire réalisé — investissement (€)"),
+        max_digits=12, decimal_places=2, null=True, blank=True
+    )
+    autre_cout_invest_realise = models.DecimalField(
+        _("Autre coût réalisé — investissement (€)"),
+        max_digits=12, decimal_places=2, null=True, blank=True
+    )
+    autre_cout_invest_commentaire_realise = models.CharField(
+        _("Commentaire autre coût réalisé — investissement"),
+        max_length=255, blank=True, default=''
     )
     # #541 — Opérateur(s) et financeur(s) RÉALISÉS pour l'année, distincts des
     # valeurs prévues portées par l'Operation. Saisis dans le suivi (par année).

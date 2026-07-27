@@ -1185,6 +1185,155 @@
                             }
                           </tr>
 
+                        <!-- MODE 5: Par type de budget + type de poste (#624) —
+                             même détail des coûts que la ventilation maximale,
+                             mais global : pas de déclinaison par organisme. -->
+                        } @else if (budgetMode() === 'by_type_poste') {
+                          <!-- ── Fonctionnement ── -->
+                          <tr class="budget-subheader">
+                            <td class="label-cell label-indent text-bold" [attr.colspan]="operationAnnees.length + 1">
+                              {{ 'enjeux.operations.budgetFonctionnement' | translate }}
+                            </td>
+                          </tr>
+                          <tr>
+                            <td class="label-cell label-indent">{{ 'enjeux.operations.coutSalarial' | translate }}</td>
+                            @for (annee of operationAnnees; track annee.annee; let i = $index) {
+                              <td class="computed-cell">{{ getTypeCoutSalarial(i, 'fonctionnement') | number:'1.0-2' }} €</td>
+                            }
+                          </tr>
+                          <tr>
+                            <td class="label-cell label-indent">{{ 'enjeux.operations.coutStage' | translate }}</td>
+                            @for (annee of operationAnnees; track annee.annee; let i = $index) {
+                              <td>
+                                <div class="prog-input-wrapper">
+                                  <input type="text" inputmode="decimal"
+                                         class="prog-input prog-input-suffixed"
+                                         [disabled]="isYearLocked(i)"
+                                         [value]="formatBudget(getTypeCost(i).coutStage)"
+                                         (change)="updateTypeCoutStage(i, $any($event.target).value)">
+                                  <span class="prog-input-suffix">€</span>
+                                </div>
+                              </td>
+                            }
+                          </tr>
+                          <tr>
+                            <td class="label-cell label-indent">{{ 'enjeux.operations.coutPrestataire' | translate }}</td>
+                            @for (annee of operationAnnees; track annee.annee; let i = $index) {
+                              <td>
+                                <div class="prog-input-wrapper">
+                                  <input type="text" inputmode="decimal"
+                                         class="prog-input prog-input-suffixed"
+                                         [disabled]="isYearLocked(i)"
+                                         [value]="formatBudget(getTypeCost(i).coutPresta)"
+                                         (change)="updateTypeCoutPresta(i, $any($event.target).value)">
+                                  <span class="prog-input-suffix">€</span>
+                                </div>
+                              </td>
+                            }
+                          </tr>
+                          <tr>
+                            <td class="label-cell label-indent">{{ 'enjeux.operations.autresCoutsFonct' | translate }}</td>
+                            @for (annee of operationAnnees; track annee.annee; let i = $index) {
+                              <td>
+                                <div class="prog-input-wrapper">
+                                  <input type="text" inputmode="decimal"
+                                         class="prog-input prog-input-suffixed"
+                                         [disabled]="isYearLocked(i)"
+                                         [value]="formatBudget(getTypeCost(i).autreCout)"
+                                         (change)="updateTypeAutreCout(i, $any($event.target).value)">
+                                  <span class="prog-input-suffix">€</span>
+                                </div>
+                              </td>
+                            }
+                          </tr>
+                          <tr>
+                            <td class="label-cell label-indent">{{ 'enjeux.operations.autreCoutCommentaire' | translate }}</td>
+                            @for (annee of operationAnnees; track annee.annee; let i = $index) {
+                              <td>
+                                <input type="text" class="prog-input"
+                                       [disabled]="isYearLocked(i)"
+                                       [value]="getTypeCost(i).autreComment"
+                                       (change)="updateTypeAutreComment(i, $any($event.target).value)"
+                                       [placeholder]="'enjeux.operations.autreCoutCommentairePlaceholder' | translate">
+                              </td>
+                            }
+                          </tr>
+                          <tr>
+                            <td class="label-cell label-indent text-bold">{{ 'enjeux.operations.budgetTotalFonct' | translate }}</td>
+                            @for (annee of operationAnnees; track annee.annee; let i = $index) {
+                              <td class="computed-cell">{{ getTypeFonctTotal(i) | number:'1.0-2' }} €</td>
+                            }
+                          </tr>
+
+                          <!-- ── Investissement ── -->
+                          <tr class="budget-subheader">
+                            <td class="label-cell label-indent text-bold" [attr.colspan]="operationAnnees.length + 1">
+                              {{ 'enjeux.operations.budgetInvestissement' | translate }}
+                            </td>
+                          </tr>
+                          <tr>
+                            <td class="label-cell label-indent">{{ 'enjeux.operations.coutSalarial' | translate }}</td>
+                            @for (annee of operationAnnees; track annee.annee; let i = $index) {
+                              <td class="computed-cell">{{ getTypeCoutSalarial(i, 'investissement') | number:'1.0-2' }} €</td>
+                            }
+                          </tr>
+                          <tr>
+                            <td class="label-cell label-indent">{{ 'enjeux.operations.coutPrestataire' | translate }}</td>
+                            @for (annee of operationAnnees; track annee.annee; let i = $index) {
+                              <td>
+                                <div class="prog-input-wrapper">
+                                  <input type="text" inputmode="decimal"
+                                         class="prog-input prog-input-suffixed"
+                                         [disabled]="isYearLocked(i)"
+                                         [value]="formatBudget(getTypeCost(i).coutPrestaInvest)"
+                                         (change)="updateTypeCoutPrestaInvest(i, $any($event.target).value)">
+                                  <span class="prog-input-suffix">€</span>
+                                </div>
+                              </td>
+                            }
+                          </tr>
+                          <tr>
+                            <td class="label-cell label-indent">{{ 'enjeux.operations.autresCoutsInvest' | translate }}</td>
+                            @for (annee of operationAnnees; track annee.annee; let i = $index) {
+                              <td>
+                                <div class="prog-input-wrapper">
+                                  <input type="text" inputmode="decimal"
+                                         class="prog-input prog-input-suffixed"
+                                         [disabled]="isYearLocked(i)"
+                                         [value]="formatBudget(getTypeCost(i).autreCoutInvest)"
+                                         (change)="updateTypeAutreCoutInvest(i, $any($event.target).value)">
+                                  <span class="prog-input-suffix">€</span>
+                                </div>
+                              </td>
+                            }
+                          </tr>
+                          <tr>
+                            <td class="label-cell label-indent">{{ 'enjeux.operations.autreCoutCommentaire' | translate }}</td>
+                            @for (annee of operationAnnees; track annee.annee; let i = $index) {
+                              <td>
+                                <input type="text" class="prog-input"
+                                       [disabled]="isYearLocked(i)"
+                                       [value]="getTypeCost(i).autreCommentInvest"
+                                       (change)="updateTypeAutreCommentInvest(i, $any($event.target).value)"
+                                       [placeholder]="'enjeux.operations.autreCoutCommentairePlaceholder' | translate">
+                              </td>
+                            }
+                          </tr>
+                          <tr>
+                            <td class="label-cell label-indent text-bold">{{ 'enjeux.operations.budgetTotalInvest' | translate }}</td>
+                            @for (annee of operationAnnees; track annee.annee; let i = $index) {
+                              <td class="computed-cell">{{ getTypeInvestTotal(i) | number:'1.0-2' }} €</td>
+                            }
+                          </tr>
+
+                          <!-- Budget total (fonctionnement + investissement) -->
+                          <tr class="org-total-row">
+                            <td class="label-cell label-indent text-bold">{{ 'enjeux.operations.budgetTotal' | translate }}</td>
+                            @for (annee of operationAnnees; track annee.annee; let i = $index) {
+                              <td class="computed-cell">{{ getTypePosteTotal(i) | number:'1.0-2' }} €</td>
+                            }
+                          </tr>
+
                         <!-- MODE 3: Par type de budget (global) -->
                         } @else if (budgetMode() === 'by_type') {
                           <tr>

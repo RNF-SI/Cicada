@@ -638,6 +638,15 @@ export interface RealisationOperationAnnee {
   budget_fonctionnement_realise?: number | null;
   budget_investissement_realise?: number | null;
   etp_realise?: number | null;
+  // #624 — détail des coûts RÉALISÉS au niveau année (mode « par type de
+  // budget + type de poste »), miroir du prévisionnel.
+  cout_stage_realise?: number | null;
+  cout_prestataire_realise?: number | null;
+  autre_cout_realise?: number | null;
+  autre_cout_commentaire_realise?: string;
+  cout_prestataire_invest_realise?: number | null;
+  autre_cout_invest_realise?: number | null;
+  autre_cout_invest_commentaire_realise?: string;
   // #541 — opérateur(s)/financeur(s) réalisés, saisis par année dans le suivi.
   operateurs_realises?: string | null;
   financeurs_realises?: string | null;
@@ -681,6 +690,16 @@ export interface OperationAnnee {
   etp: number | null;
   budget_fonctionnement?: number | null;
   budget_investissement?: number | null;
+  // #624 — détail des coûts au niveau année (mode « par type de budget +
+  // type de poste » : même décomposition que la ventilation maximale, sans
+  // organisme). Le coût salarial n'est pas stocké, il se calcule.
+  cout_stage?: number | null;
+  cout_prestataire?: number | null;
+  autre_cout?: number | null;
+  autre_cout_commentaire?: string;
+  cout_prestataire_invest?: number | null;
+  autre_cout_invest?: number | null;
+  autre_cout_invest_commentaire?: string;
   periodicite_mensuelle: Record<string, boolean>;
   geom?: GeoJSONGeometry;
   organismes?: OperationAnneeOrganisme[];
@@ -706,6 +725,14 @@ export interface RealisationUpsertPayload {
   budget_fonctionnement_realise?: number | null;
   budget_investissement_realise?: number | null;
   etp_realise?: number | null;
+  // #624 — détail des coûts réalisés au niveau année (sans organisme).
+  cout_stage_realise?: number | null;
+  cout_prestataire_realise?: number | null;
+  autre_cout_realise?: number | null;
+  autre_cout_commentaire_realise?: string;
+  cout_prestataire_invest_realise?: number | null;
+  autre_cout_invest_realise?: number | null;
+  autre_cout_invest_commentaire_realise?: string;
   // #541 — opérateur(s)/financeur(s) réalisés (par année).
   operateurs_realises?: string | null;
   financeurs_realises?: string | null;

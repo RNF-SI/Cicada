@@ -171,6 +171,16 @@ export class SuiviSaisieComponent implements OnInit {
     budget_fonctionnement_realise: [null],
     budget_investissement_realise: [null],
     etp_realise: [null],
+    // #624 — détail des coûts réalisés au niveau année (mode « par type de
+    // budget + type de poste » : même décomposition que la ventilation
+    // maximale, sans organisme).
+    cout_stage_realise: [null],
+    cout_prestataire_realise: [null],
+    autre_cout_realise: [null],
+    autre_cout_commentaire_realise: [''],
+    cout_prestataire_invest_realise: [null],
+    autre_cout_invest_realise: [null],
+    autre_cout_invest_commentaire_realise: [''],
     // #541 — opérateur(s)/financeur(s) réalisés (par année).
     operateurs_realises: [''],
     financeurs_realises: [''],
@@ -243,11 +253,15 @@ export class SuiviSaisieComponent implements OnInit {
     return mode === 'by_org' || mode === 'by_org_type' || mode === 'by_org_type_poste';
   });
 
-  /** Affiche la décomposition fonctionnement/investissement. */
-  isByType = computed(() => {
-    const m = this.ventilationMode();
-    return m === 'by_type' || m === 'by_type_poste';
-  });
+  /** Affiche la décomposition fonctionnement/investissement (enveloppes saisies). */
+  isByType = computed(() => this.ventilationMode() === 'by_type');
+
+  /**
+   * #624 — « par type de budget + type de poste » : même détail des coûts que
+   * la ventilation maximale (salarial calculé, stage, prestataire, autres,
+   * séparés fonctionnement / investissement), mais SANS organisme.
+   */
+  isGlobalDetailVentilation = computed(() => this.ventilationMode() === 'by_type_poste');
 
   /**
    * #608 — ventilation maximale : le tableau de réalisation détaille les coûts
@@ -402,6 +416,115 @@ export class SuiviSaisieComponent implements OnInit {
   }
   prevYearTotal(year: number): number {
     return this.prevYearFonctTotal(year) + this.prevYearInvestTotal(year);
+  }
+
+  // ---- #624 — mêmes coûts, mais GLOBAUX (mode « type de budget + poste ») ----
+
+  /**
+   * Coût salarial d'une année et d'une catégorie, toutes cibles confondues.
+   * Pendant « sans organisme » de `realCoutSalarial` / `prevCoutSalarial`.
+   */
+  realGlobalCoutSalarial(year: number, categorie: 'fonctionnement' | 'investissement'): number {
+    const coutJourOf = (id: number | null | undefined) =>
+      Number(this.postes().find(p => p.id_poste === id)?.cout_jour ?? 0) || 0;
+
+    if (year === this.selectedYear()) {
+      let total = 0;
+      for (const c of this.rhLignesFA.controls) {
+        if ((c.get('categorie_depense')?.value ?? 'fonctionnement') !== categorie) continue;
+        total += (Number(c.get('jours')?.value) || 0) * coutJourOf(c.get('id_poste')?.value);
+      }
+      return total;
+    }
+
+    let total = 0;
+    for (const r of this.getOaForYear(year)?.realisation?.rh_lignes ?? []) {
+      if ((r.categorie_depense ?? 'fonctionnement') !== categorie) continue;
+      total += (Number(r.jours) || 0) * coutJourOf(r.id_poste);
+    }
+    return total;
+  }
+
+  prevGlobalCoutSalarial(year: number, categorie: 'fonctionnement' | 'investissement'): number {
+    let total = 0;
+    for (const l of this.getOaForYear(year)?.rh_lignes ?? []) {
+      if ((l.categorie_depense ?? 'fonctionnement') !== categorie) continue;
+      total += (Number(l.jours) || 0) * this.rhPosteInfo(l).coutJour;
+    }
+    return total;
+  }
+
+  /** Coût réalisé saisi au niveau de l'année (form si année active, sinon serveur). */
+  private realGlobalCost(year: number, field:
+    'cout_stage_realise' | 'cout_prestataire_realise' | 'autre_cout_realise'
+    | 'cout_prestataire_invest_realise' | 'autre_cout_invest_realise'): number {
+    if (year === this.selectedYear()) {
+      return Number(this.form.get(field)?.value) || 0;
+    }
+    return Number((this.getOaForYear(year)?.realisation as any)?.[field]) || 0;
+  }
+
+  /** Coût prévisionnel saisi au niveau de l'année. */
+  private prevGlobalCost(year: number, field:
+    'cout_stage' | 'cout_prestataire' | 'autre_cout'
+    | 'cout_prestataire_invest' | 'autre_cout_invest'): number {
+    return Number((this.getOaForYear(year) as any)?.[field]) || 0;
+  }
+
+  realGlobalFonctTotal(year: number): number {
+    return this.realGlobalCoutSalarial(year, 'fonctionnement')
+      + this.realGlobalCost(year, 'cout_stage_realise')
+      + this.realGlobalCost(year, 'cout_prestataire_realise')
+      + this.realGlobalCost(year, 'autre_cout_realise');
+  }
+
+  realGlobalInvestTotal(year: number): number {
+    return this.realGlobalCoutSalarial(year, 'investissement')
+      + this.realGlobalCost(year, 'cout_prestataire_invest_realise')
+      + this.realGlobalCost(year, 'autre_cout_invest_realise');
+  }
+
+  realGlobalTotal(year: number): number {
+    return this.realGlobalFonctTotal(year) + this.realGlobalInvestTotal(year);
+  }
+
+  prevGlobalFonctTotal(year: number): number {
+    return this.prevGlobalCoutSalarial(year, 'fonctionnement')
+      + this.prevGlobalCost(year, 'cout_stage')
+      + this.prevGlobalCost(year, 'cout_prestataire')
+      + this.prevGlobalCost(year, 'autre_cout');
+  }
+
+  prevGlobalInvestTotal(year: number): number {
+    return this.prevGlobalCoutSalarial(year, 'investissement')
+      + this.prevGlobalCost(year, 'cout_prestataire_invest')
+      + this.prevGlobalCost(year, 'autre_cout_invest');
+  }
+
+  prevGlobalTotal(year: number): number {
+    return this.prevGlobalFonctTotal(year) + this.prevGlobalInvestTotal(year);
+  }
+
+  /** Valeur brute d'un coût prévisionnel de l'année (pour l'affichage direct). */
+  planCost(year: number, field:
+    'cout_stage' | 'cout_prestataire' | 'autre_cout'
+    | 'cout_prestataire_invest' | 'autre_cout_invest'): number | null {
+    const v = (this.getOaForYear(year) as any)?.[field];
+    return v == null ? null : Number(v);
+  }
+
+  /** Valeur brute d'un coût réalisé enregistré (années non actives). */
+  realCostValue(year: number, field:
+    'cout_stage_realise' | 'cout_prestataire_realise' | 'autre_cout_realise'
+    | 'cout_prestataire_invest_realise' | 'autre_cout_invest_realise'): number | null {
+    const v = (this.getOaForYear(year)?.realisation as any)?.[field];
+    return v == null ? null : Number(v);
+  }
+
+  /** Commentaire « autre coût » réalisé enregistré (années non actives). */
+  realCostComment(year: number, field:
+    'autre_cout_commentaire_realise' | 'autre_cout_invest_commentaire_realise'): string {
+    return (this.getOaForYear(year)?.realisation as any)?.[field] || '';
   }
 
   /**
@@ -935,6 +1058,14 @@ export class SuiviSaisieComponent implements OnInit {
       budget_fonctionnement_realise: r?.budget_fonctionnement_realise ?? null,
       budget_investissement_realise: r?.budget_investissement_realise ?? null,
       etp_realise: r?.etp_realise ?? null,
+      // #624 — détail des coûts réalisés au niveau année.
+      cout_stage_realise: r?.cout_stage_realise ?? null,
+      cout_prestataire_realise: r?.cout_prestataire_realise ?? null,
+      autre_cout_realise: r?.autre_cout_realise ?? null,
+      autre_cout_commentaire_realise: r?.autre_cout_commentaire_realise ?? '',
+      cout_prestataire_invest_realise: r?.cout_prestataire_invest_realise ?? null,
+      autre_cout_invest_realise: r?.autre_cout_invest_realise ?? null,
+      autre_cout_invest_commentaire_realise: r?.autre_cout_invest_commentaire_realise ?? '',
       operateurs_realises: r?.operateurs_realises ?? '',
       financeurs_realises: r?.financeurs_realises ?? '',
       commentaires: r?.commentaires ?? '',
@@ -1258,7 +1389,18 @@ export class SuiviSaisieComponent implements OnInit {
     };
     if (!orgVentilation) {
       annualPayload.etp_realise = v.etp_realise ?? null;
-      if (this.isByType()) {
+      if (this.isGlobalDetailVentilation()) {
+        // #624 — détail des coûts au niveau année. Les enveloppes fonct/invest
+        // ne sont PAS envoyées : elles se recalculent depuis les composants,
+        // sinon l'export les recompterait par-dessus le détail.
+        annualPayload.cout_stage_realise = v.cout_stage_realise ?? null;
+        annualPayload.cout_prestataire_realise = v.cout_prestataire_realise ?? null;
+        annualPayload.autre_cout_realise = v.autre_cout_realise ?? null;
+        annualPayload.autre_cout_commentaire_realise = v.autre_cout_commentaire_realise ?? '';
+        annualPayload.cout_prestataire_invest_realise = v.cout_prestataire_invest_realise ?? null;
+        annualPayload.autre_cout_invest_realise = v.autre_cout_invest_realise ?? null;
+        annualPayload.autre_cout_invest_commentaire_realise = v.autre_cout_invest_commentaire_realise ?? '';
+      } else if (this.isByType()) {
         annualPayload.budget_fonctionnement_realise = v.budget_fonctionnement_realise ?? null;
         annualPayload.budget_investissement_realise = v.budget_investissement_realise ?? null;
       } else {

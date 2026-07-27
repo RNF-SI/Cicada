@@ -279,6 +279,33 @@ class TestRealisationUpsertEndpoint:
         assert response.data['autre_cout_invest_realise'] == '300.00'
         assert response.data['autre_cout_commentaire_realise'] == 'Frais divers'
 
+    def test_upsert_persists_realised_cost_detail_without_org(self, api_client, realisation_test_data):
+        """#624 — mode « par type de budget + type de poste » : le détail des
+        coûts réalisés est porté par l'ANNÉE, sans organisme.
+        """
+        api_client.force_authenticate(user=realisation_test_data['referent'])
+        response = api_client.post('/api/plans/realisations/upsert/', {
+            'id_operation_annee': realisation_test_data['op_annee'].pk,
+            'cout_stage_realise': '200.00',
+            'cout_prestataire_realise': '1200.00',
+            'autre_cout_realise': '500.00',
+            'autre_cout_commentaire_realise': 'Frais divers',
+            'cout_prestataire_invest_realise': '700.00',
+            'autre_cout_invest_realise': '300.00',
+            'autre_cout_invest_commentaire_realise': 'Matériel',
+        }, format='json')
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data['cout_stage_realise'] == '200.00'
+        assert response.data['cout_prestataire_realise'] == '1200.00'
+        assert response.data['autre_cout_commentaire_realise'] == 'Frais divers'
+        assert response.data['autre_cout_invest_realise'] == '300.00'
+        assert response.data['autre_cout_invest_commentaire_realise'] == 'Matériel'
+        instance = RealisationOperationAnnee.objects.get(
+            id_operation_annee=realisation_test_data['op_annee']
+        )
+        assert instance.cout_prestataire_realise == Decimal('1200.00')
+        assert instance.autre_cout_invest_realise == Decimal('300.00')
+
     def test_upsert_persists_operateurs_financeurs_realises(self, api_client, realisation_test_data):
         """#541 — opérateur(s)/financeur(s) réalisés saisis par année dans le suivi."""
         api_client.force_authenticate(user=realisation_test_data['referent'])

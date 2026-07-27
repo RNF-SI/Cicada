@@ -343,7 +343,195 @@
                 <!-- #609 — « Périodicité réalisée » supprimée : dérivée du niveau. -->
 
                 <!-- Budget (selon mode) -->
-                @if (isByType()) {
+                @if (isGlobalDetailVentilation()) {
+                  <!-- #624 — « par type de budget + type de poste » : même
+                       détail des coûts que la ventilation maximale, sans
+                       organisme. Chaque coût réalisé est précédé de son
+                       prévisionnel, comme en #614. -->
+                  <tr class="budget-subheader">
+                    <td [attr.colspan]="years().length + 1">{{ 'plans.suivis.saisie.table.fonctionnement' | translate }}</td>
+                  </tr>
+                  <tr class="prev-row">
+                    <td class="col-field">{{ 'plans.suivis.saisie.table.coutSalarialPrev' | translate }}</td>
+                    @for (y of years(); track y) {
+                      <td [class.active]="y === selectedYear()">{{ formatNumber(prevGlobalCoutSalarial(y, 'fonctionnement'), ' €') }}</td>
+                    }
+                  </tr>
+                  <tr>
+                    <td class="col-field">{{ 'plans.suivis.saisie.table.coutSalarial' | translate }}</td>
+                    @for (y of years(); track y) {
+                      <td [class.active]="y === selectedYear()">{{ formatNumber(realGlobalCoutSalarial(y, 'fonctionnement'), ' €') }}</td>
+                    }
+                  </tr>
+                  <tr class="prev-row">
+                    <td class="col-field">{{ 'plans.suivis.saisie.table.coutStagePrev' | translate }}</td>
+                    @for (y of years(); track y) {
+                      <td [class.active]="y === selectedYear()">{{ formatNumber(planCost(y, 'cout_stage'), ' €') }}</td>
+                    }
+                  </tr>
+                  <tr>
+                    <td class="col-field">{{ 'plans.suivis.saisie.table.coutStage' | translate }}</td>
+                    @for (y of years(); track y) {
+                      <td [class.active]="y === selectedYear()">
+                        @if (y === selectedYear()) {
+                          <input type="number" min="0" step="0.01" formControlName="cout_stage_realise" placeholder="€" />
+                        } @else {
+                          {{ formatNumber(realCostValue(y, 'cout_stage_realise'), ' €') }}
+                        }
+                      </td>
+                    }
+                  </tr>
+                  <tr class="prev-row">
+                    <td class="col-field">{{ 'plans.suivis.saisie.table.coutPrestatairePrev' | translate }}</td>
+                    @for (y of years(); track y) {
+                      <td [class.active]="y === selectedYear()">{{ formatNumber(planCost(y, 'cout_prestataire'), ' €') }}</td>
+                    }
+                  </tr>
+                  <tr>
+                    <td class="col-field">{{ 'plans.suivis.saisie.table.coutPrestataire' | translate }}</td>
+                    @for (y of years(); track y) {
+                      <td [class.active]="y === selectedYear()">
+                        @if (y === selectedYear()) {
+                          <input type="number" min="0" step="0.01" formControlName="cout_prestataire_realise" placeholder="€" />
+                        } @else {
+                          {{ formatNumber(realCostValue(y, 'cout_prestataire_realise'), ' €') }}
+                        }
+                      </td>
+                    }
+                  </tr>
+                  <tr class="prev-row">
+                    <td class="col-field">{{ 'plans.suivis.saisie.table.autresCoutsFonctPrev' | translate }}</td>
+                    @for (y of years(); track y) {
+                      <td [class.active]="y === selectedYear()">{{ formatNumber(planCost(y, 'autre_cout'), ' €') }}</td>
+                    }
+                  </tr>
+                  <tr>
+                    <td class="col-field">{{ 'plans.suivis.saisie.table.autresCoutsFonct' | translate }}</td>
+                    @for (y of years(); track y) {
+                      <td [class.active]="y === selectedYear()">
+                        @if (y === selectedYear()) {
+                          <input type="number" min="0" step="0.01" formControlName="autre_cout_realise" placeholder="€" />
+                        } @else {
+                          {{ formatNumber(realCostValue(y, 'autre_cout_realise'), ' €') }}
+                        }
+                      </td>
+                    }
+                  </tr>
+                  <tr>
+                    <td class="col-field">{{ 'plans.suivis.saisie.table.commentaire' | translate }}</td>
+                    @for (y of years(); track y) {
+                      <td [class.active]="y === selectedYear()">
+                        @if (y === selectedYear()) {
+                          <input type="text" formControlName="autre_cout_commentaire_realise" />
+                        } @else {
+                          {{ realCostComment(y, 'autre_cout_commentaire_realise') || '—' }}
+                        }
+                      </td>
+                    }
+                  </tr>
+                  <tr class="subtotal-row prev-row">
+                    <td class="col-field">{{ 'plans.suivis.saisie.table.totalFonctPrev' | translate }}</td>
+                    @for (y of years(); track y) {
+                      <td [class.active]="y === selectedYear()">{{ formatNumber(prevGlobalFonctTotal(y), ' €') }}</td>
+                    }
+                  </tr>
+                  <tr class="subtotal-row">
+                    <td class="col-field">{{ 'plans.suivis.saisie.table.totalFonct' | translate }}</td>
+                    @for (y of years(); track y) {
+                      <td [class.active]="y === selectedYear()">{{ formatNumber(realGlobalFonctTotal(y), ' €') }}</td>
+                    }
+                  </tr>
+
+                  <!-- Investissement -->
+                  <tr class="budget-subheader">
+                    <td [attr.colspan]="years().length + 1">{{ 'plans.suivis.saisie.table.investissement' | translate }}</td>
+                  </tr>
+                  <tr class="prev-row">
+                    <td class="col-field">{{ 'plans.suivis.saisie.table.coutSalarialPrev' | translate }}</td>
+                    @for (y of years(); track y) {
+                      <td [class.active]="y === selectedYear()">{{ formatNumber(prevGlobalCoutSalarial(y, 'investissement'), ' €') }}</td>
+                    }
+                  </tr>
+                  <tr>
+                    <td class="col-field">{{ 'plans.suivis.saisie.table.coutSalarial' | translate }}</td>
+                    @for (y of years(); track y) {
+                      <td [class.active]="y === selectedYear()">{{ formatNumber(realGlobalCoutSalarial(y, 'investissement'), ' €') }}</td>
+                    }
+                  </tr>
+                  <tr class="prev-row">
+                    <td class="col-field">{{ 'plans.suivis.saisie.table.coutPrestatairePrev' | translate }}</td>
+                    @for (y of years(); track y) {
+                      <td [class.active]="y === selectedYear()">{{ formatNumber(planCost(y, 'cout_prestataire_invest'), ' €') }}</td>
+                    }
+                  </tr>
+                  <tr>
+                    <td class="col-field">{{ 'plans.suivis.saisie.table.coutPrestataire' | translate }}</td>
+                    @for (y of years(); track y) {
+                      <td [class.active]="y === selectedYear()">
+                        @if (y === selectedYear()) {
+                          <input type="number" min="0" step="0.01" formControlName="cout_prestataire_invest_realise" placeholder="€" />
+                        } @else {
+                          {{ formatNumber(realCostValue(y, 'cout_prestataire_invest_realise'), ' €') }}
+                        }
+                      </td>
+                    }
+                  </tr>
+                  <tr class="prev-row">
+                    <td class="col-field">{{ 'plans.suivis.saisie.table.autresCoutsInvestPrev' | translate }}</td>
+                    @for (y of years(); track y) {
+                      <td [class.active]="y === selectedYear()">{{ formatNumber(planCost(y, 'autre_cout_invest'), ' €') }}</td>
+                    }
+                  </tr>
+                  <tr>
+                    <td class="col-field">{{ 'plans.suivis.saisie.table.autresCoutsInvest' | translate }}</td>
+                    @for (y of years(); track y) {
+                      <td [class.active]="y === selectedYear()">
+                        @if (y === selectedYear()) {
+                          <input type="number" min="0" step="0.01" formControlName="autre_cout_invest_realise" placeholder="€" />
+                        } @else {
+                          {{ formatNumber(realCostValue(y, 'autre_cout_invest_realise'), ' €') }}
+                        }
+                      </td>
+                    }
+                  </tr>
+                  <tr>
+                    <td class="col-field">{{ 'plans.suivis.saisie.table.commentaire' | translate }}</td>
+                    @for (y of years(); track y) {
+                      <td [class.active]="y === selectedYear()">
+                        @if (y === selectedYear()) {
+                          <input type="text" formControlName="autre_cout_invest_commentaire_realise" />
+                        } @else {
+                          {{ realCostComment(y, 'autre_cout_invest_commentaire_realise') || '—' }}
+                        }
+                      </td>
+                    }
+                  </tr>
+                  <tr class="subtotal-row prev-row">
+                    <td class="col-field">{{ 'plans.suivis.saisie.table.totalInvestPrev' | translate }}</td>
+                    @for (y of years(); track y) {
+                      <td [class.active]="y === selectedYear()">{{ formatNumber(prevGlobalInvestTotal(y), ' €') }}</td>
+                    }
+                  </tr>
+                  <tr class="subtotal-row">
+                    <td class="col-field">{{ 'plans.suivis.saisie.table.totalInvest' | translate }}</td>
+                    @for (y of years(); track y) {
+                      <td [class.active]="y === selectedYear()">{{ formatNumber(realGlobalInvestTotal(y), ' €') }}</td>
+                    }
+                  </tr>
+                  <tr class="subtotal-row prev-row">
+                    <td class="col-field">{{ 'plans.suivis.saisie.table.budgetTotalPrev' | translate }}</td>
+                    @for (y of years(); track y) {
+                      <td [class.active]="y === selectedYear()">{{ formatNumber(prevGlobalTotal(y), ' €') }}</td>
+                    }
+                  </tr>
+                  <tr class="subtotal-row">
+                    <td class="col-field">{{ 'plans.suivis.saisie.table.budgetTotalReal' | translate }}</td>
+                    @for (y of years(); track y) {
+                      <td [class.active]="y === selectedYear()">{{ formatNumber(realGlobalTotal(y), ' €') }}</td>
+                    }
+                  </tr>
+
+                } @else if (isByType()) {
                   <tr class="prev-row">
                     <td class="col-field">{{ 'plans.suivis.saisie.table.budgetFonct' | translate }} (prévi.)</td>
                     @for (y of years(); track y) {

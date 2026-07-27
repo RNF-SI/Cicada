@@ -202,6 +202,45 @@ class TestExportFinance:
         af = build_action_finance(op, {}, defaultdict(poste_entry_factory))
         assert af.is_org_ventilated is False
 
+    def test_mode_by_type_poste_detail_des_couts_sur_lannee(self, plan_finance):
+        """#624 — mode « par type de budget + type de poste » : le détail des
+        coûts est porté par l'ANNÉE (pas par l'organisme) et alimente les
+        totaux fonctionnement / investissement comme la ventilation maximale.
+        """
+        from collections import defaultdict
+        from decimal import Decimal
+        from apps.plans.services_export_finance import (
+            build_action_finance, poste_entry_factory,
+        )
+        op = plan_finance['op']
+        op.ventilation_mode = 'by_type_poste'
+        op.save(update_fields=['ventilation_mode'])
+        # Plus de ventilation par organisme : le détail migre sur l'année.
+        OperationAnneeOrganisme.objects.filter(
+            id_operation_annee__id_operation=op).delete()
+        oa = OperationAnnee.objects.get(id_operation=op, annee=2024)
+        oa.cout_stage = 200
+        oa.cout_prestataire = 500
+        oa.autre_cout = 100
+        oa.cout_prestataire_invest = 300
+        oa.autre_cout_invest = 50
+        oa.save()
+
+        af = build_action_finance(op, {}, defaultdict(poste_entry_factory))
+        assert af.is_org_ventilated is False
+        # Les coûts saisis sur l'année tombent dans la cellule « non ventilé »…
+        c = af.cell(0, 2024)
+        assert c.prest_fonct == Decimal('500')
+        assert c.prest_invest == Decimal('300')
+        # stage + autres coûts, l'enveloppe budget_fonctionnement étant vide.
+        assert c.autre_fonct == Decimal('300')
+        assert c.autre_invest == Decimal('50')
+        # …et le total de l'année cumule le salarial calculé des lignes RH
+        # (10 j × 300 €), rattaché au poste.
+        total = af.year_total(2024)
+        assert total.sal_fonct == Decimal('3000')
+        assert total.tot_fonct == Decimal('3800')   # 3000 + 500 + 300
+        assert total.tot_invest == Decimal('350')   # 300 + 50
 
     def test_code_action_pg_est_le_code_affichage(self, plan_finance):
         """#618 — la colonne « Code action PG » porte le code calculé (CS1…)."""

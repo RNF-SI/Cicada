@@ -28,6 +28,8 @@ function createComponentInstance(): OperationFormComponent {
   comp.orgBudgets = {};
   comp.directTotals = {};
   comp.typeBudgets = {};
+  // #624 — détail des coûts par année (mode « type de budget + type de poste »).
+  comp.typeCosts = {};
   comp.orgByOrgData = {};
   comp.programmationMensuelleDefaut = {};
   // #560 — lignes RH (dérivées des postes ou des organismes selon le mode)
@@ -38,11 +40,9 @@ function createComponentInstance(): OperationFormComponent {
   (comp as any).declinaisonParPoste = signal(false);
   (comp as any).postes = signal<any[]>([]);
   // #600 — computeds dérivés du mode.
-  (comp as any).budgetMode = computed(() => {
-    const m = (comp as any).ventilationMode();
-    if (m === 'by_type_poste') return 'by_type';
-    return m;
-  });
+  // #624 — chaque mode a désormais son propre layout budget (`by_type_poste`
+  // ne réutilise plus celui de `by_type`).
+  (comp as any).budgetMode = computed(() => (comp as any).ventilationMode());
   (comp as any).isPosteVentilation = computed(() => {
     const m = (comp as any).ventilationMode();
     return m === 'by_type_poste' || m === 'by_org_type_poste';
@@ -234,7 +234,8 @@ describe('OperationFormComponent — ventilation budgétaire', () => {
   describe('#600 modes « + type de poste » et coût salarial', () => {
     it('budgetMode mappe les modes « + type de poste » et isPosteVentilation', () => {
       comp.onModeToggle('by_type_poste');
-      expect(comp.budgetMode()).toBe('by_type');
+      // #624 — layout dédié : détail des coûts sans organisme.
+      expect(comp.budgetMode()).toBe('by_type_poste');
       expect(comp.isPosteVentilation()).toBe(true);
 
       comp.onModeToggle('by_org_type_poste');
@@ -243,6 +244,48 @@ describe('OperationFormComponent — ventilation budgétaire', () => {
 
       comp.onModeToggle('by_org_type');
       expect(comp.isPosteVentilation()).toBe(false);
+    });
+
+    // #624 — le mode « par type de budget + type de poste » détaille les coûts
+    // exactement comme la ventilation maximale, mais sans organisme.
+    it('#624 totalise le détail des coûts sans déclinaison par organisme', () => {
+      comp.onModeToggle('by_type_poste');
+      // Deux postes de deux organismes différents : tout se cumule au global.
+      comp.postes.set([
+        { id_poste: 5, id_pg: 1, id_organisme: 100, cout_jour: 300, nombre: 1 } as any,
+        { id_poste: 6, id_pg: 1, id_organisme: 101, cout_jour: 200, nombre: 1 } as any,
+      ]);
+      comp.rhLines = [
+        { id_poste: 5, id_organisme: null, finance: true, categorie_depense: 'fonctionnement', jours: { 0: 10 }, derived: true },
+        { id_poste: 6, id_organisme: null, finance: true, categorie_depense: 'investissement', jours: { 0: 5 }, derived: true },
+      ];
+      expect(comp.getTypeCoutSalarial(0, 'fonctionnement')).toBe(3000);
+      expect(comp.getTypeCoutSalarial(0, 'investissement')).toBe(1000);
+
+      comp.updateTypeCoutStage(0, '500');
+      comp.updateTypeCoutPresta(0, '250');
+      comp.updateTypeAutreCout(0, '100');
+      comp.updateTypeCoutPrestaInvest(0, '400');
+      comp.updateTypeAutreCoutInvest(0, '50');
+
+      expect(comp.getTypeFonctTotal(0)).toBe(3850);   // 3000 + 500 + 250 + 100
+      expect(comp.getTypeInvestTotal(0)).toBe(1450);  // 1000 + 400 + 50
+      expect(comp.getTypePosteTotal(0)).toBe(5300);
+    });
+
+    it('#624 duplique le détail des coûts sur les années suivantes', () => {
+      comp.onModeToggle('by_type_poste');
+      comp.updateTypeCoutStage(0, '500');
+      comp.updateTypeAutreComment(0, 'Location de matériel');
+      comp.updateTypeAutreCoutInvest(0, '200');
+
+      comp.duplicateFirstColumn();
+
+      expect(comp.getTypeCost(1).coutStage).toBe(500);
+      expect(comp.getTypeCost(1).autreComment).toBe('Location de matériel');
+      expect(comp.getTypeCost(1).autreCoutInvest).toBe(200);
+      // Le budget de l'année reste DÉRIVÉ des composants saisis.
+      expect(comp.getTypePosteTotal(1)).toBe(700);
     });
 
     it('getOrgCoutSalarial = Σ jours × coût jour des postes de l’organisme', () => {

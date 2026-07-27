@@ -131,3 +131,4 @@
          un même libellé ne doit plus changer de fond d'un bloc à l'autre ;
       5. la colonne de l'année active reste surlignée terra-cotta sur toutes les
          lignes, prévisionnelles comprises.
+- [ ] #624 — Ventilation « par type de budget + type de poste » — sur une action en mode « Par type de budget + type de poste » : le tableau budget affiche Fonctionnement (coût salarial calculé, stage, prestataire, autres coûts, commentaire, total) puis Investissement (salarial, prestataire, autres, commentaire, total) puis le budget total, SANS bloc par organisme. Vérifier que « Dupliquer valeurs de la 1ère colonne » recopie le détail, puis, dans le suivi de l'année, que les mêmes lignes apparaissent en prévu / réalisé. Sur une action déjà enregistrée dans ce mode AVANT la correction, vérifier que les montants Fonctionnement/Investissement se retrouvent en « Autres coûts ».

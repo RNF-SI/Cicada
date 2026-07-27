@@ -605,6 +605,12 @@ class RealisationOperationAnneeSerializer(serializers.ModelSerializer):
             'budget_realise',
             'budget_fonctionnement_realise', 'budget_investissement_realise',
             'etp_realise',
+            # #624 — détail des coûts réalisés au niveau année (mode
+            # « par type de budget + type de poste », sans organismes).
+            'cout_stage_realise',
+            'cout_prestataire_realise', 'autre_cout_realise', 'autre_cout_commentaire_realise',
+            'cout_prestataire_invest_realise', 'autre_cout_invest_realise',
+            'autre_cout_invest_commentaire_realise',
             'operateurs_realises', 'financeurs_realises',
             'rh_lignes',
             'date_ajout', 'date_maj', 'id_utilisateur_maj',
@@ -694,6 +700,10 @@ class OperationAnneeSerializer(serializers.ModelSerializer):
         fields = [
             'id_operation_annee', 'annee', 'periodicite',
             'budget', 'etp', 'budget_fonctionnement', 'budget_investissement',
+            # #624 — détail des coûts au niveau année (mode « par type de
+            # budget + type de poste », sans organismes).
+            'cout_stage', 'cout_prestataire', 'autre_cout', 'autre_cout_commentaire',
+            'cout_prestataire_invest', 'autre_cout_invest', 'autre_cout_invest_commentaire',
             'periodicite_mensuelle', 'geom', 'organismes',
             'rh_lignes',
             'realisation',
@@ -1292,6 +1302,16 @@ class OperationAnneeWriteSerializer(serializers.Serializer):
     etp = serializers.DecimalField(max_digits=8, decimal_places=2, required=False, allow_null=True)
     budget_fonctionnement = serializers.DecimalField(max_digits=12, decimal_places=2, required=False, allow_null=True)
     budget_investissement = serializers.DecimalField(max_digits=12, decimal_places=2, required=False, allow_null=True)
+    # #624 — détail des coûts au niveau année (mode « par type de budget +
+    # type de poste » : même décomposition que la ventilation maximale, sans
+    # déclinaison par organisme).
+    cout_stage = serializers.DecimalField(max_digits=12, decimal_places=2, required=False, allow_null=True)
+    cout_prestataire = serializers.DecimalField(max_digits=12, decimal_places=2, required=False, allow_null=True)
+    autre_cout = serializers.DecimalField(max_digits=12, decimal_places=2, required=False, allow_null=True)
+    autre_cout_commentaire = serializers.CharField(max_length=255, required=False, allow_blank=True, default='')
+    cout_prestataire_invest = serializers.DecimalField(max_digits=12, decimal_places=2, required=False, allow_null=True)
+    autre_cout_invest = serializers.DecimalField(max_digits=12, decimal_places=2, required=False, allow_null=True)
+    autre_cout_invest_commentaire = serializers.CharField(max_length=255, required=False, allow_blank=True, default='')
     periodicite_mensuelle = serializers.JSONField(default=dict, required=False)
     geom = serializers.JSONField(required=False, allow_null=True, default=None)
     organismes = OperationAnneeOrganismeWriteSerializer(many=True, required=False, default=[])

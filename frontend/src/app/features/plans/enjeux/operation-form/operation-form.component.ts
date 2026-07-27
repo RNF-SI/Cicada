@@ -628,17 +628,16 @@ export class OperationFormComponent implements OnInit {
   ventilationMode = signal<VentilationMode>('none');
 
   /**
-   * Layout du tableau budget (#600, #602).
-   * - `by_type_poste` réutilise le rendu simple « par type de budget ».
+   * Layout du tableau budget (#600, #602, #624).
+   * - `by_type` : Fonct / Invest saisis + total.
    * - `by_org_type` (sans poste) : Fonct / Invest / Total seulement (#602c).
-   * - `by_org_type_poste` : détail des coûts par organisme, séparé
-   *   fonctionnement / investissement (modèle Excel de #602).
+   * - `by_type_poste` : détail des coûts (salarial calculé, stage, prestataire,
+   *   autres), séparé fonctionnement / investissement, SANS organisme (#624).
+   * - `by_org_type_poste` : le même détail, décliné par organisme (#602).
    */
-  budgetMode = computed<'none' | 'by_org' | 'by_type' | 'by_org_type' | 'by_org_type_poste'>(() => {
-    const m = this.ventilationMode();
-    if (m === 'by_type_poste') return 'by_type';
-    return m;
-  });
+  budgetMode = computed<'none' | 'by_org' | 'by_type' | 'by_org_type' | 'by_type_poste' | 'by_org_type_poste'>(
+    () => this.ventilationMode(),
+  );
 
   /** Vrai si le mode décline le temps de travail par poste (#600). */
   isPosteVentilation = computed<boolean>(() =>
@@ -664,6 +663,21 @@ export class OperationFormComponent implements OnInit {
 
   /** Budget par type (mode 'by_type') : key = yearIndex */
   typeBudgets: Record<number, { fonct: number | null; invest: number | null; etp: number | null }> = {};
+
+  /**
+   * #624 — détail des coûts par année en mode « par type de budget + type de
+   * poste » : mêmes composants que la ventilation maximale (`OrgBudgetCell`),
+   * mais globaux, sans déclinaison par organisme. key = yearIndex.
+   */
+  typeCosts: Record<number, {
+    coutStage: number | null;
+    coutPresta: number | null;
+    autreCout: number | null;
+    autreComment: string;
+    coutPrestaInvest: number | null;
+    autreCoutInvest: number | null;
+    autreCommentInvest: string;
+  }> = {};
 
   /** Budget par organisme (mode 'by_org', totaux) : key = `${yearIndex}-${organismeId}` */
   orgByOrgData: Record<string, { budget: number | null; etp: number | null }> = {};
@@ -1584,9 +1598,9 @@ export class OperationFormComponent implements OnInit {
     // Restore ventilation mode from backend (or infer for legacy data)
     const savedMode = (op.ventilation_mode || 'none') as VentilationMode;
     this.ventilationMode.set(savedMode);
-    // #600 — les modes « + type de poste » réutilisent le layout budget de base.
-    const savedBudgetMode = savedMode === 'by_type_poste' ? 'by_type'
-      : savedMode === 'by_org_type_poste' ? 'by_org_type' : savedMode;
+    // #600/#624 — `by_org_type_poste` réutilise le stockage par organisme ;
+    // `by_type_poste` a son propre détail de coûts au niveau de l'année.
+    const savedBudgetMode = savedMode === 'by_org_type_poste' ? 'by_org_type' : savedMode;
 
     if (op.operation_annees && op.operation_annees.length > 0) {
       if (savedBudgetMode === 'by_org') {
@@ -1611,6 +1625,34 @@ export class OperationFormComponent implements OnInit {
               etp: serverAnnee.etp != null ? parseFloat(String(serverAnnee.etp)) : null,
             };
           }
+        }
+      } else if (savedBudgetMode === 'by_type_poste') {
+        // #624 — détail des coûts porté par l'année. Les enveloppes
+        // fonctionnement / investissement saisies AVANT #624 (quand ce mode
+        // réutilisait le layout « par type de budget ») sont réinjectées dans
+        // « Autres coûts » : rien n'est perdu, et le montant reste corrigeable.
+        for (const serverAnnee of op.operation_annees) {
+          const yearIdx = this.operationAnnees.findIndex(a => a.annee === serverAnnee.annee);
+          if (yearIdx < 0) continue;
+          const num = (v: unknown): number | null =>
+            v != null ? parseFloat(String(v)) : null;
+          const legacyFonct = num(serverAnnee.budget_fonctionnement);
+          const legacyInvest = num(serverAnnee.budget_investissement);
+          const autreCout = num(serverAnnee.autre_cout);
+          const autreCoutInvest = num(serverAnnee.autre_cout_invest);
+          this.typeCosts[yearIdx] = {
+            coutStage: num(serverAnnee.cout_stage),
+            coutPresta: num(serverAnnee.cout_prestataire),
+            autreCout: autreCout ?? legacyFonct,
+            autreComment: serverAnnee.autre_cout_commentaire ?? '',
+            coutPrestaInvest: num(serverAnnee.cout_prestataire_invest),
+            autreCoutInvest: autreCoutInvest ?? legacyInvest,
+            autreCommentInvest: serverAnnee.autre_cout_invest_commentaire ?? '',
+          };
+          this.typeBudgets[yearIdx] = {
+            fonct: legacyFonct, invest: legacyInvest,
+            etp: num(serverAnnee.etp),
+          };
         }
       } else if (savedBudgetMode === 'none') {
         for (const serverAnnee of op.operation_annees) {
@@ -2093,6 +2135,30 @@ export class OperationFormComponent implements OnInit {
         const typeData = this.getTypeBudget(idx);
         const totalBudget = (typeData.fonct || 0) + (typeData.invest || 0);
         return { ...base, budget: totalBudget || null, etp: typeData.etp, budget_fonctionnement: typeData.fonct, budget_investissement: typeData.invest, organismes: [] as OrgEntry[] };
+      }
+
+      if (mode === 'by_type_poste') {
+        // Mode 5 (#624): Par type de budget + type de poste — même détail des
+        // coûts que la ventilation maximale, sans organisme. Les budgets
+        // fonct/invest sont DÉRIVÉS des composants : on ne les stocke pas,
+        // sinon l'export les recompterait par-dessus le détail.
+        const c = this.getTypeCost(idx);
+        const total = this.getTypePosteTotal(idx);
+        return {
+          ...base,
+          budget: total || null,
+          etp: this.getTypeBudget(idx).etp,
+          budget_fonctionnement: null,
+          budget_investissement: null,
+          cout_stage: c.coutStage,
+          cout_prestataire: c.coutPresta,
+          autre_cout: c.autreCout,
+          autre_cout_commentaire: c.autreComment ?? '',
+          cout_prestataire_invest: c.coutPrestaInvest,
+          autre_cout_invest: c.autreCoutInvest,
+          autre_cout_invest_commentaire: c.autreCommentInvest ?? '',
+          organismes: [] as OrgEntry[],
+        };
       }
 
       if (mode === 'by_org') {
@@ -3660,6 +3726,10 @@ export class OperationFormComponent implements OnInit {
         this.directTotals[i] = { ...this.getDirectTotal(0) };
       } else if (mode === 'by_type') {
         this.typeBudgets[i] = { ...this.getTypeBudget(0) };
+      } else if (mode === 'by_type_poste') {
+        // #624 — le détail des coûts se duplique aussi (le coût salarial, lui,
+        // reste calculé depuis les jours saisis année par année).
+        this.typeCosts[i] = { ...this.getTypeCost(0) };
       } else if (mode === 'by_org') {
         for (const org of this.availableOrganismes()) {
           this.orgByOrgData[`${i}-${org.id_organisme}`] = { ...this.getOrgByOrgData(0, org.id_organisme) };
@@ -3742,6 +3812,94 @@ export class OperationFormComponent implements OnInit {
   }
 
   // ════════════════════════════════════════════════
+  // Mode 'by_type_poste' — détail des coûts sans organisme (#624)
+  // ════════════════════════════════════════════════
+
+  /** Détail des coûts de l'année (créé à la volée). */
+  getTypeCost(yearIdx: number): {
+    coutStage: number | null; coutPresta: number | null; autreCout: number | null;
+    autreComment: string; coutPrestaInvest: number | null;
+    autreCoutInvest: number | null; autreCommentInvest: string;
+  } {
+    if (!this.typeCosts[yearIdx]) {
+      this.typeCosts[yearIdx] = {
+        coutStage: null, coutPresta: null, autreCout: null, autreComment: '',
+        coutPrestaInvest: null, autreCoutInvest: null, autreCommentInvest: '',
+      };
+    }
+    return this.typeCosts[yearIdx];
+  }
+
+  updateTypeCoutStage(yearIdx: number, value: string): void {
+    this.getTypeCost(yearIdx).coutStage = this.parseDecimal(value);
+    this.autoCheckPeriodicite(yearIdx);
+  }
+
+  updateTypeCoutPresta(yearIdx: number, value: string): void {
+    this.getTypeCost(yearIdx).coutPresta = this.parseDecimal(value);
+    this.autoCheckPeriodicite(yearIdx);
+  }
+
+  updateTypeAutreCout(yearIdx: number, value: string): void {
+    this.getTypeCost(yearIdx).autreCout = this.parseDecimal(value);
+    this.autoCheckPeriodicite(yearIdx);
+  }
+
+  updateTypeAutreComment(yearIdx: number, value: string): void {
+    this.getTypeCost(yearIdx).autreComment = value ?? '';
+  }
+
+  updateTypeCoutPrestaInvest(yearIdx: number, value: string): void {
+    this.getTypeCost(yearIdx).coutPrestaInvest = this.parseDecimal(value);
+    this.autoCheckPeriodicite(yearIdx);
+  }
+
+  updateTypeAutreCoutInvest(yearIdx: number, value: string): void {
+    this.getTypeCost(yearIdx).autreCoutInvest = this.parseDecimal(value);
+    this.autoCheckPeriodicite(yearIdx);
+  }
+
+  updateTypeAutreCommentInvest(yearIdx: number, value: string): void {
+    this.getTypeCost(yearIdx).autreCommentInvest = value ?? '';
+  }
+
+  /**
+   * Coût salarial global d'une année, toutes cibles confondues : Σ jours ×
+   * coût jour des postes, restreint à une catégorie de dépense. Pendant
+   * « sans organisme » de `getOrgCoutSalarial`.
+   */
+  getTypeCoutSalarial(yearIdx: number, categorie?: CategorieDepense): number {
+    let total = 0;
+    for (const line of this.rhLines) {
+      if (line.id_poste == null) continue;
+      if (categorie && line.categorie_depense !== categorie) continue;
+      const poste = this.postes().find(p => p.id_poste === line.id_poste);
+      if (!poste) continue;
+      total += (line.jours[yearIdx] || 0) * (Number(poste.cout_jour ?? 0) || 0);
+    }
+    return total;
+  }
+
+  /** Total fonctionnement de l'année = salarial + stage + prestataire + autres. */
+  getTypeFonctTotal(yearIdx: number): number {
+    const c = this.getTypeCost(yearIdx);
+    return this.getTypeCoutSalarial(yearIdx, 'fonctionnement')
+      + (c.coutStage || 0) + (c.coutPresta || 0) + (c.autreCout || 0);
+  }
+
+  /** Total investissement de l'année = salarial + prestataire + autres. */
+  getTypeInvestTotal(yearIdx: number): number {
+    const c = this.getTypeCost(yearIdx);
+    return this.getTypeCoutSalarial(yearIdx, 'investissement')
+      + (c.coutPrestaInvest || 0) + (c.autreCoutInvest || 0);
+  }
+
+  /** Budget total de l'année (fonctionnement + investissement). */
+  getTypePosteTotal(yearIdx: number): number {
+    return this.getTypeFonctTotal(yearIdx) + this.getTypeInvestTotal(yearIdx);
+  }
+
+  // ════════════════════════════════════════════════
   // Mode 'by_org' helpers (ventilation par organisme, totaux)
   // ════════════════════════════════════════════════
 
@@ -3776,6 +3934,11 @@ export class OperationFormComponent implements OnInit {
     if (direct && ((direct.budget ?? 0) > 0 || (direct.etp ?? 0) > 0)) return true;
     const type = this.typeBudgets[yearIdx];
     if (type && ((type.fonct ?? 0) > 0 || (type.invest ?? 0) > 0 || (type.etp ?? 0) > 0)) return true;
+    // #624 — détail des coûts au niveau année (mode « type de budget + poste »).
+    const costs = this.typeCosts[yearIdx];
+    if (costs && ((costs.coutStage ?? 0) > 0 || (costs.coutPresta ?? 0) > 0
+      || (costs.autreCout ?? 0) > 0 || (costs.coutPrestaInvest ?? 0) > 0
+      || (costs.autreCoutInvest ?? 0) > 0)) return true;
     for (const key of Object.keys(this.orgBudgets)) {
       if (!key.startsWith(`${yearIdx}-`)) continue;
       const b = this.orgBudgets[key];

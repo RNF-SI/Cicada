@@ -747,3 +747,104 @@ describe('SuiviSaisieComponent — coût salarial réalisé (#608)', () => {
     expect(c.realOrgFonctTotal(2025, 100)).toBe(4500);
   });
 });
+
+// ===========================================================================
+// #624 — mode « par type de budget + type de poste » : même détail des coûts
+// que la ventilation maximale, mais GLOBAL (sans organisme).
+// ===========================================================================
+describe('SuiviSaisieComponent — détail des coûts sans organisme (#624)', () => {
+  /**
+   * Année 2025 (active). Deux postes de deux organismes différents : tout se
+   * cumule au global. Les coûts prévus sont portés par l'ANNÉE (et non par
+   * l'organisme), les coûts réalisés de l'année active par le formulaire.
+   */
+  function instance(): any {
+    const c: any = comp();
+    c.selectedYear = signal(2025);
+    c.postes = signal([
+      { id_poste: 1, id_organisme: 100, cout_jour: 300 },
+      { id_poste: 2, id_organisme: 200, cout_jour: 80 },
+    ]);
+    c.operation = signal({
+      ventilation_mode: 'by_type_poste',
+      operation_annees: [{
+        annee: 2025,
+        cout_stage: '200.00',
+        cout_prestataire: '1000.00',
+        autre_cout: '500.00',
+        cout_prestataire_invest: '300.00',
+        autre_cout_invest: null,
+        rh_lignes: [
+          { id_poste: 1, categorie_depense: 'fonctionnement', jours: '10.00', finance: true },
+          { id_poste: 2, categorie_depense: 'investissement', jours: '5.00', finance: true },
+        ],
+        realisation: {},
+      }],
+    });
+    // Formulaire de l'année active : coûts réalisés + lignes RH réalisées.
+    const values: Record<string, unknown> = {
+      cout_stage_realise: 150,
+      cout_prestataire_realise: 800,
+      autre_cout_realise: 50,
+      cout_prestataire_invest_realise: 100,
+      autre_cout_invest_realise: 0,
+    };
+    c.form = { get: (name: string) => ctrlOf(values[name] ?? null) };
+    Object.defineProperty(c, 'rhLignesFA', {
+      value: {
+        controls: [
+          { get: (n: string) => ctrlOf({ id_poste: 1, categorie_depense: 'fonctionnement', jours: 8 }[n as never]) },
+          { get: (n: string) => ctrlOf({ id_poste: 2, categorie_depense: 'investissement', jours: 5 }[n as never]) },
+        ],
+      },
+    });
+    return c;
+  }
+
+  it('cumule le coût salarial de tous les postes, sans distinction d\'organisme', () => {
+    const c = instance();
+    // Prévu : poste 1 → 10 × 300 (fonct), poste 2 → 5 × 80 (invest)
+    expect(c.prevGlobalCoutSalarial(2025, 'fonctionnement')).toBe(3000);
+    expect(c.prevGlobalCoutSalarial(2025, 'investissement')).toBe(400);
+    // Réalisé (année active, lu dans le formulaire) : 8 × 300 et 5 × 80
+    expect(c.realGlobalCoutSalarial(2025, 'fonctionnement')).toBe(2400);
+    expect(c.realGlobalCoutSalarial(2025, 'investissement')).toBe(400);
+  });
+
+  it('totalise prévu et réalisé (salarial + stage + prestataire + autres)', () => {
+    const c = instance();
+    expect(c.prevGlobalFonctTotal(2025)).toBe(3000 + 200 + 1000 + 500);
+    expect(c.prevGlobalInvestTotal(2025)).toBe(400 + 300);
+    expect(c.prevGlobalTotal(2025)).toBe(5400);
+
+    expect(c.realGlobalFonctTotal(2025)).toBe(2400 + 150 + 800 + 50);
+    expect(c.realGlobalInvestTotal(2025)).toBe(400 + 100);
+    expect(c.realGlobalTotal(2025)).toBe(3900);
+  });
+
+  it('renvoie 0 sur une année sans programmation', () => {
+    const c = instance();
+    expect(c.prevGlobalTotal(2031)).toBe(0);
+  });
+
+  it('rend le détail des coûts dans le template', () => {
+    const template = readFileSync(join(__dirname, 'suivi-saisie.component.html'), 'utf8');
+    expect(template).toContain('isGlobalDetailVentilation()');
+    for (const helper of [
+      'prevGlobalCoutSalarial', 'realGlobalCoutSalarial',
+      'prevGlobalFonctTotal', 'realGlobalFonctTotal',
+      'prevGlobalInvestTotal', 'realGlobalInvestTotal',
+      'prevGlobalTotal', 'realGlobalTotal',
+    ]) {
+      expect(template).toContain(helper);
+    }
+    // Les coûts réalisés de l'année active sont saisis au niveau du formulaire.
+    for (const control of [
+      'cout_stage_realise', 'cout_prestataire_realise', 'autre_cout_realise',
+      'autre_cout_commentaire_realise', 'cout_prestataire_invest_realise',
+      'autre_cout_invest_realise', 'autre_cout_invest_commentaire_realise',
+    ]) {
+      expect(template).toContain(control);
+    }
+  });
+});

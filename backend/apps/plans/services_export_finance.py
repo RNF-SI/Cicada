@@ -321,15 +321,22 @@ def build_action_finance(op, org_names, poste_jours) -> ActionFinance:
             fonct = _d(oa.budget_fonctionnement) or (_d(oa.budget) if op.ventilation_mode == "none" else _ZERO)
             invest = _d(oa.budget_investissement)
             c = cell(0, oa.annee)
-            c.autre_fonct += fonct
-            c.autre_invest += invest
-            if fonct or invest:
+            # #624 — le mode « by_type_poste » détaille les coûts au niveau de
+            # l'année (mêmes composants que par organisme, sans organisme) :
+            # on les agrège comme le fait la branche par organisme ci-dessus.
+            c.prest_fonct += _d(oa.cout_prestataire)
+            c.prest_invest += _d(oa.cout_prestataire_invest)
+            c.autre_fonct += fonct + _d(oa.autre_cout) + _d(oa.cout_stage)
+            c.autre_invest += invest + _d(oa.autre_cout_invest)
+            if c.prest_fonct or c.prest_invest or c.autre_fonct or c.autre_invest:
                 org_names.setdefault(0, "Non ventilé")
             real = getattr(oa, "realisation", None)
             if real:
                 rf = _d(real.budget_fonctionnement_realise) or (_d(real.budget_realise) if op.ventilation_mode == "none" else _ZERO)
-                c.rautre_fonct += rf
-                c.rautre_invest += _d(real.budget_investissement_realise)
+                c.rprest_fonct += _d(real.cout_prestataire_realise)
+                c.rprest_invest += _d(real.cout_prestataire_invest_realise)
+                c.rautre_fonct += rf + _d(real.autre_cout_realise) + _d(real.cout_stage_realise)
+                c.rautre_invest += _d(real.budget_investissement_realise) + _d(real.autre_cout_invest_realise)
 
     return af
 

@@ -1,6 +1,8 @@
 """
 Tests d'intégration pour l'API REST Opérations (Actions).
 """
+from decimal import Decimal
+
 import pytest
 from rest_framework import status
 
@@ -265,6 +267,46 @@ class TestOperationCreateEndpoint:
         assert response.status_code == status.HTTP_200_OK
         libelles = [o['libelle'] for o in response.data['operations']]
         assert 'Action directe indicateur' in libelles
+
+    def test_create_with_year_cost_detail(self, api_client, operation_test_data):
+        """#624 — mode « par type de budget + type de poste » : le détail des
+        coûts est saisi sur l'ANNÉE (pas sur l'organisme) et persisté tel quel.
+        """
+        from apps.plans.models_operations import OperationAnnee
+        api_client.force_authenticate(user=operation_test_data['referent'])
+        response = api_client.post('/api/plans/operations/', {
+            'libelle': 'Action détail coûts sans organisme',
+            'metrique_ids': [operation_test_data['metrique1'].id_metrique],
+            'ventilation_mode': 'by_type_poste',
+            'declinaison_par_poste': True,
+            'operation_annees': [{
+                'annee': 2024,
+                'periodicite': True,
+                # Budget total dérivé ; les enveloppes fonct/invest restent nulles.
+                'budget': '2150.00',
+                'cout_stage': '200.00',
+                'cout_prestataire': '1000.00',
+                'autre_cout': '150.00',
+                'autre_cout_commentaire': 'Consommables',
+                'cout_prestataire_invest': '700.00',
+                'autre_cout_invest': '100.00',
+                'autre_cout_invest_commentaire': 'Matériel',
+            }],
+        }, format='json')
+        assert response.status_code == status.HTTP_201_CREATED, response.data
+        op = Operation.objects.get(libelle='Action détail coûts sans organisme')
+        oa = OperationAnnee.objects.get(id_operation=op, annee=2024)
+        assert oa.cout_stage == Decimal('200.00')
+        assert oa.cout_prestataire == Decimal('1000.00')
+        assert oa.autre_cout_commentaire == 'Consommables'
+        assert oa.cout_prestataire_invest == Decimal('700.00')
+        assert oa.autre_cout_invest_commentaire == 'Matériel'
+        assert oa.budget_fonctionnement is None
+        # Relu par l'API (le formulaire les recharge à la réouverture).
+        detail = api_client.get(f'/api/plans/operations/{op.id_operation}/')
+        annee = detail.data['operation_annees'][0]
+        assert annee['cout_stage'] == '200.00'
+        assert annee['autre_cout_invest'] == '100.00'
 
     def test_create_with_all_fields(self, api_client, operation_test_data):
         """Test create with all optional fields."""
