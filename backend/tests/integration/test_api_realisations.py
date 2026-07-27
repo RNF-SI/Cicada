@@ -172,12 +172,16 @@ class TestRealisationListEndpoint:
         ids = [r['id_realisation_operation_annee'] for r in results]
         assert len(ids) >= 1
 
-    def test_isolated_user_blocked_by_permission(self, api_client, realisation_test_data):
-        """IsReferent rejette les utilisateurs sans rattachement référent/admin."""
+    def test_isolated_user_sees_nothing(self, api_client, realisation_test_data):
+        """
+        #610 — la lecture est ouverte à tout authentifié, mais bornée au
+        périmètre : un utilisateur sans rattachement ne voit aucune réalisation.
+        """
         RealisationOperationAnneeFactory(id_operation_annee=realisation_test_data['op_annee'])
         api_client.force_authenticate(user=realisation_test_data['other_user'])
         response = api_client.get('/api/plans/realisations/')
-        assert response.status_code == status.HTTP_403_FORBIDDEN
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data['results'] == []
 
     def test_filter_by_operation_annee(self, api_client, realisation_test_data):
         r1 = RealisationOperationAnneeFactory(id_operation_annee=realisation_test_data['op_annee'])
@@ -499,7 +503,7 @@ class TestRealisationBilanEndpoint:
         assert cat['termine'] == 1
 
     def test_bilan_forbidden_for_isolated_user(self, api_client, realisation_test_data):
-        """Permission IsReferent rejette les utilisateurs sans rattachement référent/admin."""
+        """#610 — accès au plan requis : agrégation calculée hors get_queryset()."""
         api_client.force_authenticate(user=realisation_test_data['other_user'])
         response = api_client.get(
             f'/api/plans/realisations/bilan/{realisation_test_data["plan"].pk}/'
@@ -570,7 +574,7 @@ class TestRealisationBilanSeriesEndpoint:
         assert response.data['actions_par_annee']['niveaux']['termine'][i] == 1
 
     def test_series_forbidden_for_isolated_user(self, api_client, realisation_test_data):
-        """Même scoping IsReferent que /bilan/."""
+        """Même contrôle d'accès au plan que /bilan/ (#610)."""
         api_client.force_authenticate(user=realisation_test_data['other_user'])
         response = api_client.get(
             f'/api/plans/realisations/bilan-series/{realisation_test_data["plan"].pk}/'

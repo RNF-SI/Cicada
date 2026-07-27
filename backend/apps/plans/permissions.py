@@ -12,6 +12,29 @@ from rest_framework.permissions import BasePermission, SAFE_METHODS
 from .models import PlanGestion
 
 
+class IsReferentOrReadOnly(BasePermission):
+    """
+    #610 — Lecture ouverte à tout utilisateur authentifié, écriture réservée
+    aux référents (au sens `Role.is_referent()`).
+
+    Le périmètre réel de lecture est borné par les `get_queryset()` des
+    ViewSets (cf. `apps.plans.access`) : un utilisateur ne voit que le contenu
+    des plans auxquels il est lié. Exiger `IsReferent` au niveau de la vue
+    bloquait à tort en 403 les non-référents pourtant liés au plan (membre
+    `CorRolePlan`, utilisateur rattaché à un site du plan…), qui doivent
+    pouvoir consulter le plan en lecture seule.
+
+    Généralisation du correctif #372 appliqué à `CorPgFichierViewSet`.
+    """
+
+    def has_permission(self, request, view):
+        if not (request.user and request.user.is_authenticated):
+            return False
+        if request.method in SAFE_METHODS:
+            return True
+        return request.user.is_referent()
+
+
 class CanModifyOnlyDraftPlan(BasePermission):
     """
     Bloque les écritures sur le plan et ses entités enfants quand le plan

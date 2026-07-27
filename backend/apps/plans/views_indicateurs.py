@@ -1,7 +1,6 @@
 """
 Vues API REST pour les Indicateurs, Métriques et Mesures.
 """
-from django.db.models import Q
 from django.shortcuts import get_object_or_404
 
 from rest_framework import viewsets, status, permissions
@@ -17,9 +16,10 @@ from .models_indicateurs import (
     CorIndicateurGeologie,
 )
 from .models_enjeux import NiveauExigence, ResultatAttendu
-from .models import CorRolePlan
-from apps.users.permissions import IsReferent
-from .permissions import CanModifyOnlyDraftPlan
+from .permissions import CanModifyOnlyDraftPlan, IsReferentOrReadOnly
+from .access import (
+    INDICATEUR_TO_PG_PATHS, prefix_paths, scope_by_plan,
+)
 from .reorder import do_reorder
 from .serializers_indicateurs import (
     IndicateurSerializer, IndicateurListSerializer, IndicateurCreateSerializer,
@@ -52,7 +52,7 @@ class IndicateurViewSet(viewsets.ModelViewSet):
         'metriques__operations', 'metriques__operations__id_priorite', 'metriques__operations__id_utilisateur_ajout'
     )
 
-    permission_classes = [permissions.IsAuthenticated, IsReferent, CanModifyOnlyDraftPlan]
+    permission_classes = [permissions.IsAuthenticated, IsReferentOrReadOnly, CanModifyOnlyDraftPlan]
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
     filterset_class = IndicateurFilter
     search_fields = ['nom_indicateur', 'description']
@@ -85,30 +85,7 @@ class IndicateurViewSet(viewsets.ModelViewSet):
         return IndicateurSerializer
 
     def get_queryset(self):
-        user = self.request.user
-        queryset = self.queryset
-
-        if user.is_super_admin():
-            return queryset
-
-        if user.is_redacteur_principal():
-            return queryset
-
-        if user.is_admin_organisme() and user.id_organisme:
-            return queryset.filter(
-                Q(id_ne__id_olt__id_enjeu__id_pg__sites__site__corogsite__uuid_og=user.id_organisme) |
-                Q(id_resultat_attendu__id_oo__pressions__id_facteur_influence__enjeux__id_pg__sites__site__corogsite__uuid_og=user.id_organisme)
-            ).distinct()
-
-        user_plan_ids = CorRolePlan.objects.filter(id_role=user).values_list('plan_de_gestion_id', flat=True)
-        return queryset.filter(
-            Q(id_ne__id_olt__id_enjeu__id_pg__in=user_plan_ids) |
-            Q(id_resultat_attendu__id_oo__pressions__id_facteur_influence__enjeux__id_pg__in=user_plan_ids) |
-            Q(id_ne__id_olt__id_enjeu__id_pg__sites__site__corrolesite__id_role=user) |
-            Q(id_resultat_attendu__id_oo__pressions__id_facteur_influence__enjeux__id_pg__sites__site__corrolesite__id_role=user) |
-            Q(id_ne__id_olt__id_enjeu__id_pg__statut='valide') |
-            Q(id_resultat_attendu__id_oo__pressions__id_facteur_influence__enjeux__id_pg__statut='valide')
-        ).distinct()
+        return scope_by_plan(self.queryset, self.request.user, INDICATEUR_TO_PG_PATHS)
 
     def perform_create(self, serializer):
         serializer.save(id_utilisateur_ajout=self.request.user)
@@ -506,7 +483,7 @@ class MetriqueViewSet(viewsets.ModelViewSet):
         'id_utilisateur_ajout', 'id_utilisateur_maj'
     ).prefetch_related('mesures', 'mesures__id_utilisateur_ajout')
 
-    permission_classes = [permissions.IsAuthenticated, IsReferent, CanModifyOnlyDraftPlan]
+    permission_classes = [permissions.IsAuthenticated, IsReferentOrReadOnly, CanModifyOnlyDraftPlan]
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
     filterset_class = MetriqueFilter
     search_fields = ['nom_metrique', 'description']
@@ -533,26 +510,10 @@ class MetriqueViewSet(viewsets.ModelViewSet):
         return MetriqueSerializer
 
     def get_queryset(self):
-        user = self.request.user
-        queryset = self.queryset
-
-        if user.is_super_admin():
-            return queryset
-
-        if user.is_redacteur_principal():
-            return queryset
-
-        if user.is_admin_organisme() and user.id_organisme:
-            return queryset.filter(
-                id_indicateur__id_ne__id_olt__id_enjeu__id_pg__sites__site__corogsite__uuid_og=user.id_organisme
-            ).distinct()
-
-        user_plan_ids = CorRolePlan.objects.filter(id_role=user).values_list('plan_de_gestion_id', flat=True)
-        return queryset.filter(
-            Q(id_indicateur__id_ne__id_olt__id_enjeu__id_pg__in=user_plan_ids) |
-            Q(id_indicateur__id_ne__id_olt__id_enjeu__id_pg__sites__site__corrolesite__id_role=user) |
-            Q(id_indicateur__id_ne__id_olt__id_enjeu__id_pg__statut='valide')
-        ).distinct()
+        return scope_by_plan(
+            self.queryset, self.request.user,
+            prefix_paths('id_indicateur', INDICATEUR_TO_PG_PATHS),
+        )
 
     def perform_create(self, serializer):
         serializer.save(id_utilisateur_ajout=self.request.user)
@@ -599,7 +560,7 @@ class MesureViewSet(viewsets.ModelViewSet):
     # active du plan — comme la réalisation annuelle (RealisationOperationAnnee).
     # Le verrou « brouillon uniquement » (#248) bloquait à tort cette saisie sur
     # un plan validé (403 à l'enregistrement d'un indicateur de réponse).
-    permission_classes = [permissions.IsAuthenticated, IsReferent]
+    permission_classes = [permissions.IsAuthenticated, IsReferentOrReadOnly]
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
     filterset_class = MesureFilter
     search_fields = ['valeur', 'commentaire']
@@ -631,37 +592,10 @@ class MesureViewSet(viewsets.ModelViewSet):
     # enjeu (cas FCR, #337). Le scoping ne traitait que le chemin NE : les mesures
     # des indicateurs de réponse (souvent rattachés à un RA) étaient exclues de
     # tout GET pour les non super-admins → « le réalisé disparaît » (#542).
-    _PG_PATHS = (
-        'id_metrique__id_indicateur__id_ne__id_olt__id_enjeu__id_pg',
-        'id_metrique__id_indicateur__id_resultat_attendu__id_oo__pressions__id_facteur_influence__enjeux__id_pg',
-        'id_metrique__id_indicateur__id_resultat_attendu__id_oo__id_enjeu__id_pg',
-    )
-
-    def _plan_scope_q(self, suffix, value):
-        """OR sur les chemins NE + RA menant au plan, avec un même suffixe/valeur."""
-        q = Q()
-        for path in self._PG_PATHS:
-            q |= Q(**{f'{path}{suffix}': value})
-        return q
+    _PG_PATHS = prefix_paths('id_metrique__id_indicateur', INDICATEUR_TO_PG_PATHS)
 
     def get_queryset(self):
-        user = self.request.user
-        queryset = self.queryset
-
-        if user.is_super_admin():
-            return queryset
-
-        if user.is_admin_organisme() and user.id_organisme:
-            return queryset.filter(
-                self._plan_scope_q('__sites__site__corogsite__uuid_og', user.id_organisme)
-            ).distinct()
-
-        user_plan_ids = CorRolePlan.objects.filter(id_role=user).values_list('plan_de_gestion_id', flat=True)
-        return queryset.filter(
-            self._plan_scope_q('__in', user_plan_ids) |
-            self._plan_scope_q('__sites__site__corrolesite__id_role', user) |
-            self._plan_scope_q('__statut', 'valide')
-        ).distinct()
+        return scope_by_plan(self.queryset, self.request.user, self._PG_PATHS)
 
     def perform_create(self, serializer):
         serializer.save(id_utilisateur_ajout=self.request.user)
@@ -1055,13 +989,21 @@ class IndicateurMesureViewSet(viewsets.ModelViewSet):
         'id_indicateur__id_resultat_attendu__id_oo',
     )
     serializer_class = IndicateurMesureSerializer
-    permission_classes = [permissions.IsAuthenticated, IsReferent]
+    permission_classes = [permissions.IsAuthenticated, IsReferentOrReadOnly]
     filter_backends = [DjangoFilterBackend, OrderingFilter]
     filterset_fields = {
         'id_indicateur': ['exact'],
         'annee': ['exact', 'gte', 'lte'],
     }
     ordering = ['-annee']
+
+    def get_queryset(self):
+        # #610 — le scoping manquait totalement : toute personne « référente »
+        # d'un site quelconque lisait les saisies annuelles de tous les plans.
+        return scope_by_plan(
+            self.queryset, self.request.user,
+            prefix_paths('id_indicateur', INDICATEUR_TO_PG_PATHS),
+        )
 
     def perform_create(self, serializer):
         serializer.save(id_utilisateur_maj=self.request.user)

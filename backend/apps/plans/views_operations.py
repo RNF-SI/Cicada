@@ -20,10 +20,14 @@ from .models_operations import (
     Fonction, Poste,
 )
 from .models_indicateurs import Indicateur, Metrique
-from .models import PlanGestion, CorRolePlan
+from .models import PlanGestion
 from apps.core.models import Nomenclature
 from apps.users.permissions import IsReferent
-from .permissions import CanModifyOnlyDraftPlan
+from .permissions import CanModifyOnlyDraftPlan, IsReferentOrReadOnly
+from .access import (
+    INDICATEUR_TO_PG_PATHS, assert_plan_access, prefix_paths, scope_by_plan,
+    user_can_access_plan,
+)
 from .reorder import do_reorder
 from .serializers_operations import (
     OperationSerializer, OperationListSerializer, OperationCreateSerializer,
@@ -95,7 +99,7 @@ class OperationViewSet(viewsets.ModelViewSet):
         Prefetch('finances', queryset=FinanceOperation.objects.select_related('id_categorie')),
     )
 
-    permission_classes = [permissions.IsAuthenticated, IsReferent, CanModifyOnlyDraftPlan]
+    permission_classes = [permissions.IsAuthenticated, IsReferentOrReadOnly, CanModifyOnlyDraftPlan]
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
     filterset_class = OperationFilter
     search_fields = ['libelle', 'description', 'code_operation']
@@ -109,45 +113,24 @@ class OperationViewSet(viewsets.ModelViewSet):
             return OperationCreateSerializer
         return OperationSerializer
 
+    # Une opération peut être rattachée au plan via :
+    # - une de ses métriques (chaîne metriques→indicateur→ne→olt→enjeu→pg)
+    # - directement un indicateur, sans métrique (#367)
+    # - son suivi/inventaire (id_suivi→SuiviInventaire.id_pg)
+    # Tous les chemins sont pris en compte pour qu'une opération créée avec un
+    # suivi mais sans métrique reste visible.
+    _PG_PATHS = (
+        prefix_paths('metriques__id_indicateur', INDICATEUR_TO_PG_PATHS)
+        + prefix_paths('id_indicateur', INDICATEUR_TO_PG_PATHS)
+        + ('id_suivi__id_pg',)
+    )
+
     def get_queryset(self):
-        user = self.request.user
-        queryset = self.queryset
-
-        if user.is_super_admin():
-            return queryset
-
-        if user.is_redacteur_principal():
-            return queryset
-
-        # Une opération peut être rattachée au plan via :
-        # - une de ses métriques (chaîne metriques→indicateur→ne→olt→enjeu→pg)
-        # - son suivi/inventaire (id_suivi→SuiviInventaire.id_pg)
-        # On inclut les deux chemins pour qu'une opération créée avec un suivi
-        # mais sans métrique reste visible à son créateur. Le créateur d'une
-        # opération orpheline (sans plan résolu) la voit toujours.
-        if user.is_admin_organisme() and user.id_organisme:
-            return queryset.filter(
-                Q(metriques__id_indicateur__id_ne__id_olt__id_enjeu__id_pg__sites__site__corogsite__uuid_og=user.id_organisme) |
-                # #367 — action rattachée directement à un indicateur (sans métrique)
-                Q(id_indicateur__id_ne__id_olt__id_enjeu__id_pg__sites__site__corogsite__uuid_og=user.id_organisme) |
-                Q(id_suivi__id_pg__sites__site__corogsite__uuid_og=user.id_organisme) |
-                Q(id_utilisateur_ajout=user)
-            ).distinct()
-
-        user_plan_ids = CorRolePlan.objects.filter(id_role=user).values_list('plan_de_gestion_id', flat=True)
-        return queryset.filter(
-            Q(metriques__id_indicateur__id_ne__id_olt__id_enjeu__id_pg__in=user_plan_ids) |
-            Q(metriques__id_indicateur__id_ne__id_olt__id_enjeu__id_pg__sites__site__corrolesite__id_role=user) |
-            Q(metriques__id_indicateur__id_ne__id_olt__id_enjeu__id_pg__statut='valide') |
-            # #367 — action rattachée directement à un indicateur (sans métrique)
-            Q(id_indicateur__id_ne__id_olt__id_enjeu__id_pg__in=user_plan_ids) |
-            Q(id_indicateur__id_ne__id_olt__id_enjeu__id_pg__sites__site__corrolesite__id_role=user) |
-            Q(id_indicateur__id_ne__id_olt__id_enjeu__id_pg__statut='valide') |
-            Q(id_suivi__id_pg__in=user_plan_ids) |
-            Q(id_suivi__id_pg__sites__site__corrolesite__id_role=user) |
-            Q(id_suivi__id_pg__statut='valide') |
-            Q(id_utilisateur_ajout=user)
-        ).distinct()
+        # Le créateur d'une opération orpheline (sans plan résolu) la voit toujours.
+        return scope_by_plan(
+            self.queryset, self.request.user, self._PG_PATHS,
+            extra=Q(id_utilisateur_ajout=self.request.user),
+        )
 
     def perform_create(self, serializer):
         serializer.save(id_utilisateur_ajout=self.request.user)
@@ -245,6 +228,7 @@ class OperationViewSet(viewsets.ModelViewSet):
         GET /api/plans/operations/by-plan/{plan_id}/
         """
         plan = get_object_or_404(PlanGestion, id_pg=plan_id)
+        assert_plan_access(request.user, plan)
         operations = self.get_queryset().filter(
             Q(metriques__id_indicateur__id_ne__id_olt__id_enjeu__id_pg=plan) |
             Q(metriques__id_indicateur__id_resultat_attendu__id_oo__pressions__id_facteur_influence__enjeux__id_pg=plan) |
@@ -574,31 +558,11 @@ def _scope_realisation_queryset(queryset, user, op_path):
     en passant par la chaîne `op_path` qui mène jusqu'à l'Operation.
     Ex: 'id_operation_annee__id_operation' pour RealisationOperationAnnee.
     """
-    if user.is_super_admin() or user.is_redacteur_principal():
-        return queryset
-
-    base_metrique_chain = f'{op_path}__metriques__id_indicateur__id_ne__id_olt__id_enjeu__id_pg'
-    base_suivi_chain = f'{op_path}__id_suivi__id_pg'
-
-    if user.is_admin_organisme() and user.id_organisme:
-        return queryset.filter(
-            Q(**{f'{base_metrique_chain}__sites__site__corogsite__uuid_og': user.id_organisme}) |
-            Q(**{f'{base_suivi_chain}__sites__site__corogsite__uuid_og': user.id_organisme}) |
-            Q(**{f'{op_path}__id_utilisateur_ajout': user})
-        ).distinct()
-
-    user_plan_ids = CorRolePlan.objects.filter(id_role=user).values_list(
-        'plan_de_gestion_id', flat=True
+    return scope_by_plan(
+        queryset, user,
+        tuple(f'{op_path}__{path}' for path in OperationViewSet._PG_PATHS),
+        extra=Q(**{f'{op_path}__id_utilisateur_ajout': user}),
     )
-    return queryset.filter(
-        Q(**{f'{base_metrique_chain}__in': user_plan_ids}) |
-        Q(**{f'{base_metrique_chain}__sites__site__corrolesite__id_role': user}) |
-        Q(**{f'{base_metrique_chain}__statut': 'valide'}) |
-        Q(**{f'{base_suivi_chain}__in': user_plan_ids}) |
-        Q(**{f'{base_suivi_chain}__sites__site__corrolesite__id_role': user}) |
-        Q(**{f'{base_suivi_chain}__statut': 'valide'}) |
-        Q(**{f'{op_path}__id_utilisateur_ajout': user})
-    ).distinct()
 
 
 def _can_manage_operation_global(user, operation):
@@ -640,7 +604,7 @@ class RealisationOperationAnneeViewSet(viewsets.ModelViewSet):
     )
     serializer_class = RealisationOperationAnneeSerializer
     # Pas de CanModifyOnlyDraftPlan : les suivis sont éditables après validation du plan.
-    permission_classes = [permissions.IsAuthenticated, IsReferent]
+    permission_classes = [permissions.IsAuthenticated, IsReferentOrReadOnly]
     filter_backends = [DjangoFilterBackend, OrderingFilter]
     ordering_fields = ['id_operation_annee__annee', 'date_maj']
     ordering = ['id_operation_annee__annee']
@@ -799,6 +763,7 @@ class RealisationOperationAnneeViewSet(viewsets.ModelViewSet):
     def by_plan(self, request, plan_id=None):
         """Liste les réalisations d'un plan (toutes opérations × années)."""
         plan = get_object_or_404(PlanGestion, pk=plan_id)
+        assert_plan_access(request.user, plan)
         realisations = self.get_queryset().filter(
             Q(id_operation_annee__id_operation__metriques__id_indicateur__id_ne__id_olt__id_enjeu__id_pg=plan) |
             Q(id_operation_annee__id_operation__id_suivi__id_pg=plan)
@@ -826,6 +791,8 @@ class RealisationOperationAnneeViewSet(viewsets.ModelViewSet):
         from .models import PlanGestion as _Plan
 
         plan = get_object_or_404(_Plan, pk=plan_id)
+        # Agrégations calculées hors get_queryset() : contrôle d'accès explicite.
+        assert_plan_access(request.user, plan)
 
         def _compute_score(mesure, m):
             """Retourne 1-5 selon la grille de scores de la métrique, ou 0 si hors plage.
@@ -913,6 +880,7 @@ class RealisationOperationAnneeViewSet(viewsets.ModelViewSet):
         from collections import defaultdict
 
         plan = get_object_or_404(PlanGestion, pk=plan_id)
+        assert_plan_access(request.user, plan)
 
         # Filtres optionnels
         enjeu_id = request.query_params.get('enjeu_id')
@@ -1197,6 +1165,8 @@ class RealisationOperationAnneeViewSet(viewsets.ModelViewSet):
         from .views_indicateurs import _mesure_to_score
 
         plan = get_object_or_404(PlanGestion, pk=plan_id)
+        # Agrégations calculées hors get_queryset() : contrôle d'accès explicite.
+        assert_plan_access(request.user, plan)
         enjeu_id = request.query_params.get('enjeu_id')
 
         y0, y1 = plan.annee_debut, plan.annee_fin
@@ -1328,7 +1298,7 @@ class RealisationOperationAnneeOrganismeViewSet(viewsets.ModelViewSet):
         'id_operation_annee_organisme__id_operation_annee__id_operation',
     )
     serializer_class = RealisationOperationAnneeOrganismeSerializer
-    permission_classes = [permissions.IsAuthenticated, IsReferent]
+    permission_classes = [permissions.IsAuthenticated, IsReferentOrReadOnly]
     filter_backends = [DjangoFilterBackend, OrderingFilter]
     filterset_fields = {
         'id_operation_annee_organisme': ['exact'],
@@ -1383,41 +1353,12 @@ class RealisationOperationAnneeOrganismeViewSet(viewsets.ModelViewSet):
 
 def _scope_poste_queryset(queryset, user):
     """Scope les postes selon les plans accessibles à l'utilisateur."""
-    if user.is_super_admin() or user.is_redacteur_principal():
-        return queryset
-    if user.is_admin_organisme() and user.id_organisme:
-        return queryset.filter(
-            Q(id_pg__sites__site__corogsite__uuid_og=user.id_organisme) |
-            Q(id_pg__organismes_redacteurs__uuid_og=user.id_organisme)
-        ).distinct()
-    user_plan_ids = CorRolePlan.objects.filter(id_role=user).values_list(
-        'plan_de_gestion_id', flat=True
-    )
-    return queryset.filter(
-        Q(id_pg__in=user_plan_ids) |
-        Q(id_pg__referents=user) |
-        Q(id_pg__sites__site__corrolesite__id_role=user)
-    ).distinct()
+    return scope_by_plan(queryset, user, 'id_pg')
 
 
 def _user_can_access_plan(user, plan):
     """Vrai si l'utilisateur peut gérer les postes du plan donné (#560)."""
-    if user.is_super_admin() or user.is_redacteur_principal():
-        return True
-    qs = PlanGestion.objects.filter(pk=plan.pk)
-    if user.is_admin_organisme() and user.id_organisme:
-        return qs.filter(
-            Q(sites__site__corogsite__uuid_og=user.id_organisme) |
-            Q(organismes_redacteurs__uuid_og=user.id_organisme)
-        ).exists()
-    user_plan_ids = CorRolePlan.objects.filter(id_role=user).values_list(
-        'plan_de_gestion_id', flat=True
-    )
-    return qs.filter(
-        Q(pk__in=user_plan_ids) |
-        Q(referents=user) |
-        Q(sites__site__corrolesite__id_role=user)
-    ).exists()
+    return user_can_access_plan(user, plan)
 
 
 class FonctionViewSet(viewsets.ModelViewSet):
@@ -1487,7 +1428,7 @@ class PosteViewSet(viewsets.ModelViewSet):
     queryset = Poste.objects.select_related('id_pg', 'id_organisme').prefetch_related(
         'fonctions__id_fonction'
     )
-    permission_classes = [permissions.IsAuthenticated, IsReferent]
+    permission_classes = [permissions.IsAuthenticated, IsReferentOrReadOnly]
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
     filterset_fields = {'id_pg': ['exact'], 'id_organisme': ['exact']}
     search_fields = ['fonctions__id_fonction__libelle']

@@ -12,6 +12,7 @@ from .models import PlanGestion
 from apps.users.permissions import IsReferent
 from apps.users.pagination import UsersPagination
 from .permissions import CanModifyOnlyDraftPlan
+from .access import scope_by_plan
 from .serializers_suivis import (
     SuiviInventaireListSerializer,
     SuiviInventaireDetailSerializer,
@@ -64,28 +65,12 @@ class SuiviInventaireViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
-        queryset = self.queryset
-
-        if user.is_super_admin():
-            return queryset
-
-        if user.is_redacteur_principal():
-            return queryset
-
-        if user.is_admin_organisme() and user.id_organisme:
-            # Admin organisme sees suivis created by users in their org
-            # and suivis linked to plans on their org's sites
-            return queryset.filter(
-                Q(id_utilisateur_ajout__id_organisme=user.id_organisme) |
-                Q(id_pg__sites__site__corogsite__uuid_og=user.id_organisme)
-            ).distinct()
-
-        # Regular users see their own suivis + suivis linked to their sites/plans
-        return queryset.filter(
-            Q(id_utilisateur_ajout=user) |
-            Q(id_pg__sites__site__corrolesite__id_role=user) |
-            Q(id_pg__referents=user)
-        ).distinct()
+        extra = Q(id_utilisateur_ajout=user)
+        if user.is_admin_organisme() and user.id_organisme_id:
+            # L'admin d'organisme voit aussi les suivis créés par les membres
+            # de son organisme, même sans plan rattaché.
+            extra |= Q(id_utilisateur_ajout__id_organisme=user.id_organisme)
+        return scope_by_plan(self.queryset, user, 'id_pg', extra=extra)
 
     def perform_create(self, serializer):
         serializer.save(id_utilisateur_ajout=self.request.user)
