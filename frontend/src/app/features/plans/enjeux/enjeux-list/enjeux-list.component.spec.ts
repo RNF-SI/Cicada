@@ -1,3 +1,5 @@
+import { readFileSync } from 'fs';
+import { join } from 'path';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { HttpClientTestingModule } from '@angular/common/http/testing';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
@@ -2688,6 +2690,28 @@ describe('EnjeuxListComponent', () => {
       } finally {
         enjeu.facteurs_influence = originalFacteurs;
       }
+    });
+
+    // #621 — le cadre pointillé « Glisser … ici » ne doit plus s'afficher en
+    // permanence. La zone reste dans le DOM (le CDK mesure sa hauteur une seule
+    // fois, au démarrage du drag), mais ne se dessine qu'en cours de dépôt.
+    it('ne peint la zone de dépôt vide que pendant un glisser-déposer (#621)', () => {
+      const scss = readFileSync(join(__dirname, 'enjeux-list.component.scss'), 'utf8');
+      const emptyRule = scss.slice(
+        scss.indexOf('.pressions-droplist--empty,'),
+        scss.indexOf('.droplist-empty-hint {'),
+      );
+      // Au repos : ni bordure ni fond visibles…
+      expect(emptyRule).toContain('border: 2px dashed transparent');
+      expect(emptyRule).toContain('background-color: transparent');
+      // …mais la hauteur est conservée, sinon le CDK n'a plus de cible.
+      expect(emptyRule).toMatch(/min-height:\s*\d+px/);
+      // Le cadre réapparaît quand une liste connectée reçoit un élément.
+      expect(emptyRule).toContain('&.cdk-drop-list-receiving');
+      // Le libellé « Glisser … ici » est masqué au repos.
+      const hintRule = scss.slice(scss.indexOf('.droplist-empty-hint {'));
+      expect(hintRule).toContain('opacity: 0');
+      expect(scss).toContain('.cdk-drop-list-receiving > .droplist-empty-hint');
     });
 
     it('connectedPressionDroplistIds excludes the current facteur', () => {

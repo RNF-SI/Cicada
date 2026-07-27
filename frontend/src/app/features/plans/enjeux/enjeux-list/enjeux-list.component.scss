@@ -1802,18 +1802,31 @@
   font-size: 0.875rem;
 }
 
-// #261 — Zone de drop visible quand la liste d'indicateurs est vide.
-// Sans cela, le conteneur se replie à 0 px et il devient impossible
-// de re-déposer un indicateur dans son ancien parent après un déplacement.
+// #261 — Zone de drop quand la liste d'indicateurs est vide. Sans elle, le
+// conteneur se replie à 0 px et il devient impossible de re-déposer un
+// indicateur dans son ancien parent après un déplacement.
 // #472 — même traitement pour une droplist de pressions vide : sans hauteur
 // propre, le CDK n'a aucune cible à détecter et le drop inter-facteur échoue.
+//
+// #621 — le cadre pointillé « Glisser … ici » était affiché en permanence et
+// polluait l'arborescence. Il ne se dessine désormais qu'au moment du
+// glisser-déposer (classe `cdk-drop-list-receiving` posée par le CDK sur les
+// listes connectées dès le début du drag). La HAUTEUR, elle, reste constante :
+// le CDK mesure la zone au démarrage du drag (`_startReceiving`) et ne la
+// recalcule plus ensuite — l'agrandir à ce moment-là casserait le dépôt.
 .pressions-droplist--empty,
 .indicateurs-droplist--empty {
-  min-height: 64px;
-  border: 2px dashed rgba($primary-color, 0.3);
+  min-height: 40px;
+  border: 2px dashed transparent;
   border-radius: $border-radius-sm;
-  background-color: rgba($primary-color, 0.03);
-  padding: $spacing-sm;
+  background-color: transparent;
+  padding: $spacing-xxs;
+  transition: border-color 150ms ease, background-color 150ms ease;
+
+  &.cdk-drop-list-receiving {
+    border-color: rgba($primary-color, 0.3);
+    background-color: rgba($primary-color, 0.03);
+  }
 }
 
 .droplist-empty-hint {
@@ -1821,15 +1834,23 @@
   align-items: center;
   justify-content: center;
   gap: $spacing-xs;
-  min-height: 48px;
+  min-height: 32px;
   color: $gray-dark;
   font-style: italic;
   font-size: 0.875rem;
+  // Invisible au repos, mais toujours présent : c'est lui qui donne sa hauteur
+  // à la zone de dépôt, mesurée une seule fois par le CDK (#621).
+  opacity: 0;
+  transition: opacity 150ms ease;
 
   i {
     font-size: 1rem;
     color: rgba($primary-color, 0.6);
   }
+}
+
+.cdk-drop-list-receiving > .droplist-empty-hint {
+  opacity: 1;
 }
 
 .facteur-drag-item,
