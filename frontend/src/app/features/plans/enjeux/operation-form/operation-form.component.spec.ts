@@ -280,6 +280,32 @@ describe('OperationFormComponent — ventilation budgétaire', () => {
       comp.onModeToggle('by_org_type');
       expect((comp as any).ventilationMode()).toBe('by_org_type');
     });
+
+    // #627 — après un premier enregistrement en « + type de poste », le
+    // `declinaison_par_poste` rechargé du serveur bloquait le tableau RH sur
+    // les postes quel que soit le nouveau mode choisi.
+    it('libère la déclinaison par poste quand on quitte un mode « + type de poste »', () => {
+      comp.onModeToggle('by_type_poste');
+      expect((comp as any).declinaisonParPoste()).toBe(true);
+      expect(comp.rhMode()).toBe('postes');
+
+      comp.onModeToggle('by_org_type');
+      expect((comp as any).declinaisonParPoste()).toBe(false);
+      expect(comp.rhMode()).toBe('organismes');
+
+      comp.onModeToggle('by_type');
+      expect(comp.rhMode()).toBe('global');
+    });
+
+    it('réaligne une déclinaison héritée du serveur sur le mode choisi', () => {
+      // État rechargé : declinaison_par_poste=true mais mode sans poste.
+      (comp as any).declinaisonParPoste.set(true);
+      (comp as any).ventilationMode.set('by_type_poste');
+      expect(comp.rhMode()).toBe('postes');
+
+      comp.onModeToggle('none');
+      expect(comp.rhMode()).toBe('global');
+    });
   });
 
   describe('#597 catégorie de dépense — setRhCategorie', () => {

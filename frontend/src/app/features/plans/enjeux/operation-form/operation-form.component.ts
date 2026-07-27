@@ -3688,6 +3688,11 @@ export class OperationFormComponent implements OnInit {
 
   onModeToggle(mode: string): void {
     this.ventilationMode.set(mode as VentilationMode);
+    // #627 — `declinaison_par_poste` est persisté à l'enregistrement (= mode
+    // « + type de poste »). Rechargée telle quelle, elle forçait `rhMode()` à
+    // « postes » quel que soit le nouveau mode choisi : le tableau RH restait
+    // bloqué sur les postes. On la réaligne donc sur le mode sélectionné.
+    this.declinaisonParPoste.set(this.isPosteVentilation());
     // Le tableau RH suit le mode : postes en « + type de poste », sinon
     // organismes de la ventilation, sinon global (#600).
     this.syncRhLines();
