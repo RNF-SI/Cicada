@@ -11,7 +11,13 @@ Calqué sur le modèle « Modèle_Export_CICADA_Fiche_action », qui distingue :
 
 Les deux variantes partagent le volet administratif et financier (programmation
 annuelle, blocs budgétaires par organisme gestionnaire, programmation mensuelle,
-financeurs, indicateurs de réponse).
+financeurs) puis la rubrique des indicateurs de réponse.
+
+#626 — la fiche porte en plus : les deux codes de l'action (code local du plan,
+type « CS1 », et code du référentiel Gestref), le descriptif et les objectifs de
+chaque protocole du suivi, une petite carte du contour de l'emprise, et — pour
+les indicateurs de réponse — la métrique entre parenthèses hors grille ou la
+grille de scoring 5 paliers quand la métrique est au format GRILLE.
 
 Point d'entrée public : :func:`build_fiche_action_workbook`.
 
@@ -26,6 +32,7 @@ ventilation par organisme).
 from __future__ import annotations
 
 import io
+import math
 from collections import defaultdict
 from decimal import Decimal
 
@@ -59,6 +66,15 @@ _F_TOTAL = Font(name="Calibri", bold=True, size=10, color=_PRIMARY)
 _F_PRIO = Font(name="Calibri", bold=True, size=12, color=_WHITE)
 _F_YEAR = Font(name="Calibri", bold=True, size=9, color=_PRIMARY)
 _F_X = Font(name="Calibri", bold=True, size=11, color=_GREEN)
+
+# Palette des paliers de score (design system) — texte noir uniquement (#626).
+_SCORE_FILLS = {
+    1: "FFFF7579", 2: "FFFA9965", 3: "FFF7D35C", 4: "FF82DB8A", 5: "FF81C9D8",
+}
+_SCORE_LABELS = {
+    1: "Très mauvais", 2: "Mauvais", 3: "Moyen", 4: "Bon", 5: "Très bon",
+}
+_F_SCOREHDR = Font(name="Calibri", bold=True, size=10, color="FF343433")
 
 _thin = Side(style="thin", color="FFBFC9C9")
 _med = Side(style="medium", color="FF9DB3B4")
@@ -114,8 +130,219 @@ def _sanitize_title(title: str, used: set) -> str:
 
 
 # ---------------------------------------------------------------------------
+# Grilles de métrique (#626) — même formatage que MetriqueGridDisplayComponent
+# ---------------------------------------------------------------------------
+
+def _fmt_dec(value) -> str:
+    """Nombre sans zéros terminaux (≤ 4 décimales, comme le front)."""
+    try:
+        s = f"{Decimal(str(value)):f}"
+    except Exception:
+        return _txt(value)
+    if "." in s:
+        s = s.rstrip("0").rstrip(".")
+    return s or "0"
+
+
+def _metrique_kind(m) -> str:
+    """TEXTE / CHIFFRE / NUMERIQUE (déduit si le type n'est pas renseigné)."""
+    mnemo = (getattr(getattr(m, "type_metrique", None), "mnemonique", "") or "").upper()
+    if mnemo:
+        return mnemo
+    levels = range(1, 6)
+    has_labels = any(_txt(getattr(m, f"score_{i}_label", "")) for i in levels)
+    has_vals = any(getattr(m, f"score_{i}_val", None) is not None for i in levels)
+    has_bounds = any(
+        getattr(m, f"score_{i}_inf", None) is not None
+        or getattr(m, f"score_{i}_sup", None) is not None
+        for i in levels
+    )
+    if has_labels and not has_bounds:
+        return "TEXTE"
+    if has_vals and not has_bounds:
+        return "CHIFFRE"
+    return "NUMERIQUE"
+
+
+def _is_grille(m) -> bool:
+    """#452 — la grille de scoring est opt-in (format GRILLE) côté réponse."""
+    fmt = (getattr(getattr(m, "format_metrique", None), "mnemonique", "") or "").upper()
+    if fmt == "GRILLE":
+        return True
+    if fmt == "SIMPLE":
+        return False
+    # Format non renseigné : grille seulement si des données de grille existent
+    # (donnée héritée d'avant #452).
+    if m.score_blocks.all():
+        return True
+    return any(
+        getattr(m, f"score_{i}_inf", None) is not None
+        or getattr(m, f"score_{i}_sup", None) is not None
+        or getattr(m, f"score_{i}_val", None) is not None
+        or _txt(getattr(m, f"score_{i}_label", ""))
+        for i in range(1, 6)
+    )
+
+
+def _interval(obj, level, sens, inactive) -> str:
+    """Intervalle d'un palier (inclusivité sens-aware, cf. #545/#554)."""
+    if level in inactive:
+        return ""
+    inf = getattr(obj, f"score_{level}_inf", None)
+    sup = getattr(obj, f"score_{level}_sup", None)
+    if inf is None and sup is None:
+        return ""
+    dec = sens == "DECROISSANT"
+    inf_incl = True
+    if inf is not None:
+        lower = level + 1 if dec else level - 1
+        if 1 <= lower <= 5:
+            inf_incl = getattr(obj, f"score_{lower}_sup_inclusive", True) is False
+    sup_incl = sup is None or getattr(obj, f"score_{level}_sup_inclusive", True) is not False
+    if sup is None:
+        return f"{'≥' if inf_incl else '>'} {_fmt_dec(inf)}"
+    if inf is None:
+        return f"{'≤' if sup_incl else '<'} {_fmt_dec(sup)}"
+    return (f"{'[' if inf_incl else ']'}{_fmt_dec(inf)} ; "
+            f"{_fmt_dec(sup)}{']' if sup_incl else '['}")
+
+
+def _block_label(m, idx) -> str:
+    if idx == 0:
+        intitule, unite = getattr(m, "bloc_intitule", "") or "", m.unite or ""
+    else:
+        block = list(m.score_blocks.all())[idx - 1]
+        intitule, unite = block.intitule or "", block.unite or ""
+    intitule = intitule.strip()
+    if intitule:
+        return f"{intitule} ({unite.strip()})" if unite.strip() else intitule
+    return "Bloc " + chr(ord("A") + idx)
+
+
+def _grid_cell(m, level) -> str:
+    """Contenu d'une cellule de palier (multi-lignes si blocs ET/OU)."""
+    kind = _metrique_kind(m)
+    inactive = list(m.inactive_levels or [])
+    blocks = list(m.score_blocks.all())
+
+    if kind == "TEXTE":
+        main = "" if level in inactive else _txt(getattr(m, f"score_{level}_label", ""))
+    elif kind == "CHIFFRE":
+        val = getattr(m, f"score_{level}_val", None)
+        main = "" if (level in inactive or val is None) else _fmt_dec(val)
+    else:
+        main = _interval(m, level, m.sens_variation, inactive)
+
+    if not blocks:
+        return main
+
+    lines = []
+    if main:
+        lines.append(_paren(f"{_block_label(m, 0)} : {main}", m.group_open, m.group_close))
+    for idx, block in enumerate(blocks, start=1):
+        text = _interval(block, level, block.sens_variation, list(block.inactive_levels or []))
+        if not text:
+            continue
+        op = "ET" if block.logical_op == "AND" else "OU"
+        prefix = f"{op} " if lines else ""
+        lines.append(prefix + _paren(f"{_block_label(m, idx)} : {text}",
+                                     block.group_open, block.group_close))
+    return "\n".join(lines)
+
+
+def _paren(text, group_open, group_close) -> str:
+    return f"{'(' * (group_open or 0)}{text}{')' * (group_close or 0)}"
+
+
+# ---------------------------------------------------------------------------
+# Carte de localisation (#626) — contour de l'emprise, rendu PNG
+# ---------------------------------------------------------------------------
+
+def _geom_rings(geom, out=None):
+    """Anneaux [(lon, lat), …] d'une géométrie GEOS (polygones, lignes, points)."""
+    out = [] if out is None else out
+    if geom is None:
+        return out
+    gtype = (getattr(geom, "geom_type", "") or "").lower()
+    try:
+        if gtype == "polygon":
+            for ring in geom.coords:
+                out.append([(float(x), float(y)) for x, y in ring])
+        elif gtype in ("multipolygon", "geometrycollection", "multilinestring", "multipoint"):
+            for part in geom:
+                _geom_rings(part, out)
+        elif gtype == "linestring":
+            out.append([(float(x), float(y)) for x, y in geom.coords])
+        elif gtype == "point":
+            x, y = float(geom.x), float(geom.y)
+            out.append([(x, y)])
+    except Exception:
+        return out
+    return out
+
+
+def _geom_png(geom, width=440, height=300, margin=14):
+    """Petite carte du contour de la zone (PNG), ou None si impossible."""
+    try:
+        from PIL import Image as PILImage, ImageDraw
+    except ImportError:      # Pillow absent → pas de carte, le reste s'exporte
+        return None
+
+    rings = [r for r in _geom_rings(geom) if r]
+    if not rings:
+        return None
+
+    lats = [y for ring in rings for _, y in ring]
+    kx = math.cos(math.radians(sum(lats) / len(lats))) or 1.0
+    proj = [[(x * kx, y) for x, y in ring] for ring in rings]
+    xs = [p[0] for ring in proj for p in ring]
+    ys = [p[1] for ring in proj for p in ring]
+    dx, dy = max(xs) - min(xs), max(ys) - min(ys)
+    scale = min((width - 2 * margin) / dx if dx > 0 else float("inf"),
+                (height - 2 * margin) / dy if dy > 0 else float("inf"))
+    if scale == float("inf"):    # point isolé / géométrie dégénérée
+        scale = 1.0
+    ox = (width - dx * scale) / 2 - min(xs) * scale
+    oy = (height - dy * scale) / 2 + max(ys) * scale
+
+    img = PILImage.new("RGB", (width, height), "#F3EFEA")
+    draw = ImageDraw.Draw(img)
+    draw.rectangle([0, 0, width - 1, height - 1], outline="#9DB3B4")
+    for ring in proj:
+        pts = [(x * scale + ox, oy - y * scale) for x, y in ring]
+        if len(pts) >= 3:
+            draw.polygon(pts, fill="#C0E3CF", outline="#025359")
+            draw.line(pts + [pts[0]], fill="#025359", width=2)
+        elif len(pts) == 2:
+            draw.line(pts, fill="#025359", width=2)
+        else:
+            x, y = pts[0]
+            draw.ellipse([x - 4, y - 4, x + 4, y + 4], fill="#B74D5D", outline="#025359")
+
+    buf = io.BytesIO()
+    img.save(buf, format="PNG")
+    return buf.getvalue()
+
+
+def _operation_geom(op):
+    """Emprise de l'action, à défaut celle de ses sites (#410)."""
+    if op.geom:
+        return op.geom
+    union = None
+    for site in op.sites.all():
+        if site.geom:
+            union = site.geom if union is None else union.union(site.geom)
+    return union
+
+
+# ---------------------------------------------------------------------------
 # Cadre de l'action (état ou pression)
 # ---------------------------------------------------------------------------
+
+def _is_reponse(ind) -> bool:
+    t = getattr(ind, "type_indicateur", None)
+    return bool(t and (t.mnemonique or "").upper() == "REPONSE")
+
 
 def _linked_indicateurs(op):
     inds = {}
@@ -128,12 +355,20 @@ def _linked_indicateurs(op):
 
 
 def _cadre(op):
-    """Renvoie les libellés du cadre (métriques, indicateur, NE/RA, OLT/OO, enjeu)."""
-    metriques = [_txt(m.nom_metrique) for m in op.metriques.all()]
+    """Renvoie les libellés du cadre (métriques, indicateur, NE/RA, OLT/OO, enjeu).
+
+    #626 — les indicateurs de **réponse** (et leurs métriques) sont exclus : ils
+    ont leur propre rubrique en bas de fiche et n'ont rien à faire dans la ligne
+    « Indicateur d'état / de pression ». Leur chaîne NE/RA → OLT/OO → enjeu reste
+    parcourue : elle porte le contexte de l'action.
+    """
+    metriques = [_txt(m.nom_metrique) for m in op.metriques.all()
+                 if not _is_reponse(m.id_indicateur)]
     inds = _linked_indicateurs(op)
     indicateurs, exigences, objectifs, enjeux = [], [], [], []
     for ind in inds:
-        indicateurs.append(_txt(ind.nom_indicateur))
+        if not _is_reponse(ind):
+            indicateurs.append(_txt(ind.nom_indicateur))
         ne = getattr(ind, "id_ne", None)
         ra = getattr(ind, "id_resultat_attendu", None)
         if ne:
@@ -273,11 +508,65 @@ class _Writer:
             ws.cell(self.r, col).border = _B
         self.r += 1
 
+    def sub_banner(self, text):
+        """Bandeau clair pleine largeur (titre d'une grille de métrique, #626)."""
+        ws = self.ws
+        ws.merge_cells(start_row=self.r, start_column=1, end_row=self.r, end_column=self.ncols)
+        c = ws.cell(self.r, 1, text)
+        c.fill = PatternFill("solid", fgColor=_LABEL_FILL)
+        c.font = _F_LABEL
+        c.alignment = _AL_L
+        for col in range(1, self.ncols + 1):
+            ws.cell(self.r, col).border = _B
+        self.r += 1
+
+    def spans(self, n=5):
+        """Découpe les colonnes 1..ncols en n plages contiguës ~égales."""
+        base, extra = divmod(self.ncols, n)
+        out, start = [], 1
+        for i in range(n):
+            size = max(1, base + (1 if i < extra else 0))
+            out.append((start, min(start + size - 1, self.ncols)))
+            start += size
+        return out
+
+    def score_grid(self, values):
+        """Grille 5 paliers : en-tête coloré (« Très mauvais / = 1 ») + valeurs."""
+        ws = self.ws
+        spans = self.spans(5)
+        for level, (c1, c2) in enumerate(spans, start=1):
+            ws.merge_cells(start_row=self.r, start_column=c1, end_row=self.r, end_column=c2)
+            cell = ws.cell(self.r, c1, f"{_SCORE_LABELS[level]}\n= {level}")
+            cell.fill = PatternFill("solid", fgColor=_SCORE_FILLS[level])
+            cell.font = _F_SCOREHDR
+            cell.alignment = _AL_C
+            for col in range(c1, c2 + 1):
+                ws.cell(self.r, col).border = _B
+        ws.row_dimensions[self.r].height = 30
+        self.r += 1
+        for level, (c1, c2) in enumerate(spans, start=1):
+            ws.merge_cells(start_row=self.r, start_column=c1, end_row=self.r, end_column=c2)
+            cell = ws.cell(self.r, c1, values.get(level) or "—")
+            cell.font = _F_VALUE
+            cell.alignment = _AL_C
+            for col in range(c1, c2 + 1):
+                ws.cell(self.r, col).border = _B
+        ws.row_dimensions[self.r].height = 34
+        self.r += 1
+
+    def picture(self, png, *, rows=16):
+        """Insère une image PNG à la ligne courante et réserve `rows` lignes."""
+        from openpyxl.drawing.image import Image as XLImage
+
+        img = XLImage(io.BytesIO(png))
+        self.ws.add_image(img, f"A{self.r}")
+        self.r += rows
+
     def blank(self):
         self.r += 1
 
 
-def _render_action(ws, op, years, *, is_cs):
+def _render_action(ws, op, years, *, is_cs, code_local=""):
     ncols = 3 + len(years)
     w = _Writer(ws, ncols)
     # largeurs
@@ -303,8 +592,16 @@ def _render_action(ws, op, years, *, is_cs):
         ws.cell(w.r, col).border = _BM
     ws.row_dimensions[w.r].height = 22
     w.r += 1
-    code = _txt(op.code_operation) or (f"n° {op.numero_manuel}" if op.numero_manuel else "")
-    w.kv("Code action", code)
+    # #626 — deux codes distincts, comme sur le modèle : le code local du plan
+    # (CS1, IP2… calculé par le parcours de l'arborescence) et le code de l'action
+    # dans le référentiel d'actions (Gestref / Eden 62).
+    code = code_local or _txt(op.code_operation) or (
+        f"n° {op.numero_manuel}" if op.numero_manuel else "")
+    w.kv("Code action (local)", code)
+    ta = getattr(op, "id_type_action", None)
+    code_ref = " — ".join(x for x in (
+        _txt(getattr(ta, "cd_nomenclature", "")), _txt(getattr(ta, "label", ""))) if x)
+    w.kv("Code action (référentiel Gestref)", code_ref or _txt(op.id_referentiel_operations))
 
     # ---- 1) Cadre de l'action ----
     w.section("1) Cadre de l'action")
@@ -319,20 +616,38 @@ def _render_action(ws, op, years, *, is_cs):
     w.section("2) Détails de l'opération")
     details = _txt(op.description)
     if is_cs:
-        protos = []
-        suivi = getattr(op, "id_suivi", None)
-        if suivi:
-            for pr in suivi.protocoles.all():
-                nom = _txt(getattr(pr, "protocole_campanule_nom", "")) or _txt(getattr(pr, "nom_protocole", ""))
-                if nom:
-                    protos.append(nom)
-        if protos:
-            details = (details + "\n" if details else "") + "Protocole(s) : " + " ; ".join(protos)
         w.kv("Détails du suivi", details)
+        # #626 — pour chaque protocole (standardisé ou non) : nom, descriptif et
+        # objectifs, qui manquaient à la fiche.
+        suivi = getattr(op, "id_suivi", None)
+        for pr in (suivi.protocoles.all() if suivi else []):
+            standardise = bool(pr.protocole_dans_campanule)
+            nom = _txt(pr.protocole_campanule_nom) if standardise else _txt(pr.nom_protocole)
+            nom = nom or _txt(pr.nom_protocole) or _txt(pr.protocole_campanule_nom)
+            libelle = "Protocole standardisé" if standardise else "Protocole non standardisé"
+            w.kv(libelle, nom)
+            w.kv("Descriptif du protocole", _txt(pr.description_protocole),
+                 fill=_SUBLABEL_FILL, font_label=_F_SUBLABEL)
+            w.kv("Objectifs du protocole", _txt(pr.objectif_protocole),
+                 fill=_SUBLABEL_FILL, font_label=_F_SUBLABEL)
     else:
         w.kv("Détails de l'action", details)
     w.kv("Opérateurs", _txt(op.operateurs))
     w.kv("Partenaires", _txt(op.partenaires))
+
+    # ---- Localisation de l'action (#626) ----
+    sites = list(op.sites.all())
+    w.kv("Localisation (site(s))", " ; ".join(_txt(s.nom_site) for s in sites))
+    png = None
+    try:
+        png = _geom_png(_operation_geom(op))
+    except Exception:        # une géométrie exotique ne doit pas casser l'export
+        png = None
+    if png:
+        w.kv("Emprise de l'action", "")
+        w.picture(png)
+    else:
+        w.kv("Emprise de l'action", "Non renseignée")
 
     # ---- 3) Volet administratif et financier ----
     w.section("3) Détail du volet administratif et financier de l'opération")
@@ -402,16 +717,31 @@ def _render_action(ws, op, years, *, is_cs):
         financeurs.append(_txt(op.financeurs))
     w.kv("Financeurs et types de financement", " ; ".join(financeurs), fill=_LABEL_FILL)
 
-    # Indicateurs de réponse
-    reponses = []
-    for ind in _linked_indicateurs(op):
-        t = getattr(ind, "type_indicateur", None)
-        if t and (t.mnemonique or "").upper() == "REPONSE":
-            reponses.append(_txt(ind.nom_indicateur))
-    # + indicateurs réponse partageant le même NE/RA que l'action
-    reponses += _sibling_reponse_indicateurs(op)
-    reponses = list(dict.fromkeys([r for r in reponses if r]))
-    w.kv("Indicateurs de réponse", " ; ".join(reponses), fill=_LABEL_FILL)
+    # ---- 4) Indicateurs de réponse (#626) ----
+    w.section("4) Indicateurs de réponse")
+    simples, grilles = [], []
+    for ind in _reponse_indicateurs(op):
+        nom = _txt(ind.nom_indicateur)
+        metriques = list(ind.metriques.all())
+        if not metriques:
+            simples.append(nom)
+            continue
+        for met in metriques:
+            libelle = _txt(met.nom_metrique)
+            if _is_grille(met):
+                grilles.append((nom, met))
+            else:
+                # Hors grille : intitulé + métrique entre parenthèses.
+                simples.append(f"{nom} ({libelle})" if libelle else nom)
+    w.kv("Indicateurs de réponse", " ; ".join(dict.fromkeys(simples)), fill=_LABEL_FILL)
+    for nom, met in grilles:
+        libelle = _txt(met.nom_metrique)
+        unite = _txt(met.unite)
+        titre = f"{nom} — {libelle}" if libelle else nom
+        if unite:
+            titre += f" ({unite})"
+        w.sub_banner(titre)
+        w.score_grid({level: _grid_cell(met, level) for level in range(1, 6)})
 
     ws.sheet_view.showGridLines = False
 
@@ -467,23 +797,20 @@ def _render_monthly(w, months, month_flags):
     w.r += 1
 
 
-def _sibling_reponse_indicateurs(op):
-    """Indicateurs de type Réponse partageant le NE ou RA de l'action."""
-    out = []
+def _reponse_indicateurs(op):
+    """Indicateurs de réponse de l'action : ceux qui lui sont liés, plus ceux qui
+    partagent son NE ou son RA. Dédupliqués, dans l'ordre de rencontre."""
+    out = {}
     for ind in _linked_indicateurs(op):
-        ne = getattr(ind, "id_ne", None)
-        ra = getattr(ind, "id_resultat_attendu", None)
-        if ne:
-            for sib in ne.indicateurs.all():
-                t = getattr(sib, "type_indicateur", None)
-                if t and (t.mnemonique or "").upper() == "REPONSE":
-                    out.append(_txt(sib.nom_indicateur))
-        if ra:
-            for sib in ra.indicateurs.all():
-                t = getattr(sib, "type_indicateur", None)
-                if t and (t.mnemonique or "").upper() == "REPONSE":
-                    out.append(_txt(sib.nom_indicateur))
-    return out
+        if _is_reponse(ind):
+            out[ind.pk] = ind
+        for parent in (getattr(ind, "id_ne", None), getattr(ind, "id_resultat_attendu", None)):
+            if not parent:
+                continue
+            for sib in parent.indicateurs.all():
+                if _is_reponse(sib):
+                    out.setdefault(sib.pk, sib)
+    return list(out.values())
 
 
 # ---------------------------------------------------------------------------
@@ -509,11 +836,13 @@ def build_fiche_action_workbook(plan) -> bytes:
         Operation.objects
         .filter(metriques__id_indicateur__id_ne__id_olt__id_enjeu__id_pg=plan)
         .select_related("id_priorite", "id_categorie_action_reserve", "id_indicateur",
-                        "id_suivi")
+                        "id_suivi", "id_type_action")
         .prefetch_related(
             "metriques__id_indicateur__id_ne__id_olt__id_enjeu",
             "metriques__id_indicateur__id_resultat_attendu__id_oo",
-            "finances__id_categorie", "id_suivi__protocoles",
+            "metriques__id_indicateur__id_ne__indicateurs__metriques__score_blocks",
+            "metriques__id_indicateur__id_resultat_attendu__indicateurs__metriques__score_blocks",
+            "finances__id_categorie", "id_suivi__protocoles", "sites",
         )
         .distinct()
     )
@@ -534,11 +863,21 @@ def build_fiche_action_workbook(plan) -> bytes:
         ws = wb.create_sheet(_sanitize_title("Actions", used))
         ws["A1"] = "Ce plan ne contient pas encore d'action."
         ws["A1"].font = Font(bold=True, size=12, color=_PRIMARY)
+    # #626 — code local de l'action tel qu'affiché dans le plan (CS1, IP2…),
+    # calculé une fois pour tout le plan (même source que l'export budget, #618).
+    from .serializers_operations import compute_operation_codes_for_plan
+    try:
+        codes = compute_operation_codes_for_plan(plan.pk)
+    except Exception:
+        codes = {}
+
     for op in all_ops:
         is_cs = _is_cs(op)
-        code = _txt(op.code_operation) or f"Action {op.id_operation}"
-        ws = wb.create_sheet(_sanitize_title(code, used))
-        _render_action(ws, op, years, is_cs=is_cs)
+        code_local = codes.get(op.id_operation) or _txt(op.code_operation)
+        # Onglet : code saisi s'il existe, sinon code local calculé.
+        titre = _txt(op.code_operation) or code_local or f"Action {op.id_operation}"
+        ws = wb.create_sheet(_sanitize_title(titre, used))
+        _render_action(ws, op, years, is_cs=is_cs, code_local=code_local)
 
     buf = io.BytesIO()
     wb.save(buf)
