@@ -5,6 +5,9 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { EnjeuService } from '../../../../core/services/enjeu.service';
 import { MetriqueRef, Operation, Protocole } from '../../../../core/models/enjeu.model';
 import { CategorieDepense } from '../../../../core/models/rh.model';
+import {
+  fonctDetailPrev, investDetailPrev, yearBudgetPrev, yearJoursPrev,
+} from '../../../../shared/utils/operation-budget';
 import { LeafletMapEditComponent } from '../../../../shared/components/leaflet-map-edit/leaflet-map-edit.component';
 import { MetriqueGridDisplayComponent } from '../../../../shared/components/metrique-grid-display/metrique-grid-display.component';
 import { CheckboxComponent } from '../../../../shared/components/checkbox/checkbox.component';
@@ -106,28 +109,60 @@ export class OperationFicheComponent implements OnInit {
    * #560 — le travail vient des lignes RH (poste / organisme × financé), et
    * non plus du champ `etp` déprécié.
    */
-  readonly programmation = computed(() =>
-    [...(this.operation()?.operation_annees ?? [])]
+  readonly programmation = computed(() => {
+    const op = this.operation();
+    if (!op) return [];
+    return [...(op.operation_annees ?? [])]
       .sort((a, b) => a.annee - b.annee)
       .map(oa => {
-        const orgs = oa.organismes ?? [];
-        // #581 — DRF sérialise les décimaux en chaînes ("500.00") : sans
-        // coercition, l'addition les concatène ("500.00" + "200.00") et le
-        // budget ventilé (type / organisme) devient illisible dans la fiche.
-        const sumOrg = (key: 'budget_fonctionnement' | 'budget_investissement'): number | null =>
-          orgs.length ? orgs.reduce((acc, o) => acc + (this.toNum(o[key]) ?? 0), 0) : null;
-        const fonctionnement = this.toNum(oa.budget_fonctionnement) ?? sumOrg('budget_fonctionnement');
-        const investissement = this.toNum(oa.budget_investissement) ?? sumOrg('budget_investissement');
-        const rh = oa.rh_lignes ?? [];
-        const jours = rh.length
-          ? rh.reduce((acc, l) => acc + Number(l.jours ?? 0), 0)
-          : null;
-        const budget = (fonctionnement != null || investissement != null)
-          ? (fonctionnement ?? 0) + (investissement ?? 0)
-          : this.toNum(oa.budget);
-        return { annee: oa.annee, periodicite: oa.periodicite, fonctionnement, investissement, budget, jours };
-      })
-  );
+        // #613 — le budget est DÉRIVÉ des composants réellement saisis (détail
+        // des coûts + coût salarial des lignes RH) : dans les modes « + type de
+        // poste », les enveloppes `budget_fonctionnement` / `_investissement`
+        // ne sont pas stockées et la fiche affichait 0 €.
+        const { fonctionnement, investissement, total } = yearBudgetPrev(op, oa);
+        return {
+          annee: oa.annee,
+          periodicite: oa.periodicite,
+          fonctionnement,
+          investissement,
+          budget: total,
+          jours: yearJoursPrev(oa),
+        };
+      });
+  });
+
+  /**
+   * #613 — Détail des coûts, cumulé sur toutes les années : la fiche doit être
+   * « aussi précise que ce qui est saisi ». Une ligne par composant
+   * (coût salarial calculé, stage, prestataire, autres coûts), ventilée
+   * fonctionnement / investissement. Masqué si l'action n'en porte aucun.
+   */
+  readonly coutDetail = computed(() => {
+    const annees = this.operation()?.operation_annees ?? [];
+    const zero = { salarial: 0, stage: 0, prestataire: 0, autres: 0, total: 0 };
+    const fonct = { ...zero };
+    const invest = { ...zero };
+    const op = this.operation();
+    if (!op) return { rows: [], totalFonct: 0, totalInvest: 0 };
+    for (const oa of annees) {
+      const f = fonctDetailPrev(op, oa);
+      const i = investDetailPrev(op, oa);
+      for (const key of ['salarial', 'stage', 'prestataire', 'autres', 'total'] as const) {
+        fonct[key] += f[key];
+        invest[key] += i[key];
+      }
+    }
+    const rows = [
+      { key: 'coutSalarial', fonct: fonct.salarial, invest: invest.salarial },
+      { key: 'coutStage', fonct: fonct.stage, invest: invest.stage },
+      { key: 'coutPrestataire', fonct: fonct.prestataire, invest: invest.prestataire },
+      { key: 'autresCouts', fonct: fonct.autres, invest: invest.autres },
+    ].filter(r => r.fonct !== 0 || r.invest !== 0);
+    return { rows, totalFonct: fonct.total, totalInvest: invest.total };
+  });
+
+  /** Vrai si au moins un composant de coût est renseigné (#613). */
+  readonly hasCoutDetail = computed(() => this.coutDetail().rows.length > 0);
 
   /** Vrai si au moins une année distingue fonctionnement / investissement (#556). */
   readonly hasBudgetTypes = computed(() =>
@@ -167,8 +202,13 @@ export class OperationFicheComponent implements OnInit {
         if (orgId == null || coutJour == null) continue;
         const e = byOrg.get(orgId);
         if (!e) continue;
+        const categorie = l.categorie_depense ?? (l.finance ? 'fonctionnement' : 'benevolat_partenariat');
+        // #613 — le temps « bénévolat partenariat » est valorisé en JOURS, pas
+        // en euros : il ne pèse sur aucune des deux enveloppes (même convention
+        // qu'à l'export, cf. `services_export_finance`).
+        if (categorie === 'benevolat_partenariat') continue;
         const montant = Number(l.jours ?? 0) * coutJour;
-        if (l.categorie_depense === 'investissement') e.investissement += montant;
+        if (categorie === 'investissement') e.investissement += montant;
         else e.fonctionnement += montant;
       }
     }

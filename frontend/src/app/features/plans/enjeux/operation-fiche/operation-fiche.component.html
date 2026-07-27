@@ -202,6 +202,40 @@
             }
           </table>
 
+          <!-- #613 — Détail des coûts : la fiche doit être aussi précise que la
+               saisie (coût salarial calculé, stage, prestataire, autres coûts). -->
+          @if (hasCoutDetail()) {
+            <h3 class="fiche-subtitle">{{ 'plans.suivis.actions.fiche.coutDetailTitle' | translate }}</h3>
+            <table class="fiche-table">
+              <thead>
+                <tr>
+                  <th>{{ 'plans.suivis.actions.fiche.coutComposant' | translate }}</th>
+                  <th class="num">{{ 'plans.suivis.actions.fiche.budgetFonctionnement' | translate }}</th>
+                  <th class="num">{{ 'plans.suivis.actions.fiche.budgetInvestissement' | translate }}</th>
+                  <th class="num">{{ 'plans.suivis.actions.fiche.budget' | translate }}</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (row of coutDetail().rows; track row.key) {
+                  <tr>
+                    <td>{{ 'plans.suivis.actions.fiche.' + row.key | translate }}</td>
+                    <td class="num">{{ row.fonct | number:'1.0-2' }} €</td>
+                    <td class="num">{{ row.invest | number:'1.0-2' }} €</td>
+                    <td class="num">{{ row.fonct + row.invest | number:'1.0-2' }} €</td>
+                  </tr>
+                }
+              </tbody>
+              <tfoot>
+                <tr>
+                  <td>{{ 'plans.suivis.actions.fiche.total' | translate }}</td>
+                  <td class="num">{{ coutDetail().totalFonct | number:'1.0-2' }} €</td>
+                  <td class="num">{{ coutDetail().totalInvest | number:'1.0-2' }} €</td>
+                  <td class="num">{{ coutDetail().totalFonct + coutDetail().totalInvest | number:'1.0-2' }} €</td>
+                </tr>
+              </tfoot>
+            </table>
+          }
+
           <!-- #556 — Répartition par organisme gestionnaire (si ventilation saisie) -->
           @if (organismeBreakdown().length) {
             <h3 class="fiche-subtitle">{{ 'plans.suivis.actions.fiche.repartitionOrganismes' | translate }}</h3>

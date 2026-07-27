@@ -222,6 +222,87 @@ describe('OperationFicheComponent — programmation détaillée (#556)', () => {
     expect(cen.budget).toBe(4780);
   });
 
+  // #613 — en mode « + type de poste », les enveloppes fonctionnement /
+  // investissement ne sont pas stockées (elles se recalculent depuis les
+  // composants). La fiche affichait donc 0 € par année alors que la
+  // répartition par organisme, elle, montrait le vrai montant.
+  it('dérive le budget annuel des coûts saisis en mode « + type de poste » (#613)', () => {
+    const op = operationWithAnnees([
+      {
+        annee: 2024, periodicite: true, budget: null,
+        budget_fonctionnement: null, budget_investissement: null,
+        organismes: [{
+          id_organisme: 1, organisme_nom: 'RNF',
+          budget_fonctionnement: null, budget_investissement: null,
+          cout_stage: '200.00', cout_prestataire: '1000.00', autre_cout: '500.00',
+          cout_prestataire_invest: '300.00', autre_cout_invest: '50.00',
+        }],
+        rh_lignes: [
+          { id_poste: 5, poste_id_organisme: 1, poste_cout_jour: '300.00', jours: 10, finance: true, categorie_depense: 'fonctionnement' },
+          { id_poste: 6, poste_id_organisme: 1, poste_cout_jour: '80.00', jours: 5, finance: true, categorie_depense: 'investissement' },
+          { id_poste: 7, poste_id_organisme: 1, poste_cout_jour: '150.00', jours: 2, finance: false, categorie_depense: 'benevolat_partenariat' },
+        ],
+      },
+    ]);
+    (op as any).ventilation_mode = 'by_org_type_poste';
+    const c = setup(op).componentInstance;
+
+    const row = c.programmation()[0];
+    expect(row.fonctionnement).toBe(4700);   // 3000 salarial + 200 + 1000 + 500
+    expect(row.investissement).toBe(750);    // 400 salarial + 300 + 50
+    expect(row.budget).toBe(5450);           // et non 0 €
+    expect(row.jours).toBe(17);              // bénévolat compris
+    // Le total de la fiche colle à la répartition par organisme.
+    expect(c.totalBudget()).toBe(5450);
+    expect(c.organismeBreakdown()[0].budget).toBe(5450);
+  });
+
+  // #613 — « la fiche doit être aussi précise que ce qui est saisi ».
+  it('détaille les composants de coût (salarial, stage, prestataire, autres) (#613)', () => {
+    const op = operationWithAnnees([
+      {
+        annee: 2024, periodicite: true,
+        organismes: [{
+          id_organisme: 1, organisme_nom: 'RNF',
+          budget_fonctionnement: null, budget_investissement: null,
+          cout_stage: '200.00', cout_prestataire: '1000.00', autre_cout: '500.00',
+          cout_prestataire_invest: '300.00', autre_cout_invest: '50.00',
+        }],
+        rh_lignes: [
+          { id_poste: 5, poste_id_organisme: 1, poste_cout_jour: '300.00', jours: 10, finance: true, categorie_depense: 'fonctionnement' },
+        ],
+      },
+    ]);
+    (op as any).ventilation_mode = 'by_org_type_poste';
+    const fixture = setup(op);
+    const c = fixture.componentInstance;
+
+    expect(c.hasCoutDetail()).toBe(true);
+    const rows = c.coutDetail().rows;
+    expect(rows.map(r => r.key)).toEqual([
+      'coutSalarial', 'coutStage', 'coutPrestataire', 'autresCouts',
+    ]);
+    expect(rows.find(r => r.key === 'coutSalarial')).toEqual(
+      { key: 'coutSalarial', fonct: 3000, invest: 0 },
+    );
+    expect(rows.find(r => r.key === 'coutPrestataire')).toEqual(
+      { key: 'coutPrestataire', fonct: 1000, invest: 300 },
+    );
+    expect(c.coutDetail().totalFonct).toBe(4700);
+    expect(c.coutDetail().totalInvest).toBe(350);
+    expect(fixture.nativeElement.textContent)
+      .toContain('plans.suivis.actions.fiche.coutDetailTitle');
+  });
+
+  it('n’affiche pas le détail des coûts quand aucun composant n’est saisi (#613)', () => {
+    const fixture = setup(operationWithAnnees([
+      { annee: 2024, periodicite: true, budget: '1000.00' },
+    ]));
+    expect(fixture.componentInstance.hasCoutDetail()).toBe(false);
+    expect(fixture.nativeElement.textContent)
+      .not.toContain('plans.suivis.actions.fiche.coutDetailTitle');
+  });
+
   // #560 — les jours viennent des lignes RH, plus du champ `etp` déprécié.
   it('ignore le champ etp déprécié pour le travail', () => {
     const fixture = setup(operationWithAnnees([
