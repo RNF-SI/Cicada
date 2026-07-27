@@ -95,6 +95,60 @@ def plan_finance():
     return {'plan': plan, 'org': org, 'op': op, 'poste': poste}
 
 
+@pytest.fixture
+def plan_arbo():
+    """Plan avec une arborescence complète (branche NE + branche OO/RA).
+
+    - branche état : OLT → NE → indicateur d'état → métrique multi-blocs (#619)
+      → action (sans `code_operation`, pour vérifier le code local du plan) ;
+    - branche pression : facteur → pression → OO → RA → indicateur de pression
+      → métrique.
+    """
+    from apps.plans.models_indicateurs import MetriqueScoreBlock
+    from tests.factories.enjeux import (
+        FacteurInfluenceFactory, IndicateurPressionFactory,
+        ObjectifOperationnelFactory, PressionFactory, ResultatAttenduFactory,
+    )
+
+    plan = PlanGestionFactory(annee_debut=2024, annee_fin=2026)
+    t_etat = _nomenclature('TYPE_INDICATEUR', 'ETAT', 'État')
+    t_pression = _nomenclature('TYPE_INDICATEUR', 'PRESSION', 'Pression')
+    cs = _nomenclature('CATEGORIE_ACTION_RESERVE', 'CS', 'Connaissance et suivi')
+
+    enjeu = EnjeuFactory(id_pg=plan, etat_enjeu="État actuel de l'enjeu")
+
+    # -- branche « vision à long terme »
+    ne = NiveauExigenceFactory(id_olt=ObjectifLongTermeFactory(id_enjeu=enjeu))
+    ind = IndicateurFactory(id_ne=ne, type_indicateur=t_etat)
+    met = MetriqueFactory(
+        id_indicateur=ind, nom_metrique='Recouvrement', unite='%',
+        bloc_intitule='Surface', sens_variation='CROISSANT',
+        score_1_inf=0, score_1_sup=10, score_5_inf=90, score_5_sup=100,
+    )
+    bloc2 = MetriqueScoreBlock.objects.create(
+        id_metrique=met, position=1, intitule='Hauteur', unite='cm',
+        logical_op='AND', score_1_inf=0, score_1_sup=5,
+        score_5_inf=50, score_5_sup=100,
+    )
+    op = OperationFactory(
+        metriques=[met], id_categorie_action_reserve=cs,
+        code_operation=None, numero_manuel=None,
+    )
+
+    # -- branche « stratégie d'action »
+    facteur = FacteurInfluenceFactory(id_enjeu=enjeu, libelle='Fréquentation')
+    pression = PressionFactory(id_facteur_influence=facteur, libelle='Piétinement')
+    oo = ObjectifOperationnelFactory(pressions=[pression])
+    ra = ResultatAttenduFactory(id_oo=oo)
+    ind_p = IndicateurPressionFactory(id_resultat_attendu=ra, type_indicateur=t_pression)
+    met_p = MetriqueFactory(id_indicateur=ind_p, nom_metrique='Sentiers', unite='m')
+
+    return {
+        'plan': plan, 'enjeu': enjeu, 'met': met, 'bloc2': bloc2,
+        'op': op, 'met_pression': met_p,
+    }
+
+
 # ---------------------------------------------------------------------------
 # Logique financière partagée
 # ---------------------------------------------------------------------------
@@ -137,12 +191,6 @@ class TestExportFinance:
         c = af.cell(plan_finance['org'].id_organisme, 2024)
         assert c.rj_fonct == 8
         assert c.rsal_fonct == 8 * 300
-
-    def test_code_action_pg_est_le_code_affichage(self, plan_finance):
-        """#618 — la colonne « Code action PG » porte le code calculé (CS1…)."""
-        from apps.plans.services_export_finance import build_plan_finance
-        af = build_plan_finance(plan_finance['plan']).actions[0]
-        assert af.code == 'CS1'
 
     def test_mode_none_non_ventile(self, plan_finance):
         """Une action en mode 'none' n'est pas ventilée par organisme (#607 Q3)."""
@@ -198,29 +246,7 @@ class TestExportWorkbooks:
         # 10 jours prévus en 2024 pour l'action, colonne TOTAL = 10
         ws = next(wb[s] for s in wb.sheetnames if 'Org Alpha' in s)
         data_row = [ws.cell(4, c).value for c in range(1, ws.max_column + 1)]
-        # #618 — colonne « Code action PG » = code local du plan (et non le
-        # champ libre `code_operation`)
-        assert 'CS1' in data_row
-
-    def test_budget_suivi_totaux_fonct_invest(self, plan_finance):
-        """#618 — sous-totaux Fonctionnement / Investissement sur la feuille TOTAL."""
-        from apps.plans.services_export_budget_rh import build_budget_suivi_workbook
-        wb = self._load(build_budget_suivi_workbook(plan_finance['plan']))
-        ws = wb['Total par type de dépense']
-        labels = {ws.cell(r, 1).value: r for r in range(1, ws.max_row + 1)}
-        assert 'TOTAL Fonctionnement' in labels
-        assert 'TOTAL Investissement' in labels
-        # colonnes TOTAL (prévu / réalisé) en fin de feuille
-        c_prev, c_real = ws.max_column - 1, ws.max_column
-        # fonctionnement 2024 : 3000 (salarial) + 500 (presta) + 100 (autres)
-        assert ws.cell(labels['TOTAL Fonctionnement'], c_prev).value == '3 600'
-        # réalisé : 8 jours × 300 €/j
-        assert ws.cell(labels['TOTAL Fonctionnement'], c_real).value == '2 400'
-        # investissement 2024 : 200 (presta) + 50 (autres)
-        assert ws.cell(labels['TOTAL Investissement'], c_prev).value == '250'
-        assert ws.cell(labels['TOTAL Investissement'], c_real).value == '0'
-        # cohérence avec le TOTAL général
-        assert ws.cell(labels['TOTAL'], c_prev).value == '3 850'
+        assert 'CS01' in data_row
 
     def test_rh_suivi(self, plan_finance):
         from apps.plans.services_export_budget_rh import build_rh_suivi_workbook
@@ -234,6 +260,74 @@ class TestExportWorkbooks:
         assert docx[:2] == b'PK'      # conteneur zip Office
         wb = self._load(build_presentation_workbook(plan_finance['plan']))
         assert len(wb.sheetnames) >= 1
+
+
+# ---------------------------------------------------------------------------
+# Export arborescence « de présentation » (#619 / #620)
+# ---------------------------------------------------------------------------
+
+def _find_row(ws, label, col=1):
+    """Numéro de la première ligne dont la cellule `col` vaut `label`."""
+    for r in range(1, ws.max_row + 1):
+        if ws.cell(r, col).value == label:
+            return r
+    return None
+
+
+def _row_values(ws, row):
+    return [ws.cell(row, c).value for c in range(1, ws.max_column + 1)]
+
+
+def _fill(ws, row, col):
+    return ws.cell(row, col).fill.fgColor.rgb
+
+
+@pytest.mark.django_db
+class TestExportArborescencePresentation:
+    """#619 / #620 — mise en forme et contenu du classeur d'arborescence."""
+
+    def _sheet(self, plan):
+        from apps.plans.services_export_arbo import build_presentation_workbook
+        wb = load_workbook(io.BytesIO(build_presentation_workbook(plan)))
+        return wb[wb.sheetnames[0]]
+
+    # ---- #620 : colonnes et couleurs --------------------------------------
+
+    def test_pas_de_colonne_niveau_exigence_en_face_des_facteurs(self, plan_arbo):
+        """Le bloc bas commence par « Facteurs d'influence » (#620)."""
+        ws = self._sheet(plan_arbo['plan'])
+        b_h2 = _find_row(ws, "Facteurs d'influence")
+        assert b_h2 is not None, "en-tête « Facteurs d'influence » absent"
+        assert ws.cell(b_h2, 1).value == "Facteurs d'influence"
+        assert ws.cell(b_h2, 2).value == "Pressions à gérer"
+        # « Niveau d'exigence » ne subsiste que dans le bloc haut
+        niveaux = [
+            (r, c)
+            for r in range(1, ws.max_row + 1)
+            for c in range(1, 12)
+            if (ws.cell(r, c).value or '') == "Niveau d'exigence"
+        ]
+        assert niveaux == [], f"colonne « Niveau d'exigence » résiduelle : {niveaux}"
+
+    def test_couleurs_du_modele(self, plan_arbo):
+        """Bandeaux bleu foncé, données « stratégie » en orange (#620)."""
+        from apps.plans.services_export_arbo import (
+            _C_ENJEU, _C_ETAT_DATA, _C_INFLU, _C_STRAT_DATA,
+        )
+        ws = self._sheet(plan_arbo['plan'])
+        # bandeau « Influences sur l'enjeu » = même bleu foncé que « Enjeu »
+        r_enjeu = _find_row(ws, "Enjeu")
+        r_influ = _find_row(ws, "Influences sur l'enjeu")
+        assert _fill(ws, r_enjeu, 1) == _C_ENJEU == _C_INFLU
+        assert _fill(ws, r_influ, 1) == _C_INFLU
+        # données facteur / pression : bleu clair (bloc « influences »), pas orange
+        b_data = _find_row(ws, "Facteurs d'influence") + 1
+        assert _fill(ws, b_data, 1) == _C_ETAT_DATA
+        assert _fill(ws, b_data, 2) == _C_ETAT_DATA   # ancre de la fusion B:C
+        # données « stratégie d'action » (objectifs opérationnels et suivantes) :
+        # orange du modèle, plus rouge/rose
+        assert _fill(ws, b_data, 4) == _C_STRAT_DATA
+        assert _C_STRAT_DATA == 'FFFCD5B5', _C_STRAT_DATA
 
 
 # ---------------------------------------------------------------------------

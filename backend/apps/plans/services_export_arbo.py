@@ -36,6 +36,7 @@ _THEME = {
     "blue": (0x4F, 0x81, 0xBD),   # accent1 — colonne Enjeu / influences
     "red": (0xC0, 0x50, 0x4D),    # accent2 — bandeau stratégie d'action
     "green": (0x9B, 0xBB, 0x59),  # accent3 — bandeau vision long terme
+    "orange": (0xF7, 0x96, 0x46), # accent6 — corps du bloc stratégie d'action
     "beige": (0xEE, 0xEC, 0xE1),  # lt2 — bandeau grille de lecture
 }
 
@@ -52,18 +53,19 @@ def _tint(base: tuple[int, int, int], tint: float) -> str:
     return "FF{:02X}{:02X}{:02X}".format(*out)
 
 
-# Palette dérivée du modèle
+# Palette dérivée du modèle (#620 — bandeaux « Enjeu » et « Influences sur
+# l'enjeu » au même bleu foncé, corps du bloc « Stratégie d'action » en orange).
 _C_ENJEU = _tint(_THEME["blue"], -0.5)        # A6 — en-tête Enjeu
 _C_ENJEU_DATA = _tint(_THEME["blue"], 0.6)    # cellule nom d'enjeu
-_C_ETAT_DATA = _tint(_THEME["blue"], 0.8)     # état actuel
+_C_ETAT_DATA = _tint(_THEME["blue"], 0.8)     # état actuel / facteurs & pressions
 _C_VLT = _tint(_THEME["green"], -0.25)        # D6 — VISION A LONG TERME
 _C_VLT_HDR = _tint(_THEME["green"], 0.4)      # sous-en-têtes bloc haut
 _C_VLT_DATA = _tint(_THEME["green"], 0.6)     # cellules données bloc haut
 _C_STRAT = _tint(_THEME["red"], -0.5)         # D19 — STRATEGIE D'ACTION
-_C_STRAT_HDR = _tint(_THEME["red"], 0.4)      # sous-en-têtes bloc bas
-_C_STRAT_DATA = _tint(_THEME["red"], 0.6)     # cellules données bloc bas
-_C_INFLU = _tint(_THEME["blue"], -0.25)       # A19 — Influences sur l'enjeu
-_C_INFLU_HDR = _tint(_THEME["blue"], 0.4)     # sous-en-têtes influences
+_C_STRAT_HDR = _tint(_THEME["orange"], 0.4)   # sous-en-têtes bloc bas
+_C_STRAT_DATA = _tint(_THEME["orange"], 0.6)  # cellules données bloc bas
+_C_INFLU = _C_ENJEU                           # A19 — Influences sur l'enjeu
+_C_INFLU_HDR = _tint(_THEME["blue"], 0.4)     # sous-en-têtes bleus (haut & bas)
 _C_GRILLE = _tint(_THEME["beige"], 0.0)       # bandeau grille de lecture
 _WHITE = "FFFFFFFF"
 
@@ -354,12 +356,14 @@ def _collect_bottom(enjeu):
 # Rendu d'un onglet
 # ---------------------------------------------------------------------------
 
-def _merge_runs(ws, col, start_row, keys, values, *, fill, font=None):
+def _merge_runs(ws, col, start_row, keys, values, *, fill, font=None, col_end=None):
     """Fusionne verticalement les lignes consécutives de même clé et écrit la valeur.
 
     ``keys`` : clé de regroupement par ligne (identité du parent).
     ``values`` : valeur affichée par ligne.
+    ``col_end`` : dernière colonne quand la valeur s'étale sur plusieurs colonnes.
     """
+    col_end = col if col_end is None else col_end
     n = len(keys)
     i = 0
     while i < n:
@@ -368,8 +372,8 @@ def _merge_runs(ws, col, start_row, keys, values, *, fill, font=None):
             j += 1
         r1, r2 = start_row + i, start_row + j
         val = values[i]
-        if r2 > r1:
-            _merge(ws, r1, col, r2, col, val, fill=fill, font=font or _FONT_DATA,
+        if r2 > r1 or col_end > col:
+            _merge(ws, r1, col, r2, col_end, val, fill=fill, font=font or _FONT_DATA,
                    align=_AL_LEFT)
         else:
             _set(ws, r1, col, val, fill=fill, font=font or _FONT_DATA, align=_AL_LEFT)
@@ -449,7 +453,8 @@ def _render_enjeu_sheet(ws, enjeu, *, is_fcr):
     _grille_header(ws, h1, "Grille de lecture des métriques des indicateurs d'état de conservation")
 
     _set(ws, h2, COL_A, "", fill=_C_ENJEU, border=_BORDER_MED)
-    _merge(ws, h2, COL_B, h2, COL_C, "État actuel de l'enjeu", fill=_C_VLT_HDR,
+    # #620 — sous-en-tête du bloc « enjeu » en bleu (et non en vert du bloc VLT)
+    _merge(ws, h2, COL_B, h2, COL_C, "État actuel de l'enjeu", fill=_C_INFLU_HDR,
            font=_FONT_HDR, align=_AL_CTR)
     top_heads = [
         (COL_D, "Objectifs à long terme"),
@@ -507,10 +512,12 @@ def _render_enjeu_sheet(ws, enjeu, *, is_fcr):
            fill=_C_STRAT, font=_FONT_HDR_LIGHT, align=_AL_CTR, border=_BORDER_MED)
     _grille_header(ws, b_h1, "Grille de lecture des métriques des indicateurs de pression")
 
+    # #620 — plus de colonne « Niveau d'exigence » en face des facteurs
+    # d'influence : le bloc « influences » démarre sur les facteurs, et les
+    # pressions occupent B:C pour rester alignées sur le bloc haut.
     bottom_heads = [
-        (COL_A, "Niveau d'exigence"),
-        (COL_B, "Facteurs d'influence"),
-        (COL_C, "Pressions à gérer"),
+        (COL_A, "Facteurs d'influence"),
+        (COL_B, "Pressions à gérer"),
         (COL_D, "Objectifs opérationnels"),
         (COL_E, "Résultats attendus"),
         (COL_F, "Indicateurs de pression"),
@@ -521,7 +528,11 @@ def _render_enjeu_sheet(ws, enjeu, *, is_fcr):
         (COL_K, "Priorité"),
     ]
     for col, label in bottom_heads:
-        fill = _C_INFLU_HDR if col in (COL_A, COL_B, COL_C) else _C_STRAT_HDR
+        if col == COL_B:  # « Pressions à gérer » s'étale sur B:C
+            _merge(ws, b_h2, COL_B, b_h2, COL_C, label, fill=_C_INFLU_HDR,
+                   font=_FONT_HDR, align=_AL_CTR)
+            continue
+        fill = _C_INFLU_HDR if col == COL_A else _C_STRAT_HDR
         _set(ws, b_h2, col, label, fill=fill, font=_FONT_HDR, align=_AL_CTR)
     _grille_subheader(ws, b_h2, "Métriques")
 
@@ -533,10 +544,11 @@ def _render_enjeu_sheet(ws, enjeu, *, is_fcr):
         keys_p = [keyslice(r, 2) for r in bottom_rows]
         keys_oo = [keyslice(r, 3) for r in bottom_rows]
         keys_ra = [keyslice(r, 4) for r in bottom_rows]
-        _merge_runs(ws, COL_B, b_data, keys_f, [r.get("facteur", "") for r in bottom_rows],
-                    fill=_C_STRAT_DATA)
-        _merge_runs(ws, COL_C, b_data, keys_p, [r.get("pression", "") for r in bottom_rows],
-                    fill=_C_STRAT_DATA)
+        # Facteurs / pressions relèvent du bloc bleu « Influences sur l'enjeu »
+        _merge_runs(ws, COL_A, b_data, keys_f, [r.get("facteur", "") for r in bottom_rows],
+                    fill=_C_ETAT_DATA)
+        _merge_runs(ws, COL_B, b_data, keys_p, [r.get("pression", "") for r in bottom_rows],
+                    fill=_C_ETAT_DATA, col_end=COL_C)
         _merge_runs(ws, COL_D, b_data, keys_oo, [r.get("oo", "") for r in bottom_rows],
                     fill=_C_STRAT_DATA)
         _merge_runs(ws, COL_E, b_data, keys_ra, [r.get("ra", "") for r in bottom_rows],
@@ -549,7 +561,6 @@ def _render_enjeu_sheet(ws, enjeu, *, is_fcr):
                     fill=_C_STRAT_DATA)
         for i, r in enumerate(bottom_rows):
             rr = b_data + i
-            _set(ws, rr, COL_A, "", fill=_C_INFLU_HDR)
             _set(ws, rr, COL_H, r.get("code", ""), fill=_C_STRAT_DATA, font=_FONT_CODE,
                  align=_AL_CTR)
             _set(ws, rr, COL_I, r.get("action", ""), fill=_C_STRAT_DATA, font=_FONT_ACTION)
