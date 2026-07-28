@@ -30,7 +30,7 @@ import { ViewScopeToggleComponent, ViewScope } from '../../shared/components/vie
 import { AdminService } from '../../core/services/admin.service';
 import { ValidationService } from '../../core/services/validation.service';
 import { AuthService } from '../../core/services/auth.service';
-import { AdminPlan, AdminSite } from '../../core/models/admin.model';
+import { AdminPlan, AdminSite, PlanStatut, PLAN_STATUS_OPTIONS } from '../../core/models/admin.model';
 import { ValidationRequestListItem } from '../../core/models/notification.model';
 import { AccessRequestDialogComponent, AccessRequestDialogData, SelectableSite } from '../../shared/components/access-request-dialog/access-request-dialog.component';
 import {
@@ -113,8 +113,10 @@ export class PlansListComponent implements OnInit {
   // Afficher le toggle si admin_og, redacteur_principal ou super_admin
   readonly showScopeToggle = computed(() => this.isAdminOrganisme() || this.isSuperAdmin());
 
-  // Tab state pour "Mes plans"
-  activeTab = signal<'actifs' | 'inactifs'>('actifs');
+  // Filtre par statut pour "Mes plans" (#635, remplace les onglets actifs/inactifs).
+  // Chips multi-sélection ; par défaut on masque les plans archivés (terminés).
+  readonly statusOptions = PLAN_STATUS_OPTIONS;
+  statusFilter = signal<Set<PlanStatut>>(new Set<PlanStatut>(['draft', 'valide', 'modifie']));
 
   // Search pour "Mes plans"
   myPlansSearchQuery = signal('');
@@ -203,13 +205,14 @@ export class PlansListComponent implements OnInit {
   // Les plans remplacés (children_count > 0) ne sont jamais montrés en ligne principale,
   // ils apparaissent comme lignes contextuelles au-dessus de leur descendant.
   readonly myPlans = computed(() => {
-    const tab = this.activeTab();
+    const statuses = this.statusFilter();
     const search = this.myPlansSearchQuery().toLowerCase();
     const filtered = this.scopedPlans().filter(p => {
-      const tabMatch = tab === 'actifs' ? p.statut !== 'archive' : p.statut === 'archive';
+      // Set vide = aucun filtre (on affiche tous les statuts) pour éviter une liste vide.
+      const statusMatch = statuses.size === 0 || statuses.has(p.statut);
       const searchMatch = !search || p.nom.toLowerCase().includes(search);
       const isLeaf = !p.children_count || p.children_count === 0;
-      return tabMatch && searchMatch && isLeaf;
+      return statusMatch && searchMatch && isLeaf;
     });
 
     // Tri colonnes (revue design Amandine)
@@ -565,11 +568,22 @@ export class PlansListComponent implements OnInit {
   }
 
   /**
-   * Tabs pour "Mes plans".
+   * Filtre par statut pour "Mes plans" (#635). Chaque chip est un toggle ;
+   * la sélection est additive (plusieurs statuts affichés en même temps).
    */
-  setTab(tab: 'actifs' | 'inactifs'): void {
-    this.activeTab.set(tab);
+  toggleStatus(statut: PlanStatut): void {
+    const next = new Set(this.statusFilter());
+    if (next.has(statut)) {
+      next.delete(statut);
+    } else {
+      next.add(statut);
+    }
+    this.statusFilter.set(next);
     this.currentPage.set(1);
+  }
+
+  isStatusActive(statut: PlanStatut): boolean {
+    return this.statusFilter().has(statut);
   }
 
   /**

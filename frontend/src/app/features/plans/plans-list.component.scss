@@ -211,39 +211,34 @@ h1 {
   gap: $spacing-lg;
 }
 
-.tabs {
+// Filtre par statut (#635, remplace les onglets actifs/inactifs)
+.status-filters {
   display: flex;
   align-items: center;
   justify-content: flex-start;
+  flex-wrap: wrap;
+  gap: $spacing-xs;
 }
 
-// ============================================
-// CONTENT SECTION
-// ============================================
-
-.content-section {
-  padding: 0 $content-gutter $spacing-xxl;
+.status-filters-label {
+  font-family: $font-family;
+  font-size: $font-size-sm;
+  font-weight: $font-weight-bold;
+  color: $gray-dark;
+  margin-right: $spacing-xs;
 }
 
-.tab {
-  padding: $spacing-xs $spacing-xl;
+.status-chip {
+  padding: $spacing-xxs $spacing-md;
   background-color: $white;
   border: 1px solid $primary-color;
+  border-radius: $border-radius-pill;
   color: $primary-color;
   font-family: $font-family;
-  font-size: $font-size-base;
+  font-size: $font-size-sm;
   font-weight: $font-weight-bold;
   cursor: pointer;
   transition: all $transition-fast;
-
-  &:first-child {
-    border-radius: 8px 0 0 $border-radius-md;
-  }
-
-  &:last-child {
-    border-radius: 0 8px 8px 0;
-    margin-left: -1px;
-  }
 
   &.active {
     background-color: $primary-color;
@@ -253,6 +248,14 @@ h1 {
   &:hover:not(.active) {
     background-color: $primary-bg-subtle;
   }
+}
+
+// ============================================
+// CONTENT SECTION
+// ============================================
+
+.content-section {
+  padding: 0 $content-gutter $spacing-xxl;
 }
 
 // Toolbar

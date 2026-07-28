@@ -6,8 +6,8 @@ export class PlansListPage {
   readonly loadingSpinner: Locator;
   readonly plansTable: Locator;
   readonly plansTableRows: Locator;
-  readonly tabActifs: Locator;
-  readonly tabInactifs: Locator;
+  readonly statusFilters: Locator;
+  readonly statusFilterArchive: Locator;
   readonly scopeToggle: Locator;
   readonly createButton: Locator;
   readonly createMenuNewBlank: Locator;
@@ -24,8 +24,8 @@ export class PlansListPage {
     this.loadingSpinner = page.locator('mat-spinner');
     this.plansTable = page.locator('[data-testid="plans-table"]');
     this.plansTableRows = page.locator('[data-testid="plans-table"] tbody tr');
-    this.tabActifs = page.locator('[data-testid="tab-actifs"]');
-    this.tabInactifs = page.locator('[data-testid="tab-inactifs"]');
+    this.statusFilters = page.locator('.status-chip');
+    this.statusFilterArchive = page.locator('[data-testid="status-filter-archive"]');
     this.scopeToggle = page.locator('app-view-scope-toggle');
     this.createButton = page.locator('.btn-create');
     this.createMenuNewBlank = page.locator('button', { hasText: 'Nouveau plan vierge' });
@@ -58,12 +58,9 @@ export class PlansListPage {
     return this.plansTableRows.filter({ hasText: name });
   }
 
-  async setTab(tab: 'actifs' | 'inactifs') {
-    if (tab === 'actifs') {
-      await this.tabActifs.click();
-    } else {
-      await this.tabInactifs.click();
-    }
+  /** Bascule un chip de filtre par statut (draft/valide/modifie/archive). */
+  async toggleStatusFilter(statut: 'draft' | 'valide' | 'modifie' | 'archive') {
+    await this.page.locator(`[data-testid="status-filter-${statut}"]`).click();
     await this.page.waitForTimeout(500);
   }
 

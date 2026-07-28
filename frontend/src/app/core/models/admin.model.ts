@@ -348,6 +348,12 @@ export type PlanStatut =
   | 'archive';
 
 /**
+ * Statuts proposés comme filtres sur la liste des plans (#635).
+ * Ordre d'affichage des chips « Filtrer par statut ».
+ */
+export const PLAN_STATUS_OPTIONS: PlanStatut[] = ['draft', 'valide', 'modifie', 'archive'];
+
+/**
  * #277 — Étape du workflow de validation CSRPN. Attribut orthogonal au
  * statut, présent uniquement sur les plans `draft` en cours de validation.
  * `null` (ou absent) = pas dans le workflow.

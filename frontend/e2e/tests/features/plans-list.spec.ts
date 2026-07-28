@@ -59,33 +59,28 @@ test.describe('Plans List - Display', () => {
 
 });
 
-test.describe('Plans List - Tabs', () => {
+test.describe('Plans List - Status filter', () => {
 
-  test('should display active tab by default', async ({ superAdminPage: page }) => {
+  test('should display status filter chips (#635)', async ({ superAdminPage: page }) => {
     const plansPage = new PlansListPage(page);
     await plansPage.goto();
     await plansPage.waitForData();
 
-    // The "Actifs" tab should be active/visible
-    const actifTab = plansPage.tabActifs;
-    const isVisible = await actifTab.isVisible().catch(() => false);
-
-    // At minimum, the tab buttons should exist
-    const tabButtons = page.locator('button.tab');
-    const tabCount = await tabButtons.count();
-    expect(tabCount).toBeGreaterThanOrEqual(1);
+    // Un chip par statut (draft / valide / modifie / archive)
+    const chipCount = await plansPage.statusFilters.count();
+    expect(chipCount).toBeGreaterThanOrEqual(1);
   });
 
-  test('should switch to inactive tab', async ({ superAdminPage: page }) => {
+  test('should toggle the "archive" status filter', async ({ superAdminPage: page }) => {
     const plansPage = new PlansListPage(page);
     await plansPage.goto();
     await plansPage.waitForData();
 
-    const inactifTab = plansPage.tabInactifs;
-    const isVisible = await inactifTab.isVisible().catch(() => false);
+    const archiveChip = plansPage.statusFilterArchive;
+    const isVisible = await archiveChip.isVisible().catch(() => false);
 
     if (isVisible) {
-      await inactifTab.click();
+      await archiveChip.click();
       await page.waitForTimeout(1000);
       // Page should still be on /plans
       await expect(page).toHaveURL(/\/plans/);

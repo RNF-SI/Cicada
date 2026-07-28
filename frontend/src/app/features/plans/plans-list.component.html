@@ -64,21 +64,18 @@
 
   <!-- Tabs et Scope Toggle (en dessous de la bannière, design Figma) -->
   <div class="tabs-container">
-    <div class="tabs">
-      <button
-        class="tab"
-        [class.active]="activeTab() === 'actifs'"
-        (click)="setTab('actifs')"
-        data-testid="tab-actifs">
-        {{ 'plans.list.tabs.active' | translate }}
-      </button>
-      <button
-        class="tab"
-        [class.active]="activeTab() === 'inactifs'"
-        (click)="setTab('inactifs')"
-        data-testid="tab-inactifs">
-        {{ 'plans.list.tabs.inactive' | translate }}
-      </button>
+    <div class="status-filters">
+      <span class="status-filters-label">{{ 'plans.list.statusFilter.label' | translate }}</span>
+      @for (statut of statusOptions; track statut) {
+        <button
+          class="status-chip"
+          [class.active]="isStatusActive(statut)"
+          [attr.aria-pressed]="isStatusActive(statut)"
+          (click)="toggleStatus(statut)"
+          [attr.data-testid]="'status-filter-' + statut">
+          {{ 'plans.status.' + statut | translate }}
+        </button>
+      }
     </div>
 
     <!-- Scope Toggle -->
