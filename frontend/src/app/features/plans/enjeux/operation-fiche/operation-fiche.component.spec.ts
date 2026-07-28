@@ -177,6 +177,27 @@ describe('OperationFicheComponent — programmation détaillée (#556)', () => {
     expect(c.totalBudget()).toBe(1234.5);
   });
 
+  it('#613 — valorise TOUJOURS le coût salarial (jours × coût/jour) sans changer le budget', () => {
+    const fixture = setup(operationWithAnnees([
+      {
+        annee: 2027, periodicite: true, budget: '1500.00',
+        rh_lignes: [{
+          id_poste: 1, jours: '4.00', categorie_depense: 'fonctionnement',
+          poste_cout_jour: '300.00',
+        }],
+      },
+    ]));
+    const c = fixture.componentInstance;
+    // mode « totaux directs » : le salarial n'est pas un mode « par poste »,
+    // mais il est valorisé (4 × 300 = 1200) et affiché dans le détail…
+    const sal = c.coutDetail().rows.find(r => r.key === 'coutSalarial');
+    expect(sal?.fonct).toBe(1200);
+    expect(c.hasCoutDetail()).toBe(true);
+    // …sans modifier le budget total saisi (1500).
+    expect(c.programmation()[0].budget).toBe(1500);
+    expect(c.totalBudget()).toBe(1500);
+  });
+
   it('agrège la répartition par organisme reçue en chaînes (#581)', () => {
     const fixture = setup(operationWithAnnees([
       {

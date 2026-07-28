@@ -6,7 +6,7 @@ import { EnjeuService } from '../../../../core/services/enjeu.service';
 import { MetriqueRef, Operation, Protocole } from '../../../../core/models/enjeu.model';
 import { CategorieDepense } from '../../../../core/models/rh.model';
 import {
-  fonctDetailPrev, investDetailPrev, yearBudgetPrev, yearJoursPrev,
+  fonctDetailPrev, investDetailPrev, salarialCost, yearBudgetPrev, yearJoursPrev,
 } from '../../../../shared/utils/operation-budget';
 import { LeafletMapEditComponent } from '../../../../shared/components/leaflet-map-edit/leaflet-map-edit.component';
 import { MetriqueGridDisplayComponent } from '../../../../shared/components/metrique-grid-display/metrique-grid-display.component';
@@ -169,27 +169,33 @@ export class OperationFicheComponent implements OnInit {
    * fonctionnement / investissement. Masqué si l'action n'en porte aucun.
    */
   readonly coutDetail = computed(() => {
-    const annees = this.operation()?.operation_annees ?? [];
-    const zero = { salarial: 0, stage: 0, prestataire: 0, autres: 0, total: 0 };
-    const fonct = { ...zero };
-    const invest = { ...zero };
     const op = this.operation();
     if (!op) return { rows: [], totalFonct: 0, totalInvest: 0 };
+    const annees = op.operation_annees ?? [];
+    const fonct = { salarial: 0, stage: 0, prestataire: 0, autres: 0 };
+    const invest = { salarial: 0, stage: 0, prestataire: 0, autres: 0 };
     for (const oa of annees) {
       const f = fonctDetailPrev(op, oa);
       const i = investDetailPrev(op, oa);
-      for (const key of ['salarial', 'stage', 'prestataire', 'autres', 'total'] as const) {
-        fonct[key] += f[key];
-        invest[key] += i[key];
-      }
+      // #613 — le coût salarial (jours × coût/jour) est TOUJOURS valorisé dès
+      // qu'un poste porte un coût/jour, quel que soit le mode. C'est un
+      // affichage : il n'entre PAS dans le budget total (yearBudgetPrev), pour ne
+      // pas doubler une enveloppe ni écraser un total saisi.
+      fonct.salarial += salarialCost(oa.rh_lignes, 'fonctionnement');
+      invest.salarial += salarialCost(oa.rh_lignes, 'investissement');
+      // Composants hors salarial (déjà exposés séparément par les helpers).
+      fonct.stage += f.stage; fonct.prestataire += f.prestataire; fonct.autres += f.autres;
+      invest.stage += i.stage; invest.prestataire += i.prestataire; invest.autres += i.autres;
     }
+    const totalFonct = fonct.salarial + fonct.stage + fonct.prestataire + fonct.autres;
+    const totalInvest = invest.salarial + invest.stage + invest.prestataire + invest.autres;
     const rows = [
       { key: 'coutSalarial', fonct: fonct.salarial, invest: invest.salarial },
       { key: 'coutStage', fonct: fonct.stage, invest: invest.stage },
       { key: 'coutPrestataire', fonct: fonct.prestataire, invest: invest.prestataire },
       { key: 'autresCouts', fonct: fonct.autres, invest: invest.autres },
     ].filter(r => r.fonct !== 0 || r.invest !== 0);
-    return { rows, totalFonct: fonct.total, totalInvest: invest.total };
+    return { rows, totalFonct, totalInvest };
   });
 
   /** Vrai si au moins un composant de coût est renseigné (#613). */
