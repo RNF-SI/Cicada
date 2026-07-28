@@ -1457,8 +1457,15 @@ class OperationRealisationGlobale(models.Model):
 class Fonction(models.Model):
     """
     Fonction / poste type d'une réserve (conservateur, garde, animateur,
-    écovolontaire, bénévole…). Référentiel **global** partagé par tous les
-    plans, seedé depuis un socle et librement complétable à la volée (#560).
+    écovolontaire, bénévole…), seedée depuis un socle et complétable à la
+    volée (#560).
+
+    Deux portées (#631) :
+
+    - `id_pg` **NULL** → fonction du **socle**, partagée par tous les plans ;
+    - `id_pg` renseigné → fonction **propre à ce plan de gestion**, invisible
+      des autres. C'est la portée de tout ajout à la volée : compléter sa
+      liste ne doit pas polluer le référentiel de tout le monde.
 
     Le caractère financé / non financé par défaut est porté par la fonction,
     mais reste surchargeable à chaque saisie de temps (cf. OperationAnneeRH).
@@ -1486,7 +1493,17 @@ class Fonction(models.Model):
     TYPES_GROUPES = (TYPE_BENEVOLE, TYPE_PARTENAIRE)
 
     id_fonction = models.AutoField(primary_key=True)
-    libelle = models.CharField(_("Libellé"), max_length=150, unique=True)
+    libelle = models.CharField(_("Libellé"), max_length=150)
+    id_pg = models.ForeignKey(
+        'plans.PlanGestion',
+        on_delete=models.CASCADE,
+        null=True, blank=True,
+        related_name='fonctions',
+        db_column='id_pg',
+        verbose_name=_("Plan de gestion"),
+        help_text=_("Plan auquel la fonction est propre (#631). Vide pour une "
+                    "fonction du socle, partagée par tous les plans.")
+    )
     type_poste = models.CharField(
         _("Type de poste"),
         max_length=20,
@@ -1513,13 +1530,33 @@ class Fonction(models.Model):
 
     class Meta:
         db_table = '"general"."t_fonctions"'
-        db_table_comment = "Référentiel global des fonctions/postes (#560)"
+        db_table_comment = (
+            "Fonctions/postes : socle global (id_pg NULL) + fonctions propres "
+            "à un plan de gestion (#560, #631)"
+        )
         verbose_name = _("Fonction")
         verbose_name_plural = _("Fonctions")
         ordering = ['libelle']
+        constraints = [
+            # NULL n'entrant pas dans une contrainte d'unicité en PostgreSQL,
+            # les deux portées se contraignent séparément.
+            models.UniqueConstraint(
+                fields=['libelle'],
+                condition=models.Q(id_pg__isnull=True),
+                name='uniq_fonction_socle_libelle',
+            ),
+            models.UniqueConstraint(
+                fields=['libelle', 'id_pg'],
+                name='uniq_fonction_plan_libelle',
+            ),
+        ]
 
     def __str__(self):
         return self.libelle
+
+    def is_globale(self):
+        """Vrai pour une fonction du socle, partagée par tous les plans (#631)."""
+        return self.id_pg_id is None
 
     def demande_cout_jour(self):
         """Un prestataire / partenaire ne se saisit pas au coût jour (forfait)."""

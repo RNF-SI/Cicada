@@ -343,7 +343,12 @@ class RealisationOperationAnneeOrganismeSerializer(serializers.ModelSerializer):
 # =============================================================================
 
 class FonctionSerializer(serializers.ModelSerializer):
-    """Fonction / poste du référentiel global (#560, #596)."""
+    """
+    Fonction / poste (#560, #596).
+
+    `id_pg` porte la portée (#631) : vide pour une fonction du socle partagée
+    par tous les plans, renseigné pour une fonction propre à un plan.
+    """
     type_poste_display = serializers.CharField(
         source='get_type_poste_display', read_only=True
     )
@@ -351,10 +356,11 @@ class FonctionSerializer(serializers.ModelSerializer):
     class Meta:
         model = Fonction
         fields = [
-            'id_fonction', 'libelle', 'type_poste', 'type_poste_display',
+            'id_fonction', 'libelle', 'id_pg', 'type_poste', 'type_poste_display',
             'finance_par_defaut', 'is_socle', 'actif',
         ]
         read_only_fields = ['id_fonction', 'is_socle', 'type_poste_display']
+        extra_kwargs = {'id_pg': {'required': False, 'allow_null': True}}
 
 
 class PosteFonctionSerializer(serializers.ModelSerializer):

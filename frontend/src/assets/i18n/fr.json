@@ -2669,6 +2669,7 @@
         "totalQuotite": "Total : {{total}} %",
         "selectFonction": "Choisir une fonction…",
         "newFonctionPlaceholder": "Nouvelle fonction…",
+        "newFonctionScopeHint": "Cette fonction ne sera proposée que dans ce plan de gestion.",
         "createFonction": "Créer la fonction",
         "saveError": "L'enregistrement a échoué. Veuillez réessayer.",
         "errors": {

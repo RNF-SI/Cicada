@@ -22,10 +22,18 @@ export function isGroupedPoste(type: TypePoste | null | undefined): boolean {
   return type === 'benevole' || type === 'partenaire';
 }
 
-/** Fonction du référentiel global (conservateur, garde, écovolontaire…). */
+/**
+ * Fonction / poste type (conservateur, garde, écovolontaire…).
+ *
+ * `id_pg` porte la portée (#631) : vide pour une fonction du socle partagée par
+ * tous les plans, renseigné pour une fonction propre à un plan de gestion —
+ * c'est le cas de tout ajout à la volée.
+ */
 export interface Fonction {
   id_fonction: number;
   libelle: string;
+  /** Plan auquel la fonction est propre. Vide = socle partagé (#631). */
+  id_pg?: number | null;
   /** Catégorie de la fonction : conditionne la saisie du coût jour (#596). */
   type_poste?: TypePoste;
   /** Libellé lisible du type de poste (lecture seule). */

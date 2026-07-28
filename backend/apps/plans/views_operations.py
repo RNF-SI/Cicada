@@ -1364,15 +1364,19 @@ def _user_can_access_plan(user, plan):
 
 class FonctionViewSet(viewsets.ModelViewSet):
     """
-    Référentiel global des fonctions/postes (#560).
+    Fonctions / postes types (#560, #631).
 
-    - GET    /api/plans/fonctions/            Liste (autocomplete, filtrable actif)
-    - POST   /api/plans/fonctions/            Créer une fonction à la volée
+    - GET    /api/plans/fonctions/?id_pg={id} Liste : socle + fonctions du plan
+    - POST   /api/plans/fonctions/            Créer une fonction (propre au plan)
     - PATCH  /api/plans/fonctions/{id}/       Modifier (libellé, financé par défaut)
     - DELETE /api/plans/fonctions/{id}/       Supprimer (interdit sur le socle)
 
-    Lecture : tout utilisateur authentifié. Écriture : référents et plus
-    (ajout à la volée d'une fonction manquante).
+    **Portée (#631)** : une fonction ajoutée à la volée appartient au plan pour
+    lequel elle a été créée (`id_pg`) et n'apparaît que là. Seul le socle
+    (`id_pg` vide, seedé) est partagé — et seul un super admin / rédacteur
+    principal peut y toucher.
+
+    Lecture : tout utilisateur authentifié. Écriture : référents et plus.
     """
 
     queryset = Fonction.objects.all()
@@ -1389,18 +1393,61 @@ class FonctionViewSet(viewsets.ModelViewSet):
             return [permissions.IsAuthenticated()]
         return [permissions.IsAuthenticated(), IsReferent()]
 
+    def _has_global_scope(self):
+        """Seul un super admin / rédacteur principal gère le socle partagé."""
+        user = self.request.user
+        return user.is_super_admin() or user.is_redacteur_principal()
+
+    def get_queryset(self):
+        """
+        Liste : socle + fonctions du plan demandé (#631). Sans `id_pg`, on ne
+        renvoie que le socle : les fonctions d'un plan ne fuitent pas ailleurs.
+        Les autres actions travaillent sur l'objet ciblé, protégé par
+        `_assert_can_write`.
+        """
+        qs = super().get_queryset()
+        if self.action != 'list':
+            return qs
+        plan_id = self.request.query_params.get('id_pg')
+        if plan_id:
+            return qs.filter(Q(id_pg__isnull=True) | Q(id_pg=plan_id))
+        return qs.filter(id_pg__isnull=True)
+
+    def _assert_can_write(self, plan):
+        """Écrire sur le socle (plan vide) ou sur un plan hors périmètre : non."""
+        from rest_framework.exceptions import PermissionDenied
+        if plan is None:
+            if not self._has_global_scope():
+                raise PermissionDenied(
+                    "Les fonctions du socle sont partagées par tous les plans : "
+                    "créez plutôt une fonction propre à votre plan de gestion."
+                )
+            return
+        if not user_can_access_plan(self.request.user, plan):
+            raise PermissionDenied("Vous n'avez pas accès à ce plan de gestion.")
+
     def perform_create(self, serializer):
-        # Réutilise une fonction existante (insensible à la casse) pour éviter
-        # les doublons lors de l'ajout à la volée.
+        plan = serializer.validated_data.get('id_pg')
+        self._assert_can_write(plan)
+        # Réutilise une fonction existante du périmètre (socle + plan, insensible
+        # à la casse) pour éviter les doublons lors de l'ajout à la volée.
         libelle = (serializer.validated_data.get('libelle') or '').strip()
-        existing = Fonction.objects.filter(libelle__iexact=libelle).first()
+        scope = Q(id_pg__isnull=True)
+        if plan is not None:
+            scope |= Q(id_pg=plan)
+        existing = Fonction.objects.filter(scope, libelle__iexact=libelle).first()
         if existing:
             serializer.instance = existing
             return
         serializer.save()
 
+    def perform_update(self, serializer):
+        self._assert_can_write(serializer.instance.id_pg)
+        serializer.save()
+
     def destroy(self, request, *args, **kwargs):
         instance = self.get_object()
+        self._assert_can_write(instance.id_pg)
         if instance.is_socle:
             return Response(
                 {'detail': "Les fonctions du socle ne peuvent pas être supprimées."},

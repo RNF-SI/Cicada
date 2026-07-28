@@ -181,7 +181,8 @@ export class PosteFormDialogComponent implements OnInit {
   });
 
   ngOnInit(): void {
-    this.rhService.loadFonctions().subscribe((list) => {
+    // #631 — socle partagé + fonctions propres à ce plan, jamais celles des autres.
+    this.rhService.loadFonctions(this.data.planId).subscribe((list) => {
       this.allFonctions.set(this.withEditedFonction(list));
     });
     this.loadOrganismes();
@@ -355,7 +356,10 @@ export class PosteFormDialogComponent implements OnInit {
     this.showNewFonction.update((v) => !v);
   }
 
-  /** Crée une fonction à la volée (avec son type de poste) et la sélectionne. */
+  /**
+   * Crée une fonction à la volée (avec son type de poste) et la sélectionne.
+   * Elle reste propre à ce plan de gestion (#631).
+   */
   createFonction(): void {
     const libelle = this.newFonctionLibelle().trim();
     if (!libelle || this.isCreatingFonction()) return;
@@ -363,7 +367,7 @@ export class PosteFormDialogComponent implements OnInit {
     this.isCreatingFonction.set(true);
     // Bénévole / partenaire ne sont pas financés par défaut (#596/#605).
     const finance = type !== 'benevole' && type !== 'partenaire';
-    this.rhService.createFonction(libelle, finance, type).subscribe({
+    this.rhService.createFonction(libelle, finance, type, this.data.planId).subscribe({
       next: (f) => {
         if (!this.allFonctions().some((x) => x.id_fonction === f.id_fonction)) {
           this.allFonctions.update((list) =>

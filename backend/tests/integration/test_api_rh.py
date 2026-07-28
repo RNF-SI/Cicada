@@ -12,7 +12,7 @@ from apps.plans.models_operations import (
     RealisationOperationAnnee,
     RealisationOperationAnneeRH,
 )
-from tests.factories.users import SuperAdminFactory
+from tests.factories.users import ReferentFactory, SuperAdminFactory
 from tests.factories.plans import PlanGestionFactory
 from tests.factories.users import OrganismeFactory
 from tests.factories.enjeux import (
@@ -26,6 +26,16 @@ from tests.factories.enjeux import (
 def admin_client():
     client = APIClient()
     client.force_authenticate(SuperAdminFactory())
+    return client
+
+
+@pytest.fixture
+def referent_client():
+    """Gestionnaire d'un plan : peut alimenter SON plan, pas le socle (#631)."""
+    user = ReferentFactory()
+    PlanGestionFactory().referents.add(user)
+    client = APIClient()
+    client.force_authenticate(user)
     return client
 
 
@@ -79,6 +89,99 @@ class TestFonctionEndpoint:
         r = admin_client.delete(f'/api/plans/fonctions/{fonction.id_fonction}/')
         assert r.status_code == 400
         assert Fonction.objects.filter(pk=fonction.pk).exists()
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+class TestFonctionPorteePlan:
+    """#631 — une fonction ajoutée depuis un plan reste à l'échelle de ce plan."""
+
+    def test_creation_rattachee_au_plan(self, admin_client):
+        plan = PlanGestionFactory()
+        r = admin_client.post(
+            '/api/plans/fonctions/',
+            {'libelle': 'Garde du marais', 'id_pg': plan.id_pg},
+            format='json',
+        )
+        assert r.status_code == 201
+        assert r.json()['id_pg'] == plan.id_pg
+
+    def test_liste_du_plan_socle_plus_fonctions_locales(self, admin_client):
+        plan = PlanGestionFactory()
+        autre = PlanGestionFactory()
+        admin_client.post(
+            '/api/plans/fonctions/',
+            {'libelle': 'Garde du marais', 'id_pg': plan.id_pg}, format='json',
+        )
+        admin_client.post(
+            '/api/plans/fonctions/',
+            {'libelle': "Garde de l'étang", 'id_pg': autre.id_pg}, format='json',
+        )
+
+        libelles = [
+            f['libelle']
+            for f in admin_client.get(f'/api/plans/fonctions/?id_pg={plan.id_pg}').json()
+        ]
+        assert 'Garde du marais' in libelles          # la sienne
+        assert 'Conservateur' in libelles             # le socle partagé
+        assert "Garde de l'étang" not in libelles     # celle du voisin
+
+    def test_liste_sans_plan_ne_renvoie_que_le_socle(self, admin_client):
+        plan = PlanGestionFactory()
+        admin_client.post(
+            '/api/plans/fonctions/',
+            {'libelle': 'Garde du marais', 'id_pg': plan.id_pg}, format='json',
+        )
+        data = admin_client.get('/api/plans/fonctions/').json()
+        assert all(f['id_pg'] is None for f in data)
+        assert 'Garde du marais' not in [f['libelle'] for f in data]
+
+    def test_meme_libelle_dans_deux_plans(self, admin_client):
+        """Deux plans peuvent nommer leur fonction pareil sans se marcher dessus."""
+        plan = PlanGestionFactory()
+        autre = PlanGestionFactory()
+        r1 = admin_client.post(
+            '/api/plans/fonctions/',
+            {'libelle': 'Garde du marais', 'id_pg': plan.id_pg}, format='json',
+        )
+        r2 = admin_client.post(
+            '/api/plans/fonctions/',
+            {'libelle': 'Garde du marais', 'id_pg': autre.id_pg}, format='json',
+        )
+        assert r1.status_code == r2.status_code == 201
+        assert r1.json()['id_fonction'] != r2.json()['id_fonction']
+
+    def test_dedup_reutilise_le_socle(self, admin_client):
+        """Recréer une fonction du socle ne la duplique pas dans le plan."""
+        plan = PlanGestionFactory()
+        r = admin_client.post(
+            '/api/plans/fonctions/',
+            {'libelle': 'conservateur', 'id_pg': plan.id_pg}, format='json',
+        )
+        assert r.json()['id_pg'] is None
+        assert Fonction.objects.filter(libelle__iexact='conservateur').count() == 1
+
+    def test_dedup_dans_le_plan(self, admin_client):
+        plan = PlanGestionFactory()
+        admin_client.post(
+            '/api/plans/fonctions/',
+            {'libelle': 'Garde du marais', 'id_pg': plan.id_pg}, format='json',
+        )
+        admin_client.post(
+            '/api/plans/fonctions/',
+            {'libelle': 'garde du marais', 'id_pg': plan.id_pg}, format='json',
+        )
+        assert Fonction.objects.filter(
+            libelle__iexact='garde du marais', id_pg=plan
+        ).count() == 1
+
+    def test_referent_ne_peut_pas_alimenter_le_socle(self, referent_client):
+        """Sans plan, la fonction irait dans le socle partagé : refusé (#631)."""
+        r = referent_client.post(
+            '/api/plans/fonctions/', {'libelle': 'Poste maison'}, format='json',
+        )
+        assert r.status_code == 403
+        assert not Fonction.objects.filter(libelle='Poste maison').exists()
 
 
 @pytest.mark.django_db

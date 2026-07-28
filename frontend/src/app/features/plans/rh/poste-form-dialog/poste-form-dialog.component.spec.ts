@@ -71,6 +71,11 @@ describe('PosteFormDialogComponent', () => {
     expect(comp.organismes().map((o) => o.nom_organisme)).toEqual(['CEN AURA', 'RNF']);
   });
 
+  it('ne demande que les fonctions du plan courant (#631)', async () => {
+    await setup();
+    expect(rhService.loadFonctions).toHaveBeenCalledWith(7);
+  });
+
   it('démarre avec une seule ligne personne', async () => {
     await setup();
     expect(comp.instances()).toHaveLength(1);
@@ -115,6 +120,8 @@ describe('PosteFormDialogComponent', () => {
     expect(comp.allFonctions().some((f) => f.id_fonction === 9)).toBe(true);
     expect(comp.selectedFonctionId()).toBe(9);
     expect(comp.showNewFonction()).toBe(false);
+    // #631 — la fonction créée reste attachée au plan courant.
+    expect(rhService.createFonction).toHaveBeenCalledWith('Bénévole', true, 'salarie', 7);
   });
 
   it('save() bloque et affiche l’erreur quand aucune fonction n’est choisie', async () => {

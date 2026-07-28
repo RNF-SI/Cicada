@@ -20,32 +20,43 @@ export class RhService {
   private readonly http = inject(HttpClient);
   private readonly apiUrl = '/api/plans';
 
-  /** Cache du référentiel de fonctions (partagé, rechargé à la demande). */
+  /** Cache des fonctions du dernier plan chargé (rechargé à la demande). */
   readonly fonctions = signal<Fonction[]>([]);
 
-  // ---- Fonctions (référentiel global) ------------------------------------
+  // ---- Fonctions (socle partagé + fonctions du plan, #631) ----------------
 
-  loadFonctions(actifOnly: boolean = true): Observable<Fonction[]> {
-    const suffix = actifOnly ? '?actif=true' : '';
+  /**
+   * Fonctions proposées pour un plan : le socle partagé **et** les fonctions
+   * propres à ce plan (#631). Sans `planId`, seul le socle est renvoyé.
+   */
+  loadFonctions(planId?: number | null, actifOnly: boolean = true): Observable<Fonction[]> {
+    const params: string[] = [];
+    if (actifOnly) params.push('actif=true');
+    if (planId != null) params.push(`id_pg=${planId}`);
+    const suffix = params.length ? `?${params.join('&')}` : '';
     return this.http
       .get<Fonction[]>(`${this.apiUrl}/fonctions/${suffix}`)
       .pipe(tap((list) => this.fonctions.set(list)));
   }
 
   /**
-   * Crée une fonction à la volée. Le backend déduplique (insensible à la
-   * casse) et renvoie la fonction existante le cas échéant.
+   * Crée une fonction à la volée, **rattachée au plan** (#631) : elle n'est
+   * proposée que là, jamais ajoutée au socle partagé. Le backend déduplique
+   * (insensible à la casse) sur ce périmètre et renvoie la fonction existante
+   * le cas échéant.
    */
   createFonction(
     libelle: string,
     financeParDefaut: boolean = true,
     typePoste: TypePoste = 'salarie',
+    planId?: number | null,
   ): Observable<Fonction> {
     return this.http
       .post<Fonction>(`${this.apiUrl}/fonctions/`, {
         libelle,
         finance_par_defaut: financeParDefaut,
         type_poste: typePoste,
+        id_pg: planId ?? null,
       })
       .pipe(
         tap((f) => {
