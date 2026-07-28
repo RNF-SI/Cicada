@@ -25,8 +25,9 @@ from tests.factories.enjeux import (
     EnjeuFactory, IndicateurFactory, MetriqueFactory, NiveauExigenceFactory,
     ObjectifLongTermeFactory, OperationFactory,
 )
+from apps.plans.models import CorRolePlan
 from tests.factories.plans import PlanGestionFactory
-from tests.factories.users import OrganismeFactory, SuperAdminFactory
+from tests.factories.users import OrganismeFactory, RoleFactory, SuperAdminFactory
 
 
 def _nomenclature(type_mnemo, mnemo, label):
@@ -533,3 +534,27 @@ class TestExportEndpoints:
         plan = plan_finance['plan']
         resp = api_client.get(f'/api/plans/plans/{plan.id_pg}/export-budget-previsionnel-xlsx/')
         assert resp.status_code in (401, 403)
+
+    def test_membre_non_referent_ne_peut_pas_exporter(self, api_client, plan_finance):
+        """Un utilisateur simplement lié au plan (membre) consulte mais n'exporte pas."""
+        plan = plan_finance['plan']
+        membre = RoleFactory()
+        CorRolePlan.objects.create(id_role=membre, plan_de_gestion=plan, referent=False)
+        api_client.force_authenticate(user=membre)
+
+        # Il voit bien le plan (lecture seule) …
+        assert api_client.get(f'/api/plans/plans/{plan.id_pg}/').status_code == 200
+        # … mais tous les exports lui sont refusés.
+        for ep in self.ENDPOINTS + ['export-arborescence-xlsx', 'export-actions-xlsx']:
+            resp = api_client.get(f'/api/plans/plans/{plan.id_pg}/{ep}/')
+            assert resp.status_code == 403, ep
+
+    def test_referent_du_plan_peut_exporter(self, api_client, plan_finance):
+        plan = plan_finance['plan']
+        referent = RoleFactory()
+        plan.referents.add(referent)
+        api_client.force_authenticate(user=referent)
+
+        for ep in self.ENDPOINTS:
+            resp = api_client.get(f'/api/plans/plans/{plan.id_pg}/{ep}/')
+            assert resp.status_code == 200, ep

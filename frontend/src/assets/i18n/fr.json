@@ -2503,7 +2503,8 @@
     "exports": {
       "title": "Exports du plan de gestion",
       "subtitle": "Téléchargez le contenu de ce plan de gestion.",
-      "intro": "Ces exports sont accessibles à toute personne ayant accès au plan, en consultation comme en rédaction.",
+      "intro": "Ces exports sont réservés aux référents du plan et aux administrateurs : ils extraient l'intégralité du contenu du plan de gestion.",
+      "noPermission": "Vous n'avez pas accès aux exports de ce plan de gestion. Ils sont réservés aux référents du plan et aux administrateurs.",
       "groups": {
         "documents": "Documents du plan",
         "finance": "Budget et ressources humaines",

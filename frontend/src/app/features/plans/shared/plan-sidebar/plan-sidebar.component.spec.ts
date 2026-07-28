@@ -273,16 +273,26 @@ describe('PlanSidebarComponent', () => {
   });
 
   // #617 — Les exports ont leur propre entrée, hors de la section
-  // « Paramétrage » : ils doivent rester accessibles aux simples utilisateurs.
+  // « Paramétrage », mais réservée aux référents/gestionnaires du plan : un
+  // export extrait l'intégralité du contenu du plan.
   describe('exports entry (#617)', () => {
-    it('renders the Exports entry for a non-manager', () => {
+    it('hides the Exports entry for a non-manager', () => {
       componentRef.setInput('canManage', false);
       fixture.detectChanges();
       const labels: string[] = Array.from(
         fixture.nativeElement.querySelectorAll('.menu-item span')
       ).map((el: any) => el.textContent.trim());
-      expect(labels).toContain('plans.detail.sidebar.exports');
+      expect(labels).not.toContain('plans.detail.sidebar.exports');
       expect(labels).not.toContain('plans.detail.sidebar.parametrage');
+    });
+
+    it('renders the Exports entry for a manager', () => {
+      componentRef.setInput('canManage', true);
+      fixture.detectChanges();
+      const labels: string[] = Array.from(
+        fixture.nativeElement.querySelectorAll('.menu-item span')
+      ).map((el: any) => el.textContent.trim());
+      expect(labels).toContain('plans.detail.sidebar.exports');
     });
 
     it('navigates to the exports page', () => {
@@ -291,6 +301,7 @@ describe('PlanSidebarComponent', () => {
     });
 
     it('marks the Exports entry active on the exports page', () => {
+      componentRef.setInput('canManage', true);
       componentRef.setInput('activePage', 'exports');
       fixture.detectChanges();
       const exportsEntry = Array.from(

@@ -148,8 +148,9 @@
       <span>{{ 'plans.detail.sidebar.mindmap' | translate }}</span>
     </button>
 
-    <!-- Exports (#617) — hors section « Paramétrage » : les exports sont de la
-         lecture, accessibles à tout utilisateur ayant accès au plan. -->
+    <!-- Exports (#617) — hors section « Paramétrage », mais réservés aux
+         référents/gestionnaires du plan : un export extrait tout le contenu. -->
+    @if (canViewExports()) {
     <button
       class="menu-item"
       [class.active]="activePage() === 'exports'"
@@ -157,5 +158,6 @@
       <i class="fi fi-rr-download"></i>
       <span>{{ 'plans.detail.sidebar.exports' | translate }}</span>
     </button>
+    }
   </nav>
 </aside>

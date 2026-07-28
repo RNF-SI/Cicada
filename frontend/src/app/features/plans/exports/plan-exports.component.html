@@ -6,6 +6,7 @@
       <app-plan-sidebar
         [planId]="id"
         [planSlug]="slug"
+        [canManage]="canManage()"
         activePage="exports">
       </app-plan-sidebar>
     }
@@ -39,6 +40,14 @@
         <p class="text-mention exports-intro">{{ 'plans.exports.intro' | translate }}</p>
       </section>
 
+      @if (!canManage()) {
+        <div class="info-block info-block-warning">
+          <span class="info-block-icon"></span>
+          <div class="info-block-content">
+            <p class="info-block-content-text">{{ 'plans.exports.noPermission' | translate }}</p>
+          </div>
+        </div>
+      } @else {
       @for (group of groups; track group.titleKey) {
         <section class="exports-section">
           <h2 class="section-title">{{ group.titleKey | translate }}</h2>
@@ -61,6 +70,7 @@
             }
           </div>
         </section>
+      }
       }
     }
   </main>

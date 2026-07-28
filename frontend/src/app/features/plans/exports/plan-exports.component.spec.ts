@@ -34,7 +34,13 @@ class MockHeaderComponent {}
 })
 class MockPlanSidebarComponent {}
 
-const mockPlan = { id_pg: 10, nom: 'Plan Test', slug: 'plan-test', referents: [] };
+/** L'utilisateur connecté (id 42) est référent du plan : il a donc accès aux exports. */
+const mockPlan = {
+  id_pg: 10,
+  nom: 'Plan Test',
+  slug: 'plan-test',
+  referents: [{ id_role: 42 }],
+};
 
 describe('PlanExportsComponent (#617)', () => {
   let fixture: ComponentFixture<PlanExportsComponent>;
@@ -112,7 +118,7 @@ describe('PlanExportsComponent (#617)', () => {
     expect(component.isLoading()).toBe(false);
   });
 
-  it('rend les 8 exports du plan, sans condition de permission', () => {
+  it('rend les 8 exports du plan pour un référent', () => {
     const testIds: string[] = Array.from(
       fixture.nativeElement.querySelectorAll('[data-testid]')
     ).map((el: any) => el.getAttribute('data-testid'));
@@ -143,6 +149,18 @@ describe('PlanExportsComponent (#617)', () => {
     // Export du contenu = modèle pré-rempli (empty = false).
     byId('arbo-export-prefilled').click();
     expect(mockAdminService.downloadArborescenceTemplate).toHaveBeenCalledWith(10, false);
+  });
+
+  it('masque les exports pour un utilisateur lié au plan mais non référent', () => {
+    component.plan.set({ ...mockPlan, referents: [] } as any);
+    fixture.detectChanges();
+
+    expect(component.canManage()).toBe(false);
+    expect(fixture.nativeElement.querySelectorAll('[data-testid]').length).toBe(0);
+
+    // Même appelé directement, le téléchargement est refusé côté composant.
+    component.download(component.groups[0].items[0]);
+    expect(mockAdminService.downloadPlanDocx).not.toHaveBeenCalled();
   });
 
   it('libère l\'indicateur de chargement et notifie en cas d\'erreur', () => {

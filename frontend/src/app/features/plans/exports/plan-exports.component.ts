@@ -4,12 +4,14 @@
  * Route : /plans/:slug/exports
  *
  * Regroupe tous les exports du plan (documents rédigés, classeurs de
- * présentation, budget et RH). Contrairement à la page « Paramètres », cette
- * page n'est PAS réservée aux gestionnaires : les exports sont de la lecture,
- * donc accessibles à tout utilisateur qui a accès au plan (le backend
- * n'applique d'ailleurs aucune restriction sur ces endpoints GET).
+ * présentation, budget et RH). Comme la page « Paramètres », elle est réservée
+ * aux référents du plan et gestionnaires (admin organisme, rédacteur principal,
+ * super admin) : un export extrait l'intégralité du contenu du plan, ce qui va
+ * au-delà de la consultation en lecture seule ouverte aux utilisateurs
+ * simplement liés au plan (#610). Le backend applique la même règle sur les
+ * endpoints `export-*` (403 sinon).
  */
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
@@ -21,6 +23,8 @@ import { Observable } from 'rxjs';
 import { HeaderComponent } from '../../../shared/components/header/header.component';
 import { PlanSidebarComponent } from '../shared/plan-sidebar/plan-sidebar.component';
 import { AdminService } from '../../../core/services/admin.service';
+import { AuthService } from '../../../core/services/auth.service';
+import { AdminPlan } from '../../../core/models/admin.model';
 
 /** Un export téléchargeable du plan. */
 export interface PlanExportItem {
@@ -60,14 +64,34 @@ export interface PlanExportGroup {
 export class PlanExportsComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly adminService = inject(AdminService);
+  private readonly authService = inject(AuthService);
   private readonly snackBar = inject(MatSnackBar);
   private readonly translate = inject(TranslateService);
 
+  readonly plan = signal<AdminPlan | null>(null);
   readonly planId = signal<number | null>(null);
   readonly planSlug = signal<string | null>(null);
   readonly planNom = signal<string>('');
   readonly isLoading = signal(true);
   readonly errorMessage = signal<string | null>(null);
+
+  /**
+   * Seuls référent du plan, admin organisme, rédacteur principal et super admin
+   * accèdent aux exports (même règle que « Paramètres » et « Suivis »).
+   */
+  readonly canManage = computed<boolean>(() => {
+    if (
+      this.authService.isSuperAdmin() ||
+      this.authService.isRedacteurPrincipal() ||
+      this.authService.isAdminOrganisme()
+    ) {
+      return true;
+    }
+    const p = this.plan();
+    const currentUser = this.authService.currentUser();
+    if (!p || !currentUser) return false;
+    return p.referents?.some(r => r.id_role === currentUser.id) || false;
+  });
 
   /** Clés des exports en cours de téléchargement (plusieurs en parallèle possible). */
   readonly downloading = signal<ReadonlySet<string>>(new Set<string>());
@@ -172,6 +196,7 @@ export class PlanExportsComponent implements OnInit {
       }
       this.adminService.getPlanBySlug(slug).subscribe({
         next: plan => {
+          this.plan.set(plan);
           this.planId.set(plan.id_pg);
           this.planNom.set(plan.nom);
           this.isLoading.set(false);
@@ -193,7 +218,7 @@ export class PlanExportsComponent implements OnInit {
   /** Lance le téléchargement d'un export et déclenche la sauvegarde du blob. */
   download(item: PlanExportItem): void {
     const id = this.planId();
-    if (id == null || this.isDownloading(item.key)) return;
+    if (id == null || !this.canManage() || this.isDownloading(item.key)) return;
     this.setDownloading(item.key, true);
     item.request(id).subscribe({
       next: blob => {

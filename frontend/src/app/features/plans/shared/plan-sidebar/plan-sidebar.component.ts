@@ -94,6 +94,12 @@ export class PlanSidebarComponent implements OnInit {
    *  simplement lié au plan (non référent) ne doit pas voir les suivis. */
   canViewSuivis = computed(() => this.effectiveCanManage());
 
+  /** Les exports extraient l'intégralité du contenu du plan : ils sont réservés
+   *  aux référents du plan et gestionnaires (admin_og, super_admin, rédacteur
+   *  principal), au même titre que « Paramétrage » et « Suivis ». Un utilisateur
+   *  simplement lié au plan le consulte en lecture seule mais n'exporte pas. */
+  canViewExports = computed(() => this.effectiveCanManage());
+
   isMindmapActive = computed(() => this.activePage() === 'mindmap');
 
   /** #583 — La section « Paramétrage » couvre les pages Paramètres et Postes/RH. */
@@ -189,7 +195,7 @@ export class PlanSidebarComponent implements OnInit {
     this.router.navigate(['/plans', this.planSlug(), 'postes']);
   }
 
-  /** #617 — Zone « Exports », ouverte à tous les utilisateurs du plan. */
+  /** #617 — Zone « Exports », réservée aux référents/gestionnaires du plan. */
   navigateToExports(): void {
     this.router.navigate(['/plans', this.planSlug(), 'exports']);
   }

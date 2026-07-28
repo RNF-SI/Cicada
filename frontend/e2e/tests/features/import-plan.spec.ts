@@ -37,7 +37,7 @@ async function openAdvanced(page: any): Promise<void> {
 
 /**
  * #617 — L'export du contenu vit désormais sur la page « Exports » du plan,
- * hors des paramètres (accessible à tout utilisateur ayant accès au plan).
+ * hors des paramètres (réservée aux référents du plan et gestionnaires).
  */
 async function exportArborescence(page: any, slug: string): Promise<string> {
   await page.goto(`/plans/${slug}/exports`);
@@ -114,7 +114,7 @@ test.describe('Import arborescence via Excel', () => {
     await page.goto(`/plans/${validated.slug}/parametres`);
     // …le sélecteur de fichier d'import est masqué hors brouillon (#248).
     await expect(page.getByTestId('arbo-import-file')).toHaveCount(0);
-    // L'export (lecture) reste disponible dans la rubrique « Exports » (#617).
+    // L'export reste disponible hors brouillon dans la rubrique « Exports » (#617).
     await page.goto(`/plans/${validated.slug}/exports`);
     await expect(page.getByTestId('arbo-export-prefilled')).toBeVisible({ timeout: 15000 });
   });

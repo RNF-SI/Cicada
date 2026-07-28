@@ -14,6 +14,7 @@ from rest_framework import viewsets, status, permissions
 from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
+from rest_framework.exceptions import PermissionDenied
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import SearchFilter, OrderingFilter
 
@@ -92,6 +93,33 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
         if user.id_organisme and plan.organismes_redacteurs.filter(uuid_og=user.id_organisme).exists():
             return True
         return False
+
+    def _can_export_plan(self, user, plan):
+        """Vérifie si l'utilisateur peut exporter ce plan.
+
+        Les exports (documents rédigés, classeurs de présentation, budget, RH,
+        arborescence) extraient l'intégralité du contenu du plan : ils sont
+        réservés aux référents du plan et aux gestionnaires (admin organisme,
+        rédacteur principal, super admin). Un utilisateur simplement lié au plan
+        (membre `CorRolePlan`, utilisateur rattaché à un site du plan…) le
+        consulte en lecture seule dans l'application mais ne peut pas en
+        extraire les documents.
+
+        Aligné sur `can_manage_plan_lifecycle` + référent du plan, c'est-à-dire
+        sur `canManageLifecycle` côté frontend.
+        """
+        if user.can_manage_plan_lifecycle():
+            return True
+        return plan.referents.filter(pk=user.pk).exists()
+
+    def _get_plan_for_export(self):
+        """Retourne le plan courant après contrôle du droit d'export (403 sinon)."""
+        plan = self.get_object()
+        if not self._can_export_plan(self.request.user, plan):
+            raise PermissionDenied(
+                "Vous devez être référent de ce plan pour exporter son contenu."
+            )
+        return plan
 
     def _can_delete_plan(self, user, plan):
         """Suppression : référent du plan, admin_og ou super_admin (hors rédacteur principal).
@@ -1274,7 +1302,7 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
         l'arborescence du plan par défaut ; sert aussi d'export / sauvegarde et
         de point de départ pour dériver un autre plan.
         """
-        plan = self.get_object()
+        plan = self._get_plan_for_export()
         empty = request.query_params.get('empty') in ('1', 'true', 'True')
 
         content = build_arborescence_workbook(plan=None if empty else plan)
@@ -1304,7 +1332,7 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
         lecture des métriques (scores 1..5). Distinct du format d'import
         round-trip (« export-arborescence-xlsx »).
         """
-        plan = self.get_object()
+        plan = self._get_plan_for_export()
         content = build_presentation_workbook(plan)
 
         suffix = plan.slug or f'plan-{plan.pk}'
@@ -1333,7 +1361,7 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
         attendu / OLT ou OO / enjeu), les détails, et le volet financier
         (programmation, budgets par organisme, financeurs, indicateurs de réponse).
         """
-        plan = self.get_object()
+        plan = self._get_plan_for_export()
         content = build_fiche_action_workbook(plan)
 
         suffix = plan.slug or f'plan-{plan.pk}'
@@ -1364,7 +1392,7 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['get'], url_path='export-rh-previsionnel-xlsx')
     def export_rh_previsionnel_xlsx(self, request, pk=None):
         """Exporter les RH prévisionnelles (jours) par organisme. Modèle CICADA."""
-        plan = self.get_object()
+        plan = self._get_plan_for_export()
         suffix = plan.slug or f'plan-{plan.pk}'
         return self._xlsx_response(
             build_rh_previsionnel_workbook(plan), f'rh-previsionnel-{suffix}.xlsx')
@@ -1372,7 +1400,7 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['get'], url_path='export-rh-suivi-xlsx')
     def export_rh_suivi_xlsx(self, request, pk=None):
         """Exporter le suivi RH (jours prévus / réalisés) par organisme."""
-        plan = self.get_object()
+        plan = self._get_plan_for_export()
         suffix = plan.slug or f'plan-{plan.pk}'
         return self._xlsx_response(
             build_rh_suivi_workbook(plan), f'rh-suivi-{suffix}.xlsx')
@@ -1380,7 +1408,7 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['get'], url_path='export-budget-previsionnel-xlsx')
     def export_budget_previsionnel_xlsx(self, request, pk=None):
         """Exporter le budget prévisionnel (fonctionnement / investissement) par organisme."""
-        plan = self.get_object()
+        plan = self._get_plan_for_export()
         suffix = plan.slug or f'plan-{plan.pk}'
         return self._xlsx_response(
             build_budget_previsionnel_workbook(plan), f'budget-previsionnel-{suffix}.xlsx')
@@ -1388,7 +1416,7 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['get'], url_path='export-budget-suivi-xlsx')
     def export_budget_suivi_xlsx(self, request, pk=None):
         """Exporter le suivi budgétaire (prévu / réalisé) par organisme."""
-        plan = self.get_object()
+        plan = self._get_plan_for_export()
         suffix = plan.slug or f'plan-{plan.pk}'
         return self._xlsx_response(
             build_budget_suivi_workbook(plan), f'budget-suivi-{suffix}.xlsx')
@@ -1405,7 +1433,7 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
         géologique, ses OLT → niveaux d'exigence et ses facteurs d'influence →
         pressions ; enfin les facteurs clés de réussite.
         """
-        plan = self.get_object()
+        plan = self._get_plan_for_export()
         content = build_plan_docx(plan)
 
         suffix = plan.slug or f'plan-{plan.pk}'
@@ -1605,7 +1633,7 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
         plan (référence de rattachement) ; l'onglet « Actions » est vierge (ou
         pré-rempli si des actions existent déjà).
         """
-        plan = self.get_object()
+        plan = self._get_plan_for_export()
         content = build_actions_workbook(plan=plan)
         filename = f'actions-{plan.slug or f"plan-{plan.pk}"}.xlsx'
         response = HttpResponse(
