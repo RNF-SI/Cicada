@@ -191,6 +191,23 @@ def _primary_fonction(poste):
     return pf.id_fonction
 
 
+def _poste_fonctions_prefetch():
+    """
+    Fonctions d'un poste, avec leur type (#633).
+
+    Le type de poste étant une nomenclature, on la charge avec la fonction :
+    sans cela chaque ligne RH de l'export la relirait une par une.
+    """
+    from django.db.models import Prefetch
+
+    from .models_operations import Fonction
+
+    return Prefetch(
+        "id_poste__fonctions__id_fonction",
+        queryset=Fonction.objects.select_related("id_type_poste"),
+    )
+
+
 def _poste_type_label(poste):
     f = _primary_fonction(poste)
     if f is None:
@@ -226,7 +243,7 @@ def build_action_finance(op, org_names, poste_jours) -> ActionFinance:
         .filter(id_operation_annee__id_operation=op)
         .select_related("id_operation_annee", "id_poste", "id_poste__id_organisme",
                         "id_organisme")
-        .prefetch_related("id_poste__fonctions__id_fonction")
+        .prefetch_related(_poste_fonctions_prefetch())
     )
     for line in rh:
         year = line.id_operation_annee.annee
@@ -262,7 +279,7 @@ def build_action_finance(op, org_names, poste_jours) -> ActionFinance:
         .select_related(
             "id_realisation_operation_annee__id_operation_annee",
             "id_poste", "id_poste__id_organisme", "id_organisme")
-        .prefetch_related("id_poste__fonctions__id_fonction")
+        .prefetch_related(_poste_fonctions_prefetch())
     )
     for line in rrh:
         year = line.id_realisation_operation_annee.id_operation_annee.annee

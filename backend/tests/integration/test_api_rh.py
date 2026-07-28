@@ -93,6 +93,57 @@ class TestFonctionEndpoint:
 
 @pytest.mark.django_db
 @pytest.mark.integration
+class TestTypePosteNomenclature:
+    """#633 — le type de poste est une nomenclature, l'API échange son code."""
+
+    def test_socle_rattache_a_la_nomenclature(self):
+        garde = Fonction.objects.get(libelle='Garde')
+        assert garde.id_type_poste is not None
+        assert garde.id_type_poste.id_type.mnemonique == 'TYPE_POSTE'
+        assert garde.id_type_poste.mnemonique == 'SALARIE'
+
+    def test_code_court_conserve_dans_lapi(self, admin_client):
+        """Le frontend continue de recevoir « salarie », pas un id."""
+        data = admin_client.get('/api/plans/fonctions/').json()
+        garde = next(f for f in data if f['libelle'] == 'Garde')
+        assert garde['type_poste'] == 'salarie'
+        assert garde['type_poste_display'] == 'Salarié'
+
+    def test_creation_par_code(self, admin_client):
+        plan = PlanGestionFactory()
+        r = admin_client.post('/api/plans/fonctions/', {
+            'libelle': 'Garde du marais', 'id_pg': plan.id_pg,
+            'type_poste': 'benevole',
+        }, format='json')
+        assert r.status_code == 201
+        assert r.json()['type_poste'] == 'benevole'
+        fonction = Fonction.objects.get(id_fonction=r.json()['id_fonction'])
+        assert fonction.id_type_poste.mnemonique == 'BENEVOLE'
+
+    def test_type_inconnu_refuse(self, admin_client):
+        plan = PlanGestionFactory()
+        r = admin_client.post('/api/plans/fonctions/', {
+            'libelle': 'Fonction douteuse', 'id_pg': plan.id_pg,
+            'type_poste': 'chef-scout',
+        }, format='json')
+        assert r.status_code == 400
+        assert 'type_poste' in r.json()
+
+    def test_regles_metier_inchangees(self):
+        """Les règles de coût jour continuent de se lire sur le code."""
+        benevole = Fonction.objects.create(
+            libelle='Bénévole du dimanche', type_poste='benevole',
+        )
+        assert benevole.demande_cout_jour() is True
+        assert benevole.cout_jour_defaut() == 0
+        prestataire = Fonction.objects.create(
+            libelle='Presta ponctuel', type_poste='prestataire',
+        )
+        assert prestataire.demande_cout_jour() is False
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
 class TestPosteNomLocal:
     """#632 — nom local et commentaire d'un poste, sans donnée nominative."""
 

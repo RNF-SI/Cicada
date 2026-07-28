@@ -89,6 +89,7 @@ class EnjeuViewSet(viewsets.ModelViewSet):
         )
         from .models_indicateurs import Indicateur, Metrique, Mesure
         from .models_operations import (
+            Fonction,
             Operation, OperationAnnee, OperationAnneeOrganisme, FinanceOperation,
             OperationAnneeRH, RealisationOperationAnneeRH,
         )
@@ -101,7 +102,12 @@ class EnjeuViewSet(viewsets.ModelViewSet):
         # requêtes (poste + cor_poste_fonction + t_fonctions PAR ligne RH) et
         # ~7 s de latence. On précharge poste, organisme et fonctions pour que
         # la propriété `libelle` tape le cache.
-        poste_prefetch = 'id_poste__fonctions__id_fonction'
+        # #633 — le type de poste étant une nomenclature, on la charge avec la
+        # fonction : sans cela chaque ligne RH la relirait une par une.
+        poste_prefetch = Prefetch(
+            'id_poste__fonctions__id_fonction',
+            queryset=Fonction.objects.select_related('id_type_poste'),
+        )
         op_annee_rh_qs = OperationAnneeRH.objects.select_related(
             'id_poste', 'id_poste__id_organisme', 'id_organisme',
         ).prefetch_related(poste_prefetch)

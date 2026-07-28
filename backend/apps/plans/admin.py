@@ -1397,9 +1397,13 @@ from .models_operations import Fonction, Poste, PosteFonction
 
 @admin.register(Fonction)
 class FonctionAdmin(admin.ModelAdmin):
-    list_display = ('libelle', 'finance_par_defaut', 'is_socle', 'actif')
-    list_filter = ('finance_par_defaut', 'is_socle', 'actif')
+    # `id_pg` vide = socle partagé (#631) ; `id_type_poste` est une nomenclature (#633).
+    list_display = (
+        'libelle', 'id_type_poste', 'id_pg', 'finance_par_defaut', 'is_socle', 'actif',
+    )
+    list_filter = ('id_type_poste', 'finance_par_defaut', 'is_socle', 'actif')
     search_fields = ('libelle',)
+    list_select_related = ('id_type_poste', 'id_pg')
 
 
 class PosteFonctionInline(admin.TabularInline):

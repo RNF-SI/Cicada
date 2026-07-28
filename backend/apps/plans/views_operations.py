@@ -1474,7 +1474,12 @@ class PosteViewSet(viewsets.ModelViewSet):
     """
 
     queryset = Poste.objects.select_related('id_pg', 'id_organisme').prefetch_related(
-        'fonctions__id_fonction'
+        # #633 — le type de poste est une nomenclature : on la charge avec la
+        # fonction plutôt qu'une requête par poste.
+        Prefetch(
+            'fonctions__id_fonction',
+            queryset=Fonction.objects.select_related('id_type_poste'),
+        )
     )
     permission_classes = [permissions.IsAuthenticated, IsReferentOrReadOnly]
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]

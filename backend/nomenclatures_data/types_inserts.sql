@@ -68,3 +68,6 @@ INSERT INTO ref_nomenclatures.bib_nomenclatures_types (id_type, mnemonique, labe
 
 -- #452 — Format de présentation d'une métrique (simple / grille)
 INSERT INTO ref_nomenclatures.bib_nomenclatures_types (id_type, mnemonique, label, definition, source, statut, date_ajout, date_maj) VALUES (69, 'FORMAT_METRIQUE', 'Format de métrique', 'Format de présentation de la métrique (simple, grille)', 'CICADA', 'Validé', NOW(), NOW());
+
+-- #633 — Type de poste d'une fonction RH (salarié, stagiaire, prestataire, bénévole, partenaire)
+INSERT INTO ref_nomenclatures.bib_nomenclatures_types (id_type, mnemonique, label, definition, source, statut, date_ajout, date_maj) VALUES (70, 'TYPE_POSTE', 'Type de poste', 'Catégorie d''une fonction RH : conditionne la saisie du coût jour et le regroupement des postes', 'CICADA', 'Validé', NOW(), NOW());

@@ -349,9 +349,12 @@ class FonctionSerializer(serializers.ModelSerializer):
     `id_pg` porte la portée (#631) : vide pour une fonction du socle partagée
     par tous les plans, renseigné pour une fonction propre à un plan.
     """
-    type_poste_display = serializers.CharField(
-        source='get_type_poste_display', read_only=True
+    # #633 — le type de poste est une nomenclature ; l'API continue d'échanger
+    # son mnémonique en minuscules (« salarie »), via la propriété du modèle.
+    type_poste = serializers.CharField(
+        required=False, allow_blank=True, default=Fonction.TYPE_SALARIE
     )
+    type_poste_display = serializers.CharField(read_only=True)
 
     class Meta:
         model = Fonction
@@ -361,6 +364,14 @@ class FonctionSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ['id_fonction', 'is_socle', 'type_poste_display']
         extra_kwargs = {'id_pg': {'required': False, 'allow_null': True}}
+
+    def validate_type_poste(self, value):
+        """Refuse un type inconnu plutôt que de l'enregistrer vide."""
+        if value and Fonction.nomenclature_type_poste(value) is None:
+            raise serializers.ValidationError(
+                _("Type de poste inconnu : %(valeur)s.") % {'valeur': value}
+            )
+        return value
 
 
 class PosteFonctionSerializer(serializers.ModelSerializer):

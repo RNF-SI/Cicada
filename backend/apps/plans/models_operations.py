@@ -1472,19 +1472,20 @@ class Fonction(models.Model):
     """
 
     # Type de poste porté par la fonction (#596) : conditionne la saisie du
-    # coût jour dans la fiche action / le dialog poste.
+    # coût jour dans la fiche action / le dialog poste. C'est un vocabulaire
+    # contrôlé, fini et stable : il vit dans les nomenclatures (#633, type
+    # TYPE_POSTE). Les constantes ci-dessous sont les mnémoniques, en
+    # minuscules — la forme exposée par l'API et attendue du frontend.
+    TYPE_POSTE_NOMENCLATURE = 'TYPE_POSTE'
     TYPE_SALARIE = 'salarie'
     TYPE_STAGIAIRE = 'stagiaire'
     TYPE_PRESTATAIRE = 'prestataire'
     TYPE_BENEVOLE = 'benevole'
     TYPE_PARTENAIRE = 'partenaire'
-    TYPE_POSTE_CHOICES = [
-        (TYPE_SALARIE, _("Salarié")),
-        (TYPE_STAGIAIRE, _("Stagiaire")),
-        (TYPE_PRESTATAIRE, _("Prestataire")),
-        (TYPE_BENEVOLE, _("Bénévole")),
-        (TYPE_PARTENAIRE, _("Partenaire")),
-    ]
+    TYPES_POSTE = (
+        TYPE_SALARIE, TYPE_STAGIAIRE, TYPE_PRESTATAIRE,
+        TYPE_BENEVOLE, TYPE_PARTENAIRE,
+    )
     # Types dont l'organisme se saisit librement (hors référentiel) : pas de
     # coût jour non plus (coût forfaitaire / hors salaire).
     TYPES_ORGANISME_LIBRE = (TYPE_PRESTATAIRE, TYPE_PARTENAIRE)
@@ -1504,14 +1505,17 @@ class Fonction(models.Model):
         help_text=_("Plan auquel la fonction est propre (#631). Vide pour une "
                     "fonction du socle, partagée par tous les plans.")
     )
-    type_poste = models.CharField(
-        _("Type de poste"),
-        max_length=20,
-        choices=TYPE_POSTE_CHOICES,
-        default=TYPE_SALARIE,
-        help_text=_("Catégorie de la fonction. Conditionne la saisie du coût "
-                    "jour : pas de coût jour pour un prestataire, 0 par défaut "
-                    "pour un bénévole.")
+    id_type_poste = models.ForeignKey(
+        'core.Nomenclature',
+        on_delete=models.PROTECT,
+        null=True, blank=True,
+        related_name='fonctions',
+        db_column='id_type_poste',
+        verbose_name=_("Type de poste"),
+        limit_choices_to={'id_type__mnemonique': TYPE_POSTE_NOMENCLATURE},
+        help_text=_("Catégorie de la fonction (nomenclature TYPE_POSTE, #633). "
+                    "Conditionne la saisie du coût jour : pas de coût jour pour "
+                    "un prestataire, 0 par défaut pour un bénévole.")
     )
     finance_par_defaut = models.BooleanField(
         _("Financé par défaut"),
@@ -1557,6 +1561,47 @@ class Fonction(models.Model):
     def is_globale(self):
         """Vrai pour une fonction du socle, partagée par tous les plans (#631)."""
         return self.id_pg_id is None
+
+    @staticmethod
+    def nomenclature_type_poste(code):
+        """
+        Nomenclature TYPE_POSTE correspondant à un code (#633).
+
+        Accepte indifféremment le mnémonique (« salarie », insensible à la
+        casse) ou une nomenclature déjà résolue. Retourne None si le code est
+        vide ou inconnu.
+        """
+        from apps.core.models import Nomenclature
+
+        if not code:
+            return None
+        if isinstance(code, Nomenclature):
+            return code
+        return Nomenclature.objects.filter(
+            id_type__mnemonique=Fonction.TYPE_POSTE_NOMENCLATURE,
+            mnemonique__iexact=str(code),
+        ).first()
+
+    @property
+    def type_poste(self):
+        """
+        Code du type de poste (« salarie », « benevole »…), ou chaîne vide.
+
+        Le type est stocké en nomenclature (#633) mais reste manipulé partout —
+        API comprise — sous cette forme courte : c'est le contrat historique du
+        frontend, et il évite de charger la nomenclature pour un simple test.
+        """
+        nomenclature = self.id_type_poste
+        return (nomenclature.mnemonique or '').lower() if nomenclature else ''
+
+    @type_poste.setter
+    def type_poste(self, value):
+        self.id_type_poste = self.nomenclature_type_poste(value)
+
+    @property
+    def type_poste_display(self):
+        """Libellé lisible du type de poste, porté par la nomenclature."""
+        return self.id_type_poste.label if self.id_type_poste else ''
 
     def demande_cout_jour(self):
         """Un prestataire / partenaire ne se saisit pas au coût jour (forfait)."""
