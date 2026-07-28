@@ -4,6 +4,7 @@ import { ActivatedRoute, RouterModule } from '@angular/router';
 import { TranslateModule } from '@ngx-translate/core';
 
 import {
+  FicheAction,
   FicheEnjeu,
   FichePlan,
 } from '../../../core/models/exploration-fiche.model';
@@ -54,6 +55,8 @@ export class ExplorationFicheComponent {
   /** Objet mis en évidence, sous la forme `type:id`. */
   readonly focus = signal<string | null>(null);
   readonly enjeuxOuverts = signal<number[]>([]);
+  /** Actions dont le détail est déplié (#634). */
+  readonly actionsOuvertes = signal<number[]>([]);
 
   readonly ancres = computed<AnchorNavItem[]>(() => {
     const plan = this.plan();
@@ -100,7 +103,7 @@ export class ExplorationFicheComponent {
       next: (plan) => {
         this.plan.set(plan);
         this.chargement.set(false);
-        this.ouvrirEnjeuCible(plan);
+        this.ouvrirCible(plan);
       },
       error: () => {
         this.plan.set(null);
@@ -110,16 +113,29 @@ export class ExplorationFicheComponent {
     });
   }
 
-  /** Ouvre l'enjeu qui contient l'objet ciblé, puis fait défiler jusqu'à lui. */
-  private ouvrirEnjeuCible(plan: FichePlan): void {
+  /**
+   * Déplie ce qui contient l'objet ciblé, puis fait défiler jusqu'à lui.
+   *
+   * Une action ouvre son propre détail — c'est l'équivalent en lecture seule de
+   * la fiche action (#634) ; les autres types ouvrent l'enjeu de leur branche,
+   * pour arriver à l'endroit de l'arborescence qui les contient.
+   */
+  private ouvrirCible(plan: FichePlan): void {
     const cible = this.focus();
     if (!cible) {
       return;
     }
 
-    const enjeu = plan.enjeux.find((candidat) => this.contient(candidat, cible));
-    if (enjeu) {
-      this.enjeuxOuverts.set([enjeu.id_enjeu]);
+    const [type, brut] = cible.split(':');
+    const id = Number(brut);
+
+    if (type === 'action') {
+      this.actionsOuvertes.set([id]);
+    } else {
+      const enjeu = plan.enjeux.find((candidat) => this.contient(candidat, cible));
+      if (enjeu) {
+        this.enjeuxOuverts.set([enjeu.id_enjeu]);
+      }
     }
 
     // Le défilement attend que l'accordéon soit rendu.
@@ -181,7 +197,20 @@ export class ExplorationFicheComponent {
     this.enjeuxOuverts.set(ouvert ? [...ouverts, enjeu.id_enjeu] : ouverts);
   }
 
-  periodeAction(action: { annee_min: number | null; annee_max: number | null }): string {
+  estActionOuverte(action: FicheAction): boolean {
+    return this.actionsOuvertes().includes(action.id_operation);
+  }
+
+  basculerAction(action: FicheAction): void {
+    const ouvertes = this.actionsOuvertes();
+    this.actionsOuvertes.set(
+      ouvertes.includes(action.id_operation)
+        ? ouvertes.filter((id) => id !== action.id_operation)
+        : [...ouvertes, action.id_operation],
+    );
+  }
+
+  periodeAction(action: FicheAction): string {
     if (!action.annee_min && !action.annee_max) {
       return '';
     }

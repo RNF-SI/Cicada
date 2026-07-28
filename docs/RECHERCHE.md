@@ -57,7 +57,7 @@ pas.
 | Groupe | Colonnes | Rôle |
 |---|---|---|
 | Identité | `type_contenu`, `id_objet`, `id_pg` | Retrouver l'objet métier |
-| Texte | `titre`, `description`, `contexte` | Ce qui est recherché |
+| Texte | `titre`, `rattachements`, `description`, `contexte` | Ce qui est recherché |
 | Affichage | `parent_type`, `parent_libelle`, `sous_type`, `sous_type_libelle` | Tuile de résultat |
 | Facettes | `statut_pg`, `annee_debut`, `annee_fin`, `site_ids`, `organisme_ids`, `type_site_codes`, `area_ids` | Filtres + compteurs |
 | Vecteurs | `search_titre`, `search_full` | Colonnes **générées** par PostgreSQL |
@@ -72,21 +72,46 @@ une donnée jointe ne peut pas devenir obsolète.
 Ce sont des **colonnes générées** : elles ne peuvent pas diverger du texte
 indexé, et aucune étape Python ne peut être oubliée.
 
-- `search_titre` — les seuls libellés. Alimente le mode « rechercher dans les
-  titres uniquement », **activé par défaut** dans l'interface.
-- `search_full` — libellé (poids A) + description (poids B) + contexte (poids C).
-  Mode élargi.
+- `search_titre` — libellés (poids A) **et objets rattachés** (poids B).
+  Alimente le mode « rechercher dans les titres uniquement », **activé par
+  défaut** dans l'interface.
+- `search_full` — idem + description (poids B) + contexte (poids C). Mode élargi.
+
+La frontière entre les deux modes n'est donc pas « titre / reste » mais
+**« ce que l'objet est et porte » / « ce que ses parents disent »** (#634).
 
 La configuration plein texte est `public.french_unaccent` : le dictionnaire
 `french` radicalise (`limicoles` → `limicol`) mais ne retire pas les accents, si
 bien que « foret » ne trouverait pas « forêt ». On chaîne donc `unaccent` avant
 `french_stem`.
 
+### Les « rattachements » : espèces, habitats, protocoles… (#634)
+
+La colonne `rattachements` porte les objets de référentiel attachés à l'objet
+**ou à l'enjeu dont il descend**, actions comprises :
+
+| Rattachement | Source |
+|---|---|
+| Espèces | `CorEnjeuTaxon` — nom scientifique **et** nom vernaculaire, `SuiviInventaire.taxon_taxref` |
+| Habitats | `CorEnjeuHabitat` (`lb_hab_fr` + `cd_hab`), `SuiviInventaire.habitat_ref` |
+| Éléments géologiques | `CorEnjeuGeologie`, `CorIndicateurGeologie` (nom + `id_inpg`) |
+| Protocoles standardisés | `SuiviInventaire.protocoles` — `nom_protocole` et `protocole_campanule_nom` |
+| Référence PressRef | `Pression.id_type_pression` (nomenclature `TYPE_PRESSION`) et `id_pressref` |
+| Catégorie et type d'action | `CATEGORIE_ACTION_RESERVE` et `TYPE_ACTION` |
+
+Ces rattachements étant dans `search_titre`, chercher « STOC » remonte les
+actions qui **appliquent** ce protocole et pas seulement celles qui le nomment ;
+chercher « Bécasseau variable » marche aussi bien que « Calidris alpina » ; et
+une espèce fait ressortir les enjeux **et les actions** qui la concernent.
+
+Une action retrouve l'enjeu dont elle hérite via son indicateur ou via une de
+ses métriques (`_Branche.enjeu_par_indicateur` dans `indexing.py`).
+
 ### Le « contexte » et la recherche élargie
 
-La colonne `contexte` porte, pour chaque objet, **le libellé de l'enjeu dont il
-descend et les taxons / habitats / éléments géologiques rattachés à cet enjeu**,
-en plus des libellés de ses ancêtres directs.
+La colonne `contexte` porte, pour chaque objet, **les libellés de ses ancêtres**
+— l'enjeu dont il descend, son objectif, son facteur d'influence. Les objets de
+référentiel, eux, sont dans `rattachements` (ci-dessus) et non ici.
 
 C'est ce qui rend possible la recherche décrite dans l'aide de la maquette :
 

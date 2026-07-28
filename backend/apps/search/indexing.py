@@ -100,16 +100,31 @@ def facettes_du_plan(plan):
 
 
 # --------------------------------------------------------------------------- #
-# Contexte taxonomique d'un enjeu, propagé à sa branche
+# Ce qu'un enjeu transmet à sa branche
+#
+# Deux textes bien distincts, qui n'ont pas la même portée de recherche (#634) :
+#
+# - les *rattachements* — espèces, habitats, géologie — descendent dans le
+#   `rattachements` de toute la branche, actions comprises, et sont donc
+#   trouvables y compris en mode « titres uniquement » : chercher une espèce
+#   doit remonter les enjeux ET les actions qui la concernent ;
+# - le *contexte* — le libellé de l'enjeu — ne descend que dans le `contexte`,
+#   réservé au mode élargi.
 # --------------------------------------------------------------------------- #
 
-def _contexte_taxo(enjeu):
-    """Taxons, habitats, patrimoine géologique et précisions libres d'un enjeu."""
+def _rattachements_enjeu(enjeu):
+    """Espèces, habitats et patrimoine géologique rattachés à un enjeu.
+
+    Les taxons sont indexés sous leurs deux noms : chercher « Bécasseau
+    variable » doit marcher aussi bien que « Calidris alpina » (#634).
+    """
     parts = []
     for taxon in enjeu.taxons.all():
         parts += [taxon.nom_complet, taxon.nom_vern]
-    parts += [habitat.lb_hab_fr for habitat in enjeu.habitats.all()]
-    parts += [geol.nom for geol in enjeu.geologies.all()]
+    for habitat in enjeu.habitats.all():
+        parts += [habitat.lb_hab_fr, habitat.cd_hab]
+    for geologie in enjeu.geologies.all():
+        parts += [geologie.nom, geologie.id_inpg]
     parts += [
         enjeu.autre_ecologique_precision,
         enjeu.autre_socioeco_precision,
@@ -118,11 +133,36 @@ def _contexte_taxo(enjeu):
     return _texte(*parts)
 
 
+class _Branche:
+    """
+    Ce que les enjeux transmettent à leur descendance pendant l'extraction.
+
+    Les extracteurs tournent dans l'ordre de `EXTRACTEURS` : les enjeux
+    remplissent `enjeux`, les indicateurs remplissent `enjeu_par_indicateur`,
+    et les actions — qui pendent d'un indicateur ou d'une métrique — s'en
+    servent pour retrouver l'enjeu dont elles héritent les rattachements.
+    """
+
+    def __init__(self):
+        self.enjeux = {}
+        self.enjeu_par_indicateur = {}
+
+
+def _protocole_texte(protocole):
+    """Noms d'un protocole standardisé, côté saisie libre comme côté CAMPanule."""
+    return _texte(protocole.nom_protocole, protocole.protocole_campanule_nom)
+
+
+def _herite(branche, ids, cle):
+    """Texte hérité (`contexte` ou `rattachements`) des enjeux donnés."""
+    return _texte(*(branche.enjeux.get(id_enjeu, {}).get(cle, '') for id_enjeu in ids))
+
+
 # --------------------------------------------------------------------------- #
 # Extraction, type par type
 # --------------------------------------------------------------------------- #
 
-def _documents_enjeux(plan, facettes, contexte_branche):
+def _documents_enjeux(plan, facettes, branche):
     enjeux = (
         Enjeu.objects.filter(id_pg=plan)
         .select_related('id_categorie')
@@ -130,14 +170,18 @@ def _documents_enjeux(plan, facettes, contexte_branche):
     )
     documents = []
     for enjeu in enjeux:
-        taxo = _contexte_taxo(enjeu)
-        contexte_branche[enjeu.pk] = _texte(enjeu.libelle, taxo)
+        rattachements = _rattachements_enjeu(enjeu)
+        branche.enjeux[enjeu.pk] = {
+            'contexte': enjeu.libelle,
+            'rattachements': rattachements,
+        }
         documents.append(ContenuIndexe(
             type_contenu=ContenuIndexe.TYPE_ENJEU,
             id_objet=enjeu.pk,
             titre=enjeu.libelle,
             description=_texte(enjeu.description, enjeu.etat_enjeu),
-            contexte=_texte(enjeu.intitule_court, taxo),
+            rattachements=rattachements,
+            contexte=enjeu.intitule_court or '',
             sous_type=(
                 'ecologique' if enjeu.categorie_ecologique else 'socioeco'
             ),
@@ -150,7 +194,7 @@ def _documents_enjeux(plan, facettes, contexte_branche):
     return documents
 
 
-def _documents_facteurs(plan, facettes, contexte_branche):
+def _documents_facteurs(plan, facettes, branche):
     facteurs = (
         FacteurInfluence.objects.filter(enjeux__id_pg=plan)
         .distinct().prefetch_related('enjeux')
@@ -164,7 +208,8 @@ def _documents_facteurs(plan, facettes, contexte_branche):
             id_objet=facteur.pk,
             titre=facteur.libelle,
             description=facteur.description or '',
-            contexte=_texte(*(contexte_branche.get(e.pk, '') for e in enjeux)),
+            rattachements=_herite(branche, [e.pk for e in enjeux], 'rattachements'),
+            contexte=_herite(branche, [e.pk for e in enjeux], 'contexte'),
             parent_type=ContenuIndexe.TYPE_ENJEU if parent else None,
             parent_libelle=parent.libelle if parent else None,
             **facettes,
@@ -172,7 +217,7 @@ def _documents_facteurs(plan, facettes, contexte_branche):
     return documents
 
 
-def _documents_pressions(plan, facettes, contexte_branche):
+def _documents_pressions(plan, facettes, branche):
     pressions = (
         Pression.objects.filter(id_facteur_influence__enjeux__id_pg=plan)
         .distinct()
@@ -188,9 +233,17 @@ def _documents_pressions(plan, facettes, contexte_branche):
             id_objet=pression.pk,
             titre=pression.libelle,
             description=pression.description or '',
+            # La référence PressRef est un rattachement à un référentiel, pas
+            # du texte de contexte : elle doit être trouvable en mode titres.
+            rattachements=_texte(
+                pression.id_type_pression.label
+                if pression.id_type_pression_id else None,
+                pression.id_pressref,
+                _herite(branche, [e.pk for e in enjeux], 'rattachements'),
+            ),
             contexte=_texte(
                 facteur.libelle if facteur else None,
-                *(contexte_branche.get(e.pk, '') for e in enjeux),
+                _herite(branche, [e.pk for e in enjeux], 'contexte'),
             ),
             parent_type=ContenuIndexe.TYPE_FACTEUR if facteur else None,
             parent_libelle=facteur.libelle if facteur else None,
@@ -207,7 +260,7 @@ def _documents_pressions(plan, facettes, contexte_branche):
     return documents
 
 
-def _documents_objectifs_lt(plan, facettes, contexte_branche):
+def _documents_objectifs_lt(plan, facettes, branche):
     objectifs = (
         ObjectifLongTerme.objects.filter(id_enjeu__id_pg=plan)
         .select_related('id_enjeu')
@@ -218,7 +271,8 @@ def _documents_objectifs_lt(plan, facettes, contexte_branche):
             id_objet=olt.pk,
             titre=olt.libelle,
             description=olt.description or '',
-            contexte=contexte_branche.get(olt.id_enjeu_id, ''),
+            rattachements=_herite(branche, [olt.id_enjeu_id], 'rattachements'),
+            contexte=_herite(branche, [olt.id_enjeu_id], 'contexte'),
             parent_type=ContenuIndexe.TYPE_ENJEU,
             parent_libelle=olt.id_enjeu.libelle if olt.id_enjeu_id else None,
             **facettes,
@@ -227,7 +281,7 @@ def _documents_objectifs_lt(plan, facettes, contexte_branche):
     ]
 
 
-def _documents_objectifs_op(plan, facettes, contexte_branche):
+def _documents_objectifs_op(plan, facettes, branche):
     objectifs = (
         ObjectifOperationnel.objects.filter(
             Q(id_enjeu__id_pg=plan)
@@ -243,8 +297,9 @@ def _documents_objectifs_op(plan, facettes, contexte_branche):
             id_objet=oo.pk,
             titre=oo.libelle,
             description=oo.description or '',
+            rattachements=_herite(branche, [oo.id_enjeu_id], 'rattachements'),
             contexte=_texte(
-                contexte_branche.get(oo.id_enjeu_id, ''),
+                _herite(branche, [oo.id_enjeu_id], 'contexte'),
                 *(pression.libelle for pression in oo.pressions.all()),
             ),
             parent_type=ContenuIndexe.TYPE_ENJEU if oo.id_enjeu_id else None,
@@ -255,7 +310,7 @@ def _documents_objectifs_op(plan, facettes, contexte_branche):
     ]
 
 
-def _documents_indicateurs(plan, facettes, contexte_branche):
+def _documents_indicateurs(plan, facettes, branche):
     indicateurs = (
         Indicateur.objects
         .filter(_q_pour_plan(INDICATEUR_TO_PG_PATHS, plan))
@@ -266,7 +321,7 @@ def _documents_indicateurs(plan, facettes, contexte_branche):
             'id_resultat_attendu', 'id_resultat_attendu__id_oo',
             'id_resultat_attendu__id_oo__id_enjeu',
         )
-        .prefetch_related('metriques')
+        .prefetch_related('metriques', 'geologies')
     )
     documents = []
     for indicateur in indicateurs:
@@ -285,13 +340,22 @@ def _documents_indicateurs(plan, facettes, contexte_branche):
         else:
             intermediaire = objectif = parent_type = enjeu_id = None
 
+        branche.enjeu_par_indicateur[indicateur.pk] = enjeu_id
+
         documents.append(ContenuIndexe(
             type_contenu=ContenuIndexe.TYPE_INDICATEUR,
             id_objet=indicateur.pk,
             titre=indicateur.nom_indicateur,
             description=indicateur.description or '',
+            rattachements=_texte(
+                indicateur.type_indicateur.label
+                if indicateur.type_indicateur_id else None,
+                *(g.nom for g in indicateur.geologies.all()),
+                *(g.id_inpg for g in indicateur.geologies.all()),
+                _herite(branche, [enjeu_id], 'rattachements'),
+            ),
             contexte=_texte(
-                contexte_branche.get(enjeu_id, ''),
+                _herite(branche, [enjeu_id], 'contexte'),
                 intermediaire.libelle if intermediaire else None,
                 *(m.nom_metrique for m in indicateur.metriques.all()),
             ),
@@ -310,7 +374,7 @@ def _documents_indicateurs(plan, facettes, contexte_branche):
     return documents
 
 
-def _documents_actions(plan, facettes, contexte_branche):
+def _documents_actions(plan, facettes, branche):
     operations = (
         Operation.objects
         .filter(_q_pour_plan(OPERATION_TO_PG_PATHS, plan))
@@ -319,7 +383,7 @@ def _documents_actions(plan, facettes, contexte_branche):
             'id_categorie_action_reserve', 'id_type_action',
             'id_suivi', 'id_indicateur',
         )
-        .prefetch_related('metriques')
+        .prefetch_related('metriques', 'id_suivi__protocoles')
     )
     documents = []
     for operation in operations:
@@ -331,16 +395,46 @@ def _documents_actions(plan, facettes, contexte_branche):
             parent_type, parent = None, None
 
         categorie = operation.id_categorie_action_reserve
+        suivi = operation.id_suivi
+
+        # Une action hérite des rattachements de l'enjeu dont elle dépend,
+        # qu'elle y soit reliée par son indicateur ou par une de ses métriques
+        # (#634 : « chercher une espèce doit ressortir les actions »).
+        indicateurs = [operation.id_indicateur_id] + [
+            metrique.id_indicateur_id for metrique in operation.metriques.all()
+        ]
+        enjeux = {
+            branche.enjeu_par_indicateur.get(id_indicateur)
+            for id_indicateur in indicateurs
+            if id_indicateur is not None
+        }
+
         documents.append(ContenuIndexe(
             type_contenu=ContenuIndexe.TYPE_ACTION,
             id_objet=operation.pk,
             titre=operation.libelle,
             description=operation.description or '',
+            rattachements=_texte(
+                # Catégorie et type d'action : « CS », « Suivi des plantes »…
+                f"{categorie.mnemonique} {categorie.label}" if categorie else None,
+                operation.id_type_action.label if operation.id_type_action_id else None,
+                # Protocoles standardisés du suivi : chercher « STOC » doit
+                # remonter les actions qui l'appliquent, pas seulement celles
+                # qui le nomment.
+                *(_protocole_texte(protocole) for protocole in (
+                    suivi.protocoles.all() if suivi else []
+                )),
+                # Cibles du suivi : espèce et habitat saisis sur l'inventaire.
+                suivi.taxon_taxref if suivi else None,
+                suivi.habitat_ref if suivi else None,
+                suivi.cibles_principales if suivi else None,
+                _herite(branche, enjeux, 'rattachements'),
+            ),
             contexte=_texte(
                 operation.code_operation,
-                operation.id_type_action.label if operation.id_type_action_id else None,
-                operation.id_suivi.intitule if operation.id_suivi_id else None,
+                suivi.intitule if suivi else None,
                 *(m.nom_metrique for m in operation.metriques.all()),
+                _herite(branche, enjeux, 'contexte'),
             ),
             parent_type=parent_type,
             parent_libelle=parent,
@@ -354,7 +448,7 @@ def _documents_actions(plan, facettes, contexte_branche):
 
 
 EXTRACTEURS = (
-    # Les enjeux d'abord : ils alimentent `contexte_branche` pour les autres.
+    # L'ordre compte : chaque extracteur alimente `branche` pour les suivants.
     _documents_enjeux,
     _documents_facteurs,
     _documents_pressions,
@@ -368,10 +462,10 @@ EXTRACTEURS = (
 def construire_documents(plan):
     """Retourne toutes les lignes d'index d'un plan, sans rien écrire."""
     facettes = facettes_du_plan(plan)
-    contexte_branche = {}
+    branche = _Branche()
     documents = []
     for extracteur in EXTRACTEURS:
-        documents += extracteur(plan, facettes, contexte_branche)
+        documents += extracteur(plan, facettes, branche)
     return documents
 
 

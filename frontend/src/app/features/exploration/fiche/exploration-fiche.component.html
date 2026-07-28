@@ -292,24 +292,59 @@
                   <th>{{ 'exploration.fiche.typeAction' | translate }}</th>
                   <th>{{ 'exploration.fiche.periode' | translate }}</th>
                   <th>{{ 'exploration.fiche.prioriteCourt' | translate }}</th>
+                  <th><span class="sr-only">{{ 'common.actions.details' | translate }}</span></th>
                 </tr>
               </thead>
               <tbody>
                 @for (action of p.actions; track action.id_operation) {
                   <tr
+                    class="fiche-tableau-ligne"
                     [id]="ancreDe('action:' + action.id_operation)"
-                    [class.cible]="estCible('action', action.id_operation)">
+                    [class.cible]="estCible('action', action.id_operation)"
+                    [class.ouverte]="estActionOuverte(action)"
+                    (click)="basculerAction(action)"
+                    [attr.aria-expanded]="estActionOuverte(action)">
                     <td class="fiche-tableau-code">{{ action.code_operation }}</td>
                     <td>
                       <span class="fiche-arbre-titre type-action">{{ action.libelle }}</span>
-                      @if (action.description) {
-                        <p class="fiche-tableau-description">{{ action.description }}</p>
-                      }
                     </td>
                     <td>{{ action.categorie }}</td>
                     <td>{{ periodeAction(action) }}</td>
                     <td>{{ action.priorite }}</td>
+                    <td class="fiche-tableau-chevron">
+                      <i
+                        class="fi"
+                        [class.fi-rr-angle-small-down]="!estActionOuverte(action)"
+                        [class.fi-rr-angle-small-up]="estActionOuverte(action)"
+                        aria-hidden="true"></i>
+                    </td>
                   </tr>
+
+                  <!-- Détail de l'action : équivalent lecture seule de la fiche
+                       action, ouvert d'emblée quand la recherche la cible. -->
+                  @if (estActionOuverte(action)) {
+                    <tr class="fiche-tableau-detail">
+                      <td colspan="6">
+                        @if (action.description) {
+                          <p class="fiche-texte">{{ action.description }}</p>
+                        }
+                        <dl class="fiche-detail-liste">
+                          @if (action.type_action) {
+                            <dt>{{ 'exploration.fiche.typeActionPrecis' | translate }}</dt>
+                            <dd>{{ action.type_action }}</dd>
+                          }
+                          @if (action.operateurs) {
+                            <dt>{{ 'exploration.fiche.operateurs' | translate }}</dt>
+                            <dd>{{ action.operateurs }}</dd>
+                          }
+                          @if (action.partenaires) {
+                            <dt>{{ 'exploration.fiche.partenaires' | translate }}</dt>
+                            <dd>{{ action.partenaires }}</dd>
+                          }
+                        </dl>
+                      </td>
+                    </tr>
+                  }
                 }
               </tbody>
             </table>

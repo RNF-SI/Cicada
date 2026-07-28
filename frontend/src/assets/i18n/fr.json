@@ -31,7 +31,8 @@
       "clear": "Effacer",
       "home": "Retour à l'accueil",
       "all": "Tous",
-      "expand": "Déplier"
+      "expand": "Déplier",
+      "details": "Détails"
     },
     "emprise": {
       "empty": "Aucune emprise définie",
@@ -3310,7 +3311,10 @@
       "periode": "Période",
       "introuvable": "Ce plan de gestion n'existe pas, ou n'est pas encore validé — seuls les plans validés sont explorables.",
       "lectureSeule": "Consultation en lecture seule. Cette fiche présente la structure du plan de gestion : enjeux, objectifs, indicateurs et actions programmées. Le budget, les moyens humains, les mesures d'indicateurs et le suivi des réalisations relèvent de la gestion interne de l'organisme et ne sont pas partagés.",
-      "typeAction": "Type d'action"
+      "typeAction": "Type d'action",
+      "typeActionPrecis": "Type d'action détaillé",
+      "operateurs": "Opérateurs",
+      "partenaires": "Partenaires"
     }
   },
   "errors": {

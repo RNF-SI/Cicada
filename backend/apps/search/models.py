@@ -21,12 +21,19 @@ Les deux vecteurs de recherche sont des **colonnes générées** par PostgreSQL 
 elles ne peuvent pas diverger du texte indexé, et aucune étape Python ne peut
 être oubliée.
 
-- ``search_titre`` : les seuls libellés — mode « rechercher dans les titres
-  uniquement », activé par défaut dans l'interface.
-- ``search_full`` : libellé (poids A) + description (poids B) + contexte
-  (poids C, libellés des ancêtres et des taxons/habitats rattachés) — mode
-  élargi, qui fait par exemple ressortir un indicateur dont l'enjeu parent
-  parle de limicoles.
+- ``search_titre`` : libellés (poids A) **et objets rattachés** (poids B) —
+  mode « rechercher dans les titres uniquement », activé par défaut. Depuis
+  #634, chercher une espèce, un habitat, un protocole standardisé, un élément
+  géologique ou une référence PressRef doit remonter les objets qui les portent
+  sans avoir à élargir la recherche : ce sont des rattachements explicites, pas
+  du texte de contexte.
+- ``search_full`` : idem + description (poids B) + contexte (poids C, libellés
+  des objets ancêtres) — mode élargi, qui fait par exemple ressortir un
+  indicateur dont l'objectif parent porte le mot cherché.
+
+La frontière entre les deux modes n'est donc pas « titre / reste » mais
+« ce que l'objet **est et porte** » d'un côté, « ce que ses parents disent »
+de l'autre.
 """
 
 from django.contrib.postgres.fields import ArrayField
@@ -86,13 +93,23 @@ class ContenuIndexe(models.Model):
     # ------------------------------------------------------------------ #
     titre = models.CharField(_("Libellé"), max_length=500)
     description = models.TextField(_("Description"), blank=True, default='')
+    rattachements = models.TextField(
+        _("Objets rattachés"),
+        blank=True,
+        default='',
+        help_text=_(
+            "Espèces (noms scientifiques ET vernaculaires), habitats, éléments "
+            "géologiques, protocoles standardisés, références PressRef et "
+            "catégories d'action rattachés à l'objet ou à son enjeu. "
+            "Interrogé dans les DEUX modes (#634)."
+        ),
+    )
     contexte = models.TextField(
         _("Contexte"),
         blank=True,
         default='',
         help_text=_(
-            "Libellés des ancêtres et des taxons/habitats rattachés. "
-            "Interrogé uniquement en mode élargi."
+            "Libellés des objets ancêtres. Interrogé uniquement en mode élargi."
         ),
     )
 
@@ -153,14 +170,18 @@ class ContenuIndexe(models.Model):
     # Vecteurs de recherche (colonnes générées par PostgreSQL)
     # ------------------------------------------------------------------ #
     search_titre = models.GeneratedField(
-        expression=SearchVector('titre', config=SEARCH_CONFIG),
+        expression=(
+            SearchVector('titre', weight='A', config=SEARCH_CONFIG)
+            + SearchVector('rattachements', weight='B', config=SEARCH_CONFIG)
+        ),
         output_field=SearchVectorField(),
         db_persist=True,
-        verbose_name=_("Vecteur — libellé"),
+        verbose_name=_("Vecteur — libellé et objets rattachés"),
     )
     search_full = models.GeneratedField(
         expression=(
             SearchVector('titre', weight='A', config=SEARCH_CONFIG)
+            + SearchVector('rattachements', weight='B', config=SEARCH_CONFIG)
             + SearchVector('description', weight='B', config=SEARCH_CONFIG)
             + SearchVector('contexte', weight='C', config=SEARCH_CONFIG)
         ),

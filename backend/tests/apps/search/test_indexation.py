@@ -19,10 +19,13 @@ from django.db.models import Count
 from apps.geo.models import AreaType, LArea
 from apps.search.indexing import index_plan
 from apps.search.models import SEARCH_CONFIG, ContenuIndexe
+from tests.factories.core import NomenclatureFactory, TypeNomenclatureFactory
 from tests.factories.enjeux import (
-    CorEnjeuTaxonFactory, EnjeuFactory, FacteurInfluenceFactory,
-    IndicateurFactory, NiveauExigenceFactory, ObjectifLongTermeFactory,
+    CorEnjeuGeologieFactory, CorEnjeuHabitatFactory, CorEnjeuTaxonFactory,
+    EnjeuFactory, FacteurInfluenceFactory, IndicateurFactory,
+    NiveauExigenceFactory, ObjectifLongTermeFactory,
     ObjectifOperationnelFactory, OperationFactory, PressionFactory,
+    ProtocoleFactory, SuiviInventaireFactory,
 )
 from tests.factories.plans import CorSitePgFactory, PlanGestionFactory
 from tests.factories.users import SiteFactory
@@ -233,12 +236,18 @@ class TestRecherche:
         assert 'Dérangement en période de nidification' in elargi
         assert 'Maintenir la population nicheuse' in elargi
 
-    def test_le_nom_scientifique_du_taxon_est_cherchable_en_mode_elargi(self, plan_indexe):
-        assert cherche('Calidris', 'search_titre') == set()
-
-        elargi = cherche('Calidris', 'search_full')
-        assert 'Protection des limicoles' in elargi
-        assert 'Nombre de couples nicheurs' in elargi
+    def test_le_nom_scientifique_du_taxon_est_cherchable_dans_les_deux_modes(
+        self, plan_indexe
+    ):
+        """
+        #634 a déplacé les rattachements du `contexte` vers les `rattachements`,
+        interrogés dans les deux modes : chercher une espèce ne demande plus
+        d'élargir la recherche. Le détail est couvert par `TestRattachements`.
+        """
+        for champ in ('search_titre', 'search_full'):
+            resultats = cherche('Calidris', champ)
+            assert 'Protection des limicoles' in resultats, champ
+            assert 'Nombre de couples nicheurs' in resultats, champ
 
     def test_le_nom_vernaculaire_du_taxon_est_cherchable(self, plan_indexe):
         assert 'Protection des limicoles' in cherche('bécasseau', 'search_full')
@@ -347,3 +356,99 @@ class TestCommandeRebuild:
         call_command('rebuild_search_index', '--purge', verbosity=0)
 
         assert ContenuIndexe.objects.count() == 0
+
+
+# --------------------------------------------------------------------------- #
+# Objets rattachés (#634)
+# --------------------------------------------------------------------------- #
+
+@pytest.mark.unit
+class TestRattachements:
+    """
+    Chercher une espèce, un habitat, un protocole standardisé, un élément
+    géologique ou une référence PressRef doit remonter les objets qui les
+    portent — **y compris en mode « titres uniquement »**, qui est l'état par
+    défaut de l'interface. Ce sont des rattachements explicites à un
+    référentiel, pas du texte de contexte (#634).
+    """
+
+    def test_le_nom_scientifique_remonte_en_mode_titres(self, plan_indexe):
+        assert 'Protection des limicoles' in cherche('Calidris', 'search_titre')
+
+    def test_le_nom_vernaculaire_remonte_en_mode_titres(self, plan_indexe):
+        """« Ne doit pas marcher seulement avec les noms latins » (#634)."""
+        assert 'Protection des limicoles' in cherche('bécasseau', 'search_titre')
+
+    def test_une_espece_remonte_les_actions_de_son_enjeu(self, plan_indexe):
+        """
+        Une action hérite des rattachements de l'enjeu dont elle dépend, via son
+        indicateur : chercher l'espèce doit la faire ressortir.
+        """
+        assert 'Comptage annuel' in cherche('Calidris', 'search_titre')
+        assert 'Comptage annuel' in cherche('bécasseau', 'search_titre')
+
+    def test_un_habitat_remonte_toute_sa_branche(self, plan_indexe):
+        CorEnjeuHabitatFactory(
+            id_enjeu=plan_indexe['enjeu'], cd_hab='1150',
+            lb_hab_fr='Lagunes côtières',
+        )
+        index_plan(plan_indexe['plan'])
+
+        resultats = cherche('lagunes', 'search_titre')
+        assert 'Protection des limicoles' in resultats
+        assert 'Comptage annuel' in resultats
+
+    def test_un_element_geologique_remonte_sa_branche(self, plan_indexe):
+        CorEnjeuGeologieFactory(
+            id_enjeu=plan_indexe['enjeu'], id_inpg='INPG_0042',
+            nom='Falaise calcaire du Jurassique',
+        )
+        index_plan(plan_indexe['plan'])
+
+        resultats = cherche('jurassique', 'search_titre')
+        assert 'Protection des limicoles' in resultats
+        assert 'Comptage annuel' in resultats
+
+    def test_un_protocole_standardise_remonte_les_actions_qui_lappliquent(
+        self, plan_indexe
+    ):
+        """
+        « On veut que STOC donne la mention STOC classique mais aussi toutes les
+        actions CS sur lesquelles il y a ce truc là » (#634).
+        """
+        protocole = ProtocoleFactory(nom_protocole='STOC EPS')
+        suivi = SuiviInventaireFactory(
+            id_pg=plan_indexe['plan'], intitule='Suivi avifaune',
+            protocoles=[protocole],
+        )
+        action = OperationFactory(libelle='Points d\'écoute', id_suivi=suivi)
+        index_plan(plan_indexe['plan'])
+
+        resultats = cherche('STOC', 'search_titre')
+        assert "Points d'écoute" in resultats, (
+            "l'action doit ressortir sur le nom du protocole qu'elle applique"
+        )
+        assert action.pk  # l'action est bien rattachée au plan par son suivi
+
+    def test_la_reference_pressref_est_cherchable(self, plan_indexe):
+        pression = plan_indexe['pression']
+        pression.id_type_pression = NomenclatureFactory(
+            id_type=TypeNomenclatureFactory(mnemonique='TYPE_PRESSION'),
+            mnemonique='2_1_1',
+            cd_nomenclature='2_1_1',
+            label='Modification des conditions hydrodynamiques',
+        )
+        pression.save()
+        index_plan(plan_indexe['plan'])
+
+        assert 'Dérangement en période de nidification' in cherche(
+            'hydrodynamiques', 'search_titre'
+        )
+
+    def test_le_libelle_des_ancetres_reste_reserve_au_mode_elargi(self, plan_indexe):
+        """
+        La frontière entre les deux modes n'est pas « titre / reste » mais
+        « ce que l'objet porte » / « ce que ses parents disent ».
+        """
+        assert 'Comptage annuel' not in cherche('limicole', 'search_titre')
+        assert 'Comptage annuel' in cherche('limicole', 'search_full')

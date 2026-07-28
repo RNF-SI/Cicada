@@ -327,3 +327,57 @@
   line-height: $line-height-small;
   color: $gray-dark;
 }
+
+/**
+ * Détail d'une action (#634).
+ *
+ * La ligne du tableau se déplie sur place plutôt que d'ouvrir un écran : la
+ * fiche publique reste une seule page navigable d'élément en élément, et
+ * l'action ciblée par une recherche arrive déjà ouverte.
+ */
+.fiche-tableau-ligne {
+  cursor: pointer;
+  transition: background-color $transition-fast;
+
+  &:hover {
+    background-color: $primary-bg-subtle;
+  }
+
+  &.ouverte {
+    background-color: $gray-lightest;
+  }
+}
+
+.fiche-tableau-chevron {
+  color: $primary-color;
+  text-align: right;
+  width: 1px;
+}
+
+.fiche-tableau-detail {
+  background-color: $gray-lightest;
+
+  td {
+    padding-top: 0;
+  }
+}
+
+.fiche-detail-liste {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: $spacing-xxs $spacing-md;
+  margin: 0;
+
+  dt {
+    font-weight: $font-weight-bold;
+    color: $gray-dark;
+    font-size: $font-size-small;
+    line-height: $line-height-small;
+  }
+
+  dd {
+    margin: 0;
+    font-size: $font-size-small;
+    line-height: $line-height-small;
+  }
+}
