@@ -480,24 +480,50 @@ class PlanDuplicationService:
         """Copie les postes du PG et leurs fonctions (#560).
 
         Les postes sont rattachés à un plan : une nouvelle version doit avoir
-        les siens, éditables sans impacter la version source. Les fonctions,
-        elles, sont un référentiel global partagé — on ne les copie pas, on
-        les réutilise. L'organisme du poste est repris tel quel (entité
-        indépendante du plan).
+        les siens, éditables sans impacter la version source. L'organisme du
+        poste est repris tel quel (entité indépendante du plan).
+
+        Les fonctions du **socle** sont partagées : on les réutilise. Celles
+        **propres au plan source** (#631) sont recréées à l'identique pour le
+        nouveau plan, sinon la nouvelle version pointerait sur une fonction
+        qu'elle n'a pas le droit de voir.
 
         Retourne {ancien id_poste: nouveau Poste} pour remapper les lignes RH
         des opérations.
         """
-        from .models_operations import Poste, PosteFonction
+        from .models_operations import Fonction, Poste, PosteFonction
 
         dup = PlanDuplicationService._dup
+        fonction_map = {}
+
+        def fonction_pour_le_nouveau_plan(fonction):
+            """Socle → telle quelle ; fonction du plan source → sa copie."""
+            if fonction is None or fonction.id_pg_id != source_plan_id:
+                return fonction
+            if fonction.id_fonction not in fonction_map:
+                copie, _ = Fonction.objects.get_or_create(
+                    libelle=fonction.libelle,
+                    id_pg=new_plan,
+                    defaults={
+                        'type_poste': fonction.type_poste,
+                        'finance_par_defaut': fonction.finance_par_defaut,
+                        'actif': fonction.actif,
+                        'is_socle': False,
+                    },
+                )
+                fonction_map[fonction.id_fonction] = copie
+            return fonction_map[fonction.id_fonction]
+
         poste_map = {}
         for old_poste in Poste.objects.filter(id_pg_id=source_plan_id):
             new_poste = dup(old_poste, user, id_pg=new_plan)
             new_poste.save()
             poste_map[old_poste.id_poste] = new_poste
             for old_fonction in PosteFonction.objects.filter(id_poste=old_poste):
-                new_fonction = dup(old_fonction, user, id_poste=new_poste)
+                new_fonction = dup(
+                    old_fonction, user, id_poste=new_poste,
+                    id_fonction=fonction_pour_le_nouveau_plan(old_fonction.id_fonction),
+                )
                 new_fonction.save()
         return poste_map
 

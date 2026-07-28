@@ -470,6 +470,37 @@ class TestRealisationRhLignes:
         assert Poste.objects.filter(id_pg=source).count() == 1
         assert OperationAnneeRH.objects.filter(id_operation_annee=oa).count() == 1
 
+    def test_duplication_recopie_les_fonctions_du_plan(self, operation_annee):
+        """
+        #631 — une fonction propre au plan source n'est pas visible du plan
+        cible : la duplication doit lui en donner sa propre copie, sinon la
+        nouvelle version pointerait sur une fonction qu'elle ne peut pas voir.
+        Les fonctions du socle, elles, restent partagées.
+        """
+        from apps.plans.services import PlanDuplicationService
+
+        source = operation_annee.id_operation.get_plan_de_gestion()
+        locale = Fonction.objects.create(
+            libelle='Garde du marais', id_pg=source, type_poste='salarie',
+        )
+        socle = Fonction.objects.get(libelle='Conservateur')
+        poste = Poste.objects.create(id_pg=source, nombre=1)
+        poste.fonctions.create(id_fonction=locale)
+        poste.fonctions.create(id_fonction=socle)
+
+        cible = PlanGestionFactory()
+        PlanDuplicationService.copy_content(source, cible, SuperAdminFactory())
+
+        copie = Poste.objects.get(id_pg=cible)
+        fonctions = {
+            pf.id_fonction.libelle: pf.id_fonction for pf in copie.fonctions.all()
+        }
+        # Fonction locale : recopiée pour le plan cible.
+        assert fonctions['Garde du marais'].id_pg_id == cible.id_pg
+        assert fonctions['Garde du marais'].id_fonction != locale.id_fonction
+        # Fonction du socle : partagée, donc réutilisée telle quelle.
+        assert fonctions['Conservateur'].id_fonction == socle.id_fonction
+
     def test_bilan_ventile_finance_et_non_finance(self, admin_client, operation_annee):
         """Le bilan doit valoriser séparément le temps non financé (#560)."""
         oa = operation_annee
