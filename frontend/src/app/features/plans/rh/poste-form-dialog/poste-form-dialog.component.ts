@@ -112,6 +112,16 @@ export class PosteFormDialogComponent implements OnInit {
     { id_organisme: null, organisme_libre: '', cout_jour: null },
   ]);
 
+  /**
+   * Nom local du poste et commentaire libre (#632).
+   *
+   * Le nom local, s'il est saisi, remplace le libellé dérivé des fonctions
+   * partout — y compris dans les fiches actions et leurs suivis. Ni l'un ni
+   * l'autre ne doit contenir de nom de personne (RGPD).
+   */
+  nomLocal = signal<string>('');
+  commentaire = signal<string>('');
+
   // Édition : un poste unique porte un seul organisme
   idOrganisme = signal<number | null>(null);
   // Organisme saisi librement en édition (prestataire / partenaire, #599/#605)
@@ -195,6 +205,8 @@ export class PosteFormDialogComponent implements OnInit {
       this.organismeLibre.set(p.organisme_libre ?? '');
       this.nombre.set(p.nombre ?? 1);
       this.coutJour.set(p.cout_jour != null ? Number(p.cout_jour) : null);
+      this.nomLocal.set(p.nom_local ?? '');
+      this.commentaire.set(p.commentaire ?? '');
     }
   }
 
@@ -398,10 +410,15 @@ export class PosteFormDialogComponent implements OnInit {
     const fonctions = [{ id_fonction: this.selectedFonctionId()!, pourcentage: null }];
     const libre = this.isOrganismeLibre();
     const benevole = this.isBenevole();
+    // #632 — communs à tous les postes créés depuis ce formulaire.
+    const nomLocal = this.nomLocal().trim();
+    const commentaire = this.commentaire().trim();
 
     if (this.isEdit) {
       const payload: Partial<PostePayload> = {
         id_pg: this.data.planId,
+        nom_local: nomLocal,
+        commentaire,
         // Prestataire / partenaire → organisme libre ; bénévole → aucun ; sinon référentiel.
         id_organisme: libre || benevole ? null : (this.idOrganisme() ?? null),
         organisme_libre: libre ? this.organismeLibre().trim() : '',
@@ -427,6 +444,8 @@ export class PosteFormDialogComponent implements OnInit {
           id_pg: this.data.planId,
           id_organisme: null,
           organisme_libre: libre ? this.organismeLibre().trim() : '',
+          nom_local: nomLocal,
+          commentaire,
           nombre: this.nombre() || 1,
           cout_jour: benevole ? (this.coutJour() ?? 0) : null,
           fonctions,
@@ -448,6 +467,8 @@ export class PosteFormDialogComponent implements OnInit {
         id_pg: this.data.planId,
         id_organisme: libre ? null : (inst.id_organisme ?? null),
         organisme_libre: libre ? inst.organisme_libre.trim() : '',
+        nom_local: nomLocal,
+        commentaire,
         nombre: 1,
         cout_jour: this.wantsCoutJour() ? inst.cout_jour : null,
         fonctions,

@@ -93,6 +93,67 @@ class TestFonctionEndpoint:
 
 @pytest.mark.django_db
 @pytest.mark.integration
+class TestPosteNomLocal:
+    """#632 — nom local et commentaire d'un poste, sans donnée nominative."""
+
+    def _poste(self, plan, **kwargs):
+        poste = Poste.objects.create(id_pg=plan, nombre=1, **kwargs)
+        poste.fonctions.create(id_fonction=Fonction.objects.get(libelle='Garde'))
+        return poste
+
+    def test_libelle_derive_des_fonctions_sans_nom_local(self):
+        poste = self._poste(PlanGestionFactory())
+        assert poste.libelle == 'Garde'
+
+    def test_nom_local_prime_sur_le_libelle_des_fonctions(self):
+        """Le nom local s'affiche partout : tuiles, fiches actions, suivis."""
+        poste = self._poste(PlanGestionFactory(), nom_local='Garde du secteur nord')
+        assert poste.libelle == 'Garde du secteur nord'
+        assert poste.libelle_fonctions == 'Garde'
+
+    def test_nom_local_vide_ne_masque_pas_les_fonctions(self):
+        poste = self._poste(PlanGestionFactory(), nom_local='   ')
+        assert poste.libelle == 'Garde'
+
+    def test_api_enregistre_nom_local_et_commentaire(self, admin_client):
+        plan = PlanGestionFactory()
+        garde = Fonction.objects.get(libelle='Garde')
+        r = admin_client.post('/api/plans/postes/', {
+            'id_pg': plan.id_pg,
+            'nombre': 1,
+            'nom_local': 'Garde du secteur nord',
+            'commentaire': 'Poste partagé avec la commune.',
+            'fonctions': [{'id_fonction': garde.id_fonction}],
+        }, format='json')
+        assert r.status_code == 201
+        body = r.json()
+        assert body['nom_local'] == 'Garde du secteur nord'
+        assert body['commentaire'] == 'Poste partagé avec la commune.'
+        assert body['libelle'] == 'Garde du secteur nord'
+        assert body['libelle_fonctions'] == 'Garde'
+
+    def test_lignes_rh_affichent_le_nom_local(self, admin_client):
+        """Le libellé servi aux fiches actions / suivis suit le nom local."""
+        poste = self._poste(PlanGestionFactory(), nom_local='Garde du secteur nord')
+        r = admin_client.get(f'/api/plans/postes/by-plan/{poste.id_pg_id}/')
+        assert [p['libelle'] for p in r.json()] == ['Garde du secteur nord']
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+class TestSocleFonctions:
+    """#632 — fonctions oubliées du socle."""
+
+    def test_garde_animateur_dans_le_socle(self, admin_client):
+        libelles = [f['libelle'] for f in admin_client.get('/api/plans/fonctions/').json()]
+        assert 'Garde animateur' in libelles
+
+    def test_pas_de_fonction_test(self):
+        assert not Fonction.objects.filter(libelle__iexact='test', actif=True).exists()
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
 class TestFonctionPorteePlan:
     """#631 — une fonction ajoutée depuis un plan reste à l'échelle de ce plan."""
 

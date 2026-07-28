@@ -1609,6 +1609,23 @@ class Poste(models.Model):
         help_text=_("Nom d'organisme saisi librement, hors référentiel — "
                     "notamment pour un prestataire (ex. « presta1 »). Facultatif.")
     )
+    nom_local = models.CharField(
+        _("Nom local"),
+        max_length=150,
+        blank=True,
+        default='',
+        help_text=_("Nom donné au poste dans la réserve (#632). S'il est saisi, "
+                    "c'est lui qui s'affiche partout — fiches actions et suivis "
+                    "compris — à la place du libellé dérivé des fonctions. "
+                    "Jamais un nom de personne (RGPD).")
+    )
+    commentaire = models.TextField(
+        _("Commentaire"),
+        blank=True,
+        default='',
+        help_text=_("Précisions libres sur le poste (#632). Aucune donnée "
+                    "nominative : ni nom ni prénom (RGPD).")
+    )
     nombre = models.PositiveSmallIntegerField(
         _("Nombre de postes"),
         default=1,
@@ -1643,6 +1660,17 @@ class Poste(models.Model):
 
     @property
     def libelle(self):
+        """
+        Nom d'affichage du poste : le **nom local** s'il est saisi (#632),
+        sinon le libellé dérivé des fonctions.
+
+        Tout ce qui nomme un poste passe par ici — tuiles RH, listes de choix
+        du temps de travail des fiches actions, saisie de suivi, exports.
+        """
+        return self.nom_local.strip() or self.libelle_fonctions
+
+    @property
+    def libelle_fonctions(self):
         """
         Libellé dérivé des fonctions : « Garde · Animateur » (poste combiné)
         ou « Garde 50 % · Animateur 50 % » (quotités explicites).

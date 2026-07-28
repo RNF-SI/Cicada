@@ -90,6 +90,10 @@
                   }
                 </div>
               }
+
+              @if (p.commentaire) {
+                <p class="poste-commentaire text-mention">{{ p.commentaire }}</p>
+              }
             </div>
           }
         </div>

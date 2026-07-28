@@ -66,8 +66,17 @@ export interface PosteFonction {
 export interface Poste {
   id_poste?: number;
   id_pg: number;
-  /** Libellé dérivé des fonctions, calculé côté serveur (lecture seule). */
+  /**
+   * Nom d'affichage calculé côté serveur (lecture seule) : le nom local s'il
+   * est saisi (#632), sinon le libellé dérivé des fonctions.
+   */
   libelle?: string;
+  /** Libellé dérivé des seules fonctions, sans le nom local (lecture seule). */
+  libelle_fonctions?: string;
+  /** Nom donné au poste dans la réserve. Jamais un nom de personne (#632). */
+  nom_local?: string | null;
+  /** Précisions libres, sans donnée nominative (#632). */
+  commentaire?: string | null;
   id_organisme?: number | null;
   organisme_nom?: string | null;
   /** Nom d'organisme saisi librement (prestataire hors référentiel, #599). */
@@ -92,6 +101,10 @@ export interface PostePayload {
   id_pg: number;
   id_organisme?: number | null;
   organisme_libre?: string | null;
+  /** Nom local du poste, prioritaire à l'affichage s'il est saisi (#632). */
+  nom_local?: string | null;
+  /** Commentaire libre, sans donnée nominative (#632). */
+  commentaire?: string | null;
   nombre: number;
   etp?: number | string | null;
   cout_jour?: number | string | null;

@@ -148,6 +148,22 @@
     }
   }
 
+  <!-- 5. Nom local + commentaire (#632) : le nom local prime à l'affichage -->
+  <app-form-field
+    [label]="'plans.postes.form.nomLocalLabel' | translate"
+    [helpText]="'plans.postes.form.nomLocalHelp' | translate">
+    <input type="text"
+           [ngModel]="nomLocal()" (ngModelChange)="nomLocal.set($event)"
+           [placeholder]="'plans.postes.form.nomLocalPlaceholder' | translate" />
+  </app-form-field>
+
+  <app-form-field
+    [label]="'plans.postes.form.commentaireLabel' | translate"
+    [helpText]="'plans.postes.form.commentaireHelp' | translate">
+    <textarea rows="3"
+              [ngModel]="commentaire()" (ngModelChange)="commentaire.set($event)"></textarea>
+  </app-form-field>
+
   @if (errorMessage()) {
     <div class="info-block info-block-error">
       {{ 'plans.postes.form.saveError' | translate }}

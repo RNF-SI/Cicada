@@ -96,6 +96,13 @@
     gap: $spacing-xxs;
     padding: $spacing-xs $spacing-sm 0;
   }
+
+  // Commentaire libre du poste (#632), sous les fonctions.
+  .poste-commentaire {
+    margin: $spacing-xs 0 0;
+    padding: 0 $spacing-sm;
+    white-space: pre-line;
+  }
 }
 
 .icon-btn-flat {

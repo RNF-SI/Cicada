@@ -124,6 +124,32 @@ describe('PosteFormDialogComponent', () => {
     expect(rhService.createFonction).toHaveBeenCalledWith('Bénévole', true, 'salarie', 7);
   });
 
+  it('save() transmet le nom local et le commentaire, détourés (#632)', async () => {
+    await setup();
+    comp.selectedFonctionId.set(1);
+    comp.nomLocal.set('  Garde du secteur nord  ');
+    comp.commentaire.set('  Poste partagé avec la commune.  ');
+    comp.save();
+    expect(rhService.createPoste).toHaveBeenCalledWith(
+      expect.objectContaining({
+        nom_local: 'Garde du secteur nord',
+        commentaire: 'Poste partagé avec la commune.',
+      }),
+    );
+  });
+
+  it('reprend le nom local et le commentaire du poste édité (#632)', async () => {
+    await setup({
+      poste: {
+        id_poste: 42, id_pg: 7, nombre: 1,
+        nom_local: 'Garde du secteur nord', commentaire: 'Mi-temps',
+        fonctions: [{ id_fonction: 1, fonction_libelle: 'Garde-technicien', type_poste: 'salarie' }],
+      } as Poste,
+    });
+    expect(comp.nomLocal()).toBe('Garde du secteur nord');
+    expect(comp.commentaire()).toBe('Mi-temps');
+  });
+
   it('save() bloque et affiche l’erreur quand aucune fonction n’est choisie', async () => {
     await setup();
     comp.save();
@@ -144,6 +170,8 @@ describe('PosteFormDialogComponent', () => {
       id_pg: 7,
       id_organisme: 5,
       organisme_libre: '',
+      nom_local: '',
+      commentaire: '',
       nombre: 1,
       cout_jour: null,
       fonctions: [{ id_fonction: 3, pourcentage: null }],
@@ -152,6 +180,8 @@ describe('PosteFormDialogComponent', () => {
       id_pg: 7,
       id_organisme: 10,
       organisme_libre: '',
+      nom_local: '',
+      commentaire: '',
       nombre: 1,
       cout_jour: null,
       fonctions: [{ id_fonction: 3, pourcentage: null }],
