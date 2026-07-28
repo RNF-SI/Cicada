@@ -32,6 +32,7 @@ from .enjeux_seeder import EnjeuxSeeder
 from .minimal_plans_seeder import MinimalPlansSeeder
 from .realisations_seeder import RealisationsSeeder
 from .rh_seeder import RhSeeder
+from .ventilation_plans_seeder import VentilationPlansSeeder
 from .pending_users_seeder import PendingUsersSeeder
 from .validation_requests_seeder import ValidationRequestsSeeder
 from .notifications_seeder import NotificationsSeeder
@@ -55,6 +56,9 @@ SEEDER_CLASSES: List[Type[BaseSeeder]] = [
     MinimalPlansSeeder,  # deps: enjeux (chaîne minimale pour Brouage, Scandola, Remoray)
     RealisationsSeeder,  # deps: enjeux (utilise les OperationAnnee seedées)
     RhSeeder,            # deps: minimal_plans, realisations (#560 — personnes + RH)
+    # 1 plan par mode de ventilation, entièrement programmé. Après
+    # `realisations` : ce seeder pose lui-même son suivi, cohérent avec le mode.
+    VentilationPlansSeeder,  # deps: plans
     PendingUsersSeeder,  # deps: organismes
 
     # Phase 3: Seeders complexes
@@ -162,6 +166,7 @@ __all__ = [
     'UsersSeeder',
     'PlansSeeder',
     'EnjeuxSeeder',
+    'VentilationPlansSeeder',
     'PendingUsersSeeder',
     'ValidationRequestsSeeder',
     'NotificationsSeeder',

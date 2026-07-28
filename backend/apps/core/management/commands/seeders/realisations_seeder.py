@@ -20,6 +20,7 @@ from apps.plans.models_operations import (
 )
 
 from .base import BaseSeeder
+from .ventilation_plans_seeder import VENTILATION_OP_CODE_PREFIX
 
 
 # Ratio par niveau de réalisation, appliqué au prévisionnel pour fabriquer
@@ -116,9 +117,16 @@ class RealisationsSeeder(BaseSeeder):
         per_niveau = {m: 0 for m in niveaux_cache}
 
         # On limite aux opérations qui ont au moins une année passée ou en cours.
-        operation_annees = OperationAnnee.objects.filter(
-            annee__lte=current_year,
-        ).select_related('id_operation').prefetch_related('organismes')
+        # Les actions des plans « Ventilation — … » sont exclues : leur suivi est
+        # posé par `VentilationPlansSeeder`, en cohérence avec le mode de
+        # ventilation de chaque plan (la distribution générique ci-dessus ne sait
+        # pas remplir les modes « + type de poste »).
+        operation_annees = (
+            OperationAnnee.objects
+            .filter(annee__lte=current_year)
+            .exclude(id_operation__code_operation__startswith=VENTILATION_OP_CODE_PREFIX)
+            .select_related('id_operation').prefetch_related('organismes')
+        )
 
         for oa in operation_annees:
             seen_op_ids.add(oa.id_operation_id)

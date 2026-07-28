@@ -630,6 +630,7 @@ backend/apps/core/management/commands/
     ├── sites_seeder.py           # 7 sites avec géométries PostGIS
     ├── users_seeder.py           # 14 utilisateurs
     ├── plans_seeder.py           # 9 plans de gestion + chaînes de versions
+├── ventilation_plans_seeder.py  # 6 plans « Ventilation — … » (1 par mode de ventilation)
     ├── pending_users_seeder.py   # 3 PendingUser
     ├── validation_requests_seeder.py  # 22 demandes de validation
     ├── notifications_seeder.py   # 21+ notifications
@@ -1179,6 +1180,11 @@ Run `docker compose exec web python manage.py seed_testdata` to create:
 - **Plans de Gestion (≥14)**: divers statuts (draft, valide, modifie, archive, avis_csrpn, comite_consultatif) avec associations sites/référents. Les chaînes Aiguilles Rouges et Vercors-Écrins exposent le statut `modifie` (plan révisé). Le plan *Grand-Voyeux 2022-2032* est seedé en `avis_csrpn` (workflow non-RNN) et le plan *Aiguilles Rouges 2027-2037* en `comite_consultatif` (workflow RNN, étape arrêté à venir) pour tester #277. Chaînes d'extension (#250 — prolongation = nouvelle version : v1 archivée → v2 étendue `modifie`) : *Scandola rang 2 2016-2025* (archive → étendu +2 ans, cumul max), *Grand-Voyeux RNR 2015-2024* (archive → RNR étendu +1 an, reconductible, #281), *Marais de Brouage ENS 2014-2023* (archive → ENS étendu +2 ans, #281). *Vercors 2014-2024* (validé + en_revision, `next_rang_plan` pointant sur *Vercors 2026-2036* draft, #278). Panel évaluation mi-parcours (#276, 6 variantes) : *Camargue eval 2005* (archive historique), *Camargue eval 2025* (draft), *Vercors-Écrins eval 2026* (draft), *Lac de Remoray eval 2022* (avis_csrpn), *Vercors eval 2020* (comite_consultatif), *Aiguilles Rouges eval 2023* (modifie + is_mi_parcours=True).
   - Chaînes de versions : plan archivé → plan actif (via `plan_parent`)
   - 1 plan d'évaluation mi-parcours (brouillon, version 1.2, lié au plan Aiguilles Rouges)
+- **Plans « Ventilation — … » (6)** : un plan de gestion **par mode de ventilation budgétaire** (`Operation.ventilation_mode`), pour la recette de la programmation — *aucune ventilation*, *par organisme*, *par type de budget*, *par organisme et type de budget*, *par type de budget et type de poste*, *par organisme, type de budget et type de poste*. Seeder : `seeders/ventilation_plans_seeder.py` (`--only=ventilation_plans`).
+  - Tous en **brouillon** (donc éditables), sur le site Camargue (2 organismes gestionnaires : RNF + OFB), années `année courante −2 → +2` (2 années de suivi réalisé, l'année en cours, 2 années de prévisionnel pur).
+  - Contenu **identique** dans les 6 plans (1 enjeu → OLT → NE → indicateur → métrique, 3 actions CS/IP/PA, 5 postes dont bénévoles et prestataire, mêmes jours et mêmes composants de coût) : **seul le stockage de la donnée budgétaire change**. Les totaux affichés doivent donc être les mêmes d'un plan à l'autre (139 800 € prévus, 269 j dont 94 j de bénévolat) — toute différence est un bug de la vue.
+  - Les modes « + type de poste » ne stockent **pas** `budget_fonctionnement` / `budget_investissement` (dérivés de leurs composants, cf. #624/#602) ; le coût salarial se recalcule via jours × `Poste.cout_jour`.
+  - `RealisationsSeeder` **ignore** ces actions (préfixe de code `CAM-VENT-`) : leur suivi est posé par le seeder lui-même, cohérent avec chaque mode.
 - **Django Groups**: Super Administrateurs, Administrateurs Organisme, Utilisateurs
 - **Nomenclatures**: Importées automatiquement au démarrage via `import_nomenclatures` (types de sites, évaluations, rédacteurs, documents plan, suivis, enjeux, etc.)
 - **Validation Requests (27)**: Demandes de test avec différents statuts
