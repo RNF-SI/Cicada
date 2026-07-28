@@ -92,25 +92,27 @@ describe('OperationFicheComponent — grilles/blocs des indicateurs (#516)', () 
     expect(c.indicateursEtatPression().map(i => i.id)).toEqual([200]);
   });
 
-  it('rend une grille de métriques pour l\'indicateur de réponse ET pour l\'état/pression', () => {
+  it('#613 — grille pour la réponse, mais liste (pas de grille) pour l\'état/pression', () => {
     const fixture = setup(operationWith([
       multiBlockMetrique({ id_metrique: 1, indicateur_id: 100, indicateur_nom: 'Rép', indicateur_type: 'REPONSE' }),
       multiBlockMetrique({ id_metrique: 2, indicateur_id: 200, indicateur_nom: 'Pres', indicateur_type: 'PRESSION' }),
     ]));
+    // #613 — l'état/pression est résumé en liste d'intitulés en tête de fiche :
+    // il ne reste qu'UNE grille (celle de l'indicateur de réponse).
     const grids = fixture.nativeElement.querySelectorAll('app-metrique-grid-display');
-    // Régression #516 : avant le correctif, l'état/pression n'avait pas de grille
-    // (une seule grille au lieu de deux).
-    expect(grids.length).toBe(2);
+    expect(grids.length).toBe(1);
+    expect(fixture.componentInstance.cadreIndicateurs()?.indicateurs).toContain('Pres');
   });
 
-  it('affiche les blocs (ET/OU) d\'une métrique état/pression dans sa grille', () => {
+  it('#613 — résume l\'indicateur état/pression en liste d\'intitulés + métriques (unité), sans grille', () => {
     const fixture = setup(operationWith([
       multiBlockMetrique({ id_metrique: 2, indicateur_id: 200, indicateur_nom: 'Pres', indicateur_type: 'PRESSION' }),
     ]));
-    const text: string = fixture.nativeElement.textContent;
-    // Les cellules multi-blocs listent chaque bloc (intitulé) — trace visible d'un « bloc ».
-    expect(text).toContain('Bloc principal');
-    expect(text).toContain('Bloc secondaire');
+    const cadre = fixture.componentInstance.cadreIndicateurs();
+    expect(cadre?.indicateurs).toContain('Pres');
+    expect(cadre?.metriques).toContain('Métrique (u)');
+    // plus aucune grille de blocs pour l'état/pression
+    expect(fixture.nativeElement.querySelectorAll('app-metrique-grid-display').length).toBe(0);
   });
 });
 

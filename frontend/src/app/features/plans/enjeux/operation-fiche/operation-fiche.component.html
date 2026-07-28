@@ -59,6 +59,16 @@
         </div>
       </header>
 
+      <!-- #613 — cadre indicateurs en tête : liste d'intitulés (pas la grille) -->
+      @if (cadreIndicateurs(); as cadre) {
+        <div class="fiche-cadre-indicateurs">
+          <p><strong>{{ cadre.labelKey | translate }} :</strong> {{ cadre.indicateurs }}</p>
+          @if (cadre.metriques) {
+            <p><strong>{{ 'plans.suivis.actions.fiche.cadreMetriques' | translate }} :</strong> {{ cadre.metriques }}</p>
+          }
+        </div>
+      }
+
       @if (op.description && sectionVisible('description')) {
         <section class="fiche-section">
           <h2>{{ 'plans.suivis.actions.fiche.description' | translate }}</h2>
@@ -332,23 +342,9 @@
         </section>
       }
 
-      <!-- Autres indicateurs liés (état / pression) : grille de métriques affichée
-           comme pour les indicateurs de réponse (#516 — les métriques « en blocs »
-           d'état/pression n'apparaissaient pas, seul leur nom était listé). -->
-      @if (indicateursEtatPression().length && sectionVisible('indicateursAutres')) {
-        <section class="fiche-section">
-          <h2>{{ 'plans.suivis.actions.fiche.indicateursAutres' | translate }}</h2>
-          @for (ind of indicateursEtatPression(); track ind.id) {
-            <div class="fiche-ind-block">
-              <h3 class="fiche-ind-name">
-                {{ ind.nom }}
-                @if (ind.type) { <span class="fiche-ind-type">({{ ind.type }})</span> }
-              </h3>
-              <app-metrique-grid-display [metriques]="ind.metriqueRefs"></app-metrique-grid-display>
-            </div>
-          }
-        </section>
-      }
+      <!-- #613 — les indicateurs d'état/pression ne sont plus affichés en grille
+           ici : ils sont résumés en tête de fiche (cadreIndicateurs), en liste
+           d'intitulés, pour réduire la taille. -->
 
       <!-- #326 — Emprise spatiale (carte, lecture seule) -->
       @if (empriseGeom() && sectionVisible('emprise')) {

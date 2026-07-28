@@ -245,3 +245,16 @@
 @media print {
   .no-print-map { display: none !important; }
 }
+
+// #613 — cadre indicateurs en tête de fiche : liste compacte d'intitulés
+// (indicateurs d'état/pression + métriques), en remplacement de la grille.
+.fiche-cadre-indicateurs {
+  margin: $spacing-xs 0 $spacing-sm;
+
+  p {
+    margin: 0 0 $spacing-xxs;
+    color: $black;
+  }
+
+  strong { color: $primary-color; }
+}

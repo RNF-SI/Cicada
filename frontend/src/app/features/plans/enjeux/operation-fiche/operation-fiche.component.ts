@@ -55,7 +55,6 @@ export class OperationFicheComponent implements OnInit {
     { key: 'acteurs', labelKey: 'plans.suivis.actions.fiche.acteurs' },
     { key: 'programmation', labelKey: 'plans.suivis.actions.fiche.programmation' },
     { key: 'indicateursReponse', labelKey: 'plans.suivis.actions.fiche.indicateursReponse' },
-    { key: 'indicateursAutres', labelKey: 'plans.suivis.actions.fiche.indicateursAutres' },
     { key: 'emprise', labelKey: 'plans.suivis.actions.fiche.emprise' },
     { key: 'realisation', labelKey: 'plans.suivis.actions.fiche.realisation' },
   ] as const;
@@ -99,6 +98,38 @@ export class OperationFicheComponent implements OnInit {
   readonly indicateursEtatPression = computed(() =>
     this.indicateursLies().filter(i => (i.type ?? '').toUpperCase() !== 'REPONSE')
   );
+
+  /**
+   * #613 — Cadre indicateurs affiché en tête de fiche : simple LISTE d'intitulés
+   * (indicateurs d'état/pression + métriques avec unité), sans la grille de
+   * scoring, « pour réduire la taille ». Le libellé s'adapte au type.
+   */
+  readonly cadreIndicateurs = computed(() => {
+    const inds = this.indicateursEtatPression();
+    if (!inds.length) return null;
+    const isEtat = inds.some(i => (i.type ?? '').toUpperCase() === 'ETAT');
+    const noms: string[] = [];
+    const metriques: string[] = [];
+    const seenN = new Set<string>();
+    const seenM = new Set<string>();
+    for (const i of inds) {
+      const n = (i.nom ?? '').trim();
+      if (n && !seenN.has(n)) { seenN.add(n); noms.push(n); }
+      for (const m of i.metriqueRefs) {
+        const nom = (m.nom_metrique ?? '').trim();
+        if (!nom) continue;
+        const label = m.unite ? `${nom} (${m.unite})` : nom;
+        if (!seenM.has(label)) { seenM.add(label); metriques.push(label); }
+      }
+    }
+    return {
+      labelKey: isEtat
+        ? 'plans.suivis.actions.fiche.cadreIndicateurEtat'
+        : 'plans.suivis.actions.fiche.cadreIndicateurPression',
+      indicateurs: noms.join(' ; '),
+      metriques: metriques.join(' ; '),
+    };
+  });
 
   /**
    * #556 — Programmation annuelle, restituée « telle que saisie » : budget
