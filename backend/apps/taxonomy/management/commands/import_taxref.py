@@ -515,18 +515,24 @@ class Command(BaseCommand):
                 USING gin (search_name gin_trgm_ops)
             """)
 
-            # Rendre unaccent() IMMUTABLE pour permettre l'indexation
-            cursor.execute("""
-                ALTER FUNCTION public.unaccent(text)
-                IMMUTABLE
-            """)
-            # Index trigramme sur unaccent
-            cursor.execute("""
-                CREATE INDEX IF NOT EXISTS
-                    idx_vm_taxref_autocomplete_unaccent
-                ON taxonomie.vm_taxref_list_forautocomplete
-                USING gin (public.unaccent(search_name) gin_trgm_ops)
-            """)
+            # Rendre unaccent() IMMUTABLE + index trigramme sans accents. Sur une
+            # base où l'app n'est PAS propriétaire de la fonction (ALTER refusé),
+            # on saute l'index — dégradé mais non bloquant — via un SAVEPOINT,
+            # sinon l'échec de l'ALTER annule tout l'import (piège base partagée).
+            try:
+                with transaction.atomic():
+                    cursor.execute("""
+                        ALTER FUNCTION public.unaccent(text)
+                        IMMUTABLE
+                    """)
+                    cursor.execute("""
+                        CREATE INDEX IF NOT EXISTS
+                            idx_vm_taxref_autocomplete_unaccent
+                        ON taxonomie.vm_taxref_list_forautocomplete
+                        USING gin (public.unaccent(search_name) gin_trgm_ops)
+                    """)
+            except Exception:
+                pass  # unaccent non modifiable : index sans accents ignoré
 
             # Index sur cd_nom pour les lookups
             cursor.execute("""

@@ -348,16 +348,23 @@ class Command(BaseCommand):
                 ON ref_habitats.autocomplete_habitat
                 USING gin (search_name gin_trgm_ops)
             """)
-            # Rendre unaccent() IMMUTABLE pour permettre l'indexation
-            cursor.execute("""
-                ALTER FUNCTION public.unaccent(text)
-                IMMUTABLE
-            """)
-            cursor.execute("""
-                CREATE INDEX IF NOT EXISTS idx_autocomplete_habitat_unaccent
-                ON ref_habitats.autocomplete_habitat
-                USING gin (public.unaccent(search_name) gin_trgm_ops)
-            """)
+            # Rendre unaccent() IMMUTABLE + index trigramme sans accents. Sur une
+            # base où l'app n'est PAS propriétaire de la fonction (ALTER refusé),
+            # on saute l'index — dégradé mais non bloquant — via un SAVEPOINT,
+            # sinon l'échec de l'ALTER annule tout l'import (piège base partagée).
+            try:
+                with transaction.atomic():
+                    cursor.execute("""
+                        ALTER FUNCTION public.unaccent(text)
+                        IMMUTABLE
+                    """)
+                    cursor.execute("""
+                        CREATE INDEX IF NOT EXISTS idx_autocomplete_habitat_unaccent
+                        ON ref_habitats.autocomplete_habitat
+                        USING gin (public.unaccent(search_name) gin_trgm_ops)
+                    """)
+            except Exception:
+                pass  # unaccent non modifiable : index sans accents ignoré
             cursor.execute("""
                 CREATE INDEX IF NOT EXISTS idx_autocomplete_habitat_cd_typo
                 ON ref_habitats.autocomplete_habitat (cd_typo)

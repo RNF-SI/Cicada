@@ -535,19 +535,24 @@ class Command(BaseCommand):
                 ON ref_campanule.autocomplete_protocole
                 USING gin (search_name gin_trgm_ops)
             """)
-            # Index unaccent pour recherche sans accents
+            # Index unaccent pour recherche sans accents. Nécessite unaccent()
+            # IMMUTABLE : sur une base où l'app n'est PAS propriétaire de la
+            # fonction (ALTER refusé), on saute cet index — dégradé mais non
+            # bloquant — via un SAVEPOINT. Sans ça, l'échec de l'ALTER annule
+            # toute la transaction et fait tout échouer (piège base partagée).
             try:
-                cursor.execute("""
-                    ALTER FUNCTION public.unaccent(text)
-                    IMMUTABLE
-                """)
+                with transaction.atomic():
+                    cursor.execute("""
+                        ALTER FUNCTION public.unaccent(text)
+                        IMMUTABLE
+                    """)
+                    cursor.execute("""
+                        CREATE INDEX IF NOT EXISTS idx_autocomplete_prot_unaccent
+                        ON ref_campanule.autocomplete_protocole
+                        USING gin (public.unaccent(search_name) gin_trgm_ops)
+                    """)
             except Exception:
-                pass  # Déjà IMMUTABLE
-            cursor.execute("""
-                CREATE INDEX IF NOT EXISTS idx_autocomplete_prot_unaccent
-                ON ref_campanule.autocomplete_protocole
-                USING gin (public.unaccent(search_name) gin_trgm_ops)
-            """)
+                pass  # unaccent non modifiable : index sans accents ignoré
             cursor.execute("""
                 CREATE INDEX IF NOT EXISTS idx_autocomplete_prot_cible
                 ON ref_campanule.autocomplete_protocole (cible)
