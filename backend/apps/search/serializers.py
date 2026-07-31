@@ -66,7 +66,7 @@ class PlanResumeSerializer(serializers.Serializer):
 class ContenuResultatSerializer(serializers.ModelSerializer):
     """Une tuile de résultat du mode « contenu d'un plan de gestion »."""
 
-    plan = PlanResumeSerializer(source='id_pg', read_only=True)
+    plan = serializers.SerializerMethodField()
 
     class Meta:
         model = ContenuIndexe
@@ -75,8 +75,21 @@ class ContenuResultatSerializer(serializers.ModelSerializer):
             'titre', 'description',
             'parent_type', 'parent_libelle',
             'sous_type', 'sous_type_libelle',
-            'plan',
+            'instance_id', 'plan',
         ]
+
+    def get_plan(self, contenu):
+        """
+        Bandeau du plan — joint pour un document local, recopié pour un distant.
+
+        Un document reçu d'une autre instance (#636) n'a pas de plan dans cette
+        base : `id_pg` est NULL et l'affichage vient du snapshot capturé à la
+        publication. Les deux chemins produisent la même forme, pour que
+        l'interface n'ait pas à distinguer les deux cas.
+        """
+        if contenu.id_pg_id is None:
+            return contenu.plan_denorm or None
+        return PlanResumeSerializer(contenu.id_pg).data
 
 
 class PlanResultatSerializer(serializers.ModelSerializer):

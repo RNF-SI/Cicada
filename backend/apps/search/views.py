@@ -17,6 +17,7 @@ figurent, jamais un brouillon — et les champs exposés, qui ne contiennent ni
 budget, ni RH, ni données empiriques.
 """
 
+from django.conf import settings
 from django.db.models import Count, Prefetch
 from django.shortcuts import get_object_or_404
 from rest_framework.permissions import IsAuthenticated
@@ -26,13 +27,16 @@ from rest_framework.viewsets import ViewSet
 from apps.plans.models import CorSitePg, PlanGestion
 from apps.users.models import CorOgSite
 
+from .federation import (
+    FORMAT_VERSION, HasFederationToken, _bandeau_du_plan, document_publie,
+)
 from .fiche import construire_fiche
 from .filters import (
     filtrer_contenus, filtrer_plans, liste, trier_contenus, trier_plans,
 )
 from .indexing import INDEXED_STATUSES
 from .models import ContenuIndexe
-from .pagination import ExplorationPagination
+from .pagination import ExplorationPagination, FederationPagination
 from .serializers import ContenuResultatSerializer, PlanResultatSerializer
 from .serializers_fiche import FichePubliqueSerializer
 
@@ -110,6 +114,47 @@ class ExplorationContenuViewSet(ViewSet):
                     for type_contenu, _ in ContenuIndexe.TYPE_CHOICES
                 },
             },
+        )
+
+
+class FederationDocumentViewSet(ViewSet):
+    """
+    Publication de l'index local vers une exploration centralisée (#636).
+
+    Ne publie que les documents **produits ici** : un portail qui a ingéré des
+    documents d'autres instances ne les repropage pas. La fédération est en
+    étoile, pas en cascade — une topologie transitive rendrait impossible de
+    savoir quelle instance fait autorité sur un document, et donc de le retirer.
+    """
+
+    permission_classes = [HasFederationToken]
+
+    def list(self, request):
+        documents = (
+            ContenuIndexe.objects
+            .filter(instance_id=settings.CICADA_INSTANCE_ID)
+            .order_by('id')
+        )
+
+        paginateur = FederationPagination()
+        page = paginateur.paginate_queryset(documents, request, view=self)
+
+        # Le bandeau d'affichage est joint ici, une fois pour la page entière :
+        # côté portail le plan n'existera pas, il faut donc l'emporter avec le
+        # document (cf. `federation._bandeau_du_plan`).
+        plans = (
+            PlanGestion.objects
+            .filter(pk__in={contenu.id_pg_id for contenu in page})
+            .select_related('id_type_document')
+            .prefetch_related(_prefetch_sites())
+        )
+        bandeaux = {plan.pk: _bandeau_du_plan(plan) for plan in plans}
+
+        return paginateur.get_paginated_response(
+            [document_publie(contenu, bandeaux) for contenu in page],
+            format_version=FORMAT_VERSION,
+            instance_id=settings.CICADA_INSTANCE_ID,
+            instance_label=settings.CICADA_INSTANCE_LABEL,
         )
 
 

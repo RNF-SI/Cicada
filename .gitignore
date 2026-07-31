@@ -116,3 +116,7 @@ frontend/src/assets/templates/import-sites-test*
 # Données IA de seed (plans nommés, non versionnés sur GitHub)
 backend/apps/core/management/commands/seeders/data/ia_plans/
 /Import-IA-*.docx
+
+# Environnements des instances locales de fédération (#636)
+.env.cen
+.env.portail

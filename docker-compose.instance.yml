@@ -1,0 +1,43 @@
+# Override générique permettant de lancer PLUSIEURS instances CICADA côte à côte
+# sur la même machine, pour le test de fédération de l'exploration (#636).
+#
+# Deux choses seulement empêchent le fichier principal d'être lancé deux fois :
+#
+#  1. les `container_name` figés (cicada_db, cicada_web…) — les noms de
+#     conteneurs sont globaux à Docker, contrairement aux volumes et aux réseaux
+#     qui sont déjà préfixés par le nom de projet ;
+#  2. le sous-réseau figé (172.30.0.0/16) — deux projets ne peuvent pas le
+#     réclamer en même temps ("Pool overlaps with other one on this address space").
+#
+# Cet override paramètre les deux. Les ports, eux, étaient déjà paramétrables.
+#
+# Usage : voir docs/MULTI_INSTANCE_LOCAL.md
+
+services:
+  db:
+    container_name: ${INSTANCE_PREFIX}_db
+  redis:
+    container_name: ${INSTANCE_PREFIX}_redis
+  web:
+    container_name: ${INSTANCE_PREFIX}_web
+  frontend:
+    container_name: ${INSTANCE_PREFIX}_frontend
+    # `./frontend` est monté depuis l'hôte : sans isolation, les instances
+    # partagent le cache de build Angular (LMDB) et finissent par le corrompre
+    # — « TypeError: Cannot read properties of null (reading 'refCount') », le
+    # serveur de dev s'arrête. Un volume anonyme par projet donne à chaque
+    # instance son propre cache, comme c'est déjà le cas pour node_modules.
+    volumes:
+      - /app/.angular
+  celery-worker:
+    container_name: ${INSTANCE_PREFIX}_celery_worker
+  celery-beat:
+    container_name: ${INSTANCE_PREFIX}_celery_beat
+  mailpit:
+    container_name: ${INSTANCE_PREFIX}_mailpit
+
+networks:
+  cicada_network:
+    ipam:
+      config:
+        - subnet: ${INSTANCE_SUBNET}

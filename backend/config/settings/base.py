@@ -20,6 +20,22 @@ ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', 'localhost').split(',')
 # When 'keycloak', RGPD account management is handled externally
 AUTH_PROVIDER = os.environ.get('AUTH_PROVIDER', 'local')
 
+# ---------------------------------------------------------------------------
+# Identité de l'instance (#636 — exploration fédérée)
+# ---------------------------------------------------------------------------
+# CICADA est déployé en plusieurs instances, chacune avec sa propre base. Aucun
+# identifiant applicatif n'étant unique entre déploiements (id_pg, slug, ids
+# d'organismes… sont des séquences locales), tout document publié vers
+# l'exploration centralisée doit porter son instance d'origine.
+CICADA_INSTANCE_ID = os.environ.get('CICADA_INSTANCE_ID', 'local')
+CICADA_INSTANCE_LABEL = os.environ.get('CICADA_INSTANCE_LABEL', CICADA_INSTANCE_ID)
+
+# Jeton partagé pour l'authentification machine-à-machine entre instances.
+# Volontairement rudimentaire : l'authentification fédérée est une question
+# ouverte de #636, qui dépend de #514 (OAuth2 / OIDC). Un jeton partagé permet
+# de tester la mécanique sans préjuger de la solution retenue.
+CICADA_FEDERATION_TOKEN = os.environ.get('CICADA_FEDERATION_TOKEN', '')
+
 # Application definition
 INSTALLED_APPS = [
     'django.contrib.admin',
