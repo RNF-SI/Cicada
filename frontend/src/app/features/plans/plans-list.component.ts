@@ -201,19 +201,23 @@ export class PlansListComponent implements OnInit {
     }
   });
 
-  // Plans filtrés par onglet actif/inactif + recherche
-  // Les plans remplacés (children_count > 0) ne sont jamais montrés en ligne principale,
-  // ils apparaissent comme lignes contextuelles au-dessus de leur descendant.
+  // Plans filtrés par statut (#635) + recherche.
+  // Un plan remplacé (children_count > 0) n'est retiré des lignes principales que
+  // s'il est DÉJÀ affiché en ligne de version sous l'un de ses descendants visibles
+  // (cf. linkedPlansById) : sinon cocher « Terminé » n'afficherait rien, un plan
+  // étant justement archivé parce qu'une version plus récente l'a remplacé.
   readonly myPlans = computed(() => {
     const statuses = this.statusFilter();
     const search = this.myPlansSearchQuery().toLowerCase();
-    const filtered = this.scopedPlans().filter(p => {
+    const matching = this.scopedPlans().filter(p => {
       // Set vide = aucun filtre (on affiche tous les statuts) pour éviter une liste vide.
       const statusMatch = statuses.size === 0 || statuses.has(p.statut);
       const searchMatch = !search || p.nom.toLowerCase().includes(search);
-      const isLeaf = !p.children_count || p.children_count === 0;
-      return statusMatch && searchMatch && isLeaf;
+      return statusMatch && searchMatch;
     });
+
+    const shownAsVersion = this.versionRowIds(matching);
+    const filtered = matching.filter(p => !shownAsVersion.has(p.id_pg));
 
     // Tri colonnes (revue design Amandine)
     const field = this.sortField();
@@ -279,29 +283,8 @@ export class PlansListComponent implements OnInit {
   // - Toggle ON : toute la chaîne d'ancêtres
   readonly linkedPlansById = computed(() => {
     const result = new Map<number, PlanWithAccess[]>();
-    const byId = this.plansById();
-    const showAll = this.showOldVersions();
-
     for (const plan of this.paginatedPlans()) {
-      if (!plan.plan_parent_id) continue;
-
-      // Toggle OFF : montrer le parent seulement pour les brouillons
-      if (!showAll && plan.statut !== 'draft') continue;
-
-      const ancestors: PlanWithAccess[] = [];
-      const visited = new Set<number>([plan.id_pg]);
-      let currentId: number | null | undefined = plan.plan_parent_id;
-
-      while (currentId && !visited.has(currentId)) {
-        visited.add(currentId);
-        const parent = byId.get(currentId);
-        if (!parent) break;
-        ancestors.push(parent);
-        // Toggle OFF : seulement le parent immédiat
-        if (!showAll) break;
-        currentId = parent.plan_parent_id ?? null;
-      }
-
+      const ancestors = this.versionRowsUnder(plan);
       if (ancestors.length > 0) {
         // Déjà du plus récent au plus ancien : on remonte la chaîne depuis le parent
         // immédiat, et c'est l'ordre d'affichage attendu sous le plan courant.
@@ -310,6 +293,50 @@ export class PlansListComponent implements OnInit {
     }
     return result;
   });
+
+  /**
+   * Ancêtres affichés en ligne de version SOUS un plan donné. Règle unique,
+   * partagée par {@link linkedPlansById} (rendu) et {@link versionRowIds}
+   * (dédoublonnage des lignes principales) pour qu'elles ne divergent pas.
+   */
+  private versionRowsUnder(plan: PlanWithAccess): PlanWithAccess[] {
+    if (!plan.plan_parent_id) return [];
+    // Toggle OFF : montrer le parent seulement pour les brouillons
+    const showAll = this.showOldVersions();
+    if (!showAll && plan.statut !== 'draft') return [];
+
+    const byId = this.plansById();
+    const ancestors: PlanWithAccess[] = [];
+    const visited = new Set<number>([plan.id_pg]);
+    let currentId: number | null | undefined = plan.plan_parent_id;
+
+    while (currentId && !visited.has(currentId)) {
+      visited.add(currentId);
+      const parent = byId.get(currentId);
+      if (!parent) break;
+      ancestors.push(parent);
+      // Toggle OFF : seulement le parent immédiat
+      if (!showAll) break;
+      currentId = parent.plan_parent_id ?? null;
+    }
+    return ancestors;
+  }
+
+  /**
+   * Identifiants des plans déjà visibles en ligne de version sous l'un des plans
+   * affichés : ils sont retirés des lignes principales pour ne pas apparaître deux
+   * fois. Un plan remplacé dont le remplaçant n'est PAS affiché (statut décoché,
+   * recherche) reste, lui, une ligne principale à part entière (#635).
+   */
+  private versionRowIds(plans: PlanWithAccess[]): Set<number> {
+    const ids = new Set<number>();
+    for (const plan of plans) {
+      for (const ancestor of this.versionRowsUnder(plan)) {
+        ids.add(ancestor.id_pg);
+      }
+    }
+    return ids;
+  }
 
   readonly paginationPages = computed(() => {
     const total = this.totalPages();

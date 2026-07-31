@@ -1426,7 +1426,7 @@
     },
     "status": {
       "draft": "Brouillon",
-      "valide": "Valide",
+      "valide": "Validé",
       "modifie": "Modifié",
       "archive": "Terminé",
       "inProgress": "En cours de révision",
