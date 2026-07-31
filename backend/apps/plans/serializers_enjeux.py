@@ -242,12 +242,13 @@ class ResultatAttenduSerializer(serializers.ModelSerializer):
 
     indicateurs = _IndicateurSerializer(many=True, read_only=True)
     nb_indicateurs = serializers.SerializerMethodField()
+    oo_ids = serializers.SerializerMethodField()
     createur_nom = serializers.CharField(source='id_utilisateur_ajout.get_full_name', read_only=True)
 
     class Meta:
         model = ResultatAttendu
         fields = [
-            'id_ra', 'id_oo',
+            'id_ra', 'id_oo', 'oo_ids',
             'libelle', 'description', 'ordre',
             'indicateurs', 'nb_indicateurs',
             'date_ajout', 'date_maj', 'createur_nom'
@@ -256,6 +257,16 @@ class ResultatAttenduSerializer(serializers.ModelSerializer):
 
     def get_nb_indicateurs(self, obj):
         return _prefetched_count(obj, 'indicateurs')
+
+    def get_oo_ids(self, obj):
+        """#585 — objectifs sous lesquels ce RA apparaît (porteur inclus).
+
+        Plus d'un identifiant = résultat attendu partagé ; c'est ce qui permet
+        au front d'afficher le badge « lié à plusieurs objectifs ».
+        """
+        ids = {oo.pk for oo in obj.objectifs_operationnels.all()}
+        ids.add(obj.id_oo_id)
+        return sorted(ids)
 
 
 class ResultatAttenduCreateSerializer(serializers.ModelSerializer):

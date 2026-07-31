@@ -17,7 +17,7 @@ from .models_enjeux import (
     ObjectifLongTerme, NiveauExigence,
     ObjectifOperationnel, ResultatAttendu,
     CorEnjeuTaxon, CorEnjeuHabitat, CorEnjeuGeologie, CorEnjeuFichier,
-    CorFacteurEnjeu, CorOoEnjeu,
+    CorFacteurEnjeu, CorOoEnjeu, CorRaOo,
     CorResponsabiliteTaxon, CorResponsabiliteHabitat, CorResponsabiliteGeologie
 )
 from .models import PlanGestion
@@ -1506,15 +1506,105 @@ class ResultatAttenduViewSet(viewsets.ModelViewSet):
         """
         return do_reorder(self, request, parent_filter='id_oo')
 
+    @staticmethod
+    def _assert_draft_or_403(plan):
+        """#248 — lève une 403 si le plan n'est pas éditable (hors brouillon)."""
+        if plan is None or plan.statut not in CanModifyOnlyDraftPlan.EDITABLE_STATUSES:
+            return Response(
+                {'detail': CanModifyOnlyDraftPlan.message},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+        return None
+
+    @action(detail=True, methods=['post'], url_path='link')
+    def link(self, request, pk=None):
+        """
+        #585 — Partage ce résultat attendu avec un objectif opérationnel de plus.
+
+        POST /api/plans/resultats-attendus/{id}/link/  body: { "oo_id": <int> }
+
+        C'est le MÊME résultat attendu, avec ses indicateurs, qui apparaît alors
+        sous les deux objectifs : toute modification se répercute des deux côtés.
+        Contraintes : même plan, plan en brouillon.
+        """
+        ra = self.get_object()
+        oo_id = request.data.get('oo_id')
+        if not oo_id:
+            return Response({'detail': "oo_id requis."}, status=status.HTTP_400_BAD_REQUEST)
+        oo = get_object_or_404(ObjectifOperationnel, pk=oo_id)
+
+        plan = ra.get_plan_de_gestion()
+        if plan is None or oo.get_plan_de_gestion() != plan:
+            return Response(
+                {'detail': "Un résultat attendu ne peut être lié qu'à un objectif "
+                           "opérationnel du même plan de gestion."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        blocked = self._assert_draft_or_403(plan)
+        if blocked:
+            return blocked
+
+        max_ordre = CorRaOo.objects.filter(id_oo=oo).aggregate(m=Max('ordre'))['m']
+        CorRaOo.objects.get_or_create(
+            id_ra=ra, id_oo=oo,
+            defaults={'ordre': (max_ordre + 1) if max_ordre is not None else 0},
+        )
+        ra.id_utilisateur_maj = request.user
+        ra.save(update_fields=['id_utilisateur_maj', 'date_maj'])
+        return Response(
+            ResultatAttenduSerializer(ra, context=self.get_serializer_context()).data,
+            status=status.HTTP_200_OK,
+        )
+
+    @action(detail=True, methods=['post'], url_path='unlink')
+    def unlink(self, request, pk=None):
+        """
+        #585 — Retire ce résultat attendu d'un objectif opérationnel partagé.
+
+        POST /api/plans/resultats-attendus/{id}/unlink/  body: { "oo_id": <int> }
+
+        L'objectif **porteur** ne peut pas être détaché : ce serait un
+        déplacement, pas un départage, et le résultat attendu se retrouverait
+        sans parent de référence. Pour supprimer le RA, on le supprime.
+        """
+        ra = self.get_object()
+        oo_id = request.data.get('oo_id')
+        if not oo_id:
+            return Response({'detail': "oo_id requis."}, status=status.HTTP_400_BAD_REQUEST)
+
+        plan = ra.get_plan_de_gestion()
+        blocked = self._assert_draft_or_403(plan)
+        if blocked:
+            return blocked
+
+        if int(oo_id) == ra.id_oo_id:
+            return Response(
+                {'detail': "L'objectif opérationnel porteur ne peut pas être détaché. "
+                           "Supprimez le résultat attendu, ou détachez-le d'un "
+                           "objectif avec lequel il est partagé."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        CorRaOo.objects.filter(id_ra=ra, id_oo_id=oo_id).delete()
+        ra.id_utilisateur_maj = request.user
+        ra.save(update_fields=['id_utilisateur_maj', 'date_maj'])
+        return Response(
+            ResultatAttenduSerializer(ra, context=self.get_serializer_context()).data,
+            status=status.HTTP_200_OK,
+        )
+
     @action(detail=False, methods=['get'], url_path=r'by-oo/(?P<oo_id>\d+)')
     def by_oo(self, request, oo_id=None):
         """
         Récupérer les résultats attendus d'un objectif opérationnel.
 
         GET /api/plans/resultats-attendus/by-oo/{oo_id}/
+
+        Inclut les résultats attendus **partagés** avec cet objectif (#585), pas
+        seulement ceux dont il est porteur.
         """
         oo = get_object_or_404(ObjectifOperationnel, id_oo=oo_id)
-        resultats = self.get_queryset().filter(id_oo=oo)
+        resultats = self.get_queryset().filter(objectifs_operationnels=oo).distinct()
         return Response({
             'oo_id': int(oo_id),
             'oo_libelle': oo.libelle,

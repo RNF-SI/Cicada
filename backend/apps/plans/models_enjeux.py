@@ -825,12 +825,33 @@ class ResultatAttendu(models.Model):
     """
 
     id_ra = models.AutoField(primary_key=True)
+    # #585 — Un résultat attendu peut être PARTAGÉ entre plusieurs objectifs
+    # opérationnels : c'est le même RA (et tout son sous-arbre indicateurs →
+    # métriques → actions) qui apparaît sous chaque OO lié, et toute
+    # modification se répercute partout.
+    #
+    # `id_oo` reste l'objectif **porteur** : celui sous lequel le RA a été créé.
+    # Il continue de définir le rattachement de référence — remontée au plan
+    # (`apps.plans.access`), exports, duplication d'un plan, index de recherche —
+    # là où il faut un parent et un seul. Les liens supplémentaires vivent dans
+    # `CorRaOo` et servent l'affichage (le RA apparaît aussi sous ces OO) ainsi
+    # que l'ordre, propre à chaque objectif.
     id_oo = models.ForeignKey(
         ObjectifOperationnel,
         on_delete=models.CASCADE,
         related_name='resultats_attendus',
         db_column='id_oo',
-        verbose_name=_("Objectif opérationnel")
+        verbose_name=_("Objectif opérationnel porteur")
+    )
+    objectifs_operationnels = models.ManyToManyField(
+        ObjectifOperationnel,
+        through='CorRaOo',
+        related_name='resultats_attendus_partages',
+        verbose_name=_("Objectifs opérationnels"),
+        help_text=_(
+            "Objectifs opérationnels sous lesquels ce résultat attendu apparaît "
+            "(partagé, #585). Contient toujours l'objectif porteur `id_oo`."
+        ),
     )
     libelle = models.CharField(
         _("Intitulé"),
@@ -884,8 +905,26 @@ class ResultatAttendu(models.Model):
         return f"{self.libelle} ({self.id_oo})"
 
     def get_plan_de_gestion(self):
-        """Implémente l'interface utilisée par CanModifyOnlyDraftPlan (#248)."""
+        """Implémente l'interface utilisée par CanModifyOnlyDraftPlan (#248).
+
+        Passe par l'objectif **porteur** : les partages (#585) sont tous dans le
+        même plan, n'importe lequel donnerait la même réponse.
+        """
         return self.id_oo.get_plan_de_gestion()
+
+    def save(self, *args, **kwargs):
+        """Maintient l'invariant #585 : l'objectif porteur a toujours son lien.
+
+        Sans ça, un RA créé par un chemin qui ignore le partage (import, seed,
+        duplication) n'apparaîtrait pas dans les listes construites à partir de
+        `CorRaOo`.
+        """
+        super().save(*args, **kwargs)
+        if self.id_oo_id:
+            CorRaOo.objects.get_or_create(
+                id_ra=self, id_oo_id=self.id_oo_id,
+                defaults={'ordre': self.ordre},
+            )
 
 
 class CorOoPression(models.Model):
@@ -1013,6 +1052,55 @@ class CorOoEnjeu(models.Model):
 
     def __str__(self):
         return f"OO {self.id_oo_id} ↔ Enjeu {self.id_enjeu_id} (ordre {self.ordre})"
+
+
+class CorRaOo(models.Model):
+    """
+    Table de liaison M2M entre ResultatAttendu et ObjectifOperationnel (#585).
+
+    Un résultat attendu peut être PARTAGÉ entre plusieurs objectifs
+    opérationnels d'un même plan : c'est le même RA, avec tout son sous-arbre,
+    qui apparaît sous chacun. L'``ordre`` d'affichage est propre à chaque
+    objectif, il est donc porté ici (et non sur le RA).
+
+    Invariant : l'objectif **porteur** (``ResultatAttendu.id_oo``) a toujours sa
+    ligne ici. Les autres lignes sont les partages ajoutés ensuite. C'est ce qui
+    permet aux traitements qui ont besoin d'un parent unique — remontée au plan,
+    exports, duplication, indexation — de continuer à s'appuyer sur ``id_oo``.
+    """
+
+    id = models.AutoField(primary_key=True)
+    id_ra = models.ForeignKey(
+        ResultatAttendu,
+        on_delete=models.CASCADE,
+        db_column='id_ra',
+        related_name='cor_objectifs',
+        verbose_name=_("Résultat attendu")
+    )
+    id_oo = models.ForeignKey(
+        ObjectifOperationnel,
+        on_delete=models.CASCADE,
+        db_column='id_oo',
+        related_name='cor_resultats_attendus',
+        verbose_name=_("Objectif opérationnel")
+    )
+    ordre = models.PositiveIntegerField(
+        _("Ordre"),
+        default=0,
+        db_index=True,
+        help_text=_("Ordre d'affichage du RA parmi ceux de cet objectif (0 = haut)")
+    )
+
+    class Meta:
+        db_table = '"general"."cor_ra_oo"'
+        db_table_comment = "Liaison partagée résultats attendus ↔ objectifs opérationnels (#585)"
+        unique_together = [('id_ra', 'id_oo')]
+        ordering = ['ordre', 'id']
+        verbose_name = _("Lien Résultat attendu-OO")
+        verbose_name_plural = _("Liens Résultat attendu-OO")
+
+    def __str__(self):
+        return f"RA {self.id_ra_id} ↔ OO {self.id_oo_id}"
 
 
 class CorResponsabiliteTaxon(models.Model):
