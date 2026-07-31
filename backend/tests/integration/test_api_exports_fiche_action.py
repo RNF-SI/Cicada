@@ -178,6 +178,21 @@ class TestExportFicheAction:
         assert "Emprise de l'action" in self._values(sheet)
         assert len(sheet._images) == 1
 
+    def test_carte_placee_dans_le_champ_de_son_libelle(self, sheet):
+        """#626 — la vignette occupe le champ « valeur », en face du libellé.
+
+        Ancrée en colonne A, elle s'affichait sous « Emprise de l'action », dans
+        la marge des libellés, et non dans le cadre attendu à droite.
+        """
+        ligne_emprise = next(
+            r for r in range(1, sheet.max_row + 1)
+            if sheet.cell(r, 1).value == "Emprise de l'action"
+        )
+        ancre = sheet._images[0].anchor._from
+        # openpyxl indexe l'ancre à partir de 0 : colonne D = 3, ligne N = N-1.
+        assert ancre.col == 3, ancre.col
+        assert ancre.row == ligne_emprise - 1, (ancre.row, ligne_emprise)
+
 
 @pytest.mark.django_db
 class TestCarteFondDeCarte:

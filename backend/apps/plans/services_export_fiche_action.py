@@ -672,13 +672,22 @@ class _Writer:
         ws.row_dimensions[self.r].height = 34
         self.r += 1
 
-    def picture(self, png, *, rows=_MAP_ROWS):
-        """Insère une image PNG à la ligne courante et réserve `rows` lignes."""
-        from openpyxl.drawing.image import Image as XLImage
+    def picture(self, png, *, rows=_MAP_ROWS, row=None, col=4):
+        """
+        Insère une image PNG et réserve `rows` lignes.
 
+        `col` vaut 4 par défaut : la colonne des **valeurs** (cf. `kv`, qui
+        fusionne le libellé sur A:C et la valeur sur D:fin). Ancrée en A,
+        la vignette se retrouvait sous le libellé au lieu d'être en face de
+        lui, dans son champ (#626).
+        """
+        from openpyxl.drawing.image import Image as XLImage
+        from openpyxl.utils import get_column_letter as _col
+
+        ancre = self.r if row is None else row
         img = XLImage(io.BytesIO(png))
-        self.ws.add_image(img, f"A{self.r}")
-        self.r += rows
+        self.ws.add_image(img, f"{_col(col)}{ancre}")
+        self.r = max(self.r, ancre + rows)
 
     def blank(self):
         self.r += 1
@@ -766,8 +775,11 @@ def _render_action(ws, op, years, *, is_cs, code_local=""):
     except Exception:        # une géométrie exotique ne doit pas casser l'export
         png = None
     if png:
+        # La vignette occupe le champ « valeur » de la ligne, en face de son
+        # libellé (#626) — et non la marge de gauche, sous le libellé.
+        ligne_emprise = w.r
         w.kv("Emprise de l'action", "")
-        w.picture(png)
+        w.picture(png, row=ligne_emprise)
     else:
         w.kv("Emprise de l'action", "Non renseignée")
 
