@@ -188,6 +188,26 @@
 }
 
 /* ------------------------------------------------------------------ */
+/* Rappel du périmètre (#634)                                         */
+/* ------------------------------------------------------------------ */
+
+.exploration-perimetre {
+  display: flex;
+  align-items: flex-start;
+  gap: $spacing-xs;
+  margin: $spacing-md 0 0;
+  font-size: $font-size-small;
+  line-height: $line-height-small;
+  color: $gray-dark;
+
+  i {
+    flex-shrink: 0;
+    margin-top: 2px;
+    color: $primary-color;
+  }
+}
+
+/* ------------------------------------------------------------------ */
 /* Barre total / tri                                                  */
 /* ------------------------------------------------------------------ */
 

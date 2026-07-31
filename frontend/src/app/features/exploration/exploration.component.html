@@ -102,6 +102,13 @@
           <span>{{ 'exploration.search.note' | translate }}</span>
         </p>
       }
+
+      <!-- Le périmètre de l'exploration doit être dit à l'écran : sans ça, un
+           gestionnaire qui ne retrouve pas ses brouillons croit à une panne. -->
+      <p class="exploration-hero-note">
+        <i class="fi fi-rr-comment-info" aria-hidden="true"></i>
+        <span>{{ 'exploration.search.perimetre' | translate }}</span>
+      </p>
     </section>
 
     <!-- Exemples de recherche -->

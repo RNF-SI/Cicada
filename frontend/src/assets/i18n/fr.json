@@ -3194,7 +3194,8 @@
       "dataType": "Type de données",
       "allData": "Toutes les données",
       "submit": "Rechercher",
-      "note": "Pour rechercher les contenus d'un département ou d'une région, sélectionnez le type de données recherché et lancez la recherche sans saisir de mot-clé. Vous pourrez ensuite filtrer la zone géographique souhaitée."
+      "note": "Pour rechercher les contenus d'un département ou d'une région, sélectionnez le type de données recherché et lancez la recherche sans saisir de mot-clé. Vous pourrez ensuite filtrer la zone géographique souhaitée.",
+      "perimetre": "Seuls les plans de gestion validés sont explorables — les brouillons, encore en cours de rédaction, n'apparaissent pas dans les résultats."
     },
     "examples": {
       "title": "Exemples de recherche :",
