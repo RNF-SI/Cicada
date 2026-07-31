@@ -257,14 +257,20 @@ class OperationViewSet(viewsets.ModelViewSet):
         """
         Déplace une action d'un indicateur vers un autre — #586.
 
-        Payload : {"new_indicateur_id": <int>, "position": <int>}
+        Payload : {"new_indicateur_id": <int>, "position": <int>,
+                   "from_indicateur_id": <int|null>}
 
         Une action apparaît sous un indicateur soit par rattachement direct
         (`id_indicateur`, #367), soit via l'une de ses métriques. Le déplacement
-        rattache donc l'action directement à l'indicateur cible ET coupe les
-        liens vers les métriques de l'indicateur SOURCE, qui n'ont plus de sens
-        une fois l'action partie. Les liens vers les métriques d'autres
-        indicateurs (action partagée, #585) sont conservés.
+        fait donc DEUX choses :
+
+        - il coupe les liens vers les métriques de l'indicateur quitté
+          (`from_indicateur_id`), qui n'ont plus de sens une fois l'action
+          partie — les métriques d'autres indicateurs qui portent la même
+          action (partage, #585) sont conservées ;
+        - il rattache l'action à l'indicateur d'accueil **comme si elle y avait
+          été créée** : à toutes ses métriques, ou directement à lui s'il n'en a
+          aucune (#367/#539).
 
         Garde-fous :
         - L'indicateur cible doit exister et appartenir au même plan.
@@ -312,15 +318,36 @@ class OperationViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_403_FORBIDDEN,
             )
 
-        # Indicateur(s) source : le rattachement direct et ceux atteints via
-        # les métriques liées. Seules leurs métriques doivent être déliées.
+        # Indicateur QUITTÉ. Le front l'envoie (`from_indicateur_id`) : c'est la
+        # seule information qui distingue l'indicateur d'où l'action a été
+        # glissée des autres indicateurs qui la portent aussi — une action peut
+        # être partagée entre plusieurs (#585). Sans lui, on retombe sur
+        # l'ancien comportement (tous les indicateurs liés), qui déliait au
+        # passage les partages.
+        from_indicateur_id = request.data.get('from_indicateur_id')
         source_indicateur_ids = set()
-        if operation.id_indicateur_id:
-            source_indicateur_ids.add(operation.id_indicateur_id)
-        source_indicateur_ids.update(
-            operation.metriques.values_list('id_indicateur', flat=True)
-        )
+        if from_indicateur_id is not None:
+            try:
+                source_indicateur_ids.add(int(from_indicateur_id))
+            except (TypeError, ValueError):
+                return Response(
+                    {"detail": "'from_indicateur_id' doit être un entier."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+        else:
+            if operation.id_indicateur_id:
+                source_indicateur_ids.add(operation.id_indicateur_id)
+            source_indicateur_ids.update(
+                operation.metriques.values_list('id_indicateur', flat=True)
+            )
         source_indicateur_ids.discard(target.pk)
+
+        # Métriques de l'indicateur cible : l'action doit s'y rattacher, comme
+        # lorsqu'on la crée directement sous cet indicateur (#586). Sans ça, le
+        # déplacement coupait les liens de la source sans en créer aucun : elle
+        # s'affichait au bon endroit mais n'était plus reliée à aucune métrique,
+        # donc absente du suivi, du budget et du bilan de l'indicateur d'accueil.
+        target_metriques = list(Metrique.objects.filter(id_indicateur=target))
 
         with transaction.atomic():
             if source_indicateur_ids:
@@ -329,7 +356,15 @@ class OperationViewSet(viewsets.ModelViewSet):
                     id_metrique__id_indicateur__in=source_indicateur_ids,
                 ).delete()
 
-            operation.id_indicateur = target
+            for metrique in target_metriques:
+                CorOperationMetrique.objects.get_or_create(
+                    id_operation=operation, id_metrique=metrique,
+                )
+
+            # Rattachement direct réservé à un indicateur SANS métrique
+            # (#367/#539) : sinon l'action serait portée deux fois, par le lien
+            # direct et par les métriques.
+            operation.id_indicateur = None if target_metriques else target
             operation.ordre = position
             operation.save(update_fields=['id_indicateur', 'ordre'])
 

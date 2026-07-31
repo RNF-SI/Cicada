@@ -860,6 +860,84 @@ class TestOperationMove:
 
         assert not op.metriques.filter(pk=metrique1.pk).exists()
 
+    def test_move_rattache_laction_aux_metriques_de_la_cible(
+        self, api_client, reorder_test_data
+    ):
+        """#586 — l'action prend les métriques de l'indicateur d'accueil.
+
+        Retour de recette : « en déplaçant l'action, elle ne se rattache pas à
+        la nouvelle métrique ». Le déplacement coupait les liens de la source
+        sans en créer aucun : l'action s'affichait au bon endroit mais n'était
+        plus reliée à aucune métrique.
+        """
+        from tests.factories.enjeux import MetriqueFactory
+
+        api_client.force_authenticate(user=reorder_test_data['referent'])
+        target = reorder_test_data['ind2']
+        met_a = MetriqueFactory(id_indicateur=target, nom_metrique='M2-A')
+        met_b = MetriqueFactory(id_indicateur=target, nom_metrique='M2-B')
+        op = reorder_test_data['op1']
+
+        response = api_client.post(
+            self._url(op.pk),
+            {'new_indicateur_id': target.pk, 'position': 0},
+            format='json',
+        )
+
+        assert response.status_code == status.HTTP_200_OK, response.data
+        op.refresh_from_db()
+        assert set(op.metriques.values_list('pk', flat=True)) == {met_a.pk, met_b.pk}
+        # Portée par ses métriques : pas de rattachement direct en plus, sinon
+        # l'action serait comptée deux fois sous le même indicateur (#367/#539).
+        assert op.id_indicateur_id is None
+
+    def test_move_vers_un_indicateur_sans_metrique_garde_le_lien_direct(
+        self, api_client, reorder_test_data
+    ):
+        """#367/#539 — sans métrique, l'action se rattache à l'indicateur."""
+        api_client.force_authenticate(user=reorder_test_data['referent'])
+        target = reorder_test_data['ind3']   # aucun métrique dans la fixture
+        op = reorder_test_data['op1']
+
+        api_client.post(
+            self._url(op.pk),
+            {'new_indicateur_id': target.pk, 'position': 0},
+            format='json',
+        )
+
+        op.refresh_from_db()
+        assert op.id_indicateur_id == target.pk
+        assert list(op.metriques.all()) == []
+
+    def test_move_conserve_les_metriques_dun_autre_indicateur(
+        self, api_client, reorder_test_data
+    ):
+        """Action partagée (#585) : seuls les liens de la source sont coupés."""
+        from tests.factories.enjeux import MetriqueFactory
+
+        api_client.force_authenticate(user=reorder_test_data['referent'])
+        ailleurs = MetriqueFactory(
+            id_indicateur=reorder_test_data['ind_ra_2'], nom_metrique='M-AILLEURS',
+        )
+        op = reorder_test_data['op1']
+        CorOperationMetrique.objects.create(id_operation=op, id_metrique=ailleurs)
+
+        api_client.post(
+            self._url(op.pk),
+            {
+                'new_indicateur_id': reorder_test_data['ind3'].pk,
+                'position': 0,
+                # L'indicateur d'où l'action a été glissée : lui seul est délié.
+                'from_indicateur_id': reorder_test_data['ind1'].pk,
+            },
+            format='json',
+        )
+
+        assert op.metriques.filter(pk=ailleurs.pk).exists()
+        assert not op.metriques.filter(
+            pk=reorder_test_data['metrique1'].pk
+        ).exists()
+
     def test_move_between_branches_etat_and_pression(self, api_client, reorder_test_data):
         """Une action peut passer d'un indicateur d'état à un indicateur de réponse."""
         api_client.force_authenticate(user=reorder_test_data['referent'])

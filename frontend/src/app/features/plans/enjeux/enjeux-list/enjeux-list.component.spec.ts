@@ -2932,10 +2932,22 @@ describe('EnjeuxListComponent — déplacement d\'une action entre indicateurs (
     fcr: [],
   };
 
-  /** Simule un drop cdk entre deux conteneurs (ou dans le même). */
-  const dropEvent = (sourceList: unknown[], targetList: unknown[], previousIndex = 0, currentIndex = 0) => {
-    const container = { data: targetList };
-    const previousContainer = sourceList === targetList ? container : { data: sourceList };
+  /**
+   * Simule un drop cdk entre deux conteneurs (ou dans le même).
+   * `sourceIndicateurId` alimente l'id de la droplist quittée : c'est de là que
+   * le composant tire `from_indicateur_id` (#586).
+   */
+  const dropEvent = (
+    sourceList: unknown[],
+    targetList: unknown[],
+    previousIndex = 0,
+    currentIndex = 0,
+    sourceIndicateurId = 999,
+  ) => {
+    const container = { data: targetList, id: 'operations-droplist-target' };
+    const previousContainer = sourceList === targetList
+      ? container
+      : { data: sourceList, id: `operations-droplist-${sourceIndicateurId}` };
     return { previousContainer, container, previousIndex, currentIndex } as never;
   };
 
@@ -3004,7 +3016,8 @@ describe('EnjeuxListComponent — déplacement d\'une action entre indicateurs (
       component.onOperationDrop(dropEvent(source, target, 0, 0), { id_indicateur: 1001, operations: target });
 
       expect(dialogOpen).not.toHaveBeenCalled();
-      expect(moveOperation).toHaveBeenCalledWith(7, { new_indicateur_id: 1001, position: 0 });
+      expect(moveOperation).toHaveBeenCalledWith(
+        7, { new_indicateur_id: 1001, position: 0, from_indicateur_id: 999 });
       expect(target).toHaveLength(1);
       expect(source).toHaveLength(0);
     });
@@ -3014,7 +3027,8 @@ describe('EnjeuxListComponent — déplacement d\'une action entre indicateurs (
       const target: unknown[] = [];
       component.onOperationDrop(dropEvent(source, target, 0, 0), { id_indicateur: 2000, operations: target });
 
-      expect(moveOperation).toHaveBeenCalledWith(7, { new_indicateur_id: 2000, position: 0 });
+      expect(moveOperation).toHaveBeenCalledWith(
+        7, { new_indicateur_id: 2000, position: 0, from_indicateur_id: 999 });
     });
 
     it('demande confirmation quand des associations de métrique seront perdues', () => {
@@ -3028,7 +3042,40 @@ describe('EnjeuxListComponent — déplacement d\'une action entre indicateurs (
       component.onOperationDrop(dropEvent(source, target, 0, 0), { id_indicateur: 1001, operations: target });
 
       expect(dialogOpen).toHaveBeenCalled();
-      expect(moveOperation).toHaveBeenCalledWith(7, { new_indicateur_id: 1001, position: 0 });
+      expect(moveOperation).toHaveBeenCalledWith(
+        7, { new_indicateur_id: 1001, position: 0, from_indicateur_id: 999 });
+    });
+
+    it('transmet l\'indicateur quitté pour ne délier que celui-là (#586)', () => {
+      // Une action peut être portée par plusieurs indicateurs (partage #585) :
+      // sans cette information, le serveur délierait toutes ses métriques.
+      const source = [{ id_operation: 7, metriques: [] }];
+      const target: unknown[] = [];
+
+      component.onOperationDrop(
+        dropEvent(source, target, 0, 0, 1234),
+        { id_indicateur: 1001, operations: target },
+      );
+
+      expect(moveOperation).toHaveBeenCalledWith(
+        7, expect.objectContaining({ from_indicateur_id: 1234 }));
+    });
+
+    it('affiche les métriques du nouvel indicateur après le déplacement (#586)', () => {
+      const source = [{ id_operation: 7, metriques: [{ id_metrique: 1 }] }];
+      const target: unknown[] = [];
+      moveOperation.mockReturnValue(of({
+        id_operation: 7,
+        metriques: [{ id_metrique: 42, nom_metrique: 'Métrique cible' }],
+        id_indicateur: null,
+      }) as never);
+
+      component.onOperationDrop(dropEvent(source, target, 0, 0), {
+        id_indicateur: 1001, operations: target,
+      });
+
+      expect((target[0] as Record<string, any>)['metriques'])
+        .toEqual([{ id_metrique: 42, nom_metrique: 'Métrique cible' }]);
     });
 
     it('n\'effectue aucun déplacement si la confirmation est refusée', () => {

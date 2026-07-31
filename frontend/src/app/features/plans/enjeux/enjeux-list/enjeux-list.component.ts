@@ -3593,13 +3593,16 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
    * perte de ces associations soit explicite.
    */
   private applyMoveOperation(event: CdkDragDrop<any[]>, newIndicateurId: number): void {
+    // L'id de la droplist quittée porte l'indicateur source : c'est lui, et lui
+    // seul, dont les liens de métriques doivent être coupés (#586).
+    const fromIndicateurId = this.indicateurIdFromDroplist(event.previousContainer.id);
     const operation = event.previousContainer.data[event.previousIndex] as Operation | undefined;
     const operationId = operation?.id_operation;
     if (!operationId) return;
 
     const droppedMetriques = this.visibleMetriques(operation!);
     if (!droppedMetriques.length) {
-      this.runMoveOperation(event, operationId, newIndicateurId);
+      this.runMoveOperation(event, operationId, newIndicateurId, fromIndicateurId);
       return;
     }
 
@@ -3619,12 +3622,23 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
           // Annulé : l'élément n'a pas encore bougé côté UI, rien à défaire.
           return;
         }
-        this.runMoveOperation(event, operationId, newIndicateurId);
+        this.runMoveOperation(event, operationId, newIndicateurId, fromIndicateurId);
       });
   }
 
+  /** `operations-droplist-42` → 42 (null si l'id n'a pas cette forme). */
+  private indicateurIdFromDroplist(droplistId: string): number | null {
+    const found = /^operations-droplist-(\d+)$/.exec(droplistId || '');
+    return found ? Number(found[1]) : null;
+  }
+
   /** Transfert optimiste puis appel à l'endpoint `move` d'une action (#586). */
-  private runMoveOperation(event: CdkDragDrop<any[]>, operationId: number, newIndicateurId: number): void {
+  private runMoveOperation(
+    event: CdkDragDrop<any[]>,
+    operationId: number,
+    newIndicateurId: number,
+    fromIndicateurId: number | null = null,
+  ): void {
     transferArrayItem(
       event.previousContainer.data,
       event.container.data,
@@ -3638,10 +3652,22 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
     this.reorderService.moveOperation(operationId, {
       new_indicateur_id: newIndicateurId,
       position: event.currentIndex,
+      from_indicateur_id: fromIndicateurId,
     }).pipe(
       takeUntilDestroyed(this.destroyRef),
     ).subscribe({
-      next: () => {
+      next: (updated: any) => {
+        // Le serveur rattache l'action aux métriques de l'indicateur d'accueil
+        // (#586) : la carte doit montrer CES métriques, pas celles d'avant, sans
+        // attendre un rechargement de page.
+        const moved = event.container.data.find(
+          (item: Record<string, any>) => item['id_operation'] === operationId,
+        ) as Record<string, any> | undefined;
+        if (moved && updated) {
+          moved['metriques'] = updated.metriques ?? [];
+          moved['id_indicateur'] = updated.id_indicateur ?? null;
+        }
+
         this.snackBar.open(
           this.translate.instant('enjeux.dnd.moveSuccess'),
           this.translate.instant('common.actions.close'),

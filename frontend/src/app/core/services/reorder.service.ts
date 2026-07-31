@@ -44,6 +44,12 @@ export interface MovePressionPayload {
 export interface MoveOperationPayload {
   new_indicateur_id: number;
   position: number;
+  /**
+   * #586 — Indicateur d'où l'action a été glissée. Seuls SES liens de métriques
+   * sont coupés : une action peut être portée par plusieurs indicateurs
+   * (partage, #585), et sans cette information le serveur les délierait tous.
+   */
+  from_indicateur_id?: number | null;
 }
 
 /** #486 — Valeurs de formulaire simulées pour l'aperçu du code d'action. */
