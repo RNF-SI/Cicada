@@ -19,12 +19,13 @@ Le point d'entrée public est :func:`build_presentation_workbook`.
 from __future__ import annotations
 
 import io
-from decimal import Decimal, InvalidOperation
 from typing import Optional
 
 from openpyxl import Workbook
 from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
 from openpyxl.utils import get_column_letter
+
+from .metrique_seuils import NIVEAUX, intervalle_palier
 
 # ---------------------------------------------------------------------------
 # Couleurs — résolues en ARGB concrets pour être indépendantes du thème du
@@ -166,38 +167,25 @@ def _ind_type(ind) -> str:
     return (getattr(t, "mnemonique", "") or "").upper()
 
 
-def _num(x) -> str:
-    """Formate un seuil sans zéros superflus (#619 : « 10 », pas « 10.0000 »)."""
-    if x is None or x == "":
-        return ""
-    try:
-        d = Decimal(str(x)).normalize()
-        # `normalize` peut produire une notation exponentielle (1E+2) : format 'f'.
-        return format(d, "f")
-    except (InvalidOperation, ValueError):
-        return str(x)
-
-
 def _score_labels(block) -> list[str]:
     """Retourne [s1..s5] pour la grille de lecture (label sinon plage de seuils).
 
     ``block`` est indifféremment une :class:`Metrique` (bloc principal) ou un
     :class:`MetriqueScoreBlock` (bloc complémentaire) : les deux exposent les
     mêmes champs ``score_N_inf/sup`` et ``inactive_levels`` (#619). Les seuils
-    reprennent le nombre de décimales saisi (pas de padding, #619).
+    reprennent le nombre de décimales saisi (pas de padding) et la notation par
+    crochets de la saisie, inclusivité comprise — « ]20 ; 40] » et non
+    « 20 – 40 », qui ne disait pas de quel côté la borne appartenait (#619).
     """
     inactifs = set(getattr(block, "inactive_levels", None) or [])
     labels = []
-    for i in range(1, 6):
+    for i in NIVEAUX:
         if i in inactifs:
             labels.append("")
             continue
         lbl = _txt(getattr(block, f"score_{i}_label", None))
         if not lbl:
-            inf = getattr(block, f"score_{i}_inf", None)
-            sup = getattr(block, f"score_{i}_sup", None)
-            if inf is not None or sup is not None:
-                lbl = f"{_num(inf)} – {_num(sup)}".strip(" –")
+            lbl = intervalle_palier(block, i, inactifs=inactifs)
         labels.append(lbl or "")
     return labels
 

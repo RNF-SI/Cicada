@@ -40,6 +40,7 @@ from openpyxl import Workbook
 from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
 from openpyxl.utils import get_column_letter
 
+from .metrique_seuils import intervalle_palier
 from .services_export_finance import build_action_finance, poste_entry_factory
 
 # ---------------------------------------------------------------------------
@@ -185,26 +186,13 @@ def _is_grille(m) -> bool:
 
 
 def _interval(obj, level, sens, inactive) -> str:
-    """Intervalle d'un palier (inclusivité sens-aware, cf. #545/#554)."""
-    if level in inactive:
-        return ""
-    inf = getattr(obj, f"score_{level}_inf", None)
-    sup = getattr(obj, f"score_{level}_sup", None)
-    if inf is None and sup is None:
-        return ""
-    dec = sens == "DECROISSANT"
-    inf_incl = True
-    if inf is not None:
-        lower = level + 1 if dec else level - 1
-        if 1 <= lower <= 5:
-            inf_incl = getattr(obj, f"score_{lower}_sup_inclusive", True) is False
-    sup_incl = sup is None or getattr(obj, f"score_{level}_sup_inclusive", True) is not False
-    if sup is None:
-        return f"{'≥' if inf_incl else '>'} {_fmt_dec(inf)}"
-    if inf is None:
-        return f"{'≤' if sup_incl else '<'} {_fmt_dec(sup)}"
-    return (f"{'[' if inf_incl else ']'}{_fmt_dec(inf)} ; "
-            f"{_fmt_dec(sup)}{']' if sup_incl else '['}")
+    """
+    Intervalle d'un palier (inclusivité sens-aware, cf. #545/#554).
+
+    La règle vit dans `metrique_seuils` : elle est partagée avec l'export
+    arborescence, où les deux notations avaient divergé (#619).
+    """
+    return intervalle_palier(obj, level, sens=sens, inactifs=inactive)
 
 
 def _block_label(m, idx) -> str:

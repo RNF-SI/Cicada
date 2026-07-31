@@ -472,6 +472,39 @@ class TestExportArborescencePresentation:
         assert '.0000' not in cell, cell
         assert '10' in cell, cell   # score_1_sup=10 du bloc principal
 
+    def test_grille_note_les_bornes_incluses_et_exclues(self, plan_arbo):
+        """Les paliers gardent la notation par crochets de la saisie (#619).
+
+        « 0 – 10 » ne disait pas de quel côté la borne appartenait : l'export
+        doit écrire « [0 ; 10] » ou « [0 ; 10[ » comme l'écran de saisie, dans
+        le bloc principal COMME dans les blocs complémentaires.
+        """
+        from apps.plans.models_indicateurs import Metrique
+        from apps.plans.services_export_arbo import GR_MET, GR_S1, GR_S5
+        met = plan_arbo['met']
+        # borne haute du palier 1 exclue : la valeur 10 appartient au palier 2
+        Metrique.objects.filter(pk=met.pk).update(score_1_sup_inclusive=False)
+        met.score_blocks.update(score_1_sup_inclusive=False)
+
+        ws = self._sheet(plan_arbo['plan'])
+        r = _find_row(ws, "Métriques", col=GR_MET)
+        s1 = ws.cell(r + 1, GR_S1).value or ''
+        assert '[0 ; 10[' in s1, s1          # bloc principal (Surface)
+        assert '[0 ; 5[' in s1, s1           # bloc complémentaire (Hauteur)
+        assert '–' not in s1, s1             # plus d'ancienne notation « 0 – 10 »
+
+        # Palier 5 : sa borne basse dépend du palier 4, pas de lui-même. Le
+        # palier 4 étant inclusif par défaut, 90 lui appartient et le palier 5
+        # démarre donc exclu.
+        s5 = ws.cell(r + 1, GR_S5).value or ''
+        assert ']90 ; 100]' in s5, s5
+
+        # Et si le palier 4 devient exclusif, 90 bascule dans le palier 5.
+        Metrique.objects.filter(pk=met.pk).update(score_4_sup_inclusive=False)
+        ws = self._sheet(plan_arbo['plan'])
+        r = _find_row(ws, "Métriques", col=GR_MET)
+        assert '[90 ; 100]' in (ws.cell(r + 1, GR_S5).value or '')
+
     def test_grille_multibloc_reste_sur_une_ligne(self, plan_arbo):
         """Ajouter des blocs n'ajoute plus de lignes à la grille (#619) : ils sont
         empilés dans la même cellule, pas en lignes séparées."""
