@@ -23,6 +23,7 @@ from openpyxl import Workbook
 from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
 from openpyxl.utils import get_column_letter
 
+from . import export_theme
 from .services_export_finance import build_plan_finance
 
 _ZERO = Decimal(0)
@@ -42,6 +43,20 @@ _F_YEAR = Font(name="Calibri", bold=True, size=9, color=_PRIMARY)
 _F_CELL = Font(name="Calibri", size=9, color="FF343433")
 _F_SECTION = Font(name="Calibri", bold=True, size=10, color=_PRIMARY)
 _F_TOTAL = Font(name="Calibri", bold=True, size=9, color=_PRIMARY)
+
+
+def _appliquer_couleur_instance():
+    """Réaligne les styles sur la couleur d'export de l'instance (#601)."""
+    global _PRIMARY, _HDR_FILL, _F_TITLE, _F_YEAR, _F_SECTION, _F_TOTAL
+
+    couleur = export_theme.argb()
+    if couleur == _PRIMARY:
+        return
+    _PRIMARY = _HDR_FILL = couleur
+    _F_TITLE = Font(name="Calibri", bold=True, size=13, color=couleur)
+    _F_YEAR = Font(name="Calibri", bold=True, size=9, color=couleur)
+    _F_SECTION = Font(name="Calibri", bold=True, size=10, color=couleur)
+    _F_TOTAL = Font(name="Calibri", bold=True, size=9, color=couleur)
 
 _thin = Side(style="thin", color="FFBFC9C9")
 _B = Border(left=_thin, right=_thin, top=_thin, bottom=_thin)
@@ -364,6 +379,7 @@ def _org_sheets(pf):
 
 
 def build_rh_previsionnel_workbook(plan) -> bytes:
+    _appliquer_couleur_instance()
     pf = build_plan_finance(plan)
     wb = Workbook(); wb.remove(wb.active); used = set()
     title = _plan_title(plan)
@@ -407,6 +423,7 @@ def build_rh_previsionnel_workbook(plan) -> bytes:
 
 
 def build_rh_suivi_workbook(plan) -> bytes:
+    _appliquer_couleur_instance()
     pf = build_plan_finance(plan)
     wb = Workbook(); wb.remove(wb.active); used = set()
     title = _plan_title(plan)
@@ -458,6 +475,7 @@ def _rh_par_poste_sheet(wb, pf, used, *, suivi):
 
 
 def build_budget_previsionnel_workbook(plan) -> bytes:
+    _appliquer_couleur_instance()
     pf = build_plan_finance(plan)
     wb = Workbook(); wb.remove(wb.active); used = set()
     title = _plan_title(plan)
@@ -512,6 +530,7 @@ def build_budget_previsionnel_workbook(plan) -> bytes:
 
 
 def build_budget_suivi_workbook(plan) -> bytes:
+    _appliquer_couleur_instance()
     pf = build_plan_finance(plan)
     wb = Workbook(); wb.remove(wb.active); used = set()
     title = _plan_title(plan)

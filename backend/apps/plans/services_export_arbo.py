@@ -25,6 +25,7 @@ from openpyxl import Workbook
 from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
 from openpyxl.utils import get_column_letter
 
+from . import export_theme
 from .metrique_seuils import NIVEAUX, intervalle_palier
 
 # ---------------------------------------------------------------------------
@@ -92,6 +93,24 @@ _FONT_HDR_LIGHT = Font(name="Calibri", bold=True, size=11, color=_WHITE)
 _FONT_DATA = Font(name="Calibri", size=10, color="FF000000")
 _FONT_ACTION = Font(name="Calibri", size=10, color="FF000000")
 _FONT_CODE = Font(name="Calibri", bold=True, size=10, color="FF025359")
+
+
+def _appliquer_couleur_instance():
+    """
+    Réaligne les styles de marque sur la couleur d'export de l'instance (#601).
+
+    Ne touche PAS la palette relevée sur le modèle Excel de référence (#620) ni
+    les couleurs de score : seuls le titre du classeur et les codes d'action
+    relèvent de l'identité visuelle de la structure.
+    """
+    global _FONT_TITLE, _FONT_CODE
+
+    couleur = export_theme.argb()
+    if couleur == _FONT_TITLE.color.rgb:
+        return
+    _FONT_TITLE = Font(name="Calibri", bold=True, size=14, color=couleur)
+    _FONT_CODE = Font(name="Calibri", bold=True, size=10, color=couleur)
+
 
 _thin = Side(style="thin", color="FF9A8F86")
 _med = Side(style="medium", color="FF746F6E")
@@ -693,6 +712,7 @@ def _prefetched_enjeux(plan):
 
 def build_presentation_workbook(plan) -> bytes:
     """Construit le classeur de présentation de l'arborescence du plan."""
+    _appliquer_couleur_instance()
     # #619 — codes d'action locaux au plan (CS1, IP2…), calculés une seule fois.
     from .serializers_operations import compute_operation_codes_for_plan
 

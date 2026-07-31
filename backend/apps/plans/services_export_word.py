@@ -26,7 +26,18 @@ from docx import Document
 from docx.enum.table import WD_TABLE_ALIGNMENT
 from docx.shared import Pt, RGBColor
 
+from . import export_theme
+
 _PRIMARY = RGBColor(0x02, 0x53, 0x59)
+
+
+def _appliquer_couleur_instance():
+    """Réaligne la couleur des titres sur celle de l'instance (#601)."""
+    global _PRIMARY
+
+    _PRIMARY = RGBColor(*export_theme.rgb())
+
+
 _TERRA = RGBColor(0xB7, 0x4D, 0x5D)
 _GRAY = RGBColor(0x74, 0x6F, 0x6E)
 
@@ -60,7 +71,10 @@ def _priorite_label(enjeu) -> str:
 # Helpers de mise en forme
 # ---------------------------------------------------------------------------
 
-def _heading(doc, text, level, color=_PRIMARY):
+def _heading(doc, text, level, color=None):
+    # Résolu à l'appel : une valeur par défaut serait figée à l'import et
+    # ignorerait la couleur d'instance (#601).
+    color = color or _PRIMARY
     h = doc.add_heading(level=level)
     run = h.add_run(text)
     run.font.color.rgb = color
@@ -83,8 +97,9 @@ def _enjeu_title(doc, name, priorite):
     return p
 
 
-def _sub_title(doc, text, color=_PRIMARY):
+def _sub_title(doc, text, color=None):
     """Titre intermédiaire (type OLT)."""
+    color = color or _PRIMARY
     p = doc.add_paragraph()
     p.paragraph_format.space_before = Pt(8)
     run = p.add_run(text)
@@ -315,6 +330,7 @@ def _prefetched_enjeux(plan):
 
 def build_plan_docx(plan) -> bytes:
     """Construit la fiche Word (enjeux + FCR) du plan de gestion."""
+    _appliquer_couleur_instance()
     doc = Document()
     table_counter = [0]
 

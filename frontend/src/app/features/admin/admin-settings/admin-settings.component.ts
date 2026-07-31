@@ -67,6 +67,15 @@ export class AdminSettingsComponent implements OnInit {
     { label: 'Orange saumon', value: '#F5B399' },
     { label: 'Vert pâle', value: '#C0E3CF' },
   ];
+  /**
+   * #601 — Couleur des exports (bandeaux, titres et en-têtes des classeurs
+   * Excel et du document Word). Distincte de la couleur du bandeau : le bandeau
+   * est un fond, celle-ci sert surtout de couleur de TEXTE dans les fichiers
+   * produits. Elle vaut la couleur de CICADA tant que la structure n'a rien
+   * choisi.
+   */
+  readonly exportColor = signal<string>('#025359');
+
   readonly logoPreview = signal<string | null>(null);
   readonly selectedLogo = signal<File | null>(null);
 
@@ -79,6 +88,9 @@ export class AdminSettingsComponent implements OnInit {
       }
       if (config?.header_color) {
         this.headerColor.set(config.header_color);
+      }
+      if (config?.export_color) {
+        this.exportColor.set(config.export_color);
       }
       // #458 — Paramètre d'instance : champ ID Doc'Gestion FCEN.
       this.docGestionFcenEnabled.set(config?.enable_docgestion_fcen === true);
@@ -275,6 +287,43 @@ export class AdminSettingsComponent implements OnInit {
     this.isSaving.set(true);
     const formData = new FormData();
     formData.append('header_color', this.headerColor());
+    this.settingsService.updateSettings(formData).subscribe({
+      next: () => {
+        this.isSaving.set(false);
+        this.snackBar.open(
+          this.translate.instant('admin.settings.messages.saved'),
+          this.translate.instant('common.actions.close'),
+          { duration: 3000 }
+        );
+      },
+      error: () => {
+        this.isSaving.set(false);
+        this.snackBar.open(
+          this.translate.instant('admin.settings.messages.error'),
+          this.translate.instant('common.actions.close'),
+          { duration: 3000 }
+        );
+      }
+    });
+  }
+
+  // ============================================================
+  // #601 — Couleur des exports
+  // ============================================================
+
+  onExportColorInput(value: string): void {
+    this.exportColor.set(value);
+  }
+
+  /** Couleur de texte lisible sur l'aperçu de la couleur d'export. */
+  get exportTextColor(): string {
+    return this.contrastTextColor(this.exportColor());
+  }
+
+  saveExportColor(): void {
+    this.isSaving.set(true);
+    const formData = new FormData();
+    formData.append('export_color', this.exportColor());
     this.settingsService.updateSettings(formData).subscribe({
       next: () => {
         this.isSaving.set(false);

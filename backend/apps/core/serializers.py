@@ -42,6 +42,7 @@ class SiteConfigurationSerializer(serializers.ModelSerializer):
             'homepage_image_url',
             'homepage_image_position',
             'header_color',
+            'export_color',
             'structure_logo',
             'structure_logo_url',
             'enable_docgestion_fcen',
@@ -91,6 +92,8 @@ class SiteConfigurationUpdateSerializer(serializers.ModelSerializer):
             'homepage_image',
             'homepage_image_position',
             'header_color',
+            # #601 — couleur des exports, propre à la structure qui déploie.
+            'export_color',
             'structure_logo',
             # #458 — Paramètre d'instance : affichage du champ ID Doc'Gestion FCEN.
             'enable_docgestion_fcen',

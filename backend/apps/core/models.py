@@ -348,6 +348,25 @@ class SiteConfiguration(models.Model):
         blank=True,
         help_text=_('Logo de la structure affiché en haut à gauche du bandeau')
     )
+    # #601 — Les classeurs et documents exportés portent les couleurs de CICADA.
+    # Chaque structure qui déploie son instance doit pouvoir y mettre les
+    # siennes. Une seule couleur suffit : c'est celle des bandeaux, des titres
+    # et des en-têtes, les seules qui relèvent de l'identité visuelle. Les
+    # couleurs de score (rouge → cyan) ne sont PAS paramétrables : elles font
+    # partie de la légende, un lecteur doit les reconnaître d'un plan à l'autre.
+    export_color = models.CharField(
+        _("Couleur des exports"),
+        max_length=7,
+        default='#025359',
+        validators=[RegexValidator(
+            regex=r'^#[0-9A-Fa-f]{6}$',
+            message=_('La couleur doit être au format hexadécimal (ex. #025359).')
+        )],
+        help_text=_(
+            "Couleur des bandeaux, titres et en-têtes des exports Excel et Word, "
+            "au format hexadécimal #RRGGBB. Par défaut la couleur de CICADA."
+        )
+    )
     # #458 — L'ID Doc'Gestion FCEN n'a de sens que sur l'instance de la FCEN.
     # Il devient donc un paramètre d'instance, désactivé par défaut : le champ
     # disparaît des formulaires de plan (création et édition) tant qu'un

@@ -45,6 +45,7 @@ describe('AdminSettingsComponent', () => {
     homepage_image_url: 'http://localhost:8000/media/settings/homepage/image.jpg',
     homepage_image_position: 'center',
     header_color: '#025359',
+    export_color: '#025359',
     structure_logo: null,
     structure_logo_url: null,
     enable_docgestion_fcen: false,

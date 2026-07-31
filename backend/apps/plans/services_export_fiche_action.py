@@ -40,6 +40,7 @@ from openpyxl import Workbook
 from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
 from openpyxl.utils import get_column_letter
 
+from . import export_theme
 from .metrique_seuils import intervalle_palier
 from .services_export_finance import build_action_finance, poste_entry_factory
 
@@ -67,6 +68,24 @@ _F_TOTAL = Font(name="Calibri", bold=True, size=10, color=_PRIMARY)
 _F_PRIO = Font(name="Calibri", bold=True, size=12, color=_WHITE)
 _F_YEAR = Font(name="Calibri", bold=True, size=9, color=_PRIMARY)
 _F_X = Font(name="Calibri", bold=True, size=11, color=_GREEN)
+
+
+def _appliquer_couleur_instance():
+    """
+    Réaligne les styles sur la couleur d'export de l'instance (#601).
+
+    Appelé au début de chaque construction de classeur : cf. `export_theme`
+    pour pourquoi ces styles restent des variables de module.
+    """
+    global _PRIMARY, _SECTION, _F_LABEL, _F_TOTAL, _F_YEAR
+
+    couleur = export_theme.argb()
+    if couleur == _PRIMARY:
+        return
+    _PRIMARY = _SECTION = couleur
+    _F_LABEL = Font(name="Calibri", bold=True, size=10, color=couleur)
+    _F_TOTAL = Font(name="Calibri", bold=True, size=10, color=couleur)
+    _F_YEAR = Font(name="Calibri", bold=True, size=9, color=couleur)
 
 # Palette des paliers de score (design system) — texte noir uniquement (#626).
 _SCORE_FILLS = {
@@ -544,8 +563,12 @@ class _Writer:
         ws.row_dimensions[self.r].height = 20
         self.r += 1
 
-    def kv(self, label, value, *, fill=_LABEL_FILL, font_label=_F_LABEL):
+    def kv(self, label, value, *, fill=_LABEL_FILL, font_label=None):
         """Ligne « label (A:C) | valeur (D:fin) »."""
+        # Résolu à l'appel et non en valeur par défaut : une valeur par défaut
+        # est liée à la définition, elle garderait la couleur d'origine après
+        # un changement de couleur d'instance (#601).
+        font_label = font_label or _F_LABEL
         ws = self.ws
         ws.merge_cells(start_row=self.r, start_column=1, end_row=self.r, end_column=3)
         lc = ws.cell(self.r, 1, label)
@@ -958,6 +981,8 @@ def _is_cs(op) -> bool:
 def build_fiche_action_workbook(plan) -> bytes:
     """Construit le classeur des fiches action (un onglet par opération)."""
     from .models_operations import Operation
+
+    _appliquer_couleur_instance()
 
     y0 = plan.annee_debut or 0
     y1 = plan.annee_fin or y0

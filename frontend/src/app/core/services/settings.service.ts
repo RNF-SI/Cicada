@@ -10,6 +10,8 @@ export interface SiteConfiguration {
   homepage_image_position: ImagePosition;
   /** #448 — Couleur de fond du bandeau (header), hexadécimal #RRGGBB. */
   header_color: string;
+  /** #601 — Couleur des bandeaux et titres des exports Excel/Word, #RRGGBB. */
+  export_color: string;
   /** #448 — Logo de la structure (chemin relatif). */
   structure_logo: string | null;
   /** #448 — URL relative du logo de la structure. */
@@ -64,6 +66,14 @@ export class SettingsService {
     return this.configSignal()?.header_color || this.defaultHeaderColor;
   }
 
+  /** #601 — Couleur CICADA par défaut pour les exports. */
+  readonly defaultExportColor = '#025359';
+
+  /** #601 — Couleur des exports de l'instance (repli sur celle de CICADA). */
+  getExportColor(): string {
+    return this.configSignal()?.export_color || this.defaultExportColor;
+  }
+
   /**
    * #458 — Le champ ID Doc'Gestion FCEN est-il activé sur cette instance ?
    * Faux tant que la configuration n'est pas chargée (le champ reste masqué).
@@ -107,6 +117,7 @@ export class SettingsService {
           homepage_image_url: null,
           homepage_image_position: 'top' as ImagePosition,
           header_color: this.defaultHeaderColor,
+          export_color: this.defaultExportColor,
           structure_logo: null,
           structure_logo_url: null,
           enable_docgestion_fcen: false,

@@ -698,6 +698,12 @@
         "preview": "Aperçu du bandeau",
         "custom": "Couleur personnalisée"
       },
+      "exportColor": {
+        "title": "Couleur des exports",
+        "description": "Couleur des bandeaux, titres et en-têtes des fichiers exportés (classeurs Excel et document Word). Chaque structure qui déploie CICADA peut y mettre la sienne. Les couleurs des scores (rouge à cyan) ne changent pas : elles font partie de la légende de la grille de lecture.",
+        "preview": "Titre d'un export",
+        "previewBanner": "Bandeau d'un export"
+      },
       "logo": {
         "title": "Logo de la structure",
         "description": "Logo affiché en haut à gauche du bandeau. Format image (PNG/SVG), 5 Mo max.",
