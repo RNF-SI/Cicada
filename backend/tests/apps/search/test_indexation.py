@@ -17,7 +17,7 @@ from django.core.management import call_command
 from django.db.models import Count
 
 from apps.geo.models import AreaType, LArea
-from apps.search.indexing import index_plan
+from apps.search.indexing import INDEX_VERSION, index_est_perime, index_plan
 from apps.search.models import SEARCH_CONFIG, ContenuIndexe
 from tests.factories.core import NomenclatureFactory, TypeNomenclatureFactory
 from tests.factories.enjeux import (
@@ -354,6 +354,78 @@ class TestCommandeRebuild:
         type(plan).objects.filter(pk=plan.pk).update(statut='draft')
 
         call_command('rebuild_search_index', '--purge', verbosity=0)
+
+        assert ContenuIndexe.objects.count() == 0
+
+
+# --------------------------------------------------------------------------- #
+# Péremption de l'index (#634)
+# --------------------------------------------------------------------------- #
+
+@pytest.mark.integration
+class TestIndexPerime:
+    """
+    Le contenu d'un plan validé ne bouge plus : rien ne réécrit ses lignes
+    d'index après coup. Une mise à jour qui enrichit l'indexation laisserait
+    donc l'index de production à l'ancien format indéfiniment — les recherches
+    ajoutées ne trouveraient rien alors que le code est bien déployé. C'est ce
+    qui a fait dire « l'exploration ne marche globalement pas » en recette.
+    """
+
+    def test_les_lignes_portent_la_version_des_extracteurs(self, plan_indexe):
+        assert set(
+            ContenuIndexe.objects.values_list('index_version', flat=True)
+        ) == {INDEX_VERSION}
+
+    def test_un_index_a_jour_nest_pas_perime(self, plan_indexe):
+        assert index_est_perime() is False
+
+    def test_un_index_dune_version_anterieure_est_perime(self, plan_indexe):
+        ContenuIndexe.objects.update(index_version=INDEX_VERSION - 1)
+
+        assert index_est_perime() is True
+
+    def test_un_index_vide_est_perime_sil_existe_des_plans_a_indexer(
+        self, plan_indexe
+    ):
+        ContenuIndexe.objects.all().delete()
+
+        assert index_est_perime() is True
+
+    def test_un_index_vide_sans_plan_indexable_nest_pas_perime(self, arborescence):
+        """Base neuve ou n'ayant que des brouillons : rien à reconstruire."""
+        assert index_est_perime() is False
+
+    def test_if_stale_reconstruit_un_index_perime(self, plan_indexe):
+        """Le cas du déploiement : l'index date d'avant, il doit repartir."""
+        ContenuIndexe.objects.update(index_version=0, rattachements='')
+
+        call_command('rebuild_search_index', '--if-stale', verbosity=0)
+
+        lignes = ContenuIndexe.objects.filter(id_pg=plan_indexe['plan'])
+        assert lignes.count() == 7
+        assert set(lignes.values_list('index_version', flat=True)) == {INDEX_VERSION}
+        # Le contenu est bien réécrit, pas seulement le numéro de version.
+        assert lignes.exclude(rattachements='').exists()
+
+    def test_if_stale_ne_touche_a_rien_si_lindex_est_a_jour(self, plan_indexe):
+        avant = list(
+            ContenuIndexe.objects.order_by('id').values_list('id', flat=True)
+        )
+
+        call_command('rebuild_search_index', '--if-stale', verbosity=0)
+
+        apres = list(
+            ContenuIndexe.objects.order_by('id').values_list('id', flat=True)
+        )
+        assert apres == avant  # aucune ligne réécrite
+
+    def test_if_stale_retire_les_plans_devenus_non_indexables(self, plan_indexe):
+        plan = plan_indexe['plan']
+        ContenuIndexe.objects.update(index_version=0)
+        type(plan).objects.filter(pk=plan.pk).update(statut='draft')
+
+        call_command('rebuild_search_index', '--if-stale', verbosity=0)
 
         assert ContenuIndexe.objects.count() == 0
 

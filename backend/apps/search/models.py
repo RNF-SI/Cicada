@@ -87,6 +87,18 @@ class ContenuIndexe(models.Model):
         related_name='contenus_indexes',
         verbose_name=_("Plan de gestion"),
     )
+    index_version = models.PositiveSmallIntegerField(
+        _("Version des extracteurs"),
+        default=0,
+        db_index=True,
+        help_text=_(
+            "Version d'`apps.search.indexing` qui a produit la ligne (#634). "
+            "Une ligne écrite par une version antérieure est périmée : le "
+            "contenu du plan n'ayant plus le droit de bouger une fois validé, "
+            "rien ne la réécrirait autrement, et une recherche ajoutée depuis "
+            "ne trouverait jamais rien. 0 = index antérieur au suivi de version."
+        ),
+    )
 
     # ------------------------------------------------------------------ #
     # Texte recherché

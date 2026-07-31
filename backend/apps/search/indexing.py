@@ -36,6 +36,23 @@ logger = logging.getLogger(__name__)
 #: il n'est pas encore public, et son contenu bouge encore.
 INDEXED_STATUSES = PlanGestion.VALIDATED_STATUSES
 
+#: Version des extracteurs ci-dessous. **À incrémenter dès qu'une évolution
+#: change ce qui est écrit dans l'index** (nouveau champ indexé, nouveau
+#: rattachement, correction d'un extracteur…).
+#:
+#: L'index n'est reconstruit ni par une migration ni par un signal : une ligne
+#: n'est réécrite qu'au changement de statut de son plan, et un plan validé ne
+#: bouge plus. Sans ce numéro, un déploiement qui enrichit l'indexation laisse
+#: donc l'index de production dans son **ancien** état, indéfiniment — les
+#: recherches ajoutées ne trouvent rien alors que le code est bien déployé.
+#: `rebuild_search_index --if-stale`, lancé au démarrage, compare cette valeur
+#: à celle stockée sur les lignes et rebâtit l'index quand elle a bougé.
+#:
+#: Historique : 1 = version initiale, 2 = #634 (rattachements espèces /
+#: protocoles / habitats / géologie / PressRef + héritage de l'enjeu par les
+#: actions).
+INDEX_VERSION = 2
+
 
 def _texte(*parts):
     """Assemble des fragments de texte en ignorant les vides et les doublons."""
@@ -466,7 +483,23 @@ def construire_documents(plan):
     documents = []
     for extracteur in EXTRACTEURS:
         documents += extracteur(plan, facettes, branche)
+    # Toutes les lignes portent la version des extracteurs qui les a produites :
+    # c'est ce qui permet de repérer un index resté à l'ancien format.
+    for document in documents:
+        document.index_version = INDEX_VERSION
     return documents
+
+
+def index_est_perime():
+    """
+    L'index a-t-il été produit par une version antérieure des extracteurs ?
+
+    Vrai aussi pour un index vide alors que des plans sont indexables : les deux
+    cas appellent la même réponse, une reconstruction complète.
+    """
+    if not ContenuIndexe.objects.exists():
+        return PlanGestion.objects.filter(statut__in=INDEXED_STATUSES).exists()
+    return ContenuIndexe.objects.exclude(index_version=INDEX_VERSION).exists()
 
 
 # --------------------------------------------------------------------------- #

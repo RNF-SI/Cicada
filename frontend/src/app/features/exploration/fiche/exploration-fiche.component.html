@@ -352,6 +352,16 @@
         </section>
       }
 
+      <!-- Un plan validé peut n'avoir aucun contenu structuré dans CICADA : la
+           fiche s'arrêtait alors sur une page blanche sous les compteurs à zéro,
+           sans dire pourquoi (#634). -->
+      @if (!p.enjeux.length && !p.actions.length) {
+        <p class="fiche-etat info-block info-block-info">
+          <i class="fi fi-rr-info" aria-hidden="true"></i>
+          <span>{{ 'exploration.fiche.sansContenu' | translate }}</span>
+        </p>
+      }
+
     } @else if (chargement()) {
       <p class="fiche-etat">{{ 'common.loading' | translate }}</p>
     } @else {
