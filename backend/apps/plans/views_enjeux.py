@@ -205,7 +205,9 @@ class EnjeuViewSet(viewsets.ModelViewSet):
                     'id_facteur_influence__enjeux',
                 ),
             ),
-            Prefetch('resultats_attendus', queryset=ra_qs),
+            # #585 — via la liaison partagée : un RA lié à cet objectif doit
+            # apparaître sous lui, pas seulement ceux dont il est porteur.
+            Prefetch('resultats_attendus_partages', queryset=ra_qs),
         )
 
         pression_qs = Pression.objects.select_related(
@@ -627,13 +629,13 @@ class FacteurInfluenceViewSet(viewsets.ModelViewSet):
         'enjeux',
         'pressions', 'pressions__id_utilisateur_ajout',
         'pressions__objectifs_operationnels', 'pressions__objectifs_operationnels__id_utilisateur_ajout',
-        'pressions__objectifs_operationnels__resultats_attendus',
-        'pressions__objectifs_operationnels__resultats_attendus__id_utilisateur_ajout',
-        'pressions__objectifs_operationnels__resultats_attendus__indicateurs',
-        'pressions__objectifs_operationnels__resultats_attendus__indicateurs__type_indicateur',
-        'pressions__objectifs_operationnels__resultats_attendus__indicateurs__metriques',
-        'pressions__objectifs_operationnels__resultats_attendus__indicateurs__metriques__type_metrique',
-        'pressions__objectifs_operationnels__resultats_attendus__indicateurs__id_utilisateur_ajout',
+        'pressions__objectifs_operationnels__resultats_attendus_partages',
+        'pressions__objectifs_operationnels__resultats_attendus_partages__id_utilisateur_ajout',
+        'pressions__objectifs_operationnels__resultats_attendus_partages__indicateurs',
+        'pressions__objectifs_operationnels__resultats_attendus_partages__indicateurs__type_indicateur',
+        'pressions__objectifs_operationnels__resultats_attendus_partages__indicateurs__metriques',
+        'pressions__objectifs_operationnels__resultats_attendus_partages__indicateurs__metriques__type_metrique',
+        'pressions__objectifs_operationnels__resultats_attendus_partages__indicateurs__id_utilisateur_ajout',
     )
 
     permission_classes = [permissions.IsAuthenticated, IsReferentOrReadOnly, CanModifyOnlyDraftPlan]

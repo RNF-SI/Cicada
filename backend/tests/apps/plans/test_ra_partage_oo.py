@@ -218,3 +218,82 @@ class TestCopieApi:
         )
 
         assert response.status_code == status.HTTP_403_FORBIDDEN
+
+
+@pytest.mark.integration
+class TestArborescencePartage:
+    """
+    L'arborescence (`enjeux/by-plan/`) est ce que voit le gestionnaire.
+
+    Un partage invisible à l'écran ne sert à rien : la recette a montré que le
+    lien pouvait être enregistré sans que le résultat attendu apparaisse sous
+    l'objectif d'accueil, parce que l'arborescence lisait la clé étrangère
+    (objectif porteur) et non la liaison partagée.
+    """
+
+    def _arbre(self, api_client, plan):
+        response = api_client.get(f'/api/plans/enjeux/by-plan/{plan.id_pg}/')
+        assert response.status_code == status.HTTP_200_OK, response.data
+        return response.data
+
+    def _ra_libelles_par_oo(self, arbre):
+        """{id_oo: [libellés des RA affichés]} sur tout l'arbre."""
+        par_oo = {}
+        for enjeu in list(arbre.get('enjeux', [])) + list(arbre.get('fcr', [])):
+            objectifs = list(enjeu.get('objectifs_operationnels') or [])
+            for facteur in enjeu.get('facteurs_influence') or []:
+                for pression in facteur.get('pressions') or []:
+                    objectifs += list(pression.get('objectifs_operationnels') or [])
+            for oo in objectifs:
+                par_oo.setdefault(oo['id_oo'], []).extend(
+                    ra['libelle'] for ra in oo.get('resultats_attendus') or []
+                )
+        return par_oo
+
+    def test_le_ra_partage_apparait_sous_les_deux_objectifs(self, api_client, contexte):
+        ra, porteur, autre = contexte['ra'], contexte['oo_porteur'], contexte['oo_autre']
+        IndicateurPressionFactory(id_resultat_attendu=ra, nom_indicateur='IND partagé')
+        api_client.force_authenticate(user=contexte['referent'])
+        api_client.post(
+            f'/api/plans/resultats-attendus/{ra.pk}/link/',
+            {'oo_id': autre.pk}, format='json',
+        )
+
+        par_oo = self._ra_libelles_par_oo(self._arbre(api_client, contexte['plan']))
+
+        assert ra.libelle in par_oo.get(porteur.pk, [])
+        assert ra.libelle in par_oo.get(autre.pk, []), \
+            "le résultat attendu partagé n'apparaît pas sous l'objectif d'accueil"
+
+    def test_le_compteur_de_lobjectif_daccueil_inclut_le_ra_partage(
+        self, api_client, contexte
+    ):
+        ra, autre = contexte['ra'], contexte['oo_autre']
+        api_client.force_authenticate(user=contexte['referent'])
+        api_client.post(
+            f'/api/plans/resultats-attendus/{ra.pk}/link/',
+            {'oo_id': autre.pk}, format='json',
+        )
+
+        arbre = self._arbre(api_client, contexte['plan'])
+        objectifs = [
+            oo
+            for enjeu in arbre['enjeux']
+            for facteur in enjeu.get('facteurs_influence') or []
+            for pression in facteur.get('pressions') or []
+            for oo in pression.get('objectifs_operationnels') or []
+        ] + [
+            oo for enjeu in arbre['enjeux']
+            for oo in enjeu.get('objectifs_operationnels') or []
+        ]
+        cible = [oo for oo in objectifs if oo['id_oo'] == autre.pk][0]
+        assert cible['nb_resultats_attendus'] == 1
+
+    def test_sans_partage_larborescence_est_inchangee(self, api_client, contexte):
+        """Non-régression : un RA non partagé ne s'affiche que sous son objectif."""
+        api_client.force_authenticate(user=contexte['referent'])
+
+        par_oo = self._ra_libelles_par_oo(self._arbre(api_client, contexte['plan']))
+
+        assert par_oo.get(contexte['oo_porteur'].pk) == [contexte['ra'].libelle]
+        assert par_oo.get(contexte['oo_autre'].pk, []) == []

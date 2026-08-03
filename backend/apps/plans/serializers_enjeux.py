@@ -401,7 +401,13 @@ def compute_oo_numeros_for_plan(plan_id):
 
 class ObjectifOperationnelSerializer(serializers.ModelSerializer):
     """Serializer détaillé pour un Objectif Opérationnel avec résultats attendus imbriqués."""
-    resultats_attendus = ResultatAttenduSerializer(many=True, read_only=True)
+    # #585 — les résultats attendus PARTAGÉS avec cet objectif s'affichent sous
+    # lui au même titre que ceux qu'il porte. La source est donc la liaison M2M
+    # (qui contient toujours le porteur), pas la clé étrangère : sinon un RA
+    # partagé n'apparaît jamais dans l'arborescence de l'objectif d'accueil.
+    resultats_attendus = ResultatAttenduSerializer(
+        many=True, read_only=True, source='resultats_attendus_partages',
+    )
     nb_resultats_attendus = serializers.SerializerMethodField()
     pressions = PressionLightSerializer(many=True, read_only=True)
     pression_ids = serializers.SerializerMethodField()
@@ -422,7 +428,7 @@ class ObjectifOperationnelSerializer(serializers.ModelSerializer):
         read_only_fields = ['id_oo', 'date_ajout', 'date_maj']
 
     def get_nb_resultats_attendus(self, obj):
-        return _prefetched_count(obj, 'resultats_attendus')
+        return _prefetched_count(obj, 'resultats_attendus_partages')
 
     def get_pression_ids(self, obj):
         return [p.pk for p in _prefetched_list(obj, 'pressions')]
@@ -453,7 +459,7 @@ class ObjectifOperationnelListSerializer(serializers.ModelSerializer):
         read_only_fields = ['id_oo', 'date_ajout', 'date_maj']
 
     def get_nb_resultats_attendus(self, obj):
-        return _prefetched_count(obj, 'resultats_attendus')
+        return _prefetched_count(obj, 'resultats_attendus_partages')
 
     def get_pression_ids(self, obj):
         return [p.pk for p in _prefetched_list(obj, 'pressions')]
