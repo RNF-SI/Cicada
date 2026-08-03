@@ -61,17 +61,20 @@ test.describe('Plan Views - Mindmap', () => {
     expect(btnCount).toBeGreaterThanOrEqual(2);
   });
 
-  test('should display color legend', async ({ referentPage }) => {
+  // La légende de couleurs a été retirée de la carte mentale (item 4 de la
+  // revue design) : l'arbre porte désormais les couleurs sans bloc de légende.
+  // Cf. le test unitaire « légende (item 4) » dans plan-mindmap.component.spec.ts.
+  test('should NOT display a color legend', async ({ referentPage }) => {
     const plan = await findPlan(referentPage, 'Camargue');
     await referentPage.goto(`/plans/${plan.slug}/mindmap`);
     await waitForPageLoad(referentPage);
 
-    const legend = referentPage.locator('.mindmap-legend, .legend');
-    await expect(legend).toBeVisible();
+    // L'arbre doit bien être rendu (sinon l'absence de légende ne prouve rien).
+    const cell = referentPage.locator('.tree-scroll .tree-cell');
+    await cell.first().waitFor({ state: 'visible', timeout: 15000 }).catch(() => {});
+    expect(await cell.count()).toBeGreaterThan(0);
 
-    const legendEntries = referentPage.locator('.legend-entry, .legend-item');
-    const entryCount = await legendEntries.count();
-    expect(entryCount).toBeGreaterThanOrEqual(5);
+    await expect(referentPage.locator('.mindmap-legend, .legend')).toHaveCount(0);
   });
 
   test('should switch between Enjeux and Actions views', async ({ referentPage }) => {
@@ -247,7 +250,9 @@ test.describe('Plan Views - Suivi Actions', () => {
     const filterBar = referentPage.locator('.filter-bar');
     await expect(filterBar).toBeVisible();
 
-    const filterBtns = referentPage.locator('.filter-btn');
+    // Kit UI #592 — les filtres sont désormais des `app-filter-dropdown`
+    // (déclencheur `.filter-trigger`), l'ancienne classe `.filter-btn` a disparu.
+    const filterBtns = referentPage.locator('.filter-bar .filter-trigger');
     const filterCount = await filterBtns.count();
     expect(filterCount).toBeGreaterThanOrEqual(2); // At least categorie + enjeu
   });

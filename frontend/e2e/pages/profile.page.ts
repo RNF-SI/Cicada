@@ -38,7 +38,9 @@ export class ProfilePage {
     this.userCard = page.locator('.profile-card').first();
     this.fullName = page.locator('mat-card-title').first();
     this.email = page.locator('mat-card-subtitle').first();
-    this.roleChip = page.locator('.role-chip');
+    // #296 — le rôle est rendu par le composant unifié `app-tag`
+    // (l'ancienne classe `.role-chip` n'existe plus).
+    this.roleChip = page.locator('.info-item').filter({ hasText: 'Rôle' }).locator('app-tag .app-tag');
     this.memberSince = page.locator('.info-item').filter({ hasText: 'Membre depuis' }).locator('.info-value');
     this.lastLogin = page.locator('.info-item').filter({ hasText: 'Dernière connexion' }).locator('.info-value');
 

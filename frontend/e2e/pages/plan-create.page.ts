@@ -105,8 +105,10 @@ export class PlanCreatePage {
     // Organisme rédacteur
     this.organismeSection = page.locator('.organisme-section');
     this.organismeInput = page.locator('.organisme-section input');
-    this.organismeChip = page.locator('.selected-organisme mat-chip-row');
-    this.organismeRemoveBtn = page.locator('.selected-organisme button[matChipRemove]');
+    // #296 — l'organisme sélectionné est rendu par `app-tag` (variante neutre)
+    // avec un bouton de retrait dissocié (l'ancien `mat-chip-row` a disparu).
+    this.organismeChip = page.locator('.selected-organisme app-tag .app-tag');
+    this.organismeRemoveBtn = page.locator('.selected-organisme .btn-clear-organisme');
 
     // Rédacteurs
     this.redacteursChips = page.locator('[data-testid="redacteurs-input"]').locator('..').locator('mat-chip-row');
@@ -194,12 +196,27 @@ export class PlanCreatePage {
     const siteItem = this.siteItems.filter({ hasText: name }).first();
     await siteItem.waitFor({ state: 'visible', timeout: 5000 });
     await siteItem.click();
+    // Symétrique de selectSiteByName : on attend que la désélection soit
+    // visuellement confirmée avant de vider la recherche, sinon le badge
+    // peut être lu avant sa mise à jour (test « flaky »).
+    await expect(siteItem).not.toHaveClass(/selected/, { timeout: 3000 });
     await this.siteSearchInput.fill('');
   }
 
   /** Get the text of the sites count badge */
   async getSiteCountBadgeText(): Promise<string> {
     return (await this.siteCountBadge.textContent() ?? '').trim();
+  }
+
+  /**
+   * Attend que le badge affiche le compte attendu.
+   *
+   * À préférer à `getSiteCountBadgeText()` : c'est une assertion Playwright
+   * auto-réessayée, alors qu'une lecture unique de `textContent()` peut tomber
+   * avant que le signal Angular n'ait rafraîchi le badge.
+   */
+  async expectSiteCountBadge(count: number | string) {
+    await expect(this.siteCountBadge).toHaveText(String(count), { timeout: 5000 });
   }
 
   /** Get the error banner text */

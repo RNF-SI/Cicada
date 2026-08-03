@@ -29,6 +29,31 @@ async function listInventaires(page: import('@playwright/test').Page) {
   return { results: data.results || data, count: data.count || (data.results || data).length };
 }
 
+/**
+ * Extrait les noms de taxons de `taxon_taxref`, quel que soit le format.
+ *
+ * #563 — le champ est désormais stocké en JSON (`[{cd_nom, nom_complet}]`)
+ * pour préserver le `cd_nom` et gérer les noms contenant une virgule. L'ancien
+ * format « noms séparés par des virgules » reste lu, mais un enregistrement
+ * legacy est normalisé en JSON dès qu'il est re-sauvegardé via le formulaire.
+ * On compare donc les noms, pas la chaîne brute.
+ */
+function taxonNames(raw: string | null | undefined): string[] {
+  if (!raw) return [];
+  const trimmed = raw.trim();
+  if (trimmed.startsWith('[')) {
+    try {
+      const parsed = JSON.parse(trimmed);
+      if (Array.isArray(parsed)) {
+        return parsed.map((o) => String(o?.nom_complet ?? '').trim()).filter(Boolean);
+      }
+    } catch {
+      // format invalide → on retombe sur le parsing texte
+    }
+  }
+  return trimmed.split(',').map((s) => s.trim()).filter(Boolean);
+}
+
 /** Get a single inventaire detail via the API. */
 async function getInventaire(page: import('@playwright/test').Page, suiviId: number) {
   const { ok, data } = await apiGet(page, `inventaires/suivis/${suiviId}/`);
@@ -363,7 +388,10 @@ test.describe('Inventaires - Edit', () => {
       expect(after.objectif_secondaire).toBe(before.objectif_secondaire);
       expect(after.cibles_principales).toBe(before.cibles_principales);
       expect(after.cible_secondaire).toBe(before.cible_secondaire);
-      expect(after.taxon_taxref).toBe(before.taxon_taxref);
+      // Le taxon doit survivre au roundtrip ; la valeur legacy « texte » peut
+      // avoir été normalisée en JSON par le formulaire (#563), on compare donc
+      // les noms et non la chaîne brute.
+      expect(taxonNames(after.taxon_taxref)).toEqual(taxonNames(before.taxon_taxref));
       expect(after.habitat_ref).toBe(before.habitat_ref);
       expect(after.commentaires).toBe(before.commentaires);
       expect(after.protocole?.protocole_dans_campanule).toBe(before.protocole.protocole_dans_campanule);

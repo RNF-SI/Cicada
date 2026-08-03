@@ -59,7 +59,7 @@ test.describe('Plan Create - Form Display', () => {
     await expect(createPage.rangInput).toHaveValue('1');
     await expect(createPage.anneeDebutInput).toHaveValue(String(currentYear));
     await expect(createPage.anneeFinInput).toHaveValue(String(currentYear + 5));
-    expect(await createPage.getSiteCountBadgeText()).toBe('0');
+    await createPage.expectSiteCountBadge(0);
   });
 
   test('should display breadcrumb with correct links', async ({ superAdminPage: page }) => {
@@ -155,15 +155,15 @@ test.describe('Plan Create - Site Selection', () => {
     await createPage.goto();
     await createPage.waitForForm();
 
-    expect(await createPage.getSiteCountBadgeText()).toBe('0');
+    await createPage.expectSiteCountBadge(0);
 
     // Select
     await createPage.selectSiteByName('Camargue');
-    expect(await createPage.getSiteCountBadgeText()).toBe('1');
+    await createPage.expectSiteCountBadge(1);
 
     // Deselect
     await createPage.deselectSiteByName('Camargue');
-    expect(await createPage.getSiteCountBadgeText()).toBe('0');
+    await createPage.expectSiteCountBadge(0);
   });
 
   test('should support multiple site selection with counter', async ({ superAdminPage: page }) => {
@@ -175,7 +175,7 @@ test.describe('Plan Create - Site Selection', () => {
     await createPage.selectSiteByName('Vercors');
     await createPage.selectSiteByName('Scandola');
 
-    expect(await createPage.getSiteCountBadgeText()).toBe('3');
+    await createPage.expectSiteCountBadge(3);
   });
 
   test('should filter sites by search and restore all', async ({ superAdminPage: page }) => {

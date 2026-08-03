@@ -142,7 +142,9 @@ test.describe('Operations - Navigation and Form Display', () => {
 // Create Operations
 // =========================================================================
 test.describe('Operations - Create', () => {
-  test('should create an operation with minimal data (libelle only)', async ({ referentPage }) => {
+  // #588 — le type d'action est obligatoire : le minimum vital est donc
+  // « libellé + type d'action » (et non plus le libellé seul).
+  test('should create an operation with minimal data (libelle + type action)', async ({ referentPage }) => {
     const plan = await findPlan(referentPage, 'Camargue');
     const formPage = new OperationFormPage(referentPage);
     await formPage.gotoCreate(plan.slug);
@@ -150,6 +152,7 @@ test.describe('Operations - Create', () => {
 
     const uniqueName = `E2E Op Minimal ${Date.now()}`;
     await formPage.fillLibelle(uniqueName);
+    await formPage.selectFirstTypeAction();
     await formPage.submit();
 
     // Should show success snackbar and navigate back
@@ -216,6 +219,7 @@ test.describe('Operations - Create', () => {
 
     const uniqueName = `E2E Op Description ${Date.now()}`;
     await formPage.fillLibelle(uniqueName);
+    await formPage.selectFirstTypeAction(); // #588 — obligatoire
     await formPage.fillDescription('Description de test pour cette action E2E');
 
     await formPage.submit();
@@ -231,6 +235,7 @@ test.describe('Operations - Create', () => {
 
     const uniqueName = `E2E Op Metrique ${Date.now()}`;
     await formPage.fillLibelle(uniqueName);
+    await formPage.selectFirstTypeAction(); // #588 — obligatoire
 
     // Select first available metrique : scroll dans la vue + click sur le trigger
     // car le mat-select multiple peut être hors viewport. Retry si le panel
@@ -263,6 +268,7 @@ test.describe('Operations - Create', () => {
 
     const uniqueName = `E2E Op Finances ${Date.now()}`;
     await formPage.fillLibelle(uniqueName);
+    await formPage.selectFirstTypeAction(); // #588 — obligatoire
 
     // Add a finance entry
     await formPage.addFinance('Financement test E2E');
