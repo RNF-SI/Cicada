@@ -502,6 +502,40 @@ class TestRealisationBilanEndpoint:
         assert cat['total'] == 1
         assert cat['termine'] == 1
 
+    def test_bilan_indicateurs_filtre_par_enjeu(self, api_client, realisation_test_data):
+        """#639 — `?enjeu_id=` scope l'onglet Indicateurs du bilan à un seul enjeu.
+
+        Sans ce filtre, le filtre « Enjeux/FCR » de la page Bilan ne portait que
+        sur les agrégations d'actions : les graphiques d'indicateurs (et leur
+        export) restaient sur le plan entier.
+        """
+        plan = realisation_test_data['plan']
+        referent = realisation_test_data['referent']
+        enjeu_1 = realisation_test_data['operation'].metriques.first().id_indicateur.id_ne.id_olt.id_enjeu
+
+        # 2e enjeu du même plan, avec son propre indicateur.
+        enjeu_2 = EnjeuFactory(
+            id_pg=plan, id_categorie=NomenclatureEnjeuFactory(), libelle='Enjeu 2',
+            rang=2, categorie_ecologique=True, id_utilisateur_ajout=referent,
+        )
+        olt_2 = ObjectifLongTermeFactory(id_enjeu=enjeu_2, libelle='OLT 2', id_utilisateur_ajout=referent)
+        ne_2 = NiveauExigenceFactory(id_olt=olt_2, libelle='NE 2', id_utilisateur_ajout=referent)
+        IndicateurFactory(id_ne=ne_2, nom_indicateur='Ind 2', id_utilisateur_ajout=referent)
+
+        api_client.force_authenticate(user=realisation_test_data['super_admin'])
+        url = f'/api/plans/realisations/bilan-indicateurs/{plan.pk}/'
+
+        full = api_client.get(url)
+        assert full.status_code == status.HTTP_200_OK
+        assert full.data['total_indicateurs'] == 2
+
+        filtered = api_client.get(url, {'enjeu_id': enjeu_2.pk})
+        assert filtered.status_code == status.HTTP_200_OK
+        assert filtered.data['total_indicateurs'] == 1
+
+        other = api_client.get(url, {'enjeu_id': enjeu_1.pk})
+        assert other.data['total_indicateurs'] == 1
+
     def test_bilan_forbidden_for_isolated_user(self, api_client, realisation_test_data):
         """#610 — accès au plan requis : agrégation calculée hors get_queryset()."""
         api_client.force_authenticate(user=realisation_test_data['other_user'])

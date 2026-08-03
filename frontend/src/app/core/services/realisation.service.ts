@@ -164,9 +164,16 @@ export class RealisationService {
   }
 
   /** Agrégations pour l'onglet Indicateurs du Bilan (Phase 4 - Figma #4043). */
-  bilanIndicateurs(planId: number): Observable<BilanIndicateursResponse> {
+  bilanIndicateurs(
+    planId: number,
+    filters?: Pick<BilanFilters, 'enjeu_id'>,
+  ): Observable<BilanIndicateursResponse> {
+    // #639 — le filtre « Enjeux/FCR » doit aussi scoper l'onglet Indicateurs.
+    let params = new HttpParams();
+    if (filters?.enjeu_id) params = params.set('enjeu_id', String(filters.enjeu_id));
     return this.http.get<BilanIndicateursResponse>(
       `${this.apiUrl}/realisations/bilan-indicateurs/${planId}/`,
+      { params },
     );
   }
 

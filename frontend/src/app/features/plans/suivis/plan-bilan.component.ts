@@ -33,6 +33,7 @@ import {
   DonutSlice, BarDatum, BarSegment, RadarAxis, LegendItem, LineSeries, LineBand, scoreColor,
 } from '../../../shared/components/charts';
 import { createFilterSet } from '../../../shared/utils/filter-set';
+import { CsvCell, csvFilename, downloadCsv } from '../../../shared/utils/csv-export';
 import { HeaderComponent } from '../../../shared/components/header/header.component';
 import { PlanSidebarComponent } from '../shared/plan-sidebar/plan-sidebar.component';
 import { AdminService } from '../../../core/services/admin.service';
@@ -94,7 +95,11 @@ export class PlanBilanComponent implements OnInit {
     enjeu: [] as number[],
     organisme: [] as number[],
   }, {
-    onReset: () => { this.reloadWithFilter(); this.loadBilanSeries(); },
+    onReset: () => {
+      this.reloadWithFilter();
+      this.loadBilanSeries();
+      this.loadBilanIndicateurs();
+    },
   });
 
   /** Légende des 6 niveaux de réalisation (barres empilées). */
@@ -311,6 +316,156 @@ export class PlanBilanComponent implements OnInit {
     this.filters.enjeu.set(values);
     this.reloadWithFilter();
     this.loadBilanSeries();
+    this.loadBilanIndicateurs();
+  }
+
+  // ===========================================================================
+  // #639 — Export CSV des résultats du bilan, filtres en cours inclus
+  // ===========================================================================
+
+  /**
+   * Exporte les résultats affichés en CSV. Les agrégations exportées sont celles
+   * chargées avec les filtres courants (portée Global / Mi-parcours / Annuel,
+   * année sélectionnée, enjeu) : l'export ne recalcule rien, il sérialise ce que
+   * les graphiques affichent. Les deux volets (Indicateurs, Actions) sont
+   * exportés dans le même fichier — le bilan est un tout, l'onglet n'est qu'un
+   * découpage de lecture. Les sections « par année » sont omises en portée
+   * Annuel, comme à l'écran.
+   */
+  exportResults(): void {
+    downloadCsv(
+      csvFilename(['bilan', this.scope(), this.planSlug()]),
+      this.buildExportRows(),
+    );
+  }
+
+  private t(key: string): string {
+    return this.translate.instant(key);
+  }
+
+  private buildExportRows(): CsvCell[][] {
+    const rows: CsvCell[][] = [];
+    const enjeuId = this.filters.enjeu()[0];
+    const enjeuLabel = enjeuId
+      ? (this.enjeuOptions().find(e => e.enjeu_id === enjeuId)?.libelle ?? String(enjeuId))
+      : this.t('plans.suivis.bilan.allEnjeux');
+
+    rows.push([this.t('plans.suivis.bilan.title'), this.planNom()]);
+    rows.push([this.t('plans.suivis.bilan.export.portee'), this.t(`plans.suivis.bilan.scope.${
+      this.scope() === 'mi_parcours' ? 'miParcours' : this.scope()}`)]);
+    if (this.scope() === 'annuel') {
+      rows.push([this.t('plans.suivis.bilan.export.annee'), this.selectedYear()]);
+    }
+    rows.push([this.t('plans.suivis.bilan.filterEnjeu'), enjeuLabel]);
+
+    this.appendIndicateursSection(rows);
+    this.appendActionsSection(rows);
+    return rows;
+  }
+
+  private appendIndicateursSection(rows: CsvCell[][]): void {
+    const bi = this.bilanIndicateurs();
+    if (!bi) return;
+    rows.push([], [this.t('plans.suivis.bilan.tabs.indicateurs')]);
+    rows.push([this.t('plans.suivis.bilan.export.totalIndicateurs'), bi.total_indicateurs]);
+    rows.push([this.t('plans.suivis.bilan.indic.evalues'), bi.indicateurs_evalues]);
+    rows.push([this.t('plans.suivis.bilan.export.tauxEvaluation'), bi.taux_evaluation_pct]);
+
+    rows.push([], [this.t('plans.suivis.bilan.indic.tauxTitle')]);
+    rows.push([
+      this.t('plans.suivis.bilan.indic.score'),
+      this.t('plans.suivis.bilan.export.libelle'),
+      this.t('plans.suivis.bilan.export.nombre'),
+    ]);
+    for (const s of bi.score_distribution) rows.push([s.score, s.label, s.count]);
+
+    rows.push([], [this.t('plans.suivis.bilan.indic.radarTitle')]);
+    rows.push([
+      this.t('plans.suivis.bilan.filterEnjeu'),
+      this.t('plans.suivis.bilan.indic.legendMoyenne'),
+      this.t('plans.suivis.bilan.export.nbIndicateurs'),
+    ]);
+    for (const e of bi.by_enjeu) rows.push([e.libelle, e.moyenne, e.count]);
+
+    const series = this.bilanSeries();
+    if (this.scope() !== 'annuel' && series && this.hasIndicEvolution()) {
+      const ev = series.indicateurs_evolution;
+      rows.push([], [this.t('plans.suivis.bilan.indic.evolutionTitle')]);
+      rows.push([
+        this.t('plans.suivis.bilan.export.annee'),
+        this.t('plans.suivis.bilan.indic.legendMoyenne'),
+        this.t('plans.suivis.bilan.export.min'),
+        this.t('plans.suivis.bilan.export.max'),
+        this.t('plans.suivis.bilan.indic.legendEcartType'),
+      ]);
+      series.years.forEach((y, i) =>
+        rows.push([y, ev.mean[i], ev.min[i], ev.max[i], ev.std[i]]));
+    }
+  }
+
+  private appendActionsSection(rows: CsvCell[][]): void {
+    const b = this.bilan();
+    if (!b) return;
+    rows.push([], [this.t('plans.suivis.bilan.tabs.actions')]);
+
+    rows.push([this.t('plans.suivis.bilan.actionsChart.tauxTitle')]);
+    rows.push([this.t('plans.suivis.bilan.export.niveau'), this.t('plans.suivis.bilan.export.nombre')]);
+    for (const n of NIVEAUX) rows.push([this.t(n.i18n), b.taux_realisation[n.key]]);
+    rows.push([this.t('plans.suivis.bilan.summary.total'), b.taux_realisation.total]);
+
+    const prev = this.t('plans.suivis.bilan.actionsChart.budgetPrevisionnel');
+    const reel = this.t('plans.suivis.bilan.actionsChart.budgetReel');
+    rows.push([], [this.t('plans.suivis.bilan.summary.budgetTitle')]);
+    rows.push(['', `${prev} (€)`, `${reel} (€)`]);
+    rows.push([this.t('plans.suivis.bilan.summary.fonctionnement'),
+      b.budget.fonctionnement.previsionnel, b.budget.fonctionnement.realise]);
+    rows.push([this.t('plans.suivis.bilan.summary.investissement'),
+      b.budget.investissement.previsionnel, b.budget.investissement.realise]);
+    rows.push([this.t('plans.suivis.bilan.summary.total'),
+      b.budget.total.previsionnel, b.budget.total.realise]);
+
+    const jours = this.t('plans.suivis.bilan.actionsChart.jours');
+    rows.push([], [this.t('plans.suivis.bilan.summary.rhTitle')]);
+    rows.push([this.t('plans.suivis.bilan.actionsChart.rhPrevisionnelle'), `${b.rh.previsionnel} ${jours}`]);
+    rows.push([this.t('plans.suivis.bilan.actionsChart.rhReelle'), `${b.rh.realise} ${jours}`]);
+
+    const niveauHeaders = NIVEAUX.map(n => this.t(n.i18n));
+    rows.push([], [this.t('plans.suivis.bilan.actionsChart.byCategorieTitle')]);
+    rows.push([this.t('plans.suivis.bilan.actionsChart.categorieAxis'), ...niveauHeaders,
+      this.t('plans.suivis.bilan.summary.total')]);
+    for (const c of b.by_categorie_action) {
+      rows.push([c.label || c.code, ...NIVEAUX.map(n => c[n.key]), c.total]);
+    }
+
+    rows.push([], [this.t('plans.suivis.bilan.actionsChart.byEnjeuTitle')]);
+    rows.push([this.t('plans.suivis.bilan.filterEnjeu'), ...niveauHeaders,
+      this.t('plans.suivis.bilan.summary.total')]);
+    for (const e of b.by_enjeu) {
+      rows.push([e.libelle, ...NIVEAUX.map(n => e[n.key]), e.total]);
+    }
+
+    const series = this.bilanSeries();
+    if (this.scope() === 'annuel' || !series) return;
+
+    if (this.hasRhSeries()) {
+      rows.push([], [this.t('plans.suivis.bilan.actionsChart.rhEvolutionTitle')]);
+      rows.push([
+        this.t('plans.suivis.bilan.export.annee'),
+        `${this.t('plans.suivis.bilan.actionsChart.rhPrevisionnelLegend')} (${jours})`,
+        `${this.t('plans.suivis.bilan.actionsChart.rhReelLegend')} (${jours})`,
+      ]);
+      series.years.forEach((y, i) => rows.push([
+        y, series.rh_par_annee.previsionnel[i] ?? 0, series.rh_par_annee.realise[i] ?? 0,
+      ]));
+    }
+
+    if (this.hasActionsSeries()) {
+      const niv = series.actions_par_annee.niveaux;
+      rows.push([], [this.t('plans.suivis.bilan.actionsChart.evolutionTitle')]);
+      rows.push([this.t('plans.suivis.bilan.export.annee'), ...niveauHeaders]);
+      series.years.forEach((y, i) =>
+        rows.push([y, ...NIVEAUX.map(n => niv[n.key]?.[i] ?? 0)]));
+    }
   }
 
   /** Écart en % entre prévi et réalisé (négatif = sous-consommation). */
@@ -323,7 +478,10 @@ export class PlanBilanComponent implements OnInit {
     const id = this.planId();
     if (!id) return;
     this.isLoadingIndicateurs.set(true);
-    this.realisationService.bilanIndicateurs(id).subscribe({
+    // #639 — le filtre « Enjeux/FCR » scope aussi l'onglet Indicateurs, sinon
+    // ses graphiques (et leur export) restent sur le plan entier.
+    const enjeuId = this.filters.enjeu()[0];
+    this.realisationService.bilanIndicateurs(id, enjeuId ? { enjeu_id: enjeuId } : undefined).subscribe({
       next: (data) => { this.bilanIndicateurs.set(data); this.isLoadingIndicateurs.set(false); },
       error: () => this.isLoadingIndicateurs.set(false),
     });

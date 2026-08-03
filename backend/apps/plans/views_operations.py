@@ -843,6 +843,13 @@ class RealisationOperationAnneeViewSet(viewsets.ModelViewSet):
             'id_ne__id_olt__id_enjeu',
         ).prefetch_related('metriques__mesures', 'metriques__score_blocks').distinct()
 
+        # #639 — le filtre « Enjeux/FCR » de la page Bilan doit aussi porter sur
+        # l'onglet Indicateurs (il ne s'appliquait qu'aux agrégations d'actions),
+        # sans quoi les graphiques — et leur export — ignorent le filtre en cours.
+        enjeu_id = request.query_params.get('enjeu_id')
+        if enjeu_id:
+            indicators_qs = indicators_qs.filter(id_ne__id_olt__id_enjeu=enjeu_id)
+
         total = 0
         evalues = 0
         score_dist = {1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 0: 0}

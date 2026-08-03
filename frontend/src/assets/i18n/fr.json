@@ -1976,6 +1976,19 @@
         },
         "byEnjeu": {
           "title": "Niveau de réalisation par enjeu / FCR"
+        },
+        "export": {
+          "tooltip": "Exporter les résultats affichés (filtres en cours) au format CSV",
+          "portee": "Portée",
+          "annee": "Année",
+          "totalIndicateurs": "Nombre d'indicateurs",
+          "tauxEvaluation": "Taux d'évaluation (%)",
+          "libelle": "Libellé",
+          "nombre": "Nombre",
+          "nbIndicateurs": "Nombre d'indicateurs",
+          "niveau": "Niveau de réalisation",
+          "min": "Minimum",
+          "max": "Maximum"
         }
       },
       "actions": {

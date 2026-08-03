@@ -165,7 +165,11 @@
             }
           </app-filter-bar>
 
-          <button class="export-link">
+          <!-- #639 — export CSV des résultats, filtres en cours inclus -->
+          <button class="export-link" type="button"
+                  data-testid="bilan-export"
+                  (click)="exportResults()"
+                  [title]="'plans.suivis.bilan.export.tooltip' | translate">
             <span>{{ 'plans.suivis.bilan.exportResults' | translate }}</span>
             <i class="fi fi-rr-download"></i>
           </button>
