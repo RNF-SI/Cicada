@@ -147,6 +147,16 @@
             [placeholder]="'plans.suivis.tableauDeBord.searchPlaceholder' | translate"
             [ariaLabel]="'plans.suivis.tableauDeBord.searchPlaceholder' | translate">
           </app-search-bar>
+
+          <!-- #638 — export CSV du tableau, filtres et onglet courants inclus -->
+          <button class="export-btn" type="button"
+                  data-testid="tdb-export"
+                  (click)="exportTable()"
+                  [disabled]="!hasData()"
+                  [title]="'plans.suivis.tableauDeBord.export.tooltip' | translate">
+            <span>{{ 'plans.suivis.tableauDeBord.export.label' | translate }}</span>
+            <i class="fi fi-rr-download"></i>
+          </button>
         </div>
 
         <!-- Légende -->

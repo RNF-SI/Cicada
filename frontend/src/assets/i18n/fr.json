@@ -2307,7 +2307,12 @@
         "searchPlaceholder": "Rechercher (objectif, indicateur…)",
         "enjeu": "Enjeu",
         "actions": "Actions",
-        "niveauOuResultat": "Niveau d'exigence / Résultat attendu"
+        "niveauOuResultat": "Niveau d'exigence / Résultat attendu",
+        "export": {
+          "label": "Exporter le tableau",
+          "tooltip": "Exporter le tableau affiché (filtres en cours) au format CSV",
+          "metrique": "Métrique"
+        }
       },
       "indicateurGlobal": {
         "subtitle": "Évaluation globale de l'indicateur",

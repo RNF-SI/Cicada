@@ -23,6 +23,7 @@ import {
   Enjeu, ObjectifLongTerme, NiveauExigence, Indicateur, Metrique, Mesure
 } from '../../../core/models/enjeu.model';
 import { computeCombinedScore, computeMetriqueScore } from './metrique-seuils.util';
+import { CsvCell, csvFilename, downloadCsv } from '../../../shared/utils/csv-export';
 
 type ScoreLevel = 'very-bad' | 'bad' | 'neutral' | 'good' | 'very-good' | 'no-data';
 
@@ -505,6 +506,83 @@ export class PlanTableauDeBordComponent implements OnInit {
   isFirstIndicatorOfNe(group: DashboardGroup, rowIdx: number): boolean {
     if (rowIdx === 0) return true;
     return group.rows[rowIdx].subId !== group.rows[rowIdx - 1].subId;
+  }
+
+  // ===========================================================================
+  // #638 — Export CSV du tableau de bord, dans l'état où il est affiché
+  // ===========================================================================
+
+  /**
+   * Exporte le tableau en CSV. Les lignes viennent de `filteredGroups()`, la
+   * source du rendu : onglet (État / Pression / Ensemble), filtres objectif et
+   * enjeu, et recherche textuelle s'appliquent donc à l'identique.
+   *
+   * Le pliage/dépliage des indicateurs n'est PAS reporté : c'est une commodité
+   * d'affichage, pas un filtre. Les métriques sont toujours exportées, en ligne
+   * de détail sous leur indicateur.
+   */
+  exportTable(): void {
+    downloadCsv(
+      csvFilename(['tableau-de-bord', this.activeTab(), this.planSlug()]),
+      this.buildExportRows(),
+    );
+  }
+
+  private t(key: string): string {
+    return this.translate.instant(key);
+  }
+
+  private buildExportRows(): CsvCell[][] {
+    const years = this.yearColumns();
+    const subHeader = this.activeTab() === 'etat'
+      ? 'plans.suivis.tableauDeBord.niveauExigence'
+      : this.activeTab() === 'pression'
+        ? 'plans.suivis.tableauDeBord.resultatAttendu'
+        : 'plans.suivis.tableauDeBord.niveauOuResultat';
+
+    const rows: CsvCell[][] = [[
+      this.t('plans.suivis.tableauDeBord.enjeu'),
+      this.t('plans.suivis.tableauDeBord.nomObjectif'),
+      this.t(subHeader),
+      this.t('plans.suivis.tableauDeBord.indicateurs'),
+      this.t('plans.suivis.tableauDeBord.export.metrique'),
+      ...years,
+      this.t('plans.suivis.tableauDeBord.global'),
+      this.t('plans.suivis.tableauDeBord.actions'),
+    ]];
+
+    for (const group of this.filteredGroups()) {
+      const objectif = `${group.kind === 'olt' ? 'OLT' : 'OO'} ${group.index} : ${group.label}`;
+      for (const row of group.rows) {
+        const global = this.getGlobalScoreForRow(row);
+        rows.push([
+          group.enjeuLibelle,
+          objectif,
+          row.subLabel,
+          row.indicateur.nom_indicateur,
+          '',
+          ...years.map(y => this.scoreLabelOrEmpty(this.getScoreForYear(row, y))),
+          global ? this.getScoreLabel(global) : '',
+          this.actionsForIndicator(row).map(a => a.code).join(' '),
+        ]);
+        for (const met of row.metriques) {
+          rows.push([
+            group.enjeuLibelle,
+            objectif,
+            row.subLabel,
+            row.indicateur.nom_indicateur,
+            met.unite ? `${met.nom_metrique} (${met.unite})` : met.nom_metrique,
+            ...years.map(y => this.scoreLabelOrEmpty(this.getMetriqueScoreForYear(met, y))),
+            '', '',
+          ]);
+        }
+      }
+    }
+    return rows;
+  }
+
+  private scoreLabelOrEmpty(level: ScoreLevel | null): string {
+    return level ? this.getScoreLabel(level) : '';
   }
 
   getNeRowspan(group: DashboardGroup, rowIdx: number): number {

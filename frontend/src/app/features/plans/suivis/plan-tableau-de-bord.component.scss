@@ -251,6 +251,27 @@
   flex: 0 0 auto;
 }
 
+// #638 — « Exporter le tableau », aligné à droite de la barre de filtres.
+.export-btn {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: $spacing-xxs;
+  background: transparent;
+  border: none;
+  color: $primary-color;
+  font-family: $font-family;
+  font-weight: $font-weight-semibold;
+  font-size: 0.85rem;
+  white-space: nowrap;
+  cursor: pointer;
+
+  &:hover:not(:disabled) { text-decoration: underline; }
+  &:disabled { color: $gray-dark; cursor: not-allowed; }
+
+  i { font-size: 14px; }
+}
+
 // Légende
 .legend {
   display: flex;
