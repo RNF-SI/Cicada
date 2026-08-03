@@ -6239,6 +6239,11 @@ class EnjeuxSeeder(BaseSeeder):
                     defaults={
                         'libelle': 'Suivi mensuel de la surface en eau (mi-parcours)',
                         'id_priorite': prio_op_2,
+                        # #588 — le type d'action est obligatoire côté formulaire :
+                        # cette opération est créée APRÈS la boucle qui déduit le
+                        # type depuis `id_referentiel_operations`, il faut donc le
+                        # poser ici (sinon le formulaire d'édition reste invalide).
+                        'id_type_action': type_action_cs8,
                         'id_referentiel_operations': 'CS',
                         'id_categorie_action_reserve': cat_reserve_cs,
                         'description': 'Mesures de surface en eau sur 6 marais témoins, 6 fois/an.',

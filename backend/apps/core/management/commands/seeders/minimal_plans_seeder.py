@@ -253,6 +253,16 @@ class MinimalPlansSeeder(BaseSeeder):
             code: self._get_nomenclature('CATEGORIE_ACTION_RESERVE', code)
             for code in ('CS', 'IP', 'SP', 'CC', 'PA', 'MS')
         }
+        # #588 — le type d'action est obligatoire dans le formulaire : sans lui
+        # la fiche action seedée est inéditable (formulaire invalide à
+        # l'ouverture). Un type plausible par catégorie de réserve.
+        types_action = {
+            cat: self._get_nomenclature('TYPE_ACTION', mn)
+            for cat, mn in (
+                ('CS', 'CS8'), ('IP', 'IP1'), ('SP', 'SP1'),
+                ('CC', 'CC1'), ('PA', 'PA1'), ('MS', 'IP2'),
+            )
+        }
 
         created_operations: List[Operation] = []
         created_enjeux = []
@@ -335,6 +345,7 @@ class MinimalPlansSeeder(BaseSeeder):
                         'libelle': op_spec['libelle'],
                         'id_priorite': prios_op.get(op_spec['prio']),
                         'id_categorie_action_reserve': cat_reserve.get(op_spec['cat']),
+                        'id_type_action': types_action.get(op_spec['cat']),
                         'description': op_spec['description'],
                         'annee_min': op_spec['annee_min'],
                         'annee_max': op_spec['annee_max'],

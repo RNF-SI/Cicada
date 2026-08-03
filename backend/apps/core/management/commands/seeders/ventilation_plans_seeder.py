@@ -372,6 +372,13 @@ class VentilationPlansSeeder(BaseSeeder):
             code: self._nomenclature('CATEGORIE_ACTION_RESERVE', code)
             for code in ('CS', 'IP', 'PA')
         }
+        # #588 — le type d'action est obligatoire dans le formulaire : les
+        # actions seedées doivent en porter un, sinon leur fiche est
+        # inéditable (formulaire invalide dès l'ouverture).
+        noms['type_action'] = {
+            cat: self._nomenclature('TYPE_ACTION', mn)
+            for cat, mn in (('CS', 'CS8'), ('IP', 'IP1'), ('PA', 'PA1'))
+        }
         noms['finance'] = {
             code: self._nomenclature('CATEGORIE_FINANCE', code)
             for code in ('ETAT', 'REGION', 'DEPARTEMENT', 'EUROPE', 'COMMUNE')
@@ -510,6 +517,7 @@ class VentilationPlansSeeder(BaseSeeder):
                 'description': action['description'],
                 'id_priorite': nomenclatures['priorite_op'].get(action['prio']),
                 'id_categorie_action_reserve': nomenclatures['cat_reserve'].get(action['cat']),
+                'id_type_action': nomenclatures['type_action'].get(action['cat']),
                 'annee_min': years[debut],
                 'annee_max': years[fin],
                 'frequence_nombre': action['freq'][0],
