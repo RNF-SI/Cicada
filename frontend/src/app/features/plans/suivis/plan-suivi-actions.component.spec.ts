@@ -325,3 +325,98 @@ describe('PlanSuiviActionsComponent — agrégation budget / RH (#616)', () => {
     expect(component.aggregateEtp(directe, 'total').previsionnel).toBe(3);
   });
 });
+
+/**
+ * #637 — L'export du tableau doit refléter l'onglet actif ET les filtres en
+ * cours, sans se limiter à la page affichée.
+ */
+describe('PlanSuiviActionsComponent — export du tableau (#637)', () => {
+  let component: PlanSuiviActionsComponent;
+
+  const makeOp = (id: number, libelle: string, annees: any[] = []) => ({
+    id_operation: id,
+    libelle,
+    code_affichage: `CS${id}`,
+    priorite_label: 'Priorité 1',
+    ventilation_mode: 'none',
+    operation_annees: annees,
+  });
+
+  beforeEach(() => {
+    TestBed.configureTestingModule({
+      imports: [PlanSuiviActionsComponent, NoopAnimationsModule, HttpClientTestingModule, TranslateModule.forRoot()],
+      providers: [
+        { provide: ActivatedRoute, useValue: { snapshot: { paramMap: { get: () => null }, queryParamMap: { get: () => null } } } },
+        { provide: Router, useValue: { navigate: jest.fn(), events: of(), createUrlTree: jest.fn(), serializeUrl: jest.fn() } },
+        { provide: AdminService, useValue: { getNomenclaturesByType: () => of([]), getPlanBySlug: () => of(null) } },
+        { provide: EnjeuService, useValue: { getPlanEnjeux: () => of({ enjeux: [], fcr: [] }) } },
+      ],
+    });
+    component = TestBed.createComponent(PlanSuiviActionsComponent).componentInstance;
+    component.planYearStart.set(2026);
+    component.planYearEnd.set(2027);
+    component.allOperations.set([
+      {
+        operation: makeOp(1, 'Action A', [
+          { annee: 2026, periodicite: true, periodicite_mensuelle: { '3': true, '5': true } },
+        ]) as any,
+        enjeuLibelle: 'Enjeu 1', enjeuId: 1,
+      },
+      {
+        operation: makeOp(2, 'Action B', [
+          { annee: 2027, periodicite: true, periodicite_mensuelle: {} },
+        ]) as any,
+        enjeuLibelle: 'Enjeu 2', enjeuId: 2,
+      },
+    ]);
+  });
+
+  const rows = (name: string) => (component as any)[name]() as any[][];
+
+  it('exporte une ligne par action filtrée, avec une colonne par année', () => {
+    const out = rows('buildRealisationRows');
+    expect(out).toHaveLength(3); // en-tête + 2 actions
+    expect(out[0]).toContain(2026);
+    expect(out[0]).toContain(2027);
+    expect(out[1][1]).toBe('Action A');
+    expect(out[2][1]).toBe('Action B');
+  });
+
+  it('n\'exporte que les actions retenues par les filtres', () => {
+    component.filters.enjeu.set([2]);
+    const out = rows('buildRealisationRows');
+    expect(out).toHaveLength(2);
+    expect(out[1][1]).toBe('Action B');
+  });
+
+  it('exporte toutes les lignes filtrées, pas seulement la page courante', () => {
+    component.allOperations.set(
+      Array.from({ length: 25 }, (_, i) => ({
+        operation: makeOp(i + 1, `Action ${i + 1}`) as any,
+        enjeuLibelle: 'Enjeu 1', enjeuId: 1,
+      })),
+    );
+    expect(component.pagedOperations().length).toBe(component.pageSize);
+    expect(rows('buildRealisationRows')).toHaveLength(26);
+  });
+
+  it('exporte le budget groupé par organisme, ligne de total en tête de groupe', () => {
+    const out = (component as any).buildAggregationRows('budget') as any[][];
+    expect(out[0][0]).toBe('plans.suivis.actions.organisme');
+    // Les actions sans ventilation tombent dans le bucket « Plan général » :
+    // 1 en-tête + 1 ligne de total du groupe + 2 actions.
+    expect(out).toHaveLength(4);
+    expect(out[1][0]).toBe('plans.suivis.actions.planGeneral');
+    expect(out[2][2]).toBe('Action A');
+  });
+
+  it('exporte la planification mois par mois, année par année', () => {
+    const out = rows('buildPlanificationRows');
+    expect(out).toHaveLength(3);
+    expect(out[1][5]).toBe(2026);
+    // monthsShort n'est pas traduit dans le test : repli sur les numéros de mois.
+    expect(String(out[1][6]).split(' ')).toHaveLength(2);
+    expect(out[2][5]).toBe(2027);
+    expect(out[2][6]).toBe('');
+  });
+});

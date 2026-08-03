@@ -34,6 +34,7 @@ import {
   hasActionCellForYear,
   GlobalRealisationKind, getGlobalRealisationKind, getGlobalRealisationLabelKey,
 } from './action-status.util';
+import { CsvCell, csvFilename, downloadCsv } from '../../../shared/utils/csv-export';
 
 type SuiviTab = 'planification' | 'realisation' | 'budget' | 'rh';
 
@@ -734,6 +735,168 @@ export class PlanSuiviActionsComponent implements OnInit {
 
     const ecartPct = previsionnel > 0 ? ((realise - previsionnel) / previsionnel) * 100 : null;
     return { previsionnel, realise, hasRealise, ecartPct };
+  }
+
+  // ===========================================================================
+  // #637 — Export CSV du tableau, dans l'état où il est affiché
+  // ===========================================================================
+
+  /**
+   * Exporte l'onglet courant en CSV. L'export part des mêmes signaux que le
+   * rendu (`filteredOperations()` / `operationsByOrganisme()`) : filtres,
+   * recherche et onglet sont donc repris tels quels. Seule la pagination est
+   * ignorée — on exporte l'intégralité des lignes filtrées, pas la page visible.
+   */
+  exportTable(): void {
+    const rows = this.activeTab() === 'planification'
+      ? this.buildPlanificationRows()
+      : this.activeTab() === 'realisation'
+        ? this.buildRealisationRows()
+        : this.buildAggregationRows(this.activeTab() === 'budget' ? 'budget' : 'etp');
+
+    downloadCsv(
+      csvFilename(['suivi-actions', this.activeTab(), this.planSlug()]),
+      rows,
+    );
+  }
+
+  private t(key: string): string {
+    return this.translate.instant(key);
+  }
+
+  /** En-têtes d'identification de l'action, communs à tous les onglets. */
+  private identityHeaders(): CsvCell[] {
+    return [
+      this.t('plans.suivis.actions.export.code'),
+      this.t('plans.suivis.actions.export.action'),
+      this.t('plans.suivis.actions.enjeu'),
+      this.t('plans.suivis.actions.categorieAction'),
+      this.t('plans.suivis.actions.priorite'),
+    ];
+  }
+
+  private identityCells(item: FlatOperation): CsvCell[] {
+    return [
+      this.actionCodes(item.operation),
+      item.operation.libelle,
+      item.enjeuLibelle,
+      this.getCategorieAction(item.operation) ?? '',
+      item.operation.priorite_label ?? '',
+    ];
+  }
+
+  /** Libellé traduit du statut annuel (case du tableau Réalisation). */
+  private yearStatusLabel(op: Operation, year: number): string {
+    const status = this.getActionStatusForYear(op, year);
+    if (!status) return '';
+    const item = ACTION_LEGEND_ITEMS.find(i => i.status === status);
+    return item ? this.t(item.labelKey) : '';
+  }
+
+  /** Onglet Réalisation : une ligne par action, une colonne par année. */
+  private buildRealisationRows(): CsvCell[][] {
+    const years = this.yearColumns();
+    const rows: CsvCell[][] = [[
+      ...this.identityHeaders(),
+      ...years,
+      this.t('plans.suivis.actions.globalStatus.columnHeader'),
+    ]];
+    for (const item of this.filteredOperations()) {
+      rows.push([
+        ...this.identityCells(item),
+        ...years.map(y => this.yearStatusLabel(item.operation, y)),
+        this.t(this.globalRealisationLabelKey(item.operation.niveau_realisation_global_mnemonique)),
+      ]);
+    }
+    return rows;
+  }
+
+  /**
+   * Onglets Budget / RH : groupés par organisme comme à l'écran, avec la ligne
+   * de total du groupe (calculée sur le groupe complet) puis ses actions.
+   */
+  private buildAggregationRows(metric: 'budget' | 'etp'): CsvCell[][] {
+    const unit = metric === 'budget' ? '€' : this.t('plans.suivis.actions.tabs.jours');
+    const periods: AggregationPeriod[] = ['current', 'past', 'total'];
+    const periodLabels = [
+      `${this.t('plans.suivis.actions.tabs.col.current')} (${this.currentYear()})`,
+      this.t('plans.suivis.actions.tabs.col.past'),
+      this.t('plans.suivis.actions.tabs.col.total'),
+    ];
+    const prev = this.t('plans.suivis.actions.export.previsionnel');
+    const real = this.t('plans.suivis.actions.export.realise');
+
+    const rows: CsvCell[][] = [[
+      this.t('plans.suivis.actions.organisme'),
+      ...this.identityHeaders(),
+      ...periodLabels.flatMap(p => [`${p} — ${prev} (${unit})`, `${p} — ${real} (${unit})`]),
+    ]];
+
+    for (const group of this.operationsByOrganisme()) {
+      const orgName = group.nom === '__plan_general__'
+        ? this.t('plans.suivis.actions.planGeneral')
+        : group.nom;
+
+      const totals = periods.map(p => this.groupAggregate(group.operations, p, metric));
+      rows.push([
+        orgName,
+        `${this.t('plans.suivis.actions.tabs.col.total')} ${orgName}`,
+        '', '', '', '',
+        ...totals.flatMap(c => [c.previsionnel, c.hasRealise ? c.realise : null]),
+      ]);
+
+      for (const item of group.operations) {
+        const cells = periods.map(p => metric === 'budget'
+          ? this.aggregateBudget(item.operation, p)
+          : this.aggregateEtp(item.operation, p));
+        rows.push([
+          orgName,
+          ...this.identityCells(item),
+          ...cells.flatMap(c => [c.previsionnel, c.hasRealise ? c.realise : null]),
+        ]);
+      }
+    }
+    return rows;
+  }
+
+  /**
+   * Onglet Planification : une ligne par (action, année programmée), avec les
+   * mois prévus et les mois effectivement réalisés. Indépendant de la vue
+   * agenda/calendrier, qui n'est qu'une mise en forme de ces mêmes données.
+   */
+  private buildPlanificationRows(): CsvCell[][] {
+    const months = this.t('plans.suivis.planification.monthsShort').split(',');
+    const monthNames = (map: Record<string, boolean> | null | undefined): string =>
+      Object.entries(map || {})
+        .filter(([, v]) => !!v)
+        .map(([k]) => Number(k))
+        .filter(n => n >= 1 && n <= 12)
+        .sort((a, b) => a - b)
+        .map(n => (months[n - 1] ?? String(n)).trim())
+        .join(' ');
+
+    const rows: CsvCell[][] = [[
+      ...this.identityHeaders(),
+      this.t('plans.suivis.actions.export.annee'),
+      this.t('plans.suivis.actions.export.moisPrevus'),
+      this.t('plans.suivis.actions.export.moisRealises'),
+    ]];
+
+    const filterYear = this.selectedYear();
+    for (const item of this.baseFilteredOperations()) {
+      const annees = (item.operation.operation_annees || [])
+        .filter((oa: OperationAnnee) => filterYear == null || oa.annee === filterYear)
+        .sort((a: OperationAnnee, b: OperationAnnee) => a.annee - b.annee);
+      for (const oa of annees) {
+        rows.push([
+          ...this.identityCells(item),
+          oa.annee,
+          monthNames(oa.periodicite_mensuelle),
+          monthNames(oa.realisation?.periodicite_mensuelle_realisee),
+        ]);
+      }
+    }
+    return rows;
   }
 
 }

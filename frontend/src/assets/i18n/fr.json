@@ -2099,7 +2099,17 @@
           "rhCible": "Poste / organisme"
         },
         "actionNonRealisee": "Action prévue non réalisée",
-        "actionNonRealiseeSeule": "Action non réalisée"
+        "actionNonRealiseeSeule": "Action non réalisée",
+        "export": {
+          "tooltip": "Exporter le tableau affiché (filtres en cours) au format CSV",
+          "code": "Code",
+          "action": "Action",
+          "previsionnel": "Prévisionnel",
+          "realise": "Réalisé",
+          "annee": "Année",
+          "moisPrevus": "Mois prévus",
+          "moisRealises": "Mois réalisés"
+        }
       },
       "saisie": {
         "subtitle": "Remplir le suivi d'une action",
