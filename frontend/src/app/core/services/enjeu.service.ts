@@ -576,6 +576,30 @@ export class EnjeuService {
     return this.http.delete<void>(`${this.apiUrl}/resultats-attendus/${id}/`);
   }
 
+  /**
+   * #585 — Partage ce résultat attendu avec un objectif opérationnel de plus.
+   * C'est la MÊME entité, avec ses indicateurs, qui apparaît sous les deux.
+   */
+  linkRaToOo(id: number, ooId: number): Observable<ResultatAttendu> {
+    return this.http.post<ResultatAttendu>(`${this.apiUrl}/resultats-attendus/${id}/link/`, { oo_id: ooId });
+  }
+
+  /**
+   * #585 — Retire le partage de ce résultat attendu pour un objectif. L'objectif
+   * PORTEUR (celui sous lequel il a été créé) est refusé par le serveur.
+   */
+  unlinkRaFromOo(id: number, ooId: number): Observable<ResultatAttendu> {
+    return this.http.post<ResultatAttendu>(`${this.apiUrl}/resultats-attendus/${id}/unlink/`, { oo_id: ooId });
+  }
+
+  /**
+   * #585 — Copie ce résultat attendu (et ses indicateurs) vers un objectif.
+   * Duplicata INDÉPENDANT, modifiable sans impacter l'original.
+   */
+  copyRaToOo(id: number, ooId: number): Observable<ResultatAttendu> {
+    return this.http.post<ResultatAttendu>(`${this.apiUrl}/resultats-attendus/${id}/copy/`, { oo_id: ooId });
+  }
+
   // ==========================================================================
   // Indicateurs CRUD
   // ==========================================================================

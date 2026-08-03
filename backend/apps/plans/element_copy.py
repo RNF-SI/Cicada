@@ -132,7 +132,10 @@ class ElementCopyService:
         new_oo = dup(old_oo, user, id_enjeu=None)
         new_oo.save()
 
-        for old_ra in ResultatAttendu.objects.filter(id_oo=old_oo):
+        # #585 — tout ce qui s'AFFICHE sous l'OO est copié, y compris un
+        # résultat attendu qui y est seulement partagé (porté par un autre
+        # objectif) : la copie doit ressembler à ce qu'on voit à l'écran.
+        for old_ra in ResultatAttendu.objects.filter(objectifs_operationnels=old_oo).distinct():
             new_ra = dup(old_ra, user, id_oo=new_oo)
             new_ra.save()
             for old_ind in Indicateur.objects.filter(id_resultat_attendu=old_ra):
@@ -189,6 +192,27 @@ class ElementCopyService:
             new_oo.id_enjeu = target_enjeu
             new_oo.save(update_fields=['id_enjeu'])
         return new_oo
+
+    @staticmethod
+    @transaction.atomic
+    def copy_ra(old_ra, user, *, target_oo):
+        """
+        Copie un résultat attendu + ses indicateurs sous ``target_oo`` (#585).
+
+        Contrairement à ``link`` (entité unique partagée), produit un duplicata
+        INDÉPENDANT : le modifier n'a aucun effet sur l'original.
+        """
+        from .models_indicateurs import Indicateur
+
+        dup = PlanDuplicationService._dup
+        new_ra = dup(old_ra, user, id_oo=target_oo)
+        new_ra.save()   # pose aussi le lien de liaison porteur (invariant #585)
+
+        for old_ind in Indicateur.objects.filter(id_resultat_attendu=old_ra):
+            ElementCopyService._copy_indicateur(
+                old_ind, user, id_ne=None, id_resultat_attendu=new_ra,
+            )
+        return new_ra
 
     @staticmethod
     @transaction.atomic

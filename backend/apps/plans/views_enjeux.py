@@ -1556,6 +1556,41 @@ class ResultatAttenduViewSet(viewsets.ModelViewSet):
             status=status.HTTP_200_OK,
         )
 
+    @action(detail=True, methods=['post'], url_path='copy')
+    def copy(self, request, pk=None):
+        """
+        #585 — Copie ce résultat attendu (et ses indicateurs) vers un objectif.
+
+        Contrairement à ``link`` (entité unique partagée), produit un duplicata
+        INDÉPENDANT, modifiable sans impacter l'original.
+
+        POST /api/plans/resultats-attendus/{id}/copy/  body: { "oo_id": <int> }
+        """
+        from .element_copy import ElementCopyService
+
+        ra = self.get_object()
+        oo_id = request.data.get('oo_id')
+        if not oo_id:
+            return Response({'detail': "oo_id requis."}, status=status.HTTP_400_BAD_REQUEST)
+        oo = get_object_or_404(ObjectifOperationnel, pk=oo_id)
+
+        plan = ra.get_plan_de_gestion()
+        if plan is None or oo.get_plan_de_gestion() != plan:
+            return Response(
+                {'detail': "Un résultat attendu ne peut être copié que vers un "
+                           "objectif opérationnel du même plan de gestion."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        blocked = self._assert_draft_or_403(plan)
+        if blocked:
+            return blocked
+
+        nouveau = ElementCopyService.copy_ra(ra, request.user, target_oo=oo)
+        return Response(
+            ResultatAttenduSerializer(nouveau, context=self.get_serializer_context()).data,
+            status=status.HTTP_201_CREATED,
+        )
+
     @action(detail=True, methods=['post'], url_path='unlink')
     def unlink(self, request, pk=None):
         """

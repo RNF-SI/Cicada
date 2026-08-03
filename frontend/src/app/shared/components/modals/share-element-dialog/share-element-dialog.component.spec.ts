@@ -118,6 +118,67 @@ describe('ShareElementDialogComponent — OO (cible pression)', () => {
   });
 });
 
+describe('ShareElementDialogComponent — résultat attendu (cible OO, #585)', () => {
+  const data: ShareElementDialogData = {
+    elementType: 'ra',
+    elementLabel: 'RA 1',
+    mode: 'link',
+    enjeux: [
+      {
+        id_enjeu: 10,
+        libelle: 'Enjeu A',
+        objectifs: [
+          { id_oo: 200, libelle: 'Restaurer les berges', numero: 1 },
+          { id_oo: 201, libelle: 'Limiter la fréquentation', numero: 2 },
+        ],
+      },
+      { id_enjeu: 20, libelle: 'Enjeu B', objectifs: [] },
+    ],
+  };
+
+  it('cible un objectif opérationnel et renvoie targetOoId', () => {
+    const { component, dialogRef } = setup(data);
+    expect(component.isRa).toBe(true);
+    expect(component.canConfirm()).toBe(false);
+
+    component.selectOo(201);
+
+    expect(component.canConfirm()).toBe(true);
+    component.confirm();
+    const result = dialogRef.close.mock.calls[0][0] as ShareElementDialogResult;
+    expect(result).toEqual({ mode: 'link', targetOoId: 201 });
+  });
+
+  it('un second clic sur la même cible la désélectionne', () => {
+    const { component } = setup(data);
+    component.selectOo(200);
+    component.selectOo(200);
+    expect(component.canConfirm()).toBe(false);
+  });
+
+  it('hasTargets est faux si aucun objectif disponible', () => {
+    const { component } = setup({
+      ...data, enjeux: [{ id_enjeu: 20, libelle: 'Enjeu B', objectifs: [] }],
+    });
+    expect(component.hasTargets()).toBe(false);
+  });
+
+  it('la recherche filtre par libellé d\'objectif', () => {
+    const { component } = setup(data);
+    component.onSearchChange('berges');
+    const groupes = component.filteredEnjeux();
+    expect(groupes).toHaveLength(1);
+    expect(groupes[0].objectifs!.map(o => o.id_oo)).toEqual([200]);
+  });
+
+  it('le mode copie reste disponible et remonte la même cible', () => {
+    const { component, dialogRef } = setup({ ...data, mode: 'copy' });
+    component.selectOo(200);
+    component.confirm();
+    expect(dialogRef.close.mock.calls[0][0]).toEqual({ mode: 'copy', targetOoId: 200 });
+  });
+});
+
 describe('ShareElementDialogComponent — action (#585)', () => {
   const data: ShareElementDialogData = {
     elementType: 'operation',

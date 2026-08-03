@@ -105,6 +105,26 @@
                 </div>
               }
             </div>
+          } @else if (isRa) {
+            <!-- RA (#585) : on choisit un objectif opérationnel sous chaque enjeu -->
+            <div class="target-group">
+              <span class="target-group-title">{{ enjeu.libelle }}</span>
+              @for (oo of enjeu.objectifs; track oo.id_oo) {
+                <div class="target-item"
+                     [class.selected]="selectedOoId() === oo.id_oo"
+                     (click)="selectOo(oo.id_oo)">
+                  <span class="radio-dot" [class.active]="selectedOoId() === oo.id_oo"></span>
+                  <div class="target-item-content">
+                    <span class="target-item-label">
+                      @if (oo.numero) {OO {{ oo.numero }} — }{{ oo.libelle }}
+                    </span>
+                    @if (oo.contexte) {
+                      <span class="target-item-meta">{{ oo.contexte }}</span>
+                    }
+                  </div>
+                </div>
+              }
+            </div>
           } @else {
             <!-- Facteur : on choisit un enjeu -->
             <div class="target-item"

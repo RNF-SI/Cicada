@@ -164,3 +164,57 @@ class TestPartageApi:
 
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert CorRaOo.objects.filter(id_ra=contexte['ra']).count() == 1
+
+
+@pytest.mark.integration
+class TestCopieApi:
+    """La copie produit un duplicata INDÉPENDANT, là où `link` partage la même
+    entité. Les deux sont proposés dans le même dialogue : la différence doit
+    être réelle en base."""
+
+    def _url(self, ra, verbe):
+        return f'/api/plans/resultats-attendus/{ra.pk}/{verbe}/'
+
+    def test_copier_cree_un_nouveau_ra_avec_ses_indicateurs(self, api_client, contexte):
+        ra = contexte['ra']
+        IndicateurPressionFactory(id_resultat_attendu=ra, nom_indicateur='IND source')
+        api_client.force_authenticate(user=contexte['referent'])
+
+        response = api_client.post(
+            self._url(ra, 'copy'), {'oo_id': contexte['oo_autre'].pk}, format='json',
+        )
+
+        assert response.status_code == status.HTTP_201_CREATED, response.data
+        assert response.data['id_ra'] != ra.pk
+        assert response.data['id_oo'] == contexte['oo_autre'].pk
+        assert [i['nom_indicateur'] for i in response.data['indicateurs']] == ['IND source']
+
+    def test_la_copie_est_independante_de_loriginal(self, api_client, contexte):
+        ra = contexte['ra']
+        api_client.force_authenticate(user=contexte['referent'])
+        copie_id = api_client.post(
+            self._url(ra, 'copy'), {'oo_id': contexte['oo_autre'].pk}, format='json',
+        ).data['id_ra']
+
+        api_client.patch(
+            f'/api/plans/resultats-attendus/{copie_id}/',
+            {'libelle': 'Libellé de la copie'}, format='json',
+        )
+
+        ra.refresh_from_db()
+        assert ra.libelle != 'Libellé de la copie'
+        # ...et l'original n'a pas gagné de partage au passage.
+        assert CorRaOo.objects.filter(id_ra=ra).count() == 1
+
+    def test_copier_hors_brouillon_est_refuse(self, api_client, contexte):
+        plan = contexte['plan']
+        plan.statut = 'valide'
+        plan.save(update_fields=['statut'])
+        api_client.force_authenticate(user=contexte['referent'])
+
+        response = api_client.post(
+            self._url(contexte['ra'], 'copy'),
+            {'oo_id': contexte['oo_autre'].pk}, format='json',
+        )
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN

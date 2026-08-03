@@ -21,4 +21,4 @@ export { LinkPlanToSiteDialogComponent, LinkPlanToSiteDialogData } from './link-
 export { ImportListDialogComponent, ImportListDialogData, ImportListDialogResult, ImportedItem } from './import-list-dialog/import-list-dialog.component';
 export { LinkOperationDialogComponent, LinkOperationDialogData, LinkOperationDialogResult } from './link-operation-dialog/link-operation-dialog.component';
 export { DeleteOperationDialogComponent, DeleteOperationDialogData, DeleteOperationDialogResult, DeleteOperationDialogMetrique } from './delete-operation-dialog/delete-operation-dialog.component';
-export { ShareElementDialogComponent, ShareElementDialogData, ShareElementDialogResult, ShareEnjeuTarget, SharePressionTarget, ShareIndicateurTarget, ShareMetriqueTarget } from './share-element-dialog/share-element-dialog.component';
+export { ShareElementDialogComponent, ShareElementDialogData, ShareElementDialogResult, ShareEnjeuTarget, ShareOoTarget, SharePressionTarget, ShareIndicateurTarget, ShareMetriqueTarget } from './share-element-dialog/share-element-dialog.component';

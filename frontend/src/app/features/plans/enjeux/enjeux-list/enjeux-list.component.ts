@@ -51,6 +51,7 @@ import {
   ShareElementDialogData,
   ShareElementDialogResult,
   ShareEnjeuTarget,
+  ShareOoTarget,
   SharePressionTarget,
   ShareIndicateurTarget,
 } from '../../../../shared/components/modals';
@@ -1869,6 +1870,124 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
           : this.enjeuService.linkOoToPression(oo.id_oo, result.targetPressionId);
         this.runShareCall(call$, isCopy ? 'enjeux.share.oo.copySuccess' : 'enjeux.share.oo.linkSuccess',
           isCopy ? 'enjeux.share.oo.copyError' : 'enjeux.share.oo.linkError');
+      });
+  }
+
+  /**
+   * #585 — Objectifs opérationnels d'un enjeu, quel qu'en soit le rattachement :
+   * via ses pressions (enjeu classique) ou en direct (FCR, #337). Même source
+   * que `selectedOos`, mais pour un enjeu quelconque du plan.
+   */
+  private oosOfEnjeu(enjeu: Enjeu): ObjectifOperationnel[] {
+    const source = [
+      ...(enjeu.objectifs_operationnels || []),
+      ...(enjeu.facteurs_influence || []).flatMap(
+        (fi) => (fi.pressions || []).flatMap((p) => p.objectifs_operationnels || []),
+      ),
+    ];
+    const vus = new Set<number>();
+    return source.filter((oo) => {
+      if (vus.has(oo.id_oo)) return false;
+      vus.add(oo.id_oo);
+      return true;
+    });
+  }
+
+  /** #585 — Objectifs opérationnels sous lesquels un RA est déjà présent. */
+  raOoIds(ra: ResultatAttendu): number[] {
+    return ra.oo_ids?.length ? ra.oo_ids : [ra.id_oo];
+  }
+
+  /** #585 — Vrai si le résultat attendu est partagé entre plusieurs objectifs. */
+  isRaShared(ra: ResultatAttendu): boolean {
+    return this.raOoIds(ra).length > 1;
+  }
+
+  /**
+   * #585 — Vrai si le RA n'est ici QUE par partage : l'objectif affiché n'est
+   * pas celui sous lequel il a été créé. C'est le seul cas où « retirer de cet
+   * objectif » a un sens — sur son objectif porteur, le serveur refuse.
+   */
+  isRaSharedHere(ra: ResultatAttendu, oo: ObjectifOperationnel): boolean {
+    return this.isRaShared(ra) && ra.id_oo !== oo.id_oo;
+  }
+
+  /**
+   * #585 — Ouvre le dialogue « Lier / Copier » pour partager un résultat attendu
+   * avec un autre objectif opérationnel (élément unique) ou en créer une copie
+   * indépendante.
+   */
+  openShareRa(ra: ResultatAttendu, mode: 'link' | 'copy'): void {
+    if (!this.canEditPlan()) return;
+    const dejaLies = new Set(this.raOoIds(ra));
+    const targets: ShareEnjeuTarget[] = [];
+    for (const e of this.allEnjeuxAndFcr()) {
+      const objectifs: ShareOoTarget[] = [];
+      for (const oo of this.oosOfEnjeu(e)) {
+        if (dejaLies.has(oo.id_oo)) continue;
+        objectifs.push({
+          id_oo: oo.id_oo,
+          libelle: oo.libelle,
+          numero: oo.numero_affichage ?? oo.numero_manuel ?? null,
+        });
+      }
+      if (objectifs.length) {
+        targets.push({ id_enjeu: e.id_enjeu, libelle: e.libelle, objectifs });
+      }
+    }
+
+    const dialogRef = this.dialog.open(ShareElementDialogComponent, {
+      width: '640px', maxWidth: '95vw', maxHeight: '90vh',
+      data: {
+        elementType: 'ra',
+        elementLabel: ra.libelle,
+        mode,
+        enjeux: targets,
+      } as ShareElementDialogData,
+    });
+
+    dialogRef.afterClosed().pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((result: ShareElementDialogResult | null) => {
+        if (!result || result.targetOoId == null) return;
+        const isCopy = result.mode === 'copy';
+        const call$ = isCopy
+          ? this.enjeuService.copyRaToOo(ra.id_ra, result.targetOoId)
+          : this.enjeuService.linkRaToOo(ra.id_ra, result.targetOoId);
+        this.runShareCall(call$, isCopy ? 'enjeux.share.ra.copySuccess' : 'enjeux.share.ra.linkSuccess',
+          isCopy ? 'enjeux.share.ra.copyError' : 'enjeux.share.ra.linkError');
+      });
+  }
+
+  /**
+   * #585 — Retire le partage d'un résultat attendu pour l'objectif affiché.
+   * Le RA et ses indicateurs survivent : ils restent sous leurs autres objectifs.
+   */
+  unlinkRa(ra: ResultatAttendu, oo: ObjectifOperationnel): void {
+    if (!this.canEditPlan()) return;
+    if (!this.isRaSharedHere(ra, oo)) {
+      this.snackBar.open(
+        this.translate.instant('enjeux.share.ra.unlinkPorteur'),
+        this.translate.instant('common.actions.close'),
+        { duration: 5000 },
+      );
+      return;
+    }
+
+    this.dialog.open(ConfirmDialogComponent, {
+      width: '520px', maxWidth: '95vw',
+      data: {
+        title: this.translate.instant('enjeux.share.ra.unlinkConfirmTitle'),
+        message: this.translate.instant('enjeux.share.ra.unlinkConfirmMessage', { label: ra.libelle }),
+        confirmText: this.translate.instant('enjeux.share.ra.unlinkAction'),
+        cancelText: this.translate.instant('common.actions.cancel'),
+      },
+    }).afterClosed().pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((confirmed: boolean) => {
+        if (!confirmed) return;
+        this.runShareCall(
+          this.enjeuService.unlinkRaFromOo(ra.id_ra, oo.id_oo),
+          'enjeux.share.ra.unlinkSuccess', 'enjeux.share.ra.unlinkError',
+        );
       });
   }
 

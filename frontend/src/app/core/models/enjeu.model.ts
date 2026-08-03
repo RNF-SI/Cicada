@@ -327,7 +327,13 @@ export interface ObjectifOperationnel {
  */
 export interface ResultatAttendu {
   id_ra: number;
+  /** Objectif opérationnel PORTEUR (celui sous lequel le RA a été créé). */
   id_oo: number;
+  /**
+   * #585 — Objectifs opérationnels sous lesquels ce résultat attendu apparaît,
+   * porteur inclus. Plus d'un = partagé (badge « Lié à plusieurs objectifs »).
+   */
+  oo_ids?: number[];
   libelle: string;
   description?: string;
   indicateurs?: Indicateur[];

@@ -3106,3 +3106,176 @@ describe('EnjeuxListComponent — déplacement d\'une action entre indicateurs (
     });
   });
 });
+
+// =============================================================================
+// #585 — Partage d'un résultat attendu entre plusieurs objectifs opérationnels
+// =============================================================================
+
+describe('EnjeuxListComponent — partage d\'un résultat attendu (#585)', () => {
+  let fixture: ComponentFixture<EnjeuxListComponent>;
+  let component: EnjeuxListComponent;
+  let dialogOpen: jest.SpyInstance;
+
+  /** RA 50 porté par l'OO 40 ; RA 51 porté par 40 et PARTAGÉ avec 41. */
+  const planData = {
+    plan: { id_pg: 1, nom: 'Plan', slug: 'plan-test', statut: 'draft' },
+    enjeux: [
+      {
+        id_enjeu: 1,
+        slug: 'enjeu-a',
+        libelle: 'Enjeu A',
+        objectifs_long_terme: [],
+        facteurs_influence: [
+          {
+            id_facteur_influence: 20,
+            libelle: 'FI 1',
+            pressions: [
+              {
+                id_pression: 30,
+                libelle: 'Pression 1',
+                objectifs_operationnels: [
+                  {
+                    id_oo: 40,
+                    libelle: 'OO 1',
+                    numero_affichage: 1,
+                    resultats_attendus: [
+                      { id_ra: 50, libelle: 'RA simple', id_oo: 40, oo_ids: [40], indicateurs: [] },
+                      { id_ra: 51, libelle: 'RA partagé', id_oo: 40, oo_ids: [40, 41], indicateurs: [] },
+                    ],
+                  },
+                  {
+                    id_oo: 41,
+                    libelle: 'OO 2',
+                    numero_affichage: 2,
+                    resultats_attendus: [
+                      { id_ra: 51, libelle: 'RA partagé', id_oo: 40, oo_ids: [40, 41], indicateurs: [] },
+                    ],
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      },
+    ],
+    fcr: [],
+  };
+
+  const raSimple = () => planData.enjeux[0].facteurs_influence[0].pressions[0]
+    .objectifs_operationnels[0].resultats_attendus[0] as never;
+  const raPartage = () => planData.enjeux[0].facteurs_influence[0].pressions[0]
+    .objectifs_operationnels[0].resultats_attendus[1] as never;
+  const oo = (index: number) => planData.enjeux[0].facteurs_influence[0]
+    .pressions[0].objectifs_operationnels[index] as never;
+
+  beforeEach(async () => {
+    await TestBed.configureTestingModule({
+      imports: [
+        EnjeuxListComponent,
+        NoopAnimationsModule,
+        HttpClientTestingModule,
+        RouterTestingModule,
+        TranslateModule.forRoot(),
+      ],
+      providers: [
+        {
+          provide: ActivatedRoute,
+          useValue: {
+            params: of({}),
+            queryParams: of({}),
+            fragment: of(null),
+            snapshot: { paramMap: new Map(), queryParamMap: new Map() },
+            parent: { params: of({ slug: 'plan-test' }), snapshot: { paramMap: new Map() } },
+          },
+        },
+      ],
+    }).compileComponents();
+
+    fixture = TestBed.createComponent(EnjeuxListComponent);
+    component = fixture.componentInstance;
+    component['planEnjeuxData'].set(planData as never);
+    component['selectedEnjeuSlug'].set('enjeu-a');
+    jest.spyOn(component, 'canEditPlan').mockReturnValue(true);
+    dialogOpen = jest.spyOn(component['dialog'], 'open');
+  });
+
+  afterEach(() => jest.restoreAllMocks());
+
+  it('signale comme partagé le RA rattaché à plusieurs objectifs', () => {
+    expect(component.isRaShared(raSimple())).toBe(false);
+    expect(component.isRaShared(raPartage())).toBe(true);
+  });
+
+  it('ne propose « retirer » que sous un objectif qui n\'est pas le porteur', () => {
+    // Sous son objectif porteur (40), retirer n'a pas de sens : le serveur refuse.
+    expect(component.isRaSharedHere(raPartage(), oo(0))).toBe(false);
+    // Sous l'objectif avec lequel il est partagé (41), oui.
+    expect(component.isRaSharedHere(raPartage(), oo(1))).toBe(true);
+    // Un RA non partagé n'est jamais « retirable ».
+    expect(component.isRaSharedHere(raSimple(), oo(0))).toBe(false);
+  });
+
+  it('ouvre le dialogue sur les objectifs où le RA n\'est pas déjà présent', () => {
+    dialogOpen.mockReturnValue({ afterClosed: () => of(null) } as never);
+
+    component.openShareRa(raSimple(), 'link');
+
+    const data = dialogOpen.mock.calls[0][1].data;
+    expect(data.elementType).toBe('ra');
+    expect(data.elementLabel).toBe('RA simple');
+    // L'objectif porteur (40) est exclu, l'autre (41) est proposé.
+    expect(data.enjeux[0].objectifs.map((o: { id_oo: number }) => o.id_oo)).toEqual([41]);
+  });
+
+  it('n\'offre aucune cible quand le RA est déjà sous tous les objectifs', () => {
+    dialogOpen.mockReturnValue({ afterClosed: () => of(null) } as never);
+
+    component.openShareRa(raPartage(), 'link');
+
+    expect(dialogOpen.mock.calls[0][1].data.enjeux).toEqual([]);
+  });
+
+  it('appelle le partage avec l\'objectif choisi', () => {
+    dialogOpen.mockReturnValue({
+      afterClosed: () => of({ mode: 'link', targetOoId: 41 }),
+    } as never);
+    const link = jest.spyOn(component['enjeuService'], 'linkRaToOo').mockReturnValue(of({} as never) as never);
+    jest.spyOn(component, 'loadPlanData').mockImplementation(() => undefined as never);
+
+    component.openShareRa(raSimple(), 'link');
+
+    expect(link).toHaveBeenCalledWith(50, 41);
+  });
+
+  it('appelle la copie quand le dialogue renvoie le mode « copier »', () => {
+    dialogOpen.mockReturnValue({
+      afterClosed: () => of({ mode: 'copy', targetOoId: 41 }),
+    } as never);
+    const copy = jest.spyOn(component['enjeuService'], 'copyRaToOo').mockReturnValue(of({} as never) as never);
+    jest.spyOn(component, 'loadPlanData').mockImplementation(() => undefined as never);
+
+    component.openShareRa(raSimple(), 'copy');
+
+    expect(copy).toHaveBeenCalledWith(50, 41);
+  });
+
+  it('refuse de retirer le RA de son objectif porteur sans appeler le serveur', () => {
+    const unlink = jest.spyOn(component['enjeuService'], 'unlinkRaFromOo');
+
+    component.unlinkRa(raPartage(), oo(0));
+
+    expect(unlink).not.toHaveBeenCalled();
+    expect(dialogOpen).not.toHaveBeenCalled();
+  });
+
+  it('retire le partage après confirmation', () => {
+    dialogOpen.mockReturnValue({ afterClosed: () => of(true) } as never);
+    const unlink = jest.spyOn(component['enjeuService'], 'unlinkRaFromOo')
+      .mockReturnValue(of({} as never) as never);
+    jest.spyOn(component, 'loadPlanData').mockImplementation(() => undefined as never);
+
+    component.unlinkRa(raPartage(), oo(1));
+
+    expect(unlink).toHaveBeenCalledWith(51, 41);
+  });
+});

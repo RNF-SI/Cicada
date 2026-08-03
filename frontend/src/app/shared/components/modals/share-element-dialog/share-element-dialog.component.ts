@@ -15,6 +15,15 @@ export interface SharePressionTarget {
   facteurLibelle?: string;
 }
 
+/** Objectif opérationnel candidat (cible d'un partage/copie de RA, #585). */
+export interface ShareOoTarget {
+  id_oo: number;
+  libelle: string;
+  numero?: number | null;
+  /** Contexte affiché sous le libellé (pression d'origine, ou « FCR »). */
+  contexte?: string;
+}
+
 /** Enjeu candidat, éventuellement porteur de pressions (cas OO). */
 export interface ShareEnjeuTarget {
   id_enjeu: number;
@@ -22,6 +31,8 @@ export interface ShareEnjeuTarget {
   numero?: number | null;
   /** Pressions sous cet enjeu (uniquement pour le partage/copie d'un OO). */
   pressions?: SharePressionTarget[];
+  /** #585 — Objectifs opérationnels sous cet enjeu (partage/copie d'un RA). */
+  objectifs?: ShareOoTarget[];
 }
 
 /** Métrique candidate (cible d'un partage/copie d'action). */
@@ -41,7 +52,7 @@ export interface ShareIndicateurTarget {
 
 export interface ShareElementDialogData {
   /** Type d'élément partagé/copié. */
-  elementType: 'facteur' | 'oo' | 'operation';
+  elementType: 'facteur' | 'oo' | 'ra' | 'operation';
   /** Libellé de l'élément source (affiché dans l'entête). */
   elementLabel: string;
   /** Mode présélectionné selon le bouton cliqué. */
@@ -62,9 +73,11 @@ export interface ShareElementDialogData {
 
 export interface ShareElementDialogResult {
   mode: 'link' | 'copy';
-  /** Cible retenue : un enjeu (facteur), une pression (OO), un indicateur ou une métrique (action). */
+  /** Cible retenue : un enjeu (facteur), une pression (OO), un objectif (RA),
+   *  un indicateur ou une métrique (action). */
   targetEnjeuId?: number;
   targetPressionId?: number;
+  targetOoId?: number;
   targetIndicateurId?: number;
   targetMetriqueId?: number;
 }
@@ -94,12 +107,15 @@ export class ShareElementDialogComponent {
   /** Enjeu sélectionné (facteur) ou pression sélectionnée (OO). */
   readonly selectedEnjeuId = signal<number | null>(null);
   readonly selectedPressionId = signal<number | null>(null);
+  /** #585 — Objectif opérationnel retenu (cas RA). */
+  readonly selectedOoId = signal<number | null>(null);
 
   /** Cible retenue pour une action (#585) : une métrique ou l'indicateur lui-même. */
   readonly selectedIndicateurId = signal<number | null>(null);
   readonly selectedMetriqueId = signal<number | null>(null);
 
   readonly isOo = this.data.elementType === 'oo';
+  readonly isRa = this.data.elementType === 'ra';
   readonly isOperation = this.data.elementType === 'operation';
 
   /** i18n racine des libellés selon le type d'élément. */
@@ -136,6 +152,15 @@ export class ShareElementDialogComponent {
     return enjeux
       .map((e) => {
         const enjeuMatch = e.libelle.toLowerCase().includes(term);
+        if (this.isRa) {
+          if (enjeuMatch) return e;
+          const objectifs = (e.objectifs || []).filter(
+            (o) =>
+              o.libelle.toLowerCase().includes(term) ||
+              (o.contexte || '').toLowerCase().includes(term),
+          );
+          return objectifs.length ? { ...e, objectifs } : null;
+        }
         if (!this.isOo) return enjeuMatch ? e : null;
         const pressions = (e.pressions || []).filter(
           (p) =>
@@ -159,6 +184,9 @@ export class ShareElementDialogComponent {
     if (this.isOo) {
       return this.data.enjeux.some((e) => (e.pressions || []).length > 0);
     }
+    if (this.isRa) {
+      return this.data.enjeux.some((e) => (e.objectifs || []).length > 0);
+    }
     return this.data.enjeux.length > 0;
   });
 
@@ -166,7 +194,9 @@ export class ShareElementDialogComponent {
     if (this.isOperation) {
       return this.selectedMetriqueId() !== null || this.selectedIndicateurId() !== null;
     }
-    return this.isOo ? this.selectedPressionId() !== null : this.selectedEnjeuId() !== null;
+    if (this.isOo) return this.selectedPressionId() !== null;
+    if (this.isRa) return this.selectedOoId() !== null;
+    return this.selectedEnjeuId() !== null;
   });
 
   setMode(mode: 'link' | 'copy'): void {
@@ -196,6 +226,10 @@ export class ShareElementDialogComponent {
     this.selectedPressionId.set(this.selectedPressionId() === id ? null : id);
   }
 
+  selectOo(id: number): void {
+    this.selectedOoId.set(this.selectedOoId() === id ? null : id);
+  }
+
   onSearchChange(value: string): void {
     this.searchTerm.set(value);
   }
@@ -211,6 +245,8 @@ export class ShareElementDialogComponent {
       }
     } else if (this.isOo) {
       result.targetPressionId = this.selectedPressionId()!;
+    } else if (this.isRa) {
+      result.targetOoId = this.selectedOoId()!;
     } else {
       result.targetEnjeuId = this.selectedEnjeuId()!;
     }

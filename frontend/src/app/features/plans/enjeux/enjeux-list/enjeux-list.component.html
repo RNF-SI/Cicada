@@ -1701,10 +1701,29 @@
                                      [matTooltip]="'enjeux.resultatAttendu.tooltip' | translate"
                                      matTooltipPosition="right"
                                      (click)="$event.stopPropagation()"></i>
+                                  @if (isRaShared(ra)) {
+                                    <span class="shared-badge"
+                                          [matTooltip]="'enjeux.share.ra.sharedBadge' | translate"
+                                          (click)="$event.stopPropagation()">
+                                      <i class="fi fi-rr-link-alt"></i>
+                                      {{ 'enjeux.share.ra.sharedBadge' | translate }}
+                                    </span>
+                                  }
                                 </h3>
                               </div>
                               <div class="ne-card-actions">
                                 @if (canEditPlan()) {
+                                  <button class="icon-btn-flat" (click)="openShareRa(ra, 'link'); $event.stopPropagation()" [title]="'enjeux.share.ra.linkAction' | translate">
+                                    <i class="fi fi-rr-link-alt"></i>
+                                  </button>
+                                  <button class="icon-btn-flat" (click)="openShareRa(ra, 'copy'); $event.stopPropagation()" [title]="'enjeux.share.ra.copyAction' | translate">
+                                    <i class="fi fi-rr-copy-alt"></i>
+                                  </button>
+                                  @if (isRaSharedHere(ra, oo)) {
+                                    <button class="icon-btn-flat" (click)="unlinkRa(ra, oo); $event.stopPropagation()" [title]="'enjeux.share.ra.unlinkAction' | translate">
+                                      <i class="fi fi-rr-unlink"></i>
+                                    </button>
+                                  }
                                   <button class="icon-btn-flat" (click)="startEditRa(ra); $event.stopPropagation()" [title]="'common.actions.edit' | translate">
                                     <i class="fi fi-rr-pencil"></i>
                                   </button>
