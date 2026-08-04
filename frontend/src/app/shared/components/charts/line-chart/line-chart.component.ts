@@ -36,7 +36,8 @@ interface LineVm {
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (vm && vm.hasData) {
-      <svg [attr.viewBox]="'0 0 ' + vm.width + ' ' + vm.height" class="line-svg" preserveAspectRatio="xMidYMid meet">
+      <svg [attr.viewBox]="'0 0 ' + vm.width + ' ' + vm.height" class="line-svg"
+           [style.max-width.px]="vm.width" preserveAspectRatio="xMidYMid meet">
         @if (yLabel) {
           <svg:text [attr.x]="vm.plotLeft" y="12" class="line-axis-title">{{ yLabel }}</svg:text>
         }
@@ -84,6 +85,8 @@ export class LineChartComponent implements OnChanges {
   @Input() yTicks = 5;
   @Input() height = 240;
   @Input() yLabel?: string;
+  /** Largeur du tracé, en px — voir `BarChartComponent.maxWidth`. */
+  @Input() maxWidth = 640;
   @Input() legend?: LegendItem[];
 
   vm: LineVm | null = null;
@@ -92,7 +95,7 @@ export class LineChartComponent implements OnChanges {
     const n = this.xLabels.length;
     if (n === 0 || this.series.length === 0) { this.vm = null; return; }
 
-    const width = 640;
+    const width = this.maxWidth;
     const plotLeft = 34, plotRight = width - 14, plotTop = 18, plotBottom = this.height - 26;
     const plotW = plotRight - plotLeft;
     const plotH = plotBottom - plotTop;

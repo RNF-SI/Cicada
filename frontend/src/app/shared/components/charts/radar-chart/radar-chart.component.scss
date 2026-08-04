@@ -4,41 +4,46 @@
   display: block;
   width: 100%;
   height: auto;
-  max-width: 340px;
+  max-width: 100%;
   margin: 0 auto;
   font-family: $font-family;
   overflow: visible;
 }
 
+// Kit UI : anneaux de graduation blancs a 40 %, axes blancs opaques.
 .radar-ring {
   fill: none;
-  stroke: rgba(255, 255, 255, 0.75);
+  stroke: rgba(255, 255, 255, 0.4);
   stroke-width: 1;
+  stroke-linecap: round;
 }
 
 .radar-ring-label {
-  fill: $gray-dark;
-  font-size: 9px;
+  fill: $primary-color;
+  font-size: $font-size-small;
 }
 
 .radar-axis {
-  stroke: rgba(255, 255, 255, 0.85);
+  stroke: $white;
   stroke-width: 1;
 }
 
 .radar-axis-label {
   fill: $black;
-  font-size: 11px;
-  font-weight: $font-weight-semibold;
+  font-size: $font-size-small;
+  font-weight: $font-weight-regular;
 }
 
+// Contour seul : le degrade porte deja la lecture du niveau, un remplissage
+// par-dessus voilerait la couleur lue sous chaque point.
 .radar-shape {
-  fill: rgba(2, 83, 89, 0.12);
+  fill: none;
   stroke: $primary-color;
-  stroke-width: 2;
+  stroke-width: 1.5;
+  stroke-linejoin: round;
 }
 
 .radar-point {
-  stroke: $white;
+  stroke: $primary-color;
   stroke-width: 1.5;
 }

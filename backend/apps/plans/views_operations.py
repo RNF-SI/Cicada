@@ -904,6 +904,34 @@ class RealisationOperationAnneeViewSet(viewsets.ModelViewSet):
             'by_enjeu': radar,
         })
 
+    # ------------------------------------------------------------------ #
+    # Bilan — croisé « planifiée × réalisée »
+    # ------------------------------------------------------------------ #
+    #
+    # Les graphiques du Bilan ne classent pas les actions par niveau de
+    # nomenclature (TERMINE, EN_COURS…) mais par le croisé *prévu × réalisé*,
+    # le même que les icônes du tableau de suivi (#379) : la couleur dit qui
+    # (planifiée ou non), le motif dit l'issue. Cinq combinaisons seulement —
+    # une action ni prévue ni réalisée n'existe pas, il n'y a rien à compter.
+    #
+    # Ces compteurs s'ajoutent aux niveaux existants, ils ne les remplacent
+    # pas : les exports du bilan (#639) continuent de lire les niveaux.
+    STATUT_KEYS = (
+        'planifiee_realisee', 'planifiee_partielle', 'planifiee_non_realisee',
+        'non_planifiee_realisee', 'non_planifiee_partielle',
+    )
+
+    @staticmethod
+    def _statut_key(planifiee, mnemonique):
+        """Clé du croisé prévu × réalisé, ou None si le couple n'existe pas."""
+        if mnemonique == 'TERMINE':
+            return 'planifiee_realisee' if planifiee else 'non_planifiee_realisee'
+        if mnemonique == 'PARTIEL':
+            return 'planifiee_partielle' if planifiee else 'non_planifiee_partielle'
+        # NON_REALISE, NON_DEMARRE, EN_COURS, ABANDONNE, REPORTE, rien de saisi :
+        # du point de vue du bilan, ce qui était prévu n'a pas été fait.
+        return 'planifiee_non_realisee' if planifiee else None
+
     @action(detail=False, methods=['get'], url_path=r'bilan/(?P<plan_id>\d+)')
     def bilan(self, request, plan_id=None):
         """
@@ -976,6 +1004,7 @@ class RealisationOperationAnneeViewSet(viewsets.ModelViewSet):
                 'non_demarre': 0, 'en_cours': 0, 'partiel': 0,
                 'termine': 0, 'abandonne': 0, 'reporte': 0,
                 'inconnu': 0, 'total': 0,
+                **{k: 0 for k in self.STATUT_KEYS},
             }
 
         # 2) Boucle d'agrégation
@@ -1020,6 +1049,7 @@ class RealisationOperationAnneeViewSet(viewsets.ModelViewSet):
                     if r.id_niveau_realisation else None
                 )
                 key = niveau_map.get(mnemonique, 'inconnu')
+                skey = self._statut_key(bool(oa.periodicite), mnemonique)
 
                 # Catégorie d'action (préfixe CT88 si dispo, sinon TYPE_ACTION)
                 cat = op.id_categorie_action_reserve or op.id_type_action
@@ -1028,6 +1058,8 @@ class RealisationOperationAnneeViewSet(viewsets.ModelViewSet):
                 categorie_meta[cat_code] = cat_label
                 by_categorie[cat_code][key] += 1
                 by_categorie[cat_code]['total'] += 1
+                if skey:
+                    by_categorie[cat_code][skey] += 1
 
                 # Enjeux : une op peut être rattachée à plusieurs métriques → plusieurs enjeux.
                 # On compte une fois par enjeu rattaché.
@@ -1044,9 +1076,13 @@ class RealisationOperationAnneeViewSet(viewsets.ModelViewSet):
                 for eid in enjeux_set:
                     by_enjeu[eid][key] += 1
                     by_enjeu[eid]['total'] += 1
+                    if skey:
+                        by_enjeu[eid][skey] += 1
 
                 taux_global[key] += 1
                 taux_global['total'] += 1
+                if skey:
+                    taux_global[skey] += 1
 
             # --- Budgets / ETP ---
             mode = op.ventilation_mode
@@ -1109,13 +1145,20 @@ class RealisationOperationAnneeViewSet(viewsets.ModelViewSet):
                 'metriques__id_indicateur__id_ne__id_olt__id_enjeu',
             )
             for op in ops_global:
-                key = niveau_map.get(op.get_niveau_realisation_global(), 'inconnu')
+                mnemonique = op.get_niveau_realisation_global()
+                key = niveau_map.get(mnemonique, 'inconnu')
+                # Au global, l'action est « planifiée » dès qu'une de ses années
+                # l'était — le croisé se lit sur la période, pas année par année.
+                planifiee = any(oa.periodicite for oa in op.operation_annees.all())
+                skey = self._statut_key(planifiee, mnemonique)
 
                 cat = op.id_categorie_action_reserve or op.id_type_action
                 cat_code = (cat.cd_nomenclature or cat.mnemonique or 'AUTRE') if cat else 'AUTRE'
                 categorie_meta[cat_code] = (cat.label if cat else 'Autre')
                 by_categorie[cat_code][key] += 1
                 by_categorie[cat_code]['total'] += 1
+                if skey:
+                    by_categorie[cat_code][skey] += 1
 
                 enjeux_set = set()
                 for m in op.metriques.all():
@@ -1130,9 +1173,13 @@ class RealisationOperationAnneeViewSet(viewsets.ModelViewSet):
                 for eid in enjeux_set:
                     by_enjeu[eid][key] += 1
                     by_enjeu[eid]['total'] += 1
+                    if skey:
+                        by_enjeu[eid][skey] += 1
 
                 taux_global[key] += 1
                 taux_global['total'] += 1
+                if skey:
+                    taux_global[skey] += 1
 
         # 3) Mise en forme
         by_categorie_list = sorted(
@@ -1196,7 +1243,9 @@ class RealisationOperationAnneeViewSet(viewsets.ModelViewSet):
           - indicateurs_evolution : moyenne / min / max / écart-type des scores
             d'indicateurs par année (dernière mesure de chaque métrique dans l'année)
           - rh_par_annee : jours de travail prévisionnel / réalisé par année
-          - actions_par_annee : counts par niveau de réalisation par année (barres empilées)
+          - actions_par_annee : `niveaux` (counts par niveau de nomenclature) et
+            `statuts` (croisé planifiée × réalisée, celui que tracent les barres
+            empilées du Bilan — voir `_statut_key`)
 
         Filtre optionnel : ?enjeu_id= (comme /bilan/). Le scoping suit get_queryset.
         Cohérence avec /bilan/ : le prévisionnel (RH) n'est compté que pour les
@@ -1286,6 +1335,7 @@ class RealisationOperationAnneeViewSet(viewsets.ModelViewSet):
         }
         niveau_keys = ['termine', 'partiel', 'en_cours', 'reporte', 'non_demarre', 'abandonne', 'inconnu']
         actions_by_year = {k: [0] * n for k in niveau_keys}
+        statuts_by_year = {k: [0] * n for k in self.STATUT_KEYS}
         rh_prev = [0.0] * n
         rh_real = [0.0] * n
         seen_oa = set()
@@ -1298,6 +1348,9 @@ class RealisationOperationAnneeViewSet(viewsets.ModelViewSet):
 
             mnem = r.id_niveau_realisation.mnemonique if r.id_niveau_realisation else None
             actions_by_year[niveau_map.get(mnem, 'inconnu')][i] += 1
+            skey = self._statut_key(bool(oa.periodicite), mnem)
+            if skey:
+                statuts_by_year[skey][i] += 1
 
             if oa.id_operation_annee not in seen_oa:
                 seen_oa.add(oa.id_operation_annee)
@@ -1319,6 +1372,7 @@ class RealisationOperationAnneeViewSet(viewsets.ModelViewSet):
             },
             'actions_par_annee': {
                 'niveaux': actions_by_year,
+                'statuts': statuts_by_year,
             },
         })
 

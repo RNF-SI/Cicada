@@ -30,6 +30,17 @@ export interface RealisationsByPlanResponse {
   total: number;
 }
 
+/**
+ * Comptages du bilan pour un périmètre (global, une catégorie, un enjeu).
+ *
+ * Deux découpages coexistent volontairement :
+ *  - par **niveau** de nomenclature (`termine`, `en_cours`…) — lu par les exports ;
+ *  - par **statut** croisé planifiée × réalisée (`planifiee_*`, `non_planifiee_*`)
+ *    — c'est celui que tracent les graphiques du Bilan (kit UI : la couleur dit
+ *    qui, le motif dit l'issue).
+ * Les statuts ne totalisent pas forcément `total` : une action ni prévue ni
+ * réalisée n'entre dans aucun des cinq.
+ */
 export interface BilanCounts {
   non_demarre: number;
   en_cours: number;
@@ -39,6 +50,11 @@ export interface BilanCounts {
   reporte: number;
   inconnu: number;
   total: number;
+  planifiee_realisee: number;
+  planifiee_partielle: number;
+  planifiee_non_realisee: number;
+  non_planifiee_realisee: number;
+  non_planifiee_partielle: number;
 }
 
 export interface BilanCategorie extends BilanCounts {
@@ -128,6 +144,8 @@ export interface BilanSeriesResponse {
   actions_par_annee: {
     /** { termine: [...], partiel: [...], ... } alignés sur `years`. */
     niveaux: Record<string, number[]>;
+    /** Croisé planifiée × réalisée, aligné sur `years` — cf. `BilanCounts`. */
+    statuts: Record<string, number[]>;
   };
 }
 

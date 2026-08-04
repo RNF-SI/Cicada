@@ -9,9 +9,16 @@ import { PatternDef } from './chart.types';
  * Utilisation (à l'intérieur d'un `<svg>`) :
  *   <svg:g ccdChartDefs [defs]="vm.defs"></svg:g>
  *
- * Chaque motif est un aplat blanc surchargé de traits de la couleur demandée,
- * afin de rester lisible sur fond de carte (kit UI). L'aplat blanc garantit le
- * contraste des hachures quelle que soit la couleur de série.
+ * Chaque motif est un **fond de la couleur de série à 8 % d'opacité**, surchargé
+ * de traits de cette même couleur (kit UI, cf. docs/DESIGN_SYSTEM.md « Graphiques »).
+ * L'aplat blanc utilisé auparavant donnait la teinte inverse de la maquette :
+ * c'est la couleur de la série qui doit teinter le segment, pas le blanc.
+ *
+ * Géométrie relevée sur les SVG Figma (donuts et barres du Bilan) :
+ *  - hachures : traits à 45°, épaisseur ~0,9 px, espacés de ~5,3 px
+ *  - croix    : glyphe de 4,5 px au pas de 9 px, épaisseur 1 px — les croix ne
+ *               se touchent pas (#640), contrairement au treillis continu
+ *               produit par des diagonales pleine largeur.
  */
 @Component({
   selector: 'g[ccdChartDefs]',
@@ -26,19 +33,20 @@ import { PatternDef } from './chart.types';
             <svg:pattern
               [attr.id]="d.id"
               patternUnits="userSpaceOnUse"
-              width="7" height="7"
-              patternTransform="rotate(45)">
-              <svg:rect width="7" height="7" fill="#ffffff"></svg:rect>
-              <svg:line x1="0" y1="0" x2="0" y2="7" [attr.stroke]="d.color" stroke-width="3.2"></svg:line>
+              width="5.3" height="5.3"
+              patternTransform="rotate(-45)">
+              <svg:rect width="5.3" height="5.3" [attr.fill]="d.color" fill-opacity="0.08"></svg:rect>
+              <svg:line x1="0" y1="0" x2="0" y2="5.3" [attr.stroke]="d.color" stroke-width="0.9"></svg:line>
             </svg:pattern>
           }
           @case ('cross') {
             <svg:pattern
               [attr.id]="d.id"
               patternUnits="userSpaceOnUse"
-              width="8" height="8">
-              <svg:rect width="8" height="8" fill="#ffffff"></svg:rect>
-              <svg:path d="M0 0 L8 8 M8 0 L0 8" [attr.stroke]="d.color" stroke-width="1.3"></svg:path>
+              width="9" height="9">
+              <svg:rect width="9" height="9" [attr.fill]="d.color" fill-opacity="0.08"></svg:rect>
+              <svg:path d="M2.25 2.25 L6.75 6.75 M6.75 2.25 L2.25 6.75"
+                        fill="none" [attr.stroke]="d.color" stroke-width="1"></svg:path>
             </svg:pattern>
           }
           @case ('dots') {
@@ -46,8 +54,8 @@ import { PatternDef } from './chart.types';
               [attr.id]="d.id"
               patternUnits="userSpaceOnUse"
               width="7" height="7">
-              <svg:rect width="7" height="7" fill="#ffffff"></svg:rect>
-              <svg:circle cx="3.5" cy="3.5" r="1.35" [attr.fill]="d.color"></svg:circle>
+              <svg:rect width="7" height="7" [attr.fill]="d.color" fill-opacity="0.08"></svg:rect>
+              <svg:circle cx="3.5" cy="3.5" r="1.2" [attr.fill]="d.color"></svg:circle>
             </svg:pattern>
           }
         }

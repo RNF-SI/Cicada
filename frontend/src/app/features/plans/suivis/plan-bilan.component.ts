@@ -30,7 +30,8 @@ import {
 import {
   ChartCardComponent, ChartLegendComponent, DonutChartComponent,
   BarChartComponent, LineChartComponent, RadarChartComponent,
-  DonutSlice, BarDatum, BarSegment, RadarAxis, LegendItem, LineSeries, LineBand, scoreColor,
+  DonutSlice, BarDatum, BarSegment, RadarAxis, LegendItem, LineSeries, LineBand,
+  ChartPattern, scoreColor,
 } from '../../../shared/components/charts';
 import { createFilterSet } from '../../../shared/utils/filter-set';
 import { CsvCell, csvFilename, downloadCsv } from '../../../shared/utils/csv-export';
@@ -42,14 +43,29 @@ import {
   BilanSeriesResponse,
 } from '../../../core/services/realisation.service';
 
-/** Niveaux de réalisation (barres empilées) — couleurs du design system. */
-const NIVEAUX: Array<{ key: keyof BilanCounts; color: string; i18n: string }> = [
-  { key: 'termine',     color: '#04854B', i18n: 'plans.suivis.bilan.niveau.termine' },
-  { key: 'partiel',     color: '#82DB8A', i18n: 'plans.suivis.bilan.niveau.partiel' },
-  { key: 'en_cours',    color: '#025359', i18n: 'plans.suivis.bilan.niveau.enCours' },
-  { key: 'reporte',     color: '#F7D35C', i18n: 'plans.suivis.bilan.niveau.reporte' },
-  { key: 'non_demarre', color: '#E4E4E4', i18n: 'plans.suivis.bilan.niveau.nonDemarre' },
-  { key: 'abandonne',   color: '#E12329', i18n: 'plans.suivis.bilan.niveau.abandonne' },
+/**
+ * Séries des barres empilées du Bilan — croisé planifiée × réalisée (kit UI).
+ *
+ * Deux couleurs seulement : la **couleur** dit qui (planifiée `$primary-color`
+ * / non planifiée `$secondary-terra-cotta`), le **motif** dit l'issue (plein =
+ * réalisée, hachures = partiellement, croix = non réalisée). Six teintes
+ * distinctes seraient illisibles en impression noir et blanc, et ne diraient
+ * plus que « planifiée » et « non planifiée » sont deux familles.
+ * Voir docs/DESIGN_SYSTEM.md « Graphiques ».
+ */
+const PLANIFIE_COLOR = '#025359';
+const NON_PLANIFIE_COLOR = '#B74D5D';
+/** Couleur unique des donuts d'avancement (indicateurs et actions). */
+const AVANCEMENT_COLOR = '#FEC180';
+
+const STATUTS: Array<{
+  key: keyof BilanCounts; color: string; pattern?: ChartPattern; i18n: string;
+}> = [
+  { key: 'planifiee_realisee',      color: PLANIFIE_COLOR,                        i18n: 'plans.suivis.bilan.statut.planifieeRealisee' },
+  { key: 'planifiee_partielle',     color: PLANIFIE_COLOR,     pattern: 'hatch',  i18n: 'plans.suivis.bilan.statut.planifieePartielle' },
+  { key: 'planifiee_non_realisee',  color: PLANIFIE_COLOR,     pattern: 'cross',  i18n: 'plans.suivis.bilan.statut.planifieeNonRealisee' },
+  { key: 'non_planifiee_realisee',  color: NON_PLANIFIE_COLOR,                    i18n: 'plans.suivis.bilan.statut.nonPlanifieeRealisee' },
+  { key: 'non_planifiee_partielle', color: NON_PLANIFIE_COLOR, pattern: 'hatch',  i18n: 'plans.suivis.bilan.statut.nonPlanifieePartielle' },
 ];
 
 type Scope = 'global' | 'mi_parcours' | 'annuel';
@@ -102,9 +118,13 @@ export class PlanBilanComponent implements OnInit {
     },
   });
 
-  /** Légende des 6 niveaux de réalisation (barres empilées). */
+  /** Légende des barres empilées : croisé planifiée × réalisée (5 séries). */
   niveauLegend = computed<LegendItem[]>(() =>
-    NIVEAUX.map(n => ({ label: this.translate.instant(n.i18n), color: n.color })),
+    STATUTS.map(s => ({
+      label: this.translate.instant(s.i18n),
+      color: s.color,
+      pattern: s.pattern,
+    })),
   );
 
   /** Années du plan pour le sélecteur timeline. */
@@ -150,8 +170,8 @@ export class PlanBilanComponent implements OnInit {
     const fait = bi.indicateurs_evalues;
     const pasFait = Math.max(bi.total_indicateurs - bi.indicateurs_evalues, 0);
     return [
-      { label: this.translate.instant('plans.suivis.bilan.indic.fait'), value: fait, color: '#FEC180' },
-      { label: this.translate.instant('plans.suivis.bilan.indic.pasFait'), value: pasFait, color: '#746F6E', pattern: 'cross' },
+      { label: this.translate.instant('plans.suivis.bilan.indic.fait'), value: fait, color: AVANCEMENT_COLOR },
+      { label: this.translate.instant('plans.suivis.bilan.indic.pasFait'), value: pasFait, color: AVANCEMENT_COLOR, pattern: 'cross' },
     ];
   });
 
@@ -159,23 +179,38 @@ export class PlanBilanComponent implements OnInit {
   radarAxes = computed<RadarAxis[]>(() => {
     const bi = this.bilanIndicateurs();
     if (!bi) return [];
-    return bi.by_enjeu.map(e => ({ label: this.truncate(e.libelle, 26), value: e.moyenne, color: scoreColor(e.moyenne) }));
+    return bi.by_enjeu.map(e => ({ label: this.truncate(e.libelle, 16), value: e.moyenne, color: scoreColor(e.moyenne) }));
   });
 
   // ===========================================================================
   // Actions — modèles de données pour les composants graphiques
   // ===========================================================================
 
-  /** Donut « Taux de réalisation des actions » : réalisée / partielle / non réalisée. */
+  /**
+   * Donut « Taux de réalisation des actions » : réalisée / partielle / non réalisée.
+   * Actions planifiées ET non planifiées confondues (le donut mesure l'issue,
+   * pas l'origine) : c'est la répartition par motif d'une couleur unique.
+   */
   actionsTauxSlices = computed<DonutSlice[]>(() => {
     const b = this.bilan();
     if (!b) return [];
     const t = b.taux_realisation;
-    const nonRealisee = t.total - t.termine - t.partiel;
     return [
-      { label: this.translate.instant('plans.suivis.bilan.actionsChart.realisee'), value: t.termine, color: '#FA9965' },
-      { label: this.translate.instant('plans.suivis.bilan.actionsChart.partielle'), value: t.partiel, color: '#FEC180', pattern: 'hatch' },
-      { label: this.translate.instant('plans.suivis.bilan.actionsChart.nonRealisee'), value: Math.max(nonRealisee, 0), color: '#746F6E', pattern: 'cross' },
+      {
+        label: this.translate.instant('plans.suivis.bilan.actionsChart.realisee'),
+        value: t.planifiee_realisee + t.non_planifiee_realisee,
+        color: AVANCEMENT_COLOR,
+      },
+      {
+        label: this.translate.instant('plans.suivis.bilan.actionsChart.partielle'),
+        value: t.planifiee_partielle + t.non_planifiee_partielle,
+        color: AVANCEMENT_COLOR, pattern: 'hatch',
+      },
+      {
+        label: this.translate.instant('plans.suivis.bilan.actionsChart.nonRealisee'),
+        value: t.planifiee_non_realisee,
+        color: AVANCEMENT_COLOR, pattern: 'cross',
+      },
     ];
   });
 
@@ -190,16 +225,17 @@ export class PlanBilanComponent implements OnInit {
   /** Barres empilées « par enjeu / FCR ». */
   niveauByEnjeuBars = computed<BarDatum[]>(() =>
     (this.bilan()?.by_enjeu || []).map(e => ({
-      label: this.truncate(e.libelle, 11),
+      label: this.truncate(e.libelle, 9),
       segments: this.buildNiveauSegments(e),
     })),
   );
 
   private buildNiveauSegments(counts: BilanCounts): BarSegment[] {
-    return NIVEAUX.map(n => ({
-      value: counts[n.key] as number,
-      color: n.color,
-      seriesLabel: this.translate.instant(n.i18n),
+    return STATUTS.map(s => ({
+      value: (counts[s.key] as number) ?? 0,
+      color: s.color,
+      pattern: s.pattern,
+      seriesLabel: this.translate.instant(s.i18n),
     })).filter(s => s.value > 0);
   }
 
@@ -254,15 +290,15 @@ export class PlanBilanComponent implements OnInit {
     return s.years.map((y, i) => ({
       label: String(y),
       segments: [
-        { value: s.rh_par_annee.previsionnel[i] ?? 0, color: '#FEC180', seriesLabel: prevLabel },
-        { value: s.rh_par_annee.realise[i] ?? 0, color: '#B74D5D', seriesLabel: reelLabel },
+        { value: s.rh_par_annee.previsionnel[i] ?? 0, color: AVANCEMENT_COLOR, seriesLabel: prevLabel },
+        { value: s.rh_par_annee.realise[i] ?? 0, color: NON_PLANIFIE_COLOR, seriesLabel: reelLabel },
       ],
     }));
   });
 
   rhParAnneeLegend = computed<LegendItem[]>(() => [
-    { label: this.translate.instant('plans.suivis.bilan.actionsChart.rhPrevisionnelLegend'), color: '#FEC180' },
-    { label: this.translate.instant('plans.suivis.bilan.actionsChart.rhReelLegend'), color: '#B74D5D' },
+    { label: this.translate.instant('plans.suivis.bilan.actionsChart.rhPrevisionnelLegend'), color: AVANCEMENT_COLOR },
+    { label: this.translate.instant('plans.suivis.bilan.actionsChart.rhReelLegend'), color: NON_PLANIFIE_COLOR },
   ]);
 
   hasRhSeries = computed<boolean>(() => {
@@ -274,21 +310,22 @@ export class PlanBilanComponent implements OnInit {
   actionsParAnneeBars = computed<BarDatum[]>(() => {
     const s = this.bilanSeries();
     if (!s) return [];
-    const niv = s.actions_par_annee.niveaux;
+    const st = s.actions_par_annee.statuts ?? {};
     return s.years.map((y, i) => ({
       label: String(y),
-      segments: NIVEAUX.map(n => ({
-        value: niv[n.key]?.[i] ?? 0,
+      segments: STATUTS.map(n => ({
+        value: st[n.key]?.[i] ?? 0,
         color: n.color,
+        pattern: n.pattern,
         seriesLabel: this.translate.instant(n.i18n),
       })).filter(seg => seg.value > 0),
     }));
   });
 
   hasActionsSeries = computed<boolean>(() => {
-    const niv = this.bilanSeries()?.actions_par_annee.niveaux;
-    if (!niv) return false;
-    return NIVEAUX.some(n => (niv[n.key] ?? []).some(v => v > 0));
+    const st = this.bilanSeries()?.actions_par_annee.statuts;
+    if (!st) return false;
+    return STATUTS.some(n => (st[n.key] ?? []).some(v => v > 0));
   });
 
   // ===========================================================================
@@ -408,9 +445,11 @@ export class PlanBilanComponent implements OnInit {
     if (!b) return;
     rows.push([], [this.t('plans.suivis.bilan.tabs.actions')]);
 
+    // L'export reprend les séries **affichées** (#639) : il est lu à côté du
+    // graphique, des catégories différentes le rendraient incomparable.
     rows.push([this.t('plans.suivis.bilan.actionsChart.tauxTitle')]);
     rows.push([this.t('plans.suivis.bilan.export.niveau'), this.t('plans.suivis.bilan.export.nombre')]);
-    for (const n of NIVEAUX) rows.push([this.t(n.i18n), b.taux_realisation[n.key]]);
+    for (const s of this.actionsTauxSlices()) rows.push([s.label, s.value]);
     rows.push([this.t('plans.suivis.bilan.summary.total'), b.taux_realisation.total]);
 
     const prev = this.t('plans.suivis.bilan.actionsChart.budgetPrevisionnel');
@@ -429,19 +468,19 @@ export class PlanBilanComponent implements OnInit {
     rows.push([this.t('plans.suivis.bilan.actionsChart.rhPrevisionnelle'), `${b.rh.previsionnel} ${jours}`]);
     rows.push([this.t('plans.suivis.bilan.actionsChart.rhReelle'), `${b.rh.realise} ${jours}`]);
 
-    const niveauHeaders = NIVEAUX.map(n => this.t(n.i18n));
+    const statutHeaders = STATUTS.map(s => this.t(s.i18n));
     rows.push([], [this.t('plans.suivis.bilan.actionsChart.byCategorieTitle')]);
-    rows.push([this.t('plans.suivis.bilan.actionsChart.categorieAxis'), ...niveauHeaders,
+    rows.push([this.t('plans.suivis.bilan.actionsChart.categorieAxis'), ...statutHeaders,
       this.t('plans.suivis.bilan.summary.total')]);
     for (const c of b.by_categorie_action) {
-      rows.push([c.label || c.code, ...NIVEAUX.map(n => c[n.key]), c.total]);
+      rows.push([c.label || c.code, ...STATUTS.map(s => c[s.key]), c.total]);
     }
 
     rows.push([], [this.t('plans.suivis.bilan.actionsChart.byEnjeuTitle')]);
-    rows.push([this.t('plans.suivis.bilan.filterEnjeu'), ...niveauHeaders,
+    rows.push([this.t('plans.suivis.bilan.filterEnjeu'), ...statutHeaders,
       this.t('plans.suivis.bilan.summary.total')]);
     for (const e of b.by_enjeu) {
-      rows.push([e.libelle, ...NIVEAUX.map(n => e[n.key]), e.total]);
+      rows.push([e.libelle, ...STATUTS.map(s => e[s.key]), e.total]);
     }
 
     const series = this.bilanSeries();
@@ -460,11 +499,11 @@ export class PlanBilanComponent implements OnInit {
     }
 
     if (this.hasActionsSeries()) {
-      const niv = series.actions_par_annee.niveaux;
+      const st = series.actions_par_annee.statuts ?? {};
       rows.push([], [this.t('plans.suivis.bilan.actionsChart.evolutionTitle')]);
-      rows.push([this.t('plans.suivis.bilan.export.annee'), ...niveauHeaders]);
+      rows.push([this.t('plans.suivis.bilan.export.annee'), ...statutHeaders]);
       series.years.forEach((y, i) =>
-        rows.push([y, ...NIVEAUX.map(n => niv[n.key]?.[i] ?? 0)]));
+        rows.push([y, ...STATUTS.map(s => st[s.key]?.[i] ?? 0)]));
     }
   }
 

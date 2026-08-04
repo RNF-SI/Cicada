@@ -215,7 +215,8 @@
                         [band]="indicEvolutionBand()"
                         [yMin]="1" [yMax]="5" [yTicks]="4"
                         [yLabel]="'plans.suivis.bilan.indic.score' | translate"
-                        [legend]="indicEvolutionLegend()">
+                        [legend]="indicEvolutionLegend()"
+                        [maxWidth]="1060">
                       </app-line-chart>
                     } @else {
                       <div class="chart-soon">
@@ -358,7 +359,7 @@
               <app-chart-card class="span-2"
                 [title]="'plans.suivis.bilan.actionsChart.evolutionTitle' | translate">
                 @if (hasActionsSeries()) {
-                  <app-bar-chart [data]="actionsParAnneeBars()" mode="stacked"></app-bar-chart>
+                  <app-bar-chart [data]="actionsParAnneeBars()" mode="stacked" [maxWidth]="1060"></app-bar-chart>
                   <app-chart-legend [items]="niveauLegend()" [inline]="true"></app-chart-legend>
                 } @else {
                   <div class="chart-soon">

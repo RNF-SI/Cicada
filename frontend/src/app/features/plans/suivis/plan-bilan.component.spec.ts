@@ -21,9 +21,15 @@ describe('PlanBilanComponent — export des résultats (#639)', () => {
     bilanSeries: jest.Mock;
   };
 
+  // `termine` (niveau de nomenclature) et `planifiee_realisee` (croisé prévu ×
+  // réalisé) décrivent les mêmes actions : les graphiques et l'export lisent le
+  // second, les deux doivent donc rester cohérents dans le jeu d'essai.
   const counts = (termine: number, total: number) => ({
     non_demarre: 0, en_cours: 0, partiel: 0, termine,
     abandonne: 0, reporte: 0, inconnu: 0, total,
+    planifiee_realisee: termine, planifiee_partielle: 0,
+    planifiee_non_realisee: total - termine,
+    non_planifiee_realisee: 0, non_planifiee_partielle: 0,
   });
 
   const bilan = {
@@ -58,6 +64,11 @@ describe('PlanBilanComponent — export des résultats (#639)', () => {
       niveaux: {
         termine: [1, 2], partiel: [0, 0], en_cours: [0, 0],
         reporte: [0, 0], non_demarre: [0, 0], abandonne: [0, 0],
+      },
+      statuts: {
+        planifiee_realisee: [1, 2], planifiee_partielle: [0, 0],
+        planifiee_non_realisee: [0, 0],
+        non_planifiee_realisee: [0, 0], non_planifiee_partielle: [0, 0],
       },
     },
   } as unknown as BilanSeriesResponse;

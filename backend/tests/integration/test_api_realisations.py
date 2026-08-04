@@ -433,6 +433,77 @@ class TestRealisationBilanEndpoint:
         assert taux['total'] == 1
         assert taux['termine'] == 1
 
+    def test_bilan_croise_planifiee_et_realisee(self, api_client, realisation_test_data):
+        """
+        Les graphiques du Bilan classent par croisé prévu × réalisé, pas par
+        niveau de nomenclature : une année programmée et TERMINE est
+        « planifiée réalisée », et cette clé accompagne le niveau `termine`.
+        """
+        RealisationOperationAnneeFactory(
+            id_operation_annee=realisation_test_data['op_annee'],
+            id_niveau_realisation=realisation_test_data['niveau_termine'],
+        )
+        api_client.force_authenticate(user=realisation_test_data['super_admin'])
+        response = api_client.get(
+            f'/api/plans/realisations/bilan/{realisation_test_data["plan"].pk}/'
+        )
+        taux = response.data['taux_realisation']
+        assert taux['planifiee_realisee'] == 1
+        assert taux['non_planifiee_realisee'] == 0
+        assert taux['planifiee_non_realisee'] == 0
+
+    def test_bilan_croise_non_planifiee_quand_annee_non_programmee(
+        self, api_client, realisation_test_data
+    ):
+        """
+        Année non programmée mais réalisée = « non planifiée réalisée » : c'est
+        la famille terra cotta de la maquette, celle qu'on perdrait si le bilan
+        ne regardait que le niveau de réalisation.
+        """
+        op_annee = realisation_test_data['op_annee']
+        op_annee.periodicite = False
+        op_annee.save(update_fields=['periodicite'])
+        RealisationOperationAnneeFactory(
+            id_operation_annee=op_annee,
+            id_niveau_realisation=realisation_test_data['niveau_termine'],
+        )
+        api_client.force_authenticate(user=realisation_test_data['super_admin'])
+        response = api_client.get(
+            f'/api/plans/realisations/bilan/{realisation_test_data["plan"].pk}/'
+        )
+        taux = response.data['taux_realisation']
+        assert taux['non_planifiee_realisee'] == 1
+        assert taux['planifiee_realisee'] == 0
+
+    def test_bilan_croise_ignore_ni_prevue_ni_realisee(
+        self, api_client, realisation_test_data
+    ):
+        """
+        Ni prévue ni réalisée : aucune des cinq séries ne l'accueille — le couple
+        n'existe pas côté produit, l'inventer donnerait une part fantôme.
+        Le total, lui, continue de la compter.
+        """
+        op_annee = realisation_test_data['op_annee']
+        op_annee.periodicite = False
+        op_annee.save(update_fields=['periodicite'])
+        RealisationOperationAnneeFactory(
+            id_operation_annee=op_annee,
+            id_niveau_realisation=None,
+        )
+        api_client.force_authenticate(user=realisation_test_data['super_admin'])
+        response = api_client.get(
+            f'/api/plans/realisations/bilan/{realisation_test_data["plan"].pk}/'
+        )
+        taux = response.data['taux_realisation']
+        assert taux['total'] == 1
+        assert all(
+            taux[k] == 0
+            for k in (
+                'planifiee_realisee', 'planifiee_partielle', 'planifiee_non_realisee',
+                'non_planifiee_realisee', 'non_planifiee_partielle',
+            )
+        )
+
     def test_bilan_aggregates_budget_for_none_mode(self, api_client, realisation_test_data):
         """Mode 'none' : budget_realise remonte au niveau année."""
         from decimal import Decimal

@@ -64,8 +64,9 @@
   pointer-events: none;
   z-index: 2;
 
+  // Kit UI : « Très mauvais : 25% » — la valeur est en gras, pas en couleur.
   strong {
-    color: $primary-color;
+    color: $black;
     font-weight: $font-weight-bold;
   }
 }

@@ -1957,6 +1957,13 @@
           "nonDemarre": "Non démarré",
           "abandonne": "Abandonné"
         },
+        "statut": {
+          "planifieeRealisee": "Planifiée réalisée",
+          "planifieePartielle": "Planifiée partiellement réalisée",
+          "planifieeNonRealisee": "Planifiée non réalisée",
+          "nonPlanifieeRealisee": "Non planifiée réalisée",
+          "nonPlanifieePartielle": "Non planifiée partiellement réalisée"
+        },
         "summary": {
           "tauxTitle": "Taux de réalisation",
           "actionsTerminees": "actions terminées",
