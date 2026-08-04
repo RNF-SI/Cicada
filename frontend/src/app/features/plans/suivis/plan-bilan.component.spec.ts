@@ -1,4 +1,6 @@
+import { ElementRef } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
+import { MatSnackBar } from '@angular/material/snack-bar';
 import { ActivatedRoute } from '@angular/router';
 import { TranslateService } from '@ngx-translate/core';
 import { of } from 'rxjs';
@@ -7,6 +9,15 @@ import { AdminService } from '../../../core/services/admin.service';
 import {
   RealisationService, BilanResponse, BilanIndicateursResponse, BilanSeriesResponse,
 } from '../../../core/services/realisation.service';
+import * as chartImageExport from '../../../shared/utils/chart-image-export';
+
+// La rasterisation (`<canvas>`) et le téléchargement n'existent pas en jsdom :
+// seule la composition de la planche est vérifiée ici.
+jest.mock('../../../shared/utils/chart-image-export', () => ({
+  ...jest.requireActual('../../../shared/utils/chart-image-export'),
+  svgToJpeg: jest.fn(() => Promise.resolve(new Blob())),
+  downloadBlob: jest.fn(),
+}));
 
 /**
  * #639 — L'export des résultats du bilan doit sérialiser les agrégations
@@ -73,18 +84,27 @@ describe('PlanBilanComponent — export des résultats (#639)', () => {
     },
   } as unknown as BilanSeriesResponse;
 
+  let hostElement: HTMLElement;
+  let snackBar: { open: jest.Mock };
+
   beforeEach(() => {
+    jest.clearAllMocks();
     realisationService = {
       bilan: jest.fn().mockReturnValue(of(bilan)),
       bilanIndicateurs: jest.fn().mockReturnValue(of(indicateurs)),
       bilanSeries: jest.fn().mockReturnValue(of(series)),
     };
+    hostElement = document.createElement('div');
+    hostElement.innerHTML = '<section class="content-section"></section>';
+    snackBar = { open: jest.fn() };
     TestBed.configureTestingModule({
       providers: [
         { provide: ActivatedRoute, useValue: { paramMap: of({ get: () => null }) } },
         { provide: AdminService, useValue: { getPlanBySlug: () => of(null) } },
         { provide: RealisationService, useValue: realisationService },
         { provide: TranslateService, useValue: { instant: (k: string) => k } },
+        { provide: ElementRef, useValue: new ElementRef(hostElement) },
+        { provide: MatSnackBar, useValue: snackBar },
       ],
     });
     component = TestBed.runInInjectionContext(() => new PlanBilanComponent());
@@ -140,5 +160,61 @@ describe('PlanBilanComponent — export des résultats (#639)', () => {
     realisationService.bilanIndicateurs.mockClear();
     component.filters.reset();
     expect(realisationService.bilanIndicateurs).toHaveBeenCalledWith(1, undefined);
+  });
+
+  // ===========================================================================
+  // Retour recette : les chiffres s'exportaient, pas les graphiques
+  // ===========================================================================
+
+  describe('export JPG des graphiques', () => {
+    const renderChart = () => {
+      hostElement.querySelector('.content-section')!.innerHTML = `
+        <article class="chart-card">
+          <header class="chart-card__head"><h3 class="chart-card__title">Taux de réalisation</h3></header>
+          <div class="chart-card__body"><svg viewBox="0 0 400 200"></svg></div>
+        </article>`;
+    };
+
+    const exportedSvg = () =>
+      (chartImageExport.svgToJpeg as jest.Mock).mock.calls[0][0] as SVGSVGElement;
+
+    const exportedTexts = () =>
+      Array.from(exportedSvg().querySelectorAll('text')).map(t => t.textContent);
+
+    it('télécharge une planche JPG nommée d’après l’onglet et la portée', async () => {
+      renderChart();
+      component.planSlug.set('plan-test');
+      await component.exportCharts();
+
+      expect(chartImageExport.downloadBlob).toHaveBeenCalledWith(
+        expect.stringMatching(/^bilan_graphiques_indicateurs_global_plan-test_\d{4}-\d{2}-\d{2}\.jpg$/),
+        expect.any(Blob),
+      );
+    });
+
+    it('rappelle les filtres en cours sur l’image', async () => {
+      renderChart();
+      component.selectedYear.set(2027);
+      component.setScope('annuel');
+      component.onEnjeuFilterChange([7]);
+      await component.exportCharts();
+
+      expect(exportedTexts()).toEqual(expect.arrayContaining([
+        'plans.suivis.bilan.export.portee : plans.suivis.bilan.scope.annuel',
+        'plans.suivis.bilan.export.annee : 2027',
+        'plans.suivis.bilan.filterEnjeu : Enjeu 7',
+        'plans.suivis.bilan.export.onglet : plans.suivis.bilan.tabs.indicateurs',
+      ]));
+      expect(exportedTexts()).toContain('Taux de réalisation');
+    });
+
+    it('prévient au lieu de télécharger un fichier vide quand rien n’est affiché', async () => {
+      await component.exportCharts();
+
+      expect(chartImageExport.downloadBlob).not.toHaveBeenCalled();
+      expect(snackBar.open).toHaveBeenCalledWith(
+        'plans.suivis.bilan.export.noCharts', expect.anything(), expect.anything(),
+      );
+    });
   });
 });

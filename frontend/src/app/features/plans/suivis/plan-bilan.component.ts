@@ -12,12 +12,13 @@
  * année, niveau de réalisation par année) nécessitent une agrégation temporelle
  * côté serveur qui n'existe pas encore — leur tuile affiche un message dédié.
  */
-import { Component, OnInit, inject, signal, computed } from '@angular/core';
+import { Component, ElementRef, OnInit, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatMenuModule } from '@angular/material/menu';
+import { MatSnackBar } from '@angular/material/snack-bar';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 
 import {
@@ -34,7 +35,10 @@ import {
   ChartPattern, scoreColor,
 } from '../../../shared/components/charts';
 import { createFilterSet } from '../../../shared/utils/filter-set';
-import { CsvCell, csvFilename, downloadCsv } from '../../../shared/utils/csv-export';
+import { CsvCell, csvFilename, downloadCsv, exportFilename } from '../../../shared/utils/csv-export';
+import {
+  buildChartsSvg, collectChartCards, downloadBlob, svgToJpeg,
+} from '../../../shared/utils/chart-image-export';
 import { HeaderComponent } from '../../../shared/components/header/header.component';
 import { PlanSidebarComponent } from '../shared/plan-sidebar/plan-sidebar.component';
 import { AdminService } from '../../../core/services/admin.service';
@@ -90,6 +94,8 @@ export class PlanBilanComponent implements OnInit {
   private readonly adminService = inject(AdminService);
   private readonly realisationService = inject(RealisationService);
   private readonly translate = inject(TranslateService);
+  private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
+  private readonly snackBar = inject(MatSnackBar);
 
   planId = signal<number | null>(null);
   planSlug = signal<string | null>(null);
@@ -357,7 +363,8 @@ export class PlanBilanComponent implements OnInit {
   }
 
   // ===========================================================================
-  // #639 — Export CSV des résultats du bilan, filtres en cours inclus
+  // #639 — Export des résultats du bilan (CSV) et des graphiques (JPG),
+  //        filtres en cours inclus
   // ===========================================================================
 
   /**
@@ -376,24 +383,81 @@ export class PlanBilanComponent implements OnInit {
     );
   }
 
+  /**
+   * Exporte les graphiques affichés en une planche JPG (#639, retour recette).
+   *
+   * Le CSV ne rend que les chiffres : pour un rapport de gestion, il faut aussi
+   * l'image. On exporte **les graphiques de l'onglet affiché** — seul lui est
+   * dans le DOM, et c'est aussi ce que l'utilisateur voit au moment du clic. Un
+   * seul fichier plutôt qu'un par graphique : les navigateurs bloquent les
+   * téléchargements multiples déclenchés par un même clic.
+   */
+  async exportCharts(): Promise<void> {
+    const cards = collectChartCards(this.host.nativeElement.querySelector('.content-section'));
+    if (!cards.length) {
+      this.notify('plans.suivis.bilan.export.noCharts');
+      return;
+    }
+    try {
+      const svg = buildChartsSvg(cards, {
+        title: `${this.t('plans.suivis.bilan.title')} — ${this.planNom()}`,
+        lines: this.exportFilterLines(),
+      });
+      downloadBlob(
+        exportFilename(['bilan', 'graphiques', this.contentTab(), this.scope(), this.planSlug()], 'jpg'),
+        await svgToJpeg(svg),
+      );
+    } catch {
+      this.notify('plans.suivis.bilan.export.chartsFailed');
+    }
+  }
+
+  private notify(key: string): void {
+    this.snackBar.open(this.t(key), this.t('common.actions.close'), { duration: 4000 });
+  }
+
   private t(key: string): string {
     return this.translate.instant(key);
   }
 
+  /** Portée courante, libellée comme dans le sélecteur. */
+  private scopeLabel(): string {
+    const s = this.scope();
+    return this.t(`plans.suivis.bilan.scope.${s === 'mi_parcours' ? 'miParcours' : s}`);
+  }
+
+  /** Enjeu/FCR filtré, ou « tous les enjeux » si le filtre est vide. */
+  private enjeuLabel(): string {
+    const enjeuId = this.filters.enjeu()[0];
+    if (!enjeuId) return this.t('plans.suivis.bilan.allEnjeux');
+    return this.enjeuOptions().find(e => e.enjeu_id === enjeuId)?.libelle ?? String(enjeuId);
+  }
+
+  /**
+   * Rappel des filtres en tête de la planche JPG — mêmes informations que
+   * l'en-tête du CSV, pour qu'une image détachée du fichier reste lisible.
+   */
+  private exportFilterLines(): string[] {
+    const lines = [
+      `${this.t('plans.suivis.bilan.export.portee')} : ${this.scopeLabel()}`,
+      `${this.t('plans.suivis.bilan.filterEnjeu')} : ${this.enjeuLabel()}`,
+      `${this.t('plans.suivis.bilan.export.onglet')} : ${this.t(`plans.suivis.bilan.tabs.${this.contentTab()}`)}`,
+    ];
+    if (this.scope() === 'annuel') {
+      lines.splice(1, 0, `${this.t('plans.suivis.bilan.export.annee')} : ${this.selectedYear()}`);
+    }
+    return lines;
+  }
+
   private buildExportRows(): CsvCell[][] {
     const rows: CsvCell[][] = [];
-    const enjeuId = this.filters.enjeu()[0];
-    const enjeuLabel = enjeuId
-      ? (this.enjeuOptions().find(e => e.enjeu_id === enjeuId)?.libelle ?? String(enjeuId))
-      : this.t('plans.suivis.bilan.allEnjeux');
 
     rows.push([this.t('plans.suivis.bilan.title'), this.planNom()]);
-    rows.push([this.t('plans.suivis.bilan.export.portee'), this.t(`plans.suivis.bilan.scope.${
-      this.scope() === 'mi_parcours' ? 'miParcours' : this.scope()}`)]);
+    rows.push([this.t('plans.suivis.bilan.export.portee'), this.scopeLabel()]);
     if (this.scope() === 'annuel') {
       rows.push([this.t('plans.suivis.bilan.export.annee'), this.selectedYear()]);
     }
-    rows.push([this.t('plans.suivis.bilan.filterEnjeu'), enjeuLabel]);
+    rows.push([this.t('plans.suivis.bilan.filterEnjeu'), this.enjeuLabel()]);
 
     this.appendIndicateursSection(rows);
     this.appendActionsSection(rows);

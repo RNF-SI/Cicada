@@ -165,14 +165,30 @@
             }
           </app-filter-bar>
 
-          <!-- #639 — export CSV des résultats, filtres en cours inclus -->
+          <!-- #639 — export des résultats (chiffres CSV / graphiques JPG),
+               filtres en cours inclus -->
           <button class="export-link" type="button"
                   data-testid="bilan-export"
-                  (click)="exportResults()"
+                  [matMenuTriggerFor]="exportMenu"
                   [title]="'plans.suivis.bilan.export.tooltip' | translate">
             <span>{{ 'plans.suivis.bilan.exportResults' | translate }}</span>
             <i class="fi fi-rr-download"></i>
           </button>
+          <mat-menu #exportMenu="matMenu">
+            <button mat-menu-item type="button"
+                    data-testid="bilan-export-csv"
+                    (click)="exportResults()">
+              <i class="fi fi-rr-file-excel"></i>
+              <span>{{ 'plans.suivis.bilan.export.csv' | translate }}</span>
+            </button>
+            <button mat-menu-item type="button"
+                    data-testid="bilan-export-charts"
+                    (click)="exportCharts()"
+                    [title]="'plans.suivis.bilan.export.chartsTooltip' | translate">
+              <i class="fi fi-rr-picture"></i>
+              <span>{{ 'plans.suivis.bilan.export.charts' | translate }}</span>
+            </button>
+          </mat-menu>
         </div>
 
         <!-- ================= ONGLET INDICATEURS ================= -->

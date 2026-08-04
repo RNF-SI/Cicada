@@ -1985,7 +1985,13 @@
           "title": "Niveau de réalisation par enjeu / FCR"
         },
         "export": {
-          "tooltip": "Exporter les résultats affichés (filtres en cours) au format CSV",
+          "tooltip": "Exporter les résultats affichés (filtres en cours)",
+          "csv": "Résultats chiffrés (CSV)",
+          "charts": "Graphiques (JPG)",
+          "chartsTooltip": "Image JPG des graphiques de l'onglet affiché, filtres en cours inclus",
+          "noCharts": "Aucun graphique à exporter dans cet onglet.",
+          "chartsFailed": "L'export des graphiques a échoué.",
+          "onglet": "Onglet",
           "portee": "Portée",
           "annee": "Année",
           "totalIndicateurs": "Nombre d'indicateurs",

@@ -40,9 +40,16 @@ export function toCsv(rows: CsvCell[][]): string {
 
 /**
  * Nom de fichier normalisé : segments accentués/espacés ramenés en kebab-case,
- * suffixés par la date du jour (AAAA-MM-JJ) et l'extension .csv.
+ * suffixés par la date du jour (AAAA-MM-JJ) et l'extension demandée.
+ *
+ * Générique car le bilan exporte aussi ses graphiques en image (#639) : les
+ * deux fichiers doivent porter le même nom, à l'extension près.
  */
-export function csvFilename(segments: (string | null | undefined)[], today = new Date()): string {
+export function exportFilename(
+  segments: (string | null | undefined)[],
+  extension: string,
+  today = new Date(),
+): string {
   const slugged = segments
     .filter((s): s is string => !!s && s.trim().length > 0)
     .map(s => s
@@ -56,7 +63,12 @@ export function csvFilename(segments: (string | null | undefined)[], today = new
     String(today.getMonth() + 1).padStart(2, '0'),
     String(today.getDate()).padStart(2, '0'),
   ].join('-');
-  return `${[...slugged, date].join('_')}.csv`;
+  return `${[...slugged, date].join('_')}.${extension}`;
+}
+
+/** Nom de fichier CSV (voir `exportFilename`). */
+export function csvFilename(segments: (string | null | undefined)[], today = new Date()): string {
+  return exportFilename(segments, 'csv', today);
 }
 
 /** Déclenche le téléchargement d'un CSV construit à partir des lignes fournies. */
