@@ -35,6 +35,7 @@ import {
   MesureCreatePayload,
   Operation,
   OperationCreatePayload,
+  VentilationDefaults,
   Responsabilite,
   ResponsabiliteCreatePayload,
   SiteResponsabilitesResponse,
@@ -771,6 +772,16 @@ export class EnjeuService {
 
   getOperationsByPlan(planId: number): Observable<any> {
     return this.http.get<any>(`${this.apiUrl}/operations/by-plan/${planId}/`);
+  }
+
+  /**
+   * #641 — Réglages de ventilation de la dernière action saisie du plan, servant
+   * de valeurs par défaut au formulaire de création d'une nouvelle action.
+   */
+  getVentilationDefaults(planId: number): Observable<VentilationDefaults> {
+    return this.http.get<VentilationDefaults>(
+      `${this.apiUrl}/operations/ventilation-defaults/${planId}/`
+    );
   }
 
   addMetriqueToOperation(operationId: number, metriqueId: number): Observable<Operation> {

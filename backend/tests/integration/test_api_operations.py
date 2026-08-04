@@ -1324,3 +1324,64 @@ class TestOperationAddRemoveMetrique:
 
         op.refresh_from_db()
         assert list(op.metriques.values_list('id_metrique', flat=True)) == [met2_id]
+
+
+# =============================================================================
+# TestOperationVentilationDefaults (#641)
+# =============================================================================
+
+@pytest.mark.django_db
+@pytest.mark.integration
+class TestOperationVentilationDefaults:
+    """Tests for GET /api/plans/operations/ventilation-defaults/{plan_id}/ (#641)."""
+
+    def _url(self, plan):
+        return f'/api/plans/operations/ventilation-defaults/{plan.id_pg}/'
+
+    def test_unauthenticated_returns_401(self, api_client, operation_test_data):
+        response = api_client.get(self._url(operation_test_data['plan']))
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
+    def test_returns_settings_of_last_saved_operation(self, api_client, operation_test_data):
+        """Le paramétrage renvoyé est celui de la dernière action saisie."""
+        op1 = operation_test_data['op1']
+        op1.ventilation_mode = 'by_type'
+        op1.declinaison_par_type_cout = True
+        op1.cout_salarial_auto = True
+        op1.save()
+
+        op2 = operation_test_data['op2']
+        op2.ventilation_mode = 'by_org_type_poste'
+        op2.declinaison_par_type_cout = False
+        op2.cout_salarial_auto = False
+        op2.save()
+
+        api_client.force_authenticate(user=operation_test_data['referent'])
+        response = api_client.get(self._url(operation_test_data['plan']))
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data['source_operation_id'] == op2.id_operation
+        assert response.data['ventilation_mode'] == 'by_org_type_poste'
+        assert response.data['declinaison_par_type_cout'] is False
+        assert response.data['cout_salarial_auto'] is False
+
+    def test_returns_model_defaults_when_plan_has_no_operation(self, api_client, operation_test_data):
+        """Sans action dans le plan, on renvoie les valeurs par défaut du modèle."""
+        Operation.objects.all().delete()
+
+        api_client.force_authenticate(user=operation_test_data['super_admin'])
+        response = api_client.get(self._url(operation_test_data['plan']))
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data['source_operation_id'] is None
+        assert response.data['ventilation_mode'] == 'none'
+        assert response.data['declinaison_par_type_cout'] is True
+        assert response.data['cout_salarial_auto'] is True
+
+    def test_user_without_access_is_denied(self, api_client, operation_test_data):
+        """Un utilisateur sans accès au plan n'obtient pas son paramétrage."""
+        api_client.force_authenticate(user=operation_test_data['user'])
+        response = api_client.get(self._url(operation_test_data['plan']))
+        assert response.status_code in (
+            status.HTTP_403_FORBIDDEN, status.HTTP_404_NOT_FOUND,
+        )

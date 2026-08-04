@@ -1386,6 +1386,8 @@ export class OperationFormComponent implements OnInit {
         this.form.patchValue({ metrique_ids: ids });
       }
       this.isLoadingData.set(false);
+      // #641 — reprend le paramétrage de ventilation de la dernière action saisie.
+      this.applyVentilationDefaults();
       return;
     }
 
@@ -1405,6 +1407,33 @@ export class OperationFormComponent implements OnInit {
         this.errorMessage.set(this.translate.instant('enjeux.messages.loadError'));
         this.isLoadingData.set(false);
       }
+    });
+  }
+
+  /**
+   * #641 — À la création d'une action, pré-remplit le paramétrage du tableau de
+   * programmation — mode de ventilation + les deux cases « déclinaison par type
+   * de coût » et « coût salarial automatique » (#600) — avec celui de la
+   * dernière action saisie du plan : ce paramétrage est en pratique commun à
+   * toutes les actions d'un même plan, le re-saisir action par action est une
+   * perte de temps (et une source d'incohérence dans les totaux).
+   *
+   * Sans plan résolu ou sans action existante, on garde les valeurs par défaut.
+   */
+  private applyVentilationDefaults(): void {
+    const planId = this.planId();
+    if (!planId || this.isEditMode() || this.isReadOnly()) return;
+    this.enjeuService.getVentilationDefaults(planId).subscribe({
+      next: (defaults) => {
+        // Aucune action dans le plan : rien à hériter.
+        if (!defaults || defaults.source_operation_id == null) return;
+        this.declinaisonParTypeCout.set(defaults.declinaison_par_type_cout !== false);
+        this.coutSalarialAuto.set(defaults.cout_salarial_auto !== false);
+        // Passe par onModeToggle pour réaligner la déclinaison par poste et le
+        // tableau RH sur le mode hérité.
+        this.onModeToggle(defaults.ventilation_mode || 'none');
+      },
+      error: () => {},
     });
   }
 

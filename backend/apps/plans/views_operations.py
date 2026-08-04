@@ -218,6 +218,42 @@ class OperationViewSet(viewsets.ModelViewSet):
             'total': operations.count()
         })
 
+    def _operations_of_plan(self, plan):
+        """Opérations du plan visibles par l'utilisateur (via métrique ou indicateur)."""
+        return self.get_queryset().filter(
+            Q(metriques__id_indicateur__id_ne__id_olt__id_enjeu__id_pg=plan) |
+            Q(metriques__id_indicateur__id_resultat_attendu__id_oo__pressions__id_facteur_influence__enjeux__id_pg=plan) |
+            # #367 — actions rattachées directement à un indicateur (sans métrique)
+            Q(id_indicateur__id_ne__id_olt__id_enjeu__id_pg=plan) |
+            Q(id_indicateur__id_resultat_attendu__id_oo__pressions__id_facteur_influence__enjeux__id_pg=plan)
+        ).distinct()
+
+    @action(detail=False, methods=['get'], url_path=r'ventilation-defaults/(?P<plan_id>\d+)')
+    def ventilation_defaults(self, request, plan_id=None):
+        """
+        #641 — Réglages de ventilation à proposer par défaut pour une NOUVELLE
+        action du plan.
+
+        Le paramétrage du tableau de programmation (mode de ventilation, case
+        « déclinaison par type de coût », case « coût salarial automatique ») est
+        en pratique le même pour toutes les actions d'un plan : on renvoie donc
+        celui de la dernière action saisie / modifiée, pour que le formulaire de
+        création n'ait pas à le re-saisir à chaque fois. Sans action existante,
+        renvoie les valeurs par défaut du modèle.
+
+        GET /api/plans/operations/ventilation-defaults/{plan_id}/
+        """
+        plan = get_object_or_404(PlanGestion, id_pg=plan_id)
+        assert_plan_access(request.user, plan)
+        last = self._operations_of_plan(plan).order_by('-date_maj', '-id_operation').first()
+        return Response({
+            'plan_id': int(plan_id),
+            'source_operation_id': last.id_operation if last else None,
+            'ventilation_mode': last.ventilation_mode if last else 'none',
+            'declinaison_par_type_cout': last.declinaison_par_type_cout if last else True,
+            'cout_salarial_auto': last.cout_salarial_auto if last else True,
+        })
+
     @action(detail=False, methods=['get'], url_path=r'by-plan/(?P<plan_id>\d+)')
     def by_plan(self, request, plan_id=None):
         """
@@ -227,13 +263,7 @@ class OperationViewSet(viewsets.ModelViewSet):
         """
         plan = get_object_or_404(PlanGestion, id_pg=plan_id)
         assert_plan_access(request.user, plan)
-        operations = self.get_queryset().filter(
-            Q(metriques__id_indicateur__id_ne__id_olt__id_enjeu__id_pg=plan) |
-            Q(metriques__id_indicateur__id_resultat_attendu__id_oo__pressions__id_facteur_influence__enjeux__id_pg=plan) |
-            # #367 — actions rattachées directement à un indicateur (sans métrique)
-            Q(id_indicateur__id_ne__id_olt__id_enjeu__id_pg=plan) |
-            Q(id_indicateur__id_resultat_attendu__id_oo__pressions__id_facteur_influence__enjeux__id_pg=plan)
-        ).distinct()
+        operations = self._operations_of_plan(plan)
 
         grouped = defaultdict(list)
         for op in operations:

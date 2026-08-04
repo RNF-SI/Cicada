@@ -1458,3 +1458,85 @@ describe('OperationFormComponent — lien vers le suivi de l\'action (#531)', ()
   });
 
 });
+
+// ===========================================================================
+// #641 — Paramétrage de ventilation mémorisé d'une action à l'autre
+// ===========================================================================
+
+describe('OperationFormComponent — paramétrage de ventilation par défaut (#641)', () => {
+  function makeInstance(defaults: any, planId: number | null = 7): {
+    comp: OperationFormComponent;
+    getVentilationDefaults: jest.Mock;
+    syncRhLines: jest.Mock;
+  } {
+    const comp = Object.create(OperationFormComponent.prototype) as OperationFormComponent;
+    const getVentilationDefaults = jest.fn().mockReturnValue(of(defaults));
+    const syncRhLines = jest.fn();
+    (comp as any).planId = signal<number | null>(planId);
+    (comp as any).isEditMode = signal(false);
+    (comp as any).isReadOnly = signal(false);
+    (comp as any).ventilationMode = signal<string>('none');
+    (comp as any).declinaisonParPoste = signal(false);
+    (comp as any).declinaisonParTypeCout = signal(true);
+    (comp as any).coutSalarialAuto = signal(true);
+    (comp as any).isPosteVentilation = computed(() => {
+      const m = (comp as any).ventilationMode();
+      return m === 'by_type_poste' || m === 'by_org_type_poste';
+    });
+    (comp as any).enjeuService = { getVentilationDefaults };
+    (comp as any).syncRhLines = syncRhLines;
+    return { comp, getVentilationDefaults, syncRhLines };
+  }
+
+  it('reprend le mode et les deux cases de la dernière action saisie', () => {
+    const { comp, getVentilationDefaults } = makeInstance({
+      plan_id: 7,
+      source_operation_id: 12,
+      ventilation_mode: 'by_org_type_poste',
+      declinaison_par_type_cout: false,
+      cout_salarial_auto: false,
+    });
+
+    (comp as any).applyVentilationDefaults();
+
+    expect(getVentilationDefaults).toHaveBeenCalledWith(7);
+    expect((comp as any).ventilationMode()).toBe('by_org_type_poste');
+    expect((comp as any).declinaisonParTypeCout()).toBe(false);
+    expect((comp as any).coutSalarialAuto()).toBe(false);
+    // Le mode « + type de poste » réaligne la déclinaison par poste et le tableau RH.
+    expect((comp as any).declinaisonParPoste()).toBe(true);
+  });
+
+  it('garde les valeurs par défaut quand le plan n\'a encore aucune action', () => {
+    const { comp } = makeInstance({
+      plan_id: 7,
+      source_operation_id: null,
+      ventilation_mode: 'none',
+      declinaison_par_type_cout: true,
+      cout_salarial_auto: true,
+    });
+    (comp as any).declinaisonParTypeCout.set(true);
+
+    (comp as any).applyVentilationDefaults();
+
+    expect((comp as any).ventilationMode()).toBe('none');
+    expect((comp as any).declinaisonParTypeCout()).toBe(true);
+    expect((comp as any).coutSalarialAuto()).toBe(true);
+  });
+
+  it('ne réclame rien au serveur sans plan résolu, en édition ou en lecture seule', () => {
+    const noPlan = makeInstance({ source_operation_id: 12 }, null);
+    (noPlan.comp as any).applyVentilationDefaults();
+    expect(noPlan.getVentilationDefaults).not.toHaveBeenCalled();
+
+    const edit = makeInstance({ source_operation_id: 12 });
+    (edit.comp as any).isEditMode.set(true);
+    (edit.comp as any).applyVentilationDefaults();
+    expect(edit.getVentilationDefaults).not.toHaveBeenCalled();
+
+    const readOnly = makeInstance({ source_operation_id: 12 });
+    (readOnly.comp as any).isReadOnly.set(true);
+    (readOnly.comp as any).applyVentilationDefaults();
+    expect(readOnly.getVentilationDefaults).not.toHaveBeenCalled();
+  });
+});

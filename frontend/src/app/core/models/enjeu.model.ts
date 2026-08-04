@@ -828,6 +828,19 @@ export interface MetriqueRef {
 
 export type OperationStatut = 'draft' | 'valide';
 
+/**
+ * #641 — Paramétrage de ventilation de la dernière action saisie d'un plan,
+ * repris comme valeurs par défaut à la création d'une nouvelle action.
+ */
+export interface VentilationDefaults {
+  plan_id: number;
+  /** Action dont proviennent les réglages (null si le plan n'a aucune action). */
+  source_operation_id: number | null;
+  ventilation_mode: 'none' | 'by_org' | 'by_type' | 'by_org_type' | 'by_type_poste' | 'by_org_type_poste';
+  declinaison_par_type_cout: boolean;
+  cout_salarial_auto: boolean;
+}
+
 export interface Operation {
   id_operation: number;
   libelle: string;
