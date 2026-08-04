@@ -2067,6 +2067,19 @@
         "realisationNone": "Non réalisées",
         "fiche": {
           "export": "Imprimer / Exporter (PDF)",
+          "exportDialog": {
+            "trigger": "Exporter ou imprimer",
+            "title": "Exporter ou imprimer la fiche action",
+            "formats": {
+              "print": "Impression / PDF",
+              "printHint": "Ouvre la fenêtre d'impression du navigateur — choisir « Enregistrer au format PDF » pour produire un fichier.",
+              "xlsx": "Excel (.xlsx)",
+              "xlsxHint": "Classeur au modèle CICADA, un onglet pour cette action — même mise en forme que l'export des fiches action du plan."
+            },
+            "sectionsTitle": "Sections à inclure",
+            "sectionsHint": "Ne s'applique qu'à l'impression / PDF : le classeur Excel suit le modèle CICADA.",
+            "confirm": "Exporter"
+          },
           "voirSuivi": "Voir le suivi de l'action",
           "voirFiche": "Voir la fiche de l'action",
           "voirDansPlan": "Voir dans le plan de gestion",

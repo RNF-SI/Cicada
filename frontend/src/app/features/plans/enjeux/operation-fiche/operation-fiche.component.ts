@@ -10,10 +10,15 @@ import {
 } from '../../../../shared/utils/operation-budget';
 import { LeafletMapEditComponent } from '../../../../shared/components/leaflet-map-edit/leaflet-map-edit.component';
 import { MetriqueGridDisplayComponent } from '../../../../shared/components/metrique-grid-display/metrique-grid-display.component';
-import { CheckboxComponent } from '../../../../shared/components/checkbox/checkbox.component';
 import { PriorityBadgeComponent } from '../../../../shared/components/priority-badge/priority-badge.component';
 import { MatDialog } from '@angular/material/dialog';
+import { MatSnackBar } from '@angular/material/snack-bar';
 import { ProtocoleCampanuleDialogComponent } from '../../../../shared/components/modals/protocole-campanule-dialog/protocole-campanule-dialog.component';
+import {
+  ExportFicheActionDialogComponent,
+  ExportFicheActionDialogData,
+  ExportFicheActionDialogResult,
+} from '../../../../shared/components/modals/export-fiche-action-dialog/export-fiche-action-dialog.component';
 
 /**
  * #354 — Fiche synthétique d'une action (opération).
@@ -27,7 +32,7 @@ import { ProtocoleCampanuleDialogComponent } from '../../../../shared/components
 @Component({
   selector: 'app-operation-fiche',
   standalone: true,
-  imports: [CommonModule, RouterModule, TranslateModule, LeafletMapEditComponent, MetriqueGridDisplayComponent, CheckboxComponent, PriorityBadgeComponent],
+  imports: [CommonModule, RouterModule, TranslateModule, LeafletMapEditComponent, MetriqueGridDisplayComponent, PriorityBadgeComponent],
   templateUrl: './operation-fiche.component.html',
   styleUrl: './operation-fiche.component.scss',
 })
@@ -37,6 +42,7 @@ export class OperationFicheComponent implements OnInit {
   private readonly enjeuService = inject(EnjeuService);
   private readonly translate = inject(TranslateService);
   private readonly dialog = inject(MatDialog);
+  private readonly snackBar = inject(MatSnackBar);
 
   operation = signal<Operation | null>(null);
   isLoading = signal(true);
@@ -64,10 +70,8 @@ export class OperationFicheComponent implements OnInit {
     Object.fromEntries(this.toggleableSections.map(s => [s.key, true])),
   );
 
-  /** Panneau de choix des sections (replié par défaut, non imprimé). */
-  showSectionPicker = signal(false);
-
-  toggleSectionPicker(): void { this.showSectionPicker.update(v => !v); }
+  /** #642 — export Excel en cours (désactive le bouton le temps du téléchargement). */
+  readonly isExporting = signal(false);
 
   /** Une section est affichée sauf si elle a été explicitement décochée. */
   sectionVisible(key: string): boolean { return this.sectionVisibility()[key] !== false; }
@@ -435,6 +439,76 @@ export class OperationFicheComponent implements OnInit {
   /** #354 — export : impression navigateur (→ PDF). */
   print(): void {
     window.print();
+  }
+
+  /**
+   * #642 — Point d'entrée unique « Exporter ou imprimer » de la barre d'actions.
+   *
+   * La modale porte le choix du format (impression / PDF, ou classeur Excel au
+   * modèle CICADA) et, pour l'impression seulement, le choix des sections à
+   * inclure (#532 — auparavant un bouton distinct, qui chargeait la barre).
+   */
+  openExportDialog(): void {
+    const op = this.operation();
+    const ref = this.dialog.open(ExportFicheActionDialogComponent, {
+      width: '640px',
+      maxWidth: '95vw',
+      maxHeight: '90vh',
+      data: {
+        actionLabel: op
+          ? `${op.code_affichage || op.code_prefix || ''} ${op.libelle}`.trim()
+          : '',
+        sections: this.toggleableSections,
+        sectionVisibility: this.sectionVisibility(),
+      } satisfies ExportFicheActionDialogData,
+    });
+    ref.afterClosed().subscribe((result?: ExportFicheActionDialogResult) => {
+      if (!result) return;
+      this.sectionVisibility.set({ ...result.sections });
+      if (result.format === 'xlsx') {
+        this.exportXlsx();
+        return;
+      }
+      // Laisse Angular appliquer le choix des sections AVANT d'ouvrir la
+      // fenêtre d'impression : sinon le document imprimé est celui d'avant.
+      setTimeout(() => this.print(), 0);
+    });
+  }
+
+  /** #642 — télécharge la fiche au format Excel (un onglet, modèle CICADA). */
+  private exportXlsx(): void {
+    const op = this.operation();
+    if (!op || this.isExporting()) return;
+    this.isExporting.set(true);
+    this.enjeuService.downloadOperationFicheXlsx(op.id_operation).subscribe({
+      next: (blob) => {
+        this.isExporting.set(false);
+        const code = op.code_affichage || op.code_prefix || `action-${op.id_operation}`;
+        this.triggerBlobDownload(blob, `fiche-action-${code}.xlsx`);
+      },
+      error: (err: { status?: number }) => {
+        this.isExporting.set(false);
+        // Les exports sont réservés aux référents du plan / gestionnaires : on
+        // le dit explicitement plutôt que de laisser un échec silencieux.
+        const key = err?.status === 403
+          ? 'plans.exports.noPermission'
+          : 'plans.exports.downloadError';
+        this.snackBar.open(
+          this.translate.instant(key),
+          this.translate.instant('common.actions.close'),
+          { duration: 6000 },
+        );
+      },
+    });
+  }
+
+  private triggerBlobDownload(blob: Blob, filename: string): void {
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    link.click();
+    URL.revokeObjectURL(url);
   }
 
   /**

@@ -812,3 +812,53 @@ class TestExportSuiviActions:
 
         resp = api_client.post(self.URL.format(plan.id_pg), self.PAYLOAD, format='json')
         assert resp.status_code == 403
+
+
+# ---------------------------------------------------------------------------
+# #642 — Export d'UNE fiche action depuis sa page de visualisation
+# ---------------------------------------------------------------------------
+
+@pytest.mark.django_db
+class TestExportFicheActionEndpoint:
+    """GET /api/plans/operations/{id}/export-fiche-xlsx/"""
+
+    def _url(self, op):
+        return f'/api/plans/operations/{op.id_operation}/export-fiche-xlsx/'
+
+    def test_exporte_un_classeur_avec_le_seul_onglet_de_l_action(self, api_client, plan_finance):
+        api_client.force_authenticate(user=SuperAdminFactory())
+        resp = api_client.get(self._url(plan_finance['op']))
+
+        assert resp.status_code == 200
+        assert resp['Content-Type'].startswith('application/vnd.openxmlformats')
+        assert 'fiche-action-CS01.xlsx' in resp['Content-Disposition']
+
+        wb = load_workbook(io.BytesIO(resp.content))
+        assert wb.sheetnames == ['CS01']
+        ws = wb['CS01']
+        labels = [ws.cell(r, 1).value for r in range(1, ws.max_row + 1)]
+        # Même rendu que l'export « fiches action » du plan (variante CS).
+        assert any(l == "Indicateur d'état" for l in labels)
+
+    def test_requiert_authentification(self, api_client, plan_finance):
+        resp = api_client.get(self._url(plan_finance['op']))
+        assert resp.status_code in (401, 403)
+
+    def test_membre_non_referent_ne_peut_pas_exporter(self, api_client, plan_finance):
+        """La lecture seule (#610) n'ouvre pas les exports."""
+        membre = RoleFactory()
+        CorRolePlan.objects.create(
+            id_role=membre, plan_de_gestion=plan_finance['plan'], referent=False)
+        api_client.force_authenticate(user=membre)
+
+        resp = api_client.get(self._url(plan_finance['op']))
+        assert resp.status_code == 403
+
+    def test_referent_du_plan_peut_exporter(self, api_client, plan_finance):
+        referent = RoleFactory()
+        plan_finance['plan'].referents.add(referent)
+        api_client.force_authenticate(user=referent)
+
+        resp = api_client.get(self._url(plan_finance['op']))
+        assert resp.status_code == 200
+        assert resp.content[:2] == b'PK'

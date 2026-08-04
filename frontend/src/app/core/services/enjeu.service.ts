@@ -766,6 +766,17 @@ export class EnjeuService {
     return this.http.delete<void>(`${this.apiUrl}/operations/${id}/`);
   }
 
+  /**
+   * #642 — Télécharge LA fiche de cette action au format Excel (modèle CICADA,
+   * un seul onglet). Réservé aux référents du plan / gestionnaires côté serveur.
+   * GET /api/plans/operations/{id}/export-fiche-xlsx/
+   */
+  downloadOperationFicheXlsx(operationId: number): Observable<Blob> {
+    return this.http.get(`${this.apiUrl}/operations/${operationId}/export-fiche-xlsx/`, {
+      responseType: 'blob',
+    });
+  }
+
   getOperationsByIndicateur(indicateurId: number): Observable<any> {
     return this.http.get<any>(`${this.apiUrl}/operations/by-indicateur/${indicateurId}/`);
   }

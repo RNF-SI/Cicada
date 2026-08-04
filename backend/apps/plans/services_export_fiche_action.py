@@ -978,8 +978,13 @@ def _is_cs(op) -> bool:
     return bool(cat and (cat.mnemonique or "").upper() == "CS")
 
 
-def build_fiche_action_workbook(plan) -> bytes:
-    """Construit le classeur des fiches action (un onglet par opération)."""
+def build_fiche_action_workbook(plan, operation_ids=None) -> bytes:
+    """Construit le classeur des fiches action (un onglet par opération).
+
+    `operation_ids` restreint l'export à certaines actions du plan (#642 :
+    export d'UNE fiche depuis sa page de visualisation). Le rendu de chaque
+    onglet est strictement identique à l'export complet du plan.
+    """
     from .models_operations import Operation
 
     _appliquer_couleur_instance()
@@ -1012,6 +1017,9 @@ def build_fiche_action_workbook(plan) -> bytes:
         .distinct()
     )
     all_ops = list(ops) + list(ops_direct)
+    if operation_ids is not None:
+        wanted = {int(i) for i in operation_ids}
+        all_ops = [o for o in all_ops if o.id_operation in wanted]
     all_ops.sort(key=lambda o: (_txt(o.code_operation), o.id_operation))
 
     wb = Workbook()

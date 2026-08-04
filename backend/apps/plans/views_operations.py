@@ -282,6 +282,56 @@ class OperationViewSet(viewsets.ModelViewSet):
             'total': operations.count()
         })
 
+    @action(detail=True, methods=['get'], url_path='export-fiche-xlsx')
+    def export_fiche_xlsx(self, request, pk=None):
+        """
+        #642 — Exporter LA fiche de cette action au format Excel.
+
+        GET /api/plans/operations/{id}/export-fiche-xlsx/
+
+        Même rendu que l'export « fiches action » du plan, restreint à un seul
+        onglet. Comme tous les exports, réservé aux référents du plan et aux
+        gestionnaires (admin organisme, rédacteur principal, super admin) : la
+        lecture seule (#610) s'arrête à la consultation dans l'application.
+        """
+        from rest_framework.exceptions import PermissionDenied
+        from urllib.parse import quote as _url_quote
+        from django.http import HttpResponse
+        from .services_export_fiche_action import build_fiche_action_workbook
+        from .serializers_operations import compute_operation_codes_for_plan
+
+        operation = self.get_object()
+        plan = operation.get_plan_de_gestion()
+        if plan is None:
+            return Response(
+                {'detail': "Cette action n'est rattachée à aucun plan de gestion."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        if not (request.user.can_manage_plan_lifecycle()
+                or plan.referents.filter(pk=request.user.pk).exists()):
+            raise PermissionDenied(
+                "Vous devez être référent de ce plan pour exporter cette fiche action."
+            )
+
+        content = build_fiche_action_workbook(plan, operation_ids=[operation.pk])
+
+        try:
+            code = compute_operation_codes_for_plan(plan.pk).get(operation.pk)
+        except Exception:
+            code = None
+        suffix = (operation.code_operation or code or f'action-{operation.pk}').strip()
+        filename = f'fiche-action-{suffix}.xlsx'
+        response = HttpResponse(
+            content,
+            content_type=(
+                'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+            ),
+        )
+        response['Content-Disposition'] = (
+            f"attachment; filename*=UTF-8''{_url_quote(filename)}"
+        )
+        return response
+
     @action(detail=True, methods=['post'], url_path='move')
     def move(self, request, pk=None):
         """

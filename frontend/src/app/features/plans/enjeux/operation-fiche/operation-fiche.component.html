@@ -5,9 +5,6 @@
       <i class="fi fi-rr-arrow-left"></i> {{ 'common.actions.back' | translate }}
     </button>
     <div class="fiche-toolbar-right">
-      <button class="btn-sections" [class.active]="showSectionPicker()" (click)="toggleSectionPicker()">
-        <i class="fi fi-rr-list-check"></i> {{ 'plans.suivis.actions.fiche.sections.toggle' | translate }}
-      </button>
       @if (operation()?.enjeu_slug) {
         <button class="btn-suivi" (click)="goToArchitecture()">
           <i class="fi fi-rr-marker"></i> {{ 'plans.suivis.actions.fiche.voirDansPlan' | translate }}
@@ -16,30 +13,15 @@
       <button class="btn-suivi" (click)="goToSuivi()">
         <i class="fi fi-rr-chart-histogram"></i> {{ 'plans.suivis.actions.fiche.voirSuivi' | translate }}
       </button>
-      <button class="btn-print" (click)="print()">
-        <i class="fi fi-rr-print"></i> {{ 'plans.suivis.actions.fiche.export' | translate }}
+      <!-- #642 — un seul point d'entrée pour l'impression/PDF et l'export Excel -->
+      <button class="btn-print" [disabled]="isExporting()" (click)="openExportDialog()">
+        <i class="fi fi-rr-download"></i> {{ 'plans.suivis.actions.fiche.exportDialog.trigger' | translate }}
       </button>
       <button class="btn-edit" (click)="goEdit()">
         <i class="fi fi-rr-pencil"></i> {{ 'common.actions.edit' | translate }}
       </button>
     </div>
   </div>
-
-  <!-- #532 — Choix des sections à inclure dans l'export (masqué à l'impression) -->
-  @if (showSectionPicker()) {
-    <div class="fiche-section-picker no-print">
-      <p class="fiche-section-picker-hint">{{ 'plans.suivis.actions.fiche.sections.hint' | translate }}</p>
-      <div class="fiche-section-picker-list">
-        @for (s of toggleableSections; track s.key) {
-          <app-checkbox
-            [checked]="sectionVisible(s.key)"
-            (checkedChange)="setSectionVisible(s.key, $event)"
-            [label]="s.labelKey | translate">
-          </app-checkbox>
-        }
-      </div>
-    </div>
-  }
 
   @if (isLoading()) {
     <p class="fiche-loading">{{ 'common.loading' | translate }}</p>
