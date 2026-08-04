@@ -44,6 +44,7 @@ from .services_import import (
 from .services_export_arbo import build_presentation_workbook
 from .services_export_word import build_plan_docx
 from .services_export_fiche_action import build_fiche_action_workbook
+from .services_export_tableau_bord import build_tableau_bord_workbook
 from .services_export_budget_rh import (
     build_rh_previsionnel_workbook,
     build_rh_suivi_workbook,
@@ -1396,6 +1397,25 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
         suffix = plan.slug or f'plan-{plan.pk}'
         return self._xlsx_response(
             build_rh_previsionnel_workbook(plan), f'rh-previsionnel-{suffix}.xlsx')
+
+    @action(detail=True, methods=['post'], url_path='export-tableau-de-bord-xlsx')
+    def export_tableau_de_bord_xlsx(self, request, pk=None):
+        """
+        Exporter le tableau de bord des indicateurs en Excel mis en forme (#638).
+
+        POST /api/plans/plans/{id}/export-tableau-de-bord-xlsx/
+
+        En POST, et non en GET, parce que le tableau de bord est filtré et
+        calculé côté client : c'est lui qui envoie les lignes telles qu'il les
+        affiche, et le serveur ne fait que la mise en forme. On garantit ainsi
+        que l'export est exactement le tableau vu à l'écran, au lieu de rejouer
+        filtres et calcul de score une seconde fois côté serveur.
+        """
+        plan = self._get_plan_for_export()
+        payload = request.data if isinstance(request.data, dict) else {}
+        suffix = plan.slug or f'plan-{plan.pk}'
+        return self._xlsx_response(
+            build_tableau_bord_workbook(payload), f'tableau-de-bord-{suffix}.xlsx')
 
     @action(detail=True, methods=['get'], url_path='export-rh-suivi-xlsx')
     def export_rh_suivi_xlsx(self, request, pk=None):

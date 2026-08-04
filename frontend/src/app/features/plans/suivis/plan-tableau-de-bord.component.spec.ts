@@ -212,12 +212,21 @@ describe('PlanTableauDeBordComponent — export du tableau (#638)', () => {
     ] as any);
   });
 
-  const rows = () => (component as any).buildExportRows() as any[][];
+  const payload = () => (component as any).buildExportPayload();
+  /**
+   * Vue « matrice de textes » du classeur (en-tête + lignes), pour continuer à
+   * vérifier le contenu filtré indépendamment de la mise en forme.
+   */
+  const rows = (): any[][] => {
+    const p = payload();
+    const text = (c: any) => (c && typeof c === 'object' ? c.t : c);
+    return [p.entetes, ...p.lignes.map((l: any) => l.cellules.map(text))];
+  };
 
   it('exporte une colonne par année du plan', () => {
     const header = rows()[0];
-    expect(header).toContain(2026);
-    expect(header).toContain(2027);
+    expect(header).toContain('2026');
+    expect(header).toContain('2027');
   });
 
   it('n’exporte que les groupes de l’onglet actif', () => {
@@ -247,5 +256,49 @@ describe('PlanTableauDeBordComponent — export du tableau (#638)', () => {
     const out = rows();
     expect(out[1][4]).toBe('');                 // ligne indicateur
     expect(out[2][4]).toBe('Métrique 1 (ha)');  // ligne métrique
+  });
+
+  // ===========================================================================
+  // Retour recette : le fichier sortait sans aucune mise en forme
+  // ===========================================================================
+
+  describe('mise en forme du classeur', () => {
+    it('marque les lignes de détail « métrique » pour les distinguer', () => {
+      component.setTab('etat');
+      expect(payload().lignes.map((l: any) => l.type)).toEqual(['indicateur', 'metrique']);
+    });
+
+    it('transmet le niveau de score des cases, pas seulement leur libellé', () => {
+      component.setTab('etat');
+      jest.spyOn(component, 'getScoreForYear').mockReturnValue('good');
+      jest.spyOn(component, 'getGlobalScoreForRow').mockReturnValue('very-bad');
+
+      const cellules = payload().lignes[0].cellules;
+      const annee2026 = cellules[5];
+      const global = cellules[cellules.length - 2];
+
+      expect(annee2026).toEqual({ t: 'plans.suivis.tableauDeBord.bon', s: 'good' });
+      expect(global).toEqual({ t: 'plans.suivis.tableauDeBord.tresMauvais', s: 'very-bad' });
+    });
+
+    it('laisse une case vide quand il n’y a pas de score, sans couleur à poser', () => {
+      component.setTab('etat');
+      jest.spyOn(component, 'getScoreForYear').mockReturnValue(null);
+      expect(payload().lignes[0].cellules[5]).toBe('');
+    });
+
+    it('rappelle les filtres actifs en tête de classeur', () => {
+      component.setTab('ensemble');
+      component.filters.objectifs.set(['Objectif B']);
+      component.filters.name.set('Balbuzard');
+
+      const meta = payload().meta;
+      expect(meta).toContainEqual([
+        'plans.suivis.tableauDeBord.export.onglet',
+        'plans.suivis.tableauDeBord.ensemble',
+      ]);
+      expect(meta).toContainEqual(['plans.suivis.tableauDeBord.nomObjectif', 'Objectif B']);
+      expect(meta).toContainEqual(['common.actions.search', 'Balbuzard']);
+    });
   });
 });

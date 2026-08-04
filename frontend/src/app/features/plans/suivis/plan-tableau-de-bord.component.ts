@@ -4,6 +4,7 @@ import { ActivatedRoute, RouterModule } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { HeaderComponent } from '../../../shared/components/header/header.component';
@@ -23,9 +24,30 @@ import {
   Enjeu, ObjectifLongTerme, NiveauExigence, Indicateur, Metrique, Mesure
 } from '../../../core/models/enjeu.model';
 import { computeCombinedScore, computeMetriqueScore } from './metrique-seuils.util';
-import { CsvCell, csvFilename, downloadCsv } from '../../../shared/utils/csv-export';
+import { exportFilename } from '../../../shared/utils/csv-export';
+import { downloadBlob } from '../../../shared/utils/chart-image-export';
 
 type ScoreLevel = 'very-bad' | 'bad' | 'neutral' | 'good' | 'very-good' | 'no-data';
+
+/**
+ * #638 — Cellule exportée : soit un texte nu, soit un texte porteur d'un niveau
+ * de score, que le serveur traduit en case colorée (palette du design system).
+ */
+export type ExportCell = string | { t: string; s: ScoreLevel };
+
+export interface ExportRow {
+  /** Une ligne de détail « métrique » est tramée sous sa ligne indicateur. */
+  type: 'indicateur' | 'metrique';
+  cellules: ExportCell[];
+}
+
+export interface TableauBordExportPayload {
+  titre: string;
+  /** Rappel des filtres actifs, en couples libellé / valeur. */
+  meta: [string, string][];
+  entetes: string[];
+  lignes: ExportRow[];
+}
 
 /**
  * #389 — Un groupe du tableau de bord. Pour les indicateurs d'État, le groupe
@@ -73,8 +95,11 @@ export class PlanTableauDeBordComponent implements OnInit {
   private readonly adminService = inject(AdminService);
   private readonly enjeuService = inject(EnjeuService);
   private readonly translate = inject(TranslateService);
+  private readonly snackBar = inject(MatSnackBar);
 
   planId = signal<number | null>(null);
+  /** #638 — le classeur est rendu par le serveur : l'export n'est pas instantané. */
+  isExporting = signal(false);
   planSlug = signal<string | null>(null);
   planNom = signal<string>('');
   planStatut = signal<string | null>(null);
@@ -509,80 +534,155 @@ export class PlanTableauDeBordComponent implements OnInit {
   }
 
   // ===========================================================================
-  // #638 — Export CSV du tableau de bord, dans l'état où il est affiché
+  // #638 — Export du tableau de bord, dans l'état où il est affiché
   // ===========================================================================
 
   /**
-   * Exporte le tableau en CSV. Les lignes viennent de `filteredGroups()`, la
-   * source du rendu : onglet (État / Pression / Ensemble), filtres objectif et
-   * enjeu, et recherche textuelle s'appliquent donc à l'identique.
+   * Exporte le tableau en classeur Excel mis en forme.
+   *
+   * Les lignes viennent de `filteredGroups()`, la source du rendu : onglet
+   * (État / Pression / Ensemble), filtres objectif et enjeu, et recherche
+   * textuelle s'appliquent donc à l'identique.
    *
    * Le pliage/dépliage des indicateurs n'est PAS reporté : c'est une commodité
    * d'affichage, pas un filtre. Les métriques sont toujours exportées, en ligne
    * de détail sous leur indicateur.
+   *
+   * La mise en forme est faite par le serveur (retour de recette : « dans le
+   * même esprit que l'interface ») : un CSV ne porte ni couleur d'en-tête ni
+   * case colorée. Le client envoie le tableau qu'il affiche, y compris le
+   * niveau de score de chaque case, et reçoit le classeur.
    */
   exportTable(): void {
-    downloadCsv(
-      csvFilename(['tableau-de-bord', this.activeTab(), this.planSlug()]),
-      this.buildExportRows(),
-    );
+    const planId = this.planId();
+    if (!planId || this.isExporting()) return;
+
+    this.isExporting.set(true);
+    this.adminService.downloadTableauDeBordXlsx(planId, this.buildExportPayload())
+      .subscribe({
+        next: (blob) => {
+          this.isExporting.set(false);
+          downloadBlob(
+            exportFilename(['tableau-de-bord', this.activeTab(), this.planSlug()], 'xlsx'),
+            blob,
+          );
+        },
+        error: () => {
+          this.isExporting.set(false);
+          this.snackBar.open(
+            this.t('plans.suivis.tableauDeBord.export.error'),
+            this.t('common.actions.close'),
+            { duration: 4000 },
+          );
+        },
+      });
   }
 
   private t(key: string): string {
     return this.translate.instant(key);
   }
 
-  private buildExportRows(): CsvCell[][] {
-    const years = this.yearColumns();
-    const subHeader = this.activeTab() === 'etat'
+  /** Libellé de la 3e colonne : il dépend de l'onglet affiché. */
+  private subHeaderKey(): string {
+    return this.activeTab() === 'etat'
       ? 'plans.suivis.tableauDeBord.niveauExigence'
       : this.activeTab() === 'pression'
         ? 'plans.suivis.tableauDeBord.resultatAttendu'
         : 'plans.suivis.tableauDeBord.niveauOuResultat';
+  }
 
-    const rows: CsvCell[][] = [[
+  /**
+   * Rappel des filtres actifs, en tête du classeur : sans lui, deux exports du
+   * même plan sont indiscernables une fois le fichier détaché de l'écran.
+   */
+  private buildExportMeta(): [string, string][] {
+    const objectifs = this.filters.objectifs();
+    const enjeuIds = this.filters.enjeuIds();
+    const recherche = this.filters.name();
+    const meta: [string, string][] = [
+      [this.t('plans.suivis.tableauDeBord.export.onglet'),
+       this.t(`plans.suivis.tableauDeBord.${this.activeTab()}`)],
+    ];
+    if (objectifs.length) {
+      meta.push([this.t('plans.suivis.tableauDeBord.nomObjectif'), objectifs.join(', ')]);
+    }
+    if (enjeuIds.length) {
+      const libelles = this.enjeuFilterOptions()
+        .filter(o => enjeuIds.includes(o.value))
+        .map(o => o.label);
+      meta.push([this.t('plans.suivis.tableauDeBord.enjeu'), libelles.join(', ')]);
+    }
+    if (recherche.trim()) {
+      meta.push([this.t('common.actions.search'), recherche.trim()]);
+    }
+    return meta;
+  }
+
+  private buildExportPayload(): TableauBordExportPayload {
+    const { entetes, lignes } = this.buildExportGrid();
+    return {
+      titre: `${this.t('plans.suivis.tableauDeBord.title')} — ${this.planNom()}`,
+      meta: this.buildExportMeta(),
+      entetes,
+      lignes,
+    };
+  }
+
+  private buildExportGrid(): { entetes: string[]; lignes: ExportRow[] } {
+    const years = this.yearColumns();
+    const entetes = [
       this.t('plans.suivis.tableauDeBord.enjeu'),
       this.t('plans.suivis.tableauDeBord.nomObjectif'),
-      this.t(subHeader),
+      this.t(this.subHeaderKey()),
       this.t('plans.suivis.tableauDeBord.indicateurs'),
       this.t('plans.suivis.tableauDeBord.export.metrique'),
-      ...years,
+      ...years.map(String),
       this.t('plans.suivis.tableauDeBord.global'),
       this.t('plans.suivis.tableauDeBord.actions'),
-    ]];
+    ];
 
+    const lignes: ExportRow[] = [];
     for (const group of this.filteredGroups()) {
       const objectif = `${group.kind === 'olt' ? 'OLT' : 'OO'} ${group.index} : ${group.label}`;
       for (const row of group.rows) {
-        const global = this.getGlobalScoreForRow(row);
-        rows.push([
-          group.enjeuLibelle,
-          objectif,
-          row.subLabel,
-          row.indicateur.nom_indicateur,
-          '',
-          ...years.map(y => this.scoreLabelOrEmpty(this.getScoreForYear(row, y))),
-          global ? this.getScoreLabel(global) : '',
-          this.actionsForIndicator(row).map(a => a.code).join(' '),
-        ]);
-        for (const met of row.metriques) {
-          rows.push([
+        lignes.push({
+          type: 'indicateur',
+          cellules: [
             group.enjeuLibelle,
             objectif,
             row.subLabel,
             row.indicateur.nom_indicateur,
-            met.unite ? `${met.nom_metrique} (${met.unite})` : met.nom_metrique,
-            ...years.map(y => this.scoreLabelOrEmpty(this.getMetriqueScoreForYear(met, y))),
-            '', '',
-          ]);
+            '',
+            ...years.map(y => this.exportScoreCell(this.getScoreForYear(row, y))),
+            this.exportScoreCell(this.getGlobalScoreForRow(row)),
+            this.actionsForIndicator(row).map(a => a.code).join(' '),
+          ],
+        });
+        for (const met of row.metriques) {
+          lignes.push({
+            type: 'metrique',
+            cellules: [
+              group.enjeuLibelle,
+              objectif,
+              row.subLabel,
+              row.indicateur.nom_indicateur,
+              met.unite ? `${met.nom_metrique} (${met.unite})` : met.nom_metrique,
+              ...years.map(y => this.exportScoreCell(this.getMetriqueScoreForYear(met, y))),
+              '', '',
+            ],
+          });
         }
       }
     }
-    return rows;
+    return { entetes, lignes };
   }
 
-  private scoreLabelOrEmpty(level: ScoreLevel | null): string {
-    return level ? this.getScoreLabel(level) : '';
+  /**
+   * Case de score : le libellé pour la lecture, le niveau pour que le serveur
+   * la colore comme la pastille correspondante à l'écran.
+   */
+  private exportScoreCell(level: ScoreLevel | null): ExportCell {
+    return level ? { t: this.getScoreLabel(level), s: level } : '';
   }
 
   getNeRowspan(group: DashboardGroup, rowIdx: number): number {

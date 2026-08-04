@@ -591,3 +591,114 @@ class TestExportEndpoints:
         for ep in self.ENDPOINTS:
             resp = api_client.get(f'/api/plans/plans/{plan.id_pg}/{ep}/')
             assert resp.status_code == 200, ep
+
+
+# ---------------------------------------------------------------------------
+# Tableau de bord (#638) — mise en forme du tableau affiché
+# ---------------------------------------------------------------------------
+
+def _payload_tableau_bord():
+    """Deux lignes minimales : un indicateur scoré et sa métrique."""
+    return {
+        'titre': 'Tableau de bord — Plan test',
+        'meta': [['Onglet', 'État'], ['Recherche', 'Balbuzard']],
+        'entetes': ['Enjeu', 'Objectif', 'Niveau', 'Indicateur', 'Métrique',
+                    '2024', 'Évaluation globale', 'Actions'],
+        'lignes': [
+            {'type': 'indicateur', 'cellules': [
+                'Enjeu 1', 'OLT 1 : Objectif A', 'NE 1', 'Indicateur 1', '',
+                {'t': 'Bon', 's': 'good'}, {'t': 'Très mauvais', 's': 'very-bad'}, 'CS01',
+            ]},
+            {'type': 'metrique', 'cellules': [
+                'Enjeu 1', 'OLT 1 : Objectif A', 'NE 1', 'Indicateur 1', 'Surface (ha)',
+                {'t': 'Moyen', 's': 'neutral'}, '', '',
+            ]},
+        ],
+    }
+
+
+@pytest.mark.django_db
+class TestExportTableauDeBord:
+    """
+    Retour de recette : le tableau sortait en CSV, sans mise en forme. Le
+    classeur doit reprendre les couleurs de l'interface — en-tête à la couleur
+    de l'instance et cases de score à la palette du design system.
+    """
+
+    URL = '/api/plans/plans/{}/export-tableau-de-bord-xlsx/'
+
+    def _workbook(self, api_client, plan, payload=None):
+        resp = api_client.post(
+            self.URL.format(plan.id_pg), payload or _payload_tableau_bord(), format='json')
+        assert resp.status_code == 200
+        assert resp['Content-Type'].startswith(
+            'application/vnd.openxmlformats-officedocument')
+        return load_workbook(io.BytesIO(resp.content))
+
+    def test_colore_les_cases_de_score_avec_la_palette(self, api_client, plan_finance):
+        api_client.force_authenticate(user=SuperAdminFactory())
+        ws = self._workbook(api_client, plan_finance['plan']).active
+
+        entete = next(
+            r for r in ws.iter_rows() if r[0].value == 'Enjeu'
+        )
+        ligne_indic = ws[entete[0].row + 1]
+        ligne_metrique = ws[entete[0].row + 2]
+
+        # 6e colonne = année 2024, 7e = évaluation globale.
+        assert ligne_indic[5].value == 'Bon'
+        assert ligne_indic[5].fill.fgColor.rgb == 'FF82DB8A'        # good
+        assert ligne_indic[6].fill.fgColor.rgb == 'FFFF7579'        # very-bad
+        assert ligne_metrique[5].fill.fgColor.rgb == 'FFF7D35C'     # neutral
+
+    def test_entete_a_la_couleur_de_l_instance(self, api_client, plan_finance):
+        api_client.force_authenticate(user=SuperAdminFactory())
+        ws = self._workbook(api_client, plan_finance['plan']).active
+
+        entete = next(r for r in ws.iter_rows() if r[0].value == 'Enjeu')
+        assert entete[0].fill.fgColor.rgb == 'FF025359'
+        assert entete[0].font.color.rgb == 'FFFFFFFF'
+        assert entete[0].font.bold
+
+    def test_reprend_le_titre_et_le_rappel_des_filtres(self, api_client, plan_finance):
+        api_client.force_authenticate(user=SuperAdminFactory())
+        ws = self._workbook(api_client, plan_finance['plan']).active
+
+        valeurs = [c.value for col in ws.iter_cols(min_col=1, max_col=2) for c in col]
+        assert 'Tableau de bord — Plan test' in valeurs
+        assert 'Balbuzard' in valeurs
+
+    def test_case_sans_score_reste_incolore(self, api_client, plan_finance):
+        api_client.force_authenticate(user=SuperAdminFactory())
+        ws = self._workbook(api_client, plan_finance['plan']).active
+
+        entete = next(r for r in ws.iter_rows() if r[0].value == 'Enjeu')
+        # Évaluation globale de la ligne métrique : vide, donc pas d'aplat de score.
+        case = ws[entete[0].row + 2][6]
+        assert case.value in (None, '')
+        assert case.fill.fgColor.rgb != 'FF82DB8A'
+
+    def test_exportable_meme_quand_le_plan_est_valide(self, api_client, plan_finance):
+        """
+        Le POST ne modifie pas le plan : le verrou « hors brouillon » (#248) ne
+        doit pas l'intercepter, sinon aucun plan validé ne serait exportable —
+        or c'est justement l'état dans lequel on lit un tableau de bord.
+        """
+        plan = plan_finance['plan']
+        plan.statut = 'valide'
+        plan.save(update_fields=['statut'])
+        api_client.force_authenticate(user=SuperAdminFactory())
+
+        resp = api_client.post(
+            self.URL.format(plan.id_pg), _payload_tableau_bord(), format='json')
+        assert resp.status_code == 200
+
+    def test_membre_non_referent_ne_peut_pas_exporter(self, api_client, plan_finance):
+        plan = plan_finance['plan']
+        membre = RoleFactory()
+        CorRolePlan.objects.create(id_role=membre, plan_de_gestion=plan, referent=False)
+        api_client.force_authenticate(user=membre)
+
+        resp = api_client.post(
+            self.URL.format(plan.id_pg), _payload_tableau_bord(), format='json')
+        assert resp.status_code == 403

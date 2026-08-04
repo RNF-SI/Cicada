@@ -2336,8 +2336,10 @@
         "niveauOuResultat": "Niveau d'exigence / Résultat attendu",
         "export": {
           "label": "Exporter le tableau",
-          "tooltip": "Exporter le tableau affiché (filtres en cours) au format CSV",
-          "metrique": "Métrique"
+          "tooltip": "Exporter le tableau affiché (filtres en cours) au format Excel",
+          "metrique": "Métrique",
+          "onglet": "Onglet",
+          "error": "L'export du tableau a échoué. Réessayez dans un instant."
         }
       },
       "indicateurGlobal": {
