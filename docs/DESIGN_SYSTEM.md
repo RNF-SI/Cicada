@@ -265,12 +265,45 @@ laisser le navigateur mettre le dessin — typographie comprise — a l'echelle.
 Le degrade porte deja la lecture « rouge au centre, bleu au bord » : remplir le
 polygone par-dessus le voile et fausse la couleur lue sous chaque point.
 
+### Courbes lissees
+
+Les series d'evolution et le polygone du radar sont traces en **Beziers
+cubiques** (`smoothPath`, tension 0.5), pas en segments droits : c'est le rendu
+de la maquette, et la difference saute aux yeux sur un radar a cinq axes.
+La courbe passe exactement par chaque point mesure — elle adoucit le chemin,
+jamais la donnee. Un trou dans la serie coupe le trace : deux mesures separees
+par une annee vide ne sont pas reliees par une courbe inventee.
+
+### Graphe courbes : moyenne, etendue, dispersion
+
+| Element | Specification |
+|---------|---------------|
+| Moyenne | trait plein 2 px + points pleins de rayon 4 |
+| Enveloppe min–max | **deux courbes ouvertes** en pointille `3 6`, 1,5 px, bouts arrondis, **sans remplissage** |
+| Bande d'ecart-type | surface fermee, couleur de serie a **20 %** |
+
+L'enveloppe reste ouverte : un contour ferme ajouterait un trait vertical a
+chaque extremite, la ou le minimum rejoindrait le maximum — une variation que
+la donnee ne decrit pas. Et seule la dispersion est peinte : remplir aussi
+l'etendue effacerait la distinction entre les deux.
+
 ### Legende
 
 Pastille **16 x 16 px**, rayon 4 px, ecart de 8 px avec le libelle.
 Libelle en Nunito Regular 13 px `#343433`, valeur en Nunito Bold 13 px `#343433`.
 Une pastille de serie a motif reprend **exactement** le remplissage du segment
 (fond a 8 % + motif), sans bordure ajoutee.
+
+Chaque serie est annoncee par **son** symbole (`LegendItem.shape`) :
+
+| Serie | Symbole |
+|-------|---------|
+| Barre, part de donut | pastille 16 x 16 |
+| Courbe | trait plein 2 px (28 px de large) + point de rayon 5 |
+| Enveloppe min–max | trait pointille `3 6`, 1,5 px |
+| Bande (ecart-type) | pastille a l'opacite de la bande (`opacity`) |
+
+Une courbe annoncee par un carre plein ne se reconnait pas dans le graphe.
 
 ---
 

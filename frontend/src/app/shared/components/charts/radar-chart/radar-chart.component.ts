@@ -3,7 +3,7 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 
-import { RadarAxis, nextChartUid } from '../chart.types';
+import { RadarAxis, nextChartUid, smoothPath } from '../chart.types';
 
 interface RadarPoint { x: number; y: number; color: string; value: number; label: string; }
 interface RadarAxisVm { x2: number; y2: number; labelX: number; labelY: number; anchor: string; label: string; }
@@ -18,6 +18,7 @@ interface RadarVm {
   rings: number[];
   ringLabels: { x: number; y: number; label: string }[];
   axes: RadarAxisVm[];
+  /** Tracé fermé et lissé des valeurs. */
   polygon: string;
   points: RadarPoint[];
   outer: number;
@@ -72,7 +73,7 @@ interface RadarVm {
         }
 
         <!-- Polygone des valeurs -->
-        <svg:polygon [attr.points]="vm.polygon" class="radar-shape"></svg:polygon>
+        <svg:path [attr.d]="vm.polygon" class="radar-shape"></svg:path>
 
         <!-- Points -->
         @for (p of vm.points; track p.label) {
@@ -155,7 +156,9 @@ export class RadarChartComponent implements OnChanges {
       vbWidth, size: this.size, cx, cy, outer,
       gradId: `${this.uid}-grad`,
       rings, ringLabels, axes,
-      polygon: points.map(p => `${p.x},${p.y}`).join(' '),
+      // Courbe fermée, comme la maquette : un radar à cinq axes tracé en
+      // segments droits donne une étoile anguleuse, pas la forme du kit.
+      polygon: smoothPath(points, 0.5, true),
       points,
     };
   }

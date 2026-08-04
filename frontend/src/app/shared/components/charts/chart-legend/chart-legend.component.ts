@@ -27,10 +27,28 @@ interface SwatchVm { item: LegendItem; fill: string; }
     <ul class="legend" [class.legend--inline]="inline">
       @for (s of vm; track s.item.label) {
         <li class="legend__item">
-          <svg class="legend__swatch" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true">
-            <svg:g ccdChartDefs [defs]="defs"></svg:g>
-            <svg:rect width="16" height="16" rx="4" [attr.fill]="s.fill"></svg:rect>
-          </svg>
+          @switch (s.item.shape) {
+            @case ('line') {
+              <!-- Une courbe se reconnaît à son trait et à son point. -->
+              <svg class="legend__symbol" viewBox="0 0 28 10" width="28" height="10" aria-hidden="true">
+                <svg:line x1="0" y1="5" x2="28" y2="5" [attr.stroke]="s.item.color" stroke-width="2"></svg:line>
+                <svg:circle cx="19" cy="5" r="5" [attr.fill]="s.item.color"></svg:circle>
+              </svg>
+            }
+            @case ('dashed') {
+              <svg class="legend__symbol" viewBox="0 0 28 2" width="28" height="2" aria-hidden="true">
+                <svg:line x1="0.75" y1="1" x2="27.25" y2="1" [attr.stroke]="s.item.color"
+                          stroke-width="1.5" stroke-linecap="round" stroke-dasharray="3 6"></svg:line>
+              </svg>
+            }
+            @default {
+              <svg class="legend__swatch" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true">
+                <svg:g ccdChartDefs [defs]="defs"></svg:g>
+                <svg:rect width="16" height="16" rx="4" [attr.fill]="s.fill"
+                          [attr.fill-opacity]="s.item.opacity ?? 1"></svg:rect>
+              </svg>
+            }
+          }
           <span class="legend__label">{{ s.item.label }}</span>
           @if (s.item.value !== undefined && s.item.value !== null) {
             <strong class="legend__value">{{ s.item.value }}</strong>

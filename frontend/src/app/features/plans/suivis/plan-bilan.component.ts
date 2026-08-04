@@ -261,7 +261,7 @@ export class PlanBilanComponent implements OnInit {
     if (!s) return [];
     return [{
       label: this.translate.instant('plans.suivis.bilan.indic.legendMoyenne'),
-      color: '#B74D5D',
+      color: NON_PLANIFIE_COLOR,
       points: s.indicateurs_evolution.mean,
       showPoints: true,
     }];
@@ -274,13 +274,19 @@ export class PlanBilanComponent implements OnInit {
     const ev = s.indicateurs_evolution;
     const innerLower = ev.mean.map((m, i) => (m === null || ev.std[i] === null) ? null : m - (ev.std[i] as number));
     const innerUpper = ev.mean.map((m, i) => (m === null || ev.std[i] === null) ? null : m + (ev.std[i] as number));
-    return { lower: ev.min, upper: ev.max, innerLower, innerUpper, color: '#B74D5D' };
+    return { lower: ev.min, upper: ev.max, innerLower, innerUpper, color: NON_PLANIFIE_COLOR };
   });
 
+  /**
+   * Légende du graphe courbes : chaque série est annoncée par **son** symbole
+   * (kit UI) — trait plein et point pour la moyenne, pointillé pour
+   * l'enveloppe min–max, aplat transparent pour la bande d'écart-type. Trois
+   * carrés de teintes différentes ne disaient pas lequel était lequel.
+   */
   indicEvolutionLegend = computed<LegendItem[]>(() => [
-    { label: this.translate.instant('plans.suivis.bilan.indic.legendMoyenne'), color: '#B74D5D' },
-    { label: this.translate.instant('plans.suivis.bilan.indic.legendMinMax'), color: '#CE8E99' },
-    { label: this.translate.instant('plans.suivis.bilan.indic.legendEcartType'), color: '#EDD3D8' },
+    { label: this.translate.instant('plans.suivis.bilan.indic.legendMoyenne'), color: NON_PLANIFIE_COLOR, shape: 'line' },
+    { label: this.translate.instant('plans.suivis.bilan.indic.legendMinMax'), color: NON_PLANIFIE_COLOR, shape: 'dashed' },
+    { label: this.translate.instant('plans.suivis.bilan.indic.legendEcartType'), color: NON_PLANIFIE_COLOR, opacity: 0.2 },
   ]);
 
   hasIndicEvolution = computed<boolean>(() =>

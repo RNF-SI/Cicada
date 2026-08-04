@@ -3,7 +3,7 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 
-import { LineSeries, LineBand, LegendItem } from '../chart.types';
+import { ChartPoint, LineSeries, LineBand, LegendItem, smoothPath } from '../chart.types';
 import { ChartLegendComponent } from '../chart-legend/chart-legend.component';
 
 interface SeriesVm { path: string; color: string; dashed: boolean; showPoints: boolean; points: { x: number; y: number }[]; }
@@ -17,7 +17,9 @@ interface LineVm {
   plotBottom: number;
   grid: GridLine[];
   xticks: { x: number; label: string }[];
-  bandPath?: string;
+  /** Enveloppe min–max : deux courbes **ouvertes**, tracées en pointillés. */
+  bandEdges: string[];
+  /** Bande d'écart-type : surface fermée, peinte. */
   innerBandPath?: string;
   bandColor: string;
   series: SeriesVm[];
@@ -46,21 +48,28 @@ interface LineVm {
           <svg:line [attr.x1]="vm.plotLeft" [attr.x2]="vm.plotRight" [attr.y1]="g.y" [attr.y2]="g.y" class="line-grid"></svg:line>
           <svg:text [attr.x]="vm.plotLeft - 6" [attr.y]="g.y + 3" text-anchor="end" class="line-tick">{{ g.label }}</svg:text>
         }
-        <!-- Bande écart-type puis enveloppe min–max -->
-        @if (vm.bandPath) {
-          <svg:path [attr.d]="vm.bandPath" [attr.fill]="vm.bandColor" fill-opacity="0.18" stroke="none"></svg:path>
-          <svg:path [attr.d]="vm.bandPath" fill="none" [attr.stroke]="vm.bandColor" stroke-width="1" stroke-dasharray="3 3" stroke-opacity="0.7"></svg:path>
-        }
+        <!-- Bande d'écart-type (aplat), puis enveloppe min–max (pointillés) -->
         @if (vm.innerBandPath) {
-          <svg:path [attr.d]="vm.innerBandPath" [attr.fill]="vm.bandColor" fill-opacity="0.22" stroke="none"></svg:path>
+          <svg:path [attr.d]="vm.innerBandPath" [attr.fill]="vm.bandColor" fill-opacity="0.2" stroke="none"></svg:path>
+        }
+        <!--
+          Enveloppe min–max : deux courbes pointillées distinctes, sans
+          remplissage. Un contour fermé ajouterait un trait vertical à chaque
+          extrémité, là où le minimum rejoindrait le maximum — une variation
+          que la donnée ne décrit pas.
+        -->
+        @for (edge of vm.bandEdges; track $index) {
+          <svg:path [attr.d]="edge" fill="none" [attr.stroke]="vm.bandColor"
+                    stroke-width="1.5" stroke-linecap="round" stroke-dasharray="3 6"></svg:path>
         }
         <!-- Séries -->
         @for (s of vm.series; track $index) {
           <svg:path [attr.d]="s.path" fill="none" [attr.stroke]="s.color" stroke-width="2"
-                    [attr.stroke-dasharray]="s.dashed ? '5 4' : null" stroke-linejoin="round"></svg:path>
+                    [attr.stroke-dasharray]="s.dashed ? '5 4' : null"
+                    stroke-linecap="round" stroke-linejoin="round"></svg:path>
           @if (s.showPoints) {
             @for (p of s.points; track $index) {
-              <svg:circle [attr.cx]="p.x" [attr.cy]="p.y" r="3.5" [attr.fill]="s.color" stroke="#fff" stroke-width="1.5"></svg:circle>
+              <svg:circle [attr.cx]="p.x" [attr.cy]="p.y" r="4" [attr.fill]="s.color"></svg:circle>
             }
           }
         }
@@ -123,10 +132,12 @@ export class LineChartComponent implements OnChanges {
       };
     });
 
-    let bandPath: string | undefined;
+    let bandEdges: string[] = [];
     let innerBandPath: string | undefined;
     if (this.band) {
-      bandPath = this.toBandPath(this.band.lower, this.band.upper, xAt, yAt);
+      bandEdges = [this.band.upper, this.band.lower]
+        .map(vals => this.toEdgePath(vals, xAt, yAt))
+        .filter((d): d is string => !!d);
       if (this.band.innerLower && this.band.innerUpper) {
         innerBandPath = this.toBandPath(this.band.innerLower, this.band.innerUpper, xAt, yAt);
       }
@@ -134,40 +145,64 @@ export class LineChartComponent implements OnChanges {
 
     this.vm = {
       width, height: this.height, plotLeft, plotRight, plotBottom,
-      grid, xticks, bandPath, innerBandPath,
+      grid, xticks, bandEdges, innerBandPath,
       bandColor: this.band?.color ?? '#B74D5D',
       series,
       hasData: series.some(s => s.points.length > 0),
     };
   }
 
-  private toPath(points: ({ x: number; y: number } | null)[]): string {
-    let d = '';
-    let pen = false;
+  /**
+   * Tracé lissé d'une série, en sautant les points manquants : chaque suite de
+   * points consécutifs forme sa propre courbe, sinon un trou d'une année
+   * relierait deux mesures distantes par une courbe inventée.
+   */
+  private toPath(points: (ChartPoint | null)[]): string {
+    const morceaux: ChartPoint[][] = [];
+    let courant: ChartPoint[] = [];
     for (const p of points) {
-      if (p === null) { pen = false; continue; }
-      d += `${pen ? 'L' : 'M'} ${p.x} ${p.y} `;
-      pen = true;
+      if (p === null) {
+        if (courant.length) morceaux.push(courant);
+        courant = [];
+      } else {
+        courant.push(p);
+      }
     }
-    return d.trim();
+    if (courant.length) morceaux.push(courant);
+    return morceaux.map(m => smoothPath(m)).join(' ').trim();
+  }
+
+  /** Une bordure de l'enveloppe (min ou max), lissée et laissée ouverte. */
+  private toEdgePath(
+    values: (number | null)[],
+    xAt: (i: number) => number, yAt: (v: number) => number,
+  ): string | undefined {
+    const pts = values
+      .map((v, i) => v === null ? null : { x: xAt(i), y: yAt(v) })
+      .filter((p): p is ChartPoint => p !== null);
+    return pts.length ? smoothPath(pts) : undefined;
   }
 
   private toBandPath(
     lower: (number | null)[], upper: (number | null)[],
     xAt: (i: number) => number, yAt: (v: number) => number,
   ): string | undefined {
-    const up: string[] = [];
-    const down: string[] = [];
+    // La bande suit les mêmes courbes que la moyenne qu'elle entoure : lissée
+    // à l'aller (bord haut) et au retour (bord bas), refermée entre les deux.
+    const up: ChartPoint[] = [];
+    const down: ChartPoint[] = [];
     for (let i = 0; i < upper.length; i++) {
       if (upper[i] === null) continue;
-      up.push(`${xAt(i)} ${yAt(upper[i] as number)}`);
+      up.push({ x: xAt(i), y: yAt(upper[i] as number) });
     }
     for (let i = lower.length - 1; i >= 0; i--) {
       if (lower[i] === null) continue;
-      down.push(`${xAt(i)} ${yAt(lower[i] as number)}`);
+      down.push({ x: xAt(i), y: yAt(lower[i] as number) });
     }
     if (!up.length || !down.length) return undefined;
-    return `M ${up.join(' L ')} L ${down.join(' L ')} Z`;
+    const haut = smoothPath(up);
+    const bas = smoothPath(down).replace(/^M/, 'L');
+    return `${haut} ${bas} Z`;
   }
 
   private formatTick(v: number): string {

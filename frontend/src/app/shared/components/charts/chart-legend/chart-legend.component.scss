@@ -48,3 +48,11 @@
   width: 16px;
   height: 16px;
 }
+
+// Symbole de courbe : plus large que haut, centré sur la ligne de texte.
+.legend__symbol {
+  flex-shrink: 0;
+  display: block;
+  width: 28px;
+  overflow: visible;
+}
