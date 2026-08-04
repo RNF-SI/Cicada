@@ -44,7 +44,7 @@ from .services_import import (
 from .services_export_arbo import build_presentation_workbook
 from .services_export_word import build_plan_docx
 from .services_export_fiche_action import build_fiche_action_workbook
-from .services_export_tableau_bord import build_tableau_bord_workbook
+from .services_export_grille import build_grille_workbook
 from .services_export_budget_rh import (
     build_rh_previsionnel_workbook,
     build_rh_suivi_workbook,
@@ -1415,7 +1415,24 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
         payload = request.data if isinstance(request.data, dict) else {}
         suffix = plan.slug or f'plan-{plan.pk}'
         return self._xlsx_response(
-            build_tableau_bord_workbook(payload), f'tableau-de-bord-{suffix}.xlsx')
+            build_grille_workbook(payload), f'tableau-de-bord-{suffix}.xlsx')
+
+    @action(detail=True, methods=['post'], url_path='export-suivi-actions-xlsx')
+    def export_suivi_actions_xlsx(self, request, pk=None):
+        """
+        Exporter le tableau de suivi des actions en Excel mis en forme (#637).
+
+        POST /api/plans/plans/{id}/export-suivi-actions-xlsx/
+
+        Même contrat que l'export du tableau de bord : le client envoie l'onglet
+        qu'il affiche (Réalisation, Budget, RH, Planification), filtres compris,
+        et le serveur ne fait que la mise en forme.
+        """
+        plan = self._get_plan_for_export()
+        payload = request.data if isinstance(request.data, dict) else {}
+        suffix = plan.slug or f'plan-{plan.pk}'
+        return self._xlsx_response(
+            build_grille_workbook(payload), f'suivi-actions-{suffix}.xlsx')
 
     @action(detail=True, methods=['get'], url_path='export-rh-suivi-xlsx')
     def export_rh_suivi_xlsx(self, request, pk=None):

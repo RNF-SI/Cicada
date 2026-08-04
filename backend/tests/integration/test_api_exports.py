@@ -618,7 +618,7 @@ def _payload_tableau_bord():
 
 
 @pytest.mark.django_db
-class TestExportTableauDeBord:
+class TestExportGrilleAffichee:
     """
     Retour de recette : le tableau sortait en CSV, sans mise en forme. Le
     classeur doit reprendre les couleurs de l'interface — en-tête à la couleur
@@ -701,4 +701,66 @@ class TestExportTableauDeBord:
 
         resp = api_client.post(
             self.URL.format(plan.id_pg), _payload_tableau_bord(), format='json')
+        assert resp.status_code == 403
+
+
+@pytest.mark.django_db
+class TestExportSuiviActions:
+    """
+    Retour de recette #637 : le total du groupe ouvrait le tableau, son libellé
+    logé dans la colonne « Code », et rien ne le distinguait des autres lignes.
+    """
+
+    URL = '/api/plans/plans/{}/export-suivi-actions-xlsx/'
+
+    PAYLOAD = {
+        'titre': 'Suivi des actions — Plan test',
+        'onglet': 'Budget',
+        'meta': [['Onglet', 'Budget']],
+        'entetes': ['Organisme', 'Code', 'Code opération', 'Action',
+                    'Enjeu', 'Catégorie', 'Priorité', 'Total (€)'],
+        'lignes': [
+            {'cellules': ['Org Alpha', 'CS1', 'CAM-SE01', 'Action A',
+                          'Enjeu 1', 'Connaissance', 'Priorité 1', 1200]},
+            {'type': 'total', 'cellules': ['Total Org Alpha', '', '', '', '', '', '', 1200]},
+        ],
+    }
+
+    def _sheet(self, api_client, plan):
+        resp = api_client.post(self.URL.format(plan.id_pg), self.PAYLOAD, format='json')
+        assert resp.status_code == 200
+        return load_workbook(io.BytesIO(resp.content)).active
+
+    def test_ligne_de_total_detachee_du_reste(self, api_client, plan_finance):
+        api_client.force_authenticate(user=SuperAdminFactory())
+        ws = self._sheet(api_client, plan_finance['plan'])
+
+        entete = next(r for r in ws.iter_rows() if r[0].value == 'Organisme')
+        action, total = ws[entete[0].row + 1], ws[entete[0].row + 2]
+
+        assert action[0].value == 'Org Alpha'
+        assert not action[0].fill.fill_type or action[0].fill.fgColor.rgb != 'FFC0E3CF'
+        # Le total porte l'aplat vert pâle réservé aux synthèses, et son libellé
+        # est dans la colonne « Organisme », pas dans « Code ».
+        assert total[0].fill.fgColor.rgb == 'FFC0E3CF'
+        assert total[0].value == 'Total Org Alpha'
+        assert total[1].value in (None, '')
+        assert total[0].font.bold
+
+    def test_montants_ecrits_comme_des_nombres(self, api_client, plan_finance):
+        """Un montant en texte ne se somme pas dans le tableur : il doit rester numérique."""
+        api_client.force_authenticate(user=SuperAdminFactory())
+        ws = self._sheet(api_client, plan_finance['plan'])
+
+        entete = next(r for r in ws.iter_rows() if r[0].value == 'Organisme')
+        assert ws[entete[0].row + 1][7].value == 1200
+        assert isinstance(ws[entete[0].row + 1][7].value, (int, float))
+
+    def test_membre_non_referent_ne_peut_pas_exporter(self, api_client, plan_finance):
+        plan = plan_finance['plan']
+        membre = RoleFactory()
+        CorRolePlan.objects.create(id_role=membre, plan_de_gestion=plan, referent=False)
+        api_client.force_authenticate(user=membre)
+
+        resp = api_client.post(self.URL.format(plan.id_pg), self.PAYLOAD, format='json')
         assert resp.status_code == 403

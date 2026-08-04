@@ -784,6 +784,21 @@ export class AdminService {
   }
 
   /**
+   * Télécharge le tableau de suivi des actions mis en forme (#637).
+   * POST /api/plans/plans/{id}/export-suivi-actions-xlsx/
+   *
+   * Même contrat que `downloadTableauDeBordXlsx` : le client envoie l'onglet
+   * qu'il affiche, le serveur ne fait que la mise en forme.
+   */
+  downloadSuiviActionsXlsx(planId: number, payload: unknown): Observable<Blob> {
+    return this.http
+      .post(`${this.plansApiUrl}/plans/${planId}/export-suivi-actions-xlsx/`, payload, {
+        responseType: 'blob',
+      })
+      .pipe(catchError(this.handleError));
+  }
+
+  /**
    * Télécharge les fiches action du plan (Excel, un onglet par action).
    * GET /api/plans/plans/{id}/export-fiches-actions-xlsx/
    */

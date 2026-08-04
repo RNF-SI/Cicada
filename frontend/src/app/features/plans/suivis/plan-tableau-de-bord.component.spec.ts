@@ -265,7 +265,7 @@ describe('PlanTableauDeBordComponent — export du tableau (#638)', () => {
   describe('mise en forme du classeur', () => {
     it('marque les lignes de détail « métrique » pour les distinguer', () => {
       component.setTab('etat');
-      expect(payload().lignes.map((l: any) => l.type)).toEqual(['indicateur', 'metrique']);
+      expect(payload().lignes.map((l: any) => l.type)).toEqual(['normal', 'detail']);
     });
 
     it('transmet le niveau de score des cases, pas seulement leur libellé', () => {

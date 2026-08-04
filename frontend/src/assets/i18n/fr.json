@@ -2127,14 +2127,18 @@
         "actionNonRealisee": "Action prévue non réalisée",
         "actionNonRealiseeSeule": "Action non réalisée",
         "export": {
-          "tooltip": "Exporter le tableau affiché (filtres en cours) au format CSV",
+          "tooltip": "Exporter le tableau affiché (filtres en cours) au format Excel",
           "code": "Code",
           "action": "Action",
           "previsionnel": "Prévisionnel",
           "realise": "Réalisé",
           "annee": "Année",
           "moisPrevus": "Mois prévus",
-          "moisRealises": "Mois réalisés"
+          "moisRealises": "Mois réalisés",
+          "codeOperation": "Code opération",
+          "onglet": "Onglet",
+          "error": "L'export du tableau a échoué. Réessayez dans un instant.",
+          "totalGroupe": "Total"
         }
       },
       "saisie": {

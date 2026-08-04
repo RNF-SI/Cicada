@@ -85,6 +85,7 @@ class CanModifyOnlyDraftPlan(BasePermission):
         # affiché à mettre en forme (#638) : rien n'est écrit sur le plan, un
         # plan validé doit rester exportable.
         "export_tableau_de_bord_xlsx",
+        "export_suivi_actions_xlsx",
         # Lecture / consultations
         "by_plan",
         "by_ne",

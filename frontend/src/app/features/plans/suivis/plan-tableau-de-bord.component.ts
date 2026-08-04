@@ -26,28 +26,10 @@ import {
 import { computeCombinedScore, computeMetriqueScore } from './metrique-seuils.util';
 import { exportFilename } from '../../../shared/utils/csv-export';
 import { downloadBlob } from '../../../shared/utils/chart-image-export';
+import { GridCell, GridExportPayload, GridRow } from '../../../shared/utils/grid-export';
 
 type ScoreLevel = 'very-bad' | 'bad' | 'neutral' | 'good' | 'very-good' | 'no-data';
 
-/**
- * #638 — Cellule exportée : soit un texte nu, soit un texte porteur d'un niveau
- * de score, que le serveur traduit en case colorée (palette du design system).
- */
-export type ExportCell = string | { t: string; s: ScoreLevel };
-
-export interface ExportRow {
-  /** Une ligne de détail « métrique » est tramée sous sa ligne indicateur. */
-  type: 'indicateur' | 'metrique';
-  cellules: ExportCell[];
-}
-
-export interface TableauBordExportPayload {
-  titre: string;
-  /** Rappel des filtres actifs, en couples libellé / valeur. */
-  meta: [string, string][];
-  entetes: string[];
-  lignes: ExportRow[];
-}
 
 /**
  * #389 — Un groupe du tableau de bord. Pour les indicateurs d'État, le groupe
@@ -618,17 +600,21 @@ export class PlanTableauDeBordComponent implements OnInit {
     return meta;
   }
 
-  private buildExportPayload(): TableauBordExportPayload {
+  private buildExportPayload(): GridExportPayload {
     const { entetes, lignes } = this.buildExportGrid();
     return {
       titre: `${this.t('plans.suivis.tableauDeBord.title')} — ${this.planNom()}`,
+      onglet: this.t(`plans.suivis.tableauDeBord.${this.activeTab()}`),
       meta: this.buildExportMeta(),
       entetes,
+      // Fige les 5 colonnes d'identification : sans elles à l'écran, les
+      // colonnes d'années ne se rattachent plus à rien.
+      gel: 5,
       lignes,
     };
   }
 
-  private buildExportGrid(): { entetes: string[]; lignes: ExportRow[] } {
+  private buildExportGrid(): { entetes: string[]; lignes: GridRow[] } {
     const years = this.yearColumns();
     const entetes = [
       this.t('plans.suivis.tableauDeBord.enjeu'),
@@ -641,12 +627,12 @@ export class PlanTableauDeBordComponent implements OnInit {
       this.t('plans.suivis.tableauDeBord.actions'),
     ];
 
-    const lignes: ExportRow[] = [];
+    const lignes: GridRow[] = [];
     for (const group of this.filteredGroups()) {
       const objectif = `${group.kind === 'olt' ? 'OLT' : 'OO'} ${group.index} : ${group.label}`;
       for (const row of group.rows) {
         lignes.push({
-          type: 'indicateur',
+          type: 'normal',
           cellules: [
             group.enjeuLibelle,
             objectif,
@@ -660,7 +646,7 @@ export class PlanTableauDeBordComponent implements OnInit {
         });
         for (const met of row.metriques) {
           lignes.push({
-            type: 'metrique',
+            type: 'detail',
             cellules: [
               group.enjeuLibelle,
               objectif,
@@ -681,7 +667,7 @@ export class PlanTableauDeBordComponent implements OnInit {
    * Case de score : le libellé pour la lecture, le niveau pour que le serveur
    * la colore comme la pastille correspondante à l'écran.
    */
-  private exportScoreCell(level: ScoreLevel | null): ExportCell {
+  private exportScoreCell(level: ScoreLevel | null): GridCell {
     return level ? { t: this.getScoreLabel(level), s: level } : '';
   }
 

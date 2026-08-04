@@ -371,22 +371,29 @@ describe('PlanSuiviActionsComponent — export du tableau (#637)', () => {
     ]);
   });
 
-  const rows = (name: string) => (component as any)[name]() as any[][];
+  const grid = (name: string, ...args: any[]) =>
+    (component as any)[name](...args) as { entetes: string[]; lignes: any[] };
+  /** Vue « matrice » (en-tête + lignes), indépendante de la mise en forme. */
+  const rows = (name: string, ...args: any[]): any[][] => {
+    const g = grid(name, ...args);
+    const text = (c: any) => (c && typeof c === 'object' ? c.t : c);
+    return [g.entetes, ...g.lignes.map(l => l.cellules.map(text))];
+  };
 
   it('exporte une ligne par action filtrée, avec une colonne par année', () => {
-    const out = rows('buildRealisationRows');
+    const out = rows('buildRealisationGrid');
     expect(out).toHaveLength(3); // en-tête + 2 actions
-    expect(out[0]).toContain(2026);
-    expect(out[0]).toContain(2027);
-    expect(out[1][1]).toBe('Action A');
-    expect(out[2][1]).toBe('Action B');
+    expect(out[0]).toContain('2026');
+    expect(out[0]).toContain('2027');
+    expect(out[1][2]).toBe('Action A');
+    expect(out[2][2]).toBe('Action B');
   });
 
   it('n\'exporte que les actions retenues par les filtres', () => {
     component.filters.enjeu.set([2]);
-    const out = rows('buildRealisationRows');
+    const out = rows('buildRealisationGrid');
     expect(out).toHaveLength(2);
-    expect(out[1][1]).toBe('Action B');
+    expect(out[1][2]).toBe('Action B');
   });
 
   it('exporte toutes les lignes filtrées, pas seulement la page courante', () => {
@@ -397,26 +404,65 @@ describe('PlanSuiviActionsComponent — export du tableau (#637)', () => {
       })),
     );
     expect(component.pagedOperations().length).toBe(component.pageSize);
-    expect(rows('buildRealisationRows')).toHaveLength(26);
-  });
-
-  it('exporte le budget groupé par organisme, ligne de total en tête de groupe', () => {
-    const out = (component as any).buildAggregationRows('budget') as any[][];
-    expect(out[0][0]).toBe('plans.suivis.actions.organisme');
-    // Les actions sans ventilation tombent dans le bucket « Plan général » :
-    // 1 en-tête + 1 ligne de total du groupe + 2 actions.
-    expect(out).toHaveLength(4);
-    expect(out[1][0]).toBe('plans.suivis.actions.planGeneral');
-    expect(out[2][2]).toBe('Action A');
+    expect(rows('buildRealisationGrid')).toHaveLength(26);
   });
 
   it('exporte la planification mois par mois, année par année', () => {
-    const out = rows('buildPlanificationRows');
+    const out = rows('buildPlanificationGrid');
     expect(out).toHaveLength(3);
-    expect(out[1][5]).toBe(2026);
+    expect(out[1][6]).toBe(2026);
     // monthsShort n'est pas traduit dans le test : repli sur les numéros de mois.
-    expect(String(out[1][6]).split(' ')).toHaveLength(2);
-    expect(out[2][5]).toBe(2027);
-    expect(out[2][6]).toBe('');
+    expect(String(out[1][7]).split(' ')).toHaveLength(2);
+    expect(out[2][6]).toBe(2027);
+    expect(out[2][7]).toBe('');
+  });
+
+  // ===========================================================================
+  // Retour recette : colonne Code surchargée, totaux mal placés, aucun visuel
+  // ===========================================================================
+
+  it('sépare le code d’affichage du code d’opération en deux colonnes', () => {
+    component.allOperations.set([{
+      operation: { ...makeOp(1, 'Action A'), code_operation: 'CAM-SE01' } as any,
+      enjeuLibelle: 'Enjeu 1', enjeuId: 1,
+    }]);
+    const out = rows('buildRealisationGrid');
+
+    expect(out[0][0]).toBe('plans.suivis.actions.export.code');
+    expect(out[0][1]).toBe('plans.suivis.actions.export.codeOperation');
+    expect(out[1][0]).toBe('CS1');        // code d'affichage calculé par CICADA
+    expect(out[1][1]).toBe('CAM-SE01');   // code saisi par la structure
+    // Aucune cellule ne recolle les deux identifiants.
+    expect(out[1].some((c: any) => String(c).includes('·'))).toBe(false);
+  });
+
+  it('clôt chaque groupe par sa ligne de total, hors de la colonne Code', () => {
+    const g = grid('buildAggregationGrid', 'budget');
+    expect(g.entetes[0]).toBe('plans.suivis.actions.organisme');
+
+    // Bucket « Plan général » : 2 actions puis le total du groupe.
+    expect(g.lignes).toHaveLength(3);
+    expect(g.lignes[0].type).toBeUndefined();
+    const total = g.lignes[2];
+    expect(total.type).toBe('total');
+    // Le libellé du total est dans la colonne « Organisme »…
+    expect(String(total.cellules[0])).toContain('plans.suivis.actions.planGeneral');
+    // … et les colonnes d'identification de l'action restent vides.
+    expect(total.cellules.slice(1, 7)).toEqual(['', '', '', '', '', '']);
+  });
+
+  it('annonce l’onglet et les filtres actifs en tête de classeur', () => {
+    component.setTab('realisation');
+    component.filters.enjeu.set([2]);
+    component.filters.text.set('Balbuzard');
+
+    const payload = (component as any).buildExportPayload();
+    expect(payload.onglet).toBe('plans.suivis.actions.tabs.realisation');
+    expect(payload.meta).toContainEqual([
+      'plans.suivis.actions.export.onglet', 'plans.suivis.actions.tabs.realisation',
+    ]);
+    expect(payload.meta).toContainEqual(['common.actions.search', 'Balbuzard']);
+    // Les colonnes d'identification restent visibles au défilement.
+    expect(payload.gel).toBe(6);
   });
 });
