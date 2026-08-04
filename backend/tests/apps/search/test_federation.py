@@ -15,6 +15,8 @@ invariants qui font qu'une agrégation reste juste :
 
 import pytest
 from django.contrib.gis.geos import MultiPolygon, Polygon
+from django.db import connection
+from django.test.utils import CaptureQueriesContext
 from rest_framework.test import APIClient
 
 from apps.geo.models import AreaType, LArea
@@ -157,6 +159,96 @@ class TestPublication:
         codes = reponse.data['results'][0]['area_codes']
         assert set(codes) == {'DEP:69', 'REG:84'}
 
+    def test_publie_les_sites_en_codes_inpn_et_jamais_en_identifiants(
+        self, db, client_federation, settings
+    ):
+        """
+        `id_site` est une séquence locale, `id_inpn` vient du référentiel national.
+
+        L'identifiant local ne doit apparaître nulle part dans le document : il
+        ne désigne rien chez le destinataire.
+        """
+        settings.CICADA_INSTANCE_ID = 'rnf'
+        plan = PlanGestionFactory(statut='valide')
+        CorSitePgFactory(
+            plan_de_gestion=plan, site=SiteFactory(id_inpn='FR1100796'), rang=1,
+        )
+        EnjeuFactory(id_pg=plan, libelle="Enjeu d'un site identifié")
+        index_plan(plan)
+
+        reponse = client_federation.get(
+            URL_PUBLICATION, headers={'X-Federation-Token': JETON}
+        )
+        document = reponse.data['results'][0]
+        assert document['site_inpn_codes'] == ['FR1100796']
+        assert 'site_ids' not in document
+
+    def test_le_cout_en_requetes_ne_suit_pas_le_nombre_de_documents(
+        self, db, client_federation, settings, zones
+    ):
+        """
+        Traduire les codes document par document coûterait deux requêtes *par
+        document* — un millier pour une page de 500, alors que l'index vise
+        ~1,3 M de documents une fois les ~4 400 plans repris.
+
+        Le nombre de plans est laissé constant : seul le nombre de documents
+        varie, donc seul le coût de la traduction est mesuré.
+        """
+        settings.CICADA_INSTANCE_ID = 'rnf'
+        plan = PlanGestionFactory(statut='valide')
+        CorSitePgFactory(
+            plan_de_gestion=plan, site=SiteFactory(id_inpn='FR1100796'), rang=1,
+        )
+        EnjeuFactory(id_pg=plan, libelle="Premier enjeu")
+        index_plan(plan)
+        ContenuIndexe.objects.filter(id_pg=plan).update(
+            area_ids=[zones['departement'].pk, zones['region'].pk]
+        )
+        avec_un_document = self._requetes_de_publication(client_federation)
+
+        for numero in range(5):
+            EnjeuFactory(id_pg=plan, libelle=f"Enjeu supplémentaire {numero}")
+        index_plan(plan)
+        ContenuIndexe.objects.filter(id_pg=plan).update(
+            area_ids=[zones['departement'].pk, zones['region'].pk]
+        )
+        assert ContenuIndexe.objects.count() == 6
+
+        assert self._requetes_de_publication(client_federation) == avec_un_document
+
+    def _requetes_de_publication(self, client):
+        with CaptureQueriesContext(connection) as requetes:
+            reponse = client.get(
+                URL_PUBLICATION, headers={'X-Federation-Token': JETON}
+            )
+            assert reponse.status_code == 200
+        return len(requetes)
+
+    def test_un_site_sans_code_inpn_est_omis(self, db, client_federation, settings):
+        """
+        `id_inpn` est *nullable* : la couverture est partielle par construction.
+
+        Sans code national il ne reste que l'identifiant local, qui ne veut rien
+        dire ailleurs. Le site est donc passé sous silence plutôt que mal
+        transmis — la liste publiée dit « ces sites-là », pas « seulement
+        ceux-là ».
+        """
+        settings.CICADA_INSTANCE_ID = 'rnf'
+        plan = PlanGestionFactory(statut='valide')
+        CorSitePgFactory(
+            plan_de_gestion=plan, site=SiteFactory(id_inpn='FR1100796'), rang=1,
+        )
+        CorSitePgFactory(
+            plan_de_gestion=plan, site=SiteFactory(id_inpn=None), rang=2,
+        )
+        EnjeuFactory(id_pg=plan, libelle="Enjeu inter-sites")
+        index_plan(plan)
+
+        reponse = client_federation.get(
+            URL_PUBLICATION, headers={'X-Federation-Token': JETON}
+        )
+        assert reponse.data['results'][0]['site_inpn_codes'] == ['FR1100796']
+
 
 # --------------------------------------------------------------------------- #
 # Ingestion
@@ -172,7 +264,7 @@ class TestIngestion:
             'rattachements': '', 'parent_type': None, 'parent_libelle': None,
             'sous_type': 'ecologique', 'sous_type_libelle': None,
             'statut_pg': 'valide', 'annee_debut': 2020, 'annee_fin': 2030,
-            'type_site_codes': ['RNN'], 'area_codes': [],
+            'type_site_codes': ['RNN'], 'area_codes': [], 'site_inpn_codes': [],
             'plan': {'nom': 'PG distant', 'slug': 'pg-distant'},
         }
         base.update(surcharges)
@@ -184,15 +276,50 @@ class TestIngestion:
         assert contenu.plan_denorm['nom'] == 'PG distant'
         assert contenu.instance_id == 'cen'
 
-    def test_les_facettes_sans_cle_stable_sont_videes(self, db):
+    def test_les_organismes_sont_vides_faute_de_cle_stable(self, db):
         """
         Recopier un identifiant local ferait matcher le mauvais organisme.
 
         Un tableau vide produit une absence visible ; un identifiant recopié
-        produirait une corruption silencieuse.
+        produirait une corruption silencieuse. Tant que l'identité nationale des
+        organismes n'est pas tranchée (#636), c'est le seul comportement tenable.
         """
         contenu = contenu_depuis_document(self.document(), 'cen')
         assert contenu.organisme_ids == []
+
+    def test_les_sites_sont_re_resolus_par_code_inpn(self, db):
+        """
+        Un code INPN désigne le même espace protégé dans toutes les instances.
+
+        Quand le portail connaît déjà ce site — co-gestion, cas fréquent — le
+        document distant se rattache au bon site local.
+        """
+        site = SiteFactory(id_inpn='FR1100796')
+        contenu = contenu_depuis_document(
+            self.document(site_inpn_codes=['FR1100796']), 'cen'
+        )
+        assert contenu.site_ids == [site.pk]
+
+    def test_un_code_inpn_inconnu_ne_rattache_rien(self, db):
+        """Le portail n'invente pas un site qu'il ne connaît pas."""
+        SiteFactory(id_inpn='FR1100796')
+        contenu = contenu_depuis_document(
+            self.document(site_inpn_codes=['FR-INCONNU']), 'cen'
+        )
+        assert contenu.site_ids == []
+
+    def test_un_document_sans_codes_sites_reste_ingerable(self, db):
+        """
+        Émetteur antérieur à l'ajout du champ (#636).
+
+        Les instances sont mises à jour indépendamment : un champ optionnel
+        absent doit dégrader vers « aucun rattachement », jamais faire échouer
+        l'ingestion — c'est ce qui autorise à ne pas bumper `FORMAT_VERSION`
+        pour un ajout purement additif.
+        """
+        document = self.document()
+        document.pop('site_inpn_codes')
+        contenu = contenu_depuis_document(document, 'cen')
         assert contenu.site_ids == []
 
     def test_les_mnemoniques_traversent_intactes(self, db):

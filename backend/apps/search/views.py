@@ -28,7 +28,8 @@ from apps.plans.models import CorSitePg, PlanGestion
 from apps.users.models import CorOgSite
 
 from .federation import (
-    FORMAT_VERSION, HasFederationToken, _bandeau_du_plan, document_publie,
+    FORMAT_VERSION, HasFederationToken, _bandeau_du_plan, codes_de_la_page,
+    document_publie,
 )
 from .fiche import construire_fiche
 from .filters import (
@@ -150,8 +151,15 @@ class FederationDocumentViewSet(ViewSet):
         )
         bandeaux = {plan.pk: _bandeau_du_plan(plan) for plan in plans}
 
+        # Idem pour les codes nationaux des zones et des sites : deux requêtes
+        # pour la page, et non deux par document (cf. `codes_de_la_page`).
+        codes_zones, codes_sites = codes_de_la_page(page)
+
         return paginateur.get_paginated_response(
-            [document_publie(contenu, bandeaux) for contenu in page],
+            [
+                document_publie(contenu, bandeaux, codes_zones, codes_sites)
+                for contenu in page
+            ],
             format_version=FORMAT_VERSION,
             instance_id=settings.CICADA_INSTANCE_ID,
             instance_label=settings.CICADA_INSTANCE_LABEL,

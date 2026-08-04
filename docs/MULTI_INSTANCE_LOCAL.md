@@ -129,7 +129,7 @@ dans l'exploration centralisée.*
    le document disparaît du portail.
 
 Ces invariants sont couverts par
-`backend/tests/apps/search/test_federation.py` (17 tests).
+`backend/tests/apps/search/test_federation.py` (22 tests).
 
 ---
 
@@ -152,19 +152,49 @@ mêmes fixtures, donc leurs documents portent **les mêmes `id_objet`**. Sans
 | Type d'aire protégée | mnémonique (`RNN`, `RNR`…) | transmise telle quelle ✅ |
 | Statut du plan | chaîne (`valide`…) | transmise telle quelle ✅ |
 | Zone géographique | `l_areas.area_code` (INSEE) | publiée en **codes**, re-résolue en identifiants locaux à l'arrivée ✅ |
-| Sites | `id_site` local (`id_inpn` est *nullable*) | **vidée** ⚠️ |
+| Sites | `t_espace_protege.id_inpn`, national mais *nullable* | publiés en **codes INPN**, re-résolus — mais seulement si le destinataire connaît le site ⚠️ |
 | Organismes gestionnaires | aucune | **vidée** ⚠️ |
 
 Les zones fonctionnent parce que le découpage administratif vient du même
 référentiel national partout : seuls les identifiants techniques diffèrent, pas
-les codes. C'est le modèle à généraliser.
+les codes.
 
-Les deux dernières lignes sont volontairement **vidées plutôt que recopiées**.
+La ligne « organismes » est volontairement **vidée plutôt que recopiée**.
 Recopier un identifiant local ferait matcher un document distant sur le mauvais
 organisme — une corruption silencieuse. Un tableau vide produit une absence
 visible : le document ne ressort simplement pas quand on filtre par organisme.
 Tant que l'identité nationale des organismes n'est pas tranchée (#636), c'est le
 seul comportement défendable.
+
+### Pourquoi les sites ne se généralisent pas aussi bien que les zones
+
+Les sites sont désormais publiés en **codes INPN** — `id_inpn` est unique et
+national — et re-résolus en identifiants locaux à l'ingestion, exactement comme
+les zones. L'identifiant local ne quitte jamais l'instance émettrice.
+
+Mais l'analogie s'arrête là, et la mesure sur le banc d'essai le montre : sur
+les 96 documents que le portail ingère de RNF, **96 rattachent leurs zones et
+aucun ne rattache ses sites**. La raison est structurelle — `l_areas` est un
+*référentiel national*, importé au démarrage de **chaque** instance ; les sites
+sont de la *donnée métier*. Un portail qui n'héberge aucun plan n'a aucun site
+en base, donc rien à quoi apparier les codes reçus.
+
+La résolution fonctionne bel et bien dès que le destinataire connaît le site :
+ingérés par le CEN plutôt que par le portail, les mêmes 96 documents rattachent
+tous leur site, celui de la Camargue chez RNF retombant sur celui du CEN par son
+code INPN. C'est le cas de la **co-gestion**, et c'est celui qui compte pour le
+dédoublonnage inter-instances (limite n° 3 de #636).
+
+Pour que la facette « site » serve aussi sur un portail sans données propres, il
+faudrait **stocker les codes INPN dans l'index** et filtrer dessus, plutôt que
+de les traduire en identifiants locaux — le traitement déjà appliqué aux types
+d'aire protégée. C'est une colonne de plus et un filtre à réécrire ; ce n'est
+pas fait.
+
+> À noter : `site_ids` n'est aujourd'hui **lu par personne**. `filtrer_contenus`
+> n'expose pas de filtre « site » et l'interface n'en propose pas. La colonne est
+> alimentée et indexée, mais aucune requête ne s'en sert — la fédération des
+> sites est donc pour l'instant une fondation, pas une fonctionnalité visible.
 
 ### Non résolu ici
 
