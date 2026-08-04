@@ -242,10 +242,25 @@ export class SuiviSaisieComponent implements OnInit {
   private mesuresByMetrique = new Map<number, Mesure[]>();
 
   // -------- Computed --------
+  /**
+   * Layout de saisie du réalisé — pendant du `budgetMode()` de la fiche action.
+   * #600 (retour 08/2026) : le détail des coûts ne dépend plus du « type de
+   * poste » mais de la case « déclinaison par type de coût » de l'action ; les
+   * 4 modes ventilant par type de budget peuvent donc l'afficher (ou pas).
+   */
   ventilationMode = computed<
     'none' | 'by_org' | 'by_type' | 'by_org_type' | 'by_type_poste' | 'by_org_type_poste'
   >(() => {
-    return this.operation()?.ventilation_mode ?? 'none';
+    const op = this.operation();
+    const mode = op?.ventilation_mode ?? 'none';
+    const parType = mode === 'by_type' || mode === 'by_org_type'
+      || mode === 'by_type_poste' || mode === 'by_org_type_poste';
+    if (!parType) return mode;
+    const parOrganisme = mode === 'by_org_type' || mode === 'by_org_type_poste';
+    if (op?.declinaison_par_type_cout !== false) {
+      return parOrganisme ? 'by_org_type_poste' : 'by_type_poste';
+    }
+    return parOrganisme ? 'by_org_type' : 'by_type';
   });
 
   /** Mode supporté par le MVP : pas de ventilation par organisme (#600 inclus). */
@@ -370,6 +385,13 @@ export class SuiviSaisieComponent implements OnInit {
    * son pendant réalisé `realCoutSalarial`.
    */
   prevCoutSalarial(year: number, orgId: number, categorie: 'fonctionnement' | 'investissement'): number {
+    // #600 — action en saisie manuelle du coût salarial : c'est le montant
+    // saisi sur l'organisme qui fait foi, pas les jours × coût jour.
+    if (this.operation()?.cout_salarial_auto === false) {
+      const oao = this.getOaoForYearOrg(year, orgId) as any;
+      const champ = categorie === 'investissement' ? 'cout_salarial_invest' : 'cout_salarial';
+      return Number(oao?.[champ]) || 0;
+    }
     let total = 0;
     for (const l of this.getOaForYear(year)?.rh_lignes ?? []) {
       const { orgId: lineOrg, coutJour } = this.rhPosteInfo(l);
@@ -447,6 +469,12 @@ export class SuiviSaisieComponent implements OnInit {
   }
 
   prevGlobalCoutSalarial(year: number, categorie: 'fonctionnement' | 'investissement'): number {
+    // #600 — saisie manuelle : montant porté par l'année (mode sans organisme).
+    if (this.operation()?.cout_salarial_auto === false) {
+      const oa = this.getOaForYear(year) as any;
+      const champ = categorie === 'investissement' ? 'cout_salarial_invest' : 'cout_salarial';
+      return Number(oa?.[champ]) || 0;
+    }
     let total = 0;
     for (const l of this.getOaForYear(year)?.rh_lignes ?? []) {
       if ((l.categorie_depense ?? 'fonctionnement') !== categorie) continue;

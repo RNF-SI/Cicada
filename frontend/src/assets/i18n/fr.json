@@ -3849,6 +3849,13 @@
       "modeByOrgType": "Par organisme + type de budget",
       "modeByTypePoste": "Par type de budget + type de poste",
       "modeByOrgTypePoste": "Par organisme + type de budget + type de poste",
+      "budgetOptions": {
+        "declinaisonTypeCout": "Déclinaison par type de coût",
+        "declinaisonTypeCoutHint": "Détaille le budget en coût salarial, coût stage, coût prestataire et autres coûts. Décochée, seuls les budgets de fonctionnement et d'investissement sont saisis à la main.",
+        "coutSalarialAuto": "Saisie automatique du coût salarial",
+        "coutSalarialAutoHint": "Calcule le coût salarial à partir des jours saisis et du coût jour des postes. Décochée, le coût salarial est saisi à la main.",
+        "postesLink": "Gérer les postes et les coûts jour"
+      },
       "coutSalarial": "Coût salarial",
       "coutStage": "Coût stage",
       "coutPrestataire": "Coût prestataire",

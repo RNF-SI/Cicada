@@ -24,9 +24,17 @@
  * qu'une famille, la somme est donc exacte quel que soit le mode — et reste
  * juste pour les données saisies avant un changement de mode.
  *
- * Le **coût salarial** n'est jamais stocké : il vaut Σ jours × coût jour du
- * poste, ventilé par catégorie de dépense de la ligne RH. Le temps
- * « bénévolat partenariat » est valorisé en jours mais ne pèse aucun euro.
+ * Le **coût salarial** n'est pas stocké tant qu'il est calculé : il vaut alors
+ * Σ jours × coût jour du poste, ventilé par catégorie de dépense de la ligne
+ * RH. Le temps « bénévolat partenariat » est valorisé en jours mais ne pèse
+ * aucun euro.
+ *
+ * #600 (retour 08/2026) — deux réglages de l'action modulent tout ceci dès que
+ * le mode ventile par type de budget :
+ * - `declinaison_par_type_cout` : décochée, le budget se réduit aux enveloppes
+ *   fonctionnement / investissement saisies (aucun coût salarial ajouté) ;
+ * - `cout_salarial_auto` : décochée, le coût salarial est SAISI (et stocké
+ *   dans `cout_salarial` / `cout_salarial_invest`) au lieu d'être calculé.
  */
 
 import { Operation, OperationAnnee, OperationAnneeOrganisme } from '../../core/models/enjeu.model';
@@ -93,16 +101,37 @@ export function sumJours(lignes: readonly OperationRHLigne[] | null | undefined)
 const orgs = (oa: OperationAnnee): OperationAnneeOrganisme[] => oa.organismes ?? [];
 
 /**
- * Modes où le coût salarial fait partie du budget : ce sont ceux qui déclinent
- * le temps de travail par poste. Ailleurs, le gestionnaire saisit lui-même une
- * enveloppe (qui inclut déjà ce qu'il veut) — l'ajouter la doublerait.
+ * Modes ventilant par type de budget : eux seuls portent le détail des coûts
+ * (#600 — case « déclinaison par type de coût », cochée par défaut).
  */
-const SALARY_DERIVED_MODES = ['by_type_poste', 'by_org_type_poste'];
+const TYPE_VENTILATION_MODES = [
+  'by_type', 'by_org_type', 'by_type_poste', 'by_org_type_poste',
+];
 
-type OpMode = Pick<Operation, 'ventilation_mode'>;
+type OpMode = Pick<Operation, 'ventilation_mode' | 'declinaison_par_type_cout' | 'cout_salarial_auto'>;
 
+/**
+ * Vrai si le budget de l'action est décomposé en types de coût (salarial,
+ * stage, prestataire, autres). Sinon le gestionnaire saisit lui-même les
+ * enveloppes fonctionnement / investissement, qui incluent déjà tout : y
+ * ajouter un coût salarial le doublerait.
+ */
+function hasCostDetail(op: OpMode): boolean {
+  return TYPE_VENTILATION_MODES.includes(op.ventilation_mode ?? 'none')
+    && op.declinaison_par_type_cout !== false;
+}
+
+/** Coût salarial CALCULÉ (jours × coût jour) plutôt que saisi (#600). */
 function derivesSalary(op: OpMode): boolean {
-  return SALARY_DERIVED_MODES.includes(op.ventilation_mode ?? 'none');
+  return hasCostDetail(op) && op.cout_salarial_auto !== false;
+}
+
+/** Coût salarial SAISI à la main sur l'année / les organismes (#600). */
+function manualSalary(op: OpMode, oa: OperationAnnee, invest: boolean): number {
+  if (!hasCostDetail(op) || op.cout_salarial_auto !== false) return 0;
+  return invest
+    ? add(oa.cout_salarial_invest, ...orgs(oa).map(o => o.cout_salarial_invest))
+    : add(oa.cout_salarial, ...orgs(oa).map(o => o.cout_salarial));
 }
 
 /**
@@ -114,10 +143,12 @@ function derivesSalary(op: OpMode): boolean {
 function hasMonetaryDetail(oa: OperationAnnee): boolean {
   return anySet(
     oa.budget_fonctionnement, oa.budget_investissement,
+    oa.cout_salarial, oa.cout_salarial_invest,
     oa.cout_stage, oa.cout_prestataire, oa.autre_cout,
     oa.cout_prestataire_invest, oa.autre_cout_invest,
     ...orgs(oa).flatMap(o => [
-      o.budget_fonctionnement, o.budget_investissement, o.cout_stage,
+      o.budget_fonctionnement, o.budget_investissement,
+      o.cout_salarial, o.cout_salarial_invest, o.cout_stage,
       o.cout_prestataire, o.autre_cout, o.cout_prestataire_invest, o.autre_cout_invest,
     ]),
   );
@@ -130,7 +161,9 @@ function hasMonetaryDetail(oa: OperationAnnee): boolean {
 /** Composants du budget de fonctionnement PRÉVU d'une année (#613). */
 export function fonctDetailPrev(op: OpMode, oa: OperationAnnee): CostDetail {
   const detail = {
-    salarial: derivesSalary(op) ? salarialCost(oa.rh_lignes, 'fonctionnement') : 0,
+    salarial: derivesSalary(op)
+      ? salarialCost(oa.rh_lignes, 'fonctionnement')
+      : manualSalary(op, oa, false),
     stage: add(oa.cout_stage, ...orgs(oa).map(o => o.cout_stage)),
     prestataire: add(oa.cout_prestataire, ...orgs(oa).map(o => o.cout_prestataire)),
     // Les enveloppes saisies (modes sans détail) sont des « autres coûts » du
@@ -148,7 +181,9 @@ export function fonctDetailPrev(op: OpMode, oa: OperationAnnee): CostDetail {
 /** Composants du budget d'investissement PRÉVU d'une année (#613). */
 export function investDetailPrev(op: OpMode, oa: OperationAnnee): CostDetail {
   const detail = {
-    salarial: derivesSalary(op) ? salarialCost(oa.rh_lignes, 'investissement') : 0,
+    salarial: derivesSalary(op)
+      ? salarialCost(oa.rh_lignes, 'investissement')
+      : manualSalary(op, oa, true),
     stage: 0,
     prestataire: add(oa.cout_prestataire_invest, ...orgs(oa).map(o => o.cout_prestataire_invest)),
     autres: add(

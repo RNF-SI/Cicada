@@ -672,7 +672,10 @@ export interface OperationAnneeOrganisme {
   organisme_nom?: string;
   budget_fonctionnement: number | null;
   budget_investissement: number | null;
-  // #600 — coûts additionnels par organisme/année.
+  // #600 — coûts additionnels par organisme/année. `cout_salarial*` n'est
+  // renseigné qu'en saisie manuelle du coût salarial (sinon il est calculé).
+  cout_salarial?: number | null;
+  cout_salarial_invest?: number | null;
   cout_stage?: number | null;
   cout_prestataire?: number | null;
   autre_cout?: number | null;
@@ -698,7 +701,9 @@ export interface OperationAnnee {
   budget_investissement?: number | null;
   // #624 — détail des coûts au niveau année (mode « par type de budget +
   // type de poste » : même décomposition que la ventilation maximale, sans
-  // organisme). Le coût salarial n'est pas stocké, il se calcule.
+  // organisme). Le coût salarial n'est stocké qu'en saisie manuelle.
+  cout_salarial?: number | null;
+  cout_salarial_invest?: number | null;
   cout_stage?: number | null;
   cout_prestataire?: number | null;
   autre_cout?: number | null;
@@ -862,6 +867,10 @@ export interface Operation {
   ventilation_mode?: 'none' | 'by_org' | 'by_type' | 'by_org_type' | 'by_type_poste' | 'by_org_type_poste';
   /** #560 — détaille le temps de travail poste par poste. */
   declinaison_par_poste?: boolean;
+  /** #600 — détaille le budget par type de coût (salarial / stage / presta / autres). */
+  declinaison_par_type_cout?: boolean;
+  /** #600 — coût salarial calculé (jours × coût jour) ou saisi à la main. */
+  cout_salarial_auto?: boolean;
   geom?: GeoJSONGeometry | string;
   geom_geojson?: GeoJSONGeometry | null;
   // #367 — rattachement direct à un indicateur (action sans métrique préalable)
@@ -925,6 +934,10 @@ export interface OperationCreatePayload {
   ventilation_mode?: 'none' | 'by_org' | 'by_type' | 'by_org_type' | 'by_type_poste' | 'by_org_type_poste';
   /** #560 — détaille le temps de travail poste par poste. */
   declinaison_par_poste?: boolean;
+  /** #600 — détaille le budget par type de coût (salarial / stage / presta / autres). */
+  declinaison_par_type_cout?: boolean;
+  /** #600 — coût salarial calculé (jours × coût jour) ou saisi à la main. */
+  cout_salarial_auto?: boolean;
   metrique_ids?: number[];
   site_ids?: number[];
   // Nested relational data

@@ -484,6 +484,27 @@ $form-side-margin: $spacing-xxl;
   }
 }
 
+// #600 — réglages du tableau budgétaire (déclinaison par type de coût,
+// coût salarial auto/manuel), au-dessus du tableau de programmation annuelle.
+.budget-options {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-xs;
+  margin-bottom: $spacing-md;
+
+  .budget-option-row {
+    display: flex;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: $spacing-md;
+  }
+
+  .budget-postes-link {
+    font-size: $font-size-small;
+    white-space: nowrap;
+  }
+}
+
 .direct-mode-hint {
   display: inline-flex;
   align-items: center;

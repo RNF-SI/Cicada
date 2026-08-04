@@ -886,6 +886,34 @@
 
                 <!-- Programmation annuelle (OperationAnnee[]) -->
                 <div class="programmation-section">
+                  <!-- #600 — réglages du tableau budgétaire, proposés dès que
+                       le mode de ventilation intègre le type de budget. -->
+                  @if (hasTypeVentilation()) {
+                    <div class="budget-options">
+                      <app-checkbox
+                        [checked]="declinaisonParTypeCout()"
+                        (checkedChange)="declinaisonParTypeCout.set($event)"
+                        [disabled]="isReadOnly()"
+                        [label]="'enjeux.operations.budgetOptions.declinaisonTypeCout' | translate"
+                        [mention]="'enjeux.operations.budgetOptions.declinaisonTypeCoutHint' | translate">
+                      </app-checkbox>
+                      @if (showCostDetail()) {
+                        <div class="budget-option-row">
+                          <app-checkbox
+                            [checked]="coutSalarialAuto()"
+                            (checkedChange)="coutSalarialAuto.set($event)"
+                            [disabled]="isReadOnly()"
+                            [label]="'enjeux.operations.budgetOptions.coutSalarialAuto' | translate"
+                            [mention]="'enjeux.operations.budgetOptions.coutSalarialAutoHint' | translate">
+                          </app-checkbox>
+                          <a class="link-default budget-postes-link"
+                             [routerLink]="['/plans', planSlug(), 'postes']">
+                            {{ 'enjeux.operations.budgetOptions.postesLink' | translate }}
+                          </a>
+                        </div>
+                      }
+                    </div>
+                  }
                   <div class="programmation-table">
                     <table>
                       <thead>
@@ -982,7 +1010,20 @@
                             <tr>
                               <td class="label-cell label-indent">{{ 'enjeux.operations.coutSalarial' | translate }}</td>
                               @for (annee of operationAnnees; track annee.annee; let i = $index) {
-                                <td class="computed-cell">{{ getOrgCoutSalarial(i, org.id_organisme, 'fonctionnement') | number:'1.0-2' }} €</td>
+                                @if (coutSalarialAuto()) {
+                                  <td class="computed-cell">{{ getOrgCoutSalarial(i, org.id_organisme, 'fonctionnement') | number:'1.0-2' }} €</td>
+                                } @else {
+                                  <td>
+                                    <div class="prog-input-wrapper">
+                                      <input type="text" inputmode="decimal"
+                                             class="prog-input prog-input-suffixed"
+                                             [disabled]="isYearLocked(i)"
+                                             [value]="formatBudget(getOrgBudget(i, org.id_organisme).coutSalarial)"
+                                             (change)="updateOrgCoutSalarial(i, org.id_organisme, $any($event.target).value)">
+                                      <span class="prog-input-suffix">€</span>
+                                    </div>
+                                  </td>
+                                }
                               }
                             </tr>
                             <!-- Coût stage (fonctionnement) — #600 Q2b, réintégré -->
@@ -1059,7 +1100,20 @@
                             <tr>
                               <td class="label-cell label-indent">{{ 'enjeux.operations.coutSalarial' | translate }}</td>
                               @for (annee of operationAnnees; track annee.annee; let i = $index) {
-                                <td class="computed-cell">{{ getOrgCoutSalarial(i, org.id_organisme, 'investissement') | number:'1.0-2' }} €</td>
+                                @if (coutSalarialAuto()) {
+                                  <td class="computed-cell">{{ getOrgCoutSalarial(i, org.id_organisme, 'investissement') | number:'1.0-2' }} €</td>
+                                } @else {
+                                  <td>
+                                    <div class="prog-input-wrapper">
+                                      <input type="text" inputmode="decimal"
+                                             class="prog-input prog-input-suffixed"
+                                             [disabled]="isYearLocked(i)"
+                                             [value]="formatBudget(getOrgBudget(i, org.id_organisme).coutSalarialInvest)"
+                                             (change)="updateOrgCoutSalarialInvest(i, org.id_organisme, $any($event.target).value)">
+                                      <span class="prog-input-suffix">€</span>
+                                    </div>
+                                  </td>
+                                }
                               }
                             </tr>
                             <tr>
@@ -1198,7 +1252,20 @@
                           <tr>
                             <td class="label-cell label-indent">{{ 'enjeux.operations.coutSalarial' | translate }}</td>
                             @for (annee of operationAnnees; track annee.annee; let i = $index) {
-                              <td class="computed-cell">{{ getTypeCoutSalarial(i, 'fonctionnement') | number:'1.0-2' }} €</td>
+                              @if (coutSalarialAuto()) {
+                                <td class="computed-cell">{{ getTypeCoutSalarial(i, 'fonctionnement') | number:'1.0-2' }} €</td>
+                              } @else {
+                                <td>
+                                  <div class="prog-input-wrapper">
+                                    <input type="text" inputmode="decimal"
+                                           class="prog-input prog-input-suffixed"
+                                           [disabled]="isYearLocked(i)"
+                                           [value]="formatBudget(getTypeCost(i).coutSalarial)"
+                                           (change)="updateTypeCoutSalarial(i, $any($event.target).value)">
+                                    <span class="prog-input-suffix">€</span>
+                                  </div>
+                                </td>
+                              }
                             }
                           </tr>
                           <tr>
@@ -1274,7 +1341,20 @@
                           <tr>
                             <td class="label-cell label-indent">{{ 'enjeux.operations.coutSalarial' | translate }}</td>
                             @for (annee of operationAnnees; track annee.annee; let i = $index) {
-                              <td class="computed-cell">{{ getTypeCoutSalarial(i, 'investissement') | number:'1.0-2' }} €</td>
+                              @if (coutSalarialAuto()) {
+                                <td class="computed-cell">{{ getTypeCoutSalarial(i, 'investissement') | number:'1.0-2' }} €</td>
+                              } @else {
+                                <td>
+                                  <div class="prog-input-wrapper">
+                                    <input type="text" inputmode="decimal"
+                                           class="prog-input prog-input-suffixed"
+                                           [disabled]="isYearLocked(i)"
+                                           [value]="formatBudget(getTypeCost(i).coutSalarialInvest)"
+                                           (change)="updateTypeCoutSalarialInvest(i, $any($event.target).value)">
+                                    <span class="prog-input-suffix">€</span>
+                                  </div>
+                                </td>
+                              }
                             }
                           </tr>
                           <tr>

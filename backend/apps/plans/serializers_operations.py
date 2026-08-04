@@ -717,6 +717,7 @@ class OperationAnneeOrganismeSerializer(serializers.ModelSerializer):
             'id_operation_annee_organisme',
             'id_organisme', 'organisme_nom',
             'budget_fonctionnement', 'budget_investissement',
+            'cout_salarial', 'cout_salarial_invest',
             'cout_stage', 'cout_prestataire', 'autre_cout', 'autre_cout_commentaire',
             'cout_prestataire_invest', 'autre_cout_invest', 'autre_cout_invest_commentaire',
             'etp',
@@ -738,6 +739,7 @@ class OperationAnneeSerializer(serializers.ModelSerializer):
             'budget', 'etp', 'budget_fonctionnement', 'budget_investissement',
             # #624 — détail des coûts au niveau année (mode « par type de
             # budget + type de poste », sans organismes).
+            'cout_salarial', 'cout_salarial_invest',
             'cout_stage', 'cout_prestataire', 'autre_cout', 'autre_cout_commentaire',
             'cout_prestataire_invest', 'autre_cout_invest', 'autre_cout_invest_commentaire',
             'periodicite_mensuelle', 'geom', 'organismes',
@@ -1016,6 +1018,8 @@ class OperationSerializer(serializers.ModelSerializer):
             'programmation_annuelle', 'programmation_mensuelle',
             'programmation_mensuelle_defaut',
             'ventilation_mode', 'declinaison_par_poste',
+            # #600 (retour 08/2026) — réglages du tableau de programmation.
+            'declinaison_par_type_cout', 'cout_salarial_auto',
             'geom', 'geom_geojson',
             'id_indicateur',
             'metriques', 'metrique_ids',
@@ -1306,7 +1310,8 @@ class OperationNestedSerializer(OperationListSerializer):
             f for f in OperationListSerializer.Meta.fields
             if f not in ('nb_operation_annees', 'nb_finances', 'enjeu_slug', 'oo_id')
         ] + ['operation_annees', 'finances', 'ventilation_mode',
-             'declinaison_par_poste']
+             'declinaison_par_poste',
+             'declinaison_par_type_cout', 'cout_salarial_auto']
 
 
 # =============================================================================
@@ -1319,6 +1324,8 @@ class OperationAnneeOrganismeWriteSerializer(serializers.Serializer):
     budget_fonctionnement = serializers.DecimalField(max_digits=12, decimal_places=2, required=False, allow_null=True)
     budget_investissement = serializers.DecimalField(max_digits=12, decimal_places=2, required=False, allow_null=True)
     # #600 — coûts additionnels par organisme/année.
+    cout_salarial = serializers.DecimalField(max_digits=12, decimal_places=2, required=False, allow_null=True)
+    cout_salarial_invest = serializers.DecimalField(max_digits=12, decimal_places=2, required=False, allow_null=True)
     cout_stage = serializers.DecimalField(max_digits=12, decimal_places=2, required=False, allow_null=True)
     cout_prestataire = serializers.DecimalField(max_digits=12, decimal_places=2, required=False, allow_null=True)
     autre_cout = serializers.DecimalField(max_digits=12, decimal_places=2, required=False, allow_null=True)
@@ -1341,6 +1348,8 @@ class OperationAnneeWriteSerializer(serializers.Serializer):
     # #624 — détail des coûts au niveau année (mode « par type de budget +
     # type de poste » : même décomposition que la ventilation maximale, sans
     # déclinaison par organisme).
+    cout_salarial = serializers.DecimalField(max_digits=12, decimal_places=2, required=False, allow_null=True)
+    cout_salarial_invest = serializers.DecimalField(max_digits=12, decimal_places=2, required=False, allow_null=True)
     cout_stage = serializers.DecimalField(max_digits=12, decimal_places=2, required=False, allow_null=True)
     cout_prestataire = serializers.DecimalField(max_digits=12, decimal_places=2, required=False, allow_null=True)
     autre_cout = serializers.DecimalField(max_digits=12, decimal_places=2, required=False, allow_null=True)
@@ -1393,6 +1402,8 @@ class OperationCreateSerializer(serializers.ModelSerializer):
             'programmation_annuelle', 'programmation_mensuelle',
             'programmation_mensuelle_defaut',
             'ventilation_mode', 'declinaison_par_poste',
+            # #600 (retour 08/2026) — réglages du tableau de programmation.
+            'declinaison_par_type_cout', 'cout_salarial_auto',
             'geom_geojson',
             'metrique_ids', 'site_ids',
             'operation_annees', 'finances'
@@ -1424,6 +1435,8 @@ class OperationCreateSerializer(serializers.ModelSerializer):
                         id_organisme_id=org['id_organisme'],
                         budget_fonctionnement=org.get('budget_fonctionnement'),
                         budget_investissement=org.get('budget_investissement'),
+                        cout_salarial=org.get('cout_salarial'),
+                        cout_salarial_invest=org.get('cout_salarial_invest'),
                         cout_stage=org.get('cout_stage'),
                         cout_prestataire=org.get('cout_prestataire'),
                         autre_cout=org.get('autre_cout'),

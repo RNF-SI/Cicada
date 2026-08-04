@@ -308,6 +308,59 @@ class TestOperationCreateEndpoint:
         assert annee['cout_stage'] == '200.00'
         assert annee['autre_cout_invest'] == '100.00'
 
+    def test_create_with_manual_salary_and_cost_detail_flags(self, api_client, operation_test_data):
+        """#600 (retour 08/2026) — réglages du tableau de programmation.
+
+        « Déclinaison par type de coût » et « saisie automatique du coût
+        salarial » sont persistés sur l'action ; en saisie manuelle, le coût
+        salarial est enregistré sur l'année (et relu tel quel).
+        """
+        from apps.plans.models_operations import OperationAnnee
+        api_client.force_authenticate(user=operation_test_data['referent'])
+        response = api_client.post('/api/plans/operations/', {
+            'libelle': 'Action coût salarial saisi',
+            'metrique_ids': [operation_test_data['metrique1'].id_metrique],
+            'ventilation_mode': 'by_type',
+            'declinaison_par_type_cout': True,
+            'cout_salarial_auto': False,
+            'operation_annees': [{
+                'annee': 2024,
+                'periodicite': True,
+                'budget': '2500.00',
+                'cout_salarial': '1800.00',
+                'cout_salarial_invest': '450.00',
+                'cout_prestataire': '250.00',
+            }],
+        }, format='json')
+        assert response.status_code == status.HTTP_201_CREATED, response.data
+        op = Operation.objects.get(libelle='Action coût salarial saisi')
+        assert op.declinaison_par_type_cout is True
+        assert op.cout_salarial_auto is False
+        oa = OperationAnnee.objects.get(id_operation=op, annee=2024)
+        assert oa.cout_salarial == Decimal('1800.00')
+        assert oa.cout_salarial_invest == Decimal('450.00')
+
+        detail = api_client.get(f'/api/plans/operations/{op.id_operation}/')
+        assert detail.data['declinaison_par_type_cout'] is True
+        assert detail.data['cout_salarial_auto'] is False
+        annee = detail.data['operation_annees'][0]
+        assert annee['cout_salarial'] == '1800.00'
+        assert annee['cout_salarial_invest'] == '450.00'
+
+    def test_cost_detail_flag_defaults_to_true(self, api_client, operation_test_data):
+        """#600 — sans précision, la déclinaison par type de coût et la saisie
+        automatique du coût salarial sont actives (cases cochées par défaut)."""
+        api_client.force_authenticate(user=operation_test_data['referent'])
+        response = api_client.post('/api/plans/operations/', {
+            'libelle': 'Action réglages par défaut',
+            'metrique_ids': [operation_test_data['metrique1'].id_metrique],
+            'ventilation_mode': 'by_org_type',
+        }, format='json')
+        assert response.status_code == status.HTTP_201_CREATED, response.data
+        op = Operation.objects.get(libelle='Action réglages par défaut')
+        assert op.declinaison_par_type_cout is True
+        assert op.cout_salarial_auto is True
+
     def test_create_with_all_fields(self, api_client, operation_test_data):
         """Test create with all optional fields."""
         api_client.force_authenticate(user=operation_test_data['super_admin'])

@@ -243,6 +243,54 @@ class TestExportFinance:
         assert total.tot_fonct == Decimal('3800')   # 3000 + 500 + 300
         assert total.tot_invest == Decimal('350')   # 300 + 50
 
+    def test_sans_declinaison_par_type_de_cout_pas_de_salarial_ajoute(self, plan_finance):
+        """#600 — case « déclinaison par type de coût » décochée : le budget se
+        limite aux enveloppes saisies, le coût salarial ne s'y ajoute plus
+        (sinon il serait compté deux fois — l'enveloppe l'inclut déjà)."""
+        from collections import defaultdict
+        from apps.plans.services_export_finance import (
+            build_action_finance, poste_entry_factory,
+        )
+        op = plan_finance['op']
+        op.declinaison_par_type_cout = False
+        op.save(update_fields=['declinaison_par_type_cout'])
+        OperationAnneeOrganisme.objects.filter(
+            id_operation_annee__id_operation=op).update(
+            budget_fonctionnement=4000, budget_investissement=1000,
+            cout_prestataire=None, cout_prestataire_invest=None,
+            autre_cout=None, autre_cout_invest=None)
+
+        af = build_action_finance(op, {}, defaultdict(poste_entry_factory))
+        c = af.cell(plan_finance['org'].id_organisme, 2024)
+        assert c.sal_fonct == 0
+        # Les jours restent comptés (ils alimentent les tableaux RH).
+        assert c.j_fonct == 10
+        assert c.tot_fonct == 4000
+        assert c.tot_invest == 1000
+
+    def test_cout_salarial_saisi_manuellement(self, plan_finance):
+        """#600 — saisie manuelle du coût salarial : c'est le montant saisi qui
+        entre dans le budget, pas jours × coût jour."""
+        from collections import defaultdict
+        from decimal import Decimal
+        from apps.plans.services_export_finance import (
+            build_action_finance, poste_entry_factory,
+        )
+        op = plan_finance['op']
+        op.cout_salarial_auto = False
+        op.save(update_fields=['cout_salarial_auto'])
+        OperationAnneeOrganisme.objects.filter(
+            id_operation_annee__id_operation=op).update(
+            cout_salarial=1800, cout_salarial_invest=450)
+
+        af = build_action_finance(op, {}, defaultdict(poste_entry_factory))
+        c = af.cell(plan_finance['org'].id_organisme, 2024)
+        assert c.sal_fonct == Decimal('1800')       # et non 10 j × 300 €
+        assert c.sal_invest == Decimal('450')
+        assert c.j_fonct == 10
+        assert c.tot_fonct == Decimal('2400')       # 1800 + 500 presta + 100 autres
+        assert c.tot_invest == Decimal('700')       # 450 + 200 presta + 50 autres
+
     def test_code_action_pg_est_le_code_affichage(self, plan_finance):
         """#618 — la colonne « Code action PG » porte le code calculé (CS1…)."""
         from apps.plans.services_export_finance import build_plan_finance

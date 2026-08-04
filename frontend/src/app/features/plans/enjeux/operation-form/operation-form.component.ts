@@ -75,6 +75,9 @@ interface OrgBudgetCell {
   fonct: number | null;
   invest: number | null;
   etp: number | null;
+  // Coût salarial SAISI (mode « saisie manuelle du coût salarial », #600).
+  coutSalarial: number | null;
+  coutSalarialInvest: number | null;
   coutStage: number | null;
   // Coûts de FONCTIONNEMENT (variante historique).
   coutPresta: number | null;
@@ -629,16 +632,53 @@ export class OperationFormComponent implements OnInit {
   ventilationMode = signal<VentilationMode>('none');
 
   /**
+   * #600 (retour 08/2026) — « Déclinaison par type de coût », cochée par
+   * défaut : affiche le détail des coûts (salarial, stage, prestataire, autres
+   * coûts) dès que le mode ventile par type de budget. Décochée, seules les
+   * enveloppes fonctionnement / investissement sont saisies à la main.
+   */
+  declinaisonParTypeCout = signal(true);
+
+  /**
+   * #600 (retour 08/2026) — « Coût salarial calculé automatiquement », cochée
+   * par défaut : jours × coût jour des postes. Décochée, le coût salarial est
+   * saisi ligne à ligne (et stocké).
+   */
+  coutSalarialAuto = signal(true);
+
+  /** Vrai si le mode de ventilation intègre le type de budget (les 4 derniers). */
+  hasTypeVentilation = computed<boolean>(() => {
+    const m = this.ventilationMode();
+    return m === 'by_type' || m === 'by_org_type'
+      || m === 'by_type_poste' || m === 'by_org_type_poste';
+  });
+
+  /** Le tableau budgétaire détaille les types de coût (#600). */
+  showCostDetail = computed<boolean>(
+    () => this.hasTypeVentilation() && this.declinaisonParTypeCout(),
+  );
+
+  /**
    * Layout du tableau budget (#600, #602, #624).
    * - `by_type` : Fonct / Invest saisis + total.
-   * - `by_org_type` (sans poste) : Fonct / Invest / Total seulement (#602c).
-   * - `by_type_poste` : détail des coûts (salarial calculé, stage, prestataire,
+   * - `by_org_type` (sans détail) : Fonct / Invest / Total seulement (#602c).
+   * - `by_type_poste` : détail des coûts (salarial, stage, prestataire,
    *   autres), séparé fonctionnement / investissement, SANS organisme (#624).
    * - `by_org_type_poste` : le même détail, décliné par organisme (#602).
+   *
+   * Le détail des coûts n'est plus lié au « type de poste » : il suit la case
+   * « déclinaison par type de coût », et vaut donc pour les 4 modes ventilant
+   * par type de budget.
    */
-  budgetMode = computed<'none' | 'by_org' | 'by_type' | 'by_org_type' | 'by_type_poste' | 'by_org_type_poste'>(
-    () => this.ventilationMode(),
-  );
+  budgetMode = computed<'none' | 'by_org' | 'by_type' | 'by_org_type' | 'by_type_poste' | 'by_org_type_poste'>(() => {
+    const mode = this.ventilationMode();
+    if (!this.hasTypeVentilation()) return mode;
+    const parOrganisme = mode === 'by_org_type' || mode === 'by_org_type_poste';
+    if (this.declinaisonParTypeCout()) {
+      return parOrganisme ? 'by_org_type_poste' : 'by_type_poste';
+    }
+    return parOrganisme ? 'by_org_type' : 'by_type';
+  });
 
   /** Vrai si le mode décline le temps de travail par poste (#600). */
   isPosteVentilation = computed<boolean>(() =>
@@ -671,6 +711,8 @@ export class OperationFormComponent implements OnInit {
    * mais globaux, sans déclinaison par organisme. key = yearIndex.
    */
   typeCosts: Record<number, {
+    coutSalarial: number | null;
+    coutSalarialInvest: number | null;
     coutStage: number | null;
     coutPresta: number | null;
     autreCout: number | null;
@@ -1069,6 +1111,9 @@ export class OperationFormComponent implements OnInit {
     this.useSiteEmprise.set(false);
     this.ventilationMode.set('none');
     this.declinaisonParPoste.set(false);
+    // #600 — réglages du tableau budgétaire : cochés par défaut.
+    this.declinaisonParTypeCout.set(true);
+    this.coutSalarialAuto.set(true);
   }
 
   /**
@@ -1547,7 +1592,9 @@ export class OperationFormComponent implements OnInit {
               fonct: org.budget_fonctionnement != null ? parseFloat(String(org.budget_fonctionnement)) : null,
               invest: org.budget_investissement != null ? parseFloat(String(org.budget_investissement)) : null,
               etp: org.etp != null ? parseFloat(String(org.etp)) : null,
-              // #600 — coûts additionnels.
+              // #600 — coût salarial saisi (saisie manuelle) + coûts additionnels.
+              coutSalarial: org.cout_salarial != null ? parseFloat(String(org.cout_salarial)) : null,
+              coutSalarialInvest: org.cout_salarial_invest != null ? parseFloat(String(org.cout_salarial_invest)) : null,
               coutStage: org.cout_stage != null ? parseFloat(String(org.cout_stage)) : null,
               coutPresta: org.cout_prestataire != null ? parseFloat(String(org.cout_prestataire)) : null,
               autreCout: org.autre_cout != null ? parseFloat(String(org.autre_cout)) : null,
@@ -1599,9 +1646,14 @@ export class OperationFormComponent implements OnInit {
     // Restore ventilation mode from backend (or infer for legacy data)
     const savedMode = (op.ventilation_mode || 'none') as VentilationMode;
     this.ventilationMode.set(savedMode);
-    // #600/#624 — `by_org_type_poste` réutilise le stockage par organisme ;
+    // #600 (retour 08/2026) — réglages du tableau budgétaire (cochés par défaut).
+    this.declinaisonParTypeCout.set(op.declinaison_par_type_cout !== false);
+    this.coutSalarialAuto.set(op.cout_salarial_auto !== false);
+    // #600/#624 — le layout de saisie découle du mode ET de la déclinaison par
+    // type de coût : `by_org_type_poste` réutilise le stockage par organisme ;
     // `by_type_poste` a son propre détail de coûts au niveau de l'année.
-    const savedBudgetMode = savedMode === 'by_org_type_poste' ? 'by_org_type' : savedMode;
+    const layout = this.budgetMode();
+    const savedBudgetMode = layout === 'by_org_type_poste' ? 'by_org_type' : layout;
 
     if (op.operation_annees && op.operation_annees.length > 0) {
       if (savedBudgetMode === 'by_org') {
@@ -1642,6 +1694,8 @@ export class OperationFormComponent implements OnInit {
           const autreCout = num(serverAnnee.autre_cout);
           const autreCoutInvest = num(serverAnnee.autre_cout_invest);
           this.typeCosts[yearIdx] = {
+            coutSalarial: num(serverAnnee.cout_salarial),
+            coutSalarialInvest: num(serverAnnee.cout_salarial_invest),
             coutStage: num(serverAnnee.cout_stage),
             coutPresta: num(serverAnnee.cout_prestataire),
             autreCout: autreCout ?? legacyFonct,
@@ -2092,12 +2146,16 @@ export class OperationFormComponent implements OnInit {
     payload.ventilation_mode = this.ventilationMode();
     // #600 — la déclinaison par poste est désormais portée par le mode.
     payload.declinaison_par_poste = this.isPosteVentilation();
+    // #600 (retour 08/2026) — réglages du tableau budgétaire.
+    payload.declinaison_par_type_cout = this.declinaisonParTypeCout();
+    payload.cout_salarial_auto = this.coutSalarialAuto();
 
     // Operation annees: apply the monthly template to all years + per-organisme data
     const orgs = this.availableOrganismes();
     type OrgEntry = {
       id_organisme: number;
       budget_fonctionnement: number | null; budget_investissement: number | null;
+      cout_salarial?: number | null; cout_salarial_invest?: number | null;
       cout_stage: number | null; cout_prestataire: number | null;
       autre_cout: number | null; autre_cout_commentaire: string;
       cout_prestataire_invest?: number | null;
@@ -2151,6 +2209,9 @@ export class OperationFormComponent implements OnInit {
           etp: this.getTypeBudget(idx).etp,
           budget_fonctionnement: null,
           budget_investissement: null,
+          // Coût salarial : stocké seulement quand il est saisi (#600).
+          cout_salarial: this.coutSalarialAuto() ? null : c.coutSalarial,
+          cout_salarial_invest: this.coutSalarialAuto() ? null : c.coutSalarialInvest,
           cout_stage: c.coutStage,
           cout_prestataire: c.coutPresta,
           autre_cout: c.autreCout,
@@ -2214,6 +2275,7 @@ export class OperationFormComponent implements OnInit {
         const fonctTotal = this.getOrgFonctTotal(idx, org.id_organisme);
         const investTotal = this.getOrgInvestTotal(idx, org.id_organisme);
         const hasData = data.coutStage != null || data.coutPresta != null || data.autreCout != null
+          || data.coutSalarial != null || data.coutSalarialInvest != null
           || (data.autreComment ?? '') !== ''
           || data.coutPrestaInvest != null || data.autreCoutInvest != null
           || (data.autreCommentInvest ?? '') !== ''
@@ -2226,6 +2288,9 @@ export class OperationFormComponent implements OnInit {
             // l'export les recompterait par-dessus le détail des coûts.
             budget_fonctionnement: null,
             budget_investissement: null,
+            // Coût salarial : stocké seulement quand il est saisi (#600).
+            cout_salarial: this.coutSalarialAuto() ? null : data.coutSalarial,
+            cout_salarial_invest: this.coutSalarialAuto() ? null : data.coutSalarialInvest,
             // #600 Q2b — coût stage (fonctionnement) réintégré.
             cout_stage: data.coutStage,
             cout_prestataire: data.coutPresta,
@@ -3456,6 +3521,7 @@ export class OperationFormComponent implements OnInit {
     if (!this.orgBudgets[key]) {
       this.orgBudgets[key] = {
         fonct: null, invest: null, etp: null,
+        coutSalarial: null, coutSalarialInvest: null,
         coutStage: null, coutPresta: null, autreCout: null, autreComment: '',
         coutPrestaInvest: null, autreCoutInvest: null, autreCommentInvest: '',
       };
@@ -3500,10 +3566,18 @@ export class OperationFormComponent implements OnInit {
 
   /**
    * #600/#602 — coût salarial d'un organisme/année : Σ (jours × coût jour) des
-   * postes de cet organisme dans le tableau de temps de travail. Calculé, non
-   * saisi. `categorie` filtre sur fonctionnement / investissement (#602).
+   * postes de cet organisme dans le tableau de temps de travail.
+   * `categorie` filtre sur fonctionnement / investissement (#602).
+   *
+   * #600 (retour 08/2026) — en « saisie manuelle du coût salarial », la valeur
+   * n'est plus calculée mais lue sur le montant saisi.
    */
   getOrgCoutSalarial(yearIdx: number, orgId: number, categorie?: CategorieDepense): number {
+    if (!this.coutSalarialAuto()) {
+      const cell = this.getOrgBudget(yearIdx, orgId);
+      const manuel = categorie === 'investissement' ? cell.coutSalarialInvest : cell.coutSalarial;
+      return manuel || 0;
+    }
     let total = 0;
     for (const line of this.rhLines) {
       if (line.id_poste == null) continue;
@@ -3583,6 +3657,17 @@ export class OperationFormComponent implements OnInit {
     this.getOrgBudget(yearIdx, orgId).autreCommentInvest = value ?? '';
   }
 
+  /** #600 — coût salarial SAISI d'un organisme/année (saisie manuelle). */
+  updateOrgCoutSalarial(yearIdx: number, orgId: number, value: string): void {
+    this.getOrgBudget(yearIdx, orgId).coutSalarial = this.parseDecimal(value);
+    this.autoCheckPeriodicite(yearIdx);
+  }
+
+  updateOrgCoutSalarialInvest(yearIdx: number, orgId: number, value: string): void {
+    this.getOrgBudget(yearIdx, orgId).coutSalarialInvest = this.parseDecimal(value);
+    this.autoCheckPeriodicite(yearIdx);
+  }
+
   getYearTotalEtp(yearIdx: number): number {
     let total = 0;
     for (const org of this.availableOrganismes()) {
@@ -3617,10 +3702,17 @@ export class OperationFormComponent implements OnInit {
     }
     this.directTotals[index] = { budget: null, etp: null };
     this.typeBudgets[index] = { fonct: null, invest: null, etp: null };
+    // #600 — le détail des coûts de l'année (modes sans organisme) aussi.
+    this.typeCosts[index] = {
+      coutSalarial: null, coutSalarialInvest: null,
+      coutStage: null, coutPresta: null, autreCout: null, autreComment: '',
+      coutPrestaInvest: null, autreCoutInvest: null, autreCommentInvest: '',
+    };
     for (const org of this.availableOrganismes()) {
       const key = this.orgKey(index, org.id_organisme);
       this.orgBudgets[key] = {
         fonct: null, invest: null, etp: null,
+        coutSalarial: null, coutSalarialInvest: null,
         coutStage: null, coutPresta: null, autreCout: null, autreComment: '',
         coutPrestaInvest: null, autreCoutInvest: null, autreCommentInvest: '',
       };
@@ -3731,7 +3823,8 @@ export class OperationFormComponent implements OnInit {
         this.orgBudgets[this.orgKey(i, org.id_organisme)] = { ...srcData };
       }
       // Duplicate direct totals / type budgets / org totals
-      const mode = this.ventilationMode();
+      // (le layout suit le mode ET la déclinaison par type de coût, #600).
+      const mode = this.budgetMode();
       if (mode === 'none') {
         this.directTotals[i] = { ...this.getDirectTotal(0) };
       } else if (mode === 'by_type') {
@@ -3827,12 +3920,14 @@ export class OperationFormComponent implements OnInit {
 
   /** Détail des coûts de l'année (créé à la volée). */
   getTypeCost(yearIdx: number): {
+    coutSalarial: number | null; coutSalarialInvest: number | null;
     coutStage: number | null; coutPresta: number | null; autreCout: number | null;
     autreComment: string; coutPrestaInvest: number | null;
     autreCoutInvest: number | null; autreCommentInvest: string;
   } {
     if (!this.typeCosts[yearIdx]) {
       this.typeCosts[yearIdx] = {
+        coutSalarial: null, coutSalarialInvest: null,
         coutStage: null, coutPresta: null, autreCout: null, autreComment: '',
         coutPrestaInvest: null, autreCoutInvest: null, autreCommentInvest: '',
       };
@@ -3873,12 +3968,28 @@ export class OperationFormComponent implements OnInit {
     this.getTypeCost(yearIdx).autreCommentInvest = value ?? '';
   }
 
+  /** #600 — coût salarial SAISI de l'année (mode sans organisme). */
+  updateTypeCoutSalarial(yearIdx: number, value: string): void {
+    this.getTypeCost(yearIdx).coutSalarial = this.parseDecimal(value);
+    this.autoCheckPeriodicite(yearIdx);
+  }
+
+  updateTypeCoutSalarialInvest(yearIdx: number, value: string): void {
+    this.getTypeCost(yearIdx).coutSalarialInvest = this.parseDecimal(value);
+    this.autoCheckPeriodicite(yearIdx);
+  }
+
   /**
    * Coût salarial global d'une année, toutes cibles confondues : Σ jours ×
    * coût jour des postes, restreint à une catégorie de dépense. Pendant
    * « sans organisme » de `getOrgCoutSalarial`.
    */
   getTypeCoutSalarial(yearIdx: number, categorie?: CategorieDepense): number {
+    if (!this.coutSalarialAuto()) {
+      const c = this.getTypeCost(yearIdx);
+      const manuel = categorie === 'investissement' ? c.coutSalarialInvest : c.coutSalarial;
+      return manuel || 0;
+    }
     let total = 0;
     for (const line of this.rhLines) {
       if (line.id_poste == null) continue;

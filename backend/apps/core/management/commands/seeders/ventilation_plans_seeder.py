@@ -604,7 +604,16 @@ class VentilationPlansSeeder(BaseSeeder):
         """Programme l'action année par année selon son mode de ventilation."""
         op.ventilation_mode = mode
         op.declinaison_par_poste = mode in Operation.VENTILATION_POSTE_MODES
-        op.save(update_fields=['ventilation_mode', 'declinaison_par_poste'])
+        # #600 — le détail des coûts (salarial / stage / prestataire / autres)
+        # n'est saisi que dans les modes « + type de poste » de ce jeu d'essai :
+        # les deux autres modes par type de budget stockent des enveloppes, la
+        # case doit donc rester décochée pour afficher ce qui est enregistré.
+        op.declinaison_par_type_cout = mode in Operation.VENTILATION_POSTE_MODES
+        op.cout_salarial_auto = True
+        op.save(update_fields=[
+            'ventilation_mode', 'declinaison_par_poste',
+            'declinaison_par_type_cout', 'cout_salarial_auto',
+        ])
 
         # Pas de statut global forcé : le niveau de réalisation affiché doit
         # découler du suivi annuel posé ci-dessous (nettoie une éventuelle

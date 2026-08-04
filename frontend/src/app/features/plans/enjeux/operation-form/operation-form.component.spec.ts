@@ -39,10 +39,29 @@ function createComponentInstance(): OperationFormComponent {
   (comp as any).ventilationMode = signal<string>('none');
   (comp as any).declinaisonParPoste = signal(false);
   (comp as any).postes = signal<any[]>([]);
+  // #600 (retour 08/2026) — réglages du tableau budgétaire, cochés par défaut.
+  (comp as any).declinaisonParTypeCout = signal(true);
+  (comp as any).coutSalarialAuto = signal(true);
+  (comp as any).hasTypeVentilation = computed(() => {
+    const m = (comp as any).ventilationMode();
+    return m === 'by_type' || m === 'by_org_type'
+      || m === 'by_type_poste' || m === 'by_org_type_poste';
+  });
+  (comp as any).showCostDetail = computed(
+    () => (comp as any).hasTypeVentilation() && (comp as any).declinaisonParTypeCout(),
+  );
   // #600 — computeds dérivés du mode.
-  // #624 — chaque mode a désormais son propre layout budget (`by_type_poste`
-  // ne réutilise plus celui de `by_type`).
-  (comp as any).budgetMode = computed(() => (comp as any).ventilationMode());
+  // #624 — chaque mode a son propre layout budget ; #600 (retour 08/2026) : ce
+  // layout suit aussi la case « déclinaison par type de coût ».
+  (comp as any).budgetMode = computed(() => {
+    const mode = (comp as any).ventilationMode();
+    if (!(comp as any).hasTypeVentilation()) return mode;
+    const parOrganisme = mode === 'by_org_type' || mode === 'by_org_type_poste';
+    if ((comp as any).declinaisonParTypeCout()) {
+      return parOrganisme ? 'by_org_type_poste' : 'by_type_poste';
+    }
+    return parOrganisme ? 'by_org_type' : 'by_type';
+  });
   (comp as any).isPosteVentilation = computed(() => {
     const m = (comp as any).ventilationMode();
     return m === 'by_type_poste' || m === 'by_org_type_poste';
@@ -194,13 +213,14 @@ describe('OperationFormComponent — ventilation budgétaire', () => {
       const entry = comp.getOrgBudget(0, 100);
       expect(entry).toEqual({
         fonct: null, invest: null, etp: null,
+        coutSalarial: null, coutSalarialInvest: null,
         coutStage: null, coutPresta: null, autreCout: null, autreComment: '',
         coutPrestaInvest: null, autreCoutInvest: null, autreCommentInvest: '',
       });
     });
 
     it('should compute org total from fonct+invest (#602c)', () => {
-      comp.orgBudgets['0-100'] = { fonct: 3000, invest: 2000, etp: 5, coutStage: null, coutPresta: null, autreCout: null, autreComment: '', coutPrestaInvest: null, autreCoutInvest: null, autreCommentInvest: '' };
+      comp.orgBudgets['0-100'] = { fonct: 3000, invest: 2000, etp: 5, coutSalarial: null, coutSalarialInvest: null, coutStage: null, coutPresta: null, autreCout: null, autreComment: '', coutPrestaInvest: null, autreCoutInvest: null, autreCommentInvest: '' };
       expect(comp.getOrgTotal(0, 100)).toBe(5000);
     });
 
@@ -210,7 +230,7 @@ describe('OperationFormComponent — ventilation budgétaire', () => {
         id_poste: 5, id_organisme: null, finance: true,
         categorie_depense: 'fonctionnement', jours: { 0: 10 }, derived: false,
       }];
-      comp.orgBudgets['0-100'] = { fonct: null, invest: null, etp: null, coutStage: null, coutPresta: 1200, autreCout: 500, autreComment: '', coutPrestaInvest: 700, autreCoutInvest: 300, autreCommentInvest: '' };
+      comp.orgBudgets['0-100'] = { fonct: null, invest: null, etp: null, coutSalarial: null, coutSalarialInvest: null, coutStage: null, coutPresta: 1200, autreCout: 500, autreComment: '', coutPrestaInvest: 700, autreCoutInvest: 300, autreCommentInvest: '' };
       // fonctionnement = salarial (10 × 300 = 3000) + prestataire (1200) + autres (500)
       expect(comp.getOrgFonctTotal(0, 100)).toBe(4700);
       // investissement = salarial (aucune ligne invest) + prestataire (700) + autres (300)
@@ -219,14 +239,14 @@ describe('OperationFormComponent — ventilation budgétaire', () => {
     });
 
     it('getYearTotalBudget should sum fonct+invest across all orgs', () => {
-      comp.orgBudgets['0-100'] = { fonct: 2000, invest: 1000, etp: 4, coutStage: null, coutPresta: null, autreCout: null, autreComment: '', coutPrestaInvest: null, autreCoutInvest: null, autreCommentInvest: '' };
-      comp.orgBudgets['0-101'] = { fonct: 1500, invest: 500, etp: 3, coutStage: null, coutPresta: null, autreCout: null, autreComment: '', coutPrestaInvest: null, autreCoutInvest: null, autreCommentInvest: '' };
+      comp.orgBudgets['0-100'] = { fonct: 2000, invest: 1000, etp: 4, coutSalarial: null, coutSalarialInvest: null, coutStage: null, coutPresta: null, autreCout: null, autreComment: '', coutPrestaInvest: null, autreCoutInvest: null, autreCommentInvest: '' };
+      comp.orgBudgets['0-101'] = { fonct: 1500, invest: 500, etp: 3, coutSalarial: null, coutSalarialInvest: null, coutStage: null, coutPresta: null, autreCout: null, autreComment: '', coutPrestaInvest: null, autreCoutInvest: null, autreCommentInvest: '' };
       expect(comp.getYearTotalBudget(0)).toBe(5000);
     });
 
     it('getYearTotalEtp should sum etp across all orgs', () => {
-      comp.orgBudgets['0-100'] = { fonct: 0, invest: 0, etp: 4, coutStage: null, coutPresta: null, autreCout: null, autreComment: '', coutPrestaInvest: null, autreCoutInvest: null, autreCommentInvest: '' };
-      comp.orgBudgets['0-101'] = { fonct: 0, invest: 0, etp: 3, coutStage: null, coutPresta: null, autreCout: null, autreComment: '', coutPrestaInvest: null, autreCoutInvest: null, autreCommentInvest: '' };
+      comp.orgBudgets['0-100'] = { fonct: 0, invest: 0, etp: 4, coutSalarial: null, coutSalarialInvest: null, coutStage: null, coutPresta: null, autreCout: null, autreComment: '', coutPrestaInvest: null, autreCoutInvest: null, autreCommentInvest: '' };
+      comp.orgBudgets['0-101'] = { fonct: 0, invest: 0, etp: 3, coutSalarial: null, coutSalarialInvest: null, coutStage: null, coutPresta: null, autreCout: null, autreComment: '', coutPrestaInvest: null, autreCoutInvest: null, autreCommentInvest: '' };
       expect(comp.getYearTotalEtp(0)).toBe(7);
     });
   });
@@ -296,6 +316,90 @@ describe('OperationFormComponent — ventilation budgétaire', () => {
       }];
       expect(comp.getOrgCoutSalarial(0, 100)).toBe(3000);
       expect(comp.getOrgCoutSalarial(0, 999)).toBe(0);
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // #600 (retour 08/2026) — déclinaison par type de coût + coût salarial manuel
+  // -------------------------------------------------------------------------
+
+  describe('#600 réglages du tableau budgétaire', () => {
+    it('les deux réglages sont cochés par défaut', () => {
+      expect((comp as any).declinaisonParTypeCout()).toBe(true);
+      expect((comp as any).coutSalarialAuto()).toBe(true);
+    });
+
+    it('les réglages ne sont proposés que si le mode intègre le type de budget', () => {
+      for (const mode of ['none', 'by_org']) {
+        comp.onModeToggle(mode);
+        expect((comp as any).hasTypeVentilation()).toBe(false);
+        expect((comp as any).showCostDetail()).toBe(false);
+      }
+      for (const mode of ['by_type', 'by_org_type', 'by_type_poste', 'by_org_type_poste']) {
+        comp.onModeToggle(mode);
+        expect((comp as any).hasTypeVentilation()).toBe(true);
+        expect((comp as any).showCostDetail()).toBe(true);
+      }
+    });
+
+    it('« par type de budget » affiche le détail des coûts par défaut, les enveloppes si décochée', () => {
+      comp.onModeToggle('by_type');
+      expect(comp.budgetMode()).toBe('by_type_poste');
+      (comp as any).declinaisonParTypeCout.set(false);
+      expect(comp.budgetMode()).toBe('by_type');
+      expect((comp as any).showCostDetail()).toBe(false);
+    });
+
+    it('« par organisme + type de budget » suit la même règle', () => {
+      comp.onModeToggle('by_org_type');
+      expect(comp.budgetMode()).toBe('by_org_type_poste');
+      (comp as any).declinaisonParTypeCout.set(false);
+      expect(comp.budgetMode()).toBe('by_org_type');
+    });
+
+    it('décocher la déclinaison ramène les modes « + type de poste » aux enveloppes', () => {
+      comp.onModeToggle('by_org_type_poste');
+      (comp as any).declinaisonParTypeCout.set(false);
+      expect(comp.budgetMode()).toBe('by_org_type');
+      // Le temps de travail reste décliné par poste (piloté par le mode).
+      expect((comp as any).isPosteVentilation()).toBe(true);
+    });
+
+    it('coût salarial manuel : la valeur saisie remplace le calcul (par organisme)', () => {
+      comp.onModeToggle('by_org_type_poste');
+      comp.postes.set([{ id_poste: 5, id_pg: 1, id_organisme: 100, cout_jour: 300, nombre: 1 } as any]);
+      comp.rhLines = [{
+        id_poste: 5, id_organisme: null, finance: true,
+        categorie_depense: 'fonctionnement', jours: { 0: 10 }, derived: true,
+      }];
+      expect(comp.getOrgCoutSalarial(0, 100, 'fonctionnement')).toBe(3000);
+
+      (comp as any).coutSalarialAuto.set(false);
+      comp.updateOrgCoutSalarial(0, 100, '1 800');
+      comp.updateOrgCoutSalarialInvest(0, 100, '450');
+      expect(comp.getOrgCoutSalarial(0, 100, 'fonctionnement')).toBe(1800);
+      expect(comp.getOrgCoutSalarial(0, 100, 'investissement')).toBe(450);
+      // …et il pèse dans les totaux fonctionnement / investissement.
+      comp.updateOrgCoutPresta(0, 100, '200');
+      expect(comp.getOrgFonctTotal(0, 100)).toBe(2000);
+      expect(comp.getOrgInvestTotal(0, 100)).toBe(450);
+    });
+
+    it('coût salarial manuel : idem sans déclinaison par organisme', () => {
+      comp.onModeToggle('by_type_poste');
+      comp.postes.set([{ id_poste: 5, id_pg: 1, id_organisme: 100, cout_jour: 300, nombre: 1 } as any]);
+      comp.rhLines = [{
+        id_poste: 5, id_organisme: null, finance: true,
+        categorie_depense: 'fonctionnement', jours: { 0: 10 }, derived: true,
+      }];
+      expect(comp.getTypeCoutSalarial(0, 'fonctionnement')).toBe(3000);
+
+      (comp as any).coutSalarialAuto.set(false);
+      comp.updateTypeCoutSalarial(0, '900');
+      comp.updateTypeCoutSalarialInvest(0, '100');
+      expect(comp.getTypeCoutSalarial(0, 'fonctionnement')).toBe(900);
+      expect(comp.getTypeFonctTotal(0)).toBe(900);
+      expect(comp.getTypeInvestTotal(0)).toBe(100);
     });
   });
 

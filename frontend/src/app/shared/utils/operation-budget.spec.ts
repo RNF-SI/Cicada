@@ -94,6 +94,38 @@ describe('yearBudgetPrev (#613)', () => {
       .toEqual(yearBudgetPrev(OP('by_org_type_poste'), anneeOrgPoste()));
   });
 
+  // #600 (retour 08/2026) — les deux réglages du tableau de programmation.
+  it('déclinaison par type de coût décochée : seules les enveloppes comptent', () => {
+    const oa = anneeOrgPoste();
+    oa.organismes[0].budget_fonctionnement = '4000.00';
+    oa.organismes[0].budget_investissement = '1000.00';
+    oa.organismes[0].cout_stage = null;
+    oa.organismes[0].cout_prestataire = null;
+    oa.organismes[0].autre_cout = null;
+    oa.organismes[0].cout_prestataire_invest = null;
+    oa.organismes[0].autre_cout_invest = null;
+    const op = { ventilation_mode: 'by_org_type', declinaison_par_type_cout: false } as any;
+    // Le coût salarial des lignes RH n'est PAS ajouté : l'enveloppe l'inclut.
+    expect(yearBudgetPrev(op, oa)).toEqual({
+      fonctionnement: 4000, investissement: 1000, total: 5000,
+    });
+  });
+
+  it('coût salarial saisi manuellement : c’est le montant saisi qui compte', () => {
+    const oa = anneeOrgPoste();
+    oa.organismes[0].cout_salarial = '1800.00';
+    oa.organismes[0].cout_salarial_invest = '450.00';
+    const op = {
+      ventilation_mode: 'by_org_type_poste', cout_salarial_auto: false,
+    } as any;
+    const f = fonctDetailPrev(op, oa);
+    expect(f.salarial).toBe(1800);            // et non 10 j × 300 €
+    expect(f.total).toBe(3500);               // 1800 + 200 + 1000 + 500
+    const i = investDetailPrev(op, oa);
+    expect(i.salarial).toBe(450);
+    expect(i.total).toBe(800);                // 450 + 300 + 50
+  });
+
   it('expose le détail des composants pour la fiche action', () => {
     const f = fonctDetailPrev(OP('by_org_type_poste'), anneeOrgPoste());
     expect(f).toEqual({ salarial: 3000, stage: 200, prestataire: 1000, autres: 500, total: 4700 });
