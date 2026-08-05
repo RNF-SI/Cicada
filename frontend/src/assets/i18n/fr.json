@@ -3878,6 +3878,7 @@
       "budgetTotalFonct": "Total Budget de fonctionnement (€)",
       "budgetTotalInvest": "Total Budget d'investissement (€)",
       "budgetTotalOG": "Budget total OG (€)",
+      "budgetTotalOrganisme": "Total {{organisme}}",
       "autreCoutCommentaire": "Commentaire (autre coût)",
       "autreCoutCommentairePlaceholder": "Précisez la nature de ce coût…",
       "modeVentilation": "Ventilation par organisme",

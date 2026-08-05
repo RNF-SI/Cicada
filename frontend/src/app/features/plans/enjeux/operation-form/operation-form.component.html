@@ -1086,7 +1086,7 @@
                                 </td>
                               }
                             </tr>
-                            <tr>
+                            <tr class="budget-subtotal-row">
                               <td class="label-cell label-indent text-bold">{{ 'enjeux.operations.budgetTotalFonct' | translate }}</td>
                               @for (annee of operationAnnees; track annee.annee; let i = $index) {
                                 <td class="computed-cell">{{ getOrgFonctTotal(i, org.id_organisme) | number:'1.0-2' }} €</td>
@@ -1160,7 +1160,7 @@
                                 </td>
                               }
                             </tr>
-                            <tr>
+                            <tr class="budget-subtotal-row">
                               <td class="label-cell label-indent text-bold">{{ 'enjeux.operations.budgetTotalInvest' | translate }}</td>
                               @for (annee of operationAnnees; track annee.annee; let i = $index) {
                                 <td class="computed-cell">{{ getOrgInvestTotal(i, org.id_organisme) | number:'1.0-2' }} €</td>
@@ -1169,7 +1169,7 @@
 
                             <!-- Budget total OG -->
                             <tr class="org-total-row">
-                              <td class="label-cell label-indent text-bold">{{ 'enjeux.operations.budgetTotalOG' | translate }}</td>
+                              <td class="label-cell label-indent text-bold">{{ 'enjeux.operations.budgetTotalOrganisme' | translate:{ organisme: org.nom_organisme } }}</td>
                               @for (annee of operationAnnees; track annee.annee; let i = $index) {
                                 <td class="computed-cell">{{ getOrgPosteTotal(i, org.id_organisme) | number:'1.0-2' }} €</td>
                               }
@@ -1327,7 +1327,7 @@
                               </td>
                             }
                           </tr>
-                          <tr>
+                          <tr class="budget-subtotal-row">
                             <td class="label-cell label-indent text-bold">{{ 'enjeux.operations.budgetTotalFonct' | translate }}</td>
                             @for (annee of operationAnnees; track annee.annee; let i = $index) {
                               <td class="computed-cell">{{ getTypeFonctTotal(i) | number:'1.0-2' }} €</td>
@@ -1401,15 +1401,16 @@
                               </td>
                             }
                           </tr>
-                          <tr>
+                          <tr class="budget-subtotal-row">
                             <td class="label-cell label-indent text-bold">{{ 'enjeux.operations.budgetTotalInvest' | translate }}</td>
                             @for (annee of operationAnnees; track annee.annee; let i = $index) {
                               <td class="computed-cell">{{ getTypeInvestTotal(i) | number:'1.0-2' }} €</td>
                             }
                           </tr>
 
-                          <!-- Budget total (fonctionnement + investissement) -->
-                          <tr class="org-total-row">
+                          <!-- Budget total (fonctionnement + investissement) : sans
+                               organisme, c'est LE total du tableau → bandeau TOTAL (#643). -->
+                          <tr class="grand-total-row">
                             <td class="label-cell label-indent text-bold">{{ 'enjeux.operations.budgetTotal' | translate }}</td>
                             @for (annee of operationAnnees; track annee.annee; let i = $index) {
                               <td class="computed-cell">{{ getTypePosteTotal(i) | number:'1.0-2' }} €</td>
