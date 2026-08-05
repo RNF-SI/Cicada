@@ -766,11 +766,13 @@ class TestExportSuiviActions:
         'onglet': 'Budget',
         'meta': [['Onglet', 'Budget']],
         'entetes': ['Organisme', 'Code', 'Code opération', 'Action',
-                    'Enjeu', 'Catégorie', 'Priorité', 'Total (€)'],
+                    'Enjeu', 'Catégorie', 'Priorité', 'Total (€)', 'Jours'],
+        'formats': [None, None, None, None, None, None, None, 'euro', None],
         'lignes': [
             {'cellules': ['Org Alpha', 'CS1', 'CAM-SE01', 'Action A',
-                          'Enjeu 1', 'Connaissance', 'Priorité 1', 1200]},
-            {'type': 'total', 'cellules': ['Total Org Alpha', '', '', '', '', '', '', 1200]},
+                          'Enjeu 1', 'Connaissance', 'Priorité 1', 1200, 12.5]},
+            {'type': 'total',
+             'cellules': ['Total Org Alpha', '', '', '', '', '', '', 1200, 12.5]},
         ],
     }
 
@@ -803,6 +805,35 @@ class TestExportSuiviActions:
         entete = next(r for r in ws.iter_rows() if r[0].value == 'Organisme')
         assert ws[entete[0].row + 1][7].value == 1200
         assert isinstance(ws[entete[0].row + 1][7].value, (int, float))
+
+    def test_montant_entier_affiche_un_euro_sans_virgule_finale(
+            self, api_client, plan_finance):
+        """
+        Retour de recette #644 : un montant entier sortait « 12 345, » — le
+        tableur affiche le séparateur décimal même quand rien ne suit. Un
+        entier n'a donc pas de décimales dans son format, et une colonne de
+        montants porte son « € ».
+        """
+        api_client.force_authenticate(user=SuperAdminFactory())
+        ws = self._sheet(api_client, plan_finance['plan'])
+
+        entete = next(r for r in ws.iter_rows() if r[0].value == 'Organisme')
+        for ligne in (entete[0].row + 1, entete[0].row + 2):   # action ET total
+            fmt = ws[ligne][7].number_format
+            assert '€' in fmt
+            assert '.' not in fmt
+
+    def test_les_jours_gardent_leurs_decimales_et_restent_sans_euro(
+            self, api_client, plan_finance):
+        """Une colonne non monétaire n'hérite pas du « € », et 12,5 jours
+        conservent leur décimale."""
+        api_client.force_authenticate(user=SuperAdminFactory())
+        ws = self._sheet(api_client, plan_finance['plan'])
+
+        entete = next(r for r in ws.iter_rows() if r[0].value == 'Organisme')
+        fmt = ws[entete[0].row + 1][8].number_format
+        assert '€' not in fmt
+        assert '.' in fmt
 
     def test_membre_non_referent_ne_peut_pas_exporter(self, api_client, plan_finance):
         plan = plan_finance['plan']

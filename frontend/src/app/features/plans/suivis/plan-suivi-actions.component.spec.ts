@@ -465,4 +465,21 @@ describe('PlanSuiviActionsComponent — export du tableau (#637)', () => {
     // Les colonnes d'identification restent visibles au défilement.
     expect(payload.gel).toBe(6);
   });
+
+  it('marque les colonnes de montants pour que le tableur affiche « € » (#644)', () => {
+    component.setTab('budget');
+    const payload = (component as any).buildExportPayload();
+
+    // Identification (organisme + 6 colonnes d'action) : aucun format imposé.
+    expect(payload.formats.slice(0, 7)).toEqual([null, null, null, null, null, null, null]);
+    // Colonnes chiffrées prévi/réalisé des 3 périodes : toutes en euros.
+    expect(payload.formats.slice(7)).toEqual(Array(6).fill('euro'));
+    expect(payload.formats).toHaveLength(payload.entetes.length);
+  });
+
+  it('n’ajoute pas de « € » aux colonnes de jours de l’onglet RH (#644)', () => {
+    component.setTab('rh');
+    const payload = (component as any).buildExportPayload();
+    expect(payload.formats.every((f: any) => f === null)).toBe(true);
+  });
 });

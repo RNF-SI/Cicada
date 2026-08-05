@@ -20,7 +20,11 @@ Contrat de la charge utile
 --------------------------
 
 ``{'titre': str, 'onglet': str, 'meta': [[libellé, valeur]], 'entetes': [str],
-   'gel': int, 'lignes': [{'type': ..., 'cellules': [...]}]}``
+   'gel': int, 'formats': [str | None], 'lignes': [{'type': ..., 'cellules': [...]}]}``
+
+``formats`` est aligné sur ``entetes`` et n'a qu'une valeur utile : ``'euro'``,
+qui suffixe les montants d'un ``€`` **sans les sortir du numérique** (le client
+seul sait quelles colonnes sont des montants).
 
 Types de ligne :
 
@@ -37,6 +41,7 @@ pour une case colorée, soit ``None`` pour une case vide.
 from __future__ import annotations
 
 import io
+import math
 import numbers
 
 from openpyxl import Workbook
@@ -81,7 +86,16 @@ _LEFT = Alignment(horizontal='left', vertical='center', wrap_text=True)
 
 #: Séparateur de milliers, décimales seulement si utiles : montants et jours se
 #: lisent en entiers à l'écran.
-_NUM_FORMAT = '# ##0.##'
+#:
+#: Le format est choisi **par cellule** : un tableur affiche le séparateur
+#: décimal même quand aucune décimale ne suit (`#,##0.##` donnait « 12 345, »,
+#: lu comme un € raté — #644). Un entier reçoit donc un format sans décimales.
+#: Le séparateur de milliers s'écrit `,` : c'est le code invariant du format
+#: xlsx, que le tableur rend avec le séparateur de la langue (espace en FR).
+_NUM_ENTIER = '#,##0'
+_NUM_DECIMAL = '#,##0.##'
+_EURO_ENTIER = '#,##0 "€"'
+_EURO_DECIMAL = '#,##0.## "€"'
 
 
 def _appliquer_couleur_instance():
@@ -118,6 +132,16 @@ def _valeur(cellule):
     return str(brute)
 
 
+def _format_nombre(valeur, euro: bool) -> str:
+    """Format d'affichage d'un nombre : décimales et « € » seulement si utiles."""
+    brut = float(valeur)
+    # Un NaN / infini venant du client ne doit pas faire échouer tout l'export.
+    entier = not math.isfinite(brut) or brut == int(brut)
+    if euro:
+        return _EURO_ENTIER if entier else _EURO_DECIMAL
+    return _NUM_ENTIER if entier else _NUM_DECIMAL
+
+
 def _texte(cellule) -> str:
     """Représentation textuelle, pour le calcul des largeurs de colonnes."""
     valeur = _valeur(cellule)
@@ -133,6 +157,7 @@ def build_grille_workbook(payload: dict) -> bytes:
     entetes = [str(h) for h in (payload.get('entetes') or [])]
     lignes = payload.get('lignes') or []
     meta = payload.get('meta') or []
+    formats = payload.get('formats') or []
 
     wb = Workbook()
     ws = wb.active
@@ -163,7 +188,7 @@ def build_grille_workbook(payload: dict) -> bytes:
     ligne += 1
 
     for row in lignes:
-        _ecrire_ligne(ws, ligne, row)
+        _ecrire_ligne(ws, ligne, row, formats)
         ligne += 1
 
     _mettre_en_page(ws, entetes, lignes, entete_ligne, payload.get('gel'))
@@ -173,7 +198,7 @@ def build_grille_workbook(payload: dict) -> bytes:
     return flux.getvalue()
 
 
-def _ecrire_ligne(ws, ligne: int, row: dict):
+def _ecrire_ligne(ws, ligne: int, row: dict, formats=()):
     type_ligne = row.get('type') or 'normal'
     fond = {'detail': _DETAIL_FILL, 'total': _TOTAL_FILL}.get(type_ligne)
     police = {'detail': _F_DETAIL, 'total': _F_TOTAL}.get(type_ligne, _F_NORMAL)
@@ -194,7 +219,8 @@ def _ecrire_ligne(ws, ligne: int, row: dict):
             if fond:
                 cell.fill = PatternFill('solid', fgColor=fond)
         if isinstance(cell.value, numbers.Number):
-            cell.number_format = _NUM_FORMAT
+            euro = col <= len(formats) and formats[col - 1] == 'euro'
+            cell.number_format = _format_nombre(cell.value, euro)
         cell.border = _BORDER
 
 

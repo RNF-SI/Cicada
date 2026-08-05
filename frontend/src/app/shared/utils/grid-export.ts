@@ -24,6 +24,13 @@ export type GridCell =
   | null
   | { t: string | number; s: GridScoreLevel };
 
+/**
+ * Format d'affichage d'une colonne chiffrée. `euro` suffixe les montants d'un
+ * « € » dans le tableur **sans les sortir du numérique** : seul le client sait
+ * quelles colonnes portent des montants (#644).
+ */
+export type GridColumnFormat = 'euro' | null;
+
 export interface GridRow {
   /**
    * `normal` : ligne courante · `detail` : sous-ligne rattachée à la
@@ -40,6 +47,8 @@ export interface GridExportPayload {
   /** Rappel des filtres actifs, en couples libellé / valeur. */
   meta: [string, string][];
   entetes: string[];
+  /** Format des colonnes chiffrées, aligné sur `entetes`. */
+  formats?: GridColumnFormat[];
   /** Nombre de colonnes d'identification à figer à gauche. */
   gel?: number;
   lignes: GridRow[];

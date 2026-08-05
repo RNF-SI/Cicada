@@ -38,9 +38,18 @@ import {
 } from './action-status.util';
 import { exportFilename } from '../../../shared/utils/csv-export';
 import { downloadBlob } from '../../../shared/utils/chart-image-export';
-import { GridCell, GridExportPayload, GridRow } from '../../../shared/utils/grid-export';
+import {
+  GridCell, GridColumnFormat, GridExportPayload, GridRow,
+} from '../../../shared/utils/grid-export';
 
 type SuiviTab = 'planification' | 'realisation' | 'budget' | 'rh';
+
+/** Grille exportée d'un onglet : en-têtes, lignes et format des colonnes. */
+interface ExportGrid {
+  entetes: string[];
+  lignes: GridRow[];
+  formats?: GridColumnFormat[];
+}
 
 /** Période d'agrégation pour les onglets Budget / RH. */
 type AggregationPeriod = 'current' | 'past' | 'total';
@@ -785,7 +794,7 @@ export class PlanSuiviActionsComponent implements OnInit {
   }
 
   private buildExportPayload(): GridExportPayload {
-    const { entetes, lignes } = this.activeTab() === 'planification'
+    const { entetes, lignes, formats } = this.activeTab() === 'planification'
       ? this.buildPlanificationGrid()
       : this.activeTab() === 'realisation'
         ? this.buildRealisationGrid()
@@ -797,6 +806,7 @@ export class PlanSuiviActionsComponent implements OnInit {
       onglet: this.t(`plans.suivis.actions.tabs.${this.activeTab()}`),
       meta: this.buildExportMeta(),
       entetes,
+      formats,
       // Colonnes d'identification à garder sous les yeux quand on fait défiler
       // les années ou les périodes (l'onglet agrégé ouvre sur l'organisme).
       gel: this.identityHeaders().length + (isAggregation ? 1 : 0),
@@ -890,7 +900,7 @@ export class PlanSuiviActionsComponent implements OnInit {
   }
 
   /** Onglet Réalisation : une ligne par action, une colonne par année. */
-  private buildRealisationGrid(): { entetes: string[]; lignes: GridRow[] } {
+  private buildRealisationGrid(): ExportGrid {
     const years = this.yearColumns();
     const entetes = [
       ...this.identityHeaders(),
@@ -916,7 +926,7 @@ export class PlanSuiviActionsComponent implements OnInit {
    * dans une ligne typée `total` que le serveur détache par un aplat — comme
    * un pied de tableau, où on le cherche naturellement.
    */
-  private buildAggregationGrid(metric: 'budget' | 'etp'): { entetes: string[]; lignes: GridRow[] } {
+  private buildAggregationGrid(metric: 'budget' | 'etp'): ExportGrid {
     const unit = metric === 'budget' ? '€' : this.t('plans.suivis.actions.tabs.jours');
     const periods: AggregationPeriod[] = ['current', 'past', 'total'];
     const periodLabels = [
@@ -932,6 +942,10 @@ export class PlanSuiviActionsComponent implements OnInit {
       ...this.identityHeaders(),
       ...periodLabels.flatMap(p => [`${p} — ${prev} (${unit})`, `${p} — ${real} (${unit})`]),
     ];
+    // Colonnes chiffrées : le tableur suffixe les montants d'un « € » (#644),
+    // les jours restent des nombres nus (leur unité est dans l'en-tête).
+    const formats: GridColumnFormat[] = entetes.map((_, i) =>
+      metric === 'budget' && i > this.identityHeaders().length ? 'euro' : null);
 
     const lignes: GridRow[] = [];
     for (const group of this.operationsByOrganisme()) {
@@ -964,7 +978,7 @@ export class PlanSuiviActionsComponent implements OnInit {
         ],
       });
     }
-    return { entetes, lignes };
+    return { entetes, lignes, formats };
   }
 
   /**
@@ -972,7 +986,7 @@ export class PlanSuiviActionsComponent implements OnInit {
    * mois prévus et les mois effectivement réalisés. Indépendant de la vue
    * agenda/calendrier, qui n'est qu'une mise en forme de ces mêmes données.
    */
-  private buildPlanificationGrid(): { entetes: string[]; lignes: GridRow[] } {
+  private buildPlanificationGrid(): ExportGrid {
     const months = this.t('plans.suivis.planification.monthsShort').split(',');
     const monthNames = (map: Record<string, boolean> | null | undefined): string =>
       Object.entries(map || {})
