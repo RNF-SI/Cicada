@@ -8,9 +8,11 @@
  * construits avec la bibliothèque `shared/components/charts` (donut, barres,
  * courbes, radar). Les agrégations viennent de `RealisationService`.
  *
- * NB : les graphiques « par année » (évolution des indicateurs, jours RH par
- * année, niveau de réalisation par année) nécessitent une agrégation temporelle
- * côté serveur qui n'existe pas encore — leur tuile affiche un message dédié.
+ * Portée : les trois endpoints (`bilan`, `bilan-indicateurs`, `bilan-series`)
+ * reçoivent la MÊME fenêtre d'années — voir `periode()`. Auparavant seule la
+ * requête « actions » recevait l'année : sur l'onglet Indicateurs (celui par
+ * défaut), changer de portée ou d'année ne changeait donc rien à l'écran, et
+ * « Mi-parcours » n'envoyait aucun filtre du tout.
  */
 import { Component, ElementRef, OnInit, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
@@ -44,7 +46,7 @@ import { PlanSidebarComponent } from '../shared/plan-sidebar/plan-sidebar.compon
 import { AdminService } from '../../../core/services/admin.service';
 import {
   RealisationService, BilanResponse, BilanCounts, BilanIndicateursResponse,
-  BilanSeriesResponse,
+  BilanSeriesResponse, BilanFilters, BilanPeriode,
 } from '../../../core/services/realisation.service';
 
 /**
@@ -117,11 +119,7 @@ export class PlanBilanComponent implements OnInit {
     enjeu: [] as number[],
     organisme: [] as number[],
   }, {
-    onReset: () => {
-      this.reloadWithFilter();
-      this.loadBilanSeries();
-      this.loadBilanIndicateurs();
-    },
+    onReset: () => this.reloadAll(),
   });
 
   /** Légende des barres empilées : croisé planifiée × réalisée (5 séries). */
@@ -140,6 +138,33 @@ export class PlanBilanComponent implements OnInit {
     const out: number[] = [];
     for (let y = b.annee_min; y <= b.annee_max; y++) out.push(y);
     return out;
+  });
+
+  /**
+   * Période « Mi-parcours » : la **première moitié** de la durée du plan,
+   * arrondie au supérieur (un plan 2020-2029 → 2020-2024, un plan 2020-2030 →
+   * 2020-2025). C'est la période que couvre l'évaluation à mi-parcours ; le
+   * bilan y répond donc à « où en est-on à la moitié du plan ? » sans compter
+   * les années suivantes, encore vides.
+   */
+  miParcoursRange = computed<{ min: number; max: number } | null>(() => {
+    const b = this.bilan();
+    if (!b?.annee_min || !b?.annee_max || b.annee_max < b.annee_min) return null;
+    const n = b.annee_max - b.annee_min + 1;
+    return { min: b.annee_min, max: b.annee_min + Math.ceil(n / 2) - 1 };
+  });
+
+  /**
+   * Fenêtre d'années de la portée courante, envoyée telle quelle aux trois
+   * endpoints du bilan. Global = aucune borne (toute la durée du plan).
+   */
+  periode = computed<BilanPeriode>(() => {
+    if (this.scope() === 'annuel') return { annee: this.selectedYear() };
+    if (this.scope() === 'mi_parcours') {
+      const range = this.miParcoursRange();
+      if (range) return { annee_min: range.min, annee_max: range.max };
+    }
+    return {};
   });
 
   enjeuOptions = computed(() => this.bilan()?.by_enjeu || []);
@@ -345,8 +370,9 @@ export class PlanBilanComponent implements OnInit {
   // ===========================================================================
 
   setScope(s: Scope): void {
+    if (this.scope() === s) return;
     this.scope.set(s);
-    this.reloadWithFilter();
+    this.reloadAll();
   }
 
   setContentTab(t: 'indicateurs' | 'actions'): void {
@@ -357,15 +383,16 @@ export class PlanBilanComponent implements OnInit {
   }
 
   selectYear(y: number): void {
+    if (this.selectedYear() === y) return;
     this.selectedYear.set(y);
-    if (this.scope() === 'annuel') this.reloadWithFilter();
+    // Les agrégations ne sont scopées à l'année qu'en portée « Annuel » :
+    // ailleurs, l'année sélectionnée n'entre dans aucune requête.
+    if (this.scope() === 'annuel') this.reloadAll();
   }
 
   onEnjeuFilterChange(values: number[]): void {
     this.filters.enjeu.set(values);
-    this.reloadWithFilter();
-    this.loadBilanSeries();
-    this.loadBilanIndicateurs();
+    this.reloadAll();
   }
 
   // ===========================================================================
@@ -449,10 +476,22 @@ export class PlanBilanComponent implements OnInit {
       `${this.t('plans.suivis.bilan.filterEnjeu')} : ${this.enjeuLabel()}`,
       `${this.t('plans.suivis.bilan.export.onglet')} : ${this.t(`plans.suivis.bilan.tabs.${this.contentTab()}`)}`,
     ];
-    if (this.scope() === 'annuel') {
-      lines.splice(1, 0, `${this.t('plans.suivis.bilan.export.annee')} : ${this.selectedYear()}`);
-    }
+    const periode = this.periodeLabel();
+    if (periode) lines.splice(1, 0, periode);
     return lines;
+  }
+
+  /**
+   * « Année : 2027 » ou « Période : 2020 – 2024 » selon la portée, ou null au
+   * global. L'export doit dire sur quelles années portent les chiffres.
+   */
+  private periodeLabel(): string | null {
+    if (this.scope() === 'annuel') {
+      return `${this.t('plans.suivis.bilan.export.annee')} : ${this.selectedYear()}`;
+    }
+    const range = this.scope() === 'mi_parcours' ? this.miParcoursRange() : null;
+    if (!range) return null;
+    return `${this.t('plans.suivis.bilan.export.periode')} : ${range.min} – ${range.max}`;
   }
 
   private buildExportRows(): CsvCell[][] {
@@ -462,6 +501,11 @@ export class PlanBilanComponent implements OnInit {
     rows.push([this.t('plans.suivis.bilan.export.portee'), this.scopeLabel()]);
     if (this.scope() === 'annuel') {
       rows.push([this.t('plans.suivis.bilan.export.annee'), this.selectedYear()]);
+    } else if (this.scope() === 'mi_parcours') {
+      const range = this.miParcoursRange();
+      if (range) {
+        rows.push([this.t('plans.suivis.bilan.export.periode'), `${range.min} – ${range.max}`]);
+      }
     }
     rows.push([this.t('plans.suivis.bilan.filterEnjeu'), this.enjeuLabel()]);
 
@@ -583,14 +627,34 @@ export class PlanBilanComponent implements OnInit {
     return ((realise - previsionnel) / previsionnel) * 100;
   }
 
+  /**
+   * Paramètres communs aux trois requêtes : filtres métier + fenêtre d'années
+   * de la portée. Un seul point de vérité, sinon les onglets se désynchronisent.
+   */
+  private bilanFilters(): BilanFilters {
+    const filters: BilanFilters = { ...this.periode() };
+    const enjeuId = this.filters.enjeu()[0];
+    const organismeId = this.filters.organisme()[0];
+    if (enjeuId) filters.enjeu_id = enjeuId;
+    if (organismeId) filters.organisme_id = organismeId;
+    return filters;
+  }
+
+  /** Recharge les trois agrégations avec la portée et les filtres courants. */
+  private reloadAll(): void {
+    this.reloadBilan();
+    this.loadBilanIndicateurs();
+    this.loadBilanSeries();
+  }
+
   private loadBilanIndicateurs(): void {
     const id = this.planId();
     if (!id) return;
     this.isLoadingIndicateurs.set(true);
     // #639 — le filtre « Enjeux/FCR » scope aussi l'onglet Indicateurs, sinon
-    // ses graphiques (et leur export) restent sur le plan entier.
-    const enjeuId = this.filters.enjeu()[0];
-    this.realisationService.bilanIndicateurs(id, enjeuId ? { enjeu_id: enjeuId } : undefined).subscribe({
+    // ses graphiques (et leur export) restent sur le plan entier. Idem pour la
+    // portée : sans elle, cet onglet ignorait « Annuel » et « Mi-parcours ».
+    this.realisationService.bilanIndicateurs(id, this.bilanFilters()).subscribe({
       next: (data) => { this.bilanIndicateurs.set(data); this.isLoadingIndicateurs.set(false); },
       error: () => this.isLoadingIndicateurs.set(false),
     });
@@ -599,24 +663,19 @@ export class PlanBilanComponent implements OnInit {
   private loadBilanSeries(): void {
     const id = this.planId();
     if (!id) return;
-    const enjeuId = this.filters.enjeu()[0];
-    this.realisationService.bilanSeries(id, enjeuId ? { enjeu_id: enjeuId } : undefined).subscribe({
+    // Les graphiques par année sont masqués en portée « Annuel » (une seule
+    // année ne fait pas une série) : inutile de les recharger.
+    if (this.scope() === 'annuel') return;
+    this.realisationService.bilanSeries(id, this.bilanFilters()).subscribe({
       next: (data) => this.bilanSeries.set(data),
       error: () => this.bilanSeries.set(null),
     });
   }
 
-  private reloadWithFilter(): void {
+  private reloadBilan(): void {
     const id = this.planId();
     if (!id) return;
-    const filters: { enjeu_id?: number; organisme_id?: number; annee?: number } = {};
-    const enjeuId = this.filters.enjeu()[0];
-    const organismeId = this.filters.organisme()[0];
-    if (enjeuId) filters.enjeu_id = enjeuId;
-    if (organismeId) filters.organisme_id = organismeId;
-    // Seule la portée « annuel » scope les agrégations à une année (#101).
-    if (this.scope() === 'annuel') filters.annee = this.selectedYear();
-    this.realisationService.bilan(id, filters).subscribe({
+    this.realisationService.bilan(id, this.bilanFilters()).subscribe({
       next: (data) => this.bilan.set(data),
     });
   }
@@ -646,11 +705,27 @@ export class PlanBilanComponent implements OnInit {
 
   private loadBilan(planId: number): void {
     this.realisationService.bilan(planId).subscribe({
-      next: (data) => { this.bilan.set(data); this.isLoading.set(false); },
+      next: (data) => {
+        this.bilan.set(data);
+        this.clampSelectedYear(data);
+        this.isLoading.set(false);
+      },
       error: () => {
         this.errorMessage.set(this.translate.instant('plans.suivis.bilan.errors.loadFailed'));
         this.isLoading.set(false);
       },
     });
+  }
+
+  /**
+   * Ramène l'année sélectionnée dans la durée du plan. Sans cela, un plan
+   * 2015-2024 ouvrait la portée « Annuel » sur l'année en cours (hors plan) :
+   * tout était vide, et le sélecteur d'années semblait sans effet.
+   */
+  private clampSelectedYear(b: BilanResponse): void {
+    const min = b.annee_min;
+    const max = b.annee_max;
+    if (!min || !max || max < min) return;
+    this.selectedYear.set(Math.min(Math.max(this.selectedYear(), min), max));
   }
 }

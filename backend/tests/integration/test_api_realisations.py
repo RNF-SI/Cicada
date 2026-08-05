@@ -617,6 +617,165 @@ class TestRealisationBilanEndpoint:
 
 
 # =============================================================================
+# API — Bilan : portée Global / Mi-parcours / Annuel
+# =============================================================================
+#
+# Les trois endpoints du bilan doivent lire la même fenêtre d'années. Avant,
+# seul /bilan/ connaissait `?annee=` : sur l'onglet Indicateurs (celui par
+# défaut de la page), changer de portée ou d'année n'avait aucun effet, et
+# « Mi-parcours » n'envoyait aucun filtre.
+
+@pytest.mark.django_db
+@pytest.mark.integration
+class TestRealisationBilanPortee:
+
+    @pytest.fixture
+    def deux_annees(self, realisation_test_data):
+        """Une action programmée sur 2 années du plan, réalisée la 1re seulement."""
+        plan = realisation_test_data['plan']
+        y0, y1 = plan.annee_debut, plan.annee_debut + 1
+        oa0 = OperationAnneeFactory(
+            id_operation=realisation_test_data['operation'], annee=y0, periodicite=True,
+        )
+        oa1 = OperationAnneeFactory(
+            id_operation=realisation_test_data['operation'], annee=y1, periodicite=True,
+        )
+        RealisationOperationAnneeFactory(
+            id_operation_annee=oa0,
+            id_niveau_realisation=realisation_test_data['niveau_termine'],
+        )
+        RealisationOperationAnneeFactory(
+            id_operation_annee=oa1,
+            id_niveau_realisation=realisation_test_data['niveau_partiel'],
+        )
+        return {'y0': y0, 'y1': y1}
+
+    def _bilan(self, api_client, plan, **params):
+        return api_client.get(f'/api/plans/realisations/bilan/{plan.pk}/', params)
+
+    def test_annee_scope_les_comptages_a_cette_annee(
+        self, api_client, realisation_test_data, deux_annees,
+    ):
+        """`?annee=` compte la ligne annuelle de l'année demandée, pas les autres."""
+        api_client.force_authenticate(user=realisation_test_data['super_admin'])
+        plan = realisation_test_data['plan']
+
+        first = self._bilan(api_client, plan, annee=deux_annees['y0']).data
+        assert first['taux_realisation']['termine'] == 1
+        assert first['taux_realisation']['partiel'] == 0
+
+        second = self._bilan(api_client, plan, annee=deux_annees['y1']).data
+        assert second['taux_realisation']['termine'] == 0
+        assert second['taux_realisation']['partiel'] == 1
+
+    def test_periode_compte_une_fois_par_action_comme_le_global(
+        self, api_client, realisation_test_data, deux_annees,
+    ):
+        """
+        Une période (Mi-parcours) se compte comme le global — une fois par
+        action — mais sur les seules années de la fenêtre : restreinte à la 1re
+        année, l'action est « Terminée » ; sur les deux, elle est « En cours ».
+        """
+        api_client.force_authenticate(user=realisation_test_data['super_admin'])
+        plan = realisation_test_data['plan']
+        y0, y1 = deux_annees['y0'], deux_annees['y1']
+
+        moitie = self._bilan(api_client, plan, annee_min=y0, annee_max=y0).data
+        assert moitie['taux_realisation']['total'] == 1
+        assert moitie['taux_realisation']['termine'] == 1
+
+        entier = self._bilan(api_client, plan, annee_min=y0, annee_max=y1).data
+        assert entier['taux_realisation']['total'] == 1
+        assert entier['taux_realisation']['en_cours'] == 1
+
+    def test_periode_scope_le_budget(self, api_client, realisation_test_data):
+        """Le budget prévisionnel ne cumule que les années de la fenêtre."""
+        plan = realisation_test_data['plan']
+        y0 = plan.annee_debut
+        for offset, budget in ((0, '100.00'), (1, '200.00')):
+            oa = OperationAnneeFactory(
+                id_operation=realisation_test_data['operation'],
+                annee=y0 + offset, periodicite=True, budget=Decimal(budget),
+            )
+            RealisationOperationAnneeFactory(
+                id_operation_annee=oa,
+                id_niveau_realisation=realisation_test_data['niveau_termine'],
+            )
+
+        api_client.force_authenticate(user=realisation_test_data['super_admin'])
+        moitie = self._bilan(api_client, plan, annee_min=y0, annee_max=y0).data
+        assert moitie['budget']['total']['previsionnel'] == 100.0
+
+        entier = self._bilan(api_client, plan, annee_min=y0, annee_max=y0 + 1).data
+        assert entier['budget']['total']['previsionnel'] == 300.0
+
+    def test_bilan_indicateurs_scope_les_mesures_a_la_periode(
+        self, api_client, realisation_test_data,
+    ):
+        """
+        L'onglet Indicateurs suit la portée : une métrique mesurée seulement
+        hors fenêtre compte comme « sans donnée » au lieu de rester évaluée.
+        """
+        from datetime import date
+        from apps.plans.models_indicateurs import Mesure
+
+        plan = realisation_test_data['plan']
+        y0 = plan.annee_debut
+
+        # Grille numérique minimale, sinon la mesure ne produit aucun score et
+        # l'indicateur resterait « sans donnée » quelle que soit la portée.
+        metrique = realisation_test_data['operation'].metriques.first()
+        metrique.type_metrique = None
+        metrique.score_3_inf = 0
+        metrique.score_3_sup = 10
+        metrique.save()
+
+        Mesure.objects.create(
+            id_metrique=metrique, valeur='1', date_mesure=date(y0 + 3, 6, 1),
+            id_utilisateur_ajout=realisation_test_data['referent'],
+            id_utilisateur_maj=realisation_test_data['referent'],
+        )
+
+        api_client.force_authenticate(user=realisation_test_data['super_admin'])
+        url = f'/api/plans/realisations/bilan-indicateurs/{plan.pk}/'
+
+        hors_fenetre = api_client.get(url, {'annee_min': y0, 'annee_max': y0 + 1})
+        assert hors_fenetre.status_code == status.HTTP_200_OK
+        assert hors_fenetre.data['periode_min'] == y0
+        assert hors_fenetre.data['indicateurs_evalues'] == 0
+
+        dans_fenetre = api_client.get(url, {'annee_min': y0, 'annee_max': y0 + 4})
+        assert dans_fenetre.data['indicateurs_evalues'] == 1
+
+        annee_exacte = api_client.get(url, {'annee': y0 + 3})
+        assert annee_exacte.data['indicateurs_evalues'] == 1
+
+    def test_bilan_series_restreint_les_annees_a_la_periode(
+        self, api_client, realisation_test_data,
+    ):
+        """Les graphiques « par année » s'arrêtent à la fin de la période."""
+        plan = realisation_test_data['plan']
+        api_client.force_authenticate(user=realisation_test_data['super_admin'])
+        response = api_client.get(
+            f'/api/plans/realisations/bilan-series/{plan.pk}/',
+            {'annee_min': plan.annee_debut, 'annee_max': plan.annee_debut + 2},
+        )
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data['years'] == [
+            plan.annee_debut, plan.annee_debut + 1, plan.annee_debut + 2,
+        ]
+        assert len(response.data['rh_par_annee']['previsionnel']) == 3
+
+    def test_bornes_invalides_ignorees(self, api_client, realisation_test_data):
+        """Une borne non numérique ne casse pas la requête : portée globale."""
+        api_client.force_authenticate(user=realisation_test_data['super_admin'])
+        response = self._bilan(
+            api_client, realisation_test_data['plan'], annee='n/a', annee_min='',
+        )
+        assert response.status_code == status.HTTP_200_OK
+
+
+# =============================================================================
 # API — Bilan : séries par année (graphiques « évolution »)
 # =============================================================================
 

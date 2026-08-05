@@ -1886,7 +1886,8 @@
         "scope": {
           "global": "Global",
           "miParcours": "Mi-parcours",
-          "annuel": "Annuel"
+          "annuel": "Annuel",
+          "periode": "Première moitié du plan : {{from}} à {{to}}"
         },
         "tabs": {
           "indicateurs": "Indicateurs",
@@ -1994,6 +1995,7 @@
           "onglet": "Onglet",
           "portee": "Portée",
           "annee": "Année",
+          "periode": "Période",
           "totalIndicateurs": "Nombre d'indicateurs",
           "tauxEvaluation": "Taux d'évaluation (%)",
           "libelle": "Libellé",

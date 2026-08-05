@@ -798,10 +798,13 @@ class Operation(models.Model):
         'NON_REALISE': 'Non réalisée',  # #379
     }
 
-    def compute_niveau_realisation_global(self):
+    def compute_niveau_realisation_global(self, annees=None):
         """
         #355 — Calcule le niveau de réalisation GLOBAL d'une action sur la période,
         à partir des réalisations annuelles de ses années *programmées*.
+
+        `annees` restreint le calcul à un sous-ensemble d'OperationAnnee (portée
+        « Mi-parcours » du Bilan) ; par défaut, toutes les années de l'action.
 
         Années programmées = OperationAnnee avec periodicite=True (à défaut, toutes
         les années de l'opération). Règle :
@@ -816,7 +819,7 @@ class Operation(models.Model):
         Renvoie le mnémonique (str) ou None. Mapping volontairement conservateur :
         une action récurrente réalisée 1 an sur 10 reste « En cours », pas « Terminé ».
         """
-        annees = list(self.operation_annees.all())
+        annees = list(self.operation_annees.all() if annees is None else annees)
         programmed = [oa for oa in annees if oa.periodicite] or annees
         if not programmed:
             return None

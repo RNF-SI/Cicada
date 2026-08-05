@@ -94,6 +94,14 @@
               {{ 'plans.suivis.bilan.scope.annuel' | translate }}
             </button>
           </div>
+
+          <!-- La portée « Mi-parcours » couvre la première moitié du plan :
+               afficher ces années évite de deviner ce qui est compté. -->
+          @if (scope() === 'mi_parcours' && miParcoursRange(); as range) {
+            <p class="scope-hint text-mention" data-testid="bilan-periode">
+              {{ 'plans.suivis.bilan.scope.periode' | translate:{ from: range.min, to: range.max } }}
+            </p>
+          }
         </div>
 
         <!-- Timeline des années (mode Annuel) -->

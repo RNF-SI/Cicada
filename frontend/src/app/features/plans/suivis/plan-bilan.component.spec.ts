@@ -61,7 +61,7 @@ describe('PlanBilanComponent — export des résultats (#639)', () => {
   } as BilanResponse;
 
   const indicateurs = {
-    plan_id: 1, plan_nom: 'Plan test',
+    plan_id: 1, plan_nom: 'Plan test', periode_min: null, periode_max: null,
     total_indicateurs: 4, indicateurs_evalues: 3, taux_evaluation_pct: 75,
     score_distribution: [{ score: 4, label: 'Bon', count: 3 }],
     by_enjeu: [{ enjeu_id: 7, libelle: 'Enjeu 7', moyenne: 4, count: 3 }],
@@ -159,7 +159,13 @@ describe('PlanBilanComponent — export des résultats (#639)', () => {
     component.onEnjeuFilterChange([7]);
     realisationService.bilanIndicateurs.mockClear();
     component.filters.reset();
-    expect(realisationService.bilanIndicateurs).toHaveBeenCalledWith(1, undefined);
+    expect(realisationService.bilanIndicateurs).toHaveBeenCalledWith(1, {});
+  });
+
+  it('rappelle la période couverte en portée mi-parcours', () => {
+    component.setScope('mi_parcours');
+    // Plan 2026-2027 → première moitié = 2026 seulement.
+    expect(cell('plans.suivis.bilan.export.periode')?.[1]).toBe('2026 – 2026');
   });
 
   // ===========================================================================
@@ -217,4 +223,124 @@ describe('PlanBilanComponent — export des résultats (#639)', () => {
       );
     });
   });
+});
+
+/**
+ * Portée Global / Mi-parcours / Annuel : les trois agrégations doivent suivre
+ * la même fenêtre d'années. Auparavant seule la requête « actions » recevait
+ * l'année : sur l'onglet Indicateurs (celui par défaut), changer de portée ou
+ * d'année ne changeait rien, et « Mi-parcours » n'envoyait aucun filtre.
+ */
+describe('PlanBilanComponent — portée du bilan', () => {
+  let component: PlanBilanComponent;
+  let realisationService: {
+    bilan: jest.Mock;
+    bilanIndicateurs: jest.Mock;
+    bilanSeries: jest.Mock;
+  };
+
+  const bilan = (min: number, max: number) => ({
+    plan_id: 1, plan_nom: 'Plan test', annee_min: min, annee_max: max,
+    taux_realisation: {
+      non_demarre: 0, en_cours: 0, partiel: 0, termine: 0,
+      abandonne: 0, reporte: 0, inconnu: 0, total: 0,
+      planifiee_realisee: 0, planifiee_partielle: 0, planifiee_non_realisee: 0,
+      non_planifiee_realisee: 0, non_planifiee_partielle: 0,
+    },
+    by_categorie_action: [], by_enjeu: [],
+    budget: {
+      fonctionnement: { previsionnel: 0, realise: 0 },
+      investissement: { previsionnel: 0, realise: 0 },
+      total: { previsionnel: 0, realise: 0 },
+    },
+    rh: {
+      previsionnel: 0, realise: 0,
+      previsionnel_finance: 0, previsionnel_non_finance: 0,
+      realise_finance: 0, realise_non_finance: 0,
+    },
+  } as BilanResponse);
+
+  const build = (min = 2020, max = 2029) => {
+    realisationService = {
+      bilan: jest.fn().mockReturnValue(of(bilan(min, max))),
+      bilanIndicateurs: jest.fn().mockReturnValue(of({} as BilanIndicateursResponse)),
+      bilanSeries: jest.fn().mockReturnValue(of({} as BilanSeriesResponse)),
+    };
+    TestBed.resetTestingModule();
+    TestBed.configureTestingModule({
+      providers: [
+        { provide: ActivatedRoute, useValue: { paramMap: of({ get: () => null }) } },
+        { provide: AdminService, useValue: { getPlanBySlug: () => of(null) } },
+        { provide: RealisationService, useValue: realisationService },
+        { provide: TranslateService, useValue: { instant: (k: string) => k } },
+        { provide: ElementRef, useValue: new ElementRef(document.createElement('div')) },
+        { provide: MatSnackBar, useValue: { open: jest.fn() } },
+      ],
+    });
+    component = TestBed.runInInjectionContext(() => new PlanBilanComponent());
+    component.planId.set(1);
+    // Passe par le chargement réel : c'est lui qui recadre l'année sélectionnée.
+    (component as any).loadBilan(1);
+    jest.clearAllMocks();
+    return component;
+  };
+
+  it('n’envoie aucune borne d’année en portée globale', () => {
+    build();
+    component.setScope('annuel');
+    realisationService.bilan.mockClear();
+    component.setScope('global');
+
+    expect(realisationService.bilan).toHaveBeenCalledWith(1, {});
+    expect(realisationService.bilanIndicateurs).toHaveBeenCalledWith(1, {});
+    expect(realisationService.bilanSeries).toHaveBeenCalledWith(1, {});
+  });
+
+  it('scope les trois agrégations à la première moitié du plan en mi-parcours', () => {
+    build(2020, 2029);
+    component.setScope('mi_parcours');
+
+    const periode = { annee_min: 2020, annee_max: 2024 };
+    expect(realisationService.bilan).toHaveBeenCalledWith(1, periode);
+    expect(realisationService.bilanIndicateurs).toHaveBeenCalledWith(1, periode);
+    expect(realisationService.bilanSeries).toHaveBeenCalledWith(1, periode);
+  });
+
+  it('arrondit la moitié au supérieur pour une durée impaire', () => {
+    build(2020, 2030);
+    expect(component.miParcoursRange()).toEqual({ min: 2020, max: 2025 });
+  });
+
+  it('scope aussi l’onglet Indicateurs à l’année en portée annuelle', () => {
+    build(2020, 2029);
+    component.setScope('annuel');
+    component.selectYear(2023);
+
+    expect(realisationService.bilan).toHaveBeenLastCalledWith(1, { annee: 2023 });
+    expect(realisationService.bilanIndicateurs).toHaveBeenLastCalledWith(1, { annee: 2023 });
+  });
+
+  it('ne recharge pas les séries par année en portée annuelle (elles sont masquées)', () => {
+    build();
+    component.setScope('annuel');
+    expect(realisationService.bilanSeries).not.toHaveBeenCalled();
+  });
+
+  it('ramène l’année sélectionnée dans la durée du plan', () => {
+    // Plan terminé : l'année en cours est hors plan — sans recadrage, la vue
+    // annuelle s'ouvrait sur une année vide.
+    build(2015, 2024);
+    expect(component.selectedYear()).toBe(2024);
+  });
+
+  it('conserve les filtres métier en changeant de portée', () => {
+    build(2020, 2029);
+    component.onEnjeuFilterChange([7]);
+    component.setScope('mi_parcours');
+
+    expect(realisationService.bilan).toHaveBeenLastCalledWith(
+      1, { annee_min: 2020, annee_max: 2024, enjeu_id: 7 },
+    );
+  });
+
 });

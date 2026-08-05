@@ -205,7 +205,14 @@
 // =============================================================================
 .scope-row {
   display: flex;
-  justify-content: center;
+  flex-direction: column;
+  align-items: center;
+  gap: $spacing-xxs;
+}
+
+// Années couvertes par la portée « Mi-parcours ».
+.scope-hint {
+  margin: 0;
 }
 
 .pill-toggle {
