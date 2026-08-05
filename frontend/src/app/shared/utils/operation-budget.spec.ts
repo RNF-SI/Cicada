@@ -9,6 +9,7 @@ import {
   fonctDetailPrev, investDetailPrev, fonctDetailReal,
   salarialCost, sumJours, yearBudgetPrev, yearBudgetReal,
   yearJoursPrev, yearJoursReal,
+  salaryOptionAvailable, salaryIsComputed,
 } from './operation-budget';
 
 const OP = (mode: string) => ({ ventilation_mode: mode }) as any;
@@ -225,5 +226,47 @@ describe('jours prévus / réalisés (#616)', () => {
     expect(yearJoursReal(global)).toBe(5);
 
     expect(yearJoursReal({ annee: 2027, organismes: [], realisation: null } as any)).toBeNull();
+  });
+});
+
+// ===========================================================================
+// #600 (retour 08/2026) — le coût salarial ne se CALCULE que par type de poste
+// ===========================================================================
+
+describe('coût salarial : calculé ou saisi', () => {
+  it('ne propose l\'option que pour les deux modes « + type de poste »', () => {
+    expect(salaryOptionAvailable('by_type_poste', true)).toBe(true);
+    expect(salaryOptionAvailable('by_org_type_poste', true)).toBe(true);
+
+    // Les autres modes ne déclinent pas le temps par poste : rien à calculer.
+    expect(salaryOptionAvailable('by_type', true)).toBe(false);
+    expect(salaryOptionAvailable('by_org_type', true)).toBe(false);
+    expect(salaryOptionAvailable('by_org', true)).toBe(false);
+    expect(salaryOptionAvailable('none', true)).toBe(false);
+
+    // Sans détail des coûts, il n'y a même pas de ligne « coût salarial ».
+    expect(salaryOptionAvailable('by_type_poste', false)).toBe(false);
+    expect(salaryOptionAvailable('by_org_type_poste', false)).toBe(false);
+  });
+
+  it('suit le choix du gestionnaire dans les modes par type de poste', () => {
+    expect(salaryIsComputed('by_type_poste', true, true)).toBe(true);
+    expect(salaryIsComputed('by_type_poste', true, false)).toBe(false);
+    expect(salaryIsComputed('by_org_type_poste', true, false)).toBe(false);
+  });
+
+  it('impose la saisie manuelle dans les autres modes détaillés par type de coût', () => {
+    // Sans poste, aucun coût jour : la valeur calculée serait figée à 0.
+    expect(salaryIsComputed('by_type', true, true)).toBe(false);
+    expect(salaryIsComputed('by_org_type', true, true)).toBe(false);
+  });
+
+  it('laisse les modes sans détail des coûts en calcul (comportement historique)', () => {
+    // L'enveloppe saisie contient déjà tout : le drapeau ne doit pas basculer
+    // ces actions en « coût salarial saisi » côté serveur (totaux inchangés).
+    expect(salaryIsComputed('none', true, true)).toBe(true);
+    expect(salaryIsComputed('by_org', true, true)).toBe(true);
+    expect(salaryIsComputed('by_type', false, true)).toBe(true);
+    expect(salaryIsComputed('by_org_type_poste', false, true)).toBe(true);
   });
 });

@@ -46,6 +46,7 @@ import {
 } from '../../../../core/models/enjeu.model';
 import { formatScoreRange, computeMetriqueScore, computeCombinedScore, scoreLevelName, formatBlockFormula } from '../metrique-seuils.util';
 import { posteDisplayLabel, posteDisplayLabelById } from '../../../../shared/utils/poste-label';
+import { salaryIsComputed } from '../../../../shared/utils/operation-budget';
 
 interface Niveau {
   id_nomenclature: number;
@@ -380,14 +381,28 @@ export class SuiviSaisieComponent implements OnInit {
   }
 
   /**
+   * #600 (retour 08/2026) — le coût salarial n'est CALCULÉ que dans les modes
+   * « + type de poste » ; partout ailleurs il est saisi. Même règle que la
+   * fiche action (`shared/utils/operation-budget`), pour que le suivi affiche
+   * exactement les mêmes montants.
+   */
+  private salaireCalcule(): boolean {
+    const op = this.operation();
+    return salaryIsComputed(
+      op?.ventilation_mode, op?.declinaison_par_type_cout !== false,
+      op?.cout_salarial_auto !== false,
+    );
+  }
+
+  /**
    * Coût salarial PRÉVISIONNEL d'un organisme pour une année et une catégorie
    * de dépense — calculé depuis les lignes RH prévues (jours × coût jour), comme
    * son pendant réalisé `realCoutSalarial`.
    */
   prevCoutSalarial(year: number, orgId: number, categorie: 'fonctionnement' | 'investissement'): number {
-    // #600 — action en saisie manuelle du coût salarial : c'est le montant
-    // saisi sur l'organisme qui fait foi, pas les jours × coût jour.
-    if (this.operation()?.cout_salarial_auto === false) {
+    // #600 — coût salarial saisi (et non calculé) : c'est le montant porté par
+    // l'organisme qui fait foi, pas les jours × coût jour.
+    if (!this.salaireCalcule()) {
       const oao = this.getOaoForYearOrg(year, orgId) as any;
       const champ = categorie === 'investissement' ? 'cout_salarial_invest' : 'cout_salarial';
       return Number(oao?.[champ]) || 0;
@@ -469,8 +484,8 @@ export class SuiviSaisieComponent implements OnInit {
   }
 
   prevGlobalCoutSalarial(year: number, categorie: 'fonctionnement' | 'investissement'): number {
-    // #600 — saisie manuelle : montant porté par l'année (mode sans organisme).
-    if (this.operation()?.cout_salarial_auto === false) {
+    // #600 — coût salarial saisi : montant porté par l'année (mode sans organisme).
+    if (!this.salaireCalcule()) {
       const oa = this.getOaForYear(year) as any;
       const champ = categorie === 'investissement' ? 'cout_salarial_invest' : 'cout_salarial';
       return Number(oa?.[champ]) || 0;

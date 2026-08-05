@@ -55,6 +55,7 @@ import {
   displayNomenclatureFn,
 } from '../../../../shared/utils/nomenclature-autocomplete.utils';
 import { serializeTaxonRefs, parseTaxonRefs } from '../../../../shared/utils/taxon-ref.utils';
+import { salaryIsComputed, salaryOptionAvailable } from '../../../../shared/utils/operation-budget';
 import {
   blankMetriqueFormData,
   metriqueRefToFormData,
@@ -656,6 +657,26 @@ export class OperationFormComponent implements OnInit {
   /** Le tableau budgétaire détaille les types de coût (#600). */
   showCostDetail = computed<boolean>(
     () => this.hasTypeVentilation() && this.declinaisonParTypeCout(),
+  );
+
+  /**
+   * #600 (retour 08/2026) — la case « coût salarial calculé automatiquement »
+   * n'est proposée que par les deux modes « + type de poste » : eux seuls
+   * déclinent le temps par poste, donc disposent d'un coût jour à multiplier.
+   */
+  showCoutSalarialOption = computed<boolean>(
+    () => salaryOptionAvailable(this.ventilationMode(), this.declinaisonParTypeCout()),
+  );
+
+  /**
+   * Coût salarial CALCULÉ (cellule en lecture seule) ou SAISI (champ de saisie).
+   * Dans les modes par type de budget sans « type de poste », il est toujours
+   * saisi : rien ne permettrait de le calculer.
+   */
+  coutSalarialCalcule = computed<boolean>(
+    () => salaryIsComputed(
+      this.ventilationMode(), this.declinaisonParTypeCout(), this.coutSalarialAuto(),
+    ),
   );
 
   /**
@@ -2177,7 +2198,7 @@ export class OperationFormComponent implements OnInit {
     payload.declinaison_par_poste = this.isPosteVentilation();
     // #600 (retour 08/2026) — réglages du tableau budgétaire.
     payload.declinaison_par_type_cout = this.declinaisonParTypeCout();
-    payload.cout_salarial_auto = this.coutSalarialAuto();
+    payload.cout_salarial_auto = this.coutSalarialCalcule();
 
     // Operation annees: apply the monthly template to all years + per-organisme data
     const orgs = this.availableOrganismes();
@@ -2239,8 +2260,8 @@ export class OperationFormComponent implements OnInit {
           budget_fonctionnement: null,
           budget_investissement: null,
           // Coût salarial : stocké seulement quand il est saisi (#600).
-          cout_salarial: this.coutSalarialAuto() ? null : c.coutSalarial,
-          cout_salarial_invest: this.coutSalarialAuto() ? null : c.coutSalarialInvest,
+          cout_salarial: this.coutSalarialCalcule() ? null : c.coutSalarial,
+          cout_salarial_invest: this.coutSalarialCalcule() ? null : c.coutSalarialInvest,
           cout_stage: c.coutStage,
           cout_prestataire: c.coutPresta,
           autre_cout: c.autreCout,
@@ -2318,8 +2339,8 @@ export class OperationFormComponent implements OnInit {
             budget_fonctionnement: null,
             budget_investissement: null,
             // Coût salarial : stocké seulement quand il est saisi (#600).
-            cout_salarial: this.coutSalarialAuto() ? null : data.coutSalarial,
-            cout_salarial_invest: this.coutSalarialAuto() ? null : data.coutSalarialInvest,
+            cout_salarial: this.coutSalarialCalcule() ? null : data.coutSalarial,
+            cout_salarial_invest: this.coutSalarialCalcule() ? null : data.coutSalarialInvest,
             // #600 Q2b — coût stage (fonctionnement) réintégré.
             cout_stage: data.coutStage,
             cout_prestataire: data.coutPresta,
@@ -3602,7 +3623,7 @@ export class OperationFormComponent implements OnInit {
    * n'est plus calculée mais lue sur le montant saisi.
    */
   getOrgCoutSalarial(yearIdx: number, orgId: number, categorie?: CategorieDepense): number {
-    if (!this.coutSalarialAuto()) {
+    if (!this.coutSalarialCalcule()) {
       const cell = this.getOrgBudget(yearIdx, orgId);
       const manuel = categorie === 'investissement' ? cell.coutSalarialInvest : cell.coutSalarial;
       return manuel || 0;
@@ -4014,7 +4035,7 @@ export class OperationFormComponent implements OnInit {
    * « sans organisme » de `getOrgCoutSalarial`.
    */
   getTypeCoutSalarial(yearIdx: number, categorie?: CategorieDepense): number {
-    if (!this.coutSalarialAuto()) {
+    if (!this.coutSalarialCalcule()) {
       const c = this.getTypeCost(yearIdx);
       const manuel = categorie === 'investissement' ? c.coutSalarialInvest : c.coutSalarial;
       return manuel || 0;

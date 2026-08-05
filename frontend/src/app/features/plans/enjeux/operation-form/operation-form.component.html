@@ -897,7 +897,9 @@
                         [label]="'enjeux.operations.budgetOptions.declinaisonTypeCout' | translate"
                         [mention]="'enjeux.operations.budgetOptions.declinaisonTypeCoutHint' | translate">
                       </app-checkbox>
-                      @if (showCostDetail()) {
+                      <!-- #600 (retour 08/2026) — réservée aux modes « + type de
+                           poste » : eux seuls savent calculer le coût salarial. -->
+                      @if (showCoutSalarialOption()) {
                         <div class="budget-option-row">
                           <app-checkbox
                             [checked]="coutSalarialAuto()"
@@ -1010,7 +1012,7 @@
                             <tr>
                               <td class="label-cell label-indent">{{ 'enjeux.operations.coutSalarial' | translate }}</td>
                               @for (annee of operationAnnees; track annee.annee; let i = $index) {
-                                @if (coutSalarialAuto()) {
+                                @if (coutSalarialCalcule()) {
                                   <td class="computed-cell">{{ getOrgCoutSalarial(i, org.id_organisme, 'fonctionnement') | number:'1.0-2' }} €</td>
                                 } @else {
                                   <td>
@@ -1100,7 +1102,7 @@
                             <tr>
                               <td class="label-cell label-indent">{{ 'enjeux.operations.coutSalarial' | translate }}</td>
                               @for (annee of operationAnnees; track annee.annee; let i = $index) {
-                                @if (coutSalarialAuto()) {
+                                @if (coutSalarialCalcule()) {
                                   <td class="computed-cell">{{ getOrgCoutSalarial(i, org.id_organisme, 'investissement') | number:'1.0-2' }} €</td>
                                 } @else {
                                   <td>
@@ -1252,7 +1254,7 @@
                           <tr>
                             <td class="label-cell label-indent">{{ 'enjeux.operations.coutSalarial' | translate }}</td>
                             @for (annee of operationAnnees; track annee.annee; let i = $index) {
-                              @if (coutSalarialAuto()) {
+                              @if (coutSalarialCalcule()) {
                                 <td class="computed-cell">{{ getTypeCoutSalarial(i, 'fonctionnement') | number:'1.0-2' }} €</td>
                               } @else {
                                 <td>
@@ -1341,7 +1343,7 @@
                           <tr>
                             <td class="label-cell label-indent">{{ 'enjeux.operations.coutSalarial' | translate }}</td>
                             @for (annee of operationAnnees; track annee.annee; let i = $index) {
-                              @if (coutSalarialAuto()) {
+                              @if (coutSalarialCalcule()) {
                                 <td class="computed-cell">{{ getTypeCoutSalarial(i, 'investissement') | number:'1.0-2' }} €</td>
                               } @else {
                                 <td>

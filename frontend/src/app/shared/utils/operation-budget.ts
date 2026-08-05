@@ -108,6 +108,46 @@ const TYPE_VENTILATION_MODES = [
   'by_type', 'by_org_type', 'by_type_poste', 'by_org_type_poste',
 ];
 
+/**
+ * Modes qui déclinent le temps de travail PAR POSTE. Eux seuls savent calculer
+ * un coût salarial (jours × coût jour du poste) : ailleurs, le temps est saisi
+ * globalement ou par organisme, sans coût jour rattaché.
+ */
+export const POSTE_VENTILATION_MODES = ['by_type_poste', 'by_org_type_poste'];
+
+/**
+ * #600 (retour 08/2026) — la case « coût salarial calculé automatiquement »
+ * n'est proposée que pour les deux modes « + type de poste » : ailleurs, il n'y
+ * a rien à calculer, le montant est nécessairement saisi.
+ */
+export function salaryOptionAvailable(
+  mode: string | null | undefined,
+  declinaisonParTypeCout: boolean,
+): boolean {
+  return POSTE_VENTILATION_MODES.includes(mode ?? 'none') && declinaisonParTypeCout;
+}
+
+/**
+ * Coût salarial CALCULÉ (vs saisi), pour un mode et ses deux réglages.
+ *
+ * - modes « + type de poste » : le choix du gestionnaire ;
+ * - autres modes AVEC détail des coûts : toujours saisi — le calcul n'aurait
+ *   aucune donnée (pas de poste ⇒ pas de coût jour) et laisserait une ligne
+ *   figée à 0 ;
+ * - modes SANS détail des coûts : la question ne se pose pas (l'enveloppe
+ *   saisie contient déjà tout) ; on garde `true`, valeur historique, pour ne
+ *   pas basculer ces actions en « coût salarial saisi » côté serveur.
+ */
+export function salaryIsComputed(
+  mode: string | null | undefined,
+  declinaisonParTypeCout: boolean,
+  coutSalarialAuto: boolean,
+): boolean {
+  if (salaryOptionAvailable(mode, declinaisonParTypeCout)) return coutSalarialAuto;
+  const hasDetail = TYPE_VENTILATION_MODES.includes(mode ?? 'none') && declinaisonParTypeCout;
+  return !hasDetail;
+}
+
 type OpMode = Pick<Operation, 'ventilation_mode' | 'declinaison_par_type_cout' | 'cout_salarial_auto'>;
 
 /**

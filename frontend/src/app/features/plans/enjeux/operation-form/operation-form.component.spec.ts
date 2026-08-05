@@ -8,6 +8,7 @@ import { TestBed } from '@angular/core/testing';
 import { signal, computed } from '@angular/core';
 import { Subject, of, throwError } from 'rxjs';
 import { FormBuilder, FormControl, FormGroup, Validators } from '@angular/forms';
+import { salaryIsComputed, salaryOptionAvailable } from '../../../../shared/utils/operation-budget';
 import {
   OperationFormComponent,
   buildResponseTypeOptions,
@@ -50,6 +51,15 @@ function createComponentInstance(): OperationFormComponent {
   (comp as any).showCostDetail = computed(
     () => (comp as any).hasTypeVentilation() && (comp as any).declinaisonParTypeCout(),
   );
+  // #600 (retour 08/2026) — la case « coût salarial automatique » et l'état
+  // effectif « calculé / saisi » viennent de `shared/utils/operation-budget`.
+  (comp as any).showCoutSalarialOption = computed(() => salaryOptionAvailable(
+    (comp as any).ventilationMode(), (comp as any).declinaisonParTypeCout(),
+  ));
+  (comp as any).coutSalarialCalcule = computed(() => salaryIsComputed(
+    (comp as any).ventilationMode(), (comp as any).declinaisonParTypeCout(),
+    (comp as any).coutSalarialAuto(),
+  ));
   // #600 — computeds dérivés du mode.
   // #624 — chaque mode a son propre layout budget ; #600 (retour 08/2026) : ce
   // layout suit aussi la case « déclinaison par type de coût ».
@@ -383,6 +393,39 @@ describe('OperationFormComponent — ventilation budgétaire', () => {
       comp.updateOrgCoutPresta(0, 100, '200');
       expect(comp.getOrgFonctTotal(0, 100)).toBe(2000);
       expect(comp.getOrgInvestTotal(0, 100)).toBe(450);
+    });
+
+    it('#600 — l\'option « coût salarial automatique » n\'existe que par type de poste', () => {
+      comp.onModeToggle('by_type');
+      expect((comp as any).showCoutSalarialOption()).toBe(false);
+      comp.onModeToggle('by_org_type');
+      expect((comp as any).showCoutSalarialOption()).toBe(false);
+
+      comp.onModeToggle('by_type_poste');
+      expect((comp as any).showCoutSalarialOption()).toBe(true);
+      comp.onModeToggle('by_org_type_poste');
+      expect((comp as any).showCoutSalarialOption()).toBe(true);
+
+      // Sans détail des coûts, il n'y a pas de ligne « coût salarial » du tout.
+      (comp as any).declinaisonParTypeCout.set(false);
+      expect((comp as any).showCoutSalarialOption()).toBe(false);
+    });
+
+    it('#600 — par type de budget SANS type de poste : coût salarial toujours saisi', () => {
+      comp.onModeToggle('by_type');
+      comp.postes.set([{ id_poste: 5, id_pg: 1, id_organisme: 100, cout_jour: 300, nombre: 1 } as any]);
+      comp.rhLines = [{
+        id_poste: 5, id_organisme: null, finance: true,
+        categorie_depense: 'fonctionnement', jours: { 0: 10 }, derived: true,
+      }];
+
+      // La case reste cochée (valeur par défaut) mais ne s'applique pas :
+      // sans poste décliné, les 10 j × 300 € ne valorisent rien.
+      expect((comp as any).coutSalarialAuto()).toBe(true);
+      expect((comp as any).coutSalarialCalcule()).toBe(false);
+
+      comp.updateTypeCoutSalarial(0, '1 200');
+      expect(comp.getTypeCoutSalarial(0, 'fonctionnement')).toBe(1200);
     });
 
     it('coût salarial manuel : idem sans déclinaison par organisme', () => {
