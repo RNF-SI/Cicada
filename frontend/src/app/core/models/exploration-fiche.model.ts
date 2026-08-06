@@ -17,11 +17,23 @@ export interface FicheHabitat {
   lb_hab_fr: string | null;
 }
 
+/**
+ * Palier de la grille de lecture d'une métrique : ce qui fait qu'une mesure
+ * vaut « bon » plutôt que « moyen ». Le barème est publié, jamais les mesures.
+ */
+export interface FichePalier {
+  niveau: 1 | 2 | 3 | 4 | 5;
+  libelle: string;
+  valeur: string | null;
+}
+
 export interface FicheMetrique {
   id_metrique: number;
   nom_metrique: string;
   unite: string | null;
   description: string | null;
+  /** `null` quand la métrique n'a pas de grille de lecture (#634). */
+  grille: FichePalier[] | null;
 }
 
 export interface FicheIndicateur {
@@ -91,6 +103,13 @@ export interface FicheEnjeu {
   objectifs_operationnels: FicheObjectifOperationnel[];
 }
 
+/** Métrique suivie par une action, dans le cadre de celle-ci. */
+export interface FicheActionMetrique {
+  id_metrique: number;
+  nom_metrique: string;
+  unite: string | null;
+}
+
 /** Action de gestion : ce qui est prévu, jamais ce que ça coûte. */
 export interface FicheAction {
   id_operation: number;
@@ -104,6 +123,10 @@ export interface FicheAction {
   annee_max: number | null;
   operateurs: string | null;
   partenaires: string | null;
+  /** Indicateur servi par l'action : la rattache à l'arborescence (#634). */
+  id_indicateur: number | null;
+  indicateur: string | null;
+  metriques: FicheActionMetrique[];
 }
 
 export interface FicheSite {

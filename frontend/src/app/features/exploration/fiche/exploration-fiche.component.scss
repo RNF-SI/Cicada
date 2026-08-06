@@ -252,6 +252,143 @@
   font-style: italic;
 }
 
+/**
+ * Étiquette de niveau (OLT, NE, Indicateur, Métrique, code d'action).
+ *
+ * L'indentation seule ne disait plus de quoi on parlait passé trois niveaux :
+ * chaque ligne annonce désormais son type, à la couleur du type (#634).
+ */
+.fiche-puce {
+  display: inline-block;
+  margin-right: $spacing-xs;
+  padding: 1px $spacing-xs;
+  border-radius: $border-radius-pill;
+  font-size: $font-size-small;
+  font-weight: $font-weight-bold;
+  color: $black;
+  background-color: $gray-lighter;
+
+  &.type-objectif { background-color: rgba($primary-color, 0.15); }
+  &.type-niveau { background-color: rgba($secondary-pale-green, 0.6); }
+  &.type-indicateur { background-color: rgba($info-color, 0.35); }
+  &.type-metrique { background-color: rgba($secondary-orange-salmon, 0.45); }
+  &.type-action { background-color: rgba($secondary-yellow, 0.6); }
+}
+
+/* Branche repliable : l'en-tête est un bouton, mais se lit comme une ligne. */
+.fiche-branche > .fiche-branche-tete {
+  display: flex;
+  align-items: center;
+  gap: $spacing-xxs;
+  width: 100%;
+  padding: 0;
+  border: none;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+  color: inherit;
+  font: inherit;
+
+  &:hover .fiche-arbre-titre {
+    color: $primary-color;
+  }
+}
+
+.fiche-branche-chevron {
+  color: $primary-color;
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.fiche-section-entete {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: $spacing-sm;
+  flex-wrap: wrap;
+}
+
+.fiche-arbre-controles {
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+  color: $gray-dark;
+
+  button {
+    border: none;
+    background: none;
+    padding: 0;
+    cursor: pointer;
+    font: inherit;
+  }
+}
+
+.fiche-arbre-metrique {
+  color: $black;
+}
+
+.fiche-arbre-action {
+  display: flex;
+  align-items: center;
+  gap: $spacing-xxs;
+}
+
+/**
+ * Grille de lecture d'une métrique : les 5 paliers, à la palette des scores.
+ *
+ * Texte toujours noir sur ces fonds clairs (WCAG AA, cf. DESIGN_SYSTEM).
+ */
+.fiche-grille {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spacing-xxs;
+  margin: $spacing-xxs 0 $spacing-xs;
+}
+
+.fiche-grille-palier {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 8rem;
+  min-width: 7rem;
+  border: 1px solid $gray-lighter;
+  border-radius: $border-radius-sm;
+  overflow: hidden;
+  background-color: $white;
+}
+
+.fiche-grille-tete {
+  padding: 2px $spacing-xs;
+  font-size: $font-size-small;
+  font-weight: $font-weight-bold;
+  color: $black;
+  text-align: center;
+}
+
+.fiche-grille-valeur {
+  padding: $spacing-xxs $spacing-xs;
+  font-size: $font-size-small;
+  color: $black;
+  white-space: pre-line;
+}
+
+/* Bouton œil : ouvre la fiche action en lecture seule. */
+.fiche-oeil {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: $border-radius-round;
+  background: none;
+  color: $primary-color;
+  cursor: pointer;
+
+  &:hover {
+    background-color: rgba($primary-color, 0.1);
+  }
+}
+
 .fiche-arbre-mention {
   margin-left: $spacing-xs;
   font-size: $font-size-small;
@@ -329,11 +466,11 @@
 }
 
 /**
- * Détail d'une action (#634).
+ * Ligne d'action (#634).
  *
- * La ligne du tableau se déplie sur place plutôt que d'ouvrir un écran : la
- * fiche publique reste une seule page navigable d'élément en élément, et
- * l'action ciblée par une recherche arrive déjà ouverte.
+ * Elle ouvre la fiche action en lecture seule : un dépliage sur place ne
+ * pouvait pas porter le cadre de l'action (indicateur, métriques) sans faire
+ * exploser la hauteur du tableau.
  */
 .fiche-tableau-ligne {
   cursor: pointer;
@@ -342,24 +479,11 @@
   &:hover {
     background-color: $primary-bg-subtle;
   }
-
-  &.ouverte {
-    background-color: $gray-lightest;
-  }
 }
 
-.fiche-tableau-chevron {
-  color: $primary-color;
+.fiche-tableau-oeil {
   text-align: right;
   width: 1px;
-}
-
-.fiche-tableau-detail {
-  background-color: $gray-lightest;
-
-  td {
-    padding-top: 0;
-  }
 }
 
 .fiche-detail-liste {

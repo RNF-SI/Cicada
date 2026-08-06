@@ -215,6 +215,52 @@ class TestRechercheContenu:
 
         assert 'Protection des limicoles' in titres(reponse)
 
+    def test_la_faute_de_frappe_est_toleree_sur_un_habitat(
+        self, client_connecte, jeu_de_donnees
+    ):
+        """
+        Retour de recette #634 : « eutotrophes » ne remontait pas « Lacs
+        eutrophes naturels… ».
+
+        L'habitat était bien indexé, mais le rattrapage par similarité ne
+        portait que sur le libellé de l'objet. Or un nom d'habitat ou d'espèce
+        est long et rarement tapé sans faute : c'est justement là que le plein
+        texte, qui ne pardonne aucune lettre en trop, laisse l'utilisateur sans
+        résultat ni explication.
+        """
+        from apps.plans.models_enjeux import Enjeu
+        from tests.factories.enjeux import CorEnjeuHabitatFactory
+
+        plan = jeu_de_donnees['plans']['ouest']
+        enjeu = Enjeu.objects.get(id_pg=plan)
+        CorEnjeuHabitatFactory(
+            id_enjeu=enjeu, cd_hab='3150',
+            lb_hab_fr='Lacs eutrophes naturels avec végétation du Magnopotamion',
+        )
+        index_plan(plan)
+
+        reponse = client_connecte.get(URL_CONTENUS, {'q': 'eutotrophes'})
+
+        assert 'Protection des limicoles' in titres(reponse)
+
+    def test_l_habitat_remonte_sans_faute_de_frappe(
+        self, client_connecte, jeu_de_donnees
+    ):
+        """Le rattrapage ne doit pas masquer le cas nominal (plein texte)."""
+        from apps.plans.models_enjeux import Enjeu
+        from tests.factories.enjeux import CorEnjeuHabitatFactory
+
+        plan = jeu_de_donnees['plans']['ouest']
+        CorEnjeuHabitatFactory(
+            id_enjeu=Enjeu.objects.get(id_pg=plan), cd_hab='3150',
+            lb_hab_fr='Lacs eutrophes naturels avec végétation du Magnopotamion',
+        )
+        index_plan(plan)
+
+        reponse = client_connecte.get(URL_CONTENUS, {'q': 'eutrophes'})
+
+        assert 'Protection des limicoles' in titres(reponse)
+
 
 # --------------------------------------------------------------------------- #
 # Onglets et compteurs
@@ -491,6 +537,95 @@ class TestFichePublique:
             for indicateur in niveau['indicateurs']
         ]
         assert indicateurs == ['Indicateur Ouest']
+
+    def test_la_fiche_descend_jusquaux_metriques_et_a_leur_grille(
+        self, client_connecte, jeu_de_donnees
+    ):
+        """
+        Retour de recette #634 : « il manque les indicateurs et les métriques et
+        les grilles de métriques ».
+
+        La grille est le barème qui donne son sens à une mesure : sans elle, un
+        lecteur extérieur voit ce qui est suivi, mais pas ce qui compte comme un
+        bon résultat. Les mesures, elles, restent internes.
+        """
+        from tests.factories.enjeux import MetriqueFactory
+
+        plan = jeu_de_donnees['plans']['ouest']
+        MetriqueFactory(
+            id_indicateur=plan.indicateur_racine,
+            nom_metrique='Recouvrement', unite='%',
+            type_metrique=None,
+            score_1_label='Absent', score_2_label='Rare', score_3_label='Présent',
+            score_4_label='Fréquent', score_5_label='Dominant',
+        )
+
+        reponse = client_connecte.get(url_fiche(plan))
+
+        indicateur = (
+            reponse.data['enjeux'][0]['objectifs_long_terme'][0]
+            ['niveaux_exigence'][0]['indicateurs'][0]
+        )
+        metrique = next(
+            m for m in indicateur['metriques'] if m['nom_metrique'] == 'Recouvrement'
+        )
+        assert metrique['unite'] == '%'
+        assert [palier['valeur'] for palier in metrique['grille']] == [
+            'Absent', 'Rare', 'Présent', 'Fréquent', 'Dominant',
+        ]
+        assert [palier['libelle'] for palier in metrique['grille']][0] == 'Très mauvais'
+
+    def test_une_metrique_sans_grille_ne_publie_pas_de_grille(
+        self, client_connecte, jeu_de_donnees
+    ):
+        """Pas de grille vide : cinq cases à « — » n'apprennent rien."""
+        from tests.factories.enjeux import MetriqueFactory
+
+        plan = jeu_de_donnees['plans']['ouest']
+        MetriqueFactory(
+            id_indicateur=plan.indicateur_racine,
+            nom_metrique='Effectif', unite='individus', type_metrique=None,
+        )
+
+        reponse = client_connecte.get(url_fiche(plan))
+
+        indicateur = (
+            reponse.data['enjeux'][0]['objectifs_long_terme'][0]
+            ['niveaux_exigence'][0]['indicateurs'][0]
+        )
+        metrique = next(
+            m for m in indicateur['metriques'] if m['nom_metrique'] == 'Effectif'
+        )
+        assert metrique['grille'] is None
+
+    def test_une_action_porte_son_rattachement_a_larborescence(
+        self, client_connecte, jeu_de_donnees
+    ):
+        """
+        L'action est affichée **sous** l'indicateur qu'elle sert (#634) : la
+        fiche doit donc dire de quel indicateur et de quelles métriques elle
+        dépend, sinon elle ne peut vivre que dans une liste à plat.
+        """
+        from tests.factories.enjeux import MetriqueFactory
+
+        plan = jeu_de_donnees['plans']['ouest']
+        metrique = MetriqueFactory(
+            id_indicateur=plan.indicateur_racine, nom_metrique='Recouvrement',
+            type_metrique=None,
+        )
+        OperationFactory(
+            libelle='Comptage annuel', id_indicateur=plan.indicateur_racine,
+            metriques=[metrique],
+        )
+
+        reponse = client_connecte.get(url_fiche(plan))
+
+        action = next(
+            a for a in reponse.data['actions'] if a['libelle'] == 'Comptage annuel'
+        )
+        assert action['id_indicateur'] == plan.indicateur_racine.pk
+        assert action['indicateur'] == 'Indicateur Ouest'
+        assert [m['nom_metrique'] for m in action['metriques']] == ['Recouvrement']
 
     def test_un_utilisateur_dun_autre_organisme_peut_consulter(
         self, client_connecte, jeu_de_donnees

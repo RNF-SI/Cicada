@@ -23,14 +23,28 @@ from apps.plans.models_operations import Operation
 
 def _indicateurs_prefetch(chemin):
     """Prefetch des indicateurs d'un niveau d'exigence ou d'un résultat attendu."""
-    from apps.plans.models_indicateurs import Indicateur
+    from apps.plans.models_indicateurs import Indicateur, Metrique
 
     return Prefetch(
         chemin,
         queryset=(
             Indicateur.objects
             .select_related('type_indicateur')
-            .prefetch_related('metriques')
+            .prefetch_related(
+                # La grille de lecture publiée (#634) se calcule à partir du
+                # type, du format et des blocs ET/OU de chaque métrique : sans
+                # ces trois-là, une fiche bien remplie coûte des centaines de
+                # requêtes.
+                Prefetch(
+                    'metriques',
+                    queryset=(
+                        Metrique.objects
+                        .select_related('type_metrique', 'format_metrique')
+                        .prefetch_related('score_blocks')
+                        .order_by('nom_metrique')
+                    ),
+                ),
+            )
             .order_by('nom_indicateur')
         ),
         to_attr='indicateurs_pub',
@@ -150,7 +164,9 @@ def _charger_actions(plan):
         .distinct()
         .select_related(
             'id_categorie_action_reserve', 'id_type_action', 'id_priorite',
+            'id_indicateur',
         )
+        .prefetch_related('metriques')
         .order_by('code_operation', 'libelle')
     )
 

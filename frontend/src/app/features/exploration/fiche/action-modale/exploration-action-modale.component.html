@@ -1,0 +1,78 @@
+<h2 mat-dialog-title class="modale-titre">
+  <span class="modale-code">{{ action.code_operation }}</span>
+  {{ action.libelle }}
+</h2>
+
+<mat-dialog-content class="modale-contenu">
+  <div class="modale-tags">
+    @if (action.categorie) {
+      <app-tag variant="info" size="sm" [label]="action.categorie"></app-tag>
+    }
+    @if (action.priorite) {
+      <app-tag variant="warning" size="sm" [label]="action.priorite"></app-tag>
+    }
+    @if (periode) {
+      <app-tag variant="neutral" size="sm" [label]="periode"></app-tag>
+    }
+  </div>
+
+  @if (action.description) {
+    <p class="modale-texte">{{ action.description }}</p>
+  }
+
+  <!-- Cadre de l'action : ce qu'elle sert à suivre dans l'arborescence. -->
+  @if (action.indicateur || action.metriques.length) {
+    <section class="modale-bloc">
+      <h3 class="modale-sous-titre">{{ 'exploration.fiche.cadre' | translate }}</h3>
+      <dl class="modale-liste">
+        @if (action.indicateur) {
+          <dt>{{ 'exploration.types.indicateur.singulier' | translate }}</dt>
+          <dd>{{ action.indicateur }}</dd>
+        }
+        @if (action.metriques.length) {
+          <dt>{{ 'exploration.fiche.metriques' | translate }}</dt>
+          <dd>
+            <ul class="modale-puces">
+              @for (metrique of action.metriques; track metrique.id_metrique) {
+                <li>{{ metriqueLibelle(metrique) }}</li>
+              }
+            </ul>
+          </dd>
+        }
+      </dl>
+    </section>
+  }
+
+  <section class="modale-bloc">
+    <h3 class="modale-sous-titre">{{ 'exploration.fiche.miseEnOeuvre' | translate }}</h3>
+    <dl class="modale-liste">
+      @if (action.type_action) {
+        <dt>{{ 'exploration.fiche.typeActionPrecis' | translate }}</dt>
+        <dd>{{ action.type_action }}</dd>
+      }
+      @if (action.operateurs) {
+        <dt>{{ 'exploration.fiche.operateurs' | translate }}</dt>
+        <dd>{{ action.operateurs }}</dd>
+      }
+      @if (action.partenaires) {
+        <dt>{{ 'exploration.fiche.partenaires' | translate }}</dt>
+        <dd>{{ action.partenaires }}</dd>
+      }
+      @if (periode) {
+        <dt>{{ 'exploration.fiche.periode' | translate }}</dt>
+        <dd>{{ periode }}</dd>
+      }
+    </dl>
+  </section>
+
+  <p class="modale-mention info-block info-block-info">
+    <i class="fi fi-rr-info" aria-hidden="true"></i>
+    <span>{{ 'exploration.fiche.actionNonPublie' | translate }}</span>
+  </p>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-stroked-button (click)="fermer()">
+    {{ 'common.actions.close' | translate }}
+  </button>
+</mat-dialog-actions>

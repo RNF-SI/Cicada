@@ -1,0 +1,81 @@
+@import 'variables';
+
+.modale-titre {
+  display: flex;
+  align-items: baseline;
+  gap: $spacing-sm;
+  color: $primary-color;
+}
+
+.modale-code {
+  font-size: 0.8em;
+  font-weight: 700;
+  color: $gray-dark;
+}
+
+.modale-contenu {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-md;
+}
+
+.modale-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spacing-xs;
+}
+
+.modale-texte {
+  margin: 0;
+  white-space: pre-line;
+}
+
+.modale-bloc {
+  border-top: 1px solid $gray-lighter;
+  padding-top: $spacing-sm;
+}
+
+.modale-sous-titre {
+  margin: 0 0 $spacing-xs;
+  color: $primary-color;
+  font-size: 1rem;
+}
+
+.modale-liste {
+  display: grid;
+  grid-template-columns: minmax(9rem, auto) 1fr;
+  gap: $spacing-xs $spacing-md;
+  margin: 0;
+
+  dt {
+    font-weight: 700;
+    color: $gray-dark;
+  }
+
+  dd {
+    margin: 0;
+  }
+}
+
+.modale-puces {
+  margin: 0;
+  padding-left: $spacing-md;
+}
+
+.modale-mention {
+  display: flex;
+  align-items: flex-start;
+  gap: $spacing-xs;
+  margin: 0;
+}
+
+@media (max-width: $breakpoint-mobile) {
+  .modale-liste {
+    grid-template-columns: 1fr;
+    gap: 0 0;
+
+    dd {
+      margin-bottom: $spacing-xs;
+    }
+  }
+}

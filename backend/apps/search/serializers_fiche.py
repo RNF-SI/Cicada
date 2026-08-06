@@ -31,6 +31,12 @@ def _label(nomenclature):
     return nomenclature.label if nomenclature else None
 
 
+#: Libellés des 5 paliers de la grille de lecture, dans l'ordre des scores.
+NIVEAUX_GRILLE = {
+    1: "Très mauvais", 2: "Mauvais", 3: "Moyen", 4: "Bon", 5: "Très bon",
+}
+
+
 class MetriquePubliqueSerializer(serializers.Serializer):
     """Définition d'une métrique — ce qui est mesuré, jamais les mesures."""
 
@@ -38,6 +44,32 @@ class MetriquePubliqueSerializer(serializers.Serializer):
     nom_metrique = serializers.CharField()
     unite = serializers.CharField(allow_null=True)
     description = serializers.CharField(allow_null=True)
+    grille = serializers.SerializerMethodField()
+
+    def get_grille(self, metrique):
+        """
+        Grille de lecture 5 paliers, ou `None` si la métrique n'en a pas (#634).
+
+        C'est le barème d'évaluation — ce qui fait qu'une mesure vaut « bon »
+        plutôt que « moyen ». Il est publié parce qu'une valeur seule ne se lit
+        pas sans lui ; les mesures, elles, restent internes.
+
+        Le rendu textuel des paliers (intervalles, bornes incluses, blocs ET/OU)
+        vient de l'export de fiche action : c'est la source de vérité de cette
+        notation, et deux implémentations divergeraient (#619).
+        """
+        from apps.plans.services_export_fiche_action import _grid_cell, _is_grille
+
+        if not _is_grille(metrique):
+            return None
+        paliers = [
+            {'niveau': niveau, 'libelle': libelle,
+             'valeur': _grid_cell(metrique, niveau) or None}
+            for niveau, libelle in NIVEAUX_GRILLE.items()
+        ]
+        # Une grille dont aucun palier n'est renseigné n'apprend rien : on la
+        # tait plutôt que d'afficher cinq cases vides.
+        return paliers if any(p['valeur'] for p in paliers) else None
 
 
 class IndicateurPublicSerializer(serializers.Serializer):
@@ -71,6 +103,27 @@ class ActionPubliqueSerializer(serializers.Serializer):
     annee_max = serializers.IntegerField(allow_null=True)
     operateurs = serializers.CharField(allow_null=True)
     partenaires = serializers.CharField(allow_null=True)
+    # Cadre de l'action : ce qu'elle sert à suivre (#634). Sans lui, la fiche
+    # action se réduit à un libellé et une période, et le lien avec
+    # l'arborescence — la raison d'être de l'action — reste invisible.
+    #: Rattachement à l'arborescence : permet d'afficher l'action **sous**
+    #: l'indicateur qu'elle sert, et pas seulement dans une liste à plat.
+    id_indicateur = serializers.IntegerField(
+        source='id_indicateur_id', allow_null=True)
+    indicateur = serializers.SerializerMethodField()
+    metriques = serializers.SerializerMethodField()
+
+    def get_indicateur(self, operation):
+        indicateur = operation.id_indicateur
+        return indicateur.nom_indicateur if indicateur else None
+
+    def get_metriques(self, operation):
+        return [
+            {'id_metrique': metrique.pk,
+             'nom_metrique': metrique.nom_metrique,
+             'unite': metrique.unite or None}
+            for metrique in operation.metriques.all()
+        ]
 
     def get_categorie(self, operation):
         categorie = operation.id_categorie_action_reserve

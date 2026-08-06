@@ -3384,7 +3384,20 @@
       "typeAction": "Type d'action",
       "typeActionPrecis": "Type d'action détaillé",
       "operateurs": "Opérateurs",
-      "partenaires": "Partenaires"
+      "partenaires": "Partenaires",
+      "olt": "OLT",
+      "oo": "OO",
+      "ne": "Niveau d’exigence",
+      "ra": "Résultat attendu",
+      "metrique": "Métrique",
+      "metriques": "Métriques",
+      "grille": "Grille de lecture",
+      "cadre": "Cadre de l’action",
+      "miseEnOeuvre": "Mise en œuvre",
+      "voirFicheAction": "Voir la fiche action",
+      "toutDeplier": "Tout déplier",
+      "toutReplier": "Tout replier",
+      "actionNonPublie": "Le budget, les moyens humains et le suivi des réalisations de cette action relèvent de la gestion interne de l’organisme et ne sont pas publiés."
     }
   },
   "errors": {
