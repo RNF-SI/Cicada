@@ -220,8 +220,15 @@ class OperationViewSet(viewsets.ModelViewSet):
         })
 
     def _operations_of_plan(self, plan):
-        """Opérations du plan visibles par l'utilisateur (via métrique ou indicateur)."""
-        return self.get_queryset().filter(
+        """
+        Opérations du plan (via métrique ou indicateur).
+
+        Pas de `get_queryset()` ici : les vues appelantes valident déjà l'accès
+        au plan avec `assert_plan_access()`, et le périmètre par ligne (7 chemins
+        ORM OR-és) ferait exploser la requête sans rien filtrer de plus — cf.
+        `RealisationOperationAnneeViewSet._plan_realisations()`.
+        """
+        return self.queryset.filter(
             Q(metriques__id_indicateur__id_ne__id_olt__id_enjeu__id_pg=plan) |
             Q(metriques__id_indicateur__id_resultat_attendu__id_oo__pressions__id_facteur_influence__enjeux__id_pg=plan) |
             # #367 — actions rattachées directement à un indicateur (sans métrique)
@@ -674,6 +681,10 @@ def _scope_realisation_queryset(queryset, user, op_path):
 
     #610 — les réalisations relèvent du SUIVI : périmètre réservé aux référents
     et gestionnaires (le créateur d'une réalisation garde la sienne).
+
+    ⚠️ Coûteux : `OperationViewSet._PG_PATHS` compte 7 chemins ORM profonds,
+    OR-és puis dédoublonnés — soit ~60 jointures. À réserver aux vues dont le
+    périmètre n'est pas déjà borné à UN plan : voir `_plan_realisations()`.
     """
     return scope_suivi_by_plan(
         queryset, user,
@@ -737,6 +748,25 @@ class RealisationOperationAnneeViewSet(viewsets.ModelViewSet):
         return _scope_realisation_queryset(
             self.queryset, self.request.user, 'id_operation_annee__id_operation'
         )
+
+    def _plan_realisations(self, plan):
+        """
+        Réalisations d'UN plan, sans re-appliquer le périmètre par ligne.
+
+        Les vues qui appellent ce helper ont déjà validé l'accès au plan avec
+        `assert_suivi_access()`. Repasser ensuite par `get_queryset()` serait
+        redondant (toutes les lignes retenues appartiennent à un plan autorisé)
+        et très coûteux : le périmètre OR-e 7 chemins ORM profonds, ce qui porte
+        la requête à plus de 60 jointures. Sur une base sans statistiques —
+        c'est le cas en CI, juste après `seed_testdata` — le planificateur bascule
+        alors en GEQO et met plusieurs secondes à répondre, là où la même
+        agrégation prend 100 ms. `bilan_indicateurs` interroge déjà ses modèles
+        en direct pour cette raison.
+        """
+        return self.queryset.filter(
+            Q(id_operation_annee__id_operation__metriques__id_indicateur__id_ne__id_olt__id_enjeu__id_pg=plan) |
+            Q(id_operation_annee__id_operation__id_suivi__id_pg=plan)
+        ).distinct()
 
     def perform_create(self, serializer):
         serializer.save(id_utilisateur_maj=self.request.user)
@@ -881,10 +911,7 @@ class RealisationOperationAnneeViewSet(viewsets.ModelViewSet):
         """Liste les réalisations d'un plan (toutes opérations × années)."""
         plan = get_object_or_404(PlanGestion, pk=plan_id)
         assert_suivi_access(request.user, plan)          # #610 — suivi réservé
-        realisations = self.get_queryset().filter(
-            Q(id_operation_annee__id_operation__metriques__id_indicateur__id_ne__id_olt__id_enjeu__id_pg=plan) |
-            Q(id_operation_annee__id_operation__id_suivi__id_pg=plan)
-        ).distinct()
+        realisations = self._plan_realisations(plan)
         return Response({
             'plan_id': int(plan_id),
             'plan_nom': plan.nom,
@@ -1133,11 +1160,8 @@ class RealisationOperationAnneeViewSet(viewsets.ModelViewSet):
         # Terminée au global ». La vue annuelle (?annee=) reste par année.
         is_global_view = not is_annual
 
-        # 1) RealisationOperationAnnee scopées au plan, avec relations utiles préchargées.
-        realisations_qs = self.get_queryset().filter(
-            Q(id_operation_annee__id_operation__metriques__id_indicateur__id_ne__id_olt__id_enjeu__id_pg=plan) |
-            Q(id_operation_annee__id_operation__id_suivi__id_pg=plan)
-        ).select_related(
+        # 1) RealisationOperationAnnee du plan, avec relations utiles préchargées.
+        realisations_qs = self._plan_realisations(plan).select_related(
             'id_operation_annee',
             'id_operation_annee__id_operation',
             'id_operation_annee__id_operation__id_categorie_action_reserve',
@@ -1499,14 +1523,11 @@ class RealisationOperationAnneeViewSet(viewsets.ModelViewSet):
         # ------------------------------------------------------------------
         # 2 & 3) RH + niveaux de réalisation des actions par année
         # ------------------------------------------------------------------
-        realisations_qs = self.get_queryset().filter(
-            Q(id_operation_annee__id_operation__metriques__id_indicateur__id_ne__id_olt__id_enjeu__id_pg=plan) |
-            Q(id_operation_annee__id_operation__id_suivi__id_pg=plan)
-        ).select_related(
+        realisations_qs = self._plan_realisations(plan).select_related(
             'id_operation_annee', 'id_operation_annee__id_operation', 'id_niveau_realisation',
         ).prefetch_related(
             'id_operation_annee__rh_lignes', 'rh_lignes',
-        ).distinct()
+        )
         if enjeu_id:
             realisations_qs = realisations_qs.filter(
                 id_operation_annee__id_operation__metriques__id_indicateur__id_ne__id_olt__id_enjeu_id=enjeu_id
