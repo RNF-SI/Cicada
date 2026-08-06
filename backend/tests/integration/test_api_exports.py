@@ -646,18 +646,24 @@ class TestExportEndpoints:
 # ---------------------------------------------------------------------------
 
 def _payload_tableau_bord():
-    """Deux lignes minimales : un indicateur scoré et sa métrique."""
+    """
+    Deux lignes minimales : un indicateur scoré et sa métrique.
+
+    Les types de ligne sont ceux **réellement** émis par le tableau de bord
+    (`normal` / `detail`) : un type inconnu ne recevait pas de trame, et le test
+    passait donc à côté du défaut de coloration des sous-lignes (#638).
+    """
     return {
         'titre': 'Tableau de bord — Plan test',
         'meta': [['Onglet', 'État'], ['Recherche', 'Balbuzard']],
         'entetes': ['Enjeu', 'Objectif', 'Niveau', 'Indicateur', 'Métrique',
                     '2024', 'Évaluation globale', 'Actions'],
         'lignes': [
-            {'type': 'indicateur', 'cellules': [
+            {'type': 'normal', 'cellules': [
                 'Enjeu 1', 'OLT 1 : Objectif A', 'NE 1', 'Indicateur 1', '',
                 {'t': 'Bon', 's': 'good'}, {'t': 'Très mauvais', 's': 'very-bad'}, 'CS01',
             ]},
-            {'type': 'metrique', 'cellules': [
+            {'type': 'detail', 'cellules': [
                 'Enjeu 1', 'OLT 1 : Objectif A', 'NE 1', 'Indicateur 1', 'Surface (ha)',
                 {'t': 'Moyen', 's': 'neutral'}, '', '',
             ]},
@@ -698,6 +704,20 @@ class TestExportGrilleAffichee:
         assert ligne_indic[5].fill.fgColor.rgb == 'FF82DB8A'        # good
         assert ligne_indic[6].fill.fgColor.rgb == 'FFFF7579'        # very-bad
         assert ligne_metrique[5].fill.fgColor.rgb == 'FFF7D35C'     # neutral
+
+    def test_sous_ligne_metrique_garde_sa_trame_hors_score(self, api_client, plan_finance):
+        """
+        La couleur de score prime sur la trame de la sous-ligne (#638), mais
+        seulement là où il y a un score : les colonnes d'identification gardent
+        le beige qui rattache la métrique à son indicateur.
+        """
+        api_client.force_authenticate(user=SuperAdminFactory())
+        ws = self._workbook(api_client, plan_finance['plan']).active
+
+        entete = next(r for r in ws.iter_rows() if r[0].value == 'Enjeu')
+        ligne_metrique = ws[entete[0].row + 2]
+        assert ligne_metrique[4].value == 'Surface (ha)'
+        assert ligne_metrique[4].fill.fgColor.rgb == 'FFF8F5F1'     # trame beige
 
     def test_entete_a_la_couleur_de_l_instance(self, api_client, plan_finance):
         api_client.force_authenticate(user=SuperAdminFactory())

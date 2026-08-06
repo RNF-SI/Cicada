@@ -206,8 +206,12 @@ def _ecrire_ligne(ws, ligne: int, row: dict, formats=()):
     for col, brute in enumerate(row.get('cellules') or [], start=1):
         cell = ws.cell(row=ligne, column=col, value=_valeur(brute))
         niveau = _score(brute)
-        if niveau and not fond:
-            # Case colorée comme la pastille de score de l'interface.
+        if niveau and type_ligne != 'total':
+            # Case colorée comme la pastille de score de l'interface. Le score
+            # prime sur la trame de la ligne : une sous-ligne « métrique » porte
+            # ses propres scores et doit se lire comme la ligne indicateur
+            # au-dessus d'elle (#638) — la trame beige reste sur les colonnes
+            # d'identification, qui n'ont pas de score.
             cell.fill = PatternFill('solid', fgColor=SCORE_FILLS[niveau])
             cell.font = _F_SCORE
             cell.alignment = _CENTER
