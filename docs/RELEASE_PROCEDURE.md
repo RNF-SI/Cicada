@@ -148,13 +148,12 @@ sudo dpkg -i cicada_X.Y.Z_amd64.deb
 
 ### 7.4 Vérifications post-déploiement
 
-Les commandes `docker` passent toutes par `sudo` (l’utilisateur de service n’est pas dans le groupe `docker`) et par les fichiers compose combinés. Un alias évite de les retaper — il n’est **pas persistant**, à redéfinir à chaque session SSH :
+Les commandes `docker` passent toutes par `sudo` (l’utilisateur de service n’est pas dans le groupe `docker`) et par les fichiers compose combinés. Un alias évite de les retaper — il n’est **pas persistant**, à redéfinir à chaque session SSH.
+
+⚠️ **Le saisir sur une seule ligne.** Entre quotes simples, les `\` de continuation ne sont pas interprétés par le shell : ils finissent dans la valeur de la variable, et docker répond `unknown docker command: "compose \"`.
 
 ```bash
-ccd='sudo docker compose -f /usr/share/cicada/docker-compose.yml \
-  -f /usr/share/cicada/docker-compose.db.yml \
-  -f /usr/share/cicada/docker-compose.frontend-ports.yml \
-  --env-file /var/lib/cicada/.env'
+ccd='sudo docker compose -f /usr/share/cicada/docker-compose.yml -f /usr/share/cicada/docker-compose.db.yml -f /usr/share/cicada/docker-compose.frontend-ports.yml --env-file /var/lib/cicada/.env'
 
 $ccd ps                      # les images doivent porter le tag :X.Y.Z
 $ccd logs web --tail=40      # attendre « === Initialisation terminée === »
