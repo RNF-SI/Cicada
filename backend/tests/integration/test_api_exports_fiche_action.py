@@ -193,6 +193,46 @@ class TestExportFicheAction:
         assert ancre.col == 3, ancre.col
         assert ancre.row == ligne_emprise - 1, (ancre.row, ligne_emprise)
 
+    def test_la_case_est_dimensionnee_pour_contenir_la_carte(self, sheet):
+        """
+        #626, 3e retour : « la carte doit vraiment être dans la case, pas sur la
+        case ».
+
+        Une image Excel flotte au-dessus de la grille. Ancrée sur une ligne de
+        hauteur ordinaire, elle débordait sur la section suivante. La case doit
+        donc être fusionnée sur assez de lignes, et ces lignes assez hautes,
+        pour que l'image y tienne entièrement.
+        """
+        from apps.plans.services_export_fiche_action import _MAP_PAD, _MAP_ROWS
+
+        ligne_emprise = next(
+            r for r in range(1, sheet.max_row + 1)
+            if sheet.cell(r, 1).value == "Emprise de l'action"
+        )
+        image = sheet._images[0]
+
+        # Le libellé et la zone de valeur couvrent le même bloc de lignes.
+        plages = {str(p) for p in sheet.merged_cells.ranges}
+        assert f'A{ligne_emprise}:C{ligne_emprise + _MAP_ROWS - 1}' in plages
+        assert any(
+            p.startswith(f'D{ligne_emprise}:')
+            and p.endswith(str(ligne_emprise + _MAP_ROWS - 1))
+            for p in plages
+        )
+
+        # Taille de rendu de l'image, telle qu'elle est inscrite dans l'ancre —
+        # et non la taille du PNG, que la vignette peut réduire pour tenir dans
+        # la largeur disponible (elle dépend du nombre d'années du plan).
+        emu = 9525  # EMU par pixel, à 96 ppp
+        rendu_px = image.anchor.ext.cy / emu
+
+        # Hauteur cumulée du bloc (points → pixels) : l'image tient dedans.
+        hauteur_px = sum(
+            (sheet.row_dimensions[r].height or 15) / 0.75
+            for r in range(ligne_emprise, ligne_emprise + _MAP_ROWS)
+        )
+        assert hauteur_px >= rendu_px + _MAP_PAD, (hauteur_px, rendu_px)
+
 
 @pytest.mark.django_db
 class TestCarteFondDeCarte:
