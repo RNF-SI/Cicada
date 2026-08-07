@@ -623,6 +623,37 @@ export class EnjeuService {
   }
 
   /**
+   * #585 — Partage cet indicateur d'état avec un niveau d'exigence de plus.
+   * C'est le MÊME indicateur (métriques et actions comprises) qui apparaît
+   * alors sous les deux : toute modification se répercute des deux côtés.
+   */
+  linkIndicateurToNe(id: number, neId: number): Observable<Indicateur> {
+    return this.http.post<Indicateur>(`${this.apiUrl}/indicateurs/${id}/link/`, { ne_id: neId });
+  }
+
+  /**
+   * #585 — Retire le partage de cet indicateur d'état pour un niveau
+   * d'exigence. Le niveau PORTEUR (celui sous lequel il a été créé) est refusé
+   * par le serveur : ce serait un déplacement, pas un départage.
+   */
+  unlinkIndicateurFromNe(id: number, neId: number): Observable<Indicateur> {
+    return this.http.post<Indicateur>(`${this.apiUrl}/indicateurs/${id}/unlink/`, { ne_id: neId });
+  }
+
+  /**
+   * #585 — Partage cet indicateur de pression avec un résultat attendu de plus.
+   * Pendant de `linkIndicateurToNe` sur l'autre branche de l'arborescence.
+   */
+  linkIndicateurToRa(id: number, raId: number): Observable<Indicateur> {
+    return this.http.post<Indicateur>(`${this.apiUrl}/indicateurs/${id}/link/`, { ra_id: raId });
+  }
+
+  /** #585 — Retire le partage de cet indicateur de pression pour un résultat attendu. */
+  unlinkIndicateurFromRa(id: number, raId: number): Observable<Indicateur> {
+    return this.http.post<Indicateur>(`${this.apiUrl}/indicateurs/${id}/unlink/`, { ra_id: raId });
+  }
+
+  /**
    * Duplique un indicateur (avec ses métriques et liens taxonomiques) sur
    * un ou plusieurs niveaux d'exigence et/ou résultats attendus cibles
    * (#262). Les mesures (données dans le temps) ne sont pas copiées.

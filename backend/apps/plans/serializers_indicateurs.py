@@ -403,11 +403,17 @@ class IndicateurSerializer(serializers.ModelSerializer):
     # primer sur le calcul « état courant » (dernière année) dans la colonne
     # « Global » du tableau de bord.
     global_score_override = serializers.SerializerMethodField()
+    # #585 — parents sous lesquels cet indicateur apparaît (porteur inclus).
+    # Plus d'un identifiant = indicateur partagé, ce qui alimente le badge et
+    # le bouton « retirer » côté arborescence.
+    ne_ids = serializers.SerializerMethodField()
+    ra_ids = serializers.SerializerMethodField()
 
     class Meta:
         model = Indicateur
         fields = [
             'id_indicateur', 'id_ne', 'id_resultat_attendu',
+            'ne_ids', 'ra_ids',
             'nom_indicateur', 'description', 'ordre',
             'type_indicateur', 'type_indicateur_label', 'type_indicateur_mnemonique',
             'est_standardise',
@@ -428,6 +434,26 @@ class IndicateurSerializer(serializers.ModelSerializer):
 
     def get_nb_metriques(self, obj):
         return _prefetched_count(obj, 'metriques')
+
+    def get_ne_ids(self, obj):
+        """#585 — niveaux d'exigence sous lesquels cet indicateur d'état apparaît.
+
+        Vide pour un indicateur de pression, qui n'a pas de niveau d'exigence.
+        """
+        if not obj.id_ne_id:
+            return []
+        ids = {ne.pk for ne in obj.niveaux_exigence.all()}
+        ids.add(obj.id_ne_id)
+        return sorted(ids)
+
+    def get_ra_ids(self, obj):
+        """#585 — résultats attendus sous lesquels cet indicateur de pression
+        apparaît. Vide pour un indicateur d'état."""
+        if not obj.id_resultat_attendu_id:
+            return []
+        ids = {ra.pk for ra in obj.resultats_attendus.all()}
+        ids.add(obj.id_resultat_attendu_id)
+        return sorted(ids)
 
     def get_score_overrides(self, obj):
         """#518 — Mappe `année -> score forcé (1..5)` pour les saisies manuelles.

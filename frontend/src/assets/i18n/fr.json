@@ -4123,7 +4123,39 @@
         "sharedBadge": "Liée à plusieurs métriques"
       },
       "sharedBannerFacteur": "Ce facteur est partagé entre {{count}} enjeux. Toute modification s'applique partout.",
-      "sharedBannerOo": "Cet objectif est partagé entre {{count}} enjeux. Toute modification s'applique partout."
+      "sharedBannerOo": "Cet objectif est partagé entre {{count}} enjeux. Toute modification s'applique partout.",
+      "indicateurEtat": {
+        "title": "Partager cet indicateur d'état",
+        "subtitle": "« {{label}} » — choisissez un autre niveau d'exigence sous lequel le faire apparaître.",
+        "linkDescription": "L'indicateur reste UN SEUL élément, affiché sous plusieurs niveaux d'exigence. Ses métriques et ses actions suivent, et toute modification se répercute partout. Pour obtenir un duplicata modifiable séparément, utilisez « Dupliquer ».",
+        "targetLabel": "Niveau d'exigence de destination",
+        "noTarget": "Aucun autre niveau d'exigence disponible dans ce plan.",
+        "linkAction": "Lier à un autre niveau d'exigence",
+        "sharedBadge": "Lié à plusieurs niveaux d'exigence",
+        "linkSuccess": "Indicateur lié au niveau d'exigence (élément partagé).",
+        "linkError": "Erreur lors de la liaison de l'indicateur.",
+        "unlinkSuccess": "Indicateur retiré de ce niveau d'exigence.",
+        "unlinkError": "Erreur lors du retrait de l'indicateur."
+      },
+      "indicateurPression": {
+        "title": "Partager cet indicateur de pression",
+        "subtitle": "« {{label}} » — choisissez un autre résultat attendu sous lequel le faire apparaître.",
+        "linkDescription": "L'indicateur reste UN SEUL élément, affiché sous plusieurs résultats attendus. Ses métriques et ses actions suivent, et toute modification se répercute partout. Pour obtenir un duplicata modifiable séparément, utilisez « Dupliquer ».",
+        "targetLabel": "Résultat attendu de destination",
+        "noTarget": "Aucun autre résultat attendu disponible dans ce plan.",
+        "linkAction": "Lier à un autre résultat attendu",
+        "sharedBadge": "Lié à plusieurs résultats attendus",
+        "linkSuccess": "Indicateur lié au résultat attendu (élément partagé).",
+        "linkError": "Erreur lors de la liaison de l'indicateur.",
+        "unlinkSuccess": "Indicateur retiré de ce résultat attendu.",
+        "unlinkError": "Erreur lors du retrait de l'indicateur."
+      },
+      "indicateur": {
+        "unlinkAction": "Retirer d'ici",
+        "unlinkConfirmTitle": "Retirer cet indicateur ?",
+        "unlinkConfirmMessage": "« {{label}} » restera rattaché à ses autres emplacements. Ses métriques et ses actions ne sont pas supprimées.",
+        "unlinkPorteur": "Cet indicateur a été créé ici : il ne peut pas en être retiré. Supprimez-le, déplacez-le, ou retirez-le d'un emplacement avec lequel il est partagé."
+      }
     },
     "facteurInfluence": {
       "label": "Facteur d'influence",

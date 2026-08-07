@@ -18,6 +18,18 @@ class Indicateur(models.Model):
     """
 
     id_indicateur = models.AutoField(primary_key=True)
+    # #585 — Un indicateur peut être PARTAGÉ entre plusieurs parents de MÊME
+    # nature : un indicateur d'état entre plusieurs niveaux d'exigence, un
+    # indicateur de pression entre plusieurs résultats attendus. C'est le même
+    # indicateur (et tout son sous-arbre métriques → actions) qui apparaît sous
+    # chacun, et toute modification se répercute partout.
+    #
+    # `id_ne` / `id_resultat_attendu` restent le parent **porteur** : celui sous
+    # lequel l'indicateur a été créé. Il continue de définir le rattachement de
+    # référence — remontée au plan (`apps.plans.access`), exports, duplication
+    # d'un plan, index de recherche — là où il faut un parent et un seul. Les
+    # liens supplémentaires vivent dans `CorIndicateurNe` / `CorIndicateurRa`.
+    # Même compromis que pour les résultats attendus (#585, cf. `CorRaOo`).
     id_ne = models.ForeignKey(
         'plans.NiveauExigence',
         on_delete=models.CASCADE,
@@ -25,7 +37,7 @@ class Indicateur(models.Model):
         blank=True,
         related_name='indicateurs',
         db_column='id_ne',
-        verbose_name=_("Niveau d'exigence")
+        verbose_name=_("Niveau d'exigence porteur")
     )
     id_resultat_attendu = models.ForeignKey(
         'plans.ResultatAttendu',
@@ -34,7 +46,28 @@ class Indicateur(models.Model):
         blank=True,
         related_name='indicateurs',
         db_column='id_resultat_attendu',
-        verbose_name=_("Résultat attendu")
+        verbose_name=_("Résultat attendu porteur")
+    )
+    niveaux_exigence = models.ManyToManyField(
+        'plans.NiveauExigence',
+        through='CorIndicateurNe',
+        related_name='indicateurs_partages',
+        verbose_name=_("Niveaux d'exigence"),
+        help_text=_(
+            "Niveaux d'exigence sous lesquels cet indicateur d'état apparaît "
+            "(partagé, #585). Contient toujours le niveau porteur `id_ne`."
+        ),
+    )
+    resultats_attendus = models.ManyToManyField(
+        'plans.ResultatAttendu',
+        through='CorIndicateurRa',
+        related_name='indicateurs_partages',
+        verbose_name=_("Résultats attendus"),
+        help_text=_(
+            "Résultats attendus sous lesquels cet indicateur de pression "
+            "apparaît (partagé, #585). Contient toujours le résultat attendu "
+            "porteur `id_resultat_attendu`."
+        ),
     )
     nom_indicateur = models.CharField(
         _("Nom de l'indicateur"),
@@ -116,9 +149,32 @@ class Indicateur(models.Model):
         return f"{self.nom_indicateur} ({parent})"
 
     def get_plan_de_gestion(self):
-        """Implémente l'interface utilisée par CanModifyOnlyDraftPlan (#248)."""
+        """Implémente l'interface utilisée par CanModifyOnlyDraftPlan (#248).
+
+        Passe par le parent **porteur** : les partages (#585) sont tous dans le
+        même plan, n'importe lequel donnerait la même réponse.
+        """
         parent = self.id_ne or self.id_resultat_attendu
         return parent.get_plan_de_gestion() if parent else None
+
+    def save(self, *args, **kwargs):
+        """Maintient l'invariant #585 : le parent porteur a toujours son lien.
+
+        Sans ça, un indicateur créé par un chemin qui ignore le partage (import,
+        seed, duplication d'un plan) n'apparaîtrait pas dans les listes
+        construites à partir des tables de liaison.
+        """
+        super().save(*args, **kwargs)
+        if self.id_ne_id:
+            CorIndicateurNe.objects.get_or_create(
+                id_indicateur=self, id_ne_id=self.id_ne_id,
+                defaults={'ordre': self.ordre},
+            )
+        if self.id_resultat_attendu_id:
+            CorIndicateurRa.objects.get_or_create(
+                id_indicateur=self, id_resultat_attendu_id=self.id_resultat_attendu_id,
+                defaults={'ordre': self.ordre},
+            )
 
     def get_evaluation_globale(self):
         """Objet IndicateurRealisationGlobale (surcharge manuelle) ou None."""
@@ -139,6 +195,99 @@ class Indicateur(models.Model):
         """Commentaire global de l'indicateur (page globale) ou None."""
         override = self.get_evaluation_globale()
         return override.commentaire_override if override else None
+
+
+class CorIndicateurNe(models.Model):
+    """
+    Table de liaison M2M entre Indicateur (d'état) et NiveauExigence (#585).
+
+    Un indicateur d'état peut être PARTAGÉ entre plusieurs niveaux d'exigence
+    d'un même plan : c'est le même indicateur, avec tout son sous-arbre
+    (métriques → actions), qui apparaît sous chacun. L'``ordre`` d'affichage est
+    propre à chaque niveau, il est donc porté ici (et non sur l'indicateur).
+
+    Invariant : le niveau **porteur** (``Indicateur.id_ne``) a toujours sa ligne
+    ici. Les autres lignes sont les partages ajoutés ensuite. C'est ce qui
+    permet aux traitements qui ont besoin d'un parent unique — remontée au plan,
+    exports, duplication, indexation — de continuer à s'appuyer sur ``id_ne``.
+    """
+
+    id = models.AutoField(primary_key=True)
+    id_indicateur = models.ForeignKey(
+        Indicateur,
+        on_delete=models.CASCADE,
+        db_column='id_indicateur',
+        related_name='cor_niveaux_exigence',
+        verbose_name=_("Indicateur")
+    )
+    id_ne = models.ForeignKey(
+        'plans.NiveauExigence',
+        on_delete=models.CASCADE,
+        db_column='id_ne',
+        related_name='cor_indicateurs',
+        verbose_name=_("Niveau d'exigence")
+    )
+    ordre = models.PositiveIntegerField(
+        _("Ordre"),
+        default=0,
+        db_index=True,
+        help_text=_("Ordre d'affichage de l'indicateur parmi ceux de ce niveau (0 = haut)")
+    )
+
+    class Meta:
+        db_table = '"general"."cor_indicateur_ne"'
+        db_table_comment = "Liaison partagée indicateurs d'état ↔ niveaux d'exigence (#585)"
+        unique_together = [('id_indicateur', 'id_ne')]
+        ordering = ['ordre', 'id']
+        verbose_name = _("Lien Indicateur-Niveau d'exigence")
+        verbose_name_plural = _("Liens Indicateur-Niveau d'exigence")
+
+    def __str__(self):
+        return f"Indicateur {self.id_indicateur_id} ↔ NE {self.id_ne_id}"
+
+
+class CorIndicateurRa(models.Model):
+    """
+    Table de liaison M2M entre Indicateur (de pression) et ResultatAttendu (#585).
+
+    Pendant de :class:`CorIndicateurNe` pour l'autre branche de l'arborescence :
+    un indicateur de pression peut être partagé entre plusieurs résultats
+    attendus d'un même plan. Mêmes règles, même invariant sur le porteur
+    (``Indicateur.id_resultat_attendu``).
+    """
+
+    id = models.AutoField(primary_key=True)
+    id_indicateur = models.ForeignKey(
+        Indicateur,
+        on_delete=models.CASCADE,
+        db_column='id_indicateur',
+        related_name='cor_resultats_attendus',
+        verbose_name=_("Indicateur")
+    )
+    id_resultat_attendu = models.ForeignKey(
+        'plans.ResultatAttendu',
+        on_delete=models.CASCADE,
+        db_column='id_resultat_attendu',
+        related_name='cor_indicateurs',
+        verbose_name=_("Résultat attendu")
+    )
+    ordre = models.PositiveIntegerField(
+        _("Ordre"),
+        default=0,
+        db_index=True,
+        help_text=_("Ordre d'affichage de l'indicateur parmi ceux de ce résultat attendu (0 = haut)")
+    )
+
+    class Meta:
+        db_table = '"general"."cor_indicateur_ra"'
+        db_table_comment = "Liaison partagée indicateurs de pression ↔ résultats attendus (#585)"
+        unique_together = [('id_indicateur', 'id_resultat_attendu')]
+        ordering = ['ordre', 'id']
+        verbose_name = _("Lien Indicateur-Résultat attendu")
+        verbose_name_plural = _("Liens Indicateur-Résultat attendu")
+
+    def __str__(self):
+        return f"Indicateur {self.id_indicateur_id} ↔ RA {self.id_resultat_attendu_id}"
 
 
 class CorIndicateurGeologie(models.Model):

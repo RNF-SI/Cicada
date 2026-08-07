@@ -183,17 +183,25 @@ class EnjeuViewSet(viewsets.ModelViewSet):
             'geologies',
             # #518 — overrides manuels du score par année (tableau de bord)
             'annual_mesures',
+            # #585 — parents de partage, lus par `ne_ids` / `ra_ids` (badge
+            # « lié à plusieurs … »). Sans préchargement, deux requêtes par
+            # indicateur de l'arborescence.
+            'niveaux_exigence',
+            'resultats_attendus',
             Prefetch('metriques', queryset=metrique_qs),
             # #367 — actions rattachées directement à l'indicateur (sans métrique)
             Prefetch('operations', queryset=op_qs),
         )
 
+        # #585 — via la liaison partagée : un indicateur lié à ce niveau /
+        # résultat attendu doit apparaître sous lui, pas seulement ceux dont il
+        # est porteur.
         ne_qs = NiveauExigence.objects.select_related('id_utilisateur_ajout').prefetch_related(
-            Prefetch('indicateurs', queryset=indicateur_qs),
+            Prefetch('indicateurs_partages', queryset=indicateur_qs),
         )
 
         ra_qs = ResultatAttendu.objects.select_related('id_utilisateur_ajout').prefetch_related(
-            Prefetch('indicateurs', queryset=indicateur_qs),
+            Prefetch('indicateurs_partages', queryset=indicateur_qs),
         )
 
         oo_qs = ObjectifOperationnel.objects.select_related('id_utilisateur_ajout').prefetch_related(

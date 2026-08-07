@@ -1038,10 +1038,26 @@
                                                    [matTooltip]="'enjeux.indicateurs.tooltip' | translate"
                                                    matTooltipPosition="right"
                                                    (click)="$event.stopPropagation()"></i>
+                                                @if (isIndicateurEtatShared(ind)) {
+                                                  <span class="shared-badge"
+                                                        [matTooltip]="'enjeux.share.indicateurEtat.sharedBadge' | translate"
+                                                        (click)="$event.stopPropagation()">
+                                                    <i class="fi fi-rr-link-alt"></i>
+                                                    {{ 'enjeux.share.indicateurEtat.sharedBadge' | translate }}
+                                                  </span>
+                                                }
                                               </span>
                                             </div>
                                             <div class="indicateur-actions">
                                               @if (canEditPlan()) {
+                                                <button class="icon-btn-flat" (click)="openShareIndicateurEtat(ind); $event.stopPropagation()" [title]="'enjeux.share.indicateurEtat.linkAction' | translate">
+                                                  <i class="fi fi-rr-link-alt"></i>
+                                                </button>
+                                                @if (isIndicateurEtatSharedHere(ind, ne)) {
+                                                  <button class="icon-btn-flat" (click)="unlinkIndicateurEtat(ind, ne); $event.stopPropagation()" [title]="'enjeux.share.indicateur.unlinkAction' | translate">
+                                                    <i class="fi fi-rr-unlink"></i>
+                                                  </button>
+                                                }
                                                 <button class="icon-btn-flat" (click)="startEditIndicateur(ind); $event.stopPropagation()" title="{{ 'common.actions.edit' | translate }}">
                                                   <i class="fi fi-rr-pencil"></i>
                                                 </button>
@@ -1889,10 +1905,26 @@
                                            [matTooltip]="'enjeux.indicateurPression.tooltip' | translate"
                                            matTooltipPosition="right"
                                            (click)="$event.stopPropagation()"></i>
+                                        @if (isIndicateurPressionShared(ind)) {
+                                          <span class="shared-badge"
+                                                [matTooltip]="'enjeux.share.indicateurPression.sharedBadge' | translate"
+                                                (click)="$event.stopPropagation()">
+                                            <i class="fi fi-rr-link-alt"></i>
+                                            {{ 'enjeux.share.indicateurPression.sharedBadge' | translate }}
+                                          </span>
+                                        }
                                       </span>
                                     </div>
                                     <div class="indicateur-actions">
                                       @if (canEditPlan()) {
+                                        <button class="icon-btn-flat" (click)="openShareIndicateurPression(ind); $event.stopPropagation()" [title]="'enjeux.share.indicateurPression.linkAction' | translate">
+                                          <i class="fi fi-rr-link-alt"></i>
+                                        </button>
+                                        @if (isIndicateurPressionSharedHere(ind, ra)) {
+                                          <button class="icon-btn-flat" (click)="unlinkIndicateurPression(ind, ra); $event.stopPropagation()" [title]="'enjeux.share.indicateur.unlinkAction' | translate">
+                                            <i class="fi fi-rr-unlink"></i>
+                                          </button>
+                                        }
                                         <button class="icon-btn-flat" (click)="startEditOoIndicateur(ind); $event.stopPropagation()" title="{{ 'common.actions.edit' | translate }}">
                                           <i class="fi fi-rr-pencil"></i>
                                         </button>

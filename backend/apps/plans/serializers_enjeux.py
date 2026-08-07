@@ -202,7 +202,11 @@ class NiveauExigenceSerializer(serializers.ModelSerializer):
     """Serializer pour la lecture d'un Niveau d'Exigence."""
     from .serializers_indicateurs import IndicateurSerializer as _IndicateurSerializer
 
-    indicateurs = _IndicateurSerializer(many=True, read_only=True)
+    # #585 — via la liaison partagée : un indicateur d'état lié à ce niveau doit
+    # apparaître sous lui, pas seulement ceux dont il est porteur.
+    indicateurs = _IndicateurSerializer(
+        many=True, read_only=True, source='indicateurs_partages',
+    )
     nb_indicateurs = serializers.SerializerMethodField()
     createur_nom = serializers.CharField(source='id_utilisateur_ajout.get_full_name', read_only=True)
 
@@ -217,7 +221,7 @@ class NiveauExigenceSerializer(serializers.ModelSerializer):
         read_only_fields = ['id_ne', 'date_ajout', 'date_maj']
 
     def get_nb_indicateurs(self, obj):
-        return _prefetched_count(obj, 'indicateurs')
+        return _prefetched_count(obj, 'indicateurs_partages')
 
 
 class NiveauExigenceCreateSerializer(serializers.ModelSerializer):
@@ -240,7 +244,12 @@ class ResultatAttenduSerializer(serializers.ModelSerializer):
     """Serializer pour la lecture d'un Résultat Attendu."""
     from .serializers_indicateurs import IndicateurSerializer as _IndicateurSerializer
 
-    indicateurs = _IndicateurSerializer(many=True, read_only=True)
+    # #585 — via la liaison partagée : un indicateur de pression lié à ce
+    # résultat attendu doit apparaître sous lui, pas seulement ceux dont il est
+    # porteur.
+    indicateurs = _IndicateurSerializer(
+        many=True, read_only=True, source='indicateurs_partages',
+    )
     nb_indicateurs = serializers.SerializerMethodField()
     oo_ids = serializers.SerializerMethodField()
     createur_nom = serializers.CharField(source='id_utilisateur_ajout.get_full_name', read_only=True)
@@ -256,7 +265,7 @@ class ResultatAttenduSerializer(serializers.ModelSerializer):
         read_only_fields = ['id_ra', 'date_ajout', 'date_maj']
 
     def get_nb_indicateurs(self, obj):
-        return _prefetched_count(obj, 'indicateurs')
+        return _prefetched_count(obj, 'indicateurs_partages')
 
     def get_oo_ids(self, obj):
         """#585 — objectifs sous lesquels ce RA apparaît (porteur inclus).

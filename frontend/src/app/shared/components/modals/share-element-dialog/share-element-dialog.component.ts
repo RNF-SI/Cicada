@@ -24,6 +24,18 @@ export interface ShareOoTarget {
   contexte?: string;
 }
 
+/**
+ * #585 — Parent candidat au partage d'un indicateur : un niveau d'exigence
+ * (indicateur d'état) ou un résultat attendu (indicateur de pression). Les deux
+ * se présentent pareil — un intitulé et son contexte — d'où la forme commune.
+ */
+export interface ShareParentTarget {
+  id: number;
+  libelle: string;
+  /** Contexte affiché sous l'intitulé (OLT porteur, ou OO porteur). */
+  contexte?: string;
+}
+
 /** Enjeu candidat, éventuellement porteur de pressions (cas OO). */
 export interface ShareEnjeuTarget {
   id_enjeu: number;
@@ -33,6 +45,8 @@ export interface ShareEnjeuTarget {
   pressions?: SharePressionTarget[];
   /** #585 — Objectifs opérationnels sous cet enjeu (partage/copie d'un RA). */
   objectifs?: ShareOoTarget[];
+  /** #585 — Niveaux d'exigence / résultats attendus sous cet enjeu (indicateur). */
+  parents?: ShareParentTarget[];
 }
 
 /** Métrique candidate (cible d'un partage/copie d'action). */
@@ -51,8 +65,12 @@ export interface ShareIndicateurTarget {
 }
 
 export interface ShareElementDialogData {
-  /** Type d'élément partagé/copié. */
-  elementType: 'facteur' | 'oo' | 'ra' | 'operation';
+  /**
+   * Type d'élément partagé/copié. `indicateurEtat` et `indicateurPression`
+   * (#585) désignent les deux branches du partage d'indicateur : par niveau
+   * d'exigence, ou par résultat attendu.
+   */
+  elementType: 'facteur' | 'oo' | 'ra' | 'operation' | 'indicateurEtat' | 'indicateurPression';
   /** Libellé de l'élément source (affiché dans l'entête). */
   elementLabel: string;
   /** Mode présélectionné selon le bouton cliqué. */
@@ -80,6 +98,8 @@ export interface ShareElementDialogResult {
   targetOoId?: number;
   targetIndicateurId?: number;
   targetMetriqueId?: number;
+  /** #585 — Niveau d'exigence ou résultat attendu retenu (partage d'indicateur). */
+  targetParentId?: number;
 }
 
 @Component({
@@ -109,6 +129,8 @@ export class ShareElementDialogComponent {
   readonly selectedPressionId = signal<number | null>(null);
   /** #585 — Objectif opérationnel retenu (cas RA). */
   readonly selectedOoId = signal<number | null>(null);
+  /** #585 — Niveau d'exigence ou résultat attendu retenu (cas indicateur). */
+  readonly selectedParentId = signal<number | null>(null);
 
   /** Cible retenue pour une action (#585) : une métrique ou l'indicateur lui-même. */
   readonly selectedIndicateurId = signal<number | null>(null);
@@ -117,6 +139,18 @@ export class ShareElementDialogComponent {
   readonly isOo = this.data.elementType === 'oo';
   readonly isRa = this.data.elementType === 'ra';
   readonly isOperation = this.data.elementType === 'operation';
+  /** #585 — Partage d'un indicateur, quelle que soit sa branche. */
+  readonly isIndicateur =
+    this.data.elementType === 'indicateurEtat' ||
+    this.data.elementType === 'indicateurPression';
+
+  /**
+   * #585 — Le choix « Lier / Copier » ne s'affiche pas pour un indicateur : la
+   * copie a son propre dialogue depuis #262 (`duplicate-indicateur-dialog`, qui
+   * accepte plusieurs cibles à la fois et les deux branches). Ce dialogue-ci ne
+   * traite donc que le partage, seul point qui manquait.
+   */
+  readonly showModeChoice = !this.isIndicateur;
 
   /** i18n racine des libellés selon le type d'élément. */
   readonly typeKey = this.data.elementType;
@@ -152,6 +186,15 @@ export class ShareElementDialogComponent {
     return enjeux
       .map((e) => {
         const enjeuMatch = e.libelle.toLowerCase().includes(term);
+        if (this.isIndicateur) {
+          if (enjeuMatch) return e;
+          const parents = (e.parents || []).filter(
+            (p) =>
+              p.libelle.toLowerCase().includes(term) ||
+              (p.contexte || '').toLowerCase().includes(term),
+          );
+          return parents.length ? { ...e, parents } : null;
+        }
         if (this.isRa) {
           if (enjeuMatch) return e;
           const objectifs = (e.objectifs || []).filter(
@@ -187,6 +230,9 @@ export class ShareElementDialogComponent {
     if (this.isRa) {
       return this.data.enjeux.some((e) => (e.objectifs || []).length > 0);
     }
+    if (this.isIndicateur) {
+      return this.data.enjeux.some((e) => (e.parents || []).length > 0);
+    }
     return this.data.enjeux.length > 0;
   });
 
@@ -196,6 +242,7 @@ export class ShareElementDialogComponent {
     }
     if (this.isOo) return this.selectedPressionId() !== null;
     if (this.isRa) return this.selectedOoId() !== null;
+    if (this.isIndicateur) return this.selectedParentId() !== null;
     return this.selectedEnjeuId() !== null;
   });
 
@@ -230,6 +277,11 @@ export class ShareElementDialogComponent {
     this.selectedOoId.set(this.selectedOoId() === id ? null : id);
   }
 
+  /** #585 — Niveau d'exigence ou résultat attendu retenu (partage d'indicateur). */
+  selectParent(id: number): void {
+    this.selectedParentId.set(this.selectedParentId() === id ? null : id);
+  }
+
   onSearchChange(value: string): void {
     this.searchTerm.set(value);
   }
@@ -247,6 +299,8 @@ export class ShareElementDialogComponent {
       result.targetPressionId = this.selectedPressionId()!;
     } else if (this.isRa) {
       result.targetOoId = this.selectedOoId()!;
+    } else if (this.isIndicateur) {
+      result.targetParentId = this.selectedParentId()!;
     } else {
       result.targetEnjeuId = this.selectedEnjeuId()!;
     }

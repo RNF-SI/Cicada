@@ -350,6 +350,13 @@ export interface Indicateur {
   id_indicateur: number;
   id_ne?: number;
   id_resultat_attendu?: number;
+  /**
+   * #585 — Parents sous lesquels l'indicateur apparaît, porteur inclus.
+   * Plus d'un identifiant = indicateur partagé. `ne_ids` pour un indicateur
+   * d'état, `ra_ids` pour un indicateur de pression ; l'autre reste vide.
+   */
+  ne_ids?: number[];
+  ra_ids?: number[];
   nom_indicateur: string;
   description?: string;
   type_indicateur?: number;

@@ -52,6 +52,7 @@ import {
   ShareElementDialogResult,
   ShareEnjeuTarget,
   ShareOoTarget,
+  ShareParentTarget,
   SharePressionTarget,
   ShareIndicateurTarget,
 } from '../../../../shared/components/modals';
@@ -1987,6 +1988,188 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
         this.runShareCall(
           this.enjeuService.unlinkRaFromOo(ra.id_ra, oo.id_oo),
           'enjeux.share.ra.unlinkSuccess', 'enjeux.share.ra.unlinkError',
+        );
+      });
+  }
+
+  // ==========================================================================
+  // #585 — Partage d'un indicateur entre plusieurs parents
+  //
+  // Deux relations, une par branche de l'arborescence : un indicateur d'ÉTAT se
+  // partage entre plusieurs niveaux d'exigence, un indicateur de PRESSION entre
+  // plusieurs résultats attendus. C'est le même indicateur (métriques et
+  // actions comprises) qui apparaît sous chacun.
+  //
+  // Seul « lier » passe par ici : la copie d'un indicateur a son propre
+  // dialogue depuis #262 (`duplicateIndicateur`), déjà branché sur la carte.
+  // ==========================================================================
+
+  /** #585 — Niveaux d'exigence sous lesquels un indicateur d'état est présent. */
+  indicateurNeIds(ind: Indicateur): number[] {
+    return ind.ne_ids?.length ? ind.ne_ids : (ind.id_ne != null ? [ind.id_ne] : []);
+  }
+
+  /** #585 — Résultats attendus sous lesquels un indicateur de pression est présent. */
+  indicateurRaIds(ind: Indicateur): number[] {
+    return ind.ra_ids?.length
+      ? ind.ra_ids
+      : (ind.id_resultat_attendu != null ? [ind.id_resultat_attendu] : []);
+  }
+
+  /** #585 — Vrai si l'indicateur d'état est partagé entre plusieurs niveaux. */
+  isIndicateurEtatShared(ind: Indicateur): boolean {
+    return this.indicateurNeIds(ind).length > 1;
+  }
+
+  /** #585 — Vrai si l'indicateur de pression est partagé entre plusieurs RA. */
+  isIndicateurPressionShared(ind: Indicateur): boolean {
+    return this.indicateurRaIds(ind).length > 1;
+  }
+
+  /**
+   * #585 — Vrai si l'indicateur n'est ici QUE par partage : le parent affiché
+   * n'est pas celui sous lequel il a été créé. C'est le seul cas où « retirer
+   * d'ici » a un sens — sur son parent porteur, le serveur refuse.
+   */
+  isIndicateurEtatSharedHere(ind: Indicateur, ne: NiveauExigence): boolean {
+    return this.isIndicateurEtatShared(ind) && ind.id_ne !== ne.id_ne;
+  }
+
+  isIndicateurPressionSharedHere(ind: Indicateur, ra: ResultatAttendu): boolean {
+    return this.isIndicateurPressionShared(ind) && ind.id_resultat_attendu !== ra.id_ra;
+  }
+
+  /**
+   * #585 — Ouvre le dialogue de partage d'un indicateur d'état vers un autre
+   * niveau d'exigence du plan. Les niveaux où il est déjà présent sont exclus.
+   */
+  openShareIndicateurEtat(ind: Indicateur): void {
+    if (!this.canEditPlan()) return;
+    const dejaLies = new Set(this.indicateurNeIds(ind));
+    const targets: ShareEnjeuTarget[] = [];
+
+    for (const e of this.allEnjeuxAndFcr()) {
+      const parents: ShareParentTarget[] = [];
+      for (const olt of e.objectifs_long_terme || []) {
+        for (const ne of olt.niveaux_exigence || []) {
+          if (dejaLies.has(ne.id_ne)) continue;
+          parents.push({ id: ne.id_ne, libelle: ne.libelle, contexte: olt.libelle });
+        }
+      }
+      if (parents.length) {
+        targets.push({ id_enjeu: e.id_enjeu, libelle: e.libelle, parents });
+      }
+    }
+
+    this.openShareIndicateurDialog(ind, 'indicateurEtat', targets, (parentId) =>
+      this.enjeuService.linkIndicateurToNe(ind.id_indicateur, parentId));
+  }
+
+  /**
+   * #585 — Ouvre le dialogue de partage d'un indicateur de pression vers un
+   * autre résultat attendu du plan.
+   */
+  openShareIndicateurPression(ind: Indicateur): void {
+    if (!this.canEditPlan()) return;
+    const dejaLies = new Set(this.indicateurRaIds(ind));
+    const targets: ShareEnjeuTarget[] = [];
+
+    for (const e of this.allEnjeuxAndFcr()) {
+      const parents: ShareParentTarget[] = [];
+      for (const oo of this.oosOfEnjeu(e)) {
+        for (const ra of oo.resultats_attendus || []) {
+          if (dejaLies.has(ra.id_ra)) continue;
+          parents.push({ id: ra.id_ra, libelle: ra.libelle, contexte: oo.libelle });
+        }
+      }
+      if (parents.length) {
+        targets.push({ id_enjeu: e.id_enjeu, libelle: e.libelle, parents });
+      }
+    }
+
+    this.openShareIndicateurDialog(ind, 'indicateurPression', targets, (parentId) =>
+      this.enjeuService.linkIndicateurToRa(ind.id_indicateur, parentId));
+  }
+
+  /** #585 — Tronc commun des deux branches de partage d'indicateur. */
+  private openShareIndicateurDialog(
+    ind: Indicateur,
+    elementType: 'indicateurEtat' | 'indicateurPression',
+    targets: ShareEnjeuTarget[],
+    call: (parentId: number) => Observable<Indicateur>,
+  ): void {
+    const dialogRef = this.dialog.open(ShareElementDialogComponent, {
+      width: '640px', maxWidth: '95vw', maxHeight: '90vh',
+      data: {
+        elementType,
+        elementLabel: ind.nom_indicateur,
+        mode: 'link',
+        enjeux: targets,
+      } as ShareElementDialogData,
+    });
+
+    dialogRef.afterClosed().pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((result: ShareElementDialogResult | null) => {
+        if (!result || result.targetParentId == null) return;
+        this.runShareCall(
+          call(result.targetParentId),
+          `enjeux.share.${elementType}.linkSuccess`,
+          `enjeux.share.${elementType}.linkError`,
+        );
+      });
+  }
+
+  /** #585 — Retire le partage d'un indicateur d'état pour le niveau affiché. */
+  unlinkIndicateurEtat(ind: Indicateur, ne: NiveauExigence): void {
+    if (!this.isIndicateurEtatSharedHere(ind, ne)) {
+      this.warnUnlinkPorteur();
+      return;
+    }
+    this.confirmUnlinkIndicateur(ind, 'indicateurEtat', () =>
+      this.enjeuService.unlinkIndicateurFromNe(ind.id_indicateur, ne.id_ne));
+  }
+
+  /** #585 — Retire le partage d'un indicateur de pression pour le RA affiché. */
+  unlinkIndicateurPression(ind: Indicateur, ra: ResultatAttendu): void {
+    if (!this.isIndicateurPressionSharedHere(ind, ra)) {
+      this.warnUnlinkPorteur();
+      return;
+    }
+    this.confirmUnlinkIndicateur(ind, 'indicateurPression', () =>
+      this.enjeuService.unlinkIndicateurFromRa(ind.id_indicateur, ra.id_ra));
+  }
+
+  private warnUnlinkPorteur(): void {
+    this.snackBar.open(
+      this.translate.instant('enjeux.share.indicateur.unlinkPorteur'),
+      this.translate.instant('common.actions.close'),
+      { duration: 5000 },
+    );
+  }
+
+  private confirmUnlinkIndicateur(
+    ind: Indicateur,
+    elementType: 'indicateurEtat' | 'indicateurPression',
+    call: () => Observable<Indicateur>,
+  ): void {
+    if (!this.canEditPlan()) return;
+    this.dialog.open(ConfirmDialogComponent, {
+      width: '520px', maxWidth: '95vw',
+      data: {
+        title: this.translate.instant('enjeux.share.indicateur.unlinkConfirmTitle'),
+        message: this.translate.instant('enjeux.share.indicateur.unlinkConfirmMessage', {
+          label: ind.nom_indicateur,
+        }),
+        confirmText: this.translate.instant('enjeux.share.indicateur.unlinkAction'),
+        cancelText: this.translate.instant('common.actions.cancel'),
+      },
+    }).afterClosed().pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((confirmed: boolean) => {
+        if (!confirmed) return;
+        this.runShareCall(
+          call(),
+          `enjeux.share.${elementType}.unlinkSuccess`,
+          `enjeux.share.${elementType}.unlinkError`,
         );
       });
   }
