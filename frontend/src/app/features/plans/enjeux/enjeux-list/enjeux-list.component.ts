@@ -3576,6 +3576,9 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
       takeUntilDestroyed(this.destroyRef),
     ).subscribe({
       next: () => {
+        // #472 — le nouveau facteur doit se voir SANS recharger la page, y
+        // compris sous les OO (onglet « Stratégie opérationnelle »).
+        this.propagateFacteurToPressionCopies(pressionId, newFacteurId);
         this.snackBar.open(
           this.translate.instant('enjeux.dnd.moveSuccess'),
           this.translate.instant('common.actions.close'),
@@ -3592,6 +3595,60 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
         this.loadPlanData(true);
       },
     });
+  }
+
+  /**
+   * #472 — Réaligne les COPIES JS d'une pression déplacée sur son nouveau
+   * facteur d'influence.
+   *
+   * Le glisser-déposer transfère l'objet pression de l'arborescence des
+   * facteurs. Mais un OO expose sa PROPRE copie légère de cette pression
+   * (`oo.pressions[]`, où le serveur dénormalise `facteur_influence_libelle`) :
+   * ce n'est pas la même instance JS, donc l'onglet « Stratégie
+   * opérationnelle » continuait d'annoncer l'ancien facteur jusqu'à un
+   * rechargement complet de la page.
+   */
+  private propagateFacteurToPressionCopies(pressionId: number, newFacteurId: number): void {
+    const data = this.planEnjeuxData();
+    if (!data) return;
+
+    const allEnjeux = [...(data.enjeux || []), ...(data.fcr || [])];
+    const facteur = allEnjeux
+      .flatMap(e => e.facteurs_influence || [])
+      .find(f => f.id_facteur_influence === newFacteurId);
+    if (!facteur) return;
+
+    const patchOo = (oo: ObjectifOperationnel) => {
+      for (const copie of (oo.pressions || [])) {
+        if (copie.id_pression === pressionId) {
+          copie.facteur_influence_libelle = facteur.libelle;
+        }
+      }
+    };
+
+    for (const enjeu of allEnjeux) {
+      for (const fi of (enjeu.facteurs_influence || [])) {
+        for (const pression of (fi.pressions || [])) {
+          if (pression.id_pression === pressionId) {
+            (pression as any).id_facteur_influence = newFacteurId;
+          }
+          for (const oo of ((pression as any).objectifs_operationnels || [])) {
+            patchOo(oo);
+          }
+        }
+      }
+      // #337 — un FCR porte ses OO en direct, sans passer par une pression.
+      for (const oo of (enjeu.objectifs_operationnels || [])) {
+        patchOo(oo);
+      }
+    }
+
+    // Les mutations en profondeur ne notifient pas le signal : on remplace
+    // l'objet racine pour que les computed (`selectedOos`) se réévaluent, et
+    // on synchronise le cache partagé du service (sidebar, autres onglets).
+    this.planEnjeuxData.update(d => d ? { ...d } : d);
+    const fresh = this.planEnjeuxData();
+    if (fresh) this.enjeuService.updatePlanEnjeuxCache(fresh);
   }
 
   /** Drag-and-drop : réordonne les OLT d'un enjeu. */

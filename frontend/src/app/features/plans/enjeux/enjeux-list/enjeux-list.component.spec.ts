@@ -2654,6 +2654,53 @@ describe('EnjeuxListComponent', () => {
       moveSpy.mockRestore();
     });
 
+    // #472 (2e retour de test) — après le déplacement, l'onglet « Stratégie
+    // opérationnelle » annonçait encore l'ANCIEN facteur sous l'OO rattaché à
+    // la pression, jusqu'à un rechargement complet de la page. En cause : l'OO
+    // porte sa propre copie légère de la pression, que le transfert du CDK ne
+    // touche pas.
+    it('met à jour le facteur affiché sous les OO après un déplacement de pression', () => {
+      setup();
+      const moveSpy = jest.spyOn(component['reorderService'], 'movePression').mockReturnValue(of({}));
+
+      const enjeu = component.enjeux().find(e => e.id_enjeu === 1)!;
+      const source = enjeu.facteurs_influence!.find(f => f.id_facteur_influence === 101)!;
+      const cible = enjeu.facteurs_influence!.find(f => f.id_facteur_influence === 102)!;
+      // Le jeu d'essai est partagé par tout le fichier : on travaille sur des
+      // copies de listes et on rétablit l'état d'origine à la fin.
+      const pressionsSource = source.pressions!;
+      const pressionsCible = cible.pressions!;
+      const pression = pressionsSource[0];
+      const oo = pression.objectifs_operationnels![0];
+      const libelleInitial = oo.pressions[0].facteur_influence_libelle;
+      // État initial servi par l'API : la copie porte le libellé dénormalisé.
+      oo.pressions[0].facteur_influence_libelle = 'Urbanisation';
+
+      try {
+        expect(component.uniqueFacteursFromOO(oo)).toEqual(['Urbanisation']);
+
+        const event = {
+          previousIndex: 0,
+          currentIndex: 0,
+          previousContainer: { data: pressionsSource },
+          container: { data: pressionsCible },
+        } as any;
+
+        component.onPressionDrop(event, cible);
+
+        expect(moveSpy).toHaveBeenCalledWith(301, { new_facteur_id: 102, position: 0 });
+        // Sans recharger la page : l'OO annonce désormais le facteur d'accueil.
+        expect(component.uniqueFacteursFromOO(oo)).toEqual(['Agriculture']);
+        expect((pression as any).id_facteur_influence).toBe(102);
+      } finally {
+        oo.pressions[0].facteur_influence_libelle = libelleInitial;
+        (pression as any).id_facteur_influence = 101;
+        pressionsSource.splice(0, pressionsSource.length, pression);
+        pressionsCible.splice(0, pressionsCible.length, ...pressionsCible.filter(p => p.id_pression !== 301));
+        moveSpy.mockRestore();
+      }
+    });
+
     // #472 (retour de test) — un facteur d'influence SANS pression doit tout de
     // même offrir une cible de dépôt. Sans la zone vide, la droplist fait 0px de
     // haut et le CDK ne la détecte jamais : on peut déplacer une pression vers un
