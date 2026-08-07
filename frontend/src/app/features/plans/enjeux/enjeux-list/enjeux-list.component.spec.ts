@@ -3608,7 +3608,12 @@ describe('EnjeuxListComponent — partage d\'un indicateur (#585)', () => {
       expect(cartes.length).toBe(2);
       const sousNePartage = cartes[1];
       expect(sousNePartage.querySelector('.shared-badge')).toBeTruthy();
-      expect(sousNePartage.querySelector('button[title="enjeux.share.indicateur.unlinkAction"]')).toBeTruthy();
+      const retirer = sousNePartage.querySelector('button[title="enjeux.share.indicateur.unlinkAction"]');
+      expect(retirer).toBeTruthy();
+      // Retour de test #585 : le bouton s'affichait VIDE. `fi-rr-unlink`
+      // n'existe pas dans Uicons Rounded Regular 2.6.0 — le glyphe correct est
+      // `fi-rr-link-slash`. On épingle le nom pour que la régression ressorte.
+      expect(retirer.querySelector('i.fi-rr-link-slash')).toBeTruthy();
       // Sous son niveau porteur, le badge est là mais pas le retrait.
       expect(cartes[0].querySelector('.shared-badge')).toBeTruthy();
       expect(cartes[0].querySelector('button[title="enjeux.share.indicateur.unlinkAction"]')).toBeFalsy();
