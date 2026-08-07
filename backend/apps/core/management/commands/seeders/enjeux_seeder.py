@@ -13,12 +13,13 @@ from apps.plans.models_enjeux import (
     ObjectifLongTerme, NiveauExigence,
     ObjectifOperationnel, ResultatAttendu,
     CorEnjeuTaxon, CorEnjeuHabitat, CorEnjeuGeologie, CorEnjeuObjetGeologique,
-    CorEnjeuFichier, CorFacteurEnjeu,
+    CorEnjeuFichier, CorFacteurEnjeu, CorRaOo,
     CorResponsabiliteTaxon, CorResponsabiliteHabitat, CorResponsabiliteGeologie,
     CorResponsabiliteEnjeu
 )
 from apps.plans.models_indicateurs import (
-    Indicateur, CorIndicateurGeologie, Metrique, MetriqueScoreBlock, Mesure
+    Indicateur, CorIndicateurGeologie, CorIndicateurNe, CorIndicateurRa,
+    Metrique, MetriqueScoreBlock, Mesure
 )
 from apps.plans.models_operations import (
     Protocole, SuiviInventaire, Operation,
@@ -5288,6 +5289,15 @@ class EnjeuxSeeder(BaseSeeder):
                 'objectif_principal': 'OBJ_ETAT_CONSERVATION',
                 'cibles_principales': 'ESPECES',
                 'taxon_taxref': 'Coléoptères, Carabidae',
+                # Habitats et fréquence sur un plan **validé** : c'est le seul
+                # jeu où l'exploration peut les montrer (#634).
+                'habitats': [
+                    {'cd_hab': '1150', 'lb_hab_fr': 'Lagunes côtières'},
+                    {'cd_hab': '1410',
+                     'lb_hab_fr': 'Prés-salés méditerranéens (Juncetalia maritimi)'},
+                ],
+                'frequence_nombre': 2,
+                'frequence_unite': 'an',
                 'date_lancement_suivi': '1998-03-15',
                 'id_statut': _statut_en_cours,
                 'id_type_action': _ta_cs9_6,
@@ -5311,6 +5321,8 @@ class EnjeuxSeeder(BaseSeeder):
                 'objectif_principal': 'OBJ_DYNAMIQUE_MILIEUX',
                 'cibles_principales': 'ESPECES',
                 'taxon_taxref': 'Phoenicopterus roseus',
+                'frequence_nombre': 1,
+                'frequence_unite': 'an',
                 'date_lancement_suivi': '2010-06-01',
                 'id_statut': _statut_en_cours,
                 'id_type_action': _ta_cs9_2,
@@ -5337,6 +5349,10 @@ class EnjeuxSeeder(BaseSeeder):
                 'objectif_principal': 'OBJ_DYNAMIQUE_MILIEUX',
                 'cibles_principales': 'HABITATS_VEGETATIONS',
                 'taxon_taxref': '',
+                'habitats': [
+                    {'cd_hab': '1310',
+                     'lb_hab_fr': 'Végétations pionnières à Salicornia (prés-salés)'},
+                ],
                 'date_lancement_suivi': None,
                 'id_statut': _statut_a_venir,
                 'id_type_action': _ta_cs3_2,
@@ -5344,6 +5360,9 @@ class EnjeuxSeeder(BaseSeeder):
                 'outil_bancarisation': '',
                 'outil_saisie': '',
                 'transmission_donnee': None,
+                # Seul protocole **non respecté** d'un plan validé : sans lui,
+                # la justification des écarts n'est recettable nulle part dans
+                # l'exploration, alors que c'est ce qui rend la donnée lisible.
                 'protocole': {
                     'dans_campanule': False,
                     'nom_protocole': 'Protocole cartographie habitats colonies',
@@ -5353,7 +5372,13 @@ class EnjeuxSeeder(BaseSeeder):
                     'objectif': 'Suivre l\'évolution spatiale des habitats sensibles aux abords '
                                 'des colonies pour évaluer l\'impact de la régulation.',
                     'periode': 'Mai - Septembre',
-                    'respect': True,
+                    'respect': False,
+                    'justification_non_respect': 'Les survols validés par relevés terrain sont '
+                                                 'impossibles en période de nidification : le '
+                                                 'dérangement des colonies primerait sur le gain '
+                                                 'de précision.',
+                    'differences': 'Photo-interprétation seule sur les secteurs de colonies, sans '
+                                   'validation terrain ; un seul passage annuel au lieu de deux.',
                     'periode_suivi': 'MAI',
                     'documentation_disponible': False,
                 },
@@ -5653,11 +5678,19 @@ class EnjeuxSeeder(BaseSeeder):
                     nom_protocole=pc.get('nom_protocole', ''),
                     nb_etp_cycle=pc.get('nb_etp_cycle'),
                     respect_protocole=pc['respect'],
-                    justification_non_respect='',
-                    differences_protocole='',
+                    # Un protocole appliqué avec des écarts ne se lit pas sans
+                    # eux : la fiche action de l'exploration les publie (#634).
+                    justification_non_respect=pc.get('justification_non_respect', ''),
+                    differences_protocole=pc.get('differences', ''),
                     description_protocole=pc['description'],
                     objectif_protocole=pc['objectif'],
                     periode_echantillonnage=pc['periode'],
+                    # Ces trois-là étaient déclarés par plusieurs configs et
+                    # silencieusement ignorés : les mois de suivi et la
+                    # documentation n'arrivaient jamais en base.
+                    periode_suivi=pc.get('periode_suivi', ''),
+                    documentation_disponible=pc.get('documentation_disponible'),
+                    url_documentation=pc.get('url_documentation', ''),
                     id_utilisateur_ajout=admin,
                 )
                 protocoles_created += 1
@@ -5670,6 +5703,11 @@ class EnjeuxSeeder(BaseSeeder):
                 cible_secondaire=config.get('cible_secondaire', ''),
                 taxon_taxref=config.get('taxon_taxref', ''),
                 habitat_ref=config.get('habitat_ref', ''),
+                # Habitats structurés (#368) : c'est la forme moderne, celle qui
+                # porte le code HabRef. `habitat_ref` reste pour l'existant.
+                habitats=config.get('habitats', []),
+                frequence_nombre=config.get('frequence_nombre'),
+                frequence_unite=config.get('frequence_unite'),
                 date_lancement_suivi=config.get('date_lancement_suivi'),
                 id_statut=config.get('id_statut'),
                 id_type_action=config.get('id_type_action'),
@@ -6414,6 +6452,16 @@ class EnjeuxSeeder(BaseSeeder):
         # de la fonctionnalité « Lier » (#552) pour la recette.
         self._seed_shared_facteur_demo(plans, enjeux_created)
 
+        # ==================== #585 — DÉMO ÉLÉMENTS PARTAGÉS ====================
+        # Même intention que ci-dessus, pour les trois relations arbitrées en
+        # recette sur #585 : résultat attendu ↔ plusieurs objectifs
+        # opérationnels, indicateur d'état ↔ plusieurs niveaux d'exigence,
+        # indicateur de pression ↔ plusieurs résultats attendus. Sans ça, la
+        # recette n'a aucun exemple d'élément partagé sous la main pour ces
+        # branches — seul le facteur d'influence (#552) en avait un.
+        self._seed_shared_ra_demo(plans)
+        self._seed_shared_indicateur_demo(plans)
+
         result = {
             'enjeux': enjeux_created,
             'fcr': fcr_created,
@@ -6456,6 +6504,128 @@ class EnjeuxSeeder(BaseSeeder):
                 f'Facteur « {facteur.libelle} » partagé entre 2 enjeux (#552)',
             )
             return
+
+    def _draft_plans(self, plans):
+        """Plans en brouillon — les seuls où le partage est modifiable (#248)."""
+        return [p for p in plans if getattr(p, 'statut', None) == 'draft']
+
+    def _seed_shared_ra_demo(self, plans) -> None:
+        """#585 — Partage un résultat attendu entre deux objectifs opérationnels
+        d'un même plan brouillon, pour disposer d'un exemple en base.
+
+        C'est la MÊME entité qui apparaît sous les deux objectifs : ses
+        indicateurs suivent, et le bouton « retirer de cet objectif » n'est
+        proposé que sous l'objectif de partage (jamais sous le porteur).
+        """
+        for plan in self._draft_plans(plans):
+            oos = list(
+                ObjectifOperationnel.objects
+                .filter(pressions__id_facteur_influence__enjeux__id_pg=plan)
+                .distinct().order_by('pk')
+            )
+            if len(oos) < 2:
+                continue
+            porteur, cible = oos[0], oos[1]
+            ra = ResultatAttendu.objects.filter(id_oo=porteur).first()
+            if ra is None:
+                continue
+            if CorRaOo.objects.filter(id_ra=ra, id_oo=cible).exists():
+                self.log_item('déjà', f'Résultat attendu partagé « {ra.libelle} » (#585)')
+                return
+            max_ordre = CorRaOo.objects.filter(id_oo=cible).aggregate(m=Max('ordre'))['m']
+            CorRaOo.objects.create(
+                id_ra=ra, id_oo=cible,
+                ordre=(max_ordre + 1) if max_ordre is not None else 0,
+            )
+            self.log_item(
+                'créé',
+                f'Résultat attendu « {ra.libelle} » partagé entre 2 objectifs (#585)',
+            )
+            return
+
+    def _seed_shared_indicateur_demo(self, plans) -> None:
+        """#585 — Partage un indicateur d'état entre deux niveaux d'exigence et
+        un indicateur de pression entre deux résultats attendus.
+
+        Les deux branches sont seedées séparément : ce sont deux relations
+        distinctes, chacune avec sa table de liaison, et la recette doit pouvoir
+        vérifier les deux. Le partage se fait toujours entre parents de MÊME
+        nature — un indicateur d'état n'a rien à faire sous un résultat attendu.
+
+        Chaque branche parcourt les plans jusqu'à en trouver un qui a la
+        structure voulue : tous les plans brouillon n'ont pas deux niveaux
+        d'exigence ni deux résultats attendus dont le premier porte un
+        indicateur.
+        """
+        etat_fait = pression_fait = False
+
+        for plan in self._draft_plans(plans):
+            if etat_fait and pression_fait:
+                return
+
+            # --- Branche état : indicateur ↔ niveaux d'exigence ---
+            if not etat_fait:
+                nes = list(
+                    NiveauExigence.objects
+                    .filter(id_olt__id_enjeu__id_pg=plan).distinct().order_by('pk')
+                )
+                ind = Indicateur.objects.filter(id_ne=nes[0]).first() if len(nes) >= 2 else None
+                if ind is not None:
+                    if CorIndicateurNe.objects.filter(
+                        id_indicateur=ind, id_ne=nes[1]
+                    ).exists():
+                        self.log_item(
+                            'déjà',
+                            f'Indicateur d\'état partagé « {ind.nom_indicateur} » (#585)',
+                        )
+                    else:
+                        max_ordre = CorIndicateurNe.objects.filter(
+                            id_ne=nes[1]
+                        ).aggregate(m=Max('ordre'))['m']
+                        CorIndicateurNe.objects.create(
+                            id_indicateur=ind, id_ne=nes[1],
+                            ordre=(max_ordre + 1) if max_ordre is not None else 0,
+                        )
+                        self.log_item(
+                            'créé',
+                            f'Indicateur d\'état « {ind.nom_indicateur} » partagé '
+                            f'entre 2 niveaux d\'exigence (#585)',
+                        )
+                    etat_fait = True
+
+            # --- Branche pression : indicateur ↔ résultats attendus ---
+            if not pression_fait:
+                ras = list(
+                    ResultatAttendu.objects
+                    .filter(id_oo__pressions__id_facteur_influence__enjeux__id_pg=plan)
+                    .distinct().order_by('pk')
+                )
+                ind_p = (
+                    Indicateur.objects.filter(id_resultat_attendu=ras[0]).first()
+                    if len(ras) >= 2 else None
+                )
+                if ind_p is not None:
+                    if CorIndicateurRa.objects.filter(
+                        id_indicateur=ind_p, id_resultat_attendu=ras[1]
+                    ).exists():
+                        self.log_item(
+                            'déjà',
+                            f'Indicateur de pression partagé « {ind_p.nom_indicateur} » (#585)',
+                        )
+                    else:
+                        max_ordre = CorIndicateurRa.objects.filter(
+                            id_resultat_attendu=ras[1]
+                        ).aggregate(m=Max('ordre'))['m']
+                        CorIndicateurRa.objects.create(
+                            id_indicateur=ind_p, id_resultat_attendu=ras[1],
+                            ordre=(max_ordre + 1) if max_ordre is not None else 0,
+                        )
+                        self.log_item(
+                            'créé',
+                            f'Indicateur de pression « {ind_p.nom_indicateur} » partagé '
+                            f'entre 2 résultats attendus (#585)',
+                        )
+                    pression_fait = True
 
     def reset(self) -> int:
         """
