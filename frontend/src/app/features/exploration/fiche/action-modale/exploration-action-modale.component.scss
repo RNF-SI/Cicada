@@ -69,6 +69,78 @@
   margin: 0;
 }
 
+/* Précision entre parenthèses derrière une valeur (objectif ou cible secondaire). */
+.modale-mention-inline {
+  color: $gray-dark;
+  font-size: $font-size-small;
+}
+
+/* Un protocole par bloc : nom, nature, puis ses champs en liste de définition. */
+.modale-protocole,
+.modale-indicateur {
+  padding: $spacing-xs 0;
+
+  & + & {
+    border-top: 1px dashed $gray-lighter;
+  }
+}
+
+.modale-protocole-entete {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: $spacing-xs;
+  margin: 0 0 $spacing-xs;
+}
+
+.modale-protocole-nom,
+.modale-indicateur-nom {
+  margin: 0;
+  font-weight: $font-weight-bold;
+}
+
+.modale-metrique {
+  margin: $spacing-xs 0 0;
+  color: $gray-dark;
+}
+
+/**
+ * Grille de lecture d'une métrique : les 5 paliers, à la palette des scores.
+ * Même rendu que sur la fiche du plan — texte noir sur fonds clairs (WCAG AA).
+ */
+.modale-grille {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spacing-xxs;
+  margin: $spacing-xxs 0 $spacing-xs;
+}
+
+.modale-grille-palier {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 8rem;
+  min-width: 7rem;
+  border: 1px solid $gray-lighter;
+  border-radius: $border-radius-sm;
+  overflow: hidden;
+  background-color: $white;
+}
+
+.modale-grille-tete {
+  padding: 2px $spacing-xs;
+  font-size: $font-size-small;
+  font-weight: $font-weight-bold;
+  color: $black;
+  text-align: center;
+}
+
+.modale-grille-valeur {
+  padding: $spacing-xxs $spacing-xs;
+  font-size: $font-size-small;
+  color: $black;
+  white-space: pre-line;
+}
+
 @media (max-width: $breakpoint-mobile) {
   .modale-liste {
     grid-template-columns: 1fr;

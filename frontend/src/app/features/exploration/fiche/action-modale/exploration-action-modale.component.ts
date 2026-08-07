@@ -4,7 +4,13 @@ import { MatButtonModule } from '@angular/material/button';
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { TranslateModule } from '@ngx-translate/core';
 
-import { FicheAction } from '../../../../core/models/exploration-fiche.model';
+import {
+  FicheAction,
+  FichePalier,
+  FicheProtocole,
+  FicheSuivi,
+  FicheSuiviHabitat,
+} from '../../../../core/models/exploration-fiche.model';
 import { TagComponent } from '../../../../shared/components/tag/tag.component';
 
 export interface ExplorationActionModaleData {
@@ -17,10 +23,12 @@ export interface ExplorationActionModaleData {
  * Fiche action en **lecture seule**, ouverte depuis l'exploration (#634).
  *
  * Elle rend ce que l'API publique expose : le cadre de l'action (indicateur et
- * métriques suivis), sa programmation et ses acteurs. Le budget, les moyens
- * humains et le suivi des réalisations relèvent de la gestion interne de
- * l'organisme et ne sont pas publiés — c'est ce qui la distingue de la fiche
- * action interne, et pourquoi elle ne réutilise pas ce composant-là.
+ * métriques suivis), son suivi — objectifs, espèce et habitats ciblés,
+ * fréquence, outils —, ses protocoles, ses indicateurs de réponse avec leur
+ * grille, sa programmation et ses acteurs. Le budget, les moyens humains et le
+ * suivi des réalisations relèvent de la gestion interne de l'organisme et ne
+ * sont pas publiés — c'est ce qui la distingue de la fiche action interne, et
+ * pourquoi elle ne réutilise pas ce composant-là.
  *
  * Aucune requête : tout vient de la fiche du plan déjà chargée.
  */
@@ -48,8 +56,39 @@ export class ExplorationActionModaleComponent {
     return annee_min === annee_max ? String(annee_min) : `${annee_min ?? '?'}-${annee_max ?? '?'}`;
   }
 
+  /** Suivi porté par l'action : présent surtout sur les actions de connaissance. */
+  get suivi(): FicheSuivi | null {
+    return this.action.suivi;
+  }
+
+  get protocoles(): FicheProtocole[] {
+    return this.action.suivi?.protocoles ?? [];
+  }
+
+  get nomsSites(): string {
+    return this.action.sites.map((site) => site.nom_site).join(', ');
+  }
+
   metriqueLibelle(metrique: { nom_metrique: string; unite: string | null }): string {
     return metrique.unite ? `${metrique.nom_metrique} (${metrique.unite})` : metrique.nom_metrique;
+  }
+
+  /** « Lagunes côtières (1150) » — le code n'est affiché que s'il vient de HabRef. */
+  habitatLibelle(habitat: FicheSuiviHabitat): string {
+    const nom = habitat.lb_hab_fr || habitat.cd_hab || '';
+    return habitat.lb_hab_fr && habitat.cd_hab ? `${nom} (${habitat.cd_hab})` : nom;
+  }
+
+  /** Palette des scores, texte noir sur fond clair (WCAG AA). */
+  classePalier(palier: FichePalier): string {
+    return [
+      '',
+      'bg-score-very-bad',
+      'bg-score-bad',
+      'bg-score-neutral',
+      'bg-score-good',
+      'bg-score-very-good',
+    ][palier.niveau];
   }
 
   fermer(): void {
