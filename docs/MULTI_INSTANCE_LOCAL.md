@@ -1,9 +1,9 @@
-# Test local de la fédération de l'exploration
+# Banc d'essai de l'exploration fédérée
 
-Ce document décrit comment faire tourner **plusieurs instances CICADA sur une
-seule machine** et vérifier qu'un contenu ajouté sur l'une remonte bien dans
-l'exploration centralisée. Il accompagne l'issue **#636**, qui recense les
-limites de la fédération et les décisions restant à prendre.
+Ce document décrit comment faire tourner **deux instances CICADA et le hub
+d'exploration sur une seule machine**, et vérifier qu'un contenu ajouté sur
+l'une remonte bien dans l'exploration de l'autre. Il accompagne l'issue **#636**,
+qui recense les limites et les décisions restant à prendre.
 
 C'est un **banc d'essai**, pas une architecture de production. Ce qui est
 volontairement rudimentaire est signalé comme tel.
@@ -12,23 +12,61 @@ volontairement rudimentaire est signalé comme tel.
 
 ## Les trois briques
 
-| Brique | Rôle | Interface | API | `CICADA_INSTANCE_ID` |
+| Brique | Rôle | Interface | API | Identité |
 |---|---|---|---|---|
-| **RNF** | instance de production d'un gestionnaire | http://localhost | http://localhost:8000 | `rnf` |
-| **CEN** | seconde instance, base indépendante | http://localhost:8081 | http://localhost:8001 | `cen` |
-| **Portail** | exploration centralisée | http://localhost:8082 | http://localhost:8002 | `portail` |
+| **RNF** | instance CICADA | http://localhost | http://localhost:8000 | `rnf` |
+| **CEN** | instance CICADA, base indépendante | http://localhost:8081 | http://localhost:8001 | `cen` |
+| **Hub** | back d'exploration, **sans interface** | — | http://localhost:8002 | `hub` |
 
-Le portail est **une instance CICADA comme les autres**. Il réutilise donc telle
-quelle la page d'exploration et son API — ce qui est justement l'intérêt de la
-topologie « index central » : le portail n'est pas un logiciel de plus à écrire,
-c'est le même logiciel dont l'index est alimenté autrement.
+Le hub n'est **pas** une instance CICADA. C'est un projet distinct
+([`hub/`](../hub/README.md)) qui ne connaît aucun modèle métier : ni
+`PlanGestion`, ni `Enjeu`, ni `Operation`. Il ne stocke que deux tables — les
+plans publiés et leurs objets explorables — plus la fiche rendue de chaque plan.
 
-Il n'a aucun plan de gestion à lui. Son index est rempli par ce que RNF et CEN
-publient.
+À terme l'index de recherche ne vit plus dans CICADA du tout : chaque instance
+produit ses documents et les dépose ici, et c'est ici que la recherche s'exécute.
+Le temps de la transition, les deux coexistent.
+
+---
+
+## Le sens des flux
+
+```
+   ┌──────────┐   ① dépôt de l'état complet   ┌─────────┐
+   │ CICADA   │ ────────────────────────────► │         │
+   │ RNF      │ ◄──────────────────────────── │   HUB   │
+   └──────────┘   ② recherche + fiche          │  (API)  │
+   ┌──────────┐                                │         │
+   │ CICADA   │ ────────────────────────────►  │         │
+   │ CEN      │ ◄──────────────────────────── │         │
+   └──────────┘                                └─────────┘
+```
+
+C'est l'instance qui **va vers** le hub, et non l'inverse. Ce n'est pas un détail
+de plomberie : une instance derrière un pare-feu ou sans adresse publique peut
+publier, alors qu'elle ne peut pas être interrogée.
+
+Le navigateur, lui, ne parle jamais au hub. L'exploration continue d'appeler le
+backend de son instance, qui relaie — le jeton reste côté serveur, il n'y a ni
+CORS ni second domaine à déclarer, et la bascule est invisible pour le frontend.
 
 ---
 
 ## Démarrer
+
+### Le hub
+
+```bash
+cp .env.hub.example .env.hub        # adapter si des ports sont pris
+docker compose -f docker-compose.hub.yml --env-file .env.hub up -d
+```
+
+L'API répond sur http://localhost:8002/api/health/. Le hub importe au démarrage
+`ref_geo` et les nomenclatures depuis **les fichiers source de CICADA**, montés
+en lecture seule : les documents voyagent en codes et sont re-résolus ici, deux
+fichiers divergents produiraient des zones introuvables en silence.
+
+### Les instances
 
 L'instance RNF est le stack habituel, inchangé :
 
@@ -36,29 +74,25 @@ L'instance RNF est le stack habituel, inchangé :
 docker compose up -d
 ```
 
-Les deux autres réutilisent le même `docker-compose.yml`, plus un override et un
+La seconde réutilise le même `docker-compose.yml`, plus un override et un
 fichier d'environnement :
 
 ```bash
-# Instance CEN
 docker compose -p cicada_cen --env-file .env.cen \
-  -f docker-compose.yml -f docker-compose.instance.yml up -d
-
-# Portail
-docker compose -p cicada_portail --env-file .env.portail \
   -f docker-compose.yml -f docker-compose.instance.yml up -d
 ```
 
-Puis, sur chaque instance métier, des données de test :
+Puis, sur chaque instance, des données de test et un index :
 
 ```bash
 docker exec cicada_cen_web python manage.py seed_testdata
 docker exec cicada_cen_web python manage.py rebuild_search_index --purge
 ```
 
-> `rebuild_search_index --purge` est nécessaire après avoir donné son identité à
-> une instance : les documents déjà indexés portent l'identifiant qu'ils avaient
-> à l'indexation.
+> `--purge` est nécessaire après avoir donné son identité à une instance : les
+> documents déjà indexés portent l'identifiant qu'ils avaient à l'indexation.
+> La commande de dépôt refuse d'ailleurs de publier si elle ne trouve aucun
+> document sous l'identité courante, en nommant celle qu'elle a trouvée.
 
 ### Ce que l'override corrige
 
@@ -71,9 +105,13 @@ Trois choses seulement empêchaient de lancer le `docker-compose.yml` deux fois 
    réclamer en même temps (`Pool overlaps with other one on this address space`) ;
 3. **les ports publiés**, déjà paramétrables, qu'il suffisait de décaler.
 
-Ajouter une quatrième instance ne demande donc qu'un nouveau fichier
-d'environnement avec un `INSTANCE_PREFIX`, un `INSTANCE_SUBNET` et des ports
-libres.
+Ajouter une instance ne demande donc qu'un fichier d'environnement avec un
+`INSTANCE_PREFIX`, un `INSTANCE_SUBNET` et des ports libres.
+
+> ⚠️ `docker-compose.hub.yml` fige `name: cicada_hub`. Sans ce nom de projet,
+> Compose le déduit du dossier — « cicada » — et le service `db` du hub **détruit
+> puis recrée le conteneur de la base de l'instance principale**. Le volume
+> survit, mais l'instance tombe.
 
 > Chaque instance importe ses propres référentiels au premier démarrage. Les
 > fichiers d'environnement fournis mettent `TAXREF_IMPORT_OPTS=--lite` (~8 000
@@ -82,58 +120,123 @@ libres.
 
 ---
 
-## Synchroniser le portail
+## Configurer la fédération
+
+Côté hub (`.env.hub`), un jeton **par instance** — révoquer l'accès d'une
+instance compromise ne doit pas interrompre la publication des autres :
 
 ```bash
-docker exec cicada_portail_web python manage.py pull_federation \
-  --source http://host.docker.internal:8001      # depuis le CEN
-docker exec cicada_portail_web python manage.py pull_federation \
-  --source http://host.docker.internal:8000      # depuis RNF
+HUB_FEDERATION_TOKENS=rnf:jeton-rnf,cen:jeton-cen
+HUB_READ_TOKEN=jeton-lecture
 ```
 
-`--dry-run` récupère et compte sans rien écrire.
+Côté instance (`.env`, `.env.cen`) :
 
-Les instances se joignent par `host.docker.internal` (leur port publié sur
-l'hôte) parce que chaque projet Docker Compose a son propre réseau : le portail
-ne peut pas résoudre le nom `web` d'un autre projet. En production, ce serait
-simplement l'URL publique de l'instance.
+```bash
+CICADA_INSTANCE_ID=cen
+CICADA_PUBLIC_URL=http://localhost:8081
+CICADA_HUB_URL=http://host.docker.internal:8002
+CICADA_HUB_PUSH_TOKEN=jeton-cen
+CICADA_HUB_READ_TOKEN=jeton-lecture
+CICADA_EXPLORATION_SOURCE=local     # `hub` pour basculer la recherche
+```
 
-### Une synchronisation par état, pas par événement
+Les instances joignent le hub par `host.docker.internal` — chaque projet Compose
+a son propre réseau, le nom de service `hub` n'est pas résolvable depuis
+ailleurs. En production ce serait l'URL publique du hub.
 
-Chaque exécution récupère **tout** l'index publié par la source, puis supprime
-les documents de cette instance qui n'ont pas été revus. C'est ce qui rend la
-dépublication fiable : un plan repassé en brouillon, supprimé, ou une instance
-décommissionnée disparaissent du portail sans qu'aucun message de retrait n'ait
-eu à être reçu.
+> `CICADA_INSTANCE_ID` doit être **non vide**. Une identité vide s'écrit dans
+> chaque ligne d'index, où elle passe inaperçue, et plus aucune publication ne
+> retrouve ensuite ces documents.
 
-Un index qui se contenterait de rejouer des événements finirait immanquablement
-par laisser visible un plan que son gestionnaire a dépublié — un incident, pas
-une gêne.
+---
+
+## Publier
+
+```bash
+docker exec cicada_cen_web python manage.py push_federation
+docker exec cicada_web     python manage.py push_federation
+```
+
+`--dry-run` construit les charges utiles sans rien envoyer. `--sans-fiche`
+accélère le dépôt au prix des fiches distantes. `--page-size` règle la taille des
+pages : elle est petite par défaut (10 plans) parce que chaque plan emporte sa
+fiche rendue, qui mobilise plusieurs centaines d'objets.
+
+### Une publication en trois temps
+
+`ouvrir un lot` → `déposer N pages` → `basculer`.
+
+À la bascule, le hub retire les plans de cette instance qui n'étaient pas dans le
+lot. C'est ce qui rend la dépublication fiable : un plan repassé en brouillon,
+supprimé, ou une instance décommissionnée disparaissent sans qu'aucun message de
+retrait n'ait eu à être émis ni à survivre au réseau.
+
+Mais purger « ce qui n'a pas été revu » suppose d'avoir **tout** reçu : une
+coupure au milieu d'un envoi viderait sinon le hub de ce qui n'était pas encore
+arrivé. D'où le lot. En cas d'échec la commande l'abandonne plutôt que de le
+basculer — entre « incomplet » et « périmé », c'est périmé qui est récupérable.
+
+La purge est **bornée à l'instance du lot**, et l'instance émettrice est déduite
+du **jeton** et non du corps de la requête. Sans ces deux bornes, un jeton valide
+suffirait à ouvrir un lot au nom d'une autre instance puis à le basculer —
+c'est-à-dire à purger son index.
+
+---
+
+## Basculer l'exploration sur le hub
+
+```bash
+CICADA_EXPLORATION_SOURCE=hub
+```
+
+L'instance cesse de lire son index local et relaie vers le hub. Même URL, même
+forme de réponse : le frontend ne voit pas la différence, et le retour arrière
+est un simple réglage.
+
+Il n'y a **pas de repli** sur l'index local si le hub est injoignable : la
+requête rend un 502 explicite. Un repli silencieux servirait les résultats de
+cette seule instance sous une interface qui promet une recherche transverse, et
+l'utilisateur conclurait que les plans des autres organismes n'existent pas.
 
 ---
 
 ## Le test de bout en bout
 
-C'est le scénario qui justifie tout le reste : *un ajout côté CEN doit remonter
-dans l'exploration centralisée.*
+C'est le scénario qui justifie tout le reste. Il a été déroulé, voici ce qu'il
+donne :
 
-1. **Côté CEN** — ajouter un enjeu à un plan en brouillon, puis valider le plan.
-   La validation déclenche l'indexation (`apps/search/signals.py`) ; un brouillon
-   n'est jamais explorable.
-2. **Côté portail** — vérifier que la recherche ne le trouve pas encore.
-3. **Synchroniser** — `pull_federation --source http://host.docker.internal:8001`.
-4. **Côté portail** — la recherche le trouve, attribué à l'instance `cen`, avec
-   le nom du plan, son gestionnaire et ses sites, alors que ce plan n'existe pas
-   dans la base du portail.
-5. **Retrait** — repasser le plan en brouillon côté CEN, resynchroniser :
-   le document disparaît du portail.
+| Étape | Observé |
+|---|---|
+| RNF publie | 22 plans, 96 documents |
+| CEN publie | 22 plans, 96 documents |
+| Index agrégé | 44 plans, 192 documents, compteurs d'onglets doublés |
+| Ajout d'un enjeu côté CEN, republication | 97 documents, le nouvel enjeu remonte attribué à `cen` |
+| Plan repassé en brouillon côté CEN, republication | 21 plans, `1 plan dépublié`, sa fiche en **404** |
+| Le plan de **même slug** chez RNF | intact, **200** |
 
-Ces invariants sont couverts par
-`backend/tests/apps/search/test_federation.py` (22 tests).
+Cette dernière ligne est l'invariant à ne jamais casser : une instance ne
+dépublie qu'elle-même.
+
+### Ce que le banc d'essai démontre au passage
+
+Les deux instances sont seedées des mêmes fixtures, et produisent donc des
+**slugs identiques pour des plans différents** :
+
+```
+bac-a-sable-plan-initial-2010-2020  →  cen (id_pg=30), rnf (id_pg=1864)
+```
+
+Sans `instance_id` dans les clés d'unicité, ingérer le second écraserait le
+premier — silencieusement. C'est aussi pourquoi un plan se désigne par
+`instance:slug` et non par son seul slug.
+
+Ces invariants sont couverts par `hub/tests/` (55 tests) et
+`backend/tests/apps/search/` (140 tests).
 
 ---
 
-## Ce que ce banc d'essai démontre — et ce qu'il ne résout pas
+## Ce que ce banc d'essai ne résout pas
 
 ### Le problème central : rien n'est identifiant entre instances
 
@@ -141,72 +244,46 @@ Ces invariants sont couverts par
 même `uuid_organisme` (tiré par `uuid4()` à la création **locale**) sont propres à
 chaque base. Le plan n° 42 de RNF n'a aucun rapport avec le plan n° 42 du CEN.
 
-Le banc d'essai le montre sans détour : les deux instances sont seedées avec les
-mêmes fixtures, donc leurs documents portent **les mêmes `id_objet`**. Sans
-`instance_id` dans la clé d'unicité, ingérer la seconde écraserait la première.
-
-### Trois traitements selon qu'une clé stable existe
+Trois traitements en découlent, selon qu'une clé stable existe ou non :
 
 | Facette | Clé | Traitement |
 |---|---|---|
-| Type d'aire protégée | mnémonique (`RNN`, `RNR`…) | transmise telle quelle ✅ |
-| Statut du plan | chaîne (`valide`…) | transmise telle quelle ✅ |
-| Zone géographique | `l_areas.area_code` (INSEE) | publiée en **codes**, re-résolue en identifiants locaux à l'arrivée ✅ |
-| Sites | `t_espace_protege.id_inpn`, national mais *nullable* | publiés en **codes INPN**, re-résolus — mais seulement si le destinataire connaît le site ⚠️ |
-| Organismes gestionnaires | aucune | **vidée** ⚠️ |
+| Type d'aire protégée | mnémonique (`RNN`, `RNR`…) | transmis tel quel ✅ |
+| Statut du plan | chaîne (`valide`…) | transmis tel quel ✅ |
+| Zone géographique | `l_areas.area_code` (INSEE) | publiée en **codes**, re-résolue au hub ✅ |
+| Sites | `t_espace_protege.id_inpn`, national mais *nullable* | publiés en **codes INPN**, stockés tels quels ⚠️ |
+| Organismes gestionnaires | aucune | **nom seulement**, pour l'affichage ⚠️ |
 
 Les zones fonctionnent parce que le découpage administratif vient du même
-référentiel national partout : seuls les identifiants techniques diffèrent, pas
-les codes.
+référentiel national partout : seuls les identifiants techniques diffèrent.
 
-La ligne « organismes » est volontairement **vidée plutôt que recopiée**.
-Recopier un identifiant local ferait matcher un document distant sur le mauvais
-organisme — une corruption silencieuse. Un tableau vide produit une absence
-visible : le document ne ressort simplement pas quand on filtre par organisme.
-Tant que l'identité nationale des organismes n'est pas tranchée (#636), c'est le
-seul comportement défendable.
+Les sites sont désormais **stockés en codes INPN** côté hub, et non traduits en
+identifiants locaux : le hub n'hébergeant aucun site, il n'a rien à quoi les
+apparier. Réserve propre aux sites : `id_inpn` est *nullable*, un site qui n'en
+porte pas n'est pas publiable. La liste transmise dit « ces sites-là », jamais
+« seulement ceux-là ».
 
-### Pourquoi les sites ne se généralisent pas aussi bien que les zones
+La ligne « organismes » est la seule où **aucune** clé n'existe. Leur nom voyage
+pour l'affichage, mais la colonne de filtrage reste vide : recopier un
+identifiant local ferait matcher le mauvais organisme — une corruption
+silencieuse — là où un tableau vide produit une absence visible. Le filtre est
+écrit et testé dans cet état, pour que le jour où l'identité nationale sera
+tranchée, seule l'ingestion soit à toucher.
 
-Les sites sont désormais publiés en **codes INPN** — `id_inpn` est unique et
-national — et re-résolus en identifiants locaux à l'ingestion, exactement comme
-les zones. L'identifiant local ne quitte jamais l'instance émettrice.
+### Non résolu
 
-Mais l'analogie s'arrête là, et la mesure sur le banc d'essai le montre : sur
-les 96 documents que le portail ingère de RNF, **96 rattachent leurs zones et
-aucun ne rattache ses sites**. La raison est structurelle — `l_areas` est un
-*référentiel national*, importé au démarrage de **chaque** instance ; les sites
-sont de la *donnée métier*. Un portail qui n'héberge aucun plan n'a aucun site
-en base, donc rien à quoi apparier les codes reçus.
-
-La résolution fonctionne bel et bien dès que le destinataire connaît le site :
-ingérés par le CEN plutôt que par le portail, les mêmes 96 documents rattachent
-tous leur site, celui de la Camargue chez RNF retombant sur celui du CEN par son
-code INPN. C'est le cas de la **co-gestion**, et c'est celui qui compte pour le
-dédoublonnage inter-instances (limite n° 3 de #636).
-
-Pour que la facette « site » serve aussi sur un portail sans données propres, il
-faudrait **stocker les codes INPN dans l'index** et filtrer dessus, plutôt que
-de les traduire en identifiants locaux — le traitement déjà appliqué aux types
-d'aire protégée. C'est une colonne de plus et un filtre à réécrire ; ce n'est
-pas fait.
-
-> À noter : `site_ids` n'est aujourd'hui **lu par personne**. `filtrer_contenus`
-> n'expose pas de filtre « site » et l'interface n'en propose pas. La colonne est
-> alimentée et indexée, mais aucune requête ne s'en sert — la fédération des
-> sites est donc pour l'instant une fondation, pas une fonctionnalité visible.
-
-### Non résolu ici
-
-- **Authentification.** Un jeton partagé (`CICADA_FEDERATION_TOKEN`), suffisant
-  pour tester le transport, à ne pas déployer tel quel. Dépend de #514 (OAuth2 /
-  OIDC).
+- **Authentification.** Des jetons partagés, suffisants pour tester le
+  transport, à ne pas déployer tels quels. Dépend de #514 (OAuth2 / OIDC).
 - **Identité nationale des organismes.** Décision de maîtrise d'ouvrage
   (SIRET ? annuaire RNF ?), pas un problème technique.
 - **Doublons inter-instances.** Deux instances peuvent légitimement porter le
-  même site, voire le même plan. Rien ne dédoublonne aujourd'hui.
-- **Fiche d'un plan distant.** La tuile de résultat s'affiche correctement, mais
-  ouvrir la fiche complète d'un plan hébergé ailleurs n'est pas traité.
+  même site, voire le même plan. Les codes INPN stockés au hub sont ce qui
+  permettra de les rapprocher ; rien ne dédoublonne aujourd'hui.
+- **Fraîcheur des fiches.** Une fiche est un instantané, qui vieillit jusqu'à la
+  publication suivante. Acceptable parce que le contenu d'un plan validé est
+  verrouillé (#248) — ce qui bouge, ce sont les libellés joints.
+- **Périodicité des publications.** Rien ne les déclenche aujourd'hui : la
+  commande se lance à la main. Une tâche planifiée reste à câbler.
 - **Gouvernance de la publication.** Qui consent à publier, et à quelle maille
   (instance, organisme, plan) ? C'est le vrai sujet de #636.
 
@@ -216,9 +293,8 @@ pas fait.
 
 ```bash
 docker compose -p cicada_cen --env-file .env.cen \
-  -f docker-compose.yml -f docker-compose.instance.yml down          # -v pour purger les données
-docker compose -p cicada_portail --env-file .env.portail \
-  -f docker-compose.yml -f docker-compose.instance.yml down
+  -f docker-compose.yml -f docker-compose.instance.yml down     # -v pour purger
+docker compose -f docker-compose.hub.yml --env-file .env.hub down
 ```
 
 ---
@@ -230,6 +306,6 @@ a été tranchée par la mesure, pas par principe. Le détail est dans
 [RECHERCHE.md](RECHERCHE.md#volume-et-choix-du-moteur).
 
 Un point vaut d'être noté ici : **la fédération ne multiplie pas le volume**. Les
-~4 400 plans sont l'univers *total*, réparti entre instances — le portail qui les
+~4 400 plans sont l'univers *total*, réparti entre instances — le hub qui les
 agrège tous représente le même corpus qu'une instance unique qui les hébergerait.
 C'est précisément le cas qui a été mesuré.
