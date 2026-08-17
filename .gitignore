@@ -120,3 +120,4 @@ backend/apps/core/management/commands/seeders/data/ia_plans/
 # Environnements des instances locales de fédération (#636)
 .env.cen
 .env.portail
+.env.hub
