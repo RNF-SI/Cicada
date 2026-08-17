@@ -8,6 +8,7 @@ import { TestBed } from '@angular/core/testing';
 import { signal, computed } from '@angular/core';
 import { Subject, of, throwError } from 'rxjs';
 import { FormBuilder, FormControl, FormGroup, Validators } from '@angular/forms';
+import { salaryIsComputed, salaryOptionAvailable } from '../../../../shared/utils/operation-budget';
 import {
   OperationFormComponent,
   buildResponseTypeOptions,
@@ -39,10 +40,38 @@ function createComponentInstance(): OperationFormComponent {
   (comp as any).ventilationMode = signal<string>('none');
   (comp as any).declinaisonParPoste = signal(false);
   (comp as any).postes = signal<any[]>([]);
+  // #600 (retour 08/2026) — réglages du tableau budgétaire, cochés par défaut.
+  (comp as any).declinaisonParTypeCout = signal(true);
+  (comp as any).coutSalarialAuto = signal(true);
+  (comp as any).hasTypeVentilation = computed(() => {
+    const m = (comp as any).ventilationMode();
+    return m === 'by_type' || m === 'by_org_type'
+      || m === 'by_type_poste' || m === 'by_org_type_poste';
+  });
+  (comp as any).showCostDetail = computed(
+    () => (comp as any).hasTypeVentilation() && (comp as any).declinaisonParTypeCout(),
+  );
+  // #600 (retour 08/2026) — la case « coût salarial automatique » et l'état
+  // effectif « calculé / saisi » viennent de `shared/utils/operation-budget`.
+  (comp as any).showCoutSalarialOption = computed(() => salaryOptionAvailable(
+    (comp as any).ventilationMode(), (comp as any).declinaisonParTypeCout(),
+  ));
+  (comp as any).coutSalarialCalcule = computed(() => salaryIsComputed(
+    (comp as any).ventilationMode(), (comp as any).declinaisonParTypeCout(),
+    (comp as any).coutSalarialAuto(),
+  ));
   // #600 — computeds dérivés du mode.
-  // #624 — chaque mode a désormais son propre layout budget (`by_type_poste`
-  // ne réutilise plus celui de `by_type`).
-  (comp as any).budgetMode = computed(() => (comp as any).ventilationMode());
+  // #624 — chaque mode a son propre layout budget ; #600 (retour 08/2026) : ce
+  // layout suit aussi la case « déclinaison par type de coût ».
+  (comp as any).budgetMode = computed(() => {
+    const mode = (comp as any).ventilationMode();
+    if (!(comp as any).hasTypeVentilation()) return mode;
+    const parOrganisme = mode === 'by_org_type' || mode === 'by_org_type_poste';
+    if ((comp as any).declinaisonParTypeCout()) {
+      return parOrganisme ? 'by_org_type_poste' : 'by_type_poste';
+    }
+    return parOrganisme ? 'by_org_type' : 'by_type';
+  });
   (comp as any).isPosteVentilation = computed(() => {
     const m = (comp as any).ventilationMode();
     return m === 'by_type_poste' || m === 'by_org_type_poste';
@@ -194,13 +223,14 @@ describe('OperationFormComponent — ventilation budgétaire', () => {
       const entry = comp.getOrgBudget(0, 100);
       expect(entry).toEqual({
         fonct: null, invest: null, etp: null,
+        coutSalarial: null, coutSalarialInvest: null,
         coutStage: null, coutPresta: null, autreCout: null, autreComment: '',
         coutPrestaInvest: null, autreCoutInvest: null, autreCommentInvest: '',
       });
     });
 
     it('should compute org total from fonct+invest (#602c)', () => {
-      comp.orgBudgets['0-100'] = { fonct: 3000, invest: 2000, etp: 5, coutStage: null, coutPresta: null, autreCout: null, autreComment: '', coutPrestaInvest: null, autreCoutInvest: null, autreCommentInvest: '' };
+      comp.orgBudgets['0-100'] = { fonct: 3000, invest: 2000, etp: 5, coutSalarial: null, coutSalarialInvest: null, coutStage: null, coutPresta: null, autreCout: null, autreComment: '', coutPrestaInvest: null, autreCoutInvest: null, autreCommentInvest: '' };
       expect(comp.getOrgTotal(0, 100)).toBe(5000);
     });
 
@@ -210,7 +240,7 @@ describe('OperationFormComponent — ventilation budgétaire', () => {
         id_poste: 5, id_organisme: null, finance: true,
         categorie_depense: 'fonctionnement', jours: { 0: 10 }, derived: false,
       }];
-      comp.orgBudgets['0-100'] = { fonct: null, invest: null, etp: null, coutStage: null, coutPresta: 1200, autreCout: 500, autreComment: '', coutPrestaInvest: 700, autreCoutInvest: 300, autreCommentInvest: '' };
+      comp.orgBudgets['0-100'] = { fonct: null, invest: null, etp: null, coutSalarial: null, coutSalarialInvest: null, coutStage: null, coutPresta: 1200, autreCout: 500, autreComment: '', coutPrestaInvest: 700, autreCoutInvest: 300, autreCommentInvest: '' };
       // fonctionnement = salarial (10 × 300 = 3000) + prestataire (1200) + autres (500)
       expect(comp.getOrgFonctTotal(0, 100)).toBe(4700);
       // investissement = salarial (aucune ligne invest) + prestataire (700) + autres (300)
@@ -219,14 +249,14 @@ describe('OperationFormComponent — ventilation budgétaire', () => {
     });
 
     it('getYearTotalBudget should sum fonct+invest across all orgs', () => {
-      comp.orgBudgets['0-100'] = { fonct: 2000, invest: 1000, etp: 4, coutStage: null, coutPresta: null, autreCout: null, autreComment: '', coutPrestaInvest: null, autreCoutInvest: null, autreCommentInvest: '' };
-      comp.orgBudgets['0-101'] = { fonct: 1500, invest: 500, etp: 3, coutStage: null, coutPresta: null, autreCout: null, autreComment: '', coutPrestaInvest: null, autreCoutInvest: null, autreCommentInvest: '' };
+      comp.orgBudgets['0-100'] = { fonct: 2000, invest: 1000, etp: 4, coutSalarial: null, coutSalarialInvest: null, coutStage: null, coutPresta: null, autreCout: null, autreComment: '', coutPrestaInvest: null, autreCoutInvest: null, autreCommentInvest: '' };
+      comp.orgBudgets['0-101'] = { fonct: 1500, invest: 500, etp: 3, coutSalarial: null, coutSalarialInvest: null, coutStage: null, coutPresta: null, autreCout: null, autreComment: '', coutPrestaInvest: null, autreCoutInvest: null, autreCommentInvest: '' };
       expect(comp.getYearTotalBudget(0)).toBe(5000);
     });
 
     it('getYearTotalEtp should sum etp across all orgs', () => {
-      comp.orgBudgets['0-100'] = { fonct: 0, invest: 0, etp: 4, coutStage: null, coutPresta: null, autreCout: null, autreComment: '', coutPrestaInvest: null, autreCoutInvest: null, autreCommentInvest: '' };
-      comp.orgBudgets['0-101'] = { fonct: 0, invest: 0, etp: 3, coutStage: null, coutPresta: null, autreCout: null, autreComment: '', coutPrestaInvest: null, autreCoutInvest: null, autreCommentInvest: '' };
+      comp.orgBudgets['0-100'] = { fonct: 0, invest: 0, etp: 4, coutSalarial: null, coutSalarialInvest: null, coutStage: null, coutPresta: null, autreCout: null, autreComment: '', coutPrestaInvest: null, autreCoutInvest: null, autreCommentInvest: '' };
+      comp.orgBudgets['0-101'] = { fonct: 0, invest: 0, etp: 3, coutSalarial: null, coutSalarialInvest: null, coutStage: null, coutPresta: null, autreCout: null, autreComment: '', coutPrestaInvest: null, autreCoutInvest: null, autreCommentInvest: '' };
       expect(comp.getYearTotalEtp(0)).toBe(7);
     });
   });
@@ -296,6 +326,123 @@ describe('OperationFormComponent — ventilation budgétaire', () => {
       }];
       expect(comp.getOrgCoutSalarial(0, 100)).toBe(3000);
       expect(comp.getOrgCoutSalarial(0, 999)).toBe(0);
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // #600 (retour 08/2026) — déclinaison par type de coût + coût salarial manuel
+  // -------------------------------------------------------------------------
+
+  describe('#600 réglages du tableau budgétaire', () => {
+    it('les deux réglages sont cochés par défaut', () => {
+      expect((comp as any).declinaisonParTypeCout()).toBe(true);
+      expect((comp as any).coutSalarialAuto()).toBe(true);
+    });
+
+    it('les réglages ne sont proposés que si le mode intègre le type de budget', () => {
+      for (const mode of ['none', 'by_org']) {
+        comp.onModeToggle(mode);
+        expect((comp as any).hasTypeVentilation()).toBe(false);
+        expect((comp as any).showCostDetail()).toBe(false);
+      }
+      for (const mode of ['by_type', 'by_org_type', 'by_type_poste', 'by_org_type_poste']) {
+        comp.onModeToggle(mode);
+        expect((comp as any).hasTypeVentilation()).toBe(true);
+        expect((comp as any).showCostDetail()).toBe(true);
+      }
+    });
+
+    it('« par type de budget » affiche le détail des coûts par défaut, les enveloppes si décochée', () => {
+      comp.onModeToggle('by_type');
+      expect(comp.budgetMode()).toBe('by_type_poste');
+      (comp as any).declinaisonParTypeCout.set(false);
+      expect(comp.budgetMode()).toBe('by_type');
+      expect((comp as any).showCostDetail()).toBe(false);
+    });
+
+    it('« par organisme + type de budget » suit la même règle', () => {
+      comp.onModeToggle('by_org_type');
+      expect(comp.budgetMode()).toBe('by_org_type_poste');
+      (comp as any).declinaisonParTypeCout.set(false);
+      expect(comp.budgetMode()).toBe('by_org_type');
+    });
+
+    it('décocher la déclinaison ramène les modes « + type de poste » aux enveloppes', () => {
+      comp.onModeToggle('by_org_type_poste');
+      (comp as any).declinaisonParTypeCout.set(false);
+      expect(comp.budgetMode()).toBe('by_org_type');
+      // Le temps de travail reste décliné par poste (piloté par le mode).
+      expect((comp as any).isPosteVentilation()).toBe(true);
+    });
+
+    it('coût salarial manuel : la valeur saisie remplace le calcul (par organisme)', () => {
+      comp.onModeToggle('by_org_type_poste');
+      comp.postes.set([{ id_poste: 5, id_pg: 1, id_organisme: 100, cout_jour: 300, nombre: 1 } as any]);
+      comp.rhLines = [{
+        id_poste: 5, id_organisme: null, finance: true,
+        categorie_depense: 'fonctionnement', jours: { 0: 10 }, derived: true,
+      }];
+      expect(comp.getOrgCoutSalarial(0, 100, 'fonctionnement')).toBe(3000);
+
+      (comp as any).coutSalarialAuto.set(false);
+      comp.updateOrgCoutSalarial(0, 100, '1 800');
+      comp.updateOrgCoutSalarialInvest(0, 100, '450');
+      expect(comp.getOrgCoutSalarial(0, 100, 'fonctionnement')).toBe(1800);
+      expect(comp.getOrgCoutSalarial(0, 100, 'investissement')).toBe(450);
+      // …et il pèse dans les totaux fonctionnement / investissement.
+      comp.updateOrgCoutPresta(0, 100, '200');
+      expect(comp.getOrgFonctTotal(0, 100)).toBe(2000);
+      expect(comp.getOrgInvestTotal(0, 100)).toBe(450);
+    });
+
+    it('#600 — l\'option « coût salarial automatique » n\'existe que par type de poste', () => {
+      comp.onModeToggle('by_type');
+      expect((comp as any).showCoutSalarialOption()).toBe(false);
+      comp.onModeToggle('by_org_type');
+      expect((comp as any).showCoutSalarialOption()).toBe(false);
+
+      comp.onModeToggle('by_type_poste');
+      expect((comp as any).showCoutSalarialOption()).toBe(true);
+      comp.onModeToggle('by_org_type_poste');
+      expect((comp as any).showCoutSalarialOption()).toBe(true);
+
+      // Sans détail des coûts, il n'y a pas de ligne « coût salarial » du tout.
+      (comp as any).declinaisonParTypeCout.set(false);
+      expect((comp as any).showCoutSalarialOption()).toBe(false);
+    });
+
+    it('#600 — par type de budget SANS type de poste : coût salarial toujours saisi', () => {
+      comp.onModeToggle('by_type');
+      comp.postes.set([{ id_poste: 5, id_pg: 1, id_organisme: 100, cout_jour: 300, nombre: 1 } as any]);
+      comp.rhLines = [{
+        id_poste: 5, id_organisme: null, finance: true,
+        categorie_depense: 'fonctionnement', jours: { 0: 10 }, derived: true,
+      }];
+
+      // La case reste cochée (valeur par défaut) mais ne s'applique pas :
+      // sans poste décliné, les 10 j × 300 € ne valorisent rien.
+      expect((comp as any).coutSalarialAuto()).toBe(true);
+      expect((comp as any).coutSalarialCalcule()).toBe(false);
+
+      comp.updateTypeCoutSalarial(0, '1 200');
+      expect(comp.getTypeCoutSalarial(0, 'fonctionnement')).toBe(1200);
+    });
+
+    it('coût salarial manuel : idem sans déclinaison par organisme', () => {
+      comp.onModeToggle('by_type_poste');
+      comp.postes.set([{ id_poste: 5, id_pg: 1, id_organisme: 100, cout_jour: 300, nombre: 1 } as any]);
+      comp.rhLines = [{
+        id_poste: 5, id_organisme: null, finance: true,
+        categorie_depense: 'fonctionnement', jours: { 0: 10 }, derived: true,
+      }];
+      expect(comp.getTypeCoutSalarial(0, 'fonctionnement')).toBe(3000);
+
+      (comp as any).coutSalarialAuto.set(false);
+      comp.updateTypeCoutSalarial(0, '900');
+      comp.updateTypeCoutSalarialInvest(0, '100');
+      expect(comp.getTypeCoutSalarial(0, 'fonctionnement')).toBe(900);
+      expect(comp.getTypeFonctTotal(0)).toBe(900);
+      expect(comp.getTypeInvestTotal(0)).toBe(100);
     });
   });
 
@@ -1353,4 +1500,86 @@ describe('OperationFormComponent — lien vers le suivi de l\'action (#531)', ()
     expect(router.navigate).not.toHaveBeenCalled();
   });
 
+});
+
+// ===========================================================================
+// #641 — Paramétrage de ventilation mémorisé d'une action à l'autre
+// ===========================================================================
+
+describe('OperationFormComponent — paramétrage de ventilation par défaut (#641)', () => {
+  function makeInstance(defaults: any, planId: number | null = 7): {
+    comp: OperationFormComponent;
+    getVentilationDefaults: jest.Mock;
+    syncRhLines: jest.Mock;
+  } {
+    const comp = Object.create(OperationFormComponent.prototype) as OperationFormComponent;
+    const getVentilationDefaults = jest.fn().mockReturnValue(of(defaults));
+    const syncRhLines = jest.fn();
+    (comp as any).planId = signal<number | null>(planId);
+    (comp as any).isEditMode = signal(false);
+    (comp as any).isReadOnly = signal(false);
+    (comp as any).ventilationMode = signal<string>('none');
+    (comp as any).declinaisonParPoste = signal(false);
+    (comp as any).declinaisonParTypeCout = signal(true);
+    (comp as any).coutSalarialAuto = signal(true);
+    (comp as any).isPosteVentilation = computed(() => {
+      const m = (comp as any).ventilationMode();
+      return m === 'by_type_poste' || m === 'by_org_type_poste';
+    });
+    (comp as any).enjeuService = { getVentilationDefaults };
+    (comp as any).syncRhLines = syncRhLines;
+    return { comp, getVentilationDefaults, syncRhLines };
+  }
+
+  it('reprend le mode et les deux cases de la dernière action saisie', () => {
+    const { comp, getVentilationDefaults } = makeInstance({
+      plan_id: 7,
+      source_operation_id: 12,
+      ventilation_mode: 'by_org_type_poste',
+      declinaison_par_type_cout: false,
+      cout_salarial_auto: false,
+    });
+
+    (comp as any).applyVentilationDefaults();
+
+    expect(getVentilationDefaults).toHaveBeenCalledWith(7);
+    expect((comp as any).ventilationMode()).toBe('by_org_type_poste');
+    expect((comp as any).declinaisonParTypeCout()).toBe(false);
+    expect((comp as any).coutSalarialAuto()).toBe(false);
+    // Le mode « + type de poste » réaligne la déclinaison par poste et le tableau RH.
+    expect((comp as any).declinaisonParPoste()).toBe(true);
+  });
+
+  it('garde les valeurs par défaut quand le plan n\'a encore aucune action', () => {
+    const { comp } = makeInstance({
+      plan_id: 7,
+      source_operation_id: null,
+      ventilation_mode: 'none',
+      declinaison_par_type_cout: true,
+      cout_salarial_auto: true,
+    });
+    (comp as any).declinaisonParTypeCout.set(true);
+
+    (comp as any).applyVentilationDefaults();
+
+    expect((comp as any).ventilationMode()).toBe('none');
+    expect((comp as any).declinaisonParTypeCout()).toBe(true);
+    expect((comp as any).coutSalarialAuto()).toBe(true);
+  });
+
+  it('ne réclame rien au serveur sans plan résolu, en édition ou en lecture seule', () => {
+    const noPlan = makeInstance({ source_operation_id: 12 }, null);
+    (noPlan.comp as any).applyVentilationDefaults();
+    expect(noPlan.getVentilationDefaults).not.toHaveBeenCalled();
+
+    const edit = makeInstance({ source_operation_id: 12 });
+    (edit.comp as any).isEditMode.set(true);
+    (edit.comp as any).applyVentilationDefaults();
+    expect(edit.getVentilationDefaults).not.toHaveBeenCalled();
+
+    const readOnly = makeInstance({ source_operation_id: 12 });
+    (readOnly.comp as any).isReadOnly.set(true);
+    (readOnly.comp as any).applyVentilationDefaults();
+    expect(readOnly.getVentilationDefaults).not.toHaveBeenCalled();
+  });
 });

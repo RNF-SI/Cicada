@@ -249,9 +249,16 @@ class ContenuIndexe(models.Model):
         indexes = [
             GinIndex(fields=['search_titre'], name='idx_recherche_titre_gin'),
             GinIndex(fields=['search_full'], name='idx_recherche_full_gin'),
-            # Tolérance aux fautes de frappe sur les libellés.
+            # Tolérance aux fautes de frappe sur les libellés…
             GinIndex(
                 fields=['titre'], name='idx_recherche_titre_trgm',
+                opclasses=['gin_trgm_ops'],
+            ),
+            # …et sur les objets rattachés (#634) : un nom d'habitat, d'espèce
+            # ou de protocole est long, latin et rarement tapé sans faute — la
+            # radicalisation ne pardonne rien, seule la similarité rattrape.
+            GinIndex(
+                fields=['rattachements'], name='idx_recherche_ratt_trgm',
                 opclasses=['gin_trgm_ops'],
             ),
             GinIndex(fields=['site_ids'], name='idx_recherche_sites'),

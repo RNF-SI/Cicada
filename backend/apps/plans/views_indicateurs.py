@@ -10,10 +10,11 @@ from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import SearchFilter, OrderingFilter
 
 from django.db import transaction
+from django.db.models import Max
 
 from .models_indicateurs import (
     Indicateur, Metrique, Mesure, IndicateurMesure, IndicateurRealisationGlobale,
-    CorIndicateurGeologie,
+    CorIndicateurGeologie, CorIndicateurNe, CorIndicateurRa,
 )
 from .models_enjeux import NiveauExigence, ResultatAttendu
 from .permissions import CanModifyOnlyDraftPlan, IsReferentOrReadOnly
@@ -305,6 +306,12 @@ class IndicateurViewSet(viewsets.ModelViewSet):
                 indicateur.id_ne = None
                 indicateur.id_resultat_attendu = new_parent
             indicateur.ordre = position
+            # #585 — DÉPLACER n'est pas PARTAGER : on efface les liaisons de
+            # l'indicateur avant de le rattacher ailleurs, sinon il resterait
+            # affiché sous son ancien parent en plus du nouveau. `save()`
+            # recrée aussitôt la ligne du parent porteur (invariant #585).
+            CorIndicateurNe.objects.filter(id_indicateur=indicateur).delete()
+            CorIndicateurRa.objects.filter(id_indicateur=indicateur).delete()
             indicateur.save()
 
             # Renumérotation des siblings dans le nouveau parent
@@ -323,15 +330,138 @@ class IndicateurViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(indicateur)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
+    def _resolve_share_parent(self, request, indicateur):
+        """#585 — Parent de partage demandé, validé pour cet indicateur.
+
+        Renvoie ``(parent, cor_model, filtre, None)`` ou ``(None, None, None,
+        Response d'erreur)``. Le partage se fait toujours entre parents de MÊME
+        nature : un indicateur d'état ne peut être lié qu'à un autre niveau
+        d'exigence, un indicateur de pression qu'à un autre résultat attendu —
+        c'est la nature du parent porteur qui décide, l'indicateur n'ayant qu'un
+        seul type de rattachement.
+        """
+        if indicateur.id_ne_id:
+            parent_id = request.data.get('ne_id')
+            if not parent_id:
+                return None, None, None, Response(
+                    {'detail': "ne_id requis pour un indicateur d'état."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            parent = get_object_or_404(NiveauExigence, pk=parent_id)
+            return parent, CorIndicateurNe, {'id_ne': parent}, None
+
+        if indicateur.id_resultat_attendu_id:
+            parent_id = request.data.get('ra_id')
+            if not parent_id:
+                return None, None, None, Response(
+                    {'detail': "ra_id requis pour un indicateur de pression."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            parent = get_object_or_404(ResultatAttendu, pk=parent_id)
+            return parent, CorIndicateurRa, {'id_resultat_attendu': parent}, None
+
+        return None, None, None, Response(
+            {'detail': "Cet indicateur n'a aucun parent : il ne peut pas être partagé."},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    @staticmethod
+    def _assert_draft_or_403(plan):
+        """#248 — lève une 403 si le plan n'est pas éditable (hors brouillon)."""
+        if plan is None or plan.statut not in CanModifyOnlyDraftPlan.EDITABLE_STATUSES:
+            return Response(
+                {'detail': CanModifyOnlyDraftPlan.message},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+        return None
+
+    @action(detail=True, methods=['post'], url_path='link')
+    def link(self, request, pk=None):
+        """
+        #585 — Partage cet indicateur avec un parent de plus.
+
+        POST /api/plans/indicateurs/{id}/link/  body: { "ne_id": <int> }
+        POST /api/plans/indicateurs/{id}/link/  body: { "ra_id": <int> }
+
+        Un indicateur d'état se partage entre plusieurs **niveaux d'exigence**,
+        un indicateur de pression entre plusieurs **résultats attendus**. C'est
+        le MÊME indicateur, avec ses métriques et ses actions, qui apparaît sous
+        chacun : toute modification se répercute partout.
+        Contraintes : même plan, plan en brouillon.
+        """
+        indicateur = self.get_object()
+        parent, cor_model, filtre, erreur = self._resolve_share_parent(request, indicateur)
+        if erreur:
+            return erreur
+
+        plan = indicateur.get_plan_de_gestion()
+        if plan is None or parent.get_plan_de_gestion() != plan:
+            return Response(
+                {'detail': "Un indicateur ne peut être lié qu'à un parent du même "
+                           "plan de gestion."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        blocked = self._assert_draft_or_403(plan)
+        if blocked:
+            return blocked
+
+        max_ordre = cor_model.objects.filter(**filtre).aggregate(m=Max('ordre'))['m']
+        cor_model.objects.get_or_create(
+            id_indicateur=indicateur, **filtre,
+            defaults={'ordre': (max_ordre + 1) if max_ordre is not None else 0},
+        )
+        indicateur.id_utilisateur_maj = request.user
+        indicateur.save(update_fields=['id_utilisateur_maj', 'date_maj'])
+        return Response(self.get_serializer(indicateur).data, status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=['post'], url_path='unlink')
+    def unlink(self, request, pk=None):
+        """
+        #585 — Retire cet indicateur d'un parent avec lequel il est partagé.
+
+        POST /api/plans/indicateurs/{id}/unlink/  body: { "ne_id" | "ra_id" }
+
+        Le parent **porteur** ne peut pas être détaché : ce serait un
+        déplacement (cf. l'endpoint `move`), pas un départage, et l'indicateur
+        se retrouverait sans parent de référence. Pour le supprimer, on le
+        supprime.
+        """
+        indicateur = self.get_object()
+        parent, cor_model, filtre, erreur = self._resolve_share_parent(request, indicateur)
+        if erreur:
+            return erreur
+
+        plan = indicateur.get_plan_de_gestion()
+        blocked = self._assert_draft_or_403(plan)
+        if blocked:
+            return blocked
+
+        porteur_id = indicateur.id_ne_id or indicateur.id_resultat_attendu_id
+        if parent.pk == porteur_id:
+            return Response(
+                {'detail': "Le parent porteur ne peut pas être détaché. Supprimez "
+                           "l'indicateur, ou détachez-le d'un parent avec lequel "
+                           "il est partagé."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        cor_model.objects.filter(id_indicateur=indicateur, **filtre).delete()
+        indicateur.id_utilisateur_maj = request.user
+        indicateur.save(update_fields=['id_utilisateur_maj', 'date_maj'])
+        return Response(self.get_serializer(indicateur).data, status=status.HTTP_200_OK)
+
     @action(detail=False, methods=['get'], url_path=r'by-ne/(?P<ne_id>\d+)')
     def by_ne(self, request, ne_id=None):
         """
         Récupérer les indicateurs d'un niveau d'exigence.
 
         GET /api/plans/indicateurs/by-ne/{ne_id}/
+
+        Inclut les indicateurs **partagés** avec ce niveau (#585), pas seulement
+        ceux dont il est porteur.
         """
         ne = get_object_or_404(NiveauExigence, id_ne=ne_id)
-        indicateurs = self.get_queryset().filter(id_ne=ne)
+        indicateurs = self.get_queryset().filter(niveaux_exigence=ne).distinct()
         return Response({
             'ne_id': int(ne_id),
             'ne_libelle': ne.libelle,
@@ -345,9 +475,12 @@ class IndicateurViewSet(viewsets.ModelViewSet):
         Récupérer les indicateurs d'un résultat attendu.
 
         GET /api/plans/indicateurs/by-ra/{ra_id}/
+
+        Inclut les indicateurs **partagés** avec ce résultat attendu (#585), pas
+        seulement ceux dont il est porteur.
         """
         ra = get_object_or_404(ResultatAttendu, id_ra=ra_id)
-        indicateurs = self.get_queryset().filter(id_resultat_attendu=ra)
+        indicateurs = self.get_queryset().filter(resultats_attendus=ra).distinct()
         return Response({
             'ra_id': int(ra_id),
             'ra_libelle': ra.libelle,

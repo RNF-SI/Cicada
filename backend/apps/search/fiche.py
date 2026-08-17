@@ -23,14 +23,28 @@ from apps.plans.models_operations import Operation
 
 def _indicateurs_prefetch(chemin):
     """Prefetch des indicateurs d'un niveau d'exigence ou d'un résultat attendu."""
-    from apps.plans.models_indicateurs import Indicateur
+    from apps.plans.models_indicateurs import Indicateur, Metrique
 
     return Prefetch(
         chemin,
         queryset=(
             Indicateur.objects
             .select_related('type_indicateur')
-            .prefetch_related('metriques')
+            .prefetch_related(
+                # La grille de lecture publiée (#634) se calcule à partir du
+                # type, du format et des blocs ET/OU de chaque métrique : sans
+                # ces trois-là, une fiche bien remplie coûte des centaines de
+                # requêtes.
+                Prefetch(
+                    'metriques',
+                    queryset=(
+                        Metrique.objects
+                        .select_related('type_metrique', 'format_metrique')
+                        .prefetch_related('score_blocks')
+                        .order_by('nom_metrique')
+                    ),
+                ),
+            )
             .order_by('nom_indicateur')
         ),
         to_attr='indicateurs_pub',
@@ -140,19 +154,75 @@ def _rattacher_objectifs_operationnels(plan, enjeux_par_id):
                 cible.oo_pub.append(objectif)
 
 
+#: Nomenclatures dont les suivis et protocoles ne stockent que le mnémonique.
+#: Elles sont résolues en une requête pour toute la fiche : les résoudre champ
+#: par champ, comme le fait le sérialiseur interne des suivis, coûterait une
+#: requête par action et par champ.
+TYPES_NOMENCLATURE_SUIVI = (
+    'OBJECTIF_SUIVI', 'CIBLE_SUIVI', 'OUTIL_SAISIE',
+    'BANCARISATION_STOCKAGE', 'PERIODE_SUIVI',
+)
+
+
+def _libelles_nomenclature():
+    """`{(type, mnémonique): libellé}` pour tout ce qu'affiche un suivi."""
+    from apps.core.models import Nomenclature
+
+    return {
+        (type_mnemonique, mnemonique): label
+        for type_mnemonique, mnemonique, label in (
+            Nomenclature.objects
+            .filter(id_type__mnemonique__in=TYPES_NOMENCLATURE_SUIVI)
+            .values_list('id_type__mnemonique', 'mnemonique', 'label')
+        )
+    }
+
+
 def _charger_actions(plan):
+    from apps.plans.models_indicateurs import Metrique
+
     scope = Q()
     for chemin in OPERATION_TO_PG_PATHS:
         scope |= Q(**{chemin: plan})
 
-    return list(
+    # Les métriques portent leur indicateur — c'est par elles qu'une action
+    # atteint ses indicateurs de réponse (#626), en plus du lien direct.
+    metriques = Metrique.objects.select_related(
+        'id_indicateur__type_indicateur',
+        'type_metrique', 'format_metrique',
+    ).prefetch_related('score_blocks')
+
+    actions = list(
         Operation.objects.filter(scope)
         .distinct()
         .select_related(
             'id_categorie_action_reserve', 'id_type_action', 'id_priorite',
+            'id_indicateur', 'id_indicateur__type_indicateur',
+            'id_suivi', 'id_suivi__id_statut',
+        )
+        .prefetch_related(
+            'sites',
+            'id_suivi__protocoles',
+            Prefetch('metriques', queryset=metriques),
+            # Métriques et grille des indicateurs de réponse, atteints par les
+            # deux chemins possibles : le lien direct et les métriques.
+            Prefetch('id_indicateur__metriques', queryset=metriques),
+            Prefetch('metriques__id_indicateur__metriques', queryset=metriques),
         )
         .order_by('code_operation', 'libelle')
     )
+
+    suivis = [action.id_suivi for action in actions if action.id_suivi_id]
+    if not suivis:
+        return actions
+
+    libelles = _libelles_nomenclature()
+    for suivi in suivis:
+        suivi.libelles_pub = libelles
+        for protocole in suivi.protocoles.all():
+            protocole.libelles_pub = libelles
+
+    return actions
 
 
 def construire_fiche(plan):

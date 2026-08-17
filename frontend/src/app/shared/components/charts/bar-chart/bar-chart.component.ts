@@ -9,7 +9,8 @@ import {
 import { ChartDefsComponent } from '../chart-defs.component';
 
 interface BarRect {
-  x: number; y: number; w: number; h: number;
+  /** Tracé de la barre : coins hauts arrondis seulement au sommet de la pile. */
+  d: string;
   fill: string;
   title: string;
 }
@@ -52,7 +53,8 @@ interface BarVm {
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (vm && vm.hasData) {
-      <svg [attr.viewBox]="'0 0 ' + vm.width + ' ' + vm.height" class="bar-svg" preserveAspectRatio="xMidYMid meet">
+      <svg [attr.viewBox]="'0 0 ' + vm.width + ' ' + vm.height" class="bar-svg"
+           [style.max-width.px]="vm.width" preserveAspectRatio="xMidYMid meet">
         <svg:g ccdChartDefs [defs]="vm.defs"></svg:g>
 
         @if (yLabel) {
@@ -69,10 +71,10 @@ interface BarVm {
         <!-- Barres -->
         @for (col of vm.columns; track col.label) {
           @for (r of col.rects; track $index) {
-            <svg:rect [attr.x]="r.x" [attr.y]="r.y" [attr.width]="r.w" [attr.height]="r.h"
-                      [attr.fill]="r.fill" rx="2" class="bar-rect">
+            <svg:path [attr.d]="r.d" [attr.fill]="r.fill"
+                      class="bar-rect" [class.bar-rect--stacked]="mode === 'stacked'">
               <svg:title>{{ r.title }}</svg:title>
-            </svg:rect>
+            </svg:path>
           }
           @if (col.topLabel) {
             <svg:text [attr.x]="col.topLabelX" [attr.y]="col.topLabelY" text-anchor="middle" class="bar-value">{{ col.topLabel }}</svg:text>
@@ -96,6 +98,13 @@ export class BarChartComponent implements OnChanges {
   @Input() yLabel?: string;
   @Input() xLabel?: string;
   @Input() height = 250;
+  /**
+   * Largeur cible du tracé, en px. Le SVG ne dépasse jamais cette largeur : les
+   * bandes se resserrent quand il y a beaucoup de colonnes, au lieu de laisser
+   * le navigateur réduire tout le dessin — ce qui rapetisserait aussi les
+   * libellés d'axes, censés rester à 13 px (kit UI).
+   */
+  @Input() maxWidth = 560;
   /** Affiche la valeur au-dessus des barres (mode simple). */
   @Input() showValues = false;
 
@@ -106,6 +115,7 @@ export class BarChartComponent implements OnChanges {
   private static readonly PAD_RIGHT = 14;
   private static readonly PAD_TOP = 22;
   private static readonly BAND = 74;
+  private static readonly BAND_MIN = 34;
 
   ngOnChanges(): void {
     const data = this.data || [];
@@ -114,7 +124,14 @@ export class BarChartComponent implements OnChanges {
     const plotTop = BarChartComponent.PAD_TOP;
     const plotBottom = this.height - padBottom;
     const plotLeft = BarChartComponent.PAD_LEFT;
-    const width = plotLeft + data.length * BarChartComponent.BAND + BarChartComponent.PAD_RIGHT;
+    const available = this.maxWidth - plotLeft - BarChartComponent.PAD_RIGHT;
+    const band = data.length
+      ? Math.max(
+          BarChartComponent.BAND_MIN,
+          Math.min(BarChartComponent.BAND, available / data.length),
+        )
+      : BarChartComponent.BAND;
+    const width = plotLeft + data.length * band + BarChartComponent.PAD_RIGHT;
     const plotRight = width - BarChartComponent.PAD_RIGHT;
     const plotH = plotBottom - plotTop;
 
@@ -132,45 +149,47 @@ export class BarChartComponent implements OnChanges {
 
     // Colonnes.
     const columns: BarColumn[] = data.map((d, i) => {
-      const bandX = plotLeft + i * BarChartComponent.BAND;
-      const center = bandX + BarChartComponent.BAND / 2;
+      const bandX = plotLeft + i * band;
+      const center = bandX + band / 2;
       const rects: BarRect[] = [];
       let top: number | undefined;
 
       if (this.mode === 'grouped') {
         const segs = d.segments.filter(s => s.value !== 0);
-        const groupW = BarChartComponent.BAND * 0.62;
+        const groupW = band * 0.62;
         const barW = segs.length ? groupW / segs.length : groupW;
         const startX = center - groupW / 2;
         segs.forEach((s, si) => {
           const h = (Math.abs(s.value) / maxY) * plotH;
           rects.push({
-            x: startX + si * barW + 1, y: plotBottom - h, w: barW - 2, h,
+            d: this.barPath(startX + si * barW + 1, plotBottom - h, barW - 2, h, true),
             fill: registry.ref(s.color, s.pattern),
             title: `${s.seriesLabel ?? d.label} : ${s.value}`,
           });
         });
       } else if (this.mode === 'simple') {
         const s = d.segments[0];
-        const barW = BarChartComponent.BAND * 0.5;
+        const barW = band * 0.5;
         const h = s ? (Math.abs(s.value) / maxY) * plotH : 0;
         if (s) {
           rects.push({
-            x: center - barW / 2, y: plotBottom - h, w: barW, h,
+            d: this.barPath(center - barW / 2, plotBottom - h, barW, h, true),
             fill: registry.ref(s.color, s.pattern),
             title: `${d.label} : ${s.value}`,
           });
           top = plotBottom - h - 6;
         }
       } else {
-        // stacked
-        const barW = BarChartComponent.BAND * 0.5;
+        // stacked — empilé du bas vers le haut : seul le dernier segment posé
+        // est au sommet et porte les coins arrondis (kit UI).
+        const barW = band * 0.5;
+        const segs = d.segments.filter(s => s.value > 0);
         let acc = 0;
-        d.segments.filter(s => s.value > 0).forEach((s) => {
+        segs.forEach((s, si) => {
           const h = (s.value / maxY) * plotH;
           const y = plotBottom - (acc / maxY) * plotH - h;
           rects.push({
-            x: center - barW / 2, y, w: barW, h,
+            d: this.barPath(center - barW / 2, y, barW, h, si === segs.length - 1),
             fill: registry.ref(s.color, s.pattern),
             title: `${s.seriesLabel ?? d.label} : ${s.value}`,
           });
@@ -193,6 +212,17 @@ export class BarChartComponent implements OnChanges {
       grid, columns, defs: registry.defs(),
       hasData: data.length > 0 && columns.some(c => c.rects.length > 0),
     };
+  }
+
+  /**
+   * Rectangle de barre, coins hauts arrondis de 4 px si `roundTop`.
+   * Le rayon est bridé par la hauteur et la demi-largeur pour qu'un segment
+   * très fin ne devienne pas une pastille.
+   */
+  private barPath(x: number, y: number, w: number, h: number, roundTop: boolean): string {
+    const r = roundTop ? Math.max(0, Math.min(4, h, w / 2)) : 0;
+    if (r <= 0) return `M${x} ${y}h${w}v${h}h${-w}Z`;
+    return `M${x} ${y + r}a${r} ${r} 0 0 1 ${r} ${-r}h${w - 2 * r}a${r} ${r} 0 0 1 ${r} ${r}v${h - r}h${-w}Z`;
   }
 
   private computeMax(data: BarDatum[]): number {

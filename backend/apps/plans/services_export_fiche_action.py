@@ -272,7 +272,8 @@ def _paren(text, group_open, group_close) -> str:
 # fond uni, l'export n'échoue jamais pour une tuile manquante.
 
 _MAP_W, _MAP_H = 520, 360        # taille de la vignette (px)
-_MAP_ROWS = 20                   # lignes Excel réservées (~20 px par ligne)
+_MAP_ROWS = 14                   # lignes Excel fusionnées pour former la case
+_MAP_PAD = 4                     # marge entre la vignette et le bord de la case
 _TILE_SIZE = 256
 _TILE_ZOOM_MAX = 16
 _TILE_ZOOM_MIN = 3
@@ -695,22 +696,69 @@ class _Writer:
         ws.row_dimensions[self.r].height = 34
         self.r += 1
 
-    def picture(self, png, *, rows=_MAP_ROWS, row=None, col=4):
+    def picture_row(self, label, png, *, rows=_MAP_ROWS, col=4):
         """
-        Insère une image PNG et réserve `rows` lignes.
+        Ligne « libellé (A:C) | image (D:fin) », l'image **contenue** dans sa
+        cellule (#626).
 
-        `col` vaut 4 par défaut : la colonne des **valeurs** (cf. `kv`, qui
-        fusionne le libellé sur A:C et la valeur sur D:fin). Ancrée en A,
-        la vignette se retrouvait sous le libellé au lieu d'être en face de
-        lui, dans son champ (#626).
+        Une image Excel flotte au-dessus de la grille : elle n'est « dans » une
+        case que si la case est aussi grande qu'elle. Poser la vignette sur une
+        ligne de hauteur ordinaire, puis sauter des lignes vides, la laissait
+        déborder sur la section suivante — d'où « la carte est *sur* la case,
+        pas *dans* la case ».
+
+        On construit donc un vrai cadre : le libellé et la zone de valeur sont
+        fusionnés sur `rows` lignes, l'image est **réduite à la largeur
+        disponible** (elle dépend du nombre d'années du plan) et les hauteurs de
+        lignes sont calculées à partir de sa hauteur finale.
         """
         from openpyxl.drawing.image import Image as XLImage
-        from openpyxl.utils import get_column_letter as _col
+        from openpyxl.drawing.spreadsheet_drawing import AnchorMarker, OneCellAnchor
+        from openpyxl.drawing.xdr import XDRPositiveSize2D
+        from openpyxl.utils.units import pixels_to_EMU
 
-        ancre = self.r if row is None else row
+        ws, ancre = self.ws, self.r
         img = XLImage(io.BytesIO(png))
-        self.ws.add_image(img, f"{_col(col)}{ancre}")
-        self.r = max(self.r, ancre + rows)
+
+        # Largeur utile de la zone de valeur, en pixels. Largeur de colonne
+        # Excel → pixels : ~7 px par caractère plus les 5 px de marge interne.
+        zone = sum(
+            round((ws.column_dimensions[get_column_letter(c)].width or 8.43) * 7) + 5
+            for c in range(col, self.ncols + 1)
+        )
+        largeur = min(img.width, max(zone - 2 * _MAP_PAD, 60))
+        hauteur = round(img.height * largeur / img.width)
+        img.width, img.height = largeur, hauteur
+
+        # Cadre : libellé à gauche, image à droite, sur la même hauteur.
+        ws.merge_cells(start_row=ancre, start_column=1,
+                       end_row=ancre + rows - 1, end_column=3)
+        lc = ws.cell(ancre, 1, label)
+        lc.fill = PatternFill("solid", fgColor=_LABEL_FILL)
+        lc.font = _F_LABEL
+        lc.alignment = _AL_LT
+        ws.merge_cells(start_row=ancre, start_column=col,
+                       end_row=ancre + rows - 1, end_column=self.ncols)
+        for r in range(ancre, ancre + rows):
+            for c in range(1, self.ncols + 1):
+                ws.cell(r, c).border = _B
+
+        # Hauteurs de lignes : le cadre fait exactement la hauteur de l'image,
+        # marges comprises. En points (1 px = 0,75 pt à 96 ppp).
+        total_px = hauteur + 2 * _MAP_PAD
+        for r in range(ancre, ancre + rows):
+            ws.row_dimensions[r].height = round(total_px * 0.75 / rows, 2)
+
+        marqueur = AnchorMarker(
+            col=col - 1, colOff=pixels_to_EMU(_MAP_PAD),
+            row=ancre - 1, rowOff=pixels_to_EMU(_MAP_PAD),
+        )
+        img.anchor = OneCellAnchor(
+            _from=marqueur,
+            ext=XDRPositiveSize2D(pixels_to_EMU(largeur), pixels_to_EMU(hauteur)),
+        )
+        ws.add_image(img)
+        self.r = ancre + rows
 
     def blank(self):
         self.r += 1
@@ -799,10 +847,8 @@ def _render_action(ws, op, years, *, is_cs, code_local=""):
         png = None
     if png:
         # La vignette occupe le champ « valeur » de la ligne, en face de son
-        # libellé (#626) — et non la marge de gauche, sous le libellé.
-        ligne_emprise = w.r
-        w.kv("Emprise de l'action", "")
-        w.picture(png, row=ligne_emprise)
+        # libellé (#626) — et *dans* la case, qui est dimensionnée pour elle.
+        w.picture_row("Emprise de l'action", png)
     else:
         w.kv("Emprise de l'action", "Non renseignée")
 
@@ -978,8 +1024,13 @@ def _is_cs(op) -> bool:
     return bool(cat and (cat.mnemonique or "").upper() == "CS")
 
 
-def build_fiche_action_workbook(plan) -> bytes:
-    """Construit le classeur des fiches action (un onglet par opération)."""
+def build_fiche_action_workbook(plan, operation_ids=None) -> bytes:
+    """Construit le classeur des fiches action (un onglet par opération).
+
+    `operation_ids` restreint l'export à certaines actions du plan (#642 :
+    export d'UNE fiche depuis sa page de visualisation). Le rendu de chaque
+    onglet est strictement identique à l'export complet du plan.
+    """
     from .models_operations import Operation
 
     _appliquer_couleur_instance()
@@ -1012,6 +1063,9 @@ def build_fiche_action_workbook(plan) -> bytes:
         .distinct()
     )
     all_ops = list(ops) + list(ops_direct)
+    if operation_ids is not None:
+        wanted = {int(i) for i in operation_ids}
+        all_ops = [o for o in all_ops if o.id_operation in wanted]
     all_ops.sort(key=lambda o: (_txt(o.code_operation), o.id_operation))
 
     wb = Workbook()

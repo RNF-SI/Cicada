@@ -420,36 +420,68 @@ $form-side-margin: $spacing-xxl;
   }
 }
 
-// Séparateur d'organisme : bandeau vert pâle reprenant la maquette
-.org-group-header {
-  td {
+// #643 — hiérarchie de lecture du tableau budgétaire (maquette kit UI) :
+// l'organisme (vert pâle) coiffe ses deux enveloppes (jaune), chacune close par
+// son sous-total (jaune clair) ; le total de l'organisme (terra cotta) ferme le
+// bloc, et le bandeau TOTAL (primary) ferme le tableau.
+//
+// Les règles sont préfixées par `.programmation-table table` : sans ce
+// préfixe, le fond blanc de `.label-cell` — déclaré à ce niveau — l'emporte sur
+// la première colonne, et seules les cellules de valeurs se coloraient (les
+// bandeaux organisme et TOTAL restaient entièrement blancs).
+.programmation-table table {
+  tr.org-group-header td {
     background-color: $secondary-pale-green;
-    padding: $spacing-xs $spacing-sm;
+    color: $primary-color;
   }
 
-  .org-name {
-    font-family: $font-family;
-    font-size: $font-size-small;
-    font-weight: $font-weight-bold;
+  tr.total-group-header td {
+    background-color: $primary-color;
+    color: $white;
+  }
+
+  // Enveloppe fonctionnement / investissement d'un organisme.
+  tr.budget-subheader td {
+    background-color: $secondary-yellow;
     color: $primary-color;
-    letter-spacing: 0.5px;
+    font-weight: $font-weight-bold;
+  }
+
+  // Sous-total de l'enveloppe qui précède.
+  tr.budget-subtotal-row td {
+    background-color: $secondary-yellow-light;
+    color: $primary-color;
+    font-weight: $font-weight-bold;
+  }
+
+  // Total de l'organisme : ferme son bloc.
+  tr.org-total-row td {
+    background-color: $secondary-terra-cotta;
+    color: $white;
+    font-weight: $font-weight-bold;
+  }
+
+  // Total du tableau quand il n'y a pas d'organisme (mode « par type de budget
+  // + type de poste ») : c'est un TOTAL, pas le total d'un gestionnaire.
+  tr.grand-total-row td {
+    background-color: $primary-color;
+    color: $white;
+    font-weight: $font-weight-bold;
   }
 }
 
-// Bandeau TOTAL : fond primary, texte blanc
-.total-group-header {
-  td {
-    background-color: $primary-color;
-    padding: $spacing-xs $spacing-sm;
-  }
+// Typographie des bandeaux (organisme et TOTAL) ; les fonds sont posés ci-dessus.
+.org-group-header td,
+.total-group-header td {
+  padding: $spacing-xs $spacing-sm;
+}
 
-  .org-name {
-    font-family: $font-family;
-    font-size: $font-size-small;
-    font-weight: $font-weight-bold;
-    color: $white;
-    letter-spacing: 0.5px;
-  }
+.org-group-header .org-name,
+.total-group-header .org-name {
+  font-family: $font-family;
+  font-size: $font-size-small;
+  font-weight: $font-weight-bold;
+  letter-spacing: 0.5px;
 }
 
 .label-indent {
@@ -481,6 +513,27 @@ $form-side-margin: $spacing-xxl;
     font-size: $font-size-small;
     font-weight: $font-weight-semibold;
     color: $black;
+  }
+}
+
+// #600 — réglages du tableau budgétaire (déclinaison par type de coût,
+// coût salarial auto/manuel), au-dessus du tableau de programmation annuelle.
+.budget-options {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-xs;
+  margin-bottom: $spacing-md;
+
+  .budget-option-row {
+    display: flex;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: $spacing-md;
+  }
+
+  .budget-postes-link {
+    font-size: $font-size-small;
+    white-space: nowrap;
   }
 }
 

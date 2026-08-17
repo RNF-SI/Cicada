@@ -35,6 +35,7 @@ import {
   MesureCreatePayload,
   Operation,
   OperationCreatePayload,
+  VentilationDefaults,
   Responsabilite,
   ResponsabiliteCreatePayload,
   SiteResponsabilitesResponse,
@@ -622,6 +623,37 @@ export class EnjeuService {
   }
 
   /**
+   * #585 — Partage cet indicateur d'état avec un niveau d'exigence de plus.
+   * C'est le MÊME indicateur (métriques et actions comprises) qui apparaît
+   * alors sous les deux : toute modification se répercute des deux côtés.
+   */
+  linkIndicateurToNe(id: number, neId: number): Observable<Indicateur> {
+    return this.http.post<Indicateur>(`${this.apiUrl}/indicateurs/${id}/link/`, { ne_id: neId });
+  }
+
+  /**
+   * #585 — Retire le partage de cet indicateur d'état pour un niveau
+   * d'exigence. Le niveau PORTEUR (celui sous lequel il a été créé) est refusé
+   * par le serveur : ce serait un déplacement, pas un départage.
+   */
+  unlinkIndicateurFromNe(id: number, neId: number): Observable<Indicateur> {
+    return this.http.post<Indicateur>(`${this.apiUrl}/indicateurs/${id}/unlink/`, { ne_id: neId });
+  }
+
+  /**
+   * #585 — Partage cet indicateur de pression avec un résultat attendu de plus.
+   * Pendant de `linkIndicateurToNe` sur l'autre branche de l'arborescence.
+   */
+  linkIndicateurToRa(id: number, raId: number): Observable<Indicateur> {
+    return this.http.post<Indicateur>(`${this.apiUrl}/indicateurs/${id}/link/`, { ra_id: raId });
+  }
+
+  /** #585 — Retire le partage de cet indicateur de pression pour un résultat attendu. */
+  unlinkIndicateurFromRa(id: number, raId: number): Observable<Indicateur> {
+    return this.http.post<Indicateur>(`${this.apiUrl}/indicateurs/${id}/unlink/`, { ra_id: raId });
+  }
+
+  /**
    * Duplique un indicateur (avec ses métriques et liens taxonomiques) sur
    * un ou plusieurs niveaux d'exigence et/ou résultats attendus cibles
    * (#262). Les mesures (données dans le temps) ne sont pas copiées.
@@ -765,12 +797,33 @@ export class EnjeuService {
     return this.http.delete<void>(`${this.apiUrl}/operations/${id}/`);
   }
 
+  /**
+   * #642 — Télécharge LA fiche de cette action au format Excel (modèle CICADA,
+   * un seul onglet). Réservé aux référents du plan / gestionnaires côté serveur.
+   * GET /api/plans/operations/{id}/export-fiche-xlsx/
+   */
+  downloadOperationFicheXlsx(operationId: number): Observable<Blob> {
+    return this.http.get(`${this.apiUrl}/operations/${operationId}/export-fiche-xlsx/`, {
+      responseType: 'blob',
+    });
+  }
+
   getOperationsByIndicateur(indicateurId: number): Observable<any> {
     return this.http.get<any>(`${this.apiUrl}/operations/by-indicateur/${indicateurId}/`);
   }
 
   getOperationsByPlan(planId: number): Observable<any> {
     return this.http.get<any>(`${this.apiUrl}/operations/by-plan/${planId}/`);
+  }
+
+  /**
+   * #641 — Réglages de ventilation de la dernière action saisie du plan, servant
+   * de valeurs par défaut au formulaire de création d'une nouvelle action.
+   */
+  getVentilationDefaults(planId: number): Observable<VentilationDefaults> {
+    return this.http.get<VentilationDefaults>(
+      `${this.apiUrl}/operations/ventilation-defaults/${planId}/`
+    );
   }
 
   addMetriqueToOperation(operationId: number, metriqueId: number): Observable<Operation> {

@@ -52,6 +52,7 @@ import {
   ShareElementDialogResult,
   ShareEnjeuTarget,
   ShareOoTarget,
+  ShareParentTarget,
   SharePressionTarget,
   ShareIndicateurTarget,
 } from '../../../../shared/components/modals';
@@ -1991,6 +1992,188 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
       });
   }
 
+  // ==========================================================================
+  // #585 — Partage d'un indicateur entre plusieurs parents
+  //
+  // Deux relations, une par branche de l'arborescence : un indicateur d'ÉTAT se
+  // partage entre plusieurs niveaux d'exigence, un indicateur de PRESSION entre
+  // plusieurs résultats attendus. C'est le même indicateur (métriques et
+  // actions comprises) qui apparaît sous chacun.
+  //
+  // Seul « lier » passe par ici : la copie d'un indicateur a son propre
+  // dialogue depuis #262 (`duplicateIndicateur`), déjà branché sur la carte.
+  // ==========================================================================
+
+  /** #585 — Niveaux d'exigence sous lesquels un indicateur d'état est présent. */
+  indicateurNeIds(ind: Indicateur): number[] {
+    return ind.ne_ids?.length ? ind.ne_ids : (ind.id_ne != null ? [ind.id_ne] : []);
+  }
+
+  /** #585 — Résultats attendus sous lesquels un indicateur de pression est présent. */
+  indicateurRaIds(ind: Indicateur): number[] {
+    return ind.ra_ids?.length
+      ? ind.ra_ids
+      : (ind.id_resultat_attendu != null ? [ind.id_resultat_attendu] : []);
+  }
+
+  /** #585 — Vrai si l'indicateur d'état est partagé entre plusieurs niveaux. */
+  isIndicateurEtatShared(ind: Indicateur): boolean {
+    return this.indicateurNeIds(ind).length > 1;
+  }
+
+  /** #585 — Vrai si l'indicateur de pression est partagé entre plusieurs RA. */
+  isIndicateurPressionShared(ind: Indicateur): boolean {
+    return this.indicateurRaIds(ind).length > 1;
+  }
+
+  /**
+   * #585 — Vrai si l'indicateur n'est ici QUE par partage : le parent affiché
+   * n'est pas celui sous lequel il a été créé. C'est le seul cas où « retirer
+   * d'ici » a un sens — sur son parent porteur, le serveur refuse.
+   */
+  isIndicateurEtatSharedHere(ind: Indicateur, ne: NiveauExigence): boolean {
+    return this.isIndicateurEtatShared(ind) && ind.id_ne !== ne.id_ne;
+  }
+
+  isIndicateurPressionSharedHere(ind: Indicateur, ra: ResultatAttendu): boolean {
+    return this.isIndicateurPressionShared(ind) && ind.id_resultat_attendu !== ra.id_ra;
+  }
+
+  /**
+   * #585 — Ouvre le dialogue de partage d'un indicateur d'état vers un autre
+   * niveau d'exigence du plan. Les niveaux où il est déjà présent sont exclus.
+   */
+  openShareIndicateurEtat(ind: Indicateur): void {
+    if (!this.canEditPlan()) return;
+    const dejaLies = new Set(this.indicateurNeIds(ind));
+    const targets: ShareEnjeuTarget[] = [];
+
+    for (const e of this.allEnjeuxAndFcr()) {
+      const parents: ShareParentTarget[] = [];
+      for (const olt of e.objectifs_long_terme || []) {
+        for (const ne of olt.niveaux_exigence || []) {
+          if (dejaLies.has(ne.id_ne)) continue;
+          parents.push({ id: ne.id_ne, libelle: ne.libelle, contexte: olt.libelle });
+        }
+      }
+      if (parents.length) {
+        targets.push({ id_enjeu: e.id_enjeu, libelle: e.libelle, parents });
+      }
+    }
+
+    this.openShareIndicateurDialog(ind, 'indicateurEtat', targets, (parentId) =>
+      this.enjeuService.linkIndicateurToNe(ind.id_indicateur, parentId));
+  }
+
+  /**
+   * #585 — Ouvre le dialogue de partage d'un indicateur de pression vers un
+   * autre résultat attendu du plan.
+   */
+  openShareIndicateurPression(ind: Indicateur): void {
+    if (!this.canEditPlan()) return;
+    const dejaLies = new Set(this.indicateurRaIds(ind));
+    const targets: ShareEnjeuTarget[] = [];
+
+    for (const e of this.allEnjeuxAndFcr()) {
+      const parents: ShareParentTarget[] = [];
+      for (const oo of this.oosOfEnjeu(e)) {
+        for (const ra of oo.resultats_attendus || []) {
+          if (dejaLies.has(ra.id_ra)) continue;
+          parents.push({ id: ra.id_ra, libelle: ra.libelle, contexte: oo.libelle });
+        }
+      }
+      if (parents.length) {
+        targets.push({ id_enjeu: e.id_enjeu, libelle: e.libelle, parents });
+      }
+    }
+
+    this.openShareIndicateurDialog(ind, 'indicateurPression', targets, (parentId) =>
+      this.enjeuService.linkIndicateurToRa(ind.id_indicateur, parentId));
+  }
+
+  /** #585 — Tronc commun des deux branches de partage d'indicateur. */
+  private openShareIndicateurDialog(
+    ind: Indicateur,
+    elementType: 'indicateurEtat' | 'indicateurPression',
+    targets: ShareEnjeuTarget[],
+    call: (parentId: number) => Observable<Indicateur>,
+  ): void {
+    const dialogRef = this.dialog.open(ShareElementDialogComponent, {
+      width: '640px', maxWidth: '95vw', maxHeight: '90vh',
+      data: {
+        elementType,
+        elementLabel: ind.nom_indicateur,
+        mode: 'link',
+        enjeux: targets,
+      } as ShareElementDialogData,
+    });
+
+    dialogRef.afterClosed().pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((result: ShareElementDialogResult | null) => {
+        if (!result || result.targetParentId == null) return;
+        this.runShareCall(
+          call(result.targetParentId),
+          `enjeux.share.${elementType}.linkSuccess`,
+          `enjeux.share.${elementType}.linkError`,
+        );
+      });
+  }
+
+  /** #585 — Retire le partage d'un indicateur d'état pour le niveau affiché. */
+  unlinkIndicateurEtat(ind: Indicateur, ne: NiveauExigence): void {
+    if (!this.isIndicateurEtatSharedHere(ind, ne)) {
+      this.warnUnlinkPorteur();
+      return;
+    }
+    this.confirmUnlinkIndicateur(ind, 'indicateurEtat', () =>
+      this.enjeuService.unlinkIndicateurFromNe(ind.id_indicateur, ne.id_ne));
+  }
+
+  /** #585 — Retire le partage d'un indicateur de pression pour le RA affiché. */
+  unlinkIndicateurPression(ind: Indicateur, ra: ResultatAttendu): void {
+    if (!this.isIndicateurPressionSharedHere(ind, ra)) {
+      this.warnUnlinkPorteur();
+      return;
+    }
+    this.confirmUnlinkIndicateur(ind, 'indicateurPression', () =>
+      this.enjeuService.unlinkIndicateurFromRa(ind.id_indicateur, ra.id_ra));
+  }
+
+  private warnUnlinkPorteur(): void {
+    this.snackBar.open(
+      this.translate.instant('enjeux.share.indicateur.unlinkPorteur'),
+      this.translate.instant('common.actions.close'),
+      { duration: 5000 },
+    );
+  }
+
+  private confirmUnlinkIndicateur(
+    ind: Indicateur,
+    elementType: 'indicateurEtat' | 'indicateurPression',
+    call: () => Observable<Indicateur>,
+  ): void {
+    if (!this.canEditPlan()) return;
+    this.dialog.open(ConfirmDialogComponent, {
+      width: '520px', maxWidth: '95vw',
+      data: {
+        title: this.translate.instant('enjeux.share.indicateur.unlinkConfirmTitle'),
+        message: this.translate.instant('enjeux.share.indicateur.unlinkConfirmMessage', {
+          label: ind.nom_indicateur,
+        }),
+        confirmText: this.translate.instant('enjeux.share.indicateur.unlinkAction'),
+        cancelText: this.translate.instant('common.actions.cancel'),
+      },
+    }).afterClosed().pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((confirmed: boolean) => {
+        if (!confirmed) return;
+        this.runShareCall(
+          call(),
+          `enjeux.share.${elementType}.unlinkSuccess`,
+          `enjeux.share.${elementType}.unlinkError`,
+        );
+      });
+  }
+
   /** #585 — Vrai si l'action est rattachée à plusieurs métriques (élément partagé). */
   isOperationShared(op: Operation): boolean {
     return (op.metriques?.length ?? 0) > 1;
@@ -3576,6 +3759,9 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
       takeUntilDestroyed(this.destroyRef),
     ).subscribe({
       next: () => {
+        // #472 — le nouveau facteur doit se voir SANS recharger la page, y
+        // compris sous les OO (onglet « Stratégie opérationnelle »).
+        this.propagateFacteurToPressionCopies(pressionId, newFacteurId);
         this.snackBar.open(
           this.translate.instant('enjeux.dnd.moveSuccess'),
           this.translate.instant('common.actions.close'),
@@ -3592,6 +3778,60 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
         this.loadPlanData(true);
       },
     });
+  }
+
+  /**
+   * #472 — Réaligne les COPIES JS d'une pression déplacée sur son nouveau
+   * facteur d'influence.
+   *
+   * Le glisser-déposer transfère l'objet pression de l'arborescence des
+   * facteurs. Mais un OO expose sa PROPRE copie légère de cette pression
+   * (`oo.pressions[]`, où le serveur dénormalise `facteur_influence_libelle`) :
+   * ce n'est pas la même instance JS, donc l'onglet « Stratégie
+   * opérationnelle » continuait d'annoncer l'ancien facteur jusqu'à un
+   * rechargement complet de la page.
+   */
+  private propagateFacteurToPressionCopies(pressionId: number, newFacteurId: number): void {
+    const data = this.planEnjeuxData();
+    if (!data) return;
+
+    const allEnjeux = [...(data.enjeux || []), ...(data.fcr || [])];
+    const facteur = allEnjeux
+      .flatMap(e => e.facteurs_influence || [])
+      .find(f => f.id_facteur_influence === newFacteurId);
+    if (!facteur) return;
+
+    const patchOo = (oo: ObjectifOperationnel) => {
+      for (const copie of (oo.pressions || [])) {
+        if (copie.id_pression === pressionId) {
+          copie.facteur_influence_libelle = facteur.libelle;
+        }
+      }
+    };
+
+    for (const enjeu of allEnjeux) {
+      for (const fi of (enjeu.facteurs_influence || [])) {
+        for (const pression of (fi.pressions || [])) {
+          if (pression.id_pression === pressionId) {
+            (pression as any).id_facteur_influence = newFacteurId;
+          }
+          for (const oo of ((pression as any).objectifs_operationnels || [])) {
+            patchOo(oo);
+          }
+        }
+      }
+      // #337 — un FCR porte ses OO en direct, sans passer par une pression.
+      for (const oo of (enjeu.objectifs_operationnels || [])) {
+        patchOo(oo);
+      }
+    }
+
+    // Les mutations en profondeur ne notifient pas le signal : on remplace
+    // l'objet racine pour que les computed (`selectedOos`) se réévaluent, et
+    // on synchronise le cache partagé du service (sidebar, autres onglets).
+    this.planEnjeuxData.update(d => d ? { ...d } : d);
+    const fresh = this.planEnjeuxData();
+    if (fresh) this.enjeuService.updatePlanEnjeuxCache(fresh);
   }
 
   /** Drag-and-drop : réordonne les OLT d'un enjeu. */

@@ -31,6 +31,22 @@ Le temps de travail suit le même principe : les jours sont identiques, seule la
 cible des lignes RH change (globale / par organisme / par poste), comme le fait
 ``syncRhLines()`` côté formulaire.
 
+Deux réglages du tableau budgétaire (#600) sont eux aussi couverts par ce jeu
+d'essai, ce qui en fait le support de recette de la reprise du paramétrage d'une
+action à l'autre (#641) :
+
+* ``declinaison_par_type_cout`` est **décochée** dans les modes ``by_type`` /
+  ``by_org_type`` (ils stockent des enveloppes) et cochée dans les modes
+  « + type de poste » (ils stockent les composants) ;
+* ``cout_salarial_auto`` est **décochée** dans le seul plan
+  ``by_org_type_poste``, qui stocke donc le coût salarial « saisi » — à la
+  valeur exacte que le calcul automatique donnerait, pour ne pas casser
+  l'égalité des totaux entre les 6 plans.
+
+Enfin, l'action CS de chaque plan porte un **suivi et ses deux protocoles** (un
+standardisé, un libre), sans quoi la fiche action — et son export Excel (#642) —
+n'aurait rien à montrer dans la section « Protocole & objectifs ».
+
 Années : ``année courante − 2`` → ``année courante + 2``, pour avoir toujours du
 réalisé (2 années passées), l'année en cours et du prévisionnel pur.
 """
@@ -54,6 +70,8 @@ from apps.plans.models_operations import (
     OperationAnneeRH,
     Poste,
     PosteFonction,
+    Protocole,
+    SuiviInventaire,
     OperationRealisationGlobale,
     RealisationOperationAnnee,
     RealisationOperationAnneeOrganisme,
@@ -80,6 +98,11 @@ _MODES = [
 ]
 
 _PLAN_PREFIX = 'Ventilation — '
+
+# Mode dont les actions saisissent le coût salarial à la main (#600) plutôt que
+# de le laisser calculer depuis les jours × coût jour. Sert de support de recette
+# à la reprise du paramétrage d'une action à l'autre (#641).
+_MODE_SALAIRE_MANUEL = 'by_org_type_poste'
 
 # Préfixe des codes d'action de ce seeder. `RealisationsSeeder` s'en sert pour
 # laisser ces actions tranquilles : leur suivi est posé ici, cohérent avec le
@@ -145,6 +168,51 @@ _ACTIONS = [
             'secondaire': {
                 'cout_stage': '1200',
             },
+        },
+        # #642 — l'action CS porte un suivi et ses protocoles : sans eux, la
+        # section « Protocole & objectifs » de la fiche action (et son export
+        # Excel, variante « Action CS ») reste vide et ne montre rien à recetter.
+        'suivi': {
+            'intitule': 'Suivi des habitats humides sur placettes permanentes',
+            'objectif_principal': 'OBJ_ETAT_CONSERVATION',
+            'cibles_principales': 'HABITATS_VEGETATIONS',
+            'cible_secondaire': 'Végétations amphibies et prairies humides',
+            'habitat_ref': 'Prairies humides méditerranéennes (Molinio-Holoschoenion)',
+            'taxon_taxref': '',
+            'statut': 'EN_COURS',
+            'type_action': 'CS3',
+            'frequence': (1, 'an'),
+            'outil_bancarisation': 'BDD_INTERNE',
+            'outil_saisie': 'ADAPTE',
+            'transmission_donnee': True,
+            'commentaires': "Placettes permanentes relevées chaque année à la "
+                            "même période, par les mêmes opérateurs.",
+            'protocoles': [
+                {
+                    'standardise': True,
+                    'nom': 'Relevés phytosociologiques (sigmatiste)',
+                    'cd_protocole_campanule': 3,
+                    'description': "Relevés de végétation sur placettes permanentes, "
+                                   "selon la méthode phytosociologique sigmatiste.",
+                    'objectif': "Suivre l'évolution de la composition floristique "
+                                "et l'état de conservation des habitats humides.",
+                    'periode': 'Mai à juillet',
+                    'respect': True,
+                },
+                {
+                    'standardise': False,
+                    'nom': 'Cartographie des habitats par photo-interprétation',
+                    'description': "Photo-interprétation des orthophotos annuelles, "
+                                   "vérifiée par des points de contrôle terrain.",
+                    'objectif': "Actualiser la surface des habitats humides en bon "
+                                "état de conservation.",
+                    'periode': 'Septembre',
+                    'respect': False,
+                    'justification': "Adapté à la taille du site : la grille "
+                                     "d'échantillonnage nationale est trop lâche ici.",
+                    'nb_etp_cycle': '0.25',
+                },
+            ],
         },
     },
     {
@@ -387,6 +455,11 @@ class VentilationPlansSeeder(BaseSeeder):
             mn: self._nomenclature('NIVEAU_REALISATION', mn)
             for mn in ('TERMINE', 'PARTIEL', 'EN_COURS')
         }
+        # #642 — statut du suivi porté par l'action CS.
+        noms['statut_suivi'] = {
+            mn: self._nomenclature('STATUT_SUIVI', mn)
+            for mn in ('EN_COURS', 'TERMINE', 'A_VENIR')
+        }
         return noms
 
     # ------------------------------------------------------------------ plans
@@ -532,6 +605,7 @@ class VentilationPlansSeeder(BaseSeeder):
         if not op.geom:
             op.geom = make_operation_geom(code, len(code))
             op.save(update_fields=['geom'])
+        self._create_suivi(op, plan, action, admin, nomenclatures)
         CorOperationMetrique.objects.get_or_create(id_operation=op, id_metrique=metrique)
         CorOperationSite.objects.get_or_create(id_operation=op, id_site=site)
         for libelle, categorie in action['finances']:
@@ -540,6 +614,61 @@ class VentilationPlansSeeder(BaseSeeder):
                 defaults={'id_categorie': nomenclatures['finance'].get(categorie)},
             )
         return op
+
+    def _create_suivi(self, op, plan, action, admin, nomenclatures) -> None:
+        """
+        #642 — Suivi/inventaire + protocoles de l'action CS.
+
+        Recréé à chaque passage (les protocoles sont en M2M sans clé naturelle) :
+        c'est la seule façon de rester idempotent sans accumuler des doublons.
+        """
+        config = action.get('suivi')
+        if not config:
+            return
+        ancien = op.id_suivi
+        suivi = SuiviInventaire.objects.create(
+            intitule=f"{config['intitule']} — {plan.nom.replace(_PLAN_PREFIX, '')}",
+            id_pg=plan,
+            integre_plan_gestion=True,
+            suit_indicateur=True,
+            type_indicateur='ETAT',
+            objectif_principal=config['objectif_principal'],
+            cibles_principales=config['cibles_principales'],
+            cible_secondaire=config.get('cible_secondaire', ''),
+            habitat_ref=config.get('habitat_ref', ''),
+            taxon_taxref=config.get('taxon_taxref', ''),
+            date_lancement_suivi=date(op.annee_min, 5, 15) if op.annee_min else None,
+            id_statut=nomenclatures['statut_suivi'].get(config['statut']),
+            id_type_action=self._nomenclature('TYPE_ACTION', config['type_action']),
+            frequence_nombre=config['frequence'][0],
+            frequence_unite=config['frequence'][1],
+            outil_bancarisation=config.get('outil_bancarisation', ''),
+            outil_saisie=config.get('outil_saisie', ''),
+            transmission_donnee=config.get('transmission_donnee'),
+            commentaires=config.get('commentaires', ''),
+            id_utilisateur_ajout=admin,
+        )
+        for pr in config['protocoles']:
+            protocole = Protocole.objects.create(
+                protocole_dans_campanule=pr['standardise'],
+                protocole_campanule_nom=pr['nom'] if pr['standardise'] else '',
+                cd_protocole_campanule=pr.get('cd_protocole_campanule'),
+                nom_protocole='' if pr['standardise'] else pr['nom'],
+                nb_etp_cycle=Decimal(pr['nb_etp_cycle']) if pr.get('nb_etp_cycle') else None,
+                respect_protocole=pr['respect'],
+                justification_non_respect=pr.get('justification', ''),
+                description_protocole=pr['description'],
+                objectif_protocole=pr['objectif'],
+                periode_echantillonnage=pr['periode'],
+                id_utilisateur_ajout=admin,
+            )
+            suivi.protocoles.add(protocole)
+        op.id_suivi = suivi
+        op.est_suivi_existant = False
+        op.save(update_fields=['id_suivi', 'est_suivi_existant'])
+        if ancien is not None:
+            Protocole.objects.filter(suivis=ancien).delete()
+            ancien.delete()
 
     # ------------------------------------------------------- coûts par action
 
@@ -604,7 +733,23 @@ class VentilationPlansSeeder(BaseSeeder):
         """Programme l'action année par année selon son mode de ventilation."""
         op.ventilation_mode = mode
         op.declinaison_par_poste = mode in Operation.VENTILATION_POSTE_MODES
-        op.save(update_fields=['ventilation_mode', 'declinaison_par_poste'])
+        # #600 — le détail des coûts (salarial / stage / prestataire / autres)
+        # n'est saisi que dans les modes « + type de poste » de ce jeu d'essai :
+        # les deux autres modes par type de budget stockent des enveloppes, la
+        # case doit donc rester décochée pour afficher ce qui est enregistré.
+        op.declinaison_par_type_cout = mode in Operation.VENTILATION_POSTE_MODES
+        # #600/#641 — le mode de ventilation maximale sert aussi de démonstration
+        # du coût salarial SAISI À LA MAIN : c'est le seul réglage du tableau
+        # budgétaire qui n'était couvert par aucun plan du jeu d'essai, et donc
+        # la seule façon de vérifier qu'une nouvelle action reprend bien les 3
+        # réglages de la dernière action saisie (#641). Le montant stocké est
+        # exactement celui que le mode automatique calculerait (jours × coût
+        # jour) : les 6 plans affichent donc toujours les mêmes totaux.
+        op.cout_salarial_auto = mode != _MODE_SALAIRE_MANUEL
+        op.save(update_fields=[
+            'ventilation_mode', 'declinaison_par_poste',
+            'declinaison_par_type_cout', 'cout_salarial_auto',
+        ])
 
         # Pas de statut global forcé : le niveau de réalisation affiché doit
         # découler du suivi annuel posé ci-dessous (nettoie une éventuelle
@@ -615,12 +760,14 @@ class VentilationPlansSeeder(BaseSeeder):
         total_fonct = sum((c['fonct'] for c in totaux.values()), Decimal('0'))
         total_invest = sum((c['invest'] for c in totaux.values()), Decimal('0'))
         jours_total = sum((_dec(j) for _, j, _ in action['rh']), Decimal('0'))
+        # Coût salarial par organisme, stocké seulement quand il est « saisi ».
+        salarial = self._salarial(action, postes) if not op.cout_salarial_auto else None
 
         debut, fin = action['annees']
         for year in years[debut:fin + 1]:
             oa = self._create_annee(
                 op, action, mode, year, totaux, total_fonct, total_invest,
-                jours_total, org_map,
+                jours_total, org_map, salarial,
             )
             lignes_prev = self._create_rh_lines(oa, action, mode, postes, org_map)
             self._create_realisation(
@@ -629,7 +776,8 @@ class VentilationPlansSeeder(BaseSeeder):
             )
 
     def _create_annee(self, op, action, mode, year, totaux, total_fonct,
-                      total_invest, jours_total, org_map) -> OperationAnnee:
+                      total_invest, jours_total, org_map,
+                      salarial=None) -> OperationAnnee:
         """Crée l'``OperationAnnee`` et, si le mode l'exige, ses lignes organisme."""
         defaults = {
             'periodicite': True,
@@ -671,6 +819,8 @@ class VentilationPlansSeeder(BaseSeeder):
             org_defaults = {
                 'budget_fonctionnement': None,
                 'budget_investissement': None,
+                'cout_salarial': None,
+                'cout_salarial_invest': None,
                 'cout_stage': None,
                 'cout_prestataire': None,
                 'autre_cout': None,
@@ -699,6 +849,14 @@ class VentilationPlansSeeder(BaseSeeder):
                 org_defaults['autre_cout_commentaire'] = couts.get('autre_cout_commentaire', '')
                 org_defaults['autre_cout_invest_commentaire'] = couts.get(
                     'autre_cout_invest_commentaire', '')
+                # #600 — coût salarial saisi : on stocke ce que le calcul
+                # automatique aurait donné, pour ne pas décaler les totaux.
+                if salarial is not None:
+                    par_categorie = salarial.get(org_key, {})
+                    fonct = par_categorie.get(_FONCT, Decimal('0'))
+                    invest = par_categorie.get(_INVEST, Decimal('0'))
+                    org_defaults['cout_salarial'] = _q(fonct) if fonct else None
+                    org_defaults['cout_salarial_invest'] = _q(invest) if invest else None
             OperationAnneeOrganisme.objects.update_or_create(
                 id_operation_annee=oa, id_organisme=organisme, defaults=org_defaults,
             )
@@ -886,7 +1044,14 @@ class VentilationPlansSeeder(BaseSeeder):
             for _mode, _libelle, suffix in _MODES
             for action in _ACTIONS
         ]
-        count = Operation.objects.filter(code_operation__in=codes).delete()[0]
+        # #642 — les suivis (et leurs protocoles) ne partent pas en cascade avec
+        # l'action : c'est l'action qui pointe vers le suivi, pas l'inverse.
+        suivis = SuiviInventaire.objects.filter(
+            id_pg__nom__startswith=_PLAN_PREFIX,
+        )
+        count = Protocole.objects.filter(suivis__in=suivis).delete()[0]
+        count += suivis.delete()[0]
+        count += Operation.objects.filter(code_operation__in=codes).delete()[0]
         count += PlanGestion.objects.filter(nom__startswith=_PLAN_PREFIX).delete()[0]
         return count
 
@@ -899,4 +1064,8 @@ class VentilationPlansSeeder(BaseSeeder):
             f'  - {len(_MODES) * len(_ACTIONS)} actions programmées '
             '(budget, temps de travail, suivi de réalisation)',
             f'  - {len(_MODES) * len(_POSTES)} postes (dont bénévoles et prestataire)',
+            f'  - {len(_MODES)} suivis + {len(_MODES) * 2} protocoles '
+            '(action CS, pour la fiche action et son export — #642)',
+            f'  - coût salarial saisi à la main sur le plan « {_MODE_SALAIRE_MANUEL} » '
+            '(reprise du paramétrage de ventilation — #641)',
         ]

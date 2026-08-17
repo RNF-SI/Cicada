@@ -12,6 +12,7 @@ from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import SearchFilter, OrderingFilter
 
 from collections import defaultdict
+from datetime import date
 
 from .models_operations import (
     Operation, CorOperationMetrique, OperationAnnee, OperationAnneeOrganisme,
@@ -218,6 +219,49 @@ class OperationViewSet(viewsets.ModelViewSet):
             'total': operations.count()
         })
 
+    def _operations_of_plan(self, plan):
+        """
+        Opérations du plan (via métrique ou indicateur).
+
+        Pas de `get_queryset()` ici : les vues appelantes valident déjà l'accès
+        au plan avec `assert_plan_access()`, et le périmètre par ligne (7 chemins
+        ORM OR-és) ferait exploser la requête sans rien filtrer de plus — cf.
+        `RealisationOperationAnneeViewSet._plan_realisations()`.
+        """
+        return self.queryset.filter(
+            Q(metriques__id_indicateur__id_ne__id_olt__id_enjeu__id_pg=plan) |
+            Q(metriques__id_indicateur__id_resultat_attendu__id_oo__pressions__id_facteur_influence__enjeux__id_pg=plan) |
+            # #367 — actions rattachées directement à un indicateur (sans métrique)
+            Q(id_indicateur__id_ne__id_olt__id_enjeu__id_pg=plan) |
+            Q(id_indicateur__id_resultat_attendu__id_oo__pressions__id_facteur_influence__enjeux__id_pg=plan)
+        ).distinct()
+
+    @action(detail=False, methods=['get'], url_path=r'ventilation-defaults/(?P<plan_id>\d+)')
+    def ventilation_defaults(self, request, plan_id=None):
+        """
+        #641 — Réglages de ventilation à proposer par défaut pour une NOUVELLE
+        action du plan.
+
+        Le paramétrage du tableau de programmation (mode de ventilation, case
+        « déclinaison par type de coût », case « coût salarial automatique ») est
+        en pratique le même pour toutes les actions d'un plan : on renvoie donc
+        celui de la dernière action saisie / modifiée, pour que le formulaire de
+        création n'ait pas à le re-saisir à chaque fois. Sans action existante,
+        renvoie les valeurs par défaut du modèle.
+
+        GET /api/plans/operations/ventilation-defaults/{plan_id}/
+        """
+        plan = get_object_or_404(PlanGestion, id_pg=plan_id)
+        assert_plan_access(request.user, plan)
+        last = self._operations_of_plan(plan).order_by('-date_maj', '-id_operation').first()
+        return Response({
+            'plan_id': int(plan_id),
+            'source_operation_id': last.id_operation if last else None,
+            'ventilation_mode': last.ventilation_mode if last else 'none',
+            'declinaison_par_type_cout': last.declinaison_par_type_cout if last else True,
+            'cout_salarial_auto': last.cout_salarial_auto if last else True,
+        })
+
     @action(detail=False, methods=['get'], url_path=r'by-plan/(?P<plan_id>\d+)')
     def by_plan(self, request, plan_id=None):
         """
@@ -227,13 +271,7 @@ class OperationViewSet(viewsets.ModelViewSet):
         """
         plan = get_object_or_404(PlanGestion, id_pg=plan_id)
         assert_plan_access(request.user, plan)
-        operations = self.get_queryset().filter(
-            Q(metriques__id_indicateur__id_ne__id_olt__id_enjeu__id_pg=plan) |
-            Q(metriques__id_indicateur__id_resultat_attendu__id_oo__pressions__id_facteur_influence__enjeux__id_pg=plan) |
-            # #367 — actions rattachées directement à un indicateur (sans métrique)
-            Q(id_indicateur__id_ne__id_olt__id_enjeu__id_pg=plan) |
-            Q(id_indicateur__id_resultat_attendu__id_oo__pressions__id_facteur_influence__enjeux__id_pg=plan)
-        ).distinct()
+        operations = self._operations_of_plan(plan)
 
         grouped = defaultdict(list)
         for op in operations:
@@ -251,6 +289,56 @@ class OperationViewSet(viewsets.ModelViewSet):
             'groups': groups,
             'total': operations.count()
         })
+
+    @action(detail=True, methods=['get'], url_path='export-fiche-xlsx')
+    def export_fiche_xlsx(self, request, pk=None):
+        """
+        #642 — Exporter LA fiche de cette action au format Excel.
+
+        GET /api/plans/operations/{id}/export-fiche-xlsx/
+
+        Même rendu que l'export « fiches action » du plan, restreint à un seul
+        onglet. Comme tous les exports, réservé aux référents du plan et aux
+        gestionnaires (admin organisme, rédacteur principal, super admin) : la
+        lecture seule (#610) s'arrête à la consultation dans l'application.
+        """
+        from rest_framework.exceptions import PermissionDenied
+        from urllib.parse import quote as _url_quote
+        from django.http import HttpResponse
+        from .services_export_fiche_action import build_fiche_action_workbook
+        from .serializers_operations import compute_operation_codes_for_plan
+
+        operation = self.get_object()
+        plan = operation.get_plan_de_gestion()
+        if plan is None:
+            return Response(
+                {'detail': "Cette action n'est rattachée à aucun plan de gestion."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        if not (request.user.can_manage_plan_lifecycle()
+                or plan.referents.filter(pk=request.user.pk).exists()):
+            raise PermissionDenied(
+                "Vous devez être référent de ce plan pour exporter cette fiche action."
+            )
+
+        content = build_fiche_action_workbook(plan, operation_ids=[operation.pk])
+
+        try:
+            code = compute_operation_codes_for_plan(plan.pk).get(operation.pk)
+        except Exception:
+            code = None
+        suffix = (operation.code_operation or code or f'action-{operation.pk}').strip()
+        filename = f'fiche-action-{suffix}.xlsx'
+        response = HttpResponse(
+            content,
+            content_type=(
+                'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+            ),
+        )
+        response['Content-Disposition'] = (
+            f"attachment; filename*=UTF-8''{_url_quote(filename)}"
+        )
+        return response
 
     @action(detail=True, methods=['post'], url_path='move')
     def move(self, request, pk=None):
@@ -593,6 +681,10 @@ def _scope_realisation_queryset(queryset, user, op_path):
 
     #610 — les réalisations relèvent du SUIVI : périmètre réservé aux référents
     et gestionnaires (le créateur d'une réalisation garde la sienne).
+
+    ⚠️ Coûteux : `OperationViewSet._PG_PATHS` compte 7 chemins ORM profonds,
+    OR-és puis dédoublonnés — soit ~60 jointures. À réserver aux vues dont le
+    périmètre n'est pas déjà borné à UN plan : voir `_plan_realisations()`.
     """
     return scope_suivi_by_plan(
         queryset, user,
@@ -656,6 +748,25 @@ class RealisationOperationAnneeViewSet(viewsets.ModelViewSet):
         return _scope_realisation_queryset(
             self.queryset, self.request.user, 'id_operation_annee__id_operation'
         )
+
+    def _plan_realisations(self, plan):
+        """
+        Réalisations d'UN plan, sans re-appliquer le périmètre par ligne.
+
+        Les vues qui appellent ce helper ont déjà validé l'accès au plan avec
+        `assert_suivi_access()`. Repasser ensuite par `get_queryset()` serait
+        redondant (toutes les lignes retenues appartiennent à un plan autorisé)
+        et très coûteux : le périmètre OR-e 7 chemins ORM profonds, ce qui porte
+        la requête à plus de 60 jointures. Sur une base sans statistiques —
+        c'est le cas en CI, juste après `seed_testdata` — le planificateur bascule
+        alors en GEQO et met plusieurs secondes à répondre, là où la même
+        agrégation prend 100 ms. `bilan_indicateurs` interroge déjà ses modèles
+        en direct pour cette raison.
+        """
+        return self.queryset.filter(
+            Q(id_operation_annee__id_operation__metriques__id_indicateur__id_ne__id_olt__id_enjeu__id_pg=plan) |
+            Q(id_operation_annee__id_operation__id_suivi__id_pg=plan)
+        ).distinct()
 
     def perform_create(self, serializer):
         serializer.save(id_utilisateur_maj=self.request.user)
@@ -800,16 +911,81 @@ class RealisationOperationAnneeViewSet(viewsets.ModelViewSet):
         """Liste les réalisations d'un plan (toutes opérations × années)."""
         plan = get_object_or_404(PlanGestion, pk=plan_id)
         assert_suivi_access(request.user, plan)          # #610 — suivi réservé
-        realisations = self.get_queryset().filter(
-            Q(id_operation_annee__id_operation__metriques__id_indicateur__id_ne__id_olt__id_enjeu__id_pg=plan) |
-            Q(id_operation_annee__id_operation__id_suivi__id_pg=plan)
-        ).distinct()
+        realisations = self._plan_realisations(plan)
         return Response({
             'plan_id': int(plan_id),
             'plan_nom': plan.nom,
             'realisations': self.get_serializer(realisations, many=True).data,
             'total': realisations.count(),
         })
+
+    # ------------------------------------------------------------------ #
+    # Portée du Bilan : Global / Mi-parcours / Annuel
+    # ------------------------------------------------------------------ #
+    #
+    # Les trois endpoints du Bilan (/bilan/, /bilan-indicateurs/,
+    # /bilan-series/) lisent la MÊME fenêtre d'années, sans quoi changer de
+    # portée ne rechargeait que les agrégations d'actions : l'onglet
+    # Indicateurs et les graphiques par année restaient globaux.
+    #
+    #   - aucune borne              → Global (toute la durée du plan)
+    #   - ?annee=                   → Annuel : une seule année, comptage par
+    #                                 ligne annuelle (RealisationOperationAnnee)
+    #   - ?annee_min=&?annee_max=   → une période (Mi-parcours) : comptage
+    #                                 comme au global (une fois par action),
+    #                                 mais restreint à ces années.
+    @staticmethod
+    def _periode_from_request(request):
+        """(annee_min, annee_max, annuel) — bornes incluses, None = pas de borne."""
+        def _int(name):
+            try:
+                return int(request.query_params.get(name))
+            except (TypeError, ValueError):
+                return None
+
+        annee = _int('annee')
+        if annee is not None:
+            return annee, annee, True
+        y0, y1 = _int('annee_min'), _int('annee_max')
+        if y0 is not None and y1 is not None and y1 < y0:
+            y0, y1 = y1, y0
+        return y0, y1, False
+
+    @staticmethod
+    def _in_periode(annee, y0, y1):
+        """True si l'année tombe dans la fenêtre (None = borne ouverte)."""
+        if annee is None:
+            return False
+        return (y0 is None or annee >= y0) and (y1 is None or annee <= y1)
+
+    @classmethod
+    def _last_mesure(cls, metrique, y0=None, y1=None):
+        """
+        Dernière mesure d'une métrique, restreinte à la fenêtre d'années.
+
+        Dans une fenêtre, une mesure sans date ne peut pas être située dans le
+        temps : elle est ignorée, comme dans /bilan-series/. Hors fenêtre
+        (portée Global), elle reste candidate mais ne l'emporte jamais sur une
+        mesure datée — le tri SQL précédent (`-date_mesure`, NULLS FIRST en
+        PostgreSQL) faisait l'inverse et laissait une mesure non datée masquer
+        la plus récente.
+        """
+        mesures = list(metrique.mesures.all())
+        if y0 is not None or y1 is not None:
+            mesures = [
+                mes for mes in mesures
+                if mes.date_mesure and cls._in_periode(mes.date_mesure.year, y0, y1)
+            ]
+        if not mesures:
+            return None
+        return max(
+            mesures,
+            key=lambda mes: (
+                mes.date_mesure is not None,
+                mes.date_mesure or date.min,
+                mes.date_ajout,
+            ),
+        )
 
     @action(detail=False, methods=['get'], url_path=r'bilan-indicateurs/(?P<plan_id>\d+)')
     def bilan_indicateurs(self, request, plan_id=None):
@@ -821,6 +997,12 @@ class RealisationOperationAnneeViewSet(viewsets.ModelViewSet):
           - taux_evaluation (pour le camembert "taux de réalisation")
           - score_distribution : counts par score 1-5 + sans donnée
           - by_enjeu : moyenne des scores par enjeu (pour le radar)
+
+        Filtres : ?enjeu_id= et la fenêtre d'années de la portée
+        (?annee= / ?annee_min=&annee_max=, cf. `_periode_from_request`). Dans
+        une fenêtre, chaque métrique est évaluée sur sa dernière mesure *de la
+        période* : un indicateur mesuré uniquement hors période compte comme
+        « sans donnée ».
         """
         from collections import defaultdict
         from .models_indicateurs import Indicateur
@@ -843,6 +1025,16 @@ class RealisationOperationAnneeViewSet(viewsets.ModelViewSet):
             'id_ne__id_olt__id_enjeu',
         ).prefetch_related('metriques__mesures', 'metriques__score_blocks').distinct()
 
+        # #639 — le filtre « Enjeux/FCR » de la page Bilan doit aussi porter sur
+        # l'onglet Indicateurs (il ne s'appliquait qu'aux agrégations d'actions),
+        # sans quoi les graphiques — et leur export — ignorent le filtre en cours.
+        enjeu_id = request.query_params.get('enjeu_id')
+        if enjeu_id:
+            indicators_qs = indicators_qs.filter(id_ne__id_olt__id_enjeu=enjeu_id)
+
+        # Portée : Global (aucune borne) / Mi-parcours (période) / Annuel.
+        y0, y1, _annuel = self._periode_from_request(request)
+
         total = 0
         evalues = 0
         score_dist = {1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 0: 0}
@@ -856,7 +1048,7 @@ class RealisationOperationAnneeViewSet(viewsets.ModelViewSet):
             total += 1
             ind_scores = []
             for m in ind.metriques.all():
-                last = m.mesures.order_by('-date_mesure', '-date_ajout').first()
+                last = self._last_mesure(m, y0, y1)
                 if not last:
                     continue
                 score = _compute_score(last, m)
@@ -887,6 +1079,11 @@ class RealisationOperationAnneeViewSet(viewsets.ModelViewSet):
         return Response({
             'plan_id': int(plan_id),
             'plan_nom': plan.nom,
+            # Fenêtre effectivement appliquée (None = toute la durée du plan).
+            # Nommée `periode_*` et non `annee_*` : dans /bilan/, `annee_min` /
+            # `annee_max` désignent les bornes DU PLAN (sélecteur d'années).
+            'periode_min': y0,
+            'periode_max': y1,
             'total_indicateurs': total,
             'indicateurs_evalues': evalues,
             'taux_evaluation_pct': round(evalues / total * 100, 1) if total else 0,
@@ -896,6 +1093,34 @@ class RealisationOperationAnneeViewSet(viewsets.ModelViewSet):
             ],
             'by_enjeu': radar,
         })
+
+    # ------------------------------------------------------------------ #
+    # Bilan — croisé « planifiée × réalisée »
+    # ------------------------------------------------------------------ #
+    #
+    # Les graphiques du Bilan ne classent pas les actions par niveau de
+    # nomenclature (TERMINE, EN_COURS…) mais par le croisé *prévu × réalisé*,
+    # le même que les icônes du tableau de suivi (#379) : la couleur dit qui
+    # (planifiée ou non), le motif dit l'issue. Cinq combinaisons seulement —
+    # une action ni prévue ni réalisée n'existe pas, il n'y a rien à compter.
+    #
+    # Ces compteurs s'ajoutent aux niveaux existants, ils ne les remplacent
+    # pas : les exports du bilan (#639) continuent de lire les niveaux.
+    STATUT_KEYS = (
+        'planifiee_realisee', 'planifiee_partielle', 'planifiee_non_realisee',
+        'non_planifiee_realisee', 'non_planifiee_partielle',
+    )
+
+    @staticmethod
+    def _statut_key(planifiee, mnemonique):
+        """Clé du croisé prévu × réalisé, ou None si le couple n'existe pas."""
+        if mnemonique == 'TERMINE':
+            return 'planifiee_realisee' if planifiee else 'non_planifiee_realisee'
+        if mnemonique == 'PARTIEL':
+            return 'planifiee_partielle' if planifiee else 'non_planifiee_partielle'
+        # NON_REALISE, NON_DEMARRE, EN_COURS, ABANDONNE, REPORTE, rien de saisi :
+        # du point de vue du bilan, ce qui était prévu n'a pas été fait.
+        return 'planifiee_non_realisee' if planifiee else None
 
     @action(detail=False, methods=['get'], url_path=r'bilan/(?P<plan_id>\d+)')
     def bilan(self, request, plan_id=None):
@@ -921,23 +1146,22 @@ class RealisationOperationAnneeViewSet(viewsets.ModelViewSet):
         # Filtres optionnels
         enjeu_id = request.query_params.get('enjeu_id')
         organisme_id = request.query_params.get('organisme_id')
-        # Année : vue « annuel » du bilan. Sans ce filtre, le bilan agrégeait
-        # toutes les années → une action « Terminée » en 2026 apparaissait
-        # « Terminée » pour 2027, 2028… (#101). On scope alors les comptages à
-        # l'année demandée (chaque RealisationOperationAnnee est déjà par année).
-        annee = request.query_params.get('annee')
-        # #355 — Vue « globale » (sans année) : le comptage des niveaux de
+        # Fenêtre d'années de la portée (cf. `_periode_from_request`) :
+        #  - ?annee=                  → vue « annuel ». Sans ce filtre, le bilan
+        #    agrégeait toutes les années → une action « Terminée » en 2026
+        #    apparaissait « Terminée » pour 2027, 2028… (#101).
+        #  - ?annee_min=&annee_max=   → vue « mi-parcours » : une période, comptée
+        #    comme le global mais sur ces seules années.
+        y0, y1, is_annual = self._periode_from_request(request)
+        # #355 — Vue « globale » (et vue période) : le comptage des niveaux de
         # réalisation se fait UNE fois par opération via son statut global
         # (surcharge sinon calcul sur les années programmées), au lieu de
         # compter chaque ligne annuelle. Corrige « 1 année Terminée = action
         # Terminée au global ». La vue annuelle (?annee=) reste par année.
-        is_global_view = not annee
+        is_global_view = not is_annual
 
-        # 1) RealisationOperationAnnee scopées au plan, avec relations utiles préchargées.
-        realisations_qs = self.get_queryset().filter(
-            Q(id_operation_annee__id_operation__metriques__id_indicateur__id_ne__id_olt__id_enjeu__id_pg=plan) |
-            Q(id_operation_annee__id_operation__id_suivi__id_pg=plan)
-        ).select_related(
+        # 1) RealisationOperationAnnee du plan, avec relations utiles préchargées.
+        realisations_qs = self._plan_realisations(plan).select_related(
             'id_operation_annee',
             'id_operation_annee__id_operation',
             'id_operation_annee__id_operation__id_categorie_action_reserve',
@@ -957,11 +1181,10 @@ class RealisationOperationAnneeViewSet(viewsets.ModelViewSet):
                 id_operation_annee__id_operation__metriques__id_indicateur__id_ne__id_olt__id_enjeu_id=enjeu_id
             ).distinct()
 
-        if annee:
-            try:
-                realisations_qs = realisations_qs.filter(id_operation_annee__annee=int(annee))
-            except (TypeError, ValueError):
-                pass
+        if y0 is not None:
+            realisations_qs = realisations_qs.filter(id_operation_annee__annee__gte=y0)
+        if y1 is not None:
+            realisations_qs = realisations_qs.filter(id_operation_annee__annee__lte=y1)
 
         # Helper : initialise un compteur par niveau de réalisation
         def _empty_counts():
@@ -969,6 +1192,7 @@ class RealisationOperationAnneeViewSet(viewsets.ModelViewSet):
                 'non_demarre': 0, 'en_cours': 0, 'partiel': 0,
                 'termine': 0, 'abandonne': 0, 'reporte': 0,
                 'inconnu': 0, 'total': 0,
+                **{k: 0 for k in self.STATUT_KEYS},
             }
 
         # 2) Boucle d'agrégation
@@ -1013,6 +1237,7 @@ class RealisationOperationAnneeViewSet(viewsets.ModelViewSet):
                     if r.id_niveau_realisation else None
                 )
                 key = niveau_map.get(mnemonique, 'inconnu')
+                skey = self._statut_key(bool(oa.periodicite), mnemonique)
 
                 # Catégorie d'action (préfixe CT88 si dispo, sinon TYPE_ACTION)
                 cat = op.id_categorie_action_reserve or op.id_type_action
@@ -1021,6 +1246,8 @@ class RealisationOperationAnneeViewSet(viewsets.ModelViewSet):
                 categorie_meta[cat_code] = cat_label
                 by_categorie[cat_code][key] += 1
                 by_categorie[cat_code]['total'] += 1
+                if skey:
+                    by_categorie[cat_code][skey] += 1
 
                 # Enjeux : une op peut être rattachée à plusieurs métriques → plusieurs enjeux.
                 # On compte une fois par enjeu rattaché.
@@ -1037,9 +1264,13 @@ class RealisationOperationAnneeViewSet(viewsets.ModelViewSet):
                 for eid in enjeux_set:
                     by_enjeu[eid][key] += 1
                     by_enjeu[eid]['total'] += 1
+                    if skey:
+                        by_enjeu[eid][skey] += 1
 
                 taux_global[key] += 1
                 taux_global['total'] += 1
+                if skey:
+                    taux_global[skey] += 1
 
             # --- Budgets / ETP ---
             mode = op.ventilation_mode
@@ -1101,14 +1332,35 @@ class RealisationOperationAnneeViewSet(viewsets.ModelViewSet):
                 ),
                 'metriques__id_indicateur__id_ne__id_olt__id_enjeu',
             )
+            has_periode = y0 is not None or y1 is not None
             for op in ops_global:
-                key = niveau_map.get(op.get_niveau_realisation_global(), 'inconnu')
+                annees = [
+                    oa for oa in op.operation_annees.all()
+                    if not has_periode or self._in_periode(oa.annee, y0, y1)
+                ]
+                if has_periode:
+                    if not annees:
+                        continue
+                    # La surcharge manuelle du niveau global porte sur TOUTE la
+                    # durée du plan : elle ne peut pas décrire une demi-période.
+                    # Sur une période, on recalcule donc à partir des seules
+                    # années concernées.
+                    mnemonique = op.compute_niveau_realisation_global(annees)
+                else:
+                    mnemonique = op.get_niveau_realisation_global()
+                key = niveau_map.get(mnemonique, 'inconnu')
+                # Au global, l'action est « planifiée » dès qu'une de ses années
+                # l'était — le croisé se lit sur la période, pas année par année.
+                planifiee = any(oa.periodicite for oa in annees)
+                skey = self._statut_key(planifiee, mnemonique)
 
                 cat = op.id_categorie_action_reserve or op.id_type_action
                 cat_code = (cat.cd_nomenclature or cat.mnemonique or 'AUTRE') if cat else 'AUTRE'
                 categorie_meta[cat_code] = (cat.label if cat else 'Autre')
                 by_categorie[cat_code][key] += 1
                 by_categorie[cat_code]['total'] += 1
+                if skey:
+                    by_categorie[cat_code][skey] += 1
 
                 enjeux_set = set()
                 for m in op.metriques.all():
@@ -1123,9 +1375,13 @@ class RealisationOperationAnneeViewSet(viewsets.ModelViewSet):
                 for eid in enjeux_set:
                     by_enjeu[eid][key] += 1
                     by_enjeu[eid]['total'] += 1
+                    if skey:
+                        by_enjeu[eid][skey] += 1
 
                 taux_global[key] += 1
                 taux_global['total'] += 1
+                if skey:
+                    taux_global[skey] += 1
 
         # 3) Mise en forme
         by_categorie_list = sorted(
@@ -1189,9 +1445,14 @@ class RealisationOperationAnneeViewSet(viewsets.ModelViewSet):
           - indicateurs_evolution : moyenne / min / max / écart-type des scores
             d'indicateurs par année (dernière mesure de chaque métrique dans l'année)
           - rh_par_annee : jours de travail prévisionnel / réalisé par année
-          - actions_par_annee : counts par niveau de réalisation par année (barres empilées)
+          - actions_par_annee : `niveaux` (counts par niveau de nomenclature) et
+            `statuts` (croisé planifiée × réalisée, celui que tracent les barres
+            empilées du Bilan — voir `_statut_key`)
 
-        Filtre optionnel : ?enjeu_id= (comme /bilan/). Le scoping suit get_queryset.
+        Filtres optionnels : ?enjeu_id= (comme /bilan/) et la fenêtre d'années de
+        la portée (?annee_min=&annee_max=) — en portée « Mi-parcours », les
+        séries s'arrêtent au milieu du plan au lieu de couvrir toute sa durée.
+        Le scoping suit get_queryset.
         Cohérence avec /bilan/ : le prévisionnel (RH) n'est compté que pour les
         OperationAnnee ayant une réalisation, une seule fois par OperationAnnee.
         """
@@ -1207,6 +1468,9 @@ class RealisationOperationAnneeViewSet(viewsets.ModelViewSet):
 
         y0, y1 = plan.annee_debut, plan.annee_fin
         years = list(range(y0, y1 + 1)) if (y0 and y1 and y1 >= y0) else []
+        # Portée : restreint les séries à la fenêtre demandée (Mi-parcours).
+        p0, p1, _annuel = self._periode_from_request(request)
+        years = [y for y in years if self._in_periode(y, p0, p1)]
         year_index = {y: i for i, y in enumerate(years)}
         n = len(years)
 
@@ -1259,14 +1523,11 @@ class RealisationOperationAnneeViewSet(viewsets.ModelViewSet):
         # ------------------------------------------------------------------
         # 2 & 3) RH + niveaux de réalisation des actions par année
         # ------------------------------------------------------------------
-        realisations_qs = self.get_queryset().filter(
-            Q(id_operation_annee__id_operation__metriques__id_indicateur__id_ne__id_olt__id_enjeu__id_pg=plan) |
-            Q(id_operation_annee__id_operation__id_suivi__id_pg=plan)
-        ).select_related(
+        realisations_qs = self._plan_realisations(plan).select_related(
             'id_operation_annee', 'id_operation_annee__id_operation', 'id_niveau_realisation',
         ).prefetch_related(
             'id_operation_annee__rh_lignes', 'rh_lignes',
-        ).distinct()
+        )
         if enjeu_id:
             realisations_qs = realisations_qs.filter(
                 id_operation_annee__id_operation__metriques__id_indicateur__id_ne__id_olt__id_enjeu_id=enjeu_id
@@ -1279,6 +1540,7 @@ class RealisationOperationAnneeViewSet(viewsets.ModelViewSet):
         }
         niveau_keys = ['termine', 'partiel', 'en_cours', 'reporte', 'non_demarre', 'abandonne', 'inconnu']
         actions_by_year = {k: [0] * n for k in niveau_keys}
+        statuts_by_year = {k: [0] * n for k in self.STATUT_KEYS}
         rh_prev = [0.0] * n
         rh_real = [0.0] * n
         seen_oa = set()
@@ -1291,6 +1553,9 @@ class RealisationOperationAnneeViewSet(viewsets.ModelViewSet):
 
             mnem = r.id_niveau_realisation.mnemonique if r.id_niveau_realisation else None
             actions_by_year[niveau_map.get(mnem, 'inconnu')][i] += 1
+            skey = self._statut_key(bool(oa.periodicite), mnem)
+            if skey:
+                statuts_by_year[skey][i] += 1
 
             if oa.id_operation_annee not in seen_oa:
                 seen_oa.add(oa.id_operation_annee)
@@ -1312,6 +1577,7 @@ class RealisationOperationAnneeViewSet(viewsets.ModelViewSet):
             },
             'actions_par_annee': {
                 'niveaux': actions_by_year,
+                'statuts': statuts_by_year,
             },
         })
 

@@ -350,6 +350,13 @@ export interface Indicateur {
   id_indicateur: number;
   id_ne?: number;
   id_resultat_attendu?: number;
+  /**
+   * #585 — Parents sous lesquels l'indicateur apparaît, porteur inclus.
+   * Plus d'un identifiant = indicateur partagé. `ne_ids` pour un indicateur
+   * d'état, `ra_ids` pour un indicateur de pression ; l'autre reste vide.
+   */
+  ne_ids?: number[];
+  ra_ids?: number[];
   nom_indicateur: string;
   description?: string;
   type_indicateur?: number;
@@ -672,7 +679,10 @@ export interface OperationAnneeOrganisme {
   organisme_nom?: string;
   budget_fonctionnement: number | null;
   budget_investissement: number | null;
-  // #600 — coûts additionnels par organisme/année.
+  // #600 — coûts additionnels par organisme/année. `cout_salarial*` n'est
+  // renseigné qu'en saisie manuelle du coût salarial (sinon il est calculé).
+  cout_salarial?: number | null;
+  cout_salarial_invest?: number | null;
   cout_stage?: number | null;
   cout_prestataire?: number | null;
   autre_cout?: number | null;
@@ -698,7 +708,9 @@ export interface OperationAnnee {
   budget_investissement?: number | null;
   // #624 — détail des coûts au niveau année (mode « par type de budget +
   // type de poste » : même décomposition que la ventilation maximale, sans
-  // organisme). Le coût salarial n'est pas stocké, il se calcule.
+  // organisme). Le coût salarial n'est stocké qu'en saisie manuelle.
+  cout_salarial?: number | null;
+  cout_salarial_invest?: number | null;
   cout_stage?: number | null;
   cout_prestataire?: number | null;
   autre_cout?: number | null;
@@ -823,6 +835,19 @@ export interface MetriqueRef {
 
 export type OperationStatut = 'draft' | 'valide';
 
+/**
+ * #641 — Paramétrage de ventilation de la dernière action saisie d'un plan,
+ * repris comme valeurs par défaut à la création d'une nouvelle action.
+ */
+export interface VentilationDefaults {
+  plan_id: number;
+  /** Action dont proviennent les réglages (null si le plan n'a aucune action). */
+  source_operation_id: number | null;
+  ventilation_mode: 'none' | 'by_org' | 'by_type' | 'by_org_type' | 'by_type_poste' | 'by_org_type_poste';
+  declinaison_par_type_cout: boolean;
+  cout_salarial_auto: boolean;
+}
+
 export interface Operation {
   id_operation: number;
   libelle: string;
@@ -862,6 +887,10 @@ export interface Operation {
   ventilation_mode?: 'none' | 'by_org' | 'by_type' | 'by_org_type' | 'by_type_poste' | 'by_org_type_poste';
   /** #560 — détaille le temps de travail poste par poste. */
   declinaison_par_poste?: boolean;
+  /** #600 — détaille le budget par type de coût (salarial / stage / presta / autres). */
+  declinaison_par_type_cout?: boolean;
+  /** #600 — coût salarial calculé (jours × coût jour) ou saisi à la main. */
+  cout_salarial_auto?: boolean;
   geom?: GeoJSONGeometry | string;
   geom_geojson?: GeoJSONGeometry | null;
   // #367 — rattachement direct à un indicateur (action sans métrique préalable)
@@ -925,6 +954,10 @@ export interface OperationCreatePayload {
   ventilation_mode?: 'none' | 'by_org' | 'by_type' | 'by_org_type' | 'by_type_poste' | 'by_org_type_poste';
   /** #560 — détaille le temps de travail poste par poste. */
   declinaison_par_poste?: boolean;
+  /** #600 — détaille le budget par type de coût (salarial / stage / presta / autres). */
+  declinaison_par_type_cout?: boolean;
+  /** #600 — coût salarial calculé (jours × coût jour) ou saisi à la main. */
+  cout_salarial_auto?: boolean;
   metrique_ids?: number[];
   site_ids?: number[];
   // Nested relational data

@@ -7,16 +7,17 @@
  * On vérifie ici que la fiche rend une grille (`app-metrique-grid-display`) pour
  * TOUS les indicateurs liés — réponse ET état/pression — et donc leurs blocs.
  */
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { ComponentFixture, TestBed, fakeAsync, tick } from '@angular/core/testing';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { ActivatedRoute, Router } from '@angular/router';
 import { TranslateModule } from '@ngx-translate/core';
-import { of } from 'rxjs';
+import { of, throwError } from 'rxjs';
 
 import { MatDialog } from '@angular/material/dialog';
 
 import { OperationFicheComponent } from './operation-fiche.component';
 import { ProtocoleCampanuleDialogComponent } from '../../../../shared/components/modals/protocole-campanule-dialog/protocole-campanule-dialog.component';
+import { ExportFicheActionDialogComponent } from '../../../../shared/components/modals/export-fiche-action-dialog/export-fiche-action-dialog.component';
 import { EnjeuService } from '../../../../core/services/enjeu.service';
 import { Operation } from '../../../../core/models/enjeu.model';
 
@@ -56,7 +57,11 @@ function setup(
   op: Operation,
   opts: { from?: string; fromEnjeu?: string; router?: { navigate: jest.Mock } } = {},
 ): ComponentFixture<OperationFicheComponent> {
-  const enjeuService = { getOperation: jest.fn().mockReturnValue(of(op)) };
+  const enjeuService = {
+    getOperation: jest.fn().mockReturnValue(of(op)),
+    // #642 — export Excel de la fiche action.
+    downloadOperationFicheXlsx: jest.fn().mockReturnValue(of(new Blob(['x']))),
+  };
   const queryParamMap = new Map<string, string>();
   if (opts.from) queryParamMap.set('from', opts.from);
   if (opts.fromEnjeu) queryParamMap.set('fromEnjeu', opts.fromEnjeu);
@@ -516,13 +521,107 @@ describe('OperationFicheComponent — personnalisation des sections de l\'export
     expect(fixture.nativeElement.textContent).not.toContain('plans.suivis.actions.fiche.realisationGlobale');
   });
 
-  it('n\'affiche le panneau de choix des sections qu\'après ouverture', () => {
+  it('#642 — le choix des sections a quitté la barre d\'actions pour la modale d\'export', () => {
     const fixture = setup(operationWith([]));
-    const c = fixture.componentInstance;
     expect(fixture.nativeElement.querySelector('.fiche-section-picker')).toBeNull();
-    c.toggleSectionPicker();
-    fixture.detectChanges();
-    expect(fixture.nativeElement.querySelector('.fiche-section-picker')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('.btn-sections')).toBeNull();
+  });
+});
+
+describe('OperationFicheComponent — modale « Exporter ou imprimer » (#642)', () => {
+  /** Simule la fermeture de la modale sur un choix donné (ou une annulation). */
+  function stubDialog(result: unknown): jest.SpyInstance {
+    const dialog = TestBed.inject(MatDialog);
+    return jest.spyOn(dialog, 'open').mockReturnValue({
+      afterClosed: () => of(result),
+    } as any);
+  }
+
+  beforeEach(() => {
+    (URL as any).createObjectURL = jest.fn(() => 'blob:fiche');
+    (URL as any).revokeObjectURL = jest.fn();
+  });
+
+  it('ouvre la modale au clic sur « Exporter ou imprimer », avec les sections courantes', () => {
+    const fixture = setup(operationWith([]));
+    fixture.componentInstance.setSectionVisible('emprise', false);
+    const openSpy = stubDialog(undefined);
+
+    fixture.nativeElement.querySelector('.btn-print').click();
+
+    expect(openSpy).toHaveBeenCalledWith(
+      ExportFicheActionDialogComponent,
+      expect.objectContaining({
+        data: expect.objectContaining({
+          sections: fixture.componentInstance.toggleableSections,
+          sectionVisibility: expect.objectContaining({ emprise: false }),
+        }),
+      }),
+    );
+  });
+
+  it('format « impression » : applique les sections retenues puis imprime', fakeAsync(() => {
+    const fixture = setup(operationWith([]));
+    stubDialog({ format: 'print', sections: { realisation: false } });
+    const printSpy = jest.spyOn(window, 'print').mockImplementation(() => {});
+
+    fixture.componentInstance.openExportDialog();
+    // Les sections sont appliquées avant l'ouverture de la fenêtre d'impression.
+    expect(fixture.componentInstance.sectionVisible('realisation')).toBe(false);
+    expect(printSpy).not.toHaveBeenCalled();
+
+    tick();
+    expect(printSpy).toHaveBeenCalled();
+    printSpy.mockRestore();
+  }));
+
+  it('format « Excel » : télécharge le classeur de la fiche, sans imprimer', () => {
+    const fixture = setup(operationWith([]));
+    stubDialog({ format: 'xlsx', sections: {} });
+    const printSpy = jest.spyOn(window, 'print').mockImplementation(() => {});
+    const clickSpy = jest.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+    const service = TestBed.inject(EnjeuService) as any;
+
+    fixture.componentInstance.openExportDialog();
+
+    expect(service.downloadOperationFicheXlsx).toHaveBeenCalledWith(42);
+    expect(clickSpy).toHaveBeenCalled();
+    expect(printSpy).not.toHaveBeenCalled();
+    expect(fixture.componentInstance.isExporting()).toBe(false);
+    clickSpy.mockRestore();
+    printSpy.mockRestore();
+  });
+
+  it('n\'exporte rien si la modale est annulée', () => {
+    const fixture = setup(operationWith([]));
+    stubDialog(undefined);
+    const printSpy = jest.spyOn(window, 'print').mockImplementation(() => {});
+    const service = TestBed.inject(EnjeuService) as any;
+
+    fixture.componentInstance.openExportDialog();
+
+    expect(service.downloadOperationFicheXlsx).not.toHaveBeenCalled();
+    expect(printSpy).not.toHaveBeenCalled();
+    printSpy.mockRestore();
+  });
+
+  it('explique le refus quand l\'utilisateur n\'est pas référent du plan (403)', () => {
+    const fixture = setup(operationWith([]));
+    stubDialog({ format: 'xlsx', sections: {} });
+    const service = TestBed.inject(EnjeuService) as any;
+    service.downloadOperationFicheXlsx.mockReturnValueOnce(throwError(() => ({ status: 403 })));
+    // Le vrai MatSnackBar monterait un overlay : on espionne l'instance du
+    // composant (le jeton injecté n'est pas identifiable depuis le spec).
+    const snackSpy = jest
+      .spyOn((fixture.componentInstance as any).snackBar, 'open')
+      .mockImplementation(() => ({} as any));
+
+    fixture.componentInstance.openExportDialog();
+
+    expect(snackSpy).toHaveBeenCalledWith(
+      'plans.exports.noPermission', expect.anything(), expect.anything(),
+    );
+    expect(fixture.componentInstance.isExporting()).toBe(false);
   });
 });
 

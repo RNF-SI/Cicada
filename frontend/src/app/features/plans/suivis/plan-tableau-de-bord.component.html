@@ -147,6 +147,20 @@
             [placeholder]="'plans.suivis.tableauDeBord.searchPlaceholder' | translate"
             [ariaLabel]="'plans.suivis.tableauDeBord.searchPlaceholder' | translate">
           </app-search-bar>
+
+          <!-- #638 — export Excel du tableau, filtres et onglet courants inclus -->
+          <button class="export-btn" type="button"
+                  data-testid="tdb-export"
+                  (click)="exportTable()"
+                  [disabled]="!hasData() || isExporting()"
+                  [title]="'plans.suivis.tableauDeBord.export.tooltip' | translate">
+            <span>{{ 'plans.suivis.tableauDeBord.export.label' | translate }}</span>
+            @if (isExporting()) {
+              <mat-spinner diameter="16"></mat-spinner>
+            } @else {
+              <i class="fi fi-rr-download"></i>
+            }
+          </button>
         </div>
 
         <!-- Légende -->

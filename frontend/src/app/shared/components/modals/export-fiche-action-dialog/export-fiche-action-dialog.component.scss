@@ -1,0 +1,89 @@
+@import 'variables';
+
+.intro {
+  margin: 0 0 $spacing-md;
+  color: $gray-dark;
+  font-size: 0.9rem;
+}
+
+.format-list {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-sm;
+}
+
+.format-card {
+  display: flex;
+  align-items: flex-start;
+  gap: $spacing-sm;
+  width: 100%;
+  padding: $spacing-sm $spacing-md;
+  border: 1px solid $gray-light;
+  border-radius: $border-radius-sm;
+  background: $white;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+
+  i {
+    color: $primary-color;
+    font-size: 1.25rem;
+    line-height: 1.4;
+  }
+
+  &:hover {
+    border-color: $primary-color;
+  }
+
+  &.selected {
+    border-color: $primary-color;
+    border-width: 2px;
+    background: rgba($primary-color, 0.06);
+  }
+}
+
+.format-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.format-title {
+  font-weight: 700;
+  color: $black;
+}
+
+.format-hint {
+  font-size: 0.8rem;
+  color: $gray-dark;
+  line-height: 1.35;
+}
+
+.sections-block {
+  margin-top: $spacing-lg;
+  padding-top: $spacing-md;
+  border-top: 1px solid $gray-light;
+
+  h3 {
+    margin: 0;
+    font-size: 0.95rem;
+    color: $primary-color;
+  }
+}
+
+.hint {
+  margin: $spacing-xxs 0 $spacing-sm;
+  font-size: 0.8rem;
+  color: $gray-dark;
+  line-height: 1.35;
+}
+
+.sections-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: $spacing-xxs $spacing-md;
+
+  @media (max-width: 600px) {
+    grid-template-columns: 1fr;
+  }
+}

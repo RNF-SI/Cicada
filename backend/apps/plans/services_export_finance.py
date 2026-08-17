@@ -28,6 +28,11 @@ from decimal import Decimal
 
 # Modes de ventilation comportant une répartition par organisme gestionnaire.
 ORG_VENTILATION_MODES = {"by_org", "by_org_type", "by_org_type_poste"}
+# Modes ventilant par type de budget : ce sont ceux qui portent les réglages
+# « déclinaison par type de coût » et « coût salarial automatique » (#600).
+TYPE_VENTILATION_MODES = {
+    "by_type", "by_org_type", "by_type_poste", "by_org_type_poste",
+}
 
 _ZERO = Decimal(0)
 
@@ -234,6 +239,17 @@ def build_action_finance(op, org_names, poste_jours) -> ActionFinance:
     af = ActionFinance(op=op)
     af.is_org_ventilated = op.ventilation_mode in ORG_VENTILATION_MODES
 
+    # #600 — le coût salarial n'entre dans le budget que si l'action détaille
+    # ses types de coût ; il est calculé (jours × coût jour) en saisie
+    # automatique, sinon lu sur les montants saisis. Sans détail des coûts,
+    # l'enveloppe fonctionnement / investissement saisie contient déjà tout.
+    has_cost_detail = (
+        op.ventilation_mode not in TYPE_VENTILATION_MODES
+        or getattr(op, "declinaison_par_type_cout", True)
+    )
+    auto_salary = has_cost_detail and getattr(op, "cout_salarial_auto", True)
+    manual_salary = has_cost_detail and not auto_salary
+
     def cell(oid, year):
         return af.cells[(oid, year)]
 
@@ -264,11 +280,13 @@ def build_action_finance(op, org_names, poste_jours) -> ActionFinance:
             continue
         if cat == "investissement":
             c.j_invest += jours
-            c.sal_invest += jours * cout_jour
+            if auto_salary:
+                c.sal_invest += jours * cout_jour
             pj["sali_prev"] += jours * cout_jour
         else:
             c.j_fonct += jours
-            c.sal_fonct += jours * cout_jour
+            if auto_salary:
+                c.sal_fonct += jours * cout_jour
             pj["salf_prev"] += jours * cout_jour
         pj["prev"] += jours
 
@@ -320,6 +338,9 @@ def build_action_finance(op, org_names, poste_jours) -> ActionFinance:
         year = line.id_operation_annee.annee
         oid = _org_key(line.id_organisme, org_names)
         c = cell(oid, year)
+        if manual_salary:
+            c.sal_fonct += _d(line.cout_salarial)
+            c.sal_invest += _d(line.cout_salarial_invest)
         c.prest_fonct += _d(line.cout_prestataire)
         c.prest_invest += _d(line.cout_prestataire_invest)
         c.autre_fonct += _d(line.autre_cout) + _d(line.cout_stage) + _d(line.budget_fonctionnement)
@@ -341,11 +362,15 @@ def build_action_finance(op, org_names, poste_jours) -> ActionFinance:
             # #624 — le mode « by_type_poste » détaille les coûts au niveau de
             # l'année (mêmes composants que par organisme, sans organisme) :
             # on les agrège comme le fait la branche par organisme ci-dessus.
+            if manual_salary:
+                c.sal_fonct += _d(oa.cout_salarial)
+                c.sal_invest += _d(oa.cout_salarial_invest)
             c.prest_fonct += _d(oa.cout_prestataire)
             c.prest_invest += _d(oa.cout_prestataire_invest)
             c.autre_fonct += fonct + _d(oa.autre_cout) + _d(oa.cout_stage)
             c.autre_invest += invest + _d(oa.autre_cout_invest)
-            if c.prest_fonct or c.prest_invest or c.autre_fonct or c.autre_invest:
+            if (c.prest_fonct or c.prest_invest or c.autre_fonct or c.autre_invest
+                    or c.sal_fonct or c.sal_invest):
                 org_names.setdefault(0, "Non ventilé")
             real = getattr(oa, "realisation", None)
             if real:

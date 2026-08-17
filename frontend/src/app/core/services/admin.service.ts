@@ -768,6 +768,37 @@ export class AdminService {
   }
 
   /**
+   * Télécharge le tableau de bord des indicateurs mis en forme (#638).
+   * POST /api/plans/plans/{id}/export-tableau-de-bord-xlsx/
+   *
+   * En POST : le tableau est filtré et ses scores calculés côté client, qui
+   * envoie donc les lignes telles qu'il les affiche ; le serveur ne fait que
+   * la mise en forme (en-têtes et cases colorées).
+   */
+  downloadTableauDeBordXlsx(planId: number, payload: unknown): Observable<Blob> {
+    return this.http
+      .post(`${this.plansApiUrl}/plans/${planId}/export-tableau-de-bord-xlsx/`, payload, {
+        responseType: 'blob',
+      })
+      .pipe(catchError(this.handleError));
+  }
+
+  /**
+   * Télécharge le tableau de suivi des actions mis en forme (#637).
+   * POST /api/plans/plans/{id}/export-suivi-actions-xlsx/
+   *
+   * Même contrat que `downloadTableauDeBordXlsx` : le client envoie l'onglet
+   * qu'il affiche, le serveur ne fait que la mise en forme.
+   */
+  downloadSuiviActionsXlsx(planId: number, payload: unknown): Observable<Blob> {
+    return this.http
+      .post(`${this.plansApiUrl}/plans/${planId}/export-suivi-actions-xlsx/`, payload, {
+        responseType: 'blob',
+      })
+      .pipe(catchError(this.handleError));
+  }
+
+  /**
    * Télécharge les fiches action du plan (Excel, un onglet par action).
    * GET /api/plans/plans/{id}/export-fiches-actions-xlsx/
    */

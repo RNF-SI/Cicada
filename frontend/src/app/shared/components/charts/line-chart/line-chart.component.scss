@@ -1,9 +1,13 @@
 @import 'variables';
 
+// Le SVG ne s'agrandit jamais au-dela de son viewBox (max-width = vm.width) :
+// une unite SVG vaut alors un pixel, donc 13 px de libelle d'axe restent 13 px
+// a l'ecran. Sans cette borne, une carte large grossit toute la typographie.
 .line-svg {
   display: block;
   width: 100%;
   height: auto;
+  margin: 0 auto;
   font-family: $font-family;
 }
 
@@ -14,16 +18,16 @@
 
 .line-tick {
   fill: $gray-dark;
-  font-size: 10px;
+  font-size: $font-size-small;
 }
 
 .line-xlabel {
   fill: $black;
-  font-size: 10px;
+  font-size: $font-size-small;
 }
 
 .line-axis-title {
   fill: $gray-dark;
-  font-size: 10px;
+  font-size: $font-size-small;
   font-style: italic;
 }

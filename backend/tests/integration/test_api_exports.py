@@ -243,6 +243,54 @@ class TestExportFinance:
         assert total.tot_fonct == Decimal('3800')   # 3000 + 500 + 300
         assert total.tot_invest == Decimal('350')   # 300 + 50
 
+    def test_sans_declinaison_par_type_de_cout_pas_de_salarial_ajoute(self, plan_finance):
+        """#600 — case « déclinaison par type de coût » décochée : le budget se
+        limite aux enveloppes saisies, le coût salarial ne s'y ajoute plus
+        (sinon il serait compté deux fois — l'enveloppe l'inclut déjà)."""
+        from collections import defaultdict
+        from apps.plans.services_export_finance import (
+            build_action_finance, poste_entry_factory,
+        )
+        op = plan_finance['op']
+        op.declinaison_par_type_cout = False
+        op.save(update_fields=['declinaison_par_type_cout'])
+        OperationAnneeOrganisme.objects.filter(
+            id_operation_annee__id_operation=op).update(
+            budget_fonctionnement=4000, budget_investissement=1000,
+            cout_prestataire=None, cout_prestataire_invest=None,
+            autre_cout=None, autre_cout_invest=None)
+
+        af = build_action_finance(op, {}, defaultdict(poste_entry_factory))
+        c = af.cell(plan_finance['org'].id_organisme, 2024)
+        assert c.sal_fonct == 0
+        # Les jours restent comptés (ils alimentent les tableaux RH).
+        assert c.j_fonct == 10
+        assert c.tot_fonct == 4000
+        assert c.tot_invest == 1000
+
+    def test_cout_salarial_saisi_manuellement(self, plan_finance):
+        """#600 — saisie manuelle du coût salarial : c'est le montant saisi qui
+        entre dans le budget, pas jours × coût jour."""
+        from collections import defaultdict
+        from decimal import Decimal
+        from apps.plans.services_export_finance import (
+            build_action_finance, poste_entry_factory,
+        )
+        op = plan_finance['op']
+        op.cout_salarial_auto = False
+        op.save(update_fields=['cout_salarial_auto'])
+        OperationAnneeOrganisme.objects.filter(
+            id_operation_annee__id_operation=op).update(
+            cout_salarial=1800, cout_salarial_invest=450)
+
+        af = build_action_finance(op, {}, defaultdict(poste_entry_factory))
+        c = af.cell(plan_finance['org'].id_organisme, 2024)
+        assert c.sal_fonct == Decimal('1800')       # et non 10 j × 300 €
+        assert c.sal_invest == Decimal('450')
+        assert c.j_fonct == 10
+        assert c.tot_fonct == Decimal('2400')       # 1800 + 500 presta + 100 autres
+        assert c.tot_invest == Decimal('700')       # 450 + 200 presta + 50 autres
+
     def test_code_action_pg_est_le_code_affichage(self, plan_finance):
         """#618 — la colonne « Code action PG » porte le code calculé (CS1…)."""
         from apps.plans.services_export_finance import build_plan_finance
@@ -591,3 +639,277 @@ class TestExportEndpoints:
         for ep in self.ENDPOINTS:
             resp = api_client.get(f'/api/plans/plans/{plan.id_pg}/{ep}/')
             assert resp.status_code == 200, ep
+
+
+# ---------------------------------------------------------------------------
+# Tableau de bord (#638) — mise en forme du tableau affiché
+# ---------------------------------------------------------------------------
+
+def _payload_tableau_bord():
+    """
+    Deux lignes minimales : un indicateur scoré et sa métrique.
+
+    Les types de ligne sont ceux **réellement** émis par le tableau de bord
+    (`normal` / `detail`) : un type inconnu ne recevait pas de trame, et le test
+    passait donc à côté du défaut de coloration des sous-lignes (#638).
+    """
+    return {
+        'titre': 'Tableau de bord — Plan test',
+        'meta': [['Onglet', 'État'], ['Recherche', 'Balbuzard']],
+        'entetes': ['Enjeu', 'Objectif', 'Niveau', 'Indicateur', 'Métrique',
+                    '2024', 'Évaluation globale', 'Actions'],
+        'lignes': [
+            {'type': 'normal', 'cellules': [
+                'Enjeu 1', 'OLT 1 : Objectif A', 'NE 1', 'Indicateur 1', '',
+                {'t': 'Bon', 's': 'good'}, {'t': 'Très mauvais', 's': 'very-bad'}, 'CS01',
+            ]},
+            {'type': 'detail', 'cellules': [
+                'Enjeu 1', 'OLT 1 : Objectif A', 'NE 1', 'Indicateur 1', 'Surface (ha)',
+                {'t': 'Moyen', 's': 'neutral'}, '', '',
+            ]},
+        ],
+    }
+
+
+@pytest.mark.django_db
+class TestExportGrilleAffichee:
+    """
+    Retour de recette : le tableau sortait en CSV, sans mise en forme. Le
+    classeur doit reprendre les couleurs de l'interface — en-tête à la couleur
+    de l'instance et cases de score à la palette du design system.
+    """
+
+    URL = '/api/plans/plans/{}/export-tableau-de-bord-xlsx/'
+
+    def _workbook(self, api_client, plan, payload=None):
+        resp = api_client.post(
+            self.URL.format(plan.id_pg), payload or _payload_tableau_bord(), format='json')
+        assert resp.status_code == 200
+        assert resp['Content-Type'].startswith(
+            'application/vnd.openxmlformats-officedocument')
+        return load_workbook(io.BytesIO(resp.content))
+
+    def test_colore_les_cases_de_score_avec_la_palette(self, api_client, plan_finance):
+        api_client.force_authenticate(user=SuperAdminFactory())
+        ws = self._workbook(api_client, plan_finance['plan']).active
+
+        entete = next(
+            r for r in ws.iter_rows() if r[0].value == 'Enjeu'
+        )
+        ligne_indic = ws[entete[0].row + 1]
+        ligne_metrique = ws[entete[0].row + 2]
+
+        # 6e colonne = année 2024, 7e = évaluation globale.
+        assert ligne_indic[5].value == 'Bon'
+        assert ligne_indic[5].fill.fgColor.rgb == 'FF82DB8A'        # good
+        assert ligne_indic[6].fill.fgColor.rgb == 'FFFF7579'        # very-bad
+        assert ligne_metrique[5].fill.fgColor.rgb == 'FFF7D35C'     # neutral
+
+    def test_sous_ligne_metrique_garde_sa_trame_hors_score(self, api_client, plan_finance):
+        """
+        La couleur de score prime sur la trame de la sous-ligne (#638), mais
+        seulement là où il y a un score : les colonnes d'identification gardent
+        le beige qui rattache la métrique à son indicateur.
+        """
+        api_client.force_authenticate(user=SuperAdminFactory())
+        ws = self._workbook(api_client, plan_finance['plan']).active
+
+        entete = next(r for r in ws.iter_rows() if r[0].value == 'Enjeu')
+        ligne_metrique = ws[entete[0].row + 2]
+        assert ligne_metrique[4].value == 'Surface (ha)'
+        assert ligne_metrique[4].fill.fgColor.rgb == 'FFF8F5F1'     # trame beige
+
+    def test_entete_a_la_couleur_de_l_instance(self, api_client, plan_finance):
+        api_client.force_authenticate(user=SuperAdminFactory())
+        ws = self._workbook(api_client, plan_finance['plan']).active
+
+        entete = next(r for r in ws.iter_rows() if r[0].value == 'Enjeu')
+        assert entete[0].fill.fgColor.rgb == 'FF025359'
+        assert entete[0].font.color.rgb == 'FFFFFFFF'
+        assert entete[0].font.bold
+
+    def test_reprend_le_titre_et_le_rappel_des_filtres(self, api_client, plan_finance):
+        api_client.force_authenticate(user=SuperAdminFactory())
+        ws = self._workbook(api_client, plan_finance['plan']).active
+
+        valeurs = [c.value for col in ws.iter_cols(min_col=1, max_col=2) for c in col]
+        assert 'Tableau de bord — Plan test' in valeurs
+        assert 'Balbuzard' in valeurs
+
+    def test_case_sans_score_reste_incolore(self, api_client, plan_finance):
+        api_client.force_authenticate(user=SuperAdminFactory())
+        ws = self._workbook(api_client, plan_finance['plan']).active
+
+        entete = next(r for r in ws.iter_rows() if r[0].value == 'Enjeu')
+        # Évaluation globale de la ligne métrique : vide, donc pas d'aplat de score.
+        case = ws[entete[0].row + 2][6]
+        assert case.value in (None, '')
+        assert case.fill.fgColor.rgb != 'FF82DB8A'
+
+    def test_exportable_meme_quand_le_plan_est_valide(self, api_client, plan_finance):
+        """
+        Le POST ne modifie pas le plan : le verrou « hors brouillon » (#248) ne
+        doit pas l'intercepter, sinon aucun plan validé ne serait exportable —
+        or c'est justement l'état dans lequel on lit un tableau de bord.
+        """
+        plan = plan_finance['plan']
+        plan.statut = 'valide'
+        plan.save(update_fields=['statut'])
+        api_client.force_authenticate(user=SuperAdminFactory())
+
+        resp = api_client.post(
+            self.URL.format(plan.id_pg), _payload_tableau_bord(), format='json')
+        assert resp.status_code == 200
+
+    def test_membre_non_referent_ne_peut_pas_exporter(self, api_client, plan_finance):
+        plan = plan_finance['plan']
+        membre = RoleFactory()
+        CorRolePlan.objects.create(id_role=membre, plan_de_gestion=plan, referent=False)
+        api_client.force_authenticate(user=membre)
+
+        resp = api_client.post(
+            self.URL.format(plan.id_pg), _payload_tableau_bord(), format='json')
+        assert resp.status_code == 403
+
+
+@pytest.mark.django_db
+class TestExportSuiviActions:
+    """
+    Retour de recette #637 : le total du groupe ouvrait le tableau, son libellé
+    logé dans la colonne « Code », et rien ne le distinguait des autres lignes.
+    """
+
+    URL = '/api/plans/plans/{}/export-suivi-actions-xlsx/'
+
+    PAYLOAD = {
+        'titre': 'Suivi des actions — Plan test',
+        'onglet': 'Budget',
+        'meta': [['Onglet', 'Budget']],
+        'entetes': ['Organisme', 'Code', 'Code opération', 'Action',
+                    'Enjeu', 'Catégorie', 'Priorité', 'Total (€)', 'Jours'],
+        'formats': [None, None, None, None, None, None, None, 'euro', None],
+        'lignes': [
+            {'cellules': ['Org Alpha', 'CS1', 'CAM-SE01', 'Action A',
+                          'Enjeu 1', 'Connaissance', 'Priorité 1', 1200, 12.5]},
+            {'type': 'total',
+             'cellules': ['Total Org Alpha', '', '', '', '', '', '', 1200, 12.5]},
+        ],
+    }
+
+    def _sheet(self, api_client, plan):
+        resp = api_client.post(self.URL.format(plan.id_pg), self.PAYLOAD, format='json')
+        assert resp.status_code == 200
+        return load_workbook(io.BytesIO(resp.content)).active
+
+    def test_ligne_de_total_detachee_du_reste(self, api_client, plan_finance):
+        api_client.force_authenticate(user=SuperAdminFactory())
+        ws = self._sheet(api_client, plan_finance['plan'])
+
+        entete = next(r for r in ws.iter_rows() if r[0].value == 'Organisme')
+        action, total = ws[entete[0].row + 1], ws[entete[0].row + 2]
+
+        assert action[0].value == 'Org Alpha'
+        assert not action[0].fill.fill_type or action[0].fill.fgColor.rgb != 'FFC0E3CF'
+        # Le total porte l'aplat vert pâle réservé aux synthèses, et son libellé
+        # est dans la colonne « Organisme », pas dans « Code ».
+        assert total[0].fill.fgColor.rgb == 'FFC0E3CF'
+        assert total[0].value == 'Total Org Alpha'
+        assert total[1].value in (None, '')
+        assert total[0].font.bold
+
+    def test_montants_ecrits_comme_des_nombres(self, api_client, plan_finance):
+        """Un montant en texte ne se somme pas dans le tableur : il doit rester numérique."""
+        api_client.force_authenticate(user=SuperAdminFactory())
+        ws = self._sheet(api_client, plan_finance['plan'])
+
+        entete = next(r for r in ws.iter_rows() if r[0].value == 'Organisme')
+        assert ws[entete[0].row + 1][7].value == 1200
+        assert isinstance(ws[entete[0].row + 1][7].value, (int, float))
+
+    def test_montant_entier_affiche_un_euro_sans_virgule_finale(
+            self, api_client, plan_finance):
+        """
+        Retour de recette #644 : un montant entier sortait « 12 345, » — le
+        tableur affiche le séparateur décimal même quand rien ne suit. Un
+        entier n'a donc pas de décimales dans son format, et une colonne de
+        montants porte son « € ».
+        """
+        api_client.force_authenticate(user=SuperAdminFactory())
+        ws = self._sheet(api_client, plan_finance['plan'])
+
+        entete = next(r for r in ws.iter_rows() if r[0].value == 'Organisme')
+        for ligne in (entete[0].row + 1, entete[0].row + 2):   # action ET total
+            fmt = ws[ligne][7].number_format
+            assert '€' in fmt
+            assert '.' not in fmt
+
+    def test_les_jours_gardent_leurs_decimales_et_restent_sans_euro(
+            self, api_client, plan_finance):
+        """Une colonne non monétaire n'hérite pas du « € », et 12,5 jours
+        conservent leur décimale."""
+        api_client.force_authenticate(user=SuperAdminFactory())
+        ws = self._sheet(api_client, plan_finance['plan'])
+
+        entete = next(r for r in ws.iter_rows() if r[0].value == 'Organisme')
+        fmt = ws[entete[0].row + 1][8].number_format
+        assert '€' not in fmt
+        assert '.' in fmt
+
+    def test_membre_non_referent_ne_peut_pas_exporter(self, api_client, plan_finance):
+        plan = plan_finance['plan']
+        membre = RoleFactory()
+        CorRolePlan.objects.create(id_role=membre, plan_de_gestion=plan, referent=False)
+        api_client.force_authenticate(user=membre)
+
+        resp = api_client.post(self.URL.format(plan.id_pg), self.PAYLOAD, format='json')
+        assert resp.status_code == 403
+
+
+# ---------------------------------------------------------------------------
+# #642 — Export d'UNE fiche action depuis sa page de visualisation
+# ---------------------------------------------------------------------------
+
+@pytest.mark.django_db
+class TestExportFicheActionEndpoint:
+    """GET /api/plans/operations/{id}/export-fiche-xlsx/"""
+
+    def _url(self, op):
+        return f'/api/plans/operations/{op.id_operation}/export-fiche-xlsx/'
+
+    def test_exporte_un_classeur_avec_le_seul_onglet_de_l_action(self, api_client, plan_finance):
+        api_client.force_authenticate(user=SuperAdminFactory())
+        resp = api_client.get(self._url(plan_finance['op']))
+
+        assert resp.status_code == 200
+        assert resp['Content-Type'].startswith('application/vnd.openxmlformats')
+        assert 'fiche-action-CS01.xlsx' in resp['Content-Disposition']
+
+        wb = load_workbook(io.BytesIO(resp.content))
+        assert wb.sheetnames == ['CS01']
+        ws = wb['CS01']
+        labels = [ws.cell(r, 1).value for r in range(1, ws.max_row + 1)]
+        # Même rendu que l'export « fiches action » du plan (variante CS).
+        assert any(l == "Indicateur d'état" for l in labels)
+
+    def test_requiert_authentification(self, api_client, plan_finance):
+        resp = api_client.get(self._url(plan_finance['op']))
+        assert resp.status_code in (401, 403)
+
+    def test_membre_non_referent_ne_peut_pas_exporter(self, api_client, plan_finance):
+        """La lecture seule (#610) n'ouvre pas les exports."""
+        membre = RoleFactory()
+        CorRolePlan.objects.create(
+            id_role=membre, plan_de_gestion=plan_finance['plan'], referent=False)
+        api_client.force_authenticate(user=membre)
+
+        resp = api_client.get(self._url(plan_finance['op']))
+        assert resp.status_code == 403
+
+    def test_referent_du_plan_peut_exporter(self, api_client, plan_finance):
+        referent = RoleFactory()
+        plan_finance['plan'].referents.add(referent)
+        api_client.force_authenticate(user=referent)
+
+        resp = api_client.get(self._url(plan_finance['op']))
+        assert resp.status_code == 200
+        assert resp.content[:2] == b'PK'

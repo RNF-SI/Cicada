@@ -1,0 +1,153 @@
+@import 'variables';
+
+.modale-titre {
+  display: flex;
+  align-items: baseline;
+  gap: $spacing-sm;
+  color: $primary-color;
+}
+
+.modale-code {
+  font-size: 0.8em;
+  font-weight: 700;
+  color: $gray-dark;
+}
+
+.modale-contenu {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-md;
+}
+
+.modale-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spacing-xs;
+}
+
+.modale-texte {
+  margin: 0;
+  white-space: pre-line;
+}
+
+.modale-bloc {
+  border-top: 1px solid $gray-lighter;
+  padding-top: $spacing-sm;
+}
+
+.modale-sous-titre {
+  margin: 0 0 $spacing-xs;
+  color: $primary-color;
+  font-size: 1rem;
+}
+
+.modale-liste {
+  display: grid;
+  grid-template-columns: minmax(9rem, auto) 1fr;
+  gap: $spacing-xs $spacing-md;
+  margin: 0;
+
+  dt {
+    font-weight: 700;
+    color: $gray-dark;
+  }
+
+  dd {
+    margin: 0;
+  }
+}
+
+.modale-puces {
+  margin: 0;
+  padding-left: $spacing-md;
+}
+
+.modale-mention {
+  display: flex;
+  align-items: flex-start;
+  gap: $spacing-xs;
+  margin: 0;
+}
+
+/* Précision entre parenthèses derrière une valeur (objectif ou cible secondaire). */
+.modale-mention-inline {
+  color: $gray-dark;
+  font-size: $font-size-small;
+}
+
+/* Un protocole par bloc : nom, nature, puis ses champs en liste de définition. */
+.modale-protocole,
+.modale-indicateur {
+  padding: $spacing-xs 0;
+
+  & + & {
+    border-top: 1px dashed $gray-lighter;
+  }
+}
+
+.modale-protocole-entete {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: $spacing-xs;
+  margin: 0 0 $spacing-xs;
+}
+
+.modale-protocole-nom,
+.modale-indicateur-nom {
+  margin: 0;
+  font-weight: $font-weight-bold;
+}
+
+.modale-metrique {
+  margin: $spacing-xs 0 0;
+  color: $gray-dark;
+}
+
+/**
+ * Grille de lecture d'une métrique : les 5 paliers, à la palette des scores.
+ * Même rendu que sur la fiche du plan — texte noir sur fonds clairs (WCAG AA).
+ */
+.modale-grille {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spacing-xxs;
+  margin: $spacing-xxs 0 $spacing-xs;
+}
+
+.modale-grille-palier {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 8rem;
+  min-width: 7rem;
+  border: 1px solid $gray-lighter;
+  border-radius: $border-radius-sm;
+  overflow: hidden;
+  background-color: $white;
+}
+
+.modale-grille-tete {
+  padding: 2px $spacing-xs;
+  font-size: $font-size-small;
+  font-weight: $font-weight-bold;
+  color: $black;
+  text-align: center;
+}
+
+.modale-grille-valeur {
+  padding: $spacing-xxs $spacing-xs;
+  font-size: $font-size-small;
+  color: $black;
+  white-space: pre-line;
+}
+
+@media (max-width: $breakpoint-mobile) {
+  .modale-liste {
+    grid-template-columns: 1fr;
+    gap: 0 0;
+
+    dd {
+      margin-bottom: $spacing-xs;
+    }
+  }
+}

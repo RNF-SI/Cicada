@@ -1886,7 +1886,8 @@
         "scope": {
           "global": "Global",
           "miParcours": "Mi-parcours",
-          "annuel": "Annuel"
+          "annuel": "Annuel",
+          "periode": "Première moitié du plan : {{from}} à {{to}}"
         },
         "tabs": {
           "indicateurs": "Indicateurs",
@@ -1957,6 +1958,13 @@
           "nonDemarre": "Non démarré",
           "abandonne": "Abandonné"
         },
+        "statut": {
+          "planifieeRealisee": "Planifiée réalisée",
+          "planifieePartielle": "Planifiée partiellement réalisée",
+          "planifieeNonRealisee": "Planifiée non réalisée",
+          "nonPlanifieeRealisee": "Non planifiée réalisée",
+          "nonPlanifieePartielle": "Non planifiée partiellement réalisée"
+        },
         "summary": {
           "tauxTitle": "Taux de réalisation",
           "actionsTerminees": "actions terminées",
@@ -1976,6 +1984,26 @@
         },
         "byEnjeu": {
           "title": "Niveau de réalisation par enjeu / FCR"
+        },
+        "export": {
+          "tooltip": "Exporter les résultats affichés (filtres en cours)",
+          "csv": "Résultats chiffrés (CSV)",
+          "charts": "Graphiques (JPG)",
+          "chartsTooltip": "Image JPG des graphiques de l'onglet affiché, filtres en cours inclus",
+          "noCharts": "Aucun graphique à exporter dans cet onglet.",
+          "chartsFailed": "L'export des graphiques a échoué.",
+          "onglet": "Onglet",
+          "portee": "Portée",
+          "annee": "Année",
+          "periode": "Période",
+          "totalIndicateurs": "Nombre d'indicateurs",
+          "tauxEvaluation": "Taux d'évaluation (%)",
+          "libelle": "Libellé",
+          "nombre": "Nombre",
+          "nbIndicateurs": "Nombre d'indicateurs",
+          "niveau": "Niveau de réalisation",
+          "min": "Minimum",
+          "max": "Maximum"
         }
       },
       "actions": {
@@ -2041,6 +2069,19 @@
         "realisationNone": "Non réalisées",
         "fiche": {
           "export": "Imprimer / Exporter (PDF)",
+          "exportDialog": {
+            "trigger": "Exporter ou imprimer",
+            "title": "Exporter ou imprimer la fiche action",
+            "formats": {
+              "print": "Impression / PDF",
+              "printHint": "Ouvre la fenêtre d'impression du navigateur — choisir « Enregistrer au format PDF » pour produire un fichier.",
+              "xlsx": "Excel (.xlsx)",
+              "xlsxHint": "Classeur au modèle CICADA, un onglet pour cette action — même mise en forme que l'export des fiches action du plan."
+            },
+            "sectionsTitle": "Sections à inclure",
+            "sectionsHint": "Ne s'applique qu'à l'impression / PDF : le classeur Excel suit le modèle CICADA.",
+            "confirm": "Exporter"
+          },
           "voirSuivi": "Voir le suivi de l'action",
           "voirFiche": "Voir la fiche de l'action",
           "voirDansPlan": "Voir dans le plan de gestion",
@@ -2099,7 +2140,21 @@
           "rhCible": "Poste / organisme"
         },
         "actionNonRealisee": "Action prévue non réalisée",
-        "actionNonRealiseeSeule": "Action non réalisée"
+        "actionNonRealiseeSeule": "Action non réalisée",
+        "export": {
+          "tooltip": "Exporter le tableau affiché (filtres en cours) au format Excel",
+          "code": "Code",
+          "action": "Action",
+          "previsionnel": "Prévisionnel",
+          "realise": "Réalisé",
+          "annee": "Année",
+          "moisPrevus": "Mois prévus",
+          "moisRealises": "Mois réalisés",
+          "codeOperation": "Code opération",
+          "onglet": "Onglet",
+          "error": "L'export du tableau a échoué. Réessayez dans un instant.",
+          "totalGroupe": "Total"
+        }
       },
       "saisie": {
         "subtitle": "Remplir le suivi d'une action",
@@ -2297,7 +2352,14 @@
         "searchPlaceholder": "Rechercher (objectif, indicateur…)",
         "enjeu": "Enjeu",
         "actions": "Actions",
-        "niveauOuResultat": "Niveau d'exigence / Résultat attendu"
+        "niveauOuResultat": "Niveau d'exigence / Résultat attendu",
+        "export": {
+          "label": "Exporter le tableau",
+          "tooltip": "Exporter le tableau affiché (filtres en cours) au format Excel",
+          "metrique": "Métrique",
+          "onglet": "Onglet",
+          "error": "L'export du tableau a échoué. Réessayez dans un instant."
+        }
       },
       "indicateurGlobal": {
         "subtitle": "Évaluation globale de l'indicateur",
@@ -3322,7 +3384,48 @@
       "typeAction": "Type d'action",
       "typeActionPrecis": "Type d'action détaillé",
       "operateurs": "Opérateurs",
-      "partenaires": "Partenaires"
+      "partenaires": "Partenaires",
+      "olt": "OLT",
+      "oo": "OO",
+      "ne": "Niveau d’exigence",
+      "ra": "Résultat attendu",
+      "metrique": "Métrique",
+      "metriques": "Métriques",
+      "grille": "Grille de lecture",
+      "cadre": "Cadre de l’action",
+      "suivi": "Suivi et objectifs",
+      "suiviIntitule": "Intitulé du suivi",
+      "objectif": "Objectif de la collecte",
+      "objectifSecondaire": "objectif secondaire",
+      "cible": "Cible",
+      "espece": "Espèce ciblée",
+      "habitats": "Habitats ciblés",
+      "frequence": "Fréquence du suivi",
+      "frequenceAction": "Fréquence de l’action",
+      "finSuivi": "Fin du suivi",
+      "outilSaisie": "Outil de saisie",
+      "outilBancarisation": "Outil de bancarisation",
+      "commentaires": "Commentaires",
+      "localisation": "Localisation",
+      "protocoles": "Protocoles",
+      "protocoleSansNom": "Protocole sans nom",
+      "protocoleStandardise": "Protocole standardisé",
+      "protocoleLibre": "Protocole libre",
+      "protocoleNonRespecte": "Appliqué avec des écarts",
+      "protocoleDescription": "Descriptif",
+      "protocoleObjectif": "Objectif du protocole",
+      "protocoleJustification": "Justification des écarts",
+      "protocoleDifferences": "Différences avec le protocole",
+      "protocoleEchantillonnage": "Période d’échantillonnage",
+      "protocolePeriode": "Mois de suivi",
+      "protocoleValidation": "Mode de validation",
+      "protocoleDocumentation": "Documentation",
+      "indicateursReponse": "Indicateurs de réponse",
+      "miseEnOeuvre": "Mise en œuvre",
+      "voirFicheAction": "Voir la fiche action",
+      "toutDeplier": "Tout déplier",
+      "toutReplier": "Tout replier",
+      "actionNonPublie": "Le budget, les moyens humains et le suivi des réalisations de cette action relèvent de la gestion interne de l’organisme et ne sont pas publiés."
     }
   },
   "errors": {
@@ -3802,6 +3905,13 @@
       "modeByOrgType": "Par organisme + type de budget",
       "modeByTypePoste": "Par type de budget + type de poste",
       "modeByOrgTypePoste": "Par organisme + type de budget + type de poste",
+      "budgetOptions": {
+        "declinaisonTypeCout": "Déclinaison par type de coût",
+        "declinaisonTypeCoutHint": "Détaille le budget en coût salarial, coût stage, coût prestataire et autres coûts. Décochée, seuls les budgets de fonctionnement et d'investissement sont saisis à la main.",
+        "coutSalarialAuto": "Saisie automatique du coût salarial",
+        "coutSalarialAutoHint": "Calcule le coût salarial à partir des jours saisis et du coût jour des postes. Décochée, le coût salarial est saisi à la main.",
+        "postesLink": "Gérer les postes et les coûts jour"
+      },
       "coutSalarial": "Coût salarial",
       "coutStage": "Coût stage",
       "coutPrestataire": "Coût prestataire",
@@ -3811,6 +3921,7 @@
       "budgetTotalFonct": "Total Budget de fonctionnement (€)",
       "budgetTotalInvest": "Total Budget d'investissement (€)",
       "budgetTotalOG": "Budget total OG (€)",
+      "budgetTotalOrganisme": "Total {{organisme}}",
       "autreCoutCommentaire": "Commentaire (autre coût)",
       "autreCoutCommentairePlaceholder": "Précisez la nature de ce coût…",
       "modeVentilation": "Ventilation par organisme",
@@ -4040,7 +4151,39 @@
         "sharedBadge": "Liée à plusieurs métriques"
       },
       "sharedBannerFacteur": "Ce facteur est partagé entre {{count}} enjeux. Toute modification s'applique partout.",
-      "sharedBannerOo": "Cet objectif est partagé entre {{count}} enjeux. Toute modification s'applique partout."
+      "sharedBannerOo": "Cet objectif est partagé entre {{count}} enjeux. Toute modification s'applique partout.",
+      "indicateurEtat": {
+        "title": "Partager cet indicateur d'état",
+        "subtitle": "« {{label}} » — choisissez un autre niveau d'exigence sous lequel le faire apparaître.",
+        "linkDescription": "L'indicateur reste UN SEUL élément, affiché sous plusieurs niveaux d'exigence. Ses métriques et ses actions suivent, et toute modification se répercute partout. Pour obtenir un duplicata modifiable séparément, utilisez « Dupliquer ».",
+        "targetLabel": "Niveau d'exigence de destination",
+        "noTarget": "Aucun autre niveau d'exigence disponible dans ce plan.",
+        "linkAction": "Lier à un autre niveau d'exigence",
+        "sharedBadge": "Lié à plusieurs niveaux d'exigence",
+        "linkSuccess": "Indicateur lié au niveau d'exigence (élément partagé).",
+        "linkError": "Erreur lors de la liaison de l'indicateur.",
+        "unlinkSuccess": "Indicateur retiré de ce niveau d'exigence.",
+        "unlinkError": "Erreur lors du retrait de l'indicateur."
+      },
+      "indicateurPression": {
+        "title": "Partager cet indicateur de pression",
+        "subtitle": "« {{label}} » — choisissez un autre résultat attendu sous lequel le faire apparaître.",
+        "linkDescription": "L'indicateur reste UN SEUL élément, affiché sous plusieurs résultats attendus. Ses métriques et ses actions suivent, et toute modification se répercute partout. Pour obtenir un duplicata modifiable séparément, utilisez « Dupliquer ».",
+        "targetLabel": "Résultat attendu de destination",
+        "noTarget": "Aucun autre résultat attendu disponible dans ce plan.",
+        "linkAction": "Lier à un autre résultat attendu",
+        "sharedBadge": "Lié à plusieurs résultats attendus",
+        "linkSuccess": "Indicateur lié au résultat attendu (élément partagé).",
+        "linkError": "Erreur lors de la liaison de l'indicateur.",
+        "unlinkSuccess": "Indicateur retiré de ce résultat attendu.",
+        "unlinkError": "Erreur lors du retrait de l'indicateur."
+      },
+      "indicateur": {
+        "unlinkAction": "Retirer d'ici",
+        "unlinkConfirmTitle": "Retirer cet indicateur ?",
+        "unlinkConfirmMessage": "« {{label}} » restera rattaché à ses autres emplacements. Ses métriques et ses actions ne sont pas supprimées.",
+        "unlinkPorteur": "Cet indicateur a été créé ici : il ne peut pas en être retiré. Supprimez-le, déplacez-le, ou retirez-le d'un emplacement avec lequel il est partagé."
+      }
     },
     "facteurInfluence": {
       "label": "Facteur d'influence",

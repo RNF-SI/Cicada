@@ -94,6 +94,14 @@
               {{ 'plans.suivis.bilan.scope.annuel' | translate }}
             </button>
           </div>
+
+          <!-- La portée « Mi-parcours » couvre la première moitié du plan :
+               afficher ces années évite de deviner ce qui est compté. -->
+          @if (scope() === 'mi_parcours' && miParcoursRange(); as range) {
+            <p class="scope-hint text-mention" data-testid="bilan-periode">
+              {{ 'plans.suivis.bilan.scope.periode' | translate:{ from: range.min, to: range.max } }}
+            </p>
+          }
         </div>
 
         <!-- Timeline des années (mode Annuel) -->
@@ -165,10 +173,30 @@
             }
           </app-filter-bar>
 
-          <button class="export-link">
+          <!-- #639 — export des résultats (chiffres CSV / graphiques JPG),
+               filtres en cours inclus -->
+          <button class="export-link" type="button"
+                  data-testid="bilan-export"
+                  [matMenuTriggerFor]="exportMenu"
+                  [title]="'plans.suivis.bilan.export.tooltip' | translate">
             <span>{{ 'plans.suivis.bilan.exportResults' | translate }}</span>
             <i class="fi fi-rr-download"></i>
           </button>
+          <mat-menu #exportMenu="matMenu">
+            <button mat-menu-item type="button"
+                    data-testid="bilan-export-csv"
+                    (click)="exportResults()">
+              <i class="fi fi-rr-file-excel"></i>
+              <span>{{ 'plans.suivis.bilan.export.csv' | translate }}</span>
+            </button>
+            <button mat-menu-item type="button"
+                    data-testid="bilan-export-charts"
+                    (click)="exportCharts()"
+                    [title]="'plans.suivis.bilan.export.chartsTooltip' | translate">
+              <i class="fi fi-rr-picture"></i>
+              <span>{{ 'plans.suivis.bilan.export.charts' | translate }}</span>
+            </button>
+          </mat-menu>
         </div>
 
         <!-- ================= ONGLET INDICATEURS ================= -->
@@ -211,7 +239,8 @@
                         [band]="indicEvolutionBand()"
                         [yMin]="1" [yMax]="5" [yTicks]="4"
                         [yLabel]="'plans.suivis.bilan.indic.score' | translate"
-                        [legend]="indicEvolutionLegend()">
+                        [legend]="indicEvolutionLegend()"
+                        [maxWidth]="1060">
                       </app-line-chart>
                     } @else {
                       <div class="chart-soon">
@@ -354,7 +383,7 @@
               <app-chart-card class="span-2"
                 [title]="'plans.suivis.bilan.actionsChart.evolutionTitle' | translate">
                 @if (hasActionsSeries()) {
-                  <app-bar-chart [data]="actionsParAnneeBars()" mode="stacked"></app-bar-chart>
+                  <app-bar-chart [data]="actionsParAnneeBars()" mode="stacked" [maxWidth]="1060"></app-bar-chart>
                   <app-chart-legend [items]="niveauLegend()" [inline]="true"></app-chart-legend>
                 } @else {
                   <div class="chart-soon">

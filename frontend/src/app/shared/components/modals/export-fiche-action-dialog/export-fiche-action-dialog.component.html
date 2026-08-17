@@ -1,0 +1,60 @@
+<h2 mat-dialog-title>{{ 'plans.suivis.actions.fiche.exportDialog.title' | translate }}</h2>
+
+<mat-dialog-content>
+  @if (data.actionLabel) {
+    <p class="intro">{{ data.actionLabel }}</p>
+  }
+
+  <div class="format-list">
+    <button
+      type="button"
+      class="format-card"
+      [class.selected]="isSelected('print')"
+      [attr.aria-pressed]="isSelected('print')"
+      (click)="selectFormat('print')">
+      <i class="fi fi-rr-print"></i>
+      <span class="format-body">
+        <span class="format-title">{{ 'plans.suivis.actions.fiche.exportDialog.formats.print' | translate }}</span>
+        <span class="format-hint">{{ 'plans.suivis.actions.fiche.exportDialog.formats.printHint' | translate }}</span>
+      </span>
+    </button>
+
+    <button
+      type="button"
+      class="format-card"
+      [class.selected]="isSelected('xlsx')"
+      [attr.aria-pressed]="isSelected('xlsx')"
+      (click)="selectFormat('xlsx')">
+      <i class="fi fi-rr-file-excel"></i>
+      <span class="format-body">
+        <span class="format-title">{{ 'plans.suivis.actions.fiche.exportDialog.formats.xlsx' | translate }}</span>
+        <span class="format-hint">{{ 'plans.suivis.actions.fiche.exportDialog.formats.xlsxHint' | translate }}</span>
+      </span>
+    </button>
+  </div>
+
+  @if (isSelected('print')) {
+    <section class="sections-block">
+      <h3>{{ 'plans.suivis.actions.fiche.exportDialog.sectionsTitle' | translate }}</h3>
+      <p class="hint">{{ 'plans.suivis.actions.fiche.exportDialog.sectionsHint' | translate }}</p>
+      <div class="sections-list">
+        @for (s of data.sections; track s.key) {
+          <app-checkbox
+            [checked]="sectionVisible(s.key)"
+            (checkedChange)="setSectionVisible(s.key, $event)"
+            [label]="s.labelKey | translate">
+          </app-checkbox>
+        }
+      </div>
+    </section>
+  }
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-stroked-button (click)="cancel()">
+    {{ 'common.actions.cancel' | translate }}
+  </button>
+  <button mat-flat-button color="primary" (click)="confirm()">
+    {{ 'plans.suivis.actions.fiche.exportDialog.confirm' | translate }}
+  </button>
+</mat-dialog-actions>

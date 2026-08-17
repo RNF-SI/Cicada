@@ -4,22 +4,22 @@ Cette note décrit les étapes pour publier une nouvelle version : images Docker
 
 ## Vue d’ensemble
 
-- Les **images Docker** (backend, frontend) sont construites et poussées sur GHCR lors d’un **push de tag** `v*` (ex. `v0.1.13`) — voir `.github/workflows/docker-publish.yml`. En pratique : merge des changements sur `main`, puis création et push du tag.
+- Les **images Docker** (backend, frontend) sont construites et poussées sur GHCR lors d’un **push de tag** `v*` (ex. `v0.1.13`) — voir `.github/workflows/docker-publish.yml`. Le tag est posé **sur `develop`** (cf. §2).
 - Le **package .deb** est construit par la CI au **même moment** (workflow `.github/workflows/build-deb.yml`) : un seul tag déclenche images Docker + .deb avec la même version.
-- La **publication sur le dépôt APT** (reprepro, signature GPG, mise en ligne) reste **manuelle** : télécharger l’artefact .deb depuis l’onglet Actions et l’ajouter au repo.
+- Le **déploiement se fait aujourd’hui par installation directe du .deb** (`dpkg -i`), le dépôt APT étant hors service (cf. §4). C’est la voie décrite en §7.
 
 ## 1. Préparer la version
 
 - Décider du numéro de version (ex. `0.1.21`).
-- **`version.txt`** : doit être mis à jour manuellement. Ce fichier est lu par le backend Django (endpoint `/api/health/`, etc.). Committer le changement sur `main` avant de créer le tag.
+- **`version.txt`** : doit être mis à jour manuellement — le versionnage est **manuel**, `release-please` est désynchronisé et son échec sur `main` est sans conséquence.
 - **`packaging/debian/DEBIAN/control`** et **`packaging/debian/etc/cicada/cicada.conf`** : écrasés automatiquement par la CI lors du build .deb. Les mettre à jour est optionnel (utile uniquement pour les builds locaux).
 
 ## 2. Bumper la version et créer le tag
 
-Une fois les changements mergés sur `main` :
+Le tag se pose **sur `develop`**, qui est la branche de référence des releases : c’est de là que sont sorties toutes les versions depuis la 0.1.31. Avancer `main` est facultatif et se fait après coup, en fast-forward.
 
 ```bash
-git checkout main
+git checkout develop
 git pull
 
 # Mettre à jour version.txt
@@ -29,7 +29,12 @@ git commit -m "chore: bump version 0.1.21"
 
 # Créer et pousser le tag
 git tag v0.1.21
-git push origin main --tags
+git push origin develop && git push origin v0.1.21
+
+# Facultatif : remettre main à niveau, sans merge commit ni divergence.
+# La condition doit être vraie, sinon main a des commits que develop n'a pas —
+# dans ce cas, ne pas forcer : traiter la divergence à part.
+git merge-base --is-ancestor origin/main origin/develop && git push origin develop:main
 ```
 
 **Effets :**
@@ -51,6 +56,9 @@ VERSION=0.1.13 TRACKING_API_URL="https://tracking.cicada.reserves-naturelles.org
 Le fichier généré est `packaging/build/cicada_0.1.13_amd64.deb`.
 
 ## 4. Publier sur le dépôt APT
+
+> ⚠️ **Le dépôt APT est actuellement hors service** : `reprepro` n’est pas installé sur la machine qui l’héberge et la **clé GPG secrète de signature est absente** (seule la publique est présente). Cette section est conservée pour le jour où le dépôt sera rétabli ; en attendant, déployer par installation directe du `.deb` — voir **§7**.
+
 
 Sur la machine qui héberge le dépôt APT (ex. `apt.cicada.reserves-naturelles.org`) :
 
@@ -92,86 +100,74 @@ apt-cache policy cicada
 sudo apt install cicada
 ```
 
-## 5. Résumé du flux recommandé
+## 5. Résumé du flux réel
 
 | Étape | Action |
 |-------|--------|
-| 1 | Développement et merge sur `main` (éventuellement via PR). |
-| 2 | Créer et pousser le tag `vX.Y.Z` → CI build les images Docker et le .deb. |
-| 3 | Télécharger l’artefact .deb depuis GitHub Actions (ou le construire en local avec la même `VERSION`). |
-| 4 | Sur le serveur du dépôt APT : `reprepro includedeb stable cicada_X.Y.Z_amd64.deb` (et signature si besoin). |
-| 5 | Vérifier avec `apt update` et `apt install cicada` sur un client. |
+| 1 | Développement sur `develop`, CI verte. |
+| 2 | Bumper `version.txt`, commiter, puis créer et pousser le tag `vX.Y.Z` **sur `develop`** → la CI construit les images Docker et le .deb. |
+| 3 | Attendre que **Docker Build & Push** et **Build Debian package** soient verts (le workflow `Tests` rejoue aussi la suite sur le tag). |
+| 4 | Télécharger l’artefact : `gh run download <run_id> -n cicada-deb-X.Y.Z`. |
+| 5 | `scp` du .deb sur le serveur puis `sudo dpkg -i` — le `postinst` fait le reste (voir §7). |
+| 6 | Vérifier les tags d’images et les logs de démarrage (voir §7.4). |
 
 ## 6. Variables utiles pour le build du .deb
 
 - **VERSION** : doit être identique au tag des images Docker (ex. `0.1.13` pour le tag `v0.1.13`).
 - **TRACKING_API_URL** : URL de l’API de suivi (injectée dans `cicada.conf`). En CI, la valeur par défaut du script ou du workflow peut être adaptée (ex. `https://tracking.cicada.reserves-naturelles.org/api`).
 
-## 7. Déployer sur le serveur de production
+## 7. Déployer sur un serveur (staging ou production)
 
-Cette section décrit la procédure complète pour déployer une nouvelle version sur le serveur de production, en supposant une base PostgreSQL externe (installée nativement sur le serveur hôte).
+Le déploiement se fait par **installation directe du `.deb`**. Le `postinst` du paquet est autonome : il met à jour `CICADA_VERSION` dans l’environnement, puis lance `docker compose pull` et `up -d`. Il n’y a **rien à lancer à la main** ensuite.
 
 ### 7.1 Prérequis
 
-- Accès SSH au serveur de production (voir `DEPLOY_SERVERS.md` local pour les identifiants)
-- Le `.env` de production est dans `~/Cicada/.env`
-- Le `docker-compose.prod.yml` est dans `~/Cicada/`
-- PostgreSQL tourne nativement sur le serveur (pas dans Docker)
+- Accès SSH au serveur (identifiants dans `DEPLOY_SERVERS.md`, non versionné).
+- Le paquet a déjà été installé une fois sur la machine (fichiers en place : compose dans `/usr/share/cicada`, environnement dans `/var/lib/cicada/.env`).
+- Le staging embarque sa base PostGIS **en conteneur** ; la production utilise une base **externe**. C’est la seule différence de topologie : les fichiers compose combinés diffèrent, le flux de déploiement est identique.
 
-### 7.2 Récupérer et publier le .deb
+### 7.2 Récupérer le .deb
 
 ```bash
-# 1. Sur votre machine locale : trouver le run_id du build déclenché par le tag
+# Sur votre machine : trouver le run du build déclenché par le tag
 gh run list --workflow=build-deb.yml --limit=3
 
-# 2. Télécharger l'artefact .deb en local
-gh run download <run_id> --dir /tmp/cicada-deb-X.Y.Z
-
-# 3. Copier le .deb sur le serveur du dépôt APT
-#    Note : le fichier est dans un sous-dossier cicada-deb-X.Y.Z/
-scp /tmp/cicada-deb-X.Y.Z/cicada-deb-X.Y.Z/cicada_X.Y.Z_amd64.deb <apt-user>@<serveur-apt>:<home-dir>/
-
-# 4. Sur le serveur APT : publier dans le dépôt
-ssh <apt-user>@<serveur-apt>
-cd /var/www/repos/cicada
-reprepro includedeb stable <home-dir>/cicada_X.Y.Z_amd64.deb
+# Télécharger l'artefact (son nom porte la version)
+gh run download <run_id> -n cicada-deb-X.Y.Z -D ~/cicada-releases
 ```
 
-### 7.3 Mettre à jour le serveur de production
+### 7.3 Installer sur le serveur
 
 ```bash
-# 1. Mettre à jour le package (si dépôt APT configuré)
-sudo apt-get update
-sudo apt-get install cicada=X.Y.Z
-
-# 2. Mettre à jour les images Docker
-cd ~/Cicada
-docker compose -f docker-compose.prod.yml pull
-
-# 3. Relancer la stack
-#    Les migrations s'appliquent automatiquement au démarrage (entrypoint).
-docker compose -f docker-compose.prod.yml up -d
-
-# 4. Vérifier les logs (attendre "Initialisation terminée")
-docker compose -f docker-compose.prod.yml logs web --tail=30
-
-# 5. Vérifier que tous les services sont healthy
-docker compose -f docker-compose.prod.yml ps
+scp ~/cicada-releases/cicada_X.Y.Z_amd64.deb <user>@<serveur>:~/
+ssh <user>@<serveur>
+sudo dpkg -i cicada_X.Y.Z_amd64.deb
 ```
+
+⚠️ **Prévenir les utilisateurs en production** : le redémarrage des conteneurs coupe le service 20 à 40 secondes.
 
 ### 7.4 Vérifications post-déploiement
 
+Les commandes `docker` passent toutes par `sudo` (l’utilisateur de service n’est pas dans le groupe `docker`) et par les fichiers compose combinés. Un alias évite de les retaper — il n’est **pas persistant**, à redéfinir à chaque session SSH.
+
+⚠️ **Le saisir sur une seule ligne.** Entre quotes simples, les `\` de continuation ne sont pas interprétés par le shell : ils finissent dans la valeur de la variable, et docker répond `unknown docker command: "compose \"`.
+
 ```bash
-# API backend accessible
-curl -s -o /dev/null -w "%{http_code}" http://localhost:8000/api/auth/health/
-# Doit retourner 200
+ccd='sudo docker compose -f /usr/share/cicada/docker-compose.yml -f /usr/share/cicada/docker-compose.db.yml -f /usr/share/cicada/docker-compose.frontend-ports.yml --env-file /var/lib/cicada/.env'
 
-# Frontend accessible (via le port configuré dans FRONTEND_PORT)
-curl -s -o /dev/null -w "%{http_code}" http://localhost:8080/
-# Doit retourner 200
+$ccd ps                      # les images doivent porter le tag :X.Y.Z
+$ccd logs web --tail=40      # attendre « === Initialisation terminée === »
+grep CICADA_VERSION /var/lib/cicada/.env
 
-# Si nouvelles permissions/groupes Django :
-docker compose -f docker-compose.prod.yml exec web python manage.py create_permissions
+curl -s -o /dev/null -w "%{http_code}\n" http://localhost:8080/   # → 200
+```
+
+> **La version déployée ne se vérifie ni par `/api/health/`** (qui ne renvoie aucune version) **ni par la page « Informations système »** : celle-ci affiche `0.0.0`, parce que `version.txt` est à la racine du dépôt alors que le contexte de build Docker est `./backend` — le fichier n’existe donc pas dans l’image et le backend retombe sur sa valeur par défaut. Les tags d’images (`$ccd ps`) et `CICADA_VERSION` font foi.
+
+Si la release introduit de nouvelles permissions ou de nouveaux groupes Django :
+
+```bash
+$ccd exec web python manage.py create_permissions
 ```
 
 #### Mise à jour des libellés de nomenclatures (issue #268)
@@ -192,20 +188,25 @@ docker compose -f docker-compose.prod.yml exec web python manage.py import_nomen
 
 ### 7.5 Pièges courants
 
+Les commandes de la colonne « Solution » supposent l’alias `ccd` défini en §7.4.
+
 | Problème | Cause | Solution |
 |----------|-------|----------|
-| 503 Service Unavailable | Apache ne redirige pas `/api` vers le backend | Vérifier que `ProxyPass /api http://127.0.0.1:8000/api` est **décommenté** dans le vhost SSL (`cicada-prod-le-ssl.conf`) |
-| 503 sur le frontend | Le port du frontend a changé | Vérifier `FRONTEND_PORT` dans `.env` et que Apache pointe vers le bon port |
-| `DisallowedHost` dans les logs | Domaine absent de `ALLOWED_HOSTS` | Ajouter le domaine dans `.env` puis `docker compose -f docker-compose.prod.yml up -d web` |
-| CORS errors dans le navigateur | Domaine absent de `CORS_ALLOWED_ORIGINS` | Ajouter `https://votre-domaine` dans `.env` puis recreer le conteneur web |
+| 503 sur `/api` | Le vhost Apache ne pointe pas au bon endroit | `/api` doit aller sur le **port du frontend** (`FRONTEND_PORT`, ex. 8080) : c’est le conteneur frontend qui proxifie `/api` vers le backend. Viser 8000 ne marche que si le backend est exposé sur l’hôte |
+| Le port 80 est déjà pris / Apache ne démarre plus | `TRAEFIK_ENABLED=true` | Mettre `false` dans `/var/lib/cicada/.env` et utiliser le compose `frontend-ports` |
+| `docker: permission denied` | L’utilisateur de service n’est pas dans le groupe `docker` | Toujours préfixer par `sudo` (l’alias `ccd` le fait) |
+| 503 sur le frontend | Le port du frontend a changé | Vérifier `FRONTEND_PORT` dans `/var/lib/cicada/.env` et que Apache pointe vers le bon port |
+| `DisallowedHost` dans les logs | Domaine absent de `ALLOWED_HOSTS` | Ajouter le domaine dans `.env` puis `$ccd up -d web` |
+| CORS errors dans le navigateur | Domaine absent de `CORS_ALLOWED_ORIGINS` | Ajouter `https://votre-domaine` dans `.env` puis recréer le conteneur web |
 | `password authentication failed` | Le conteneur web pointe vers le mauvais PostgreSQL | Vérifier `POSTGRES_HOST` et `POSTGRES_PORT` dans `.env` (ex. `172.17.0.1` et `5432` pour une base hôte) |
 | `doit être le propriétaire de la fonction public.unaccent` | Extensions créées par `postgres`, pas par l'utilisateur applicatif | `sudo -u postgres psql -d cicada -c "ALTER FUNCTION public.unaccent(text) OWNER TO cicada_user;"` |
-| Variables `.env` non prises en compte | `docker compose restart` ne relit pas le `.env` | Utiliser `docker compose -f docker-compose.prod.yml up -d` (recrée le conteneur) |
+| Variables `.env` non prises en compte | `docker compose restart` ne relit pas le `.env` | Utiliser `$ccd up -d` (recrée le conteneur) |
+| `No space left` pendant le `pull` | L’extraction demande plus de place que le disque n’en offre, même avec quelques Go libres (le backend pèse ~1,9 Go décompressé) | `$ccd down`, supprimer les anciennes images (`docker image rm`), `docker system prune -af`, puis tirer le backend **seul** avant de relancer |
 | Référentiels vides (TaxRef, HabRef) | Imports non exécutés au premier démarrage | Voir section "Import des référentiels" dans `INSTALLATION_GUIDE.md` |
 
 ### 7.6 Configuration Apache rappel
 
-Le reverse proxy Apache doit rediriger vers deux backends :
+Tout passe par le **port du frontend** : le conteneur frontend sert l’application **et** proxifie `/api` vers le backend. Rediriger `/api` directement sur 8000 suppose que le backend soit exposé sur l’hôte, ce qui n’est pas le cas dans la topologie `frontend-ports`.
 
 ```apache
 # /etc/apache2/sites-enabled/cicada-prod-le-ssl.conf
@@ -214,11 +215,7 @@ Le reverse proxy Apache doit rediriger vers deux backends :
     ProxyPreserveHost On
     ProxyRequests Off
 
-    # API Django (port 8000) — DOIT être avant la règle /
-    ProxyPass /api http://127.0.0.1:8000/api
-    ProxyPassReverse /api http://127.0.0.1:8000/api
-
-    # Frontend Angular (port défini par FRONTEND_PORT)
+    # Frontend Angular (port défini par FRONTEND_PORT) — sert aussi /api
     ProxyPass / http://127.0.0.1:8080/
     ProxyPassReverse / http://127.0.0.1:8080/
 

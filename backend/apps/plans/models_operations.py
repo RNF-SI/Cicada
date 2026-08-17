@@ -615,6 +615,21 @@ class Operation(models.Model):
                     "le temps est saisi par organisme quand le budget est "
                     "ventilé par organisme, et reste facultatif autrement.")
     )
+    # #600 (retour 08/2026) — deux réglages du tableau de programmation, valables
+    # dès que le mode de ventilation intègre le type de budget.
+    declinaison_par_type_cout = models.BooleanField(
+        _("Déclinaison par type de coût"),
+        default=True,
+        help_text=_("Détaille le budget en coût salarial / stage / prestataire / "
+                    "autres coûts. Décochée, seules les enveloppes "
+                    "fonctionnement et investissement sont saisies à la main.")
+    )
+    cout_salarial_auto = models.BooleanField(
+        _("Coût salarial calculé automatiquement"),
+        default=True,
+        help_text=_("Calcule le coût salarial depuis les jours saisis × le coût "
+                    "jour des postes. Décochée, le coût salarial est saisi à la main.")
+    )
 
     # Emprise spatiale (PostGIS)
     geom = models.GeometryField(
@@ -783,10 +798,13 @@ class Operation(models.Model):
         'NON_REALISE': 'Non réalisée',  # #379
     }
 
-    def compute_niveau_realisation_global(self):
+    def compute_niveau_realisation_global(self, annees=None):
         """
         #355 — Calcule le niveau de réalisation GLOBAL d'une action sur la période,
         à partir des réalisations annuelles de ses années *programmées*.
+
+        `annees` restreint le calcul à un sous-ensemble d'OperationAnnee (portée
+        « Mi-parcours » du Bilan) ; par défaut, toutes les années de l'action.
 
         Années programmées = OperationAnnee avec periodicite=True (à défaut, toutes
         les années de l'opération). Règle :
@@ -801,7 +819,7 @@ class Operation(models.Model):
         Renvoie le mnémonique (str) ou None. Mapping volontairement conservateur :
         une action récurrente réalisée 1 an sur 10 reste « En cours », pas « Terminé ».
         """
-        annees = list(self.operation_annees.all())
+        annees = list(self.operation_annees.all() if annees is None else annees)
         programmed = [oa for oa in annees if oa.periodicite] or annees
         if not programmed:
             return None
@@ -971,6 +989,19 @@ class OperationAnnee(models.Model):
     # affiche la même décomposition que la ventilation maximale, simplement
     # sans déclinaison par organisme gestionnaire. Le coût salarial n'est pas
     # stocké : il se calcule (jours des postes × coût jour).
+    # #600 (retour 08/2026) — coût salarial SAISI, utilisé quand l'action est en
+    # « saisie manuelle du coût salarial » (`Operation.cout_salarial_auto=False`).
+    # En saisie automatique il reste calculé (jours × coût jour) et non stocké.
+    cout_salarial = models.DecimalField(
+        _("Coût salarial saisi — fonctionnement (€)"),
+        max_digits=12, decimal_places=2,
+        null=True, blank=True
+    )
+    cout_salarial_invest = models.DecimalField(
+        _("Coût salarial saisi — investissement (€)"),
+        max_digits=12, decimal_places=2,
+        null=True, blank=True
+    )
     cout_stage = models.DecimalField(
         _("Coût stage (€)"),
         max_digits=12, decimal_places=2,
@@ -1057,7 +1088,18 @@ class OperationAnneeOrganisme(models.Model):
         null=True, blank=True
     )
     # #600 — coûts additionnels par organisme/année. Le coût salarial n'est pas
-    # stocké : il se calcule (jours des postes × coût jour).
+    # stocké tant qu'il est calculé (jours des postes × coût jour) ; il l'est
+    # quand l'action passe en saisie manuelle (`cout_salarial_auto=False`).
+    cout_salarial = models.DecimalField(
+        _("Coût salarial saisi — fonctionnement (€)"),
+        max_digits=12, decimal_places=2,
+        null=True, blank=True
+    )
+    cout_salarial_invest = models.DecimalField(
+        _("Coût salarial saisi — investissement (€)"),
+        max_digits=12, decimal_places=2,
+        null=True, blank=True
+    )
     cout_stage = models.DecimalField(
         _("Coût stage (€)"),
         max_digits=12, decimal_places=2,

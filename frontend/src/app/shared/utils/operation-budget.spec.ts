@@ -9,6 +9,7 @@ import {
   fonctDetailPrev, investDetailPrev, fonctDetailReal,
   salarialCost, sumJours, yearBudgetPrev, yearBudgetReal,
   yearJoursPrev, yearJoursReal,
+  salaryOptionAvailable, salaryIsComputed,
 } from './operation-budget';
 
 const OP = (mode: string) => ({ ventilation_mode: mode }) as any;
@@ -92,6 +93,38 @@ describe('yearBudgetPrev (#613)', () => {
   it('mode by_type_poste : même total, détail porté par l’année (#624)', () => {
     expect(yearBudgetPrev(OP('by_type_poste'), anneeTypePoste()))
       .toEqual(yearBudgetPrev(OP('by_org_type_poste'), anneeOrgPoste()));
+  });
+
+  // #600 (retour 08/2026) — les deux réglages du tableau de programmation.
+  it('déclinaison par type de coût décochée : seules les enveloppes comptent', () => {
+    const oa = anneeOrgPoste();
+    oa.organismes[0].budget_fonctionnement = '4000.00';
+    oa.organismes[0].budget_investissement = '1000.00';
+    oa.organismes[0].cout_stage = null;
+    oa.organismes[0].cout_prestataire = null;
+    oa.organismes[0].autre_cout = null;
+    oa.organismes[0].cout_prestataire_invest = null;
+    oa.organismes[0].autre_cout_invest = null;
+    const op = { ventilation_mode: 'by_org_type', declinaison_par_type_cout: false } as any;
+    // Le coût salarial des lignes RH n'est PAS ajouté : l'enveloppe l'inclut.
+    expect(yearBudgetPrev(op, oa)).toEqual({
+      fonctionnement: 4000, investissement: 1000, total: 5000,
+    });
+  });
+
+  it('coût salarial saisi manuellement : c’est le montant saisi qui compte', () => {
+    const oa = anneeOrgPoste();
+    oa.organismes[0].cout_salarial = '1800.00';
+    oa.organismes[0].cout_salarial_invest = '450.00';
+    const op = {
+      ventilation_mode: 'by_org_type_poste', cout_salarial_auto: false,
+    } as any;
+    const f = fonctDetailPrev(op, oa);
+    expect(f.salarial).toBe(1800);            // et non 10 j × 300 €
+    expect(f.total).toBe(3500);               // 1800 + 200 + 1000 + 500
+    const i = investDetailPrev(op, oa);
+    expect(i.salarial).toBe(450);
+    expect(i.total).toBe(800);                // 450 + 300 + 50
   });
 
   it('expose le détail des composants pour la fiche action', () => {
@@ -193,5 +226,47 @@ describe('jours prévus / réalisés (#616)', () => {
     expect(yearJoursReal(global)).toBe(5);
 
     expect(yearJoursReal({ annee: 2027, organismes: [], realisation: null } as any)).toBeNull();
+  });
+});
+
+// ===========================================================================
+// #600 (retour 08/2026) — le coût salarial ne se CALCULE que par type de poste
+// ===========================================================================
+
+describe('coût salarial : calculé ou saisi', () => {
+  it('ne propose l\'option que pour les deux modes « + type de poste »', () => {
+    expect(salaryOptionAvailable('by_type_poste', true)).toBe(true);
+    expect(salaryOptionAvailable('by_org_type_poste', true)).toBe(true);
+
+    // Les autres modes ne déclinent pas le temps par poste : rien à calculer.
+    expect(salaryOptionAvailable('by_type', true)).toBe(false);
+    expect(salaryOptionAvailable('by_org_type', true)).toBe(false);
+    expect(salaryOptionAvailable('by_org', true)).toBe(false);
+    expect(salaryOptionAvailable('none', true)).toBe(false);
+
+    // Sans détail des coûts, il n'y a même pas de ligne « coût salarial ».
+    expect(salaryOptionAvailable('by_type_poste', false)).toBe(false);
+    expect(salaryOptionAvailable('by_org_type_poste', false)).toBe(false);
+  });
+
+  it('suit le choix du gestionnaire dans les modes par type de poste', () => {
+    expect(salaryIsComputed('by_type_poste', true, true)).toBe(true);
+    expect(salaryIsComputed('by_type_poste', true, false)).toBe(false);
+    expect(salaryIsComputed('by_org_type_poste', true, false)).toBe(false);
+  });
+
+  it('impose la saisie manuelle dans les autres modes détaillés par type de coût', () => {
+    // Sans poste, aucun coût jour : la valeur calculée serait figée à 0.
+    expect(salaryIsComputed('by_type', true, true)).toBe(false);
+    expect(salaryIsComputed('by_org_type', true, true)).toBe(false);
+  });
+
+  it('laisse les modes sans détail des coûts en calcul (comportement historique)', () => {
+    // L'enveloppe saisie contient déjà tout : le drapeau ne doit pas basculer
+    // ces actions en « coût salarial saisi » côté serveur (totaux inchangés).
+    expect(salaryIsComputed('none', true, true)).toBe(true);
+    expect(salaryIsComputed('by_org', true, true)).toBe(true);
+    expect(salaryIsComputed('by_type', false, true)).toBe(true);
+    expect(salaryIsComputed('by_org_type_poste', false, true)).toBe(true);
   });
 });

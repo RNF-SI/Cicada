@@ -178,6 +178,135 @@ Les couleurs suivantes ne doivent etre utilisees que pour des elements decoratif
 
 ---
 
+## Graphiques (page Bilan de la gestion)
+
+Releve exhaustif des maquettes Figma « CICADA modifie RNF-CEN v4 » :
+`4488-35860` (bilan des indicateurs), `4488-36358` (bilan des actions).
+Toute couleur d'un graphique doit venir de ce tableau — aucune valeur libre.
+
+### Ce que chaque couleur veut dire
+
+| Couleur | Hex | Ce qu'elle designe dans un graphique |
+|---------|-----|--------------------------------------|
+| Bleu-vert (principale) | `#025359` | Action **planifiee** ; trace et graduations du radar |
+| Terra Cotta | `#B74D5D` | Action **non planifiee** ; RH **reelle** |
+| Jaune | `#FEC180` | RH **previsionnelle** ; avancement des actions et des indicateurs (donuts) |
+| Palette de scores | `#FF7579` `#FA9965` `#F7D35C` `#82DB8A` `#81C9D8` | Niveau d'evaluation d'un indicateur (1..5) |
+| Vert pale | `#C0E3CF` | Fond des tuiles de chiffres cles (budget, RH) |
+| Gris tres clair | `#E4E4E4` | Grille des axes (ligne de base en 2 px) |
+| Noir | `#343433` | Libelles de legende et d'axes |
+| Blanc | `#FFFFFF` | Fond de carte **et separateur entre segments** |
+
+La couleur porte le **sujet** (qui ? planifie ou non, previsionnel ou reel),
+jamais l'issue. C'est le motif qui porte l'issue.
+
+### Motifs : plein / hachure / croix
+
+Un graphique n'utilise que **deux couleurs au plus**, declinees en trois
+motifs. Une serie = une couleur + un motif ; les six combinaisons se lisent
+sans avoir a distinguer six teintes, y compris en impression noir et blanc.
+
+| Motif | Sens | Rendu |
+|-------|------|-------|
+| Plein | Realise | aplat de la couleur |
+| Hachures diagonales | Partiellement realise | fond couleur a **8 %** + traits a 45°, ~0,9 px, espaces de ~5,3 px |
+| Croix | Non realise | fond couleur a **8 %** + croix de 4,5 px au pas de 9 px, 1 px |
+
+Les traits d'un motif sont **toujours de la couleur de la serie**. La maquette
+dessine les croix des donuts en noir `#343433` et celles des barres en couleur
+de serie : c'est une incoherence du fichier, tranchee ici en faveur de la
+couleur de serie — une seule regle pour les deux motifs, et la croix reste
+rattachee visuellement a sa serie.
+
+Les croix ne doivent pas se toucher (#640) : des diagonales pleine largeur
+produisent un treillis continu, pas une grille de croix.
+
+**Regle centrale — le fond d'un motif est la couleur de serie a 8 %
+d'opacite, pas du blanc.** Un aplat blanc surcharge de traits colores donne
+la teinte inverse de la maquette : c'est le defaut releve en recette.
+Sur fond blanc, `rgba(2,83,89,.08)` s'aplatit en `#EBF1F2` — c'est la valeur
+que porte la pastille de legende « Planifiee non realisee » dans Figma.
+
+Les segments d'un empilement ou d'un donut sont **separes par un filet blanc**
+(3 px sur un donut, 1 px sur une barre). Sans lui, deux segments de meme
+couleur mais de motifs differents se confondent.
+
+### Correspondance par graphique
+
+| Graphique | Serie | Couleur | Motif |
+|-----------|-------|---------|-------|
+| Taux de realisation des indicateurs (donut) | 5 niveaux d'evaluation | palette de scores | plein |
+| Evaluation des indicateurs (donut) | Fait / Pas fait | `#FEC180` | plein / croix |
+| Taux de realisation des actions (donut) | Realisee / Partielle / Non realisee | `#FEC180` | plein / hachures / croix |
+| Evolution jours RH par annee (barres groupees) | Previsionnel / Reel | `#FEC180` / `#B74D5D` | plein |
+| Niveau de realisation des actions (barres empilees) | Planifiee realisee / partielle / non realisee | `#025359` | plein / hachures / croix |
+| — suite | Non planifiee realisee / partielle | `#B74D5D` | plein / hachures |
+
+Il n'existe pas de sixieme serie : une action ni prevue ni realisee n'a rien a
+montrer. Le croise vient de `RealisationOperationAnneeViewSet._statut_key`,
+aligne sur les icones du tableau de suivi (#379).
+
+Les libelles d'axes restent a 13 px quelle que soit la largeur de la carte :
+les composants bornent la largeur de leur `viewBox` (`maxWidth`) au lieu de
+laisser le navigateur mettre le dessin — typographie comprise — a l'echelle.
+
+### Radar des moyennes par enjeu/FCR
+
+| Element | Specification |
+|---------|---------------|
+| Disque de fond | degrade radial, opacite **0.5** ; arrets `0 #FF7579`, `0.35 #FA9965`, `0.6 #F7D35C`, `0.85 #82DB8A`, `1 #81C9D8` |
+| Anneaux de graduation | blanc, opacite **0.4** |
+| Axes | blanc **opaque** |
+| Polygone des valeurs | contour `#025359` 1.5 px, **sans remplissage** |
+| Points | rayon 6, remplissage = couleur du score, contour `#025359` 1.5 px |
+| Graduations 1..5 | `#025359`, 13 px regular |
+| Libelles d'axes | `#343433`, 13 px regular |
+
+Le degrade porte deja la lecture « rouge au centre, bleu au bord » : remplir le
+polygone par-dessus le voile et fausse la couleur lue sous chaque point.
+
+### Courbes lissees
+
+Les series d'evolution et le polygone du radar sont traces en **Beziers
+cubiques** (`smoothPath`, tension 0.5), pas en segments droits : c'est le rendu
+de la maquette, et la difference saute aux yeux sur un radar a cinq axes.
+La courbe passe exactement par chaque point mesure — elle adoucit le chemin,
+jamais la donnee. Un trou dans la serie coupe le trace : deux mesures separees
+par une annee vide ne sont pas reliees par une courbe inventee.
+
+### Graphe courbes : moyenne, etendue, dispersion
+
+| Element | Specification |
+|---------|---------------|
+| Moyenne | trait plein 2 px + points pleins de rayon 4 |
+| Enveloppe min–max | **deux courbes ouvertes** en pointille `3 6`, 1,5 px, bouts arrondis, **sans remplissage** |
+| Bande d'ecart-type | surface fermee, couleur de serie a **20 %** |
+
+L'enveloppe reste ouverte : un contour ferme ajouterait un trait vertical a
+chaque extremite, la ou le minimum rejoindrait le maximum — une variation que
+la donnee ne decrit pas. Et seule la dispersion est peinte : remplir aussi
+l'etendue effacerait la distinction entre les deux.
+
+### Legende
+
+Pastille **16 x 16 px**, rayon 4 px, ecart de 8 px avec le libelle.
+Libelle en Nunito Regular 13 px `#343433`, valeur en Nunito Bold 13 px `#343433`.
+Une pastille de serie a motif reprend **exactement** le remplissage du segment
+(fond a 8 % + motif), sans bordure ajoutee.
+
+Chaque serie est annoncee par **son** symbole (`LegendItem.shape`) :
+
+| Serie | Symbole |
+|-------|---------|
+| Barre, part de donut | pastille 16 x 16 |
+| Courbe | trait plein 2 px (28 px de large) + point de rayon 5 |
+| Enveloppe min–max | trait pointille `3 6`, 1,5 px |
+| Bande (ecart-type) | pastille a l'opacite de la bande (`opacity`) |
+
+Une courbe annoncee par un carre plein ne se reconnait pas dans le graphe.
+
+---
+
 ## Fichiers SCSS du design system
 
 Les styles du design system sont definis dans les fichiers suivants :

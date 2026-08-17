@@ -29,38 +29,16 @@
     background: $white;
     color: $primary-color;
 
+    // #642 — « Exporter ou imprimer » : action principale de la barre.
     &.btn-print {
       background: $primary-color;
       color: $white;
+
+      &:disabled {
+        opacity: 0.6;
+        cursor: progress;
+      }
     }
-
-    // #532 — bouton actif quand le panneau de choix des sections est ouvert.
-    &.btn-sections.active {
-      background: $primary-color;
-      color: $white;
-    }
-  }
-}
-
-// #532 — Panneau de sélection des sections à inclure dans l'export.
-.fiche-section-picker {
-  border: 1px solid $gray-light;
-  border-radius: $border-radius-md;
-  background: $gray-lighter;
-  padding: $spacing-md;
-  margin-bottom: $spacing-lg;
-
-  &-hint {
-    margin: 0 0 $spacing-sm;
-    color: $gray-dark;
-    font-weight: $font-weight-bold;
-    font-size: $font-size-small;
-  }
-
-  &-list {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-    gap: $spacing-xs $spacing-md;
   }
 }
 

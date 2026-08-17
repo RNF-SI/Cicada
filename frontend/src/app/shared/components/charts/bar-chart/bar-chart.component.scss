@@ -1,9 +1,11 @@
 @import 'variables';
 
+// Borne a la largeur du viewBox : voir le commentaire de .line-svg.
 .bar-svg {
   display: block;
   width: 100%;
   height: auto;
+  margin: 0 auto;
   font-family: $font-family;
 }
 
@@ -15,16 +17,24 @@
 .bar-rect {
   transition: opacity 0.15s ease;
   &:hover { opacity: 0.85; }
+
+  // Filet blanc entre segments empilés : sans lui, deux segments de même
+  // couleur mais de motifs différents se confondent (kit UI).
+  &--stacked {
+    stroke: $white;
+    stroke-width: 1;
+  }
 }
 
+// Kit UI : graduations Y en gris mention, libelles X en noir, 13 px.
 .bar-tick {
   fill: $gray-dark;
-  font-size: 10px;
+  font-size: $font-size-small;
 }
 
 .bar-xlabel {
   fill: $black;
-  font-size: 11px;
+  font-size: $font-size-small;
 }
 
 .bar-value {
@@ -35,6 +45,6 @@
 
 .bar-axis-title {
   fill: $gray-dark;
-  font-size: 10px;
+  font-size: $font-size-small;
   font-style: italic;
 }

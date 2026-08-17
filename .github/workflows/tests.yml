@@ -309,6 +309,17 @@ jobs:
       - name: Seed test data
         run: docker compose exec -T web python manage.py seed_testdata
 
+      # Une base tout juste seedée n'a aucune statistique : l'autovacuum n'a pas
+      # encore tourné, et le planificateur part sur des estimations par défaut.
+      # Les requêtes de l'application deviennent alors bien plus lentes qu'en
+      # production, jusqu'à faire expirer des attentes Playwright. On rétablit
+      # des conditions représentatives avant de lancer la suite.
+      - name: Analyze database (planner statistics)
+        run: |
+          docker compose exec -T db \
+            psql -U "${POSTGRES_USER:-cicada_user}" -d "${POSTGRES_DB:-cicada}" \
+            -c 'VACUUM ANALYZE;'
+
       - name: Install frontend dependencies
         working-directory: ./frontend
         run: npm ci

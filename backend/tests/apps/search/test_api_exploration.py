@@ -215,6 +215,52 @@ class TestRechercheContenu:
 
         assert 'Protection des limicoles' in titres(reponse)
 
+    def test_la_faute_de_frappe_est_toleree_sur_un_habitat(
+        self, client_connecte, jeu_de_donnees
+    ):
+        """
+        Retour de recette #634 : « eutotrophes » ne remontait pas « Lacs
+        eutrophes naturels… ».
+
+        L'habitat était bien indexé, mais le rattrapage par similarité ne
+        portait que sur le libellé de l'objet. Or un nom d'habitat ou d'espèce
+        est long et rarement tapé sans faute : c'est justement là que le plein
+        texte, qui ne pardonne aucune lettre en trop, laisse l'utilisateur sans
+        résultat ni explication.
+        """
+        from apps.plans.models_enjeux import Enjeu
+        from tests.factories.enjeux import CorEnjeuHabitatFactory
+
+        plan = jeu_de_donnees['plans']['ouest']
+        enjeu = Enjeu.objects.get(id_pg=plan)
+        CorEnjeuHabitatFactory(
+            id_enjeu=enjeu, cd_hab='3150',
+            lb_hab_fr='Lacs eutrophes naturels avec végétation du Magnopotamion',
+        )
+        index_plan(plan)
+
+        reponse = client_connecte.get(URL_CONTENUS, {'q': 'eutotrophes'})
+
+        assert 'Protection des limicoles' in titres(reponse)
+
+    def test_l_habitat_remonte_sans_faute_de_frappe(
+        self, client_connecte, jeu_de_donnees
+    ):
+        """Le rattrapage ne doit pas masquer le cas nominal (plein texte)."""
+        from apps.plans.models_enjeux import Enjeu
+        from tests.factories.enjeux import CorEnjeuHabitatFactory
+
+        plan = jeu_de_donnees['plans']['ouest']
+        CorEnjeuHabitatFactory(
+            id_enjeu=Enjeu.objects.get(id_pg=plan), cd_hab='3150',
+            lb_hab_fr='Lacs eutrophes naturels avec végétation du Magnopotamion',
+        )
+        index_plan(plan)
+
+        reponse = client_connecte.get(URL_CONTENUS, {'q': 'eutrophes'})
+
+        assert 'Protection des limicoles' in titres(reponse)
+
 
 # --------------------------------------------------------------------------- #
 # Onglets et compteurs
@@ -492,6 +538,95 @@ class TestFichePublique:
         ]
         assert indicateurs == ['Indicateur Ouest']
 
+    def test_la_fiche_descend_jusquaux_metriques_et_a_leur_grille(
+        self, client_connecte, jeu_de_donnees
+    ):
+        """
+        Retour de recette #634 : « il manque les indicateurs et les métriques et
+        les grilles de métriques ».
+
+        La grille est le barème qui donne son sens à une mesure : sans elle, un
+        lecteur extérieur voit ce qui est suivi, mais pas ce qui compte comme un
+        bon résultat. Les mesures, elles, restent internes.
+        """
+        from tests.factories.enjeux import MetriqueFactory
+
+        plan = jeu_de_donnees['plans']['ouest']
+        MetriqueFactory(
+            id_indicateur=plan.indicateur_racine,
+            nom_metrique='Recouvrement', unite='%',
+            type_metrique=None,
+            score_1_label='Absent', score_2_label='Rare', score_3_label='Présent',
+            score_4_label='Fréquent', score_5_label='Dominant',
+        )
+
+        reponse = client_connecte.get(url_fiche(plan))
+
+        indicateur = (
+            reponse.data['enjeux'][0]['objectifs_long_terme'][0]
+            ['niveaux_exigence'][0]['indicateurs'][0]
+        )
+        metrique = next(
+            m for m in indicateur['metriques'] if m['nom_metrique'] == 'Recouvrement'
+        )
+        assert metrique['unite'] == '%'
+        assert [palier['valeur'] for palier in metrique['grille']] == [
+            'Absent', 'Rare', 'Présent', 'Fréquent', 'Dominant',
+        ]
+        assert [palier['libelle'] for palier in metrique['grille']][0] == 'Très mauvais'
+
+    def test_une_metrique_sans_grille_ne_publie_pas_de_grille(
+        self, client_connecte, jeu_de_donnees
+    ):
+        """Pas de grille vide : cinq cases à « — » n'apprennent rien."""
+        from tests.factories.enjeux import MetriqueFactory
+
+        plan = jeu_de_donnees['plans']['ouest']
+        MetriqueFactory(
+            id_indicateur=plan.indicateur_racine,
+            nom_metrique='Effectif', unite='individus', type_metrique=None,
+        )
+
+        reponse = client_connecte.get(url_fiche(plan))
+
+        indicateur = (
+            reponse.data['enjeux'][0]['objectifs_long_terme'][0]
+            ['niveaux_exigence'][0]['indicateurs'][0]
+        )
+        metrique = next(
+            m for m in indicateur['metriques'] if m['nom_metrique'] == 'Effectif'
+        )
+        assert metrique['grille'] is None
+
+    def test_une_action_porte_son_rattachement_a_larborescence(
+        self, client_connecte, jeu_de_donnees
+    ):
+        """
+        L'action est affichée **sous** l'indicateur qu'elle sert (#634) : la
+        fiche doit donc dire de quel indicateur et de quelles métriques elle
+        dépend, sinon elle ne peut vivre que dans une liste à plat.
+        """
+        from tests.factories.enjeux import MetriqueFactory
+
+        plan = jeu_de_donnees['plans']['ouest']
+        metrique = MetriqueFactory(
+            id_indicateur=plan.indicateur_racine, nom_metrique='Recouvrement',
+            type_metrique=None,
+        )
+        OperationFactory(
+            libelle='Comptage annuel', id_indicateur=plan.indicateur_racine,
+            metriques=[metrique],
+        )
+
+        reponse = client_connecte.get(url_fiche(plan))
+
+        action = next(
+            a for a in reponse.data['actions'] if a['libelle'] == 'Comptage annuel'
+        )
+        assert action['id_indicateur'] == plan.indicateur_racine.pk
+        assert action['indicateur'] == 'Indicateur Ouest'
+        assert [m['nom_metrique'] for m in action['metriques']] == ['Recouvrement']
+
     def test_un_utilisateur_dun_autre_organisme_peut_consulter(
         self, client_connecte, jeu_de_donnees
     ):
@@ -565,3 +700,333 @@ class TestFichePubliqueCloisonnement:
 
         assert action['operateurs'] == 'Équipe technique'
         assert 'financeurs' not in action
+
+
+# --------------------------------------------------------------------------- #
+# Fiche action : suivi, protocoles et indicateurs de réponse
+# --------------------------------------------------------------------------- #
+
+def _nomenclature(type_mnemonique, mnemonique, label):
+    from tests.factories.core import NomenclatureFactory, TypeNomenclatureFactory
+
+    return NomenclatureFactory(
+        id_type=TypeNomenclatureFactory(mnemonique=type_mnemonique),
+        mnemonique=mnemonique, cd_nomenclature=mnemonique, label=label,
+    )
+
+
+def _action_avec_suivi(plan, **champs_suivi):
+    """Une action de connaissance portant un suivi et deux protocoles."""
+    from tests.factories.enjeux import (
+        ProtocoleFactory, SuiviInventaireFactory,
+    )
+
+    standardise = ProtocoleFactory(
+        protocole_dans_campanule=True,
+        protocole_campanule_nom='STOC-EPS',
+        description_protocole='Points d\'écoute de 5 minutes.',
+        objectif_protocole='Suivre la tendance des populations.',
+        respect_protocole=True,
+        periode_echantillonnage='Avril à juin',
+        documentation_disponible=True,
+        url_documentation='https://exemple.fr/stoc',
+    )
+    libre = ProtocoleFactory(
+        protocole_dans_campanule=False,
+        nom_protocole='Comptage maison',
+        respect_protocole=False,
+        justification_non_respect='Effectifs trop faibles pour le protocole.',
+        differences_protocole='Deux passages au lieu de quatre.',
+    )
+    defauts = {
+        'id_pg': plan,
+        'intitule': 'Suivi des limicoles nicheurs',
+        'objectif_principal': 'OBJ_ETAT_CONSERVATION',
+        'cibles_principales': 'ESPECES',
+        'taxon_taxref': 'Calidris alpina',
+        'habitats': [{'cd_hab': '1150', 'lb_hab_fr': 'Lagunes côtières'}],
+        'frequence_nombre': 2,
+        'frequence_unite': 'an',
+        'outil_saisie': 'GEONATURE',
+        'protocoles': [standardise, libre],
+    }
+    suivi = SuiviInventaireFactory(**{**defauts, **champs_suivi})
+    return OperationFactory(
+        libelle='Comptage des limicoles',
+        id_indicateur=plan.indicateur_racine,
+        id_suivi=suivi,
+    ), suivi
+
+
+@pytest.mark.integration
+class TestFicheActionDetaillee:
+    """
+    Retour de recette #634 : « il faut plus d'informations dans les détails ».
+
+    Une action de connaissance se lisait comme un intitulé et une période. Ce
+    qu'elle observe — l'espèce, l'habitat, le protocole — et ce qui mesure son
+    effet — l'indicateur de réponse — n'étaient pas publiés.
+    """
+
+    def test_laction_publie_son_suivi(self, client_connecte, jeu_de_donnees):
+        plan = jeu_de_donnees['plans']['ouest']
+        _nomenclature('OBJECTIF_SUIVI', 'OBJ_ETAT_CONSERVATION',
+                      'État de conservation')
+        _nomenclature('CIBLE_SUIVI', 'ESPECES', 'Espèces')
+        _nomenclature('OUTIL_SAISIE', 'GEONATURE', 'GeoNature')
+        _action_avec_suivi(plan)
+        index_plan(plan)
+
+        action = next(
+            a for a in client_connecte.get(url_fiche(plan)).data['actions']
+            if a['libelle'] == 'Comptage des limicoles'
+        )
+        suivi = action['suivi']
+
+        assert suivi['intitule'] == 'Suivi des limicoles nicheurs'
+        assert suivi['taxon'] == 'Calidris alpina'
+        assert suivi['habitats'] == [
+            {'cd_hab': '1150', 'lb_hab_fr': 'Lagunes côtières'}
+        ]
+        assert suivi['frequence'] == '2 / an'
+        # Les mnémoniques stockés en base sortent en libellés lisibles.
+        assert suivi['objectif_principal'] == 'État de conservation'
+        assert suivi['cible_principale'] == 'Espèces'
+        assert suivi['outil_saisie'] == 'GeoNature'
+
+    def test_un_mnemonique_sans_nomenclature_sort_tel_quel(
+        self, client_connecte, jeu_de_donnees
+    ):
+        """Mieux vaut un mnémonique brut qu'une case vide sur une fiche."""
+        plan = jeu_de_donnees['plans']['ouest']
+        _action_avec_suivi(plan)
+        index_plan(plan)
+
+        action = next(
+            a for a in client_connecte.get(url_fiche(plan)).data['actions']
+            if a['libelle'] == 'Comptage des limicoles'
+        )
+        assert action['suivi']['objectif_principal'] == 'OBJ_ETAT_CONSERVATION'
+
+    def test_laction_publie_ses_protocoles(self, client_connecte, jeu_de_donnees):
+        plan = jeu_de_donnees['plans']['ouest']
+        _action_avec_suivi(plan)
+        index_plan(plan)
+
+        action = next(
+            a for a in client_connecte.get(url_fiche(plan)).data['actions']
+            if a['libelle'] == 'Comptage des limicoles'
+        )
+        protocoles = {p['nom']: p for p in action['suivi']['protocoles']}
+
+        assert set(protocoles) == {'STOC-EPS', 'Comptage maison'}
+        standardise = protocoles['STOC-EPS']
+        assert standardise['standardise'] is True
+        assert standardise['objectif'] == 'Suivre la tendance des populations.'
+        assert standardise['periode_echantillonnage'] == 'Avril à juin'
+        assert standardise['url_documentation'] == 'https://exemple.fr/stoc'
+
+    def test_un_protocole_non_respecte_publie_sa_justification(
+        self, client_connecte, jeu_de_donnees
+    ):
+        """
+        Un protocole appliqué avec des écarts ne se compare pas à un protocole
+        appliqué à la lettre : sans la justification, la donnée est trompeuse.
+        """
+        plan = jeu_de_donnees['plans']['ouest']
+        _action_avec_suivi(plan)
+        index_plan(plan)
+
+        action = next(
+            a for a in client_connecte.get(url_fiche(plan)).data['actions']
+            if a['libelle'] == 'Comptage des limicoles'
+        )
+        libre = next(
+            p for p in action['suivi']['protocoles']
+            if p['nom'] == 'Comptage maison'
+        )
+
+        assert libre['standardise'] is False
+        assert libre['respecte'] is False
+        assert libre['justification_non_respect'] == (
+            'Effectifs trop faibles pour le protocole.'
+        )
+        assert libre['differences'] == 'Deux passages au lieu de quatre.'
+
+    def test_les_mois_de_suivi_sortent_en_libelles(
+        self, client_connecte, jeu_de_donnees
+    ):
+        from tests.factories.enjeux import ProtocoleFactory, SuiviInventaireFactory
+
+        plan = jeu_de_donnees['plans']['ouest']
+        _nomenclature('PERIODE_SUIVI', 'JANVIER', 'Janvier')
+        _nomenclature('PERIODE_SUIVI', 'FEVRIER', 'Février')
+        protocole = ProtocoleFactory(
+            nom_protocole='Comptage hivernal', periode_suivi='JANVIER,FEVRIER',
+        )
+        OperationFactory(
+            libelle='Comptage hivernal',
+            id_indicateur=plan.indicateur_racine,
+            id_suivi=SuiviInventaireFactory(id_pg=plan, protocoles=[protocole]),
+        )
+        index_plan(plan)
+
+        action = next(
+            a for a in client_connecte.get(url_fiche(plan)).data['actions']
+            if a['libelle'] == 'Comptage hivernal'
+        )
+        assert action['suivi']['protocoles'][0]['periode_suivi'] == [
+            'Janvier', 'Février',
+        ]
+
+    def test_les_habitats_retombent_sur_le_champ_texte_hérité(
+        self, client_connecte, jeu_de_donnees
+    ):
+        """Les suivis d'avant #368 n'ont que `habitat_ref`, en texte libre."""
+        plan = jeu_de_donnees['plans']['ouest']
+        _action_avec_suivi(plan, habitats=[], habitat_ref='Prés-salés')
+        index_plan(plan)
+
+        action = next(
+            a for a in client_connecte.get(url_fiche(plan)).data['actions']
+            if a['libelle'] == 'Comptage des limicoles'
+        )
+        assert action['suivi']['habitats'] == [
+            {'cd_hab': None, 'lb_hab_fr': 'Prés-salés'}
+        ]
+
+    def test_une_action_sans_suivi_ne_publie_pas_de_bloc_vide(
+        self, client_connecte, jeu_de_donnees
+    ):
+        plan = jeu_de_donnees['plans']['ouest']
+        OperationFactory(
+            libelle='Fauche tardive', id_indicateur=plan.indicateur_racine,
+        )
+        index_plan(plan)
+
+        action = next(
+            a for a in client_connecte.get(url_fiche(plan)).data['actions']
+            if a['libelle'] == 'Fauche tardive'
+        )
+        assert action['suivi'] is None
+
+    def test_le_suivi_ne_publie_pas_la_charge_de_travail(
+        self, client_connecte, jeu_de_donnees
+    ):
+        """`nb_etp_cycle` est du temps de travail, donc du RH : hors périmètre."""
+        plan = jeu_de_donnees['plans']['ouest']
+        _action_avec_suivi(plan)
+        index_plan(plan)
+
+        action = next(
+            a for a in client_connecte.get(url_fiche(plan)).data['actions']
+            if a['libelle'] == 'Comptage des limicoles'
+        )
+        for protocole in action['suivi']['protocoles']:
+            assert 'nb_etp_cycle' not in protocole
+
+    def test_lindicateur_de_reponse_est_publie_avec_sa_grille(
+        self, client_connecte, jeu_de_donnees
+    ):
+        """
+        L'indicateur de réponse dit si l'action a produit son effet. Sans sa
+        grille, sa valeur ne se lit pas.
+        """
+        from tests.factories.enjeux import (
+            IndicateurFactory, MetriqueFactory, NomenclatureTypeIndicateurFactory,
+        )
+
+        plan = jeu_de_donnees['plans']['ouest']
+        reponse = IndicateurFactory(
+            id_ne=None, id_resultat_attendu=None,
+            nom_indicateur='Effort d\'arrachage',
+            type_indicateur=NomenclatureTypeIndicateurFactory(
+                mnemonique='REPONSE', cd_nomenclature='REPONSE', label='Réponse',
+            ),
+        )
+        metrique = MetriqueFactory(
+            id_indicateur=reponse, nom_metrique='Linéaire arraché', unite='m',
+            type_metrique=None,
+            score_1_label='Nul', score_2_label='Faible', score_3_label='Moyen',
+            score_4_label='Bon', score_5_label='Complet',
+        )
+        OperationFactory(
+            libelle='Arrachage de la renouée',
+            id_indicateur=plan.indicateur_racine,
+            metriques=[metrique],
+        )
+        index_plan(plan)
+
+        action = next(
+            a for a in client_connecte.get(url_fiche(plan)).data['actions']
+            if a['libelle'] == 'Arrachage de la renouée'
+        )
+
+        assert [i['nom_indicateur'] for i in action['indicateurs_reponse']] == [
+            'Effort d\'arrachage'
+        ]
+        publie = action['indicateurs_reponse'][0]
+        assert publie['type_indicateur'] == 'Réponse'
+        assert [p['valeur'] for p in publie['metriques'][0]['grille']] == [
+            'Nul', 'Faible', 'Moyen', 'Bon', 'Complet',
+        ]
+
+    def test_lindicateur_de_reponse_ne_pollue_pas_le_cadre(
+        self, client_connecte, jeu_de_donnees
+    ):
+        """
+        Même règle que l'export de fiche action (#626) : la ligne « Indicateur »
+        est celle de l'état ou de la pression que l'action sert. Deux règles
+        différentes pour le même écran finiraient par diverger.
+        """
+        from tests.factories.enjeux import (
+            IndicateurFactory, MetriqueFactory, NomenclatureTypeIndicateurFactory,
+        )
+
+        plan = jeu_de_donnees['plans']['ouest']
+        # Accroché au même niveau d'exigence que l'indicateur d'état : c'est par
+        # cette chaîne que l'action remonte jusqu'au plan.
+        reponse = IndicateurFactory(
+            id_ne=plan.indicateur_racine.id_ne, id_resultat_attendu=None,
+            nom_indicateur='Effort fourni',
+            type_indicateur=NomenclatureTypeIndicateurFactory(
+                mnemonique='REPONSE', cd_nomenclature='REPONSE', label='Réponse',
+            ),
+        )
+        OperationFactory(
+            libelle='Action de réponse pure', id_indicateur=reponse,
+            metriques=[MetriqueFactory(id_indicateur=reponse, type_metrique=None)],
+        )
+        index_plan(plan)
+
+        action = next(
+            a for a in client_connecte.get(url_fiche(plan)).data['actions']
+            if a['libelle'] == 'Action de réponse pure'
+        )
+
+        assert action['indicateur'] is None
+        assert action['metriques'] == []
+        assert len(action['indicateurs_reponse']) == 1
+
+    def test_le_cout_de_la_fiche_ne_depend_pas_du_nombre_dactions(
+        self, client_connecte, jeu_de_donnees, django_assert_max_num_queries
+    ):
+        """
+        Garde-fou anti N+1 : suivi, protocoles, sites et indicateurs de réponse
+        sont préchargés. Sans ça, chaque action ajouterait ses propres requêtes.
+        """
+        plan = jeu_de_donnees['plans']['ouest']
+        _action_avec_suivi(plan)
+        index_plan(plan)
+
+        with django_assert_max_num_queries(25):
+            client_connecte.get(url_fiche(plan))
+
+        for indice in range(5):
+            action, _ = _action_avec_suivi(plan)
+            action.libelle = f'Comptage {indice}'
+            action.save()
+
+        with django_assert_max_num_queries(25):
+            reponse = client_connecte.get(url_fiche(plan))
+        assert len(reponse.data['actions']) == 6

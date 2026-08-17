@@ -98,6 +98,12 @@ export class DonutChartComponent implements OnChanges {
   @Input() legendValue: 'percent' | 'count' | 'both' | 'none' = 'both';
   @Input() centerValue?: string | number;
   @Input() centerLabel = '';
+  /**
+   * Filet blanc entre deux parts, en px d'arc (#640 — kit UI : 3 px).
+   * Sans lui, deux parts de même couleur mais de motifs différents se
+   * confondent ; c'est le fond blanc de la carte qui fait la séparation.
+   */
+  @Input() separator = 3;
 
   hovered: number | null = null;
   vm: DonutVm | null = null;
@@ -113,18 +119,25 @@ export class DonutChartComponent implements OnChanges {
     const circumference = 2 * Math.PI * r;
     const registry = new PatternRegistry(this.uid);
 
+    // Une part unique fait le tour complet : pas de voisine, donc pas de filet
+    // (sinon on ouvrirait une encoche blanche dans un anneau plein).
+    const gap = slices.length > 1 ? this.separator : 0;
+
     let cumulative = 0;
     const arcs: DonutArc[] = slices.map((slice) => {
       const pct = (slice.value / total) * 100;
       const len = (slice.value / total) * circumference;
+      // Le filet est pris à l'intérieur de la part, moitié de chaque côté, pour
+      // que les frontières restent à leur place quand on change `separator`.
+      const drawn = Math.max(len - gap, 0.5);
       const midLen = cumulative + len / 2;
       // Angle depuis le haut (repère tourné de -90°).
       const midAngle = (midLen / circumference) * 2 * Math.PI - Math.PI / 2;
       const arc: DonutArc = {
         slice,
         fill: registry.ref(slice.color, slice.pattern),
-        dashArray: `${len} ${circumference - len}`,
-        dashOffset: -cumulative,
+        dashArray: `${drawn} ${circumference - drawn}`,
+        dashOffset: -(cumulative + (len - drawn) / 2),
         pct,
         tipX: cx + r * Math.cos(midAngle),
         tipY: cx + r * Math.sin(midAngle),

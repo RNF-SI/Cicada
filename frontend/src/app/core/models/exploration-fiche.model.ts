@@ -17,11 +17,23 @@ export interface FicheHabitat {
   lb_hab_fr: string | null;
 }
 
+/**
+ * Palier de la grille de lecture d'une métrique : ce qui fait qu'une mesure
+ * vaut « bon » plutôt que « moyen ». Le barème est publié, jamais les mesures.
+ */
+export interface FichePalier {
+  niveau: 1 | 2 | 3 | 4 | 5;
+  libelle: string;
+  valeur: string | null;
+}
+
 export interface FicheMetrique {
   id_metrique: number;
   nom_metrique: string;
   unite: string | null;
   description: string | null;
+  /** `null` quand la métrique n'a pas de grille de lecture (#634). */
+  grille: FichePalier[] | null;
 }
 
 export interface FicheIndicateur {
@@ -91,6 +103,69 @@ export interface FicheEnjeu {
   objectifs_operationnels: FicheObjectifOperationnel[];
 }
 
+/** Métrique suivie par une action, dans le cadre de celle-ci. */
+export interface FicheActionMetrique {
+  id_metrique: number;
+  nom_metrique: string;
+  unite: string | null;
+}
+
+/** Protocole d'un suivi : comment la donnée est collectée. */
+export interface FicheProtocole {
+  id_protocole: number;
+  /** Issu du catalogue CAMPanule, par opposition à une saisie libre. */
+  standardise: boolean | null;
+  nom: string | null;
+  description: string | null;
+  objectif: string | null;
+  /** `false` = appliqué avec des écarts, que `differences` détaille. */
+  respecte: boolean | null;
+  justification_non_respect: string | null;
+  differences: string | null;
+  periode_echantillonnage: string | null;
+  /** Mois de suivi, déjà traduits en libellés par l'API. */
+  periode_suivi: string[];
+  mode_validation: string | null;
+  documentation_disponible: boolean | null;
+  url_documentation: string | null;
+}
+
+/** Habitat ciblé par un suivi ; `cd_hab` est nul pour un habitat hors HabRef. */
+export interface FicheSuiviHabitat {
+  cd_hab: string | null;
+  lb_hab_fr: string | null;
+}
+
+/** Suivi ou inventaire porté par une action : ce qui est observé, et comment. */
+export interface FicheSuivi {
+  id_suivi: number;
+  intitule: string;
+  statut: string | null;
+  actif: boolean;
+  objectif_principal: string | null;
+  objectif_secondaire: string | null;
+  cible_principale: string | null;
+  cible_secondaire: string | null;
+  /** Espèce ciblée (TaxRef). */
+  taxon: string | null;
+  habitats: FicheSuiviHabitat[];
+  frequence: string | null;
+  annee_fin_suivi: number | null;
+  date_lancement: string | null;
+  outil_saisie: string | null;
+  outil_bancarisation: string | null;
+  transmission_donnee: boolean | null;
+  commentaires: string | null;
+  protocoles: FicheProtocole[];
+}
+
+/** Site couvert par une action. */
+export interface FicheActionSite {
+  id_site: number;
+  nom_site: string;
+  slug: string;
+}
+
 /** Action de gestion : ce qui est prévu, jamais ce que ça coûte. */
 export interface FicheAction {
   id_operation: number;
@@ -102,8 +177,18 @@ export interface FicheAction {
   priorite: string | null;
   annee_min: number | null;
   annee_max: number | null;
+  frequence: string | null;
   operateurs: string | null;
   partenaires: string | null;
+  sites: FicheActionSite[];
+  /** Indicateur servi par l'action : la rattache à l'arborescence (#634). */
+  id_indicateur: number | null;
+  /** Indicateur d'état ou de pression ; les indicateurs de réponse sont à part. */
+  indicateur: string | null;
+  metriques: FicheActionMetrique[];
+  /** Ce qui mesure l'effet de l'action, avec métriques et grille (#626). */
+  indicateurs_reponse: FicheIndicateur[];
+  suivi: FicheSuivi | null;
 }
 
 export interface FicheSite {

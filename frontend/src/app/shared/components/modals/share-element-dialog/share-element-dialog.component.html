@@ -7,7 +7,9 @@
     {{ 'enjeux.share.' + typeKey + '.subtitle' | translate:{ label: data.elementLabel } }}
   </p>
 
-  <!-- Choix Lier / Copier, avec explication sous chaque bouton -->
+  <!-- Choix Lier / Copier, avec explication sous chaque bouton.
+       #585 — masqué pour un indicateur : sa copie a son propre dialogue (#262). -->
+  @if (showModeChoice) {
   <div class="mode-choice">
     <button type="button"
             class="mode-card"
@@ -31,6 +33,11 @@
       <span class="mode-card-desc">{{ 'enjeux.share.' + typeKey + '.copyDescription' | translate }}</span>
     </button>
   </div>
+  } @else {
+    <p class="dialog-subtitle">
+      {{ 'enjeux.share.' + typeKey + '.linkDescription' | translate }}
+    </p>
+  }
 
   <!-- Sélection de la cible -->
   <div class="target-picker">
@@ -120,6 +127,25 @@
                     </span>
                     @if (oo.contexte) {
                       <span class="target-item-meta">{{ oo.contexte }}</span>
+                    }
+                  </div>
+                </div>
+              }
+            </div>
+          } @else if (isIndicateur) {
+            <!-- Indicateur (#585) : on choisit un niveau d'exigence (état) ou un
+                 résultat attendu (pression) sous chaque enjeu -->
+            <div class="target-group">
+              <span class="target-group-title">{{ enjeu.libelle }}</span>
+              @for (parent of enjeu.parents; track parent.id) {
+                <div class="target-item"
+                     [class.selected]="selectedParentId() === parent.id"
+                     (click)="selectParent(parent.id)">
+                  <span class="radio-dot" [class.active]="selectedParentId() === parent.id"></span>
+                  <div class="target-item-content">
+                    <span class="target-item-label">{{ parent.libelle }}</span>
+                    @if (parent.contexte) {
+                      <span class="target-item-meta">{{ parent.contexte }}</span>
                     }
                   </div>
                 </div>

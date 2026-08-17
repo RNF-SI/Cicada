@@ -39,7 +39,8 @@ from apps.plans.models_indicateurs import (
 )
 from apps.plans.models_operations import (
     Protocole, SuiviInventaire, Operation,
-    CorOperationSite, OperationAnnee, FinanceOperation
+    CorOperationSite, OperationAnnee, FinanceOperation,
+    Fonction, PosteFonction,
 )
 from apps.notifications.models import Notification, ValidationRequest, PendingUser
 
@@ -267,7 +268,18 @@ class Command(BaseCommand):
         self.stdout.write(f'  Enjeux, indicateurs et operations supprimes: {count}')
 
     def _delete_plans(self):
-        """Supprime les plans de gestion."""
+        """Supprime les plans de gestion.
+
+        Une fonction peut etre PROPRE a un plan (#631, ajout a la volee depuis
+        la fiche action). Supprimer le plan la supprime en cascade... mais
+        `PosteFonction.id_fonction` est en PROTECT : la cascade leve alors
+        `ProtectedError` et tout le reset s'arrete en cours de route (constate
+        en recette sur staging, la base restant a moitie purgee). On retire
+        donc d'abord les liens poste-fonction pointant une fonction de plan,
+        puis ces fonctions ; les postes partent ensuite en cascade avec le plan.
+        """
+        PosteFonction.objects.filter(id_fonction__id_pg__isnull=False).delete()
+        Fonction.objects.filter(id_pg__isnull=False).delete()
         count = PlanGestion.objects.all().delete()[0]
         self.stdout.write(f'  Plans de gestion supprimes: {count}')
 

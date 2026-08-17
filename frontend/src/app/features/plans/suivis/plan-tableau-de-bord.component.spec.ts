@@ -174,3 +174,131 @@ describe('PlanTableauDeBordComponent — score manuel (#518)', () => {
     expect(spy).toHaveBeenCalledWith(42, true);
   });
 });
+
+/**
+ * #638 — L'export du tableau de bord doit refléter l'onglet actif et les
+ * filtres en cours (objectif, enjeu, recherche).
+ */
+describe('PlanTableauDeBordComponent — export du tableau (#638)', () => {
+  let component: PlanTableauDeBordComponent;
+
+  const makeGroup = (kind: 'olt' | 'oo', id: number, label: string, enjeuId: number) => ({
+    kind, id, index: id, label,
+    enjeuId, enjeuLibelle: `Enjeu ${enjeuId}`, enjeuSlug: `enjeu-${enjeuId}`,
+    rows: [{
+      subId: id,
+      subLabel: `Sous-entité ${id}`,
+      indicateur: { id_indicateur: id, nom_indicateur: `Indicateur ${id}` } as unknown as Indicateur,
+      expanded: false,
+      metriques: [{ id_metrique: id, nom_metrique: `Métrique ${id}`, unite: 'ha', mesures: [] } as unknown as Metrique],
+    }],
+  });
+
+  beforeEach(() => {
+    TestBed.configureTestingModule({
+      providers: [
+        { provide: ActivatedRoute, useValue: { snapshot: { paramMap: { get: () => null } } } },
+        { provide: AdminService, useValue: { getPlanBySlug: () => of(null) } },
+        { provide: EnjeuService, useValue: { getPlanEnjeux: () => of(null) } },
+        { provide: TranslateService, useValue: { instant: (k: string) => k } },
+      ],
+    });
+    component = TestBed.runInInjectionContext(() => new PlanTableauDeBordComponent());
+    component.planYearStart.set(2026);
+    component.planYearEnd.set(2027);
+    component.dashboardGroups.set([
+      makeGroup('olt', 1, 'Objectif A', 1),
+      makeGroup('oo', 2, 'Objectif B', 2),
+    ] as any);
+  });
+
+  const payload = () => (component as any).buildExportPayload();
+  /**
+   * Vue « matrice de textes » du classeur (en-tête + lignes), pour continuer à
+   * vérifier le contenu filtré indépendamment de la mise en forme.
+   */
+  const rows = (): any[][] => {
+    const p = payload();
+    const text = (c: any) => (c && typeof c === 'object' ? c.t : c);
+    return [p.entetes, ...p.lignes.map((l: any) => l.cellules.map(text))];
+  };
+
+  it('exporte une colonne par année du plan', () => {
+    const header = rows()[0];
+    expect(header).toContain('2026');
+    expect(header).toContain('2027');
+  });
+
+  it('n’exporte que les groupes de l’onglet actif', () => {
+    component.setTab('etat');
+    expect(rows().map(r => r[1])).toEqual(['plans.suivis.tableauDeBord.nomObjectif', 'OLT 1 : Objectif A', 'OLT 1 : Objectif A']);
+
+    component.setTab('pression');
+    expect(rows().map(r => r[1])).toEqual(['plans.suivis.tableauDeBord.nomObjectif', 'OO 2 : Objectif B', 'OO 2 : Objectif B']);
+  });
+
+  it('applique le filtre par nom d’objectif', () => {
+    component.setTab('ensemble');
+    component.filters.objectifs.set(['Objectif B']);
+    const out = rows();
+    expect(out).toHaveLength(3); // en-tête + indicateur + métrique
+    expect(out[1][1]).toBe('OO 2 : Objectif B');
+  });
+
+  it('applique la recherche textuelle', () => {
+    component.setTab('ensemble');
+    component.filters.name.set('Indicateur 1');
+    expect(rows().map(r => r[3])).toEqual(['plans.suivis.tableauDeBord.indicateurs', 'Indicateur 1', 'Indicateur 1']);
+  });
+
+  it('détaille les métriques sous leur indicateur, indépendamment du pliage', () => {
+    component.setTab('etat');
+    const out = rows();
+    expect(out[1][4]).toBe('');                 // ligne indicateur
+    expect(out[2][4]).toBe('Métrique 1 (ha)');  // ligne métrique
+  });
+
+  // ===========================================================================
+  // Retour recette : le fichier sortait sans aucune mise en forme
+  // ===========================================================================
+
+  describe('mise en forme du classeur', () => {
+    it('marque les lignes de détail « métrique » pour les distinguer', () => {
+      component.setTab('etat');
+      expect(payload().lignes.map((l: any) => l.type)).toEqual(['normal', 'detail']);
+    });
+
+    it('transmet le niveau de score des cases, pas seulement leur libellé', () => {
+      component.setTab('etat');
+      jest.spyOn(component, 'getScoreForYear').mockReturnValue('good');
+      jest.spyOn(component, 'getGlobalScoreForRow').mockReturnValue('very-bad');
+
+      const cellules = payload().lignes[0].cellules;
+      const annee2026 = cellules[5];
+      const global = cellules[cellules.length - 2];
+
+      expect(annee2026).toEqual({ t: 'plans.suivis.tableauDeBord.bon', s: 'good' });
+      expect(global).toEqual({ t: 'plans.suivis.tableauDeBord.tresMauvais', s: 'very-bad' });
+    });
+
+    it('laisse une case vide quand il n’y a pas de score, sans couleur à poser', () => {
+      component.setTab('etat');
+      jest.spyOn(component, 'getScoreForYear').mockReturnValue(null);
+      expect(payload().lignes[0].cellules[5]).toBe('');
+    });
+
+    it('rappelle les filtres actifs en tête de classeur', () => {
+      component.setTab('ensemble');
+      component.filters.objectifs.set(['Objectif B']);
+      component.filters.name.set('Balbuzard');
+
+      const meta = payload().meta;
+      expect(meta).toContainEqual([
+        'plans.suivis.tableauDeBord.export.onglet',
+        'plans.suivis.tableauDeBord.ensemble',
+      ]);
+      expect(meta).toContainEqual(['plans.suivis.tableauDeBord.nomObjectif', 'Objectif B']);
+      expect(meta).toContainEqual(['common.actions.search', 'Balbuzard']);
+    });
+  });
+});

@@ -190,6 +190,13 @@ class TestPlanSuiviAccess:
         assert response.status_code == status.HTTP_200_OK
         assert response.data['results'] == []
 
+    def test_membre_non_referent_ne_voit_pas_les_series_du_bilan(self, plan_read_access_data):
+        plan = plan_read_access_data['plan']
+        response = _client(plan_read_access_data['membre']).get(
+            f'/api/plans/realisations/bilan-series/{plan.id_pg}/'
+        )
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
     def test_referent_voit_les_realisations_et_le_bilan(self, plan_read_access_data):
         plan = plan_read_access_data['plan']
         client = _client(plan_read_access_data['referent'])
@@ -199,3 +206,46 @@ class TestPlanSuiviAccess:
         assert client.get(
             f'/api/plans/realisations/bilan/{plan.id_pg}/'
         ).status_code == status.HTTP_200_OK
+        assert client.get(
+            f'/api/plans/realisations/bilan-series/{plan.id_pg}/'
+        ).status_code == status.HTTP_200_OK
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+class TestPlanSuiviQueryShape:
+    """
+    Garde-fou de performance sur les agrégations bornées à UN plan.
+
+    Ces vues valident l'accès au plan avec `assert_suivi_access()` puis
+    restreignent les lignes à ce plan : re-filtrer chaque ligne par le périmètre
+    de `get_queryset()` (7 chemins ORM OR-és, > 60 jointures) ne retire rien et
+    coûte cher. Sur une base sans statistiques — c'est le cas en CI juste après
+    `seed_testdata` — le planificateur bascule en GEQO et la réponse passait de
+    ~100 ms à plus de 5 s, faisant échouer les tests E2E de la page Bilan.
+    """
+
+    # Les trois vues tournent aujourd'hui entre 10 et 12 jointures ; le budget
+    # laisse de la marge tout en rattrapant la requête à ~63 jointures que
+    # produisait le périmètre par ligne.
+    JOIN_BUDGET = 25
+
+    @pytest.mark.parametrize('endpoint', ['bilan', 'bilan-series', 'by-plan'])
+    def test_agregations_du_plan_sans_requete_a_rallonge(
+        self, plan_read_access_data, endpoint
+    ):
+        from django.db import connection
+        from django.test.utils import CaptureQueriesContext
+
+        plan = plan_read_access_data['plan']
+        client = _client(plan_read_access_data['referent'])
+
+        with CaptureQueriesContext(connection) as captured:
+            response = client.get(f'/api/plans/realisations/{endpoint}/{plan.id_pg}/')
+
+        assert response.status_code == status.HTTP_200_OK
+        pire = max(q['sql'].count('JOIN') for q in captured.captured_queries)
+        assert pire <= self.JOIN_BUDGET, (
+            f"/{endpoint}/ produit une requête à {pire} jointures : le périmètre "
+            f"par ligne a probablement été réappliqué après assert_suivi_access()."
+        )

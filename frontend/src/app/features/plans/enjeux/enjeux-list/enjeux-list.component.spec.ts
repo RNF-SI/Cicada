@@ -2654,6 +2654,53 @@ describe('EnjeuxListComponent', () => {
       moveSpy.mockRestore();
     });
 
+    // #472 (2e retour de test) — après le déplacement, l'onglet « Stratégie
+    // opérationnelle » annonçait encore l'ANCIEN facteur sous l'OO rattaché à
+    // la pression, jusqu'à un rechargement complet de la page. En cause : l'OO
+    // porte sa propre copie légère de la pression, que le transfert du CDK ne
+    // touche pas.
+    it('met à jour le facteur affiché sous les OO après un déplacement de pression', () => {
+      setup();
+      const moveSpy = jest.spyOn(component['reorderService'], 'movePression').mockReturnValue(of({}));
+
+      const enjeu = component.enjeux().find(e => e.id_enjeu === 1)!;
+      const source = enjeu.facteurs_influence!.find(f => f.id_facteur_influence === 101)!;
+      const cible = enjeu.facteurs_influence!.find(f => f.id_facteur_influence === 102)!;
+      // Le jeu d'essai est partagé par tout le fichier : on travaille sur des
+      // copies de listes et on rétablit l'état d'origine à la fin.
+      const pressionsSource = source.pressions!;
+      const pressionsCible = cible.pressions!;
+      const pression = pressionsSource[0];
+      const oo = pression.objectifs_operationnels![0];
+      const libelleInitial = oo.pressions[0].facteur_influence_libelle;
+      // État initial servi par l'API : la copie porte le libellé dénormalisé.
+      oo.pressions[0].facteur_influence_libelle = 'Urbanisation';
+
+      try {
+        expect(component.uniqueFacteursFromOO(oo)).toEqual(['Urbanisation']);
+
+        const event = {
+          previousIndex: 0,
+          currentIndex: 0,
+          previousContainer: { data: pressionsSource },
+          container: { data: pressionsCible },
+        } as any;
+
+        component.onPressionDrop(event, cible);
+
+        expect(moveSpy).toHaveBeenCalledWith(301, { new_facteur_id: 102, position: 0 });
+        // Sans recharger la page : l'OO annonce désormais le facteur d'accueil.
+        expect(component.uniqueFacteursFromOO(oo)).toEqual(['Agriculture']);
+        expect((pression as any).id_facteur_influence).toBe(102);
+      } finally {
+        oo.pressions[0].facteur_influence_libelle = libelleInitial;
+        (pression as any).id_facteur_influence = 101;
+        pressionsSource.splice(0, pressionsSource.length, pression);
+        pressionsCible.splice(0, pressionsCible.length, ...pressionsCible.filter(p => p.id_pression !== 301));
+        moveSpy.mockRestore();
+      }
+    });
+
     // #472 (retour de test) — un facteur d'influence SANS pression doit tout de
     // même offrir une cible de dépôt. Sans la zone vide, la droplist fait 0px de
     // haut et le CDK ne la détecte jamais : on peut déplacer une pression vers un
@@ -3277,5 +3324,311 @@ describe('EnjeuxListComponent — partage d\'un résultat attendu (#585)', () =>
     component.unlinkRa(raPartage(), oo(1));
 
     expect(unlink).toHaveBeenCalledWith(51, 41);
+  });
+});
+
+// #585 (retour de test) — « Le lier n'est pas implémenté pour les indicateurs
+// d'état et de pressions (pas de bouton) ». Les deux dernières relations
+// arbitrées en recette : indicateur d'état ↔ plusieurs niveaux d'exigence,
+// indicateur de pression ↔ plusieurs résultats attendus.
+describe('EnjeuxListComponent — partage d\'un indicateur (#585)', () => {
+  let fixture: ComponentFixture<EnjeuxListComponent>;
+  let component: EnjeuxListComponent;
+  let dialogOpen: jest.SpyInstance;
+
+  /**
+   * Branche état  : IND 60 porté par le NE 70 ; IND 61 porté par 70 et partagé avec 71.
+   * Branche pression : IND 62 porté par le RA 50 ; IND 63 porté par 50 et partagé avec 51.
+   */
+  const planData = {
+    plan: { id_pg: 1, nom: 'Plan', slug: 'plan-test', statut: 'draft' },
+    enjeux: [
+      {
+        id_enjeu: 1,
+        slug: 'enjeu-a',
+        libelle: 'Enjeu A',
+        objectifs_long_terme: [
+          {
+            id_olt: 80,
+            libelle: 'OLT 1',
+            niveaux_exigence: [
+              {
+                id_ne: 70,
+                libelle: 'NE 1',
+                indicateurs: [
+                  { id_indicateur: 60, nom_indicateur: 'IND état simple', id_ne: 70, ne_ids: [70], ra_ids: [], metriques: [] },
+                  { id_indicateur: 61, nom_indicateur: 'IND état partagé', id_ne: 70, ne_ids: [70, 71], ra_ids: [], metriques: [] },
+                ],
+              },
+              {
+                id_ne: 71,
+                libelle: 'NE 2',
+                indicateurs: [
+                  { id_indicateur: 61, nom_indicateur: 'IND état partagé', id_ne: 70, ne_ids: [70, 71], ra_ids: [], metriques: [] },
+                ],
+              },
+            ],
+          },
+        ],
+        facteurs_influence: [
+          {
+            id_facteur_influence: 20,
+            libelle: 'FI 1',
+            pressions: [
+              {
+                id_pression: 30,
+                libelle: 'Pression 1',
+                objectifs_operationnels: [
+                  {
+                    id_oo: 40,
+                    libelle: 'OO 1',
+                    numero_affichage: 1,
+                    pressions: [],
+                    resultats_attendus: [
+                      {
+                        id_ra: 50, libelle: 'RA 1', id_oo: 40, oo_ids: [40],
+                        indicateurs: [
+                          { id_indicateur: 62, nom_indicateur: 'IND pression simple', id_resultat_attendu: 50, ne_ids: [], ra_ids: [50], metriques: [] },
+                          { id_indicateur: 63, nom_indicateur: 'IND pression partagé', id_resultat_attendu: 50, ne_ids: [], ra_ids: [50, 51], metriques: [] },
+                        ],
+                      },
+                      {
+                        id_ra: 51, libelle: 'RA 2', id_oo: 40, oo_ids: [40],
+                        indicateurs: [
+                          { id_indicateur: 63, nom_indicateur: 'IND pression partagé', id_resultat_attendu: 50, ne_ids: [], ra_ids: [50, 51], metriques: [] },
+                        ],
+                      },
+                    ],
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      },
+    ],
+    fcr: [],
+  };
+
+  const ne = (index: number) => planData.enjeux[0].objectifs_long_terme[0].niveaux_exigence[index] as never;
+  const indEtat = (index: number) => planData.enjeux[0].objectifs_long_terme[0]
+    .niveaux_exigence[0].indicateurs[index] as never;
+  const ra = (index: number) => planData.enjeux[0].facteurs_influence[0].pressions[0]
+    .objectifs_operationnels[0].resultats_attendus[index] as never;
+  const indPression = (index: number) => planData.enjeux[0].facteurs_influence[0].pressions[0]
+    .objectifs_operationnels[0].resultats_attendus[0].indicateurs[index] as never;
+
+  beforeEach(async () => {
+    await TestBed.configureTestingModule({
+      imports: [
+        EnjeuxListComponent,
+        NoopAnimationsModule,
+        HttpClientTestingModule,
+        RouterTestingModule,
+        TranslateModule.forRoot(),
+      ],
+      providers: [
+        {
+          provide: ActivatedRoute,
+          useValue: {
+            params: of({}),
+            queryParams: of({}),
+            fragment: of(null),
+            snapshot: { paramMap: new Map(), queryParamMap: new Map() },
+            parent: { params: of({ slug: 'plan-test' }), snapshot: { paramMap: new Map() } },
+          },
+        },
+      ],
+    }).compileComponents();
+
+    fixture = TestBed.createComponent(EnjeuxListComponent);
+    component = fixture.componentInstance;
+    component['planEnjeuxData'].set(planData as never);
+    component['selectedEnjeuSlug'].set('enjeu-a');
+    // Le corps du composant n'est rendu qu'une fois le plan identifié et le
+    // chargement terminé — nécessaire pour les assertions sur le DOM.
+    component['planSlug'].set('plan-test');
+    component['planId'].set(1);
+    component['isLoading'].set(false);
+    jest.spyOn(component, 'canEditPlan').mockReturnValue(true);
+    dialogOpen = jest.spyOn(component['dialog'], 'open');
+  });
+
+  afterEach(() => jest.restoreAllMocks());
+
+  describe('indicateur d\'état ↔ niveaux d\'exigence', () => {
+    it('signale comme partagé l\'indicateur rattaché à plusieurs niveaux', () => {
+      expect(component.isIndicateurEtatShared(indEtat(0))).toBe(false);
+      expect(component.isIndicateurEtatShared(indEtat(1))).toBe(true);
+    });
+
+    it('ne propose « retirer » que sous un niveau qui n\'est pas le porteur', () => {
+      // Sous son niveau porteur (70), retirer n'a pas de sens : le serveur refuse.
+      expect(component.isIndicateurEtatSharedHere(indEtat(1), ne(0))).toBe(false);
+      // Sous le niveau avec lequel il est partagé (71), oui.
+      expect(component.isIndicateurEtatSharedHere(indEtat(1), ne(1))).toBe(true);
+      expect(component.isIndicateurEtatSharedHere(indEtat(0), ne(0))).toBe(false);
+    });
+
+    it('ouvre le dialogue sur les niveaux où l\'indicateur n\'est pas déjà présent', () => {
+      dialogOpen.mockReturnValue({ afterClosed: () => of(null) } as never);
+
+      component.openShareIndicateurEtat(indEtat(0));
+
+      const data = dialogOpen.mock.calls[0][1].data;
+      expect(data.elementType).toBe('indicateurEtat');
+      expect(data.elementLabel).toBe('IND état simple');
+      // Le niveau porteur (70) est exclu, l'autre (71) est proposé, avec son OLT.
+      expect(data.enjeux[0].parents).toEqual([{ id: 71, libelle: 'NE 2', contexte: 'OLT 1' }]);
+    });
+
+    it('n\'offre aucune cible quand l\'indicateur est déjà sous tous les niveaux', () => {
+      dialogOpen.mockReturnValue({ afterClosed: () => of(null) } as never);
+
+      component.openShareIndicateurEtat(indEtat(1));
+
+      expect(dialogOpen.mock.calls[0][1].data.enjeux).toEqual([]);
+    });
+
+    it('appelle le partage avec le niveau choisi', () => {
+      dialogOpen.mockReturnValue({
+        afterClosed: () => of({ mode: 'link', targetParentId: 71 }),
+      } as never);
+      const link = jest.spyOn(component['enjeuService'], 'linkIndicateurToNe')
+        .mockReturnValue(of({} as never) as never);
+      jest.spyOn(component, 'loadPlanData').mockImplementation(() => undefined as never);
+
+      component.openShareIndicateurEtat(indEtat(0));
+
+      expect(link).toHaveBeenCalledWith(60, 71);
+    });
+
+    it('refuse de retirer l\'indicateur de son niveau porteur sans appeler le serveur', () => {
+      const unlink = jest.spyOn(component['enjeuService'], 'unlinkIndicateurFromNe');
+
+      component.unlinkIndicateurEtat(indEtat(1), ne(0));
+
+      expect(unlink).not.toHaveBeenCalled();
+      expect(dialogOpen).not.toHaveBeenCalled();
+    });
+
+    it('retire le partage après confirmation', () => {
+      dialogOpen.mockReturnValue({ afterClosed: () => of(true) } as never);
+      const unlink = jest.spyOn(component['enjeuService'], 'unlinkIndicateurFromNe')
+        .mockReturnValue(of({} as never) as never);
+      jest.spyOn(component, 'loadPlanData').mockImplementation(() => undefined as never);
+
+      component.unlinkIndicateurEtat(indEtat(1), ne(1));
+
+      expect(unlink).toHaveBeenCalledWith(61, 71);
+    });
+  });
+
+  describe('indicateur de pression ↔ résultats attendus', () => {
+    it('signale comme partagé l\'indicateur rattaché à plusieurs résultats attendus', () => {
+      expect(component.isIndicateurPressionShared(indPression(0))).toBe(false);
+      expect(component.isIndicateurPressionShared(indPression(1))).toBe(true);
+    });
+
+    it('ne propose « retirer » que sous un résultat attendu qui n\'est pas le porteur', () => {
+      expect(component.isIndicateurPressionSharedHere(indPression(1), ra(0))).toBe(false);
+      expect(component.isIndicateurPressionSharedHere(indPression(1), ra(1))).toBe(true);
+    });
+
+    it('ouvre le dialogue sur les résultats attendus non déjà rattachés', () => {
+      dialogOpen.mockReturnValue({ afterClosed: () => of(null) } as never);
+
+      component.openShareIndicateurPression(indPression(0));
+
+      const data = dialogOpen.mock.calls[0][1].data;
+      expect(data.elementType).toBe('indicateurPression');
+      expect(data.enjeux[0].parents).toEqual([{ id: 51, libelle: 'RA 2', contexte: 'OO 1' }]);
+    });
+
+    it('appelle le partage avec le résultat attendu choisi', () => {
+      dialogOpen.mockReturnValue({
+        afterClosed: () => of({ mode: 'link', targetParentId: 51 }),
+      } as never);
+      const link = jest.spyOn(component['enjeuService'], 'linkIndicateurToRa')
+        .mockReturnValue(of({} as never) as never);
+      jest.spyOn(component, 'loadPlanData').mockImplementation(() => undefined as never);
+
+      component.openShareIndicateurPression(indPression(0));
+
+      expect(link).toHaveBeenCalledWith(62, 51);
+    });
+  });
+
+  // Le retour de test porte littéralement sur l'ABSENCE DU BOUTON : on vérifie
+  // donc le rendu, pas seulement les méthodes qui l'alimentent.
+  describe('boutons rendus sur la carte', () => {
+    /**
+     * Le premier cycle déclenche `ngOnInit`, qui ne trouve pas de plan derrière
+     * la route de test et bascule le composant en erreur. On rétablit ensuite
+     * l'état voulu avant de rendre pour de bon.
+     */
+    function rendre(prepare: () => void): void {
+      fixture.detectChanges();
+      component['planEnjeuxData'].set(planData as never);
+      component['selectedEnjeuSlug'].set('enjeu-a');
+      component['planSlug'].set('plan-test');
+      component['planId'].set(1);
+      component['errorMessage'].set(null);
+      component['isLoading'].set(false);
+      fixture.detectChanges();
+      // Les dépliages se posent une fois l'arborescence rendue : la
+      // restauration d'état du composant écrase sinon les sections ouvertes.
+      prepare();
+      fixture.detectChanges();
+    }
+
+    it('affiche le bouton « lier » sur un indicateur d\'état', () => {
+      rendre(() => {
+        component.activeTab.set('olt');
+        component.toggleOlt(80);
+      });
+
+      const carte = fixture.nativeElement.querySelector('#indicateur-60');
+      expect(carte).toBeTruthy();
+      const lier = carte.querySelector('button[title="enjeux.share.indicateurEtat.linkAction"]');
+      expect(lier).toBeTruthy();
+      // Non partagé : ni badge, ni bouton « retirer ».
+      expect(carte.querySelector('.shared-badge')).toBeFalsy();
+      expect(carte.querySelector('button[title="enjeux.share.indicateur.unlinkAction"]')).toBeFalsy();
+    });
+
+    it('affiche le badge et le bouton « retirer » sous un niveau de partage', () => {
+      rendre(() => {
+        component.activeTab.set('olt');
+        component.toggleOlt(80);
+      });
+
+      // Le NE 71 n'est pas le porteur de l'indicateur 61 : le retrait y a un sens.
+      const cartes = fixture.nativeElement.querySelectorAll('#indicateur-61');
+      expect(cartes.length).toBe(2);
+      const sousNePartage = cartes[1];
+      expect(sousNePartage.querySelector('.shared-badge')).toBeTruthy();
+      const retirer = sousNePartage.querySelector('button[title="enjeux.share.indicateur.unlinkAction"]');
+      expect(retirer).toBeTruthy();
+      // Retour de test #585 : le bouton s'affichait VIDE. `fi-rr-unlink`
+      // n'existe pas dans Uicons Rounded Regular 2.6.0 — le glyphe correct est
+      // `fi-rr-link-slash`. On épingle le nom pour que la régression ressorte.
+      expect(retirer.querySelector('i.fi-rr-link-slash')).toBeTruthy();
+      // Sous son niveau porteur, le badge est là mais pas le retrait.
+      expect(cartes[0].querySelector('.shared-badge')).toBeTruthy();
+      expect(cartes[0].querySelector('button[title="enjeux.share.indicateur.unlinkAction"]')).toBeFalsy();
+    });
+
+    it('affiche le bouton « lier » sur un indicateur de pression', () => {
+      rendre(() => {
+        component.activeTab.set('operations');
+        component.toggleOo(40);
+        component.toggleRa(50);
+      });
+
+      const carte = fixture.nativeElement.querySelector('#indicateur-62');
+      expect(carte).toBeTruthy();
+      expect(carte.querySelector('button[title="enjeux.share.indicateurPression.linkAction"]')).toBeTruthy();
+    });
   });
 });

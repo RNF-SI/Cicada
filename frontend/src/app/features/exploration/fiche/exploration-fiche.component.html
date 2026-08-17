@@ -110,9 +110,20 @@
       <!-- Enjeux -->
       @if (p.enjeux.length) {
         <section id="enjeux" class="fiche-section">
-          <h2 class="fiche-section-titre">
-            {{ 'exploration.types.enjeu.pluriel' | translate }}
-          </h2>
+          <div class="fiche-section-entete">
+            <h2 class="fiche-section-titre">
+              {{ 'exploration.types.enjeu.pluriel' | translate }}
+            </h2>
+            <div class="fiche-arbre-controles">
+              <button type="button" class="link-default" (click)="toutDeplier()">
+                {{ 'exploration.fiche.toutDeplier' | translate }}
+              </button>
+              <span aria-hidden="true">/</span>
+              <button type="button" class="link-default" (click)="toutReplier()">
+                {{ 'exploration.fiche.toutReplier' | translate }}
+              </button>
+            </div>
+          </div>
 
           @for (enjeu of p.enjeux; track enjeu.id_enjeu) {
             <app-accordion
@@ -202,33 +213,42 @@
                   <ul class="fiche-arbre">
                     @for (olt of enjeu.objectifs_long_terme; track olt.id_olt) {
                       <li
+                        class="fiche-branche"
                         [id]="ancreDe('objectif_lt:' + olt.id_olt)"
                         [class.cible]="estCible('objectif_lt', olt.id_olt)">
-                        <span class="fiche-arbre-titre type-objectif">{{ olt.libelle }}</span>
-                        @for (niveau of olt.niveaux_exigence; track niveau.id_ne) {
-                          <ul class="fiche-arbre">
-                            <li>
-                              <span class="fiche-arbre-niveau">{{ niveau.libelle }}</span>
-                              @if (niveau.indicateurs.length) {
-                                <ul class="fiche-arbre">
-                                  @for (ind of niveau.indicateurs; track ind.id_indicateur) {
-                                    <li
-                                      [id]="ancreDe('indicateur:' + ind.id_indicateur)"
-                                      [class.cible]="estCible('indicateur', ind.id_indicateur)">
-                                      <span class="fiche-arbre-titre type-indicateur">
-                                        {{ ind.nom_indicateur }}
-                                      </span>
-                                      @if (ind.type_indicateur) {
-                                        <span class="fiche-arbre-mention">
-                                          {{ ind.type_indicateur }}
-                                        </span>
-                                      }
-                                    </li>
-                                  }
-                                </ul>
-                              }
-                            </li>
-                          </ul>
+                        <button
+                          type="button"
+                          class="fiche-branche-tete"
+                          [attr.aria-expanded]="estBrancheOuverte('olt:' + olt.id_olt)"
+                          (click)="basculerBranche('olt:' + olt.id_olt)">
+                          <i
+                            class="fi fiche-branche-chevron"
+                            [class.fi-rr-angle-small-down]="estBrancheOuverte('olt:' + olt.id_olt)"
+                            [class.fi-rr-angle-small-right]="!estBrancheOuverte('olt:' + olt.id_olt)"
+                            aria-hidden="true"></i>
+                          <span class="fiche-puce type-objectif">
+                            {{ 'exploration.fiche.olt' | translate }}
+                          </span>
+                          <span class="fiche-arbre-titre">{{ olt.libelle }}</span>
+                        </button>
+
+                        @if (estBrancheOuverte('olt:' + olt.id_olt)) {
+                          @for (niveau of olt.niveaux_exigence; track niveau.id_ne) {
+                            <ul class="fiche-arbre">
+                              <li>
+                                <span class="fiche-puce type-niveau">
+                                  {{ 'exploration.fiche.ne' | translate }}
+                                </span>
+                                <span class="fiche-arbre-niveau">{{ niveau.libelle }}</span>
+                                @for (ind of niveau.indicateurs; track ind.id_indicateur) {
+                                  <ng-container
+                                    [ngTemplateOutlet]="brancheIndicateur"
+                                    [ngTemplateOutletContext]="{ $implicit: ind }">
+                                  </ng-container>
+                                }
+                              </li>
+                            </ul>
+                          }
                         }
                       </li>
                     }
@@ -243,28 +263,42 @@
                   <ul class="fiche-arbre">
                     @for (oo of enjeu.objectifs_operationnels; track oo.id_oo) {
                       <li
+                        class="fiche-branche"
                         [id]="ancreDe('objectif_op:' + oo.id_oo)"
                         [class.cible]="estCible('objectif_op', oo.id_oo)">
-                        <span class="fiche-arbre-titre type-objectif">{{ oo.libelle }}</span>
-                        @for (ra of oo.resultats_attendus; track ra.id_ra) {
-                          <ul class="fiche-arbre">
-                            <li>
-                              <span class="fiche-arbre-niveau">{{ ra.libelle }}</span>
-                              @if (ra.indicateurs.length) {
-                                <ul class="fiche-arbre">
-                                  @for (ind of ra.indicateurs; track ind.id_indicateur) {
-                                    <li
-                                      [id]="ancreDe('indicateur:' + ind.id_indicateur)"
-                                      [class.cible]="estCible('indicateur', ind.id_indicateur)">
-                                      <span class="fiche-arbre-titre type-indicateur">
-                                        {{ ind.nom_indicateur }}
-                                      </span>
-                                    </li>
-                                  }
-                                </ul>
-                              }
-                            </li>
-                          </ul>
+                        <button
+                          type="button"
+                          class="fiche-branche-tete"
+                          [attr.aria-expanded]="estBrancheOuverte('oo:' + oo.id_oo)"
+                          (click)="basculerBranche('oo:' + oo.id_oo)">
+                          <i
+                            class="fi fiche-branche-chevron"
+                            [class.fi-rr-angle-small-down]="estBrancheOuverte('oo:' + oo.id_oo)"
+                            [class.fi-rr-angle-small-right]="!estBrancheOuverte('oo:' + oo.id_oo)"
+                            aria-hidden="true"></i>
+                          <span class="fiche-puce type-objectif">
+                            {{ 'exploration.fiche.oo' | translate }}
+                          </span>
+                          <span class="fiche-arbre-titre">{{ oo.libelle }}</span>
+                        </button>
+
+                        @if (estBrancheOuverte('oo:' + oo.id_oo)) {
+                          @for (ra of oo.resultats_attendus; track ra.id_ra) {
+                            <ul class="fiche-arbre">
+                              <li>
+                                <span class="fiche-puce type-niveau">
+                                  {{ 'exploration.fiche.ra' | translate }}
+                                </span>
+                                <span class="fiche-arbre-niveau">{{ ra.libelle }}</span>
+                                @for (ind of ra.indicateurs; track ind.id_indicateur) {
+                                  <ng-container
+                                    [ngTemplateOutlet]="brancheIndicateur"
+                                    [ngTemplateOutletContext]="{ $implicit: ind }">
+                                  </ng-container>
+                                }
+                              </li>
+                            </ul>
+                          }
                         }
                       </li>
                     }
@@ -301,9 +335,7 @@
                     class="fiche-tableau-ligne"
                     [id]="ancreDe('action:' + action.id_operation)"
                     [class.cible]="estCible('action', action.id_operation)"
-                    [class.ouverte]="estActionOuverte(action)"
-                    (click)="basculerAction(action)"
-                    [attr.aria-expanded]="estActionOuverte(action)">
+                    (click)="ouvrirAction(action)">
                     <td class="fiche-tableau-code">{{ action.code_operation }}</td>
                     <td>
                       <span class="fiche-arbre-titre type-action">{{ action.libelle }}</span>
@@ -311,40 +343,17 @@
                     <td>{{ action.categorie }}</td>
                     <td>{{ periodeAction(action) }}</td>
                     <td>{{ action.priorite }}</td>
-                    <td class="fiche-tableau-chevron">
-                      <i
-                        class="fi"
-                        [class.fi-rr-angle-small-down]="!estActionOuverte(action)"
-                        [class.fi-rr-angle-small-up]="estActionOuverte(action)"
-                        aria-hidden="true"></i>
+                    <td class="fiche-tableau-oeil">
+                      <button
+                        type="button"
+                        class="fiche-oeil"
+                        [attr.aria-label]="'exploration.fiche.voirFicheAction' | translate"
+                        [title]="'exploration.fiche.voirFicheAction' | translate"
+                        (click)="ouvrirAction(action, $event)">
+                        <i class="fi fi-rr-eye" aria-hidden="true"></i>
+                      </button>
                     </td>
                   </tr>
-
-                  <!-- Détail de l'action : équivalent lecture seule de la fiche
-                       action, ouvert d'emblée quand la recherche la cible. -->
-                  @if (estActionOuverte(action)) {
-                    <tr class="fiche-tableau-detail">
-                      <td colspan="6">
-                        @if (action.description) {
-                          <p class="fiche-texte">{{ action.description }}</p>
-                        }
-                        <dl class="fiche-detail-liste">
-                          @if (action.type_action) {
-                            <dt>{{ 'exploration.fiche.typeActionPrecis' | translate }}</dt>
-                            <dd>{{ action.type_action }}</dd>
-                          }
-                          @if (action.operateurs) {
-                            <dt>{{ 'exploration.fiche.operateurs' | translate }}</dt>
-                            <dd>{{ action.operateurs }}</dd>
-                          }
-                          @if (action.partenaires) {
-                            <dt>{{ 'exploration.fiche.partenaires' | translate }}</dt>
-                            <dd>{{ action.partenaires }}</dd>
-                          }
-                        </dl>
-                      </td>
-                    </tr>
-                  }
                 }
               </tbody>
             </table>
@@ -371,3 +380,75 @@
     }
   </div>
 </main>
+
+<!--
+  Branche d'un indicateur : le même rendu sous un niveau d'exigence (OLT) et
+  sous un résultat attendu (OO). Elle descend jusqu'aux métriques, à leur grille
+  de lecture et aux actions qui les servent — l'arborescence s'arrêtait aux
+  indicateurs, ce qui coupait la fiche là où commence le concret (#634).
+-->
+<ng-template #brancheIndicateur let-ind>
+  <ul class="fiche-arbre">
+    <li
+      [id]="ancreDe('indicateur:' + ind.id_indicateur)"
+      [class.cible]="estCible('indicateur', ind.id_indicateur)">
+      <span class="fiche-puce type-indicateur">
+        {{ 'exploration.types.indicateur.singulier' | translate }}
+      </span>
+      <span class="fiche-arbre-titre">{{ ind.nom_indicateur }}</span>
+      @if (ind.type_indicateur) {
+        <span class="fiche-arbre-mention">{{ ind.type_indicateur }}</span>
+      }
+
+      @if (ind.metriques.length) {
+        <ul class="fiche-arbre">
+          @for (metrique of ind.metriques; track metrique.id_metrique) {
+            <li>
+              <span class="fiche-puce type-metrique">
+                {{ 'exploration.fiche.metrique' | translate }}
+              </span>
+              <span class="fiche-arbre-metrique">{{ libelleMetrique(metrique) }}</span>
+
+              <!-- Grille de lecture : le barème qui donne son sens à une
+                   mesure. Les mesures, elles, ne sont pas publiées. -->
+              @if (metrique.grille) {
+                <div class="fiche-grille" role="table"
+                     [attr.aria-label]="'exploration.fiche.grille' | translate">
+                  @for (palier of metrique.grille; track palier.niveau) {
+                    <div class="fiche-grille-palier" role="row">
+                      <span class="fiche-grille-tete" [class]="classePalier(palier)" role="rowheader">
+                        {{ palier.libelle }}
+                      </span>
+                      <span class="fiche-grille-valeur" role="cell">{{ palier.valeur || '—' }}</span>
+                    </div>
+                  }
+                </div>
+              }
+            </li>
+          }
+        </ul>
+      }
+
+      @if (actionsDe(ind).length) {
+        <ul class="fiche-arbre">
+          @for (action of actionsDe(ind); track action.id_operation) {
+            <li class="fiche-arbre-action">
+              <span class="fiche-puce type-action">
+                {{ action.code_operation || ('exploration.types.action.singulier' | translate) }}
+              </span>
+              <span class="fiche-arbre-titre">{{ action.libelle }}</span>
+              <button
+                type="button"
+                class="fiche-oeil"
+                [attr.aria-label]="'exploration.fiche.voirFicheAction' | translate"
+                [title]="'exploration.fiche.voirFicheAction' | translate"
+                (click)="ouvrirAction(action, $event)">
+                <i class="fi fi-rr-eye" aria-hidden="true"></i>
+              </button>
+            </li>
+          }
+        </ul>
+      }
+    </li>
+  </ul>
+</ng-template>

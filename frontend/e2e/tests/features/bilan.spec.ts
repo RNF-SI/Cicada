@@ -75,6 +75,56 @@ test.describe('Bilan page', () => {
     await expect(referentPage.locator('app-donut-chart svg').first()).toBeVisible();
   });
 
+  test('scope selector re-queries the three aggregations', async ({ referentPage }) => {
+    const plan = await findPlan(referentPage, 'Camargue');
+    await referentPage.goto(`/plans/${plan.slug}/bilan`);
+    await expect(referentPage.locator('app-chart-card').first()).toBeVisible();
+
+    // La portée doit repartir vers le serveur, y compris pour l'onglet
+    // Indicateurs : sans cela, changer de portée ne changeait rien à l'écran.
+    const requests: string[] = [];
+    referentPage.on('request', (r) => {
+      if (r.url().includes('/realisations/bilan')) requests.push(r.url());
+    });
+
+    await referentPage.locator('.scope-row .pill-btn', { hasText: 'Mi-parcours' }).click();
+    // Les années couvertes sont annoncées sous le sélecteur.
+    await expect(referentPage.locator('[data-testid="bilan-periode"]')).toBeVisible();
+    await expect
+      .poll(() => requests.filter((u) => u.includes('annee_min=')).length)
+      .toBeGreaterThanOrEqual(2);
+
+    requests.length = 0;
+    await referentPage.locator('.scope-row .pill-btn', { hasText: 'Annuel' }).click();
+    // Le sélecteur d'années apparaît et l'année active est dans le plan.
+    await expect(referentPage.locator('.year-pill.active')).toBeVisible();
+    await expect
+      .poll(() => requests.filter((u) => /[?&]annee=\d{4}/.test(u)).length)
+      .toBeGreaterThanOrEqual(2);
+  });
+
+  test('selecting another year re-queries the indicateurs tab', async ({ referentPage }) => {
+    const plan = await findPlan(referentPage, 'Camargue');
+    await referentPage.goto(`/plans/${plan.slug}/bilan`);
+    await referentPage.locator('.scope-row .pill-btn', { hasText: 'Annuel' }).click();
+
+    await expect(referentPage.locator('.year-pill.active')).toBeVisible();
+    if ((await referentPage.locator('.year-pill').count()) < 2) {
+      test.skip(true, 'Plan spans a single year');
+    }
+    // Une année autre que celle déjà active : re-cliquer l'année courante ne
+    // relance volontairement aucune requête.
+    const autreAnnee = referentPage.locator('.year-pill:not(.active)').first();
+
+    const [request] = await Promise.all([
+      referentPage.waitForRequest((r) =>
+        r.url().includes('/realisations/bilan-indicateurs/') && /[?&]annee=\d{4}/.test(r.url()),
+      ),
+      autreAnnee.click(),
+    ]);
+    expect(request.url()).toMatch(/annee=\d{4}/);
+  });
+
   test('indicateurs tab shows the evolution line chart when a time-series exists', async ({ referentPage }) => {
     const plan = await findPlan(referentPage, 'Camargue');
     const { data } = await apiGet(referentPage, `plans/realisations/bilan-series/${plan.id_pg}/`);

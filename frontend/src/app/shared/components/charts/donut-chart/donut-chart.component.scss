@@ -49,9 +49,13 @@
 }
 
 // Infobulle au survol (kit UI : « Très mauvais : 25% »).
+//
+// L'ergot sous la bulle la rattache à la part survolée : sans lui, la bulle
+// flotte et, sur un donut à cinq parts, on ne sait plus laquelle elle décrit.
 .donut__tip {
+  --tip-arrow: 6px;
   position: absolute;
-  transform: translate(-50%, -125%);
+  transform: translate(-50%, calc(-100% - var(--tip-arrow) - 6px));
   background: $white;
   border: 1px solid $gray-light;
   border-radius: $border-radius-md;
@@ -64,8 +68,31 @@
   pointer-events: none;
   z-index: 2;
 
+  // Deux triangles superposés : le premier prolonge la bordure, le second
+  // reboucle le fond blanc par-dessus.
+  &::before,
+  &::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    border: var(--tip-arrow) solid transparent;
+    border-bottom-width: 0;
+  }
+
+  &::before {
+    transform: translate(-50%, 1px);
+    border-top-color: $gray-light;
+  }
+
+  &::after {
+    transform: translate(-50%, 0);
+    border-top-color: $white;
+  }
+
+  // Kit UI : « Très mauvais : 25% » — la valeur est en gras, pas en couleur.
   strong {
-    color: $primary-color;
+    color: $black;
     font-weight: $font-weight-bold;
   }
 }

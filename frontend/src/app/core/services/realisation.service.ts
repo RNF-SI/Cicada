@@ -30,6 +30,17 @@ export interface RealisationsByPlanResponse {
   total: number;
 }
 
+/**
+ * Comptages du bilan pour un périmètre (global, une catégorie, un enjeu).
+ *
+ * Deux découpages coexistent volontairement :
+ *  - par **niveau** de nomenclature (`termine`, `en_cours`…) — lu par les exports ;
+ *  - par **statut** croisé planifiée × réalisée (`planifiee_*`, `non_planifiee_*`)
+ *    — c'est celui que tracent les graphiques du Bilan (kit UI : la couleur dit
+ *    qui, le motif dit l'issue).
+ * Les statuts ne totalisent pas forcément `total` : une action ni prévue ni
+ * réalisée n'entre dans aucun des cinq.
+ */
 export interface BilanCounts {
   non_demarre: number;
   en_cours: number;
@@ -39,6 +50,11 @@ export interface BilanCounts {
   reporte: number;
   inconnu: number;
   total: number;
+  planifiee_realisee: number;
+  planifiee_partielle: number;
+  planifiee_non_realisee: number;
+  non_planifiee_realisee: number;
+  non_planifiee_partielle: number;
 }
 
 export interface BilanCategorie extends BilanCounts {
@@ -85,7 +101,16 @@ export interface BilanFilters {
   organisme_id?: number;
   /** Année pour la vue « annuel » du bilan. Omise = bilan global (toutes années). */
   annee?: number;
+  /**
+   * Fenêtre d'années de la portée « Mi-parcours » (bornes incluses). Exclusive
+   * de `annee` : le serveur privilégie `annee` si les deux sont envoyés.
+   */
+  annee_min?: number;
+  annee_max?: number;
 }
+
+/** Bornes d'années envoyées aux trois endpoints du bilan pour une portée donnée. */
+export type BilanPeriode = Pick<BilanFilters, 'annee' | 'annee_min' | 'annee_max'>;
 
 export interface BilanIndicateursScoreEntry {
   score: number;        // 0..5 (0 = sans donnée)
@@ -103,6 +128,9 @@ export interface BilanIndicateursEnjeuEntry {
 export interface BilanIndicateursResponse {
   plan_id: number;
   plan_nom: string;
+  /** Fenêtre d'années appliquée (null = toute la durée du plan). */
+  periode_min: number | null;
+  periode_max: number | null;
   total_indicateurs: number;
   indicateurs_evalues: number;
   taux_evaluation_pct: number;
@@ -128,6 +156,8 @@ export interface BilanSeriesResponse {
   actions_par_annee: {
     /** { termine: [...], partiel: [...], ... } alignés sur `years`. */
     niveaux: Record<string, number[]>;
+    /** Croisé planifiée × réalisée, aligné sur `years` — cf. `BilanCounts`. */
+    statuts: Record<string, number[]>;
   };
 }
 
@@ -163,33 +193,49 @@ export class RealisationService {
     );
   }
 
+  /**
+   * Paramètres communs aux trois endpoints du bilan : filtres métier + fenêtre
+   * d'années de la portée (Global / Mi-parcours / Annuel). Centralisé ici pour
+   * que les trois requêtes décrivent toujours la même portée.
+   */
+  private bilanParams(filters?: BilanFilters): HttpParams {
+    let params = new HttpParams();
+    if (filters?.enjeu_id) params = params.set('enjeu_id', String(filters.enjeu_id));
+    if (filters?.organisme_id) params = params.set('organisme_id', String(filters.organisme_id));
+    if (filters?.annee) params = params.set('annee', String(filters.annee));
+    if (filters?.annee_min) params = params.set('annee_min', String(filters.annee_min));
+    if (filters?.annee_max) params = params.set('annee_max', String(filters.annee_max));
+    return params;
+  }
+
   /** Agrégations pour l'onglet Indicateurs du Bilan (Phase 4 - Figma #4043). */
-  bilanIndicateurs(planId: number): Observable<BilanIndicateursResponse> {
+  bilanIndicateurs(
+    planId: number,
+    filters?: Pick<BilanFilters, 'enjeu_id'> & BilanPeriode,
+  ): Observable<BilanIndicateursResponse> {
+    // #639 — le filtre « Enjeux/FCR » doit aussi scoper l'onglet Indicateurs.
     return this.http.get<BilanIndicateursResponse>(
       `${this.apiUrl}/realisations/bilan-indicateurs/${planId}/`,
+      { params: this.bilanParams(filters) },
     );
   }
 
   /** Agrégations pour la page Bilan (taux, catégories, enjeux, budgets, RH). */
   bilan(planId: number, filters?: BilanFilters): Observable<BilanResponse> {
-    let params = new HttpParams();
-    if (filters?.enjeu_id) params = params.set('enjeu_id', String(filters.enjeu_id));
-    if (filters?.organisme_id) params = params.set('organisme_id', String(filters.organisme_id));
-    if (filters?.annee) params = params.set('annee', String(filters.annee));
     return this.http.get<BilanResponse>(
       `${this.apiUrl}/realisations/bilan/${planId}/`,
-      { params },
+      { params: this.bilanParams(filters) },
     );
   }
 
   /** Séries par année pour les graphiques « évolution » du Bilan. */
-  bilanSeries(planId: number, filters?: Pick<BilanFilters, 'enjeu_id' | 'organisme_id'>): Observable<BilanSeriesResponse> {
-    let params = new HttpParams();
-    if (filters?.enjeu_id) params = params.set('enjeu_id', String(filters.enjeu_id));
-    if (filters?.organisme_id) params = params.set('organisme_id', String(filters.organisme_id));
+  bilanSeries(
+    planId: number,
+    filters?: Pick<BilanFilters, 'enjeu_id' | 'organisme_id'> & BilanPeriode,
+  ): Observable<BilanSeriesResponse> {
     return this.http.get<BilanSeriesResponse>(
       `${this.apiUrl}/realisations/bilan-series/${planId}/`,
-      { params },
+      { params: this.bilanParams(filters) },
     );
   }
 

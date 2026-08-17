@@ -113,8 +113,17 @@ def filtrer_contenus(queryset, params):
         requete = SearchQuery(mot_cle, config=SEARCH_CONFIG, search_type='websearch')
         # La similarité par mot rattrape les fautes de frappe que la
         # radicalisation ne couvre pas ; elle s'appuie sur l'index trigramme.
+        #
+        # Elle porte sur le libellé **et sur les objets rattachés** (#634) :
+        # espèces, habitats et protocoles standardisés sont des noms longs,
+        # souvent latins, qu'on tape rarement juste. Sans ce rattrapage,
+        # « eutotrophes » ne trouvait pas « Lacs eutrophes naturels… » alors
+        # que le libellé était bien indexé — le plein texte ne pardonne
+        # aucune lettre en trop.
         queryset = queryset.filter(
-            Q(**{champ: requete}) | Q(titre__trigram_word_similar=mot_cle)
+            Q(**{champ: requete})
+            | Q(titre__trigram_word_similar=mot_cle)
+            | Q(rattachements__trigram_word_similar=mot_cle)
         ).annotate(pertinence=SearchRank(F(champ), requete))
 
     types = liste(params, 'types')

@@ -40,39 +40,19 @@
   margin-left: $spacing-xxs;
 }
 
-// Pastille — la couleur passe par la variable CSS --swatch-color.
+// Pastille 16 x 16 (kit UI). Le remplissage — aplat ou motif — vient du SVG,
+// pas du CSS : voir le commentaire du composant.
 .legend__swatch {
-  --swatch-color: #{$primary-color};
   flex-shrink: 0;
-  width: 14px;
-  height: 14px;
-  border-radius: $border-radius-sm;
-  background: var(--swatch-color);
+  display: block;
+  width: 16px;
+  height: 16px;
+}
 
-  &.is-hatch {
-    background:
-      repeating-linear-gradient(
-        45deg,
-        var(--swatch-color) 0,
-        var(--swatch-color) 2.5px,
-        #fff 2.5px,
-        #fff 5px
-      );
-  }
-
-  &.is-cross {
-    background:
-      linear-gradient(45deg, transparent 45%, var(--swatch-color) 45%, var(--swatch-color) 55%, transparent 55%),
-      linear-gradient(-45deg, transparent 45%, var(--swatch-color) 45%, var(--swatch-color) 55%, transparent 55%),
-      #fff;
-    background-size: 5px 5px;
-    border: 1px solid $gray-light;
-  }
-
-  &.is-dots {
-    background:
-      radial-gradient(var(--swatch-color) 30%, transparent 32%) 0 0 / 5px 5px,
-      #fff;
-    border: 1px solid $gray-light;
-  }
+// Symbole de courbe : plus large que haut, centré sur la ligne de texte.
+.legend__symbol {
+  flex-shrink: 0;
+  display: block;
+  width: 28px;
+  overflow: visible;
 }

@@ -7,10 +7,10 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
     dependencies = [
         ("plans", "0123_fonction_type_poste_nomenclature"),
-        # Rebasée derrière 0003_index_version (#634), arrivée entre-temps sur
-        # develop : les deux migrations partaient sinon de 0002, ce qui laissait
-        # deux feuilles dans le graphe.
-        ("search", "0003_index_version"),
+        # Renumérotée en 0005 derrière l'index trigramme (#634), arrivé
+        # entre-temps sur develop en 0004 : les deux migrations partaient
+        # sinon du même parent, ce qui laissait deux feuilles dans le graphe.
+        ("search", "0004_contenuindexe_idx_recherche_ratt_trgm"),
     ]
 
     operations = [

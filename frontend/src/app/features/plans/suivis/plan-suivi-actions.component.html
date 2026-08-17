@@ -114,9 +114,18 @@
               {{ 'plans.suivis.actions.tabs.rh' | translate }}
             </button>
           </div>
-          <button class="export-btn">
+          <!-- #637 — export Excel du tableau, filtres et onglet courants inclus -->
+          <button class="export-btn" type="button"
+                  data-testid="suivi-actions-export"
+                  (click)="exportTable()"
+                  [disabled]="isExporting()"
+                  [title]="'plans.suivis.actions.export.tooltip' | translate">
             {{ 'plans.suivis.actions.exportTable' | translate }}
-            <i class="fi fi-rr-download"></i>
+            @if (isExporting()) {
+              <mat-spinner diameter="16"></mat-spinner>
+            } @else {
+              <i class="fi fi-rr-download"></i>
+            }
           </button>
         </div>
 
