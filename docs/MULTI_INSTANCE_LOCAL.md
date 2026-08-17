@@ -52,7 +52,35 @@ CORS ni second domaine à déclarer, et la bascule est invisible pour le fronten
 
 ---
 
-## Démarrer
+## Démarrer — la version courte
+
+```bash
+scripts/federation.sh up        # les trois briques, et on attend qu'elles répondent
+scripts/federation.sh push      # les deux instances déposent leur index
+scripts/federation.sh check     # la recherche est-elle bien transverse ?
+```
+
+`scripts/federation.sh` (sans argument) liste tout ce qu'il sait faire :
+`status`, `reindex`, `mode local|hub`, `logs`, `test`, `reset-hub`, `down`.
+
+Le script existe parce que chacune des trois briques se lance avec des arguments
+qu'on ne retape pas juste, et parce que trois pièges se paient cher à
+rediagnostiquer — il les traite tout seul :
+
+- le hub **doit** être lancé avec son nom de projet, faute de quoi son service
+  `db` détruit et recrée le conteneur de la base de l'instance principale ;
+- une base ayant vu la branche avant la renumérotation porte
+  `0004_federation_instance_id` et bloque au démarrage sur « column instance_id
+  already exists » — le script réaligne l'enregistrement ;
+- changer l'identité d'une instance périme tout son index, et la publication
+  échoue alors (franchement, mais après coup) : `reindex` fait le `--purge`.
+
+Ce qui suit détaille ce que le script fait, pour les cas où il faut sortir des
+rails.
+
+---
+
+## Démarrer — à la main
 
 ### Le hub
 
@@ -290,6 +318,13 @@ tranchée, seule l'ingestion soit à toucher.
 ---
 
 ## Arrêter
+
+```bash
+scripts/federation.sh down        # CEN et hub ; RNF, stack de travail, est épargné
+scripts/federation.sh down rnf    # pour l'arrêter aussi
+```
+
+Soit, à la main :
 
 ```bash
 docker compose -p cicada_cen --env-file .env.cen \
