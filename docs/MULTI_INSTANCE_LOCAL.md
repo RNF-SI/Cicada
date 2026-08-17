@@ -55,10 +55,17 @@ CORS ni second domaine à déclarer, et la bascule est invisible pour le fronten
 ## Démarrer — la version courte
 
 ```bash
-scripts/federation.sh up        # les trois briques, et on attend qu'elles répondent
+scripts/federation.sh up --open # les trois briques, puis les 2 interfaces dans Chrome
 scripts/federation.sh push      # les deux instances déposent leur index
 scripts/federation.sh check     # la recherche est-elle bien transverse ?
 ```
+
+`--open` (ou `scripts/federation.sh open` seul) ouvre **deux fenêtres distinctes**
+sur `/exploration` : l'intérêt du banc est de comparer les deux instances côte à
+côte, pas de basculer entre deux onglets. Les sessions ne se marchent pas dessus
+— les deux instances sont sur des ports différents, donc des origines
+différentes, et le navigateur leur donne chacune son `localStorage`. On peut donc
+être connecté aux deux en même temps, y compris sous des comptes différents.
 
 `scripts/federation.sh` (sans argument) liste tout ce qu'il sait faire :
 `status`, `reindex`, `mode local|hub`, `logs`, `test`, `reset-hub`, `down`.

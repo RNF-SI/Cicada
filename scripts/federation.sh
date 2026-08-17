@@ -106,8 +106,54 @@ reparer_migration() {
 # --------------------------------------------------------------------------- #
 # Commandes
 # --------------------------------------------------------------------------- #
+# Ouvre les deux interfaces dans deux fenêtres distinctes — l'intérêt du banc
+# est de les comparer côte à côte, pas de basculer entre deux onglets.
+#
+# Les sessions ne se marchent pas dessus : les deux instances sont sur des ports
+# différents, donc des origines différentes, et le navigateur leur donne chacune
+# son `localStorage`. On peut être connecté aux deux en même temps.
+cmd_open() {
+  local navigateur=''
+  for candidat in google-chrome google-chrome-stable chromium chromium-browser xdg-open; do
+    if command -v "$candidat" >/dev/null 2>&1; then navigateur="$candidat"; break; fi
+  done
+  if [ -z "$navigateur" ]; then
+    erreur "Aucun navigateur trouvé. Ouvrir à la main :"
+    info "$URL_RNF_UI/exploration    (RNF)"
+    info "$URL_CEN_UI/exploration    (CEN)"
+    return 1
+  fi
+
+  titre "Ouverture des interfaces ($navigateur)"
+  for couple in "RNF $URL_RNF_UI" "CEN $URL_CEN_UI"; do
+    local nom="${couple% *}" url="${couple##* }"
+    if [ "$(curl -s -o /dev/null -w '%{http_code}' --max-time 5 "$url/" || echo 000)" != 200 ]; then
+      alerte "$nom ne répond pas — non ouvert ($url)"
+      continue
+    fi
+    if [ "$navigateur" = xdg-open ]; then
+      "$navigateur" "$url/exploration" >/dev/null 2>&1 &
+    else
+      "$navigateur" --new-window "$url/exploration" >/dev/null 2>&1 &
+    fi
+    ok "$(printf '%-4s %s/exploration' "$nom" "$url")"
+    sleep 1
+  done
+
+  info ""
+  info "Connexion sur les deux : admin@test.fr / Test123!"
+  info "Le hub n'a pas d'interface — c'est une API ($URL_HUB)."
+}
+
 cmd_up() {
-  local cible="${1:-all}"
+  local cible=all ouvrir=0
+  for argument in "$@"; do
+    case "$argument" in
+      --open|-o) ouvrir=1 ;;
+      all|hub|rnf|cen) cible="$argument" ;;
+      *) erreur "Argument inconnu : $argument"; exit 1 ;;
+    esac
+  done
   verifier_env
 
   if [ "$cible" = all ] || [ "$cible" = hub ]; then
@@ -135,6 +181,8 @@ cmd_up() {
   fi
 
   cmd_status
+  [ "$ouvrir" = 1 ] && cmd_open
+  return 0
 }
 
 cmd_down() {
@@ -341,7 +389,9 @@ Banc d'essai de l'exploration fédérée (#636)
   scripts/federation.sh <commande> [cible]
 
 Commandes
-  up [all|hub|rnf|cen]      démarre les stacks et attend qu'ils répondent
+  up [all|hub|rnf|cen] [--open]  démarre les stacks, attend qu'ils répondent,
+                                 et ouvre les interfaces avec --open
+  open                      ouvre les deux interfaces dans deux fenêtres
   down [all|hub|rnf|cen]    arrête (« all » épargne RNF, stack de travail)
   status                    services, mode d'exploration, contenu du hub
   check                     vérifie que la recherche est bien transverse
@@ -370,7 +420,8 @@ TXT
 # --------------------------------------------------------------------------- #
 
 case "${1:-aide}" in
-  up)        cmd_up "${2:-all}" ;;
+  up)        shift; cmd_up "$@" ;;
+  open)      cmd_open ;;
   down)      cmd_down "${2:-all}" ;;
   status)    cmd_status ;;
   check)     cmd_check ;;
