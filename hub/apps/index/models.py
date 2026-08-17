@@ -43,6 +43,8 @@ rapport avec le plan n° 42 du CEN, et les deux instances peuvent parfaitement
 avoir un enjeu n° 7.
 """
 
+import uuid
+
 from django.contrib.postgres.fields import ArrayField
 from django.contrib.postgres.indexes import GinIndex
 from django.contrib.postgres.search import SearchVector, SearchVectorField
@@ -55,10 +57,83 @@ from django.utils.translation import gettext_lazy as _
 SEARCH_CONFIG = 'public.french_unaccent'
 
 
+class LotPublication(models.Model):
+    """
+    Un dépôt en cours, ou achevé, d'une instance.
+
+    L'état fait foi : chaque publication envoie l'**intégralité** de ce que
+    l'instance rend explorable, et le hub retire ensuite ce qui n'a pas été
+    revu. C'est ce qui rend la dépublication fiable — un plan repassé en
+    brouillon, supprimé, ou une instance décommissionnée disparaissent sans
+    qu'aucun message de retrait n'ait eu à être reçu ni à survivre au réseau.
+
+    Mais purger « ce qui n'a pas été revu » ne peut se faire qu'une fois **tout**
+    reçu : une coupure au milieu d'un envoi viderait sinon le hub de tout ce qui
+    n'était pas encore arrivé. D'où le lot, en trois temps — ouverture, pages,
+    bascule. Un lot jamais basculé ne détruit rien ; il expire.
+
+    Le lot est aussi ce qui borne les dégâts d'un jeton compromis : il porte
+    l'instance qui l'a ouvert, et une instance ne peut alimenter ni basculer le
+    lot d'une autre.
+    """
+
+    ETAT_OUVERT = 'ouvert'
+    ETAT_BASCULE = 'bascule'
+    ETAT_CHOICES = [
+        (ETAT_OUVERT, _("Ouvert")),
+        (ETAT_BASCULE, _("Basculé")),
+    ]
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    instance_id = models.CharField(
+        _("Instance émettrice"), max_length=64, db_index=True,
+        help_text=_("Déduite du jeton, jamais du corps de la requête."),
+    )
+    etat = models.CharField(
+        _("État"), max_length=10, choices=ETAT_CHOICES, default=ETAT_OUVERT,
+    )
+    format_version = models.PositiveSmallIntegerField(
+        _("Version du format d'échange"), default=0,
+    )
+    date_ouverture = models.DateTimeField(_("Ouvert le"), auto_now_add=True)
+    date_bascule = models.DateTimeField(_("Basculé le"), null=True, blank=True)
+    plans_recus = models.IntegerField(_("Plans reçus"), default=0)
+    contenus_recus = models.IntegerField(_("Contenus reçus"), default=0)
+    plans_purges = models.IntegerField(
+        _("Plans purgés à la bascule"), default=0,
+        help_text=_("Plans de cette instance absents du lot, donc dépubliés."),
+    )
+
+    class Meta:
+        db_table = '"ccd_search"."t_lot_publication"'
+        verbose_name = _("Lot de publication")
+        verbose_name_plural = _("Lots de publication")
+        indexes = [
+            models.Index(fields=['instance_id', 'etat'], name='idx_lot_instance_etat'),
+        ]
+
+    def __str__(self):
+        return f"[{self.instance_id}] lot {self.id} ({self.etat})"
+
+
 class PlanIndexe(models.Model):
     """Un plan de gestion publié par une instance."""
 
     id = models.BigAutoField(primary_key=True)
+    lot = models.ForeignKey(
+        LotPublication,
+        on_delete=models.SET_NULL,
+        db_column='id_lot',
+        related_name='plans',
+        verbose_name=_("Lot de publication"),
+        null=True, blank=True,
+        help_text=_(
+            "Dernier lot dans lequel ce plan a été vu. C'est ce qui permet à la "
+            "bascule de retirer les plans absents du lot sans avoir besoin d'un "
+            "message de retrait. Un plan sans lot n'a été revu par aucune "
+            "publication : il sera purgé à la prochaine bascule de son instance."
+        ),
+    )
 
     # ------------------------------------------------------------------ #
     # Identité

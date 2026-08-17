@@ -29,5 +29,6 @@ def health(_request):
 
 urlpatterns = [
     path('api/health/', health, name='health'),
+    path('api/federation/', include('apps.index.urls')),
     path('api/geo/', include('apps.geo.urls')),
 ]
