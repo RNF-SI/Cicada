@@ -101,8 +101,12 @@ backend/celerybeat-schedule
 
 packaging/installer/venv/cicada_0.1.14_amd64.deb
 
-# Scripts utilitaires locaux
-scripts/
+# Scripts utilitaires locaux.
+# `scripts/*` et non `scripts/` : Git ne sait pas ré-inclure un fichier dont le
+# dossier parent est exclu, les exceptions ci-dessous seraient sans effet.
+scripts/*
+!scripts/federation.sh
+!scripts/sync-version.sh
 
 # Packages Debian
 cicada_*.deb
