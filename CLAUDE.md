@@ -1068,8 +1068,8 @@ Passer à `hub` fait relayer l'exploration. **Pas de repli** sur l'index local s
 
 ```bash
 # Banc d'essai complet (RNF + CEN + hub) — voir docs/MULTI_INSTANCE_LOCAL.md
-scripts/federation.sh up --open   # démarre les 3 briques, attend, ouvre les 2 interfaces
-scripts/federation.sh open        # ouvre juste les interfaces (2 fenêtres Chrome)
+scripts/federation.sh up --open   # démarre les 3 briques, attend, ouvre les onglets
+scripts/federation.sh open        # 1 fenêtre, 3 onglets (RNF, CEN, sonde du hub)
 scripts/federation.sh push        # les instances déposent leur index sur le hub
 scripts/federation.sh status      # qui tourne, sous quelle identité, en quel mode
 scripts/federation.sh check       # la recherche est-elle bien transverse ?

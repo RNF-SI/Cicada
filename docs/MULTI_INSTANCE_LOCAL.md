@@ -60,12 +60,26 @@ scripts/federation.sh push      # les deux instances déposent leur index
 scripts/federation.sh check     # la recherche est-elle bien transverse ?
 ```
 
-`--open` (ou `scripts/federation.sh open` seul) ouvre **deux fenêtres distinctes**
-sur `/exploration` : l'intérêt du banc est de comparer les deux instances côte à
-côte, pas de basculer entre deux onglets. Les sessions ne se marchent pas dessus
-— les deux instances sont sur des ports différents, donc des origines
-différentes, et le navigateur leur donne chacune son `localStorage`. On peut donc
-être connecté aux deux en même temps, y compris sous des comptes différents.
+`--open` (ou `scripts/federation.sh open` seul) ouvre **une fenêtre et trois
+onglets** :
+
+| Onglet | URL |
+|---|---|
+| RNF | http://localhost/exploration |
+| CEN | http://localhost:8081/exploration |
+| Hub | http://localhost:8002/api/health/ |
+
+L'onglet du hub est sa **sonde de disponibilité** : le hub n'a pas d'interface,
+et ses autres routes exigent l'en-tête `X-Hub-Token` qu'une barre d'adresse ne
+sait pas poser. Il répond d'un coup d'œil à « le hub est-il debout ? », première
+question quand l'exploration d'une instance relayée renvoie une erreur.
+
+Les sessions des deux instances ne se marchent pas dessus, même dans une seule
+fenêtre : ports différents = origines différentes, donc `localStorage` séparés.
+On peut être connecté aux deux à la fois, y compris sous des comptes différents.
+
+Une brique qui ne répond pas est signalée et son onglet n'est pas ouvert — un
+onglet en erreur se prend facilement pour un bug applicatif.
 
 `scripts/federation.sh` (sans argument) liste tout ce qu'il sait faire :
 `status`, `reindex`, `mode local|hub`, `logs`, `test`, `reset-hub`, `down`.

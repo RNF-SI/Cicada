@@ -106,43 +106,63 @@ reparer_migration() {
 # --------------------------------------------------------------------------- #
 # Commandes
 # --------------------------------------------------------------------------- #
-# Ouvre les deux interfaces dans deux fenêtres distinctes — l'intérêt du banc
-# est de les comparer côte à côte, pas de basculer entre deux onglets.
+# Ouvre les trois briques en onglets d'une SEULE fenêtre.
 #
-# Les sessions ne se marchent pas dessus : les deux instances sont sur des ports
-# différents, donc des origines différentes, et le navigateur leur donne chacune
-# son `localStorage`. On peut être connecté aux deux en même temps.
+# Le hub n'a pas d'interface : son onglet pointe sur la sonde de disponibilité,
+# la seule route qu'un navigateur puisse atteindre — les autres exigent l'en-tête
+# `X-Hub-Token`, qu'une barre d'adresse ne sait pas poser. Cet onglet sert à
+# répondre d'un coup d'œil à « le hub est-il debout ? », qui est la première
+# question quand l'exploration du CEN renvoie une erreur.
+#
+# Les sessions des deux instances ne se marchent pas dessus, même dans une seule
+# fenêtre : ports différents = origines différentes, donc `localStorage`
+# séparés. On peut être connecté aux deux à la fois, sous des comptes différents.
 cmd_open() {
   local navigateur=''
   for candidat in google-chrome google-chrome-stable chromium chromium-browser xdg-open; do
     if command -v "$candidat" >/dev/null 2>&1; then navigateur="$candidat"; break; fi
   done
-  if [ -z "$navigateur" ]; then
-    erreur "Aucun navigateur trouvé. Ouvrir à la main :"
-    info "$URL_RNF_UI/exploration    (RNF)"
-    info "$URL_CEN_UI/exploration    (CEN)"
+
+  # Une brique qui ne répond pas est signalée et non ouverte : un onglet en
+  # erreur se prend facilement pour un bug applicatif.
+  local urls=() etiquettes=()
+  for couple in "RNF $URL_RNF_UI/exploration" \
+                "CEN $URL_CEN_UI/exploration" \
+                "HUB $URL_HUB/api/health/"; do
+    local nom="${couple% *}" url="${couple##* }"
+    if [ "$(curl -s -o /dev/null -w '%{http_code}' --max-time 5 "$url" || echo 000)" = 200 ]; then
+      urls+=("$url"); etiquettes+=("$nom $url")
+    else
+      alerte "$nom ne répond pas — onglet non ouvert ($url)"
+    fi
+  done
+
+  if [ ${#urls[@]} -eq 0 ]; then
+    erreur "Rien à ouvrir. Lancer « federation.sh up » d'abord."
     return 1
   fi
 
-  titre "Ouverture des interfaces ($navigateur)"
-  for couple in "RNF $URL_RNF_UI" "CEN $URL_CEN_UI"; do
-    local nom="${couple% *}" url="${couple##* }"
-    if [ "$(curl -s -o /dev/null -w '%{http_code}' --max-time 5 "$url/" || echo 000)" != 200 ]; then
-      alerte "$nom ne répond pas — non ouvert ($url)"
-      continue
-    fi
-    if [ "$navigateur" = xdg-open ]; then
-      "$navigateur" "$url/exploration" >/dev/null 2>&1 &
-    else
-      "$navigateur" --new-window "$url/exploration" >/dev/null 2>&1 &
-    fi
-    ok "$(printf '%-4s %s/exploration' "$nom" "$url")"
-    sleep 1
-  done
+  if [ -z "$navigateur" ]; then
+    erreur "Aucun navigateur trouvé. Ouvrir à la main :"
+    for etiquette in "${etiquettes[@]}"; do info "$etiquette"; done
+    return 1
+  fi
 
+  titre "Ouverture — une fenêtre, ${#urls[@]} onglets ($navigateur)"
+  if [ "$navigateur" = xdg-open ]; then
+    # xdg-open ne prend qu'une URL : le navigateur par défaut les groupera
+    # généralement en onglets de la fenêtre existante.
+    for url in "${urls[@]}"; do "$navigateur" "$url" >/dev/null 2>&1 & sleep 1; done
+  else
+    # Une seule invocation avec toutes les URL : Chrome ouvre une fenêtre et y
+    # met un onglet par URL. Les lancer une par une donnerait N fenêtres.
+    "$navigateur" --new-window "${urls[@]}" >/dev/null 2>&1 &
+  fi
+
+  for etiquette in "${etiquettes[@]}"; do ok "$etiquette"; done
   info ""
-  info "Connexion sur les deux : admin@test.fr / Test123!"
-  info "Le hub n'a pas d'interface — c'est une API ($URL_HUB)."
+  info "Connexion sur les deux instances : admin@test.fr / Test123!"
+  info "L'onglet HUB est sa sonde de disponibilité — le hub n'a pas d'interface."
 }
 
 cmd_up() {
@@ -390,8 +410,8 @@ Banc d'essai de l'exploration fédérée (#636)
 
 Commandes
   up [all|hub|rnf|cen] [--open]  démarre les stacks, attend qu'ils répondent,
-                                 et ouvre les interfaces avec --open
-  open                      ouvre les deux interfaces dans deux fenêtres
+                                 et ouvre les onglets avec --open
+  open                      une fenêtre, 3 onglets (RNF, CEN, sonde du hub)
   down [all|hub|rnf|cen]    arrête (« all » épargne RNF, stack de travail)
   status                    services, mode d'exploration, contenu du hub
   check                     vérifie que la recherche est bien transverse
