@@ -190,6 +190,15 @@ class PlanIndexe(models.Model):
             "INPN quand il existe."
         ),
     )
+    sites_noms = models.TextField(
+        _("Noms des sites"), blank=True, default='',
+        help_text=_(
+            "Noms des sites concaténés, pour la recherche par nom de site du "
+            "mode « plan de gestion ». Dérivé de `sites` à l'ingestion : "
+            "chercher dans un tableau JSON supposerait de le convertir en texte "
+            "à chaque requête, sans pouvoir l'indexer."
+        ),
+    )
 
     # ------------------------------------------------------------------ #
     # Facettes
@@ -261,6 +270,15 @@ class PlanIndexe(models.Model):
         indexes = [
             models.Index(fields=['instance_id', 'slug'], name='idx_plan_instance_slug'),
             models.Index(fields=['statut'], name='idx_plan_statut'),
+            # Recherche par nom de plan ou de site, tolérante aux fautes.
+            GinIndex(
+                fields=['nom'], name='idx_plan_nom_trgm',
+                opclasses=['gin_trgm_ops'],
+            ),
+            GinIndex(
+                fields=['sites_noms'], name='idx_plan_sites_noms_trgm',
+                opclasses=['gin_trgm_ops'],
+            ),
             GinIndex(fields=['area_ids'], name='idx_plan_areas'),
             GinIndex(fields=['type_site_codes'], name='idx_plan_types_site'),
             GinIndex(fields=['site_inpn_codes'], name='idx_plan_sites_inpn'),

@@ -67,6 +67,48 @@ rapport avec le plan n° 42 du CEN. D'où :
   reste vide. Recopier un identifiant local ferait matcher le mauvais organisme,
   une corruption silencieuse ; un tableau vide produit une absence visible.
 
+## L'API
+
+Deux familles, aux droits distincts. **Lire n'est pas écrire** : une instance
+peut légitimement consulter l'exploration sans être autorisée à y publier.
+
+### Dépôt — jeton propre à chaque instance (`X-Federation-Token`)
+
+| Appel | Effet |
+|---|---|
+| `POST /api/federation/lots/` | ouvre un lot |
+| `POST /api/federation/lots/{id}/plans/` | dépose une page de plans, avec leur contenu et leur fiche |
+| `POST /api/federation/lots/{id}/bascule/` | publie le lot et purge les plans absents |
+| `DELETE /api/federation/lots/{id}/` | abandonne le lot (ne purge rien) |
+
+L'instance émettrice est déduite du **jeton**, jamais du corps de la requête, et
+la purge est bornée à l'instance du lot. Sans ces deux bornes, un jeton valide
+suffirait à purger l'index de quelqu'un d'autre.
+
+### Lecture — jeton partagé (`X-Hub-Token`)
+
+| Appel | Effet |
+|---|---|
+| `GET /api/exploration/contenus/` | recherche dans le contenu, avec compteurs d'onglets |
+| `GET /api/exploration/plans/` | recherche d'un plan par nom, site ou zone |
+| `GET /api/exploration/plans/{instance}:{slug}/` | fiche publiée d'un plan |
+| `GET /api/geo/zones/` | arbre régions → départements, pour le filtre |
+
+La recherche s'exécute **en un seul passage sur l'index agrégé**. C'est ce qui
+rend le tri par pertinence transverse aux instances et les compteurs d'onglets
+exacts — deux choses qu'une fédération qui interrogerait chaque instance puis
+fusionnerait les réponses ne peut pas garantir, faute de scores comparables.
+
+Un plan se désigne par `instance:slug` et non par son identifiant : ni l'un ni
+l'autre ne sont uniques entre déploiements, et l'identifiant interne du hub
+serait unique mais pas durable — un plan dépublié puis republié en obtiendrait
+un nouveau.
+
+Ces vues n'appliquent aucun périmètre utilisateur : le hub ne connaît pas les
+utilisateurs. Ce qui borne l'exploration, c'est l'index lui-même et le jeton de
+lecture. C'est l'instance qui relaie qui reste responsable d'authentifier son
+utilisateur.
+
 ## Démarrer
 
 ```bash

@@ -160,6 +160,12 @@ def ingerer_plan(charge, instance_id, lot):
     area_ids = resoudre_zones(charge.get('area_codes'))
     site_inpn_codes = sorted(charge.get('site_inpn_codes') or [])
     type_site_codes = sorted(charge.get('type_site_codes') or [])
+    sites = charge.get('sites') or []
+    # Les noms sont extraits une fois ici plutôt que convertis depuis le JSON à
+    # chaque recherche : c'est ce qui permet de les indexer en trigramme.
+    sites_noms = ' '.join(
+        site.get('nom_site', '') for site in sites if isinstance(site, dict)
+    ).strip()
 
     plan, _ = PlanIndexe.objects.update_or_create(
         instance_id=instance_id,
@@ -175,7 +181,8 @@ def ingerer_plan(charge, instance_id, lot):
             'annee_fin': charge.get('annee_fin'),
             'type_document': charge.get('type_document'),
             'gestionnaire_principal': charge.get('gestionnaire_principal'),
-            'sites': charge.get('sites') or [],
+            'sites': sites,
+            'sites_noms': sites_noms,
             'site_inpn_codes': site_inpn_codes,
             'type_site_codes': type_site_codes,
             'area_ids': area_ids,
