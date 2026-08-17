@@ -7,11 +7,42 @@ joints à la volée, une page ne contenant qu'une vingtaine de résultats. Une
 donnée jointe ne peut pas devenir obsolète, contrairement à une copie.
 """
 
+from django.db.models import Prefetch
 from rest_framework import serializers
 
-from apps.plans.models import PlanGestion
+from apps.plans.models import CorSitePg, PlanGestion
+from apps.users.models import CorOgSite
 
 from .models import ContenuIndexe
+
+
+def prefetch_sites():
+    """
+    Prefetch des sites d'un plan, avec leur gestionnaire principal.
+
+    Sans ça, chaque tuile déclencherait une requête par site puis une par
+    organisme — soit une cinquantaine de requêtes pour une page de résultats.
+
+    Vit ici plutôt que dans les vues parce que la publication vers le hub
+    (`push.py`) en a le même besoin : c'est ce prefetch qui alimente
+    `_sites_du_plan`, et l'oublier ne casse rien visiblement — la liste des
+    sites ressort simplement vide.
+    """
+    gestionnaires = Prefetch(
+        'site__corogsite_set',
+        queryset=CorOgSite.objects.filter(principal=True).select_related('uuid_og'),
+        to_attr='gestionnaires_principaux',
+    )
+    return Prefetch(
+        'sites',
+        queryset=(
+            CorSitePg.objects
+            .select_related('site')
+            .prefetch_related(gestionnaires)
+            .order_by('rang', 'site__nom_site')
+        ),
+        to_attr='sites_ordonnes',
+    )
 
 
 def _gestionnaire_principal(site):

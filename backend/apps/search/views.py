@@ -24,8 +24,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.viewsets import ViewSet
 
-from apps.plans.models import CorSitePg, PlanGestion
-from apps.users.models import CorOgSite
+from apps.plans.models import PlanGestion
 
 from .federation import (
     FORMAT_VERSION, HasFederationToken, _bandeau_du_plan, codes_de_la_page,
@@ -38,32 +37,16 @@ from .filters import (
 from .indexing import INDEXED_STATUSES
 from .models import ContenuIndexe
 from .pagination import ExplorationPagination, FederationPagination
-from .serializers import ContenuResultatSerializer, PlanResultatSerializer
+from .relay import reference_plan, relais_actif, relayer
+from .serializers import (
+    ContenuResultatSerializer, PlanResultatSerializer, prefetch_sites,
+)
 from .serializers_fiche import FichePubliqueSerializer
 
 
-def _prefetch_sites():
-    """
-    Prefetch des sites d'un plan, avec leur gestionnaire principal.
-
-    Sans ça, chaque tuile déclencherait une requête par site puis une par
-    organisme — soit une cinquantaine de requêtes pour une page de résultats.
-    """
-    gestionnaires = Prefetch(
-        'site__corogsite_set',
-        queryset=CorOgSite.objects.filter(principal=True).select_related('uuid_og'),
-        to_attr='gestionnaires_principaux',
-    )
-    return Prefetch(
-        'sites',
-        queryset=(
-            CorSitePg.objects
-            .select_related('site')
-            .prefetch_related(gestionnaires)
-            .order_by('rang', 'site__nom_site')
-        ),
-        to_attr='sites_ordonnes',
-    )
+#: Le prefetch vit dans `serializers` : la publication vers le hub en a le même
+#: besoin, et le dupliquer ferait diverger les deux chemins en silence.
+_prefetch_sites = prefetch_sites
 
 
 class ExplorationContenuViewSet(ViewSet):
@@ -72,6 +55,9 @@ class ExplorationContenuViewSet(ViewSet):
     permission_classes = [IsAuthenticated]
 
     def list(self, request):
+        if relais_actif():
+            return relayer('/api/exploration/contenus/', request.query_params)
+
         prefetch = _prefetch_sites()
         base = (
             ContenuIndexe.objects
@@ -171,7 +157,9 @@ class ExplorationPlanViewSet(ViewSet):
 
     permission_classes = [IsAuthenticated]
     lookup_field = 'slug'
-    lookup_value_regex = '[-\\w]+'
+    # Le deux-points est admis pour laisser passer une référence « instance:slug »
+    # quand l'exploration est relayée vers le hub (cf. `relay.reference_plan`).
+    lookup_value_regex = '[-\\w:]+'
 
     def retrieve(self, request, slug=None):
         """
@@ -182,6 +170,9 @@ class ExplorationPlanViewSet(ViewSet):
         celui de `serializers_fiche` — structure du plan, sans budget, RH,
         mesures ni réalisations.
         """
+        if relais_actif():
+            return relayer(f'/api/exploration/plans/{reference_plan(slug)}/')
+
         plan = get_object_or_404(
             PlanGestion.objects.filter(statut__in=INDEXED_STATUSES)
             .select_related('id_type_document')
@@ -191,6 +182,9 @@ class ExplorationPlanViewSet(ViewSet):
         return Response(FichePubliqueSerializer(construire_fiche(plan)).data)
 
     def list(self, request):
+        if relais_actif():
+            return relayer('/api/exploration/plans/', request.query_params)
+
         base = (
             PlanGestion.objects
             .filter(statut__in=INDEXED_STATUSES)

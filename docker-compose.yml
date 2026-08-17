@@ -64,6 +64,13 @@ services:
       - CICADA_INSTANCE_ID=${CICADA_INSTANCE_ID:-local}
       - CICADA_INSTANCE_LABEL=${CICADA_INSTANCE_LABEL:-}
       - CICADA_FEDERATION_TOKEN=${CICADA_FEDERATION_TOKEN:-}
+      - CICADA_PUBLIC_URL=${CICADA_PUBLIC_URL:-}
+      # Hub d'exploration : vides par défaut — l'instance ne publie rien et sert
+      # son exploration depuis son propre index, comme avant.
+      - CICADA_HUB_URL=${CICADA_HUB_URL:-}
+      - CICADA_HUB_PUSH_TOKEN=${CICADA_HUB_PUSH_TOKEN:-}
+      - CICADA_HUB_READ_TOKEN=${CICADA_HUB_READ_TOKEN:-}
+      - CICADA_EXPLORATION_SOURCE=${CICADA_EXPLORATION_SOURCE:-local}
       # Email - Mailpit par défaut en développement
       - EMAIL_BACKEND=${EMAIL_BACKEND:-django.core.mail.backends.smtp.EmailBackend}
       - EMAIL_HOST=${EMAIL_HOST:-mailpit}

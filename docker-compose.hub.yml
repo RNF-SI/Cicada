@@ -51,7 +51,10 @@ services:
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-cicada_password}
       - POSTGRES_HOST=db
       - POSTGRES_PORT=5432
-      - ALLOWED_HOSTS=${ALLOWED_HOSTS:-localhost,127.0.0.1,hub}
+      # `host.docker.internal` : chaque projet Compose a son propre réseau, les
+      # instances joignent donc le hub par son port publié sur l'hôte et non par
+      # son nom de service. En production ce serait l'URL publique du hub.
+      - ALLOWED_HOSTS=${ALLOWED_HOSTS:-localhost,127.0.0.1,hub,host.docker.internal}
       - HUB_INSTANCE_ID=${HUB_INSTANCE_ID:-hub}
       - HUB_INSTANCE_LABEL=${HUB_INSTANCE_LABEL:-}
       # Un jeton par instance émettrice : "rnf:jeton-rnf,cen:jeton-cen"
