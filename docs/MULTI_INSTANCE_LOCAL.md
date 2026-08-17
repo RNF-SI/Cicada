@@ -283,6 +283,36 @@ premier — silencieusement. C'est aussi pourquoi un plan se désigne par
 Ces invariants sont couverts par `hub/tests/` (55 tests) et
 `backend/tests/apps/search/` (140 tests).
 
+### Les rejouer automatiquement
+
+```bash
+scripts/federation.sh test --bench
+```
+
+`tests/federation/bench.py` rejoue le scénario ci-dessus contre les trois
+briques **réellement lancées**. Ce n'est pas du luxe : tous les bugs rencontrés
+au montage étaient des bugs de **couture**, et aucune des deux suites unitaires
+ne les a vus — identité vide publiant 0 document, facettes lues au mauvais
+endroit, migrations en collision, nom de projet Compose absent.
+
+| Famille | Cas |
+|---|---|
+| Contrat | la charge utile de CICADA passe la validation du hub ; la fiche reste du JSON pur |
+| Scénarios | aller-retour, isolation, dépublication, idempotence, garde-fou d'identité, jeton invalide |
+| Parité | 14 requêtes, les compteurs d'onglets et une fiche complète, comparés local ↔ hub |
+
+**La parité est le cas le plus important.** `filters.py` existe en deux
+exemplaires, un par projet : sans elle, les deux implémentations divergeraient en
+silence, et l'utilisateur constaterait la différence sans pouvoir la décrire.
+Elle a été vérifiée par mutation — casser un filtre du hub la fait échouer en
+nommant les requêtes qui divergent.
+
+Les tests **publient**, et dépublient temporairement un plan pour le cas
+« dépublication » ; ils restaurent l'état ensuite, y compris en cas d'échec. Ils
+sont hors CI (trois stacks Docker) et n'utilisent pas pytest : l'hôte n'a que
+`requests`, et déclencher une publication demande un `docker exec` qu'un
+conteneur ne peut pas faire.
+
 ---
 
 ## Ce que ce banc d'essai ne résout pas

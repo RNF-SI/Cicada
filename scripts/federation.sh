@@ -396,10 +396,20 @@ cmd_logs() {
 }
 
 cmd_test() {
+  if [ "${1:-}" = --bench ]; then
+    # Contre les trois briques réellement lancées. Tous les bugs de la
+    # fédération étaient des bugs de couture, qu'aucune suite unitaire n'a vus.
+    titre "Tests de banc (3 briques réelles)"
+    python3 tests/federation/bench.py
+    return $?
+  fi
+
   titre "Suite du hub"
   "${HUB[@]}" exec -T hub pytest -q 2>&1 | tail -5
   titre "Suite fédération de CICADA"
   docker exec "$RNF_WEB" pytest tests/apps/search/ -q -p no:logging 2>&1 | tail -4
+  info ""
+  info "« test --bench » pour les tests contre les trois briques lancées."
 }
 
 aide() {
@@ -423,7 +433,9 @@ Commandes
 
   mode <local|hub> [rnf|cen]   bascule la source de l'exploration et redémarre
   logs [hub|rnf|cen]           suit les journaux
-  test                         lance les deux suites de tests
+  test                         suites unitaires (hub + CICADA)
+  test --bench                 tests contre les 3 briques lancées :
+                               contrat, scénarios, parité local ↔ hub
   reset-hub                    vide la base du hub et le relance
 
 Adresses
@@ -449,7 +461,7 @@ case "${1:-aide}" in
   push)      shift; cmd_push "$@" ;;
   mode)      cmd_mode "${2:-}" "${3:-cen}" ;;
   logs)      cmd_logs "${2:-hub}" ;;
-  test)      cmd_test ;;
+  test)      cmd_test "${2:-}" ;;
   reset-hub) cmd_reset_hub ;;
   aide|-h|--help|help) aide ;;
   *)         erreur "Commande inconnue : $1"; echo; aide; exit 1 ;;

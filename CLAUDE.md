@@ -1075,11 +1075,22 @@ scripts/federation.sh status      # qui tourne, sous quelle identité, en quel m
 scripts/federation.sh check       # la recherche est-elle bien transverse ?
 scripts/federation.sh mode hub cen   # bascule l'exploration d'une instance
 scripts/federation.sh reindex        # rebuild_search_index --purge
-scripts/federation.sh test           # les deux suites (55 hub + 140 CICADA)
+scripts/federation.sh test           # suites unitaires (55 hub + 140 CICADA)
+scripts/federation.sh test --bench   # 11 cas contre les 3 briques lancées
 
 # Directement
 docker exec cicada_web python manage.py push_federation [--dry-run] [--sans-fiche] [--page-size N]
 ```
+
+**Tests de banc** (`tests/federation/bench.py`, hors CI — ils demandent trois stacks Docker) : ils s'exécutent contre les briques **réellement lancées**, parce que tous les bugs de la fédération étaient des bugs de **couture** qu'aucune suite unitaire n'a vus. Trois familles :
+
+| Famille | Ce qu'elle protège |
+|---|---|
+| **Contrat** | la charge utile de CICADA passe la validation du hub — chaque projet ne testait que sa propre lecture du contrat |
+| **Scénarios** | aller-retour, isolation entre instances, dépublication, idempotence, garde-fou d'identité |
+| **Parité** | ⚠️ `filters.py` existe **en deux exemplaires** (un par projet) : 14 requêtes doivent rendre le même résultat servies en local ou par le hub. Sans ce test, les deux implémentations divergent en silence |
+
+La parité est vérifiée par mutation : casser un filtre du hub la fait échouer en nommant les requêtes divergentes.
 
 **Trois pièges, traités par le script — à connaître si on sort des rails :**
 
