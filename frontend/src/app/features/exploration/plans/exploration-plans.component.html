@@ -107,7 +107,7 @@
           <li class="exploration-tuile exploration-tuile-plan">
             <a
               class="exploration-tuile-lien"
-              [routerLink]="['/exploration/plans', plan.slug]">
+              [routerLink]="['/exploration/plans', referencePlan(plan)]">
               <div class="exploration-tuile-corps">
                 <p class="exploration-tuile-titre">{{ plan.nom }}</p>
 

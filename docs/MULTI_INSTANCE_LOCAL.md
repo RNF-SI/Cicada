@@ -313,6 +313,32 @@ sont hors CI (trois stacks Docker) et n'utilisent pas pytest : l'hôte n'a que
 `requests`, et déclencher une publication demande un `docker exec` qu'un
 conteneur ne peut pas faire.
 
+### L'interface
+
+```bash
+scripts/federation.sh test --e2e
+```
+
+Playwright sur l'**instance relayée** — le seul niveau qui couvre ce que
+l'utilisateur voit : liste multi-instances, compteurs, ouverture d'une fiche
+distante, et message d'erreur quand le hub ne répond pas.
+
+Il vise une autre origine que la suite E2E habituelle, d'où une session dédiée
+et des projets Playwright séparés, activés par `E2E_FEDERATION=1`. Il s'exécute
+dans le conteneur frontend du CEN : Playwright et son Chromium n'existent que
+là, et l'image étant Alpine, c'est le Chromium *système* qui sert (celui fourni
+par Playwright est compilé pour glibc). Le script l'installe s'il manque.
+
+Ces tests ont trouvé deux défauts qu'aucun test d'API ne pouvait voir, parce
+qu'ils naissent de la construction du lien, côté navigateur :
+
+- **le lien de fiche perdait l'instance d'origine.** Les tuiles liaient par slug
+  nu ; comme les deux instances ont couramment le même slug, cliquer un résultat
+  distant ouvrait l'homonyme local — une réponse fausse et silencieuse ;
+- **le hub enveloppait la fiche** dans `{fiche: …}` là où une instance la sert à
+  plat. La page s'affichait avec un titre vide. Le test de banc le masquait en
+  déballant lui-même l'enveloppe.
+
 ---
 
 ## Ce que ce banc d'essai ne résout pas

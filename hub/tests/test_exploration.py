@@ -267,14 +267,24 @@ class TestModePlan:
 
 
 class TestFiche:
-    def test_la_fiche_est_resservie_telle_que_publiee(self, lire):
+    def test_la_fiche_est_resservie_a_plat_comme_par_une_instance(self, lire):
+        """
+        Même forme que la fiche d'une instance, métadonnées en plus.
+
+        Envelopper la fiche dans un objet obligerait le frontend à distinguer
+        les deux sources — ce que la bascule vers le hub doit précisément lui
+        épargner. Cette exigence a été apprise par l'échec : la première version
+        enveloppait, et la page de fiche s'affichait avec un titre vide.
+        """
         arbre = {'nom': 'Camargue', 'enjeux': [{'titre': 'Roselières'}]}
         publier_plan('rnf', 42, nom='Camargue', fiche=arbre)
 
         corps = lire('/api/exploration/plans/rnf:plan-rnf-42/')
 
-        assert corps['fiche'] == arbre
+        assert corps['nom'] == 'Camargue'
+        assert corps['enjeux'] == [{'titre': 'Roselières'}]
         assert corps['instance_id'] == 'rnf'
+        assert 'fiche' not in corps
 
     def test_la_fiche_annonce_sa_date_de_publication(self, lire):
         """
@@ -291,11 +301,11 @@ class TestFiche:
         C'est pour ça que la référence porte l'instance : ni l'identifiant du
         plan ni son slug ne sont uniques entre déploiements.
         """
-        publier_plan('rnf', 1, nom='Plan RNF', slug='camargue', fiche={'a': 1})
-        publier_plan('cen', 1, nom='Plan CEN', slug='camargue', fiche={'a': 2})
+        publier_plan('rnf', 1, nom='Plan RNF', slug='camargue', fiche={'nom': 'RNF'})
+        publier_plan('cen', 1, nom='Plan CEN', slug='camargue', fiche={'nom': 'CEN'})
 
-        assert lire('/api/exploration/plans/rnf:camargue/')['fiche'] == {'a': 1}
-        assert lire('/api/exploration/plans/cen:camargue/')['fiche'] == {'a': 2}
+        assert lire('/api/exploration/plans/rnf:camargue/')['nom'] == 'RNF'
+        assert lire('/api/exploration/plans/cen:camargue/')['nom'] == 'CEN'
 
     def test_une_reference_inconnue_rend_404(self, client):
         reponse = client.get(

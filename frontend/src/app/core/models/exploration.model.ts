@@ -62,7 +62,13 @@ export interface ExplorationSite {
   slug: string;
 }
 
-/** Bandeau « Plan de gestion / Gestionnaire / Période » d'une tuile. */
+/**
+ * Bandeau « Plan de gestion / Gestionnaire / Période » d'une tuile.
+ *
+ * `reference` et `instance_id` ne sont renseignés que par l'exploration
+ * fédérée (#636), où un plan peut venir d'une autre instance CICADA. Un index
+ * local n'a qu'une seule provenance et ne les envoie pas.
+ */
 export interface ExplorationPlanResume {
   id_pg: number;
   nom: string;
@@ -73,6 +79,24 @@ export interface ExplorationPlanResume {
   type_document: string | null;
   sites: ExplorationSite[];
   gestionnaire_principal: string | null;
+  reference?: string;
+  instance_id?: string;
+  url_instance?: string;
+}
+
+/**
+ * Identifiant à mettre dans l'URL de la fiche d'un plan.
+ *
+ * Le slug seul ne suffit pas en fédération : deux instances produisent
+ * couramment le même slug pour des plans différents, et l'ouvrir sans dire
+ * d'où il vient afficherait l'homonyme local — une réponse fausse et
+ * silencieuse. `reference` porte l'instance (« rnf:camargue ») ; hors
+ * fédération elle est absente et le slug reprend son rôle.
+ */
+export function referencePlan(
+  plan: Pick<ExplorationPlanResume, 'slug' | 'reference'>,
+): string {
+  return plan.reference || plan.slug;
 }
 
 /** Une tuile du mode « contenu d'un plan de gestion ». */
@@ -87,6 +111,8 @@ export interface ExplorationContenu {
   sous_type: string | null;
   sous_type_libelle: string | null;
   plan: ExplorationPlanResume;
+  /** Instance d'origine du document — fédération uniquement (#636). */
+  instance_id?: string;
 }
 
 /** Une tuile du mode « plan de gestion ». */
@@ -101,6 +127,9 @@ export interface ExplorationPlan {
   type_document: string | null;
   sites: ExplorationSite[];
   gestionnaire_principal: string | null;
+  reference?: string;
+  instance_id?: string;
+  url_instance?: string;
 }
 
 export interface ExplorationPagination {

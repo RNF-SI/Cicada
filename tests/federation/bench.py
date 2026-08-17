@@ -586,7 +586,12 @@ print('{MARQUEUR}' + plan.slug)
             f"hub {distante.status_code}"
         )
 
-    locale, distante = locale.json(), distante.json()['fiche']
+    # Comparaison **à plat des deux côtés**. Déballer un `['fiche']` ici
+    # masquerait exactement ce qu'il faut vérifier : que le hub sert la fiche
+    # dans la même forme qu'une instance. C'est ce que faisait la première
+    # version de ce test, et l'incompatibilité n'est ressortie qu'en E2E, sur
+    # une page au titre vide.
+    locale, distante = locale.json(), distante.json()
     divergences = [
         champ for champ in ('id_pg', 'nom', 'slug', 'annee_debut', 'annee_fin')
         if locale.get(champ) != distante.get(champ)

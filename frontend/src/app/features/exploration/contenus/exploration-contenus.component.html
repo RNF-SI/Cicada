@@ -179,7 +179,7 @@
           <li class="exploration-tuile" [class]="'type-' + contenu.type_contenu">
             <a
               class="exploration-tuile-lien"
-              [routerLink]="['/exploration/plans', contenu.plan.slug]"
+              [routerLink]="['/exploration/plans', referencePlan(contenu.plan)]"
               [queryParams]="{ focus: contenu.type_contenu + ':' + contenu.id_objet }">
               <div class="exploration-tuile-corps">
                 <div class="exploration-tuile-entete">

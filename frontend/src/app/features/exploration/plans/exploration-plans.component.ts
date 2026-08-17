@@ -8,6 +8,7 @@ import {
   ExplorationCriteres,
   ExplorationPlan,
   ExplorationTri,
+  referencePlan,
 } from '../../../core/models/exploration.model';
 import { ExplorationService } from '../../../core/services/exploration.service';
 import {
@@ -48,6 +49,9 @@ export class ExplorationPlansComponent {
   private readonly exploration = inject(ExplorationService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
+
+  /** Voir `referencePlan` : le slug seul ne suffit pas en fédération (#636). */
+  protected readonly referencePlan = referencePlan;
 
   readonly criteres = signal<ExplorationCriteres>({});
   readonly motCle = signal('');

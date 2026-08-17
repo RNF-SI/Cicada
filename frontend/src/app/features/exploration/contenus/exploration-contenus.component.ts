@@ -12,6 +12,7 @@ import {
   ExplorationOnglet,
   ExplorationTri,
   ExplorationType,
+  referencePlan,
 } from '../../../core/models/exploration.model';
 import { ExplorationService } from '../../../core/services/exploration.service';
 import {
@@ -60,6 +61,15 @@ export class ExplorationContenusComponent {
   private readonly translate = inject(TranslateService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
+
+  /**
+   * Identifiant de fiche à mettre dans le lien d'une tuile.
+   *
+   * En fédération, deux instances produisent couramment le même slug pour des
+   * plans différents : lier par slug nu ouvrirait l'homonyme local au lieu du
+   * plan cliqué, sans rien signaler (#636).
+   */
+  protected readonly referencePlan = referencePlan;
 
   readonly criteres = signal<ExplorationCriteres>({});
   readonly motCle = signal('');

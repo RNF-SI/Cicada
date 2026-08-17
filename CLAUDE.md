@@ -1077,6 +1077,7 @@ scripts/federation.sh mode hub cen   # bascule l'exploration d'une instance
 scripts/federation.sh reindex        # rebuild_search_index --purge
 scripts/federation.sh test           # suites unitaires (55 hub + 140 CICADA)
 scripts/federation.sh test --bench   # 11 cas contre les 3 briques lancées
+scripts/federation.sh test --e2e     # 6 cas Playwright sur l'instance relayée
 
 # Directement
 docker exec cicada_web python manage.py push_federation [--dry-run] [--sans-fiche] [--page-size N]
@@ -1091,6 +1092,11 @@ docker exec cicada_web python manage.py push_federation [--dry-run] [--sans-fich
 | **Parité** | ⚠️ `filters.py` existe **en deux exemplaires** (un par projet) : 14 requêtes doivent rendre le même résultat servies en local ou par le hub. Sans ce test, les deux implémentations divergent en silence |
 
 La parité est vérifiée par mutation : casser un filtre du hub la fait échouer en nommant les requêtes divergentes.
+
+**E2E Playwright** (`frontend/e2e/tests/federation/`, opt-in via `E2E_FEDERATION=1`) : le seul niveau qui couvre ce que l'utilisateur voit. Il vise l'instance **relayée**, donc une autre origine — d'où une session dédiée (`auth-federation.setup.ts`) et des projets Playwright séparés. Il s'exécute dans le conteneur frontend du CEN (Chromium système, l'image étant Alpine). Il a trouvé deux bugs qu'aucun test d'API ne pouvait voir :
+
+- **le lien de fiche perdait l'instance d'origine** — les tuiles liaient par slug nu, or deux instances ont couramment le même slug : cliquer un résultat distant ouvrait l'homonyme local, sans rien signaler. D'où `referencePlan()` (`exploration.model.ts`), qui utilise `reference` (« rnf:camargue ») quand elle existe et retombe sur le slug sinon ;
+- **le hub enveloppait la fiche** dans `{fiche: …}` là où une instance la sert à plat, cassant la promesse « même forme de réponse ». Le test de banc le masquait en déballant lui-même.
 
 **Trois pièges, traités par le script — à connaître si on sort des rails :**
 

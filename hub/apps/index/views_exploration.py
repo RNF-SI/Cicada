@@ -112,7 +112,13 @@ class ExplorationPlanViewSet(ViewSet):
         instance_id, _, slug = (reference or '').partition(':')
         plan = get_object_or_404(PlanIndexe, instance_id=instance_id, slug=slug)
 
+        # La fiche est renvoyée **à plat**, exactement comme la sert une
+        # instance, et non enveloppée dans un objet. Une enveloppe obligerait le
+        # frontend à distinguer les deux sources — ce que la bascule vers le hub
+        # doit précisément lui épargner. Les métadonnées de fédération viennent
+        # s'ajouter à côté : aucune ne porte le nom d'un champ de fiche.
         return Response({
+            **(plan.fiche or {}),
             'reference': reference,
             'instance_id': plan.instance_id,
             'url_instance': plan.url_instance,
@@ -120,5 +126,4 @@ class ExplorationPlanViewSet(ViewSet):
             # sans date ne se distingue pas d'une donnée jointe à la volée, et
             # c'est précisément la différence qu'il faut pouvoir voir.
             'date_publication': plan.date_publication,
-            'fiche': plan.fiche,
         })

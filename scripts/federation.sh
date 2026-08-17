@@ -396,6 +396,35 @@ cmd_logs() {
 }
 
 cmd_test() {
+  if [ "${1:-}" = --e2e ]; then
+    # Le seul niveau qui couvre ce que l'utilisateur voit.
+    #
+    # Exécuté DANS le conteneur frontend du CEN : Playwright et son Chromium
+    # n'existent que là (l'image est Alpine, le Chromium fourni par Playwright
+    # n'y est pas compatible glibc — d'où le binaire système). L'application
+    # relayée y est servie sur son port interne, l'instance visée est donc
+    # « localhost » du point de vue du test.
+    titre "E2E Playwright — instance relayée vers le hub"
+    # Le Chromium fourni par Playwright est compilé pour glibc et ne tourne pas
+    # sur Alpine : on utilise celui du système. Il n'est pas dans l'image, et
+    # disparaît donc à chaque recréation du conteneur — l'installer ici évite un
+    # échec obscur (« executable doesn't exist ») une fois sur deux.
+    if ! docker exec cicada_cen_frontend test -x /usr/bin/chromium 2>/dev/null; then
+      alerte "Chromium absent du conteneur — installation (une minute environ)…"
+      docker exec -u root cicada_cen_frontend apk add --no-cache chromium >/dev/null 2>&1 \
+        || { erreur "Installation de Chromium impossible"; return 1; }
+      ok "Chromium installé"
+    fi
+
+    docker exec \
+      -e E2E_FEDERATION=1 \
+      -e E2E_CEN_URL=http://localhost:4200 \
+      -e PLAYWRIGHT_CHROMIUM_EXECUTABLE=/usr/bin/chromium \
+      cicada_cen_frontend \
+      npx playwright test --config=e2e/playwright.config.ts --project=federation
+    return $?
+  fi
+
   if [ "${1:-}" = --bench ]; then
     # Contre les trois briques réellement lancées. Tous les bugs de la
     # fédération étaient des bugs de couture, qu'aucune suite unitaire n'a vus.
@@ -436,6 +465,7 @@ Commandes
   test                         suites unitaires (hub + CICADA)
   test --bench                 tests contre les 3 briques lancées :
                                contrat, scénarios, parité local ↔ hub
+  test --e2e                   Playwright sur l'instance relayée (interface)
   reset-hub                    vide la base du hub et le relance
 
 Adresses
