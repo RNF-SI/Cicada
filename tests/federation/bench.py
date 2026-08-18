@@ -90,9 +90,24 @@ class Banc:
     """Accès aux trois briques : HTTP pour les API, docker pour les commandes."""
 
     def __init__(self):
-        self.jeton_lecture = self._lire_env('.env.hub', 'HUB_READ_TOKEN')
+        # Un jeton de lecture par instance depuis #636 : la réciprocité exige
+        # de savoir qui lit. Le banc lit au nom de RNF, qui publie.
+        self.jetons_lecture = self._jetons_nommes('HUB_READ_TOKENS')
+        self.jeton_lecture = self.jetons_lecture['rnf']
         self._jetons_depot = self._jetons_de_depot()
         self._jetons_jwt = {}
+
+    @staticmethod
+    def _jetons_nommes(cle):
+        """Lit une liste « instance:jeton,… » depuis `.env.hub`."""
+        jetons = {}
+        for paire in Banc._lire_env('.env.hub', cle).split(','):
+            instance, _, jeton = paire.partition(':')
+            if instance.strip() and jeton.strip():
+                jetons[instance.strip()] = jeton.strip()
+        if not jetons:
+            raise EchecDuBanc(f"{cle} vide dans .env.hub")
+        return jetons
 
     @staticmethod
     def _jetons_de_depot():
@@ -104,15 +119,7 @@ class Banc:
         échoueraient sur un `.env` incomplet plutôt que sur un vrai défaut, et
         la première question serait « le test est-il cassé ? ».
         """
-        brut = Banc._lire_env('.env.hub', 'HUB_FEDERATION_TOKENS')
-        jetons = {}
-        for paire in brut.split(','):
-            instance, _, jeton = paire.partition(':')
-            if instance.strip() and jeton.strip():
-                jetons[instance.strip()] = jeton.strip()
-        if not jetons:
-            raise EchecDuBanc("HUB_FEDERATION_TOKENS vide dans .env.hub")
-        return jetons
+        return Banc._jetons_nommes('HUB_FEDERATION_TOKENS')
 
     # -- configuration ----------------------------------------------------- #
 
@@ -236,6 +243,31 @@ class Banc:
             contenus.json()['pagination']['count'],
         )
 
+    def partage(self, conteneur, actif=None):
+        """
+        Lit, ou fixe, le consentement au partage d'une instance (#636).
+
+        Sans consentement, `push_federation` refuse de publier : c'est un
+        engagement de la structure, qu'aucune automatisation ne doit contourner.
+        Le banc l'active donc explicitement, comme le ferait un administrateur.
+        """
+        if actif is None:
+            lignes = self.django(conteneur, f"""
+from apps.core.models import SiteConfiguration
+config = SiteConfiguration.objects.first()
+print('{MARQUEUR}' + str(bool(config and config.federation_partage)))
+""")
+            return lignes[0] == 'True'
+
+        self.django(conteneur, f"""
+from apps.core.models import SiteConfiguration
+config = SiteConfiguration.objects.first() or SiteConfiguration.objects.create()
+config.federation_partage = {bool(actif)!r}
+config.save(update_fields=['federation_partage'])
+print('{MARQUEUR}ok')
+""")
+        return actif
+
     def statut_du_plan(self, conteneur, slug, statut=None):
         """Lit, ou change puis réindexe, le statut d'un plan."""
         if statut is None:
@@ -331,6 +363,50 @@ print('{MARQUEUR}' + str(len(fiche.get('enjeux') or [])))
 # --------------------------------------------------------------------------- #
 # Scénarios de banc
 # --------------------------------------------------------------------------- #
+
+def cas_consentement_sans_partage_rien_n_est_publie(banc):
+    """
+    Publier est un engagement de la structure, pas un réglage technique.
+
+    La commande peut être appelée par une tâche planifiée : si elle publiait
+    malgré un partage désactivé, la décision serait contournée par une
+    automatisation que personne ne relit.
+    """
+    try:
+        banc.partage(RNF_WEB, False)
+        code, sortie = banc.publier(RNF_WEB, attendre_succes=False)
+        if code == 0:
+            raise EchecDuBanc(
+                "Publication réussie alors que le partage est désactivé."
+            )
+        if 'partage' not in sortie:
+            raise EchecDuBanc(
+                f"Refus sans expliquer que c'est un choix de la structure :\n"
+                f"{sortie[-300:]}"
+            )
+    finally:
+        banc.partage(RNF_WEB, True)
+    return "publication refusée, et le motif est explicite"
+
+
+def cas_reciprocite_lire_suppose_avoir_publie(banc):
+    """
+    On ne lit l'exploration nationale qu'en y versant.
+
+    La règle est appliquée par le hub et non par l'instance : celle-ci peut
+    couper son propre relais, mais quiconque l'administre peut le rallumer.
+    """
+    jeton_inconnu = 'jeton-d-une-instance-qui-ne-publie-pas'
+    reponse = requests.get(
+        f'{HUB_API}/api/exploration/contenus/',
+        headers={'X-Hub-Token': jeton_inconnu}, timeout=DELAI,
+    )
+    if reponse.status_code != 403:
+        raise EchecDuBanc(
+            f"Lecture acceptée sans participation : {reponse.status_code}"
+        )
+    return "403 pour un lecteur non participant"
+
 
 def cas_aller_retour_le_contenu_publie_devient_cherchable(banc):
     """Publier depuis CICADA, puis retrouver le contenu par le hub."""
@@ -612,6 +688,10 @@ GROUPES = [
         cas_contrat_la_charge_utile_passe_la_validation_du_hub,
         cas_contrat_la_fiche_voyage_en_json_pur,
     ]),
+    ("Consentement et réciprocité", [
+        cas_consentement_sans_partage_rien_n_est_publie,
+        cas_reciprocite_lire_suppose_avoir_publie,
+    ]),
     ("Scénarios de fédération", [
         cas_aller_retour_le_contenu_publie_devient_cherchable,
         cas_isolation_une_instance_ne_purge_pas_l_autre,
@@ -652,6 +732,12 @@ def verifier_le_banc():
 def main():
     verifier_le_banc()
     banc = Banc()
+
+    # Le partage conditionne tout le reste : sans lui, aucune publication n'est
+    # possible et tous les cas échoueraient pour la même raison, ce qui noierait
+    # le vrai diagnostic. On le pose explicitement, comme un administrateur.
+    for conteneur in (RNF_WEB, CEN_WEB):
+        banc.partage(conteneur, True)
     reussis = echecs = 0
 
     for titre, cas in GROUPES:

@@ -19,15 +19,25 @@ pytestmark = pytest.mark.django_db
 
 @pytest.fixture(autouse=True)
 def lecture_autorisee(settings):
-    settings.HUB_READ_TOKEN = JETON_LECTURE
+    """L'instance « rnf » est autorisée à lire — et publie, voir la réciprocité."""
+    settings.HUB_READ_TOKENS = {'rnf': JETON_LECTURE, 'cen': 'jeton-cen-lecture'}
+
+
+JETONS_LECTURE = {'rnf': JETON_LECTURE, 'cen': 'jeton-cen-lecture'}
 
 
 @pytest.fixture
 def lire(client):
-    """Appelle l'API de lecture avec le jeton, et rend le corps décodé."""
-    def appel(url, **params):
+    """
+    Appelle l'API de lecture et rend le corps décodé.
+
+    `comme` désigne l'instance lectrice. Il compte : la réciprocité (#636)
+    refuse de servir une instance qui n'a rien publié, donc lire au nom de
+    « rnf » suppose que « rnf » figure dans le jeu de données du test.
+    """
+    def appel(url, comme='rnf', **params):
         reponse = client.get(
-            url, params, HTTP_X_HUB_TOKEN=JETON_LECTURE
+            url, params, HTTP_X_HUB_TOKEN=JETONS_LECTURE[comme]
         )
         assert reponse.status_code == 200, reponse.content
         return reponse.json()
@@ -71,6 +81,61 @@ class TestAcces:
     def test_un_jeton_de_lecture_invalide_est_refuse(self, client):
         reponse = client.get(
             '/api/exploration/contenus/', HTTP_X_HUB_TOKEN='jeton-invente'
+        )
+        assert reponse.status_code == 403
+
+
+class TestReciprocite:
+    """
+    On ne lit l'exploration nationale qu'en y versant (#636).
+
+    La règle est appliquée par le hub et non par l'instance : celle-ci peut
+    couper son propre relais, mais quiconque l'administre peut aussi le
+    rallumer. Une réciprocité qui ne tient qu'à la bonne volonté du lecteur
+    n'est pas une règle.
+    """
+
+    def test_une_instance_qui_n_a_rien_publie_ne_peut_pas_lire(self, client, db):
+        publier_plan('cen', 1, contenus=[{'titre': 'Roselières'}])
+
+        reponse = client.get(
+            '/api/exploration/contenus/', HTTP_X_HUB_TOKEN=JETON_LECTURE  # rnf
+        )
+        assert reponse.status_code == 403
+
+    def test_publier_ouvre_l_acces(self, client, db):
+        publier_plan('rnf', 1, contenus=[{'titre': 'Roselières'}])
+
+        reponse = client.get(
+            '/api/exploration/contenus/', HTTP_X_HUB_TOKEN=JETON_LECTURE
+        )
+        assert reponse.status_code == 200
+
+    def test_le_retrait_referme_l_acces(self, client, db):
+        """
+        Retirer ses données retire l'accès, sans traitement particulier.
+
+        La réciprocité s'appuie sur l'**état** publié, pas sur un historique de
+        participation : une instance qui se retire cesse d'alimenter, donc cesse
+        de lire. C'est la même mécanique que la dépublication d'un plan.
+        """
+        plan = publier_plan('rnf', 1, contenus=[{'titre': 'Roselières'}])
+        assert client.get(
+            '/api/exploration/contenus/', HTTP_X_HUB_TOKEN=JETON_LECTURE
+        ).status_code == 200
+
+        plan.delete()
+
+        assert client.get(
+            '/api/exploration/contenus/', HTTP_X_HUB_TOKEN=JETON_LECTURE
+        ).status_code == 403
+
+    def test_la_fiche_aussi_est_protegee(self, client, db):
+        """Le refus doit couvrir toute la lecture, pas seulement la recherche."""
+        publier_plan('cen', 1, slug='camargue', fiche={'nom': 'X'})
+
+        reponse = client.get(
+            '/api/exploration/plans/cen:camargue/', HTTP_X_HUB_TOKEN=JETON_LECTURE
         )
         assert reponse.status_code == 403
 
@@ -128,7 +193,9 @@ class TestRechercheTransverse:
             contenus=[{'titre': 'Pelouses sèches'}],
         )
 
-        resultat = lire('/api/exploration/contenus/')['results'][0]
+        # Lu au nom du CEN : c'est la seule instance qui a publié ici, et la
+        # réciprocité refuserait un lecteur qui n'a rien déposé.
+        resultat = lire('/api/exploration/contenus/', comme='cen')['results'][0]
 
         assert resultat['plan']['nom'] == 'Plan du Vercors'
         assert resultat['plan']['gestionnaire_principal'] == 'CEN Auvergne-Rhône-Alpes'
@@ -307,7 +374,14 @@ class TestFiche:
         assert lire('/api/exploration/plans/rnf:camargue/')['nom'] == 'RNF'
         assert lire('/api/exploration/plans/cen:camargue/')['nom'] == 'CEN'
 
-    def test_une_reference_inconnue_rend_404(self, client):
+    def test_une_reference_inconnue_rend_404(self, client, db):
+        """
+        404 seulement pour un lecteur autorisé : la permission passe avant
+        l'existence, et c'est le bon ordre — un appelant non autorisé n'a pas à
+        apprendre ce qui existe ou non.
+        """
+        publier_plan('rnf', 1)  # donne l'accès en lecture (réciprocité)
+
         reponse = client.get(
             '/api/exploration/plans/rnf:inexistant/', HTTP_X_HUB_TOKEN=JETON_LECTURE
         )

@@ -737,6 +737,25 @@
         "error": "Erreur lors de la sauvegarde",
         "restored": "Image par défaut restaurée",
         "positionSaved": "Position de l'image mise à jour"
+      },
+      "federation": {
+        "title": "Partage avec l'exploration nationale",
+        "description": "L'exploration nationale rassemble les plans de gestion de plusieurs structures. Elle n'existe que par ce que chacune y verse : partager ses plans donne en retour accès à ceux des autres.",
+        "partageTitre": "Ce qui est partagé",
+        "partage1": "La structure de vos plans de gestion validés : enjeux, facteurs d'influence, pressions, objectifs, indicateurs et actions.",
+        "partage2": "Pour chaque action : sa période, son suivi, ses protocoles et les espèces ou habitats qu'elle cible.",
+        "exclusTitre": "Ce qui n'est jamais partagé",
+        "exclus1": "Les budgets, financements et coûts.",
+        "exclus2": "Les ressources humaines : postes, fonctions et temps de travail.",
+        "exclus3": "Les données de suivi : mesures d'indicateurs, réalisations annuelles, ainsi que les auteurs et dates de modification.",
+        "activer": "Partager mes plans de gestion avec l'exploration nationale",
+        "activerHint": "Seuls les plans validés sont publiés. Les brouillons ne sortent jamais de cette instance.",
+        "consequenceLocale": "Sans partage, l'exploration ne porte que sur les plans de cette instance. Les plans des autres structures ne sont pas accessibles.",
+        "consequenceRetrait": "Pour retirer les données déjà publiées, un administrateur système doit lancer la commande « retrait_federation ». Décocher cette case arrête les publications à venir mais n'efface pas les précédentes.",
+        "messages": {
+          "active": "Partage activé. Vos plans validés seront publiés à la prochaine synchronisation, et l'exploration portera sur toutes les structures.",
+          "desactive": "Partage désactivé. Plus rien ne sera publié, et l'exploration ne portera que sur vos plans. Les données déjà publiées restent en ligne jusqu'à leur retrait explicite."
+        }
       }
     },
     "update": {
@@ -3426,6 +3445,10 @@
       "toutDeplier": "Tout déplier",
       "toutReplier": "Tout replier",
       "actionNonPublie": "Le budget, les moyens humains et le suivi des réalisations de cette action relèvent de la gestion interne de l’organisme et ne sont pas publiés."
+    },
+    "portee": {
+      "nationale": "Cette recherche porte sur les plans de gestion de toutes les structures participantes.",
+      "locale": "Cette recherche porte uniquement sur les plans de cette instance. Votre structure ne participe pas à l'exploration nationale."
     }
   },
   "errors": {

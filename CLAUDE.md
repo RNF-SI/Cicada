@@ -1053,6 +1053,21 @@ Il ne connaît **aucun modèle métier** de CICADA (ni `PlanGestion`, ni `Enjeu`
 
 Deux bornes de sécurité, chacune couverte par un test : **l'instance émettrice est déduite du jeton**, jamais du corps de la requête, et **la purge est bornée à l'instance du lot**. Sans elles, un jeton valide suffirait à purger l'index d'un autre organisme.
 
+#### Consentement au partage — la contrepartie
+
+Publier le contenu de ses plans est un **engagement de la structure**, pas un réglage technique. D'où :
+
+| Partage | Publication | Exploration |
+|---|---|---|
+| Activé | structure des plans validés | **nationale** (toutes structures) |
+| Refusé | rien ne sort | **locale** (ses plans seulement) |
+
+- **Réglage** : `SiteConfiguration.federation_partage`, **faux par défaut** — une mise à jour ne doit jamais décider à la place de la structure. Modifiable par un super admin dans `/administration/parametres`, sans redéploiement : revenir sur un engagement ne doit pas dépendre de qui tient les serveurs.
+- **Ce qui sort** : enjeux, facteurs, pressions, objectifs, indicateurs, actions avec période, suivi et protocoles. **Ce qui ne sort jamais** : budget et financement, RH (postes, fonctions, temps), mesures et réalisations, auteurs et dates. La liste est exhaustive dans `serializers_fiche.py` et verrouillée par `TestFichePubliqueCloisonnement`.
+- **Réciprocité appliquée par le hub**, pas par l'instance : jeton de lecture propre à chaque instance (`HUB_READ_TOKENS`), refusé tant qu'elle n'a rien publié. Une instance peut couper son relais, mais quiconque l'administre peut le rallumer — une réciprocité qui ne tient qu'à la bonne volonté du lecteur n'est pas une règle. *Effet de bord assumé : une instance sans aucun plan validé ne peut pas lire, faute d'avoir de quoi verser.*
+- **Retrait** : `retrait_federation --confirmer`, commande **distincte** de la publication. Celle-ci refuse un lot vide (un index momentanément vide effacerait tout par accident) ; la distinction n'est pas entre autorisé et interdit mais entre **accidentel** et **voulu**. Décocher la case arrête les publications à venir sans effacer les précédentes.
+- **Message à l'écran** : la page d'exploration annonce sa portée (`exploration.portee.*`) **avant** la recherche. Sans lui, une exploration limitée à son organisme se lit comme une panne, et l'utilisateur en conclut que les autres structures n'ont pas de plans.
+
 #### Réglages CICADA
 
 | Variable | Rôle |

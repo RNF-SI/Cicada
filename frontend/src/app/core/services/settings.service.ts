@@ -21,6 +21,14 @@ export interface SiteConfiguration {
    * formulaires de plan. Désactivé par défaut (n'a de sens que sur l'instance FCEN).
    */
   enable_docgestion_fcen: boolean;
+  /**
+   * #636 — Participation à l'exploration nationale.
+   *
+   * Publie la structure des plans validés et donne en retour accès à ceux des
+   * autres structures. Faux par défaut : c'est un engagement de la structure,
+   * qu'une mise à jour ne doit pas prendre à sa place.
+   */
+  federation_partage: boolean;
   updated_at: string;
   updated_by: number | null;
   updated_by_name: string | null;
@@ -82,6 +90,16 @@ export class SettingsService {
     return this.configSignal()?.enable_docgestion_fcen === true;
   }
 
+  /**
+   * #636 — Cette instance partage-t-elle ses plans avec l'exploration nationale ?
+   *
+   * Faux tant que la configuration n'est pas chargée : en cas de doute on
+   * annonce l'exploration locale, ce qui est au pire une bonne surprise.
+   */
+  partageFederationActif(): boolean {
+    return this.configSignal()?.federation_partage === true;
+  }
+
   /** #448 — URL du logo de la structure (null si non défini). */
   getStructureLogoUrl(): string | null {
     return this.configSignal()?.structure_logo_url || null;
@@ -121,6 +139,7 @@ export class SettingsService {
           structure_logo: null,
           structure_logo_url: null,
           enable_docgestion_fcen: false,
+          federation_partage: false,
           updated_at: '',
           updated_by: null,
           updated_by_name: null

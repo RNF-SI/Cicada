@@ -39,10 +39,25 @@ DELAI = 30
 
 
 def relais_actif():
-    """Vrai si l'exploration doit être servie par le hub."""
+    """
+    Vrai si l'exploration doit être servie par le hub.
+
+    Le **consentement au partage** en fait partie (#636) : une instance qui ne
+    publie pas n'explore que ses propres plans. Ce n'est pas une punition, c'est
+    la cohérence de l'exploration nationale — elle n'existe que par ce que
+    chacun y verse. La règle est aussi appliquée par le hub, qui refuse de
+    servir une instance qui n'a rien déposé ; ici elle évite surtout un aller-
+    retour réseau voué au 403.
+
+    Une requête de plus par recherche, sur une table à une ligne : négligeable
+    devant l'appel HTTP qu'elle conditionne.
+    """
+    from .push import partage_active
+
     return (
         settings.CICADA_EXPLORATION_SOURCE == 'hub'
         and bool(settings.CICADA_HUB_URL)
+        and partage_active()
     )
 
 

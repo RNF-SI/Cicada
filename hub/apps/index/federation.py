@@ -94,19 +94,56 @@ class EstInstanceAutorisee(BasePermission):
 
 class PeutLire(BasePermission):
     """
-    Jeton de lecture, partagé par les instances qui relaient l'exploration.
+    Jeton de lecture, **et réciprocité** : on ne lit que si l'on donne (#636).
 
-    Distinct des jetons de dépôt : lire n'est pas écrire, et une instance peut
-    légitimement consulter l'exploration sans être autorisée à y publier.
+    L'exploration nationale n'existe que par ce que chacun y verse. Une instance
+    qui la consulterait sans rien publier profiterait du travail des autres sans
+    l'alimenter — et si toutes faisaient ce calcul, il n'y aurait plus rien à
+    explorer.
+
+    La règle est appliquée **ici**, et pas seulement dans les instances. Une
+    instance peut couper son propre relais, mais quiconque l'administre peut
+    aussi le rallumer : une réciprocité qui ne tient qu'à la bonne volonté du
+    lecteur n'est pas une règle, c'est un souhait. Le hub, lui, sait qui a
+    déposé.
+
+    Le jeton est propre à chaque instance, comme celui de dépôt : il identifie
+    l'appelant, ce qu'un secret partagé ne permettrait pas. Sans identification,
+    la réciprocité serait invérifiable.
     """
 
-    message = "Jeton de lecture absent ou invalide."
+    message = (
+        "Lecture refusée. L'exploration nationale est réservée aux instances "
+        "qui y publient leurs plans."
+    )
 
     def has_permission(self, request, view):
-        attendu = settings.HUB_READ_TOKEN
-        if not attendu:
+        jeton = request.headers.get('X-Hub-Token')
+        if not jeton:
             return False
-        return request.headers.get('X-Hub-Token') == attendu
+
+        instance_id = None
+        for candidate, attendu in settings.HUB_READ_TOKENS.items():
+            if jeton == attendu:
+                instance_id = candidate
+                break
+        if instance_id is None:
+            logger.warning("Lecture refusée : jeton inconnu.")
+            return False
+
+        # Réciprocité : l'instance doit avoir des plans publiés. On interroge
+        # l'état, pas un drapeau déclaré — c'est le dépôt qui fait foi, et il
+        # n'est pas falsifiable depuis l'instance lectrice.
+        from .models import PlanIndexe
+
+        if not PlanIndexe.objects.filter(instance_id=instance_id).exists():
+            logger.warning(
+                "Lecture refusée pour « %s » : aucune donnée publiée.", instance_id
+            )
+            return False
+
+        request.instance_id = instance_id
+        return True
 
 
 # --------------------------------------------------------------------------- #

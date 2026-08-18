@@ -59,7 +59,9 @@ services:
       - HUB_INSTANCE_LABEL=${HUB_INSTANCE_LABEL:-}
       # Un jeton par instance émettrice : "rnf:jeton-rnf,cen:jeton-cen"
       - HUB_FEDERATION_TOKENS=${HUB_FEDERATION_TOKENS:-}
-      - HUB_READ_TOKEN=${HUB_READ_TOKEN:-}
+      # Un jeton de lecture par instance : la réciprocité (#636) exige de
+      # savoir QUI lit, pour vérifier qu'il publie aussi.
+      - HUB_READ_TOKENS=${HUB_READ_TOKENS:-}
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
     volumes:
       - ./hub:/app

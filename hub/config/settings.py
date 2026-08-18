@@ -114,10 +114,13 @@ def _jetons(brut):
 
 HUB_FEDERATION_TOKENS = _jetons(os.environ.get('HUB_FEDERATION_TOKENS', ''))
 
-#: Jeton exigé des instances qui **interrogent** le hub (recherche, fiche).
-#: Distinct des jetons de dépôt : lire n'est pas écrire, et une instance peut
-#: être autorisée à consulter l'exploration sans être autorisée à y publier.
-HUB_READ_TOKEN = os.environ.get('HUB_READ_TOKEN', '')
+#: Jetons de lecture, **un par instance** :
+#:     HUB_READ_TOKENS="rnf:lecture-rnf,cen:lecture-cen"
+#: Un secret partagé aurait suffi à authentifier, mais pas à *identifier* : la
+#: réciprocité (#636) exige de savoir qui lit pour vérifier qu'il publie aussi.
+#: Distincts des jetons de dépôt — lire n'est pas écrire, et révoquer l'un ne
+#: doit pas emporter l'autre.
+HUB_READ_TOKENS = _jetons(os.environ.get('HUB_READ_TOKENS', ''))
 
 # --------------------------------------------------------------------------- #
 # API

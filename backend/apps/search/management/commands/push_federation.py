@@ -24,7 +24,9 @@ import requests
 from django.conf import settings
 from django.core.management.base import BaseCommand, CommandError
 
-from apps.search.push import FORMAT_VERSION, charge_utile, plans_a_publier
+from apps.search.push import (
+    FORMAT_VERSION, charge_utile, partage_active, plans_a_publier,
+)
 from apps.search.serializers import prefetch_sites
 
 #: Petit par défaut : chaque plan emporte sa fiche rendue, qui mobilise plusieurs
@@ -64,6 +66,18 @@ class Command(BaseCommand):
         self.stdout.write(self.style.MIGRATE_HEADING(
             f"=== DÉPÔT VERS LE HUB — instance « {settings.CICADA_INSTANCE_ID} » ==="
         ))
+
+        if not partage_active():
+            # Refus franc plutôt que dépôt silencieux. La commande peut être
+            # appelée par une tâche planifiée : si elle publiait malgré un
+            # partage désactivé, la décision de la structure serait contournée
+            # par une automatisation que personne ne relit.
+            raise CommandError(
+                "Le partage avec l'exploration nationale est désactivé sur cette "
+                "instance : rien n'est publié. Un super administrateur peut "
+                "l'activer dans les paramètres. Pour retirer des données déjà "
+                "publiées, utiliser « retrait_federation »."
+            )
 
         self.hub = (options['hub'] or settings.CICADA_HUB_URL).rstrip('/')
         self.jeton = options['token'] or settings.CICADA_HUB_PUSH_TOKEN

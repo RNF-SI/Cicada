@@ -21,6 +21,21 @@ from tests.factories import (
 )
 
 
+@pytest.fixture(autouse=True)
+def partage_consenti(db):
+    """
+    L'instance participe à l'exploration nationale (#636).
+
+    Ce module teste la **mécanique** de publication et de relais, pas le
+    consentement — celui-ci a ses propres tests dans
+    `test_partage_federation.py`. Sans ce décor, tous les cas échoueraient sur
+    le même refus et masqueraient ce qu'ils vérifient réellement.
+    """
+    from apps.core.models import SiteConfiguration
+
+    return SiteConfiguration.objects.create(federation_partage=True)
+
+
 @pytest.fixture
 def site(db):
     """Un site portant un code INPN — seuls ceux-là sont publiables."""

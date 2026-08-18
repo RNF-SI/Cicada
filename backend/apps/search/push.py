@@ -59,6 +59,24 @@ CHAMPS_CONTENU = [
 ]
 
 
+def partage_active():
+    """
+    L'instance a-t-elle consenti à publier ses plans (#636) ?
+
+    Le consentement est un réglage de la structure, pas de l'exploitation : il
+    vit en base (`SiteConfiguration.federation_partage`) et se change depuis
+    l'interface, sans redéploiement. Une structure doit pouvoir revenir sur son
+    engagement sans dépendre de qui tient les serveurs.
+
+    Faux par défaut, y compris après une mise à jour : publier le contenu de ses
+    plans n'est pas un effet de bord acceptable d'une montée de version.
+    """
+    from apps.core.models import SiteConfiguration
+
+    configuration = SiteConfiguration.objects.first()
+    return bool(configuration and configuration.federation_partage)
+
+
 def plans_a_publier():
     """
     Les plans que cette instance rend explorables.
