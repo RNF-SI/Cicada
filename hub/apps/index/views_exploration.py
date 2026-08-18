@@ -27,7 +27,10 @@ from rest_framework.response import Response
 from rest_framework.viewsets import ViewSet
 
 from .federation import PeutLire
-from .filters import filtrer_contenus, filtrer_plans, liste, trier_contenus, trier_plans
+from .filters import (
+    annoter_correspondances, filtrer_contenus, filtrer_plans, liste,
+    trier_contenus, trier_plans,
+)
 from .models import ContenuIndexe, PlanIndexe
 from .pagination import ExplorationPagination
 from .serializers import ContenuResultatSerializer, PlanResultatSerializer
@@ -67,6 +70,13 @@ class ExplorationContenuViewSet(ViewSet):
         if onglet:
             resultats = resultats.filter(type_contenu__in=onglet)
         resultats = trier_contenus(resultats, request.query_params)
+
+        # #650 — Dire quel champ a répondu. Posé APRÈS les compteurs : ces
+        # annotations entreraient sinon dans leur `GROUP BY` et fausseraient les
+        # totaux affichés au-dessus de la liste.
+        resultats = annoter_correspondances(
+            resultats, request.query_params, info.get('approximatif', False)
+        )
 
         paginateur = ExplorationPagination()
         page = paginateur.paginate_queryset(resultats, request, view=self)

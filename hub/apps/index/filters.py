@@ -14,8 +14,10 @@ mode.
 
 import datetime
 
-from django.contrib.postgres.search import SearchQuery, SearchRank
-from django.db.models import F, Q
+from django.contrib.postgres.search import (
+    SearchHeadline, SearchQuery, SearchRank, SearchVector,
+)
+from django.db.models import BooleanField, Case, F, Q, Value, When
 
 from apps.geo.models import LArea
 
@@ -232,6 +234,69 @@ def q_sous_types(params):
 
     # Les types dont aucun groupe n'est utilisé restent intégralement visibles.
     return scope | ~Q(type_contenu__in=types_raffines)
+
+
+#: Champs interrogés, dans l'ordre où on les présente à l'utilisateur.
+#: `contexte` (libellés des ancêtres) n'est lu qu'en mode élargi.
+CHAMPS_CORRESPONDANCE = ('titre', 'rattachements', 'description', 'contexte')
+
+
+def annoter_correspondances(queryset, params, approximatif=False):
+    """
+    Dit, pour chaque résultat, **quel champ a répondu** (#650).
+
+    « Pour "fleur" on ne sait pas si c'est lié au mot, ou bien si une des
+    espèces est une fleur. » Le problème est réel et propre à cet index : les
+    objets rattachés — espèces, habitats, protocoles — sont interrogés mais
+    **jamais affichés**. Une tuile dont le titre n'a aucun rapport visible avec
+    la requête paraît donc arbitraire, alors qu'elle est parfaitement pertinente.
+
+    On annote donc un booléen par champ, plus un extrait des rattachements
+    découpé par `ts_headline` autour de la correspondance : c'est la seule
+    façon d'isoler l'élément qui a répondu, le champ étant un bloc de texte sans
+    séparateur.
+
+    L'extrait est renvoyé **sans balisage** : le surlignage est fait côté
+    interface, sur des segments de texte, ce qui évite d'injecter du HTML venu
+    de la base.
+
+    À appeler **après** le calcul des compteurs d'onglets : ces annotations
+    entreraient sinon dans le `GROUP BY` et fausseraient les totaux.
+    """
+    mot_cle = (params.get('q') or '').strip()
+    if not mot_cle:
+        return queryset
+
+    titres_seulement = booleen(params, 'titres_seulement', defaut=True)
+    # Le mode restreint n'interroge que le libellé et les objets rattachés :
+    # annoncer une correspondance sur la description y serait un mensonge.
+    champs = ('titre', 'rattachements') if titres_seulement else CHAMPS_CORRESPONDANCE
+    requete = SearchQuery(mot_cle, config=SEARCH_CONFIG, search_type='websearch')
+
+    for champ in champs:
+        if approximatif:
+            # En repli, c'est la similarité qui a répondu, pas le plein texte.
+            condition = Q(**{f'{champ}__trigram_word_similar': mot_cle})
+        else:
+            queryset = queryset.annotate(
+                **{f'vecteur_{champ}': SearchVector(champ, config=SEARCH_CONFIG)}
+            )
+            condition = Q(**{f'vecteur_{champ}': requete})
+        queryset = queryset.annotate(**{
+            f'correspond_{champ}': Case(
+                When(condition, then=Value(True)),
+                default=Value(False),
+                output_field=BooleanField(),
+            )
+        })
+
+    return queryset.annotate(
+        extrait_rattachements=SearchHeadline(
+            'rattachements', requete, config=SEARCH_CONFIG,
+            start_sel='', stop_sel='', max_words=14, min_words=5,
+            highlight_all=False,
+        )
+    )
 
 
 def trier_contenus(queryset, params):

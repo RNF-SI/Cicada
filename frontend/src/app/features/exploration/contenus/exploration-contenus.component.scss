@@ -199,3 +199,32 @@ $types-couleurs: (
     margin-top: 2px;
   }
 }
+
+/* #650 — « Pourquoi ce résultat ? » : le champ qui a répondu, et son extrait. */
+.exploration-tuile-motif {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: $spacing-xxs;
+  margin: 0 0 $spacing-xs;
+  font-size: $font-size-small;
+  color: $gray-dark;
+
+  i {
+    color: $primary-color;
+  }
+}
+
+.exploration-tuile-extrait {
+  font-style: italic;
+}
+
+/* Le surlignage reste discret : il désigne, il n'alerte pas. Fond jaune pâle
+   du design system, texte noir — la combinaison est conforme WCAG AA. */
+.exploration-tuile-titre mark,
+.exploration-tuile-extrait mark {
+  background-color: $secondary-yellow;
+  color: $black;
+  padding: 0 2px;
+  border-radius: 2px;
+}

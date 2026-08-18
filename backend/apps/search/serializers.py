@@ -13,6 +13,7 @@ from rest_framework import serializers
 from apps.plans.models import CorSitePg, PlanGestion
 from apps.users.models import CorOgSite
 
+from .filters import CHAMPS_CORRESPONDANCE
 from .models import ContenuIndexe
 
 
@@ -99,6 +100,9 @@ class ContenuResultatSerializer(serializers.ModelSerializer):
 
     plan = serializers.SerializerMethodField()
 
+    correspondances = serializers.SerializerMethodField()
+    extrait_rattachements = serializers.SerializerMethodField()
+
     class Meta:
         model = ContenuIndexe
         fields = [
@@ -106,7 +110,9 @@ class ContenuResultatSerializer(serializers.ModelSerializer):
             'titre', 'description',
             'parent_type', 'parent_libelle',
             'sous_type', 'sous_type_libelle',
-            'instance_id', 'plan',
+            'instance_id',
+            # #650 — pourquoi ce résultat est là.
+            'correspondances', 'extrait_rattachements', 'plan',
         ]
 
     def get_plan(self, contenu):
@@ -121,6 +127,34 @@ class ContenuResultatSerializer(serializers.ModelSerializer):
         if contenu.id_pg_id is None:
             return contenu.plan_denorm or None
         return PlanResumeSerializer(contenu.id_pg).data
+
+
+    def get_correspondances(self, contenu):
+        """
+        Champs ayant répondu à la recherche (#650).
+
+        Vide quand la requête ne porte pas de mot-clé : il n'y a alors rien à
+        expliquer. Les objets rattachés — espèces, habitats, protocoles — sont
+        interrogés mais jamais affichés sur la tuile : sans cette liste, un
+        résultat dont le titre n'a aucun rapport visible avec la requête paraît
+        arbitraire alors qu'il est pertinent.
+        """
+        return [
+            champ for champ in CHAMPS_CORRESPONDANCE
+            if getattr(contenu, f'correspond_{champ}', False)
+        ]
+
+    def get_extrait_rattachements(self, contenu):
+        """
+        Fragment de l'objet rattaché qui a répondu, sans balisage.
+
+        Le champ est un bloc de texte sans séparateur : seul `ts_headline` sait
+        y isoler le passage utile. Le surlignage est laissé à l'interface, pour
+        ne pas faire transiter du HTML depuis la base.
+        """
+        if not getattr(contenu, 'correspond_rattachements', False):
+            return None
+        return getattr(contenu, 'extrait_rattachements', None) or None
 
 
 class PlanResultatSerializer(serializers.ModelSerializer):

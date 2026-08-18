@@ -32,7 +32,8 @@ from .federation import (
 )
 from .fiche import construire_fiche
 from .filters import (
-    filtrer_contenus, filtrer_plans, liste, trier_contenus, trier_plans,
+    annoter_correspondances, filtrer_contenus, filtrer_plans, liste,
+    trier_contenus, trier_plans,
 )
 from .indexing import INDEXED_STATUSES
 from .models import ContenuIndexe
@@ -91,6 +92,13 @@ class ExplorationContenuViewSet(ViewSet):
         if onglet:
             resultats = resultats.filter(type_contenu__in=onglet)
         resultats = trier_contenus(resultats, request.query_params)
+
+        # #650 — Dire quel champ a répondu. Posé APRÈS les compteurs : ces
+        # annotations entreraient sinon dans leur `GROUP BY` et fausseraient les
+        # totaux affichés au-dessus de la liste.
+        resultats = annoter_correspondances(
+            resultats, request.query_params, info.get('approximatif', False)
+        )
 
         paginateur = ExplorationPagination()
         page = paginateur.paginate_queryset(resultats, request, view=self)

@@ -197,7 +197,7 @@
               [queryParams]="{ focus: contenu.type_contenu + ':' + contenu.id_objet }">
               <div class="exploration-tuile-corps">
                 <div class="exploration-tuile-entete">
-                  <p class="exploration-tuile-titre">{{ contenu.titre }}</p>
+                  <p class="exploration-tuile-titre">@for (segment of segments(contenu.titre); track $index) {@if (segment.surligne) {<mark>{{ segment.texte }}</mark>} @else {{{ segment.texte }}}}</p>
                   <span class="exploration-type-tag">
                     {{ 'exploration.types.' + contenu.type_contenu + '.singulier' | translate }}
                   </span>
@@ -208,6 +208,23 @@
                     <i class="fi fi-rr-arrow-turn-down-right" aria-hidden="true"></i>
                     <span class="exploration-tuile-label">{{ libelleParent(contenu) }}</span>
                     <span>{{ contenu.parent_libelle }}</span>
+                  </p>
+                }
+
+<!-- #650 — Pourquoi ce résultat est là.
+                     Les espèces, habitats et protocoles rattachés sont
+                     interrogés mais jamais affichés : sans cette ligne, une
+                     tuile dont le titre n'a aucun rapport avec la requête
+                     paraît arbitraire alors qu'elle est pertinente. -->
+                @if (correspondanceHorsTitre(contenu); as motif) {
+                  <p class="exploration-tuile-motif" data-testid="exploration-motif">
+                    <i class="fi fi-rr-search" aria-hidden="true"></i>
+                    <span class="exploration-tuile-label">
+                      {{ 'exploration.results.matchedOn.' + motif | translate }}
+                    </span>
+                    @if (contenu.extrait_rattachements) {
+                      <span class="exploration-tuile-extrait">@for (segment of segments(contenu.extrait_rattachements); track $index) {@if (segment.surligne) {<mark>{{ segment.texte }}</mark>} @else {{{ segment.texte }}}}</span>
+                    }
                   </p>
                 }
 

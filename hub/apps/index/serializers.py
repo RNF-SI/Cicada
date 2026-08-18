@@ -13,6 +13,7 @@ chose.
 
 from rest_framework import serializers
 
+from .filters import CHAMPS_CORRESPONDANCE
 from .models import ContenuIndexe, PlanIndexe
 
 
@@ -52,6 +53,9 @@ class ContenuResultatSerializer(serializers.ModelSerializer):
 
     plan = PlanResumeSerializer(read_only=True)
 
+    correspondances = serializers.SerializerMethodField()
+    extrait_rattachements = serializers.SerializerMethodField()
+
     class Meta:
         model = ContenuIndexe
         fields = [
@@ -59,8 +63,38 @@ class ContenuResultatSerializer(serializers.ModelSerializer):
             'titre', 'description',
             'parent_type', 'parent_libelle',
             'sous_type', 'sous_type_libelle',
-            'instance_id', 'plan',
+            'instance_id',
+            # #650 — pourquoi ce résultat est là.
+            'correspondances', 'extrait_rattachements', 'plan',
         ]
+
+
+    def get_correspondances(self, contenu):
+        """
+        Champs ayant répondu à la recherche (#650).
+
+        Vide quand la requête ne porte pas de mot-clé : il n'y a alors rien à
+        expliquer. Les objets rattachés — espèces, habitats, protocoles — sont
+        interrogés mais jamais affichés sur la tuile : sans cette liste, un
+        résultat dont le titre n'a aucun rapport visible avec la requête paraît
+        arbitraire alors qu'il est pertinent.
+        """
+        return [
+            champ for champ in CHAMPS_CORRESPONDANCE
+            if getattr(contenu, f'correspond_{champ}', False)
+        ]
+
+    def get_extrait_rattachements(self, contenu):
+        """
+        Fragment de l'objet rattaché qui a répondu, sans balisage.
+
+        Le champ est un bloc de texte sans séparateur : seul `ts_headline` sait
+        y isoler le passage utile. Le surlignage est laissé à l'interface, pour
+        ne pas faire transiter du HTML depuis la base.
+        """
+        if not getattr(contenu, 'correspond_rattachements', False):
+            return None
+        return getattr(contenu, 'extrait_rattachements', None) or None
 
 
 class PlanResultatSerializer(serializers.ModelSerializer):

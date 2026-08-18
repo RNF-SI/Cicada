@@ -12,7 +12,9 @@ import {
   ExplorationOnglet,
   ExplorationTri,
   ExplorationType,
+  SegmentTexte,
   referencePlan,
+  segmenterSurTerme,
 } from '../../../core/models/exploration.model';
 import { ExplorationService } from '../../../core/services/exploration.service';
 import {
@@ -70,6 +72,33 @@ export class ExplorationContenusComponent {
    * plan cliqué, sans rien signaler (#636).
    */
   protected readonly referencePlan = referencePlan;
+
+  /**
+   * Découpe un texte pour surligner ce qui répond à la recherche (#650).
+   *
+   * Le mot-clé lu est celui des **critères** et non le champ de saisie : le
+   * champ peut avoir été modifié sans que la recherche ait été relancée, et
+   * surligner d'après une requête non exécutée désignerait les mauvais mots.
+   */
+  protected segments(texte: string): SegmentTexte[] {
+    return segmenterSurTerme(texte, this.criteres().q ?? '');
+  }
+
+  /**
+   * Champ ayant répondu, quand ce n'est **pas** le titre (#650).
+   *
+   * Ne rend rien si le titre correspond : le surlignage le montre déjà, et
+   * répéter l'évidence noierait le cas qui compte — celui où le résultat doit
+   * sa présence à une espèce, un habitat ou un protocole rattaché, qui
+   * n'apparaît nulle part sur la tuile.
+   */
+  protected correspondanceHorsTitre(contenu: ExplorationContenu): string | null {
+    const champs = contenu.correspondances ?? [];
+    if (!champs.length || champs.includes('titre')) {
+      return null;
+    }
+    return champs[0];
+  }
 
   readonly criteres = signal<ExplorationCriteres>({});
   readonly motCle = signal('');

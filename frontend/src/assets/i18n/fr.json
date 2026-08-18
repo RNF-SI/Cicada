@@ -3377,7 +3377,13 @@
         "indicateur": "Indicateur :",
         "suivi": "Suivi :"
       },
-      "approximate": "Aucun résultat ne correspond exactement à « {{terme}} ». Voici les contenus dont un mot s'en approche le plus."
+      "approximate": "Aucun résultat ne correspond exactement à « {{terme}} ». Voici les contenus dont un mot s'en approche le plus.",
+      "matchedOn": {
+        "rattachements": "Trouvé via une espèce, un habitat ou un protocole rattaché :",
+        "description": "Trouvé dans la description",
+        "contexte": "Trouvé dans un objet parent",
+        "titre": "Trouvé dans le libellé"
+      }
     },
     "stats": {
       "title": "En quelques chiffres",

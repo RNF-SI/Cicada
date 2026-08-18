@@ -113,6 +113,19 @@ export interface ExplorationContenu {
   plan: ExplorationPlanResume;
   /** Instance d'origine du document — fédération uniquement (#636). */
   instance_id?: string;
+  /**
+   * #650 — Champs ayant répondu à la recherche (`titre`, `rattachements`,
+   * `description`, `contexte`). Vide sans mot-clé.
+   */
+  correspondances?: string[];
+  /**
+   * #650 — Fragment de l'espèce, habitat ou protocole rattaché qui a répondu.
+   *
+   * Ces objets sont interrogés mais jamais affichés sur la tuile : sans cet
+   * extrait, un résultat dont le titre n'a aucun rapport avec la requête
+   * paraît arbitraire.
+   */
+  extrait_rattachements?: string | null;
 }
 
 /** Une tuile du mode « plan de gestion ». */
@@ -205,4 +218,82 @@ export interface NomenclatureOption {
   cd_nomenclature: string | null;
   mnemonique: string;
   label: string;
+}
+
+/** Un fragment de texte, surligné ou non, pour l'affichage des résultats. */
+export interface SegmentTexte {
+  texte: string;
+  surligne: boolean;
+}
+
+/**
+ * Découpe un texte en segments, en marquant ceux qui répondent au terme cherché (#650).
+ *
+ * Le surlignage se fait par **segments** et non par injection de HTML : le
+ * texte vient de la base, et le passer par `innerHTML` ouvrirait une porte
+ * qu'aucun surlignage ne justifie.
+ *
+ * La comparaison ignore les accents et la casse, et retient les **débuts de
+ * mot** : la recherche plein texte radicalise (« roselieres » trouve
+ * « roselières »), donc exiger une égalité exacte ne surlignerait presque
+ * jamais rien — l'utilisateur verrait des résultats sans savoir quel mot a
+ * répondu, c'est-à-dire le problème qu'on cherche à résoudre.
+ */
+export function segmenterSurTerme(texte: string, terme: string): SegmentTexte[] {
+  if (!texte) {
+    return [];
+  }
+  // Normalisation caractère par caractère : `normalize('NFD')` sur la chaîne
+  // entière décale les indices, et on ne saurait plus où découper l'original.
+  // Indexation par unité UTF-16, comme `texte.length` et `texte[i]` : itérer
+  // par points de code désalignerait les indices dès qu'un caractère hors du
+  // plan de base apparaît, et le découpage tomberait au milieu d'une paire.
+  const aplati = (valeur: string): string => {
+    let sortie = '';
+    for (let i = 0; i < valeur.length; i++) {
+      sortie += valeur[i].normalize('NFD')[0].toLowerCase();
+    }
+    return sortie;
+  };
+
+  const mots = [
+    ...new Set(
+      aplati(terme)
+        .split(/[^\p{L}\p{N}]+/u)
+        .filter((mot) => mot.length >= 2),
+    ),
+  ];
+  if (!mots.length) {
+    return [{ texte, surligne: false }];
+  }
+
+  const cible = aplati(texte);
+  const marques = new Array<boolean>(texte.length).fill(false);
+
+  // Un début de mot : le caractère précédent n'est ni lettre ni chiffre.
+  const debutDeMot = (index: number): boolean =>
+    index === 0 || !/[\p{L}\p{N}]/u.test(cible[index - 1]);
+
+  for (const mot of mots) {
+    let depuis = cible.indexOf(mot);
+    while (depuis !== -1) {
+      if (debutDeMot(depuis)) {
+        for (let i = depuis; i < depuis + mot.length; i++) {
+          marques[i] = true;
+        }
+      }
+      depuis = cible.indexOf(mot, depuis + 1);
+    }
+  }
+
+  const segments: SegmentTexte[] = [];
+  for (let i = 0; i < texte.length; i++) {
+    const surligne = marques[i];
+    if (segments.length && segments[segments.length - 1].surligne === surligne) {
+      segments[segments.length - 1].texte += texte[i];
+    } else {
+      segments.push({ texte: texte[i], surligne });
+    }
+  }
+  return segments;
 }
