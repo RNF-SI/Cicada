@@ -174,6 +174,20 @@
     } @else if (!resultats().length) {
       <p class="exploration-etat">{{ 'exploration.results.empty' | translate }}</p>
     } @else {
+      <!-- #651 / #650 — Dire que les résultats sont approchants.
+           Sans ça, un résultat sans rapport visible avec la requête se lit
+           comme un défaut de l'outil : c'est ainsi que « la recherche dans les
+           titres ne marche pas » a été rapporté, pour un titre contenant
+           « leur » remonté sur « fleur ». -->
+      @if (approximatif()) {
+        <p class="info-block info-block-warning exploration-approximatif"
+           data-testid="exploration-approximatif">
+          <i class="fi fi-rr-info" aria-hidden="true"></i>
+          <span>
+            {{ 'exploration.results.approximate' | translate:{ terme: motCle() } }}
+          </span>
+        </p>
+      }
       <ul class="exploration-tuiles" data-testid="exploration-contenus-resultats">
         @for (contenu of resultats(); track contenu.id) {
           <li class="exploration-tuile" [class]="'type-' + contenu.type_contenu">

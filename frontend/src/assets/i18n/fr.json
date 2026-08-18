@@ -3376,7 +3376,8 @@
         "objectif_op": "Objectif :",
         "indicateur": "Indicateur :",
         "suivi": "Suivi :"
-      }
+      },
+      "approximate": "Aucun résultat ne correspond exactement à « {{terme}} ». Voici les contenus dont un mot s'en approche le plus."
     },
     "stats": {
       "title": "En quelques chiffres",

@@ -76,6 +76,12 @@ export class ExplorationContenusComponent {
   readonly resultats = signal<ExplorationContenu[]>([]);
   readonly compteurs = signal<Record<string, number>>({});
   readonly total = signal(0);
+  /**
+   * #651 — La recherche n'a trouvé aucun résultat exact et montre des termes
+   * approchants. Le dire, sinon l'utilisateur prend l'à-peu-près pour une
+   * réponse.
+   */
+  readonly approximatif = signal(false);
   readonly pageCourante = signal(1);
   readonly nombrePages = signal(1);
   readonly chargement = signal(false);
@@ -231,6 +237,7 @@ export class ExplorationContenusComponent {
       next: (reponse) => {
         this.resultats.set(reponse.results);
         this.compteurs.set(reponse.compteurs ?? {});
+        this.approximatif.set(reponse.approximatif === true);
         this.total.set(reponse.pagination.count);
         this.pageCourante.set(reponse.pagination.current_page);
         this.nombrePages.set(reponse.pagination.total_pages);
@@ -239,6 +246,7 @@ export class ExplorationContenusComponent {
       error: () => {
         this.resultats.set([]);
         this.compteurs.set({});
+        this.approximatif.set(false);
         this.total.set(0);
         this.erreur.set(true);
         this.chargement.set(false);

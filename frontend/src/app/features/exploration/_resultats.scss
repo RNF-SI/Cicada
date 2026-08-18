@@ -257,11 +257,18 @@
   /* Le bandeau de couleur à gauche identifie le type de résultat. */
   border-left: 6px solid $primary-color;
   overflow: hidden;
-  transition: border-color $transition-fast, box-shadow $transition-fast;
+  transition: box-shadow $transition-fast, background-color $transition-fast;
 
+  /* #649 — Le survol ne touche PAS au liseré gauche : il porte le type du
+     résultat, et le recolorer revient à annoncer un autre type. La couleur de
+     survol employée jusqu'ici était d'ailleurs celle des pressions, si bien
+     que survoler un enjeu le faisait passer pour une pression.
+
+     Le survol se signale donc par l'ombre et un fond très léger — deux
+     variations qui ne portent aucune signification ailleurs dans la page. */
   &:hover {
-    border-color: $secondary-orange-salmon;
     box-shadow: $shadow-medium;
+    background-color: $beige;
   }
 }
 

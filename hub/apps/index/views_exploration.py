@@ -42,7 +42,11 @@ class ExplorationContenuViewSet(ViewSet):
         # Le bandeau du plan est joint, pas recopié sur chaque ligne : c'est
         # tout l'intérêt d'avoir fait du plan une table (cf. `models`).
         base = ContenuIndexe.objects.select_related('plan')
-        filtres = filtrer_contenus(base, request.query_params)
+        # #651 — `info` dit si la recherche a dû se rabattre sur des termes
+        # approchants. Sans le signaler, l'utilisateur croit avoir trouvé ce
+        # qu'il cherchait alors qu'aucun résultat ne correspond vraiment.
+        info = {}
+        filtres = filtrer_contenus(base, request.query_params, info)
 
         # Les compteurs d'onglets sont calculés AVANT le filtre d'onglet, pour
         # qu'ils restent ceux de la recherche entière : sans cela, sélectionner
@@ -70,6 +74,7 @@ class ExplorationContenuViewSet(ViewSet):
 
         return paginateur.get_paginated_response(
             donnees,
+            approximatif=info.get('approximatif', False),
             compteurs={
                 'tout': sum(compteurs.values()),
                 **{

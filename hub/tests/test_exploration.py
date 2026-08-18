@@ -235,6 +235,33 @@ class TestModesDeRecherche:
             '/api/exploration/contenus/', q='eutotrophes'
         )['pagination']['count'] == 1
 
+    def test_l_approximation_n_intervient_qu_a_defaut_d_exact(self, lire):
+        """
+        #651 — Le trigramme est un repli, pas un complément.
+
+        Uni au plein texte, il rendait la recherche incompréhensible sur les
+        mots courts : « fleur » remontait « … et de **leur** faune associée ».
+        """
+        publier_plan('rnf', 1, contenus=[
+            {'titre': 'Conservation des roselières'},
+            {'titre': 'Suivi de leur faune associée'},
+        ])
+
+        corps = lire('/api/exploration/contenus/', q='roselières')
+
+        assert corps['approximatif'] is False
+        assert [r['titre'] for r in corps['results']] == [
+            'Conservation des roselières'
+        ]
+
+    def test_le_repli_est_annonce(self, lire):
+        """Un résultat approchant doit se présenter comme tel (#650)."""
+        publier_plan('rnf', 1, contenus=[{'titre': 'Lacs eutrophes naturels'}])
+
+        corps = lire('/api/exploration/contenus/', q='eutotrophes')
+
+        assert corps['approximatif'] is True
+
 
 class TestFacettes:
     def test_le_filtre_par_instance(self, lire):

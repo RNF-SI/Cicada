@@ -139,13 +139,60 @@ def appliquer_facettes(queryset, params, champ_statut):
 # Mode « contenu d'un plan de gestion »
 # --------------------------------------------------------------------------- #
 
-def filtrer_contenus(queryset, params):
+def _avec_mot_cle(queryset, mot_cle, champ, requete, info=None):
+    """
+    Recherche plein texte, avec repli approximatif **seulement si elle ne rend rien**.
+
+    La similarité par trigramme était jusqu'ici unie au plein texte : tout
+    document *proche* remontait au même titre qu'un document correspondant. Le
+    résultat était incompréhensible sur les mots courts, qui portent peu de
+    trigrammes — chercher « fleur » remontait « … et de **leur** faune
+    associée », `word_similarity` valant 0,667 pour un seuil à 0,6 (#651). Un
+    résultat sans rapport visible avec la requête se lit comme un défaut de
+    l'outil, et c'est bien ainsi qu'il a été rapporté.
+
+    Relever le seuil ne suffisait pas : une vraie faute de frappe score à peine
+    plus haut (« eutotrophes » / « eutrophes » = 0,69) et serait tombée avec le
+    bruit. Ce qui distingue les deux cas n'est pas le score, c'est le
+    **contexte** — on ne cherche un mot approchant que faute d'avoir trouvé le
+    mot. Le trigramme redevient donc ce qu'il aurait dû rester : un repli.
+
+    L'approximation porte sur le libellé **et sur les objets rattachés** (#634) :
+    espèces, habitats et protocoles sont des noms longs, souvent latins, qu'on
+    tape rarement juste.
+
+    :param info: dictionnaire optionnel, renseigné avec ``approximatif`` pour
+        que l'interface puisse dire à l'utilisateur qu'aucun résultat exact
+        n'existe — sans quoi il croirait avoir trouvé ce qu'il cherchait.
+    """
+    exact = queryset.filter(**{champ: requete})
+
+    # Décidé AVANT les facettes, volontairement : si le mot-clé correspond mais
+    # qu'une facette exclut tout, la bonne réponse est « aucun résultat », pas
+    # une liste de termes approchants que l'utilisateur n'a pas demandés.
+    if exact.exists():
+        if info is not None:
+            info['approximatif'] = False
+        return exact.annotate(pertinence=SearchRank(F(champ), requete))
+
+    if info is not None:
+        info['approximatif'] = True
+    return queryset.filter(
+        Q(titre__trigram_word_similar=mot_cle)
+        | Q(rattachements__trigram_word_similar=mot_cle)
+    ).annotate(pertinence=SearchRank(F(champ), requete))
+
+
+def filtrer_contenus(queryset, params, info=None):
     """
     Applique au queryset d'index tous les filtres SAUF l'onglet actif.
 
     L'onglet est exclu pour que les compteurs affichés au-dessus de la liste
     restent ceux de la recherche entière : sans cela, sélectionner « Pressions »
     ferait tomber à zéro tous les autres onglets.
+
+    :param info: dictionnaire optionnel renseigné avec ``approximatif``
+        (cf. :func:`_avec_mot_cle`).
     """
     mot_cle = (params.get('q') or '').strip()
     titres_seulement = booleen(params, 'titres_seulement', defaut=True)
@@ -153,16 +200,7 @@ def filtrer_contenus(queryset, params):
     if mot_cle:
         champ = 'search_titre' if titres_seulement else 'search_full'
         requete = SearchQuery(mot_cle, config=SEARCH_CONFIG, search_type='websearch')
-        # La similarité par mot rattrape les fautes de frappe que la
-        # radicalisation ne couvre pas ; elle s'appuie sur l'index trigramme.
-        # Elle porte sur le libellé ET sur les objets rattachés : espèces,
-        # habitats et protocoles sont des noms longs, souvent latins, qu'on tape
-        # rarement juste.
-        queryset = queryset.filter(
-            Q(**{champ: requete})
-            | Q(titre__trigram_word_similar=mot_cle)
-            | Q(rattachements__trigram_word_similar=mot_cle)
-        ).annotate(pertinence=SearchRank(F(champ), requete))
+        queryset = _avec_mot_cle(queryset, mot_cle, champ, requete, info)
 
     types = liste(params, 'types')
     if types:

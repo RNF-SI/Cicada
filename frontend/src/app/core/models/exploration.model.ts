@@ -147,6 +147,15 @@ export interface ExplorationReponse<T> {
   results: T[];
   /** Compteurs par type, présents seulement en mode « contenu ». */
   compteurs?: Record<string, number>;
+  /**
+   * #651 — Aucun résultat exact : ceux affichés sont des termes approchants.
+   *
+   * Sans cette information, l'utilisateur croit avoir trouvé ce qu'il
+   * cherchait. C'est précisément ce qui a été rapporté comme « la recherche
+   * dans les titres ne marche pas » : « fleur » remontait un titre contenant
+   * « leur ».
+   */
+  approximatif?: boolean;
 }
 
 /**
