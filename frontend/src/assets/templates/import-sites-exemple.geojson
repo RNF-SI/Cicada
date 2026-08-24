@@ -10,7 +10,9 @@
         "type_site": "RNN",
         "surface": 2695,
         "marin": false,
-        "outre_mer": false
+        "outre_mer": false,
+        "organisme": "Réserves Naturelles de France",
+        "referent": "referent.camargue@test.fr"
       },
       "geometry": {
         "type": "Polygon",
@@ -32,7 +34,9 @@
         "type_site": "RNN",
         "surface": 1572,
         "marin": false,
-        "outre_mer": false
+        "outre_mer": false,
+        "organisme": "CEN Auvergne-Rhône-Alpes",
+        "referent": "referent.vercors@test.fr"
       },
       "geometry": {
         "type": "Polygon",
@@ -54,7 +58,9 @@
         "type_site": "RNN",
         "surface": 1140,
         "marin": true,
-        "outre_mer": false
+        "outre_mer": false,
+        "organisme": "Réserves Naturelles de France",
+        "referent": "admin.rnf@test.fr"
       },
       "geometry": {
         "type": "Polygon",
@@ -76,7 +82,9 @@
         "type_site": "PNR",
         "surface": 474,
         "marin": false,
-        "outre_mer": false
+        "outre_mer": false,
+        "organisme": "CEN Auvergne-Rhône-Alpes",
+        "referent": "admin.cen@test.fr"
       },
       "geometry": {
         "type": "Polygon",
@@ -98,7 +106,9 @@
         "type_site": "ENS",
         "surface": 904,
         "marin": false,
-        "outre_mer": false
+        "outre_mer": false,
+        "organisme": "Conservatoire d'espaces naturels",
+        "referent": "referent.vercors@test.fr;admin.cen@test.fr"
       },
       "geometry": {
         "type": "Polygon",

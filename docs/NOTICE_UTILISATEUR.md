@@ -598,6 +598,17 @@ L'**import en masse** ouvre un assistant en **quatre étapes** :
 3. **Vérification** : prévisualiser les sites, repérer les erreurs et les doublons INPN ;
 4. **Résultats** : lancer l'import et consulter le bilan (créés / ignorés).
 
+Deux colonnes facultatives évitent de rattacher tout un import à une seule
+structure : **Organisme gestionnaire** (nom, identifiant ou UUID de l'organisme)
+et **Référent** (email ou identifiant de connexion de l'utilisateur). Chaque
+site est alors rattaché à sa propre structure et à ses propres référents.
+Plusieurs valeurs se séparent par un point-virgule (`CEN A ; CEN B`) ; le
+premier organisme cité devient le gestionnaire principal. Une valeur
+introuvable n'empêche pas l'import : elle est signalée en avertissement dans
+l'étape de vérification, et la ligne retombe sur votre organisme (et sur vous
+comme référent). Un administrateur d'organisme ne peut rattacher que les
+utilisateurs de son propre organisme.
+
 > 📸 **Capture 29 — Import en masse (étape Vérification)**
 > **Écran :** étape de vérification de l'import, avec le tableau de prévisualisation et les doublons signalés.
 > **À mettre en évidence :** les lignes en erreur / doublon et le bouton de lancement de l'import.

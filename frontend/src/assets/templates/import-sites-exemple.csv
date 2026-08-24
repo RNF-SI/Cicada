@@ -1,6 +1,6 @@
-nom_site,id_inpn,id_local,type_site,surface,marin,outre_mer
-Réserve naturelle du Lac de Grand-Lieu,FR3600101,RNN101,RNN,2695,false,false
-Réserve naturelle des Gorges de l'Ardèche,FR3600102,RNN102,RNN,1572,false,false
-Réserve naturelle de la Baie de Saint-Brieuc,FR3600103,RNN103,RNN,1140,true,false
-Parc naturel régional du Marais de Lavours,FR3600104,PNR104,PNR,474,false,false
-Espace naturel sensible de la Petite Camargue,FR3600105,ENS105,ENS,904,false,false
+nom_site,id_inpn,id_local,type_site,surface,marin,outre_mer,organisme,referent
+Réserve naturelle du Lac de Grand-Lieu,FR3600101,RNN101,RNN,2695,false,false,Réserves Naturelles de France,referent.camargue@test.fr
+Réserve naturelle des Gorges de l'Ardèche,FR3600102,RNN102,RNN,1572,false,false,CEN Auvergne-Rhône-Alpes,referent.vercors@test.fr
+Réserve naturelle de la Baie de Saint-Brieuc,FR3600103,RNN103,RNN,1140,true,false,Réserves Naturelles de France,admin.rnf@test.fr
+Parc naturel régional du Marais de Lavours,FR3600104,PNR104,PNR,474,false,false,CEN Auvergne-Rhône-Alpes,admin.cen@test.fr
+Espace naturel sensible de la Petite Camargue,FR3600105,ENS105,ENS,904,false,false,Conservatoire d'espaces naturels,referent.vercors@test.fr;admin.cen@test.fr

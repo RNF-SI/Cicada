@@ -1396,7 +1396,7 @@
       },
       "mapping": {
         "title": "Correspondance des champs",
-        "description": "Associez chaque colonne de votre fichier au champ correspondant dans la base de données de l'application. Le type de site accepte un code (ex : RNN, PNR, ENS) ou le libellé complet.",
+        "description": "Associez chaque colonne de votre fichier au champ correspondant dans la base de données de l'application. Le type de site accepte un code (ex : RNN, PNR, ENS) ou le libellé complet. Les colonnes « Organisme gestionnaire » et « Référent » permettent de rattacher chaque site à son propre organisme et à ses propres utilisateurs, au lieu de tout rattacher au vôtre.",
         "sourceProperty": "Colonne du fichier",
         "targetField": "Champ dans l'application",
         "exampleValues": "Exemples de valeurs",
@@ -1409,7 +1409,9 @@
           "type_site_id": "Type de site (code ou libellé)",
           "surf_off": "Surface (ha)",
           "marin": "Milieu marin",
-          "outre_mer": "Outre-mer"
+          "outre_mer": "Outre-mer",
+          "organisme": "Organisme gestionnaire (nom ou identifiant)",
+          "referent": "Référent (email ou identifiant)"
         }
       },
       "preview": {
@@ -1426,7 +1428,9 @@
           "type": "Type",
           "surface": "Surface",
           "geometry": "Géo",
-          "status": "Statut"
+          "status": "Statut",
+          "organisme": "Organisme",
+          "referent": "Référent"
         },
         "status": {
           "valid": "Valide",

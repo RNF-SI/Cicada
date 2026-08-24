@@ -1653,8 +1653,8 @@ class SiteViewSet(viewsets.ModelViewSet):
         # Apply mapping
         mapped = BulkSiteImportService.apply_field_mapping(parsed, field_mapping)
 
-        # Validate
-        validated = BulkSiteImportService.validate_batch(mapped)
+        # Validate (l'utilisateur sert à résoudre organisme / référent, #647)
+        validated = BulkSiteImportService.validate_batch(mapped, request.user)
 
         # Build response
         sites_response = []
@@ -1688,6 +1688,8 @@ class SiteViewSet(viewsets.ModelViewSet):
                 'warnings': site_data.get('warnings', []),
                 'duplicate_info': site_data.get('duplicate_info'),
                 'similar_names': site_data.get('similar_names', []),
+                'resolved_organismes': site_data.get('resolved_organismes', []),
+                'resolved_referents': site_data.get('resolved_referents', []),
             })
 
         return Response({
