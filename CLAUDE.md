@@ -523,6 +523,8 @@ docker compose up -d
 docker compose exec web python manage.py seed_testdata
 ```
 
+> **Multi-instances / exploration fédérée (#636)** : pour faire tourner deux instances CICADA et le hub côte à côte, ne pas lancer `docker compose` à la main — utiliser `scripts/federation.sh up`. Voir la section « Exploration fédérée » plus bas et [docs/MULTI_INSTANCE_LOCAL.md](docs/MULTI_INSTANCE_LOCAL.md). ⚠️ Lancer `docker-compose.hub.yml` sans son nom de projet détruit le conteneur de la base de l'instance principale.
+
 **Ce qui est lancé automatiquement :**
 - PostgreSQL avec PostGIS + création des schémas (dont `taxonomie` et `ref_habitats`)
 - Redis (cache + broker Celery)
@@ -685,7 +687,16 @@ docker compose exec web python manage.py seed_testdata --only=users,plans
 | Backend | pytest + pytest-django + Factory Boy | 356 | 56% |
 | Frontend (unitaires) | Jest + jest-preset-angular | 132 | 7% |
 | **Frontend (E2E)** | **Playwright** | **431** | **Admin + Features + Enjeux + Plans + Access** |
-| **Total** | | **~919** | |
+| Hub d'exploration fédérée | pytest + pytest-django | 55 | Socle, dépôt, lecture |
+| **Total** | | **~974** | |
+
+Le hub ayant son propre projet, sa suite se lance à part :
+
+```bash
+docker compose -f docker-compose.hub.yml --env-file .env.hub exec hub pytest
+# ou, avec les deux suites de la fédération d'un coup :
+scripts/federation.sh test
+```
 
 #### Backend (pytest)
 
@@ -986,10 +997,131 @@ The backend follows a modular architecture with distinct Django apps:
 - **habitats**: Référentiel des habitats HabRef (INPN) — schema `ref_habitats`, autocomplete, correspondances
 - **campanule**: Catalogue des protocoles CAMPanule (INPN/PatriNat) — schema `ref_campanule`, protocoles/méthodes/techniques, autocomplete. **Côté UI on parle de « protocole standardisé » (plus de « Campanule »).** Inclut aussi les 5 protocoles standardisés **MhéO** (#565, zones humides) chargés dans les mêmes tables via `data_mheo.py` (codes `>= 900000`, cf. `MHEO_BASE`)
 - **geo**: Découpage administratif (régions/départements) — schema `ref_geo`, structure GeoNature (`bib_areas_types` + `l_areas`), rattachement des sites calculé par intersection PostGIS (`cor_site_area`). Voir [docs/NOMENCLATURES.md](docs/NOMENCLATURES.md#découpage-administratif-ref_geo)
-- **search**: Index de recherche du contenu des plans — schema `ccd_search`, table dénormalisée + `tsvector`/`pg_trgm`. Alimente l'**exploration des données**. Voir [docs/RECHERCHE.md](docs/RECHERCHE.md)
+- **search**: Index de recherche du contenu des plans — schema `ccd_search`, table dénormalisée + `tsvector`/`pg_trgm`. Alimente l'**exploration des données**. Voir [docs/RECHERCHE.md](docs/RECHERCHE.md). Porte aussi la **publication vers le hub fédéré** (`push.py`, `relay.py`, commande `push_federation`) — voir « Exploration fédérée » ci-dessous
 - **api**: Public API endpoints with token auth *(à venir)*
 - **core**: Shared utilities, base models (nomenclatures), common middleware
   - See [docs/NOMENCLATURES.md](docs/NOMENCLATURES.md) for reference data management (nomenclatures, TaxRef, HabRef, CAMPanule)
+
+### Exploration fédérée — le hub multi-instances (#636)
+
+CICADA est déployé en **plusieurs instances** (RNF, un CEN, une DREAL…), chacune avec sa propre base. L'exploration des données doit pourtant être transverse. Un **hub** — projet Django distinct, dans [`hub/`](hub/README.md), **back API seul sans interface** — agrège l'index de toutes les instances et sert la recherche.
+
+> **Documentation complète** : [docs/MULTI_INSTANCE_LOCAL.md](docs/MULTI_INSTANCE_LOCAL.md) (topologie, banc d'essai, limites) et [hub/README.md](hub/README.md) (API du hub).
+
+```
+   CICADA RNF  ──① dépôt de l'état complet──►  ┌───────┐
+               ◄──② recherche + fiche────────  │  HUB  │
+   CICADA CEN  ──①──────────────────────────►  │ (API) │
+               ◄──②────────────────────────    └───────┘
+```
+
+**C'est l'instance qui va vers le hub**, jamais l'inverse : une instance derrière un pare-feu ou sans adresse publique peut publier, pas être interrogée. Le **navigateur ne parle jamais au hub** — l'exploration appelle le backend de son instance, qui relaie (jeton côté serveur, pas de CORS, bascule invisible pour le frontend).
+
+#### Le blocage central : rien n'est identifiant entre instances
+
+`id_pg`, `id_objet`, `id_site`, `id_organisme`, `id_area`, le `slug` d'un plan et même `uuid_organisme` sont des séquences (ou des `uuid4()`) tirées **localement**. Le plan n° 42 de RNF n'a aucun rapport avec le plan n° 42 du CEN. D'où :
+
+| Facette | Clé stable ? | Traitement |
+|---|---|---|
+| Type d'aire protégée, statut | mnémonique / chaîne | transmis tels quels ✅ |
+| Zone géographique | `area_code` (INSEE) | publiée en **codes**, re-résolue au hub ✅ |
+| Sites | `id_inpn`, national mais *nullable* | publiés en **codes INPN**, stockés tels quels ⚠️ |
+| Organismes | **aucune** | **nom seulement**, pour l'affichage ⚠️ |
+
+- `instance_id` entre dans **toutes** les clés d'unicité, des deux côtés.
+- Un plan se désigne par **`instance:slug`**, jamais par son seul slug ni par un identifiant : deux instances produisent couramment le même slug pour des plans différents.
+- La colonne de filtrage par organisme reste **vide** : recopier un identifiant local ferait matcher le mauvais organisme (corruption silencieuse), là où un tableau vide produit une absence visible. Le filtre est écrit et testé dans cet état — le jour où l'identité nationale sera tranchée, seule l'ingestion sera à toucher.
+
+#### Ce que le hub stocke — et ce qu'il ignore
+
+Il ne connaît **aucun modèle métier** de CICADA (ni `PlanGestion`, ni `Enjeu`, ni `Operation`). Deux tables seulement :
+
+| Table | Contenu |
+|---|---|
+| `ccd_search.t_plan_indexe` | une ligne par plan publié : bandeau, facettes, et sa **fiche rendue** en JSONB |
+| `ccd_search.t_recherche_contenu` | une ligne par objet explorable, FK vers son plan |
+
+- **La fiche est un instantané publié, pas un modèle répliqué.** `FichePubliqueSerializer` produit déjà un arbre JSON autonome : l'instance l'envoie tel quel, le hub le range sans l'inspecter. C'est ce qui permet de servir la fiche d'un plan distant sans recopier la moitié d'`apps.plans`. Contrepartie assumée : elle vieillit jusqu'à la publication suivante.
+- **Le plan est une table, pas une colonne JSON** (contrairement à `plan_denorm` côté CICADA) : à ~1,3 M de documents visés, recopier le bandeau sur chaque ligne coûterait des centaines de Mo et rendrait la correction d'un libellé proportionnelle au nombre d'objets.
+- Le hub importe `ref_geo` et les nomenclatures depuis **les fichiers source de CICADA montés en lecture seule** : les documents voyagent en codes, deux fichiers divergents produiraient des zones introuvables en silence.
+
+#### Publication : l'état fait foi, en trois temps
+
+`POST /api/federation/lots/` → `.../plans/` (N pages) → `.../bascule/`
+
+À la bascule, le hub **purge les plans de cette instance absents du lot**. C'est ce qui rend la dépublication fiable sans message de retrait. Mais purger suppose d'avoir tout reçu — d'où le lot : une coupure en milieu d'envoi ne détruit rien, le lot expire. **En cas d'échec la commande abandonne le lot plutôt que de le basculer** : entre « incomplet » et « périmé », c'est périmé qui est récupérable.
+
+Deux bornes de sécurité, chacune couverte par un test : **l'instance émettrice est déduite du jeton**, jamais du corps de la requête, et **la purge est bornée à l'instance du lot**. Sans elles, un jeton valide suffirait à purger l'index d'un autre organisme.
+
+#### Consentement au partage — la contrepartie
+
+Publier le contenu de ses plans est un **engagement de la structure**, pas un réglage technique. D'où :
+
+| Partage | Publication | Exploration |
+|---|---|---|
+| Activé | structure des plans validés | **nationale** (toutes structures) |
+| Refusé | rien ne sort | **locale** (ses plans seulement) |
+
+- **Réglage** : `SiteConfiguration.federation_partage`, **faux par défaut** — une mise à jour ne doit jamais décider à la place de la structure. Modifiable par un super admin dans `/administration/parametres`, sans redéploiement : revenir sur un engagement ne doit pas dépendre de qui tient les serveurs.
+- **Ce qui sort** : enjeux, facteurs, pressions, objectifs, indicateurs, actions avec période, suivi et protocoles. **Ce qui ne sort jamais** : budget et financement, RH (postes, fonctions, temps), mesures et réalisations, auteurs et dates. La liste est exhaustive dans `serializers_fiche.py` et verrouillée par `TestFichePubliqueCloisonnement`.
+- **Réciprocité appliquée par le hub**, pas par l'instance : jeton de lecture propre à chaque instance (`HUB_READ_TOKENS`), refusé tant qu'elle n'a rien publié. Une instance peut couper son relais, mais quiconque l'administre peut le rallumer — une réciprocité qui ne tient qu'à la bonne volonté du lecteur n'est pas une règle. *Effet de bord assumé : une instance sans aucun plan validé ne peut pas lire, faute d'avoir de quoi verser.*
+- **Retrait** : `retrait_federation --confirmer`, commande **distincte** de la publication. Celle-ci refuse un lot vide (un index momentanément vide effacerait tout par accident) ; la distinction n'est pas entre autorisé et interdit mais entre **accidentel** et **voulu**. Décocher la case arrête les publications à venir sans effacer les précédentes.
+- **Message à l'écran** : la page d'exploration annonce sa portée (`exploration.portee.*`) **avant** la recherche. Sans lui, une exploration limitée à son organisme se lit comme une panne, et l'utilisateur en conclut que les autres structures n'ont pas de plans.
+
+#### Réglages CICADA
+
+| Variable | Rôle |
+|---|---|
+| `CICADA_INSTANCE_ID` | identité de l'instance. **Doit être non vide** — une identité vide s'écrit dans chaque ligne d'index et plus aucune publication ne les retrouve |
+| `CICADA_PUBLIC_URL` | URL publique, transmise avec chaque plan |
+| `CICADA_HUB_URL` / `CICADA_HUB_PUSH_TOKEN` / `CICADA_HUB_READ_TOKEN` | adresse et jetons du hub |
+| `CICADA_EXPLORATION_SOURCE` | `local` (défaut) ou `hub`. Vide par défaut = comportement inchangé |
+
+Passer à `hub` fait relayer l'exploration. **Pas de repli** sur l'index local si le hub est injoignable → **502 explicite** : servir les résultats d'une seule instance sous une interface qui promet une recherche transverse ferait conclure que les plans des autres organismes n'existent pas.
+
+#### Commandes
+
+```bash
+# Banc d'essai complet (RNF + CEN + hub) — voir docs/MULTI_INSTANCE_LOCAL.md
+scripts/federation.sh up --open   # démarre les 3 briques, attend, ouvre les onglets
+scripts/federation.sh open        # 1 fenêtre, 3 onglets (RNF, CEN, sonde du hub)
+scripts/federation.sh push        # les instances déposent leur index sur le hub
+scripts/federation.sh status      # qui tourne, sous quelle identité, en quel mode
+scripts/federation.sh check       # la recherche est-elle bien transverse ?
+scripts/federation.sh mode hub cen   # bascule l'exploration d'une instance
+scripts/federation.sh reindex        # rebuild_search_index --purge
+scripts/federation.sh test           # suites unitaires (55 hub + 140 CICADA)
+scripts/federation.sh test --bench   # 11 cas contre les 3 briques lancées
+scripts/federation.sh test --e2e     # 6 cas Playwright sur l'instance relayée
+
+# Directement
+docker exec cicada_web python manage.py push_federation [--dry-run] [--sans-fiche] [--page-size N]
+```
+
+**Tests de banc** (`tests/federation/bench.py`, hors CI — ils demandent trois stacks Docker) : ils s'exécutent contre les briques **réellement lancées**, parce que tous les bugs de la fédération étaient des bugs de **couture** qu'aucune suite unitaire n'a vus. Trois familles :
+
+| Famille | Ce qu'elle protège |
+|---|---|
+| **Contrat** | la charge utile de CICADA passe la validation du hub — chaque projet ne testait que sa propre lecture du contrat |
+| **Scénarios** | aller-retour, isolation entre instances, dépublication, idempotence, garde-fou d'identité |
+| **Parité** | ⚠️ `filters.py` existe **en deux exemplaires** (un par projet) : 14 requêtes doivent rendre le même résultat servies en local ou par le hub. Sans ce test, les deux implémentations divergent en silence |
+
+La parité est vérifiée par mutation : casser un filtre du hub la fait échouer en nommant les requêtes divergentes.
+
+**E2E Playwright** (`frontend/e2e/tests/federation/`, opt-in via `E2E_FEDERATION=1`) : le seul niveau qui couvre ce que l'utilisateur voit. Il vise l'instance **relayée**, donc une autre origine — d'où une session dédiée (`auth-federation.setup.ts`) et des projets Playwright séparés. Il s'exécute dans le conteneur frontend du CEN (Chromium système, l'image étant Alpine). Il a trouvé deux bugs qu'aucun test d'API ne pouvait voir :
+
+- **le lien de fiche perdait l'instance d'origine** — les tuiles liaient par slug nu, or deux instances ont couramment le même slug : cliquer un résultat distant ouvrait l'homonyme local, sans rien signaler. D'où `referencePlan()` (`exploration.model.ts`), qui utilise `reference` (« rnf:camargue ») quand elle existe et retombe sur le slug sinon ;
+- **le hub enveloppait la fiche** dans `{fiche: …}` là où une instance la sert à plat, cassant la promesse « même forme de réponse ». Le test de banc le masquait en déballant lui-même.
+
+**Trois pièges, traités par le script — à connaître si on sort des rails :**
+
+1. `docker-compose.hub.yml` **doit** garder `name: cicada_hub`. Sans nom de projet, Compose le déduit du dossier (« cicada ») et le service `db` du hub **détruit puis recrée le conteneur de la base de l'instance principale**.
+2. Une base ayant vu la branche avant renumérotation porte `0004_federation_instance_id` et bloque au démarrage sur `column instance_id already exists` → renommer l'enregistrement en `0005_federation_instance_id` dans `utilisateurs.django_migrations`.
+3. Changer l'identité d'une instance **périme tout son index** → `rebuild_search_index --purge`. `push_federation` refuse de publier s'il ne trouve aucun document sous l'identité courante, en nommant celle qu'il a trouvée.
+
+#### Questions ouvertes (#636)
+
+Authentification définitive (jetons partagés provisoires, dépend de #514 OAuth2/OIDC) · identité nationale des organismes (décision MOA : SIRET ? annuaire RNF ?) · dédoublonnage inter-instances · périodicité des publications (aucune tâche planifiée, la commande se lance à la main) · gouvernance : qui consent à publier, et à quelle maille ?
 
 ### Database Schema Design
 

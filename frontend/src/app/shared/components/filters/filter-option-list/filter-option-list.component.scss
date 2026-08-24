@@ -11,7 +11,20 @@
 // RECHERCHE
 // ============================================
 
+// #652 — Le champ reste visible quand la liste défile.
+//
+// Le panneau qui contient cette liste est borné en hauteur et défile
+// (`.filter-panel`, max-height 60vh). Le champ de recherche en étant le premier
+// enfant, il sortait de vue dès qu'on faisait défiler — c'est-à-dire
+// exactement dans le cas où il sert : quand les options sont trop nombreuses
+// pour tenir à l'écran. On le colle donc en haut de la zone qui défile.
 .option-search {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  // Opaque : sans fond, les options défileraient visiblement derrière le champ.
+  background-color: $white;
+
   display: flex;
   align-items: center;
   gap: $spacing-xs;

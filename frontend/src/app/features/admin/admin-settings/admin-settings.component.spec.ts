@@ -49,6 +49,7 @@ describe('AdminSettingsComponent', () => {
     structure_logo: null,
     structure_logo_url: null,
     enable_docgestion_fcen: false,
+    federation_partage: false,
     updated_at: '2024-01-15T10:30:00Z',
     updated_by: 1,
     updated_by_name: 'Admin User'

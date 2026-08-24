@@ -33,10 +33,10 @@ $types-couleurs: (
   }
 }
 
-/* Le survol souligne la tuile entière, indépendamment de son type. */
-.exploration-tuile:hover {
-  border-color: $secondary-orange-salmon;
-}
+/* #649 — Le survol est géré dans `_resultats.scss`, par l'ombre et le fond.
+   Il ne recolore pas le liseré gauche : celui-ci porte le type du résultat, et
+   la couleur de survol employée jusqu'ici était celle des pressions — survoler
+   un enjeu l'annonçait donc comme une pression. */
 
 .exploration-tuile-entete {
   display: flex;
@@ -183,4 +183,48 @@ $types-couleurs: (
     padding-right: 0;
     min-height: auto;
   }
+}
+
+/* #651 — Bandeau « résultats approchants ».
+   Placé au-dessus de la liste et non dans chaque tuile : c'est la recherche
+   entière qui est approximative, pas tel ou tel résultat. */
+.exploration-approximatif {
+  display: flex;
+  align-items: flex-start;
+  gap: $spacing-sm;
+  margin-bottom: $spacing-md;
+
+  i {
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+}
+
+/* #650 — « Pourquoi ce résultat ? » : le champ qui a répondu, et son extrait. */
+.exploration-tuile-motif {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: $spacing-xxs;
+  margin: 0 0 $spacing-xs;
+  font-size: $font-size-small;
+  color: $gray-dark;
+
+  i {
+    color: $primary-color;
+  }
+}
+
+.exploration-tuile-extrait {
+  font-style: italic;
+}
+
+/* Le surlignage reste discret : il désigne, il n'alerte pas. Fond jaune pâle
+   du design system, texte noir — la combinaison est conforme WCAG AA. */
+.exploration-tuile-titre mark,
+.exploration-tuile-extrait mark {
+  background-color: $secondary-yellow;
+  color: $black;
+  padding: 0 2px;
+  border-radius: 2px;
 }

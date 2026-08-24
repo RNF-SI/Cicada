@@ -20,6 +20,55 @@ ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', 'localhost').split(',')
 # When 'keycloak', RGPD account management is handled externally
 AUTH_PROVIDER = os.environ.get('AUTH_PROVIDER', 'local')
 
+# ---------------------------------------------------------------------------
+# Identité de l'instance (#636 — exploration fédérée)
+# ---------------------------------------------------------------------------
+# CICADA est déployé en plusieurs instances, chacune avec sa propre base. Aucun
+# identifiant applicatif n'étant unique entre déploiements (id_pg, slug, ids
+# d'organismes… sont des séquences locales), tout document publié vers
+# l'exploration centralisée doit porter son instance d'origine.
+#
+# `or` et non un défaut de `get` : la variable est souvent *définie mais vide*
+# (fichier .env où la ligne existe sans valeur, docker-compose qui transmet une
+# chaîne vide). Une identité vide est pire qu'absente — elle s'écrit dans chaque
+# ligne d'index, où elle passe inaperçue, et aucune publication ne retrouve
+# ensuite ces documents.
+CICADA_INSTANCE_ID = os.environ.get('CICADA_INSTANCE_ID') or 'local'
+CICADA_INSTANCE_LABEL = (
+    os.environ.get('CICADA_INSTANCE_LABEL') or CICADA_INSTANCE_ID
+)
+
+# Jeton partagé pour l'authentification machine-à-machine entre instances.
+# Volontairement rudimentaire : l'authentification fédérée est une question
+# ouverte de #636, qui dépend de #514 (OAuth2 / OIDC). Un jeton partagé permet
+# de tester la mécanique sans préjuger de la solution retenue.
+CICADA_FEDERATION_TOKEN = os.environ.get('CICADA_FEDERATION_TOKEN', '')
+
+# URL publique de cette instance, transmise avec chaque plan publié. Elle permet
+# au hub de renvoyer un utilisateur vers le plan chez son gestionnaire — pour ce
+# que le hub ne porte pas : pièces jointes, édition, données non explorables.
+CICADA_PUBLIC_URL = os.environ.get('CICADA_PUBLIC_URL', '')
+
+# ---------------------------------------------------------------------------
+# Hub d'exploration fédérée (#636)
+# ---------------------------------------------------------------------------
+# Le hub agrège l'index de plusieurs instances et sert la recherche transverse.
+# Ces réglages sont vides par défaut : sans eux, l'instance ne publie rien et
+# sert son exploration depuis son propre index, comme avant.
+CICADA_HUB_URL = os.environ.get('CICADA_HUB_URL', '').rstrip('/')
+
+#: Jeton de dépôt, propre à cette instance (côté hub : `HUB_FEDERATION_TOKENS`).
+CICADA_HUB_PUSH_TOKEN = os.environ.get('CICADA_HUB_PUSH_TOKEN', '')
+
+#: Jeton de lecture, partagé (côté hub : `HUB_READ_TOKEN`).
+CICADA_HUB_READ_TOKEN = os.environ.get('CICADA_HUB_READ_TOKEN', '')
+
+#: D'où l'exploration tire ses résultats : `local` (l'index de cette base) ou
+#: `hub` (l'index agrégé). Le basculement est un réglage et non un déploiement,
+#: pour qu'un retour arrière soit immédiat si le hub se révèle indisponible ou
+#: incomplet. À terme l'index local disparaît et ce réglage avec lui.
+CICADA_EXPLORATION_SOURCE = os.environ.get('CICADA_EXPLORATION_SOURCE', 'local')
+
 # Application definition
 INSTALLED_APPS = [
     'django.contrib.admin',

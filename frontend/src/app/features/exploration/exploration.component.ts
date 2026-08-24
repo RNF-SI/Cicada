@@ -10,6 +10,7 @@ import {
   FilterOptionListComponent,
   FilterPanelDirective,
 } from '../../shared/components/filters';
+import { SettingsService } from '../../core/services/settings.service';
 import { HeaderComponent } from '../../shared/components/header/header.component';
 
 /** Les deux modes du sélecteur « Rechercher : ». */
@@ -41,6 +42,16 @@ type ModeExploration = 'contenu' | 'plan';
 export class ExplorationComponent {
   private readonly router = inject(Router);
   private readonly translate = inject(TranslateService);
+  private readonly settings = inject(SettingsService);
+
+  /**
+   * #636 — L'exploration porte-t-elle sur toutes les structures, ou seulement
+   * sur celle-ci ?
+   *
+   * Affiché avant même la recherche : découvrir après coup que le corpus est
+   * restreint fait chercher une panne là où il y a un choix de la structure.
+   */
+  readonly partageActif = computed(() => this.settings.partageFederationActif());
 
   readonly mode = signal<ModeExploration>('contenu');
   readonly motCle = signal('');

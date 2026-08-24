@@ -296,4 +296,55 @@
       [mention]="'admin.settings.instance.docGestionFcenHint' | translate"
     ></app-checkbox>
   </section>
+
+  <!-- #636 — Participation à l'exploration nationale.
+       Une section à part, et non une case de plus parmi les paramètres
+       d'instance : c'est un engagement de la structure sur ses données, pas un
+       réglage d'affichage. Il mérite d'être lu avant d'être coché. -->
+  <section class="settings-section">
+    <div class="section-header">
+      <h2 class="section-title">
+        <i class="fi fi-rr-share"></i>
+        {{ 'admin.settings.federation.title' | translate }}
+      </h2>
+      <p class="section-description">
+        {{ 'admin.settings.federation.description' | translate }}
+      </p>
+    </div>
+
+    <div class="info-block info-block-success federation-perimetre">
+      <p class="text-bold">{{ 'admin.settings.federation.partageTitre' | translate }}</p>
+      <ul class="list-bullets">
+        <li>{{ 'admin.settings.federation.partage1' | translate }}</li>
+        <li>{{ 'admin.settings.federation.partage2' | translate }}</li>
+      </ul>
+    </div>
+
+    <div class="info-block info-block-warning federation-perimetre">
+      <p class="text-bold">{{ 'admin.settings.federation.exclusTitre' | translate }}</p>
+      <ul class="list-bullets">
+        <li>{{ 'admin.settings.federation.exclus1' | translate }}</li>
+        <li>{{ 'admin.settings.federation.exclus2' | translate }}</li>
+        <li>{{ 'admin.settings.federation.exclus3' | translate }}</li>
+      </ul>
+    </div>
+
+    <app-checkbox
+      [checked]="federationPartage()"
+      (checkedChange)="onFederationPartageToggle($event)"
+      [disabled]="isSaving()"
+      [label]="'admin.settings.federation.activer' | translate"
+      [mention]="'admin.settings.federation.activerHint' | translate"
+    ></app-checkbox>
+
+    @if (!federationPartage()) {
+      <p class="text-mention federation-consequence">
+        {{ 'admin.settings.federation.consequenceLocale' | translate }}
+      </p>
+    } @else {
+      <p class="text-mention federation-consequence">
+        {{ 'admin.settings.federation.consequenceRetrait' | translate }}
+      </p>
+    }
+  </section>
 </div>

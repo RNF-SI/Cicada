@@ -51,6 +51,8 @@ export class AdminSettingsComponent implements OnInit {
    * sens que sur l'instance de la FCEN et reste désactivé partout ailleurs.
    */
   readonly docGestionFcenEnabled = signal<boolean>(false);
+  /** #636 — Participation à l'exploration nationale. Faux par défaut. */
+  readonly federationPartage = signal<boolean>(false);
 
   // #448 — Personnalisation : couleur du bandeau + logo structure.
   // Bandeau blanc par défaut (comportement historique).
@@ -94,6 +96,8 @@ export class AdminSettingsComponent implements OnInit {
       }
       // #458 — Paramètre d'instance : champ ID Doc'Gestion FCEN.
       this.docGestionFcenEnabled.set(config?.enable_docgestion_fcen === true);
+      // #636 — L'absence de valeur ne vaut pas consentement.
+      this.federationPartage.set(config?.federation_partage === true);
     });
   }
 
@@ -256,6 +260,44 @@ export class AdminSettingsComponent implements OnInit {
    * #458 — Active/désactive le champ ID Doc'Gestion FCEN pour cette instance.
    * Enregistré immédiatement au changement (pas de bouton dédié).
    */
+  /**
+   * Active ou coupe le partage avec l'exploration nationale (#636).
+   *
+   * Couper le partage n'efface pas ce qui a déjà été publié : le retrait des
+   * données déposées passe par `retrait_federation`, côté serveur. C'est
+   * délibéré — une case décochée par erreur ne doit pas détruire, en un clic,
+   * ce que la structure a mis des mois à publier.
+   */
+  onFederationPartageToggle(enabled: boolean): void {
+    this.federationPartage.set(enabled);
+    this.isSaving.set(true);
+    const formData = new FormData();
+    formData.append('federation_partage', String(enabled));
+    this.settingsService.updateSettings(formData).subscribe({
+      next: () => {
+        this.isSaving.set(false);
+        this.snackBar.open(
+          this.translate.instant(
+            enabled
+              ? 'admin.settings.federation.messages.active'
+              : 'admin.settings.federation.messages.desactive',
+          ),
+          this.translate.instant('common.actions.close'),
+          { duration: 6000 },
+        );
+      },
+      error: () => {
+        this.isSaving.set(false);
+        this.federationPartage.set(!enabled);
+        this.snackBar.open(
+          this.translate.instant('admin.settings.messages.error'),
+          this.translate.instant('common.actions.close'),
+          { duration: 3000 },
+        );
+      },
+    });
+  }
+
   onDocGestionFcenToggle(enabled: boolean): void {
     this.docGestionFcenEnabled.set(enabled);
     this.isSaving.set(true);

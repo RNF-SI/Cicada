@@ -379,6 +379,31 @@ class SiteConfiguration(models.Model):
             "de gestion. À n'activer que sur l'instance de la FCEN."
         )
     )
+    # #636 — Participation à l'exploration fédérée.
+    #
+    # Ce que le partage fait sortir de l'instance : la **structure** des plans
+    # validés — enjeux, pressions, objectifs, indicateurs, actions avec leur
+    # période et leur suivi. Ce qu'il ne fait PAS sortir, et la liste est
+    # exhaustive et verrouillée par `TestFichePubliqueCloisonnement` : budget et
+    # financement, ressources humaines, mesures et réalisations, traçabilité
+    # interne (auteurs, dates de modification).
+    #
+    # Par défaut **désactivé**. Publier le contenu de ses plans est un
+    # engagement de la structure, pas un réglage technique : une mise à jour ne
+    # doit jamais le prendre à sa place. Une instance qui met à jour CICADA
+    # continue donc de ne rien publier tant que personne n'a choisi.
+    federation_partage = models.BooleanField(
+        _("Partage des plans avec l'exploration nationale"),
+        default=False,
+        help_text=_(
+            "Publie la structure des plans de gestion validés (enjeux, "
+            "objectifs, indicateurs, actions) vers l'exploration nationale, et "
+            "donne en retour accès aux plans des autres structures. Les données "
+            "de budget, de ressources humaines et de suivi ne sont jamais "
+            "transmises. Sans partage, l'exploration ne porte que sur les plans "
+            "de cette instance."
+        )
+    )
     updated_at = models.DateTimeField(
         _('Mis à jour le'),
         auto_now=True

@@ -1,0 +1,97 @@
+# Hub d'exploration fédérée (#636) — back API seul, sans interface.
+#
+# Stack indépendant des instances CICADA : sa propre base, son propre réseau,
+# aucun service en commun. C'est voulu — le hub doit pouvoir tomber sans
+# entraîner une instance, et inversement.
+#
+# Usage :
+#   docker compose -f docker-compose.hub.yml --env-file .env.hub up -d
+#
+# Le banc d'essai complet (deux instances + le hub) est décrit dans
+# docs/MULTI_INSTANCE_LOCAL.md.
+
+# Nom de projet FIGÉ. Sans lui, Compose le déduit du dossier — « cicada » — et
+# le service `db` de ce fichier écrase alors celui du docker-compose.yml
+# principal : le conteneur de la base de CICADA est détruit et recréé avec la
+# définition du hub. Le volume survit, mais l'instance tombe.
+name: cicada_hub
+
+services:
+  db:
+    image: postgis/postgis:17-3.5-alpine
+    container_name: ${HUB_PREFIX:-cicada_hub}_db
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-cicada_hub}
+      POSTGRES_USER: ${POSTGRES_USER:-cicada_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-cicada_password}
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --locale=fr_FR.UTF-8"
+    volumes:
+      - hub_postgres_data:/var/lib/postgresql/data
+      - ./hub/docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "${POSTGRES_EXTERNAL_PORT:-5434}:5432"
+    networks:
+      - hub_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-cicada_user} -d ${POSTGRES_DB:-cicada_hub}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  hub:
+    build:
+      context: ./hub
+      dockerfile: Dockerfile
+    container_name: ${HUB_PREFIX:-cicada_hub}_api
+    environment:
+      - DEBUG=${DEBUG:-True}
+      - SECRET_KEY=${SECRET_KEY:-hub-secret-key-for-development}
+      - POSTGRES_DB=${POSTGRES_DB:-cicada_hub}
+      - POSTGRES_USER=${POSTGRES_USER:-cicada_user}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-cicada_password}
+      - POSTGRES_HOST=db
+      - POSTGRES_PORT=5432
+      # `host.docker.internal` : chaque projet Compose a son propre réseau, les
+      # instances joignent donc le hub par son port publié sur l'hôte et non par
+      # son nom de service. En production ce serait l'URL publique du hub.
+      - ALLOWED_HOSTS=${ALLOWED_HOSTS:-localhost,127.0.0.1,hub,host.docker.internal}
+      - HUB_INSTANCE_ID=${HUB_INSTANCE_ID:-hub}
+      - HUB_INSTANCE_LABEL=${HUB_INSTANCE_LABEL:-}
+      # Un jeton par instance émettrice : "rnf:jeton-rnf,cen:jeton-cen"
+      - HUB_FEDERATION_TOKENS=${HUB_FEDERATION_TOKENS:-}
+      # Un jeton de lecture par instance : la réciprocité (#636) exige de
+      # savoir QUI lit, pour vérifier qu'il publie aussi.
+      - HUB_READ_TOKENS=${HUB_READ_TOKENS:-}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+    volumes:
+      - ./hub:/app
+      # Les référentiels nationaux sont montés depuis CICADA, en lecture seule.
+      # Les documents publiés voyagent en codes (INSEE, mnémoniques de
+      # nomenclature) et sont re-résolus ici : deux fichiers source divergents
+      # produiraient des zones et des types introuvables, en silence. Un montage
+      # plutôt qu'une copie rend cette divergence impossible.
+      #
+      # À l'extraction du hub dans son propre dépôt, ces montages deviendront
+      # des copies versionnées — et il faudra alors surveiller leur alignement.
+      - ./backend/apps/geo/data:/app/apps/geo/data:ro
+      - ./backend/nomenclatures_data:/app/apps/nomenclatures/data:ro
+      - hub_logs:/app/logs
+    ports:
+      - "${HUB_PORT:-8002}:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - hub_network
+    restart: unless-stopped
+
+volumes:
+  hub_postgres_data:
+  hub_logs:
+
+networks:
+  hub_network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: ${HUB_SUBNET:-172.33.0.0/16}

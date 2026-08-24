@@ -73,6 +73,20 @@ class ContenuIndexe(models.Model):
     # ------------------------------------------------------------------ #
     # Identité de l'objet indexé
     # ------------------------------------------------------------------ #
+    instance_id = models.CharField(
+        _("Instance d'origine"),
+        max_length=64,
+        default='local',
+        db_index=True,
+        help_text=_(
+            "Déploiement CICADA dont provient le document (#636). Vaut "
+            "`settings.CICADA_INSTANCE_ID` pour les documents produits ici, et "
+            "l'identifiant de l'émetteur pour un document reçu d'une autre "
+            "instance. C'est la seule chose qui rende `id_objet` non ambigu : "
+            "toutes les clés primaires de l'application sont des séquences "
+            "locales."
+        ),
+    )
     type_contenu = models.CharField(
         _("Type de contenu"), max_length=20, choices=TYPE_CHOICES
     )
@@ -86,6 +100,22 @@ class ContenuIndexe(models.Model):
         db_column='id_pg',
         related_name='contenus_indexes',
         verbose_name=_("Plan de gestion"),
+        null=True, blank=True,
+        help_text=_(
+            "NULL pour un document reçu d'une autre instance : le plan n'existe "
+            "pas dans cette base. Le bandeau à afficher est alors dans "
+            "`plan_denorm`."
+        ),
+    )
+    plan_denorm = models.JSONField(
+        _("Bandeau du plan (documents distants)"),
+        default=dict, blank=True,
+        help_text=_(
+            "Snapshot du bandeau « plan / gestionnaire / période » d'une tuile, "
+            "capturé au moment de la publication. Renseigné uniquement pour les "
+            "documents distants : pour les documents locaux, ces libellés "
+            "restent joints à la volée et ne peuvent donc pas devenir obsolètes."
+        ),
     )
     index_version = models.PositiveSmallIntegerField(
         _("Version des extracteurs"),
@@ -209,8 +239,10 @@ class ContenuIndexe(models.Model):
         verbose_name = _("Contenu indexé")
         verbose_name_plural = _("Contenus indexés")
         constraints = [
+            # L'instance fait partie de la clé : deux déploiements peuvent
+            # légitimement avoir un enjeu n° 42 (#636).
             models.UniqueConstraint(
-                fields=['type_contenu', 'id_objet'],
+                fields=['instance_id', 'type_contenu', 'id_objet'],
                 name='uq_recherche_contenu_objet',
             ),
         ]

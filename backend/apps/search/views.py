@@ -17,48 +17,37 @@ figurent, jamais un brouillon — et les champs exposés, qui ne contiennent ni
 budget, ni RH, ni données empiriques.
 """
 
+from django.conf import settings
 from django.db.models import Count, Prefetch
 from django.shortcuts import get_object_or_404
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.viewsets import ViewSet
 
-from apps.plans.models import CorSitePg, PlanGestion
-from apps.users.models import CorOgSite
+from apps.plans.models import PlanGestion
 
+from .federation import (
+    FORMAT_VERSION, HasFederationToken, _bandeau_du_plan, codes_de_la_page,
+    document_publie,
+)
 from .fiche import construire_fiche
 from .filters import (
-    filtrer_contenus, filtrer_plans, liste, trier_contenus, trier_plans,
+    annoter_correspondances, filtrer_contenus, filtrer_plans, liste,
+    trier_contenus, trier_plans,
 )
 from .indexing import INDEXED_STATUSES
 from .models import ContenuIndexe
-from .pagination import ExplorationPagination
-from .serializers import ContenuResultatSerializer, PlanResultatSerializer
+from .pagination import ExplorationPagination, FederationPagination
+from .relay import reference_plan, relais_actif, relayer
+from .serializers import (
+    ContenuResultatSerializer, PlanResultatSerializer, prefetch_sites,
+)
 from .serializers_fiche import FichePubliqueSerializer
 
 
-def _prefetch_sites():
-    """
-    Prefetch des sites d'un plan, avec leur gestionnaire principal.
-
-    Sans ça, chaque tuile déclencherait une requête par site puis une par
-    organisme — soit une cinquantaine de requêtes pour une page de résultats.
-    """
-    gestionnaires = Prefetch(
-        'site__corogsite_set',
-        queryset=CorOgSite.objects.filter(principal=True).select_related('uuid_og'),
-        to_attr='gestionnaires_principaux',
-    )
-    return Prefetch(
-        'sites',
-        queryset=(
-            CorSitePg.objects
-            .select_related('site')
-            .prefetch_related(gestionnaires)
-            .order_by('rang', 'site__nom_site')
-        ),
-        to_attr='sites_ordonnes',
-    )
+#: Le prefetch vit dans `serializers` : la publication vers le hub en a le même
+#: besoin, et le dupliquer ferait diverger les deux chemins en silence.
+_prefetch_sites = prefetch_sites
 
 
 class ExplorationContenuViewSet(ViewSet):
@@ -67,6 +56,9 @@ class ExplorationContenuViewSet(ViewSet):
     permission_classes = [IsAuthenticated]
 
     def list(self, request):
+        if relais_actif():
+            return relayer('/api/exploration/contenus/', request.query_params)
+
         prefetch = _prefetch_sites()
         base = (
             ContenuIndexe.objects
@@ -76,7 +68,11 @@ class ExplorationContenuViewSet(ViewSet):
                          to_attr='sites_ordonnes')
             )
         )
-        filtres = filtrer_contenus(base, request.query_params)
+        # #651 — `info` dit si la recherche a dû se rabattre sur des termes
+        # approchants. Sans le signaler, l'utilisateur croit avoir trouvé ce
+        # qu'il cherchait alors qu'aucun résultat ne correspond vraiment.
+        info = {}
+        filtres = filtrer_contenus(base, request.query_params, info)
 
         # Les compteurs d'onglets sont calculés AVANT le filtre d'onglet, pour
         # qu'ils restent ceux de la recherche entière (cf. `filtrer_contenus`).
@@ -97,12 +93,20 @@ class ExplorationContenuViewSet(ViewSet):
             resultats = resultats.filter(type_contenu__in=onglet)
         resultats = trier_contenus(resultats, request.query_params)
 
+        # #650 — Dire quel champ a répondu. Posé APRÈS les compteurs : ces
+        # annotations entreraient sinon dans leur `GROUP BY` et fausseraient les
+        # totaux affichés au-dessus de la liste.
+        resultats = annoter_correspondances(
+            resultats, request.query_params, info.get('approximatif', False)
+        )
+
         paginateur = ExplorationPagination()
         page = paginateur.paginate_queryset(resultats, request, view=self)
         donnees = ContenuResultatSerializer(page, many=True).data
 
         return paginateur.get_paginated_response(
             donnees,
+            approximatif=info.get('approximatif', False),
             compteurs={
                 'tout': sum(compteurs.values()),
                 **{
@@ -113,12 +117,62 @@ class ExplorationContenuViewSet(ViewSet):
         )
 
 
+class FederationDocumentViewSet(ViewSet):
+    """
+    Publication de l'index local vers une exploration centralisée (#636).
+
+    Ne publie que les documents **produits ici** : un portail qui a ingéré des
+    documents d'autres instances ne les repropage pas. La fédération est en
+    étoile, pas en cascade — une topologie transitive rendrait impossible de
+    savoir quelle instance fait autorité sur un document, et donc de le retirer.
+    """
+
+    permission_classes = [HasFederationToken]
+
+    def list(self, request):
+        documents = (
+            ContenuIndexe.objects
+            .filter(instance_id=settings.CICADA_INSTANCE_ID)
+            .order_by('id')
+        )
+
+        paginateur = FederationPagination()
+        page = paginateur.paginate_queryset(documents, request, view=self)
+
+        # Le bandeau d'affichage est joint ici, une fois pour la page entière :
+        # côté portail le plan n'existera pas, il faut donc l'emporter avec le
+        # document (cf. `federation._bandeau_du_plan`).
+        plans = (
+            PlanGestion.objects
+            .filter(pk__in={contenu.id_pg_id for contenu in page})
+            .select_related('id_type_document')
+            .prefetch_related(_prefetch_sites())
+        )
+        bandeaux = {plan.pk: _bandeau_du_plan(plan) for plan in plans}
+
+        # Idem pour les codes nationaux des zones et des sites : deux requêtes
+        # pour la page, et non deux par document (cf. `codes_de_la_page`).
+        codes_zones, codes_sites = codes_de_la_page(page)
+
+        return paginateur.get_paginated_response(
+            [
+                document_publie(contenu, bandeaux, codes_zones, codes_sites)
+                for contenu in page
+            ],
+            format_version=FORMAT_VERSION,
+            instance_id=settings.CICADA_INSTANCE_ID,
+            instance_label=settings.CICADA_INSTANCE_LABEL,
+        )
+
+
 class ExplorationPlanViewSet(ViewSet):
     """Recherche d'un plan de gestion, et consultation de sa fiche publique."""
 
     permission_classes = [IsAuthenticated]
     lookup_field = 'slug'
-    lookup_value_regex = '[-\\w]+'
+    # Le deux-points est admis pour laisser passer une référence « instance:slug »
+    # quand l'exploration est relayée vers le hub (cf. `relay.reference_plan`).
+    lookup_value_regex = '[-\\w:]+'
 
     def retrieve(self, request, slug=None):
         """
@@ -129,6 +183,9 @@ class ExplorationPlanViewSet(ViewSet):
         celui de `serializers_fiche` — structure du plan, sans budget, RH,
         mesures ni réalisations.
         """
+        if relais_actif():
+            return relayer(f'/api/exploration/plans/{reference_plan(slug)}/')
+
         plan = get_object_or_404(
             PlanGestion.objects.filter(statut__in=INDEXED_STATUSES)
             .select_related('id_type_document')
@@ -138,6 +195,9 @@ class ExplorationPlanViewSet(ViewSet):
         return Response(FichePubliqueSerializer(construire_fiche(plan)).data)
 
     def list(self, request):
+        if relais_actif():
+            return relayer('/api/exploration/plans/', request.query_params)
+
         base = (
             PlanGestion.objects
             .filter(statut__in=INDEXED_STATUSES)

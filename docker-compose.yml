@@ -60,6 +60,17 @@ services:
       - CELERY_RESULT_BACKEND=redis://:${REDIS_PASSWORD:-redis_password}@redis:6379/1
       - ALLOWED_HOSTS=${ALLOWED_HOSTS:-localhost,127.0.0.1,web,frontend}
       - DJANGO_SETTINGS_MODULE=${DJANGO_SETTINGS_MODULE:-config.settings.development}
+      # Identité de l'instance et fédération de l'exploration (#636)
+      - CICADA_INSTANCE_ID=${CICADA_INSTANCE_ID:-local}
+      - CICADA_INSTANCE_LABEL=${CICADA_INSTANCE_LABEL:-}
+      - CICADA_FEDERATION_TOKEN=${CICADA_FEDERATION_TOKEN:-}
+      - CICADA_PUBLIC_URL=${CICADA_PUBLIC_URL:-}
+      # Hub d'exploration : vides par défaut — l'instance ne publie rien et sert
+      # son exploration depuis son propre index, comme avant.
+      - CICADA_HUB_URL=${CICADA_HUB_URL:-}
+      - CICADA_HUB_PUSH_TOKEN=${CICADA_HUB_PUSH_TOKEN:-}
+      - CICADA_HUB_READ_TOKEN=${CICADA_HUB_READ_TOKEN:-}
+      - CICADA_EXPLORATION_SOURCE=${CICADA_EXPLORATION_SOURCE:-local}
       # Email - Mailpit par défaut en développement
       - EMAIL_BACKEND=${EMAIL_BACKEND:-django.core.mail.backends.smtp.EmailBackend}
       - EMAIL_HOST=${EMAIL_HOST:-mailpit}
@@ -76,6 +87,11 @@ services:
       - logs_data:/app/logs
     ports:
       - "${DJANGO_PORT:-8000}:8000"
+    # Permet à une instance CICADA d'en joindre une autre par son port publié
+    # sur l'hôte (test de fédération de l'exploration, #636). Sans effet tant
+    # qu'aucune instance ne s'adresse à `host.docker.internal`.
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     depends_on:
       db:
         condition: service_healthy

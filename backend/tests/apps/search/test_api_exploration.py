@@ -215,6 +215,56 @@ class TestRechercheContenu:
 
         assert 'Protection des limicoles' in titres(reponse)
 
+    def test_l_approximation_n_intervient_qu_a_defaut_d_exact(
+        self, client_connecte, jeu_de_donnees
+    ):
+        """
+        Retour de recette #651 : « rechercher les titres uniquement » semblait
+        ne pas marcher.
+
+        La similarité par trigramme était unie au plein texte : tout document
+        *proche* remontait au même titre qu'un document correspondant. Sur les
+        mots courts, qui portent peu de trigrammes, le résultat devenait
+        incompréhensible — chercher « fleur » remontait « … et de **leur** faune
+        associée », `word_similarity` valant 0,667 pour un seuil à 0,6.
+
+        Le trigramme redevient un repli : tant que le plein texte répond, il ne
+        s'en mêle pas.
+        """
+        reponse = client_connecte.get(URL_CONTENUS, {'q': 'limicoles'})
+
+        assert reponse.data['approximatif'] is False
+        assert 'Protection des limicoles' in titres(reponse)
+
+    def test_le_repli_est_annonce(self, client_connecte, jeu_de_donnees):
+        """
+        Un résultat approchant qui ne se présente pas comme tel laisse croire
+        qu'on a trouvé ce qu'on cherchait. C'est le fond de #650 : il faut
+        pouvoir dire *pourquoi* la recherche a répondu.
+        """
+        reponse = client_connecte.get(URL_CONTENUS, {'q': 'limicolle'})
+
+        assert reponse.data['approximatif'] is True
+        assert 'Protection des limicoles' in titres(reponse)
+
+    def test_une_facette_excluante_ne_declenche_pas_l_approximation(
+        self, client_connecte, jeu_de_donnees
+    ):
+        """
+        Le repli se décide sur le mot-clé seul, avant les facettes.
+
+        Si le mot correspond mais qu'une facette écarte tout, la bonne réponse
+        est « aucun résultat » — pas une liste de termes approchants que
+        l'utilisateur n'a pas demandés, et qui lui ferait croire à un défaut du
+        filtre.
+        """
+        reponse = client_connecte.get(
+            URL_CONTENUS, {'q': 'limicoles', 'types_site': 'INEXISTANT'}
+        )
+
+        assert reponse.data['approximatif'] is False
+        assert reponse.data['pagination']['count'] == 0
+
     def test_la_faute_de_frappe_est_toleree_sur_un_habitat(
         self, client_connecte, jeu_de_donnees
     ):

@@ -9,8 +9,10 @@ jointures côté `PlanGestion`.
 
 import datetime
 
-from django.contrib.postgres.search import SearchQuery, SearchRank
-from django.db.models import F, Q
+from django.contrib.postgres.search import (
+    SearchHeadline, SearchQuery, SearchRank, SearchVector,
+)
+from django.db.models import BooleanField, Case, F, Q, Value, When
 
 from .models import SEARCH_CONFIG, ContenuIndexe
 
@@ -97,13 +99,60 @@ def q_statuts(statuts, champ_statut='statut_pg', annee=None):
 # Mode « contenu d'un plan de gestion »
 # --------------------------------------------------------------------------- #
 
-def filtrer_contenus(queryset, params):
+def _avec_mot_cle(queryset, mot_cle, champ, requete, info=None):
+    """
+    Recherche plein texte, avec repli approximatif **seulement si elle ne rend rien**.
+
+    La similarité par trigramme était jusqu'ici unie au plein texte : tout
+    document *proche* remontait au même titre qu'un document correspondant. Le
+    résultat était incompréhensible sur les mots courts, qui portent peu de
+    trigrammes — chercher « fleur » remontait « … et de **leur** faune
+    associée », `word_similarity` valant 0,667 pour un seuil à 0,6 (#651). Un
+    résultat sans rapport visible avec la requête se lit comme un défaut de
+    l'outil, et c'est bien ainsi qu'il a été rapporté.
+
+    Relever le seuil ne suffisait pas : une vraie faute de frappe score à peine
+    plus haut (« eutotrophes » / « eutrophes » = 0,69) et serait tombée avec le
+    bruit. Ce qui distingue les deux cas n'est pas le score, c'est le
+    **contexte** — on ne cherche un mot approchant que faute d'avoir trouvé le
+    mot. Le trigramme redevient donc ce qu'il aurait dû rester : un repli.
+
+    L'approximation porte sur le libellé **et sur les objets rattachés** (#634) :
+    espèces, habitats et protocoles sont des noms longs, souvent latins, qu'on
+    tape rarement juste.
+
+    :param info: dictionnaire optionnel, renseigné avec ``approximatif`` pour
+        que l'interface puisse dire à l'utilisateur qu'aucun résultat exact
+        n'existe — sans quoi il croirait avoir trouvé ce qu'il cherchait.
+    """
+    exact = queryset.filter(**{champ: requete})
+
+    # Décidé AVANT les facettes, volontairement : si le mot-clé correspond mais
+    # qu'une facette exclut tout, la bonne réponse est « aucun résultat », pas
+    # une liste de termes approchants que l'utilisateur n'a pas demandés.
+    if exact.exists():
+        if info is not None:
+            info['approximatif'] = False
+        return exact.annotate(pertinence=SearchRank(F(champ), requete))
+
+    if info is not None:
+        info['approximatif'] = True
+    return queryset.filter(
+        Q(titre__trigram_word_similar=mot_cle)
+        | Q(rattachements__trigram_word_similar=mot_cle)
+    ).annotate(pertinence=SearchRank(F(champ), requete))
+
+
+def filtrer_contenus(queryset, params, info=None):
     """
     Applique au queryset d'index tous les filtres SAUF l'onglet actif.
 
     L'onglet est exclu pour que les compteurs affichés au-dessus de la liste
     restent ceux de la recherche entière : sans cela, sélectionner « Pressions »
     ferait tomber à zéro tous les autres onglets.
+
+    :param info: dictionnaire optionnel renseigné avec ``approximatif``
+        (cf. :func:`_avec_mot_cle`).
     """
     mot_cle = (params.get('q') or '').strip()
     titres_seulement = booleen(params, 'titres_seulement', defaut=True)
@@ -111,20 +160,7 @@ def filtrer_contenus(queryset, params):
     if mot_cle:
         champ = 'search_titre' if titres_seulement else 'search_full'
         requete = SearchQuery(mot_cle, config=SEARCH_CONFIG, search_type='websearch')
-        # La similarité par mot rattrape les fautes de frappe que la
-        # radicalisation ne couvre pas ; elle s'appuie sur l'index trigramme.
-        #
-        # Elle porte sur le libellé **et sur les objets rattachés** (#634) :
-        # espèces, habitats et protocoles standardisés sont des noms longs,
-        # souvent latins, qu'on tape rarement juste. Sans ce rattrapage,
-        # « eutotrophes » ne trouvait pas « Lacs eutrophes naturels… » alors
-        # que le libellé était bien indexé — le plein texte ne pardonne
-        # aucune lettre en trop.
-        queryset = queryset.filter(
-            Q(**{champ: requete})
-            | Q(titre__trigram_word_similar=mot_cle)
-            | Q(rattachements__trigram_word_similar=mot_cle)
-        ).annotate(pertinence=SearchRank(F(champ), requete))
+        queryset = _avec_mot_cle(queryset, mot_cle, champ, requete, info)
 
     types = liste(params, 'types')
     if types:
@@ -172,6 +208,69 @@ def q_sous_types(params):
 
     # Les types dont aucun groupe n'est utilisé restent intégralement visibles.
     return scope | ~Q(type_contenu__in=types_raffines)
+
+
+#: Champs interrogés, dans l'ordre où on les présente à l'utilisateur.
+#: `contexte` (libellés des ancêtres) n'est lu qu'en mode élargi.
+CHAMPS_CORRESPONDANCE = ('titre', 'rattachements', 'description', 'contexte')
+
+
+def annoter_correspondances(queryset, params, approximatif=False):
+    """
+    Dit, pour chaque résultat, **quel champ a répondu** (#650).
+
+    « Pour "fleur" on ne sait pas si c'est lié au mot, ou bien si une des
+    espèces est une fleur. » Le problème est réel et propre à cet index : les
+    objets rattachés — espèces, habitats, protocoles — sont interrogés mais
+    **jamais affichés**. Une tuile dont le titre n'a aucun rapport visible avec
+    la requête paraît donc arbitraire, alors qu'elle est parfaitement pertinente.
+
+    On annote donc un booléen par champ, plus un extrait des rattachements
+    découpé par `ts_headline` autour de la correspondance : c'est la seule
+    façon d'isoler l'élément qui a répondu, le champ étant un bloc de texte sans
+    séparateur.
+
+    L'extrait est renvoyé **sans balisage** : le surlignage est fait côté
+    interface, sur des segments de texte, ce qui évite d'injecter du HTML venu
+    de la base.
+
+    À appeler **après** le calcul des compteurs d'onglets : ces annotations
+    entreraient sinon dans le `GROUP BY` et fausseraient les totaux.
+    """
+    mot_cle = (params.get('q') or '').strip()
+    if not mot_cle:
+        return queryset
+
+    titres_seulement = booleen(params, 'titres_seulement', defaut=True)
+    # Le mode restreint n'interroge que le libellé et les objets rattachés :
+    # annoncer une correspondance sur la description y serait un mensonge.
+    champs = ('titre', 'rattachements') if titres_seulement else CHAMPS_CORRESPONDANCE
+    requete = SearchQuery(mot_cle, config=SEARCH_CONFIG, search_type='websearch')
+
+    for champ in champs:
+        if approximatif:
+            # En repli, c'est la similarité qui a répondu, pas le plein texte.
+            condition = Q(**{f'{champ}__trigram_word_similar': mot_cle})
+        else:
+            queryset = queryset.annotate(
+                **{f'vecteur_{champ}': SearchVector(champ, config=SEARCH_CONFIG)}
+            )
+            condition = Q(**{f'vecteur_{champ}': requete})
+        queryset = queryset.annotate(**{
+            f'correspond_{champ}': Case(
+                When(condition, then=Value(True)),
+                default=Value(False),
+                output_field=BooleanField(),
+            )
+        })
+
+    return queryset.annotate(
+        extrait_rattachements=SearchHeadline(
+            'rattachements', requete, config=SEARCH_CONFIG,
+            start_sel='', stop_sel='', max_words=14, min_words=5,
+            highlight_all=False,
+        )
+    )
 
 
 def trier_contenus(queryset, params):

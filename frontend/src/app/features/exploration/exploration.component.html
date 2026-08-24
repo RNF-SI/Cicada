@@ -12,6 +12,27 @@
 
       <h1 class="exploration-hero-title">{{ 'exploration.title' | translate }}</h1>
 
+      <!-- #636 — Dire d'emblée sur quoi porte la recherche.
+           Sans ce message, une exploration qui ne remonte que les plans de son
+           organisme se lit comme un défaut de l'outil, alors que c'est un choix
+           de la structure. L'utilisateur cherche alors une panne inexistante,
+           ou conclut que les autres structures n'ont pas de plans. -->
+      <p class="exploration-portee" data-testid="exploration-portee">
+        <i
+          class="fi"
+          [class.fi-rr-globe]="partageActif()"
+          [class.fi-rr-home]="!partageActif()"
+          aria-hidden="true"></i>
+        <span>
+          {{
+            (partageActif()
+              ? 'exploration.portee.nationale'
+              : 'exploration.portee.locale'
+            ) | translate
+          }}
+        </span>
+      </p>
+
       <p class="exploration-hero-label">{{ 'exploration.search.label' | translate }}</p>
 
       <div class="segmented-control exploration-modes">
