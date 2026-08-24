@@ -142,9 +142,9 @@
       "lastNamePlaceholder": "Votre nom",
       "email": "Adresse email",
       "emailPlaceholder": "votre.email@exemple.fr",
-      "identifiant": "Identifiant (optionnel)",
+      "identifiant": "Identifiant",
       "identifiantPlaceholder": "ex. j.dupont",
-      "identifiantHint": "Identifiant alternatif pour vous connecter (en plus de votre email)",
+      "identifiantHint": "Identifiant de connexion, utilisable en plus de votre email",
       "organisme": "Organisme",
       "organismePlaceholder": "Sélectionnez ou recherchez votre organisme",
       "organismeHint": "Choisissez un organisme dans la liste déroulante",
@@ -183,6 +183,7 @@
         "passwordMismatch": "Les mots de passe ne correspondent pas",
         "maxLength": "{{max}} caractères maximum",
         "emailAlreadyUsed": "Cette adresse email est déjà utilisée.",
+        "identifiantRequired": "L'identifiant est requis",
         "identifiantAlreadyUsed": "Cet identifiant est déjà utilisé."
       }
     },

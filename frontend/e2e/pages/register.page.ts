@@ -5,6 +5,7 @@ export class RegisterPage {
   readonly firstNameInput: Locator;
   readonly lastNameInput: Locator;
   readonly emailInput: Locator;
+  readonly identifiantInput: Locator;
   readonly organismeInput: Locator;
   readonly passwordInput: Locator;
   readonly confirmPasswordInput: Locator;
@@ -18,6 +19,7 @@ export class RegisterPage {
     this.firstNameInput = page.locator('input[formcontrolname="prenom"]');
     this.lastNameInput = page.locator('input[formcontrolname="nom"]');
     this.emailInput = page.locator('input[formcontrolname="email"]');
+    this.identifiantInput = page.locator('input[formcontrolname="identifiant"]');
     this.organismeInput = page.locator('input[formcontrolname="organisme"]');
     this.passwordInput = page.locator('input[formcontrolname="password"]');
     this.confirmPasswordInput = page.locator('input[formcontrolname="confirmPassword"]');
@@ -35,6 +37,7 @@ export class RegisterPage {
     firstName: string;
     lastName: string;
     email: string;
+    identifiant?: string;
     organisme?: string;
     password: string;
     confirmPassword: string;
@@ -43,6 +46,10 @@ export class RegisterPage {
     await this.firstNameInput.fill(data.firstName);
     await this.lastNameInput.fill(data.lastName);
     await this.emailInput.fill(data.email);
+
+    if (data.identifiant) {
+      await this.identifiantInput.fill(data.identifiant);
+    }
 
     if (data.organisme) {
       await this.organismeInput.fill(data.organisme);

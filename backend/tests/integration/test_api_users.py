@@ -157,6 +157,7 @@ class TestUsersCreateEndpoint:
         api_client.force_authenticate(user=admin)
         response = api_client.post('/api/users/users/', {
             'email': 'newuser@test.fr',
+            'identifiant': 'newuser',
             'nom_role': 'New',
             'prenom_role': 'User',
             'role_level': 'utilisateur',
@@ -177,6 +178,7 @@ class TestUsersCreateEndpoint:
         api_client.force_authenticate(user=admin_og)
         response = api_client.post('/api/users/users/', {
             'email': 'orguser@test.fr',
+            'identifiant': 'orguser',
             'nom_role': 'Org',
             'prenom_role': 'User',
             'role_level': 'utilisateur',
@@ -211,6 +213,7 @@ class TestUsersCreateEndpoint:
         api_client.force_authenticate(user=admin)
         response = api_client.post('/api/users/users/', {
             'email': 'mismatch@test.fr',
+            'identifiant': 'mismatch',
             'nom_role': 'Mismatch',
             'prenom_role': 'User',
             'password': 'Password123!',
@@ -220,6 +223,64 @@ class TestUsersCreateEndpoint:
 
         assert response.status_code == status.HTTP_400_BAD_REQUEST
 
+    def test_create_user_without_identifiant_rejected(self, api_client):
+        """L'identifiant de connexion est obligatoire pour tout compte (#656)."""
+        admin = SuperAdminFactory()
+
+        api_client.force_authenticate(user=admin)
+        response = api_client.post('/api/users/users/', {
+            'email': 'noident@test.fr',
+            'nom_role': 'No',
+            'prenom_role': 'Identifiant',
+            'role_level': 'utilisateur',
+            'password': 'TestPassword123!',
+            'password_confirm': 'TestPassword123!',
+            'active': True
+        })
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert 'identifiant' in response.data
+        assert not Role.objects.filter(email='noident@test.fr').exists()
+
+    def test_create_user_blank_identifiant_rejected(self, api_client):
+        """Un identifiant vide vaut un identifiant absent (#656)."""
+        admin = SuperAdminFactory()
+
+        api_client.force_authenticate(user=admin)
+        response = api_client.post('/api/users/users/', {
+            'email': 'blankident@test.fr',
+            'identifiant': '   ',
+            'nom_role': 'Blank',
+            'prenom_role': 'Identifiant',
+            'role_level': 'utilisateur',
+            'password': 'TestPassword123!',
+            'password_confirm': 'TestPassword123!',
+            'active': True
+        })
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert 'identifiant' in response.data
+
+    def test_create_user_duplicate_identifiant_rejected(self, api_client):
+        """L'identifiant reste unique, insensible à la casse (#656)."""
+        admin = SuperAdminFactory()
+        RoleFactory(email='taken@test.fr', identifiant='TakenName')
+
+        api_client.force_authenticate(user=admin)
+        response = api_client.post('/api/users/users/', {
+            'email': 'other@test.fr',
+            'identifiant': 'takenname',
+            'nom_role': 'Other',
+            'prenom_role': 'User',
+            'role_level': 'utilisateur',
+            'password': 'TestPassword123!',
+            'password_confirm': 'TestPassword123!',
+            'active': True
+        })
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert 'identifiant' in response.data
+
     def test_create_user_duplicate_email(self, api_client):
         """Test user creation fails with duplicate email."""
         admin = SuperAdminFactory()
@@ -228,6 +289,7 @@ class TestUsersCreateEndpoint:
         api_client.force_authenticate(user=admin)
         response = api_client.post('/api/users/users/', {
             'email': 'existing@test.fr',
+            'identifiant': 'duplicate-email',
             'nom_role': 'Duplicate',
             'prenom_role': 'User',
             'password': 'TestPassword123!',

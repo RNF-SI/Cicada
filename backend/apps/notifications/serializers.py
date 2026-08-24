@@ -424,9 +424,9 @@ class PublicRegistrationSerializer(serializers.Serializer):
     )
     identifiant = serializers.CharField(
         max_length=100,
-        required=False,
-        allow_blank=True,
-        help_text=_("Identifiant de connexion alternatif (optionnel)")
+        required=True,
+        allow_blank=False,
+        help_text=_("Identifiant de connexion (obligatoire)")
     )
     password = serializers.CharField(
         write_only=True,
@@ -486,15 +486,14 @@ class PublicRegistrationSerializer(serializers.Serializer):
         return email_lower
 
     def validate_identifiant(self, value):
-        """Verifie que l'identifiant n'est pas deja utilise."""
+        """Verifie que l'identifiant est fourni et n'est pas deja utilise."""
         from apps.users.models import Role
 
-        if not value:
-            return value
-
-        identifiant = value.strip()
+        identifiant = (value or '').strip()
         if not identifiant:
-            return ''
+            raise serializers.ValidationError(
+                _("L'identifiant est obligatoire.")
+            )
 
         if Role.objects.filter(identifiant__iexact=identifiant).exists():
             raise serializers.ValidationError(

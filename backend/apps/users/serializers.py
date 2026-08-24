@@ -10,6 +10,34 @@ from .models import Role, BibOrganismes, Site, CorRoleSite, CorOgSite
 from apps.plans.models import PlanGestion
 
 
+def _validate_identifiant_unique(identifiant, exclude_pk=None):
+    """
+    Vérifie qu'un identifiant de connexion est renseigné et libre.
+
+    L'identifiant est obligatoire pour tout compte (#656). L'unicité est
+    insensible à la casse et couvre aussi les demandes d'inscription en
+    attente, qui deviendront des comptes à leur validation.
+    """
+    from apps.notifications.models import PendingUser
+
+    identifiant = (identifiant or '').strip()
+    if not identifiant:
+        raise serializers.ValidationError(_("L'identifiant est obligatoire."))
+
+    existants = Role.objects.filter(identifiant__iexact=identifiant)
+    if exclude_pk is not None:
+        existants = existants.exclude(pk=exclude_pk)
+    if existants.exists():
+        raise serializers.ValidationError(_("Cet identifiant est déjà utilisé."))
+
+    if PendingUser.objects.filter(identifiant__iexact=identifiant).exists():
+        raise serializers.ValidationError(
+            _("Une demande d'inscription avec cet identifiant est déjà en attente.")
+        )
+
+    return identifiant
+
+
 class BibOrganismesSerializer(serializers.ModelSerializer):
     """
     Serializer pour les organismes (lecture seule dans le contexte users).
@@ -172,6 +200,12 @@ class RoleCreateSerializer(serializers.ModelSerializer):
     email = serializers.EmailField(
         validators=[UniqueValidator(queryset=Role.objects.all())]
     )
+    identifiant = serializers.CharField(
+        max_length=100,
+        required=True,
+        allow_blank=False,
+        help_text=_("Identifiant de connexion (obligatoire)")
+    )
     uuid_organisme = serializers.SlugRelatedField(
         source='id_organisme',
         slug_field='uuid_organisme',
@@ -187,6 +221,10 @@ class RoleCreateSerializer(serializers.ModelSerializer):
             'uuid_organisme', 'desc_role', 'identifiant', 'remarques',
             'password', 'password_confirm', 'active', 'is_staff'
         ]
+
+    def validate_identifiant(self, value):
+        """L'identifiant est obligatoire et unique (#656)."""
+        return _validate_identifiant_unique(value)
 
     def validate(self, attrs):
         """Validation personnalisée."""
@@ -255,6 +293,11 @@ class RoleUpdateSerializer(serializers.ModelSerializer):
             'nom_role', 'prenom_role', 'role_level', 'uuid_organisme',
             'desc_role', 'identifiant', 'remarques', 'active', 'is_staff'
         ]
+
+    def validate_identifiant(self, value):
+        """Un identifiant déjà posé ne peut pas être vidé ni dupliqué (#656)."""
+        exclude_pk = self.instance.pk if self.instance else None
+        return _validate_identifiant_unique(value, exclude_pk=exclude_pk)
 
     def validate(self, attrs):
         """Validation pour la modification."""

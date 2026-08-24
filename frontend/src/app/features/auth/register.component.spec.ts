@@ -144,6 +144,23 @@ describe('RegisterComponent', () => {
       expect(control?.valid).toBe(true);
     });
 
+    it('should require identifiant', () => {
+      const control = component.registerForm.get('identifiant');
+      control?.setValue('');
+      expect(control?.valid).toBe(false);
+      expect(control?.hasError('required')).toBe(true);
+
+      control?.setValue('j.dupont');
+      expect(control?.valid).toBe(true);
+    });
+
+    it('should limit identifiant to 100 characters', () => {
+      const control = component.registerForm.get('identifiant');
+      control?.setValue('a'.repeat(101));
+      expect(control?.valid).toBe(false);
+      expect(control?.hasError('maxlength')).toBe(true);
+    });
+
     it('should require password', () => {
       const control = component.registerForm.get('password');
       control?.setValue('');
@@ -350,6 +367,7 @@ describe('RegisterComponent', () => {
 
       component.registerForm.patchValue({
         email: 'test@example.com',
+        identifiant: 'jdupont',
         password: 'password123',
         confirmPassword: 'password123',
         nom: 'Dupont',
@@ -363,7 +381,7 @@ describe('RegisterComponent', () => {
 
       expect(httpMock.post).toHaveBeenCalledWith('/api/auth/register/', {
         email: 'test@example.com',
-        identifiant: '',
+        identifiant: 'jdupont',
         password: 'password123',
         password_confirm: 'password123',
         nom_role: 'Dupont',
@@ -376,6 +394,7 @@ describe('RegisterComponent', () => {
     it('should set loading state during submission', fakeAsync(() => {
       component.registerForm.patchValue({
         email: 'test@example.com',
+        identifiant: 'jdupont',
         password: 'password123',
         confirmPassword: 'password123',
         nom: 'Dupont',
@@ -394,6 +413,7 @@ describe('RegisterComponent', () => {
     it('should navigate to registration-pending on success', fakeAsync(() => {
       component.registerForm.patchValue({
         email: 'test@example.com',
+        identifiant: 'jdupont',
         password: 'password123',
         confirmPassword: 'password123',
         nom: 'Dupont',
@@ -412,6 +432,7 @@ describe('RegisterComponent', () => {
 
       component.registerForm.patchValue({
         email: 'test@example.com',
+        identifiant: 'jdupont',
         password: 'password123',
         confirmPassword: 'password123',
         nom: 'Dupont',
@@ -442,6 +463,7 @@ describe('RegisterComponent', () => {
 
       component.registerForm.patchValue({
         email: 'existing@example.com',
+        identifiant: 'jdupont',
         password: 'password123',
         confirmPassword: 'password123',
         nom: 'Dupont',
@@ -463,6 +485,7 @@ describe('RegisterComponent', () => {
 
       component.registerForm.patchValue({
         email: 'test@example.com',
+        identifiant: 'jdupont',
         password: 'password123',
         confirmPassword: 'password123',
         nom: 'Dupont',
@@ -483,6 +506,7 @@ describe('RegisterComponent', () => {
 
       component.registerForm.patchValue({
         email: 'test@example.com',
+        identifiant: 'jdupont',
         password: 'password123',
         confirmPassword: 'password123',
         nom: 'Dupont',
@@ -501,6 +525,7 @@ describe('RegisterComponent', () => {
 
       component.registerForm.patchValue({
         email: 'test@example.com',
+        identifiant: 'jdupont',
         password: 'password123',
         confirmPassword: 'password123',
         nom: 'Dupont',
@@ -540,6 +565,7 @@ describe('RegisterComponent', () => {
       // Fill in the form
       component.registerForm.patchValue({
         email: 'newuser@example.com',
+        identifiant: 's.martin',
         password: 'securePassword123',
         confirmPassword: 'securePassword123',
         nom: 'Martin',
@@ -595,6 +621,7 @@ describe('RegisterComponent', () => {
       component.toggleCreateOrganisme(true);
       component.registerForm.patchValue({
         email: 'new@example.com',
+        identifiant: 'jdupont',
         password: 'password123',
         confirmPassword: 'password123',
         nom: 'Dupont',
