@@ -82,6 +82,12 @@ services:
       - DJANGO_SUPERUSER_PASSWORD=${DJANGO_SUPERUSER_PASSWORD:-admin}
     volumes:
       - ./backend:/app
+      # #646 — La version affichée dans l'administration est lue depuis
+      # version.txt (racine du dépôt) ; sans ce montage le dev affiche 0.0.0.
+      # Monté à la racine du conteneur, et non dans /app : /app est le bind de
+      # ./backend, y créer le point de montage déposerait un fichier vide dans
+      # le dépôt. /version.txt est déjà le premier chemin cherché (backend/..).
+      - ./version.txt:/version.txt:ro
       - media_files:/app/media
       - static_files:/app/static
       - logs_data:/app/logs

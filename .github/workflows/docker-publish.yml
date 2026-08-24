@@ -40,6 +40,9 @@ jobs:
           context: ./backend
           file: ./backend/Dockerfile.prod
           push: true
+          # #646 — la version affichée dans l'administration est celle du tag
+          build-args: |
+            CICADA_VERSION=${{ steps.version.outputs.version }}
           tags: |
             ${{ env.BACKEND_IMAGE }}:${{ steps.version.outputs.version }}
             ${{ env.BACKEND_IMAGE }}:latest

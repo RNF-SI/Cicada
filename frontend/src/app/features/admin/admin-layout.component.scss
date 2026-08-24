@@ -212,6 +212,17 @@
   overflow-y: auto;
 }
 
+// #646 — Version de l'application, en pied de sidebar
+.sidebar-version {
+  flex-shrink: 0;
+  padding: $spacing-sm $spacing-lg;
+  border-top: 1px solid rgba($white, 0.1);
+  color: rgba($white, 0.7);
+  font-family: $font-family;
+  font-size: $font-size-small;
+  letter-spacing: 0.02em;
+}
+
 .nav-item {
   display: flex;
   align-items: center;

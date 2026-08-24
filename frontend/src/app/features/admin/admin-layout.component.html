@@ -68,6 +68,12 @@
         </a>
       }
     </nav>
+
+    <!-- #646 — Version de l'instance, visible depuis n'importe quelle page
+         d'administration (support : savoir sur quelle version on parle). -->
+    @if (appVersion(); as version) {
+      <div class="sidebar-version">CICADA v{{ version }}</div>
+    }
   </aside>
 
   <!-- Main Content -->
