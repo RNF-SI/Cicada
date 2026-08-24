@@ -1004,8 +1004,8 @@ class TestAdminPromotionRequest:
         assert response.status_code == status.HTTP_201_CREATED
         assert 'id' in response.data
 
-    def test_request_admin_promotion_success_by_super_admin(self, admin_client):
-        """Test super_admin can request promotion of any user."""
+    def test_super_admin_promotes_directly(self, admin_client):
+        """#655 — Le super admin promeut sans passer par une demande à valider."""
         client, admin = admin_client
         target_user = RoleFactory()
 
@@ -1014,6 +1014,59 @@ class TestAdminPromotionRequest:
             'justification': 'Needs admin rights',
         })
         assert response.status_code == status.HTTP_201_CREATED
+        assert response.data['applied'] is True
+
+        target_user.refresh_from_db()
+        assert target_user.role_level == 'admin_og'
+
+        vr = ValidationRequest.objects.get(id=response.data['id'])
+        assert vr.status == 'approved'
+        assert vr.validator == admin
+        assert not ValidationRequest.objects.filter(
+            request_type='admin_promotion', status='pending'
+        ).exists()
+
+    def test_super_admin_promotion_does_not_require_justification(self, admin_client):
+        """#655 — Le super admin n'a personne à convaincre : motif facultatif."""
+        client, _admin = admin_client
+        target_user = RoleFactory()
+
+        response = client.post('/api/validations/request_admin_promotion/', {
+            'target_user_id': target_user.id_role,
+        })
+        assert response.status_code == status.HTTP_201_CREATED
+        target_user.refresh_from_db()
+        assert target_user.role_level == 'admin_og'
+
+    def test_super_admin_promotion_notifies_target(self, admin_client):
+        client, _admin = admin_client
+        target_user = RoleFactory()
+
+        client.post('/api/validations/request_admin_promotion/', {
+            'target_user_id': target_user.id_role,
+        })
+        assert Notification.objects.filter(
+            recipient=target_user, notification_type='role_changed'
+        ).exists()
+
+    def test_admin_og_promotion_still_goes_through_a_request(self):
+        """#655 ne change rien pour un admin_og : sa demande reste à valider."""
+        organisme = OrganismeFactory()
+        admin_og = AdminOrganismeFactory(id_organisme=organisme)
+        target_user = RoleFactory(id_organisme=organisme)
+        client = APIClient()
+        client.force_authenticate(user=admin_og)
+
+        response = client.post('/api/validations/request_admin_promotion/', {
+            'target_user_id': target_user.id_role,
+            'justification': 'Deserves promotion',
+        })
+        assert response.status_code == status.HTTP_201_CREATED
+        assert response.data['applied'] is False
+
+        target_user.refresh_from_db()
+        assert target_user.role_level == 'utilisateur'
+        assert ValidationRequest.objects.get(id=response.data['id']).status == 'pending'
 
     def test_request_admin_promotion_forbidden_for_regular_user(self, authenticated_client):
         """Test regular user cannot request promotion."""
@@ -1096,6 +1149,21 @@ class TestAdminPromotionRequest:
 @pytest.mark.integration
 class TestAdminDemotionRequest:
     """Tests for POST /api/validations/request_admin_demotion/ endpoint."""
+
+    def test_super_admin_demotes_directly(self, admin_client):
+        """#655 — Symétrique de la promotion : rétrogradation immédiate."""
+        client, admin = admin_client
+        target_admin = AdminOrganismeFactory()
+
+        response = client.post('/api/validations/request_admin_demotion/', {
+            'target_user_id': target_admin.id_role,
+        })
+        assert response.status_code == status.HTTP_201_CREATED
+        assert response.data['applied'] is True
+
+        target_admin.refresh_from_db()
+        assert target_admin.role_level == 'utilisateur'
+        assert ValidationRequest.objects.get(id=response.data['id']).status == 'approved'
 
     def test_request_admin_demotion_success(self):
         """Test admin_og can request demotion of another admin_og in same org."""

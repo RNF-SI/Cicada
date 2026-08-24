@@ -351,7 +351,9 @@
         "deactivate": "Désactiver",
         "viewAs": "Voir en tant que cet utilisateur",
         "requestPromotion": "Demander la promotion en admin",
-        "requestDemotion": "Demander la rétrogradation"
+        "requestDemotion": "Demander la rétrogradation",
+        "promote": "Promouvoir en administrateur d'organisme",
+        "demote": "Retirer les droits d'administrateur d'organisme"
       },
       "messages": {
         "loading": "Chargement des utilisateurs...",
@@ -1125,21 +1127,27 @@
     "adminRoleChange": {
       "promotion": {
         "title": "Demander la promotion en administrateur",
+        "titleDirect": "Promouvoir en administrateur d'organisme",
         "infoTitle": "Promotion en administrateur",
         "warning": "Cet utilisateur deviendra administrateur de l'organisme et pourra gérer les utilisateurs et les demandes d'accès.",
-        "confirm": "Soumettre la demande"
+        "confirm": "Soumettre la demande",
+        "confirmDirect": "Promouvoir"
       },
       "demotion": {
         "title": "Demander la rétrogradation",
+        "titleDirect": "Retirer les droits d'administrateur d'organisme",
         "infoTitle": "Rétrogradation en utilisateur",
         "warning": "Cet administrateur perdra ses droits de gestion et redeviendra un utilisateur simple.",
-        "confirm": "Soumettre la demande"
+        "confirm": "Soumettre la demande",
+        "confirmDirect": "Rétrograder"
       },
       "superAdminNotice": "Cette demande sera soumise aux super administrateurs pour validation.",
+      "directNotice": "Vous êtes super administrateur : le changement prend effet immédiatement, sans validation.",
       "justification": {
         "label": "Justification",
         "placeholder": "Expliquez pourquoi cette modification de rôle est nécessaire (minimum 10 caractères)...",
-        "hint": "{{count}} / 10 caractères minimum"
+        "hint": "{{count}} / 10 caractères minimum",
+        "hintOptional": "Facultatif — conservé dans l'historique des changements de rôle."
       },
       "validation": {
         "minLength": "Veuillez fournir une justification d'au moins 10 caractères"
@@ -1147,6 +1155,8 @@
       "messages": {
         "promotionSuccess": "Demande de promotion soumise avec succès",
         "demotionSuccess": "Demande de rétrogradation soumise avec succès",
+        "promotionApplied": "{{name}} est maintenant administrateur d'organisme",
+        "demotionApplied": "{{name}} n'est plus administrateur d'organisme",
         "error": "Erreur lors de la soumission de la demande"
       }
     },

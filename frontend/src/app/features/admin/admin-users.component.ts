@@ -594,72 +594,70 @@ export class AdminUsersComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Open modal to request admin promotion
+   * Promotion en admin_og. Un super administrateur applique le changement
+   * directement (#655) : il est le validateur final, il n'a personne à qui
+   * adresser une demande. Un admin_og, lui, dépose une demande.
    */
   requestAdminPromotion(user: DisplayUser): void {
-    const dialogRef = this.dialog.open(AdminRoleChangeModalComponent, {
-      width: '500px',
-      data: {
-        type: 'promotion',
-        userName: `${user.prenom} ${user.nom}`.trim() || user.email,
-        userEmail: user.email
-      }
-    });
-
-    dialogRef.afterClosed().subscribe((result: AdminRoleChangeModalResult) => {
-      if (result?.confirmed && result.justification) {
-        this.validationService.requestAdminPromotion(user.id, result.justification).subscribe({
-          next: () => {
-            this.snackBar.open(
-              this.translate.instant('modals.adminRoleChange.messages.promotionSuccess'),
-              this.translate.instant('common.actions.close'),
-              { duration: 5000 }
-            );
-          },
-          error: (error: { error?: { error?: string } }) => {
-            this.snackBar.open(
-              error.error?.error || this.translate.instant('modals.adminRoleChange.messages.error'),
-              this.translate.instant('common.actions.close'),
-              { duration: 5000 }
-            );
-          }
-        });
-      }
-    });
+    this.openRoleChangeModal(user, 'promotion');
   }
 
   /**
-   * Open modal to request admin demotion
+   * Rétrogradation d'un admin_og. Même règle que la promotion (#655).
    */
   requestAdminDemotion(user: DisplayUser): void {
+    this.openRoleChangeModal(user, 'demotion');
+  }
+
+  private openRoleChangeModal(user: DisplayUser, type: 'promotion' | 'demotion'): void {
+    const direct = this.isSuperAdmin();
+    const userName = `${user.prenom} ${user.nom}`.trim() || user.email;
+
     const dialogRef = this.dialog.open(AdminRoleChangeModalComponent, {
       width: '500px',
       data: {
-        type: 'demotion',
-        userName: `${user.prenom} ${user.nom}`.trim() || user.email,
-        userEmail: user.email
+        type,
+        userName,
+        userEmail: user.email,
+        direct,
       }
     });
 
     dialogRef.afterClosed().subscribe((result: AdminRoleChangeModalResult) => {
-      if (result?.confirmed && result.justification) {
-        this.validationService.requestAdminDemotion(user.id, result.justification).subscribe({
-          next: () => {
-            this.snackBar.open(
-              this.translate.instant('modals.adminRoleChange.messages.demotionSuccess'),
-              this.translate.instant('common.actions.close'),
-              { duration: 5000 }
-            );
-          },
-          error: (error: { error?: { error?: string } }) => {
-            this.snackBar.open(
-              error.error?.error || this.translate.instant('modals.adminRoleChange.messages.error'),
-              this.translate.instant('common.actions.close'),
-              { duration: 5000 }
-            );
-          }
-        });
+      // En mode « demande », la justification est obligatoire ; en direct elle
+      // est facultative et le modal peut renvoyer une chaîne vide.
+      if (!result?.confirmed || (!direct && !result.justification)) {
+        return;
       }
+
+      const justification = result.justification ?? '';
+      const call = type === 'promotion'
+        ? this.validationService.requestAdminPromotion(user.id, justification)
+        : this.validationService.requestAdminDemotion(user.id, justification);
+
+      call.subscribe({
+        next: () => {
+          const key = direct
+            ? (type === 'promotion' ? 'promotionApplied' : 'demotionApplied')
+            : (type === 'promotion' ? 'promotionSuccess' : 'demotionSuccess');
+          this.snackBar.open(
+            this.translate.instant(`modals.adminRoleChange.messages.${key}`, { name: userName }),
+            this.translate.instant('common.actions.close'),
+            { duration: 5000 }
+          );
+          // Le rôle a changé en base : la ligne du tableau doit suivre.
+          if (direct) {
+            this.loadUsers();
+          }
+        },
+        error: (error: { error?: { error?: string } }) => {
+          this.snackBar.open(
+            error.error?.error || this.translate.instant('modals.adminRoleChange.messages.error'),
+            this.translate.instant('common.actions.close'),
+            { duration: 5000 }
+          );
+        }
+      });
     });
   }
 }

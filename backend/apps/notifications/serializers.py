@@ -650,24 +650,36 @@ class AdminDeactivationRequestSerializer(serializers.Serializer):
     )
 
 
-class AdminPromotionRequestSerializer(serializers.Serializer):
+class AdminRoleChangeRequestSerializer(serializers.Serializer):
+    """Base des demandes de changement de rôle admin_og.
+
+    La justification est destinée au super administrateur qui validera la
+    demande. Quand c'est le super administrateur lui-même qui agit (#655), il
+    n'a personne à convaincre : le champ devient facultatif. Le contexte
+    ``is_super_admin`` est posé par la vue.
+    """
+
+    justification = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        max_length=2000,
+        help_text=_("Motif de la demande (obligatoire, sauf action directe d'un super administrateur)")
+    )
+
+    def validate(self, data):
+        if not self.context.get('is_super_admin') and not (data.get('justification') or '').strip():
+            raise serializers.ValidationError(
+                {'justification': _("Ce champ est obligatoire.")}
+            )
+        return data
+
+
+class AdminPromotionRequestSerializer(AdminRoleChangeRequestSerializer):
     """Serializer pour demander la promotion d'un utilisateur en admin_og."""
 
-    justification = serializers.CharField(
-        required=True,
-        max_length=2000,
-        help_text=_("Motif de la demande (obligatoire)")
-    )
 
-
-class AdminDemotionRequestSerializer(serializers.Serializer):
+class AdminDemotionRequestSerializer(AdminRoleChangeRequestSerializer):
     """Serializer pour demander la retrogradation d'un admin_og en utilisateur."""
-
-    justification = serializers.CharField(
-        required=True,
-        max_length=2000,
-        help_text=_("Motif de la demande (obligatoire)")
-    )
 
 
 class ModuleAccessRequestSerializer(serializers.Serializer):

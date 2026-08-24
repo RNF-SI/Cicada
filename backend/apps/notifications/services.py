@@ -2051,6 +2051,78 @@ class ValidationService:
         NotificationService.notify_other_validators(validation_request, validator, approved=True)
 
     @staticmethod
+    def apply_admin_role_change(target_user, actor, promote, comment=None):
+        """
+        Applique **directement** un changement de rôle admin_og (#655).
+
+        Un super administrateur est le validateur final de ce type de demande :
+        lui faire déposer une demande qu'il ira ensuite approuver lui-même est un
+        aller-retour sans destinataire. On applique donc le changement tout de
+        suite, en conservant la trace sous forme de ``ValidationRequest`` déjà
+        approuvée (l'historique des changements de rôle reste consultable au
+        même endroit que les demandes ordinaires).
+
+        Args:
+            target_user: Role dont le niveau change.
+            actor: Role qui agit (doit être super_admin).
+            promote: True pour promouvoir en admin_og, False pour rétrograder.
+            comment: Motif optionnel.
+
+        Returns:
+            La ``ValidationRequest`` approuvée qui trace l'opération.
+        """
+        from .models import ValidationRequest
+
+        if not actor.is_super_admin():
+            raise ValueError("Seul un super administrateur peut modifier un rôle directement")
+
+        expected = 'utilisateur' if promote else 'admin_og'
+        if target_user.role_level != expected:
+            raise ValueError(
+                "Cet utilisateur n'est pas un utilisateur simple"
+                if promote else "Cet utilisateur n'est pas un admin_og"
+            )
+
+        validation_request = ValidationRequest.objects.create(
+            request_type='admin_promotion' if promote else 'admin_demotion',
+            status='pending',
+            requester=actor,
+            target_user=target_user,
+            requested_organisme=target_user.id_organisme,
+            justification=comment or '',
+        )
+
+        target_user.role_level = 'admin_og' if promote else 'utilisateur'
+        target_user.save(update_fields=['role_level'])
+
+        validation_request.approve(actor, comment)
+
+        actor_name = f"{actor.prenom_role or ''} {actor.nom_role or ''}".strip() or actor.email
+        if promote:
+            title = "Vous êtes maintenant administrateur"
+            message = (
+                f"{actor_name} vous a promu administrateur de votre organisme."
+            )
+        else:
+            title = "Changement de rôle"
+            message = (
+                f"{actor_name} vous a retiré vos droits d'administrateur d'organisme."
+            )
+
+        NotificationService.create_notification(
+            recipient=target_user,
+            notification_type='role_changed',
+            title=title,
+            message=message,
+            priority='high',
+            related_user=actor,
+            related_validation=validation_request,
+            send_email=True
+        )
+
+        return validation_request
+
+    @staticmethod
     def approve_admin_promotion(validation_request, validator, comment=None):
         """
         Approuve une demande de promotion d'un utilisateur en admin_og.

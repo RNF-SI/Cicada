@@ -843,11 +843,14 @@ class ValidationRequestViewSet(viewsets.ModelViewSet):
         Demande la promotion d'un utilisateur en admin_og.
         Seuls les super_admin peuvent valider cette demande.
         """
-        serializer = AdminPromotionRequestSerializer(data=request.data)
+        serializer = AdminPromotionRequestSerializer(
+            data=request.data,
+            context={'is_super_admin': request.user.is_super_admin()},
+        )
         serializer.is_valid(raise_exception=True)
 
         target_user_id = request.data.get('target_user_id')
-        justification = serializer.validated_data['justification']
+        justification = serializer.validated_data.get('justification', '')
 
         if not target_user_id:
             return Response(
@@ -900,6 +903,19 @@ class ValidationRequestViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
+        # #655 — Un super admin est le validateur final de ce type de demande :
+        # il promeut directement, sans passer par une demande qu'il approuverait
+        # lui-meme. La trace reste une ValidationRequest deja approuvee.
+        if request.user.is_super_admin():
+            validation_request = ValidationService.apply_admin_role_change(
+                target_user, request.user, promote=True, comment=justification
+            )
+            return Response({
+                'id': validation_request.id,
+                'applied': True,
+                'message': f'{target_user} est maintenant administrateur d\'organisme.',
+            }, status=status.HTTP_201_CREATED)
+
         # Creer la demande
         validation_request = ValidationRequest.objects.create(
             request_type='admin_promotion',
@@ -915,6 +931,7 @@ class ValidationRequestViewSet(viewsets.ModelViewSet):
 
         return Response({
             'id': validation_request.id,
+            'applied': False,
             'message': 'Votre demande de promotion a ete soumise aux super administrateurs.',
         }, status=status.HTTP_201_CREATED)
 
@@ -925,11 +942,14 @@ class ValidationRequestViewSet(viewsets.ModelViewSet):
         Demande la retrogradation d'un admin_og en utilisateur simple.
         Seuls les super_admin peuvent valider cette demande.
         """
-        serializer = AdminDemotionRequestSerializer(data=request.data)
+        serializer = AdminDemotionRequestSerializer(
+            data=request.data,
+            context={'is_super_admin': request.user.is_super_admin()},
+        )
         serializer.is_valid(raise_exception=True)
 
         target_user_id = request.data.get('target_user_id')
-        justification = serializer.validated_data['justification']
+        justification = serializer.validated_data.get('justification', '')
 
         if not target_user_id:
             return Response(
@@ -982,6 +1002,17 @@ class ValidationRequestViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
+        # #655 — Symetrique de la promotion : un super admin retrograde directement.
+        if request.user.is_super_admin():
+            validation_request = ValidationService.apply_admin_role_change(
+                target_user, request.user, promote=False, comment=justification
+            )
+            return Response({
+                'id': validation_request.id,
+                'applied': True,
+                'message': f'{target_user} n\'est plus administrateur d\'organisme.',
+            }, status=status.HTTP_201_CREATED)
+
         # Creer la demande
         validation_request = ValidationRequest.objects.create(
             request_type='admin_demotion',
@@ -997,6 +1028,7 @@ class ValidationRequestViewSet(viewsets.ModelViewSet):
 
         return Response({
             'id': validation_request.id,
+            'applied': False,
             'message': 'Votre demande de retrogradation a ete soumise aux super administrateurs.',
         }, status=status.HTTP_201_CREATED)
 
