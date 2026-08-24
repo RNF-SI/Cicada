@@ -77,6 +77,7 @@
       "passwordMismatch": "Les mots de passe ne correspondent pas"
     },
     "pagination": {
+      "label": "Pagination",
       "showing": "{{count}} sur {{total}}",
       "noItems": "Aucun élément",
       "previous": "Page précédente",
