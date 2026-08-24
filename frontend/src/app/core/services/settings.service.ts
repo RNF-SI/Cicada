@@ -29,6 +29,14 @@ export interface SiteConfiguration {
    * qu'une mise à jour ne doit pas prendre à sa place.
    */
   federation_partage: boolean;
+  /**
+   * #645 — API ouverte des métadonnées des plans, pour une application tierce
+   * de gestion documentaire (DOCenCEN côté CEN).
+   *
+   * Faux par défaut : ouvrir un endpoint sans authentification est une décision
+   * de la structure, pas un effet de bord d'une mise à jour.
+   */
+  api_publique_plans: boolean;
   updated_at: string;
   updated_by: number | null;
   updated_by_name: string | null;
@@ -100,6 +108,11 @@ export class SettingsService {
     return this.configSignal()?.federation_partage === true;
   }
 
+  /** #645 — Cette instance expose-t-elle ses métadonnées de plans en API ouverte ? */
+  apiPubliquePlansActive(): boolean {
+    return this.configSignal()?.api_publique_plans === true;
+  }
+
   /** #448 — URL du logo de la structure (null si non défini). */
   getStructureLogoUrl(): string | null {
     return this.configSignal()?.structure_logo_url || null;
@@ -140,6 +153,7 @@ export class SettingsService {
           structure_logo_url: null,
           enable_docgestion_fcen: false,
           federation_partage: false,
+          api_publique_plans: false,
           updated_at: '',
           updated_by: null,
           updated_by_name: null

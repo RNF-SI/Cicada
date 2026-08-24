@@ -404,6 +404,25 @@ class SiteConfiguration(models.Model):
             "de cette instance."
         )
     )
+    # #645 — API ouverte des métadonnées des plans, pour une application tierce
+    # de gestion documentaire (DOCenCEN côté CEN).
+    #
+    # Par défaut **coupée**, comme `federation_partage` : ouvrir un endpoint
+    # sans authentification est une décision de la structure qui déploie
+    # l'instance, pas un effet de bord d'une mise à jour. Les métadonnées
+    # exposées (nom, période, rédacteurs, dates de validation) ne sont pas
+    # sensibles, mais leur publication reste un choix.
+    api_publique_plans = models.BooleanField(
+        _("API publique des métadonnées des plans"),
+        default=False,
+        help_text=_(
+            "Ouvre une API en lecture seule et sans authentification exposant "
+            "les métadonnées des plans de gestion (hors brouillons) : nom, "
+            "période, rang, rédacteurs, dates de validation, sites. Le contenu "
+            "des plans n'est jamais exposé. Destinée aux applications tierces "
+            "de gestion documentaire."
+        )
+    )
     updated_at = models.DateTimeField(
         _('Mis à jour le'),
         auto_now=True

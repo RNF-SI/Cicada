@@ -297,6 +297,56 @@
     ></app-checkbox>
   </section>
 
+  <!-- #645 — API ouverte des métadonnées des plans, pour une application tierce
+       de gestion documentaire. Section à part, comme la fédération : ouvrir un
+       endpoint sans authentification n'est pas un réglage d'affichage. -->
+  <section class="settings-section">
+    <div class="section-header">
+      <h2 class="section-title">
+        <i class="fi fi-rr-link-alt"></i>
+        {{ 'admin.settings.apiPublique.title' | translate }}
+      </h2>
+      <p class="section-description">
+        {{ 'admin.settings.apiPublique.description' | translate }}
+      </p>
+    </div>
+
+    <div class="info-block info-block-success federation-perimetre">
+      <p class="text-bold">{{ 'admin.settings.apiPublique.exposeTitre' | translate }}</p>
+      <ul class="list-bullets">
+        <li>{{ 'admin.settings.apiPublique.expose1' | translate }}</li>
+        <li>{{ 'admin.settings.apiPublique.expose2' | translate }}</li>
+        <li>{{ 'admin.settings.apiPublique.expose3' | translate }}</li>
+      </ul>
+    </div>
+
+    <div class="info-block info-block-warning federation-perimetre">
+      <p class="text-bold">{{ 'admin.settings.apiPublique.exclusTitre' | translate }}</p>
+      <ul class="list-bullets">
+        <li>{{ 'admin.settings.apiPublique.exclus1' | translate }}</li>
+        <li>{{ 'admin.settings.apiPublique.exclus2' | translate }}</li>
+      </ul>
+    </div>
+
+    <app-checkbox
+      [checked]="apiPubliquePlans()"
+      (checkedChange)="onApiPubliquePlansToggle($event)"
+      [disabled]="isSaving()"
+      [label]="'admin.settings.apiPublique.activer' | translate"
+      [mention]="'admin.settings.apiPublique.activerHint' | translate"
+    ></app-checkbox>
+
+    @if (apiPubliquePlans()) {
+      <p class="text-mention federation-consequence">
+        {{ 'admin.settings.apiPublique.endpoint' | translate }}
+      </p>
+    } @else {
+      <p class="text-mention federation-consequence">
+        {{ 'admin.settings.apiPublique.consequenceFermee' | translate }}
+      </p>
+    }
+  </section>
+
   <!-- #636 — Participation à l'exploration nationale.
        Une section à part, et non une case de plus parmi les paramètres
        d'instance : c'est un engagement de la structure sur ses données, pas un

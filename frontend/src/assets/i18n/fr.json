@@ -766,6 +766,25 @@
           "active": "Partage activé. Vos plans validés seront publiés à la prochaine synchronisation, et l'exploration portera sur toutes les structures.",
           "desactive": "Partage désactivé. Plus rien ne sera publié, et l'exploration ne portera que sur vos plans. Les données déjà publiées restent en ligne jusqu'à leur retrait explicite."
         }
+      },
+      "apiPublique": {
+        "title": "API publique des métadonnées des plans",
+        "description": "Ouvre une API en lecture seule, sans authentification, pour qu'une application tierce de gestion documentaire récupère régulièrement les métadonnées des plans de gestion de cette instance. Chaque plan y porte un identifiant stable qui ne change jamais, même s'il est renommé.",
+        "exposeTitre": "Ce qui est exposé",
+        "expose1": "L'identifiant unique du plan, sa référence « cicada:<instance>:<identifiant> » et son adresse dans CICADA.",
+        "expose2": "Les métadonnées saisies à la création : nom, rang, période, surface, rédacteurs, relecteurs, commentaire et identifiants d'autres outils.",
+        "expose3": "Le statut, les dates de validation (avis CSRPN, comité, arrêté préfectoral) et les sites rattachés.",
+        "exclusTitre": "Ce qui n'est jamais exposé",
+        "exclus1": "Le contenu des plans : enjeux, objectifs, indicateurs, actions, budgets, ressources humaines et suivi.",
+        "exclus2": "Les plans en brouillon, qui sont encore en cours de rédaction.",
+        "activer": "Ouvrir l'API publique des métadonnées",
+        "activerHint": "Décochez à tout moment pour refermer l'accès : les identifiants déjà transmis restent valables.",
+        "endpoint": "L'API répond sur /api/public/plans/ — liste paginée, filtres « modifie_depuis », « statut », « id_inpn » et « rang », et détail d'un plan par son identifiant unique.",
+        "consequenceFermee": "L'API est fermée : toute requête reçoit une réponse « introuvable ».",
+        "messages": {
+          "active": "API publique ouverte. Les métadonnées des plans validés, modifiés et terminés sont désormais accessibles sur /api/public/plans/.",
+          "desactive": "API publique fermée. Les applications tierces n'ont plus accès aux métadonnées des plans."
+        }
       }
     },
     "update": {

@@ -53,6 +53,8 @@ export class AdminSettingsComponent implements OnInit {
   readonly docGestionFcenEnabled = signal<boolean>(false);
   /** #636 — Participation à l'exploration nationale. Faux par défaut. */
   readonly federationPartage = signal<boolean>(false);
+  /** #645 — API ouverte des métadonnées des plans (GED tierce). Faux par défaut. */
+  readonly apiPubliquePlans = signal<boolean>(false);
 
   // #448 — Personnalisation : couleur du bandeau + logo structure.
   // Bandeau blanc par défaut (comportement historique).
@@ -98,6 +100,8 @@ export class AdminSettingsComponent implements OnInit {
       this.docGestionFcenEnabled.set(config?.enable_docgestion_fcen === true);
       // #636 — L'absence de valeur ne vaut pas consentement.
       this.federationPartage.set(config?.federation_partage === true);
+      // #645 — Idem pour l'ouverture de l'API publique des métadonnées.
+      this.apiPubliquePlans.set(config?.api_publique_plans === true);
     });
   }
 
@@ -289,6 +293,43 @@ export class AdminSettingsComponent implements OnInit {
       error: () => {
         this.isSaving.set(false);
         this.federationPartage.set(!enabled);
+        this.snackBar.open(
+          this.translate.instant('admin.settings.messages.error'),
+          this.translate.instant('common.actions.close'),
+          { duration: 3000 },
+        );
+      },
+    });
+  }
+
+  /**
+   * Ouvre ou ferme l'API publique des métadonnées des plans (#645).
+   *
+   * Fermer l'API ne retire rien de ce qu'une application tierce a déjà
+   * enregistré de son côté : les identifiants restent valables, seul l'accès
+   * cesse. C'est ce qui rend le geste réversible sans dégât.
+   */
+  onApiPubliquePlansToggle(enabled: boolean): void {
+    this.apiPubliquePlans.set(enabled);
+    this.isSaving.set(true);
+    const formData = new FormData();
+    formData.append('api_publique_plans', String(enabled));
+    this.settingsService.updateSettings(formData).subscribe({
+      next: () => {
+        this.isSaving.set(false);
+        this.snackBar.open(
+          this.translate.instant(
+            enabled
+              ? 'admin.settings.apiPublique.messages.active'
+              : 'admin.settings.apiPublique.messages.desactive',
+          ),
+          this.translate.instant('common.actions.close'),
+          { duration: 6000 },
+        );
+      },
+      error: () => {
+        this.isSaving.set(false);
+        this.apiPubliquePlans.set(!enabled);
         this.snackBar.open(
           this.translate.instant('admin.settings.messages.error'),
           this.translate.instant('common.actions.close'),
