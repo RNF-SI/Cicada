@@ -635,6 +635,12 @@
       "warnings": {
         "checkDuplicateSite": "Avant d'approuver, assurez-vous que ce site n'existe pas déjà dans l'application pour éviter les doublons.",
         "blockedByOrgLink": "Une demande de lien organisme-site est en attente pour ce site. Veuillez l'approuver en premier."
+      },
+      "organismeAdmins": {
+        "newOrganisme": "Nouvel organisme : il n'a encore aucun administrateur",
+        "none": "Cet organisme n'a aucun administrateur",
+        "some": "Cet organisme a déjà {{count}} administrateur(s)",
+        "noneHint": "Pensez à promouvoir ce compte en administrateur d'organisme après l'avoir accepté."
       }
     },
     "modules": {

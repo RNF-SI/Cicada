@@ -611,3 +611,102 @@ class TestValidationPlanAccessRequest:
             'justification': 'Second request'
         })
         assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+
+# =============================================================================
+# #653 — CONTEXTE « ADMINISTRATEURS DE L'ORGANISME » À L'ACCEPTATION D'UN COMPTE
+# =============================================================================
+
+@pytest.mark.django_db
+@pytest.mark.integration
+class TestRegistrationOrganismeAdminsContext:
+    """Le validateur d'une inscription doit savoir si l'organisme a déjà un admin_og (#653)."""
+
+    def _registration(self, organisme=None):
+        return ValidationRequest.objects.create(
+            request_type='user_registration',
+            status='pending',
+            requester=None,
+            requested_organisme=organisme,
+        )
+
+    def test_detail_lists_existing_admins(self, admin_client):
+        client, _admin = admin_client
+        organisme = OrganismeFactory()
+        admin_og = AdminOrganismeFactory(id_organisme=organisme, nom_role='Dupont', prenom_role='Marie')
+        vr = self._registration(organisme)
+
+        response = client.get(f'/api/validations/{vr.id}/')
+        assert response.status_code == status.HTTP_200_OK
+        ctx = response.data['organisme_admins']
+        assert ctx['is_new_organisme'] is False
+        assert ctx['count'] == 1
+        assert ctx['admins'][0]['id'] == admin_og.id_role
+        assert ctx['admins'][0]['nom_complet'] == 'Marie Dupont'
+
+    def test_detail_reports_organisme_without_admin(self, admin_client):
+        client, _admin = admin_client
+        organisme = OrganismeFactory()
+        RoleFactory(id_organisme=organisme)  # simple utilisateur : pas un admin_og
+        vr = self._registration(organisme)
+
+        response = client.get(f'/api/validations/{vr.id}/')
+        assert response.data['organisme_admins']['count'] == 0
+        assert response.data['organisme_admins']['admins'] == []
+
+    def test_inactive_admin_is_not_counted(self, admin_client):
+        client, _admin = admin_client
+        organisme = OrganismeFactory()
+        AdminOrganismeFactory(id_organisme=organisme, active=False)
+        vr = self._registration(organisme)
+
+        assert client.get(f'/api/validations/{vr.id}/').data['organisme_admins']['count'] == 0
+
+    def test_new_organisme_is_flagged(self, admin_client):
+        client, _admin = admin_client
+        vr = self._registration(None)
+        ValidationRequest.objects.create(
+            request_type='organisme_creation',
+            status='pending',
+            requester=None,
+            requested_data={'nom_organisme': 'CEN Nouvelle-Aquitaine'},
+            related_request=vr,
+        )
+
+        ctx = client.get(f'/api/validations/{vr.id}/').data['organisme_admins']
+        assert ctx['is_new_organisme'] is True
+        assert ctx['count'] == 0
+
+    def test_other_request_types_have_no_context(self, admin_client):
+        client, _admin = admin_client
+        site = SiteFactory()
+        vr = ValidationRequest.objects.create(
+            request_type='site_access',
+            status='pending',
+            requester=RoleFactory(),
+            target_site=site,
+        )
+
+        assert client.get(f'/api/validations/{vr.id}/').data['organisme_admins'] is None
+
+    def test_super_admin_is_not_notified_when_organisme_has_an_admin(self):
+        """La notification d'inscription ne remonte au super admin que faute d'admin_og (#653)."""
+        from apps.notifications.services import ValidationService
+
+        organisme = OrganismeFactory()
+        admin_og = AdminOrganismeFactory(id_organisme=organisme)
+        super_admin = SuperAdminFactory()
+        vr = self._registration(organisme)
+
+        validators = ValidationService.get_validators_for_request(vr)
+        assert admin_og in validators
+        assert super_admin not in validators
+
+    def test_super_admin_is_notified_when_organisme_has_no_admin(self):
+        from apps.notifications.services import ValidationService
+
+        organisme = OrganismeFactory()
+        super_admin = SuperAdminFactory()
+        vr = self._registration(organisme)
+
+        assert super_admin in ValidationService.get_validators_for_request(vr)

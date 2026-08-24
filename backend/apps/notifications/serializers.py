@@ -116,6 +116,7 @@ class ValidationRequestSerializer(serializers.ModelSerializer):
     pending_user_info = serializers.SerializerMethodField()
     can_validate = serializers.SerializerMethodField()
     blocked_by_org_link = serializers.SerializerMethodField()
+    organisme_admins = serializers.SerializerMethodField()
 
     class Meta:
         model = ValidationRequest
@@ -140,6 +141,7 @@ class ValidationRequestSerializer(serializers.ModelSerializer):
             'pending_user_info',
             'can_validate',
             'blocked_by_org_link',
+            'organisme_admins',
             'request_as_referent',
             'created_at',
             'updated_at',
@@ -172,6 +174,70 @@ class ValidationRequestSerializer(serializers.ModelSerializer):
                     'created_at': obj.created_at.isoformat() if obj.created_at else None,
                 }
         return None
+
+    def get_organisme_admins(self, obj):
+        """Contexte « administrateurs de l'organisme » pour une inscription (#653).
+
+        Un validateur (souvent le super admin) doit savoir, au moment d'accepter
+        un compte, si l'organisme demandé a déjà un administrateur : sans cette
+        information il ne peut pas décider s'il faut promouvoir ce compte en
+        `admin_og`. Retourne ``None`` pour les types de demandes où la question
+        ne se pose pas.
+
+        - ``is_new_organisme`` : l'organisme n'existe pas encore (demande de
+          création liée, ou demande ``organisme_creation``) — il n'aura donc
+          aucun administrateur tant qu'un compte n'aura pas été promu.
+        """
+        if obj.request_type not in ('user_registration', 'organisme_creation'):
+            return None
+
+        organisme = obj.requested_organisme
+        if organisme is None and obj.request_type == 'user_registration':
+            # Inscription avec création d'organisme : l'organisme est porté par
+            # la demande liée tant qu'elle n'est pas approuvée.
+            has_pending_org = obj.linked_requests.filter(
+                request_type='organisme_creation'
+            ).exists()
+            if not has_pending_org:
+                return None
+            return {
+                'organisme': None,
+                'is_new_organisme': True,
+                'count': 0,
+                'admins': [],
+            }
+
+        if organisme is None:
+            # Demande organisme_creation : l'organisme reste à créer.
+            requested = obj.requested_data or {}
+            return {
+                'organisme': requested.get('nom_organisme'),
+                'is_new_organisme': True,
+                'count': 0,
+                'admins': [],
+            }
+
+        from apps.users.models import Role as RoleModel
+
+        admins = RoleModel.objects.filter(
+            id_organisme=organisme,
+            role_level='admin_og',
+            active=True,
+        ).order_by('nom_role', 'prenom_role')
+
+        return {
+            'organisme': organisme.nom_organisme,
+            'is_new_organisme': False,
+            'count': admins.count(),
+            'admins': [
+                {
+                    'id': a.id_role,
+                    'nom_complet': f"{a.prenom_role or ''} {a.nom_role or ''}".strip() or a.email,
+                    'email': a.email,
+                }
+                for a in admins
+            ],
+        }
 
     def get_can_validate(self, obj):
         """Indique si l'utilisateur courant peut valider cette demande."""
