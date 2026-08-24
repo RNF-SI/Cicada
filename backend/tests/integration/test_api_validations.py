@@ -593,6 +593,69 @@ class TestValidationPlanAccessRequest:
         })
         assert response.status_code == status.HTTP_400_BAD_REQUEST
 
+    def test_admin_og_of_the_plan_organisme_cannot_request_access(self):
+        """#657 — Un admin_og gère déjà les plans des sites de son organisme."""
+        organisme = OrganismeFactory()
+        admin_og = AdminOrganismeFactory(id_organisme=organisme)
+        site = SiteFactory()
+        CorOgSiteFactory(id_site=site, uuid_og=organisme)
+        plan = PlanGestionFactory(statut='valide', sites=[site])
+
+        client = APIClient()
+        client.force_authenticate(user=admin_og)
+        response = client.post('/api/validations/request_plan_access/', {
+            'plan_id': plan.id_pg,
+        })
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert not ValidationRequest.objects.filter(
+            request_type='plan_access', target_plan=plan
+        ).exists()
+
+    def test_admin_og_can_still_request_access_to_a_plan_outside_his_organisme(self):
+        """#657 ne ferme que le périmètre de l'organisme, pas les autres plans."""
+        admin_og = AdminOrganismeFactory(id_organisme=OrganismeFactory())
+        site = SiteFactory()
+        CorOgSiteFactory(id_site=site, uuid_og=OrganismeFactory())
+        plan = PlanGestionFactory(statut='valide', sites=[site])
+
+        client = APIClient()
+        client.force_authenticate(user=admin_og)
+        response = client.post('/api/validations/request_plan_access/', {
+            'plan_id': plan.id_pg,
+            'justification': 'Besoin de consulter ce plan',
+        })
+
+        assert response.status_code == status.HTTP_201_CREATED
+
+    def test_super_admin_cannot_request_plan_access(self, admin_client):
+        """#657 — Le super admin voit tous les plans : rien à demander."""
+        client, _admin = admin_client
+        plan = PlanGestionFactory(statut='valide', sites=[SiteFactory()])
+
+        response = client.post('/api/validations/request_plan_access/', {
+            'plan_id': plan.id_pg,
+        })
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+    def test_simple_user_linked_to_a_site_can_still_request_access(self):
+        """Un utilisateur simple lié à un site du plan garde le droit de demander."""
+        organisme = OrganismeFactory()
+        user = RoleFactory(id_organisme=organisme)
+        site = SiteFactory()
+        CorOgSiteFactory(id_site=site, uuid_og=organisme)
+        CorRoleSiteFactory(id_role=user, id_site=site)
+        plan = PlanGestionFactory(statut='valide', sites=[site])
+
+        client = APIClient()
+        client.force_authenticate(user=user)
+        response = client.post('/api/validations/request_plan_access/', {
+            'plan_id': plan.id_pg,
+            'justification': 'Je souhaite devenir référent',
+        })
+
+        assert response.status_code == status.HTTP_201_CREATED
+
     def test_request_plan_access_duplicate_pending(self, authenticated_client):
         """Test error when a pending request already exists."""
         client, user = authenticated_client

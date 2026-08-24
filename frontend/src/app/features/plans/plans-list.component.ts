@@ -113,6 +113,15 @@ export class PlansListComponent implements OnInit {
   // Afficher le toggle si admin_og, redacteur_principal ou super_admin
   readonly showScopeToggle = computed(() => this.isAdminOrganisme() || this.isSuperAdmin());
 
+  /**
+   * Gestionnaire : super admin, rédacteur principal ou admin d'organisme. Ces
+   * comptes ont déjà accès aux plans de leur périmètre — leur proposer d'en
+   * « demander l'accès » n'a pas de destinataire (#657).
+   */
+  readonly hasOrgWidePlanAccess = computed(
+    () => this.isSuperAdmin() || this.isRedacteurPrincipal() || this.isAdminOrganisme()
+  );
+
   // Filtre par statut pour "Mes plans" (#635, remplace les onglets actifs/inactifs).
   // Chips multi-sélection ; par défaut on masque les plans archivés (terminés).
   readonly statusOptions = PLAN_STATUS_OPTIONS;
@@ -240,6 +249,8 @@ export class PlansListComponent implements OnInit {
   });
 
   readonly otherPlans = computed(() => {
+    // #657 — Un gestionnaire a déjà accès aux plans de son organisme.
+    if (this.hasOrgWidePlanAccess()) return [];
     const search = this.searchQuery().toLowerCase();
     return this.allPlans()
       .filter(p => p.isOrgPlan)

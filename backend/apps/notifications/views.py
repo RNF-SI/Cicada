@@ -595,6 +595,16 @@ class ValidationRequestViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_404_NOT_FOUND
             )
 
+        # #657 — Un gestionnaire (super admin, redacteur principal, admin d'un
+        # organisme du plan) a deja la main sur ce plan : la demande d'acces
+        # n'aurait aucun destinataire, et l'acces est deja acquis.
+        from apps.plans.access import user_manages_plan
+        if user_manages_plan(request.user, plan):
+            return Response(
+                {'error': "Vous gérez déjà ce plan de gestion : aucune demande d'accès n'est nécessaire."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
         # Verifier que l'utilisateur n'est pas deja referent
         if plan.referents.filter(id_role=request.user.id_role).exists():
             return Response(
