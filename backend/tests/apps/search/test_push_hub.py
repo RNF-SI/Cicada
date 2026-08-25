@@ -16,6 +16,7 @@ from rest_framework.test import APIClient
 from apps.search.indexing import index_plan
 from apps.search.push import charge_utile, plans_a_publier
 from apps.search.serializers import prefetch_sites
+from apps.search.tasks import publier_vers_le_hub
 from tests.factories import (
     EnjeuFactory, PlanGestionFactory, SiteFactory, UserFactory,
 )
@@ -364,3 +365,76 @@ class TestRelais:
 
         url, = appel.call_args[0]
         assert url == 'http://hub:8000/api/exploration/plans/cen:vercors/'
+
+
+class TestPublicationPlanifiee:
+    """
+    La tâche de nuit (#636), et surtout ce qu'elle refuse de faire.
+
+    Elle est planifiée sur **toutes** les instances, y compris celles qui ne
+    fédèrent pas : ce qui la retient n'est donc pas l'absence de planification
+    mais trois conditions distinctes, qui ne disent pas la même chose.
+    """
+
+    def test_sans_hub_configure_elle_ne_fait_rien(self, db, settings):
+        settings.CICADA_HUB_URL = ''
+        settings.CICADA_HUB_PUSH_TOKEN = ''
+
+        with patch('apps.search.tasks.call_command') as commande:
+            assert publier_vers_le_hub() == 'non configurée'
+        commande.assert_not_called()
+
+    def test_le_relais_seul_ne_declenche_pas_la_publication(self, db, settings):
+        """
+        Lire l'exploration nationale exige l'URL du hub. Une instance qui lit
+        sans vouloir publier automatiquement doit pouvoir le dire, sinon
+        configurer le relais publierait dans son dos.
+        """
+        settings.CICADA_HUB_URL = 'http://hub'
+        settings.CICADA_HUB_PUSH_TOKEN = 'jeton'
+        settings.CICADA_HUB_PUSH_AUTO = False
+
+        with patch('apps.search.tasks.call_command') as commande:
+            assert publier_vers_le_hub() == 'non configurée'
+        commande.assert_not_called()
+
+    def test_sans_consentement_de_la_structure_rien_ne_part(
+        self, db, settings, partage_consenti
+    ):
+        """
+        Le consentement vit en base et peut être retiré entre deux nuits. La
+        tâche doit alors s'arrêter **sans échouer** : un retrait assumé ne doit
+        pas se signaler comme une panne.
+        """
+        settings.CICADA_HUB_URL = 'http://hub'
+        settings.CICADA_HUB_PUSH_TOKEN = 'jeton'
+        partage_consenti.federation_partage = False
+        partage_consenti.save()
+
+        with patch('apps.search.tasks.call_command') as commande:
+            assert publier_vers_le_hub() == 'partage désactivé'
+        commande.assert_not_called()
+
+    def test_les_trois_conditions_reunies_declenchent_le_depot(self, db, settings):
+        settings.CICADA_HUB_URL = 'http://hub'
+        settings.CICADA_HUB_PUSH_TOKEN = 'jeton'
+        settings.CICADA_HUB_PUSH_AUTO = True
+
+        with patch('apps.search.tasks.call_command') as commande:
+            publier_vers_le_hub()
+
+        assert commande.call_args[0] == ('push_federation',)
+
+    def test_un_echec_remonte_plutot_que_de_passer_inapercu(self, db, settings):
+        """
+        La commande a déjà abandonné son lot : la publication précédente est
+        intacte. L'échec doit rester visible dans le journal des tâches — c'est
+        le seul endroit où l'exploitant le verra, personne n'attendant devant
+        une tâche de 2h30.
+        """
+        settings.CICADA_HUB_URL = 'http://hub'
+        settings.CICADA_HUB_PUSH_TOKEN = 'jeton'
+
+        with patch('apps.search.tasks.call_command', side_effect=RuntimeError('hub muet')):
+            with pytest.raises(RuntimeError):
+                publier_vers_le_hub()

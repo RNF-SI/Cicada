@@ -73,6 +73,19 @@ services:
       - EMAIL_HOST_PASSWORD=${EMAIL_HOST_PASSWORD:-}
       - DEFAULT_FROM_EMAIL=${DEFAULT_FROM_EMAIL:-noreply@cicada.fr}
       - SITE_URL=${SITE_URL:-http://localhost:4200}
+      # --- Exploration federee (#636) ---
+      # Vide par defaut : sans ces variables l'instance ne publie rien et sert
+      # son exploration depuis son propre index, comme avant.
+      # CICADA_INSTANCE_ID est IMMUABLE : il s'ecrit dans chaque ligne d'index,
+      # le changer perime tout ce qui a ete publie sous l'ancienne valeur.
+      - CICADA_INSTANCE_ID=${CICADA_INSTANCE_ID:-}
+      - CICADA_INSTANCE_LABEL=${CICADA_INSTANCE_LABEL:-}
+      - CICADA_PUBLIC_URL=${CICADA_PUBLIC_URL:-}
+      - CICADA_HUB_URL=${CICADA_HUB_URL:-}
+      - CICADA_HUB_PUSH_TOKEN=${CICADA_HUB_PUSH_TOKEN:-}
+      - CICADA_HUB_READ_TOKEN=${CICADA_HUB_READ_TOKEN:-}
+      - CICADA_EXPLORATION_SOURCE=${CICADA_EXPLORATION_SOURCE:-local}
+      - CICADA_HUB_PUSH_AUTO=${CICADA_HUB_PUSH_AUTO:-true}
     volumes:
       - media_files:/app/media
       - static_files:/app/static
@@ -137,6 +150,18 @@ services:
       - EMAIL_HOST_PASSWORD=${EMAIL_HOST_PASSWORD:-}
       - DEFAULT_FROM_EMAIL=${DEFAULT_FROM_EMAIL:-noreply@cicada.fr}
       - SITE_URL=${SITE_URL:-http://localhost:4200}
+      # --- Exploration federee (#636) ---
+      # C'est le worker qui execute la publication nocturne : sans ces
+      # variables, la tache planifiee se terminerait en « non configuree »
+      # alors meme que le conteneur web, lui, est branche sur le hub.
+      - CICADA_INSTANCE_ID=${CICADA_INSTANCE_ID:-}
+      - CICADA_INSTANCE_LABEL=${CICADA_INSTANCE_LABEL:-}
+      - CICADA_PUBLIC_URL=${CICADA_PUBLIC_URL:-}
+      - CICADA_HUB_URL=${CICADA_HUB_URL:-}
+      - CICADA_HUB_PUSH_TOKEN=${CICADA_HUB_PUSH_TOKEN:-}
+      - CICADA_HUB_READ_TOKEN=${CICADA_HUB_READ_TOKEN:-}
+      - CICADA_EXPLORATION_SOURCE=${CICADA_EXPLORATION_SOURCE:-local}
+      - CICADA_HUB_PUSH_AUTO=${CICADA_HUB_PUSH_AUTO:-true}
     volumes:
       - media_files:/app/media
       # #384 — bind-mount des logs sur l'hôte (/var/log/cicada) pour consultation

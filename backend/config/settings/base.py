@@ -69,6 +69,16 @@ CICADA_HUB_READ_TOKEN = os.environ.get('CICADA_HUB_READ_TOKEN', '')
 #: incomplet. À terme l'index local disparaît et ce réglage avec lui.
 CICADA_EXPLORATION_SOURCE = os.environ.get('CICADA_EXPLORATION_SOURCE', 'local')
 
+#: La publication vers le hub est-elle automatique (tâche planifiée de nuit) ?
+#: Réglage distinct de l'URL du hub : une instance peut vouloir *lire*
+#: l'exploration nationale — ce qui exige l'URL — sans publier autrement qu'à la
+#: main. La publication reste par ailleurs conditionnée au consentement de la
+#: structure (`SiteConfiguration.federation_partage`, faux par défaut).
+CICADA_HUB_PUSH_AUTO = (
+    os.environ.get('CICADA_HUB_PUSH_AUTO', 'true').strip().lower()
+    in ('1', 'true', 'vrai', 'oui', 'on')
+)
+
 # Application definition
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -297,6 +307,15 @@ CELERY_BEAT_SCHEDULE = {
     'cleanup-expired-pending-users': {
         'task': 'apps.notifications.tasks.cleanup_expired_pending_users',
         'schedule': crontab(hour=5, minute=0),
+    },
+    # #636 - Publication de l'index vers le hub d'exploration federee, chaque
+    # nuit a 2h30. La tache ne fait rien si le hub n'est pas configure, si
+    # CICADA_HUB_PUSH_AUTO est faux, ou si la structure n'a pas consenti au
+    # partage : l'entree peut donc rester en place sur toutes les instances.
+    # Un depot complet et non un differentiel - une nuit sautee ne perd rien.
+    'push-federation': {
+        'task': 'apps.search.tasks.publier_vers_le_hub',
+        'schedule': crontab(hour=2, minute=30),
     },
     # Note: Le traitement des demandes RGPD est maintenant manuel via l'interface admin
     # Les super_admins decident quand desactiver ou anonymiser les comptes
