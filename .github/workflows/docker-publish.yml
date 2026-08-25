@@ -9,6 +9,7 @@ env:
   REGISTRY: ghcr.io
   BACKEND_IMAGE: ghcr.io/rnf-si/cicada-backend
   FRONTEND_IMAGE: ghcr.io/rnf-si/cicada-frontend
+  HUB_IMAGE: ghcr.io/rnf-si/cicada-hub
 
 jobs:
   build-and-push:
@@ -60,3 +61,22 @@ jobs:
             ${{ env.FRONTEND_IMAGE }}:latest
           cache-from: type=gha,scope=frontend
           cache-to: type=gha,mode=max,scope=frontend
+
+      # Hub d'exploration fédérée (#636). Contexte = racine du dépôt, et non
+      # ./hub : l'image embarque les référentiels nationaux versionnés dans
+      # backend/ (ref_geo, nomenclatures), qui doivent être les mêmes fichiers
+      # que ceux des instances. Le .dockerignore de la racine limite ce qui est
+      # envoyé au daemon.
+      - name: Build and push hub
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./hub/Dockerfile.prod
+          push: true
+          build-args: |
+            CICADA_VERSION=${{ steps.version.outputs.version }}
+          tags: |
+            ${{ env.HUB_IMAGE }}:${{ steps.version.outputs.version }}
+            ${{ env.HUB_IMAGE }}:latest
+          cache-from: type=gha,scope=hub
+          cache-to: type=gha,mode=max,scope=hub

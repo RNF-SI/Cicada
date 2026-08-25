@@ -1,0 +1,39 @@
+# Contexte de build à la RACINE du dépôt.
+#
+# Un seul build l'utilise : celui du hub (`hub/Dockerfile.prod`), qui a besoin
+# à la fois de `hub/` et des référentiels nationaux versionnés dans `backend/`
+# (ref_geo, nomenclatures). Les images backend et frontend se construisent
+# depuis leur propre sous-répertoire et ne lisent donc PAS ce fichier.
+#
+# Sans lui, le daemon recevrait tout le dépôt — frontend et node_modules
+# compris — pour produire une image qui n'en utilise qu'un centième.
+
+.git
+.github
+frontend
+KitUI
+docs
+tests
+tools
+packaging
+scripts
+docker-compose*.yml
+*.md
+*.docx
+*.xlsx
+*.pdf
+
+# Le hub n'a besoin de RIEN d'autre dans backend/ que les deux jeux de
+# référentiels : ils sont ré-inclus explicitement plus bas.
+backend
+!backend/apps/geo/data
+!backend/nomenclatures_data
+
+# Environnements et secrets — ne doivent jamais entrer dans une image.
+.env
+.env.*
+
+**/__pycache__
+**/*.pyc
+**/.pytest_cache
+hub/logs
