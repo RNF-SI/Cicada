@@ -72,6 +72,33 @@ rapport avec le plan n° 42 du CEN. D'où :
 Deux familles, aux droits distincts. **Lire n'est pas écrire** : une instance
 peut légitimement consulter l'exploration sans être autorisée à y publier.
 
+### Le registre des instances
+
+Qui a le droit de publier et de lire vit dans une table (`ccd_search.t_instance`),
+pas dans un fichier d'environnement. Les jetons d'environnement restent acceptés
+en **amorce**, mais uniquement pour une instance absente du registre : dès
+qu'elle y figure, c'est le registre qui décide. Sans cette règle, un jeton
+révoqué en base resterait admis par une variable oubliée dans un déploiement —
+autrement dit, révoquer ne révoquerait rien.
+
+```bash
+python manage.py enroler_instance rnf --libelle "Réserves Naturelles de France"
+python manage.py enroler_instance rnf --renouveler depot   # l'ancien cesse d'être accepté
+python manage.py enroler_instance rnf --desactiver          # refuse sans rien effacer
+python manage.py enroler_instance --lister
+```
+
+Les jetons sont tirés au sort par le hub et affichés **une seule fois** : seule
+leur empreinte SHA-256 est conservée. Un hachage lent (PBKDF2) protégerait d'une
+attaque par dictionnaire qui n'a pas de sens contre un secret de 256 bits tiré
+au sort, et se paierait à chaque page d'un dépôt qui en compte des centaines.
+
+`GET /api/federation/instances/` rend l'état de la fédération — qui participe,
+depuis quand, et à quand remonte sa dernière publication — sans jamais rendre un
+jeton ni une empreinte. Il accepte l'un ou l'autre des deux jetons : la question
+« untel publie-t-il encore ? » se pose autant à celui qui dépose qu'à celui qui
+lit.
+
 ### Dépôt — jeton propre à chaque instance (`X-Federation-Token`)
 
 | Appel | Effet |
@@ -117,6 +144,16 @@ docker compose -f docker-compose.hub.yml --env-file .env.hub up -d
 
 L'API écoute sur http://localhost:8002. Le banc d'essai complet (deux instances
 CICADA + le hub) est décrit dans [docs/MULTI_INSTANCE_LOCAL.md](../docs/MULTI_INSTANCE_LOCAL.md).
+
+En production, l'image embarque le code **et** les référentiels nationaux (ils
+ne sont montés depuis CICADA qu'en développement) :
+
+```bash
+docker compose -f docker-compose.hub.prod.yml --env-file .env.hub.prod up -d
+```
+
+Voir [docs/DEPLOIEMENT_HUB.md](../docs/DEPLOIEMENT_HUB.md) — vhost Apache,
+enrôlement d'une instance, montée de version, recette.
 
 ## Tests
 

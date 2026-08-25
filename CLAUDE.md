@@ -1007,7 +1007,7 @@ The backend follows a modular architecture with distinct Django apps:
 
 CICADA est déployé en **plusieurs instances** (RNF, un CEN, une DREAL…), chacune avec sa propre base. L'exploration des données doit pourtant être transverse. Un **hub** — projet Django distinct, dans [`hub/`](hub/README.md), **back API seul sans interface** — agrège l'index de toutes les instances et sert la recherche.
 
-> **Documentation complète** : [docs/MULTI_INSTANCE_LOCAL.md](docs/MULTI_INSTANCE_LOCAL.md) (topologie, banc d'essai, limites) et [hub/README.md](hub/README.md) (API du hub).
+> **Documentation complète** : [docs/MULTI_INSTANCE_LOCAL.md](docs/MULTI_INSTANCE_LOCAL.md) (topologie, banc d'essai, limites) et [hub/README.md](hub/README.md) (API du hub), et [docs/DEPLOIEMENT_HUB.md](docs/DEPLOIEMENT_HUB.md) (mise en production du hub : image, compose, vhost Apache, enrôlement d'une instance).
 
 ```
    CICADA RNF  ──① dépôt de l'état complet──►  ┌───────┐
@@ -1065,7 +1065,7 @@ Publier le contenu de ses plans est un **engagement de la structure**, pas un r�
 
 - **Réglage** : `SiteConfiguration.federation_partage`, **faux par défaut** — une mise à jour ne doit jamais décider à la place de la structure. Modifiable par un super admin dans `/administration/parametres`, sans redéploiement : revenir sur un engagement ne doit pas dépendre de qui tient les serveurs.
 - **Ce qui sort** : enjeux, facteurs, pressions, objectifs, indicateurs, actions avec période, suivi et protocoles. **Ce qui ne sort jamais** : budget et financement, RH (postes, fonctions, temps), mesures et réalisations, auteurs et dates. La liste est exhaustive dans `serializers_fiche.py` et verrouillée par `TestFichePubliqueCloisonnement`.
-- **Réciprocité appliquée par le hub**, pas par l'instance : jeton de lecture propre à chaque instance (`HUB_READ_TOKENS`), refusé tant qu'elle n'a rien publié. Une instance peut couper son relais, mais quiconque l'administre peut le rallumer — une réciprocité qui ne tient qu'à la bonne volonté du lecteur n'est pas une règle. *Effet de bord assumé : une instance sans aucun plan validé ne peut pas lire, faute d'avoir de quoi verser.*
+- **Réciprocité appliquée par le hub**, pas par l'instance : jeton de lecture propre à chaque instance, refusé tant qu'elle n'a rien publié. Une instance peut couper son relais, mais quiconque l'administre peut le rallumer — une réciprocité qui ne tient qu'à la bonne volonté du lecteur n'est pas une règle. *Effet de bord assumé : une instance sans aucun plan validé ne peut pas lire, faute d'avoir de quoi verser.*
 - **Retrait** : `retrait_federation --confirmer`, commande **distincte** de la publication. Celle-ci refuse un lot vide (un index momentanément vide effacerait tout par accident) ; la distinction n'est pas entre autorisé et interdit mais entre **accidentel** et **voulu**. Décocher la case arrête les publications à venir sans effacer les précédentes.
 - **Message à l'écran** : la page d'exploration annonce sa portée (`exploration.portee.*`) **avant** la recherche. Sans lui, une exploration limitée à son organisme se lit comme une panne, et l'utilisateur en conclut que les autres structures n'ont pas de plans.
 
@@ -1077,6 +1077,31 @@ Publier le contenu de ses plans est un **engagement de la structure**, pas un r�
 | `CICADA_PUBLIC_URL` | URL publique, transmise avec chaque plan |
 | `CICADA_HUB_URL` / `CICADA_HUB_PUSH_TOKEN` / `CICADA_HUB_READ_TOKEN` | adresse et jetons du hub |
 | `CICADA_EXPLORATION_SOURCE` | `local` (défaut) ou `hub`. Vide par défaut = comportement inchangé |
+| `CICADA_HUB_PUSH_AUTO` | publication automatique chaque nuit à 2h30 (défaut `true`). Réglage distinct de l'URL du hub : une instance peut vouloir *lire* l'exploration nationale sans publier autrement qu'à la main |
+
+#### Registre des instances (côté hub)
+
+Qui publie et qui lit vit dans une table (`ccd_search.t_instance`), pas dans un fichier d'environnement — enrôler
+imposait sinon un redémarrage du hub, révoquer ne laissait aucune trace, et les secrets voyageaient en clair dans
+les fichiers de déploiement. Seule l'**empreinte SHA-256** du jeton est conservée (un hachage lent protégerait
+d'une attaque par dictionnaire qui n'a pas de sens contre un secret de 256 bits tiré au sort, et se paierait à
+chaque page d'un dépôt qui en compte des centaines).
+
+```bash
+python manage.py enroler_instance rnf --libelle "…"   # délivre les 2 jetons, affichés une seule fois
+python manage.py enroler_instance rnf --renouveler depot | --desactiver | --reactiver
+python manage.py enroler_instance --lister
+```
+
+`HUB_FEDERATION_TOKENS` / `HUB_READ_TOKENS` restent acceptés en **amorce**, mais **uniquement pour une instance
+absente du registre** : dès qu'elle y figure, un jeton d'environnement portant son nom est refusé — sans cette
+règle, une révocation en base serait annulée par une variable oubliée. `GET /api/federation/instances/`
+(jeton de dépôt **ou** de lecture) rend l'état de la fédération — enrôlement, activité, dernière publication
+réussie, volumes — sans jamais rendre un jeton ni une empreinte. Une instance qui publie encore par
+l'environnement y apparaît en `enrolee: false`.
+
+**Désactiver ≠ dépublier** : suspendre les jetons n'efface rien, l'index déjà déposé reste servi. Le retrait est
+une décision de l'instance (`retrait_federation --confirmer`).
 
 Passer à `hub` fait relayer l'exploration. **Pas de repli** sur l'index local si le hub est injoignable → **502 explicite** : servir les résultats d'une seule instance sous une interface qui promet une recherche transverse ferait conclure que les plans des autres organismes n'existent pas.
 
@@ -1098,6 +1123,10 @@ scripts/federation.sh test --e2e     # 6 cas Playwright sur l'instance relayée
 # Directement
 docker exec cicada_web python manage.py push_federation [--dry-run] [--sans-fiche] [--page-size N]
 ```
+
+**Publication planifiée** : `apps.search.tasks.publier_vers_le_hub`, entrée `push-federation` de `CELERY_BEAT_SCHEDULE` (chaque nuit à 2h30). Elle est planifiée sur **toutes** les instances et ne fait rien tant que trois conditions distinctes ne sont pas réunies — hub et jeton de dépôt configurés, `CICADA_HUB_PUSH_AUTO` vrai, et `SiteConfiguration.federation_partage` activé par la structure. Un dépôt étant l'**état complet** et non un différentiel, une nuit sautée ne perd rien.
+
+**Mise en production du hub** : [docs/DEPLOIEMENT_HUB.md](docs/DEPLOIEMENT_HUB.md) — image `ghcr.io/rnf-si/cicada-hub`, `docker-compose.hub.prod.yml`, vhost Apache, enrôlement d'une instance.
 
 **Tests de banc** (`tests/federation/bench.py`, hors CI — ils demandent trois stacks Docker) : ils s'exécutent contre les briques **réellement lancées**, parce que tous les bugs de la fédération étaient des bugs de **couture** qu'aucune suite unitaire n'a vus. Trois familles :
 
@@ -1122,7 +1151,7 @@ La parité est vérifiée par mutation : casser un filtre du hub la fait échoue
 
 #### Questions ouvertes (#636)
 
-Authentification définitive (jetons partagés provisoires, dépend de #514 OAuth2/OIDC) · identité nationale des organismes (décision MOA : SIRET ? annuaire RNF ?) · dédoublonnage inter-instances · périodicité des publications (aucune tâche planifiée, la commande se lance à la main) · gouvernance : qui consent à publier, et à quelle maille ?
+Authentification définitive (jetons propres à chaque instance, tenus dans le registre du hub ; la bascule vers OAuth2/OIDC dépend de #514) · identité nationale des organismes (décision MOA : SIRET ? annuaire RNF ?) · dédoublonnage inter-instances · gouvernance : qui consent à publier, et à quelle maille ?
 
 ### Database Schema Design
 
