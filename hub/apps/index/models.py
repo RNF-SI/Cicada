@@ -1,12 +1,16 @@
 """
 Index d'exploration agrégé (#636).
 
-Deux tables, et deux seulement :
+Deux tables portent l'index, et deux seulement :
 
 - :class:`PlanIndexe` — une ligne par **plan publié**, portant son bandeau
   d'affichage, ses facettes, et sa **fiche rendue** ;
 - :class:`ContenuIndexe` — une ligne par **objet explorable** (enjeu, facteur,
   pression, objectif, indicateur, action), rattachée à son plan.
+
+S'y ajoutent deux tables de tenue de la fédération, qui ne décrivent aucune
+donnée métier : :class:`Instance` (qui a le droit de publier et de lire) et
+:class:`LotPublication` (une publication en cours ou achevée).
 
 Le hub ne connaît aucun modèle métier de CICADA. Il ne sait pas ce qu'est un
 enjeu : il sait qu'un document de type ``enjeu`` porte un libellé, une
@@ -43,11 +47,14 @@ rapport avec le plan n° 42 du CEN, et les deux instances peuvent parfaitement
 avoir un enjeu n° 7.
 """
 
+import hashlib
+import secrets
 import uuid
 
 from django.contrib.postgres.fields import ArrayField
 from django.contrib.postgres.indexes import GinIndex
 from django.contrib.postgres.search import SearchVector, SearchVectorField
+from django.core.validators import RegexValidator
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
@@ -55,6 +62,130 @@ from django.utils.translation import gettext_lazy as _
 #: suppression des accents. Identique à celle de CICADA — les deux index doivent
 #: répondre pareil au même mot pendant toute la transition.
 SEARCH_CONFIG = 'public.french_unaccent'
+
+
+#: Un identifiant d'instance est repris tel quel dans la référence publique d'un
+#: plan (« rnf:camargue ») et dans chaque ligne d'index. On le contraint pour
+#: qu'il reste lisible dans une URL et stable dans le temps.
+VALIDATEUR_IDENTIFIANT = RegexValidator(
+    r'^[a-z0-9][a-z0-9-]{0,63}$',
+    message=_(
+        "L'identifiant d'instance doit être en minuscules : lettres, chiffres "
+        "et tirets, en commençant par une lettre ou un chiffre."
+    ),
+)
+
+
+class Instance(models.Model):
+    """
+    Une instance CICADA enrôlée auprès de ce hub (#636).
+
+    ## Pourquoi une table plutôt que des variables d'environnement
+
+    Les jetons ont d'abord vécu dans ``HUB_FEDERATION_TOKENS`` /
+    ``HUB_READ_TOKENS``, lus au démarrage. Trois choses rendent ce montage
+    intenable dès qu'il y a plus de deux instances :
+
+    - **enrôler impose un redémarrage** du hub, donc une coupure de service pour
+      toutes les autres instances ;
+    - **révoquer ne laisse aucune trace** : le jeton disparaît d'un fichier, et
+      plus rien ne dit qu'il a existé ni depuis quand il est révoqué ;
+    - **les secrets vivent en clair** dans un fichier d'environnement, recopié
+      dans tout ce qui déploie.
+
+    L'environnement reste accepté en **amorce** — le premier hub doit bien
+    pouvoir accueillir la première instance — mais uniquement pour une instance
+    qui n'a pas de ligne ici. Dès qu'elle en a une, c'est la table qui décide :
+    sans cette règle, une instance désactivée en base resterait admise par une
+    variable d'environnement oubliée.
+
+    ## Pourquoi une empreinte SHA-256 et non un hachage de mot de passe
+
+    Ces jetons sont tirés au sort par le hub sur 256 bits, jamais choisis par un
+    humain : il n'y a ni dictionnaire à opposer, ni réutilisation à craindre. Un
+    hachage lent (PBKDF2) protégerait contre une attaque qui n'existe pas ici,
+    et se paierait à **chaque page** d'un dépôt qui en compte des centaines.
+    L'empreinte suffit à ce qu'une fuite de la base ne livre pas les jetons.
+    """
+
+    USAGE_DEPOT = 'depot'
+    USAGE_LECTURE = 'lecture'
+
+    instance_id = models.CharField(
+        _("Identifiant"), primary_key=True, max_length=64,
+        validators=[VALIDATEUR_IDENTIFIANT],
+        help_text=_("Immuable : il est écrit dans chaque ligne d'index publiée."),
+    )
+    libelle = models.CharField(
+        _("Nom affiché"), max_length=200, blank=True, default='',
+        help_text=_("Nom de la structure, pour les écrans d'administration."),
+    )
+    url_publique = models.URLField(
+        _("URL publique"), blank=True, default='',
+        help_text=_("Renseignée par l'instance à chaque publication."),
+    )
+    empreinte_depot = models.CharField(
+        _("Empreinte du jeton de dépôt"), max_length=64, blank=True, default='',
+        db_index=True,
+    )
+    empreinte_lecture = models.CharField(
+        _("Empreinte du jeton de lecture"), max_length=64, blank=True, default='',
+        db_index=True,
+    )
+    active = models.BooleanField(
+        _("Active"), default=True,
+        help_text=_(
+            "Désactiver refuse les jetons sans rien effacer : l'index publié "
+            "reste servi. Pour le retirer, c'est à l'instance de dépublier."
+        ),
+    )
+    date_enrolement = models.DateTimeField(_("Enrôlée le"), auto_now_add=True)
+    date_modification = models.DateTimeField(_("Modifiée le"), auto_now=True)
+
+    class Meta:
+        db_table = '"ccd_search"."t_instance"'
+        verbose_name = _("Instance fédérée")
+        verbose_name_plural = _("Instances fédérées")
+        ordering = ['instance_id']
+
+    def __str__(self):
+        return self.libelle or self.instance_id
+
+    # ----------------------------------------------------------------------- #
+    # Jetons
+    # ----------------------------------------------------------------------- #
+
+    @staticmethod
+    def nouveau_jeton():
+        """Un jeton neuf. Il n'est lisible qu'une fois : seule l'empreinte est gardée."""
+        return secrets.token_urlsafe(48)
+
+    @staticmethod
+    def empreinte(jeton):
+        return hashlib.sha256(jeton.encode('utf-8')).hexdigest()
+
+    def poser_jeton(self, usage):
+        """Tire un jeton neuf pour cet usage et n'en garde que l'empreinte."""
+        jeton = self.nouveau_jeton()
+        setattr(self, f'empreinte_{usage}', self.empreinte(jeton))
+        return jeton
+
+    @classmethod
+    def identifier(cls, jeton, usage):
+        """
+        Quelle instance porte ce jeton, pour cet usage ?
+
+        Rend ``None`` si le jeton est inconnu **ou** si l'instance est
+        désactivée : de l'extérieur, les deux cas se ressemblent, et c'est
+        voulu — distinguer « jeton inconnu » de « instance suspendue »
+        renseignerait un appelant qui n'a rien à savoir.
+        """
+        if not jeton:
+            return None
+        instance = cls.objects.filter(
+            active=True, **{f'empreinte_{usage}': cls.empreinte(jeton)},
+        ).first()
+        return instance.instance_id if instance else None
 
 
 class LotPublication(models.Model):

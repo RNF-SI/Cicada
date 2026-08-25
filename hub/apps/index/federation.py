@@ -34,13 +34,14 @@ quelqu'un d'autre.
 """
 
 import logging
+import secrets
 
 from django.conf import settings
 from rest_framework.permissions import BasePermission
 
 from apps.geo.models import LArea
 
-from .models import ContenuIndexe, PlanIndexe
+from .models import ContenuIndexe, Instance, PlanIndexe
 
 logger = logging.getLogger(__name__)
 
@@ -66,6 +67,49 @@ CHAMPS_CONTENU = [
 ]
 
 
+def identifier_porteur(jeton, usage):
+    """
+    Quelle instance porte ce jeton ?
+
+    Deux sources, dans cet ordre, et l'ordre est la règle :
+
+    1. le **registre** (:class:`Instance`) — il fait foi ;
+    2. l'**environnement** (``HUB_FEDERATION_TOKENS`` / ``HUB_READ_TOKENS``),
+       et seulement pour une instance **absente du registre**.
+
+    Cette restriction est le cœur du mécanisme. Sans elle, une instance
+    désactivée ou dont le jeton a été renouvelé en base resterait admise par une
+    variable d'environnement oubliée dans un fichier de déploiement — c'est-à-
+    dire qu'une révocation ne révoquerait rien.
+
+    L'amorce par l'environnement reste nécessaire : le premier hub doit pouvoir
+    accueillir la première instance avant qu'un registre n'existe, et les bancs
+    d'essai fonctionnent ainsi.
+    """
+    instance_id = Instance.identifier(jeton, usage)
+    if instance_id:
+        return instance_id, 'registre'
+
+    jetons = (
+        settings.HUB_FEDERATION_TOKENS if usage == Instance.USAGE_DEPOT
+        else settings.HUB_READ_TOKENS
+    )
+    connues = set(Instance.objects.values_list('instance_id', flat=True))
+    for candidate, attendu in jetons.items():
+        if secrets.compare_digest(jeton, attendu):
+            if candidate in connues:
+                # Le registre connaît cette instance et n'a pas reconnu le
+                # jeton : c'est une révocation ou un renouvellement. Le fichier
+                # d'environnement est en retard, pas le registre.
+                logger.warning(
+                    "Jeton d'environnement refusé pour « %s » : le registre fait "
+                    "foi pour cette instance.", candidate,
+                )
+                return None, None
+            return candidate, 'environnement'
+    return None, None
+
+
 class EstInstanceAutorisee(BasePermission):
     """
     Jeton de dépôt, un par instance émettrice.
@@ -84,12 +128,17 @@ class EstInstanceAutorisee(BasePermission):
         jeton = request.headers.get('X-Federation-Token')
         if not jeton:
             return False
-        for instance_id, attendu in settings.HUB_FEDERATION_TOKENS.items():
-            if jeton == attendu:
-                request.instance_id = instance_id
-                return True
-        logger.warning("Dépôt refusé : jeton inconnu.")
-        return False
+        instance_id, source = identifier_porteur(jeton, Instance.USAGE_DEPOT)
+        if not instance_id:
+            logger.warning("Dépôt refusé : jeton inconnu ou révoqué.")
+            return False
+        if source == 'environnement':
+            logger.info(
+                "Dépôt de « %s » autorisé par l'environnement : instance non "
+                "enrôlée dans le registre.", instance_id,
+            )
+        request.instance_id = instance_id
+        return True
 
 
 class PeutLire(BasePermission):
@@ -122,13 +171,9 @@ class PeutLire(BasePermission):
         if not jeton:
             return False
 
-        instance_id = None
-        for candidate, attendu in settings.HUB_READ_TOKENS.items():
-            if jeton == attendu:
-                instance_id = candidate
-                break
+        instance_id, _source = identifier_porteur(jeton, Instance.USAGE_LECTURE)
         if instance_id is None:
-            logger.warning("Lecture refusée : jeton inconnu.")
+            logger.warning("Lecture refusée : jeton inconnu ou révoqué.")
             return False
 
         # Réciprocité : l'instance doit avoir des plans publiés. On interroge
@@ -145,6 +190,34 @@ class PeutLire(BasePermission):
         request.instance_id = instance_id
         return True
 
+
+
+
+class EstFedere(BasePermission):
+    """
+    Un jeton valide, de dépôt **ou** de lecture.
+
+    Sert le registre des instances : savoir qui participe, et depuis quand
+    chacun a publié, intéresse autant celui qui dépose que celui qui lit. Rien
+    de secret n'y transite — aucun jeton, aucune empreinte —, mais la liste des
+    structures participantes n'a pas à être publique pour autant.
+    """
+
+    message = "Jeton de fédération absent ou invalide."
+
+    def has_permission(self, request, view):
+        for entete, usage in (
+            ('X-Federation-Token', Instance.USAGE_DEPOT),
+            ('X-Hub-Token', Instance.USAGE_LECTURE),
+        ):
+            jeton = request.headers.get(entete)
+            if not jeton:
+                continue
+            instance_id, _source = identifier_porteur(jeton, usage)
+            if instance_id:
+                request.instance_id = instance_id
+                return True
+        return False
 
 # --------------------------------------------------------------------------- #
 # Résolution des codes nationaux

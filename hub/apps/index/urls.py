@@ -4,7 +4,7 @@ from django.urls import include, path
 from rest_framework.routers import DefaultRouter
 
 from .views_exploration import ExplorationContenuViewSet, ExplorationPlanViewSet
-from .views_federation import LotPublicationViewSet
+from .views_federation import LotPublicationViewSet, RegistreDesInstances
 
 federation = DefaultRouter()
 federation.register(r'lots', LotPublicationViewSet, basename='federation-lots')
@@ -16,6 +16,10 @@ exploration.register(
 exploration.register(r'plans', ExplorationPlanViewSet, basename='exploration-plans')
 
 urlpatterns = [
+    # Avant le routeur : « instances » n'est pas un lot, et un routeur DRF
+    # ne capture que ses propres préfixes — l'ordre reste explicite.
+    path('federation/instances/', RegistreDesInstances.as_view(),
+         name='federation-instances'),
     path('federation/', include(federation.urls)),
     path('exploration/', include(exploration.urls)),
 ]

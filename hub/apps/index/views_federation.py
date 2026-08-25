@@ -7,15 +7,21 @@ Voir ``federation.py`` pour le raisonnement derrière ce découpage.
 
 import logging
 
+from django.conf import settings
+
 from django.db import transaction
+from django.db.models import Count, Max
 from django.shortcuts import get_object_or_404
 from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from rest_framework.views import APIView
 from rest_framework.viewsets import ViewSet
 
-from .federation import EstInstanceAutorisee, basculer, ingerer_plan
-from .models import LotPublication
+from .federation import (
+    EstFedere, EstInstanceAutorisee, basculer, ingerer_plan,
+)
+from .models import ContenuIndexe, Instance, LotPublication, PlanIndexe
 from .serializers_federation import OuvertureLotSerializer, PagePlansSerializer
 
 logger = logging.getLogger(__name__)
@@ -127,3 +133,85 @@ class LotPublicationViewSet(ViewSet):
         lot.delete()
         logger.info("Lot %s abandonné par l'instance %s.", pk, request.instance_id)
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class RegistreDesInstances(APIView):
+    """
+    Qui participe à la fédération, et où en est chacun.
+
+    ## Pourquoi cette vue existe
+
+    Les informations qu'elle rend étaient déjà toutes en base — le registre pour
+    l'identité, ``LotPublication`` pour l'historique des dépôts, l'index pour
+    les volumes — mais réparties dans trois tables qu'il fallait interroger en
+    SQL sur le serveur du hub. Or la question « untel publie-t-il encore ? » se
+    pose depuis l'extérieur, souvent dans l'urgence, et sans accès à la base.
+
+    ## Ce qu'elle ne rend pas
+
+    Ni jeton, ni empreinte. Une empreinte SHA-256 d'un jeton de 256 bits n'est
+    pas inversible, mais elle permettrait de **vérifier** un jeton deviné hors
+    ligne, sans que le hub ne journalise rien.
+
+    ## Instances non enrôlées
+
+    Une instance qui publie via un jeton d'environnement n'a pas de ligne dans
+    le registre. Elle figure quand même ici, marquée ``enrolee: false`` : c'est
+    précisément la liste de ce qu'il reste à enrôler, et l'omettre donnerait
+    d'un hub à moitié migré l'image d'un hub vide.
+    """
+
+    permission_classes = [EstFedere]
+
+    def get(self, request):
+        plans = dict(
+            PlanIndexe.objects.values_list('instance_id')
+            .annotate(n=Count('id')).values_list('instance_id', 'n')
+        )
+        contenus = dict(
+            ContenuIndexe.objects.values_list('instance_id')
+            .annotate(n=Count('id')).values_list('instance_id', 'n')
+        )
+        # Dernière bascule *réussie* : un lot ouvert et jamais basculé n'a rien
+        # publié, l'afficher ferait passer une publication avortée pour un
+        # succès.
+        derniers = dict(
+            LotPublication.objects
+            .filter(etat=LotPublication.ETAT_BASCULE)
+            .values_list('instance_id')
+            .annotate(d=Max('date_bascule'))
+            .values_list('instance_id', 'd')
+        )
+        enrolees = {i.instance_id: i for i in Instance.objects.all()}
+        urls = dict(
+            PlanIndexe.objects.exclude(url_instance='')
+            .values_list('instance_id', 'url_instance')
+        )
+
+        identifiants = sorted(
+            set(enrolees) | set(plans) | set(derniers)
+        )
+        instances = []
+        for identifiant in identifiants:
+            enrolee = enrolees.get(identifiant)
+            derniere = derniers.get(identifiant)
+            instances.append({
+                'instance_id': identifiant,
+                'libelle': (enrolee.libelle if enrolee else '') or identifiant,
+                'url_publique': (
+                    (enrolee.url_publique if enrolee else '')
+                    or urls.get(identifiant, '')
+                ),
+                'enrolee': enrolee is not None,
+                'active': enrolee.active if enrolee else True,
+                'date_enrolement': enrolee.date_enrolement if enrolee else None,
+                'derniere_publication': derniere,
+                'plans_publies': plans.get(identifiant, 0),
+                'contenus_publies': contenus.get(identifiant, 0),
+            })
+
+        return Response({
+            'hub': settings.HUB_INSTANCE_ID,
+            'count': len(instances),
+            'instances': instances,
+        })
