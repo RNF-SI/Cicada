@@ -21,6 +21,7 @@ from rest_framework.viewsets import ViewSet
 from .federation import (
     EstFedere, EstInstanceAutorisee, basculer, ingerer_plan,
 )
+from .identites import identites
 from .models import ContenuIndexe, Instance, LotPublication, PlanIndexe
 from .serializers_federation import OuvertureLotSerializer, PagePlansSerializer
 
@@ -56,6 +57,13 @@ class LotPublicationViewSet(ViewSet):
         lot = LotPublication.objects.create(
             instance_id=request.instance_id,
             format_version=serializer.validated_data['format_version'],
+            # Identité d'affichage, telle que l'instance se nomme aujourd'hui.
+            # Portée par le lot et non par le registre : une instance qui publie
+            # encore par jeton d'environnement n'a pas de ligne au registre, et
+            # lui en créer une ici la ferait basculer du côté « enrôlée » — donc
+            # ferait refuser son propre jeton (cf. `identifier_porteur`).
+            libelle_declare=serializer.validated_data['libelle'],
+            url_publique_declaree=serializer.validated_data['url_publique'],
         )
         logger.info("Lot %s ouvert par l'instance %s.", lot.id, lot.instance_id)
         return Response(
@@ -183,25 +191,23 @@ class RegistreDesInstances(APIView):
             .values_list('instance_id', 'd')
         )
         enrolees = {i.instance_id: i for i in Instance.objects.all()}
-        urls = dict(
-            PlanIndexe.objects.exclude(url_instance='')
-            .values_list('instance_id', 'url_instance')
-        )
 
         identifiants = sorted(
             set(enrolees) | set(plans) | set(derniers)
         )
+        # Nom et URL résolus par la même cascade que l'exploration : registre,
+        # puis ce que l'instance a déclaré en publiant, puis l'identifiant. Deux
+        # résolutions séparées finiraient par nommer différemment la même
+        # structure selon l'écran.
+        connues = identites(identifiants)
         instances = []
         for identifiant in identifiants:
             enrolee = enrolees.get(identifiant)
             derniere = derniers.get(identifiant)
             instances.append({
                 'instance_id': identifiant,
-                'libelle': (enrolee.libelle if enrolee else '') or identifiant,
-                'url_publique': (
-                    (enrolee.url_publique if enrolee else '')
-                    or urls.get(identifiant, '')
-                ),
+                'libelle': connues.get(identifiant, {}).get('libelle') or identifiant,
+                'url_publique': connues.get(identifiant, {}).get('url_publique', ''),
                 'enrolee': enrolee is not None,
                 'active': enrolee.active if enrolee else True,
                 'date_enrolement': enrolee.date_enrolement if enrolee else None,

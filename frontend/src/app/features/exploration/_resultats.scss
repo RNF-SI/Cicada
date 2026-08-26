@@ -337,3 +337,45 @@
   color: $primary-color;
   font-size: $font-size-h3;
 }
+
+/**
+ * En-tête d'une tuile : le titre à gauche, ce qui le qualifie à droite (type de
+ * contenu, provenance). Partagé par les deux modes de recherche — la provenance
+ * se lit avec le nom, pas parmi les métadonnées qu'elle qualifie toutes.
+ */
+.exploration-tuile-entete {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: $spacing-md;
+}
+
+/**
+ * Provenance d'un résultat (#636).
+ *
+ * Affichée **sur la tuile**, et pas seulement sur la fiche : une liste de
+ * résultats agrégeant plusieurs structures se lit autrement une fois qu'on sait
+ * laquelle a produit chaque ligne. Sans elle, tout paraît venir d'ici — et deux
+ * plans homonymes de deux structures deviennent indiscernables.
+ *
+ * Aplat pastel de la palette « Tags » et texte noir : les fonds pleins du
+ * design system (primary, terra cotta) exigent du texte blanc et attireraient
+ * l'œil plus que le titre du résultat, qu'ils jouxtent.
+ */
+.exploration-source {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: $spacing-xxs;
+  padding: 2px $spacing-sm;
+  border-radius: $border-radius-pill;
+  background-color: $tag-cyan;
+  color: $black;
+  font-size: $font-size-small;
+  line-height: $line-height-small;
+  white-space: nowrap;
+
+  i {
+    font-size: $font-size-small;
+  }
+}

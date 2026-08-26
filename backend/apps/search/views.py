@@ -22,6 +22,7 @@ from django.db.models import Count, Prefetch
 from django.shortcuts import get_object_or_404
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from rest_framework.views import APIView
 from rest_framework.viewsets import ViewSet
 
 from apps.plans.models import PlanGestion
@@ -212,3 +213,42 @@ class ExplorationPlanViewSet(ViewSet):
         page = paginateur.paginate_queryset(resultats, request, view=self)
         donnees = PlanResultatSerializer(page, many=True).data
         return paginateur.get_paginated_response(donnees)
+
+
+class InstancesExplorationView(APIView):
+    """
+    Les structures dont les données alimentent cette recherche (#636).
+
+    Même forme de réponse dans les deux modes — relayée par le hub, ou décrivant
+    cette seule instance —, pour que l'interface n'ait pas à savoir laquelle des
+    deux la sert : c'est la règle depuis le début du relais, et la seule raison
+    pour laquelle la bascule d'un mode à l'autre est un réglage et non un
+    chantier.
+
+    En local, la réponse ne compte qu'une structure : la sienne. Ce n'est pas un
+    cas dégénéré à masquer, c'est l'information exacte — une exploration locale
+    ne porte que sur les plans de cette instance, et le dire ici permet à
+    l'interface de le montrer plutôt que de laisser conclure à un manque.
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        if relais_actif():
+            return relayer('/api/exploration/instances/')
+
+        return Response({
+            'count': 1,
+            'instances': [{
+                'instance_id': settings.CICADA_INSTANCE_ID,
+                'libelle': settings.CICADA_INSTANCE_LABEL,
+                'url_publique': settings.CICADA_PUBLIC_URL,
+                'plans': PlanGestion.objects.filter(
+                    statut__in=INDEXED_STATUSES
+                ).count(),
+                'contenus': ContenuIndexe.objects.filter(
+                    instance_id=settings.CICADA_INSTANCE_ID
+                ).count(),
+                'derniere_publication': None,
+            }],
+        })

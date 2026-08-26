@@ -122,7 +122,10 @@ class Instance(models.Model):
     )
     url_publique = models.URLField(
         _("URL publique"), blank=True, default='',
-        help_text=_("Renseignée par l'instance à chaque publication."),
+        help_text=_(
+            "Renseignée à l'enrôlement. À défaut, celle que l'instance déclare "
+            "en publiant fait office (cf. `identites`)."
+        ),
     )
     empreinte_depot = models.CharField(
         _("Empreinte du jeton de dépôt"), max_length=64, blank=True, default='',
@@ -225,6 +228,18 @@ class LotPublication(models.Model):
     )
     format_version = models.PositiveSmallIntegerField(
         _("Version du format d'échange"), default=0,
+    )
+    libelle_declare = models.CharField(
+        _("Nom déclaré par l'instance"), max_length=200, blank=True, default='',
+        help_text=_(
+            "Nom que l'instance se donne, transmis à l'ouverture du lot. Sert à "
+            "nommer la provenance d'un résultat pour une instance qui n'a pas "
+            "encore de ligne au registre : un identifiant technique ne dit pas "
+            "à un gestionnaire de quelle structure vient le plan qu'il lit."
+        ),
+    )
+    url_publique_declaree = models.URLField(
+        _("URL publique déclarée"), blank=True, default='',
     )
     date_ouverture = models.DateTimeField(_("Ouvert le"), auto_now_add=True)
     date_bascule = models.DateTimeField(_("Basculé le"), null=True, blank=True)

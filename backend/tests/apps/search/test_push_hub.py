@@ -6,6 +6,7 @@ CICADA **construit** et **décide**, pas ce que le hub en fait — c'est l'objet
 la suite du hub. La frontière est le contrat d'échange.
 """
 
+import json
 from unittest.mock import patch
 
 import pytest
@@ -274,6 +275,105 @@ class TestCommandeDeDepot:
 
         assert ('DELETE', 'http://hub:8000/api/federation/lots/lot-1/') in appels
         assert not any('bascule' in url for _, url in appels)
+
+
+@pytest.mark.django_db
+class TestIdentiteDeclaree:
+    """
+    Ce que l'instance dit d'elle-même en publiant (#636).
+
+    Le hub déduit l'émetteur du jeton — c'est la règle de sécurité et elle ne
+    bouge pas. Mais un identifiant technique (« rnf ») ne se montre pas à un
+    gestionnaire : sans nom déclaré, la provenance d'un résultat distant
+    s'afficherait sous forme de slug, ou pas du tout.
+    """
+
+    def _ouverture(self, plan_indexe, settings):
+        settings.CICADA_HUB_URL = 'http://hub:8000'
+        settings.CICADA_HUB_PUSH_TOKEN = 'jeton'
+
+        corps = {}
+
+        def repondre(methode, url, **kwargs):
+            if url.endswith('/lots/') and methode == 'POST':
+                corps.update(json.loads(kwargs['data']))
+            reponse = type('R', (), {})()
+            reponse.content = b'{}'
+            reponse.status_code = 200
+            reponse.json = lambda: {
+                'lot_id': 'lot-1', 'plans_recus': 1, 'contenus_recus': 1,
+                'plans_purges': 0,
+            }
+            return reponse
+
+        with patch('requests.request', side_effect=repondre):
+            call_command('push_federation')
+        return corps
+
+    def test_l_instance_se_nomme_en_ouvrant_son_lot(self, plan_indexe, settings):
+        settings.CICADA_INSTANCE_LABEL = 'Réserves Naturelles de France'
+        settings.CICADA_PUBLIC_URL = 'https://rnf.example'
+
+        corps = self._ouverture(plan_indexe, settings)
+
+        assert corps['libelle'] == 'Réserves Naturelles de France'
+        assert corps['url_publique'] == 'https://rnf.example'
+
+    def test_le_nom_declare_n_est_pas_l_identite(self, plan_indexe, settings):
+        """
+        Le libellé accompagne l'identité, il ne la porte pas : `instance_id`
+        reste absent du corps, sans quoi un porteur de jeton pourrait publier
+        au nom d'une autre structure.
+        """
+        corps = self._ouverture(plan_indexe, settings)
+        assert 'instance_id' not in corps
+
+
+@pytest.mark.django_db
+class TestInventaireDesStructures:
+    """
+    `/api/exploration/instances/` — d'où viennent les données explorées (#636).
+
+    Même forme de réponse servie localement ou par le hub : c'est ce qui permet
+    à l'interface d'ignorer laquelle des deux la sert.
+    """
+
+    @pytest.fixture
+    def client_connecte(self):
+        client = APIClient()
+        client.force_authenticate(user=UserFactory())
+        return client
+
+    def test_en_local_l_exploration_ne_compte_qu_une_structure(
+        self, client_connecte, plan_indexe, settings
+    ):
+        settings.CICADA_INSTANCE_LABEL = 'Réserves Naturelles de France'
+
+        corps = client_connecte.get('/api/exploration/instances/').json()
+
+        assert corps['count'] == 1
+        seule, = corps['instances']
+        assert seule['instance_id'] == settings.CICADA_INSTANCE_ID
+        assert seule['libelle'] == 'Réserves Naturelles de France'
+        assert seule['plans'] == 1
+
+    def test_relaye_l_inventaire_vient_du_hub(self, client_connecte, settings):
+        settings.CICADA_EXPLORATION_SOURCE = 'hub'
+        settings.CICADA_HUB_URL = 'http://hub:8000'
+        settings.CICADA_HUB_READ_TOKEN = 'jeton-lecture'
+
+        attendu = {'count': 2, 'instances': [{'instance_id': 'cen'}]}
+        with patch('apps.search.relay.requests.get') as appel:
+            appel.return_value.status_code = 200
+            appel.return_value.json.return_value = attendu
+            reponse = client_connecte.get('/api/exploration/instances/')
+
+        assert reponse.json() == attendu
+        url, = appel.call_args[0]
+        assert url == 'http://hub:8000/api/exploration/instances/'
+
+    def test_l_inventaire_exige_une_session(self, db):
+        assert APIClient().get('/api/exploration/instances/').status_code == 401
 
 
 @pytest.mark.django_db

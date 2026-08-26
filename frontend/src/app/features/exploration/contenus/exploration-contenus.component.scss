@@ -38,13 +38,6 @@ $types-couleurs: (
    la couleur de survol employée jusqu'ici était celle des pressions — survoler
    un enjeu l'annonçait donc comme une pression. */
 
-.exploration-tuile-entete {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: $spacing-md;
-}
-
 /**
  * Pastille de type : contour seul, texte noir. Plusieurs couleurs de type sont
  * des pastels (#C0E3CF, #FEC180, #F5B399) sur lesquels du texte blanc serait
@@ -227,4 +220,12 @@ $types-couleurs: (
   color: $black;
   padding: 0 2px;
   border-radius: 2px;
+}
+
+/* Provenance et type, alignés à droite du titre. */
+.exploration-tuile-tags {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
 }

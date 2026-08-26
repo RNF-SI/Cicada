@@ -23,14 +23,7 @@
           [class.fi-rr-globe]="partageActif()"
           [class.fi-rr-home]="!partageActif()"
           aria-hidden="true"></i>
-        <span>
-          {{
-            (partageActif()
-              ? 'exploration.portee.nationale'
-              : 'exploration.portee.locale'
-            ) | translate
-          }}
-        </span>
+        <span>{{ porteeCle() | translate: { count: nombreStructures() } }}</span>
       </p>
 
       <p class="exploration-hero-label">{{ 'exploration.search.label' | translate }}</p>

@@ -1,5 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { Component, computed, inject, signal } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
@@ -10,6 +11,7 @@ import {
   FilterOptionListComponent,
   FilterPanelDirective,
 } from '../../shared/components/filters';
+import { ExplorationService } from '../../core/services/exploration.service';
 import { SettingsService } from '../../core/services/settings.service';
 import { HeaderComponent } from '../../shared/components/header/header.component';
 
@@ -43,6 +45,18 @@ export class ExplorationComponent {
   private readonly router = inject(Router);
   private readonly translate = inject(TranslateService);
   private readonly settings = inject(SettingsService);
+  private readonly exploration = inject(ExplorationService);
+
+  /**
+   * #636 — Les structures qui alimentent la recherche.
+   *
+   * Sert à annoncer une portée **chiffrée** plutôt qu'un principe : « 4
+   * structures participantes » se vérifie, « toutes les structures
+   * participantes » laisse entière la question de savoir lesquelles.
+   */
+  private readonly instances = toSignal(this.exploration.instances(), {
+    initialValue: [],
+  });
 
   /**
    * #636 — L'exploration porte-t-elle sur toutes les structures, ou seulement
@@ -52,6 +66,27 @@ export class ExplorationComponent {
    * restreint fait chercher une panne là où il y a un choix de la structure.
    */
   readonly partageActif = computed(() => this.settings.partageFederationActif());
+
+  /** Nombre de structures qui alimentent la recherche. */
+  readonly nombreStructures = computed(() => this.instances().length);
+
+  /**
+   * Clé du message de portée — chiffrée dès qu'on sait combien de structures
+   * publient.
+   *
+   * On rend la clé et non le texte : la traduction reste faite par le pipe,
+   * qui se réévalue quand le dictionnaire finit de charger. `instant()` dans un
+   * `computed` ne dépend d'aucun signal et laisserait la clé brute à l'écran si
+   * le premier rendu précédait le chargement.
+   */
+  readonly porteeCle = computed(() => {
+    if (!this.partageActif()) {
+      return 'exploration.portee.locale';
+    }
+    return this.nombreStructures() > 1
+      ? 'exploration.portee.nationaleDetail'
+      : 'exploration.portee.nationale';
+  });
 
   readonly mode = signal<ModeExploration>('contenu');
   readonly motCle = signal('');

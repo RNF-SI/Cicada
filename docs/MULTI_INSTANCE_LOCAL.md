@@ -280,6 +280,18 @@ Sans `instance_id` dans les clés d'unicité, ingérer le second écraserait le
 premier — silencieusement. C'est aussi pourquoi un plan se désigne par
 `instance:slug` et non par son seul slug.
 
+Et c'est le meilleur argument pour la **provenance affichée** : dans une liste
+agrégée, ces deux plans portent le même nom, les mêmes années et le même type de
+document. Rien à l'écran ne les distingue — sauf la pastille qui nomme la
+structure d'origine. Chaque tuile et chaque fiche l'affichent dès que
+l'exploration est relayée (`instance_libelle`), et le filtre « Structure
+d'origine » de la barre latérale permet de s'y restreindre. En exploration
+locale, rien ne s'affiche : tout vient d'ici.
+
+Le nom vient de `CICADA_INSTANCE_LABEL`, transmis au hub à chaque publication.
+Sans lui, la provenance retombe sur l'identifiant technique — c'est ce que
+montrent les instances du banc tant qu'elles n'ont pas republié.
+
 Ces invariants sont couverts par `hub/tests/` (55 tests) et
 `backend/tests/apps/search/` (140 tests).
 
@@ -298,8 +310,8 @@ endroit, migrations en collision, nom de projet Compose absent.
 | Famille | Cas |
 |---|---|
 | Contrat | la charge utile de CICADA passe la validation du hub ; la fiche reste du JSON pur |
-| Scénarios | aller-retour, isolation, dépublication, idempotence, garde-fou d'identité, jeton invalide |
-| Parité | 14 requêtes, les compteurs d'onglets et une fiche complète, comparés local ↔ hub |
+| Scénarios | aller-retour, **provenance**, isolation, dépublication, idempotence, garde-fou d'identité, jeton invalide |
+| Parité | 15 requêtes, les compteurs d'onglets et une fiche complète, comparés local ↔ hub |
 
 **La parité est le cas le plus important.** `filters.py` existe en deux
 exemplaires, un par projet : sans elle, les deux implémentations divergeraient en
@@ -321,7 +333,8 @@ scripts/federation.sh test --e2e
 
 Playwright sur l'**instance relayée** — le seul niveau qui couvre ce que
 l'utilisateur voit : liste multi-instances, compteurs, ouverture d'une fiche
-distante, et message d'erreur quand le hub ne répond pas.
+distante, **provenance affichée sur les tuiles et sur la fiche**, et message
+d'erreur quand le hub ne répond pas.
 
 Il vise une autre origine que la suite E2E habituelle, d'où une session dédiée
 et des projets Playwright séparés, activés par `E2E_FEDERATION=1`. Il s'exécute

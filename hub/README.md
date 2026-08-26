@@ -119,6 +119,7 @@ suffirait à purger l'index de quelqu'un d'autre.
 | `GET /api/exploration/contenus/` | recherche dans le contenu, avec compteurs d'onglets |
 | `GET /api/exploration/plans/` | recherche d'un plan par nom, site ou zone |
 | `GET /api/exploration/plans/{instance}:{slug}/` | fiche publiée d'un plan |
+| `GET /api/exploration/instances/` | les structures qui alimentent la recherche |
 | `GET /api/geo/zones/` | arbre régions → départements, pour le filtre |
 
 La recherche s'exécute **en un seul passage sur l'index agrégé**. C'est ce qui
@@ -130,6 +131,29 @@ Un plan se désigne par `instance:slug` et non par son identifiant : ni l'un ni
 l'autre ne sont uniques entre déploiements, et l'identifiant interne du hub
 serait unique mais pas durable — un plan dépublié puis republié en obtiendrait
 un nouveau.
+
+### D'où vient chaque résultat
+
+Toute réponse de lecture porte l'origine de la donnée : `instance_id`
+(l'identifiant technique, qui trace) **et** `instance_libelle` (le nom de la
+structure, qui s'affiche). La fiche y ajoute `url_instance` et
+`date_publication` — elle est un **instantané déposé**, pas une lecture en
+direct de la base d'origine, et l'âge de ce qu'on lit doit se voir.
+
+Le nom est résolu dans cet ordre : le **registre** (renseigné à l'enrôlement),
+puis ce que l'**instance a déclaré** en ouvrant son dernier lot (`libelle` /
+`url_publique` de `POST /api/federation/lots/`), puis l'identifiant lui-même.
+Jamais rien de vide : une tuile sans provenance se lit comme une donnée locale,
+c'est-à-dire faux. Le repli sur la déclaration couvre l'instance qui publie
+encore par jeton d'environnement — elle n'a pas de ligne au registre, et lui en
+créer une à la publication la ferait basculer du côté « enrôlée », donc ferait
+refuser son propre jeton.
+
+`?instances=rnf,cen` restreint l'une ou l'autre recherche à ces structures.
+`GET /api/exploration/instances/` en donne la liste — libellé, URL publique,
+volumes et date de dernière publication — bornée à celles **présentes dans
+l'index** : une instance enrôlée mais muette ne filtre rien et ne couvre rien,
+l'afficher promettrait des résultats que la recherche ne rendra jamais.
 
 Ces vues n'appliquent aucun périmètre utilisateur : le hub ne connaît pas les
 utilisateurs. Ce qui borne l'exploration, c'est l'index lui-même et le jeton de

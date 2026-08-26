@@ -3392,7 +3392,8 @@
         "enCours": "En cours",
         "archive": "Archivé",
         "valide": "Validé"
-      }
+      },
+      "instances": "Structure d'origine"
     },
     "sort": {
       "label": "Trier par :",
@@ -3492,11 +3493,14 @@
       "voirFicheAction": "Voir la fiche action",
       "toutDeplier": "Tout déplier",
       "toutReplier": "Tout replier",
-      "actionNonPublie": "Le budget, les moyens humains et le suivi des réalisations de cette action relèvent de la gestion interne de l’organisme et ne sont pas publiés."
+      "actionNonPublie": "Le budget, les moyens humains et le suivi des réalisations de cette action relèvent de la gestion interne de l’organisme et ne sont pas publiés.",
+      "provenance": "Fiche publiée par {{structure}} le {{date}}. Elle reflète l'état du plan à cette date.",
+      "voirSource": "Voir chez la structure"
     },
     "portee": {
       "nationale": "Cette recherche porte sur les plans de gestion de toutes les structures participantes.",
-      "locale": "Cette recherche porte uniquement sur les plans de cette instance. Votre structure ne participe pas à l'exploration nationale."
+      "locale": "Cette recherche porte uniquement sur les plans de cette instance. Votre structure ne participe pas à l'exploration nationale.",
+      "nationaleDetail": "Cette recherche porte sur les plans de gestion de {{count}} structures participantes."
     }
   },
   "errors": {

@@ -505,3 +505,33 @@
     line-height: $line-height-small;
   }
 }
+
+/**
+ * Provenance de la fiche (#636).
+ *
+ * Même gabarit que le bandeau « lecture seule » qui la suit : les deux disent
+ * la nature de ce qu'on lit, pas son contenu.
+ */
+.fiche-provenance {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: $spacing-xs;
+  margin: 0 0 $spacing-sm;
+  padding: $spacing-sm $spacing-md;
+  border-radius: $border-radius-sm;
+  background-color: $tag-cyan;
+  color: $black;
+  font-size: $font-size-small;
+  line-height: $line-height-small;
+
+  i {
+    color: $black;
+  }
+
+  a {
+    display: inline-flex;
+    align-items: center;
+    gap: $spacing-xxs;
+  }
+}

@@ -1046,6 +1046,19 @@ Il ne connaît **aucun modèle métier** de CICADA (ni `PlanGestion`, ni `Enjeu`
 - **Le plan est une table, pas une colonne JSON** (contrairement à `plan_denorm` côté CICADA) : à ~1,3 M de documents visés, recopier le bandeau sur chaque ligne coûterait des centaines de Mo et rendrait la correction d'un libellé proportionnelle au nombre d'objets.
 - Le hub importe `ref_geo` et les nomenclatures depuis **les fichiers source de CICADA montés en lecture seule** : les documents voyagent en codes, deux fichiers divergents produiraient des zones introuvables en silence.
 
+#### Provenance : chaque résultat dit d'où il vient
+
+Une recherche transverse mélange, dans une même liste triée par pertinence, des plans de plusieurs structures. Tant que rien ne le dit, la liste se lit comme un résultat local : deux plans homonymes de deux structures deviennent indiscernables, et un plan distant passe pour l'un des siens. C'est le seul endroit de la fédération où une donnée juste peut être comprise de travers **sans qu'aucune erreur ne soit visible**.
+
+- **Toute réponse de lecture porte `instance_id` et `instance_libelle`** — l'identifiant technique trace, le nom s'affiche. « rnf » ne dit rien à un gestionnaire. La fiche y ajoute `url_instance` et `date_publication` : elle est un instantané déposé, pas une lecture en direct, et son âge doit se voir.
+- **Le nom est résolu en cascade** (`hub/apps/index/identites.py`) : registre (`enroler_instance --libelle`) → ce que l'instance a **déclaré** en ouvrant son dernier lot (`libelle` / `url_publique` de `POST /lots/`, envoyés depuis `CICADA_INSTANCE_LABEL` / `CICADA_PUBLIC_URL`) → l'identifiant lui-même. Jamais vide.
+- **Déclarer un nom n'enrôle pas.** Créer une ligne de registre à la publication ferait basculer l'instance du côté « enrôlée », et `identifier_porteur` refuserait alors son propre jeton d'environnement — la publication suivante échouerait. D'où le stockage sur le **lot** (`LotPublication.libelle_declare`) et non sur `Instance`.
+- **Filtrer par structure** : `?instances=rnf,cen` sur les deux modes. Honoré aussi par l'index **local** (`instance_exclue()` dans `apps/search/filters.py`) — une URL de recherche est faite pour être partagée, et un lien produit sur l'exploration nationale peut être ouvert sur une instance qui explore en local ; l'ignorer rendrait ses plans sous un filtre qui demandait ceux d'une autre.
+- **`GET /api/exploration/instances/`** — les structures qui alimentent la recherche (libellé, URL, volumes, dernière publication). Servi par le hub quand le relais est actif, par l'instance sinon (une seule structure, la sienne) : **même forme de réponse des deux côtés**, comme le reste de l'exploration. Bornée à celles **présentes dans l'index** — une instance enrôlée mais muette ne filtre rien et promettrait des résultats inexistants. Alimente le filtre « Structure d'origine » (masqué en deçà de deux structures) et la portée chiffrée annoncée avant la recherche.
+- **Côté interface** : pastille de provenance sur chaque tuile (`exploration-source`), bandeau sur la fiche avec lien vers la structure d'origine. La pastille n'apparaît que si `instance_libelle` est présent — donc jamais en exploration locale, où tout vient d'ici et où le répéter serait du bruit.
+
+⚠️ Les tuiles du mode « plan » sont suivies par **`referencePlan(plan)` et non `id_pg`** : cet identifiant est une séquence locale, deux structures ont couramment un plan n° 42, et Angular n'en rendrait qu'une.
+
 #### Publication : l'état fait foi, en trois temps
 
 `POST /api/federation/lots/` → `.../plans/` (N pages) → `.../bascule/`
@@ -1117,8 +1130,8 @@ scripts/federation.sh check       # la recherche est-elle bien transverse ?
 scripts/federation.sh mode hub cen   # bascule l'exploration d'une instance
 scripts/federation.sh reindex        # rebuild_search_index --purge
 scripts/federation.sh test           # suites unitaires (55 hub + 140 CICADA)
-scripts/federation.sh test --bench   # 11 cas contre les 3 briques lancées
-scripts/federation.sh test --e2e     # 6 cas Playwright sur l'instance relayée
+scripts/federation.sh test --bench   # 12 cas contre les 3 briques lancées
+scripts/federation.sh test --e2e     # 7 cas Playwright sur l'instance relayée
 
 # Directement
 docker exec cicada_web python manage.py push_federation [--dry-run] [--sans-fiche] [--page-size N]

@@ -198,9 +198,20 @@
               <div class="exploration-tuile-corps">
                 <div class="exploration-tuile-entete">
                   <p class="exploration-tuile-titre">@for (segment of segments(contenu.titre); track $index) {@if (segment.surligne) {<mark>{{ segment.texte }}</mark>} @else {{{ segment.texte }}}}</p>
-                  <span class="exploration-type-tag">
-                    {{ 'exploration.types.' + contenu.type_contenu + '.singulier' | translate }}
-                  </span>
+                  <div class="exploration-tuile-tags">
+                    <!-- #636 — D'où vient ce résultat. Présent uniquement en
+                         exploration fédérée : en local, tout vient d'ici, et
+                         le répéter sur chaque tuile serait du bruit. -->
+                    @if (contenu.plan.instance_libelle) {
+                      <span class="exploration-source" data-testid="exploration-source">
+                        <i class="fi fi-rr-globe" aria-hidden="true"></i>
+                        {{ contenu.plan.instance_libelle }}
+                      </span>
+                    }
+                    <span class="exploration-type-tag">
+                      {{ 'exploration.types.' + contenu.type_contenu + '.singulier' | translate }}
+                    </span>
+                  </div>
                 </div>
 
                 @if (contenu.parent_libelle) {

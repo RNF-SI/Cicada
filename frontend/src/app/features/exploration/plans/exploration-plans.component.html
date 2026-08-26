@@ -103,13 +103,28 @@
       <p class="exploration-etat">{{ 'exploration.results.empty' | translate }}</p>
     } @else {
       <ul class="exploration-tuiles" data-testid="exploration-plans-resultats">
-        @for (plan of resultats(); track plan.id_pg) {
+        <!-- Suivi par référence et non par `id_pg` : cet identifiant est une
+             séquence locale à chaque instance, et deux structures ont donc
+             couramment un plan n° 42. En fédération, deux tuiles partageraient
+             la même clé de suivi et Angular n'en rendrait qu'une. -->
+        @for (plan of resultats(); track referencePlan(plan)) {
           <li class="exploration-tuile exploration-tuile-plan">
             <a
               class="exploration-tuile-lien"
               [routerLink]="['/exploration/plans', referencePlan(plan)]">
               <div class="exploration-tuile-corps">
-                <p class="exploration-tuile-titre">{{ plan.nom }}</p>
+                <div class="exploration-tuile-entete">
+                  <p class="exploration-tuile-titre">{{ plan.nom }}</p>
+                  <!-- #636 — D'où vient ce plan. Deux structures produisent
+                       couramment des plans homonymes : sans la provenance, la
+                       liste ne permet pas de les distinguer. -->
+                  @if (plan.instance_libelle) {
+                    <span class="exploration-source" data-testid="exploration-source">
+                      <i class="fi fi-rr-globe" aria-hidden="true"></i>
+                      {{ plan.instance_libelle }}
+                    </span>
+                  }
+                </div>
 
                 @if (plan.sites.length) {
                   <p class="exploration-tuile-ligne">

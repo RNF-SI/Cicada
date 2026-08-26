@@ -5,6 +5,7 @@ from rest_framework.routers import DefaultRouter
 
 from .views import (
     ExplorationContenuViewSet, ExplorationPlanViewSet, FederationDocumentViewSet,
+    InstancesExplorationView,
 )
 
 router = DefaultRouter()
@@ -18,5 +19,8 @@ router.register(
 )
 
 urlpatterns = [
+    # Avant le routeur : « instances » n'est pas un plan ni un contenu.
+    path('instances/', InstancesExplorationView.as_view(),
+         name='exploration-instances'),
     path('', include(router.urls)),
 ]

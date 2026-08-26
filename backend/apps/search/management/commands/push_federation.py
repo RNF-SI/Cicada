@@ -192,8 +192,17 @@ class Command(BaseCommand):
         return reponse.json() if reponse.content else {}
 
     def _ouvrir(self):
+        # L'instance se nomme à l'ouverture du lot, en plus de s'authentifier.
+        # Le hub n'a autrement que l'identifiant technique à afficher devant un
+        # résultat distant, et « rnf » ne dit pas à un gestionnaire de quelle
+        # structure vient le plan qu'il consulte. Le libellé n'autorise rien :
+        # l'émetteur reste déduit du jeton.
         corps = self._appel(
-            'POST', '/api/federation/lots/', {'format_version': FORMAT_VERSION}
+            'POST', '/api/federation/lots/', {
+                'format_version': FORMAT_VERSION,
+                'libelle': settings.CICADA_INSTANCE_LABEL,
+                'url_publique': settings.CICADA_PUBLIC_URL,
+            }
         )
         self.stdout.write(f"  Lot {corps['lot_id']} ouvert.")
         return corps['lot_id']

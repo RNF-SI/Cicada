@@ -81,6 +81,14 @@ export interface ExplorationPlanResume {
   gestionnaire_principal: string | null;
   reference?: string;
   instance_id?: string;
+  /**
+   * Nom de la structure d'origine — fédération uniquement (#636).
+   *
+   * L'identifiant technique (« rnf ») trace la donnée, il ne la présente pas :
+   * c'est ce libellé qui est affiché sur la tuile. Absent hors fédération, où
+   * tout vient de l'instance courante.
+   */
+  instance_libelle?: string;
   url_instance?: string;
 }
 
@@ -113,6 +121,8 @@ export interface ExplorationContenu {
   plan: ExplorationPlanResume;
   /** Instance d'origine du document — fédération uniquement (#636). */
   instance_id?: string;
+  /** Nom de la structure d'origine — fédération uniquement (#636). */
+  instance_libelle?: string;
   /**
    * #650 — Champs ayant répondu à la recherche (`titre`, `rattachements`,
    * `description`, `contexte`). Vide sans mot-clé.
@@ -142,6 +152,8 @@ export interface ExplorationPlan {
   gestionnaire_principal: string | null;
   reference?: string;
   instance_id?: string;
+  /** Nom de la structure d'origine — fédération uniquement (#636). */
+  instance_libelle?: string;
   url_instance?: string;
 }
 
@@ -190,8 +202,31 @@ export interface ExplorationCriteres {
   typesIndicateur?: string[];
   categoriesAction?: string[];
   statuts?: ExplorationStatut[];
+  /**
+   * #636 — Structures d'origine retenues (identifiants d'instance).
+   *
+   * Sans effet hors fédération : un index local n'a qu'une provenance, et le
+   * filtre correspondant n'est pas affiché.
+   */
+  instances?: string[];
   tri?: ExplorationTri;
   page?: number;
+}
+
+/**
+ * Une structure dont les données alimentent l'exploration (#636).
+ *
+ * Rendue par `/api/exploration/instances/`, servie par le hub ou par l'instance
+ * elle-même. Répond à la question que pose tout résultat manquant : ce plan
+ * n'existe pas, ou sa structure ne publie pas ?
+ */
+export interface ExplorationInstance {
+  instance_id: string;
+  libelle: string;
+  url_publique: string;
+  plans: number;
+  contenus: number;
+  derniere_publication: string | null;
 }
 
 /** Département du filtre « zone géographique ». */

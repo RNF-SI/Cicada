@@ -17,9 +17,23 @@ from .models import ContenuIndexe
 
 
 class OuvertureLotSerializer(serializers.Serializer):
-    """Corps de l'ouverture d'un lot."""
+    """
+    Corps de l'ouverture d'un lot.
+
+    L'instance y **déclare son identité d'affichage** : le nom qu'elle se donne
+    et son URL publique. Ils ne l'authentifient pas — c'est le jeton qui le
+    fait, et l'identifiant technique en est déduit — ils servent à nommer la
+    provenance d'un résultat dans l'interface. Facultatifs : une instance plus
+    ancienne n'en envoie pas, et le hub retombe alors sur le registre.
+    """
 
     format_version = serializers.IntegerField()
+    libelle = serializers.CharField(
+        max_length=200, required=False, allow_blank=True, default='',
+    )
+    url_publique = serializers.CharField(
+        max_length=200, required=False, allow_blank=True, default='',
+    )
 
     def validate_format_version(self, valeur):
         if valeur not in FORMATS_ACCEPTES:

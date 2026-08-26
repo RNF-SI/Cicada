@@ -9,6 +9,7 @@ jointures côté `PlanGestion`.
 
 import datetime
 
+from django.conf import settings
 from django.contrib.postgres.search import (
     SearchHeadline, SearchQuery, SearchRank, SearchVector,
 )
@@ -93,6 +94,29 @@ def q_statuts(statuts, champ_statut='statut_pg', annee=None):
                 & Q(annee_fin__gte=annee)
             )
     return scope
+
+
+# --------------------------------------------------------------------------- #
+# Structure d'origine (#636)
+# --------------------------------------------------------------------------- #
+
+def instance_exclue(params):
+    """
+    Vrai si le filtre « structure d'origine » exclut cette instance.
+
+    Ce filtre n'a de sens que sur le hub, où l'index agrège plusieurs
+    provenances. Il est néanmoins honoré ici, pour une raison précise : une URL
+    de recherche est faite pour être partagée, et un lien produit sur
+    l'exploration nationale peut être ouvert sur une instance qui explore en
+    local. L'ignorer rendrait alors les plans de cette instance sous un filtre
+    qui demandait ceux d'une autre — une réponse fausse, et silencieuse.
+
+    Le mode « plan de gestion » interroge `PlanGestion`, qui ne porte pas de
+    colonne d'instance : localement, *tous* les plans sont ceux de cette
+    instance. La question se réduit donc à « suis-je dans la liste ? ».
+    """
+    instances = liste(params, 'instances')
+    return bool(instances) and settings.CICADA_INSTANCE_ID not in instances
 
 
 # --------------------------------------------------------------------------- #
@@ -181,6 +205,14 @@ def filtrer_contenus(queryset, params, info=None):
     statuts = liste(params, 'statuts')
     if statuts:
         queryset = queryset.filter(q_statuts(statuts))
+
+    # Ici l'index porte bien une colonne d'instance : on filtre dessus plutôt
+    # que de raisonner sur l'identité de l'instance courante. Les deux reviennent
+    # au même en local, mais celui-ci reste juste si l'index venait à contenir
+    # des documents d'ailleurs.
+    instances = liste(params, 'instances')
+    if instances:
+        queryset = queryset.filter(instance_id__in=instances)
 
     queryset = queryset.filter(q_sous_types(params))
     return queryset
@@ -328,6 +360,9 @@ def filtrer_plans(queryset, params):
     statuts = liste(params, 'statuts')
     if statuts:
         queryset = queryset.filter(q_statuts(statuts, champ_statut='statut'))
+
+    if instance_exclue(params):
+        return queryset.none()
 
     return queryset.distinct()
 

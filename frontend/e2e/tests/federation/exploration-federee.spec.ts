@@ -160,6 +160,49 @@ test.describe('Exploration servie par le hub', () => {
     ).toBe(distant!.instance_id);
   });
 
+  test("dit sur chaque résultat de quelle structure il vient", async ({ page }) => {
+    // Le pendant visible du test précédent. Les deux instances du banc ont des
+    // plans de même nom : le lien pointe désormais le bon, mais la liste reste
+    // illisible tant que rien ne distingue « le mien » de « celui d'à côté ».
+    await ouvrirListe(page);
+
+    const sources = page.getByTestId(RESULTATS).getByTestId('exploration-source');
+    await expect(
+      sources.first(),
+      "Aucune provenance affichée : les résultats distants se lisent comme " +
+        'des résultats locaux.',
+    ).toBeVisible({ timeout: 20000 });
+
+    // Plusieurs structures nommées, et non un même libellé répété : c'est ce
+    // qui rend la liste lisible.
+    const libelles = new Set(
+      (await sources.allInnerTexts()).map((texte) => texte.trim()),
+    );
+    expect(
+      libelles.size,
+      `Une seule provenance affichée (${[...libelles]}) sur une liste ` +
+        'agrégée. Les deux instances ont-elles publié ?',
+    ).toBeGreaterThan(1);
+  });
+
+  test("nomme la structure qui a publié la fiche qu'on lit", async ({ page }) => {
+    const reponses = await capturerReponses(page);
+    await ouvrirListe(page);
+
+    const derniere = reponses[reponses.length - 1] as {
+      results: Array<{ instance_id?: string }>;
+    };
+    const rang = derniere.results.findIndex((r) => r.instance_id !== 'cen');
+    test.skip(rang < 0, 'Aucun résultat distant dans cette recherche.');
+
+    await page.getByTestId(RESULTATS).locator('li').nth(rang).click();
+    await expect(page).toHaveURL(/\/exploration\/plans\//, { timeout: 20000 });
+
+    // La fiche est un instantané déposé par une autre structure : qui l'a
+    // publiée, et quand, fait partie de ce qu'il faut savoir pour la lire.
+    await expect(page.getByTestId('fiche-provenance')).toBeVisible({ timeout: 20000 });
+  });
+
   test('affiche la fiche complète d’un plan hébergé ailleurs', async ({ page }) => {
     // Le hub ressert un instantané publié : le plan n'existe dans aucune table
     // de cette instance, et sa fiche doit pourtant s'afficher entièrement.

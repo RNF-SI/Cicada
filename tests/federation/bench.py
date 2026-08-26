@@ -419,6 +419,50 @@ def cas_aller_retour_le_contenu_publie_devient_cherchable(banc):
     return f"{plans} plans, {documents} documents cherchables"
 
 
+def cas_provenance_chaque_resultat_dit_d_ou_il_vient(banc):
+    """
+    La provenance traverse la couture (#636).
+
+    C'est un cas de banc et non un test unitaire parce qu'il enjambe les deux
+    projets : le nom de la structure est déclaré par CICADA à l'ouverture du
+    lot, stocké par le hub, puis résolu à la lecture. Chaque moitié peut être
+    juste séparément et le nom n'arriver quand même jamais.
+
+    Ce qu'une absence coûte : une liste de résultats agrégeant plusieurs
+    structures, sans rien qui distingue les siennes de celles des autres. Deux
+    plans homonymes y deviennent indiscernables, et un plan distant se lit comme
+    un plan local.
+    """
+    banc.publier(RNF_WEB)
+    banc.publier(CEN_WEB)
+
+    manquants = []
+    for chemin in ('/api/exploration/plans/', '/api/exploration/contenus/'):
+        reponse = banc.hub(chemin, page_size=50)
+        if reponse.status_code != 200:
+            raise EchecDuBanc(f"Hub : {reponse.status_code} sur {chemin}")
+        for resultat in reponse.json()['results']:
+            if not resultat.get('instance_id') or not resultat.get('instance_libelle'):
+                manquants.append(f"{chemin} → {resultat.get('titre', resultat.get('nom'))}")
+
+    if manquants:
+        raise EchecDuBanc(
+            "Des résultats ne disent pas de quelle instance ils viennent :\n    "
+            + "\n    ".join(manquants[:5])
+        )
+
+    instances = banc.hub('/api/exploration/instances/')
+    if instances.status_code != 200:
+        raise EchecDuBanc(f"Inventaire des structures : {instances.status_code}")
+    identifiants = {i['instance_id'] for i in instances.json()['instances']}
+    if not {'rnf', 'cen'} <= identifiants:
+        raise EchecDuBanc(
+            f"L'inventaire ne connaît que {sorted(identifiants)} — "
+            "une structure qui publie doit y figurer."
+        )
+    return f"{len(identifiants)} structures nommées, provenance sur tous les résultats"
+
+
 def cas_isolation_une_instance_ne_purge_pas_l_autre(banc):
     """
     L'invariant le plus important du système.
@@ -556,6 +600,9 @@ REQUETES_DE_PARITE = [
     {'types_indicateur': 'ETAT'},
     {'tri': 'alphabetique'},
     {'tri': 'recent'},
+    # La structure d'origine : sans effet en local (tout vient d'ici), filtrante
+    # au hub. Les deux doivent malgré tout rendre le même corpus.
+    {'instances': 'rnf'},
 ]
 
 
@@ -582,9 +629,12 @@ def cas_parite_local_et_hub_repondent_pareil(banc):
         local = banc.instance(
             RNF_API, '/api/exploration/contenus/', page_size=100, **parametres
         )
+        # Le corpus du hub est restreint à RNF pour être comparable — sauf si
+        # la requête testée fixe elle-même `instances`, auquel cas c'est elle
+        # qui décide (sans quoi l'appel recevrait deux fois le paramètre).
         distant = banc.hub(
-            '/api/exploration/contenus/', page_size=100,
-            instances='rnf', **parametres,
+            '/api/exploration/contenus/',
+            **{'page_size': 100, 'instances': 'rnf', **parametres},
         )
         if local.status_code != 200 or distant.status_code != 200:
             ecarts.append(
@@ -694,6 +744,7 @@ GROUPES = [
     ]),
     ("Scénarios de fédération", [
         cas_aller_retour_le_contenu_publie_devient_cherchable,
+        cas_provenance_chaque_resultat_dit_d_ou_il_vient,
         cas_isolation_une_instance_ne_purge_pas_l_autre,
         cas_depublication_un_plan_retire_disparait,
         cas_idempotence_republier_ne_change_rien,
