@@ -159,16 +159,8 @@
 
   </div>
 
-  <!-- #447 — Footer partenaires/financeurs (page d'accueil uniquement). -->
-  <footer class="home-footer">
-    <span class="home-footer__label">{{ 'home.footer.partners' | translate }}</span>
-    <div class="home-footer__logos">
-      <img src="assets/images/logo-life-ue.png"
-           alt="Cofinancé par l'Union européenne — programme LIFE"
-           class="home-footer__logo home-footer__logo--life" />
-      <img src="assets/images/logo-biodiv-france.svg"
-           alt="Biodiv'France"
-           class="home-footer__logo home-footer__logo--biodiv" />
-    </div>
-  </footer>
+  <!-- Bloc marque UE + LIFE BIODIV'FRANCE et mention UE obligatoires (financement LIFE). -->
+  <div class="home-footer">
+    <app-eu-funding-notice></app-eu-funding-notice>
+  </div>
 </main>

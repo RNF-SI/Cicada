@@ -258,3 +258,18 @@ Ce projet est sous licence GPL-3.0. Voir le fichier `LICENSE` pour plus de déta
 
 - **Issues** : https://github.com/RNF-SI/Cicada/issues
 - **Project Board** : https://github.com/RNF-SI/Cicada/projects/1
+
+---
+
+## 🇪🇺 Financement
+
+<p align="center">
+  <img src="frontend/src/assets/images/bloc-marque-ue-life-biodiv.jpg" alt="Cofinancé par l'Union européenne — programme LIFE — BIODIV'FRANCE" width="600" />
+</p>
+
+> **Cofinancé par l’Union européenne. Les points de vue et les opinions exprimés sont toutefois ceux des auteurs et ne reflètent pas nécessairement ceux de l’Union européenne ou de CINEA. Ni l’Union européenne ni l’autorité chargée de l’octroi de la subvention ne peuvent en être tenues pour responsables.**
+>
+> Réalisé dans le cadre du projet LIFE BIODIV’FRANCE<br>
+> Coordonné par l’Office Français de la Biodiversité, ce projet rassemble un consortium de 31 participants. Il accompagne la mise en œuvre de la stratégie nationale pour la biodiversité en travaillant sur 5 cibles : les territoires, aires protégées, filières, citoyens et acteurs de la formation.
+
+---

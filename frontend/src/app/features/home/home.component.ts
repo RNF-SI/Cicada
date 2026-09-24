@@ -9,6 +9,7 @@ import { AuthService } from '../../core/services/auth.service';
 import { PublicStatsService } from '../../core/services/public-stats.service';
 import { ModuleService } from '../../core/services/module.service';
 import { SettingsService } from '../../core/services/settings.service';
+import { EuFundingNoticeComponent } from '../../shared/components/eu-funding-notice/eu-funding-notice.component';
 
 @Component({
   selector: 'app-home',
@@ -19,7 +20,8 @@ import { SettingsService } from '../../core/services/settings.service';
     TranslateModule,
     HeaderComponent,
     NavigationTileComponent,
-    MatButtonModule
+    MatButtonModule,
+    EuFundingNoticeComponent
   ],
   templateUrl: './home.component.html',
   styleUrl: './home.component.scss'

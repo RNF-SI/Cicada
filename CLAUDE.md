@@ -290,6 +290,10 @@ Les composants standalone sont dans `frontend/src/app/shared/components/`.
 - Pas de bordure par défaut ; pas de hover si `clickable=false`
 - Combinaisons WCAG AA respectées — voir [docs/DESIGN_SYSTEM.md](docs/DESIGN_SYSTEM.md)
 
+#### `EuFundingNoticeComponent`
+**Sélecteur**: `app-eu-funding-notice` — **Fichiers**: `eu-funding-notice/`
+Bloc marque officiel UE + LIFE BIODIV'FRANCE (`assets/images/bloc-marque-ue-life-biodiv.jpg`, ne pas recomposer les logos) + mention UE **obligatoire** (clé `euFunding.disclaimer`) dans un encart délimité. Obligation contractuelle du financement LIFE : toute modification du texte ou du visuel doit être validée par la coordination communication du LIFE BIODIV'FRANCE. Affiché en pied de page de l'accueil.
+
 #### `HeaderComponent`
 **Sélecteur**: `app-header`
 **Fichiers**: `header/`
