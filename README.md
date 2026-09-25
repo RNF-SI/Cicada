@@ -243,6 +243,24 @@ Le projet utilise un pipeline automatise : **conventional commits** → **releas
 
 **[Documentation complete du pipeline de release](docs/RELEASE_PIPELINE.md)**
 
+### Inventaire des dependances (SBOM)
+
+Chaque release publiee genere les SBOM CycloneDX du depot (workflow `.github/workflows/sbom.yml`) et les envoie au serveur [Dependency-Track](https://dependencytrack.reserves-naturelles.org) de RNF, qui suit les vulnerabilites connues. Quatre projets : `cicada-backend`, `cicada-frontend` (dependances de production uniquement), `cicada-hub`, `cicada-tracking-api`.
+
+```bash
+./scripts/generate-sbom.sh            # genere sbom/*.cdx.json
+./scripts/generate-sbom.sh --envoi    # genere puis envoie (cle dans ~/.config/dependency-track/api.key)
+```
+
+| Variable | Defaut | Role |
+|---|---|---|
+| `DT_VERSION` | `prod` | version des projets Dependency-Track — **fixe**, c'est l'environnement deploye |
+| `APP_VERSION` | dernier tag Git | version applicative inscrite dans les SBOM |
+
+`DT_VERSION` reste fixe volontairement : une version de projet par release creerait des projets neufs a chaque publication, a re-tagger a la main. Le numero de release est trace par le composant racine du SBOM.
+
+> En local, `frontend/node_modules` est souvent le point de montage vide du volume Docker : le script le croit installe et `npm ls` echoue. Lancer `npm ci` dans `frontend/` (hors conteneur) avant de generer.
+
 ## 🤝 Contribution
 
 1. Creer une branche depuis `develop`

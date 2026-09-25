@@ -1,0 +1,38 @@
+name: SBOM
+
+# Publication d'une release : evenement volontaire et date, contrairement a un
+# push sur main qui remonterait des inventaires pour du code jamais deploye.
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+jobs:
+  sbom:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Memes versions que tests.yml : frontend (npm) et backend/hub/tracking-api (Python).
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Générer et envoyer les SBOM
+        run: ./scripts/generate-sbom.sh --envoi
+        env:
+          DT_URL: ${{ secrets.DT_URL }}
+          DT_API_KEY: ${{ secrets.DT_API_KEY }}
+          APP_VERSION: ${{ github.event.release.tag_name || github.ref_name }}
+
+      # Utile en cas de litige sur ce qui a ete envoye, et le seul moyen de
+      # relire un SBOM sans rejouer le job.
+      - name: Conserver les SBOM
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom
+          path: sbom/*.cdx.json
