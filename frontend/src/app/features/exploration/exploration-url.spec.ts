@@ -88,6 +88,9 @@ describe('exploration-url', () => {
       typesIndicateur: ['ETAT'],
       categoriesAction: ['SP'],
       statuts: ['en_cours'],
+      // #636 — La structure d'origine est un critère comme un autre : un lien
+      // partagé doit rouvrir la recherche filtrée sur les mêmes structures.
+      instances: ['rnf', 'cen-aura'],
       tri: 'alphabetique',
       page: 2,
     };

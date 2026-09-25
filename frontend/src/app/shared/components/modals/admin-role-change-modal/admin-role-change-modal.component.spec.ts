@@ -249,6 +249,42 @@ describe('AdminRoleChangeModalComponent', () => {
     });
   });
 
+  // ==================== DIRECT MODE (#655) ====================
+
+  describe('Direct mode (#655)', () => {
+    it('should not require a justification when the change is applied directly', async () => {
+      await setupTestBed({ ...mockPromotionData, direct: true });
+
+      expect(component.isDirect).toBe(true);
+      expect(component.isValid).toBe(true);
+
+      component.onConfirm();
+
+      expect(dialogCloseMock).toHaveBeenCalled();
+      const result = dialogCloseMock.mock.calls[0][0] as AdminRoleChangeModalResult;
+      expect(result.confirmed).toBe(true);
+      expect(result.justification).toBe('');
+    });
+
+    it('should use the direct wording for title and confirm button', async () => {
+      await setupTestBed({ ...mockPromotionData, direct: true });
+
+      expect(component.titleKey).toBe('modals.adminRoleChange.promotion.titleDirect');
+      expect(component.confirmButtonKey).toBe('modals.adminRoleChange.promotion.confirmDirect');
+      expect(component.noticeKey).toBe('modals.adminRoleChange.directNotice');
+    });
+
+    it('should keep the request wording and the mandatory justification otherwise', async () => {
+      await setupTestBed(mockDemotionData);
+
+      expect(component.isDirect).toBe(false);
+      expect(component.isValid).toBe(false);
+      expect(component.titleKey).toBe('modals.adminRoleChange.demotion.title');
+      expect(component.confirmButtonKey).toBe('modals.adminRoleChange.demotion.confirm');
+      expect(component.noticeKey).toBe('modals.adminRoleChange.superAdminNotice');
+    });
+  });
+
   // ==================== ERROR HANDLING ====================
 
   describe('Error Handling', () => {

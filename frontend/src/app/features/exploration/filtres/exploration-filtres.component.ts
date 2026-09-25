@@ -55,6 +55,16 @@ export class ExplorationFiltresComponent {
   private readonly organismes = toSignal(this.exploration.organismes(), {
     initialValue: [],
   });
+  /**
+   * #636 — Structures dont les données alimentent la recherche.
+   *
+   * Le groupe n'est affiché qu'au-delà d'une structure : en exploration locale,
+   * proposer de filtrer sur la seule provenance possible n'offrirait aucun
+   * choix et laisserait croire qu'il en existe d'autres.
+   */
+  private readonly instances = toSignal(this.exploration.instances(), {
+    initialValue: [],
+  });
   private readonly typesSite = toSignal(
     this.exploration.nomenclatures('TYPE_SITE'),
     { initialValue: [] },
@@ -81,6 +91,16 @@ export class ExplorationFiltresComponent {
       label: organisme.nom_organisme,
     })),
   );
+
+  protected readonly optionsInstances = computed(() =>
+    this.instances().map((instance) => ({
+      value: instance.instance_id,
+      label: instance.libelle,
+    })),
+  );
+
+  /** Vrai quand la recherche agrège plusieurs structures. */
+  protected readonly federee = computed(() => this.instances().length > 1);
 
   protected readonly optionsTypesSite = computed(() =>
     this.typesSite().map((nomenclature) => ({
@@ -139,6 +159,7 @@ export class ExplorationFiltresComponent {
       (c.typesIndicateur?.length ?? 0) +
       (c.categoriesAction?.length ?? 0) +
       (c.statuts?.length ?? 0) +
+      (c.instances?.length ?? 0) +
       this.objectifsSelectionnes().length
     );
   });

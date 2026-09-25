@@ -525,18 +525,6 @@
   color: $gray-dark;
 }
 
-// Pagination
-.pagination {
-  display: flex;
-  justify-content: flex-end;
-  margin-top: $spacing-md;
-}
-
-.pagination-info {
-  font-size: $font-size-small;
-  color: $gray-dark;
-}
-
 // Responsive
 @media (max-width: $breakpoint-desktop) {
   .filters-bar {

@@ -243,6 +243,68 @@
                 </div>
             </section>
 
+            <!-- Section Exploration fédérée (#636) -->
+            <section class="form-section">
+                <h2>Exploration fédérée (optionnel)</h2>
+                <div class="info-box">
+                    <p>CICADA peut publier la <strong>structure</strong> de ses plans validés
+                    vers un hub national, afin que la recherche porte sur les plans de toutes
+                    les structures participantes. Ne sortent jamais : le budget, les ressources
+                    humaines, les mesures et réalisations, les auteurs et les dates.</p>
+                    <p>Cette case ne fait que préparer la configuration : <strong>rien n'est
+                    publié</strong> tant qu'un super administrateur n'a pas activé le partage
+                    dans « Administration &gt; Paramètres ».</p>
+                </div>
+                <div class="form-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="federation_enabled" name="federation_enabled" onchange="toggleFederationFields()">
+                        <span>Configurer le raccordement au hub maintenant</span>
+                    </label>
+                    <small class="form-help">Les jetons sont délivrés par l'administrateur du hub. Vous pourrez aussi les renseigner plus tard dans /var/lib/cicada/.env.</small>
+                </div>
+                <div id="federation_fields" class="hidden">
+                    <div class="form-group">
+                        <label for="federation_instance_id">Identifiant de cette instance *</label>
+                        <input type="text" id="federation_instance_id" name="federation_instance_id" placeholder="rnf" pattern="[a-z0-9][a-z0-9-]*">
+                        <small class="form-help">⚠️ Définitif. Minuscules, sans espaces ni accents (ex. « rnf », « cen-aura »). Il apparaît dans la référence publique de chaque plan et ne peut plus être changé sans republier tout l'index.</small>
+                    </div>
+                    <div class="form-group">
+                        <label for="federation_instance_label">Nom affiché de l'instance</label>
+                        <input type="text" id="federation_instance_label" name="federation_instance_label" placeholder="Réserves Naturelles de France">
+                    </div>
+                    <div class="form-group">
+                        <label for="federation_hub_url">URL du hub *</label>
+                        <input type="url" id="federation_hub_url" name="federation_hub_url" placeholder="https://hub.cicada.example.org">
+                    </div>
+                    <div class="form-group">
+                        <label for="federation_push_token">Jeton de dépôt *</label>
+                        <div class="password-field">
+                            <input type="password" id="federation_push_token" name="federation_push_token">
+                            <button type="button" class="btn-icon" onclick="togglePasswordVisibility('federation_push_token', this)" title="Afficher/Masquer">
+                                &#128065;
+                            </button>
+                        </div>
+                        <small class="form-help">Autorise cette instance à publier. Distinct du jeton de lecture : révoquer l'un ne doit pas emporter l'autre.</small>
+                    </div>
+                    <div class="form-group">
+                        <label for="federation_read_token">Jeton de lecture</label>
+                        <div class="password-field">
+                            <input type="password" id="federation_read_token" name="federation_read_token">
+                            <button type="button" class="btn-icon" onclick="togglePasswordVisibility('federation_read_token', this)" title="Afficher/Masquer">
+                                &#128065;
+                            </button>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="federation_relay" name="federation_relay" onchange="toggleFederationFields()">
+                            <span>Servir l'exploration depuis le hub (recherche nationale)</span>
+                        </label>
+                        <small class="form-help">Si décoché, l'exploration reste locale : elle ne montre que les plans de cette instance, même si celle-ci publie.</small>
+                    </div>
+                </div>
+            </section>
+
             <!-- Section RGPD -->
             <section class="form-section rgpd-section">
                 <h2>Consentement RGPD (optionnel)</h2>

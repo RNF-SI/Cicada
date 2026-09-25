@@ -1,11 +1,12 @@
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject, signal } from '@angular/core';
-import { Observable, map, shareReplay } from 'rxjs';
+import { Observable, catchError, map, of, shareReplay } from 'rxjs';
 
 import { FichePlan } from '../models/exploration-fiche.model';
 import {
   ExplorationContenu,
   ExplorationCriteres,
+  ExplorationInstance,
   ExplorationPlan,
   ExplorationReponse,
   NomenclatureOption,
@@ -28,8 +29,10 @@ export class ExplorationService {
   private readonly urlContenus = '/api/exploration/contenus/';
   private readonly urlPlans = '/api/exploration/plans/';
   private readonly urlZones = '/api/geo/zones/';
+  private readonly urlInstances = '/api/exploration/instances/';
 
   private zones$?: Observable<ZoneRegion[]>;
+  private instances$?: Observable<ExplorationInstance[]>;
   private organismes$?: Observable<OrganismePublic[]>;
   private readonly nomenclatures$ = new Map<string, Observable<NomenclatureOption[]>>();
 
@@ -65,6 +68,7 @@ export class ExplorationService {
     multiple('types_indicateur', criteres.typesIndicateur);
     multiple('categories_action', criteres.categoriesAction);
     multiple('statuts', criteres.statuts);
+    multiple('instances', criteres.instances);
     if (criteres.tri && criteres.tri !== 'pertinence') {
       params = params.set('tri', criteres.tri);
     }
@@ -124,6 +128,28 @@ export class ExplorationService {
       .get<OrganismePublic[]>('/api/users/organismes/public/')
       .pipe(shareReplay({ bufferSize: 1, refCount: false }));
     return this.organismes$;
+  }
+
+  /**
+   * Structures dont les données alimentent l'exploration (#636).
+   *
+   * Mise en cache comme les autres référentiels de facettes : la liste ne
+   * change qu'au rythme des publications, jamais pendant une session de
+   * recherche.
+   */
+  instances(): Observable<ExplorationInstance[]> {
+    this.instances$ ??= this.http
+      .get<{ instances: ExplorationInstance[] }>(this.urlInstances)
+      .pipe(
+        map((reponse) => reponse.instances ?? []),
+        // Cette liste décore la page (provenance chiffrée, filtre par
+        // structure) ; elle ne conditionne pas la recherche. Si le hub est
+        // injoignable, l'échec doit se voir sur les résultats — pas emporter
+        // la page entière avant même qu'on ait cherché quoi que ce soit.
+        catchError(() => of([] as ExplorationInstance[])),
+        shareReplay({ bufferSize: 1, refCount: false }),
+      );
+    return this.instances$;
   }
 
   /** Nomenclature complète d'un type, mise en cache (référentiel figé). */

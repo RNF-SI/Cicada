@@ -13,6 +13,7 @@ test.describe('Registration', () => {
     await expect(registerPage.firstNameInput).toBeVisible();
     await expect(registerPage.lastNameInput).toBeVisible();
     await expect(registerPage.emailInput).toBeVisible();
+    await expect(registerPage.identifiantInput).toBeVisible();
     await expect(registerPage.organismeInput).toBeVisible();
     await expect(registerPage.passwordInput).toBeVisible();
     await expect(registerPage.confirmPasswordInput).toBeVisible();
@@ -20,11 +21,13 @@ test.describe('Registration', () => {
   });
 
   test('should register and redirect to pending page', async ({ page }) => {
-    const uniqueEmail = `e2e-${Date.now()}@test.fr`;
+    const stamp = Date.now();
+    const uniqueEmail = `e2e-${stamp}@test.fr`;
     await registerPage.fillForm({
       firstName: 'E2E',
       lastName: 'TestUser',
       email: uniqueEmail,
+      identifiant: `e2e-${stamp}`,
       organisme: 'Naturelles',
       password: 'Test123!e2e',
       confirmPassword: 'Test123!e2e',
@@ -40,6 +43,23 @@ test.describe('Registration', () => {
 
     // Un bandeau d'erreur apparaît et on reste sur la page d'inscription.
     await expect(page.locator('.error-banner')).toBeVisible();
+    await expect(page).toHaveURL(/\/auth\/register/);
+  });
+
+  test('should show error when identifiant is missing', async ({ page }) => {
+    // L'identifiant de connexion est obligatoire (#656).
+    await registerPage.firstNameInput.fill('Test');
+    await registerPage.lastNameInput.fill('User');
+    await registerPage.emailInput.fill(`e2e-noident-${Date.now()}@test.fr`);
+    await registerPage.passwordInput.fill('Test123!abc');
+    await registerPage.confirmPasswordInput.fill('Test123!abc');
+
+    await registerPage.submit();
+
+    const identifiantError = page
+      .locator('.app-form-field__error, mat-error, .form-error-msg')
+      .filter({ hasText: /identifiant/i });
+    await expect(identifiantError.first()).toBeVisible();
     await expect(page).toHaveURL(/\/auth\/register/);
   });
 
@@ -66,6 +86,7 @@ test.describe('Registration', () => {
       firstName: 'Duplicate',
       lastName: 'User',
       email: 'admin@test.fr', // Already exists
+      identifiant: `e2e-dup-${Date.now()}`,
       organisme: 'Naturelles',
       password: 'Test123!dup',
       confirmPassword: 'Test123!dup',

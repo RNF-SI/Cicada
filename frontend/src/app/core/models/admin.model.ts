@@ -708,6 +708,10 @@ export interface BulkImportSiteRow {
   duplicate_info: BulkImportDuplicateInfo | null;
   /** Sites avec noms similaires (avertissement non bloquant) */
   similar_names?: { id_site: number; nom_site: string }[];
+  /** Organismes résolus depuis la colonne « organisme » (#647) */
+  resolved_organismes?: { id_organisme: number; nom_organisme: string }[];
+  /** Utilisateurs résolus depuis la colonne « référent » (#647) */
+  resolved_referents?: { id_role: number; nom: string; email: string }[];
   /** Sélectionné pour import (état local, non retourné par l'API) */
   selected?: boolean;
 }
@@ -733,6 +737,10 @@ export interface BulkImportDetailItem {
   site_id?: number;
   validation_request_id?: number;
   error?: string;
+  /** Organismes rattachés au site créé (#647) */
+  organismes?: string[];
+  /** Référents rattachés au site créé (#647) */
+  referents?: string[];
 }
 
 /** Résultat de l'exécution d'import en masse */

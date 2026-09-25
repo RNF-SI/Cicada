@@ -5,6 +5,7 @@ import copy
 import logging
 import os
 import shutil
+import uuid
 
 from django.db import transaction
 from django.utils.text import slugify
@@ -281,6 +282,11 @@ class PlanDuplicationService:
         new_plan = PlanDuplicationService._dup(
             source_plan, user,
             slug='',                 # régénéré à la sauvegarde
+            # #645 — Identifiant propre. `_dup` recopie tous les champs
+            # concrets, dont l'UUID : sans ce tirage, l'INSERT violerait
+            # l'unicité — et, s'il passait, une GED tierce verrait la nouvelle
+            # version écraser la précédente, les deux portant la même clé.
+            uuid_plan=uuid.uuid4(),
             plan_parent=source_plan,
             statut='draft',          # seule métadonnée NON copiée
             geometrie=None,          # recalculée depuis les sites

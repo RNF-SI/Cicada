@@ -11,6 +11,8 @@ from rest_framework.response import Response
 from rest_framework import status
 
 from config.version import __version__
+from rest_framework.permissions import IsAuthenticated
+
 from apps.users.permissions import IsSuperAdmin
 
 
@@ -46,6 +48,22 @@ class SystemVersionView(APIView):
             'latest_version': info.get('latest_version'),
             'last_check': info.get('last_check'),
         })
+
+
+class SystemAppVersionView(APIView):
+    """
+    GET /api/system/app-version/
+    Version de l'application, pour l'afficher dans l'administration (#646).
+
+    Endpoint distinct de SystemVersionView : celle-ci reste réservée au super
+    admin car elle porte aussi l'état de mise à jour, en pendant du bouton qui
+    la déclenche. Le pied de la sidebar d'administration, lui, est vu par le
+    référent et l'admin organisme — d'où une réponse limitée à la version.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request: Request) -> Response:
+        return Response({'version': __version__})
 
 
 class SystemTriggerUpdateView(APIView):

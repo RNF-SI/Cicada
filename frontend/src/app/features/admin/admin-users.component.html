@@ -227,11 +227,12 @@
                   <button class="btn-icon" [title]="'admin.users.actions.assignSite' | translate" (click)="openAssignSiteModal(user)">
                     <i class="fi fi-rr-marker"></i>
                   </button>
-                  <!-- Role change buttons (admin_og only, request goes to super_admin) -->
+                  <!-- Changement de rôle : le super admin l'applique directement,
+                       l'admin_og dépose une demande qu'un super admin validera (#655) -->
                   @if (canRequestPromotion(user)) {
                     <button
                       class="btn-icon promote"
-                      [matTooltip]="'admin.users.actions.requestPromotion' | translate"
+                      [matTooltip]="(isSuperAdmin() ? 'admin.users.actions.promote' : 'admin.users.actions.requestPromotion') | translate"
                       (click)="requestAdminPromotion(user)">
                       <i class="fi fi-rr-arrow-up"></i>
                     </button>
@@ -239,7 +240,7 @@
                   @if (canRequestDemotion(user)) {
                     <button
                       class="btn-icon demote"
-                      [matTooltip]="'admin.users.actions.requestDemotion' | translate"
+                      [matTooltip]="(isSuperAdmin() ? 'admin.users.actions.demote' : 'admin.users.actions.requestDemotion') | translate"
                       (click)="requestAdminDemotion(user)">
                       <i class="fi fi-rr-arrow-down"></i>
                     </button>

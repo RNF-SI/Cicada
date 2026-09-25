@@ -47,6 +47,33 @@
     </app-filter-tree>
   </section>
 
+  <!-- Structure d'origine (#636) — masqué hors fédération : une seule
+       provenance possible n'est pas un choix, et l'afficher laisserait croire
+       qu'il en existe d'autres. -->
+  @if (federee()) {
+    <section class="exploration-filtres-groupe">
+      <h2 class="subtitle exploration-filtres-titre">
+        {{ 'exploration.filters.instances' | translate }}
+      </h2>
+      <app-filter-dropdown
+        testId="exploration-instances"
+        variant="field"
+        theme="dark"
+        [label]="'exploration.filters.instances' | translate"
+        [placeholder]="'common.actions.select' | translate"
+        [activeCount]="criteres().instances?.length ?? 0">
+        <ng-template appFilterPanel>
+          <app-filter-option-list
+            testId="exploration-instances"
+            [options]="optionsInstances()"
+            [selected]="criteres().instances ?? []"
+            (selectedChange)="majCritere('instances', $event)">
+          </app-filter-option-list>
+        </ng-template>
+      </app-filter-dropdown>
+    </section>
+  }
+
   <!-- Organismes gestionnaires -->
   <section class="exploration-filtres-groupe">
     <h2 class="subtitle exploration-filtres-titre">

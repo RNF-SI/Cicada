@@ -123,6 +123,15 @@ export class FilterDropdownComponent {
   /** Texte du déclencheur en variante `field` : sélection résumée, sinon placeholder. */
   protected readonly fieldText = computed(() => this.summary() || this.placeholder());
 
+  /**
+   * Marge réservée au bandeau collant, en haut de la fenêtre (#652).
+   *
+   * Il recouvre le haut du viewport avec un z-index élevé : sans cette marge,
+   * un panneau qui bascule au-dessus de son déclencheur y glisse dessous, et
+   * c'est son sommet — donc le champ de recherche — qui disparaît.
+   */
+  protected readonly margeBandeau = 80;
+
   protected readonly overlayPositions: ConnectedPosition[] = [
     { originX: 'start', originY: 'bottom', overlayX: 'start', overlayY: 'top' },
     // Bascule au-dessus quand le bas du viewport est trop proche.

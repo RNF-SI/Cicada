@@ -14,6 +14,12 @@ export interface AdminRoleChangeModalData {
   type: AdminRoleChangeType;
   userName: string;
   userEmail: string;
+  /**
+   * Changement appliqué immédiatement (#655) : le super administrateur est le
+   * validateur final, il n'a pas de demande à déposer. Le motif devient alors
+   * facultatif.
+   */
+  direct?: boolean;
 }
 
 export interface AdminRoleChangeModalResult {
@@ -47,10 +53,28 @@ export class AdminRoleChangeModalComponent {
     return this.data.type === 'promotion';
   }
 
+  /** Le super administrateur applique le changement, il ne le demande pas (#655). */
+  get isDirect(): boolean {
+    return this.data.direct === true;
+  }
+
   get titleKey(): string {
-    return this.isPromotion
+    const base = this.isPromotion
       ? 'modals.adminRoleChange.promotion.title'
       : 'modals.adminRoleChange.demotion.title';
+    return this.isDirect ? `${base}Direct` : base;
+  }
+
+  get noticeKey(): string {
+    return this.isDirect
+      ? 'modals.adminRoleChange.directNotice'
+      : 'modals.adminRoleChange.superAdminNotice';
+  }
+
+  get justificationHintKey(): string {
+    return this.isDirect
+      ? 'modals.adminRoleChange.justification.hintOptional'
+      : 'modals.adminRoleChange.justification.hint';
   }
 
   get warningMessageKey(): string {
@@ -60,12 +84,14 @@ export class AdminRoleChangeModalComponent {
   }
 
   get confirmButtonKey(): string {
-    return this.isPromotion
+    const base = this.isPromotion
       ? 'modals.adminRoleChange.promotion.confirm'
       : 'modals.adminRoleChange.demotion.confirm';
+    return this.isDirect ? `${base}Direct` : base;
   }
 
   get isValid(): boolean {
+    if (this.isDirect) return true; // motif facultatif (#655)
     return this.justification.trim().length >= 10; // Minimum 10 characters
   }
 

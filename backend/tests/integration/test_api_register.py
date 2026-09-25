@@ -1,6 +1,6 @@
 """
 Integration tests for the public registration endpoint and the
-registration approval flow, with a focus on the optional `identifiant` field.
+registration approval flow, with a focus on the mandatory `identifiant` field (#656).
 """
 import pytest
 from rest_framework.test import APIClient
@@ -32,6 +32,7 @@ def _payload_new_org(**overrides):
         'password_confirm': 'StrongPass123!',
         'nom_role': 'Doe',
         'prenom_role': 'Jane',
+        'identifiant': 'jdoe-neworg',
         'new_organisme': dict(NEW_ORG),
         'justification': 'Mon organisme n\'existe pas encore.',
     }
@@ -56,6 +57,7 @@ def _payload(organisme, **overrides):
         'password_confirm': 'StrongPass123!',
         'nom_role': 'Doe',
         'prenom_role': 'Jane',
+        'identifiant': 'jdoe',
         'requested_organisme_id': organisme.id_organisme,
         'justification': 'Test registration.',
     }
@@ -66,7 +68,7 @@ def _payload(organisme, **overrides):
 @pytest.mark.django_db
 @pytest.mark.integration
 class TestPublicRegistrationIdentifiant:
-    """Tests for /api/auth/register/ with the optional identifiant field."""
+    """Tests for /api/auth/register/ with the mandatory identifiant field."""
 
     URL = '/api/auth/register/'
 
@@ -81,25 +83,28 @@ class TestPublicRegistrationIdentifiant:
         pending = PendingUser.objects.get(email='newuser@test.fr')
         assert pending.identifiant == 'janed'
 
-    def test_register_without_identifiant_still_works(self, api_client, organisme):
-        """Identifiant is optional — registration without it must succeed (backward compat)."""
-        response = api_client.post(self.URL, _payload(organisme), format='json')
+    def test_register_without_identifiant_rejected(self, api_client, organisme):
+        """L'identifiant est obligatoire (#656) : une inscription sans identifiant échoue."""
+        payload = _payload(organisme)
+        payload.pop('identifiant')
 
-        assert response.status_code == status.HTTP_201_CREATED
-        pending = PendingUser.objects.get(email='newuser@test.fr')
-        assert pending.identifiant is None
+        response = api_client.post(self.URL, payload, format='json')
 
-    def test_register_blank_identifiant_stored_as_empty(self, api_client, organisme):
-        """Empty string identifiant is allowed and stored as null."""
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert 'identifiant' in response.data
+        assert not PendingUser.objects.filter(email='newuser@test.fr').exists()
+
+    def test_register_blank_identifiant_rejected(self, api_client, organisme):
+        """Un identifiant vide (ou fait d'espaces) est refusé comme un identifiant absent."""
         response = api_client.post(
             self.URL,
-            _payload(organisme, identifiant=''),
+            _payload(organisme, identifiant='   '),
             format='json',
         )
 
-        assert response.status_code == status.HTTP_201_CREATED
-        pending = PendingUser.objects.get(email='newuser@test.fr')
-        assert not pending.identifiant  # None or '' both acceptable
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert 'identifiant' in response.data
+        assert not PendingUser.objects.filter(email='newuser@test.fr').exists()
 
     def test_register_duplicate_identifiant_against_role_rejected(
         self, api_client, organisme

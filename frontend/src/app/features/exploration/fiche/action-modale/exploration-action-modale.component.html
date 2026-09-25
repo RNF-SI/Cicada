@@ -43,6 +43,212 @@
     </section>
   }
 
+  <!--
+    Ce qui est observé, et comment (#634). Sans ce bloc, une action de
+    connaissance se réduit à un intitulé : ni l'espèce ou l'habitat ciblé, ni
+    la fréquence, ni l'outil de saisie n'étaient publiés.
+  -->
+  @if (suivi) {
+    <section class="modale-bloc">
+      <h3 class="modale-sous-titre">{{ 'exploration.fiche.suivi' | translate }}</h3>
+      <dl class="modale-liste">
+        <dt>{{ 'exploration.fiche.suiviIntitule' | translate }}</dt>
+        <dd>
+          {{ suivi.intitule }}
+          @if (suivi.statut) {
+            <app-tag variant="neutral" size="sm" [label]="suivi.statut"></app-tag>
+          }
+        </dd>
+
+        @if (suivi.objectif_principal) {
+          <dt>{{ 'exploration.fiche.objectif' | translate }}</dt>
+          <dd>
+            {{ suivi.objectif_principal }}
+            @if (suivi.objectif_secondaire) {
+              <span class="modale-mention-inline">
+                ({{ 'exploration.fiche.objectifSecondaire' | translate }} :
+                {{ suivi.objectif_secondaire }})
+              </span>
+            }
+          </dd>
+        }
+
+        @if (suivi.cible_principale) {
+          <dt>{{ 'exploration.fiche.cible' | translate }}</dt>
+          <dd>
+            {{ suivi.cible_principale }}
+            @if (suivi.cible_secondaire) {
+              <span class="modale-mention-inline">
+                ({{ suivi.cible_secondaire }})
+              </span>
+            }
+          </dd>
+        }
+
+        @if (suivi.taxon) {
+          <dt>{{ 'exploration.fiche.espece' | translate }}</dt>
+          <dd>{{ suivi.taxon }}</dd>
+        }
+
+        @if (suivi.habitats.length) {
+          <dt>{{ 'exploration.fiche.habitats' | translate }}</dt>
+          <dd>
+            <ul class="modale-puces">
+              @for (habitat of suivi.habitats; track $index) {
+                <li>{{ habitatLibelle(habitat) }}</li>
+              }
+            </ul>
+          </dd>
+        }
+
+        @if (suivi.frequence) {
+          <dt>{{ 'exploration.fiche.frequence' | translate }}</dt>
+          <dd>{{ suivi.frequence }}</dd>
+        }
+
+        @if (suivi.annee_fin_suivi) {
+          <dt>{{ 'exploration.fiche.finSuivi' | translate }}</dt>
+          <dd>{{ suivi.annee_fin_suivi }}</dd>
+        }
+
+        @if (suivi.outil_saisie) {
+          <dt>{{ 'exploration.fiche.outilSaisie' | translate }}</dt>
+          <dd>{{ suivi.outil_saisie }}</dd>
+        }
+
+        @if (suivi.outil_bancarisation) {
+          <dt>{{ 'exploration.fiche.outilBancarisation' | translate }}</dt>
+          <dd>{{ suivi.outil_bancarisation }}</dd>
+        }
+
+        @if (suivi.commentaires) {
+          <dt>{{ 'exploration.fiche.commentaires' | translate }}</dt>
+          <dd class="modale-texte">{{ suivi.commentaires }}</dd>
+        }
+      </dl>
+    </section>
+  }
+
+  <!--
+    Protocoles : un protocole appliqué avec des écarts ne se compare pas à un
+    protocole appliqué à la lettre. La justification est donc affichée avec lui.
+  -->
+  @if (protocoles.length) {
+    <section class="modale-bloc">
+      <h3 class="modale-sous-titre">{{ 'exploration.fiche.protocoles' | translate }}</h3>
+      @for (protocole of protocoles; track protocole.id_protocole) {
+        <article class="modale-protocole">
+          <p class="modale-protocole-entete">
+            <span class="modale-protocole-nom">
+              {{ protocole.nom || ('exploration.fiche.protocoleSansNom' | translate) }}
+            </span>
+            <app-tag
+              size="sm"
+              [variant]="protocole.standardise ? 'success' : 'muted'"
+              [label]="
+                (protocole.standardise
+                  ? 'exploration.fiche.protocoleStandardise'
+                  : 'exploration.fiche.protocoleLibre'
+                ) | translate
+              "></app-tag>
+            @if (protocole.respecte === false) {
+              <app-tag
+                variant="warning"
+                size="sm"
+                [label]="'exploration.fiche.protocoleNonRespecte' | translate"></app-tag>
+            }
+          </p>
+
+          <dl class="modale-liste">
+            @if (protocole.description) {
+              <dt>{{ 'exploration.fiche.protocoleDescription' | translate }}</dt>
+              <dd class="modale-texte">{{ protocole.description }}</dd>
+            }
+            @if (protocole.objectif) {
+              <dt>{{ 'exploration.fiche.protocoleObjectif' | translate }}</dt>
+              <dd class="modale-texte">{{ protocole.objectif }}</dd>
+            }
+            @if (protocole.justification_non_respect) {
+              <dt>{{ 'exploration.fiche.protocoleJustification' | translate }}</dt>
+              <dd class="modale-texte">{{ protocole.justification_non_respect }}</dd>
+            }
+            @if (protocole.differences) {
+              <dt>{{ 'exploration.fiche.protocoleDifferences' | translate }}</dt>
+              <dd class="modale-texte">{{ protocole.differences }}</dd>
+            }
+            @if (protocole.periode_echantillonnage) {
+              <dt>{{ 'exploration.fiche.protocoleEchantillonnage' | translate }}</dt>
+              <dd>{{ protocole.periode_echantillonnage }}</dd>
+            }
+            @if (protocole.periode_suivi.length) {
+              <dt>{{ 'exploration.fiche.protocolePeriode' | translate }}</dt>
+              <dd>{{ protocole.periode_suivi.join(', ') }}</dd>
+            }
+            @if (protocole.mode_validation) {
+              <dt>{{ 'exploration.fiche.protocoleValidation' | translate }}</dt>
+              <dd>{{ protocole.mode_validation }}</dd>
+            }
+            @if (protocole.url_documentation) {
+              <dt>{{ 'exploration.fiche.protocoleDocumentation' | translate }}</dt>
+              <dd>
+                <a
+                  class="link-default"
+                  [href]="protocole.url_documentation"
+                  target="_blank"
+                  rel="noopener noreferrer">
+                  {{ protocole.url_documentation }}
+                </a>
+              </dd>
+            }
+          </dl>
+        </article>
+      }
+    </section>
+  }
+
+  <!--
+    Indicateurs de réponse : ce qui dit si l'action a produit son effet. Ils
+    sont tenus à l'écart du cadre, comme dans l'export de fiche action (#626).
+  -->
+  @if (action.indicateurs_reponse.length) {
+    <section class="modale-bloc">
+      <h3 class="modale-sous-titre">
+        {{ 'exploration.fiche.indicateursReponse' | translate }}
+      </h3>
+      @for (indicateur of action.indicateurs_reponse; track indicateur.id_indicateur) {
+        <article class="modale-indicateur">
+          <p class="modale-indicateur-nom">{{ indicateur.nom_indicateur }}</p>
+          @if (indicateur.description) {
+            <p class="modale-texte">{{ indicateur.description }}</p>
+          }
+          @for (metrique of indicateur.metriques; track metrique.id_metrique) {
+            <p class="modale-metrique">{{ metriqueLibelle(metrique) }}</p>
+            @if (metrique.grille) {
+              <div
+                class="modale-grille"
+                role="table"
+                [attr.aria-label]="'exploration.fiche.grille' | translate">
+                @for (palier of metrique.grille; track palier.niveau) {
+                  <div class="modale-grille-palier" role="row">
+                    <span
+                      class="modale-grille-tete"
+                      [class]="classePalier(palier)"
+                      role="rowheader">
+                      {{ palier.libelle }}
+                    </span>
+                    <span class="modale-grille-valeur" role="cell">
+                      {{ palier.valeur || '—' }}
+                    </span>
+                  </div>
+                }
+              </div>
+            }
+          }
+        </article>
+      }
+    </section>
+  }
+
   <section class="modale-bloc">
     <h3 class="modale-sous-titre">{{ 'exploration.fiche.miseEnOeuvre' | translate }}</h3>
     <dl class="modale-liste">
@@ -57,6 +263,14 @@
       @if (action.partenaires) {
         <dt>{{ 'exploration.fiche.partenaires' | translate }}</dt>
         <dd>{{ action.partenaires }}</dd>
+      }
+      @if (action.sites.length) {
+        <dt>{{ 'exploration.fiche.localisation' | translate }}</dt>
+        <dd>{{ nomsSites }}</dd>
+      }
+      @if (action.frequence) {
+        <dt>{{ 'exploration.fiche.frequenceAction' | translate }}</dt>
+        <dd>{{ action.frequence }}</dd>
       }
       @if (periode) {
         <dt>{{ 'exploration.fiche.periode' | translate }}</dt>

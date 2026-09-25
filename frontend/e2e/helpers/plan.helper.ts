@@ -149,6 +149,46 @@ export async function apiDelete(
   return { ok: response.ok(), status, data };
 }
 
+/**
+ * Authenticated GET of a binary resource (e.g. an Excel export).
+ * @param path - API path WITHOUT '/api/' prefix
+ */
+export async function apiGetBuffer(
+  page: Page,
+  path: string,
+): Promise<{ ok: boolean; status: number; body: Buffer }> {
+  const token = await getAuthToken(page);
+  const response = await page.request.get(`${API_BASE}/${path}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return { ok: response.ok(), status: response.status(), body: await response.body() };
+}
+
+/**
+ * Authenticated multipart POST of a file (field « file »).
+ * @param path - API path WITHOUT '/api/' prefix
+ */
+export async function apiPostFile(
+  page: Page,
+  path: string,
+  fileName: string,
+  buffer: Buffer,
+  mimeType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+): Promise<{ ok: boolean; status: number; data: any }> {
+  const token = await getAuthToken(page);
+  const response = await page.request.post(`${API_BASE}/${path}`, {
+    headers: { Authorization: `Bearer ${token}` },
+    multipart: { file: { name: fileName, mimeType, buffer } },
+  });
+  let data: any;
+  try {
+    data = await response.json();
+  } catch {
+    data = null;
+  }
+  return { ok: response.ok(), status: response.status(), data };
+}
+
 // ── Domain-specific helpers ─────────────────────────────────────
 
 /**

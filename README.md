@@ -243,6 +243,24 @@ Le projet utilise un pipeline automatise : **conventional commits** → **releas
 
 **[Documentation complete du pipeline de release](docs/RELEASE_PIPELINE.md)**
 
+### Inventaire des dependances (SBOM)
+
+Chaque release publiee genere les SBOM CycloneDX du depot (workflow `.github/workflows/sbom.yml`) et les envoie au serveur [Dependency-Track](https://dependencytrack.reserves-naturelles.org) de RNF, qui suit les vulnerabilites connues. Quatre projets : `cicada-backend`, `cicada-frontend` (dependances de production uniquement), `cicada-hub`, `cicada-tracking-api`.
+
+```bash
+./scripts/generate-sbom.sh            # genere sbom/*.cdx.json
+./scripts/generate-sbom.sh --envoi    # genere puis envoie (cle dans ~/.config/dependency-track/api.key)
+```
+
+| Variable | Defaut | Role |
+|---|---|---|
+| `DT_VERSION` | `prod` | version des projets Dependency-Track — **fixe**, c'est l'environnement deploye |
+| `APP_VERSION` | dernier tag Git | version applicative inscrite dans les SBOM |
+
+`DT_VERSION` reste fixe volontairement : une version de projet par release creerait des projets neufs a chaque publication, a re-tagger a la main. Le numero de release est trace par le composant racine du SBOM.
+
+> En local, `frontend/node_modules` est souvent le point de montage vide du volume Docker : le script le croit installe et `npm ls` echoue. Lancer `npm ci` dans `frontend/` (hors conteneur) avant de generer.
+
 ## 🤝 Contribution
 
 1. Creer une branche depuis `develop`
@@ -258,3 +276,18 @@ Ce projet est sous licence GPL-3.0. Voir le fichier `LICENSE` pour plus de déta
 
 - **Issues** : https://github.com/RNF-SI/Cicada/issues
 - **Project Board** : https://github.com/RNF-SI/Cicada/projects/1
+
+---
+
+## 🇪🇺 Financement
+
+<p align="center">
+  <img src="frontend/src/assets/images/bloc-marque-ue-life-biodiv.jpg" alt="Cofinancé par l'Union européenne — programme LIFE — BIODIV'FRANCE" width="600" />
+</p>
+
+> **Cofinancé par l’Union européenne. Les points de vue et les opinions exprimés sont toutefois ceux des auteurs et ne reflètent pas nécessairement ceux de l’Union européenne ou de CINEA. Ni l’Union européenne ni l’autorité chargée de l’octroi de la subvention ne peuvent en être tenues pour responsables.**
+>
+> Réalisé dans le cadre du projet LIFE BIODIV’FRANCE<br>
+> Coordonné par l’Office Français de la Biodiversité, ce projet rassemble un consortium de 31 participants. Il accompagne la mise en œuvre de la stratégie nationale pour la biodiversité en travaillant sur 5 cibles : les territoires, aires protégées, filières, citoyens et acteurs de la formation.
+
+---

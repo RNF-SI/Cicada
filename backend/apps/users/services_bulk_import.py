@@ -6,17 +6,19 @@ import io
 import json
 import logging
 import re
+import unicodedata
 
 from django.contrib.gis.geos import GEOSGeometry, MultiPolygon, Polygon
 from django.db import transaction
 from django.db.models import Q
+from django.db.models.functions import Lower
 from django.utils.translation import gettext_lazy as _
 
 from apps.core.models import Nomenclature
 from apps.notifications.models import ValidationRequest
 from apps.notifications.services import NotificationService
 
-from .models import BulkImportJob, CorOgSite, CorRoleSite, Site
+from .models import BibOrganismes, BulkImportJob, CorOgSite, CorRoleSite, Role, Site
 
 logger = logging.getLogger(__name__)
 
@@ -60,9 +62,212 @@ FIELD_MAPPING_HINTS = {
     'outre_mer': 'outre_mer',
     'outremer': 'outre_mer',
     'overseas': 'outre_mer',
+    # organisme (#647) : rattachement du site à son (ses) organisme(s)
+    'organisme': 'organisme',
+    'organismes': 'organisme',
+    'nom_organisme': 'organisme',
+    'id_organisme': 'organisme',
+    'uuid_organisme': 'organisme',
+    'gestionnaire': 'organisme',
+    'gestionnaires': 'organisme',
+    'organisme_gestionnaire': 'organisme',
+    'structure': 'organisme',
+    'operateur': 'organisme',
+    'opérateur': 'organisme',
+    # referent (#647) : rattachement du site à son (ses) utilisateur(s)
+    'referent': 'referent',
+    'référent': 'referent',
+    'referents': 'referent',
+    'référents': 'referent',
+    'referent_email': 'referent',
+    'email_referent': 'referent',
+    'utilisateur': 'referent',
+    'utilisateurs': 'referent',
 }
 
-TARGET_FIELDS = ['nom_site', 'id_inpn', 'id_local', 'type_site_id', 'surf_off', 'marin', 'outre_mer']
+TARGET_FIELDS = [
+    'nom_site', 'id_inpn', 'id_local', 'type_site_id', 'surf_off', 'marin',
+    'outre_mer', 'organisme', 'referent',
+]
+
+# Séparateurs acceptés pour déclarer plusieurs organismes / référents sur une
+# même ligne. La virgule est exclue : elle sépare déjà les colonnes en CSV.
+_MULTI_VALUE_SEPARATORS = re.compile(r"[;|\n]+")
+
+
+def _normalize_key(value):
+    """Clé de comparaison : minuscules, sans accent, espaces normalisés."""
+    text = unicodedata.normalize('NFKD', str(value).strip().lower())
+    text = ''.join(c for c in text if not unicodedata.combining(c))
+    return re.sub(r'\s+', ' ', text).strip()
+
+
+def _split_multi(value):
+    """Découpe une cellule pouvant contenir plusieurs valeurs (« A ; B »)."""
+    if value is None:
+        return []
+    if isinstance(value, (list, tuple)):
+        raw = value
+    else:
+        raw = _MULTI_VALUE_SEPARATORS.split(str(value))
+    return [str(v).strip() for v in raw if v is not None and str(v).strip()]
+
+
+class _Ambiguous:
+    """Marqueur : plusieurs enregistrements portent la même clé."""
+
+
+class RelationResolver:
+    """
+    Résout, pour tout un lot d'import, les colonnes « organisme » et
+    « référent » vers de vrais enregistrements (#647).
+
+    Sans cette résolution, tous les sites d'un import étaient rattachés au
+    seul organisme de l'importateur (et à lui seul comme référent), ce qui
+    obligeait à corriger en SQL après coup.
+
+    Deux requêtes au plus pour l'ensemble du lot, jamais une par ligne.
+    """
+
+    def __init__(self, sites, user=None):
+        self.user = user
+        self._organismes = self._build_organisme_index(sites)
+        self._users = self._build_user_index(sites)
+
+    # ------------------------------------------------------------------ index
+
+    @staticmethod
+    def _collect_tokens(sites, field):
+        tokens = []
+        for site_data in sites:
+            mapped = site_data.get('mapped_data') or {}
+            tokens.extend(_split_multi(mapped.get(field)))
+        return tokens
+
+    def _build_organisme_index(self, sites):
+        if not self._collect_tokens(sites, 'organisme'):
+            return {}
+        index = {}
+
+        def _add(key, org):
+            if not key:
+                return
+            current = index.get(key)
+            if current is None:
+                index[key] = org
+            elif current is not _Ambiguous and current.pk != org.pk:
+                index[key] = _Ambiguous
+
+        for org in BibOrganismes.objects.only(
+            'id_organisme', 'uuid_organisme', 'nom_organisme'
+        ):
+            _add(_normalize_key(org.nom_organisme or ''), org)
+            _add(str(org.id_organisme), org)
+            if org.uuid_organisme:
+                _add(str(org.uuid_organisme).lower(), org)
+        return index
+
+    def _build_user_index(self, sites):
+        tokens = {_normalize_key(t) for t in self._collect_tokens(sites, 'referent')}
+        tokens.discard('')
+        if not tokens:
+            return {}
+        index = {}
+        candidates = (
+            Role.objects.annotate(
+                _email_lower=Lower('email'),
+                _identifiant_lower=Lower('identifiant'),
+            )
+            .filter(Q(_email_lower__in=tokens) | Q(_identifiant_lower__in=tokens))
+            .select_related('id_organisme')
+        )
+
+        def _add(key, role):
+            if not key:
+                return
+            current = index.get(key)
+            if current is None:
+                index[key] = role
+            elif current is not _Ambiguous and current.pk != role.pk:
+                index[key] = _Ambiguous
+
+        for role in candidates:
+            _add(_normalize_key(role.email or ''), role)
+            _add(_normalize_key(role.identifiant or ''), role)
+        return index
+
+    # ---------------------------------------------------------------- resolve
+
+    def resolve_organismes(self, mapped):
+        """Retourne (liste d'organismes, liste de warnings) pour une ligne."""
+        organismes = []
+        warnings = []
+        for token in _split_multi(mapped.get('organisme')):
+            found = self._organismes.get(_normalize_key(token))
+            if found is _Ambiguous:
+                warnings.append(
+                    f"Plusieurs organismes portent le nom \"{token}\" : "
+                    "le site ne sera pas rattaché automatiquement."
+                )
+            elif found is None:
+                warnings.append(
+                    f"Organisme introuvable : \"{token}\". {self._fallback_org_message()}"
+                )
+            elif all(o.pk != found.pk for o in organismes):
+                organismes.append(found)
+        return organismes, warnings
+
+    def resolve_referents(self, mapped):
+        """Retourne (liste d'utilisateurs, liste de warnings) pour une ligne."""
+        referents = []
+        warnings = []
+        for token in _split_multi(mapped.get('referent')):
+            found = self._users.get(_normalize_key(token))
+            if found is _Ambiguous:
+                warnings.append(
+                    f"Plusieurs utilisateurs correspondent à \"{token}\" : "
+                    "aucun ne sera rattaché au site."
+                )
+            elif found is None:
+                warnings.append(
+                    f"Utilisateur introuvable : \"{token}\". {self._fallback_referent_message()}"
+                )
+            elif not found.active:
+                warnings.append(
+                    f"Le compte \"{token}\" est désactivé : "
+                    "il ne sera pas rattaché au site."
+                )
+            elif not self._can_assign(found):
+                warnings.append(
+                    f"L'utilisateur \"{token}\" n'appartient pas à votre organisme : "
+                    "il ne sera pas rattaché au site."
+                )
+            elif all(r.pk != found.pk for r in referents):
+                referents.append(found)
+        return referents, warnings
+
+    def _can_assign(self, role):
+        """Un admin d'organisme ne peut rattacher que ses propres utilisateurs."""
+        user = self.user
+        if user is None or user.is_super_admin() or user.is_redacteur_principal():
+            return True
+        if not user.id_organisme:
+            return False
+        return role.id_organisme_id == user.id_organisme_id
+
+    def _fallback_org_message(self):
+        user = self.user
+        if user is not None and user.id_organisme:
+            return (
+                "Le site sera rattaché à votre organisme "
+                f"(« {user.id_organisme.nom_organisme} »)."
+            )
+        return "Aucun organisme ne sera rattaché au site."
+
+    def _fallback_referent_message(self):
+        if self.user is not None:
+            return "Vous serez référent du site."
+        return "Aucun référent ne sera rattaché au site."
 
 
 class BulkSiteImportService:
@@ -204,11 +409,15 @@ class BulkSiteImportService:
         return result
 
     @staticmethod
-    def validate_batch(sites):
+    def validate_batch(sites, user=None):
         """
         Valide un batch de sites.
         Retourne la même liste enrichie de 'errors', 'warnings', 'duplicate_info'.
+
+        `user` (l'importateur) sert à résoudre les colonnes « organisme » et
+        « référent » (#647) : messages de repli et périmètre autorisé.
         """
+        resolver = RelationResolver(sites, user)
         # Collect all id_inpn in DB for duplicate check
         all_inpn_in_batch = [
             s['mapped_data'].get('id_inpn', '').strip()
@@ -437,6 +646,20 @@ class BulkSiteImportService:
                                 f"Nom similaire à d'autres sites du fichier : {names_list}."
                             )
 
+            # Résolution organisme / référent (#647)
+            organismes, org_warnings = resolver.resolve_organismes(mapped)
+            referents, ref_warnings = resolver.resolve_referents(mapped)
+            warnings.extend(org_warnings)
+            warnings.extend(ref_warnings)
+            site_data['resolved_organismes'] = [
+                {'id_organisme': o.id_organisme, 'nom_organisme': o.nom_organisme}
+                for o in organismes
+            ]
+            site_data['resolved_referents'] = [
+                {'id_role': r.pk, 'nom': r.get_full_name(), 'email': r.email}
+                for r in referents
+            ]
+
             # Validate geometry
             geometry = site_data.get('geometry')
             has_geometry = False
@@ -464,11 +687,20 @@ class BulkSiteImportService:
         - Super admin: sites actifs + CorRoleSite(referent) + CorOgSite(principal)
         - Autres: sites inactifs + ValidationRequest(site_creation)
 
+        Les colonnes « organisme » et « référent » du fichier (#647) déterminent
+        les rattachements ligne par ligne. À défaut (colonne absente ou valeur
+        introuvable), on retombe sur l'ancien comportement : organisme de
+        l'importateur, importateur référent.
+
+        Les valeurs sont re-résolues ici et jamais reprises telles quelles du
+        client : la réponse de validation transite par le navigateur.
+
         Returns dict with {created, failed, validation_pending, details}.
         """
         if selected_indices is not None:
             sites = [s for s in sites if s['row_index'] in selected_indices]
 
+        resolver = RelationResolver(sites, user)
         is_super_admin = user.is_super_admin()
         created = 0
         failed = 0
@@ -528,20 +760,44 @@ class BulkSiteImportService:
 
                     site.save()
 
-                    if is_super_admin:
-                        # Super admin: referent + org link
-                        CorRoleSite.objects.create(
+                    # Rattachements issus du fichier, avec repli sur
+                    # l'importateur quand la ligne n'en déclare pas (#647)
+                    organismes, _org_warnings = resolver.resolve_organismes(mapped)
+                    if not organismes and user.id_organisme:
+                        organismes = [user.id_organisme]
+                    referents, _ref_warnings = resolver.resolve_referents(mapped)
+
+                    for position, organisme in enumerate(organismes):
+                        CorOgSite.objects.get_or_create(
                             id_site=site,
-                            id_role=user,
-                            referent=True,
-                            referent_valid=True,
-                            conservateur=False,
+                            uuid_og=organisme,
+                            defaults={'principal': position == 0},
                         )
-                        if user.id_organisme:
-                            CorOgSite.objects.get_or_create(
+
+                    for referent in referents:
+                        CorRoleSite.objects.get_or_create(
+                            id_site=site,
+                            id_role=referent,
+                            defaults={
+                                'referent': True,
+                                'referent_valid': True,
+                                'conservateur': False,
+                            },
+                        )
+
+                    if is_super_admin:
+                        # Super admin : le site est actif immédiatement.
+                        # L'importateur ne devient référent que si le fichier
+                        # n'a désigné personne.
+                        if not referents:
+                            CorRoleSite.objects.get_or_create(
                                 id_site=site,
-                                uuid_og=user.id_organisme,
-                                defaults={'principal': True},
+                                id_role=user,
+                                defaults={
+                                    'referent': True,
+                                    'referent_valid': True,
+                                    'conservateur': False,
+                                },
                             )
                         created += 1
                         details.append({
@@ -549,6 +805,8 @@ class BulkSiteImportService:
                             'nom_site': nom_site,
                             'status': 'created',
                             'site_id': site.id_site,
+                            'organismes': [o.nom_organisme for o in organismes],
+                            'referents': [r.get_full_name() for r in referents] or [user.get_full_name()],
                         })
                     else:
                         # Non-admin: validation request
@@ -568,6 +826,8 @@ class BulkSiteImportService:
                             'status': 'validation_pending',
                             'site_id': site.id_site,
                             'validation_request_id': validation_request.id,
+                            'organismes': [o.nom_organisme for o in organismes],
+                            'referents': [r.get_full_name() for r in referents],
                         })
 
             except Exception as e:

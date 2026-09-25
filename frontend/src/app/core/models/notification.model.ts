@@ -166,8 +166,26 @@ export interface ValidationRequest {
   request_as_referent?: boolean;
   /** Indique si cette demande site_access est bloquée par un site_org_link en attente */
   blocked_by_org_link?: boolean;
+  /**
+   * Contexte « administrateurs de l'organisme » d'une demande d'inscription (#653) :
+   * permet au validateur de savoir si l'organisme a déjà un admin_og avant
+   * d'accepter le compte. `null` pour les autres types de demandes.
+   */
+  organisme_admins?: OrganismeAdminsContext | null;
   created_at: string;
   updated_at?: string;
+}
+
+/**
+ * Contexte « administrateurs de l'organisme » d'une demande d'inscription (#653).
+ */
+export interface OrganismeAdminsContext {
+  /** Nom de l'organisme concerné (null si l'organisme reste à créer). */
+  organisme: string | null;
+  /** L'organisme n'existe pas encore : il n'a donc aucun administrateur. */
+  is_new_organisme: boolean;
+  count: number;
+  admins: Array<{ id: number; nom_complet: string; email: string }>;
 }
 
 /**

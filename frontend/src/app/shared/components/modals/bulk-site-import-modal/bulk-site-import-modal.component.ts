@@ -40,6 +40,8 @@ const TARGET_FIELDS = [
   { value: 'surf_off', label: 'modals.bulkImport.mapping.fields.surf_off' },
   { value: 'marin', label: 'modals.bulkImport.mapping.fields.marin' },
   { value: 'outre_mer', label: 'modals.bulkImport.mapping.fields.outre_mer' },
+  { value: 'organisme', label: 'modals.bulkImport.mapping.fields.organisme' },
+  { value: 'referent', label: 'modals.bulkImport.mapping.fields.referent' },
 ];
 
 @Component({
@@ -120,7 +122,10 @@ export class BulkSiteImportModalComponent {
 
   // Constants
   readonly targetFields = TARGET_FIELDS;
-  readonly previewColumns = ['select', 'row', 'name', 'inpn', 'local', 'surface', 'geometry', 'status'];
+  readonly previewColumns = [
+    'select', 'row', 'name', 'inpn', 'local', 'surface',
+    'organisme', 'referent', 'geometry', 'status',
+  ];
 
   // Computed
   readonly totalValid = computed(() => {
@@ -287,6 +292,28 @@ export class BulkSiteImportModalComponent {
       selected: site.errors.length === 0 ? !allSel : false,
     }));
     this.sites.set(updated);
+  }
+
+  /**
+   * Organismes rattachés à la ligne (#647) : les noms résolus si la colonne
+   * pointe sur des organismes connus, la valeur brute sinon (l'avertissement
+   * de la ligne dit alors pourquoi elle n'a pas été retrouvée).
+   */
+  organismeLabel(site: BulkImportSiteRow): string {
+    const resolved = site.resolved_organismes ?? [];
+    if (resolved.length > 0) {
+      return resolved.map(o => o.nom_organisme).join(', ');
+    }
+    return site.mapped_data?.['organisme'] || '-';
+  }
+
+  /** Référents rattachés à la ligne (#647), même principe. */
+  referentLabel(site: BulkImportSiteRow): string {
+    const resolved = site.resolved_referents ?? [];
+    if (resolved.length > 0) {
+      return resolved.map(r => r.nom || r.email).join(', ');
+    }
+    return site.mapped_data?.['referent'] || '-';
   }
 
   getSiteStatus(site: BulkImportSiteRow): string {

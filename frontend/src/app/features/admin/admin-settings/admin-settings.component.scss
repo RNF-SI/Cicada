@@ -374,3 +374,19 @@
   gap: $spacing-md;
   align-items: center;
 }
+
+/* #636 — Périmètre du partage : ce qui sort, ce qui ne sort pas.
+   Deux blocs distincts plutôt qu'un paragraphe : la question que se pose la
+   structure est « qu'est-ce qui sort de chez moi ? », et une liste y répond
+   plus vite qu'une phrase. */
+.federation-perimetre {
+  margin-bottom: $spacing-md;
+
+  ul {
+    margin: $spacing-xs 0 0;
+  }
+}
+
+.federation-consequence {
+  margin-top: $spacing-sm;
+}

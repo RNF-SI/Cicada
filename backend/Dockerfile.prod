@@ -48,6 +48,12 @@ RUN groupadd -r cicada && useradd -r -g cicada -d /app -s /sbin/nologin cicada \
     && apt-get update && apt-get install -y --no-install-recommends gosu \
     && rm -rf /var/lib/apt/lists/*
 
+# #646 — Version de l'instance, affichée dans l'administration. Injectée au
+# build car le contexte est ./backend : version.txt (racine du dépôt) n'est pas
+# accessible ici. Placé en fin de Dockerfile pour ne pas invalider le cache.
+ARG CICADA_VERSION=0.0.0
+ENV CICADA_APP_VERSION=${CICADA_VERSION}
+
 EXPOSE 8000
 
 ENTRYPOINT ["/entrypoint.sh"]

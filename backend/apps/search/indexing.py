@@ -15,6 +15,7 @@ indicateurs pour lesquels il y a un enjeu autour des limicoles ».
 
 import logging
 
+from django.conf import settings
 from django.db import transaction
 from django.db.models import Q
 
@@ -483,10 +484,13 @@ def construire_documents(plan):
     documents = []
     for extracteur in EXTRACTEURS:
         documents += extracteur(plan, facettes, branche)
-    # Toutes les lignes portent la version des extracteurs qui les a produites :
-    # c'est ce qui permet de repérer un index resté à l'ancien format.
+    # Les deux estampilles sont posées ici plutôt que dans chacun des sept
+    # extracteurs : un extracteur ajouté plus tard ne peut pas les oublier.
+    # `index_version` permet de repérer un index resté à l'ancien format (#634),
+    # `instance_id` identifie l'instance d'origine en fédération (#636).
     for document in documents:
         document.index_version = INDEX_VERSION
+        document.instance_id = settings.CICADA_INSTANCE_ID
     return documents
 
 

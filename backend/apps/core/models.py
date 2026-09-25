@@ -379,6 +379,50 @@ class SiteConfiguration(models.Model):
             "de gestion. À n'activer que sur l'instance de la FCEN."
         )
     )
+    # #636 — Participation à l'exploration fédérée.
+    #
+    # Ce que le partage fait sortir de l'instance : la **structure** des plans
+    # validés — enjeux, pressions, objectifs, indicateurs, actions avec leur
+    # période et leur suivi. Ce qu'il ne fait PAS sortir, et la liste est
+    # exhaustive et verrouillée par `TestFichePubliqueCloisonnement` : budget et
+    # financement, ressources humaines, mesures et réalisations, traçabilité
+    # interne (auteurs, dates de modification).
+    #
+    # Par défaut **désactivé**. Publier le contenu de ses plans est un
+    # engagement de la structure, pas un réglage technique : une mise à jour ne
+    # doit jamais le prendre à sa place. Une instance qui met à jour CICADA
+    # continue donc de ne rien publier tant que personne n'a choisi.
+    federation_partage = models.BooleanField(
+        _("Partage des plans avec l'exploration nationale"),
+        default=False,
+        help_text=_(
+            "Publie la structure des plans de gestion validés (enjeux, "
+            "objectifs, indicateurs, actions) vers l'exploration nationale, et "
+            "donne en retour accès aux plans des autres structures. Les données "
+            "de budget, de ressources humaines et de suivi ne sont jamais "
+            "transmises. Sans partage, l'exploration ne porte que sur les plans "
+            "de cette instance."
+        )
+    )
+    # #645 — API ouverte des métadonnées des plans, pour une application tierce
+    # de gestion documentaire (DOCenCEN côté CEN).
+    #
+    # Par défaut **coupée**, comme `federation_partage` : ouvrir un endpoint
+    # sans authentification est une décision de la structure qui déploie
+    # l'instance, pas un effet de bord d'une mise à jour. Les métadonnées
+    # exposées (nom, période, rédacteurs, dates de validation) ne sont pas
+    # sensibles, mais leur publication reste un choix.
+    api_publique_plans = models.BooleanField(
+        _("API publique des métadonnées des plans"),
+        default=False,
+        help_text=_(
+            "Ouvre une API en lecture seule et sans authentification exposant "
+            "les métadonnées des plans de gestion (hors brouillons) : nom, "
+            "période, rang, rédacteurs, dates de validation, sites. Le contenu "
+            "des plans n'est jamais exposé. Destinée aux applications tierces "
+            "de gestion documentaire."
+        )
+    )
     updated_at = models.DateTimeField(
         _('Mis à jour le'),
         auto_now=True

@@ -39,6 +39,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initialiser l'affichage des champs DB et reverse proxy / Traefik
     toggleDbFields();
     toggleReverseProxyFields();
+    toggleFederationFields();
     toggleAcmeEmailMode();
     toggleSmtpFields();
     toggleSmtpAuthFields();
@@ -80,7 +81,8 @@ document.addEventListener('DOMContentLoaded', function() {
         for (const [key, value] of formData.entries()) {
             if (key === 'rgpd_consent') {
                 data[key] = document.getElementById(key).checked;
-            } else if (key === 'smtp_enabled' || key === 'smtp_use_auth' || key === 'smtp_use_tls') {
+            } else if (key === 'smtp_enabled' || key === 'smtp_use_auth' || key === 'smtp_use_tls'
+                       || key === 'federation_enabled' || key === 'federation_relay') {
                 data[key] = document.getElementById(key).checked;
             } else if (key !== 'reverse_proxy_present' && key !== 'acme_email') {
                 data[key] = value;
@@ -89,6 +91,10 @@ document.addEventListener('DOMContentLoaded', function() {
         const reverseProxyPresent = document.getElementById('reverse_proxy_present') && document.getElementById('reverse_proxy_present').checked;
         const useAdminAcmeEmail = document.getElementById('acme_use_admin_email') && document.getElementById('acme_use_admin_email').checked;
         data.use_traefik = !reverseProxyPresent;
+        const federationBox = document.getElementById('federation_enabled');
+        const relayBox = document.getElementById('federation_relay');
+        data.federation_enabled = !!(federationBox && federationBox.checked);
+        data.federation_relay = data.federation_enabled && !!(relayBox && relayBox.checked);
         if (data.use_traefik) {
             if (useAdminAcmeEmail) {
                 data.acme_email = (document.getElementById('admin_email') && document.getElementById('admin_email').value) || '';
@@ -404,5 +410,32 @@ function toggleDbFields() {
         dbPort.readOnly = false;
         if (dbNameHelp) dbNameHelp.textContent = 'Doit déjà exister sur l\'instance PostgreSQL';
         if (dbUserHelp) dbUserHelp.textContent = 'Doit déjà exister sur l\'instance PostgreSQL';
+    }
+}
+
+function toggleFederationFields() {
+    const enabled = document.getElementById('federation_enabled');
+    const fields = document.getElementById('federation_fields');
+    const instanceId = document.getElementById('federation_instance_id');
+    const hubUrl = document.getElementById('federation_hub_url');
+    const pushToken = document.getElementById('federation_push_token');
+    const readToken = document.getElementById('federation_read_token');
+    const relay = document.getElementById('federation_relay');
+    if (!enabled || !fields) return;
+
+    if (enabled.checked) {
+        fields.classList.remove('hidden');
+        if (instanceId) instanceId.required = true;
+        if (hubUrl) hubUrl.required = true;
+        if (pushToken) pushToken.required = true;
+        // Le jeton de lecture n'est exigé que pour relayer l'exploration :
+        // une instance peut publier sans lire.
+        if (readToken) readToken.required = !!(relay && relay.checked);
+    } else {
+        fields.classList.add('hidden');
+        [instanceId, hubUrl, pushToken, readToken].forEach(function (champ) {
+            if (champ) { champ.required = false; champ.value = ''; }
+        });
+        if (relay) relay.checked = false;
     }
 }

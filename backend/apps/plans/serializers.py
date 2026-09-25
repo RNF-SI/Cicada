@@ -280,6 +280,10 @@ class PlanGestionListSerializer(serializers.ModelSerializer):
 class PlanGestionDetailSerializer(serializers.ModelSerializer):
     """Serializer détaillé pour les Plans de Gestion."""
 
+    # #645 — Référence transmise aux applications tierces (GED). Calculée,
+    # donc déclarée explicitement : ce n'est pas un champ du modèle.
+    reference = serializers.CharField(read_only=True)
+
     # Relations - use simplified serializers for frontend compatibility
     sites = PlanSiteListSerializer(many=True, read_only=True)
     fichiers = CorPgFichierSerializer(many=True, read_only=True)
@@ -443,6 +447,9 @@ class PlanGestionDetailSerializer(serializers.ModelSerializer):
         model = PlanGestion
         fields = [
             'id_pg', 'nom', 'slug', 'id_cdr', 'rang',
+            # #645 — Identifiant stable du plan et sa référence
+            # « cicada:<instance>:<uuid> », pour rapprochement avec une GED tierce.
+            'uuid_plan', 'reference',
             'annee_debut', 'annee_fin', 'periode_gestion',
             'annees_extension', 'peut_etre_etendu', 'annee_fin_effective', 'is_extended',
             'en_revision', 'is_in_revision',
@@ -466,7 +473,7 @@ class PlanGestionDetailSerializer(serializers.ModelSerializer):
             'date_ajout', 'date_maj'
         ]
         read_only_fields = [
-            'id_pg', 'slug', 'date_ajout', 'date_maj',
+            'id_pg', 'slug', 'uuid_plan', 'reference', 'date_ajout', 'date_maj',
             'peut_etre_etendu', 'annee_fin_effective', 'is_extended',
             'is_in_revision', 'is_mid_term',
             'has_draft_child', 'can_create_modification',

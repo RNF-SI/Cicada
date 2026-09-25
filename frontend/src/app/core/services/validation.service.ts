@@ -3,7 +3,7 @@
  */
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { Observable, tap } from 'rxjs';
+import { Observable, map, tap } from 'rxjs';
 
 import {
   ValidationRequest,
@@ -27,6 +27,52 @@ interface PaginatedResponse<T> {
   next: string | null;
   previous: string | null;
   results: T[];
+}
+
+/**
+ * Forme imbriquee renvoyee par `UsersPagination`, la classe de pagination par
+ * defaut du projet (`REST_FRAMEWORK.DEFAULT_PAGINATION_CLASS`) : le total vit
+ * dans `pagination.count` et non a la racine.
+ */
+interface NestedPaginatedResponse<T> {
+  links?: { next: string | null; previous: string | null };
+  pagination?: {
+    count: number;
+    current_page: number;
+    total_pages: number;
+    page_size: number;
+    has_next: boolean;
+    has_previous: boolean;
+  };
+  results: T[];
+}
+
+/**
+ * Normalise les deux formes de reponse paginee (plate DRF ou imbriquee
+ * `UsersPagination`) vers `PaginatedResponse`.
+ *
+ * Sans cela, `count` est `undefined` cote appelant : le paginateur recoit une
+ * longueur nulle et le bouton « page suivante » reste desactive (#658).
+ */
+function normalizePagination<T>(
+  response: PaginatedResponse<T> | NestedPaginatedResponse<T>
+): PaginatedResponse<T> {
+  const nested = response as NestedPaginatedResponse<T>;
+  if (nested.pagination) {
+    return {
+      count: nested.pagination.count,
+      next: nested.links?.next ?? null,
+      previous: nested.links?.previous ?? null,
+      results: nested.results ?? []
+    };
+  }
+  const flat = response as PaginatedResponse<T>;
+  return {
+    count: flat.count ?? 0,
+    next: flat.next ?? null,
+    previous: flat.previous ?? null,
+    results: flat.results ?? []
+  };
 }
 
 export interface ValidationFilters {
@@ -76,7 +122,12 @@ export class ValidationService {
       params = params.set('page', filters.page.toString());
     }
 
-    return this.http.get<PaginatedResponse<ValidationRequestListItem>>(this.apiUrl + '/', { params });
+    return this.http
+      .get<PaginatedResponse<ValidationRequestListItem> | NestedPaginatedResponse<ValidationRequestListItem>>(
+        this.apiUrl + '/',
+        { params }
+      )
+      .pipe(map(response => normalizePagination(response)));
   }
 
   /**

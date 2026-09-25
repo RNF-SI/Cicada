@@ -14,22 +14,27 @@ import { TranslateModule } from '@ngx-translate/core';
         </div>
 
         @if (totalPages() > 1) {
-          <div class="pagination">
+          <nav class="pagination" [attr.aria-label]="'common.pagination.label' | translate">
             <button
-              class="page-btn"
+              type="button"
+              class="page-btn page-nav"
               [disabled]="currentPage() <= 1"
+              [attr.aria-label]="'common.pagination.previous' | translate"
+              [title]="'common.pagination.previous' | translate"
               (click)="goToPage(currentPage() - 1)"
             >
               <i class="fi fi-rr-angle-left"></i>
             </button>
 
-            @for (p of visiblePages(); track p) {
+            @for (p of visiblePages(); track $index) {
               @if (p === -1) {
-                <button class="page-btn page-ellipsis">...</button>
+                <span class="page-btn page-ellipsis" aria-hidden="true">…</span>
               } @else {
                 <button
+                  type="button"
                   class="page-btn"
                   [class.active]="p === currentPage()"
+                  [attr.aria-current]="p === currentPage() ? 'page' : null"
                   (click)="goToPage(p)"
                 >
                   {{ p }}
@@ -38,17 +43,21 @@ import { TranslateModule } from '@ngx-translate/core';
             }
 
             <button
-              class="page-btn"
+              type="button"
+              class="page-btn page-nav"
               [disabled]="currentPage() >= totalPages()"
+              [attr.aria-label]="'common.pagination.next' | translate"
+              [title]="'common.pagination.next' | translate"
               (click)="goToPage(currentPage() + 1)"
             >
               <i class="fi fi-rr-angle-right"></i>
             </button>
-          </div>
+          </nav>
         }
       </div>
     }
   `,
+  styleUrl: './pagination.component.scss',
 })
 export class PaginationComponent {
   totalItems = input.required<number>();

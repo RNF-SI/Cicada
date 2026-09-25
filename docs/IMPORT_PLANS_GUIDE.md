@@ -107,22 +107,66 @@ Points d'attention :
 
 ## Module 2 — Actions
 
-Le classeur d'actions est **généré depuis le plan** (les indicateurs et postes
-existants y sont listés en référence, avec un code et un identifiant technique) :
+Le classeur d'actions est **généré depuis le plan** (les indicateurs, postes et
+organismes existants y sont listés en référence, avec un code et un identifiant
+technique) :
 
 Onglets : `Lisez-moi`, `Indicateurs` (référence), `Postes` (référence),
-`Listes` (masqué), `Actions`, `Budgets`, `RH`.
+`Organismes` (référence), `Listes` (masqué), `Actions`, `Budgets`, `RH`.
 
 - `Actions` — une action par ligne : `code`, `indicateur` (code de référence),
-  `libellé`, `type d'action`, `priorité`, `année début` / `année fin`,
+  `libellé`, `type d'action`, `priorité`, `année début` / `année fin`, puis le
+  **paramétrage budgétaire de la fiche action (#600)** : `mode de ventilation`,
+  `déclinaison par type de coût`, `saisie automatique du coût salarial` ; enfin
   `opérateurs`, `financeurs`. Les années créent la programmation annuelle
   (`OperationAnnee`). Les actions sont importées en **brouillon**.
-- `Budgets` (facultatif) — budget de fonctionnement / investissement par
-  `(action, année)`. Bascule l'opération en `ventilation_mode = 'by_type'`.
-- `RH` (facultatif, #560) — temps de travail en `jours` par
-  `(action, année, poste)`, avec `financé ? (Oui/Non)`. Crée des
-  `OperationAnneeRH` et active `declinaison_par_poste`. Les postes doivent
-  exister au préalable (page « Postes / RH » du plan) pour être référencés.
+- `Postes` (référence) — code, libellé tel qu'affiché dans la fiche (nom local
+  #632, homonymes numérotés #611), type de poste (#633), organisme (référentiel
+  ou saisie libre #599), coût jour.
+- `Organismes` (référence) — organismes gestionnaires des sites du plan : ceux
+  que la fiche action propose pour la ventilation par organisme.
+- `Budgets` (facultatif) — montants par `(action, année[, organisme])`. Seules
+  les colonnes du mode de l'action sont acceptées (voir le tableau).
+- `RH` (facultatif, #560) — temps de travail en `jours` par `(action, année)`,
+  ciblé sur un `poste` (modes « + type de poste »), un `organisme` (modes
+  `by_org` / `by_org_type`) ou global, avec sa `catégorie de dépense` (#597 :
+  Fonctionnement / Investissement / Bénévolat partenariat). Catégorie vide :
+  déduite du caractère financé du poste, Fonctionnement sinon. Les classeurs
+  antérieurs (colonne `financé ?`) restent lisibles.
+
+L'import enregistre **exactement ce que la fiche action enregistrerait** pour le
+mode choisi (règles de `shared/utils/operation-budget.ts` et
+`services_export_finance.py`) :
+
+| Mode | `Budgets` : colonnes lues | Rangement | `RH` : cible |
+|---|---|---|---|
+| `none` | budget total | `OperationAnnee.budget` | global |
+| `by_org` | organisme + budget total | `OperationAnneeOrganisme.budget_fonctionnement` | organisme |
+| `by_type` / `by_org_type`, **sans** déclinaison par type de coût | (organisme +) budget fonctionnement / investissement | année ou organisme | global / organisme |
+| mêmes modes **avec** déclinaison | (organisme +) coûts détaillés + coût salarial (toujours saisi : pas de poste, rien à calculer) | année ou organisme | global / organisme |
+| `by_type_poste` / `by_org_type_poste` | (organisme +) coûts détaillés ; coût salarial seulement si la saisie automatique est à Non ; enveloppes si déclinaison à Non | année ou organisme | poste |
+
+- **Mode vide → déduit** des lignes saisies : un poste en RH → « + type de
+  poste » ; un organisme → « par organisme » ; des montants fonctionnement /
+  investissement ou du temps en investissement → « par type de budget » ; sinon
+  « Pas de ventilation ». Réglages vides : déclinaison à Oui sauf si seules les
+  enveloppes sont remplies ; saisie automatique à Oui sauf si un coût salarial
+  est saisi.
+- `cout_salarial_auto` stocke la valeur de `salaryIsComputed()` (comme la
+  fiche), `declinaison_par_poste` suit le mode (#600).
+- **Erreurs bloquantes** : montant dans une colonne hors du mode (il serait
+  invisible dans la fiche), organisme / poste manquant ou inattendu selon le
+  mode, code inconnu ou étranger au plan, ligne de budget en double.
+- **Avertissements** : réglage sans effet pour le mode, temps en
+  « Investissement » dans un mode sans type de budget (conservé, comme la
+  fiche).
+- Par cohérence avec la fiche : `OperationAnnee.budget` (total de l'année,
+  coût salarial calculé compris) et `etp` (Σ jours) sont renseignés, l'année est
+  marquée programmée dès qu'elle porte un montant, et une action ventilée par
+  organisme est rattachée aux sites du plan que gèrent ses organismes (sans quoi
+  la fiche ne les proposerait pas sur un plan multi-sites).
+- Les actions rattachées à un indicateur par leur seule métrique (#398) sont
+  exportées et comptent pour le refus « plan déjà rempli ».
 
 Une année de budget/RH hors de la période déclarée de l'action génère un
 **avertissement** (non bloquant) et l'année est créée automatiquement.
@@ -182,13 +226,27 @@ avec ce même rapport dans le corps.
   indicateur (état/réponse), taxons/habitats, flags types d'enjeu, **listes
   déroulantes inter-onglets**, **ligne exemple ignorée**, **exemple complet**,
   validations.
-- `backend/tests/apps/plans/test_import_actions.py` (23 tests) — actions,
-  budgets, RH, **dropdown action des onglets Budgets/RH**, **ligne exemple
-  ignorée**, **exemple complet**.
-- `backend/tests/apps/plans/test_import_endpoints.py` (11 tests) — couche HTTP :
+- `backend/tests/apps/plans/test_import_actions.py` (77 tests) — actions,
+  budgets, RH ; **aller-retour export → import pour chacun des 6 modes de
+  ventilation** (tous les champs écrits comparés) ; **règles coût salarial /
+  disposition du tableau, miroir de `operation-budget.ts`** ; déduction du mode ;
+  colonnes hors mode ; cibles poste / organisme ; catégorie de dépense (#597) ;
+  libellés de postes (#611/#632) ; rattachement des sites ; actions rattachées
+  par métrique ; listes déroulantes, onglets protégés, Lisez-moi ; ligne exemple
+  ignorée ; exemple complet.
+- `backend/tests/apps/plans/test_import_endpoints.py` (24 tests) — couche HTTP :
   export (tout statut, MIME), validation multipart, import réel, **verrou
   brouillon (403 hors draft)**, **endpoints exemple**, authentification, fichier
-  manquant.
+  manquant ; pour les **actions** : rapport situant l'erreur de mode (onglet,
+  ligne, colonne), import 201 avec budget et RH, 400 sans aucune écriture, 403
+  hors brouillon.
+- `frontend/e2e/tests/features/import-actions.spec.ts` (2 tests E2E) — plan
+  construit pour le test (arborescence, postes, 3 actions dans 3 modes saisies
+  comme par la fiche) → export du classeur d'actions → téléversement refusé tant
+  que le plan a ses actions (rapport d'erreur, import désactivé) → actions
+  supprimées → téléversement **par l'interface** → actions recréées
+  **identiques** (paramétrage, montants par année / organisme, lignes RH) ; +
+  téléchargement du modèle depuis les paramètres.
 - `frontend/e2e/tests/features/import-plan.spec.ts` (3 tests E2E) — round-trip
   d'import par l'UI, verrou brouillon, **téléchargement des exemples**.
 - `frontend/src/app/core/services/admin.service.spec.ts` (méthodes d'import)
@@ -205,7 +263,8 @@ docker compose exec web pytest tests/apps/plans/test_import_arborescence.py \
                                 tests/apps/plans/test_import_actions.py \
                                 tests/apps/plans/test_import_endpoints.py
 # E2E (stack lancée + seed ; voir docs/TESTING.md)
-cd frontend && npm run e2e -- e2e/tests/features/import-plan.spec.ts
+cd frontend && npm run e2e -- e2e/tests/features/import-plan.spec.ts \
+                              e2e/tests/features/import-actions.spec.ts
 ```
 
 ---
@@ -214,6 +273,6 @@ cd frontend && npm run e2e -- e2e/tests/features/import-plan.spec.ts
 
 - Pas de grille de scoring des métriques (indicateur « indéterminé »).
 - Responsabilités (site/organisme) non gérées dans l'arborescence.
-- Budget par organisme (`OperationAnneeOrganisme`) non géré (seulement la
-  ventilation fonctionnement / investissement globale).
 - Pas de suivis / inventaires ni de protocoles CAMPanule.
+- Les postes ne se créent pas par l’import : ils doivent exister sur le plan
+  (page « Postes / RH ») pour être référencés dans l’onglet `RH`.

@@ -1,0 +1,95 @@
+# Hub d'exploration fédérée (#636) — PRODUCTION.
+#
+# Pendant de docker-compose.hub.yml, mais rien n'y est monté depuis le dépôt :
+# l'image embarque le code ET les référentiels nationaux (cf. hub/Dockerfile.prod).
+# Le serveur du hub n'a donc pas besoin d'une copie de CICADA à côté.
+#
+# Usage :
+#   docker compose -f docker-compose.hub.prod.yml --env-file .env.hub.prod up -d
+#
+# Le hub n'écoute que sur la boucle locale ; c'est Apache qui l'expose en HTTPS
+# (vhost documenté dans docs/DEPLOIEMENT_HUB.md).
+
+# Nom de projet FIGÉ — même raison qu'en développement : sans lui, Compose le
+# déduit du dossier et le service `db` peut écraser celui d'un autre stack
+# CICADA présent sur la même machine.
+name: cicada_hub
+
+services:
+  db:
+    image: postgis/postgis:17-3.5-alpine
+    container_name: cicada_hub_db
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:?POSTGRES_DB est requis}
+      POSTGRES_USER: ${POSTGRES_USER:?POSTGRES_USER est requis}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD est requis}
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --locale=fr_FR.UTF-8"
+    volumes:
+      - hub_postgres_data:/var/lib/postgresql/data
+      # Création des schémas (ccd_search, ref_geo, ref_nomenclatures) et des
+      # extensions. Seul fichier encore lu depuis le dépôt : il ne s'exécute
+      # qu'à la toute première initialisation de la base.
+      - ./hub/docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    # Aucun port publié : la base ne sort pas du réseau du projet. Pour une
+    # session psql, passer par `docker compose exec db psql`.
+    networks:
+      - hub_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    restart: unless-stopped
+
+  hub:
+    image: ghcr.io/rnf-si/cicada-hub:${CICADA_VERSION:-latest}
+    build:
+      # Contexte = racine du dépôt (les référentiels vivent dans backend/).
+      context: .
+      dockerfile: hub/Dockerfile.prod
+    container_name: cicada_hub_api
+    environment:
+      - DEBUG=False
+      - SECRET_KEY=${SECRET_KEY:?SECRET_KEY est requis}
+      - ALLOWED_HOSTS=${ALLOWED_HOSTS:?ALLOWED_HOSTS est requis}
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_HOST=${POSTGRES_HOST:-db}
+      - POSTGRES_PORT=${POSTGRES_PORT:-5432}
+      - HUB_INSTANCE_ID=${HUB_INSTANCE_ID:-hub}
+      - HUB_INSTANCE_LABEL=${HUB_INSTANCE_LABEL:-}
+      # Jetons d'AMORCE uniquement ("rnf:jeton-rnf,cen:jeton-cen"). Le registre
+      # en base fait foi : « enroler_instance » délivre les jetons sans
+      # redémarrage, et un jeton d'environnement portant le nom d'une instance
+      # déjà enrôlée est refusé. Peuvent rester vides.
+      - HUB_FEDERATION_TOKENS=${HUB_FEDERATION_TOKENS:-}
+      - HUB_READ_TOKENS=${HUB_READ_TOKENS:-}
+      - DATA_UPLOAD_MAX_MEMORY_SIZE=${DATA_UPLOAD_MAX_MEMORY_SIZE:-104857600}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+    volumes:
+      # Logs consultables directement sur le serveur, comme CICADA (#384).
+      # Le répertoire hôte doit exister et être inscriptible par le conteneur.
+      - /var/log/cicada-hub:/app/logs
+    ports:
+      # Boucle locale uniquement : Apache est le seul point d'entrée public.
+      - "127.0.0.1:${HUB_PORT:-8002}:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - hub_network
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health/')"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    restart: unless-stopped
+
+volumes:
+  hub_postgres_data:
+
+networks:
+  hub_network:
+    driver: bridge
