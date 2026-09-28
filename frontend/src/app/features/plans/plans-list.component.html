@@ -203,11 +203,11 @@
                     <td class="col-period">
                       <div class="period-content">
                         <span class="period-dates">{{ formatPeriod(plan) }}</span>
-                        @if (plan.annee_debut && plan.annee_fin) {
+                        @if (plan.annee_debut && plan.gaugeEndYear) {
                           <app-plan-gauge
                             [status]="plan.gaugeStatus"
                             [startYear]="plan.annee_debut"
-                            [endYear]="plan.annee_fin">
+                            [endYear]="plan.gaugeEndYear">
                           </app-plan-gauge>
                         }
                       </div>
@@ -261,11 +261,11 @@
                       <td class="col-period">
                         <div class="period-content">
                           <span class="period-dates">{{ formatPeriod(version) }}</span>
-                          @if (version.annee_debut && version.annee_fin) {
+                          @if (version.annee_debut && version.gaugeEndYear) {
                             <app-plan-gauge
                               [status]="version.gaugeStatus"
                               [startYear]="version.annee_debut"
-                              [endYear]="version.annee_fin">
+                              [endYear]="version.gaugeEndYear">
                             </app-plan-gauge>
                           }
                         </div>

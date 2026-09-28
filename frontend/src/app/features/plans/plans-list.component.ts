@@ -45,6 +45,7 @@ import {
   findPreviousValidatedPlan,
 } from '../../shared/components/modals/archive-previous-plan-dialog/archive-previous-plan-dialog.component';
 import { PlanVersionChainItem } from '../../core/models/admin.model';
+import { planEndYear } from '../../shared/utils/plan-periode';
 
 
 interface PlanWithAccess extends AdminPlan {
@@ -54,6 +55,8 @@ interface PlanWithAccess extends AdminPlan {
   hasAccessViaSite: boolean;
   isOrgPlan: boolean;
   gaugeStatus: GaugeStatus;
+  /** #675 — Fin de la jauge : échéance effective (prolongation comprise). */
+  gaugeEndYear: number | null;
 }
 
 @Component({
@@ -502,7 +505,8 @@ export class PlansListComponent implements OnInit {
         isMember,
         hasAccessViaSite,
         isOrgPlan,
-        gaugeStatus
+        gaugeStatus,
+        gaugeEndYear: planEndYear(plan),
       };
     });
   }
@@ -524,13 +528,14 @@ export class PlansListComponent implements OnInit {
    * Calcule le statut de la jauge en fonction des dates du plan.
    */
   private calculateGaugeStatus(plan: AdminPlan): GaugeStatus {
-    if (!plan.annee_debut || !plan.annee_fin) {
+    // #675 — un plan prolongé n'est « dépassé » qu'après ses années d'extension.
+    const endYear = planEndYear(plan);
+    if (!plan.annee_debut || !endYear) {
       return 'not-started';
     }
 
     const currentYear = new Date().getFullYear();
     const startYear = plan.annee_debut;
-    const endYear = plan.annee_fin;
 
     if (currentYear < startYear) {
       return 'not-started';

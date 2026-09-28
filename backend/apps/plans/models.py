@@ -6,6 +6,7 @@ import uuid
 from django.conf import settings
 from django.contrib.gis.db import models
 from django.core.validators import MinValueValidator, MaxValueValidator
+from django.db.models import F, Q
 from django.utils.text import slugify
 from django.utils.translation import gettext_lazy as _
 from datetime import datetime
@@ -572,6 +573,17 @@ class PlanGestion(models.Model):
         if self.annee_fin is None:
             return None
         return self.annee_fin + (self.annees_extension or 0)
+
+    @staticmethod
+    def actif_en_q(annee):
+        """#675 — Plans en vigueur l'année `annee`, prolongation (#250) comprise :
+        `annee_debut <= annee <= annee_fin + annees_extension`."""
+        return Q(annee_debut__lte=annee) & Q(annee_fin__gte=annee - F('annees_extension'))
+
+    @staticmethod
+    def inactif_en_q(annee):
+        """#675 — Plans pas encore commencés ou terminés (prolongation comprise)."""
+        return Q(annee_debut__gt=annee) | Q(annee_fin__lt=annee - F('annees_extension'))
 
     def annees_plan(self):
         """#672 — Années du plan (début → fin effective), pour la programmation,

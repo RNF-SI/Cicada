@@ -95,25 +95,17 @@ class PlanGestionFilter(filters.FilterSet):
     def filter_actif(self, queryset, name, value):
         """Filtrer les plans actifs (annee courante dans la periode du plan)."""
         current_year = datetime.now().year
+        # #675 — un plan prolongé reste actif pendant ses années d'extension.
         if value is True:
-            return queryset.filter(
-                annee_debut__lte=current_year,
-                annee_fin__gte=current_year
-            )
+            return queryset.filter(PlanGestion.actif_en_q(current_year))
         elif value is False:
-            from django.db.models import Q
-            return queryset.filter(
-                Q(annee_debut__gt=current_year) | Q(annee_fin__lt=current_year)
-            )
+            return queryset.filter(PlanGestion.inactif_en_q(current_year))
         return queryset
 
     def filter_actif_en_annee(self, queryset, name, value):
         """Filtrer les plans actifs dans une année donnée."""
         if value:
-            return queryset.filter(
-                annee_debut__lte=value,
-                annee_fin__gte=value
-            )
+            return queryset.filter(PlanGestion.actif_en_q(value))  # #675
         return queryset
     
     def filter_by_organisme_id(self, queryset, name, value):
@@ -267,12 +259,8 @@ class PlanGestionQuickFilter:
     
     @staticmethod
     def actifs_cette_annee():
-        """Plans actifs cette année."""
-        current_year = datetime.now().year
-        return {
-            'annee_debut__lte': current_year,
-            'annee_fin__gte': current_year
-        }
+        """Plans actifs cette année, prolongation comprise (#675)."""
+        return PlanGestion.actif_en_q(datetime.now().year)
     
     @staticmethod
     def en_cours_redaction():

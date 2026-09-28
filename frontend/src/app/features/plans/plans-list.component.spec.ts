@@ -46,6 +46,7 @@ function plan(
     hasAccessViaSite: false,
     isOrgPlan: false,
     gaugeStatus: 'in-progress',
+    gaugeEndYear: 2030,
     ...extra,
   };
 }
@@ -216,5 +217,29 @@ describe('PlansListComponent — pas de demande d\'accès pour un gestionnaire (
     roles.isSuperAdmin.set(false);
     roles.isRedacteurPrincipal.set(true);
     expect(component.otherPlans()).toEqual([]);
+  });
+});
+
+describe('PlansListComponent — jauge d\'un plan prolongé (#675)', () => {
+  const Y = new Date().getFullYear();
+  const comp = Object.create(PlansListComponent.prototype) as PlansListComponent;
+  const gauge = (plan: Record<string, unknown>) => (comp as any).calculateGaugeStatus(plan);
+
+  it('plan terminé l\'an dernier mais prolongé de 2 ans : pas « dépassé »', () => {
+    expect(gauge({ annee_debut: Y - 10, annee_fin: Y - 1, annees_extension: 2, annee_fin_effective: Y + 1 }))
+      .toBe('second-half');
+  });
+
+  it('prolongation écoulée : « dépassé »', () => {
+    expect(gauge({ annee_debut: Y - 12, annee_fin: Y - 2, annees_extension: 1, annee_fin_effective: Y - 1 }))
+      .toBe('exceeded');
+  });
+
+  it('plan non prolongé terminé : « dépassé » (inchangé)', () => {
+    expect(gauge({ annee_debut: Y - 10, annee_fin: Y - 1, annees_extension: 0 })).toBe('exceeded');
+  });
+
+  it('échéance effective recalculée si l\'API ne la fournit pas', () => {
+    expect(gauge({ annee_debut: Y - 10, annee_fin: Y - 1, annees_extension: 2 })).toBe('second-half');
   });
 });

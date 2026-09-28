@@ -2902,10 +2902,7 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
         from datetime import datetime
         current_year = datetime.now().year
         for year in range(current_year - 5, current_year + 5):
-            count = queryset.filter(
-                annee_debut__lte=year,
-                annee_fin__gte=year
-            ).count()
+            count = queryset.filter(PlanGestion.actif_en_q(year)).count()  # #675
             if count > 0:
                 stats['par_periode'][year] = count
         
