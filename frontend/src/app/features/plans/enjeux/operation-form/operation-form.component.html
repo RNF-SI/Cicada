@@ -1514,17 +1514,6 @@
                 <!-- Programmation mensuelle (mêmes mois chaque année) -->
                 <div class="programmation-section">
                   <p class="mensuelle-hint">{{ 'enjeux.operations.recurringHint' | translate }}</p>
-                  @if (mensuelleParAnnee) {
-                    <div class="info-block info-block-warning mensuelle-par-annee">
-                      <p>{{ 'enjeux.operations.mensuelleParAnnee.intro' | translate }}</p>
-                      <ul>
-                        @for (r of mensuelleParAnneeResume(); track r.annee) {
-                          <li><strong>{{ r.annee }}</strong> : {{ r.mois }}</li>
-                        }
-                      </ul>
-                      <p>{{ 'enjeux.operations.mensuelleParAnnee.warning' | translate }}</p>
-                    </div>
-                  }
                   <div class="programmation-table">
                     <table>
                       <thead>

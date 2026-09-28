@@ -4144,10 +4144,6 @@
       "categorieFinanceLabel": "Catégorie",
       "addFinance": "Ajouter un financeur",
       "recurringHint": "Les mois cochés ci-dessous seront appliqués à toutes les années sélectionnées.",
-      "mensuelleParAnnee": {
-        "intro": "Les mois programmés diffèrent selon les années. Ce détail est conservé à l'enregistrement :",
-        "warning": "La grille ci-dessous réunit tous ces mois. Cocher ou décocher une case appliquera les mêmes mois à toutes les années."
-      },
       "estSuiviExistantLabel": "Inventaire ou suivi déjà saisi dans le module Mes inventaires et suivis ?",
       "intituleSuiviLabel": "Intitulé de l'inventaire ou suivi",
       "aucunSuiviDisponible": "Aucun suivi disponible - module à venir",

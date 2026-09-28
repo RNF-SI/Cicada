@@ -586,14 +586,6 @@ $form-side-margin: $spacing-xxl;
   font-style: italic;
 }
 
-// #673 — mois propres à chaque année, conservés tant que la grille n'est pas retouchée
-.mensuelle-par-annee {
-  margin: 0 0 $spacing-md 0;
-
-  p { margin: 0; }
-  ul { margin: $spacing-xs 0; padding-left: $spacing-lg; }
-}
-
 
 // ═══════════════════════════════════════════════
 // Finances Section
