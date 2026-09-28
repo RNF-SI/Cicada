@@ -1,10 +1,12 @@
 name: SBOM
 
-# Publication d'une release : evenement volontaire et date, contrairement a un
-# push sur main qui remonterait des inventaires pour du code jamais deploye.
+# Tag de version, comme docker-publish.yml et build-deb.yml : c'est lui qui marque
+# ce qui part en production (les releases GitHub ne sont plus publiees depuis
+# v0.1.39). Un push sur main remonterait des inventaires pour du code jamais deploye.
 on:
-  release:
-    types: [published]
+  push:
+    tags:
+      - 'v*'
   workflow_dispatch:
 
 jobs:
@@ -26,7 +28,7 @@ jobs:
         env:
           DT_URL: ${{ secrets.DT_URL }}
           DT_API_KEY: ${{ secrets.DT_API_KEY }}
-          APP_VERSION: ${{ github.event.release.tag_name || github.ref_name }}
+          APP_VERSION: ${{ github.ref_name }}
 
       # Utile en cas de litige sur ce qui a ete envoye, et le seul moyen de
       # relire un SBOM sans rejouer le job.

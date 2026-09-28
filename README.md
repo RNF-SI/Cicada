@@ -245,7 +245,7 @@ Le projet utilise un pipeline automatise : **conventional commits** → **releas
 
 ### Inventaire des dependances (SBOM)
 
-Chaque release publiee genere les SBOM CycloneDX du depot (workflow `.github/workflows/sbom.yml`) et les envoie au serveur [Dependency-Track](https://dependencytrack.reserves-naturelles.org) de RNF, qui suit les vulnerabilites connues. Quatre projets : `cicada-backend`, `cicada-frontend` (dependances de production uniquement), `cicada-hub`, `cicada-tracking-api`.
+Chaque tag de version `v*` genere les SBOM CycloneDX du depot (workflow `.github/workflows/sbom.yml`) et les envoie au serveur [Dependency-Track](https://dependencytrack.reserves-naturelles.org) de RNF, qui suit les vulnerabilites connues. Quatre projets : `cicada-backend`, `cicada-frontend` (dependances de production uniquement), `cicada-hub`, `cicada-tracking-api`.
 
 ```bash
 ./scripts/generate-sbom.sh            # genere sbom/*.cdx.json
