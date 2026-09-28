@@ -47,6 +47,7 @@ import {
 import { formatScoreRange, computeMetriqueScore, computeCombinedScore, scoreLevelName, formatBlockFormula } from '../metrique-seuils.util';
 import { posteDisplayLabel, posteDisplayLabelById } from '../../../../shared/utils/poste-label';
 import { salaryIsComputed } from '../../../../shared/utils/operation-budget';
+import { planEndYear } from '../../../../shared/utils/plan-periode';
 
 interface Niveau {
   id_nomenclature: number;
@@ -809,7 +810,7 @@ export class SuiviSaisieComponent implements OnInit {
         this.planNom.set(plan.nom);
         this.planStatut.set(plan.statut ?? null);
         this.planYearStart.set(plan.annee_debut ?? null);
-        this.planYearEnd.set(plan.annee_fin ?? null);
+        this.planYearEnd.set(planEndYear(plan));  // #672
         // #560 — postes du PG, pour la saisie / ré-attribution du RH réalisé.
         this.rhService.getPostesByPlan(plan.id_pg).subscribe(
           (list) => this.postes.set(list),

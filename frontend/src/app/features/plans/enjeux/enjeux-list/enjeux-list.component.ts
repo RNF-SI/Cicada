@@ -78,6 +78,7 @@ import {
   displayNomenclatureFn,
   parseNomenclatureDefinition,
 } from '../../../../shared/utils/nomenclature-autocomplete.utils';
+import { planEndYear } from '../../../../shared/utils/plan-periode';
 
 type TabType = 'detail' | 'olt' | 'operations';
 
@@ -685,7 +686,7 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
         this.planId.set(plan.id_pg);
         this.planNom.set(plan.nom);
         this.planAnneeDebut.set(plan.annee_debut || null);
-        this.planAnneeFin.set(plan.annee_fin || null);
+        this.planAnneeFin.set(planEndYear(plan) || null);  // #672
         this.planReferentIds.set((plan.referents || []).map(r => r.id_role));
         this.planStatut.set(plan.statut);
 

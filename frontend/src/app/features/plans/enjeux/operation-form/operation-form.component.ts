@@ -62,6 +62,7 @@ import {
   buildMetriqueGridFields,
 } from '../../../../shared/utils/metrique-form.util';
 import { posteDisplayLabel, posteDisplayLabelById } from '../../../../shared/utils/poste-label';
+import { planEndYear } from '../../../../shared/utils/plan-periode';
 
 /** Option de type de métrique brute (nomenclature TYPE_METRIQUE). */
 type TypeMetriqueNomenclature = { id_nomenclature: number; mnemonique?: string; label: string };
@@ -1201,7 +1202,7 @@ export class OperationFormComponent implements OnInit {
             this.syncRhLines();
           });
           this.applyPlanReadOnly(plan.statut);
-          this.computeYears(plan.annee_debut, plan.annee_fin);
+          this.computeYears(plan.annee_debut, planEndYear(plan));  // #672
           // Extract plan sites
           if (plan.sites) {
             this.planSites.set(plan.sites);

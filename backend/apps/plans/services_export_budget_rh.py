@@ -92,7 +92,7 @@ def _title(name: str, used: set) -> str:
 
 def _plan_title(plan) -> str:
     nom = (plan.nom or "").strip() or f"Plan {plan.id_pg}"
-    return f"PLAN DE GESTION {plan.annee_debut}-{plan.annee_fin} — {nom}".upper()
+    return f"PLAN DE GESTION {plan.annee_debut}-{plan.annee_fin_effective} — {nom}".upper()
 
 
 def _set(ws, r, c, value, *, fill=None, font=_F_CELL, align=_AL_R):

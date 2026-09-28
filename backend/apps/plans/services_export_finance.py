@@ -447,9 +447,8 @@ def build_plan_finance(plan) -> PlanFinance:
     # vide). On le calcule une fois pour tout le plan.
     from .serializers_operations import compute_operation_codes_for_plan
 
-    y0 = plan.annee_debut or 0
-    y1 = plan.annee_fin or y0
-    years = list(range(y0, y1 + 1)) if y0 else []
+    # #672 — années de prolongation comprises.
+    years = plan.annees_plan()
 
     codes = compute_operation_codes_for_plan(plan.pk)
 

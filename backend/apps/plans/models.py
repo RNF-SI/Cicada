@@ -566,6 +566,21 @@ class PlanGestion(models.Model):
         """#250 — Vrai si le plan a été prolongé (1 ou 2 années ajoutées)."""
         return bool(self.annees_extension and self.annees_extension > 0)
 
+    @property
+    def annee_fin_effective(self):
+        """#250 / #672 — Dernière année du plan, prolongation comprise."""
+        if self.annee_fin is None:
+            return None
+        return self.annee_fin + (self.annees_extension or 0)
+
+    def annees_plan(self):
+        """#672 — Années du plan (début → fin effective), pour la programmation,
+        le suivi, les exports et le bilan. Vide si la période n'est pas renseignée."""
+        y0, y1 = self.annee_debut, self.annee_fin_effective
+        if not y0 or not y1 or y1 < y0:
+            return []
+        return list(range(y0, y1 + 1))
+
     def is_in_revision(self):
         """#278 — Vrai si le plan est en cours de révision."""
         return bool(self.en_revision)

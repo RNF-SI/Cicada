@@ -27,6 +27,7 @@ import { computeCombinedScore, computeMetriqueScore } from './metrique-seuils.ut
 import { exportFilename } from '../../../shared/utils/csv-export';
 import { downloadBlob } from '../../../shared/utils/chart-image-export';
 import { GridCell, GridExportPayload, GridRow } from '../../../shared/utils/grid-export';
+import { planEndYear } from '../../../shared/utils/plan-periode';
 
 type ScoreLevel = 'very-bad' | 'bad' | 'neutral' | 'good' | 'very-good' | 'no-data';
 
@@ -241,9 +242,10 @@ export class PlanTableauDeBordComponent implements OnInit {
           this.planId.set(plan.id_pg);
           this.planNom.set(plan.nom);
           this.planStatut.set(plan.statut ?? null);
-          if (plan.annee_debut && plan.annee_fin) {
+          const fin = planEndYear(plan);  // #672 — prolongation comprise
+          if (plan.annee_debut && fin) {
             this.planYearStart.set(plan.annee_debut);
-            this.planYearEnd.set(plan.annee_fin);
+            this.planYearEnd.set(fin);
           }
           this.loadData(plan.id_pg);
         }

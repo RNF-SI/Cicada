@@ -1406,7 +1406,7 @@ class RealisationOperationAnneeViewSet(viewsets.ModelViewSet):
             'plan_id': int(plan_id),
             'plan_nom': plan.nom,
             'annee_min': plan.annee_debut,
-            'annee_max': plan.annee_fin,
+            'annee_max': plan.annee_fin_effective,  # #672
             'taux_realisation': taux_global,
             'by_categorie_action': by_categorie_list,
             'by_enjeu': by_enjeu_list,
@@ -1441,7 +1441,7 @@ class RealisationOperationAnneeViewSet(viewsets.ModelViewSet):
         """
         Séries temporelles (par année) pour la page Bilan (graphiques « par année »).
 
-        Retourne, alignés sur `years` (plan.annee_debut..annee_fin) :
+        Retourne, alignés sur `years` (plan.annee_debut..annee_fin_effective) :
           - indicateurs_evolution : moyenne / min / max / écart-type des scores
             d'indicateurs par année (dernière mesure de chaque métrique dans l'année)
           - rh_par_annee : jours de travail prévisionnel / réalisé par année
@@ -1466,8 +1466,7 @@ class RealisationOperationAnneeViewSet(viewsets.ModelViewSet):
         assert_suivi_access(request.user, plan)          # #610 — bilan réservé
         enjeu_id = request.query_params.get('enjeu_id')
 
-        y0, y1 = plan.annee_debut, plan.annee_fin
-        years = list(range(y0, y1 + 1)) if (y0 and y1 and y1 >= y0) else []
+        years = plan.annees_plan()  # #672 — prolongation comprise
         # Portée : restreint les séries à la fenêtre demandée (Mi-parcours).
         p0, p1, _annuel = self._periode_from_request(request)
         years = [y for y in years if self._in_periode(y, p0, p1)]

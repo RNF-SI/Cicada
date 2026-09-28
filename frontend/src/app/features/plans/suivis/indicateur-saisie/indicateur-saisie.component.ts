@@ -29,6 +29,7 @@ import { AdminService } from '../../../../core/services/admin.service';
 import { EnjeuService } from '../../../../core/services/enjeu.service';
 import { Indicateur, Metrique, Mesure, MesureCreatePayload } from '../../../../core/models/enjeu.model';
 import { formatScoreRange, isMetriqueIndetermine, computeMetriqueScore, computeCombinedScore, formatBlockFormula, matchingGridLevels } from '../metrique-seuils.util';
+import { planEndYear } from '../../../../shared/utils/plan-periode';
 
 // #510 — un seul mode d'édition cohérent (les anciens 'edit-auto'/'edit-override'
 // sont fusionnés : auto par défaut, forçage manuel optionnel via une case).
@@ -474,9 +475,10 @@ export class IndicateurSaisieComponent implements OnInit {
         this.planId.set(plan.id_pg);
         this.planNom.set(plan.nom);
         this.planStatut.set((plan as any).statut ?? null);
-        if (plan.annee_debut && plan.annee_fin) {
+        const fin = planEndYear(plan);  // #672 — prolongation comprise
+        if (plan.annee_debut && fin) {
           this.planYearStart.set(plan.annee_debut);
-          this.planYearEnd.set(plan.annee_fin);
+          this.planYearEnd.set(fin);
         }
         this.applyReadonlyState();
       },

@@ -1059,9 +1059,8 @@ def build_fiche_action_workbook(plan, operation_ids=None) -> bytes:
 
     _appliquer_couleur_instance()
 
-    y0 = plan.annee_debut or 0
-    y1 = plan.annee_fin or y0
-    years = list(range(y0, y1 + 1)) if y0 else []
+    # #672 — années de prolongation comprises.
+    years = plan.annees_plan()
     if not years:
         years = [""]
 
