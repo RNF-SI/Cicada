@@ -22,17 +22,17 @@
       </div>
     </div>
 
-    <!-- Super admin approval notice -->
+    <!-- Portée de l'action : demande à valider, ou application immédiate (#655) -->
     <div class="notice-box">
       <i class="fi fi-rr-shield-check"></i>
-      <p>{{ 'modals.adminRoleChange.superAdminNotice' | translate }}</p>
+      <p>{{ noticeKey | translate }}</p>
     </div>
 
     <!-- Justification field -->
     <div class="justification-section">
-      <label class="justification-label">{{ 'modals.adminRoleChange.justification.label' | translate }} *</label>
+      <label class="justification-label">{{ 'modals.adminRoleChange.justification.label' | translate }}@if (!isDirect) {<span> *</span>}</label>
       <app-form-field class="full-width"
-                      [helpText]="'modals.adminRoleChange.justification.hint' | translate:{ count: justification.length }">
+                      [helpText]="justificationHintKey | translate:{ count: justification.length }">
         <textarea
           [(ngModel)]="justification"
           [placeholder]="'modals.adminRoleChange.justification.placeholder' | translate"

@@ -779,3 +779,237 @@ class TestBulkImportStatus:
         )
 
         assert response.status_code == status.HTTP_403_FORBIDDEN
+
+
+# =============================================================================
+# RATTACHEMENT ORGANISME / RÉFÉRENT PAR LIGNE (#647)
+# =============================================================================
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+class TestBulkImportPerRowRelations:
+    """
+    Colonnes « organisme » et « référent » : chaque site est rattaché à sa
+    propre structure au lieu d'hériter de celle de l'importateur (#647).
+    """
+
+    def test_mapping_detects_organisme_and_referent_columns(self, api_client):
+        """Les en-têtes organisme / référent sont auto-détectés."""
+        admin = SuperAdminFactory(id_organisme=OrganismeFactory())
+        api_client.force_authenticate(user=admin)
+
+        csv_file = _make_csv_file(
+            ['nom', 'gestionnaire', 'referent'],
+            [['Site Detect', 'CEN Machin', 'a@test.fr']],
+        )
+        response = api_client.post(
+            '/api/users/sites/bulk_import_validate/',
+            {'file': csv_file},
+            format='multipart',
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        mapping = response.data['suggested_mapping']
+        assert mapping['gestionnaire'] == 'organisme'
+        assert mapping['referent'] == 'referent'
+
+    def test_validation_resolves_organisme_by_name(self, api_client):
+        """Un nom d'organisme connu (casse/accents libres) est résolu."""
+        admin = SuperAdminFactory(id_organisme=OrganismeFactory())
+        org = OrganismeFactory(nom_organisme='Conservatoire des Espaces Naturels')
+        api_client.force_authenticate(user=admin)
+
+        csv_file = _make_csv_file(
+            ['nom', 'organisme'],
+            [['Site Resolu', 'conservatoire des espaces naturels']],
+        )
+        response = api_client.post(
+            '/api/users/sites/bulk_import_validate/',
+            {'file': csv_file},
+            format='multipart',
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        row = response.data['sites'][0]
+        assert row['resolved_organismes'] == [
+            {'id_organisme': org.id_organisme, 'nom_organisme': org.nom_organisme}
+        ]
+        assert row['errors'] == []
+
+    def test_validation_warns_on_unknown_organisme(self, api_client):
+        """Organisme introuvable : avertissement non bloquant, pas d'erreur."""
+        importer_org = OrganismeFactory(nom_organisme='RNF')
+        admin = SuperAdminFactory(id_organisme=importer_org)
+        api_client.force_authenticate(user=admin)
+
+        csv_file = _make_csv_file(
+            ['nom', 'organisme'],
+            [['Site Inconnu', 'Structure Fantome']],
+        )
+        response = api_client.post(
+            '/api/users/sites/bulk_import_validate/',
+            {'file': csv_file},
+            format='multipart',
+        )
+
+        row = response.data['sites'][0]
+        assert row['errors'] == []
+        assert row['resolved_organismes'] == []
+        assert any('Structure Fantome' in w for w in row['warnings'])
+        assert any('RNF' in w for w in row['warnings'])
+
+    def test_import_links_each_site_to_its_own_organisme(self, api_client):
+        """Deux sites, deux organismes : chacun garde le sien."""
+        importer_org = OrganismeFactory(nom_organisme='RNF National')
+        admin = SuperAdminFactory(id_organisme=importer_org)
+        org_a = OrganismeFactory(nom_organisme='CEN Alpha')
+        org_b = OrganismeFactory(nom_organisme='CEN Beta')
+        api_client.force_authenticate(user=admin)
+
+        sites = [
+            {'row_index': 0, 'mapped_data': {'nom_site': 'Site Alpha', 'organisme': 'CEN Alpha'}},
+            {'row_index': 1, 'mapped_data': {'nom_site': 'Site Beta', 'organisme': 'CEN Beta'}},
+        ]
+        response = api_client.post(
+            '/api/users/sites/bulk_import_execute/',
+            {'sites': sites, 'selected_indices': [0, 1]},
+            format='json',
+        )
+
+        assert response.status_code == status.HTTP_201_CREATED
+        site_a = Site.objects.get(nom_site='Site Alpha')
+        site_b = Site.objects.get(nom_site='Site Beta')
+        assert CorOgSite.objects.filter(id_site=site_a, uuid_og=org_a, principal=True).exists()
+        assert CorOgSite.objects.filter(id_site=site_b, uuid_og=org_b, principal=True).exists()
+        # L'organisme de l'importateur n'est plus imposé
+        assert not CorOgSite.objects.filter(id_site=site_a, uuid_og=importer_org).exists()
+
+    def test_import_accepts_several_organismes_first_is_principal(self, api_client):
+        """« A ; B » : les deux sont rattachés, le premier est principal."""
+        admin = SuperAdminFactory(id_organisme=OrganismeFactory())
+        org_a = OrganismeFactory(nom_organisme='Gestionnaire Un')
+        org_b = OrganismeFactory(nom_organisme='Gestionnaire Deux')
+        api_client.force_authenticate(user=admin)
+
+        sites = [{
+            'row_index': 0,
+            'mapped_data': {
+                'nom_site': 'Site Cogere',
+                'organisme': 'Gestionnaire Un ; Gestionnaire Deux',
+            },
+        }]
+        response = api_client.post(
+            '/api/users/sites/bulk_import_execute/',
+            {'sites': sites, 'selected_indices': [0]},
+            format='json',
+        )
+
+        assert response.status_code == status.HTTP_201_CREATED
+        site = Site.objects.get(nom_site='Site Cogere')
+        assert CorOgSite.objects.get(id_site=site, uuid_og=org_a).principal is True
+        assert CorOgSite.objects.get(id_site=site, uuid_og=org_b).principal is False
+
+    def test_import_falls_back_to_importer_organisme(self, api_client):
+        """Sans colonne organisme, le comportement historique est conservé."""
+        org = OrganismeFactory()
+        admin = SuperAdminFactory(id_organisme=org)
+        api_client.force_authenticate(user=admin)
+
+        sites = [{'row_index': 0, 'mapped_data': {'nom_site': 'Site Sans Org'}}]
+        response = api_client.post(
+            '/api/users/sites/bulk_import_execute/',
+            {'sites': sites, 'selected_indices': [0]},
+            format='json',
+        )
+
+        site = Site.objects.get(nom_site='Site Sans Org')
+        assert CorOgSite.objects.filter(id_site=site, uuid_og=org, principal=True).exists()
+        assert CorRoleSite.objects.filter(id_site=site, id_role=admin, referent=True).exists()
+
+    def test_import_links_referent_from_file(self, api_client):
+        """Le référent déclaré (email) devient référent, pas l'importateur."""
+        admin = SuperAdminFactory(id_organisme=OrganismeFactory())
+        referent = RoleFactory(email='Camille.Referente@test.fr')
+        api_client.force_authenticate(user=admin)
+
+        sites = [{
+            'row_index': 0,
+            'mapped_data': {'nom_site': 'Site Referent', 'referent': 'camille.referente@test.fr'},
+        }]
+        response = api_client.post(
+            '/api/users/sites/bulk_import_execute/',
+            {'sites': sites, 'selected_indices': [0]},
+            format='json',
+        )
+
+        assert response.status_code == status.HTTP_201_CREATED
+        site = Site.objects.get(nom_site='Site Referent')
+        assert CorRoleSite.objects.filter(
+            id_site=site, id_role=referent, referent=True, referent_valid=True
+        ).exists()
+        assert not CorRoleSite.objects.filter(id_site=site, id_role=admin).exists()
+
+    def test_admin_og_cannot_link_user_of_another_organisme(self, api_client):
+        """Un admin d'organisme ne rattache que ses propres utilisateurs."""
+        org = OrganismeFactory()
+        other_org = OrganismeFactory()
+        admin_og = AdminOrganismeFactory(id_organisme=org)
+        outsider = RoleFactory(email='dehors@test.fr', id_organisme=other_org)
+        api_client.force_authenticate(user=admin_og)
+
+        sites = [{
+            'row_index': 0,
+            'mapped_data': {'nom_site': 'Site Hors Perimetre', 'referent': 'dehors@test.fr'},
+        }]
+        response = api_client.post(
+            '/api/users/sites/bulk_import_execute/',
+            {'sites': sites, 'selected_indices': [0]},
+            format='json',
+        )
+
+        assert response.status_code == status.HTTP_201_CREATED
+        site = Site.objects.get(nom_site='Site Hors Perimetre')
+        assert not CorRoleSite.objects.filter(id_site=site, id_role=outsider).exists()
+
+    def test_deactivated_user_is_not_linked(self, api_client):
+        """Un compte désactivé n'est pas rattaché au site."""
+        admin = SuperAdminFactory(id_organisme=OrganismeFactory())
+        inactive = RoleFactory(email='parti@test.fr', active=False)
+        api_client.force_authenticate(user=admin)
+
+        sites = [{
+            'row_index': 0,
+            'mapped_data': {'nom_site': 'Site Compte Ferme', 'referent': 'parti@test.fr'},
+        }]
+        response = api_client.post(
+            '/api/users/sites/bulk_import_execute/',
+            {'sites': sites, 'selected_indices': [0]},
+            format='json',
+        )
+
+        assert response.status_code == status.HTTP_201_CREATED
+        site = Site.objects.get(nom_site='Site Compte Ferme')
+        assert not CorRoleSite.objects.filter(id_site=site, id_role=inactive).exists()
+        # Repli : l'importateur reste référent pour ne pas laisser le site orphelin
+        assert CorRoleSite.objects.filter(id_site=site, id_role=admin, referent=True).exists()
+
+    def test_validation_warns_on_unknown_referent(self, api_client):
+        """Utilisateur introuvable : avertissement, import non bloqué."""
+        admin = SuperAdminFactory(id_organisme=OrganismeFactory())
+        api_client.force_authenticate(user=admin)
+
+        csv_file = _make_csv_file(
+            ['nom', 'referent'],
+            [['Site Sans Referent', 'inconnu@test.fr']],
+        )
+        response = api_client.post(
+            '/api/users/sites/bulk_import_validate/',
+            {'file': csv_file},
+            format='multipart',
+        )
+
+        row = response.data['sites'][0]
+        assert row['errors'] == []
+        assert row['resolved_referents'] == []
+        assert any('inconnu@test.fr' in w for w in row['warnings'])

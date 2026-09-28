@@ -20,6 +20,80 @@ def api_client():
 
 
 # =============================================================================
+# Résolution de la version (#646)
+# =============================================================================
+
+@pytest.mark.unit
+class TestVersionResolution:
+    """La version affichée doit être celle de l'instance, jamais "0.0.0".
+
+    Le contexte de build du backend est ``./backend`` : version.txt, à la racine
+    du dépôt, n'entre pas dans l'image de production. D'où l'injection par
+    variable d'environnement, prioritaire sur le fichier.
+    """
+
+    def test_env_var_wins_over_file(self, monkeypatch):
+        from config.version import _read_version
+
+        monkeypatch.setenv('CICADA_APP_VERSION', '9.9.9')
+        assert _read_version() == '9.9.9'
+
+    def test_empty_env_var_falls_back_to_file(self, monkeypatch):
+        """Env vide (cas du dev) : on retombe sur version.txt."""
+        from config import version as version_module
+
+        monkeypatch.setenv('CICADA_APP_VERSION', '   ')
+        monkeypatch.setattr(version_module.Path, 'exists', lambda self: True)
+        monkeypatch.setattr(version_module.Path, 'read_text', lambda self: '1.2.3\n')
+        assert version_module._read_version() == '1.2.3'
+
+    def test_no_source_returns_zero(self, monkeypatch):
+        from config import version as version_module
+
+        monkeypatch.setenv('CICADA_APP_VERSION', '')
+        monkeypatch.setattr(version_module.Path, 'exists', lambda self: False)
+        assert version_module._read_version() == '0.0.0'
+
+
+# =============================================================================
+# GET /api/system/app-version/  (#646)
+# =============================================================================
+
+@pytest.mark.django_db
+@pytest.mark.integration
+class TestSystemAppVersionEndpoint:
+    """Version applicative affichée dans l'administration (#646).
+
+    Contrairement à /api/system/version/ (réservée au super admin car elle porte
+    aussi l'état de mise à jour et son déclenchement), cet endpoint ne renvoie
+    que la version : le pied de la sidebar d'administration est visible par le
+    référent et l'admin organisme.
+    """
+
+    def test_unauthenticated_returns_401(self, api_client):
+        response = api_client.get('/api/system/app-version/')
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
+    def test_regular_user_returns_version(self, api_client):
+        api_client.force_authenticate(user=RoleFactory())
+        response = api_client.get('/api/system/app-version/')
+        assert response.status_code == status.HTTP_200_OK
+        assert response.json() == {'version': __version__}
+
+    def test_admin_og_returns_version(self, api_client):
+        api_client.force_authenticate(user=AdminOrganismeFactory())
+        response = api_client.get('/api/system/app-version/')
+        assert response.status_code == status.HTTP_200_OK
+        assert response.json()['version'] == __version__
+
+    def test_super_admin_returns_version(self, api_client):
+        api_client.force_authenticate(user=SuperAdminFactory())
+        response = api_client.get('/api/system/app-version/')
+        assert response.status_code == status.HTTP_200_OK
+        assert response.json()['version'] == __version__
+
+
+# =============================================================================
 # GET /api/system/version/
 # =============================================================================
 

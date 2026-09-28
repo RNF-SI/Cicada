@@ -46,6 +46,10 @@ class SiteConfigurationSerializer(serializers.ModelSerializer):
             'structure_logo',
             'structure_logo_url',
             'enable_docgestion_fcen',
+            # #636 — Participation à l'exploration fédérée.
+            'federation_partage',
+            # #645 — API ouverte des métadonnées des plans.
+            'api_publique_plans',
             'updated_at',
             'updated_by',
             'updated_by_name',
@@ -97,6 +101,10 @@ class SiteConfigurationUpdateSerializer(serializers.ModelSerializer):
             'structure_logo',
             # #458 — Paramètre d'instance : affichage du champ ID Doc'Gestion FCEN.
             'enable_docgestion_fcen',
+            # #636 — Engagement de partage de la structure, pas réglage technique.
+            'federation_partage',
+            # #645 — Ouverture de l'API publique des métadonnées des plans.
+            'api_publique_plans',
         ]
 
 

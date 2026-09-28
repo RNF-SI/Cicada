@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, tap, catchError, of } from 'rxjs';
+import { Observable, catchError, map, of } from 'rxjs';
 
 export interface SystemVersionInfo {
   current_version: string;
@@ -30,6 +30,18 @@ export class SystemUpdateService {
         latest_version: null,
         last_check: null
       }))
+    );
+  }
+
+  /**
+   * #646 — Version applicative seule, affichée en pied de sidebar
+   * d'administration. Endpoint distinct de `getVersion()`, réservé au super
+   * admin : celui-ci est ouvert à tout compte authentifié.
+   */
+  getAppVersion(): Observable<string | null> {
+    return this.http.get<{ version: string }>(`${this.apiUrl}/app-version/`).pipe(
+      map(res => res.version),
+      catchError(() => of(null))
     );
   }
 

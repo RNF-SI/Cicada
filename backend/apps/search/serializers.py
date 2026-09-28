@@ -7,11 +7,43 @@ joints à la volée, une page ne contenant qu'une vingtaine de résultats. Une
 donnée jointe ne peut pas devenir obsolète, contrairement à une copie.
 """
 
+from django.db.models import Prefetch
 from rest_framework import serializers
 
-from apps.plans.models import PlanGestion
+from apps.plans.models import CorSitePg, PlanGestion
+from apps.users.models import CorOgSite
 
+from .filters import CHAMPS_CORRESPONDANCE
 from .models import ContenuIndexe
+
+
+def prefetch_sites():
+    """
+    Prefetch des sites d'un plan, avec leur gestionnaire principal.
+
+    Sans ça, chaque tuile déclencherait une requête par site puis une par
+    organisme — soit une cinquantaine de requêtes pour une page de résultats.
+
+    Vit ici plutôt que dans les vues parce que la publication vers le hub
+    (`push.py`) en a le même besoin : c'est ce prefetch qui alimente
+    `_sites_du_plan`, et l'oublier ne casse rien visiblement — la liste des
+    sites ressort simplement vide.
+    """
+    gestionnaires = Prefetch(
+        'site__corogsite_set',
+        queryset=CorOgSite.objects.filter(principal=True).select_related('uuid_og'),
+        to_attr='gestionnaires_principaux',
+    )
+    return Prefetch(
+        'sites',
+        queryset=(
+            CorSitePg.objects
+            .select_related('site')
+            .prefetch_related(gestionnaires)
+            .order_by('rang', 'site__nom_site')
+        ),
+        to_attr='sites_ordonnes',
+    )
 
 
 def _gestionnaire_principal(site):
@@ -66,7 +98,10 @@ class PlanResumeSerializer(serializers.Serializer):
 class ContenuResultatSerializer(serializers.ModelSerializer):
     """Une tuile de résultat du mode « contenu d'un plan de gestion »."""
 
-    plan = PlanResumeSerializer(source='id_pg', read_only=True)
+    plan = serializers.SerializerMethodField()
+
+    correspondances = serializers.SerializerMethodField()
+    extrait_rattachements = serializers.SerializerMethodField()
 
     class Meta:
         model = ContenuIndexe
@@ -75,8 +110,51 @@ class ContenuResultatSerializer(serializers.ModelSerializer):
             'titre', 'description',
             'parent_type', 'parent_libelle',
             'sous_type', 'sous_type_libelle',
-            'plan',
+            'instance_id',
+            # #650 — pourquoi ce résultat est là.
+            'correspondances', 'extrait_rattachements', 'plan',
         ]
+
+    def get_plan(self, contenu):
+        """
+        Bandeau du plan — joint pour un document local, recopié pour un distant.
+
+        Un document reçu d'une autre instance (#636) n'a pas de plan dans cette
+        base : `id_pg` est NULL et l'affichage vient du snapshot capturé à la
+        publication. Les deux chemins produisent la même forme, pour que
+        l'interface n'ait pas à distinguer les deux cas.
+        """
+        if contenu.id_pg_id is None:
+            return contenu.plan_denorm or None
+        return PlanResumeSerializer(contenu.id_pg).data
+
+
+    def get_correspondances(self, contenu):
+        """
+        Champs ayant répondu à la recherche (#650).
+
+        Vide quand la requête ne porte pas de mot-clé : il n'y a alors rien à
+        expliquer. Les objets rattachés — espèces, habitats, protocoles — sont
+        interrogés mais jamais affichés sur la tuile : sans cette liste, un
+        résultat dont le titre n'a aucun rapport visible avec la requête paraît
+        arbitraire alors qu'il est pertinent.
+        """
+        return [
+            champ for champ in CHAMPS_CORRESPONDANCE
+            if getattr(contenu, f'correspond_{champ}', False)
+        ]
+
+    def get_extrait_rattachements(self, contenu):
+        """
+        Fragment de l'objet rattaché qui a répondu, sans balisage.
+
+        Le champ est un bloc de texte sans séparateur : seul `ts_headline` sait
+        y isoler le passage utile. Le surlignage est laissé à l'interface, pour
+        ne pas faire transiter du HTML depuis la base.
+        """
+        if not getattr(contenu, 'correspond_rattachements', False):
+            return None
+        return getattr(contenu, 'extrait_rattachements', None) or None
 
 
 class PlanResultatSerializer(serializers.ModelSerializer):

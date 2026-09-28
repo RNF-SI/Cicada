@@ -116,6 +116,7 @@ class ValidationRequestSerializer(serializers.ModelSerializer):
     pending_user_info = serializers.SerializerMethodField()
     can_validate = serializers.SerializerMethodField()
     blocked_by_org_link = serializers.SerializerMethodField()
+    organisme_admins = serializers.SerializerMethodField()
 
     class Meta:
         model = ValidationRequest
@@ -140,6 +141,7 @@ class ValidationRequestSerializer(serializers.ModelSerializer):
             'pending_user_info',
             'can_validate',
             'blocked_by_org_link',
+            'organisme_admins',
             'request_as_referent',
             'created_at',
             'updated_at',
@@ -172,6 +174,70 @@ class ValidationRequestSerializer(serializers.ModelSerializer):
                     'created_at': obj.created_at.isoformat() if obj.created_at else None,
                 }
         return None
+
+    def get_organisme_admins(self, obj):
+        """Contexte « administrateurs de l'organisme » pour une inscription (#653).
+
+        Un validateur (souvent le super admin) doit savoir, au moment d'accepter
+        un compte, si l'organisme demandé a déjà un administrateur : sans cette
+        information il ne peut pas décider s'il faut promouvoir ce compte en
+        `admin_og`. Retourne ``None`` pour les types de demandes où la question
+        ne se pose pas.
+
+        - ``is_new_organisme`` : l'organisme n'existe pas encore (demande de
+          création liée, ou demande ``organisme_creation``) — il n'aura donc
+          aucun administrateur tant qu'un compte n'aura pas été promu.
+        """
+        if obj.request_type not in ('user_registration', 'organisme_creation'):
+            return None
+
+        organisme = obj.requested_organisme
+        if organisme is None and obj.request_type == 'user_registration':
+            # Inscription avec création d'organisme : l'organisme est porté par
+            # la demande liée tant qu'elle n'est pas approuvée.
+            has_pending_org = obj.linked_requests.filter(
+                request_type='organisme_creation'
+            ).exists()
+            if not has_pending_org:
+                return None
+            return {
+                'organisme': None,
+                'is_new_organisme': True,
+                'count': 0,
+                'admins': [],
+            }
+
+        if organisme is None:
+            # Demande organisme_creation : l'organisme reste à créer.
+            requested = obj.requested_data or {}
+            return {
+                'organisme': requested.get('nom_organisme'),
+                'is_new_organisme': True,
+                'count': 0,
+                'admins': [],
+            }
+
+        from apps.users.models import Role as RoleModel
+
+        admins = RoleModel.objects.filter(
+            id_organisme=organisme,
+            role_level='admin_og',
+            active=True,
+        ).order_by('nom_role', 'prenom_role')
+
+        return {
+            'organisme': organisme.nom_organisme,
+            'is_new_organisme': False,
+            'count': admins.count(),
+            'admins': [
+                {
+                    'id': a.id_role,
+                    'nom_complet': f"{a.prenom_role or ''} {a.nom_role or ''}".strip() or a.email,
+                    'email': a.email,
+                }
+                for a in admins
+            ],
+        }
 
     def get_can_validate(self, obj):
         """Indique si l'utilisateur courant peut valider cette demande."""
@@ -358,9 +424,9 @@ class PublicRegistrationSerializer(serializers.Serializer):
     )
     identifiant = serializers.CharField(
         max_length=100,
-        required=False,
-        allow_blank=True,
-        help_text=_("Identifiant de connexion alternatif (optionnel)")
+        required=True,
+        allow_blank=False,
+        help_text=_("Identifiant de connexion (obligatoire)")
     )
     password = serializers.CharField(
         write_only=True,
@@ -420,15 +486,14 @@ class PublicRegistrationSerializer(serializers.Serializer):
         return email_lower
 
     def validate_identifiant(self, value):
-        """Verifie que l'identifiant n'est pas deja utilise."""
+        """Verifie que l'identifiant est fourni et n'est pas deja utilise."""
         from apps.users.models import Role
 
-        if not value:
-            return value
-
-        identifiant = value.strip()
+        identifiant = (value or '').strip()
         if not identifiant:
-            return ''
+            raise serializers.ValidationError(
+                _("L'identifiant est obligatoire.")
+            )
 
         if Role.objects.filter(identifiant__iexact=identifiant).exists():
             raise serializers.ValidationError(
@@ -584,24 +649,36 @@ class AdminDeactivationRequestSerializer(serializers.Serializer):
     )
 
 
-class AdminPromotionRequestSerializer(serializers.Serializer):
+class AdminRoleChangeRequestSerializer(serializers.Serializer):
+    """Base des demandes de changement de rôle admin_og.
+
+    La justification est destinée au super administrateur qui validera la
+    demande. Quand c'est le super administrateur lui-même qui agit (#655), il
+    n'a personne à convaincre : le champ devient facultatif. Le contexte
+    ``is_super_admin`` est posé par la vue.
+    """
+
+    justification = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        max_length=2000,
+        help_text=_("Motif de la demande (obligatoire, sauf action directe d'un super administrateur)")
+    )
+
+    def validate(self, data):
+        if not self.context.get('is_super_admin') and not (data.get('justification') or '').strip():
+            raise serializers.ValidationError(
+                {'justification': _("Ce champ est obligatoire.")}
+            )
+        return data
+
+
+class AdminPromotionRequestSerializer(AdminRoleChangeRequestSerializer):
     """Serializer pour demander la promotion d'un utilisateur en admin_og."""
 
-    justification = serializers.CharField(
-        required=True,
-        max_length=2000,
-        help_text=_("Motif de la demande (obligatoire)")
-    )
 
-
-class AdminDemotionRequestSerializer(serializers.Serializer):
+class AdminDemotionRequestSerializer(AdminRoleChangeRequestSerializer):
     """Serializer pour demander la retrogradation d'un admin_og en utilisateur."""
-
-    justification = serializers.CharField(
-        required=True,
-        max_length=2000,
-        help_text=_("Motif de la demande (obligatoire)")
-    )
 
 
 class ModuleAccessRequestSerializer(serializers.Serializer):

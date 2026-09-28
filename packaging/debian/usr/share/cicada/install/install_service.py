@@ -3,6 +3,7 @@
 Service d'installation pour CICADA
 """
 import os
+import re
 import subprocess
 import json
 import secrets
@@ -144,6 +145,33 @@ class InstallService:
                     errors.append("Le champ smtp_user est requis lorsque l'authentification SMTP est activée.")
                 if not data.get('smtp_password'):
                     errors.append("Le champ smtp_password est requis lorsque l'authentification SMTP est activée.")
+        if data.get('federation_enabled'):
+            identifiant = (data.get('federation_instance_id') or '').strip()
+            if not identifiant:
+                errors.append(
+                    "L'identifiant d'instance est requis pour rejoindre "
+                    "l'exploration fédérée."
+                )
+            elif not re.fullmatch(r'[a-z0-9][a-z0-9-]{0,49}', identifiant):
+                # Cet identifiant apparaît dans la référence publique d'un plan
+                # (« rnf:camargue ») et entre dans toutes les clés d'unicité de
+                # l'index agrégé. Il est par ailleurs IMMUABLE : le valider ici
+                # évite d'avoir à le corriger quand il est trop tard.
+                errors.append(
+                    "L'identifiant d'instance doit être en minuscules, sans "
+                    "espaces ni accents (lettres, chiffres et tirets), et "
+                    "commencer par une lettre ou un chiffre — par exemple "
+                    "« rnf » ou « cen-aura »."
+                )
+            if not data.get('federation_hub_url'):
+                errors.append("L'URL du hub est requise pour rejoindre l'exploration fédérée.")
+            if not data.get('federation_push_token'):
+                errors.append("Le jeton de dépôt est requis pour rejoindre l'exploration fédérée.")
+            if data.get('federation_relay') and not data.get('federation_read_token'):
+                errors.append(
+                    "Le jeton de lecture est requis pour que l'exploration soit "
+                    "servie par le hub."
+                )
         return errors
 
     def generate_secrets(self, data):
@@ -213,6 +241,24 @@ class InstallService:
             f"INSTANCE_TOKEN={token}",
             f"TRACKING_API_URL={tracking_api_url}",
         ]
+        # --- Exploration fédérée (#636) ---
+        # Toujours écrites, vides si la fédération n'est pas configurée : une
+        # ligne vide se complète après coup dans /var/lib/cicada/.env, une ligne
+        # absente ne se devine pas.
+        federation = data.get('federation_enabled') in (True, 'true', '1')
+        relais = federation and data.get('federation_relay') in (True, 'true', '1')
+        env_lines.extend([
+            "",
+            f"CICADA_INSTANCE_ID={(data.get('federation_instance_id') or '').strip() if federation else ''}",
+            f"CICADA_INSTANCE_LABEL={(data.get('federation_instance_label') or '').strip() if federation else ''}",
+            f"CICADA_PUBLIC_URL={site_url if federation else ''}",
+            f"CICADA_HUB_URL={(data.get('federation_hub_url') or '').strip().rstrip('/') if federation else ''}",
+            f"CICADA_HUB_PUSH_TOKEN={(data.get('federation_push_token') or '').strip() if federation else ''}",
+            f"CICADA_HUB_READ_TOKEN={(data.get('federation_read_token') or '').strip() if federation else ''}",
+            f"CICADA_EXPLORATION_SOURCE={'hub' if relais else 'local'}",
+            "CICADA_HUB_PUSH_AUTO=true",
+        ])
+
         if use_traefik:
             env_lines.extend([
                 "",

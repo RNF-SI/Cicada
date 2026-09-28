@@ -49,20 +49,16 @@
         >
 </app-form-field>
 
-      <app-form-field [label]="'auth.register.identifiant' | translate" [helpText]="'auth.register.identifiantHint' | translate">
-  <i prefixSlot class="fi fi-rr-id-badge"></i>
-  <input
+      <app-form-field [label]="'auth.register.identifiant' | translate" [required]="true"
+        [helpText]="'auth.register.identifiantHint' | translate" [error]="fieldError('identifiant')">
+        <i prefixSlot class="fi fi-rr-id-badge"></i>
+        <input
           type="text"
           formControlName="identifiant"
           [placeholder]="'auth.register.identifiantPlaceholder' | translate"
           autocomplete="username"
         >
-        
-        
-        @if (registerForm.get('identifiant')?.hasError('maxlength')) {
-          
-        }
-</app-form-field>
+      </app-form-field>
 
       @if (!creatingOrganisme()) {
         <!-- Sélection d'un organisme existant -->

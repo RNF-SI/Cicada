@@ -1,0 +1,21 @@
+# Versions alignées sur backend/requirements.txt : le hub partage le modèle
+# d'index et les migrations PostGIS de CICADA, un décalage de version Django ou
+# psycopg se paierait en divergences de comportement difficiles à diagnostiquer.
+
+Django==5.0.8
+djangorestframework==3.14.0
+psycopg[binary]==3.1.19
+
+# PostGIS — ref_geo porte les contours des départements et des régions
+GDAL==3.7.3
+
+# Production
+gunicorn==22.0.0
+
+# Client HTTP (appels sortants éventuels vers les instances)
+requests==2.31.0
+
+# Tests
+pytest==7.4.4
+pytest-django==4.8.0
+pytest-cov==4.1.0

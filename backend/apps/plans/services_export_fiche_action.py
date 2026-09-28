@@ -964,40 +964,51 @@ def _monthly_flags(op, annees):
     return flags
 
 
+def _months_per_row(n_cols):
+    """Nombre de mois par ligne de la grille mensuelle.
+
+    #668 — la feuille compte une colonne par année du plan : un plan de 5 ans
+    n'offre que 5 colonnes, pas 12. On replie donc la grille par trimestres,
+    semestres ou année entière, selon la place disponible (diviseur de 12,
+    pour que chaque ligne soit pleine)."""
+    for size in (12, 6, 4, 3, 2, 1):
+        if size <= n_cols:
+            return size
+    return 1
+
+
 def _render_monthly(w, months, month_flags):
     ws = w.ws
-    ws.merge_cells(start_row=w.r, start_column=1, end_row=w.r, end_column=3)
-    lc = ws.cell(w.r, 1, "Programmation mensuelle")
-    lc.fill = PatternFill("solid", fgColor=_LABEL_FILL)
-    lc.font = _F_LABEL
-    lc.alignment = _AL_L
-    # 12 mois répartis sur les colonnes disponibles à partir de D
-    for i, name in enumerate(months):
-        col = 4 + i
-        if col > w.ncols:
-            break
-        c = ws.cell(w.r, col, name)
-        c.fill = PatternFill("solid", fgColor=_YEARHDR_FILL)
-        c.font = _F_YEAR
-        c.alignment = _AL_C
-    for col in range(1, w.ncols + 1):
-        ws.cell(w.r, col).border = _B
-    w.r += 1
-    ws.merge_cells(start_row=w.r, start_column=1, end_row=w.r, end_column=3)
-    lc = ws.cell(w.r, 1, "Périodicité")
-    lc.fill = PatternFill("solid", fgColor=_SUBLABEL_FILL)
-    lc.font = _F_SUBLABEL
-    lc.alignment = _AL_L
-    for i in range(12):
-        col = 4 + i
-        if col > w.ncols:
-            break
-        c = ws.cell(w.r, col, "x" if month_flags.get(i + 1) else "")
-        c.font = _F_X
-        c.alignment = _AL_C
-    for col in range(1, w.ncols + 1):
-        ws.cell(w.r, col).border = _B
-    w.r += 1
+    per_row = _months_per_row(w.ncols - 3)
+    for start in range(0, 12, per_row):
+        first = start == 0
+        # En-tête des mois
+        ws.merge_cells(start_row=w.r, start_column=1, end_row=w.r, end_column=3)
+        lc = ws.cell(w.r, 1, "Programmation mensuelle" if first else None)
+        lc.fill = PatternFill("solid", fgColor=_LABEL_FILL)
+        lc.font = _F_LABEL
+        lc.alignment = _AL_L
+        for i in range(start, start + per_row):
+            c = ws.cell(w.r, 4 + i - start, months[i])
+            c.fill = PatternFill("solid", fgColor=_YEARHDR_FILL)
+            c.font = _F_YEAR
+            c.alignment = _AL_C
+        for col in range(1, w.ncols + 1):
+            ws.cell(w.r, col).border = _B
+        w.r += 1
+        # Mois programmés
+        ws.merge_cells(start_row=w.r, start_column=1, end_row=w.r, end_column=3)
+        lc = ws.cell(w.r, 1, "Périodicité")
+        lc.fill = PatternFill("solid", fgColor=_SUBLABEL_FILL)
+        lc.font = _F_SUBLABEL
+        lc.alignment = _AL_L
+        for i in range(start, start + per_row):
+            c = ws.cell(w.r, 4 + i - start, "x" if month_flags.get(i + 1) else "")
+            c.font = _F_X
+            c.alignment = _AL_C
+        for col in range(1, w.ncols + 1):
+            ws.cell(w.r, col).border = _B
+        w.r += 1
 
 
 def _reponse_indicateurs(op):

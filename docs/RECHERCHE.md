@@ -33,6 +33,70 @@ passerait par `pgvector` dans le même PostgreSQL, pas par Elasticsearch.
 
 ---
 
+## Volume et choix du moteur
+
+Le raisonnement ci-dessus a été **vérifié par la mesure**, sur un index
+synthétique de **1 300 000 documents** — l'ordre de grandeur attendu une fois les
+~4 400 plans repris — avec la DDL et les index réels, et la forme de requête
+exacte de `filtrer_contenus()` / `trier_contenus()`.
+
+Machine : conteneur de développement (16 cœurs, 30 Go), PostgreSQL **non réglé**
+(`shared_buffers` 128 Mo), `work_mem` porté à 64 Mo. Index : 3,6 Go au total dont
+613 Mo d'index.
+
+| Cas | Correspondances | Temps |
+|---|---:|---:|
+| Mot moyennement fréquent (`orchidee`) | 47 k | **195 ms** |
+| Faute de frappe (`flamand`, 0 correspondance plein texte) | — | **190 ms** |
+| Mode élargi (`search_full`) | 111 k | 880 ms |
+| Pagination profonde (page 5) | 47 k | 188 ms |
+| Mot très fréquent (`habitat`, 65 % du corpus) | 848 k | 1 500 ms |
+| Idem, **sans** le `OR` trigramme | 848 k | 455 ms |
+| Compteurs d'onglets sur ce même mot | 848 k | 1 450 ms |
+
+**Conclusion : le volume n'est pas le problème.** Une recherche réaliste — celle
+qui renvoie un nombre de résultats exploitable — répond en ~200 ms sur une base
+non réglée, sous le seuil de bascule de 300 ms.
+
+Les deux cas lents ne sont pas des limites de PostgreSQL mais des **choix de
+conception**, qu'Elasticsearch ne corrigerait pas magiquement :
+
+1. **Le repli trigramme est appliqué inconditionnellement.** `titre %> mot` est
+   `OR`é à *chaque* requête, ce qui triple le coût du pire cas (1 500 ms contre
+   455 ms sans lui) : le bitmap déborde de `work_mem` et repasse en mode *lossy*,
+   forçant une revérification page entière. Or ce repli n'a d'intérêt que quand la
+   recherche exacte ne rend rien ou presque. Le déclencher **en second temps**
+   supprimerait le coût et améliorerait la pertinence.
+2. **Les compteurs d'onglets sont exacts.** Ils imposent un agrégat sur
+   l'intégralité du jeu de résultats. C'est une décision produit, et elle coûte
+   le même prix dans n'importe quel moteur.
+
+Elasticsearch garde un avantage réel et mesurable sur un point : il sait
+interrompre le parcours des listes d'occurrences pour un *top-k* (block-max
+WAND), là où PostgreSQL doit calculer `ts_rank` sur **toutes** les
+correspondances. Cet avantage ne joue que sur les termes très fréquents — ceux
+dont la liste de résultats n'est de toute façon pas exploitable par un humain.
+
+À mettre en face : un service JVM (~2 Go de RAM) à packager, sauvegarder et
+migrer sur **chaque** installation Debian client, et un index qui peut diverger
+silencieusement de la base.
+
+**Décision : rester sur PostgreSQL.** Avant d'envisager une bascule, épuiser dans
+l'ordre :
+
+1. conditionner le repli trigramme à un premier passage exact infructueux ;
+2. régler PostgreSQL (`work_mem`, `shared_buffers`) — le banc tournait aux
+   valeurs par défaut ;
+3. évaluer l'extension **RUM**, qui stocke l'information de rang *dans* l'index
+   et supprime donc l'accès au tas pour le tri — c'est-à-dire exactement
+   l'avantage d'Elasticsearch, sans quitter PostgreSQL.
+
+Enfin, la fédération multi-instances (#636) **ne change pas ce calcul** : les
+~4 400 plans sont l'univers *total*, réparti entre instances. Un portail qui les
+agrège tous représente le corpus mesuré ici, pas un multiple.
+
+---
+
 ## Périmètre indexé
 
 | | |

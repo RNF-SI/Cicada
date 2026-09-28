@@ -66,6 +66,179 @@ class OrganismesSeeder(BaseSeeder):
             'adresse_organisme': '12 Cours Louis Lumière',
             'tel_organisme': '01 45 14 36 00'
         },
+        # ------------------------------------------------------------------ #
+        # Le réseau des CEN (#652)
+        #
+        # Cinq organismes suffisaient tant que le filtre « organismes
+        # gestionnaires » tenait à l'écran. Le retour de recette porte
+        # justement sur le cas inverse — « pas visible car trop d'OG » — qui
+        # était donc **intestable** avec le jeu d'essai : la liste ne défilait
+        # pas, le champ de recherche ne pouvait pas sortir de vue.
+        #
+        # Ces organismes reprennent le réseau réel des CEN, sans coordonnées
+        # véritables. C'est le volume que rencontrera une instance nationale, et
+        # c'est celui qu'il faut pouvoir mettre sous les yeux d'un testeur.
+        # ------------------------------------------------------------------ #
+        {
+            'nom_organisme': 'CEN Allier',
+            'email_organisme': 'contact@cen-allier.example.org',
+            'ville_organisme': 'Châteauneuf-sur-Cher',
+            'cp_organisme': '03500',
+            'adresse_organisme': 'Adresse de test',
+            'tel_organisme': '00 00 00 00 00'
+        },
+        {
+            'nom_organisme': 'CEN Aquitaine',
+            'email_organisme': 'contact@cen-aquitaine.example.org',
+            'ville_organisme': 'Bordeaux',
+            'cp_organisme': '33000',
+            'adresse_organisme': 'Adresse de test',
+            'tel_organisme': '00 00 00 00 00'
+        },
+        {
+            'nom_organisme': 'CEN Bourgogne',
+            'email_organisme': 'contact@cen-bourgogne.example.org',
+            'ville_organisme': 'Fénay',
+            'cp_organisme': '21600',
+            'adresse_organisme': 'Adresse de test',
+            'tel_organisme': '00 00 00 00 00'
+        },
+        {
+            'nom_organisme': 'CEN Bretagne',
+            'email_organisme': 'contact@cen-bretagne.example.org',
+            'ville_organisme': 'Langueux',
+            'cp_organisme': '22360',
+            'adresse_organisme': 'Adresse de test',
+            'tel_organisme': '00 00 00 00 00'
+        },
+        {
+            'nom_organisme': 'CEN Centre-Val de Loire',
+            'email_organisme': 'contact@cen-centre-val-de-loire.example.org',
+            'ville_organisme': 'Orléans',
+            'cp_organisme': '45000',
+            'adresse_organisme': 'Adresse de test',
+            'tel_organisme': '00 00 00 00 00'
+        },
+        {
+            'nom_organisme': 'CEN Champagne-Ardenne',
+            'email_organisme': 'contact@cen-champagne-ardenne.example.org',
+            'ville_organisme': 'Châlons-en-Champagne',
+            'cp_organisme': '51000',
+            'adresse_organisme': 'Adresse de test',
+            'tel_organisme': '00 00 00 00 00'
+        },
+        {
+            'nom_organisme': 'CEN Corse',
+            'email_organisme': 'contact@cen-corse.example.org',
+            'ville_organisme': 'Corte',
+            'cp_organisme': '20250',
+            'adresse_organisme': 'Adresse de test',
+            'tel_organisme': '00 00 00 00 00'
+        },
+        {
+            'nom_organisme': 'CEN Franche-Comté',
+            'email_organisme': 'contact@cen-franche-comte.example.org',
+            'ville_organisme': 'Besançon',
+            'cp_organisme': '25000',
+            'adresse_organisme': 'Adresse de test',
+            'tel_organisme': '00 00 00 00 00'
+        },
+        {
+            'nom_organisme': 'CEN Hauts-de-France',
+            'email_organisme': 'contact@cen-hauts-de-france.example.org',
+            'ville_organisme': 'Amiens',
+            'cp_organisme': '80000',
+            'adresse_organisme': 'Adresse de test',
+            'tel_organisme': '00 00 00 00 00'
+        },
+        {
+            'nom_organisme': 'CEN Isère',
+            'email_organisme': 'contact@cen-isere.example.org',
+            'ville_organisme': 'Grenoble',
+            'cp_organisme': '38000',
+            'adresse_organisme': 'Adresse de test',
+            'tel_organisme': '00 00 00 00 00'
+        },
+        {
+            'nom_organisme': 'CEN Languedoc-Roussillon',
+            'email_organisme': 'contact@cen-languedoc-roussillon.example.org',
+            'ville_organisme': 'Montpellier',
+            'cp_organisme': '34000',
+            'adresse_organisme': 'Adresse de test',
+            'tel_organisme': '00 00 00 00 00'
+        },
+        {
+            'nom_organisme': 'CEN Limousin',
+            'email_organisme': 'contact@cen-limousin.example.org',
+            'ville_organisme': 'Limoges',
+            'cp_organisme': '87000',
+            'adresse_organisme': 'Adresse de test',
+            'tel_organisme': '00 00 00 00 00'
+        },
+        {
+            'nom_organisme': 'CEN Lorraine',
+            'email_organisme': 'contact@cen-lorraine.example.org',
+            'ville_organisme': 'Nancy',
+            'cp_organisme': '54000',
+            'adresse_organisme': 'Adresse de test',
+            'tel_organisme': '00 00 00 00 00'
+        },
+        {
+            'nom_organisme': 'CEN Midi-Pyrénées',
+            'email_organisme': 'contact@cen-midi-pyrenees.example.org',
+            'ville_organisme': 'Toulouse',
+            'cp_organisme': '31000',
+            'adresse_organisme': 'Adresse de test',
+            'tel_organisme': '00 00 00 00 00'
+        },
+        {
+            'nom_organisme': 'CEN Normandie',
+            'email_organisme': 'contact@cen-normandie.example.org',
+            'ville_organisme': 'Caen',
+            'cp_organisme': '14000',
+            'adresse_organisme': 'Adresse de test',
+            'tel_organisme': '00 00 00 00 00'
+        },
+        {
+            'nom_organisme': 'CEN Nouvelle-Aquitaine',
+            'email_organisme': 'contact@cen-nouvelle-aquitaine.example.org',
+            'ville_organisme': 'Poitiers',
+            'cp_organisme': '86000',
+            'adresse_organisme': 'Adresse de test',
+            'tel_organisme': '00 00 00 00 00'
+        },
+        {
+            'nom_organisme': 'CEN Occitanie',
+            'email_organisme': 'contact@cen-occitanie.example.org',
+            'ville_organisme': 'Montpellier',
+            'cp_organisme': '34000',
+            'adresse_organisme': 'Adresse de test',
+            'tel_organisme': '00 00 00 00 00'
+        },
+        {
+            'nom_organisme': 'CEN Pays de la Loire',
+            'email_organisme': 'contact@cen-pays-de-la-loire.example.org',
+            'ville_organisme': 'Nantes',
+            'cp_organisme': '44000',
+            'adresse_organisme': 'Adresse de test',
+            'tel_organisme': '00 00 00 00 00'
+        },
+        {
+            'nom_organisme': "CEN Provence-Alpes-Côte d'Azur",
+            'email_organisme': 'contact@cen-provence-alpes-cote-dazur.example.org',
+            'ville_organisme': 'Aix-en-Provence',
+            'cp_organisme': '13100',
+            'adresse_organisme': 'Adresse de test',
+            'tel_organisme': '00 00 00 00 00'
+        },
+        {
+            'nom_organisme': 'CEN Savoie',
+            'email_organisme': 'contact@cen-savoie.example.org',
+            'ville_organisme': 'Chambéry',
+            'cp_organisme': '73000',
+            'adresse_organisme': 'Adresse de test',
+            'tel_organisme': '00 00 00 00 00'
+        },
     ]
 
     # Variations de noms à nettoyer (ancien nom ASCII → nom canonique accentué).
@@ -108,6 +281,9 @@ class OrganismesSeeder(BaseSeeder):
         'Office Français de la Biodiversité': 'OFB',
     }
 
+    #: Les organismes du réseau CEN ajoutés pour #652 portent tous le même type.
+    TYPE_PAR_DEFAUT_CEN = 'CEN'
+
     def seed(self) -> List[BibOrganismes]:
         """
         Crée les organismes de test.
@@ -133,8 +309,13 @@ class OrganismesSeeder(BaseSeeder):
                 defaults=org_data
             )
 
-            # Assigner le type d'organisme si disponible
-            type_code = self.TYPE_ORGANISME_MAP.get(org_data['nom_organisme'])
+            # Assigner le type d'organisme si disponible. Les organismes du
+            # réseau CEN (#652) sont trop nombreux pour être listés un à un
+            # dans le mapping : leur nom les désigne sans ambiguïté.
+            nom = org_data['nom_organisme']
+            type_code = self.TYPE_ORGANISME_MAP.get(nom)
+            if not type_code and nom.startswith('CEN '):
+                type_code = self.TYPE_PAR_DEFAUT_CEN
             if type_code and type_code in type_nomenclatures:
                 if not org.id_type_organisme or org.id_type_organisme != type_nomenclatures[type_code]:
                     org.id_type_organisme = type_nomenclatures[type_code]

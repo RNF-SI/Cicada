@@ -22,10 +22,20 @@ class RoleCreationForm(forms.ModelForm):
     
     password1 = forms.CharField(label='Mot de passe', widget=forms.PasswordInput)
     password2 = forms.CharField(label='Confirmation mot de passe', widget=forms.PasswordInput)
+    # L'identifiant de connexion est obligatoire pour tout nouveau compte (#656).
+    identifiant = forms.CharField(label='Identifiant', max_length=100, required=True)
 
     class Meta:
         model = Role
-        fields = ('email', 'nom_role', 'prenom_role', 'role_level')
+        fields = ('email', 'identifiant', 'nom_role', 'prenom_role', 'role_level')
+
+    def clean_identifiant(self):
+        identifiant = (self.cleaned_data.get('identifiant') or '').strip()
+        if not identifiant:
+            raise forms.ValidationError("L'identifiant est obligatoire")
+        if Role.objects.filter(identifiant__iexact=identifiant).exists():
+            raise forms.ValidationError("Cet identifiant est déjà utilisé")
+        return identifiant
 
     def clean_password2(self):
         password1 = self.cleaned_data.get("password1")
@@ -394,7 +404,7 @@ class RoleAdmin(BaseUserAdmin):
     add_fieldsets = (
         (None, {
             'classes': ('wide',),
-            'fields': ('email', 'nom_role', 'prenom_role', 'role_level', 'password1', 'password2'),
+            'fields': ('email', 'identifiant', 'nom_role', 'prenom_role', 'role_level', 'password1', 'password2'),
         }),
     )
     

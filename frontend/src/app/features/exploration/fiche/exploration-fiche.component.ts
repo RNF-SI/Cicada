@@ -60,6 +60,19 @@ export class ExplorationFicheComponent {
   readonly chargement = signal(true);
   readonly introuvable = signal(false);
 
+  /**
+   * Lien vers cette même fiche, chez la structure qui l'a publiée (#636).
+   *
+   * On pointe l'exploration de l'instance d'origine, et non sa page de plan :
+   * c'est le même contenu, en lecture seule, et c'est le seul dont on sache
+   * qu'il existe là-bas sous ce slug. La donnée qu'affiche le hub est un
+   * instantané — aller à la source est la seule façon d'en voir l'état actuel.
+   */
+  protected lienSource(plan: FichePlan): string {
+    const racine = (plan.url_instance ?? '').replace(/\/+$/, '');
+    return `${racine}/exploration/plans/${plan.slug}`;
+  }
+
   /** Objet mis en évidence, sous la forme `type:id`. */
   readonly focus = signal<string | null>(null);
   readonly enjeuxOuverts = signal<number[]>([]);

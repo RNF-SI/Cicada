@@ -32,12 +32,20 @@
      aria-hidden="true"></i>
 </button>
 
+<!-- #652 — `viewportMargin` réserve la hauteur du bandeau, qui est collant et
+     recouvre le haut de la fenêtre : quand la liste est longue et que le
+     panneau bascule au-dessus du déclencheur, son sommet — donc le champ de
+     recherche — disparaissait derrière lui. Les dimensions souples laissent le
+     panneau se rétrécir plutôt que déborder. -->
 <ng-template
   cdkConnectedOverlay
   [cdkConnectedOverlayOrigin]="origin"
   [cdkConnectedOverlayOpen]="open()"
   [cdkConnectedOverlayPositions]="overlayPositions"
   [cdkConnectedOverlayMinWidth]="overlayMinWidth() ?? ''"
+  [cdkConnectedOverlayViewportMargin]="margeBandeau"
+  [cdkConnectedOverlayFlexibleDimensions]="true"
+  [cdkConnectedOverlayGrowAfterOpen]="true"
   [cdkConnectedOverlayHasBackdrop]="true"
   cdkConnectedOverlayBackdropClass="cdk-overlay-transparent-backdrop"
   [cdkConnectedOverlayPanelClass]="panelClasses()"

@@ -125,6 +125,29 @@ def user_can_access_plan(user, plan) -> bool:
     return PlanGestion.objects.filter(pk=plan.pk).filter(plan_scope_q(user)).exists()
 
 
+def user_manages_plan(user, plan) -> bool:
+    """Vrai si ``user`` a déjà la main sur ce plan **par son rôle** (#657).
+
+    C'est-à-dire : super admin, rédacteur principal, ou admin d'un organisme
+    gestionnaire d'un des sites du plan / rédacteur du plan. Ces comptes ne
+    demandent pas l'accès à un plan de leur périmètre — ils l'ont déjà, et la
+    demande n'aurait aucun destinataire pertinent.
+
+    À distinguer de :func:`user_can_access_plan`, qui est vrai pour tout compte
+    simplement *lié* au plan (membre, référent, utilisateur d'un site) : ceux-là
+    peuvent légitimement demander à être rattachés au plan.
+    """
+    if has_global_plan_access(user):
+        return True
+    if not user.is_admin_organisme() or not user.id_organisme_id:
+        return False
+    organisme = user.id_organisme
+    return PlanGestion.objects.filter(pk=plan.pk).filter(
+        Q(sites__site__corogsite__uuid_og=organisme) |
+        Q(organismes_redacteurs__uuid_og=organisme)
+    ).exists()
+
+
 def assert_plan_access(user, plan):
     """
     Lève une 403 si ``user`` n'a pas accès au plan.

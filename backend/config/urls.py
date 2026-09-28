@@ -28,6 +28,8 @@ urlpatterns = [
     path('api/inpg/', include('apps.geology.urls')),
     path('api/geo/', include('apps.geo.urls')),
     path('api/exploration/', include('apps.search.urls')),
+    # #645 — API ouverte des métadonnées des plans (GED tierce type DOCenCEN).
+    path('api/public/', include('apps.plans.urls_public')),
     path('api/campanule/', include('apps.campanule.urls')),
     path('admin/system/', include('apps.system.urls')),
     path('api/system/', include('apps.system.api_urls')),

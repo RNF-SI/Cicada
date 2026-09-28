@@ -66,6 +66,33 @@
         </ul>
       </section>
 
+      <!-- #636 — Provenance de la fiche.
+           Une fiche ouverte depuis une recherche transverse ne dit rien, par
+           elle-même, de la structure qui l'a rédigée ni de la fraîcheur de ce
+           qu'elle montre : c'est un instantané déposé par l'instance d'origine,
+           pas une lecture en direct de sa base. -->
+      @if (p.instance_libelle) {
+        <p class="fiche-provenance" data-testid="fiche-provenance">
+          <i class="fi fi-rr-globe" aria-hidden="true"></i>
+          <span>
+            {{ 'exploration.fiche.provenance' | translate: {
+              structure: p.instance_libelle,
+              date: (p.date_publication | date: 'dd/MM/yyyy') ?? ''
+            } }}
+          </span>
+          @if (p.url_instance) {
+            <a
+              class="link-default"
+              [href]="lienSource(p)"
+              target="_blank"
+              rel="noopener noreferrer">
+              {{ 'exploration.fiche.voirSource' | translate }}
+              <i class="fi fi-rr-arrow-up-right-from-square" aria-hidden="true"></i>
+            </a>
+          }
+        </p>
+      }
+
       <!-- Périmètre de la fiche -->
       <p class="fiche-lecture-seule">
         <i class="fi fi-rr-lock" aria-hidden="true"></i>

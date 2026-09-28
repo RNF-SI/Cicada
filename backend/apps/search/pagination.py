@@ -17,7 +17,7 @@ class ExplorationPagination(PageNumberPagination):
     page_size_query_param = 'page_size'
     max_page_size = 100
 
-    def get_paginated_response(self, data, **extra):
+    def get_paginated_response(self, data, **extra):  # noqa: D102 (cf. docstring de classe)
         corps = {
             'links': {
                 'next': self.get_next_link(),
@@ -35,3 +35,17 @@ class ExplorationPagination(PageNumberPagination):
         }
         corps.update(extra)
         return Response(corps)
+
+
+class FederationPagination(ExplorationPagination):
+    """
+    Pagination de la publication vers l'exploration centralisée (#636).
+
+    Pages nettement plus grosses que celles de l'interface : c'est une
+    synchronisation machine à machine, et l'index complet représentera de
+    l'ordre de 1,3 M de documents une fois les ~4 400 plans repris. À 100 par
+    page, une resynchronisation demanderait 13 000 requêtes.
+    """
+
+    page_size = 500
+    max_page_size = 2000

@@ -4,6 +4,7 @@ import { Router, RouterModule, NavigationEnd } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
 import { ErrorLogService } from '../../core/services/error-log.service';
 import { OrphansService } from '../../core/services/orphans.service';
+import { SystemUpdateService } from '../../core/services/system-update.service';
 import { HeaderComponent } from '../../shared/components/header/header.component';
 import { filter } from 'rxjs/operators';
 
@@ -32,6 +33,7 @@ export class AdminLayoutComponent implements OnInit, OnDestroy {
   private readonly router = inject(Router);
   private readonly errorLogService = inject(ErrorLogService);
   private readonly orphansService = inject(OrphansService);
+  private readonly systemUpdateService = inject(SystemUpdateService);
 
   readonly currentUser = this.authService.currentUser;
   readonly isSuperAdmin = this.authService.isSuperAdmin;
@@ -50,6 +52,11 @@ export class AdminLayoutComponent implements OnInit, OnDestroy {
   // Mobile sidebar state
   readonly sidebarOpen = signal(false);
 
+  /** #646 — Version de l'application, affichée en pied de sidebar.
+   *  Null tant qu'elle n'est pas chargée (ou si l'appel échoue) : on n'affiche
+   *  alors rien plutôt qu'un numéro faux. */
+  readonly appVersion = signal<string | null>(null);
+
   get userDisplayName(): string {
     return this.authService.getUserDisplayName();
   }
@@ -59,6 +66,9 @@ export class AdminLayoutComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
+    // #646 — Version affichée en pied de sidebar (tous les accès admin)
+    this.systemUpdateService.getAppVersion().subscribe(version => this.appVersion.set(version));
+
     // Demarrer le rafraichissement du badge si super_admin
     if (this.isSuperAdmin()) {
       this.errorLogService.startAutoRefresh(60000);
@@ -116,13 +126,14 @@ export class AdminLayoutComponent implements OnInit, OnDestroy {
     { label: 'Organismes', icon: 'fi-rr-building', route: '/administration/organismes', minRole: 'admin_og' },
     { label: 'Sites', icon: 'fi-rr-marker', route: '/administration/sites', minRole: 'referent' },
     { label: 'Plans de gestion', icon: 'fi-rr-document', route: '/administration/plans', minRole: 'referent' },
-    { label: 'Orphelins', icon: 'fi-rr-unlink', route: '/administration/orphelins', minRole: 'admin_og', badgeSignal: 'orphansCount' },
+    { label: 'Orphelins', icon: 'fi-rr-link-slash', route: '/administration/orphelins', minRole: 'admin_og', badgeSignal: 'orphansCount' },
     { label: 'Rédacteurs généraux', icon: 'fi-rr-pen-nib', route: '/administration/redacteurs-principaux', exactRole: 'super_admin' },
     { label: 'Acces modules', icon: 'fi-rr-apps', route: '/administration/modules', exactRole: 'super_admin' },
     { label: 'Logs erreurs', icon: 'fi-rr-bug', route: '/administration/logs', exactRole: 'super_admin', badgeSignal: 'errorLogCount' },
     { label: 'Logs serveur', icon: 'fi-rr-file-code', route: '/administration/logs-serveur', exactRole: 'super_admin' },
     { label: 'RGPD', icon: 'fi-rr-shield-check', route: '/administration/rgpd', exactRole: 'super_admin' },
-    { label: 'Paramètres', icon: 'fi-rr-settings', route: '/administration/parametres', exactRole: 'super_admin' }
+    { label: 'Paramètres', icon: 'fi-rr-settings', route: '/administration/parametres', exactRole: 'super_admin' },
+    { label: 'Mise à jour', icon: 'fi-rr-refresh', route: '/administration/mise-a-jour', exactRole: 'super_admin' }
   ];
 
   visibleNavItems = computed(() => {

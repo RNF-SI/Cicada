@@ -1,0 +1,74 @@
+# Hub d'exploration fédérée (#636) — image de production.
+#
+# ⚠️ Le contexte de build est la RACINE du dépôt, pas `hub/` :
+#
+#     docker build -f hub/Dockerfile.prod -t cicada-hub .
+#
+# parce que le hub a besoin des référentiels nationaux versionnés dans
+# `backend/`. En développement ils sont montés en lecture seule depuis CICADA
+# (cf. docker-compose.hub.yml) ; sur le serveur du hub il n'y a pas de CICADA à
+# côté, donc ils entrent dans l'image. Ce sont les MÊMES fichiers source : les
+# documents publiés voyagent en codes (INSEE, mnémoniques de nomenclature) et
+# sont re-résolus ici, deux jeux divergents produiraient des zones introuvables
+# en silence. 840 Ko au total — la copie ne coûte rien.
+FROM python:3.11-slim
+
+LABEL maintainer="CEN/RNF"
+LABEL description="Hub d'exploration fédérée CICADA (production)"
+LABEL org.opencontainers.image.source="https://github.com/RNF-SI/Cicada"
+LABEL org.opencontainers.image.licenses="GPL-3.0"
+
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+ENV DJANGO_SETTINGS_MODULE=config.settings
+
+WORKDIR /app
+
+# PostGIS : ref_geo porte les contours des départements et des régions.
+# build-essential compile GDAL puis disparaît.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    libpq-dev \
+    gdal-bin \
+    libgdal-dev \
+    libgeos-dev \
+    libproj-dev \
+    netcat-traditional \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY hub/requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt \
+    && apt-get purge -y --auto-remove build-essential \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY hub/ /app/
+
+# Les deux référentiels, à l'emplacement exact où les commandes d'import les
+# cherchent : apps/geo/data/departements.geojson et apps/nomenclatures/data/*.sql
+COPY backend/apps/geo/data/ /app/apps/geo/data/
+COPY backend/nomenclatures_data/ /app/apps/nomenclatures/data/
+
+RUN mkdir -p /app/logs
+
+COPY hub/docker/entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
+# Version, injectée au build (le contexte étant la racine, version.txt serait
+# lisible — mais l'aligner sur le tag de la release évite toute divergence).
+ARG CICADA_VERSION=0.0.0
+ENV HUB_APP_VERSION=${CICADA_VERSION}
+
+EXPOSE 8000
+
+ENTRYPOINT ["/entrypoint.sh"]
+
+# Gunicorn. 3 workers comme le backend CICADA ; `--timeout 300` parce qu'une
+# page de lot porte les fiches complètes de plusieurs plans — l'insertion peut
+# dépasser largement les 30 s par défaut, et un worker tué en cours de dépôt
+# laisserait un lot incomplet.
+CMD ["gunicorn", "config.wsgi:application", \
+     "--bind", "0.0.0.0:8000", \
+     "--workers", "3", \
+     "--timeout", "300", \
+     "--access-logfile", "-", \
+     "--error-logfile", "-"]

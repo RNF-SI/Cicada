@@ -135,6 +135,41 @@ describe('ValidationService', () => {
       expect(req.request.method).toBe('GET');
       req.flush({ count: 1, next: null, previous: null, results: [mockValidationRequest] });
     });
+
+    // #658 - l'API renvoie la forme imbriquee de `UsersPagination` : sans
+    // normalisation, `count` est undefined et le paginateur reste bloque.
+    it('should normalize the nested pagination shape (UsersPagination)', () => {
+      service.getValidationRequests({ page: 2 }).subscribe(response => {
+        expect(response.count).toBe(34);
+        expect(response.next).toBe('/api/validations/?page=3');
+        expect(response.previous).toBe('/api/validations/?page=1');
+        expect(response.results.length).toBe(1);
+      });
+
+      const req = httpMock.expectOne('/api/validations/?page=2');
+      req.flush({
+        links: { next: '/api/validations/?page=3', previous: '/api/validations/?page=1' },
+        pagination: {
+          count: 34,
+          current_page: 2,
+          total_pages: 2,
+          page_size: 20,
+          has_next: false,
+          has_previous: true
+        },
+        results: [mockValidationRequest]
+      });
+    });
+
+    it('should keep the flat DRF pagination shape working', () => {
+      service.getValidationRequests().subscribe(response => {
+        expect(response.count).toBe(42);
+        expect(response.results.length).toBe(1);
+      });
+
+      const req = httpMock.expectOne('/api/validations/');
+      req.flush({ count: 42, next: null, previous: null, results: [mockValidationRequest] });
+    });
   });
 
   // ==================== GET SINGLE REQUEST ====================

@@ -77,6 +77,7 @@
       "passwordMismatch": "Les mots de passe ne correspondent pas"
     },
     "pagination": {
+      "label": "Pagination",
       "showing": "{{count}} sur {{total}}",
       "noItems": "Aucun élément",
       "previous": "Page précédente",
@@ -141,9 +142,9 @@
       "lastNamePlaceholder": "Votre nom",
       "email": "Adresse email",
       "emailPlaceholder": "votre.email@exemple.fr",
-      "identifiant": "Identifiant (optionnel)",
+      "identifiant": "Identifiant",
       "identifiantPlaceholder": "ex. j.dupont",
-      "identifiantHint": "Identifiant alternatif pour vous connecter (en plus de votre email)",
+      "identifiantHint": "Identifiant de connexion, utilisable en plus de votre email",
       "organisme": "Organisme",
       "organismePlaceholder": "Sélectionnez ou recherchez votre organisme",
       "organismeHint": "Choisissez un organisme dans la liste déroulante",
@@ -182,6 +183,7 @@
         "passwordMismatch": "Les mots de passe ne correspondent pas",
         "maxLength": "{{max}} caractères maximum",
         "emailAlreadyUsed": "Cette adresse email est déjà utilisée.",
+        "identifiantRequired": "L'identifiant est requis",
         "identifiantAlreadyUsed": "Cet identifiant est déjà utilisé."
       }
     },
@@ -259,10 +261,13 @@
       "comingSoonShort": "Prochainement"
     }
   },
+  "euFunding": {
+    "logoAlt": "Cofinancé par l'Union européenne — programme LIFE — BIODIV'FRANCE",
+    "disclaimer": "Cofinancé par l’Union européenne. Les points de vue et les opinions exprimés sont toutefois ceux des auteurs et ne reflètent pas nécessairement ceux de l’Union européenne ou de CINEA. Ni l’Union européenne ni l’autorité chargée de l’octroi de la subvention ne peuvent en être tenues pour responsables.",
+    "projectTitle": "Réalisé dans le cadre du projet LIFE BIODIV’FRANCE",
+    "projectDescription": "Coordonné par l’Office Français de la Biodiversité, ce projet rassemble un consortium de 31 participants. Il accompagne la mise en œuvre de la stratégie nationale pour la biodiversité en travaillant sur 5 cibles : les territoires, aires protégées, filières, citoyens et acteurs de la formation."
+  },
   "home": {
-    "footer": {
-      "partners": "Avec le soutien de"
-    },
     "heroTitle": "CICADA, l'outil des plans de gestion",
     "heroSubtitle": "Explorez les données du territoire, saisissez vos plans de gestion et suivez vos indicateurs facilement.",
     "exploration": {
@@ -351,7 +356,9 @@
         "deactivate": "Désactiver",
         "viewAs": "Voir en tant que cet utilisateur",
         "requestPromotion": "Demander la promotion en admin",
-        "requestDemotion": "Demander la rétrogradation"
+        "requestDemotion": "Demander la rétrogradation",
+        "promote": "Promouvoir en administrateur d'organisme",
+        "demote": "Retirer les droits d'administrateur d'organisme"
       },
       "messages": {
         "loading": "Chargement des utilisateurs...",
@@ -635,6 +642,12 @@
       "warnings": {
         "checkDuplicateSite": "Avant d'approuver, assurez-vous que ce site n'existe pas déjà dans l'application pour éviter les doublons.",
         "blockedByOrgLink": "Une demande de lien organisme-site est en attente pour ce site. Veuillez l'approuver en premier."
+      },
+      "organismeAdmins": {
+        "newOrganisme": "Nouvel organisme : il n'a encore aucun administrateur",
+        "none": "Cet organisme n'a aucun administrateur",
+        "some": "Cet organisme a déjà {{count}} administrateur(s)",
+        "noneHint": "Pensez à promouvoir ce compte en administrateur d'organisme après l'avoir accepté."
       }
     },
     "modules": {
@@ -737,6 +750,44 @@
         "error": "Erreur lors de la sauvegarde",
         "restored": "Image par défaut restaurée",
         "positionSaved": "Position de l'image mise à jour"
+      },
+      "federation": {
+        "title": "Partage avec l'exploration nationale",
+        "description": "L'exploration nationale rassemble les plans de gestion de plusieurs structures. Elle n'existe que par ce que chacune y verse : partager ses plans donne en retour accès à ceux des autres.",
+        "partageTitre": "Ce qui est partagé",
+        "partage1": "La structure de vos plans de gestion validés : enjeux, facteurs d'influence, pressions, objectifs, indicateurs et actions.",
+        "partage2": "Pour chaque action : sa période, son suivi, ses protocoles et les espèces ou habitats qu'elle cible.",
+        "exclusTitre": "Ce qui n'est jamais partagé",
+        "exclus1": "Les budgets, financements et coûts.",
+        "exclus2": "Les ressources humaines : postes, fonctions et temps de travail.",
+        "exclus3": "Les données de suivi : mesures d'indicateurs, réalisations annuelles, ainsi que les auteurs et dates de modification.",
+        "activer": "Partager mes plans de gestion avec l'exploration nationale",
+        "activerHint": "Seuls les plans validés sont publiés. Les brouillons ne sortent jamais de cette instance.",
+        "consequenceLocale": "Sans partage, l'exploration ne porte que sur les plans de cette instance. Les plans des autres structures ne sont pas accessibles.",
+        "consequenceRetrait": "Pour retirer les données déjà publiées, un administrateur système doit lancer la commande « retrait_federation ». Décocher cette case arrête les publications à venir mais n'efface pas les précédentes.",
+        "messages": {
+          "active": "Partage activé. Vos plans validés seront publiés à la prochaine synchronisation, et l'exploration portera sur toutes les structures.",
+          "desactive": "Partage désactivé. Plus rien ne sera publié, et l'exploration ne portera que sur vos plans. Les données déjà publiées restent en ligne jusqu'à leur retrait explicite."
+        }
+      },
+      "apiPublique": {
+        "title": "API publique des métadonnées des plans",
+        "description": "Ouvre une API en lecture seule, sans authentification, pour qu'une application tierce de gestion documentaire récupère régulièrement les métadonnées des plans de gestion de cette instance. Chaque plan y porte un identifiant stable qui ne change jamais, même s'il est renommé.",
+        "exposeTitre": "Ce qui est exposé",
+        "expose1": "L'identifiant unique du plan, sa référence « cicada:<instance>:<identifiant> » et son adresse dans CICADA.",
+        "expose2": "Les métadonnées saisies à la création : nom, rang, période, surface, rédacteurs, relecteurs, commentaire et identifiants d'autres outils.",
+        "expose3": "Le statut, les dates de validation (avis CSRPN, comité, arrêté préfectoral) et les sites rattachés.",
+        "exclusTitre": "Ce qui n'est jamais exposé",
+        "exclus1": "Le contenu des plans : enjeux, objectifs, indicateurs, actions, budgets, ressources humaines et suivi.",
+        "exclus2": "Les plans en brouillon, qui sont encore en cours de rédaction.",
+        "activer": "Ouvrir l'API publique des métadonnées",
+        "activerHint": "Décochez à tout moment pour refermer l'accès : les identifiants déjà transmis restent valables.",
+        "endpoint": "L'API répond sur /api/public/plans/ — liste paginée, filtres « modifie_depuis », « statut », « id_inpn » et « rang », et détail d'un plan par son identifiant unique.",
+        "consequenceFermee": "L'API est fermée : toute requête reçoit une réponse « introuvable ».",
+        "messages": {
+          "active": "API publique ouverte. Les métadonnées des plans validés, modifiés et terminés sont désormais accessibles sur /api/public/plans/.",
+          "desactive": "API publique fermée. Les applications tierces n'ont plus accès aux métadonnées des plans."
+        }
       }
     },
     "update": {
@@ -1100,21 +1151,27 @@
     "adminRoleChange": {
       "promotion": {
         "title": "Demander la promotion en administrateur",
+        "titleDirect": "Promouvoir en administrateur d'organisme",
         "infoTitle": "Promotion en administrateur",
         "warning": "Cet utilisateur deviendra administrateur de l'organisme et pourra gérer les utilisateurs et les demandes d'accès.",
-        "confirm": "Soumettre la demande"
+        "confirm": "Soumettre la demande",
+        "confirmDirect": "Promouvoir"
       },
       "demotion": {
         "title": "Demander la rétrogradation",
+        "titleDirect": "Retirer les droits d'administrateur d'organisme",
         "infoTitle": "Rétrogradation en utilisateur",
         "warning": "Cet administrateur perdra ses droits de gestion et redeviendra un utilisateur simple.",
-        "confirm": "Soumettre la demande"
+        "confirm": "Soumettre la demande",
+        "confirmDirect": "Rétrograder"
       },
       "superAdminNotice": "Cette demande sera soumise aux super administrateurs pour validation.",
+      "directNotice": "Vous êtes super administrateur : le changement prend effet immédiatement, sans validation.",
       "justification": {
         "label": "Justification",
         "placeholder": "Expliquez pourquoi cette modification de rôle est nécessaire (minimum 10 caractères)...",
-        "hint": "{{count}} / 10 caractères minimum"
+        "hint": "{{count}} / 10 caractères minimum",
+        "hintOptional": "Facultatif — conservé dans l'historique des changements de rôle."
       },
       "validation": {
         "minLength": "Veuillez fournir une justification d'au moins 10 caractères"
@@ -1122,6 +1179,8 @@
       "messages": {
         "promotionSuccess": "Demande de promotion soumise avec succès",
         "demotionSuccess": "Demande de rétrogradation soumise avec succès",
+        "promotionApplied": "{{name}} est maintenant administrateur d'organisme",
+        "demotionApplied": "{{name}} n'est plus administrateur d'organisme",
         "error": "Erreur lors de la soumission de la demande"
       }
     },
@@ -1340,7 +1399,7 @@
       },
       "mapping": {
         "title": "Correspondance des champs",
-        "description": "Associez chaque colonne de votre fichier au champ correspondant dans la base de données de l'application. Le type de site accepte un code (ex : RNN, PNR, ENS) ou le libellé complet.",
+        "description": "Associez chaque colonne de votre fichier au champ correspondant dans la base de données de l'application. Le type de site accepte un code (ex : RNN, PNR, ENS) ou le libellé complet. Les colonnes « Organisme gestionnaire » et « Référent » permettent de rattacher chaque site à son propre organisme et à ses propres utilisateurs, au lieu de tout rattacher au vôtre.",
         "sourceProperty": "Colonne du fichier",
         "targetField": "Champ dans l'application",
         "exampleValues": "Exemples de valeurs",
@@ -1353,7 +1412,9 @@
           "type_site_id": "Type de site (code ou libellé)",
           "surf_off": "Surface (ha)",
           "marin": "Milieu marin",
-          "outre_mer": "Outre-mer"
+          "outre_mer": "Outre-mer",
+          "organisme": "Organisme gestionnaire (nom ou identifiant)",
+          "referent": "Référent (email ou identifiant)"
         }
       },
       "preview": {
@@ -1370,7 +1431,9 @@
           "type": "Type",
           "surface": "Surface",
           "geometry": "Géo",
-          "status": "Statut"
+          "status": "Statut",
+          "organisme": "Organisme",
+          "referent": "Référent"
         },
         "status": {
           "valid": "Valide",
@@ -3332,7 +3395,8 @@
         "enCours": "En cours",
         "archive": "Archivé",
         "valide": "Validé"
-      }
+      },
+      "instances": "Structure d'origine"
     },
     "sort": {
       "label": "Trier par :",
@@ -3357,6 +3421,13 @@
         "objectif_op": "Objectif :",
         "indicateur": "Indicateur :",
         "suivi": "Suivi :"
+      },
+      "approximate": "Aucun résultat ne correspond exactement à « {{terme}} ». Voici les contenus dont un mot s'en approche le plus.",
+      "matchedOn": {
+        "rattachements": "Trouvé via une espèce, un habitat ou un protocole rattaché :",
+        "description": "Trouvé dans la description",
+        "contexte": "Trouvé dans un objet parent",
+        "titre": "Trouvé dans le libellé"
       }
     },
     "stats": {
@@ -3393,11 +3464,46 @@
       "metriques": "Métriques",
       "grille": "Grille de lecture",
       "cadre": "Cadre de l’action",
+      "suivi": "Suivi et objectifs",
+      "suiviIntitule": "Intitulé du suivi",
+      "objectif": "Objectif de la collecte",
+      "objectifSecondaire": "objectif secondaire",
+      "cible": "Cible",
+      "espece": "Espèce ciblée",
+      "habitats": "Habitats ciblés",
+      "frequence": "Fréquence du suivi",
+      "frequenceAction": "Fréquence de l’action",
+      "finSuivi": "Fin du suivi",
+      "outilSaisie": "Outil de saisie",
+      "outilBancarisation": "Outil de bancarisation",
+      "commentaires": "Commentaires",
+      "localisation": "Localisation",
+      "protocoles": "Protocoles",
+      "protocoleSansNom": "Protocole sans nom",
+      "protocoleStandardise": "Protocole standardisé",
+      "protocoleLibre": "Protocole libre",
+      "protocoleNonRespecte": "Appliqué avec des écarts",
+      "protocoleDescription": "Descriptif",
+      "protocoleObjectif": "Objectif du protocole",
+      "protocoleJustification": "Justification des écarts",
+      "protocoleDifferences": "Différences avec le protocole",
+      "protocoleEchantillonnage": "Période d’échantillonnage",
+      "protocolePeriode": "Mois de suivi",
+      "protocoleValidation": "Mode de validation",
+      "protocoleDocumentation": "Documentation",
+      "indicateursReponse": "Indicateurs de réponse",
       "miseEnOeuvre": "Mise en œuvre",
       "voirFicheAction": "Voir la fiche action",
       "toutDeplier": "Tout déplier",
       "toutReplier": "Tout replier",
-      "actionNonPublie": "Le budget, les moyens humains et le suivi des réalisations de cette action relèvent de la gestion interne de l’organisme et ne sont pas publiés."
+      "actionNonPublie": "Le budget, les moyens humains et le suivi des réalisations de cette action relèvent de la gestion interne de l’organisme et ne sont pas publiés.",
+      "provenance": "Fiche publiée par {{structure}} le {{date}}. Elle reflète l'état du plan à cette date.",
+      "voirSource": "Voir chez la structure"
+    },
+    "portee": {
+      "nationale": "Cette recherche porte sur les plans de gestion de toutes les structures participantes.",
+      "locale": "Cette recherche porte uniquement sur les plans de cette instance. Votre structure ne participe pas à l'exploration nationale.",
+      "nationaleDetail": "Cette recherche porte sur les plans de gestion de {{count}} structures participantes."
     }
   },
   "errors": {

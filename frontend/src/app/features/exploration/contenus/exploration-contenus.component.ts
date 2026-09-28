@@ -12,6 +12,9 @@ import {
   ExplorationOnglet,
   ExplorationTri,
   ExplorationType,
+  SegmentTexte,
+  referencePlan,
+  segmenterSurTerme,
 } from '../../../core/models/exploration.model';
 import { ExplorationService } from '../../../core/services/exploration.service';
 import {
@@ -61,11 +64,53 @@ export class ExplorationContenusComponent {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
 
+  /**
+   * Identifiant de fiche à mettre dans le lien d'une tuile.
+   *
+   * En fédération, deux instances produisent couramment le même slug pour des
+   * plans différents : lier par slug nu ouvrirait l'homonyme local au lieu du
+   * plan cliqué, sans rien signaler (#636).
+   */
+  protected readonly referencePlan = referencePlan;
+
+  /**
+   * Découpe un texte pour surligner ce qui répond à la recherche (#650).
+   *
+   * Le mot-clé lu est celui des **critères** et non le champ de saisie : le
+   * champ peut avoir été modifié sans que la recherche ait été relancée, et
+   * surligner d'après une requête non exécutée désignerait les mauvais mots.
+   */
+  protected segments(texte: string): SegmentTexte[] {
+    return segmenterSurTerme(texte, this.criteres().q ?? '');
+  }
+
+  /**
+   * Champ ayant répondu, quand ce n'est **pas** le titre (#650).
+   *
+   * Ne rend rien si le titre correspond : le surlignage le montre déjà, et
+   * répéter l'évidence noierait le cas qui compte — celui où le résultat doit
+   * sa présence à une espèce, un habitat ou un protocole rattaché, qui
+   * n'apparaît nulle part sur la tuile.
+   */
+  protected correspondanceHorsTitre(contenu: ExplorationContenu): string | null {
+    const champs = contenu.correspondances ?? [];
+    if (!champs.length || champs.includes('titre')) {
+      return null;
+    }
+    return champs[0];
+  }
+
   readonly criteres = signal<ExplorationCriteres>({});
   readonly motCle = signal('');
   readonly resultats = signal<ExplorationContenu[]>([]);
   readonly compteurs = signal<Record<string, number>>({});
   readonly total = signal(0);
+  /**
+   * #651 — La recherche n'a trouvé aucun résultat exact et montre des termes
+   * approchants. Le dire, sinon l'utilisateur prend l'à-peu-près pour une
+   * réponse.
+   */
+  readonly approximatif = signal(false);
   readonly pageCourante = signal(1);
   readonly nombrePages = signal(1);
   readonly chargement = signal(false);
@@ -221,6 +266,7 @@ export class ExplorationContenusComponent {
       next: (reponse) => {
         this.resultats.set(reponse.results);
         this.compteurs.set(reponse.compteurs ?? {});
+        this.approximatif.set(reponse.approximatif === true);
         this.total.set(reponse.pagination.count);
         this.pageCourante.set(reponse.pagination.current_page);
         this.nombrePages.set(reponse.pagination.total_pages);
@@ -229,6 +275,7 @@ export class ExplorationContenusComponent {
       error: () => {
         this.resultats.set([]);
         this.compteurs.set({});
+        this.approximatif.set(false);
         this.total.set(0);
         this.erreur.set(true);
         this.chargement.set(false);

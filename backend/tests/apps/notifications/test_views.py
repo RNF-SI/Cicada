@@ -737,6 +737,7 @@ class TestPublicRegistration:
         client = APIClient()
         response = client.post('/api/auth/register/', {
             'email': 'newuser@test.fr',
+            'identifiant': 'jdupont',
             'password': 'Test123!@#',
             'password_confirm': 'Test123!@#',
             'nom_role': 'Dupont',
@@ -756,6 +757,7 @@ class TestPublicRegistration:
         client = APIClient()
         response = client.post('/api/auth/register/', {
             'email': 'existing@test.fr',
+            'identifiant': 'jdupont2',
             'password': 'Test123!@#',
             'password_confirm': 'Test123!@#',
             'nom_role': 'Dupont',

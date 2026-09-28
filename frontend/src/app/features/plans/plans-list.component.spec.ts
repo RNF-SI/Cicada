@@ -143,3 +143,78 @@ describe('PlansListComponent — filtre par statut (#635)', () => {
     expect(component.statusOptions).toEqual(['draft', 'valide', 'modifie', 'archive']);
   });
 });
+
+/**
+ * #657 — Un gestionnaire (admin d'organisme, rédacteur principal, super admin)
+ * a déjà accès aux plans de son périmètre : la section « Demander l'accès » n'a
+ * aucun destinataire et ne doit pas lui être proposée.
+ */
+describe('PlansListComponent — pas de demande d\'accès pour un gestionnaire (#657)', () => {
+  const roles = {
+    isSuperAdmin: signal(false),
+    isRedacteurPrincipal: signal(false),
+    isAdminOrganisme: signal(false),
+  };
+
+  async function setup(): Promise<PlansListComponent> {
+    roles.isSuperAdmin.set(false);
+    roles.isRedacteurPrincipal.set(false);
+    roles.isAdminOrganisme.set(false);
+
+    TestBed.resetTestingModule();
+    await TestBed.configureTestingModule({
+      imports: [
+        PlansListComponent,
+        HttpClientTestingModule,
+        NoopAnimationsModule,
+        RouterTestingModule,
+        TranslateModule.forRoot(),
+      ],
+      providers: [
+        {
+          provide: AdminService,
+          useValue: { getPlans: () => of({ results: [] }), getSites: () => of({ results: [] }) },
+        },
+        { provide: ValidationService, useValue: { getMyRequests: () => of([]) } },
+        {
+          provide: AuthService,
+          useValue: { currentUser: signal(CURRENT_USER), ...roles },
+        },
+      ],
+    }).compileComponents();
+
+    const component = TestBed.createComponent(PlansListComponent).componentInstance;
+    component.allPlans.set([
+      plan(10, 'Plan de mon organisme', 'valide', {
+        isOrgPlan: true,
+        accessStatus: 'none',
+        referents: [],
+      }),
+    ] as any);
+    return component;
+  }
+
+  it('propose la demande d\'accès à un utilisateur simple', async () => {
+    const component = await setup();
+    expect(component.hasOrgWidePlanAccess()).toBe(false);
+    expect(component.otherPlans().map(p => p.nom)).toEqual(['Plan de mon organisme']);
+  });
+
+  it('ne propose rien à un admin d\'organisme', async () => {
+    const component = await setup();
+    roles.isAdminOrganisme.set(true);
+    expect(component.hasOrgWidePlanAccess()).toBe(true);
+    expect(component.otherPlans()).toEqual([]);
+  });
+
+  it('ne propose rien à un super admin ni à un rédacteur principal', async () => {
+    const component = await setup();
+
+    roles.isSuperAdmin.set(true);
+    expect(component.otherPlans()).toEqual([]);
+
+    roles.isSuperAdmin.set(false);
+    roles.isRedacteurPrincipal.set(true);
+    expect(component.otherPlans()).toEqual([]);
+  });
+});

@@ -291,4 +291,55 @@ describe('BulkSiteImportModalComponent', () => {
       });
     }));
   });
+
+  describe('Rattachement organisme / référent (#647)', () => {
+    const row = (mapped: Record<string, any>, extra: Record<string, any> = {}) => ({
+      row_index: 0,
+      original_properties: {},
+      mapped_data: mapped,
+      has_geometry: false,
+      errors: [],
+      warnings: [],
+      duplicate_info: null,
+      ...extra,
+    }) as any;
+
+    it('propose les champs organisme et référent dans la correspondance', () => {
+      const values = component.targetFields.map(f => f.value);
+      expect(values).toContain('organisme');
+      expect(values).toContain('referent');
+    });
+
+    it('affiche les colonnes organisme et référent dans la vérification', () => {
+      expect(component.previewColumns).toContain('organisme');
+      expect(component.previewColumns).toContain('referent');
+    });
+
+    it('affiche le nom des organismes résolus', () => {
+      const site = row(
+        { nom_site: 'Site A', organisme: 'CEN Alpha' },
+        { resolved_organismes: [{ id_organisme: 3, nom_organisme: 'CEN Alpha' }] },
+      );
+      expect(component.organismeLabel(site)).toBe('CEN Alpha');
+    });
+
+    it('retombe sur la valeur brute quand l\'organisme n\'est pas résolu', () => {
+      const site = row({ nom_site: 'Site A', organisme: 'Structure Fantome' });
+      expect(component.organismeLabel(site)).toBe('Structure Fantome');
+    });
+
+    it('affiche le nom des référents résolus, l\'email à défaut', () => {
+      const site = row(
+        { nom_site: 'Site A', referent: 'a@test.fr' },
+        { resolved_referents: [{ id_role: 7, nom: '', email: 'a@test.fr' }] },
+      );
+      expect(component.referentLabel(site)).toBe('a@test.fr');
+    });
+
+    it('affiche un tiret quand aucune colonne n\'est renseignée', () => {
+      const site = row({ nom_site: 'Site A' });
+      expect(component.organismeLabel(site)).toBe('-');
+      expect(component.referentLabel(site)).toBe('-');
+    });
+  });
 });

@@ -58,7 +58,7 @@ export class RegisterComponent implements OnInit {
   constructor() {
     this.registerForm = this.fb.group({
       email: ['', [Validators.required, Validators.email]],
-      identifiant: ['', [Validators.maxLength(100)]],
+      identifiant: ['', [Validators.required, Validators.maxLength(100)]],
       password: ['', [Validators.required, Validators.minLength(8)]],
       confirmPassword: ['', [Validators.required]],
       nom: ['', [Validators.required, Validators.maxLength(50)]],
@@ -231,6 +231,10 @@ export class RegisterComponent implements OnInit {
       case 'email':
         if (errors['required']) return t('auth.register.errors.emailRequired');
         if (errors['email']) return t('auth.register.errors.emailInvalid');
+        break;
+      case 'identifiant':
+        if (errors['required']) return t('auth.register.errors.identifiantRequired');
+        if (errors['maxlength']) return t('auth.register.errors.maxLength', { max: 100 });
         break;
       case 'password':
         if (errors['required']) return t('auth.register.errors.passwordRequired');

@@ -1,6 +1,9 @@
 """
 Modèles pour la gestion des Plans de Gestion.
 """
+import uuid
+
+from django.conf import settings
 from django.contrib.gis.db import models
 from django.core.validators import MinValueValidator, MaxValueValidator
 from django.utils.text import slugify
@@ -100,6 +103,20 @@ class PlanGestion(models.Model):
     VALIDATION_STEPS = frozenset({'avis_csrpn', 'comite_consultatif', 'arrete_pref'})
     
     id_pg = models.AutoField(primary_key=True)
+
+    # #645 — Identifiant stable du plan, destiné aux applications tierces
+    # (DOCenCEN côté CEN). `id_pg` est une séquence tirée localement : deux
+    # instances CICADA produisent couramment le même numéro, et le `slug` suit
+    # le nom, donc change quand le plan est renommé. Ni l'un ni l'autre ne peut
+    # servir de clé de rapprochement durable dans une application externe.
+    uuid_plan = models.UUIDField(
+        _("Identifiant unique"),
+        default=uuid.uuid4,
+        unique=True,
+        editable=False,
+        help_text=_("Identifiant stable du plan, exposé aux applications tierces.")
+    )
+
     id_cdr = models.IntegerField(_("Identifiant CDR"), null=True, blank=True)
     nom = models.CharField(_("Nom du plan de gestion"), max_length=255, unique=True)
     slug = models.SlugField(
@@ -372,6 +389,19 @@ class PlanGestion(models.Model):
     def get_plan_de_gestion(self):
         """Implémente l'interface utilisée par CanModifyOnlyDraftPlan (#248)."""
         return self
+
+    @property
+    def reference(self):
+        """
+        Référence du plan pour une application tierce (#645).
+
+        Forme « cicada:<instance>:<uuid> ». Le préfixe `cicada` dit de quel
+        outil vient l'identifiant — DOCenCEN agrège plusieurs sources et doit
+        pouvoir le reconnaître sans table de correspondance. L'identité de
+        l'instance suit, parce qu'un déploiement CEN et un déploiement RNF sont
+        deux bases distinctes qui peuvent alimenter la même GED.
+        """
+        return f"cicada:{settings.CICADA_INSTANCE_ID}:{self.uuid_plan}"
 
     def save(self, *args, **kwargs):
         """Override save pour mettre à jour automatiquement certains champs."""

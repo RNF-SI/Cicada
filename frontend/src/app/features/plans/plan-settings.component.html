@@ -304,7 +304,7 @@
                 <i class="fi fi-rr-graduation-cap"></i>
                 {{ 'plans.import.downloadActionsExample' | translate }}
               </button>
-              <button mat-stroked-button [disabled]="downloadingActions()" (click)="downloadActionsTemplate()">
+              <button mat-stroked-button data-testid="actions-template" [disabled]="downloadingActions()" (click)="downloadActionsTemplate()">
                 <i class="fi fi-rr-download"></i>
                 {{ 'plans.import.downloadActions' | translate }}
               </button>
@@ -328,6 +328,7 @@
                     <input
                       type="file"
                       accept=".xlsx"
+                      data-testid="actions-import-file"
                       (change)="onActionsFileSelected($event)"
                       [disabled]="actionsValidating() || actionsImporting()"
                       hidden />
@@ -350,7 +351,7 @@
 
                 @if (actionsReport(); as report) {
                   @if (report.can_import) {
-                    <div class="info-block info-block-success">
+                    <div class="info-block info-block-success" data-testid="actions-report-ok">
                       <span class="info-block-icon"></span>
                       <div class="info-block-content">
                         <p class="info-block-content-text">
@@ -363,7 +364,7 @@
                       </div>
                     </div>
                   } @else {
-                    <div class="info-block info-block-error">
+                    <div class="info-block info-block-error" data-testid="actions-report-error">
                       <span class="info-block-icon"></span>
                       <div class="info-block-content">
                         <p class="info-block-content-text">
@@ -374,7 +375,7 @@
                   }
 
                   @if (actionsErrors().length) {
-                    <ul class="import-issues import-issues-error">
+                    <ul class="import-issues import-issues-error" data-testid="actions-issues-error">
                       @for (issue of actionsErrors(); track $index) {
                         <li>
                           @if (issue.sheet) {
@@ -387,7 +388,7 @@
                   }
 
                   @if (actionsWarnings().length) {
-                    <ul class="import-issues import-issues-warning">
+                    <ul class="import-issues import-issues-warning" data-testid="actions-issues-warning">
                       @for (issue of actionsWarnings(); track $index) {
                         <li>
                           @if (issue.sheet) {
@@ -403,6 +404,7 @@
                     <button
                       mat-flat-button
                       color="primary"
+                      data-testid="actions-import-submit"
                       [disabled]="!report.can_import || actionsImporting()"
                       (click)="runActionsImport()">
                       @if (actionsImporting()) {

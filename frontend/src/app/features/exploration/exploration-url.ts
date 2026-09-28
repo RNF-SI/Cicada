@@ -49,6 +49,7 @@ export function criteresDepuisUrl(params: ParamMap): ExplorationCriteres {
     typesIndicateur: texte(params, 'types_indicateur'),
     categoriesAction: texte(params, 'categories_action'),
     statuts: texte(params, 'statuts') as ExplorationStatut[] | undefined,
+    instances: texte(params, 'instances'),
     tri: (params.get('tri') as ExplorationTri | null) ?? undefined,
     page: Number.isFinite(page) && page > 1 ? page : undefined,
   };
@@ -78,6 +79,7 @@ export function criteresVersUrl(
     types_indicateur: multiple(criteres.typesIndicateur),
     categories_action: multiple(criteres.categoriesAction),
     statuts: multiple(criteres.statuts),
+    instances: multiple(criteres.instances),
     tri: criteres.tri && criteres.tri !== 'pertinence' ? criteres.tri : null,
     page: criteres.page && criteres.page > 1 ? String(criteres.page) : null,
   };

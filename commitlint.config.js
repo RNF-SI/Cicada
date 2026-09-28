@@ -1,5 +1,9 @@
 module.exports = {
   extends: ['@commitlint/config-conventional'],
+  // Les merges de branches de fonctionnalite dans develop s'ecrivent
+  // « merge: <sujet> dans develop » : commitlint n'ignore par defaut que les
+  // messages generes par Git (« Merge branch ... »).
+  ignores: [(message) => /^merge: /.test(message)],
   rules: {
     'type-enum': [
       2,

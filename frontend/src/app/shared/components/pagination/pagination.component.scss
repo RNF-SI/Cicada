@@ -1,0 +1,113 @@
+@import 'variables';
+
+// Pagination partagée (#659)
+//
+// Le style vivait dans `_filters.scss`, supprimé en #592 : les boutons se
+// retrouvaient rendus par défaut du navigateur (fond gris, bordure `outset`
+// noire) sur toutes les pages d'administration. Il vit désormais avec le
+// composant, conformément à la spécification « Pagination » du design system
+// (page active bleu-vert, page inactive blanche, chevrons primary).
+
+:host {
+  display: block;
+}
+
+.pagination-container {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: $spacing-md;
+  margin-top: $spacing-md;
+}
+
+.pagination-info {
+  .info-text {
+    font-size: $font-size-small;
+    color: $gray-dark;
+    white-space: nowrap;
+  }
+}
+
+.pagination {
+  display: flex;
+  align-items: center;
+  gap: $spacing-xxs;
+}
+
+.page-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 32px;
+  height: 32px;
+  padding: 0 $spacing-xxs;
+  border: 1px solid $gray-light;
+  border-radius: $border-radius-sm;
+  background-color: $white;
+  color: $black;
+  font-family: $font-family;
+  font-size: $font-size-base;
+  font-weight: $font-weight-regular;
+  line-height: 1;
+  cursor: pointer;
+  transition: all $transition-fast;
+
+  i {
+    // Les chevrons Uicons sont dessinés plus petits que la hauteur de ligne :
+    // sans taille explicite ils tombaient à la taille par défaut du bouton.
+    font-size: 16px;
+    line-height: 1;
+    display: inline-flex;
+  }
+
+  &:hover:not(:disabled):not(.active):not(.page-ellipsis) {
+    background-color: $gray-lighter;
+    border-color: $gray-dark;
+  }
+
+  &:focus-visible {
+    outline: 2px solid $primary-color;
+    outline-offset: 2px;
+  }
+
+  &.active {
+    background-color: $primary-color;
+    border-color: $primary-color;
+    color: $white;
+    font-weight: $font-weight-semibold;
+    cursor: default;
+  }
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+
+  // Flèches précédent / suivant : chevrons bleu-vert, sans bordure.
+  &.page-nav {
+    border-color: transparent;
+    background-color: transparent;
+    color: $primary-color;
+
+    &:hover:not(:disabled) {
+      background-color: rgba($primary-color, 0.08);
+      border-color: transparent;
+    }
+  }
+
+  &.page-ellipsis {
+    border-color: transparent;
+    background-color: transparent;
+    color: $gray-dark;
+    cursor: default;
+    min-width: 20px;
+  }
+}
+
+@media (max-width: $breakpoint-tablet) {
+  .pagination-container {
+    justify-content: center;
+    gap: $spacing-sm;
+  }
+}

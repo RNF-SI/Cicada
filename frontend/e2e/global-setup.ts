@@ -8,6 +8,16 @@ import { waitForBackend, waitForFrontend } from './helpers/wait.helper';
 async function globalSetup(): Promise<void> {
   console.log('\n🚀 E2E Global Setup\n');
 
+  // Fédération (#636) : le banc à trois briques est déjà debout et **déjà
+  // publié** sur le hub. Reseeder ici réinitialiserait les bases des instances
+  // et rendrait l'index du hub obsolète sans le dire — les tests chercheraient
+  // alors des plans qui n'existent plus, en accusant la fédération.
+  if (process.env['E2E_FEDERATION'] === '1') {
+    console.log('🌐 Mode fédération : banc supposé lancé, aucun seeding.');
+    console.log('   (scripts/federation.sh up && scripts/federation.sh push)\n');
+    return;
+  }
+
   // 1. Wait for backend
   await waitForBackend();
 

@@ -152,6 +152,33 @@ interface DialogData {
             </div>
           }
 
+          <!-- #653 — L'organisme a-t-il déjà un administrateur ? Sans cette
+               information, le validateur ne peut pas décider s'il faut promouvoir
+               ce compte en administrateur d'organisme. -->
+          @if (validation()!.organisme_admins; as orgAdmins) {
+            <div class="info-block org-admins" [class.info-block-warning]="orgAdmins.count === 0">
+              <span class="info-block-icon"></span>
+              <div class="info-block-content">
+                <p class="info-block-content-title">
+                  @if (orgAdmins.is_new_organisme) {
+                    {{ 'admin.validations.organismeAdmins.newOrganisme' | translate }}
+                  } @else if (orgAdmins.count === 0) {
+                    {{ 'admin.validations.organismeAdmins.none' | translate }}
+                  } @else {
+                    {{ 'admin.validations.organismeAdmins.some' | translate:{ count: orgAdmins.count } }}
+                  }
+                </p>
+                <p class="info-block-content-text">
+                  @if (orgAdmins.count === 0) {
+                    {{ 'admin.validations.organismeAdmins.noneHint' | translate }}
+                  } @else {
+                    {{ formatAdmins(orgAdmins.admins) }}
+                  }
+                </p>
+              </div>
+            </div>
+          }
+
           <!-- Justification -->
           @if (validation()!.justification) {
             <div class="detail-row full-width">
@@ -324,6 +351,10 @@ interface DialogData {
       display: flex;
       flex-direction: column;
       gap: 10px;
+    }
+
+    .org-admins {
+      margin: 4px 0;
     }
 
     .detail-row {
@@ -758,6 +789,11 @@ export class ValidationDetailDialogComponent implements OnInit {
   /**
    * Formate la date.
    */
+  /** Liste lisible des administrateurs de l'organisme (#653). */
+  formatAdmins(admins: Array<{ nom_complet: string; email: string }>): string {
+    return admins.map(a => `${a.nom_complet} (${a.email})`).join(', ');
+  }
+
   formatDate(dateString: string): string {
     const date = new Date(dateString);
     return date.toLocaleDateString('fr-FR', {

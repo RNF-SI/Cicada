@@ -1,0 +1,47 @@
+@import 'variables';
+
+// Encart délimité (fond + bordure) exigé par le guide LIFE BIODIV'FRANCE
+.eu-notice {
+  display: flex;
+  align-items: center;
+  gap: $spacing-lg;
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: $spacing-md $spacing-lg;
+  background: $white;
+  border: 1px solid $gray-light;
+  border-radius: $border-radius-sm;
+
+  &__logo {
+    flex: 0 0 auto;
+    height: 110px;
+    width: auto;
+    max-width: 100%;
+  }
+
+  &__text {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-xs;
+  }
+
+  &__disclaimer,
+  &__project {
+    margin: 0;
+    font-size: 0.8rem;
+    line-height: 1.4;
+  }
+
+  &__disclaimer { color: $black; }
+  &__project { color: $gray-dark; }
+}
+
+@media (max-width: 768px) {
+  .eu-notice {
+    flex-direction: column;
+    text-align: center;
+    padding: $spacing-md;
+
+    &__logo { height: 80px; }
+  }
+}

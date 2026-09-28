@@ -211,6 +211,18 @@
               <td mat-cell *matCellDef="let site">{{ site.mapped_data?.surf_off || '-' }}</td>
             </ng-container>
 
+            <!-- Organisme (#647) -->
+            <ng-container matColumnDef="organisme">
+              <th mat-header-cell *matHeaderCellDef>{{ 'modals.bulkImport.preview.columns.organisme' | translate }}</th>
+              <td mat-cell *matCellDef="let site">{{ organismeLabel(site) }}</td>
+            </ng-container>
+
+            <!-- Référent (#647) -->
+            <ng-container matColumnDef="referent">
+              <th mat-header-cell *matHeaderCellDef>{{ 'modals.bulkImport.preview.columns.referent' | translate }}</th>
+              <td mat-cell *matCellDef="let site">{{ referentLabel(site) }}</td>
+            </ng-container>
+
             <!-- Geometry icon -->
             <ng-container matColumnDef="geometry">
               <th mat-header-cell *matHeaderCellDef>{{ 'modals.bulkImport.preview.columns.geometry' | translate }}</th>
