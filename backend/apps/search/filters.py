@@ -70,7 +70,8 @@ def q_statuts(statuts, champ_statut='statut_pg', annee=None):
     Q correspondant au filtre « statut du plan de gestion ».
 
     ``en_cours`` n'est pas un statut en base : c'est un plan validé dont
-    l'année courante tombe dans sa période. Il recoupe donc volontairement
+    l'année courante tombe dans sa période, prolongation comprise (#676 :
+    ``annee_fin + annees_extension``). Il recoupe donc volontairement
     ``valide``.
 
     :param champ_statut: ``statut_pg`` sur l'index, ``statut`` sur
@@ -91,7 +92,7 @@ def q_statuts(statuts, champ_statut='statut_pg', annee=None):
             scope |= (
                 Q(**{f'{champ_statut}__in': STATUTS_VALIDES})
                 & Q(annee_debut__lte=annee)
-                & Q(annee_fin__gte=annee)
+                & Q(annee_fin__gte=annee - F('annees_extension'))
             )
     return scope
 

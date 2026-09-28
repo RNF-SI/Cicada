@@ -319,6 +319,12 @@ class PlanIndexe(models.Model):
     rang = models.IntegerField(_("Rang"), null=True, blank=True)
     annee_debut = models.IntegerField(_("Année de début"), null=True, blank=True)
     annee_fin = models.IntegerField(_("Année de fin"), null=True, blank=True)
+    # #676 — prolongation (#250) : le plan reste « en cours » jusqu'à
+    # annee_fin + annees_extension. Absent des dépôts d'instances antérieures
+    # à ce champ, il vaut alors 0.
+    annees_extension = models.PositiveSmallIntegerField(
+        _("Années d'extension"), default=0,
+    )
     type_document = models.CharField(
         _("Type de document"), max_length=255, null=True, blank=True,
     )
@@ -538,6 +544,9 @@ class ContenuIndexe(models.Model):
     statut_pg = models.CharField(_("Statut du plan"), max_length=20)
     annee_debut = models.IntegerField(_("Année de début"), null=True, blank=True)
     annee_fin = models.IntegerField(_("Année de fin"), null=True, blank=True)
+    annees_extension = models.PositiveSmallIntegerField(  # #676
+        _("Années d'extension"), default=0,
+    )
     type_site_codes = ArrayField(
         models.CharField(max_length=25),
         verbose_name=_("Types d'aires protégées"), default=list, blank=True,

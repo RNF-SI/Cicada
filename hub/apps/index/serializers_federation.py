@@ -89,6 +89,10 @@ class PlanPublieSerializer(serializers.Serializer):
     rang = serializers.IntegerField(required=False, allow_null=True)
     annee_debut = serializers.IntegerField(required=False, allow_null=True)
     annee_fin = serializers.IntegerField(required=False, allow_null=True)
+    # #676 — optionnel : une instance antérieure à ce champ ne l'envoie pas.
+    annees_extension = serializers.IntegerField(
+        required=False, allow_null=True, min_value=0, max_value=2, default=0,
+    )
     type_document = serializers.CharField(
         max_length=255, required=False, allow_null=True, allow_blank=True
     )

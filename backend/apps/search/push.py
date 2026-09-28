@@ -176,6 +176,8 @@ def charge_utile(plan, avec_fiche=True):
         'rang': plan.rang,
         'annee_debut': plan.annee_debut,
         'annee_fin': plan.annee_fin,
+        # #676 — optionnel pour le hub : absent, il vaut 0.
+        'annees_extension': plan.annees_extension or 0,
         'type_document': (
             plan.id_type_document.label if plan.id_type_document_id else None
         ),

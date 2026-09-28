@@ -110,6 +110,7 @@ def facettes_du_plan(plan):
         'statut_pg': plan.statut,
         'annee_debut': plan.annee_debut,
         'annee_fin': plan.annee_fin,
+        'annees_extension': plan.annees_extension or 0,  # #676
         'site_ids': sorted(site_ids),
         'organisme_ids': organisme_ids,
         'type_site_codes': type_site_codes,

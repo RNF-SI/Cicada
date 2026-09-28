@@ -123,7 +123,7 @@ pas.
 | Identité | `type_contenu`, `id_objet`, `id_pg` | Retrouver l'objet métier |
 | Texte | `titre`, `rattachements`, `description`, `contexte` | Ce qui est recherché |
 | Affichage | `parent_type`, `parent_libelle`, `sous_type`, `sous_type_libelle` | Tuile de résultat |
-| Facettes | `statut_pg`, `annee_debut`, `annee_fin`, `site_ids`, `organisme_ids`, `type_site_codes`, `area_ids` | Filtres + compteurs |
+| Facettes | `statut_pg`, `annee_debut`, `annee_fin`, `annees_extension`, `site_ids`, `organisme_ids`, `type_site_codes`, `area_ids` | Filtres + compteurs |
 | Vecteurs | `search_titre`, `search_full` | Colonnes **générées** par PostgreSQL |
 
 Seules les données nécessaires au **filtrage et aux compteurs** sont
@@ -338,7 +338,7 @@ idempotente.
 | Indicateurs : état / pression / réponse | `sous_type` d'une ligne `indicateur` (nomenclature `TYPE_INDICATEUR`) |
 | Objectifs : opérationnels / à long terme | `type_contenu` (`objectif_op` / `objectif_lt`) |
 | Actions de gestion | `sous_type` d'une ligne `action` (nomenclature `CATEGORIE_ACTION_RESERVE` : SP, CS, EI, IP…) |
-| Statut du plan de gestion | `statut_pg` + `annee_debut` / `annee_fin` (« en cours » = plan validé dont l'année courante est dans la période) |
+| Statut du plan de gestion | `statut_pg` + `annee_debut` / `annee_fin` / `annees_extension` (« en cours » = plan validé dont l'année courante est dans la période, prolongation comprise — #676) |
 
 ---
 

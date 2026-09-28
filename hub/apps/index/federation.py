@@ -289,6 +289,7 @@ def ingerer_plan(charge, instance_id, lot):
             'rang': charge.get('rang'),
             'annee_debut': charge.get('annee_debut'),
             'annee_fin': charge.get('annee_fin'),
+            'annees_extension': charge.get('annees_extension') or 0,  # #676
             'type_document': charge.get('type_document'),
             'gestionnaire_principal': charge.get('gestionnaire_principal'),
             'sites': sites,
@@ -343,6 +344,7 @@ def ingerer_plan(charge, instance_id, lot):
         'statut_pg': plan.statut,
         'annee_debut': plan.annee_debut,
         'annee_fin': plan.annee_fin,
+        'annees_extension': plan.annees_extension,
         'type_site_codes': type_site_codes,
         'area_ids': area_ids,
         'organisme_codes': [],

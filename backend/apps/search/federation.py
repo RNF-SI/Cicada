@@ -85,7 +85,7 @@ CHAMPS_TRANSMIS = [
     'type_contenu', 'id_objet',
     'titre', 'description', 'contexte', 'rattachements',
     'parent_type', 'parent_libelle', 'sous_type', 'sous_type_libelle',
-    'statut_pg', 'annee_debut', 'annee_fin',
+    'statut_pg', 'annee_debut', 'annee_fin', 'annees_extension',
     'type_site_codes',
 ]
 
@@ -270,6 +270,8 @@ def contenu_depuis_document(document, instance_id):
     """
     champs = {champ: document.get(champ) for champ in CHAMPS_TRANSMIS}
     champs['type_site_codes'] = champs.get('type_site_codes') or []
+    # #676 — absent d'un document émis avant l'ajout du champ : pas de prolongation.
+    champs['annees_extension'] = champs.get('annees_extension') or 0
     return ContenuIndexe(
         instance_id=instance_id,
         id_pg=None,

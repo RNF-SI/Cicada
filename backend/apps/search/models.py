@@ -188,6 +188,12 @@ class ContenuIndexe(models.Model):
     statut_pg = models.CharField(_("Statut du plan"), max_length=20)
     annee_debut = models.IntegerField(_("Année de début"), null=True, blank=True)
     annee_fin = models.IntegerField(_("Année de fin"), null=True, blank=True)
+    # #676 — prolongation du plan (#250) : il reste « en cours » jusqu'à
+    # annee_fin + annees_extension. Même nom que sur `PlanGestion`, pour que
+    # `q_statuts()` s'applique indifféremment au plan et à l'index.
+    annees_extension = models.PositiveSmallIntegerField(
+        _("Années d'extension"), default=0,
+    )
     site_ids = ArrayField(
         models.IntegerField(), verbose_name=_("Sites"), default=list, blank=True,
     )
