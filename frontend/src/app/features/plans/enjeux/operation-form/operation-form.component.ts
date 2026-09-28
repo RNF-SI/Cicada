@@ -56,6 +56,7 @@ import {
 } from '../../../../shared/utils/nomenclature-autocomplete.utils';
 import { serializeTaxonRefs, parseTaxonRefs } from '../../../../shared/utils/taxon-ref.utils';
 import { salaryIsComputed, salaryOptionAvailable } from '../../../../shared/utils/operation-budget';
+import { checkedMonths, deriveMonthlyTemplate, monthsToSave } from '../../../../shared/utils/operation-mensuelle';
 import {
   blankMetriqueFormData,
   metriqueRefToFormData,
@@ -621,6 +622,11 @@ export class OperationFormComponent implements OnInit {
 
   // Template mensuel unique (même mois chaque année)
   programmationMensuelleDefaut: Record<string, boolean> = {};
+  /**
+   * #673 — Les années portent des mois différents de la grille : leur détail
+   * est conservé à l'enregistrement tant que la grille n'est pas retouchée.
+   */
+  mensuelleParAnnee = false;
 
   // Finances
   finances: FinanceOperation[] = [];
@@ -1383,6 +1389,7 @@ export class OperationFormComponent implements OnInit {
     }
     // Init default monthly template
     this.programmationMensuelleDefaut = this.emptyMensuelle();
+    this.mensuelleParAnnee = false;
   }
 
   private emptyMensuelle(): Record<string, boolean> {
@@ -1773,10 +1780,7 @@ export class OperationFormComponent implements OnInit {
       // Mode by_org_type: orgBudgets already populated above (lines 634-638)
     }
 
-    // Restore default monthly template
-    if (op.programmation_mensuelle_defaut && Object.keys(op.programmation_mensuelle_defaut).length > 0) {
-      this.programmationMensuelleDefaut = { ...op.programmation_mensuelle_defaut };
-    }
+    this.restoreMensuelle(op);
 
     // Restore finances
     if (op.finances && op.finances.length > 0) {
@@ -2216,7 +2220,8 @@ export class OperationFormComponent implements OnInit {
       const base = {
         annee: a.annee,
         periodicite: a.periodicite,
-        periodicite_mensuelle: { ...this.programmationMensuelleDefaut },
+        // #673 — détail par année conservé tant que la grille n'est pas retouchée.
+        periodicite_mensuelle: this.moisAEnregistrer(a),
         // #560 — lignes RH de l'année (les lignes sans jours pour cette année
         // sont ignorées). Indépendant du mode de ventilation budgétaire.
         rh_lignes: this.rhLines
@@ -3827,6 +3832,7 @@ export class OperationFormComponent implements OnInit {
       });
       // Remplace la périodicité mensuelle récurrente (mêmes mois chaque année).
       this.programmationMensuelleDefaut = { ...result.monthFlags };
+      this.mensuelleParAnnee = false;
     });
   }
 
@@ -4155,6 +4161,34 @@ export class OperationFormComponent implements OnInit {
 
   toggleMensuelleDefaut(month: string): void {
     this.programmationMensuelleDefaut[month] = !this.programmationMensuelleDefaut[month];
+    // #673 — retoucher la grille, c'est choisir les mêmes mois chaque année.
+    this.mensuelleParAnnee = false;
+  }
+
+  /**
+   * #673 — Grille mensuelle au chargement : la grille enregistrée, ou à défaut
+   * les mois saisis par année (sans quoi elle s'ouvrait vide et le premier
+   * enregistrement effaçait ces mois).
+   */
+  restoreMensuelle(op: Pick<Operation, 'programmation_mensuelle_defaut'>): void {
+    const state = deriveMonthlyTemplate(op.programmation_mensuelle_defaut, this.operationAnnees);
+    this.programmationMensuelleDefaut = state.template;
+    this.mensuelleParAnnee = state.perYear;
+  }
+
+  /** #673 — Mois enregistrés pour une année (grille commune ou détail conservé). */
+  moisAEnregistrer(annee: Pick<OperationAnnee, 'periodicite_mensuelle'>): Record<string, boolean> {
+    return monthsToSave(this.programmationMensuelleDefaut, annee.periodicite_mensuelle, this.mensuelleParAnnee);
+  }
+
+  /** #673 — Mois propres à chaque année, pour le bandeau d'avertissement. */
+  mensuelleParAnneeResume(): { annee: number; mois: string }[] {
+    return this.operationAnnees
+      .map(a => ({
+        annee: a.annee,
+        mois: checkedMonths(a.periodicite_mensuelle).map(m => this.monthLabels[m - 1]).join(', '),
+      }))
+      .filter(r => r.mois);
   }
 
   // ════════════════════════════════════════════════

@@ -1583,3 +1583,62 @@ describe('OperationFormComponent — paramétrage de ventilation par défaut (#6
     expect(readOnly.getVentilationDefaults).not.toHaveBeenCalled();
   });
 });
+
+describe('OperationFormComponent — programmation mensuelle par année (#673)', () => {
+  const mois = (...ms: number[]) => {
+    const out: Record<string, boolean> = {};
+    for (let m = 1; m <= 12; m++) out[String(m)] = ms.includes(m);
+    return out;
+  };
+  const coches = (flags: Record<string, boolean>) =>
+    Object.entries(flags).filter(([, v]) => v).map(([k]) => Number(k)).sort((a, b) => a - b);
+
+  function charger(defaut: Record<string, boolean>, parAnnee: number[][]): OperationFormComponent {
+    const comp = createComponentInstance();
+    comp.monthLabels = ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Juillet',
+      'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'];
+    comp.operationAnnees = parAnnee.map((ms, i) => ({
+      annee: 2024 + i, periodicite: ms.length > 0, budget: null, etp: null,
+      periodicite_mensuelle: mois(...ms),
+    }));
+    comp.restoreMensuelle({ programmation_mensuelle_defaut: defaut });
+    return comp;
+  }
+
+  it('grille vide : la grille affiche les mois saisis par année (au lieu de 0 mois)', () => {
+    const comp = charger({}, [[3, 4, 5, 6], [3, 4, 5, 6]]);
+    expect(coches(comp.programmationMensuelleDefaut)).toEqual([3, 4, 5, 6]);
+    expect(comp.mensuelleParAnnee).toBe(false);
+  });
+
+  it('enregistrer sans retoucher la grille ne vide plus les mois', () => {
+    const comp = charger({}, [[3, 4, 5, 6], [3, 4, 5, 6]]);
+    for (const a of comp.operationAnnees) {
+      expect(coches(comp.moisAEnregistrer(a))).toEqual([3, 4, 5, 6]);
+    }
+  });
+
+  it('années divergentes : détail conservé à l\'enregistrement et signalé', () => {
+    const comp = charger({}, [[3, 4], [9], []]);
+    expect(comp.mensuelleParAnnee).toBe(true);
+    expect(coches(comp.programmationMensuelleDefaut)).toEqual([3, 4, 9]);
+    expect(comp.operationAnnees.map(a => coches(comp.moisAEnregistrer(a)))).toEqual([[3, 4], [9], []]);
+    expect(comp.mensuelleParAnneeResume()).toEqual([
+      { annee: 2024, mois: 'Mars, Avril' },
+      { annee: 2025, mois: 'Septembre' },
+    ]);
+  });
+
+  it('retoucher la grille applique les mêmes mois à toutes les années', () => {
+    const comp = charger({}, [[3, 4], [9]]);
+    comp.toggleMensuelleDefaut('9');
+    expect(comp.mensuelleParAnnee).toBe(false);
+    expect(comp.operationAnnees.map(a => coches(comp.moisAEnregistrer(a)))).toEqual([[3, 4], [3, 4]]);
+  });
+
+  it('grille enregistrée : comportement inchangé', () => {
+    const comp = charger(mois(2, 3), [[2, 3], [2, 3]]);
+    expect(comp.mensuelleParAnnee).toBe(false);
+    expect(comp.operationAnnees.map(a => coches(comp.moisAEnregistrer(a)))).toEqual([[2, 3], [2, 3]]);
+  });
+});
