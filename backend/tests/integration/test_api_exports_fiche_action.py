@@ -300,3 +300,76 @@ class TestCarteFondDeCarte:
 
         assert fiche._geom_png(self.GEOM)
         assert calls == []
+
+
+MOIS = ['Janv', 'Fév', 'Mars', 'Avril', 'Mai', 'Juin',
+        'Juil', 'Août', 'Sept', 'Oct', 'Nov', 'Déc']
+
+
+@pytest.mark.django_db
+class TestExportFicheActionProgrammationMensuelle:
+    """#668 — la grille mensuelle ne doit pas être tronquée au nombre d'années
+    du plan : un plan de 5 ans n'affichait que Janv → Mai."""
+
+    @staticmethod
+    def _grille_mensuelle(ws):
+        """{mois: 'x' | ''} lu dans le bloc « Programmation mensuelle »
+        (paires de lignes en-tête / périodicité jusqu'au bloc suivant)."""
+        debut = next(r for r in range(1, ws.max_row + 1)
+                     if ws.cell(r, 1).value == 'Programmation mensuelle')
+        grille = {}
+        r = debut
+        while len(grille) < 12 and ws.cell(r + 1, 1).value == 'Périodicité':
+            for c in range(4, ws.max_column + 1):
+                mois = ws.cell(r, c).value
+                if mois:
+                    grille[mois] = ws.cell(r + 1, c).value or ''
+            r += 2
+        return grille
+
+    def _export(self, annee_debut, annee_fin, **mensuel):
+        from apps.plans.services_export_fiche_action import build_fiche_action_workbook
+        from tests.factories.enjeux import OperationAnneeFactory
+
+        plan = PlanGestionFactory(annee_debut=annee_debut, annee_fin=annee_fin)
+        ne = NiveauExigenceFactory(
+            id_olt=ObjectifLongTermeFactory(id_enjeu=EnjeuFactory(id_pg=plan)))
+        op = OperationFactory(
+            code_operation='ACT1',
+            programmation_mensuelle_defaut=mensuel.get('defaut', {}))
+        op.metriques.add(MetriqueFactory(id_indicateur=IndicateurFactory(id_ne=ne)))
+        if 'annee' in mensuel:
+            OperationAnneeFactory(id_operation=op, annee=annee_debut,
+                                  periodicite_mensuelle=mensuel['annee'])
+        wb = load_workbook(io.BytesIO(build_fiche_action_workbook(plan)))
+        return wb['ACT1']
+
+    def test_plan_de_5_ans_affiche_les_12_mois(self):
+        ws = self._export(2024, 2028, annee={'2': True, '7': True, '12': True})
+        grille = self._grille_mensuelle(ws)
+
+        assert list(grille) == MOIS
+        assert [m for m, v in grille.items() if v == 'x'] == ['Fév', 'Juil', 'Déc']
+
+    def test_plan_sans_annees_affiche_les_12_mois(self):
+        """Pire cas : une seule colonne disponible (années non renseignées)."""
+        ws = self._export(None, None, defaut={'11': True})
+        grille = self._grille_mensuelle(ws)
+
+        assert list(grille) == MOIS
+        assert [m for m, v in grille.items() if v == 'x'] == ['Nov']
+
+    def test_plan_long_garde_une_seule_ligne(self):
+        ws = self._export(2020, 2031, defaut={'6': True})
+        debut = next(r for r in range(1, ws.max_row + 1)
+                     if ws.cell(r, 1).value == 'Programmation mensuelle')
+
+        assert [ws.cell(debut, c).value for c in range(4, 16)] == MOIS
+        assert ws.cell(debut + 1, 9).value == 'x'  # Juin
+        assert ws.cell(debut + 2, 1).value != 'Périodicité'
+
+    @pytest.mark.parametrize('n_cols, attendu', [
+        (1, 1), (2, 2), (3, 3), (4, 4), (5, 4), (6, 6), (10, 6), (11, 6), (12, 12), (15, 12),
+    ])
+    def test_mois_par_ligne(self, n_cols, attendu):
+        assert fiche._months_per_row(n_cols) == attendu
