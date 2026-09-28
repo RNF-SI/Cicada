@@ -49,6 +49,23 @@ OPERATION_TO_PG_PATHS = (
 )
 
 
+def plan_operation_ids(plan) -> set:
+    """Identifiants des actions d'UN plan, par tous les chemins de l'arborescence.
+
+    #671 — les exports ne suivaient que la branche NE → OLT → enjeu et
+    perdaient les actions rattachées par pressions / résultats attendus.
+    Une requête simple par chemin plutôt qu'un seul filtre OR-é : ce dernier
+    dépasse 60 jointures et bascule le planificateur en GEQO sur une base
+    sans statistiques (cf. `_plan_realisations()`).
+    """
+    from .models_operations import Operation
+
+    ids = set()
+    for path in OPERATION_TO_PG_PATHS:
+        ids.update(Operation.objects.filter(**{path: plan}).values_list('pk', flat=True))
+    return ids
+
+
 def has_global_plan_access(user) -> bool:
     """Vrai pour les rôles qui voient tous les plans (super admin, rédacteur principal)."""
     return user.is_super_admin() or user.is_redacteur_principal()

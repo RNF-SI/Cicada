@@ -27,7 +27,7 @@ from apps.users.permissions import IsReferent
 from .permissions import CanModifyOnlyDraftPlan, IsReferentOrReadOnly
 from .access import (
     INDICATEUR_TO_PG_PATHS, OPERATION_TO_PG_PATHS, assert_plan_access,
-    assert_suivi_access, prefix_paths, scope_by_plan, scope_suivi_by_plan,
+    assert_suivi_access, plan_operation_ids, prefix_paths, scope_by_plan, scope_suivi_by_plan,
     user_can_access_plan,
 )
 from .reorder import do_reorder
@@ -763,10 +763,10 @@ class RealisationOperationAnneeViewSet(viewsets.ModelViewSet):
         agrégation prend 100 ms. `bilan_indicateurs` interroge déjà ses modèles
         en direct pour cette raison.
         """
+        # #671 — toutes les branches (NE et pressions / RA), une requête par chemin.
         return self.queryset.filter(
-            Q(id_operation_annee__id_operation__metriques__id_indicateur__id_ne__id_olt__id_enjeu__id_pg=plan) |
-            Q(id_operation_annee__id_operation__id_suivi__id_pg=plan)
-        ).distinct()
+            id_operation_annee__id_operation__in=plan_operation_ids(plan)
+        )
 
     def perform_create(self, serializer):
         serializer.save(id_utilisateur_maj=self.request.user)

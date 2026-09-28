@@ -389,7 +389,7 @@ def build_action_finance(op, org_names, poste_jours) -> ActionFinance:
 
 def _enjeu_label(op):
     """Libellé de l'enjeu / FCR rattaché à l'action (via indicateur → NE/RA)."""
-    from .services_export_fiche_action import _linked_indicateurs
+    from .services_export_fiche_action import _linked_indicateurs, oo_enjeux
     for ind in _linked_indicateurs(op):
         ne = getattr(ind, "id_ne", None)
         ra = getattr(ind, "id_resultat_attendu", None)
@@ -397,36 +397,26 @@ def _enjeu_label(op):
         if ne and getattr(ne, "id_olt", None):
             enj = getattr(ne.id_olt, "id_enjeu", None)
         elif ra and getattr(ra, "id_oo", None):
-            enj = getattr(ra.id_oo, "id_enjeu", None)
+            enj = next(iter(oo_enjeux(ra.id_oo)), None)
         if enj:
             return _txt(enj.intitule_court) or _txt(enj.libelle)
     return ""
 
 
 def plan_operations(plan):
-    """Opérations de l'arborescence du plan (via métriques ou indicateur direct)."""
+    """Opérations de l'arborescence du plan, toutes branches confondues (#671)."""
+    from .access import plan_operation_ids
     from .models_operations import Operation
-    qs = (
+    ops = list(
         Operation.objects
-        .filter(metriques__id_indicateur__id_ne__id_olt__id_enjeu__id_pg=plan)
+        .filter(pk__in=plan_operation_ids(plan))
         .select_related("id_priorite", "id_categorie_action_reserve", "id_indicateur",
                         "id_suivi")
         .prefetch_related(
             "metriques__id_indicateur__id_ne__id_olt__id_enjeu",
             "metriques__id_indicateur__id_resultat_attendu__id_oo",
         )
-        .distinct()
     )
-    seen = {o.id_operation for o in qs}
-    direct = (
-        Operation.objects
-        .filter(id_indicateur__id_ne__id_olt__id_enjeu__id_pg=plan)
-        .select_related("id_priorite", "id_categorie_action_reserve", "id_indicateur",
-                        "id_suivi")
-        .exclude(id_operation__in=seen)
-        .distinct()
-    )
-    ops = list(qs) + list(direct)
     # tri par catégorie (code simplifié) puis code action
     ops.sort(key=lambda o: (
         _txt(getattr(o.id_categorie_action_reserve, "mnemonique", "")) or "zzz",

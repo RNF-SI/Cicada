@@ -486,6 +486,20 @@ def _linked_indicateurs(op):
     return list(inds.values())
 
 
+def oo_enjeux(oo):
+    """Enjeux d'un objectif opérationnel : son enjeu direct (#337) ou, à
+    défaut, ceux des facteurs d'influence de ses pressions (#671)."""
+    if getattr(oo, "id_enjeu", None):
+        return [oo.id_enjeu]
+    out = []
+    for pr in oo.pressions.all():
+        fi = getattr(pr, "id_facteur_influence", None)
+        for enj in (fi.enjeux.all() if fi else []):
+            if enj not in out:
+                out.append(enj)
+    return out
+
+
 def _cadre(op):
     """Renvoie les libellés du cadre (métriques, indicateur, NE/RA, OLT/OO, enjeu).
 
@@ -516,8 +530,7 @@ def _cadre(op):
             oo = getattr(ra, "id_oo", None)
             if oo:
                 objectifs.append(_txt(oo.libelle))
-                enj = getattr(oo, "id_enjeu", None)
-                if enj:
+                for enj in oo_enjeux(oo):
                     enjeux.append(_txt(enj.libelle) or _txt(enj.intitule_court))
 
     def uniq(seq):
@@ -1052,9 +1065,11 @@ def build_fiche_action_workbook(plan, operation_ids=None) -> bytes:
     if not years:
         years = [""]
 
-    ops = (
+    # #671 — toutes les branches de l'arborescence (NE et pressions / RA).
+    from .access import plan_operation_ids
+    all_ops = list(
         Operation.objects
-        .filter(metriques__id_indicateur__id_ne__id_olt__id_enjeu__id_pg=plan)
+        .filter(pk__in=plan_operation_ids(plan))
         .select_related("id_priorite", "id_categorie_action_reserve", "id_indicateur",
                         "id_suivi", "id_type_action")
         .prefetch_related(
@@ -1064,16 +1079,7 @@ def build_fiche_action_workbook(plan, operation_ids=None) -> bytes:
             "metriques__id_indicateur__id_resultat_attendu__indicateurs__metriques__score_blocks",
             "finances__id_categorie", "id_suivi__protocoles", "sites",
         )
-        .distinct()
     )
-    # + opérations rattachées directement à un indicateur (#367)
-    ops_direct = (
-        Operation.objects
-        .filter(id_indicateur__id_ne__id_olt__id_enjeu__id_pg=plan)
-        .exclude(id_operation__in=[o.id_operation for o in ops])
-        .distinct()
-    )
-    all_ops = list(ops) + list(ops_direct)
     if operation_ids is not None:
         wanted = {int(i) for i in operation_ids}
         all_ops = [o for o in all_ops if o.id_operation in wanted]
