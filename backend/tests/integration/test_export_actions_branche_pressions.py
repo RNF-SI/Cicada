@@ -13,6 +13,7 @@ from decimal import Decimal
 
 import pytest
 from openpyxl import load_workbook
+from rest_framework.test import APIClient
 
 from apps.plans.access import plan_operation_ids
 from apps.plans.services_export_fiche_action import build_fiche_action_workbook
@@ -26,6 +27,7 @@ from tests.factories.enjeux import (
     ResultatAttenduFactory,
 )
 from tests.factories.plans import PlanGestionFactory
+from tests.factories.users import SuperAdminFactory
 
 
 @pytest.mark.django_db
@@ -98,3 +100,29 @@ class TestExportsBranchePressions:
         realisations = RealisationOperationAnneeViewSet()._plan_realisations(plan['plan'])
         assert [r.id_operation_annee.id_operation_id for r in realisations] == [
             plan['pression'].pk]
+
+    # --- Par les endpoints, comme l'interface (#671) ---
+
+    @staticmethod
+    def _get(url):
+        client = APIClient()
+        client.force_authenticate(user=SuperAdminFactory())
+        resp = client.get(url)
+        assert resp.status_code == 200, url
+        content = b''.join(resp.streaming_content) if resp.streaming else resp.content
+        return load_workbook(io.BytesIO(content))
+
+    def test_endpoint_fiches_actions_du_plan(self, plan):
+        wb = self._get(f"/api/plans/plans/{plan['plan'].id_pg}/export-fiches-actions-xlsx/")
+        assert sorted(wb.sheetnames) == ['ETAT1', 'PRES1', 'PRES2']
+
+    def test_endpoint_fiche_seule_d_une_action_des_pressions(self, plan):
+        """Avant #671 : classeur vide « Ce plan ne contient pas encore d'action »."""
+        wb = self._get(f"/api/plans/operations/{plan['pression'].pk}/export-fiche-xlsx/")
+        assert wb.sheetnames == ['PRES1']
+
+    def test_endpoint_budget_previsionnel_liste_l_action_des_pressions(self, plan):
+        wb = self._get(f"/api/plans/plans/{plan['plan'].id_pg}/export-budget-previsionnel-xlsx/")
+        textes = {c.value for ws in wb for row in ws.iter_rows() for c in row
+                  if isinstance(c.value, str)}
+        assert plan['pression'].libelle in textes
