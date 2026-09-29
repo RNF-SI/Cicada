@@ -127,6 +127,8 @@ leur substance, et l'endpoint est ouvert. Le cloisonnement est verrouillé par
 }
 ```
 
+`id_docgestion_fcen` est l'identifiant du document dans Doc'Gestion FCEN (#458). Il est propre à **chaque** version : un plan révisé ou une évaluation mi-parcours est un autre document, et l'identifiant n'est pas recopié à la création d'une version (il vaut `null` tant que le gestionnaire ne l'a pas saisi).
+
 `url` vaut `null` si l'instance n'a pas déclaré `CICADA_PUBLIC_URL` : derrière un
 reverse proxy, une URL reconstruite depuis l'hôte de la requête serait souvent
 l'adresse interne du conteneur, et la GED enregistrerait un lien mort sans que

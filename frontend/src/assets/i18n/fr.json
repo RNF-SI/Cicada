@@ -728,7 +728,7 @@
         "title": "Paramètres de l'instance",
         "description": "Fonctionnalités activables spécifiquement sur cette instance.",
         "docGestionFcen": "Afficher le champ ID Doc'Gestion FCEN",
-        "docGestionFcenHint": "Ajoute le champ ID_Doc'Gestion FCEN aux formulaires de plan de gestion. À n'activer que sur l'instance de la FCEN."
+        "docGestionFcenHint": "Ajoute le champ ID_Doc'Gestion FCEN aux formulaires des plans de gestion uniquement (pas aux autres documents). À n'activer que sur l'instance de la FCEN."
       },
       "homepage": {
         "title": "Image de la page d'accueil",
@@ -1303,7 +1303,7 @@
         "redacteurs": "Si plusieurs, séparez les noms par une virgule",
         "relecteurs": "Si plusieurs, séparez les noms par une virgule",
         "organismesRedacteurs": "Organismes ayant le droit de rédaction sur ce plan (distincts des organismes gestionnaires)",
-        "docGestion": "Destiné uniquement à l'instance de la FCEN dans une prochaine version. Pour l'instant, il n'est pas nécessaire de remplir ce champ."
+        "docGestion": "Identifiant de ce document dans Doc'Gestion FCEN. Chaque version (plan révisé, évaluation mi-parcours…) a le sien : il n'est pas repris d'une version à l'autre."
       },
       "createOrganisme": "Créer un organisme",
       "createOrganismePrompt": "Nom du nouvel organisme :",

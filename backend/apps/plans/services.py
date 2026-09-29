@@ -274,7 +274,8 @@ class PlanDuplicationService:
         validations administratives CSRPN (`date_avis_csrpn`,
         `date_validation_comite`, `date_arrete_pref`, `numero_arrete_pref`,
         `validation_step`) — puis réinitialise les champs de contrôle et de
-        cycle de vie. Le statut repart à `draft` (seule la métadonnée exclue).
+        cycle de vie. Le statut repart à `draft` ; les identifiants propres au
+        document (`uuid_plan`, `id_docgestion_fcen`) ne sont pas recopiés.
 
         Les `overrides` fixent les champs propres au flux appelant (nom,
         version, id_type_document, rang, années…). #377 / copie des métadonnées.
@@ -287,8 +288,14 @@ class PlanDuplicationService:
             # l'unicité — et, s'il passait, une GED tierce verrait la nouvelle
             # version écraser la précédente, les deux portant la même clé.
             uuid_plan=uuid.uuid4(),
+            # #458 — L'ID Doc'Gestion FCEN désigne UN document (plan initial,
+            # révision, évaluation mi-parcours…) dans la GED de la FCEN : deux
+            # documents, deux identifiants. Le recopier ferait pointer la
+            # nouvelle version sur la fiche GED de la précédente ; il reste à
+            # saisir sur la nouvelle version.
+            id_docgestion_fcen=None,
             plan_parent=source_plan,
-            statut='draft',          # seule métadonnée NON copiée
+            statut='draft',          # métadonnée NON copiée (avec l'ID FCEN)
             geometrie=None,          # recalculée depuis les sites
             # Attributs de cycle de vie (non métadonnées) : repartent à zéro
             is_mi_parcours=False,
