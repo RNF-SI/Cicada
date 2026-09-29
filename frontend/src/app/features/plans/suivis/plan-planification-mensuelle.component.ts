@@ -1,5 +1,5 @@
 import { Component, inject, input, signal, computed, effect } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { Router } from '@angular/router';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
@@ -63,9 +63,13 @@ interface CalendarRow {
   selector: 'app-plan-planification-mensuelle',
   standalone: true,
   imports: [
-    CommonModule, MatTooltipModule, TranslateModule, PriorityBadgeComponent,
-    FilterDropdownComponent, FilterOptionListComponent, FilterPanelDirective,
-  ],
+    MatTooltipModule,
+    TranslateModule,
+    PriorityBadgeComponent,
+    FilterDropdownComponent,
+    FilterOptionListComponent,
+    FilterPanelDirective
+],
   templateUrl: './plan-planification-mensuelle.component.html',
   styleUrl: './plan-planification-mensuelle.component.scss'
 })

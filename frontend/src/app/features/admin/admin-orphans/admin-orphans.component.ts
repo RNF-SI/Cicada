@@ -1,5 +1,5 @@
 import { Component, inject, signal, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { RouterModule } from '@angular/router';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { TranslateModule } from '@ngx-translate/core';
@@ -9,7 +9,7 @@ import { OrphansService, OrphanSite, OrphanPlan } from '../../../core/services/o
 @Component({
   selector: 'app-admin-orphans',
   standalone: true,
-  imports: [CommonModule, RouterModule, MatProgressSpinnerModule, TranslateModule],
+  imports: [RouterModule, MatProgressSpinnerModule, TranslateModule],
   templateUrl: './admin-orphans.component.html',
   styleUrl: './admin-orphans.component.scss'
 })

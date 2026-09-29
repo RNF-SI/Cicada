@@ -1,5 +1,5 @@
 import { Component, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
 import { TranslateModule } from '@ngx-translate/core';
@@ -23,7 +23,7 @@ export interface ExtendDurationDialogResult {
 @Component({
   selector: 'app-extend-duration-dialog',
   standalone: true,
-  imports: [CommonModule, MatDialogModule, MatButtonModule, TranslateModule],
+  imports: [MatDialogModule, MatButtonModule, TranslateModule],
   templateUrl: './extend-duration-dialog.component.html',
   styleUrl: './extend-duration-dialog.component.scss',
 })

@@ -1,5 +1,5 @@
 import { Component, Input } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 
 export type TagVariant =
   // Palette pastel — texte toujours noir #343433 (AA)
@@ -43,7 +43,7 @@ export type TagSize = 'sm' | 'md';
 @Component({
   selector: 'app-tag',
   standalone: true,
-  imports: [CommonModule],
+  imports: [],
   template: `
     <span
       class="app-tag"

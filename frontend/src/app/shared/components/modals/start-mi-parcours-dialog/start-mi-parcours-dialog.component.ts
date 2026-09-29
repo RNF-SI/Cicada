@@ -1,5 +1,5 @@
 import { Component, OnInit, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { FormsModule } from '@angular/forms';
 import { MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
@@ -39,7 +39,6 @@ type ChoiceMode = 'create' | 'link';
   selector: 'app-start-mi-parcours-dialog',
   standalone: true,
   imports: [
-    CommonModule,
     FormsModule,
     MatDialogModule,
     MatButtonModule,
@@ -48,8 +47,8 @@ type ChoiceMode = 'create' | 'link';
     MatSelectModule,
     MatRadioModule,
     MatProgressSpinnerModule,
-    TranslateModule,
-  ],
+    TranslateModule
+],
   templateUrl: './start-mi-parcours-dialog.component.html',
   styleUrl: './start-mi-parcours-dialog.component.scss',
 })

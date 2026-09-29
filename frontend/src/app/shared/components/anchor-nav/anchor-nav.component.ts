@@ -1,5 +1,5 @@
 import { Component, EventEmitter, Input, Output, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { TranslateModule } from '@ngx-translate/core';
 
 export interface AnchorNavItem {
@@ -37,7 +37,7 @@ export interface AnchorNavItem {
 @Component({
   selector: 'app-anchor-nav',
   standalone: true,
-  imports: [CommonModule, TranslateModule],
+  imports: [TranslateModule],
   templateUrl: './anchor-nav.component.html',
   styleUrl: './anchor-nav.component.scss',
 })

@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common';
+
 import { Component, computed, inject, input, model, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
@@ -28,13 +28,12 @@ import {
   selector: 'app-exploration-filtres',
   standalone: true,
   imports: [
-    CommonModule,
     TranslateModule,
     FilterDropdownComponent,
     FilterOptionListComponent,
     FilterPanelDirective,
-    FilterTreeComponent,
-  ],
+    FilterTreeComponent
+],
   templateUrl: './exploration-filtres.component.html',
   styleUrl: './exploration-filtres.component.scss',
 })

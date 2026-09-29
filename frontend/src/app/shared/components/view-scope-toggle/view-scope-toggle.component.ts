@@ -1,5 +1,5 @@
 import { Component, Input, Output, EventEmitter } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { MatButtonToggleModule } from '@angular/material/button-toggle';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { TranslateModule } from '@ngx-translate/core';
@@ -35,11 +35,10 @@ export interface ViewScopeOption {
   selector: 'app-view-scope-toggle',
   standalone: true,
   imports: [
-    CommonModule,
     MatButtonToggleModule,
     MatTooltipModule,
     TranslateModule
-  ],
+],
   template: `
     <div class="view-scope-toggle">
       <mat-button-toggle-group

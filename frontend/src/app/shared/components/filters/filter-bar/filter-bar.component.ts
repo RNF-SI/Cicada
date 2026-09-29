@@ -1,5 +1,5 @@
 import { Component, booleanAttribute, input, output } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { TranslateModule } from '@ngx-translate/core';
 import { FilterTheme } from '../filter.types';
 
@@ -26,7 +26,7 @@ import { FilterTheme } from '../filter.types';
 @Component({
   selector: 'app-filter-bar',
   standalone: true,
-  imports: [CommonModule, TranslateModule],
+  imports: [TranslateModule],
   templateUrl: './filter-bar.component.html',
   styleUrl: './filter-bar.component.scss',
   host: {

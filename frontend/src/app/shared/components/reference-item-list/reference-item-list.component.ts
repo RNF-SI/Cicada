@@ -1,5 +1,5 @@
 import { Component, Input, Output, EventEmitter, inject, signal, OnInit, OnDestroy } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatAutocompleteModule, MatAutocompleteSelectedEvent } from '@angular/material/autocomplete';
@@ -24,7 +24,6 @@ import { HabitatChipComponent } from '../habitat-chip/habitat-chip.component';
   selector: 'app-reference-item-list',
   standalone: true,
   imports: [
-    CommonModule,
     ReactiveFormsModule,
     MatChipsModule,
     MatAutocompleteModule,
@@ -35,8 +34,8 @@ import { HabitatChipComponent } from '../habitat-chip/habitat-chip.component';
     MatProgressSpinnerModule,
     MatSelectModule,
     TranslateModule,
-    HabitatChipComponent,
-  ],
+    HabitatChipComponent
+],
   templateUrl: './reference-item-list.component.html',
   styleUrl: './reference-item-list.component.scss'
 })

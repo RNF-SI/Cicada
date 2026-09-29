@@ -1,5 +1,5 @@
 import { Component, inject, signal, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { FormsModule, ReactiveFormsModule, FormControl } from '@angular/forms';
 import { MatDialog, MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { ConfirmDialogComponent } from '../../confirm-dialog/confirm-dialog.component';
@@ -45,7 +45,6 @@ export interface LinkPlanReferentModalData {
   selector: 'app-link-plan-referent-modal',
   standalone: true,
   imports: [
-    CommonModule,
     FormsModule,
     ReactiveFormsModule,
     MatDialogModule,
@@ -56,7 +55,7 @@ export interface LinkPlanReferentModalData {
     MatInputModule,
     MatIconModule,
     TranslateModule
-  ],
+],
   templateUrl: './link-plan-referent-modal.component.html',
   styleUrl: './link-plan-referent-modal.component.scss'
 })

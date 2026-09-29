@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common';
+
 import { Component, computed, effect, inject, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
@@ -45,7 +45,6 @@ interface PuceFiltre {
   selector: 'app-exploration-contenus',
   standalone: true,
   imports: [
-    CommonModule,
     FormsModule,
     RouterModule,
     TranslateModule,
@@ -53,8 +52,8 @@ interface PuceFiltre {
     ExplorationFiltresComponent,
     FilterDropdownComponent,
     FilterOptionListComponent,
-    FilterPanelDirective,
-  ],
+    FilterPanelDirective
+],
   templateUrl: './exploration-contenus.component.html',
   styleUrl: './exploration-contenus.component.scss',
 })

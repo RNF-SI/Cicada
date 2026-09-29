@@ -1,5 +1,5 @@
 import { Component, inject, signal, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { FormsModule, ReactiveFormsModule, FormControl } from '@angular/forms';
 import { MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -24,7 +24,6 @@ export interface LinkPlanToSiteDialogData {
   selector: 'app-link-plan-to-site-dialog',
   standalone: true,
   imports: [
-    CommonModule,
     FormsModule,
     ReactiveFormsModule,
     MatDialogModule,
@@ -35,7 +34,7 @@ export interface LinkPlanToSiteDialogData {
     MatInputModule,
     MatIconModule,
     TranslateModule
-  ],
+],
   templateUrl: './link-plan-to-site-dialog.component.html',
   styleUrl: './link-plan-to-site-dialog.component.scss'
 })

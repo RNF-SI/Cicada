@@ -1,5 +1,5 @@
 import { Component, EventEmitter, Input, Output } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 
 export interface StepperStep {
   /** Identifiant unique de l'étape */
@@ -35,7 +35,7 @@ export interface StepperStep {
 @Component({
   selector: 'app-stepper',
   standalone: true,
-  imports: [CommonModule],
+  imports: [],
   templateUrl: './stepper.component.html',
   styleUrl: './stepper.component.scss',
 })

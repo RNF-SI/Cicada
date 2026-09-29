@@ -295,37 +295,34 @@ describe('HeaderComponent', () => {
   // ==================== ROUTE DETECTION ====================
 
   describe('Route Detection', () => {
-    it('should detect home page at root', fakeAsync(() => {
-      router.navigate(['/']);
-      tick();
+    it('should detect home page at root', async () => {
+      await router.navigate(['/']);
       fixture.detectChanges();
 
       expect(component.isHomePage()).toBe(true);
-    }));
+    });
 
-    it('should detect home page at /accueil', fakeAsync(() => {
-      router.navigate(['/accueil']);
-      tick();
+    it('should detect home page at /accueil', async () => {
+      await router.navigate(['/accueil']);
       fixture.detectChanges();
 
       expect(component.isHomePage()).toBe(true);
-    }));
+    });
 
-    it('should not detect other routes as home page', fakeAsync(() => {
-      router.navigate(['/plans']);
-      tick();
+    it('should not detect other routes as home page', async () => {
+      // Depuis Angular 21, une navigation ne se termine pas sous fakeAsync/tick
+      await router.navigate(['/plans']);
       fixture.detectChanges();
 
       expect(component.isHomePage()).toBe(false);
-    }));
+    });
 
-    it('should check if route is active for home', fakeAsync(() => {
-      router.navigate(['/']);
-      tick();
+    it('should check if route is active for home', async () => {
+      await router.navigate(['/']);
       fixture.detectChanges();
 
       expect(component.isActiveRoute('/accueil')).toBe(true);
-    }));
+    });
   });
 
   // ==================== LOGOUT ====================
@@ -420,19 +417,17 @@ describe('HeaderComponent', () => {
   // ==================== NAVIGATION EVENTS ====================
 
   describe('Navigation Events', () => {
-    it('should update home page detection on navigation', fakeAsync(() => {
-      router.navigate(['/']);
-      tick();
+    it('should update home page detection on navigation', async () => {
+      await router.navigate(['/']);
       fixture.detectChanges();
 
       expect(component.isHomePage()).toBe(true);
 
       // Simulate navigation to plans
-      router.navigate(['/plans']);
-      tick();
+      await router.navigate(['/plans']);
       fixture.detectChanges();
 
       expect(component.isHomePage()).toBe(false);
-    }));
+    });
   });
 });

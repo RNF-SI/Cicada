@@ -1,5 +1,5 @@
 import { Component, inject, signal, computed, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { FormsModule } from '@angular/forms';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
@@ -30,8 +30,12 @@ interface SearchUser {
   selector: 'app-admin-redacteurs-principaux',
   standalone: true,
   imports: [
-    CommonModule, FormsModule, MatProgressSpinnerModule, MatSnackBarModule, TranslateModule, SearchBarComponent,
-  ],
+    FormsModule,
+    MatProgressSpinnerModule,
+    MatSnackBarModule,
+    TranslateModule,
+    SearchBarComponent
+],
   templateUrl: './admin-redacteurs-principaux.component.html',
   styleUrls: ['./admin-redacteurs-principaux.component.scss']
 })

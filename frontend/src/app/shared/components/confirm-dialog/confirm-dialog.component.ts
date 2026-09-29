@@ -5,7 +5,7 @@
  * passer `impactList` pour afficher explicitement les entités qui seront supprimées.
  */
 import { Component, Inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialogModule, MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { TranslateModule } from '@ngx-translate/core';
@@ -37,11 +37,10 @@ export interface ConfirmDialogData {
   selector: 'app-confirm-dialog',
   standalone: true,
   imports: [
-    CommonModule,
     MatButtonModule,
     MatDialogModule,
     TranslateModule
-  ],
+],
   template: `
     <h2 mat-dialog-title>
       @if (data.destructive) {

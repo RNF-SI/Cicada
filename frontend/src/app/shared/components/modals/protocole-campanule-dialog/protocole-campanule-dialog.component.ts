@@ -2,7 +2,7 @@
  * Dialog de consultation d'un protocole CAMPanule.
  */
 import { Component, OnInit, inject, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { MAT_DIALOG_DATA, MatDialogRef, MatDialogModule } from '@angular/material/dialog';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatButtonModule } from '@angular/material/button';
@@ -19,12 +19,11 @@ export interface ProtocoleCampanuleDialogData {
   selector: 'app-protocole-campanule-dialog',
   standalone: true,
   imports: [
-    CommonModule,
     MatDialogModule,
     MatProgressSpinnerModule,
     MatButtonModule,
-    TranslateModule,
-  ],
+    TranslateModule
+],
   templateUrl: './protocole-campanule-dialog.component.html',
   styleUrl: './protocole-campanule-dialog.component.scss',
 })

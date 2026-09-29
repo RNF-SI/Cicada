@@ -1,5 +1,5 @@
 import { Component, inject, signal, computed, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { AuthService } from '../../core/services/auth.service';
 import { AdminService, DashboardStats } from '../../core/services/admin.service';
@@ -7,7 +7,7 @@ import { AdminService, DashboardStats } from '../../core/services/admin.service'
 @Component({
   selector: 'app-admin-dashboard',
   standalone: true,
-  imports: [CommonModule, MatProgressSpinnerModule],
+  imports: [MatProgressSpinnerModule],
   templateUrl: './admin-dashboard.component.html',
   styleUrl: './admin-dashboard.component.scss'
 })

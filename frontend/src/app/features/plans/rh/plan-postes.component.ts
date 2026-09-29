@@ -10,7 +10,7 @@
  * alimentent la déclinaison du temps de travail des fiches actions.
  */
 import { Component, OnInit, inject, signal, computed } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { ActivatedRoute } from '@angular/router';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatButtonModule } from '@angular/material/button';
@@ -35,10 +35,15 @@ import {
   selector: 'app-plan-postes',
   standalone: true,
   imports: [
-    CommonModule, TranslateModule,
-    MatProgressSpinnerModule, MatButtonModule, MatDialogModule,
-    HeaderComponent, PlanSidebarComponent, EntityTileComponent, TagComponent,
-  ],
+    TranslateModule,
+    MatProgressSpinnerModule,
+    MatButtonModule,
+    MatDialogModule,
+    HeaderComponent,
+    PlanSidebarComponent,
+    EntityTileComponent,
+    TagComponent
+],
   templateUrl: './plan-postes.component.html',
   styleUrl: './plan-postes.component.scss',
 })

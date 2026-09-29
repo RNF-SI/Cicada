@@ -1,5 +1,5 @@
 import { Component, inject, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { Router, ActivatedRoute, RouterLink } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
@@ -12,14 +12,13 @@ import { FormFieldComponent } from '../../shared/components/form-field/form-fiel
   selector: 'app-login',
   standalone: true,
   imports: [
-    CommonModule,
     ReactiveFormsModule,
     RouterLink,
     MatButtonModule,
     MatProgressSpinnerModule,
     TranslateModule,
-    FormFieldComponent,
-  ],
+    FormFieldComponent
+],
   templateUrl: './login.component.html',
   styleUrl: './login.component.scss'
 })

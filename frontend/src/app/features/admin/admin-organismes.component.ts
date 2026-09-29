@@ -1,5 +1,5 @@
 import { Component, inject, signal, computed, OnInit, OnDestroy } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { FormsModule } from '@angular/forms';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
@@ -41,7 +41,6 @@ interface DisplayOrganisme {
   selector: 'app-admin-organismes',
   standalone: true,
   imports: [
-    CommonModule,
     FormsModule,
     MatDialogModule,
     MatSnackBarModule,
@@ -49,8 +48,8 @@ interface DisplayOrganisme {
     MatTooltipModule,
     TranslateModule,
     PaginationComponent,
-    SearchBarComponent,
-  ],
+    SearchBarComponent
+],
   templateUrl: './admin-organismes.component.html',
   styleUrl: './admin-organismes.component.scss'
 })

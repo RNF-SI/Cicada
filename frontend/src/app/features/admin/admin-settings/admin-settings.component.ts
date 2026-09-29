@@ -1,5 +1,5 @@
 import { Component, inject, OnInit, signal, effect } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
@@ -15,7 +15,6 @@ import { CheckboxComponent } from '../../../shared/components/checkbox/checkbox.
   selector: 'app-admin-settings',
   standalone: true,
   imports: [
-    CommonModule,
     FormsModule,
     MatButtonModule,
     MatCardModule,
@@ -25,7 +24,7 @@ import { CheckboxComponent } from '../../../shared/components/checkbox/checkbox.
     MatButtonToggleModule,
     TranslateModule,
     CheckboxComponent
-  ],
+],
   templateUrl: './admin-settings.component.html',
   styleUrl: './admin-settings.component.scss'
 })

@@ -1,5 +1,5 @@
 import { Component, inject, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { FormsModule } from '@angular/forms';
 import { MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -31,13 +31,12 @@ export interface AdminRoleChangeModalResult {
   selector: 'app-admin-role-change-modal',
   standalone: true,
   imports: [
-    CommonModule,
     FormsModule,
     MatDialogModule,
     MatButtonModule,
     TranslateModule,
-    FormFieldComponent,
-  ],
+    FormFieldComponent
+],
   templateUrl: './admin-role-change-modal.component.html',
   styleUrl: './admin-role-change-modal.component.scss'
 })

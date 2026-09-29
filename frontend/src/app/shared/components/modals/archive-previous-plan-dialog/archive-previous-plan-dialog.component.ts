@@ -1,5 +1,5 @@
 import { Component, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
 import { TranslateModule } from '@ngx-translate/core';
@@ -66,7 +66,7 @@ export function findPreviousValidatedPlan(
 @Component({
   selector: 'app-archive-previous-plan-dialog',
   standalone: true,
-  imports: [CommonModule, MatDialogModule, MatButtonModule, TranslateModule],
+  imports: [MatDialogModule, MatButtonModule, TranslateModule],
   templateUrl: './archive-previous-plan-dialog.component.html',
   styleUrl: './archive-previous-plan-dialog.component.scss',
 })

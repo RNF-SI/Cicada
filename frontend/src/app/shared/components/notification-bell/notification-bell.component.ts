@@ -3,7 +3,7 @@
  * Affiche un badge avec le nombre de notifications non lues.
  */
 import { Component, inject, computed, OnInit, OnDestroy } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { Router, RouterModule } from '@angular/router';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatButtonModule } from '@angular/material/button';
@@ -18,13 +18,12 @@ import { NotificationListItem } from '../../../core/models/notification.model';
   selector: 'app-notification-bell',
   standalone: true,
   imports: [
-    CommonModule,
     RouterModule,
     MatMenuModule,
     MatButtonModule,
     MatBadgeModule,
     MatDividerModule
-  ],
+],
   templateUrl: './notification-bell.component.html',
   styleUrl: './notification-bell.component.scss'
 })

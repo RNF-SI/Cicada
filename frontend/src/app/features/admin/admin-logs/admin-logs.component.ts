@@ -3,7 +3,7 @@
  * Permet aux super admins de consulter et acquitter les erreurs.
  */
 import { Component, inject, signal, OnInit, OnDestroy } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { FormsModule } from '@angular/forms';
 import { MatTableModule } from '@angular/material/table';
 import { MatButtonModule } from '@angular/material/button';
@@ -41,7 +41,6 @@ import { ErrorLogDetailDialogComponent } from './error-log-detail-dialog.compone
   selector: 'app-admin-logs',
   standalone: true,
   imports: [
-    CommonModule,
     FormsModule,
     MatTableModule,
     MatButtonModule,
@@ -61,7 +60,7 @@ import { ErrorLogDetailDialogComponent } from './error-log-detail-dialog.compone
     MatDatepickerModule,
     MatNativeDateModule,
     TranslateModule
-  ],
+],
   templateUrl: './admin-logs.component.html',
   styleUrl: './admin-logs.component.scss'
 })

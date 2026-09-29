@@ -9,7 +9,7 @@ import {
   FilterPanelDirective,
   FilterOption,
 } from '../../filters';
-import { CommonModule } from '@angular/common';
+
 import { FormsModule, ReactiveFormsModule, FormControl } from '@angular/forms';
 import { MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -56,7 +56,6 @@ export interface ManageSiteUsersModalData {
   selector: 'app-manage-site-users-modal',
   standalone: true,
   imports: [
-    CommonModule,
     FormsModule,
     ReactiveFormsModule,
     MatDialogModule,
@@ -75,7 +74,7 @@ export interface ManageSiteUsersModalData {
     FilterPanelDirective,
     MatTooltipModule,
     TranslateModule
-  ],
+],
   templateUrl: './manage-site-users-modal.component.html',
   styleUrl: './manage-site-users-modal.component.scss'
 })

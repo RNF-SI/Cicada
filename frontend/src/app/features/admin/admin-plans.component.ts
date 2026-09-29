@@ -1,5 +1,5 @@
 import { Component, inject, signal, computed, OnInit, OnDestroy } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
@@ -92,7 +92,6 @@ interface DisplayOrganisme {
   selector: 'app-admin-plans',
   standalone: true,
   imports: [
-    CommonModule,
     FormsModule,
     RouterModule,
     MatDialogModule,
@@ -106,8 +105,8 @@ interface DisplayOrganisme {
     FilterDropdownComponent,
     FilterOptionListComponent,
     FilterPanelDirective,
-    StatusChipComponent,
-  ],
+    StatusChipComponent
+],
   templateUrl: './admin-plans.component.html',
   styleUrl: './admin-plans.component.scss'
 })

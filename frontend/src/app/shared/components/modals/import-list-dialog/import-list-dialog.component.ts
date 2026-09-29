@@ -1,5 +1,5 @@
 import { Component, inject, signal, computed } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
@@ -43,7 +43,6 @@ export interface RejectedEntry {
   selector: 'app-import-list-dialog',
   standalone: true,
   imports: [
-    CommonModule,
     MatDialogModule,
     MatFormFieldModule,
     MatInputModule,
@@ -51,8 +50,8 @@ export interface RejectedEntry {
     MatProgressSpinnerModule,
     MatIconModule,
     TranslateModule,
-    FormFieldComponent,
-  ],
+    FormFieldComponent
+],
   templateUrl: './import-list-dialog.component.html',
   styleUrl: './import-list-dialog.component.scss',
 })

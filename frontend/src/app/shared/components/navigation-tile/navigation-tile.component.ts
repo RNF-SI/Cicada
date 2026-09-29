@@ -1,5 +1,5 @@
 import { Component, Input } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { RouterModule } from '@angular/router';
 
 export type TileColor = 'primary' | 'salmon' | 'terra-cotta' | 'yellow' | 'pale-green';
@@ -23,7 +23,7 @@ export type TileColor = 'primary' | 'salmon' | 'terra-cotta' | 'yellow' | 'pale-
 @Component({
   selector: 'app-navigation-tile',
   standalone: true,
-  imports: [CommonModule, RouterModule],
+  imports: [RouterModule],
   templateUrl: './navigation-tile.component.html',
   styleUrl: './navigation-tile.component.scss'
 })

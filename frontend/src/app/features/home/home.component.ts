@@ -1,5 +1,5 @@
 import { Component, inject, OnInit, computed } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { RouterModule } from '@angular/router';
 import { TranslateModule } from '@ngx-translate/core';
 import { MatButtonModule } from '@angular/material/button';
@@ -15,14 +15,13 @@ import { EuFundingNoticeComponent } from '../../shared/components/eu-funding-not
   selector: 'app-home',
   standalone: true,
   imports: [
-    CommonModule,
     RouterModule,
     TranslateModule,
     HeaderComponent,
     NavigationTileComponent,
     MatButtonModule,
     EuFundingNoticeComponent
-  ],
+],
   templateUrl: './home.component.html',
   styleUrl: './home.component.scss'
 })

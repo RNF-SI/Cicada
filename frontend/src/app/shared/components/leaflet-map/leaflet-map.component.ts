@@ -14,7 +14,7 @@ import {
   Renderer2,
   inject
 } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import * as L from 'leaflet';
 
 /**
@@ -24,7 +24,7 @@ import * as L from 'leaflet';
 @Component({
   selector: 'app-leaflet-map',
   standalone: true,
-  imports: [CommonModule],
+  imports: [],
   templateUrl: './leaflet-map.component.html',
   styleUrl: './leaflet-map.component.scss'
 })

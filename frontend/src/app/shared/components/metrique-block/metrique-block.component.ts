@@ -1,5 +1,5 @@
 import { Component, EventEmitter, Input, Output } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { FormsModule } from '@angular/forms';
 import { TranslateModule } from '@ngx-translate/core';
 
@@ -60,7 +60,7 @@ const SCORE_META: ScoreMeta[] = [
 @Component({
   selector: 'app-metrique-block',
   standalone: true,
-  imports: [CommonModule, FormsModule, TranslateModule],
+  imports: [FormsModule, TranslateModule],
   templateUrl: './metrique-block.component.html',
   styleUrl: './metrique-block.component.scss',
 })

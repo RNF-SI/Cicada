@@ -1,5 +1,5 @@
 import { Component, computed, inject, input, output, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { TranslateModule } from '@ngx-translate/core';
 import { HabitatService, CorrespondanceHabitat, HabitatOwnInfo } from '../../../core/services/habitat.service';
 
@@ -27,7 +27,7 @@ interface RelatedGroup {
 @Component({
   selector: 'app-habitat-chip',
   standalone: true,
-  imports: [CommonModule, TranslateModule],
+  imports: [TranslateModule],
   templateUrl: './habitat-chip.component.html',
   styleUrl: './habitat-chip.component.scss',
 })

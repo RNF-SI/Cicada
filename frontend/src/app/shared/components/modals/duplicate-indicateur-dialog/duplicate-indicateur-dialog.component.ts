@@ -9,7 +9,7 @@
  * l'appelant pour rester cohérent avec les autres patterns du module.
  */
 import { Component, inject, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCheckboxModule } from '@angular/material/checkbox';
@@ -52,12 +52,11 @@ export interface DuplicateIndicateurDialogResult {
   selector: 'app-duplicate-indicateur-dialog',
   standalone: true,
   imports: [
-    CommonModule,
     MatDialogModule,
     MatButtonModule,
     MatCheckboxModule,
-    TranslateModule,
-  ],
+    TranslateModule
+],
   template: `
     <h2 mat-dialog-title>{{ 'enjeux.indicateurs.duplicate.title' | translate }}</h2>
     <mat-dialog-content>

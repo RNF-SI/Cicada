@@ -1,5 +1,5 @@
 import { Component, inject, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { FormsModule } from '@angular/forms';
 import { MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
@@ -20,13 +20,12 @@ export interface DeactivateUserModalResult {
   selector: 'app-deactivate-user-modal',
   standalone: true,
   imports: [
-    CommonModule,
     FormsModule,
     MatDialogModule,
     MatButtonModule,
     TranslateModule,
-    FormFieldComponent,
-  ],
+    FormFieldComponent
+],
   templateUrl: './deactivate-user-modal.component.html',
   styleUrl: './deactivate-user-modal.component.scss'
 })

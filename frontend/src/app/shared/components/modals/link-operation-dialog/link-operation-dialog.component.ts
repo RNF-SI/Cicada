@@ -1,5 +1,5 @@
 import { Component, computed, inject, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { FormsModule } from '@angular/forms';
 import { MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
@@ -43,7 +43,6 @@ interface OperationItem {
   selector: 'app-link-operation-dialog',
   standalone: true,
   imports: [
-    CommonModule,
     FormsModule,
     MatDialogModule,
     MatButtonModule,
@@ -53,8 +52,8 @@ interface OperationItem {
     MatTooltipModule,
     TranslateModule,
     FormFieldComponent,
-    TagComponent,
-  ],
+    TagComponent
+],
   templateUrl: './link-operation-dialog.component.html',
   styleUrl: './link-operation-dialog.component.scss',
 })
