@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal, computed } from '@angular/core';
+import { Component, OnInit, inject, signal, computed, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule, DatePipe } from '@angular/common';
 import { MatTableModule } from '@angular/material/table';
 import { MatButtonModule } from '@angular/material/button';
@@ -32,6 +32,7 @@ import { USER_STATUS_TAG } from '../../../shared/utils/tag-icons';
     TranslateModule
   ],
   templateUrl: './admin-rgpd.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './admin-rgpd.component.scss'
 })
 export class AdminRgpdComponent implements OnInit {

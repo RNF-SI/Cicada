@@ -1,5 +1,5 @@
-import { Component, EventEmitter, Input, Output, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, EventEmitter, Input, Output, signal, ChangeDetectionStrategy } from '@angular/core';
+
 
 export type AccordionVariant = 'default' | 'enjeu' | 'fcr' | 'subtle' | 'section';
 export type AccordionSize = 'sm' | 'md' | 'lg';
@@ -40,8 +40,9 @@ export type AccordionSize = 'sm' | 'md' | 'lg';
 @Component({
   selector: 'app-accordion',
   standalone: true,
-  imports: [CommonModule],
+  imports: [],
   templateUrl: './accordion.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './accordion.component.scss',
 })
 export class AccordionComponent {

@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal, computed } from '@angular/core';
+import { Component, OnInit, inject, signal, computed, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterModule } from '@angular/router';
@@ -37,6 +37,7 @@ type ScoreLevel = 'very-bad' | 'bad' | 'neutral' | 'good' | 'very-good' | 'no-da
     HeaderComponent, PlanSidebarComponent
   ],
   templateUrl: './indicateur-global.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './indicateur-global.component.scss'
 })
 export class IndicateurGlobalComponent implements OnInit {

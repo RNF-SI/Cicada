@@ -1,5 +1,5 @@
-import { Component, inject, signal, computed } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, inject, signal, computed, ChangeDetectionStrategy } from '@angular/core';
+
 import { FormsModule } from '@angular/forms';
 import { MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
@@ -48,7 +48,6 @@ const TARGET_FIELDS = [
   selector: 'app-bulk-site-import-modal',
   standalone: true,
   imports: [
-    CommonModule,
     FormsModule,
     MatDialogModule,
     MatButtonModule,
@@ -62,9 +61,10 @@ const TARGET_FIELDS = [
     MatIconModule,
     MatTooltipModule,
     TranslateModule,
-    TagComponent,
-  ],
+    TagComponent
+],
   templateUrl: './bulk-site-import-modal.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './bulk-site-import-modal.component.scss',
 })
 export class BulkSiteImportModalComponent {

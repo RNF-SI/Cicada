@@ -10,10 +10,18 @@
     <h4>{{ 'plans.duplicate.dialog.planInfo' | translate }}</h4>
     <div class="plan-info-details">
       <span class="plan-name">{{ data.planName }}</span>
-      <span class="plan-meta" *ngIf="data.planRang">{{ 'plans.duplicate.dialog.rangLabel' | translate:{ rang: data.planRang } }}</span>
-      <span class="plan-meta" *ngIf="data.planVersion">{{ 'plans.duplicate.dialog.versionLabel' | translate:{ version: data.planVersion } }}</span>
-      <span class="plan-meta" *ngIf="data.planPeriod">{{ data.planPeriod }}</span>
-      <span class="plan-meta" *ngIf="data.nbSites">{{ data.nbSites }} site(s)</span>
+      @if (data.planRang) {
+        <span class="plan-meta">{{ 'plans.duplicate.dialog.rangLabel' | translate:{ rang: data.planRang } }}</span>
+      }
+      @if (data.planVersion) {
+        <span class="plan-meta">{{ 'plans.duplicate.dialog.versionLabel' | translate:{ version: data.planVersion } }}</span>
+      }
+      @if (data.planPeriod) {
+        <span class="plan-meta">{{ data.planPeriod }}</span>
+      }
+      @if (data.nbSites) {
+        <span class="plan-meta">{{ data.nbSites }} site(s)</span>
+      }
     </div>
   </div>
 
@@ -59,9 +67,11 @@
         [disabled]="subElementsDisabled()"
         (checkedChange)="copySubElements.set($event)">
       </app-checkbox>
-      <span class="option-hint" *ngIf="subElementsDisabled()">
-        {{ 'plans.duplicate.dialog.hints.subElementsDisabled' | translate }}
-      </span>
+      @if (subElementsDisabled()) {
+        <span class="option-hint">
+          {{ 'plans.duplicate.dialog.hints.subElementsDisabled' | translate }}
+        </span>
+      }
     </div>
   </div>
 
@@ -87,7 +97,11 @@
     {{ 'plans.duplicate.dialog.cancel' | translate }}
   </button>
   <button mat-flat-button color="primary" (click)="onConfirm()" [disabled]="loading()">
-    <mat-spinner *ngIf="loading()" diameter="20"></mat-spinner>
-    <span *ngIf="!loading()">{{ 'plans.duplicate.dialog.confirm' | translate }}</span>
+    @if (loading()) {
+      <mat-spinner diameter="20"></mat-spinner>
+    }
+    @if (!loading()) {
+      <span>{{ 'plans.duplicate.dialog.confirm' | translate }}</span>
+    }
   </button>
 </mat-dialog-actions>

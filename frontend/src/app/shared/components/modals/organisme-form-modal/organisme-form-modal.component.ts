@@ -1,5 +1,5 @@
-import { Component, inject, signal, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, inject, signal, OnInit, ChangeDetectionStrategy } from '@angular/core';
+
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -21,7 +21,6 @@ export interface OrganismeFormModalData {
   selector: 'app-organisme-form-modal',
   standalone: true,
   imports: [
-    CommonModule,
     ReactiveFormsModule,
     MatDialogModule,
     MatFormFieldModule,
@@ -30,9 +29,10 @@ export interface OrganismeFormModalData {
     MatSelectModule,
     MatProgressSpinnerModule,
     TranslateModule,
-    FormFieldComponent,
-  ],
+    FormFieldComponent
+],
   templateUrl: './organisme-form-modal.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './organisme-form-modal.component.scss'
 })
 export class OrganismeFormModalComponent implements OnInit {

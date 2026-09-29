@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal, computed } from '@angular/core';
+import { Component, OnInit, inject, signal, computed, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
@@ -34,6 +34,7 @@ import {
   standalone: true,
   imports: [CommonModule, RouterModule, TranslateModule, LeafletMapEditComponent, MetriqueGridDisplayComponent, PriorityBadgeComponent],
   templateUrl: './operation-fiche.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './operation-fiche.component.scss',
 })
 export class OperationFicheComponent implements OnInit {

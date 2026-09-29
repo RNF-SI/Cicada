@@ -295,37 +295,34 @@ describe('HeaderComponent', () => {
   // ==================== ROUTE DETECTION ====================
 
   describe('Route Detection', () => {
-    it('should detect home page at root', fakeAsync(() => {
-      router.navigate(['/']);
-      tick();
+    it('should detect home page at root', async () => {
+      await router.navigate(['/']);
       fixture.detectChanges();
 
       expect(component.isHomePage()).toBe(true);
-    }));
+    });
 
-    it('should detect home page at /accueil', fakeAsync(() => {
-      router.navigate(['/accueil']);
-      tick();
+    it('should detect home page at /accueil', async () => {
+      await router.navigate(['/accueil']);
       fixture.detectChanges();
 
       expect(component.isHomePage()).toBe(true);
-    }));
+    });
 
-    it('should not detect other routes as home page', fakeAsync(() => {
-      router.navigate(['/plans']);
-      tick();
+    it('should not detect other routes as home page', async () => {
+      // Depuis Angular 21, une navigation ne se termine pas sous fakeAsync/tick
+      await router.navigate(['/plans']);
       fixture.detectChanges();
 
       expect(component.isHomePage()).toBe(false);
-    }));
+    });
 
-    it('should check if route is active for home', fakeAsync(() => {
-      router.navigate(['/']);
-      tick();
+    it('should check if route is active for home', async () => {
+      await router.navigate(['/']);
       fixture.detectChanges();
 
       expect(component.isActiveRoute('/accueil')).toBe(true);
-    }));
+    });
   });
 
   // ==================== LOGOUT ====================
@@ -394,47 +391,43 @@ describe('HeaderComponent', () => {
 
     it('should stop impersonation and reload to admin page', fakeAsync(() => {
       fixture.detectChanges();
-      // window.location.href triggers a full page reload — mock it to prevent jsdom error
-      delete (window as any).location;
-      (window as any).location = { href: '' };
+      // Le rechargement complet de la page n'est pas exécutable sous jsdom
+      const reloadSpy = jest.spyOn(component as any, 'reloadTo').mockImplementation(() => {});
 
       component.stopImpersonation();
       tick();
 
       expect(stopImpersonationMock).toHaveBeenCalled();
-      expect((window as any).location.href).toBe('/administration/utilisateurs');
+      expect(reloadSpy).toHaveBeenCalledWith('/administration/utilisateurs');
     }));
 
     it('should reload to home on stop impersonation error', fakeAsync(() => {
       stopImpersonationMock.mockReturnValue(throwError(() => new Error('Error')));
       fixture.detectChanges();
-      delete (window as any).location;
-      (window as any).location = { href: '' };
+      const reloadSpy = jest.spyOn(component as any, 'reloadTo').mockImplementation(() => {});
 
       component.stopImpersonation();
       tick();
 
       expect(stopImpersonationMock).toHaveBeenCalled();
-      expect((window as any).location.href).toBe('/');
+      expect(reloadSpy).toHaveBeenCalledWith('/');
     }));
   });
 
   // ==================== NAVIGATION EVENTS ====================
 
   describe('Navigation Events', () => {
-    it('should update home page detection on navigation', fakeAsync(() => {
-      router.navigate(['/']);
-      tick();
+    it('should update home page detection on navigation', async () => {
+      await router.navigate(['/']);
       fixture.detectChanges();
 
       expect(component.isHomePage()).toBe(true);
 
       // Simulate navigation to plans
-      router.navigate(['/plans']);
-      tick();
+      await router.navigate(['/plans']);
       fixture.detectChanges();
 
       expect(component.isHomePage()).toBe(false);
-    }));
+    });
   });
 });

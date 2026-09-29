@@ -10,7 +10,8 @@
 @use '@angular/material' as mat;
 
 // Angular Material 19 core styles
-@include mat.core();
+@include mat.elevation-classes();
+@include mat.app-background();
 
 // ============================================
 // DESIGN SYSTEM BASE
@@ -200,93 +201,93 @@ html {
   // ============================================
 
   // Buttons (filled/flat)
-  --mdc-filled-button-container-color: #{$primary-color};
-  --mdc-filled-button-label-text-color: #{$white};
-  --mdc-filled-button-icon-color: #{$white};
-  --mat-filled-button-state-layer-color: #{$white};
-  --mat-filled-button-ripple-color: #{rgba($white, 0.12)};
-  --mat-filled-button-icon-color: #{$white};
+  --mat-button-filled-container-color: #{$primary-color};
+  --mat-button-filled-label-text-color: #{$white};
+  --mat-button-filled-icon-color: #{$white};
+  --mat-button-filled-state-layer-color: #{$white};
+  --mat-button-filled-ripple-color: #{rgba($white, 0.12)};
+  --mat-button-filled-icon-color: #{$white};
 
   // Buttons (outlined/stroked)
-  --mdc-outlined-button-outline-color: #{$primary-color};
-  --mdc-outlined-button-label-text-color: #{$primary-color};
-  --mdc-outlined-button-icon-color: #{$primary-color};
-  --mat-outlined-button-state-layer-color: #{$primary-color};
-  --mat-outlined-button-ripple-color: #{$primary-bg-focus};
-  --mat-outlined-button-icon-color: #{$primary-color};
+  --mat-button-outlined-outline-color: #{$primary-color};
+  --mat-button-outlined-label-text-color: #{$primary-color};
+  --mat-button-outlined-icon-color: #{$primary-color};
+  --mat-button-outlined-state-layer-color: #{$primary-color};
+  --mat-button-outlined-ripple-color: #{$primary-bg-focus};
+  --mat-button-outlined-icon-color: #{$primary-color};
 
   // Buttons (text)
-  --mdc-text-button-label-text-color: #{$primary-color};
-  --mdc-text-button-icon-color: #{$primary-color};
-  --mat-text-button-state-layer-color: #{$primary-color};
-  --mat-text-button-ripple-color: #{$primary-bg-focus};
-  --mat-text-button-icon-color: #{$primary-color};
+  --mat-button-text-label-text-color: #{$primary-color};
+  --mat-button-text-icon-color: #{$primary-color};
+  --mat-button-text-state-layer-color: #{$primary-color};
+  --mat-button-text-ripple-color: #{$primary-bg-focus};
+  --mat-button-text-icon-color: #{$primary-color};
 
   // Checkbox - CRITICAL: checkmark must be WHITE on teal background
-  --mdc-checkbox-selected-checkmark-color: #{$white};
-  --mdc-checkbox-selected-icon-color: #{$primary-color};
-  --mdc-checkbox-selected-focus-icon-color: #{$primary-color};
-  --mdc-checkbox-selected-hover-icon-color: #{$primary-color};
-  --mdc-checkbox-selected-pressed-icon-color: #{$primary-color};
-  --mdc-checkbox-selected-focus-state-layer-color: #{$primary-color};
-  --mdc-checkbox-selected-hover-state-layer-color: #{$primary-color};
-  --mdc-checkbox-selected-pressed-state-layer-color: #{$primary-color};
-  --mdc-checkbox-unselected-icon-color: #{$gray};
-  --mdc-checkbox-unselected-focus-icon-color: #{$gray-dark};
-  --mdc-checkbox-unselected-hover-icon-color: #{$primary-color};
-  --mdc-checkbox-unselected-pressed-icon-color: #{$primary-color};
+  --mat-checkbox-selected-checkmark-color: #{$white};
+  --mat-checkbox-selected-icon-color: #{$primary-color};
+  --mat-checkbox-selected-focus-icon-color: #{$primary-color};
+  --mat-checkbox-selected-hover-icon-color: #{$primary-color};
+  --mat-checkbox-selected-pressed-icon-color: #{$primary-color};
+  --mat-checkbox-selected-focus-state-layer-color: #{$primary-color};
+  --mat-checkbox-selected-hover-state-layer-color: #{$primary-color};
+  --mat-checkbox-selected-pressed-state-layer-color: #{$primary-color};
+  --mat-checkbox-unselected-icon-color: #{$gray};
+  --mat-checkbox-unselected-focus-icon-color: #{$gray-dark};
+  --mat-checkbox-unselected-hover-icon-color: #{$primary-color};
+  --mat-checkbox-unselected-pressed-icon-color: #{$primary-color};
   --mat-checkbox-label-text-color: #{$black};
   // Additional checkbox tokens for M3
   --mat-checkbox-checked-checkmark-color: #{$white};
   --mat-checkbox-disabled-label-color: #{$gray};
 
   // Radio button
-  --mdc-radio-selected-icon-color: #{$primary-color};
-  --mdc-radio-selected-focus-icon-color: #{$primary-color};
-  --mdc-radio-selected-hover-icon-color: #{$primary-color};
-  --mdc-radio-selected-pressed-icon-color: #{$primary-color};
-  --mdc-radio-unselected-icon-color: #{$gray};
-  --mdc-radio-unselected-focus-icon-color: #{$gray-dark};
-  --mdc-radio-unselected-hover-icon-color: #{$primary-color};
-  --mdc-radio-unselected-pressed-icon-color: #{$primary-color};
+  --mat-radio-selected-icon-color: #{$primary-color};
+  --mat-radio-selected-focus-icon-color: #{$primary-color};
+  --mat-radio-selected-hover-icon-color: #{$primary-color};
+  --mat-radio-selected-pressed-icon-color: #{$primary-color};
+  --mat-radio-unselected-icon-color: #{$gray};
+  --mat-radio-unselected-focus-icon-color: #{$gray-dark};
+  --mat-radio-unselected-hover-icon-color: #{$primary-color};
+  --mat-radio-unselected-pressed-icon-color: #{$primary-color};
   --mat-radio-checked-ripple-color: #{$primary-bg-light};
   --mat-radio-ripple-color: #{$primary-bg-light};
 
   // Slide toggle - Track (background)
-  --mdc-switch-selected-track-color: #{$primary-color};
-  --mdc-switch-selected-hover-track-color: #{darken($primary-color, 5%)};
-  --mdc-switch-selected-focus-track-color: #{$primary-color};
-  --mdc-switch-selected-pressed-track-color: #{darken($primary-color, 5%)};
-  --mdc-switch-unselected-track-color: #{$gray-light};
-  --mdc-switch-unselected-hover-track-color: #{$gray};
-  --mdc-switch-unselected-focus-track-color: #{$gray-light};
-  --mdc-switch-unselected-pressed-track-color: #{$gray};
+  --mat-slide-toggle-selected-track-color: #{$primary-color};
+  --mat-slide-toggle-selected-hover-track-color: #{darken($primary-color, 5%)};
+  --mat-slide-toggle-selected-focus-track-color: #{$primary-color};
+  --mat-slide-toggle-selected-pressed-track-color: #{darken($primary-color, 5%)};
+  --mat-slide-toggle-unselected-track-color: #{$gray-light};
+  --mat-slide-toggle-unselected-hover-track-color: #{$gray};
+  --mat-slide-toggle-unselected-focus-track-color: #{$gray-light};
+  --mat-slide-toggle-unselected-pressed-track-color: #{$gray};
 
   // Slide toggle - Handle (knob) - MUST be white/contrasting when selected
-  --mdc-switch-selected-handle-color: #{$white};
-  --mdc-switch-selected-hover-handle-color: #{$white};
-  --mdc-switch-selected-focus-handle-color: #{$white};
-  --mdc-switch-selected-pressed-handle-color: #{$white};
-  --mdc-switch-unselected-handle-color: #{$white};
-  --mdc-switch-unselected-hover-handle-color: #{$white};
-  --mdc-switch-unselected-focus-handle-color: #{$white};
-  --mdc-switch-unselected-pressed-handle-color: #{$white};
-  --mdc-switch-handle-surface-color: #{$white};
+  --mat-slide-toggle-selected-handle-color: #{$white};
+  --mat-slide-toggle-selected-hover-handle-color: #{$white};
+  --mat-slide-toggle-selected-focus-handle-color: #{$white};
+  --mat-slide-toggle-selected-pressed-handle-color: #{$white};
+  --mat-slide-toggle-unselected-handle-color: #{$white};
+  --mat-slide-toggle-unselected-hover-handle-color: #{$white};
+  --mat-slide-toggle-unselected-focus-handle-color: #{$white};
+  --mat-slide-toggle-unselected-pressed-handle-color: #{$white};
+  --mat-slide-toggle-handle-surface-color: #{$white};
 
   // Slide toggle - Icon on handle (optional)
-  --mdc-switch-selected-icon-color: #{$primary-color};
-  --mdc-switch-unselected-icon-color: #{$gray};
+  --mat-slide-toggle-selected-icon-color: #{$primary-color};
+  --mat-slide-toggle-unselected-icon-color: #{$gray};
 
   // Progress spinner
-  --mdc-circular-progress-active-indicator-color: #{$primary-color};
+  --mat-progress-spinner-active-indicator-color: #{$primary-color};
 
   // Progress bar
-  --mdc-linear-progress-active-indicator-color: #{$primary-color};
+  --mat-progress-bar-active-indicator-color: #{$primary-color};
 
   // Form field (focus/hover states)
-  --mdc-outlined-text-field-focus-outline-color: #{$primary-color};
-  --mdc-outlined-text-field-hover-outline-color: #{$primary-color};
-  --mdc-outlined-text-field-focus-label-text-color: #{$primary-color};
+  --mat-form-field-outlined-focus-outline-color: #{$primary-color};
+  --mat-form-field-outlined-hover-outline-color: #{$primary-color};
+  --mat-form-field-outlined-focus-label-text-color: #{$primary-color};
   --mat-form-field-focus-select-arrow-color: #{$primary-color};
 
   // Select
@@ -295,9 +296,9 @@ html {
   --mat-option-label-text-color: #{$black};
 
   // FAB
-  --mdc-fab-container-color: #{$primary-color};
+  --mat-fab-container-color: #{$primary-color};
   --mat-fab-foreground-color: #{$white};
-  --mdc-fab-small-container-color: #{$primary-color};
+  --mat-fab-small-container-color: #{$primary-color};
   --mat-fab-small-foreground-color: #{$white};
 
   // Datepicker - Calendar
@@ -315,9 +316,9 @@ html {
   --mat-datepicker-toggle-icon-color: #{$primary-color};
 
   // Chip (mat-chip-row) - texte lisible
-  --mdc-chip-label-text-color: #{$black};
-  --mdc-chip-elevated-container-color: #{$gray-lighter};
-  --mdc-chip-with-trailing-icon-trailing-icon-color: #{$gray-dark};
+  --mat-chip-label-text-color: #{$black};
+  --mat-chip-elevated-container-color: #{$gray-lighter};
+  --mat-chip-with-trailing-icon-trailing-icon-color: #{$gray-dark};
   --mat-chip-trailing-action-focus-state-layer-color: #{$primary-color};
   --mat-chip-selected-trailing-icon-color: #{$white};
 }

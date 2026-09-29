@@ -5,7 +5,7 @@
  * Refactorisé pour utiliser OperationAnnee[] (table relationnelle)
  * au lieu de JSONField programmation_annuelle/programmation_mensuelle.
  */
-import { Component, OnInit, inject, signal, computed, effect, ElementRef, DestroyRef } from '@angular/core';
+import { Component, OnInit, inject, signal, computed, effect, ElementRef, DestroyRef, ChangeDetectionStrategy } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule, Location } from '@angular/common';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
@@ -151,6 +151,7 @@ export function buildGridTypeMetriqueOptions(
     MetriqueFormComponent,
   ],
   templateUrl: './operation-form.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './operation-form.component.scss'
 })
 export class OperationFormComponent implements OnInit {

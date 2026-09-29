@@ -1,5 +1,5 @@
-import { Component, inject, signal, computed } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, inject, signal, computed, ChangeDetectionStrategy } from '@angular/core';
+
 import { FormsModule } from '@angular/forms';
 import { MatDialogModule, MatDialogRef, MAT_DIALOG_DATA, MatDialog } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -37,7 +37,6 @@ interface SearchableSite extends AdminSite {
   selector: 'app-find-or-create-site-modal',
   standalone: true,
   imports: [
-    CommonModule,
     FormsModule,
     MatDialogModule,
     MatFormFieldModule,
@@ -48,9 +47,10 @@ interface SearchableSite extends AdminSite {
     MatDividerModule,
     CheckboxComponent,
     TranslateModule,
-    FormFieldComponent,
-  ],
+    FormFieldComponent
+],
   templateUrl: './find-or-create-site-modal.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './find-or-create-site-modal.component.scss'
 })
 export class FindOrCreateSiteModalComponent {

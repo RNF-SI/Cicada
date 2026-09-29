@@ -113,7 +113,7 @@ Les identifiants présents dans ce dépôt (docker-compose.yml, .env.example) so
 ### État actuel du projet (v0.1.25)
 
 - Backend Django complet : API REST (utilisateurs, organismes, sites, plans, enjeux, opérations, suivis)
-- Frontend Angular 19 avec Design System custom (Kit UI CICADA)
+- Frontend Angular 22 avec Design System custom (Kit UI CICADA)
 - Authentification JWT, rôles hiérarchiques, permissions objet
 - Référentiels INPN intégrés : nomenclatures, TaxRef, HabRef, CAMPanule
 - Cycle de vie des plans : brouillon, validé, archivé, évaluation mi-parcours
@@ -230,7 +230,7 @@ sudo cicada-prepare-db
 ## Technologies
 
 - **Backend** : Django 5.0+, DRF, PostgreSQL 17+ / PostGIS, Redis, Celery
-- **Frontend** : Angular 19+, Angular Material, Leaflet
+- **Frontend** : Angular 22, Angular Material, Leaflet
 - **Infrastructure** : Docker, package Debian (.deb), systemd
 
 ## 🚢 Release et deploiement

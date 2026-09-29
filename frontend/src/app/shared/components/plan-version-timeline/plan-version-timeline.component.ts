@@ -1,4 +1,4 @@
-import { Component, Input, computed, signal } from '@angular/core';
+import { Component, Input, computed, signal, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { TranslateModule } from '@ngx-translate/core';
@@ -29,6 +29,7 @@ interface RangGroup {
   standalone: true,
   imports: [CommonModule, RouterModule, TranslateModule, TagComponent],
   templateUrl: './plan-version-timeline.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './plan-version-timeline.component.scss',
 })
 export class PlanVersionTimelineComponent {

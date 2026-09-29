@@ -1,5 +1,5 @@
-import { CommonModule } from '@angular/common';
-import { Component, inject, input, output, signal } from '@angular/core';
+
+import { Component, inject, input, output, signal, ChangeDetectionStrategy } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
@@ -31,14 +31,14 @@ interface SheetMapping {
   selector: 'app-import-mapping',
   standalone: true,
   imports: [
-    CommonModule,
     FormsModule,
     MatButtonModule,
     MatProgressSpinnerModule,
     TranslateModule,
-    ImportGridComponent,
-  ],
+    ImportGridComponent
+],
   templateUrl: './import-mapping.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrls: ['./import-mapping.component.scss'],
 })
 export class ImportMappingComponent {

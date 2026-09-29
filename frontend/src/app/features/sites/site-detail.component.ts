@@ -2,8 +2,8 @@
  * Composant pour la page detail d'un site.
  * Layout style GeoNature: carte a gauche, contenu a droite.
  */
-import { Component, inject, signal, OnInit, computed } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, inject, signal, OnInit, computed, ChangeDetectionStrategy } from '@angular/core';
+
 import { Router, RouterLink, ActivatedRoute } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
@@ -64,7 +64,6 @@ interface SiteUserAssignment {
   selector: 'app-site-detail',
   standalone: true,
   imports: [
-    CommonModule,
     RouterLink,
     MatCardModule,
     MatButtonModule,
@@ -80,9 +79,10 @@ interface SiteUserAssignment {
     AnchorNavComponent,
     EntityTileComponent,
     StatusChipComponent,
-    TagComponent,
-  ],
+    TagComponent
+],
   templateUrl: './site-detail.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './site-detail.component.scss'
 })
 export class SiteDetailComponent implements OnInit {

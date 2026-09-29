@@ -1,7 +1,7 @@
 /**
  * Dialog pour afficher le detail d'une demande de validation.
  */
-import { Component, inject, signal, OnInit } from '@angular/core';
+import { Component, inject, signal, OnInit, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
@@ -39,7 +39,7 @@ interface DialogData {
   ],
   template: `
     <h2 mat-dialog-title>
-      <i class="fi" [ngClass]="getTypeIcon(validation()?.request_type)"></i>
+      <i class="fi" [ngClass]="getTypeIcon($safeNavigationMigration(validation()?.request_type))"></i>
       Detail de la demande
     </h2>
 
@@ -322,6 +322,7 @@ interface DialogData {
       <button mat-button (click)="close()">Fermer</button>
     </mat-dialog-actions>
   `,
+  changeDetection: ChangeDetectionStrategy.Eager,
   styles: [`
     @use '../admin-validations.component.scss' as v;
 

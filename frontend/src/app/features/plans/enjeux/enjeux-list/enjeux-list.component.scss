@@ -777,9 +777,9 @@
 // plus fin/petit (graisse 500, police Material).
 .btn-add-enjeu-fcr.mat-mdc-outlined-button {
   font-family: $font-family;
-  --mdc-outlined-button-label-text-font: #{$font-family};
-  --mdc-outlined-button-label-text-size: #{$font-size-base};
-  --mdc-outlined-button-label-text-weight: #{$font-weight-bold};
+  --mat-button-outlined-label-text-font: #{$font-family};
+  --mat-button-outlined-label-text-size: #{$font-size-base};
+  --mat-button-outlined-label-text-weight: #{$font-weight-bold};
 
   .mdc-button__label {
     font-family: $font-family;

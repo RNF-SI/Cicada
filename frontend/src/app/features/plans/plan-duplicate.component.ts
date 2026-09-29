@@ -1,4 +1,4 @@
-import { Component, signal, computed, inject, OnInit } from '@angular/core';
+import { Component, signal, computed, inject, OnInit, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -46,6 +46,7 @@ import {
     FormFieldComponent,
   ],
   templateUrl: './plan-duplicate.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './plan-duplicate.component.scss',
 })
 export class PlanDuplicateComponent implements OnInit {

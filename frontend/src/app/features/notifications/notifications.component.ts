@@ -1,8 +1,8 @@
 /**
  * Page de liste des notifications.
  */
-import { Component, inject, signal, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, inject, signal, OnInit, ChangeDetectionStrategy } from '@angular/core';
+
 import { RouterModule } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
@@ -17,14 +17,13 @@ import { NotificationListItem } from '../../core/models/notification.model';
   selector: 'app-notifications',
   standalone: true,
   imports: [
-    CommonModule,
     RouterModule,
     MatCardModule,
     MatButtonModule,
     MatProgressSpinnerModule,
     MatDividerModule,
     MatChipsModule
-  ],
+],
   template: `
     <div class="notifications-page">
       <div class="page-header">
@@ -107,6 +106,7 @@ import { NotificationListItem } from '../../core/models/notification.model';
       }
     </div>
   `,
+  changeDetection: ChangeDetectionStrategy.Eager,
   styles: [`
     .notifications-page {
       max-width: 800px;

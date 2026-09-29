@@ -1,7 +1,7 @@
 import {
   ChangeDetectionStrategy, Component, Input, OnChanges,
 } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 
 import {
   BarDatum, PatternDef, PatternRegistry, nextChartUid,
@@ -49,7 +49,7 @@ interface BarVm {
 @Component({
   selector: 'app-bar-chart',
   standalone: true,
-  imports: [CommonModule, ChartDefsComponent],
+  imports: [ChartDefsComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (vm && vm.hasData) {

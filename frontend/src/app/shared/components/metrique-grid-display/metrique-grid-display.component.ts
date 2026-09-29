@@ -1,5 +1,5 @@
-import { Component, Input } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, Input, ChangeDetectionStrategy } from '@angular/core';
+
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 
 /**
@@ -24,8 +24,9 @@ export type GridMetrique = Record<string, any>;
 @Component({
   selector: 'app-metrique-grid-display',
   standalone: true,
-  imports: [CommonModule, TranslateModule],
+  imports: [TranslateModule],
   templateUrl: './metrique-grid-display.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './metrique-grid-display.component.scss',
 })
 export class MetriqueGridDisplayComponent {

@@ -8,8 +8,8 @@
  * `ra_ids` choisis ; l'appel API et le snackbar restent à la charge de
  * l'appelant pour rester cohérent avec les autres patterns du module.
  */
-import { Component, inject, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, inject, signal, ChangeDetectionStrategy } from '@angular/core';
+
 import { MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCheckboxModule } from '@angular/material/checkbox';
@@ -52,12 +52,11 @@ export interface DuplicateIndicateurDialogResult {
   selector: 'app-duplicate-indicateur-dialog',
   standalone: true,
   imports: [
-    CommonModule,
     MatDialogModule,
     MatButtonModule,
     MatCheckboxModule,
-    TranslateModule,
-  ],
+    TranslateModule
+],
   template: `
     <h2 mat-dialog-title>{{ 'enjeux.indicateurs.duplicate.title' | translate }}</h2>
     <mat-dialog-content>
@@ -125,6 +124,7 @@ export interface DuplicateIndicateurDialogResult {
       </button>
     </mat-dialog-actions>
   `,
+  changeDetection: ChangeDetectionStrategy.Eager,
   styles: [`
     h2 { margin: 0; font-weight: 600; }
     mat-dialog-content {

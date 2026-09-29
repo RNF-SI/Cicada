@@ -1,4 +1,4 @@
-import { Component, signal, computed, inject, OnInit, OnDestroy } from '@angular/core';
+import { Component, signal, computed, inject, OnInit, OnDestroy, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
@@ -135,6 +135,7 @@ interface SubAccordion {
     TagComponent,
   ],
   templateUrl: './plan-detail.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './plan-detail.component.scss'
 })
 export class PlanDetailComponent implements OnInit, OnDestroy {

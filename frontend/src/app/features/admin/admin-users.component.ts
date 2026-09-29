@@ -1,5 +1,5 @@
-import { Component, inject, signal, computed, OnInit, OnDestroy, effect } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, inject, signal, computed, OnInit, OnDestroy, effect, ChangeDetectionStrategy } from '@angular/core';
+
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
@@ -79,7 +79,6 @@ interface DisplayOrganisme {
   selector: 'app-admin-users',
   standalone: true,
   imports: [
-    CommonModule,
     FormsModule,
     MatDialogModule,
     MatSnackBarModule,
@@ -91,9 +90,10 @@ interface DisplayOrganisme {
     FilterBarComponent,
     FilterDropdownComponent,
     FilterOptionListComponent,
-    FilterPanelDirective,
-  ],
+    FilterPanelDirective
+],
   templateUrl: './admin-users.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './admin-users.component.scss'
 })
 export class AdminUsersComponent implements OnInit, OnDestroy {

@@ -1,5 +1,5 @@
-import { Component, inject, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, inject, signal, ChangeDetectionStrategy } from '@angular/core';
+
 import { FormsModule } from '@angular/forms';
 import { MatDialogRef, MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
@@ -22,7 +22,6 @@ export interface UploadDocumentDialogData {
   selector: 'app-upload-document-modal',
   standalone: true,
   imports: [
-    CommonModule,
     FormsModule,
     MatDialogModule,
     MatButtonModule,
@@ -33,9 +32,10 @@ export interface UploadDocumentDialogData {
     MatNativeDateModule,
     MatProgressSpinnerModule,
     TranslateModule,
-    FormFieldComponent,
-  ],
+    FormFieldComponent
+],
   templateUrl: './upload-document-modal.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './upload-document-modal.component.scss',
 })
 export class UploadDocumentModalComponent {

@@ -10,7 +10,7 @@
  *  - 'edit-auto'     : saisie des valeurs des métriques, score auto calculé
  *  - 'edit-override' : override manuel du score, message info + textarea raisons
  */
-import { Component, OnInit, inject, signal, computed } from '@angular/core';
+import { Component, OnInit, inject, signal, computed, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { FormBuilder, FormGroup, FormsModule, ReactiveFormsModule } from '@angular/forms';
@@ -47,6 +47,7 @@ const SCORE_LEVELS: ScoreLevel[] = ['very-bad', 'bad', 'neutral', 'good', 'very-
     HeaderComponent, PlanSidebarComponent, CheckboxComponent,
   ],
   templateUrl: './indicateur-saisie.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './indicateur-saisie.component.scss',
 })
 export class IndicateurSaisieComponent implements OnInit {

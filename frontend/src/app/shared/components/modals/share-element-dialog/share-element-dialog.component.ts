@@ -1,5 +1,5 @@
-import { Component, computed, inject, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, computed, inject, signal, ChangeDetectionStrategy } from '@angular/core';
+
 import { FormsModule } from '@angular/forms';
 import { MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
@@ -106,16 +106,16 @@ export interface ShareElementDialogResult {
   selector: 'app-share-element-dialog',
   standalone: true,
   imports: [
-    CommonModule,
     FormsModule,
     MatDialogModule,
     MatButtonModule,
     MatFormFieldModule,
     MatInputModule,
     MatTooltipModule,
-    TranslateModule,
-  ],
+    TranslateModule
+],
   templateUrl: './share-element-dialog.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './share-element-dialog.component.scss',
 })
 export class ShareElementDialogComponent {

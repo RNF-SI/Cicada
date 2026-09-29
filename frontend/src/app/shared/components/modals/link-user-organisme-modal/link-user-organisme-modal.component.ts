@@ -1,5 +1,5 @@
-import { Component, inject, signal, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, inject, signal, OnInit, ChangeDetectionStrategy } from '@angular/core';
+
 import { FormsModule, ReactiveFormsModule, FormControl } from '@angular/forms';
 import { MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -29,7 +29,6 @@ export interface LinkUserOrganismeModalData {
   selector: 'app-link-user-organisme-modal',
   standalone: true,
   imports: [
-    CommonModule,
     FormsModule,
     ReactiveFormsModule,
     MatDialogModule,
@@ -41,8 +40,9 @@ export interface LinkUserOrganismeModalData {
     MatInputModule,
     MatIconModule,
     TranslateModule
-  ],
+],
   templateUrl: './link-user-organisme-modal.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './link-user-organisme-modal.component.scss'
 })
 export class LinkUserOrganismeModalComponent implements OnInit {

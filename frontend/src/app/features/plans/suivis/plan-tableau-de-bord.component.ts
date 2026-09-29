@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal, computed } from '@angular/core';
+import { Component, OnInit, inject, signal, computed, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, RouterModule } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
@@ -71,6 +71,7 @@ interface IndicatorRow {
     FilterPanelDirective
   ],
   templateUrl: './plan-tableau-de-bord.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './plan-tableau-de-bord.component.scss'
 })
 export class PlanTableauDeBordComponent implements OnInit {

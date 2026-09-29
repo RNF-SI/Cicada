@@ -1,5 +1,5 @@
-import { Component, inject, signal, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, inject, signal, OnInit, ChangeDetectionStrategy } from '@angular/core';
+
 import { FormsModule, ReactiveFormsModule, FormControl } from '@angular/forms';
 import { MatDialog, MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { ConfirmDialogComponent } from '../../confirm-dialog/confirm-dialog.component';
@@ -45,7 +45,6 @@ export interface LinkPlanSiteModalData {
   selector: 'app-link-plan-site-modal',
   standalone: true,
   imports: [
-    CommonModule,
     FormsModule,
     ReactiveFormsModule,
     MatDialogModule,
@@ -57,8 +56,9 @@ export interface LinkPlanSiteModalData {
     MatIconModule,
     TranslateModule,
     SiteTypeDisplayPipe
-  ],
+],
   templateUrl: './link-plan-site-modal.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './link-plan-site-modal.component.scss'
 })
 export class LinkPlanSiteModalComponent implements OnInit {

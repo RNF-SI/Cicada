@@ -2,8 +2,8 @@
  * Composant pour la page "Mon profil".
  * Affiche les informations de l'utilisateur et les options RGPD.
  */
-import { Component, inject, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, inject, signal, ChangeDetectionStrategy } from '@angular/core';
+
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
@@ -24,7 +24,6 @@ import { TagAppearance, NEUTRAL_TAG, getUserRoleTag } from '../../shared/utils/t
   selector: 'app-profile',
   standalone: true,
   imports: [
-    CommonModule,
     FormsModule,
     RouterLink,
     MatCardModule,
@@ -34,8 +33,9 @@ import { TagAppearance, NEUTRAL_TAG, getUserRoleTag } from '../../shared/utils/t
     MatProgressSpinnerModule,
     TagComponent,
     TranslateModule
-  ],
+],
   templateUrl: './profile.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './profile.component.scss'
 })
 export class ProfileComponent {

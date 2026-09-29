@@ -1,7 +1,7 @@
 /**
  * Fiche détail d'un Suivi/Inventaire (lecture seule).
  */
-import { Component, OnInit, inject, signal, computed } from '@angular/core';
+import { Component, OnInit, inject, signal, computed, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
@@ -29,6 +29,7 @@ import { taxonRefsToText } from '../../../shared/utils/taxon-ref.utils';
     HeaderComponent,
   ],
   templateUrl: './inventaire-detail.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './inventaire-detail.component.scss'
 })
 export class InventaireDetailComponent implements OnInit {

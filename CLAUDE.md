@@ -52,7 +52,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - Celery + Redis for async tasks (email notifications)
 
 ### Frontend
-- Angular 19+ with TypeScript 5+
+- Angular 22 with TypeScript 6, Node.js 22
+  - **Détection de changements** : depuis Angular 22, un composant sans `changeDetection` est en `OnPush`. La migration a posé `ChangeDetectionStrategy.Eager` (l'ancien défaut) sur tous les composants existants ; un nouveau composant qui modifie des champs ordinaires (pas des signaux) doit faire de même, sinon l'affichage ne suit pas.
 - Angular Material for UI components
 - Leaflet for interactive maps
 - **Design System**: Custom SCSS based on Kit UI CICADA (11/2025)
@@ -140,8 +141,8 @@ Le thème Angular Material est configuré dans `src/styles.scss`:
 - Si absolument nécessaire, utiliser les tokens CSS Material:
 ```scss
 .my-component {
-  --mdc-filled-button-container-color: #{$primary-color};
-  --mdc-checkbox-selected-icon-color: #{$primary-color};
+  --mat-button-filled-container-color: #{$primary-color};
+  --mat-checkbox-selected-icon-color: #{$primary-color};
 }
 ```
 

@@ -2,7 +2,7 @@
  * Composant pour la page de gestion des validations (administration).
  * Affiche les demandes a valider pour les administrateurs.
  */
-import { Component, inject, signal, OnInit } from '@angular/core';
+import { Component, inject, signal, OnInit, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
@@ -56,6 +56,7 @@ import { ValidationDetailDialogComponent } from './validation-detail-dialog.comp
     FilterPanelDirective
   ],
   templateUrl: './admin-validations.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './admin-validations.component.scss'
 })
 export class AdminValidationsComponent implements OnInit {

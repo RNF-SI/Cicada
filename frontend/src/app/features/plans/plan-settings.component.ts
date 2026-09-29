@@ -1,5 +1,5 @@
-import { Component, computed, inject, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, computed, inject, signal, ChangeDetectionStrategy } from '@angular/core';
+
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
@@ -45,7 +45,6 @@ import {
   selector: 'app-plan-settings',
   standalone: true,
   imports: [
-    CommonModule,
     RouterLink,
     MatButtonModule,
     MatProgressSpinnerModule,
@@ -57,9 +56,10 @@ import {
     ImportGridComponent,
     ImportMappingComponent,
     AccordionComponent,
-    TagComponent,
-  ],
+    TagComponent
+],
   templateUrl: './plan-settings.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './plan-settings.component.scss',
 })
 export class PlanSettingsComponent {

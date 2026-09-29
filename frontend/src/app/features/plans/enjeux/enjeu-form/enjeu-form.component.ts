@@ -2,8 +2,8 @@
  * Composant formulaire pour créer ou modifier un Enjeu.
  * Champs spécifiques aux Enjeux : priorité, catégorie écologique, type (habitat/espèce/processus).
  */
-import { Component, OnInit, inject, signal, ElementRef } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, OnInit, inject, signal, ElementRef, ChangeDetectionStrategy } from '@angular/core';
+
 import { forkJoin, Observable, of } from 'rxjs';
 import { ActivatedRoute, Router } from '@angular/router';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
@@ -31,7 +31,6 @@ import { buildGeoObjetGroups, groupObjetIds, ObjetGeologiqueGroup, ObjetGeologiq
   selector: 'app-enjeu-form',
   standalone: true,
   imports: [
-    CommonModule,
     ReactiveFormsModule,
     MatFormFieldModule,
     MatInputModule,
@@ -46,9 +45,10 @@ import { buildGeoObjetGroups, groupObjetIds, ObjetGeologiqueGroup, ObjetGeologiq
     TranslateModule,
     HeaderComponent,
     ReferenceItemListComponent,
-    AccordionComponent,
-  ],
+    AccordionComponent
+],
   templateUrl: './enjeu-form.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './enjeu-form.component.scss'
 })
 export class EnjeuFormComponent implements OnInit {

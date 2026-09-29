@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, Input, computed, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { MatTooltipModule } from '@angular/material/tooltip';
 
@@ -27,7 +27,7 @@ import { getPlanStatusTag } from '../../utils/tag-icons';
 @Component({
   selector: 'app-status-chip',
   standalone: true,
-  imports: [CommonModule, TranslateModule, MatTooltipModule, TagComponent],
+  imports: [TranslateModule, MatTooltipModule, TagComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <span

@@ -199,7 +199,7 @@
                           <label class="metric-sublabel">{{ bi.label }}</label>
                           <div class="metric-input-row">
                             <input type="text" [formControlName]="bi.ctrl" [placeholder]="bi.unite" />
-                            @let blockScore = valueToScore(form.get(bi.ctrl)?.value, bi.meta);
+                            @let blockScore = valueToScore($safeNavigationMigration(form.get(bi.ctrl)?.value), bi.meta);
                             <div class="threshold-bar">
                               @for (lvl of scoreLevelsList; track lvl; let i = $index) {
                                 <span class="threshold-cell"
@@ -244,7 +244,7 @@
                       }
                       <!-- Barre de seuils (NUMERIQUE) : score actif highlighted. -->
                       @if (metricSaisieMode(m) === 'free') {
-                        @let activeScore = valueToScore(form.get('m_' + m.id_metrique)?.value, m);
+                        @let activeScore = valueToScore($safeNavigationMigration(form.get('m_' + m.id_metrique)?.value), m);
                         <div class="threshold-bar">
                           @for (lvl of scoreLevelsList; track lvl; let i = $index) {
                             <span class="threshold-cell"

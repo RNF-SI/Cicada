@@ -112,22 +112,22 @@ Les couleurs suivantes ne doivent etre utilisees que pour des elements decoratif
 ```scss
 // WARNING: Orange avec texte noir
 .status-warning {
-  --mdc-chip-elevated-container-color: #FA9965;  // $warning-color
-  --mdc-chip-label-text-color: #343433;          // $black
+  --mat-chip-elevated-container-color: #FA9965;  // $warning-color
+  --mat-chip-label-text-color: #343433;          // $black
   color: #343433;
 }
 
 // ERROR: Rouge avec texte blanc
 .status-error {
-  --mdc-chip-elevated-container-color: #E12329;  // $error-color
-  --mdc-chip-label-text-color: #FFFFFF;          // $white
+  --mat-chip-elevated-container-color: #E12329;  // $error-color
+  --mat-chip-label-text-color: #FFFFFF;          // $white
   color: #FFFFFF;
 }
 
 // CRITICAL: Bleu-vert primaire avec texte blanc
 .status-critical {
-  --mdc-chip-elevated-container-color: #025359;  // $primary-color
-  --mdc-chip-label-text-color: #FFFFFF;          // $white
+  --mat-chip-elevated-container-color: #025359;  // $primary-color
+  --mat-chip-label-text-color: #FFFFFF;          // $white
   color: #FFFFFF;
 }
 ```
@@ -151,28 +151,28 @@ Les couleurs suivantes ne doivent etre utilisees que pour des elements decoratif
 
 ```scss
 .score-very-bad {
-  --mdc-chip-elevated-container-color: #FF7579;
-  --mdc-chip-label-text-color: #343433;  // Texte noir
+  --mat-chip-elevated-container-color: #FF7579;
+  --mat-chip-label-text-color: #343433;  // Texte noir
 }
 
 .score-bad {
-  --mdc-chip-elevated-container-color: #FA9965;
-  --mdc-chip-label-text-color: #343433;  // Texte noir
+  --mat-chip-elevated-container-color: #FA9965;
+  --mat-chip-label-text-color: #343433;  // Texte noir
 }
 
 .score-neutral {
-  --mdc-chip-elevated-container-color: #F7D35C;
-  --mdc-chip-label-text-color: #343433;  // Texte noir
+  --mat-chip-elevated-container-color: #F7D35C;
+  --mat-chip-label-text-color: #343433;  // Texte noir
 }
 
 .score-good {
-  --mdc-chip-elevated-container-color: #82DB8A;
-  --mdc-chip-label-text-color: #343433;  // Texte noir
+  --mat-chip-elevated-container-color: #82DB8A;
+  --mat-chip-label-text-color: #343433;  // Texte noir
 }
 
 .score-very-good {
-  --mdc-chip-elevated-container-color: #81C9D8;
-  --mdc-chip-label-text-color: #343433;  // Texte noir
+  --mat-chip-elevated-container-color: #81C9D8;
+  --mat-chip-label-text-color: #343433;  // Texte noir
 }
 ```
 

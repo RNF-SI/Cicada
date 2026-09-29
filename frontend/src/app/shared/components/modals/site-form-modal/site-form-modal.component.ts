@@ -1,4 +1,4 @@
-import { Component, inject, signal, OnInit, OnDestroy, ViewChild } from '@angular/core';
+import { Component, inject, signal, OnInit, OnDestroy, ViewChild, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
@@ -69,6 +69,7 @@ interface SiteType {
     RouterLink,
   ],
   templateUrl: './site-form-modal.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './site-form-modal.component.scss'
 })
 export class SiteFormModalComponent implements OnInit, OnDestroy {
