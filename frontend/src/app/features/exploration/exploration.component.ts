@@ -1,5 +1,5 @@
 
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal, ChangeDetectionStrategy } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
@@ -38,6 +38,7 @@ type ModeExploration = 'contenu' | 'plan';
     FilterPanelDirective
 ],
   templateUrl: './exploration.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './exploration.component.scss',
 })
 export class ExplorationComponent {

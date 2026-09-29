@@ -124,7 +124,7 @@ services:
 
   # Application Angular (Frontend) - Mode développement
   frontend:
-    image: node:20-alpine
+    image: node:22-alpine
     container_name: cicada_frontend
     working_dir: /app
     volumes:

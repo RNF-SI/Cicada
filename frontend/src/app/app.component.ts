@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, OnDestroy } from '@angular/core';
+import { Component, inject, OnInit, OnDestroy, ChangeDetectionStrategy } from '@angular/core';
 import { Router, RouterOutlet, NavigationStart } from '@angular/router';
 import { MatDialog } from '@angular/material/dialog';
 import { Subscription, filter } from 'rxjs';
@@ -9,6 +9,7 @@ import { TranslationService } from './core/services/translation.service';
   standalone: true,
   imports: [RouterOutlet],
   templateUrl: './app.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './app.component.scss'
 })
 export class AppComponent implements OnInit, OnDestroy {

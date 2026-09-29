@@ -1,4 +1,4 @@
-import { Component, OnInit, input, inject, signal, computed, effect, untracked } from '@angular/core';
+import { Component, OnInit, input, inject, signal, computed, effect, untracked, ChangeDetectionStrategy } from '@angular/core';
 
 import { Router } from '@angular/router';
 import { TranslateModule } from '@ngx-translate/core';
@@ -12,6 +12,7 @@ import { Enjeu } from '../../../../core/models/enjeu.model';
   standalone: true,
   imports: [TranslateModule],
   templateUrl: './plan-sidebar.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './plan-sidebar.component.scss'
 })
 export class PlanSidebarComponent implements OnInit {

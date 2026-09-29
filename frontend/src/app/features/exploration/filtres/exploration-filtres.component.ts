@@ -1,5 +1,5 @@
 
-import { Component, computed, inject, input, model, signal } from '@angular/core';
+import { Component, computed, inject, input, model, signal, ChangeDetectionStrategy } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 
@@ -35,6 +35,7 @@ import {
     FilterTreeComponent
 ],
   templateUrl: './exploration-filtres.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './exploration-filtres.component.scss',
 })
 export class ExplorationFiltresComponent {

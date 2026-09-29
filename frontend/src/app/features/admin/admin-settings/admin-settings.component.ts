@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, signal, effect } from '@angular/core';
+import { Component, inject, OnInit, signal, effect, ChangeDetectionStrategy } from '@angular/core';
 
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
@@ -26,6 +26,7 @@ import { CheckboxComponent } from '../../../shared/components/checkbox/checkbox.
     CheckboxComponent
 ],
   templateUrl: './admin-settings.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './admin-settings.component.scss'
 })
 export class AdminSettingsComponent implements OnInit {

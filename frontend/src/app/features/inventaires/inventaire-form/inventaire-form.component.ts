@@ -1,7 +1,7 @@
 /**
  * Formulaire Suivi/Inventaire (standalone) - création + édition.
  */
-import { Component, OnInit, inject, signal, computed, ElementRef } from '@angular/core';
+import { Component, OnInit, inject, signal, computed, ElementRef, ChangeDetectionStrategy } from '@angular/core';
 
 import { ActivatedRoute, Router } from '@angular/router';
 import { AbstractControl, FormArray, FormBuilder, FormControl, FormGroup, Validators, ReactiveFormsModule, FormsModule } from '@angular/forms';
@@ -65,6 +65,7 @@ import { serializeTaxonRefs, parseTaxonRefs } from '../../../shared/utils/taxon-
     FormFieldComponent
 ],
   templateUrl: './inventaire-form.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './inventaire-form.component.scss'
 })
 export class InventaireFormComponent implements OnInit {

@@ -1,4 +1,4 @@
-import { Component, Input } from '@angular/core';
+import { Component, Input, ChangeDetectionStrategy } from '@angular/core';
 
 
 export type TagVariant =
@@ -55,6 +55,7 @@ export type TagSize = 'sm' | 'md';
       <span class="app-tag__label">{{ label }}</span>
     </span>
   `,
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './tag.component.scss',
 })
 export class TagComponent {

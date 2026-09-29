@@ -1,4 +1,4 @@
-import { Component, inject, signal, computed, OnInit } from '@angular/core';
+import { Component, inject, signal, computed, OnInit, ChangeDetectionStrategy } from '@angular/core';
 
 import { FormsModule } from '@angular/forms';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
@@ -37,6 +37,7 @@ interface SearchUser {
     SearchBarComponent
 ],
   templateUrl: './admin-redacteurs-principaux.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrls: ['./admin-redacteurs-principaux.component.scss']
 })
 export class AdminRedacteursPrincipauxComponent implements OnInit {

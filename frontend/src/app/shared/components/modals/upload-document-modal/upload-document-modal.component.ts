@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, inject, signal, ChangeDetectionStrategy } from '@angular/core';
 
 import { FormsModule } from '@angular/forms';
 import { MatDialogRef, MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
@@ -35,6 +35,7 @@ export interface UploadDocumentDialogData {
     FormFieldComponent
 ],
   templateUrl: './upload-document-modal.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './upload-document-modal.component.scss',
 })
 export class UploadDocumentModalComponent {

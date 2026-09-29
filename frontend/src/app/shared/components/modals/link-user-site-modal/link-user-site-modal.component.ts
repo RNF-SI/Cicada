@@ -1,4 +1,4 @@
-import { Component, inject, signal, OnInit } from '@angular/core';
+import { Component, inject, signal, OnInit, ChangeDetectionStrategy } from '@angular/core';
 
 import { FormsModule, ReactiveFormsModule, FormControl } from '@angular/forms';
 import { MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
@@ -65,6 +65,7 @@ export interface LinkUserSiteModalData {
     SiteTypeDisplayPipe
 ],
   templateUrl: './link-user-site-modal.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './link-user-site-modal.component.scss'
 })
 export class LinkUserSiteModalComponent implements OnInit {

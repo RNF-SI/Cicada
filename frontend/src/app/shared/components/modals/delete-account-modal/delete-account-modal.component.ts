@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, inject, signal, ChangeDetectionStrategy } from '@angular/core';
 
 import { FormsModule } from '@angular/forms';
 import { MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
@@ -25,6 +25,7 @@ export interface DeleteAccountModalResult {
     FormFieldComponent
 ],
   templateUrl: './delete-account-modal.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './delete-account-modal.component.scss'
 })
 export class DeleteAccountModalComponent {

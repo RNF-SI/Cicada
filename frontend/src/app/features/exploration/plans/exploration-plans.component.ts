@@ -1,5 +1,5 @@
 
-import { Component, computed, effect, inject, signal } from '@angular/core';
+import { Component, computed, effect, inject, signal, ChangeDetectionStrategy } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { TranslateModule } from '@ngx-translate/core';
@@ -42,6 +42,7 @@ import { ExplorationFiltresComponent } from '../filtres/exploration-filtres.comp
     FilterPanelDirective
 ],
   templateUrl: './exploration-plans.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './exploration-plans.component.scss',
 })
 export class ExplorationPlansComponent {

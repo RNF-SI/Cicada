@@ -1,4 +1,4 @@
-import { Component, booleanAttribute, input, output } from '@angular/core';
+import { Component, booleanAttribute, input, output, ChangeDetectionStrategy } from '@angular/core';
 
 import { TranslateModule } from '@ngx-translate/core';
 import { FilterTheme } from '../filter.types';
@@ -29,6 +29,7 @@ import { FilterTheme } from '../filter.types';
   imports: [TranslateModule],
   templateUrl: './filter-bar.component.html',
   styleUrl: './filter-bar.component.scss',
+  changeDetection: ChangeDetectionStrategy.Eager,
   host: {
     '[class.theme-dark]': "theme() === 'dark'",
   },

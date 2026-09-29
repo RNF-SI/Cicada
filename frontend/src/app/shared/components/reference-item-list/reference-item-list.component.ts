@@ -1,4 +1,4 @@
-import { Component, Input, Output, EventEmitter, inject, signal, OnInit, OnDestroy } from '@angular/core';
+import { Component, Input, Output, EventEmitter, inject, signal, OnInit, OnDestroy, ChangeDetectionStrategy } from '@angular/core';
 
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { MatChipsModule } from '@angular/material/chips';
@@ -37,6 +37,7 @@ import { HabitatChipComponent } from '../habitat-chip/habitat-chip.component';
     HabitatChipComponent
 ],
   templateUrl: './reference-item-list.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './reference-item-list.component.scss'
 })
 export class ReferenceItemListComponent implements OnInit, OnDestroy {

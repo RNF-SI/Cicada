@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal, computed } from '@angular/core';
+import { Component, OnInit, inject, signal, computed, ChangeDetectionStrategy } from '@angular/core';
 
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
@@ -36,6 +36,7 @@ interface LogContent { file: string; lines: string[]; returned: number; total: n
     FilterPanelDirective
 ],
   templateUrl: './admin-server-logs.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './admin-server-logs.component.scss',
 })
 export class AdminServerLogsComponent implements OnInit {

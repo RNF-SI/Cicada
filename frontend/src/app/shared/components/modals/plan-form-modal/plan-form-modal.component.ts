@@ -1,4 +1,4 @@
-import { Component, inject, signal, computed, OnInit, ElementRef, ViewChild } from '@angular/core';
+import { Component, inject, signal, computed, OnInit, ElementRef, ViewChild, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, FormControl, Validators, ReactiveFormsModule, FormsModule } from '@angular/forms';
 import { MatDialogModule, MatDialogRef, MatDialog, MAT_DIALOG_DATA } from '@angular/material/dialog';
@@ -101,6 +101,7 @@ interface OrganismeEntry {
     TagComponent,
   ],
   templateUrl: './plan-form-modal.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './plan-form-modal.component.scss'
 })
 export class PlanFormModalComponent implements OnInit {

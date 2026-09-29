@@ -1,4 +1,4 @@
-import { Component, input, output, computed } from '@angular/core';
+import { Component, input, output, computed, ChangeDetectionStrategy } from '@angular/core';
 
 import { TranslateModule } from '@ngx-translate/core';
 
@@ -57,6 +57,7 @@ import { TranslateModule } from '@ngx-translate/core';
       </div>
     }
   `,
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './pagination.component.scss',
 })
 export class PaginationComponent {

@@ -1,4 +1,4 @@
-import { Component, inject, signal, OnInit } from '@angular/core';
+import { Component, inject, signal, OnInit, ChangeDetectionStrategy } from '@angular/core';
 
 import { RouterModule } from '@angular/router';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
@@ -11,6 +11,7 @@ import { OrphansService, OrphanSite, OrphanPlan } from '../../../core/services/o
   standalone: true,
   imports: [RouterModule, MatProgressSpinnerModule, TranslateModule],
   templateUrl: './admin-orphans.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './admin-orphans.component.scss'
 })
 export class AdminOrphansComponent implements OnInit {

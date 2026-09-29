@@ -1,4 +1,4 @@
-import { Component, viewChild } from '@angular/core';
+import { Component, viewChild, ChangeDetectionStrategy } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { TranslateModule } from '@ngx-translate/core';
 import { FilterDropdownComponent } from './filter-dropdown.component';
@@ -7,6 +7,8 @@ import { FilterPanelDirective } from '../filter-panel.directive';
 /** Hôte de test : reproduit l'usage réel (corps projeté via `ng-template appFilterPanel`). */
 @Component({
   standalone: true,
+  // Les tests modifient des champs ordinaires : OnPush (défaut d'Angular 22) ne les verrait pas
+  changeDetection: ChangeDetectionStrategy.Eager,
   imports: [FilterDropdownComponent, FilterPanelDirective],
   template: `
     <app-filter-dropdown

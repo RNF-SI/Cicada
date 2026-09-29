@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, ChangeDetectionStrategy } from '@angular/core';
 
 import { MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
@@ -68,6 +68,7 @@ export function findPreviousValidatedPlan(
   standalone: true,
   imports: [MatDialogModule, MatButtonModule, TranslateModule],
   templateUrl: './archive-previous-plan-dialog.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './archive-previous-plan-dialog.component.scss',
 })
 export class ArchivePreviousPlanDialogComponent {

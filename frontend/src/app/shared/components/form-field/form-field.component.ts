@@ -1,4 +1,4 @@
-import { Component, ContentChild, Input } from '@angular/core';
+import { Component, ContentChild, Input, ChangeDetectionStrategy } from '@angular/core';
 
 import { NgControl } from '@angular/forms';
 
@@ -29,6 +29,7 @@ import { NgControl } from '@angular/forms';
   standalone: true,
   imports: [],
   templateUrl: './form-field.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './form-field.component.scss',
 })
 export class FormFieldComponent {

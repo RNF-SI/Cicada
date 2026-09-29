@@ -2,7 +2,7 @@
  * Composant formulaire pour créer ou modifier un FCR (Facteur Clé de Réussite).
  * Champs spécifiques aux FCR : catégorie FCR (Connaissance, Ancrage territorial, etc.).
  */
-import { Component, OnInit, inject, signal, ElementRef } from '@angular/core';
+import { Component, OnInit, inject, signal, ElementRef, ChangeDetectionStrategy } from '@angular/core';
 
 import { ActivatedRoute, Router } from '@angular/router';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
@@ -47,6 +47,7 @@ interface FcrCategorieOption {
     FormFieldComponent
 ],
   templateUrl: './fcr-form.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './fcr-form.component.scss'
 })
 export class FcrFormComponent implements OnInit {

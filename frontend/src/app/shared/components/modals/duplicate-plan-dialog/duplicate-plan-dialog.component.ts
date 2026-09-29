@@ -1,4 +1,4 @@
-import { Component, inject, signal, computed } from '@angular/core';
+import { Component, inject, signal, computed, ChangeDetectionStrategy } from '@angular/core';
 
 import { MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
@@ -37,6 +37,7 @@ export interface DuplicatePlanDialogResult {
     CheckboxComponent
 ],
   templateUrl: './duplicate-plan-dialog.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './duplicate-plan-dialog.component.scss',
 })
 export class DuplicatePlanDialogComponent {

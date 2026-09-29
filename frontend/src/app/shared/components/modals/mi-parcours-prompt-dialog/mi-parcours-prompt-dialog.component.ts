@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, ChangeDetectionStrategy } from '@angular/core';
 
 import { MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
@@ -26,6 +26,7 @@ export interface MiParcoursPromptDialogResult {
   standalone: true,
   imports: [MatDialogModule, MatButtonModule, TranslateModule],
   templateUrl: './mi-parcours-prompt-dialog.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './mi-parcours-prompt-dialog.component.scss',
 })
 export class MiParcoursPromptDialogComponent {

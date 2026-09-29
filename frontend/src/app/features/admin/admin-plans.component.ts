@@ -1,4 +1,4 @@
-import { Component, inject, signal, computed, OnInit, OnDestroy } from '@angular/core';
+import { Component, inject, signal, computed, OnInit, OnDestroy, ChangeDetectionStrategy } from '@angular/core';
 
 import { FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
@@ -108,6 +108,7 @@ interface DisplayOrganisme {
     StatusChipComponent
 ],
   templateUrl: './admin-plans.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './admin-plans.component.scss'
 })
 export class AdminPlansComponent implements OnInit, OnDestroy {

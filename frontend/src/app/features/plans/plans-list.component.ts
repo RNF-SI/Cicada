@@ -2,7 +2,7 @@
  * Composant pour la liste des plans de gestion.
  * Affiche les plans auxquels l'utilisateur a accès et permet de demander l'accès à d'autres plans.
  */
-import { Component, signal, computed, inject, OnInit } from '@angular/core';
+import { Component, signal, computed, inject, OnInit, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -87,6 +87,7 @@ interface PlanWithAccess extends AdminPlan {
     TagComponent,
   ],
   templateUrl: './plans-list.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './plans-list.component.scss'
 })
 export class PlansListComponent implements OnInit {

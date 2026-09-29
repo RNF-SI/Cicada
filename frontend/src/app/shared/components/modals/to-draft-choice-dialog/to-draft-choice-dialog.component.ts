@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, ChangeDetectionStrategy } from '@angular/core';
 
 import { MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
@@ -28,6 +28,7 @@ export interface ToDraftChoiceDialogResult {
   standalone: true,
   imports: [MatDialogModule, MatButtonModule, TranslateModule],
   templateUrl: './to-draft-choice-dialog.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './to-draft-choice-dialog.component.scss',
 })
 export class ToDraftChoiceDialogComponent {

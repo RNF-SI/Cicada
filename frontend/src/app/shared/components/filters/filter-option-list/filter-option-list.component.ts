@@ -1,4 +1,4 @@
-import { Component, booleanAttribute, computed, input, model, output, signal } from '@angular/core';
+import { Component, booleanAttribute, computed, input, model, output, signal, ChangeDetectionStrategy } from '@angular/core';
 
 import { TranslateModule } from '@ngx-translate/core';
 import { CheckboxComponent } from '../../checkbox/checkbox.component';
@@ -24,6 +24,7 @@ import { FilterOption, FilterTheme, FilterValue, TriState } from '../filter.type
   imports: [TranslateModule, CheckboxComponent, HighlightMatchPipe],
   templateUrl: './filter-option-list.component.html',
   styleUrl: './filter-option-list.component.scss',
+  changeDetection: ChangeDetectionStrategy.Eager,
   host: {
     '[class.theme-dark]': "theme() === 'dark'",
   },

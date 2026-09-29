@@ -1,4 +1,4 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal, ChangeDetectionStrategy } from '@angular/core';
 
 import { FormsModule } from '@angular/forms';
 import { MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
@@ -115,6 +115,7 @@ export interface ShareElementDialogResult {
     TranslateModule
 ],
   templateUrl: './share-element-dialog.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './share-element-dialog.component.scss',
 })
 export class ShareElementDialogComponent {

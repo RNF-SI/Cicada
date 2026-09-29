@@ -1,4 +1,4 @@
-import { Component, inject, signal, computed, OnInit, OnDestroy, effect } from '@angular/core';
+import { Component, inject, signal, computed, OnInit, OnDestroy, effect, ChangeDetectionStrategy } from '@angular/core';
 
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -93,6 +93,7 @@ interface DisplayOrganisme {
     FilterPanelDirective
 ],
   templateUrl: './admin-users.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './admin-users.component.scss'
 })
 export class AdminUsersComponent implements OnInit, OnDestroy {

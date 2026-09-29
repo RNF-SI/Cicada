@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, inject, signal, ChangeDetectionStrategy } from '@angular/core';
 
 import { FormsModule } from '@angular/forms';
 import { MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
@@ -27,6 +27,7 @@ export interface DeactivateUserModalResult {
     FormFieldComponent
 ],
   templateUrl: './deactivate-user-modal.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './deactivate-user-modal.component.scss'
 })
 export class DeactivateUserModalComponent {

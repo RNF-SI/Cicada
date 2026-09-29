@@ -1,4 +1,4 @@
-import { Component, computed, inject, input, output, signal } from '@angular/core';
+import { Component, computed, inject, input, output, signal, ChangeDetectionStrategy } from '@angular/core';
 
 import { TranslateModule } from '@ngx-translate/core';
 import { HabitatService, CorrespondanceHabitat, HabitatOwnInfo } from '../../../core/services/habitat.service';
@@ -29,6 +29,7 @@ interface RelatedGroup {
   standalone: true,
   imports: [TranslateModule],
   templateUrl: './habitat-chip.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './habitat-chip.component.scss',
 })
 export class HabitatChipComponent {

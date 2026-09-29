@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal, ChangeDetectionStrategy } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
 import { ActivatedRoute, RouterModule } from '@angular/router';
 import { TranslateModule } from '@ngx-translate/core';
@@ -49,6 +49,7 @@ import {
     TagComponent,
   ],
   templateUrl: './exploration-fiche.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './exploration-fiche.component.scss',
 })
 export class ExplorationFicheComponent {

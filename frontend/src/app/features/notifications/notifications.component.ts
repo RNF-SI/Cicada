@@ -1,7 +1,7 @@
 /**
  * Page de liste des notifications.
  */
-import { Component, inject, signal, OnInit } from '@angular/core';
+import { Component, inject, signal, OnInit, ChangeDetectionStrategy } from '@angular/core';
 
 import { RouterModule } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
@@ -106,6 +106,7 @@ import { NotificationListItem } from '../../core/models/notification.model';
       }
     </div>
   `,
+  changeDetection: ChangeDetectionStrategy.Eager,
   styles: [`
     .notifications-page {
       max-width: 800px;

@@ -4,7 +4,7 @@
  * - Mode site unique: targetId et targetName fournis
  * - Mode selection: selectableSites fournis (liste de sites a choisir)
  */
-import { Component, inject } from '@angular/core';
+import { Component, inject, ChangeDetectionStrategy } from '@angular/core';
 
 import { FormsModule } from '@angular/forms';
 import { MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
@@ -167,6 +167,7 @@ export interface AccessRequestDialogData {
       </button>
     </mat-dialog-actions>
   `,
+  changeDetection: ChangeDetectionStrategy.Eager,
   styles: [`
     .target-info {
       display: flex;

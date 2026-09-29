@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, inject, signal, ChangeDetectionStrategy } from '@angular/core';
 
 import { FormsModule } from '@angular/forms';
 import { MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
@@ -28,6 +28,7 @@ export interface RemoveUserOrganismeModalResult {
     FormFieldComponent
 ],
   templateUrl: './remove-user-organisme-modal.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './remove-user-organisme-modal.component.scss'
 })
 export class RemoveUserOrganismeModalComponent {

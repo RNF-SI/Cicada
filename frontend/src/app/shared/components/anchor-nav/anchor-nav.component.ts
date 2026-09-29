@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, Output, signal } from '@angular/core';
+import { Component, EventEmitter, Input, Output, signal, ChangeDetectionStrategy } from '@angular/core';
 
 import { TranslateModule } from '@ngx-translate/core';
 
@@ -39,6 +39,7 @@ export interface AnchorNavItem {
   standalone: true,
   imports: [TranslateModule],
   templateUrl: './anchor-nav.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './anchor-nav.component.scss',
 })
 export class AnchorNavComponent {

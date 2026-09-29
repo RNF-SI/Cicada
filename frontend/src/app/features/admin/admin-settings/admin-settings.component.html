@@ -46,7 +46,7 @@
             </span>
             @if (config()?.updated_at) {
               <span class="image-meta">
-                {{ 'admin.settings.homepage.lastUpdate' | translate }}: {{ formatDate(config()?.updated_at) }}
+                {{ 'admin.settings.homepage.lastUpdate' | translate }}: {{ formatDate($safeNavigationMigration(config()?.updated_at)) }}
                 @if (config()?.updated_by_name) {
                   ({{ config()?.updated_by_name }})
                 }

@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { Component, EventEmitter, Input, Output, ChangeDetectionStrategy } from '@angular/core';
 
 import { FormsModule } from '@angular/forms';
 import { TranslateModule } from '@ngx-translate/core';
@@ -62,6 +62,7 @@ const SCORE_META: ScoreMeta[] = [
   standalone: true,
   imports: [FormsModule, TranslateModule],
   templateUrl: './metrique-block.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './metrique-block.component.scss',
 })
 export class MetriqueBlockComponent {

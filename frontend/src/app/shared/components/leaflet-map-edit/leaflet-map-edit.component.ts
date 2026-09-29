@@ -11,7 +11,8 @@ import {
   ViewChild,
   AfterViewInit,
   inject,
-  signal
+  signal,
+  ChangeDetectionStrategy
 } from '@angular/core';
 
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
@@ -36,6 +37,7 @@ import shp from 'shpjs';
     TranslateModule
 ],
   templateUrl: './leaflet-map-edit.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './leaflet-map-edit.component.scss'
 })
 export class LeafletMapEditComponent implements OnInit, AfterViewInit, OnChanges, OnDestroy {

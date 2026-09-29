@@ -1,7 +1,7 @@
 /**
  * Dialog de consultation d'un protocole CAMPanule.
  */
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, inject, signal, ChangeDetectionStrategy } from '@angular/core';
 
 import { MAT_DIALOG_DATA, MatDialogRef, MatDialogModule } from '@angular/material/dialog';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
@@ -25,6 +25,7 @@ export interface ProtocoleCampanuleDialogData {
     TranslateModule
 ],
   templateUrl: './protocole-campanule-dialog.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './protocole-campanule-dialog.component.scss',
 })
 export class ProtocoleCampanuleDialogComponent implements OnInit {

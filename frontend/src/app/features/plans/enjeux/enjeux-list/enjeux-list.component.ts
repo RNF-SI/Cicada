@@ -3,7 +3,7 @@
  * - Sans enjeu sélectionné : liste plate de cartes accordéon
  * - Avec enjeu sélectionné (route :enjeuId) : vue détail avec 3 onglets
  */
-import { Component, OnInit, OnDestroy, DestroyRef, inject, signal, computed, ElementRef } from '@angular/core';
+import { Component, OnInit, OnDestroy, DestroyRef, inject, signal, computed, ElementRef, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { FormsModule, FormControl, ReactiveFormsModule } from '@angular/forms';
@@ -117,6 +117,7 @@ type TabType = 'detail' | 'olt' | 'operations';
     TagComponent
   ],
   templateUrl: './enjeux-list.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './enjeux-list.component.scss'
 })
 export class EnjeuxListComponent implements OnInit, OnDestroy {

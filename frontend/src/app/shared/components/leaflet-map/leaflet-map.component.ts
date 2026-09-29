@@ -12,7 +12,8 @@ import {
   AfterViewInit,
   signal,
   Renderer2,
-  inject
+  inject,
+  ChangeDetectionStrategy
 } from '@angular/core';
 
 import * as L from 'leaflet';
@@ -26,6 +27,7 @@ import * as L from 'leaflet';
   standalone: true,
   imports: [],
   templateUrl: './leaflet-map.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './leaflet-map.component.scss'
 })
 export class LeafletMapComponent implements OnInit, AfterViewInit, OnChanges, OnDestroy {

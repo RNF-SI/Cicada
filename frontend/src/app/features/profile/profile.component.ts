@@ -2,7 +2,7 @@
  * Composant pour la page "Mon profil".
  * Affiche les informations de l'utilisateur et les options RGPD.
  */
-import { Component, inject, signal } from '@angular/core';
+import { Component, inject, signal, ChangeDetectionStrategy } from '@angular/core';
 
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
@@ -35,6 +35,7 @@ import { TagAppearance, NEUTRAL_TAG, getUserRoleTag } from '../../shared/utils/t
     TranslateModule
 ],
   templateUrl: './profile.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './profile.component.scss'
 })
 export class ProfileComponent {

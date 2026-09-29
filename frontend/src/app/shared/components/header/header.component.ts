@@ -1,4 +1,4 @@
-import { Component, inject, signal, computed, OnInit, effect } from '@angular/core';
+import { Component, inject, signal, computed, OnInit, effect, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterModule, NavigationEnd } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
@@ -32,6 +32,7 @@ interface SidebarModule {
   imports: [CommonModule, RouterModule, MatButtonModule, MatDividerModule, MatMenuModule, NotificationBellComponent, TranslateModule],
   templateUrl: './header.component.html',
   styleUrl: './header.component.scss',
+  changeDetection: ChangeDetectionStrategy.Eager,
   animations: [
     trigger('slideAnimation', [
       state('closed', style({

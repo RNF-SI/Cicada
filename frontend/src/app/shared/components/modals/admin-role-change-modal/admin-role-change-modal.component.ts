@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, inject, signal, ChangeDetectionStrategy } from '@angular/core';
 
 import { FormsModule } from '@angular/forms';
 import { MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
@@ -38,6 +38,7 @@ export interface AdminRoleChangeModalResult {
     FormFieldComponent
 ],
   templateUrl: './admin-role-change-modal.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './admin-role-change-modal.component.scss'
 })
 export class AdminRoleChangeModalComponent {

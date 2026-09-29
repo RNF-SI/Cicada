@@ -1,4 +1,4 @@
-import { Component, inject, input, signal, computed, effect } from '@angular/core';
+import { Component, inject, input, signal, computed, effect, ChangeDetectionStrategy } from '@angular/core';
 
 import { Router } from '@angular/router';
 import { MatTooltipModule } from '@angular/material/tooltip';
@@ -71,6 +71,7 @@ interface CalendarRow {
     FilterPanelDirective
 ],
   templateUrl: './plan-planification-mensuelle.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './plan-planification-mensuelle.component.scss'
 })
 export class PlanPlanificationMensuelleComponent {

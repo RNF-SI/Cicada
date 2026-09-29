@@ -1,4 +1,4 @@
-import { Component, inject, signal, computed, OnInit, OnDestroy } from '@angular/core';
+import { Component, inject, signal, computed, OnInit, OnDestroy, ChangeDetectionStrategy } from '@angular/core';
 
 import { FormsModule } from '@angular/forms';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
@@ -51,6 +51,7 @@ interface DisplayOrganisme {
     SearchBarComponent
 ],
   templateUrl: './admin-organismes.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './admin-organismes.component.scss'
 })
 export class AdminOrganismesComponent implements OnInit, OnDestroy {

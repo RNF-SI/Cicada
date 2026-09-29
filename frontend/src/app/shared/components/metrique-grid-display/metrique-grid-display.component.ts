@@ -1,4 +1,4 @@
-import { Component, Input } from '@angular/core';
+import { Component, Input, ChangeDetectionStrategy } from '@angular/core';
 
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 
@@ -26,6 +26,7 @@ export type GridMetrique = Record<string, any>;
   standalone: true,
   imports: [TranslateModule],
   templateUrl: './metrique-grid-display.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './metrique-grid-display.component.scss',
 })
 export class MetriqueGridDisplayComponent {

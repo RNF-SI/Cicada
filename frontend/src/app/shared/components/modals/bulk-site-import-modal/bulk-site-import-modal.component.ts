@@ -1,4 +1,4 @@
-import { Component, inject, signal, computed } from '@angular/core';
+import { Component, inject, signal, computed, ChangeDetectionStrategy } from '@angular/core';
 
 import { FormsModule } from '@angular/forms';
 import { MatDialogModule, MatDialogRef } from '@angular/material/dialog';
@@ -64,6 +64,7 @@ const TARGET_FIELDS = [
     TagComponent
 ],
   templateUrl: './bulk-site-import-modal.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './bulk-site-import-modal.component.scss',
 })
 export class BulkSiteImportModalComponent {

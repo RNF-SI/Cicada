@@ -1,4 +1,4 @@
-import { Component, inject, signal, OnInit } from '@angular/core';
+import { Component, inject, signal, OnInit, ChangeDetectionStrategy } from '@angular/core';
 
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -19,6 +19,7 @@ import { SystemUpdateService, SystemVersionInfo } from '../../../core/services/s
     TranslateModule
 ],
   templateUrl: './admin-update.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './admin-update.component.scss'
 })
 export class AdminUpdateComponent implements OnInit {

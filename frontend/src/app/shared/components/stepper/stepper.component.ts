@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { Component, EventEmitter, Input, Output, ChangeDetectionStrategy } from '@angular/core';
 
 
 export interface StepperStep {
@@ -37,6 +37,7 @@ export interface StepperStep {
   standalone: true,
   imports: [],
   templateUrl: './stepper.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './stepper.component.scss',
 })
 export class StepperComponent {

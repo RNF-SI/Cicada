@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, inject, signal, ChangeDetectionStrategy } from '@angular/core';
 
 import { MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
@@ -42,6 +42,7 @@ export interface ExportFicheActionDialogResult {
   standalone: true,
   imports: [MatDialogModule, MatButtonModule, TranslateModule, CheckboxComponent],
   templateUrl: './export-fiche-action-dialog.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './export-fiche-action-dialog.component.scss',
 })
 export class ExportFicheActionDialogComponent {

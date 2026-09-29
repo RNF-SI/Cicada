@@ -1,4 +1,4 @@
-import { Component, inject, computed, OnInit, OnDestroy, signal } from '@angular/core';
+import { Component, inject, computed, OnInit, OnDestroy, signal, ChangeDetectionStrategy } from '@angular/core';
 
 import { Router, RouterModule, NavigationEnd } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
@@ -26,6 +26,7 @@ interface NavItem {
   standalone: true,
   imports: [RouterModule, HeaderComponent],
   templateUrl: './admin-layout.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './admin-layout.component.scss'
 })
 export class AdminLayoutComponent implements OnInit, OnDestroy {

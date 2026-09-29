@@ -240,7 +240,7 @@
                          déroulant ; « financé » en est dérivé pour les sous-totaux. -->
                     <td class="rh-categorie-col">
                       <mat-select class="rh-categorie-select"
-                                  [value]="ctrl.get('categorie_depense')?.value"
+                                  [value]="$safeNavigationMigration(ctrl.get('categorie_depense')?.value)"
                                   (valueChange)="setRhCategorie(ctrl, $event)"
                                   [disabled]="planNotValidated()">
                         @for (cat of categorieDepenseOptions; track cat) {
@@ -251,7 +251,7 @@
                       </mat-select>
                     </td>
                     <td class="rh-num-col rh-plan-cell">
-                      {{ formatNumber(ctrl.get('plan_jours')?.value, ' j') }}
+                      {{ formatNumber($safeNavigationMigration(ctrl.get('plan_jours')?.value), ' j') }}
                     </td>
                     <td class="rh-num-col active">
                       <input type="number" min="0" step="0.25"
@@ -542,7 +542,7 @@
                   <tr class="prev-row">
                     <td class="col-field">{{ 'plans.suivis.saisie.table.budgetFonct' | translate }} (prévi.)</td>
                     @for (y of years(); track y) {
-                      <td [class.active]="y === selectedYear()">{{ formatNumber(getOaForYear(y)?.budget_fonctionnement, ' €') }}</td>
+                      <td [class.active]="y === selectedYear()">{{ formatNumber($safeNavigationMigration(getOaForYear(y)?.budget_fonctionnement), ' €') }}</td>
                     }
                   </tr>
                   <tr>
@@ -553,7 +553,7 @@
                           <input type="number" min="0" step="0.01"
                                  formControlName="budget_fonctionnement_realise" placeholder="€" />
                         } @else {
-                          {{ formatNumber(getOaForYear(y)?.realisation?.budget_fonctionnement_realise, ' €') }}
+                          {{ formatNumber($safeNavigationMigration(getOaForYear(y)?.realisation?.budget_fonctionnement_realise), ' €') }}
                         }
                       </td>
                     }
@@ -561,7 +561,7 @@
                   <tr class="prev-row">
                     <td class="col-field">{{ 'plans.suivis.saisie.table.budgetInvest' | translate }} (prévi.)</td>
                     @for (y of years(); track y) {
-                      <td [class.active]="y === selectedYear()">{{ formatNumber(getOaForYear(y)?.budget_investissement, ' €') }}</td>
+                      <td [class.active]="y === selectedYear()">{{ formatNumber($safeNavigationMigration(getOaForYear(y)?.budget_investissement), ' €') }}</td>
                     }
                   </tr>
                   <tr>
@@ -572,7 +572,7 @@
                           <input type="number" min="0" step="0.01"
                                  formControlName="budget_investissement_realise" placeholder="€" />
                         } @else {
-                          {{ formatNumber(getOaForYear(y)?.realisation?.budget_investissement_realise, ' €') }}
+                          {{ formatNumber($safeNavigationMigration(getOaForYear(y)?.realisation?.budget_investissement_realise), ' €') }}
                         }
                       </td>
                     }
@@ -581,7 +581,7 @@
                   <tr>
                     <td class="col-field">{{ 'plans.suivis.saisie.table.budgetPrev' | translate }}</td>
                     @for (y of years(); track y) {
-                      <td [class.active]="y === selectedYear()">{{ formatNumber(getOaForYear(y)?.budget, ' €') }}</td>
+                      <td [class.active]="y === selectedYear()">{{ formatNumber($safeNavigationMigration(getOaForYear(y)?.budget), ' €') }}</td>
                     }
                   </tr>
                   <tr>
@@ -592,7 +592,7 @@
                           <input type="number" min="0" step="0.01"
                                  formControlName="budget_realise" placeholder="€" />
                         } @else {
-                          {{ formatNumber(getOaForYear(y)?.realisation?.budget_realise, ' €') }}
+                          {{ formatNumber($safeNavigationMigration(getOaForYear(y)?.realisation?.budget_realise), ' €') }}
                         }
                       </td>
                     }
@@ -665,7 +665,7 @@
                       <tr class="prev-row">
                         <td class="col-field">{{ 'plans.suivis.saisie.table.coutStagePrev' | translate }}</td>
                         @for (y of years(); track y) {
-                          <td [class.active]="y === selectedYear()">{{ formatNumber(getOaoForYearOrg(y, org.id_organisme)?.cout_stage, ' €') }}</td>
+                          <td [class.active]="y === selectedYear()">{{ formatNumber($safeNavigationMigration(getOaoForYearOrg(y, org.id_organisme)?.cout_stage), ' €') }}</td>
                         }
                       </tr>
                       <tr>
@@ -675,7 +675,7 @@
                             @if (y === selectedYear()) {
                               <input type="number" min="0" step="0.01" formControlName="cout_stage_realise" placeholder="€" />
                             } @else {
-                              {{ formatNumber(getOaoForYearOrg(y, org.id_organisme)?.realisation?.cout_stage_realise, ' €') }}
+                              {{ formatNumber($safeNavigationMigration(getOaoForYearOrg(y, org.id_organisme)?.realisation?.cout_stage_realise), ' €') }}
                             }
                           </td>
                         }
@@ -683,7 +683,7 @@
                       <tr class="prev-row">
                         <td class="col-field">{{ 'plans.suivis.saisie.table.coutPrestatairePrev' | translate }}</td>
                         @for (y of years(); track y) {
-                          <td [class.active]="y === selectedYear()">{{ formatNumber(getOaoForYearOrg(y, org.id_organisme)?.cout_prestataire, ' €') }}</td>
+                          <td [class.active]="y === selectedYear()">{{ formatNumber($safeNavigationMigration(getOaoForYearOrg(y, org.id_organisme)?.cout_prestataire), ' €') }}</td>
                         }
                       </tr>
                       <tr>
@@ -693,7 +693,7 @@
                             @if (y === selectedYear()) {
                               <input type="number" min="0" step="0.01" formControlName="cout_prestataire_realise" placeholder="€" />
                             } @else {
-                              {{ formatNumber(getOaoForYearOrg(y, org.id_organisme)?.realisation?.cout_prestataire_realise, ' €') }}
+                              {{ formatNumber($safeNavigationMigration(getOaoForYearOrg(y, org.id_organisme)?.realisation?.cout_prestataire_realise), ' €') }}
                             }
                           </td>
                         }
@@ -701,7 +701,7 @@
                       <tr class="prev-row">
                         <td class="col-field">{{ 'plans.suivis.saisie.table.autresCoutsFonctPrev' | translate }}</td>
                         @for (y of years(); track y) {
-                          <td [class.active]="y === selectedYear()">{{ formatNumber(getOaoForYearOrg(y, org.id_organisme)?.autre_cout, ' €') }}</td>
+                          <td [class.active]="y === selectedYear()">{{ formatNumber($safeNavigationMigration(getOaoForYearOrg(y, org.id_organisme)?.autre_cout), ' €') }}</td>
                         }
                       </tr>
                       <tr>
@@ -711,7 +711,7 @@
                             @if (y === selectedYear()) {
                               <input type="number" min="0" step="0.01" formControlName="autre_cout_realise" placeholder="€" />
                             } @else {
-                              {{ formatNumber(getOaoForYearOrg(y, org.id_organisme)?.realisation?.autre_cout_realise, ' €') }}
+                              {{ formatNumber($safeNavigationMigration(getOaoForYearOrg(y, org.id_organisme)?.realisation?.autre_cout_realise), ' €') }}
                             }
                           </td>
                         }
@@ -759,7 +759,7 @@
                       <tr class="prev-row">
                         <td class="col-field">{{ 'plans.suivis.saisie.table.coutPrestatairePrev' | translate }}</td>
                         @for (y of years(); track y) {
-                          <td [class.active]="y === selectedYear()">{{ formatNumber(getOaoForYearOrg(y, org.id_organisme)?.cout_prestataire_invest, ' €') }}</td>
+                          <td [class.active]="y === selectedYear()">{{ formatNumber($safeNavigationMigration(getOaoForYearOrg(y, org.id_organisme)?.cout_prestataire_invest), ' €') }}</td>
                         }
                       </tr>
                       <tr>
@@ -769,7 +769,7 @@
                             @if (y === selectedYear()) {
                               <input type="number" min="0" step="0.01" formControlName="cout_prestataire_invest_realise" placeholder="€" />
                             } @else {
-                              {{ formatNumber(getOaoForYearOrg(y, org.id_organisme)?.realisation?.cout_prestataire_invest_realise, ' €') }}
+                              {{ formatNumber($safeNavigationMigration(getOaoForYearOrg(y, org.id_organisme)?.realisation?.cout_prestataire_invest_realise), ' €') }}
                             }
                           </td>
                         }
@@ -777,7 +777,7 @@
                       <tr class="prev-row">
                         <td class="col-field">{{ 'plans.suivis.saisie.table.autresCoutsInvestPrev' | translate }}</td>
                         @for (y of years(); track y) {
-                          <td [class.active]="y === selectedYear()">{{ formatNumber(getOaoForYearOrg(y, org.id_organisme)?.autre_cout_invest, ' €') }}</td>
+                          <td [class.active]="y === selectedYear()">{{ formatNumber($safeNavigationMigration(getOaoForYearOrg(y, org.id_organisme)?.autre_cout_invest), ' €') }}</td>
                         }
                       </tr>
                       <tr>
@@ -787,7 +787,7 @@
                             @if (y === selectedYear()) {
                               <input type="number" min="0" step="0.01" formControlName="autre_cout_invest_realise" placeholder="€" />
                             } @else {
-                              {{ formatNumber(getOaoForYearOrg(y, org.id_organisme)?.realisation?.autre_cout_invest_realise, ' €') }}
+                              {{ formatNumber($safeNavigationMigration(getOaoForYearOrg(y, org.id_organisme)?.realisation?.autre_cout_invest_realise), ' €') }}
                             }
                           </td>
                         }
@@ -834,7 +834,7 @@
                       <td class="col-field">{{ 'plans.suivis.saisie.table.budgetFonct' | translate }} (prévi.)</td>
                       @for (y of years(); track y) {
                         <td [class.active]="y === selectedYear()">
-                          {{ formatNumber(getOaoForYearOrg(y, org.id_organisme)?.budget_fonctionnement, ' €') }}
+                          {{ formatNumber($safeNavigationMigration(getOaoForYearOrg(y, org.id_organisme)?.budget_fonctionnement), ' €') }}
                         </td>
                       }
                     </tr>
@@ -848,7 +848,7 @@
                                      formControlName="budget_fonctionnement_realise" placeholder="€" />
                             </ng-container>
                           } @else {
-                            {{ formatNumber(getOaoForYearOrg(y, org.id_organisme)?.realisation?.budget_fonctionnement_realise, ' €') }}
+                            {{ formatNumber($safeNavigationMigration(getOaoForYearOrg(y, org.id_organisme)?.realisation?.budget_fonctionnement_realise), ' €') }}
                           }
                         </td>
                       }
@@ -858,7 +858,7 @@
                         <td class="col-field">{{ 'plans.suivis.saisie.table.budgetInvest' | translate }} (prévi.)</td>
                         @for (y of years(); track y) {
                           <td [class.active]="y === selectedYear()">
-                            {{ formatNumber(getOaoForYearOrg(y, org.id_organisme)?.budget_investissement, ' €') }}
+                            {{ formatNumber($safeNavigationMigration(getOaoForYearOrg(y, org.id_organisme)?.budget_investissement), ' €') }}
                           </td>
                         }
                       </tr>
@@ -872,7 +872,7 @@
                                        formControlName="budget_investissement_realise" placeholder="€" />
                               </ng-container>
                             } @else {
-                              {{ formatNumber(getOaoForYearOrg(y, org.id_organisme)?.realisation?.budget_investissement_realise, ' €') }}
+                              {{ formatNumber($safeNavigationMigration(getOaoForYearOrg(y, org.id_organisme)?.realisation?.budget_investissement_realise), ' €') }}
                             }
                           </td>
                         }

@@ -1,4 +1,4 @@
-import { Component, inject, signal, OnInit } from '@angular/core';
+import { Component, inject, signal, OnInit, ChangeDetectionStrategy } from '@angular/core';
 
 import { FormsModule, ReactiveFormsModule, FormControl } from '@angular/forms';
 import { MatDialog, MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
@@ -57,6 +57,7 @@ export interface LinkPlanReferentModalData {
     TranslateModule
 ],
   templateUrl: './link-plan-referent-modal.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './link-plan-referent-modal.component.scss'
 })
 export class LinkPlanReferentModalComponent implements OnInit {

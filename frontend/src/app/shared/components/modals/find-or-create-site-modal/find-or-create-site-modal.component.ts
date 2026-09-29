@@ -1,4 +1,4 @@
-import { Component, inject, signal, computed } from '@angular/core';
+import { Component, inject, signal, computed, ChangeDetectionStrategy } from '@angular/core';
 
 import { FormsModule } from '@angular/forms';
 import { MatDialogModule, MatDialogRef, MAT_DIALOG_DATA, MatDialog } from '@angular/material/dialog';
@@ -50,6 +50,7 @@ interface SearchableSite extends AdminSite {
     FormFieldComponent
 ],
   templateUrl: './find-or-create-site-modal.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './find-or-create-site-modal.component.scss'
 })
 export class FindOrCreateSiteModalComponent {

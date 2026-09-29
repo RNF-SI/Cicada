@@ -1,4 +1,4 @@
-import { Component, inject, OnInit } from '@angular/core';
+import { Component, inject, OnInit, ChangeDetectionStrategy } from '@angular/core';
 
 import { FormsModule } from '@angular/forms';
 import { MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
@@ -38,6 +38,7 @@ export interface FrequencyApplyDialogResult {
   standalone: true,
   imports: [FormsModule, MatDialogModule, MatButtonModule, MatSelectModule, TranslateModule],
   templateUrl: './frequency-apply-dialog.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './frequency-apply-dialog.component.scss',
 })
 export class FrequencyApplyDialogComponent implements OnInit {

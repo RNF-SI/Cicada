@@ -1,4 +1,4 @@
-import { Component, inject, signal, OnInit } from '@angular/core';
+import { Component, inject, signal, OnInit, ChangeDetectionStrategy } from '@angular/core';
 
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
@@ -32,6 +32,7 @@ export interface OrganismeFormModalData {
     FormFieldComponent
 ],
   templateUrl: './organisme-form-modal.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './organisme-form-modal.component.scss'
 })
 export class OrganismeFormModalComponent implements OnInit {

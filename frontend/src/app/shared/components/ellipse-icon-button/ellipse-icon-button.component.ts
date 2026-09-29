@@ -1,4 +1,4 @@
-import { Component, Input } from '@angular/core';
+import { Component, Input, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 
 // Toutes les couleurs disponibles pour l'ellipse
@@ -47,6 +47,7 @@ export type EllipseSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl';
   standalone: true,
   imports: [CommonModule],
   templateUrl: './ellipse-icon-button.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './ellipse-icon-button.component.scss'
 })
 export class EllipseIconButtonComponent {

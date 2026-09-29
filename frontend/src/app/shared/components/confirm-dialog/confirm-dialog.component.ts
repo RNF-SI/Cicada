@@ -4,7 +4,7 @@
  * Supporte une liste d'impact pour les suppressions en cascade (revue design Amandine) :
  * passer `impactList` pour afficher explicitement les entités qui seront supprimées.
  */
-import { Component, Inject } from '@angular/core';
+import { Component, Inject, ChangeDetectionStrategy } from '@angular/core';
 
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialogModule, MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
@@ -86,6 +86,7 @@ export interface ConfirmDialogData {
       </button>
     </mat-dialog-actions>
   `,
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './confirm-dialog.component.scss'
 })
 export class ConfirmDialogComponent {

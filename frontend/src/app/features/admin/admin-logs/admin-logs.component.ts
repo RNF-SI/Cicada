@@ -2,7 +2,7 @@
  * Composant pour la page d'administration des logs d'erreur.
  * Permet aux super admins de consulter et acquitter les erreurs.
  */
-import { Component, inject, signal, OnInit, OnDestroy } from '@angular/core';
+import { Component, inject, signal, OnInit, OnDestroy, ChangeDetectionStrategy } from '@angular/core';
 
 import { FormsModule } from '@angular/forms';
 import { MatTableModule } from '@angular/material/table';
@@ -62,6 +62,7 @@ import { ErrorLogDetailDialogComponent } from './error-log-detail-dialog.compone
     TranslateModule
 ],
   templateUrl: './admin-logs.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './admin-logs.component.scss'
 })
 export class AdminLogsComponent implements OnInit, OnDestroy {

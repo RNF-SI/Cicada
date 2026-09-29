@@ -1,4 +1,4 @@
-import { Component, inject, signal, computed } from '@angular/core';
+import { Component, inject, signal, computed, ChangeDetectionStrategy } from '@angular/core';
 
 import { MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -53,6 +53,7 @@ export interface RejectedEntry {
     FormFieldComponent
 ],
   templateUrl: './import-list-dialog.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './import-list-dialog.component.scss',
 })
 export class ImportListDialogComponent {

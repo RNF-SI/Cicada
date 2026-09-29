@@ -1,4 +1,4 @@
-import { Component, inject, signal, computed, OnInit, OnDestroy } from '@angular/core';
+import { Component, inject, signal, computed, OnInit, OnDestroy, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
@@ -83,6 +83,7 @@ interface DisplayOrganisme {
     FilterPanelDirective,
   ],
   templateUrl: './admin-sites.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './admin-sites.component.scss'
 })
 export class AdminSitesComponent implements OnInit, OnDestroy {

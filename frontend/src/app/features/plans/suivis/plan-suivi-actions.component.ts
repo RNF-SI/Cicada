@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal, computed, effect } from '@angular/core';
+import { Component, OnInit, inject, signal, computed, effect, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
@@ -80,6 +80,7 @@ interface FlatOperation {
     FilterBarComponent, FilterDropdownComponent, FilterOptionListComponent, FilterPanelDirective
   ],
   templateUrl: './plan-suivi-actions.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './plan-suivi-actions.component.scss'
 })
 export class PlanSuiviActionsComponent implements OnInit {

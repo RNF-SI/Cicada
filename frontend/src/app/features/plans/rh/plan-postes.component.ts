@@ -9,7 +9,7 @@
  * (référent, admin organisme, super admin, rédacteur principal). Ces postes
  * alimentent la déclinaison du temps de travail des fiches actions.
  */
-import { Component, OnInit, inject, signal, computed } from '@angular/core';
+import { Component, OnInit, inject, signal, computed, ChangeDetectionStrategy } from '@angular/core';
 
 import { ActivatedRoute } from '@angular/router';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
@@ -45,6 +45,7 @@ import {
     TagComponent
 ],
   templateUrl: './plan-postes.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './plan-postes.component.scss',
 })
 export class PlanPostesComponent implements OnInit {

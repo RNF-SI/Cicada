@@ -1,4 +1,4 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal, ChangeDetectionStrategy } from '@angular/core';
 
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
@@ -59,6 +59,7 @@ import {
     TagComponent
 ],
   templateUrl: './plan-settings.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './plan-settings.component.scss',
 })
 export class PlanSettingsComponent {

@@ -1,4 +1,4 @@
-import { Component, Input } from '@angular/core';
+import { Component, Input, ChangeDetectionStrategy } from '@angular/core';
 
 import { RouterModule } from '@angular/router';
 
@@ -25,6 +25,7 @@ export type TileColor = 'primary' | 'salmon' | 'terra-cotta' | 'yellow' | 'pale-
   standalone: true,
   imports: [RouterModule],
   templateUrl: './navigation-tile.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './navigation-tile.component.scss'
 })
 export class NavigationTileComponent {

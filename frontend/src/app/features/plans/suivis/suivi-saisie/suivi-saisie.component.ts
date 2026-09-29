@@ -12,7 +12,7 @@
  *
  * La carte SIG et les indicateurs de réponse seront ajoutés en itération suivante.
  */
-import { Component, OnInit, inject, signal, computed } from '@angular/core';
+import { Component, OnInit, inject, signal, computed, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import {
@@ -71,6 +71,7 @@ type ActionStatus = 'planned' | 'planned-realized' | 'planned-partial' | 'realiz
     EmpriseEditorComponent,
   ],
   templateUrl: './suivi-saisie.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './suivi-saisie.component.scss',
 })
 export class SuiviSaisieComponent implements OnInit {

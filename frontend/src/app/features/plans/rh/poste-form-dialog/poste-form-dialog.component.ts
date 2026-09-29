@@ -20,7 +20,7 @@
  * En édition (#604), tout est modifiable sur le poste : nombre, organisme et
  * coût jour (selon le type).
  */
-import { Component, inject, signal, OnInit, computed } from '@angular/core';
+import { Component, inject, signal, OnInit, computed, ChangeDetectionStrategy } from '@angular/core';
 
 import { FormsModule } from '@angular/forms';
 import { MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
@@ -69,6 +69,7 @@ interface OrganismeOption {
     FormFieldComponent
 ],
   templateUrl: './poste-form-dialog.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './poste-form-dialog.component.scss',
 })
 export class PosteFormDialogComponent implements OnInit {

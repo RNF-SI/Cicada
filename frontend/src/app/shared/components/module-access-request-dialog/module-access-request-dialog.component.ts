@@ -1,7 +1,7 @@
 /**
  * Dialog pour demander l'acces a un module.
  */
-import { Component, inject } from '@angular/core';
+import { Component, inject, ChangeDetectionStrategy } from '@angular/core';
 
 import { FormsModule } from '@angular/forms';
 import { MatDialogRef, MatDialogModule, MAT_DIALOG_DATA } from '@angular/material/dialog';
@@ -74,6 +74,7 @@ export interface ModuleAccessRequestDialogData {
       </button>
     </mat-dialog-actions>
   `,
+  changeDetection: ChangeDetectionStrategy.Eager,
   styles: [`
     .title-icon {
       margin-right: 8px;
