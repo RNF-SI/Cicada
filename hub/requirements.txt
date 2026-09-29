@@ -2,20 +2,17 @@
 # d'index et les migrations PostGIS de CICADA, un décalage de version Django ou
 # psycopg se paierait en divergences de comportement difficiles à diagnostiquer.
 
-Django==5.0.8
-djangorestframework==3.14.0
+Django==5.2.17
+djangorestframework==3.17.2
 psycopg[binary]==3.1.19
 
-# PostGIS — ref_geo porte les contours des départements et des régions
-GDAL==3.7.3
+# PostGIS — ref_geo porte les contours des départements et des régions. GeoDjango
+# charge directement la libgdal système (Dockerfile) : pas de bindings Python GDAL.
 
 # Production
 gunicorn==22.0.0
 
 # Client HTTP (appels sortants éventuels vers les instances)
-requests==2.31.0
+requests==2.34.2
 
-# Tests
-pytest==7.4.4
-pytest-django==4.8.0
-pytest-cov==4.1.0
+# Outils de test : requirements-dev.txt (hors image de production)
