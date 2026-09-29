@@ -87,6 +87,7 @@ import {
   CsrpnStep,
 } from '../../shared/components/modals/csrpn-step-dialog/csrpn-step-dialog.component';
 import { getExtensionBadgeKey, getPlanStatusKey, getPlanStatusTooltipKey } from '../../shared/utils/plan-status.utils';
+import { planEndYear } from '../../shared/utils/plan-periode';
 
 interface SyntheseAccordion {
   id: string;
@@ -206,6 +207,12 @@ export class PlanDetailComponent implements OnInit, OnDestroy {
   isPlanExtended = computed<boolean>(() => {
     const p = this.plan();
     return !!(p && p.annees_extension && p.annees_extension > 0);
+  });
+
+  /** Dernière année d'un plan prolongé (prolongation comprise), sinon null. */
+  finProlongation = computed<number | null>(() => {
+    const p = this.plan();
+    return p && this.isPlanExtended() ? planEndYear(p) : null;
   });
 
   extensionBadgeKey = computed<string>(() =>

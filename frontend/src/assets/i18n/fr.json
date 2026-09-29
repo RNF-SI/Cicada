@@ -1800,6 +1800,8 @@
       }
     },
     "detail": {
+      "periode": "Période",
+      "prolongeeJusqua": "prolongée jusqu'en {{annee}}",
       "title": "Détail du plan",
       "noContent": "Aucun contenu pour le moment",
       "sections": {

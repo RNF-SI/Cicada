@@ -369,6 +369,42 @@ describe('PlanDetailComponent', () => {
   // Initialization
   // =========================================================================
 
+  describe('période du plan (prolongation #250)', () => {
+    function periode(): string {
+      const translate = TestBed.inject(TranslateService);
+      translate.setTranslation('fr', {
+        plans: { detail: { periode: 'Période', prolongeeJusqua: "prolongée jusqu'en {{annee}}" } },
+      }, true);
+      translate.use('fr');
+      fixture.detectChanges();
+      return fixture.nativeElement.querySelector('[data-testid="plan-periode"]')
+        .textContent.replace(/\s+/g, ' ').trim();
+    }
+
+    it('plan prolongé : période votée et fin réelle', () => {
+      setup({ plan: createMockPlan({
+        annee_debut: 2016, annee_fin: 2025, annees_extension: 2, annee_fin_effective: 2027,
+      }) });
+      expect(periode()).toBe("2016-2025, prolongée jusqu'en 2027");
+    });
+
+    it('recalcule la fin réelle si l\'API ne la fournit pas', () => {
+      setup({ plan: createMockPlan({ annee_debut: 2016, annee_fin: 2025, annees_extension: 1 }) });
+      expect(periode()).toBe("2016-2025, prolongée jusqu'en 2026");
+    });
+
+    it('plan non prolongé : la période seule', () => {
+      setup({ plan: createMockPlan({ annee_debut: 2024, annee_fin: 2034, annees_extension: 0 }) });
+      expect(periode()).toBe('2024-2034');
+    });
+
+    it('libellé « Période » et non « Année de début »', () => {
+      setup();
+      const ligne = fixture.nativeElement.querySelector('.plan-meta .meta-row').textContent;
+      expect(ligne).not.toContain('modals.planForm.fields.startYear');
+    });
+  });
+
   describe('rang du plan', () => {
     function surtitre(): HTMLElement | null {
       return fixture.nativeElement.querySelector('[data-testid="plan-rang"]');
