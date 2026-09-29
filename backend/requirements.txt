@@ -6,8 +6,9 @@ django-filter==25.2
 psycopg[binary]==3.1.19
 django-cors-headers==4.9.0
 
-# PostGIS support
-GDAL==3.7.3
+# PostGIS : GeoDjango charge directement la libgdal systeme (gdal-bin /
+# libgdal-dev dans les Dockerfiles). Les bindings Python GDAL (osgeo) ne servent
+# pas et ne sont donc pas installes.
 Pillow==12.3.0
 djangorestframework-gis==1.3.0
 

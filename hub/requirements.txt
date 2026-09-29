@@ -6,8 +6,8 @@ Django==5.2.17
 djangorestframework==3.17.2
 psycopg[binary]==3.1.19
 
-# PostGIS — ref_geo porte les contours des départements et des régions
-GDAL==3.7.3
+# PostGIS — ref_geo porte les contours des départements et des régions. GeoDjango
+# charge directement la libgdal système (Dockerfile) : pas de bindings Python GDAL.
 
 # Production
 gunicorn==22.0.0
