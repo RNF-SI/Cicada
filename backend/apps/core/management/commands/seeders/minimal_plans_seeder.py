@@ -339,6 +339,9 @@ class MinimalPlansSeeder(BaseSeeder):
                 continue
 
             for op_idx, op_spec in enumerate(spec['operations']):
+                # #672 — un plan prolongé (#250) programme aussi ses années
+                # d'extension : l'action court jusqu'à l'échéance effective.
+                annee_max = max(op_spec['annee_max'], plan.annee_fin_effective or 0)
                 op, _ = Operation.objects.update_or_create(
                     code_operation=op_spec['code'],
                     defaults={
@@ -348,7 +351,7 @@ class MinimalPlansSeeder(BaseSeeder):
                         'id_type_action': types_action.get(op_spec['cat']),
                         'description': op_spec['description'],
                         'annee_min': op_spec['annee_min'],
-                        'annee_max': op_spec['annee_max'],
+                        'annee_max': annee_max,
                         'id_utilisateur_ajout': admin,
                     },
                 )
@@ -364,7 +367,7 @@ class MinimalPlansSeeder(BaseSeeder):
                 created_operations.append(op)
                 self.log_item(
                     '—',
-                    f'  Op {op_spec["code"]} {op_spec["annee_min"]}-{op_spec["annee_max"]} '
+                    f'  Op {op_spec["code"]} {op_spec["annee_min"]}-{annee_max} '
                     f'({op_spec["cat"]})',
                 )
 
