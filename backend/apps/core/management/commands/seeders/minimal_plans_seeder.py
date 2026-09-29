@@ -30,12 +30,21 @@ from apps.plans.models_operations import (
 
 from .base import BaseSeeder
 from ._geo_helpers import make_operation_geom
+from .plans_seeder import NOM_BROUAGE_ETENDU, NOM_SCANDOLA_ETENDU
 
 
 # Schéma minimal par plan : 2 enjeux + 1 chaîne complète + 3 ops.
 # La 2e enjeu reste sans OLT/NE (illustre un cas de réflexion à compléter).
+#
+# `plan_nom` désigne le plan exactement (prioritaire sur `plan_keyword`, qui
+# peut en attraper un homonyme : il existe plusieurs plans « Marais de
+# Brouage »). `plan_year_min` est l'année de début de référence des années
+# écrites ci-dessous : si le plan commence à une autre date — les chaînes de
+# prolongation sont ancrées sur l'année courante, cf. `periodes_extension()` —
+# mesures et opérations sont décalées d'autant.
 _PLAN_SPECS = [
     {
+        'plan_nom': NOM_BROUAGE_ETENDU,
         'plan_keyword': 'Marais de Brouage',
         'plan_id_fallback': 638,
         'plan_year_min': 2014,
@@ -88,6 +97,7 @@ _PLAN_SPECS = [
         ],
     },
     {
+        'plan_nom': NOM_SCANDOLA_ETENDU,
         'plan_keyword': 'Scandola',
         'plan_id_fallback': 630,
         'plan_year_min': 2016,
@@ -212,7 +222,11 @@ class MinimalPlansSeeder(BaseSeeder):
             mnemonique=mnemonique,
         ).first()
 
-    def _find_plan(self, keyword: str, fallback_id: int) -> PlanGestion:
+    def _find_plan(self, keyword: str, fallback_id: int, nom: str = None) -> PlanGestion:
+        if nom:
+            plan = PlanGestion.objects.filter(nom=nom).first()
+            if plan:
+                return plan
         plan = PlanGestion.objects.filter(nom__icontains=keyword).first()
         if plan:
             return plan
@@ -268,10 +282,13 @@ class MinimalPlansSeeder(BaseSeeder):
         created_enjeux = []
 
         for spec in _PLAN_SPECS:
-            plan = self._find_plan(spec['plan_keyword'], spec['plan_id_fallback'])
+            plan = self._find_plan(
+                spec['plan_keyword'], spec['plan_id_fallback'], spec.get('plan_nom'))
             if not plan:
                 self.log_item('—', f'Plan introuvable : {spec["plan_keyword"]}')
                 continue
+            # Décalage des années écrites dans la spec (cf. `plan_year_min`).
+            decalage = (plan.annee_debut - spec['plan_year_min']) if plan.annee_debut else 0
 
             self.log_item('plan', f'{plan.id_pg} {plan.nom[:50]}')
 
@@ -326,7 +343,7 @@ class MinimalPlansSeeder(BaseSeeder):
                 # Mesures de référence
                 for year, valeur in e_spec.get('measures', []):
                     Mesure.objects.update_or_create(
-                        id_metrique=metrique, date_mesure=date(year, 6, 15),
+                        id_metrique=metrique, date_mesure=date(year + decalage, 6, 15),
                         defaults={'valeur': valeur, 'id_utilisateur_ajout': admin},
                     )
 
@@ -341,7 +358,8 @@ class MinimalPlansSeeder(BaseSeeder):
             for op_idx, op_spec in enumerate(spec['operations']):
                 # #672 — un plan prolongé (#250) programme aussi ses années
                 # d'extension : l'action court jusqu'à l'échéance effective.
-                annee_max = max(op_spec['annee_max'], plan.annee_fin_effective or 0)
+                annee_min = op_spec['annee_min'] + decalage
+                annee_max = max(op_spec['annee_max'] + decalage, plan.annee_fin_effective or 0)
                 op, _ = Operation.objects.update_or_create(
                     code_operation=op_spec['code'],
                     defaults={
@@ -350,7 +368,7 @@ class MinimalPlansSeeder(BaseSeeder):
                         'id_categorie_action_reserve': cat_reserve.get(op_spec['cat']),
                         'id_type_action': types_action.get(op_spec['cat']),
                         'description': op_spec['description'],
-                        'annee_min': op_spec['annee_min'],
+                        'annee_min': annee_min,
                         'annee_max': annee_max,
                         'id_utilisateur_ajout': admin,
                     },
@@ -367,7 +385,7 @@ class MinimalPlansSeeder(BaseSeeder):
                 created_operations.append(op)
                 self.log_item(
                     '—',
-                    f'  Op {op_spec["code"]} {op_spec["annee_min"]}-{annee_max} '
+                    f'  Op {op_spec["code"]} {annee_min}-{annee_max} '
                     f'({op_spec["cat"]})',
                 )
 

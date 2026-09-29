@@ -72,6 +72,46 @@ def _write_demo_fichier(chemin_abs: str, ext: str, title: str) -> int:
     return len(content)
 
 
+# --------------------------------------------------------------------------- #
+# Chaînes de prolongation (#250) — années ancrées sur l'année courante
+#
+# Ces plans servent à recetter la prolongation : programmation des années
+# ajoutées (#672), plan « actif » (#675), statut « en cours » de l'exploration
+# (#676), bouton « Prolonger ». Avec des années fixes, la recette se périmait :
+# à partir de 2028, plus aucun plan prolongé n'était en cours. Les écarts à
+# l'année courante reproduisent exactement le jeu d'essai de 2026.
+#
+# Les noms ne portent PAS les années : le seeder crée ou met à jour les plans
+# par leur nom (`update_or_create(nom=…)`). Un nom qui change chaque année
+# ferait créer une nouvelle série de plans au seed suivant, à côté de
+# l'ancienne. Les constantes sont partagées avec `MinimalPlansSeeder`.
+# --------------------------------------------------------------------------- #
+
+NOM_SCANDOLA_ORIGINE = "Plan de gestion - Scandola (version d'origine)"
+NOM_SCANDOLA_ETENDU = 'Plan de gestion - Scandola (étendu +2 ans)'
+NOM_GRAND_VOYEUX_ORIGINE = "Plan de gestion - Grand-Voyeux (RNR, version d'origine)"
+NOM_GRAND_VOYEUX_ETENDU = 'Plan de gestion - Grand-Voyeux (RNR étendu)'
+NOM_BROUAGE_ORIGINE = "Plan de gestion - Marais de Brouage (ENS, version d'origine)"
+NOM_BROUAGE_ETENDU = 'Plan de gestion - Marais de Brouage (ENS étendu)'
+
+
+def periodes_extension(annee=None):
+    """Période votée (début, fin) de chaque chaîne de prolongation.
+
+    - Scandola : fin en Y-1, +2 ans → **en cours** jusqu'en Y+1 ;
+    - Grand-Voyeux : fin en Y-2, +1 an → échu l'an dernier, **encore
+      prolongeable** d'un an (reconduction, cumul ≤ 2) ;
+    - Marais de Brouage : fin en Y-3, +2 ans → échu l'an dernier,
+      prolongation maximale atteinte.
+    """
+    y = annee or date.today().year
+    return {
+        'scandola': (y - 10, y - 1),
+        'grand_voyeux': (y - 11, y - 2),
+        'brouage': (y - 12, y - 3),
+    }
+
+
 class PlansSeeder(BaseSeeder):
     """
     Crée les plans de gestion de test.
@@ -92,9 +132,10 @@ class PlansSeeder(BaseSeeder):
 
     Chaînes d'extension (#250, prolongation = nouvelle version) — version
     d'origine archivée → version étendue (modifie, `annees_extension>0`) :
-    - Scandola rang 2 : 2016-2025 (archive) → (étendu +2 ans, modifie)
-    - Grand-Voyeux RNR : 2015-2024 (archive) → (RNR étendu +1 an, modifie) [#281]
-    - Marais de Brouage ENS : 2014-2023 (archive) → (ENS étendu +2 ans, modifie) [#281]
+    années relatives à l'année courante Y, cf. `periodes_extension()` :
+    - Scandola rang 2 : (Y-10)-(Y-1) (archive) → (étendu +2 ans, modifie), en cours
+    - Grand-Voyeux RNR : (Y-11)-(Y-2) (archive) → (RNR étendu +1 an, modifie) [#281]
+    - Marais de Brouage ENS : (Y-12)-(Y-3) (archive) → (ENS étendu +2 ans, modifie) [#281]
 
     Panel évaluations mi-parcours (#276, 6 plans couvrant les variantes) :
     - Camargue eval 2005 : EVAL_MI_PARCOURS, archive (historique)
@@ -115,6 +156,12 @@ class PlansSeeder(BaseSeeder):
         eval_fin = Nomenclature.objects.filter(mnemonique='Finale').first()
         redac_gest = Nomenclature.objects.filter(mnemonique='OG').first()
         redac_be = Nomenclature.objects.filter(mnemonique='BE').first()
+
+        # Chaînes de prolongation (#250) : années relatives à l'année courante.
+        periodes = periodes_extension()
+        sca_debut, sca_fin = periodes['scandola']
+        gv_debut, gv_fin = periodes['grand_voyeux']
+        brg_debut, brg_fin = periodes['brouage']
 
         plans = [
             # Plan Camargue + Brouage: super_admin referent, referent.camargue referent, admin.rnf et user.rnf membres.
@@ -327,9 +374,9 @@ class PlansSeeder(BaseSeeder):
             # donc le résultat du flux : v1 archivée → v2 « étendue » (modifie).
             # v1 : version d'origine du rang 2, archivée lors de la prolongation.
             {
-                'nom': 'Plan de gestion 2016-2025 - Scandola',
-                'annee_debut': 2016,
-                'annee_fin': 2025,
+                'nom': NOM_SCANDOLA_ORIGINE,
+                'annee_debut': sca_debut,
+                'annee_fin': sca_fin,
                 'rang': 2,
                 'surface': 1669,
                 'statut': 'archive',
@@ -342,7 +389,7 @@ class PlansSeeder(BaseSeeder):
                 'redacteur_nom': 'RNF - Équipe Corse',
                 'redacteurs': 'A. Aboucaya (RNF)',
                 'relecteurs': 'CSRPN Corse',
-                'date_avis_csrpn': date(2016, 6, 30),
+                'date_avis_csrpn': date(sca_debut, 6, 30),
                 'commentaire': 'Version d\'origine du rang 2, archivée lors de la prolongation '
                                'du plan (#250). Remplacée par la version étendue active.',
                 'sites': [sites[5]],  # Scandola
@@ -352,11 +399,11 @@ class PlansSeeder(BaseSeeder):
                 ]
             },
             # v2 : version étendue (+2 ans), validée en `modifie` (même rang),
-            # enfant de la v1. `annees_extension=2` → échéance effective 2027.
+            # enfant de la v1. `annees_extension=2` → échéance effective Y+1.
             {
-                'nom': 'Plan de gestion 2016-2025 - Scandola (étendu +2 ans)',
-                'annee_debut': 2016,
-                'annee_fin': 2025,
+                'nom': NOM_SCANDOLA_ETENDU,
+                'annee_debut': sca_debut,
+                'annee_fin': sca_fin,
                 'rang': 2,
                 'surface': 1669,
                 'statut': 'modifie',
@@ -370,8 +417,8 @@ class PlansSeeder(BaseSeeder):
                 'redacteur_nom': 'RNF - Équipe Corse',
                 'redacteurs': 'A. Aboucaya (RNF)',
                 'relecteurs': 'CSRPN Corse',
-                'date_avis_csrpn': date(2016, 6, 30),
-                'commentaire': 'Version étendue de 2 ans (échéance effective 2027), créée par '
+                'date_avis_csrpn': date(sca_debut, 6, 30),
+                'commentaire': f'Version étendue de 2 ans (échéance effective {sca_fin + 2}), créée par '
                                'prolongation du plan d\'origine puis validée (#250). Contenu '
                                'copié, éditable. Le plan parent a été archivé. '
                                'plan_parent posé en fin de seed.',
@@ -552,9 +599,9 @@ class PlansSeeder(BaseSeeder):
 
         # Cas RNR — Grand-Voyeux : "Plan prolongé"
         plans.append({
-            'nom': 'Plan de gestion 2015-2024 - Grand-Voyeux',
-            'annee_debut': 2015,
-            'annee_fin': 2024,
+            'nom': NOM_GRAND_VOYEUX_ORIGINE,
+            'annee_debut': gv_debut,
+            'annee_fin': gv_fin,
             'rang': 1,
             'statut': 'archive',
             'version': '1',
@@ -564,7 +611,7 @@ class PlansSeeder(BaseSeeder):
             'id_evaluation': eval_fin,
             'id_redacteur_type': redac_gest,
             'redacteur_nom': 'CEN Auvergne-Rhône-Alpes',
-            'date_avis_csrpn': date(2015, 4, 8),
+            'date_avis_csrpn': date(gv_debut, 4, 8),
             'commentaire': 'Version d\'origine, archivée lors de la prolongation du plan (#250).',
             'sites': [sites[2]],  # Grand-Voyeux (RNR)
             'membres': [
@@ -573,9 +620,9 @@ class PlansSeeder(BaseSeeder):
             ],
         })
         plans.append({
-            'nom': 'Plan de gestion 2015-2024 - Grand-Voyeux (RNR étendu)',
-            'annee_debut': 2015,
-            'annee_fin': 2024,
+            'nom': NOM_GRAND_VOYEUX_ETENDU,
+            'annee_debut': gv_debut,
+            'annee_fin': gv_fin,
             'rang': 1,
             'statut': 'modifie',
             'annees_extension': 1,
@@ -586,7 +633,7 @@ class PlansSeeder(BaseSeeder):
             'id_evaluation': eval_fin,
             'id_redacteur_type': redac_gest,
             'redacteur_nom': 'CEN Auvergne-Rhône-Alpes',
-            'date_avis_csrpn': date(2015, 4, 8),
+            'date_avis_csrpn': date(gv_debut, 4, 8),
             'commentaire': 'Site RNR → badge contextualisé « Plan prolongé » (#281). '
                            'Version étendue de 1 an issue de la prolongation, validée '
                            'en modifie. plan_parent posé en fin de seed.',
@@ -599,9 +646,9 @@ class PlansSeeder(BaseSeeder):
 
         # Cas ENS — Marais de Brouage : "Plan étendu"
         plans.append({
-            'nom': 'Plan de gestion 2014-2023 - Marais de Brouage',
-            'annee_debut': 2014,
-            'annee_fin': 2023,
+            'nom': NOM_BROUAGE_ORIGINE,
+            'annee_debut': brg_debut,
+            'annee_fin': brg_fin,
             'rang': 1,
             'statut': 'archive',
             'version': '1',
@@ -619,9 +666,9 @@ class PlansSeeder(BaseSeeder):
             ],
         })
         plans.append({
-            'nom': 'Plan de gestion 2014-2023 - Marais de Brouage (ENS étendu)',
-            'annee_debut': 2014,
-            'annee_fin': 2023,
+            'nom': NOM_BROUAGE_ETENDU,
+            'annee_debut': brg_debut,
+            'annee_fin': brg_fin,
             'rang': 1,
             'statut': 'modifie',
             'annees_extension': 2,
@@ -1318,12 +1365,9 @@ class PlansSeeder(BaseSeeder):
             # version d'origine (archive) du MÊME rang.
             # -----------------------------------------------------------------
             extension_chains = [
-                ('Plan de gestion 2016-2025 - Scandola (étendu +2 ans)',
-                 'Plan de gestion 2016-2025 - Scandola'),
-                ('Plan de gestion 2015-2024 - Grand-Voyeux (RNR étendu)',
-                 'Plan de gestion 2015-2024 - Grand-Voyeux'),
-                ('Plan de gestion 2014-2023 - Marais de Brouage (ENS étendu)',
-                 'Plan de gestion 2014-2023 - Marais de Brouage'),
+                (NOM_SCANDOLA_ETENDU, NOM_SCANDOLA_ORIGINE),
+                (NOM_GRAND_VOYEUX_ETENDU, NOM_GRAND_VOYEUX_ORIGINE),
+                (NOM_BROUAGE_ETENDU, NOM_BROUAGE_ORIGINE),
             ]
             for child_nom, parent_nom in extension_chains:
                 try:
