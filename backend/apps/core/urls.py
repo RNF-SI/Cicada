@@ -10,6 +10,7 @@ from .views import (
     ActivityLogViewSet,
     NomenclatureViewSet,
     SiteConfigurationView,
+    SiteConfigurationImageView,
     AdminOrphansView,
     AdminOrphansCountsView,
     AdminLogsView,
@@ -34,4 +35,11 @@ urlpatterns = [
     path('admin/logs/', AdminLogsView.as_view(), name='admin-logs'),
     # Site configuration (public GET, super_admin PATCH)
     path('settings/', SiteConfigurationView.as_view(), name='site-configuration'),
+    # #660 — Images de personnalisation servies sous /api/ (pas de /media/ en prod)
+    path('settings/homepage-image/',
+         SiteConfigurationImageView.as_view(field_name='homepage_image'),
+         name='site-configuration-homepage-image'),
+    path('settings/structure-logo/',
+         SiteConfigurationImageView.as_view(field_name='structure_logo'),
+         name='site-configuration-structure-logo'),
 ]

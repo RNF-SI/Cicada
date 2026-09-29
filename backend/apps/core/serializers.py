@@ -1,6 +1,8 @@
 """
 Serializers pour les modeles du core.
 """
+from urllib.parse import quote
+
 from rest_framework import serializers
 
 from .models import Module, ErrorLog, ActivityLog, Nomenclature, SiteConfiguration
@@ -60,9 +62,21 @@ class SiteConfigurationSerializer(serializers.ModelSerializer):
         """Chemin relatif du logo de la structure (#448)."""
         return obj.structure_logo.name if obj.structure_logo else None
 
+    @staticmethod
+    def _api_image_url(field, endpoint) -> str | None:
+        """#660 — URL de l'image, servie sous /api/ et non /media/.
+
+        En production, /media/ n'est routé vers Django par aucun proxy : seul
+        /api/ l'est. Le nom du fichier sert de version, pour qu'une nouvelle
+        image ne soit pas masquée par le cache du navigateur.
+        """
+        if not field:
+            return None
+        return f"/api/settings/{endpoint}/?v={quote(field.name, safe='')}"
+
     def get_structure_logo_url(self, obj) -> str | None:
-        """URL relative du logo (compatible proxy frontend) (#448)."""
-        return obj.structure_logo.url if obj.structure_logo else None
+        """URL relative du logo de la structure (#448, #660)."""
+        return self._api_image_url(obj.structure_logo, 'structure-logo')
 
     def get_homepage_image(self, obj) -> str | None:
         """Retourne le chemin relatif de l'image (sans le domaine)."""
@@ -72,10 +86,7 @@ class SiteConfigurationSerializer(serializers.ModelSerializer):
 
     def get_homepage_image_url(self, obj) -> str | None:
         """Retourne l'URL relative de l'image (compatible avec le proxy frontend)."""
-        if obj.homepage_image:
-            # Return relative URL to work with Angular proxy
-            return obj.homepage_image.url
-        return None
+        return self._api_image_url(obj.homepage_image, 'homepage-image')
 
     def get_updated_by_name(self, obj) -> str | None:
         """Retourne le nom de l'utilisateur qui a fait la derniere modification."""

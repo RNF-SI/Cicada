@@ -164,6 +164,37 @@ class SiteConfigurationView(APIView):
         return Response(SiteConfigurationSerializer(config, context={'request': request}).data)
 
 
+class SiteConfigurationImageView(APIView):
+    """
+    #660 — Sert le logo de la structure ou l'image d'accueil.
+
+    GET /api/settings/homepage-image/ et /api/settings/structure-logo/ (public).
+    En production (DEBUG=False), Django ne sert pas /media/ et aucun proxy ne
+    l'y route : l'image doit passer par /api/, seul préfixe dirigé vers le
+    backend dans toutes les topologies (Apache du frontend, vhost, Traefik).
+    Seules ces deux images sont exposées — pas le reste de /media/, où vivent
+    les pièces jointes des plans.
+    """
+
+    permission_classes = [AllowAny]
+    field_name = None
+
+    def get(self, request):
+        from django.http import FileResponse, Http404
+
+        image = getattr(SiteConfiguration.get_instance(), self.field_name)
+        if not image:
+            raise Http404
+        try:
+            handle = image.open('rb')
+        except FileNotFoundError:
+            raise Http404
+        response = FileResponse(handle)
+        # L'URL change avec le fichier (?v=), elle peut donc être mise en cache.
+        response['Cache-Control'] = 'public, max-age=86400'
+        return response
+
+
 class ModuleViewSet(viewsets.ModelViewSet):
     """
     ViewSet pour la gestion des modules applicatifs.

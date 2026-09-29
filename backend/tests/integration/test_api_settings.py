@@ -369,3 +369,57 @@ class TestDocGestionFcenInstanceSetting:
 
         assert response.status_code == status.HTTP_403_FORBIDDEN
         assert SiteConfiguration.get_instance().enable_docgestion_fcen is False
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+class TestSettingsImagesServedByApi:
+    """#660 — Le logo et l'image d'accueil sont servis sous /api/.
+
+    En production (DEBUG=False), Django ne sert pas /media/ et aucun proxy
+    (Apache du conteneur frontend, vhost hôte, Traefik) ne le route vers le
+    backend : l'URL /media/... retombait sur index.html et le navigateur
+    affichait « impossible de charger l'image ». /api/ est le seul préfixe
+    routé vers Django dans toutes les topologies de déploiement.
+    """
+
+    @pytest.fixture(autouse=True)
+    def _media_root(self, settings, tmp_path):
+        settings.MEDIA_ROOT = str(tmp_path)
+
+    def _upload(self, api_client, field, image):
+        api_client.force_authenticate(user=SuperAdminFactory())
+        response = api_client.patch('/api/settings/', {field: image}, format='multipart')
+        assert response.status_code == status.HTTP_200_OK
+        api_client.force_authenticate(user=None)
+        return response
+
+    @pytest.mark.parametrize('field, url_field, endpoint', [
+        ('homepage_image', 'homepage_image_url', '/api/settings/homepage-image/'),
+        ('structure_logo', 'structure_logo_url', '/api/settings/structure-logo/'),
+    ])
+    def test_url_points_to_api_and_serves_file(self, api_client, test_image, field, url_field, endpoint):
+        response = self._upload(api_client, field, test_image)
+
+        url = response.data[url_field]
+        assert url.startswith(endpoint)
+        assert '/media/' not in url
+
+        image_response = api_client.get(url)
+        assert image_response.status_code == status.HTTP_200_OK
+        assert image_response['Content-Type'] == 'image/jpeg'
+        assert b''.join(image_response.streaming_content)[:2] == b'\xff\xd8'
+
+    def test_url_changes_when_image_is_replaced(self, api_client, test_image):
+        """L'URL porte une version : un nouveau logo n'est pas masqué par le cache."""
+        first = self._upload(api_client, 'structure_logo', test_image).data['structure_logo_url']
+        test_image.seek(0)
+        second = self._upload(api_client, 'structure_logo', test_image).data['structure_logo_url']
+        assert first != second
+
+    @pytest.mark.parametrize('endpoint', [
+        '/api/settings/homepage-image/',
+        '/api/settings/structure-logo/',
+    ])
+    def test_missing_image_returns_404(self, api_client, endpoint):
+        assert api_client.get(endpoint).status_code == status.HTTP_404_NOT_FOUND
