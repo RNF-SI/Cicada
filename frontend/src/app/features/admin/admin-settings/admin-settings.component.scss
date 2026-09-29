@@ -390,3 +390,19 @@
 .federation-consequence {
   margin-top: $spacing-sm;
 }
+
+// #670 — Mesure d'audience Matomo : serveur + identifiant de site côte à côte.
+.matomo-fields {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: $spacing-md;
+  margin: $spacing-md 0;
+
+  @media (max-width: $breakpoint-tablet) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.matomo-error {
+  margin: $spacing-sm 0 0;
+}

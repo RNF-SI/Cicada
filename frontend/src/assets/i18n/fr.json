@@ -788,6 +788,29 @@
           "active": "API publique ouverte. Les métadonnées des plans validés, modifiés et terminés sont désormais accessibles sur /api/public/plans/.",
           "desactive": "API publique fermée. Les applications tierces n'ont plus accès aux métadonnées des plans."
         }
+      },
+      "matomo": {
+        "title": "Mesure d'audience",
+        "description": "Envoie les statistiques de fréquentation de cette instance vers le serveur Matomo de votre structure, pour suivre l'usage de CICADA et orienter ses évolutions. Désactivée tant que vous ne l'activez pas.",
+        "mesureTitre": "Ce qui est mesuré",
+        "mesure1": "Les pages consultées, avec leur adresse (qui peut contenir le nom d'un plan de gestion).",
+        "mesure2": "Les actions principales : création et changement de statut des plans, nouvelles versions, exports, validations et recherches dans l'exploration des données.",
+        "rgpdTitre": "Ce qui n'est jamais transmis",
+        "rgpd1": "Aucun cookie n'est déposé : la mesure est exemptée de consentement (recommandations de la CNIL).",
+        "rgpd2": "Aucun identifiant ni adresse email d'utilisateur. Pensez à anonymiser les adresses IP dans les réglages de votre serveur Matomo et à mentionner la mesure d'audience dans vos mentions légales.",
+        "url": "URL du serveur Matomo",
+        "urlHint": "Adresse de votre serveur Matomo, sans « matomo.php ».",
+        "siteId": "Identifiant du site",
+        "siteIdHint": "Nombre entier (idSite) attribué à cette instance dans Matomo.",
+        "activer": "Activer la mesure d'audience",
+        "activerHint": "Décochez puis enregistrez pour arrêter la mesure : l'URL et l'identifiant sont conservés.",
+        "errors": {
+          "incomplet": "Renseignez l'URL du serveur et l'identifiant du site avant d'activer la mesure d'audience."
+        },
+        "messages": {
+          "active": "Mesure d'audience activée. Elle s'applique aux pages chargées à partir de maintenant.",
+          "desactive": "Réglages de mesure d'audience enregistrés. Aucune statistique n'est envoyée."
+        }
       }
     },
     "update": {

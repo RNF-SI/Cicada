@@ -297,6 +297,66 @@
     ></app-checkbox>
   </section>
 
+  <!-- #670 — Mesure d'audience Matomo, réglée par instance. -->
+  <section class="settings-section">
+    <div class="section-header">
+      <h2 class="section-title">
+        <i class="fi fi-rr-chart-histogram"></i>
+        {{ 'admin.settings.matomo.title' | translate }}
+      </h2>
+      <p class="section-description">{{ 'admin.settings.matomo.description' | translate }}</p>
+    </div>
+
+    <div class="info-block info-block-success federation-perimetre">
+      <p class="text-bold">{{ 'admin.settings.matomo.mesureTitre' | translate }}</p>
+      <ul class="list-bullets">
+        <li>{{ 'admin.settings.matomo.mesure1' | translate }}</li>
+        <li>{{ 'admin.settings.matomo.mesure2' | translate }}</li>
+      </ul>
+    </div>
+
+    <div class="info-block info-block-warning federation-perimetre">
+      <p class="text-bold">{{ 'admin.settings.matomo.rgpdTitre' | translate }}</p>
+      <ul class="list-bullets">
+        <li>{{ 'admin.settings.matomo.rgpd1' | translate }}</li>
+        <li>{{ 'admin.settings.matomo.rgpd2' | translate }}</li>
+      </ul>
+    </div>
+
+    <div class="matomo-fields">
+      <app-form-field
+        [label]="'admin.settings.matomo.url' | translate"
+        [helpText]="'admin.settings.matomo.urlHint' | translate">
+        <input type="url" [ngModel]="matomoUrl()" (ngModelChange)="matomoUrl.set($event)"
+               placeholder="https://matomo.example.org" [disabled]="isSaving()" />
+      </app-form-field>
+      <app-form-field
+        [label]="'admin.settings.matomo.siteId' | translate"
+        [helpText]="'admin.settings.matomo.siteIdHint' | translate">
+        <input type="text" inputmode="numeric" [ngModel]="matomoSiteId()"
+               (ngModelChange)="matomoSiteId.set($event)" [disabled]="isSaving()" />
+      </app-form-field>
+    </div>
+
+    <app-checkbox
+      [checked]="matomoEnabled()"
+      (checkedChange)="matomoEnabled.set($event)"
+      [disabled]="isSaving()"
+      [label]="'admin.settings.matomo.activer' | translate"
+      [mention]="'admin.settings.matomo.activerHint' | translate"
+    ></app-checkbox>
+
+    @if (matomoError()) {
+      <p class="text-error matomo-error" role="alert">{{ matomoError() }}</p>
+    }
+
+    <div class="banner-actions">
+      <button mat-flat-button color="primary" (click)="saveMatomo()" [disabled]="isSaving()">
+        <i class="fi fi-rr-check"></i> {{ 'common.actions.save' | translate }}
+      </button>
+    </div>
+  </section>
+
   <!-- #645 — API ouverte des métadonnées des plans, pour une application tierce
        de gestion documentaire. Section à part, comme la fédération : ouvrir un
        endpoint sans authentification n'est pas un réglage d'affichage. -->

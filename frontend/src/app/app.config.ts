@@ -13,6 +13,7 @@ import { routes } from './app.routes';
 import { authInterceptor } from './core/interceptors/auth.interceptor';
 import { loggingInterceptor } from './core/interceptors/logging.interceptor';
 import { impersonationInterceptor } from './core/interceptors/impersonation.interceptor';
+import { matomoInterceptor } from './core/interceptors/matomo.interceptor';
 import { GlobalErrorHandler } from './core/handlers/global-error.handler';
 
 // Enregistrer la locale francaise
@@ -48,7 +49,7 @@ export const appConfig: ApplicationConfig = {
     provideAnimationsAsync(),
     // Note: loggingInterceptor doit etre avant authInterceptor pour capturer toutes les requetes
     // impersonationInterceptor doit etre apres authInterceptor pour verifier le statut d'impersonnation
-    provideHttpClient(withXhr(), withInterceptors([loggingInterceptor, authInterceptor, impersonationInterceptor])),
+    provideHttpClient(withXhr(), withInterceptors([loggingInterceptor, authInterceptor, impersonationInterceptor, matomoInterceptor])),
     provideTranslateService({
       defaultLanguage: 'fr',
       loader: provideTranslateHttpLoader({

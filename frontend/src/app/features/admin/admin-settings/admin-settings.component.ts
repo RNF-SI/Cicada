@@ -10,6 +10,7 @@ import { FormsModule } from '@angular/forms';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { SettingsService, SiteConfiguration, ImagePosition } from '../../../core/services/settings.service';
 import { CheckboxComponent } from '../../../shared/components/checkbox/checkbox.component';
+import { FormFieldComponent } from '../../../shared/components/form-field/form-field.component';
 
 @Component({
   selector: 'app-admin-settings',
@@ -23,7 +24,8 @@ import { CheckboxComponent } from '../../../shared/components/checkbox/checkbox.
     MatProgressSpinnerModule,
     MatButtonToggleModule,
     TranslateModule,
-    CheckboxComponent
+    CheckboxComponent,
+    FormFieldComponent
 ],
   templateUrl: './admin-settings.component.html',
   changeDetection: ChangeDetectionStrategy.Eager,
@@ -55,6 +57,11 @@ export class AdminSettingsComponent implements OnInit {
   readonly federationPartage = signal<boolean>(false);
   /** #645 — API ouverte des métadonnées des plans (GED tierce). Faux par défaut. */
   readonly apiPubliquePlans = signal<boolean>(false);
+  /** #670 — Mesure d'audience Matomo, propre à l'instance. Désactivée par défaut. */
+  readonly matomoEnabled = signal<boolean>(false);
+  readonly matomoUrl = signal<string>('');
+  readonly matomoSiteId = signal<string>('');
+  readonly matomoError = signal<string | null>(null);
 
   // #448 — Personnalisation : couleur du bandeau + logo structure.
   // Bandeau blanc par défaut (comportement historique).
@@ -102,6 +109,10 @@ export class AdminSettingsComponent implements OnInit {
       this.federationPartage.set(config?.federation_partage === true);
       // #645 — Idem pour l'ouverture de l'API publique des métadonnées.
       this.apiPubliquePlans.set(config?.api_publique_plans === true);
+      // #670 — Mesure d'audience Matomo.
+      this.matomoEnabled.set(config?.matomo_enabled === true);
+      this.matomoUrl.set(config?.matomo_url ?? '');
+      this.matomoSiteId.set(config?.matomo_site_id ?? '');
     });
   }
 
@@ -335,6 +346,48 @@ export class AdminSettingsComponent implements OnInit {
           this.translate.instant('common.actions.close'),
           { duration: 3000 },
         );
+      },
+    });
+  }
+
+  /**
+   * #670 — Enregistre la mesure d'audience Matomo (activation, serveur, site).
+   *
+   * Les trois valeurs partent ensemble : activer sans serveur ni site
+   * chargerait un traceur muet, le serveur le refuse aussi.
+   */
+  saveMatomo(): void {
+    const url = this.matomoUrl().trim();
+    const siteId = this.matomoSiteId().trim();
+    if (this.matomoEnabled() && (!url || !siteId)) {
+      this.matomoError.set(this.translate.instant('admin.settings.matomo.errors.incomplet'));
+      return;
+    }
+    this.matomoError.set(null);
+    this.isSaving.set(true);
+    const formData = new FormData();
+    formData.append('matomo_enabled', String(this.matomoEnabled()));
+    formData.append('matomo_url', url);
+    formData.append('matomo_site_id', siteId);
+    this.settingsService.updateSettings(formData).subscribe({
+      next: () => {
+        this.isSaving.set(false);
+        this.snackBar.open(
+          this.translate.instant(
+            this.matomoEnabled()
+              ? 'admin.settings.matomo.messages.active'
+              : 'admin.settings.matomo.messages.desactive',
+          ),
+          this.translate.instant('common.actions.close'),
+          { duration: 5000 },
+        );
+      },
+      error: (err: { error?: Record<string, string[] | string> }) => {
+        this.isSaving.set(false);
+        const detail = err?.error
+          ? Object.values(err.error).flat().find(message => typeof message === 'string')
+          : undefined;
+        this.matomoError.set(detail || this.translate.instant('admin.settings.messages.error'));
       },
     });
   }

@@ -3,6 +3,8 @@ Serializers pour les modeles du core.
 """
 from urllib.parse import quote
 
+from django.core.validators import URLValidator
+from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
 from .models import Module, ErrorLog, ActivityLog, Nomenclature, SiteConfiguration
@@ -52,6 +54,10 @@ class SiteConfigurationSerializer(serializers.ModelSerializer):
             'federation_partage',
             # #645 — API ouverte des métadonnées des plans.
             'api_publique_plans',
+            # #670 — Mesure d'audience Matomo (lue par le frontend, public).
+            'matomo_enabled',
+            'matomo_url',
+            'matomo_site_id',
             'updated_at',
             'updated_by',
             'updated_by_name',
@@ -116,7 +122,34 @@ class SiteConfigurationUpdateSerializer(serializers.ModelSerializer):
             'federation_partage',
             # #645 — Ouverture de l'API publique des métadonnées des plans.
             'api_publique_plans',
+            # #670 — Mesure d'audience Matomo.
+            'matomo_enabled',
+            'matomo_url',
+            'matomo_site_id',
         ]
+        extra_kwargs = {
+            'matomo_url': {'validators': [URLValidator(schemes=['http', 'https'])]},
+        }
+
+    def validate_matomo_url(self, value: str) -> str:
+        """Sans « / » final : le frontend compose <url>/matomo.js."""
+        return value.rstrip('/')
+
+    def validate(self, attrs):
+        """#670 — Activer Matomo sans serveur ni site chargerait un traceur muet."""
+        instance = self.instance
+        enabled = attrs.get('matomo_enabled', instance.matomo_enabled if instance else False)
+        if enabled:
+            url = attrs.get('matomo_url', instance.matomo_url if instance else '')
+            site_id = attrs.get('matomo_site_id', instance.matomo_site_id if instance else '')
+            if not url or not site_id:
+                raise serializers.ValidationError({
+                    'matomo_enabled': _(
+                        "Renseignez l'URL du serveur et l'identifiant du site "
+                        "Matomo avant d'activer la mesure d'audience."
+                    )
+                })
+        return attrs
 
 
 class ModuleSerializer(serializers.ModelSerializer):

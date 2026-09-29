@@ -423,3 +423,84 @@ class TestSettingsImagesServedByApi:
     ])
     def test_missing_image_returns_404(self, api_client, endpoint):
         assert api_client.get(endpoint).status_code == status.HTTP_404_NOT_FOUND
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+class TestMatomoInstanceSetting:
+    """#670 — Mesure d'audience Matomo, réglée par instance depuis l'interface."""
+
+    def _patch(self, api_client, data, user=None):
+        api_client.force_authenticate(user=user or SuperAdminFactory())
+        return api_client.patch('/api/settings/', data, format='json')
+
+    def test_disabled_by_default_and_public(self, api_client):
+        response = api_client.get('/api/settings/')
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data['matomo_enabled'] is False
+        assert response.data['matomo_url'] == ''
+        assert response.data['matomo_site_id'] == ''
+
+    def test_super_admin_can_enable(self, api_client):
+        response = self._patch(api_client, {
+            'matomo_enabled': True,
+            'matomo_url': 'https://matomo.example.org/',
+            'matomo_site_id': '12',
+        })
+
+        assert response.status_code == status.HTTP_200_OK
+        # Le « / » final est retiré : le frontend compose <url>/matomo.js.
+        assert response.data['matomo_url'] == 'https://matomo.example.org'
+        assert response.data['matomo_site_id'] == '12'
+        assert SiteConfiguration.get_instance().matomo_enabled is True
+
+    @pytest.mark.parametrize('data', [
+        {'matomo_enabled': True},
+        {'matomo_enabled': True, 'matomo_url': 'https://matomo.example.org'},
+        {'matomo_enabled': True, 'matomo_site_id': '12'},
+    ])
+    def test_enabling_requires_url_and_site_id(self, api_client, data):
+        response = self._patch(api_client, data)
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert SiteConfiguration.get_instance().matomo_enabled is False
+
+    def test_site_id_must_be_numeric(self, api_client):
+        response = self._patch(api_client, {
+            'matomo_enabled': True,
+            'matomo_url': 'https://matomo.example.org',
+            'matomo_site_id': '12; alert(1)',
+        })
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+    def test_url_must_be_http(self, api_client):
+        response = self._patch(api_client, {
+            'matomo_url': 'javascript:alert(1)',
+        })
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+    def test_disabling_keeps_url_and_site_id(self, api_client):
+        self._patch(api_client, {
+            'matomo_enabled': True,
+            'matomo_url': 'https://matomo.example.org',
+            'matomo_site_id': '12',
+        })
+
+        response = self._patch(api_client, {'matomo_enabled': False})
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data['matomo_enabled'] is False
+        assert response.data['matomo_url'] == 'https://matomo.example.org'
+
+    def test_admin_organisme_cannot_enable(self, api_client):
+        response = self._patch(
+            api_client,
+            {'matomo_enabled': True, 'matomo_url': 'https://m.example.org', 'matomo_site_id': '1'},
+            user=AdminOrganismeFactory(),
+        )
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+        assert SiteConfiguration.get_instance().matomo_enabled is False

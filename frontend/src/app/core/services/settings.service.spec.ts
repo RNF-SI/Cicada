@@ -17,6 +17,9 @@ describe('SettingsService', () => {
     enable_docgestion_fcen: false,
     federation_partage: false,
     api_publique_plans: false,
+    matomo_enabled: false,
+    matomo_url: '',
+    matomo_site_id: '',
     updated_at: '2024-01-15T10:30:00Z',
     updated_by: 1,
     updated_by_name: 'Admin User'
@@ -188,6 +191,9 @@ describe('SettingsService', () => {
         enable_docgestion_fcen: false,
         federation_partage: false,
         api_publique_plans: false,
+        matomo_enabled: false,
+        matomo_url: '',
+        matomo_site_id: '',
         updated_at: '',
         updated_by: null,
         updated_by_name: null

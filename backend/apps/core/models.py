@@ -423,6 +423,38 @@ class SiteConfiguration(models.Model):
             "de gestion documentaire."
         )
     )
+    # #670 — Mesure d'audience Matomo, propre à chaque instance.
+    #
+    # Désactivée par défaut et réglée depuis /administration/parametres (pas
+    # de variable d'environnement) : chaque structure qui déploie choisit son
+    # serveur Matomo et son identifiant de site. Le traceur tourne sans cookie
+    # (exemption de consentement CNIL) et ne transmet aucun identifiant
+    # utilisateur.
+    matomo_enabled = models.BooleanField(
+        _("Mesure d'audience Matomo"),
+        default=False,
+        help_text=_(
+            "Active la mesure d'audience Matomo (pages consultées et actions "
+            "principales), sans cookie et sans identifiant utilisateur."
+        )
+    )
+    matomo_url = models.URLField(
+        _("URL du serveur Matomo"),
+        blank=True,
+        default='',
+        help_text=_("Adresse du serveur Matomo, ex. https://matomo.example.org")
+    )
+    matomo_site_id = models.CharField(
+        _("Identifiant du site Matomo"),
+        max_length=10,
+        blank=True,
+        default='',
+        validators=[RegexValidator(
+            regex=r'^[0-9]+$',
+            message=_("L'identifiant du site Matomo est un nombre entier.")
+        )],
+        help_text=_("Identifiant numérique du site dans Matomo (idSite)")
+    )
     updated_at = models.DateTimeField(
         _('Mis à jour le'),
         auto_now=True

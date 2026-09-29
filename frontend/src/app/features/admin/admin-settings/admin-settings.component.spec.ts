@@ -51,6 +51,9 @@ describe('AdminSettingsComponent', () => {
     enable_docgestion_fcen: false,
     federation_partage: false,
     api_publique_plans: false,
+    matomo_enabled: false,
+    matomo_url: '',
+    matomo_site_id: '',
     updated_at: '2024-01-15T10:30:00Z',
     updated_by: 1,
     updated_by_name: 'Admin User'
@@ -364,5 +367,69 @@ describe('AdminSettingsComponent', () => {
       fixture.detectChanges();
       expect(component.formatDate('')).toBe('');
     });
+  });
+
+  // =============================================================================
+  // #670 — MESURE D'AUDIENCE MATOMO
+  // =============================================================================
+
+  describe('Matomo (#670)', () => {
+    const lastFormData = (): FormData =>
+      (mockSettingsService.updateSettings as jest.Mock).mock.calls.at(-1)[0];
+
+    it('reprend les réglages de l\'instance', () => {
+      configSignal.set({
+        ...mockConfig,
+        matomo_enabled: true,
+        matomo_url: 'https://matomo.example.org',
+        matomo_site_id: '12',
+      });
+      fixture.detectChanges();
+
+      expect(component.matomoEnabled()).toBe(true);
+      expect(component.matomoUrl()).toBe('https://matomo.example.org');
+      expect(component.matomoSiteId()).toBe('12');
+    });
+
+    it('enregistre l\'activation, l\'URL et l\'identifiant en un clic', fakeAsync(() => {
+      fixture.detectChanges();
+      component.matomoEnabled.set(true);
+      component.matomoUrl.set(' https://matomo.example.org ');
+      component.matomoSiteId.set('12');
+
+      component.saveMatomo();
+      tick();
+
+      const data = lastFormData();
+      expect(data.get('matomo_enabled')).toBe('true');
+      expect(data.get('matomo_url')).toBe('https://matomo.example.org');
+      expect(data.get('matomo_site_id')).toBe('12');
+      expect(mockSnackBar.open).toHaveBeenCalled();
+    }));
+
+    it('refuse d\'activer sans URL ni identifiant, sans appeler l\'API', () => {
+      fixture.detectChanges();
+      (mockSettingsService.updateSettings as jest.Mock).mockClear();
+      component.matomoEnabled.set(true);
+
+      component.saveMatomo();
+
+      expect(mockSettingsService.updateSettings).not.toHaveBeenCalled();
+      expect(component.matomoError()).toBeTruthy();
+    });
+
+    it('affiche l\'erreur renvoyée par le serveur', fakeAsync(() => {
+      fixture.detectChanges();
+      (mockSettingsService.updateSettings as jest.Mock).mockReturnValueOnce(
+        throwError(() => ({ error: { matomo_url: ['Saisissez une URL valide.'] } })),
+      );
+      component.matomoUrl.set('pas une url');
+      component.matomoSiteId.set('12');
+
+      component.saveMatomo();
+      tick();
+
+      expect(component.matomoError()).toBe('Saisissez une URL valide.');
+    }));
   });
 });
