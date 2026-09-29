@@ -35,17 +35,10 @@ drf-spectacular==0.30.0
 openpyxl==3.1.5
 python-docx==1.1.2
 
-# Testing
-pytest==7.4.4
-pytest-django==4.8.0
-pytest-cov==4.1.0
-factory-boy==3.3.1
+# Client HTTP (relais et publication vers le hub fédéré)
 requests==2.34.2
-
-# Code quality
-black==23.12.1
-isort==5.13.2
-flake8==6.1.0
 
 # Logging
 python-json-logger==2.0.7
+
+# Outils de test et de qualité : requirements-dev.txt (hors image de production)

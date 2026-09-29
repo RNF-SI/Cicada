@@ -15,7 +15,4 @@ gunicorn==22.0.0
 # Client HTTP (appels sortants éventuels vers les instances)
 requests==2.34.2
 
-# Tests
-pytest==7.4.4
-pytest-django==4.8.0
-pytest-cov==4.1.0
+# Outils de test : requirements-dev.txt (hors image de production)
