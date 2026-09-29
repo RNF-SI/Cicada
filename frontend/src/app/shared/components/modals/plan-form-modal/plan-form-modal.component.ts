@@ -298,7 +298,7 @@ export class PlanFormModalComponent implements OnInit {
   }
 
   get modalTitle(): string {
-    return this.isEditMode ? 'Modifier le plan de gestion' : 'Nouveau plan de gestion';
+    return this.isEditMode ? 'Modifier les données de référence' : 'Nouveau plan de gestion';
   }
 
   ngOnInit(): void {
