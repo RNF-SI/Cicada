@@ -209,6 +209,11 @@ $form-side-margin: $spacing-xxl;
   gap: $spacing-lg;
 }
 
+// #663 — Action de restauration : même ligne que la priorité, juste en dessous
+.restauration-row {
+  margin-top: $spacing-md;
+}
+
 // ═══════════════════════════════════════════════
 // Radio field rows (Oui/Non)
 // ═══════════════════════════════════════════════

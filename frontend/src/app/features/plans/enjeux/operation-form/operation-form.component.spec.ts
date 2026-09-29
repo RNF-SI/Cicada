@@ -1305,6 +1305,33 @@ describe('OperationFormComponent — ventilation budgétaire', () => {
     });
   });
 
+  describe('#663 — action de restauration obligatoire, non précochée', () => {
+    function makeForm(): FormGroup {
+      const comp = Object.create(OperationFormComponent.prototype) as OperationFormComponent;
+      (comp as any).fb = new FormBuilder();
+      (comp as any).initForm();
+      return (comp as any).form as FormGroup;
+    }
+
+    it('démarre sans réponse (ni oui ni non)', () => {
+      expect(makeForm().get('action_restauration')!.value).toBeNull();
+    });
+
+    it('est requise : invalide tant que non renseignée', () => {
+      const ctrl = makeForm().get('action_restauration')!;
+      expect(ctrl.hasValidator(Validators.required)).toBe(true);
+      expect(ctrl.valid).toBe(false);
+    });
+
+    it('« Non » (false) est une réponse valide', () => {
+      const ctrl = makeForm().get('action_restauration')!;
+      ctrl.setValue(false);
+      expect(ctrl.valid).toBe(true);
+      ctrl.setValue(true);
+      expect(ctrl.valid).toBe(true);
+    });
+  });
+
   // -------------------------------------------------------------------------
   // #560 — Tableau RH dérivé (déclinaison par poste / ventilation par organisme)
   // -------------------------------------------------------------------------

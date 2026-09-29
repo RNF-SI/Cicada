@@ -499,6 +499,15 @@ class Operation(models.Model):
         null=True,
         help_text=_("Description détaillée de l'opération")
     )
+    # #663 — Action de restauration selon la perception du gestionnaire.
+    # NULL = non renseigné (actions antérieures, brouillons) ; le formulaire
+    # l'exige à la validation, sans valeur précochée.
+    action_restauration = models.BooleanField(
+        _("Action de restauration"),
+        null=True,
+        blank=True,
+        help_text=_("Le gestionnaire considère-t-il cette action comme de nature restaurative ?")
+    )
     annee_min = models.IntegerField(
         _("Année min"),
         null=True,

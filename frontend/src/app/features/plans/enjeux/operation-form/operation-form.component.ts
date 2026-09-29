@@ -985,6 +985,8 @@ export class OperationFormComponent implements OnInit {
       intitule_suivi: [''],
       metrique_ids: [[] as number[]],
       id_priorite: [null],
+      // #663 — Action de restauration : obligatoire, jamais précochée (null).
+      action_restauration: [null as boolean | null, [Validators.required]],
       // Suivi/inventaire fields (nested in suivi_inventaire on save)
       objectif_principal: [''],
       objectif_secondaire: [''],
@@ -1471,6 +1473,7 @@ export class OperationFormComponent implements OnInit {
       id_type_action: op.id_type_action || null,
       id_suivi: op.id_suivi || null,
       id_priorite: op.id_priorite || null,
+      action_restauration: op.action_restauration ?? null,
       code_operation: op.code_operation || '',
       numero_manuel: op.numero_manuel ?? null,
       id_referentiel_operations: op.id_referentiel_operations || '',
@@ -2075,6 +2078,8 @@ export class OperationFormComponent implements OnInit {
 
     if (fv.id_type_action) payload.id_type_action = fv.id_type_action;
     if (fv.id_priorite) payload.id_priorite = fv.id_priorite;
+    // #663 — null tant que non renseigné (« Enregistrer » sans validation).
+    payload.action_restauration = fv.action_restauration ?? null;
     // #228 — Catégorie d'action réserve (optionnel).
     const catReserve = this.categorieActionReserveCtrl.value;
     if (catReserve != null) {
@@ -2605,6 +2610,7 @@ export class OperationFormComponent implements OnInit {
     libelle: 'enjeux.operations.libelleLabel',
     intitule_suivi: 'enjeux.operations.intituleSuiviLabel',
     id_type_action: 'enjeux.operations.typeActionLabel',
+    action_restauration: 'enjeux.operations.actionRestaurationLabel',
     objectif_principal: 'enjeux.operations.objectifPrincipal',
     cibles_principales: 'enjeux.operations.ciblesPrincipales',
     protocole_dans_campanule: 'enjeux.operations.protocoleCampanule',

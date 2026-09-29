@@ -1009,6 +1009,7 @@ class OperationSerializer(serializers.ModelSerializer):
             'code_prefix', 'code_affichage', 'numero_manuel',
             'id_referentiel_operations', 'code_operation',
             'description',
+            'action_restauration',
             'annee_min', 'annee_max',
             # Suivi/inventaire
             'est_suivi_existant', 'id_suivi', 'suivi_inventaire',
@@ -1393,6 +1394,7 @@ class OperationCreateSerializer(serializers.ModelSerializer):
             'id_indicateur',
             'id_referentiel_operations', 'code_operation', 'numero_manuel',
             'description',
+            'action_restauration',
             'annee_min', 'annee_max',
             # Suivi/inventaire
             'est_suivi_existant', 'id_suivi', 'suivi_inventaire',

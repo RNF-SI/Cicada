@@ -869,6 +869,8 @@ export interface Operation {
   id_referentiel_operations?: string;
   code_operation?: string;
   description?: string;
+  /** #663 — Action de restauration (null = non renseigné). */
+  action_restauration?: boolean | null;
   annee_min?: number;
   annee_max?: number;
   // Suivi/inventaire
@@ -936,6 +938,8 @@ export interface OperationCreatePayload {
   /** #485 — Numéro fixé manuellement dans le code (null = numérotation automatique). */
   numero_manuel?: number | null;
   description?: string;
+  /** #663 — Action de restauration (null = non renseigné). */
+  action_restauration?: boolean | null;
   annee_min?: number;
   annee_max?: number;
   // Suivi/inventaire

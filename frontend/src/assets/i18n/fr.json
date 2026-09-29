@@ -3920,6 +3920,8 @@
       "metriqueAssocieeLabel": "Métrique associée",
       "metriquesAssocieesLabel": "Métriques associées",
       "prioriteLabel": "Priorité",
+      "actionRestaurationLabel": "Action de restauration",
+      "actionRestaurationTooltip": "Choix selon votre perception : considérez-vous que cette action est de nature restaurative ?",
       "detailsSuiviTitle": "Détails de l'inventaire ou du suivi",
       "objectifPrincipal": "Objectif principal",
       "objectifSecondaire": "Objectif secondaire (optionnel)",
