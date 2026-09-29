@@ -123,6 +123,11 @@
             <dt>{{ 'plans.suivis.actions.fiche.frequence' | translate }}</dt>
             <dd>{{ op.frequence_nombre }} / {{ op.frequence_unite || '—' }}</dd>
           }
+          <!-- #674 — mois d'intervention, comme dans l'export Excel -->
+          @if (moisProgrammes().length) {
+            <dt>{{ 'plans.suivis.actions.fiche.moisIntervention' | translate }}</dt>
+            <dd>{{ moisIntervention() }}</dd>
+          }
         </dl>
       </section>
       }

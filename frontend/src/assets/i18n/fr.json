@@ -2161,6 +2161,8 @@
           "temporalite": "Temporalité",
           "periode": "Période",
           "frequence": "Fréquence",
+          "moisIntervention": "Mois d'intervention",
+          "moisLabels": "janvier,février,mars,avril,mai,juin,juillet,août,septembre,octobre,novembre,décembre",
           "anneesProgrammees": "Années programmées",
           "acteurs": "Acteurs",
           "operateurs": "Opérateurs",

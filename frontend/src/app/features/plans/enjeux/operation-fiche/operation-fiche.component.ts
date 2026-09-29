@@ -397,6 +397,34 @@ export class OperationFicheComponent implements OnInit {
   });
 
   /** Période lisible (annee_min – annee_max). */
+  /**
+   * #674 — Mois d'intervention, comme dans l'export Excel de la fiche : grille
+   * mensuelle commune réunie avec les mois de chaque année (identiques, la
+   * programmation étant « mêmes mois chaque année »).
+   */
+  readonly moisProgrammes = computed<number[]>(() => {
+    const op = this.operation();
+    if (!op) return [];
+    const mois = new Set<number>();
+    const ajouter = (flags?: Record<string, boolean> | null) => {
+      for (const [m, coche] of Object.entries(flags ?? {})) {
+        const n = Number(m);
+        if (coche === true && n >= 1 && n <= 12) mois.add(n);
+      }
+    };
+    ajouter(op.programmation_mensuelle_defaut);
+    for (const oa of op.operation_annees ?? []) ajouter(oa.periodicite_mensuelle);
+    return [...mois].sort((a, b) => a - b);
+  });
+
+  /** Mois d'intervention en clair : « mars, avril, mai ». */
+  moisIntervention(): string {
+    const labels = this.translate.instant('plans.suivis.actions.fiche.moisLabels').split(',');
+    return this.moisProgrammes()
+      .map(m => (labels.length === 12 ? labels[m - 1] : String(m)))
+      .join(', ');
+  }
+
   readonly periode = computed(() => {
     const op = this.operation();
     if (op?.annee_min && op?.annee_max) return `${op.annee_min} – ${op.annee_max}`;
