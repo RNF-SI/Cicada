@@ -394,28 +394,26 @@ describe('HeaderComponent', () => {
 
     it('should stop impersonation and reload to admin page', fakeAsync(() => {
       fixture.detectChanges();
-      // window.location.href triggers a full page reload — mock it to prevent jsdom error
-      delete (window as any).location;
-      (window as any).location = { href: '' };
+      // Le rechargement complet de la page n'est pas exécutable sous jsdom
+      const reloadSpy = jest.spyOn(component as any, 'reloadTo').mockImplementation(() => {});
 
       component.stopImpersonation();
       tick();
 
       expect(stopImpersonationMock).toHaveBeenCalled();
-      expect((window as any).location.href).toBe('/administration/utilisateurs');
+      expect(reloadSpy).toHaveBeenCalledWith('/administration/utilisateurs');
     }));
 
     it('should reload to home on stop impersonation error', fakeAsync(() => {
       stopImpersonationMock.mockReturnValue(throwError(() => new Error('Error')));
       fixture.detectChanges();
-      delete (window as any).location;
-      (window as any).location = { href: '' };
+      const reloadSpy = jest.spyOn(component as any, 'reloadTo').mockImplementation(() => {});
 
       component.stopImpersonation();
       tick();
 
       expect(stopImpersonationMock).toHaveBeenCalled();
-      expect((window as any).location.href).toBe('/');
+      expect(reloadSpy).toHaveBeenCalledWith('/');
     }));
   });
 

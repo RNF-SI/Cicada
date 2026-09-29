@@ -232,11 +232,19 @@ export class HeaderComponent implements OnInit {
     this.authService.stopImpersonation().subscribe({
       next: () => {
         // Force full page reload to reset Angular state and sync all tabs
-        window.location.href = '/administration/utilisateurs';
+        this.reloadTo('/administration/utilisateurs');
       },
       error: () => {
-        window.location.href = '/';
+        this.reloadTo('/');
       }
     });
+  }
+
+  /**
+   * Rechargement complet de la page. Isolé pour les tests : jsdom (Jest 30) ne
+   * permet plus de remplacer window.location.
+   */
+  protected reloadTo(url: string): void {
+    window.location.href = url;
   }
 }
