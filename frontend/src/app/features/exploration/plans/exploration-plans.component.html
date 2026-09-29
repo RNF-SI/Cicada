@@ -148,6 +148,15 @@
                 }
 
                 <p class="exploration-tuile-ligne exploration-tuile-meta">
+                  @if (plan.rang) {
+                    <span class="exploration-tuile-info">
+                      <i class="fi fi-rr-layers" aria-hidden="true"></i>
+                      {{ 'plans.rangLabel' | translate:{ rang: plan.rang } }}
+                    </span>
+                    @if (periode(plan) || plan.type_document) {
+                      <span class="exploration-tuile-separateur"></span>
+                    }
+                  }
                   @if (periode(plan)) {
                     <span class="exploration-tuile-info">
                       <i class="fi fi-rr-calendar" aria-hidden="true"></i>

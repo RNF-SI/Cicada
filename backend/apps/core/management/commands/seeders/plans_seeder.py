@@ -87,15 +87,15 @@ def _write_demo_fichier(chemin_abs: str, ext: str, title: str) -> int:
 # l'ancienne. Les constantes sont partagées avec `MinimalPlansSeeder`.
 # --------------------------------------------------------------------------- #
 
-# Le rang figure dans le nom : c'est lui qui situe le plan dans l'histoire du
-# site. Il ne suffit pas à les distinguer — version d'origine et version
-# prolongée partagent le même rang, d'où la mention qui suit.
-NOM_SCANDOLA_ORIGINE = "Plan de gestion rang 2 - Scandola (version d'origine)"
-NOM_SCANDOLA_ETENDU = 'Plan de gestion rang 2 - Scandola (étendu +2 ans)'
-NOM_GRAND_VOYEUX_ORIGINE = "Plan de gestion rang 1 - Grand-Voyeux (RNR, version d'origine)"
-NOM_GRAND_VOYEUX_ETENDU = 'Plan de gestion rang 1 - Grand-Voyeux (RNR étendu +1 an)'
-NOM_BROUAGE_ORIGINE = "Plan de gestion rang 1 - Marais de Brouage (ENS, version d'origine)"
-NOM_BROUAGE_ETENDU = 'Plan de gestion rang 1 - Marais de Brouage (ENS étendu +2 ans)'
+# Le rang n'est pas dans le nom — comme pour un plan réel, dont l'auteur choisit
+# le nom librement : c'est l'application qui l'affiche (liste des plans, fiche
+# du plan, fiche du site, exploration).
+NOM_SCANDOLA_ORIGINE = "Plan de gestion - Scandola (version d'origine)"
+NOM_SCANDOLA_ETENDU = 'Plan de gestion - Scandola (étendu +2 ans)'
+NOM_GRAND_VOYEUX_ORIGINE = "Plan de gestion - Grand-Voyeux (RNR, version d'origine)"
+NOM_GRAND_VOYEUX_ETENDU = 'Plan de gestion - Grand-Voyeux (RNR étendu +1 an)'
+NOM_BROUAGE_ORIGINE = "Plan de gestion - Marais de Brouage (ENS, version d'origine)"
+NOM_BROUAGE_ETENDU = 'Plan de gestion - Marais de Brouage (ENS étendu +2 ans)'
 
 
 def periodes_extension(annee=None):

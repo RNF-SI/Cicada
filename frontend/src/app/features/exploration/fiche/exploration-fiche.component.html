@@ -51,6 +51,12 @@
               <span>{{ p.gestionnaire_principal }}</span>
             </li>
           }
+          @if (p.rang) {
+            <li>
+              <i class="fi fi-rr-layers" aria-hidden="true"></i>
+              <span>{{ 'plans.rangLabel' | translate:{ rang: p.rang } }}</span>
+            </li>
+          }
           @if (periode()) {
             <li>
               <i class="fi fi-rr-calendar" aria-hidden="true"></i>

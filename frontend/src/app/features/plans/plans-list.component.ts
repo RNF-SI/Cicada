@@ -852,7 +852,12 @@ export class PlansListComponent implements OnInit {
   versionLabel(version: PlanWithAccess): string {
     const type = version.type_document_display
       || this.translate.instant('plans.lifecycle.timeline.planInitial');
-    return version.version ? `${type} - V${version.version}` : type;
+    const label = version.version ? `${type} - V${version.version}` : type;
+    // Le rang situe le plan dans l'histoire du site : il n'est pas dans le nom,
+    // que chacun choisit librement.
+    return version.rang
+      ? `${this.translate.instant('plans.rangLabel', { rang: version.rang })} · ${label}`
+      : label;
   }
 
   /**

@@ -453,6 +453,16 @@ describe('SiteDetailComponent', () => {
       tick();
     }));
 
+    it('affiche le rang de chaque plan avec sa période', () => {
+      TestBed.inject(TranslateService).setTranslation('fr', { plans: { rangLabel: 'Rang {{rang}}' } }, true);
+      component.associatedPlans.set([{ ...mockPlan, rang: 2 }, { ...mockPlan2, rang: undefined }] as AdminPlan[]);
+      fixture.detectChanges();
+      const lignes = Array.from(fixture.nativeElement.querySelectorAll('.plan-period'))
+        .map((e: any) => e.textContent.replace(/\s+/g, ' ').trim());
+      expect(lignes[0]).toBe('Rang 2 · 2020 - 2030');
+      expect(lignes[1]).not.toContain('Rang');
+    });
+
     it('should load associated plans', () => {
       expect(getPlansMock).toHaveBeenCalledWith({ site: 1, page_size: 50 });
       expect(component.associatedPlans()).toHaveLength(2);

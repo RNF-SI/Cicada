@@ -1473,6 +1473,7 @@
   },
   "plans": {
     "title": "Plans de gestion",
+    "rangLabel": "Rang {{rang}}",
     "rh": {
       "finance": "Temps agent (gestionnaire)",
       "nonFinance": "Temps partenaire / bénévole (valorisé)",

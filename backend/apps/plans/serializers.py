@@ -222,7 +222,7 @@ class PlanGestionListSerializer(serializers.ModelSerializer):
     class Meta:
         model = PlanGestion
         fields = [
-            'id_pg', 'nom', 'slug', 'statut', 'statut_display', 'version',
+            'id_pg', 'nom', 'slug', 'statut', 'statut_display', 'rang', 'version',
             'validation_step', 'validation_step_display', 'is_in_csrpn_workflow',
             'annee_debut', 'annee_fin', 'annees_extension', 'is_extended',
             'en_revision', 'is_in_revision',

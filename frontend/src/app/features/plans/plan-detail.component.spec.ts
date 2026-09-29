@@ -5,7 +5,7 @@ import { ActivatedRoute, Router, convertToParamMap } from '@angular/router';
 import { RouterTestingModule } from '@angular/router/testing';
 import { MatDialog, MatDialogRef } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { TranslateModule, TranslateLoader } from '@ngx-translate/core';
+import { TranslateModule, TranslateLoader, TranslateService } from '@ngx-translate/core';
 import { Observable, of, throwError, Subject, BehaviorSubject } from 'rxjs';
 import { signal, WritableSignal } from '@angular/core';
 
@@ -368,6 +368,34 @@ describe('PlanDetailComponent', () => {
   // =========================================================================
   // Initialization
   // =========================================================================
+
+  describe('rang du plan', () => {
+    function surtitre(): HTMLElement | null {
+      return fixture.nativeElement.querySelector('[data-testid="plan-rang"]');
+    }
+
+    it('affiche le rang dans le surtitre, au-dessus du nom', () => {
+      setup({ plan: createMockPlan({ rang: 2 }) });
+      const translate = TestBed.inject(TranslateService);
+      translate.setTranslation('fr', { plans: { rangLabel: 'Rang {{rang}}' } }, true);
+      translate.use('fr');
+      fixture.detectChanges();
+
+      expect(surtitre()?.textContent?.trim()).toBe('Rang 2');
+      expect(fixture.nativeElement.querySelector('.plan-subtitle').contains(surtitre())).toBe(true);
+    });
+
+    it('ne le répète plus dans la ligne de détails', () => {
+      setup({ plan: createMockPlan({ rang: 2 }) });
+      const details = fixture.nativeElement.querySelector('.plan-meta').textContent;
+      expect(details).not.toContain('modals.planForm.fields.rang');
+    });
+
+    it('sans rang, pas de mention', () => {
+      setup({ plan: createMockPlan({ rang: undefined }) });
+      expect(surtitre()).toBeNull();
+    });
+  });
 
   describe('initialization', () => {
     it('should create', () => {

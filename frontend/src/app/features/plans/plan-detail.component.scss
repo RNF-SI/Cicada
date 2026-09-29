@@ -214,6 +214,10 @@
   letter-spacing: 2px;
   margin-bottom: $spacing-xs;
 
+  .plan-subtitle-separator {
+    opacity: 0.7;
+  }
+
   i {
     font-size: $font-size-small;
   }

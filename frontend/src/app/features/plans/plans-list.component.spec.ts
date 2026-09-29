@@ -10,7 +10,7 @@ import { TestBed } from '@angular/core/testing';
 import { HttpClientTestingModule } from '@angular/common/http/testing';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { RouterTestingModule } from '@angular/router/testing';
-import { TranslateModule } from '@ngx-translate/core';
+import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { signal } from '@angular/core';
 import { of } from 'rxjs';
 
@@ -241,5 +241,51 @@ describe('PlansListComponent — jauge d\'un plan prolongé (#675)', () => {
 
   it('échéance effective recalculée si l\'API ne la fournit pas', () => {
     expect(gauge({ annee_debut: Y - 10, annee_fin: Y - 1, annees_extension: 2 })).toBe('second-half');
+  });
+});
+
+describe('PlansListComponent — rang affiché avec la version', () => {
+  let component: PlansListComponent;
+
+  beforeEach(async () => {
+    await TestBed.configureTestingModule({
+      imports: [
+        PlansListComponent, HttpClientTestingModule, NoopAnimationsModule,
+        RouterTestingModule, TranslateModule.forRoot(),
+      ],
+      providers: [
+        { provide: AdminService, useValue: { getPlans: () => of({ results: [] }), getSites: () => of({ results: [] }) } },
+        { provide: ValidationService, useValue: { getMyRequests: () => of([]) } },
+        {
+          provide: AuthService,
+          useValue: {
+            currentUser: signal(CURRENT_USER), isSuperAdmin: signal(false),
+            isRedacteurPrincipal: signal(false), isAdminOrganisme: signal(false),
+          },
+        },
+      ],
+    }).compileComponents();
+    const translate = TestBed.inject(TranslateService);
+    translate.setTranslation('fr', {
+      plans: { rangLabel: 'Rang {{rang}}', lifecycle: { timeline: { planInitial: 'Plan initial' } } },
+    });
+    translate.use('fr');
+    component = TestBed.createComponent(PlansListComponent).componentInstance;
+  });
+
+  it('préfixe la version par le rang', () => {
+    expect(component.versionLabel(plan(1, 'Scandola', 'valide', { rang: 2, version: '3' })))
+      .toBe('Rang 2 · Plan initial - V3');
+  });
+
+  it('garde le type de document quand il est connu', () => {
+    expect(component.versionLabel(plan(1, 'X', 'valide', {
+      rang: 1, version: '2', type_document_display: 'Évaluation mi-parcours',
+    }))).toBe('Rang 1 · Évaluation mi-parcours - V2');
+  });
+
+  it('sans rang : libellé de version seul', () => {
+    expect(component.versionLabel(plan(1, 'X', 'valide', { rang: null, version: '1' })))
+      .toBe('Plan initial - V1');
   });
 });

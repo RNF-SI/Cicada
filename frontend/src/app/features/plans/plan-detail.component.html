@@ -59,6 +59,12 @@
               <div class="plan-subtitle">
                 <i class="fi fi-rr-document"></i>
                 <span>{{ 'plans.detail.sidebar.title' | translate }}</span>
+                <!-- Le rang situe le plan dans l'histoire du site ; il n'est pas
+                     dans le nom, que chacun choisit librement. -->
+                @if (p.rang) {
+                  <span class="plan-subtitle-separator" aria-hidden="true">·</span>
+                  <span data-testid="plan-rang">{{ 'plans.rangLabel' | translate:{ rang: p.rang } }}</span>
+                }
               </div>
               <h1 class="plan-title">{{ p.nom }}</h1>
 
@@ -88,9 +94,6 @@
                   }
                   <span class="meta-label">{{ 'modals.planForm.fields.ct88' | translate }} :</span>
                   <span class="meta-value">{{ p.ct88 ? 'Oui' : 'Non' }}</span>
-                  <span class="meta-separator">|</span>
-                  <span class="meta-label">{{ 'modals.planForm.fields.rang' | translate }} :</span>
-                  <span class="meta-value">{{ p.rang }}</span>
                 </div>
                 <div class="meta-row">
                   @if (p.surface) {
