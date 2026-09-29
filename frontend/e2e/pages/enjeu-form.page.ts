@@ -209,4 +209,15 @@ export class EnjeuFormPage {
       }
     }
   }
+
+  /**
+   * #669 — au moins un élément « L'enjeu est lié à » est requis. Coche une case
+   * de la catégorie affichée si aucune ne l'est (enjeu créé avant la contrainte).
+   */
+  async ensureLienSatisfied() {
+    const group = this.page.locator('.checkbox-group').first();
+    if ((await group.locator('.app-checkbox--checked').count()) > 0) return;
+    const ecologique = await this.fonctionnaliteEcosystemeCheckbox.isVisible().catch(() => false);
+    await (ecologique ? this.fonctionnaliteEcosystemeCheckbox : this.usagesCheckbox).click();
+  }
 }

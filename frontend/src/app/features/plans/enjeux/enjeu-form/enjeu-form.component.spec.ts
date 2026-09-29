@@ -269,7 +269,11 @@ describe('EnjeuFormComponent', () => {
   // =========================================================================
 
   describe('creation', () => {
-    beforeEach(() => setup());
+    beforeEach(() => {
+      setup();
+      // #669 — au moins un élément « L'enjeu est lié à » est requis.
+      component.form.patchValue({ fonctionnalite_ecosysteme: true });
+    });
 
     it('should not submit when form is invalid', () => {
       component.form.get('libelle')?.setValue('');
@@ -369,6 +373,40 @@ describe('EnjeuFormComponent', () => {
   });
 
   // =========================================================================
+  // #669 — « L'enjeu est lié à » obligatoire
+  // =========================================================================
+
+  describe('lien obligatoire (#669)', () => {
+    beforeEach(() => setup());
+
+    it('bloque la création sans aucun élément écologique coché', () => {
+      component.form.patchValue({ libelle: 'Enjeu', categorie_ecologique: true });
+      expect(component.lienMissing).toBe(true);
+      component.onSubmit();
+      expect(mockEnjeuService.createEnjeu).not.toHaveBeenCalled();
+      expect(component.showLienError()).toBe(true);
+      expect(component.errorMessage()).toBe('enjeux.enjeuForm.lienRequired');
+    });
+
+    it('bloque un enjeu socio-économique dont seules des cases écologiques sont cochées', () => {
+      component.form.patchValue({
+        libelle: 'Enjeu', categorie_ecologique: false, fonctionnalite_ecosysteme: true,
+      });
+      expect(component.lienMissing).toBe(true);
+      component.onSubmit();
+      expect(mockEnjeuService.createEnjeu).not.toHaveBeenCalled();
+    });
+
+    it('accepte un enjeu socio-économique avec un élément coché', () => {
+      component.form.patchValue({ libelle: 'Enjeu', categorie_ecologique: false, usages: true });
+      expect(component.lienMissing).toBe(false);
+      component.onSubmit();
+      expect(mockEnjeuService.createEnjeu).toHaveBeenCalled();
+      expect(component.showLienError()).toBe(false);
+    });
+  });
+
+  // =========================================================================
   // Edition
   // =========================================================================
 
@@ -413,6 +451,7 @@ describe('EnjeuFormComponent', () => {
 
     beforeEach(() => {
       setup();
+      component.form.patchValue({ fonctionnalite_ecosysteme: true });
       scrollIntoViewMock = jest.fn();
       Element.prototype.scrollIntoView = scrollIntoViewMock;
     });

@@ -3643,6 +3643,7 @@
       "cibleRefRequired": "Veuillez saisir au moins un taxon ou un habitat pour les cibles sélectionnées.",
       "habitatRefRequired": "Veuillez saisir au moins un habitat.",
       "especeRefRequired": "Veuillez saisir au moins une espèce / un taxon.",
+      "lienRequired": "Veuillez cocher au moins un élément auquel l'enjeu est lié.",
       "processus": "Un processus",
       "details": "Détails",
       "etatEnjeu": "Précisions sur l'état de l'enjeu",
