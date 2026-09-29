@@ -448,11 +448,21 @@ h1 {
 }
 
 .period-dates {
+  display: flex;
+  flex-direction: column;
   color: $black;
   font-size: $font-size-base;
   white-space: nowrap;
   flex-shrink: 0;
-  width: 80px;
+  // Largeur commune à toutes les lignes : les jauges restent alignées, que le
+  // plan soit prolongé (2e ligne) ou non.
+  width: 104px;
+}
+
+// #250 — fin réelle d'un plan prolongé, sous la période votée.
+.period-extension {
+  color: $gray-dark;
+  font-size: $font-size-small;
 }
 
 app-plan-gauge {

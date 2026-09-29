@@ -203,7 +203,14 @@
                     </td>
                     <td class="col-period">
                       <div class="period-content">
-                        <span class="period-dates">{{ formatPeriod(plan) }}</span>
+                        <span class="period-dates">
+                          {{ formatPeriod(plan) }}
+                          @if (plan.annees_extension && plan.gaugeEndYear) {
+                            <span class="period-extension" data-testid="plan-prolongation">
+                              {{ 'plans.list.prolongeJusqua' | translate:{ annee: plan.gaugeEndYear } }}
+                            </span>
+                          }
+                        </span>
                         @if (plan.annee_debut && plan.gaugeEndYear) {
                           <app-plan-gauge
                             [status]="plan.gaugeStatus"
@@ -261,7 +268,14 @@
                       </td>
                       <td class="col-period">
                         <div class="period-content">
-                          <span class="period-dates">{{ formatPeriod(version) }}</span>
+                          <span class="period-dates">
+                            {{ formatPeriod(version) }}
+                            @if (version.annees_extension && version.gaugeEndYear) {
+                              <span class="period-extension" data-testid="plan-prolongation">
+                                {{ 'plans.list.prolongeJusqua' | translate:{ annee: version.gaugeEndYear } }}
+                              </span>
+                            }
+                          </span>
                           @if (version.annee_debut && version.gaugeEndYear) {
                             <app-plan-gauge
                               [status]="version.gaugeStatus"

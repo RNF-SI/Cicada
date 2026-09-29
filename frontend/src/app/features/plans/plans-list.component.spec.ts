@@ -11,10 +11,14 @@ import { HttpClientTestingModule } from '@angular/common/http/testing';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { RouterTestingModule } from '@angular/router/testing';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
-import { signal } from '@angular/core';
+import { Component, signal } from '@angular/core';
 import { of } from 'rxjs';
 
 import { PlansListComponent } from './plans-list.component';
+import { HeaderComponent } from '../../shared/components/header/header.component';
+
+@Component({ selector: 'app-header', standalone: true, template: '' })
+class HeaderStubComponent {}
 import { AdminService } from '../../core/services/admin.service';
 import { ValidationService } from '../../core/services/validation.service';
 import { AuthService } from '../../core/services/auth.service';
@@ -264,13 +268,39 @@ describe('PlansListComponent — rang affiché avec la version', () => {
           },
         },
       ],
-    }).compileComponents();
+    })
+      // L'en-tête de page n'est pas l'objet de ces tests (et dépend de nombreux services).
+      .overrideComponent(PlansListComponent, {
+        remove: { imports: [HeaderComponent] },
+        add: { imports: [HeaderStubComponent] },
+      })
+      .compileComponents();
     const translate = TestBed.inject(TranslateService);
     translate.setTranslation('fr', {
       plans: { rangLabel: 'Rang {{rang}}', lifecycle: { timeline: { planInitial: 'Plan initial' } } },
     });
     translate.use('fr');
     component = TestBed.createComponent(PlansListComponent).componentInstance;
+  });
+
+  it('colonne période : fin réelle sous la période d\'un plan prolongé (#250)', () => {
+    TestBed.inject(TranslateService).setTranslation('fr', {
+      plans: { list: { prolongeJusqua: 'prolongé → {{annee}}' } },
+    }, true);
+    const fixture = TestBed.createComponent(PlansListComponent);
+    const comp = fixture.componentInstance;
+    fixture.detectChanges();
+    comp.allPlans.set([
+      plan(1, 'Scandola prolongé', 'modifie', { annee_debut: 2016, annee_fin: 2025, annees_extension: 2, gaugeEndYear: 2027 }),
+      plan(2, 'Camargue', 'valide', { annee_debut: 2020, annee_fin: 2030, annees_extension: 0, gaugeEndYear: 2030 }),
+    ] as any);
+    fixture.detectChanges();
+
+    const lignes = Array.from(fixture.nativeElement.querySelectorAll('tbody tr')) as HTMLElement[];
+    const periode = (nom: string) => lignes.find(l => l.textContent!.includes(nom))!
+      .querySelector('.period-dates')!.textContent!.replace(/\s+/g, ' ').trim();
+    expect(periode('Scandola prolongé')).toBe('2016-2025 prolongé → 2027');
+    expect(periode('Camargue')).toBe('2020-2030');
   });
 
   it('préfixe la version par le rang', () => {

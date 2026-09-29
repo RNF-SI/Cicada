@@ -1546,6 +1546,7 @@
       "badge": "Évaluation mi-parcours"
     },
     "list": {
+      "prolongeJusqua": "prolongé → {{annee}}",
       "title": "Plans de gestion",
       "subtitle": "Consultez et gérez vos plans de gestion",
       "search": "Rechercher un plan...",
