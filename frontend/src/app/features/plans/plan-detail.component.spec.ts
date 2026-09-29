@@ -186,7 +186,7 @@ describe('PlanDetailComponent', () => {
   let fixture: ComponentFixture<PlanDetailComponent>;
   let router: Router;
   let mockSnackBarOpen: jest.SpyInstance;
-  let confirmSpy: jest.SpyInstance;
+  let confirmSpy: jest.SpyInstance | undefined;
 
   // Subjects for route observables
   let paramMapSubject: BehaviorSubject<any>;

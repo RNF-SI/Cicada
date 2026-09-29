@@ -71,11 +71,11 @@
 }
 
 .btn-to-draft {
-  --mdc-outlined-button-label-text-color: #{$secondary-terra-cotta};
-  --mdc-outlined-button-outline-color: #{$secondary-terra-cotta};
+  --mat-button-outlined-label-text-color: #{$secondary-terra-cotta};
+  --mat-button-outlined-outline-color: #{$secondary-terra-cotta};
 
   &:hover {
     background-color: $secondary-terra-cotta;
-    --mdc-outlined-button-label-text-color: #{$white};
+    --mat-button-outlined-label-text-color: #{$white};
   }
 }

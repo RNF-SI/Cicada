@@ -286,8 +286,8 @@ interface DialogData {
     /* Status classes pour les chips - Regles accessibilite WCAG AA */
     /* WARNING: Orange (#FA9965) avec texte noir (#343433) */
     .status-warning {
-      --mdc-chip-elevated-container-color: #FA9965;
-      --mdc-chip-label-text-color: #343433;
+      --mat-chip-elevated-container-color: #FA9965;
+      --mat-chip-label-text-color: #343433;
       color: #343433;
     }
 
@@ -297,8 +297,8 @@ interface DialogData {
 
     /* ERROR: Rouge (#E12329) avec texte blanc */
     .status-error {
-      --mdc-chip-elevated-container-color: #E12329;
-      --mdc-chip-label-text-color: #FFFFFF;
+      --mat-chip-elevated-container-color: #E12329;
+      --mat-chip-label-text-color: #FFFFFF;
       color: #FFFFFF;
     }
 
@@ -308,8 +308,8 @@ interface DialogData {
 
     /* CRITICAL: Bleu-vert primaire (#025359) avec texte blanc */
     .status-critical {
-      --mdc-chip-elevated-container-color: #025359;
-      --mdc-chip-label-text-color: #FFFFFF;
+      --mat-chip-elevated-container-color: #025359;
+      --mat-chip-label-text-color: #FFFFFF;
       color: #FFFFFF;
     }
 

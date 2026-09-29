@@ -119,8 +119,8 @@ h1 { @include sites-h1; }
   // #536 — bouton d'annulation (geste destructif) : contour rouge erreur.
   .pending-cancel-btn {
     i { margin-right: 4px; }
-    --mdc-outlined-button-label-text-color: #{$error-color};
-    --mdc-outlined-button-outline-color: #{$error-color};
+    --mat-button-outlined-label-text-color: #{$error-color};
+    --mat-button-outlined-outline-color: #{$error-color};
     &:hover { background-color: rgba($error-color, 0.08); }
   }
 }
