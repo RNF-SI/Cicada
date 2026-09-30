@@ -53,8 +53,15 @@ sed -i "s|^VERSION=.*|VERSION=${VERSION}|" \
 sed -i "s/Version: .*/Version: ${VERSION}/" \
     "$BUILD_DIR/${PACKAGE_NAME}/DEBIAN/control"
 
+# Ne pas embarquer le bytecode Python laissé par un lancement local de l'installateur
+find "$BUILD_DIR/${PACKAGE_NAME}" -name __pycache__ -type d -prune -exec rm -rf {} +
+
 # Construire le package
-dpkg-deb --build "$BUILD_DIR/${PACKAGE_NAME}" \
+# -Zxz : sur Ubuntu (poste de dev comme runner CI), dpkg-deb compresse en zstd
+# par défaut, format que le dpkg de Debian 11 ne sait pas lire (#221). xz est lu
+# partout. --root-owner-group : fichiers à root dans le paquet, quel que soit
+# l'utilisateur qui construit.
+dpkg-deb -Zxz --root-owner-group --build "$BUILD_DIR/${PACKAGE_NAME}" \
     "$BUILD_DIR/${PACKAGE_NAME}_${VERSION}_${ARCH}.deb"
 
 echo "Package créé : $BUILD_DIR/${PACKAGE_NAME}_${VERSION}_${ARCH}.deb"
