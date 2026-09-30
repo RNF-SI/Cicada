@@ -397,8 +397,13 @@ class InstallService:
                 text=True,
                 timeout=120,
             )
-            if result.returncode != 0:
-                err = (result.stderr or "").strip() or (result.stdout or "").strip()
+            err = (result.stderr or "").strip() or (result.stdout or "").strip()
+            if result.returncode != 0 and 'is unhealthy' in err:
+                # Compose abandonne quand web ne devient pas healthy (frontend et
+                # celery en dépendent). Les conteneurs existent : la boucle
+                # d'attente ci-dessous produit un diagnostic lisible (logs web).
+                pass
+            elif result.returncode != 0:
                 self.update_status('in_progress', f'Erreur Docker Compose: {err[:200]}', 'web', 'failed')
                 msg = f"Échec du démarrage des conteneurs (code {result.returncode}).\n\nSortie:\n{result.stdout or '(vide)'}\n\nErreur:\n{result.stderr or '(vide)'}"
                 if "address already in use" in err.lower() or ("bind" in err.lower() and "port" in err.lower()):
@@ -429,54 +434,48 @@ class InstallService:
         web_running = False
         frontend_running = False
         
+        # Pour une base existante, rien à attendre côté conteneurs
+        if db_type != 'docker':
+            db_running = True
+
+        web_failed = False
         while elapsed < max_wait:
-            # Vérifier l'état de tous les conteneurs
-            ps_result = subprocess.run(
-                [docker_cmd, 'compose'] + docker_compose_f_args + ['--env-file', env_file, 'ps'],
-                capture_output=True,
-                text=True,
-                timeout=10
-            )
-            
-            if ps_result.returncode == 0:
-                ps_output = ps_result.stdout.lower()
-                # "docker compose ps" affiche "Up X min (healthy)", pas "running"
-                up_or_running = ('running' in ps_output or ' up ' in ps_output)
+            # État lu conteneur par conteneur. Ne pas chercher « healthy » dans la
+            # sortie globale de `docker compose ps` : la ligne d'un autre
+            # conteneur (redis) suffisait à croire web prêt alors qu'il ne
+            # démarrait pas.
+            if not db_running and self._container_state(docker_cmd, 'cicada_prod_db') == 'healthy':
+                db_running = True
+                self.update_status('in_progress', 'Base de données démarrée', 'db', 'completed')
 
-                # Vérifier la base de données (seulement si DB_TYPE = docker)
-                if db_type == 'docker':
-                    if not db_running and 'cicada_prod_db' in ps_output and up_or_running and 'healthy' in ps_output:
-                        db_running = True
-                        self.update_status('in_progress', 'Base de données démarrée', 'db', 'completed')
+            if not redis_running and self._container_state(docker_cmd, 'cicada_prod_redis') == 'healthy':
+                redis_running = True
+                self.update_status('in_progress', 'Redis démarré', 'redis', 'completed')
+
+            if not web_running:
+                web_state = self._container_state(docker_cmd, 'cicada_prod_web')
+                if web_state == 'healthy':
+                    web_running = True
+                    self.update_status('in_progress', 'Conteneur web démarré', 'web', 'completed')
+                elif web_state in ('unhealthy', 'exited', 'dead'):
+                    # Inutile d'attendre la fin du délai : le diagnostic ci-dessous
+                    # donne la cause (souvent la connexion à la base).
+                    web_failed = True
+                    break
                 else:
-                    # Pour DB existante, on considère qu'elle est prête (l'utilisateur doit l'avoir configurée)
-                    db_running = True
+                    self.update_status(
+                        'in_progress',
+                        'Démarrage du conteneur web (migrations, import des référentiels)...',
+                        'web', 'running',
+                    )
 
-                # Vérifier Redis
-                if not redis_running and 'cicada_prod_redis' in ps_output and up_or_running and 'healthy' in ps_output:
-                    redis_running = True
-                    self.update_status('in_progress', 'Redis démarré', 'redis', 'completed')
+            if not frontend_running and self._container_state(docker_cmd, 'cicada_prod_frontend') in ('running', 'healthy'):
+                frontend_running = True
+                self.update_status('in_progress', 'Frontend démarré', 'frontend', 'completed')
 
-                # Vérifier le conteneur web (Up X min (healthy))
-                if not web_running and 'cicada_prod_web' in ps_output:
-                    if up_or_running and 'healthy' in ps_output:
-                        web_running = True
-                        self.update_status('in_progress', 'Conteneur web démarré', 'web', 'completed')
-                    elif 'exited' in ps_output:
-                        self.update_status('in_progress', 'Conteneur web en cours de démarrage...', 'web', 'running')
-                    else:
-                        self.update_status('in_progress', 'Démarrage du conteneur web...', 'web', 'running')
-
-                # Vérifier le frontend (optionnel)
-                if not frontend_running and 'cicada_prod_frontend' in ps_output and up_or_running:
-                    frontend_running = True
-                    self.update_status('in_progress', 'Frontend démarré', 'frontend', 'completed')
-            
-            # Si tous les conteneurs critiques sont prêts, on peut continuer
-            # Pour DB existante, db_running est toujours True
             if db_running and redis_running and web_running:
                 break
-            
+
             time.sleep(wait_interval)
             elapsed += wait_interval
         
@@ -505,12 +504,43 @@ class InstallService:
                 timeout=10
             )
             ps_output = ps_result.stdout if ps_result.returncode == 0 else "Impossible de récupérer l'état"
+            if web_failed:
+                headline = "L'application (conteneur 'web') n'a pas pu démarrer."
+            else:
+                headline = f"L'application (conteneur 'web') n'est pas prête après {elapsed} secondes."
+            cause = self._probable_cause(web_logs)
             error_msg = (
-                f"Le conteneur 'web' n'est pas prêt après {elapsed} secondes (healthcheck non atteint).\n\n"
-                f"État des conteneurs:\n{ps_output}\n\n"
+                f"{headline}\n"
+                + (f"Cause probable : {cause}\n" if cause else "")
+                + f"\nÉtat des conteneurs:\n{ps_output}\n\n"
                 f"Logs du conteneur web (diagnostic):\n{web_logs[-6000:]}"
             )
             raise Exception(error_msg)
+
+    def _container_state(self, docker_cmd, name):
+        """État d'un conteneur : santé s'il a un healthcheck (starting, healthy,
+        unhealthy), sinon statut (created, running, exited…), '' s'il n'existe pas."""
+        try:
+            result = subprocess.run(
+                [docker_cmd, 'inspect', '-f',
+                 '{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}',
+                 name],
+                capture_output=True, text=True, timeout=10,
+            )
+        except subprocess.TimeoutExpired:
+            return ''
+        return result.stdout.strip() if result.returncode == 0 else ''
+
+    @staticmethod
+    def _probable_cause(logs):
+        """Dernière erreur de connexion à la base dans les logs web, lisible par
+        l'opérateur (plutôt qu'une trace Python de 80 lignes)."""
+        for line in reversed(logs.splitlines()):
+            if 'OperationalError' in line or 'connection to server' in line:
+                # Retirer le préfixe « conteneur | » ajouté par `docker compose logs`
+                line = line.split(' | ', 1)[-1]
+                return line.split('OperationalError:', 1)[-1].strip()[:400]
+        return ''
 
     def _build_final_url(self, data):
         """Construit l'URL finale de l'application (sans :80 ni :443 dans l'URL)."""
