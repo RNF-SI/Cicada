@@ -515,6 +515,41 @@ class InstallService:
             )
             raise Exception(error_msg)
 
+        self._start_dependent_services(docker_cmd, compose_f_args, env_file, compose_dir)
+
+    # Services qui attendent que web soit healthy (depends_on: service_healthy)
+    DEPENDENT_CONTAINERS = ('cicada_prod_frontend', 'cicada_prod_celery_worker', 'cicada_prod_celery_beat')
+
+    def _start_dependent_services(self, docker_cmd, compose_f_args, env_file, compose_dir):
+        """Démarre frontend et celery une fois web healthy, et vérifie qu'ils tournent.
+
+        Le premier `up -d` est coupé au bout de 2 min alors que Compose attend
+        encore que web soit healthy pour lancer ses dépendants : dès que le
+        premier démarrage de web dépasse ce délai (import des référentiels), ils
+        restaient à l'état « created » — jamais démarrés — et l'installation
+        était pourtant déclarée réussie. `up -d` est idempotent : le relancer
+        maintenant que web est healthy démarre ce qui manque.
+        """
+        import time
+        self.update_status('in_progress', 'Démarrage du frontend et des tâches de fond...', 'frontend', 'running')
+        result = subprocess.run(
+            [docker_cmd, 'compose'] + compose_f_args + ['--env-file', env_file, 'up', '-d'],
+            cwd=compose_dir, capture_output=True, text=True, timeout=300,
+        )
+        not_running = list(self.DEPENDENT_CONTAINERS)
+        for _ in range(24):  # 2 min
+            not_running = [c for c in self.DEPENDENT_CONTAINERS
+                           if self._container_state(docker_cmd, c) not in ('running', 'healthy')]
+            if not not_running:
+                break
+            time.sleep(5)
+        if not_running:
+            states = ', '.join(f"{c} : {self._container_state(docker_cmd, c) or 'absent'}" for c in not_running)
+            raise Exception(
+                f"Des services n'ont pas démarré ({states}).\n\n"
+                f"Sortie de docker compose up:\n{(result.stderr or result.stdout or '')[-3000:]}"
+            )
+        self.update_status('in_progress', 'Frontend démarré', 'frontend', 'completed')
 
     def _container_state(self, docker_cmd, name):
         """État d'un conteneur : santé s'il a un healthcheck (starting, healthy,
