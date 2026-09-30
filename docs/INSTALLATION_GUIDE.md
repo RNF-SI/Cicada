@@ -197,7 +197,9 @@ Aucune configuration manuelle Apache/Nginx n’est nécessaire.
 Si vous **cochez** « Un serveur Apache ou Nginx est-il déjà présent sur ce serveur ? » :
 
 - **Pas de Traefik.** Le frontend est exposé sur le port que vous avez indiqué (ex. 8080).
-- Vous devez configurer un **virtual host dédié** sur votre Apache ou Nginx pour proxyfier le trafic vers ce port (ex. `ProxyPass / http://127.0.0.1:8080/` et `ProxyPass /api http://127.0.0.1:8000/`). Vous gérez vous-même le HTTPS (certificat Let's Encrypt avec certbot, CORS, etc.).
+- Vous devez configurer un **virtual host dédié** sur votre Apache ou Nginx qui envoie **tout** le trafic vers ce port (`ProxyPass / http://127.0.0.1:8080/`). Vous gérez vous-même le HTTPS (certificat Let's Encrypt avec certbot).
+
+> ⚠️ **Ne proxifiez pas `/api` vers le port 8000.** Le conteneur frontend route déjà `/api/*` vers Django par le réseau Docker interne ; le backend n'est pas exposé sur l'hôte. Une règle `ProxyPass /api http://127.0.0.1:8000/api` envoie l'API vers **ce qui écoute sur le port 8000 de l'hôte** — sur un serveur qui héberge aussi **GeoNature**, c'est son gunicorn : la connexion à CICADA échoue en 404 (#231). Symptôme : `curl -i https://votre-domaine/api/health/` ne renvoie pas d'en-tête `X-Correlation-ID`.
 
 #### Exemple de configuration Apache
 
@@ -208,7 +210,7 @@ sudo a2enmod proxy proxy_http proxy_wstunnel ssl headers
 sudo systemctl reload apache2
 ```
 
-Un seul virtual host sur le port 80 (à adapter : remplacer `cicada.example.org` par votre domaine, `8080`/`8000` par les ports indiqués lors de l’installation).
+Un seul virtual host sur le port 80 (à adapter : remplacer `cicada.example.org` par votre domaine, `8080` par le port indiqué lors de l’installation).
 
 **Fichier** `/etc/apache2/sites-available/cicada.conf` :
 
@@ -219,11 +221,8 @@ Un seul virtual host sur le port 80 (à adapter : remplacer `cicada.example.org`
     ProxyPreserveHost On
     ProxyRequests Off
 
-    # API Django (doit être avant la règle / pour priorité)
-    ProxyPass /api http://127.0.0.1:8000/api
-    ProxyPassReverse /api http://127.0.0.1:8000/api
-
-    # Frontend Angular
+    # Tout passe par le conteneur frontend, qui route lui-même /api vers Django.
+    # Pas de règle /api → 8000 (voir l'avertissement ci-dessus).
     ProxyPass / http://127.0.0.1:8080/
     ProxyPassReverse / http://127.0.0.1:8080/
 </VirtualHost>
@@ -280,18 +279,18 @@ sudo -u postgres psql -d cicada -c "ALTER FUNCTION public.unaccent(text) OWNER T
 
 ```bash
 # Nomenclatures (si 0 résultat)
-docker compose -f docker-compose.prod.yml exec web python manage.py import_nomenclatures
+sudo docker exec cicada_prod_web python manage.py import_nomenclatures
 
 # HabRef — habitats (~29 000 entrées)
-docker compose -f docker-compose.prod.yml exec web python manage.py import_habref
+sudo docker exec cicada_prod_web python manage.py import_habref
 
 # TaxRef — taxonomie (~700 000 taxons, peut prendre plusieurs minutes)
-docker compose -f docker-compose.prod.yml exec web python manage.py import_taxref
+sudo docker exec cicada_prod_web python manage.py import_taxref
 # Variante allégée pour les environnements de test (~8 000 taxons) :
-# docker compose -f docker-compose.prod.yml exec web python manage.py import_taxref --lite
+# sudo docker exec cicada_prod_web python manage.py import_taxref --lite
 
 # CAMPanule — protocoles (optionnel, ~224 protocoles)
-docker compose -f docker-compose.prod.yml exec web python manage.py import_campanule
+sudo docker exec cicada_prod_web python manage.py import_campanule
 ```
 
 ### Vérifier après import
@@ -311,7 +310,7 @@ Résultats attendus :
 
 ## Rappel : configuration Apache avec HTTPS (Let's Encrypt)
 
-Lorsque `certbot --apache` génère le virtual host SSL, il copie la configuration HTTP mais **commente parfois les directives `ProxyPass`** pour `/api`. Vérifiez que le fichier SSL contient bien les lignes suivantes **non commentées** :
+Lorsque `certbot --apache` génère le virtual host SSL, il copie la configuration HTTP. Vérifiez que le fichier SSL contient bien les lignes suivantes **non commentées**, et **aucune** règle `ProxyPass /api` (héritée d'une ancienne version de ce guide ou d'un vhost GeoNature, cf. #231) :
 
 ```apache
 # Fichier : /etc/apache2/sites-enabled/cicada-prod-le-ssl.conf (ou similaire)
@@ -321,11 +320,7 @@ Lorsque `certbot --apache` génère le virtual host SSL, il copie la configurati
     ProxyPreserveHost On
     ProxyRequests Off
 
-    # API Django — IMPORTANT : ne pas commenter ces lignes
-    ProxyPass /api http://127.0.0.1:8000/api
-    ProxyPassReverse /api http://127.0.0.1:8000/api
-
-    # Frontend Angular
+    # Tout passe par le conteneur frontend (qui route /api vers Django)
     ProxyPass / http://127.0.0.1:8080/
     ProxyPassReverse / http://127.0.0.1:8080/
 
