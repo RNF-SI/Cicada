@@ -49,18 +49,43 @@ def get_version():
         return version_path.read_text().strip() or "unknown"
     return "unknown"
 
+def register(tracking_url, token, version):
+    """Enregistre l'instance (le jeton voyage dans le corps, pas en en-tête)."""
+    response = requests.post(
+        f"{tracking_url}/instances/register/",
+        json={'token': token, 'version': version},
+        headers={'Content-Type': 'application/json'},
+        timeout=10,
+    )
+    response.raise_for_status()
+    Path("/var/lib/cicada/registration_pending").unlink(missing_ok=True)
+    logger.info("Instance enregistrée auprès de l'API de suivi")
+
+
+def post_heartbeat(tracking_url, token, version):
+    return requests.post(
+        f"{tracking_url}/instances/heartbeat/",
+        json={'version': version},
+        headers={'X-Instance-Token': token},
+        timeout=10,
+    )
+
+
 def send_heartbeat():
     token = get_token()
     version = get_version()
     tracking_url = get_tracking_api_url()
 
     try:
-        response = requests.post(
-            f"{tracking_url}/instances/heartbeat/",
-            json={'version': version},
-            headers={'X-Instance-Token': token},
-            timeout=10  # Timeout réduit
-        )
+        response = post_heartbeat(tracking_url, token, version)
+        if response.status_code in (401, 403):
+            # Jeton inconnu de l'API : l'enregistrement a échoué à
+            # l'installation (API injoignable…). On s'enregistre puis on
+            # réessaie. Auparavant, l'enregistrement n'était retenté qu'APRÈS
+            # un heartbeat réussi — qui ne pouvait justement pas réussir.
+            logger.warning("Instance inconnue de l'API de suivi (HTTP %s) : enregistrement", response.status_code)
+            register(tracking_url, token, version)
+            response = post_heartbeat(tracking_url, token, version)
         response.raise_for_status()
         data = response.json()
 
@@ -76,25 +101,6 @@ def send_heartbeat():
 
         if data.get('update_available'):
             logger.warning(f"Mise à jour disponible: {data.get('latest_version')}")
-
-        # Si l'enregistrement était en attente et que le heartbeat fonctionne,
-        # essayer de s'enregistrer maintenant (sans X-Instance-Token : l'API attend
-        # le token dans le body pour l'enregistrement, pas en auth)
-        registration_pending = Path("/var/lib/cicada/registration_pending")
-        if registration_pending.exists():
-            try:
-                register_response = requests.post(
-                    f"{tracking_url}/instances/register/",
-                    json={'token': token, 'version': version},
-                    headers={'Content-Type': 'application/json'},
-                    timeout=10
-                )
-                if register_response.ok:
-                    logger.info("Instance enregistrée avec succès (en attente depuis l'installation)")
-                    registration_pending.unlink()
-            except Exception:
-                # Échec d'enregistrement, on continue quand même
-                pass
 
         return True
 
