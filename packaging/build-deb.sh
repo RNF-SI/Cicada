@@ -57,6 +57,10 @@ sed -i "s|TRACKING_API_URL=.*|TRACKING_API_URL=${TRACKING_API_URL_FIXED}|" \
 sed -i "s/Version: .*/Version: ${VERSION}/" \
     "$BUILD_DIR/${PACKAGE_NAME}/DEBIAN/control"
 
+# Permissions indépendantes de l'umask de la machine de construction
+# (sinon fichiers installés modifiables par le groupe)
+chmod -R go-w "$BUILD_DIR/${PACKAGE_NAME}"
+
 # Ne pas embarquer le bytecode Python laissé par un lancement local de l'installateur
 find "$BUILD_DIR/${PACKAGE_NAME}" -name __pycache__ -type d -prune -exec rm -rf {} +
 
