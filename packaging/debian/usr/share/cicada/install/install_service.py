@@ -13,19 +13,17 @@ from datetime import datetime
 
 
 def get_tracking_api_url():
-    """
-    Lit l'URL de l'API de suivi :
-    - En dev : depuis variable d'environnement TRACKING_API_URL
-    - En production (package) : depuis /etc/cicada/cicada.conf (fixée dans le package)
-    """
+    """URL de l'API de suivi : variable d'environnement TRACKING_API_URL
+    (surcharge : tests, dev), sinon /etc/cicada/cicada.conf, sinon défaut."""
     import configparser
-    
+
+    if os.environ.get('TRACKING_API_URL'):
+        return os.environ['TRACKING_API_URL']
     if os.path.exists('/etc/cicada/cicada.conf'):
         config = configparser.ConfigParser()
         config.read('/etc/cicada/cicada.conf')
         return config.get('CICADA', 'TRACKING_API_URL')
-    else:
-        return os.environ.get('TRACKING_API_URL', 'https://tracking.cicada.reserves-naturelles.org/api')
+    return 'https://tracking.cicada.reserves-naturelles.org/api'
 
 
 class InstallService:
@@ -517,6 +515,7 @@ class InstallService:
             )
             raise Exception(error_msg)
 
+
     def _container_state(self, docker_cmd, name):
         """État d'un conteneur : santé s'il a un healthcheck (starting, healthy,
         unhealthy), sinon statut (created, running, exited…), '' s'il n'existe pas."""
@@ -771,9 +770,8 @@ except Exception as e:
         return None
 
     def get_version(self):
-        config_file = Path("/etc/cicada/cicada.conf")
-        if config_file.exists():
-            for line in config_file.read_text().splitlines():
-                if line.startswith('VERSION='):
-                    return line.split('=', 1)[1].strip()
+        # Fichier du paquet (et non le conffile cicada.conf, cf. build-deb.sh)
+        version_file = Path("/usr/share/cicada/VERSION")
+        if version_file.exists():
+            return version_file.read_text().strip() or "unknown"
         return "unknown"

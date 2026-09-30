@@ -6,14 +6,15 @@ CONFIG_DIR="/etc/cicada"
 TOKEN_FILE="$CONFIG_DIR/instance_token"
 ENV_FILE="$CICADA_DIR/.env"
 LOCK_FILE="$CICADA_DIR/.install_lock"
-CONF_FILE="$CONFIG_DIR/cicada.conf"
 COMPOSE_DIR="/usr/share/cicada"
+VERSION_FILE="$COMPOSE_DIR/VERSION"
 
 # --- Fonctions utilitaires (style Zacharie : awk, plus robuste) ---
 
+# Version du paquet installé (fichier du paquet, pas le conffile cicada.conf)
 get_config_version() {
-    if [ -f "$CONF_FILE" ]; then
-        awk -F= '/^VERSION=/{print $2; exit}' "$CONF_FILE"
+    if [ -f "$VERSION_FILE" ]; then
+        tr -d '[:space:]' < "$VERSION_FILE"
     fi
 }
 

@@ -83,7 +83,13 @@ def main():
 
         # 1. Mise à jour du paquet APT
         subprocess.run(['apt-get', 'update', '-qq'], check=True)
-        subprocess.run(['apt-get', 'install', '-y', '-qq', f'cicada={version}'], check=True)
+        # Non interactif : sans ces options, dpkg pose une question dès que
+        # /etc/cicada/cicada.conf a été modifié localement, et apt échoue.
+        # confdef = choix par défaut, confold = garder le fichier de l'admin.
+        subprocess.run(['apt-get', 'install', '-y', '-qq',
+                        '-o', 'Dpkg::Options::=--force-confdef',
+                        '-o', 'Dpkg::Options::=--force-confold',
+                        f'cicada={version}'], check=True)
 
         # 2. Mettre à jour CICADA_VERSION dans .env pour que Docker utilise les nouvelles images
         _update_env_version(version)

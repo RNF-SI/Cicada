@@ -8,24 +8,23 @@ from pathlib import Path
 
 TOKEN_FILE = "/etc/cicada/instance_token"
 CONFIG_FILE = "/etc/cicada/cicada.conf"
+VERSION_FILE = "/usr/share/cicada/VERSION"
 UPDATE_FILE = "/var/lib/cicada/update_available.json"
 LOG_FILE = "/var/log/cicada/heartbeat.log"
 
 def get_tracking_api_url():
-    """
-    Lit l'URL de l'API de suivi :
-    - En dev : depuis variable d'environnement TRACKING_API_URL
-    - En production (package) : depuis /etc/cicada/cicada.conf (fixée dans le package)
-    """
+    """URL de l'API de suivi : variable d'environnement TRACKING_API_URL
+    (surcharge : tests, dev), sinon /etc/cicada/cicada.conf, sinon défaut."""
     import os
     import configparser
-    
+
+    if os.environ.get('TRACKING_API_URL'):
+        return os.environ['TRACKING_API_URL']
     if os.path.exists(CONFIG_FILE):
         config = configparser.ConfigParser()
         config.read(CONFIG_FILE)
         return config.get('CICADA', 'TRACKING_API_URL')
-    else:
-        return os.environ.get('TRACKING_API_URL', 'https://tracking.cicada.reserves-naturelles.org/api')
+    return 'https://tracking.cicada.reserves-naturelles.org/api'
 
 logging.basicConfig(
     level=logging.INFO,
@@ -45,11 +44,9 @@ def get_token():
     return token_path.read_text().strip()
 
 def get_version():
-    config_path = Path(CONFIG_FILE)
-    if config_path.exists():
-        for line in config_path.read_text().splitlines():
-            if line.startswith('VERSION='):
-                return line.split('=', 1)[1].strip()
+    version_path = Path(VERSION_FILE)
+    if version_path.exists():
+        return version_path.read_text().strip() or "unknown"
     return "unknown"
 
 def send_heartbeat():

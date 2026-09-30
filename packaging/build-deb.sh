@@ -38,15 +38,19 @@ if [ -d "$PROJECT_ROOT/docker" ]; then
     cp -r "$PROJECT_ROOT/docker" "$BUILD_DIR/${PACKAGE_NAME}/usr/share/cicada/"
 fi
 
-# Injecter l'URL de l'API de suivi et la version dans cicada.conf
+# Version du paquet : fichier du paquet, JAMAIS dans cicada.conf. Celui-ci est
+# un conffile : dès qu'un administrateur l'a modifié, dpkg pose une question à
+# chaque mise à jour (bloquante en non-interactif), et s'il garde son fichier
+# l'ancienne version restait lue — paquet à jour, conteneurs pas redéployés.
+echo "$VERSION" > "$BUILD_DIR/${PACKAGE_NAME}/usr/share/cicada/VERSION"
+
+# Injecter l'URL de l'API de suivi dans cicada.conf
 # S'assurer que l'URL a le schéma https://
 TRACKING_API_URL_FIXED="${TRACKING_API_URL}"
 if [[ ! "$TRACKING_API_URL_FIXED" =~ ^https?:// ]]; then
     TRACKING_API_URL_FIXED="https://${TRACKING_API_URL_FIXED}"
 fi
 sed -i "s|TRACKING_API_URL=.*|TRACKING_API_URL=${TRACKING_API_URL_FIXED}|" \
-    "$BUILD_DIR/${PACKAGE_NAME}/etc/cicada/cicada.conf"
-sed -i "s|^VERSION=.*|VERSION=${VERSION}|" \
     "$BUILD_DIR/${PACKAGE_NAME}/etc/cicada/cicada.conf"
 
 # Mettre à jour la version dans control
