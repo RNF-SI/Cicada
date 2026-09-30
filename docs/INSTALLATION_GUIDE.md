@@ -4,12 +4,28 @@
 
 ### Prérequis
 
-- Système d'exploitation : Debian 11+ ou Ubuntu 20.04+
-- Docker et Docker Compose installés
+- Système d'exploitation : **Debian 12+** ou **Ubuntu 22.04+**. Debian 11 n'est pas supportée (fin de sa LTS en août 2026).
+- **Dépôt APT officiel de Docker configuré** (voir ci-dessous) : le paquet dépend de `docker-ce` et de `docker-compose-plugin`, absents des dépôts Debian/Ubuntu. Sans ce dépôt, `apt-get install cicada` échoue sur « Dépend: docker-ce … mais il n'est pas installable ».
 - Accès root ou sudo
 - **Si base de données externe** : PostgreSQL 17+ avec PostGIS 3.5+ installé sur le serveur
 
 ### Étapes d'installation
+
+#### 0. Ajouter le dépôt Docker (si Docker n'est pas déjà installé depuis ce dépôt)
+
+```bash
+sudo apt-get update
+sudo apt-get install -y ca-certificates curl gnupg
+sudo install -m 0755 -d /etc/apt/keyrings
+. /etc/os-release
+curl -fsSL "https://download.docker.com/linux/$ID/gpg" | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+sudo chmod a+r /etc/apt/keyrings/docker.gpg
+echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/$ID $VERSION_CODENAME stable" \
+  | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+sudo apt-get update
+```
+
+Docker lui-même sera installé par les dépendances du paquet `cicada`.
 
 #### 1. Ajouter le repository APT
 
