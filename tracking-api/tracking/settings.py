@@ -111,5 +111,7 @@ REST_FRAMEWORK = {
     }
 }
 
-# Version actuelle de CICADA (à mettre à jour manuellement)
-LATEST_VERSION = "0.0.1"
+# Dernière version publiée de CICADA, annoncée aux instances par le heartbeat.
+# Vide = aucune mise à jour annoncée (plutôt qu'une valeur fictive, qui faisait
+# signaler une « mise à jour disponible » à toutes les instances).
+LATEST_VERSION = config('LATEST_VERSION', default='')

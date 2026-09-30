@@ -38,6 +38,13 @@ class Instance(models.Model):
             models.Index(fields=['is_active']),
         ]
 
+    # InstanceTokenAuthentication renvoie l'instance comme « utilisateur » de la
+    # requête : DRF (permission IsAuthenticated, UserRateThrottle) lit alors
+    # request.user.is_authenticated. Sans ces attributs, tout appel authentifié
+    # (heartbeat, instances/me) tombait en 500 (#226).
+    is_authenticated = True
+    is_anonymous = False
+
     def __str__(self):
         return f"Instance {self.token} (v{self.version})"
 

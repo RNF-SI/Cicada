@@ -21,6 +21,21 @@ class RegisterThrottle(UserRateThrottle):
     rate = '10/hour'
 
 
+def _version_key(version):
+    """« 0.1.49 » → (0, 1, 49) ; None si la version n'est pas numérique."""
+    try:
+        return tuple(int(part) for part in str(version).split('.'))
+    except (TypeError, ValueError):
+        return None
+
+
+def is_update_available(current):
+    """Vrai seulement si LATEST_VERSION est renseignée et plus récente que
+    la version de l'instance (une instance en avance n'a rien à mettre à jour)."""
+    latest, installed = _version_key(LATEST_VERSION), _version_key(current)
+    return bool(latest and installed and latest > installed)
+
+
 def get_client_ip(request):
     """Récupère l'IP du client"""
     x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
@@ -78,13 +93,13 @@ def heartbeat(request):
     instance.ip_address = get_client_ip(request)
     instance.save()
 
-    update_available = instance.version != LATEST_VERSION
+    update_available = is_update_available(instance.version)
 
     return Response({
         'status': 'ok',
         'last_heartbeat': instance.last_heartbeat.isoformat(),
         'update_available': update_available,
-        'latest_version': LATEST_VERSION,
+        'latest_version': LATEST_VERSION or None,
     })
 
 
@@ -95,8 +110,8 @@ def check_version(request):
 
     return Response({
         'current_version': current,
-        'latest_version': LATEST_VERSION,
-        'update_available': current != LATEST_VERSION,
+        'latest_version': LATEST_VERSION or None,
+        'update_available': is_update_available(current),
     })
 
 

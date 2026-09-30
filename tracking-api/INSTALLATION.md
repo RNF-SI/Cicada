@@ -37,7 +37,11 @@ DB_USER=tracking_user
 DB_PASSWORD=<mot-de-passe-sécurisé>
 DB_HOST=localhost
 DB_PORT=5432
+# Dernière version publiée de CICADA, annoncée aux instances (vide = aucune)
+LATEST_VERSION=0.1.49
 ```
+
+À chaque release, mettre `LATEST_VERSION` à jour puis redémarrer le service.
 
 ### 4. Base de données
 
