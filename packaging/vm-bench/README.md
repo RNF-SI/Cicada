@@ -50,6 +50,7 @@ problèmes d'une installation, pas seulement le premier.
 |---|---|---|
 | `fresh-dockerdb` | serveur neuf, base PostGIS en conteneur (topologie du staging) | #222, #226, #234 |
 | `external-db-localhost` | PostgreSQL + PostGIS déjà sur le serveur ; l'opérateur saisit `localhost` et un compte existant (non superuser), sans autre commande | #223, #269 |
+| `remove` | installation standard puis `apt remove` : plus aucun conteneur, volume de la base conservé | — |
 | `external-db-guide` | PostgreSQL hôte préparé en suivant `docs/INSTALLATION_GUIDE.md` à la lettre (`listen_addresses`, `pg_hba` 172.17, `cicada-prepare-db`) | #223 |
 
 Ajouter un scénario : un fichier `scenarios/<nom>.sh` avec une ligne
