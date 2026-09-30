@@ -10,6 +10,7 @@ cd packaging/vm-bench
 ./bench.sh list                                   # scénarios disponibles
 ./bench.sh run fresh-dockerdb                     # Debian 12 par défaut
 ./bench.sh run external-db-localhost --os debian13 --keep
+./bench.sh run upgrade --from-deb ~/cicada_0.1.47_amd64.deb   # mise à jour depuis un paquet publié
 ./bench.sh shell                                  # entrer dans la VM (état du dernier run)
 ./bench.sh clean [--all]                          # arrêter / supprimer les VM
 ```
@@ -30,7 +31,10 @@ Prérequis hôte : `multipass` (snap) avec KVM, `dpkg-deb`. Compter ~4 CPU,
      production — `--no-degraded` pour s'en passer) ;
    - lance une **fausse API de suivi** et bloque la vraie : un banc ne doit
      jamais enregistrer d'instance en production. Elle sert aussi à vérifier
-     que l'installateur s'enregistre et que le heartbeat part ;
+     que l'installateur s'enregistre et que le heartbeat part. Les services y
+     sont dirigés par `Environment=TRACKING_API_URL` (surcharge systemd), sans
+     toucher `/etc/cicada/cicada.conf` : c'est un conffile, le modifier ferait
+     poser une question à dpkg lors d'une mise à jour ;
    - prérequis propres au scénario (PostgreSQL hôte…) ;
    - `apt install ./cicada.deb`, puis le formulaire ;
    - contrôles : services systemd, conteneurs, frontend, `/api/health/` via le
@@ -50,6 +54,8 @@ problèmes d'une installation, pas seulement le premier.
 |---|---|---|
 | `fresh-dockerdb` | serveur neuf, base PostGIS en conteneur (topologie du staging) | #222, #226, #234 |
 | `external-db-localhost` | PostgreSQL + PostGIS déjà sur le serveur ; l'opérateur saisit `localhost` et un compte existant (non superuser), sans autre commande | #223, #269 |
+| `upgrade` | installe `--from-deb` (ancien paquet, ex. l'artefact CI 0.1.47), crée des données, puis `dpkg -i` du paquet testé comme sur le staging et la prod : redéploiement, images, migrations, données conservées | #222 |
+| `behind-apache` | Apache de l'hôte devant CICADA + « GeoNature » sur `:8000` : vhost de l'ancien guide (consigné) puis vhost du guide actuel (contrôlé) | #231 |
 | `remove` | installation standard puis `apt remove` : plus aucun conteneur, volume de la base conservé | — |
 | `external-db-guide` | PostgreSQL hôte préparé en suivant `docs/INSTALLATION_GUIDE.md` à la lettre (`listen_addresses`, `pg_hba` 172.17, `cicada-prepare-db`) | #223 |
 
@@ -68,5 +74,10 @@ Les helpers `record`, `check`, `wait_for`, `app_sql`… sont dans `guest/lib.sh`
 - Avec le pré-téléchargement (défaut), Docker est déjà installé dans le socle :
   le scénario ne vérifie plus que le paquet tire Docker par ses dépendances.
   `--no-prepull` (avec `base --rebuild`) pour couvrir ce point.
+- Scénario `upgrade` : quand le premier paquet est l'ancien, ses défauts
+  connus sont consignés en `INFO` (préfixe « [paquet initial] ») ; seuls les
+  contrôles de la mise à jour et du paquet testé comptent dans le bilan.
+- Plusieurs runs en parallèle (OS différents) : construire le paquet une fois
+  et le passer par `--deb`, sinon les builds se marchent dessus dans `build/`.
 - Les images Docker testées sont celles publiées sur GHCR pour la version de
   `version.txt` : le banc teste le **paquet** courant, pas un backend local.

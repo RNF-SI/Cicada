@@ -16,6 +16,7 @@
 # Options de run :
 #   --os debian12|debian13|ubuntu24   système cible (défaut : debian12)
 #   --deb CHEMIN      .deb à tester (défaut : construit depuis l'arbre courant)
+#   --from-deb CHEMIN .deb installé AVANT le paquet testé (scénario upgrade)
 #   --keep            laisser la VM allumée après le run (pour inspecter)
 #   --no-degraded     ne pas simuler un serveur « degraded » (voir guest/run-scenario.sh)
 #   --no-prepull      ne pas pré-télécharger les images Docker dans la base
@@ -31,6 +32,7 @@ PROJECT_ROOT="$(cd "$PACKAGING_DIR/.." && pwd)"
 
 OS="debian12"
 DEB=""
+FROM_DEB=""
 KEEP=false
 DEGRADED=true
 PREPULL=true
@@ -75,7 +77,22 @@ launch_source() {
             mkdir -p "$BENCH_DIR/images"
             if [ ! -f "$file" ] || [ "$(find "$file" -mtime +14 2>/dev/null)" ]; then
                 info "Téléchargement de $(basename "$src")" >&2
-                curl -fsSL --retry 5 --retry-delay 3 -C - -o "$file.part" "$src" >&2 && mv "$file.part" "$file"
+                # Reprise (-C -) : le miroir coupe parfois en cours de route
+                local try
+                for try in 1 2 3; do
+                    curl -fsSL --retry 5 --retry-delay 3 -C - -o "$file.part" "$src" >&2 && break
+                    warn "Téléchargement interrompu, reprise ($try/3)" >&2
+                done
+                # Somme publiée à côté de l'image : une image tronquée ferait
+                # échouer multipass bien plus loin, sans message clair.
+                local expected actual
+                expected="$(curl -fsSL "$(dirname "$src")/SHA512SUMS" | awk -v f="$(basename "$src")" '$2==f{print $1}')"
+                actual="$(sha512sum "$file.part" | awk '{print $1}')"
+                if [ -z "$expected" ] || [ "$expected" != "$actual" ]; then
+                    rm -f "$file.part"
+                    die "Image $(basename "$src") corrompue ou somme SHA512 introuvable : relancer"
+                fi
+                mv "$file.part" "$file"
             fi
             echo "file://$file" ;;
         *) echo "$src" ;;
@@ -113,7 +130,7 @@ build_base() {
             return 0
         fi
     fi
-    local source; source="$(launch_source)"
+    local source; source="$(launch_source)" || exit 2
     info "Création de la VM de base $base ($source)"
     multipass launch "$source" --name "$base" \
         --cpus "$VM_CPUS" --memory "$VM_MEMORY" --disk "$VM_DISK" --timeout 900
@@ -161,6 +178,9 @@ run_scenario() {
 
     push_guest_scripts "$vm"
     multipass transfer "$DEB" "$vm:$GUEST_DIR/cicada.deb"
+    if [ -n "$FROM_DEB" ]; then
+        multipass transfer "$FROM_DEB" "$vm:$GUEST_DIR/cicada-initial.deb"
+    fi
 
     info "Scénario $scenario sur $OS — journal : $out/run.log"
     local rc
@@ -209,6 +229,7 @@ while [ $# -gt 0 ]; do
     case "$1" in
         --os)          OS="$2"; shift 2 ;;
         --deb)         DEB="$(realpath "$2")"; shift 2 ;;
+        --from-deb)    FROM_DEB="$(realpath "$2")"; shift 2 ;;
         --keep)        KEEP=true; shift ;;
         --no-degraded) DEGRADED=false; shift ;;
         --no-prepull)  PREPULL=false; shift ;;
