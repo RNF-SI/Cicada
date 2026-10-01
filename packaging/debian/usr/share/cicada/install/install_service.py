@@ -285,7 +285,10 @@ class InstallService:
             env_lines.append("")
             env_lines.append("TRAEFIK_ENABLED=false")
 
-        Path("/var/lib/cicada/.env").write_text("\n".join(env_lines) + "\n")
+        env_path = Path("/var/lib/cicada/.env")
+        env_path.touch(mode=0o600, exist_ok=True)
+        env_path.chmod(0o600)  # secrets : root seul (le fichier pouvait préexister)
+        env_path.write_text("\n".join(env_lines) + "\n")
 
     def generate_docker_compose(self, data):
         """

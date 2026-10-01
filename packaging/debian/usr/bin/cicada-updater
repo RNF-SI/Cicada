@@ -3,6 +3,7 @@
    Déclenché par systemd (cicada-updater.path) quand update_trigger.json est créé.
    Met à jour le paquet APT, la version dans .env, tire les images Docker et redémarre la stack.
 """
+import re
 import sys
 import json
 import subprocess
@@ -10,7 +11,11 @@ import logging
 from pathlib import Path
 from datetime import datetime
 
-TRIGGER_FILE = "/var/lib/cicada/update_trigger.json"
+# Dossier d'échange avec l'application (monté dans le conteneur web à
+# /var/lib/cicada) : le bouton « Mettre à jour » y dépose le déclencheur.
+UPDATES_DIR = "/var/lib/cicada/updates"
+TRIGGER_FILE = f"{UPDATES_DIR}/update_trigger.json"
+RESULT_FILE = f"{UPDATES_DIR}/update_result.json"
 ENV_FILE = "/var/lib/cicada/.env"
 COMPOSE_DIR = "/usr/share/cicada"
 LOG_FILE = "/var/log/cicada/updater.log"
@@ -78,6 +83,12 @@ def main():
             logger.error("Version non spécifiée dans le trigger")
             trigger_path.unlink()
             return
+        # Le déclencheur est écrit depuis le conteneur de l'application : ne
+        # passer à apt qu'un numéro de version bien formé.
+        if not re.fullmatch(r'\d+\.\d+\.\d+', str(version)):
+            logger.error(f"Version refusée dans le trigger : {version!r}")
+            trigger_path.unlink()
+            return
 
         logger.info(f"Mise à jour vers {version} demandée par {trigger.get('requested_by', '?')}")
 
@@ -119,7 +130,7 @@ def main():
 
         # 5. Supprimer le trigger et écrire le résultat
         trigger_path.unlink()
-        Path("/var/lib/cicada/update_result.json").write_text(json.dumps({
+        Path(RESULT_FILE).write_text(json.dumps({
             'success': True,
             'version': version,
             'timestamp': datetime.now().isoformat()
@@ -128,7 +139,7 @@ def main():
 
     except subprocess.CalledProcessError as e:
         logger.error(f"Erreur de mise à jour (commande): {e}")
-        Path("/var/lib/cicada/update_result.json").write_text(json.dumps({
+        Path(RESULT_FILE).write_text(json.dumps({
             'success': False,
             'error': str(e),
             'timestamp': datetime.now().isoformat()
@@ -136,7 +147,7 @@ def main():
         sys.exit(1)
     except Exception as e:
         logger.error(f"Erreur de mise à jour: {e}")
-        Path("/var/lib/cicada/update_result.json").write_text(json.dumps({
+        Path(RESULT_FILE).write_text(json.dumps({
             'success': False,
             'error': str(e),
             'timestamp': datetime.now().isoformat()

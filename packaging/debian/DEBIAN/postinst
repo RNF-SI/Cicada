@@ -70,6 +70,16 @@ restart_stack_if_configured() {
 
 # --- Création des répertoires ---
 mkdir -p "$CICADA_DIR/data" "$CONFIG_DIR" "/var/log/cicada"
+
+# Dossier d'échange avec le conteneur web (bouton « Mettre à jour ») : monté
+# dans le conteneur, où l'application tourne sous l'utilisateur « cicada »
+# (uid/gid 999, créé par useradd -r dans backend/Dockerfile.prod).
+install -d -o 999 -g 999 -m 0750 "$CICADA_DIR/updates"
+for f in update_available.json update_trigger.json update_result.json; do
+    [ -f "$CICADA_DIR/$f" ] && mv -f "$CICADA_DIR/$f" "$CICADA_DIR/updates/$f"
+done
+# Secrets (SECRET_KEY, mots de passe) : lisibles par root seul
+[ -f "$ENV_FILE" ] && chmod 600 "$ENV_FILE"
 chgrp www-data "$CICADA_DIR" 2>/dev/null || true
 chmod 775 "$CICADA_DIR" 2>/dev/null || true
 

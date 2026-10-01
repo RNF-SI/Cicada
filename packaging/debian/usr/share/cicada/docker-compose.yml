@@ -66,6 +66,12 @@ services:
       # soient consultables directement sur le serveur (le conteneur écrit dans
       # /app/logs ; le dossier hôte est créé par le postinst, conteneur=root).
       - /var/log/cicada:/app/logs
+      # Échange avec l'hôte pour les mises à jour : l'application lit
+      # /var/lib/cicada/update_available.json (écrit par cicada-heartbeat) et y
+      # dépose update_trigger.json (bouton « Mettre à jour », lu par
+      # cicada-updater). Dossier dédié : le reste de /var/lib/cicada (.env…)
+      # n'est pas exposé au conteneur.
+      - /var/lib/cicada/updates:/var/lib/cicada
     depends_on:
       redis:
         condition: service_healthy

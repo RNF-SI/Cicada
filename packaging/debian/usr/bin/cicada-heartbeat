@@ -9,7 +9,9 @@ from pathlib import Path
 TOKEN_FILE = "/etc/cicada/instance_token"
 CONFIG_FILE = "/etc/cicada/cicada.conf"
 VERSION_FILE = "/usr/share/cicada/VERSION"
-UPDATE_FILE = "/var/lib/cicada/update_available.json"
+# Dossier d'échange avec l'application, monté dans le conteneur web à
+# /var/lib/cicada (voir docker-compose.yml) : elle y lit ce fichier.
+UPDATE_FILE = "/var/lib/cicada/updates/update_available.json"
 LOG_FILE = "/var/log/cicada/heartbeat.log"
 
 def get_tracking_api_url():
