@@ -22,7 +22,7 @@ pgx -c "CREATE ROLE tracking_user LOGIN PASSWORD '$DBPASS'" -c "CREATE DATABASE 
 cat > .env <<ENV
 DEBUG=False
 SECRET_KEY=$(head -c 48 /dev/urandom | base64 | tr -d '/+=')
-ALLOWED_HOSTS=tracking.cicada.bench,localhost
+ALLOWED_HOSTS=tracking.cicada.bench,localhost,$IP
 DB_NAME=tracking
 DB_USER=tracking_user
 DB_PASSWORD=$DBPASS
@@ -53,9 +53,12 @@ ExecStart=/opt/tracking-api/venv/bin/gunicorn --workers 3 --bind 127.0.0.1:8000 
 WantedBy=multi-user.target
 UNIT
 systemctl daemon-reload && systemctl enable --now cicada-tracking-api >/dev/null 2>&1
-cat > /etc/apache2/sites-available/cicada-tracking-api.conf <<'VHOST'
+# ServerAlias $IP : l'admin du serveur de suivi s'ouvre aussi par l'adresse
+# de la VM depuis l'hôte (sinon le vhost par défaut, le dépôt, répondrait)
+cat > /etc/apache2/sites-available/cicada-tracking-api.conf <<VHOST
 <VirtualHost *:80>
     ServerName tracking.cicada.bench
+    ServerAlias $IP
     ProxyPreserveHost On
     ProxyPass /static !
     ProxyPass / http://127.0.0.1:8000/
@@ -105,4 +108,7 @@ VHOST
 a2ensite -q cicada-apt >/dev/null && systemctl reload apache2
 check "Dépôt servi : Release signé" curl -sf http://apt.cicada.bench/dists/stable/InRelease -o /dev/null
 check "Dépôt : conf/ non publique" test "$(curl -s -o /dev/null -w '%{http_code}' http://apt.cicada.bench/conf/distributions)" = 403
+# Compte d'administration de l'API de suivi (/admin/), pour le labo
+(cd /opt/tracking-api && DJANGO_SUPERUSER_PASSWORD=Bench-Tracking-1 venv/bin/python manage.py \
+    createsuperuser --noinput --username admin --email admin@tracking.bench >/dev/null 2>&1)
 echo "$IP" > "$BENCH_DIR/tracking-pret"

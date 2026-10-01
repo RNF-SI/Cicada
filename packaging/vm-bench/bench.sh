@@ -14,6 +14,8 @@
 #   ./bench.sh shell [--os …]               # shell dans la VM (état du dernier run)
 #   ./bench.sh clean [--all]                # arrêter les VM (--all : les supprimer)
 #
+# Labo persistant (infrastructure complète laissée allumée) : voir ./labo.sh
+#
 # Options de run :
 #   --os debian12|debian13|ubuntu24   système cible (défaut : debian12)
 #   --deb CHEMIN      .deb à tester (défaut : construit depuis l'arbre courant)
@@ -48,7 +50,7 @@ ROLE="cicada"
 HUB_INSTANCE_ID="bench"
 HUB_INSTANCE_LABEL="Instance du banc"
 # Version initiale des scénarios « tracking » (images publiées sur GHCR)
-TRACKING_FROM_VERSION="0.1.47"
+TRACKING_FROM_VERSION="${TRACKING_FROM_VERSION:-0.1.47}"
 
 VM_CPUS=4
 VM_MEMORY=6G
