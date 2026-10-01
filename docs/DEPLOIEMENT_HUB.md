@@ -58,6 +58,12 @@ sudo nano .env.hub.prod    # SECRET_KEY, ALLOWED_HOSTS, mots de passe, jetons
 sudo mkdir -p /var/log/cicada-hub
 ```
 
+`ALLOWED_HOSTS` : le nom public du hub. `localhost` et `127.0.0.1` sont
+toujours admis en plus, car le healthcheck du conteneur et la vérification
+ci-dessous passent par eux. **Avec une image ≤ 0.1.49, ajoutez-les vous-même**
+(`ALLOWED_HOSTS=hub.cicada.example.org,localhost,127.0.0.1`), sinon le hub répond
+400 à ces contrôles et reste « unhealthy ».
+
 Le démarrage échoue explicitement si `SECRET_KEY`, `ALLOWED_HOSTS` ou
 `POSTGRES_PASSWORD` manquent — c'est voulu : un hub qui démarre avec la clé de
 développement serait pire qu'un hub qui ne démarre pas. Les jetons, eux, ne sont

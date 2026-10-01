@@ -42,6 +42,15 @@ SECRET_KEY = os.environ.get('SECRET_KEY', CLE_DEVELOPPEMENT)
 DEBUG = _bool('DEBUG', False)
 
 ALLOWED_HOSTS = _liste('ALLOWED_HOSTS', 'localhost,127.0.0.1,hub')
+#: Toujours admis, quel que soit le réglage : le healthcheck du conteneur
+#: (``localhost:8000``) et la vérification de DEPLOIEMENT_HUB.md
+#: (``127.0.0.1:8002``) passent par là. Avec seulement le nom public dans
+#: ALLOWED_HOSTS, comme le guide le recommande, le hub répondait 400 et restait
+#: « unhealthy » en permanence. Ces noms ne sont joignables que depuis la
+#: machine elle-même : les admettre n'ouvre rien.
+for _local in ('localhost', '127.0.0.1'):
+    if _local not in ALLOWED_HOSTS:
+        ALLOWED_HOSTS.append(_local)
 
 # `'pytest' in sys.modules` : la suite tourne avec DEBUG à False sans pour
 # autant être un déploiement — sans cette réserve, le garde-fou casserait les
