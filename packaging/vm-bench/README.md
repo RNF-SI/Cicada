@@ -53,17 +53,24 @@ problèmes d'une installation, pas seulement le premier.
 | Scénario | Situation | Issues |
 |---|---|---|
 | `fresh-dockerdb` | serveur neuf, base PostGIS en conteneur (topologie du staging) | #222, #226, #234 |
-| `external-db-localhost` | PostgreSQL + PostGIS déjà sur le serveur ; l'opérateur saisit `localhost` et un compte existant (non superuser), sans autre commande | #223, #269 |
+| `external-db-remote` | **topologie RNF** : PostgreSQL + PostGIS sur une 2ᵉ VM (« serveur de base », avec une base GeoNature déjà présente). L'admin de la base lance la commande affichée par le formulaire ; test de connexion avant/après ; refus d'installer tant que la base n'est pas prête | #223, #269 |
+| `external-db-localhost` | PostgreSQL sur le serveur CICADA lui-même, `localhost` saisi : refus immédiat et expliqué, rien de démarré (cas non pris en charge) | #223 |
 | `upgrade` | installe `--from-deb` (ancien paquet, ex. l'artefact CI 0.1.47), crée des données, puis `dpkg -i` du paquet testé comme sur le staging et la prod : redéploiement, images, migrations, données conservées | #222 |
 | `behind-apache` | Apache de l'hôte devant CICADA + « GeoNature » sur `:8000` : vhost de l'ancien guide (consigné) puis vhost du guide actuel (contrôlé) | #231 |
 | `remove` | installation standard puis `apt remove` : plus aucun conteneur, volume de la base conservé | — |
-| `external-db-guide` | PostgreSQL hôte préparé en suivant `docs/INSTALLATION_GUIDE.md` à la lettre (`listen_addresses`, `pg_hba` 172.17, `cicada-prepare-db`) | #223 |
 
 Ajouter un scénario : un fichier `scenarios/<nom>.sh` avec une ligne
 `# DESCRIPTION:` et la fonction `scenario_db_answers` (fragment JSON des
 champs base de données du formulaire) ; facultativement `scenario_prereqs`,
 `before_form` (après le paquet, avant le formulaire) et `scenario_checks`.
 Les helpers `record`, `check`, `wait_for`, `app_sql`… sont dans `guest/lib.sh`.
+
+Variables qu'un scénario peut poser : `INITIAL_DEB` (paquet installé en premier,
+cf. `upgrade`), `EXPECT_REFUSAL` (texte du refus attendu du formulaire,
+scénario négatif). Une ligne `# DB_VM: oui` lui donne une 2ᵉ VM « serveur de
+base » ; sa fonction `db_server_prepare` s'y exécute au moment où le scénario
+crée `attente-base` dans `before_form`, et ce qu'elle écrit dans `base-prete`
+lui est remis (ex. le mot de passe affiché par le script de préparation).
 
 ## Limites connues
 

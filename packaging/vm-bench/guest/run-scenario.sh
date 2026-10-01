@@ -24,6 +24,8 @@ before_form()      { :; }
 # Paquet installé en premier. Par défaut le paquet testé ; un scénario de mise à
 # jour installe d'abord un paquet plus ancien (--from-deb) et teste le passage.
 INITIAL_DEB="$BENCH_DIR/cicada.deb"
+# Message attendu si le formulaire DOIT refuser l'installation (scénario négatif)
+EXPECT_REFUSAL=""
 scenario_checks()  { :; }
 # shellcheck source=/dev/null
 . "$BENCH_DIR/scenarios/$SCENARIO.sh"
@@ -198,6 +200,23 @@ fi
 resp_get() { python3 -c "import json,sys;d=json.load(open('$BENCH_DIR/install-response.json'));v=d.get('$1');print('' if v is None else v if not isinstance(v,list) else '; '.join(v))" 2>/dev/null; }
 # Dernière ligne significative d'une erreur (souvent une trace Python entière)
 last_line() { grep -v '^[[:space:]]*$' | grep -v '^[[:space:]]*\^' | tail -1 | cut -c1-300; }
+
+if [ -n "$EXPECT_REFUSAL" ]; then
+    # Scénario négatif : un refus clair et immédiat, rien de démarré
+    if [ "$(resp_get success)" = "True" ]; then
+        record FAIL "Installation refusée" "le formulaire a accepté"
+    elif resp_get error | grep -q "$EXPECT_REFUSAL"; then
+        record PASS "Installation refusée avec explication" "« $EXPECT_REFUSAL »"
+    else
+        record FAIL "Installation refusée avec explication" "$( { resp_get error; resp_get errors; } | last_line)"
+    fi
+    check "Refus immédiat (moins de 60 s)" test "$duration" -lt 60
+    check "Rien n'a été démarré (pas de .env, pas de conteneur web)" \
+        bash -c '[ ! -f /var/lib/cicada/.env ] && ! docker ps -a --format "{{.Names}}" | grep -qx cicada_prod_web'
+    scenario_checks
+    step "Fin du scénario $SCENARIO"
+    grep -q '^FAIL' "$RESULTS" && exit 1 || exit 0
+fi
 
 if [ "$curl_rc" -eq 0 ] && [ "$(resp_get success)" = "True" ]; then
     pkg_record PASS "Installation déclarée réussie par le formulaire"

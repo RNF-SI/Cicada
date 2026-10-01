@@ -99,6 +99,8 @@ launch_source() {
     esac
 }
 
+vm_ip() { multipass info "$1" --format csv | awk -F, 'NR==2{print $3}'; }
+
 vm_exists() { multipass info "$1" >/dev/null 2>&1; }
 vm_state()  { multipass info "$1" --format csv 2>/dev/null | awk -F, 'NR==2{print $2}'; }
 
@@ -147,6 +149,33 @@ build_base() {
     info "Base $base prête (instantané « socle »)"
 }
 
+# --- VM « serveur de base » (scénarios marqués « # DB_VM: oui ») ---
+# PostgreSQL + PostGIS sur une autre machine que CICADA, joignable par le
+# réseau : topologie RNF (bases dans un conteneur/VM dédiés). Même principe de
+# socle que la VM CICADA.
+build_db_base() {
+    local dbvm="ccd-db-$OS"
+    if vm_exists "$dbvm"; then
+        [ "$REBUILD" = true ] || return 0
+        multipass delete --purge "$dbvm"
+    fi
+    local source; source="$(launch_source)" || exit 2
+    info "Création de la VM serveur de base $dbvm"
+    multipass launch "$source" --name "$dbvm" --cpus 2 --memory 2G --disk 10G --timeout 900
+    push_guest_scripts "$dbvm"
+    vx "$dbvm" bash "$GUEST_DIR/guest/db-server-setup.sh"
+    multipass stop "$dbvm"
+    multipass snapshot "$dbvm" --name socle >/dev/null
+    info "Serveur de base $dbvm prêt (instantané « socle »)"
+}
+
+restore_vm() {
+    local vm="$1"
+    [ "$(vm_state "$vm")" = Stopped ] || multipass stop --force "$vm"
+    multipass restore --destructive "$vm.socle" >/dev/null
+    multipass start "$vm"
+}
+
 build_deb() {
     if [ -n "$DEB" ]; then
         [ -f "$DEB" ] || die ".deb introuvable : $DEB"
@@ -172,9 +201,17 @@ run_scenario() {
     build_base
 
     info "Restauration de l'instantané socle de $vm"
-    [ "$(vm_state "$vm")" = Stopped ] || multipass stop --force "$vm"
-    multipass restore --destructive "$vm.socle" >/dev/null
-    multipass start "$vm"
+    restore_vm "$vm"
+
+    local dbvm="" db_ip=""
+    if grep -q '^# DB_VM: oui' "$scenario_file"; then
+        dbvm="ccd-db-$OS"
+        build_db_base
+        info "Restauration du serveur de base $dbvm"
+        restore_vm "$dbvm"
+        db_ip="$(vm_ip "$dbvm")"
+        push_guest_scripts "$dbvm"
+    fi
 
     push_guest_scripts "$vm"
     multipass transfer "$DEB" "$vm:$GUEST_DIR/cicada.deb"
@@ -186,14 +223,40 @@ run_scenario() {
     local rc
     set +e
     multipass exec "$vm" -- sudo env \
-        BENCH_DEGRADED="$DEGRADED" BENCH_OS="$OS" BENCH_DIR="$GUEST_DIR" \
-        bash "$GUEST_DIR/guest/run-scenario.sh" "$scenario" 2>&1 | tee "$out/run.log"
-    rc=${PIPESTATUS[0]}
+        BENCH_DEGRADED="$DEGRADED" BENCH_OS="$OS" BENCH_DIR="$GUEST_DIR" BENCH_DB_HOST="$db_ip" \
+        bash "$GUEST_DIR/guest/run-scenario.sh" "$scenario" > >(tee "$out/run.log") 2>&1 &
+    local main_pid=$!
+    if [ -n "$dbvm" ]; then
+        # Rendez-vous : la VM CICADA signale (fichier attente-base) que son
+        # installateur tourne ; le serveur de base se prépare alors comme le
+        # ferait son administrateur (script récupéré auprès de l'installateur),
+        # puis la VM CICADA reçoit le résultat (fichier base-prete) et continue.
+        until vx "$vm" test -f "$GUEST_DIR/attente-base" 2>/dev/null || ! kill -0 "$main_pid" 2>/dev/null; do
+            sleep 3
+        done
+        if kill -0 "$main_pid" 2>/dev/null; then
+            vx "$dbvm" env BENCH_DIR="$GUEST_DIR" bash "$GUEST_DIR/guest/db-side.sh" "$scenario" "$(vm_ip "$vm")" \
+                > "$out/db-server.log" 2>&1
+            sed 's/^/   [serveur de base] /' "$out/db-server.log"
+            multipass transfer "$dbvm:$GUEST_DIR/results.tsv" "$out/db-results.tsv" 2>/dev/null || true
+            multipass transfer "$dbvm:$GUEST_DIR/base-prete" "$out/base-prete" 2>/dev/null || touch "$out/base-prete"
+            multipass transfer "$out/base-prete" "$vm:$GUEST_DIR/base-prete"
+        fi
+    fi
+    wait "$main_pid"
+    rc=$?
     set -e
 
     # Artefacts utiles au diagnostic, même en cas d'échec
     multipass transfer "$vm:$GUEST_DIR/results.tsv" "$out/results.tsv" 2>/dev/null || true
     vx "$vm" bash "$GUEST_DIR/guest/collect.sh" > "$out/diagnostic.txt" 2>&1 || true
+    if [ -n "$dbvm" ]; then
+        # Contrôles faits côté serveur de base, en tête du bilan
+        [ -f "$out/db-results.tsv" ] && cat "$out/db-results.tsv" "$out/results.tsv" > "$out/all.tsv" \
+            && mv "$out/all.tsv" "$out/results.tsv"
+        vx "$dbvm" bash -c 'tail -40 /var/log/postgresql/postgresql-*-main.log' > "$out/db-server-pg.log" 2>&1 || true
+        [ "$KEEP" = true ] || multipass stop --force "$dbvm"
+    fi
 
     if [ -f "$out/results.tsv" ]; then
         local pass fail
