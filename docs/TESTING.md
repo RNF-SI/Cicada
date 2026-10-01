@@ -650,6 +650,8 @@ sudo snap install multipass
 
 Documentation détaillée : [`packaging/TESTING.md`](../packaging/TESTING.md)
 
+**Banc VM de l'installateur** (`packaging/vm-bench/`, hors CI lui aussi) : rejoue une installation complète sur des machines neuves et, avec le scénario `a-z`, toute l'infrastructure décrite dans [INFRASTRUCTURE.md](INFRASTRUCTURE.md) (dépôt APT, API de suivi, serveur de bases, hub). À lancer avant une release : voir [`packaging/vm-bench/README.md`](../packaging/vm-bench/README.md).
+
 ### Badges pour README
 
 Ajouter au `README.md` :

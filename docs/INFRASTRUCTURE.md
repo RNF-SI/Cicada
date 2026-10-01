@@ -130,3 +130,15 @@ cd packaging/vm-bench
 ```
 
 Voir [packaging/vm-bench/README.md](../packaging/vm-bench/README.md).
+
+## Documents liés
+
+| Pour… | Lire |
+|---|---|
+| installer ou mettre à jour une instance | [INSTALLATION_GUIDE.md](INSTALLATION_GUIDE.md) |
+| publier une version (tag, dépôt APT, API de suivi) | [RELEASE_PROCEDURE.md](RELEASE_PROCEDURE.md), [RELEASE_PIPELINE.md](RELEASE_PIPELINE.md) |
+| déployer le hub, enrôler une instance | [DEPLOIEMENT_HUB.md](DEPLOIEMENT_HUB.md), [hub/README.md](../hub/README.md) |
+| installer l'API de suivi | [tracking-api/INSTALLATION.md](../tracking-api/INSTALLATION.md) |
+| construire le paquet Debian | [packaging/README.md](../packaging/README.md) |
+| rejouer tout cela en local | [packaging/vm-bench/README.md](../packaging/vm-bench/README.md) ; exploration fédérée entre instances de développement : [MULTI_INSTANCE_LOCAL.md](MULTI_INSTANCE_LOCAL.md) |
+| l'ensemble de la documentation | [README.md](README.md) (index) |

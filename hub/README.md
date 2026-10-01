@@ -177,7 +177,8 @@ docker compose -f docker-compose.hub.prod.yml --env-file .env.hub.prod up -d
 ```
 
 Voir [docs/DEPLOIEMENT_HUB.md](../docs/DEPLOIEMENT_HUB.md) — vhost Apache,
-enrôlement d'une instance, montée de version, recette.
+enrôlement d'une instance, montée de version, recette. Place du hub parmi les
+autres serveurs : [docs/INFRASTRUCTURE.md](../docs/INFRASTRUCTURE.md).
 
 ## Tests
 

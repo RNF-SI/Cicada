@@ -1,5 +1,7 @@
 # Installation de l'API de suivi CICADA
 
+> L'API de suivi reçoit l'enregistrement et le heartbeat nocturne de chaque instance, et leur annonce la dernière version (`LATEST_VERSION`). Sa place dans l'ensemble : [docs/INFRASTRUCTURE.md](../docs/INFRASTRUCTURE.md). Cette installation est rejouée en VM par le scénario `tracking` de [packaging/vm-bench](../packaging/vm-bench/README.md).
+
 ## Prérequis
 
 - Python 3.11+

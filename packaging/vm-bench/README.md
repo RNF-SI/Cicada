@@ -5,6 +5,8 @@ opérateur, puis vérifie que l'instance fonctionne. Le formulaire web est pilot
 par son API (`POST :4567/api/install`), donc sans navigateur : un scénario se
 lance d'une commande et rend un bilan OK/KO.
 
+> Ce que le banc reproduit — les serveurs et leurs liens — est décrit dans [docs/INFRASTRUCTURE.md](../../docs/INFRASTRUCTURE.md). Procédures rejouées : [guide d'installation](../../docs/INSTALLATION_GUIDE.md), [déploiement du hub](../../docs/DEPLOIEMENT_HUB.md), [API de suivi](../../tracking-api/INSTALLATION.md), [dépôt APT](../../docs/RELEASE_PROCEDURE.md).
+
 ```bash
 cd packaging/vm-bench
 ./bench.sh list                                   # scénarios disponibles

@@ -208,6 +208,7 @@ curl -X POST http://localhost:8000/api/auth/login/ \
 - **[Configuration Email](docs/EMAIL_CONFIGURATION.md)** - Mailpit (dev), SMTP (prod), notifications
 - **[Tests](docs/TESTING.md)** - Guide des tests (pytest, Jest)
 - **[Release Pipeline](docs/RELEASE_PIPELINE.md)** - Conventional commits, versioning, Docker, deploiement
+- **[Infrastructure](docs/INFRASTRUCTURE.md)** - Les serveurs et leurs liens (instance, base, dépôt APT, API de suivi, hub), cycle d'une release
 - **[CLAUDE.md](CLAUDE.md)** - Référence technique pour Claude Code
 
 ## Installation en production
@@ -218,14 +219,14 @@ Le déploiement se fait via un package Debian (.deb) avec un installeur web int�
 # 1. Installer le package
 sudo dpkg -i cicada_0.1.15_amd64.deb
 
-# 2. (Optionnel) Préparer une base PostgreSQL externe
-sudo cicada-prepare-db
-
-# 3. Ouvrir l'installeur web
+# 2. Ouvrir l'installeur web et suivre le formulaire
 # http://votre-serveur:4567
+# (base sur un serveur PostgreSQL existant : le formulaire donne la commande
+#  à lancer sur ce serveur)
 ```
 
 **[Guide d'installation complet](docs/INSTALLATION_GUIDE.md)** - Prérequis, configuration Apache/Nginx, base externe, mise à jour
+**[Infrastructure](docs/INFRASTRUCTURE.md)** - Vue d'ensemble des serveurs (dépôt APT, API de suivi, hub) et de leurs liens
 
 ## Technologies
 

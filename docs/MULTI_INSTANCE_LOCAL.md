@@ -5,6 +5,10 @@ d'exploration sur une seule machine**, et vérifier qu'un contenu ajouté sur
 l'une remonte bien dans l'exploration de l'autre. Il accompagne l'issue **#636**,
 qui recense les limites et les décisions restant à prendre.
 
+> Ce banc monte des instances **de développement** (code du dépôt). Pour tester le hub **tel que déployé**
+> (image publiée, Apache, enrôlement) face à une instance installée par paquet, voir le scénario `federation`
+> de [packaging/vm-bench](../packaging/vm-bench/README.md). Vue d'ensemble des serveurs : [INFRASTRUCTURE.md](INFRASTRUCTURE.md).
+
 C'est un **banc d'essai**, pas une architecture de production. Ce qui est
 volontairement rudimentaire est signalé comme tel.
 

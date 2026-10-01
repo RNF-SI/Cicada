@@ -7,6 +7,8 @@ entraîner, et inversement.
 
 - Architecture et contrat d'échange : [hub/README.md](../hub/README.md)
 - Banc d'essai local (2 instances + hub) : [MULTI_INSTANCE_LOCAL.md](MULTI_INSTANCE_LOCAL.md)
+- Place du hub parmi les autres serveurs (dépôt APT, API de suivi, bases) : [INFRASTRUCTURE.md](INFRASTRUCTURE.md)
+- Ce déploiement rejoué en VM, instance comprise : [packaging/vm-bench](../packaging/vm-bench/README.md) (scénarios `federation` et `a-z`)
 
 ## Pourquoi le hub sort du même dépôt que CICADA
 

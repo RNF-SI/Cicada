@@ -57,6 +57,20 @@ curl -X GET http://localhost:8000/api/plans/plans/ \
 | **[CLAUDE.md](../CLAUDE.md)** | Référence technique pour Claude Code |
 | **[README.md](../README.md)** | Vue d'ensemble et installation rapide |
 
+## 🚀 Déploiement et exploitation
+
+Point d'entrée : **[Infrastructure](INFRASTRUCTURE.md)**, qui situe chaque serveur et renvoie au guide de chacun.
+
+| Document | Description |
+|----------|-------------|
+| **[Infrastructure](INFRASTRUCTURE.md)** | Qui parle à qui : instance, serveur de bases, dépôt APT, API de suivi, hub, GHCR — schémas, ports, cycle d'une release, vérifications |
+| **[Guide d'installation](INSTALLATION_GUIDE.md)** | Installer une instance (paquet Debian, formulaire, base dans Docker ou sur un serveur existant, Apache), la mettre à jour |
+| **[Procédure de release](RELEASE_PROCEDURE.md)** | Tag, paquet `.deb`, publication dans le dépôt APT, déploiement, pièges |
+| **[Déploiement du hub](DEPLOIEMENT_HUB.md)** | Hub d'exploration fédérée : installation, Apache, enrôlement d'une instance |
+| **[API de suivi](../tracking-api/INSTALLATION.md)** | Installer l'API de suivi des instances (serveur TrackingCicada) |
+| **[Banc de test en VM](../packaging/vm-bench/README.md)** | Rejouer toute cette infrastructure en local (scénario `a-z`, labo persistant) avant de toucher à la production |
+| **[Exploration fédérée en local](MULTI_INSTANCE_LOCAL.md)** | Deux instances de développement + hub sur un poste |
+
 ## 🎯 Par cas d'usage
 
 ### Pour développeurs frontend
@@ -69,12 +83,13 @@ curl -X GET http://localhost:8000/api/plans/plans/ \
 
 ### Pour administrateurs système
 
-1. **[Release Pipeline](RELEASE_PIPELINE.md)** - Deploiement production, images Docker, mise a jour
-2. **[Explications fonctionnelles](FONCTIONNALITES.md)** - Comprendre les fonctionnalités (logs, validations, etc.)
-3. **[Configuration Email](EMAIL_CONFIGURATION.md)** - Configuration SMTP pour l'envoi des notifications
-4. **[DEVELOPMENT.md](../DEVELOPMENT.md)** - Installation et déploiement
-5. **[Nomenclatures](NOMENCLATURES.md)** - Import et maintenance des référentiels
-6. **[CLAUDE.md](../CLAUDE.md)** - Configuration Django et base de données
+1. **[Infrastructure](INFRASTRUCTURE.md)** - Les serveurs et leurs liens, puis **[Guide d'installation](INSTALLATION_GUIDE.md)** et **[Procédure de release](RELEASE_PROCEDURE.md)**
+2. **[Release Pipeline](RELEASE_PIPELINE.md)** - Deploiement production, images Docker, mise a jour
+3. **[Explications fonctionnelles](FONCTIONNALITES.md)** - Comprendre les fonctionnalités (logs, validations, etc.)
+4. **[Configuration Email](EMAIL_CONFIGURATION.md)** - Configuration SMTP pour l'envoi des notifications
+5. **[DEVELOPMENT.md](../DEVELOPMENT.md)** - Installation et déploiement
+6. **[Nomenclatures](NOMENCLATURES.md)** - Import et maintenance des référentiels
+7. **[CLAUDE.md](../CLAUDE.md)** - Configuration Django et base de données
 
 ### Pour gestionnaires d'espaces naturels
 
