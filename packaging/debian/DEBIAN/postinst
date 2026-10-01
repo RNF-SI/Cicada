@@ -90,7 +90,8 @@ if command -v python3 >/dev/null 2>&1; then
     if [ ! -d "$INSTALLER_VENV" ] || [ ! -x "$INSTALLER_VENV/bin/python" ]; then
         python3 -m venv "$INSTALLER_VENV" || { echo "Warning: impossible de créer le venv de l'installateur"; exit 0; }
     fi
-    "$INSTALLER_VENV/bin/pip" install --quiet --disable-pip-version-check flask python-dotenv requests || true
+    # psycopg : test de connexion à une base PostgreSQL existante (formulaire)
+    "$INSTALLER_VENV/bin/pip" install --quiet --disable-pip-version-check flask python-dotenv requests "psycopg[binary]" || true
 fi
 
 # --- Activer et démarrer les services systemd ---

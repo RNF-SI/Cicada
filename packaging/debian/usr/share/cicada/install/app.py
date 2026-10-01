@@ -2,7 +2,7 @@
 """
 Application Flask pour l'installation de CICADA
 """
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, Response, render_template, request, jsonify
 from install_service import InstallService
 
 app = Flask(__name__)
@@ -24,6 +24,26 @@ def install():
     data = request.json
     result = install_service.run_installation(data)
     return jsonify(result)
+
+
+@app.route('/prepare-db.sh')
+def prepare_db_script():
+    """Script de préparation du serveur de base, init.sql de cette version inclus."""
+    return Response(install_service.prepare_db_script(), mimetype='text/x-shellscript')
+
+
+@app.route('/api/db-client-ip')
+def db_client_ip():
+    """Adresse de cette machine vue depuis le serveur de base indiqué."""
+    host = (request.args.get('host') or '').strip()
+    return jsonify({'client_ip': install_service.client_ip_for(host) if host else None})
+
+
+@app.route('/api/test-db', methods=['POST'])
+def test_db():
+    if install_service.is_installed():
+        return jsonify({'error': 'Déjà installé'}), 403
+    return jsonify({'checks': install_service.test_database(request.json or {})})
 
 
 @app.route('/api/status')

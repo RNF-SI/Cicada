@@ -338,3 +338,69 @@ header p {
         font-size: 2em;
     }
 }
+
+/* --- Encadré « Avant de commencer » et base PostgreSQL existante --- */
+.intro-box {
+    background: #fffaf0;
+    border-left: 4px solid #dd6b20;
+    border-radius: 6px;
+    padding: 20px;
+    margin-bottom: 30px;
+    color: #2d3748;
+}
+
+.intro-box h2 {
+    font-size: 1.2em;
+    margin-bottom: 10px;
+}
+
+.intro-box ul {
+    margin: 0 0 10px 20px;
+}
+
+.intro-box li {
+    margin-bottom: 8px;
+    line-height: 1.45;
+}
+
+.code-box {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    background: #1a202c;
+    border-radius: 6px;
+    padding: 12px;
+    margin-bottom: 8px;
+}
+
+.code-box code {
+    flex: 1;
+    color: #f7fafc;
+    font-family: ui-monospace, 'DejaVu Sans Mono', monospace;
+    font-size: 0.9em;
+    word-break: break-all;
+    white-space: pre-wrap;
+}
+
+.check-list {
+    list-style: none;
+    margin: 12px 0 20px;
+}
+
+.check-list li {
+    padding: 8px 12px;
+    border-radius: 6px;
+    margin-bottom: 6px;
+    color: #2d3748;
+}
+
+.check-list li small {
+    display: block;
+    margin-top: 4px;
+    white-space: pre-line;
+}
+
+.check-list .check-ok      { background: #f0fff4; border-left: 4px solid #38a169; }
+.check-list .check-warning { background: #fffaf0; border-left: 4px solid #dd6b20; }
+.check-list .check-error   { background: #fff5f5; border-left: 4px solid #e53e3e; }
+.check-list .check-pending { background: #edf2f7; border-left: 4px solid #a0aec0; }

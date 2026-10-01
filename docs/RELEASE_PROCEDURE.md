@@ -198,7 +198,7 @@ Les commandes de la colonne « Solution » supposent l’alias `ccd` défini en 
 | 503 sur le frontend | Le port du frontend a changé | Vérifier `FRONTEND_PORT` dans `/var/lib/cicada/.env` et que Apache pointe vers le bon port |
 | `DisallowedHost` dans les logs | Domaine absent de `ALLOWED_HOSTS` | Ajouter le domaine dans `.env` puis `$ccd up -d web` |
 | CORS errors dans le navigateur | Domaine absent de `CORS_ALLOWED_ORIGINS` | Ajouter `https://votre-domaine` dans `.env` puis recréer le conteneur web |
-| `password authentication failed` | Le conteneur web pointe vers le mauvais PostgreSQL | Vérifier `POSTGRES_HOST` et `POSTGRES_PORT` dans `.env` (ex. `172.17.0.1` et `5432` pour une base hôte) |
+| `password authentication failed` | Le conteneur web pointe vers le mauvais PostgreSQL | Vérifier `POSTGRES_HOST` et `POSTGRES_PORT` dans `.env` (adresse du serveur de base telle que le serveur CICADA la joint, jamais `localhost`) |
 | `doit être le propriétaire de la fonction public.unaccent` | Extensions créées par `postgres`, pas par l'utilisateur applicatif | `sudo -u postgres psql -d cicada -c "ALTER FUNCTION public.unaccent(text) OWNER TO cicada_user;"` |
 | Variables `.env` non prises en compte | `docker compose restart` ne relit pas le `.env` | Utiliser `$ccd up -d` (recrée le conteneur) |
 | `No space left` pendant le `pull` | L’extraction demande plus de place que le disque n’en offre, même avec quelques Go libres (le backend pèse ~1,9 Go décompressé) | `$ccd down`, supprimer les anciennes images (`docker image rm`), `docker system prune -af`, puis tirer le backend **seul** avant de relancer |

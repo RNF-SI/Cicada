@@ -81,6 +81,17 @@ class InstallService:
             if errors:
                 return {'success': False, 'errors': errors}
 
+            # 1.5. Base existante : la vérifier AVANT de lancer quoi que ce soit.
+            # Sinon l'échec n'apparaît qu'au démarrage de l'application, des
+            # minutes plus tard, sous forme d'erreur de connexion dans ses logs.
+            if data.get('db_type') == 'existing':
+                self.update_status('in_progress', 'Vérification de la base PostgreSQL...', 'db', 'running')
+                checks = self.test_database(data)
+                blocking = [c for c in checks if c['status'] == 'error']
+                if blocking:
+                    self.update_status('failed', blocking[0]['label'], 'db', 'failed')
+                    return {'success': False, 'error': self.format_db_errors(blocking)}
+
             # 2. Générer les secrets
             self.update_status('in_progress', 'Génération des secrets...')
             secrets_data = self.generate_secrets(data)
@@ -550,6 +561,139 @@ class InstallService:
                 f"Sortie de docker compose up:\n{(result.stderr or result.stdout or '')[-3000:]}"
             )
         self.update_status('in_progress', 'Frontend démarré', 'frontend', 'completed')
+
+    # ------------------------------------------------------------------
+    # Base PostgreSQL existante (autre serveur, conteneur ou VM)
+    # ------------------------------------------------------------------
+    APP_SCHEMAS = ('utilisateurs', 'referentiels', 'ref_nomenclatures', 'ref_geo', 'general',
+                   'fichiers', 'ccd_commons', 'ccd_notifications', 'taxonomie',
+                   'ref_habitats', 'ref_inpg', 'ref_campanule')
+    LOCAL_NAMES = ('localhost', '127.0.0.1', '::1', 'localhost.localdomain')
+
+    def client_ip_for(self, host):
+        """Adresse avec laquelle cette machine (donc CICADA) joint `host` : c'est
+        elle que le serveur de base doit autoriser dans pg_hba.conf."""
+        import socket
+        try:
+            target = socket.gethostbyname(host)
+            out = subprocess.run(['ip', '-4', 'route', 'get', target],
+                                 capture_output=True, text=True, timeout=5).stdout
+        except (OSError, subprocess.SubprocessError):
+            return None
+        match = re.search(r'\bsrc (\S+)', out)
+        return match.group(1) if match else None
+
+    def _is_this_machine(self, host):
+        import socket
+        if host in self.LOCAL_NAMES:
+            return True
+        try:
+            target = socket.gethostbyname(host)
+            out = subprocess.run(['ip', '-4', '-o', 'addr', 'show'],
+                                 capture_output=True, text=True, timeout=5).stdout
+        except (OSError, subprocess.SubprocessError):
+            return False
+        return target.startswith('127.') or f' {target}/' in out
+
+    def test_database(self, data):
+        """Vérifie une base existante telle que CICADA la verra.
+
+        Retourne une liste de {status: ok|warning|error, label, detail}.
+        Le test part de cette machine : les conteneurs sortent avec la même
+        adresse vers un serveur distant (NAT de Docker), donc pg_hba.conf
+        les traite pareil — sauf si la base est sur CETTE machine.
+        """
+        host = (data.get('db_host') or '').strip()
+        name = (data.get('db_name') or '').strip()
+        user = (data.get('db_user') or '').strip()
+        password = data.get('db_password') or ''
+        try:
+            port = int(data.get('db_port') or 5432)
+        except (TypeError, ValueError):
+            return [{'status': 'error', 'label': 'Port PostgreSQL invalide', 'detail': ''}]
+        checks = []
+
+        if not host:
+            return [{'status': 'error', 'label': "Indiquez l'adresse du serveur PostgreSQL", 'detail': ''}]
+        if self._is_this_machine(host):
+            return [{
+                'status': 'error',
+                'label': f"« {host} » désigne ce serveur-ci, pas un serveur de base séparé",
+                'detail': ("Vu de l'application (qui tourne dans un conteneur Docker), « localhost » "
+                           "désigne le conteneur lui-même. Si PostgreSQL est dans un autre conteneur "
+                           "ou une autre VM, indiquez SON adresse IP. Si PostgreSQL est installé "
+                           "directement sur ce serveur, ce cas n'est pas encore pris en charge par "
+                           "le formulaire : utilisez plutôt la base dans Docker."),
+            }]
+
+        try:
+            import psycopg
+        except ImportError:
+            return [{'status': 'error', 'label': "Module psycopg absent de l'installateur",
+                     'detail': 'Réinstallez le paquet : sudo apt install --reinstall cicada'}]
+
+        client_ip = self.client_ip_for(host)
+        try:
+            conn = psycopg.connect(host=host, port=port, dbname=name, user=user,
+                                   password=password, connect_timeout=8)
+        except psycopg.OperationalError as e:
+            msg = str(e).strip().splitlines()[-1] if str(e).strip() else str(e)
+            low = msg.lower()
+            if 'pg_hba.conf' in low:
+                hint = (f"Le serveur de base refuse cette machine ({client_ip or '?'}). "
+                        "Lancez cicada-prepare-db avec --client sur le serveur de base (commande ci-dessus).")
+            elif 'password authentication failed' in low:
+                hint = "Mot de passe refusé : utilisez celui affiché par cicada-prepare-db."
+            elif 'does not exist' in low:
+                hint = "Base ou compte inexistant : lancez cicada-prepare-db sur le serveur de base."
+            elif 'connection refused' in low or 'timeout' in low or 'timed out' in low:
+                hint = ("Serveur injoignable sur ce port : vérifiez l'adresse, le pare-feu, et que "
+                        "PostgreSQL écoute sur le réseau (listen_addresses).")
+            else:
+                hint = ''
+            return [{'status': 'error', 'label': 'Connexion impossible', 'detail': f'{msg}\n{hint}'.strip()}]
+
+        with conn:
+            checks.append({'status': 'ok', 'label': f'Connexion à {name} sur {host}:{port} réussie',
+                           'detail': f'depuis {client_ip}' if client_ip else ''})
+            version = conn.execute(
+                "select extversion from pg_extension where extname = 'postgis'").fetchone()
+            if version:
+                checks.append({'status': 'ok', 'label': f'PostGIS {version[0]} activé', 'detail': ''})
+            else:
+                checks.append({'status': 'error', 'label': "PostGIS n'est pas activé dans cette base",
+                               'detail': "Seul un super-utilisateur peut l'activer : lancez cicada-prepare-db sur le serveur de base."})
+            owned = conn.execute(
+                "select count(*) from pg_namespace where nspname = any(%s) "
+                "and pg_get_userbyid(nspowner) = current_user", (list(self.APP_SCHEMAS),)).fetchone()[0]
+            if owned == len(self.APP_SCHEMAS):
+                checks.append({'status': 'ok', 'label': f'{owned} schémas CICADA prêts', 'detail': ''})
+            else:
+                checks.append({'status': 'error',
+                               'label': f'Base non préparée ({owned}/{len(self.APP_SCHEMAS)} schémas appartenant à {user})',
+                               'detail': 'Lancez cicada-prepare-db sur le serveur de base.'})
+        return checks
+
+    @staticmethod
+    def format_db_errors(blocking):
+        lines = ["La base PostgreSQL n'est pas prête :"]
+        for c in blocking:
+            lines.append(f"• {c['label']}")
+            if c.get('detail'):
+                lines.append(f"  {c['detail']}")
+        return '\n'.join(lines)
+
+    def prepare_db_script(self):
+        """cicada-prepare-db avec l'init.sql de CETTE version inclus, à lancer sur
+        le serveur de base (curl … | sudo bash -s -- --client <ip>)."""
+        script = Path('/usr/bin/cicada-prepare-db').read_text()
+        init_sql = Path('/usr/share/cicada/docker/postgres/init.sql').read_text()
+        marker = 'CICADA_INIT_SQL_EOF'
+        if marker in init_sql:
+            raise ValueError('init.sql contient le délimiteur du heredoc')
+        shebang, _, rest = script.partition('\n')
+        return (f"{shebang}\n# init.sql de CICADA {self.get_version()}, inclus par l'installateur\n"
+                f"INIT_SQL_CONTENT=$(cat <<'{marker}'\n{init_sql.rstrip()}\n{marker}\n)\n{rest}")
 
     def _container_state(self, docker_cmd, name):
         """État d'un conteneur : santé s'il a un healthcheck (starting, healthy,

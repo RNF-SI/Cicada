@@ -38,6 +38,10 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Initialiser l'affichage des champs DB et reverse proxy / Traefik
     toggleDbFields();
+    ['db_host', 'db_port', 'db_name', 'db_user'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.addEventListener('input', schedulePrepareCommand);
+    });
     toggleReverseProxyFields();
     toggleFederationFields();
     toggleAcmeEmailMode();
@@ -217,30 +221,6 @@ document.addEventListener('DOMContentLoaded', function() {
     form.addEventListener('submit', startStatusPolling);
 });
 
-function toggleDbFields() {
-    const dbType = document.getElementById('db_type').value;
-    const dockerFields = document.getElementById('db_docker_fields');
-    const existingFields = document.getElementById('db_existing_fields');
-    const dbNameHelp = document.getElementById('db_name_help');
-    const dbUserHelp = document.getElementById('db_user_help');
-    const dbHost = document.getElementById('db_host');
-    
-    if (dbType === 'docker') {
-        dockerFields.classList.remove('hidden');
-        existingFields.classList.add('hidden');
-        dbNameHelp.textContent = 'Sera créée automatiquement si nouvelle instance Docker';
-        dbUserHelp.textContent = 'Sera créé automatiquement si nouvelle instance Docker';
-        if (dbHost.value === '' || dbHost.value.includes(':')) {
-            dbHost.value = 'db';
-        }
-    } else {
-        dockerFields.classList.add('hidden');
-        existingFields.classList.remove('hidden');
-        dbNameHelp.textContent = 'Doit déjà exister sur l\'instance PostgreSQL';
-        dbUserHelp.textContent = 'Doit déjà exister sur l\'instance PostgreSQL';
-    }
-}
-
 function toggleReverseProxyFields() {
     const reverseProxyPresent = document.getElementById('reverse_proxy_present');
     const traefikFields = document.getElementById('traefik_fields');
@@ -387,8 +367,12 @@ function toggleDbFields() {
     const dbPort = document.getElementById('db_port');
     const dbNameHelp = document.getElementById('db_name_help');
     const dbUserHelp = document.getElementById('db_user_help');
-    
+    const existingSteps = document.getElementById('db_existing_steps');
+    const generateBtn = document.querySelector('#db_password ~ .btn-generate');
+
     if (dbType === 'docker') {
+        if (existingSteps) existingSteps.classList.add('hidden');
+        if (generateBtn) generateBtn.classList.remove('hidden');
         dockerFields.classList.remove('hidden');
         existingFields.classList.add('hidden');
         if (dbConnectionFields) dbConnectionFields.classList.add('hidden');
@@ -408,9 +392,112 @@ function toggleDbFields() {
         dbPort.required = true;
         dbHost.readOnly = false;
         dbPort.readOnly = false;
-        if (dbNameHelp) dbNameHelp.textContent = 'Doit déjà exister sur l\'instance PostgreSQL';
-        if (dbUserHelp) dbUserHelp.textContent = 'Doit déjà exister sur l\'instance PostgreSQL';
+        if (dbHost.value === 'db') dbHost.value = '';
+        if (existingSteps) existingSteps.classList.remove('hidden');
+        // Le mot de passe est celui que cicada-prepare-db affiche : en générer un
+        // ici ne correspondrait à rien sur le serveur de base.
+        if (generateBtn) generateBtn.classList.add('hidden');
+        if (dbNameHelp) dbNameHelp.textContent = 'Créée par cicada-prepare-db (option --db-name si autre nom)';
+        if (dbUserHelp) dbUserHelp.textContent = 'Créé par cicada-prepare-db (option --db-user si autre nom)';
+        updatePrepareCommand();
     }
+}
+
+// --- Base existante : commande de préparation et test de connexion ---------
+
+let prepareCommandTimer;
+function schedulePrepareCommand() {
+    clearTimeout(prepareCommandTimer);
+    prepareCommandTimer = setTimeout(updatePrepareCommand, 400);
+}
+
+async function updatePrepareCommand() {
+    const code = document.getElementById('prepare_db_command');
+    const clientSpan = document.getElementById('prepare_db_client');
+    const host = document.getElementById('db_host').value.trim();
+    if (!code) return;
+    if (!host || host === 'db') {
+        code.textContent = 'Indiquez d\'abord l\'hôte PostgreSQL ci-dessus.';
+        clientSpan.textContent = '—';
+        return;
+    }
+    let clientIp = null;
+    try {
+        const r = await fetch('/api/db-client-ip?host=' + encodeURIComponent(host));
+        clientIp = (await r.json()).client_ip;
+    } catch (e) { /* réseau : on garde l'adresse de la page */ }
+    // Adresse par laquelle ce serveur joint la base : c'est elle que le serveur
+    // de base doit autoriser, et a priori elle par laquelle il nous joint.
+    const self = clientIp || window.location.hostname;
+    const options = ['--client ' + (clientIp || '<ip-de-ce-serveur>')];
+    const port = document.getElementById('db_port').value.trim();
+    const name = document.getElementById('db_name').value.trim();
+    const user = document.getElementById('db_user').value.trim();
+    if (port && port !== '5432') options.push('--port ' + port);
+    if (name && name !== 'cicada') options.push('--db-name ' + name);
+    if (user && user !== 'cicada_user') options.push('--db-user ' + user);
+    code.textContent = 'curl -fsSL http://' + self + ':' + (window.location.port || '4567')
+        + '/prepare-db.sh | sudo bash -s -- ' + options.join(' ');
+    clientSpan.textContent = clientIp || 'adresse inconnue : vérifiez l\'hôte';
+}
+
+async function testDatabase() {
+    const list = document.getElementById('test_db_results');
+    const btn = document.getElementById('test_db_btn');
+    const value = id => document.getElementById(id).value;
+    list.innerHTML = '<li class="check-pending">Test en cours…</li>';
+    btn.disabled = true;
+    try {
+        const r = await fetch('/api/test-db', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                db_host: value('db_host'), db_port: value('db_port'), db_name: value('db_name'),
+                db_user: value('db_user'), db_password: value('db_password'),
+            }),
+        });
+        const checks = (await r.json()).checks || [];
+        list.innerHTML = '';
+        checks.forEach(c => {
+            const li = document.createElement('li');
+            li.className = 'check-' + c.status;
+            li.textContent = c.label;
+            if (c.detail) {
+                const detail = document.createElement('small');
+                detail.textContent = c.detail;
+                li.appendChild(detail);
+            }
+            list.appendChild(li);
+        });
+    } catch (e) {
+        list.innerHTML = '<li class="check-error">Test impossible : ' + e.message + '</li>';
+    } finally {
+        btn.disabled = false;
+    }
+}
+
+function copyText(elementId, btn) {
+    const text = document.getElementById(elementId).textContent;
+    const done = () => {
+        const old = btn.innerHTML;
+        btn.innerHTML = '&#10003;';
+        setTimeout(() => { btn.innerHTML = old; }, 1500);
+    };
+    // navigator.clipboard n'existe qu'en HTTPS ou sur localhost : l'installateur
+    // est ouvert en http://<ip>:4567, d'où le repli sur execCommand.
+    if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done);
+        return;
+    }
+    const area = document.createElement('textarea');
+    area.value = text;
+    area.style.position = 'fixed';
+    area.style.opacity = '0';
+    document.body.appendChild(area);
+    area.select();
+    document.execCommand('copy');
+    document.body.removeChild(area);
+    done();
 }
 
 function toggleFederationFields() {

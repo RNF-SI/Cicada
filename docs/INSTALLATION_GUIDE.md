@@ -7,7 +7,7 @@
 - Système d'exploitation : **Debian 12+** ou **Ubuntu 22.04+**. Debian 11 n'est pas supportée (fin de sa LTS en août 2026).
 - **Dépôt APT officiel de Docker configuré** (voir ci-dessous) : le paquet dépend de `docker-ce` et de `docker-compose-plugin`, absents des dépôts Debian/Ubuntu. Sans ce dépôt, `apt-get install cicada` échoue sur « Dépend: docker-ce … mais il n'est pas installable ».
 - Accès root ou sudo
-- **Si base de données externe** : PostgreSQL 17+ avec PostGIS 3.5+ installé sur le serveur
+- **Si la base est sur un serveur PostgreSQL existant** : PostgreSQL 15+ avec PostGIS sur ce serveur de base, et un accès root à celui-ci pour une commande de préparation (voir l'étape 3)
 
 ### Étapes d'installation
 
@@ -56,82 +56,57 @@ L'installation va :
 
 > **Note** : si le système vous demande de redémarrer des services (dbus, getty, systemd-logind), vous pouvez ignorer — ce sont des services système sans rapport avec CICADA.
 
-#### 3. Préparer la base PostgreSQL (recommandé en production)
+#### 3. Choisir où sera la base de données
 
-En production, il est **fortement recommandé** d’utiliser un PostgreSQL installé nativement sur le serveur plutôt que dans un conteneur Docker. Ainsi les données survivent à toute mise à jour, suppression ou recréation des conteneurs.
+C'est le seul choix qui se prépare **en dehors** du formulaire. Le formulaire le rappelle d'ailleurs dès sa première ligne.
 
-> **Alternative** : si vous préférez tout dans Docker (développement, test), vous pouvez passer cette étape et choisir "Nouvelle instance Docker" dans le formulaire (étape 5).
+| Où est PostgreSQL ? | À faire avant le formulaire | Terminal nécessaire ? |
+|---|---|---|
+| **Dans Docker, sur le serveur CICADA** (le plus simple) | rien : l'installation crée tout | non |
+| **Sur un serveur PostgreSQL existant** : autre machine, VM ou conteneur dédié aux bases (serveur mutualisé, cas de RNF) | préparer la base **sur le serveur de base** (ci-dessous) | **oui, sur le serveur de base**, avec les droits root |
+| PostgreSQL installé directement sur le serveur CICADA | — | pas encore pris en charge par le formulaire : utilisez la base dans Docker |
 
-##### Installer PostgreSQL et PostGIS (si pas déjà fait)
+> **Pourquoi un terminal pour une base existante ?** Deux opérations ne peuvent se faire qu'**sur le serveur de base**, par quelqu'un qui en a les droits :
+> - créer l'extension **PostGIS**, qui exige un super-utilisateur PostgreSQL (contrairement aux autres extensions utilisées par CICADA) ;
+> - **autoriser le serveur CICADA** à se connecter (`pg_hba.conf`).
+>
+> Le formulaire ne demande donc pas de compte super-utilisateur : tout se fait en une commande sur le serveur de base.
 
-```bash
-# Ajouter le repository PostgreSQL officiel (pour avoir la version 17)
-sudo apt-get install -y curl ca-certificates gnupg
-curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo gpg --dearmor -o /usr/share/keyrings/postgresql-keyring.gpg
-echo "deb [signed-by=/usr/share/keyrings/postgresql-keyring.gpg] http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" | sudo tee /etc/apt/sources.list.d/pgdg.list
+##### Base sur un serveur PostgreSQL existant
 
-# Installer PostgreSQL 17 + PostGIS
-sudo apt-get update
-sudo apt-get install -y postgresql-17 postgresql-17-postgis-3
-```
+**Prérequis sur le serveur de base** (en général déjà remplis sur un serveur qui héberge GeoNature ou d'autres bases) :
+- PostgreSQL 15 ou plus, avec le paquet PostGIS correspondant (ex. `postgresql-17-postgis-3`) ;
+- PostgreSQL à l'écoute du réseau (`listen_addresses` ne doit pas se limiter à `localhost`).
 
-##### Configurer PostgreSQL pour Docker
+> ⚠️ Si `listen_addresses` vaut `localhost`, il faut le modifier puis **redémarrer** PostgreSQL, ce qui coupe brièvement les autres applications qui l'utilisent. Le script de préparation le détecte et s'arrête avant de rien changer : choisissez le moment, puis relancez-le.
 
-Les conteneurs Docker doivent pouvoir se connecter au PostgreSQL du serveur. Deux fichiers à vérifier :
+**Étapes :**
 
-```bash
-# 1. Écouter sur toutes les interfaces (pas juste localhost)
-sudo -u postgres psql -c "SHOW listen_addresses;"
-# Si ce n’est pas ‘*’, modifier postgresql.conf :
-# sudo nano /etc/postgresql/17/main/postgresql.conf
-# → listen_addresses = ‘*’
-# Puis : sudo systemctl restart postgresql
+1. Dans le formulaire (étape 5), section « Base de données », choisissez **« Serveur PostgreSQL existant »** et saisissez l'**adresse du serveur de base telle que le serveur CICADA la joint**. N'indiquez pas `localhost` : vu de l'application, qui tourne dans un conteneur, `localhost` désigne le conteneur lui-même.
+2. Le formulaire affiche alors la commande à lancer **sur le serveur de base**, en root, par exemple :
 
-# 2. Autoriser les connexions depuis Docker
-# Vérifier que pg_hba.conf contient une ligne comme :
-#   host    all    all    172.17.0.0/16    md5
-# ou plus permissif :
-#   host    all    all    0.0.0.0/0    md5
-sudo cat /etc/postgresql/17/main/pg_hba.conf | grep -v ‘^#’ | grep -v ‘^$’
-```
+   ```bash
+   curl -fsSL http://10.0.200.13:4567/prepare-db.sh | sudo bash -s -- --client 10.0.200.13
+   ```
 
-##### Lancer cicada-prepare-db
+   Le script est fourni par l'installateur de CICADA lui-même. Il est donc de la même version et contient le `init.sql` correspondant. Il :
+   - crée le compte `cicada_user` (mot de passe généré et affiché) et la base `cicada` ;
+   - active PostGIS et crée les schémas de CICADA ;
+   - ajoute dans `pg_hba.conf` **une seule ligne**, limitée à la base `cicada`, au compte `cicada_user` et à l'adresse du serveur CICADA ;
+   - **recharge** la configuration de PostgreSQL, sans la redémarrer : aucune coupure pour les autres applications, et aucune autre base n'est touchée.
 
-Le script fait tout le reste automatiquement :
+   Il peut être relancé sans risque. Dans ce cas, le mot de passe d'un compte existant n'est **pas** modifié (option `--password` pour le redéfinir).
+3. Reportez dans le formulaire le **mot de passe affiché** à la fin du script, puis cliquez sur **« Tester la connexion »**. Le test vérifie la connexion depuis le serveur CICADA, PostGIS et les schémas. En cas d'échec, il dit quoi corriger : adresse non autorisée, mot de passe, base absente, serveur injoignable…
 
-```bash
-sudo cicada-prepare-db
-```
+L'installation refuse d'ailleurs de démarrer tant que ce test n'est pas vert. Il n'y a donc plus d'erreur découverte au démarrage de l'application, des minutes plus tard.
 
-Il va :
-1. Vérifier que PostgreSQL et PostGIS sont installés et actifs
-2. Vous demander un mot de passe pour l’utilisateur de la base
-3. Créer l’utilisateur `cicada_user` et la base `cicada`
-4. Créer les extensions (PostGIS, etc.) et les 12 schémas applicatifs
-5. Configurer les permissions
-6. Vérifier que tout fonctionne
-7. Afficher les paramètres à utiliser dans le formulaire web (étape 5)
-
-**Notez bien le mot de passe choisi** — il sera demandé dans le formulaire d’installation.
-
-##### Créer la base et initialiser les schémas
-
-Le script `cicada-prepare-db` (installé par le package) fait tout automatiquement : vérification des prérequis, création de l’utilisateur et de la base, exécution de `init.sql` (extensions, 12 schémas, permissions), et validation du résultat.
+**Si le serveur de base ne peut pas joindre le serveur CICADA** (pare-feu entre les deux) : récupérez le script depuis un poste qui voit l'installateur (`http://<serveur-cicada>:4567/prepare-db.sh`), copiez-le sur le serveur de base, puis lancez-le :
 
 ```bash
-# Une seule commande — le script est interactif (demande le mot de passe)
-sudo cicada-prepare-db
+sudo bash prepare-db.sh --client <ip-du-serveur-cicada>
 ```
 
-Options disponibles :
-
-```bash
-sudo cicada-prepare-db --help                         # Aide
-sudo cicada-prepare-db --password SECRET              # Mode non-interactif
-sudo cicada-prepare-db --db-name mabase --db-user monuser  # Noms personnalisés
-```
-
-Le script affichera à la fin les paramètres exacts à utiliser dans le formulaire d’installation web. **Notez bien le mot de passe**, il vous sera demandé à l’étape suivante.
+Options : `--db-name`, `--db-user` et `--port` si vous voulez d'autres valeurs que `cicada`, `cicada_user` et `5432` (à reporter à l'identique dans le formulaire). Aide complète : `bash prepare-db.sh --help`.
 
 #### 4. Accéder à l’interface d’installation
 
@@ -156,8 +131,8 @@ Le formulaire comporte 5 sections :
 - Port du frontend si Apache/Nginx (ex. `8080`)
 
 **Base de données PostgreSQL :**
-- **Type** : "Instance existante" (si étape 3 faite) ou "Docker" (sinon)
-- **Hôte** : l’IP Docker affichée par `cicada-prepare-db` (typiquement `172.17.0.1`). **Ne pas mettre `localhost`** — les conteneurs Docker ne peuvent pas accéder au `localhost` du serveur hôte.
+- **Type** : « Nouvelle base dans Docker » ou « Serveur PostgreSQL existant » (voir l'étape 3)
+- **Base existante** : l'adresse du serveur de base, la commande de préparation à lancer dessus, le mot de passe qu'elle affiche, et le bouton « Tester la connexion » (étape 3). **Ne pas mettre `localhost`.**
 - **Port** : `5432`
 - **Nom, utilisateur, mot de passe** : ceux définis à l’étape 3
 
@@ -265,7 +240,7 @@ Vous pouvez aussi utiliser un nom personnalisé via le fichier hosts : ajoutez p
 
 ## Import des référentiels (base externe)
 
-Lorsque la base PostgreSQL est externe (installée nativement sur le serveur), les référentiels ne sont pas toujours importés automatiquement au premier démarrage. Si les tables sont vides, lancez les imports manuellement :
+Les référentiels sont importés automatiquement au premier démarrage. Si, sur une base existante, les tables sont vides (base préparée avant le script de préparation actuel, import interrompu…), lancez les imports manuellement :
 
 ### Vérifier l'état des référentiels
 
@@ -285,7 +260,7 @@ sudo -u postgres psql -d cicada -c "SELECT extname FROM pg_extension WHERE extna
 
 ### Corriger la propriété de la fonction unaccent
 
-Si l'extension `unaccent` a été créée par l'utilisateur `postgres`, les commandes d'import échoueront avec l'erreur `doit être le propriétaire de la fonction public.unaccent`. Corrigez avec :
+Le script de préparation (étape 3) le fait déjà. Sur une base préparée autrement, l'import TaxRef ne peut pas créer son index de recherche sans accents (il le saute sans bloquer). Corrigez avec :
 
 ```bash
 sudo -u postgres psql -d cicada -c "ALTER FUNCTION public.unaccent(text) OWNER TO cicada_user;"

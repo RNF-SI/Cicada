@@ -13,6 +13,25 @@
             <p>Configurez votre instance en quelques étapes</p>
         </header>
         
+        <!-- À lire avant de remplir : le seul choix qui se prépare hors du formulaire -->
+        <section class="intro-box">
+            <h2>Avant de commencer : où sera la base de données ?</h2>
+            <ul>
+                <li><strong>Dans Docker, sur ce serveur</strong> (le plus simple) : rien à préparer,
+                    l'installation crée tout.</li>
+                <li><strong>Sur un serveur PostgreSQL existant</strong> — une autre machine, VM ou
+                    conteneur dédié aux bases (serveur mutualisé, comme à RNF) : la base doit être
+                    <strong>préparée d'abord sur le serveur de base, en terminal</strong>, par une
+                    personne qui y a les droits root. Une seule commande, fournie dans la section
+                    « Base de données » ci-dessous. Prérequis sur ce serveur : PostgreSQL 15 ou plus
+                    avec PostGIS installé, et à l'écoute du réseau.</li>
+                <li><strong>PostgreSQL installé directement sur ce serveur-ci</strong> : pas encore pris
+                    en charge par ce formulaire ; choisissez la base dans Docker.</li>
+            </ul>
+            <p>Pourquoi un terminal ? Créer l'extension PostGIS exige un super-utilisateur
+                PostgreSQL, et autoriser ce serveur à se connecter se règle sur le serveur de base.</p>
+        </section>
+
         <form id="install-form">
             <!-- Section Admin -->
             <section class="form-section">
@@ -110,8 +129,8 @@
                 <div class="form-group">
                     <label for="db_type">Type d'installation *</label>
                     <select id="db_type" name="db_type" required onchange="toggleDbFields()">
-                        <option value="docker">Nouvelle instance dans un conteneur Docker</option>
-                        <option value="existing">Utiliser une instance PostgreSQL existante</option>
+                        <option value="docker">Nouvelle base dans Docker, sur ce serveur</option>
+                        <option value="existing">Serveur PostgreSQL existant (autre machine, VM ou conteneur)</option>
                     </select>
                     <small class="form-help">Choisissez si vous voulez créer une nouvelle base dans Docker ou utiliser une instance existante</small>
                 </div>
@@ -122,7 +141,8 @@
                 </div>
                 <div id="db_existing_fields" class="hidden">
                     <div class="info-box">
-                        <p><strong>Important :</strong> La base de données et l'utilisateur doivent déjà exister sur l'instance PostgreSQL. Assurez-vous d'avoir créé la base et l'utilisateur avec les permissions nécessaires avant de continuer.</p>
+                        <p><strong>Étape 1</strong> — indiquez l'adresse du serveur PostgreSQL <strong>telle que ce
+                            serveur la joint</strong> (pas « localhost »).</p>
                     </div>
                 </div>
                 <div id="db_connection_fields">
@@ -159,6 +179,26 @@
                         <button type="button" class="btn-generate" onclick="generatePassword('db_password')">Générer</button>
                     </div>
                 </div>
+
+            <div id="db_existing_steps" class="hidden">
+                <div class="info-box">
+                    <p><strong>Étape 2</strong> — sur le <strong>serveur de base</strong>, en root, lancez :</p>
+                </div>
+                <div class="code-box">
+                    <code id="prepare_db_command">Indiquez d'abord l'hôte PostgreSQL ci-dessus.</code>
+                    <button type="button" class="btn-icon" onclick="copyText('prepare_db_command', this)" title="Copier">&#128203;</button>
+                </div>
+                <small class="form-help">Le script crée le compte, la base, PostGIS et les schémas, et autorise
+                    ce serveur (<span id="prepare_db_client">—</span>) à s'y connecter. Il ne redémarre pas
+                    PostgreSQL et ne touche à aucune autre base. Si le serveur de base ne peut pas joindre
+                    celui-ci, voir le guide d'installation (préparation sans accès réseau).</small>
+                <div class="info-box">
+                    <p><strong>Étape 3</strong> — reportez dans « Mot de passe PostgreSQL » celui affiché à la fin
+                        du script, puis testez :</p>
+                </div>
+                <button type="button" class="btn-generate" id="test_db_btn" onclick="testDatabase()">Tester la connexion</button>
+                <ul id="test_db_results" class="check-list"></ul>
+            </div>
             </section>
 
             <!-- Section Redis -->
