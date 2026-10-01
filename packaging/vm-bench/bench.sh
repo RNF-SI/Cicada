@@ -9,7 +9,8 @@
 # Usage :
 #   ./bench.sh list                         # scénarios disponibles
 #   ./bench.sh run <scenario> [options]     # jouer un scénario
-#   ./bench.sh base [--os debian12] [--rebuild]   # (re)construire la VM de base
+#   ./bench.sh base [--os debian12] [--role cicada|db|hub|tracking] [--rebuild]
+#                                           # (re)construire une VM de base
 #   ./bench.sh shell [--os …]               # shell dans la VM (état du dernier run)
 #   ./bench.sh clean [--all]                # arrêter les VM (--all : les supprimer)
 #
@@ -41,6 +42,13 @@ MANUAL=false
 PREPULL=true
 REBUILD=false
 ALL=false
+ROLE="cicada"
+
+# Identité de l'instance testée auprès du hub (scénarios avec hub)
+HUB_INSTANCE_ID="bench"
+HUB_INSTANCE_LABEL="Instance du banc"
+# Version initiale des scénarios « tracking » (images publiées sur GHCR)
+TRACKING_FROM_VERSION="0.1.47"
 
 VM_CPUS=4
 VM_MEMORY=6G
@@ -172,6 +180,62 @@ build_db_base() {
     info "Serveur de base $dbvm prêt (instantané « socle »)"
 }
 
+# --- VM « hub » (scénarios marqués « # HUB_VM: oui ») ---
+# Déployée comme le décrit docs/DEPLOIEMENT_HUB.md : image GHCR, compose de
+# production, Apache devant, enroler_instance.
+build_hub_base() {
+    local hubvm="ccd-hub-$OS" version
+    version="$(tr -d '[:space:]' < "$PROJECT_ROOT/version.txt")"
+    if vm_exists "$hubvm"; then
+        [ "$REBUILD" = true ] || return 0
+        multipass delete --purge "$hubvm"
+    fi
+    local source; source="$(launch_source)" || exit 2
+    info "Création de la VM hub $hubvm"
+    multipass launch "$source" --name "$hubvm" --cpus 2 --memory 3G --disk 15G --timeout 900
+    push_guest_scripts "$hubvm"
+    # Fichiers de déploiement du dépôt (le guide fait un git clone dans /opt/cicada-hub)
+    vx "$hubvm" mkdir -p /opt/cicada-hub/hub/docker/postgres
+    multipass transfer "$PROJECT_ROOT/docker-compose.hub.prod.yml" "$hubvm:/home/ubuntu/docker-compose.hub.prod.yml"
+    multipass transfer "$PROJECT_ROOT/.env.hub.prod.example" "$hubvm:/home/ubuntu/.env.hub.prod.example"
+    multipass transfer "$PROJECT_ROOT/hub/docker/postgres/init.sql" "$hubvm:/home/ubuntu/hub-init.sql"
+    vx "$hubvm" bash -c 'mv /home/ubuntu/docker-compose.hub.prod.yml /home/ubuntu/.env.hub.prod.example /opt/cicada-hub/ && mv /home/ubuntu/hub-init.sql /opt/cicada-hub/hub/docker/postgres/init.sql'
+    vx "$hubvm" bash "$GUEST_DIR/guest/hub-server-setup.sh" "$version"
+    multipass stop "$hubvm"
+    multipass snapshot "$hubvm" --name socle >/dev/null
+    info "Hub $hubvm prêt (instantané « socle »)"
+}
+
+# --- VM « tracking » (scénarios marqués « # TRACKING_VM: oui ») ---
+# Le serveur TrackingCicada : API de suivi (tracking-api/) + dépôt APT signé.
+build_tracking_base() {
+    local tvm="ccd-tracking-$OS"
+    if vm_exists "$tvm"; then
+        [ "$REBUILD" = true ] || return 0
+        multipass delete --purge "$tvm"
+    fi
+    local source; source="$(launch_source)" || exit 2
+    info "Création de la VM tracking $tvm"
+    multipass launch "$source" --name "$tvm" --cpus 2 --memory 2G --disk 10G --timeout 900
+    push_guest_scripts "$tvm"
+    vx "$tvm" bash "$GUEST_DIR/guest/tracking-server-setup.sh"
+    multipass stop "$tvm"
+    multipass snapshot "$tvm" --name socle >/dev/null
+    info "Tracking $tvm prêt (instantané « socle »)"
+}
+
+# Paquets d'un scénario « tracking » : construits depuis l'arbre courant avec
+# l'URL de suivi du banc gravée dedans (comme la CI grave celle de prod), en
+# deux versions dont les images existent sur GHCR : l'initiale et la cible.
+build_tracking_debs() {
+    local url="http://tracking.cicada.bench/api" v
+    mkdir -p "$BENCH_DIR/results"
+    for v in "$TRACKING_FROM_VERSION" "$(tr -d '[:space:]' < "$PROJECT_ROOT/version.txt")"; do
+        (cd "$PACKAGING_DIR" && VERSION="$v" TRACKING_API_URL="$url" ./build-deb.sh >/dev/null)
+        cp "$PACKAGING_DIR/build/cicada_${v}_amd64.deb" "$BENCH_DIR/results/tracking-cicada_${v}_amd64.deb"
+    done
+}
+
 restore_vm() {
     local vm="$1"
     [ "$(vm_state "$vm")" = Stopped ] || multipass stop --force "$vm"
@@ -222,22 +286,81 @@ run_scenario() {
         multipass transfer "$FROM_DEB" "$vm:$GUEST_DIR/cicada-initial.deb"
     fi
 
+    local tvm="" tracking_ip=""
+    if grep -q '^# TRACKING_VM: oui' "$scenario_file"; then
+        tvm="ccd-tracking-$OS"
+        local target; target="$(tr -d '[:space:]' < "$PROJECT_ROOT/version.txt")"
+        build_tracking_debs
+        build_tracking_base
+        info "Restauration et déploiement du serveur de suivi $tvm"
+        restore_vm "$tvm"
+        push_guest_scripts "$tvm"
+        multipass transfer -r "$PROJECT_ROOT/tracking-api" "$tvm:$GUEST_DIR/"
+        multipass transfer -r "$PACKAGING_DIR/apt-repo" "$tvm:$GUEST_DIR/"
+        vx "$tvm" find "$GUEST_DIR/tracking-api" -name __pycache__ -prune -exec rm -rf {} +
+        multipass transfer "$BENCH_DIR/results/tracking-cicada_${TRACKING_FROM_VERSION}_amd64.deb" "$tvm:$GUEST_DIR/"
+        multipass transfer "$BENCH_DIR/results/tracking-cicada_${target}_amd64.deb" "$tvm:$GUEST_DIR/"
+        set +e
+        vx "$tvm" env BENCH_DIR="$GUEST_DIR" bash "$GUEST_DIR/guest/tracking-side.sh" "$target" \
+            "$GUEST_DIR/tracking-cicada_${TRACKING_FROM_VERSION}_amd64.deb" > "$out/tracking-server.log" 2>&1
+        set -e
+        sed 's/^/   [tracking] /' "$out/tracking-server.log"
+        multipass transfer "$tvm:$GUEST_DIR/results.tsv" "$out/tracking-results.tsv" 2>/dev/null || true
+        tracking_ip="$(vm_ip "$tvm")"
+        # La VM CICADA installe la version initiale depuis le dépôt ; cicada.deb
+        # (la cible) ne sert qu'aux contrôles statiques du paquet.
+        DEB="$BENCH_DIR/results/tracking-cicada_${target}_amd64.deb"
+        multipass transfer "$DEB" "$vm:$GUEST_DIR/cicada.deb"
+    fi
+
+    local hubvm="" hub_env=()
+    if grep -q '^# HUB_VM: oui' "$scenario_file"; then
+        hubvm="ccd-hub-$OS"
+        build_hub_base
+        info "Restauration et déploiement du hub $hubvm"
+        restore_vm "$hubvm"
+        push_guest_scripts "$hubvm"
+        set +e
+        vx "$hubvm" env BENCH_DIR="$GUEST_DIR" bash "$GUEST_DIR/guest/hub-side.sh" \
+            "$(tr -d '[:space:]' < "$PROJECT_ROOT/version.txt")" "$HUB_INSTANCE_ID" "$HUB_INSTANCE_LABEL" \
+            "http://$(vm_ip "$vm"):8080" > "$out/hub-server.log" 2>&1
+        set -e
+        sed 's/^/   [hub] /' "$out/hub-server.log"
+        multipass transfer "$hubvm:$GUEST_DIR/results.tsv" "$out/hub-results.tsv" 2>/dev/null || true
+        multipass transfer "$hubvm:$GUEST_DIR/hub-jetons" "$out/hub-jetons" 2>/dev/null || true
+        if [ -f "$out/hub-jetons" ]; then
+            hub_env=(BENCH_HUB_URL="$(awk -F= '/^HUB_URL=/{print $2}' "$out/hub-jetons")"
+                     BENCH_HUB_PUSH="$(awk -F= '/^HUB_PUSH=/{print $2}' "$out/hub-jetons")"
+                     BENCH_HUB_READ="$(awk -F= '/^HUB_READ=/{print $2}' "$out/hub-jetons")")
+        fi
+    fi
+
     info "Scénario $scenario sur $OS — journal : $out/run.log"
     local rc
     set +e
     multipass exec "$vm" -- sudo env \
         BENCH_DEGRADED="$DEGRADED" BENCH_OS="$OS" BENCH_DIR="$GUEST_DIR" BENCH_DB_HOST="$db_ip" BENCH_MANUAL="$MANUAL" \
+        BENCH_HUB_INSTANCE_ID="$HUB_INSTANCE_ID" BENCH_HUB_INSTANCE_LABEL="$HUB_INSTANCE_LABEL" "${hub_env[@]}" \
+        BENCH_TRACKING_IP="$tracking_ip" BENCH_TRACKING_FROM="$TRACKING_FROM_VERSION" \
         bash "$GUEST_DIR/guest/run-scenario.sh" "$scenario" > >(tee "$out/run.log") 2>&1 &
     local main_pid=$!
-    if [ -n "$dbvm" ] && [ "$MANUAL" != true ]; then
-        # Rendez-vous : la VM CICADA signale (fichier attente-base) que son
-        # installateur tourne ; le serveur de base se prépare alors comme le
-        # ferait son administrateur (script récupéré auprès de l'installateur),
-        # puis la VM CICADA reçoit le résultat (fichier base-prete) et continue.
-        until vx "$vm" test -f "$GUEST_DIR/attente-base" 2>/dev/null || ! kill -0 "$main_pid" 2>/dev/null; do
-            sleep 3
-        done
-        if kill -0 "$main_pid" 2>/dev/null; then
+    # Rendez-vous entre la VM CICADA et les autres, tant que le scénario tourne :
+    #  - attente-base : son installateur tourne ; le serveur de base se prépare
+    #    comme le ferait son administrateur, le résultat revient dans base-prete ;
+    #  - rdv-publier : la nouvelle version est publiée dans le dépôt APT
+    #    (comme à une release), rdv-publier.ok signale que c'est fait.
+    local base_faite=false publie=false
+    while [ "$MANUAL" != true ] && { [ -n "$dbvm" ] || [ -n "$tvm" ]; } && kill -0 "$main_pid" 2>/dev/null; do
+        if [ -n "$tvm" ] && [ "$publie" = false ] && vx "$vm" test -f "$GUEST_DIR/rdv-publier" 2>/dev/null; then
+            vx "$tvm" env GNUPGHOME=/root/.gnupg bash "$GUEST_DIR/apt-repo/publish.sh" \
+                "$GUEST_DIR/tracking-cicada_${target}_amd64.deb" --dir /var/www/repos/cicada \
+                > "$out/tracking-publish.log" 2>&1
+            sed 's/^/   [tracking] /' "$out/tracking-publish.log"
+            vx "$vm" touch "$GUEST_DIR/rdv-publier.ok"
+            publie=true
+        fi
+        if [ -n "$dbvm" ] && [ "$base_faite" = false ] && vx "$vm" test -f "$GUEST_DIR/attente-base" 2>/dev/null; then
+            base_faite=true
             vx "$dbvm" env BENCH_DIR="$GUEST_DIR" bash "$GUEST_DIR/guest/db-side.sh" "$scenario" "$(vm_ip "$vm")" \
                 > "$out/db-server.log" 2>&1
             sed 's/^/   [serveur de base] /' "$out/db-server.log"
@@ -245,7 +368,8 @@ run_scenario() {
             multipass transfer "$dbvm:$GUEST_DIR/base-prete" "$out/base-prete" 2>/dev/null || touch "$out/base-prete"
             multipass transfer "$out/base-prete" "$vm:$GUEST_DIR/base-prete"
         fi
-    fi
+        sleep 3
+    done
     wait "$main_pid"
     rc=$?
     set -e
@@ -260,9 +384,23 @@ run_scenario() {
         vx "$dbvm" bash -c 'tail -40 /var/log/postgresql/postgresql-*-main.log' > "$out/db-server-pg.log" 2>&1 || true
         [ "$KEEP" = true ] || multipass stop --force "$dbvm"
     fi
+    if [ -n "$tvm" ]; then
+        [ -f "$out/tracking-results.tsv" ] && cat "$out/tracking-results.tsv" "$out/results.tsv" > "$out/all.tsv" \
+            && mv "$out/all.tsv" "$out/results.tsv"
+        vx "$tvm" bash -c 'journalctl -u cicada-tracking-api --no-pager | tail -40; runuser -u postgres -- psql -d tracking -c "select token, version, last_heartbeat from tracking_instances"' \
+            > "$out/tracking-diag.txt" 2>&1 || true
+        [ "$KEEP" = true ] || multipass stop --force "$tvm"
+    fi
+    if [ -n "$hubvm" ]; then
+        local merged="$out/results.tsv"
+        [ -f "$out/hub-results.tsv" ] && cat "$out/hub-results.tsv" "$merged" > "$out/all.tsv" && mv "$out/all.tsv" "$merged"
+        vx "$hubvm" bash -c 'cd /opt/cicada-hub && docker compose -f docker-compose.hub.prod.yml --env-file .env.hub.prod logs --tail 60 hub' \
+            > "$out/hub-logs.txt" 2>&1 || true
+        [ "$KEEP" = true ] || multipass stop --force "$hubvm"
+    fi
 
     if [ "$MANUAL" = true ]; then
-        manual_instructions "$vm" "$dbvm" "$db_ip"
+        manual_instructions "$vm" "$dbvm" "$db_ip" "$out/hub-jetons"
         return 0
     fi
 
@@ -289,7 +427,7 @@ run_scenario() {
 }
 
 manual_instructions() {
-    local vm="$1" dbvm="$2" db_ip="$3" ip
+    local vm="$1" dbvm="$2" db_ip="$3" jetons="${4:-}" ip
     ip="$(vm_ip "$vm")"
     echo
     echo -e "${GREEN}=== Prêt : remplissez le formulaire vous-même ===${NC}"
@@ -302,6 +440,15 @@ manual_instructions() {
         echo "  Serveur de base   : multipass shell $dbvm"
         echo "                      puis y lancer la commande affichée par le formulaire"
         echo "  (une base « geonature » y existe déjà, comme sur un serveur mutualisé)"
+    fi
+    if [ -n "$jetons" ] && [ -f "$jetons" ]; then
+        echo
+        echo "  Exploration fédérée (section du formulaire) :"
+        echo "    Identifiant d'instance : $HUB_INSTANCE_ID     Nom : $HUB_INSTANCE_LABEL"
+        echo "    URL du hub             : $(awk -F= '/^HUB_URL=/{print $2}' "$jetons")"
+        echo "    Jeton de dépôt         : $(awk -F= '/^HUB_PUSH=/{print $2}' "$jetons")"
+        echo "    Jeton de lecture       : $(awk -F= '/^HUB_READ=/{print $2}' "$jetons")"
+        echo "  Hub                   : multipass shell ccd-hub-$OS   (cd /opt/cicada-hub)"
     fi
     echo
     echo "  Shell CICADA      : multipass shell $vm"
@@ -329,6 +476,7 @@ while [ $# -gt 0 ]; do
         --no-prepull)  PREPULL=false; shift ;;
         --rebuild)     REBUILD=true; shift ;;
         --all)         ALL=true; shift ;;
+        --role)        ROLE="$2"; shift 2 ;;
         -h|--help)     usage ;;
         *) die "Option inconnue : $1" ;;
     esac
@@ -338,7 +486,14 @@ command -v multipass >/dev/null || die "Multipass absent : sudo snap install mul
 
 case "$CMD" in
     list)  list_scenarios ;;
-    base)  build_base ;;
+    base)
+        case "$ROLE" in
+            cicada)   build_base ;;
+            db)       build_db_base ;;
+            hub)      build_hub_base ;;
+            tracking) build_tracking_base ;;
+            *) die "Rôle inconnu : $ROLE (cicada, db, hub, tracking)" ;;
+        esac ;;
     run)   run_scenario "$SCENARIO" ;;
     shell) multipass start "ccd-base-$OS" 2>/dev/null; multipass shell "ccd-base-$OS" ;;
     clean)

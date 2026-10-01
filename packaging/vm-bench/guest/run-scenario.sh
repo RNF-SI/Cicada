@@ -26,6 +26,9 @@ before_form()      { :; }
 INITIAL_DEB="$BENCH_DIR/cicada.deb"
 # Message attendu si le formulaire DOIT refuser l'installation (scénario négatif)
 EXPECT_REFUSAL=""
+# Exploration fédérée : un scénario avec hub met FED_ENABLED=true
+FED_ENABLED=false
+FED_RELAY=false
 scenario_checks()  { :; }
 # shellcheck source=/dev/null
 . "$BENCH_DIR/scenarios/$SCENARIO.sh"
@@ -50,8 +53,13 @@ answers_json() {
   "smtp_enabled": false,
   "smtp_use_auth": false,
   "smtp_use_tls": false,
-  "federation_enabled": false,
-  "federation_relay": false,
+  "federation_enabled": $FED_ENABLED,
+  "federation_relay": $FED_RELAY,
+  "federation_instance_id": "${BENCH_HUB_INSTANCE_ID:-}",
+  "federation_instance_label": "${BENCH_HUB_INSTANCE_LABEL:-}",
+  "federation_hub_url": "${BENCH_HUB_URL:-}",
+  "federation_push_token": "${BENCH_HUB_PUSH:-}",
+  "federation_read_token": "${BENCH_HUB_READ:-}",
   "rgpd_consent": false,
   $(scenario_db_answers)
 }
@@ -63,10 +71,15 @@ step "Préparation de la VM"
 . /etc/os-release
 note "$PRETTY_NAME — noyau $(uname -r)"
 
-# Fausse API de suivi + blocage de la vraie : un banc ne doit jamais
+# Le vrai domaine de suivi est toujours bloqué : un banc ne doit jamais
 # enregistrer d'instance dans l'API de production.
 echo "127.0.0.1 tracking.cicada.reserves-naturelles.org" >> /etc/hosts
 : > "$FAKE_TRACKING_LOG"
+if [ -n "${BENCH_TRACKING_IP:-}" ]; then
+    # Serveur de suivi du banc (VM tracking) : API et dépôt APT sous leurs noms
+    echo "$BENCH_TRACKING_IP tracking.cicada.bench apt.cicada.bench" >> /etc/hosts
+    note "Serveur de suivi et dépôt APT : VM tracking ($BENCH_TRACKING_IP)"
+else
 systemd-run --quiet --unit=bench-fake-tracking python3 "$BENCH_DIR/guest/fake-tracking.py" "$FAKE_TRACKING_LOG" 8099
 wait_for 10 curl -sf "$FAKE_TRACKING_URL/instances/version/" || note "fausse API de suivi injoignable"
 # Surcharge par l'environnement des services, posée AVANT le paquet : on ne
@@ -78,6 +91,7 @@ for unit in cicada-installer.service cicada-heartbeat.service; do
     printf '[Service]\nEnvironment=TRACKING_API_URL=%s\n' "$FAKE_TRACKING_URL" > "/etc/systemd/system/$unit.d/bench.conf"
 done
 systemctl daemon-reload
+fi
 
 if [ "${BENCH_DEGRADED:-true}" = true ]; then
     # Un serveur de production porte presque toujours au moins une unité en
@@ -114,9 +128,25 @@ pkg_check() {
 
 # ---------------------------------------------------------------------------
 step "Installation du paquet"
-PKG_VERSION="$(dpkg-deb -f "$INITIAL_DEB" Version)"
+if [ -n "${BENCH_TRACKING_IP:-}" ]; then
+    # Comme docs/INSTALLATION_GUIDE.md, étape 1 : clé + source du dépôt CICADA
+    PKG_VERSION="$BENCH_TRACKING_FROM"
+    curl -fsSL http://apt.cicada.bench/cicada-repo-key.gpg | gpg --dearmor --yes -o /usr/share/keyrings/cicada-archive-keyring.gpg
+    echo "deb [signed-by=/usr/share/keyrings/cicada-archive-keyring.gpg] http://apt.cicada.bench stable main" \
+        > /etc/apt/sources.list.d/cicada.list
+    if out="$(apt-get update 2>&1)" && ! echo "$out" | grep -qiE 'NO_PUBKEY|not signed|non signé|Err:'; then
+        record PASS "Dépôt APT ajouté, signature acceptée (apt update)"
+    else
+        record FAIL "Dépôt APT ajouté, signature acceptée (apt update)" "$(echo "$out" | grep -iE 'NO_PUBKEY|sign|Err' | head -2)"
+    fi
+    check "Le dépôt propose cicada $PKG_VERSION" bash -c "apt-cache policy cicada | grep -q '$PKG_VERSION'"
+    INSTALL_TARGET="cicada=$PKG_VERSION"
+else
+    PKG_VERSION="$(dpkg-deb -f "$INITIAL_DEB" Version)"
+    INSTALL_TARGET="$INITIAL_DEB"
+fi
 note "cicada $PKG_VERSION"
-if apt_out="$(apt-get install -y "$INITIAL_DEB" 2>&1)"; then
+if apt_out="$(apt-get install -y "$INSTALL_TARGET" 2>&1)"; then
     record PASS "apt install du .deb (dépendances résolues)"
 else
     echo "$apt_out" | tail -20
@@ -163,7 +193,14 @@ else
     record FAIL "Dépendance python3-requests déclarée (heartbeat, #226)" \
         "Depends: $(dpkg-deb -f "$BENCH_DIR/cicada.deb" Depends)"
 fi
-pkg_check "Heartbeat reçu par l'API de suivi" grep -q '/instances/heartbeat/' "$FAKE_TRACKING_LOG"
+# Ce que l'API de suivi sait de cette instance (vraie API : /instances/me/)
+tracking_me() {
+    curl -s --max-time 10 -H "X-Instance-Token: $(cat /etc/cicada/instance_token)" \
+        http://tracking.cicada.bench/api/instances/me/
+}
+if [ -z "${BENCH_TRACKING_IP:-}" ]; then
+    pkg_check "Heartbeat reçu par l'API de suivi" grep -q '/instances/heartbeat/' "$FAKE_TRACKING_LOG"
+fi
 
 # ---------------------------------------------------------------------------
 if [ "${BENCH_MANUAL:-false}" = true ]; then
@@ -280,7 +317,13 @@ if [ "$(container_health cicada_prod_web)" = healthy ]; then
     done
 fi
 
-pkg_check "Enregistrement de l'instance reçu par l'API de suivi" grep -q '/instances/register/' "$FAKE_TRACKING_LOG"
+if [ -n "${BENCH_TRACKING_IP:-}" ]; then
+    pkg_check "Instance enregistrée dans l'API de suivi (instances/me)" \
+        bash -c "curl -s --max-time 10 -H \"X-Instance-Token: \$(cat /etc/cicada/instance_token)\" http://tracking.cicada.bench/api/instances/me/ | grep -q '\"version\"'"
+else
+    pkg_check "Enregistrement de l'instance reçu par l'API de suivi" grep -q '/instances/register/' "$FAKE_TRACKING_LOG"
+fi
+pkg_check ".env (secrets) lisible par root seul" test "$(stat -c %a /var/lib/cicada/.env)" = 600
 pkg_check "Installateur verrouillé après installation" test "$(http_code http://127.0.0.1:4567/)" = 403
 
 scenario_checks

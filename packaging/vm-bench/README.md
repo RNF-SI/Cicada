@@ -13,6 +13,7 @@ cd packaging/vm-bench
 ./bench.sh run upgrade --from-deb ~/cicada_0.1.47_amd64.deb   # mise à jour depuis un paquet publié
 ./bench.sh run external-db-remote --manuel        # tout prêt, vous remplissez le formulaire
 ./bench.sh shell                                  # entrer dans la VM (état du dernier run)
+./bench.sh base --role tracking                   # préparer une VM (cicada, db, hub, tracking)
 ./bench.sh clean [--all]                          # arrêter / supprimer les VM
 ```
 
@@ -55,6 +56,8 @@ problèmes d'une installation, pas seulement le premier.
 |---|---|---|
 | `fresh-dockerdb` | serveur neuf, base PostGIS en conteneur (topologie du staging) | #222, #226, #234 |
 | `external-db-remote` | **topologie RNF** : PostgreSQL + PostGIS sur une 2ᵉ VM (« serveur de base », avec une base GeoNature déjà présente). L'admin de la base lance la commande affichée par le formulaire ; test de connexion avant/après ; refus d'installer tant que la base n'est pas prête | #223, #269 |
+| `tracking` | **serveur TrackingCicada** (VM « tracking ») : vraie API de suivi (`tracking-api/`, déployée selon son `INSTALLATION.md`) + dépôt APT signé (`packaging/apt-repo/`). `apt install cicada` depuis le dépôt (guide, étape 1), enregistrement, heartbeat et timer nocturne, publication d'une nouvelle version, bouton « Mettre à jour » → updater (apt + Docker), heartbeat suivant | #226 |
+| `federation` | **de A à Z, 3 VM** : base sur un serveur séparé + hub d'exploration déployé selon `docs/DEPLOIEMENT_HUB.md` (image GHCR, compose de prod, Apache, `enroler_instance`). Jetons saisis dans le formulaire, relais activé ; refus de publier sans consentement, puis publication, plans reçus par le hub, recherche de l'instance servie par le hub avec la provenance | #636 |
 | `external-db-localhost` | PostgreSQL sur le serveur CICADA lui-même, `localhost` saisi : refus immédiat et expliqué, rien de démarré (cas non pris en charge) | #223 |
 | `upgrade` | installe `--from-deb` (ancien paquet, ex. l'artefact CI 0.1.47), crée des données, puis `dpkg -i` du paquet testé comme sur le staging et la prod : redéploiement, images, migrations, données conservées | #222 |
 | `behind-apache` | Apache de l'hôte devant CICADA + « GeoNature » sur `:8000` : vhost de l'ancien guide (consigné) puis vhost du guide actuel (contrôlé) | #231 |
@@ -65,6 +68,16 @@ Ajouter un scénario : un fichier `scenarios/<nom>.sh` avec une ligne
 champs base de données du formulaire) ; facultativement `scenario_prereqs`,
 `before_form` (après le paquet, avant le formulaire) et `scenario_checks`.
 Les helpers `record`, `check`, `wait_for`, `app_sql`… sont dans `guest/lib.sh`.
+
+Une ligne `# TRACKING_VM: oui` ajoute la VM « tracking » (API de suivi + dépôt
+APT) : le paquet y est construit en deux versions dont les images existent
+(`TRACKING_FROM_VERSION`, défaut 0.1.47, puis celle de `version.txt`), avec
+l'URL de suivi du banc gravée dedans. Le scénario déclenche la publication de
+la seconde en créant `rdv-publier`.
+
+Une ligne `# HUB_VM: oui` ajoute une 3ᵉ VM « hub », déployée et l'instance
+enrôlée avant le scénario ; les jetons arrivent dans `BENCH_HUB_URL`,
+`BENCH_HUB_PUSH`, `BENCH_HUB_READ` (et sont affichés en mode `--manuel`).
 
 Variables qu'un scénario peut poser : `INITIAL_DEB` (paquet installé en premier,
 cf. `upgrade`), `EXPECT_REFUSAL` (texte du refus attendu du formulaire,
