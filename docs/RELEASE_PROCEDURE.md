@@ -67,27 +67,35 @@ Sur la machine qui héberge le dépôt APT (ex. `apt.cicada.reserves-naturelles.
 - Soit télécharger l’artefact depuis l’Action GitHub (workflow « Build Debian package »).
 - Soit copier le fichier construit en local (voir §3).
 
-### 4.2 Ajouter le paquet au dépôt (avec reprepro)
+### 4.2 Mettre en place le dépôt (une fois)
+
+Scripts : `packaging/apt-repo/` (copiés sur le serveur du dépôt). Validés au banc VM
+(scénario `tracking` : dépôt créé, signé, paquet installé puis mis à jour par `apt`).
 
 ```bash
-# Exemple : dépôt dans /var/www/repos/cicada (ou votre chemin)
-cd /var/www/repos/cicada   # ou le répertoire de votre repo
-
-# Ajouter le paquet à la distribution "stable"
-reprepro includedeb stable /chemin/vers/cicada_0.1.13_amd64.deb
-
-# Vérifier
-reprepro list stable
+sudo apt install reprepro gnupg
+# Nouvelle clé de signature (sans phrase de passe : publication possible hors session interactive)
+sudo ./init-repo.sh --generate-key "CICADA <si@rnfrance.org>"
+# … ou clé existante, si sa partie SECRÈTE est sur ce serveur
+sudo ./init-repo.sh --key-id BA00F012...681FA90E
 ```
 
-Si vous utilisez **dpkg-scanpackages** (structure pool + dists) au lieu de reprepro, régénérer les index après avoir copié le .deb dans `pool/main/`, puis mettre à jour `dists/stable/...` comme d’habitude.
+Le script crée `/var/www/repos/cicada/conf/distributions` (distribution `stable`, `main`, amd64, `SignWith`),
+publie la clé publique dans `/var/www/repos/cicada/cicada-repo-key.gpg` (URL donnée par le guide d'installation)
+et affiche le vhost Apache à poser (qui interdit l'accès à `conf/` et `db/`).
 
-### 4.3 Signature GPG du dépôt
+> ⚠️ **Changer de clé** (la secrète actuelle est perdue) oblige chaque instance déjà configurée à
+> récupérer la nouvelle clé publique (étape 1 du guide d'installation), sinon `apt update` refuse le dépôt.
 
-Si le dépôt est signé (recommandé) :
+### 4.3 Publier une version
 
-- Les commandes `reprepro` mettent à jour les fichiers `Release` et les signatures si la configuration GPG de reprepro est en place.
-- Sinon, régénérer manuellement les signatures selon votre procédure (ex. `dpkg-scanpackages` + `apt-ftparchive release` + `gpg -u ... -abs -o Release.gpg Release`).
+```bash
+sudo ./publish.sh cicada_0.1.50_amd64.deb
+```
+
+reprepro ne garde **qu'une version** par paquet : publier 0.1.50 remplace 0.1.49. Penser aussi à
+mettre à jour `LATEST_VERSION` dans le `.env` de l'API de suivi (puis redémarrer le service) : c'est elle
+qui fait annoncer la mise à jour aux instances par leur heartbeat.
 
 ### 4.4 Vérification côté client
 

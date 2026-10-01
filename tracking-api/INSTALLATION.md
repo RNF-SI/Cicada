@@ -144,8 +144,13 @@ sudo certbot --apache -d tracking.cicada.rnf.fr
 # Vérifier que le service tourne
 sudo systemctl status cicada-tracking-api
 
-# Tester l'API
-curl http://tracking.cicada.rnf.fr/api/instances/version/
+# Tester l'API : un enregistrement d'essai doit répondre 201
+# (les autres routes exigent le jeton d'une instance : 403 sans lui, c'est normal)
+curl -s -w ' [%{http_code}]\n' -H 'Content-Type: application/json' \
+     -d '{"token":"00000000-0000-4000-8000-000000000000","version":"essai"}' \
+     http://tracking.cicada.rnf.fr/api/instances/register/
+# puis supprimer l'instance d'essai :
+sudo -u postgres psql -d tracking -c "DELETE FROM tracking_instances WHERE version = 'essai'"
 ```
 
 ### 10. Mise à jour de l'URL dans CICADA
