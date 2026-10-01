@@ -1,5 +1,7 @@
 # Procédure de mise en production CICADA
 
+> Vue d'ensemble des serveurs et de leurs liens (dépôt APT, API de suivi, hub, serveur de bases) : [INFRASTRUCTURE.md](INFRASTRUCTURE.md).
+
 Cette note décrit les étapes pour publier une nouvelle version : images Docker, package .deb et dépôt APT.
 
 ## Vue d’ensemble

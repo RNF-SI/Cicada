@@ -1295,6 +1295,7 @@ OPTIONS = {
 5. **Security**: Input validation, output escaping, rate limiting
 6. **Performance**: Redis caching for frequent queries, lazy loading for Angular modules
 7. **Déploiement production** : Voir [docs/RELEASE_PROCEDURE.md](docs/RELEASE_PROCEDURE.md) pour la procédure complète (tag, build .deb, publication APT, déploiement serveur, pièges courants). Voir [docs/INSTALLATION_GUIDE.md](docs/INSTALLATION_GUIDE.md) pour l'installation initiale et l'import des référentiels (TaxRef, HabRef, nomenclatures) sur base PostgreSQL externe.
+8. **Infrastructure (qui parle à qui)** : [docs/INFRASTRUCTURE.md](docs/INFRASTRUCTURE.md) — schéma des liens entre instance, serveur de bases, TrackingCicada (dépôt APT + API de suivi), hub et GHCR, cycle d'une release, commandes de vérification. Reproduite en local par `packaging/vm-bench/` (scénario `a-z`, `labo.sh`) : y rejouer toute modification d'un de ces liens avant la production.
 
 ## Django Administration Interface
 

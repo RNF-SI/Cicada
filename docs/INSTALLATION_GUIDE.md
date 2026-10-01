@@ -1,5 +1,7 @@
 # Guide d'installation CICADA
 
+> Vue d'ensemble des serveurs et de leurs liens (dépôt APT, API de suivi, hub, serveur de bases) : [INFRASTRUCTURE.md](INFRASTRUCTURE.md).
+
 ## Installation via APT
 
 ### Prérequis
