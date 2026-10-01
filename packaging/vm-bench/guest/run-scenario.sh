@@ -166,6 +166,12 @@ fi
 pkg_check "Heartbeat reçu par l'API de suivi" grep -q '/instances/heartbeat/' "$FAKE_TRACKING_LOG"
 
 # ---------------------------------------------------------------------------
+if [ "${BENCH_MANUAL:-false}" = true ]; then
+    # Mode manuel : tout est prêt, l'opérateur remplit le formulaire lui-même
+    step "Mode manuel : à vous de jouer"
+    exit 0
+fi
+
 step "Formulaire d'installation (POST /api/install)"
 before_form
 answers_json > "$BENCH_DIR/answers.json"

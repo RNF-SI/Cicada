@@ -11,6 +11,7 @@ cd packaging/vm-bench
 ./bench.sh run fresh-dockerdb                     # Debian 12 par défaut
 ./bench.sh run external-db-localhost --os debian13 --keep
 ./bench.sh run upgrade --from-deb ~/cicada_0.1.47_amd64.deb   # mise à jour depuis un paquet publié
+./bench.sh run external-db-remote --manuel        # tout prêt, vous remplissez le formulaire
 ./bench.sh shell                                  # entrer dans la VM (état du dernier run)
 ./bench.sh clean [--all]                          # arrêter / supprimer les VM
 ```

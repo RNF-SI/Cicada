@@ -18,6 +18,8 @@
 #   --deb CHEMIN      .deb à tester (défaut : construit depuis l'arbre courant)
 #   --from-deb CHEMIN .deb installé AVANT le paquet testé (scénario upgrade)
 #   --keep            laisser la VM allumée après le run (pour inspecter)
+#   --manuel          s'arrêter avant le formulaire : vous le remplissez dans
+#                     votre navigateur (implique --keep)
 #   --no-degraded     ne pas simuler un serveur « degraded » (voir guest/run-scenario.sh)
 #   --no-prepull      ne pas pré-télécharger les images Docker dans la base
 #
@@ -35,6 +37,7 @@ DEB=""
 FROM_DEB=""
 KEEP=false
 DEGRADED=true
+MANUAL=false
 PREPULL=true
 REBUILD=false
 ALL=false
@@ -223,10 +226,10 @@ run_scenario() {
     local rc
     set +e
     multipass exec "$vm" -- sudo env \
-        BENCH_DEGRADED="$DEGRADED" BENCH_OS="$OS" BENCH_DIR="$GUEST_DIR" BENCH_DB_HOST="$db_ip" \
+        BENCH_DEGRADED="$DEGRADED" BENCH_OS="$OS" BENCH_DIR="$GUEST_DIR" BENCH_DB_HOST="$db_ip" BENCH_MANUAL="$MANUAL" \
         bash "$GUEST_DIR/guest/run-scenario.sh" "$scenario" > >(tee "$out/run.log") 2>&1 &
     local main_pid=$!
-    if [ -n "$dbvm" ]; then
+    if [ -n "$dbvm" ] && [ "$MANUAL" != true ]; then
         # Rendez-vous : la VM CICADA signale (fichier attente-base) que son
         # installateur tourne ; le serveur de base se prépare alors comme le
         # ferait son administrateur (script récupéré auprès de l'installateur),
@@ -258,6 +261,11 @@ run_scenario() {
         [ "$KEEP" = true ] || multipass stop --force "$dbvm"
     fi
 
+    if [ "$MANUAL" = true ]; then
+        manual_instructions "$vm" "$dbvm" "$db_ip"
+        return 0
+    fi
+
     if [ -f "$out/results.tsv" ]; then
         local pass fail
         pass=$(awk -F'\t' '$1=="PASS"' "$out/results.tsv" | wc -l)
@@ -280,6 +288,28 @@ run_scenario() {
     return "$rc"
 }
 
+manual_instructions() {
+    local vm="$1" dbvm="$2" db_ip="$3" ip
+    ip="$(vm_ip "$vm")"
+    echo
+    echo -e "${GREEN}=== Prêt : remplissez le formulaire vous-même ===${NC}"
+    echo
+    echo "  Formulaire        : http://$ip:4567"
+    echo "  Après installation: http://$ip:8080   (domaine à saisir : $ip)"
+    if [ -n "$dbvm" ]; then
+        echo
+        echo "  Base de données   : choisir « Serveur PostgreSQL existant », hôte $db_ip"
+        echo "  Serveur de base   : multipass shell $dbvm"
+        echo "                      puis y lancer la commande affichée par le formulaire"
+        echo "  (une base « geonature » y existe déjà, comme sur un serveur mutualisé)"
+    fi
+    echo
+    echo "  Shell CICADA      : multipass shell $vm"
+    echo "  Journaux          : sudo docker logs -f cicada_prod_web   (dans la VM)"
+    echo "  Fin               : ./bench.sh clean"
+    echo
+}
+
 # --- Parsing ---
 [ $# -ge 1 ] || usage
 CMD="$1"; shift
@@ -294,6 +324,7 @@ while [ $# -gt 0 ]; do
         --deb)         DEB="$(realpath "$2")"; shift 2 ;;
         --from-deb)    FROM_DEB="$(realpath "$2")"; shift 2 ;;
         --keep)        KEEP=true; shift ;;
+        --manuel)      MANUAL=true; KEEP=true; shift ;;
         --no-degraded) DEGRADED=false; shift ;;
         --no-prepull)  PREPULL=false; shift ;;
         --rebuild)     REBUILD=true; shift ;;
