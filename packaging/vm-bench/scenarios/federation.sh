@@ -14,7 +14,7 @@
 FED_ENABLED=true
 FED_RELAY=true
 
-. "$BENCH_DIR/scenarios/lib/federation-checks.sh"
+. "$BENCH_DIR/scenarios/commun/federation-checks.sh"
 
 # Contrôles de base distante, repris tels quels
 eval "remote_$(declare -f scenario_checks)"

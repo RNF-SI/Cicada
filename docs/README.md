@@ -67,7 +67,7 @@ Point d'entrée : **[Infrastructure](INFRASTRUCTURE.md)**, qui situe chaque serv
 | **[Guide d'installation](INSTALLATION_GUIDE.md)** | Installer une instance (paquet Debian, formulaire, base dans Docker ou sur un serveur existant, Apache), la mettre à jour |
 | **[Procédure de release](RELEASE_PROCEDURE.md)** | Tag, paquet `.deb`, publication dans le dépôt APT, déploiement, pièges |
 | **[Déploiement du hub](DEPLOIEMENT_HUB.md)** | Hub d'exploration fédérée : installation, Apache, enrôlement d'une instance |
-| **[API de suivi](../tracking-api/INSTALLATION.md)** | Installer l'API de suivi des instances (serveur TrackingCicada) |
+| **[API de suivi](../tracking-api/INSTALLATION.md)** | Installer l'API de suivi des instances (serveur de suivi) |
 | **[Banc de test en VM](../packaging/vm-bench/README.md)** | Rejouer toute cette infrastructure en local (scénario `a-z`, labo persistant) avant de toucher à la production |
 | **[Exploration fédérée en local](MULTI_INSTANCE_LOCAL.md)** | Deux instances de développement + hub sur un poste |
 

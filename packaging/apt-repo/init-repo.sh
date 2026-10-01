@@ -2,7 +2,7 @@
 # =============================================================================
 # init-repo.sh — Met en place le dépôt APT de CICADA (reprepro, signé GPG)
 #
-# Sur le serveur qui héberge le dépôt (TrackingCicada), en root :
+# Sur le serveur qui héberge le dépôt, en root :
 #   sudo ./init-repo.sh --key-id <ID_CLE>            # clé GPG déjà présente
 #   sudo ./init-repo.sh --generate-key "CICADA <si@rnfrance.org>"
 #

@@ -6,7 +6,7 @@
 # Sourcé par guest/run-scenario.sh (VM CICADA) et guest/db-side.sh (VM base).
 #
 # L'infrastructure RNF complète, dans l'ordre de la vraie vie :
-#   1. `apt install cicada` (version initiale) depuis le dépôt de TrackingCicada ;
+#   1. `apt install cicada` (version initiale) depuis le dépôt du serveur de suivi ;
 #   2. formulaire : base sur le serveur de bases (préparée par son admin),
 #      hub renseigné (jetons d'enroler_instance), relais activé ;
 #   3. enregistrement et heartbeat auprès de l'API de suivi ;
@@ -15,8 +15,8 @@
 #      initiale ne sait pas encore publier) et recherche relayée.
 
 . "$BENCH_DIR/scenarios/external-db-remote.sh"
-. "$BENCH_DIR/scenarios/lib/tracking-checks.sh"
-. "$BENCH_DIR/scenarios/lib/federation-checks.sh"
+. "$BENCH_DIR/scenarios/commun/tracking-checks.sh"
+. "$BENCH_DIR/scenarios/commun/federation-checks.sh"
 
 FED_ENABLED=true
 FED_RELAY=true

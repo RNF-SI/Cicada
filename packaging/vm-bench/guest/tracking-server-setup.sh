@@ -1,5 +1,5 @@
 #!/bin/bash
-# Socle de la VM « tracking » (TrackingCicada) : ce que demandent
+# Socle de la VM « tracking » (serveur de suivi) : ce que demandent
 # tracking-api/INSTALLATION.md (PostgreSQL, Python, Apache) et le dépôt APT
 # (reprepro, GnuPG). Le code de tracking-api est déployé au moment du run.
 set -euo pipefail

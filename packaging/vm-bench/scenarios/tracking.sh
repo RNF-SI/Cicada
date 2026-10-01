@@ -1,9 +1,9 @@
-# DESCRIPTION: Serveur de suivi + dépôt APT (TrackingCicada) : apt install depuis le dépôt, enregistrement, heartbeat, mise à jour « un clic »
+# DESCRIPTION: Serveur de suivi + dépôt APT : apt install depuis le dépôt, enregistrement, heartbeat, mise à jour « un clic »
 # TRACKING_VM: oui
 # shellcheck shell=bash
 # Sourcé par guest/run-scenario.sh.
 #
-# Reproduit le cycle de vie d'une instance face au serveur TrackingCicada :
+# Reproduit le cycle de vie d'une instance face au serveur de suivi :
 #   1. installation par `apt install cicada` depuis le dépôt signé (guide, étape 1-2) ;
 #   2. enregistrement auprès de la vraie API de suivi (formulaire) ;
 #   3. heartbeat (timer nocturne) : l'API annonce la dernière version ;
@@ -14,7 +14,7 @@
 
 . "$BENCH_DIR/scenarios/fresh-dockerdb.sh"
 
-. "$BENCH_DIR/scenarios/lib/tracking-checks.sh"
+. "$BENCH_DIR/scenarios/commun/tracking-checks.sh"
 
 scenario_checks() {
     check "Conteneur base de données healthy" test "$(container_health cicada_prod_db)" = healthy

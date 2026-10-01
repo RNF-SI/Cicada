@@ -11,7 +11,7 @@
 # ./bench.sh labo publier|heartbeat|hub|statut.
 
 . "$BENCH_DIR/scenarios/external-db-remote.sh"
-. "$BENCH_DIR/scenarios/lib/tracking-checks.sh"
+. "$BENCH_DIR/scenarios/commun/tracking-checks.sh"
 
 FED_ENABLED=true
 FED_RELAY=true

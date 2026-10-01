@@ -88,7 +88,7 @@ C'est le seul choix qui se prépare **en dehors** du formulaire. Le formulaire l
 2. Le formulaire affiche alors la commande à lancer **sur le serveur de base**, en root, par exemple :
 
    ```bash
-   curl -fsSL http://10.0.200.13:4567/prepare-db.sh | sudo bash -s -- --client 10.0.200.13
+   curl -fsSL http://192.0.2.10:4567/prepare-db.sh | sudo bash -s -- --client 192.0.2.10
    ```
 
    Le script est fourni par l'installateur de CICADA lui-même. Il est donc de la même version et contient le `init.sql` correspondant. Il :

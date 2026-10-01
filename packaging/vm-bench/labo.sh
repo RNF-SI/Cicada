@@ -3,7 +3,7 @@
 # Labo CICADA persistant : l'infrastructure RNF complète en local, sur la durée
 #
 # 4 VM laissées allumées : CICADA (installé depuis le dépôt), serveur de bases,
-# hub d'exploration, serveur de suivi + dépôt APT (TrackingCicada). Le heartbeat
+# hub d'exploration, serveur de suivi + dépôt APT. Le heartbeat
 # part réellement chaque nuit ; les releases se simulent à la demande.
 #
 #   ./labo.sh demarrer [--version 0.1.47]  # installe tout (≈ 15 min), repart de zéro

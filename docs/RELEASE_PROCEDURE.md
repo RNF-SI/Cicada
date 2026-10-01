@@ -79,7 +79,7 @@ sudo apt install reprepro gnupg
 # Nouvelle clé de signature (sans phrase de passe : publication possible hors session interactive)
 sudo ./init-repo.sh --generate-key "CICADA <si@rnfrance.org>"
 # … ou clé existante, si sa partie SECRÈTE est sur ce serveur
-sudo ./init-repo.sh --key-id BA00F012...681FA90E
+sudo ./init-repo.sh --key-id <ID_CLE>
 ```
 
 Le script crée `/var/www/repos/cicada/conf/distributions` (distribution `stable`, `main`, amd64, `SignWith`),

@@ -18,7 +18,7 @@ flowchart LR
         CI -->|images backend, frontend, hub| GHCR
     end
 
-    subgraph TrackingCicada[Serveur TrackingCicada]
+    subgraph ServeurSuivi[Serveur de suivi]
         APT[(Dépôt APT<br/>reprepro signé GPG)]
         SUIVI[API de suivi<br/>tracking-api]
     end
@@ -72,7 +72,7 @@ préparation auprès de l'installateur (⑥), le temps de l'installation.
 sequenceDiagram
     participant Dev as Développeur
     participant GH as GitHub (CI + GHCR)
-    participant TC as TrackingCicada
+    participant TC as Serveur de suivi
     participant I as Instance
 
     Dev->>GH: tag vX.Y.Z
@@ -96,7 +96,7 @@ n'est prévenu. Détail : [RELEASE_PROCEDURE.md](RELEASE_PROCEDURE.md).
 
 | Serveur | Rôle | Fichiers et commandes clés | Documentation |
 |---|---|---|---|
-| **TrackingCicada** | dépôt APT | `/var/www/repos/cicada` ; `packaging/apt-repo/init-repo.sh` (une fois), `publish.sh` (à chaque release) | [RELEASE_PROCEDURE.md](RELEASE_PROCEDURE.md) §4 |
+| **Serveur de suivi** | dépôt APT | `/var/www/repos/cicada` ; `packaging/apt-repo/init-repo.sh` (une fois), `publish.sh` (à chaque release) | [RELEASE_PROCEDURE.md](RELEASE_PROCEDURE.md) §4 |
 | | API de suivi | `/opt/tracking-api`, son `.env` (`LATEST_VERSION`), service `cicada-tracking-api`, admin sur `/admin/` | `tracking-api/INSTALLATION.md` |
 | **Hub** | recherche transverse | `/opt/cicada-hub`, `.env.hub.prod`, `enroler_instance <id>` (délivre les 2 jetons) | [DEPLOIEMENT_HUB.md](DEPLOIEMENT_HUB.md) |
 | **Serveur de bases** | PostgreSQL + PostGIS | `cicada-prepare-db --client <ip-instance>` | [INSTALLATION_GUIDE.md](INSTALLATION_GUIDE.md) étape 3 |
@@ -114,7 +114,7 @@ sudo docker exec cicada_prod_web python manage.py push_federation --dry-run   # 
 curl -sI https://<domaine>/api/health/ | grep -i x-correlation-id # vhost : l'API est bien celle de CICADA
 ```
 
-Sur TrackingCicada : l'instance apparaît dans `/admin/` avec sa version et un
+Sur le serveur de suivi : l'instance apparaît dans `/admin/` avec sa version et un
 heartbeat de la nuit ; `reprepro -b /var/www/repos/cicada list stable` donne la
 dernière version.
 

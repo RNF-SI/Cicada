@@ -209,7 +209,7 @@ build_hub_base() {
 }
 
 # --- VM « tracking » (scénarios marqués « # TRACKING_VM: oui ») ---
-# Le serveur TrackingCicada : API de suivi (tracking-api/) + dépôt APT signé.
+# Le serveur de suivi : API de suivi (tracking-api/) + dépôt APT signé.
 build_tracking_base() {
     local tvm="ccd-tracking-$OS"
     if vm_exists "$tvm"; then
