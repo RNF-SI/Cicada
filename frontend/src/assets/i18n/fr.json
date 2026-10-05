@@ -3185,7 +3185,8 @@
         "recenter": "Recentrer la carte",
         "import": {
           "button": "Importer un fichier",
-          "tooltip": "Importer un fichier géographique\n\n• GeoJSON (.geojson, .json)\n• Shapefile : fichier ZIP contenant\n  .shp, .shx, .dbf et .prj\n\n⚠ Format WGS84 (EPSG:4326) uniquement",
+          "tooltip": "Importer un fichier géographique\n\n• Shapefile : un fichier .zip contenant\n  .shp, .shx, .dbf et .prj\n  Toute projection est acceptée (Lambert-93,\n  UTM d'outre-mer…) : elle est lue dans le .prj\n\n• GeoJSON (.geojson, .json) :\n  en WGS84 (EPSG:4326) uniquement",
+          "help": "Fichiers acceptés : un shapefile dans un .zip contenant les fichiers .shp, .shx, .dbf et .prj (toute projection, métropole comme outre-mer : elle est lue dans le .prj), ou un GeoJSON en WGS84 (EPSG:4326).",
           "success": "Géométrie importée avec succès",
           "error": "Erreur lors de l'import. Vérifiez le format du fichier.",
           "invalidFormat": "Format invalide. Utilisez .geojson, .json, .zip ou .shp",
