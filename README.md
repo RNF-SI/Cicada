@@ -216,8 +216,8 @@ curl -X POST http://localhost:8000/api/auth/login/ \
 Le déploiement se fait via un package Debian (.deb) avec un installeur web intégré.
 
 ```bash
-# 1. Installer le package
-sudo dpkg -i cicada_0.1.15_amd64.deb
+# 1. Installer (dépôts Docker et CICADA, paquet) — Debian 12+ / Ubuntu 22.04+
+curl -fsSL https://apt.cicada.reserves-naturelles.org/install.sh | sudo bash
 
 # 2. Ouvrir l'installeur web et suivre le formulaire
 # http://votre-serveur:4567

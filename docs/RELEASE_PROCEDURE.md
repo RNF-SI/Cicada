@@ -8,7 +8,7 @@ Cette note décrit les étapes pour publier une nouvelle version : images Docker
 
 - Les **images Docker** (backend, frontend) sont construites et poussées sur GHCR lors d’un **push de tag** `v*` (ex. `v0.1.13`) — voir `.github/workflows/docker-publish.yml`. Le tag est posé **sur `develop`** (cf. §2).
 - Le **package .deb** est construit par la CI au **même moment** (workflow `.github/workflows/build-deb.yml`) : un seul tag déclenche images Docker + .deb avec la même version.
-- Le **déploiement se fait aujourd’hui par installation directe du .deb** (`dpkg -i`), le dépôt APT étant hors service (cf. §4). C’est la voie décrite en §7.
+- Le paquet est ensuite **publié dans le dépôt APT** (cf. §4) : les instances le reçoivent par `apt` ou par le bouton « Mettre à jour ». L'installation directe du .deb (`dpkg -i`, §7) reste possible, notamment pour les instances d'une version antérieure à la 0.1.51, qui n'ont pas encore la clé actuelle du dépôt.
 
 ## 1. Préparer la version
 
@@ -59,45 +59,49 @@ Le fichier généré est `packaging/build/cicada_0.1.13_amd64.deb`.
 
 ## 4. Publier sur le dépôt APT
 
-> ⚠️ **Le dépôt APT est actuellement hors service** : `reprepro` n’est pas installé sur la machine qui l’héberge et la **clé GPG secrète de signature est absente** (seule la publique est présente). Cette section est conservée pour le jour où le dépôt sera rétabli ; en attendant, déployer par installation directe du `.deb` — voir **§7**.
+Sur le serveur qui héberge le dépôt APT (`apt.cicada.reserves-naturelles.org`), en root.
+Le dépôt (reprepro) est dans `/var/www/repos/cicada` ; la clé de signature est dans le trousseau
+de root (`/root/.gnupg`) et **sa sauvegarde dans le coffre de mots de passe de l'équipe**, avec sa
+phrase secrète. Clé actuelle : créée le 2026-10-05, expire le 2031-10-04 — à prolonger ou remplacer avant.
 
-
-Sur la machine qui héberge le dépôt APT (ex. `apt.cicada.reserves-naturelles.org`) :
-
-### 4.1 Récupérer le .deb
-
-- Soit télécharger l’artefact depuis l’Action GitHub (workflow « Build Debian package »).
-- Soit copier le fichier construit en local (voir §3).
-
-### 4.2 Mettre en place le dépôt (une fois)
-
-Scripts : `packaging/apt-repo/` (copiés sur le serveur du dépôt). Validés au banc VM
-(scénario `tracking` : dépôt créé, signé, paquet installé puis mis à jour par `apt`).
+### 4.1 Publier une version
 
 ```bash
-sudo apt install reprepro gnupg
-# Nouvelle clé de signature (sans phrase de passe : publication possible hors session interactive)
-sudo ./init-repo.sh --generate-key "CICADA <si@rnfrance.org>"
-# … ou clé existante, si sa partie SECRÈTE est sur ce serveur
-sudo ./init-repo.sh --key-id <ID_CLE>
+sudo -i
+export GPG_TTY=$(tty)        # sans cela, gpg ne peut pas demander la phrase secrète
+cd /root
+curl -fLO https://github.com/RNF-SI/Cicada/releases/download/vX.Y.Z/cicada_X.Y.Z_amd64.deb
+reprepro -b /var/www/repos/cicada includedeb stable cicada_X.Y.Z_amd64.deb
+reprepro -b /var/www/repos/cicada list stable
 ```
 
-Le script crée `/var/www/repos/cicada/conf/distributions` (distribution `stable`, `main`, amd64, `SignWith`),
-publie la clé publique dans `/var/www/repos/cicada/cicada-repo-key.gpg` (URL donnée par le guide d'installation)
-et affiche le vhost Apache à poser (qui interdit l'accès à `conf/` et `db/`).
+- La phrase secrète de la clé est demandée : la publication se fait donc en session interactive.
+- reprepro ne garde **qu'une version** par paquet : publier X.Y.Z remplace la précédente.
+- Mettre ensuite à jour **`LATEST_VERSION`** dans le `.env` de l'API de suivi puis redémarrer son service :
+  c'est elle qui fait annoncer la mise à jour aux instances par leur heartbeat.
 
-> ⚠️ **Changer de clé** (la secrète actuelle est perdue) oblige chaque instance déjà configurée à
-> récupérer la nouvelle clé publique (étape 1 du guide d'installation), sinon `apt update` refuse le dépôt.
+### 4.2 Script d'installation en une commande
 
-### 4.3 Publier une version
+`packaging/apt-repo/install.sh` est servi à la racine du dépôt (`…/install.sh`, cf. guide d'installation).
+À redéposer quand il change :
 
 ```bash
-sudo ./publish.sh cicada_0.1.50_amd64.deb
+curl -fsSL -o /var/www/repos/cicada/install.sh \
+  https://raw.githubusercontent.com/RNF-SI/Cicada/vX.Y.Z/packaging/apt-repo/install.sh
 ```
 
-reprepro ne garde **qu'une version** par paquet : publier 0.1.50 remplace 0.1.49. Penser aussi à
-mettre à jour `LATEST_VERSION` dans le `.env` de l'API de suivi (puis redémarrer le service) : c'est elle
-qui fait annoncer la mise à jour aux instances par leur heartbeat.
+### 4.3 Créer un dépôt, changer de clé
+
+- **Nouveau dépôt** (autre serveur, banc de test) : `packaging/apt-repo/init-repo.sh` crée la configuration
+  reprepro, la clé et le vhost proposé. **Ne pas le lancer sur un dépôt existant** : il réécrit
+  `conf/distributions`, et un `Label` différent fait refuser le dépôt par `apt` sur les instances.
+- **Changer de clé** sur le dépôt existant : créer la clé (`gpg --quick-gen-key`), remplacer la ligne
+  `SignWith:` de `conf/distributions`, exporter la partie publique dans `cicada-repo-key.gpg`
+  (`gpg --armor --export`), republier un paquet, **sauvegarder la clé secrète dans le coffre**.
+  Puis mettre à jour `packaging/apt-repo/cicada-archive-keyring.asc` dans le dépôt git : le paquet
+  embarque cette clé, les instances la reçoivent à leur mise à jour suivante. Celles qui se mettent à
+  jour par `apt` doivent la recevoir **avant** que l'ancienne cesse de signer — publier d'abord une
+  version signée par l'ancienne clé et embarquant la nouvelle, ou les mettre à jour par `dpkg -i`.
 
 ### 4.4 Vérification côté client
 
@@ -117,8 +121,9 @@ sudo apt install cicada
 | 1 | Développement sur `develop`, CI verte. |
 | 2 | Bumper `version.txt`, commiter, puis créer et pousser le tag `vX.Y.Z` **sur `develop`** → la CI construit les images Docker et le .deb. |
 | 3 | Attendre que **Docker Build & Push** et **Build Debian package** soient verts (le workflow `Tests` rejoue aussi la suite sur le tag). |
-| 4 | Télécharger l’artefact : `gh run download <run_id> -n cicada-deb-X.Y.Z`. |
-| 5 | `scp` du .deb sur le serveur puis `sudo dpkg -i` — le `postinst` fait le reste (voir §7). |
+| 4 | Créer la release GitHub avec le `.deb` en pièce jointe (`gh run download <run_id> -n cicada-deb-X.Y.Z`, puis `gh release create`). |
+| 5 | Publier le `.deb` dans le dépôt APT et mettre à jour `LATEST_VERSION` sur l'API de suivi (§4). |
+| 5 bis | Sur chaque instance : bouton « Mettre à jour », `sudo apt install cicada`, ou `sudo dpkg -i` du .deb — le `postinst` fait le reste (voir §7). |
 | 6 | Vérifier les tags d’images et les logs de démarrage (voir §7.4). |
 
 ## 6. Variables utiles pour le build du .deb

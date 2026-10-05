@@ -129,31 +129,45 @@ pkg_check() {
 # ---------------------------------------------------------------------------
 step "Installation du paquet"
 if [ -n "${BENCH_TRACKING_IP:-}" ]; then
-    # Comme docs/INSTALLATION_GUIDE.md, étape 1 : clé + source du dépôt CICADA
+    # Installation en une commande, telle que la donne le guide (install.sh
+    # servi par le dépôt). Le socle du banc a déjà Docker : le script doit
+    # s'en accommoder, comme sur un serveur où Docker est déjà installé.
     PKG_VERSION="$BENCH_TRACKING_FROM"
-    curl -fsSL http://apt.cicada.bench/cicada-repo-key.gpg | gpg --dearmor --yes -o /usr/share/keyrings/cicada-archive-keyring.gpg
-    echo "deb [signed-by=/usr/share/keyrings/cicada-archive-keyring.gpg] http://apt.cicada.bench stable main" \
-        > /etc/apt/sources.list.d/cicada.list
-    if out="$(apt-get update 2>&1)" && ! echo "$out" | grep -qiE 'NO_PUBKEY|not signed|non signé|Err:'; then
-        record PASS "Dépôt APT ajouté, signature acceptée (apt update)"
-    else
-        record FAIL "Dépôt APT ajouté, signature acceptée (apt update)" "$(echo "$out" | grep -iE 'NO_PUBKEY|sign|Err' | head -2)"
-    fi
-    check "Le dépôt propose cicada $PKG_VERSION" bash -c "apt-cache policy cicada | grep -q '$PKG_VERSION'"
-    INSTALL_TARGET="cicada=$PKG_VERSION"
+    INSTALL_CMD="curl -fsSL http://apt.cicada.bench/install.sh | bash -s -- --version $PKG_VERSION"
+    note "$INSTALL_CMD"
+    install_cicada() { curl -fsSL http://apt.cicada.bench/install.sh \
+        | CICADA_APT_URL=http://apt.cicada.bench bash -s -- --version "$PKG_VERSION"; }
 else
     PKG_VERSION="$(dpkg-deb -f "$INITIAL_DEB" Version)"
-    INSTALL_TARGET="$INITIAL_DEB"
+    install_cicada() { apt-get install -y "$INITIAL_DEB"; }
 fi
 note "cicada $PKG_VERSION"
-if apt_out="$(apt-get install -y "$INSTALL_TARGET" 2>&1)"; then
-    record PASS "apt install du .deb (dépendances résolues)"
+if apt_out="$(install_cicada 2>&1)"; then
+    record PASS "Installation du paquet (dépendances résolues)"
 else
     echo "$apt_out" | tail -20
-    record FAIL "apt install du .deb (dépendances résolues)" "$(echo "$apt_out" | grep -E '^E:|Dépend|Depends' | head -3)"
+    record FAIL "Installation du paquet (dépendances résolues)" "$(echo "$apt_out" | grep -E '^E:|Dépend|Depends|Erreur' | head -3)"
     exit 1
 fi
 echo "$apt_out" | sed -n '/=====/,/=====/p'
+
+if [ -n "${BENCH_TRACKING_IP:-}" ]; then
+    check "install.sh annonce l'adresse du formulaire" \
+        bash -c "echo \"\$0\" | grep -q ':4567'" "$apt_out"
+fi
+# Le paquet apporte lui-même la source APT et la clé du dépôt : aucune
+# configuration manuelle pour recevoir les versions suivantes.
+# (grep sans -q : avec pipefail, -q coupe dpkg-deb et fait échouer le pipeline)
+if dpkg-deb -c "$BENCH_DIR/cicada.deb" | grep 'sources.list.d/cicada.list' >/dev/null; then
+    pkg_check "Source APT et clé du dépôt fournies par le paquet" bash -c \
+        'dpkg -S /etc/apt/sources.list.d/cicada.list /usr/share/keyrings/cicada-archive-keyring.gpg | grep -c "^cicada:" | grep -qx 2'
+    if apt_upd="$(apt-get update 2>&1)" && ! echo "$apt_upd" | grep -iE 'NO_PUBKEY|not signed|pas signé|^Err|^E:|^W:.*cicada' >/dev/null; then
+        pkg_record PASS "apt update accepte le dépôt CICADA sans configuration manuelle"
+    else
+        pkg_record FAIL "apt update accepte le dépôt CICADA sans configuration manuelle" \
+            "$(echo "$apt_upd" | grep -iE 'cicada|NO_PUBKEY|sign|^E:' | head -2)"
+    fi
+fi
 
 # #222 — l'installateur doit tourner sans intervention après l'installation
 if wait_for 30 curl -sf http://127.0.0.1:4567/api/health; then

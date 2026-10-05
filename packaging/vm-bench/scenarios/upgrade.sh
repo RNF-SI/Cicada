@@ -36,6 +36,23 @@ print('ok')" >/dev/null 2>&1
     check "Utilisateur témoin créé en $from" \
         test "$(app_sql "select count(*) from utilisateurs.t_roles where email='$TEMOIN_EMAIL'")" = 1
 
+    # Instance configurée à la main selon l'ancien guide, avec une clé de dépôt
+    # devenue invalide (cas des instances d'avant le changement de clé) : apt
+    # refuse alors le dépôt. La mise à jour du paquet doit réparer cela seule.
+    local keyring=/usr/share/keyrings/cicada-archive-keyring.gpg
+    gpg --batch --quiet --homedir "$(mktemp -d)" --passphrase '' \
+        --quick-gen-key "Ancienne cle <ancienne@bench.test>" rsa2048 sign 1d 2>/dev/null
+    head -c 600 /dev/urandom > "$keyring"   # trousseau inutilisable
+    echo "deb [signed-by=$keyring] https://apt.cicada.reserves-naturelles.org stable main" \
+        > /etc/apt/sources.list.d/cicada.list
+    local avant
+    avant="$(apt-get update 2>&1)"   # capturé d'abord : grep -q + pipefail fausserait le test
+    if echo "$avant" | grep -iE 'NO_PUBKEY|not signed|pas signé|^E:|^W:.*cicada' >/dev/null; then
+        record INFO "Avant mise à jour : apt refuse le dépôt (clé invalide), comme attendu"
+    else
+        record INFO "Avant mise à jour : apt n'a pas signalé le dépôt (cas non reproduit)"
+    fi
+
     step "Mise à jour $from → $to (dpkg -i)"
     local t0 out rc
     t0=$(date +%s)
@@ -49,6 +66,15 @@ print('ok')" >/dev/null 2>&1
         record PASS "Redéploiement de la stack par le postinst"
     fi
 
+    check "Source APT et clé fournies par le nouveau paquet" bash -c \
+        'dpkg -S /etc/apt/sources.list.d/cicada.list /usr/share/keyrings/cicada-archive-keyring.gpg | grep -c "^cicada:" | grep -qx 2'
+    local upd
+    upd="$(apt-get update 2>&1)"
+    if echo "$upd" | grep -iE 'NO_PUBKEY|not signed|pas signé|^E:|^W:.*cicada' >/dev/null; then
+        record FAIL "Après mise à jour : apt accepte de nouveau le dépôt CICADA" "$(echo "$upd" | grep -iE 'cicada|NO_PUBKEY|^E:' | head -2)"
+    else
+        record PASS "Après mise à jour : apt accepte de nouveau le dépôt CICADA"
+    fi
     check "CICADA_VERSION=$to dans le .env" test "$(env_value CICADA_VERSION)" = "$to"
     if wait_for 900 test "$(container_health cicada_prod_web)" = healthy; then
         record PASS "Conteneur web healthy après mise à jour" "$(( $(date +%s) - t0 ))s après dpkg -i"

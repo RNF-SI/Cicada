@@ -130,7 +130,11 @@ publier() {
         die "Pas d'image ghcr.io/rnf-si/cicada-backend:$version : la mise à jour échouerait au téléchargement des images. Seules les versions publiées (taguées) sont utilisables."
     fi
     info "Construction du paquet $version (URL de suivi du labo)"
-    (cd "$PACKAGING_DIR" && VERSION="$version" TRACKING_API_URL="http://tracking.cicada.bench/api" ./build-deb.sh >/dev/null)
+    # Le paquet embarque l'adresse et la clé publique du dépôt du labo
+    vx "$TRACKING" cat /var/www/repos/cicada/cicada-repo-key.gpg > "$BENCH_DIR/results/labo-repo-key.asc"
+    (cd "$PACKAGING_DIR" && VERSION="$version" TRACKING_API_URL="http://tracking.cicada.bench/api" \
+        APT_REPO_URL="http://apt.cicada.bench" APT_REPO_KEY_FILE="$BENCH_DIR/results/labo-repo-key.asc" \
+        ./build-deb.sh >/dev/null)
     multipass transfer "$PACKAGING_DIR/build/cicada_${version}_amd64.deb" "$TRACKING:$GUEST_DIR/"
     info "Publication dans le dépôt APT"
     vx "$TRACKING" env GNUPGHOME=/root/.gnupg bash "$GUEST_DIR/apt-repo/publish.sh" \

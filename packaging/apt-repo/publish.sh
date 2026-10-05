@@ -11,4 +11,7 @@ REPO_DIR="/var/www/repos/cicada"
 export GNUPGHOME="${GNUPGHOME:-/root/.gnupg}"
 export GPG_TTY="$(tty 2>/dev/null || true)"
 reprepro -b "$REPO_DIR" includedeb stable "$DEB"
+# Script d'installation en une commande, servi à la racine du dépôt
+ICI="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+[ -f "$ICI/install.sh" ] && install -m 0644 "$ICI/install.sh" "$REPO_DIR/install.sh"
 reprepro -b "$REPO_DIR" list stable

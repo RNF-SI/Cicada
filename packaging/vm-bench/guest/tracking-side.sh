@@ -2,7 +2,9 @@
 # Exécuté sur la VM « tracking » au début d'un scénario : déploie l'API de suivi
 # selon tracking-api/INSTALLATION.md et le dépôt APT avec packaging/apt-repo/,
 # puis publie les paquets fournis. Écrit l'adresse de la VM dans tracking-pret.
-#   tracking-side.sh LATEST_VERSION paquet.deb…
+#   tracking-side.sh LATEST_VERSION
+# Les paquets sont publiés ensuite par bench.sh : ils embarquent la clé
+# publique du dépôt, qui n'existe qu'une fois ce script passé.
 set -uo pipefail
 LATEST="$1"; shift
 BENCH_DIR="${BENCH_DIR:-/home/ubuntu/bench}"
@@ -84,13 +86,6 @@ if out="$(bash "$BENCH_DIR/apt-repo/init-repo.sh" --dir /var/www/repos/cicada --
 else
     record FAIL "Dépôt APT initialisé et signé (init-repo.sh)" "$(echo "$out" | tail -2)"
 fi
-for deb in "$@"; do
-    if out="$(bash "$BENCH_DIR/apt-repo/publish.sh" "$deb" --dir /var/www/repos/cicada 2>&1)"; then
-        record PASS "Publié dans le dépôt : $(basename "$deb")"
-    else
-        record FAIL "Publié dans le dépôt : $(basename "$deb")" "$(echo "$out" | tail -2)"
-    fi
-done
 # Vhost proposé par init-repo.sh
 cat > /etc/apache2/sites-available/cicada-apt.conf <<'VHOST'
 <VirtualHost *:80>
@@ -106,7 +101,7 @@ cat > /etc/apache2/sites-available/cicada-apt.conf <<'VHOST'
 </VirtualHost>
 VHOST
 a2ensite -q cicada-apt >/dev/null && systemctl reload apache2
-check "Dépôt servi : Release signé" curl -sf http://apt.cicada.bench/dists/stable/InRelease -o /dev/null
+check "Dépôt servi : clé publique" curl -sf http://apt.cicada.bench/cicada-repo-key.gpg -o /dev/null
 check "Dépôt : conf/ non publique" test "$(curl -s -o /dev/null -w '%{http_code}' http://apt.cicada.bench/conf/distributions)" = 403
 # Compte d'administration de l'API de suivi (/admin/), pour le labo
 (cd /opt/tracking-api && DJANGO_SUPERUSER_PASSWORD=Bench-Tracking-1 venv/bin/python manage.py \

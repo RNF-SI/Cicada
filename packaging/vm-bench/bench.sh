@@ -230,10 +230,11 @@ build_tracking_base() {
 # l'URL de suivi du banc gravée dedans (comme la CI grave celle de prod), en
 # deux versions dont les images existent sur GHCR : l'initiale et la cible.
 build_tracking_debs() {
-    local url="http://tracking.cicada.bench/api" v
+    local url="http://tracking.cicada.bench/api" key="$1" v
     mkdir -p "$BENCH_DIR/results"
     for v in "$TRACKING_FROM_VERSION" "$(tr -d '[:space:]' < "$PROJECT_ROOT/version.txt")"; do
-        (cd "$PACKAGING_DIR" && VERSION="$v" TRACKING_API_URL="$url" ./build-deb.sh >/dev/null)
+        (cd "$PACKAGING_DIR" && VERSION="$v" TRACKING_API_URL="$url" \
+            APT_REPO_URL="http://apt.cicada.bench" APT_REPO_KEY_FILE="$key" ./build-deb.sh >/dev/null)
         cp "$PACKAGING_DIR/build/cicada_${v}_amd64.deb" "$BENCH_DIR/results/tracking-cicada_${v}_amd64.deb"
     done
 }
@@ -292,7 +293,6 @@ run_scenario() {
     if grep -q '^# TRACKING_VM: oui' "$scenario_file"; then
         tvm="ccd-tracking-$OS"
         local target; target="$(tr -d '[:space:]' < "$PROJECT_ROOT/version.txt")"
-        build_tracking_debs
         build_tracking_base
         info "Restauration et déploiement du serveur de suivi $tvm"
         restore_vm "$tvm"
@@ -300,11 +300,21 @@ run_scenario() {
         multipass transfer -r "$PROJECT_ROOT/tracking-api" "$tvm:$GUEST_DIR/"
         multipass transfer -r "$PACKAGING_DIR/apt-repo" "$tvm:$GUEST_DIR/"
         vx "$tvm" find "$GUEST_DIR/tracking-api" -name __pycache__ -prune -exec rm -rf {} +
+        set +e
+        vx "$tvm" env BENCH_DIR="$GUEST_DIR" bash "$GUEST_DIR/guest/tracking-side.sh" "$target" \
+            > "$out/tracking-server.log" 2>&1
+        set -e
+        # Paquets construits avec la clé publique que le dépôt vient de générer
+        vx "$tvm" cat /var/www/repos/cicada/cicada-repo-key.gpg > "$out/bench-repo-key.asc"
+        build_tracking_debs "$out/bench-repo-key.asc"
         multipass transfer "$BENCH_DIR/results/tracking-cicada_${TRACKING_FROM_VERSION}_amd64.deb" "$tvm:$GUEST_DIR/"
         multipass transfer "$BENCH_DIR/results/tracking-cicada_${target}_amd64.deb" "$tvm:$GUEST_DIR/"
         set +e
-        vx "$tvm" env BENCH_DIR="$GUEST_DIR" bash "$GUEST_DIR/guest/tracking-side.sh" "$target" \
-            "$GUEST_DIR/tracking-cicada_${TRACKING_FROM_VERSION}_amd64.deb" > "$out/tracking-server.log" 2>&1
+        vx "$tvm" env GNUPGHOME=/root/.gnupg bash "$GUEST_DIR/apt-repo/publish.sh" \
+            "$GUEST_DIR/tracking-cicada_${TRACKING_FROM_VERSION}_amd64.deb" --dir /var/www/repos/cicada \
+            >> "$out/tracking-server.log" 2>&1 \
+            && echo "   ✓ Publié dans le dépôt : cicada $TRACKING_FROM_VERSION (+ install.sh)" >> "$out/tracking-server.log" \
+            || printf 'FAIL\tPublication initiale dans le dépôt\tvoir tracking-server.log\n' >> "$out/tracking-publish-fail.tsv"
         set -e
         sed 's/^/   [tracking] /' "$out/tracking-server.log"
         multipass transfer "$tvm:$GUEST_DIR/results.tsv" "$out/tracking-results.tsv" 2>/dev/null || true
@@ -387,6 +397,7 @@ run_scenario() {
         [ "$KEEP" = true ] || multipass stop --force "$dbvm"
     fi
     if [ -n "$tvm" ]; then
+        [ -f "$out/tracking-publish-fail.tsv" ] && cat "$out/tracking-publish-fail.tsv" >> "$out/tracking-results.tsv"
         [ -f "$out/tracking-results.tsv" ] && cat "$out/tracking-results.tsv" "$out/results.tsv" > "$out/all.tsv" \
             && mv "$out/all.tsv" "$out/results.tsv"
         vx "$tvm" bash -c 'journalctl -u cicada-tracking-api --no-pager | tail -40; runuser -u postgres -- psql -d tracking -c "select token, version, last_heartbeat from tracking_instances"' \

@@ -53,6 +53,35 @@ fi
 sed -i "s|TRACKING_API_URL=.*|TRACKING_API_URL=${TRACKING_API_URL_FIXED}|" \
     "$BUILD_DIR/${PACKAGE_NAME}/etc/cicada/cicada.conf"
 
+# Dépôt APT de CICADA : le paquet apporte lui-même la source et la clé publique
+# (comme le font Chrome ou VS Code). Une instance installée ou mise à jour par
+# ce paquet reçoit donc les versions suivantes par apt — et par le bouton
+# « Mettre à jour » — sans aucune configuration manuelle, et un changement de
+# clé se distribue par une simple mise à jour.
+APT_REPO_URL="${APT_REPO_URL:-https://apt.cicada.reserves-naturelles.org}"
+APT_REPO_KEY_FILE="${APT_REPO_KEY_FILE:-$SCRIPT_DIR/apt-repo/cicada-archive-keyring.asc}"
+KEYRING="/usr/share/keyrings/cicada-archive-keyring.gpg"
+mkdir -p "$BUILD_DIR/${PACKAGE_NAME}/usr/share/keyrings" "$BUILD_DIR/${PACKAGE_NAME}/etc/apt/sources.list.d"
+# Clé ASCII (versionnée, lisible) → binaire, format lu par tous les apt
+python3 - "$APT_REPO_KEY_FILE" "$BUILD_DIR/${PACKAGE_NAME}$KEYRING" <<'PY'
+import base64, sys
+corps, dedans = [], False
+for ligne in open(sys.argv[1]):
+    ligne = ligne.strip()
+    if ligne.startswith('-----BEGIN'):
+        dedans = True
+    elif ligne.startswith('-----END'):
+        break
+    elif dedans and ligne and ':' not in ligne and not ligne.startswith('='):
+        corps.append(ligne)  # ni en-têtes « Version: … », ni somme de contrôle « =XXXX »
+if not corps:
+    sys.exit(f"Clé publique introuvable dans {sys.argv[1]}")
+open(sys.argv[2], 'wb').write(base64.b64decode(''.join(corps)))
+PY
+echo "deb [signed-by=$KEYRING] $APT_REPO_URL stable main" \
+    > "$BUILD_DIR/${PACKAGE_NAME}/etc/apt/sources.list.d/cicada.list"
+echo "Dépôt APT : ${APT_REPO_URL}"
+
 # Mettre à jour la version dans control
 sed -i "s/Version: .*/Version: ${VERSION}/" \
     "$BUILD_DIR/${PACKAGE_NAME}/DEBIAN/control"

@@ -2,61 +2,63 @@
 
 > Vue d'ensemble des serveurs et de leurs liens (dépôt APT, API de suivi, hub, serveur de bases) : [INFRASTRUCTURE.md](INFRASTRUCTURE.md).
 
-## Installation via APT
+## Installation
 
 ### Prérequis
 
-- Système d'exploitation : **Debian 12+** ou **Ubuntu 22.04+**. Debian 11 n'est pas supportée (fin de sa LTS en août 2026).
-- **Dépôt APT officiel de Docker configuré** (voir ci-dessous) : le paquet dépend de `docker-ce` et de `docker-compose-plugin`, absents des dépôts Debian/Ubuntu. Sans ce dépôt, `apt-get install cicada` échoue sur « Dépend: docker-ce … mais il n'est pas installable ».
-- Accès root ou sudo
+- Un serveur **Debian 12+** ou **Ubuntu 22.04+** (amd64), avec un accès root ou sudo. Debian 11 n'est pas supportée.
+- Un accès Internet sortant (dépôts Docker et CICADA, images Docker).
 - **Si la base est sur un serveur PostgreSQL existant** : PostgreSQL 15+ avec PostGIS sur ce serveur de base, et un accès root à celui-ci pour une commande de préparation (voir l'étape 3)
 
 ### Étapes d'installation
 
-#### 0. Ajouter le dépôt Docker (si Docker n'est pas déjà installé depuis ce dépôt)
+#### 1. Lancer l'installation (une commande)
 
 ```bash
-sudo apt-get update
-sudo apt-get install -y ca-certificates curl gnupg
+curl -fsSL https://apt.cicada.reserves-naturelles.org/install.sh | sudo bash
+```
+
+Cette commande :
+- configure le dépôt de Docker (si Docker n'est pas déjà installé depuis ce dépôt) ;
+- configure le dépôt de CICADA et sa clé de signature ;
+- installe le paquet `cicada` (et Docker avec lui) ;
+- affiche l'adresse du formulaire d'installation (`http://votre-serveur:4567`).
+
+Elle peut être relancée sans risque. Pour installer une version précise : `… | sudo bash -s -- --version 0.1.50`.
+
+> **Note** : si le système vous demande de redémarrer des services (dbus, getty, systemd-logind), vous pouvez ignorer — ce sont des services système sans rapport avec CICADA.
+
+#### 2. Rien d'autre à configurer pour les mises à jour
+
+Le paquet apporte lui-même la source APT de CICADA (`/etc/apt/sources.list.d/cicada.list`) et la clé du dépôt (`/usr/share/keyrings/cicada-archive-keyring.gpg`). Les versions suivantes arrivent donc par `apt` — et par le bouton « Mettre à jour » de l'administration — sans aucune manipulation, y compris si la clé du dépôt change un jour.
+
+> ⚠️ Conséquence : un `sudo apt upgrade` de routine sur le serveur met aussi CICADA à jour quand une nouvelle version est publiée, ce qui redémarre l'application (~30 s). Pour garder la main sur le moment : `sudo apt-mark hold cicada`, puis `sudo apt-mark unhold cicada` avant une mise à jour voulue.
+
+<details>
+<summary>Installation manuelle, sans le script (ce qu'il fait, étape par étape)</summary>
+
+```bash
+# Dépôt Docker
+sudo apt-get update && sudo apt-get install -y ca-certificates curl gnupg
 sudo install -m 0755 -d /etc/apt/keyrings
 . /etc/os-release
 curl -fsSL "https://download.docker.com/linux/$ID/gpg" | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
 sudo chmod a+r /etc/apt/keyrings/docker.gpg
-echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/$ID $VERSION_CODENAME stable" \
+echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/$ID $VERSION_CODENAME stable" \
   | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
-sudo apt-get update
+
+# Dépôt CICADA
+curl -fsSL https://apt.cicada.reserves-naturelles.org/cicada-repo-key.gpg \
+  | sudo gpg --dearmor -o /usr/share/keyrings/cicada-archive-keyring.gpg
+echo "deb [signed-by=/usr/share/keyrings/cicada-archive-keyring.gpg] https://apt.cicada.reserves-naturelles.org stable main" \
+  | sudo tee /etc/apt/sources.list.d/cicada.list
+
+sudo apt-get update && sudo apt-get install cicada
 ```
 
-Docker lui-même sera installé par les dépendances du paquet `cicada`.
+Sans accès au dépôt CICADA, le paquet se télécharge aussi depuis la [page des versions](https://github.com/RNF-SI/Cicada/releases) : `sudo apt install ./cicada_X.Y.Z_amd64.deb` (le dépôt Docker reste nécessaire).
 
-#### 1. Ajouter le repository APT
-
-Si le repository APT est déjà configuré sur le serveur, passez directement à l'étape 2.
-
-```bash
-# Ajouter la clé GPG (remplacez l'URL par celle fournie par votre administrateur)
-curl -fsSL https://apt.cicada.reserves-naturelles.org/cicada-repo-key.gpg | sudo gpg --dearmor -o /usr/share/keyrings/cicada-archive-keyring.gpg
-
-# Ajouter le repository
-echo "deb [signed-by=/usr/share/keyrings/cicada-archive-keyring.gpg] https://apt.cicada.reserves-naturelles.org stable main" | sudo tee /etc/apt/sources.list.d/cicada.list
-
-# Mettre à jour la liste des packages
-sudo apt update
-```
-
-#### 2. Installer CICADA
-
-```bash
-sudo apt-get update
-sudo apt-get install cicada
-```
-
-L'installation va :
-- Installer les fichiers nécessaires (scripts, docker-compose, installeur web)
-- Générer un token d'instance unique
-- Démarrer le serveur d'installation web sur le port 4567
-
-> **Note** : si le système vous demande de redémarrer des services (dbus, getty, systemd-logind), vous pouvez ignorer — ce sont des services système sans rapport avec CICADA.
+</details>
 
 #### 3. Choisir où sera la base de données
 

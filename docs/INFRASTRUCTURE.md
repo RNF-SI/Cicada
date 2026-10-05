@@ -55,7 +55,7 @@ préparation auprès de l'installateur (⑥), le temps de l'installation.
 
 | # | De → vers | Port | Quand | Configuré par | Si le lien est coupé |
 |---|---|---|---|---|---|
-| ① | Instance → dépôt APT (`apt.cicada.reserves-naturelles.org`) | 443 | installation, mise à jour | `/etc/apt/sources.list.d/cicada.list` + clé publique (guide, étape 1) | ni installation ni mise à jour par `apt` ; le bouton « Mettre à jour » échoue. Repli : `dpkg -i` du `.deb` |
+| ① | Instance → dépôt APT (`apt.cicada.reserves-naturelles.org`) | 443 | installation, mise à jour | source APT et clé publique **fournies par le paquet** ; à la première installation, par `install.sh` (guide, étape 1) | ni installation ni mise à jour par `apt` ; le bouton « Mettre à jour » échoue. Repli : `dpkg -i` du `.deb` |
 | ② | Instance → GHCR (`ghcr.io`) | 443 | installation, mise à jour | rien (images publiques) | les conteneurs ne peuvent pas être téléchargés |
 | ③ | Instance → serveur de bases | 5432 | en permanence | formulaire d'installation ; côté base : `cicada-prepare-db --client <ip>` (une ligne `pg_hba.conf`) | l'application ne démarre pas |
 | ④ | Instance → API de suivi (`tracking.cicada.reserves-naturelles.org/api`) | 443 | à l'installation, puis chaque nuit vers 03:00 | URL gravée dans le paquet à sa construction (`/etc/cicada/cicada.conf`) ; jeton dans `/etc/cicada/instance_token` | l'instance fonctionne, mais n'apparaît plus dans le suivi et n'est plus prévenue des mises à jour |
