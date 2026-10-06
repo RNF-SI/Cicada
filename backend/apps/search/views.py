@@ -214,7 +214,9 @@ class ExplorationPlanViewSet(ViewSet):
 
         paginateur = ExplorationPagination()
         page = paginateur.paginate_queryset(resultats, request, view=self)
-        donnees = PlanResultatSerializer(page, many=True).data
+        donnees = PlanResultatSerializer(page, many=True, context={
+            'mot_cle': request.query_params.get('q', ''),
+        }).data
         return paginateur.get_paginated_response(donnees)
 
 

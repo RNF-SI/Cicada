@@ -114,7 +114,7 @@
               [routerLink]="lien(plan)">
               <div class="exploration-tuile-corps">
                 <div class="exploration-tuile-entete">
-                  <p class="exploration-tuile-titre">{{ plan.nom }}</p>
+                  <p class="exploration-tuile-titre" data-testid="exploration-titre">@for (segment of segments(plan.nom); track $index) {@if (segment.surligne) {<mark>{{ segment.texte }}</mark>} @else {{{ segment.texte }}}}</p>
                   <!-- #636 — D'où vient ce plan. Deux structures produisent
                        couramment des plans homonymes : sans la provenance, la
                        liste ne permet pas de les distinguer. -->
@@ -134,7 +134,21 @@
                         {{ 'exploration.results.multisites' | translate }}
                       </span>
                     }
-                    <span>{{ libelleSites(plan) }}</span>
+                    <span>@for (segment of segments(libelleSites(plan)); track $index) {@if (segment.surligne) {<mark>{{ segment.texte }}</mark>} @else {{{ segment.texte }}}}</span>
+                  </p>
+                }
+
+                <!-- #681 — Le mot cherché peut n'être que dans la zone
+                     géographique des sites, que la tuile n'affiche pas :
+                     sans cette ligne, le plan ressortirait sans un seul mot
+                     surligné. -->
+                @if (plan.zones_correspondantes?.length) {
+                  <p class="exploration-tuile-motif" data-testid="exploration-motif" data-champ="zone">
+                    <i class="fi fi-rr-search" aria-hidden="true"></i>
+                    <span class="exploration-tuile-label">
+                      {{ 'exploration.results.matchedOn.zone' | translate }}
+                    </span>
+                    <span class="exploration-tuile-extrait">@for (segment of segments(plan.zones_correspondantes.join(', ')); track $index) {@if (segment.surligne) {<mark>{{ segment.texte }}</mark>} @else {{{ segment.texte }}}}</span>
                   </p>
                 }
 

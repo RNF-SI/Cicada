@@ -14,6 +14,8 @@ chose.
 from rest_framework import serializers
 
 from .filters import CHAMPS_CORRESPONDANCE, CHAMPS_EXTRAITS
+from apps.geo.models import LArea
+
 from .identites import identites
 from .models import ContenuIndexe, PlanIndexe
 from .surlignage import extrait_autour, mots_proches
@@ -185,6 +187,7 @@ class PlanResultatSerializer(ProvenanceMixin, serializers.ModelSerializer):
 
     # #683 — cf. ContenuResultatSerializer : c'est le relais qui tranche.
     acces_direct = serializers.ReadOnlyField(default=False)
+    zones_correspondantes = serializers.SerializerMethodField()
 
     class Meta:
         model = PlanIndexe
@@ -192,8 +195,21 @@ class PlanResultatSerializer(ProvenanceMixin, serializers.ModelSerializer):
             'reference', 'instance_id', 'instance_libelle', 'id_pg', 'nom',
             'slug', 'statut', 'rang', 'annee_debut', 'annee_fin',
             'type_document', 'sites', 'gestionnaire_principal', 'url_instance',
-            'acces_direct',
+            'acces_direct', 'zones_correspondantes',
         ]
+
+    def get_zones_correspondantes(self, plan):
+        """Zones dont le nom porte le mot cherché (#681) — cf. CICADA."""
+        mot_cle = (self.context.get('mot_cle') or '').strip()
+        if not mot_cle or not plan.area_ids:
+            return []
+        return list(
+            LArea.objects
+            .filter(id_area__in=plan.area_ids, area_name__unaccent__icontains=mot_cle)
+            .order_by('area_name')
+            .values_list('area_name', flat=True)
+            .distinct()
+        )
 
     def get_reference(self, plan):
         return reference_plan(plan)

@@ -84,6 +84,16 @@ class Command(BaseCommand):
         self.dry_run = options['dry_run']
         avec_fiche = not options['sans_fiche']
 
+        # Le nom de l'instance accompagne chaque plan publié : c'est lui, et
+        # non l'identifiant technique, qui s'affiche chez les autres structures
+        # comme provenance. Sans nom, rien ne part.
+        if not (settings.CICADA_INSTANCE_LABEL or '').strip():
+            raise CommandError(
+                "Cette instance n'a pas de nom (CICADA_INSTANCE_LABEL vide) : "
+                "c'est ce nom qui s'affiche chez les autres structures comme "
+                "provenance de vos plans. Renseignez-le avant de publier."
+            )
+
         if not self.dry_run:
             if not self.hub:
                 raise CommandError(

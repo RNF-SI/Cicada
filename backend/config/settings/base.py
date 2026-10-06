@@ -34,8 +34,11 @@ AUTH_PROVIDER = os.environ.get('AUTH_PROVIDER', 'local')
 # ligne d'index, où elle passe inaperçue, et aucune publication ne retrouve
 # ensuite ces documents.
 CICADA_INSTANCE_ID = os.environ.get('CICADA_INSTANCE_ID') or 'local'
+# Nom de l'instance tel qu'il s'affiche chez les autres structures (provenance
+# des résultats et des plans distants). Pas de repli sur l'identifiant : un
+# « rnf » ne dit rien à un gestionnaire, et la publication refuse un nom vide.
 CICADA_INSTANCE_LABEL = (
-    os.environ.get('CICADA_INSTANCE_LABEL') or CICADA_INSTANCE_ID
+    os.environ.get('CICADA_INSTANCE_LABEL') or ''
 )
 
 # Jeton partagé pour l'authentification machine-à-machine entre instances.

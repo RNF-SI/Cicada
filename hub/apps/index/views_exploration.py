@@ -123,7 +123,10 @@ class ExplorationPlanViewSet(ViewSet):
         page = paginateur.paginate_queryset(resultats, request, view=self)
         return paginateur.get_paginated_response(
             PlanResultatSerializer(
-                page, many=True, context=contexte_provenance(page),
+                page, many=True, context={
+                    **contexte_provenance(page),
+                    'mot_cle': request.query_params.get('q', ''),
+                },
             ).data
         )
 

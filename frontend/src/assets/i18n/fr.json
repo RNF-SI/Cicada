@@ -3473,7 +3473,8 @@
         "contexte": "Trouvé dans un élément parent ou lié :",
         "enfants": "Trouvé dans un élément enfant :",
         "titre": "Trouvé dans le libellé",
-        "inconnu": "Le mot cherché n'apparaît pas tel quel : il a été reconnu sous une autre forme (pluriel, conjugaison, racine)."
+        "inconnu": "Le mot cherché n'apparaît pas tel quel : il a été reconnu sous une autre forme (pluriel, conjugaison, racine).",
+        "zone": "Trouvé via la zone géographique :"
       },
       "ouvre": {
         "arborescence": "Ouvre l'arborescence du plan sur cet élément",

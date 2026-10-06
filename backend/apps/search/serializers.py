@@ -10,6 +10,7 @@ donnée jointe ne peut pas devenir obsolète, contrairement à une copie.
 from django.db.models import Prefetch
 from rest_framework import serializers
 
+from apps.geo.models import LArea
 from apps.plans.models import CorSitePg, PlanGestion
 from apps.users.models import CorOgSite
 
@@ -216,6 +217,7 @@ class PlanResultatSerializer(serializers.ModelSerializer):
     gestionnaire_principal = serializers.SerializerMethodField()
     # #683 — un plan de cette base s'ouvre dans ses écrans réels.
     acces_direct = serializers.ReadOnlyField(default=True)
+    zones_correspondantes = serializers.SerializerMethodField()
 
     class Meta:
         model = PlanGestion
@@ -223,8 +225,28 @@ class PlanResultatSerializer(serializers.ModelSerializer):
             'id_pg', 'nom', 'slug', 'statut', 'rang',
             'annee_debut', 'annee_fin',
             'type_document', 'sites', 'gestionnaire_principal',
-            'acces_direct',
+            'acces_direct', 'zones_correspondantes',
         ]
+
+    def get_zones_correspondantes(self, plan):
+        """
+        Départements et régions dont le nom porte le mot cherché (#681).
+
+        Le mode « plan de gestion » cherche aussi dans la zone géographique des
+        sites, que la tuile n'affiche pas : un plan ressorti pour « Rhône »
+        n'aurait sinon aucun mot surligné. Vide sans mot-clé.
+        """
+        mot_cle = (self.context.get('mot_cle') or '').strip()
+        if not mot_cle:
+            return []
+        sites = [site.id_site for site in _sites_du_plan(plan)]
+        return list(
+            LArea.objects
+            .filter(sites__id_site__in=sites, area_name__unaccent__icontains=mot_cle)
+            .order_by('area_name')
+            .values_list('area_name', flat=True)
+            .distinct()
+        )
 
     def get_type_document(self, plan):
         return plan.id_type_document.label if plan.id_type_document_id else None

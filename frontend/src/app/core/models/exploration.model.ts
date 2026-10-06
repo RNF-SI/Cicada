@@ -200,6 +200,12 @@ export interface ExplorationPlan {
   url_instance?: string;
   /** #683 — Le plan existe dans cette base : sa page réelle s'ouvre. */
   acces_direct?: boolean;
+  /**
+   * #681 — Départements / régions dont le nom porte le mot cherché. La tuile
+   * ne les affiche pas autrement : sans eux, un plan trouvé par sa zone
+   * n'aurait aucun mot surligné.
+   */
+  zones_correspondantes?: string[];
 }
 
 export interface ExplorationPagination {

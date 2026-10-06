@@ -172,6 +172,13 @@ class InstallService:
                     "commencer par une lettre ou un chiffre — par exemple "
                     "« rnf » ou « cen-aura »."
                 )
+            if not (data.get('federation_instance_label') or '').strip():
+                errors.append(
+                    "Le nom affiché de l'instance est requis pour rejoindre "
+                    "l'exploration fédérée : c'est lui, et non l'identifiant, "
+                    "qui apparaît chez les autres structures comme provenance "
+                    "de vos plans."
+                )
             if not data.get('federation_hub_url'):
                 errors.append("L'URL du hub est requise pour rejoindre l'exploration fédérée.")
             if not data.get('federation_push_token'):

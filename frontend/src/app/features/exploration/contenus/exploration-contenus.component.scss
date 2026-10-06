@@ -193,41 +193,6 @@ $types-couleurs: (
   }
 }
 
-/* #650 — « Pourquoi ce résultat ? » : le champ qui a répondu, et son extrait. */
-.exploration-tuile-motif {
-  display: flex;
-  align-items: baseline;
-  flex-wrap: wrap;
-  gap: $spacing-xxs;
-  margin: 0 0 $spacing-xs;
-  font-size: $font-size-small;
-  color: $gray-dark;
-
-  i {
-    color: $primary-color;
-  }
-}
-
-.exploration-tuile-extrait {
-  font-style: italic;
-}
-
-/* #681 — Le surlignage est la raison d'être de la tuile : il doit se voir au
-   premier coup d'œil. Fond jaune du design system, texte noir, légèrement
-   gras — la combinaison est conforme WCAG AA. Même rendu dans le titre, dans
-   l'arborescence et dans les extraits, pour qu'un seul signe désigne « le
-   mot retrouvé » partout. */
-.exploration-tuile-titre mark,
-.exploration-arbre-libelle mark,
-.exploration-tuile-extrait mark {
-  background-color: $secondary-yellow;
-  color: $black;
-  font-weight: $font-weight-bold;
-  padding: 0 3px;
-  border-radius: 2px;
-  box-shadow: 0 0 0 1px rgba($black, 0.08);
-}
-
 /* #682 — Arborescence menant à l'objet retrouvé. Chaque maillon est décalé
    selon sa profondeur (`--niveau`) et relié au suivant par un angle, comme
    dans l'arborescence du plan. */

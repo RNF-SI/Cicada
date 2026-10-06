@@ -8,7 +8,9 @@ import {
   ExplorationCriteres,
   ExplorationPlan,
   ExplorationTri,
+  SegmentTexte,
   referencePlan,
+  segmenterSurTerme,
 } from '../../../core/models/exploration.model';
 import { ExplorationService } from '../../../core/services/exploration.service';
 import {
@@ -52,6 +54,14 @@ export class ExplorationPlansComponent {
 
   /** Voir `referencePlan` : le slug seul ne suffit pas en fédération (#636). */
   protected readonly referencePlan = referencePlan;
+
+  /**
+   * Découpe un texte pour surligner le mot cherché (#681) — nom du plan,
+   * sites, zones. Lu dans les critères, pas dans le champ de saisie.
+   */
+  protected segments(texte: string): SegmentTexte[] {
+    return segmenterSurTerme(texte, this.criteres().q ?? '');
+  }
 
   /**
    * Où mène le clic sur un plan (#683) : sa page réelle quand il existe dans
