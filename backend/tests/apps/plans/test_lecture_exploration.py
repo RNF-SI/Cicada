@@ -16,8 +16,8 @@ from rest_framework.test import APIClient
 from apps.plans.exploration import CLES_SENSIBLES, elaguer
 from tests.factories.enjeux import (
     EnjeuFactory, IndicateurFactory, MesureFactory, MetriqueFactory,
-    NiveauExigenceFactory, ObjectifLongTermeFactory, OperationAnneeFactory,
-    OperationFactory,
+    NiveauExigenceFactory, NomenclatureTypeIndicateurFactory,
+    ObjectifLongTermeFactory, OperationAnneeFactory, OperationFactory,
 )
 from tests.factories.plans import PlanGestionFactory
 from tests.factories.users import RoleFactory
@@ -30,7 +30,15 @@ def plan_valide(db):
     enjeu = EnjeuFactory(id_pg=plan, libelle='Enjeu public', slug='enjeu-public')
     olt = ObjectifLongTermeFactory(id_enjeu=enjeu, libelle='Objectif public')
     niveau = NiveauExigenceFactory(id_olt=olt)
-    indicateur = IndicateurFactory(id_ne=niveau, nom_indicateur='Indicateur public')
+    # Type fixé : `NomenclatureTypeIndicateurFactory` tourne sur ETAT / PRESSION
+    # / RÉPONSE, et un indicateur de réponse n'apparaît pas dans l'arborescence
+    # (#477) — le test dépendrait sinon de l'ordre d'exécution.
+    etat = NomenclatureTypeIndicateurFactory(
+        cd_nomenclature='ETAT', mnemonique='ETAT', label='État',
+    )
+    indicateur = IndicateurFactory(
+        id_ne=niveau, nom_indicateur='Indicateur public', type_indicateur=etat,
+    )
     metrique = MetriqueFactory(id_indicateur=indicateur)
     MesureFactory(id_metrique=metrique, valeur='42')
     operation = OperationFactory(libelle='Action publique', id_indicateur=indicateur)
@@ -183,3 +191,60 @@ class TestElagage:
             'metriques': [{'nom': 'm'}],
             'operations': [{'code': 'A'}],
         }
+
+
+class TestCloisonnementParFragments:
+    """
+    Même garde-fou que `TestFichePubliqueCloisonnement` côté exploration
+    (#683) : on ne vérifie pas une liste de clés, mais que **aucun nom de
+    champ** de ce qui est servi à un lecteur d'exploration ne contienne un
+    fragment de gestion. Un champ `cout_total` ou `nb_jours_rh` ajouté plus
+    tard à un sérialiseur sans être inscrit dans `CLES_SENSIBLES` fait donc
+    échouer ce test, à n'importe quelle profondeur.
+    """
+
+    INTERDITS = [
+        'budget', 'cout', 'etp', 'montant', 'financ',
+        'poste', 'salaire', 'jours', 'ventilation',
+        'mesure', 'realisation', 'realise',
+        'utilisateur', 'createur', 'referent', 'membre',
+        'fichier', 'document',
+    ]
+
+    #: Faux positifs connus : ces noms contiennent un fragment mais ne portent
+    #: aucune donnée de gestion. Chaque entrée dit pourquoi.
+    TOLERES = {
+        'geo_documents',   # booléen : « patrimoine géologique — documents » (catégorie d'enjeu)
+        'type_document', 'type_document_display', 'type_document_mnemonique',
+        # ↑ nomenclature du plan (plan initial / évaluation), pas un fichier
+        'id_referentiel_operations',  # référentiel des codes d'action, pas une réalisation
+        'est_suivi_existant',  # booléen de structure d'une action
+        'frequence_nombre',    # fréquence de l'action, pas du temps de travail
+    }
+
+    def _fautifs(self, donnees):
+        return sorted(
+            cle for cle in cles(donnees)
+            if cle not in self.TOLERES
+            and any(fragment in cle.lower() for fragment in self.INTERDITS)
+        )
+
+    def test_la_page_du_plan(self, etranger, plan_valide):
+        reponse = etranger.get(f'/api/plans/plans/by-slug/{plan_valide.slug}/')
+        assert self._fautifs(reponse.data) == []
+
+    def test_larborescence(self, etranger, plan_valide):
+        reponse = etranger.get(f'/api/plans/enjeux/by-plan/{plan_valide.pk}/')
+        assert self._fautifs(reponse.data) == []
+
+    def test_la_fiche_action(self, etranger, plan_valide):
+        reponse = etranger.get(f'/api/plans/operations/{plan_valide.operation_racine.pk}/')
+        assert self._fautifs(reponse.data) == []
+
+    def test_les_actions_du_plan(self, etranger, plan_valide):
+        reponse = etranger.get(f'/api/plans/operations/by-plan/{plan_valide.pk}/')
+        assert self._fautifs(reponse.data) == []
+
+    def test_un_indicateur(self, etranger, plan_valide):
+        reponse = etranger.get(f'/api/plans/indicateurs/{plan_valide.indicateur_racine.pk}/')
+        assert self._fautifs(reponse.data) == []
