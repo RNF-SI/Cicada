@@ -23,6 +23,7 @@ relaie qui reste responsable d'authentifier son utilisateur.
 
 from django.db.models import Count, Max
 from django.shortcuts import get_object_or_404
+from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.viewsets import ViewSet
@@ -144,9 +145,36 @@ class ExplorationPlanViewSet(ViewSet):
         # frontend à distinguer les deux sources — ce que la bascule vers le hub
         # doit précisément lui épargner. Les métadonnées de fédération viennent
         # s'ajouter à côté : aucune ne porte le nom d'un champ de fiche.
-        identite = identites({plan.instance_id}).get(plan.instance_id, {})
         return Response({
             **(plan.fiche or {}),
+            **self._provenance(plan, reference),
+        })
+
+    @action(detail=True, methods=['get'], url_path='ecrans')
+    def ecrans(self, request, reference=None):
+        """
+        Écrans réels d'un plan distant (#683) : les réponses d'API de sa page,
+        de son arborescence et de ses fiches action, telles que l'instance
+        émettrice les a publiées — déjà élaguées des données sensibles.
+
+        L'instance lectrice les ressert sous les chemins de sa propre API des
+        plans (`apps.search.distant`), pour que ses écrans réels s'ouvrent sur
+        un plan qui n'est pas dans sa base. 404 si l'émetteur est antérieur à
+        ce champ : la fiche publique reste alors le seul rendu possible.
+        """
+        instance_id, _, slug = (reference or '').partition(':')
+        plan = get_object_or_404(PlanIndexe, instance_id=instance_id, slug=slug)
+        if not plan.ecrans:
+            return Response(
+                {'detail': "Cette instance n'a pas publié les écrans de ce plan."},
+                status=404,
+            )
+        return Response({**plan.ecrans, **self._provenance(plan, reference)})
+
+    def _provenance(self, plan, reference):
+        """Métadonnées de fédération ajoutées à côté d'un instantané."""
+        identite = identites({plan.instance_id}).get(plan.instance_id, {})
+        return {
             'reference': reference,
             'instance_id': plan.instance_id,
             # Le nom de la structure d'origine, et pas seulement son
@@ -158,7 +186,7 @@ class ExplorationPlanViewSet(ViewSet):
             # sans date ne se distingue pas d'une donnée jointe à la volée, et
             # c'est précisément la différence qu'il faut pouvoir voir.
             'date_publication': plan.date_publication,
-        })
+        }
 
 
 class InstancesExplorationView(APIView):

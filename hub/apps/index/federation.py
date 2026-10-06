@@ -303,6 +303,7 @@ def ingerer_plan(charge, instance_id, lot):
             # organisme, en silence.
             'organisme_codes': [],
             'fiche': charge.get('fiche') or {},
+            'ecrans': charge.get('ecrans') or {},  # #683
             'format_version': lot.format_version,
         },
     )

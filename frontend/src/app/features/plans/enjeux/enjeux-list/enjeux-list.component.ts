@@ -159,6 +159,9 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
    */
   motCleSurligne = signal('');
 
+  /** #683 — Plan distant : qui l'a publié, et quand (instantané). */
+  provenanceDistante = signal<{ instance_libelle?: string; url_instance?: string; date_publication?: string } | null>(null);
+
   /** Statut du plan courant — exposé par l'endpoint by-plan, utilisé pour
    *  verrouiller l'édition hors brouillon (#248).
    *  #277 — Inclut les statuts CSRPN intermédiaires (verrouillage identique). */
@@ -716,6 +719,7 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
         this.planAnneeFin.set(planEndYear(plan) || null);  // #672
         this.planReferentIds.set((plan.referents || []).map(r => r.id_role));
         this.planStatut.set(plan.statut);
+        this.provenanceDistante.set(plan.instance_libelle ? plan : null);
 
         this.enjeuService.getPlanEnjeux(plan.id_pg, true).subscribe({
           next: (response) => {

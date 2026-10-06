@@ -41,6 +41,52 @@ from .filters_enjeux import EnjeuFilter, ResponsabiliteFilter
 from .reorder import do_reorder
 
 
+def payload_enjeux_du_plan(plan, enjeux, contexte_base=None):
+    """
+    Réponse de `enjeux/by-plan/{id}` — l'arborescence complète d'un plan.
+
+    Partagée entre la vue et la publication vers le hub (`apps.search.ecrans`,
+    #683) : ce que lit un plan distant doit être exactement ce que sert l'API
+    locale, sinon les écrans réels divergent selon la provenance.
+
+    :param enjeux: queryset d'enjeux du plan, déjà muni des prefetch profonds
+        (`EnjeuViewSet._with_deep_prefetch`).
+    """
+    # Séparer enjeux et FCR. Pas de `.filter()` chaîné après — chaque
+    # `.filter()` recommencerait l'évaluation des prefetch. On évalue une
+    # seule fois et on partitionne en Python.
+    enjeux_all = list(enjeux.order_by('id_enjeu'))
+    enjeux_list = [e for e in enjeux_all if e.id_categorie and e.id_categorie.mnemonique == 'ENJEU']
+    fcr_list = [e for e in enjeux_all if e.id_categorie and e.id_categorie.mnemonique == 'FCR']
+
+    # #228 / 2026-05-12 — Pré-calcul du code d'affichage de toutes les
+    # actions du plan (préfixe 2 lettres + rang), passé via context aux
+    # serializers d'opération nichés dans EnjeuDetailSerializer. Évite
+    # de recalculer le mapping pour chaque opération individuellement.
+    from .serializers_operations import compute_operation_codes_for_plan
+    from .serializers_enjeux import compute_oo_numeros_for_plan
+    operation_codes = compute_operation_codes_for_plan(plan.pk)
+    # #552 — numéro d'affichage plan-wide des OO (identique sous tous leurs
+    # enjeux), calculé une fois et passé via context comme les codes d'action.
+    oo_numeros = compute_oo_numeros_for_plan(plan.pk)
+    ctx = {
+        **(contexte_base or {}),
+        'operation_codes': operation_codes,
+        'oo_numeros': oo_numeros,
+    }
+
+    return {
+        'plan_id': plan.pk,
+        'plan_nom': plan.nom,
+        'plan_slug': plan.slug,
+        'plan_statut': plan.statut,
+        'enjeux': EnjeuDetailSerializer(enjeux_list, many=True, context=ctx).data,
+        'fcr': EnjeuDetailSerializer(fcr_list, many=True, context=ctx).data,
+        'total_enjeux': len(enjeux_list),
+        'total_fcr': len(fcr_list),
+    }
+
+
 class EnjeuViewSet(LectureExplorationMixin, viewsets.ModelViewSet):
     """
     ViewSet pour les Enjeux et FCR.
@@ -323,40 +369,7 @@ class EnjeuViewSet(LectureExplorationMixin, viewsets.ModelViewSet):
         # sur les FK des serializers) uniquement à cette vue, pas à toutes les
         # autres actions du ViewSet (list/retrieve restent légères).
         enjeux = self._with_deep_prefetch(self.get_queryset().filter(id_pg=plan))
-
-        # Séparer enjeux et FCR. Pas de `.filter()` chaîné après — chaque
-        # `.filter()` recommencerait l'évaluation des prefetch. On évalue une
-        # seule fois et on partitionne en Python.
-        enjeux_all = list(enjeux.order_by('id_enjeu'))
-        enjeux_list = [e for e in enjeux_all if e.id_categorie and e.id_categorie.mnemonique == 'ENJEU']
-        fcr_list = [e for e in enjeux_all if e.id_categorie and e.id_categorie.mnemonique == 'FCR']
-
-        # #228 / 2026-05-12 — Pré-calcul du code d'affichage de toutes les
-        # actions du plan (préfixe 2 lettres + rang), passé via context aux
-        # serializers d'opération nichés dans EnjeuDetailSerializer. Évite
-        # de recalculer le mapping pour chaque opération individuellement.
-        from .serializers_operations import compute_operation_codes_for_plan
-        from .serializers_enjeux import compute_oo_numeros_for_plan
-        operation_codes = compute_operation_codes_for_plan(plan.pk)
-        # #552 — numéro d'affichage plan-wide des OO (identique sous tous leurs
-        # enjeux), calculé une fois et passé via context comme les codes d'action.
-        oo_numeros = compute_oo_numeros_for_plan(plan.pk)
-        ctx = {
-            **self.get_serializer_context(),
-            'operation_codes': operation_codes,
-            'oo_numeros': oo_numeros,
-        }
-
-        return Response({
-            'plan_id': int(plan_id),
-            'plan_nom': plan.nom,
-            'plan_slug': plan.slug,
-            'plan_statut': plan.statut,
-            'enjeux': EnjeuDetailSerializer(enjeux_list, many=True, context=ctx).data,
-            'fcr': EnjeuDetailSerializer(fcr_list, many=True, context=ctx).data,
-            'total_enjeux': len(enjeux_list),
-            'total_fcr': len(fcr_list),
-        })
+        return Response(payload_enjeux_du_plan(plan, enjeux, self.get_serializer_context()))
 
     @action(detail=True, methods=['post'])
     def add_taxon(self, request, pk=None):

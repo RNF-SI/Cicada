@@ -3,6 +3,7 @@
 from django.urls import include, path
 from rest_framework.routers import DefaultRouter
 
+from .distant import EcransDistantsView
 from .views import (
     ExplorationContenuViewSet, ExplorationPlanViewSet, FederationDocumentViewSet,
     InstancesExplorationView,
@@ -22,5 +23,9 @@ urlpatterns = [
     # Avant le routeur : « instances » n'est pas un plan ni un contenu.
     path('instances/', InstancesExplorationView.as_view(),
          name='exploration-instances'),
+    # #683 — écrans réels d'un plan distant, resservis sous les chemins de
+    # l'API des plans (cf. `distant.py`).
+    path('distant/<str:reference>/<path:chemin>', EcransDistantsView.as_view(),
+         name='exploration-distant'),
     path('', include(router.urls)),
 ]

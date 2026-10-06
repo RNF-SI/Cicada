@@ -297,6 +297,12 @@ export class PlanDetailComponent implements OnInit, OnDestroy {
   /** #681 — Mot cherché dans l'exploration (`?q=`), surligné sur la page. */
   motCleSurligne = signal('');
 
+  /** #683 — Plan distant : qui l'a publié, et quand. */
+  provenanceDistante = computed(() => {
+    const p = this.plan();
+    return p?.instance_libelle ? p : null;
+  });
+
   // Permissions cycle de vie (#346) : référent du plan, admin_og, super_admin OU rédacteur principal.
   canManageLifecycle = computed(() => {
     // #683 — un lecteur d'exploration n'a aucun droit sur ce plan, quel que

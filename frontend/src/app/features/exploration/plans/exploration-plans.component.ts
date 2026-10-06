@@ -59,9 +59,7 @@ export class ExplorationPlansComponent {
    * autre instance.
    */
   protected lien(plan: ExplorationPlan): (string | number)[] {
-    return plan.acces_direct
-      ? ['/plans', plan.slug]
-      : ['/exploration/plans', referencePlan(plan)];
+    return ['/plans', plan.acces_direct ? plan.slug : referencePlan(plan)];
   }
 
   readonly criteres = signal<ExplorationCriteres>({});

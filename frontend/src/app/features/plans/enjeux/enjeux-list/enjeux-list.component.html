@@ -141,6 +141,17 @@
             <span class="lock-banner-text">
               {{ 'plans.lifecycle.explorationBanner.text' | translate }}
             </span>
+            @if (provenanceDistante(); as provenance) {
+              <span class="lock-banner-text" data-testid="exploration-provenance">
+                {{ 'plans.lifecycle.explorationBanner.provenance' | translate: {
+                  structure: provenance.instance_libelle,
+                  date: (provenance.date_publication | date: 'dd/MM/yyyy') ?? ''
+                } }}
+                @if (provenance.url_instance) {
+                  <a [href]="provenance.url_instance" target="_blank" rel="noopener noreferrer">{{ provenance.instance_libelle }}</a>
+                }
+              </span>
+            }
           </div>
           <a class="lock-banner-btn" routerLink="/exploration">
             <i class="fi fi-rr-search"></i>

@@ -145,25 +145,30 @@ class Banc:
         )
         return reponse
 
-    def jwt(self, api):
-        """Jeton d'une instance, obtenu une fois puis mémorisé."""
-        if api not in self._jetons_jwt:
+    def jwt(self, api, utilisateur=None):
+        """Jeton d'une instance, obtenu une fois puis mémorisé (par compte)."""
+        identifiants = dict(IDENTIFIANTS)
+        if utilisateur:
+            identifiants['username'] = utilisateur
+        cle = (api, identifiants['username'])
+        if cle not in self._jetons_jwt:
             reponse = requests.post(
-                f'{api}/api/auth/login/', json=IDENTIFIANTS, timeout=DELAI,
+                f'{api}/api/auth/login/', json=identifiants, timeout=DELAI,
             )
             if reponse.status_code != 200:
                 raise EchecDuBanc(
                     f"Connexion refusée sur {api} : {reponse.status_code} "
                     f"{reponse.text[:200]}"
                 )
-            self._jetons_jwt[api] = reponse.json()['access']
-        return self._jetons_jwt[api]
+            self._jetons_jwt[cle] = reponse.json()['access']
+        return self._jetons_jwt[cle]
 
-    def instance(self, api, chemin, **params):
+    def instance(self, api, chemin, utilisateur=None, **params):
         """Interroge l'API d'une instance CICADA, authentifié."""
         return requests.get(
             f'{api}{chemin}', params=params,
-            headers={'Authorization': f'Bearer {self.jwt(api)}'}, timeout=DELAI,
+            headers={'Authorization': f'Bearer {self.jwt(api, utilisateur)}'},
+            timeout=DELAI,
         )
 
     # -- docker ------------------------------------------------------------ #
@@ -733,6 +738,71 @@ print('{MARQUEUR}' + plan.slug)
 # Exécution
 # --------------------------------------------------------------------------- #
 
+def cas_parite_les_ecrans_distants_valent_les_locaux_elagues(banc):
+    """
+    #683 — Un plan RNF ouvert depuis le CEN doit montrer ce qu'un lecteur
+    d'exploration verrait sur RNF : même page, même arborescence, et rien de
+    sensible dans ce qui transite (budget, RH, mesures, personnes…).
+
+    Le CEN lit `/api/exploration/distant/rnf:<slug>/…` ; RNF sert
+    `/api/plans/…` à un compte sans lien avec le plan. Les deux réponses
+    viennent du même constructeur (`payload_enjeux_du_plan`) : elles doivent
+    dire la même chose.
+    """
+    lignes = banc.django(RNF_WEB, f"""
+from apps.plans.models import PlanGestion
+plan = (PlanGestion.objects.filter(statut='valide', enjeux__isnull=False)
+        .distinct().order_by('pk').first())
+print('{MARQUEUR}' + plan.slug + '|' + str(plan.pk))
+""")
+    slug, id_pg = lignes[0].split('|')
+    banc.publier(RNF_WEB)
+
+    # user.cen@test.fr existe sur les deux instances (jeu de test) et n'a de
+    # lien avec aucun plan RNF : sur RNF il lit en exploration, élagué.
+    locale = banc.instance(
+        RNF_API, f'/api/plans/enjeux/by-plan/{id_pg}/', utilisateur='user.cen@test.fr',
+    )
+    distante = banc.instance(
+        CEN_API, f'/api/exploration/distant/rnf:{slug}/enjeux/by-plan/{id_pg}/',
+        utilisateur='user.cen@test.fr',
+    )
+    if locale.status_code != 200 or distante.status_code != 200:
+        raise EchecDuBanc(
+            f"Arborescence indisponible : RNF {locale.status_code}, "
+            f"CEN (distant) {distante.status_code}"
+        )
+    locale, distante = locale.json(), distante.json()
+    if not locale.get('acces_exploration') or not distante.get('acces_exploration'):
+        raise EchecDuBanc("Les deux lectures devraient être des lectures d'exploration")
+
+    def cles(donnees, acc):
+        if isinstance(donnees, dict):
+            for cle, valeur in donnees.items():
+                acc.add(cle); cles(valeur, acc)
+        elif isinstance(donnees, list):
+            for element in donnees:
+                cles(element, acc)
+        return acc
+
+    interdits = ('budget', 'cout', 'etp', 'poste', 'jours', 'mesure', 'realis',
+                 'utilisateur', 'createur', 'referent', 'membre', 'fichier')
+    fuites = sorted(
+        cle for cle in cles(distante, set())
+        if any(f in cle.lower() for f in interdits)
+        and cle not in ('geo_documents', 'id_referentiel_operations')  # faux positifs connus
+    )
+    if fuites:
+        raise EchecDuBanc(f"Données de gestion dans l'instantané distant : {fuites}")
+
+    libelles = lambda r: [e['libelle'] for e in r.get('enjeux') or []]  # noqa: E731
+    if libelles(locale) != libelles(distante):
+        raise EchecDuBanc("L'arborescence distante diverge de la locale")
+    if distante.get('plan_slug') != f'rnf:{slug}':
+        raise EchecDuBanc("Le slug servi doit être la référence « rnf:<slug> »")
+    return f"arborescence « {slug} » identique des deux côtés ({len(libelles(locale))} enjeux), sans fuite"
+
+
 GROUPES = [
     ("Contrat entre les deux projets", [
         cas_contrat_la_charge_utile_passe_la_validation_du_hub,
@@ -755,6 +825,7 @@ GROUPES = [
         cas_parite_local_et_hub_repondent_pareil,
         cas_parite_les_compteurs_d_onglets_concordent,
         cas_parite_la_fiche_distante_vaut_la_locale,
+        cas_parite_les_ecrans_distants_valent_les_locaux_elagues,
     ]),
 ]
 

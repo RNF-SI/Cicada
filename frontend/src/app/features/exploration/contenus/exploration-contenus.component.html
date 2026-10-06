@@ -325,9 +325,13 @@
                   <i class="fi" [class.fi-rr-sitemap]="cible.cible === 'arborescence'"
                      [class.fi-rr-document]="cible.cible === 'ficheAction'"
                      [class.fi-rr-dashboard]="cible.cible === 'plan'"
-                     [class.fi-rr-globe]="cible.cible === 'fichePublique'"
                      aria-hidden="true"></i>
                   {{ 'exploration.results.ouvre.' + cible.cible | translate }}
+                  @if (cible.distant) {
+                    <span class="exploration-tuile-ouvre-distant">
+                      {{ 'exploration.results.ouvre.distant' | translate }}
+                    </span>
+                  }
                 </p>
               </div>
 

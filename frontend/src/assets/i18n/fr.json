@@ -1835,7 +1835,8 @@
       "explorationBanner": {
         "title": "Consultation via l'exploration des données",
         "text": "Ce plan de gestion validé appartient à une autre structure. Vous en consultez la structure en lecture seule : le budget, les moyens humains, les mesures d'indicateurs, le suivi des réalisations, les documents et les personnes ne sont pas partagés.",
-        "back": "Retour à l'exploration"
+        "back": "Retour à l'exploration",
+        "provenance": "Instantané publié par {{structure}} le {{date}} : il reflète l'état du plan à cette date."
       }
     },
     "detail": {
@@ -3478,7 +3479,7 @@
         "arborescence": "Ouvre l'arborescence du plan sur cet élément",
         "ficheAction": "Ouvre la fiche action",
         "plan": "Ouvre la page du plan de gestion",
-        "fichePublique": "Ouvre la fiche publique (instantané publié par la structure)"
+        "distant": "— instantané publié par la structure d'origine"
       }
     },
     "stats": {

@@ -60,6 +60,42 @@ def _apply_metrique_grid(metrique, data):
         metrique.save()
 
 
+def operations_du_plan(plan, queryset):
+    """Opérations d'un plan, par métrique ou par indicateur (cf. `_operations_of_plan`)."""
+    return queryset.filter(
+        Q(metriques__id_indicateur__id_ne__id_olt__id_enjeu__id_pg=plan) |
+        Q(metriques__id_indicateur__id_resultat_attendu__id_oo__pressions__id_facteur_influence__enjeux__id_pg=plan) |
+        # #367 — actions rattachées directement à un indicateur (sans métrique)
+        Q(id_indicateur__id_ne__id_olt__id_enjeu__id_pg=plan) |
+        Q(id_indicateur__id_resultat_attendu__id_oo__pressions__id_facteur_influence__enjeux__id_pg=plan)
+    ).distinct()
+
+
+def payload_operations_du_plan(plan, operations):
+    """
+    Réponse de `operations/by-plan/{id}` — les actions groupées par type.
+
+    Partagée entre la vue et la publication vers le hub (`apps.search.ecrans`,
+    #683), pour que la page d'un plan distant lise la même forme que l'API
+    locale.
+    """
+    grouped = defaultdict(list)
+    for op in operations:
+        key = op.id_type_action.label if op.id_type_action else 'Autre'
+        grouped[key].append(OperationListSerializer(op).data)
+
+    groups = [
+        {'type_action': key, 'operations': ops, 'count': len(ops)}
+        for key, ops in sorted(grouped.items())
+    ]
+    return {
+        'plan_id': plan.pk,
+        'plan_nom': plan.nom,
+        'groups': groups,
+        'total': operations.count(),
+    }
+
+
 class OperationViewSet(LectureExplorationMixin, viewsets.ModelViewSet):
     """
     ViewSet pour les Opérations (Actions).
@@ -235,13 +271,7 @@ class OperationViewSet(LectureExplorationMixin, viewsets.ModelViewSet):
         ORM OR-és) ferait exploser la requête sans rien filtrer de plus — cf.
         `RealisationOperationAnneeViewSet._plan_realisations()`.
         """
-        return self.queryset.filter(
-            Q(metriques__id_indicateur__id_ne__id_olt__id_enjeu__id_pg=plan) |
-            Q(metriques__id_indicateur__id_resultat_attendu__id_oo__pressions__id_facteur_influence__enjeux__id_pg=plan) |
-            # #367 — actions rattachées directement à un indicateur (sans métrique)
-            Q(id_indicateur__id_ne__id_olt__id_enjeu__id_pg=plan) |
-            Q(id_indicateur__id_resultat_attendu__id_oo__pressions__id_facteur_influence__enjeux__id_pg=plan)
-        ).distinct()
+        return operations_du_plan(plan, self.queryset)
 
     @action(detail=False, methods=['get'], url_path=r'ventilation-defaults/(?P<plan_id>\d+)')
     def ventilation_defaults(self, request, plan_id=None):
@@ -279,24 +309,7 @@ class OperationViewSet(LectureExplorationMixin, viewsets.ModelViewSet):
         plan = get_object_or_404(PlanGestion, id_pg=plan_id)
         assert_plan_access(request.user, plan, exploration=self.lecture_exploration())
         self.ancrer(plan)
-        operations = self._operations_of_plan(plan)
-
-        grouped = defaultdict(list)
-        for op in operations:
-            key = op.id_type_action.label if op.id_type_action else 'Autre'
-            grouped[key].append(OperationListSerializer(op).data)
-
-        groups = [
-            {'type_action': key, 'operations': ops, 'count': len(ops)}
-            for key, ops in sorted(grouped.items())
-        ]
-
-        return Response({
-            'plan_id': int(plan_id),
-            'plan_nom': plan.nom,
-            'groups': groups,
-            'total': operations.count()
-        })
+        return Response(payload_operations_du_plan(plan, self._operations_of_plan(plan)))
 
     @action(detail=True, methods=['get'], url_path='export-fiche-xlsx')
     def export_fiche_xlsx(self, request, pk=None):

@@ -126,6 +126,10 @@ class PlanPublieSerializer(serializers.Serializer):
     # donc à devoir le suivre à chaque évolution — exactement ce que
     # l'instantané JSON permet d'éviter.
     fiche = serializers.DictField(required=False)
+    # #683 — même statut que la fiche : un instantané rendu par l'instance,
+    # stocké et resservi sans être inspecté. Optionnel : une instance
+    # antérieure ne l'envoie pas.
+    ecrans = serializers.DictField(required=False)
 
     contenus = ContenuSerializer(many=True, required=False)
 

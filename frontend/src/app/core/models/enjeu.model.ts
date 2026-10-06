@@ -853,6 +853,10 @@ export interface Operation {
   libelle: string;
   /** #683 — Lecture d'exploration : programmation, RH, financement et réalisations retirés par l'API. */
   acces_exploration?: boolean;
+  /** #683 — Provenance d'un plan distant (instantané publié par une autre instance). */
+  instance_libelle?: string;
+  url_instance?: string;
+  date_publication?: string;
   /** #251 — Brouillon tant que la validation complète n'a pas été déclenchée. */
   statut?: OperationStatut;
   id_priorite?: number;
@@ -1248,6 +1252,10 @@ export interface PlanEnjeuxResponse {
   total_fcr: number;
   /** #683 — Lecture d'exploration : plan validé d'une autre structure, données sensibles retirées. */
   acces_exploration?: boolean;
+  /** #683 — Provenance d'un plan distant (instantané publié par une autre instance). */
+  instance_libelle?: string;
+  url_instance?: string;
+  date_publication?: string;
 }
 
 /**

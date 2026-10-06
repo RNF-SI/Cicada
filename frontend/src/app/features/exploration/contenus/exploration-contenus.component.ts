@@ -42,7 +42,9 @@ interface LienTuile {
   queryParams: Record<string, string>;
   fragment?: string;
   /** Clé de traduction du libellé « Ouvre : … » affiché sur la tuile. */
-  cible: 'arborescence' | 'ficheAction' | 'plan' | 'fichePublique';
+  cible: 'arborescence' | 'ficheAction' | 'plan';
+  /** Plan d'une autre instance : les écrans montrent l'instantané publié (#683). */
+  distant: boolean;
 }
 
 /** Un extrait à afficher sous la tuile : le champ qui a répondu, et le passage. */
@@ -175,12 +177,12 @@ export class ExplorationContenusComponent {
   /**
    * Où mène le clic sur une tuile (#683).
    *
-   * Vers l'**écran réel** du plan dès que celui-ci existe dans cette base :
-   * la fiche action pour une action, l'arborescence ouverte sur la branche
-   * et l'objet pour le reste. Un plan reçu d'une autre instance (#636) n'a
-   * pas d'écran ici : sa fiche publique — l'instantané déposé — reste le
-   * seul endroit où le montrer. Le mot cherché voyage dans `q` pour être
-   * surligné à l'arrivée.
+   * Toujours vers l'**écran réel** du plan : la fiche action pour une action,
+   * l'arborescence ouverte sur la branche et l'objet pour le reste. Un plan
+   * reçu d'une autre instance (#636) s'ouvre dans les mêmes écrans, désigné
+   * par sa référence « instance:slug » : leurs appels d'API sont alors
+   * redirigés vers l'instantané publié (`planDistantInterceptor`). Le mot
+   * cherché voyage dans `q` pour être surligné à l'arrivée.
    */
   protected lien(contenu: ExplorationContenu): LienTuile {
     const queryParams: Record<string, string> = {};
@@ -189,24 +191,18 @@ export class ExplorationContenusComponent {
       queryParams['q'] = termes;
     }
 
-    if (!contenu.acces_direct) {
-      return {
-        commands: ['/exploration/plans', referencePlan(contenu.plan)],
-        queryParams: { ...queryParams, focus: `${contenu.type_contenu}:${contenu.id_objet}` },
-        cible: 'fichePublique',
-      };
-    }
-
-    const slug = contenu.plan.slug;
+    const distant = !contenu.acces_direct;
+    const slug = distant ? referencePlan(contenu.plan) : contenu.plan.slug;
     if (contenu.type_contenu === 'action') {
       return {
         commands: ['/plans', slug, 'enjeux', 'operations', contenu.id_objet, 'fiche'],
         queryParams,
         cible: 'ficheAction',
+        distant,
       };
     }
     if (!contenu.enjeu_slug) {
-      return { commands: ['/plans', slug], queryParams, cible: 'plan' };
+      return { commands: ['/plans', slug], queryParams, cible: 'plan', distant };
     }
     const fragment = FRAGMENT_PAR_TYPE[contenu.type_contenu];
     return {
@@ -214,6 +210,7 @@ export class ExplorationContenusComponent {
       queryParams,
       fragment: fragment ? `${fragment}-${contenu.id_objet}` : undefined,
       cible: 'arborescence',
+      distant,
     };
   }
 

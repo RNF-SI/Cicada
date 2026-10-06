@@ -450,6 +450,10 @@ export interface AdminPlan {
   nom: string;
   /** #683 — Lecture d'exploration : plan validé d'une autre structure, données sensibles retirées. */
   acces_exploration?: boolean;
+  /** #683 — Provenance d'un plan distant (instantané publié par une autre instance). */
+  instance_libelle?: string;
+  url_instance?: string;
+  date_publication?: string;
   slug?: string;
   id_cdr?: number;
   rang?: number;

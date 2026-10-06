@@ -59,6 +59,12 @@ export class OperationFicheComponent implements OnInit {
 
   /** #681 — Mot cherché dans l'exploration (`?q=`), surligné sur la fiche. */
   motCleSurligne = signal('');
+
+  /** #683 — Action d'un plan distant : qui l'a publiée, et quand. */
+  provenanceDistante = computed(() => {
+    const op = this.operation();
+    return op?.instance_libelle ? op : null;
+  });
   isLoading = signal(true);
   errorMessage = signal<string | null>(null);
   planSlug = signal<string | null>(null);

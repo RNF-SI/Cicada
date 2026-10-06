@@ -39,6 +39,7 @@ import logging
 
 from django.conf import settings
 
+from .ecrans import ecrans_du_plan
 from .fiche import construire_fiche
 from .indexing import INDEX_VERSION, INDEXED_STATUSES, facettes_du_plan
 from .models import ContenuIndexe
@@ -199,5 +200,8 @@ def charge_utile(plan, avec_fiche=True):
 
     if avec_fiche:
         charge['fiche'] = FichePubliqueSerializer(construire_fiche(plan)).data
+        # #683 — les écrans réels du plan, élagués, pour qu'un plan distant
+        # s'ouvre dans les mêmes pages qu'un plan local (cf. `ecrans.py`).
+        charge['ecrans'] = ecrans_du_plan(plan)
 
     return charge

@@ -400,6 +400,15 @@ class PlanIndexe(models.Model):
             "stocké tel quel et resservi tel quel."
         ),
     )
+    ecrans = models.JSONField(
+        _("Écrans réels publiés"), default=dict, blank=True,
+        help_text=_(
+            "Réponses d'API des écrans réels du plan (page, arborescence, "
+            "fiches action), élaguées des données sensibles par l'instance "
+            "émettrice (#683). Stockées telles quelles, resservies telles "
+            "quelles : le hub n'en lit rien."
+        ),
+    )
     format_version = models.PositiveSmallIntegerField(
         _("Version du format d'échange"), default=0,
         help_text=_(
