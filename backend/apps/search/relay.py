@@ -107,7 +107,28 @@ def relayer(chemin, params=None):
             status=status.HTTP_502_BAD_GATEWAY,
         )
 
-    return Response(corps, status=reponse.status_code)
+    return Response(marquer_acces_direct(corps), status=reponse.status_code)
+
+
+def marquer_acces_direct(corps):
+    """
+    Dit, sur chaque tuile relayée, si ses écrans réels s'ouvrent **ici** (#683).
+
+    C'est la seule retouche faite à une réponse du hub, et le hub ne peut pas
+    la faire lui-même : il ne sait pas *qui* le lit. Un résultat produit par
+    cette instance a son plan dans cette base — la page du plan, l'arborescence
+    et la fiche action s'ouvrent. Un résultat d'une autre instance n'a ici que
+    sa fiche publique, l'instantané déposé.
+    """
+    resultats = corps.get('results') if isinstance(corps, dict) else None
+    if not isinstance(resultats, list):
+        return corps
+    for tuile in resultats:
+        if isinstance(tuile, dict) and 'acces_direct' in tuile:
+            tuile['acces_direct'] = (
+                tuile.get('instance_id') == settings.CICADA_INSTANCE_ID
+            )
+    return corps
 
 
 def reference_plan(identifiant):

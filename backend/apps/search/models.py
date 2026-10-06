@@ -27,13 +27,17 @@ elles ne peuvent pas diverger du texte indexé, et aucune étape Python ne peut
   géologique ou une référence PressRef doit remonter les objets qui les portent
   sans avoir à élargir la recherche : ce sont des rattachements explicites, pas
   du texte de contexte.
-- ``search_full`` : idem + description (poids B) + contexte (poids C, libellés
-  des objets ancêtres) — mode élargi, qui fait par exemple ressortir un
-  indicateur dont l'objectif parent porte le mot cherché.
+- ``search_description``, ``search_contexte`` (libellés des ancêtres) et
+  ``search_enfants`` (libellés des descendants) : un vecteur par **axe de
+  portée** (#681). L'utilisateur coche « aussi dans les descriptions », « dans
+  les éléments parents », « dans les éléments enfants » indépendamment ;
+- ``search_full`` : la réunion de tous — c'est lui qui porte l'index GIN
+  servant toute portée élargie, les axes étant ensuite revérifiés exactement.
 
-La frontière entre les deux modes n'est donc pas « titre / reste » mais
-« ce que l'objet **est et porte** » d'un côté, « ce que ses parents disent »
-de l'autre.
+La frontière de base n'est donc pas « titre / reste » mais « ce que l'objet
+**est et porte** » d'un côté, « ce que ses parents ou ses enfants disent » de
+l'autre. Le chemin d'ascendance (``chemin``) permet d'afficher l'arborescence
+qui mène à l'objet retrouvé et de surligner le maillon qui a répondu (#682).
 """
 
 from django.contrib.postgres.fields import ArrayField
@@ -151,7 +155,20 @@ class ContenuIndexe(models.Model):
         blank=True,
         default='',
         help_text=_(
-            "Libellés des objets ancêtres. Interrogé uniquement en mode élargi."
+            "Libellés des objets ancêtres. Interrogé seulement si la portée "
+            "« éléments parents » est cochée."
+        ),
+    )
+    enfants = models.TextField(
+        _("Descendance"),
+        blank=True,
+        default='',
+        help_text=_(
+            "Libellés des objets descendants (#682) : un enjeu porte ici ses "
+            "objectifs, indicateurs, métriques et actions. Interrogé seulement "
+            "si la portée « éléments enfants » est cochée — c'est ce qui fait "
+            "ressortir un enjeu quand c'est l'un de ses objectifs qui porte le "
+            "mot cherché."
         ),
     )
 
@@ -168,6 +185,26 @@ class ContenuIndexe(models.Model):
     )
     parent_libelle = models.CharField(
         _("Libellé du parent"), max_length=500, null=True, blank=True,
+    )
+    chemin = models.JSONField(
+        _("Ascendance"),
+        default=list, blank=True,
+        help_text=_(
+            "Ancêtres de l'objet, de l'enjeu jusqu'au parent direct, sous la "
+            "forme [{type, id, libelle}] (#682). C'est ce qui permet à une tuile "
+            "de résultat de montrer l'arborescence qui mène à l'objet retrouvé — "
+            "et, en mode élargi, de désigner l'ancêtre dont le libellé a "
+            "répondu. `parent_type` / `parent_libelle` en sont le dernier "
+            "maillon, conservés pour les lecteurs qui ne connaissent pas cette "
+            "colonne."
+        ),
+    )
+    enjeu_slug = models.CharField(
+        _("Slug de l'enjeu de la branche"), max_length=255, null=True, blank=True,
+        help_text=_(
+            "Slug de l'enjeu dont l'objet descend (le sien pour un enjeu). Sert "
+            "à ouvrir l'arborescence réelle du plan sur la bonne branche (#683)."
+        ),
     )
     sous_type = models.CharField(
         _("Sous-type"), max_length=50, null=True, blank=True,
@@ -226,12 +263,36 @@ class ContenuIndexe(models.Model):
         db_persist=True,
         verbose_name=_("Vecteur — libellé et objets rattachés"),
     )
+    # Un vecteur par axe de portée (#681). Ils ne portent pas d'index GIN :
+    # une portée intermédiaire (« aussi dans les descriptions », sans les
+    # parents) est servie par l'index de `search_full`, qui en est un
+    # sur-ensemble, puis revérifiée exactement sur ces colonnes — cf.
+    # `filters.vecteur_de_portee`.
+    search_description = models.GeneratedField(
+        expression=SearchVector('description', weight='B', config=SEARCH_CONFIG),
+        output_field=SearchVectorField(),
+        db_persist=True,
+        verbose_name=_("Vecteur — description"),
+    )
+    search_contexte = models.GeneratedField(
+        expression=SearchVector('contexte', weight='C', config=SEARCH_CONFIG),
+        output_field=SearchVectorField(),
+        db_persist=True,
+        verbose_name=_("Vecteur — éléments parents"),
+    )
+    search_enfants = models.GeneratedField(
+        expression=SearchVector('enfants', weight='C', config=SEARCH_CONFIG),
+        output_field=SearchVectorField(),
+        db_persist=True,
+        verbose_name=_("Vecteur — éléments enfants"),
+    )
     search_full = models.GeneratedField(
         expression=(
             SearchVector('titre', weight='A', config=SEARCH_CONFIG)
             + SearchVector('rattachements', weight='B', config=SEARCH_CONFIG)
             + SearchVector('description', weight='B', config=SEARCH_CONFIG)
             + SearchVector('contexte', weight='C', config=SEARCH_CONFIG)
+            + SearchVector('enfants', weight='C', config=SEARCH_CONFIG)
         ),
         output_field=SearchVectorField(),
         db_persist=True,

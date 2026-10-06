@@ -61,8 +61,9 @@ FORMATS_ACCEPTES = {1}
 #: Champs d'un document de contenu repris tels quels.
 CHAMPS_CONTENU = [
     'type_contenu', 'id_objet',
-    'titre', 'description', 'rattachements', 'contexte',
-    'parent_type', 'parent_libelle', 'sous_type', 'sous_type_libelle',
+    'titre', 'description', 'rattachements', 'contexte', 'enfants',
+    'parent_type', 'parent_libelle', 'chemin', 'enjeu_slug',
+    'sous_type', 'sous_type_libelle',
     'index_version',
 ]
 

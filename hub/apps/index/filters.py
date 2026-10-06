@@ -15,9 +15,9 @@ mode.
 import datetime
 
 from django.contrib.postgres.search import (
-    SearchHeadline, SearchQuery, SearchRank, SearchVector,
+    SearchHeadline, SearchQuery, SearchRank, SearchVector, SearchVectorField,
 )
-from django.db.models import BooleanField, Case, F, Q, Value, When
+from django.db.models import BooleanField, Case, F, Func, Q, Value, When
 
 from apps.geo.models import LArea
 
@@ -142,7 +142,81 @@ def appliquer_facettes(queryset, params, champ_statut):
 # Mode « contenu d'un plan de gestion »
 # --------------------------------------------------------------------------- #
 
-def _avec_mot_cle(queryset, mot_cle, champ, requete, info=None):
+# --------------------------------------------------------------------------- #
+# Portée de la recherche (#681 / #686)
+# --------------------------------------------------------------------------- #
+
+#: Les trois axes que l'utilisateur peut cocher en plus de l'objet lui-même
+#: (libellé + objets rattachés, toujours interrogés).
+PORTEE_DESCRIPTION = 'description'
+PORTEE_PARENTS = 'parents'
+PORTEE_ENFANTS = 'enfants'
+PORTEES = (PORTEE_DESCRIPTION, PORTEE_PARENTS, PORTEE_ENFANTS)
+
+#: Colonne de texte et vecteur généré correspondant à chaque axe.
+CHAMP_PAR_PORTEE = {
+    PORTEE_DESCRIPTION: 'description',
+    PORTEE_PARENTS: 'contexte',
+    PORTEE_ENFANTS: 'enfants',
+}
+VECTEUR_PAR_PORTEE = {
+    PORTEE_DESCRIPTION: 'search_description',
+    PORTEE_PARENTS: 'search_contexte',
+    PORTEE_ENFANTS: 'search_enfants',
+}
+
+
+def portees(params):
+    """
+    Axes de portée demandés, sous forme d'ensemble (vide = l'objet seul).
+
+    Le paramètre historique ``titres_seulement`` reste compris : ``false``
+    valait « tout élargir », c'est-à-dire les trois axes. Une URL de recherche
+    est faite pour être partagée, celles déjà envoyées doivent encore marcher.
+    """
+    valeurs = {v for v in liste(params, 'portee') if v in PORTEES}
+    if valeurs:
+        return valeurs
+    if params.get('titres_seulement') is not None and not booleen(
+        params, 'titres_seulement', defaut=True
+    ):
+        return set(PORTEES)
+    return set()
+
+
+class _Concat(Func):
+    """``a || b || c`` sur des tsvector."""
+
+    arg_joiner = ' || '
+    template = '(%(expressions)s)'
+    output_field = SearchVectorField()
+
+
+def vecteur_de_portee(portee):
+    """
+    (expression du vecteur interrogé, nom de l'index GIN qui le couvre).
+
+    Trois cas :
+
+    - aucun axe → ``search_titre``, qui porte son propre index ;
+    - tous les axes → ``search_full``, idem ;
+    - une combinaison intermédiaire → la concaténation des vecteurs concernés,
+      qui n'a pas d'index : on filtre d'abord sur ``search_full`` (sur-ensemble
+      indexé), puis on revérifie exactement sur la concaténation. Un index par
+      combinaison (huit) coûterait des centaines de Mo pour le volume visé sans
+      rien apporter de plus.
+    """
+    if not portee:
+        return F('search_titre'), 'search_titre'
+    if set(portee) >= set(PORTEES):
+        return F('search_full'), 'search_full'
+    vecteurs = [F('search_titre')] + [
+        F(VECTEUR_PAR_PORTEE[axe]) for axe in PORTEES if axe in portee
+    ]
+    return _Concat(*vecteurs), 'search_full'
+
+
+def _avec_mot_cle(queryset, mot_cle, portee, requete, info=None):
     """
     Recherche plein texte, avec repli approximatif **seulement si elle ne rend rien**.
 
@@ -168,7 +242,12 @@ def _avec_mot_cle(queryset, mot_cle, champ, requete, info=None):
         que l'interface puisse dire à l'utilisateur qu'aucun résultat exact
         n'existe — sans quoi il croirait avoir trouvé ce qu'il cherchait.
     """
-    exact = queryset.filter(**{champ: requete})
+    vecteur, index = vecteur_de_portee(portee)
+    exact = queryset.filter(**{index: requete})
+    if not isinstance(vecteur, F):
+        # Combinaison intermédiaire : l'index a donné les candidats, on
+        # revérifie sur les seuls axes demandés.
+        exact = exact.annotate(vecteur_portee=vecteur).filter(vecteur_portee=requete)
 
     # Décidé AVANT les facettes, volontairement : si le mot-clé correspond mais
     # qu'une facette exclut tout, la bonne réponse est « aucun résultat », pas
@@ -176,14 +255,22 @@ def _avec_mot_cle(queryset, mot_cle, champ, requete, info=None):
     if exact.exists():
         if info is not None:
             info['approximatif'] = False
-        return exact.annotate(pertinence=SearchRank(F(champ), requete))
+        return exact.annotate(pertinence=SearchRank(vecteur, requete))
 
     if info is not None:
         info['approximatif'] = True
-    return queryset.filter(
+    approchant = (
         Q(titre__trigram_word_similar=mot_cle)
         | Q(rattachements__trigram_word_similar=mot_cle)
-    ).annotate(pertinence=SearchRank(F(champ), requete))
+    )
+    if PORTEE_ENFANTS in portee:
+        # Les libellés des enfants sont courts comme un titre : la similarité y
+        # a un sens. Pas sur la description ni le contexte, blocs longs où elle
+        # ne ferait que du bruit.
+        approchant |= Q(enfants__trigram_word_similar=mot_cle)
+    return queryset.filter(approchant).annotate(
+        pertinence=SearchRank(vecteur, requete)
+    )
 
 
 def filtrer_contenus(queryset, params, info=None):
@@ -198,12 +285,10 @@ def filtrer_contenus(queryset, params, info=None):
         (cf. :func:`_avec_mot_cle`).
     """
     mot_cle = (params.get('q') or '').strip()
-    titres_seulement = booleen(params, 'titres_seulement', defaut=True)
 
     if mot_cle:
-        champ = 'search_titre' if titres_seulement else 'search_full'
         requete = SearchQuery(mot_cle, config=SEARCH_CONFIG, search_type='websearch')
-        queryset = _avec_mot_cle(queryset, mot_cle, champ, requete, info)
+        queryset = _avec_mot_cle(queryset, mot_cle, portees(params), requete, info)
 
     types = liste(params, 'types')
     if types:
@@ -237,29 +322,46 @@ def q_sous_types(params):
     return scope | ~Q(type_contenu__in=types_raffines)
 
 
-#: Champs interrogés, dans l'ordre où on les présente à l'utilisateur.
-#: `contexte` (libellés des ancêtres) n'est lu qu'en mode élargi.
-CHAMPS_CORRESPONDANCE = ('titre', 'rattachements', 'description', 'contexte')
+#: Champs interrogés, dans l'ordre où on les présente à l'utilisateur. Les deux
+#: premiers le sont toujours ; les autres selon la portée cochée.
+CHAMPS_CORRESPONDANCE = ('titre', 'rattachements', 'description', 'contexte', 'enfants')
+
+#: Champs dont on renvoie un extrait découpé autour de la correspondance. Le
+#: titre n'en a pas besoin : il est affiché entier et surligné tel quel.
+CHAMPS_EXTRAITS = ('rattachements', 'description', 'contexte', 'enfants')
+
+
+def champs_interroges(portee):
+    """Champs réellement interrogés pour une portée donnée."""
+    return ('titre', 'rattachements') + tuple(
+        CHAMP_PAR_PORTEE[axe] for axe in PORTEES if axe in portee
+    )
 
 
 def annoter_correspondances(queryset, params, approximatif=False):
     """
-    Dit, pour chaque résultat, **quel champ a répondu** (#650).
+    Dit, pour chaque résultat, **quel champ a répondu** et **où** (#650, #681).
 
     « Pour "fleur" on ne sait pas si c'est lié au mot, ou bien si une des
     espèces est une fleur. » Le problème est réel et propre à cet index : les
-    objets rattachés — espèces, habitats, protocoles — sont interrogés mais
-    **jamais affichés**. Une tuile dont le titre n'a aucun rapport visible avec
-    la requête paraît donc arbitraire, alors qu'elle est parfaitement pertinente.
+    objets rattachés — espèces, habitats, protocoles —, la description, les
+    libellés des parents et des enfants sont interrogés mais **pas affichés**
+    sur la tuile. Un résultat dont le titre n'a aucun rapport visible avec la
+    requête paraît donc arbitraire, alors qu'il est pertinent.
 
-    On annote donc un booléen par champ, plus un extrait des rattachements
-    découpé par `ts_headline` autour de la correspondance : c'est la seule
-    façon d'isoler l'élément qui a répondu, le champ étant un bloc de texte sans
-    séparateur.
+    On annote donc un booléen par champ interrogé, plus un extrait découpé par
+    `ts_headline` autour de la correspondance pour chaque champ qui n'est pas
+    le titre : c'est la seule façon d'isoler le passage qui a répondu, ces
+    champs étant des blocs de texte sans séparateur. « Il ne doit pas y avoir
+    de résultat dont on ne comprenne pas pourquoi il est ressorti » (#681).
 
-    L'extrait est renvoyé **sans balisage** : le surlignage est fait côté
+    Les extraits sont renvoyés **sans balisage** : le surlignage est fait côté
     interface, sur des segments de texte, ce qui évite d'injecter du HTML venu
     de la base.
+
+    Seuls les champs de la portée demandée sont annotés : annoncer une
+    correspondance sur la description quand elle n'était pas interrogée serait
+    un mensonge.
 
     À appeler **après** le calcul des compteurs d'onglets : ces annotations
     entreraient sinon dans le `GROUP BY` et fausseraient les totaux.
@@ -268,10 +370,7 @@ def annoter_correspondances(queryset, params, approximatif=False):
     if not mot_cle:
         return queryset
 
-    titres_seulement = booleen(params, 'titres_seulement', defaut=True)
-    # Le mode restreint n'interroge que le libellé et les objets rattachés :
-    # annoncer une correspondance sur la description y serait un mensonge.
-    champs = ('titre', 'rattachements') if titres_seulement else CHAMPS_CORRESPONDANCE
+    champs = champs_interroges(portees(params))
     requete = SearchQuery(mot_cle, config=SEARCH_CONFIG, search_type='websearch')
 
     for champ in champs:
@@ -290,14 +389,18 @@ def annoter_correspondances(queryset, params, approximatif=False):
                 output_field=BooleanField(),
             )
         })
+        if champ in CHAMPS_EXTRAITS and not approximatif:
+            # En repli, `ts_headline` ne trouverait rien : l'extrait est alors
+            # construit côté sérialiseur autour du mot le plus proche.
+            queryset = queryset.annotate(**{
+                f'extrait_{champ}': SearchHeadline(
+                    champ, requete, config=SEARCH_CONFIG,
+                    start_sel='', stop_sel='', max_words=14, min_words=5,
+                    highlight_all=False,
+                )
+            })
 
-    return queryset.annotate(
-        extrait_rattachements=SearchHeadline(
-            'rattachements', requete, config=SEARCH_CONFIG,
-            start_sel='', stop_sel='', max_words=14, min_words=5,
-            highlight_all=False,
-        )
-    )
+    return queryset
 
 
 def trier_contenus(queryset, params):

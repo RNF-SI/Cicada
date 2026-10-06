@@ -54,8 +54,9 @@ FORMAT_VERSION = 1
 #: de recherche, qui sont des colonnes générées recalculées à l'arrivée.
 CHAMPS_CONTENU = [
     'type_contenu', 'id_objet',
-    'titre', 'description', 'rattachements', 'contexte',
-    'parent_type', 'parent_libelle', 'sous_type', 'sous_type_libelle',
+    'titre', 'description', 'rattachements', 'contexte', 'enfants',
+    'parent_type', 'parent_libelle', 'chemin', 'enjeu_slug',
+    'sous_type', 'sous_type_libelle',
 ]
 
 

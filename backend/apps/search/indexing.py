@@ -51,8 +51,25 @@ INDEXED_STATUSES = PlanGestion.VALIDATED_STATUSES
 #:
 #: Historique : 1 = version initiale, 2 = #634 (rattachements espèces /
 #: protocoles / habitats / géologie / PressRef + héritage de l'enjeu par les
-#: actions).
-INDEX_VERSION = 2
+#: actions), 3 = #681/#682 (ascendance `chemin`, `enjeu_slug`, descendance
+#: `enfants`).
+INDEX_VERSION = 3
+
+
+def _maillon(type_contenu, objet, libelle=None):
+    """Un maillon de l'ascendance d'un objet (cf. ``ContenuIndexe.chemin``)."""
+    return {
+        'type': type_contenu,
+        'id': objet.pk,
+        'libelle': libelle if libelle is not None else objet.libelle,
+    }
+
+
+#: Types d'ascendance qui ne sont pas eux-mêmes explorables, mais que la tuile
+#: doit pouvoir montrer : un indicateur pend d'un niveau d'exigence ou d'un
+#: résultat attendu, et l'arborescence réelle les affiche.
+TYPE_NIVEAU_EXIGENCE = 'niveau_exigence'
+TYPE_RESULTAT_ATTENDU = 'resultat_attendu'
 
 
 def _texte(*parts):
@@ -165,6 +182,11 @@ class _Branche:
     def __init__(self):
         self.enjeux = {}
         self.enjeu_par_indicateur = {}
+        # Ascendance (chemin, slug d'enjeu) des objets intermédiaires, pour que
+        # leurs descendants la prolongent sans la recalculer (#682).
+        self.facteurs = {}
+        self.pressions = {}
+        self.indicateurs = {}
 
 
 def _protocole_texte(protocole):
@@ -175,6 +197,20 @@ def _protocole_texte(protocole):
 def _herite(branche, ids, cle):
     """Texte hérité (`contexte` ou `rattachements`) des enjeux donnés."""
     return _texte(*(branche.enjeux.get(id_enjeu, {}).get(cle, '') for id_enjeu in ids))
+
+
+def _racine(branche, id_enjeu):
+    """
+    Début d'ascendance et slug pour un objet rattaché à l'enjeu donné.
+
+    Un objet dont l'enjeu n'est pas dans la branche (lien orphelin, enjeu d'un
+    autre plan) part d'un chemin vide : la tuile le montrera sans arbre plutôt
+    que de pointer un enjeu qui n'existe pas dans ce plan.
+    """
+    enjeu = branche.enjeux.get(id_enjeu)
+    if not enjeu:
+        return [], None
+    return [enjeu['maillon']], enjeu['slug']
 
 
 # --------------------------------------------------------------------------- #
@@ -193,6 +229,8 @@ def _documents_enjeux(plan, facettes, branche):
         branche.enjeux[enjeu.pk] = {
             'contexte': enjeu.libelle,
             'rattachements': rattachements,
+            'slug': enjeu.slug,
+            'maillon': _maillon(ContenuIndexe.TYPE_ENJEU, enjeu),
         }
         documents.append(ContenuIndexe(
             type_contenu=ContenuIndexe.TYPE_ENJEU,
@@ -201,6 +239,8 @@ def _documents_enjeux(plan, facettes, branche):
             description=_texte(enjeu.description, enjeu.etat_enjeu),
             rattachements=rattachements,
             contexte=enjeu.intitule_court or '',
+            chemin=[],
+            enjeu_slug=enjeu.slug,
             sous_type=(
                 'ecologique' if enjeu.categorie_ecologique else 'socioeco'
             ),
@@ -222,6 +262,8 @@ def _documents_facteurs(plan, facettes, branche):
     for facteur in facteurs:
         enjeux = list(facteur.enjeux.all())
         parent = enjeux[0] if enjeux else None
+        chemin, slug = _racine(branche, parent.pk if parent else None)
+        branche.facteurs[facteur.pk] = (chemin, slug)
         documents.append(ContenuIndexe(
             type_contenu=ContenuIndexe.TYPE_FACTEUR,
             id_objet=facteur.pk,
@@ -231,6 +273,8 @@ def _documents_facteurs(plan, facettes, branche):
             contexte=_herite(branche, [e.pk for e in enjeux], 'contexte'),
             parent_type=ContenuIndexe.TYPE_ENJEU if parent else None,
             parent_libelle=parent.libelle if parent else None,
+            chemin=chemin,
+            enjeu_slug=slug,
             **facettes,
         ))
     return documents
@@ -247,6 +291,10 @@ def _documents_pressions(plan, facettes, branche):
     for pression in pressions:
         facteur = pression.id_facteur_influence
         enjeux = list(facteur.enjeux.all()) if facteur else []
+        chemin, slug = branche.facteurs.get(facteur.pk, ([], None)) if facteur else ([], None)
+        if facteur:
+            chemin = chemin + [_maillon(ContenuIndexe.TYPE_FACTEUR, facteur)]
+        branche.pressions[pression.pk] = (chemin, slug)
         documents.append(ContenuIndexe(
             type_contenu=ContenuIndexe.TYPE_PRESSION,
             id_objet=pression.pk,
@@ -266,6 +314,8 @@ def _documents_pressions(plan, facettes, branche):
             ),
             parent_type=ContenuIndexe.TYPE_FACTEUR if facteur else None,
             parent_libelle=facteur.libelle if facteur else None,
+            chemin=chemin,
+            enjeu_slug=slug,
             sous_type=(
                 pression.id_type_pression.mnemonique
                 if pression.id_type_pression_id else None
@@ -284,8 +334,10 @@ def _documents_objectifs_lt(plan, facettes, branche):
         ObjectifLongTerme.objects.filter(id_enjeu__id_pg=plan)
         .select_related('id_enjeu')
     )
-    return [
-        ContenuIndexe(
+    documents = []
+    for olt in objectifs:
+        chemin, slug = _racine(branche, olt.id_enjeu_id)
+        documents.append(ContenuIndexe(
             type_contenu=ContenuIndexe.TYPE_OBJECTIF_LT,
             id_objet=olt.pk,
             titre=olt.libelle,
@@ -294,10 +346,11 @@ def _documents_objectifs_lt(plan, facettes, branche):
             contexte=_herite(branche, [olt.id_enjeu_id], 'contexte'),
             parent_type=ContenuIndexe.TYPE_ENJEU,
             parent_libelle=olt.id_enjeu.libelle if olt.id_enjeu_id else None,
+            chemin=chemin,
+            enjeu_slug=slug,
             **facettes,
-        )
-        for olt in objectifs
-    ]
+        ))
+    return documents
 
 
 def _documents_objectifs_op(plan, facettes, branche):
@@ -310,23 +363,41 @@ def _documents_objectifs_op(plan, facettes, branche):
         .select_related('id_enjeu')
         .prefetch_related('pressions')
     )
-    return [
-        ContenuIndexe(
+    documents = []
+    for oo in objectifs:
+        pressions = list(oo.pressions.all())
+        if oo.id_enjeu_id:
+            chemin, slug = _racine(branche, oo.id_enjeu_id)
+        elif pressions:
+            # OO rattaché par une pression (vision opérationnelle) : son
+            # ascendance est celle de la pression, prolongée d'un maillon.
+            chemin, slug = branche.pressions.get(pressions[0].pk, ([], None))
+            chemin = chemin + [_maillon(ContenuIndexe.TYPE_PRESSION, pressions[0])]
+        else:
+            chemin, slug = [], None
+        # L'enjeu dont on hérite : le sien, ou celui en tête de l'ascendance
+        # quand l'OO n'est relié qu'à une pression.
+        enjeu_ids = [oo.id_enjeu_id] if oo.id_enjeu_id else [
+            maillon['id'] for maillon in chemin[:1]
+            if maillon['type'] == ContenuIndexe.TYPE_ENJEU
+        ]
+        documents.append(ContenuIndexe(
             type_contenu=ContenuIndexe.TYPE_OBJECTIF_OP,
             id_objet=oo.pk,
             titre=oo.libelle,
             description=oo.description or '',
-            rattachements=_herite(branche, [oo.id_enjeu_id], 'rattachements'),
+            rattachements=_herite(branche, enjeu_ids, 'rattachements'),
             contexte=_texte(
-                _herite(branche, [oo.id_enjeu_id], 'contexte'),
-                *(pression.libelle for pression in oo.pressions.all()),
+                _herite(branche, enjeu_ids, 'contexte'),
+                *(pression.libelle for pression in pressions),
             ),
             parent_type=ContenuIndexe.TYPE_ENJEU if oo.id_enjeu_id else None,
             parent_libelle=oo.id_enjeu.libelle if oo.id_enjeu_id else None,
+            chemin=chemin,
+            enjeu_slug=slug,
             **facettes,
-        )
-        for oo in objectifs
-    ]
+        ))
+    return documents
 
 
 def _documents_indicateurs(plan, facettes, branche):
@@ -350,16 +421,29 @@ def _documents_indicateurs(plan, facettes, branche):
             intermediaire = indicateur.id_ne
             objectif = intermediaire.id_olt
             parent_type = ContenuIndexe.TYPE_OBJECTIF_LT
+            type_intermediaire = TYPE_NIVEAU_EXIGENCE
             enjeu_id = objectif.id_enjeu_id if objectif else None
         elif indicateur.id_resultat_attendu_id:
             intermediaire = indicateur.id_resultat_attendu
             objectif = intermediaire.id_oo
             parent_type = ContenuIndexe.TYPE_OBJECTIF_OP
+            type_intermediaire = TYPE_RESULTAT_ATTENDU
             enjeu_id = objectif.id_enjeu_id if objectif else None
         else:
-            intermediaire = objectif = parent_type = enjeu_id = None
+            intermediaire = objectif = parent_type = type_intermediaire = enjeu_id = None
 
         branche.enjeu_par_indicateur[indicateur.pk] = enjeu_id
+
+        chemin, slug = _racine(branche, enjeu_id)
+        if objectif:
+            chemin = chemin + [_maillon(parent_type, objectif)]
+        if intermediaire:
+            chemin = chemin + [_maillon(type_intermediaire, intermediaire)]
+        branche.indicateurs[indicateur.pk] = (
+            chemin + [_maillon(ContenuIndexe.TYPE_INDICATEUR, indicateur,
+                               indicateur.nom_indicateur)],
+            slug,
+        )
 
         documents.append(ContenuIndexe(
             type_contenu=ContenuIndexe.TYPE_INDICATEUR,
@@ -380,6 +464,8 @@ def _documents_indicateurs(plan, facettes, branche):
             ),
             parent_type=parent_type,
             parent_libelle=objectif.libelle if objectif else None,
+            chemin=chemin,
+            enjeu_slug=slug,
             sous_type=(
                 indicateur.type_indicateur.mnemonique
                 if indicateur.type_indicateur_id else None
@@ -428,6 +514,14 @@ def _documents_actions(plan, facettes, branche):
             if id_indicateur is not None
         }
 
+        # L'ascendance affichée est celle du premier indicateur connu : une
+        # action peut servir plusieurs métriques, la tuile n'en montre qu'un
+        # chemin. Une action pendue d'un seul suivi n'a pas d'arbre.
+        chemin, slug = next(
+            (branche.indicateurs[i] for i in indicateurs if i in branche.indicateurs),
+            ([], None),
+        )
+
         documents.append(ContenuIndexe(
             type_contenu=ContenuIndexe.TYPE_ACTION,
             id_objet=operation.pk,
@@ -457,6 +551,8 @@ def _documents_actions(plan, facettes, branche):
             ),
             parent_type=parent_type,
             parent_libelle=parent,
+            chemin=chemin,
+            enjeu_slug=slug,
             sous_type=categorie.mnemonique if categorie else None,
             sous_type_libelle=(
                 f"{categorie.mnemonique} - {categorie.label}" if categorie else None
@@ -478,6 +574,31 @@ EXTRACTEURS = (
 )
 
 
+def _remplir_enfants(documents):
+    """
+    Seconde passe : donne à chaque objet les libellés de sa descendance (#682).
+
+    Elle se déduit des ascendances déjà posées — un objet dont le chemin passe
+    par X est un descendant de X. Les maillons intermédiaires non indexés
+    (niveau d'exigence, résultat attendu) comptent aussi comme descendants de ce
+    qui les précède : l'utilisateur les voit dans l'arborescence, il doit
+    pouvoir les chercher. Les métriques, qui ne sont pas des documents, sont
+    déjà dans le `contexte` de leur indicateur et redescendent avec son titre.
+    """
+    par_cle = {(d.type_contenu, d.id_objet): d for d in documents}
+    enfants = {cle: [] for cle in par_cle}
+    for document in documents:
+        chemin = document.chemin or []
+        for rang, maillon in enumerate(chemin):
+            cle = (maillon['type'], maillon['id'])
+            if cle not in enfants:
+                continue
+            enfants[cle] += [m['libelle'] for m in chemin[rang + 1:]]
+            enfants[cle].append(document.titre)
+    for cle, libelles in enfants.items():
+        par_cle[cle].enfants = _texte(*libelles)
+
+
 def construire_documents(plan):
     """Retourne toutes les lignes d'index d'un plan, sans rien écrire."""
     facettes = facettes_du_plan(plan)
@@ -485,6 +606,15 @@ def construire_documents(plan):
     documents = []
     for extracteur in EXTRACTEURS:
         documents += extracteur(plan, facettes, branche)
+    # La portée « éléments parents » doit couvrir **toute** l'ascendance
+    # affichée : chaque maillon du chemin entre dans le contexte, en plus de
+    # ce que l'extracteur y a mis (métriques, suivi, code…).
+    for document in documents:
+        document.contexte = _texte(
+            *(maillon['libelle'] for maillon in (document.chemin or [])),
+            document.contexte,
+        )
+    _remplir_enfants(documents)
     # Les deux estampilles sont posées ici plutôt que dans chacun des sept
     # extracteurs : un extracteur ajouté plus tard ne peut pas les oublier.
     # `index_version` permet de repérer un index resté à l'ancien format (#634),

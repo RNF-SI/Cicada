@@ -508,7 +508,15 @@ class ContenuIndexe(models.Model):
     contexte = models.TextField(
         _("Contexte"), blank=True, default='',
         help_text=_(
-            "Libellés des objets ancêtres. Interrogé uniquement en mode élargi."
+            "Libellés des objets ancêtres. Interrogé seulement si la portée "
+            "« éléments parents » est cochée."
+        ),
+    )
+    enfants = models.TextField(
+        _("Descendance"), blank=True, default='',
+        help_text=_(
+            "Libellés des objets descendants (#682). Interrogé seulement si la "
+            "portée « éléments enfants » est cochée."
         ),
     )
 
@@ -520,6 +528,16 @@ class ContenuIndexe(models.Model):
     )
     parent_libelle = models.CharField(
         _("Libellé du parent"), max_length=500, null=True, blank=True,
+    )
+    chemin = models.JSONField(
+        _("Ascendance"), default=list, blank=True,
+        help_text=_(
+            "Ancêtres de l'objet, de l'enjeu au parent direct, [{type, id, "
+            "libelle}] (#682) — tel que publié par l'instance."
+        ),
+    )
+    enjeu_slug = models.CharField(
+        _("Slug de l'enjeu de la branche"), max_length=255, null=True, blank=True,
     )
     sous_type = models.CharField(
         _("Sous-type"), max_length=50, null=True, blank=True,
@@ -572,12 +590,35 @@ class ContenuIndexe(models.Model):
         db_persist=True,
         verbose_name=_("Vecteur — libellé et objets rattachés"),
     )
+    # Un vecteur par axe de portée (#681), sans index : une portée
+    # intermédiaire est servie par l'index de `search_full` puis revérifiée
+    # exactement sur ces colonnes — même mécanique que CICADA
+    # (`filters.vecteur_de_portee`).
+    search_description = models.GeneratedField(
+        expression=SearchVector('description', weight='B', config=SEARCH_CONFIG),
+        output_field=SearchVectorField(),
+        db_persist=True,
+        verbose_name=_("Vecteur — description"),
+    )
+    search_contexte = models.GeneratedField(
+        expression=SearchVector('contexte', weight='C', config=SEARCH_CONFIG),
+        output_field=SearchVectorField(),
+        db_persist=True,
+        verbose_name=_("Vecteur — éléments parents"),
+    )
+    search_enfants = models.GeneratedField(
+        expression=SearchVector('enfants', weight='C', config=SEARCH_CONFIG),
+        output_field=SearchVectorField(),
+        db_persist=True,
+        verbose_name=_("Vecteur — éléments enfants"),
+    )
     search_full = models.GeneratedField(
         expression=(
             SearchVector('titre', weight='A', config=SEARCH_CONFIG)
             + SearchVector('rattachements', weight='B', config=SEARCH_CONFIG)
             + SearchVector('description', weight='B', config=SEARCH_CONFIG)
             + SearchVector('contexte', weight='C', config=SEARCH_CONFIG)
+            + SearchVector('enfants', weight='C', config=SEARCH_CONFIG)
         ),
         output_field=SearchVectorField(),
         db_persist=True,

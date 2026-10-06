@@ -121,28 +121,40 @@ pas.
 | Groupe | Colonnes | Rôle |
 |---|---|---|
 | Identité | `type_contenu`, `id_objet`, `id_pg` | Retrouver l'objet métier |
-| Texte | `titre`, `rattachements`, `description`, `contexte` | Ce qui est recherché |
-| Affichage | `parent_type`, `parent_libelle`, `sous_type`, `sous_type_libelle` | Tuile de résultat |
+| Texte | `titre`, `rattachements`, `description`, `contexte`, `enfants` | Ce qui est recherché |
+| Affichage | `chemin`, `enjeu_slug`, `parent_type`, `parent_libelle`, `sous_type`, `sous_type_libelle` | Tuile de résultat et lien vers l'écran réel |
 | Facettes | `statut_pg`, `annee_debut`, `annee_fin`, `annees_extension`, `site_ids`, `organisme_ids`, `type_site_codes`, `area_ids` | Filtres + compteurs |
-| Vecteurs | `search_titre`, `search_full` | Colonnes **générées** par PostgreSQL |
+| Vecteurs | `search_titre`, `search_description`, `search_contexte`, `search_enfants`, `search_full` | Colonnes **générées** par PostgreSQL |
 
 Seules les données nécessaires au **filtrage et aux compteurs** sont
 dénormalisées. Les libellés d'affichage (nom du plan, du site, du gestionnaire
 principal) sont joints à la volée : une page ne montre que 10 à 20 résultats, et
 une donnée jointe ne peut pas devenir obsolète.
 
-### Les deux vecteurs de recherche
+### Les vecteurs de recherche et la portée (#681 / #686)
 
 Ce sont des **colonnes générées** : elles ne peuvent pas diverger du texte
 indexé, et aucune étape Python ne peut être oubliée.
 
-- `search_titre` — libellés (poids A) **et objets rattachés** (poids B).
-  Alimente le mode « rechercher dans les titres uniquement », **activé par
-  défaut** dans l'interface.
-- `search_full` — idem + description (poids B) + contexte (poids C). Mode élargi.
+L'ancien interrupteur « rechercher dans les titres uniquement » était compris
+de travers (#686) : il mélangeait plusieurs axes. Il est remplacé par **trois
+axes indépendants**, que l'utilisateur coche dans la barre latérale
+(`?portee=description,parents,enfants`) :
 
-La frontière entre les deux modes n'est donc pas « titre / reste » mais
-**« ce que l'objet est et porte » / « ce que ses parents disent »** (#634).
+| Toujours interrogé | `search_titre` — libellé (poids A) **et objets rattachés** (poids B) : « ce que l'objet est et porte » |
+|---|---|
+| ☐ aussi dans les descriptions | `search_description` |
+| ☐ aussi dans les éléments parents | `search_contexte` — libellés de **toute** l'ascendance (enjeu, objectif, niveau d'exigence…) + métriques, suivi, code |
+| ☐ aussi dans les éléments enfants | `search_enfants` — libellés de toute la descendance (#682) : un enjeu ressort quand l'un de ses objectifs porte le mot |
+
+Seuls `search_titre` et `search_full` (la réunion de tout) portent un index
+GIN. Une combinaison intermédiaire est servie par l'index de `search_full`
+(sur-ensemble) puis **revérifiée exactement** sur la concaténation des
+vecteurs demandés (`filters.vecteur_de_portee`) : huit index, un par
+combinaison, coûteraient des centaines de Mo pour rien.
+
+`titres_seulement=false` reste compris comme « les trois axes » : une URL de
+recherche est faite pour être partagée.
 
 La configuration plein texte est `public.french_unaccent` : le dictionnaire
 `french` radicalise (`limicoles` → `limicol`) mais ne retire pas les accents, si
@@ -294,10 +306,49 @@ Ne sortent jamais de cet endpoint :
 `etp`, `poste`, `mesure`, `realisation`, `utilisateur`…). Ajouter un champ
 sensible à la fiche casse donc le test, même en le nichant profondément.
 
-Côté interface, une tuile de résultat mène à `/exploration/plans/<slug>` avec
-`?focus=<type>:<id>` : la fiche ouvre l'enjeu contenant l'objet trouvé et le
-souligne. Sans cela, arriver sur un plan de deux cents objets pour en retrouver
-un seul serait pénible.
+Côté interface, une tuile d'un plan **distant** (reçu par le hub, #636) mène à
+`/exploration/plans/<instance:slug>` avec `?focus=<type>:<id>&q=<mot>` : la
+fiche ouvre l'enjeu contenant l'objet trouvé, le souligne et surligne le mot.
+
+### Les écrans réels (#683)
+
+Pour un plan **de cette base**, une tuile n'ouvre plus la fiche publique mais
+l'**écran réel** du plan : la fiche action pour une action
+(`/plans/<slug>/enjeux/operations/<id>/fiche`), l'arborescence ouverte sur la
+branche et l'objet pour le reste (`/plans/<slug>/enjeux/<enjeu_slug>#olt-<id>`),
+la page du plan à défaut. Le mot cherché voyage dans `?q=` et y est surligné
+(`SurlignerDirective`). Chaque tuile dit ce que le clic ouvre (`acces_direct`,
+posé par l'instance — ou par son relais quand le hub répond, lui ne sachant pas
+qui le lit).
+
+Ces écrans s'ouvrent à tout utilisateur connecté pour un plan validé, grâce à
+la **lecture d'exploration** de `apps/plans/exploration.py` : le périmètre de
+lecture (#610) est élargi aux plans validés sur les seules actions de lecture
+d'un objet ou « par parent », et la réponse est **élaguée** de ses clés
+sensibles (`CLES_SENSIBLES` : mesures, réalisations, budget, RH, financement,
+fichiers, personnes) quand le lecteur n'est là que par l'exploration. Elle
+porte alors `acces_exploration: true`, ce qui fait masquer côté interface les
+entrées Suivis / Exports / Paramétrage, les sections Utilisateurs et Documents
+du plan, et Programmation / Réalisation de la fiche action. Les listes « à
+plat » et les ViewSets de suivi ne sont pas touchés ; les écritures restent
+soumises aux permissions habituelles. Verrouillé par
+`tests/apps/plans/test_lecture_exploration.py`.
+
+### Dire pourquoi un résultat est là (#650, #681, #682)
+
+Une tuile montre l'**arborescence** qui mène à l'objet retrouvé (`chemin`,
+de l'enjeu au parent direct — niveau d'exigence et résultat attendu compris,
+bien qu'ils ne soient pas explorables), l'objet lui-même mis en avant, et le
+mot surligné **partout où il apparaît** : titre, maillons de l'arbre, extraits.
+Pour chaque champ interrogé mais non affiché (espèce rattachée, description,
+contexte, enfant), l'API renvoie un **extrait** découpé par `ts_headline`
+autour de la correspondance (`extraits`), sans balisage — le surlignage se
+fait par segments côté interface, jamais par injection de HTML.
+
+En repli approximatif (#651), `ts_headline` ne trouve rien et le mot retenu
+n'est pas celui qui a été tapé : `surlignage.py` recalcule la similarité
+trigramme pour la page affichée et renvoie les mots à surligner
+(`termes_surlignes` : « flamand » → « Flamant »).
 
 ### Tolérance aux fautes de frappe
 

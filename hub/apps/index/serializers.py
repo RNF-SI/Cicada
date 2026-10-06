@@ -13,9 +13,10 @@ chose.
 
 from rest_framework import serializers
 
-from .filters import CHAMPS_CORRESPONDANCE
+from .filters import CHAMPS_CORRESPONDANCE, CHAMPS_EXTRAITS
 from .identites import identites
 from .models import ContenuIndexe, PlanIndexe
+from .surlignage import extrait_autour, mots_proches
 
 
 def contexte_provenance(plans):
@@ -93,7 +94,13 @@ class ContenuResultatSerializer(ProvenanceMixin, serializers.ModelSerializer):
     instance_libelle = serializers.SerializerMethodField()
 
     correspondances = serializers.SerializerMethodField()
-    extrait_rattachements = serializers.SerializerMethodField()
+    extraits = serializers.SerializerMethodField()
+    termes_surlignes = serializers.SerializerMethodField()
+    # #683 — Les écrans réels d'un plan ne s'ouvrent que sur l'instance qui le
+    # porte : c'est le relais de CICADA qui le décide, en comparant
+    # `instance_id` à la sienne (cf. `apps.search.relay`). Le hub répond donc
+    # toujours « non » ; il n'a aucun écran réel à offrir.
+    acces_direct = serializers.ReadOnlyField(default=False)
 
     class Meta:
         model = ContenuIndexe
@@ -101,10 +108,12 @@ class ContenuResultatSerializer(ProvenanceMixin, serializers.ModelSerializer):
             'id', 'type_contenu', 'id_objet',
             'titre', 'description',
             'parent_type', 'parent_libelle',
+            'chemin', 'enjeu_slug',
             'sous_type', 'sous_type_libelle',
             'instance_id', 'instance_libelle',
-            # #650 — pourquoi ce résultat est là.
-            'correspondances', 'extrait_rattachements', 'plan',
+            # #650 / #681 — pourquoi ce résultat est là, et quel mot surligner.
+            'correspondances', 'extraits', 'termes_surlignes',
+            'acces_direct', 'plan',
         ]
 
 
@@ -123,17 +132,49 @@ class ContenuResultatSerializer(ProvenanceMixin, serializers.ModelSerializer):
             if getattr(contenu, f'correspond_{champ}', False)
         ]
 
-    def get_extrait_rattachements(self, contenu):
-        """
-        Fragment de l'objet rattaché qui a répondu, sans balisage.
+    def _approximatif(self):
+        return bool(self.context.get('approximatif'))
 
-        Le champ est un bloc de texte sans séparateur : seul `ts_headline` sait
-        y isoler le passage utile. Le surlignage est laissé à l'interface, pour
-        ne pas faire transiter du HTML depuis la base.
+    def _mot_cle(self):
+        return (self.context.get('mot_cle') or '').strip()
+
+    def get_termes_surlignes(self, contenu):
         """
-        if not getattr(contenu, 'correspond_rattachements', False):
-            return None
-        return getattr(contenu, 'extrait_rattachements', None) or None
+        Mots à surligner sur la tuile quand ils diffèrent de la requête (#681).
+
+        En recherche exacte, l'interface surligne les mots tapés et la
+        radicalisation fait le reste. En repli approximatif, le mot retenu
+        n'est pas celui qui a été tapé : on le désigne explicitement, sinon
+        le résultat n'a aucun mot surligné et se lit comme une erreur.
+        """
+        if not self._approximatif():
+            return []
+        textes = [contenu.titre, contenu.rattachements, contenu.enfants] + [
+            maillon.get('libelle', '') for maillon in (contenu.chemin or [])
+        ]
+        return mots_proches(' '.join(t for t in textes if t), self._mot_cle())
+
+    def get_extraits(self, contenu):
+        """
+        Passage qui a répondu, par champ, sans balisage (#650, #681).
+
+        Ces champs sont des blocs de texte sans séparateur : seul `ts_headline`
+        sait y isoler le passage utile — et, en repli approximatif, une fenêtre
+        autour du mot le plus proche en tient lieu. Le surlignage est laissé à
+        l'interface, pour ne pas faire transiter du HTML depuis la base.
+        """
+        extraits = {}
+        for champ in CHAMPS_EXTRAITS:
+            if not getattr(contenu, f'correspond_{champ}', False):
+                continue
+            if self._approximatif():
+                texte = getattr(contenu, champ, '') or ''
+                extrait = extrait_autour(texte, mots_proches(texte, self._mot_cle()))
+            else:
+                extrait = getattr(contenu, f'extrait_{champ}', None)
+            if extrait:
+                extraits[champ] = extrait
+        return extraits
 
 
 class PlanResultatSerializer(ProvenanceMixin, serializers.ModelSerializer):
@@ -142,12 +183,16 @@ class PlanResultatSerializer(ProvenanceMixin, serializers.ModelSerializer):
     reference = serializers.SerializerMethodField()
     instance_libelle = serializers.SerializerMethodField()
 
+    # #683 — cf. ContenuResultatSerializer : c'est le relais qui tranche.
+    acces_direct = serializers.ReadOnlyField(default=False)
+
     class Meta:
         model = PlanIndexe
         fields = [
             'reference', 'instance_id', 'instance_libelle', 'id_pg', 'nom',
             'slug', 'statut', 'rang', 'annee_debut', 'annee_fin',
             'type_document', 'sites', 'gestionnaire_principal', 'url_instance',
+            'acces_direct',
         ]
 
     def get_reference(self, plan):

@@ -61,6 +61,14 @@ class ContenuSerializer(serializers.Serializer):
         allow_blank=True, required=False, default=''
     )
     contexte = serializers.CharField(allow_blank=True, required=False, default='')
+    # #681/#682 — optionnels : une instance antérieure ne les envoie pas.
+    enfants = serializers.CharField(allow_blank=True, required=False, default='')
+    chemin = serializers.ListField(
+        child=serializers.DictField(), required=False, default=list,
+    )
+    enjeu_slug = serializers.CharField(
+        max_length=255, required=False, allow_null=True, allow_blank=True,
+    )
 
     parent_type = serializers.CharField(
         max_length=20, required=False, allow_null=True, allow_blank=True
