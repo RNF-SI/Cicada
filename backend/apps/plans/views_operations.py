@@ -30,6 +30,7 @@ from .access import (
     assert_suivi_access, plan_operation_ids, prefix_paths, scope_by_plan, scope_suivi_by_plan,
     user_can_access_plan,
 )
+from .exploration import LectureExplorationMixin
 from .reorder import do_reorder
 from .serializers_operations import (
     OperationSerializer, OperationListSerializer, OperationCreateSerializer,
@@ -59,7 +60,7 @@ def _apply_metrique_grid(metrique, data):
         metrique.save()
 
 
-class OperationViewSet(viewsets.ModelViewSet):
+class OperationViewSet(LectureExplorationMixin, viewsets.ModelViewSet):
     """
     ViewSet pour les Opérations (Actions).
 
@@ -124,11 +125,16 @@ class OperationViewSet(viewsets.ModelViewSet):
     # Constante partagée avec l'indexation de recherche (apps/search).
     _PG_PATHS = OPERATION_TO_PG_PATHS
 
+    #683 — lecture d'exploration (plans validés) sur ces seules actions ; la
+    # réponse est alors élaguée du budget, de la RH et des réalisations.
+    actions_exploration = ('retrieve', 'by_indicateur', 'by_plan')
+
     def get_queryset(self):
         # Le créateur d'une opération orpheline (sans plan résolu) la voit toujours.
         return scope_by_plan(
             self.queryset, self.request.user, self._PG_PATHS,
             extra=Q(id_utilisateur_ajout=self.request.user),
+            exploration=self.lecture_exploration(),
         )
 
     def perform_create(self, serializer):
@@ -208,6 +214,7 @@ class OperationViewSet(viewsets.ModelViewSet):
         GET /api/plans/operations/by-indicateur/{indicateur_id}/
         """
         indicateur = get_object_or_404(Indicateur, id_indicateur=indicateur_id)
+        self.ancrer(indicateur)
         operations = self.get_queryset().filter(
             # via une métrique de l'indicateur, ou rattachée directement (#367)
             Q(metriques__id_indicateur=indicateur) | Q(id_indicateur=indicateur)
@@ -270,7 +277,8 @@ class OperationViewSet(viewsets.ModelViewSet):
         GET /api/plans/operations/by-plan/{plan_id}/
         """
         plan = get_object_or_404(PlanGestion, id_pg=plan_id)
-        assert_plan_access(request.user, plan)
+        assert_plan_access(request.user, plan, exploration=self.lecture_exploration())
+        self.ancrer(plan)
         operations = self._operations_of_plan(plan)
 
         grouped = defaultdict(list)

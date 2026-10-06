@@ -18,7 +18,7 @@ from rest_framework.exceptions import PermissionDenied
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import SearchFilter, OrderingFilter
 
-from django.db.models import Count
+from django.db.models import Count, Q
 
 from .models import PlanGestion, CorSitePg, CorPgFichier, CorRolePlan
 from .serializers import (
@@ -65,13 +65,14 @@ from apps.users.permissions import (
 )
 from apps.users.pagination import StandardPagination
 from .permissions import CanModifyOnlyDraftPlan
+from .exploration import LectureExplorationMixin
 
 
 # Sentinel pour distinguer "step manquant" de "step=null" dans csrpn_step.
 _MISSING = object()
 
 
-class PlanGestionViewSet(viewsets.ModelViewSet):
+class PlanGestionViewSet(LectureExplorationMixin, viewsets.ModelViewSet):
     """
     ViewSet pour les Plans de Gestion.
 
@@ -210,6 +211,13 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
             return PlanGestionListSerializer
         return PlanGestionDetailSerializer
     
+    #683 — lecture d'exploration : la fiche d'un plan validé, sa mind map et sa
+    # géométrie s'ouvrent à tout utilisateur connecté (réponse élaguée des
+    # personnes, fichiers et commentaires). Jamais la liste « mes plans ».
+    actions_exploration = (
+        'retrieve', 'by_slug', 'mindmap', 'mindmap_inverse', 'geojson',
+    )
+
     def get_queryset(self):
         """Filtrer selon les permissions utilisateur.
 
@@ -245,16 +253,28 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
         if user.is_super_admin():
             return queryset
 
+        # #683 — lecture d'exploration : un plan validé est consultable par
+        # tout utilisateur connecté, sur les seules actions de lecture listées.
+        if self.lecture_exploration():
+            queryset = queryset.filter(
+                self._q_lecture(user, scope) | Q(statut__in=PlanGestion.VALIDATED_STATUSES)
+            ).distinct()
+            return queryset
+        return queryset.filter(self._q_lecture(user, scope)).distinct()
+
+    def _q_lecture(self, user, scope):
+        """``Q`` du périmètre de lecture ordinaire (hors accès global)."""
+
         # Rédacteur principal : voir tous les plans
         if user.is_redacteur_principal():
-            return queryset
+            return Q()
 
         # Admin organisme : voir les plans des sites de son organisme + plans rédacteur
         if user.is_admin_organisme() and user.id_organisme:
-            return queryset.filter(
+            return (
                 Q(sites__site__corogsite__uuid_og=user.id_organisme) |
                 Q(organismes_redacteurs__uuid_og=user.id_organisme)
-            ).distinct()
+            )
 
         # Référent / Utilisateur : plans personnels + plans de l'organisme
         conditions = Q()
@@ -277,7 +297,7 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
         if scope != 'mine' and user.id_organisme:
             conditions |= Q(sites__site__corogsite__uuid_og=user.id_organisme)
 
-        return queryset.filter(conditions).distinct()
+        return conditions
     
     def perform_create(self, serializer):
         """Définir l'utilisateur créateur et, le cas échéant, rattacher le plan
@@ -378,6 +398,7 @@ class PlanGestionViewSet(viewsets.ModelViewSet):
                 {'error': 'Vous n\'avez pas accès à ce plan'},
                 status=status.HTTP_403_FORBIDDEN
             )
+        self.ancrer(plan)  # #683
 
         serializer = PlanGestionDetailSerializer(plan, context={'request': request})
         return Response(serializer.data)
