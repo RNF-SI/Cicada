@@ -1,6 +1,6 @@
 <app-header></app-header>
 
-<div class="enjeux-layout">
+<div class="enjeux-layout" [appSurligner]="motCleSurligne()">
   <!-- Sidebar Menu (composant partagé) -->
   @if (planSlug(); as slug) {
     @if (planId(); as id) {
@@ -8,7 +8,9 @@
         [planId]="id"
         [planSlug]="slug"
         activePage="enjeux"
-        [selectedEnjeuSlug]="selectedEnjeuSlug()">
+        [canManage]="isPlanManager()"
+        [selectedEnjeuSlug]="selectedEnjeuSlug()"
+        data-sans-surlignage>
       </app-plan-sidebar>
     }
   }
@@ -126,8 +128,29 @@
         </div>
       }
 
+      <!-- #683 — Lecture d'exploration : plan validé d'une autre structure.
+           Ni demande de référent (il n'y a pas de lien à demander), ni données
+           de suivi, de programmation ou de personnes : l'API les a retirées. -->
+      @if (accesExploration()) {
+        <div class="lock-banner lock-banner--access" role="status" data-testid="exploration-banner">
+          <i class="fi fi-rr-globe"></i>
+          <div class="lock-banner-content">
+            <span class="lock-banner-title">
+              {{ 'plans.lifecycle.explorationBanner.title' | translate }}
+            </span>
+            <span class="lock-banner-text">
+              {{ 'plans.lifecycle.explorationBanner.text' | translate }}
+            </span>
+          </div>
+          <a class="lock-banner-btn" routerLink="/exploration">
+            <i class="fi fi-rr-search"></i>
+            <span>{{ 'plans.lifecycle.explorationBanner.back' | translate }}</span>
+          </a>
+        </div>
+      }
+
       <!-- Bannière « non référent » : consultant sans droit de gestion sur ce plan. -->
-      @if (planStatut() && !isPlanManager()) {
+      @if (planStatut() && !isPlanManager() && !accesExploration()) {
         <div class="lock-banner lock-banner--access" role="status">
           <i class="fi fi-rr-info"></i>
           <div class="lock-banner-content">

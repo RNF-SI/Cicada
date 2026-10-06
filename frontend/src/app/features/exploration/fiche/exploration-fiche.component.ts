@@ -23,6 +23,7 @@ import { TagComponent } from '../../../shared/components/tag/tag.component';
 import {
   ExplorationActionModaleComponent,
 } from './action-modale/exploration-action-modale.component';
+import { SurlignerDirective } from '../../../shared/directives/surligner.directive';
 
 /**
  * Fiche publique d'un plan de gestion, en lecture seule.
@@ -47,6 +48,7 @@ import {
     AccordionComponent,
     AnchorNavComponent,
     TagComponent,
+    SurlignerDirective,
   ],
   templateUrl: './exploration-fiche.component.html',
   changeDetection: ChangeDetectionStrategy.Eager,
@@ -76,6 +78,8 @@ export class ExplorationFicheComponent {
 
   /** Objet mis en évidence, sous la forme `type:id`. */
   readonly focus = signal<string | null>(null);
+  /** #681 — Mot cherché (`?q=`), surligné dans toute la fiche. */
+  readonly motCleSurligne = signal('');
   readonly enjeuxOuverts = signal<number[]>([]);
   /**
    * Branches de l'arborescence repliées, sous la forme `olt:12` / `oo:4`.
@@ -159,6 +163,7 @@ export class ExplorationFicheComponent {
     });
     this.route.queryParamMap.subscribe((params) => {
       this.focus.set(params.get('focus'));
+      this.motCleSurligne.set(params.get('q') ?? '');
     });
   }
 

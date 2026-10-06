@@ -1831,6 +1831,11 @@
           "action": "Remettre en brouillon quand même"
         },
         "newVersionUnavailable": "Un brouillon est déjà en cours sur ce plan : impossible de créer une nouvelle version tant qu'il n'est pas validé ou supprimé."
+      },
+      "explorationBanner": {
+        "title": "Consultation via l'exploration des données",
+        "text": "Ce plan de gestion validé appartient à une autre structure. Vous en consultez la structure en lecture seule : le budget, les moyens humains, les mesures d'indicateurs, le suivi des réalisations, les documents et les personnes ne sont pas partagés.",
+        "back": "Retour à l'exploration"
       }
     },
     "detail": {
@@ -3413,8 +3418,6 @@
     },
     "filters": {
       "title": "Filtrer les résultats",
-      "titlesOnly": "Rechercher dans les titres uniquement",
-      "titlesOnlyHelp": "Désactivez pour élargir la recherche aux descriptions, aux objets parents et aux espèces ou habitats rattachés.",
       "zone": "Zone géographique",
       "organismes": "Organismes gestionnaires",
       "typesSite": "Types d'aires protégées",
@@ -3464,10 +3467,18 @@
       },
       "approximate": "Aucun résultat ne correspond exactement à « {{terme}} ». Voici les contenus dont un mot s'en approche le plus.",
       "matchedOn": {
-        "rattachements": "Trouvé via une espèce, un habitat ou un protocole rattaché :",
-        "description": "Trouvé dans la description",
-        "contexte": "Trouvé dans un objet parent",
-        "titre": "Trouvé dans le libellé"
+        "rattachements": "Trouvé via une espèce, un habitat, un protocole ou une référence rattachée :",
+        "description": "Trouvé dans la description :",
+        "contexte": "Trouvé dans un élément parent ou lié :",
+        "enfants": "Trouvé dans un élément enfant :",
+        "titre": "Trouvé dans le libellé",
+        "inconnu": "Le mot cherché n'apparaît pas tel quel : il a été reconnu sous une autre forme (pluriel, conjugaison, racine)."
+      },
+      "ouvre": {
+        "arborescence": "Ouvre l'arborescence du plan sur cet élément",
+        "ficheAction": "Ouvre la fiche action",
+        "plan": "Ouvre la page du plan de gestion",
+        "fichePublique": "Ouvre la fiche publique (instantané publié par la structure)"
       }
     },
     "stats": {
@@ -3541,9 +3552,38 @@
       "voirSource": "Voir chez la structure"
     },
     "portee": {
-      "nationale": "Cette recherche porte sur les plans de gestion de toutes les structures participantes.",
-      "locale": "Cette recherche porte uniquement sur les plans de cette instance. Votre structure ne participe pas à l'exploration nationale.",
-      "nationaleDetail": "Cette recherche porte sur les plans de gestion de {{count}} structures participantes."
+      "title": "Portée de la recherche",
+      "base": "Le mot est toujours cherché dans l'élément lui-même : son libellé et les espèces, habitats, protocoles ou références qui lui sont rattachés.",
+      "description": {
+        "label": "Aussi dans les descriptions",
+        "help": "Le texte libre de l'élément (description, état de l'enjeu)."
+      },
+      "parents": {
+        "label": "Aussi dans les éléments parents",
+        "help": "Un indicateur ressort si son objectif ou son enjeu porte le mot."
+      },
+      "enfants": {
+        "label": "Aussi dans les éléments enfants",
+        "help": "Un enjeu ressort si l'un de ses objectifs, indicateurs ou actions porte le mot."
+      },
+      "resume": {
+        "label": "portée :",
+        "base": "l'élément lui-même",
+        "description": "descriptions",
+        "parents": "parents",
+        "enfants": "enfants"
+      }
+    },
+    "chemin": {
+      "enjeu": "Enjeu",
+      "facteur": "Facteur d'influence",
+      "pression": "Pression",
+      "objectif_lt": "OLT",
+      "objectif_op": "OO",
+      "niveau_exigence": "Niveau d'exigence",
+      "resultat_attendu": "Résultat attendu",
+      "indicateur": "Indicateur",
+      "action": "Action"
     }
   },
   "errors": {

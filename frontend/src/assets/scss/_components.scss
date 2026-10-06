@@ -972,3 +972,17 @@
     }
   }
 }
+
+/* ------------------------------------------------------------------ */
+/* Surlignage du mot cherché sur les écrans réels du plan (#681)       */
+/* Posé par `SurlignerDirective` quand on arrive depuis l'exploration. */
+/* Jaune du design system, texte noir : conforme WCAG AA.              */
+/* ------------------------------------------------------------------ */
+mark.surlignage-recherche {
+  background-color: $secondary-yellow;
+  color: $black;
+  font-weight: $font-weight-bold;
+  padding: 0 3px;
+  border-radius: 2px;
+  box-shadow: 0 0 0 1px rgba($black, 0.08);
+}

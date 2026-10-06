@@ -29,10 +29,12 @@ import {
  * « Imprimer / Exporter » s'appuie sur `window.print()` + un CSS d'impression
  * (export PDF via le navigateur) pour incorporation dans les plans de gestion.
  */
+import { SurlignerDirective } from '../../../../shared/directives/surligner.directive';
+
 @Component({
   selector: 'app-operation-fiche',
   standalone: true,
-  imports: [CommonModule, RouterModule, TranslateModule, LeafletMapEditComponent, MetriqueGridDisplayComponent, PriorityBadgeComponent],
+  imports: [CommonModule, RouterModule, TranslateModule, LeafletMapEditComponent, MetriqueGridDisplayComponent, PriorityBadgeComponent, SurlignerDirective],
   templateUrl: './operation-fiche.component.html',
   changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './operation-fiche.component.scss',
@@ -46,6 +48,17 @@ export class OperationFicheComponent implements OnInit {
   private readonly snackBar = inject(MatSnackBar);
 
   operation = signal<Operation | null>(null);
+
+  /**
+   * #683 — Le lecteur n'est là que par l'exploration : action d'un plan validé
+   * d'une autre structure, servie sans programmation, RH, financement ni
+   * réalisations. Les sections correspondantes et les actions de gestion
+   * (suivi, export, modification) n'ont alors pas lieu d'être.
+   */
+  accesExploration = computed(() => this.operation()?.acces_exploration === true);
+
+  /** #681 — Mot cherché dans l'exploration (`?q=`), surligné sur la fiche. */
+  motCleSurligne = signal('');
   isLoading = signal(true);
   errorMessage = signal<string | null>(null);
   planSlug = signal<string | null>(null);
@@ -442,6 +455,7 @@ export class OperationFicheComponent implements OnInit {
       this.isLoading.set(false);
       return;
     }
+    this.motCleSurligne.set(this.route.snapshot.queryParamMap.get('q') ?? '');
     this.enjeuService.getOperation(opId).subscribe({
       next: (op) => {
         this.operation.set(op);

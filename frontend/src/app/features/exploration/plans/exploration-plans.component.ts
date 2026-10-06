@@ -53,6 +53,17 @@ export class ExplorationPlansComponent {
   /** Voir `referencePlan` : le slug seul ne suffit pas en fédération (#636). */
   protected readonly referencePlan = referencePlan;
 
+  /**
+   * Où mène le clic sur un plan (#683) : sa page réelle quand il existe dans
+   * cette base, sa fiche publique (instantané déposé) quand il vient d'une
+   * autre instance.
+   */
+  protected lien(plan: ExplorationPlan): (string | number)[] {
+    return plan.acces_direct
+      ? ['/plans', plan.slug]
+      : ['/exploration/plans', referencePlan(plan)];
+  }
+
   readonly criteres = signal<ExplorationCriteres>({});
   readonly motCle = signal('');
   readonly resultats = signal<ExplorationPlan[]>([]);

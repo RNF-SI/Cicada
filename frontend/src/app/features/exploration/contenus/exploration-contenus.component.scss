@@ -212,14 +212,123 @@ $types-couleurs: (
   font-style: italic;
 }
 
-/* Le surlignage reste discret : il désigne, il n'alerte pas. Fond jaune pâle
-   du design system, texte noir — la combinaison est conforme WCAG AA. */
+/* #681 — Le surlignage est la raison d'être de la tuile : il doit se voir au
+   premier coup d'œil. Fond jaune du design system, texte noir, légèrement
+   gras — la combinaison est conforme WCAG AA. Même rendu dans le titre, dans
+   l'arborescence et dans les extraits, pour qu'un seul signe désigne « le
+   mot retrouvé » partout. */
 .exploration-tuile-titre mark,
+.exploration-arbre-libelle mark,
 .exploration-tuile-extrait mark {
   background-color: $secondary-yellow;
   color: $black;
-  padding: 0 2px;
+  font-weight: $font-weight-bold;
+  padding: 0 3px;
   border-radius: 2px;
+  box-shadow: 0 0 0 1px rgba($black, 0.08);
+}
+
+/* #682 — Arborescence menant à l'objet retrouvé. Chaque maillon est décalé
+   selon sa profondeur (`--niveau`) et relié au suivant par un angle, comme
+   dans l'arborescence du plan. */
+.exploration-arbre {
+  list-style: none;
+  margin: 0 0 $spacing-xxs;
+  padding: 0;
+}
+
+.exploration-arbre-maillon,
+.exploration-tuile-objet.sous-arbre {
+  position: relative;
+  padding-left: calc(var(--niveau, 0) * #{$spacing-md} + #{$spacing-md});
+}
+
+.exploration-arbre-maillon::before,
+.exploration-tuile-objet.sous-arbre::before {
+  content: '';
+  position: absolute;
+  left: calc(var(--niveau, 0) * #{$spacing-md} + 2px);
+  top: 0;
+  width: 8px;
+  height: 0.75em;
+  border-left: 1px solid $gray;
+  border-bottom: 1px solid $gray;
+  border-bottom-left-radius: 3px;
+}
+
+/* Le premier maillon est la racine : pas d'angle devant lui. */
+.exploration-arbre-maillon:first-child {
+  padding-left: 0;
+}
+
+.exploration-arbre-maillon:first-child::before {
+  display: none;
+}
+
+.exploration-arbre-maillon {
+  display: flex;
+  align-items: baseline;
+  gap: $spacing-xs;
+  margin-bottom: 2px;
+  font-size: $font-size-small;
+  line-height: $line-height-small;
+  color: $gray-dark;
+}
+
+.exploration-arbre-type {
+  flex: 0 0 auto;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: $primary-color;
+}
+
+.exploration-arbre-libelle {
+  color: $black;
+}
+
+/* L'objet retrouvé : titre en gras précédé de sa pastille de type. */
+.exploration-tuile-titre {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: $spacing-xs;
+}
+
+.exploration-tuile-objet .exploration-type-tag {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+/* Résultat sans surlignage : signalé plutôt que laissé muet. */
+.exploration-tuile-motif-muet {
+  color: $gray-dark;
+  font-style: italic;
+
+  i {
+    color: $gray-dark;
+  }
+}
+
+/* #683 — Ce que le clic ouvre. */
+.exploration-tuile-ouvre {
+  display: inline-flex;
+  align-items: center;
+  gap: $spacing-xxs;
+  margin: $spacing-xs 0 0;
+  font-size: $font-size-small;
+  color: $primary-color;
+
+  i {
+    font-size: $font-size-base;
+  }
+}
+
+/* #686 — Rappel de la portée active, à côté du total. */
+.exploration-portee-rappel {
+  font-weight: $font-weight-regular;
+  color: $gray-dark;
 }
 
 /* Provenance et type, alignés à droite du titre. */

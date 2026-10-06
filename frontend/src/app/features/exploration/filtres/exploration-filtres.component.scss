@@ -82,6 +82,31 @@
   border-bottom: 1px solid rgba($white, 0.4);
 }
 
+/* Portée de la recherche (#681) : les interrupteurs vivent dans le groupe,
+   sans bordure entre eux ; l'aide est lue sous chaque libellé. */
+.exploration-portee-base {
+  margin: 0 0 $spacing-sm;
+  font-size: $font-size-small;
+  line-height: $line-height-small;
+  opacity: 0.85;
+}
+
+.exploration-portee-axe {
+  padding: $spacing-xs 0;
+  border-bottom: none;
+}
+
+.exploration-portee-libelle {
+  display: block;
+  font-weight: $font-weight-bold;
+}
+
+.exploration-portee-aide {
+  display: block;
+  margin-top: 2px;
+  opacity: 0.8;
+}
+
 /* La typographie vient de la classe `.subtitle` du kit, posée sur l'élément :
    on ne redéfinit ici que la couleur et la marge. */
 .exploration-filtres-titre {

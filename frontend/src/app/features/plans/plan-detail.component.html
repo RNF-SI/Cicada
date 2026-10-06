@@ -2,7 +2,7 @@
 <app-header></app-header>
 
 <!-- Layout avec sidebar -->
-<div class="plan-detail-layout">
+<div class="plan-detail-layout" [appSurligner]="motCleSurligne()">
   <!-- Sidebar Menu (composant partagé avec la page enjeux) -->
   @if (planSlug(); as slug) {
     @if (planId(); as id) {
@@ -10,7 +10,8 @@
         [planId]="id"
         [planSlug]="slug"
         [canManage]="canManageLifecycle()"
-        activePage="overview">
+        activePage="overview"
+        data-sans-surlignage>
       </app-plan-sidebar>
     }
   }
@@ -325,9 +326,28 @@
       </div>
     }
 
+    <!-- #683 — Lecture d'exploration : plan validé d'une autre structure. -->
+    @if (accesExploration()) {
+      <div class="lock-banner lock-banner--access" role="status" data-testid="exploration-banner">
+        <i class="fi fi-rr-globe"></i>
+        <div class="lock-banner-content">
+          <span class="lock-banner-title">
+            {{ 'plans.lifecycle.explorationBanner.title' | translate }}
+          </span>
+          <span class="lock-banner-text">
+            {{ 'plans.lifecycle.explorationBanner.text' | translate }}
+          </span>
+        </div>
+        <a class="lock-banner-btn" routerLink="/exploration">
+          <i class="fi fi-rr-search"></i>
+          <span>{{ 'plans.lifecycle.explorationBanner.back' | translate }}</span>
+        </a>
+      </div>
+    }
+
     <!-- Bannière « non référent » : utilisateur sans droit de gestion sur ce plan.
          Lecture seule + possibilité de demander à devenir référent. -->
-    @if (plan() && !canManageLifecycle()) {
+    @if (plan() && !canManageLifecycle() && !accesExploration()) {
       <div class="lock-banner lock-banner--access" role="status">
         <i class="fi fi-rr-info"></i>
         <div class="lock-banner-content">
@@ -613,7 +633,9 @@
             }
           </div>
 
-          <!-- Utilisateurs (Référents & Membres) -->
+          <!-- Utilisateurs (Référents & Membres) — #683 : jamais pour un
+               lecteur d'exploration, l'API ne les envoie pas. -->
+          @if (!accesExploration()) {
           <div class="section-card compact">
             <div class="section-header-inline">
               <app-section-title
@@ -655,6 +677,8 @@
             }
           </div>
 
+          }
+
           <!-- Mindmap -->
           <div class="section-card compact">
             <app-section-title
@@ -688,7 +712,8 @@
             </app-plan-version-timeline>
           </div>
 
-          <!-- Documents -->
+          <!-- Documents — #683 : non partagés en lecture d'exploration. -->
+          @if (!accesExploration()) {
           <div class="section-card compact">
             <app-section-title
               [title]="'plans.detail.sections.documents' | translate"
@@ -734,6 +759,7 @@
               }
             </div>
           </div>
+          }
         </div>
       </div>
     </section>

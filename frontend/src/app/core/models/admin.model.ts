@@ -448,6 +448,8 @@ export interface PlanVersionChainItem {
 export interface AdminPlan {
   id_pg: number;
   nom: string;
+  /** #683 — Lecture d'exploration : plan validé d'une autre structure, données sensibles retirées. */
+  acces_exploration?: boolean;
   slug?: string;
   id_cdr?: number;
   rang?: number;

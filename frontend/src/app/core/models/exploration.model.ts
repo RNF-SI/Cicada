@@ -107,6 +107,32 @@ export function referencePlan(
   return plan.reference || plan.slug;
 }
 
+/**
+ * Axes de portée de la recherche (#681 / #686).
+ *
+ * L'objet lui-même — son libellé et ses espèces, habitats, protocoles
+ * rattachés — est toujours interrogé. Chaque axe s'y ajoute indépendamment.
+ */
+export type ExplorationPortee = 'description' | 'parents' | 'enfants';
+export const EXPLORATION_PORTEES: ExplorationPortee[] = ['description', 'parents', 'enfants'];
+
+/**
+ * Types d'ascendance affichés dans l'arborescence d'une tuile : les types
+ * explorables, plus les deux maillons intermédiaires que l'arborescence du
+ * plan montre sans qu'ils soient eux-mêmes recherchables.
+ */
+export type ExplorationTypeChemin = ExplorationType | 'niveau_exigence' | 'resultat_attendu';
+
+/** Un maillon de l'ascendance d'un résultat, de l'enjeu au parent direct (#682). */
+export interface ExplorationMaillon {
+  type: ExplorationTypeChemin;
+  id: number;
+  libelle: string;
+}
+
+/** Champs dont une tuile peut montrer un extrait autour de la correspondance. */
+export type ExplorationChampExtrait = 'rattachements' | 'description' | 'contexte' | 'enfants';
+
 /** Une tuile du mode « contenu d'un plan de gestion ». */
 export interface ExplorationContenu {
   id: number;
@@ -116,6 +142,10 @@ export interface ExplorationContenu {
   description: string;
   parent_type: string | null;
   parent_libelle: string | null;
+  /** #682 — Arborescence qui mène à l'objet, de l'enjeu au parent direct. */
+  chemin: ExplorationMaillon[];
+  /** #683 — Slug de l'enjeu de la branche, pour ouvrir l'arborescence réelle. */
+  enjeu_slug: string | null;
   sous_type: string | null;
   sous_type_libelle: string | null;
   plan: ExplorationPlanResume;
@@ -125,17 +155,30 @@ export interface ExplorationContenu {
   instance_libelle?: string;
   /**
    * #650 — Champs ayant répondu à la recherche (`titre`, `rattachements`,
-   * `description`, `contexte`). Vide sans mot-clé.
+   * `description`, `contexte`, `enfants`). Vide sans mot-clé.
    */
   correspondances?: string[];
   /**
-   * #650 — Fragment de l'espèce, habitat ou protocole rattaché qui a répondu.
+   * #650 / #681 — Passage qui a répondu, par champ, sans balisage.
    *
-   * Ces objets sont interrogés mais jamais affichés sur la tuile : sans cet
-   * extrait, un résultat dont le titre n'a aucun rapport avec la requête
-   * paraît arbitraire.
+   * Les espèces rattachées, la description, les parents et les enfants sont
+   * interrogés mais pas affichés sur la tuile : sans ces extraits, un
+   * résultat dont le titre n'a aucun rapport avec la requête paraît
+   * arbitraire.
    */
-  extrait_rattachements?: string | null;
+  extraits?: Partial<Record<ExplorationChampExtrait, string>>;
+  /**
+   * #681 — Mots à surligner quand ils diffèrent de ceux tapés : en repli
+   * approximatif, « flamand » a retenu « Flamant », et c'est lui qu'il faut
+   * montrer. Vide en recherche exacte (les mots de la requête suffisent).
+   */
+  termes_surlignes?: string[];
+  /**
+   * #683 — Le plan existe dans cette base : ses écrans réels s'ouvrent.
+   * Faux pour un document reçu d'une autre instance, dont seule la fiche
+   * publique (l'instantané déposé) peut être montrée.
+   */
+  acces_direct?: boolean;
 }
 
 /** Une tuile du mode « plan de gestion ». */
@@ -155,6 +198,8 @@ export interface ExplorationPlan {
   /** Nom de la structure d'origine — fédération uniquement (#636). */
   instance_libelle?: string;
   url_instance?: string;
+  /** #683 — Le plan existe dans cette base : sa page réelle s'ouvre. */
+  acces_direct?: boolean;
 }
 
 export interface ExplorationPagination {
@@ -191,7 +236,8 @@ export interface ExplorationReponse<T> {
  */
 export interface ExplorationCriteres {
   q?: string;
-  titresSeulement?: boolean;
+  /** Axes de portée cochés (#681). Vide = l'objet lui-même seulement. */
+  portee?: ExplorationPortee[];
   types?: ExplorationType[];
   /** Types couverts par l'onglet actif. Vide = onglet « Tout ». */
   onglet?: ExplorationType[];
@@ -272,7 +318,8 @@ export interface SegmentTexte {
  * mot** : la recherche plein texte radicalise (« roselieres » trouve
  * « roselières »), donc exiger une égalité exacte ne surlignerait presque
  * jamais rien — l'utilisateur verrait des résultats sans savoir quel mot a
- * répondu, c'est-à-dire le problème qu'on cherche à résoudre.
+ * répondu, c'est-à-dire le problème qu'on cherche à résoudre. Le surlignage
+ * couvre alors le mot entier, pas seulement le préfixe tapé (#681).
  */
 export function segmenterSurTerme(texte: string, terme: string): SegmentTexte[] {
   if (!texte) {
@@ -309,11 +356,21 @@ export function segmenterSurTerme(texte: string, terme: string): SegmentTexte[] 
   const debutDeMot = (index: number): boolean =>
     index === 0 || !/[\p{L}\p{N}]/u.test(cible[index - 1]);
 
+  const estLettre = (index: number): boolean =>
+    index < cible.length && /[\p{L}\p{N}]/u.test(cible[index]);
+
   for (const mot of mots) {
     let depuis = cible.indexOf(mot);
     while (depuis !== -1) {
       if (debutDeMot(depuis)) {
-        for (let i = depuis; i < depuis + mot.length; i++) {
+        // Le mot **entier** est surligné, pas seulement le préfixe tapé :
+        // « limicole » doit désigner « limicoles » d'un bloc, sinon l'œil
+        // lit un mot coupé et doute de ce qui a été reconnu (#681).
+        let fin = depuis + mot.length;
+        while (estLettre(fin)) {
+          fin++;
+        }
+        for (let i = depuis; i < fin; i++) {
           marques[i] = true;
         }
       }

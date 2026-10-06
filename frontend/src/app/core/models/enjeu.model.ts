@@ -851,6 +851,8 @@ export interface VentilationDefaults {
 export interface Operation {
   id_operation: number;
   libelle: string;
+  /** #683 — Lecture d'exploration : programmation, RH, financement et réalisations retirés par l'API. */
+  acces_exploration?: boolean;
   /** #251 — Brouillon tant que la validation complète n'a pas été déclenchée. */
   statut?: OperationStatut;
   id_priorite?: number;
@@ -1244,6 +1246,8 @@ export interface PlanEnjeuxResponse {
   fcr: Enjeu[];
   total_enjeux: number;
   total_fcr: number;
+  /** #683 — Lecture d'exploration : plan validé d'une autre structure, données sensibles retirées. */
+  acces_exploration?: boolean;
 }
 
 /**

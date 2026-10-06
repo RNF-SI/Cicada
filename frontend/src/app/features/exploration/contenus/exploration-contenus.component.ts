@@ -7,8 +7,11 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core';
 
 import {
   EXPLORATION_ONGLETS,
+  EXPLORATION_PORTEES,
+  ExplorationChampExtrait,
   ExplorationContenu,
   ExplorationCriteres,
+  ExplorationMaillon,
   ExplorationOnglet,
   ExplorationTri,
   ExplorationType,
@@ -32,6 +35,33 @@ interface PuceFiltre {
   valeur: string | number;
   label: string;
 }
+
+/** Où mène le clic sur une tuile (#683). */
+interface LienTuile {
+  commands: (string | number)[];
+  queryParams: Record<string, string>;
+  fragment?: string;
+  /** Clé de traduction du libellé « Ouvre : … » affiché sur la tuile. */
+  cible: 'arborescence' | 'ficheAction' | 'plan' | 'fichePublique';
+}
+
+/** Un extrait à afficher sous la tuile : le champ qui a répondu, et le passage. */
+interface Motif {
+  champ: ExplorationChampExtrait;
+  extrait: string;
+}
+
+/**
+ * Type de fragment compris par la page d'arborescence (`#<type>-<id>`), pour
+ * chaque type de résultat. Les objectifs y portent leurs abréviations.
+ */
+const FRAGMENT_PAR_TYPE: Partial<Record<ExplorationType, string>> = {
+  facteur: 'facteur',
+  pression: 'pression',
+  objectif_lt: 'olt',
+  objectif_op: 'oo',
+  indicateur: 'indicateur',
+};
 
 /**
  * Résultats du mode « rechercher un contenu d'un plan de gestion ».
@@ -74,31 +104,133 @@ export class ExplorationContenusComponent {
   protected readonly referencePlan = referencePlan;
 
   /**
-   * Découpe un texte pour surligner ce qui répond à la recherche (#650).
+   * Mots à surligner pour une tuile (#681).
    *
-   * Le mot-clé lu est celui des **critères** et non le champ de saisie : le
-   * champ peut avoir été modifié sans que la recherche ait été relancée, et
-   * surligner d'après une requête non exécutée désignerait les mauvais mots.
+   * Ceux de la requête, lus dans les **critères** et non dans le champ de
+   * saisie : le champ peut avoir été modifié sans que la recherche ait été
+   * relancée. En repli approximatif, le serveur désigne le mot qu'il a
+   * réellement retenu (« Flamant » pour « flamand ») : c'est lui qu'on montre.
    */
-  protected segments(texte: string): SegmentTexte[] {
-    return segmenterSurTerme(texte, this.criteres().q ?? '');
+  protected termes(contenu: ExplorationContenu): string {
+    const retenus = contenu.termes_surlignes ?? [];
+    return retenus.length ? retenus.join(' ') : (this.criteres().q ?? '');
+  }
+
+  /** Découpe un texte pour surligner ce qui répond à la recherche (#650). */
+  protected segments(texte: string, contenu: ExplorationContenu): SegmentTexte[] {
+    return segmenterSurTerme(texte, this.termes(contenu));
+  }
+
+  private surligne(texte: string, contenu: ExplorationContenu): boolean {
+    return this.segments(texte, contenu).some((segment) => segment.surligne);
   }
 
   /**
-   * Champ ayant répondu, quand ce n'est **pas** le titre (#650).
+   * Pourquoi ce résultat est là, champ par champ (#650, #681).
    *
-   * Ne rend rien si le titre correspond : le surlignage le montre déjà, et
-   * répéter l'évidence noierait le cas qui compte — celui où le résultat doit
-   * sa présence à une espèce, un habitat ou un protocole rattaché, qui
-   * n'apparaît nulle part sur la tuile.
+   * « Il ne doit pas y avoir de résultat dont on ne comprenne pas pourquoi il
+   * est ressorti. » Le titre et les maillons de l'arborescence sont surlignés
+   * sur place ; pour tout ce qui n'est pas affiché — espèce rattachée,
+   * description, parent hors arbre, enfant — on montre le passage qui a
+   * répondu. L'extrait du contexte est omis quand un maillon de l'arbre porte
+   * déjà le surlignage : il répéterait ce que l'œil vient de voir.
    */
-  protected correspondanceHorsTitre(contenu: ExplorationContenu): string | null {
-    const champs = contenu.correspondances ?? [];
-    if (!champs.length || champs.includes('titre')) {
-      return null;
+  protected motifs(contenu: ExplorationContenu): Motif[] {
+    const extraits = contenu.extraits ?? {};
+    const motifs: Motif[] = [];
+    for (const champ of ['rattachements', 'description', 'contexte', 'enfants'] as const) {
+      const extrait = extraits[champ];
+      if (!extrait) {
+        continue;
+      }
+      if (champ === 'contexte' && this.cheminSurligne(contenu)) {
+        continue;
+      }
+      motifs.push({ champ, extrait });
     }
-    return champs[0];
+    return motifs;
   }
+
+  /** Vrai si un maillon de l'ascendance porte le mot cherché. */
+  protected cheminSurligne(contenu: ExplorationContenu): boolean {
+    return contenu.chemin.some((maillon) => this.surligne(maillon.libelle, contenu));
+  }
+
+  /**
+   * Résultat sans aucun mot surligné nulle part : le dire plutôt que de
+   * laisser croire à une erreur. Ne devrait pas arriver, mais une
+   * radicalisation agressive ou un mot ignoré par le dictionnaire peuvent
+   * y conduire.
+   */
+  protected sansSurlignage(contenu: ExplorationContenu): boolean {
+    if (!this.criteres().q) {
+      return false;
+    }
+    if (this.surligne(contenu.titre, contenu) || this.cheminSurligne(contenu)) {
+      return false;
+    }
+    return !this.motifs(contenu).some((motif) => this.surligne(motif.extrait, contenu));
+  }
+
+  /**
+   * Où mène le clic sur une tuile (#683).
+   *
+   * Vers l'**écran réel** du plan dès que celui-ci existe dans cette base :
+   * la fiche action pour une action, l'arborescence ouverte sur la branche
+   * et l'objet pour le reste. Un plan reçu d'une autre instance (#636) n'a
+   * pas d'écran ici : sa fiche publique — l'instantané déposé — reste le
+   * seul endroit où le montrer. Le mot cherché voyage dans `q` pour être
+   * surligné à l'arrivée.
+   */
+  protected lien(contenu: ExplorationContenu): LienTuile {
+    const queryParams: Record<string, string> = {};
+    const termes = this.termes(contenu).trim();
+    if (termes) {
+      queryParams['q'] = termes;
+    }
+
+    if (!contenu.acces_direct) {
+      return {
+        commands: ['/exploration/plans', referencePlan(contenu.plan)],
+        queryParams: { ...queryParams, focus: `${contenu.type_contenu}:${contenu.id_objet}` },
+        cible: 'fichePublique',
+      };
+    }
+
+    const slug = contenu.plan.slug;
+    if (contenu.type_contenu === 'action') {
+      return {
+        commands: ['/plans', slug, 'enjeux', 'operations', contenu.id_objet, 'fiche'],
+        queryParams,
+        cible: 'ficheAction',
+      };
+    }
+    if (!contenu.enjeu_slug) {
+      return { commands: ['/plans', slug], queryParams, cible: 'plan' };
+    }
+    const fragment = FRAGMENT_PAR_TYPE[contenu.type_contenu];
+    return {
+      commands: ['/plans', slug, 'enjeux', contenu.enjeu_slug],
+      queryParams,
+      fragment: fragment ? `${fragment}-${contenu.id_objet}` : undefined,
+      cible: 'arborescence',
+    };
+  }
+
+  /** Libellé du type d'un maillon de l'arborescence. */
+  protected libelleMaillon(maillon: ExplorationMaillon): string {
+    return this.translate.instant(`exploration.chemin.${maillon.type}`);
+  }
+
+  /** Rappel de la portée active, affiché au-dessus des résultats (#686). */
+  readonly resumePortee = computed(() => {
+    const axes = this.criteres().portee ?? [];
+    const base = this.translate.instant('exploration.portee.resume.base');
+    const ajouts = EXPLORATION_PORTEES.filter((axe) => axes.includes(axe)).map((axe) =>
+      this.translate.instant(`exploration.portee.resume.${axe}`),
+    );
+    return ajouts.length ? `${base} + ${ajouts.join(' + ')}` : base;
+  });
 
   readonly criteres = signal<ExplorationCriteres>({});
   readonly motCle = signal('');
@@ -338,7 +470,7 @@ export class ExplorationContenusComponent {
   reinitialiser(): void {
     this.criteres.set({
       q: this.criteres().q,
-      titresSeulement: this.criteres().titresSeulement,
+      portee: this.criteres().portee,
       tri: this.criteres().tri,
       page: 1,
     });

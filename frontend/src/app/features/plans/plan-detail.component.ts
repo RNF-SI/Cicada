@@ -113,10 +113,13 @@ interface SubAccordion {
   items?: OperationSynthItem[];
 }
 
+import { SurlignerDirective } from '../../shared/directives/surligner.directive';
+
 @Component({
   selector: 'app-plan-detail',
   standalone: true,
   imports: [
+    SurlignerDirective,
     CommonModule,
     RouterModule,
     MatButtonModule,
@@ -284,8 +287,21 @@ export class PlanDetailComponent implements OnInit, OnDestroy {
   // Pending site link requests for this plan
   pendingSiteRequests = signal<ValidationRequestListItem[]>([]);
 
+  /**
+   * #683 — Le lecteur n'est là que par l'exploration : plan validé d'une
+   * autre structure, servi sans personnes, documents ni commentaires. Posé
+   * par l'API (`acces_exploration`).
+   */
+  accesExploration = computed(() => this.plan()?.acces_exploration === true);
+
+  /** #681 — Mot cherché dans l'exploration (`?q=`), surligné sur la page. */
+  motCleSurligne = signal('');
+
   // Permissions cycle de vie (#346) : référent du plan, admin_og, super_admin OU rédacteur principal.
   canManageLifecycle = computed(() => {
+    // #683 — un lecteur d'exploration n'a aucun droit sur ce plan, quel que
+    // soit son rôle dans sa propre structure.
+    if (this.accesExploration()) return false;
     if (this.authService.isSuperAdmin() || this.authService.isRedacteurPrincipal() || this.authService.isAdminOrganisme()) {
       return true;
     }
@@ -363,6 +379,7 @@ export class PlanDetailComponent implements OnInit, OnDestroy {
 
     // Handle ?edit=metadata query param (opens edit modal after duplication)
     this.route.queryParamMap.subscribe(queryParams => {
+      this.motCleSurligne.set(queryParams.get('q') ?? '');
       if (queryParams.get('edit') === 'metadata') {
         // Remove query param from URL
         this.router.navigate([], {

@@ -10,7 +10,9 @@
 import { ParamMap } from '@angular/router';
 
 import {
+  EXPLORATION_PORTEES,
   ExplorationCriteres,
+  ExplorationPortee,
   ExplorationStatut,
   ExplorationTri,
   ExplorationType,
@@ -31,15 +33,28 @@ function entiers(params: ParamMap, cle: string): number[] | undefined {
     .filter((valeur) => Number.isFinite(valeur));
 }
 
+/**
+ * Axes de portée (#681). L'ancien `titres_seulement=false` — « tout élargir »
+ * — est encore compris : une URL de recherche est faite pour être partagée,
+ * celles déjà envoyées doivent encore marcher.
+ */
+function porteeDepuisUrl(params: ParamMap): ExplorationPortee[] | undefined {
+  const axes = texte(params, 'portee')?.filter((axe): axe is ExplorationPortee =>
+    (EXPLORATION_PORTEES as string[]).includes(axe),
+  );
+  if (axes?.length) {
+    return axes;
+  }
+  return params.get('titres_seulement') === 'false' ? [...EXPLORATION_PORTEES] : undefined;
+}
+
 /** Lit les critères depuis les query params. */
 export function criteresDepuisUrl(params: ParamMap): ExplorationCriteres {
   const page = Number(params.get('page'));
 
   return {
     q: params.get('q') ?? undefined,
-    // Le mode « titres uniquement » est le défaut : seule sa désactivation
-    // apparaît dans l'URL.
-    titresSeulement: params.get('titres_seulement') === 'false' ? false : undefined,
+    portee: porteeDepuisUrl(params),
     types: texte(params, 'types') as ExplorationType[] | undefined,
     onglet: texte(params, 'onglet') as ExplorationType[] | undefined,
     zones: entiers(params, 'zones'),
@@ -69,7 +84,7 @@ export function criteresVersUrl(
 
   return {
     q: criteres.q?.trim() || null,
-    titres_seulement: criteres.titresSeulement === false ? 'false' : null,
+    portee: multiple(criteres.portee),
     types: multiple(criteres.types),
     onglet: multiple(criteres.onglet),
     zones: multiple(criteres.zones),

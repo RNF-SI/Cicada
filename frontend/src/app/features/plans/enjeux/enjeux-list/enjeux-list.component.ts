@@ -82,10 +82,13 @@ import { planEndYear } from '../../../../shared/utils/plan-periode';
 
 type TabType = 'detail' | 'olt' | 'operations';
 
+import { SurlignerDirective } from '../../../../shared/directives/surligner.directive';
+
 @Component({
   selector: 'app-enjeux-list',
   standalone: true,
   imports: [
+    SurlignerDirective,
     CommonModule,
     RouterModule,
     PriorityBadgeComponent,
@@ -142,6 +145,20 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
   isLoading = signal(true);
   errorMessage = signal<string | null>(null);
 
+  /**
+   * #683 — Le lecteur n'est là que par l'exploration : plan validé d'une
+   * autre structure, servi sans ses données sensibles. Posé par l'API sur la
+   * réponse `by-plan` (`acces_exploration`).
+   */
+  accesExploration = signal(false);
+
+  /**
+   * #681 — Mot cherché dans l'exploration, transmis dans `?q=` : il est
+   * surligné partout dans l'arborescence pour qu'on voie pourquoi cet
+   * élément est ressorti.
+   */
+  motCleSurligne = signal('');
+
   /** Statut du plan courant — exposé par l'endpoint by-plan, utilisé pour
    *  verrouiller l'édition hors brouillon (#248).
    *  #277 — Inclut les statuts CSRPN intermédiaires (verrouillage identique). */
@@ -170,6 +187,9 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
    *  statut brouillon). Sert à distinguer un simple consultant non référent,
    *  à qui l'on propose de demander à devenir référent. */
   isPlanManager = computed(() => {
+    // #683 — un lecteur d'exploration n'est jamais gestionnaire, quel que
+    // soit son rôle dans sa propre structure.
+    if (this.accesExploration()) return false;
     if (this.authService.isSuperAdmin() || this.authService.isRedacteurPrincipal() || this.authService.isAdminOrganisme()) {
       return true;
     }
@@ -547,6 +567,11 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
       if (typeof val === 'string') this.editPressrefSearchText.set(val);
     });
 
+    // #681 — mot cherché transmis par l'exploration, à surligner.
+    this.route.queryParamMap.pipe(
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe(qp => this.motCleSurligne.set(qp.get('q') ?? ''));
+
     // Récupérer le slug du plan depuis les paramètres parent
     const parentParams = this.route.parent?.snapshot.paramMap;
     const slug = parentParams?.get('slug');
@@ -668,6 +693,7 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
           if (response.plan_statut) {
             this.planStatut.set(response.plan_statut);
           }
+          this.accesExploration.set(response.acces_exploration === true);
           if (!silent) this.isLoading.set(false);
           this.applyPostLoadNavigation();
         },
@@ -697,6 +723,7 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
             if (response.plan_statut) {
               this.planStatut.set(response.plan_statut);
             }
+            this.accesExploration.set(response.acces_exploration === true);
             if (!silent) this.isLoading.set(false);
             this.applyPostLoadNavigation();
           },

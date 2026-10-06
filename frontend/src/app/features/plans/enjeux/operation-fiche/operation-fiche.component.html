@@ -1,4 +1,4 @@
-<div class="fiche-page">
+<div class="fiche-page" [appSurligner]="motCleSurligne()">
   <!-- Barre d'actions (masquée à l'impression) -->
   <div class="fiche-toolbar no-print">
     <button class="btn-back" (click)="goBack()">
@@ -10,18 +10,36 @@
           <i class="fi fi-rr-marker"></i> {{ 'plans.suivis.actions.fiche.voirDansPlan' | translate }}
         </button>
       }
-      <button class="btn-suivi" (click)="goToSuivi()">
-        <i class="fi fi-rr-chart-histogram"></i> {{ 'plans.suivis.actions.fiche.voirSuivi' | translate }}
-      </button>
-      <!-- #642 — un seul point d'entrée pour l'impression/PDF et l'export Excel -->
-      <button class="btn-print" [disabled]="isExporting()" (click)="openExportDialog()">
-        <i class="fi fi-rr-download"></i> {{ 'plans.suivis.actions.fiche.exportDialog.trigger' | translate }}
-      </button>
-      <button class="btn-edit" (click)="goEdit()">
-        <i class="fi fi-rr-pencil"></i> {{ 'common.actions.edit' | translate }}
-      </button>
+      <!-- #683 — suivi, export et modification : pas en lecture d'exploration. -->
+      @if (!accesExploration()) {
+        <button class="btn-suivi" (click)="goToSuivi()">
+          <i class="fi fi-rr-chart-histogram"></i> {{ 'plans.suivis.actions.fiche.voirSuivi' | translate }}
+        </button>
+        <!-- #642 — un seul point d'entrée pour l'impression/PDF et l'export Excel -->
+        <button class="btn-print" [disabled]="isExporting()" (click)="openExportDialog()">
+          <i class="fi fi-rr-download"></i> {{ 'plans.suivis.actions.fiche.exportDialog.trigger' | translate }}
+        </button>
+        <button class="btn-edit" (click)="goEdit()">
+          <i class="fi fi-rr-pencil"></i> {{ 'common.actions.edit' | translate }}
+        </button>
+      }
     </div>
   </div>
+
+  <!-- #683 — Lecture d'exploration : action d'un plan validé d'une autre structure. -->
+  @if (accesExploration()) {
+    <div class="lock-banner lock-banner--access no-print" role="status" data-testid="exploration-banner">
+      <i class="fi fi-rr-globe"></i>
+      <div class="lock-banner-content">
+        <span class="lock-banner-title">{{ 'plans.lifecycle.explorationBanner.title' | translate }}</span>
+        <span class="lock-banner-text">{{ 'plans.lifecycle.explorationBanner.text' | translate }}</span>
+      </div>
+      <a class="lock-banner-btn" routerLink="/exploration">
+        <i class="fi fi-rr-search"></i>
+        <span>{{ 'plans.lifecycle.explorationBanner.back' | translate }}</span>
+      </a>
+    </div>
+  }
 
   @if (isLoading()) {
     <p class="fiche-loading">{{ 'common.loading' | translate }}</p>
@@ -153,8 +171,9 @@
         </section>
       }
 
-      <!-- Programmation -->
-      @if (programmation().length && sectionVisible('programmation')) {
+      <!-- Programmation — #683 : jamais en lecture d'exploration (l'API ne
+           l'envoie pas ; la section resterait vide). -->
+      @if (!accesExploration() && programmation().length && sectionVisible('programmation')) {
         <section class="fiche-section">
           <h2>{{ 'plans.suivis.actions.fiche.programmation' | translate }}</h2>
           <table class="fiche-table">
@@ -347,8 +366,8 @@
         </section>
       }
 
-      <!-- Réalisation -->
-      @if (sectionVisible('realisation')) {
+      <!-- Réalisation — #683 : idem. -->
+      @if (!accesExploration() && sectionVisible('realisation')) {
       <section class="fiche-section">
         <h2>{{ 'plans.suivis.actions.fiche.realisation' | translate }}</h2>
         <dl class="fiche-grid">
