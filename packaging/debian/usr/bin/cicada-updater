@@ -91,6 +91,11 @@ def main():
             return
 
         logger.info(f"Mise à jour vers {version} demandée par {trigger.get('requested_by', '?')}")
+        # Déclencheur consommé dès maintenant : la page d'administration lit sa
+        # présence comme « en attente » et son absence comme « en cours » ; et
+        # un échec plus bas ne laisserait pas un déclencheur que cicada-updater.path
+        # relancerait sans fin.
+        trigger_path.unlink()
 
         # 1. Mise à jour du paquet APT
         subprocess.run(['apt-get', 'update', '-qq'], check=True)
@@ -128,8 +133,13 @@ def main():
         # 4. Redémarrer l'installateur (service web)
         subprocess.run(['systemctl', 'restart', 'cicada-installer'], check=True, capture_output=True)
 
-        # 5. Supprimer le trigger et écrire le résultat
-        trigger_path.unlink()
+        # 4 bis. Heartbeat immédiat : le serveur de suivi connaît la nouvelle
+        # version sans attendre la nuit, et update_available.json est remis
+        # à jour (sinon la page d'administration proposerait encore la mise
+        # à jour qui vient d'être faite). Non bloquant : sans réseau, tant pis.
+        subprocess.run(['systemctl', 'start', 'cicada-heartbeat.service'], capture_output=True, timeout=60)
+
+        # 5. Écrire le résultat (lu par la page d'administration)
         Path(RESULT_FILE).write_text(json.dumps({
             'success': True,
             'version': version,

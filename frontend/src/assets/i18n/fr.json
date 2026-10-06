@@ -824,7 +824,17 @@
       "upToDate": "L'application est à jour",
       "confirmUpdate": "Voulez-vous mettre à jour vers la version {{version}} ?",
       "scheduled": "La mise à jour a été planifiée",
-      "error": "Erreur lors de la mise à jour"
+      "error": "Erreur lors de la mise à jour",
+      "progress": {
+        "scheduled": "Mise à jour vers la version {{version}} demandée, en attente de prise en charge par le serveur…",
+        "running": "Mise à jour vers la version {{version}} en cours : téléchargement du paquet et des images…",
+        "restarting": "L'application redémarre avec la version {{version}}…",
+        "done": "Mise à jour vers la version {{version}} terminée. La page va se recharger.",
+        "failed": "La mise à jour vers la version {{version}} a échoué.",
+        "unknown": "Pas de nouvelles de la mise à jour vers la version {{version}} depuis 15 minutes.",
+        "hint": "Comptez une à deux minutes. L'application sera brièvement indisponible pendant le redémarrage ; ne fermez pas cette page.",
+        "checkLogs": "Détail sur le serveur : /var/log/cicada/updater.log"
+      }
     },
     "rgpd": {
       "title": "Demandes RGPD",
