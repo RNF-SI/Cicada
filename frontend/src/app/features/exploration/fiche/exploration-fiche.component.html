@@ -162,6 +162,7 @@
             <app-accordion
               variant="enjeu"
               [title]="enjeu.libelle"
+              [class.cible-enjeu]="estCible('enjeu', enjeu.id_enjeu)"
               [expanded]="estOuvert(enjeu)"
               (expandedChange)="basculerEnjeu(enjeu, $event)">
 
