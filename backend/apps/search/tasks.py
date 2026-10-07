@@ -112,18 +112,21 @@ def publier_vers_le_hub():
 @shared_task
 def actualiser_adhesion_hub():
     """
-    Relit auprès du suivi une demande d'adhésion au hub en attente (#696).
+    Relit auprès du suivi une demande d'adhésion au hub en cours (#696) :
+    en attente, ou dont le code de confirmation a été envoyé.
 
-    L'acceptation par RNF se fait ailleurs, dans l'admin de l'API de suivi :
-    sans cette relecture, l'instance ne l'apprendrait qu'à la prochaine visite
-    d'un super administrateur sur la page des paramètres, et ne publierait pas
-    d'ici là. Hors attente, rien à faire — pas même un appel réseau.
+    Les décisions de RNF (envoi du code, refus) se prennent ailleurs, dans
+    l'admin de l'API de suivi : sans cette relecture, l'instance ne les
+    apprendrait qu'à la prochaine visite d'un super administrateur sur la page
+    des paramètres. Hors demande en cours, rien à faire — pas même un appel
+    réseau.
     """
-    from apps.search.models import RaccordementHub
-    from apps.search.raccordement import actualiser_adhesion, raccordement
+    from apps.search.raccordement import (
+        STATUTS_A_ACTUALISER, actualiser_adhesion, raccordement,
+    )
 
     ligne = raccordement()
-    if ligne.adhesion_statut != RaccordementHub.STATUT_EN_ATTENTE:
+    if ligne.adhesion_statut not in STATUTS_A_ACTUALISER:
         return "rien à actualiser"
     erreur = actualiser_adhesion(ligne)
     return erreur or ligne.adhesion_statut

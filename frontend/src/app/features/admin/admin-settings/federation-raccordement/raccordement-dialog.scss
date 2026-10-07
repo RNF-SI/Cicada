@@ -1,0 +1,58 @@
+// Styles communs aux dialogues du raccordement (adhésion, contact RNF).
+@import 'variables';
+
+:host {
+  display: block;
+}
+
+.raccordement-dialog-titre {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+  color: $primary-color;
+}
+
+.raccordement-dialog-contenu {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-md;
+  color: $black;
+
+  p {
+    margin: 0;
+  }
+
+  .info-block-content-text,
+  .info-block-content-title {
+    color: $black;
+  }
+}
+
+.raccordement-dialog-etapes {
+  margin: $spacing-xs 0 0;
+  padding-left: $spacing-lg;
+
+  li + li {
+    margin-top: $spacing-xxs;
+  }
+}
+
+// Deux colonnes sur grand écran (nom / e-mail, téléphone / message), une sur mobile.
+.raccordement-dialog-champs {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: $spacing-md;
+
+  @media (max-width: $breakpoint-tablet) {
+    grid-template-columns: 1fr;
+  }
+
+  .pleine-largeur {
+    grid-column: 1 / -1;
+  }
+}
+
+.bouton-spinner {
+  display: inline-block;
+  margin-right: $spacing-xs;
+}

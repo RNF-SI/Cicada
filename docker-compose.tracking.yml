@@ -3,7 +3,9 @@
 # En production, l'API de suivi tourne chez RNF et reçoit le heartbeat de
 # toutes les instances. Ce compose en lance une copie jetable pour tester le
 # circuit complet sur un poste : demande d'adhésion depuis une instance de dev,
-# acceptation dans l'admin du suivi, enrôlement sur le hub local.
+# envoi du code de confirmation depuis l'admin du suivi, saisie du code sur
+# l'instance, enrôlement sur le hub local. Les e-mails (à RNF, au demandeur, le
+# code) sont capturés par Mailpit : http://localhost:8027.
 #
 # Ne pas lancer à la main : « scripts/federation.sh adhesion up » s'occupe du
 # jeton d'administration partagé avec le hub et de l'enregistrement du poste.
@@ -46,6 +48,12 @@ services:
       - DB_PORT=5432
       - HUB_URL=${HUB_URL:-http://host.docker.internal:8002}
       - HUB_ADMIN_TOKEN=${HUB_ADMIN_TOKEN:-}
+      # E-mails de l'adhésion capturés par le Mailpit du banc (rien ne sort).
+      - EMAIL_HOST=mailpit
+      - EMAIL_PORT=1025
+      - EMAIL_USE_TLS=False
+      - RNF_CONTACT_EMAIL=si@rnfrance.org
+      - ADMIN_BASE_URL=http://localhost:${TRACKING_PORT:-8010}
       - DJANGO_SUPERUSER_USERNAME=admin
       - DJANGO_SUPERUSER_EMAIL=admin@test.fr
       - DJANGO_SUPERUSER_PASSWORD=admin
@@ -64,6 +72,17 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      mailpit:
+        condition: service_started
+    restart: unless-stopped
+
+  # Distinct du Mailpit de l'instance (:8025) : ici, ce que RNF et les
+  # structures recevraient de l'API de suivi.
+  mailpit:
+    image: axllent/mailpit
+    container_name: cicada_tracking_mailpit
+    ports:
+      - "${TRACKING_MAILPIT_PORT:-8027}:8025"
     restart: unless-stopped
 
 volumes:

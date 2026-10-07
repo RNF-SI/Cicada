@@ -19,8 +19,16 @@ adhésion acceptée, et l'instance continuerait de se croire non raccordée.
 
 L'instance tire elle-même ses deux jetons, les garde chiffrés en base, et
 n'envoie que leurs **empreintes SHA-256** — la seule chose que le hub stocke de
-toute façon. RNF accepte ou refuse la demande dans l'admin de l'API de suivi ;
-la vérification de l'identité de la structure sera définie plus tard (#697).
+toute façon.
+
+## Confirmation par code envoyé par e-mail
+
+RNF prend contact avec l'administrateur déclaré dans la demande, puis lui
+envoie **par e-mail** un code de confirmation tiré au hasard par le suivi.
+L'administrateur le saisit dans `Administration > Paramètres` : l'instance le
+relaie au suivi, qui le vérifie et enrôle alors l'instance sur le hub. Le code
+ne transite que dans cette requête — il n'est **jamais** stocké ni journalisé
+ici : une base ou un journal copiés ne doivent pas permettre de le rejouer.
 
 Aucun jeton ni aucune empreinte ne sort de ce module dans une réponse d'API ou
 une ligne de journal.
@@ -34,7 +42,10 @@ import secrets
 
 import requests
 from django.conf import settings
+from django.core.exceptions import ValidationError
+from django.core.validators import validate_email
 from django.utils import timezone
+from django.utils.dateparse import parse_datetime
 
 from .models import PublicationHub, RaccordementHub
 
@@ -57,11 +68,16 @@ SOURCE_ADHESION = 'adhesion'
 class ErreurRaccordement(Exception):
     """Échec d'une opération de raccordement, porteur d'une clé d'erreur."""
 
-    def __init__(self, cle, message, statut_http=400):
+    def __init__(self, cle, message, statut_http=400, extra=None):
         super().__init__(message)
         self.cle = cle
         self.message = message
         self.statut_http = statut_http
+        #: Champs complémentaires rendus tels quels (ex. `essais_restants`).
+        self.extra = extra or {}
+
+    def corps(self):
+        return {'erreur': self.cle, 'detail': self.message, **self.extra}
 
 
 # --------------------------------------------------------------------------- #
@@ -209,16 +225,32 @@ def _suivi():
     return tracking_api_url(), jeton
 
 
+#: Statuts pendant lesquels la décision appartient au suivi : l'instance doit
+#: aller relire où en est sa demande.
+STATUTS_A_ACTUALISER = (RaccordementHub.STATUT_EN_ATTENTE, RaccordementHub.STATUT_CODE_ENVOYE)
+
+
+def _date_suivi(valeur):
+    """Date ISO 8601 reçue du suivi, ou ``None`` si absente ou illisible."""
+    if not isinstance(valeur, str):
+        return None
+    try:
+        return parse_datetime(valeur)
+    except ValueError:
+        return None
+
+
 def actualiser_adhesion(ligne=None):
     """
-    Relit auprès du suivi l'état d'une adhésion en attente.
+    Relit auprès du suivi l'état d'une adhésion en attente ou dont le code de
+    confirmation a été envoyé.
 
     Renvoie une clé d'erreur, ou ``None`` si l'actualisation a réussi (ou n'avait
     pas lieu d'être). Ne lève jamais : une page d'administration doit pouvoir
     s'afficher même si le suivi est injoignable.
     """
     ligne = ligne or raccordement()
-    if ligne.adhesion_statut != RaccordementHub.STATUT_EN_ATTENTE:
+    if ligne.adhesion_statut not in STATUTS_A_ACTUALISER:
         return None
     try:
         url, jeton = _suivi()
@@ -244,17 +276,22 @@ def actualiser_adhesion(ligne=None):
 
     statut = corps.get('statut')
     if statut not in (
-        RaccordementHub.STATUT_EN_ATTENTE, RaccordementHub.STATUT_ACCEPTEE,
-        RaccordementHub.STATUT_REFUSEE,
+        RaccordementHub.STATUT_EN_ATTENTE, RaccordementHub.STATUT_CODE_ENVOYE,
+        RaccordementHub.STATUT_ACCEPTEE, RaccordementHub.STATUT_REFUSEE,
     ):
         return 'suivi_indisponible'
+    ancien = ligne.adhesion_statut
     ligne.adhesion_statut = statut
     ligne.adhesion_motif = corps.get('motif_refus') or ''
+    ligne.adhesion_code_expire_le = (
+        _date_suivi(corps.get('code_expire_le'))
+        if statut == RaccordementHub.STATUT_CODE_ENVOYE else None
+    )
     if statut == RaccordementHub.STATUT_ACCEPTEE and corps.get('hub_url'):
         ligne.hub_url = corps['hub_url'].rstrip('/')
     ligne.adhesion_actualisee_le = timezone.now()
     ligne.save()
-    if statut != RaccordementHub.STATUT_EN_ATTENTE:
+    if statut != ancien:
         logger.info("Adhésion au hub : statut « %s » reçu du suivi.", statut)
     return None
 
@@ -271,9 +308,45 @@ def adhesion_possible(ligne=None):
     )
 
 
-def demander_adhesion():
+#: Bornes des champs de contact — celles du modèle, et de quoi refuser un
+#: message démesuré avant de le faire voyager.
+LONGUEURS_CONTACT = {
+    'contact_nom': 200, 'contact_email': 254, 'contact_telephone': 50, 'message': 5000,
+}
+
+
+def valider_contact(donnees):
+    """
+    Contact déclaré dans la demande d'adhésion, nettoyé.
+
+    Nom et e-mail sont requis : c'est à cette personne que RNF téléphone, puis
+    envoie le code de confirmation. Lève `contact_invalide` sinon.
+    """
+    if not isinstance(donnees, dict):
+        donnees = {}
+    contact = {}
+    for champ, longueur in LONGUEURS_CONTACT.items():
+        valeur = donnees.get(champ)
+        if valeur is None:
+            valeur = ''
+        if not isinstance(valeur, str) or len(valeur.strip()) > longueur:
+            raise ErreurRaccordement('contact_invalide', f"Champ « {champ} » invalide.")
+        contact[champ] = valeur.strip()
+    if not contact['contact_nom']:
+        raise ErreurRaccordement('contact_invalide', "Le nom du contact est requis.")
+    try:
+        validate_email(contact['contact_email'])
+    except ValidationError:
+        raise ErreurRaccordement('contact_invalide', "L'adresse e-mail du contact est invalide.")
+    return contact
+
+
+def demander_adhesion(donnees=None):
     """
     Tire deux jetons, envoie leurs empreintes au suivi et enregistre la demande.
+
+    `donnees` porte le contact de l'administrateur (`contact_nom`,
+    `contact_email`, `contact_telephone`, `message`), transmis au suivi.
 
     Les jetons ne sont enregistrés qu'**après** la réponse favorable du suivi :
     une demande qui échoue laisse l'état précédent intact. Un suivi qui aurait enregistré
@@ -296,6 +369,7 @@ def demander_adhesion():
             "/var/lib/cicada/.env (puis `rebuild_search_index --purge` si l'index "
             "existe déjà) avant de demander l'adhésion.",
         )
+    contact = valider_contact(donnees)
     url, jeton_suivi = _suivi()
 
     depot, lecture = nouveau_jeton(), nouveau_jeton()
@@ -311,6 +385,7 @@ def demander_adhesion():
                 'url_publique': settings.CICADA_PUBLIC_URL,
                 'empreinte_depot': empreinte_depot,
                 'empreinte_lecture': empreinte_lecture,
+                **contact,
             },
             timeout=DELAI,
         )
@@ -334,10 +409,135 @@ def demander_adhesion():
     ligne.adhesion_demandee_le = timezone.now()
     ligne.adhesion_actualisee_le = ligne.adhesion_demandee_le
     ligne.adhesion_motif = ''
+    ligne.adhesion_contact_nom = contact['contact_nom']
+    ligne.adhesion_contact_email = contact['contact_email']
+    ligne.adhesion_code_expire_le = None
     ligne.hub_url = ''
     ligne.save()
     logger.info("Demande d'adhésion au hub envoyée (instance « %s »).", settings.CICADA_INSTANCE_ID)
     return ligne
+
+
+#: Erreurs de confirmation que le suivi renvoie et que l'instance relaie telles
+#: quelles (clé et statut HTTP) — le contrat avec l'interface est le même.
+ERREURS_CONFIRMATION = {
+    'code_invalide': 400, 'code_expire': 400, 'trop_d_essais': 400,
+    'pas_de_code': 409, 'hub_injoignable': 502,
+}
+
+
+def confirmer_adhesion(code):
+    """
+    Relaie au suivi le code de confirmation saisi par l'administrateur.
+
+    Code juste ⇒ le suivi enrôle l'instance sur le hub et répond `acceptee` :
+    les jetons tirés à la demande deviennent effectifs. Le code n'est ni
+    conservé ni journalisé — seuls le statut HTTP et la clé d'erreur le sont.
+    """
+    ligne = raccordement()
+    if ligne.adhesion_statut == RaccordementHub.STATUT_ACCEPTEE:
+        raise ErreurRaccordement('deja_acceptee', "L'adhésion est déjà acceptée.", 409)
+    if ligne.adhesion_statut not in STATUTS_A_ACTUALISER:
+        raise ErreurRaccordement(
+            'pas_de_code', "Aucune demande d'adhésion en cours de confirmation.", 409,
+        )
+    if not isinstance(code, str) or not code.strip() or len(code) > 50:
+        raise ErreurRaccordement('code_invalide', "Saisissez le code reçu par e-mail.")
+    url, jeton_suivi = _suivi()
+
+    try:
+        reponse = requests.post(
+            f"{url}/instances/adhesion-hub/confirmation/",
+            headers={'X-Instance-Token': jeton_suivi},
+            json={'code': code.strip()},
+            timeout=DELAI,
+        )
+    except requests.RequestException as erreur:
+        logger.warning("API de suivi injoignable pour la confirmation d'adhésion : %s", type(erreur).__name__)
+        raise ErreurRaccordement('suivi_indisponible', "L'API de suivi est injoignable.")
+    try:
+        corps = reponse.json()
+    except ValueError:
+        corps = {}
+    if not isinstance(corps, dict):
+        corps = {}
+
+    if reponse.status_code == 200 and corps.get('statut') == RaccordementHub.STATUT_ACCEPTEE:
+        ligne.adhesion_statut = RaccordementHub.STATUT_ACCEPTEE
+        ligne.adhesion_motif = ''
+        ligne.adhesion_code_expire_le = None
+        if corps.get('hub_url'):
+            ligne.hub_url = corps['hub_url'].rstrip('/')
+        ligne.adhesion_actualisee_le = timezone.now()
+        ligne.save()
+        logger.info("Adhésion au hub confirmée par code (instance « %s »).", settings.CICADA_INSTANCE_ID)
+        return ligne
+
+    if reponse.status_code == 404:
+        cle = 'pas_de_code'
+    else:
+        cle = corps.get('erreur')
+    if cle not in ERREURS_CONFIRMATION:
+        logger.warning("API de suivi : confirmation d'adhésion → %s", reponse.status_code)
+        raise ErreurRaccordement('suivi_indisponible', "L'API de suivi a refusé ou échoué la confirmation.")
+
+    logger.info("Confirmation d'adhésion refusée par le suivi : %s", cle)
+    if cle == 'trop_d_essais':
+        # Le suivi a invalidé le code et repassé la demande en attente : RNF
+        # doit en renvoyer un. Autant l'afficher sans attendre l'actualisation.
+        ligne.adhesion_statut = RaccordementHub.STATUT_EN_ATTENTE
+        ligne.adhesion_code_expire_le = None
+        ligne.adhesion_actualisee_le = timezone.now()
+        ligne.save()
+    extra = {}
+    if cle == 'code_invalide' and isinstance(corps.get('essais_restants'), int):
+        extra['essais_restants'] = corps['essais_restants']
+    messages = {
+        'code_invalide': "Code de confirmation incorrect.",
+        'code_expire': "Ce code de confirmation a expiré : demandez-en un nouveau à RNF.",
+        'trop_d_essais': "Trop d'essais : ce code est invalidé, RNF doit en envoyer un nouveau.",
+        'pas_de_code': "Aucun code de confirmation n'est en cours de validité pour cette instance.",
+        'hub_injoignable': "Code accepté, mais l'enrôlement sur le hub a échoué : réessayez plus tard.",
+    }
+    raise ErreurRaccordement(cle, messages[cle], ERREURS_CONFIRMATION[cle], extra)
+
+
+def contacter_rnf(utilisateur, donnees):
+    """
+    Envoie à RNF, via le suivi, un message de l'administrateur connecté.
+
+    Le nom et l'adresse de réponse viennent du **compte connecté**, pas du
+    corps de la requête : RNF répond à quelqu'un dont l'instance garantit
+    l'adresse, et la page ne sert pas de relais d'e-mails au nom de n'importe qui.
+    """
+    if not isinstance(donnees, dict):
+        donnees = {}
+    sujet, message = donnees.get('sujet'), donnees.get('message')
+    if not (isinstance(sujet, str) and sujet.strip() and len(sujet) <= 200
+            and isinstance(message, str) and message.strip() and len(message) <= 5000):
+        raise ErreurRaccordement('contact_invalide', "Le sujet et le message sont requis.")
+    url, jeton_suivi = _suivi()
+    try:
+        reponse = requests.post(
+            f"{url}/instances/contact/",
+            headers={'X-Instance-Token': jeton_suivi},
+            json={
+                'nom': utilisateur.get_full_name() or utilisateur.email,
+                'email': utilisateur.email,
+                'sujet': sujet.strip(),
+                'message': message.strip(),
+            },
+            timeout=DELAI,
+        )
+    except requests.RequestException as erreur:
+        logger.warning("API de suivi injoignable pour un message à RNF : %s", type(erreur).__name__)
+        raise ErreurRaccordement('suivi_indisponible', "L'API de suivi est injoignable.")
+    if reponse.status_code not in (200, 201, 202):
+        logger.warning("API de suivi : message à RNF → %s", reponse.status_code)
+        raise ErreurRaccordement(
+            'suivi_indisponible', "L'API de suivi a refusé ou échoué l'envoi du message.",
+            429 if reponse.status_code == 429 else 400,
+        )
 
 
 # --------------------------------------------------------------------------- #
@@ -444,6 +644,8 @@ def _diagnostic(ligne, configuration, publications):
         return cas('erreur', 'identite_manquante')
     if not env and statut == RaccordementHub.STATUT_REFUSEE:
         return cas('erreur', 'adhesion_refusee', motif=ligne.adhesion_motif)
+    if not env and statut == RaccordementHub.STATUT_CODE_ENVOYE:
+        return cas('info', 'adhesion_code_envoye', expire_le=_date(ligne.adhesion_code_expire_le))
     if not env and statut == RaccordementHub.STATUT_EN_ATTENTE:
         return cas('info', 'adhesion_en_attente')
     if configuration['source_jetons'] is None:
@@ -470,7 +672,7 @@ def etat(actualiser=True):
     """
     État complet du raccordement, tel que le lit la page de paramètres.
 
-    Une adhésion en attente est d'abord actualisée auprès du suivi : c'est le
+    Une adhésion en attente (ou dont le code a été envoyé) est d'abord actualisée auprès du suivi : c'est le
     moment où l'administrateur regarde, inutile de lui faire attendre la tâche
     de la demi-heure.
     """
@@ -504,6 +706,8 @@ def etat(actualiser=True):
             'statut': ligne.adhesion_statut,
             'demandee_le': _date(ligne.adhesion_demandee_le),
             'motif': ligne.adhesion_motif,
+            'code_expire_le': _date(ligne.adhesion_code_expire_le),
+            'contact_email': ligne.adhesion_contact_email,
             'possible': adhesion_possible(ligne),
             'erreur_suivi': erreur_suivi,
         },

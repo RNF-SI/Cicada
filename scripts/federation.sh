@@ -46,6 +46,7 @@ URL_CEN_UI=http://localhost:8081
 URL_CEN_API=http://localhost:8001
 URL_HUB=http://localhost:8002
 URL_SUIVI=http://localhost:8010
+URL_SUIVI_MAIL=http://localhost:8027
 # Jeton de suivi du poste : le même que dans docker-compose.adhesion.yml.
 JETON_SUIVI_POSTE=5f0c2a8e-0d6b-4c1e-9a77-1c2d3e4f5a6b
 
@@ -478,6 +479,7 @@ cmd_adhesion() {
       "${SUIVI[@]}" up -d >/dev/null
       attendre "$URL_HUB/api/health/" "Hub" 120
       attendre "$URL_SUIVI/admin/login/" "API de suivi" 300
+      attendre "$URL_SUIVI_MAIL/" "Mailpit du suivi" 60
 
       # En production, l'instance s'enregistre à l'installation. Ici, à la main.
       curl -sf -X POST "$URL_SUIVI/api/instances/register/" \
@@ -495,10 +497,13 @@ cmd_adhesion() {
 
       titre "À faire"
       info "1. $URL_RNF_UI/administration/parametres  (admin@test.fr / Test123!)"
-      info "   cocher le partage, puis « Demander l'adhésion »"
-      info "2. $URL_SUIVI/admin/  (admin / admin) → Adhésions au hub"
-      info "   cocher la demande, puis « Accepter et enrôler sur le hub »"
-      info "3. revenir aux paramètres : « Vérifier maintenant », puis"
+      info "   cocher le partage, puis « Demander l'adhésion » (nom, e-mail du contact)"
+      info "2. $URL_SUIVI_MAIL  → l'e-mail à si@rnfrance.org et l'accusé de réception"
+      info "3. $URL_SUIVI/admin/  (admin / admin) → Adhésions au hub"
+      info "   cocher la demande, puis « Envoyer le code de confirmation »"
+      info "4. $URL_SUIVI_MAIL  → lire le code (ABCD-EFGH) dans le dernier e-mail"
+      info "5. revenir aux paramètres : saisir le code → adhésion acceptée, instance"
+      info "   enrôlée sur le hub ; « Vérifier maintenant », puis"
       info "   docker exec $RNF_WEB python manage.py push_federation"
       info "Retour au banc rnf/cen : scripts/federation.sh adhesion down"
       ;;
@@ -558,8 +563,9 @@ Commandes
   reset-hub                    vide la base du hub et le relance
 
   adhesion up      banc de l'adhésion validée par RNF (#696) : API de suivi
-                   locale (:8010), instance principale sous l'identité
-                   « poste-dev » sans jetons, puis marche à suivre
+                   locale (:8010) et son Mailpit (:8027), instance principale
+                   sous l'identité « poste-dev » sans jetons, puis marche à
+                   suivre (demande → code envoyé par e-mail → code saisi)
   adhesion down    rend à l'instance principale son identité de .env
   adhesion reset   efface l'adhésion des trois côtés (hub, suivi, instance),
                    pour rejouer ; relancer ensuite « adhesion up »
@@ -568,6 +574,7 @@ Adresses
   RNF  http://localhost        API :8000     Mailpit :8025
   CEN  http://localhost:8081   API :8001     Mailpit :8026
   Hub  (pas d'interface)       API :8002
+  Suivi (banc adhésion)        API :8010     Mailpit :8027
 
 Connexion sur les deux instances : admin@test.fr / Test123!
 

@@ -1,0 +1,45 @@
+<h2 mat-dialog-title class="raccordement-dialog-titre">
+  <i class="fi fi-rr-envelope"></i>
+  {{ 'admin.settings.federation.etat.contact.titre' | translate }}
+</h2>
+
+<form [formGroup]="form" (ngSubmit)="envoyer()" novalidate>
+  <mat-dialog-content class="raccordement-dialog-contenu">
+    <p>{{ 'admin.settings.federation.etat.contact.intro' | translate }}</p>
+
+    <app-form-field
+      [label]="'admin.settings.federation.etat.contact.sujet' | translate"
+      [required]="true"
+      [error]="champInvalide('sujet') ? ('admin.settings.federation.etat.formulaire.requis' | translate) : null">
+      <input type="text" formControlName="sujet" data-testid="contact-sujet" />
+    </app-form-field>
+
+    <app-form-field
+      [label]="'admin.settings.federation.etat.contact.message' | translate"
+      [required]="true"
+      [error]="champInvalide('message') ? ('admin.settings.federation.etat.formulaire.requis' | translate) : null">
+      <textarea formControlName="message" rows="6" data-testid="contact-message"></textarea>
+    </app-form-field>
+
+    @if (erreur(); as cle) {
+      <div class="info-block info-block-error" role="alert" data-testid="contact-erreur">
+        <div class="info-block-icon"></div>
+        <div class="info-block-content">
+          <p class="info-block-content-text">{{ 'admin.settings.federation.etat.erreurs.' + cle | translate }}</p>
+        </div>
+      </div>
+    }
+  </mat-dialog-content>
+
+  <mat-dialog-actions align="end">
+    <button mat-stroked-button type="button" (click)="annuler()">
+      {{ 'common.actions.cancel' | translate }}
+    </button>
+    <button mat-flat-button color="primary" type="submit" data-testid="contact-envoyer" [disabled]="envoiEnCours()">
+      @if (envoiEnCours()) {
+        <mat-spinner diameter="18" class="bouton-spinner"></mat-spinner>
+      }
+      {{ 'admin.settings.federation.etat.contact.envoyer' | translate }}
+    </button>
+  </mat-dialog-actions>
+</form>

@@ -361,11 +361,14 @@ class RaccordementHub(models.Model):
 
     STATUT_AUCUNE = ''
     STATUT_EN_ATTENTE = 'en_attente'
+    #: RNF a envoyé par e-mail un code de confirmation à l'administrateur.
+    STATUT_CODE_ENVOYE = 'code_envoye'
     STATUT_ACCEPTEE = 'acceptee'
     STATUT_REFUSEE = 'refusee'
     STATUT_CHOICES = [
         (STATUT_AUCUNE, _("Aucune demande")),
         (STATUT_EN_ATTENTE, _("En attente")),
+        (STATUT_CODE_ENVOYE, _("Code de confirmation envoyé")),
         (STATUT_ACCEPTEE, _("Acceptée")),
         (STATUT_REFUSEE, _("Refusée")),
     ]
@@ -383,6 +386,18 @@ class RaccordementHub(models.Model):
     adhesion_demandee_le = models.DateTimeField(_("Demandée le"), null=True, blank=True)
     adhesion_actualisee_le = models.DateTimeField(_("Actualisée le"), null=True, blank=True)
     adhesion_motif = models.TextField(_("Motif du refus"), blank=True, default='')
+    # Contact déclaré dans la demande : RNF l'appelle, puis lui envoie le code
+    # de confirmation. Le code lui-même n'est **jamais** conservé ici — il ne
+    # fait que transiter de l'administrateur vers le suivi.
+    adhesion_contact_nom = models.CharField(
+        _("Contact (nom)"), max_length=200, blank=True, default='',
+    )
+    adhesion_contact_email = models.EmailField(
+        _("Contact (e-mail)"), blank=True, default='',
+    )
+    adhesion_code_expire_le = models.DateTimeField(
+        _("Code de confirmation valable jusqu'au"), null=True, blank=True,
+    )
     hub_url = models.CharField(
         _("URL du hub"), max_length=500, blank=True, default='',
         help_text=_("Reçue du suivi à l'acceptation de l'adhésion."),

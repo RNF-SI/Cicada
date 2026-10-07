@@ -7,10 +7,15 @@ import { TranslateLoader, TranslateModule, TranslateService } from '@ngx-transla
 import { of, throwError } from 'rxjs';
 
 import { FederationRaccordementComponent } from './federation-raccordement.component';
+import { AdhesionDialogComponent } from './adhesion-dialog/adhesion-dialog.component';
+import { ContactRnfDialogComponent } from './contact-rnf-dialog/contact-rnf-dialog.component';
+import { AuthService } from '../../../../core/services/auth.service';
 import {
   EtatRaccordement,
   FederationRaccordementService,
   cleErreurRaccordement,
+  essaisRestants,
+  normaliserCode,
 } from '../../../../core/services/federation-raccordement.service';
 
 const TRADUCTIONS = {
@@ -23,9 +28,27 @@ const TRADUCTIONS = {
             adhesion_en_attente: 'En attente de RNF',
             adhesion_refusee: 'Refusée : {{motif}}',
             identite_manquante: 'Identité manquante',
+            adhesion_code_envoye: 'Code à saisir avant le {{expire_le}}',
           },
-          adhesion: { demander: 'Demander', redemander: 'Refaire', envoyee: 'Envoyée', enAttenteTexte: 'Apparaîtra une fois acceptée' },
-          erreurs: { suivi_indisponible: 'Suivi indisponible', erreur_inconnue: 'Erreur inconnue' },
+          adhesion: {
+            demander: 'Demander',
+            redemander: 'Refaire',
+            envoyee: 'Envoyée',
+            enAttenteTexte: 'RNF va contacter {{email}}',
+            codeEnvoyeTexte: 'Demande faite avec {{email}}',
+            codeExpireLe: 'Valable jusqu’au {{date}}',
+            statut: { acceptee: 'Acceptée' },
+          },
+          confirmation: { reussie: 'Code accepté' },
+          contact: { bouton: 'Contacter RNF', envoye: 'Message envoyé' },
+          erreurs: {
+            suivi_indisponible: 'Suivi indisponible',
+            erreur_inconnue: 'Erreur inconnue',
+            code_invalide: 'Code incorrect',
+            code_invalide_essais: 'Code incorrect, {{essais}} essai(s)',
+            code_expire: 'Code expiré',
+            trop_d_essais: 'Trop d’essais',
+          },
         },
       },
     },
@@ -64,6 +87,8 @@ function etatFactice(surcharge: {
       motif: '',
       possible: true,
       erreur_suivi: null,
+      code_expire_le: null,
+      contact_email: '',
       ...surcharge.adhesion,
     },
     publications: surcharge.publications ?? [],
@@ -74,7 +99,13 @@ function etatFactice(surcharge: {
 describe('FederationRaccordementComponent', () => {
   let fixture: ComponentFixture<FederationRaccordementComponent>;
   let component: FederationRaccordementComponent;
-  let service: { etat: jest.Mock; verifier: jest.Mock; demanderAdhesion: jest.Mock };
+  let service: {
+    etat: jest.Mock;
+    verifier: jest.Mock;
+    demanderAdhesion: jest.Mock;
+    confirmerCode: jest.Mock;
+    contacterRnf: jest.Mock;
+  };
   let dialog: { open: jest.Mock };
   let snackBar: { open: jest.Mock };
 
@@ -90,7 +121,13 @@ describe('FederationRaccordementComponent', () => {
   const el = (): HTMLElement => fixture.nativeElement;
 
   beforeEach(async () => {
-    service = { etat: jest.fn(), verifier: jest.fn(), demanderAdhesion: jest.fn() };
+    service = {
+      etat: jest.fn(),
+      verifier: jest.fn(),
+      demanderAdhesion: jest.fn(),
+      confirmerCode: jest.fn(),
+      contacterRnf: jest.fn(),
+    };
     dialog = { open: jest.fn() };
     snackBar = { open: jest.fn() };
 
@@ -110,6 +147,12 @@ describe('FederationRaccordementComponent', () => {
         },
       })
       .overrideProvider(FederationRaccordementService, { useValue: service })
+      .overrideProvider(AuthService, {
+        useValue: {
+          currentUser: () => ({ email: 'marie@cen-aura.org' }),
+          getUserDisplayName: () => 'Marie Dupont',
+        },
+      })
       .compileComponents();
 
     TestBed.inject(TranslateService).use('fr');
@@ -149,7 +192,7 @@ describe('FederationRaccordementComponent', () => {
       diagnostic: { niveau: 'info', cle: 'adhesion_en_attente', parametres: {} },
     }));
     expect(el().querySelector('[data-testid="raccordement-diagnostic"]')!.textContent).toContain('En attente de RNF');
-    expect(el().querySelector('[data-testid="adhesion-en-attente"]')!.textContent).toContain('Apparaîtra une fois acceptée');
+    expect(el().querySelector('[data-testid="adhesion-en-attente"]')!.textContent).toContain('RNF va contacter');
     expect(el().querySelector('[data-testid="bouton-adhesion"]')).toBeNull();
   });
 
@@ -167,30 +210,172 @@ describe('FederationRaccordementComponent', () => {
     expect(el().querySelector('[data-testid="bouton-adhesion"]')!.textContent).toContain('Refaire');
   });
 
-  it('demande confirmation avant d’envoyer la demande d’adhésion', async () => {
+  it('ouvre le formulaire d’adhésion pré-rempli avec l’utilisateur connecté', async () => {
     await creer(etatFactice());
-    const attente = etatFactice({ adhesion: { statut: 'en_attente', possible: false } });
-    service.demanderAdhesion.mockReturnValue(of(attente));
+    dialog.open.mockReturnValue({ afterClosed: () => of(undefined) });
 
-    dialog.open.mockReturnValue({ afterClosed: () => of(false) });
     component.demanderAdhesion();
-    expect(service.demanderAdhesion).not.toHaveBeenCalled();
 
-    dialog.open.mockReturnValue({ afterClosed: () => of(true) });
-    component.demanderAdhesion();
-    expect(service.demanderAdhesion).toHaveBeenCalledTimes(1);
-    expect(component.etat()?.adhesion.statut).toBe('en_attente');
+    expect(dialog.open).toHaveBeenCalledWith(AdhesionDialogComponent, expect.objectContaining({
+      width: '1300px',
+      maxWidth: '95vw',
+      data: {
+        instance_id: 'cen-aura',
+        libelle: 'CEN Auvergne-Rhône-Alpes',
+        contact_nom: 'Marie Dupont',
+        contact_email: 'marie@cen-aura.org',
+      },
+    }));
+    // Formulaire annulé : rien ne change.
+    expect(component.etat()?.adhesion.statut).toBe('');
+    expect(snackBar.open).not.toHaveBeenCalled();
+    expect(component.demandeEnCours()).toBe(false);
   });
 
-  it('affiche une snackbar traduite si la demande échoue', async () => {
+  it('remplace l’état par celui renvoyé une fois la demande envoyée', async () => {
     await creer(etatFactice());
-    dialog.open.mockReturnValue({ afterClosed: () => of(true) });
-    service.demanderAdhesion.mockReturnValue(throwError(() =>
-      new HttpErrorResponse({ status: 400, error: { erreur: 'suivi_indisponible' } })));
+    const attente = etatFactice({ adhesion: { statut: 'en_attente', possible: false, contact_email: 'marie@cen-aura.org' } });
+    dialog.open.mockReturnValue({ afterClosed: () => of(attente) });
 
     component.demanderAdhesion();
-    expect(snackBar.open).toHaveBeenCalledWith('Suivi indisponible', expect.anything(), expect.anything());
-    expect(component.demandeEnCours()).toBe(false);
+    fixture.detectChanges();
+
+    expect(component.etat()?.adhesion.statut).toBe('en_attente');
+    expect(snackBar.open).toHaveBeenCalledWith('Envoyée', expect.anything(), expect.anything());
+    expect(el().querySelector('[data-testid="adhesion-en-attente"]')!.textContent).toContain('RNF va contacter marie@cen-aura.org');
+  });
+
+  it('n’ouvre pas le formulaire si l’adhésion n’est pas possible', async () => {
+    await creer(etatFactice({ adhesion: { possible: false } }));
+    component.demanderAdhesion();
+    expect(dialog.open).not.toHaveBeenCalled();
+  });
+
+  describe('code de confirmation (statut code_envoye)', () => {
+    const codeEnvoye = () => etatFactice({
+      adhesion: {
+        statut: 'code_envoye',
+        possible: false,
+        contact_email: 'marie@cen-aura.org',
+        code_expire_le: '2026-10-14T12:00:00Z',
+      },
+      diagnostic: { niveau: 'info', cle: 'adhesion_code_envoye', parametres: { expire_le: '2026-10-14T12:00:00Z' } },
+    });
+
+    const bouton = () => el().querySelector('[data-testid="bouton-valider-code"]') as HTMLButtonElement;
+
+    it('affiche le champ de saisie, l’adresse de la demande et l’échéance', async () => {
+      await creer(codeEnvoye());
+      expect(el().querySelector('[data-testid="adhesion-code"]')).not.toBeNull();
+      expect(el().querySelector('[data-testid="adhesion-code-envoye"]')!.textContent).toContain('marie@cen-aura.org');
+      expect(el().querySelector('[data-testid="adhesion-code-expiration"]')!.textContent).toContain('Valable jusqu’au');
+      // La date ISO du diagnostic est mise en forme avant interpolation.
+      const diagnostic = el().querySelector('[data-testid="raccordement-diagnostic"]')!.textContent!;
+      expect(diagnostic).toContain('Code à saisir avant le');
+      expect(diagnostic).not.toContain('2026-10-14T');
+      expect(el().querySelector('[data-testid="bouton-adhesion"]')).toBeNull();
+    });
+
+    it('force les majuscules et n’active le bouton qu’avec un code complet', async () => {
+      await creer(codeEnvoye());
+      expect(bouton().disabled).toBe(true);
+
+      component.saisirCode('abcd-ef');
+      fixture.detectChanges();
+      expect(component.codeSaisi).toBe('ABCD-EF');
+      expect(bouton().disabled).toBe(true);
+
+      component.saisirCode('abcd efgh');
+      fixture.detectChanges();
+      expect(bouton().disabled).toBe(false);
+    });
+
+    it('valide le code et affiche l’adhésion acceptée', async () => {
+      await creer(codeEnvoye());
+      service.confirmerCode.mockReturnValue(of(etatFactice({
+        adhesion: { statut: 'acceptee', possible: false },
+        diagnostic: { niveau: 'info', cle: 'aucune_publication', parametres: {} },
+      })));
+
+      component.saisirCode('abcd-efgh');
+      component.confirmerCode();
+      fixture.detectChanges();
+
+      expect(service.confirmerCode).toHaveBeenCalledWith('ABCDEFGH');
+      expect(component.etat()?.adhesion.statut).toBe('acceptee');
+      expect(component.codeSaisi).toBe('');
+      expect(el().querySelector('[data-testid="adhesion-acceptee"]')).not.toBeNull();
+      expect(el().querySelector('[data-testid="adhesion-code"]')).toBeNull();
+      expect(snackBar.open).toHaveBeenCalledWith('Code accepté', expect.anything(), expect.anything());
+    });
+
+    it('affiche l’erreur de code incorrect avec les essais restants', async () => {
+      await creer(codeEnvoye());
+      service.confirmerCode.mockReturnValue(throwError(() =>
+        new HttpErrorResponse({ status: 400, error: { erreur: 'code_invalide', essais_restants: 3 } })));
+
+      component.saisirCode('ABCD-EFGH');
+      component.confirmerCode();
+      fixture.detectChanges();
+
+      expect(component.erreurCode()).toBe('Code incorrect, 3 essai(s)');
+      expect(el().querySelector('.raccordement-code')!.textContent).toContain('Code incorrect, 3 essai(s)');
+      expect(component.confirmationEnCours()).toBe(false);
+      // Le code reste saisi pour être corrigé.
+      expect(component.codeSaisi).toBe('ABCD-EFGH');
+      expect(service.etat).toHaveBeenCalledTimes(1);
+    });
+
+    it('traduit un code expiré', async () => {
+      await creer(codeEnvoye());
+      service.confirmerCode.mockReturnValue(throwError(() =>
+        new HttpErrorResponse({ status: 400, error: { erreur: 'code_expire' } })));
+
+      component.saisirCode('ABCD-EFGH');
+      component.confirmerCode();
+      expect(component.erreurCode()).toBe('Code expiré');
+    });
+
+    it('recharge l’état quand le code est invalidé (trop d’essais)', async () => {
+      await creer(codeEnvoye());
+      service.confirmerCode.mockReturnValue(throwError(() =>
+        new HttpErrorResponse({ status: 400, error: { erreur: 'trop_d_essais' } })));
+      service.etat.mockReturnValue(of(etatFactice({ adhesion: { statut: 'en_attente', possible: false } })));
+
+      component.saisirCode('ABCD-EFGH');
+      component.confirmerCode();
+      fixture.detectChanges();
+
+      expect(snackBar.open).toHaveBeenCalledWith('Trop d’essais', expect.anything(), expect.anything());
+      expect(service.etat).toHaveBeenCalledTimes(2);
+      expect(component.etat()?.adhesion.statut).toBe('en_attente');
+      expect(component.codeSaisi).toBe('');
+    });
+  });
+
+  describe('contact RNF', () => {
+    it.each(['', 'en_attente', 'code_envoye', 'acceptee', 'refusee'] as const)(
+      'le bouton est visible quel que soit le statut (%s)', async statut => {
+        await creer(etatFactice({ adhesion: { statut, possible: false } }));
+        expect(el().querySelector('[data-testid="bouton-contact"]')!.textContent).toContain('Contacter RNF');
+      });
+
+    it('ouvre le dialogue et confirme l’envoi par une snackbar', async () => {
+      await creer(etatFactice());
+      dialog.open.mockReturnValue({ afterClosed: () => of(true) });
+
+      (el().querySelector('[data-testid="bouton-contact"]') as HTMLButtonElement).click();
+
+      expect(dialog.open).toHaveBeenCalledWith(ContactRnfDialogComponent, expect.objectContaining({ width: '1300px' }));
+      expect(snackBar.open).toHaveBeenCalledWith('Message envoyé', expect.anything(), expect.anything());
+    });
+
+    it('ne notifie rien si le dialogue est annulé', async () => {
+      await creer(etatFactice());
+      dialog.open.mockReturnValue({ afterClosed: () => of(false) });
+      component.contacterRnf();
+      expect(snackBar.open).not.toHaveBeenCalled();
+    });
   });
 
   it('vérifie le raccordement et affiche le résultat', async () => {
@@ -235,8 +420,29 @@ describe('cleErreurRaccordement', () => {
     expect(cleErreurRaccordement(new HttpErrorResponse({ status: 400, error: { code: 'suivi_indisponible' } }))).toBe('suivi_indisponible');
   });
 
+  it('reconnaît les erreurs de la confirmation par code', () => {
+    for (const cle of ['contact_invalide', 'code_invalide', 'code_expire', 'trop_d_essais', 'pas_de_code', 'hub_injoignable']) {
+      expect(cleErreurRaccordement(new HttpErrorResponse({ status: 400, error: { erreur: cle } }))).toBe(cle);
+    }
+  });
+
   it('retombe sur erreur_inconnue sinon', () => {
     expect(cleErreurRaccordement(new HttpErrorResponse({ status: 500, error: { detail: 'boum' } }))).toBe('erreur_inconnue');
     expect(cleErreurRaccordement(null)).toBe('erreur_inconnue');
+  });
+});
+
+describe('essaisRestants', () => {
+  it('lit le nombre d’essais restants, ou null', () => {
+    expect(essaisRestants(new HttpErrorResponse({ status: 400, error: { erreur: 'code_invalide', essais_restants: 2 } }))).toBe(2);
+    expect(essaisRestants(new HttpErrorResponse({ status: 400, error: { erreur: 'code_expire' } }))).toBeNull();
+    expect(essaisRestants(null)).toBeNull();
+  });
+});
+
+describe('normaliserCode', () => {
+  it('met en majuscules et retire espaces et tirets', () => {
+    expect(normaliserCode(' abcd-efgh ')).toBe('ABCDEFGH');
+    expect(normaliserCode('AB CD - EF GH')).toBe('ABCDEFGH');
   });
 });

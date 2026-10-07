@@ -5,7 +5,8 @@ from rest_framework.routers import DefaultRouter
 
 from .distant import EcransDistantsView
 from .views_raccordement import (
-    RaccordementAdhesionView, RaccordementVerifierView, RaccordementView,
+    RaccordementAdhesionView, RaccordementConfirmationView, RaccordementContactView,
+    RaccordementVerifierView, RaccordementView,
 )
 from .views import (
     ExplorationContenuViewSet, ExplorationPlanViewSet, FederationDocumentViewSet,
@@ -42,4 +43,8 @@ federation_urlpatterns = [
          name='federation-raccordement-verifier'),
     path('raccordement/adhesion/', RaccordementAdhesionView.as_view(),
          name='federation-raccordement-adhesion'),
+    path('raccordement/confirmation/', RaccordementConfirmationView.as_view(),
+         name='federation-raccordement-confirmation'),
+    path('raccordement/contact/', RaccordementContactView.as_view(),
+         name='federation-raccordement-contact'),
 ]

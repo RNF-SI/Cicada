@@ -8,6 +8,7 @@ diagnostic, et surtout qu'aucun jeton ni empreinte ne sorte jamais.
 """
 
 import hashlib
+from datetime import datetime, timezone as dt_timezone
 import json
 import logging
 from unittest.mock import MagicMock, patch
@@ -29,6 +30,10 @@ from tests.factories import (
 
 URL_RACCORDEMENT = '/api/federation/raccordement/'
 JETON_SUIVI = '123e4567-e89b-12d3-a456-426614174000'
+CONTACT = {
+    'contact_nom': 'Camille Martin', 'contact_email': 'camille@cen.example',
+    'contact_telephone': '04 00 00 00 00', 'message': 'Bonjour',
+}
 
 
 @pytest.fixture(autouse=True)
@@ -186,12 +191,14 @@ class TestResolution:
 class TestPermissions:
     @pytest.mark.parametrize('methode,chemin', [
         ('get', ''), ('post', 'verifier/'), ('post', 'adhesion/'),
+        ('post', 'confirmation/'), ('post', 'contact/'),
     ])
     def test_anonyme_refuse(self, methode, chemin):
         assert getattr(APIClient(), methode)(URL_RACCORDEMENT + chemin).status_code == 401
 
     @pytest.mark.parametrize('methode,chemin', [
         ('get', ''), ('post', 'verifier/'), ('post', 'adhesion/'),
+        ('post', 'confirmation/'), ('post', 'contact/'),
     ])
     def test_utilisateur_ordinaire_refuse(self, methode, chemin):
         client = APIClient()
@@ -223,6 +230,7 @@ class TestDemandeAdhesion:
         }
         assert set(corps['adhesion']) == {
             'statut', 'demandee_le', 'motif', 'possible', 'erreur_suivi',
+            'code_expire_le', 'contact_email',
         }
         assert corps['adhesion']['possible'] is True
         assert corps['adhesion']['statut'] == ''
@@ -231,7 +239,7 @@ class TestDemandeAdhesion:
     def test_demande_reussie(self, admin_client):
         poster, recu = suivi_qui_accepte()
         with patch('apps.search.raccordement.requests.post', side_effect=poster):
-            rep = admin_client.post(URL_RACCORDEMENT + 'adhesion/')
+            rep = admin_client.post(URL_RACCORDEMENT + 'adhesion/', CONTACT, format='json')
         assert rep.status_code == 200
         corps = rep.json()
         assert corps['adhesion']['statut'] == 'en_attente'
@@ -243,6 +251,9 @@ class TestDemandeAdhesion:
         assert recu['headers'] == {'X-Instance-Token': JETON_SUIVI}
         assert recu['corps']['instance_id'] == 'cen-aura'
         assert recu['corps']['libelle'] == 'CEN Auvergne-Rhône-Alpes'
+        for champ, valeur in CONTACT.items():
+            assert recu['corps'][champ] == valeur
+        assert corps['adhesion']['contact_email'] == 'camille@cen.example'
 
         ligne = RaccordementHub.objects.get()
         depot = rac.dechiffrer(ligne.jeton_depot_chiffre)
@@ -260,7 +271,7 @@ class TestDemandeAdhesion:
         ligne.save()
         poster, _ = suivi_qui_accepte()
         with patch('apps.search.raccordement.requests.post', side_effect=poster):
-            rep = admin_client.post(URL_RACCORDEMENT + 'adhesion/')
+            rep = admin_client.post(URL_RACCORDEMENT + 'adhesion/', CONTACT, format='json')
         assert rep.status_code == 200
         ligne.refresh_from_db()
         assert ligne.adhesion_statut == 'en_attente'
@@ -270,20 +281,20 @@ class TestDemandeAdhesion:
     def test_deja_acceptee(self, admin_client):
         adhesion_acceptee()
         with patch('apps.search.raccordement.requests.post') as appel:
-            rep = admin_client.post(URL_RACCORDEMENT + 'adhesion/')
+            rep = admin_client.post(URL_RACCORDEMENT + 'adhesion/', CONTACT, format='json')
         assert rep.status_code == 409
         assert rep.json()['erreur'] == 'deja_acceptee'
         appel.assert_not_called()
 
     def test_jetons_d_environnement(self, admin_client, settings):
         settings.CICADA_HUB_PUSH_TOKEN = 'depot-env'
-        rep = admin_client.post(URL_RACCORDEMENT + 'adhesion/')
+        rep = admin_client.post(URL_RACCORDEMENT + 'adhesion/', CONTACT, format='json')
         assert rep.status_code == 409
         assert rep.json()['erreur'] == 'jetons_environnement'
 
     def test_identite_locale_refusee(self, admin_client, settings):
         settings.CICADA_INSTANCE_ID = 'local'
-        rep = admin_client.post(URL_RACCORDEMENT + 'adhesion/')
+        rep = admin_client.post(URL_RACCORDEMENT + 'adhesion/', CONTACT, format='json')
         assert rep.status_code == 400
         assert rep.json()['erreur'] == 'identite_manquante'
         assert 'rebuild_search_index' in rep.json()['detail']
@@ -292,7 +303,7 @@ class TestDemandeAdhesion:
         monkeypatch.delenv('CICADA_TRACKING_TOKEN')
         with patch('apps.system.tracking.TOKEN_FILE') as fichier:
             fichier.read_text.side_effect = FileNotFoundError
-            rep = admin_client.post(URL_RACCORDEMENT + 'adhesion/')
+            rep = admin_client.post(URL_RACCORDEMENT + 'adhesion/', CONTACT, format='json')
             etat = admin_client.get(URL_RACCORDEMENT).json()
         assert rep.status_code == 400
         assert rep.json()['erreur'] == 'jeton_suivi_absent'
@@ -304,7 +315,7 @@ class TestDemandeAdhesion:
 
         with patch('apps.search.raccordement.requests.post',
                    side_effect=requests.ConnectionError('non')):
-            rep = admin_client.post(URL_RACCORDEMENT + 'adhesion/')
+            rep = admin_client.post(URL_RACCORDEMENT + 'adhesion/', CONTACT, format='json')
         assert rep.status_code == 400
         assert rep.json()['erreur'] == 'suivi_indisponible'
 
@@ -566,7 +577,7 @@ class TestAucuneFuite:
         caplog.set_level(logging.DEBUG)
         poster, recu = suivi_qui_accepte()
         with patch('apps.search.raccordement.requests.post', side_effect=poster):
-            reponses = [admin_client.post(URL_RACCORDEMENT + 'adhesion/').content]
+            reponses = [admin_client.post(URL_RACCORDEMENT + 'adhesion/', CONTACT, format='json').content]
 
         ligne = RaccordementHub.objects.get()
         depot = rac.dechiffrer(ligne.jeton_depot_chiffre)
@@ -586,3 +597,294 @@ class TestAucuneFuite:
         texte = b''.join(reponses).decode() + caplog.text
         for secret in secrets_:
             assert secret not in texte
+
+
+# --------------------------------------------------------------------------- #
+# V2 — confirmation par code envoyé par e-mail
+# --------------------------------------------------------------------------- #
+
+URL_CONFIRMATION = URL_RACCORDEMENT + 'confirmation/'
+URL_CONTACT = URL_RACCORDEMENT + 'contact/'
+CODE = 'K7FM-29QA'
+
+
+def adhesion_code_envoye():
+    ligne = adhesion_acceptee(hub='')
+    ligne.adhesion_statut = RaccordementHub.STATUT_CODE_ENVOYE
+    ligne.adhesion_contact_email = 'camille@cen.example'
+    ligne.save()
+    return ligne
+
+
+@pytest.mark.django_db
+class TestContactDeLaDemande:
+    @pytest.mark.parametrize('modif', [
+        {'contact_nom': ''}, {'contact_nom': '   '}, {'contact_email': ''},
+        {'contact_email': 'pas-une-adresse'}, {'contact_nom': None},
+        {'contact_email': 42}, {'message': 'x' * 5001},
+    ])
+    def test_contact_invalide(self, admin_client, modif):
+        with patch('apps.search.raccordement.requests.post') as appel:
+            rep = admin_client.post(
+                URL_RACCORDEMENT + 'adhesion/', {**CONTACT, **modif}, format='json',
+            )
+        assert rep.status_code == 400
+        assert rep.json()['erreur'] == 'contact_invalide'
+        appel.assert_not_called()
+        assert not RaccordementHub.objects.exists()
+
+    def test_sans_corps(self, admin_client):
+        rep = admin_client.post(URL_RACCORDEMENT + 'adhesion/')
+        assert rep.json()['erreur'] == 'contact_invalide'
+
+    def test_telephone_et_message_facultatifs(self, admin_client):
+        poster, recu = suivi_qui_accepte()
+        with patch('apps.search.raccordement.requests.post', side_effect=poster):
+            rep = admin_client.post(
+                URL_RACCORDEMENT + 'adhesion/',
+                {'contact_nom': 'Camille', 'contact_email': 'c@cen.example'}, format='json',
+            )
+        assert rep.status_code == 200
+        assert recu['corps']['contact_telephone'] == ''
+        ligne = RaccordementHub.objects.get()
+        assert (ligne.adhesion_contact_nom, ligne.adhesion_contact_email) == ('Camille', 'c@cen.example')
+
+    def test_redemande_possible_pendant_code_envoye(self, admin_client):
+        adhesion_code_envoye()
+        poster, _ = suivi_qui_accepte()
+        with patch('apps.search.raccordement.requests.post', side_effect=poster):
+            rep = admin_client.post(URL_RACCORDEMENT + 'adhesion/', CONTACT, format='json')
+        assert rep.status_code == 200
+        assert rep.json()['adhesion']['statut'] == 'en_attente'
+
+
+def suivi_confirmation(status_code, corps):
+    recu = {}
+
+    def poster(url, headers=None, json=None, timeout=None):
+        recu.update(url=url, headers=headers, corps=json, timeout=timeout)
+        return reponse(status_code, corps)
+
+    return poster, recu
+
+
+@pytest.mark.django_db
+class TestConfirmation:
+    def test_code_juste_adhesion_acceptee(self, admin_client, partage):
+        adhesion_code_envoye()
+        poster, recu = suivi_confirmation(200, {'statut': 'acceptee', 'hub_url': 'https://hub.rnf/'})
+        with patch('apps.search.raccordement.requests.post', side_effect=poster):
+            rep = admin_client.post(URL_CONFIRMATION, {'code': f' {CODE} '}, format='json')
+        assert rep.status_code == 200
+        assert recu['url'] == 'http://suivi/api/instances/adhesion-hub/confirmation/'
+        assert recu['headers'] == {'X-Instance-Token': JETON_SUIVI}
+        assert recu['corps'] == {'code': CODE}
+        assert recu['timeout'] == 5
+        corps = rep.json()
+        assert corps['adhesion']['statut'] == 'acceptee'
+        assert corps['configuration']['hub_url'] == 'https://hub.rnf'
+        assert corps['configuration']['source_jetons'] == 'adhesion'
+        assert corps['diagnostic']['cle'] == 'aucune_publication'
+        ligne = RaccordementHub.objects.get()
+        assert ligne.adhesion_statut == 'acceptee'
+        assert rac.jeton_depot() == 'depot-secret'
+
+    def test_code_invalide_relaye_avec_essais_restants(self, admin_client):
+        adhesion_code_envoye()
+        poster, _ = suivi_confirmation(400, {'erreur': 'code_invalide', 'essais_restants': 3})
+        with patch('apps.search.raccordement.requests.post', side_effect=poster):
+            rep = admin_client.post(URL_CONFIRMATION, {'code': 'FAUX-CODE'}, format='json')
+        assert rep.status_code == 400
+        assert rep.json()['erreur'] == 'code_invalide'
+        assert rep.json()['essais_restants'] == 3
+        assert RaccordementHub.objects.get().adhesion_statut == 'code_envoye'
+
+    @pytest.mark.parametrize('status_code,cle', [
+        (400, 'code_expire'), (409, 'pas_de_code'), (502, 'hub_injoignable'),
+    ])
+    def test_erreurs_relayees(self, admin_client, status_code, cle):
+        adhesion_code_envoye()
+        poster, _ = suivi_confirmation(status_code, {'erreur': cle})
+        with patch('apps.search.raccordement.requests.post', side_effect=poster):
+            rep = admin_client.post(URL_CONFIRMATION, {'code': CODE}, format='json')
+        assert rep.status_code == status_code
+        assert rep.json()['erreur'] == cle
+        assert 'essais_restants' not in rep.json()
+        assert RaccordementHub.objects.get().adhesion_statut == 'code_envoye'
+
+    def test_trop_d_essais_repasse_en_attente(self, admin_client):
+        adhesion_code_envoye()
+        poster, _ = suivi_confirmation(400, {'erreur': 'trop_d_essais'})
+        with patch('apps.search.raccordement.requests.post', side_effect=poster):
+            rep = admin_client.post(URL_CONFIRMATION, {'code': CODE}, format='json')
+        assert rep.status_code == 400
+        assert rep.json()['erreur'] == 'trop_d_essais'
+        assert RaccordementHub.objects.get().adhesion_statut == 'en_attente'
+
+    def test_demande_inconnue_du_suivi(self, admin_client):
+        adhesion_code_envoye()
+        poster, _ = suivi_confirmation(404, {'detail': 'Not found.'})
+        with patch('apps.search.raccordement.requests.post', side_effect=poster):
+            rep = admin_client.post(URL_CONFIRMATION, {'code': CODE}, format='json')
+        assert (rep.status_code, rep.json()['erreur']) == (409, 'pas_de_code')
+
+    def test_reponse_inattendue_du_suivi(self, admin_client):
+        adhesion_code_envoye()
+        poster, _ = suivi_confirmation(500, {'erreur': 'autre_chose'})
+        with patch('apps.search.raccordement.requests.post', side_effect=poster):
+            rep = admin_client.post(URL_CONFIRMATION, {'code': CODE}, format='json')
+        assert rep.json()['erreur'] == 'suivi_indisponible'
+
+    def test_suivi_injoignable(self, admin_client):
+        import requests
+
+        adhesion_code_envoye()
+        with patch('apps.search.raccordement.requests.post',
+                   side_effect=requests.ConnectionError('non')):
+            rep = admin_client.post(URL_CONFIRMATION, {'code': CODE}, format='json')
+        assert rep.json()['erreur'] == 'suivi_indisponible'
+
+    def test_sans_jeton_de_suivi(self, admin_client, monkeypatch):
+        adhesion_code_envoye()
+        monkeypatch.delenv('CICADA_TRACKING_TOKEN')
+        with patch('apps.system.tracking.TOKEN_FILE') as fichier:
+            fichier.read_text.side_effect = FileNotFoundError
+            rep = admin_client.post(URL_CONFIRMATION, {'code': CODE}, format='json')
+        assert rep.json()['erreur'] == 'jeton_suivi_absent'
+
+    @pytest.mark.parametrize('corps', [{}, {'code': ''}, {'code': '   '}, {'code': 12}])
+    def test_code_vide_non_transmis(self, admin_client, corps):
+        adhesion_code_envoye()
+        with patch('apps.search.raccordement.requests.post') as appel:
+            rep = admin_client.post(URL_CONFIRMATION, corps, format='json')
+        assert (rep.status_code, rep.json()['erreur']) == (400, 'code_invalide')
+        appel.assert_not_called()
+
+    @pytest.mark.parametrize('statut,cle', [('', 'pas_de_code'), ('refusee', 'pas_de_code'),
+                                            ('acceptee', 'deja_acceptee')])
+    def test_hors_demande_en_cours(self, admin_client, statut, cle):
+        ligne = adhesion_acceptee()
+        ligne.adhesion_statut = statut
+        ligne.save()
+        with patch('apps.search.raccordement.requests.post') as appel:
+            rep = admin_client.post(URL_CONFIRMATION, {'code': CODE}, format='json')
+        assert (rep.status_code, rep.json()['erreur']) == (409, cle)
+        appel.assert_not_called()
+
+    def test_en_attente_locale_relayee(self, admin_client):
+        """Statut local périmé : le code a pu arriver avant l'actualisation."""
+        ligne = adhesion_code_envoye()
+        ligne.adhesion_statut = 'en_attente'
+        ligne.save()
+        poster, _ = suivi_confirmation(200, {'statut': 'acceptee', 'hub_url': 'http://hub'})
+        with patch('apps.search.raccordement.requests.post', side_effect=poster):
+            rep = admin_client.post(URL_CONFIRMATION, {'code': CODE}, format='json')
+        assert rep.json()['adhesion']['statut'] == 'acceptee'
+
+
+@pytest.mark.django_db
+class TestContactRnf:
+    def test_message_envoye_au_nom_du_compte_connecte(self):
+        admin = SuperAdminFactory(prenom_role='Camille', nom_role='Martin', email='camille@cen.example')
+        client = APIClient()
+        client.force_authenticate(user=admin)
+        poster, recu = suivi_confirmation(202, {})
+        with patch('apps.search.raccordement.requests.post', side_effect=poster):
+            rep = client.post(URL_CONTACT, {
+                'sujet': 'Question', 'message': 'Bonjour RNF',
+                # Ignorés : l'expéditeur est le compte connecté.
+                'nom': 'Usurpateur', 'email': 'pirate@example.com',
+            }, format='json')
+        assert rep.status_code == 202
+        assert recu['url'] == 'http://suivi/api/instances/contact/'
+        assert recu['headers'] == {'X-Instance-Token': JETON_SUIVI}
+        assert recu['corps'] == {
+            'nom': 'Camille Martin', 'email': 'camille@cen.example',
+            'sujet': 'Question', 'message': 'Bonjour RNF',
+        }
+
+    @pytest.mark.parametrize('corps', [
+        {}, {'sujet': 'Q'}, {'message': 'M'}, {'sujet': ' ', 'message': 'M'},
+    ])
+    def test_sujet_et_message_requis(self, admin_client, corps):
+        with patch('apps.search.raccordement.requests.post') as appel:
+            rep = admin_client.post(URL_CONTACT, corps, format='json')
+        assert (rep.status_code, rep.json()['erreur']) == (400, 'contact_invalide')
+        appel.assert_not_called()
+
+    @pytest.mark.parametrize('status_code,corps', [
+        (500, {}), (502, {'erreur': 'envoi_impossible'}),
+    ])
+    def test_suivi_en_echec(self, admin_client, status_code, corps):
+        poster, _ = suivi_confirmation(status_code, corps)
+        with patch('apps.search.raccordement.requests.post', side_effect=poster):
+            rep = admin_client.post(URL_CONTACT, {'sujet': 'Q', 'message': 'M'}, format='json')
+        assert rep.status_code == 400
+        assert rep.json()['erreur'] == 'suivi_indisponible'
+
+    def test_sans_jeton_de_suivi(self, admin_client, monkeypatch):
+        monkeypatch.delenv('CICADA_TRACKING_TOKEN')
+        with patch('apps.system.tracking.TOKEN_FILE') as fichier:
+            fichier.read_text.side_effect = FileNotFoundError
+            rep = admin_client.post(URL_CONTACT, {'sujet': 'Q', 'message': 'M'}, format='json')
+        assert rep.json()['erreur'] == 'jeton_suivi_absent'
+
+
+@pytest.mark.django_db
+class TestCodeEnvoye:
+    def test_actualisation_lit_le_code_envoye(self, admin_client):
+        ligne = adhesion_acceptee(hub='')
+        ligne.adhesion_statut = 'en_attente'
+        ligne.save()
+        suivi = reponse(200, {'statut': 'code_envoye', 'code_expire_le': '2026-10-14T12:00:00Z'})
+        with patch('apps.search.raccordement.requests.get', return_value=suivi):
+            corps = admin_client.get(URL_RACCORDEMENT).json()
+        assert corps['adhesion']['statut'] == 'code_envoye'
+        expire = datetime.fromisoformat(corps['adhesion']['code_expire_le'])
+        assert expire == datetime(2026, 10, 14, 12, tzinfo=dt_timezone.utc)
+        assert corps['adhesion']['possible'] is False
+        assert corps['diagnostic'] == {
+            'niveau': 'info', 'cle': 'adhesion_code_envoye',
+            'parametres': {'expire_le': corps['adhesion']['code_expire_le']},
+        }
+
+    def test_code_envoye_actualise_par_la_tache(self):
+        adhesion_code_envoye()
+        suivi = reponse(200, {'statut': 'acceptee', 'hub_url': 'https://hub.rnf'})
+        with patch('apps.search.raccordement.requests.get', return_value=suivi):
+            assert actualiser_adhesion_hub() == 'acceptee'
+        ligne = RaccordementHub.objects.get()
+        assert ligne.hub_url == 'https://hub.rnf'
+        assert ligne.adhesion_code_expire_le is None
+
+    def test_refus_prime_sur_le_code(self):
+        ligne = adhesion_code_envoye()
+        ligne.adhesion_statut = 'refusee'
+        ligne.save()
+        assert rac.etat(actualiser=False)['diagnostic']['cle'] == 'adhesion_refusee'
+
+
+@pytest.mark.django_db
+class TestLeCodeNeFuitPas:
+    """Le code ne transite que dans la requête de confirmation."""
+
+    @pytest.mark.parametrize('status_code,corps', [
+        (200, {'statut': 'acceptee', 'hub_url': 'http://hub'}),
+        (400, {'erreur': 'code_invalide', 'essais_restants': 2}),
+        (500, {}),
+    ])
+    def test_ni_base_ni_reponse_ni_journal(self, admin_client, caplog, status_code, corps):
+        caplog.set_level(logging.DEBUG)
+        adhesion_code_envoye()
+        code = 'ZQ7W-XK3P'
+        poster, _ = suivi_confirmation(status_code, corps)
+        with patch('apps.search.raccordement.requests.post', side_effect=poster):
+            rep = admin_client.post(URL_CONFIRMATION, {'code': code}, format='json')
+        with patch('apps.search.raccordement.requests.get', return_value=reponse(200, corps or {})):
+            etat = admin_client.get(URL_RACCORDEMENT)
+        ligne = RaccordementHub.objects.get()
+        stocke = json.dumps({f.name: str(getattr(ligne, f.name)) for f in ligne._meta.fields})
+        texte = rep.content.decode() + etat.content.decode() + caplog.text + stocke
+        for forme in (code, code.replace('-', ''), code.lower(),
+                      hashlib.sha256(code.replace('-', '').encode()).hexdigest()):
+            assert forme not in texte

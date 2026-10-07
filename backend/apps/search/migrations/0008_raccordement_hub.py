@@ -116,6 +116,7 @@ class Migration(migrations.Migration):
                         choices=[
                             ("", "Aucune demande"),
                             ("en_attente", "En attente"),
+                            ("code_envoye", "Code de confirmation envoyé"),
                             ("acceptee", "Acceptée"),
                             ("refusee", "Refusée"),
                         ],
@@ -149,6 +150,32 @@ class Migration(migrations.Migration):
                     "adhesion_motif",
                     models.TextField(
                         blank=True, default="", verbose_name="Motif du refus"
+                    ),
+                ),
+                (
+                    "adhesion_contact_nom",
+                    models.CharField(
+                        blank=True,
+                        default="",
+                        max_length=200,
+                        verbose_name="Contact (nom)",
+                    ),
+                ),
+                (
+                    "adhesion_contact_email",
+                    models.EmailField(
+                        blank=True,
+                        default="",
+                        max_length=254,
+                        verbose_name="Contact (e-mail)",
+                    ),
+                ),
+                (
+                    "adhesion_code_expire_le",
+                    models.DateTimeField(
+                        blank=True,
+                        null=True,
+                        verbose_name="Code de confirmation valable jusqu'au",
                     ),
                 ),
                 (

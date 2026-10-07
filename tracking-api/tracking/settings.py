@@ -117,7 +117,23 @@ REST_FRAMEWORK = {
 LATEST_VERSION = config('LATEST_VERSION', default='')
 
 # Hub d'exploration fédérée (#696) : l'API de suivi enrôle les instances dont
-# l'adhésion est acceptée dans l'admin. HUB_ADMIN_TOKEN est le même que celui du
-# hub ; vides = l'acceptation échoue avec un message clair (rien n'est enrôlé).
+# l'adhésion est confirmée par code. HUB_ADMIN_TOKEN est le même que celui du
+# hub ; vides = la confirmation échoue (hub_injoignable), rien n'est enrôlé.
 HUB_URL = config('HUB_URL', default='')
 HUB_ADMIN_TOKEN = config('HUB_ADMIN_TOKEN', default='')
+
+# Adhésion au hub : e-mails (#696). RNF reçoit les nouvelles demandes et les
+# messages du formulaire de contact ; ADMIN_BASE_URL sert au lien vers la fiche
+# de la demande dans l'e-mail (vide = chemin relatif seul).
+RNF_CONTACT_EMAIL = config('RNF_CONTACT_EMAIL', default='si@rnfrance.org')
+ADMIN_BASE_URL = config('ADMIN_BASE_URL', default='')
+EMAIL_BACKEND = config('EMAIL_BACKEND', default='django.core.mail.backends.smtp.EmailBackend')
+EMAIL_HOST = config('EMAIL_HOST', default='localhost')
+EMAIL_PORT = config('EMAIL_PORT', default=587, cast=int)
+EMAIL_HOST_USER = config('EMAIL_HOST_USER', default='')
+EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='')
+EMAIL_USE_TLS = config('EMAIL_USE_TLS', default=True, cast=bool)
+DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default='noreply@cicada.reserves-naturelles.org')
+# Les envois sont synchrones (dans la requête de l'instance, ou de l'admin) :
+# un serveur SMTP muet ne doit pas figer la page.
+EMAIL_TIMEOUT = config('EMAIL_TIMEOUT', default=10, cast=int)

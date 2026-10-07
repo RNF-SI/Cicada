@@ -788,7 +788,8 @@
           "diagnostic": {
             "identite_manquante": "L'identifiant ou le nom de l'instance n'est pas renseigné. Un administrateur système doit les définir (CICADA_INSTANCE_ID et CICADA_INSTANCE_LABEL dans /var/lib/cicada/.env), puis lancer « rebuild_search_index --purge » si l'index de recherche existe déjà.",
             "adhesion_refusee": "RNF a refusé la demande d'adhésion. Motif : {{motif}}",
-            "adhesion_en_attente": "Demande envoyée, en attente de validation par RNF.",
+            "adhesion_code_envoye": "RNF vous a envoyé un code de confirmation par e-mail. Saisissez-le ci-dessous avant le {{expire_le}} pour finaliser l'adhésion.",
+            "adhesion_en_attente": "Demande envoyée à RNF. RNF va prendre contact avec vous, puis vous enverra un code de confirmation par e-mail.",
             "non_raccorde": "Cette instance n'est pas raccordée à l'exploration nationale. Demandez l'adhésion ci-dessous pour y participer.",
             "jeton_depot_absent": "Aucun jeton de dépôt n'est défini : cette instance ne peut pas publier ses plans sur le hub.",
             "partage_inactif": "Le partage est désactivé : rien n'est publié sur le hub. Cochez la case ci-dessus pour participer à l'exploration nationale.",
@@ -820,25 +821,61 @@
             "titre": "Adhésion à l'exploration nationale",
             "statut": {
               "en_attente": "En attente de validation",
+              "code_envoye": "Code de confirmation envoyé",
               "acceptee": "Adhésion acceptée",
               "refusee": "Adhésion refusée"
             },
             "demandeeLe": "Demandée le {{date}}",
             "aucune": "Aucune demande d'adhésion n'a été faite.",
             "jetonsEnvironnement": "Les jetons du hub sont fournis par le fichier de configuration : aucune adhésion n'est nécessaire.",
-            "explication": "RNF (Réserves Naturelles de France) validera la demande. Elle apparaîtra ici une fois acceptée.",
+            "explication": "RNF (Réserves Naturelles de France) prendra contact avec la personne indiquée dans la demande, puis lui enverra un code de confirmation par e-mail. Saisir ce code sur cette page valide l'adhésion.",
             "demander": "Demander l'adhésion à l'exploration nationale",
             "redemander": "Refaire une demande",
             "accepteeTexte": "Cette instance peut publier sur le hub et explorer les plans des autres structures.",
             "motif": "Motif :",
             "motifAbsent": "aucun motif indiqué.",
             "erreurSuivi": "Le service de suivi RNF n'a pas pu être interrogé : le statut affiché est peut-être périmé.",
-            "confirmTitre": "Demander l'adhésion",
-            "confirmMessage": "Une demande d'adhésion va être envoyée à RNF pour l'instance « {{libelle}} » (identifiant {{instance_id}}).",
-            "confirmAvertissement": "L'identifiant ne pourra plus être changé une fois l'adhésion acceptée.",
-            "confirmBouton": "Envoyer la demande",
-            "envoyee": "Demande d'adhésion envoyée. Elle apparaîtra ici une fois acceptée par RNF.",
-            "enAttenteTexte": "L'adhésion apparaîtra ici une fois acceptée par RNF."
+            "envoyee": "Demande d'adhésion envoyée. RNF va prendre contact avec vous.",
+            "enAttenteTexte": "RNF va prendre contact avec vous ({{email}}), puis vous enverra un code de confirmation par e-mail à saisir sur cette page.",
+            "codeEnvoyeTexte": "La demande a été faite avec l'adresse {{email}}. RNF vous a envoyé un code de confirmation par e-mail : saisissez-le ci-dessous pour finaliser l'adhésion.",
+            "codeExpireLe": "Code valable jusqu'au {{date}}.",
+            "code": {
+              "label": "Code de confirmation",
+              "aide": "8 caractères, tels qu'ils figurent dans l'e-mail de RNF (tirets et espaces acceptés).",
+              "valider": "Valider le code"
+            },
+            "formulaire": {
+              "titre": "Demander l'adhésion à l'exploration nationale",
+              "intro": "La demande sera envoyée à RNF pour l'instance « {{libelle}} » (identifiant {{instance_id}}).",
+              "etapesTitre": "Comment se déroule l'adhésion",
+              "etape1": "RNF reçoit votre demande et prend contact avec la personne indiquée ci-dessous.",
+              "etape2": "RNF vous envoie ensuite un code de confirmation par e-mail.",
+              "etape3": "Vous saisissez ce code dans cette page : l'adhésion est validée et votre instance rejoint l'exploration nationale.",
+              "nom": "Nom de la personne à contacter",
+              "email": "Adresse e-mail",
+              "emailAide": "De préférence une adresse de la structure, que RNF pourra vérifier.",
+              "telephone": "Téléphone",
+              "message": "Message à RNF",
+              "messageAide": "Facultatif : contexte, disponibilités pour être contacté…",
+              "avertissement": "L'identifiant de l'instance ne pourra plus être changé une fois l'adhésion acceptée.",
+              "envoyer": "Envoyer la demande"
+            }
+          },
+          "confirmation": {
+            "reussie": "Code accepté : l'adhésion est validée et l'instance est enregistrée sur le hub."
+          },
+          "contact": {
+            "bouton": "Contacter RNF",
+            "titre": "Contacter RNF",
+            "intro": "Votre message est transmis au service informatique de RNF, qui vous répondra à l'adresse e-mail de votre compte.",
+            "sujet": "Sujet",
+            "message": "Message",
+            "envoyer": "Envoyer le message",
+            "envoye": "Message envoyé à RNF."
+          },
+          "formulaire": {
+            "requis": "Ce champ est obligatoire.",
+            "emailInvalide": "Adresse e-mail invalide."
           },
           "verification": {
             "titre": "Vérifier le raccordement",
@@ -887,8 +924,14 @@
             "jeton_suivi_absent": "Cette instance n'a pas de jeton de suivi RNF (/etc/cicada/instance_token) : la demande ne peut pas être envoyée.",
             "deja_acceptee": "L'adhésion de cette instance a déjà été acceptée.",
             "jetons_environnement": "Les jetons du hub sont déjà fournis par le fichier de configuration : l'adhésion n'est pas nécessaire.",
-            "hub_injoignable": "Le hub d'exploration est injoignable.",
+            "hub_injoignable": "Le hub d'exploration est injoignable. Si vous validiez un code, il reste valable : réessayez plus tard.",
             "jeton_refuse": "Le hub a refusé le jeton de cette instance.",
+            "contact_invalide": "Le nom et une adresse e-mail valide de la personne à contacter sont obligatoires.",
+            "code_invalide": "Code incorrect.",
+            "code_invalide_essais": "Code incorrect. Il vous reste {{essais}} essai(s).",
+            "code_expire": "Ce code a expiré. Demandez un nouveau code à RNF (bouton « Contacter RNF »).",
+            "trop_d_essais": "Trop d'essais incorrects : le code a été invalidé. RNF doit vous en envoyer un nouveau.",
+            "pas_de_code": "Aucun code de confirmation n'est attendu pour cette demande.",
             "erreur_inconnue": "Une erreur inattendue est survenue. Réessayez ou contactez un administrateur système."
           }
         }

@@ -71,19 +71,26 @@ class AdhesionHub(models.Model):
     """Demande d'adhésion d'une instance au hub d'exploration fédérée (#696).
 
     Une demande par instance : une nouvelle demande remplace celle qui était en
-    attente ou refusée (la structure corrige et redemande), jamais une demande
-    acceptée — l'instance est alors enrôlée sur le hub, et la retirer est une
-    décision qui se prend sur le hub, pas par un nouvel envoi.
+    attente, en attente de code ou refusée (la structure corrige et redemande),
+    jamais une demande acceptée — l'instance est alors enrôlée sur le hub, et la
+    retirer est une décision qui se prend sur le hub, pas par un nouvel envoi.
 
     Seules les empreintes des jetons du hub sont reçues : les jetons restent sur
     l'instance. L'instance demandeuse est celle du jeton de suivi authentifié,
     jamais reprise de la requête.
+
+    Confirmation par code : RNF prend contact avec l'administrateur, puis lui
+    envoie par e-mail un code tiré au hasard ; l'administrateur le saisit sur son
+    instance, et un code juste vaut acceptation (RNF a décidé en l'envoyant). Seule
+    l'empreinte du code est conservée : qui lit la base ne peut pas l'utiliser.
     """
     EN_ATTENTE = 'en_attente'
+    CODE_ENVOYE = 'code_envoye'
     ACCEPTEE = 'acceptee'
     REFUSEE = 'refusee'
     STATUTS = [
         (EN_ATTENTE, 'En attente'),
+        (CODE_ENVOYE, 'Code envoyé'),
         (ACCEPTEE, 'Acceptée'),
         (REFUSEE, 'Refusée'),
     ]
@@ -94,9 +101,28 @@ class AdhesionHub(models.Model):
     url_publique = models.CharField('URL publique', max_length=500, blank=True)
     empreinte_depot = models.CharField('empreinte du jeton de dépôt', max_length=64)
     empreinte_lecture = models.CharField('empreinte du jeton de lecture', max_length=64)
+
+    # Contact déclaré par l'administrateur de l'instance dans sa demande.
+    contact_nom = models.CharField('nom du contact', max_length=200)
+    contact_email = models.EmailField('e-mail du contact')
+    contact_telephone = models.CharField('téléphone du contact', max_length=50, blank=True)
+    message = models.TextField('message', blank=True)
+    # Adresse à laquelle RNF envoie le code : pré-remplie avec celle du contact,
+    # mais modifiable — une adresse que RNF connaît déjà vaut mieux que celle
+    # que le demandeur a lui-même déclarée.
+    email_confirmation = models.EmailField("adresse d'envoi du code", blank=True)
+
     statut = models.CharField(max_length=20, choices=STATUTS, default=EN_ATTENTE, db_index=True)
     motif_refus = models.TextField('motif du refus', blank=True)
     hub_url = models.CharField('URL du hub', max_length=500, blank=True)
+
+    # Code de confirmation : jamais en clair, ni en base ni dans un journal.
+    code_empreinte = models.CharField('empreinte du code', max_length=64, blank=True)
+    code_expire_le = models.DateTimeField('code valable jusqu\'au', null=True, blank=True)
+    code_essais = models.PositiveSmallIntegerField('essais erronés', default=0)
+    code_envoye_le = models.DateTimeField('code envoyé le', null=True, blank=True)
+    code_envoye_par = models.CharField('code envoyé par', max_length=150, blank=True)
+
     demandee_le = models.DateTimeField('demandée le', default=timezone.now)
     traitee_le = models.DateTimeField('traitée le', null=True, blank=True)
     traitee_par = models.CharField('traitée par', max_length=150, blank=True)
@@ -109,3 +135,9 @@ class AdhesionHub(models.Model):
 
     def __str__(self):
         return f"{self.libelle} ({self.instance_id_demande}) — {self.get_statut_display()}"
+
+    def invalider_code(self):
+        """Oublie le code en cours (empreinte, échéance, compteur)."""
+        self.code_empreinte = ''
+        self.code_expire_le = None
+        self.code_essais = 0

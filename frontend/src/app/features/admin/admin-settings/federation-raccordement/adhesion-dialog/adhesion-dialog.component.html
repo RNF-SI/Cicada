@@ -1,0 +1,75 @@
+<h2 mat-dialog-title class="raccordement-dialog-titre">
+  <i class="fi fi-rr-paper-plane"></i>
+  {{ 'admin.settings.federation.etat.adhesion.formulaire.titre' | translate }}
+</h2>
+
+<form [formGroup]="form" (ngSubmit)="envoyer()" novalidate>
+  <mat-dialog-content class="raccordement-dialog-contenu">
+    <p>
+      {{ 'admin.settings.federation.etat.adhesion.formulaire.intro' | translate: { libelle: data.libelle, instance_id: data.instance_id } }}
+    </p>
+
+    <div class="info-block">
+      <div class="info-block-icon"></div>
+      <div class="info-block-content">
+        <p class="info-block-content-title">{{ 'admin.settings.federation.etat.adhesion.formulaire.etapesTitre' | translate }}</p>
+        <ol class="raccordement-dialog-etapes">
+          <li>{{ 'admin.settings.federation.etat.adhesion.formulaire.etape1' | translate }}</li>
+          <li>{{ 'admin.settings.federation.etat.adhesion.formulaire.etape2' | translate }}</li>
+          <li>{{ 'admin.settings.federation.etat.adhesion.formulaire.etape3' | translate }}</li>
+        </ol>
+      </div>
+    </div>
+
+    <div class="raccordement-dialog-champs">
+      <app-form-field
+        [label]="'admin.settings.federation.etat.adhesion.formulaire.nom' | translate"
+        [required]="true"
+        [error]="erreurChamp('contact_nom') ? (erreurChamp('contact_nom')! | translate) : null">
+        <input type="text" formControlName="contact_nom" autocomplete="name" data-testid="adhesion-nom" />
+      </app-form-field>
+
+      <app-form-field
+        [label]="'admin.settings.federation.etat.adhesion.formulaire.email' | translate"
+        [helpText]="'admin.settings.federation.etat.adhesion.formulaire.emailAide' | translate"
+        [required]="true"
+        [error]="erreurChamp('contact_email') ? (erreurChamp('contact_email')! | translate) : null">
+        <input type="email" formControlName="contact_email" autocomplete="email" data-testid="adhesion-email" />
+      </app-form-field>
+
+      <app-form-field [label]="'admin.settings.federation.etat.adhesion.formulaire.telephone' | translate">
+        <input type="tel" formControlName="contact_telephone" autocomplete="tel" />
+      </app-form-field>
+
+      <app-form-field
+        class="pleine-largeur"
+        [label]="'admin.settings.federation.etat.adhesion.formulaire.message' | translate"
+        [helpText]="'admin.settings.federation.etat.adhesion.formulaire.messageAide' | translate">
+        <textarea formControlName="message" rows="4"></textarea>
+      </app-form-field>
+    </div>
+
+    <p class="text-mention">{{ 'admin.settings.federation.etat.adhesion.formulaire.avertissement' | translate }}</p>
+
+    @if (erreur(); as cle) {
+      <div class="info-block info-block-error" role="alert" data-testid="adhesion-erreur">
+        <div class="info-block-icon"></div>
+        <div class="info-block-content">
+          <p class="info-block-content-text">{{ 'admin.settings.federation.etat.erreurs.' + cle | translate }}</p>
+        </div>
+      </div>
+    }
+  </mat-dialog-content>
+
+  <mat-dialog-actions align="end">
+    <button mat-stroked-button type="button" (click)="annuler()">
+      {{ 'common.actions.cancel' | translate }}
+    </button>
+    <button mat-flat-button color="primary" type="submit" data-testid="adhesion-envoyer" [disabled]="envoiEnCours()">
+      @if (envoiEnCours()) {
+        <mat-spinner diameter="18" class="bouton-spinner"></mat-spinner>
+      }
+      {{ 'admin.settings.federation.etat.adhesion.formulaire.envoyer' | translate }}
+    </button>
+  </mat-dialog-actions>
+</form>

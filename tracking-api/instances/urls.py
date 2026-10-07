@@ -10,6 +10,9 @@ urlpatterns = [
     path('instances/version/', views.check_version, name='check_version'),
     path('instances/me/', views.instance_me, name='instance_me'),
     path('instances/adhesion-hub/', views.adhesion_hub, name='adhesion_hub'),
+    path('instances/adhesion-hub/confirmation/', views.adhesion_hub_confirmation,
+         name='adhesion_hub_confirmation'),
+    path('instances/contact/', views.contact_rnf, name='contact_rnf'),
     path('admin/stats/', views.admin_stats, name='admin_stats'),
     path('admin/instances/', views.admin_instances, name='admin_instances'),
 ]

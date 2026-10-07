@@ -1,5 +1,6 @@
-import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
-import { DatePipe } from '@angular/common';
+import { ChangeDetectionStrategy, Component, LOCALE_ID, OnInit, inject, signal } from '@angular/core';
+import { DatePipe, formatDate } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
@@ -14,9 +15,23 @@ import {
   PublicationHub,
   VerificationHub,
   cleErreurRaccordement,
+  essaisRestants,
+  normaliserCode,
 } from '../../../../core/services/federation-raccordement.service';
+import { AuthService } from '../../../../core/services/auth.service';
 import { TagComponent, TagVariant } from '../../../../shared/components/tag/tag.component';
-import { ConfirmDialogComponent } from '../../../../shared/components/confirm-dialog/confirm-dialog.component';
+import { FormFieldComponent } from '../../../../shared/components/form-field/form-field.component';
+import { AdhesionDialogComponent, AdhesionDialogData } from './adhesion-dialog/adhesion-dialog.component';
+import { ContactRnfDialogComponent } from './contact-rnf-dialog/contact-rnf-dialog.component';
+
+/** Largeur standard des modales du projet (cf. CLAUDE.md). */
+const DIALOGUE = { width: '1300px', maxWidth: '95vw', maxHeight: '90vh' } as const;
+
+/** Longueur du code de confirmation une fois normalisé (« ABCD-EFGH »). */
+const LONGUEUR_CODE = 8;
+
+/** Erreurs de confirmation après lesquelles le statut a changé côté serveur : on recharge. */
+const ERREURS_RECHARGEMENT: readonly CleErreurRaccordement[] = ['trop_d_essais', 'pas_de_code'];
 
 const VARIANTE_RESULTAT: Record<PublicationHub['resultat'], TagVariant> = {
   reussie: 'success',
@@ -32,20 +47,25 @@ const VARIANTE_RESULTAT: Record<PublicationHub['resultat'], TagVariant> = {
  * la dernière publication ? Le diagnostic vient du serveur (premier cas qui
  * s'applique) : le calculer ici dupliquerait une règle qui doit rester unique.
  *
- * Porte aussi la demande d'adhésion : le jeton ne voyage jamais, seule une
- * demande part vers RNF, qui l'accepte ou la refuse.
+ * Porte aussi l'adhésion (#696 v2) : le jeton ne voyage jamais, seule une
+ * demande part vers RNF, avec la personne à contacter. RNF prend contact puis
+ * envoie un code de confirmation par e-mail ; le saisir ici accepte l'adhésion
+ * et enrôle l'instance sur le hub. « Contacter RNF » reste disponible à tout
+ * moment (code non reçu, question…).
  */
 @Component({
   selector: 'app-federation-raccordement',
   standalone: true,
   imports: [
     DatePipe,
+    FormsModule,
     MatButtonModule,
     MatDialogModule,
     MatProgressSpinnerModule,
     MatSnackBarModule,
     TranslateModule,
     TagComponent,
+    FormFieldComponent,
   ],
   templateUrl: './federation-raccordement.component.html',
   styleUrl: './federation-raccordement.component.scss',
@@ -56,6 +76,8 @@ export class FederationRaccordementComponent implements OnInit {
   private readonly dialog = inject(MatDialog);
   private readonly snackBar = inject(MatSnackBar);
   private readonly translate = inject(TranslateService);
+  private readonly authService = inject(AuthService);
+  private readonly locale = inject(LOCALE_ID);
 
   readonly etat = signal<EtatRaccordement | null>(null);
   readonly chargement = signal(false);
@@ -64,6 +86,12 @@ export class FederationRaccordementComponent implements OnInit {
   readonly demandeEnCours = signal(false);
   readonly verification = signal<VerificationHub | null>(null);
   readonly verificationEnCours = signal(false);
+
+  /** Code de confirmation tel que saisi (forcé en majuscules). */
+  codeSaisi = '';
+  readonly confirmationEnCours = signal(false);
+  /** Message d'erreur de la confirmation, déjà traduit (porte les essais restants). */
+  readonly erreurCode = signal<string | null>(null);
 
   ngOnInit(): void {
     this.charger();
@@ -84,46 +112,87 @@ export class FederationRaccordementComponent implements OnInit {
     });
   }
 
-  /** Confirmation explicite : la demande engage la structure auprès de RNF. */
+  /**
+   * Ouvre le formulaire de demande : nom et adresse pré-remplis avec
+   * l'utilisateur connecté, que RNF contactera puis à qui il enverra le code.
+   */
   demanderAdhesion(): void {
     const etat = this.etat();
     if (!etat?.adhesion.possible || this.demandeEnCours()) {
       return;
     }
-    const t = (cle: string, p?: object) => this.translate.instant(`admin.settings.federation.etat.${cle}`, p);
-    const dialogRef = this.dialog.open(ConfirmDialogComponent, {
-      width: '500px',
-      data: {
-        title: t('adhesion.confirmTitre'),
-        message: t('adhesion.confirmMessage', {
-          instance_id: etat.configuration.instance_id,
-          libelle: etat.configuration.instance_libelle,
-        }),
-        warningText: t('adhesion.confirmAvertissement'),
-        confirmText: t('adhesion.confirmBouton'),
-        cancelText: this.translate.instant('common.actions.cancel'),
+    const utilisateur = this.authService.currentUser();
+    const data: AdhesionDialogData = {
+      instance_id: etat.configuration.instance_id,
+      libelle: etat.configuration.instance_libelle,
+      contact_nom: this.authService.getUserDisplayName(),
+      contact_email: utilisateur?.email ?? '',
+    };
+    this.demandeEnCours.set(true);
+    this.dialog
+      .open<AdhesionDialogComponent, AdhesionDialogData, EtatRaccordement>(AdhesionDialogComponent, { ...DIALOGUE, data })
+      .afterClosed()
+      .subscribe(nouvelEtat => {
+        this.demandeEnCours.set(false);
+        if (nouvelEtat) {
+          this.etat.set(nouvelEtat);
+          this.notifier('adhesion.envoyee');
+        }
+      });
+  }
+
+  saisirCode(valeur: string): void {
+    this.codeSaisi = (valeur ?? '').toUpperCase();
+    this.erreurCode.set(null);
+  }
+
+  /** Code complet (8 caractères hors tirets et espaces) : active le bouton. */
+  codeComplet(): boolean {
+    return normaliserCode(this.codeSaisi).length === LONGUEUR_CODE;
+  }
+
+  confirmerCode(): void {
+    if (!this.codeComplet() || this.confirmationEnCours()) {
+      return;
+    }
+    this.confirmationEnCours.set(true);
+    this.erreurCode.set(null);
+    this.service.confirmerCode(normaliserCode(this.codeSaisi)).subscribe({
+      next: etat => {
+        this.confirmationEnCours.set(false);
+        this.codeSaisi = '';
+        this.etat.set(etat);
+        this.notifier('confirmation.reussie');
       },
-    });
-    dialogRef.afterClosed().subscribe(confirme => {
-      if (confirme) {
-        this.envoyerDemande();
-      }
+      error: err => {
+        this.confirmationEnCours.set(false);
+        const cle = cleErreurRaccordement(err);
+        const essais = essaisRestants(err);
+        const cleMessage = cle === 'code_invalide' && essais !== null ? 'code_invalide_essais' : cle;
+        if (ERREURS_RECHARGEMENT.includes(cle)) {
+          // Code invalidé ou plus attendu : le statut a changé côté serveur, le
+          // champ de saisie va disparaître — le message passe par la snackbar.
+          this.codeSaisi = '';
+          this.notifier(`erreurs.${cleMessage}`);
+          this.charger();
+          return;
+        }
+        this.erreurCode.set(
+          this.translate.instant(`admin.settings.federation.etat.erreurs.${cleMessage}`, { essais }),
+        );
+      },
     });
   }
 
-  private envoyerDemande(): void {
-    this.demandeEnCours.set(true);
-    this.service.demanderAdhesion().subscribe({
-      next: etat => {
-        this.etat.set(etat);
-        this.demandeEnCours.set(false);
-        this.notifier('adhesion.envoyee');
-      },
-      error: err => {
-        this.demandeEnCours.set(false);
-        this.notifier(`erreurs.${cleErreurRaccordement(err)}`);
-      },
-    });
+  contacterRnf(): void {
+    this.dialog
+      .open<ContactRnfDialogComponent, void, boolean>(ContactRnfDialogComponent, { ...DIALOGUE })
+      .afterClosed()
+      .subscribe(envoye => {
+        if (envoye) {
+          this.notifier('contact.envoye');
+        }
+      });
   }
 
   verifier(): void {
@@ -148,6 +217,23 @@ export class FederationRaccordementComponent implements OnInit {
   cleErreurVerification(erreur: string | null): string {
     const cle = erreur && (CLES_ERREUR_RACCORDEMENT as readonly string[]).includes(erreur) ? erreur : 'erreur_inconnue';
     return `admin.settings.federation.etat.erreurs.${cle}`;
+  }
+
+  /**
+   * Paramètres du diagnostic prêts à interpoler : les dates (`expire_le`)
+   * arrivent en ISO, illisibles telles quelles dans une phrase.
+   */
+  parametresDiagnostic(parametres: Record<string, string | number>): Record<string, string | number> {
+    const resultat = { ...parametres };
+    const expire = resultat['expire_le'];
+    if (typeof expire === 'string' && expire) {
+      try {
+        resultat['expire_le'] = formatDate(expire, 'dd/MM/yyyy HH:mm', this.locale);
+      } catch {
+        // Date illisible : on garde la valeur brute plutôt que de masquer le message.
+      }
+    }
+    return resultat;
   }
 
   varianteResultat(resultat: PublicationHub['resultat']): TagVariant {

@@ -38,7 +38,7 @@
           {{ 'admin.settings.federation.etat.niveau.' + e.diagnostic.niveau | translate }}
         </p>
         <p class="info-block-content-text">
-          {{ 'admin.settings.federation.etat.diagnostic.' + e.diagnostic.cle | translate: e.diagnostic.parametres }}
+          {{ 'admin.settings.federation.etat.diagnostic.' + e.diagnostic.cle | translate: parametresDiagnostic(e.diagnostic.parametres) }}
         </p>
       </div>
     </div>
@@ -113,11 +113,57 @@
               </span>
             }
           </p>
-          <p class="text-mention" data-testid="adhesion-en-attente">{{ 'admin.settings.federation.etat.adhesion.enAttenteTexte' | translate }}</p>
+          <p class="text-mention" data-testid="adhesion-en-attente">
+            {{ 'admin.settings.federation.etat.adhesion.enAttenteTexte' | translate: { email: e.adhesion.contact_email || '—' } }}
+          </p>
+        }
+        @case ('code_envoye') {
+          <p>
+            <app-tag variant="info" icon="fi-rr-envelope"
+                     [label]="'admin.settings.federation.etat.adhesion.statut.code_envoye' | translate"></app-tag>
+          </p>
+          <p data-testid="adhesion-code-envoye">
+            {{ 'admin.settings.federation.etat.adhesion.codeEnvoyeTexte' | translate: { email: e.adhesion.contact_email || '—' } }}
+          </p>
+          @if (e.adhesion.code_expire_le) {
+            <p class="text-mention" data-testid="adhesion-code-expiration">
+              {{ 'admin.settings.federation.etat.adhesion.codeExpireLe' | translate: { date: (e.adhesion.code_expire_le | date:'dd/MM/yyyy HH:mm') } }}
+            </p>
+          }
+          <form class="raccordement-code" (ngSubmit)="confirmerCode()" novalidate>
+            <app-form-field
+              class="raccordement-code-champ"
+              [label]="'admin.settings.federation.etat.adhesion.code.label' | translate"
+              [helpText]="'admin.settings.federation.etat.adhesion.code.aide' | translate"
+              [required]="true"
+              [error]="erreurCode()">
+              <input type="text"
+                     name="code"
+                     class="raccordement-code-saisie"
+                     data-testid="adhesion-code"
+                     autocomplete="one-time-code"
+                     autocapitalize="characters"
+                     spellcheck="false"
+                     maxlength="20"
+                     placeholder="ABCD-EFGH"
+                     [ngModel]="codeSaisi"
+                     (ngModelChange)="saisirCode($event)" />
+            </app-form-field>
+            <button mat-flat-button color="primary" type="submit"
+                    data-testid="bouton-valider-code"
+                    [disabled]="!codeComplet() || confirmationEnCours()">
+              @if (confirmationEnCours()) {
+                <mat-spinner diameter="18" class="bouton-spinner"></mat-spinner>
+              } @else {
+                <i class="fi fi-rr-check"></i>
+              }
+              {{ 'admin.settings.federation.etat.adhesion.code.valider' | translate }}
+            </button>
+          </form>
         }
         @case ('acceptee') {
           <p>
-            <app-tag variant="success" icon="fi-rr-shield-check"
+            <app-tag variant="success" icon="fi-rr-shield-check" data-testid="adhesion-acceptee"
                      [label]="'admin.settings.federation.etat.adhesion.statut.acceptee' | translate"></app-tag>
           </p>
           <p class="text-mention">{{ 'admin.settings.federation.etat.adhesion.accepteeTexte' | translate }}</p>
@@ -150,18 +196,25 @@
 
       @if (e.adhesion.possible) {
         <p>{{ 'admin.settings.federation.etat.adhesion.explication' | translate }}</p>
-        <button mat-flat-button color="primary" type="button"
-                data-testid="bouton-adhesion"
-                [disabled]="demandeEnCours()"
-                (click)="demanderAdhesion()">
-          @if (demandeEnCours()) {
-            <mat-spinner diameter="18" class="bouton-spinner"></mat-spinner>
-          } @else {
-            <i class="fi fi-rr-paper-plane"></i>
-          }
-          {{ (e.adhesion.statut === 'refusee' ? 'admin.settings.federation.etat.adhesion.redemander' : 'admin.settings.federation.etat.adhesion.demander') | translate }}
-        </button>
       }
+
+      <div class="raccordement-adhesion-actions">
+        @if (e.adhesion.possible) {
+          <button mat-flat-button color="primary" type="button"
+                  data-testid="bouton-adhesion"
+                  [disabled]="demandeEnCours()"
+                  (click)="demanderAdhesion()">
+            <i class="fi fi-rr-paper-plane"></i>
+            {{ (e.adhesion.statut === 'refusee' ? 'admin.settings.federation.etat.adhesion.redemander' : 'admin.settings.federation.etat.adhesion.demander') | translate }}
+          </button>
+        }
+        <button mat-stroked-button type="button"
+                data-testid="bouton-contact"
+                (click)="contacterRnf()">
+          <i class="fi fi-rr-envelope"></i>
+          {{ 'admin.settings.federation.etat.contact.bouton' | translate }}
+        </button>
+      </div>
     </div>
 
     <!-- 4. Vérification en direct auprès du hub. -->

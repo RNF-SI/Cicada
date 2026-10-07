@@ -9,6 +9,7 @@ import { ActivatedRoute, convertToParamMap, ParamMap, Router } from '@angular/ro
 import { AdminSettingsComponent } from './admin-settings.component';
 import { SettingsService, SiteConfiguration } from '../../../core/services/settings.service';
 import { FederationRaccordementService } from '../../../core/services/federation-raccordement.service';
+import { AuthService } from '../../../core/services/auth.service';
 
 // Fake translate loader for tests
 class FakeTranslateLoader implements TranslateLoader {
@@ -110,6 +111,8 @@ describe('AdminSettingsComponent', () => {
         { provide: MatSnackBar, useValue: mockSnackBar },
         // #696 — le bloc de raccordement a sa propre spec : ici il reste muet.
         { provide: FederationRaccordementService, useValue: mockFederationService },
+        // Le bloc du raccordement pré-remplit la demande d'adhésion avec l'utilisateur connecté.
+        { provide: AuthService, useValue: { currentUser: () => null, getUserDisplayName: () => '' } },
         { provide: ActivatedRoute, useValue: mockActivatedRoute },
         { provide: Router, useValue: mockRouter },
       ]

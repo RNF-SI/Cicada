@@ -1,16 +1,24 @@
 """
 Vues API pour le suivi des instances
 """
+import logging
+
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes, throttle_classes
 from rest_framework.response import Response
 from rest_framework.throttling import UserRateThrottle
 from rest_framework.permissions import IsAdminUser, AllowAny
+from django.db import transaction
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
+from .adhesion import (ESSAIS_MAX, EchecEnrolement, code_correct, enroler_sur_hub,
+                       envoyer_message_contact, notifier_nouvelle_demande, normaliser_code)
 from .models import AdhesionHub, Instance
-from .serializers import DemandeAdhesionSerializer, InstanceSerializer
+from .serializers import (ConfirmationSerializer, ContactSerializer, DemandeAdhesionSerializer,
+                          InstanceSerializer)
 from tracking.settings import LATEST_VERSION
+
+logger = logging.getLogger(__name__)
 
 
 class HeartbeatThrottle(UserRateThrottle):
@@ -19,6 +27,13 @@ class HeartbeatThrottle(UserRateThrottle):
 
 class RegisterThrottle(UserRateThrottle):
     rate = '10/hour'
+
+
+class ContactThrottle(UserRateThrottle):
+    # Portée propre : sans elle, le compteur serait partagé avec les autres
+    # limites « user » de la même instance.
+    scope = 'contact_rnf'
+    rate = '10/day'
 
 
 def _version_key(version):
@@ -159,6 +174,10 @@ def adhesion_hub(request):
             'motif_refus': adhesion.motif_refus,
             'demandee_le': adhesion.demandee_le.isoformat(),
             'traitee_le': adhesion.traitee_le.isoformat() if adhesion.traitee_le else None,
+            # L'échéance, jamais le code : l'instance doit le recevoir par e-mail.
+            'code_expire_le': (adhesion.code_expire_le.isoformat()
+                               if adhesion.statut == AdhesionHub.CODE_ENVOYE and adhesion.code_expire_le
+                               else None),
         })
 
     serializer = DemandeAdhesionSerializer(data=request.data)
@@ -184,8 +203,17 @@ def adhesion_hub(request):
     adhesion.url_publique = donnees['url_publique']
     adhesion.empreinte_depot = donnees['empreinte_depot']
     adhesion.empreinte_lecture = donnees['empreinte_lecture']
+    adhesion.contact_nom = donnees['contact_nom']
+    adhesion.contact_email = donnees['contact_email']
+    adhesion.contact_telephone = donnees['contact_telephone']
+    adhesion.message = donnees['message']
+    adhesion.email_confirmation = donnees['contact_email']
     # Une demande refusée puis renouvelée repart de zéro : l'ancien refus ne
-    # doit pas rester affiché comme s'il portait sur la nouvelle demande.
+    # doit pas rester affiché comme s'il portait sur la nouvelle demande, et un
+    # code déjà envoyé portait sur d'autres empreintes — il ne doit plus valoir.
+    adhesion.invalider_code()
+    adhesion.code_envoye_le = None
+    adhesion.code_envoye_par = ''
     adhesion.statut = AdhesionHub.EN_ATTENTE
     adhesion.motif_refus = ''
     adhesion.hub_url = ''
@@ -193,11 +221,93 @@ def adhesion_hub(request):
     adhesion.traitee_le = None
     adhesion.traitee_par = ''
     adhesion.save()
+    notifier_nouvelle_demande(adhesion)
 
     return Response({
         'statut': adhesion.statut,
         'demandee_le': adhesion.demandee_le.isoformat(),
     }, status=201)
+
+
+@api_view(['POST'])
+def adhesion_hub_confirmation(request):
+    """Saisie du code de confirmation envoyé par RNF ; un code juste enrôle l'instance.
+
+    La demande est verrouillée (select_for_update) le temps de la vérification et
+    de l'enrôlement : deux saisies simultanées ne peuvent pas dépasser le
+    compteur d'essais, ni enrôler deux fois.
+
+    Le code n'est consommé qu'au succès complet : si le hub échoue, il reste
+    valable et l'administrateur réessaie plus tard. Jamais de code ni
+    d'empreinte dans la réponse ou le journal.
+    """
+    serializer = ConfirmationSerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
+    code = serializer.validated_data['code']
+
+    with transaction.atomic():
+        adhesion = AdhesionHub.objects.select_for_update().filter(instance=request.user).first()
+        if adhesion is None:
+            return Response({'detail': "Aucune demande d'adhésion."}, status=404)
+        if adhesion.statut != AdhesionHub.CODE_ENVOYE or not adhesion.code_empreinte:
+            return Response({'erreur': 'pas_de_code'}, status=409)
+        if adhesion.code_expire_le and adhesion.code_expire_le <= timezone.now():
+            return Response({'erreur': 'code_expire'}, status=400)
+
+        if not code_correct(adhesion, code):
+            if not normaliser_code(code):
+                # Rien de saisi : ce n'est pas une tentative.
+                return Response({'erreur': 'code_invalide',
+                                 'essais_restants': ESSAIS_MAX - adhesion.code_essais}, status=400)
+            adhesion.code_essais += 1
+            if adhesion.code_essais >= ESSAIS_MAX:
+                # Code invalidé : RNF doit en renvoyer un.
+                adhesion.invalider_code()
+                adhesion.statut = AdhesionHub.EN_ATTENTE
+                adhesion.save()
+                logger.warning("Adhésion %s : code invalidé après %d essais erronés", adhesion.pk, ESSAIS_MAX)
+                return Response({'erreur': 'trop_d_essais'}, status=400)
+            adhesion.save(update_fields=['code_essais'])
+            return Response({'erreur': 'code_invalide',
+                             'essais_restants': ESSAIS_MAX - adhesion.code_essais}, status=400)
+
+        try:
+            hub_url = enroler_sur_hub(adhesion)
+        except EchecEnrolement as exc:
+            logger.error("Adhésion %s : code juste mais enrôlement impossible — %s", adhesion.pk, exc)
+            return Response({'erreur': 'hub_injoignable'}, status=502)
+
+        adhesion.statut = AdhesionHub.ACCEPTEE
+        adhesion.hub_url = hub_url
+        adhesion.motif_refus = ''
+        adhesion.traitee_le = timezone.now()
+        adhesion.traitee_par = 'code'
+        adhesion.invalider_code()
+        adhesion.save()
+
+    return Response({'statut': adhesion.statut, 'hub_url': adhesion.hub_url})
+
+
+@api_view(['POST'])
+@throttle_classes([ContactThrottle])
+def contact_rnf(request):
+    """Message libre de l'administrateur d'une instance à RNF (Reply-To = son adresse).
+
+    Contrairement à l'accusé de réception d'une demande, l'e-mail est ici tout
+    le contenu de la requête : s'il ne part pas, le dire plutôt que de laisser
+    croire que RNF l'a reçu.
+    """
+    serializer = ContactSerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
+    donnees = serializer.validated_data
+    adhesion = AdhesionHub.objects.filter(instance=request.user).first()
+    try:
+        envoyer_message_contact(request.user, adhesion, donnees['nom'], donnees['email'],
+                                donnees['sujet'], donnees['message'])
+    except Exception:  # noqa: BLE001 — SMTP, réseau
+        logger.exception("Message de contact de l'instance %s non envoyé", str(request.user.token)[:8])
+        return Response({'erreur': 'envoi_impossible'}, status=502)
+    return Response({'statut': 'envoye'}, status=202)
 
 
 @api_view(['GET'])

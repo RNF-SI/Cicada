@@ -44,24 +44,61 @@ LATEST_VERSION=0.1.49
 # Hub d'exploration fédérée : enrôlement des instances dont l'adhésion est acceptée
 HUB_URL=https://hub.cicada.reserves-naturelles.org
 HUB_ADMIN_TOKEN=<même valeur que HUB_ADMIN_TOKEN dans le .env du hub>
+# E-mails de l'adhésion au hub (demandes, codes de confirmation, formulaire de contact)
+RNF_CONTACT_EMAIL=si@rnfrance.org
+ADMIN_BASE_URL=https://tracking.cicada.reserves-naturelles.org
+EMAIL_HOST=<serveur SMTP>
+EMAIL_PORT=587
+EMAIL_HOST_USER=<compte SMTP>
+EMAIL_HOST_PASSWORD=<mot de passe SMTP>
+EMAIL_USE_TLS=True
+DEFAULT_FROM_EMAIL=noreply@cicada.reserves-naturelles.org
 ```
 
 À chaque release, mettre `LATEST_VERSION` à jour puis redémarrer le service.
 
 #### Adhésions au hub (`HUB_URL`, `HUB_ADMIN_TOKEN`)
 
-Une structure demande l'adhésion à l'exploration nationale depuis son instance (Administration > Paramètres).
-La demande arrive dans l'admin Django (**Instances > Adhésions au hub**). **Vérifiez auprès de la structure
-que la demande émane bien d'elle avant d'accepter** (la procédure de vérification d'identité sera définie
-plus tard, #697).
+Une structure demande l'adhésion à l'exploration nationale depuis son instance (Administration > Paramètres >
+Exploration fédérée), en indiquant un contact (nom, e-mail, téléphone facultatif, message). La demande arrive dans
+l'admin Django (**Instances > Adhésions au hub**) ; un e-mail la signale à `RNF_CONTACT_EMAIL` et un accusé de
+réception part au contact.
 
-- **Accepter et enrôler sur le hub** appelle `POST {HUB_URL}/api/federation/enrolements/` avec l'en-tête
-  `X-Hub-Admin-Token`. Seules les empreintes des jetons de l'instance transitent : les jetons ne quittent jamais
-  l'instance. Si le hub refuse ou est injoignable, la demande reste en attente et l'erreur s'affiche.
-- **Refuser** : saisir d'abord le motif dans la fiche (il est affiché à la structure), puis lancer l'action.
-- `HUB_ADMIN_TOKEN` est tiré une fois (`python3 -c "import secrets; print(secrets.token_urlsafe(48))"`) et
-  recopié à l'identique dans le `.env` du hub et dans celui-ci. Il permet d'enrôler n'importe quelle instance :
-  ne le transmettez à personne et ne le journalisez pas. Vides, ces deux variables désactivent l'acceptation.
+1. **Prendre contact** avec l'administrateur de la structure et vérifier que la demande émane bien d'elle.
+2. Vérifier l'**adresse d'envoi du code** dans la fiche (pré-remplie avec l'e-mail du contact) : de préférence une
+   adresse que RNF connaît déjà, et non seulement celle déclarée dans la demande. La corriger et enregistrer si
+   besoin.
+3. Action **« Envoyer le code de confirmation »** : un code aléatoire (`ABCD-EFGH`, valable 7 jours) part par
+   e-mail à cette adresse ; la demande passe en « Code envoyé ». Le code n'est affiché nulle part ailleurs et n'est
+   conservé qu'en empreinte. Si l'e-mail ne part pas, l'erreur s'affiche et rien ne change. Renvoyer un code
+   invalide le précédent.
+4. L'administrateur saisit le code sur son instance. **Un code juste vaut acceptation** : l'API de suivi enrôle
+   aussitôt l'instance sur le hub (`POST {HUB_URL}/api/federation/enrolements/`, en-tête `X-Hub-Admin-Token`), avec
+   les seules empreintes des jetons de l'instance — les jetons ne la quittent jamais. Si le hub refuse ou est
+   injoignable, le code reste valable et l'administrateur réessaie plus tard. Après 5 saisies erronées, le code est
+   invalidé et la demande repasse en attente : en renvoyer un.
+
+Il n'y a pas d'action « Accepter » : RNF décide en envoyant le code. **Refuser** : saisir d'abord le motif dans la
+fiche (il est affiché à la structure), puis lancer l'action ; un code déjà envoyé cesse alors de valoir.
+
+`HUB_ADMIN_TOKEN` est tiré une fois (`python3 -c "import secrets; print(secrets.token_urlsafe(48))"`) et recopié
+à l'identique dans le `.env` du hub et dans celui-ci. Il permet d'enrôler n'importe quelle instance : ne le
+transmettez à personne et ne le journalisez pas. Vides, ces deux variables empêchent l'envoi d'un code (il ne
+pourrait de toute façon pas aboutir).
+
+#### E-mails (`RNF_CONTACT_EMAIL`, `ADMIN_BASE_URL`, `EMAIL_*`)
+
+| Variable | Défaut | Rôle |
+|---|---|---|
+| `RNF_CONTACT_EMAIL` | `si@rnfrance.org` | reçoit les nouvelles demandes d'adhésion et les messages du formulaire « Contacter RNF » des instances (`Reply-To` = l'expéditeur) |
+| `ADMIN_BASE_URL` | vide | préfixe du lien vers la fiche de la demande dans l'e-mail à RNF (vide = chemin relatif seul) |
+| `EMAIL_HOST`, `EMAIL_PORT`, `EMAIL_HOST_USER`, `EMAIL_HOST_PASSWORD`, `EMAIL_USE_TLS` | `localhost`, `587`, vide, vide, `True` | serveur SMTP |
+| `DEFAULT_FROM_EMAIL` | `noreply@cicada.reserves-naturelles.org` | expéditeur |
+| `EMAIL_BACKEND` | SMTP | `django.core.mail.backends.console.EmailBackend` pour tester sans serveur |
+
+Les e-mails partent pendant la requête (délai `EMAIL_TIMEOUT`, 10 s). Un échec d'envoi à la demande d'adhésion est
+journalisé sans la faire échouer ; un échec du formulaire de contact est renvoyé à l'instance (502), le message
+n'ayant pas d'autre trace.
 
 ### 4. Base de données
 

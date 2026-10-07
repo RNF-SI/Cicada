@@ -143,3 +143,33 @@ button i.fi {
     color: $gray-dark;
   }
 }
+
+.raccordement-adhesion-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spacing-sm;
+  margin-top: $spacing-xs;
+}
+
+// Saisie du code de confirmation : champ + bouton alignés, repliés sur mobile.
+.raccordement-code {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: $spacing-sm;
+  width: 100%;
+}
+
+.raccordement-code-champ {
+  flex: 0 1 320px;
+  min-width: 0;
+}
+
+// Majuscules forcées à l'affichage (la valeur l'est aussi) et police à chasse
+// fixe : un code lu dans un e-mail se recopie caractère par caractère.
+.raccordement-code-saisie {
+  font-family: monospace;
+  font-size: $font-size-h4;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+}
