@@ -71,6 +71,10 @@ services:
       - CICADA_HUB_PUSH_TOKEN=${CICADA_HUB_PUSH_TOKEN:-}
       - CICADA_HUB_READ_TOKEN=${CICADA_HUB_READ_TOKEN:-}
       - CICADA_EXPLORATION_SOURCE=${CICADA_EXPLORATION_SOURCE:-local}
+      # API de suivi RNF (#696) : vide en dev, l'instance n'y est pas connue.
+      # Renseignées par docker-compose.adhesion.yml pour le banc de l'adhésion.
+      - TRACKING_API_URL=${TRACKING_API_URL:-}
+      - CICADA_TRACKING_TOKEN=${CICADA_TRACKING_TOKEN:-}
       # Email - Mailpit par défaut en développement
       - EMAIL_BACKEND=${EMAIL_BACKEND:-django.core.mail.backends.smtp.EmailBackend}
       - EMAIL_HOST=${EMAIL_HOST:-mailpit}

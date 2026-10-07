@@ -126,6 +126,7 @@ backend/apps/core/management/commands/seeders/data/ia_plans/
 .env.cen
 .env.portail
 .env.hub
+.env.tracking
 
 # Outillage de génération de la notice utilisateur (filtre pandoc, modèle Word) — en cours de finalisation
 docs/notice/

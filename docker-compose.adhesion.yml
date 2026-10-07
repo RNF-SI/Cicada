@@ -1,0 +1,26 @@
+# Surcharge de l'instance principale pour le banc de l'adhésion au hub (#696).
+#
+#   docker compose -f docker-compose.yml -f docker-compose.adhesion.yml up -d web
+#
+# Piloté par « scripts/federation.sh adhesion up|down » : ne pas lancer à la
+# main, l'identité changeant, l'index doit être reconstruit à chaque bascule.
+#
+# L'instance prend une identité propre (« poste-dev ») et perd ses jetons
+# d'environnement : l'adhésion ne concerne que les instances sans jetons. Les
+# variables de .env (banc rnf/cen) restent intactes et reprennent la main au
+# « adhesion down ».
+services:
+  web:
+    environment:
+      - CICADA_INSTANCE_ID=poste-dev
+      - CICADA_INSTANCE_LABEL=Poste de développement
+      - CICADA_PUBLIC_URL=http://localhost
+      - CICADA_HUB_URL=http://host.docker.internal:8002
+      - CICADA_HUB_PUSH_TOKEN=
+      - CICADA_HUB_READ_TOKEN=
+      - CICADA_EXPLORATION_SOURCE=hub
+      - TRACKING_API_URL=http://host.docker.internal:${TRACKING_PORT:-8010}/api
+      # Jeton de suivi du poste. En production il vit dans
+      # /etc/cicada/instance_token, monté en lecture seule ; il n'y a pas de
+      # paquet installé sur un poste de dev, d'où la variable.
+      - CICADA_TRACKING_TOKEN=5f0c2a8e-0d6b-4c1e-9a77-1c2d3e4f5a6b

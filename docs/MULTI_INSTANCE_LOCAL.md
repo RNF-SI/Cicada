@@ -438,3 +438,27 @@ Un point vaut d'être noté ici : **la fédération ne multiplie pas le volume**
 ~4 400 plans sont l'univers *total*, réparti entre instances — le hub qui les
 agrège tous représente le même corpus qu'une instance unique qui les hébergerait.
 C'est précisément le cas qui a été mesuré.
+
+## Banc de l'adhésion au hub (#696)
+
+Rejoue sur un poste le circuit de production : une instance **sans jetons** demande à rejoindre l'exploration
+nationale, RNF compare le code de vérification et accepte dans l'admin de l'API de suivi, qui enrôle l'instance sur
+le hub ; l'instance publie et explore ensuite avec des jetons qu'elle a tirés elle-même et qui n'ont jamais voyagé.
+
+```bash
+scripts/federation.sh adhesion up      # API de suivi locale (:8010) + instance principale en « poste-dev »
+scripts/federation.sh adhesion reset   # efface l'adhésion côté hub, suivi et instance (puis « adhesion up »)
+scripts/federation.sh adhesion down    # rend à l'instance principale son identité de .env (rnf)
+```
+
+| Brique | Rôle dans le banc |
+|---|---|
+| `docker-compose.tracking.yml` | API de suivi jetable (projet `cicada_tracking`), admin `admin` / `admin` |
+| `docker-compose.adhesion.yml` | surcharge de l'instance principale : identité `poste-dev`, jetons d'environnement vidés, jeton de suivi fixé par `CICADA_TRACKING_TOKEN` |
+| `HUB_ADMIN_TOKEN` | tiré par le script, recopié dans `.env.hub` et `.env.tracking` (non versionnés) |
+
+Parcours : *Administration > Paramètres* (cocher le partage, « Demander l'adhésion », noter le code) →
+`http://localhost:8010/admin/` → Adhésions au hub → « Accepter et enrôler sur le hub » → retour aux paramètres,
+« Vérifier maintenant » → `docker exec cicada_web python manage.py push_federation`.
+
+Changer d'identité périme l'index : `up` et `down` relancent `rebuild_search_index --purge` sur l'instance principale.
