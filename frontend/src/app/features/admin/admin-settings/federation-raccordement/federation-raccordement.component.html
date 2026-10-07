@@ -100,7 +100,15 @@
     </dl>
 
     <!-- 3. Adhésion à l'exploration nationale. -->
-    <h4 class="raccordement-sous-titre">{{ 'admin.settings.federation.etat.adhesion.titre' | translate }}</h4>
+    <h4 class="raccordement-sous-titre">
+      {{ 'admin.settings.federation.etat.adhesion.titre' | translate }}
+      <i class="fi fi-rr-info aide-processus"
+         tabindex="0"
+         data-testid="aide-processus"
+         [attr.aria-label]="aideProcessus()"
+         [matTooltip]="aideProcessus()"
+         matTooltipClass="multiline-tooltip"></i>
+    </h4>
     <div class="raccordement-adhesion" data-testid="raccordement-adhesion">
       @switch (e.adhesion.statut) {
         @case ('en_attente') {

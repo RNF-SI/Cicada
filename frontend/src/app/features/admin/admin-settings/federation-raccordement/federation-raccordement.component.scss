@@ -26,6 +26,20 @@
   color: $black;
 }
 
+// Info-bulle des étapes de l'adhésion, à côté du titre.
+.aide-processus {
+  margin-left: $spacing-xxs;
+  color: $primary-color;
+  cursor: help;
+  vertical-align: middle;
+
+  &:focus-visible {
+    outline: 2px solid $primary-color;
+    outline-offset: 2px;
+    border-radius: $border-radius-sm;
+  }
+}
+
 .raccordement-chargement {
   display: flex;
   align-items: center;

@@ -35,6 +35,8 @@ const TRADUCTIONS = {
             redemander: 'Refaire',
             envoyee: 'Envoyée',
             enAttenteTexte: 'RNF va contacter {{email}}',
+            aideProcessus: 'Étapes de l’adhésion',
+            aideEtape: 'Étape {{etape}}',
             codeEnvoyeTexte: 'Demande faite avec {{email}}',
             codeExpireLe: 'Valable jusqu’au {{date}}',
             statut: { acceptee: 'Acceptée' },
@@ -249,6 +251,63 @@ describe('FederationRaccordementComponent', () => {
     await creer(etatFactice({ adhesion: { possible: false } }));
     component.demanderAdhesion();
     expect(dialog.open).not.toHaveBeenCalled();
+  });
+
+  describe('actualisation pendant une adhésion en cours', () => {
+    const enAttente = () => etatFactice({
+      adhesion: { statut: 'en_attente', possible: false, contact_email: 'marie@cen-aura.org' },
+      diagnostic: { niveau: 'info', cle: 'adhesion_en_attente', parametres: {} },
+    });
+    const codeEnvoye = () => etatFactice({
+      adhesion: { statut: 'code_envoye', possible: false, contact_email: 'marie@cen-aura.org' },
+      diagnostic: { niveau: 'info', cle: 'adhesion_code_envoye', parametres: {} },
+    });
+
+    it('fait apparaître le champ du code dès que RNF l’a envoyé, sans recharger la page', async () => {
+      await creer(enAttente());
+      expect(el().querySelector('[data-testid="adhesion-code"]')).toBeNull();
+
+      service.etat.mockReturnValue(of(codeEnvoye()));
+      component.actualiserSiEnCours();
+      fixture.detectChanges();
+
+      expect(service.etat).toHaveBeenCalledTimes(2);
+      expect(el().querySelector('[data-testid="adhesion-code"]')).not.toBeNull();
+    });
+
+    it('ne relit pas l’état hors d’une adhésion en cours', async () => {
+      await creer(etatFactice());
+      component.actualiserSiEnCours();
+      expect(service.etat).toHaveBeenCalledTimes(1);
+    });
+
+    it('garde l’écran affiché si une actualisation échoue', async () => {
+      await creer(enAttente());
+      service.etat.mockReturnValue(throwError(() => new HttpErrorResponse({ status: 502 })));
+      component.actualiserSiEnCours();
+      fixture.detectChanges();
+      expect(component.erreurChargement()).toBeNull();
+      expect(component.etat()?.adhesion.statut).toBe('en_attente');
+    });
+  });
+
+  describe('info-bulle des étapes', () => {
+    it.each([
+      ['', 'Étape 1'],
+      ['en_attente', 'Étape 2'],
+      ['code_envoye', 'Étape 4'],
+      ['acceptee', 'Étape 5'],
+    ])('statut « %s » → %s', async (statut, attendu) => {
+      await creer(etatFactice({ adhesion: { statut: statut as EtatRaccordement['adhesion']['statut'] } }));
+      expect(component.aideProcessus()).toBe(`Étapes de l’adhésion\n\n${attendu}`);
+      expect(el().querySelector('[data-testid="aide-processus"]')?.getAttribute('aria-label'))
+        .toContain(attendu);
+    });
+
+    it('ne donne pas d’étape pour une adhésion refusée', async () => {
+      await creer(etatFactice({ adhesion: { statut: 'refusee' } }));
+      expect(component.aideProcessus()).toBe('Étapes de l’adhésion');
+    });
   });
 
   describe('code de confirmation (statut code_envoye)', () => {

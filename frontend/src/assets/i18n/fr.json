@@ -819,6 +819,8 @@
           },
           "adhesion": {
             "titre": "Adhésion à l'exploration nationale",
+            "aideProcessus": "Comment se déroule l'adhésion :\n1. Vous envoyez la demande depuis cette page, avec la personne à contacter.\n2. RNF reçoit la demande et prend contact avec vous.\n3. RNF vous envoie un code de confirmation par e-mail (valable 7 jours).\n4. Vous saisissez ce code ici : l'adhésion est acceptée.\n5. Une fois le partage activé, vos plans validés sont publiés chaque nuit et l'exploration nationale s'ouvre.",
+            "aideEtape": "Vous en êtes à l'étape {{etape}}.",
             "statut": {
               "en_attente": "En attente de validation",
               "code_envoye": "Code de confirmation envoyé",

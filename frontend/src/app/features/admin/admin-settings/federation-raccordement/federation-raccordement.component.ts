@@ -1,10 +1,11 @@
-import { ChangeDetectionStrategy, Component, LOCALE_ID, OnInit, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, LOCALE_ID, NgZone, OnInit, inject, signal } from '@angular/core';
 import { DatePipe, formatDate } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 
 import {
@@ -32,6 +33,24 @@ const LONGUEUR_CODE = 8;
 
 /** Erreurs de confirmation après lesquelles le statut a changé côté serveur : on recharge. */
 const ERREURS_RECHARGEMENT: readonly CleErreurRaccordement[] = ['trop_d_essais', 'pas_de_code'];
+
+/**
+ * Statuts où la décision se prend chez RNF (prise de contact, envoi du code) :
+ * l'écran se met à jour seul, sans quoi le champ du code n'apparaît qu'après un
+ * rafraîchissement de la page.
+ */
+const STATUTS_SUIVIS: readonly string[] = ['en_attente', 'code_envoye'];
+
+/** Intervalle d'actualisation pendant une adhésion en cours. */
+const INTERVALLE_ACTUALISATION_MS = 15_000;
+
+/** Étape du processus d'adhésion (1 à 5) que l'administrateur a devant lui. */
+const ETAPE_PAR_STATUT: Record<string, number> = {
+  '': 1,
+  en_attente: 2,
+  code_envoye: 4,
+  acceptee: 5,
+};
 
 const VARIANTE_RESULTAT: Record<PublicationHub['resultat'], TagVariant> = {
   reussie: 'success',
@@ -63,6 +82,7 @@ const VARIANTE_RESULTAT: Record<PublicationHub['resultat'], TagVariant> = {
     MatDialogModule,
     MatProgressSpinnerModule,
     MatSnackBarModule,
+    MatTooltipModule,
     TranslateModule,
     TagComponent,
     FormFieldComponent,
@@ -78,6 +98,8 @@ export class FederationRaccordementComponent implements OnInit {
   private readonly translate = inject(TranslateService);
   private readonly authService = inject(AuthService);
   private readonly locale = inject(LOCALE_ID);
+  private readonly destroyRef = inject(DestroyRef);
+  private readonly zone = inject(NgZone);
 
   readonly etat = signal<EtatRaccordement | null>(null);
   readonly chargement = signal(false);
@@ -95,6 +117,68 @@ export class FederationRaccordementComponent implements OnInit {
 
   ngOnInit(): void {
     this.charger();
+
+    // RNF agit de son côté (prise de contact, envoi du code) : tant qu'une
+    // adhésion est en cours, l'état est relu régulièrement et au retour sur
+    // l'onglet du navigateur — l'administrateur qui revient de sa messagerie
+    // avec le code trouve le champ de saisie sans avoir à recharger la page.
+    // Hors de la zone Angular : un minuteur permanent dans la zone la rendrait
+    // instable pour toujours (tests qui attendent la stabilité, hydratation).
+    // Chaque tick y revient pour que l'affichage suive.
+    const minuteur = this.zone.runOutsideAngular(() =>
+      setInterval(() => this.zone.run(() => this.actualiserSiEnCours()), INTERVALLE_ACTUALISATION_MS),
+    );
+    const auRetour = () => {
+      if (document.visibilityState === 'visible') {
+        this.actualiserSiEnCours();
+      }
+    };
+    document.addEventListener('visibilitychange', auRetour);
+    this.destroyRef.onDestroy(() => {
+      clearInterval(minuteur);
+      document.removeEventListener('visibilitychange', auRetour);
+    });
+  }
+
+  /**
+   * Relit l'état sans indicateur de chargement ni perte de la saisie en cours,
+   * seulement si une adhésion attend une action de RNF.
+   */
+  actualiserSiEnCours(): void {
+    const statut = this.etat()?.adhesion.statut ?? '';
+    if (
+      !STATUTS_SUIVIS.includes(statut)
+      || this.chargement()
+      || this.confirmationEnCours()
+      || document.visibilityState === 'hidden'
+    ) {
+      return;
+    }
+    this.service.etat().subscribe({
+      next: etat => this.etat.set(etat),
+      // Silencieux : un échec ponctuel ne doit pas remplacer l'écran par une
+      // erreur, la prochaine actualisation réessaiera.
+      error: () => undefined,
+    });
+  }
+
+  /**
+   * Texte de l'info-bulle : les étapes de l'adhésion, et celle où l'on en est.
+   * Une adhésion refusée ou des jetons fournis par la configuration sortent du
+   * parcours : seules les étapes sont alors rappelées.
+   */
+  aideProcessus(): string {
+    const etat = this.etat();
+    const base = this.translate.instant('admin.settings.federation.etat.adhesion.aideProcessus');
+    if (!etat || etat.configuration.source_jetons === 'environnement') {
+      return base;
+    }
+    const etape = ETAPE_PAR_STATUT[etat.adhesion.statut ?? ''];
+    if (!etape) {
+      return base;
+    }
+    const position = this.translate.instant('admin.settings.federation.etat.adhesion.aideEtape', { etape });
+    return `${base}\n\n${position}`;
   }
 
   charger(): void {

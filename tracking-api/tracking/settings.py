@@ -124,9 +124,11 @@ HUB_ADMIN_TOKEN = config('HUB_ADMIN_TOKEN', default='')
 
 # Adhésion au hub : e-mails (#696). RNF reçoit les nouvelles demandes et les
 # messages du formulaire de contact ; ADMIN_BASE_URL sert au lien vers la fiche
-# de la demande dans l'e-mail (vide = chemin relatif seul).
+# de la demande dans l'e-mail.
 RNF_CONTACT_EMAIL = config('RNF_CONTACT_EMAIL', default='si@rnfrance.org')
-ADMIN_BASE_URL = config('ADMIN_BASE_URL', default='')
+# Défaut : l'API de suivi de production. Vide, le lien de l'e-mail à RNF serait
+# un chemin relatif, inutilisable depuis une messagerie.
+ADMIN_BASE_URL = config('ADMIN_BASE_URL', default='https://tracking.cicada.reserves-naturelles.org')
 EMAIL_BACKEND = config('EMAIL_BACKEND', default='django.core.mail.backends.smtp.EmailBackend')
 EMAIL_HOST = config('EMAIL_HOST', default='localhost')
 EMAIL_PORT = config('EMAIL_PORT', default=587, cast=int)

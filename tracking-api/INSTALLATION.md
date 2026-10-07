@@ -91,7 +91,7 @@ pourrait de toute façon pas aboutir).
 | Variable | Défaut | Rôle |
 |---|---|---|
 | `RNF_CONTACT_EMAIL` | `si@rnfrance.org` | reçoit les nouvelles demandes d'adhésion et les messages du formulaire « Contacter RNF » des instances (`Reply-To` = l'expéditeur) |
-| `ADMIN_BASE_URL` | vide | préfixe du lien vers la fiche de la demande dans l'e-mail à RNF (vide = chemin relatif seul) |
+| `ADMIN_BASE_URL` | `https://tracking.cicada.reserves-naturelles.org` | adresse publique de cette API de suivi : préfixe du lien vers la fiche de la demande (`/admin/instances/adhesionhub/<id>/change/`) dans l'e-mail à RNF. À changer pour une API de suivi de staging |
 | `EMAIL_HOST`, `EMAIL_PORT`, `EMAIL_HOST_USER`, `EMAIL_HOST_PASSWORD`, `EMAIL_USE_TLS` | `localhost`, `587`, vide, vide, `True` | serveur SMTP |
 | `DEFAULT_FROM_EMAIL` | `noreply@cicada.reserves-naturelles.org` | expéditeur |
 | `EMAIL_BACKEND` | SMTP | `django.core.mail.backends.console.EmailBackend` pour tester sans serveur |
