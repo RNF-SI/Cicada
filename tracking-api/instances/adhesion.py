@@ -7,11 +7,9 @@ détenteur du jeton d'administration du hub : c'est elle qui enrôle l'instance,
 avec les **empreintes** des jetons que l'instance a tirés elle-même. Le jeton du
 hub ne voyage donc jamais — ni par l'API de suivi, ni par un humain.
 
-Les deux formules ci-dessous sont **recalculées à l'identique côté instance**
-(backend/apps/search/) : toute divergence ferait afficher deux codes différents
-et la comparaison de vive voix échouerait. Ne pas les « améliorer » d'un seul côté.
+La vérification de l'identité de la structure avant acceptation sera définie
+plus tard (#697).
 """
-import base64
 import hashlib
 import re
 
@@ -31,23 +29,6 @@ DELAI_HUB = 10
 def empreinte(jeton: str) -> str:
     """SHA-256 hexadécimal du jeton — même formule que le hub, qui ne stocke qu'elle."""
     return hashlib.sha256(jeton.encode('utf-8')).hexdigest()
-
-
-def code_verification(instance_token: str, instance_id: str,
-                      empreinte_depot: str, empreinte_lecture: str) -> str:
-    """6 caractères base32 présentés « ABC-DEF », comparés de vive voix avant d'accepter.
-
-    Le code lie l'instance qui parle (son jeton de suivi), l'identité qu'elle
-    revendique et les empreintes qu'elle a envoyées : une fausse demande au nom
-    d'une vraie structure, ou des empreintes substituées en route, produisent un
-    code que la structure n'a pas sous les yeux.
-
-    Dérivé de l'EMPREINTE du jeton de suivi (pas du jeton) pour rester calculable
-    le jour où l'API de suivi ne stockera plus que des empreintes (#697).
-    """
-    source = f"{empreinte(instance_token)}:{instance_id}:{empreinte_depot}:{empreinte_lecture}"
-    brut = base64.b32encode(hashlib.sha256(source.encode('utf-8')).digest()).decode('ascii')[:6]
-    return f"{brut[:3]}-{brut[3:]}"
 
 
 class EchecEnrolement(Exception):

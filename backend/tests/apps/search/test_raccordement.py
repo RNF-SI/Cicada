@@ -78,7 +78,7 @@ def adhesion_acceptee(hub='http://hub'):
         jeton_depot_chiffre=rac.chiffrer('depot-secret'),
         jeton_lecture_chiffre=rac.chiffrer('lecture-secret'),
         adhesion_statut=RaccordementHub.STATUT_ACCEPTEE,
-        adhesion_code='ABC-DEF', adhesion_instance_id='cen-aura', hub_url=hub,
+        adhesion_instance_id='cen-aura', hub_url=hub,
     )
     ligne.save()
     return ligne
@@ -87,21 +87,10 @@ def adhesion_acceptee(hub='http://hub'):
 # --------------------------------------------------------------------------- #
 
 class TestFormules:
-    """Le suivi recalcule le code : la formule est un contrat, figé ici."""
+    """Le hub ne stocke que l'empreinte : la formule est un contrat, figé ici."""
 
     def test_empreinte_est_le_sha256_hexadecimal(self):
         assert rac.empreinte('abc') == hashlib.sha256(b'abc').hexdigest()
-
-    def test_code_fige(self):
-        assert rac.code_verification(
-            '11111111-2222-3333-4444-555555555555', 'cen-aura', 'a' * 64, 'b' * 64,
-        ) == 'KNG-3F3'
-
-    def test_code_controle_croise_avec_le_suivi(self):
-        assert rac.code_verification(
-            JETON_SUIVI, 'cen-aura',
-            rac.empreinte('jeton-depot'), rac.empreinte('jeton-lecture'),
-        ) == 'BM5-KKM'
 
     def test_jeton_tire_assez_long(self):
         assert len(rac.nouveau_jeton()) >= 64
@@ -210,17 +199,13 @@ class TestPermissions:
         assert getattr(client, methode)(URL_RACCORDEMENT + chemin).status_code == 403
 
 
-def suivi_qui_accepte(code_renvoye=None):
-    """Simule `POST /instances/adhesion-hub/` : le suivi recalcule le code."""
+def suivi_qui_accepte():
+    """Simule `POST /instances/adhesion-hub/` : le suivi enregistre la demande."""
     recu = {}
 
     def poster(url, headers=None, json=None, timeout=None):
         recu.update(url=url, headers=headers, corps=json)
-        code = code_renvoye or rac.code_verification(
-            headers['X-Instance-Token'], json['instance_id'],
-            json['empreinte_depot'], json['empreinte_lecture'],
-        )
-        return reponse(201, {'statut': 'en_attente', 'code': code, 'demandee_le': 'x'})
+        return reponse(201, {'statut': 'en_attente', 'demandee_le': 'x'})
 
     return poster, recu
 
@@ -237,7 +222,7 @@ class TestDemandeAdhesion:
             'suivi_disponible',
         }
         assert set(corps['adhesion']) == {
-            'statut', 'code', 'demandee_le', 'motif', 'possible', 'erreur_suivi',
+            'statut', 'demandee_le', 'motif', 'possible', 'erreur_suivi',
         }
         assert corps['adhesion']['possible'] is True
         assert corps['adhesion']['statut'] == ''
@@ -252,7 +237,7 @@ class TestDemandeAdhesion:
         assert corps['adhesion']['statut'] == 'en_attente'
         assert corps['adhesion']['possible'] is False
         assert corps['diagnostic']['cle'] == 'adhesion_en_attente'
-        assert corps['diagnostic']['parametres'] == {'code': corps['adhesion']['code']}
+        assert corps['diagnostic']['parametres'] == {}
 
         assert recu['url'] == 'http://suivi/api/instances/adhesion-hub/'
         assert recu['headers'] == {'X-Instance-Token': JETON_SUIVI}
@@ -266,17 +251,7 @@ class TestDemandeAdhesion:
         assert recu['corps']['empreinte_depot'] == rac.empreinte(depot)
         assert recu['corps']['empreinte_lecture'] == rac.empreinte(lecture)
         assert depot not in json.dumps(recu['corps'])
-        assert ligne.adhesion_code == rac.code_verification(
-            JETON_SUIVI, 'cen-aura', rac.empreinte(depot), rac.empreinte(lecture),
-        )
-
-    def test_code_divergent_rien_n_est_enregistre(self, admin_client):
-        poster, _ = suivi_qui_accepte(code_renvoye='ZZZ-ZZZ')
-        with patch('apps.search.raccordement.requests.post', side_effect=poster):
-            rep = admin_client.post(URL_RACCORDEMENT + 'adhesion/')
-        assert rep.status_code == 400
-        assert rep.json()['erreur'] == 'code_divergent'
-        assert not RaccordementHub.objects.exists()
+        assert ligne.adhesion_instance_id == 'cen-aura'
 
     def test_redemande_apres_refus(self, admin_client):
         ligne = adhesion_acceptee()
@@ -345,7 +320,7 @@ class TestActualisation:
     def test_acceptation_lue_a_l_affichage(self, admin_client, partage):
         self._en_attente()
         suivi = reponse(200, {
-            'statut': 'acceptee', 'code': 'ABC-DEF', 'instance_id': 'cen-aura',
+            'statut': 'acceptee', 'instance_id': 'cen-aura',
             'hub_url': 'https://hub.rnf/', 'motif_refus': '',
         })
         with patch('apps.search.raccordement.requests.get', return_value=suivi) as appel:

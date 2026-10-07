@@ -495,9 +495,9 @@ cmd_adhesion() {
 
       titre "À faire"
       info "1. $URL_RNF_UI/administration/parametres  (admin@test.fr / Test123!)"
-      info "   cocher le partage, puis « Demander l'adhésion » : noter le code"
+      info "   cocher le partage, puis « Demander l'adhésion »"
       info "2. $URL_SUIVI/admin/  (admin / admin) → Adhésions au hub"
-      info "   comparer le code, puis « Accepter et enrôler sur le hub »"
+      info "   cocher la demande, puis « Accepter et enrôler sur le hub »"
       info "3. revenir aux paramètres : « Vérifier maintenant », puis"
       info "   docker exec $RNF_WEB python manage.py push_federation"
       info "Retour au banc rnf/cen : scripts/federation.sh adhesion down"

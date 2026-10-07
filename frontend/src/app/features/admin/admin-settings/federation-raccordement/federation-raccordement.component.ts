@@ -33,8 +33,7 @@ const VARIANTE_RESULTAT: Record<PublicationHub['resultat'], TagVariant> = {
  * s'applique) : le calculer ici dupliquerait une règle qui doit rester unique.
  *
  * Porte aussi la demande d'adhésion : le jeton ne voyage jamais, seule une
- * demande part vers RNF, qui rappelle la structure pour comparer le code de
- * vérification avant d'accepter. Le code doit donc être lisible et copiable.
+ * demande part vers RNF, qui l'accepte ou la refuse.
  */
 @Component({
   selector: 'app-federation-raccordement',
@@ -143,18 +142,6 @@ export class FederationRaccordementComponent implements OnInit {
         this.notifier(`erreurs.${cleErreurRaccordement(err)}`);
       },
     });
-  }
-
-  copierCode(code: string): void {
-    const clipboard = typeof navigator !== 'undefined' ? navigator.clipboard : undefined;
-    if (!clipboard) {
-      this.notifier('adhesion.copieImpossible');
-      return;
-    }
-    clipboard.writeText(code).then(
-      () => this.notifier('adhesion.copie'),
-      () => this.notifier('adhesion.copieImpossible'),
-    );
   }
 
   /** Clé i18n d'une erreur renvoyée par la vérification (repli si inconnue). */

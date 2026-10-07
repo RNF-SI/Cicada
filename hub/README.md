@@ -102,8 +102,7 @@ lit.
 ### Enrôlement délégué à l'API de suivi (`X-Hub-Admin-Token`, #696)
 
 Une structure demande l'adhésion depuis son instance ; un administrateur RNF
-l'accepte dans l'admin de l'API de suivi, après avoir comparé de vive voix un
-code de vérification ; le suivi enrôle alors l'instance ici :
+l'accepte dans l'admin de l'API de suivi ; le suivi enrôle alors l'instance ici :
 
 ```
 POST /api/federation/enrolements/

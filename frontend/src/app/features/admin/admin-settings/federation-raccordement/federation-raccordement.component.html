@@ -113,16 +113,7 @@
               </span>
             }
           </p>
-          <p class="text-mention">{{ 'admin.settings.federation.etat.adhesion.codeLibelle' | translate }}</p>
-          <div class="code-verification">
-            <span class="code-verification-valeur" data-testid="code-verification"
-                  [attr.aria-label]="'admin.settings.federation.etat.adhesion.codeLibelle' | translate">{{ e.adhesion.code }}</span>
-            <button mat-button type="button" (click)="copierCode(e.adhesion.code)">
-              <i class="fi fi-rr-copy"></i>
-              {{ 'admin.settings.federation.etat.adhesion.copier' | translate }}
-            </button>
-          </div>
-          <p>{{ 'admin.settings.federation.etat.adhesion.codeConsigne' | translate }}</p>
+          <p class="text-mention" data-testid="adhesion-en-attente">{{ 'admin.settings.federation.etat.adhesion.enAttenteTexte' | translate }}</p>
         }
         @case ('acceptee') {
           <p>

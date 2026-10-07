@@ -16,7 +16,7 @@ from django.test import RequestFactory, TestCase, override_settings
 from rest_framework.test import APIClient
 
 from . import views
-from .adhesion import code_verification, empreinte
+from .adhesion import empreinte
 from .admin import AdhesionHubAdmin
 from .models import AdhesionHub, Instance
 
@@ -83,31 +83,6 @@ EMPREINTE_DEPOT = empreinte('jeton-depot')
 EMPREINTE_LECTURE = empreinte('jeton-lecture')
 
 
-class CodeVerificationTest(TestCase):
-    """La formule est recalculée côté instance : la moindre divergence fait
-    afficher deux codes différents. La valeur est figée pour qu'une modification
-    d'un seul côté se voie ici (même entrées, même valeur attendue côté instance)."""
-
-    def test_valeur_figee(self):
-        self.assertEqual(
-            EMPREINTE_DEPOT, 'c608b951e9af8410d44022b31368434c2ffd5e14d267632ef335068337a15b92')
-        self.assertEqual(
-            EMPREINTE_LECTURE, '8b9121800784b8fe7c2b05cb6f7aa3f52a77e68e7441ffec5ec88d28efb5f8a0')
-        self.assertEqual(
-            code_verification('123e4567-e89b-12d3-a456-426614174000', 'cen-aura',
-                              EMPREINTE_DEPOT, EMPREINTE_LECTURE),
-            'BM5-KKM')
-
-    def test_chaque_entree_change_le_code(self):
-        base = ('123e4567-e89b-12d3-a456-426614174000', 'cen-aura', EMPREINTE_DEPOT, EMPREINTE_LECTURE)
-        reference = code_verification(*base)
-        for i, autre in enumerate(('00000000-0000-0000-0000-000000000000', 'rnf',
-                                   EMPREINTE_LECTURE, EMPREINTE_DEPOT)):
-            variante = list(base)
-            variante[i] = autre
-            self.assertNotEqual(code_verification(*variante), reference)
-
-
 class AdhesionHubApiTest(TestCase):
     URL = '/api/instances/adhesion-hub/'
 
@@ -140,12 +115,10 @@ class AdhesionHubApiTest(TestCase):
     def test_creation(self):
         reponse = self.demander()
         self.assertEqual(reponse.status_code, 201)
-        attendu = code_verification(self.token, 'cen-aura', EMPREINTE_DEPOT, EMPREINTE_LECTURE)
         self.assertEqual(reponse.json()['statut'], 'en_attente')
-        self.assertEqual(reponse.json()['code'], attendu)
         self.assertIn('demandee_le', reponse.json())
         adhesion = AdhesionHub.objects.get(instance=self.instance)
-        self.assertEqual(adhesion.code, attendu)
+        self.assertEqual(adhesion.empreinte_depot, EMPREINTE_DEPOT)
         self.assertEqual(adhesion.libelle, 'CEN Auvergne-Rhône-Alpes')
 
     def test_validations(self):
@@ -158,11 +131,10 @@ class AdhesionHubApiTest(TestCase):
         self.assertFalse(AdhesionHub.objects.exists())
 
     def test_remplace_demande_en_attente(self):
-        premier = self.demander().json()['code']
+        self.demander()
         autre = empreinte('autre-depot')
         reponse = self.demander(empreinte_depot=autre)
         self.assertEqual(reponse.status_code, 201)
-        self.assertNotEqual(reponse.json()['code'], premier)
         self.assertEqual(AdhesionHub.objects.count(), 1)
         self.assertEqual(AdhesionHub.objects.get().empreinte_depot, autre)
 
@@ -193,10 +165,9 @@ class AdhesionHubApiTest(TestCase):
 
     def test_lecture(self):
         self.assertEqual(self.lire().status_code, 404)
-        code = self.demander().json()['code']
+        self.demander()
         donnees = self.lire().json()
         self.assertEqual(donnees['statut'], 'en_attente')
-        self.assertEqual(donnees['code'], code)
         self.assertEqual(donnees['instance_id'], 'cen-aura')
         self.assertEqual(donnees['hub_url'], '')
         self.assertIsNone(donnees['traitee_le'])
@@ -225,8 +196,7 @@ class AdhesionHubAdminTest(TestCase):
         self.adhesion = AdhesionHub.objects.create(
             instance=instance, instance_id_demande='cen-aura', libelle='CEN AURA',
             url_publique='https://cicada.cen-aura.fr', empreinte_depot=EMPREINTE_DEPOT,
-            empreinte_lecture=EMPREINTE_LECTURE,
-            code=code_verification(str(instance.token), 'cen-aura', EMPREINTE_DEPOT, EMPREINTE_LECTURE))
+            empreinte_lecture=EMPREINTE_LECTURE)
 
     def requete(self):
         requete = RequestFactory().post('/admin/')
@@ -312,12 +282,12 @@ class AdhesionHubAdminTest(TestCase):
         self.assertEqual(self.adhesion.statut, AdhesionHub.ACCEPTEE)
 
     def test_pages_admin(self):
-        """Liste et fiche se rendent, avec le code et le rappel de comparaison."""
+        """Liste et fiche se rendent, avec le rappel de vérification."""
         client = self.client
         client.force_login(self.utilisateur)
         liste = client.get('/admin/instances/adhesionhub/')
-        self.assertContains(liste, self.adhesion.code)
-        self.assertContains(liste, 'de vive voix')
+        self.assertContains(liste, 'CEN AURA')
+        self.assertContains(liste, 'émane bien d')
         fiche = client.get(f'/admin/instances/adhesionhub/{self.adhesion.pk}/change/')
-        self.assertContains(fiche, self.adhesion.code)
-        self.assertContains(fiche, 'de vive voix')
+        self.assertContains(fiche, 'cen-aura')
+        self.assertContains(fiche, 'émane bien d')

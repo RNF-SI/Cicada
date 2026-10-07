@@ -8,7 +8,6 @@ from rest_framework.throttling import UserRateThrottle
 from rest_framework.permissions import IsAdminUser, AllowAny
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
-from .adhesion import code_verification
 from .models import AdhesionHub, Instance
 from .serializers import DemandeAdhesionSerializer, InstanceSerializer
 from tracking.settings import LATEST_VERSION
@@ -144,8 +143,7 @@ def adhesion_hub(request):
 
     L'instance qui demande est celle du jeton X-Instance-Token, jamais une
     instance désignée dans le corps : une structure ne peut demander que pour
-    elle-même. Le code est recalculé ici, à partir de ce jeton, pour que la
-    comparaison de vive voix prouve que la demande vient bien de cette instance.
+    elle-même.
     """
     instance = request.user
 
@@ -156,7 +154,6 @@ def adhesion_hub(request):
         acceptee = adhesion.statut == AdhesionHub.ACCEPTEE
         return Response({
             'statut': adhesion.statut,
-            'code': adhesion.code,
             'instance_id': adhesion.instance_id_demande,
             'hub_url': adhesion.hub_url if acceptee else '',
             'motif_refus': adhesion.motif_refus,
@@ -187,8 +184,6 @@ def adhesion_hub(request):
     adhesion.url_publique = donnees['url_publique']
     adhesion.empreinte_depot = donnees['empreinte_depot']
     adhesion.empreinte_lecture = donnees['empreinte_lecture']
-    adhesion.code = code_verification(str(instance.token), donnees['instance_id'],
-                                      donnees['empreinte_depot'], donnees['empreinte_lecture'])
     # Une demande refusée puis renouvelée repart de zéro : l'ancien refus ne
     # doit pas rester affiché comme s'il portait sur la nouvelle demande.
     adhesion.statut = AdhesionHub.EN_ATTENTE
@@ -201,7 +196,6 @@ def adhesion_hub(request):
 
     return Response({
         'statut': adhesion.statut,
-        'code': adhesion.code,
         'demandee_le': adhesion.demandee_le.isoformat(),
     }, status=201)
 

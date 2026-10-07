@@ -29,6 +29,58 @@
   margin: 0;
 }
 
+// Onglets thématiques — alignés sur la page Activité (revue design #307) :
+// libellé + icône en bleu-vert et gras sur l'onglet actif, indicateur global
+// ($primary-color) défini dans _material-overrides.scss.
+.settings-tabs {
+  // Dans une colonne flex, sans min-width: 0 la barre d'onglets imposerait sa
+  // largeur à la page au lieu d'activer la pagination Material (360 px).
+  min-width: 0;
+  max-width: 100%;
+
+  // Tokens Material plutôt que des surcharges !important.
+  --mat-tab-active-label-text-color: #{$primary-color};
+  --mat-tab-active-focus-label-text-color: #{$primary-color};
+  --mat-tab-active-hover-label-text-color: #{$primary-color};
+  --mat-tab-active-indicator-color: #{$primary-color};
+  --mat-tab-active-focus-indicator-color: #{$primary-color};
+  --mat-tab-active-hover-indicator-color: #{$primary-color};
+
+  .tab-label {
+    display: inline-flex;
+    align-items: center;
+    gap: $spacing-xs;
+
+    i {
+      font-size: $font-size-base;
+      line-height: 1;
+    }
+  }
+
+  ::ng-deep {
+    .mat-mdc-tab {
+      min-width: auto;
+      padding: 0 $spacing-md;
+    }
+
+    .mdc-tab--active .tab-label {
+      color: $primary-color;
+      font-weight: $font-weight-bold;
+    }
+
+    .mat-mdc-tab-body-content {
+      overflow: visible;
+    }
+  }
+}
+
+// Les sections d'un même onglet gardent l'espacement régulier de la page.
+.tab-panel {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-lg;
+}
+
 .settings-section {
   background: $white;
   border-radius: 11px;
@@ -242,6 +294,10 @@
 @media (max-width: 768px) {
   .admin-settings {
     padding: $spacing-md;
+  }
+
+  .settings-tabs ::ng-deep .mat-mdc-tab {
+    padding: 0 $spacing-sm;
   }
 
   .page-title {

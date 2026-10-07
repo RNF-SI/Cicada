@@ -20,12 +20,12 @@ const TRADUCTIONS = {
         etat: {
           diagnostic: {
             ok: 'Tout va bien',
-            adhesion_en_attente: 'En attente, code {{code}}',
+            adhesion_en_attente: 'En attente de RNF',
             adhesion_refusee: 'Refusée : {{motif}}',
             identite_manquante: 'Identité manquante',
           },
-          adhesion: { demander: 'Demander', redemander: 'Refaire', envoyee: 'Envoyée' },
-          erreurs: { code_divergent: 'Code divergent', erreur_inconnue: 'Erreur inconnue' },
+          adhesion: { demander: 'Demander', redemander: 'Refaire', envoyee: 'Envoyée', enAttenteTexte: 'Apparaîtra une fois acceptée' },
+          erreurs: { suivi_indisponible: 'Suivi indisponible', erreur_inconnue: 'Erreur inconnue' },
         },
       },
     },
@@ -60,7 +60,6 @@ function etatFactice(surcharge: {
     },
     adhesion: {
       statut: '',
-      code: '',
       demandee_le: null,
       motif: '',
       possible: true,
@@ -144,12 +143,13 @@ describe('FederationRaccordementComponent', () => {
     expect(el().querySelector('[data-testid="raccordement-diagnostic"]')!.textContent).toContain('Refusée : doublon');
   });
 
-  it('affiche le code de vérification en attente, sans bouton d’adhésion', async () => {
+  it('affiche la demande en attente, sans bouton d’adhésion', async () => {
     await creer(etatFactice({
-      adhesion: { statut: 'en_attente', code: 'K7F-29Q', possible: false },
-      diagnostic: { niveau: 'info', cle: 'adhesion_en_attente', parametres: { code: 'K7F-29Q' } },
+      adhesion: { statut: 'en_attente', possible: false },
+      diagnostic: { niveau: 'info', cle: 'adhesion_en_attente', parametres: {} },
     }));
-    expect(el().querySelector('[data-testid="code-verification"]')!.textContent).toContain('K7F-29Q');
+    expect(el().querySelector('[data-testid="raccordement-diagnostic"]')!.textContent).toContain('En attente de RNF');
+    expect(el().querySelector('[data-testid="adhesion-en-attente"]')!.textContent).toContain('Apparaîtra une fois acceptée');
     expect(el().querySelector('[data-testid="bouton-adhesion"]')).toBeNull();
   });
 
@@ -169,7 +169,7 @@ describe('FederationRaccordementComponent', () => {
 
   it('demande confirmation avant d’envoyer la demande d’adhésion', async () => {
     await creer(etatFactice());
-    const attente = etatFactice({ adhesion: { statut: 'en_attente', code: 'ABC-DEF', possible: false } });
+    const attente = etatFactice({ adhesion: { statut: 'en_attente', possible: false } });
     service.demanderAdhesion.mockReturnValue(of(attente));
 
     dialog.open.mockReturnValue({ afterClosed: () => of(false) });
@@ -179,17 +179,17 @@ describe('FederationRaccordementComponent', () => {
     dialog.open.mockReturnValue({ afterClosed: () => of(true) });
     component.demanderAdhesion();
     expect(service.demanderAdhesion).toHaveBeenCalledTimes(1);
-    expect(component.etat()?.adhesion.code).toBe('ABC-DEF');
+    expect(component.etat()?.adhesion.statut).toBe('en_attente');
   });
 
   it('affiche une snackbar traduite si la demande échoue', async () => {
     await creer(etatFactice());
     dialog.open.mockReturnValue({ afterClosed: () => of(true) });
     service.demanderAdhesion.mockReturnValue(throwError(() =>
-      new HttpErrorResponse({ status: 400, error: { erreur: 'code_divergent' } })));
+      new HttpErrorResponse({ status: 400, error: { erreur: 'suivi_indisponible' } })));
 
     component.demanderAdhesion();
-    expect(snackBar.open).toHaveBeenCalledWith('Code divergent', expect.anything(), expect.anything());
+    expect(snackBar.open).toHaveBeenCalledWith('Suivi indisponible', expect.anything(), expect.anything());
     expect(component.demandeEnCours()).toBe(false);
   });
 

@@ -28,7 +28,6 @@ export const CLES_ERREUR_RACCORDEMENT = [
   'identite_manquante',
   'suivi_indisponible',
   'jeton_suivi_absent',
-  'code_divergent',
   'deja_acceptee',
   'jetons_environnement',
   'hub_injoignable',
@@ -54,7 +53,6 @@ export interface ConfigurationRaccordement {
 
 export interface AdhesionHub {
   statut: StatutAdhesion;
-  code: string;
   demandee_le: string | null;
   motif: string;
   possible: boolean;

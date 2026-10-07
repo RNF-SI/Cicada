@@ -3,7 +3,6 @@ Interface d'administration pour les instances
 """
 from django.contrib import admin, messages
 from django.utils import timezone
-from django.utils.html import format_html
 
 from .adhesion import EchecEnrolement, enroler_sur_hub
 from .models import AdhesionHub, Heartbeat, Instance
@@ -29,31 +28,27 @@ class HeartbeatAdmin(admin.ModelAdmin):
     readonly_fields = ('instance', 'timestamp', 'version', 'ip_address')
 
 
-RAPPEL_CODE = ("Comparez ce code de vive voix avec la structure avant d'accepter : "
-               "c'est la seule preuve que la demande vient bien d'elle.")
+RAPPEL_VERIFICATION = "Vérifiez auprès de la structure que la demande émane bien d'elle avant d'accepter."
 
 
 @admin.register(AdhesionHub)
 class AdhesionHubAdmin(admin.ModelAdmin):
     """Validation manuelle, par RNF, des adhésions au hub (#696).
 
-    Le code de vérification est mis en évidence partout où une décision se
-    prend : sans la comparaison de vive voix, accepter reviendrait à enrôler
-    quiconque connaît un jeton de suivi et le nom d'une structure.
     Tout est en lecture seule sauf le motif de refus : la demande est l'œuvre de
-    l'instance, la modifier ici ferait diverger le code des deux côtés.
+    l'instance, et les empreintes doivent être enrôlées telles qu'elle les a envoyées.
     """
-    list_display = ('libelle', 'instance_id_demande', 'code_affiche', 'statut', 'demandee_le', 'traitee_le')
+    list_display = ('libelle', 'instance_id_demande', 'statut', 'demandee_le', 'traitee_le')
     list_filter = ('statut',)
-    search_fields = ('libelle', 'instance_id_demande', 'code')
+    search_fields = ('libelle', 'instance_id_demande')
     actions = ['accepter', 'refuser']
-    readonly_fields = ('code_en_evidence', 'instance', 'instance_id_demande', 'libelle', 'url_publique',
+    readonly_fields = ('instance', 'instance_id_demande', 'libelle', 'url_publique',
                        'statut', 'empreinte_depot', 'empreinte_lecture', 'hub_url',
                        'demandee_le', 'traitee_le', 'traitee_par')
     fieldsets = (
-        ('Code de vérification', {'fields': ('code_en_evidence',), 'description': RAPPEL_CODE}),
         ('Demande', {'fields': ('instance', 'instance_id_demande', 'libelle', 'url_publique',
-                                'demandee_le')}),
+                                'demandee_le'),
+                     'description': RAPPEL_VERIFICATION}),
         ('Décision', {'fields': ('statut', 'motif_refus', 'hub_url', 'traitee_le', 'traitee_par'),
                       'description': "Pour refuser : saisir le motif, enregistrer, puis lancer l'action "
                                      "« Refuser » depuis la liste. Il est affiché à la structure."}),
@@ -62,23 +57,12 @@ class AdhesionHubAdmin(admin.ModelAdmin):
     )
 
     def has_add_permission(self, request):
-        # Une demande vient toujours d'une instance : en créer une ici n'aurait
-        # pas de code vérifiable par la structure.
+        # Une demande vient toujours d'une instance, authentifiée par son jeton de
+        # suivi : en créer une ici n'aurait pas d'émetteur.
         return False
 
-    @admin.display(description='Code', ordering='code')
-    def code_affiche(self, obj):
-        return format_html('<strong style="font-family:monospace;font-size:1.2em;letter-spacing:.1em">{}</strong>',
-                           obj.code)
-
-    @admin.display(description='Code de vérification')
-    def code_en_evidence(self, obj):
-        return format_html(
-            '<div style="font-family:monospace;font-size:2.4em;font-weight:bold;letter-spacing:.15em">{}</div>'
-            '<p><strong>{}</strong></p>', obj.code, RAPPEL_CODE)
-
     def changelist_view(self, request, extra_context=None):
-        extra_context = {**(extra_context or {}), 'subtitle': RAPPEL_CODE}
+        extra_context = {**(extra_context or {}), 'subtitle': RAPPEL_VERIFICATION}
         return super().changelist_view(request, extra_context=extra_context)
 
     def _traiter(self, adhesion, request, statut):
@@ -86,7 +70,7 @@ class AdhesionHubAdmin(admin.ModelAdmin):
         adhesion.traitee_le = timezone.now()
         adhesion.traitee_par = request.user.get_username()
 
-    @admin.action(description="Accepter et enrôler sur le hub (après comparaison du code de vive voix)")
+    @admin.action(description="Accepter et enrôler sur le hub")
     def accepter(self, request, queryset):
         for adhesion in queryset:
             if adhesion.statut != AdhesionHub.EN_ATTENTE:
@@ -105,7 +89,7 @@ class AdhesionHubAdmin(admin.ModelAdmin):
             adhesion.motif_refus = ''
             adhesion.save()
             self.message_user(request, f"{adhesion.libelle} ({adhesion.instance_id_demande}) est enrôlée "
-                                       f"sur le hub (code {adhesion.code}).", messages.SUCCESS)
+                                       f"sur le hub.", messages.SUCCESS)
 
     @admin.action(description="Refuser")
     def refuser(self, request, queryset):

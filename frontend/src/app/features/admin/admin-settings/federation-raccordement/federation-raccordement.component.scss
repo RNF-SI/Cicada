@@ -89,29 +89,6 @@
   }
 }
 
-// Le code est dicté au téléphone à RNF : grand, espacé, police à chasse fixe
-// (pas de confusion 0/O, 1/I) et sélectionnable d'un geste.
-.code-verification {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: $spacing-md;
-  margin: $spacing-xs 0;
-}
-
-.code-verification-valeur {
-  font-family: monospace;
-  font-size: $font-size-h2;
-  font-weight: $font-weight-bold;
-  letter-spacing: 0.15em;
-  color: $primary-color;
-  background-color: $beige;
-  border: $border-width solid $gray-light;
-  border-radius: $border-radius-md;
-  padding: $spacing-xs $spacing-md;
-  user-select: all;
-}
-
 .raccordement-erreur-suivi,
 .raccordement-erreur-verification {
   display: flex;

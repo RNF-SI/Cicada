@@ -125,16 +125,6 @@ class Migration(migrations.Migration):
                     ),
                 ),
                 (
-                    "adhesion_code",
-                    models.CharField(
-                        blank=True,
-                        default="",
-                        help_text="Comparé de vive voix avec RNF avant acceptation : il lie le jeton de suivi de l'instance, son identifiant et les empreintes de ses jetons, et déjoue une demande faite au nom d'une autre structure.",
-                        max_length=7,
-                        verbose_name="Code de vérification",
-                    ),
-                ),
-                (
                     "adhesion_instance_id",
                     models.CharField(
                         blank=True,

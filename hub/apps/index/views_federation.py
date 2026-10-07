@@ -234,8 +234,7 @@ class EnrolementInstance(APIView):
 
     La seule API de suivi RNF, porteuse de ``HUB_ADMIN_TOKEN``. Une structure
     demande l'adhésion depuis son instance ; un administrateur RNF l'accepte
-    dans l'admin du suivi après avoir comparé de vive voix un code de
-    vérification ; le suivi enrôle alors l'instance ici.
+    dans l'admin du suivi ; le suivi enrôle alors l'instance ici.
 
     ## Pourquoi des empreintes fournies
 

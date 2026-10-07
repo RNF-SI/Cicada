@@ -162,8 +162,8 @@ enroler_instance --lister                 # le registre, et qui publie sans êtr
 
 Le chemin ordinaire n'est plus `enroler_instance` mais l'**adhésion** : la
 structure la demande depuis son instance (Administration > Paramètres), un
-administrateur RNF l'accepte dans l'admin de l'API de suivi après avoir comparé
-de vive voix le code de vérification, et le suivi enrôle l'instance sur le hub
+administrateur RNF l'accepte dans l'admin de l'API de suivi (la vérification de
+l'identité de la structure sera définie plus tard, #697), et le suivi enrôle l'instance sur le hub
 par `POST /api/federation/enrolements/`. L'instance a tiré ses jetons elle-même ;
 seules leurs empreintes voyagent, aucun jeton n'est à remettre.
 

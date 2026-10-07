@@ -76,8 +76,8 @@ class AdhesionHub(models.Model):
     décision qui se prend sur le hub, pas par un nouvel envoi.
 
     Seules les empreintes des jetons du hub sont reçues : les jetons restent sur
-    l'instance. Le code est recalculé ici à partir du jeton de suivi de l'instance
-    authentifiée, jamais repris de la requête.
+    l'instance. L'instance demandeuse est celle du jeton de suivi authentifié,
+    jamais reprise de la requête.
     """
     EN_ATTENTE = 'en_attente'
     ACCEPTEE = 'acceptee'
@@ -94,7 +94,6 @@ class AdhesionHub(models.Model):
     url_publique = models.CharField('URL publique', max_length=500, blank=True)
     empreinte_depot = models.CharField('empreinte du jeton de dépôt', max_length=64)
     empreinte_lecture = models.CharField('empreinte du jeton de lecture', max_length=64)
-    code = models.CharField('code de vérification', max_length=7)
     statut = models.CharField(max_length=20, choices=STATUTS, default=EN_ATTENTE, db_index=True)
     motif_refus = models.TextField('motif du refus', blank=True)
     hub_url = models.CharField('URL du hub', max_length=500, blank=True)

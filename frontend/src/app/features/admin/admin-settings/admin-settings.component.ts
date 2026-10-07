@@ -1,4 +1,7 @@
-import { Component, inject, OnInit, signal, effect, ChangeDetectionStrategy } from '@angular/core';
+import { Component, inject, OnInit, signal, effect, computed, ChangeDetectionStrategy } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
+import { ActivatedRoute, Router } from '@angular/router';
+import { map } from 'rxjs';
 
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
@@ -6,12 +9,20 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatButtonToggleModule } from '@angular/material/button-toggle';
+import { MatTabsModule } from '@angular/material/tabs';
 import { FormsModule } from '@angular/forms';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { SettingsService, SiteConfiguration, ImagePosition } from '../../../core/services/settings.service';
 import { CheckboxComponent } from '../../../shared/components/checkbox/checkbox.component';
 import { FormFieldComponent } from '../../../shared/components/form-field/form-field.component';
 import { FederationRaccordementComponent } from './federation-raccordement/federation-raccordement.component';
+
+/**
+ * Onglets thématiques de la page, dans l'ordre d'affichage. La valeur est
+ * celle du paramètre d'URL `?onglet=` : un lien partagé rouvre le bon onglet.
+ */
+export const ONGLETS_PARAMETRES = ['apparence', 'exports', 'fonctionnalites', 'exploration'] as const;
+export type OngletParametres = (typeof ONGLETS_PARAMETRES)[number];
 
 @Component({
   selector: 'app-admin-settings',
@@ -24,6 +35,7 @@ import { FederationRaccordementComponent } from './federation-raccordement/feder
     MatSnackBarModule,
     MatProgressSpinnerModule,
     MatButtonToggleModule,
+    MatTabsModule,
     TranslateModule,
     CheckboxComponent,
     FormFieldComponent,
@@ -37,6 +49,17 @@ export class AdminSettingsComponent implements OnInit {
   private readonly settingsService = inject(SettingsService);
   private readonly snackBar = inject(MatSnackBar);
   private readonly translate = inject(TranslateService);
+  private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
+
+  /** Onglet demandé par l'URL ; une valeur inconnue ou absente vaut le premier. */
+  private readonly ongletDemande = toSignal(
+    this.route.queryParamMap.pipe(map(params => params.get('onglet'))),
+    { initialValue: null },
+  );
+  readonly ongletIndex = computed(() =>
+    Math.max(0, ONGLETS_PARAMETRES.indexOf(this.ongletDemande() as OngletParametres)),
+  );
 
   // State
   readonly config = this.settingsService.config;
@@ -120,6 +143,20 @@ export class AdminSettingsComponent implements OnInit {
 
   ngOnInit(): void {
     this.settingsService.loadSettings().subscribe();
+  }
+
+  /**
+   * Reporte l'onglet choisi dans l'URL, sans empiler d'entrée d'historique
+   * (le bouton « retour » quitte la page plutôt que de rejouer les onglets).
+   */
+  onOngletChange(index: number): void {
+    const onglet = ONGLETS_PARAMETRES[index] ?? ONGLETS_PARAMETRES[0];
+    this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { onglet },
+      queryParamsHandling: 'merge',
+      replaceUrl: true,
+    });
   }
 
   /**

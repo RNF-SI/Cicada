@@ -5,459 +5,517 @@
     <p class="page-subtitle">{{ 'admin.settings.subtitle' | translate }}</p>
   </header>
 
-  <!-- Homepage Image Section -->
-  <section class="settings-section">
-    <div class="section-header">
-      <h2 class="section-title">
-        <i class="fi fi-rr-picture"></i>
-        {{ 'admin.settings.homepage.title' | translate }}
-      </h2>
-      <p class="section-description">{{ 'admin.settings.homepage.description' | translate }}</p>
-    </div>
-
-    <div class="image-settings">
-      <!-- Current/Preview Image -->
-      <div class="image-preview-container">
-        <div class="image-preview">
-          @if (isLoading()) {
-            <div class="image-loading">
-              <mat-spinner diameter="40"></mat-spinner>
-            </div>
-          } @else {
-            <img
-              [src]="currentImageUrl"
-              alt="Homepage image"
-              class="preview-image"
-              [style.object-position]="imageObjectPosition"
-            />
-          }
-
-          @if (previewImage()) {
-            <div class="preview-badge">{{ 'admin.settings.homepage.preview' | translate }}</div>
-          }
-        </div>
-
-        <!-- Image info -->
-        <div class="image-info">
-          @if (hasCustomImage && !previewImage()) {
-            <span class="image-status image-status--custom">
-              <i class="fi fi-rr-check-circle"></i>
-              {{ 'admin.settings.homepage.current' | translate }}
-            </span>
-            @if (config()?.updated_at) {
-              <span class="image-meta">
-                {{ 'admin.settings.homepage.lastUpdate' | translate }}: {{ formatDate($safeNavigationMigration(config()?.updated_at)) }}
-                @if (config()?.updated_by_name) {
-                  ({{ config()?.updated_by_name }})
-                }
-              </span>
-            }
-          } @else if (!previewImage()) {
-            <span class="image-status image-status--default">
-              <i class="fi fi-rr-info"></i>
-              {{ 'admin.settings.homepage.noImage' | translate }}
-            </span>
-          }
-        </div>
-
-        <!-- Position selector -->
-        @if (hasCustomImage || previewImage()) {
-          <div class="position-selector">
-            <label class="position-label">{{ 'admin.settings.homepage.position' | translate }}</label>
-            <mat-button-toggle-group
-              [value]="selectedPosition()"
-              (change)="onPositionChange($event.value)"
-              [disabled]="isSaving()"
-            >
-              <mat-button-toggle value="top">
-                <i class="fi fi-rr-arrow-up"></i>
-                {{ 'admin.settings.homepage.positionTop' | translate }}
-              </mat-button-toggle>
-              <mat-button-toggle value="center">
-                <i class="fi fi-rr-minus"></i>
-                {{ 'admin.settings.homepage.positionCenter' | translate }}
-              </mat-button-toggle>
-              <mat-button-toggle value="bottom">
-                <i class="fi fi-rr-arrow-down"></i>
-                {{ 'admin.settings.homepage.positionBottom' | translate }}
-              </mat-button-toggle>
-            </mat-button-toggle-group>
-            <span class="position-hint">{{ 'admin.settings.homepage.positionHint' | translate }}</span>
+  <!-- Onglets thématiques : la page devenait trop longue pour s'y retrouver.
+       L'onglet actif est porté par l'URL (?onglet=…) pour partager un lien.
+       Contenu paresseux (matTabContent) : seul l'onglet affiché est instancié —
+       en particulier, le raccordement au hub n'interroge l'API que s'il est ouvert. -->
+  <mat-tab-group
+    class="settings-tabs"
+    animationDuration="0ms"
+    mat-stretch-tabs="false"
+    mat-align-tabs="start"
+    [selectedIndex]="ongletIndex()"
+    (selectedIndexChange)="onOngletChange($event)"
+  >
+    <mat-tab>
+      <ng-template mat-tab-label>
+        <span class="tab-label">
+          <i class="fi fi-rr-palette" aria-hidden="true"></i>
+          <span>{{ 'admin.settings.onglets.apparence' | translate }}</span>
+        </span>
+      </ng-template>
+      <ng-template matTabContent>
+        <div class="tab-panel">
+        <!-- Homepage Image Section -->
+        <section class="settings-section">
+          <div class="section-header">
+            <h2 class="section-title">
+              <i class="fi fi-rr-picture"></i>
+              {{ 'admin.settings.homepage.title' | translate }}
+            </h2>
+            <p class="section-description">{{ 'admin.settings.homepage.description' | translate }}</p>
           </div>
-        }
-      </div>
 
-      <!-- Actions -->
-      <div class="image-actions">
-        @if (previewImage()) {
-          <!-- Preview mode: Save or Cancel -->
-          <button
-            mat-flat-button
-            color="primary"
-            (click)="uploadImage()"
-            [disabled]="isSaving()"
-          >
-            @if (isSaving()) {
-              <mat-spinner diameter="20"></mat-spinner>
-            } @else {
-              <i class="fi fi-rr-check"></i>
-              {{ 'common.actions.save' | translate }}
-            }
-          </button>
-          <button
-            mat-stroked-button
-            (click)="cancelSelection()"
-            [disabled]="isSaving()"
-          >
-            {{ 'common.actions.cancel' | translate }}
-          </button>
-        } @else {
-          <!-- Normal mode: Upload or Reset -->
-          <label class="upload-button">
-            <input
-              type="file"
-              accept="image/*"
-              (change)="onFileSelected($event)"
-              hidden
-            />
-            <span mat-flat-button color="primary" class="upload-btn-content">
-              <i class="fi fi-rr-upload"></i>
-              {{ 'admin.settings.homepage.upload' | translate }}
-            </span>
-          </label>
+          <div class="image-settings">
+            <!-- Current/Preview Image -->
+            <div class="image-preview-container">
+              <div class="image-preview">
+                @if (isLoading()) {
+                  <div class="image-loading">
+                    <mat-spinner diameter="40"></mat-spinner>
+                  </div>
+                } @else {
+                  <img
+                    [src]="currentImageUrl"
+                    alt="Homepage image"
+                    class="preview-image"
+                    [style.object-position]="imageObjectPosition"
+                  />
+                }
 
-          @if (hasCustomImage) {
-            <button
-              mat-stroked-button
-              (click)="resetToDefault()"
-              [disabled]="isSaving()"
-            >
-              @if (isSaving()) {
-                <mat-spinner diameter="20"></mat-spinner>
-              } @else {
-                <i class="fi fi-rr-refresh"></i>
-                {{ 'admin.settings.homepage.restore' | translate }}
+                @if (previewImage()) {
+                  <div class="preview-badge">{{ 'admin.settings.homepage.preview' | translate }}</div>
+                }
+              </div>
+
+              <!-- Image info -->
+              <div class="image-info">
+                @if (hasCustomImage && !previewImage()) {
+                  <span class="image-status image-status--custom">
+                    <i class="fi fi-rr-check-circle"></i>
+                    {{ 'admin.settings.homepage.current' | translate }}
+                  </span>
+                  @if (config()?.updated_at) {
+                    <span class="image-meta">
+                      {{ 'admin.settings.homepage.lastUpdate' | translate }}: {{ formatDate($safeNavigationMigration(config()?.updated_at)) }}
+                      @if (config()?.updated_by_name) {
+                        ({{ config()?.updated_by_name }})
+                      }
+                    </span>
+                  }
+                } @else if (!previewImage()) {
+                  <span class="image-status image-status--default">
+                    <i class="fi fi-rr-info"></i>
+                    {{ 'admin.settings.homepage.noImage' | translate }}
+                  </span>
+                }
+              </div>
+
+              <!-- Position selector -->
+              @if (hasCustomImage || previewImage()) {
+                <div class="position-selector">
+                  <label class="position-label">{{ 'admin.settings.homepage.position' | translate }}</label>
+                  <mat-button-toggle-group
+                    [value]="selectedPosition()"
+                    (change)="onPositionChange($event.value)"
+                    [disabled]="isSaving()"
+                  >
+                    <mat-button-toggle value="top">
+                      <i class="fi fi-rr-arrow-up"></i>
+                      {{ 'admin.settings.homepage.positionTop' | translate }}
+                    </mat-button-toggle>
+                    <mat-button-toggle value="center">
+                      <i class="fi fi-rr-minus"></i>
+                      {{ 'admin.settings.homepage.positionCenter' | translate }}
+                    </mat-button-toggle>
+                    <mat-button-toggle value="bottom">
+                      <i class="fi fi-rr-arrow-down"></i>
+                      {{ 'admin.settings.homepage.positionBottom' | translate }}
+                    </mat-button-toggle>
+                  </mat-button-toggle-group>
+                  <span class="position-hint">{{ 'admin.settings.homepage.positionHint' | translate }}</span>
+                </div>
               }
+            </div>
+
+            <!-- Actions -->
+            <div class="image-actions">
+              @if (previewImage()) {
+                <!-- Preview mode: Save or Cancel -->
+                <button
+                  mat-flat-button
+                  color="primary"
+                  (click)="uploadImage()"
+                  [disabled]="isSaving()"
+                >
+                  @if (isSaving()) {
+                    <mat-spinner diameter="20"></mat-spinner>
+                  } @else {
+                    <i class="fi fi-rr-check"></i>
+                    {{ 'common.actions.save' | translate }}
+                  }
+                </button>
+                <button
+                  mat-stroked-button
+                  (click)="cancelSelection()"
+                  [disabled]="isSaving()"
+                >
+                  {{ 'common.actions.cancel' | translate }}
+                </button>
+              } @else {
+                <!-- Normal mode: Upload or Reset -->
+                <label class="upload-button">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    (change)="onFileSelected($event)"
+                    hidden
+                  />
+                  <span mat-flat-button color="primary" class="upload-btn-content">
+                    <i class="fi fi-rr-upload"></i>
+                    {{ 'admin.settings.homepage.upload' | translate }}
+                  </span>
+                </label>
+
+                @if (hasCustomImage) {
+                  <button
+                    mat-stroked-button
+                    (click)="resetToDefault()"
+                    [disabled]="isSaving()"
+                  >
+                    @if (isSaving()) {
+                      <mat-spinner diameter="20"></mat-spinner>
+                    } @else {
+                      <i class="fi fi-rr-refresh"></i>
+                      {{ 'admin.settings.homepage.restore' | translate }}
+                    }
+                  </button>
+                }
+              }
+            </div>
+          </div>
+        </section>
+
+        <!-- #448 — Couleur du bandeau -->
+        <section class="settings-section">
+          <div class="section-header">
+            <h2 class="section-title">
+              <i class="fi fi-rr-palette"></i>
+              {{ 'admin.settings.banner.title' | translate }}
+            </h2>
+            <p class="section-description">{{ 'admin.settings.banner.description' | translate }}</p>
+          </div>
+
+          <!-- Aperçu du bandeau -->
+          <div class="banner-preview" [style.background-color]="headerColor()" [style.border]="headerColor().toLowerCase() === '#ffffff' ? '1px solid #E4E4E4' : null">
+            <span class="banner-preview__text" [style.color]="bannerTextColor">{{ 'admin.settings.banner.preview' | translate }}</span>
+          </div>
+
+          <!-- Couleurs prédéfinies (kit UI) -->
+          <div class="color-presets">
+            @for (preset of presetColors; track preset.value) {
+              <button type="button" class="color-swatch"
+                      [class.selected]="headerColor().toLowerCase() === preset.value.toLowerCase()"
+                      [style.background-color]="preset.value"
+                      [title]="preset.label"
+                      [attr.aria-label]="preset.label"
+                      (click)="onColorInput(preset.value)">
+              </button>
+            }
+          </div>
+
+          <!-- Couleur personnalisée + enregistrement -->
+          <div class="banner-actions">
+            <label class="custom-color">
+              {{ 'admin.settings.banner.custom' | translate }}
+              <input type="color" [value]="headerColor()" (input)="onColorInput($any($event.target).value)" />
+              <span class="custom-color__value">{{ headerColor() }}</span>
+            </label>
+            <button mat-flat-button color="primary" (click)="saveHeaderColor()" [disabled]="isSaving()">
+              <i class="fi fi-rr-check"></i> {{ 'common.actions.save' | translate }}
             </button>
-          }
-        }
-      </div>
-    </div>
-  </section>
+          </div>
+        </section>
 
-  <!-- #448 — Couleur du bandeau -->
-  <section class="settings-section">
-    <div class="section-header">
-      <h2 class="section-title">
-        <i class="fi fi-rr-palette"></i>
-        {{ 'admin.settings.banner.title' | translate }}
-      </h2>
-      <p class="section-description">{{ 'admin.settings.banner.description' | translate }}</p>
-    </div>
+        <!-- #448 — Logo de la structure -->
+        <section class="settings-section">
+          <div class="section-header">
+            <h2 class="section-title">
+              <i class="fi fi-rr-picture"></i>
+              {{ 'admin.settings.logo.title' | translate }}
+            </h2>
+            <p class="section-description">{{ 'admin.settings.logo.description' | translate }}</p>
+          </div>
 
-    <!-- Aperçu du bandeau -->
-    <div class="banner-preview" [style.background-color]="headerColor()" [style.border]="headerColor().toLowerCase() === '#ffffff' ? '1px solid #E4E4E4' : null">
-      <span class="banner-preview__text" [style.color]="bannerTextColor">{{ 'admin.settings.banner.preview' | translate }}</span>
-    </div>
+          <div class="logo-settings">
+            <div class="logo-preview" [style.background-color]="headerColor()">
+              @if (currentLogoUrl) {
+                <img [src]="currentLogoUrl" alt="Logo structure" class="logo-preview__img" />
+              } @else {
+                <span class="logo-preview__empty" [style.color]="bannerTextColor">{{ 'admin.settings.logo.none' | translate }}</span>
+              }
+            </div>
 
-    <!-- Couleurs prédéfinies (kit UI) -->
-    <div class="color-presets">
-      @for (preset of presetColors; track preset.value) {
-        <button type="button" class="color-swatch"
-                [class.selected]="headerColor().toLowerCase() === preset.value.toLowerCase()"
-                [style.background-color]="preset.value"
-                [title]="preset.label"
-                [attr.aria-label]="preset.label"
-                (click)="onColorInput(preset.value)">
-        </button>
-      }
-    </div>
+            <div class="logo-actions">
+              @if (logoPreview()) {
+                <button mat-flat-button color="primary" (click)="uploadLogo()" [disabled]="isSaving()">
+                  <i class="fi fi-rr-check"></i> {{ 'common.actions.save' | translate }}
+                </button>
+                <button mat-stroked-button (click)="cancelLogoSelection()" [disabled]="isSaving()">
+                  {{ 'common.actions.cancel' | translate }}
+                </button>
+              } @else {
+                <label class="upload-button">
+                  <input type="file" accept="image/*" (change)="onLogoSelected($event)" hidden />
+                  <span mat-flat-button color="primary" class="upload-btn-content">
+                    <i class="fi fi-rr-upload"></i> {{ 'admin.settings.logo.upload' | translate }}
+                  </span>
+                </label>
+                @if (hasStructureLogo) {
+                  <button mat-stroked-button (click)="resetLogo()" [disabled]="isSaving()">
+                    <i class="fi fi-rr-trash"></i> {{ 'admin.settings.logo.remove' | translate }}
+                  </button>
+                }
+              }
+            </div>
+          </div>
+        </section>
+        </div>
+      </ng-template>
+    </mat-tab>
+    <mat-tab>
+      <ng-template mat-tab-label>
+        <span class="tab-label">
+          <i class="fi fi-rr-download" aria-hidden="true"></i>
+          <span>{{ 'admin.settings.onglets.exports' | translate }}</span>
+        </span>
+      </ng-template>
+      <ng-template matTabContent>
+        <div class="tab-panel">
+        <!-- #601 — Couleur des exports (par instance) -->
+        <section class="settings-section">
+          <div class="section-header">
+            <h2 class="section-title">
+              <i class="fi fi-rr-download"></i>
+              {{ 'admin.settings.exportColor.title' | translate }}
+            </h2>
+            <p class="section-description">{{ 'admin.settings.exportColor.description' | translate }}</p>
+          </div>
 
-    <!-- Couleur personnalisée + enregistrement -->
-    <div class="banner-actions">
-      <label class="custom-color">
-        {{ 'admin.settings.banner.custom' | translate }}
-        <input type="color" [value]="headerColor()" (input)="onColorInput($any($event.target).value)" />
-        <span class="custom-color__value">{{ headerColor() }}</span>
-      </label>
-      <button mat-flat-button color="primary" (click)="saveHeaderColor()" [disabled]="isSaving()">
-        <i class="fi fi-rr-check"></i> {{ 'common.actions.save' | translate }}
-      </button>
-    </div>
-  </section>
-
-  <!-- #601 — Couleur des exports (par instance) -->
-  <section class="settings-section">
-    <div class="section-header">
-      <h2 class="section-title">
-        <i class="fi fi-rr-download"></i>
-        {{ 'admin.settings.exportColor.title' | translate }}
-      </h2>
-      <p class="section-description">{{ 'admin.settings.exportColor.description' | translate }}</p>
-    </div>
-
-    <!-- Aperçu : la couleur d'export sert surtout de couleur de TEXTE dans les
-         fichiers produits, l'aperçu la montre donc sur fond blanc, comme dans
-         un classeur, et en aplat de bandeau. -->
-    <div class="banner-preview" style="background-color: #FFFFFF; border: 1px solid #E4E4E4">
-      <span class="banner-preview__text" [style.color]="exportColor()">
-        {{ 'admin.settings.exportColor.preview' | translate }}
-      </span>
-    </div>
-    <div class="banner-preview" [style.background-color]="exportColor()">
-      <span class="banner-preview__text" [style.color]="exportTextColor">
-        {{ 'admin.settings.exportColor.previewBanner' | translate }}
-      </span>
-    </div>
-
-    <div class="color-presets">
-      @for (preset of presetColors; track preset.value) {
-        <button type="button" class="color-swatch"
-                [class.selected]="exportColor().toLowerCase() === preset.value.toLowerCase()"
-                [style.background-color]="preset.value"
-                [title]="preset.label"
-                [attr.aria-label]="preset.label"
-                (click)="onExportColorInput(preset.value)">
-        </button>
-      }
-    </div>
-
-    <div class="banner-actions">
-      <label class="custom-color">
-        {{ 'admin.settings.banner.custom' | translate }}
-        <input type="color" [value]="exportColor()" (input)="onExportColorInput($any($event.target).value)" />
-        <span class="custom-color__value">{{ exportColor() }}</span>
-      </label>
-      <button mat-flat-button color="primary" (click)="saveExportColor()" [disabled]="isSaving()">
-        <i class="fi fi-rr-check"></i> {{ 'common.actions.save' | translate }}
-      </button>
-    </div>
-  </section>
-
-  <!-- #448 — Logo de la structure -->
-  <section class="settings-section">
-    <div class="section-header">
-      <h2 class="section-title">
-        <i class="fi fi-rr-picture"></i>
-        {{ 'admin.settings.logo.title' | translate }}
-      </h2>
-      <p class="section-description">{{ 'admin.settings.logo.description' | translate }}</p>
-    </div>
-
-    <div class="logo-settings">
-      <div class="logo-preview" [style.background-color]="headerColor()">
-        @if (currentLogoUrl) {
-          <img [src]="currentLogoUrl" alt="Logo structure" class="logo-preview__img" />
-        } @else {
-          <span class="logo-preview__empty" [style.color]="bannerTextColor">{{ 'admin.settings.logo.none' | translate }}</span>
-        }
-      </div>
-
-      <div class="logo-actions">
-        @if (logoPreview()) {
-          <button mat-flat-button color="primary" (click)="uploadLogo()" [disabled]="isSaving()">
-            <i class="fi fi-rr-check"></i> {{ 'common.actions.save' | translate }}
-          </button>
-          <button mat-stroked-button (click)="cancelLogoSelection()" [disabled]="isSaving()">
-            {{ 'common.actions.cancel' | translate }}
-          </button>
-        } @else {
-          <label class="upload-button">
-            <input type="file" accept="image/*" (change)="onLogoSelected($event)" hidden />
-            <span mat-flat-button color="primary" class="upload-btn-content">
-              <i class="fi fi-rr-upload"></i> {{ 'admin.settings.logo.upload' | translate }}
+          <!-- Aperçu : la couleur d'export sert surtout de couleur de TEXTE dans les
+               fichiers produits, l'aperçu la montre donc sur fond blanc, comme dans
+               un classeur, et en aplat de bandeau. -->
+          <div class="banner-preview" style="background-color: #FFFFFF; border: 1px solid #E4E4E4">
+            <span class="banner-preview__text" [style.color]="exportColor()">
+              {{ 'admin.settings.exportColor.preview' | translate }}
             </span>
-          </label>
-          @if (hasStructureLogo) {
-            <button mat-stroked-button (click)="resetLogo()" [disabled]="isSaving()">
-              <i class="fi fi-rr-trash"></i> {{ 'admin.settings.logo.remove' | translate }}
+          </div>
+          <div class="banner-preview" [style.background-color]="exportColor()">
+            <span class="banner-preview__text" [style.color]="exportTextColor">
+              {{ 'admin.settings.exportColor.previewBanner' | translate }}
+            </span>
+          </div>
+
+          <div class="color-presets">
+            @for (preset of presetColors; track preset.value) {
+              <button type="button" class="color-swatch"
+                      [class.selected]="exportColor().toLowerCase() === preset.value.toLowerCase()"
+                      [style.background-color]="preset.value"
+                      [title]="preset.label"
+                      [attr.aria-label]="preset.label"
+                      (click)="onExportColorInput(preset.value)">
+              </button>
+            }
+          </div>
+
+          <div class="banner-actions">
+            <label class="custom-color">
+              {{ 'admin.settings.banner.custom' | translate }}
+              <input type="color" [value]="exportColor()" (input)="onExportColorInput($any($event.target).value)" />
+              <span class="custom-color__value">{{ exportColor() }}</span>
+            </label>
+            <button mat-flat-button color="primary" (click)="saveExportColor()" [disabled]="isSaving()">
+              <i class="fi fi-rr-check"></i> {{ 'common.actions.save' | translate }}
             </button>
+          </div>
+        </section>
+        </div>
+      </ng-template>
+    </mat-tab>
+    <mat-tab>
+      <ng-template mat-tab-label>
+        <span class="tab-label">
+          <i class="fi fi-rr-settings-sliders" aria-hidden="true"></i>
+          <span>{{ 'admin.settings.onglets.fonctionnalites' | translate }}</span>
+        </span>
+      </ng-template>
+      <ng-template matTabContent>
+        <div class="tab-panel">
+        <!-- #458 — Paramètres spécifiques à l'instance -->
+        <section class="settings-section">
+          <div class="section-header">
+            <h2 class="section-title">
+              <i class="fi fi-rr-settings-sliders"></i>
+              {{ 'admin.settings.instance.title' | translate }}
+            </h2>
+            <p class="section-description">{{ 'admin.settings.instance.description' | translate }}</p>
+          </div>
+
+          <app-checkbox
+            [checked]="docGestionFcenEnabled()"
+            (checkedChange)="onDocGestionFcenToggle($event)"
+            [disabled]="isSaving()"
+            [label]="'admin.settings.instance.docGestionFcen' | translate"
+            [mention]="'admin.settings.instance.docGestionFcenHint' | translate"
+          ></app-checkbox>
+        </section>
+
+        <!-- #670 — Mesure d'audience Matomo, réglée par instance. -->
+        <section class="settings-section">
+          <div class="section-header">
+            <h2 class="section-title">
+              <i class="fi fi-rr-chart-histogram"></i>
+              {{ 'admin.settings.matomo.title' | translate }}
+            </h2>
+            <p class="section-description">{{ 'admin.settings.matomo.description' | translate }}</p>
+          </div>
+
+          <div class="info-block info-block-success federation-perimetre">
+            <p class="text-bold">{{ 'admin.settings.matomo.mesureTitre' | translate }}</p>
+            <ul class="list-bullets">
+              <li>{{ 'admin.settings.matomo.mesure1' | translate }}</li>
+              <li>{{ 'admin.settings.matomo.mesure2' | translate }}</li>
+            </ul>
+          </div>
+
+          <div class="info-block info-block-warning federation-perimetre">
+            <p class="text-bold">{{ 'admin.settings.matomo.rgpdTitre' | translate }}</p>
+            <ul class="list-bullets">
+              <li>{{ 'admin.settings.matomo.rgpd1' | translate }}</li>
+              <li>{{ 'admin.settings.matomo.rgpd2' | translate }}</li>
+            </ul>
+          </div>
+
+          <div class="matomo-fields">
+            <app-form-field
+              [label]="'admin.settings.matomo.url' | translate"
+              [helpText]="'admin.settings.matomo.urlHint' | translate">
+              <input type="url" [ngModel]="matomoUrl()" (ngModelChange)="matomoUrl.set($event)"
+                     placeholder="https://matomo.example.org" [disabled]="isSaving()" />
+            </app-form-field>
+            <app-form-field
+              [label]="'admin.settings.matomo.siteId' | translate"
+              [helpText]="'admin.settings.matomo.siteIdHint' | translate">
+              <input type="text" inputmode="numeric" [ngModel]="matomoSiteId()"
+                     (ngModelChange)="matomoSiteId.set($event)" [disabled]="isSaving()" />
+            </app-form-field>
+          </div>
+
+          <app-checkbox
+            [checked]="matomoEnabled()"
+            (checkedChange)="matomoEnabled.set($event)"
+            [disabled]="isSaving()"
+            [label]="'admin.settings.matomo.activer' | translate"
+            [mention]="'admin.settings.matomo.activerHint' | translate"
+          ></app-checkbox>
+
+          @if (matomoError()) {
+            <p class="text-error matomo-error" role="alert">{{ matomoError() }}</p>
           }
-        }
-      </div>
-    </div>
-  </section>
 
-  <!-- #458 — Paramètres spécifiques à l'instance -->
-  <section class="settings-section">
-    <div class="section-header">
-      <h2 class="section-title">
-        <i class="fi fi-rr-settings-sliders"></i>
-        {{ 'admin.settings.instance.title' | translate }}
-      </h2>
-      <p class="section-description">{{ 'admin.settings.instance.description' | translate }}</p>
-    </div>
+          <div class="banner-actions">
+            <button mat-flat-button color="primary" (click)="saveMatomo()" [disabled]="isSaving()">
+              <i class="fi fi-rr-check"></i> {{ 'common.actions.save' | translate }}
+            </button>
+          </div>
+        </section>
 
-    <app-checkbox
-      [checked]="docGestionFcenEnabled()"
-      (checkedChange)="onDocGestionFcenToggle($event)"
-      [disabled]="isSaving()"
-      [label]="'admin.settings.instance.docGestionFcen' | translate"
-      [mention]="'admin.settings.instance.docGestionFcenHint' | translate"
-    ></app-checkbox>
-  </section>
+        <!-- #645 — API ouverte des métadonnées des plans, pour une application tierce
+             de gestion documentaire. Section à part, comme la fédération : ouvrir un
+             endpoint sans authentification n'est pas un réglage d'affichage. -->
+        <section class="settings-section">
+          <div class="section-header">
+            <h2 class="section-title">
+              <i class="fi fi-rr-link-alt"></i>
+              {{ 'admin.settings.apiPublique.title' | translate }}
+            </h2>
+            <p class="section-description">
+              {{ 'admin.settings.apiPublique.description' | translate }}
+            </p>
+          </div>
 
-  <!-- #670 — Mesure d'audience Matomo, réglée par instance. -->
-  <section class="settings-section">
-    <div class="section-header">
-      <h2 class="section-title">
-        <i class="fi fi-rr-chart-histogram"></i>
-        {{ 'admin.settings.matomo.title' | translate }}
-      </h2>
-      <p class="section-description">{{ 'admin.settings.matomo.description' | translate }}</p>
-    </div>
+          <div class="info-block info-block-success federation-perimetre">
+            <p class="text-bold">{{ 'admin.settings.apiPublique.exposeTitre' | translate }}</p>
+            <ul class="list-bullets">
+              <li>{{ 'admin.settings.apiPublique.expose1' | translate }}</li>
+              <li>{{ 'admin.settings.apiPublique.expose2' | translate }}</li>
+              <li>{{ 'admin.settings.apiPublique.expose3' | translate }}</li>
+            </ul>
+          </div>
 
-    <div class="info-block info-block-success federation-perimetre">
-      <p class="text-bold">{{ 'admin.settings.matomo.mesureTitre' | translate }}</p>
-      <ul class="list-bullets">
-        <li>{{ 'admin.settings.matomo.mesure1' | translate }}</li>
-        <li>{{ 'admin.settings.matomo.mesure2' | translate }}</li>
-      </ul>
-    </div>
+          <div class="info-block info-block-warning federation-perimetre">
+            <p class="text-bold">{{ 'admin.settings.apiPublique.exclusTitre' | translate }}</p>
+            <ul class="list-bullets">
+              <li>{{ 'admin.settings.apiPublique.exclus1' | translate }}</li>
+              <li>{{ 'admin.settings.apiPublique.exclus2' | translate }}</li>
+            </ul>
+          </div>
 
-    <div class="info-block info-block-warning federation-perimetre">
-      <p class="text-bold">{{ 'admin.settings.matomo.rgpdTitre' | translate }}</p>
-      <ul class="list-bullets">
-        <li>{{ 'admin.settings.matomo.rgpd1' | translate }}</li>
-        <li>{{ 'admin.settings.matomo.rgpd2' | translate }}</li>
-      </ul>
-    </div>
+          <app-checkbox
+            [checked]="apiPubliquePlans()"
+            (checkedChange)="onApiPubliquePlansToggle($event)"
+            [disabled]="isSaving()"
+            [label]="'admin.settings.apiPublique.activer' | translate"
+            [mention]="'admin.settings.apiPublique.activerHint' | translate"
+          ></app-checkbox>
 
-    <div class="matomo-fields">
-      <app-form-field
-        [label]="'admin.settings.matomo.url' | translate"
-        [helpText]="'admin.settings.matomo.urlHint' | translate">
-        <input type="url" [ngModel]="matomoUrl()" (ngModelChange)="matomoUrl.set($event)"
-               placeholder="https://matomo.example.org" [disabled]="isSaving()" />
-      </app-form-field>
-      <app-form-field
-        [label]="'admin.settings.matomo.siteId' | translate"
-        [helpText]="'admin.settings.matomo.siteIdHint' | translate">
-        <input type="text" inputmode="numeric" [ngModel]="matomoSiteId()"
-               (ngModelChange)="matomoSiteId.set($event)" [disabled]="isSaving()" />
-      </app-form-field>
-    </div>
+          @if (apiPubliquePlans()) {
+            <p class="text-mention federation-consequence">
+              {{ 'admin.settings.apiPublique.endpoint' | translate }}
+            </p>
+          } @else {
+            <p class="text-mention federation-consequence">
+              {{ 'admin.settings.apiPublique.consequenceFermee' | translate }}
+            </p>
+          }
+        </section>
+        </div>
+      </ng-template>
+    </mat-tab>
+    <mat-tab>
+      <ng-template mat-tab-label>
+        <span class="tab-label">
+          <i class="fi fi-rr-share" aria-hidden="true"></i>
+          <span>{{ 'admin.settings.onglets.exploration' | translate }}</span>
+        </span>
+      </ng-template>
+      <ng-template matTabContent>
+        <div class="tab-panel">
+        <!-- #636 — Participation à l'exploration nationale.
+             Une section à part, et non une case de plus parmi les paramètres
+             d'instance : c'est un engagement de la structure sur ses données, pas un
+             réglage d'affichage. Il mérite d'être lu avant d'être coché. -->
+        <section class="settings-section">
+          <div class="section-header">
+            <h2 class="section-title">
+              <i class="fi fi-rr-share"></i>
+              {{ 'admin.settings.federation.title' | translate }}
+            </h2>
+            <p class="section-description">
+              {{ 'admin.settings.federation.description' | translate }}
+            </p>
+          </div>
 
-    <app-checkbox
-      [checked]="matomoEnabled()"
-      (checkedChange)="matomoEnabled.set($event)"
-      [disabled]="isSaving()"
-      [label]="'admin.settings.matomo.activer' | translate"
-      [mention]="'admin.settings.matomo.activerHint' | translate"
-    ></app-checkbox>
+          <div class="info-block info-block-success federation-perimetre">
+            <p class="text-bold">{{ 'admin.settings.federation.partageTitre' | translate }}</p>
+            <ul class="list-bullets">
+              <li>{{ 'admin.settings.federation.partage1' | translate }}</li>
+              <li>{{ 'admin.settings.federation.partage2' | translate }}</li>
+            </ul>
+          </div>
 
-    @if (matomoError()) {
-      <p class="text-error matomo-error" role="alert">{{ matomoError() }}</p>
-    }
+          <div class="info-block info-block-warning federation-perimetre">
+            <p class="text-bold">{{ 'admin.settings.federation.exclusTitre' | translate }}</p>
+            <ul class="list-bullets">
+              <li>{{ 'admin.settings.federation.exclus1' | translate }}</li>
+              <li>{{ 'admin.settings.federation.exclus2' | translate }}</li>
+              <li>{{ 'admin.settings.federation.exclus3' | translate }}</li>
+            </ul>
+          </div>
 
-    <div class="banner-actions">
-      <button mat-flat-button color="primary" (click)="saveMatomo()" [disabled]="isSaving()">
-        <i class="fi fi-rr-check"></i> {{ 'common.actions.save' | translate }}
-      </button>
-    </div>
-  </section>
+          <app-checkbox
+            [checked]="federationPartage()"
+            (checkedChange)="onFederationPartageToggle($event)"
+            [disabled]="isSaving()"
+            [label]="'admin.settings.federation.activer' | translate"
+            [mention]="'admin.settings.federation.activerHint' | translate"
+          ></app-checkbox>
 
-  <!-- #645 — API ouverte des métadonnées des plans, pour une application tierce
-       de gestion documentaire. Section à part, comme la fédération : ouvrir un
-       endpoint sans authentification n'est pas un réglage d'affichage. -->
-  <section class="settings-section">
-    <div class="section-header">
-      <h2 class="section-title">
-        <i class="fi fi-rr-link-alt"></i>
-        {{ 'admin.settings.apiPublique.title' | translate }}
-      </h2>
-      <p class="section-description">
-        {{ 'admin.settings.apiPublique.description' | translate }}
-      </p>
-    </div>
+          @if (!federationPartage()) {
+            <p class="text-mention federation-consequence">
+              {{ 'admin.settings.federation.consequenceLocale' | translate }}
+            </p>
+          } @else {
+            <p class="text-mention federation-consequence">
+              {{ 'admin.settings.federation.consequenceRetrait' | translate }}
+            </p>
+          }
 
-    <div class="info-block info-block-success federation-perimetre">
-      <p class="text-bold">{{ 'admin.settings.apiPublique.exposeTitre' | translate }}</p>
-      <ul class="list-bullets">
-        <li>{{ 'admin.settings.apiPublique.expose1' | translate }}</li>
-        <li>{{ 'admin.settings.apiPublique.expose2' | translate }}</li>
-        <li>{{ 'admin.settings.apiPublique.expose3' | translate }}</li>
-      </ul>
-    </div>
-
-    <div class="info-block info-block-warning federation-perimetre">
-      <p class="text-bold">{{ 'admin.settings.apiPublique.exclusTitre' | translate }}</p>
-      <ul class="list-bullets">
-        <li>{{ 'admin.settings.apiPublique.exclus1' | translate }}</li>
-        <li>{{ 'admin.settings.apiPublique.exclus2' | translate }}</li>
-      </ul>
-    </div>
-
-    <app-checkbox
-      [checked]="apiPubliquePlans()"
-      (checkedChange)="onApiPubliquePlansToggle($event)"
-      [disabled]="isSaving()"
-      [label]="'admin.settings.apiPublique.activer' | translate"
-      [mention]="'admin.settings.apiPublique.activerHint' | translate"
-    ></app-checkbox>
-
-    @if (apiPubliquePlans()) {
-      <p class="text-mention federation-consequence">
-        {{ 'admin.settings.apiPublique.endpoint' | translate }}
-      </p>
-    } @else {
-      <p class="text-mention federation-consequence">
-        {{ 'admin.settings.apiPublique.consequenceFermee' | translate }}
-      </p>
-    }
-  </section>
-
-  <!-- #636 — Participation à l'exploration nationale.
-       Une section à part, et non une case de plus parmi les paramètres
-       d'instance : c'est un engagement de la structure sur ses données, pas un
-       réglage d'affichage. Il mérite d'être lu avant d'être coché. -->
-  <section class="settings-section">
-    <div class="section-header">
-      <h2 class="section-title">
-        <i class="fi fi-rr-share"></i>
-        {{ 'admin.settings.federation.title' | translate }}
-      </h2>
-      <p class="section-description">
-        {{ 'admin.settings.federation.description' | translate }}
-      </p>
-    </div>
-
-    <div class="info-block info-block-success federation-perimetre">
-      <p class="text-bold">{{ 'admin.settings.federation.partageTitre' | translate }}</p>
-      <ul class="list-bullets">
-        <li>{{ 'admin.settings.federation.partage1' | translate }}</li>
-        <li>{{ 'admin.settings.federation.partage2' | translate }}</li>
-      </ul>
-    </div>
-
-    <div class="info-block info-block-warning federation-perimetre">
-      <p class="text-bold">{{ 'admin.settings.federation.exclusTitre' | translate }}</p>
-      <ul class="list-bullets">
-        <li>{{ 'admin.settings.federation.exclus1' | translate }}</li>
-        <li>{{ 'admin.settings.federation.exclus2' | translate }}</li>
-        <li>{{ 'admin.settings.federation.exclus3' | translate }}</li>
-      </ul>
-    </div>
-
-    <app-checkbox
-      [checked]="federationPartage()"
-      (checkedChange)="onFederationPartageToggle($event)"
-      [disabled]="isSaving()"
-      [label]="'admin.settings.federation.activer' | translate"
-      [mention]="'admin.settings.federation.activerHint' | translate"
-    ></app-checkbox>
-
-    @if (!federationPartage()) {
-      <p class="text-mention federation-consequence">
-        {{ 'admin.settings.federation.consequenceLocale' | translate }}
-      </p>
-    } @else {
-      <p class="text-mention federation-consequence">
-        {{ 'admin.settings.federation.consequenceRetrait' | translate }}
-      </p>
-    }
-
-    <!-- #696 / #698 — État du raccordement au hub et demande d'adhésion. -->
-    <app-federation-raccordement></app-federation-raccordement>
-  </section>
+          <!-- #696 / #698 — État du raccordement au hub et demande d'adhésion. -->
+          <app-federation-raccordement></app-federation-raccordement>
+        </section>
+        </div>
+      </ng-template>
+    </mat-tab>
+  </mat-tab-group>
 </div>

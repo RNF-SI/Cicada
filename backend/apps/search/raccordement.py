@@ -19,10 +19,8 @@ adhésion acceptée, et l'instance continuerait de se croire non raccordée.
 
 L'instance tire elle-même ses deux jetons, les garde chiffrés en base, et
 n'envoie que leurs **empreintes SHA-256** — la seule chose que le hub stocke de
-toute façon. Le **code de vérification**, recalculé à l'identique par le suivi,
-est comparé de vive voix par RNF avec la structure avant d'accepter : il bloque
-une demande faite au nom d'une autre structure, et une substitution
-d'empreintes en route.
+toute façon. RNF accepte ou refuse la demande dans l'admin de l'API de suivi ;
+la vérification de l'identité de la structure sera définie plus tard (#697).
 
 Aucun jeton ni aucune empreinte ne sort de ce module dans une réponse d'API ou
 une ligne de journal.
@@ -73,20 +71,6 @@ class ErreurRaccordement(Exception):
 def empreinte(jeton):
     """Empreinte SHA-256 d'un jeton — même formule que le hub."""
     return hashlib.sha256(jeton.encode('utf-8')).hexdigest()
-
-
-def code_verification(instance_token, instance_id, empreinte_depot, empreinte_lecture):
-    """
-    6 caractères base32 présentés « ABC-DEF ».
-
-    Dérivé de l'**empreinte** du jeton de suivi (pas du jeton) pour rester
-    calculable si le suivi ne stocke plus que des empreintes (#697). Le suivi
-    recalcule ce code de son côté : la moindre divergence de formule rendrait
-    toute comparaison de vive voix impossible.
-    """
-    source = f"{empreinte(instance_token)}:{instance_id}:{empreinte_depot}:{empreinte_lecture}"
-    brut = base64.b32encode(hashlib.sha256(source.encode('utf-8')).digest()).decode('ascii')[:6]
-    return f"{brut[:3]}-{brut[3:]}"
 
 
 def nouveau_jeton():
@@ -291,9 +275,8 @@ def demander_adhesion():
     """
     Tire deux jetons, envoie leurs empreintes au suivi et enregistre la demande.
 
-    Les jetons ne sont enregistrés qu'**après** la réponse du suivi, et
-    seulement si le code qu'il a calculé est celui calculé ici : une demande
-    qui échoue laisse l'état précédent intact. Un suivi qui aurait enregistré
+    Les jetons ne sont enregistrés qu'**après** la réponse favorable du suivi :
+    une demande qui échoue laisse l'état précédent intact. Un suivi qui aurait enregistré
     la demande sans que la réponse arrive n'est pas un problème — la demande
     suivante remplace une demande en attente.
     """
@@ -317,9 +300,6 @@ def demander_adhesion():
 
     depot, lecture = nouveau_jeton(), nouveau_jeton()
     empreinte_depot, empreinte_lecture = empreinte(depot), empreinte(lecture)
-    code = code_verification(
-        jeton_suivi, settings.CICADA_INSTANCE_ID, empreinte_depot, empreinte_lecture,
-    )
 
     try:
         reponse = requests.post(
@@ -347,25 +327,9 @@ def demander_adhesion():
     if reponse.status_code not in (200, 201):
         logger.warning("API de suivi : demande d'adhésion → %s", reponse.status_code)
         raise ErreurRaccordement('suivi_indisponible', "L'API de suivi a refusé ou échoué la demande.")
-    try:
-        corps = reponse.json()
-    except ValueError:
-        raise ErreurRaccordement('suivi_indisponible', "Réponse illisible de l'API de suivi.")
-
-    if corps.get('code') != code:
-        # Le suivi n'a pas reçu les empreintes envoyées, ou ne calcule pas la
-        # même chose : RNF comparerait de vive voix deux codes différents.
-        logger.error("Code de vérification divergent entre l'instance et le suivi.")
-        raise ErreurRaccordement(
-            'code_divergent',
-            "Le code de vérification calculé par le suivi ne correspond pas : "
-            "la demande n'est pas enregistrée.",
-        )
-
     ligne.jeton_depot_chiffre = chiffrer(depot)
     ligne.jeton_lecture_chiffre = chiffrer(lecture)
     ligne.adhesion_statut = RaccordementHub.STATUT_EN_ATTENTE
-    ligne.adhesion_code = code
     ligne.adhesion_instance_id = settings.CICADA_INSTANCE_ID
     ligne.adhesion_demandee_le = timezone.now()
     ligne.adhesion_actualisee_le = ligne.adhesion_demandee_le
@@ -481,7 +445,7 @@ def _diagnostic(ligne, configuration, publications):
     if not env and statut == RaccordementHub.STATUT_REFUSEE:
         return cas('erreur', 'adhesion_refusee', motif=ligne.adhesion_motif)
     if not env and statut == RaccordementHub.STATUT_EN_ATTENTE:
-        return cas('info', 'adhesion_en_attente', code=ligne.adhesion_code)
+        return cas('info', 'adhesion_en_attente')
     if configuration['source_jetons'] is None:
         return cas('info', 'non_raccorde')
     if not configuration['jeton_depot_defini']:
@@ -538,7 +502,6 @@ def etat(actualiser=True):
         'configuration': configuration,
         'adhesion': {
             'statut': ligne.adhesion_statut,
-            'code': ligne.adhesion_code,
             'demandee_le': _date(ligne.adhesion_demandee_le),
             'motif': ligne.adhesion_motif,
             'possible': adhesion_possible(ligne),

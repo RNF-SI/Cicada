@@ -51,9 +51,9 @@ HUB_ADMIN_TOKEN=<même valeur que HUB_ADMIN_TOKEN dans le .env du hub>
 #### Adhésions au hub (`HUB_URL`, `HUB_ADMIN_TOKEN`)
 
 Une structure demande l'adhésion à l'exploration nationale depuis son instance (Administration > Paramètres).
-La demande arrive dans l'admin Django (**Instances > Adhésions au hub**) avec un **code de vérification**
-(« ABC-DEF ») calculé des deux côtés. **Appelez la structure et comparez ce code de vive voix avant
-d'accepter** : c'est ce qui prouve que la demande vient bien d'elle.
+La demande arrive dans l'admin Django (**Instances > Adhésions au hub**). **Vérifiez auprès de la structure
+que la demande émane bien d'elle avant d'accepter** (la procédure de vérification d'identité sera définie
+plus tard, #697).
 
 - **Accepter et enrôler sur le hub** appelle `POST {HUB_URL}/api/federation/enrolements/` avec l'en-tête
   `X-Hub-Admin-Token`. Seules les empreintes des jetons de l'instance transitent : les jetons ne quittent jamais

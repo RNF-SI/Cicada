@@ -2,8 +2,9 @@ import { ComponentFixture, TestBed, fakeAsync, tick } from '@angular/core/testin
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { TranslateModule, TranslateLoader, TranslateService } from '@ngx-translate/core';
-import { NEVER, of, throwError } from 'rxjs';
+import { BehaviorSubject, NEVER, of, throwError } from 'rxjs';
 import { signal, WritableSignal } from '@angular/core';
+import { ActivatedRoute, convertToParamMap, ParamMap, Router } from '@angular/router';
 
 import { AdminSettingsComponent } from './admin-settings.component';
 import { SettingsService, SiteConfiguration } from '../../../core/services/settings.service';
@@ -36,6 +37,10 @@ describe('AdminSettingsComponent', () => {
   let mockSettingsService: Partial<SettingsService>;
   let mockSnackBar: { open: jest.Mock };
   let translateService: TranslateService;
+  let queryParamMap$: BehaviorSubject<ParamMap>;
+  let mockRouter: { navigate: jest.Mock };
+  let mockActivatedRoute: { queryParamMap: BehaviorSubject<ParamMap> };
+  let mockFederationService: { etat: jest.Mock; verifier: jest.Mock; demanderAdhesion: jest.Mock };
 
   // Writable signals for mocking
   let configSignal: WritableSignal<SiteConfiguration | null>;
@@ -82,6 +87,15 @@ describe('AdminSettingsComponent', () => {
       open: jest.fn()
     };
 
+    queryParamMap$ = new BehaviorSubject<ParamMap>(convertToParamMap({}));
+    mockActivatedRoute = { queryParamMap: queryParamMap$ };
+    mockRouter = { navigate: jest.fn().mockResolvedValue(true) };
+    mockFederationService = {
+      etat: jest.fn().mockReturnValue(NEVER),
+      verifier: jest.fn(),
+      demanderAdhesion: jest.fn(),
+    };
+
     await TestBed.configureTestingModule({
       imports: [
         AdminSettingsComponent,
@@ -95,10 +109,9 @@ describe('AdminSettingsComponent', () => {
         { provide: SettingsService, useValue: mockSettingsService },
         { provide: MatSnackBar, useValue: mockSnackBar },
         // #696 — le bloc de raccordement a sa propre spec : ici il reste muet.
-        {
-          provide: FederationRaccordementService,
-          useValue: { etat: jest.fn().mockReturnValue(NEVER), verifier: jest.fn(), demanderAdhesion: jest.fn() }
-        }
+        { provide: FederationRaccordementService, useValue: mockFederationService },
+        { provide: ActivatedRoute, useValue: mockActivatedRoute },
+        { provide: Router, useValue: mockRouter },
       ]
     });
 
@@ -437,5 +450,83 @@ describe('AdminSettingsComponent', () => {
 
       expect(component.matomoError()).toBe('Saisissez une URL valide.');
     }));
+  });
+
+  // =============================================================================
+  // ONGLETS THÉMATIQUES (?onglet=)
+  // =============================================================================
+
+  describe('Onglets', () => {
+    const libellesOnglets = (): HTMLElement[] =>
+      Array.from(fixture.nativeElement.querySelectorAll('.mat-mdc-tab')) as HTMLElement[];
+    const raccordement = (): Element | null =>
+      fixture.nativeElement.querySelector('app-federation-raccordement');
+
+    it('affiche quatre onglets et ouvre « Apparence » par défaut', async () => {
+      fixture.detectChanges();
+      await fixture.whenStable();
+
+      expect(libellesOnglets().length).toBe(4);
+      expect(component.ongletIndex()).toBe(0);
+      expect(fixture.nativeElement.textContent).toContain('Image de la page d\'accueil');
+    });
+
+    it('n\'instancie pas le raccordement au hub hors de son onglet', async () => {
+      fixture.detectChanges();
+      await fixture.whenStable();
+
+      expect(raccordement()).toBeNull();
+      expect(mockFederationService.etat).not.toHaveBeenCalled();
+    });
+
+    it('ouvre l\'onglet demandé par ?onglet= (et seulement alors le raccordement)', async () => {
+      queryParamMap$.next(convertToParamMap({ onglet: 'exploration' }));
+      fixture.detectChanges();
+      await fixture.whenStable();
+      fixture.detectChanges();
+
+      expect(component.ongletIndex()).toBe(3);
+      expect(raccordement()).not.toBeNull();
+      expect(mockFederationService.etat).toHaveBeenCalled();
+    });
+
+    it.each([
+      ['apparence', 0],
+      ['exports', 1],
+      ['fonctionnalites', 2],
+      ['exploration', 3],
+      ['inconnu', 0],
+    ])('?onglet=%s → onglet %i', (onglet, index) => {
+      queryParamMap$.next(convertToParamMap({ onglet }));
+      fixture.detectChanges();
+      expect(component.ongletIndex()).toBe(index);
+    });
+
+    it('reporte l\'onglet choisi dans l\'URL sans empiler d\'historique', () => {
+      fixture.detectChanges();
+
+      component.onOngletChange(1);
+
+      expect(mockRouter.navigate).toHaveBeenCalledWith([], {
+        relativeTo: mockActivatedRoute,
+        queryParams: { onglet: 'exports' },
+        queryParamsHandling: 'merge',
+        replaceUrl: true,
+      });
+    });
+
+    it('met l\'URL à jour au clic sur un onglet', async () => {
+      fixture.detectChanges();
+      await fixture.whenStable();
+
+      libellesOnglets()[2].click();
+      fixture.detectChanges();
+      await fixture.whenStable();
+
+      expect(mockRouter.navigate).toHaveBeenCalledWith(
+        [],
+        expect.objectContaining({ queryParams: { onglet: 'fonctionnalites' } }),
+      );
+    });
   });
 });

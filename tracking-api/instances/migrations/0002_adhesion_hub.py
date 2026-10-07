@@ -21,7 +21,6 @@ class Migration(migrations.Migration):
                 ('url_publique', models.CharField(blank=True, max_length=500, verbose_name='URL publique')),
                 ('empreinte_depot', models.CharField(max_length=64, verbose_name='empreinte du jeton de dépôt')),
                 ('empreinte_lecture', models.CharField(max_length=64, verbose_name='empreinte du jeton de lecture')),
-                ('code', models.CharField(max_length=7, verbose_name='code de vérification')),
                 ('statut', models.CharField(choices=[('en_attente', 'En attente'), ('acceptee', 'Acceptée'), ('refusee', 'Refusée')], db_index=True, default='en_attente', max_length=20)),
                 ('motif_refus', models.TextField(blank=True, verbose_name='motif du refus')),
                 ('hub_url', models.CharField(blank=True, max_length=500, verbose_name='URL du hub')),

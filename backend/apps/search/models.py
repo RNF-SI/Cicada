@@ -377,14 +377,6 @@ class RaccordementHub(models.Model):
         _("Statut de l'adhésion"), max_length=20, blank=True, default='',
         choices=STATUT_CHOICES,
     )
-    adhesion_code = models.CharField(
-        _("Code de vérification"), max_length=7, blank=True, default='',
-        help_text=_(
-            "Comparé de vive voix avec RNF avant acceptation : il lie le jeton "
-            "de suivi de l'instance, son identifiant et les empreintes de ses "
-            "jetons, et déjoue une demande faite au nom d'une autre structure."
-        ),
-    )
     adhesion_instance_id = models.CharField(
         _("Identifiant proposé"), max_length=50, blank=True, default='',
     )

@@ -705,6 +705,12 @@
     "settings": {
       "title": "Paramètres",
       "subtitle": "Configuration globale de l'application",
+      "onglets": {
+        "apparence": "Apparence",
+        "exports": "Exports",
+        "fonctionnalites": "Fonctionnalités",
+        "exploration": "Exploration fédérée"
+      },
       "banner": {
         "title": "Couleur du bandeau",
         "description": "Couleur de fond du bandeau (header) de l'application. Permet de distinguer visuellement cette instance de CICADA.",
@@ -782,7 +788,7 @@
           "diagnostic": {
             "identite_manquante": "L'identifiant ou le nom de l'instance n'est pas renseigné. Un administrateur système doit les définir (CICADA_INSTANCE_ID et CICADA_INSTANCE_LABEL dans /var/lib/cicada/.env), puis lancer « rebuild_search_index --purge » si l'index de recherche existe déjà.",
             "adhesion_refusee": "RNF a refusé la demande d'adhésion. Motif : {{motif}}",
-            "adhesion_en_attente": "Demande d'adhésion envoyée, en attente de validation par RNF. Code de vérification : {{code}}.",
+            "adhesion_en_attente": "Demande envoyée, en attente de validation par RNF.",
             "non_raccorde": "Cette instance n'est pas raccordée à l'exploration nationale. Demandez l'adhésion ci-dessous pour y participer.",
             "jeton_depot_absent": "Aucun jeton de dépôt n'est défini : cette instance ne peut pas publier ses plans sur le hub.",
             "partage_inactif": "Le partage est désactivé : rien n'est publié sur le hub. Cochez la case ci-dessus pour participer à l'exploration nationale.",
@@ -820,14 +826,9 @@
             "demandeeLe": "Demandée le {{date}}",
             "aucune": "Aucune demande d'adhésion n'a été faite.",
             "jetonsEnvironnement": "Les jetons du hub sont fournis par le fichier de configuration : aucune adhésion n'est nécessaire.",
-            "explication": "RNF (Réserves Naturelles de France) validera la demande. Avant d'accepter, RNF vous contactera pour comparer de vive voix un code de vérification, qui s'affichera ici une fois la demande envoyée.",
+            "explication": "RNF (Réserves Naturelles de France) validera la demande. Elle apparaîtra ici une fois acceptée.",
             "demander": "Demander l'adhésion à l'exploration nationale",
             "redemander": "Refaire une demande",
-            "codeLibelle": "Code de vérification",
-            "codeConsigne": "Communiquez ce code à RNF lorsqu'ils vous contacteront.",
-            "copier": "Copier",
-            "copie": "Code copié dans le presse-papiers.",
-            "copieImpossible": "Impossible de copier le code : sélectionnez-le et copiez-le manuellement.",
             "accepteeTexte": "Cette instance peut publier sur le hub et explorer les plans des autres structures.",
             "motif": "Motif :",
             "motifAbsent": "aucun motif indiqué.",
@@ -836,7 +837,8 @@
             "confirmMessage": "Une demande d'adhésion va être envoyée à RNF pour l'instance « {{libelle}} » (identifiant {{instance_id}}).",
             "confirmAvertissement": "L'identifiant ne pourra plus être changé une fois l'adhésion acceptée.",
             "confirmBouton": "Envoyer la demande",
-            "envoyee": "Demande d'adhésion envoyée. RNF vous contactera pour comparer le code de vérification."
+            "envoyee": "Demande d'adhésion envoyée. Elle apparaîtra ici une fois acceptée par RNF.",
+            "enAttenteTexte": "L'adhésion apparaîtra ici une fois acceptée par RNF."
           },
           "verification": {
             "titre": "Vérifier le raccordement",
@@ -883,7 +885,6 @@
             "identite_manquante": "L'identifiant ou le nom de l'instance n'est pas renseigné : la demande ne peut pas être envoyée.",
             "suivi_indisponible": "Le service de suivi RNF est injoignable. Réessayez plus tard.",
             "jeton_suivi_absent": "Cette instance n'a pas de jeton de suivi RNF (/etc/cicada/instance_token) : la demande ne peut pas être envoyée.",
-            "code_divergent": "Le code de vérification calculé par RNF ne correspond pas à celui de cette instance. La demande n'a pas été prise en compte ; contactez RNF.",
             "deja_acceptee": "L'adhésion de cette instance a déjà été acceptée.",
             "jetons_environnement": "Les jetons du hub sont déjà fournis par le fichier de configuration : l'adhésion n'est pas nécessaire.",
             "hub_injoignable": "Le hub d'exploration est injoignable.",
