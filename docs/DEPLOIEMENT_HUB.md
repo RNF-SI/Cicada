@@ -158,6 +158,28 @@ enroler_instance rnf --reactiver
 enroler_instance --lister                 # le registre, et qui publie sans être enrôlé
 ```
 
+### Adhésion validée par RNF (enrôlement par l'API de suivi, #696)
+
+Le chemin ordinaire n'est plus `enroler_instance` mais l'**adhésion** : la
+structure la demande depuis son instance (Administration > Paramètres), un
+administrateur RNF l'accepte dans l'admin de l'API de suivi après avoir comparé
+de vive voix le code de vérification, et le suivi enrôle l'instance sur le hub
+par `POST /api/federation/enrolements/`. L'instance a tiré ses jetons elle-même ;
+seules leurs empreintes voyagent, aucun jeton n'est à remettre.
+
+Cela suppose un jeton d'administration partagé entre le hub et l'API de suivi :
+
+```bash
+python3 -c "import secrets; print(secrets.token_urlsafe(48))"
+```
+
+à reporter dans `HUB_ADMIN_TOKEN` du `.env.hub.prod` **et** du `.env` de l'API de
+suivi, puis redémarrer le hub. Vide (défaut), l'endpoint répond 403 à tout
+appel : l'adhésion est alors impossible et seul `enroler_instance` enrôle.
+
+Un identifiant déjà enrôlé avec d'autres jetons est refusé (409) sans rien
+modifier : c'est à trancher sur le hub avec `enroler_instance`.
+
 Désactiver **ne dépublie pas** : l'index déjà déposé reste servi. Le retrait des
 données est une décision de l'instance, qui la prend avec
 `retrait_federation --confirmer` — la confondre avec une suspension d'accès
@@ -194,7 +216,12 @@ CICADA_HUB_PUSH_AUTO=true
 À l'installation par paquet Debian, l'installeur web propose une section
 **« Exploration fédérée »** qui écrit ces lignes. Elle est facultative et refuse
 un identifiant mal formé — c'est le seul moment où l'erreur se corrige sans
-conséquence.
+conséquence. L'URL du hub y est **pré-remplie** : il n'y a qu'un hub, hébergé
+par RNF, dont l'adresse est gravée dans le paquet à sa construction
+(`HUB_URL` de `/etc/cicada/cicada.conf`, injectée par `build-deb.sh`, comme
+l'URL de l'API de suivi). On ne la change dans le formulaire que pour raccorder
+un hub de test. Après l'installation, ces valeurs ne se modifient encore que
+dans le `.env` (#695).
 
 ### Suivre l'état de la fédération
 

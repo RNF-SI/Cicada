@@ -1,0 +1,260 @@
+<!-- #696 / #698 — État du raccordement au hub d'exploration nationale. -->
+<div class="raccordement">
+  <h3 class="raccordement-titre">
+    <i class="fi fi-rr-plug-connection"></i>
+    {{ 'admin.settings.federation.etat.titre' | translate }}
+  </h3>
+
+  @if (chargement() && !etat()) {
+    <div class="raccordement-chargement">
+      <mat-spinner diameter="28"></mat-spinner>
+      <span class="text-mention">{{ 'admin.settings.federation.etat.chargement' | translate }}</span>
+    </div>
+  } @else if (erreurChargement() && !etat()) {
+    <div class="info-block info-block-error" data-testid="raccordement-erreur">
+      <div class="info-block-icon"></div>
+      <div class="info-block-content">
+        <p class="info-block-content-text">
+          {{ 'admin.settings.federation.etat.erreurs.' + erreurChargement() | translate }}
+        </p>
+      </div>
+      <button mat-button type="button" (click)="charger()">
+        {{ 'admin.settings.federation.etat.recharger' | translate }}
+      </button>
+    </div>
+  }
+
+  @if (etat(); as e) {
+    <!-- 1. Diagnostic : ce qui bloque, ou que tout va bien. -->
+    <div class="info-block raccordement-diagnostic"
+         [class.info-block-success]="e.diagnostic.niveau === 'ok'"
+         [class.info-block-warning]="e.diagnostic.niveau === 'attention'"
+         [class.info-block-error]="e.diagnostic.niveau === 'erreur'"
+         [attr.data-niveau]="e.diagnostic.niveau"
+         data-testid="raccordement-diagnostic">
+      <div class="info-block-icon"></div>
+      <div class="info-block-content">
+        <p class="info-block-content-title">
+          {{ 'admin.settings.federation.etat.niveau.' + e.diagnostic.niveau | translate }}
+        </p>
+        <p class="info-block-content-text">
+          {{ 'admin.settings.federation.etat.diagnostic.' + e.diagnostic.cle | translate: e.diagnostic.parametres }}
+        </p>
+      </div>
+    </div>
+
+    <!-- 2. Configuration effective. -->
+    <h4 class="raccordement-sous-titre">{{ 'admin.settings.federation.etat.configuration.titre' | translate }}</h4>
+    <dl class="raccordement-config">
+      <dt>{{ 'admin.settings.federation.etat.configuration.identifiant' | translate }}</dt>
+      <dd>
+        @if (e.configuration.instance_id) {
+          <code>{{ e.configuration.instance_id }}</code>
+        } @else {
+          <span class="text-mention">{{ 'admin.settings.federation.etat.commun.nonRenseigne' | translate }}</span>
+        }
+        @if (!e.configuration.identite_valide) {
+          <app-tag variant="error" size="sm" [label]="'admin.settings.federation.etat.configuration.identiteInvalide' | translate"></app-tag>
+        }
+      </dd>
+
+      <dt>{{ 'admin.settings.federation.etat.configuration.nom' | translate }}</dt>
+      <dd>{{ e.configuration.instance_libelle || ('admin.settings.federation.etat.commun.nonRenseigne' | translate) }}</dd>
+
+      <dt>{{ 'admin.settings.federation.etat.configuration.hubUrl' | translate }}</dt>
+      <dd>
+        @if (e.configuration.hub_url) {
+          <code>{{ e.configuration.hub_url }}</code>
+        } @else {
+          <span class="text-mention">{{ 'admin.settings.federation.etat.commun.nonRenseigne' | translate }}</span>
+        }
+      </dd>
+
+      <dt>{{ 'admin.settings.federation.etat.configuration.jetonDepot' | translate }}</dt>
+      <dd>
+        <app-tag size="sm"
+                 [variant]="e.configuration.jeton_depot_defini ? 'success' : 'muted'"
+                 [label]="(e.configuration.jeton_depot_defini ? 'admin.settings.federation.etat.commun.defini' : 'admin.settings.federation.etat.commun.absent') | translate"></app-tag>
+      </dd>
+
+      <dt>{{ 'admin.settings.federation.etat.configuration.jetonLecture' | translate }}</dt>
+      <dd>
+        <app-tag size="sm"
+                 [variant]="e.configuration.jeton_lecture_defini ? 'success' : 'muted'"
+                 [label]="(e.configuration.jeton_lecture_defini ? 'admin.settings.federation.etat.commun.defini' : 'admin.settings.federation.etat.commun.absent') | translate"></app-tag>
+      </dd>
+
+      <dt>{{ 'admin.settings.federation.etat.configuration.sourceJetons' | translate }}</dt>
+      <dd>{{ 'admin.settings.federation.etat.configuration.source.' + (e.configuration.source_jetons || 'aucune') | translate }}</dd>
+
+      <dt>{{ 'admin.settings.federation.etat.configuration.exploration' | translate }}</dt>
+      <dd>
+        {{ (e.configuration.relais_actif ? 'admin.settings.federation.etat.configuration.explorationRelayee' : 'admin.settings.federation.etat.configuration.explorationLocale') | translate }}
+      </dd>
+
+      <dt>{{ 'admin.settings.federation.etat.configuration.publicationAuto' | translate }}</dt>
+      <dd>{{ (e.configuration.publication_auto ? 'admin.settings.federation.etat.commun.oui' : 'admin.settings.federation.etat.commun.non') | translate }}</dd>
+
+      <dt>{{ 'admin.settings.federation.etat.configuration.partage' | translate }}</dt>
+      <dd>{{ (e.configuration.partage ? 'admin.settings.federation.etat.commun.active' : 'admin.settings.federation.etat.commun.desactive') | translate }}</dd>
+    </dl>
+
+    <!-- 3. Adhésion à l'exploration nationale. -->
+    <h4 class="raccordement-sous-titre">{{ 'admin.settings.federation.etat.adhesion.titre' | translate }}</h4>
+    <div class="raccordement-adhesion" data-testid="raccordement-adhesion">
+      @switch (e.adhesion.statut) {
+        @case ('en_attente') {
+          <p>
+            <app-tag variant="warning" icon="fi-rr-time-past"
+                     [label]="'admin.settings.federation.etat.adhesion.statut.en_attente' | translate"></app-tag>
+            @if (e.adhesion.demandee_le) {
+              <span class="text-mention">
+                {{ 'admin.settings.federation.etat.adhesion.demandeeLe' | translate: { date: (e.adhesion.demandee_le | date:'dd/MM/yyyy HH:mm') } }}
+              </span>
+            }
+          </p>
+          <p class="text-mention">{{ 'admin.settings.federation.etat.adhesion.codeLibelle' | translate }}</p>
+          <div class="code-verification">
+            <span class="code-verification-valeur" data-testid="code-verification"
+                  [attr.aria-label]="'admin.settings.federation.etat.adhesion.codeLibelle' | translate">{{ e.adhesion.code }}</span>
+            <button mat-button type="button" (click)="copierCode(e.adhesion.code)">
+              <i class="fi fi-rr-copy"></i>
+              {{ 'admin.settings.federation.etat.adhesion.copier' | translate }}
+            </button>
+          </div>
+          <p>{{ 'admin.settings.federation.etat.adhesion.codeConsigne' | translate }}</p>
+        }
+        @case ('acceptee') {
+          <p>
+            <app-tag variant="success" icon="fi-rr-shield-check"
+                     [label]="'admin.settings.federation.etat.adhesion.statut.acceptee' | translate"></app-tag>
+          </p>
+          <p class="text-mention">{{ 'admin.settings.federation.etat.adhesion.accepteeTexte' | translate }}</p>
+        }
+        @case ('refusee') {
+          <p>
+            <app-tag variant="error"
+                     [label]="'admin.settings.federation.etat.adhesion.statut.refusee' | translate"></app-tag>
+          </p>
+          <p>
+            <span class="text-bold">{{ 'admin.settings.federation.etat.adhesion.motif' | translate }}</span>
+            {{ e.adhesion.motif || ('admin.settings.federation.etat.adhesion.motifAbsent' | translate) }}
+          </p>
+        }
+        @default {
+          @if (e.configuration.source_jetons === 'environnement') {
+            <p class="text-mention">{{ 'admin.settings.federation.etat.adhesion.jetonsEnvironnement' | translate }}</p>
+          } @else {
+            <p class="text-mention">{{ 'admin.settings.federation.etat.adhesion.aucune' | translate }}</p>
+          }
+        }
+      }
+
+      @if (e.adhesion.erreur_suivi) {
+        <p class="text-mention raccordement-erreur-suivi">
+          <i class="fi fi-rr-triangle-warning"></i>
+          {{ 'admin.settings.federation.etat.adhesion.erreurSuivi' | translate }}
+        </p>
+      }
+
+      @if (e.adhesion.possible) {
+        <p>{{ 'admin.settings.federation.etat.adhesion.explication' | translate }}</p>
+        <button mat-flat-button color="primary" type="button"
+                data-testid="bouton-adhesion"
+                [disabled]="demandeEnCours()"
+                (click)="demanderAdhesion()">
+          @if (demandeEnCours()) {
+            <mat-spinner diameter="18" class="bouton-spinner"></mat-spinner>
+          } @else {
+            <i class="fi fi-rr-paper-plane"></i>
+          }
+          {{ (e.adhesion.statut === 'refusee' ? 'admin.settings.federation.etat.adhesion.redemander' : 'admin.settings.federation.etat.adhesion.demander') | translate }}
+        </button>
+      }
+    </div>
+
+    <!-- 4. Vérification en direct auprès du hub. -->
+    <h4 class="raccordement-sous-titre">{{ 'admin.settings.federation.etat.verification.titre' | translate }}</h4>
+    <p class="text-mention">{{ 'admin.settings.federation.etat.verification.description' | translate }}</p>
+    <button mat-stroked-button type="button"
+            data-testid="bouton-verifier"
+            [disabled]="verificationEnCours()"
+            (click)="verifier()">
+      @if (verificationEnCours()) {
+        <mat-spinner diameter="18" class="bouton-spinner"></mat-spinner>
+      } @else {
+        <i class="fi fi-rr-pulse"></i>
+      }
+      {{ 'admin.settings.federation.etat.verification.bouton' | translate }}
+    </button>
+
+    @if (verification(); as v) {
+      <dl class="raccordement-config raccordement-verification" data-testid="resultat-verification">
+        <dt>{{ 'admin.settings.federation.etat.verification.hubJoignable' | translate }}</dt>
+        <dd><app-tag size="sm" [variant]="varianteBool(v.hub_joignable)" [label]="cleBool(v.hub_joignable) | translate"></app-tag></dd>
+
+        <dt>{{ 'admin.settings.federation.etat.verification.instanceReconnue' | translate }}</dt>
+        <dd><app-tag size="sm" [variant]="varianteBool(v.instance_reconnue)" [label]="cleBool(v.instance_reconnue) | translate"></app-tag></dd>
+
+        <dt>{{ 'admin.settings.federation.etat.verification.active' | translate }}</dt>
+        <dd><app-tag size="sm" [variant]="varianteBool(v.active)" [label]="cleBool(v.active) | translate"></app-tag></dd>
+
+        <dt>{{ 'admin.settings.federation.etat.verification.dernierePublication' | translate }}</dt>
+        <dd>
+          @if (v.derniere_publication) {
+            {{ v.derniere_publication | date:'dd/MM/yyyy HH:mm' }}
+          } @else {
+            <span class="text-mention">{{ 'admin.settings.federation.etat.commun.aucune' | translate }}</span>
+          }
+        </dd>
+
+        <dt>{{ 'admin.settings.federation.etat.verification.volumes' | translate }}</dt>
+        <dd>
+          {{ 'admin.settings.federation.etat.verification.volumesValeur' | translate: { plans: v.plans ?? 0, contenus: v.contenus ?? 0 } }}
+        </dd>
+      </dl>
+      @if (v.erreur) {
+        <p class="raccordement-erreur-verification" role="alert">
+          <i class="fi fi-rr-triangle-warning"></i>
+          {{ cleErreurVerification(v.erreur) | translate }}
+        </p>
+      }
+    }
+
+    <!-- 5. Dernières publications. -->
+    <h4 class="raccordement-sous-titre">{{ 'admin.settings.federation.etat.publications.titre' | translate }}</h4>
+    @if (e.publications.length === 0) {
+      <p class="text-mention" data-testid="publications-vide">{{ 'admin.settings.federation.etat.publications.vide' | translate }}</p>
+    } @else {
+      <div class="publications-wrapper">
+        <table class="publications-table">
+          <thead>
+            <tr>
+              <th scope="col">{{ 'admin.settings.federation.etat.publications.date' | translate }}</th>
+              <th scope="col">{{ 'admin.settings.federation.etat.publications.origine' | translate }}</th>
+              <th scope="col">{{ 'admin.settings.federation.etat.publications.resultat' | translate }}</th>
+              <th scope="col" class="num">{{ 'admin.settings.federation.etat.publications.plans' | translate }}</th>
+              <th scope="col" class="num">{{ 'admin.settings.federation.etat.publications.documents' | translate }}</th>
+              <th scope="col">{{ 'admin.settings.federation.etat.publications.message' | translate }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (p of e.publications; track $index) {
+              <tr>
+                <td>{{ p.date | date:'dd/MM/yyyy HH:mm' }}</td>
+                <td>{{ 'admin.settings.federation.etat.publications.origines.' + p.origine | translate }}</td>
+                <td>
+                  <app-tag size="sm" [variant]="varianteResultat(p.resultat)"
+                           [label]="'admin.settings.federation.etat.publications.resultats.' + p.resultat | translate"></app-tag>
+                </td>
+                <td class="num">{{ p.plans }}</td>
+                <td class="num">{{ p.documents }}</td>
+                <td class="message">{{ p.message }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  }
+</div>

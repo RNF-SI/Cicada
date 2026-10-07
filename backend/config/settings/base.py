@@ -320,6 +320,13 @@ CELERY_BEAT_SCHEDULE = {
         'task': 'apps.search.tasks.publier_vers_le_hub',
         'schedule': crontab(hour=2, minute=30),
     },
+    # #696 - Relecture aupres de l'API de suivi d'une demande d'adhesion au hub
+    # en attente (acceptee ou refusee par RNF dans l'admin du suivi). Ne fait
+    # rien hors attente : sans demande, aucun appel reseau.
+    'actualiser-adhesion-hub': {
+        'task': 'apps.search.tasks.actualiser_adhesion_hub',
+        'schedule': crontab(minute='*/30'),
+    },
     # Note: Le traitement des demandes RGPD est maintenant manuel via l'interface admin
     # Les super_admins decident quand desactiver ou anonymiser les comptes
 }

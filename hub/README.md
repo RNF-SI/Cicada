@@ -99,6 +99,35 @@ jeton ni une empreinte. Il accepte l'un ou l'autre des deux jetons : la question
 « untel publie-t-il encore ? » se pose autant à celui qui dépose qu'à celui qui
 lit.
 
+### Enrôlement délégué à l'API de suivi (`X-Hub-Admin-Token`, #696)
+
+Une structure demande l'adhésion depuis son instance ; un administrateur RNF
+l'accepte dans l'admin de l'API de suivi, après avoir comparé de vive voix un
+code de vérification ; le suivi enrôle alors l'instance ici :
+
+```
+POST /api/federation/enrolements/
+X-Hub-Admin-Token: <HUB_ADMIN_TOKEN>
+{"instance_id": "cen-aura", "libelle": "CEN Auvergne-Rhône-Alpes",
+ "url_publique": "https://…", "empreinte_depot": "<64 hex>", "empreinte_lecture": "<64 hex>"}
+```
+
+**Le jeton ne voyage jamais** : l'instance tire elle-même ses deux jetons et
+n'envoie que leurs empreintes SHA-256 — ce que le registre stocke de toute
+façon. Le hub ne génère ni ne renvoie aucun jeton.
+
+| Réponse | Cas |
+|---|---|
+| 201 `{"instance_id", "active": true, "cree": true}` | instance créée avec ces empreintes |
+| 200 `{…, "cree": false}` | déjà enrôlée avec **exactement** ces empreintes (un réessai du suivi n'échoue pas) |
+| 409 `{"detail"}` | identifiant déjà enrôlé avec d'autres empreintes : rien n'est modifié, à trancher avec `enroler_instance` |
+| 400 | corps invalide (identifiant, libellé requis, empreintes = 64 hex minuscules distinctes) |
+| 403 | jeton absent ou faux, **ou `HUB_ADMIN_TOKEN` vide** (endpoint désactivé) |
+
+`HUB_ADMIN_TOKEN` (vide par défaut) n'est détenu que par l'API de suivi. À tirer
+avec `python -c "import secrets; print(secrets.token_urlsafe(48))"` et à recopier
+dans le `.env` de l'API de suivi.
+
 ### Dépôt — jeton propre à chaque instance (`X-Federation-Token`)
 
 | Appel | Effet |

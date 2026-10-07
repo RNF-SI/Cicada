@@ -35,10 +35,27 @@ def _publication_configuree():
     est vérifié séparément, juste avant l'appel : il vit en base et peut changer
     entre deux exécutions.
     """
-    return bool(
-        settings.CICADA_HUB_URL
-        and settings.CICADA_HUB_PUSH_TOKEN
-        and settings.CICADA_HUB_PUSH_AUTO
+    # Importé ici : la tâche est enregistrée au démarrage du worker, avant que
+    # la base (où vit une adhésion acceptée, #696) soit forcément joignable.
+    from apps.search.raccordement import hub_url, jeton_depot, raccordement
+
+    if not settings.CICADA_HUB_PUSH_AUTO:
+        return False
+    ligne = raccordement()
+    return bool(hub_url(ligne) and jeton_depot(ligne))
+
+
+def _ignoree(message):
+    """
+    Trace une nuit sans publication (#698).
+
+    Sans cette ligne, l'historique d'une instance mal configurée resterait
+    vide, et rien ne distinguerait « jamais tenté » de « tenté et retenu ».
+    """
+    from apps.search.models import PublicationHub
+
+    PublicationHub.enregistrer(
+        PublicationHub.ORIGINE_NUIT, PublicationHub.RESULTAT_IGNOREE, message=message,
     )
 
 
@@ -54,6 +71,7 @@ def publier_vers_le_hub():
         logger.debug(
             "Publication vers le hub non configurée sur cette instance — ignorée."
         )
+        _ignoree("Publication non configurée (hub, jeton de dépôt ou publication automatique).")
         return "non configurée"
 
     # Importé ici et non au chargement du module : la tâche est enregistrée au
@@ -68,11 +86,14 @@ def publier_vers_le_hub():
         logger.info(
             "Partage avec l'exploration nationale désactivé — rien n'est publié."
         )
+        _ignoree("Partage avec l'exploration nationale désactivé.")
         return "partage désactivé"
 
     sortie = io.StringIO()
     try:
-        call_command('push_federation', stdout=sortie, stderr=sortie)
+        # `origine` : c'est la commande qui écrit l'historique (#698), réussite
+        # comme échec — la tâche n'a donc rien à enregistrer ici.
+        call_command('push_federation', origine='nuit', stdout=sortie, stderr=sortie)
     except Exception:
         # La commande abandonne son lot avant de remonter : la publication
         # précédente est intacte. On journalise et on laisse la nuit suivante
@@ -86,3 +107,23 @@ def publier_vers_le_hub():
     resultat = sortie.getvalue()
     logger.info("Publication vers le hub terminée :\n%s", resultat)
     return resultat
+
+
+@shared_task
+def actualiser_adhesion_hub():
+    """
+    Relit auprès du suivi une demande d'adhésion au hub en attente (#696).
+
+    L'acceptation par RNF se fait ailleurs, dans l'admin de l'API de suivi :
+    sans cette relecture, l'instance ne l'apprendrait qu'à la prochaine visite
+    d'un super administrateur sur la page des paramètres, et ne publierait pas
+    d'ici là. Hors attente, rien à faire — pas même un appel réseau.
+    """
+    from apps.search.models import RaccordementHub
+    from apps.search.raccordement import actualiser_adhesion, raccordement
+
+    ligne = raccordement()
+    if ligne.adhesion_statut != RaccordementHub.STATUT_EN_ATTENTE:
+        return "rien à actualiser"
+    erreur = actualiser_adhesion(ligne)
+    return erreur or ligne.adhesion_statut

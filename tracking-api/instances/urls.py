@@ -9,6 +9,7 @@ urlpatterns = [
     path('instances/heartbeat/', views.heartbeat, name='heartbeat'),
     path('instances/version/', views.check_version, name='check_version'),
     path('instances/me/', views.instance_me, name='instance_me'),
+    path('instances/adhesion-hub/', views.adhesion_hub, name='adhesion_hub'),
     path('admin/stats/', views.admin_stats, name='admin_stats'),
     path('admin/instances/', views.admin_instances, name='admin_instances'),
 ]

@@ -62,6 +62,9 @@ services:
       # Un jeton de lecture par instance : la réciprocité (#636) exige de
       # savoir QUI lit, pour vérifier qu'il publie aussi.
       - HUB_READ_TOKENS=${HUB_READ_TOKENS:-}
+      # Jeton de l'API de suivi RNF pour enrôler les adhésions acceptées (#696).
+      # Vide = POST /api/federation/enrolements/ désactivé (403).
+      - HUB_ADMIN_TOKEN=${HUB_ADMIN_TOKEN:-}
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
     volumes:
       - ./hub:/app

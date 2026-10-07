@@ -2,11 +2,12 @@ import { ComponentFixture, TestBed, fakeAsync, tick } from '@angular/core/testin
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { TranslateModule, TranslateLoader, TranslateService } from '@ngx-translate/core';
-import { of, throwError } from 'rxjs';
+import { NEVER, of, throwError } from 'rxjs';
 import { signal, WritableSignal } from '@angular/core';
 
 import { AdminSettingsComponent } from './admin-settings.component';
 import { SettingsService, SiteConfiguration } from '../../../core/services/settings.service';
+import { FederationRaccordementService } from '../../../core/services/federation-raccordement.service';
 
 // Fake translate loader for tests
 class FakeTranslateLoader implements TranslateLoader {
@@ -92,7 +93,12 @@ describe('AdminSettingsComponent', () => {
       ],
       providers: [
         { provide: SettingsService, useValue: mockSettingsService },
-        { provide: MatSnackBar, useValue: mockSnackBar }
+        { provide: MatSnackBar, useValue: mockSnackBar },
+        // #696 — le bloc de raccordement a sa propre spec : ici il reste muet.
+        {
+          provide: FederationRaccordementService,
+          useValue: { etat: jest.fn().mockReturnValue(NEVER), verifier: jest.fn(), demanderAdhesion: jest.fn() }
+        }
       ]
     });
 

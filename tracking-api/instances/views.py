@@ -8,8 +8,9 @@ from rest_framework.throttling import UserRateThrottle
 from rest_framework.permissions import IsAdminUser, AllowAny
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
-from .models import Instance
-from .serializers import InstanceSerializer
+from .adhesion import code_verification
+from .models import AdhesionHub, Instance
+from .serializers import DemandeAdhesionSerializer, InstanceSerializer
 from tracking.settings import LATEST_VERSION
 
 
@@ -135,6 +136,74 @@ def instance_me(request):
         })
 
     return Response(InstanceSerializer(instance).data)
+
+
+@api_view(['GET', 'POST'])
+def adhesion_hub(request):
+    """Demande d'adhésion au hub (POST) et son état (GET), pour l'instance authentifiée (#696).
+
+    L'instance qui demande est celle du jeton X-Instance-Token, jamais une
+    instance désignée dans le corps : une structure ne peut demander que pour
+    elle-même. Le code est recalculé ici, à partir de ce jeton, pour que la
+    comparaison de vive voix prouve que la demande vient bien de cette instance.
+    """
+    instance = request.user
+
+    if request.method == 'GET':
+        adhesion = AdhesionHub.objects.filter(instance=instance).first()
+        if adhesion is None:
+            return Response({'detail': "Aucune demande d'adhésion."}, status=404)
+        acceptee = adhesion.statut == AdhesionHub.ACCEPTEE
+        return Response({
+            'statut': adhesion.statut,
+            'code': adhesion.code,
+            'instance_id': adhesion.instance_id_demande,
+            'hub_url': adhesion.hub_url if acceptee else '',
+            'motif_refus': adhesion.motif_refus,
+            'demandee_le': adhesion.demandee_le.isoformat(),
+            'traitee_le': adhesion.traitee_le.isoformat() if adhesion.traitee_le else None,
+        })
+
+    serializer = DemandeAdhesionSerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
+    donnees = serializer.validated_data
+
+    existante = AdhesionHub.objects.filter(instance=instance).first()
+    if existante and existante.statut == AdhesionHub.ACCEPTEE:
+        # L'instance est enrôlée : une nouvelle demande changerait des empreintes
+        # que le hub ne connaît pas, et la demande « acceptée » mentirait.
+        return Response({'detail': "Adhésion déjà acceptée : contactez RNF pour la modifier."},
+                        status=409)
+    if AdhesionHub.objects.filter(instance_id_demande=donnees['instance_id'],
+                                  statut=AdhesionHub.ACCEPTEE).exclude(instance=instance).exists():
+        # Le hub refuserait de toute façon (409) ; le dire dès la demande évite à
+        # RNF d'appeler une structure pour un identifiant déjà pris.
+        return Response({'detail': "Cet identifiant est déjà utilisé par une autre instance enrôlée."},
+                        status=409)
+
+    adhesion = existante or AdhesionHub(instance=instance)
+    adhesion.instance_id_demande = donnees['instance_id']
+    adhesion.libelle = donnees['libelle']
+    adhesion.url_publique = donnees['url_publique']
+    adhesion.empreinte_depot = donnees['empreinte_depot']
+    adhesion.empreinte_lecture = donnees['empreinte_lecture']
+    adhesion.code = code_verification(str(instance.token), donnees['instance_id'],
+                                      donnees['empreinte_depot'], donnees['empreinte_lecture'])
+    # Une demande refusée puis renouvelée repart de zéro : l'ancien refus ne
+    # doit pas rester affiché comme s'il portait sur la nouvelle demande.
+    adhesion.statut = AdhesionHub.EN_ATTENTE
+    adhesion.motif_refus = ''
+    adhesion.hub_url = ''
+    adhesion.demandee_le = timezone.now()
+    adhesion.traitee_le = None
+    adhesion.traitee_par = ''
+    adhesion.save()
+
+    return Response({
+        'statut': adhesion.statut,
+        'code': adhesion.code,
+        'demandee_le': adhesion.demandee_le.isoformat(),
+    }, status=201)
 
 
 @api_view(['GET'])

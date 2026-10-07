@@ -41,9 +41,27 @@ DB_HOST=localhost
 DB_PORT=5432
 # Dernière version publiée de CICADA, annoncée aux instances (vide = aucune)
 LATEST_VERSION=0.1.49
+# Hub d'exploration fédérée : enrôlement des instances dont l'adhésion est acceptée
+HUB_URL=https://hub.cicada.reserves-naturelles.org
+HUB_ADMIN_TOKEN=<même valeur que HUB_ADMIN_TOKEN dans le .env du hub>
 ```
 
 À chaque release, mettre `LATEST_VERSION` à jour puis redémarrer le service.
+
+#### Adhésions au hub (`HUB_URL`, `HUB_ADMIN_TOKEN`)
+
+Une structure demande l'adhésion à l'exploration nationale depuis son instance (Administration > Paramètres).
+La demande arrive dans l'admin Django (**Instances > Adhésions au hub**) avec un **code de vérification**
+(« ABC-DEF ») calculé des deux côtés. **Appelez la structure et comparez ce code de vive voix avant
+d'accepter** : c'est ce qui prouve que la demande vient bien d'elle.
+
+- **Accepter et enrôler sur le hub** appelle `POST {HUB_URL}/api/federation/enrolements/` avec l'en-tête
+  `X-Hub-Admin-Token`. Seules les empreintes des jetons de l'instance transitent : les jetons ne quittent jamais
+  l'instance. Si le hub refuse ou est injoignable, la demande reste en attente et l'erreur s'affiche.
+- **Refuser** : saisir d'abord le motif dans la fiche (il est affiché à la structure), puis lancer l'action.
+- `HUB_ADMIN_TOKEN` est tiré une fois (`python3 -c "import secrets; print(secrets.token_urlsafe(48))"`) et
+  recopié à l'identique dans le `.env` du hub et dans celui-ci. Il permet d'enrôler n'importe quelle instance :
+  ne le transmettez à personne et ne le journalisez pas. Vides, ces deux variables désactivent l'acceptation.
 
 ### 4. Base de données
 

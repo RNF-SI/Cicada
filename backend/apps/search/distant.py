@@ -23,13 +23,13 @@ import logging
 import re
 
 import requests
-from django.conf import settings
 from django.core.cache import cache
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from .raccordement import hub_url, jeton_lecture, raccordement
 from .relay import DELAI, relais_actif
 
 logger = logging.getLogger(__name__)
@@ -67,10 +67,11 @@ def lire_ecrans(reference):
     if ecrans is not None:
         return ecrans
 
-    url = f"{settings.CICADA_HUB_URL}/api/exploration/plans/{reference}/ecrans/"
+    ligne = raccordement()
+    url = f"{hub_url(ligne)}/api/exploration/plans/{reference}/ecrans/"
     try:
         reponse = requests.get(
-            url, headers={'X-Hub-Token': settings.CICADA_HUB_READ_TOKEN}, timeout=DELAI,
+            url, headers={'X-Hub-Token': jeton_lecture(ligne) or ''}, timeout=DELAI,
         )
     except requests.RequestException as erreur:
         logger.error("Hub injoignable pour les écrans de %s : %s", reference, erreur)

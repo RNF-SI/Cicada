@@ -11,6 +11,7 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { SettingsService, SiteConfiguration, ImagePosition } from '../../../core/services/settings.service';
 import { CheckboxComponent } from '../../../shared/components/checkbox/checkbox.component';
 import { FormFieldComponent } from '../../../shared/components/form-field/form-field.component';
+import { FederationRaccordementComponent } from './federation-raccordement/federation-raccordement.component';
 
 @Component({
   selector: 'app-admin-settings',
@@ -25,7 +26,8 @@ import { FormFieldComponent } from '../../../shared/components/form-field/form-f
     MatButtonToggleModule,
     TranslateModule,
     CheckboxComponent,
-    FormFieldComponent
+    FormFieldComponent,
+    FederationRaccordementComponent
 ],
   templateUrl: './admin-settings.component.html',
   changeDetection: ChangeDetectionStrategy.Eager,

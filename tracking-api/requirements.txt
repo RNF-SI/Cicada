@@ -2,3 +2,4 @@ Django==5.2.17
 djangorestframework==3.17.2
 psycopg[binary]>=3.2.2,<3.4
 python-decouple==3.8
+requests>=2.32,<3

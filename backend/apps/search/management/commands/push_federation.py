@@ -16,6 +16,11 @@ Usage :
     python manage.py push_federation --dry-run        # construit sans envoyer
     python manage.py push_federation --page-size 5    # pages plus petites
     python manage.py push_federation --sans-fiche     # index seul, sans fiches
+    python manage.py push_federation --origine nuit   # (tâche planifiée)
+
+Chaque exécution réelle laisse une ligne dans l'historique des publications
+(`PublicationHub`, #698) — réussie, en échec ou ignorée — que la page
+Administration > Paramètres affiche. Un `--dry-run` n'en laisse aucune.
 """
 
 import json
@@ -24,9 +29,11 @@ import requests
 from django.conf import settings
 from django.core.management.base import BaseCommand, CommandError
 
+from apps.search.models import PublicationHub
 from apps.search.push import (
     FORMAT_VERSION, charge_utile, partage_active, plans_a_publier,
 )
+from apps.search.raccordement import hub_url, jeton_depot
 from apps.search.serializers import prefetch_sites
 
 #: Petit par défaut : chaque plan emporte sa fiche rendue, qui mobilise plusieurs
@@ -43,10 +50,16 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser):
         parser.add_argument(
-            '--hub', help="URL du hub (défaut : settings.CICADA_HUB_URL)",
+            '--hub', help="URL du hub (défaut : CICADA_HUB_URL, sinon celle de l'adhésion)",
         )
         parser.add_argument(
-            '--token', help="Jeton de dépôt (défaut : settings.CICADA_HUB_PUSH_TOKEN)",
+            '--token', help="Jeton de dépôt (défaut : CICADA_HUB_PUSH_TOKEN, sinon celui de l'adhésion)",
+        )
+        parser.add_argument(
+            '--origine', choices=[
+                PublicationHub.ORIGINE_MANUELLE, PublicationHub.ORIGINE_NUIT,
+            ], default=PublicationHub.ORIGINE_MANUELLE,
+            help="Origine inscrite dans l'historique des publications (défaut : manuelle)",
         )
         parser.add_argument(
             '--page-size', type=int, default=TAILLE_PAGE,
@@ -63,6 +76,23 @@ class Command(BaseCommand):
         )
 
     def handle(self, *args, **options):
+        self.origine = options['origine']
+        self.dry_run = options['dry_run']
+        try:
+            self._publier(options)
+        except Exception as erreur:
+            # L'échec est consigné avant de remonter : la tâche de nuit n'a
+            # pas de témoin, et le journal Celery n'est lu par personne. Le
+            # message d'une `CommandError` est déjà rédigé pour un humain.
+            self._historiser(PublicationHub.RESULTAT_ECHEC, message=str(erreur))
+            raise
+
+    def _historiser(self, resultat, **valeurs):
+        if self.dry_run:
+            return
+        PublicationHub.enregistrer(self.origine, resultat, **valeurs)
+
+    def _publier(self, options):
         self.stdout.write(self.style.MIGRATE_HEADING(
             f"=== DÉPÔT VERS LE HUB — instance « {settings.CICADA_INSTANCE_ID} » ==="
         ))
@@ -79,9 +109,8 @@ class Command(BaseCommand):
                 "publiées, utiliser « retrait_federation »."
             )
 
-        self.hub = (options['hub'] or settings.CICADA_HUB_URL).rstrip('/')
-        self.jeton = options['token'] or settings.CICADA_HUB_PUSH_TOKEN
-        self.dry_run = options['dry_run']
+        self.hub = (options['hub'] or hub_url()).rstrip('/')
+        self.jeton = options['token'] or jeton_depot()
         avec_fiche = not options['sans_fiche']
 
         # Le nom de l'instance accompagne chaque plan publié : c'est lui, et
@@ -97,12 +126,13 @@ class Command(BaseCommand):
         if not self.dry_run:
             if not self.hub:
                 raise CommandError(
-                    "Aucun hub configuré. Renseignez CICADA_HUB_URL ou --hub."
+                    "Aucun hub configuré. Renseignez CICADA_HUB_URL ou --hub, "
+                    "ou demandez l'adhésion depuis Administration > Paramètres."
                 )
             if not self.jeton:
                 raise CommandError(
                     "Aucun jeton de dépôt. Renseignez CICADA_HUB_PUSH_TOKEN "
-                    "ou --token."
+                    "ou --token, ou faites accepter l'adhésion de l'instance."
                 )
 
         plans = plans_a_publier().prefetch_related(prefetch_sites())
@@ -113,6 +143,10 @@ class Command(BaseCommand):
                 "  Rien à publier. Un dépôt vide DÉPUBLIERAIT tout ce que le hub "
                 "connaît de cette instance : le lot n'est pas ouvert."
             ))
+            self._historiser(
+                PublicationHub.RESULTAT_IGNOREE,
+                message="Rien à publier : aucun plan explorable.",
+            )
             return
 
         self._verifier_index(total)
@@ -136,6 +170,12 @@ class Command(BaseCommand):
             return
 
         resultat = self._basculer(lot)
+        self._historiser(
+            PublicationHub.RESULTAT_REUSSIE,
+            plans=resultat.get('plans_recus', 0),
+            documents=resultat.get('contenus_recus', 0),
+            depublies=resultat.get('plans_purges', 0),
+        )
         self.stdout.write(self.style.SUCCESS(
             f"  {resultat['plans_recus']} plan(s) et "
             f"{resultat['contenus_recus']} document(s) publiés, "

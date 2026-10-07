@@ -27,6 +27,7 @@ from django.conf import settings
 from django.core.management.base import BaseCommand, CommandError
 
 from apps.search.push import FORMAT_VERSION
+from apps.search.raccordement import hub_url, jeton_depot
 
 DELAI = 60
 
@@ -35,7 +36,7 @@ class Command(BaseCommand):
     help = "Retire de l'exploration nationale les données publiées par cette instance"
 
     def add_arguments(self, parser):
-        parser.add_argument('--hub', help="URL du hub (défaut : settings.CICADA_HUB_URL)")
+        parser.add_argument('--hub', help="URL du hub (défaut : CICADA_HUB_URL, sinon celle de l'adhésion)")
         parser.add_argument('--token', help="Jeton de dépôt de cette instance")
         parser.add_argument(
             '--confirmer', action='store_true',
@@ -48,12 +49,13 @@ class Command(BaseCommand):
             f"{settings.CICADA_INSTANCE_ID} » ==="
         ))
 
-        hub = (options['hub'] or settings.CICADA_HUB_URL).rstrip('/')
-        jeton = options['token'] or settings.CICADA_HUB_PUSH_TOKEN
+        hub = (options['hub'] or hub_url()).rstrip('/')
+        jeton = options['token'] or jeton_depot()
         if not hub or not jeton:
             raise CommandError(
                 "Hub ou jeton manquant : renseignez CICADA_HUB_URL et "
-                "CICADA_HUB_PUSH_TOKEN, ou --hub et --token."
+                "CICADA_HUB_PUSH_TOKEN, ou --hub et --token (ou faites accepter "
+                "l'adhésion de l'instance)."
             )
 
         if not options['confirmer']:

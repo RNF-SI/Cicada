@@ -19,11 +19,14 @@ from rest_framework.views import APIView
 from rest_framework.viewsets import ViewSet
 
 from .federation import (
-    EstFedere, EstInstanceAutorisee, basculer, ingerer_plan,
+    EstAdministrateurDuRegistre, EstFedere, EstInstanceAutorisee, basculer,
+    ingerer_plan,
 )
 from .identites import identites
 from .models import ContenuIndexe, Instance, LotPublication, PlanIndexe
-from .serializers_federation import OuvertureLotSerializer, PagePlansSerializer
+from .serializers_federation import (
+    EnrolementSerializer, OuvertureLotSerializer, PagePlansSerializer,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -221,3 +224,91 @@ class RegistreDesInstances(APIView):
             'count': len(instances),
             'instances': instances,
         })
+
+
+class EnrolementInstance(APIView):
+    """
+    Enrôlement d'une instance dont RNF a accepté l'adhésion (#696).
+
+    ## Qui appelle
+
+    La seule API de suivi RNF, porteuse de ``HUB_ADMIN_TOKEN``. Une structure
+    demande l'adhésion depuis son instance ; un administrateur RNF l'accepte
+    dans l'admin du suivi après avoir comparé de vive voix un code de
+    vérification ; le suivi enrôle alors l'instance ici.
+
+    ## Pourquoi des empreintes fournies
+
+    ``enroler_instance`` tire les jetons sur le hub, puis il faut les remettre à
+    la structure — un secret qui voyage. Ici, l'instance tire ses jetons
+    elle-même et n'envoie que leurs empreintes : le hub n'en a jamais stocké
+    d'autre, il n'a donc pas besoin de voir le jeton pour l'accepter ensuite.
+    Aucun jeton n'est généré ni renvoyé par cette vue.
+
+    ## Idempotence, et ce qu'elle ne couvre pas
+
+    Un nouvel appel avec **exactement** les mêmes empreintes répond 200 : le
+    suivi peut réessayer après une coupure réseau sans échouer sur sa propre
+    réussite. Un identifiant déjà enrôlé avec **d'autres** empreintes répond
+    409, et rien n'est modifié : remplacer les empreintes d'une instance
+    existante reviendrait à la déposséder de ses jetons. Ce cas se tranche à la
+    main avec ``enroler_instance``, par quelqu'un qui sait pourquoi.
+
+    Une instance enrôlée par cette vue figure au registre : un jeton
+    d'environnement portant son nom cesse alors d'être accepté (cf.
+    ``identifier_porteur``) — c'est la règle ordinaire du registre.
+    """
+
+    permission_classes = [EstAdministrateurDuRegistre]
+
+    def post(self, request):
+        serializer = EnrolementSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        donnees = serializer.validated_data
+        identifiant = donnees['instance_id']
+
+        with transaction.atomic():
+            # Verrou sur la ligne : deux réessais simultanés du suivi ne doivent
+            # pas produire l'un 201, l'autre une erreur d'intégrité.
+            existante = (
+                Instance.objects.select_for_update()
+                .filter(pk=identifiant).first()
+            )
+            if existante is not None:
+                memes = (
+                    existante.empreinte_depot == donnees['empreinte_depot']
+                    and existante.empreinte_lecture == donnees['empreinte_lecture']
+                )
+                if not memes:
+                    logger.warning(
+                        "Enrôlement refusé : « %s » est déjà enrôlée avec "
+                        "d'autres jetons.", identifiant,
+                    )
+                    return Response(
+                        {'detail': (
+                            f"L'instance « {identifiant} » est déjà enrôlée avec "
+                            "d'autres jetons. Rien n'a été modifié : à trancher "
+                            "sur le hub avec « enroler_instance »."
+                        )},
+                        status=status.HTTP_409_CONFLICT,
+                    )
+                return Response(
+                    {'instance_id': identifiant, 'active': existante.active,
+                     'cree': False},
+                    status=status.HTTP_200_OK,
+                )
+
+            Instance.objects.create(
+                instance_id=identifiant,
+                libelle=donnees['libelle'],
+                url_publique=donnees['url_publique'],
+                empreinte_depot=donnees['empreinte_depot'],
+                empreinte_lecture=donnees['empreinte_lecture'],
+                active=True,
+            )
+
+        logger.info("Instance « %s » enrôlée par l'API de suivi.", identifiant)
+        return Response(
+            {'instance_id': identifiant, 'active': True, 'cree': True},
+            status=status.HTTP_201_CREATED,
+        )

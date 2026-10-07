@@ -768,6 +768,128 @@
         "messages": {
           "active": "Partage activé. Vos plans validés seront publiés à la prochaine synchronisation, et l'exploration portera sur toutes les structures.",
           "desactive": "Partage désactivé. Plus rien ne sera publié, et l'exploration ne portera que sur vos plans. Les données déjà publiées restent en ligne jusqu'à leur retrait explicite."
+        },
+        "etat": {
+          "titre": "État du raccordement au hub",
+          "chargement": "Chargement de l'état du raccordement…",
+          "recharger": "Réessayer",
+          "niveau": {
+            "ok": "Raccordement opérationnel",
+            "info": "Information",
+            "attention": "Point d'attention",
+            "erreur": "Action requise"
+          },
+          "diagnostic": {
+            "identite_manquante": "L'identifiant ou le nom de l'instance n'est pas renseigné. Un administrateur système doit les définir (CICADA_INSTANCE_ID et CICADA_INSTANCE_LABEL dans /var/lib/cicada/.env), puis lancer « rebuild_search_index --purge » si l'index de recherche existe déjà.",
+            "adhesion_refusee": "RNF a refusé la demande d'adhésion. Motif : {{motif}}",
+            "adhesion_en_attente": "Demande d'adhésion envoyée, en attente de validation par RNF. Code de vérification : {{code}}.",
+            "non_raccorde": "Cette instance n'est pas raccordée à l'exploration nationale. Demandez l'adhésion ci-dessous pour y participer.",
+            "jeton_depot_absent": "Aucun jeton de dépôt n'est défini : cette instance ne peut pas publier ses plans sur le hub.",
+            "partage_inactif": "Le partage est désactivé : rien n'est publié sur le hub. Cochez la case ci-dessus pour participer à l'exploration nationale.",
+            "derniere_publication_echec": "La dernière publication a échoué : {{message}}",
+            "aucune_publication": "Raccordement en place, mais aucune publication n'a encore eu lieu. La prochaine aura lieu cette nuit.",
+            "ok": "L'instance est raccordée au hub et sa dernière publication a réussi."
+          },
+          "configuration": {
+            "titre": "Configuration",
+            "identifiant": "Identifiant de l'instance",
+            "identiteInvalide": "Invalide",
+            "nom": "Nom de la structure",
+            "hubUrl": "Adresse du hub",
+            "jetonDepot": "Jeton de dépôt",
+            "jetonLecture": "Jeton de lecture",
+            "sourceJetons": "Origine des jetons",
+            "source": {
+              "environnement": "Fichier de configuration (.env)",
+              "adhesion": "Adhésion validée par RNF",
+              "aucune": "Aucune"
+            },
+            "exploration": "Exploration",
+            "explorationLocale": "Locale (plans de cette instance seulement)",
+            "explorationRelayee": "Nationale (relayée par le hub)",
+            "publicationAuto": "Publication automatique chaque nuit",
+            "partage": "Partage"
+          },
+          "adhesion": {
+            "titre": "Adhésion à l'exploration nationale",
+            "statut": {
+              "en_attente": "En attente de validation",
+              "acceptee": "Adhésion acceptée",
+              "refusee": "Adhésion refusée"
+            },
+            "demandeeLe": "Demandée le {{date}}",
+            "aucune": "Aucune demande d'adhésion n'a été faite.",
+            "jetonsEnvironnement": "Les jetons du hub sont fournis par le fichier de configuration : aucune adhésion n'est nécessaire.",
+            "explication": "RNF (Réserves Naturelles de France) validera la demande. Avant d'accepter, RNF vous contactera pour comparer de vive voix un code de vérification, qui s'affichera ici une fois la demande envoyée.",
+            "demander": "Demander l'adhésion à l'exploration nationale",
+            "redemander": "Refaire une demande",
+            "codeLibelle": "Code de vérification",
+            "codeConsigne": "Communiquez ce code à RNF lorsqu'ils vous contacteront.",
+            "copier": "Copier",
+            "copie": "Code copié dans le presse-papiers.",
+            "copieImpossible": "Impossible de copier le code : sélectionnez-le et copiez-le manuellement.",
+            "accepteeTexte": "Cette instance peut publier sur le hub et explorer les plans des autres structures.",
+            "motif": "Motif :",
+            "motifAbsent": "aucun motif indiqué.",
+            "erreurSuivi": "Le service de suivi RNF n'a pas pu être interrogé : le statut affiché est peut-être périmé.",
+            "confirmTitre": "Demander l'adhésion",
+            "confirmMessage": "Une demande d'adhésion va être envoyée à RNF pour l'instance « {{libelle}} » (identifiant {{instance_id}}).",
+            "confirmAvertissement": "L'identifiant ne pourra plus être changé une fois l'adhésion acceptée.",
+            "confirmBouton": "Envoyer la demande",
+            "envoyee": "Demande d'adhésion envoyée. RNF vous contactera pour comparer le code de vérification."
+          },
+          "verification": {
+            "titre": "Vérifier le raccordement",
+            "description": "Interroge le hub en direct pour savoir s'il est joignable et s'il reconnaît cette instance.",
+            "bouton": "Vérifier maintenant",
+            "hubJoignable": "Hub joignable",
+            "instanceReconnue": "Instance reconnue par le hub",
+            "active": "Instance active",
+            "dernierePublication": "Dernière publication reçue",
+            "volumes": "Contenu publié",
+            "volumesValeur": "{{plans}} plan(s), {{contenus}} document(s)"
+          },
+          "publications": {
+            "titre": "Dernières publications",
+            "vide": "Aucune publication enregistrée.",
+            "date": "Date",
+            "origine": "Origine",
+            "resultat": "Résultat",
+            "plans": "Plans",
+            "documents": "Documents",
+            "message": "Message",
+            "origines": {
+              "nuit": "Automatique (nuit)",
+              "manuelle": "Manuelle"
+            },
+            "resultats": {
+              "reussie": "Réussie",
+              "echec": "Échec",
+              "ignoree": "Ignorée"
+            }
+          },
+          "commun": {
+            "oui": "Oui",
+            "non": "Non",
+            "inconnu": "Inconnu",
+            "defini": "Défini",
+            "absent": "Absent",
+            "active": "Activé",
+            "desactive": "Désactivé",
+            "aucune": "Aucune",
+            "nonRenseigne": "Non renseigné"
+          },
+          "erreurs": {
+            "identite_manquante": "L'identifiant ou le nom de l'instance n'est pas renseigné : la demande ne peut pas être envoyée.",
+            "suivi_indisponible": "Le service de suivi RNF est injoignable. Réessayez plus tard.",
+            "jeton_suivi_absent": "Cette instance n'a pas de jeton de suivi RNF (/etc/cicada/instance_token) : la demande ne peut pas être envoyée.",
+            "code_divergent": "Le code de vérification calculé par RNF ne correspond pas à celui de cette instance. La demande n'a pas été prise en compte ; contactez RNF.",
+            "deja_acceptee": "L'adhésion de cette instance a déjà été acceptée.",
+            "jetons_environnement": "Les jetons du hub sont déjà fournis par le fichier de configuration : l'adhésion n'est pas nécessaire.",
+            "hub_injoignable": "Le hub d'exploration est injoignable.",
+            "jeton_refuse": "Le hub a refusé le jeton de cette instance.",
+            "erreur_inconnue": "Une erreur inattendue est survenue. Réessayez ou contactez un administrateur système."
+          }
         }
       },
       "apiPublique": {

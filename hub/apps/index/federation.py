@@ -220,6 +220,44 @@ class EstFedere(BasePermission):
                 return True
         return False
 
+
+class EstAdministrateurDuRegistre(BasePermission):
+    """
+    Jeton d'administration du registre (``X-Hub-Admin-Token``), détenu par la
+    seule API de suivi RNF (#696).
+
+    ## Désactivé tant qu'il n'est pas configuré
+
+    Un ``HUB_ADMIN_TOKEN`` vide **ferme** l'endpoint, quel que soit l'en-tête
+    présenté. Sans cette règle, comparer un en-tête vide à un réglage vide
+    ouvrirait l'écriture du registre à n'importe qui ; un hub qui ne délègue
+    pas l'enrôlement ne doit exposer aucune porte de ce côté.
+
+    ## Ce qui n'est jamais écrit dans les journaux
+
+    Ni le jeton attendu, ni le jeton reçu : un refus est journalisé sans eux. Un
+    journal se lit plus largement qu'un fichier d'environnement.
+    """
+
+    message = "Jeton d'administration du hub absent ou invalide."
+
+    def has_permission(self, request, view):
+        attendu = settings.HUB_ADMIN_TOKEN
+        if not attendu:
+            logger.warning(
+                "Enrôlement refusé : HUB_ADMIN_TOKEN n'est pas configuré sur ce hub."
+            )
+            return False
+        jeton = request.headers.get('X-Hub-Admin-Token', '')
+        # Comparaison en octets : `compare_digest` lève sur une chaîne non
+        # ASCII, et un en-tête fantaisiste doit produire un 403, pas un 500.
+        if not jeton or not secrets.compare_digest(
+            jeton.encode('utf-8'), attendu.encode('utf-8'),
+        ):
+            logger.warning("Enrôlement refusé : jeton d'administration absent ou invalide.")
+            return False
+        return True
+
 # --------------------------------------------------------------------------- #
 # Résolution des codes nationaux
 # --------------------------------------------------------------------------- #

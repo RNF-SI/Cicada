@@ -115,3 +115,9 @@ REST_FRAMEWORK = {
 # Vide = aucune mise à jour annoncée (plutôt qu'une valeur fictive, qui faisait
 # signaler une « mise à jour disponible » à toutes les instances).
 LATEST_VERSION = config('LATEST_VERSION', default='')
+
+# Hub d'exploration fédérée (#696) : l'API de suivi enrôle les instances dont
+# l'adhésion est acceptée dans l'admin. HUB_ADMIN_TOKEN est le même que celui du
+# hub ; vides = l'acceptation échoue avec un message clair (rien n'est enrôlé).
+HUB_URL = config('HUB_URL', default='')
+HUB_ADMIN_TOKEN = config('HUB_ADMIN_TOKEN', default='')

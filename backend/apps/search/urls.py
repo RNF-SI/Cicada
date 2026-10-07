@@ -4,6 +4,9 @@ from django.urls import include, path
 from rest_framework.routers import DefaultRouter
 
 from .distant import EcransDistantsView
+from .views_raccordement import (
+    RaccordementAdhesionView, RaccordementVerifierView, RaccordementView,
+)
 from .views import (
     ExplorationContenuViewSet, ExplorationPlanViewSet, FederationDocumentViewSet,
     InstancesExplorationView,
@@ -28,4 +31,15 @@ urlpatterns = [
     path('distant/<str:reference>/<path:chemin>', EcransDistantsView.as_view(),
          name='exploration-distant'),
     path('', include(router.urls)),
+]
+
+#: Monté sous `/api/federation/` (cf. `config/urls.py`) : le raccordement au
+#: hub n'est pas de l'exploration, et ce préfixe est celui des échanges avec le
+#: hub — côté hub comme ici (#696, #698).
+federation_urlpatterns = [
+    path('raccordement/', RaccordementView.as_view(), name='federation-raccordement'),
+    path('raccordement/verifier/', RaccordementVerifierView.as_view(),
+         name='federation-raccordement-verifier'),
+    path('raccordement/adhesion/', RaccordementAdhesionView.as_view(),
+         name='federation-raccordement-adhesion'),
 ]

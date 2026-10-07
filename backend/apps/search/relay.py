@@ -31,6 +31,8 @@ from django.conf import settings
 from rest_framework import status
 from rest_framework.response import Response
 
+from .raccordement import hub_url, jeton_lecture, raccordement
+
 logger = logging.getLogger(__name__)
 
 #: L'exploration est une interface interactive : on préfère échouer vite plutôt
@@ -49,16 +51,20 @@ def relais_actif():
     servir une instance qui n'a rien déposé ; ici elle évite surtout un aller-
     retour réseau voué au 403.
 
-    Une requête de plus par recherche, sur une table à une ligne : négligeable
-    devant l'appel HTTP qu'elle conditionne.
+    Il faut aussi un **jeton de lecture effectif** (#696) — de l'environnement
+    ou d'une adhésion acceptée. Sans lui, le hub refuserait chaque recherche :
+    une instance installée avec le relais coché mais dont l'adhésion est encore
+    en attente doit explorer en local, pas afficher des erreurs.
+
+    Deux requêtes de plus par recherche, sur des tables à une ligne :
+    négligeable devant l'appel HTTP qu'elles conditionnent.
     """
     from .push import partage_active
 
-    return (
-        settings.CICADA_EXPLORATION_SOURCE == 'hub'
-        and bool(settings.CICADA_HUB_URL)
-        and partage_active()
-    )
+    if settings.CICADA_EXPLORATION_SOURCE != 'hub':
+        return False
+    ligne = raccordement()
+    return bool(hub_url(ligne) and jeton_lecture(ligne) and partage_active())
 
 
 def relayer(chemin, params=None):
@@ -70,12 +76,13 @@ def relayer(chemin, params=None):
     relais n'ait rien à traduire. Toute traduction ici serait un endroit de plus
     où les deux implémentations peuvent diverger.
     """
-    url = f"{settings.CICADA_HUB_URL}{chemin}"
+    ligne = raccordement()
+    url = f"{hub_url(ligne)}{chemin}"
     try:
         reponse = requests.get(
             url,
             params=dict(params.lists()) if hasattr(params, 'lists') else params,
-            headers={'X-Hub-Token': settings.CICADA_HUB_READ_TOKEN},
+            headers={'X-Hub-Token': jeton_lecture(ligne) or ''},
             timeout=DELAI,
         )
     except requests.RequestException as erreur:

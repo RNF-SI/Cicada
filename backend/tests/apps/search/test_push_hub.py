@@ -432,6 +432,7 @@ class TestRelais:
 
         settings.CICADA_EXPLORATION_SOURCE = 'hub'
         settings.CICADA_HUB_URL = 'http://hub:8000'
+        settings.CICADA_HUB_READ_TOKEN = 'jeton-lecture'
 
         with patch(
             'apps.search.relay.requests.get',
@@ -451,6 +452,7 @@ class TestRelais:
         """
         settings.CICADA_EXPLORATION_SOURCE = 'hub'
         settings.CICADA_HUB_URL = 'http://hub:8000'
+        settings.CICADA_HUB_READ_TOKEN = 'jeton-lecture'
         settings.CICADA_INSTANCE_ID = 'rnf'
 
         with patch('apps.search.relay.requests.get') as appel:
@@ -467,6 +469,7 @@ class TestRelais:
         """Une tuile servie par le hub porte déjà l'instance du plan."""
         settings.CICADA_EXPLORATION_SOURCE = 'hub'
         settings.CICADA_HUB_URL = 'http://hub:8000'
+        settings.CICADA_HUB_READ_TOKEN = 'jeton-lecture'
         settings.CICADA_INSTANCE_ID = 'rnf'
 
         with patch('apps.search.relay.requests.get') as appel:

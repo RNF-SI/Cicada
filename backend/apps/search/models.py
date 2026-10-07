@@ -338,3 +338,135 @@ class ContenuIndexe(models.Model):
 
     def __str__(self):
         return f"[{self.type_contenu}] {self.titre}"
+
+
+class RaccordementHub(models.Model):
+    """
+    Raccordement de cette instance au hub d'exploration, obtenu par adhésion (#696).
+
+    **Singleton** (une seule ligne, `pk=1`) : une instance a un seul hub, celui
+    de RNF. La ligne n'existe que si une adhésion a été demandée — une instance
+    raccordée « à la main » par ses variables d'environnement n'en a pas besoin.
+
+    ## Pourquoi les jetons sont tirés ici
+
+    Le jeton du hub **ne voyage jamais** : l'instance tire elle-même ses deux
+    jetons, n'en transmet que les empreintes SHA-256 (via l'API de suivi), et
+    le hub n'enregistre que ces empreintes. Ni RNF, ni le suivi, ni le réseau ne
+    voient passer un secret utilisable. La contrepartie est qu'ils doivent être
+    conservés ici, d'où le chiffrement (cf. `apps.search.raccordement`) : une
+    copie de la base ne suffit pas à publier au nom de la structure, il faut
+    aussi la `SECRET_KEY`.
+    """
+
+    STATUT_AUCUNE = ''
+    STATUT_EN_ATTENTE = 'en_attente'
+    STATUT_ACCEPTEE = 'acceptee'
+    STATUT_REFUSEE = 'refusee'
+    STATUT_CHOICES = [
+        (STATUT_AUCUNE, _("Aucune demande")),
+        (STATUT_EN_ATTENTE, _("En attente")),
+        (STATUT_ACCEPTEE, _("Acceptée")),
+        (STATUT_REFUSEE, _("Refusée")),
+    ]
+
+    jeton_depot_chiffre = models.TextField(_("Jeton de dépôt (chiffré)"), blank=True, default='')
+    jeton_lecture_chiffre = models.TextField(_("Jeton de lecture (chiffré)"), blank=True, default='')
+
+    adhesion_statut = models.CharField(
+        _("Statut de l'adhésion"), max_length=20, blank=True, default='',
+        choices=STATUT_CHOICES,
+    )
+    adhesion_code = models.CharField(
+        _("Code de vérification"), max_length=7, blank=True, default='',
+        help_text=_(
+            "Comparé de vive voix avec RNF avant acceptation : il lie le jeton "
+            "de suivi de l'instance, son identifiant et les empreintes de ses "
+            "jetons, et déjoue une demande faite au nom d'une autre structure."
+        ),
+    )
+    adhesion_instance_id = models.CharField(
+        _("Identifiant proposé"), max_length=50, blank=True, default='',
+    )
+    adhesion_demandee_le = models.DateTimeField(_("Demandée le"), null=True, blank=True)
+    adhesion_actualisee_le = models.DateTimeField(_("Actualisée le"), null=True, blank=True)
+    adhesion_motif = models.TextField(_("Motif du refus"), blank=True, default='')
+    hub_url = models.CharField(
+        _("URL du hub"), max_length=500, blank=True, default='',
+        help_text=_("Reçue du suivi à l'acceptation de l'adhésion."),
+    )
+
+    class Meta:
+        db_table = '"ccd_search"."t_raccordement_hub"'
+        verbose_name = _("Raccordement au hub")
+        verbose_name_plural = _("Raccordement au hub")
+
+    def save(self, *args, **kwargs):
+        self.pk = 1
+        super().save(*args, **kwargs)
+
+    @classmethod
+    def charger(cls):
+        """La ligne unique, ou une instance vierge non enregistrée."""
+        return cls.objects.filter(pk=1).first() or cls(pk=1)
+
+    def __str__(self):
+        return f"Raccordement au hub ({self.adhesion_statut or 'aucune demande'})"
+
+
+class PublicationHub(models.Model):
+    """
+    Historique des publications vers le hub (#698).
+
+    La publication de nuit tourne sans témoin : sans trace consultable, une
+    instance peut cesser de publier pendant des semaines sans que personne ne
+    s'en aperçoive — et ses plans vieillir sur le hub. On ne garde que les
+    dernières (`CONSERVATION`) : c'est un tableau de bord, pas un journal d'audit.
+    """
+
+    CONSERVATION = 50
+
+    ORIGINE_NUIT = 'nuit'
+    ORIGINE_MANUELLE = 'manuelle'
+    ORIGINE_CHOICES = [
+        (ORIGINE_NUIT, _("Publication de nuit")),
+        (ORIGINE_MANUELLE, _("Publication manuelle")),
+    ]
+
+    RESULTAT_REUSSIE = 'reussie'
+    RESULTAT_ECHEC = 'echec'
+    RESULTAT_IGNOREE = 'ignoree'
+    RESULTAT_CHOICES = [
+        (RESULTAT_REUSSIE, _("Réussie")),
+        (RESULTAT_ECHEC, _("Échec")),
+        (RESULTAT_IGNOREE, _("Ignorée")),
+    ]
+
+    date = models.DateTimeField(_("Date"), auto_now_add=True, db_index=True)
+    origine = models.CharField(_("Origine"), max_length=10, choices=ORIGINE_CHOICES)
+    resultat = models.CharField(_("Résultat"), max_length=10, choices=RESULTAT_CHOICES)
+    plans = models.PositiveIntegerField(_("Plans publiés"), default=0)
+    documents = models.PositiveIntegerField(_("Documents publiés"), default=0)
+    depublies = models.PositiveIntegerField(_("Plans dépubliés"), default=0)
+    message = models.CharField(_("Message"), max_length=500, blank=True, default='')
+
+    class Meta:
+        db_table = '"ccd_search"."t_publication_hub"'
+        verbose_name = _("Publication vers le hub")
+        verbose_name_plural = _("Publications vers le hub")
+        ordering = ['-date', '-id']
+
+    @classmethod
+    def enregistrer(cls, origine, resultat, plans=0, documents=0, depublies=0, message=''):
+        """Ajoute une entrée et purge au-delà des `CONSERVATION` dernières."""
+        entree = cls.objects.create(
+            origine=origine, resultat=resultat, plans=plans or 0,
+            documents=documents or 0, depublies=depublies or 0,
+            message=(message or '')[:500],
+        )
+        anciennes = cls.objects.order_by('-date', '-id').values_list('pk', flat=True)[cls.CONSERVATION:]
+        cls.objects.filter(pk__in=list(anciennes)).delete()
+        return entree
+
+    def __str__(self):
+        return f"{self.date:%Y-%m-%d %H:%M} {self.origine} {self.resultat}"

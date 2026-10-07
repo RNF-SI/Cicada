@@ -1,0 +1,168 @@
+@import 'variables';
+
+.raccordement {
+  margin-top: $spacing-lg;
+  padding-top: $spacing-lg;
+  border-top: $border-width solid $gray-light;
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-sm;
+}
+
+.raccordement-titre {
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+  margin: 0;
+  font-size: $font-size-h4;
+  font-weight: $font-weight-bold;
+  color: $primary-color;
+}
+
+.raccordement-sous-titre {
+  margin: $spacing-md 0 0;
+  font-size: $font-size-base;
+  font-weight: $font-weight-bold;
+  color: $black;
+}
+
+.raccordement-chargement {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+}
+
+.raccordement-diagnostic .info-block-content-text {
+  color: $black;
+}
+
+// Liste libellé / valeur sur deux colonnes, repliée sur mobile.
+.raccordement-config {
+  display: grid;
+  grid-template-columns: minmax(180px, max-content) 1fr;
+  gap: $spacing-xs $spacing-md;
+  margin: 0;
+
+  dt {
+    color: $gray-dark;
+  }
+
+  dd {
+    margin: 0;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: $spacing-xs;
+    color: $black;
+    word-break: break-word;
+  }
+
+  code {
+    font-family: monospace;
+  }
+
+  @media (max-width: $breakpoint-tablet) {
+    grid-template-columns: 1fr;
+
+    dd {
+      margin-bottom: $spacing-xs;
+    }
+  }
+}
+
+.raccordement-verification {
+  margin-top: $spacing-sm;
+}
+
+.raccordement-adhesion {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: $spacing-xs;
+
+  p {
+    margin: 0;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: $spacing-xs;
+  }
+}
+
+// Le code est dicté au téléphone à RNF : grand, espacé, police à chasse fixe
+// (pas de confusion 0/O, 1/I) et sélectionnable d'un geste.
+.code-verification {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: $spacing-md;
+  margin: $spacing-xs 0;
+}
+
+.code-verification-valeur {
+  font-family: monospace;
+  font-size: $font-size-h2;
+  font-weight: $font-weight-bold;
+  letter-spacing: 0.15em;
+  color: $primary-color;
+  background-color: $beige;
+  border: $border-width solid $gray-light;
+  border-radius: $border-radius-md;
+  padding: $spacing-xs $spacing-md;
+  user-select: all;
+}
+
+.raccordement-erreur-suivi,
+.raccordement-erreur-verification {
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+  color: $black;
+  margin: $spacing-xs 0 0;
+
+  i.fi {
+    color: $error-color;
+  }
+}
+
+.bouton-spinner {
+  display: inline-block;
+  margin-right: $spacing-xs;
+}
+
+button i.fi {
+  margin-right: $spacing-xxs;
+  vertical-align: middle;
+}
+
+.publications-wrapper {
+  overflow-x: auto;
+}
+
+.publications-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: $font-size-small;
+
+  th,
+  td {
+    padding: $spacing-xs $spacing-sm;
+    text-align: left;
+    border-bottom: $border-width solid $gray-light;
+    color: $black;
+  }
+
+  th {
+    font-weight: $font-weight-bold;
+    background-color: $gray-lightest;
+  }
+
+  .num {
+    text-align: right;
+    white-space: nowrap;
+  }
+
+  .message {
+    color: $gray-dark;
+  }
+}
