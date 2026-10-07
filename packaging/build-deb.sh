@@ -53,6 +53,16 @@ fi
 sed -i "s|TRACKING_API_URL=.*|TRACKING_API_URL=${TRACKING_API_URL_FIXED}|" \
     "$BUILD_DIR/${PACKAGE_NAME}/etc/cicada/cicada.conf"
 
+# Injecter l'URL du hub d'exploration fédérée : il n'y en a qu'un, hébergé par
+# RNF, d'où une valeur gravée dans le paquet plutôt que saisie à chaque
+# installation (le formulaire la pré-remplit ; un hub de test s'y saisit).
+HUB_URL_FIXED="${HUB_URL:-https://hub.cicada.reserves-naturelles.org}"
+if [[ ! "$HUB_URL_FIXED" =~ ^https?:// ]]; then
+    HUB_URL_FIXED="https://${HUB_URL_FIXED}"
+fi
+sed -i "s|^HUB_URL=.*|HUB_URL=${HUB_URL_FIXED%/}|" \
+    "$BUILD_DIR/${PACKAGE_NAME}/etc/cicada/cicada.conf"
+
 # Dépôt APT de CICADA : le paquet apporte lui-même la source et la clé publique
 # (comme le font Chrome ou VS Code). Une instance installée ou mise à jour par
 # ce paquet reçoit donc les versions suivantes par apt — et par le bouton

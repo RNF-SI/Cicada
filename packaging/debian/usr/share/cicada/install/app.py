@@ -3,7 +3,7 @@
 Application Flask pour l'installation de CICADA
 """
 from flask import Flask, Response, render_template, request, jsonify
-from install_service import InstallService
+from install_service import InstallService, get_hub_url
 
 app = Flask(__name__)
 install_service = InstallService()
@@ -13,7 +13,7 @@ install_service = InstallService()
 def index():
     if install_service.is_installed():
         return "Installation déjà effectuée. Accédez à votre application.", 403
-    return render_template('install.html')
+    return render_template('install.html', hub_url=get_hub_url())
 
 
 @app.route('/api/install', methods=['POST'])

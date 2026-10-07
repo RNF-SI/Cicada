@@ -23,9 +23,11 @@ jobs:
           cd packaging
           VERSION="${{ steps.version.outputs.version }}" \
           TRACKING_API_URL="${TRACKING_API_URL:-https://tracking.cicada.reserves-naturelles.org/api}" \
+          HUB_URL="${HUB_URL:-https://hub.cicada.reserves-naturelles.org}" \
           ./build-deb.sh
         env:
           TRACKING_API_URL: "https://tracking.cicada.reserves-naturelles.org/api"
+          HUB_URL: "https://hub.cicada.reserves-naturelles.org"
 
       - name: Upload package artifact
         uses: actions/upload-artifact@v4

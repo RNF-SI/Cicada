@@ -59,7 +59,18 @@ services:
       - CICADA_HUB_READ_TOKEN=${CICADA_HUB_READ_TOKEN:-}
       - CICADA_EXPLORATION_SOURCE=${CICADA_EXPLORATION_SOURCE:-local}
       - CICADA_HUB_PUSH_AUTO=${CICADA_HUB_PUSH_AUTO:-true}
+      # --- API de suivi RNF (#696) ---
+      # Sans ces deux lignes, ni l'URL de l'API de suivi ni le jeton de
+      # l'instance n'atteignaient le conteneur : l'encart RGPD de la page
+      # système (`get_rgpd_info()`) échouait en silence, et la demande
+      # d'adhésion à l'exploration nationale serait impossible. L'URL est
+      # écrite dans /var/lib/cicada/.env par l'installeur.
+      - TRACKING_API_URL=${TRACKING_API_URL:-}
     volumes:
+      # #696 — jeton de l'instance auprès de l'API de suivi (créé par le
+      # postinst avant le premier démarrage), en lecture seule : il authentifie
+      # la demande d'adhésion au hub et la lecture des infos RGPD.
+      - /etc/cicada/instance_token:/etc/cicada/instance_token:ro
       - media_files:/app/media
       - static_files:/app/static
       # #384 — bind-mount des logs sur l'hôte (/var/log/cicada) pour qu'ils
@@ -134,7 +145,18 @@ services:
       - CICADA_HUB_READ_TOKEN=${CICADA_HUB_READ_TOKEN:-}
       - CICADA_EXPLORATION_SOURCE=${CICADA_EXPLORATION_SOURCE:-local}
       - CICADA_HUB_PUSH_AUTO=${CICADA_HUB_PUSH_AUTO:-true}
+      # --- API de suivi RNF (#696) ---
+      # Sans ces deux lignes, ni l'URL de l'API de suivi ni le jeton de
+      # l'instance n'atteignaient le conteneur : l'encart RGPD de la page
+      # système (`get_rgpd_info()`) échouait en silence, et la demande
+      # d'adhésion à l'exploration nationale serait impossible. L'URL est
+      # écrite dans /var/lib/cicada/.env par l'installeur.
+      - TRACKING_API_URL=${TRACKING_API_URL:-}
     volumes:
+      # #696 — jeton de l'instance auprès de l'API de suivi (créé par le
+      # postinst avant le premier démarrage), en lecture seule : il authentifie
+      # la demande d'adhésion au hub et la lecture des infos RGPD.
+      - /etc/cicada/instance_token:/etc/cicada/instance_token:ro
       - media_files:/app/media
       # #384 — bind-mount des logs sur l'hôte (/var/log/cicada) pour qu'ils
       # soient consultables directement sur le serveur (le conteneur écrit dans
@@ -166,7 +188,18 @@ services:
       - CELERY_BROKER_URL=redis://:${REDIS_PASSWORD}@redis:6379/0
       - CELERY_RESULT_BACKEND=redis://:${REDIS_PASSWORD}@redis:6379/0
       - DJANGO_SETTINGS_MODULE=config.settings.production
+      # --- API de suivi RNF (#696) ---
+      # Sans ces deux lignes, ni l'URL de l'API de suivi ni le jeton de
+      # l'instance n'atteignaient le conteneur : l'encart RGPD de la page
+      # système (`get_rgpd_info()`) échouait en silence, et la demande
+      # d'adhésion à l'exploration nationale serait impossible. L'URL est
+      # écrite dans /var/lib/cicada/.env par l'installeur.
+      - TRACKING_API_URL=${TRACKING_API_URL:-}
     volumes:
+      # #696 — jeton de l'instance auprès de l'API de suivi (créé par le
+      # postinst avant le premier démarrage), en lecture seule : il authentifie
+      # la demande d'adhésion au hub et la lecture des infos RGPD.
+      - /etc/cicada/instance_token:/etc/cicada/instance_token:ro
       # #384 — bind-mount des logs sur l'hôte (/var/log/cicada) pour qu'ils
       # soient consultables directement sur le serveur (le conteneur écrit dans
       # /app/logs ; le dossier hôte est créé par le postinst, conteneur=root).

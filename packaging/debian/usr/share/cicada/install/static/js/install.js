@@ -504,6 +504,7 @@ function toggleFederationFields() {
     const enabled = document.getElementById('federation_enabled');
     const fields = document.getElementById('federation_fields');
     const instanceId = document.getElementById('federation_instance_id');
+    const instanceLabel = document.getElementById('federation_instance_label');
     const hubUrl = document.getElementById('federation_hub_url');
     const pushToken = document.getElementById('federation_push_token');
     const readToken = document.getElementById('federation_read_token');
@@ -513,14 +514,20 @@ function toggleFederationFields() {
     if (enabled.checked) {
         fields.classList.remove('hidden');
         if (instanceId) instanceId.required = true;
-        if (hubUrl) hubUrl.required = true;
-        if (pushToken) pushToken.required = true;
-        // Le jeton de lecture n'est exigé que pour relayer l'exploration :
-        // une instance peut publier sans lire.
-        if (readToken) readToken.required = !!(relay && relay.checked);
+        if (hubUrl) {
+            hubUrl.required = true;
+            // Décocher vide les champs : recocher rend l'URL du hub RNF.
+            if (!hubUrl.value && hubUrl.dataset.default) hubUrl.value = hubUrl.dataset.default;
+        }
+        if (instanceLabel) instanceLabel.required = true;
+        // Jetons facultatifs (#696) : par défaut l'adhésion se demande depuis
+        // l'application une fois installée. Le jeton de lecture n'est exigé
+        // que si un jeton de dépôt est saisi ET l'exploration relayée.
+        if (pushToken) pushToken.required = false;
+        if (readToken) readToken.required = !!(relay && relay.checked && pushToken && pushToken.value.trim());
     } else {
         fields.classList.add('hidden');
-        [instanceId, hubUrl, pushToken, readToken].forEach(function (champ) {
+        [instanceId, instanceLabel, hubUrl, pushToken, readToken].forEach(function (champ) {
             if (champ) { champ.required = false; champ.value = ''; }
         });
         if (relay) relay.checked = false;

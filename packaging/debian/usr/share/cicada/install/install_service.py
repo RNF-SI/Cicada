@@ -26,6 +26,27 @@ def get_tracking_api_url():
     return 'https://tracking.cicada.reserves-naturelles.org/api'
 
 
+DEFAULT_HUB_URL = 'https://hub.cicada.reserves-naturelles.org'
+
+
+def get_hub_url():
+    """URL du hub d'exploration fédérée proposée par défaut dans le formulaire :
+    variable d'environnement HUB_URL (surcharge : tests, dev), sinon
+    /etc/cicada/cicada.conf, sinon défaut. Il n'y a qu'un hub, hébergé par RNF.
+
+    cicada.conf est un conffile : une instance installée avant l'ajout de la
+    clé garde son ancien fichier, d'où le repli plutôt qu'une erreur."""
+    import configparser
+
+    if os.environ.get('HUB_URL'):
+        return os.environ['HUB_URL'].rstrip('/')
+    if os.path.exists('/etc/cicada/cicada.conf'):
+        config = configparser.ConfigParser()
+        config.read('/etc/cicada/cicada.conf')
+        return config.get('CICADA', 'HUB_URL', fallback=DEFAULT_HUB_URL).rstrip('/')
+    return DEFAULT_HUB_URL
+
+
 class InstallService:
     def __init__(self):
         self.status_file = Path("/var/lib/cicada/install_status.json")
@@ -181,12 +202,19 @@ class InstallService:
                 )
             if not data.get('federation_hub_url'):
                 errors.append("L'URL du hub est requise pour rejoindre l'exploration fédérée.")
-            if not data.get('federation_push_token'):
-                errors.append("Le jeton de dépôt est requis pour rejoindre l'exploration fédérée.")
-            if data.get('federation_relay') and not data.get('federation_read_token'):
+            # Les jetons sont FACULTATIFS (#696) : le cas courant est de les
+            # laisser vides et de demander l'adhésion depuis Administration >
+            # Paramètres, une fois l'installation terminée. L'instance tire
+            # alors elle-même ses jetons et n'en envoie que les empreintes : le
+            # jeton du hub ne voyage jamais. Ils ne se saisissent ici que si RNF
+            # les a remis (raccordement manuel, banc d'essai).
+            # Seule exigence : un jeton de dépôt saisi pour relayer l'exploration
+            # sans jeton de lecture produirait un relais voué au refus du hub.
+            if (data.get('federation_push_token') and data.get('federation_relay')
+                    and not data.get('federation_read_token')):
                 errors.append(
                     "Le jeton de lecture est requis pour que l'exploration soit "
-                    "servie par le hub."
+                    "servie par le hub, dès lors qu'un jeton de dépôt est saisi."
                 )
         return errors
 
