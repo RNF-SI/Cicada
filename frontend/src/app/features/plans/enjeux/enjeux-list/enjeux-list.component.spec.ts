@@ -3,7 +3,7 @@ import { join } from 'path';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { HttpClientTestingModule } from '@angular/common/http/testing';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
-import { ActivatedRoute, Router } from '@angular/router';
+import { ActivatedRoute, Router, convertToParamMap } from '@angular/router';
 import { RouterTestingModule } from '@angular/router/testing';
 import { MatDialog, MatDialogRef } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
@@ -356,6 +356,8 @@ describe('EnjeuxListComponent', () => {
         },
       },
       params: routeParamsSubject.asObservable(),
+      // #681 — le composant lit `?q=` (mot cherché à surligner).
+      queryParamMap: of(convertToParamMap({})),
       fragment: of(null),
     };
 
@@ -2451,6 +2453,7 @@ describe('EnjeuxListComponent', () => {
               snapshot: { paramMap: { get: () => null } },
               parent: { snapshot: { paramMap: { get: (key: string) => key === 'slug' ? 'plan-test' : null } } },
               params: routeParamsSubject.asObservable(),
+              queryParamMap: of(convertToParamMap({})),
               fragment: of(null),
             }
           },
@@ -2865,6 +2868,7 @@ describe('EnjeuxListComponent — partage/copie d\'une action (#585)', () => {
           useValue: {
             params: of({}),
             queryParams: of({}),
+            queryParamMap: of(convertToParamMap({})),
             fragment: of(null),
             snapshot: { paramMap: new Map(), queryParamMap: new Map() },
             parent: { params: of({ slug: 'plan-test' }), snapshot: { paramMap: new Map() } },
@@ -3013,6 +3017,7 @@ describe('EnjeuxListComponent — déplacement d\'une action entre indicateurs (
           useValue: {
             params: of({}),
             queryParams: of({}),
+            queryParamMap: of(convertToParamMap({})),
             fragment: of(null),
             snapshot: { paramMap: new Map(), queryParamMap: new Map() },
             parent: { params: of({ slug: 'plan-test' }), snapshot: { paramMap: new Map() } },
@@ -3230,6 +3235,7 @@ describe('EnjeuxListComponent — partage d\'un résultat attendu (#585)', () =>
           useValue: {
             params: of({}),
             queryParams: of({}),
+            queryParamMap: of(convertToParamMap({})),
             fragment: of(null),
             snapshot: { paramMap: new Map(), queryParamMap: new Map() },
             parent: { params: of({ slug: 'plan-test' }), snapshot: { paramMap: new Map() } },
@@ -3433,6 +3439,7 @@ describe('EnjeuxListComponent — partage d\'un indicateur (#585)', () => {
           useValue: {
             params: of({}),
             queryParams: of({}),
+            queryParamMap: of(convertToParamMap({})),
             fragment: of(null),
             snapshot: { paramMap: new Map(), queryParamMap: new Map() },
             parent: { params: of({ slug: 'plan-test' }), snapshot: { paramMap: new Map() } },

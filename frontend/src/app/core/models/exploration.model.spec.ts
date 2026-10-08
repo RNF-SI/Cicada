@@ -43,10 +43,11 @@ describe('segmenterSurTerme', () => {
     );
   });
 
-  it('surligne un début de mot', () => {
+  it('surligne le mot entier dont le terme est le début', () => {
     // La radicalisation fait correspondre « roseli » à « roselières » : exiger
-    // une égalité exacte ne surlignerait presque jamais rien.
-    expect(rendu('Les roselières du lac', 'roseli')).toBe('Les [roseli]ères du lac');
+    // une égalité exacte ne surlignerait presque jamais rien. Le surlignage
+    // couvre le mot qui a répondu, pas seulement le préfixe tapé (#681).
+    expect(rendu('Les roselières du lac', 'roseli')).toBe('Les [roselières] du lac');
   });
 
   it('ne surligne pas au milieu d’un mot', () => {

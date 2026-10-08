@@ -151,9 +151,32 @@ class TestPlanContentIsolation:
         assert response.status_code == status.HTTP_200_OK
         assert response.data['results'] == []
 
-    def test_utilisateur_sans_lien_ne_voit_pas_le_plan(self, plan_read_access_data):
+    def test_utilisateur_sans_lien_ne_lit_le_plan_valide_qu_en_exploration(
+        self, plan_read_access_data
+    ):
+        """
+        #683 — un plan **validé** s'ouvre à tout utilisateur connecté depuis
+        l'exploration, mais en lecture élaguée : marquée `acces_exploration` et
+        sans les données sensibles (personnes, fichiers, budget…). Ce test
+        attendait un 403 d'avant #683 ; c'est l'élagage qui protège désormais.
+        """
+        from apps.plans.exploration import CLES_SENSIBLES
+
         plan = plan_read_access_data['plan']
         plan.statut = 'valide'
+        plan.save(update_fields=['statut'])
+
+        response = _client(plan_read_access_data['etranger']).get(
+            f'/api/plans/plans/by-slug/{plan.slug}/'
+        )
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data.get('acces_exploration') is True
+        assert not CLES_SENSIBLES & set(response.data)
+
+    def test_utilisateur_sans_lien_ne_voit_pas_un_brouillon(self, plan_read_access_data):
+        """Hors plan validé, la lecture d'exploration ne s'applique pas : 403."""
+        plan = plan_read_access_data['plan']
+        plan.statut = 'draft'
         plan.save(update_fields=['statut'])
 
         response = _client(plan_read_access_data['etranger']).get(
