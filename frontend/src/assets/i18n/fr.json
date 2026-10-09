@@ -3773,6 +3773,17 @@
         "enfants": "enfants"
       }
     },
+    "perimetreNational": {
+      "nationale": "Cette recherche porte sur les plans de gestion de toutes les structures participantes.",
+      "nationaleDetail": "Cette recherche porte sur les plans de gestion de {{count}} structures participantes.",
+      "locale": {
+        "title": "Vous n'explorez que les plans de votre structure.",
+        "incitation": "Si votre structure partageait ses plans de gestion validés, vous auriez accès à ceux de toutes les structures raccordées à l'exploration nationale.",
+        "rassurance": "Le budget, les moyens humains, le suivi des réalisations et les personnes ne sont jamais partagés.",
+        "activer": "Activer le partage",
+        "contactAdmin": "Parlez-en à l'administrateur de votre instance."
+      }
+    },
     "chemin": {
       "enjeu": "Enjeu",
       "facteur": "Facteur d'influence",

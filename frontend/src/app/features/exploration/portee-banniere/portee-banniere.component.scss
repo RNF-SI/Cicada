@@ -1,0 +1,104 @@
+@import 'variables';
+
+:host {
+  display: block;
+}
+
+/* Partage actif : un cadrage, pas une alerte — ton discret. */
+.portee-nationale {
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+  margin: 0;
+  color: $gray-dark;
+  font-size: $font-size-small;
+
+  &--centre {
+    justify-content: center;
+    max-width: 640px;
+    margin: 0 auto;
+    text-align: center;
+  }
+
+  i {
+    flex-shrink: 0;
+    color: $primary-color;
+  }
+}
+
+/* Partage inactif : info-block du design system (fond beige), texte noir
+   pour rester AA. Aligné à gauche même dans le bandeau centré de l'accueil :
+   un paragraphe de trois phrases centré se lit mal. */
+.portee-locale {
+  align-items: flex-start;
+  margin: 0;
+  text-align: left;
+  color: $black;
+
+  &--centre {
+    max-width: 720px;
+    margin: 0 auto;
+  }
+}
+
+.portee-locale-icone {
+  flex-shrink: 0;
+  color: $primary-color;
+  font-size: $font-size-h4;
+  line-height: 1;
+  margin-top: 2px;
+}
+
+.portee-locale-corps {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-xs;
+  min-width: 0;
+}
+
+.portee-locale-titre {
+  margin: 0;
+  font-weight: $font-weight-bold;
+  color: $black;
+}
+
+.portee-locale-texte {
+  margin: 0;
+  color: $black;
+  font-size: $font-size-small;
+}
+
+.portee-locale-rassurance {
+  display: flex;
+  align-items: flex-start;
+  gap: $spacing-xs;
+
+  i {
+    flex-shrink: 0;
+    margin-top: 2px;
+    color: $primary-color;
+  }
+}
+
+/* Bouton primaire (fond primary, texte blanc). */
+.portee-locale-action {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: $spacing-xs;
+  margin-top: $spacing-xxs;
+  padding: $spacing-xs $spacing-md;
+  border-radius: $border-radius-pill;
+  background-color: $primary-color;
+  color: $white;
+  font-size: $font-size-small;
+  font-weight: $font-weight-bold;
+  text-decoration: none;
+  transition: background-color $transition-fast;
+
+  &:hover,
+  &:focus-visible {
+    background-color: $primary-hover;
+    color: $white;
+  }
+}

@@ -85,6 +85,10 @@
       </form>
     </section>
 
+    <!-- #636 — Portée de la recherche, rappelée en permanence pendant la
+         recherche : sans partage, le corpus se limite à cette structure. -->
+    <app-portee-banniere class="exploration-perimetre-national"></app-portee-banniere>
+
     <!-- Puces de filtres actifs -->
     @if (puces().length) {
       <div class="exploration-puces" data-testid="exploration-puces">

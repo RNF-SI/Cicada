@@ -1,0 +1,45 @@
+@if (partageActif()) {
+  <p
+    class="portee-nationale"
+    [class.portee-nationale--centre]="alignement() === 'centre'"
+    data-testid="exploration-perimetre-national">
+    <i class="fi fi-rr-globe" aria-hidden="true"></i>
+    <span>{{ cleNationale() | translate: { count: nombreStructures() } }}</span>
+  </p>
+} @else {
+  <!-- Permanent et non refermable : l'utilisateur doit savoir, à chaque
+       recherche, que le corpus se limite à sa structure. -->
+  <section
+    class="info-block portee-locale"
+    [class.portee-locale--centre]="alignement() === 'centre'"
+    role="note"
+    data-testid="exploration-perimetre-local">
+    <i class="fi fi-rr-home portee-locale-icone" aria-hidden="true"></i>
+    <div class="portee-locale-corps">
+      <p class="portee-locale-titre">
+        {{ 'exploration.perimetreNational.locale.title' | translate }}
+      </p>
+      <p class="portee-locale-texte">
+        {{ 'exploration.perimetreNational.locale.incitation' | translate }}
+      </p>
+      <p class="portee-locale-texte portee-locale-rassurance">
+        <i class="fi fi-rr-lock" aria-hidden="true"></i>
+        <span>{{ 'exploration.perimetreNational.locale.rassurance' | translate }}</span>
+      </p>
+      @if (peutActiver()) {
+        <a
+          class="portee-locale-action"
+          routerLink="/administration/parametres"
+          [queryParams]="{ onglet: 'exploration' }"
+          data-testid="exploration-perimetre-activer">
+          <i class="fi fi-rr-settings" aria-hidden="true"></i>
+          {{ 'exploration.perimetreNational.locale.activer' | translate }}
+        </a>
+      } @else {
+        <p class="portee-locale-texte" data-testid="exploration-perimetre-contact">
+          {{ 'exploration.perimetreNational.locale.contactAdmin' | translate }}
+        </p>
+      }
+    </div>
+  </section>
+}

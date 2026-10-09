@@ -417,3 +417,9 @@
   box-shadow: 0 0 0 1px rgba($black, 0.08);
 }
 
+
+/* #636 — Portée de la recherche, sous le bandeau. */
+.exploration-perimetre-national {
+  display: block;
+  margin-top: $spacing-md;
+}

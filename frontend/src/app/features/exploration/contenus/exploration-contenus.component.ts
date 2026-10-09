@@ -28,6 +28,7 @@ import {
 import { HeaderComponent } from '../../../shared/components/header/header.component';
 import { criteresDepuisUrl, criteresVersUrl } from '../exploration-url';
 import { ExplorationFiltresComponent } from '../filtres/exploration-filtres.component';
+import { PorteeBanniereComponent } from '../portee-banniere/portee-banniere.component';
 
 /** Une puce de filtre actif, avec de quoi la retirer. */
 interface PuceFiltre {
@@ -84,8 +85,9 @@ const FRAGMENT_PAR_TYPE: Partial<Record<ExplorationType, string>> = {
     ExplorationFiltresComponent,
     FilterDropdownComponent,
     FilterOptionListComponent,
-    FilterPanelDirective
-],
+    FilterPanelDirective,
+    PorteeBanniereComponent,
+  ],
   templateUrl: './exploration-contenus.component.html',
   changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './exploration-contenus.component.scss',

@@ -253,22 +253,10 @@
   }
 }
 
-/* #636 — Portée de la recherche (nationale ou locale).
-   Placée juste sous le titre, avant le champ : c'est un cadrage, pas une
-   alerte — d'où un ton discret plutôt qu'un bandeau d'erreur. */
-.exploration-portee {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: $spacing-xs;
+/* #636 — Portée de la recherche (nationale ou locale), juste sous le titre,
+   avant le champ. Le rendu est porté par <app-portee-banniere>. */
+.exploration-perimetre-national {
+  position: relative;
+  z-index: 1;
   margin: 0 auto $spacing-md;
-  max-width: 640px;
-  color: $gray-dark;
-  font-size: 0.875rem;
-  text-align: center;
-
-  i {
-    flex-shrink: 0;
-    color: $primary-color;
-  }
 }

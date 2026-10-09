@@ -21,6 +21,7 @@ import {
 import { HeaderComponent } from '../../../shared/components/header/header.component';
 import { criteresDepuisUrl, criteresVersUrl } from '../exploration-url';
 import { ExplorationFiltresComponent } from '../filtres/exploration-filtres.component';
+import { PorteeBanniereComponent } from '../portee-banniere/portee-banniere.component';
 
 /**
  * Résultats du mode « rechercher un plan de gestion ».
@@ -41,8 +42,9 @@ import { ExplorationFiltresComponent } from '../filtres/exploration-filtres.comp
     ExplorationFiltresComponent,
     FilterDropdownComponent,
     FilterOptionListComponent,
-    FilterPanelDirective
-],
+    FilterPanelDirective,
+    PorteeBanniereComponent,
+  ],
   templateUrl: './exploration-plans.component.html',
   changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './exploration-plans.component.scss',
