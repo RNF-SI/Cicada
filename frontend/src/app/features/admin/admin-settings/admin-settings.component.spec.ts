@@ -1,8 +1,9 @@
 import { ComponentFixture, TestBed, fakeAsync, tick } from '@angular/core/testing';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { MatDialog } from '@angular/material/dialog';
 import { TranslateModule, TranslateLoader, TranslateService } from '@ngx-translate/core';
-import { BehaviorSubject, NEVER, of, throwError } from 'rxjs';
+import { BehaviorSubject, NEVER, Subject, of, throwError } from 'rxjs';
 import { signal, WritableSignal } from '@angular/core';
 import { ActivatedRoute, convertToParamMap, ParamMap, Router } from '@angular/router';
 
@@ -10,6 +11,7 @@ import { AdminSettingsComponent } from './admin-settings.component';
 import { SettingsService, SiteConfiguration } from '../../../core/services/settings.service';
 import { FederationRaccordementService } from '../../../core/services/federation-raccordement.service';
 import { AuthService } from '../../../core/services/auth.service';
+import { ConfirmDialogComponent } from '../../../shared/components/confirm-dialog/confirm-dialog.component';
 
 // Fake translate loader for tests
 class FakeTranslateLoader implements TranslateLoader {
@@ -37,6 +39,7 @@ describe('AdminSettingsComponent', () => {
   let fixture: ComponentFixture<AdminSettingsComponent>;
   let mockSettingsService: Partial<SettingsService>;
   let mockSnackBar: { open: jest.Mock };
+  let mockDialog: { open: jest.Mock };
   let translateService: TranslateService;
   let queryParamMap$: BehaviorSubject<ParamMap>;
   let mockRouter: { navigate: jest.Mock };
@@ -87,6 +90,7 @@ describe('AdminSettingsComponent', () => {
     mockSnackBar = {
       open: jest.fn()
     };
+    mockDialog = { open: jest.fn() };
 
     queryParamMap$ = new BehaviorSubject<ParamMap>(convertToParamMap({}));
     mockActivatedRoute = { queryParamMap: queryParamMap$ };
@@ -109,6 +113,7 @@ describe('AdminSettingsComponent', () => {
       providers: [
         { provide: SettingsService, useValue: mockSettingsService },
         { provide: MatSnackBar, useValue: mockSnackBar },
+        { provide: MatDialog, useValue: mockDialog },
         // #696 — le bloc de raccordement a sa propre spec : ici il reste muet.
         { provide: FederationRaccordementService, useValue: mockFederationService },
         // Le bloc du raccordement pré-remplit la demande d'adhésion avec l'utilisateur connecté.
@@ -120,6 +125,7 @@ describe('AdminSettingsComponent', () => {
 
     // Override provider for standalone component (must be before compileComponents)
     TestBed.overrideProvider(MatSnackBar, { useValue: mockSnackBar });
+    TestBed.overrideProvider(MatDialog, { useValue: mockDialog });
 
     await TestBed.compileComponents();
 
@@ -394,6 +400,83 @@ describe('AdminSettingsComponent', () => {
   // =============================================================================
   // #670 — MESURE D'AUDIENCE MATOMO
   // =============================================================================
+
+  describe('Partage avec l\'exploration nationale (#636)', () => {
+    const updateSettings = () => mockSettingsService.updateSettings as jest.Mock;
+    const lastFormData = (): FormData => updateSettings().mock.calls.at(-1)[0];
+
+    beforeEach(() => {
+      configSignal.set({ ...mockConfig, federation_partage: true });
+      fixture.detectChanges();
+    });
+
+    it('cocher enregistre directement, sans confirmation', () => {
+      configSignal.set({ ...mockConfig, federation_partage: false });
+      fixture.detectChanges();
+
+      component.onFederationPartageToggle(true);
+
+      expect(mockDialog.open).not.toHaveBeenCalled();
+      expect(lastFormData().get('federation_partage')).toBe('true');
+    });
+
+    it('décocher ouvre une confirmation destructive', () => {
+      mockDialog.open.mockReturnValue({ afterClosed: () => NEVER });
+
+      component.onFederationPartageToggle(false);
+
+      expect(mockDialog.open).toHaveBeenCalledWith(ConfirmDialogComponent, expect.objectContaining({
+        data: expect.objectContaining({
+          destructive: true,
+          message: 'admin.settings.federation.retrait.message',
+        }),
+      }));
+      expect(updateSettings()).not.toHaveBeenCalled();
+    });
+
+    it('annuler garde la case cochée et n\'envoie rien', () => {
+      const fermeture = new Subject<boolean | undefined>();
+      mockDialog.open.mockReturnValue({ afterClosed: () => fermeture });
+
+      component.onFederationPartageToggle(false);
+      fermeture.next(false);
+      fixture.detectChanges();
+
+      expect(updateSettings()).not.toHaveBeenCalled();
+      expect(component.federationPartage()).toBe(true);
+    });
+
+    it('fermer la fenêtre sans choisir vaut annulation', () => {
+      mockDialog.open.mockReturnValue({ afterClosed: () => of(undefined) });
+
+      component.onFederationPartageToggle(false);
+
+      expect(updateSettings()).not.toHaveBeenCalled();
+      expect(component.federationPartage()).toBe(true);
+    });
+
+    it('confirmer enregistre le retrait du partage', () => {
+      mockDialog.open.mockReturnValue({ afterClosed: () => of(true) });
+
+      component.onFederationPartageToggle(false);
+
+      expect(updateSettings()).toHaveBeenCalledTimes(1);
+      expect(lastFormData().get('federation_partage')).toBe('false');
+      expect(component.federationPartage()).toBe(false);
+      expect(mockSnackBar.open).toHaveBeenCalledWith(
+        'admin.settings.federation.messages.desactive', expect.anything(), expect.anything(),
+      );
+    });
+
+    it('un échec d\'enregistrement recoche la case', () => {
+      mockDialog.open.mockReturnValue({ afterClosed: () => of(true) });
+      updateSettings().mockReturnValue(throwError(() => new Error('500')));
+
+      component.onFederationPartageToggle(false);
+
+      expect(component.federationPartage()).toBe(true);
+    });
+  });
 
   describe('Matomo (#670)', () => {
     const lastFormData = (): FormData =>

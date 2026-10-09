@@ -19,6 +19,7 @@ export type CleDiagnostic =
   | 'adhesion_en_attente'
   | 'non_raccorde'
   | 'jeton_depot_absent'
+  | 'retrait_en_attente'
   | 'partage_inactif'
   | 'derniere_publication_echec'
   | 'aucune_publication'
@@ -71,8 +72,8 @@ export interface AdhesionHub {
 
 export interface PublicationHub {
   date: string;
-  origine: 'nuit' | 'manuelle';
-  resultat: 'reussie' | 'echec' | 'ignoree';
+  origine: 'nuit' | 'manuelle' | 'relance';
+  resultat: 'reussie' | 'echec' | 'ignoree' | 'retrait';
   plans: number;
   documents: number;
   depublies: number;

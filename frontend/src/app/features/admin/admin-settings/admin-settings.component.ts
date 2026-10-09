@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, signal, effect, computed, ChangeDetectionStrategy } from '@angular/core';
+import { Component, inject, OnInit, signal, effect, computed, viewChild, ChangeDetectionStrategy } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router } from '@angular/router';
 import { map } from 'rxjs';
@@ -7,6 +7,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatDialog } from '@angular/material/dialog';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatButtonToggleModule } from '@angular/material/button-toggle';
 import { MatTabsModule } from '@angular/material/tabs';
@@ -16,6 +17,7 @@ import { SettingsService, SiteConfiguration, ImagePosition } from '../../../core
 import { CheckboxComponent } from '../../../shared/components/checkbox/checkbox.component';
 import { FormFieldComponent } from '../../../shared/components/form-field/form-field.component';
 import { FederationRaccordementComponent } from './federation-raccordement/federation-raccordement.component';
+import { ConfirmDialogComponent, ConfirmDialogData } from '../../../shared/components/confirm-dialog/confirm-dialog.component';
 
 /**
  * Onglets thématiques de la page, dans l'ordre d'affichage. La valeur est
@@ -48,6 +50,7 @@ export type OngletParametres = (typeof ONGLETS_PARAMETRES)[number];
 export class AdminSettingsComponent implements OnInit {
   private readonly settingsService = inject(SettingsService);
   private readonly snackBar = inject(MatSnackBar);
+  private readonly dialog = inject(MatDialog);
   private readonly translate = inject(TranslateService);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
@@ -80,6 +83,8 @@ export class AdminSettingsComponent implements OnInit {
   readonly docGestionFcenEnabled = signal<boolean>(false);
   /** #636 — Participation à l'exploration nationale. Faux par défaut. */
   readonly federationPartage = signal<boolean>(false);
+  /** Encart du raccordement : rechargé après un changement de consentement. */
+  private readonly raccordement = viewChild(FederationRaccordementComponent);
   /** #645 — API ouverte des métadonnées des plans (GED tierce). Faux par défaut. */
   readonly apiPubliquePlans = signal<boolean>(false);
   /** #670 — Mesure d'audience Matomo, propre à l'instance. Désactivée par défaut. */
@@ -317,13 +322,46 @@ export class AdminSettingsComponent implements OnInit {
   /**
    * Active ou coupe le partage avec l'exploration nationale (#636).
    *
-   * Couper le partage n'efface pas ce qui a déjà été publié : le retrait des
-   * données déposées passe par `retrait_federation`, côté serveur. C'est
-   * délibéré — une case décochée par erreur ne doit pas détruire, en un clic,
-   * ce que la structure a mis des mois à publier.
+   * Couper le partage retire **immédiatement** les plans de la structure du
+   * hub, et avec eux l'accès aux plans des autres structures : le hub ne sert
+   * que les instances qui y publient. Le geste est réversible (recocher
+   * republie), mais ses effets sont immédiats — d'où la confirmation, qu'on
+   * ne demande pas pour activer.
    */
   onFederationPartageToggle(enabled: boolean): void {
+    // Suivre la case tout de suite : si la confirmation est annulée, repasser
+    // à vrai est alors un vrai changement, que la case reflète.
     this.federationPartage.set(enabled);
+    if (enabled) {
+      this.enregistrerPartage(true);
+      return;
+    }
+    const data: ConfirmDialogData = {
+      title: this.translate.instant('admin.settings.federation.retrait.titre'),
+      message: this.translate.instant('admin.settings.federation.retrait.message'),
+      confirmText: this.translate.instant('admin.settings.federation.retrait.confirmer'),
+      cancelText: this.translate.instant('common.actions.cancel'),
+      confirmColor: 'warn',
+      destructive: true,
+    };
+    this.dialog
+      .open<ConfirmDialogComponent, ConfirmDialogData, boolean>(ConfirmDialogComponent, {
+        width: '600px',
+        maxWidth: '95vw',
+        data,
+      })
+      .afterClosed()
+      .subscribe(confirme => {
+        if (confirme) {
+          this.enregistrerPartage(false);
+        } else {
+          // Annulé : rien n'est envoyé, la case redevient cochée.
+          this.federationPartage.set(true);
+        }
+      });
+  }
+
+  private enregistrerPartage(enabled: boolean): void {
     this.isSaving.set(true);
     const formData = new FormData();
     formData.append('federation_partage', String(enabled));
@@ -339,6 +377,9 @@ export class AdminSettingsComponent implements OnInit {
           this.translate.instant('common.actions.close'),
           { duration: 6000 },
         );
+        // Le retrait (ou la republication) a modifié l'historique et le
+        // diagnostic : un hub injoignable s'y signale par « retrait en attente ».
+        this.raccordement()?.charger();
       },
       error: () => {
         this.isSaving.set(false);

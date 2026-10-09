@@ -158,7 +158,16 @@ class SiteConfigurationView(APIView):
             context={'request': request}
         )
         update_serializer.is_valid(raise_exception=True)
+        partage_avant = config.federation_partage
         config = update_serializer.save(updated_by=request.user)
+
+        # #636 — Le consentement au partage n'est pas un simple booléen : le
+        # retirer retire les plans du hub (et donc l'accès à l'exploration
+        # nationale, que le hub réserve à qui publie) ; le redonner republie.
+        if partage_avant != config.federation_partage:
+            from apps.search.raccordement import consentement_modifie
+
+            consentement_modifie(partage_avant, config.federation_partage)
 
         # Return data with read serializer (relative URLs)
         return Response(SiteConfigurationSerializer(config, context={'request': request}).data)

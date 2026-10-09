@@ -36,6 +36,7 @@ une ligne de journal.
 
 import base64
 import hashlib
+import json
 import logging
 import re
 import secrets
@@ -413,7 +414,19 @@ def demander_adhesion(donnees=None):
     ligne.adhesion_contact_email = contact['contact_email']
     ligne.adhesion_code_expire_le = None
     ligne.hub_url = ''
+    ligne.retrait_en_attente = False
     ligne.save()
+    # Demander l'adhésion, c'est consentir au partage : rejoindre l'exploration
+    # nationale n'a de sens qu'en y versant ses plans (réciprocité). Le
+    # formulaire le dit avant l'envoi ; la case des paramètres en est le reflet,
+    # et la décocher reste possible à tout moment. Aucune publication n'est
+    # lancée ici : tant que l'adhésion n'est pas acceptée, il n'y a pas de jeton.
+    from apps.core.models import SiteConfiguration
+
+    configuration = SiteConfiguration.get_instance()
+    if not configuration.federation_partage:
+        configuration.federation_partage = True
+        configuration.save(update_fields=['federation_partage', 'updated_at'])
     logger.info("Demande d'adhésion au hub envoyée (instance « %s »).", settings.CICADA_INSTANCE_ID)
     return ligne
 
@@ -621,6 +634,164 @@ def verifier_hub():
 
 
 # --------------------------------------------------------------------------- #
+# Consentement au partage : retrait et republication
+# --------------------------------------------------------------------------- #
+
+#: Le retrait est déclenché depuis la page des paramètres : l'administrateur
+#: attend. Il ne fait que deux appels légers (ouvrir un lot, le basculer).
+DELAI_RETRAIT = 30
+
+
+def retirer_du_hub(origine=PublicationHub.ORIGINE_MANUELLE, hub=None, jeton=None):
+    """
+    Retire du hub **tous** les plans publiés par cette instance.
+
+    Un lot est ouvert puis basculé sans qu'aucun plan n'y soit déposé : le hub
+    purge alors tout ce qui n'a pas été revu, c'est-à-dire tout. Aucun endpoint
+    de suppression n'est nécessaire — le mécanisme d'état s'en charge, et il est
+    déjà éprouvé par chaque publication.
+
+    C'est aussi ce qui retire l'**accès** à l'exploration nationale : le hub ne
+    sert que les instances qui y ont des plans publiés (réciprocité,
+    `PeutLire`). Une fois la purge faite, c'est donc le hub — pas l'instance,
+    que quiconque l'administre pourrait reconfigurer — qui refuse la lecture.
+
+    Renvoie le nombre de plans retirés. Lève `ErreurRaccordement` si le hub est
+    absent, injoignable ou refuse : l'appelant décide s'il faut réessayer. Le
+    succès est consigné dans l'historique (`RESULTAT_RETRAIT`) et efface le
+    drapeau `retrait_en_attente` : un retrait réussi, d'où qu'il vienne,
+    satisfait celui qui attendait.
+    """
+    ligne = raccordement()
+    url = (hub or hub_url(ligne)).rstrip('/')
+    jeton = jeton or jeton_depot(ligne)
+    if not url or not jeton:
+        raise ErreurRaccordement(
+            'non_raccorde',
+            "Hub ou jeton de dépôt manquant : renseignez CICADA_HUB_URL et "
+            "CICADA_HUB_PUSH_TOKEN, ou faites accepter l'adhésion de l'instance.",
+        )
+
+    from .push import FORMAT_VERSION
+
+    entetes = {'X-Federation-Token': jeton, 'Content-Type': 'application/json'}
+
+    def appel(methode, chemin, corps=None):
+        try:
+            reponse = requests.request(
+                methode, f"{url}{chemin}", headers=entetes,
+                data=json.dumps(corps) if corps is not None else None,
+                timeout=DELAI_RETRAIT,
+            )
+        except requests.RequestException as erreur:
+            raise ErreurRaccordement(
+                'hub_injoignable', f"Hub injoignable ({type(erreur).__name__}).", 502,
+            )
+        if reponse.status_code >= 400:
+            raise ErreurRaccordement(
+                'hub_injoignable',
+                f"{methode} {chemin} → {reponse.status_code} : {reponse.text[:300]}", 502,
+            )
+        return reponse.json() if reponse.content else {}
+
+    lot = appel('POST', '/api/federation/lots/', {'format_version': FORMAT_VERSION})['lot_id']
+    resultat = appel('POST', f'/api/federation/lots/{lot}/bascule/')
+    purges = resultat.get('plans_purges', 0) or 0
+
+    if ligne.retrait_en_attente:
+        ligne.retrait_en_attente = False
+        ligne.save()
+    PublicationHub.enregistrer(origine, PublicationHub.RESULTAT_RETRAIT, depublies=purges)
+    logger.info(
+        "Plans de l'instance « %s » retirés du hub : %s plan(s) dépublié(s).",
+        settings.CICADA_INSTANCE_ID, purges,
+    )
+    return purges
+
+
+def retrait_possible(ligne=None):
+    """Y a-t-il un hub et un jeton de dépôt — donc quelque chose à retirer ?"""
+    ligne = ligne or raccordement()
+    return bool(hub_url(ligne) and jeton_depot(ligne))
+
+
+def partage_retire():
+    """
+    Le consentement au partage vient d'être retiré : retirer les plans du hub.
+
+    Le consentement retiré est honoré **même si le hub est injoignable** : la
+    case reste décochée (cette fonction ne lève jamais, la mise à jour des
+    paramètres n'échoue donc pas), et le drapeau `retrait_en_attente` fait
+    relancer le retrait chaque heure (`relancer_retrait_hub`). Le premier échec
+    est consigné dans l'historique ; les relances suivantes ne le sont qu'en
+    cas de succès, pour ne pas noyer le tableau de bord sous une ligne par heure.
+
+    Renvoie ``True`` si le retrait a abouti (ou n'avait pas lieu d'être).
+    """
+    ligne = raccordement()
+    if not retrait_possible(ligne):
+        # Jamais raccordée : rien n'a pu être publié, rien à retirer.
+        return True
+    try:
+        retirer_du_hub(PublicationHub.ORIGINE_MANUELLE)
+        return True
+    except ErreurRaccordement as erreur:
+        logger.warning("Retrait du hub impossible, relancé plus tard : %s", erreur.message)
+        ligne = raccordement()
+        ligne.retrait_en_attente = True
+        ligne.save()
+        PublicationHub.enregistrer(
+            PublicationHub.ORIGINE_MANUELLE, PublicationHub.RESULTAT_ECHEC,
+            message=f"Retrait : {erreur.message}",
+        )
+        return False
+
+
+def partage_accorde():
+    """
+    Le consentement au partage vient d'être (re)donné : republier sans attendre.
+
+    Sans cela, une structure qui recoche la case resterait privée de
+    l'exploration nationale jusqu'à la nuit suivante — le hub ne la sert qu'une
+    fois ses plans republiés. Un retrait encore en attente devient sans objet :
+    la publication remplace de toute façon l'état complet sur le hub.
+
+    La publication part **en arrière-plan** et seulement après la validation de
+    la transaction : la tâche relit le consentement en base. Si le broker est
+    indisponible, la publication de nuit prendra le relais.
+    """
+    from django.db import transaction
+
+    ligne = raccordement()
+    if ligne.retrait_en_attente:
+        ligne.retrait_en_attente = False
+        ligne.save()
+    if not retrait_possible(ligne):
+        return
+
+    def lancer():
+        from .tasks import publier_apres_consentement
+
+        try:
+            publier_apres_consentement.delay()
+        except Exception:  # noqa: BLE001 — broker indisponible : la nuit rattrapera
+            logger.warning(
+                "Publication après consentement non planifiée (broker indisponible) "
+                "— la publication de nuit prendra le relais."
+            )
+
+    transaction.on_commit(lancer)
+
+
+def consentement_modifie(avant, apres):
+    """Point d'entrée unique d'une modification de `federation_partage`."""
+    if avant and not apres:
+        partage_retire()
+    elif apres and not avant:
+        partage_accorde()
+
+
+# --------------------------------------------------------------------------- #
 # État complet (contrat avec le frontend)
 # --------------------------------------------------------------------------- #
 
@@ -656,6 +827,10 @@ def _diagnostic(ligne, configuration, publications):
             not env and ligne.jeton_depot_chiffre
         ) else 'absent'
         return cas('attention', 'jeton_depot_absent', cause=cause)
+    if ligne.retrait_en_attente:
+        # Le consentement est retiré mais les plans sont encore sur le hub :
+        # l'instance garde, d'ici le prochain essai, l'accès qu'elle a refusé.
+        return cas('attention', 'retrait_en_attente')
     if not configuration['partage']:
         return cas('attention', 'partage_inactif')
     significatives = [
@@ -663,7 +838,8 @@ def _diagnostic(ligne, configuration, publications):
     ]
     if significatives and significatives[0].resultat == PublicationHub.RESULTAT_ECHEC:
         return cas('erreur', 'derniere_publication_echec', message=significatives[0].message)
-    if not significatives:
+    if not significatives or significatives[0].resultat == PublicationHub.RESULTAT_RETRAIT:
+        # Partage recoché, republication pas encore faite : rien sur le hub.
         return cas('info', 'aucune_publication')
     return cas('ok', 'ok')
 

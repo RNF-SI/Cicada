@@ -162,6 +162,19 @@ services:
       - CELERY_BROKER_URL=redis://:${REDIS_PASSWORD:-redis_password}@redis:6379/0
       - CELERY_RESULT_BACKEND=redis://:${REDIS_PASSWORD:-redis_password}@redis:6379/1
       - DJANGO_SETTINGS_MODULE=${DJANGO_SETTINGS_MODULE:-config.settings.development}
+      # Identité et hub (#636) : les tâches publient et retirent au nom de
+      # l'instance (publication de nuit, republication au recochage du
+      # partage, relance d'un retrait). Sans ces variables, le worker se
+      # croirait « local » et non raccordé, quoi que dise le service web.
+      - CICADA_INSTANCE_ID=${CICADA_INSTANCE_ID:-local}
+      - CICADA_INSTANCE_LABEL=${CICADA_INSTANCE_LABEL:-}
+      - CICADA_PUBLIC_URL=${CICADA_PUBLIC_URL:-}
+      - CICADA_HUB_URL=${CICADA_HUB_URL:-}
+      - CICADA_HUB_PUSH_TOKEN=${CICADA_HUB_PUSH_TOKEN:-}
+      - CICADA_HUB_READ_TOKEN=${CICADA_HUB_READ_TOKEN:-}
+      - CICADA_EXPLORATION_SOURCE=${CICADA_EXPLORATION_SOURCE:-local}
+      - TRACKING_API_URL=${TRACKING_API_URL:-}
+      - CICADA_TRACKING_TOKEN=${CICADA_TRACKING_TOKEN:-}
       # Email - Mailpit par défaut en développement
       - EMAIL_BACKEND=${EMAIL_BACKEND:-django.core.mail.backends.smtp.EmailBackend}
       - EMAIL_HOST=${EMAIL_HOST:-mailpit}
@@ -173,6 +186,9 @@ services:
       - ./backend:/app
       - media_files:/app/media
       - logs_data:/app/logs
+    # Comme le service web : le hub du banc se joint par son port publié.
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     depends_on:
       db:
         condition: service_healthy

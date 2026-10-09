@@ -402,6 +402,17 @@ class RaccordementHub(models.Model):
         _("URL du hub"), max_length=500, blank=True, default='',
         help_text=_("Reçue du suivi à l'acceptation de l'adhésion."),
     )
+    # Le consentement au partage a été retiré, mais le hub n'a pas encore
+    # purgé les plans de l'instance (injoignable au moment du décochage). Le
+    # retrait est relancé chaque heure tant que ce drapeau est levé : un
+    # consentement retiré doit être honoré même si le réseau ne suit pas.
+    retrait_en_attente = models.BooleanField(
+        _("Retrait du hub en attente"), default=False,
+        help_text=_(
+            "Le partage a été désactivé mais le hub n'a pas pu être joint : le "
+            "retrait des plans publiés est relancé automatiquement."
+        ),
+    )
 
     class Meta:
         db_table = '"ccd_search"."t_raccordement_hub"'
@@ -435,18 +446,25 @@ class PublicationHub(models.Model):
 
     ORIGINE_NUIT = 'nuit'
     ORIGINE_MANUELLE = 'manuelle'
+    #: Retrait relancé par la tâche horaire après un hub injoignable.
+    ORIGINE_RELANCE = 'relance'
     ORIGINE_CHOICES = [
         (ORIGINE_NUIT, _("Publication de nuit")),
         (ORIGINE_MANUELLE, _("Publication manuelle")),
+        (ORIGINE_RELANCE, _("Relance automatique")),
     ]
 
     RESULTAT_REUSSIE = 'reussie'
     RESULTAT_ECHEC = 'echec'
     RESULTAT_IGNOREE = 'ignoree'
+    #: Les plans de l'instance ont été retirés du hub (partage désactivé ou
+    #: `retrait_federation`) : `depublies` en porte le nombre.
+    RESULTAT_RETRAIT = 'retrait'
     RESULTAT_CHOICES = [
         (RESULTAT_REUSSIE, _("Réussie")),
         (RESULTAT_ECHEC, _("Échec")),
         (RESULTAT_IGNOREE, _("Ignorée")),
+        (RESULTAT_RETRAIT, _("Retrait")),
     ]
 
     date = models.DateTimeField(_("Date"), auto_now_add=True, db_index=True)

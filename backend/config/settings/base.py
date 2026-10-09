@@ -327,6 +327,13 @@ CELERY_BEAT_SCHEDULE = {
         'task': 'apps.search.tasks.actualiser_adhesion_hub',
         'schedule': crontab(minute='*/30'),
     },
+    # Retrait du hub en attente : le partage a ete decoche alors que le hub
+    # etait injoignable. Relance chaque heure ; sans retrait en attente, la
+    # tache ne fait rien (aucun appel reseau).
+    'relancer-retrait-hub': {
+        'task': 'apps.search.tasks.relancer_retrait_hub',
+        'schedule': crontab(minute=15),
+    },
     # Note: Le traitement des demandes RGPD est maintenant manuel via l'interface admin
     # Les super_admins decident quand desactiver ou anonymiser les comptes
 }

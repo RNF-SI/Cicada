@@ -770,10 +770,15 @@
         "activer": "Partager mes plans de gestion avec l'exploration nationale",
         "activerHint": "Seuls les plans validés sont publiés. Les brouillons ne sortent jamais de cette instance.",
         "consequenceLocale": "Sans partage, l'exploration ne porte que sur les plans de cette instance. Les plans des autres structures ne sont pas accessibles.",
-        "consequenceRetrait": "Pour retirer les données déjà publiées, un administrateur système doit lancer la commande « retrait_federation ». Décocher cette case arrête les publications à venir mais n'efface pas les précédentes.",
+        "consequenceRetrait": "Décocher cette case retire immédiatement vos plans de l'exploration nationale, et vous n'aurez plus accès aux plans des autres structures. Vous pourrez la recocher plus tard : vos plans seront republiés et l'accès rétabli.",
         "messages": {
-          "active": "Partage activé. Vos plans validés seront publiés à la prochaine synchronisation, et l'exploration portera sur toutes les structures.",
-          "desactive": "Partage désactivé. Plus rien ne sera publié, et l'exploration ne portera que sur vos plans. Les données déjà publiées restent en ligne jusqu'à leur retrait explicite."
+          "active": "Partage activé. Vos plans validés sont republiés sans attendre (si l'instance est raccordée au hub), puis chaque nuit, et l'exploration portera sur toutes les structures.",
+          "desactive": "Partage désactivé. Vos plans ont été retirés de l'exploration nationale, qui ne portera plus que sur vos plans."
+        },
+        "retrait": {
+          "titre": "Retirer vos plans de l'exploration nationale ?",
+          "message": "Vos plans seront retirés immédiatement de l'exploration nationale et vous n'aurez plus accès aux plans des autres structures. Vous pourrez recocher plus tard : vos plans seront republiés et l'accès rétabli.",
+          "confirmer": "Retirer mes plans"
         },
         "etat": {
           "titre": "État du raccordement au hub",
@@ -792,9 +797,10 @@
             "adhesion_en_attente": "Demande envoyée à RNF. RNF va prendre contact avec vous, puis vous enverra un code de confirmation par e-mail.",
             "non_raccorde": "Cette instance n'est pas raccordée à l'exploration nationale. Demandez l'adhésion ci-dessous pour y participer.",
             "jeton_depot_absent": "Aucun jeton de dépôt n'est défini : cette instance ne peut pas publier ses plans sur le hub.",
+            "retrait_en_attente": "Le partage est désactivé, mais le hub n'a pas pu être joint pour retirer vos plans : ils restent publiés, et l'accès aux autres structures avec eux. Le retrait est relancé automatiquement chaque heure.",
             "partage_inactif": "Le partage est désactivé : rien n'est publié sur le hub. Cochez la case ci-dessus pour participer à l'exploration nationale.",
             "derniere_publication_echec": "La dernière publication a échoué : {{message}}",
-            "aucune_publication": "Raccordement en place, mais aucune publication n'a encore eu lieu. La prochaine aura lieu cette nuit.",
+            "aucune_publication": "Raccordement en place, mais aucun plan n'est actuellement publié sur le hub. Si vous venez d'activer le partage, la publication est en cours ; sinon, elle aura lieu cette nuit.",
             "ok": "L'instance est raccordée au hub et sa dernière publication a réussi."
           },
           "configuration": {
@@ -819,7 +825,7 @@
           },
           "adhesion": {
             "titre": "Adhésion à l'exploration nationale",
-            "aideProcessus": "Comment se déroule l'adhésion :\n1. Vous envoyez la demande depuis cette page, avec la personne à contacter.\n2. RNF reçoit la demande et prend contact avec vous.\n3. RNF vous envoie un code de confirmation par e-mail (valable 7 jours).\n4. Vous saisissez ce code ici : l'adhésion est acceptée.\n5. Une fois le partage activé, vos plans validés sont publiés chaque nuit et l'exploration nationale s'ouvre.",
+            "aideProcessus": "Comment se déroule l'adhésion :\n1. Vous envoyez la demande depuis cette page, avec la personne à contacter.\n2. RNF reçoit la demande et prend contact avec vous.\n3. RNF vous envoie un code de confirmation par e-mail (valable 7 jours).\n4. Vous saisissez ce code ici : l'adhésion est acceptée.\n5. Le partage ayant été activé par la demande, vos plans validés sont publiés chaque nuit et l'exploration nationale s'ouvre.",
             "aideEtape": "Vous en êtes à l'étape {{etape}}.",
             "statut": {
               "en_attente": "En attente de validation",
@@ -853,6 +859,8 @@
               "etape1": "RNF reçoit votre demande et prend contact avec la personne indiquée ci-dessous.",
               "etape2": "RNF vous envoie ensuite un code de confirmation par e-mail.",
               "etape3": "Vous saisissez ce code dans cette page : l'adhésion est validée et votre instance rejoint l'exploration nationale.",
+              "consentementTitre": "Demander l'adhésion, c'est consentir au partage",
+              "consentement": "Envoyer cette demande active le partage de vos plans de gestion validés avec l'exploration nationale : c'est la condition pour accéder aux plans des autres structures. Vous pourrez le désactiver à tout moment dans cette page ; vos plans seront alors retirés, et l'accès avec eux.",
               "nom": "Nom de la personne à contacter",
               "email": "Adresse e-mail",
               "emailAide": "De préférence une adresse de la structure, que RNF pourra vérifier.",
@@ -901,12 +909,14 @@
             "message": "Message",
             "origines": {
               "nuit": "Automatique (nuit)",
-              "manuelle": "Manuelle"
+              "manuelle": "Manuelle",
+              "relance": "Relance automatique"
             },
             "resultats": {
               "reussie": "Réussie",
               "echec": "Échec",
-              "ignoree": "Ignorée"
+              "ignoree": "Ignorée",
+              "retrait": "Retrait"
             }
           },
           "commun": {

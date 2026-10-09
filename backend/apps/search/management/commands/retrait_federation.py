@@ -14,22 +14,22 @@ décision. Elles méritent deux commandes.
 Le retrait est **immédiat côté hub** : le lot vide bascule, et tous les plans de
 cette instance disparaissent de l'exploration nationale, contenu et fiches
 compris. Il ne touche pas à l'index local : l'instance continue d'explorer ses
-propres plans.
+propres plans. Il retire aussi l'**accès** à l'exploration nationale : le hub
+ne sert que les instances qui y ont des plans publiés.
+
+Décocher le partage dans Administration > Paramètres produit le même retrait
+(`raccordement.retirer_du_hub()`, partagé avec cette commande) ; la commande
+reste l'outil de l'exploitant, et ne modifie pas le consentement.
 
 Usage :
     python manage.py retrait_federation --confirmer
 """
 
-import json
-
-import requests
 from django.conf import settings
 from django.core.management.base import BaseCommand, CommandError
 
-from apps.search.push import FORMAT_VERSION
-from apps.search.raccordement import hub_url, jeton_depot
-
-DELAI = 60
+from apps.search.push import partage_active
+from apps.search.raccordement import ErreurRaccordement, hub_url, jeton_depot, retirer_du_hub
 
 
 class Command(BaseCommand):
@@ -66,31 +66,23 @@ class Command(BaseCommand):
             ))
             return
 
-        entetes = {'X-Federation-Token': jeton, 'Content-Type': 'application/json'}
-
-        def appel(methode, chemin, corps=None):
-            reponse = requests.request(
-                methode, f"{hub}{chemin}", headers=entetes,
-                data=json.dumps(corps) if corps is not None else None,
-                timeout=DELAI,
-            )
-            if reponse.status_code >= 400:
-                raise CommandError(
-                    f"{methode} {chemin} → {reponse.status_code} : "
-                    f"{reponse.text[:300]}"
-                )
-            return reponse.json() if reponse.content else {}
-
-        # Un lot ouvert puis basculé sans qu'aucun plan n'y soit déposé : le hub
-        # purge alors tout ce qui n'a pas été revu, c'est-à-dire tout. Aucun
-        # endpoint de suppression n'est nécessaire — le mécanisme d'état s'en
-        # charge, et il est déjà éprouvé.
-        lot = appel(
-            'POST', '/api/federation/lots/', {'format_version': FORMAT_VERSION}
-        )['lot_id']
-        resultat = appel('POST', f'/api/federation/lots/{lot}/bascule/')
+        # Même service que le décochage du partage dans l'interface : un lot
+        # vide ouvert puis basculé, consigné dans l'historique (#698).
+        try:
+            purges = retirer_du_hub(hub=hub, jeton=jeton)
+        except ErreurRaccordement as erreur:
+            raise CommandError(erreur.message) from erreur
 
         self.stdout.write(self.style.SUCCESS(
-            f"  {resultat['plans_purges']} plan(s) retiré(s) de l'exploration "
+            f"  {purges} plan(s) retiré(s) de l'exploration "
             f"nationale. L'index local n'est pas affecté."
         ))
+        if partage_active():
+            # La commande ne touche pas au consentement : c'est une décision de
+            # la structure, prise dans l'interface. Mais le dire évite de croire
+            # le retrait définitif quand la nuit suivante republiera tout.
+            self.stdout.write(self.style.WARNING(
+                "  Le partage reste activé dans les paramètres : la prochaine "
+                "publication republiera les plans. Décochez-le dans "
+                "Administration > Paramètres pour un retrait durable."
+            ))

@@ -11,7 +11,7 @@
 # « adhesion down ».
 services:
   web:
-    environment:
+    environment: &environnement_adhesion
       - CICADA_INSTANCE_ID=poste-dev
       - CICADA_INSTANCE_LABEL=Poste de développement
       - CICADA_PUBLIC_URL=http://localhost
@@ -24,3 +24,7 @@ services:
       # /etc/cicada/instance_token, monté en lecture seule ; il n'y a pas de
       # paquet installé sur un poste de dev, d'où la variable.
       - CICADA_TRACKING_TOKEN=5f0c2a8e-0d6b-4c1e-9a77-1c2d3e4f5a6b
+  # Le worker publie et retire au nom de l'instance (#636) : même identité que
+  # le service web, sinon il agirait sous celle de .env.
+  celery-worker:
+    environment: *environnement_adhesion

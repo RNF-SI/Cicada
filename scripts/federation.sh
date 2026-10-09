@@ -347,7 +347,7 @@ cmd_mode() {
   ok "$fichier : exploration → $source"
 
   titre "Redémarrage du backend $cible"
-  if [ "$cible" = rnf ]; then "${RNF[@]}" up -d web; else "${CEN[@]}" up -d web; fi
+  if [ "$cible" = rnf ]; then "${RNF[@]}" up -d web celery-worker; else "${CEN[@]}" up -d web celery-worker; fi
   attendre "$( [ "$cible" = rnf ] && echo "$URL_RNF_API" || echo "$URL_CEN_API" )/api/auth/health/" \
            "API $cible" 300
 }
@@ -491,13 +491,13 @@ cmd_adhesion() {
 
       # build : l'image doit contenir `cryptography` (jetons chiffrés en base).
       "${RNF_ADHESION[@]}" build -q web
-      "${RNF_ADHESION[@]}" up -d web frontend >/dev/null
+      "${RNF_ADHESION[@]}" up -d web celery-worker frontend >/dev/null
       attendre "$URL_RNF_API/api/health/" "Instance (identité poste-dev)" 600
       cmd_reindex rnf
 
       titre "À faire"
       info "1. $URL_RNF_UI/administration/parametres  (admin@test.fr / Test123!)"
-      info "   cocher le partage, puis « Demander l'adhésion » (nom, e-mail du contact)"
+      info "   « Demander l'adhésion » (nom, e-mail du contact) : la demande coche le partage"
       info "2. $URL_SUIVI_MAIL  → l'e-mail à si@rnfrance.org et l'accusé de réception"
       info "3. $URL_SUIVI/admin/  (admin / admin) → Adhésions au hub"
       info "   cocher la demande, puis « Envoyer le code de confirmation »"
@@ -510,7 +510,7 @@ cmd_adhesion() {
     down)
       titre "Fin du banc de l'adhésion"
       # L'instance reprend l'identité de .env (rnf) : son index est à refaire.
-      "${RNF[@]}" up -d web >/dev/null
+      "${RNF[@]}" up -d web celery-worker >/dev/null
       attendre "$URL_RNF_API/api/health/" "Instance (identité de .env)" 600
       cmd_reindex rnf
       "${SUIVI[@]}" stop >/dev/null && ok "API de suivi arrêtée (données conservées)"

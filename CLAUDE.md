@@ -1081,11 +1081,16 @@ Publier le contenu de ses plans est un **engagement de la structure**, pas un r�
 |---|---|---|
 | Activé | structure des plans validés | **nationale** (toutes structures) |
 | Refusé | rien ne sort | **locale** (ses plans seulement) |
+| Décoché après publication | plans **retirés du hub immédiatement** | **locale** — le hub refuse d'office le jeton de lecture |
+| Recoché | **republication en arrière-plan** (`publier_apres_consentement`) | nationale dès le dépôt reçu |
 
 - **Réglage** : `SiteConfiguration.federation_partage`, **faux par défaut** — une mise à jour ne doit jamais décider à la place de la structure. Modifiable par un super admin dans `/administration/parametres`, sans redéploiement : revenir sur un engagement ne doit pas dépendre de qui tient les serveurs.
 - **Ce qui sort** : enjeux, facteurs, pressions, objectifs, indicateurs, actions avec période, suivi et protocoles. **Ce qui ne sort jamais** : budget et financement, RH (postes, fonctions, temps), mesures et réalisations, auteurs et dates. La liste est exhaustive dans `serializers_fiche.py` et verrouillée par `TestFichePubliqueCloisonnement`.
-- **Réciprocité appliquée par le hub**, pas par l'instance : jeton de lecture propre à chaque instance, refusé tant qu'elle n'a rien publié. Une instance peut couper son relais, mais quiconque l'administre peut le rallumer — une réciprocité qui ne tient qu'à la bonne volonté du lecteur n'est pas une règle. *Effet de bord assumé : une instance sans aucun plan validé ne peut pas lire, faute d'avoir de quoi verser.*
-- **Retrait** : `retrait_federation --confirmer`, commande **distincte** de la publication. Celle-ci refuse un lot vide (un index momentanément vide effacerait tout par accident) ; la distinction n'est pas entre autorisé et interdit mais entre **accidentel** et **voulu**. Décocher la case arrête les publications à venir sans effacer les précédentes.
+- **Réciprocité appliquée par le hub**, pas par l'instance : jeton de lecture propre à chaque instance, refusé tant qu'elle n'a rien publié (`PeutLire` interroge les `PlanIndexe` déposés). Une instance peut couper son relais, mais quiconque l'administre peut le rallumer — une réciprocité qui ne tient qu'à la bonne volonté du lecteur n'est pas une règle. **Qui ne partage plus n'a plus accès** (décision produit 09/10/2026) : décocher retire les plans du hub, et c'est le hub qui refuse alors la lecture. *Effet de bord assumé : une instance sans aucun plan validé ne peut pas lire, faute d'avoir de quoi verser.*
+- **Retrait** : **décocher la case = retrait immédiat du hub** (fenêtre de confirmation côté interface). Service unique `raccordement.retirer_du_hub()` — un lot vide ouvert puis basculé, le hub purge tout ce qui n'a pas été revu — appelé par la transition True→False de `federation_partage` (`SiteConfigurationView.patch` → `consentement_modifie()`) **et** par la commande `retrait_federation --confirmer` (outil d'exploitant, qui ne touche pas au consentement). La publication refuse toujours un lot vide (un index momentanément vide effacerait tout par accident) ; la distinction n'est pas entre autorisé et interdit mais entre **accidentel** et **voulu**. Retrait consigné dans `PublicationHub` (résultat `retrait`).
+  - **Hub injoignable** : la case reste décochée (le consentement retiré est honoré), `RaccordementHub.retrait_en_attente` est levé, la tâche horaire `relancer_retrait_hub` réessaie jusqu'au succès (origine `relance`), et le diagnostic affiche `retrait_en_attente`.
+  - **Recocher** : `publier_apres_consentement.delay()` après commit (ignore `CICADA_HUB_PUSH_AUTO` : suite immédiate d'une décision, pas une automatisation) ; un retrait en attente devient sans objet.
+  - **Demander l'adhésion = consentir** : `demander_adhesion()` coche `federation_partage` ; le formulaire le dit (ce qui est / n'est jamais partagé) et la page relit les paramètres après envoi.
 - **Message à l'écran** : la page d'exploration annonce sa portée (`exploration.portee.*`) **avant** la recherche. Sans lui, une exploration limitée à son organisme se lit comme une panne, et l'utilisateur en conclut que les autres structures n'ont pas de plans.
 
 #### Réglages CICADA
@@ -1120,7 +1125,7 @@ réussie, volumes — sans jamais rendre un jeton ni une empreinte. Une instance
 l'environnement y apparaît en `enrolee: false`.
 
 **Désactiver ≠ dépublier** : suspendre les jetons n'efface rien, l'index déjà déposé reste servi. Le retrait est
-une décision de l'instance (`retrait_federation --confirmer`).
+une décision de l'instance (décocher le partage, ou `retrait_federation --confirmer`).
 
 Passer à `hub` fait relayer l'exploration. **Pas de repli** sur l'index local si le hub est injoignable → **502 explicite** : servir les résultats d'une seule instance sous une interface qui promet une recherche transverse ferait conclure que les plans des autres organismes n'existent pas.
 
@@ -1136,7 +1141,7 @@ scripts/federation.sh check       # la recherche est-elle bien transverse ?
 scripts/federation.sh mode hub cen   # bascule l'exploration d'une instance
 scripts/federation.sh reindex        # rebuild_search_index --purge
 scripts/federation.sh test           # suites unitaires (55 hub + 140 CICADA)
-scripts/federation.sh test --bench   # 12 cas contre les 3 briques lancées
+scripts/federation.sh test --bench   # 16 cas contre les 3 briques lancées
 scripts/federation.sh test --e2e     # 7 cas Playwright sur l'instance relayée
 
 # Directement

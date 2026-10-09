@@ -14,9 +14,12 @@ class FakeLoader implements TranslateLoader {
       admin: {
         settings: {
           federation: {
+            partageTitre: 'Ce qui est partagé',
+            exclusTitre: 'Ce qui n’est jamais partagé',
             etat: {
               erreurs: { contact_invalide: 'Contact invalide' },
               formulaire: { requis: 'Obligatoire', emailInvalide: 'E-mail invalide' },
+              adhesion: { formulaire: { consentement: 'Envoyer cette demande active le partage' } },
             },
           },
         },
@@ -62,6 +65,13 @@ describe('AdhesionDialogComponent', () => {
   });
 
   const el = (): HTMLElement => fixture.nativeElement;
+
+  it('dit que la demande vaut consentement au partage, et ce qui est partagé ou non', () => {
+    const bloc = el().querySelector('[data-testid="adhesion-consentement"]')!;
+    expect(bloc.textContent).toContain('Envoyer cette demande active le partage');
+    expect(bloc.textContent).toContain('Ce qui est partagé');
+    expect(bloc.textContent).toContain('Ce qui n’est jamais partagé');
+  });
 
   it('pré-remplit le nom et l’e-mail avec l’utilisateur connecté', () => {
     expect((el().querySelector('[data-testid="adhesion-nom"]') as HTMLInputElement).value).toBe('Marie Dupont');

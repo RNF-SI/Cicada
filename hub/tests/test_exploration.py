@@ -130,6 +130,41 @@ class TestReciprocite:
             '/api/exploration/contenus/', HTTP_X_HUB_TOKEN=JETON_LECTURE
         ).status_code == 403
 
+    def test_un_retrait_par_lot_vide_referme_l_acces(self, client, db, settings):
+        """
+        Le chemin réel du retrait : l'instance décoche le partage (ou lance
+        `retrait_federation`), ouvre un lot puis le bascule sans y déposer de
+        plan. Avant : lecture acceptée. Après : 403 — c'est le hub, et non
+        l'instance, qui fait respecter « qui ne partage plus n'a plus accès ».
+        """
+        settings.HUB_FEDERATION_TOKENS = {'rnf': 'jeton-depot-rnf'}
+        depot = {'HTTP_X_FEDERATION_TOKEN': 'jeton-depot-rnf'}
+        publier_plan('rnf', 1, contenus=[{'titre': 'Roselières'}])
+        publier_plan('rnf', 2, contenus=[{'titre': 'Tourbières'}])
+        publier_plan('cen', 1, contenus=[{'titre': 'Pelouses sèches'}])
+        assert client.get(
+            '/api/exploration/contenus/', HTTP_X_HUB_TOKEN=JETON_LECTURE
+        ).status_code == 200
+
+        lot = client.post(
+            '/api/federation/lots/', {'format_version': 1},
+            content_type='application/json', **depot,
+        ).json()['lot_id']
+        bascule = client.post(
+            f'/api/federation/lots/{lot}/bascule/',
+            content_type='application/json', **depot,
+        )
+
+        assert bascule.status_code == 200
+        assert bascule.json()['plans_purges'] == 2
+        assert client.get(
+            '/api/exploration/contenus/', HTTP_X_HUB_TOKEN=JETON_LECTURE
+        ).status_code == 403
+        # La purge est bornée à l'instance qui se retire : les autres lisent.
+        assert client.get(
+            '/api/exploration/contenus/', HTTP_X_HUB_TOKEN=JETONS_LECTURE['cen']
+        ).status_code == 200
+
     def test_la_fiche_aussi_est_protegee(self, client, db):
         """Le refus doit couvrir toute la lecture, pas seulement la recherche."""
         publier_plan('cen', 1, slug='camargue', fiche={'nom': 'X'})

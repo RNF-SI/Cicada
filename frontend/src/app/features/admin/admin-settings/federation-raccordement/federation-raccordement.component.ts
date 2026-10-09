@@ -22,6 +22,7 @@ import {
 import { AuthService } from '../../../../core/services/auth.service';
 import { TagComponent, TagVariant } from '../../../../shared/components/tag/tag.component';
 import { FormFieldComponent } from '../../../../shared/components/form-field/form-field.component';
+import { SettingsService } from '../../../../core/services/settings.service';
 import { AdhesionDialogComponent, AdhesionDialogData } from './adhesion-dialog/adhesion-dialog.component';
 import { ContactRnfDialogComponent } from './contact-rnf-dialog/contact-rnf-dialog.component';
 
@@ -56,6 +57,8 @@ const VARIANTE_RESULTAT: Record<PublicationHub['resultat'], TagVariant> = {
   reussie: 'success',
   echec: 'error',
   ignoree: 'muted',
+  // Retrait voulu par la structure : ni succès ni échec, un état assumé.
+  retrait: 'warning',
 };
 
 /**
@@ -93,6 +96,7 @@ const VARIANTE_RESULTAT: Record<PublicationHub['resultat'], TagVariant> = {
 })
 export class FederationRaccordementComponent implements OnInit {
   private readonly service = inject(FederationRaccordementService);
+  private readonly settingsService = inject(SettingsService);
   private readonly dialog = inject(MatDialog);
   private readonly snackBar = inject(MatSnackBar);
   private readonly translate = inject(TranslateService);
@@ -221,6 +225,10 @@ export class FederationRaccordementComponent implements OnInit {
         if (nouvelEtat) {
           this.etat.set(nouvelEtat);
           this.notifier('adhesion.envoyee');
+          // Demander l'adhésion vaut consentement au partage : le serveur a
+          // coché la case. On relit les paramètres pour que la page la montre
+          // cochée sans rechargement — sinon elle contredirait la demande.
+          this.settingsService.loadSettings().subscribe({ error: () => undefined });
         }
       });
   }

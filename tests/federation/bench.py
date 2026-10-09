@@ -46,6 +46,7 @@ import json
 import os
 import subprocess
 import sys
+import time
 import traceback
 
 import requests
@@ -170,6 +171,23 @@ class Banc:
             headers={'Authorization': f'Bearer {self.jwt(api, utilisateur)}'},
             timeout=DELAI,
         )
+
+    def regler(self, api, **valeurs):
+        """
+        Modifie les paramètres d'une instance **par son API**, comme la page
+        d'administration : c'est là que vivent les effets d'un changement de
+        consentement (retrait du hub, republication). Le shell Django les
+        contournerait.
+        """
+        reponse = requests.patch(
+            f'{api}/api/settings/', json=valeurs,
+            headers={'Authorization': f'Bearer {self.jwt(api)}'}, timeout=DELAI,
+        )
+        if reponse.status_code != 200:
+            raise EchecDuBanc(
+                f"PATCH /api/settings/ sur {api} : {reponse.status_code} {reponse.text[:200]}"
+            )
+        return reponse.json()
 
     # -- docker ------------------------------------------------------------ #
 
@@ -411,6 +429,85 @@ def cas_reciprocite_lire_suppose_avoir_publie(banc):
             f"Lecture acceptée sans participation : {reponse.status_code}"
         )
     return "403 pour un lecteur non participant"
+
+
+def cas_retrait_qui_ne_partage_plus_perd_l_acces(banc):
+    """
+    Une instance qui retire son partage perd l'accès à l'exploration nationale.
+
+    Décision produit (09/10/2026) : « Si quelqu'un ne veut plus partager, alors
+    il ne doit plus avoir accès aux plans des autres instances. » Couper le
+    relais côté instance ne suffit pas — quiconque l'administre peut le
+    rallumer. Décocher le partage retire donc les plans du hub, et c'est le
+    **hub** qui refuse ensuite le jeton de lecture (réciprocité).
+
+    Joué sur le CEN, par l'API de paramètres (le chemin de l'interface), puis
+    l'état est restauré par le chemin inverse : recocher republie en arrière-plan
+    (tâche Celery du CEN) et l'accès revient sans attendre la nuit.
+    """
+    jeton_cen = banc.jetons_lecture['cen']
+
+    def lecture_du_cen():
+        return requests.get(
+            f'{HUB_API}/api/exploration/contenus/', params={'page_size': 1},
+            headers={'X-Hub-Token': jeton_cen}, timeout=DELAI,
+        ).status_code
+
+    def le_cen_voit_rnf():
+        """L'exploration du CEN remonte-t-elle des plans de RNF (relais actif) ?"""
+        reponse = banc.instance(
+            CEN_API, '/api/exploration/contenus/', instances='rnf', page_size=1,
+        )
+        if reponse.status_code != 200:
+            raise EchecDuBanc(f"Exploration du CEN : {reponse.status_code}")
+        return reponse.json()['pagination']['count'] > 0
+
+    banc.publier(CEN_WEB)
+    if lecture_du_cen() != 200:
+        raise EchecDuBanc("Précondition : le CEN publie mais le hub refuse sa lecture")
+    if not le_cen_voit_rnf():
+        raise EchecDuBanc("Précondition : l'exploration du CEN devrait être relayée (mode hub)")
+
+    restaure = False
+    try:
+        if banc.regler(CEN_API, federation_partage=False)['federation_partage'] is not False:
+            raise EchecDuBanc("La case de partage n'a pas été décochée")
+
+        if lecture_du_cen() != 403:
+            raise EchecDuBanc(
+                "Le partage est retiré, mais le hub sert encore le CEN : "
+                "la réciprocité ne tient qu'à l'instance"
+            )
+        plans_cen, _ = banc.etat_du_hub('cen')
+        if plans_cen:
+            raise EchecDuBanc(f"{plans_cen} plan(s) du CEN encore publiés après le retrait")
+        if le_cen_voit_rnf():
+            raise EchecDuBanc("L'exploration du CEN est encore relayée vers le hub")
+        etat = banc.instance(CEN_API, '/api/federation/raccordement/').json()
+        if etat['publications'][0]['resultat'] != 'retrait':
+            raise EchecDuBanc(
+                f"Retrait absent de l'historique : {etat['publications'][:1]}"
+            )
+
+        # Recocher : la publication part en arrière-plan, l'accès revient.
+        banc.regler(CEN_API, federation_partage=True)
+        echeance = time.monotonic() + 300
+        while lecture_du_cen() != 200:
+            if time.monotonic() > echeance:
+                raise EchecDuBanc(
+                    "Partage recoché, mais le CEN n'a pas été republié en 5 min "
+                    "(worker Celery du CEN lancé ?)"
+                )
+            time.sleep(3)
+        if not le_cen_voit_rnf():
+            raise EchecDuBanc("Partage recoché, mais l'exploration du CEN reste locale")
+        restaure = True
+    finally:
+        if not restaure:
+            # Remettre le banc dans l'état attendu par les autres cas.
+            banc.partage(CEN_WEB, True)
+            banc.publier(CEN_WEB)
+    return "décoché → plans retirés, lecture 403, exploration locale ; recoché → republié, accès rétabli"
 
 
 def cas_aller_retour_le_contenu_publie_devient_cherchable(banc):
@@ -811,6 +908,7 @@ GROUPES = [
     ("Consentement et réciprocité", [
         cas_consentement_sans_partage_rien_n_est_publie,
         cas_reciprocite_lire_suppose_avoir_publie,
+        cas_retrait_qui_ne_partage_plus_perd_l_acces,
     ]),
     ("Scénarios de fédération", [
         cas_aller_retour_le_contenu_publie_devient_cherchable,

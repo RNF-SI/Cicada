@@ -182,7 +182,7 @@ modifier : c'est à trancher sur le hub avec `enroler_instance`.
 
 Désactiver **ne dépublie pas** : l'index déjà déposé reste servi. Le retrait des
 données est une décision de l'instance, qui la prend avec
-`retrait_federation --confirmer` — la confondre avec une suspension d'accès
+`retrait_federation --confirmer` ou en décochant le partage — la confondre avec une suspension d'accès
 ferait disparaître des plans à la première suspicion.
 
 > Les variables `HUB_FEDERATION_TOKENS` / `HUB_READ_TOKENS` restent acceptées en
@@ -271,8 +271,14 @@ index vide, qui dépublierait tout) :
 docker exec cicada_prod_web python manage.py retrait_federation --confirmer
 ```
 
-Décocher le partage dans l'interface arrête les publications à venir sans
-effacer les précédentes.
+Décocher le partage dans l'interface (Administration > Paramètres) fait **le
+même retrait, immédiatement** : les plans de l'instance quittent le hub, et le
+hub refuse dès lors son jeton de lecture (il ne sert que les instances qui
+publient). Si le hub est injoignable à ce moment-là, la case reste décochée et
+le retrait est relancé chaque heure (tâche `relancer_retrait_hub`) jusqu'au
+succès ; la page des paramètres l'affiche en « retrait en attente ». Recocher
+republie en arrière-plan, sans attendre la nuit. La commande, elle, ne modifie
+pas la case : si le partage reste coché, la publication suivante republiera.
 
 ## Monter de version
 

@@ -130,3 +130,59 @@ def actualiser_adhesion_hub():
         return "rien à actualiser"
     erreur = actualiser_adhesion(ligne)
     return erreur or ligne.adhesion_statut
+
+
+@shared_task(soft_time_limit=7200, time_limit=7500)
+def publier_apres_consentement():
+    """
+    Republie dès que la structure recoche le partage (ou le coche).
+
+    Distincte de la publication de nuit sur deux points : elle ignore
+    ``CICADA_HUB_PUSH_AUTO`` — ce n'est pas une automatisation mais la suite
+    immédiate d'une décision prise à l'écran —, et elle s'inscrit comme
+    publication manuelle. Le consentement est relu ici, au moment d'agir : s'il a
+    été retiré entre-temps, rien ne part.
+    """
+    from apps.search.push import partage_active
+    from apps.search.raccordement import retrait_possible
+
+    if not (partage_active() and retrait_possible()):
+        return "rien à publier"
+    sortie = io.StringIO()
+    try:
+        call_command('push_federation', origine='manuelle', stdout=sortie, stderr=sortie)
+    except Exception:
+        # Consigné par la commande dans l'historique ; la nuit reprendra.
+        logger.exception("Échec de la publication après consentement :\n%s", sortie.getvalue())
+        raise
+    return sortie.getvalue()
+
+
+@shared_task
+def relancer_retrait_hub():
+    """
+    Relance le retrait du hub tant qu'il est en attente.
+
+    Un consentement retiré alors que le hub était injoignable laisse les plans
+    de l'instance publiés — et, par la réciprocité, son accès à l'exploration
+    nationale ouvert. Chaque heure, tant que le drapeau est levé, on réessaie.
+    Hors attente : rien, pas même un appel réseau. Si la structure a recoché
+    le partage entre-temps, le retrait n'a plus d'objet.
+    """
+    from apps.search.models import PublicationHub
+    from apps.search.push import partage_active
+    from apps.search.raccordement import ErreurRaccordement, raccordement, retirer_du_hub
+
+    ligne = raccordement()
+    if not ligne.retrait_en_attente:
+        return "rien à retirer"
+    if partage_active():
+        ligne.retrait_en_attente = False
+        ligne.save()
+        return "partage réactivé"
+    try:
+        purges = retirer_du_hub(PublicationHub.ORIGINE_RELANCE)
+    except ErreurRaccordement as erreur:
+        logger.warning("Retrait du hub toujours impossible : %s", erreur.message)
+        return f"en attente : {erreur.cle}"
+    return f"{purges} plan(s) retiré(s)"

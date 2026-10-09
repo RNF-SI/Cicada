@@ -1418,8 +1418,10 @@ est cochée :
   participantes**.
 
 Lorsque la case est décochée, l'exploration porte uniquement sur les plans de l'instance.
-Décocher la case arrête les publications à venir mais **n'efface pas** ce qui a déjà été publié :
-le retrait doit être demandé à l'administrateur système.
+Décocher la case (après confirmation) **retire immédiatement** les plans de l'instance de
+l'exploration nationale, et les utilisateurs n'ont plus accès aux plans des autres structures.
+Recocher la case republie les plans et rétablit l'accès. Demander l'adhésion à l'exploration
+nationale coche la case : rejoindre l'exploration, c'est accepter d'y verser ses plans.
 :::
 
 > 📸 **Capture [43]{.nouveau} — Paramètres de l'application** \

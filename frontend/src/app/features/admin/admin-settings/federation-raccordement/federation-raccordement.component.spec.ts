@@ -10,6 +10,7 @@ import { FederationRaccordementComponent } from './federation-raccordement.compo
 import { AdhesionDialogComponent } from './adhesion-dialog/adhesion-dialog.component';
 import { ContactRnfDialogComponent } from './contact-rnf-dialog/contact-rnf-dialog.component';
 import { AuthService } from '../../../../core/services/auth.service';
+import { SettingsService } from '../../../../core/services/settings.service';
 import {
   EtatRaccordement,
   FederationRaccordementService,
@@ -110,6 +111,7 @@ describe('FederationRaccordementComponent', () => {
   };
   let dialog: { open: jest.Mock };
   let snackBar: { open: jest.Mock };
+  let settingsService: { loadSettings: jest.Mock };
 
   async function creer(etat: EtatRaccordement | HttpErrorResponse): Promise<void> {
     service.etat.mockReturnValue(etat instanceof HttpErrorResponse ? throwError(() => etat) : of(etat));
@@ -132,6 +134,7 @@ describe('FederationRaccordementComponent', () => {
     };
     dialog = { open: jest.fn() };
     snackBar = { open: jest.fn() };
+    settingsService = { loadSettings: jest.fn(() => of({})) };
 
     await TestBed.configureTestingModule({
       imports: [
@@ -149,6 +152,7 @@ describe('FederationRaccordementComponent', () => {
         },
       })
       .overrideProvider(FederationRaccordementService, { useValue: service })
+      .overrideProvider(SettingsService, { useValue: settingsService })
       .overrideProvider(AuthService, {
         useValue: {
           currentUser: () => ({ email: 'marie@cen-aura.org' }),
@@ -232,6 +236,7 @@ describe('FederationRaccordementComponent', () => {
     expect(component.etat()?.adhesion.statut).toBe('');
     expect(snackBar.open).not.toHaveBeenCalled();
     expect(component.demandeEnCours()).toBe(false);
+    expect(settingsService.loadSettings).not.toHaveBeenCalled();
   });
 
   it('remplace l’état par celui renvoyé une fois la demande envoyée', async () => {
@@ -245,6 +250,15 @@ describe('FederationRaccordementComponent', () => {
     expect(component.etat()?.adhesion.statut).toBe('en_attente');
     expect(snackBar.open).toHaveBeenCalledWith('Envoyée', expect.anything(), expect.anything());
     expect(el().querySelector('[data-testid="adhesion-en-attente"]')!.textContent).toContain('RNF va contacter marie@cen-aura.org');
+  });
+
+  it('relit les paramètres après la demande : la case de partage apparaît cochée', async () => {
+    await creer(etatFactice());
+    dialog.open.mockReturnValue({ afterClosed: () => of(etatFactice({ adhesion: { statut: 'en_attente', possible: false } })) });
+
+    component.demanderAdhesion();
+
+    expect(settingsService.loadSettings).toHaveBeenCalledTimes(1);
   });
 
   it('n’ouvre pas le formulaire si l’adhésion n’est pas possible', async () => {

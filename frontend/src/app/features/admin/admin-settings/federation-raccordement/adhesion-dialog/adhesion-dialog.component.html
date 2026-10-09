@@ -21,6 +21,28 @@
       </div>
     </div>
 
+    <!-- Demander l'adhésion vaut consentement au partage (#636) : le formulaire
+         le dit avant l'envoi, avec ce qui part et ce qui ne part jamais — les
+         mêmes textes que la section de la page. -->
+    <div class="info-block info-block-warning" data-testid="adhesion-consentement">
+      <div class="info-block-icon"></div>
+      <div class="info-block-content">
+        <p class="info-block-content-title">{{ 'admin.settings.federation.etat.adhesion.formulaire.consentementTitre' | translate }}</p>
+        <p class="info-block-content-text">{{ 'admin.settings.federation.etat.adhesion.formulaire.consentement' | translate }}</p>
+        <p class="text-bold">{{ 'admin.settings.federation.partageTitre' | translate }}</p>
+        <ul class="list-bullets">
+          <li>{{ 'admin.settings.federation.partage1' | translate }}</li>
+          <li>{{ 'admin.settings.federation.partage2' | translate }}</li>
+        </ul>
+        <p class="text-bold">{{ 'admin.settings.federation.exclusTitre' | translate }}</p>
+        <ul class="list-bullets">
+          <li>{{ 'admin.settings.federation.exclus1' | translate }}</li>
+          <li>{{ 'admin.settings.federation.exclus2' | translate }}</li>
+          <li>{{ 'admin.settings.federation.exclus3' | translate }}</li>
+        </ul>
+      </div>
+    </div>
+
     <div class="raccordement-dialog-champs">
       <app-form-field
         [label]="'admin.settings.federation.etat.adhesion.formulaire.nom' | translate"
