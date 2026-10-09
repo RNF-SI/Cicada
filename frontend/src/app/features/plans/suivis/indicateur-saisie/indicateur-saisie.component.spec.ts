@@ -9,6 +9,7 @@ import { readFileSync } from 'fs';
 import { join } from 'path';
 import { signal } from '@angular/core';
 import { FormControl, FormGroup } from '@angular/forms';
+import { of, throwError } from 'rxjs';
 import { IndicateurSaisieComponent } from './indicateur-saisie.component';
 
 function comp(): IndicateurSaisieComponent {
@@ -444,5 +445,85 @@ describe('IndicateurSaisieComponent — éditeur unifié (#510)', () => {
       expect(bloc.viewIndicateur).toBe("Voir l'indicateur");
       expect(bloc.editIndicateur).toBeUndefined();
     });
+  });
+});
+
+// -----------------------------------------------------------------------------
+// #699 — Effacer la saisie d'une année (case vide sur le tableau de bord).
+// -----------------------------------------------------------------------------
+describe('IndicateurSaisieComponent — effacer la saisie (#699)', () => {
+  const syncObs = (value: any, fail = false) => (fail ? throwError(() => new Error('x')) : of(value));
+
+  function setup(opts: { confirmed: boolean; canEnter?: boolean; overrideId?: number | null; fail?: boolean }) {
+    const c = Object.create(IndicateurSaisieComponent.prototype) as any;
+    c.indicateur = signal<any>({ metriques: [{ id_metrique: 1 }, { id_metrique: 2 }] });
+    c.indicateurId = signal(10);
+    c.selectedYear = signal(2025);
+    c.canEnterSuivi = signal(opts.canEnter ?? true);
+    c.isSaving = signal(false);
+    c.overrideId = signal(opts.overrideId === undefined ? 99 : opts.overrideId);
+    c.manualOverride = signal(true);
+    c.scoreOverride = signal<number | null>(4);
+    c.commentaireOverride = signal('forcé');
+    c.form = new FormGroup({ m_1: new FormControl('12'), m_2: new FormControl('3') });
+    c.loadResolvedAndMesures = jest.fn();
+    c.translate = { instant: (k: string) => k };
+    c.snack = { open: jest.fn() };
+    c.dialog = { open: jest.fn(() => ({ afterClosed: () => ({ subscribe: (fn: any) => fn(opts.confirmed) }) })) };
+    c.enjeuService = {
+      // Métrique 1 : une mesure 2025 + une 2024 ; métrique 2 : deux mesures 2025.
+      getMesuresByMetrique: jest.fn((id: number) => syncObs(id === 1
+        ? [{ id_mesure: 11, date_mesure: '2025-12-31' }, { id_mesure: 12, date_mesure: '2024-12-31' }]
+        : [{ id_mesure: 21, date_mesure: '2025-12-31' }, { id_mesure: 22, date_mesure: '2025-06-01' }])),
+      deleteMesure: jest.fn(() => syncObs(null, opts.fail)),
+      deleteIndicateurMesure: jest.fn(() => syncObs(null)),
+    };
+    return c;
+  }
+
+  it('supprime toutes les mesures de l\'année et le forçage, puis recharge', () => {
+    const c = setup({ confirmed: true });
+    c.clearSaisie();
+    const deleted = c.enjeuService.deleteMesure.mock.calls.map((a: any[]) => a[0]).sort();
+    expect(deleted).toEqual([11, 21, 22]); // jamais la mesure 2024
+    expect(c.enjeuService.deleteIndicateurMesure).toHaveBeenCalledWith(99);
+    expect(c.form.get('m_1').value).toBeNull();
+    expect(c.manualOverride()).toBe(false);
+    expect(c.scoreOverride()).toBeNull();
+    expect(c.loadResolvedAndMesures).toHaveBeenCalled();
+    expect(c.isSaving()).toBe(false);
+  });
+
+  it('sans forçage enregistré, ne supprime que les mesures', () => {
+    const c = setup({ confirmed: true, overrideId: null });
+    c.clearSaisie();
+    expect(c.enjeuService.deleteIndicateurMesure).not.toHaveBeenCalled();
+    expect(c.enjeuService.deleteMesure).toHaveBeenCalled();
+  });
+
+  it('sans confirmation, rien n\'est supprimé', () => {
+    const c = setup({ confirmed: false });
+    c.clearSaisie();
+    expect(c.enjeuService.deleteMesure).not.toHaveBeenCalled();
+    expect(c.loadResolvedAndMesures).not.toHaveBeenCalled();
+  });
+
+  it('plan non validé : aucun effacement possible', () => {
+    const c = setup({ confirmed: true, canEnter: false });
+    c.clearSaisie();
+    expect(c.dialog.open).not.toHaveBeenCalled();
+  });
+
+  it('erreur serveur : message d\'erreur et rechargement de l\'état réel', () => {
+    const c = setup({ confirmed: true, fail: true });
+    c.clearSaisie();
+    expect(c.snack.open).toHaveBeenCalledWith(
+      'plans.suivis.indicateur.errors.clearFailed', expect.anything(), expect.anything());
+    expect(c.isSaving()).toBe(false);
+  });
+
+  it('le récap propose le bouton d\'effacement', () => {
+    const html = readFileSync(join(__dirname, 'indicateur-saisie.component.html'), 'utf8');
+    expect(html).toContain('(click)="clearSaisie()"');
   });
 });

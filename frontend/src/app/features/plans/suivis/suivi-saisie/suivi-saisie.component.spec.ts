@@ -10,6 +10,7 @@ import { join } from 'path';
 import { computed, signal } from '@angular/core';
 import { FormArray, FormBuilder, FormGroup } from '@angular/forms';
 import { SuiviSaisieComponent } from './suivi-saisie.component';
+import { hasSaisieRealisation } from '../action-status.util';
 
 /** Faux AbstractControl minimal : seul `value` est lu par les helpers. */
 function ctrlOf(value: unknown): any {
@@ -846,5 +847,91 @@ describe('SuiviSaisieComponent — détail des coûts sans organisme (#624)', ()
     ]) {
       expect(template).toContain(control);
     }
+  });
+});
+
+// -----------------------------------------------------------------------------
+// #699 — Effacer la saisie d'une année (retour à « non encore saisie »).
+// -----------------------------------------------------------------------------
+describe('SuiviSaisieComponent — effacer la saisie (#699)', () => {
+  function setup(opts: { confirmed: boolean; notValidated?: boolean; fail?: boolean }) {
+    const c = Object.create(SuiviSaisieComponent.prototype) as any;
+    const oa: any = {
+      id_operation_annee: 42, annee: 2025, periodicite: true,
+      realisation: { id_niveau_realisation: 7 },
+      organismes: [{ id_operation_annee_organisme: 1, realisation: { etp_realise: 3 } }],
+    };
+    c.operation = signal<any>({ operation_annees: [oa] });
+    c.selectedYear = signal(2025);
+    c.currentOperationAnnee = computed(
+      () => c.operation()?.operation_annees?.find((o: any) => o.annee === c.selectedYear()) ?? null,
+    );
+    c.hasSaisieForYear = computed(() => hasSaisieRealisation(c.currentOperationAnnee()));
+    c.planNotValidated = signal(!!opts.notValidated);
+    c.isSaving = signal(false);
+    c.pendingGeomRealisee = signal<any>({ type: 'Point' });
+    c.isEditingGeom = signal(true);
+    c.empriseSnapshot = signal<any>(null);
+    c.hydrateFormFromCurrentYear = jest.fn();
+    c.translate = { instant: (k: string) => k };
+    c.snack = { open: jest.fn() };
+    c.dialog = { open: jest.fn(() => ({ afterClosed: () => ({ subscribe: (fn: any) => fn(opts.confirmed) }) })) };
+    c.realisationService = {
+      effacer: jest.fn(() => ({
+        subscribe: (o: any) => (opts.fail ? o.error(new Error('x')) : o.next()),
+      })),
+    };
+    return { c, oa };
+  }
+
+  it('hasSaisieRealisation : vrai dès qu\'une réalisation existe pour l\'année', () => {
+    expect(hasSaisieRealisation({ realisation: { id_niveau_realisation: 7 } } as any)).toBe(true);
+    // ventilation organisme seule
+    expect(hasSaisieRealisation({ realisation: null, organismes: [{ realisation: { etp_realise: 1 } }] } as any)).toBe(true);
+    expect(hasSaisieRealisation({ realisation: null, organismes: [{ realisation: null }] } as any)).toBe(false);
+    expect(hasSaisieRealisation(null)).toBe(false);
+  });
+
+  it('après confirmation, efface côté serveur puis vide la réalisation locale', () => {
+    const { c } = setup({ confirmed: true });
+    c.clearSaisie();
+    expect(c.realisationService.effacer).toHaveBeenCalledWith(42);
+    const oa = c.currentOperationAnnee();
+    expect(oa.realisation).toBeNull();
+    expect(oa.organismes[0].realisation).toBeNull();
+    expect(oa.periodicite).toBe(true); // prévisionnel conservé
+    expect(c.hasSaisieForYear()).toBe(false);
+    expect(c.pendingGeomRealisee()).toBeUndefined();
+    expect(c.isEditingGeom()).toBe(false);
+    expect(c.hydrateFormFromCurrentYear).toHaveBeenCalled();
+    expect(c.isSaving()).toBe(false);
+  });
+
+  it('sans confirmation, rien n\'est effacé', () => {
+    const { c, oa } = setup({ confirmed: false });
+    c.clearSaisie();
+    expect(c.realisationService.effacer).not.toHaveBeenCalled();
+    expect(oa.realisation).not.toBeNull();
+  });
+
+  it('plan non validé : pas de dialogue ni d\'appel', () => {
+    const { c } = setup({ confirmed: true, notValidated: true });
+    c.clearSaisie();
+    expect(c.dialog.open).not.toHaveBeenCalled();
+    expect(c.realisationService.effacer).not.toHaveBeenCalled();
+  });
+
+  it('en cas d\'erreur serveur, la saisie locale est conservée', () => {
+    const { c, oa } = setup({ confirmed: true, fail: true });
+    c.clearSaisie();
+    expect(oa.realisation).not.toBeNull();
+    expect(c.snack.open).toHaveBeenCalledWith(
+      'plans.suivis.saisie.errors.clearFailed', expect.anything(), expect.anything());
+    expect(c.isSaving()).toBe(false);
+  });
+
+  it('le template n\'affiche le bouton que si une saisie existe et le plan est validé', () => {
+    const html = readFileSync(join(__dirname, 'suivi-saisie.component.html'), 'utf8');
+    expect(html).toMatch(/@if \(hasSaisieForYear\(\)\)[\s\S]*?\(click\)="clearSaisie\(\)"/);
   });
 });

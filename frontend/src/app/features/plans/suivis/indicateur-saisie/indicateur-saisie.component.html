@@ -424,9 +424,16 @@
               </table>
 
               @if (canEnterSuivi()) {
-                <button type="button" class="btn-outlined-pill" (click)="editFromRecap()">
-                  {{ 'common.actions.edit' | translate }}
-                </button>
+                <div class="recap-actions">
+                  <button type="button" class="btn-outlined-pill" (click)="editFromRecap()">
+                    {{ 'common.actions.edit' | translate }}
+                  </button>
+                  <!-- #699 — retour à « non encore saisi » pour l'année active -->
+                  <button type="button" mat-button class="btn-clear-saisie" (click)="clearSaisie()" [disabled]="isSaving()">
+                    <i class="fi fi-rr-undo"></i>
+                    {{ 'plans.suivis.indicateur.clear.button' | translate:{ year: selectedYear() } }}
+                  </button>
+                </div>
               }
             }
           }

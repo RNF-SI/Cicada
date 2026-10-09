@@ -361,6 +361,69 @@ class TestRealisationUpsertEndpoint:
 
 @pytest.mark.django_db
 @pytest.mark.integration
+class TestRealisationEffacerEndpoint:
+    """#699 — effacer la saisie d'une année pour revenir à « non encore saisi »."""
+
+    URL = '/api/plans/realisations/effacer/'
+
+    def test_effacer_supprime_realisation_et_ventilations(self, api_client, realisation_test_data):
+        op_annee = realisation_test_data['op_annee']
+        RealisationOperationAnneeFactory(
+            id_operation_annee=op_annee,
+            id_niveau_realisation=realisation_test_data['niveau_termine'],
+        )
+        oao = OperationAnneeOrganismeFactory(
+            id_operation_annee=op_annee, id_organisme=realisation_test_data['organisme'],
+        )
+        RealisationOperationAnneeOrganismeFactory(id_operation_annee_organisme=oao)
+
+        api_client.force_authenticate(user=realisation_test_data['referent'])
+        response = api_client.post(self.URL, {'id_operation_annee': op_annee.pk}, format='json')
+
+        assert response.status_code == status.HTTP_204_NO_CONTENT
+        assert not RealisationOperationAnnee.objects.filter(id_operation_annee=op_annee).exists()
+        assert not RealisationOperationAnneeOrganisme.objects.filter(
+            id_operation_annee_organisme=oao).exists()
+        # Le prévisionnel de l'année est conservé : seul le suivi est effacé.
+        op_annee.refresh_from_db()
+        assert op_annee.periodicite is True
+        assert op_annee.budget == Decimal('1000.00')
+
+    def test_effacer_ne_touche_pas_les_autres_annees(self, api_client, realisation_test_data):
+        op_annee = realisation_test_data['op_annee']
+        autre = OperationAnneeFactory(
+            id_operation=realisation_test_data['operation'], annee=2025, periodicite=True,
+        )
+        RealisationOperationAnneeFactory(id_operation_annee=op_annee)
+        RealisationOperationAnneeFactory(id_operation_annee=autre)
+
+        api_client.force_authenticate(user=realisation_test_data['referent'])
+        api_client.post(self.URL, {'id_operation_annee': op_annee.pk}, format='json')
+
+        assert RealisationOperationAnnee.objects.filter(id_operation_annee=autre).exists()
+
+    def test_effacer_sans_saisie_est_idempotent(self, api_client, realisation_test_data):
+        api_client.force_authenticate(user=realisation_test_data['referent'])
+        response = api_client.post(
+            self.URL, {'id_operation_annee': realisation_test_data['op_annee'].pk}, format='json')
+        assert response.status_code == status.HTTP_204_NO_CONTENT
+
+    def test_effacer_refuse_hors_perimetre(self, api_client, realisation_test_data):
+        op_annee = realisation_test_data['op_annee']
+        RealisationOperationAnneeFactory(id_operation_annee=op_annee)
+        api_client.force_authenticate(user=realisation_test_data['other_user'])
+        response = api_client.post(self.URL, {'id_operation_annee': op_annee.pk}, format='json')
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+        assert RealisationOperationAnnee.objects.filter(id_operation_annee=op_annee).exists()
+
+    def test_effacer_exige_id_operation_annee(self, api_client, realisation_test_data):
+        api_client.force_authenticate(user=realisation_test_data['referent'])
+        response = api_client.post(self.URL, {}, format='json')
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
 class TestRealisationByOperationEndpoint:
 
     def test_by_operation_returns_realisations(self, api_client, realisation_test_data):

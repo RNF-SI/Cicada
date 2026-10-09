@@ -915,3 +915,13 @@ textarea.full-width {
   margin-top: $spacing-md;
   border-top: 1px solid $gray-light;
 }
+
+// #699 — action discrète, isolée à gauche des boutons d'enregistrement.
+.btn-clear-saisie {
+  order: -1;
+  margin-right: auto;
+
+  i {
+    margin-right: $spacing-xs;
+  }
+}

@@ -2532,14 +2532,23 @@
           "budgetTotalPrev": "Budget total prévu (€)"
         },
         "messages": {
-          "saved": "Modifications enregistrées."
+          "saved": "Modifications enregistrées.",
+          "cleared": "Saisie de {{year}} effacée : l'action est revenue à « non encore saisie »."
+        },
+        "clear": {
+          "button": "Effacer la saisie de {{year}}",
+          "title": "Effacer la saisie de {{year}} ?",
+          "message": "Le niveau de réalisation, le budget, le temps réalisé, l'emprise et les commentaires saisis pour {{year}} seront supprimés. L'action reviendra à l'état « non encore saisie ». La programmation prévue n'est pas modifiée.",
+          "warning": "Cette suppression est définitive.",
+          "confirm": "Effacer"
         },
         "errors": {
           "planNotFound": "Plan introuvable.",
           "operationNotFound": "Action introuvable.",
           "missingProgrammation": "Cette année n'est pas programmée pour cette action.",
           "niveauRequired": "Le niveau de réalisation est obligatoire pour enregistrer le suivi.",
-          "saveFailed": "Erreur lors de l'enregistrement."
+          "saveFailed": "Erreur lors de l'enregistrement.",
+          "clearFailed": "Erreur lors de l'effacement de la saisie."
         },
         "niveau": {
           "realisee": "Réalisée",
@@ -2604,12 +2613,21 @@
           "veryGood": "Très bon =5"
         },
         "messages": {
-          "saved": "Saisie enregistrée."
+          "saved": "Saisie enregistrée.",
+          "cleared": "Saisie de {{year}} effacée : l'indicateur est revenu à « non encore saisi »."
+        },
+        "clear": {
+          "button": "Effacer la saisie de {{year}}",
+          "title": "Effacer la saisie de {{year}} ?",
+          "message": "Les valeurs des métriques et le résultat forcé manuellement saisis pour {{year}} seront supprimés. La case de l'indicateur redeviendra vide sur le tableau de bord. La grille d'évaluation n'est pas modifiée.",
+          "warning": "Cette suppression est définitive.",
+          "confirm": "Effacer"
         },
         "errors": {
           "indicateurNotFound": "Indicateur introuvable.",
           "loadFailed": "Erreur lors du chargement.",
-          "saveFailed": "Erreur lors de l'enregistrement."
+          "saveFailed": "Erreur lors de l'enregistrement.",
+          "clearFailed": "Erreur lors de l'effacement de la saisie."
         }
       },
       "tableauDeBord": {

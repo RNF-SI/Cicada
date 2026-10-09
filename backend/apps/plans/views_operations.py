@@ -845,6 +845,46 @@ class RealisationOperationAnneeViewSet(viewsets.ModelViewSet):
         serializer.save(id_utilisateur_maj=request.user)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
+    @action(detail=False, methods=['post'], url_path='effacer')
+    def effacer(self, request):
+        """
+        #699 — Efface la saisie de suivi d'une année pour revenir à l'état
+        « non encore saisi » (cercle pointillé dans le suivi des actions).
+
+        POST /api/plans/realisations/effacer/
+        Body: { "id_operation_annee": 123 }
+
+        Supprime la réalisation annuelle (et, en cascade, ses lignes RH
+        réalisées) ainsi que les réalisations ventilées par organisme de
+        l'année. Le prévisionnel (OperationAnnee et ses organismes) est
+        conservé. On supprime plutôt que de vider les champs pour que les
+        bilans et graphiques ne comptent plus cette année.
+        """
+        id_op_annee = request.data.get('id_operation_annee')
+        if not id_op_annee:
+            return Response(
+                {'detail': 'id_operation_annee est requis.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        operation_annee = get_object_or_404(OperationAnnee, pk=id_op_annee)
+        accessible_ops = _scope_realisation_queryset(
+            OperationAnnee.objects.filter(pk=operation_annee.pk),
+            request.user, 'id_operation',
+        )
+        if not accessible_ops.exists():
+            return Response(
+                {'detail': "Vous n'avez pas accès à cette opération."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+        with transaction.atomic():
+            RealisationOperationAnnee.objects.filter(
+                id_operation_annee=operation_annee
+            ).delete()
+            RealisationOperationAnneeOrganisme.objects.filter(
+                id_operation_annee_organisme__id_operation_annee=operation_annee
+            ).delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
     @staticmethod
     def _global_payload(operation):
         """État effectif du niveau de réalisation global d'une opération (#355)."""

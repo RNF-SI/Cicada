@@ -18,13 +18,15 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { forkJoin, of, Subscription } from 'rxjs';
-import { map } from 'rxjs/operators';
+import { map, switchMap } from 'rxjs/operators';
 
 import { HeaderComponent } from '../../../../shared/components/header/header.component';
 import { PlanSidebarComponent } from '../../shared/plan-sidebar/plan-sidebar.component';
 import { CheckboxComponent } from '../../../../shared/components/checkbox/checkbox.component';
+import { ConfirmDialogComponent, ConfirmDialogData } from '../../../../shared/components/confirm-dialog/confirm-dialog.component';
 import { AdminService } from '../../../../core/services/admin.service';
 import { EnjeuService } from '../../../../core/services/enjeu.service';
 import { Indicateur, Metrique, Mesure, MesureCreatePayload } from '../../../../core/models/enjeu.model';
@@ -43,7 +45,7 @@ const SCORE_LEVELS: ScoreLevel[] = ['very-bad', 'bad', 'neutral', 'good', 'very-
   standalone: true,
   imports: [
     CommonModule, RouterModule, FormsModule, ReactiveFormsModule,
-    MatButtonModule, MatProgressSpinnerModule, MatSnackBarModule, MatTooltipModule, TranslateModule,
+    MatButtonModule, MatProgressSpinnerModule, MatSnackBarModule, MatTooltipModule, MatDialogModule, TranslateModule,
     HeaderComponent, PlanSidebarComponent, CheckboxComponent,
   ],
   templateUrl: './indicateur-saisie.component.html',
@@ -55,6 +57,7 @@ export class IndicateurSaisieComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly fb = inject(FormBuilder);
   private readonly snack = inject(MatSnackBar);
+  private readonly dialog = inject(MatDialog);
   private readonly translate = inject(TranslateService);
   private readonly adminService = inject(AdminService);
   private readonly enjeuService = inject(EnjeuService);
@@ -657,6 +660,72 @@ export class IndicateurSaisieComponent implements OnInit {
 
   pickManualScore(score: number): void {
     this.scoreOverride.set(score);
+  }
+
+  /**
+   * #699 — Efface toute la saisie de l'année active (après confirmation) :
+   * mesures des métriques et résultat forcé. La case de l'indicateur redevient
+   * vide sur le tableau de bord. On supprime (pas de valeur « vide ») pour que
+   * les bilans et graphiques ne comptent plus l'année. Les mesures sont relues
+   * côté serveur afin d'effacer TOUTES celles de l'année, pas seulement celle
+   * affichée.
+   */
+  clearSaisie(): void {
+    const ind = this.indicateur();
+    if (!ind || !this.indicateurId() || !this.canEnterSuivi()) return;
+    const year = this.selectedYear();
+    const data: ConfirmDialogData = {
+      title: this.translate.instant('plans.suivis.indicateur.clear.title', { year }),
+      message: this.translate.instant('plans.suivis.indicateur.clear.message', { year }),
+      warningText: this.translate.instant('plans.suivis.indicateur.clear.warning'),
+      confirmText: this.translate.instant('plans.suivis.indicateur.clear.confirm'),
+      cancelText: this.translate.instant('common.actions.cancel'),
+      destructive: true,
+    };
+    this.dialog.open(ConfirmDialogComponent, { width: '500px', data })
+      .afterClosed().subscribe((confirmed: boolean) => {
+        if (!confirmed) return;
+        this.isSaving.set(true);
+        const mets = ind.metriques || [];
+        const yearOf = (m: Mesure) => m.date_mesure ? new Date(m.date_mesure).getFullYear() : null;
+        const mesures$ = mets.length
+          ? forkJoin(mets.map((m: Metrique) => this.enjeuService.getMesuresByMetrique(m.id_metrique)))
+          : of([] as Mesure[][]);
+        const overrideId = this.overrideId();
+        mesures$.pipe(
+          switchMap((lists: Mesure[][]) => {
+            const calls: any[] = lists.flat()
+              .filter(m => yearOf(m) === year)
+              .map(m => this.enjeuService.deleteMesure(m.id_mesure));
+            if (overrideId) calls.push(this.enjeuService.deleteIndicateurMesure(overrideId));
+            return calls.length ? forkJoin(calls) : of([]);
+          }),
+        ).subscribe({
+          next: () => {
+            this.isSaving.set(false);
+            this.form.reset();
+            this.manualOverride.set(false);
+            this.scoreOverride.set(null);
+            this.commentaireOverride.set('');
+            this.snack.open(
+              this.translate.instant('plans.suivis.indicateur.messages.cleared', { year }),
+              this.translate.instant('common.actions.close'),
+              { duration: 3000 },
+            );
+            this.loadResolvedAndMesures();
+          },
+          error: () => {
+            this.isSaving.set(false);
+            this.snack.open(
+              this.translate.instant('plans.suivis.indicateur.errors.clearFailed'),
+              this.translate.instant('common.actions.close'),
+              { duration: 4000 },
+            );
+            // Effacement partiel possible : on relit l'état réel du serveur.
+            this.loadResolvedAndMesures();
+          },
+        });
+      });
   }
 
   /** Sauvegarde Mesures (mode auto) + override éventuel. */

@@ -1166,6 +1166,13 @@
             <button type="button" mat-stroked-button color="primary" (click)="submit(true)" [disabled]="isSaving()">
               {{ 'common.actions.saveAndQuit' | translate }}
             </button>
+            <!-- #699 — retour à « non encore saisie » pour l'année active -->
+            @if (hasSaisieForYear()) {
+              <button type="button" mat-button class="btn-clear-saisie" (click)="clearSaisie()" [disabled]="isSaving()">
+                <i class="fi fi-rr-undo"></i>
+                {{ 'plans.suivis.saisie.clear.button' | translate:{ year: selectedYear() } }}
+              </button>
+            }
           }
         </div>
       </form>
