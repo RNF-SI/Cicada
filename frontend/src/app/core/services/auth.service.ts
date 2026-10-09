@@ -51,6 +51,9 @@ export class AuthService {
   // Computed properties for role checks
   readonly isSuperAdmin = computed(() => this.currentUser()?.niveau_role === 'super_admin');
   readonly isRedacteurPrincipal = computed(() => this.currentUser()?.niveau_role === 'redacteur_principal');
+  /** #700 — Rédacteur externe (bureau d'étude…) : n'accède qu'aux plans auxquels
+   *  il a été rattaché sur demande, et jamais à leurs suivis. */
+  readonly isRedacteur = computed(() => this.currentUser()?.niveau_role === 'redacteur');
   readonly isAdminOrganisme = computed(() => {
     const role = this.currentUser()?.niveau_role;
     return role === 'admin_og' || role === 'redacteur_principal' || role === 'super_admin';
@@ -316,7 +319,7 @@ export class AuthService {
       return user.is_referent === true || user.niveau_role === 'admin_og' || user.niveau_role === 'redacteur_principal' || user.niveau_role === 'super_admin';
     }
 
-    const roleHierarchy: UserRole[] = ['utilisateur', 'admin_og', 'redacteur_principal', 'super_admin'];
+    const roleHierarchy: UserRole[] = ['utilisateur', 'redacteur', 'admin_og', 'redacteur_principal', 'super_admin'];
     const userRoleIndex = roleHierarchy.indexOf(user.niveau_role);
     const requiredRoleIndex = roleHierarchy.indexOf(requiredRole);
 

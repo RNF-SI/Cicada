@@ -4,6 +4,7 @@ import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { EnjeuService } from '../../../../core/services/enjeu.service';
+import { AuthService } from '../../../../core/services/auth.service';
 import { MetriqueRef, Operation, Protocole } from '../../../../core/models/enjeu.model';
 import { CategorieDepense } from '../../../../core/models/rh.model';
 import {
@@ -58,6 +59,10 @@ export class OperationFicheComponent implements OnInit {
    * (suivi, export, modification) n'ont alors pas lieu d'être.
    */
   accesExploration = computed(() => this.operation()?.acces_exploration === true);
+
+  /** #700 — Un rédacteur externe saisit l'action mais n'accède pas au suivi :
+   *  la section « Réalisation » ne lui est pas montrée. */
+  readonly isRedacteur = inject(AuthService).isRedacteur;
 
   /** #681 — Mot cherché dans l'exploration (`?q=`), surligné sur la fiche. */
   motCleSurligne = signal('');

@@ -283,6 +283,12 @@
     background-color: $gray-light;
     color: $gray-dark;
   }
+
+  // #700 — Rédacteur externe : pastel cyan, texte noir (AA).
+  &.role-redacteur {
+    background-color: $tag-cyan;
+    color: $black;
+  }
 }
 
 .status-badge {

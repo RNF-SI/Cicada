@@ -313,6 +313,55 @@ class RoleViewSet(viewsets.ModelViewSet):
             'user': RoleDetailSerializer(target_user, context={'request': request}).data,
         })
 
+    @action(detail=True, methods=['post'], url_path='set-redacteur',
+            permission_classes=[IsSuperAdmin])
+    def set_redacteur(self, request, pk=None):
+        """
+        #700 — Passer un utilisateur simple en Rédacteur externe.
+        POST /api/users/{id}/set-redacteur/
+        Réservé au super_admin (un bureau d'étude n'a pas d'administrateur
+        d'organisme dans CICADA).
+        """
+        return self._changer_role_redacteur(request, 'utilisateur', 'redacteur')
+
+    @action(detail=True, methods=['post'], url_path='remove-redacteur',
+            permission_classes=[IsSuperAdmin])
+    def remove_redacteur(self, request, pk=None):
+        """
+        #700 — Rendre à un Rédacteur externe le rôle d'utilisateur simple.
+        POST /api/users/{id}/remove-redacteur/
+        """
+        return self._changer_role_redacteur(request, 'redacteur', 'utilisateur')
+
+    def _changer_role_redacteur(self, request, depuis, vers):
+        target_user = self.get_object()
+        if target_user.role_level != depuis or target_user.is_superuser:
+            return Response(
+                {'error': f"Ce changement de rôle n'est possible que depuis le rôle « {depuis} »."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        target_user.role_level = vers
+        target_user.save(update_fields=['role_level'])
+
+        from apps.core.services import ActivityService
+        ActivityService.log_activity(
+            actor=request.user,
+            action='status_change',
+            entity_type='user',
+            entity_id=target_user.pk,
+            entity_name=target_user.get_full_name(),
+            description=(
+                'Passé Rédacteur externe' if vers == 'redacteur'
+                else 'Rédacteur externe repassé Utilisateur'
+            ),
+            related_user=target_user,
+        )
+
+        return Response({
+            'user': RoleDetailSerializer(target_user, context={'request': request}).data,
+        })
+
     @action(detail=True, methods=['post'])
     def assign_site(self, request, pk=None):
         """

@@ -183,7 +183,8 @@ export class AdminLayoutComponent implements OnInit, OnDestroy {
       'super_admin': 'Super Administrateur',
       'redacteur_principal': 'Rédacteur Général',
       'admin_og': 'Admin Organisme',
-      'utilisateur': 'Utilisateur'
+      'utilisateur': 'Utilisateur',
+      'redacteur': 'Rédacteur externe'
     };
 
     // If user is a referent (via is_referent), show that

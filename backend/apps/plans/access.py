@@ -87,11 +87,18 @@ def plan_scope_q(user) -> Q:
             Q(organismes_redacteurs__uuid_og=organisme)
         )
 
-    scope = (
+    direct = (
         Q(pk__in=CorRolePlan.objects.filter(id_role=user).values('plan_de_gestion_id')) |
-        Q(referents=user) |
-        Q(sites__site__corrolesite__id_role=user)
+        Q(referents=user)
     )
+    # #700 — Rédacteur externe : uniquement les plans auxquels il a été
+    # rattaché à sa demande. Ni ses sites, ni son organisme (un bureau d'étude
+    # n'est ni gestionnaire ni rédacteur des plans qu'il rédige) n'ouvrent
+    # d'autres plans.
+    if user.is_redacteur():
+        return direct
+
+    scope = direct | Q(sites__site__corrolesite__id_role=user)
     if organisme is not None:
         scope |= Q(organismes_redacteurs__uuid_og=organisme)
         scope |= Q(sites__site__corogsite__uuid_og=organisme)
@@ -253,6 +260,11 @@ def suivi_scope_q(user) -> Q:
 
     Ne doit pas être appelé pour un utilisateur à accès global
     (cf. :func:`has_global_plan_access`)."""
+    # #700 — Le rédacteur externe saisit le plan, mais n'a jamais accès aux
+    # suivis (bilan, suivi des actions, tableau de bord), même référent.
+    if user.is_redacteur():
+        return Q(pk__in=[])
+
     scope = (
         Q(referents=user) |
         Q(sites__site__corrolesite__id_role=user,

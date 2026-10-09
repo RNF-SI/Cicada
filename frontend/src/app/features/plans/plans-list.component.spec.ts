@@ -81,7 +81,7 @@ describe('PlansListComponent — filtre par statut (#635)', () => {
           useValue: {
             currentUser: signal(CURRENT_USER),
             isSuperAdmin: signal(false),
-            isRedacteurPrincipal: signal(false),
+            isRedacteurPrincipal: signal(false), isRedacteur: signal(false),
             isAdminOrganisme: signal(false),
           },
         },
@@ -157,7 +157,7 @@ describe('PlansListComponent — filtre par statut (#635)', () => {
 describe('PlansListComponent — pas de demande d\'accès pour un gestionnaire (#657)', () => {
   const roles = {
     isSuperAdmin: signal(false),
-    isRedacteurPrincipal: signal(false),
+    isRedacteurPrincipal: signal(false), isRedacteur: signal(false),
     isAdminOrganisme: signal(false),
   };
 
@@ -264,7 +264,7 @@ describe('PlansListComponent — rang affiché avec la version', () => {
           provide: AuthService,
           useValue: {
             currentUser: signal(CURRENT_USER), isSuperAdmin: signal(false),
-            isRedacteurPrincipal: signal(false), isAdminOrganisme: signal(false),
+            isRedacteurPrincipal: signal(false), isRedacteur: signal(false), isAdminOrganisme: signal(false),
           },
         },
       ],
@@ -317,5 +317,60 @@ describe('PlansListComponent — rang affiché avec la version', () => {
   it('sans rang : libellé de version seul', () => {
     expect(component.versionLabel(plan(1, 'X', 'valide', { rang: null, version: '1' })))
       .toBe('Plan initial - V1');
+  });
+});
+
+/**
+ * #700 — Le rédacteur externe ne voit aucun plan de son organisme : il cherche
+ * le plan à rédiger côté serveur, puis en demande l'accès en saisie.
+ */
+describe('PlansListComponent — recherche du rédacteur externe (#700)', () => {
+  const resultat = {
+    id_pg: 7, nom: 'Plan du marais', statut: 'draft', statut_display: 'Brouillon',
+    annee_debut: 2026, annee_fin: 2036, sites: ['Marais'], organismes_gestionnaires: ['CEN'],
+    acces: false, demande_en_attente: false,
+  };
+  const adminService = {
+    getPlans: () => of({ results: [] }),
+    getSites: () => of({ results: [] }),
+    rechercherPlansAcces: jest.fn(),
+  };
+
+  async function setup(): Promise<PlansListComponent> {
+    adminService.rechercherPlansAcces.mockReset().mockReturnValue(of([resultat]));
+    TestBed.resetTestingModule();
+    await TestBed.configureTestingModule({
+      imports: [
+        PlansListComponent, HttpClientTestingModule, NoopAnimationsModule,
+        RouterTestingModule, TranslateModule.forRoot(),
+      ],
+      providers: [
+        { provide: AdminService, useValue: adminService },
+        { provide: ValidationService, useValue: { getMyRequests: () => of([]) } },
+        {
+          provide: AuthService,
+          useValue: {
+            currentUser: signal(CURRENT_USER),
+            isSuperAdmin: signal(false), isRedacteurPrincipal: signal(false),
+            isAdminOrganisme: signal(false), isRedacteur: signal(true),
+          },
+        },
+      ],
+    }).compileComponents();
+    return TestBed.createComponent(PlansListComponent).componentInstance;
+  }
+
+  it('ne cherche pas en deçà de 3 caractères', async () => {
+    const component = await setup();
+    component.rechercherPlanARediger('ma');
+    expect(adminService.rechercherPlansAcces).not.toHaveBeenCalled();
+    expect(component.redacteurResultats()).toBeNull();
+  });
+
+  it('interroge le serveur et expose les plans trouvés', async () => {
+    const component = await setup();
+    component.rechercherPlanARediger('  marais ');
+    expect(adminService.rechercherPlansAcces).toHaveBeenCalledWith('marais');
+    expect(component.redacteurResultats()).toEqual([resultat]);
   });
 });

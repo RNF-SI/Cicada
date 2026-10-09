@@ -51,6 +51,10 @@ class Role(AbstractUser):
     # "référent" s'il est référent d'au moins un site ou plan de gestion.
     ROLE_CHOICES = [
         ('utilisateur', _('Utilisateur')),
+        # #700 — Rédacteur externe (bureau d'étude…) : aucun plan par défaut,
+        # accès en saisie obtenu plan par plan sur demande à l'OG ; son
+        # organisme n'est jamais rattaché aux sites ni aux plans.
+        ('redacteur', _('Rédacteur externe')),
         ('admin_og', _('Administrateur Organisme')),
         ('redacteur_principal', _('Rédacteur Général')),
         ('super_admin', _('Super Administrateur')),
@@ -164,6 +168,10 @@ class Role(AbstractUser):
     def is_redacteur_principal(self):
         """Vérifie si l'utilisateur est Rédacteur Principal."""
         return self.role_level == 'redacteur_principal'
+
+    def is_redacteur(self):
+        """Vérifie si l'utilisateur est Rédacteur externe (#700)."""
+        return self.role_level == 'redacteur'
 
     def is_admin_organisme(self):
         """Vérifie si l'utilisateur est Administrateur d'organisme (ou rôle supérieur)."""

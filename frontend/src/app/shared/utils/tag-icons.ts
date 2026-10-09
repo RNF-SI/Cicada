@@ -51,6 +51,7 @@ export const USER_ROLE_TAG: Record<string, TagAppearance> = {
   admin_og: { variant: 'error', icon: 'fi-rr-admin-alt' },
   referent: { variant: 'warning', icon: 'fi-rr-star' },
   redacteur_principal: { variant: 'warning', icon: 'fi-rr-pencil' },
+  redacteur: { variant: 'info', icon: 'fi-rr-pencil' },
   user: { variant: 'info', icon: 'fi-rr-user' },
 };
 

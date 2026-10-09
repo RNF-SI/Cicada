@@ -401,10 +401,66 @@
         </section>
       }
 
+      <!-- #700 — Rédacteur externe : son organisme n'est rattaché à aucun plan,
+           il cherche le plan à rédiger parmi tous les plans. -->
+      @if (isRedacteur()) {
+        <section class="content-section request-section">
+          <h2 class="section-title">
+            <i class="fi fi-rr-pencil section-icon"></i>
+            {{ 'plans.redacteurAccess.title' | translate }}
+          </h2>
+          <p class="section-description">{{ 'plans.redacteurAccess.description' | translate }}</p>
+
+          <app-search-bar
+            mode="manual"
+            [helpText]="'plans.redacteurAccess.helpText' | translate"
+            [placeholder]="'plans.redacteurAccess.searchPlaceholder' | translate"
+            [ariaLabel]="'plans.redacteurAccess.searchPlaceholder' | translate"
+            (search)="rechercherPlanARediger($event)">
+          </app-search-bar>
+
+          @if (redacteurResultats(); as resultats) {
+            @if (resultats.length === 0) {
+              <div class="empty-state empty-state--small">
+                <i class="fi fi-rr-search empty-icon"></i>
+                <p>{{ 'plans.redacteurAccess.noResults' | translate }}</p>
+              </div>
+            } @else {
+              <ul class="redacteur-results">
+                @for (plan of resultats; track plan.id_pg) {
+                  <li>
+                    <app-entity-tile
+                      icon="fi-rr-document"
+                      [name]="plan.nom"
+                      [subtitle]="plan.sites.join(', ') + (plan.organismes_gestionnaires.length ? ' — ' + plan.organismes_gestionnaires.join(', ') : '') + (plan.annee_debut ? ' — ' + plan.annee_debut + '-' + (plan.annee_fin ?? '') : '')">
+                      <span tileAction>
+                        @if (plan.acces) {
+                          <app-tag variant="success" icon="fi-rr-check" size="sm"
+                            [label]="'plans.redacteurAccess.granted' | translate"></app-tag>
+                        } @else if (plan.demande_en_attente) {
+                          <app-tag variant="warning" icon="fi-rr-clock" size="sm"
+                            [label]="'plans.requestAccess.pending' | translate"></app-tag>
+                        } @else {
+                          <button mat-stroked-button color="primary" class="btn-sm"
+                            (click)="demanderAccesRedaction(plan)">
+                            {{ 'plans.redacteurAccess.button' | translate }}
+                          </button>
+                        }
+                      </span>
+                    </app-entity-tile>
+                  </li>
+                }
+              </ul>
+            }
+          }
+        </section>
+      }
+
       <!-- Section 3: Demander l'accès à d'autres plans.
            Masquée pour un gestionnaire (super admin, rédacteur principal,
-           admin d'organisme) : il a déjà accès aux plans de son périmètre (#657). -->
-      @if (!hasOrgWidePlanAccess()) {
+           admin d'organisme) : il a déjà accès aux plans de son périmètre (#657).
+           Remplacée par la recherche ci-dessus pour un rédacteur externe (#700). -->
+      @if (!hasOrgWidePlanAccess() && !isRedacteur()) {
         <section class="content-section request-section">
           <h2 class="section-title">
             <i class="fi fi-rr-lock section-icon"></i>

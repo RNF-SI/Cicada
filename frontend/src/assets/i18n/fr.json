@@ -338,6 +338,7 @@
         "super_admin": "Super Admin",
         "redacteur_principal": "Réd. Général",
         "admin_og": "Admin Org.",
+        "redacteur": "Réd. externe",
         "utilisateur": "Utilisateur"
       },
       "sites": {
@@ -358,9 +359,13 @@
         "requestPromotion": "Demander la promotion en admin",
         "requestDemotion": "Demander la rétrogradation",
         "promote": "Promouvoir en administrateur d'organisme",
-        "demote": "Retirer les droits d'administrateur d'organisme"
+        "demote": "Retirer les droits d'administrateur d'organisme",
+        "setRedacteur": "Passer en rédacteur externe (bureau d'étude…)",
+        "removeRedacteur": "Repasser en utilisateur simple"
       },
       "messages": {
+        "redacteurSet": "L'utilisateur est désormais rédacteur externe.",
+        "redacteurRemoved": "L'utilisateur est repassé utilisateur simple.",
         "loading": "Chargement des utilisateurs...",
         "noUsers": "Aucun utilisateur trouvé",
         "organismeUpdated": "Organisme mis à jour",
@@ -1813,6 +1818,15 @@
       "pending": "Demande en attente",
       "rejected": "Refusé",
       "retry": "Redemander"
+    },
+    "redacteurAccess": {
+      "title": "Trouver un plan à rédiger",
+      "description": "En tant que rédacteur externe, vous n'avez accès qu'aux plans pour lesquels l'organisme gestionnaire vous a accordé l'accès. Recherchez le plan à rédiger puis demandez l'accès en saisie : la demande est adressée aux référents du plan et à l'organisme gestionnaire du site.",
+      "helpText": "Nom du plan, nom du site ou code INPN (3 caractères minimum)",
+      "searchPlaceholder": "Rechercher un plan à rédiger...",
+      "noResults": "Aucun plan ne correspond à votre recherche",
+      "button": "Demander l'accès en saisie",
+      "granted": "Accès accordé"
     },
     "allPlans": {
       "title": "Tous les plans de gestion",

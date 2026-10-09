@@ -276,6 +276,11 @@ class PlanGestionViewSet(LectureExplorationMixin, viewsets.ModelViewSet):
                 Q(organismes_redacteurs__uuid_og=user.id_organisme)
             )
 
+        # #700 — Rédacteur externe : seulement les plans auxquels il a été
+        # rattaché (sur demande validée par l'OG) — jamais par son organisme.
+        if user.is_redacteur():
+            return Q(referents=user) | Q(membres__id_role=user)
+
         # Référent / Utilisateur : plans personnels + plans de l'organisme
         conditions = Q()
 
@@ -461,6 +466,73 @@ class PlanGestionViewSet(LectureExplorationMixin, viewsets.ModelViewSet):
                 ],
             })
         return Response({'sites': sites_payload})
+
+    @action(detail=False, methods=['get'], url_path='recherche-acces')
+    def recherche_acces(self, request):
+        """
+        #700 — Recherche d'un plan à rédiger, pour un rédacteur externe.
+
+        GET /api/plans/plans/recherche-acces/?q=<3 caractères minimum>
+
+        Un rédacteur externe ne voit aucun plan tant qu'il n'y a pas été
+        rattaché : sans cette recherche, il ne pourrait pas en demander
+        l'accès. Elle ne renvoie que de quoi identifier le plan (nom, période,
+        statut, sites, organismes gestionnaires) — jamais son contenu — sur le
+        nom du plan, le nom ou le code INPN d'un de ses sites. Les plans
+        archivés sont exclus : on ne rédige pas un plan terminé.
+        """
+        if not request.user.is_redacteur():
+            raise PermissionDenied("Recherche réservée aux rédacteurs externes.")
+
+        terme = (request.query_params.get('q') or '').strip()
+        if len(terme) < 3:
+            return Response({'results': []})
+
+        from apps.notifications.models import ValidationRequest
+
+        plans = (
+            PlanGestion.objects
+            .exclude(statut='archive')
+            .filter(
+                Q(nom__icontains=terme) |
+                Q(sites__site__nom_site__icontains=terme) |
+                Q(sites__site__id_inpn__iexact=terme)
+            )
+            .prefetch_related('sites__site__corogsite_set__uuid_og', 'referents', 'membres')
+            .distinct()
+            .order_by('nom')[:20]
+        )
+        user = request.user
+        en_attente = set(
+            ValidationRequest.objects.filter(
+                requester=user, request_type='plan_access', status='pending',
+            ).values_list('target_plan_id', flat=True)
+        )
+
+        results = []
+        for plan in plans:
+            sites = [cor.site for cor in plan.sites.all()]
+            organismes = sorted({
+                cor_og.uuid_og.nom_organisme
+                for site in sites for cor_og in site.corogsite_set.all()
+                if cor_og.uuid_og.nom_organisme
+            })
+            results.append({
+                'id_pg': plan.id_pg,
+                'nom': plan.nom,
+                'statut': plan.statut,
+                'statut_display': plan.get_statut_display(),
+                'annee_debut': plan.annee_debut,
+                'annee_fin': plan.annee_fin,
+                'sites': [site.nom_site for site in sites],
+                'organismes_gestionnaires': organismes,
+                'acces': (
+                    any(r.pk == user.pk for r in plan.referents.all())
+                    or any(m.id_role_id == user.pk for m in plan.membres.all())
+                ),
+                'demande_en_attente': plan.id_pg in en_attente,
+            })
+        return Response({'results': results})
 
     @action(detail=False, methods=['get'])
     def geojson_list(self, request):

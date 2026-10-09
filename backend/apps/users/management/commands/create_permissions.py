@@ -199,6 +199,7 @@ class Command(BaseCommand):
             'admin_og': 'Administrateurs Organisme',
             'referent': 'Référents',
             'utilisateur': 'Utilisateurs',
+            'redacteur': 'Utilisateurs',  # #700
         }
         
         for role_level, group_name in role_group_mapping.items():

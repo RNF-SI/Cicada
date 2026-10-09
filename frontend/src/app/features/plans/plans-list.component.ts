@@ -25,12 +25,13 @@ import { HeaderComponent } from '../../shared/components/header/header.component
 import { SearchBarComponent } from '../../shared/components/search-bar/search-bar.component';
 import { StatusChipComponent } from '../../shared/components/status-chip/status-chip.component';
 import { TagComponent } from '../../shared/components/tag/tag.component';
+import { EntityTileComponent } from '../../shared/components/entity-tile/entity-tile.component';
 import { PlanGaugeComponent, GaugeStatus } from '../../shared/components/plan-gauge/plan-gauge.component';
 import { ViewScopeToggleComponent, ViewScope } from '../../shared/components/view-scope-toggle/view-scope-toggle.component';
 import { AdminService } from '../../core/services/admin.service';
 import { ValidationService } from '../../core/services/validation.service';
 import { AuthService } from '../../core/services/auth.service';
-import { AdminPlan, AdminSite, PlanStatut, PLAN_STATUS_OPTIONS } from '../../core/models/admin.model';
+import { AdminPlan, AdminSite, PlanAccesRecherche, PlanStatut, PLAN_STATUS_OPTIONS } from '../../core/models/admin.model';
 import { ValidationRequestListItem } from '../../core/models/notification.model';
 import { AccessRequestDialogComponent, AccessRequestDialogData, SelectableSite } from '../../shared/components/access-request-dialog/access-request-dialog.component';
 import {
@@ -85,6 +86,7 @@ interface PlanWithAccess extends AdminPlan {
     SearchBarComponent,
     StatusChipComponent,
     TagComponent,
+    EntityTileComponent,
   ],
   templateUrl: './plans-list.component.html',
   changeDetection: ChangeDetectionStrategy.Eager,
@@ -112,6 +114,11 @@ export class PlansListComponent implements OnInit {
   // Permissions pour le toggle
   readonly isSuperAdmin = this.authService.isSuperAdmin;
   readonly isRedacteurPrincipal = this.authService.isRedacteurPrincipal;
+  /** #700 — Rédacteur externe : ne voit aucun plan de son organisme ; il cherche
+   *  le plan à rédiger parmi tous les plans et en demande l'accès en saisie. */
+  readonly isRedacteur = this.authService.isRedacteur;
+  readonly redacteurResultats = signal<PlanAccesRecherche[] | null>(null);
+  private redacteurTerme = '';
   readonly isAdminOrganisme = this.authService.isAdminOrganisme;
 
   // Afficher le toggle si admin_og, redacteur_principal ou super_admin
@@ -550,6 +557,39 @@ export class PlansListComponent implements OnInit {
         return 'second-half';
       }
     }
+  }
+
+  /** #700 — Recherche d'un plan à rédiger (3 caractères minimum, côté serveur). */
+  rechercherPlanARediger(terme: string): void {
+    this.redacteurTerme = terme.trim();
+    if (this.redacteurTerme.length < 3) {
+      this.redacteurResultats.set(null);
+      return;
+    }
+    this.adminService.rechercherPlansAcces(this.redacteurTerme).subscribe({
+      next: resultats => this.redacteurResultats.set(resultats),
+      error: () => this.redacteurResultats.set([]),
+    });
+  }
+
+  /** #700 — Demande d'accès en saisie (référent) à un plan trouvé par la recherche. */
+  demanderAccesRedaction(plan: PlanAccesRecherche): void {
+    const dialogRef = this.dialog.open(AccessRequestDialogComponent, {
+      width: '500px',
+      data: {
+        type: 'plan',
+        targetId: plan.id_pg,
+        targetName: plan.nom,
+        hasAccessViaSite: true,
+        defaultAsReferent: true,
+      } as AccessRequestDialogData,
+    });
+    dialogRef.afterClosed().subscribe(result => {
+      if (result) {
+        this.rechercherPlanARediger(this.redacteurTerme);
+        this.loadData();
+      }
+    });
   }
 
   /**

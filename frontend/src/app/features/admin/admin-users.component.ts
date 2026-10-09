@@ -120,7 +120,7 @@ export class AdminUsersComponent implements OnInit, OnDestroy {
 
   /** Rôles proposés au filtre. */
   readonly roleOptions = computed<FilterOption<string>[]>(() =>
-    ['super_admin', 'redacteur_principal', 'admin_og', 'utilisateur'].map((value) => ({
+    ['super_admin', 'redacteur_principal', 'admin_og', 'redacteur', 'utilisateur'].map((value) => ({
       value,
       label: this.translate.instant(`admin.users.roles.${value}`),
     })),
@@ -564,6 +564,33 @@ export class AdminUsersComponent implements OnInit, OnDestroy {
       }
     }
     return true;
+  }
+
+  /**
+   * #700 — Le super admin bascule un utilisateur simple en Rédacteur externe
+   * (bureau d'étude…) et inversement.
+   */
+  canToggleRedacteur(user: DisplayUser): boolean {
+    return this.isSuperAdmin()
+      && user.id !== this.currentUser()?.id
+      && (user.role === 'utilisateur' || user.role === 'redacteur');
+  }
+
+  toggleRedacteur(user: DisplayUser): void {
+    const devient = user.role !== 'redacteur';
+    this.adminService.setRedacteur(user.id, devient).subscribe({
+      next: () => {
+        this.snackBar.open(
+          this.translate.instant(devient ? 'admin.users.messages.redacteurSet' : 'admin.users.messages.redacteurRemoved'),
+          this.translate.instant('common.actions.close'),
+          { duration: 3000 },
+        );
+        this.loadUsers();
+      },
+      error: (error: Error) => {
+        this.snackBar.open(error.message, this.translate.instant('common.actions.close'), { duration: 5000 });
+      },
+    });
   }
 
   /**

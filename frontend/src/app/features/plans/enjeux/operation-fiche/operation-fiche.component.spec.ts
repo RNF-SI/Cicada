@@ -8,6 +8,7 @@
  * TOUS les indicateurs liés — réponse ET état/pression — et donc leurs blocs.
  */
 import { ComponentFixture, TestBed, fakeAsync, tick } from '@angular/core/testing';
+import { signal } from '@angular/core';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { ActivatedRoute, Router } from '@angular/router';
 import { TranslateModule } from '@ngx-translate/core';
@@ -19,6 +20,7 @@ import { OperationFicheComponent } from './operation-fiche.component';
 import { ProtocoleCampanuleDialogComponent } from '../../../../shared/components/modals/protocole-campanule-dialog/protocole-campanule-dialog.component';
 import { ExportFicheActionDialogComponent } from '../../../../shared/components/modals/export-fiche-action-dialog/export-fiche-action-dialog.component';
 import { EnjeuService } from '../../../../core/services/enjeu.service';
+import { AuthService } from '../../../../core/services/auth.service';
 import { Operation } from '../../../../core/models/enjeu.model';
 
 /** Métrique NUMERIQUE en grille avec 1 bloc complémentaire (ET/OU). */
@@ -55,7 +57,7 @@ function operationWith(metriques: any[]): Operation {
 
 function setup(
   op: Operation,
-  opts: { from?: string; fromEnjeu?: string; router?: { navigate: jest.Mock } } = {},
+  opts: { from?: string; fromEnjeu?: string; router?: { navigate: jest.Mock }; redacteur?: boolean } = {},
 ): ComponentFixture<OperationFicheComponent> {
   const enjeuService = {
     getOperation: jest.fn().mockReturnValue(of(op)),
@@ -79,6 +81,7 @@ function setup(
       { provide: EnjeuService, useValue: enjeuService },
       { provide: ActivatedRoute, useValue: route },
       { provide: Router, useValue: opts.router ?? { navigate: jest.fn() } },
+      { provide: AuthService, useValue: { isRedacteur: signal(opts.redacteur ?? false) } },
     ],
   });
   const fixture = TestBed.createComponent(OperationFicheComponent);
@@ -728,5 +731,25 @@ describe('OperationFicheComponent — mois d\'intervention (#674)', () => {
     const fixture = setup(operationMensuelle({}, [mois()]));
     expect(fixture.componentInstance.moisProgrammes()).toEqual([]);
     expect(fixture.nativeElement.textContent).not.toContain('plans.suivis.actions.fiche.moisIntervention');
+  });
+});
+
+describe('OperationFicheComponent — rédacteur externe (#700)', () => {
+  const op = () => ({ ...operationWith([]), niveau_realisation_global_label: 'Réalisée' }) as any;
+
+  it('montre la réalisation et le lien vers le suivi à un référent', () => {
+    const fixture = setup(op());
+    const el: HTMLElement = fixture.nativeElement;
+    expect(el.textContent).toContain('plans.suivis.actions.fiche.voirSuivi');
+    expect(el.textContent).toContain('plans.suivis.actions.fiche.realisationGlobale');
+  });
+
+  it("masque la réalisation et le suivi à un rédacteur externe", () => {
+    const fixture = setup(op(), { redacteur: true });
+    const el: HTMLElement = fixture.nativeElement;
+    expect(el.textContent).not.toContain('plans.suivis.actions.fiche.realisationGlobale');
+    expect(el.textContent).not.toContain('plans.suivis.actions.fiche.voirSuivi');
+    // La saisie reste possible.
+    expect(el.textContent).toContain('common.actions.edit');
   });
 });

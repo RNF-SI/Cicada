@@ -245,6 +245,14 @@
                       <i class="fi fi-rr-arrow-down"></i>
                     </button>
                   }
+                  @if (canToggleRedacteur(user)) {
+                    <button
+                      class="btn-icon"
+                      [matTooltip]="(user.role === 'redacteur' ? 'admin.users.actions.removeRedacteur' : 'admin.users.actions.setRedacteur') | translate"
+                      (click)="toggleRedacteur(user)">
+                      <i class="fi" [class]="user.role === 'redacteur' ? 'fi-rr-user' : 'fi-rr-pencil'"></i>
+                    </button>
+                  }
                   @if (isSuperAdmin()) {
                     <button
                       class="btn-icon"

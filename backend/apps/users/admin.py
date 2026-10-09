@@ -335,14 +335,16 @@ class RoleAdmin(BaseUserAdmin):
             'redacteur_principal': 'purple',
             'admin_og': 'orange',
             'referent': 'blue',
-            'utilisateur': 'green'
+            'utilisateur': 'green',
+            'redacteur': 'teal',
         }
         role_icons = {
             'super_admin': '👑',
             'redacteur_principal': '✏️',
             'admin_og': '🔧',
             'referent': '👤',
-            'utilisateur': '👥'
+            'utilisateur': '👥',
+            'redacteur': '📝',
         }
         
         color = role_colors.get(obj.role_level, 'black')

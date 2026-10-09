@@ -842,3 +842,18 @@ export interface ArborescenceImportResult {
   created: Record<string, number>;
   total: number;
 }
+
+/** #700 — Plan trouvé par un rédacteur externe pour en demander l'accès
+ *  (`GET /api/plans/plans/recherche-acces/`). Métadonnées seulement. */
+export interface PlanAccesRecherche {
+  id_pg: number;
+  nom: string;
+  statut: string;
+  statut_display: string;
+  annee_debut: number | null;
+  annee_fin: number | null;
+  sites: string[];
+  organismes_gestionnaires: string[];
+  acces: boolean;
+  demande_en_attente: boolean;
+}

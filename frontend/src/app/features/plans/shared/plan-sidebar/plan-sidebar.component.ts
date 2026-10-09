@@ -93,7 +93,7 @@ export class PlanSidebarComponent implements OnInit {
    *  est réservée aux référents du plan et gestionnaires (admin_og, super_admin,
    *  rédacteur principal) — même audience que « Paramétrage ». Un utilisateur
    *  simplement lié au plan (non référent) ne doit pas voir les suivis. */
-  canViewSuivis = computed(() => this.effectiveCanManage());
+  canViewSuivis = computed(() => this.effectiveCanManage() && !this.authService.isRedacteur());
 
   /** Les exports extraient l'intégralité du contenu du plan : ils sont réservés
    *  aux référents du plan et gestionnaires (admin_og, super_admin, rédacteur

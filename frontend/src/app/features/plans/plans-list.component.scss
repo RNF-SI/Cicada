@@ -848,6 +848,16 @@ app-plan-gauge {
   border-top: 1px solid $gray-light;
 }
 
+// #700 — Résultats de la recherche du rédacteur externe.
+.redacteur-results {
+  list-style: none;
+  margin: $spacing-md 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-sm;
+}
+
 .section-title {
   display: flex;
   align-items: center;

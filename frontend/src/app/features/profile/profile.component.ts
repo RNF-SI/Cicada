@@ -80,7 +80,8 @@ export class ProfileComponent {
       'super_admin': 'Super Administrateur',
       'redacteur_principal': 'Rédacteur Général',
       'admin_og': 'Administrateur Organisme',
-      'utilisateur': 'Utilisateur'
+      'utilisateur': 'Utilisateur',
+      'redacteur': 'Rédacteur externe'
     };
 
     // If user is a referent (via is_referent), show that

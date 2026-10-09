@@ -262,6 +262,7 @@ class RoleCreateSerializer(serializers.ModelSerializer):
             'admin_og': 'Administrateurs Organisme',
             'referent': 'Référents',
             'utilisateur': 'Utilisateurs',
+            'redacteur': 'Utilisateurs',  # #700
         }
 
         group_name = role_group_mapping.get(user.role_level)
@@ -334,6 +335,7 @@ class RoleUpdateSerializer(serializers.ModelSerializer):
                 'admin_og': 'Administrateurs Organisme',
                 'referent': 'Référents',
                 'utilisateur': 'Utilisateurs',
+                'redacteur': 'Utilisateurs',  # #700
             }
             
             # Retirer des anciens groupes
