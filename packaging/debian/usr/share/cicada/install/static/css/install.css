@@ -70,6 +70,7 @@ header p {
 }
 
 .form-group input[type="text"],
+.form-group input[type="url"],
 .form-group input[type="email"],
 .form-group input[type="password"],
 .form-group input[type="number"] {
@@ -404,3 +405,21 @@ header p {
 .check-list .check-warning { background: #fffaf0; border-left: 4px solid #dd6b20; }
 .check-list .check-error   { background: #fff5f5; border-left: 4px solid #e53e3e; }
 .check-list .check-pending { background: #edf2f7; border-left: 4px solid #a0aec0; }
+
+/* Durée de l'installation, annoncée avant le clic et rappelée pendant l'attente :
+   sans elle, 10 à 20 minutes d'import des référentiels passent pour un blocage. */
+.install-duree {
+    margin-bottom: 12px;
+    color: #4a5568;
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.loading-note {
+    max-width: 420px;
+    margin: 0 0 20px;
+    text-align: center;
+    font-size: 14px;
+    line-height: 1.5;
+    opacity: 0.85;
+}

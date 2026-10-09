@@ -375,6 +375,12 @@
             </section>
 
             <div class="form-actions">
+                <p class="install-duree">
+                    L'installation prend en général <strong>10 à 20 minutes</strong> : téléchargement de
+                    l'application, puis import des référentiels nationaux (taxons, habitats, protocoles).
+                    À la fin, vous serez <strong>redirigé automatiquement vers la page d'accueil de CICADA</strong>,
+                    où vous pourrez vous connecter avec le compte administrateur ci-dessus.
+                </p>
                 <button type="submit" id="submit-btn" class="btn-primary">Installer</button>
             </div>
         </form>
@@ -382,6 +388,8 @@
         <div id="loading-overlay" class="hidden">
             <div class="spinner"></div>
             <p id="loading-message">Installation en cours...</p>
+            <p class="loading-note">Comptez 10 à 20 minutes. Ne fermez pas cet onglet : vous serez redirigé
+                automatiquement vers la page d'accueil de CICADA une fois l'installation terminée.</p>
             <div id="progress-bar">
                 <div id="progress-fill"></div>
             </div>
