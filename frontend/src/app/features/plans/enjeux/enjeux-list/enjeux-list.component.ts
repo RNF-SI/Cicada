@@ -3,6 +3,7 @@
  * - Sans enjeu sélectionné : liste plate de cartes accordéon
  * - Avec enjeu sélectionné (route :enjeuId) : vue détail avec 3 onglets
  */
+import { ExplorationRetourService } from '../../../../core/services/exploration-retour.service';
 import { Component, OnInit, OnDestroy, DestroyRef, inject, signal, computed, ElementRef, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
@@ -127,6 +128,12 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
   private readonly elRef = inject(ElementRef);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
+  private readonly explorationRetour = inject(ExplorationRetourService);
+
+  /** #683 — Lien vers la recherche d'exploration d'où l'on vient (bandeau, fil d'Ariane). */
+  lienExploration() {
+    return this.explorationRetour.lienRetour(this.motCleSurligne());
+  }
   private readonly enjeuService = inject(EnjeuService);
   private readonly adminService = inject(AdminService);
   private readonly translate = inject(TranslateService);

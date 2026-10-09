@@ -1,8 +1,12 @@
 <div class="fiche-page" [appSurligner]="motCleSurligne()">
   <!-- Barre d'actions (masquée à l'impression) -->
   <div class="fiche-toolbar no-print">
-    <button class="btn-back" (click)="goBack()">
-      <i class="fi fi-rr-arrow-left"></i> {{ 'common.actions.back' | translate }}
+    <button class="btn-back" (click)="goBack()" data-testid="fiche-retour">
+      @if (accesExploration()) {
+        <i class="fi fi-rr-search"></i> {{ 'plans.lifecycle.explorationBanner.back' | translate }}
+      } @else {
+        <i class="fi fi-rr-arrow-left"></i> {{ 'common.actions.back' | translate }}
+      }
     </button>
     <div class="fiche-toolbar-right">
       @if (operation()?.enjeu_slug) {
@@ -45,7 +49,7 @@
           </span>
         }
       </div>
-      <a class="lock-banner-btn" routerLink="/exploration">
+      <a class="lock-banner-btn" [routerLink]="lienExploration()">
         <i class="fi fi-rr-search"></i>
         <span>{{ 'plans.lifecycle.explorationBanner.back' | translate }}</span>
       </a>

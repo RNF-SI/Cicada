@@ -2861,3 +2861,21 @@
     background-color: transparent;
   }
 }
+
+// #683 — Plan ouvert depuis l'exploration : structure d'origine dans le fil
+// d'Ariane (texte blanc sur le fond primary du fil, combinaison AA).
+.breadcrumb-provenance {
+  display: inline-flex;
+  align-items: center;
+  gap: $spacing-xxs;
+  padding: 0 $spacing-xs;
+  border: 1px solid $white;
+  border-radius: $border-radius-pill;
+  color: $white;
+  font-family: $font-family;
+  font-size: $font-size-small;
+
+  i {
+    display: inline-flex;
+  }
+}

@@ -1,3 +1,4 @@
+import { ExplorationRetourService } from '../../core/services/exploration-retour.service';
 import { Component, signal, computed, inject, OnInit, OnDestroy, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
@@ -144,6 +145,12 @@ import { SurlignerDirective } from '../../shared/directives/surligner.directive'
 export class PlanDetailComponent implements OnInit, OnDestroy {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
+  private readonly explorationRetour = inject(ExplorationRetourService);
+
+  /** #683 — Lien vers la recherche d'exploration d'où l'on vient (bandeau, fil d'Ariane). */
+  lienExploration() {
+    return this.explorationRetour.lienRetour(this.motCleSurligne());
+  }
   private readonly adminService = inject(AdminService);
   readonly authService = inject(AuthService);
   private readonly enjeuService = inject(EnjeuService);

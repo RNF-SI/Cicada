@@ -2004,6 +2004,7 @@
         "title": "Consultation via l'exploration des données",
         "text": "Ce plan de gestion validé appartient à une autre structure. Vous en consultez la structure en lecture seule : le budget, les moyens humains, les mesures d'indicateurs, le suivi des réalisations, les documents et les personnes ne sont pas partagés.",
         "back": "Retour à l'exploration",
+        "breadcrumb": "Exploration des données",
         "provenance": "Instantané publié par {{structure}} le {{date}} : il reflète l'état du plan à cette date."
       }
     },

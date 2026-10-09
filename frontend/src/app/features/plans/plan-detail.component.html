@@ -48,8 +48,25 @@
             </a>
             <div class="breadcrumb-lines"></div>
             <div class="breadcrumb-text">
-              <a routerLink="/plans" class="breadcrumb-link">{{ 'plans.title' | translate }}</a>
-              <i class="fi fi-rr-angle-small-right breadcrumb-chevron"></i>
+              @if (accesExploration()) {
+                <!-- Plan ouvert depuis l'exploration (#683) : ce n'est pas un plan de
+                     l'utilisateur, le fil ramène donc à l'exploration et nomme la
+                     structure d'origine, au lieu de « Plans de gestion ». -->
+                <a [routerLink]="lienExploration()"
+                   class="breadcrumb-link" data-testid="breadcrumb-exploration">
+                  {{ 'plans.lifecycle.explorationBanner.breadcrumb' | translate }}
+                </a>
+                <i class="fi fi-rr-angle-small-right breadcrumb-chevron"></i>
+                @if (provenanceDistante(); as provenance) {
+                  <span class="breadcrumb-provenance" data-testid="breadcrumb-provenance">
+                    <i class="fi fi-rr-globe"></i>{{ provenance.instance_libelle }}
+                  </span>
+                  <i class="fi fi-rr-angle-small-right breadcrumb-chevron"></i>
+                }
+              } @else {
+                <a routerLink="/plans" class="breadcrumb-link">{{ 'plans.title' | translate }}</a>
+                <i class="fi fi-rr-angle-small-right breadcrumb-chevron"></i>
+              }
               <span class="breadcrumb-current">{{ plan()?.nom }}</span>
             </div>
           </nav>
@@ -349,7 +366,7 @@
             </span>
           }
         </div>
-        <a class="lock-banner-btn" routerLink="/exploration">
+        <a class="lock-banner-btn" [routerLink]="lienExploration()">
           <i class="fi fi-rr-search"></i>
           <span>{{ 'plans.lifecycle.explorationBanner.back' | translate }}</span>
         </a>

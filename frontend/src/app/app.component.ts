@@ -5,6 +5,7 @@ import { Subscription, filter } from 'rxjs';
 import { TranslationService } from './core/services/translation.service';
 import { SettingsService } from './core/services/settings.service';
 import { MatomoService } from './core/services/matomo.service';
+import { ExplorationRetourService } from './core/services/exploration-retour.service';
 
 @Component({
   selector: 'app-root',
@@ -21,6 +22,8 @@ export class AppComponent implements OnInit, OnDestroy {
   private readonly settings = inject(SettingsService);
   // #670 — Instancié ici pour suivre les navigations dès le démarrage.
   private readonly matomo = inject(MatomoService);
+  /** #683 — Instancié ici pour retenir la dernière recherche d'exploration, quel que soit l'écran. */
+  private readonly explorationRetour = inject(ExplorationRetourService);
 
   private routerSubscription?: Subscription;
   title = 'CICADA';

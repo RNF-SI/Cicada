@@ -1,3 +1,4 @@
+import { ExplorationRetourService } from '../../../../core/services/exploration-retour.service';
 import { Component, OnInit, inject, signal, computed, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
@@ -42,6 +43,7 @@ import { SurlignerDirective } from '../../../../shared/directives/surligner.dire
 export class OperationFicheComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
+  private readonly explorationRetour = inject(ExplorationRetourService);
   private readonly enjeuService = inject(EnjeuService);
   private readonly translate = inject(TranslateService);
   private readonly dialog = inject(MatDialog);
@@ -573,7 +575,18 @@ export class OperationFicheComponent implements OnInit {
    * l'action ciblée. (L'ancien fragment `operation-<id>` n'ouvrait pas l'OLT/OO :
    * `prepareUiForAnchor` ne gère pas le type `operation`.)
    */
+  /** #683 — Lien vers la recherche d'exploration d'où l'on vient. */
+  lienExploration() {
+    return this.explorationRetour.lienRetour(this.motCleSurligne());
+  }
+
   goBack(): void {
+    // Action d'un plan ouvert depuis l'exploration : revenir à la recherche,
+    // pas au suivi ou à l'arborescence d'un plan qui n'est pas le sien.
+    if (this.accesExploration()) {
+      this.explorationRetour.retourner(this.motCleSurligne());
+      return;
+    }
     const slug = this.planSlug();
     if (!slug) {
       this.router.navigate(['/plans']);
