@@ -341,6 +341,22 @@
         "redacteur": "Réd. externe",
         "utilisateur": "Utilisateur"
       },
+      "rolesHelp": {
+        "title": "Comprendre les rôles",
+        "intro": "Chaque utilisateur a un rôle, qui fixe ce qu'il peut voir et faire. Être « référent » d'un site ou d'un plan (pastille R dans les colonnes Sites et Plans) n'est pas un rôle : c'est un droit de saisie sur ce site ou ce plan précis.",
+        "super_admin": "Accès complet à toutes les structures. Attribue les rôles de rédacteur général et de rédacteur externe, règle les paramètres de l'instance et traite les demandes RGPD.",
+        "redacteur_principal": "Lecture et écriture sur tous les plans, sites et organismes, toutes structures confondues. Peut lier un site à un plan sans validation et gérer le cycle de vie des plans (valider, archiver…). Attribué par un super admin.",
+        "admin_og": "Gère les utilisateurs, les sites et les demandes de validation de son organisme. Gère le cycle de vie des plans de son organisme et accède à leurs exports.",
+        "utilisateur": "Consulte les plans liés à son organisme, à ses sites ou auxquels il est rattaché. Modifie ceux dont il est référent.",
+        "redacteur": "Compte d'un bureau d'étude (ou d'une autre structure) missionné pour rédiger un plan de gestion.",
+        "redacteurDetails": {
+          "acces": "Aucun plan par défaut : ni son organisme ni un site ne lui ouvrent de plan.",
+          "demande": "Il cherche le plan dans « Plans de gestion › Trouver un plan à rédiger », puis demande l'accès en saisie. Les référents du plan ou l'administrateur de l'organisme gestionnaire valident la demande.",
+          "droits": "Une fois référent du plan : saisie, cycle de vie et exports. Jamais les suivis (bilan, suivi des actions, tableau de bord, réalisations).",
+          "organisme": "Son organisme n'est pas rattaché au plan : il n'apparaît ni parmi les organismes gestionnaires ni parmi les organismes rédacteurs.",
+          "fin": "L'accès dure jusqu'à ce qu'on le retire du plan. Lui retirer le rôle (super admin) en fait un utilisateur simple : il garde les plans dont il est référent, retrouve l'accès à leurs suivis et voit de nouveau les plans de son organisme."
+        }
+      },
       "sites": {
         "noSite": "Aucun site",
         "referent": "Référent",
@@ -653,6 +669,10 @@
         "none": "Cet organisme n'a aucun administrateur",
         "some": "Cet organisme a déjà {{count}} administrateur(s)",
         "noneHint": "Pensez à promouvoir ce compte en administrateur d'organisme après l'avoir accepté."
+      },
+      "referentRequest": {
+        "site": "Demande : souhaite devenir référent du site. Vous pouvez aussi ne l'approuver que comme simple utilisateur.",
+        "plan": "Demande : souhaite devenir référent du plan (droit de saisie). Vous pouvez aussi n'accorder qu'un accès en consultation."
       }
     },
     "modules": {

@@ -380,7 +380,8 @@ class ValidationRequestViewSet(viewsets.ModelViewSet):
                     ValidationService.approve_plan_access(
                         validation_request,
                         request.user,
-                        comment
+                        comment,
+                        override_referent=approve_as_referent
                     )
                 elif validation_request.request_type == 'site_org_link':
                     ValidationService.approve_site_org_link(

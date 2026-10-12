@@ -14,6 +14,28 @@
     <!-- No add user button - users are created via Django admin -->
   </header>
 
+  <!-- #700 — Ce que permet chaque rôle (dont le rédacteur externe). -->
+  <app-accordion class="roles-help" variant="subtle" size="sm" [title]="'admin.users.rolesHelp.title' | translate">
+    <p class="roles-help-intro">{{ 'admin.users.rolesHelp.intro' | translate }}</p>
+    <dl class="roles-help-list">
+      @for (role of rolesAide; track role) {
+        <div class="roles-help-item">
+          <dt><span class="role-badge" [class]="'role-' + role">{{ 'admin.users.roles.' + role | translate }}</span></dt>
+          <dd>
+            {{ 'admin.users.rolesHelp.' + role | translate }}
+            @if (role === 'redacteur') {
+              <ul class="list-custom">
+                @for (point of redacteurPointsAide; track point) {
+                  <li>{{ 'admin.users.rolesHelp.redacteurDetails.' + point | translate }}</li>
+                }
+              </ul>
+            }
+          </dd>
+        </div>
+      }
+    </dl>
+  </app-accordion>
+
   <!-- Filters -->
   <div class="filters-bar">
     <app-search-bar
@@ -211,67 +233,69 @@
               </td>
               <td class="date-cell col-secondary col-lastlogin">{{ user.lastLogin || ('common.date.never' | translate) }}</td>
               <td class="actions-cell">
-                @if (canManageUser(user)) {
-                  @if (isSuperAdmin()) {
-                    <button class="btn-icon" [title]="'admin.users.actions.assignOrganisme' | translate" (click)="openAssignOrganismeModal(user)">
-                      <i class="fi fi-rr-building"></i>
+                <div class="actions-wrap">
+                  @if (canManageUser(user)) {
+                    @if (isSuperAdmin()) {
+                      <button class="btn-icon" [title]="'admin.users.actions.assignOrganisme' | translate" (click)="openAssignOrganismeModal(user)">
+                        <i class="fi fi-rr-building"></i>
+                      </button>
+                    } @else {
+                      <!-- Admin org: bouton pour retirer le lien avec l'organisme -->
+                      @if (user.organismeId === currentUser()?.organisme?.id_organisme) {
+                        <button class="btn-icon danger" [title]="'admin.users.actions.removeFromOrganisme' | translate" (click)="removeUserFromOrganisme(user)">
+                          <i class="fi fi-rr-link-slash"></i>
+                        </button>
+                      }
+                    }
+                    <button class="btn-icon" [title]="'admin.users.actions.assignSite' | translate" (click)="openAssignSiteModal(user)">
+                      <i class="fi fi-rr-marker"></i>
                     </button>
-                  } @else {
-                    <!-- Admin org: bouton pour retirer le lien avec l'organisme -->
-                    @if (user.organismeId === currentUser()?.organisme?.id_organisme) {
-                      <button class="btn-icon danger" [title]="'admin.users.actions.removeFromOrganisme' | translate" (click)="removeUserFromOrganisme(user)">
-                        <i class="fi fi-rr-link-slash"></i>
+                    <!-- Changement de rôle : le super admin l'applique directement,
+                         l'admin_og dépose une demande qu'un super admin validera (#655) -->
+                    @if (canRequestPromotion(user)) {
+                      <button
+                        class="btn-icon promote"
+                        [matTooltip]="(isSuperAdmin() ? 'admin.users.actions.promote' : 'admin.users.actions.requestPromotion') | translate"
+                        (click)="requestAdminPromotion(user)">
+                        <i class="fi fi-rr-arrow-up"></i>
+                      </button>
+                    }
+                    @if (canRequestDemotion(user)) {
+                      <button
+                        class="btn-icon demote"
+                        [matTooltip]="(isSuperAdmin() ? 'admin.users.actions.demote' : 'admin.users.actions.requestDemotion') | translate"
+                        (click)="requestAdminDemotion(user)">
+                        <i class="fi fi-rr-arrow-down"></i>
+                      </button>
+                    }
+                    @if (canToggleRedacteur(user)) {
+                      <button
+                        class="btn-icon"
+                        [matTooltip]="(user.role === 'redacteur' ? 'admin.users.actions.removeRedacteur' : 'admin.users.actions.setRedacteur') | translate"
+                        (click)="toggleRedacteur(user)">
+                        <i class="fi" [class]="user.role === 'redacteur' ? 'fi-rr-user' : 'fi-rr-pencil'"></i>
+                      </button>
+                    }
+                    @if (isSuperAdmin()) {
+                      <button
+                        class="btn-icon"
+                        [class.danger]="user.isActive"
+                        [title]="(user.isActive ? 'admin.users.actions.deactivate' : 'admin.users.actions.activate') | translate"
+                        (click)="toggleUserStatus(user)">
+                        <i class="fi" [class]="user.isActive ? 'fi-rr-ban' : 'fi-rr-check'"></i>
                       </button>
                     }
                   }
-                  <button class="btn-icon" [title]="'admin.users.actions.assignSite' | translate" (click)="openAssignSiteModal(user)">
-                    <i class="fi fi-rr-marker"></i>
-                  </button>
-                  <!-- Changement de rôle : le super admin l'applique directement,
-                       l'admin_og dépose une demande qu'un super admin validera (#655) -->
-                  @if (canRequestPromotion(user)) {
+                  <!-- Impersonation button (super admin only, not for other super admins) -->
+                  @if (canImpersonateUser(user)) {
                     <button
-                      class="btn-icon promote"
-                      [matTooltip]="(isSuperAdmin() ? 'admin.users.actions.promote' : 'admin.users.actions.requestPromotion') | translate"
-                      (click)="requestAdminPromotion(user)">
-                      <i class="fi fi-rr-arrow-up"></i>
+                      class="btn-icon impersonate"
+                      [matTooltip]="('admin.users.actions.viewAs' | translate) + ' ' + user.prenom + ' ' + user.nom"
+                      (click)="startImpersonation(user)">
+                      <i class="fi fi-rr-eye"></i>
                     </button>
                   }
-                  @if (canRequestDemotion(user)) {
-                    <button
-                      class="btn-icon demote"
-                      [matTooltip]="(isSuperAdmin() ? 'admin.users.actions.demote' : 'admin.users.actions.requestDemotion') | translate"
-                      (click)="requestAdminDemotion(user)">
-                      <i class="fi fi-rr-arrow-down"></i>
-                    </button>
-                  }
-                  @if (canToggleRedacteur(user)) {
-                    <button
-                      class="btn-icon"
-                      [matTooltip]="(user.role === 'redacteur' ? 'admin.users.actions.removeRedacteur' : 'admin.users.actions.setRedacteur') | translate"
-                      (click)="toggleRedacteur(user)">
-                      <i class="fi" [class]="user.role === 'redacteur' ? 'fi-rr-user' : 'fi-rr-pencil'"></i>
-                    </button>
-                  }
-                  @if (isSuperAdmin()) {
-                    <button
-                      class="btn-icon"
-                      [class.danger]="user.isActive"
-                      [title]="(user.isActive ? 'admin.users.actions.deactivate' : 'admin.users.actions.activate') | translate"
-                      (click)="toggleUserStatus(user)">
-                      <i class="fi" [class]="user.isActive ? 'fi-rr-ban' : 'fi-rr-check'"></i>
-                    </button>
-                  }
-                }
-                <!-- Impersonation button (super admin only, not for other super admins) -->
-                @if (canImpersonateUser(user)) {
-                  <button
-                    class="btn-icon impersonate"
-                    [matTooltip]="('admin.users.actions.viewAs' | translate) + ' ' + user.prenom + ' ' + user.nom"
-                    (click)="startImpersonation(user)">
-                    <i class="fi fi-rr-eye"></i>
-                  </button>
-                }
+                </div>
               </td>
             </tr>
           }

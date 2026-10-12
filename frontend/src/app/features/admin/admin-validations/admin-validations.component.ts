@@ -209,7 +209,7 @@ export class AdminValidationsComponent implements OnInit {
    * Dans ce cas, on force l'ouverture du dialog au lieu d'approuver directement.
    */
   private requiresReferentChoice(validation: ValidationRequestListItem): boolean {
-    return (validation.request_type === 'site_creation' || validation.request_type === 'site_access')
+    return ['site_creation', 'site_access', 'plan_access'].includes(validation.request_type)
            && validation.request_as_referent === true;
   }
 

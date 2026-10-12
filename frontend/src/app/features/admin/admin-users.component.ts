@@ -34,6 +34,7 @@ import {
   AdminRoleChangeModalResult
 } from '../../shared/components/modals';
 import { ValidationService } from '../../core/services/validation.service';
+import { AccordionComponent } from '../../shared/components/accordion/accordion.component';
 
 // Interface for display site
 interface DisplaySite {
@@ -90,13 +91,18 @@ interface DisplayOrganisme {
     FilterBarComponent,
     FilterDropdownComponent,
     FilterOptionListComponent,
-    FilterPanelDirective
+    FilterPanelDirective,
+    AccordionComponent
 ],
   templateUrl: './admin-users.component.html',
   changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './admin-users.component.scss'
 })
 export class AdminUsersComponent implements OnInit, OnDestroy {
+  /** #700 — Rôles décrits dans l'encart « Comprendre les rôles », du plus large au plus restreint. */
+  readonly rolesAide = ['super_admin', 'redacteur_principal', 'admin_og', 'utilisateur', 'redacteur'] as const;
+  readonly redacteurPointsAide = ['acces', 'demande', 'droits', 'organisme', 'fin'] as const;
+
   private readonly authService = inject(AuthService);
   private readonly adminService = inject(AdminService);
   private readonly validationService = inject(ValidationService);

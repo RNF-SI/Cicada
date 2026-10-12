@@ -326,6 +326,9 @@
 // Main Content
 .admin-content {
   flex: 1;
+  // Sans min-width: 0, un contenu large (tableau) élargit toute la page
+  // au lieu de rester dans la zone de contenu.
+  min-width: 0;
   margin-left: 252px;
   padding: $spacing-lg;
   min-height: 100vh;

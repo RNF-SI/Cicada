@@ -185,3 +185,41 @@ class TestAttributionDuRole:
         cible = RoleFactory(role_level='utilisateur', id_organisme=org)
         response = _client(admin_og).post(f'/api/users/users/{cible.pk}/set-redacteur/')
         assert response.status_code == status.HTTP_403_FORBIDDEN
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+class TestValidationAccesPlanReferent:
+    """
+    Le validateur d'une demande d'accès au plan « en tant que référent » peut
+    l'accorder telle quelle ou n'accorder qu'un accès en consultation, comme
+    pour une demande d'accès à un site.
+    """
+
+    def _demande(self, redacteur_data):
+        response = _client(redacteur_data['redacteur']).post('/api/validations/request_plan_access/', {
+            'plan_id': redacteur_data['plan'].id_pg,
+            'request_as_referent': True,
+        }, format='json')
+        assert response.status_code == status.HTTP_201_CREATED
+        return response.data['id']
+
+    def _approuver(self, redacteur_data, demande_id, **corps):
+        return _client(redacteur_data['admin_og']).post(
+            f'/api/validations/{demande_id}/approve/', corps, format='json')
+
+    def test_approbation_simple_donne_le_role_de_referent(self, redacteur_data):
+        demande_id = self._demande(redacteur_data)
+        assert self._approuver(redacteur_data, demande_id).status_code == status.HTTP_200_OK
+        plan = redacteur_data['plan']
+        assert plan.referents.filter(pk=redacteur_data['redacteur'].pk).exists()
+
+    def test_approbation_en_consultation_seulement(self, redacteur_data):
+        from apps.plans.models import CorRolePlan
+
+        demande_id = self._demande(redacteur_data)
+        response = self._approuver(redacteur_data, demande_id, approve_as_referent=False)
+        assert response.status_code == status.HTTP_200_OK
+        plan, redacteur = redacteur_data['plan'], redacteur_data['redacteur']
+        assert not plan.referents.filter(pk=redacteur.pk).exists()
+        assert CorRolePlan.objects.get(plan_de_gestion=plan, id_role=redacteur).referent is False
