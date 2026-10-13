@@ -369,9 +369,9 @@
                 </div>
                 <div id="geonature_auth_fields" class="hidden">
                     <div class="form-group">
-                        <label for="geonature_auth_url">URL du GeoNature *</label>
-                        <input type="url" id="geonature_auth_url" name="geonature_auth_url" placeholder="https://geonature.reserves-naturelles.org">
-                        <small class="form-help">Adresse racine, sans « /api » : CICADA appelle /api/auth/login et /api/users/organism/&lt;id&gt;.</small>
+                        <label for="geonature_auth_url">Adresse de l'API GeoNature *</label>
+                        <input type="url" id="geonature_auth_url" name="geonature_auth_url" placeholder="https://geonature.reserves-naturelles.org/api">
+                        <small class="form-help">Valeur <code>API_ENDPOINT</code> de la configuration GeoNature (souvent terminée par « /api »). CICADA y appelle /auth/login et /users/organism/&lt;id&gt;.</small>
                     </div>
                     <div class="form-group">
                         <label for="geonature_auth_id_application">Identifiant de l'application CICADA dans UsersHub *</label>

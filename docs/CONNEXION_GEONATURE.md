@@ -6,7 +6,7 @@ Une instance CICADA peut accepter, **en plus** de ses comptes propres, les compt
 
 ## Prérequis
 
-- **GeoNature 2.17.0 ou plus récent.** Cette version ajoute `GET /api/users/organism/<id>` (fiche d'un organisme) et impose `pypnusershub >= 3.2.0`, qui accepte le jeton en `Authorization: Bearer`. Avec une version plus ancienne, la connexion fonctionne mais le compte n'est **pas** rattaché à son organisme.
+- **GeoNature 2.17.0 ou plus récent.** Cette version ajoute `GET <API>/users/organism/<id>` (fiche d'un organisme) et impose `pypnusershub >= 3.2.0`, qui accepte le jeton en `Authorization: Bearer`. Avec une version plus ancienne, la connexion fonctionne mais le compte n'est **pas** rattaché à son organisme.
 - Une application CICADA déclarée dans UsersHub (son `id_application`).
 
 ## Réglages
@@ -15,7 +15,7 @@ Proposés par l'installeur (« Connexion par un GeoNature »), écrits dans `/va
 
 | Variable | Rôle |
 |---|---|
-| `GEONATURE_AUTH_URL` | URL racine du GeoNature, sans `/api`. Vide = désactivée |
+| `GEONATURE_AUTH_URL` | adresse de l'**API** GeoNature = la valeur `API_ENDPOINT` de sa configuration (ex. `https://geonature.exemple.fr/api` derrière Apache ; `http://127.0.0.1:5000` en développement). Vide = désactivée |
 | `GEONATURE_AUTH_ID_APPLICATION` | `id_application` de CICADA dans UsersHub |
 | `GEONATURE_AUTH_LIBELLE` | nom affiché : « RNF » → bouton « Compte RNF » |
 | `GEONATURE_AUTH_ORGANISMES_EXCLUS` | `id_organisme` UsersHub qui ne sont pas de vrais organismes (« Autre », « ALL », tests), séparés par des virgules |
@@ -25,9 +25,9 @@ Après modification : `docker compose up -d web`.
 
 ## Déroulé d'une connexion
 
-1. La page de connexion propose « Compte <libellé> » et « Compte CICADA ». Le mot de passe saisi part au **serveur** CICADA, qui le relaie à GeoNature (`POST /api/auth/login`) ; le navigateur ne parle jamais à GeoNature, et le mot de passe n'est ni stocké ni journalisé.
+1. La page de connexion propose « Compte <libellé> » et « Compte CICADA ». Le mot de passe saisi part au **serveur** CICADA, qui le relaie à GeoNature (`POST <API>/auth/login`) ; le navigateur ne parle jamais à GeoNature, et le mot de passe n'est ni stocké ni journalisé.
 2. GeoNature renvoie l'`id_role`, l'email, le nom et l'`id_organisme` de la personne.
-3. Avec le jeton reçu, CICADA lit la fiche de l'organisme (`GET /api/users/organism/<id>`) pour obtenir son **`uuid_organisme`**. Le jeton n'est pas conservé.
+3. Avec le jeton reçu, CICADA lit la fiche de l'organisme (`GET <API>/users/organism/<id>`) pour obtenir son **`uuid_organisme`**. Le jeton n'est pas conservé.
 4. **Compte** : retrouvé par `usershub_id_role`, sinon par email, sinon créé (rôle « utilisateur », actif, sans mot de passe CICADA).
 5. **Organisme** : retrouvé par `uuid_organisme`, sinon créé. Le compte y est rattaché (UsersHub fait foi).
 6. CICADA délivre ses propres jetons, comme pour une connexion classique.

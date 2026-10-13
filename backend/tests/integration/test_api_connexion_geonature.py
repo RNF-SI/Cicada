@@ -15,7 +15,7 @@ from apps.users.models import BibOrganismes, Role
 from tests.factories.users import AdminOrganismeFactory, OrganismeFactory, RoleFactory
 
 URL = '/api/auth/login-geonature/'
-GN = 'https://geonature.test'
+GN = 'https://geonature.test/api'
 MODULE = 'apps.authentication.providers.usershub.requests'
 
 pytestmark = [pytest.mark.django_db, pytest.mark.integration]
@@ -86,15 +86,29 @@ class TestAppelsAGeoNature:
         res, req = connecter(utilisateur_gn(), fiche_organisme(u))
         assert res.status_code == 200
         req.post.assert_called_once()
-        assert req.post.call_args.args[0] == f'{GN}/api/auth/login'
+        assert req.post.call_args.args[0] == f'{GN}/auth/login'
         assert req.post.call_args.kwargs['json'] == {'login': 'cdupont', 'password': 'secret', 'id_application': '14'}
-        assert req.get.call_args.args[0] == f'{GN}/api/users/organism/3'
-        assert req.get.call_args.kwargs['headers'] == {'Authorization': 'Bearer jeton-gn'}
+        assert req.get.call_args.args[0] == f'{GN}/users/organism/3'
+        assert req.get.call_args.kwargs['headers'] == {'Accept': 'application/json', 'Authorization': 'Bearer jeton-gn'}
+        # Sans cet en-tête, GeoNature répond à un refus par une redirection.
+        assert req.post.call_args.kwargs['headers'] == {'Accept': 'application/json'}
 
     def test_mauvais_mot_de_passe(self):
         res, _ = connecter(reponse(401, None))
         assert res.status_code == 401
         assert not Role.objects.filter(usershub_id_role=146).exists()
+
+    def test_redirection_vers_la_page_de_connexion_vaut_refus(self):
+        r = reponse(302, None)
+        r.headers = {'Location': 'https://geonature.test/#/login?next=…'}
+        res, _ = connecter(r)
+        assert res.status_code == 401
+
+    def test_autre_redirection_signale_une_adresse_mal_reglee(self):
+        r = reponse(301, None)
+        r.headers = {'Location': 'https://geonature.test/api/auth/login'}
+        res, _ = connecter(r)
+        assert res.status_code == 502
 
     def test_geonature_injoignable(self):
         with mock.patch(MODULE) as req:

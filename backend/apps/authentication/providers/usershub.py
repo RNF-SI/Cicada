@@ -3,11 +3,15 @@ Connexion par un GeoNature / UsersHub (#689) et rattachement à l'organisme (#69
 
 Déroulé d'une connexion :
 
-1. ``POST {GEONATURE_AUTH_URL}/api/auth/login`` vérifie l'identifiant et le mot
+``GEONATURE_AUTH_URL`` est l'adresse de l'**API** GeoNature, c'est-à-dire la
+valeur ``API_ENDPOINT`` de sa configuration : souvent ``https://…/api`` derrière
+un Apache, parfois sans suffixe (``http://127.0.0.1:5000`` en développement).
+
+1. ``POST {GEONATURE_AUTH_URL}/auth/login`` vérifie l'identifiant et le mot
    de passe (serveur → serveur : le navigateur ne parle jamais à GeoNature).
    La réponse donne ``id_role``, l'email, le nom et ``id_organisme``, mais pas
    l'organisme lui-même.
-2. ``GET {GEONATURE_AUTH_URL}/api/users/organism/<id>``, avec le jeton qui
+2. ``GET {GEONATURE_AUTH_URL}/users/organism/<id>``, avec le jeton qui
    vient d'être délivré, donne l'``uuid_organisme`` et la fiche (GeoNature
    >= 2.17.0). L'uuid est la clé commune aux deux bases : les ``id_organisme``
    sont des séquences locales et ne coïncident pas.
@@ -76,17 +80,24 @@ def _url(chemin):
     return f"{settings.GEONATURE_AUTH_URL}{chemin}"
 
 
+# Sans « Accept: application/json », GeoNature répond à un refus par une
+# redirection vers sa page de connexion (302) au lieu d'un 401.
+ENTETES = {'Accept': 'application/json'}
+
+
 def authentifier(login, password):
     """Vérifie l'identifiant et le mot de passe auprès de GeoNature."""
     try:
         reponse = requests.post(
-            _url('/api/auth/login'),
+            _url('/auth/login'),
             json={
                 'login': login,
                 'password': password,
                 'id_application': settings.GEONATURE_AUTH_ID_APPLICATION,
             },
+            headers=ENTETES,
             timeout=settings.GEONATURE_AUTH_TIMEOUT,
+            allow_redirects=False,
         )
     except requests.RequestException as exc:
         # Jamais le corps de la requête dans les journaux : il porte le mot de passe.
@@ -95,6 +106,16 @@ def authentifier(login, password):
 
     if reponse.status_code in (400, 401, 403, 404):
         raise UsersHubErreur(_("Identifiant ou mot de passe incorrect."))
+    if 300 <= reponse.status_code < 400:
+        # Redirection vers la page de connexion de GeoNature = refus.
+        # Toute autre redirection trahit une adresse mal réglée
+        # (http → https, API_ENDPOINT sans « /api »…).
+        destination = reponse.headers.get('Location', '')
+        if 'login?next=' in destination:
+            raise UsersHubErreur(_("Identifiant ou mot de passe incorrect."))
+        logger.error("Connexion GeoNature : redirection inattendue vers %s — "
+                     "vérifier GEONATURE_AUTH_URL", destination)
+        raise UsersHubIndisponible()
     if reponse.status_code != 200:
         logger.error("Connexion GeoNature : réponse %s inattendue au login", reponse.status_code)
         raise UsersHubIndisponible()
@@ -133,16 +154,17 @@ def lire_organisme(id_organisme, jeton):
     """
     try:
         reponse = requests.get(
-            _url(f'/api/users/organism/{int(id_organisme)}'),
-            headers={'Authorization': f'Bearer {jeton}'},
+            _url(f'/users/organism/{int(id_organisme)}'),
+            headers={**ENTETES, 'Authorization': f'Bearer {jeton}'},
             timeout=settings.GEONATURE_AUTH_TIMEOUT,
+            allow_redirects=False,
         )
     except requests.RequestException as exc:
         logger.error("Connexion GeoNature : organisme %s illisible (%s)", id_organisme, type(exc).__name__)
         return None
     if reponse.status_code == 404:
         logger.error(
-            "Connexion GeoNature : GET /api/users/organism/%s introuvable — "
+            "Connexion GeoNature : GET /users/organism/%s introuvable — "
             "organisme supprimé, ou GeoNature antérieur à 2.17.0", id_organisme,
         )
         return None

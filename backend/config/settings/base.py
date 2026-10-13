@@ -26,7 +26,8 @@ AUTH_PROVIDER = os.environ.get('AUTH_PROVIDER', 'local')
 # Optionnelle : vide = désactivée, l'instance n'appelle jamais GeoNature.
 # S'ajoute à la connexion locale (email + mot de passe), ne la remplace pas.
 # GeoNature >= 2.17.0 requis pour rattacher le compte à son organisme
-# (GET /api/users/organism/<id>) ; en dessous, la connexion fonctionne sans.
+# (GET <API>/users/organism/<id>) ; en dessous, la connexion fonctionne sans.
+# Adresse de l'API GeoNature (son API_ENDPOINT), ex. https://geonature.exemple.fr/api
 GEONATURE_AUTH_URL = os.environ.get('GEONATURE_AUTH_URL', '').strip().rstrip('/')
 GEONATURE_AUTH_ID_APPLICATION = os.environ.get('GEONATURE_AUTH_ID_APPLICATION', '').strip()
 # Libellé du bouton de connexion (« RNF », « GeoNature »…).
