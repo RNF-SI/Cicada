@@ -21,6 +21,25 @@ ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', 'localhost').split(',')
 AUTH_PROVIDER = os.environ.get('AUTH_PROVIDER', 'local')
 
 # ---------------------------------------------------------------------------
+# Connexion par un GeoNature / UsersHub (#689, #691)
+# ---------------------------------------------------------------------------
+# Optionnelle : vide = désactivée, l'instance n'appelle jamais GeoNature.
+# S'ajoute à la connexion locale (email + mot de passe), ne la remplace pas.
+# GeoNature >= 2.17.0 requis pour rattacher le compte à son organisme
+# (GET /api/users/organism/<id>) ; en dessous, la connexion fonctionne sans.
+GEONATURE_AUTH_URL = os.environ.get('GEONATURE_AUTH_URL', '').strip().rstrip('/')
+GEONATURE_AUTH_ID_APPLICATION = os.environ.get('GEONATURE_AUTH_ID_APPLICATION', '').strip()
+# Libellé du bouton de connexion (« RNF », « GeoNature »…).
+GEONATURE_AUTH_LIBELLE = os.environ.get('GEONATURE_AUTH_LIBELLE', 'GeoNature').strip()
+GEONATURE_AUTH_TIMEOUT = int(os.environ.get('GEONATURE_AUTH_TIMEOUT', '10'))
+# id_organisme UsersHub qui ne sont pas de vrais organismes (« Autre », « ALL »,
+# comptes de test…) : le compte entre sans organisme. Ex. « -1,2,303,339 ».
+GEONATURE_AUTH_ORGANISMES_EXCLUS = {
+    int(x) for x in os.environ.get('GEONATURE_AUTH_ORGANISMES_EXCLUS', '').split(',')
+    if x.strip().lstrip('-').isdigit()
+}
+
+# ---------------------------------------------------------------------------
 # Identité de l'instance (#636 — exploration fédérée)
 # ---------------------------------------------------------------------------
 # CICADA est déployé en plusieurs instances, chacune avec sa propre base. Aucun

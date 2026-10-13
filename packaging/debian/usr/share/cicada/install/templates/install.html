@@ -348,6 +348,48 @@
                 </div>
             </section>
 
+            <!-- Section Connexion GeoNature / UsersHub (#689) -->
+            <section class="form-section">
+                <h2>Connexion par un GeoNature (optionnel)</h2>
+                <div class="info-box">
+                    <p>Par défaut, chacun se connecte avec l'email et le mot de passe de son
+                    compte CICADA. Si votre structure gère ses utilisateurs dans un
+                    <strong>GeoNature / UsersHub</strong> (c'est le cas de RNF), ses comptes
+                    peuvent aussi servir à se connecter à CICADA. Le compte CICADA est créé à la
+                    première connexion et rattaché à son organisme UsersHub.</p>
+                    <p>La connexion CICADA reste disponible pour les personnes sans compte
+                    UsersHub. <strong>GeoNature 2.17.0 minimum</strong> pour rattacher
+                    l'organisme.</p>
+                </div>
+                <div class="form-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="geonature_auth_enabled" name="geonature_auth_enabled" onchange="toggleGeoNatureAuthFields()">
+                        <span>Autoriser la connexion avec un compte GeoNature / UsersHub</span>
+                    </label>
+                </div>
+                <div id="geonature_auth_fields" class="hidden">
+                    <div class="form-group">
+                        <label for="geonature_auth_url">URL du GeoNature *</label>
+                        <input type="url" id="geonature_auth_url" name="geonature_auth_url" placeholder="https://geonature.reserves-naturelles.org">
+                        <small class="form-help">Adresse racine, sans « /api » : CICADA appelle /api/auth/login et /api/users/organism/&lt;id&gt;.</small>
+                    </div>
+                    <div class="form-group">
+                        <label for="geonature_auth_id_application">Identifiant de l'application CICADA dans UsersHub *</label>
+                        <input type="number" id="geonature_auth_id_application" name="geonature_auth_id_application" placeholder="14">
+                    </div>
+                    <div class="form-group">
+                        <label for="geonature_auth_libelle">Nom affiché sur la page de connexion *</label>
+                        <input type="text" id="geonature_auth_libelle" name="geonature_auth_libelle" placeholder="RNF" value="RNF">
+                        <small class="form-help">Le bouton s'appellera « Compte RNF ».</small>
+                    </div>
+                    <div class="form-group">
+                        <label for="geonature_auth_organismes_exclus">Organismes UsersHub à ignorer (facultatif)</label>
+                        <input type="text" id="geonature_auth_organismes_exclus" name="geonature_auth_organismes_exclus" placeholder="-1,2">
+                        <small class="form-help">id_organisme UsersHub qui ne sont pas de vrais organismes (« Autre », « ALL », tests…), séparés par des virgules. Le compte entre alors sans organisme.</small>
+                    </div>
+                </div>
+            </section>
+
             <!-- Section RGPD -->
             <section class="form-section rgpd-section">
                 <h2>Consentement RGPD (optionnel)</h2>

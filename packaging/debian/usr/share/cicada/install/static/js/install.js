@@ -86,7 +86,8 @@ document.addEventListener('DOMContentLoaded', function() {
             if (key === 'rgpd_consent') {
                 data[key] = document.getElementById(key).checked;
             } else if (key === 'smtp_enabled' || key === 'smtp_use_auth' || key === 'smtp_use_tls'
-                       || key === 'federation_enabled' || key === 'federation_relay') {
+                       || key === 'federation_enabled' || key === 'federation_relay'
+                       || key === 'geonature_auth_enabled') {
                 data[key] = document.getElementById(key).checked;
             } else if (key !== 'reverse_proxy_present' && key !== 'acme_email') {
                 data[key] = value;
@@ -99,6 +100,8 @@ document.addEventListener('DOMContentLoaded', function() {
         const relayBox = document.getElementById('federation_relay');
         data.federation_enabled = !!(federationBox && federationBox.checked);
         data.federation_relay = data.federation_enabled && !!(relayBox && relayBox.checked);
+        const geonatureBox = document.getElementById('geonature_auth_enabled');
+        data.geonature_auth_enabled = !!(geonatureBox && geonatureBox.checked);
         if (data.use_traefik) {
             if (useAdminAcmeEmail) {
                 data.acme_email = (document.getElementById('admin_email') && document.getElementById('admin_email').value) || '';
@@ -531,5 +534,27 @@ function toggleFederationFields() {
             if (champ) { champ.required = false; champ.value = ''; }
         });
         if (relay) relay.checked = false;
+    }
+}
+
+function toggleGeoNatureAuthFields() {
+    // #689 — connexion par un GeoNature / UsersHub : désactivée par défaut.
+    const enabled = document.getElementById('geonature_auth_enabled');
+    const fields = document.getElementById('geonature_auth_fields');
+    const url = document.getElementById('geonature_auth_url');
+    const idApp = document.getElementById('geonature_auth_id_application');
+    const libelle = document.getElementById('geonature_auth_libelle');
+    const exclus = document.getElementById('geonature_auth_organismes_exclus');
+    if (!enabled || !fields) return;
+
+    const actif = enabled.checked;
+    fields.classList.toggle('hidden', !actif);
+    [url, idApp, libelle].forEach(function (champ) {
+        if (champ) champ.required = actif;
+    });
+    if (!actif) {
+        [url, idApp, exclus].forEach(function (champ) {
+            if (champ) champ.value = '';
+        });
     }
 }

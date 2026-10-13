@@ -6,6 +6,36 @@
       <p class="subtitle">{{ 'auth.login.subtitle' | translate }}</p>
     </div>
 
+    @if (modeGeoNature(); as externe) {
+      <div class="segmented-control login-modes" role="group" [attr.aria-label]="'auth.login.modes.label' | translate">
+        <button
+          type="button"
+          class="segmented-control-option"
+          [class.active]="mode() === 'geonature'"
+          [attr.aria-pressed]="mode() === 'geonature'"
+          (click)="changerMode('geonature')"
+          data-testid="login-mode-geonature">
+          {{ 'auth.login.modes.geonature' | translate:{ libelle: externe.libelle } }}
+        </button>
+        <button
+          type="button"
+          class="segmented-control-option"
+          [class.active]="mode() === 'local'"
+          [attr.aria-pressed]="mode() === 'local'"
+          (click)="changerMode('local')"
+          data-testid="login-mode-local">
+          {{ 'auth.login.modes.local' | translate }}
+        </button>
+      </div>
+      <p class="login-mode-hint">
+        @if (mode() === 'geonature') {
+          {{ 'auth.login.modes.geonatureHint' | translate:{ libelle: externe.libelle } }}
+        } @else {
+          {{ 'auth.login.modes.localHint' | translate }}
+        }
+      </p>
+    }
+
     <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" class="login-form">
       @if (errorMessage()) {
         <div class="error-banner">
@@ -14,12 +44,15 @@
         </div>
       }
 
-      <app-form-field class="full-width" [label]="'auth.login.username' | translate" [required]="true">
+      <app-form-field
+        class="full-width"
+        [label]="(mode() === 'geonature' ? 'auth.login.modes.geonatureUsername' : 'auth.login.username') | translate:{ libelle: modeGeoNature()?.libelle }"
+        [required]="true">
         <i prefixSlot class="fi fi-rr-user field-icon"></i>
         <input
           type="text"
           formControlName="username"
-          [placeholder]="'auth.login.usernamePlaceholder' | translate"
+          [placeholder]="(mode() === 'geonature' ? 'auth.login.modes.geonatureUsernamePlaceholder' : 'auth.login.usernamePlaceholder') | translate"
           autocomplete="username"
         >
         <ng-container errorSlot>
@@ -70,13 +103,16 @@
     </form>
 
     <div class="login-footer">
-      <p class="forgot-password-link">
-        <a routerLink="/auth/forgot-password">{{ 'auth.login.forgotPassword' | translate }}</a>
-      </p>
-      <p class="register-link">
-        {{ 'auth.login.noAccount' | translate }}
-        <a routerLink="/auth/register">{{ 'auth.login.createAccount' | translate }}</a>
-      </p>
+      <!-- Mot de passe et inscription CICADA : sans objet pour un compte externe. -->
+      @if (mode() === 'local') {
+        <p class="forgot-password-link">
+          <a routerLink="/auth/forgot-password">{{ 'auth.login.forgotPassword' | translate }}</a>
+        </p>
+        <p class="register-link">
+          {{ 'auth.login.noAccount' | translate }}
+          <a routerLink="/auth/register">{{ 'auth.login.createAccount' | translate }}</a>
+        </p>
+      }
       <a routerLink="/accueil" class="back-link">
         <i class="fi fi-rr-arrow-left"></i>
         {{ 'auth.login.backToHome' | translate }}

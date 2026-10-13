@@ -136,6 +136,11 @@ class Role(AbstractUser):
         verbose_name=_("Anonymise le")
     )
     champs_addi = models.TextField(_("Champs additionnels"), null=True, blank=True)
+    # #689 — id_role du compte dans le UsersHub de la connexion GeoNature : clé
+    # du rapprochement une fois le lien établi (l'email peut changer côté UsersHub).
+    usershub_id_role = models.IntegerField(
+        _("Identifiant UsersHub"), null=True, blank=True, unique=True
+    )
     date_insert = models.DateTimeField(auto_now_add=True)
     date_update = models.DateTimeField(auto_now=True)
     
@@ -314,6 +319,7 @@ class Role(AbstractUser):
         self.identifiant = None
         self.remarques = None
         self.champs_addi = None
+        self.usershub_id_role = None
         self.pass_plus = None
 
         # Supprimer le mot de passe

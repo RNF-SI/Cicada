@@ -7,6 +7,8 @@ import {
   User,
   AuthTokens,
   LoginRequest,
+  LoginMode,
+  LoginModeCode,
   LoginResponse,
   RefreshResponse,
   UserRole,
@@ -175,10 +177,19 @@ export class AuthService {
   /**
    * Login with email and password
    */
-  login(credentials: LoginRequest): Observable<User> {
+  login(credentials: LoginRequest, mode: LoginModeCode = 'local'): Observable<User> {
     this.isLoadingSignal.set(true);
 
-    return this.http.post<LoginResponse>(`${this.apiUrl}/login/`, credentials).pipe(
+    // #689 — connexion GeoNature : le backend relaie à GeoNature et renvoie
+    // les mêmes jetons CICADA, la suite est identique.
+    const request$ = mode === 'geonature'
+      ? this.http.post<LoginResponse>(`${this.apiUrl}/login-geonature/`, {
+          login: credentials.username,
+          password: credentials.password,
+        })
+      : this.http.post<LoginResponse>(`${this.apiUrl}/login/`, credentials);
+
+    return request$.pipe(
       tap(response => {
         this.storeTokens({ access: response.access, refresh: response.refresh });
         this.storeUser(response.user);
@@ -192,6 +203,17 @@ export class AuthService {
         this.isLoadingSignal.set(false);
         return this.handleError(error);
       })
+    );
+  }
+
+  /**
+   * #689 — Modes de connexion proposés par l'instance (public). En cas
+   * d'erreur, seule la connexion locale est proposée.
+   */
+  getLoginModes(): Observable<LoginMode[]> {
+    return this.http.get<{ modes: LoginMode[] }>(`${this.apiUrl}/modes/`).pipe(
+      map(response => response.modes),
+      catchError(() => of<LoginMode[]>([{ code: 'local' }]))
     );
   }
 

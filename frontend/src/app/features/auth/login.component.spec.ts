@@ -6,6 +6,7 @@ import { TranslateModule, TranslateLoader } from '@ngx-translate/core';
 import { of, throwError } from 'rxjs';
 
 import { LoginComponent } from './login.component';
+import { LoginMode } from '../../core/models/user.model';
 import { AuthService } from '../../core/services/auth.service';
 
 // Dummy component for routes
@@ -33,12 +34,16 @@ describe('LoginComponent', () => {
   let loginMock: jest.Mock;
   let isLoadingSignal: WritableSignal<boolean>;
 
-  const setupTestBed = async (returnUrl: string | null = null) => {
+  const setupTestBed = async (
+    returnUrl: string | null = null,
+    modes: LoginMode[] = [{ code: 'local' }]
+  ) => {
     loginMock = jest.fn().mockReturnValue(of({ access: 'token', refresh: 'refresh' }));
     isLoadingSignal = signal(false);
 
     const authServiceMock = {
       login: loginMock,
+      getLoginModes: jest.fn().mockReturnValue(of(modes)),
       isLoading: isLoadingSignal.asReadonly()
     };
 
@@ -207,7 +212,7 @@ describe('LoginComponent', () => {
       expect(loginMock).toHaveBeenCalledWith({
         username: 'user@test.fr',
         password: 'password123'
-      });
+      }, 'local');
     }));
 
     it('should clear error message before submitting', fakeAsync(() => {
@@ -337,6 +342,56 @@ describe('LoginComponent', () => {
 
       isLoadingSignal.set(false);
       expect(component.isLoading()).toBe(false);
+    });
+  });
+
+  // ==================== MODES DE CONNEXION (#689) ====================
+
+  describe('Modes de connexion (#689)', () => {
+    const geonature: LoginMode = { code: 'geonature', libelle: 'RNF' };
+
+    beforeEach(() => {
+      try {
+        localStorage.removeItem('login_mode');
+      } catch {
+        // sans objet
+      }
+    });
+
+    it('ne propose pas de choix sur une instance sans connexion externe', async () => {
+      await setupTestBed();
+      expect(fixture.nativeElement.querySelector('[data-testid="login-mode-geonature"]')).toBeNull();
+      expect(component.mode()).toBe('local');
+    });
+
+    it('propose le compte externe en premier quand il est configuré', async () => {
+      await setupTestBed(null, [{ code: 'local' }, geonature]);
+      fixture.detectChanges();
+      expect(fixture.nativeElement.querySelector('[data-testid="login-mode-geonature"]')).not.toBeNull();
+      expect(component.mode()).toBe('geonature');
+    });
+
+    it('reprend le dernier mode utilisé', async () => {
+      localStorage.setItem('login_mode', 'local');
+      await setupTestBed(null, [{ code: 'local' }, geonature]);
+      expect(component.mode()).toBe('local');
+    });
+
+    it('envoie la connexion dans le mode choisi et le retient', async () => {
+      await setupTestBed(null, [{ code: 'local' }, geonature]);
+      component.loginForm.patchValue({ username: 'cdupont', password: 'secret' });
+      component.onSubmit();
+      expect(loginMock).toHaveBeenCalledWith({ username: 'cdupont', password: 'secret' }, 'geonature');
+      expect(localStorage.getItem('login_mode')).toBe('geonature');
+    });
+
+    it('masque mot de passe oublié et inscription pour un compte externe', async () => {
+      await setupTestBed(null, [{ code: 'local' }, geonature]);
+      fixture.detectChanges();
+      expect(fixture.nativeElement.querySelector('a[href="/auth/forgot-password"]')).toBeNull();
+      component.changerMode('local');
+      fixture.detectChanges();
+      expect(fixture.nativeElement.querySelector('a[href="/auth/forgot-password"]')).not.toBeNull();
     });
   });
 });

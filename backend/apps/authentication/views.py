@@ -23,7 +23,9 @@ from rest_framework_simplejwt.exceptions import TokenError, InvalidToken
 from apps.users.models import Role, Site, BibOrganismes
 from apps.plans.models import PlanGestion
 from .models import ImpersonationLog
+from .providers import usershub
 from .serializers import (
+    reponse_connexion,
     CustomTokenObtainPairSerializer,
     PasswordResetConfirmSerializer,
     PasswordResetRequestSerializer,
@@ -62,6 +64,54 @@ class CustomTokenObtainPairView(APIView):
             {'detail': 'Donnees invalides', 'errors': errors},
             status=status.HTTP_400_BAD_REQUEST
         )
+
+
+class ModesConnexionView(APIView):
+    """
+    Modes de connexion proposés sur la page de connexion (#689).
+
+    GET /api/auth/modes/
+    Public : la page de connexion l'appelle avant toute authentification.
+    """
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        modes = [{'code': 'local'}]
+        if usershub.est_active():
+            modes.append({'code': 'geonature', 'libelle': settings.GEONATURE_AUTH_LIBELLE})
+        return Response({'modes': modes})
+
+
+class ConnexionGeoNatureView(APIView):
+    """
+    Connexion avec un compte GeoNature / UsersHub (#689, #691).
+
+    POST /api/auth/login-geonature/
+    Body: {"login": "identifiant UsersHub", "password": "…"}
+
+    Renvoie les mêmes jetons que POST /api/auth/login/.
+    """
+    permission_classes = [AllowAny]
+    throttle_classes = [AuthRateThrottle]
+
+    def post(self, request):
+        if not usershub.est_active():
+            return Response({'detail': "Connexion GeoNature non configurée."},
+                            status=status.HTTP_404_NOT_FOUND)
+
+        login = (request.data.get('login') or '').strip()
+        password = request.data.get('password') or ''
+        if not login or not password:
+            return Response({'detail': "L'identifiant et le mot de passe sont requis."},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            identite = usershub.authentifier(login, password)
+            compte = usershub.compte_pour(identite)
+        except usershub.UsersHubErreur as exc:
+            return Response({'detail': str(exc.message)}, status=exc.status_code)
+
+        return Response(reponse_connexion(compte), status=status.HTTP_200_OK)
 
 
 class CustomTokenRefreshView(TokenRefreshView):

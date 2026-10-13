@@ -71,6 +71,11 @@ services:
       - CICADA_HUB_PUSH_TOKEN=${CICADA_HUB_PUSH_TOKEN:-}
       - CICADA_HUB_READ_TOKEN=${CICADA_HUB_READ_TOKEN:-}
       - CICADA_EXPLORATION_SOURCE=${CICADA_EXPLORATION_SOURCE:-local}
+      # Connexion par un GeoNature / UsersHub (#689) : vide = désactivée.
+      - GEONATURE_AUTH_URL=${GEONATURE_AUTH_URL:-}
+      - GEONATURE_AUTH_ID_APPLICATION=${GEONATURE_AUTH_ID_APPLICATION:-}
+      - GEONATURE_AUTH_LIBELLE=${GEONATURE_AUTH_LIBELLE:-GeoNature}
+      - GEONATURE_AUTH_ORGANISMES_EXCLUS=${GEONATURE_AUTH_ORGANISMES_EXCLUS:-}
       # API de suivi RNF (#696) : vide en dev, l'instance n'y est pas connue.
       # Renseignées par docker-compose.adhesion.yml pour le banc de l'adhésion.
       - TRACKING_API_URL=${TRACKING_API_URL:-}
