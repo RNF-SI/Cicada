@@ -399,47 +399,103 @@ utilisateur connecté.
 porte :
 
 - si votre structure **partage** ses plans avec l'exploration nationale : les plans de **toutes
-  les structures participantes** ;
-- sinon : **uniquement les plans de votre instance**.
+  les structures participantes** [(leur nombre est indiqué)]{.nouveau} ;
+- sinon : **uniquement les plans de votre structure**. [Un encadré permanent le rappelle sur
+  l'accueil de l'exploration et en tête des résultats : il explique que partager les plans
+  validés donnerait accès à ceux de toutes les structures raccordées, et que le budget, les
+  moyens humains, le suivi des réalisations et les personnes ne sont jamais partagés. Un super
+  administrateur y trouve le bouton **« Activer le partage »** ; les autres utilisateurs sont
+  invités à en parler à l'administrateur de leur instance (voir Partie 4).]{.nouveau}
 
 **Deux modes de recherche :**
 
 - **« Un contenu d'un plan de gestion »** : retrouver les enjeux, facteurs d'influence, pressions,
   objectifs, indicateurs, actions ou suivis qui partagent un mot-clé (ex. « limicole »,
   « fréquentation »). Un menu « Type de données » restreint la recherche à un type d'élément.
+  [Pour obtenir les contenus d'un département ou d'une région, choisissez un type de données et
+  lancez la recherche sans mot-clé, puis filtrez sur la zone géographique.]{.nouveau}
 - **« Un plan de gestion »** : retrouver les plans d'un site, d'un département, d'une région, ou
   par leur nom.
 
 **Les résultats** peuvent être triés (pertinence, ordre alphabétique, plus récents) et filtrés :
-zone géographique, structure d'origine, organismes gestionnaires, types d'aires protégées, statut,
-et, pour les contenus, catégorie d'enjeu, type d'indicateur, objectifs et actions de gestion.
-L'option **« Rechercher dans les titres uniquement »** peut être désactivée pour élargir la
-recherche aux descriptions, aux éléments parents et aux espèces, habitats ou protocoles
-rattachés.
+zone géographique, structure d'origine, organismes gestionnaires, types d'aires protégées, statut
+[(en cours, validé, archivé ; un plan prolongé reste « en cours » pendant ses années
+d'extension)]{.nouveau}, et, pour les contenus, catégorie d'enjeu, type d'indicateur, objectifs et
+actions de gestion.
+
+::: nouveau
+**Où chercher le mot ?** Le panneau de filtres s'ouvre sur un bloc **« Portée de la recherche »**.
+Le mot est **toujours** cherché dans l'élément lui-même : son libellé et les espèces, habitats,
+protocoles ou références qui lui sont rattachés. Trois interrupteurs, chacun accompagné d'une
+aide, permettent d'élargir :
+
+- **« Aussi dans les descriptions »** : le texte libre de l'élément (description, état de
+  l'enjeu) ;
+- **« Aussi dans les éléments parents »** : un indicateur ressort si son objectif ou son enjeu
+  porte le mot ;
+- **« Aussi dans les éléments enfants »** : un enjeu ressort si l'un de ses objectifs,
+  indicateurs ou actions porte le mot.
+
+La portée active est rappelée à côté du nombre de résultats (ex. « portée : l'élément lui-même,
+descriptions »).
+:::
 
 Chaque résultat indique :
 
+- [l'élément retrouvé **replacé dans son arborescence** (Enjeu › OLT › Niveau d'exigence ›
+  Indicateur…) ;]{.nouveau}
 - **pourquoi il répond** à la recherche lorsque le mot n'est pas dans son titre (« Trouvé via une
-  espèce, un habitat ou un protocole rattaché », « Trouvé dans la description »…) ;
+  espèce, un habitat, un protocole ou une référence rattachée », « Trouvé dans la description »,
+  [« Trouvé dans un élément parent ou lié », « Trouvé dans un élément enfant », et, en mode
+  « Un plan de gestion », « Trouvé via la zone géographique »)]{.nouveau} ;
 - le plan, le gestionnaire principal, les sites et la période ;
-- en exploration nationale, la **structure d'origine** (pastille avec un globe).
+- en exploration nationale, la **structure d'origine** (pastille avec un globe) ;
+- [**ce que le clic va ouvrir** (« Ouvre la fiche action », « Ouvre l'arborescence du plan sur
+  cet élément », « Ouvre la page du plan de gestion »).]{.nouveau}
+
+[**Le mot cherché est surligné** partout où il apparaît : titre, maillons de l'arborescence,
+extraits (espèce rattachée, description, élément parent ou enfant), nom du plan et de ses sites.
+Le mot est surligné en entier, même si vous n'en avez tapé que le début. Ainsi, on voit toujours
+pourquoi un résultat est sorti.]{.nouveau}
 
 CICADA **tolère les fautes de frappe** : si aucun résultat ne correspond exactement, il propose
-les contenus dont un mot s'approche le plus.
+les contenus dont un mot s'approche le plus[, et c'est ce mot qui est surligné. Si le mot a été
+reconnu sous une autre forme (pluriel, conjugaison), le résultat le signale.]{.nouveau}
 
-**La fiche publique d'un plan** présente, en lecture seule, sa vue d'ensemble, ses enjeux (avec
-facteurs, pressions et objectifs) et ses actions (avec leur fiche). Elle indique quelle structure
-l'a publiée et à quelle date. **Le budget, les moyens humains, les mesures d'indicateurs et le
-suivi des réalisations ne sont jamais partagés.**
+::: nouveau
+**Ouvrir un résultat.** Un clic sur un résultat ouvre **les écrans habituels de CICADA** — la
+fiche action, l'arborescence du plan dépliée sur l'élément trouvé, ou la page du plan — et non
+plus une fiche à part. Le mot cherché y reste surligné.
+
+- Si vous avez déjà accès au plan (référent, membre, plan de votre site…), vous le consultez
+  comme d'habitude, avec vos droits.
+- Sinon, vous le consultez **en lecture seule**, avec le bandeau **« Consultation via
+  l'exploration des données »**. **Le budget, les moyens humains, les mesures d'indicateurs, le
+  suivi des réalisations, les documents et les personnes ne sont jamais affichés** ; les menus
+  Suivis, Exports et Paramétrage sont masqués.
+- Pour un plan d'**une autre structure** (exploration nationale), vous voyez l'**instantané
+  publié** par celle-ci : le bandeau indique qui l'a publié et à quelle date, l'instantané
+  reflétant l'état du plan à ce moment-là.
+
+Le fil d'Ariane (« Exploration des données › structure d'origine › plan ») et les boutons
+**« Retour à l'exploration »** ramènent à **votre recherche en cours** (mot-clé, filtres, page),
+même plusieurs écrans plus loin.
+:::
 
 > 📸 **Capture 12 — Exploration des données : page de recherche** \
 > **Écran :** page « Exploration des données des plans de gestion » en mode « Un contenu d'un plan de gestion ». \
-> **À mettre en évidence :** le message de portée, le choix du mode de recherche et le champ « Mot-clé ».
+> **À mettre en évidence :** le message de portée[ (ou l'encadré d'incitation au partage)]{.nouveau}, le choix du mode de recherche et le champ « Mot-clé ».
 
 > 📸 **Capture 13 — Exploration des données : résultats** \
 > **Écran :** liste de résultats d'une recherche de contenu, avec le panneau « Filtrer les résultats ». \
 > **État à reproduire :** un résultat trouvé via une espèce rattachée ; en exploration nationale si possible. \
-> **À mettre en évidence :** la mention « Trouvé via… », la pastille de structure d'origine et le panneau de filtres.
+> **À mettre en évidence :** [l'arborescence du résultat, le mot surligné,]{.nouveau} la mention « Trouvé via… », la pastille de structure d'origine[, le bloc « Portée de la recherche »]{.nouveau} et le panneau de filtres.
+
+::: nouveau
+> 📸 **Capture 13 bis — Plan ouvert depuis l'exploration** \
+> **Écran :** arborescence ou fiche action d'un plan d'une autre structure, ouverte depuis un résultat. \
+> **À mettre en évidence :** le bandeau « Consultation via l'exploration des données », le mot surligné, le fil d'Ariane « Exploration des données › … » et le bouton « Retour à l'exploration ».
+:::
 
 > 💡 **Cas d'usage — Comparer mes indicateurs avec ceux d'autres gestionnaires** \
 > **Situation :** je rédige un indicateur et je voudrais voir comment d'autres gestionnaires suivent le même enjeu (même espèce, même habitat). \
