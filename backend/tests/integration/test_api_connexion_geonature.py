@@ -23,6 +23,7 @@ pytestmark = [pytest.mark.django_db, pytest.mark.integration]
 
 @pytest.fixture(autouse=True)
 def geonature_configure(settings):
+    settings.AUTH_PROVIDER = 'geonature'
     settings.GEONATURE_AUTH_URL = GN
     settings.GEONATURE_AUTH_ID_APPLICATION = '14'
     settings.GEONATURE_AUTH_LIBELLE = 'RNF'
@@ -67,17 +68,60 @@ def connecter(login_json, organisme_json=None, organisme_status=200):
     return res, req
 
 
-class TestModesDeConnexion:
-    def test_geonature_propose_quand_configure(self):
-        res = APIClient().get('/api/auth/modes/')
-        assert res.status_code == 200
-        assert res.json()['modes'] == [{'code': 'local'}, {'code': 'geonature', 'libelle': 'RNF'}]
+class TestUnSeulModeDeConnexion:
+    """Un seul mode à la fois : jamais GeoNature et mot de passe CICADA en parallèle."""
 
-    def test_desactive_par_defaut(self, settings):
-        settings.GEONATURE_AUTH_URL = ''
-        assert APIClient().get('/api/auth/modes/').json()['modes'] == [{'code': 'local'}]
+    def test_mode_geonature_annonce(self):
+        res = APIClient().get('/api/auth/mode/')
+        assert res.status_code == 200
+        assert res.json() == {'mode': 'geonature', 'libelle': 'RNF'}
+
+    def test_mode_local_par_defaut(self, settings):
+        settings.AUTH_PROVIDER = 'local'
+        assert APIClient().get('/api/auth/mode/').json() == {'mode': 'local'}
+        # La connexion GeoNature n'existe pas en mode local, même réglée.
         res = APIClient().post(URL, {'login': 'x', 'password': 'y'}, format='json')
         assert res.status_code == 404
+
+    def test_mot_de_passe_cicada_refuse_en_mode_geonature(self):
+        compte = RoleFactory(email='local@test.fr')
+        compte.set_password('MotDePasse123!')
+        compte.save()
+        res = APIClient().post('/api/auth/login/', {'username': 'local@test.fr', 'password': 'MotDePasse123!'},
+                               format='json')
+        assert res.status_code == 403
+        assert 'RNF' in res.json()['detail']
+
+    @pytest.mark.parametrize('url, corps', [
+        ('/api/auth/register/', {'email': 'n@test.fr'}),
+        ('/api/auth/password-reset/', {'email': 'n@test.fr'}),
+        ('/api/auth/password-reset/confirm/', {'uid': 'x', 'token': 'y', 'new_password': 'zzzzzzzz'}),
+    ])
+    def test_inscription_et_mot_de_passe_oublie_fermes(self, url, corps):
+        res = APIClient().post(url, corps, format='json')
+        assert res.status_code == 403
+
+    def test_changement_de_mot_de_passe_ferme(self):
+        compte = RoleFactory()
+        client = APIClient()
+        client.force_authenticate(compte)
+        res = client.post(f'/api/users/users/{compte.pk}/change_password/',
+                          {'old_password': 'a', 'new_password': 'b'}, format='json')
+        assert res.status_code == 403
+
+    def test_mot_de_passe_cicada_accepte_en_mode_local(self, settings):
+        settings.AUTH_PROVIDER = 'local'
+        compte = RoleFactory(email='local@test.fr')
+        compte.set_password('MotDePasse123!')
+        compte.save()
+        res = APIClient().post('/api/auth/login/', {'username': 'local@test.fr', 'password': 'MotDePasse123!'},
+                               format='json')
+        assert res.status_code == 200
+
+    def test_mode_geonature_sans_reglages(self, settings):
+        settings.GEONATURE_AUTH_URL = ''
+        res = APIClient().post(URL, {'login': 'x', 'password': 'y'}, format='json')
+        assert res.status_code == 503
 
 
 class TestAppelsAGeoNature:
@@ -146,8 +190,6 @@ class TestCompte:
         existant.refresh_from_db()
         assert existant.usershub_id_role == 146
         assert existant.role_level == 'admin_og'
-        # Le mot de passe CICADA reste un secours.
-        assert existant.check_password('MotDePasseLocal1!')
         assert Role.objects.filter(email__iexact='claire.dupont@reserve.fr').count() == 1
 
     def test_compte_relie_retrouve_par_id_meme_si_email_change(self):

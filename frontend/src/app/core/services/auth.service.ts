@@ -207,14 +207,17 @@ export class AuthService {
   }
 
   /**
-   * #689 — Modes de connexion proposés par l'instance (public). En cas
-   * d'erreur, seule la connexion locale est proposée.
+   * #689 — Mode de connexion de l'instance (public, un seul à la fois).
+   * Lu une fois par session : il ne change qu'au redémarrage du serveur.
    */
-  getLoginModes(): Observable<LoginMode[]> {
-    return this.http.get<{ modes: LoginMode[] }>(`${this.apiUrl}/modes/`).pipe(
-      map(response => response.modes),
-      catchError(() => of<LoginMode[]>([{ code: 'local' }]))
+  private loginMode$?: Observable<LoginMode>;
+
+  getLoginMode(): Observable<LoginMode> {
+    this.loginMode$ ??= this.http.get<LoginMode>(`${this.apiUrl}/mode/`).pipe(
+      catchError(() => of<LoginMode>({ mode: 'local' })),
+      shareReplay(1)
     );
+    return this.loginMode$;
   }
 
   /**

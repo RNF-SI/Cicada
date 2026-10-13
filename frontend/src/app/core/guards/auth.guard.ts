@@ -1,5 +1,6 @@
 import { inject } from '@angular/core';
 import { Router, CanActivateFn, ActivatedRouteSnapshot, RouterStateSnapshot } from '@angular/router';
+import { map } from 'rxjs/operators';
 import { AuthService } from '../services/auth.service';
 import { UserRole } from '../models/user.model';
 
@@ -116,4 +117,17 @@ export const notAdminOgOnlyGuard: CanActivateFn = (
   }
 
   return true;
+};
+
+/**
+ * #689 — Pages réservées à la connexion CICADA (inscription, mot de passe
+ * oublié, réinitialisation). Quand l'instance se connecte par un GeoNature,
+ * elles sont sans objet (et refusées par le backend) : retour à la connexion.
+ */
+export const connexionLocaleGuard: CanActivateFn = () => {
+  const authService = inject(AuthService);
+  const router = inject(Router);
+  return authService.getLoginMode().pipe(
+    map(mode => mode.mode === 'local' ? true : router.createUrlTree(['/auth/login']))
+  );
 };

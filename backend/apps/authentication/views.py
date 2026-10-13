@@ -23,7 +23,7 @@ from rest_framework_simplejwt.exceptions import TokenError, InvalidToken
 from apps.users.models import Role, Site, BibOrganismes
 from apps.plans.models import PlanGestion
 from .models import ImpersonationLog
-from .providers import usershub
+from .providers import ConnexionLocaleActive, GEONATURE, mode_connexion, usershub
 from .serializers import (
     reponse_connexion,
     CustomTokenObtainPairSerializer,
@@ -43,7 +43,7 @@ class CustomTokenObtainPairView(APIView):
     POST /api/auth/login/
     Body: {"username": "email_ou_identifiant", "password": "mot_de_passe"}
     """
-    permission_classes = [AllowAny]
+    permission_classes = [ConnexionLocaleActive]
     throttle_classes = [AuthRateThrottle]
 
     def post(self, request):
@@ -66,20 +66,19 @@ class CustomTokenObtainPairView(APIView):
         )
 
 
-class ModesConnexionView(APIView):
+class ModeConnexionView(APIView):
     """
-    Modes de connexion proposés sur la page de connexion (#689).
+    Mode de connexion de l'instance (#689) — un seul à la fois.
 
-    GET /api/auth/modes/
+    GET /api/auth/mode/  →  {"mode": "local"}  ou  {"mode": "geonature", "libelle": "RNF"}
     Public : la page de connexion l'appelle avant toute authentification.
     """
     permission_classes = [AllowAny]
 
     def get(self, request):
-        modes = [{'code': 'local'}]
-        if usershub.est_active():
-            modes.append({'code': 'geonature', 'libelle': settings.GEONATURE_AUTH_LIBELLE})
-        return Response({'modes': modes})
+        if mode_connexion() == GEONATURE:
+            return Response({'mode': GEONATURE, 'libelle': settings.GEONATURE_AUTH_LIBELLE})
+        return Response({'mode': 'local'})
 
 
 class ConnexionGeoNatureView(APIView):
@@ -95,9 +94,14 @@ class ConnexionGeoNatureView(APIView):
     throttle_classes = [AuthRateThrottle]
 
     def post(self, request):
-        if not usershub.est_active():
-            return Response({'detail': "Connexion GeoNature non configurée."},
+        if mode_connexion() != GEONATURE:
+            return Response({'detail': "Connexion GeoNature non activée sur cette instance."},
                             status=status.HTTP_404_NOT_FOUND)
+        if not usershub.est_active():
+            logger.error("AUTH_PROVIDER=geonature sans GEONATURE_AUTH_URL / GEONATURE_AUTH_ID_APPLICATION")
+            return Response({'detail': "La connexion n'est pas configurée sur cette instance. "
+                                       "Contactez son administrateur."},
+                            status=status.HTTP_503_SERVICE_UNAVAILABLE)
 
         login = (request.data.get('login') or '').strip()
         password = request.data.get('password') or ''
@@ -158,7 +162,7 @@ class PasswordResetRequestView(APIView):
     correspond. La réponse est volontairement identique que le compte existe
     ou non, pour ne pas permettre l'énumération des adresses.
     """
-    permission_classes = [AllowAny]
+    permission_classes = [ConnexionLocaleActive]
     throttle_classes = [AuthRateThrottle]
 
     def post(self, request):
@@ -199,7 +203,7 @@ class PasswordResetConfirmView(APIView):
     Valide le jeton (lié au hash du mot de passe courant, donc à usage unique)
     et applique le nouveau mot de passe.
     """
-    permission_classes = [AllowAny]
+    permission_classes = [ConnexionLocaleActive]
     throttle_classes = [AuthRateThrottle]
 
     def post(self, request):

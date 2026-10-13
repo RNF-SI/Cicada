@@ -348,23 +348,26 @@
                 </div>
             </section>
 
-            <!-- Section Connexion GeoNature / UsersHub (#689) -->
+            <!-- Section Mode de connexion (#689) — un seul mode à la fois -->
             <section class="form-section">
-                <h2>Connexion par un GeoNature (optionnel)</h2>
+                <h2>Mode de connexion</h2>
                 <div class="info-box">
-                    <p>Par défaut, chacun se connecte avec l'email et le mot de passe de son
-                    compte CICADA. Si votre structure gère ses utilisateurs dans un
-                    <strong>GeoNature / UsersHub</strong> (c'est le cas de RNF), ses comptes
-                    peuvent aussi servir à se connecter à CICADA. Le compte CICADA est créé à la
-                    première connexion et rattaché à son organisme UsersHub.</p>
-                    <p>La connexion CICADA reste disponible pour les personnes sans compte
-                    UsersHub. <strong>GeoNature 2.17.0 minimum</strong> pour rattacher
-                    l'organisme.</p>
+                    <p>Un <strong>seul</strong> mode de connexion par instance, jamais les deux à la fois.</p>
+                    <p><strong>Comptes CICADA</strong> : chacun se connecte avec l'email et le mot de passe
+                    de son compte CICADA (inscription et mot de passe oublié dans l'application).</p>
+                    <p><strong>GeoNature / UsersHub</strong> (cas de RNF) : on se connecte uniquement avec
+                    son compte UsersHub. Le compte CICADA est créé à la première connexion et rattaché à
+                    son organisme UsersHub ; un compte CICADA existant est retrouvé par son email.
+                    <strong>GeoNature 2.17.0 minimum.</strong></p>
                 </div>
                 <div class="form-group">
                     <label class="checkbox-label">
-                        <input type="checkbox" id="geonature_auth_enabled" name="geonature_auth_enabled" onchange="toggleGeoNatureAuthFields()">
-                        <span>Autoriser la connexion avec un compte GeoNature / UsersHub</span>
+                        <input type="radio" name="auth_provider" value="local" checked onchange="toggleGeoNatureAuthFields()">
+                        <span>Comptes CICADA (email + mot de passe)</span>
+                    </label>
+                    <label class="checkbox-label">
+                        <input type="radio" id="auth_provider_geonature" name="auth_provider" value="geonature" onchange="toggleGeoNatureAuthFields()">
+                        <span>Comptes GeoNature / UsersHub</span>
                     </label>
                 </div>
                 <div id="geonature_auth_fields" class="hidden">

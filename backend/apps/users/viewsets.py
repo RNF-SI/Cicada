@@ -204,6 +204,11 @@ class RoleViewSet(viewsets.ModelViewSet):
         Changer le mot de passe d'un utilisateur.
         POST /api/users/{id}/change-password/
         """
+        from apps.authentication.providers import connexion_locale_active, message_connexion_externe
+        if not connexion_locale_active():
+            # #689 — mot de passe CICADA sans objet : on se connecte par GeoNature.
+            return Response({'detail': message_connexion_externe()}, status=status.HTTP_403_FORBIDDEN)
+
         user = self.get_object()
         serializer = self.get_serializer(data=request.data, context={'user': user})
         
@@ -718,12 +723,12 @@ class RoleViewSet(viewsets.ModelViewSet):
         """
         Desactiver un compte suite a une demande RGPD.
         POST /api/users/users/{id}/deactivate_rgpd/
-        Accessible uniquement aux super_admins et si AUTH_PROVIDER == 'local'.
+        Accessible uniquement aux super_admins, sauf si les comptes sont gérés par Keycloak.
         """
         from django.conf import settings
 
         # Verifier que l'auth est locale
-        if getattr(settings, 'AUTH_PROVIDER', 'local') != 'local':
+        if getattr(settings, 'AUTH_PROVIDER', 'local') == 'keycloak':
             return Response(
                 {'error': "La gestion des comptes est deleguee a Keycloak."},
                 status=status.HTTP_400_BAD_REQUEST
@@ -783,12 +788,12 @@ class RoleViewSet(viewsets.ModelViewSet):
         """
         Anonymiser un compte suite a une demande RGPD.
         POST /api/users/users/{id}/anonymize_rgpd/
-        Accessible uniquement aux super_admins et si AUTH_PROVIDER == 'local'.
+        Accessible uniquement aux super_admins, sauf si les comptes sont gérés par Keycloak.
         """
         from django.conf import settings
 
         # Verifier que l'auth est locale
-        if getattr(settings, 'AUTH_PROVIDER', 'local') != 'local':
+        if getattr(settings, 'AUTH_PROVIDER', 'local') == 'keycloak':
             return Response(
                 {'error': "La gestion des comptes est deleguee a Keycloak."},
                 status=status.HTTP_400_BAD_REQUEST

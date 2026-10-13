@@ -58,7 +58,10 @@ class UsersHubIndisponible(UsersHubErreur):
 
 
 def est_active():
-    return bool(settings.GEONATURE_AUTH_URL and settings.GEONATURE_AUTH_ID_APPLICATION)
+    """Mode 'geonature' choisi ET réglages présents."""
+    from . import GEONATURE, mode_connexion
+    return (mode_connexion() == GEONATURE
+            and bool(settings.GEONATURE_AUTH_URL and settings.GEONATURE_AUTH_ID_APPLICATION))
 
 
 @dataclass

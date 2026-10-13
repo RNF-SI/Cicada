@@ -16,15 +16,20 @@ DEBUG = os.environ.get('DEBUG', 'False').lower() == 'true'
 
 ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', 'localhost').split(',')
 
-# Authentication provider: 'local' (default) or 'keycloak'
-# When 'keycloak', RGPD account management is handled externally
-AUTH_PROVIDER = os.environ.get('AUTH_PROVIDER', 'local')
+# Mode de connexion de l'instance — UN SEUL à la fois, jamais en parallèle (#689) :
+# - 'local' (défaut) : comptes CICADA (email + mot de passe, inscription, mot de
+#   passe oublié) ;
+# - 'geonature' : comptes d'un GeoNature / UsersHub uniquement (réglages
+#   GEONATURE_AUTH_* ci-dessous) ; connexion par mot de passe CICADA,
+#   inscription et réinitialisation coupées ;
+# - 'keycloak' : historique, gestion RGPD des comptes déléguée (non branché).
+AUTH_PROVIDER = os.environ.get('AUTH_PROVIDER', 'local').strip().lower() or 'local'
 
 # ---------------------------------------------------------------------------
-# Connexion par un GeoNature / UsersHub (#689, #691)
+# Connexion par un GeoNature / UsersHub (#689, #691) — AUTH_PROVIDER='geonature'
 # ---------------------------------------------------------------------------
-# Optionnelle : vide = désactivée, l'instance n'appelle jamais GeoNature.
-# S'ajoute à la connexion locale (email + mot de passe), ne la remplace pas.
+# Lus seulement en mode 'geonature' ; en mode 'local', l'instance n'appelle
+# jamais GeoNature.
 # GeoNature >= 2.17.0 requis pour rattacher le compte à son organisme
 # (GET <API>/users/organism/<id>) ; en dessous, la connexion fonctionne sans.
 # Adresse de l'API GeoNature (son API_ENDPOINT), ex. https://geonature.exemple.fr/api

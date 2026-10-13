@@ -71,7 +71,8 @@ services:
       - CICADA_HUB_PUSH_TOKEN=${CICADA_HUB_PUSH_TOKEN:-}
       - CICADA_HUB_READ_TOKEN=${CICADA_HUB_READ_TOKEN:-}
       - CICADA_EXPLORATION_SOURCE=${CICADA_EXPLORATION_SOURCE:-local}
-      # Connexion par un GeoNature / UsersHub (#689) : vide = désactivée.
+      # Mode de connexion (#689) : 'local' (comptes CICADA) OU 'geonature', jamais les deux.
+      - AUTH_PROVIDER=${AUTH_PROVIDER:-local}
       - GEONATURE_AUTH_URL=${GEONATURE_AUTH_URL:-}
       - GEONATURE_AUTH_ID_APPLICATION=${GEONATURE_AUTH_ID_APPLICATION:-}
       - GEONATURE_AUTH_LIBELLE=${GEONATURE_AUTH_LIBELLE:-GeoNature}

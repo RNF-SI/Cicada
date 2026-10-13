@@ -303,11 +303,13 @@ class InstallService:
             "CICADA_HUB_PUSH_AUTO=true",
         ])
 
-        # --- Connexion par un GeoNature / UsersHub (#689) ---
-        # Toujours écrites, vides si non configurée (= connexion locale seule).
-        geonature = data.get('geonature_auth_enabled') in (True, 'true', '1')
+        # --- Mode de connexion (#689) : un seul à la fois ---
+        # Variables GeoNature toujours écrites (vides en mode local) : une ligne
+        # vide se complète après coup, une ligne absente ne se devine pas.
+        geonature = data.get('auth_provider') == 'geonature'
         env_lines.extend([
             "",
+            f"AUTH_PROVIDER={'geonature' if geonature else 'local'}",
             f"GEONATURE_AUTH_URL={(data.get('geonature_auth_url') or '').strip().rstrip('/') if geonature else ''}",
             f"GEONATURE_AUTH_ID_APPLICATION={str(data.get('geonature_auth_id_application') or '').strip() if geonature else ''}",
             f"GEONATURE_AUTH_LIBELLE={(data.get('geonature_auth_libelle') or 'GeoNature').strip() if geonature else 'GeoNature'}",

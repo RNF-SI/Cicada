@@ -129,13 +129,11 @@
       "backToHome": "Retour à l'accueil",
       "forgotPassword": "Mot de passe oublié ?",
       "modes": {
-        "label": "Type de compte",
-        "geonature": "Compte {{libelle}}",
-        "local": "Compte CICADA",
-        "geonatureHint": "Utilisez l'identifiant et le mot de passe de votre compte {{libelle}}.",
-        "localHint": "Utilisez l'email ou l'identifiant et le mot de passe de votre compte CICADA.",
+        "geonatureHint": "Connectez-vous avec l'identifiant et le mot de passe de votre compte {{libelle}}.",
         "geonatureUsername": "Identifiant {{libelle}}",
-        "geonatureUsernamePlaceholder": "votre identifiant"
+        "geonatureUsernamePlaceholder": "votre identifiant",
+        "externalOnly": "Sur cette instance, la connexion se fait uniquement avec votre compte {{libelle}}. Si vous n'en avez pas, demandez-en un avec l'adresse email de votre compte CICADA.",
+        "backToLogin": "Aller à la connexion"
       },
       "errors": {
         "usernameRequired": "L'identifiant ou l'email est requis",

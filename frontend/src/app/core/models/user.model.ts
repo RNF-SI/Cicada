@@ -59,11 +59,14 @@ export interface LoginRequest {
   password: string;
 }
 
-/** #689 — Mode de connexion : compte CICADA, ou compte d'un GeoNature / UsersHub. */
+/**
+ * #689 — Mode de connexion de l'instance : comptes CICADA, OU comptes d'un
+ * GeoNature / UsersHub. Un seul à la fois, jamais les deux.
+ */
 export type LoginModeCode = 'local' | 'geonature';
 
 export interface LoginMode {
-  code: LoginModeCode;
+  mode: LoginModeCode;
   /** Nom affiché du système de connexion externe (« RNF »…). */
   libelle?: string;
 }

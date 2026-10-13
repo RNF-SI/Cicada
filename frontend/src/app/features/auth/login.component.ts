@@ -35,10 +35,10 @@ export class LoginComponent {
   errorMessage = signal<string | null>(null);
   isLoading = this.authService.isLoading;
 
-  /** #689 — modes proposés par l'instance ; le choix n'apparaît que s'il y en a plusieurs. */
-  modes = signal<LoginMode[]>([{ code: 'local' }]);
-  mode = signal<LoginModeCode>('local');
-  modeGeoNature = computed(() => this.modes().find(m => m.code === 'geonature') ?? null);
+  /** #689 — mode de connexion imposé par l'instance (un seul à la fois). */
+  loginMode = signal<LoginMode>({ mode: 'local' });
+  mode = computed<LoginModeCode>(() => this.loginMode().mode);
+  libelle = computed(() => this.loginMode().libelle ?? '');
 
   constructor() {
     this.loginForm = this.fb.group({
@@ -46,28 +46,7 @@ export class LoginComponent {
       password: ['', [Validators.required]]
     });
 
-    this.authService.getLoginModes().subscribe(modes => {
-      this.modes.set(modes);
-      if (!this.modeGeoNature()) {
-        return;
-      }
-      // Dernier mode utilisé sur ce navigateur, sinon le compte externe
-      // (sur une instance raccordée, c'est le cas le plus courant).
-      let dernier: string | null = null;
-      try {
-        dernier = localStorage.getItem(LoginComponent.CLE_MODE);
-      } catch {
-        dernier = null;
-      }
-      this.mode.set(dernier === 'local' ? 'local' : 'geonature');
-    });
-  }
-
-  private static readonly CLE_MODE = 'login_mode';
-
-  changerMode(mode: LoginModeCode): void {
-    this.mode.set(mode);
-    this.errorMessage.set(null);
+    this.authService.getLoginMode().subscribe(mode => this.loginMode.set(mode));
   }
 
   togglePasswordVisibility(): void {
@@ -84,14 +63,8 @@ export class LoginComponent {
 
     const { username, password } = this.loginForm.value;
 
-    const mode = this.mode();
-    this.authService.login({ username, password }, mode).subscribe({
+    this.authService.login({ username, password }, this.mode()).subscribe({
       next: () => {
-        try {
-          localStorage.setItem(LoginComponent.CLE_MODE, mode);
-        } catch {
-          // Stockage indisponible (navigation privée) : on retombera sur le défaut.
-        }
         // Redirect to return URL or home
         const returnUrl = this.route.snapshot.queryParams['returnUrl'] || '/accueil';
         this.router.navigateByUrl(returnUrl);

@@ -36,14 +36,14 @@ describe('LoginComponent', () => {
 
   const setupTestBed = async (
     returnUrl: string | null = null,
-    modes: LoginMode[] = [{ code: 'local' }]
+    loginMode: LoginMode = { mode: 'local' }
   ) => {
     loginMock = jest.fn().mockReturnValue(of({ access: 'token', refresh: 'refresh' }));
     isLoadingSignal = signal(false);
 
     const authServiceMock = {
       login: loginMock,
-      getLoginModes: jest.fn().mockReturnValue(of(modes)),
+      getLoginMode: jest.fn().mockReturnValue(of(loginMode)),
       isLoading: isLoadingSignal.asReadonly()
     };
 
@@ -345,53 +345,34 @@ describe('LoginComponent', () => {
     });
   });
 
-  // ==================== MODES DE CONNEXION (#689) ====================
+  // ==================== MODE DE CONNEXION (#689) ====================
 
-  describe('Modes de connexion (#689)', () => {
-    const geonature: LoginMode = { code: 'geonature', libelle: 'RNF' };
+  describe('Mode de connexion (#689) — un seul par instance', () => {
+    const geonature: LoginMode = { mode: 'geonature', libelle: 'RNF' };
 
-    beforeEach(() => {
-      try {
-        localStorage.removeItem('login_mode');
-      } catch {
-        // sans objet
-      }
-    });
-
-    it('ne propose pas de choix sur une instance sans connexion externe', async () => {
+    it('connexion CICADA par défaut, avec mot de passe oublié et inscription', async () => {
       await setupTestBed();
+      expect(component.mode()).toBe('local');
       expect(fixture.nativeElement.querySelector('[data-testid="login-mode-geonature"]')).toBeNull();
-      expect(component.mode()).toBe('local');
+      expect(fixture.nativeElement.querySelector('a[href="/auth/forgot-password"]')).not.toBeNull();
     });
 
-    it('propose le compte externe en premier quand il est configuré', async () => {
-      await setupTestBed(null, [{ code: 'local' }, geonature]);
+    it('en mode GeoNature : aucun choix, pas de mot de passe oublié ni d\'inscription', async () => {
+      await setupTestBed(null, geonature);
       fixture.detectChanges();
-      expect(fixture.nativeElement.querySelector('[data-testid="login-mode-geonature"]')).not.toBeNull();
+      const el: HTMLElement = fixture.nativeElement;
       expect(component.mode()).toBe('geonature');
+      expect(el.querySelector('[data-testid="login-mode-geonature"]')).not.toBeNull();
+      expect(el.querySelector('[data-testid="login-mode-local"]')).toBeNull();
+      expect(el.querySelector('a[href="/auth/forgot-password"]')).toBeNull();
+      expect(el.querySelector('a[href="/auth/register"]')).toBeNull();
     });
 
-    it('reprend le dernier mode utilisé', async () => {
-      localStorage.setItem('login_mode', 'local');
-      await setupTestBed(null, [{ code: 'local' }, geonature]);
-      expect(component.mode()).toBe('local');
-    });
-
-    it('envoie la connexion dans le mode choisi et le retient', async () => {
-      await setupTestBed(null, [{ code: 'local' }, geonature]);
+    it('envoie la connexion en mode GeoNature', async () => {
+      await setupTestBed(null, geonature);
       component.loginForm.patchValue({ username: 'cdupont', password: 'secret' });
       component.onSubmit();
       expect(loginMock).toHaveBeenCalledWith({ username: 'cdupont', password: 'secret' }, 'geonature');
-      expect(localStorage.getItem('login_mode')).toBe('geonature');
-    });
-
-    it('masque mot de passe oublié et inscription pour un compte externe', async () => {
-      await setupTestBed(null, [{ code: 'local' }, geonature]);
-      fixture.detectChanges();
-      expect(fixture.nativeElement.querySelector('a[href="/auth/forgot-password"]')).toBeNull();
-      component.changerMode('local');
-      fixture.detectChanges();
-      expect(fixture.nativeElement.querySelector('a[href="/auth/forgot-password"]')).not.toBeNull();
     });
   });
 });

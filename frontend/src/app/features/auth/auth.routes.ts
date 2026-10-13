@@ -4,6 +4,7 @@ import { RegisterComponent } from './register.component';
 import { RegistrationPendingComponent } from './registration-pending.component';
 import { ForgotPasswordComponent } from './forgot-password.component';
 import { ResetPasswordComponent } from './reset-password.component';
+import { connexionLocaleGuard } from '../../core/guards/auth.guard';
 
 export const AUTH_ROUTES: Routes = [
   {
@@ -12,15 +13,18 @@ export const AUTH_ROUTES: Routes = [
   },
   {
     path: 'register',
-    component: RegisterComponent
+    component: RegisterComponent,
+    canActivate: [connexionLocaleGuard]
   },
   {
     path: 'forgot-password',
-    component: ForgotPasswordComponent
+    component: ForgotPasswordComponent,
+    canActivate: [connexionLocaleGuard]
   },
   {
     path: 'reset-password',
-    component: ResetPasswordComponent
+    component: ResetPasswordComponent,
+    canActivate: [connexionLocaleGuard]
   },
   {
     path: 'registration-pending',

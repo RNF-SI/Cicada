@@ -1,6 +1,8 @@
 import { Component, inject, OnInit, computed, ChangeDetectionStrategy } from '@angular/core';
 
 import { RouterModule } from '@angular/router';
+import { toSignal } from '@angular/core/rxjs-interop';
+import { map } from 'rxjs/operators';
 import { TranslateModule } from '@ngx-translate/core';
 import { MatButtonModule } from '@angular/material/button';
 import { HeaderComponent } from '../../shared/components/header/header.component';
@@ -33,6 +35,11 @@ export class HomeComponent implements OnInit {
   private readonly settingsService = inject(SettingsService);
 
   readonly isAuthenticated = this.authService.isAuthenticated;
+  /** #689 — pas d'inscription CICADA quand l'instance se connecte par un GeoNature. */
+  readonly inscriptionOuverte = toSignal(
+    this.authService.getLoginMode().pipe(map(mode => mode.mode === 'local')),
+    { initialValue: false }
+  );
   readonly currentUser = this.authService.currentUser;
 
   // Public stats

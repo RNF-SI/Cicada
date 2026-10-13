@@ -6,7 +6,7 @@ from django.urls import path
 from .views import (
     CustomTokenObtainPairView,
     ConnexionGeoNatureView,
-    ModesConnexionView,
+    ModeConnexionView,
     CustomTokenRefreshView,
     PasswordResetRequestView,
     PasswordResetConfirmView,
@@ -29,7 +29,7 @@ urlpatterns = [
     # Authentification JWT
     path('login/', CustomTokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('login-geonature/', ConnexionGeoNatureView.as_view(), name='login_geonature'),
-    path('modes/', ModesConnexionView.as_view(), name='modes_connexion'),
+    path('mode/', ModeConnexionView.as_view(), name='mode_connexion'),
     path('refresh/', CustomTokenRefreshView.as_view(), name='token_refresh'),
     path('logout/', logout_view, name='logout'),
 

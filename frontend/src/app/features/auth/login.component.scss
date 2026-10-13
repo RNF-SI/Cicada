@@ -181,17 +181,7 @@ h1 {
   }
 }
 
-// #689 — Choix du mode de connexion (compte CICADA / compte externe)
-.login-modes {
-  display: flex;
-  width: 100%;
-  margin-bottom: $spacing-xs;
-
-  .segmented-control-option {
-    flex: 1;
-  }
-}
-
+// #689 — Connexion par un compte externe (GeoNature / UsersHub)
 .login-mode-hint {
   margin: 0 0 $spacing-md;
   font-size: $font-size-small;

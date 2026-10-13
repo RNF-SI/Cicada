@@ -6,33 +6,9 @@
       <p class="subtitle">{{ 'auth.login.subtitle' | translate }}</p>
     </div>
 
-    @if (modeGeoNature(); as externe) {
-      <div class="segmented-control login-modes" role="group" [attr.aria-label]="'auth.login.modes.label' | translate">
-        <button
-          type="button"
-          class="segmented-control-option"
-          [class.active]="mode() === 'geonature'"
-          [attr.aria-pressed]="mode() === 'geonature'"
-          (click)="changerMode('geonature')"
-          data-testid="login-mode-geonature">
-          {{ 'auth.login.modes.geonature' | translate:{ libelle: externe.libelle } }}
-        </button>
-        <button
-          type="button"
-          class="segmented-control-option"
-          [class.active]="mode() === 'local'"
-          [attr.aria-pressed]="mode() === 'local'"
-          (click)="changerMode('local')"
-          data-testid="login-mode-local">
-          {{ 'auth.login.modes.local' | translate }}
-        </button>
-      </div>
-      <p class="login-mode-hint">
-        @if (mode() === 'geonature') {
-          {{ 'auth.login.modes.geonatureHint' | translate:{ libelle: externe.libelle } }}
-        } @else {
-          {{ 'auth.login.modes.localHint' | translate }}
-        }
+    @if (mode() === 'geonature') {
+      <p class="login-mode-hint" data-testid="login-mode-geonature">
+        {{ 'auth.login.modes.geonatureHint' | translate:{ libelle: libelle() } }}
       </p>
     }
 
@@ -46,7 +22,7 @@
 
       <app-form-field
         class="full-width"
-        [label]="(mode() === 'geonature' ? 'auth.login.modes.geonatureUsername' : 'auth.login.username') | translate:{ libelle: modeGeoNature()?.libelle }"
+        [label]="(mode() === 'geonature' ? 'auth.login.modes.geonatureUsername' : 'auth.login.username') | translate:{ libelle: libelle() }"
         [required]="true">
         <i prefixSlot class="fi fi-rr-user field-icon"></i>
         <input
@@ -103,7 +79,7 @@
     </form>
 
     <div class="login-footer">
-      <!-- Mot de passe et inscription CICADA : sans objet pour un compte externe. -->
+      <!-- Mot de passe et inscription CICADA : sans objet en connexion externe. -->
       @if (mode() === 'local') {
         <p class="forgot-password-link">
           <a routerLink="/auth/forgot-password">{{ 'auth.login.forgotPassword' | translate }}</a>
