@@ -339,6 +339,13 @@ export class PlanDetailComponent implements OnInit, OnDestroy {
   });
 
   /**
+   * #713 — Documents du plan : ajout/suppression hors brouillon aussi
+   * (arrêté, avis CSRPN, version signée arrivent après la validation).
+   * Même audience que le cycle de vie, sans le verrou #248.
+   */
+  canManageDocuments = computed(() => this.canManageLifecycle());
+
+  /**
    * Plan éditable (#248). Seul le statut `draft` autorise l'édition.
    * L'extension de durée (#250) est un attribut orthogonal au statut et
    * ne débloque PAS l'édition.

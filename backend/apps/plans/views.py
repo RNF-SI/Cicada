@@ -3017,17 +3017,11 @@ class CorPgFichierViewSet(viewsets.ModelViewSet):
         'plan_de_gestion', 'id_utilisateur_upload'
     )
     serializer_class = CorPgFichierSerializer
-    permission_classes = [permissions.IsAuthenticated, IsReferent, CanModifyOnlyDraftPlan]
-
-    def get_plan_for_payload(self, data):
-        """Pour le check draft à la création : remonte le plan depuis l'id."""
-        plan_id = data.get('plan_de_gestion') or data.get('id_pg')
-        if not plan_id:
-            return None
-        try:
-            return PlanGestion.objects.only('statut').get(pk=plan_id)
-        except PlanGestion.DoesNotExist:
-            return None
+    # #713 — Pas de `CanModifyOnlyDraftPlan` : les documents du plan (arrêté,
+    # avis CSRPN, version signée…) arrivent le plus souvent après la
+    # validation. Le verrou brouillon (#248) protège le contenu rédigé, pas
+    # les pièces jointes.
+    permission_classes = [permissions.IsAuthenticated, IsReferent]
     parser_classes = [MultiPartParser, FormParser, JSONParser]
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
     filterset_class = CorPgFichierFilter
@@ -3042,12 +3036,12 @@ class CorPgFichierViewSet(viewsets.ModelViewSet):
         accessibles) et par la vérification du plan dans l'action ``download``.
         Exiger ``IsReferent`` au niveau vue bloquait à tort le téléchargement
         pour les non-référents légitimes (admin d'organisme, membre du plan).
-        Les écritures (upload/suppression) restent réservées aux référents et
-        au brouillon uniquement.
+        Les écritures (upload/suppression) restent réservées aux référents,
+        quel que soit le statut du plan (#713).
         """
         if self.action in ('list', 'retrieve', 'download'):
             return [permissions.IsAuthenticated()]
-        return [permissions.IsAuthenticated(), IsReferent(), CanModifyOnlyDraftPlan()]
+        return [permissions.IsAuthenticated(), IsReferent()]
 
     def get_queryset(self):
         """Filtrer les fichiers selon les permissions sur les plans."""

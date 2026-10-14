@@ -765,7 +765,7 @@
                           (click)="downloadFichier(fichier)">
                     <i class="fi fi-rr-download"></i>
                   </button>
-                  @if (canEditPlan()) {
+                  @if (canManageDocuments()) {
                     <button class="btn-delete-doc"
                             [title]="'plans.detail.documents.delete' | translate"
                             (click)="deleteFichier(fichier)">
@@ -779,7 +779,7 @@
                   <span>{{ 'plans.detail.documents.empty' | translate }}</span>
                 </div>
               }
-              @if (canEditPlan()) {
+              @if (canManageDocuments()) {
                 <button class="btn-add-document" (click)="openUploadDialog()">
                   <i class="fi fi-rr-plus"></i>
                   <span>{{ 'plans.detail.documents.add' | translate }}</span>

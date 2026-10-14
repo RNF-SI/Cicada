@@ -623,6 +623,37 @@ describe('PlanDetailComponent', () => {
   });
 
   // =========================================================================
+  // #713 — documents ajoutables hors brouillon
+  // =========================================================================
+
+  describe('canManageDocuments computed signal (#713)', () => {
+    it('should allow a manager to add documents on a validated plan', () => {
+      setup({ isAdminOrganisme: true, plan: createMockPlan({ statut: 'valide' }) });
+      expect(component.canEditPlan()).toBe(false);
+      expect(component.canManageDocuments()).toBe(true);
+    });
+
+    it('should allow a manager to add documents on a draft plan', () => {
+      setup({ isAdminOrganisme: true, plan: createMockPlan({ statut: 'draft' }) });
+      expect(component.canManageDocuments()).toBe(true);
+    });
+
+    it('should refuse a regular user who is not referent', () => {
+      setup({
+        plan: createMockPlan({ statut: 'valide', referents: [] }),
+        currentUser: {
+          id: 99,
+          email: 'user@test.fr',
+          niveau_role: 'utilisateur',
+          is_staff: false,
+          is_active: true,
+        },
+      });
+      expect(component.canManageDocuments()).toBe(false);
+    });
+  });
+
+  // =========================================================================
   // Lifecycle buttons in banner
   // =========================================================================
 

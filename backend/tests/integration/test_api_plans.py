@@ -1612,6 +1612,39 @@ class TestPlansFichiersCRUD:
         assert response.status_code == status.HTTP_204_NO_CONTENT
         assert not CorPgFichier.objects.filter(id=fichier_id).exists()
 
+    @pytest.mark.parametrize('statut', ['valide', 'modifie', 'archive', 'avis_csrpn'])
+    def test_upload_fichier_hors_brouillon(self, api_client, statut):
+        """#713 — Les documents du plan (arrêté, avis CSRPN, version signée…)
+        arrivent souvent après la validation : leur ajout échappe au verrou
+        brouillon (#248), qui ne protège que le contenu rédigé."""
+        admin = SuperAdminFactory()
+        plan = PlanGestionFactory(statut=statut)
+        uploaded = SimpleUploadedFile('arrete.pdf', b'PDF content', content_type='application/pdf')
+
+        api_client.force_authenticate(user=admin)
+        response = api_client.post('/api/plans/fichiers/', {
+            'plan_de_gestion': plan.id_pg,
+            'fichier': uploaded,
+            'titre': 'Arrêté préfectoral',
+            'type_fichier': 'document',
+            'nom_fichier': 'arrete.pdf',
+        }, format='multipart')
+
+        assert response.status_code == status.HTTP_201_CREATED, response.content
+        assert CorPgFichier.objects.filter(plan_de_gestion=plan).exists()
+
+    def test_delete_fichier_hors_brouillon(self, api_client):
+        """#713 — Un document déposé par erreur sur un plan validé doit pouvoir
+        être retiré sans repasser le plan en brouillon."""
+        admin = SuperAdminFactory()
+        plan = PlanGestionFactory(statut='valide')
+        fichier = CorPgFichierFactory(plan_de_gestion=plan)
+
+        api_client.force_authenticate(user=admin)
+        response = api_client.delete(f'/api/plans/fichiers/{fichier.id}/')
+
+        assert response.status_code == status.HTTP_204_NO_CONTENT
+
     def test_upload_fichier_unauthenticated(self, api_client):
         """Test uploading a file without authentication fails."""
         response = api_client.post('/api/plans/fichiers/', {
