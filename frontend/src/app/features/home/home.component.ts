@@ -12,6 +12,7 @@ import { PublicStatsService } from '../../core/services/public-stats.service';
 import { ModuleService } from '../../core/services/module.service';
 import { SettingsService } from '../../core/services/settings.service';
 import { EuFundingNoticeComponent } from '../../shared/components/eu-funding-notice/eu-funding-notice.component';
+import { PartnersBandComponent } from '../../shared/components/partners-band/partners-band.component';
 
 @Component({
   selector: 'app-home',
@@ -22,7 +23,8 @@ import { EuFundingNoticeComponent } from '../../shared/components/eu-funding-not
     HeaderComponent,
     NavigationTileComponent,
     MatButtonModule,
-    EuFundingNoticeComponent
+    EuFundingNoticeComponent,
+    PartnersBandComponent
 ],
   templateUrl: './home.component.html',
   changeDetection: ChangeDetectionStrategy.Eager,
@@ -35,6 +37,7 @@ export class HomeComponent implements OnInit {
   private readonly settingsService = inject(SettingsService);
 
   readonly isAuthenticated = this.authService.isAuthenticated;
+  readonly anneeCourante = new Date().getFullYear();
   /** #689 — pas d'inscription CICADA quand l'instance se connecte par un GeoNature. */
   readonly inscriptionOuverte = toSignal(
     this.authService.getLoginMode().pipe(map(mode => mode.mode === 'local')),

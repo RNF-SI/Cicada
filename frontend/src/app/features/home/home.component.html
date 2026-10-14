@@ -161,8 +161,13 @@
 
   </div>
 
-  <!-- Bloc marque UE + LIFE BIODIV'FRANCE et mention UE obligatoires (financement LIFE). -->
-  <div class="home-footer">
-    <app-eu-funding-notice></app-eu-funding-notice>
-  </div>
+  <!-- Porteurs, partenaires, financeurs ; bloc marque UE + LIFE BIODIV'FRANCE et mention UE obligatoires (financement LIFE). -->
+  <footer class="home-footer">
+    <div class="home-footer__inner">
+      <app-partners-band></app-partners-band>
+      <div class="home-footer__separator"></div>
+      <app-eu-funding-notice></app-eu-funding-notice>
+      <p class="home-footer__copyright">{{ 'home.partners.copyright' | translate:{ annee: anneeCourante } }}</p>
+    </div>
+  </footer>
 </main>

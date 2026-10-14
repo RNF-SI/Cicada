@@ -319,6 +319,12 @@
     },
     "authenticated": {
       "welcome": "Bonjour {{name}} !"
+    },
+    "partners": {
+      "portePar": "Un projet porté par",
+      "partenariat": "En partenariat avec",
+      "soutienFinancier": "Avec le soutien financier de",
+      "copyright": "© {{annee}} Réserves naturelles de France et Fédération des Conservatoires d'espaces naturels."
     }
   },
   "admin": {

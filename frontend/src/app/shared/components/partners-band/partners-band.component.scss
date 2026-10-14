@@ -1,0 +1,71 @@
+@import 'variables';
+
+.partners {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spacing-lg $spacing-xxl;
+
+  &__group {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-md;
+  }
+
+  // Fond $primary-color : texte blanc uniquement (WCAG AA)
+  &__label {
+    margin: 0;
+    color: $white;
+    font-size: $font-size-small;
+    font-weight: $font-weight-bold;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+  }
+
+  // Carte blanche : les logos gardent leurs couleurs d'origine
+  &__card {
+    display: flex;
+    align-items: center;
+    gap: $spacing-lg;
+    margin: 0;
+    padding: $spacing-md $spacing-lg;
+    list-style: none;
+    background: $white;
+    border-radius: $border-radius-sm;
+    min-height: 80px;
+  }
+
+  &__link {
+    display: block;
+    line-height: 0;
+    border-radius: $border-radius-sm;
+
+    &:focus-visible {
+      outline: 2px solid $primary-color;
+      outline-offset: 2px;
+    }
+  }
+
+  &__logo {
+    display: block;
+    height: 46px;
+    width: auto;
+    // Logos carrés ou à pavé : un peu plus hauts pour un poids visuel comparable
+    &--lpo { height: 42px; }
+    &--republique-francaise { height: 50px; }
+    &--patrinat { height: 44px; }
+  }
+}
+
+@media (max-width: 768px) {
+  .partners {
+    flex-direction: column;
+    align-items: stretch;
+
+    &__card {
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    &__logo { height: 38px; }
+  }
+}
