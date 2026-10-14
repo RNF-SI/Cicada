@@ -232,13 +232,14 @@
     }
 
     // #418 — année non prévue : style atténué + soulignement pointillé pour la
-    // distinguer des années programmées.
+    // distinguer des années programmées. #708 — pointillés en $gray-dark : en
+    // $gray-light (#E4E4E4) ils se confondaient avec le fond beige.
     &.year-not-planned {
       color: $gray;
       font-weight: 500;
       font-style: italic;
       border-bottom-style: dashed;
-      border-bottom-color: $gray-light;
+      border-bottom-color: $gray-dark;
 
       &.active {
         color: $secondary-orange-salmon;
@@ -276,7 +277,7 @@
     &.marker-planned { border-bottom-color: $primary-color; }
     &.marker-not-planned {
       border-bottom-style: dashed;
-      border-bottom-color: $gray;
+      border-bottom-color: $gray-dark;
     }
   }
 }
