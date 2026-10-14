@@ -656,6 +656,37 @@ class TestValidationPlanAccessRequest:
 
         assert response.status_code == status.HTTP_201_CREATED
 
+    def test_plan_member_can_request_to_become_referent(self, authenticated_client):
+        """#711 — Un membre (CorRolePlan, consultation) peut demander à devenir référent."""
+        from apps.plans.models import CorRolePlan
+        client, user = authenticated_client
+        plan = PlanGestionFactory(statut='valide', sites=[SiteFactory()])
+        CorRolePlan.objects.create(id_role=user, plan_de_gestion=plan, referent=False)
+
+        response = client.post('/api/validations/request_plan_access/', {
+            'plan_id': plan.id_pg,
+            'request_as_referent': True,
+        }, format='json')
+
+        assert response.status_code == status.HTTP_201_CREATED
+        assert ValidationRequest.objects.get(
+            request_type='plan_access', target_plan=plan, requester=user
+        ).request_as_referent is True
+
+    def test_plan_member_cannot_request_plain_access_again(self, authenticated_client):
+        """#711 — Sans l'option référent, un membre a déjà ce qu'il demande."""
+        from apps.plans.models import CorRolePlan
+        client, user = authenticated_client
+        plan = PlanGestionFactory(statut='valide', sites=[SiteFactory()])
+        CorRolePlan.objects.create(id_role=user, plan_de_gestion=plan, referent=False)
+
+        response = client.post('/api/validations/request_plan_access/', {
+            'plan_id': plan.id_pg,
+            'request_as_referent': False,
+        }, format='json')
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+
     def test_request_plan_access_duplicate_pending(self, authenticated_client):
         """Test error when a pending request already exists."""
         client, user = authenticated_client

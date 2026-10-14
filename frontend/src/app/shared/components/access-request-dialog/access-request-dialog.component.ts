@@ -399,7 +399,12 @@ export class AccessRequestDialogComponent {
     console.error('Erreur demande acces:', error);
 
     let errorMessage = this.translate.instant('accessRequest.error');
-    if (error.status === 409 || error.error?.detail?.includes('deja')) {
+    // #711 — Un refus métier (400) porte son motif : l'afficher plutôt
+    // qu'une erreur générique qui laisse croire à une panne.
+    const backendMessage = error.error?.error;
+    if (error.status === 400 && typeof backendMessage === 'string' && backendMessage) {
+      errorMessage = backendMessage;
+    } else if (error.status === 409 || error.error?.detail?.includes('deja')) {
       errorMessage = this.translate.instant('accessRequest.alreadyPending');
     }
 

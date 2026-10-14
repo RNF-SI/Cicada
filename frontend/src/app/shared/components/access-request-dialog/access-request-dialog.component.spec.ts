@@ -278,6 +278,20 @@ describe('AccessRequestDialogComponent', () => {
       expect(snackBarOpenMock).toHaveBeenCalled();
     }));
 
+    it('should show the backend message of a 400 response (#711)', fakeAsync(() => {
+      requestSiteAccessMock.mockReturnValue(throwError(() => ({
+        status: 400,
+        error: { error: "Une demande d'accès à ce plan est déjà en attente." }
+      })));
+
+      component.submit();
+      tick();
+
+      expect(snackBarOpenMock).toHaveBeenCalledWith(
+        "Une demande d'accès à ce plan est déjà en attente.", 'Fermer', expect.anything()
+      );
+    }));
+
     it('should reset submitting on error', fakeAsync(() => {
       requestSiteAccessMock.mockReturnValue(throwError(() => new Error('Failed')));
 

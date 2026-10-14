@@ -609,15 +609,23 @@ class ValidationRequestViewSet(viewsets.ModelViewSet):
         # Verifier que l'utilisateur n'est pas deja referent
         if plan.referents.filter(id_role=request.user.id_role).exists():
             return Response(
-                {'error': 'Vous avez deja acces a ce plan de gestion.'},
+                {'error': 'Vous avez déjà accès à ce plan de gestion.'},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        # Verifier que l'utilisateur n'est pas deja membre direct (CorRolePlan)
+        # Verifier que l'utilisateur n'est pas deja membre direct (CorRolePlan).
+        # #711 — Un membre en consultation peut demander a devenir referent :
+        # c'est l'objet de la banniere « Vous n'etes pas referent » du plan.
         from apps.plans.models import CorRolePlan
-        if CorRolePlan.objects.filter(id_role=request.user, plan_de_gestion=plan).exists():
+        request_as_referent = str(
+            request.data.get('request_as_referent', False)
+        ).lower() in ('true', '1')
+        membership = CorRolePlan.objects.filter(
+            id_role=request.user, plan_de_gestion=plan
+        ).first()
+        if membership and (membership.referent or not request_as_referent):
             return Response(
-                {'error': 'Vous avez deja acces a ce plan de gestion.'},
+                {'error': 'Vous avez déjà accès à ce plan de gestion.'},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
@@ -631,12 +639,11 @@ class ValidationRequestViewSet(viewsets.ModelViewSet):
 
         if existing:
             return Response(
-                {'error': 'Une demande d\'acces a ce plan est deja en attente.'},
+                {'error': "Une demande d'accès à ce plan est déjà en attente."},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
         # Creer la demande
-        request_as_referent = request.data.get('request_as_referent', False)
         validation_request = ValidationRequest.objects.create(
             request_type='plan_access',
             status='pending',
