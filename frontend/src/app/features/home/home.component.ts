@@ -1,6 +1,8 @@
-import { Component, inject, OnInit, computed } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, inject, OnInit, computed, ChangeDetectionStrategy } from '@angular/core';
+
 import { RouterModule } from '@angular/router';
+import { toSignal } from '@angular/core/rxjs-interop';
+import { map } from 'rxjs/operators';
 import { TranslateModule } from '@ngx-translate/core';
 import { MatButtonModule } from '@angular/material/button';
 import { HeaderComponent } from '../../shared/components/header/header.component';
@@ -10,20 +12,22 @@ import { PublicStatsService } from '../../core/services/public-stats.service';
 import { ModuleService } from '../../core/services/module.service';
 import { SettingsService } from '../../core/services/settings.service';
 import { EuFundingNoticeComponent } from '../../shared/components/eu-funding-notice/eu-funding-notice.component';
+import { PartnersBandComponent } from '../../shared/components/partners-band/partners-band.component';
 
 @Component({
   selector: 'app-home',
   standalone: true,
   imports: [
-    CommonModule,
     RouterModule,
     TranslateModule,
     HeaderComponent,
     NavigationTileComponent,
     MatButtonModule,
-    EuFundingNoticeComponent
-  ],
+    EuFundingNoticeComponent,
+    PartnersBandComponent
+],
   templateUrl: './home.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './home.component.scss'
 })
 export class HomeComponent implements OnInit {
@@ -33,6 +37,12 @@ export class HomeComponent implements OnInit {
   private readonly settingsService = inject(SettingsService);
 
   readonly isAuthenticated = this.authService.isAuthenticated;
+  readonly anneeCourante = new Date().getFullYear();
+  /** #689 — pas d'inscription CICADA quand l'instance se connecte par un GeoNature. */
+  readonly inscriptionOuverte = toSignal(
+    this.authService.getLoginMode().pipe(map(mode => mode.mode === 'local')),
+    { initialValue: false }
+  );
   readonly currentUser = this.authService.currentUser;
 
   // Public stats

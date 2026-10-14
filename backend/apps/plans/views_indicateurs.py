@@ -28,9 +28,10 @@ from .serializers_indicateurs import (
     MesureSerializer, MesureCreateSerializer, IndicateurMesureSerializer,
 )
 from .filters_indicateurs import IndicateurFilter, MetriqueFilter, MesureFilter
+from .exploration import LectureExplorationMixin
 
 
-class IndicateurViewSet(viewsets.ModelViewSet):
+class IndicateurViewSet(LectureExplorationMixin, viewsets.ModelViewSet):
     """
     ViewSet pour les Indicateurs.
 
@@ -85,8 +86,15 @@ class IndicateurViewSet(viewsets.ModelViewSet):
             return IndicateurCreateSerializer
         return IndicateurSerializer
 
+    #683 — lecture d'exploration (plans validés) sur ces seules actions.
+    # `global` (série de scores) et les mesures restent hors périmètre.
+    actions_exploration = ('retrieve', 'by_ne', 'by_resultat_attendu')
+
     def get_queryset(self):
-        return scope_by_plan(self.queryset, self.request.user, INDICATEUR_TO_PG_PATHS)
+        return scope_by_plan(
+            self.queryset, self.request.user, INDICATEUR_TO_PG_PATHS,
+            exploration=self.lecture_exploration(),
+        )
 
     def perform_create(self, serializer):
         serializer.save(id_utilisateur_ajout=self.request.user)
@@ -461,6 +469,7 @@ class IndicateurViewSet(viewsets.ModelViewSet):
         ceux dont il est porteur.
         """
         ne = get_object_or_404(NiveauExigence, id_ne=ne_id)
+        self.ancrer(ne)
         indicateurs = self.get_queryset().filter(niveaux_exigence=ne).distinct()
         return Response({
             'ne_id': int(ne_id),
@@ -480,6 +489,7 @@ class IndicateurViewSet(viewsets.ModelViewSet):
         seulement ceux dont il est porteur.
         """
         ra = get_object_or_404(ResultatAttendu, id_ra=ra_id)
+        self.ancrer(ra)
         indicateurs = self.get_queryset().filter(resultats_attendus=ra).distinct()
         return Response({
             'ra_id': int(ra_id),
@@ -598,7 +608,7 @@ class IndicateurViewSet(viewsets.ModelViewSet):
         return new_ind
 
 
-class MetriqueViewSet(viewsets.ModelViewSet):
+class MetriqueViewSet(LectureExplorationMixin, viewsets.ModelViewSet):
     """
     ViewSet pour les Métriques.
 
@@ -642,10 +652,13 @@ class MetriqueViewSet(viewsets.ModelViewSet):
             return MetriqueCreateSerializer
         return MetriqueSerializer
 
+    actions_exploration = ('retrieve', 'by_indicateur')
+
     def get_queryset(self):
         return scope_by_plan(
             self.queryset, self.request.user,
             prefix_paths('id_indicateur', INDICATEUR_TO_PG_PATHS),
+            exploration=self.lecture_exploration(),
         )
 
     def perform_create(self, serializer):
@@ -662,6 +675,7 @@ class MetriqueViewSet(viewsets.ModelViewSet):
         GET /api/plans/metriques/by-indicateur/{indicateur_id}/
         """
         indicateur = get_object_or_404(Indicateur, id_indicateur=indicateur_id)
+        self.ancrer(indicateur)
         metriques = self.get_queryset().filter(id_indicateur=indicateur)
         return Response({
             'indicateur_id': int(indicateur_id),

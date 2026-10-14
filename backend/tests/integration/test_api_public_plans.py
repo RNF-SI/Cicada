@@ -125,6 +125,25 @@ class TestIdentifiantStable:
         assert nouvelle.uuid_plan != source.uuid_plan
         assert nouvelle.reference != source.reference
 
+    def test_une_nouvelle_version_ne_reprend_pas_l_id_fcen(self, db):
+        """
+        #458 — L'ID Doc'Gestion FCEN désigne un document de la GED : une
+        révision ou une évaluation mi-parcours en est un autre, avec son propre
+        identifiant. Recopié, il ferait pointer la nouvelle version sur la
+        fiche GED de la précédente.
+        """
+        from apps.plans.services import PlanDuplicationService
+        from tests.factories.users import RoleFactory
+
+        source = PlanGestionValideFactory(id_docgestion_fcen='DG-42')
+        nouvelle = PlanDuplicationService.build_version_plan(
+            source, RoleFactory(), nom='Version dérivée FCEN',
+        )
+        nouvelle.save()
+        source.refresh_from_db()
+        assert nouvelle.id_docgestion_fcen is None
+        assert source.id_docgestion_fcen == 'DG-42'
+
     def test_uuid_inconnu_donne_404(self, api_client, api_ouverte):
         reponse = api_client.get(f'{URL_LISTE}{uuid_lib.uuid4()}/')
         assert reponse.status_code == status.HTTP_404_NOT_FOUND

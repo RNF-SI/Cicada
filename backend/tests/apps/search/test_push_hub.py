@@ -319,6 +319,17 @@ class TestIdentiteDeclaree:
         assert corps['libelle'] == 'Réserves Naturelles de France'
         assert corps['url_publique'] == 'https://rnf.example'
 
+    def test_sans_nom_rien_n_est_publie(self, plan_indexe, settings):
+        """
+        Le nom de l'instance est ce qui s'affiche chez les autres structures
+        comme provenance : un identifiant technique à sa place serait illisible.
+        La publication le refuse donc, plutôt que de laisser le hub se rabattre
+        sur « rnf ».
+        """
+        settings.CICADA_INSTANCE_LABEL = ''
+        with pytest.raises(CommandError, match='CICADA_INSTANCE_LABEL'):
+            self._ouverture(plan_indexe, settings)
+
     def test_le_nom_declare_n_est_pas_l_identite(self, plan_indexe, settings):
         """
         Le libellé accompagne l'identité, il ne la porte pas : `instance_id`
@@ -421,6 +432,7 @@ class TestRelais:
 
         settings.CICADA_EXPLORATION_SOURCE = 'hub'
         settings.CICADA_HUB_URL = 'http://hub:8000'
+        settings.CICADA_HUB_READ_TOKEN = 'jeton-lecture'
 
         with patch(
             'apps.search.relay.requests.get',
@@ -440,6 +452,7 @@ class TestRelais:
         """
         settings.CICADA_EXPLORATION_SOURCE = 'hub'
         settings.CICADA_HUB_URL = 'http://hub:8000'
+        settings.CICADA_HUB_READ_TOKEN = 'jeton-lecture'
         settings.CICADA_INSTANCE_ID = 'rnf'
 
         with patch('apps.search.relay.requests.get') as appel:
@@ -456,6 +469,7 @@ class TestRelais:
         """Une tuile servie par le hub porte déjà l'instance du plan."""
         settings.CICADA_EXPLORATION_SOURCE = 'hub'
         settings.CICADA_HUB_URL = 'http://hub:8000'
+        settings.CICADA_HUB_READ_TOKEN = 'jeton-lecture'
         settings.CICADA_INSTANCE_ID = 'rnf'
 
         with patch('apps.search.relay.requests.get') as appel:

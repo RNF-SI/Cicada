@@ -5232,6 +5232,11 @@ class EnjeuxSeeder(BaseSeeder):
                     if op.programmation_mensuelle_defaut
                     else {"3": True, "4": True, "5": True, "6": True}
                 )
+                # Comme le formulaire : la grille commune et chaque année portent
+                # les mêmes mois (sinon le formulaire s'ouvrait sur une grille vide).
+                if op.programmation_mensuelle_defaut != mens:
+                    op.programmation_mensuelle_defaut = mens
+                    op.save(update_fields=['programmation_mensuelle_defaut'])
                 bp = budget_profiles[idx % len(budget_profiles)]
                 for year in range(op.annee_min, op.annee_max + 1):
                     year_offset = year - op.annee_min
@@ -6285,6 +6290,9 @@ class EnjeuxSeeder(BaseSeeder):
                         'id_referentiel_operations': 'CS',
                         'id_categorie_action_reserve': cat_reserve_cs,
                         'description': 'Mesures de surface en eau sur 6 marais témoins, 6 fois/an.',
+                        # Mêmes mois que les années créées plus bas (règle du formulaire).
+                        'programmation_mensuelle_defaut': {"4": True, "5": True, "6": True,
+                                                           "7": True, "8": True, "9": True},
                         'annee_min': 2025,
                         'annee_max': 2030,
                         'id_utilisateur_ajout': admin,

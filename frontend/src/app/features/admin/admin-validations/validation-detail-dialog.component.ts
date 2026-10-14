@@ -1,7 +1,7 @@
 /**
  * Dialog pour afficher le detail d'une demande de validation.
  */
-import { Component, inject, signal, OnInit } from '@angular/core';
+import { Component, inject, signal, OnInit, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
@@ -39,7 +39,7 @@ interface DialogData {
   ],
   template: `
     <h2 mat-dialog-title>
-      <i class="fi" [ngClass]="getTypeIcon(validation()?.request_type)"></i>
+      <i class="fi" [ngClass]="getTypeIcon($safeNavigationMigration(validation()?.request_type))"></i>
       Detail de la demande
     </h2>
 
@@ -221,7 +221,9 @@ interface DialogData {
             <div class="referent-request-info">
               <i class="fi fi-rr-info"></i>
               <div class="info-content">
-                <strong>Demande :</strong> souhaite devenir <strong>referent</strong> du site
+                {{ (validation()!.request_type === 'plan_access'
+                    ? 'admin.validations.referentRequest.plan'
+                    : 'admin.validations.referentRequest.site') | translate }}
               </div>
             </div>
           }
@@ -322,6 +324,7 @@ interface DialogData {
       <button mat-button (click)="close()">Fermer</button>
     </mat-dialog-actions>
   `,
+  changeDetection: ChangeDetectionStrategy.Eager,
   styles: [`
     @use '../admin-validations.component.scss' as v;
 
@@ -644,13 +647,13 @@ export class ValidationDetailDialogComponent implements OnInit {
 
   /**
    * Vérifie si l'option d'approbation avec choix référent/utilisateur doit être affichée.
-   * Affiche les deux boutons si c'est une demande de création ou d'accès site avec request_as_referent=true.
+   * Affiche les deux boutons si c'est une demande de création de site, d'accès site
+   * ou d'accès plan (#700) avec request_as_referent=true.
    */
   showApproveAsUserOption(): boolean {
     const v = this.validation();
     if (!v) return false;
-    // Afficher l'option si c'est une demande de création ou d'accès site avec request_as_referent
-    return (v.request_type === 'site_creation' || v.request_type === 'site_access')
+    return ['site_creation', 'site_access', 'plan_access'].includes(v.request_type)
            && v.request_as_referent === true;
   }
 

@@ -17,14 +17,9 @@
            organisme se lit comme un défaut de l'outil, alors que c'est un choix
            de la structure. L'utilisateur cherche alors une panne inexistante,
            ou conclut que les autres structures n'ont pas de plans. -->
-      <p class="exploration-portee" data-testid="exploration-portee">
-        <i
-          class="fi"
-          [class.fi-rr-globe]="partageActif()"
-          [class.fi-rr-home]="!partageActif()"
-          aria-hidden="true"></i>
-        <span>{{ porteeCle() | translate: { count: nombreStructures() } }}</span>
-      </p>
+      <app-portee-banniere
+        class="exploration-perimetre-national"
+        alignement="centre"></app-portee-banniere>
 
       <p class="exploration-hero-label">{{ 'exploration.search.label' | translate }}</p>
 

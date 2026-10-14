@@ -6,6 +6,16 @@ set -e
 # Fixer les permissions des volumes montes (executes en root)
 if [ "$(id -u)" = "0" ]; then
     chown -R cicada:cicada /app/logs /app/media /app/static 2>/dev/null || true
+    # Jeton de l'instance auprès de l'API de suivi (#696) : monté depuis l'hôte
+    # en root:root 600, donc illisible par l'utilisateur `cicada` une fois les
+    # privilèges abandonnés. Lu ici, encore en root, et transmis par
+    # l'environnement (que l'application consulte en premier). Sans cela, la
+    # demande d'adhésion au hub restait introuvable dans l'interface, alors
+    # qu'un `docker exec` (root) la disait possible.
+    if [ -z "${CICADA_TRACKING_TOKEN:-}" ] && [ -r /etc/cicada/instance_token ]; then
+        CICADA_TRACKING_TOKEN="$(tr -d '[:space:]' < /etc/cicada/instance_token)"
+        export CICADA_TRACKING_TOKEN
+    fi
     exec gosu cicada "$0" "$@"
 fi
 

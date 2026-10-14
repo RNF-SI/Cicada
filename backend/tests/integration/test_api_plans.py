@@ -57,6 +57,18 @@ class TestPlansListEndpoint:
         assert response.status_code == status.HTTP_200_OK
         assert response.data['pagination']['count'] >= 3
 
+    def test_list_expose_le_rang(self, api_client):
+        """Le rang s'affiche dans la liste des plans et la fiche d'un site :
+        il n'est pas dans le nom, que chacun choisit librement."""
+        PlanGestionFactory(nom='Plan rang 2', rang=2)
+        api_client.force_authenticate(user=SuperAdminFactory())
+
+        response = api_client.get('/api/plans/plans/')
+
+        assert response.status_code == status.HTTP_200_OK
+        rangs = {p['nom']: p['rang'] for p in response.data['results']}
+        assert rangs['Plan rang 2'] == 2
+
     def test_list_referent_sees_assigned_plans(self, api_client):
         """Test referent sees plans for their assigned sites."""
         referent = ReferentFactory()

@@ -1,4 +1,4 @@
-import { Component, Input, computed } from '@angular/core';
+import { Component, Input, computed, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 
 export type GaugeStatus = 'not-started' | 'first-half' | 'second-half' | 'exceeded';
@@ -8,6 +8,7 @@ export type GaugeStatus = 'not-started' | 'first-half' | 'second-half' | 'exceed
   standalone: true,
   imports: [CommonModule],
   templateUrl: './plan-gauge.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './plan-gauge.component.scss'
 })
 export class PlanGaugeComponent {

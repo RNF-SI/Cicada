@@ -25,7 +25,7 @@ ENV DJANGO_SETTINGS_MODULE=config.settings
 WORKDIR /app
 
 # PostGIS : ref_geo porte les contours des départements et des régions.
-# build-essential compile GDAL puis disparaît.
+# build-essential sert aux dépendances Python à compiler, puis disparaît.
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     libpq-dev \

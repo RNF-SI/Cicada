@@ -1,4 +1,5 @@
-import { Component, signal, computed, inject, OnInit, OnDestroy } from '@angular/core';
+import { ExplorationRetourService } from '../../core/services/exploration-retour.service';
+import { Component, signal, computed, inject, OnInit, OnDestroy, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
@@ -87,6 +88,7 @@ import {
   CsrpnStep,
 } from '../../shared/components/modals/csrpn-step-dialog/csrpn-step-dialog.component';
 import { getExtensionBadgeKey, getPlanStatusKey, getPlanStatusTooltipKey } from '../../shared/utils/plan-status.utils';
+import { planEndYear } from '../../shared/utils/plan-periode';
 
 interface SyntheseAccordion {
   id: string;
@@ -112,10 +114,13 @@ interface SubAccordion {
   items?: OperationSynthItem[];
 }
 
+import { SurlignerDirective } from '../../shared/directives/surligner.directive';
+
 @Component({
   selector: 'app-plan-detail',
   standalone: true,
   imports: [
+    SurlignerDirective,
     CommonModule,
     RouterModule,
     MatButtonModule,
@@ -134,11 +139,18 @@ interface SubAccordion {
     TagComponent,
   ],
   templateUrl: './plan-detail.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './plan-detail.component.scss'
 })
 export class PlanDetailComponent implements OnInit, OnDestroy {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
+  private readonly explorationRetour = inject(ExplorationRetourService);
+
+  /** #683 — Lien vers la recherche d'exploration d'où l'on vient (bandeau, fil d'Ariane). */
+  lienExploration() {
+    return this.explorationRetour.lienRetour(this.motCleSurligne());
+  }
   private readonly adminService = inject(AdminService);
   readonly authService = inject(AuthService);
   private readonly enjeuService = inject(EnjeuService);
@@ -206,6 +218,12 @@ export class PlanDetailComponent implements OnInit, OnDestroy {
   isPlanExtended = computed<boolean>(() => {
     const p = this.plan();
     return !!(p && p.annees_extension && p.annees_extension > 0);
+  });
+
+  /** Dernière année d'un plan prolongé (prolongation comprise), sinon null. */
+  finProlongation = computed<number | null>(() => {
+    const p = this.plan();
+    return p && this.isPlanExtended() ? planEndYear(p) : null;
   });
 
   extensionBadgeKey = computed<string>(() =>
@@ -276,8 +294,27 @@ export class PlanDetailComponent implements OnInit, OnDestroy {
   // Pending site link requests for this plan
   pendingSiteRequests = signal<ValidationRequestListItem[]>([]);
 
+  /**
+   * #683 — Le lecteur n'est là que par l'exploration : plan validé d'une
+   * autre structure, servi sans personnes, documents ni commentaires. Posé
+   * par l'API (`acces_exploration`).
+   */
+  accesExploration = computed(() => this.plan()?.acces_exploration === true);
+
+  /** #681 — Mot cherché dans l'exploration (`?q=`), surligné sur la page. */
+  motCleSurligne = signal('');
+
+  /** #683 — Plan distant : qui l'a publié, et quand. */
+  provenanceDistante = computed(() => {
+    const p = this.plan();
+    return p?.instance_libelle ? p : null;
+  });
+
   // Permissions cycle de vie (#346) : référent du plan, admin_og, super_admin OU rédacteur principal.
   canManageLifecycle = computed(() => {
+    // #683 — un lecteur d'exploration n'a aucun droit sur ce plan, quel que
+    // soit son rôle dans sa propre structure.
+    if (this.accesExploration()) return false;
     if (this.authService.isSuperAdmin() || this.authService.isRedacteurPrincipal() || this.authService.isAdminOrganisme()) {
       return true;
     }
@@ -355,6 +392,7 @@ export class PlanDetailComponent implements OnInit, OnDestroy {
 
     // Handle ?edit=metadata query param (opens edit modal after duplication)
     this.route.queryParamMap.subscribe(queryParams => {
+      this.motCleSurligne.set(queryParams.get('q') ?? '');
       if (queryParams.get('edit') === 'metadata') {
         // Remove query param from URL
         this.router.navigate([], {

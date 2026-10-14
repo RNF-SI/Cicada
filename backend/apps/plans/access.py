@@ -49,6 +49,23 @@ OPERATION_TO_PG_PATHS = (
 )
 
 
+def plan_operation_ids(plan) -> set:
+    """Identifiants des actions d'UN plan, par tous les chemins de l'arborescence.
+
+    #671 — les exports ne suivaient que la branche NE → OLT → enjeu et
+    perdaient les actions rattachées par pressions / résultats attendus.
+    Une requête simple par chemin plutôt qu'un seul filtre OR-é : ce dernier
+    dépasse 60 jointures et bascule le planificateur en GEQO sur une base
+    sans statistiques (cf. `_plan_realisations()`).
+    """
+    from .models_operations import Operation
+
+    ids = set()
+    for path in OPERATION_TO_PG_PATHS:
+        ids.update(Operation.objects.filter(**{path: plan}).values_list('pk', flat=True))
+    return ids
+
+
 def has_global_plan_access(user) -> bool:
     """Vrai pour les rôles qui voient tous les plans (super admin, rédacteur principal)."""
     return user.is_super_admin() or user.is_redacteur_principal()
@@ -70,11 +87,18 @@ def plan_scope_q(user) -> Q:
             Q(organismes_redacteurs__uuid_og=organisme)
         )
 
-    scope = (
+    direct = (
         Q(pk__in=CorRolePlan.objects.filter(id_role=user).values('plan_de_gestion_id')) |
-        Q(referents=user) |
-        Q(sites__site__corrolesite__id_role=user)
+        Q(referents=user)
     )
+    # #700 — Rédacteur externe : uniquement les plans auxquels il a été
+    # rattaché à sa demande. Ni ses sites, ni son organisme (un bureau d'étude
+    # n'est ni gestionnaire ni rédacteur des plans qu'il rédige) n'ouvrent
+    # d'autres plans.
+    if user.is_redacteur():
+        return direct
+
+    scope = direct | Q(sites__site__corrolesite__id_role=user)
     if organisme is not None:
         scope |= Q(organismes_redacteurs__uuid_og=organisme)
         scope |= Q(sites__site__corogsite__uuid_og=organisme)
@@ -92,7 +116,36 @@ def accessible_plan_ids(user):
     return PlanGestion.objects.filter(plan_scope_q(user)).values('id_pg')
 
 
-def scope_by_plan(queryset, user, paths='', extra=None):
+def q_exploration(paths=''):
+    """
+    ``Q`` des objets dont le plan est **validé** — lecture d'exploration (#683).
+
+    L'exploration des données ouvre à tout utilisateur connecté, de n'importe
+    quel organisme, la *structure* d'un plan validé, modifié ou archivé : c'est
+    exactement ce que publie déjà la fiche publique de l'exploration, et ce
+    qu'indexe le moteur de recherche. Ce qui change avec #683, c'est que cette
+    lecture passe désormais par les **écrans réels** du plan et donc par l'API
+    normale — d'où ce périmètre supplémentaire, OR-é au périmètre de lecture.
+
+    Il ne donne **jamais** accès aux données sensibles : mesures, réalisations,
+    budget, RH, fichiers, personnes. Ces données sont servies par des ViewSets
+    qui n'appliquent pas ce périmètre (suivis : :func:`scope_suivi_by_plan`),
+    ou retirées des sérialiseurs quand le lecteur n'est là que par
+    l'exploration (cf. :mod:`apps.plans.exploration`).
+
+    Un brouillon ou un plan en workflow CSRPN n'y entre pas : il n'est pas
+    encore public.
+    """
+    if isinstance(paths, str):
+        paths = (paths,)
+    scope = Q()
+    for path in paths:
+        champ = f'{path}__statut__in' if path else 'statut__in'
+        scope |= Q(**{champ: PlanGestion.VALIDATED_STATUSES})
+    return scope
+
+
+def scope_by_plan(queryset, user, paths='', extra=None, exploration=False):
     """
     Restreint ``queryset`` aux objets rattachés à un plan accessible à ``user``.
 
@@ -102,6 +155,10 @@ def scope_by_plan(queryset, user, paths='', extra=None):
         rattachée au plan par plusieurs branches de l'arborescence).
     :param extra: ``Q`` additionnel OR-é au périmètre (ex. le créateur d'une
         opération orpheline, qui doit continuer à la voir).
+    :param exploration: ajoute au périmètre les objets des plans validés
+        (#683, cf. :func:`q_exploration`). À ne passer que pour une **lecture**
+        de la structure, jamais pour une écriture ni pour des données
+        sensibles.
     """
     plan_ids = accessible_plan_ids(user)
     if plan_ids is None:
@@ -115,6 +172,8 @@ def scope_by_plan(queryset, user, paths='', extra=None):
         scope |= Q(**{f'{path}__in' if path else 'pk__in': plan_ids})
     if extra is not None:
         scope |= extra
+    if exploration:
+        scope |= q_exploration(paths)
     return queryset.filter(scope).distinct()
 
 
@@ -123,6 +182,25 @@ def user_can_access_plan(user, plan) -> bool:
     if has_global_plan_access(user):
         return True
     return PlanGestion.objects.filter(pk=plan.pk).filter(plan_scope_q(user)).exists()
+
+
+def user_can_explore_plan(user, plan) -> bool:
+    """
+    Vrai si ``user`` peut lire la structure du plan : lié au plan, **ou** plan
+    validé (#683). Cf. :func:`q_exploration`.
+    """
+    return plan.statut in PlanGestion.VALIDATED_STATUSES or user_can_access_plan(user, plan)
+
+
+def lecture_exploration(user, plan) -> bool:
+    """
+    Vrai si ``user`` ne voit ce plan **que** par l'exploration (#683).
+
+    C'est le cas qui impose de retirer les données sensibles de ce qui lui est
+    servi : il n'est ni membre, ni référent, ni d'un organisme lié au plan — il
+    consulte un plan validé d'une autre structure.
+    """
+    return not user_can_access_plan(user, plan)
 
 
 def user_manages_plan(user, plan) -> bool:
@@ -148,15 +226,22 @@ def user_manages_plan(user, plan) -> bool:
     ).exists()
 
 
-def assert_plan_access(user, plan):
+def assert_plan_access(user, plan, exploration=False):
     """
     Lève une 403 si ``user`` n'a pas accès au plan.
 
     À utiliser dans les ``@action`` prenant un ``plan_id`` et qui interrogent
     les modèles directement (agrégations du bilan…) : celles-là ne passent pas
     par ``get_queryset()`` et ne sont donc pas bornées par le périmètre.
+
+    :param exploration: admet aussi un plan validé (#683) — pour les seules
+        lectures de structure.
     """
-    if not user_can_access_plan(user, plan):
+    autorise = (
+        user_can_explore_plan(user, plan) if exploration
+        else user_can_access_plan(user, plan)
+    )
+    if not autorise:
         raise PermissionDenied("Vous n'avez pas accès à ce plan de gestion.")
 
 
@@ -175,6 +260,11 @@ def suivi_scope_q(user) -> Q:
 
     Ne doit pas être appelé pour un utilisateur à accès global
     (cf. :func:`has_global_plan_access`)."""
+    # #700 — Le rédacteur externe saisit le plan, mais n'a jamais accès aux
+    # suivis (bilan, suivi des actions, tableau de bord), même référent.
+    if user.is_redacteur():
+        return Q(pk__in=[])
+
     scope = (
         Q(referents=user) |
         Q(sites__site__corrolesite__id_role=user,

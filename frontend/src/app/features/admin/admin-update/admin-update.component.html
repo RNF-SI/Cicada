@@ -24,7 +24,29 @@
           {{ versionInfo()?.current_version ?? '—' }}
         </p>
 
-        @if (versionInfo()?.update_available && versionInfo()?.latest_version) {
+        @if (phase() !== 'idle') {
+          <div class="update-progress" [class.is-done]="phase() === 'done'" [class.is-failed]="phase() === 'failed'" role="status" aria-live="polite">
+            @if (isInProgress) {
+              <mat-spinner diameter="22" class="progress-spinner"></mat-spinner>
+            } @else if (phase() === 'done') {
+              <i class="fi fi-rr-check-circle"></i>
+            } @else {
+              <i class="fi fi-rr-exclamation"></i>
+            }
+            <div class="progress-text">
+              <p class="progress-title">{{ phaseKey | translate:{ version: targetVersion() } }}</p>
+              @if (isInProgress) {
+                <p class="progress-hint">{{ 'admin.update.progress.hint' | translate }}</p>
+              }
+              @if (phase() === 'failed' && failureMessage()) {
+                <p class="progress-hint">{{ failureMessage() }}</p>
+              }
+              @if (phase() === 'failed' || phase() === 'unknown') {
+                <p class="progress-hint">{{ 'admin.update.progress.checkLogs' | translate }}</p>
+              }
+            </div>
+          </div>
+        } @else if (versionInfo()?.update_available && versionInfo()?.latest_version) {
           <div class="update-available">
             <p class="update-message">
               <i class="fi fi-rr-bell"></i>

@@ -31,6 +31,10 @@ RNF=(docker compose)
 CEN=(docker compose -p cicada_cen --env-file .env.cen
      -f docker-compose.yml -f docker-compose.instance.yml)
 HUB=(docker compose -f docker-compose.hub.yml --env-file .env.hub)
+# Banc de l'adhésion au hub (#696) : API de suivi locale + instance principale
+# sous une identité dédiée, sans jetons d'environnement.
+SUIVI=(docker compose -f docker-compose.tracking.yml --env-file .env.tracking)
+RNF_ADHESION=(docker compose -f docker-compose.yml -f docker-compose.adhesion.yml)
 
 RNF_WEB=cicada_web
 CEN_WEB=cicada_cen_web
@@ -41,6 +45,10 @@ URL_RNF_API=http://localhost:8000
 URL_CEN_UI=http://localhost:8081
 URL_CEN_API=http://localhost:8001
 URL_HUB=http://localhost:8002
+URL_SUIVI=http://localhost:8010
+URL_SUIVI_MAIL=http://localhost:8027
+# Jeton de suivi du poste : le même que dans docker-compose.adhesion.yml.
+JETON_SUIVI_POSTE=5f0c2a8e-0d6b-4c1e-9a77-1c2d3e4f5a6b
 
 # --------------------------------------------------------------------------- #
 # Affichage
@@ -339,7 +347,7 @@ cmd_mode() {
   ok "$fichier : exploration → $source"
 
   titre "Redémarrage du backend $cible"
-  if [ "$cible" = rnf ]; then "${RNF[@]}" up -d web; else "${CEN[@]}" up -d web; fi
+  if [ "$cible" = rnf ]; then "${RNF[@]}" up -d web celery-worker; else "${CEN[@]}" up -d web celery-worker; fi
   attendre "$( [ "$cible" = rnf ] && echo "$URL_RNF_API" || echo "$URL_CEN_API" )/api/auth/health/" \
            "API $cible" 300
 }
@@ -441,6 +449,92 @@ cmd_test() {
   info "« test --bench » pour les tests contre les trois briques lancées."
 }
 
+# --------------------------------------------------------------------------- #
+# Adhésion au hub validée par RNF (#696)
+# --------------------------------------------------------------------------- #
+
+# Le jeton d'administration du hub est partagé entre le hub et l'API de suivi :
+# c'est lui qui autorise le suivi à enrôler une instance. Tiré une fois, recopié
+# des deux côtés — un écart et l'acceptation échoue en 403.
+_jeton_admin_hub() {
+  local jeton
+  [ -f .env.tracking ] || cp .env.tracking.example .env.tracking
+  jeton=$(grep '^HUB_ADMIN_TOKEN=' .env.hub 2>/dev/null | cut -d= -f2- || true)
+  if [ -z "$jeton" ]; then
+    jeton=$(python3 -c 'import secrets; print(secrets.token_urlsafe(48))')
+    sed -i '/^HUB_ADMIN_TOKEN=/d' .env.hub
+    echo "HUB_ADMIN_TOKEN=$jeton" >> .env.hub
+    info "Jeton d'administration du hub tiré (.env.hub)"
+  fi
+  sed -i "s|^HUB_ADMIN_TOKEN=.*|HUB_ADMIN_TOKEN=$jeton|" .env.tracking
+}
+
+cmd_adhesion() {
+  case "${1:-}" in
+    up)
+      titre "Banc de l'adhésion au hub"
+      _jeton_admin_hub
+      # Recréé et non redémarré : le hub ne lit HUB_ADMIN_TOKEN qu'au démarrage.
+      "${HUB[@]}" up -d hub >/dev/null
+      "${SUIVI[@]}" up -d >/dev/null
+      attendre "$URL_HUB/api/health/" "Hub" 120
+      attendre "$URL_SUIVI/admin/login/" "API de suivi" 300
+      attendre "$URL_SUIVI_MAIL/" "Mailpit du suivi" 60
+
+      # En production, l'instance s'enregistre à l'installation. Ici, à la main.
+      curl -sf -X POST "$URL_SUIVI/api/instances/register/" \
+        -H 'Content-Type: application/json' \
+        -d "{\"token\": \"$JETON_SUIVI_POSTE\", \"version\": \"dev\", \"rgpd_consent\": true,
+             \"structure_name\": \"Poste de développement\", \"admin_email\": \"admin@test.fr\",
+             \"admin_name\": \"Admin\"}" >/dev/null \
+        && ok "Poste enregistré auprès du suivi"
+
+      # build : l'image doit contenir `cryptography` (jetons chiffrés en base).
+      "${RNF_ADHESION[@]}" build -q web
+      "${RNF_ADHESION[@]}" up -d web celery-worker frontend >/dev/null
+      attendre "$URL_RNF_API/api/health/" "Instance (identité poste-dev)" 600
+      cmd_reindex rnf
+
+      titre "À faire"
+      info "1. $URL_RNF_UI/administration/parametres  (admin@test.fr / Test123!)"
+      info "   « Demander l'adhésion » (nom, e-mail du contact) : la demande coche le partage"
+      info "2. $URL_SUIVI_MAIL  → l'e-mail à si@rnfrance.org et l'accusé de réception"
+      info "3. $URL_SUIVI/admin/  (admin / admin) → Adhésions au hub"
+      info "   cocher la demande, puis « Envoyer le code de confirmation »"
+      info "4. $URL_SUIVI_MAIL  → lire le code (ABCD-EFGH) dans le dernier e-mail"
+      info "5. revenir aux paramètres : saisir le code → adhésion acceptée, instance"
+      info "   enrôlée sur le hub ; « Vérifier maintenant », puis"
+      info "   docker exec $RNF_WEB python manage.py push_federation"
+      info "Retour au banc rnf/cen : scripts/federation.sh adhesion down"
+      ;;
+    down)
+      titre "Fin du banc de l'adhésion"
+      # L'instance reprend l'identité de .env (rnf) : son index est à refaire.
+      "${RNF[@]}" up -d web celery-worker >/dev/null
+      attendre "$URL_RNF_API/api/health/" "Instance (identité de .env)" 600
+      cmd_reindex rnf
+      "${SUIVI[@]}" stop >/dev/null && ok "API de suivi arrêtée (données conservées)"
+      info "L'instance « poste-dev » reste enrôlée sur le hub local : sans effet,"
+      info "plus rien ne publie sous ce nom (reset-hub pour repartir de zéro)."
+      ;;
+    reset)
+      # Les trois côtés, sinon la demande suivante bute : le hub refuse (409)
+      # de ré-enrôler « poste-dev » sous d'autres empreintes.
+      docker exec "$HUB_API" python manage.py shell -c "
+from apps.index.models import ContenuIndexe, Instance, LotPublication, PlanIndexe
+for modele in (ContenuIndexe, PlanIndexe, LotPublication, Instance):
+    modele.objects.filter(instance_id='poste-dev').delete()" \
+        && ok "« poste-dev » retirée du hub (registre et index)"
+      "${SUIVI[@]}" down -v >/dev/null && ok "API de suivi locale supprimée, base comprise"
+      docker exec "$RNF_WEB" python manage.py shell -c \
+        "from apps.search.models import RaccordementHub; RaccordementHub.objects.all().delete()" \
+        && ok "Adhésion de l'instance effacée (nouvelle demande possible)"
+      ;;
+    *)
+      erreur "Usage : scripts/federation.sh adhesion <up|down|reset>"; exit 1 ;;
+  esac
+}
+
 aide() {
   cat <<'TXT'
 Banc d'essai de l'exploration fédérée (#636)
@@ -468,10 +562,19 @@ Commandes
   test --e2e                   Playwright sur l'instance relayée (interface)
   reset-hub                    vide la base du hub et le relance
 
+  adhesion up      banc de l'adhésion validée par RNF (#696) : API de suivi
+                   locale (:8010) et son Mailpit (:8027), instance principale
+                   sous l'identité « poste-dev » sans jetons, puis marche à
+                   suivre (demande → code envoyé par e-mail → code saisi)
+  adhesion down    rend à l'instance principale son identité de .env
+  adhesion reset   efface l'adhésion des trois côtés (hub, suivi, instance),
+                   pour rejouer ; relancer ensuite « adhesion up »
+
 Adresses
   RNF  http://localhost        API :8000     Mailpit :8025
   CEN  http://localhost:8081   API :8001     Mailpit :8026
   Hub  (pas d'interface)       API :8002
+  Suivi (banc adhésion)        API :8010     Mailpit :8027
 
 Connexion sur les deux instances : admin@test.fr / Test123!
 
@@ -493,6 +596,7 @@ case "${1:-aide}" in
   logs)      cmd_logs "${2:-hub}" ;;
   test)      cmd_test "${2:-}" ;;
   reset-hub) cmd_reset_hub ;;
+  adhesion)  cmd_adhesion "${2:-}" ;;
   aide|-h|--help|help) aide ;;
   *)         erreur "Commande inconnue : $1"; echo; aide; exit 1 ;;
 esac

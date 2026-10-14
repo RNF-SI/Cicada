@@ -135,11 +135,11 @@
   }
   th.col-email,
   td.col-email {
-    max-width: 180px;
+    max-width: 160px;
   }
   th.col-organisme,
   td.col-organisme {
-    max-width: 180px;
+    max-width: 160px;
   }
   td.col-organisme {
     font-size: $font-size-small;
@@ -153,10 +153,12 @@
   }
 
   // Colonnes qui peuvent wrapper leur contenu
+  // Sites et plans : chips tronqués (nom complet en infobulle), colonnes
+  // étroites pour que le tableau tienne sans défilement horizontal.
   td.sites-cell,
   td.plans-cell {
     white-space: normal;
-    min-width: 162px;
+    min-width: 110px;
   }
 
   // Première colonne sticky (Utilisateur)
@@ -226,8 +228,16 @@
     }
   }
 
-  // Colonnes secondaires à masquer sur tablet
+  // Colonnes secondaires (identifiant, dernière connexion) masquées en
+  // dessous du grand écran, pour que le tableau tienne sans défilement.
+  // L'email, lui, reste affiché jusqu'à la tablette.
   .col-secondary {
+    @media (max-width: $breakpoint-wide) {
+      &.col-identifiant,
+      &.col-lastlogin {
+        display: none;
+      }
+    }
     @media (max-width: $breakpoint-tablet) {
       display: none;
     }
@@ -283,6 +293,12 @@
     background-color: $gray-light;
     color: $gray-dark;
   }
+
+  // #700 — Rédacteur externe : pastel cyan, texte noir (AA).
+  &.role-redacteur {
+    background-color: $tag-cyan;
+    color: $black;
+  }
 }
 
 .status-badge {
@@ -337,9 +353,51 @@
   }
 }
 
+// #700 — Encart « Comprendre les rôles »
+.roles-help {
+  display: block;
+  margin-bottom: $spacing-md;
+}
+
+.roles-help-intro {
+  margin: 0 0 $spacing-sm;
+  color: $gray-dark;
+}
+
+.roles-help-list {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-sm;
+  margin: 0;
+}
+
+.roles-help-item {
+  display: grid;
+  grid-template-columns: 140px 1fr;
+  gap: $spacing-sm;
+  align-items: start;
+
+  dt {
+    margin: 0;
+  }
+
+  dd {
+    margin: 0;
+    color: $black;
+  }
+
+  ul {
+    margin: $spacing-xxs 0 0;
+  }
+
+  @media (max-width: $breakpoint-mobile) {
+    grid-template-columns: 1fr;
+  }
+}
+
 // Sites column
 .sites-cell {
-  max-width: 225px;
+  max-width: 140px;
 }
 
 .sites-list {
@@ -357,7 +415,7 @@
   border-radius: $border-radius-sm;
   font-size: $font-size-small;
   color: $primary-color;
-  max-width: 198px;
+  max-width: 128px;
 
   i {
     font-size: 11px;
@@ -400,7 +458,7 @@
 
 // Plans column
 .plans-cell {
-  max-width: 225px;
+  max-width: 140px;
 }
 
 .plans-list {
@@ -418,7 +476,7 @@
   border-radius: $border-radius-sm;
   font-size: $font-size-small;
   color: darken($secondary-pale-green, 35%);
-  max-width: 198px;
+  max-width: 128px;
 
   i {
     font-size: 11px;
@@ -464,9 +522,13 @@
   font-size: $font-size-small;
 }
 
-.actions-cell {
+.actions-wrap {
   display: flex;
+  flex-wrap: wrap;
   gap: $spacing-xxs;
+  // 4 boutons par ligne au plus : au-delà, ils passent à la ligne suivante
+  // (jusqu'à 8 actions pour un super admin).
+  width: calc(4 * 29px + 3 * #{$spacing-xxs});
 }
 
 .btn-icon {

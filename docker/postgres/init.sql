@@ -1,10 +1,17 @@
 -- Script d'initialisation PostgreSQL pour CICADA
+--
+-- Exécuté SOUS L'IDENTITÉ DE L'UTILISATEUR DE L'APPLICATION (current_user) :
+--   - base Docker : par l'entrypoint de l'image, avec POSTGRES_USER ;
+--   - base existante : par cicada-prepare-db, qui crée d'abord PostGIS en
+--     super-utilisateur (seule extension qui l'exige) puis lance ce script
+--     avec le rôle de l'application.
+-- Aucun nom d'utilisateur n'est donc écrit en dur.
 
--- Activation de l'extension PostGIS
+-- PostGIS exige un super-utilisateur ; IF NOT EXISTS passe sans droit
+-- particulier quand l'extension a déjà été créée.
 CREATE EXTENSION IF NOT EXISTS postgis;
-CREATE EXTENSION IF NOT EXISTS postgis_topology;
+-- Extensions « de confiance » : créables par le propriétaire de la base
 CREATE EXTENSION IF NOT EXISTS fuzzystrmatch;
-CREATE EXTENSION IF NOT EXISTS postgis_tiger_geocoder;
 
 -- Activation de l'extension UUID pour les clés uniques
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
@@ -41,22 +48,22 @@ BEGIN
         'taxonomie', 'ref_habitats', 'ref_inpg', 'ref_campanule'
     ])
     LOOP
-        EXECUTE format('ALTER SCHEMA %I OWNER TO cicada_user', schema_name);
-        EXECUTE format('GRANT USAGE, CREATE ON SCHEMA %I TO cicada_user', schema_name);
-        EXECUTE format('GRANT ALL ON ALL TABLES IN SCHEMA %I TO cicada_user', schema_name);
-        EXECUTE format('GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA %I TO cicada_user', schema_name);
-        EXECUTE format('ALTER DEFAULT PRIVILEGES IN SCHEMA %I GRANT ALL ON TABLES TO cicada_user', schema_name);
-        EXECUTE format('ALTER DEFAULT PRIVILEGES IN SCHEMA %I GRANT USAGE, SELECT ON SEQUENCES TO cicada_user', schema_name);
+        EXECUTE format('ALTER SCHEMA %I OWNER TO %I', schema_name, current_user);
+        EXECUTE format('GRANT USAGE, CREATE ON SCHEMA %I TO %I', schema_name, current_user);
+        EXECUTE format('GRANT ALL ON ALL TABLES IN SCHEMA %I TO %I', schema_name, current_user);
+        EXECUTE format('GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA %I TO %I', schema_name, current_user);
+        EXECUTE format('ALTER DEFAULT PRIVILEGES IN SCHEMA %I GRANT ALL ON TABLES TO %I', schema_name, current_user);
+        EXECUTE format('ALTER DEFAULT PRIVILEGES IN SCHEMA %I GRANT USAGE, SELECT ON SEQUENCES TO %I', schema_name, current_user);
     END LOOP;
 END
 $$;
 
 -- Permissions sur le schéma public (pour les tables Django internes : auth, sessions, etc.)
-GRANT USAGE, CREATE ON SCHEMA public TO cicada_user;
-GRANT ALL ON ALL TABLES IN SCHEMA public TO cicada_user;
-GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO cicada_user;
-ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO cicada_user;
-ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT USAGE, SELECT ON SEQUENCES TO cicada_user;
+GRANT USAGE, CREATE ON SCHEMA public TO CURRENT_USER;
+GRANT ALL ON ALL TABLES IN SCHEMA public TO CURRENT_USER;
+GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO CURRENT_USER;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO CURRENT_USER;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT USAGE, SELECT ON SEQUENCES TO CURRENT_USER;
 
 -- Message de confirmation
 SELECT 'Base de données CICADA initialisée avec succès' AS status;

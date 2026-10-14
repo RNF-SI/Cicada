@@ -83,9 +83,10 @@ FORMAT_VERSION = 1
 #: de recherche (ceux-ci sont des colonnes générées, recalculées à l'arrivée).
 CHAMPS_TRANSMIS = [
     'type_contenu', 'id_objet',
-    'titre', 'description', 'contexte', 'rattachements',
-    'parent_type', 'parent_libelle', 'sous_type', 'sous_type_libelle',
-    'statut_pg', 'annee_debut', 'annee_fin',
+    'titre', 'description', 'contexte', 'rattachements', 'enfants',
+    'parent_type', 'parent_libelle', 'chemin', 'enjeu_slug',
+    'sous_type', 'sous_type_libelle',
+    'statut_pg', 'annee_debut', 'annee_fin', 'annees_extension',
     'type_site_codes',
 ]
 
@@ -270,6 +271,11 @@ def contenu_depuis_document(document, instance_id):
     """
     champs = {champ: document.get(champ) for champ in CHAMPS_TRANSMIS}
     champs['type_site_codes'] = champs.get('type_site_codes') or []
+    # #676 — absent d'un document émis avant l'ajout du champ : pas de prolongation.
+    champs['annees_extension'] = champs.get('annees_extension') or 0
+    # #681/#682 — idem pour les champs d'ascendance et de descendance.
+    champs['chemin'] = champs.get('chemin') or []
+    champs['enfants'] = champs.get('enfants') or ''
     return ContenuIndexe(
         instance_id=instance_id,
         id_pg=None,

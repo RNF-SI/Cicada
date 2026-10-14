@@ -1,6 +1,6 @@
 <app-header></app-header>
 
-<main class="fiche-main">
+<main class="fiche-main" [appSurligner]="motCleSurligne()">
   <div class="fiche-container">
 
     <!-- L'alias `as` n'est autorisé que sur le @if principal : la fiche est
@@ -49,6 +49,12 @@
                 {{ 'exploration.results.gestionnaire' | translate }}
               </span>
               <span>{{ p.gestionnaire_principal }}</span>
+            </li>
+          }
+          @if (p.rang) {
+            <li>
+              <i class="fi fi-rr-layers" aria-hidden="true"></i>
+              <span>{{ 'plans.rangLabel' | translate:{ rang: p.rang } }}</span>
             </li>
           }
           @if (periode()) {
@@ -156,6 +162,7 @@
             <app-accordion
               variant="enjeu"
               [title]="enjeu.libelle"
+              [class.cible-enjeu]="estCible('enjeu', enjeu.id_enjeu)"
               [expanded]="estOuvert(enjeu)"
               (expandedChange)="basculerEnjeu(enjeu, $event)">
 

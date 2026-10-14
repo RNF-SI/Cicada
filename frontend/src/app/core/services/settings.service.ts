@@ -37,6 +37,13 @@ export interface SiteConfiguration {
    * de la structure, pas un effet de bord d'une mise à jour.
    */
   api_publique_plans: boolean;
+  /**
+   * #670 — Mesure d'audience Matomo, réglée par instance (désactivée par
+   * défaut). Sans URL ni identifiant de site, aucun script n'est chargé.
+   */
+  matomo_enabled: boolean;
+  matomo_url: string;
+  matomo_site_id: string;
   updated_at: string;
   updated_by: number | null;
   updated_by_name: string | null;
@@ -154,6 +161,9 @@ export class SettingsService {
           enable_docgestion_fcen: false,
           federation_partage: false,
           api_publique_plans: false,
+          matomo_enabled: false,
+          matomo_url: '',
+          matomo_site_id: '',
           updated_at: '',
           updated_by: null,
           updated_by_name: null

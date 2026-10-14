@@ -33,7 +33,7 @@ Ce document explique le fonctionnement des principales fonctionnalités de l'app
 | Composant | Technologie |
 |-----------|-------------|
 | Backend | Django 5.0+ / DRF 3.14+ |
-| Frontend | Angular 19+ |
+| Frontend | Angular 22 |
 | Base de données | PostgreSQL 15+ / PostGIS 3.3+ |
 | Tâches async | Celery + Redis |
 | Emails | SMTP via Celery |

@@ -111,6 +111,17 @@ Les données sont stockées et traitées au sein de l'Union Européenne. Aucun t
 
 L'API de suivi n'utilise pas de cookies. L'authentification se fait via un token unique transmis dans les en-têtes HTTP.
 
+### Mesure d'audience (Matomo, optionnelle)
+
+Chaque instance peut activer une mesure d'audience **Matomo** (Administration > Paramètres > Mesure d'audience). Elle est **désactivée par défaut** et les statistiques partent vers le serveur Matomo **choisi par la structure qui exploite l'instance**, qui en est alors responsable de traitement.
+
+- **Sans cookie** : le traceur est configuré avec `disableCookies`, ce qui permet l'exemption de consentement prévue par la CNIL pour la mesure d'audience.
+- **Ce qui est mesuré** : les pages consultées (leur adresse peut contenir le nom d'un plan de gestion) et les actions principales — création et changement de statut des plans, nouvelles versions, exports, validations, recherches dans l'exploration des données (mots-clés saisis).
+- **Ce qui n'est jamais transmis** : identifiant, nom ou adresse email de l'utilisateur.
+- **À la charge de la structure** : anonymiser les adresses IP dans son serveur Matomo et mentionner la mesure d'audience dans les mentions légales de son instance.
+
+Détails de configuration : [MESURE_AUDIENCE.md](MESURE_AUDIENCE.md).
+
 ## Modifications de la politique
 
 Cette politique peut être modifiée. La version actuelle est toujours disponible sur :

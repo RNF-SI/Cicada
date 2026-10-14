@@ -1,9 +1,13 @@
-import { CommonModule } from '@angular/common';
-import { Component, computed, inject, input, model, signal } from '@angular/core';
+
+import { Component, computed, inject, input, model, signal, ChangeDetectionStrategy } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 
-import { ExplorationCriteres } from '../../../core/models/exploration.model';
+import {
+  EXPLORATION_PORTEES,
+  ExplorationCriteres,
+  ExplorationPortee,
+} from '../../../core/models/exploration.model';
 import { ExplorationService } from '../../../core/services/exploration.service';
 import {
   FilterDropdownComponent,
@@ -28,14 +32,14 @@ import {
   selector: 'app-exploration-filtres',
   standalone: true,
   imports: [
-    CommonModule,
     TranslateModule,
     FilterDropdownComponent,
     FilterOptionListComponent,
     FilterPanelDirective,
-    FilterTreeComponent,
-  ],
+    FilterTreeComponent
+],
   templateUrl: './exploration-filtres.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './exploration-filtres.component.scss',
 })
 export class ExplorationFiltresComponent {
@@ -177,6 +181,22 @@ export class ExplorationFiltresComponent {
   }
 
   /** Le filtre de statut est une union fermée : on la rétablit ici. */
+  /** Les trois axes de portée, dans l'ordre d'affichage (#681 / #686). */
+  protected readonly portees = EXPLORATION_PORTEES;
+
+  protected porteeActive(axe: ExplorationPortee): boolean {
+    return (this.criteres().portee ?? []).includes(axe);
+  }
+
+  /** Coche ou décoche un axe de portée, sans toucher aux autres. */
+  protected basculerPortee(axe: ExplorationPortee): void {
+    const actifs = this.criteres().portee ?? [];
+    const portee = actifs.includes(axe)
+      ? actifs.filter((a) => a !== axe)
+      : EXPLORATION_PORTEES.filter((a) => a === axe || actifs.includes(a));
+    this.majCritere('portee', portee);
+  }
+
   protected majStatuts(valeurs: string[]): void {
     this.majCritere('statuts', valeurs as ExplorationCriteres['statuts']);
   }
@@ -192,7 +212,7 @@ export class ExplorationFiltresComponent {
   protected reinitialiser(): void {
     this.criteres.set({
       q: this.criteres().q,
-      titresSeulement: this.criteres().titresSeulement,
+      portee: this.criteres().portee,
       onglet: this.criteres().onglet,
       tri: this.criteres().tri,
       page: 1,

@@ -1,26 +1,27 @@
-import { Component, inject, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, computed, inject, signal, ChangeDetectionStrategy } from '@angular/core';
+
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { Router, ActivatedRoute, RouterLink } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { TranslateModule } from '@ngx-translate/core';
 import { AuthService } from '../../core/services/auth.service';
+import { LoginMode, LoginModeCode } from '../../core/models/user.model';
 import { FormFieldComponent } from '../../shared/components/form-field/form-field.component';
 
 @Component({
   selector: 'app-login',
   standalone: true,
   imports: [
-    CommonModule,
     ReactiveFormsModule,
     RouterLink,
     MatButtonModule,
     MatProgressSpinnerModule,
     TranslateModule,
-    FormFieldComponent,
-  ],
+    FormFieldComponent
+],
   templateUrl: './login.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './login.component.scss'
 })
 export class LoginComponent {
@@ -34,11 +35,18 @@ export class LoginComponent {
   errorMessage = signal<string | null>(null);
   isLoading = this.authService.isLoading;
 
+  /** #689 — mode de connexion imposé par l'instance (un seul à la fois). */
+  loginMode = signal<LoginMode>({ mode: 'local' });
+  mode = computed<LoginModeCode>(() => this.loginMode().mode);
+  libelle = computed(() => this.loginMode().libelle ?? '');
+
   constructor() {
     this.loginForm = this.fb.group({
       username: ['', [Validators.required]],
       password: ['', [Validators.required]]
     });
+
+    this.authService.getLoginMode().subscribe(mode => this.loginMode.set(mode));
   }
 
   togglePasswordVisibility(): void {
@@ -55,7 +63,7 @@ export class LoginComponent {
 
     const { username, password } = this.loginForm.value;
 
-    this.authService.login({ username, password }).subscribe({
+    this.authService.login({ username, password }, this.mode()).subscribe({
       next: () => {
         // Redirect to return URL or home
         const returnUrl = this.route.snapshot.queryParams['returnUrl'] || '/accueil';

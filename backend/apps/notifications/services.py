@@ -1636,7 +1636,7 @@ class ValidationService:
         NotificationService.notify_other_validators(validation_request, validator, approved=True)
 
     @staticmethod
-    def approve_plan_access(validation_request, validator, comment=None):
+    def approve_plan_access(validation_request, validator, comment=None, override_referent=None):
         """
         Approuve un acces plan et cree la liaison membre (CorRolePlan).
 
@@ -1644,6 +1644,9 @@ class ValidationService:
             validation_request: ValidationRequest
             validator: Role qui approuve
             comment: Commentaire optionnel
+            override_referent: Si defini, surcharge request_as_referent (bool) :
+                le validateur peut accorder un simple acces en consultation a
+                quelqu'un qui demandait a etre referent.
         """
         from apps.plans.models import PlanGestion, CorRolePlan
 
@@ -1652,7 +1655,10 @@ class ValidationService:
 
         plan = validation_request.target_plan
         requester = validation_request.requester
-        is_referent = validation_request.request_as_referent
+        if override_referent is not None:
+            is_referent = override_referent
+        else:
+            is_referent = validation_request.request_as_referent
 
         # Creer CorRolePlan (membre ou referent selon la demande)
         cor, created = CorRolePlan.objects.get_or_create(

@@ -46,6 +46,7 @@ import json
 import os
 import subprocess
 import sys
+import time
 import traceback
 
 import requests
@@ -145,26 +146,48 @@ class Banc:
         )
         return reponse
 
-    def jwt(self, api):
-        """Jeton d'une instance, obtenu une fois puis mémorisé."""
-        if api not in self._jetons_jwt:
+    def jwt(self, api, utilisateur=None):
+        """Jeton d'une instance, obtenu une fois puis mémorisé (par compte)."""
+        identifiants = dict(IDENTIFIANTS)
+        if utilisateur:
+            identifiants['username'] = utilisateur
+        cle = (api, identifiants['username'])
+        if cle not in self._jetons_jwt:
             reponse = requests.post(
-                f'{api}/api/auth/login/', json=IDENTIFIANTS, timeout=DELAI,
+                f'{api}/api/auth/login/', json=identifiants, timeout=DELAI,
             )
             if reponse.status_code != 200:
                 raise EchecDuBanc(
                     f"Connexion refusée sur {api} : {reponse.status_code} "
                     f"{reponse.text[:200]}"
                 )
-            self._jetons_jwt[api] = reponse.json()['access']
-        return self._jetons_jwt[api]
+            self._jetons_jwt[cle] = reponse.json()['access']
+        return self._jetons_jwt[cle]
 
-    def instance(self, api, chemin, **params):
+    def instance(self, api, chemin, utilisateur=None, **params):
         """Interroge l'API d'une instance CICADA, authentifié."""
         return requests.get(
             f'{api}{chemin}', params=params,
+            headers={'Authorization': f'Bearer {self.jwt(api, utilisateur)}'},
+            timeout=DELAI,
+        )
+
+    def regler(self, api, **valeurs):
+        """
+        Modifie les paramètres d'une instance **par son API**, comme la page
+        d'administration : c'est là que vivent les effets d'un changement de
+        consentement (retrait du hub, republication). Le shell Django les
+        contournerait.
+        """
+        reponse = requests.patch(
+            f'{api}/api/settings/', json=valeurs,
             headers={'Authorization': f'Bearer {self.jwt(api)}'}, timeout=DELAI,
         )
+        if reponse.status_code != 200:
+            raise EchecDuBanc(
+                f"PATCH /api/settings/ sur {api} : {reponse.status_code} {reponse.text[:200]}"
+            )
+        return reponse.json()
 
     # -- docker ------------------------------------------------------------ #
 
@@ -406,6 +429,85 @@ def cas_reciprocite_lire_suppose_avoir_publie(banc):
             f"Lecture acceptée sans participation : {reponse.status_code}"
         )
     return "403 pour un lecteur non participant"
+
+
+def cas_retrait_qui_ne_partage_plus_perd_l_acces(banc):
+    """
+    Une instance qui retire son partage perd l'accès à l'exploration nationale.
+
+    Décision produit (09/10/2026) : « Si quelqu'un ne veut plus partager, alors
+    il ne doit plus avoir accès aux plans des autres instances. » Couper le
+    relais côté instance ne suffit pas — quiconque l'administre peut le
+    rallumer. Décocher le partage retire donc les plans du hub, et c'est le
+    **hub** qui refuse ensuite le jeton de lecture (réciprocité).
+
+    Joué sur le CEN, par l'API de paramètres (le chemin de l'interface), puis
+    l'état est restauré par le chemin inverse : recocher republie en arrière-plan
+    (tâche Celery du CEN) et l'accès revient sans attendre la nuit.
+    """
+    jeton_cen = banc.jetons_lecture['cen']
+
+    def lecture_du_cen():
+        return requests.get(
+            f'{HUB_API}/api/exploration/contenus/', params={'page_size': 1},
+            headers={'X-Hub-Token': jeton_cen}, timeout=DELAI,
+        ).status_code
+
+    def le_cen_voit_rnf():
+        """L'exploration du CEN remonte-t-elle des plans de RNF (relais actif) ?"""
+        reponse = banc.instance(
+            CEN_API, '/api/exploration/contenus/', instances='rnf', page_size=1,
+        )
+        if reponse.status_code != 200:
+            raise EchecDuBanc(f"Exploration du CEN : {reponse.status_code}")
+        return reponse.json()['pagination']['count'] > 0
+
+    banc.publier(CEN_WEB)
+    if lecture_du_cen() != 200:
+        raise EchecDuBanc("Précondition : le CEN publie mais le hub refuse sa lecture")
+    if not le_cen_voit_rnf():
+        raise EchecDuBanc("Précondition : l'exploration du CEN devrait être relayée (mode hub)")
+
+    restaure = False
+    try:
+        if banc.regler(CEN_API, federation_partage=False)['federation_partage'] is not False:
+            raise EchecDuBanc("La case de partage n'a pas été décochée")
+
+        if lecture_du_cen() != 403:
+            raise EchecDuBanc(
+                "Le partage est retiré, mais le hub sert encore le CEN : "
+                "la réciprocité ne tient qu'à l'instance"
+            )
+        plans_cen, _ = banc.etat_du_hub('cen')
+        if plans_cen:
+            raise EchecDuBanc(f"{plans_cen} plan(s) du CEN encore publiés après le retrait")
+        if le_cen_voit_rnf():
+            raise EchecDuBanc("L'exploration du CEN est encore relayée vers le hub")
+        etat = banc.instance(CEN_API, '/api/federation/raccordement/').json()
+        if etat['publications'][0]['resultat'] != 'retrait':
+            raise EchecDuBanc(
+                f"Retrait absent de l'historique : {etat['publications'][:1]}"
+            )
+
+        # Recocher : la publication part en arrière-plan, l'accès revient.
+        banc.regler(CEN_API, federation_partage=True)
+        echeance = time.monotonic() + 300
+        while lecture_du_cen() != 200:
+            if time.monotonic() > echeance:
+                raise EchecDuBanc(
+                    "Partage recoché, mais le CEN n'a pas été republié en 5 min "
+                    "(worker Celery du CEN lancé ?)"
+                )
+            time.sleep(3)
+        if not le_cen_voit_rnf():
+            raise EchecDuBanc("Partage recoché, mais l'exploration du CEN reste locale")
+        restaure = True
+    finally:
+        if not restaure:
+            # Remettre le banc dans l'état attendu par les autres cas.
+            banc.partage(CEN_WEB, True)
+            banc.publier(CEN_WEB)
+    return "décoché → plans retirés, lecture 403, exploration locale ; recoché → republié, accès rétabli"
 
 
 def cas_aller_retour_le_contenu_publie_devient_cherchable(banc):
@@ -733,6 +835,71 @@ print('{MARQUEUR}' + plan.slug)
 # Exécution
 # --------------------------------------------------------------------------- #
 
+def cas_parite_les_ecrans_distants_valent_les_locaux_elagues(banc):
+    """
+    #683 — Un plan RNF ouvert depuis le CEN doit montrer ce qu'un lecteur
+    d'exploration verrait sur RNF : même page, même arborescence, et rien de
+    sensible dans ce qui transite (budget, RH, mesures, personnes…).
+
+    Le CEN lit `/api/exploration/distant/rnf:<slug>/…` ; RNF sert
+    `/api/plans/…` à un compte sans lien avec le plan. Les deux réponses
+    viennent du même constructeur (`payload_enjeux_du_plan`) : elles doivent
+    dire la même chose.
+    """
+    lignes = banc.django(RNF_WEB, f"""
+from apps.plans.models import PlanGestion
+plan = (PlanGestion.objects.filter(statut='valide', enjeux__isnull=False)
+        .distinct().order_by('pk').first())
+print('{MARQUEUR}' + plan.slug + '|' + str(plan.pk))
+""")
+    slug, id_pg = lignes[0].split('|')
+    banc.publier(RNF_WEB)
+
+    # user.cen@test.fr existe sur les deux instances (jeu de test) et n'a de
+    # lien avec aucun plan RNF : sur RNF il lit en exploration, élagué.
+    locale = banc.instance(
+        RNF_API, f'/api/plans/enjeux/by-plan/{id_pg}/', utilisateur='user.cen@test.fr',
+    )
+    distante = banc.instance(
+        CEN_API, f'/api/exploration/distant/rnf:{slug}/enjeux/by-plan/{id_pg}/',
+        utilisateur='user.cen@test.fr',
+    )
+    if locale.status_code != 200 or distante.status_code != 200:
+        raise EchecDuBanc(
+            f"Arborescence indisponible : RNF {locale.status_code}, "
+            f"CEN (distant) {distante.status_code}"
+        )
+    locale, distante = locale.json(), distante.json()
+    if not locale.get('acces_exploration') or not distante.get('acces_exploration'):
+        raise EchecDuBanc("Les deux lectures devraient être des lectures d'exploration")
+
+    def cles(donnees, acc):
+        if isinstance(donnees, dict):
+            for cle, valeur in donnees.items():
+                acc.add(cle); cles(valeur, acc)
+        elif isinstance(donnees, list):
+            for element in donnees:
+                cles(element, acc)
+        return acc
+
+    interdits = ('budget', 'cout', 'etp', 'poste', 'jours', 'mesure', 'realis',
+                 'utilisateur', 'createur', 'referent', 'membre', 'fichier')
+    fuites = sorted(
+        cle for cle in cles(distante, set())
+        if any(f in cle.lower() for f in interdits)
+        and cle not in ('geo_documents', 'id_referentiel_operations')  # faux positifs connus
+    )
+    if fuites:
+        raise EchecDuBanc(f"Données de gestion dans l'instantané distant : {fuites}")
+
+    libelles = lambda r: [e['libelle'] for e in r.get('enjeux') or []]  # noqa: E731
+    if libelles(locale) != libelles(distante):
+        raise EchecDuBanc("L'arborescence distante diverge de la locale")
+    if distante.get('plan_slug') != f'rnf:{slug}':
+        raise EchecDuBanc("Le slug servi doit être la référence « rnf:<slug> »")
+    return f"arborescence « {slug} » identique des deux côtés ({len(libelles(locale))} enjeux), sans fuite"
+
+
 GROUPES = [
     ("Contrat entre les deux projets", [
         cas_contrat_la_charge_utile_passe_la_validation_du_hub,
@@ -741,6 +908,7 @@ GROUPES = [
     ("Consentement et réciprocité", [
         cas_consentement_sans_partage_rien_n_est_publie,
         cas_reciprocite_lire_suppose_avoir_publie,
+        cas_retrait_qui_ne_partage_plus_perd_l_acces,
     ]),
     ("Scénarios de fédération", [
         cas_aller_retour_le_contenu_publie_devient_cherchable,
@@ -755,6 +923,7 @@ GROUPES = [
         cas_parite_local_et_hub_repondent_pareil,
         cas_parite_les_compteurs_d_onglets_concordent,
         cas_parite_la_fiche_distante_vaut_la_locale,
+        cas_parite_les_ecrans_distants_valent_les_locaux_elagues,
     ]),
 ]
 

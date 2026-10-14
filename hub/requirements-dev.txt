@@ -1,0 +1,7 @@
+# Dépendances de test. Tenues hors de requirements.txt pour ne pas partir dans
+# l'image de production — ni dans son SBOM.
+-r requirements.txt
+
+pytest==9.1.1
+pytest-django==4.14.0
+pytest-cov==7.1.0

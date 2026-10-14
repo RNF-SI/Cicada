@@ -1,8 +1,8 @@
 /**
  * Modal pour inviter un organisme ou un utilisateur a rejoindre un site.
  */
-import { Component, inject, signal, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, inject, signal, OnInit, ChangeDetectionStrategy } from '@angular/core';
+
 import { FormsModule, ReactiveFormsModule, FormControl } from '@angular/forms';
 import { MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -31,7 +31,6 @@ export interface InviteModalData {
   selector: 'app-invite-modal',
   standalone: true,
   imports: [
-    CommonModule,
     FormsModule,
     ReactiveFormsModule,
     MatDialogModule,
@@ -42,9 +41,10 @@ export interface InviteModalData {
     MatInputModule,
     MatIconModule,
     TranslateModule,
-    FormFieldComponent,
-  ],
+    FormFieldComponent
+],
   templateUrl: './invite-modal.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './invite-modal.component.scss'
 })
 export class InviteModalComponent implements OnInit {

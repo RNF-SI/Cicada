@@ -26,8 +26,10 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Installation des dépendances Python
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+# Image de développement : outils de test inclus (requirements-dev.txt inclut
+# requirements.txt). Les images de production n'installent que requirements.txt.
+COPY requirements.txt requirements-dev.txt ./
+RUN pip install --no-cache-dir -r requirements-dev.txt
 
 # Copie du code source
 COPY . .

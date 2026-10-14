@@ -13,7 +13,15 @@ champs que ce hub ne connaît pas encore : ils sont ignorés, pas refusés.
 from rest_framework import serializers
 
 from .federation import FORMATS_ACCEPTES
-from .models import ContenuIndexe
+from .models import VALIDATEUR_IDENTIFIANT, ContenuIndexe
+
+#: Empreinte SHA-256 d'un jeton, telle que ``Instance.empreinte`` la produit :
+#: 64 caractères hexadécimaux **minuscules**. Une majuscule ne correspondrait
+#: jamais à l'empreinte calculée à l'authentification.
+EMPREINTE = r'^[0-9a-f]{64}$'
+MESSAGE_EMPREINTE = (
+    "Empreinte attendue : SHA-256 en 64 caractères hexadécimaux minuscules."
+)
 
 
 class OuvertureLotSerializer(serializers.Serializer):
@@ -61,6 +69,14 @@ class ContenuSerializer(serializers.Serializer):
         allow_blank=True, required=False, default=''
     )
     contexte = serializers.CharField(allow_blank=True, required=False, default='')
+    # #681/#682 — optionnels : une instance antérieure ne les envoie pas.
+    enfants = serializers.CharField(allow_blank=True, required=False, default='')
+    chemin = serializers.ListField(
+        child=serializers.DictField(), required=False, default=list,
+    )
+    enjeu_slug = serializers.CharField(
+        max_length=255, required=False, allow_null=True, allow_blank=True,
+    )
 
     parent_type = serializers.CharField(
         max_length=20, required=False, allow_null=True, allow_blank=True
@@ -89,6 +105,10 @@ class PlanPublieSerializer(serializers.Serializer):
     rang = serializers.IntegerField(required=False, allow_null=True)
     annee_debut = serializers.IntegerField(required=False, allow_null=True)
     annee_fin = serializers.IntegerField(required=False, allow_null=True)
+    # #676 — optionnel : une instance antérieure à ce champ ne l'envoie pas.
+    annees_extension = serializers.IntegerField(
+        required=False, allow_null=True, min_value=0, max_value=2, default=0,
+    )
     type_document = serializers.CharField(
         max_length=255, required=False, allow_null=True, allow_blank=True
     )
@@ -114,6 +134,10 @@ class PlanPublieSerializer(serializers.Serializer):
     # donc à devoir le suivre à chaque évolution — exactement ce que
     # l'instantané JSON permet d'éviter.
     fiche = serializers.DictField(required=False)
+    # #683 — même statut que la fiche : un instantané rendu par l'instance,
+    # stocké et resservi sans être inspecté. Optionnel : une instance
+    # antérieure ne l'envoie pas.
+    ecrans = serializers.DictField(required=False)
 
     contenus = ContenuSerializer(many=True, required=False)
 
@@ -122,3 +146,41 @@ class PagePlansSerializer(serializers.Serializer):
     """Une page de plans déposée dans un lot ouvert."""
 
     plans = PlanPublieSerializer(many=True, allow_empty=True)
+
+
+class EnrolementSerializer(serializers.Serializer):
+    """
+    Corps d'un enrôlement délégué à l'API de suivi RNF (#696).
+
+    L'instance a tiré **elle-même** ses deux jetons et n'en a transmis que les
+    empreintes : le hub les range telles quelles, sans jamais voir un jeton. La
+    validation est donc stricte sur leur forme — une empreinte mal formée
+    produirait une instance enrôlée que rien ne pourrait jamais authentifier,
+    échec silencieux qu'il vaut mieux refuser à l'entrée.
+
+    L'identifiant suit la même règle que ``enroler_instance`` : il est repris
+    dans chaque ligne d'index et dans la référence publique des plans.
+    """
+
+    instance_id = serializers.CharField(
+        max_length=64, validators=[VALIDATEUR_IDENTIFIANT],
+    )
+    libelle = serializers.CharField(max_length=200)
+    url_publique = serializers.URLField(
+        max_length=200, required=False, allow_blank=True, default='',
+    )
+    empreinte_depot = serializers.RegexField(
+        EMPREINTE, error_messages={'invalid': MESSAGE_EMPREINTE},
+    )
+    empreinte_lecture = serializers.RegexField(
+        EMPREINTE, error_messages={'invalid': MESSAGE_EMPREINTE},
+    )
+
+    def validate(self, donnees):
+        # Une même empreinte pour les deux usages ferait du jeton de lecture un
+        # jeton de dépôt : lire et écrire sont deux droits distincts (#636).
+        if donnees['empreinte_depot'] == donnees['empreinte_lecture']:
+            raise serializers.ValidationError(
+                "Les empreintes de dépôt et de lecture doivent être distinctes."
+            )
+        return donnees

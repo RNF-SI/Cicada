@@ -222,7 +222,7 @@ class PlanGestionListSerializer(serializers.ModelSerializer):
     class Meta:
         model = PlanGestion
         fields = [
-            'id_pg', 'nom', 'slug', 'statut', 'statut_display', 'version',
+            'id_pg', 'nom', 'slug', 'statut', 'statut_display', 'rang', 'version',
             'validation_step', 'validation_step_display', 'is_in_csrpn_workflow',
             'annee_debut', 'annee_fin', 'annees_extension', 'is_extended',
             'en_revision', 'is_in_revision',
@@ -363,9 +363,7 @@ class PlanGestionDetailSerializer(serializers.ModelSerializer):
 
     def get_annee_fin_effective(self, obj):
         """Année de fin effective (annee_fin + annees_extension si étendu)."""
-        if obj.annee_fin is None:
-            return None
-        return obj.annee_fin + (obj.annees_extension or 0)
+        return obj.annee_fin_effective
 
     def get_is_extended(self, obj):
         """#250 — Vrai si le plan a été prolongé (annees_extension > 0)."""

@@ -2,7 +2,7 @@
  * Composant pour la page de gestion des validations (administration).
  * Affiche les demandes a valider pour les administrateurs.
  */
-import { Component, inject, signal, OnInit } from '@angular/core';
+import { Component, inject, signal, OnInit, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
@@ -56,6 +56,7 @@ import { ValidationDetailDialogComponent } from './validation-detail-dialog.comp
     FilterPanelDirective
   ],
   templateUrl: './admin-validations.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './admin-validations.component.scss'
 })
 export class AdminValidationsComponent implements OnInit {
@@ -208,7 +209,7 @@ export class AdminValidationsComponent implements OnInit {
    * Dans ce cas, on force l'ouverture du dialog au lieu d'approuver directement.
    */
   private requiresReferentChoice(validation: ValidationRequestListItem): boolean {
-    return (validation.request_type === 'site_creation' || validation.request_type === 'site_access')
+    return ['site_creation', 'site_access', 'plan_access'].includes(validation.request_type)
            && validation.request_as_referent === true;
   }
 

@@ -851,6 +851,12 @@ export interface VentilationDefaults {
 export interface Operation {
   id_operation: number;
   libelle: string;
+  /** #683 — Lecture d'exploration : programmation, RH, financement et réalisations retirés par l'API. */
+  acces_exploration?: boolean;
+  /** #683 — Provenance d'un plan distant (instantané publié par une autre instance). */
+  instance_libelle?: string;
+  url_instance?: string;
+  date_publication?: string;
   /** #251 — Brouillon tant que la validation complète n'a pas été déclenchée. */
   statut?: OperationStatut;
   id_priorite?: number;
@@ -869,6 +875,8 @@ export interface Operation {
   id_referentiel_operations?: string;
   code_operation?: string;
   description?: string;
+  /** #663 — Action de restauration (null = non renseigné). */
+  action_restauration?: boolean | null;
   annee_min?: number;
   annee_max?: number;
   // Suivi/inventaire
@@ -936,6 +944,8 @@ export interface OperationCreatePayload {
   /** #485 — Numéro fixé manuellement dans le code (null = numérotation automatique). */
   numero_manuel?: number | null;
   description?: string;
+  /** #663 — Action de restauration (null = non renseigné). */
+  action_restauration?: boolean | null;
   annee_min?: number;
   annee_max?: number;
   // Suivi/inventaire
@@ -1240,6 +1250,12 @@ export interface PlanEnjeuxResponse {
   fcr: Enjeu[];
   total_enjeux: number;
   total_fcr: number;
+  /** #683 — Lecture d'exploration : plan validé d'une autre structure, données sensibles retirées. */
+  acces_exploration?: boolean;
+  /** #683 — Provenance d'un plan distant (instantané publié par une autre instance). */
+  instance_libelle?: string;
+  url_instance?: string;
+  date_publication?: string;
 }
 
 /**

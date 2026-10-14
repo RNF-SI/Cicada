@@ -180,3 +180,11 @@ h1 {
     font-size: $font-size-h3;
   }
 }
+
+// #689 — Connexion par un compte externe (GeoNature / UsersHub)
+.login-mode-hint {
+  margin: 0 0 $spacing-md;
+  font-size: $font-size-small;
+  color: $gray-dark;
+  text-align: center;
+}

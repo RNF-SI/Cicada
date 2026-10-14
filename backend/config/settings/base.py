@@ -16,9 +16,34 @@ DEBUG = os.environ.get('DEBUG', 'False').lower() == 'true'
 
 ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', 'localhost').split(',')
 
-# Authentication provider: 'local' (default) or 'keycloak'
-# When 'keycloak', RGPD account management is handled externally
-AUTH_PROVIDER = os.environ.get('AUTH_PROVIDER', 'local')
+# Mode de connexion de l'instance — UN SEUL à la fois, jamais en parallèle (#689) :
+# - 'local' (défaut) : comptes CICADA (email + mot de passe, inscription, mot de
+#   passe oublié) ;
+# - 'geonature' : comptes d'un GeoNature / UsersHub uniquement (réglages
+#   GEONATURE_AUTH_* ci-dessous) ; connexion par mot de passe CICADA,
+#   inscription et réinitialisation coupées ;
+# - 'keycloak' : historique, gestion RGPD des comptes déléguée (non branché).
+AUTH_PROVIDER = os.environ.get('AUTH_PROVIDER', 'local').strip().lower() or 'local'
+
+# ---------------------------------------------------------------------------
+# Connexion par un GeoNature / UsersHub (#689, #691) — AUTH_PROVIDER='geonature'
+# ---------------------------------------------------------------------------
+# Lus seulement en mode 'geonature' ; en mode 'local', l'instance n'appelle
+# jamais GeoNature.
+# GeoNature >= 2.17.0 requis pour rattacher le compte à son organisme
+# (GET <API>/users/organism/<id>) ; en dessous, la connexion fonctionne sans.
+# Adresse de l'API GeoNature (son API_ENDPOINT), ex. https://geonature.exemple.fr/api
+GEONATURE_AUTH_URL = os.environ.get('GEONATURE_AUTH_URL', '').strip().rstrip('/')
+GEONATURE_AUTH_ID_APPLICATION = os.environ.get('GEONATURE_AUTH_ID_APPLICATION', '').strip()
+# Libellé du bouton de connexion (« RNF », « GeoNature »…).
+GEONATURE_AUTH_LIBELLE = os.environ.get('GEONATURE_AUTH_LIBELLE', 'GeoNature').strip()
+GEONATURE_AUTH_TIMEOUT = int(os.environ.get('GEONATURE_AUTH_TIMEOUT', '10'))
+# id_organisme UsersHub qui ne sont pas de vrais organismes (« Autre », « ALL »,
+# comptes de test…) : le compte entre sans organisme. Ex. « -1,2,303,339 ».
+GEONATURE_AUTH_ORGANISMES_EXCLUS = {
+    int(x) for x in os.environ.get('GEONATURE_AUTH_ORGANISMES_EXCLUS', '').split(',')
+    if x.strip().lstrip('-').isdigit()
+}
 
 # ---------------------------------------------------------------------------
 # Identité de l'instance (#636 — exploration fédérée)
@@ -34,8 +59,11 @@ AUTH_PROVIDER = os.environ.get('AUTH_PROVIDER', 'local')
 # ligne d'index, où elle passe inaperçue, et aucune publication ne retrouve
 # ensuite ces documents.
 CICADA_INSTANCE_ID = os.environ.get('CICADA_INSTANCE_ID') or 'local'
+# Nom de l'instance tel qu'il s'affiche chez les autres structures (provenance
+# des résultats et des plans distants). Pas de repli sur l'identifiant : un
+# « rnf » ne dit rien à un gestionnaire, et la publication refuse un nom vide.
 CICADA_INSTANCE_LABEL = (
-    os.environ.get('CICADA_INSTANCE_LABEL') or CICADA_INSTANCE_ID
+    os.environ.get('CICADA_INSTANCE_LABEL') or ''
 )
 
 # Jeton partagé pour l'authentification machine-à-machine entre instances.
@@ -316,6 +344,20 @@ CELERY_BEAT_SCHEDULE = {
     'push-federation': {
         'task': 'apps.search.tasks.publier_vers_le_hub',
         'schedule': crontab(hour=2, minute=30),
+    },
+    # #696 - Relecture aupres de l'API de suivi d'une demande d'adhesion au hub
+    # en attente (acceptee ou refusee par RNF dans l'admin du suivi). Ne fait
+    # rien hors attente : sans demande, aucun appel reseau.
+    'actualiser-adhesion-hub': {
+        'task': 'apps.search.tasks.actualiser_adhesion_hub',
+        'schedule': crontab(minute='*/30'),
+    },
+    # Retrait du hub en attente : le partage a ete decoche alors que le hub
+    # etait injoignable. Relance chaque heure ; sans retrait en attente, la
+    # tache ne fait rien (aucun appel reseau).
+    'relancer-retrait-hub': {
+        'task': 'apps.search.tasks.relancer_retrait_hub',
+        'schedule': crontab(minute=15),
     },
     # Note: Le traitement des demandes RGPD est maintenant manuel via l'interface admin
     # Les super_admins decident quand desactiver ou anonymiser les comptes

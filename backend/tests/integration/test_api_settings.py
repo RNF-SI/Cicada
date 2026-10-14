@@ -369,3 +369,138 @@ class TestDocGestionFcenInstanceSetting:
 
         assert response.status_code == status.HTTP_403_FORBIDDEN
         assert SiteConfiguration.get_instance().enable_docgestion_fcen is False
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+class TestSettingsImagesServedByApi:
+    """#660 — Le logo et l'image d'accueil sont servis sous /api/.
+
+    En production (DEBUG=False), Django ne sert pas /media/ et aucun proxy
+    (Apache du conteneur frontend, vhost hôte, Traefik) ne le route vers le
+    backend : l'URL /media/... retombait sur index.html et le navigateur
+    affichait « impossible de charger l'image ». /api/ est le seul préfixe
+    routé vers Django dans toutes les topologies de déploiement.
+    """
+
+    @pytest.fixture(autouse=True)
+    def _media_root(self, settings, tmp_path):
+        settings.MEDIA_ROOT = str(tmp_path)
+
+    def _upload(self, api_client, field, image):
+        api_client.force_authenticate(user=SuperAdminFactory())
+        response = api_client.patch('/api/settings/', {field: image}, format='multipart')
+        assert response.status_code == status.HTTP_200_OK
+        api_client.force_authenticate(user=None)
+        return response
+
+    @pytest.mark.parametrize('field, url_field, endpoint', [
+        ('homepage_image', 'homepage_image_url', '/api/settings/homepage-image/'),
+        ('structure_logo', 'structure_logo_url', '/api/settings/structure-logo/'),
+    ])
+    def test_url_points_to_api_and_serves_file(self, api_client, test_image, field, url_field, endpoint):
+        response = self._upload(api_client, field, test_image)
+
+        url = response.data[url_field]
+        assert url.startswith(endpoint)
+        assert '/media/' not in url
+
+        image_response = api_client.get(url)
+        assert image_response.status_code == status.HTTP_200_OK
+        assert image_response['Content-Type'] == 'image/jpeg'
+        assert b''.join(image_response.streaming_content)[:2] == b'\xff\xd8'
+
+    def test_url_changes_when_image_is_replaced(self, api_client, test_image):
+        """L'URL porte une version : un nouveau logo n'est pas masqué par le cache."""
+        first = self._upload(api_client, 'structure_logo', test_image).data['structure_logo_url']
+        test_image.seek(0)
+        second = self._upload(api_client, 'structure_logo', test_image).data['structure_logo_url']
+        assert first != second
+
+    @pytest.mark.parametrize('endpoint', [
+        '/api/settings/homepage-image/',
+        '/api/settings/structure-logo/',
+    ])
+    def test_missing_image_returns_404(self, api_client, endpoint):
+        assert api_client.get(endpoint).status_code == status.HTTP_404_NOT_FOUND
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+class TestMatomoInstanceSetting:
+    """#670 — Mesure d'audience Matomo, réglée par instance depuis l'interface."""
+
+    def _patch(self, api_client, data, user=None):
+        api_client.force_authenticate(user=user or SuperAdminFactory())
+        return api_client.patch('/api/settings/', data, format='json')
+
+    def test_disabled_by_default_and_public(self, api_client):
+        response = api_client.get('/api/settings/')
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data['matomo_enabled'] is False
+        assert response.data['matomo_url'] == ''
+        assert response.data['matomo_site_id'] == ''
+
+    def test_super_admin_can_enable(self, api_client):
+        response = self._patch(api_client, {
+            'matomo_enabled': True,
+            'matomo_url': 'https://matomo.example.org/',
+            'matomo_site_id': '12',
+        })
+
+        assert response.status_code == status.HTTP_200_OK
+        # Le « / » final est retiré : le frontend compose <url>/matomo.js.
+        assert response.data['matomo_url'] == 'https://matomo.example.org'
+        assert response.data['matomo_site_id'] == '12'
+        assert SiteConfiguration.get_instance().matomo_enabled is True
+
+    @pytest.mark.parametrize('data', [
+        {'matomo_enabled': True},
+        {'matomo_enabled': True, 'matomo_url': 'https://matomo.example.org'},
+        {'matomo_enabled': True, 'matomo_site_id': '12'},
+    ])
+    def test_enabling_requires_url_and_site_id(self, api_client, data):
+        response = self._patch(api_client, data)
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert SiteConfiguration.get_instance().matomo_enabled is False
+
+    def test_site_id_must_be_numeric(self, api_client):
+        response = self._patch(api_client, {
+            'matomo_enabled': True,
+            'matomo_url': 'https://matomo.example.org',
+            'matomo_site_id': '12; alert(1)',
+        })
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+    def test_url_must_be_http(self, api_client):
+        response = self._patch(api_client, {
+            'matomo_url': 'javascript:alert(1)',
+        })
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+    def test_disabling_keeps_url_and_site_id(self, api_client):
+        self._patch(api_client, {
+            'matomo_enabled': True,
+            'matomo_url': 'https://matomo.example.org',
+            'matomo_site_id': '12',
+        })
+
+        response = self._patch(api_client, {'matomo_enabled': False})
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data['matomo_enabled'] is False
+        assert response.data['matomo_url'] == 'https://matomo.example.org'
+
+    def test_admin_organisme_cannot_enable(self, api_client):
+        response = self._patch(
+            api_client,
+            {'matomo_enabled': True, 'matomo_url': 'https://m.example.org', 'matomo_site_id': '1'},
+            user=AdminOrganismeFactory(),
+        )
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+        assert SiteConfiguration.get_instance().matomo_enabled is False

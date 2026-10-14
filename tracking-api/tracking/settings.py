@@ -111,5 +111,31 @@ REST_FRAMEWORK = {
     }
 }
 
-# Version actuelle de CICADA (à mettre à jour manuellement)
-LATEST_VERSION = "0.0.1"
+# Dernière version publiée de CICADA, annoncée aux instances par le heartbeat.
+# Vide = aucune mise à jour annoncée (plutôt qu'une valeur fictive, qui faisait
+# signaler une « mise à jour disponible » à toutes les instances).
+LATEST_VERSION = config('LATEST_VERSION', default='')
+
+# Hub d'exploration fédérée (#696) : l'API de suivi enrôle les instances dont
+# l'adhésion est confirmée par code. HUB_ADMIN_TOKEN est le même que celui du
+# hub ; vides = la confirmation échoue (hub_injoignable), rien n'est enrôlé.
+HUB_URL = config('HUB_URL', default='')
+HUB_ADMIN_TOKEN = config('HUB_ADMIN_TOKEN', default='')
+
+# Adhésion au hub : e-mails (#696). RNF reçoit les nouvelles demandes et les
+# messages du formulaire de contact ; ADMIN_BASE_URL sert au lien vers la fiche
+# de la demande dans l'e-mail.
+RNF_CONTACT_EMAIL = config('RNF_CONTACT_EMAIL', default='si@rnfrance.org')
+# Défaut : l'API de suivi de production. Vide, le lien de l'e-mail à RNF serait
+# un chemin relatif, inutilisable depuis une messagerie.
+ADMIN_BASE_URL = config('ADMIN_BASE_URL', default='https://tracking.cicada.reserves-naturelles.org')
+EMAIL_BACKEND = config('EMAIL_BACKEND', default='django.core.mail.backends.smtp.EmailBackend')
+EMAIL_HOST = config('EMAIL_HOST', default='localhost')
+EMAIL_PORT = config('EMAIL_PORT', default=587, cast=int)
+EMAIL_HOST_USER = config('EMAIL_HOST_USER', default='')
+EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='')
+EMAIL_USE_TLS = config('EMAIL_USE_TLS', default=True, cast=bool)
+DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default='noreply@cicada.reserves-naturelles.org')
+# Les envois sont synchrones (dans la requête de l'instance, ou de l'admin) :
+# un serveur SMTP muet ne doit pas figer la page.
+EMAIL_TIMEOUT = config('EMAIL_TIMEOUT', default=10, cast=int)

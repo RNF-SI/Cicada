@@ -34,7 +34,8 @@ import {
   ImportSheet,
   ImportMode,
   ParsedData,
-  ForeignSheet
+  ForeignSheet,
+  PlanAccesRecherche,
 } from '../models/admin.model';
 import { SiteCreationValidatorsResponse } from '../models/notification.model';
 
@@ -424,6 +425,13 @@ export class AdminService {
       .pipe(catchError(this.handleError));
   }
 
+  /** #700 — Passer un utilisateur en Rédacteur externe, ou l'inverse (super admin). */
+  setRedacteur(userId: number, redacteur: boolean): Observable<any> {
+    const action = redacteur ? 'set-redacteur' : 'remove-redacteur';
+    return this.http.post(`${this.apiUrl}/users/${userId}/${action}/`, {})
+      .pipe(catchError(this.handleError));
+  }
+
   /**
    * Toggle user active status
    */
@@ -551,6 +559,13 @@ export class AdminService {
     const params = new HttpParams().set('site_ids', siteIds.join(','));
     return this.http.get<SitePlansResponse>(`${this.plansApiUrl}/plans/for-sites/`, { params })
       .pipe(catchError(this.handleError));
+  }
+
+  /** #700 — Recherche d'un plan à rédiger, pour en demander l'accès (rédacteur externe). */
+  rechercherPlansAcces(terme: string): Observable<PlanAccesRecherche[]> {
+    const params = new HttpParams().set('q', terme);
+    return this.http.get<{ results: PlanAccesRecherche[] }>(`${this.plansApiUrl}/plans/recherche-acces/`, { params })
+      .pipe(map(response => response.results), catchError(this.handleError));
   }
 
   /**

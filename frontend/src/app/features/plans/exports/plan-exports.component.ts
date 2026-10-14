@@ -11,7 +11,7 @@
  * simplement liés au plan (#610). Le backend applique la même règle sur les
  * endpoints `export-*` (403 sinon).
  */
-import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, OnInit, computed, inject, signal, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
@@ -59,6 +59,7 @@ export interface PlanExportGroup {
     PlanSidebarComponent,
   ],
   templateUrl: './plan-exports.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './plan-exports.component.scss',
 })
 export class PlanExportsComponent implements OnInit {

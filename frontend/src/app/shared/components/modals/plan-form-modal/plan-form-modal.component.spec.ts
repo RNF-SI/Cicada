@@ -253,7 +253,7 @@ describe('PlanFormModalComponent', () => {
     it('should have correct modal title for edit', fakeAsync(() => {
       fixture.detectChanges();
       tick();
-      expect(component.modalTitle).toBe('Modifier le plan de gestion');
+      expect(component.modalTitle).toBe('Modifier les données de référence');
     }));
 
     it('should initialize form with plan values', fakeAsync(() => {

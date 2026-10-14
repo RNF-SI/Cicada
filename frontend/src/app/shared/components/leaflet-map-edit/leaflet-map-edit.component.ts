@@ -11,9 +11,10 @@ import {
   ViewChild,
   AfterViewInit,
   inject,
-  signal
+  signal,
+  ChangeDetectionStrategy
 } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
@@ -30,13 +31,13 @@ import shp from 'shpjs';
   selector: 'app-leaflet-map-edit',
   standalone: true,
   imports: [
-    CommonModule,
     MatProgressSpinnerModule,
     MatTooltipModule,
     MatSnackBarModule,
     TranslateModule
-  ],
+],
   templateUrl: './leaflet-map-edit.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './leaflet-map-edit.component.scss'
 })
 export class LeafletMapEditComponent implements OnInit, AfterViewInit, OnChanges, OnDestroy {

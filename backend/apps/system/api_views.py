@@ -16,19 +16,60 @@ from rest_framework.permissions import IsAuthenticated
 from apps.users.permissions import IsSuperAdmin
 
 
+# Fichiers d'échange avec l'hôte (dossier /var/lib/cicada/updates du serveur,
+# monté ici sous /var/lib/cicada) : écrits par cicada-heartbeat et cicada-updater,
+# lus par l'application ; le déclencheur est écrit par l'application.
+UPDATE_AVAILABLE_FILE = Path("/var/lib/cicada/update_available.json")
+UPDATE_TRIGGER_FILE = Path("/var/lib/cicada/update_trigger.json")
+UPDATE_RESULT_FILE = Path("/var/lib/cicada/update_result.json")
+
+
+def _read_json(path: Path):
+    """Contenu JSON du fichier, ou None s'il est absent ou illisible."""
+    if not path.exists():
+        return None
+    try:
+        data = json.loads(path.read_text())
+    except (json.JSONDecodeError, OSError):
+        return None
+    return data if isinstance(data, dict) else None
+
+
+def _version_key(version):
+    """« 0.1.51 » → (0, 1, 51) ; None si ce n'est pas un numéro de version."""
+    try:
+        return tuple(int(part) for part in str(version).split('.'))
+    except (TypeError, ValueError):
+        return None
+
+
 def get_update_info():
-    """Récupère les infos de mise à jour depuis le fichier écrit par le heartbeat."""
-    update_file = Path("/var/lib/cicada/update_available.json")
-    if update_file.exists():
-        try:
-            return json.loads(update_file.read_text())
-        except (json.JSONDecodeError, OSError):
-            pass
+    """
+    État de la mise à jour, vu par la page d'administration.
+
+    La version installée est celle de l'application elle-même (``__version__``),
+    pas celle notée par le dernier heartbeat : juste après une mise à jour, le
+    heartbeat n'est pas encore passé et son fichier dit encore l'ancienne
+    version. La mise à jour n'est « disponible » que si la version annoncée est
+    plus récente que celle qui tourne.
+    """
+    announced = _read_json(UPDATE_AVAILABLE_FILE) or {}
+    current = __version__ if __version__ != "0.0.0" else announced.get('current_version', __version__)
+    latest = announced.get('latest_version')
+    latest_key, current_key = _version_key(latest), _version_key(current)
+    if latest_key and current_key:
+        update_available = latest_key > current_key
+    else:
+        update_available = bool(announced.get('update_available', False))
     return {
-        'update_available': False,
-        'current_version': __version__,
-        'latest_version': None,
-        'last_check': None,
+        'current_version': current,
+        'update_available': update_available,
+        'latest_version': latest,
+        'last_check': announced.get('last_check'),
+        # Déclencheur déposé par le bouton et pas encore consommé par l'updater
+        'update_pending': UPDATE_TRIGGER_FILE.exists(),
+        # Dernière mise à jour faite par l'updater : success, version, timestamp, error
+        'last_update': _read_json(UPDATE_RESULT_FILE),
     }
 
 
@@ -41,13 +82,7 @@ class SystemVersionView(APIView):
     permission_classes = [IsSuperAdmin]
 
     def get(self, request: Request) -> Response:
-        info = get_update_info()
-        return Response({
-            'current_version': info.get('current_version', __version__),
-            'update_available': info.get('update_available', False),
-            'latest_version': info.get('latest_version'),
-            'last_check': info.get('last_check'),
-        })
+        return Response(get_update_info())
 
 
 class SystemAppVersionView(APIView):
@@ -82,7 +117,7 @@ class SystemTriggerUpdateView(APIView):
                 {'error': 'Version requise'},
                 status=status.HTTP_400_BAD_REQUEST
             )
-        trigger_file = Path("/var/lib/cicada/update_trigger.json")
+        trigger_file = UPDATE_TRIGGER_FILE
         try:
             trigger_file.write_text(json.dumps({
                 'version': version,

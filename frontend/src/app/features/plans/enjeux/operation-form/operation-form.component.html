@@ -238,6 +238,22 @@
               }
             </mat-radio-group>
           </div>
+
+          <!-- #663 — Action de restauration (oui / non), obligatoire, non précochée -->
+          <div class="priorite-row restauration-row">
+            <span class="priorite-label">
+              {{ 'enjeux.operations.actionRestaurationLabel' | translate }}
+              <span class="required-star">*</span>
+            </span>
+            <i class="fi fi-rr-info help-icon priorite-help"
+               [matTooltip]="'enjeux.operations.actionRestaurationTooltip' | translate"
+               matTooltipClass="multiline-tooltip"
+               matTooltipPosition="right"></i>
+            <mat-radio-group formControlName="action_restauration" class="priorite-radio-group">
+              <mat-radio-button [value]="true" color="primary">{{ 'common.yes' | translate }}</mat-radio-button>
+              <mat-radio-button [value]="false" color="primary">{{ 'common.no' | translate }}</mat-radio-button>
+            </mat-radio-group>
+          </div>
         </div>
 
         <!-- ═══════════════════════════════════════════════ -->

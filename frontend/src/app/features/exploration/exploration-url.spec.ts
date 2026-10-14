@@ -31,14 +31,20 @@ describe('exploration-url', () => {
       ]);
     });
 
-    it('ne remonte titresSeulement que lorsqu\'il est désactivé', () => {
+    it('lit les axes de portée et ignore les valeurs inconnues (#681)', () => {
+      expect(criteresDepuisUrl(convertToParamMap({})).portee).toBeUndefined();
       expect(
-        criteresDepuisUrl(convertToParamMap({})).titresSeulement,
+        criteresDepuisUrl(convertToParamMap({ portee: 'enfants,parents,x' })).portee,
+      ).toEqual(['enfants', 'parents']);
+    });
+
+    it('comprend encore l\'ancien titres_seulement=false comme « tout élargir »', () => {
+      expect(
+        criteresDepuisUrl(convertToParamMap({ titres_seulement: 'false' })).portee,
+      ).toEqual(['description', 'parents', 'enfants']);
+      expect(
+        criteresDepuisUrl(convertToParamMap({ titres_seulement: 'true' })).portee,
       ).toBeUndefined();
-      expect(
-        criteresDepuisUrl(convertToParamMap({ titres_seulement: 'false' }))
-          .titresSeulement,
-      ).toBe(false);
     });
 
     it('ignore une page invalide ou égale à 1', () => {
@@ -78,7 +84,7 @@ describe('exploration-url', () => {
   it('fait un aller-retour sans perte', () => {
     const criteres: ExplorationCriteres = {
       q: 'limicole',
-      titresSeulement: false,
+      portee: ['description', 'enfants'],
       types: ['enjeu', 'indicateur'],
       onglet: ['objectif_lt', 'objectif_op'],
       zones: [12, 34],

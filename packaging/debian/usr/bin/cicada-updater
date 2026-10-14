@@ -3,6 +3,7 @@
    Déclenché par systemd (cicada-updater.path) quand update_trigger.json est créé.
    Met à jour le paquet APT, la version dans .env, tire les images Docker et redémarre la stack.
 """
+import re
 import sys
 import json
 import subprocess
@@ -10,7 +11,11 @@ import logging
 from pathlib import Path
 from datetime import datetime
 
-TRIGGER_FILE = "/var/lib/cicada/update_trigger.json"
+# Dossier d'échange avec l'application (monté dans le conteneur web à
+# /var/lib/cicada) : le bouton « Mettre à jour » y dépose le déclencheur.
+UPDATES_DIR = "/var/lib/cicada/updates"
+TRIGGER_FILE = f"{UPDATES_DIR}/update_trigger.json"
+RESULT_FILE = f"{UPDATES_DIR}/update_result.json"
 ENV_FILE = "/var/lib/cicada/.env"
 COMPOSE_DIR = "/usr/share/cicada"
 LOG_FILE = "/var/log/cicada/updater.log"
@@ -78,12 +83,29 @@ def main():
             logger.error("Version non spécifiée dans le trigger")
             trigger_path.unlink()
             return
+        # Le déclencheur est écrit depuis le conteneur de l'application : ne
+        # passer à apt qu'un numéro de version bien formé.
+        if not re.fullmatch(r'\d+\.\d+\.\d+', str(version)):
+            logger.error(f"Version refusée dans le trigger : {version!r}")
+            trigger_path.unlink()
+            return
 
         logger.info(f"Mise à jour vers {version} demandée par {trigger.get('requested_by', '?')}")
+        # Déclencheur consommé dès maintenant : la page d'administration lit sa
+        # présence comme « en attente » et son absence comme « en cours » ; et
+        # un échec plus bas ne laisserait pas un déclencheur que cicada-updater.path
+        # relancerait sans fin.
+        trigger_path.unlink()
 
         # 1. Mise à jour du paquet APT
         subprocess.run(['apt-get', 'update', '-qq'], check=True)
-        subprocess.run(['apt-get', 'install', '-y', '-qq', f'cicada={version}'], check=True)
+        # Non interactif : sans ces options, dpkg pose une question dès que
+        # /etc/cicada/cicada.conf a été modifié localement, et apt échoue.
+        # confdef = choix par défaut, confold = garder le fichier de l'admin.
+        subprocess.run(['apt-get', 'install', '-y', '-qq',
+                        '-o', 'Dpkg::Options::=--force-confdef',
+                        '-o', 'Dpkg::Options::=--force-confold',
+                        f'cicada={version}'], check=True)
 
         # 2. Mettre à jour CICADA_VERSION dans .env pour que Docker utilise les nouvelles images
         _update_env_version(version)
@@ -111,9 +133,14 @@ def main():
         # 4. Redémarrer l'installateur (service web)
         subprocess.run(['systemctl', 'restart', 'cicada-installer'], check=True, capture_output=True)
 
-        # 5. Supprimer le trigger et écrire le résultat
-        trigger_path.unlink()
-        Path("/var/lib/cicada/update_result.json").write_text(json.dumps({
+        # 4 bis. Heartbeat immédiat : le serveur de suivi connaît la nouvelle
+        # version sans attendre la nuit, et update_available.json est remis
+        # à jour (sinon la page d'administration proposerait encore la mise
+        # à jour qui vient d'être faite). Non bloquant : sans réseau, tant pis.
+        subprocess.run(['systemctl', 'start', 'cicada-heartbeat.service'], capture_output=True, timeout=60)
+
+        # 5. Écrire le résultat (lu par la page d'administration)
+        Path(RESULT_FILE).write_text(json.dumps({
             'success': True,
             'version': version,
             'timestamp': datetime.now().isoformat()
@@ -122,7 +149,7 @@ def main():
 
     except subprocess.CalledProcessError as e:
         logger.error(f"Erreur de mise à jour (commande): {e}")
-        Path("/var/lib/cicada/update_result.json").write_text(json.dumps({
+        Path(RESULT_FILE).write_text(json.dumps({
             'success': False,
             'error': str(e),
             'timestamp': datetime.now().isoformat()
@@ -130,7 +157,7 @@ def main():
         sys.exit(1)
     except Exception as e:
         logger.error(f"Erreur de mise à jour: {e}")
-        Path("/var/lib/cicada/update_result.json").write_text(json.dumps({
+        Path(RESULT_FILE).write_text(json.dumps({
             'success': False,
             'error': str(e),
             'timestamp': datetime.now().isoformat()

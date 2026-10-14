@@ -1,5 +1,5 @@
-import { Component, OnInit, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, OnInit, inject, ChangeDetectionStrategy } from '@angular/core';
+
 import { FormsModule } from '@angular/forms';
 import { MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
@@ -39,7 +39,6 @@ type ChoiceMode = 'create' | 'link' | 'none';
   selector: 'app-start-revision-dialog',
   standalone: true,
   imports: [
-    CommonModule,
     FormsModule,
     MatDialogModule,
     MatButtonModule,
@@ -49,9 +48,10 @@ type ChoiceMode = 'create' | 'link' | 'none';
     MatRadioModule,
     MatProgressSpinnerModule,
     TranslateModule,
-    FormFieldComponent,
-  ],
+    FormFieldComponent
+],
   templateUrl: './start-revision-dialog.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './start-revision-dialog.component.scss',
 })
 export class StartRevisionDialogComponent implements OnInit {

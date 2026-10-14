@@ -6,6 +6,7 @@ import { TranslateModule, TranslateLoader } from '@ngx-translate/core';
 import { of, throwError } from 'rxjs';
 
 import { LoginComponent } from './login.component';
+import { LoginMode } from '../../core/models/user.model';
 import { AuthService } from '../../core/services/auth.service';
 
 // Dummy component for routes
@@ -33,12 +34,16 @@ describe('LoginComponent', () => {
   let loginMock: jest.Mock;
   let isLoadingSignal: WritableSignal<boolean>;
 
-  const setupTestBed = async (returnUrl: string | null = null) => {
+  const setupTestBed = async (
+    returnUrl: string | null = null,
+    loginMode: LoginMode = { mode: 'local' }
+  ) => {
     loginMock = jest.fn().mockReturnValue(of({ access: 'token', refresh: 'refresh' }));
     isLoadingSignal = signal(false);
 
     const authServiceMock = {
       login: loginMock,
+      getLoginMode: jest.fn().mockReturnValue(of(loginMode)),
       isLoading: isLoadingSignal.asReadonly()
     };
 
@@ -207,7 +212,7 @@ describe('LoginComponent', () => {
       expect(loginMock).toHaveBeenCalledWith({
         username: 'user@test.fr',
         password: 'password123'
-      });
+      }, 'local');
     }));
 
     it('should clear error message before submitting', fakeAsync(() => {
@@ -337,6 +342,37 @@ describe('LoginComponent', () => {
 
       isLoadingSignal.set(false);
       expect(component.isLoading()).toBe(false);
+    });
+  });
+
+  // ==================== MODE DE CONNEXION (#689) ====================
+
+  describe('Mode de connexion (#689) — un seul par instance', () => {
+    const geonature: LoginMode = { mode: 'geonature', libelle: 'RNF' };
+
+    it('connexion CICADA par défaut, avec mot de passe oublié et inscription', async () => {
+      await setupTestBed();
+      expect(component.mode()).toBe('local');
+      expect(fixture.nativeElement.querySelector('[data-testid="login-mode-geonature"]')).toBeNull();
+      expect(fixture.nativeElement.querySelector('a[href="/auth/forgot-password"]')).not.toBeNull();
+    });
+
+    it('en mode GeoNature : aucun choix, pas de mot de passe oublié ni d\'inscription', async () => {
+      await setupTestBed(null, geonature);
+      fixture.detectChanges();
+      const el: HTMLElement = fixture.nativeElement;
+      expect(component.mode()).toBe('geonature');
+      expect(el.querySelector('[data-testid="login-mode-geonature"]')).not.toBeNull();
+      expect(el.querySelector('[data-testid="login-mode-local"]')).toBeNull();
+      expect(el.querySelector('a[href="/auth/forgot-password"]')).toBeNull();
+      expect(el.querySelector('a[href="/auth/register"]')).toBeNull();
+    });
+
+    it('envoie la connexion en mode GeoNature', async () => {
+      await setupTestBed(null, geonature);
+      component.loginForm.patchValue({ username: 'cdupont', password: 'secret' });
+      component.onSubmit();
+      expect(loginMock).toHaveBeenCalledWith({ username: 'cdupont', password: 'secret' }, 'geonature');
     });
   });
 });

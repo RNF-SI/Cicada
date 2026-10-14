@@ -1,5 +1,5 @@
-import { Component, input, model, output } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, input, model, output, ChangeDetectionStrategy } from '@angular/core';
+
 import { TranslateModule } from '@ngx-translate/core';
 import { LeafletMapEditComponent } from '../leaflet-map-edit/leaflet-map-edit.component';
 
@@ -21,8 +21,9 @@ import { LeafletMapEditComponent } from '../leaflet-map-edit/leaflet-map-edit.co
 @Component({
   selector: 'app-emprise-editor',
   standalone: true,
-  imports: [CommonModule, TranslateModule, LeafletMapEditComponent],
+  imports: [TranslateModule, LeafletMapEditComponent],
   templateUrl: './emprise-editor.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './emprise-editor.component.scss',
 })
 export class EmpriseEditorComponent {

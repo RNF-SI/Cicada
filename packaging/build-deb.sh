@@ -38,7 +38,13 @@ if [ -d "$PROJECT_ROOT/docker" ]; then
     cp -r "$PROJECT_ROOT/docker" "$BUILD_DIR/${PACKAGE_NAME}/usr/share/cicada/"
 fi
 
-# Injecter l'URL de l'API de suivi et la version dans cicada.conf
+# Version du paquet : fichier du paquet, JAMAIS dans cicada.conf. Celui-ci est
+# un conffile : dès qu'un administrateur l'a modifié, dpkg pose une question à
+# chaque mise à jour (bloquante en non-interactif), et s'il garde son fichier
+# l'ancienne version restait lue — paquet à jour, conteneurs pas redéployés.
+echo "$VERSION" > "$BUILD_DIR/${PACKAGE_NAME}/usr/share/cicada/VERSION"
+
+# Injecter l'URL de l'API de suivi dans cicada.conf
 # S'assurer que l'URL a le schéma https://
 TRACKING_API_URL_FIXED="${TRACKING_API_URL}"
 if [[ ! "$TRACKING_API_URL_FIXED" =~ ^https?:// ]]; then
@@ -46,15 +52,63 @@ if [[ ! "$TRACKING_API_URL_FIXED" =~ ^https?:// ]]; then
 fi
 sed -i "s|TRACKING_API_URL=.*|TRACKING_API_URL=${TRACKING_API_URL_FIXED}|" \
     "$BUILD_DIR/${PACKAGE_NAME}/etc/cicada/cicada.conf"
-sed -i "s|^VERSION=.*|VERSION=${VERSION}|" \
+
+# Injecter l'URL du hub d'exploration fédérée : il n'y en a qu'un, hébergé par
+# RNF, d'où une valeur gravée dans le paquet plutôt que saisie à chaque
+# installation (le formulaire la pré-remplit ; un hub de test s'y saisit).
+HUB_URL_FIXED="${HUB_URL:-https://hub.cicada.reserves-naturelles.org}"
+if [[ ! "$HUB_URL_FIXED" =~ ^https?:// ]]; then
+    HUB_URL_FIXED="https://${HUB_URL_FIXED}"
+fi
+sed -i "s|^HUB_URL=.*|HUB_URL=${HUB_URL_FIXED%/}|" \
     "$BUILD_DIR/${PACKAGE_NAME}/etc/cicada/cicada.conf"
+
+# Dépôt APT de CICADA : le paquet apporte lui-même la source et la clé publique
+# (comme le font Chrome ou VS Code). Une instance installée ou mise à jour par
+# ce paquet reçoit donc les versions suivantes par apt — et par le bouton
+# « Mettre à jour » — sans aucune configuration manuelle, et un changement de
+# clé se distribue par une simple mise à jour.
+APT_REPO_URL="${APT_REPO_URL:-https://apt.cicada.reserves-naturelles.org}"
+APT_REPO_KEY_FILE="${APT_REPO_KEY_FILE:-$SCRIPT_DIR/apt-repo/cicada-archive-keyring.asc}"
+KEYRING="/usr/share/keyrings/cicada-archive-keyring.gpg"
+mkdir -p "$BUILD_DIR/${PACKAGE_NAME}/usr/share/keyrings" "$BUILD_DIR/${PACKAGE_NAME}/etc/apt/sources.list.d"
+# Clé ASCII (versionnée, lisible) → binaire, format lu par tous les apt
+python3 - "$APT_REPO_KEY_FILE" "$BUILD_DIR/${PACKAGE_NAME}$KEYRING" <<'PY'
+import base64, sys
+corps, dedans = [], False
+for ligne in open(sys.argv[1]):
+    ligne = ligne.strip()
+    if ligne.startswith('-----BEGIN'):
+        dedans = True
+    elif ligne.startswith('-----END'):
+        break
+    elif dedans and ligne and ':' not in ligne and not ligne.startswith('='):
+        corps.append(ligne)  # ni en-têtes « Version: … », ni somme de contrôle « =XXXX »
+if not corps:
+    sys.exit(f"Clé publique introuvable dans {sys.argv[1]}")
+open(sys.argv[2], 'wb').write(base64.b64decode(''.join(corps)))
+PY
+echo "deb [signed-by=$KEYRING] $APT_REPO_URL stable main" \
+    > "$BUILD_DIR/${PACKAGE_NAME}/etc/apt/sources.list.d/cicada.list"
+echo "Dépôt APT : ${APT_REPO_URL}"
 
 # Mettre à jour la version dans control
 sed -i "s/Version: .*/Version: ${VERSION}/" \
     "$BUILD_DIR/${PACKAGE_NAME}/DEBIAN/control"
 
+# Permissions indépendantes de l'umask de la machine de construction
+# (sinon fichiers installés modifiables par le groupe)
+chmod -R go-w "$BUILD_DIR/${PACKAGE_NAME}"
+
+# Ne pas embarquer le bytecode Python laissé par un lancement local de l'installateur
+find "$BUILD_DIR/${PACKAGE_NAME}" -name __pycache__ -type d -prune -exec rm -rf {} +
+
 # Construire le package
-dpkg-deb --build "$BUILD_DIR/${PACKAGE_NAME}" \
+# -Zxz : sur Ubuntu (poste de dev comme runner CI), dpkg-deb compresse en zstd
+# par défaut, format que le dpkg de Debian 11 ne sait pas lire (#221). xz est lu
+# partout. --root-owner-group : fichiers à root dans le paquet, quel que soit
+# l'utilisateur qui construit.
+dpkg-deb -Zxz --root-owner-group --build "$BUILD_DIR/${PACKAGE_NAME}" \
     "$BUILD_DIR/${PACKAGE_NAME}_${VERSION}_${ARCH}.deb"
 
 echo "Package créé : $BUILD_DIR/${PACKAGE_NAME}_${VERSION}_${ARCH}.deb"

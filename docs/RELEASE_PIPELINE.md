@@ -2,6 +2,8 @@
 
 Ce document explique le pipeline de release de CICADA : convention de commits, versioning automatique, build d'images Docker et deploiement en production.
 
+> Voir aussi : [RELEASE_PROCEDURE.md](RELEASE_PROCEDURE.md) (gestes d'une release : tag, dépôt APT, API de suivi) et [INFRASTRUCTURE.md](INFRASTRUCTURE.md) (les serveurs concernés et le cycle d'une release en schéma).
+
 ## Vue d'ensemble
 
 ```

@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, Input, OnChanges } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 
 import { LegendItem, PatternDef, PatternRegistry, nextChartUid } from '../chart.types';
 import { ChartDefsComponent } from '../chart-defs.component';
@@ -21,7 +21,7 @@ interface SwatchVm { item: LegendItem; fill: string; }
 @Component({
   selector: 'app-chart-legend',
   standalone: true,
-  imports: [CommonModule, ChartDefsComponent],
+  imports: [ChartDefsComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <ul class="legend" [class.legend--inline]="inline">

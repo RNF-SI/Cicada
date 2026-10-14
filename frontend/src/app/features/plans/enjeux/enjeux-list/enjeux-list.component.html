@@ -1,6 +1,6 @@
 <app-header></app-header>
 
-<div class="enjeux-layout">
+<div class="enjeux-layout" [appSurligner]="motCleSurligne()">
   <!-- Sidebar Menu (composant partagé) -->
   @if (planSlug(); as slug) {
     @if (planId(); as id) {
@@ -8,7 +8,9 @@
         [planId]="id"
         [planSlug]="slug"
         activePage="enjeux"
-        [selectedEnjeuSlug]="selectedEnjeuSlug()">
+        [canManage]="isPlanManager()"
+        [selectedEnjeuSlug]="selectedEnjeuSlug()"
+        data-sans-surlignage>
       </app-plan-sidebar>
     }
   }
@@ -44,16 +46,36 @@
             </a>
             <div class="breadcrumb-lines"></div>
             <div class="breadcrumb-text">
-              <a routerLink="/plans" class="breadcrumb-link">
-                {{ 'plans.title' | translate }}
-              </a>
-              <i class="fi fi-rr-angle-small-right breadcrumb-chevron"></i>
-              <a [routerLink]="['/plans', planSlug()]" class="breadcrumb-link">
+              @if (accesExploration()) {
+                <!-- Plan ouvert depuis l'exploration (#683) : le fil ramène à
+                     l'exploration et nomme la structure d'origine. -->
+                <a [routerLink]="lienExploration()"
+                   class="breadcrumb-link" data-testid="breadcrumb-exploration">
+                  {{ 'plans.lifecycle.explorationBanner.breadcrumb' | translate }}
+                </a>
+                <i class="fi fi-rr-angle-small-right breadcrumb-chevron"></i>
+                @if (provenanceDistante(); as provenance) {
+                  <span class="breadcrumb-provenance" data-testid="breadcrumb-provenance">
+                    <i class="fi fi-rr-globe"></i>{{ provenance.instance_libelle }}
+                  </span>
+                  <i class="fi fi-rr-angle-small-right breadcrumb-chevron"></i>
+                }
+              } @else {
+                <a routerLink="/plans" class="breadcrumb-link">
+                  {{ 'plans.title' | translate }}
+                </a>
+                <i class="fi fi-rr-angle-small-right breadcrumb-chevron"></i>
+              }
+              <a [routerLink]="['/plans', planSlug()]"
+                 [queryParams]="accesExploration() && motCleSurligne() ? { q: motCleSurligne() } : null"
+                 class="breadcrumb-link">
                 {{ planNom() }}
               </a>
               <i class="fi fi-rr-angle-small-right breadcrumb-chevron"></i>
               @if (selectedEnjeu()) {
-                <a [routerLink]="['/plans', planSlug(), 'enjeux']" class="breadcrumb-link">
+                <a [routerLink]="['/plans', planSlug(), 'enjeux']"
+                   [queryParams]="accesExploration() && motCleSurligne() ? { q: motCleSurligne() } : null"
+                   class="breadcrumb-link">
                   {{ 'enjeux.title' | translate }}
                 </a>
                 <i class="fi fi-rr-angle-small-right breadcrumb-chevron"></i>
@@ -126,8 +148,40 @@
         </div>
       }
 
+      <!-- #683 — Lecture d'exploration : plan validé d'une autre structure.
+           Ni demande de référent (il n'y a pas de lien à demander), ni données
+           de suivi, de programmation ou de personnes : l'API les a retirées. -->
+      @if (accesExploration()) {
+        <div class="lock-banner lock-banner--access" role="status" data-testid="exploration-banner">
+          <i class="fi fi-rr-globe"></i>
+          <div class="lock-banner-content">
+            <span class="lock-banner-title">
+              {{ 'plans.lifecycle.explorationBanner.title' | translate }}
+            </span>
+            <span class="lock-banner-text">
+              {{ 'plans.lifecycle.explorationBanner.text' | translate }}
+            </span>
+            @if (provenanceDistante(); as provenance) {
+              <span class="lock-banner-text" data-testid="exploration-provenance">
+                {{ 'plans.lifecycle.explorationBanner.provenance' | translate: {
+                  structure: provenance.instance_libelle,
+                  date: (provenance.date_publication | date: 'dd/MM/yyyy') ?? ''
+                } }}
+                @if (provenance.url_instance) {
+                  <a [href]="provenance.url_instance" target="_blank" rel="noopener noreferrer">{{ provenance.instance_libelle }}</a>
+                }
+              </span>
+            }
+          </div>
+          <a class="lock-banner-btn" [routerLink]="lienExploration()">
+            <i class="fi fi-rr-search"></i>
+            <span>{{ 'plans.lifecycle.explorationBanner.back' | translate }}</span>
+          </a>
+        </div>
+      }
+
       <!-- Bannière « non référent » : consultant sans droit de gestion sur ce plan. -->
-      @if (planStatut() && !isPlanManager()) {
+      @if (planStatut() && !isPlanManager() && !accesExploration()) {
         <div class="lock-banner lock-banner--access" role="status">
           <i class="fi fi-rr-info"></i>
           <div class="lock-banner-content">

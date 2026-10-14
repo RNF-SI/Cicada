@@ -2,11 +2,22 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, catchError, map, of } from 'rxjs';
 
+export interface SystemUpdateResult {
+  success: boolean;
+  version?: string;
+  error?: string;
+  timestamp: string;
+}
+
 export interface SystemVersionInfo {
   current_version: string;
   update_available: boolean;
   latest_version: string | null;
   last_check: string | null;
+  /** Déclencheur déposé par le bouton, pas encore consommé par l'updater de l'hôte */
+  update_pending?: boolean;
+  /** Dernière mise à jour faite par l'updater (réussie ou non) */
+  last_update?: SystemUpdateResult | null;
 }
 
 export interface TriggerUpdateResponse {
@@ -31,6 +42,14 @@ export class SystemUpdateService {
         last_check: null
       }))
     );
+  }
+
+  /**
+   * Même appel, sans masquer l'erreur : pendant une mise à jour, « l'API ne
+   * répond pas » est une information (l'application redémarre), pas une panne.
+   */
+  pollVersion(): Observable<SystemVersionInfo> {
+    return this.http.get<SystemVersionInfo>(`${this.apiUrl}/version/`);
   }
 
   /**

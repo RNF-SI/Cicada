@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal, computed } from '@angular/core';
+import { Component, OnInit, inject, signal, computed, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, RouterModule } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
@@ -27,6 +27,7 @@ import { computeCombinedScore, computeMetriqueScore } from './metrique-seuils.ut
 import { exportFilename } from '../../../shared/utils/csv-export';
 import { downloadBlob } from '../../../shared/utils/chart-image-export';
 import { GridCell, GridExportPayload, GridRow } from '../../../shared/utils/grid-export';
+import { planEndYear } from '../../../shared/utils/plan-periode';
 
 type ScoreLevel = 'very-bad' | 'bad' | 'neutral' | 'good' | 'very-good' | 'no-data';
 
@@ -70,6 +71,7 @@ interface IndicatorRow {
     FilterPanelDirective
   ],
   templateUrl: './plan-tableau-de-bord.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './plan-tableau-de-bord.component.scss'
 })
 export class PlanTableauDeBordComponent implements OnInit {
@@ -241,9 +243,10 @@ export class PlanTableauDeBordComponent implements OnInit {
           this.planId.set(plan.id_pg);
           this.planNom.set(plan.nom);
           this.planStatut.set(plan.statut ?? null);
-          if (plan.annee_debut && plan.annee_fin) {
+          const fin = planEndYear(plan);  // #672 — prolongation comprise
+          if (plan.annee_debut && fin) {
             this.planYearStart.set(plan.annee_debut);
-            this.planYearEnd.set(plan.annee_fin);
+            this.planYearEnd.set(fin);
           }
           this.loadData(plan.id_pg);
         }

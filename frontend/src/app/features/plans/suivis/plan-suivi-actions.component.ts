@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal, computed, effect } from '@angular/core';
+import { Component, OnInit, inject, signal, computed, effect, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
@@ -41,6 +41,7 @@ import { downloadBlob } from '../../../shared/utils/chart-image-export';
 import {
   GridCell, GridColumnFormat, GridExportPayload, GridRow,
 } from '../../../shared/utils/grid-export';
+import { planEndYear } from '../../../shared/utils/plan-periode';
 
 type SuiviTab = 'planification' | 'realisation' | 'budget' | 'rh';
 
@@ -79,6 +80,7 @@ interface FlatOperation {
     FilterBarComponent, FilterDropdownComponent, FilterOptionListComponent, FilterPanelDirective
   ],
   templateUrl: './plan-suivi-actions.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './plan-suivi-actions.component.scss'
 })
 export class PlanSuiviActionsComponent implements OnInit {
@@ -528,13 +530,14 @@ export class PlanSuiviActionsComponent implements OnInit {
           this.planId.set(plan.id_pg);
           this.planNom.set(plan.nom);
           this.planStatut.set(plan.statut ?? null);
-          if (plan.annee_debut && plan.annee_fin) {
+          const fin = planEndYear(plan);  // #672 — prolongation comprise
+          if (plan.annee_debut && fin) {
             this.planYearStart.set(plan.annee_debut);
-            this.planYearEnd.set(plan.annee_fin);
+            this.planYearEnd.set(fin);
             // #570 — année de référence par défaut : l'année courante bornée à
             // la période du plan (pour que « Année en cours » soit pertinente).
             const now = new Date().getFullYear();
-            this.currentYear.set(Math.min(Math.max(now, plan.annee_debut), plan.annee_fin));
+            this.currentYear.set(Math.min(Math.max(now, plan.annee_debut), fin));
           }
           this.loadData(plan.id_pg);
         }

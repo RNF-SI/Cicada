@@ -410,9 +410,20 @@
   padding-left: $spacing-sm;
 }
 
-/* Sur un enjeu entier, le filet suffit : la teinte s'étendrait sur tout le bloc. */
+/* Sur un enjeu entier, la teinte s'étendrait sur tout le bloc : c'est
+   l'accordéon lui-même qui porte la marque, sur son en-tête (#681 — un
+   `focus=enjeu:…` n'était jusqu'ici visible nulle part). */
 .fiche-enjeu.cible {
   background-color: transparent;
+  border-left: none;
+  padding-left: 0;
+}
+
+app-accordion.cible-enjeu {
+  display: block;
+  border-left: 4px solid $secondary-yellow;
+  border-radius: $border-radius-sm;
+  box-shadow: 0 0 0 2px rgba($secondary-yellow, 0.6);
 }
 
 /* ------------------------------------------------------------------ */

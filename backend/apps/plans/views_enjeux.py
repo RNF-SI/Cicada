@@ -36,11 +36,58 @@ from .serializers_enjeux import (
 from apps.users.permissions import IsReferent, IsSuperAdmin, IsAdminOrganisme
 from .permissions import CanModifyOnlyDraftPlan, IsReferentOrReadOnly
 from .access import assert_plan_access, plan_scope_q, scope_by_plan
+from .exploration import LectureExplorationMixin
 from .filters_enjeux import EnjeuFilter, ResponsabiliteFilter
 from .reorder import do_reorder
 
 
-class EnjeuViewSet(viewsets.ModelViewSet):
+def payload_enjeux_du_plan(plan, enjeux, contexte_base=None):
+    """
+    Réponse de `enjeux/by-plan/{id}` — l'arborescence complète d'un plan.
+
+    Partagée entre la vue et la publication vers le hub (`apps.search.ecrans`,
+    #683) : ce que lit un plan distant doit être exactement ce que sert l'API
+    locale, sinon les écrans réels divergent selon la provenance.
+
+    :param enjeux: queryset d'enjeux du plan, déjà muni des prefetch profonds
+        (`EnjeuViewSet._with_deep_prefetch`).
+    """
+    # Séparer enjeux et FCR. Pas de `.filter()` chaîné après — chaque
+    # `.filter()` recommencerait l'évaluation des prefetch. On évalue une
+    # seule fois et on partitionne en Python.
+    enjeux_all = list(enjeux.order_by('id_enjeu'))
+    enjeux_list = [e for e in enjeux_all if e.id_categorie and e.id_categorie.mnemonique == 'ENJEU']
+    fcr_list = [e for e in enjeux_all if e.id_categorie and e.id_categorie.mnemonique == 'FCR']
+
+    # #228 / 2026-05-12 — Pré-calcul du code d'affichage de toutes les
+    # actions du plan (préfixe 2 lettres + rang), passé via context aux
+    # serializers d'opération nichés dans EnjeuDetailSerializer. Évite
+    # de recalculer le mapping pour chaque opération individuellement.
+    from .serializers_operations import compute_operation_codes_for_plan
+    from .serializers_enjeux import compute_oo_numeros_for_plan
+    operation_codes = compute_operation_codes_for_plan(plan.pk)
+    # #552 — numéro d'affichage plan-wide des OO (identique sous tous leurs
+    # enjeux), calculé une fois et passé via context comme les codes d'action.
+    oo_numeros = compute_oo_numeros_for_plan(plan.pk)
+    ctx = {
+        **(contexte_base or {}),
+        'operation_codes': operation_codes,
+        'oo_numeros': oo_numeros,
+    }
+
+    return {
+        'plan_id': plan.pk,
+        'plan_nom': plan.nom,
+        'plan_slug': plan.slug,
+        'plan_statut': plan.statut,
+        'enjeux': EnjeuDetailSerializer(enjeux_list, many=True, context=ctx).data,
+        'fcr': EnjeuDetailSerializer(fcr_list, many=True, context=ctx).data,
+        'total_enjeux': len(enjeux_list),
+        'total_fcr': len(fcr_list),
+    }
+
+
+class EnjeuViewSet(LectureExplorationMixin, viewsets.ModelViewSet):
     """
     ViewSet pour les Enjeux et FCR.
 
@@ -279,9 +326,14 @@ class EnjeuViewSet(viewsets.ModelViewSet):
             return EnjeuCreateSerializer
         return EnjeuDetailSerializer
 
+    actions_exploration = ('retrieve', 'by_plan')
+
     def get_queryset(self):
-        """Filtrer selon le périmètre de lecture du plan (#610)."""
-        return scope_by_plan(self.queryset, self.request.user, 'id_pg')
+        """Filtrer selon le périmètre de lecture du plan (#610, #683)."""
+        return scope_by_plan(
+            self.queryset, self.request.user, 'id_pg',
+            exploration=self.lecture_exploration(),
+        )
 
     def perform_create(self, serializer):
         """Définir l'utilisateur créateur."""
@@ -307,48 +359,17 @@ class EnjeuViewSet(viewsets.ModelViewSet):
 
         GET /api/plans/enjeux/by-plan/{plan_id}/
         """
-        # Vérifier que le plan existe et que l'utilisateur y a accès (#610).
+        # Vérifier que le plan existe et que l'utilisateur y a accès (#610),
+        # ou qu'il est validé (#683 — lecture d'exploration, réponse élaguée).
         plan = get_object_or_404(PlanGestion, id_pg=plan_id)
-        assert_plan_access(request.user, plan)
+        assert_plan_access(request.user, plan, exploration=self.lecture_exploration())
+        self.ancrer(plan)
 
         # #263 — Applique les prefetch profonds (Prefetch avec select_related
         # sur les FK des serializers) uniquement à cette vue, pas à toutes les
         # autres actions du ViewSet (list/retrieve restent légères).
         enjeux = self._with_deep_prefetch(self.get_queryset().filter(id_pg=plan))
-
-        # Séparer enjeux et FCR. Pas de `.filter()` chaîné après — chaque
-        # `.filter()` recommencerait l'évaluation des prefetch. On évalue une
-        # seule fois et on partitionne en Python.
-        enjeux_all = list(enjeux.order_by('id_enjeu'))
-        enjeux_list = [e for e in enjeux_all if e.id_categorie and e.id_categorie.mnemonique == 'ENJEU']
-        fcr_list = [e for e in enjeux_all if e.id_categorie and e.id_categorie.mnemonique == 'FCR']
-
-        # #228 / 2026-05-12 — Pré-calcul du code d'affichage de toutes les
-        # actions du plan (préfixe 2 lettres + rang), passé via context aux
-        # serializers d'opération nichés dans EnjeuDetailSerializer. Évite
-        # de recalculer le mapping pour chaque opération individuellement.
-        from .serializers_operations import compute_operation_codes_for_plan
-        from .serializers_enjeux import compute_oo_numeros_for_plan
-        operation_codes = compute_operation_codes_for_plan(plan.pk)
-        # #552 — numéro d'affichage plan-wide des OO (identique sous tous leurs
-        # enjeux), calculé une fois et passé via context comme les codes d'action.
-        oo_numeros = compute_oo_numeros_for_plan(plan.pk)
-        ctx = {
-            **self.get_serializer_context(),
-            'operation_codes': operation_codes,
-            'oo_numeros': oo_numeros,
-        }
-
-        return Response({
-            'plan_id': int(plan_id),
-            'plan_nom': plan.nom,
-            'plan_slug': plan.slug,
-            'plan_statut': plan.statut,
-            'enjeux': EnjeuDetailSerializer(enjeux_list, many=True, context=ctx).data,
-            'fcr': EnjeuDetailSerializer(fcr_list, many=True, context=ctx).data,
-            'total_enjeux': len(enjeux_list),
-            'total_fcr': len(fcr_list),
-        })
+        return Response(payload_enjeux_du_plan(plan, enjeux, self.get_serializer_context()))
 
     @action(detail=True, methods=['post'])
     def add_taxon(self, request, pk=None):
@@ -618,7 +639,7 @@ class ResponsabiliteViewSet(viewsets.ModelViewSet):
         })
 
 
-class FacteurInfluenceViewSet(viewsets.ModelViewSet):
+class FacteurInfluenceViewSet(LectureExplorationMixin, viewsets.ModelViewSet):
     """
     ViewSet pour les Facteurs d'Influence.
 
@@ -669,8 +690,14 @@ class FacteurInfluenceViewSet(viewsets.ModelViewSet):
             return FacteurInfluenceCreateSerializer
         return FacteurInfluenceSerializer
 
+    #683 — lecture d'exploration (plans validés) sur ces seules actions.
+    actions_exploration = ('retrieve', 'by_enjeu', 'by_plan')
+
     def get_queryset(self):
-        return scope_by_plan(self.queryset, self.request.user, 'enjeux__id_pg')
+        return scope_by_plan(
+            self.queryset, self.request.user, 'enjeux__id_pg',
+            exploration=self.lecture_exploration(),
+        )
 
     def perform_create(self, serializer):
         serializer.save(id_utilisateur_ajout=self.request.user)
@@ -713,6 +740,7 @@ class FacteurInfluenceViewSet(viewsets.ModelViewSet):
         GET /api/plans/facteurs-influence/by-enjeu/{enjeu_id}/
         """
         enjeu = get_object_or_404(Enjeu, id_enjeu=enjeu_id)
+        self.ancrer(enjeu)
         # Ordonne via les lignes de liaison (ordre propre à l'enjeu) et injecte
         # l'ordre contextuel sur chaque facteur pour la sérialisation.
         accessible = set(self.get_queryset().values_list('pk', flat=True))
@@ -743,6 +771,7 @@ class FacteurInfluenceViewSet(viewsets.ModelViewSet):
 
         GET /api/plans/facteurs-influence/by-plan/{plan_id}/
         """
+        self.ancrer(get_object_or_404(PlanGestion, pk=plan_id))
         facteurs = self.get_queryset().filter(enjeux__id_pg=plan_id).distinct()
         return Response({
             'plan_id': int(plan_id),
@@ -858,7 +887,7 @@ class FacteurInfluenceViewSet(viewsets.ModelViewSet):
         )
 
 
-class PressionViewSet(viewsets.ModelViewSet):
+class PressionViewSet(LectureExplorationMixin, viewsets.ModelViewSet):
     """
     ViewSet pour les Pressions.
 
@@ -907,9 +936,12 @@ class PressionViewSet(viewsets.ModelViewSet):
             return PressionCreateSerializer
         return PressionSerializer
 
+    actions_exploration = ('retrieve', 'by_facteur')
+
     def get_queryset(self):
         return scope_by_plan(
-            self.queryset, self.request.user, 'id_facteur_influence__enjeux__id_pg'
+            self.queryset, self.request.user, 'id_facteur_influence__enjeux__id_pg',
+            exploration=self.lecture_exploration(),
         )
 
     def perform_create(self, serializer):
@@ -1012,6 +1044,7 @@ class PressionViewSet(viewsets.ModelViewSet):
         GET /api/plans/pressions/by-facteur/{facteur_id}/
         """
         facteur = get_object_or_404(FacteurInfluence, id_facteur_influence=facteur_id)
+        self.ancrer(facteur)
         pressions = self.get_queryset().filter(id_facteur_influence=facteur)
         return Response({
             'facteur_id': int(facteur_id),
@@ -1021,7 +1054,7 @@ class PressionViewSet(viewsets.ModelViewSet):
         })
 
 
-class ObjectifLongTermeViewSet(viewsets.ModelViewSet):
+class ObjectifLongTermeViewSet(LectureExplorationMixin, viewsets.ModelViewSet):
     """
     ViewSet pour les Objectifs à Long Terme.
 
@@ -1063,8 +1096,13 @@ class ObjectifLongTermeViewSet(viewsets.ModelViewSet):
             return ObjectifLongTermeCreateSerializer
         return ObjectifLongTermeSerializer
 
+    actions_exploration = ('retrieve', 'by_enjeu')
+
     def get_queryset(self):
-        return scope_by_plan(self.queryset, self.request.user, 'id_enjeu__id_pg')
+        return scope_by_plan(
+            self.queryset, self.request.user, 'id_enjeu__id_pg',
+            exploration=self.lecture_exploration(),
+        )
 
     def perform_create(self, serializer):
         serializer.save(id_utilisateur_ajout=self.request.user)
@@ -1089,6 +1127,7 @@ class ObjectifLongTermeViewSet(viewsets.ModelViewSet):
         GET /api/plans/objectifs-long-terme/by-enjeu/{enjeu_id}/
         """
         enjeu = get_object_or_404(Enjeu, id_enjeu=enjeu_id)
+        self.ancrer(enjeu)
         olts = self.get_queryset().filter(id_enjeu=enjeu)
         return Response({
             'enjeu_id': int(enjeu_id),
@@ -1098,7 +1137,7 @@ class ObjectifLongTermeViewSet(viewsets.ModelViewSet):
         })
 
 
-class NiveauExigenceViewSet(viewsets.ModelViewSet):
+class NiveauExigenceViewSet(LectureExplorationMixin, viewsets.ModelViewSet):
     """
     ViewSet pour les Niveaux d'Exigence.
 
@@ -1136,8 +1175,13 @@ class NiveauExigenceViewSet(viewsets.ModelViewSet):
             return NiveauExigenceCreateSerializer
         return NiveauExigenceSerializer
 
+    actions_exploration = ('retrieve', 'by_olt')
+
     def get_queryset(self):
-        return scope_by_plan(self.queryset, self.request.user, 'id_olt__id_enjeu__id_pg')
+        return scope_by_plan(
+            self.queryset, self.request.user, 'id_olt__id_enjeu__id_pg',
+            exploration=self.lecture_exploration(),
+        )
 
     def perform_create(self, serializer):
         serializer.save(id_utilisateur_ajout=self.request.user)
@@ -1162,6 +1206,7 @@ class NiveauExigenceViewSet(viewsets.ModelViewSet):
         GET /api/plans/niveaux-exigence/by-olt/{olt_id}/
         """
         olt = get_object_or_404(ObjectifLongTerme, id_olt=olt_id)
+        self.ancrer(olt)
         niveaux = self.get_queryset().filter(id_olt=olt)
         return Response({
             'olt_id': int(olt_id),
@@ -1171,7 +1216,7 @@ class NiveauExigenceViewSet(viewsets.ModelViewSet):
         })
 
 
-class ObjectifOperationnelViewSet(viewsets.ModelViewSet):
+class ObjectifOperationnelViewSet(LectureExplorationMixin, viewsets.ModelViewSet):
     """
     ViewSet pour les Objectifs Opérationnels.
 
@@ -1229,6 +1274,8 @@ class ObjectifOperationnelViewSet(viewsets.ModelViewSet):
             return ObjectifOperationnelCreateSerializer
         return ObjectifOperationnelSerializer
 
+    actions_exploration = ('retrieve', 'by_pression', 'by_plan')
+
     def get_queryset(self):
         user = self.request.user
         queryset = self.queryset
@@ -1244,7 +1291,7 @@ class ObjectifOperationnelViewSet(viewsets.ModelViewSet):
         return scope_by_plan(queryset, user, (
             'pressions__id_facteur_influence__enjeux__id_pg',
             'id_enjeu__id_pg',
-        ))
+        ), exploration=self.lecture_exploration())
 
     def perform_create(self, serializer):
         serializer.save(id_utilisateur_ajout=self.request.user)
@@ -1292,6 +1339,7 @@ class ObjectifOperationnelViewSet(viewsets.ModelViewSet):
         GET /api/plans/objectifs-operationnels/by-pression/{pression_id}/
         """
         pression = get_object_or_404(Pression, id_pression=pression_id)
+        self.ancrer(pression)
         oos = self.get_queryset().filter(pressions=pression)
         return Response({
             'pression_id': int(pression_id),
@@ -1319,6 +1367,7 @@ class ObjectifOperationnelViewSet(viewsets.ModelViewSet):
 
         GET /api/plans/objectifs-operationnels/by-plan/{plan_id}/
         """
+        self.ancrer(get_object_or_404(PlanGestion, pk=plan_id))
         oos = self.get_queryset().filter(
             Q(pressions__id_facteur_influence__enjeux__id_pg=plan_id) |
             Q(id_enjeu__id_pg=plan_id)
@@ -1456,7 +1505,7 @@ class ObjectifOperationnelViewSet(viewsets.ModelViewSet):
         )
 
 
-class ResultatAttenduViewSet(viewsets.ModelViewSet):
+class ResultatAttenduViewSet(LectureExplorationMixin, viewsets.ModelViewSet):
     """
     ViewSet pour les Résultats Attendus.
 
@@ -1494,12 +1543,14 @@ class ResultatAttenduViewSet(viewsets.ModelViewSet):
             return ResultatAttenduCreateSerializer
         return ResultatAttenduSerializer
 
+    actions_exploration = ('retrieve', 'by_oo')
+
     def get_queryset(self):
         # Comme pour l'OO (#337), les deux chemins de rattachement sont couverts.
         return scope_by_plan(self.queryset, self.request.user, (
             'id_oo__pressions__id_facteur_influence__enjeux__id_pg',
             'id_oo__id_enjeu__id_pg',
-        ))
+        ), exploration=self.lecture_exploration())
 
     def perform_create(self, serializer):
         serializer.save(id_utilisateur_ajout=self.request.user)
@@ -1649,6 +1700,7 @@ class ResultatAttenduViewSet(viewsets.ModelViewSet):
         seulement ceux dont il est porteur.
         """
         oo = get_object_or_404(ObjectifOperationnel, id_oo=oo_id)
+        self.ancrer(oo)
         resultats = self.get_queryset().filter(objectifs_operationnels=oo).distinct()
         return Response({
             'oo_id': int(oo_id),

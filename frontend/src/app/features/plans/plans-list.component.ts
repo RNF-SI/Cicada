@@ -2,7 +2,7 @@
  * Composant pour la liste des plans de gestion.
  * Affiche les plans auxquels l'utilisateur a accès et permet de demander l'accès à d'autres plans.
  */
-import { Component, signal, computed, inject, OnInit } from '@angular/core';
+import { Component, signal, computed, inject, OnInit, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -25,12 +25,13 @@ import { HeaderComponent } from '../../shared/components/header/header.component
 import { SearchBarComponent } from '../../shared/components/search-bar/search-bar.component';
 import { StatusChipComponent } from '../../shared/components/status-chip/status-chip.component';
 import { TagComponent } from '../../shared/components/tag/tag.component';
+import { EntityTileComponent } from '../../shared/components/entity-tile/entity-tile.component';
 import { PlanGaugeComponent, GaugeStatus } from '../../shared/components/plan-gauge/plan-gauge.component';
 import { ViewScopeToggleComponent, ViewScope } from '../../shared/components/view-scope-toggle/view-scope-toggle.component';
 import { AdminService } from '../../core/services/admin.service';
 import { ValidationService } from '../../core/services/validation.service';
 import { AuthService } from '../../core/services/auth.service';
-import { AdminPlan, AdminSite, PlanStatut, PLAN_STATUS_OPTIONS } from '../../core/models/admin.model';
+import { AdminPlan, AdminSite, PlanAccesRecherche, PlanStatut, PLAN_STATUS_OPTIONS } from '../../core/models/admin.model';
 import { ValidationRequestListItem } from '../../core/models/notification.model';
 import { AccessRequestDialogComponent, AccessRequestDialogData, SelectableSite } from '../../shared/components/access-request-dialog/access-request-dialog.component';
 import {
@@ -45,6 +46,7 @@ import {
   findPreviousValidatedPlan,
 } from '../../shared/components/modals/archive-previous-plan-dialog/archive-previous-plan-dialog.component';
 import { PlanVersionChainItem } from '../../core/models/admin.model';
+import { planEndYear } from '../../shared/utils/plan-periode';
 
 
 interface PlanWithAccess extends AdminPlan {
@@ -54,6 +56,8 @@ interface PlanWithAccess extends AdminPlan {
   hasAccessViaSite: boolean;
   isOrgPlan: boolean;
   gaugeStatus: GaugeStatus;
+  /** #675 — Fin de la jauge : échéance effective (prolongation comprise). */
+  gaugeEndYear: number | null;
 }
 
 @Component({
@@ -82,8 +86,10 @@ interface PlanWithAccess extends AdminPlan {
     SearchBarComponent,
     StatusChipComponent,
     TagComponent,
+    EntityTileComponent,
   ],
   templateUrl: './plans-list.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './plans-list.component.scss'
 })
 export class PlansListComponent implements OnInit {
@@ -108,6 +114,11 @@ export class PlansListComponent implements OnInit {
   // Permissions pour le toggle
   readonly isSuperAdmin = this.authService.isSuperAdmin;
   readonly isRedacteurPrincipal = this.authService.isRedacteurPrincipal;
+  /** #700 — Rédacteur externe : ne voit aucun plan de son organisme ; il cherche
+   *  le plan à rédiger parmi tous les plans et en demande l'accès en saisie. */
+  readonly isRedacteur = this.authService.isRedacteur;
+  readonly redacteurResultats = signal<PlanAccesRecherche[] | null>(null);
+  private redacteurTerme = '';
   readonly isAdminOrganisme = this.authService.isAdminOrganisme;
 
   // Afficher le toggle si admin_og, redacteur_principal ou super_admin
@@ -502,7 +513,8 @@ export class PlansListComponent implements OnInit {
         isMember,
         hasAccessViaSite,
         isOrgPlan,
-        gaugeStatus
+        gaugeStatus,
+        gaugeEndYear: planEndYear(plan),
       };
     });
   }
@@ -524,13 +536,14 @@ export class PlansListComponent implements OnInit {
    * Calcule le statut de la jauge en fonction des dates du plan.
    */
   private calculateGaugeStatus(plan: AdminPlan): GaugeStatus {
-    if (!plan.annee_debut || !plan.annee_fin) {
+    // #675 — un plan prolongé n'est « dépassé » qu'après ses années d'extension.
+    const endYear = planEndYear(plan);
+    if (!plan.annee_debut || !endYear) {
       return 'not-started';
     }
 
     const currentYear = new Date().getFullYear();
     const startYear = plan.annee_debut;
-    const endYear = plan.annee_fin;
 
     if (currentYear < startYear) {
       return 'not-started';
@@ -544,6 +557,39 @@ export class PlansListComponent implements OnInit {
         return 'second-half';
       }
     }
+  }
+
+  /** #700 — Recherche d'un plan à rédiger (3 caractères minimum, côté serveur). */
+  rechercherPlanARediger(terme: string): void {
+    this.redacteurTerme = terme.trim();
+    if (this.redacteurTerme.length < 3) {
+      this.redacteurResultats.set(null);
+      return;
+    }
+    this.adminService.rechercherPlansAcces(this.redacteurTerme).subscribe({
+      next: resultats => this.redacteurResultats.set(resultats),
+      error: () => this.redacteurResultats.set([]),
+    });
+  }
+
+  /** #700 — Demande d'accès en saisie (référent) à un plan trouvé par la recherche. */
+  demanderAccesRedaction(plan: PlanAccesRecherche): void {
+    const dialogRef = this.dialog.open(AccessRequestDialogComponent, {
+      width: '500px',
+      data: {
+        type: 'plan',
+        targetId: plan.id_pg,
+        targetName: plan.nom,
+        hasAccessViaSite: true,
+        defaultAsReferent: true,
+      } as AccessRequestDialogData,
+    });
+    dialogRef.afterClosed().subscribe(result => {
+      if (result) {
+        this.rechercherPlanARediger(this.redacteurTerme);
+        this.loadData();
+      }
+    });
   }
 
   /**
@@ -847,7 +893,12 @@ export class PlansListComponent implements OnInit {
   versionLabel(version: PlanWithAccess): string {
     const type = version.type_document_display
       || this.translate.instant('plans.lifecycle.timeline.planInitial');
-    return version.version ? `${type} - V${version.version}` : type;
+    const label = version.version ? `${type} - V${version.version}` : type;
+    // Le rang situe le plan dans l'histoire du site : il n'est pas dans le nom,
+    // que chacun choisit librement.
+    return version.rang
+      ? `${this.translate.instant('plans.rangLabel', { rang: version.rang })} · ${label}`
+      : label;
   }
 
   /**

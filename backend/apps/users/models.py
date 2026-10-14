@@ -51,6 +51,10 @@ class Role(AbstractUser):
     # "référent" s'il est référent d'au moins un site ou plan de gestion.
     ROLE_CHOICES = [
         ('utilisateur', _('Utilisateur')),
+        # #700 — Rédacteur externe (bureau d'étude…) : aucun plan par défaut,
+        # accès en saisie obtenu plan par plan sur demande à l'OG ; son
+        # organisme n'est jamais rattaché aux sites ni aux plans.
+        ('redacteur', _('Rédacteur externe')),
         ('admin_og', _('Administrateur Organisme')),
         ('redacteur_principal', _('Rédacteur Général')),
         ('super_admin', _('Super Administrateur')),
@@ -132,6 +136,11 @@ class Role(AbstractUser):
         verbose_name=_("Anonymise le")
     )
     champs_addi = models.TextField(_("Champs additionnels"), null=True, blank=True)
+    # #689 — id_role du compte dans le UsersHub de la connexion GeoNature : clé
+    # du rapprochement une fois le lien établi (l'email peut changer côté UsersHub).
+    usershub_id_role = models.IntegerField(
+        _("Identifiant UsersHub"), null=True, blank=True, unique=True
+    )
     date_insert = models.DateTimeField(auto_now_add=True)
     date_update = models.DateTimeField(auto_now=True)
     
@@ -164,6 +173,10 @@ class Role(AbstractUser):
     def is_redacteur_principal(self):
         """Vérifie si l'utilisateur est Rédacteur Principal."""
         return self.role_level == 'redacteur_principal'
+
+    def is_redacteur(self):
+        """Vérifie si l'utilisateur est Rédacteur externe (#700)."""
+        return self.role_level == 'redacteur'
 
     def is_admin_organisme(self):
         """Vérifie si l'utilisateur est Administrateur d'organisme (ou rôle supérieur)."""
@@ -306,6 +319,7 @@ class Role(AbstractUser):
         self.identifiant = None
         self.remarques = None
         self.champs_addi = None
+        self.usershub_id_role = None
         self.pass_plus = None
 
         # Supprimer le mot de passe

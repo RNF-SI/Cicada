@@ -1,5 +1,5 @@
-import { Component, ContentChild, Input } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, ContentChild, Input, ChangeDetectionStrategy } from '@angular/core';
+
 import { NgControl } from '@angular/forms';
 
 /**
@@ -27,8 +27,9 @@ import { NgControl } from '@angular/forms';
 @Component({
   selector: 'app-form-field',
   standalone: true,
-  imports: [CommonModule],
+  imports: [],
   templateUrl: './form-field.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './form-field.component.scss',
 })
 export class FormFieldComponent {

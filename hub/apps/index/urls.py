@@ -6,7 +6,9 @@ from rest_framework.routers import DefaultRouter
 from .views_exploration import (
     ExplorationContenuViewSet, ExplorationPlanViewSet, InstancesExplorationView,
 )
-from .views_federation import LotPublicationViewSet, RegistreDesInstances
+from .views_federation import (
+    EnrolementInstance, LotPublicationViewSet, RegistreDesInstances,
+)
 
 federation = DefaultRouter()
 federation.register(r'lots', LotPublicationViewSet, basename='federation-lots')
@@ -22,6 +24,10 @@ urlpatterns = [
     # ne capture que ses propres préfixes — l'ordre reste explicite.
     path('federation/instances/', RegistreDesInstances.as_view(),
          name='federation-instances'),
+    # Avant le routeur, pour la même raison : enrôlement délégué à l'API de
+    # suivi RNF (#696).
+    path('federation/enrolements/', EnrolementInstance.as_view(),
+         name='federation-enrolements'),
     path('federation/', include(federation.urls)),
     # Avant le routeur, pour la même raison que « federation/instances/ ».
     path('exploration/instances/', InstancesExplorationView.as_view(),

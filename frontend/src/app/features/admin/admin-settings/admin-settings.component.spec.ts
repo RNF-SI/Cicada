@@ -1,12 +1,17 @@
 import { ComponentFixture, TestBed, fakeAsync, tick } from '@angular/core/testing';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { MatDialog } from '@angular/material/dialog';
 import { TranslateModule, TranslateLoader, TranslateService } from '@ngx-translate/core';
-import { of, throwError } from 'rxjs';
+import { BehaviorSubject, NEVER, Subject, of, throwError } from 'rxjs';
 import { signal, WritableSignal } from '@angular/core';
+import { ActivatedRoute, convertToParamMap, ParamMap, Router } from '@angular/router';
 
 import { AdminSettingsComponent } from './admin-settings.component';
 import { SettingsService, SiteConfiguration } from '../../../core/services/settings.service';
+import { FederationRaccordementService } from '../../../core/services/federation-raccordement.service';
+import { AuthService } from '../../../core/services/auth.service';
+import { ConfirmDialogComponent } from '../../../shared/components/confirm-dialog/confirm-dialog.component';
 
 // Fake translate loader for tests
 class FakeTranslateLoader implements TranslateLoader {
@@ -34,7 +39,12 @@ describe('AdminSettingsComponent', () => {
   let fixture: ComponentFixture<AdminSettingsComponent>;
   let mockSettingsService: Partial<SettingsService>;
   let mockSnackBar: { open: jest.Mock };
+  let mockDialog: { open: jest.Mock };
   let translateService: TranslateService;
+  let queryParamMap$: BehaviorSubject<ParamMap>;
+  let mockRouter: { navigate: jest.Mock };
+  let mockActivatedRoute: { queryParamMap: BehaviorSubject<ParamMap> };
+  let mockFederationService: { etat: jest.Mock; verifier: jest.Mock; demanderAdhesion: jest.Mock };
 
   // Writable signals for mocking
   let configSignal: WritableSignal<SiteConfiguration | null>;
@@ -51,6 +61,9 @@ describe('AdminSettingsComponent', () => {
     enable_docgestion_fcen: false,
     federation_partage: false,
     api_publique_plans: false,
+    matomo_enabled: false,
+    matomo_url: '',
+    matomo_site_id: '',
     updated_at: '2024-01-15T10:30:00Z',
     updated_by: 1,
     updated_by_name: 'Admin User'
@@ -77,6 +90,16 @@ describe('AdminSettingsComponent', () => {
     mockSnackBar = {
       open: jest.fn()
     };
+    mockDialog = { open: jest.fn() };
+
+    queryParamMap$ = new BehaviorSubject<ParamMap>(convertToParamMap({}));
+    mockActivatedRoute = { queryParamMap: queryParamMap$ };
+    mockRouter = { navigate: jest.fn().mockResolvedValue(true) };
+    mockFederationService = {
+      etat: jest.fn().mockReturnValue(NEVER),
+      verifier: jest.fn(),
+      demanderAdhesion: jest.fn(),
+    };
 
     await TestBed.configureTestingModule({
       imports: [
@@ -89,12 +112,20 @@ describe('AdminSettingsComponent', () => {
       ],
       providers: [
         { provide: SettingsService, useValue: mockSettingsService },
-        { provide: MatSnackBar, useValue: mockSnackBar }
+        { provide: MatSnackBar, useValue: mockSnackBar },
+        { provide: MatDialog, useValue: mockDialog },
+        // #696 — le bloc de raccordement a sa propre spec : ici il reste muet.
+        { provide: FederationRaccordementService, useValue: mockFederationService },
+        // Le bloc du raccordement pré-remplit la demande d'adhésion avec l'utilisateur connecté.
+        { provide: AuthService, useValue: { currentUser: () => null, getUserDisplayName: () => '' } },
+        { provide: ActivatedRoute, useValue: mockActivatedRoute },
+        { provide: Router, useValue: mockRouter },
       ]
     });
 
     // Override provider for standalone component (must be before compileComponents)
     TestBed.overrideProvider(MatSnackBar, { useValue: mockSnackBar });
+    TestBed.overrideProvider(MatDialog, { useValue: mockDialog });
 
     await TestBed.compileComponents();
 
@@ -363,6 +394,225 @@ describe('AdminSettingsComponent', () => {
     it('should return empty string for empty string', () => {
       fixture.detectChanges();
       expect(component.formatDate('')).toBe('');
+    });
+  });
+
+  // =============================================================================
+  // #670 — MESURE D'AUDIENCE MATOMO
+  // =============================================================================
+
+  describe('Partage avec l\'exploration nationale (#636)', () => {
+    const updateSettings = () => mockSettingsService.updateSettings as jest.Mock;
+    const lastFormData = (): FormData => updateSettings().mock.calls.at(-1)[0];
+
+    beforeEach(() => {
+      configSignal.set({ ...mockConfig, federation_partage: true });
+      fixture.detectChanges();
+    });
+
+    it('cocher enregistre directement, sans confirmation', () => {
+      configSignal.set({ ...mockConfig, federation_partage: false });
+      fixture.detectChanges();
+
+      component.onFederationPartageToggle(true);
+
+      expect(mockDialog.open).not.toHaveBeenCalled();
+      expect(lastFormData().get('federation_partage')).toBe('true');
+    });
+
+    it('décocher ouvre une confirmation destructive', () => {
+      mockDialog.open.mockReturnValue({ afterClosed: () => NEVER });
+
+      component.onFederationPartageToggle(false);
+
+      expect(mockDialog.open).toHaveBeenCalledWith(ConfirmDialogComponent, expect.objectContaining({
+        data: expect.objectContaining({
+          destructive: true,
+          message: 'admin.settings.federation.retrait.message',
+        }),
+      }));
+      expect(updateSettings()).not.toHaveBeenCalled();
+    });
+
+    it('annuler garde la case cochée et n\'envoie rien', () => {
+      const fermeture = new Subject<boolean | undefined>();
+      mockDialog.open.mockReturnValue({ afterClosed: () => fermeture });
+
+      component.onFederationPartageToggle(false);
+      fermeture.next(false);
+      fixture.detectChanges();
+
+      expect(updateSettings()).not.toHaveBeenCalled();
+      expect(component.federationPartage()).toBe(true);
+    });
+
+    it('fermer la fenêtre sans choisir vaut annulation', () => {
+      mockDialog.open.mockReturnValue({ afterClosed: () => of(undefined) });
+
+      component.onFederationPartageToggle(false);
+
+      expect(updateSettings()).not.toHaveBeenCalled();
+      expect(component.federationPartage()).toBe(true);
+    });
+
+    it('confirmer enregistre le retrait du partage', () => {
+      mockDialog.open.mockReturnValue({ afterClosed: () => of(true) });
+
+      component.onFederationPartageToggle(false);
+
+      expect(updateSettings()).toHaveBeenCalledTimes(1);
+      expect(lastFormData().get('federation_partage')).toBe('false');
+      expect(component.federationPartage()).toBe(false);
+      expect(mockSnackBar.open).toHaveBeenCalledWith(
+        'admin.settings.federation.messages.desactive', expect.anything(), expect.anything(),
+      );
+    });
+
+    it('un échec d\'enregistrement recoche la case', () => {
+      mockDialog.open.mockReturnValue({ afterClosed: () => of(true) });
+      updateSettings().mockReturnValue(throwError(() => new Error('500')));
+
+      component.onFederationPartageToggle(false);
+
+      expect(component.federationPartage()).toBe(true);
+    });
+  });
+
+  describe('Matomo (#670)', () => {
+    const lastFormData = (): FormData =>
+      (mockSettingsService.updateSettings as jest.Mock).mock.calls.at(-1)[0];
+
+    it('reprend les réglages de l\'instance', () => {
+      configSignal.set({
+        ...mockConfig,
+        matomo_enabled: true,
+        matomo_url: 'https://matomo.example.org',
+        matomo_site_id: '12',
+      });
+      fixture.detectChanges();
+
+      expect(component.matomoEnabled()).toBe(true);
+      expect(component.matomoUrl()).toBe('https://matomo.example.org');
+      expect(component.matomoSiteId()).toBe('12');
+    });
+
+    it('enregistre l\'activation, l\'URL et l\'identifiant en un clic', fakeAsync(() => {
+      fixture.detectChanges();
+      component.matomoEnabled.set(true);
+      component.matomoUrl.set(' https://matomo.example.org ');
+      component.matomoSiteId.set('12');
+
+      component.saveMatomo();
+      tick();
+
+      const data = lastFormData();
+      expect(data.get('matomo_enabled')).toBe('true');
+      expect(data.get('matomo_url')).toBe('https://matomo.example.org');
+      expect(data.get('matomo_site_id')).toBe('12');
+      expect(mockSnackBar.open).toHaveBeenCalled();
+    }));
+
+    it('refuse d\'activer sans URL ni identifiant, sans appeler l\'API', () => {
+      fixture.detectChanges();
+      (mockSettingsService.updateSettings as jest.Mock).mockClear();
+      component.matomoEnabled.set(true);
+
+      component.saveMatomo();
+
+      expect(mockSettingsService.updateSettings).not.toHaveBeenCalled();
+      expect(component.matomoError()).toBeTruthy();
+    });
+
+    it('affiche l\'erreur renvoyée par le serveur', fakeAsync(() => {
+      fixture.detectChanges();
+      (mockSettingsService.updateSettings as jest.Mock).mockReturnValueOnce(
+        throwError(() => ({ error: { matomo_url: ['Saisissez une URL valide.'] } })),
+      );
+      component.matomoUrl.set('pas une url');
+      component.matomoSiteId.set('12');
+
+      component.saveMatomo();
+      tick();
+
+      expect(component.matomoError()).toBe('Saisissez une URL valide.');
+    }));
+  });
+
+  // =============================================================================
+  // ONGLETS THÉMATIQUES (?onglet=)
+  // =============================================================================
+
+  describe('Onglets', () => {
+    const libellesOnglets = (): HTMLElement[] =>
+      Array.from(fixture.nativeElement.querySelectorAll('.mat-mdc-tab')) as HTMLElement[];
+    const raccordement = (): Element | null =>
+      fixture.nativeElement.querySelector('app-federation-raccordement');
+
+    it('affiche quatre onglets et ouvre « Apparence » par défaut', async () => {
+      fixture.detectChanges();
+      await fixture.whenStable();
+
+      expect(libellesOnglets().length).toBe(4);
+      expect(component.ongletIndex()).toBe(0);
+      expect(fixture.nativeElement.textContent).toContain('Image de la page d\'accueil');
+    });
+
+    it('n\'instancie pas le raccordement au hub hors de son onglet', async () => {
+      fixture.detectChanges();
+      await fixture.whenStable();
+
+      expect(raccordement()).toBeNull();
+      expect(mockFederationService.etat).not.toHaveBeenCalled();
+    });
+
+    it('ouvre l\'onglet demandé par ?onglet= (et seulement alors le raccordement)', async () => {
+      queryParamMap$.next(convertToParamMap({ onglet: 'exploration' }));
+      fixture.detectChanges();
+      await fixture.whenStable();
+      fixture.detectChanges();
+
+      expect(component.ongletIndex()).toBe(3);
+      expect(raccordement()).not.toBeNull();
+      expect(mockFederationService.etat).toHaveBeenCalled();
+    });
+
+    it.each([
+      ['apparence', 0],
+      ['exports', 1],
+      ['fonctionnalites', 2],
+      ['exploration', 3],
+      ['inconnu', 0],
+    ])('?onglet=%s → onglet %i', (onglet, index) => {
+      queryParamMap$.next(convertToParamMap({ onglet }));
+      fixture.detectChanges();
+      expect(component.ongletIndex()).toBe(index);
+    });
+
+    it('reporte l\'onglet choisi dans l\'URL sans empiler d\'historique', () => {
+      fixture.detectChanges();
+
+      component.onOngletChange(1);
+
+      expect(mockRouter.navigate).toHaveBeenCalledWith([], {
+        relativeTo: mockActivatedRoute,
+        queryParams: { onglet: 'exports' },
+        queryParamsHandling: 'merge',
+        replaceUrl: true,
+      });
+    });
+
+    it('met l\'URL à jour au clic sur un onglet', async () => {
+      fixture.detectChanges();
+      await fixture.whenStable();
+
+      libellesOnglets()[2].click();
+      fixture.detectChanges();
+      await fixture.whenStable();
+
+      expect(mockRouter.navigate).toHaveBeenCalledWith(
+        [],
+        expect.objectContaining({ queryParams: { onglet: 'fonctionnalites' } }),
+      );
     });
   });
 });

@@ -1,5 +1,5 @@
-import { Component, booleanAttribute, computed, input, model, output, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, booleanAttribute, computed, input, model, output, signal, ChangeDetectionStrategy } from '@angular/core';
+
 import { TranslateModule } from '@ngx-translate/core';
 import { CheckboxComponent } from '../../checkbox/checkbox.component';
 import { HighlightMatchPipe } from '../highlight-match.pipe';
@@ -21,9 +21,10 @@ import { FilterOption, FilterTheme, FilterValue, TriState } from '../filter.type
 @Component({
   selector: 'app-filter-option-list',
   standalone: true,
-  imports: [CommonModule, TranslateModule, CheckboxComponent, HighlightMatchPipe],
+  imports: [TranslateModule, CheckboxComponent, HighlightMatchPipe],
   templateUrl: './filter-option-list.component.html',
   styleUrl: './filter-option-list.component.scss',
+  changeDetection: ChangeDetectionStrategy.Eager,
   host: {
     '[class.theme-dark]': "theme() === 'dark'",
   },

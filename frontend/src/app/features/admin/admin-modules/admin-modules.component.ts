@@ -6,7 +6,7 @@
  * Elle sera amenee a evoluer significativement dans les prochaines versions.
  * Pour le moment, la gestion des modules est simplifiee et ne couvre pas tous les cas d'usage.
  */
-import { Component, inject, signal, OnInit, computed } from '@angular/core';
+import { Component, inject, signal, OnInit, computed, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatCardModule } from '@angular/material/card';
@@ -335,6 +335,7 @@ interface UserWithModuleAccess {
       </section>
     </div>
   `,
+  changeDetection: ChangeDetectionStrategy.Eager,
   styles: [`
     .admin-modules {
       padding: 24px;

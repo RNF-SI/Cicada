@@ -104,12 +104,14 @@ test.describe('Exploration servie par le hub', () => {
     expect(derniere.compteurs['tout']).toBeGreaterThan(100);
   });
 
-  test("ouvre la fiche du plan sur lequel on a cliqué, pas celle de son homonyme", async ({
+  test("ouvre l'écran réel du plan sur lequel on a cliqué, pas celui de son homonyme", async ({
     page,
   }) => {
     // Le cœur du sujet. Les deux instances ont des plans de même slug ; le lien
     // doit désigner l'instance d'origine, sinon l'utilisateur atterrit sur un
-    // autre plan qui porte le même nom.
+    // autre plan qui porte le même nom. Depuis #683, un résultat distant s'ouvre
+    // dans les écrans réels (`/plans/<instance:slug>/…`), dont les appels d'API
+    // sont redirigés vers l'instantané publié (`/api/exploration/distant/…`).
     const reponses = await capturerReponses(page);
     await ouvrirListe(page);
 
@@ -117,47 +119,45 @@ test.describe('Exploration servie par le hub', () => {
       results: Array<{
         titre: string;
         instance_id?: string;
+        acces_direct?: boolean;
         plan: { nom: string; slug: string; instance_id?: string };
       }>;
     };
     const distant = derniere.results.find((r) => r.instance_id !== 'cen');
     test.skip(!distant, 'Aucun résultat distant : les deux instances ont-elles publié ?');
+    expect(
+      distant!.acces_direct,
+      "Un résultat d'une autre instance ne doit pas prétendre à un accès direct.",
+    ).toBe(false);
 
     const rang = derniere.results.indexOf(distant!);
 
     // L'attente est posée AVANT le clic : `waitForResponse` ne voit que ce qui
-    // arrive après son appel, et la fiche répond souvent avant qu'on ait fini
-    // de vérifier l'URL.
-    const attenteFiche = page.waitForResponse(
-      (r) => r.url().includes('/api/exploration/plans/') && r.request().method() === 'GET',
+    // arrive après son appel.
+    const attenteDistant = page.waitForResponse(
+      (r) => r.url().includes('/api/exploration/distant/') && r.request().method() === 'GET',
       { timeout: 20000 },
     );
     await page.getByTestId(RESULTATS).locator('li').nth(rang).click();
-    await expect(page).toHaveURL(/\/exploration\/plans\//, { timeout: 20000 });
+    await expect(page).toHaveURL(new RegExp(`/plans/${distant!.instance_id}:`), {
+      timeout: 20000,
+    });
 
-    // La fiche affichée doit être celle du plan distant. On le vérifie sur ce
-    // que l'API a réellement renvoyé : deux plans homonymes ne se distinguent
-    // pas à l'écran, c'est précisément le piège.
-    const fiche = await attenteFiche;
+    const reponse = await attenteDistant;
     expect(
-      fiche.status(),
-      `La fiche du plan distant répond ${fiche.status()} : le lien perd-il ` +
-        "l'instance d'origine ?",
+      reponse.status(),
+      `L'instantané du plan distant répond ${reponse.status()} : le lien perd-il ` +
+        "l'instance d'origine, ou l'instance émettrice n'a-t-elle pas publié ses écrans ?",
     ).toBe(200);
 
-    const corps = (await fiche.json()) as {
-      instance_id?: string;
-      nom?: string;
-      id_pg?: number;
-    };
+    const corps = (await reponse.json()) as { instance_id?: string; acces_exploration?: boolean };
+    expect(corps.instance_id).toBe(distant!.instance_id);
+    expect(corps.acces_exploration, "Un plan distant est toujours lu en exploration.").toBe(true);
 
-    const instanceServie = corps.instance_id ?? 'cen';
-    expect(
-      instanceServie,
-      `La fiche ouverte vient de « ${instanceServie} » alors que le résultat ` +
-        `cliqué vient de « ${distant!.instance_id} » : le lien perd l'instance ` +
-        "d'origine et ouvre un homonyme local.",
-    ).toBe(distant!.instance_id);
+    // La bannière dit d'où vient ce qu'on regarde, et de quand ça date.
+    await expect(page.getByTestId('exploration-provenance').first()).toBeVisible({
+      timeout: 20000,
+    });
   });
 
   test("dit sur chaque résultat de quelle structure il vient", async ({ page }) => {
@@ -185,7 +185,7 @@ test.describe('Exploration servie par le hub', () => {
     ).toBeGreaterThan(1);
   });
 
-  test("nomme la structure qui a publié la fiche qu'on lit", async ({ page }) => {
+  test("nomme la structure qui a publié ce qu'on lit", async ({ page }) => {
     const reponses = await capturerReponses(page);
     await ouvrirListe(page);
 
@@ -196,16 +196,19 @@ test.describe('Exploration servie par le hub', () => {
     test.skip(rang < 0, 'Aucun résultat distant dans cette recherche.');
 
     await page.getByTestId(RESULTATS).locator('li').nth(rang).click();
-    await expect(page).toHaveURL(/\/exploration\/plans\//, { timeout: 20000 });
+    await expect(page).toHaveURL(/\/plans\/[^/]+:/, { timeout: 20000 });
 
-    // La fiche est un instantané déposé par une autre structure : qui l'a
-    // publiée, et quand, fait partie de ce qu'il faut savoir pour la lire.
-    await expect(page.getByTestId('fiche-provenance')).toBeVisible({ timeout: 20000 });
+    // L'écran est alimenté par un instantané déposé par une autre structure :
+    // qui l'a publié, et quand, fait partie de ce qu'il faut savoir pour le lire.
+    await expect(page.getByTestId('exploration-provenance').first()).toBeVisible({
+      timeout: 20000,
+    });
   });
 
-  test('affiche la fiche complète d’un plan hébergé ailleurs', async ({ page }) => {
+  test('affiche l’écran complet d’un plan hébergé ailleurs', async ({ page }) => {
     // Le hub ressert un instantané publié : le plan n'existe dans aucune table
-    // de cette instance, et sa fiche doit pourtant s'afficher entièrement.
+    // de cette instance, et son écran doit pourtant s'afficher entièrement —
+    // dans les mêmes composants qu'un plan local, sans données sensibles.
     const reponses = await capturerReponses(page);
     await ouvrirListe(page);
 
@@ -216,12 +219,13 @@ test.describe('Exploration servie par le hub', () => {
     test.skip(rang < 0, 'Aucun résultat distant dans cette recherche.');
 
     await page.getByTestId(RESULTATS).locator('li').nth(rang).click();
-    await expect(page).toHaveURL(/\/exploration\/plans\//, { timeout: 20000 });
+    await expect(page).toHaveURL(/\/plans\/[^/]+:/, { timeout: 20000 });
 
-    // Un titre et au moins un enjeu : la fiche est rendue, pas juste son
-    // squelette. Une page blanche passerait un simple test d'URL.
-    await expect(page.locator('h1')).toBeVisible({ timeout: 20000 });
-    await expect(page.locator('h1')).not.toBeEmpty();
+    // Un titre non vide et la bannière d'exploration : l'écran est rendu, pas
+    // juste son squelette. Une page blanche passerait un simple test d'URL.
+    await expect(page.locator('h1').first()).toBeVisible({ timeout: 20000 });
+    await expect(page.locator('h1').first()).not.toBeEmpty();
+    await expect(page.getByTestId('exploration-banner').first()).toBeVisible();
   });
 
   test("signale une panne du hub au lieu d’afficher une liste vide", async ({ page }) => {

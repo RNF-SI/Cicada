@@ -1,4 +1,4 @@
-import { Component, Input } from '@angular/core';
+import { Component, Input, ChangeDetectionStrategy } from '@angular/core';
 import { getPrioriteLevel, PrioriteLevel } from '../../utils/tag-icons';
 
 /**
@@ -35,6 +35,7 @@ import { getPrioriteLevel, PrioriteLevel } from '../../utils/tag-icons';
       </span>
     }
   `,
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './priority-badge.component.scss',
 })
 export class PriorityBadgeComponent {

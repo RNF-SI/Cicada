@@ -2,14 +2,14 @@
  * Modal unifie pour gerer les utilisateurs d'un site.
  * Permet d'ajouter des utilisateurs des organismes lies au site.
  */
-import { Component, inject, signal, OnInit, computed } from '@angular/core';
+import { Component, inject, signal, OnInit, computed, ChangeDetectionStrategy } from '@angular/core';
 import {
   FilterDropdownComponent,
   FilterOptionListComponent,
   FilterPanelDirective,
   FilterOption,
 } from '../../filters';
-import { CommonModule } from '@angular/common';
+
 import { FormsModule, ReactiveFormsModule, FormControl } from '@angular/forms';
 import { MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -56,7 +56,6 @@ export interface ManageSiteUsersModalData {
   selector: 'app-manage-site-users-modal',
   standalone: true,
   imports: [
-    CommonModule,
     FormsModule,
     ReactiveFormsModule,
     MatDialogModule,
@@ -75,8 +74,9 @@ export interface ManageSiteUsersModalData {
     FilterPanelDirective,
     MatTooltipModule,
     TranslateModule
-  ],
+],
   templateUrl: './manage-site-users-modal.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './manage-site-users-modal.component.scss'
 })
 export class ManageSiteUsersModalComponent implements OnInit {

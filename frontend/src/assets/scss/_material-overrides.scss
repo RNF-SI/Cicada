@@ -51,10 +51,10 @@
   &.mat-primary,
   &[color="primary"] {
     // M3 tokens - container and label
-    --mdc-filled-button-container-color: #{$primary-color};
-    --mdc-filled-button-label-text-color: #{$white};
-    --mdc-protected-button-container-color: #{$primary-color};
-    --mdc-protected-button-label-text-color: #{$white};
+    --mat-button-filled-container-color: #{$primary-color};
+    --mat-button-filled-label-text-color: #{$white};
+    --mat-button-protected-container-color: #{$primary-color};
+    --mat-button-protected-label-text-color: #{$white};
 
     // Force background and text color
     background-color: $primary-color !important;
@@ -841,9 +841,9 @@ a[mat-raised-button][color="primary"] {
 // Chip Row (inside form fields - redacteurs, relecteurs, etc.)
 // Force readable text on light background
 .mat-mdc-chip-row {
-  --mdc-chip-label-text-color: #{$black};
-  --mdc-chip-elevated-container-color: #{$gray-lighter};
-  --mdc-chip-with-trailing-icon-trailing-icon-color: #{$gray-dark};
+  --mat-chip-label-text-color: #{$black};
+  --mat-chip-elevated-container-color: #{$gray-lighter};
+  --mat-chip-with-trailing-icon-trailing-icon-color: #{$gray-dark};
 
   font-family: $font-family !important;
   background-color: $gray-lighter !important;
@@ -883,8 +883,8 @@ a[mat-raised-button][color="primary"] {
   height: auto;
   min-height: 24px;
   // Pas de bordure outline sur les tags (revue design #308 : valable pour tous les tags de l'app)
-  --mdc-chip-outline-width: 0 !important;
-  --mdc-chip-outline-color: transparent !important;
+  --mat-chip-outline-width: 0 !important;
+  --mat-chip-outline-color: transparent !important;
 
   &.mat-primary {
     background-color: $primary-color !important;
@@ -1311,22 +1311,22 @@ a[mat-raised-button][color="primary"] {
   // ============================================
 
   // Selected (checked) state - background is primary, checkmark is WHITE
-  --mdc-checkbox-selected-checkmark-color: #{$white};
-  --mdc-checkbox-selected-icon-color: #{$primary-color};
-  --mdc-checkbox-selected-focus-icon-color: #{$primary-color};
-  --mdc-checkbox-selected-hover-icon-color: #{$primary-color};
-  --mdc-checkbox-selected-pressed-icon-color: #{$primary-color};
+  --mat-checkbox-selected-checkmark-color: #{$white};
+  --mat-checkbox-selected-icon-color: #{$primary-color};
+  --mat-checkbox-selected-focus-icon-color: #{$primary-color};
+  --mat-checkbox-selected-hover-icon-color: #{$primary-color};
+  --mat-checkbox-selected-pressed-icon-color: #{$primary-color};
 
   // State layer (ripple effect)
-  --mdc-checkbox-selected-focus-state-layer-color: #{$primary-color};
-  --mdc-checkbox-selected-hover-state-layer-color: #{$primary-color};
-  --mdc-checkbox-selected-pressed-state-layer-color: #{$primary-color};
+  --mat-checkbox-selected-focus-state-layer-color: #{$primary-color};
+  --mat-checkbox-selected-hover-state-layer-color: #{$primary-color};
+  --mat-checkbox-selected-pressed-state-layer-color: #{$primary-color};
 
   // Unselected (unchecked) state
-  --mdc-checkbox-unselected-icon-color: #{$gray};
-  --mdc-checkbox-unselected-focus-icon-color: #{$gray-dark};
-  --mdc-checkbox-unselected-hover-icon-color: #{$primary-color};
-  --mdc-checkbox-unselected-pressed-icon-color: #{$primary-color};
+  --mat-checkbox-unselected-icon-color: #{$gray};
+  --mat-checkbox-unselected-focus-icon-color: #{$gray-dark};
+  --mat-checkbox-unselected-hover-icon-color: #{$primary-color};
+  --mat-checkbox-unselected-pressed-icon-color: #{$primary-color};
 
   // ============================================
   // Direct MDC component styling
@@ -1442,16 +1442,16 @@ a[mat-raised-button][color="primary"] {
   // ============================================
 
   // Selected (checked) state
-  --mdc-radio-selected-icon-color: #{$primary-color};
-  --mdc-radio-selected-focus-icon-color: #{$primary-color};
-  --mdc-radio-selected-hover-icon-color: #{$primary-color};
-  --mdc-radio-selected-pressed-icon-color: #{$primary-color};
+  --mat-radio-selected-icon-color: #{$primary-color};
+  --mat-radio-selected-focus-icon-color: #{$primary-color};
+  --mat-radio-selected-hover-icon-color: #{$primary-color};
+  --mat-radio-selected-pressed-icon-color: #{$primary-color};
 
   // Unselected state
-  --mdc-radio-unselected-icon-color: #{$gray};
-  --mdc-radio-unselected-focus-icon-color: #{$gray-dark};
-  --mdc-radio-unselected-hover-icon-color: #{$primary-color};
-  --mdc-radio-unselected-pressed-icon-color: #{$primary-color};
+  --mat-radio-unselected-icon-color: #{$gray};
+  --mat-radio-unselected-focus-icon-color: #{$gray-dark};
+  --mat-radio-unselected-hover-icon-color: #{$primary-color};
+  --mat-radio-unselected-pressed-icon-color: #{$primary-color};
 
   // Ripple
   --mat-radio-checked-ripple-color: #{$primary-bg-light};
@@ -1538,14 +1538,14 @@ a[mat-raised-button][color="primary"] {
   font-family: $font-family !important;
 
   // CSS tokens for slide toggle
-  --mdc-switch-selected-track-color: #{$primary-color};
-  --mdc-switch-selected-hover-track-color: #{darken($primary-color, 5%)};
-  --mdc-switch-selected-focus-track-color: #{$primary-color};
-  --mdc-switch-selected-pressed-track-color: #{darken($primary-color, 5%)};
-  --mdc-switch-unselected-track-color: #{$gray-light};
-  --mdc-switch-selected-handle-color: #{$white};
-  --mdc-switch-unselected-handle-color: #{$white};
-  --mdc-switch-handle-surface-color: #{$white};
+  --mat-slide-toggle-selected-track-color: #{$primary-color};
+  --mat-slide-toggle-selected-hover-track-color: #{darken($primary-color, 5%)};
+  --mat-slide-toggle-selected-focus-track-color: #{$primary-color};
+  --mat-slide-toggle-selected-pressed-track-color: #{darken($primary-color, 5%)};
+  --mat-slide-toggle-unselected-track-color: #{$gray-light};
+  --mat-slide-toggle-selected-handle-color: #{$white};
+  --mat-slide-toggle-unselected-handle-color: #{$white};
+  --mat-slide-toggle-handle-surface-color: #{$white};
 
   .mdc-switch {
     // Track (background bar)

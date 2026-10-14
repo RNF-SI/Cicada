@@ -7,6 +7,8 @@ entraîner, et inversement.
 
 - Architecture et contrat d'échange : [hub/README.md](../hub/README.md)
 - Banc d'essai local (2 instances + hub) : [MULTI_INSTANCE_LOCAL.md](MULTI_INSTANCE_LOCAL.md)
+- Place du hub parmi les autres serveurs (dépôt APT, API de suivi, bases) : [INFRASTRUCTURE.md](INFRASTRUCTURE.md)
+- Ce déploiement rejoué en VM, instance comprise : [packaging/vm-bench](../packaging/vm-bench/README.md) (scénarios `federation` et `a-z`)
 
 ## Pourquoi le hub sort du même dépôt que CICADA
 
@@ -57,6 +59,12 @@ sudo chmod 600 .env.hub.prod
 sudo nano .env.hub.prod    # SECRET_KEY, ALLOWED_HOSTS, mots de passe, jetons
 sudo mkdir -p /var/log/cicada-hub
 ```
+
+`ALLOWED_HOSTS` : le nom public du hub. `localhost` et `127.0.0.1` sont
+toujours admis en plus, car le healthcheck du conteneur et la vérification
+ci-dessous passent par eux. **Avec une image ≤ 0.1.49, ajoutez-les vous-même**
+(`ALLOWED_HOSTS=hub.cicada.example.org,localhost,127.0.0.1`), sinon le hub répond
+400 à ces contrôles et reste « unhealthy ».
 
 Le démarrage échoue explicitement si `SECRET_KEY`, `ALLOWED_HOSTS` ou
 `POSTGRES_PASSWORD` manquent — c'est voulu : un hub qui démarre avec la clé de
@@ -150,9 +158,31 @@ enroler_instance rnf --reactiver
 enroler_instance --lister                 # le registre, et qui publie sans être enrôlé
 ```
 
+### Adhésion validée par RNF (enrôlement par l'API de suivi, #696)
+
+Le chemin ordinaire n'est plus `enroler_instance` mais l'**adhésion** : la
+structure la demande depuis son instance (Administration > Paramètres), un
+administrateur RNF l'accepte dans l'admin de l'API de suivi (la vérification de
+l'identité de la structure sera définie plus tard, #697), et le suivi enrôle l'instance sur le hub
+par `POST /api/federation/enrolements/`. L'instance a tiré ses jetons elle-même ;
+seules leurs empreintes voyagent, aucun jeton n'est à remettre.
+
+Cela suppose un jeton d'administration partagé entre le hub et l'API de suivi :
+
+```bash
+python3 -c "import secrets; print(secrets.token_urlsafe(48))"
+```
+
+à reporter dans `HUB_ADMIN_TOKEN` du `.env.hub.prod` **et** du `.env` de l'API de
+suivi, puis redémarrer le hub. Vide (défaut), l'endpoint répond 403 à tout
+appel : l'adhésion est alors impossible et seul `enroler_instance` enrôle.
+
+Un identifiant déjà enrôlé avec d'autres jetons est refusé (409) sans rien
+modifier : c'est à trancher sur le hub avec `enroler_instance`.
+
 Désactiver **ne dépublie pas** : l'index déjà déposé reste servi. Le retrait des
 données est une décision de l'instance, qui la prend avec
-`retrait_federation --confirmer` — la confondre avec une suspension d'accès
+`retrait_federation --confirmer` ou en décochant le partage — la confondre avec une suspension d'accès
 ferait disparaître des plans à la première suspicion.
 
 > Les variables `HUB_FEDERATION_TOKENS` / `HUB_READ_TOKENS` restent acceptées en
@@ -186,7 +216,12 @@ CICADA_HUB_PUSH_AUTO=true
 À l'installation par paquet Debian, l'installeur web propose une section
 **« Exploration fédérée »** qui écrit ces lignes. Elle est facultative et refuse
 un identifiant mal formé — c'est le seul moment où l'erreur se corrige sans
-conséquence.
+conséquence. L'URL du hub y est **pré-remplie** : il n'y a qu'un hub, hébergé
+par RNF, dont l'adresse est gravée dans le paquet à sa construction
+(`HUB_URL` de `/etc/cicada/cicada.conf`, injectée par `build-deb.sh`, comme
+l'URL de l'API de suivi). On ne la change dans le formulaire que pour raccorder
+un hub de test. Après l'installation, ces valeurs ne se modifient encore que
+dans le `.env` (#695).
 
 ### Suivre l'état de la fédération
 
@@ -236,8 +271,14 @@ index vide, qui dépublierait tout) :
 docker exec cicada_prod_web python manage.py retrait_federation --confirmer
 ```
 
-Décocher le partage dans l'interface arrête les publications à venir sans
-effacer les précédentes.
+Décocher le partage dans l'interface (Administration > Paramètres) fait **le
+même retrait, immédiatement** : les plans de l'instance quittent le hub, et le
+hub refuse dès lors son jeton de lecture (il ne sert que les instances qui
+publient). Si le hub est injoignable à ce moment-là, la case reste décochée et
+le retrait est relancé chaque heure (tâche `relancer_retrait_hub`) jusqu'au
+succès ; la page des paramètres l'affiche en « retrait en attente ». Recocher
+republie en arrière-plan, sans attendre la nuit. La commande, elle, ne modifie
+pas la case : si le partage reste coché, la publication suivante republiera.
 
 ## Monter de version
 

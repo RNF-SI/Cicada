@@ -5,7 +5,7 @@ import { ActivatedRoute, Router, convertToParamMap } from '@angular/router';
 import { RouterTestingModule } from '@angular/router/testing';
 import { MatDialog, MatDialogRef } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { TranslateModule, TranslateLoader } from '@ngx-translate/core';
+import { TranslateModule, TranslateLoader, TranslateService } from '@ngx-translate/core';
 import { Observable, of, throwError, Subject, BehaviorSubject } from 'rxjs';
 import { signal, WritableSignal } from '@angular/core';
 
@@ -186,7 +186,7 @@ describe('PlanDetailComponent', () => {
   let fixture: ComponentFixture<PlanDetailComponent>;
   let router: Router;
   let mockSnackBarOpen: jest.SpyInstance;
-  let confirmSpy: jest.SpyInstance;
+  let confirmSpy: jest.SpyInstance | undefined;
 
   // Subjects for route observables
   let paramMapSubject: BehaviorSubject<any>;
@@ -288,6 +288,7 @@ describe('PlanDetailComponent', () => {
       isSuperAdmin: isSuperAdminSignal.asReadonly(),
       isAdminOrganisme: isAdminOrganismeSignal.asReadonly(),
       isRedacteurPrincipal: jest.fn().mockReturnValue(false),
+      isRedacteur: jest.fn().mockReturnValue(false),
       canAccessAdmin: signal(true).asReadonly(),
       isReferent: signal(false).asReadonly(),
       isImpersonating: signal(false).asReadonly(),
@@ -368,6 +369,70 @@ describe('PlanDetailComponent', () => {
   // =========================================================================
   // Initialization
   // =========================================================================
+
+  describe('période du plan (prolongation #250)', () => {
+    function periode(): string {
+      const translate = TestBed.inject(TranslateService);
+      translate.setTranslation('fr', {
+        plans: { detail: { periode: 'Période', prolongeeJusqua: "prolongée jusqu'en {{annee}}" } },
+      }, true);
+      translate.use('fr');
+      fixture.detectChanges();
+      return fixture.nativeElement.querySelector('[data-testid="plan-periode"]')
+        .textContent.replace(/\s+/g, ' ').trim();
+    }
+
+    it('plan prolongé : période votée et fin réelle', () => {
+      setup({ plan: createMockPlan({
+        annee_debut: 2016, annee_fin: 2025, annees_extension: 2, annee_fin_effective: 2027,
+      }) });
+      expect(periode()).toBe("2016-2025, prolongée jusqu'en 2027");
+    });
+
+    it('recalcule la fin réelle si l\'API ne la fournit pas', () => {
+      setup({ plan: createMockPlan({ annee_debut: 2016, annee_fin: 2025, annees_extension: 1 }) });
+      expect(periode()).toBe("2016-2025, prolongée jusqu'en 2026");
+    });
+
+    it('plan non prolongé : la période seule', () => {
+      setup({ plan: createMockPlan({ annee_debut: 2024, annee_fin: 2034, annees_extension: 0 }) });
+      expect(periode()).toBe('2024-2034');
+    });
+
+    it('libellé « Période » et non « Année de début »', () => {
+      setup();
+      const ligne = fixture.nativeElement.querySelector('.plan-meta .meta-row').textContent;
+      expect(ligne).not.toContain('modals.planForm.fields.startYear');
+    });
+  });
+
+  describe('rang du plan', () => {
+    function surtitre(): HTMLElement | null {
+      return fixture.nativeElement.querySelector('[data-testid="plan-rang"]');
+    }
+
+    it('affiche le rang dans le surtitre, au-dessus du nom', () => {
+      setup({ plan: createMockPlan({ rang: 2 }) });
+      const translate = TestBed.inject(TranslateService);
+      translate.setTranslation('fr', { plans: { rangLabel: 'Rang {{rang}}' } }, true);
+      translate.use('fr');
+      fixture.detectChanges();
+
+      expect(surtitre()?.textContent?.trim()).toBe('Rang 2');
+      expect(fixture.nativeElement.querySelector('.plan-subtitle').contains(surtitre())).toBe(true);
+    });
+
+    it('ne le répète plus dans la ligne de détails', () => {
+      setup({ plan: createMockPlan({ rang: 2 }) });
+      const details = fixture.nativeElement.querySelector('.plan-meta').textContent;
+      expect(details).not.toContain('modals.planForm.fields.rang');
+    });
+
+    it('sans rang, pas de mention', () => {
+      setup({ plan: createMockPlan({ rang: undefined }) });
+      expect(surtitre()).toBeNull();
+    });
+  });
 
   describe('initialization', () => {
     it('should create', () => {

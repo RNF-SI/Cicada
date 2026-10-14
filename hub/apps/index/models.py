@@ -319,6 +319,12 @@ class PlanIndexe(models.Model):
     rang = models.IntegerField(_("Rang"), null=True, blank=True)
     annee_debut = models.IntegerField(_("Année de début"), null=True, blank=True)
     annee_fin = models.IntegerField(_("Année de fin"), null=True, blank=True)
+    # #676 — prolongation (#250) : le plan reste « en cours » jusqu'à
+    # annee_fin + annees_extension. Absent des dépôts d'instances antérieures
+    # à ce champ, il vaut alors 0.
+    annees_extension = models.PositiveSmallIntegerField(
+        _("Années d'extension"), default=0,
+    )
     type_document = models.CharField(
         _("Type de document"), max_length=255, null=True, blank=True,
     )
@@ -392,6 +398,15 @@ class PlanIndexe(models.Model):
         help_text=_(
             "Arbre rendu par les sérialiseurs de fiche de l'instance émettrice, "
             "stocké tel quel et resservi tel quel."
+        ),
+    )
+    ecrans = models.JSONField(
+        _("Écrans réels publiés"), default=dict, blank=True,
+        help_text=_(
+            "Réponses d'API des écrans réels du plan (page, arborescence, "
+            "fiches action), élaguées des données sensibles par l'instance "
+            "émettrice (#683). Stockées telles quelles, resservies telles "
+            "quelles : le hub n'en lit rien."
         ),
     )
     format_version = models.PositiveSmallIntegerField(
@@ -502,7 +517,15 @@ class ContenuIndexe(models.Model):
     contexte = models.TextField(
         _("Contexte"), blank=True, default='',
         help_text=_(
-            "Libellés des objets ancêtres. Interrogé uniquement en mode élargi."
+            "Libellés des objets ancêtres. Interrogé seulement si la portée "
+            "« éléments parents » est cochée."
+        ),
+    )
+    enfants = models.TextField(
+        _("Descendance"), blank=True, default='',
+        help_text=_(
+            "Libellés des objets descendants (#682). Interrogé seulement si la "
+            "portée « éléments enfants » est cochée."
         ),
     )
 
@@ -514,6 +537,16 @@ class ContenuIndexe(models.Model):
     )
     parent_libelle = models.CharField(
         _("Libellé du parent"), max_length=500, null=True, blank=True,
+    )
+    chemin = models.JSONField(
+        _("Ascendance"), default=list, blank=True,
+        help_text=_(
+            "Ancêtres de l'objet, de l'enjeu au parent direct, [{type, id, "
+            "libelle}] (#682) — tel que publié par l'instance."
+        ),
+    )
+    enjeu_slug = models.CharField(
+        _("Slug de l'enjeu de la branche"), max_length=255, null=True, blank=True,
     )
     sous_type = models.CharField(
         _("Sous-type"), max_length=50, null=True, blank=True,
@@ -538,6 +571,9 @@ class ContenuIndexe(models.Model):
     statut_pg = models.CharField(_("Statut du plan"), max_length=20)
     annee_debut = models.IntegerField(_("Année de début"), null=True, blank=True)
     annee_fin = models.IntegerField(_("Année de fin"), null=True, blank=True)
+    annees_extension = models.PositiveSmallIntegerField(  # #676
+        _("Années d'extension"), default=0,
+    )
     type_site_codes = ArrayField(
         models.CharField(max_length=25),
         verbose_name=_("Types d'aires protégées"), default=list, blank=True,
@@ -563,12 +599,35 @@ class ContenuIndexe(models.Model):
         db_persist=True,
         verbose_name=_("Vecteur — libellé et objets rattachés"),
     )
+    # Un vecteur par axe de portée (#681), sans index : une portée
+    # intermédiaire est servie par l'index de `search_full` puis revérifiée
+    # exactement sur ces colonnes — même mécanique que CICADA
+    # (`filters.vecteur_de_portee`).
+    search_description = models.GeneratedField(
+        expression=SearchVector('description', weight='B', config=SEARCH_CONFIG),
+        output_field=SearchVectorField(),
+        db_persist=True,
+        verbose_name=_("Vecteur — description"),
+    )
+    search_contexte = models.GeneratedField(
+        expression=SearchVector('contexte', weight='C', config=SEARCH_CONFIG),
+        output_field=SearchVectorField(),
+        db_persist=True,
+        verbose_name=_("Vecteur — éléments parents"),
+    )
+    search_enfants = models.GeneratedField(
+        expression=SearchVector('enfants', weight='C', config=SEARCH_CONFIG),
+        output_field=SearchVectorField(),
+        db_persist=True,
+        verbose_name=_("Vecteur — éléments enfants"),
+    )
     search_full = models.GeneratedField(
         expression=(
             SearchVector('titre', weight='A', config=SEARCH_CONFIG)
             + SearchVector('rattachements', weight='B', config=SEARCH_CONFIG)
             + SearchVector('description', weight='B', config=SEARCH_CONFIG)
             + SearchVector('contexte', weight='C', config=SEARCH_CONFIG)
+            + SearchVector('enfants', weight='C', config=SEARCH_CONFIG)
         ),
         output_field=SearchVectorField(),
         db_persist=True,

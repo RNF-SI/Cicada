@@ -275,7 +275,12 @@
                     <div class="plan-card" (click)="viewPlan(plan)">
                       <div class="plan-info">
                         <span class="plan-name">{{ plan.nom }}</span>
-                        <span class="plan-period">{{ formatPlanPeriod(plan) }}</span>
+                        <span class="plan-period">
+                          @if (plan.rang) {
+                            {{ 'plans.rangLabel' | translate:{ rang: plan.rang } }} ·
+                          }
+                          {{ formatPlanPeriod(plan) }}
+                        </span>
                       </div>
                       <div class="plan-actions">
                         <app-status-chip [statut]="plan.statut"></app-status-chip>

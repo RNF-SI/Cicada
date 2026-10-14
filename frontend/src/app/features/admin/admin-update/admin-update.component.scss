@@ -110,3 +110,49 @@
     gap: $spacing-xs;
   }
 }
+
+// Suivi de la mise à jour après le clic (#233) : une seule zone, dont la couleur
+// suit la phase — en cours, terminée, en échec.
+.update-progress {
+  margin: $spacing-md 0 0 0;
+  padding: $spacing-md;
+  border-radius: 8px;
+  background: $tag-cyan;
+  color: $black;
+  display: flex;
+  align-items: flex-start;
+  gap: $spacing-sm;
+
+  &.is-done {
+    background: $tag-green;
+  }
+
+  &.is-failed {
+    background: $tag-red;
+  }
+
+  .progress-spinner {
+    flex: none;
+    margin-top: 2px;
+  }
+
+  i {
+    font-size: 1.3em;
+    line-height: 1;
+    margin-top: 2px;
+  }
+
+  .progress-text {
+    flex: 1;
+  }
+
+  .progress-title {
+    margin: 0;
+    font-weight: 600;
+  }
+
+  .progress-hint {
+    margin: $spacing-xxs 0 0 0;
+    font-size: 0.9em;
+  }
+}

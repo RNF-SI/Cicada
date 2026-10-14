@@ -1,5 +1,5 @@
-import { Component, OnInit, input, inject, signal, computed, effect, untracked } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, OnInit, input, inject, signal, computed, effect, untracked, ChangeDetectionStrategy } from '@angular/core';
+
 import { Router } from '@angular/router';
 import { TranslateModule } from '@ngx-translate/core';
 import { EnjeuService } from '../../../../core/services/enjeu.service';
@@ -10,8 +10,9 @@ import { Enjeu } from '../../../../core/models/enjeu.model';
 @Component({
   selector: 'app-plan-sidebar',
   standalone: true,
-  imports: [CommonModule, TranslateModule],
+  imports: [TranslateModule],
   templateUrl: './plan-sidebar.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './plan-sidebar.component.scss'
 })
 export class PlanSidebarComponent implements OnInit {
@@ -92,7 +93,7 @@ export class PlanSidebarComponent implements OnInit {
    *  est réservée aux référents du plan et gestionnaires (admin_og, super_admin,
    *  rédacteur principal) — même audience que « Paramétrage ». Un utilisateur
    *  simplement lié au plan (non référent) ne doit pas voir les suivis. */
-  canViewSuivis = computed(() => this.effectiveCanManage());
+  canViewSuivis = computed(() => this.effectiveCanManage() && !this.authService.isRedacteur());
 
   /** Les exports extraient l'intégralité du contenu du plan : ils sont réservés
    *  aux référents du plan et gestionnaires (admin_og, super_admin, rédacteur

@@ -1,0 +1,19 @@
+<div class="partners">
+  @for (groupe of groupes; track groupe.libelle) {
+    <section class="partners__group">
+      <h2 class="partners__label">{{ groupe.libelle | translate }}</h2>
+      <ul class="partners__card">
+        @for (partenaire of groupe.partenaires; track partenaire.logo) {
+          <li>
+            <a [href]="partenaire.url" target="_blank" rel="noopener noreferrer"
+               [title]="partenaire.nom" class="partners__link">
+              <img [src]="'assets/images/partenaires/' + partenaire.logo" [alt]="partenaire.nom"
+                   class="partners__logo" [class]="'partners__logo--' + partenaire.logo.split('.')[0]"
+                   loading="lazy" />
+            </a>
+          </li>
+        }
+      </ul>
+    </section>
+  }
+</div>

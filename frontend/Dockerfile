@@ -1,7 +1,7 @@
 # Dockerfile pour l'application Angular frontend
 
 # Stage 1: Build de l'application Angular
-FROM node:20-alpine AS builder
+FROM node:22-alpine AS builder
 
 # Métadonnées
 LABEL maintainer="CEN/RNF"

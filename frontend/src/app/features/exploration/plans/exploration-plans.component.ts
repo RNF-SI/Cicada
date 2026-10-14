@@ -1,5 +1,5 @@
-import { CommonModule } from '@angular/common';
-import { Component, computed, effect, inject, signal } from '@angular/core';
+
+import { Component, computed, effect, inject, signal, ChangeDetectionStrategy } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { TranslateModule } from '@ngx-translate/core';
@@ -8,7 +8,9 @@ import {
   ExplorationCriteres,
   ExplorationPlan,
   ExplorationTri,
+  SegmentTexte,
   referencePlan,
+  segmenterSurTerme,
 } from '../../../core/models/exploration.model';
 import { ExplorationService } from '../../../core/services/exploration.service';
 import {
@@ -19,6 +21,7 @@ import {
 import { HeaderComponent } from '../../../shared/components/header/header.component';
 import { criteresDepuisUrl, criteresVersUrl } from '../exploration-url';
 import { ExplorationFiltresComponent } from '../filtres/exploration-filtres.component';
+import { PorteeBanniereComponent } from '../portee-banniere/portee-banniere.component';
 
 /**
  * Résultats du mode « rechercher un plan de gestion ».
@@ -32,7 +35,6 @@ import { ExplorationFiltresComponent } from '../filtres/exploration-filtres.comp
   selector: 'app-exploration-plans',
   standalone: true,
   imports: [
-    CommonModule,
     FormsModule,
     RouterModule,
     TranslateModule,
@@ -41,8 +43,10 @@ import { ExplorationFiltresComponent } from '../filtres/exploration-filtres.comp
     FilterDropdownComponent,
     FilterOptionListComponent,
     FilterPanelDirective,
+    PorteeBanniereComponent,
   ],
   templateUrl: './exploration-plans.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './exploration-plans.component.scss',
 })
 export class ExplorationPlansComponent {
@@ -52,6 +56,23 @@ export class ExplorationPlansComponent {
 
   /** Voir `referencePlan` : le slug seul ne suffit pas en fédération (#636). */
   protected readonly referencePlan = referencePlan;
+
+  /**
+   * Découpe un texte pour surligner le mot cherché (#681) — nom du plan,
+   * sites, zones. Lu dans les critères, pas dans le champ de saisie.
+   */
+  protected segments(texte: string): SegmentTexte[] {
+    return segmenterSurTerme(texte, this.criteres().q ?? '');
+  }
+
+  /**
+   * Où mène le clic sur un plan (#683) : sa page réelle quand il existe dans
+   * cette base, sa fiche publique (instantané déposé) quand il vient d'une
+   * autre instance.
+   */
+  protected lien(plan: ExplorationPlan): (string | number)[] {
+    return ['/plans', plan.acces_direct ? plan.slug : referencePlan(plan)];
+  }
 
   readonly criteres = signal<ExplorationCriteres>({});
   readonly motCle = signal('');

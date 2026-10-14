@@ -2,7 +2,7 @@
  * Composant pour la page d'activite unifiee.
  * Affiche l'historique d'activite dans une timeline avec filtrage par onglets.
  */
-import { Component, inject, signal, computed, OnInit } from '@angular/core';
+import { Component, inject, signal, computed, OnInit, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
@@ -59,6 +59,7 @@ import {
     FilterPanelDirective,
   ],
   templateUrl: './activity.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './activity.component.scss'
 })
 export class ActivityComponent implements OnInit {

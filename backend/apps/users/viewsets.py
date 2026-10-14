@@ -204,6 +204,11 @@ class RoleViewSet(viewsets.ModelViewSet):
         Changer le mot de passe d'un utilisateur.
         POST /api/users/{id}/change-password/
         """
+        from apps.authentication.providers import connexion_locale_active, message_connexion_externe
+        if not connexion_locale_active():
+            # #689 — mot de passe CICADA sans objet : on se connecte par GeoNature.
+            return Response({'detail': message_connexion_externe()}, status=status.HTTP_403_FORBIDDEN)
+
         user = self.get_object()
         serializer = self.get_serializer(data=request.data, context={'user': user})
         
@@ -310,6 +315,55 @@ class RoleViewSet(viewsets.ModelViewSet):
 
         return Response({
             'message': f"{target_user.get_full_name()} n'est plus Rédacteur Principal.",
+            'user': RoleDetailSerializer(target_user, context={'request': request}).data,
+        })
+
+    @action(detail=True, methods=['post'], url_path='set-redacteur',
+            permission_classes=[IsSuperAdmin])
+    def set_redacteur(self, request, pk=None):
+        """
+        #700 — Passer un utilisateur simple en Rédacteur externe.
+        POST /api/users/{id}/set-redacteur/
+        Réservé au super_admin (un bureau d'étude n'a pas d'administrateur
+        d'organisme dans CICADA).
+        """
+        return self._changer_role_redacteur(request, 'utilisateur', 'redacteur')
+
+    @action(detail=True, methods=['post'], url_path='remove-redacteur',
+            permission_classes=[IsSuperAdmin])
+    def remove_redacteur(self, request, pk=None):
+        """
+        #700 — Rendre à un Rédacteur externe le rôle d'utilisateur simple.
+        POST /api/users/{id}/remove-redacteur/
+        """
+        return self._changer_role_redacteur(request, 'redacteur', 'utilisateur')
+
+    def _changer_role_redacteur(self, request, depuis, vers):
+        target_user = self.get_object()
+        if target_user.role_level != depuis or target_user.is_superuser:
+            return Response(
+                {'error': f"Ce changement de rôle n'est possible que depuis le rôle « {depuis} »."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        target_user.role_level = vers
+        target_user.save(update_fields=['role_level'])
+
+        from apps.core.services import ActivityService
+        ActivityService.log_activity(
+            actor=request.user,
+            action='status_change',
+            entity_type='user',
+            entity_id=target_user.pk,
+            entity_name=target_user.get_full_name(),
+            description=(
+                'Passé Rédacteur externe' if vers == 'redacteur'
+                else 'Rédacteur externe repassé Utilisateur'
+            ),
+            related_user=target_user,
+        )
+
+        return Response({
             'user': RoleDetailSerializer(target_user, context={'request': request}).data,
         })
 
@@ -669,12 +723,12 @@ class RoleViewSet(viewsets.ModelViewSet):
         """
         Desactiver un compte suite a une demande RGPD.
         POST /api/users/users/{id}/deactivate_rgpd/
-        Accessible uniquement aux super_admins et si AUTH_PROVIDER == 'local'.
+        Accessible uniquement aux super_admins, sauf si les comptes sont gérés par Keycloak.
         """
         from django.conf import settings
 
         # Verifier que l'auth est locale
-        if getattr(settings, 'AUTH_PROVIDER', 'local') != 'local':
+        if getattr(settings, 'AUTH_PROVIDER', 'local') == 'keycloak':
             return Response(
                 {'error': "La gestion des comptes est deleguee a Keycloak."},
                 status=status.HTTP_400_BAD_REQUEST
@@ -734,12 +788,12 @@ class RoleViewSet(viewsets.ModelViewSet):
         """
         Anonymiser un compte suite a une demande RGPD.
         POST /api/users/users/{id}/anonymize_rgpd/
-        Accessible uniquement aux super_admins et si AUTH_PROVIDER == 'local'.
+        Accessible uniquement aux super_admins, sauf si les comptes sont gérés par Keycloak.
         """
         from django.conf import settings
 
         # Verifier que l'auth est locale
-        if getattr(settings, 'AUTH_PROVIDER', 'local') != 'local':
+        if getattr(settings, 'AUTH_PROVIDER', 'local') == 'keycloak':
             return Response(
                 {'error': "La gestion des comptes est deleguee a Keycloak."},
                 status=status.HTTP_400_BAD_REQUEST

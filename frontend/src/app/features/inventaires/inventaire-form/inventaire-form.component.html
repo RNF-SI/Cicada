@@ -141,7 +141,7 @@
               <mat-label></mat-label>
               <mat-select formControlName="objectif_principal">
                 <mat-select-trigger>
-                  {{ getObjectifDisplayLabel(form.get('objectif_principal')?.value) }}
+                  {{ getObjectifDisplayLabel($safeNavigationMigration(form.get('objectif_principal')?.value)) }}
                 </mat-select-trigger>
                 <mat-option [value]="''">—</mat-option>
                 @for (group of objectifGroups(); track group.groupLabel) {
@@ -171,7 +171,7 @@
                 <mat-label></mat-label>
                 <mat-select formControlName="objectif_secondaire">
                   <mat-select-trigger>
-                    {{ getObjectifDisplayLabel(form.get('objectif_secondaire')?.value) }}
+                    {{ getObjectifDisplayLabel($safeNavigationMigration(form.get('objectif_secondaire')?.value)) }}
                   </mat-select-trigger>
                   <mat-option [value]="''">—</mat-option>
                   @for (group of objectifGroups(); track group.groupLabel) {

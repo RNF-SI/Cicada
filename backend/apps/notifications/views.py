@@ -380,7 +380,8 @@ class ValidationRequestViewSet(viewsets.ModelViewSet):
                     ValidationService.approve_plan_access(
                         validation_request,
                         request.user,
-                        comment
+                        comment,
+                        override_referent=approve_as_referent
                     )
                 elif validation_request.request_type == 'site_org_link':
                     ValidationService.approve_site_org_link(
@@ -1278,10 +1279,11 @@ class PublicRegistrationView:
 # Vue fonction pour l'inscription publique
 from rest_framework.decorators import api_view, permission_classes, throttle_classes
 from apps.authentication.throttles import AuthRateThrottle
+from apps.authentication.providers import ConnexionLocaleActive
 
 
 @api_view(['POST'])
-@permission_classes([AllowAny])
+@permission_classes([ConnexionLocaleActive])
 @throttle_classes([AuthRateThrottle])
 def public_registration_view(request):
     """Endpoint d'inscription publique."""

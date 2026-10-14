@@ -1,121 +1,116 @@
 # Guide d'installation CICADA
 
-## Installation via APT
+> Vue d'ensemble des serveurs et de leurs liens (dépôt APT, API de suivi, hub, serveur de bases) : [INFRASTRUCTURE.md](INFRASTRUCTURE.md).
+
+## Installation
 
 ### Prérequis
 
-- Système d'exploitation : Debian 11+ ou Ubuntu 20.04+
-- Docker et Docker Compose installés
-- Accès root ou sudo
-- **Si base de données externe** : PostgreSQL 17+ avec PostGIS 3.5+ installé sur le serveur
+- Un serveur **Debian 12+** ou **Ubuntu 22.04+** (amd64), avec un accès root ou sudo. Debian 11 n'est pas supportée.
+- Un accès Internet sortant (dépôts Docker et CICADA, images Docker).
+- **Si la base est sur un serveur PostgreSQL existant** : PostgreSQL 15+ avec PostGIS sur ce serveur de base, et un accès root à celui-ci pour une commande de préparation (voir l'étape 3)
 
 ### Étapes d'installation
 
-#### 1. Ajouter le repository APT
-
-Si le repository APT est déjà configuré sur le serveur, passez directement à l'étape 2.
+#### 1. Lancer l'installation (une commande)
 
 ```bash
-# Ajouter la clé GPG (remplacez l'URL par celle fournie par votre administrateur)
-curl -fsSL https://apt.cicada.reserves-naturelles.org/cicada-repo-key.gpg | sudo gpg --dearmor -o /usr/share/keyrings/cicada-archive-keyring.gpg
-
-# Ajouter le repository
-echo "deb [signed-by=/usr/share/keyrings/cicada-archive-keyring.gpg] https://apt.cicada.reserves-naturelles.org stable main" | sudo tee /etc/apt/sources.list.d/cicada.list
-
-# Mettre à jour la liste des packages
-sudo apt update
+curl -fsSL https://apt.cicada.reserves-naturelles.org/install.sh | sudo bash
 ```
 
-#### 2. Installer CICADA
+Cette commande :
+- configure le dépôt de Docker (si Docker n'est pas déjà installé depuis ce dépôt) ;
+- configure le dépôt de CICADA et sa clé de signature ;
+- installe le paquet `cicada` (et Docker avec lui) ;
+- affiche l'adresse du formulaire d'installation (`http://votre-serveur:4567`).
 
-```bash
-sudo apt-get update
-sudo apt-get install cicada
-```
-
-L'installation va :
-- Installer les fichiers nécessaires (scripts, docker-compose, installeur web)
-- Générer un token d'instance unique
-- Démarrer le serveur d'installation web sur le port 4567
+Elle peut être relancée sans risque. Pour installer une version précise : `… | sudo bash -s -- --version 0.1.50`.
 
 > **Note** : si le système vous demande de redémarrer des services (dbus, getty, systemd-logind), vous pouvez ignorer — ce sont des services système sans rapport avec CICADA.
 
-#### 3. Préparer la base PostgreSQL (recommandé en production)
+#### 2. Rien d'autre à configurer pour les mises à jour
 
-En production, il est **fortement recommandé** d’utiliser un PostgreSQL installé nativement sur le serveur plutôt que dans un conteneur Docker. Ainsi les données survivent à toute mise à jour, suppression ou recréation des conteneurs.
+Le paquet apporte lui-même la source APT de CICADA (`/etc/apt/sources.list.d/cicada.list`) et la clé du dépôt (`/usr/share/keyrings/cicada-archive-keyring.gpg`). Les versions suivantes arrivent donc par `apt` — et par le bouton « Mettre à jour » de l'administration — sans aucune manipulation, y compris si la clé du dépôt change un jour.
 
-> **Alternative** : si vous préférez tout dans Docker (développement, test), vous pouvez passer cette étape et choisir "Nouvelle instance Docker" dans le formulaire (étape 5).
+> ⚠️ Conséquence : un `sudo apt upgrade` de routine sur le serveur met aussi CICADA à jour quand une nouvelle version est publiée, ce qui redémarre l'application (~30 s). Pour garder la main sur le moment : `sudo apt-mark hold cicada`, puis `sudo apt-mark unhold cicada` avant une mise à jour voulue.
 
-##### Installer PostgreSQL et PostGIS (si pas déjà fait)
-
-```bash
-# Ajouter le repository PostgreSQL officiel (pour avoir la version 17)
-sudo apt-get install -y curl ca-certificates gnupg
-curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo gpg --dearmor -o /usr/share/keyrings/postgresql-keyring.gpg
-echo "deb [signed-by=/usr/share/keyrings/postgresql-keyring.gpg] http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" | sudo tee /etc/apt/sources.list.d/pgdg.list
-
-# Installer PostgreSQL 17 + PostGIS
-sudo apt-get update
-sudo apt-get install -y postgresql-17 postgresql-17-postgis-3
-```
-
-##### Configurer PostgreSQL pour Docker
-
-Les conteneurs Docker doivent pouvoir se connecter au PostgreSQL du serveur. Deux fichiers à vérifier :
+<details>
+<summary>Installation manuelle, sans le script (ce qu'il fait, étape par étape)</summary>
 
 ```bash
-# 1. Écouter sur toutes les interfaces (pas juste localhost)
-sudo -u postgres psql -c "SHOW listen_addresses;"
-# Si ce n’est pas ‘*’, modifier postgresql.conf :
-# sudo nano /etc/postgresql/17/main/postgresql.conf
-# → listen_addresses = ‘*’
-# Puis : sudo systemctl restart postgresql
+# Dépôt Docker
+sudo apt-get update && sudo apt-get install -y ca-certificates curl gnupg
+sudo install -m 0755 -d /etc/apt/keyrings
+. /etc/os-release
+curl -fsSL "https://download.docker.com/linux/$ID/gpg" | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+sudo chmod a+r /etc/apt/keyrings/docker.gpg
+echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/$ID $VERSION_CODENAME stable" \
+  | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
 
-# 2. Autoriser les connexions depuis Docker
-# Vérifier que pg_hba.conf contient une ligne comme :
-#   host    all    all    172.17.0.0/16    md5
-# ou plus permissif :
-#   host    all    all    0.0.0.0/0    md5
-sudo cat /etc/postgresql/17/main/pg_hba.conf | grep -v ‘^#’ | grep -v ‘^$’
+# Dépôt CICADA
+curl -fsSL https://apt.cicada.reserves-naturelles.org/cicada-repo-key.gpg \
+  | sudo gpg --dearmor -o /usr/share/keyrings/cicada-archive-keyring.gpg
+echo "deb [signed-by=/usr/share/keyrings/cicada-archive-keyring.gpg] https://apt.cicada.reserves-naturelles.org stable main" \
+  | sudo tee /etc/apt/sources.list.d/cicada.list
+
+sudo apt-get update && sudo apt-get install cicada
 ```
 
-##### Lancer cicada-prepare-db
+Sans accès au dépôt CICADA, le paquet se télécharge aussi depuis la [page des versions](https://github.com/RNF-SI/Cicada/releases) : `sudo apt install ./cicada_X.Y.Z_amd64.deb` (le dépôt Docker reste nécessaire).
 
-Le script fait tout le reste automatiquement :
+</details>
+
+#### 3. Choisir où sera la base de données
+
+C'est le seul choix qui se prépare **en dehors** du formulaire. Le formulaire le rappelle d'ailleurs dès sa première ligne.
+
+| Où est PostgreSQL ? | À faire avant le formulaire | Terminal nécessaire ? |
+|---|---|---|
+| **Dans Docker, sur le serveur CICADA** (le plus simple) | rien : l'installation crée tout | non |
+| **Sur un serveur PostgreSQL existant** : autre machine, VM ou conteneur dédié aux bases (serveur mutualisé, cas de RNF) | préparer la base **sur le serveur de base** (ci-dessous) | **oui, sur le serveur de base**, avec les droits root |
+| PostgreSQL installé directement sur le serveur CICADA | — | pas encore pris en charge par le formulaire : utilisez la base dans Docker |
+
+> **Pourquoi un terminal pour une base existante ?** Deux opérations ne peuvent se faire qu'**sur le serveur de base**, par quelqu'un qui en a les droits :
+> - créer l'extension **PostGIS**, qui exige un super-utilisateur PostgreSQL (contrairement aux autres extensions utilisées par CICADA) ;
+> - **autoriser le serveur CICADA** à se connecter (`pg_hba.conf`).
+>
+> Le formulaire ne demande donc pas de compte super-utilisateur : tout se fait en une commande sur le serveur de base.
+
+##### Base sur un serveur PostgreSQL existant
+
+**Prérequis sur le serveur de base** (en général déjà remplis sur un serveur qui héberge GeoNature ou d'autres bases) :
+- PostgreSQL 15 ou plus, avec le paquet PostGIS correspondant (ex. `postgresql-17-postgis-3`) ;
+- PostgreSQL à l'écoute du réseau (`listen_addresses` ne doit pas se limiter à `localhost`).
+
+> ⚠️ Si `listen_addresses` vaut `localhost`, il faut le modifier puis **redémarrer** PostgreSQL, ce qui coupe brièvement les autres applications qui l'utilisent. Le script de préparation le détecte et s'arrête avant de rien changer : choisissez le moment, puis relancez-le.
+
+**Étapes :**
+
+1. Dans le formulaire (étape 5), section « Base de données », choisissez **« Serveur PostgreSQL existant »** et saisissez l'**adresse du serveur de base telle que le serveur CICADA la joint**. N'indiquez pas `localhost` : vu de l'application, qui tourne dans un conteneur, `localhost` désigne le conteneur lui-même.
+2. Le formulaire affiche alors la commande à lancer **sur le serveur de base**, en root, par exemple :
+
+   ```bash
+   curl -fsSL http://192.0.2.10:4567/prepare-db.sh | sudo bash -s -- --client 192.0.2.10
+   ```
+
+   Le script est fourni par l'installateur de CICADA lui-même. Il est donc de la même version et contient le `init.sql` correspondant. Il :
+   - crée le compte `cicada_user` (mot de passe généré et affiché) et la base `cicada` ;
+   - active PostGIS et crée les schémas de CICADA ;
+   - ajoute dans `pg_hba.conf` **une seule ligne**, limitée à la base `cicada`, au compte `cicada_user` et à l'adresse du serveur CICADA ;
+   - **recharge** la configuration de PostgreSQL, sans la redémarrer : aucune coupure pour les autres applications, et aucune autre base n'est touchée.
+
+   Il peut être relancé sans risque. Dans ce cas, le mot de passe d'un compte existant n'est **pas** modifié (option `--password` pour le redéfinir).
+3. Reportez dans le formulaire le **mot de passe affiché** à la fin du script, puis cliquez sur **« Tester la connexion »**. Le test vérifie la connexion depuis le serveur CICADA, PostGIS et les schémas. En cas d'échec, il dit quoi corriger : adresse non autorisée, mot de passe, base absente, serveur injoignable…
+
+L'installation refuse d'ailleurs de démarrer tant que ce test n'est pas vert. Il n'y a donc plus d'erreur découverte au démarrage de l'application, des minutes plus tard.
+
+**Si le serveur de base ne peut pas joindre le serveur CICADA** (pare-feu entre les deux) : récupérez le script depuis un poste qui voit l'installateur (`http://<serveur-cicada>:4567/prepare-db.sh`), copiez-le sur le serveur de base, puis lancez-le :
 
 ```bash
-sudo cicada-prepare-db
+sudo bash prepare-db.sh --client <ip-du-serveur-cicada>
 ```
 
-Il va :
-1. Vérifier que PostgreSQL et PostGIS sont installés et actifs
-2. Vous demander un mot de passe pour l’utilisateur de la base
-3. Créer l’utilisateur `cicada_user` et la base `cicada`
-4. Créer les extensions (PostGIS, etc.) et les 12 schémas applicatifs
-5. Configurer les permissions
-6. Vérifier que tout fonctionne
-7. Afficher les paramètres à utiliser dans le formulaire web (étape 5)
-
-**Notez bien le mot de passe choisi** — il sera demandé dans le formulaire d’installation.
-
-##### Créer la base et initialiser les schémas
-
-Le script `cicada-prepare-db` (installé par le package) fait tout automatiquement : vérification des prérequis, création de l’utilisateur et de la base, exécution de `init.sql` (extensions, 12 schémas, permissions), et validation du résultat.
-
-```bash
-# Une seule commande — le script est interactif (demande le mot de passe)
-sudo cicada-prepare-db
-```
-
-Options disponibles :
-
-```bash
-sudo cicada-prepare-db --help                         # Aide
-sudo cicada-prepare-db --password SECRET              # Mode non-interactif
-sudo cicada-prepare-db --db-name mabase --db-user monuser  # Noms personnalisés
-```
-
-Le script affichera à la fin les paramètres exacts à utiliser dans le formulaire d’installation web. **Notez bien le mot de passe**, il vous sera demandé à l’étape suivante.
+Options : `--db-name`, `--db-user` et `--port` si vous voulez d'autres valeurs que `cicada`, `cicada_user` et `5432` (à reporter à l'identique dans le formulaire). Aide complète : `bash prepare-db.sh --help`.
 
 #### 4. Accéder à l’interface d’installation
 
@@ -140,8 +135,8 @@ Le formulaire comporte 5 sections :
 - Port du frontend si Apache/Nginx (ex. `8080`)
 
 **Base de données PostgreSQL :**
-- **Type** : "Instance existante" (si étape 3 faite) ou "Docker" (sinon)
-- **Hôte** : l’IP Docker affichée par `cicada-prepare-db` (typiquement `172.17.0.1`). **Ne pas mettre `localhost`** — les conteneurs Docker ne peuvent pas accéder au `localhost` du serveur hôte.
+- **Type** : « Nouvelle base dans Docker » ou « Serveur PostgreSQL existant » (voir l'étape 3)
+- **Base existante** : l'adresse du serveur de base, la commande de préparation à lancer dessus, le mot de passe qu'elle affiche, et le bouton « Tester la connexion » (étape 3). **Ne pas mettre `localhost`.**
 - **Port** : `5432`
 - **Nom, utilisateur, mot de passe** : ceux définis à l’étape 3
 
@@ -197,7 +192,9 @@ Aucune configuration manuelle Apache/Nginx n’est nécessaire.
 Si vous **cochez** « Un serveur Apache ou Nginx est-il déjà présent sur ce serveur ? » :
 
 - **Pas de Traefik.** Le frontend est exposé sur le port que vous avez indiqué (ex. 8080).
-- Vous devez configurer un **virtual host dédié** sur votre Apache ou Nginx pour proxyfier le trafic vers ce port (ex. `ProxyPass / http://127.0.0.1:8080/` et `ProxyPass /api http://127.0.0.1:8000/`). Vous gérez vous-même le HTTPS (certificat Let's Encrypt avec certbot, CORS, etc.).
+- Vous devez configurer un **virtual host dédié** sur votre Apache ou Nginx qui envoie **tout** le trafic vers ce port (`ProxyPass / http://127.0.0.1:8080/`). Vous gérez vous-même le HTTPS (certificat Let's Encrypt avec certbot).
+
+> ⚠️ **Ne proxifiez pas `/api` vers le port 8000.** Le conteneur frontend route déjà `/api/*` vers Django par le réseau Docker interne ; le backend n'est pas exposé sur l'hôte. Une règle `ProxyPass /api http://127.0.0.1:8000/api` envoie l'API vers **ce qui écoute sur le port 8000 de l'hôte** — sur un serveur qui héberge aussi **GeoNature**, c'est son gunicorn : la connexion à CICADA échoue en 404 (#231). Symptôme : `curl -i https://votre-domaine/api/health/` ne renvoie pas d'en-tête `X-Correlation-ID`.
 
 #### Exemple de configuration Apache
 
@@ -208,7 +205,7 @@ sudo a2enmod proxy proxy_http proxy_wstunnel ssl headers
 sudo systemctl reload apache2
 ```
 
-Un seul virtual host sur le port 80 (à adapter : remplacer `cicada.example.org` par votre domaine, `8080`/`8000` par les ports indiqués lors de l’installation).
+Un seul virtual host sur le port 80 (à adapter : remplacer `cicada.example.org` par votre domaine, `8080` par le port indiqué lors de l’installation).
 
 **Fichier** `/etc/apache2/sites-available/cicada.conf` :
 
@@ -219,11 +216,8 @@ Un seul virtual host sur le port 80 (à adapter : remplacer `cicada.example.org`
     ProxyPreserveHost On
     ProxyRequests Off
 
-    # API Django (doit être avant la règle / pour priorité)
-    ProxyPass /api http://127.0.0.1:8000/api
-    ProxyPassReverse /api http://127.0.0.1:8000/api
-
-    # Frontend Angular
+    # Tout passe par le conteneur frontend, qui route lui-même /api vers Django.
+    # Pas de règle /api → 8000 (voir l'avertissement ci-dessus).
     ProxyPass / http://127.0.0.1:8080/
     ProxyPassReverse / http://127.0.0.1:8080/
 </VirtualHost>
@@ -250,7 +244,7 @@ Vous pouvez aussi utiliser un nom personnalisé via le fichier hosts : ajoutez p
 
 ## Import des référentiels (base externe)
 
-Lorsque la base PostgreSQL est externe (installée nativement sur le serveur), les référentiels ne sont pas toujours importés automatiquement au premier démarrage. Si les tables sont vides, lancez les imports manuellement :
+Les référentiels sont importés automatiquement au premier démarrage. Si, sur une base existante, les tables sont vides (base préparée avant le script de préparation actuel, import interrompu…), lancez les imports manuellement :
 
 ### Vérifier l'état des référentiels
 
@@ -270,7 +264,7 @@ sudo -u postgres psql -d cicada -c "SELECT extname FROM pg_extension WHERE extna
 
 ### Corriger la propriété de la fonction unaccent
 
-Si l'extension `unaccent` a été créée par l'utilisateur `postgres`, les commandes d'import échoueront avec l'erreur `doit être le propriétaire de la fonction public.unaccent`. Corrigez avec :
+Le script de préparation (étape 3) le fait déjà. Sur une base préparée autrement, l'import TaxRef ne peut pas créer son index de recherche sans accents (il le saute sans bloquer). Corrigez avec :
 
 ```bash
 sudo -u postgres psql -d cicada -c "ALTER FUNCTION public.unaccent(text) OWNER TO cicada_user;"
@@ -280,18 +274,18 @@ sudo -u postgres psql -d cicada -c "ALTER FUNCTION public.unaccent(text) OWNER T
 
 ```bash
 # Nomenclatures (si 0 résultat)
-docker compose -f docker-compose.prod.yml exec web python manage.py import_nomenclatures
+sudo docker exec cicada_prod_web python manage.py import_nomenclatures
 
 # HabRef — habitats (~29 000 entrées)
-docker compose -f docker-compose.prod.yml exec web python manage.py import_habref
+sudo docker exec cicada_prod_web python manage.py import_habref
 
 # TaxRef — taxonomie (~700 000 taxons, peut prendre plusieurs minutes)
-docker compose -f docker-compose.prod.yml exec web python manage.py import_taxref
+sudo docker exec cicada_prod_web python manage.py import_taxref
 # Variante allégée pour les environnements de test (~8 000 taxons) :
-# docker compose -f docker-compose.prod.yml exec web python manage.py import_taxref --lite
+# sudo docker exec cicada_prod_web python manage.py import_taxref --lite
 
 # CAMPanule — protocoles (optionnel, ~224 protocoles)
-docker compose -f docker-compose.prod.yml exec web python manage.py import_campanule
+sudo docker exec cicada_prod_web python manage.py import_campanule
 ```
 
 ### Vérifier après import
@@ -311,7 +305,7 @@ Résultats attendus :
 
 ## Rappel : configuration Apache avec HTTPS (Let's Encrypt)
 
-Lorsque `certbot --apache` génère le virtual host SSL, il copie la configuration HTTP mais **commente parfois les directives `ProxyPass`** pour `/api`. Vérifiez que le fichier SSL contient bien les lignes suivantes **non commentées** :
+Lorsque `certbot --apache` génère le virtual host SSL, il copie la configuration HTTP. Vérifiez que le fichier SSL contient bien les lignes suivantes **non commentées**, et **aucune** règle `ProxyPass /api` (héritée d'une ancienne version de ce guide ou d'un vhost GeoNature, cf. #231) :
 
 ```apache
 # Fichier : /etc/apache2/sites-enabled/cicada-prod-le-ssl.conf (ou similaire)
@@ -321,11 +315,7 @@ Lorsque `certbot --apache` génère le virtual host SSL, il copie la configurati
     ProxyPreserveHost On
     ProxyRequests Off
 
-    # API Django — IMPORTANT : ne pas commenter ces lignes
-    ProxyPass /api http://127.0.0.1:8000/api
-    ProxyPassReverse /api http://127.0.0.1:8000/api
-
-    # Frontend Angular
+    # Tout passe par le conteneur frontend (qui route /api vers Django)
     ProxyPass / http://127.0.0.1:8080/
     ProxyPassReverse / http://127.0.0.1:8080/
 

@@ -150,6 +150,35 @@ class TestSystemVersionEndpoint:
         assert data['latest_version'] == '0.2.0'
         assert data['last_check'] == '2026-03-16T10:00:00Z'
 
+    def test_installed_version_prevails_over_heartbeat_file(self, api_client):
+        """Juste après une mise à jour, le fichier du heartbeat dit encore
+        l'ancienne version : c'est la version installée qui compte, et la
+        mise à jour n'est plus proposée si l'annoncée n'est pas plus récente."""
+        admin = SuperAdminFactory()
+        api_client.force_authenticate(user=admin)
+        stale = {
+            'current_version': '0.0.1',
+            'update_available': True,
+            'latest_version': __version__,
+            'last_check': '2026-03-16T10:00:00Z',
+        }
+        with patch.object(Path, 'exists', return_value=True), \
+             patch.object(Path, 'read_text', return_value=json.dumps(stale)):
+            response = api_client.get('/api/system/version/')
+        data = response.json()
+        assert data['current_version'] == __version__
+        assert data['update_available'] is False
+        assert data['update_pending'] is True      # déclencheur présent (exists patché)
+        assert data['last_update'] == stale         # dernier résultat lu tel quel
+
+    def test_no_files_means_nothing_pending(self, api_client):
+        admin = SuperAdminFactory()
+        api_client.force_authenticate(user=admin)
+        with patch.object(Path, 'exists', return_value=False):
+            data = api_client.get('/api/system/version/').json()
+        assert data['update_pending'] is False
+        assert data['last_update'] is None
+
     def test_corrupt_update_file_returns_defaults(self, api_client):
         """When update file is corrupt JSON, returns safe defaults."""
         admin = SuperAdminFactory()

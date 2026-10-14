@@ -27,9 +27,10 @@ from apps.users.permissions import IsReferent
 from .permissions import CanModifyOnlyDraftPlan, IsReferentOrReadOnly
 from .access import (
     INDICATEUR_TO_PG_PATHS, OPERATION_TO_PG_PATHS, assert_plan_access,
-    assert_suivi_access, prefix_paths, scope_by_plan, scope_suivi_by_plan,
+    assert_suivi_access, plan_operation_ids, prefix_paths, scope_by_plan, scope_suivi_by_plan,
     user_can_access_plan,
 )
+from .exploration import LectureExplorationMixin
 from .reorder import do_reorder
 from .serializers_operations import (
     OperationSerializer, OperationListSerializer, OperationCreateSerializer,
@@ -59,7 +60,43 @@ def _apply_metrique_grid(metrique, data):
         metrique.save()
 
 
-class OperationViewSet(viewsets.ModelViewSet):
+def operations_du_plan(plan, queryset):
+    """Opérations d'un plan, par métrique ou par indicateur (cf. `_operations_of_plan`)."""
+    return queryset.filter(
+        Q(metriques__id_indicateur__id_ne__id_olt__id_enjeu__id_pg=plan) |
+        Q(metriques__id_indicateur__id_resultat_attendu__id_oo__pressions__id_facteur_influence__enjeux__id_pg=plan) |
+        # #367 — actions rattachées directement à un indicateur (sans métrique)
+        Q(id_indicateur__id_ne__id_olt__id_enjeu__id_pg=plan) |
+        Q(id_indicateur__id_resultat_attendu__id_oo__pressions__id_facteur_influence__enjeux__id_pg=plan)
+    ).distinct()
+
+
+def payload_operations_du_plan(plan, operations):
+    """
+    Réponse de `operations/by-plan/{id}` — les actions groupées par type.
+
+    Partagée entre la vue et la publication vers le hub (`apps.search.ecrans`,
+    #683), pour que la page d'un plan distant lise la même forme que l'API
+    locale.
+    """
+    grouped = defaultdict(list)
+    for op in operations:
+        key = op.id_type_action.label if op.id_type_action else 'Autre'
+        grouped[key].append(OperationListSerializer(op).data)
+
+    groups = [
+        {'type_action': key, 'operations': ops, 'count': len(ops)}
+        for key, ops in sorted(grouped.items())
+    ]
+    return {
+        'plan_id': plan.pk,
+        'plan_nom': plan.nom,
+        'groups': groups,
+        'total': operations.count(),
+    }
+
+
+class OperationViewSet(LectureExplorationMixin, viewsets.ModelViewSet):
     """
     ViewSet pour les Opérations (Actions).
 
@@ -124,11 +161,16 @@ class OperationViewSet(viewsets.ModelViewSet):
     # Constante partagée avec l'indexation de recherche (apps/search).
     _PG_PATHS = OPERATION_TO_PG_PATHS
 
+    #683 — lecture d'exploration (plans validés) sur ces seules actions ; la
+    # réponse est alors élaguée du budget, de la RH et des réalisations.
+    actions_exploration = ('retrieve', 'by_indicateur', 'by_plan')
+
     def get_queryset(self):
         # Le créateur d'une opération orpheline (sans plan résolu) la voit toujours.
         return scope_by_plan(
             self.queryset, self.request.user, self._PG_PATHS,
             extra=Q(id_utilisateur_ajout=self.request.user),
+            exploration=self.lecture_exploration(),
         )
 
     def perform_create(self, serializer):
@@ -208,6 +250,7 @@ class OperationViewSet(viewsets.ModelViewSet):
         GET /api/plans/operations/by-indicateur/{indicateur_id}/
         """
         indicateur = get_object_or_404(Indicateur, id_indicateur=indicateur_id)
+        self.ancrer(indicateur)
         operations = self.get_queryset().filter(
             # via une métrique de l'indicateur, ou rattachée directement (#367)
             Q(metriques__id_indicateur=indicateur) | Q(id_indicateur=indicateur)
@@ -228,13 +271,7 @@ class OperationViewSet(viewsets.ModelViewSet):
         ORM OR-és) ferait exploser la requête sans rien filtrer de plus — cf.
         `RealisationOperationAnneeViewSet._plan_realisations()`.
         """
-        return self.queryset.filter(
-            Q(metriques__id_indicateur__id_ne__id_olt__id_enjeu__id_pg=plan) |
-            Q(metriques__id_indicateur__id_resultat_attendu__id_oo__pressions__id_facteur_influence__enjeux__id_pg=plan) |
-            # #367 — actions rattachées directement à un indicateur (sans métrique)
-            Q(id_indicateur__id_ne__id_olt__id_enjeu__id_pg=plan) |
-            Q(id_indicateur__id_resultat_attendu__id_oo__pressions__id_facteur_influence__enjeux__id_pg=plan)
-        ).distinct()
+        return operations_du_plan(plan, self.queryset)
 
     @action(detail=False, methods=['get'], url_path=r'ventilation-defaults/(?P<plan_id>\d+)')
     def ventilation_defaults(self, request, plan_id=None):
@@ -270,25 +307,9 @@ class OperationViewSet(viewsets.ModelViewSet):
         GET /api/plans/operations/by-plan/{plan_id}/
         """
         plan = get_object_or_404(PlanGestion, id_pg=plan_id)
-        assert_plan_access(request.user, plan)
-        operations = self._operations_of_plan(plan)
-
-        grouped = defaultdict(list)
-        for op in operations:
-            key = op.id_type_action.label if op.id_type_action else 'Autre'
-            grouped[key].append(OperationListSerializer(op).data)
-
-        groups = [
-            {'type_action': key, 'operations': ops, 'count': len(ops)}
-            for key, ops in sorted(grouped.items())
-        ]
-
-        return Response({
-            'plan_id': int(plan_id),
-            'plan_nom': plan.nom,
-            'groups': groups,
-            'total': operations.count()
-        })
+        assert_plan_access(request.user, plan, exploration=self.lecture_exploration())
+        self.ancrer(plan)
+        return Response(payload_operations_du_plan(plan, self._operations_of_plan(plan)))
 
     @action(detail=True, methods=['get'], url_path='export-fiche-xlsx')
     def export_fiche_xlsx(self, request, pk=None):
@@ -763,10 +784,10 @@ class RealisationOperationAnneeViewSet(viewsets.ModelViewSet):
         agrégation prend 100 ms. `bilan_indicateurs` interroge déjà ses modèles
         en direct pour cette raison.
         """
+        # #671 — toutes les branches (NE et pressions / RA), une requête par chemin.
         return self.queryset.filter(
-            Q(id_operation_annee__id_operation__metriques__id_indicateur__id_ne__id_olt__id_enjeu__id_pg=plan) |
-            Q(id_operation_annee__id_operation__id_suivi__id_pg=plan)
-        ).distinct()
+            id_operation_annee__id_operation__in=plan_operation_ids(plan)
+        )
 
     def perform_create(self, serializer):
         serializer.save(id_utilisateur_maj=self.request.user)
@@ -823,6 +844,46 @@ class RealisationOperationAnneeViewSet(viewsets.ModelViewSet):
         serializer.is_valid(raise_exception=True)
         serializer.save(id_utilisateur_maj=request.user)
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+    @action(detail=False, methods=['post'], url_path='effacer')
+    def effacer(self, request):
+        """
+        #699 — Efface la saisie de suivi d'une année pour revenir à l'état
+        « non encore saisi » (cercle pointillé dans le suivi des actions).
+
+        POST /api/plans/realisations/effacer/
+        Body: { "id_operation_annee": 123 }
+
+        Supprime la réalisation annuelle (et, en cascade, ses lignes RH
+        réalisées) ainsi que les réalisations ventilées par organisme de
+        l'année. Le prévisionnel (OperationAnnee et ses organismes) est
+        conservé. On supprime plutôt que de vider les champs pour que les
+        bilans et graphiques ne comptent plus cette année.
+        """
+        id_op_annee = request.data.get('id_operation_annee')
+        if not id_op_annee:
+            return Response(
+                {'detail': 'id_operation_annee est requis.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        operation_annee = get_object_or_404(OperationAnnee, pk=id_op_annee)
+        accessible_ops = _scope_realisation_queryset(
+            OperationAnnee.objects.filter(pk=operation_annee.pk),
+            request.user, 'id_operation',
+        )
+        if not accessible_ops.exists():
+            return Response(
+                {'detail': "Vous n'avez pas accès à cette opération."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+        with transaction.atomic():
+            RealisationOperationAnnee.objects.filter(
+                id_operation_annee=operation_annee
+            ).delete()
+            RealisationOperationAnneeOrganisme.objects.filter(
+                id_operation_annee_organisme__id_operation_annee=operation_annee
+            ).delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
     @staticmethod
     def _global_payload(operation):
@@ -1406,7 +1467,7 @@ class RealisationOperationAnneeViewSet(viewsets.ModelViewSet):
             'plan_id': int(plan_id),
             'plan_nom': plan.nom,
             'annee_min': plan.annee_debut,
-            'annee_max': plan.annee_fin,
+            'annee_max': plan.annee_fin_effective,  # #672
             'taux_realisation': taux_global,
             'by_categorie_action': by_categorie_list,
             'by_enjeu': by_enjeu_list,
@@ -1441,7 +1502,7 @@ class RealisationOperationAnneeViewSet(viewsets.ModelViewSet):
         """
         Séries temporelles (par année) pour la page Bilan (graphiques « par année »).
 
-        Retourne, alignés sur `years` (plan.annee_debut..annee_fin) :
+        Retourne, alignés sur `years` (plan.annee_debut..annee_fin_effective) :
           - indicateurs_evolution : moyenne / min / max / écart-type des scores
             d'indicateurs par année (dernière mesure de chaque métrique dans l'année)
           - rh_par_annee : jours de travail prévisionnel / réalisé par année
@@ -1466,8 +1527,7 @@ class RealisationOperationAnneeViewSet(viewsets.ModelViewSet):
         assert_suivi_access(request.user, plan)          # #610 — bilan réservé
         enjeu_id = request.query_params.get('enjeu_id')
 
-        y0, y1 = plan.annee_debut, plan.annee_fin
-        years = list(range(y0, y1 + 1)) if (y0 and y1 and y1 >= y0) else []
+        years = plan.annees_plan()  # #672 — prolongation comprise
         # Portée : restreint les séries à la fenêtre demandée (Mi-parcours).
         p0, p1, _annuel = self._periode_from_request(request)
         years = [y for y in years if self._in_periode(y, p0, p1)]

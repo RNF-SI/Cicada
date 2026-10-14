@@ -61,6 +61,10 @@
       </form>
     </section>
 
+    <!-- #636 — Portée de la recherche, rappelée en permanence pendant la
+         recherche : sans partage, le corpus se limite à cette structure. -->
+    <app-portee-banniere class="exploration-perimetre-national"></app-portee-banniere>
+
     <!-- Périmètre de l'exploration : rappelé sur la page de résultats, là où
          l'absence d'un plan se constate (#634). -->
     <p class="exploration-perimetre">
@@ -111,10 +115,10 @@
           <li class="exploration-tuile exploration-tuile-plan">
             <a
               class="exploration-tuile-lien"
-              [routerLink]="['/exploration/plans', referencePlan(plan)]">
+              [routerLink]="lien(plan)">
               <div class="exploration-tuile-corps">
                 <div class="exploration-tuile-entete">
-                  <p class="exploration-tuile-titre">{{ plan.nom }}</p>
+                  <p class="exploration-tuile-titre" data-testid="exploration-titre">@for (segment of segments(plan.nom); track $index) {@if (segment.surligne) {<mark>{{ segment.texte }}</mark>} @else {{{ segment.texte }}}}</p>
                   <!-- #636 — D'où vient ce plan. Deux structures produisent
                        couramment des plans homonymes : sans la provenance, la
                        liste ne permet pas de les distinguer. -->
@@ -134,7 +138,21 @@
                         {{ 'exploration.results.multisites' | translate }}
                       </span>
                     }
-                    <span>{{ libelleSites(plan) }}</span>
+                    <span>@for (segment of segments(libelleSites(plan)); track $index) {@if (segment.surligne) {<mark>{{ segment.texte }}</mark>} @else {{{ segment.texte }}}}</span>
+                  </p>
+                }
+
+                <!-- #681 — Le mot cherché peut n'être que dans la zone
+                     géographique des sites, que la tuile n'affiche pas :
+                     sans cette ligne, le plan ressortirait sans un seul mot
+                     surligné. -->
+                @if (plan.zones_correspondantes?.length) {
+                  <p class="exploration-tuile-motif" data-testid="exploration-motif" data-champ="zone">
+                    <i class="fi fi-rr-search" aria-hidden="true"></i>
+                    <span class="exploration-tuile-label">
+                      {{ 'exploration.results.matchedOn.zone' | translate }}
+                    </span>
+                    <span class="exploration-tuile-extrait">@for (segment of segments(plan.zones_correspondantes.join(', ')); track $index) {@if (segment.surligne) {<mark>{{ segment.texte }}</mark>} @else {{{ segment.texte }}}}</span>
                   </p>
                 }
 
@@ -148,6 +166,15 @@
                 }
 
                 <p class="exploration-tuile-ligne exploration-tuile-meta">
+                  @if (plan.rang) {
+                    <span class="exploration-tuile-info">
+                      <i class="fi fi-rr-layers" aria-hidden="true"></i>
+                      {{ 'plans.rangLabel' | translate:{ rang: plan.rang } }}
+                    </span>
+                    @if (periode(plan) || plan.type_document) {
+                      <span class="exploration-tuile-separateur"></span>
+                    }
+                  }
                   @if (periode(plan)) {
                     <span class="exploration-tuile-info">
                       <i class="fi fi-rr-calendar" aria-hidden="true"></i>

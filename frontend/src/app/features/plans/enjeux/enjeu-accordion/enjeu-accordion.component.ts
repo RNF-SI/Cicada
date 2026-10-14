@@ -2,7 +2,7 @@
  * Composant accordéon pour afficher un Enjeu ou FCR.
  * Affiche le résumé fermé et les détails à l'ouverture.
  */
-import { Component, Input, Output, EventEmitter, signal, ElementRef, inject, OnInit, AfterViewInit } from '@angular/core';
+import { Component, Input, Output, EventEmitter, signal, ElementRef, inject, OnInit, AfterViewInit, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -29,6 +29,7 @@ import { HabitatChipComponent } from '../../../../shared/components/habitat-chip
     HabitatChipComponent
   ],
   templateUrl: './enjeu-accordion.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './enjeu-accordion.component.scss'
 })
 export class EnjeuAccordionComponent implements OnInit, AfterViewInit {

@@ -1,5 +1,5 @@
-import { CommonModule } from '@angular/common';
-import { Component, inject } from '@angular/core';
+
+import { Component, inject, ChangeDetectionStrategy } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { TranslateModule } from '@ngx-translate/core';
@@ -35,8 +35,9 @@ export interface ExplorationActionModaleData {
 @Component({
   selector: 'app-exploration-action-modale',
   standalone: true,
-  imports: [CommonModule, MatDialogModule, MatButtonModule, TranslateModule, TagComponent],
+  imports: [MatDialogModule, MatButtonModule, TranslateModule, TagComponent],
   templateUrl: './exploration-action-modale.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './exploration-action-modale.component.scss',
 })
 export class ExplorationActionModaleComponent {

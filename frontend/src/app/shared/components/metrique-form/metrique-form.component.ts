@@ -1,5 +1,5 @@
-import { Component, EventEmitter, Input, Output } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, EventEmitter, Input, Output, ChangeDetectionStrategy } from '@angular/core';
+
 import { FormsModule } from '@angular/forms';
 import { TranslateModule } from '@ngx-translate/core';
 import { CdkDragDrop, DragDropModule, moveItemInArray } from '@angular/cdk/drag-drop';
@@ -44,12 +44,15 @@ export interface FormulaPart {
   selector: 'app-metrique-form',
   standalone: true,
   imports: [
-    CommonModule, FormsModule, TranslateModule,
-    DragDropModule, MatTooltipModule,
+    FormsModule,
+    TranslateModule,
+    DragDropModule,
+    MatTooltipModule,
     MetriqueBlockComponent,
-    FormFieldComponent,
-  ],
+    FormFieldComponent
+],
   templateUrl: './metrique-form.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './metrique-form.component.scss',
 })
 export class MetriqueFormComponent {

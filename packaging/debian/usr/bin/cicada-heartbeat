@@ -8,24 +8,25 @@ from pathlib import Path
 
 TOKEN_FILE = "/etc/cicada/instance_token"
 CONFIG_FILE = "/etc/cicada/cicada.conf"
-UPDATE_FILE = "/var/lib/cicada/update_available.json"
+VERSION_FILE = "/usr/share/cicada/VERSION"
+# Dossier d'échange avec l'application, monté dans le conteneur web à
+# /var/lib/cicada (voir docker-compose.yml) : elle y lit ce fichier.
+UPDATE_FILE = "/var/lib/cicada/updates/update_available.json"
 LOG_FILE = "/var/log/cicada/heartbeat.log"
 
 def get_tracking_api_url():
-    """
-    Lit l'URL de l'API de suivi :
-    - En dev : depuis variable d'environnement TRACKING_API_URL
-    - En production (package) : depuis /etc/cicada/cicada.conf (fixée dans le package)
-    """
+    """URL de l'API de suivi : variable d'environnement TRACKING_API_URL
+    (surcharge : tests, dev), sinon /etc/cicada/cicada.conf, sinon défaut."""
     import os
     import configparser
-    
+
+    if os.environ.get('TRACKING_API_URL'):
+        return os.environ['TRACKING_API_URL']
     if os.path.exists(CONFIG_FILE):
         config = configparser.ConfigParser()
         config.read(CONFIG_FILE)
         return config.get('CICADA', 'TRACKING_API_URL')
-    else:
-        return os.environ.get('TRACKING_API_URL', 'https://tracking.cicada.reserves-naturelles.org/api')
+    return 'https://tracking.cicada.reserves-naturelles.org/api'
 
 logging.basicConfig(
     level=logging.INFO,
@@ -45,12 +46,32 @@ def get_token():
     return token_path.read_text().strip()
 
 def get_version():
-    config_path = Path(CONFIG_FILE)
-    if config_path.exists():
-        for line in config_path.read_text().splitlines():
-            if line.startswith('VERSION='):
-                return line.split('=', 1)[1].strip()
+    version_path = Path(VERSION_FILE)
+    if version_path.exists():
+        return version_path.read_text().strip() or "unknown"
     return "unknown"
+
+def register(tracking_url, token, version):
+    """Enregistre l'instance (le jeton voyage dans le corps, pas en en-tête)."""
+    response = requests.post(
+        f"{tracking_url}/instances/register/",
+        json={'token': token, 'version': version},
+        headers={'Content-Type': 'application/json'},
+        timeout=10,
+    )
+    response.raise_for_status()
+    Path("/var/lib/cicada/registration_pending").unlink(missing_ok=True)
+    logger.info("Instance enregistrée auprès de l'API de suivi")
+
+
+def post_heartbeat(tracking_url, token, version):
+    return requests.post(
+        f"{tracking_url}/instances/heartbeat/",
+        json={'version': version},
+        headers={'X-Instance-Token': token},
+        timeout=10,
+    )
+
 
 def send_heartbeat():
     token = get_token()
@@ -58,12 +79,15 @@ def send_heartbeat():
     tracking_url = get_tracking_api_url()
 
     try:
-        response = requests.post(
-            f"{tracking_url}/instances/heartbeat/",
-            json={'version': version},
-            headers={'X-Instance-Token': token},
-            timeout=10  # Timeout réduit
-        )
+        response = post_heartbeat(tracking_url, token, version)
+        if response.status_code in (401, 403):
+            # Jeton inconnu de l'API : l'enregistrement a échoué à
+            # l'installation (API injoignable…). On s'enregistre puis on
+            # réessaie. Auparavant, l'enregistrement n'était retenté qu'APRÈS
+            # un heartbeat réussi — qui ne pouvait justement pas réussir.
+            logger.warning("Instance inconnue de l'API de suivi (HTTP %s) : enregistrement", response.status_code)
+            register(tracking_url, token, version)
+            response = post_heartbeat(tracking_url, token, version)
         response.raise_for_status()
         data = response.json()
 
@@ -79,25 +103,6 @@ def send_heartbeat():
 
         if data.get('update_available'):
             logger.warning(f"Mise à jour disponible: {data.get('latest_version')}")
-
-        # Si l'enregistrement était en attente et que le heartbeat fonctionne,
-        # essayer de s'enregistrer maintenant (sans X-Instance-Token : l'API attend
-        # le token dans le body pour l'enregistrement, pas en auth)
-        registration_pending = Path("/var/lib/cicada/registration_pending")
-        if registration_pending.exists():
-            try:
-                register_response = requests.post(
-                    f"{tracking_url}/instances/register/",
-                    json={'token': token, 'version': version},
-                    headers={'Content-Type': 'application/json'},
-                    timeout=10
-                )
-                if register_response.ok:
-                    logger.info("Instance enregistrée avec succès (en attente depuis l'installation)")
-                    registration_pending.unlink()
-            except Exception:
-                # Échec d'enregistrement, on continue quand même
-                pass
 
         return True
 

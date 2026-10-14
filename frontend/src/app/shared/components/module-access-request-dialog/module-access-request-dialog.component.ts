@@ -1,8 +1,8 @@
 /**
  * Dialog pour demander l'acces a un module.
  */
-import { Component, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, inject, ChangeDetectionStrategy } from '@angular/core';
+
 import { FormsModule } from '@angular/forms';
 import { MatDialogRef, MatDialogModule, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
@@ -23,7 +23,6 @@ export interface ModuleAccessRequestDialogData {
   selector: 'app-module-access-request-dialog',
   standalone: true,
   imports: [
-    CommonModule,
     FormsModule,
     MatDialogModule,
     MatButtonModule,
@@ -31,7 +30,7 @@ export interface ModuleAccessRequestDialogData {
     MatInputModule,
     MatSnackBarModule,
     TranslateModule
-  ],
+],
   template: `
     <h2 mat-dialog-title>
       <i class="fi fi-rr-lock title-icon"></i>
@@ -75,6 +74,7 @@ export interface ModuleAccessRequestDialogData {
       </button>
     </mat-dialog-actions>
   `,
+  changeDetection: ChangeDetectionStrategy.Eager,
   styles: [`
     .title-icon {
       margin-right: 8px;

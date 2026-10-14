@@ -5,6 +5,10 @@ d'exploration sur une seule machine**, et vérifier qu'un contenu ajouté sur
 l'une remonte bien dans l'exploration de l'autre. Il accompagne l'issue **#636**,
 qui recense les limites et les décisions restant à prendre.
 
+> Ce banc monte des instances **de développement** (code du dépôt). Pour tester le hub **tel que déployé**
+> (image publiée, Apache, enrôlement) face à une instance installée par paquet, voir le scénario `federation`
+> de [packaging/vm-bench](../packaging/vm-bench/README.md). Vue d'ensemble des serveurs : [INFRASTRUCTURE.md](INFRASTRUCTURE.md).
+
 C'est un **banc d'essai**, pas une architecture de production. Ce qui est
 volontairement rudimentaire est signalé comme tel.
 
@@ -434,3 +438,40 @@ Un point vaut d'être noté ici : **la fédération ne multiplie pas le volume**
 ~4 400 plans sont l'univers *total*, réparti entre instances — le hub qui les
 agrège tous représente le même corpus qu'une instance unique qui les hébergerait.
 C'est précisément le cas qui a été mesuré.
+
+## Banc de l'adhésion au hub (#696)
+
+Rejoue sur un poste le circuit de production : une instance **sans jetons** demande à rejoindre l'exploration
+nationale ; RNF prend contact avec son administrateur, puis lui envoie depuis l'admin de l'API de suivi un **code
+de confirmation** par e-mail ; l'administrateur le saisit sur son instance, et un code juste fait enrôler l'instance
+sur le hub par l'API de suivi. L'instance publie et explore ensuite avec des jetons qu'elle a tirés elle-même et qui
+n'ont jamais voyagé. Il n'y a pas d'acceptation sans code : RNF décide en l'envoyant.
+
+```bash
+scripts/federation.sh adhesion up      # API de suivi locale (:8010) + instance principale en « poste-dev »
+scripts/federation.sh adhesion reset   # efface l'adhésion côté hub, suivi et instance (puis « adhesion up »)
+scripts/federation.sh adhesion down    # rend à l'instance principale son identité de .env (rnf)
+```
+
+| Brique | Rôle dans le banc |
+|---|---|
+| `docker-compose.tracking.yml` | API de suivi jetable (projet `cicada_tracking`), admin `admin` / `admin`, et son Mailpit (`cicada_tracking_mailpit`, http://localhost:8027) qui capture les e-mails de l'adhésion |
+| `docker-compose.adhesion.yml` | surcharge de l'instance principale : identité `poste-dev`, jetons d'environnement vidés, jeton de suivi fixé par `CICADA_TRACKING_TOKEN` |
+| `HUB_ADMIN_TOKEN` | tiré par le script, recopié dans `.env.hub` et `.env.tracking` (non versionnés) |
+
+Parcours :
+
+1. *Administration > Paramètres > Exploration fédérée* (http://localhost/administration/parametres,
+   `admin@test.fr` / `Test123!`) : cocher le partage, puis « Demander l'adhésion » (nom et e-mail du contact).
+2. Mailpit du suivi (http://localhost:8027) : l'e-mail « Nouvelle demande d'adhésion au hub » adressé à
+   `si@rnfrance.org` (avec le lien vers la fiche admin) et l'accusé de réception adressé au contact.
+3. http://localhost:8010/admin/ → *Adhésions au hub* : corriger au besoin l'adresse d'envoi du code, cocher la
+   demande, action « Envoyer le code de confirmation ». Le code n'est jamais affiché dans l'admin.
+4. Mailpit du suivi : lire le code (`ABCD-EFGH`) dans l'e-mail « Votre code de confirmation… ».
+5. Retour aux paramètres : saisir le code → adhésion acceptée, instance enrôlée sur le hub local. Puis
+   « Vérifier maintenant » et `docker exec cicada_web python manage.py push_federation`.
+
+Le code vaut 7 jours et 5 essais ; au-delà, la demande repasse en attente et il faut en renvoyer un (étape 3). Si
+le hub est arrêté au moment de la saisie, l'instance reçoit `hub_injoignable` et le code reste valable.
+
+Changer d'identité périme l'index : `up` et `down` relancent `rebuild_search_index --purge` sur l'instance principale.

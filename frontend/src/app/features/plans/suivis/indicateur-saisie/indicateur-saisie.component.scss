@@ -468,3 +468,20 @@ textarea.full-width {
   font-size: $font-size-small;
   font-style: italic;
 }
+
+// #699 — « Modifier » + « Effacer la saisie » sous le récap.
+.recap-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: $spacing-md;
+  margin-top: $spacing-md;
+
+  .btn-outlined-pill {
+    margin-top: 0;
+  }
+
+  .btn-clear-saisie i {
+    margin-right: $spacing-xs;
+  }
+}

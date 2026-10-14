@@ -1,5 +1,5 @@
-import { Component, inject, signal, computed } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, inject, signal, computed, ChangeDetectionStrategy } from '@angular/core';
+
 import { MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
@@ -29,15 +29,15 @@ export interface DuplicatePlanDialogResult {
   selector: 'app-duplicate-plan-dialog',
   standalone: true,
   imports: [
-    CommonModule,
     FormsModule,
     MatDialogModule,
     MatButtonModule,
     MatProgressSpinnerModule,
     TranslateModule,
-    CheckboxComponent,
-  ],
+    CheckboxComponent
+],
   templateUrl: './duplicate-plan-dialog.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './duplicate-plan-dialog.component.scss',
 })
 export class DuplicatePlanDialogComponent {

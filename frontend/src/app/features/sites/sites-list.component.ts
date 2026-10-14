@@ -3,7 +3,7 @@
  * Affiche les sites avec hero section, carte Leaflet, tableau et pagination.
  * Design inspiré de plans-list.component.
  */
-import { Component, inject, signal, OnInit, computed, ViewChild } from '@angular/core';
+import { Component, inject, signal, OnInit, computed, ViewChild, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -83,6 +83,7 @@ interface SiteWithAccess extends SiteWithUsers {
     TagComponent,
   ],
   templateUrl: './sites-list.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './sites-list.component.scss'
 })
 export class SitesListComponent implements OnInit {

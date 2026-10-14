@@ -2,7 +2,7 @@
 <app-header></app-header>
 
 <!-- Layout avec sidebar -->
-<div class="plan-detail-layout">
+<div class="plan-detail-layout" [appSurligner]="motCleSurligne()">
   <!-- Sidebar Menu (composant partagé avec la page enjeux) -->
   @if (planSlug(); as slug) {
     @if (planId(); as id) {
@@ -10,7 +10,8 @@
         [planId]="id"
         [planSlug]="slug"
         [canManage]="canManageLifecycle()"
-        activePage="overview">
+        activePage="overview"
+        data-sans-surlignage>
       </app-plan-sidebar>
     }
   }
@@ -47,8 +48,25 @@
             </a>
             <div class="breadcrumb-lines"></div>
             <div class="breadcrumb-text">
-              <a routerLink="/plans" class="breadcrumb-link">{{ 'plans.title' | translate }}</a>
-              <i class="fi fi-rr-angle-small-right breadcrumb-chevron"></i>
+              @if (accesExploration()) {
+                <!-- Plan ouvert depuis l'exploration (#683) : ce n'est pas un plan de
+                     l'utilisateur, le fil ramène donc à l'exploration et nomme la
+                     structure d'origine, au lieu de « Plans de gestion ». -->
+                <a [routerLink]="lienExploration()"
+                   class="breadcrumb-link" data-testid="breadcrumb-exploration">
+                  {{ 'plans.lifecycle.explorationBanner.breadcrumb' | translate }}
+                </a>
+                <i class="fi fi-rr-angle-small-right breadcrumb-chevron"></i>
+                @if (provenanceDistante(); as provenance) {
+                  <span class="breadcrumb-provenance" data-testid="breadcrumb-provenance">
+                    <i class="fi fi-rr-globe"></i>{{ provenance.instance_libelle }}
+                  </span>
+                  <i class="fi fi-rr-angle-small-right breadcrumb-chevron"></i>
+                }
+              } @else {
+                <a routerLink="/plans" class="breadcrumb-link">{{ 'plans.title' | translate }}</a>
+                <i class="fi fi-rr-angle-small-right breadcrumb-chevron"></i>
+              }
               <span class="breadcrumb-current">{{ plan()?.nom }}</span>
             </div>
           </nav>
@@ -59,13 +77,23 @@
               <div class="plan-subtitle">
                 <i class="fi fi-rr-document"></i>
                 <span>{{ 'plans.detail.sidebar.title' | translate }}</span>
+                <!-- Le rang situe le plan dans l'histoire du site ; il n'est pas
+                     dans le nom, que chacun choisit librement. -->
+                @if (p.rang) {
+                  <span class="plan-subtitle-separator" aria-hidden="true">·</span>
+                  <span data-testid="plan-rang">{{ 'plans.rangLabel' | translate:{ rang: p.rang } }}</span>
+                }
               </div>
               <h1 class="plan-title">{{ p.nom }}</h1>
 
               <div class="plan-meta">
                 <div class="meta-row">
-                  <span class="meta-label">{{ 'modals.planForm.fields.startYear' | translate }} :</span>
-                  <span class="meta-value">{{ p.annee_debut }}-{{ p.annee_fin }}</span>
+                  <span class="meta-label">{{ 'plans.detail.periode' | translate }} :</span>
+                  <span class="meta-value" data-testid="plan-periode">
+                    {{ p.annee_debut }}-{{ p.annee_fin }}@if (finProlongation(); as fin) {,
+                      <strong class="meta-prolongation">{{ 'plans.detail.prolongeeJusqua' | translate:{ annee: fin } }}</strong>
+                    }
+                  </span>
                 </div>
                 @if (p.organismes_redacteurs_list && p.organismes_redacteurs_list.length > 0) {
                   <div class="meta-row">
@@ -88,9 +116,6 @@
                   }
                   <span class="meta-label">{{ 'modals.planForm.fields.ct88' | translate }} :</span>
                   <span class="meta-value">{{ p.ct88 ? 'Oui' : 'Non' }}</span>
-                  <span class="meta-separator">|</span>
-                  <span class="meta-label">{{ 'modals.planForm.fields.rang' | translate }} :</span>
-                  <span class="meta-value">{{ p.rang }}</span>
                 </div>
                 <div class="meta-row">
                   @if (p.surface) {
@@ -318,9 +343,39 @@
       </div>
     }
 
+    <!-- #683 — Lecture d'exploration : plan validé d'une autre structure. -->
+    @if (accesExploration()) {
+      <div class="lock-banner lock-banner--access" role="status" data-testid="exploration-banner">
+        <i class="fi fi-rr-globe"></i>
+        <div class="lock-banner-content">
+          <span class="lock-banner-title">
+            {{ 'plans.lifecycle.explorationBanner.title' | translate }}
+          </span>
+          <span class="lock-banner-text">
+            {{ 'plans.lifecycle.explorationBanner.text' | translate }}
+          </span>
+            @if (provenanceDistante(); as provenance) {
+            <span class="lock-banner-text" data-testid="exploration-provenance">
+              {{ 'plans.lifecycle.explorationBanner.provenance' | translate: {
+                structure: provenance.instance_libelle,
+                date: (provenance.date_publication | date: 'dd/MM/yyyy') ?? ''
+              } }}
+              @if (provenance.url_instance) {
+                <a [href]="provenance.url_instance" target="_blank" rel="noopener noreferrer">{{ provenance.instance_libelle }}</a>
+              }
+            </span>
+          }
+        </div>
+        <a class="lock-banner-btn" [routerLink]="lienExploration()">
+          <i class="fi fi-rr-search"></i>
+          <span>{{ 'plans.lifecycle.explorationBanner.back' | translate }}</span>
+        </a>
+      </div>
+    }
+
     <!-- Bannière « non référent » : utilisateur sans droit de gestion sur ce plan.
          Lecture seule + possibilité de demander à devenir référent. -->
-    @if (plan() && !canManageLifecycle()) {
+    @if (plan() && !canManageLifecycle() && !accesExploration()) {
       <div class="lock-banner lock-banner--access" role="status">
         <i class="fi fi-rr-info"></i>
         <div class="lock-banner-content">
@@ -606,7 +661,9 @@
             }
           </div>
 
-          <!-- Utilisateurs (Référents & Membres) -->
+          <!-- Utilisateurs (Référents & Membres) — #683 : jamais pour un
+               lecteur d'exploration, l'API ne les envoie pas. -->
+          @if (!accesExploration()) {
           <div class="section-card compact">
             <div class="section-header-inline">
               <app-section-title
@@ -648,6 +705,8 @@
             }
           </div>
 
+          }
+
           <!-- Mindmap -->
           <div class="section-card compact">
             <app-section-title
@@ -681,7 +740,8 @@
             </app-plan-version-timeline>
           </div>
 
-          <!-- Documents -->
+          <!-- Documents — #683 : non partagés en lecture d'exploration. -->
+          @if (!accesExploration()) {
           <div class="section-card compact">
             <app-section-title
               [title]="'plans.detail.sections.documents' | translate"
@@ -727,6 +787,7 @@
               }
             </div>
           </div>
+          }
         </div>
       </div>
     </section>

@@ -42,6 +42,15 @@ SECRET_KEY = os.environ.get('SECRET_KEY', CLE_DEVELOPPEMENT)
 DEBUG = _bool('DEBUG', False)
 
 ALLOWED_HOSTS = _liste('ALLOWED_HOSTS', 'localhost,127.0.0.1,hub')
+#: Toujours admis, quel que soit le réglage : le healthcheck du conteneur
+#: (``localhost:8000``) et la vérification de DEPLOIEMENT_HUB.md
+#: (``127.0.0.1:8002``) passent par là. Avec seulement le nom public dans
+#: ALLOWED_HOSTS, comme le guide le recommande, le hub répondait 400 et restait
+#: « unhealthy » en permanence. Ces noms ne sont joignables que depuis la
+#: machine elle-même : les admettre n'ouvre rien.
+for _local in ('localhost', '127.0.0.1'):
+    if _local not in ALLOWED_HOSTS:
+        ALLOWED_HOSTS.append(_local)
 
 # `'pytest' in sys.modules` : la suite tourne avec DEBUG à False sans pour
 # autant être un déploiement — sans cette réserve, le garde-fou casserait les
@@ -143,6 +152,16 @@ HUB_FEDERATION_TOKENS = _jetons(os.environ.get('HUB_FEDERATION_TOKENS', ''))
 #: Distincts des jetons de dépôt — lire n'est pas écrire, et révoquer l'un ne
 #: doit pas emporter l'autre.
 HUB_READ_TOKENS = _jetons(os.environ.get('HUB_READ_TOKENS', ''))
+
+#: Jeton d'administration du registre, détenu **par la seule API de suivi RNF**.
+#: Il ouvre ``POST /api/federation/enrolements/`` : l'API de suivi y enrôle une
+#: instance dont RNF a accepté l'adhésion, en ne transmettant que les
+#: **empreintes** des jetons tirés par l'instance (#696). Vide par défaut, et
+#: c'est voulu : un hub qui ne délègue pas l'enrôlement n'expose aucune porte
+#: d'écriture sur son registre — l'endpoint répond alors 403 à tout appel.
+#: À tirer avec ``secrets.token_urlsafe(48)`` et à recopier dans le ``.env`` de
+#: l'API de suivi. Ne jamais le journaliser.
+HUB_ADMIN_TOKEN = os.environ.get('HUB_ADMIN_TOKEN', '').strip()
 
 # --------------------------------------------------------------------------- #
 # API

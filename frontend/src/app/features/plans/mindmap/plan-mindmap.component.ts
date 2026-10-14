@@ -1,6 +1,7 @@
 import {
   Component, OnInit, OnDestroy, inject, signal, computed, effect,
-  ViewChild, ElementRef, HostListener
+  ViewChild, ElementRef, HostListener,
+  ChangeDetectionStrategy
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
@@ -45,6 +46,7 @@ import {
     HeaderComponent, PlanSidebarComponent
   ],
   templateUrl: './plan-mindmap.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './plan-mindmap.component.scss'
 })
 export class PlanMindmapComponent implements OnInit, OnDestroy {

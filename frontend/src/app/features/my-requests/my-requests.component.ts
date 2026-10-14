@@ -2,7 +2,7 @@
  * Composant pour la page "Mes demandes".
  * Affiche toutes les demandes de validation de l'utilisateur.
  */
-import { Component, inject, signal, OnInit, computed } from '@angular/core';
+import { Component, inject, signal, OnInit, computed, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
@@ -52,6 +52,7 @@ interface ModuleWithStatus extends Module {
     TranslateModule
   ],
   templateUrl: './my-requests.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './my-requests.component.scss'
 })
 export class MyRequestsComponent implements OnInit {

@@ -2,8 +2,8 @@
  * Composant formulaire pour créer ou modifier un Enjeu.
  * Champs spécifiques aux Enjeux : priorité, catégorie écologique, type (habitat/espèce/processus).
  */
-import { Component, OnInit, inject, signal, ElementRef } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, OnInit, inject, signal, ElementRef, ChangeDetectionStrategy } from '@angular/core';
+
 import { forkJoin, Observable, of } from 'rxjs';
 import { ActivatedRoute, Router } from '@angular/router';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
@@ -27,11 +27,18 @@ import { AdminService } from '../../../../core/services/admin.service';
 import { Enjeu, EnjeuCreatePayload, EnjeuUpdatePayload, TaxonRef, HabitatRef, GeologieRef, ObjetGeologiqueRef, EnjeuDocument } from '../../../../core/models/enjeu.model';
 import { buildGeoObjetGroups, groupObjetIds, ObjetGeologiqueGroup, ObjetGeologiqueOption } from './objet-geologique.constant';
 
+/** #669 — cases « L'enjeu est lié à » de chaque catégorie. */
+const LIEN_ECOLOGIQUE_CONTROLS = [
+  'habitat', 'espece', 'patrimoine_geologique', 'fonctionnalite_ecosysteme', 'autre_ecologique',
+];
+const LIEN_SOCIOECO_CONTROLS = [
+  'valeur_paysagere', 'patrimoine_culturel', 'developpement_durable', 'usages', 'valeur_ajoutee', 'autre_socioeco',
+];
+
 @Component({
   selector: 'app-enjeu-form',
   standalone: true,
   imports: [
-    CommonModule,
     ReactiveFormsModule,
     MatFormFieldModule,
     MatInputModule,
@@ -46,9 +53,10 @@ import { buildGeoObjetGroups, groupObjetIds, ObjetGeologiqueGroup, ObjetGeologiq
     TranslateModule,
     HeaderComponent,
     ReferenceItemListComponent,
-    AccordionComponent,
-  ],
+    AccordionComponent
+],
   templateUrl: './enjeu-form.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './enjeu-form.component.scss'
 })
 export class EnjeuFormComponent implements OnInit {
@@ -97,6 +105,9 @@ export class EnjeuFormComponent implements OnInit {
   // #409 — affiche les erreurs « au moins un taxon/habitat requis » après une
   // tentative d'enregistrement (cible espèce/habitat cochée mais liste vide).
   showRefErrors = signal(false);
+
+  // #669 — « L'enjeu est lié à » : au moins une case de la catégorie choisie.
+  showLienError = signal(false);
 
   ngOnInit(): void {
     this.initForm();
@@ -523,6 +534,14 @@ export class EnjeuFormComponent implements OnInit {
     return ops.length ? forkJoin(ops) : of(null);
   }
 
+  /** #669 — aucune case « L'enjeu est lié à » cochée pour la catégorie choisie. */
+  get lienMissing(): boolean {
+    const controls = this.form.get('categorie_ecologique')?.value === false
+      ? LIEN_SOCIOECO_CONTROLS
+      : LIEN_ECOLOGIQUE_CONTROLS;
+    return !controls.some(name => !!this.form.get(name)?.value);
+  }
+
   /** #409 — taxon requis si cible « espèce » cochée. */
   get especeRefMissing(): boolean {
     return !!this.form.get('espece')?.value && this.taxonItems.length === 0;
@@ -539,6 +558,15 @@ export class EnjeuFormComponent implements OnInit {
       this.scrollToError();
       return;
     }
+
+    // #669 — au moins un élément « L'enjeu est lié à ».
+    if (this.lienMissing) {
+      this.showLienError.set(true);
+      this.errorMessage.set(this.translate.instant('enjeux.enjeuForm.lienRequired'));
+      this.scrollToError();
+      return;
+    }
+    this.showLienError.set(false);
 
     // #409 — exiger au moins un taxon / habitat quand la cible est cochée.
     if (this.especeRefMissing || this.habitatRefMissing) {

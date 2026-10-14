@@ -105,14 +105,14 @@
           <!-- Intégré dans le plan de gestion -->
           <div class="field">
             <span class="field-label">{{ 'inventaires.form.integrePG' | translate }}</span>
-            <span class="field-value">{{ formatBoolean(suivi()?.integre_plan_gestion) }}</span>
+            <span class="field-value">{{ formatBoolean($safeNavigationMigration(suivi()?.integre_plan_gestion)) }}</span>
           </div>
 
           <!-- Suit un indicateur (only when integre_plan_gestion == true) -->
           @if (suivi()?.integre_plan_gestion === true) {
             <div class="field">
               <span class="field-label">{{ 'inventaires.form.suitIndicateur' | translate }}</span>
-              <span class="field-value">{{ formatBoolean(suivi()?.suit_indicateur) }}</span>
+              <span class="field-value">{{ formatBoolean($safeNavigationMigration(suivi()?.suit_indicateur)) }}</span>
             </div>
           }
 
@@ -179,7 +179,7 @@
           <!-- Date de lancement -->
           <div class="field">
             <span class="field-label">{{ 'inventaires.form.dateLancement' | translate }}</span>
-            <span class="field-value">{{ suivi()?.date_lancement_suivi ? (suivi()?.date_lancement_suivi | date:'dd/MM/yyyy') : '—' }}</span>
+            <span class="field-value">{{ suivi()?.date_lancement_suivi ? ($safeNavigationMigration(suivi()?.date_lancement_suivi) | date:'dd/MM/yyyy') : '—' }}</span>
           </div>
 
           <!-- Statut -->
@@ -356,7 +356,7 @@
               @if (suivi()?.transmission_donnee != null) {
                 <div class="field">
                   <span class="field-label">{{ 'inventaires.form.transmissionDonnee' | translate }}</span>
-                  <span class="field-value">{{ formatBoolean(suivi()?.transmission_donnee) }}</span>
+                  <span class="field-value">{{ formatBoolean($safeNavigationMigration(suivi()?.transmission_donnee)) }}</span>
                 </div>
               }
             </div>
@@ -385,13 +385,13 @@
             <!-- Audit info -->
             <div class="field">
               <span class="field-label">{{ 'inventaires.detail.dateCreation' | translate }}</span>
-              <span class="field-value">{{ suivi()?.date_ajout | date:'dd/MM/yyyy' }}</span>
+              <span class="field-value">{{ $safeNavigationMigration(suivi()?.date_ajout) | date:'dd/MM/yyyy' }}</span>
             </div>
 
             @if (suivi()?.date_maj) {
               <div class="field">
                 <span class="field-label">{{ 'inventaires.detail.dateMaj' | translate }}</span>
-                <span class="field-value">{{ suivi()?.date_maj | date:'dd/MM/yyyy' }}</span>
+                <span class="field-value">{{ $safeNavigationMigration(suivi()?.date_maj) | date:'dd/MM/yyyy' }}</span>
               </div>
             }
           </div>

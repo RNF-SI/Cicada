@@ -82,36 +82,43 @@ class CustomTokenObtainPairSerializer(serializers.Serializer):
                   "Vous recevrez un email lorsque votre compte sera activé.") % {'validator': validator_info}
             )
 
-        # Generer les tokens JWT
-        refresh = RefreshToken.for_user(user)
-
-        # Mettre a jour last_login (le custom serializer ne passe pas par
-        # le flow standard simplejwt qui le fait automatiquement)
-        if jwt_api_settings.UPDATE_LAST_LOGIN:
-            update_last_login(None, user)
-
         # Stocker l'utilisateur pour l'utiliser dans la reponse
         self.user = user
 
-        return {
-            'refresh': str(refresh),
-            'access': str(refresh.access_token),
-            'user': {
-                'id': user.id_role,
-                'email': user.email,
-                'nom_role': user.nom_role,
-                'prenom_role': user.prenom_role,
-                'identifiant': user.identifiant,
-                'niveau_role': user.role_level,
-                'is_staff': user.is_staff,
-                'is_active': user.active,
-                'is_referent': user.is_referent(),
-                'organisme': {
-                    'id_organisme': user.id_organisme.id_organisme,
-                    'nom_organisme': user.id_organisme.nom_organisme,
-                } if user.id_organisme else None
-            }
+        return reponse_connexion(user)
+
+
+def reponse_connexion(user):
+    """
+    Jetons JWT + profil renvoyés après une connexion réussie, quel que soit le
+    mode (local, GeoNature #689) : le frontend enchaîne de la même façon.
+    """
+    refresh = RefreshToken.for_user(user)
+
+    # Mettre a jour last_login (le custom serializer ne passe pas par
+    # le flow standard simplejwt qui le fait automatiquement)
+    if jwt_api_settings.UPDATE_LAST_LOGIN:
+        update_last_login(None, user)
+
+    return {
+        'refresh': str(refresh),
+        'access': str(refresh.access_token),
+        'user': {
+            'id': user.id_role,
+            'email': user.email,
+            'nom_role': user.nom_role,
+            'prenom_role': user.prenom_role,
+            'identifiant': user.identifiant,
+            'niveau_role': user.role_level,
+            'is_staff': user.is_staff,
+            'is_active': user.active,
+            'is_referent': user.is_referent(),
+            'organisme': {
+                'id_organisme': user.id_organisme.id_organisme,
+                'nom_organisme': user.id_organisme.nom_organisme,
+            } if user.id_organisme else None
         }
+    }
 
 
 class PasswordResetRequestSerializer(serializers.Serializer):

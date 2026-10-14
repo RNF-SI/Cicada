@@ -9,6 +9,7 @@ import {
   output,
   signal,
   viewChild,
+  ChangeDetectionStrategy
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { CdkConnectedOverlay, CdkOverlayOrigin, ConnectedPosition } from '@angular/cdk/overlay';
@@ -46,6 +47,7 @@ let nextPanelId = 0;
   imports: [CommonModule, CdkOverlayOrigin, CdkConnectedOverlay],
   templateUrl: './filter-dropdown.component.html',
   styleUrl: './filter-dropdown.component.scss',
+  changeDetection: ChangeDetectionStrategy.Eager,
   host: {
     '[class.theme-dark]': "theme() === 'dark'",
     '[class.variant-field]': "variant() === 'field'",

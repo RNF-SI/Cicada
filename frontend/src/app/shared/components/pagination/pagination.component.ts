@@ -1,11 +1,11 @@
-import { Component, input, output, computed } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, input, output, computed, ChangeDetectionStrategy } from '@angular/core';
+
 import { TranslateModule } from '@ngx-translate/core';
 
 @Component({
   selector: 'app-pagination',
   standalone: true,
-  imports: [CommonModule, TranslateModule],
+  imports: [TranslateModule],
   template: `
     @if (totalItems() > 0) {
       <div class="pagination-container">
@@ -57,6 +57,7 @@ import { TranslateModule } from '@ngx-translate/core';
       </div>
     }
   `,
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './pagination.component.scss',
 })
 export class PaginationComponent {

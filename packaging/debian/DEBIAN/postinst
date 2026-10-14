@@ -6,14 +6,15 @@ CONFIG_DIR="/etc/cicada"
 TOKEN_FILE="$CONFIG_DIR/instance_token"
 ENV_FILE="$CICADA_DIR/.env"
 LOCK_FILE="$CICADA_DIR/.install_lock"
-CONF_FILE="$CONFIG_DIR/cicada.conf"
 COMPOSE_DIR="/usr/share/cicada"
+VERSION_FILE="$COMPOSE_DIR/VERSION"
 
 # --- Fonctions utilitaires (style Zacharie : awk, plus robuste) ---
 
+# Version du paquet installé (fichier du paquet, pas le conffile cicada.conf)
 get_config_version() {
-    if [ -f "$CONF_FILE" ]; then
-        awk -F= '/^VERSION=/{print $2; exit}' "$CONF_FILE"
+    if [ -f "$VERSION_FILE" ]; then
+        tr -d '[:space:]' < "$VERSION_FILE"
     fi
 }
 
@@ -33,33 +34,8 @@ update_env_version() {
     fi
 }
 
-compose_files_args() {
-    local db_type="docker"
-    local traefik_enabled="false"
-
-    if [ -f "$ENV_FILE" ]; then
-        db_type="$(awk -F= '/^DB_TYPE=/{print $2; exit}' "$ENV_FILE")"
-        traefik_enabled="$(awk -F= '/^TRAEFIK_ENABLED=/{print tolower($2); exit}' "$ENV_FILE")"
-    fi
-
-    if [ -z "$db_type" ]; then
-        db_type="docker"
-    fi
-    if [ -z "$traefik_enabled" ]; then
-        traefik_enabled="false"
-    fi
-
-    local args="-f $COMPOSE_DIR/docker-compose.yml"
-    if [ "$db_type" = "docker" ]; then
-        args="$args -f $COMPOSE_DIR/docker-compose.db.yml"
-    fi
-    if [ "$traefik_enabled" = "true" ] || [ "$traefik_enabled" = "1" ] || [ "$traefik_enabled" = "yes" ]; then
-        args="$args -f $COMPOSE_DIR/docker-compose.traefik.yml"
-    else
-        args="$args -f $COMPOSE_DIR/docker-compose.frontend-ports.yml"
-    fi
-    echo "$args"
-}
+# compose_files_args() : partagée avec prerm
+. "$COMPOSE_DIR/compose-files.sh"
 
 restart_stack_if_configured() {
     if [ ! -f "$ENV_FILE" ]; then
@@ -94,6 +70,16 @@ restart_stack_if_configured() {
 
 # --- Création des répertoires ---
 mkdir -p "$CICADA_DIR/data" "$CONFIG_DIR" "/var/log/cicada"
+
+# Dossier d'échange avec le conteneur web (bouton « Mettre à jour ») : monté
+# dans le conteneur, où l'application tourne sous l'utilisateur « cicada »
+# (uid/gid 999, créé par useradd -r dans backend/Dockerfile.prod).
+install -d -o 999 -g 999 -m 0750 "$CICADA_DIR/updates"
+for f in update_available.json update_trigger.json update_result.json; do
+    [ -f "$CICADA_DIR/$f" ] && mv -f "$CICADA_DIR/$f" "$CICADA_DIR/updates/$f"
+done
+# Secrets (SECRET_KEY, mots de passe) : lisibles par root seul
+[ -f "$ENV_FILE" ] && chmod 600 "$ENV_FILE"
 chgrp www-data "$CICADA_DIR" 2>/dev/null || true
 chmod 775 "$CICADA_DIR" 2>/dev/null || true
 
@@ -114,23 +100,24 @@ if command -v python3 >/dev/null 2>&1; then
     if [ ! -d "$INSTALLER_VENV" ] || [ ! -x "$INSTALLER_VENV/bin/python" ]; then
         python3 -m venv "$INSTALLER_VENV" || { echo "Warning: impossible de créer le venv de l'installateur"; exit 0; }
     fi
-    "$INSTALLER_VENV/bin/pip" install --quiet --disable-pip-version-check flask python-dotenv requests || true
+    # psycopg : test de connexion à une base PostgreSQL existante (formulaire)
+    "$INSTALLER_VENV/bin/pip" install --quiet --disable-pip-version-check flask python-dotenv requests "psycopg[binary]" || true
 fi
 
 # --- Activer et démarrer les services systemd ---
-if command -v systemctl >/dev/null 2>&1 && systemctl is-system-running >/dev/null 2>&1; then
+# /run/systemd/system existe dès que systemd est le gestionnaire de services
+# (test recommandé par sd_booted(3)). Ne PAS se fier à `systemctl
+# is-system-running` : il échoue dès qu'une unité quelconque du serveur est en
+# échec (état « degraded », très courant en production) et les services
+# n'étaient alors jamais démarrés (#222).
+if [ -d /run/systemd/system ]; then
     systemctl daemon-reload || true
-    systemctl enable cicada-installer.service || true
-    systemctl start cicada-installer.service || true
-    systemctl enable cicada-heartbeat.timer || true
-    systemctl start cicada-heartbeat.timer || true
-    systemctl enable cicada-updater.path || true
-    systemctl start cicada-updater.path || true
-elif [ -d /run/systemd/system ] && [ -S /run/systemd/private ]; then
-    systemctl daemon-reload || true
-    systemctl enable cicada-installer.service || true
-    systemctl enable cicada-heartbeat.timer || true
-    systemctl enable cicada-updater.path || true
+    systemctl enable --now cicada-installer.service || true
+    systemctl enable --now cicada-heartbeat.timer || true
+    systemctl enable --now cicada-updater.path || true
+    if ! systemctl is-active --quiet cicada-installer.service && [ ! -f "$ENV_FILE" ]; then
+        echo "  [WARN] L'installateur web n'a pas démarré : sudo systemctl status cicada-installer"
+    fi
 else
     echo "Note: systemd non disponible, les services ne seront pas démarrés automatiquement"
 fi

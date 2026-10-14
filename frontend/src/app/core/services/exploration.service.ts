@@ -54,11 +54,9 @@ export class ExplorationService {
     };
 
     texte('q', criteres.q);
-    // Le mode « titres uniquement » est le défaut côté serveur : on ne
-    // transmet que la désactivation, pour garder des URLs lisibles.
-    if (criteres.titresSeulement === false) {
-      params = params.set('titres_seulement', 'false');
-    }
+    // L'objet lui-même est toujours interrogé : seuls les axes élargis
+    // voyagent (#681).
+    multiple('portee', criteres.portee);
     multiple('types', criteres.types);
     multiple('onglet', criteres.onglet);
     multiple('zones', criteres.zones);

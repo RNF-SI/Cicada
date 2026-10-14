@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, Input } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 
 import { PatternDef } from './chart.types';
 
@@ -23,7 +23,7 @@ import { PatternDef } from './chart.types';
 @Component({
   selector: 'g[ccdChartDefs]',
   standalone: true,
-  imports: [CommonModule],
+  imports: [],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <svg:defs>

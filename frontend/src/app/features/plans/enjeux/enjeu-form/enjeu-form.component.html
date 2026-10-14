@@ -101,7 +101,7 @@
           @if (form.get('categorie_ecologique')?.value === true) {
             <!-- Checkboxes écologiques -->
             <div class="form-group">
-              <label class="form-label">{{ 'enjeux.enjeuForm.enjeuLieAEcologique' | translate }}</label>
+              <label class="form-label">{{ 'enjeux.enjeuForm.enjeuLieAEcologique' | translate }} <span class="required-star">*</span></label>
               <div class="checkbox-group">
                 <app-checkbox formControlName="habitat" [label]="'enjeux.enjeuForm.habitat' | translate"></app-checkbox>
                 <app-checkbox formControlName="espece" [label]="'enjeux.enjeuForm.espece' | translate"></app-checkbox>
@@ -109,6 +109,9 @@
                 <app-checkbox formControlName="fonctionnalite_ecosysteme" [label]="'enjeux.enjeuForm.fonctionnaliteEcosysteme' | translate"></app-checkbox>
                 <app-checkbox formControlName="autre_ecologique" [label]="'enjeux.enjeuForm.autreEcologique' | translate"></app-checkbox>
               </div>
+              @if (showLienError() && lienMissing) {
+                <p class="field-error"><i class="fi fi-rr-exclamation"></i>{{ 'enjeux.enjeuForm.lienRequired' | translate }}</p>
+              }
             </div>
 
             <!-- Sous-question habitats (si coché) -->
@@ -295,7 +298,7 @@
           } @else {
             <!-- Checkboxes socio-économiques -->
             <div class="form-group">
-              <label class="form-label">{{ 'enjeux.enjeuForm.enjeuLieASocioEco' | translate }}</label>
+              <label class="form-label">{{ 'enjeux.enjeuForm.enjeuLieASocioEco' | translate }} <span class="required-star">*</span></label>
               <div class="checkbox-group">
                 <app-checkbox formControlName="valeur_paysagere" [label]="'enjeux.enjeuForm.valeurPaysagere' | translate"></app-checkbox>
                 <app-checkbox formControlName="patrimoine_culturel" [label]="'enjeux.enjeuForm.patrimoineCulturel' | translate"></app-checkbox>
@@ -304,6 +307,9 @@
                 <app-checkbox formControlName="valeur_ajoutee" [label]="'enjeux.enjeuForm.valeurAjoutee' | translate"></app-checkbox>
                 <app-checkbox formControlName="autre_socioeco" [label]="'enjeux.enjeuForm.autreSocioEco' | translate"></app-checkbox>
               </div>
+              @if (showLienError() && lienMissing) {
+                <p class="field-error"><i class="fi fi-rr-exclamation"></i>{{ 'enjeux.enjeuForm.lienRequired' | translate }}</p>
+              }
             </div>
 
             <!-- Précision "Autre socio-économique" (si coché) -->

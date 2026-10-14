@@ -72,6 +72,8 @@ test.describe('Enjeu Form - Create', () => {
 
     await form.fillLibelle(`E2E Enjeu Minimal ${Date.now()}`);
     await form.selectRang(1);
+    // #669 — au moins un élément « L'enjeu est lié à » est requis.
+    await form.fonctionnaliteEcosystemeCheckbox.click();
     await form.submit();
 
     await form.waitForSnackbar();
@@ -159,6 +161,8 @@ test.describe('Enjeu Form - Create', () => {
 
     await form.fillLibelle(`E2E Enjeu Details ${Date.now()}`);
     await form.selectRang(1);
+    // #669 — au moins un élément « L'enjeu est lié à » est requis.
+    await form.fonctionnaliteEcosystemeCheckbox.click();
 
     // Expand details panel and fill description
     await form.expandDetailsPanel();
@@ -313,6 +317,7 @@ test.describe('Enjeu Form - Edit', () => {
     // #409 — l'enjeu peut avoir une cible habitat/espèce sans référence (donnée
     // antérieure à la contrainte) : la satisfaire pour pouvoir enregistrer.
     await form.ensureCibleRefsSatisfied();
+    await form.ensureLienSatisfied();
     await form.submit();
     await form.waitForSnackbar();
     await referentPage.waitForURL(/\/enjeux/, { timeout: 10000 });

@@ -1,5 +1,5 @@
-import { Component, Input } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, Input, ChangeDetectionStrategy } from '@angular/core';
+
 
 export type TagVariant =
   // Palette pastel — texte toujours noir #343433 (AA)
@@ -43,7 +43,7 @@ export type TagSize = 'sm' | 'md';
 @Component({
   selector: 'app-tag',
   standalone: true,
-  imports: [CommonModule],
+  imports: [],
   template: `
     <span
       class="app-tag"
@@ -55,6 +55,7 @@ export type TagSize = 'sm' | 'md';
       <span class="app-tag__label">{{ label }}</span>
     </span>
   `,
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './tag.component.scss',
 })
 export class TagComponent {

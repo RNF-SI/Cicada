@@ -1,12 +1,12 @@
-import { Component } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, ChangeDetectionStrategy } from '@angular/core';
+
 import { RouterLink } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 
 @Component({
   selector: 'app-registration-pending',
   standalone: true,
-  imports: [CommonModule, RouterLink, MatButtonModule],
+  imports: [RouterLink, MatButtonModule],
   template: `
     <div class="pending-page">
       <div class="pending-container">
@@ -48,6 +48,7 @@ import { MatButtonModule } from '@angular/material/button';
       </div>
     </div>
   `,
+  changeDetection: ChangeDetectionStrategy.Eager,
   styles: [`
     .pending-page {
       min-height: 100vh;

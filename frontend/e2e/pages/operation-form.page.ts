@@ -302,8 +302,21 @@ export class OperationFormPage {
     await lastRow.locator('input').fill(libelle);
   }
 
+  /**
+   * #663 — « Action de restauration » est obligatoire et jamais précochée :
+   * répond « Non » si la question est encore sans réponse, pour que les tests
+   * centrés sur un autre champ puissent valider le formulaire.
+   */
+  async ensureRestaurationAnswered() {
+    const group = this.page.locator('mat-radio-group[formControlName="action_restauration"]');
+    if (!(await group.isVisible().catch(() => false))) return;
+    if ((await group.locator('.mat-mdc-radio-checked').count()) > 0) return;
+    await group.locator('mat-radio-button').nth(1).click();
+  }
+
   /** Click Validate to submit the form. */
   async submit() {
+    await this.ensureRestaurationAnswered();
     await this.validateBtn.click();
   }
 

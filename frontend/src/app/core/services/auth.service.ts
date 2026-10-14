@@ -7,6 +7,8 @@ import {
   User,
   AuthTokens,
   LoginRequest,
+  LoginMode,
+  LoginModeCode,
   LoginResponse,
   RefreshResponse,
   UserRole,
@@ -51,6 +53,9 @@ export class AuthService {
   // Computed properties for role checks
   readonly isSuperAdmin = computed(() => this.currentUser()?.niveau_role === 'super_admin');
   readonly isRedacteurPrincipal = computed(() => this.currentUser()?.niveau_role === 'redacteur_principal');
+  /** #700 — Rédacteur externe (bureau d'étude…) : n'accède qu'aux plans auxquels
+   *  il a été rattaché sur demande, et jamais à leurs suivis. */
+  readonly isRedacteur = computed(() => this.currentUser()?.niveau_role === 'redacteur');
   readonly isAdminOrganisme = computed(() => {
     const role = this.currentUser()?.niveau_role;
     return role === 'admin_og' || role === 'redacteur_principal' || role === 'super_admin';
@@ -172,10 +177,19 @@ export class AuthService {
   /**
    * Login with email and password
    */
-  login(credentials: LoginRequest): Observable<User> {
+  login(credentials: LoginRequest, mode: LoginModeCode = 'local'): Observable<User> {
     this.isLoadingSignal.set(true);
 
-    return this.http.post<LoginResponse>(`${this.apiUrl}/login/`, credentials).pipe(
+    // #689 — connexion GeoNature : le backend relaie à GeoNature et renvoie
+    // les mêmes jetons CICADA, la suite est identique.
+    const request$ = mode === 'geonature'
+      ? this.http.post<LoginResponse>(`${this.apiUrl}/login-geonature/`, {
+          login: credentials.username,
+          password: credentials.password,
+        })
+      : this.http.post<LoginResponse>(`${this.apiUrl}/login/`, credentials);
+
+    return request$.pipe(
       tap(response => {
         this.storeTokens({ access: response.access, refresh: response.refresh });
         this.storeUser(response.user);
@@ -190,6 +204,20 @@ export class AuthService {
         return this.handleError(error);
       })
     );
+  }
+
+  /**
+   * #689 — Mode de connexion de l'instance (public, un seul à la fois).
+   * Lu une fois par session : il ne change qu'au redémarrage du serveur.
+   */
+  private loginMode$?: Observable<LoginMode>;
+
+  getLoginMode(): Observable<LoginMode> {
+    this.loginMode$ ??= this.http.get<LoginMode>(`${this.apiUrl}/mode/`).pipe(
+      catchError(() => of<LoginMode>({ mode: 'local' })),
+      shareReplay(1)
+    );
+    return this.loginMode$;
   }
 
   /**
@@ -316,7 +344,7 @@ export class AuthService {
       return user.is_referent === true || user.niveau_role === 'admin_og' || user.niveau_role === 'redacteur_principal' || user.niveau_role === 'super_admin';
     }
 
-    const roleHierarchy: UserRole[] = ['utilisateur', 'admin_og', 'redacteur_principal', 'super_admin'];
+    const roleHierarchy: UserRole[] = ['utilisateur', 'redacteur', 'admin_og', 'redacteur_principal', 'super_admin'];
     const userRoleIndex = roleHierarchy.indexOf(user.niveau_role);
     const requiredRoleIndex = roleHierarchy.indexOf(requiredRole);
 

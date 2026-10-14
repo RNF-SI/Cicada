@@ -5,27 +5,43 @@
     <span>{{ 'exploration.filters.title' | translate }}</span>
   </header>
 
-  <!-- Rechercher dans les titres uniquement (mode contenu seulement) -->
+  <!-- Portée de la recherche (mode contenu seulement) — #681 / #686.
+       L'objet lui-même (libellé, espèces, habitats, protocoles rattachés) est
+       toujours interrogé ; chaque axe s'y ajoute indépendamment. L'aide est
+       visible, pas cachée dans une info-bulle : c'est l'incompréhension du
+       réglage qui a été rapportée. -->
   @if (contenu()) {
-    <div class="exploration-filtres-switch">
-      <button
-        type="button"
-        role="switch"
-        class="exploration-switch"
-        [class.on]="criteres().titresSeulement !== false"
-        [attr.aria-checked]="criteres().titresSeulement !== false"
-        (click)="majCritere('titresSeulement', criteres().titresSeulement === false)"
-        data-testid="exploration-titres-seulement">
-        <span class="exploration-switch-knob"></span>
-      </button>
-      <label class="exploration-filtres-switch-label">
-        {{ 'exploration.filters.titlesOnly' | translate }}
-        <i
-          class="fi fi-rr-comment-info"
-          [title]="'exploration.filters.titlesOnlyHelp' | translate"
-          aria-hidden="true"></i>
-      </label>
-    </div>
+    <section class="exploration-filtres-groupe exploration-portee" data-testid="exploration-portee">
+      <h2 class="subtitle exploration-filtres-titre">
+        {{ 'exploration.portee.title' | translate }}
+      </h2>
+      <p class="exploration-portee-base">
+        {{ 'exploration.portee.base' | translate }}
+      </p>
+      @for (axe of portees; track axe) {
+        <div class="exploration-filtres-switch exploration-portee-axe">
+          <button
+            type="button"
+            role="switch"
+            class="exploration-switch"
+            [class.on]="porteeActive(axe)"
+            [attr.aria-checked]="porteeActive(axe)"
+            [attr.aria-labelledby]="'exploration-portee-' + axe"
+            (click)="basculerPortee(axe)"
+            [attr.data-testid]="'exploration-portee-' + axe">
+            <span class="exploration-switch-knob"></span>
+          </button>
+          <label class="exploration-filtres-switch-label" [id]="'exploration-portee-' + axe">
+            <span class="exploration-portee-libelle">
+              {{ 'exploration.portee.' + axe + '.label' | translate }}
+            </span>
+            <span class="exploration-portee-aide">
+              {{ 'exploration.portee.' + axe + '.help' | translate }}
+            </span>
+          </label>
+        </div>
+      }
+    </section>
   }
 
   <!-- Zone géographique -->

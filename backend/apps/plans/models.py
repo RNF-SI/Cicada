@@ -6,6 +6,7 @@ import uuid
 from django.conf import settings
 from django.contrib.gis.db import models
 from django.core.validators import MinValueValidator, MaxValueValidator
+from django.db.models import F, Q
 from django.utils.text import slugify
 from django.utils.translation import gettext_lazy as _
 from datetime import datetime
@@ -565,6 +566,32 @@ class PlanGestion(models.Model):
     def is_extended(self):
         """#250 — Vrai si le plan a été prolongé (1 ou 2 années ajoutées)."""
         return bool(self.annees_extension and self.annees_extension > 0)
+
+    @property
+    def annee_fin_effective(self):
+        """#250 / #672 — Dernière année du plan, prolongation comprise."""
+        if self.annee_fin is None:
+            return None
+        return self.annee_fin + (self.annees_extension or 0)
+
+    @staticmethod
+    def actif_en_q(annee):
+        """#675 — Plans en vigueur l'année `annee`, prolongation (#250) comprise :
+        `annee_debut <= annee <= annee_fin + annees_extension`."""
+        return Q(annee_debut__lte=annee) & Q(annee_fin__gte=annee - F('annees_extension'))
+
+    @staticmethod
+    def inactif_en_q(annee):
+        """#675 — Plans pas encore commencés ou terminés (prolongation comprise)."""
+        return Q(annee_debut__gt=annee) | Q(annee_fin__lt=annee - F('annees_extension'))
+
+    def annees_plan(self):
+        """#672 — Années du plan (début → fin effective), pour la programmation,
+        le suivi, les exports et le bilan. Vide si la période n'est pas renseignée."""
+        y0, y1 = self.annee_debut, self.annee_fin_effective
+        if not y0 or not y1 or y1 < y0:
+            return []
+        return list(range(y0, y1 + 1))
 
     def is_in_revision(self):
         """#278 — Vrai si le plan est en cours de révision."""

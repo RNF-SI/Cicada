@@ -216,6 +216,7 @@ class TestExploration:
         configuration.save()
         settings.CICADA_EXPLORATION_SOURCE = 'hub'
         settings.CICADA_HUB_URL = 'http://hub:8000'
+        settings.CICADA_HUB_READ_TOKEN = 'jeton-lecture'
 
         assert relais_actif() is True
 

@@ -777,9 +777,9 @@
 // plus fin/petit (graisse 500, police Material).
 .btn-add-enjeu-fcr.mat-mdc-outlined-button {
   font-family: $font-family;
-  --mdc-outlined-button-label-text-font: #{$font-family};
-  --mdc-outlined-button-label-text-size: #{$font-size-base};
-  --mdc-outlined-button-label-text-weight: #{$font-weight-bold};
+  --mat-button-outlined-label-text-font: #{$font-family};
+  --mat-button-outlined-label-text-size: #{$font-size-base};
+  --mat-button-outlined-label-text-weight: #{$font-weight-bold};
 
   .mdc-button__label {
     font-family: $font-family;
@@ -2859,5 +2859,23 @@
   100% {
     box-shadow: 0 0 0 0 rgba($secondary-orange-salmon, 0);
     background-color: transparent;
+  }
+}
+
+// #683 — Plan ouvert depuis l'exploration : structure d'origine dans le fil
+// d'Ariane (texte blanc sur le fond primary du fil, combinaison AA).
+.breadcrumb-provenance {
+  display: inline-flex;
+  align-items: center;
+  gap: $spacing-xxs;
+  padding: 0 $spacing-xs;
+  border: 1px solid $white;
+  border-radius: $border-radius-pill;
+  color: $white;
+  font-family: $font-family;
+  font-size: $font-size-small;
+
+  i {
+    display: inline-flex;
   }
 }

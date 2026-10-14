@@ -2,7 +2,7 @@
 
 Ce répertoire contient tous les fichiers nécessaires pour créer le package Debian (.deb) de CICADA.
 
-> **Voir aussi** : [Guide d'installation](../docs/INSTALLATION_GUIDE.md) (installation et mise à jour en production) | [Guide de test packaging](TESTING.md) (tests détaillés)
+> **Voir aussi** : [Guide d'installation](../docs/INSTALLATION_GUIDE.md) (installation et mise à jour en production) | [Guide de test packaging](TESTING.md) (tests détaillés) | [Infrastructure](../docs/INFRASTRUCTURE.md) (serveurs et liens) | [Banc VM](vm-bench/README.md) (installation rejouée de A à Z)
 
 ## Structure
 

@@ -40,7 +40,7 @@ export interface Organisme {
  * "referent" s'il est referent d'au moins un site ou plan de gestion.
  * Ceci est verifie cote backend via is_referent().
  */
-export type UserRole = 'utilisateur' | 'admin_og' | 'redacteur_principal' | 'super_admin';
+export type UserRole = 'utilisateur' | 'redacteur' | 'admin_og' | 'redacteur_principal' | 'super_admin';
 
 /**
  * Authentication tokens from JWT
@@ -57,6 +57,18 @@ export interface AuthTokens {
 export interface LoginRequest {
   username: string;  // Can be email or identifiant
   password: string;
+}
+
+/**
+ * #689 — Mode de connexion de l'instance : comptes CICADA, OU comptes d'un
+ * GeoNature / UsersHub. Un seul à la fois, jamais les deux.
+ */
+export type LoginModeCode = 'local' | 'geonature';
+
+export interface LoginMode {
+  mode: LoginModeCode;
+  /** Nom affiché du système de connexion externe (« RNF »…). */
+  libelle?: string;
 }
 
 /**

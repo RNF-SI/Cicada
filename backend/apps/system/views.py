@@ -11,22 +11,7 @@ import requests
 from pathlib import Path
 from config.version import __version__
 
-
-def get_tracking_api_url():
-    """
-    Lit l'URL de l'API de suivi :
-    - En dev : depuis variable d'environnement TRACKING_API_URL
-    - En production (package) : depuis /etc/cicada/cicada.conf (fixée dans le package)
-    """
-    import os
-    import configparser
-    
-    if os.path.exists('/etc/cicada/cicada.conf'):
-        config = configparser.ConfigParser()
-        config.read('/etc/cicada/cicada.conf')
-        return config.get('CICADA', 'TRACKING_API_URL')
-    else:
-        return os.environ.get('TRACKING_API_URL', 'https://tracking.cicada.reserves-naturelles.org/api')
+from .tracking import instance_token, tracking_api_url
 
 
 @staff_member_required
@@ -53,8 +38,10 @@ def get_update_info():
 def get_rgpd_info():
     """Récupère les infos RGPD depuis l'API"""
     try:
-        token = Path("/etc/cicada/instance_token").read_text().strip()
-        tracking_url = get_tracking_api_url()
+        token = instance_token()
+        if not token:
+            return {'consent_given': False}
+        tracking_url = tracking_api_url()
         response = requests.get(
             f"{tracking_url}/instances/me/",
             headers={'X-Instance-Token': token},
@@ -105,8 +92,10 @@ def trigger_update(request):
 def withdraw_consent(request):
     """Retire le consentement RGPD"""
     try:
-        token = Path("/etc/cicada/instance_token").read_text().strip()
-        tracking_url = get_tracking_api_url()
+        token = instance_token()
+        if not token:
+            return JsonResponse({'error': "Jeton d'instance introuvable"}, status=500)
+        tracking_url = tracking_api_url()
         response = requests.delete(
             f"{tracking_url}/instances/me/",
             headers={'X-Instance-Token': token},

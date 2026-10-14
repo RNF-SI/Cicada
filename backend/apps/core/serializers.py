@@ -1,6 +1,10 @@
 """
 Serializers pour les modeles du core.
 """
+from urllib.parse import quote
+
+from django.core.validators import URLValidator
+from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
 from .models import Module, ErrorLog, ActivityLog, Nomenclature, SiteConfiguration
@@ -50,6 +54,10 @@ class SiteConfigurationSerializer(serializers.ModelSerializer):
             'federation_partage',
             # #645 — API ouverte des métadonnées des plans.
             'api_publique_plans',
+            # #670 — Mesure d'audience Matomo (lue par le frontend, public).
+            'matomo_enabled',
+            'matomo_url',
+            'matomo_site_id',
             'updated_at',
             'updated_by',
             'updated_by_name',
@@ -60,9 +68,21 @@ class SiteConfigurationSerializer(serializers.ModelSerializer):
         """Chemin relatif du logo de la structure (#448)."""
         return obj.structure_logo.name if obj.structure_logo else None
 
+    @staticmethod
+    def _api_image_url(field, endpoint) -> str | None:
+        """#660 — URL de l'image, servie sous /api/ et non /media/.
+
+        En production, /media/ n'est routé vers Django par aucun proxy : seul
+        /api/ l'est. Le nom du fichier sert de version, pour qu'une nouvelle
+        image ne soit pas masquée par le cache du navigateur.
+        """
+        if not field:
+            return None
+        return f"/api/settings/{endpoint}/?v={quote(field.name, safe='')}"
+
     def get_structure_logo_url(self, obj) -> str | None:
-        """URL relative du logo (compatible proxy frontend) (#448)."""
-        return obj.structure_logo.url if obj.structure_logo else None
+        """URL relative du logo de la structure (#448, #660)."""
+        return self._api_image_url(obj.structure_logo, 'structure-logo')
 
     def get_homepage_image(self, obj) -> str | None:
         """Retourne le chemin relatif de l'image (sans le domaine)."""
@@ -72,10 +92,7 @@ class SiteConfigurationSerializer(serializers.ModelSerializer):
 
     def get_homepage_image_url(self, obj) -> str | None:
         """Retourne l'URL relative de l'image (compatible avec le proxy frontend)."""
-        if obj.homepage_image:
-            # Return relative URL to work with Angular proxy
-            return obj.homepage_image.url
-        return None
+        return self._api_image_url(obj.homepage_image, 'homepage-image')
 
     def get_updated_by_name(self, obj) -> str | None:
         """Retourne le nom de l'utilisateur qui a fait la derniere modification."""
@@ -105,7 +122,34 @@ class SiteConfigurationUpdateSerializer(serializers.ModelSerializer):
             'federation_partage',
             # #645 — Ouverture de l'API publique des métadonnées des plans.
             'api_publique_plans',
+            # #670 — Mesure d'audience Matomo.
+            'matomo_enabled',
+            'matomo_url',
+            'matomo_site_id',
         ]
+        extra_kwargs = {
+            'matomo_url': {'validators': [URLValidator(schemes=['http', 'https'])]},
+        }
+
+    def validate_matomo_url(self, value: str) -> str:
+        """Sans « / » final : le frontend compose <url>/matomo.js."""
+        return value.rstrip('/')
+
+    def validate(self, attrs):
+        """#670 — Activer Matomo sans serveur ni site chargerait un traceur muet."""
+        instance = self.instance
+        enabled = attrs.get('matomo_enabled', instance.matomo_enabled if instance else False)
+        if enabled:
+            url = attrs.get('matomo_url', instance.matomo_url if instance else '')
+            site_id = attrs.get('matomo_site_id', instance.matomo_site_id if instance else '')
+            if not url or not site_id:
+                raise serializers.ValidationError({
+                    'matomo_enabled': _(
+                        "Renseignez l'URL du serveur et l'identifiant du site "
+                        "Matomo avant d'activer la mesure d'audience."
+                    )
+                })
+        return attrs
 
 
 class ModuleSerializer(serializers.ModelSerializer):

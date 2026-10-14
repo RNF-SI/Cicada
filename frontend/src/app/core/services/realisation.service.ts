@@ -254,6 +254,16 @@ export class RealisationService {
     );
   }
 
+  /**
+   * #699 — Efface toute la saisie de suivi d'une année (réalisation annuelle,
+   * RH réalisée, ventilations par organisme) : retour à « non encore saisi ».
+   */
+  effacer(idOperationAnnee: number): Observable<void> {
+    return this.http.post<void>(`${this.apiUrl}/realisations/effacer/`, {
+      id_operation_annee: idOperationAnnee,
+    });
+  }
+
   /** Supprime une réalisation. */
   delete(id: number): Observable<void> {
     return this.http.delete<void>(`${this.apiUrl}/realisations/${id}/`);

@@ -2,7 +2,7 @@
  * #379 — Statut de réalisation annuel d'une action (icône prévu × réalisé),
  * partagé entre le tableau de suivi des actions et la page globale d'une action.
  */
-import { Operation } from '../../../core/models/enjeu.model';
+import { Operation, OperationAnnee } from '../../../core/models/enjeu.model';
 
 export type ActionStatus =
   | 'planned'
@@ -115,4 +115,12 @@ export function getActionStatusForYear(op: Operation, year: number): ActionStatu
   if (realiseTotal) return 'realized-unplanned';
   if (realisePartiel) return 'partial-unplanned';
   return null;
+}
+
+/**
+ * #699 — Vrai si un suivi a été saisi pour cette année d'action (réalisation
+ * annuelle ou ventilation par organisme). Faux = « non encore saisie ».
+ */
+export function hasSaisieRealisation(oa: OperationAnnee | null | undefined): boolean {
+  return !!oa?.realisation || !!oa?.organismes?.some(o => !!o.realisation);
 }

@@ -1,5 +1,5 @@
-import { Component, OnInit, inject, signal, computed } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, OnInit, inject, signal, computed, ChangeDetectionStrategy } from '@angular/core';
+
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import { MatButtonModule } from '@angular/material/button';
@@ -26,11 +26,17 @@ interface LogContent { file: string; lines: string[]; returned: number; total: n
   selector: 'app-admin-server-logs',
   standalone: true,
   imports: [
-    CommonModule, FormsModule, MatButtonModule,
-    MatProgressSpinnerModule, MatSnackBarModule, TranslateModule,
-    FilterDropdownComponent, FilterOptionListComponent, FilterPanelDirective,
-  ],
+    FormsModule,
+    MatButtonModule,
+    MatProgressSpinnerModule,
+    MatSnackBarModule,
+    TranslateModule,
+    FilterDropdownComponent,
+    FilterOptionListComponent,
+    FilterPanelDirective
+],
   templateUrl: './admin-server-logs.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './admin-server-logs.component.scss',
 })
 export class AdminServerLogsComponent implements OnInit {

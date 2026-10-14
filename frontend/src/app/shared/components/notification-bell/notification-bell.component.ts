@@ -2,8 +2,8 @@
  * Composant cloche de notifications pour le header.
  * Affiche un badge avec le nombre de notifications non lues.
  */
-import { Component, inject, computed, OnInit, OnDestroy } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, inject, computed, OnInit, OnDestroy, ChangeDetectionStrategy } from '@angular/core';
+
 import { Router, RouterModule } from '@angular/router';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatButtonModule } from '@angular/material/button';
@@ -18,14 +18,14 @@ import { NotificationListItem } from '../../../core/models/notification.model';
   selector: 'app-notification-bell',
   standalone: true,
   imports: [
-    CommonModule,
     RouterModule,
     MatMenuModule,
     MatButtonModule,
     MatBadgeModule,
     MatDividerModule
-  ],
+],
   templateUrl: './notification-bell.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './notification-bell.component.scss'
 })
 export class NotificationBellComponent implements OnInit, OnDestroy {

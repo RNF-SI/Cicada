@@ -14,7 +14,7 @@
  * défaut), changer de portée ou d'année ne changeait donc rien à l'écran, et
  * « Mi-parcours » n'envoyait aucun filtre du tout.
  */
-import { Component, ElementRef, OnInit, inject, signal, computed } from '@angular/core';
+import { Component, ElementRef, OnInit, inject, signal, computed, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -89,6 +89,7 @@ type Scope = 'global' | 'mi_parcours' | 'annuel';
     BarChartComponent, LineChartComponent, RadarChartComponent,
   ],
   templateUrl: './plan-bilan.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './plan-bilan.component.scss',
 })
 export class PlanBilanComponent implements OnInit {

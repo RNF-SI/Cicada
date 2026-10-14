@@ -12,7 +12,7 @@
  *
  * La carte SIG et les indicateurs de réponse seront ajoutés en itération suivante.
  */
-import { Component, OnInit, inject, signal, computed } from '@angular/core';
+import { Component, OnInit, inject, signal, computed, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import {
@@ -24,6 +24,7 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { forkJoin, of } from 'rxjs';
 
@@ -31,6 +32,7 @@ import { HeaderComponent } from '../../../../shared/components/header/header.com
 import { PlanSidebarComponent } from '../../shared/plan-sidebar/plan-sidebar.component';
 import { FormFieldComponent } from '../../../../shared/components/form-field/form-field.component';
 import { EmpriseEditorComponent } from '../../../../shared/components/emprise-editor/emprise-editor.component';
+import { ConfirmDialogComponent, ConfirmDialogData } from '../../../../shared/components/confirm-dialog/confirm-dialog.component';
 import { AdminService } from '../../../../core/services/admin.service';
 import { EnjeuService } from '../../../../core/services/enjeu.service';
 import { RealisationService } from '../../../../core/services/realisation.service';
@@ -45,8 +47,10 @@ import {
   RealisationOrganismeUpsertPayload,
 } from '../../../../core/models/enjeu.model';
 import { formatScoreRange, computeMetriqueScore, computeCombinedScore, scoreLevelName, formatBlockFormula } from '../metrique-seuils.util';
+import { hasSaisieRealisation } from '../action-status.util';
 import { posteDisplayLabel, posteDisplayLabelById } from '../../../../shared/utils/poste-label';
 import { salaryIsComputed } from '../../../../shared/utils/operation-budget';
+import { planEndYear } from '../../../../shared/utils/plan-periode';
 
 interface Niveau {
   id_nomenclature: number;
@@ -63,13 +67,14 @@ type ActionStatus = 'planned' | 'planned-realized' | 'planned-partial' | 'realiz
   imports: [
     CommonModule, RouterModule, FormsModule, ReactiveFormsModule,
     MatButtonModule, MatProgressSpinnerModule, MatSnackBarModule,
-    MatSelectModule,
+    MatSelectModule, MatDialogModule,
     TranslateModule,
     MatTooltipModule,
     HeaderComponent, PlanSidebarComponent, FormFieldComponent,
     EmpriseEditorComponent,
   ],
   templateUrl: './suivi-saisie.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './suivi-saisie.component.scss',
 })
 export class SuiviSaisieComponent implements OnInit {
@@ -77,6 +82,7 @@ export class SuiviSaisieComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly fb = inject(FormBuilder);
   private readonly snack = inject(MatSnackBar);
+  private readonly dialog = inject(MatDialog);
   private readonly translate = inject(TranslateService);
   private readonly adminService = inject(AdminService);
   private readonly enjeuService = inject(EnjeuService);
@@ -604,6 +610,10 @@ export class SuiviSaisieComponent implements OnInit {
     return op?.operation_annees?.find(oa => oa.annee === year) ?? null;
   });
 
+  /** #699 — Vrai si un suivi a été saisi pour l'année active (réalisation
+   *  annuelle ou ventilation par organisme) : conditionne « Effacer la saisie ». */
+  hasSaisieForYear = computed<boolean>(() => hasSaisieRealisation(this.currentOperationAnnee()));
+
   /** Emprise prévue (operation.geom). Affichée en arrière-plan/repère. */
   plannedGeom = computed<any>(() => this.operation()?.geom_geojson ?? null);
 
@@ -809,7 +819,7 @@ export class SuiviSaisieComponent implements OnInit {
         this.planNom.set(plan.nom);
         this.planStatut.set(plan.statut ?? null);
         this.planYearStart.set(plan.annee_debut ?? null);
-        this.planYearEnd.set(plan.annee_fin ?? null);
+        this.planYearEnd.set(planEndYear(plan));  // #672
         // #560 — postes du PG, pour la saisie / ré-attribution du RH réalisé.
         this.rhService.getPostesByPlan(plan.id_pg).subscribe(
           (list) => this.postes.set(list),
@@ -1401,6 +1411,65 @@ export class SuiviSaisieComponent implements OnInit {
     } else {
       this.router.navigate(['/plans']);
     }
+  }
+
+  /**
+   * #699 — Efface toute la saisie de l'année active (après confirmation) pour
+   * revenir à l'état « non encore saisie » (cercle pointillé). La donnée est
+   * supprimée côté serveur — pas vidée — pour ne plus compter dans les bilans.
+   */
+  clearSaisie(): void {
+    const oa = this.currentOperationAnnee();
+    const idOa = oa?.id_operation_annee;
+    if (this.planNotValidated() || !oa || !idOa) return;
+    const year = this.selectedYear();
+    const data: ConfirmDialogData = {
+      title: this.translate.instant('plans.suivis.saisie.clear.title', { year }),
+      message: this.translate.instant('plans.suivis.saisie.clear.message', { year }),
+      warningText: this.translate.instant('plans.suivis.saisie.clear.warning'),
+      confirmText: this.translate.instant('plans.suivis.saisie.clear.confirm'),
+      cancelText: this.translate.instant('common.actions.cancel'),
+      destructive: true,
+    };
+    this.dialog.open(ConfirmDialogComponent, { width: '500px', data })
+      .afterClosed().subscribe((confirmed: boolean) => {
+        if (!confirmed) return;
+        this.isSaving.set(true);
+        this.realisationService.effacer(idOa).subscribe({
+          next: () => {
+            this.isSaving.set(false);
+            // Nouvelle référence d'année : les computed dérivés de
+            // `currentOperationAnnee` (statut, bouton) doivent se réévaluer.
+            const op = this.operation()!;
+            const cleared: OperationAnnee = {
+              ...oa,
+              realisation: null,
+              organismes: (oa.organismes || []).map(oao => ({ ...oao, realisation: null })),
+            };
+            this.operation.set({
+              ...op,
+              operation_annees: (op.operation_annees || []).map(o => (o === oa ? cleared : o)),
+            });
+            this.pendingGeomRealisee.set(undefined);
+            this.isEditingGeom.set(false);
+            this.empriseSnapshot.set(null);
+            this.hydrateFormFromCurrentYear();
+            this.snack.open(
+              this.translate.instant('plans.suivis.saisie.messages.cleared', { year }),
+              this.translate.instant('common.actions.close'),
+              { duration: 3000 },
+            );
+          },
+          error: () => {
+            this.isSaving.set(false);
+            this.snack.open(
+              this.translate.instant('plans.suivis.saisie.errors.clearFailed'),
+              this.translate.instant('common.actions.close'),
+              { duration: 4000 },
+            );
+          },
+        });
+      });
   }
 
   submit(quit = false): void {

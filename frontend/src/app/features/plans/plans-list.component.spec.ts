@@ -10,11 +10,15 @@ import { TestBed } from '@angular/core/testing';
 import { HttpClientTestingModule } from '@angular/common/http/testing';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { RouterTestingModule } from '@angular/router/testing';
-import { TranslateModule } from '@ngx-translate/core';
-import { signal } from '@angular/core';
+import { TranslateModule, TranslateService } from '@ngx-translate/core';
+import { Component, signal } from '@angular/core';
 import { of } from 'rxjs';
 
 import { PlansListComponent } from './plans-list.component';
+import { HeaderComponent } from '../../shared/components/header/header.component';
+
+@Component({ selector: 'app-header', standalone: true, template: '' })
+class HeaderStubComponent {}
 import { AdminService } from '../../core/services/admin.service';
 import { ValidationService } from '../../core/services/validation.service';
 import { AuthService } from '../../core/services/auth.service';
@@ -46,6 +50,7 @@ function plan(
     hasAccessViaSite: false,
     isOrgPlan: false,
     gaugeStatus: 'in-progress',
+    gaugeEndYear: 2030,
     ...extra,
   };
 }
@@ -76,7 +81,7 @@ describe('PlansListComponent — filtre par statut (#635)', () => {
           useValue: {
             currentUser: signal(CURRENT_USER),
             isSuperAdmin: signal(false),
-            isRedacteurPrincipal: signal(false),
+            isRedacteurPrincipal: signal(false), isRedacteur: signal(false),
             isAdminOrganisme: signal(false),
           },
         },
@@ -152,7 +157,7 @@ describe('PlansListComponent — filtre par statut (#635)', () => {
 describe('PlansListComponent — pas de demande d\'accès pour un gestionnaire (#657)', () => {
   const roles = {
     isSuperAdmin: signal(false),
-    isRedacteurPrincipal: signal(false),
+    isRedacteurPrincipal: signal(false), isRedacteur: signal(false),
     isAdminOrganisme: signal(false),
   };
 
@@ -216,5 +221,156 @@ describe('PlansListComponent — pas de demande d\'accès pour un gestionnaire (
     roles.isSuperAdmin.set(false);
     roles.isRedacteurPrincipal.set(true);
     expect(component.otherPlans()).toEqual([]);
+  });
+});
+
+describe('PlansListComponent — jauge d\'un plan prolongé (#675)', () => {
+  const Y = new Date().getFullYear();
+  const comp = Object.create(PlansListComponent.prototype) as PlansListComponent;
+  const gauge = (plan: Record<string, unknown>) => (comp as any).calculateGaugeStatus(plan);
+
+  it('plan terminé l\'an dernier mais prolongé de 2 ans : pas « dépassé »', () => {
+    expect(gauge({ annee_debut: Y - 10, annee_fin: Y - 1, annees_extension: 2, annee_fin_effective: Y + 1 }))
+      .toBe('second-half');
+  });
+
+  it('prolongation écoulée : « dépassé »', () => {
+    expect(gauge({ annee_debut: Y - 12, annee_fin: Y - 2, annees_extension: 1, annee_fin_effective: Y - 1 }))
+      .toBe('exceeded');
+  });
+
+  it('plan non prolongé terminé : « dépassé » (inchangé)', () => {
+    expect(gauge({ annee_debut: Y - 10, annee_fin: Y - 1, annees_extension: 0 })).toBe('exceeded');
+  });
+
+  it('échéance effective recalculée si l\'API ne la fournit pas', () => {
+    expect(gauge({ annee_debut: Y - 10, annee_fin: Y - 1, annees_extension: 2 })).toBe('second-half');
+  });
+});
+
+describe('PlansListComponent — rang affiché avec la version', () => {
+  let component: PlansListComponent;
+
+  beforeEach(async () => {
+    await TestBed.configureTestingModule({
+      imports: [
+        PlansListComponent, HttpClientTestingModule, NoopAnimationsModule,
+        RouterTestingModule, TranslateModule.forRoot(),
+      ],
+      providers: [
+        { provide: AdminService, useValue: { getPlans: () => of({ results: [] }), getSites: () => of({ results: [] }) } },
+        { provide: ValidationService, useValue: { getMyRequests: () => of([]) } },
+        {
+          provide: AuthService,
+          useValue: {
+            currentUser: signal(CURRENT_USER), isSuperAdmin: signal(false),
+            isRedacteurPrincipal: signal(false), isRedacteur: signal(false), isAdminOrganisme: signal(false),
+          },
+        },
+      ],
+    })
+      // L'en-tête de page n'est pas l'objet de ces tests (et dépend de nombreux services).
+      .overrideComponent(PlansListComponent, {
+        remove: { imports: [HeaderComponent] },
+        add: { imports: [HeaderStubComponent] },
+      })
+      .compileComponents();
+    const translate = TestBed.inject(TranslateService);
+    translate.setTranslation('fr', {
+      plans: { rangLabel: 'Rang {{rang}}', lifecycle: { timeline: { planInitial: 'Plan initial' } } },
+    });
+    translate.use('fr');
+    component = TestBed.createComponent(PlansListComponent).componentInstance;
+  });
+
+  it('colonne période : fin réelle sous la période d\'un plan prolongé (#250)', () => {
+    TestBed.inject(TranslateService).setTranslation('fr', {
+      plans: { list: { prolongeJusqua: 'prolongé → {{annee}}' } },
+    }, true);
+    const fixture = TestBed.createComponent(PlansListComponent);
+    const comp = fixture.componentInstance;
+    fixture.detectChanges();
+    comp.allPlans.set([
+      plan(1, 'Scandola prolongé', 'modifie', { annee_debut: 2016, annee_fin: 2025, annees_extension: 2, gaugeEndYear: 2027 }),
+      plan(2, 'Camargue', 'valide', { annee_debut: 2020, annee_fin: 2030, annees_extension: 0, gaugeEndYear: 2030 }),
+    ] as any);
+    fixture.detectChanges();
+
+    const lignes = Array.from(fixture.nativeElement.querySelectorAll('tbody tr')) as HTMLElement[];
+    const periode = (nom: string) => lignes.find(l => l.textContent!.includes(nom))!
+      .querySelector('.period-dates')!.textContent!.replace(/\s+/g, ' ').trim();
+    expect(periode('Scandola prolongé')).toBe('2016-2025 prolongé → 2027');
+    expect(periode('Camargue')).toBe('2020-2030');
+  });
+
+  it('préfixe la version par le rang', () => {
+    expect(component.versionLabel(plan(1, 'Scandola', 'valide', { rang: 2, version: '3' })))
+      .toBe('Rang 2 · Plan initial - V3');
+  });
+
+  it('garde le type de document quand il est connu', () => {
+    expect(component.versionLabel(plan(1, 'X', 'valide', {
+      rang: 1, version: '2', type_document_display: 'Évaluation mi-parcours',
+    }))).toBe('Rang 1 · Évaluation mi-parcours - V2');
+  });
+
+  it('sans rang : libellé de version seul', () => {
+    expect(component.versionLabel(plan(1, 'X', 'valide', { rang: null, version: '1' })))
+      .toBe('Plan initial - V1');
+  });
+});
+
+/**
+ * #700 — Le rédacteur externe ne voit aucun plan de son organisme : il cherche
+ * le plan à rédiger côté serveur, puis en demande l'accès en saisie.
+ */
+describe('PlansListComponent — recherche du rédacteur externe (#700)', () => {
+  const resultat = {
+    id_pg: 7, nom: 'Plan du marais', statut: 'draft', statut_display: 'Brouillon',
+    annee_debut: 2026, annee_fin: 2036, sites: ['Marais'], organismes_gestionnaires: ['CEN'],
+    acces: false, demande_en_attente: false,
+  };
+  const adminService = {
+    getPlans: () => of({ results: [] }),
+    getSites: () => of({ results: [] }),
+    rechercherPlansAcces: jest.fn(),
+  };
+
+  async function setup(): Promise<PlansListComponent> {
+    adminService.rechercherPlansAcces.mockReset().mockReturnValue(of([resultat]));
+    TestBed.resetTestingModule();
+    await TestBed.configureTestingModule({
+      imports: [
+        PlansListComponent, HttpClientTestingModule, NoopAnimationsModule,
+        RouterTestingModule, TranslateModule.forRoot(),
+      ],
+      providers: [
+        { provide: AdminService, useValue: adminService },
+        { provide: ValidationService, useValue: { getMyRequests: () => of([]) } },
+        {
+          provide: AuthService,
+          useValue: {
+            currentUser: signal(CURRENT_USER),
+            isSuperAdmin: signal(false), isRedacteurPrincipal: signal(false),
+            isAdminOrganisme: signal(false), isRedacteur: signal(true),
+          },
+        },
+      ],
+    }).compileComponents();
+    return TestBed.createComponent(PlansListComponent).componentInstance;
+  }
+
+  it('ne cherche pas en deçà de 3 caractères', async () => {
+    const component = await setup();
+    component.rechercherPlanARediger('ma');
+    expect(adminService.rechercherPlansAcces).not.toHaveBeenCalled();
+    expect(component.redacteurResultats()).toBeNull();
+  });
+
+  it('interroge le serveur et expose les plans trouvés', async () => {
+    const component = await setup();
+    component.rechercherPlanARediger('  marais ');
+    expect(adminService.rechercherPlansAcces).toHaveBeenCalledWith('marais');
+    expect(component.redacteurResultats()).toEqual([resultat]);
   });
 });

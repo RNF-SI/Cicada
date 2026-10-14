@@ -1,7 +1,7 @@
 import { ApplicationConfig, provideZoneChangeDetection, ErrorHandler, LOCALE_ID } from '@angular/core';
 import { provideRouter, withInMemoryScrolling } from '@angular/router';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
-import { provideHttpClient, withInterceptors } from '@angular/common/http';
+import { provideHttpClient, withInterceptors, withXhr } from '@angular/common/http';
 import { provideTranslateService } from '@ngx-translate/core';
 import { provideTranslateHttpLoader } from '@ngx-translate/http-loader';
 import { MAT_DATE_LOCALE, MAT_DATE_FORMATS, DateAdapter, MAT_NATIVE_DATE_FORMATS, NativeDateAdapter } from '@angular/material/core';
@@ -13,6 +13,8 @@ import { routes } from './app.routes';
 import { authInterceptor } from './core/interceptors/auth.interceptor';
 import { loggingInterceptor } from './core/interceptors/logging.interceptor';
 import { impersonationInterceptor } from './core/interceptors/impersonation.interceptor';
+import { matomoInterceptor } from './core/interceptors/matomo.interceptor';
+import { planDistantInterceptor } from './core/interceptors/plan-distant.interceptor';
 import { GlobalErrorHandler } from './core/handlers/global-error.handler';
 
 // Enregistrer la locale francaise
@@ -48,7 +50,7 @@ export const appConfig: ApplicationConfig = {
     provideAnimationsAsync(),
     // Note: loggingInterceptor doit etre avant authInterceptor pour capturer toutes les requetes
     // impersonationInterceptor doit etre apres authInterceptor pour verifier le statut d'impersonnation
-    provideHttpClient(withInterceptors([loggingInterceptor, authInterceptor, impersonationInterceptor])),
+    provideHttpClient(withXhr(), withInterceptors([loggingInterceptor, planDistantInterceptor, authInterceptor, impersonationInterceptor, matomoInterceptor])),
     provideTranslateService({
       defaultLanguage: 'fr',
       loader: provideTranslateHttpLoader({

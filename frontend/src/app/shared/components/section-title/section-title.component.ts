@@ -1,4 +1,4 @@
-import { Component, Input } from '@angular/core';
+import { Component, Input, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { MatTooltipModule } from '@angular/material/tooltip';
@@ -22,6 +22,7 @@ import { EllipseIconButtonComponent, EllipseColor } from '../ellipse-icon-button
   standalone: true,
   imports: [CommonModule, RouterModule, MatTooltipModule, EllipseIconButtonComponent],
   templateUrl: './section-title.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './section-title.component.scss'
 })
 export class SectionTitleComponent {

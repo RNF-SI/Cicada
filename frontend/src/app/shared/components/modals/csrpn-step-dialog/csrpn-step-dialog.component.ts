@@ -1,5 +1,5 @@
-import { Component, inject, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, inject, signal, ChangeDetectionStrategy } from '@angular/core';
+
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
@@ -43,7 +43,6 @@ export interface CsrpnStepDialogResult {
   selector: 'app-csrpn-step-dialog',
   standalone: true,
   imports: [
-    CommonModule,
     ReactiveFormsModule,
     MatDialogModule,
     MatButtonModule,
@@ -53,9 +52,10 @@ export interface CsrpnStepDialogResult {
     MatNativeDateModule,
     CheckboxComponent,
     FormFieldComponent,
-    TranslateModule,
-  ],
+    TranslateModule
+],
   templateUrl: './csrpn-step-dialog.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './csrpn-step-dialog.component.scss',
 })
 export class CsrpnStepDialogComponent {

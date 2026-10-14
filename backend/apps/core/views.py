@@ -158,10 +158,50 @@ class SiteConfigurationView(APIView):
             context={'request': request}
         )
         update_serializer.is_valid(raise_exception=True)
+        partage_avant = config.federation_partage
         config = update_serializer.save(updated_by=request.user)
+
+        # #636 — Le consentement au partage n'est pas un simple booléen : le
+        # retirer retire les plans du hub (et donc l'accès à l'exploration
+        # nationale, que le hub réserve à qui publie) ; le redonner republie.
+        if partage_avant != config.federation_partage:
+            from apps.search.raccordement import consentement_modifie
+
+            consentement_modifie(partage_avant, config.federation_partage)
 
         # Return data with read serializer (relative URLs)
         return Response(SiteConfigurationSerializer(config, context={'request': request}).data)
+
+
+class SiteConfigurationImageView(APIView):
+    """
+    #660 — Sert le logo de la structure ou l'image d'accueil.
+
+    GET /api/settings/homepage-image/ et /api/settings/structure-logo/ (public).
+    En production (DEBUG=False), Django ne sert pas /media/ et aucun proxy ne
+    l'y route : l'image doit passer par /api/, seul préfixe dirigé vers le
+    backend dans toutes les topologies (Apache du frontend, vhost, Traefik).
+    Seules ces deux images sont exposées — pas le reste de /media/, où vivent
+    les pièces jointes des plans.
+    """
+
+    permission_classes = [AllowAny]
+    field_name = None
+
+    def get(self, request):
+        from django.http import FileResponse, Http404
+
+        image = getattr(SiteConfiguration.get_instance(), self.field_name)
+        if not image:
+            raise Http404
+        try:
+            handle = image.open('rb')
+        except FileNotFoundError:
+            raise Http404
+        response = FileResponse(handle)
+        # L'URL change avec le fichier (?v=), elle peut donc être mise en cache.
+        response['Cache-Control'] = 'public, max-age=86400'
+        return response
 
 
 class ModuleViewSet(viewsets.ModelViewSet):

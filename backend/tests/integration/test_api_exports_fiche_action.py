@@ -373,3 +373,48 @@ class TestExportFicheActionProgrammationMensuelle:
     ])
     def test_mois_par_ligne(self, n_cols, attendu):
         assert fiche._months_per_row(n_cols) == attendu
+
+
+@pytest.mark.django_db
+class TestProgrammationMensuelleToutesDurees:
+    """#668 — Toutes les configurations : quelle que soit la durée du plan
+    (donc le nombre de colonnes de la feuille), les 12 mois figurent une fois
+    chacun, les mois programmés sont cochés et rien ne déborde de la feuille."""
+
+    PROGRAMMES = {'1': True, '5': True, '6': True, '9': True, '12': True}
+
+    def _verifier(self, annee_debut, annee_fin, annees_extension=0):
+        from apps.plans.services_export_fiche_action import build_fiche_action_workbook
+
+        plan = PlanGestionFactory(annee_debut=annee_debut, annee_fin=annee_fin,
+                                  annees_extension=annees_extension)
+        ne = NiveauExigenceFactory(
+            id_olt=ObjectifLongTermeFactory(id_enjeu=EnjeuFactory(id_pg=plan)))
+        op = OperationFactory(code_operation='ACT1',
+                              programmation_mensuelle_defaut=self.PROGRAMMES)
+        op.metriques.add(MetriqueFactory(id_indicateur=IndicateurFactory(id_ne=ne)))
+        ws = load_workbook(io.BytesIO(build_fiche_action_workbook(plan)))['ACT1']
+
+        n_annees = len(plan.annees_plan()) or 1
+        derniere_colonne = 3 + n_annees
+        grille = TestExportFicheActionProgrammationMensuelle._grille_mensuelle(ws)
+
+        assert list(grille) == MOIS, n_annees
+        assert [m for m, v in grille.items() if v == 'x'] == ['Janv', 'Mai', 'Juin', 'Sept', 'Déc']
+        # Rien n'est écrit au-delà de la dernière colonne d'année.
+        debut = next(r for r in range(1, ws.max_row + 1)
+                     if ws.cell(r, 1).value == 'Programmation mensuelle')
+        for r in range(debut, debut + 24):
+            for c in range(derniere_colonne + 1, derniere_colonne + 13):
+                assert ws.cell(r, c).value in (None, ''), (n_annees, r, c)
+
+    @pytest.mark.parametrize('duree', range(1, 21))
+    def test_plan_de_1_a_20_ans(self, duree):
+        self._verifier(2020, 2020 + duree - 1)
+
+    def test_plan_sans_annees(self):
+        self._verifier(None, None)
+
+    @pytest.mark.parametrize('duree, extension', [(5, 1), (5, 2), (10, 2), (11, 1)])
+    def test_plan_prolonge(self, duree, extension):
+        self._verifier(2020, 2020 + duree - 1, extension)

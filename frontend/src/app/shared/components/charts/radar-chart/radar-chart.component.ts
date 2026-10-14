@@ -1,7 +1,7 @@
 import {
   ChangeDetectionStrategy, Component, Input, OnChanges,
 } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 
 import { RadarAxis, nextChartUid, smoothPath } from '../chart.types';
 
@@ -32,7 +32,7 @@ interface RadarVm {
 @Component({
   selector: 'app-radar-chart',
   standalone: true,
-  imports: [CommonModule],
+  imports: [],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (vm) {

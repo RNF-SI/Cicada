@@ -101,6 +101,7 @@ describe('PlanSidebarComponent', () => {
     isSuperAdmin: jest.Mock;
     isRedacteurPrincipal: jest.Mock;
     isAdminOrganisme: jest.Mock;
+    isRedacteur: jest.Mock;
     currentUser: jest.Mock;
   };
   let mockAdminService: { getPlan: jest.Mock };
@@ -128,6 +129,7 @@ describe('PlanSidebarComponent', () => {
       isSuperAdmin: jest.fn().mockReturnValue(false),
       isRedacteurPrincipal: jest.fn().mockReturnValue(false),
       isAdminOrganisme: jest.fn().mockReturnValue(false),
+      isRedacteur: jest.fn().mockReturnValue(false),
       currentUser: jest.fn().mockReturnValue({ id: 42 }),
     };
     mockAdminService = {
@@ -227,6 +229,30 @@ describe('PlanSidebarComponent', () => {
   it('should navigate to enjeu detail on selectEnjeu', () => {
     component.selectEnjeu(mockEnjeu);
     expect(mockRouter.navigate).toHaveBeenCalledWith(['/plans', 'plan-test', 'enjeux', 'protection-zones-humides']);
+  });
+
+  // #700 — Le rédacteur externe saisit le plan (référent) mais n'en voit jamais les suivis.
+  describe('suivis et rédacteur externe (#700)', () => {
+    const menuLabels = (): string[] => Array.from(
+      fixture.nativeElement.querySelectorAll('.menu-item span')
+    ).map((el: any) => el.textContent.trim());
+
+    it('affiche les suivis à un référent du plan', () => {
+      componentRef.setInput('canManage', true);
+      fixture.detectChanges();
+      expect(component.canViewSuivis()).toBe(true);
+      expect(menuLabels()).toContain('plans.detail.sidebar.suivis');
+    });
+
+    it('masque les suivis à un rédacteur externe, même référent', () => {
+      mockAuthService.isRedacteur.mockReturnValue(true);
+      componentRef.setInput('canManage', true);
+      fixture.detectChanges();
+      expect(component.canViewSuivis()).toBe(false);
+      expect(menuLabels()).not.toContain('plans.detail.sidebar.suivis');
+      // Saisie et exports restent ouverts.
+      expect(component.canViewExports()).toBe(true);
+    });
   });
 
   // #583 — La section « Paramétrage » (Paramètres, Postes/RH) est le premier

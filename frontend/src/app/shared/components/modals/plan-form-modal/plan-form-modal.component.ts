@@ -1,4 +1,4 @@
-import { Component, inject, signal, computed, OnInit, ElementRef, ViewChild } from '@angular/core';
+import { Component, inject, signal, computed, OnInit, ElementRef, ViewChild, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, FormControl, Validators, ReactiveFormsModule, FormsModule } from '@angular/forms';
 import { MatDialogModule, MatDialogRef, MatDialog, MAT_DIALOG_DATA } from '@angular/material/dialog';
@@ -101,6 +101,7 @@ interface OrganismeEntry {
     TagComponent,
   ],
   templateUrl: './plan-form-modal.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './plan-form-modal.component.scss'
 })
 export class PlanFormModalComponent implements OnInit {
@@ -297,7 +298,7 @@ export class PlanFormModalComponent implements OnInit {
   }
 
   get modalTitle(): string {
-    return this.isEditMode ? 'Modifier le plan de gestion' : 'Nouveau plan de gestion';
+    return this.isEditMode ? 'Modifier les données de référence' : 'Nouveau plan de gestion';
   }
 
   ngOnInit(): void {

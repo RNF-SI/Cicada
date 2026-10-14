@@ -13,19 +13,38 @@ from datetime import datetime
 
 
 def get_tracking_api_url():
-    """
-    Lit l'URL de l'API de suivi :
-    - En dev : depuis variable d'environnement TRACKING_API_URL
-    - En production (package) : depuis /etc/cicada/cicada.conf (fixée dans le package)
-    """
+    """URL de l'API de suivi : variable d'environnement TRACKING_API_URL
+    (surcharge : tests, dev), sinon /etc/cicada/cicada.conf, sinon défaut."""
     import configparser
-    
+
+    if os.environ.get('TRACKING_API_URL'):
+        return os.environ['TRACKING_API_URL']
     if os.path.exists('/etc/cicada/cicada.conf'):
         config = configparser.ConfigParser()
         config.read('/etc/cicada/cicada.conf')
         return config.get('CICADA', 'TRACKING_API_URL')
-    else:
-        return os.environ.get('TRACKING_API_URL', 'https://tracking.cicada.reserves-naturelles.org/api')
+    return 'https://tracking.cicada.reserves-naturelles.org/api'
+
+
+DEFAULT_HUB_URL = 'https://hub.cicada.reserves-naturelles.org'
+
+
+def get_hub_url():
+    """URL du hub d'exploration fédérée proposée par défaut dans le formulaire :
+    variable d'environnement HUB_URL (surcharge : tests, dev), sinon
+    /etc/cicada/cicada.conf, sinon défaut. Il n'y a qu'un hub, hébergé par RNF.
+
+    cicada.conf est un conffile : une instance installée avant l'ajout de la
+    clé garde son ancien fichier, d'où le repli plutôt qu'une erreur."""
+    import configparser
+
+    if os.environ.get('HUB_URL'):
+        return os.environ['HUB_URL'].rstrip('/')
+    if os.path.exists('/etc/cicada/cicada.conf'):
+        config = configparser.ConfigParser()
+        config.read('/etc/cicada/cicada.conf')
+        return config.get('CICADA', 'HUB_URL', fallback=DEFAULT_HUB_URL).rstrip('/')
+    return DEFAULT_HUB_URL
 
 
 class InstallService:
@@ -82,6 +101,17 @@ class InstallService:
             errors = self.validate_data(data)
             if errors:
                 return {'success': False, 'errors': errors}
+
+            # 1.5. Base existante : la vérifier AVANT de lancer quoi que ce soit.
+            # Sinon l'échec n'apparaît qu'au démarrage de l'application, des
+            # minutes plus tard, sous forme d'erreur de connexion dans ses logs.
+            if data.get('db_type') == 'existing':
+                self.update_status('in_progress', 'Vérification de la base PostgreSQL...', 'db', 'running')
+                checks = self.test_database(data)
+                blocking = [c for c in checks if c['status'] == 'error']
+                if blocking:
+                    self.update_status('failed', blocking[0]['label'], 'db', 'failed')
+                    return {'success': False, 'error': self.format_db_errors(blocking)}
 
             # 2. Générer les secrets
             self.update_status('in_progress', 'Génération des secrets...')
@@ -163,14 +193,28 @@ class InstallService:
                     "commencer par une lettre ou un chiffre — par exemple "
                     "« rnf » ou « cen-aura »."
                 )
+            if not (data.get('federation_instance_label') or '').strip():
+                errors.append(
+                    "Le nom affiché de l'instance est requis pour rejoindre "
+                    "l'exploration fédérée : c'est lui, et non l'identifiant, "
+                    "qui apparaît chez les autres structures comme provenance "
+                    "de vos plans."
+                )
             if not data.get('federation_hub_url'):
                 errors.append("L'URL du hub est requise pour rejoindre l'exploration fédérée.")
-            if not data.get('federation_push_token'):
-                errors.append("Le jeton de dépôt est requis pour rejoindre l'exploration fédérée.")
-            if data.get('federation_relay') and not data.get('federation_read_token'):
+            # Les jetons sont FACULTATIFS (#696) : le cas courant est de les
+            # laisser vides et de demander l'adhésion depuis Administration >
+            # Paramètres, une fois l'installation terminée. L'instance tire
+            # alors elle-même ses jetons et n'en envoie que les empreintes : le
+            # jeton du hub ne voyage jamais. Ils ne se saisissent ici que si RNF
+            # les a remis (raccordement manuel, banc d'essai).
+            # Seule exigence : un jeton de dépôt saisi pour relayer l'exploration
+            # sans jeton de lecture produirait un relais voué au refus du hub.
+            if (data.get('federation_push_token') and data.get('federation_relay')
+                    and not data.get('federation_read_token')):
                 errors.append(
                     "Le jeton de lecture est requis pour que l'exploration soit "
-                    "servie par le hub."
+                    "servie par le hub, dès lors qu'un jeton de dépôt est saisi."
                 )
         return errors
 
@@ -259,6 +303,19 @@ class InstallService:
             "CICADA_HUB_PUSH_AUTO=true",
         ])
 
+        # --- Mode de connexion (#689) : un seul à la fois ---
+        # Variables GeoNature toujours écrites (vides en mode local) : une ligne
+        # vide se complète après coup, une ligne absente ne se devine pas.
+        geonature = data.get('auth_provider') == 'geonature'
+        env_lines.extend([
+            "",
+            f"AUTH_PROVIDER={'geonature' if geonature else 'local'}",
+            f"GEONATURE_AUTH_URL={(data.get('geonature_auth_url') or '').strip().rstrip('/') if geonature else ''}",
+            f"GEONATURE_AUTH_ID_APPLICATION={str(data.get('geonature_auth_id_application') or '').strip() if geonature else ''}",
+            f"GEONATURE_AUTH_LIBELLE={(data.get('geonature_auth_libelle') or 'GeoNature').strip() if geonature else 'GeoNature'}",
+            f"GEONATURE_AUTH_ORGANISMES_EXCLUS={(data.get('geonature_auth_organismes_exclus') or '').replace(' ', '') if geonature else ''}",
+        ])
+
         if use_traefik:
             env_lines.extend([
                 "",
@@ -276,7 +333,10 @@ class InstallService:
             env_lines.append("")
             env_lines.append("TRAEFIK_ENABLED=false")
 
-        Path("/var/lib/cicada/.env").write_text("\n".join(env_lines) + "\n")
+        env_path = Path("/var/lib/cicada/.env")
+        env_path.touch(mode=0o600, exist_ok=True)
+        env_path.chmod(0o600)  # secrets : root seul (le fichier pouvait préexister)
+        env_path.write_text("\n".join(env_lines) + "\n")
 
     def generate_docker_compose(self, data):
         """
@@ -397,8 +457,13 @@ class InstallService:
                 text=True,
                 timeout=120,
             )
-            if result.returncode != 0:
-                err = (result.stderr or "").strip() or (result.stdout or "").strip()
+            err = (result.stderr or "").strip() or (result.stdout or "").strip()
+            if result.returncode != 0 and 'is unhealthy' in err:
+                # Compose abandonne quand web ne devient pas healthy (frontend et
+                # celery en dépendent). Les conteneurs existent : la boucle
+                # d'attente ci-dessous produit un diagnostic lisible (logs web).
+                pass
+            elif result.returncode != 0:
                 self.update_status('in_progress', f'Erreur Docker Compose: {err[:200]}', 'web', 'failed')
                 msg = f"Échec du démarrage des conteneurs (code {result.returncode}).\n\nSortie:\n{result.stdout or '(vide)'}\n\nErreur:\n{result.stderr or '(vide)'}"
                 if "address already in use" in err.lower() or ("bind" in err.lower() and "port" in err.lower()):
@@ -429,54 +494,48 @@ class InstallService:
         web_running = False
         frontend_running = False
         
+        # Pour une base existante, rien à attendre côté conteneurs
+        if db_type != 'docker':
+            db_running = True
+
+        web_failed = False
         while elapsed < max_wait:
-            # Vérifier l'état de tous les conteneurs
-            ps_result = subprocess.run(
-                [docker_cmd, 'compose'] + docker_compose_f_args + ['--env-file', env_file, 'ps'],
-                capture_output=True,
-                text=True,
-                timeout=10
-            )
-            
-            if ps_result.returncode == 0:
-                ps_output = ps_result.stdout.lower()
-                # "docker compose ps" affiche "Up X min (healthy)", pas "running"
-                up_or_running = ('running' in ps_output or ' up ' in ps_output)
+            # État lu conteneur par conteneur. Ne pas chercher « healthy » dans la
+            # sortie globale de `docker compose ps` : la ligne d'un autre
+            # conteneur (redis) suffisait à croire web prêt alors qu'il ne
+            # démarrait pas.
+            if not db_running and self._container_state(docker_cmd, 'cicada_prod_db') == 'healthy':
+                db_running = True
+                self.update_status('in_progress', 'Base de données démarrée', 'db', 'completed')
 
-                # Vérifier la base de données (seulement si DB_TYPE = docker)
-                if db_type == 'docker':
-                    if not db_running and 'cicada_prod_db' in ps_output and up_or_running and 'healthy' in ps_output:
-                        db_running = True
-                        self.update_status('in_progress', 'Base de données démarrée', 'db', 'completed')
+            if not redis_running and self._container_state(docker_cmd, 'cicada_prod_redis') == 'healthy':
+                redis_running = True
+                self.update_status('in_progress', 'Redis démarré', 'redis', 'completed')
+
+            if not web_running:
+                web_state = self._container_state(docker_cmd, 'cicada_prod_web')
+                if web_state == 'healthy':
+                    web_running = True
+                    self.update_status('in_progress', 'Conteneur web démarré', 'web', 'completed')
+                elif web_state in ('unhealthy', 'exited', 'dead'):
+                    # Inutile d'attendre la fin du délai : le diagnostic ci-dessous
+                    # donne la cause (souvent la connexion à la base).
+                    web_failed = True
+                    break
                 else:
-                    # Pour DB existante, on considère qu'elle est prête (l'utilisateur doit l'avoir configurée)
-                    db_running = True
+                    self.update_status(
+                        'in_progress',
+                        'Démarrage du conteneur web (migrations, import des référentiels)...',
+                        'web', 'running',
+                    )
 
-                # Vérifier Redis
-                if not redis_running and 'cicada_prod_redis' in ps_output and up_or_running and 'healthy' in ps_output:
-                    redis_running = True
-                    self.update_status('in_progress', 'Redis démarré', 'redis', 'completed')
+            if not frontend_running and self._container_state(docker_cmd, 'cicada_prod_frontend') in ('running', 'healthy'):
+                frontend_running = True
+                self.update_status('in_progress', 'Frontend démarré', 'frontend', 'completed')
 
-                # Vérifier le conteneur web (Up X min (healthy))
-                if not web_running and 'cicada_prod_web' in ps_output:
-                    if up_or_running and 'healthy' in ps_output:
-                        web_running = True
-                        self.update_status('in_progress', 'Conteneur web démarré', 'web', 'completed')
-                    elif 'exited' in ps_output:
-                        self.update_status('in_progress', 'Conteneur web en cours de démarrage...', 'web', 'running')
-                    else:
-                        self.update_status('in_progress', 'Démarrage du conteneur web...', 'web', 'running')
-
-                # Vérifier le frontend (optionnel)
-                if not frontend_running and 'cicada_prod_frontend' in ps_output and up_or_running:
-                    frontend_running = True
-                    self.update_status('in_progress', 'Frontend démarré', 'frontend', 'completed')
-            
-            # Si tous les conteneurs critiques sont prêts, on peut continuer
-            # Pour DB existante, db_running est toujours True
             if db_running and redis_running and web_running:
                 break
-            
+
             time.sleep(wait_interval)
             elapsed += wait_interval
         
@@ -505,12 +564,212 @@ class InstallService:
                 timeout=10
             )
             ps_output = ps_result.stdout if ps_result.returncode == 0 else "Impossible de récupérer l'état"
+            if web_failed:
+                headline = "L'application (conteneur 'web') n'a pas pu démarrer."
+            else:
+                headline = f"L'application (conteneur 'web') n'est pas prête après {elapsed} secondes."
+            cause = self._probable_cause(web_logs)
             error_msg = (
-                f"Le conteneur 'web' n'est pas prêt après {elapsed} secondes (healthcheck non atteint).\n\n"
-                f"État des conteneurs:\n{ps_output}\n\n"
+                f"{headline}\n"
+                + (f"Cause probable : {cause}\n" if cause else "")
+                + f"\nÉtat des conteneurs:\n{ps_output}\n\n"
                 f"Logs du conteneur web (diagnostic):\n{web_logs[-6000:]}"
             )
             raise Exception(error_msg)
+
+        self._start_dependent_services(docker_cmd, compose_f_args, env_file, compose_dir)
+
+    # Services qui attendent que web soit healthy (depends_on: service_healthy)
+    DEPENDENT_CONTAINERS = ('cicada_prod_frontend', 'cicada_prod_celery_worker', 'cicada_prod_celery_beat')
+
+    def _start_dependent_services(self, docker_cmd, compose_f_args, env_file, compose_dir):
+        """Démarre frontend et celery une fois web healthy, et vérifie qu'ils tournent.
+
+        Le premier `up -d` est coupé au bout de 2 min alors que Compose attend
+        encore que web soit healthy pour lancer ses dépendants : dès que le
+        premier démarrage de web dépasse ce délai (import des référentiels), ils
+        restaient à l'état « created » — jamais démarrés — et l'installation
+        était pourtant déclarée réussie. `up -d` est idempotent : le relancer
+        maintenant que web est healthy démarre ce qui manque.
+        """
+        import time
+        self.update_status('in_progress', 'Démarrage du frontend et des tâches de fond...', 'frontend', 'running')
+        result = subprocess.run(
+            [docker_cmd, 'compose'] + compose_f_args + ['--env-file', env_file, 'up', '-d'],
+            cwd=compose_dir, capture_output=True, text=True, timeout=300,
+        )
+        not_running = list(self.DEPENDENT_CONTAINERS)
+        for _ in range(24):  # 2 min
+            not_running = [c for c in self.DEPENDENT_CONTAINERS
+                           if self._container_state(docker_cmd, c) not in ('running', 'healthy')]
+            if not not_running:
+                break
+            time.sleep(5)
+        if not_running:
+            states = ', '.join(f"{c} : {self._container_state(docker_cmd, c) or 'absent'}" for c in not_running)
+            raise Exception(
+                f"Des services n'ont pas démarré ({states}).\n\n"
+                f"Sortie de docker compose up:\n{(result.stderr or result.stdout or '')[-3000:]}"
+            )
+        self.update_status('in_progress', 'Frontend démarré', 'frontend', 'completed')
+
+    # ------------------------------------------------------------------
+    # Base PostgreSQL existante (autre serveur, conteneur ou VM)
+    # ------------------------------------------------------------------
+    APP_SCHEMAS = ('utilisateurs', 'referentiels', 'ref_nomenclatures', 'ref_geo', 'general',
+                   'fichiers', 'ccd_commons', 'ccd_notifications', 'taxonomie',
+                   'ref_habitats', 'ref_inpg', 'ref_campanule')
+    LOCAL_NAMES = ('localhost', '127.0.0.1', '::1', 'localhost.localdomain')
+
+    def client_ip_for(self, host):
+        """Adresse avec laquelle cette machine (donc CICADA) joint `host` : c'est
+        elle que le serveur de base doit autoriser dans pg_hba.conf."""
+        import socket
+        try:
+            target = socket.gethostbyname(host)
+            out = subprocess.run(['ip', '-4', 'route', 'get', target],
+                                 capture_output=True, text=True, timeout=5).stdout
+        except (OSError, subprocess.SubprocessError):
+            return None
+        match = re.search(r'\bsrc (\S+)', out)
+        return match.group(1) if match else None
+
+    def _is_this_machine(self, host):
+        import socket
+        if host in self.LOCAL_NAMES:
+            return True
+        try:
+            target = socket.gethostbyname(host)
+            out = subprocess.run(['ip', '-4', '-o', 'addr', 'show'],
+                                 capture_output=True, text=True, timeout=5).stdout
+        except (OSError, subprocess.SubprocessError):
+            return False
+        return target.startswith('127.') or f' {target}/' in out
+
+    def test_database(self, data):
+        """Vérifie une base existante telle que CICADA la verra.
+
+        Retourne une liste de {status: ok|warning|error, label, detail}.
+        Le test part de cette machine : les conteneurs sortent avec la même
+        adresse vers un serveur distant (NAT de Docker), donc pg_hba.conf
+        les traite pareil — sauf si la base est sur CETTE machine.
+        """
+        host = (data.get('db_host') or '').strip()
+        name = (data.get('db_name') or '').strip()
+        user = (data.get('db_user') or '').strip()
+        password = data.get('db_password') or ''
+        try:
+            port = int(data.get('db_port') or 5432)
+        except (TypeError, ValueError):
+            return [{'status': 'error', 'label': 'Port PostgreSQL invalide', 'detail': ''}]
+        checks = []
+
+        if not host:
+            return [{'status': 'error', 'label': "Indiquez l'adresse du serveur PostgreSQL", 'detail': ''}]
+        if self._is_this_machine(host):
+            return [{
+                'status': 'error',
+                'label': f"« {host} » désigne ce serveur-ci, pas un serveur de base séparé",
+                'detail': ("Vu de l'application (qui tourne dans un conteneur Docker), « localhost » "
+                           "désigne le conteneur lui-même. Si PostgreSQL est dans un autre conteneur "
+                           "ou une autre VM, indiquez SON adresse IP. Si PostgreSQL est installé "
+                           "directement sur ce serveur, ce cas n'est pas encore pris en charge par "
+                           "le formulaire : utilisez plutôt la base dans Docker."),
+            }]
+
+        try:
+            import psycopg
+        except ImportError:
+            return [{'status': 'error', 'label': "Module psycopg absent de l'installateur",
+                     'detail': 'Réinstallez le paquet : sudo apt install --reinstall cicada'}]
+
+        client_ip = self.client_ip_for(host)
+        try:
+            conn = psycopg.connect(host=host, port=port, dbname=name, user=user,
+                                   password=password, connect_timeout=8)
+        except psycopg.OperationalError as e:
+            msg = str(e).strip().splitlines()[-1] if str(e).strip() else str(e)
+            low = msg.lower()
+            if 'pg_hba.conf' in low:
+                hint = (f"Le serveur de base refuse cette machine ({client_ip or '?'}). "
+                        "Lancez cicada-prepare-db avec --client sur le serveur de base (commande ci-dessus).")
+            elif 'password authentication failed' in low:
+                hint = "Mot de passe refusé : utilisez celui affiché par cicada-prepare-db."
+            elif 'does not exist' in low:
+                hint = "Base ou compte inexistant : lancez cicada-prepare-db sur le serveur de base."
+            elif 'connection refused' in low or 'timeout' in low or 'timed out' in low:
+                hint = ("Serveur injoignable sur ce port : vérifiez l'adresse, le pare-feu, et que "
+                        "PostgreSQL écoute sur le réseau (listen_addresses).")
+            else:
+                hint = ''
+            return [{'status': 'error', 'label': 'Connexion impossible', 'detail': f'{msg}\n{hint}'.strip()}]
+
+        with conn:
+            checks.append({'status': 'ok', 'label': f'Connexion à {name} sur {host}:{port} réussie',
+                           'detail': f'depuis {client_ip}' if client_ip else ''})
+            version = conn.execute(
+                "select extversion from pg_extension where extname = 'postgis'").fetchone()
+            if version:
+                checks.append({'status': 'ok', 'label': f'PostGIS {version[0]} activé', 'detail': ''})
+            else:
+                checks.append({'status': 'error', 'label': "PostGIS n'est pas activé dans cette base",
+                               'detail': "Seul un super-utilisateur peut l'activer : lancez cicada-prepare-db sur le serveur de base."})
+            owned = conn.execute(
+                "select count(*) from pg_namespace where nspname = any(%s) "
+                "and pg_get_userbyid(nspowner) = current_user", (list(self.APP_SCHEMAS),)).fetchone()[0]
+            if owned == len(self.APP_SCHEMAS):
+                checks.append({'status': 'ok', 'label': f'{owned} schémas CICADA prêts', 'detail': ''})
+            else:
+                checks.append({'status': 'error',
+                               'label': f'Base non préparée ({owned}/{len(self.APP_SCHEMAS)} schémas appartenant à {user})',
+                               'detail': 'Lancez cicada-prepare-db sur le serveur de base.'})
+        return checks
+
+    @staticmethod
+    def format_db_errors(blocking):
+        lines = ["La base PostgreSQL n'est pas prête :"]
+        for c in blocking:
+            lines.append(f"• {c['label']}")
+            if c.get('detail'):
+                lines.append(f"  {c['detail']}")
+        return '\n'.join(lines)
+
+    def prepare_db_script(self):
+        """cicada-prepare-db avec l'init.sql de CETTE version inclus, à lancer sur
+        le serveur de base (curl … | sudo bash -s -- --client <ip>)."""
+        script = Path('/usr/bin/cicada-prepare-db').read_text()
+        init_sql = Path('/usr/share/cicada/docker/postgres/init.sql').read_text()
+        marker = 'CICADA_INIT_SQL_EOF'
+        if marker in init_sql:
+            raise ValueError('init.sql contient le délimiteur du heredoc')
+        shebang, _, rest = script.partition('\n')
+        return (f"{shebang}\n# init.sql de CICADA {self.get_version()}, inclus par l'installateur\n"
+                f"INIT_SQL_CONTENT=$(cat <<'{marker}'\n{init_sql.rstrip()}\n{marker}\n)\n{rest}")
+
+    def _container_state(self, docker_cmd, name):
+        """État d'un conteneur : santé s'il a un healthcheck (starting, healthy,
+        unhealthy), sinon statut (created, running, exited…), '' s'il n'existe pas."""
+        try:
+            result = subprocess.run(
+                [docker_cmd, 'inspect', '-f',
+                 '{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}',
+                 name],
+                capture_output=True, text=True, timeout=10,
+            )
+        except subprocess.TimeoutExpired:
+            return ''
+        return result.stdout.strip() if result.returncode == 0 else ''
+
+    @staticmethod
+    def _probable_cause(logs):
+        """Dernière erreur de connexion à la base dans les logs web, lisible par
+        l'opérateur (plutôt qu'une trace Python de 80 lignes)."""
+        for line in reversed(logs.splitlines()):
+            if 'OperationalError' in line or 'connection to server' in line:
+                # Retirer le préfixe « conteneur | » ajouté par `docker compose logs`
+                line = line.split(' | ', 1)[-1]
+                return line.split('OperationalError:', 1)[-1].strip()[:400]
+        return ''
 
     def _build_final_url(self, data):
         """Construit l'URL finale de l'application (sans :80 ni :443 dans l'URL)."""
@@ -741,9 +1000,8 @@ except Exception as e:
         return None
 
     def get_version(self):
-        config_file = Path("/etc/cicada/cicada.conf")
-        if config_file.exists():
-            for line in config_file.read_text().splitlines():
-                if line.startswith('VERSION='):
-                    return line.split('=', 1)[1].strip()
+        # Fichier du paquet (et non le conffile cicada.conf, cf. build-deb.sh)
+        version_file = Path("/usr/share/cicada/VERSION")
+        if version_file.exists():
+            return version_file.read_text().strip() or "unknown"
         return "unknown"

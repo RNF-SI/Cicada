@@ -1,8 +1,10 @@
-import { Component, OnInit, inject, signal, computed } from '@angular/core';
+import { ExplorationRetourService } from '../../../../core/services/exploration-retour.service';
+import { Component, OnInit, inject, signal, computed, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { EnjeuService } from '../../../../core/services/enjeu.service';
+import { AuthService } from '../../../../core/services/auth.service';
 import { MetriqueRef, Operation, Protocole } from '../../../../core/models/enjeu.model';
 import { CategorieDepense } from '../../../../core/models/rh.model';
 import {
@@ -29,22 +31,47 @@ import {
  * « Imprimer / Exporter » s'appuie sur `window.print()` + un CSS d'impression
  * (export PDF via le navigateur) pour incorporation dans les plans de gestion.
  */
+import { SurlignerDirective } from '../../../../shared/directives/surligner.directive';
+
 @Component({
   selector: 'app-operation-fiche',
   standalone: true,
-  imports: [CommonModule, RouterModule, TranslateModule, LeafletMapEditComponent, MetriqueGridDisplayComponent, PriorityBadgeComponent],
+  imports: [CommonModule, RouterModule, TranslateModule, LeafletMapEditComponent, MetriqueGridDisplayComponent, PriorityBadgeComponent, SurlignerDirective],
   templateUrl: './operation-fiche.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './operation-fiche.component.scss',
 })
 export class OperationFicheComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
+  private readonly explorationRetour = inject(ExplorationRetourService);
   private readonly enjeuService = inject(EnjeuService);
   private readonly translate = inject(TranslateService);
   private readonly dialog = inject(MatDialog);
   private readonly snackBar = inject(MatSnackBar);
 
   operation = signal<Operation | null>(null);
+
+  /**
+   * #683 — Le lecteur n'est là que par l'exploration : action d'un plan validé
+   * d'une autre structure, servie sans programmation, RH, financement ni
+   * réalisations. Les sections correspondantes et les actions de gestion
+   * (suivi, export, modification) n'ont alors pas lieu d'être.
+   */
+  accesExploration = computed(() => this.operation()?.acces_exploration === true);
+
+  /** #700 — Un rédacteur externe saisit l'action mais n'accède pas au suivi :
+   *  la section « Réalisation » ne lui est pas montrée. */
+  readonly isRedacteur = inject(AuthService).isRedacteur;
+
+  /** #681 — Mot cherché dans l'exploration (`?q=`), surligné sur la fiche. */
+  motCleSurligne = signal('');
+
+  /** #683 — Action d'un plan distant : qui l'a publiée, et quand. */
+  provenanceDistante = computed(() => {
+    const op = this.operation();
+    return op?.instance_libelle ? op : null;
+  });
   isLoading = signal(true);
   errorMessage = signal<string | null>(null);
   planSlug = signal<string | null>(null);
@@ -397,6 +424,34 @@ export class OperationFicheComponent implements OnInit {
   });
 
   /** Période lisible (annee_min – annee_max). */
+  /**
+   * #674 — Mois d'intervention, comme dans l'export Excel de la fiche : grille
+   * mensuelle commune réunie avec les mois de chaque année (identiques, la
+   * programmation étant « mêmes mois chaque année »).
+   */
+  readonly moisProgrammes = computed<number[]>(() => {
+    const op = this.operation();
+    if (!op) return [];
+    const mois = new Set<number>();
+    const ajouter = (flags?: Record<string, boolean> | null) => {
+      for (const [m, coche] of Object.entries(flags ?? {})) {
+        const n = Number(m);
+        if (coche === true && n >= 1 && n <= 12) mois.add(n);
+      }
+    };
+    ajouter(op.programmation_mensuelle_defaut);
+    for (const oa of op.operation_annees ?? []) ajouter(oa.periodicite_mensuelle);
+    return [...mois].sort((a, b) => a - b);
+  });
+
+  /** Mois d'intervention en clair : « mars, avril, mai ». */
+  moisIntervention(): string {
+    const labels = this.translate.instant('plans.suivis.actions.fiche.moisLabels').split(',');
+    return this.moisProgrammes()
+      .map(m => (labels.length === 12 ? labels[m - 1] : String(m)))
+      .join(', ');
+  }
+
   readonly periode = computed(() => {
     const op = this.operation();
     if (op?.annee_min && op?.annee_max) return `${op.annee_min} – ${op.annee_max}`;
@@ -413,6 +468,7 @@ export class OperationFicheComponent implements OnInit {
       this.isLoading.set(false);
       return;
     }
+    this.motCleSurligne.set(this.route.snapshot.queryParamMap.get('q') ?? '');
     this.enjeuService.getOperation(opId).subscribe({
       next: (op) => {
         this.operation.set(op);
@@ -524,7 +580,18 @@ export class OperationFicheComponent implements OnInit {
    * l'action ciblée. (L'ancien fragment `operation-<id>` n'ouvrait pas l'OLT/OO :
    * `prepareUiForAnchor` ne gère pas le type `operation`.)
    */
+  /** #683 — Lien vers la recherche d'exploration d'où l'on vient. */
+  lienExploration() {
+    return this.explorationRetour.lienRetour(this.motCleSurligne());
+  }
+
   goBack(): void {
+    // Action d'un plan ouvert depuis l'exploration : revenir à la recherche,
+    // pas au suivi ou à l'arborescence d'un plan qui n'est pas le sien.
+    if (this.accesExploration()) {
+      this.explorationRetour.retourner(this.motCleSurligne());
+      return;
+    }
     const slug = this.planSlug();
     if (!slug) {
       this.router.navigate(['/plans']);

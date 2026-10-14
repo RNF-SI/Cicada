@@ -38,7 +38,7 @@ def track_plan_indexation_state(sender, instance, **kwargs):
 
     ancien = (
         PlanGestion.objects.filter(pk=instance.pk)
-        .values('statut', 'annee_debut', 'annee_fin')
+        .values('statut', 'annee_debut', 'annee_fin', 'annees_extension')
         .first()
     )
     setattr(instance, _ETAT_PRECEDENT, ancien)
@@ -56,6 +56,7 @@ def sync_plan_index(sender, instance, created, **kwargs):
         elif (
             ancien['annee_debut'] != instance.annee_debut
             or ancien['annee_fin'] != instance.annee_fin
+            or ancien['annees_extension'] != instance.annees_extension  # #676
         ):
             rafraichir_facettes(instance)
     except Exception:

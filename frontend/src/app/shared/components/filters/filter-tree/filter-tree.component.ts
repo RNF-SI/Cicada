@@ -1,5 +1,5 @@
-import { Component, booleanAttribute, computed, input, model, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, booleanAttribute, computed, input, model, signal, ChangeDetectionStrategy } from '@angular/core';
+
 import { TranslateModule } from '@ngx-translate/core';
 import { CheckboxComponent } from '../../checkbox/checkbox.component';
 import { HighlightMatchPipe } from '../highlight-match.pipe';
@@ -31,9 +31,10 @@ interface FlatNode<T extends FilterValue> {
 @Component({
   selector: 'app-filter-tree',
   standalone: true,
-  imports: [CommonModule, TranslateModule, CheckboxComponent, HighlightMatchPipe],
+  imports: [TranslateModule, CheckboxComponent, HighlightMatchPipe],
   templateUrl: './filter-tree.component.html',
   styleUrl: './filter-tree.component.scss',
+  changeDetection: ChangeDetectionStrategy.Eager,
   host: {
     '[class.theme-dark]': "theme() === 'dark'",
   },

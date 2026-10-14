@@ -7,7 +7,7 @@
  * - Rédacteurs/Relecteurs: champs texte libre
  * - Organisme rédacteur principal: sélection d'organisme ou saisie libre
  */
-import { Component, inject, signal, computed, effect, OnInit, ElementRef, ViewChild } from '@angular/core';
+import { Component, inject, signal, computed, effect, OnInit, ElementRef, ViewChild, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterModule } from '@angular/router';
 import { FormBuilder, FormGroup, FormControl, Validators, ReactiveFormsModule, FormsModule } from '@angular/forms';
@@ -97,6 +97,7 @@ interface OrganismeEntry {
     TagComponent,
   ],
   templateUrl: './plan-create.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './plan-create.component.scss'
 })
 export class PlanCreateComponent implements OnInit {

@@ -1,6 +1,6 @@
 # Guide de test du package CICADA
 
-> **Voir aussi** : [Guide d'installation](../docs/INSTALLATION_GUIDE.md) (procédures de mise à jour) | [README packaging](README.md) (construction du package) | [Guide de test global](../docs/TESTING.md) (tests applicatifs)
+> **Voir aussi** : [Guide d'installation](../docs/INSTALLATION_GUIDE.md) (procédures de mise à jour) | [README packaging](README.md) (construction du package) | [Guide de test global](../docs/TESTING.md) (tests applicatifs) | [Infrastructure](../docs/INFRASTRUCTURE.md) (serveurs et liens) | [Banc VM](vm-bench/README.md) (installation rejouée de A à Z)
 
 ## Vue d'ensemble des tests
 

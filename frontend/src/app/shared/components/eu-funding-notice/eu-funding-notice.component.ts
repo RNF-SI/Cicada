@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, ChangeDetectionStrategy } from '@angular/core';
 import { TranslateModule } from '@ngx-translate/core';
 
 /**
@@ -17,6 +17,7 @@ import { TranslateModule } from '@ngx-translate/core';
   standalone: true,
   imports: [TranslateModule],
   templateUrl: './eu-funding-notice.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './eu-funding-notice.component.scss'
 })
 export class EuFundingNoticeComponent {}

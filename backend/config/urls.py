@@ -8,6 +8,8 @@ from django.contrib import admin
 from django.urls import path, include
 from django.http import JsonResponse
 
+from apps.search.urls import federation_urlpatterns
+
 
 def health_check(request):
     """Simple health check endpoint for Docker."""
@@ -28,6 +30,8 @@ urlpatterns = [
     path('api/inpg/', include('apps.geology.urls')),
     path('api/geo/', include('apps.geo.urls')),
     path('api/exploration/', include('apps.search.urls')),
+    # #696 / #698 — raccordement de l'instance au hub (super admin).
+    path('api/federation/', include(federation_urlpatterns)),
     # #645 — API ouverte des métadonnées des plans (GED tierce type DOCenCEN).
     path('api/public/', include('apps.plans.urls_public')),
     path('api/campanule/', include('apps.campanule.urls')),

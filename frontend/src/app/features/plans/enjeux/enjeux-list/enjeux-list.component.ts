@@ -3,7 +3,8 @@
  * - Sans enjeu sélectionné : liste plate de cartes accordéon
  * - Avec enjeu sélectionné (route :enjeuId) : vue détail avec 3 onglets
  */
-import { Component, OnInit, OnDestroy, DestroyRef, inject, signal, computed, ElementRef } from '@angular/core';
+import { ExplorationRetourService } from '../../../../core/services/exploration-retour.service';
+import { Component, OnInit, OnDestroy, DestroyRef, inject, signal, computed, ElementRef, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { FormsModule, FormControl, ReactiveFormsModule } from '@angular/forms';
@@ -78,13 +79,17 @@ import {
   displayNomenclatureFn,
   parseNomenclatureDefinition,
 } from '../../../../shared/utils/nomenclature-autocomplete.utils';
+import { planEndYear } from '../../../../shared/utils/plan-periode';
 
 type TabType = 'detail' | 'olt' | 'operations';
+
+import { SurlignerDirective } from '../../../../shared/directives/surligner.directive';
 
 @Component({
   selector: 'app-enjeux-list',
   standalone: true,
   imports: [
+    SurlignerDirective,
     CommonModule,
     RouterModule,
     PriorityBadgeComponent,
@@ -116,12 +121,19 @@ type TabType = 'detail' | 'olt' | 'operations';
     TagComponent
   ],
   templateUrl: './enjeux-list.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './enjeux-list.component.scss'
 })
 export class EnjeuxListComponent implements OnInit, OnDestroy {
   private readonly elRef = inject(ElementRef);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
+  private readonly explorationRetour = inject(ExplorationRetourService);
+
+  /** #683 — Lien vers la recherche d'exploration d'où l'on vient (bandeau, fil d'Ariane). */
+  lienExploration() {
+    return this.explorationRetour.lienRetour(this.motCleSurligne());
+  }
   private readonly enjeuService = inject(EnjeuService);
   private readonly adminService = inject(AdminService);
   private readonly translate = inject(TranslateService);
@@ -139,6 +151,23 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
   planReferentIds = signal<number[]>([]);
   isLoading = signal(true);
   errorMessage = signal<string | null>(null);
+
+  /**
+   * #683 — Le lecteur n'est là que par l'exploration : plan validé d'une
+   * autre structure, servi sans ses données sensibles. Posé par l'API sur la
+   * réponse `by-plan` (`acces_exploration`).
+   */
+  accesExploration = signal(false);
+
+  /**
+   * #681 — Mot cherché dans l'exploration, transmis dans `?q=` : il est
+   * surligné partout dans l'arborescence pour qu'on voie pourquoi cet
+   * élément est ressorti.
+   */
+  motCleSurligne = signal('');
+
+  /** #683 — Plan distant : qui l'a publié, et quand (instantané). */
+  provenanceDistante = signal<{ instance_libelle?: string; url_instance?: string; date_publication?: string } | null>(null);
 
   /** Statut du plan courant — exposé par l'endpoint by-plan, utilisé pour
    *  verrouiller l'édition hors brouillon (#248).
@@ -168,6 +197,9 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
    *  statut brouillon). Sert à distinguer un simple consultant non référent,
    *  à qui l'on propose de demander à devenir référent. */
   isPlanManager = computed(() => {
+    // #683 — un lecteur d'exploration n'est jamais gestionnaire, quel que
+    // soit son rôle dans sa propre structure.
+    if (this.accesExploration()) return false;
     if (this.authService.isSuperAdmin() || this.authService.isRedacteurPrincipal() || this.authService.isAdminOrganisme()) {
       return true;
     }
@@ -545,6 +577,11 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
       if (typeof val === 'string') this.editPressrefSearchText.set(val);
     });
 
+    // #681 — mot cherché transmis par l'exploration, à surligner.
+    this.route.queryParamMap.pipe(
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe(qp => this.motCleSurligne.set(qp.get('q') ?? ''));
+
     // Récupérer le slug du plan depuis les paramètres parent
     const parentParams = this.route.parent?.snapshot.paramMap;
     const slug = parentParams?.get('slug');
@@ -666,6 +703,7 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
           if (response.plan_statut) {
             this.planStatut.set(response.plan_statut);
           }
+          this.accesExploration.set(response.acces_exploration === true);
           if (!silent) this.isLoading.set(false);
           this.applyPostLoadNavigation();
         },
@@ -685,9 +723,10 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
         this.planId.set(plan.id_pg);
         this.planNom.set(plan.nom);
         this.planAnneeDebut.set(plan.annee_debut || null);
-        this.planAnneeFin.set(plan.annee_fin || null);
+        this.planAnneeFin.set(planEndYear(plan) || null);  // #672
         this.planReferentIds.set((plan.referents || []).map(r => r.id_role));
         this.planStatut.set(plan.statut);
+        this.provenanceDistante.set(plan.instance_libelle ? plan : null);
 
         this.enjeuService.getPlanEnjeux(plan.id_pg, true).subscribe({
           next: (response) => {
@@ -695,6 +734,7 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
             if (response.plan_statut) {
               this.planStatut.set(response.plan_statut);
             }
+            this.accesExploration.set(response.acces_exploration === true);
             if (!silent) this.isLoading.set(false);
             this.applyPostLoadNavigation();
           },

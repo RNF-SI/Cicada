@@ -20,8 +20,13 @@ case "$ACTION" in
         fi
 
         # Arrêter les conteneurs Docker si en cours d'exécution
-        if [ -f "/var/lib/cicada/.env" ]; then
-            docker compose -f /usr/share/cicada/docker-compose.yml --env-file /var/lib/cicada/.env down || true
+        # Mêmes fichiers compose qu'au démarrage : avec le seul fichier de base,
+        # le conteneur de base de données (docker-compose.db.yml) restait lancé.
+        # Les volumes (données) sont conservés : pas de --volumes.
+        if [ -f "/var/lib/cicada/.env" ] && command -v docker >/dev/null 2>&1; then
+            . /usr/share/cicada/compose-files.sh
+            # shellcheck disable=SC2046
+            docker compose $(compose_files_args) --env-file /var/lib/cicada/.env down || true
         fi
         ;;
     *)

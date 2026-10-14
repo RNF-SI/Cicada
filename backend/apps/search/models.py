@@ -27,13 +27,17 @@ elles ne peuvent pas diverger du texte indexé, et aucune étape Python ne peut
   géologique ou une référence PressRef doit remonter les objets qui les portent
   sans avoir à élargir la recherche : ce sont des rattachements explicites, pas
   du texte de contexte.
-- ``search_full`` : idem + description (poids B) + contexte (poids C, libellés
-  des objets ancêtres) — mode élargi, qui fait par exemple ressortir un
-  indicateur dont l'objectif parent porte le mot cherché.
+- ``search_description``, ``search_contexte`` (libellés des ancêtres) et
+  ``search_enfants`` (libellés des descendants) : un vecteur par **axe de
+  portée** (#681). L'utilisateur coche « aussi dans les descriptions », « dans
+  les éléments parents », « dans les éléments enfants » indépendamment ;
+- ``search_full`` : la réunion de tous — c'est lui qui porte l'index GIN
+  servant toute portée élargie, les axes étant ensuite revérifiés exactement.
 
-La frontière entre les deux modes n'est donc pas « titre / reste » mais
-« ce que l'objet **est et porte** » d'un côté, « ce que ses parents disent »
-de l'autre.
+La frontière de base n'est donc pas « titre / reste » mais « ce que l'objet
+**est et porte** » d'un côté, « ce que ses parents ou ses enfants disent » de
+l'autre. Le chemin d'ascendance (``chemin``) permet d'afficher l'arborescence
+qui mène à l'objet retrouvé et de surligner le maillon qui a répondu (#682).
 """
 
 from django.contrib.postgres.fields import ArrayField
@@ -151,7 +155,20 @@ class ContenuIndexe(models.Model):
         blank=True,
         default='',
         help_text=_(
-            "Libellés des objets ancêtres. Interrogé uniquement en mode élargi."
+            "Libellés des objets ancêtres. Interrogé seulement si la portée "
+            "« éléments parents » est cochée."
+        ),
+    )
+    enfants = models.TextField(
+        _("Descendance"),
+        blank=True,
+        default='',
+        help_text=_(
+            "Libellés des objets descendants (#682) : un enjeu porte ici ses "
+            "objectifs, indicateurs, métriques et actions. Interrogé seulement "
+            "si la portée « éléments enfants » est cochée — c'est ce qui fait "
+            "ressortir un enjeu quand c'est l'un de ses objectifs qui porte le "
+            "mot cherché."
         ),
     )
 
@@ -168,6 +185,26 @@ class ContenuIndexe(models.Model):
     )
     parent_libelle = models.CharField(
         _("Libellé du parent"), max_length=500, null=True, blank=True,
+    )
+    chemin = models.JSONField(
+        _("Ascendance"),
+        default=list, blank=True,
+        help_text=_(
+            "Ancêtres de l'objet, de l'enjeu jusqu'au parent direct, sous la "
+            "forme [{type, id, libelle}] (#682). C'est ce qui permet à une tuile "
+            "de résultat de montrer l'arborescence qui mène à l'objet retrouvé — "
+            "et, en mode élargi, de désigner l'ancêtre dont le libellé a "
+            "répondu. `parent_type` / `parent_libelle` en sont le dernier "
+            "maillon, conservés pour les lecteurs qui ne connaissent pas cette "
+            "colonne."
+        ),
+    )
+    enjeu_slug = models.CharField(
+        _("Slug de l'enjeu de la branche"), max_length=255, null=True, blank=True,
+        help_text=_(
+            "Slug de l'enjeu dont l'objet descend (le sien pour un enjeu). Sert "
+            "à ouvrir l'arborescence réelle du plan sur la bonne branche (#683)."
+        ),
     )
     sous_type = models.CharField(
         _("Sous-type"), max_length=50, null=True, blank=True,
@@ -188,6 +225,12 @@ class ContenuIndexe(models.Model):
     statut_pg = models.CharField(_("Statut du plan"), max_length=20)
     annee_debut = models.IntegerField(_("Année de début"), null=True, blank=True)
     annee_fin = models.IntegerField(_("Année de fin"), null=True, blank=True)
+    # #676 — prolongation du plan (#250) : il reste « en cours » jusqu'à
+    # annee_fin + annees_extension. Même nom que sur `PlanGestion`, pour que
+    # `q_statuts()` s'applique indifféremment au plan et à l'index.
+    annees_extension = models.PositiveSmallIntegerField(
+        _("Années d'extension"), default=0,
+    )
     site_ids = ArrayField(
         models.IntegerField(), verbose_name=_("Sites"), default=list, blank=True,
     )
@@ -220,12 +263,36 @@ class ContenuIndexe(models.Model):
         db_persist=True,
         verbose_name=_("Vecteur — libellé et objets rattachés"),
     )
+    # Un vecteur par axe de portée (#681). Ils ne portent pas d'index GIN :
+    # une portée intermédiaire (« aussi dans les descriptions », sans les
+    # parents) est servie par l'index de `search_full`, qui en est un
+    # sur-ensemble, puis revérifiée exactement sur ces colonnes — cf.
+    # `filters.vecteur_de_portee`.
+    search_description = models.GeneratedField(
+        expression=SearchVector('description', weight='B', config=SEARCH_CONFIG),
+        output_field=SearchVectorField(),
+        db_persist=True,
+        verbose_name=_("Vecteur — description"),
+    )
+    search_contexte = models.GeneratedField(
+        expression=SearchVector('contexte', weight='C', config=SEARCH_CONFIG),
+        output_field=SearchVectorField(),
+        db_persist=True,
+        verbose_name=_("Vecteur — éléments parents"),
+    )
+    search_enfants = models.GeneratedField(
+        expression=SearchVector('enfants', weight='C', config=SEARCH_CONFIG),
+        output_field=SearchVectorField(),
+        db_persist=True,
+        verbose_name=_("Vecteur — éléments enfants"),
+    )
     search_full = models.GeneratedField(
         expression=(
             SearchVector('titre', weight='A', config=SEARCH_CONFIG)
             + SearchVector('rattachements', weight='B', config=SEARCH_CONFIG)
             + SearchVector('description', weight='B', config=SEARCH_CONFIG)
             + SearchVector('contexte', weight='C', config=SEARCH_CONFIG)
+            + SearchVector('enfants', weight='C', config=SEARCH_CONFIG)
         ),
         output_field=SearchVectorField(),
         db_persist=True,
@@ -271,3 +338,160 @@ class ContenuIndexe(models.Model):
 
     def __str__(self):
         return f"[{self.type_contenu}] {self.titre}"
+
+
+class RaccordementHub(models.Model):
+    """
+    Raccordement de cette instance au hub d'exploration, obtenu par adhésion (#696).
+
+    **Singleton** (une seule ligne, `pk=1`) : une instance a un seul hub, celui
+    de RNF. La ligne n'existe que si une adhésion a été demandée — une instance
+    raccordée « à la main » par ses variables d'environnement n'en a pas besoin.
+
+    ## Pourquoi les jetons sont tirés ici
+
+    Le jeton du hub **ne voyage jamais** : l'instance tire elle-même ses deux
+    jetons, n'en transmet que les empreintes SHA-256 (via l'API de suivi), et
+    le hub n'enregistre que ces empreintes. Ni RNF, ni le suivi, ni le réseau ne
+    voient passer un secret utilisable. La contrepartie est qu'ils doivent être
+    conservés ici, d'où le chiffrement (cf. `apps.search.raccordement`) : une
+    copie de la base ne suffit pas à publier au nom de la structure, il faut
+    aussi la `SECRET_KEY`.
+    """
+
+    STATUT_AUCUNE = ''
+    STATUT_EN_ATTENTE = 'en_attente'
+    #: RNF a envoyé par e-mail un code de confirmation à l'administrateur.
+    STATUT_CODE_ENVOYE = 'code_envoye'
+    STATUT_ACCEPTEE = 'acceptee'
+    STATUT_REFUSEE = 'refusee'
+    STATUT_CHOICES = [
+        (STATUT_AUCUNE, _("Aucune demande")),
+        (STATUT_EN_ATTENTE, _("En attente")),
+        (STATUT_CODE_ENVOYE, _("Code de confirmation envoyé")),
+        (STATUT_ACCEPTEE, _("Acceptée")),
+        (STATUT_REFUSEE, _("Refusée")),
+    ]
+
+    jeton_depot_chiffre = models.TextField(_("Jeton de dépôt (chiffré)"), blank=True, default='')
+    jeton_lecture_chiffre = models.TextField(_("Jeton de lecture (chiffré)"), blank=True, default='')
+
+    adhesion_statut = models.CharField(
+        _("Statut de l'adhésion"), max_length=20, blank=True, default='',
+        choices=STATUT_CHOICES,
+    )
+    adhesion_instance_id = models.CharField(
+        _("Identifiant proposé"), max_length=50, blank=True, default='',
+    )
+    adhesion_demandee_le = models.DateTimeField(_("Demandée le"), null=True, blank=True)
+    adhesion_actualisee_le = models.DateTimeField(_("Actualisée le"), null=True, blank=True)
+    adhesion_motif = models.TextField(_("Motif du refus"), blank=True, default='')
+    # Contact déclaré dans la demande : RNF l'appelle, puis lui envoie le code
+    # de confirmation. Le code lui-même n'est **jamais** conservé ici — il ne
+    # fait que transiter de l'administrateur vers le suivi.
+    adhesion_contact_nom = models.CharField(
+        _("Contact (nom)"), max_length=200, blank=True, default='',
+    )
+    adhesion_contact_email = models.EmailField(
+        _("Contact (e-mail)"), blank=True, default='',
+    )
+    adhesion_code_expire_le = models.DateTimeField(
+        _("Code de confirmation valable jusqu'au"), null=True, blank=True,
+    )
+    hub_url = models.CharField(
+        _("URL du hub"), max_length=500, blank=True, default='',
+        help_text=_("Reçue du suivi à l'acceptation de l'adhésion."),
+    )
+    # Le consentement au partage a été retiré, mais le hub n'a pas encore
+    # purgé les plans de l'instance (injoignable au moment du décochage). Le
+    # retrait est relancé chaque heure tant que ce drapeau est levé : un
+    # consentement retiré doit être honoré même si le réseau ne suit pas.
+    retrait_en_attente = models.BooleanField(
+        _("Retrait du hub en attente"), default=False,
+        help_text=_(
+            "Le partage a été désactivé mais le hub n'a pas pu être joint : le "
+            "retrait des plans publiés est relancé automatiquement."
+        ),
+    )
+
+    class Meta:
+        db_table = '"ccd_search"."t_raccordement_hub"'
+        verbose_name = _("Raccordement au hub")
+        verbose_name_plural = _("Raccordement au hub")
+
+    def save(self, *args, **kwargs):
+        self.pk = 1
+        super().save(*args, **kwargs)
+
+    @classmethod
+    def charger(cls):
+        """La ligne unique, ou une instance vierge non enregistrée."""
+        return cls.objects.filter(pk=1).first() or cls(pk=1)
+
+    def __str__(self):
+        return f"Raccordement au hub ({self.adhesion_statut or 'aucune demande'})"
+
+
+class PublicationHub(models.Model):
+    """
+    Historique des publications vers le hub (#698).
+
+    La publication de nuit tourne sans témoin : sans trace consultable, une
+    instance peut cesser de publier pendant des semaines sans que personne ne
+    s'en aperçoive — et ses plans vieillir sur le hub. On ne garde que les
+    dernières (`CONSERVATION`) : c'est un tableau de bord, pas un journal d'audit.
+    """
+
+    CONSERVATION = 50
+
+    ORIGINE_NUIT = 'nuit'
+    ORIGINE_MANUELLE = 'manuelle'
+    #: Retrait relancé par la tâche horaire après un hub injoignable.
+    ORIGINE_RELANCE = 'relance'
+    ORIGINE_CHOICES = [
+        (ORIGINE_NUIT, _("Publication de nuit")),
+        (ORIGINE_MANUELLE, _("Publication manuelle")),
+        (ORIGINE_RELANCE, _("Relance automatique")),
+    ]
+
+    RESULTAT_REUSSIE = 'reussie'
+    RESULTAT_ECHEC = 'echec'
+    RESULTAT_IGNOREE = 'ignoree'
+    #: Les plans de l'instance ont été retirés du hub (partage désactivé ou
+    #: `retrait_federation`) : `depublies` en porte le nombre.
+    RESULTAT_RETRAIT = 'retrait'
+    RESULTAT_CHOICES = [
+        (RESULTAT_REUSSIE, _("Réussie")),
+        (RESULTAT_ECHEC, _("Échec")),
+        (RESULTAT_IGNOREE, _("Ignorée")),
+        (RESULTAT_RETRAIT, _("Retrait")),
+    ]
+
+    date = models.DateTimeField(_("Date"), auto_now_add=True, db_index=True)
+    origine = models.CharField(_("Origine"), max_length=10, choices=ORIGINE_CHOICES)
+    resultat = models.CharField(_("Résultat"), max_length=10, choices=RESULTAT_CHOICES)
+    plans = models.PositiveIntegerField(_("Plans publiés"), default=0)
+    documents = models.PositiveIntegerField(_("Documents publiés"), default=0)
+    depublies = models.PositiveIntegerField(_("Plans dépubliés"), default=0)
+    message = models.CharField(_("Message"), max_length=500, blank=True, default='')
+
+    class Meta:
+        db_table = '"ccd_search"."t_publication_hub"'
+        verbose_name = _("Publication vers le hub")
+        verbose_name_plural = _("Publications vers le hub")
+        ordering = ['-date', '-id']
+
+    @classmethod
+    def enregistrer(cls, origine, resultat, plans=0, documents=0, depublies=0, message=''):
+        """Ajoute une entrée et purge au-delà des `CONSERVATION` dernières."""
+        entree = cls.objects.create(
+            origine=origine, resultat=resultat, plans=plans or 0,
+            documents=documents or 0, depublies=depublies or 0,
+            message=(message or '')[:500],
+        )
+        anciennes = cls.objects.order_by('-date', '-id').values_list('pk', flat=True)[cls.CONSERVATION:]
+        cls.objects.filter(pk__in=list(anciennes)).delete()
+        return entree
+
+    def __str__(self):
+        return f"{self.date:%Y-%m-%d %H:%M} {self.origine} {self.resultat}"

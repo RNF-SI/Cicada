@@ -13,6 +13,7 @@ from apps.users.permissions import IsReferent
 from apps.users.pagination import UsersPagination
 from .permissions import CanModifyOnlyDraftPlan
 from .access import scope_by_plan
+from .exploration import LectureExplorationMixin
 from .serializers_suivis import (
     SuiviInventaireListSerializer,
     SuiviInventaireDetailSerializer,
@@ -21,7 +22,7 @@ from .serializers_suivis import (
 from .filters_suivis import SuiviInventaireFilter
 
 
-class SuiviInventaireViewSet(viewsets.ModelViewSet):
+class SuiviInventaireViewSet(LectureExplorationMixin, viewsets.ModelViewSet):
     """
     ViewSet pour les Suivis/Inventaires (standalone).
 
@@ -70,7 +71,10 @@ class SuiviInventaireViewSet(viewsets.ModelViewSet):
             # L'admin d'organisme voit aussi les suivis créés par les membres
             # de son organisme, même sans plan rattaché.
             extra |= Q(id_utilisateur_ajout__id_organisme=user.id_organisme)
-        return scope_by_plan(self.queryset, user, 'id_pg', extra=extra)
+        return scope_by_plan(
+            self.queryset, user, 'id_pg', extra=extra,
+            exploration=self.lecture_exploration(),  # #683, `retrieve` seul
+        )
 
     def perform_create(self, serializer):
         serializer.save(id_utilisateur_ajout=self.request.user)

@@ -1,7 +1,7 @@
 import {
   ChangeDetectionStrategy, Component, Input, OnChanges,
 } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 
 import { ChartPoint, LineSeries, LineBand, LegendItem, smoothPath } from '../chart.types';
 import { ChartLegendComponent } from '../chart-legend/chart-legend.component';
@@ -34,7 +34,7 @@ interface LineVm {
 @Component({
   selector: 'app-line-chart',
   standalone: true,
-  imports: [CommonModule, ChartLegendComponent],
+  imports: [ChartLegendComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (vm && vm.hasData) {

@@ -21,7 +21,7 @@ Application web développée pour le CEN (Conservatoire d'Espaces Naturels) et R
 - **Celery** (optionnel V1) - Tâches asynchrones
 
 ### Frontend  
-- **Angular 19+** - Framework SPA
+- **Angular 22** - Framework SPA
 - **TypeScript 5+** - Langage principal
 - **Angular Material** - Composants UI
 - **RxJS** - Programmation réactive
