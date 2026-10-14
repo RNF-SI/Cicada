@@ -8,6 +8,7 @@ import { TranslateModule } from '@ngx-translate/core';
 import { AuthService } from '../../core/services/auth.service';
 import { LoginMode, LoginModeCode } from '../../core/models/user.model';
 import { FormFieldComponent } from '../../shared/components/form-field/form-field.component';
+import { TestVersionBannerComponent } from '../../shared/components/test-version-banner/test-version-banner.component';
 
 @Component({
   selector: 'app-login',
@@ -18,7 +19,8 @@ import { FormFieldComponent } from '../../shared/components/form-field/form-fiel
     MatButtonModule,
     MatProgressSpinnerModule,
     TranslateModule,
-    FormFieldComponent
+    FormFieldComponent,
+    TestVersionBannerComponent,
 ],
   templateUrl: './login.component.html',
   changeDetection: ChangeDetectionStrategy.Eager,

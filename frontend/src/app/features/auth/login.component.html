@@ -6,6 +6,9 @@
       <p class="subtitle">{{ 'auth.login.subtitle' | translate }}</p>
     </div>
 
+    <!-- #709 — TEMPORAIRE (prod) : à retirer au déploiement réel -->
+    <app-test-version-banner variant="accounts"></app-test-version-banner>
+
     @if (mode() === 'geonature') {
       <p class="login-mode-hint" data-testid="login-mode-geonature">
         {{ 'auth.login.modes.geonatureHint' | translate:{ libelle: libelle() } }}

@@ -1,0 +1,23 @@
+@import 'variables';
+
+// #709 — Jaune + texte noir : combinaison WCAG AA autorisée.
+.test-version-banner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: $spacing-xs;
+  padding: $spacing-xs $spacing-md;
+  background-color: $secondary-yellow;
+  color: $black;
+  font-size: $font-size-base;
+  text-align: center;
+
+  i {
+    display: inline-flex;
+  }
+}
+
+.test-version-notice {
+  margin-bottom: $spacing-md;
+  text-align: left;
+}

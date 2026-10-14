@@ -112,6 +112,16 @@
     "no": "Non",
     "requiredFields": "Les champs avec * sont obligatoires"
   },
+  "testVersion": {
+    "banner": {
+      "title": "Version de test.",
+      "text": "CICADA est actuellement en version de test, avant son ouverture officielle."
+    },
+    "accounts": {
+      "title": "CICADA est en version de test",
+      "text": "Les nouveaux comptes ne seront pas validés jusqu'à l'ouverture officielle de l'outil. Vous pouvez déposer votre demande dès maintenant : elle sera traitée à l'ouverture."
+    }
+  },
   "auth": {
     "login": {
       "title": "Connexion",

@@ -1,0 +1,17 @@
+@if (variant() === 'banner') {
+  <div class="test-version-banner" role="status" data-testid="test-version-banner">
+    <i class="fi fi-rr-info" aria-hidden="true"></i>
+    <span>
+      <strong>{{ 'testVersion.banner.title' | translate }}</strong>
+      {{ 'testVersion.banner.text' | translate }}
+    </span>
+  </div>
+} @else {
+  <div class="info-block info-block-warning test-version-notice" role="note" data-testid="test-version-notice">
+    <span class="info-block-icon" aria-hidden="true"></span>
+    <div class="info-block-content">
+      <p class="info-block-content-title">{{ 'testVersion.accounts.title' | translate }}</p>
+      <p class="info-block-content-text">{{ 'testVersion.accounts.text' | translate }}</p>
+    </div>
+  </div>
+}

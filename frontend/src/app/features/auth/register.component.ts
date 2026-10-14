@@ -12,6 +12,7 @@ import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { HttpClient } from '@angular/common/http';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { FormFieldComponent } from '../../shared/components/form-field/form-field.component';
+import { TestVersionBannerComponent } from '../../shared/components/test-version-banner/test-version-banner.component';
 
 interface OrganismeOption {
   id: number;
@@ -32,7 +33,8 @@ interface OrganismeOption {
     MatSelectModule,
     MatAutocompleteModule,
     TranslateModule,
-    FormFieldComponent
+    FormFieldComponent,
+    TestVersionBannerComponent,
 ],
   templateUrl: './register.component.html',
   changeDetection: ChangeDetectionStrategy.Eager,

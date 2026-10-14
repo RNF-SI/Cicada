@@ -6,6 +6,9 @@
       <p class="subtitle">{{ 'auth.register.subtitle' | translate }}</p>
     </div>
 
+    <!-- #709 — TEMPORAIRE (prod) : à retirer au déploiement réel -->
+    <app-test-version-banner variant="accounts"></app-test-version-banner>
+
     <form [formGroup]="registerForm" (ngSubmit)="onSubmit()" class="register-form">
       <!-- Accessibilité (revue design #305) -->
       <p class="required-fields-note">{{ 'common.requiredFields' | translate }}</p>
