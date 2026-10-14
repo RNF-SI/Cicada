@@ -1,7 +1,7 @@
 """
 Raccordement de l'instance au hub, vu par un super administrateur (#696, #698).
 
-Cinq endpoints sous `/api/federation/raccordement/`, alimentant l'encart
+Six endpoints sous `/api/federation/raccordement/`, alimentant l'encart
 « Exploration fédérée » de Administration > Paramètres :
 
 - `GET` — l'état complet : configuration effective, adhésion, dernières
@@ -10,7 +10,8 @@ Cinq endpoints sous `/api/federation/raccordement/`, alimentant l'encart
 - `POST adhesion/` — demande l'adhésion à l'exploration nationale ;
 - `POST confirmation/` — relaie au suivi le code de confirmation que RNF a
   envoyé par e-mail ; code juste ⇒ adhésion acceptée et enrôlement sur le hub ;
-- `POST contact/` — message de l'administrateur connecté à RNF.
+- `POST contact/` — message de l'administrateur connecté à RNF ;
+- `PATCH configuration/` — URL du hub, jetons et relais saisis à la main (#695).
 
 Le code de confirmation ne transite que dans la requête `confirmation/` : il
 n'est ni stocké, ni journalisé, ni renvoyé.
@@ -111,3 +112,25 @@ class RaccordementContactView(APIView):
         except Exception:  # noqa: BLE001
             return _inattendue("Message à RNF")
         return Response({'statut': 'envoye'}, status=202)
+
+
+class RaccordementConfigurationView(APIView):
+    """
+    `PATCH /api/federation/raccordement/configuration/` (#695).
+
+    Corps : `hub_url`, `jeton_depot`, `jeton_lecture`, `effacer_jetons`,
+    `exploration_source` — tous facultatifs. Rend l'état complet, qui ne
+    contient jamais les jetons : seulement `jeton_*_defini` et leur origine.
+    """
+
+    permission_classes = [IsSuperAdmin]
+
+    def patch(self, request):
+        try:
+            raccordement.configurer(request.data)
+        except raccordement.ErreurRaccordement as erreur:
+            return _erreur(erreur)
+        except Exception:  # noqa: BLE001
+            # Pile seule, jamais le corps : il porte les jetons.
+            return _inattendue("Saisie du raccordement au hub")
+        return Response(raccordement.etat(actualiser=False))

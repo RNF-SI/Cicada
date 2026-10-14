@@ -187,3 +187,26 @@ button i.fi {
   letter-spacing: 0.15em;
   text-transform: uppercase;
 }
+
+// Raccordement manuel (#695) : champs empilés, largeur de lecture confortable.
+.raccordement-saisie {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-sm;
+  max-width: 640px;
+
+  input,
+  select {
+    width: 100%;
+  }
+
+  input:disabled {
+    background: $gray-lighter;
+    color: $gray-dark;
+    cursor: not-allowed;
+  }
+}
+
+.raccordement-migration .info-block-content-text {
+  color: $black;
+}

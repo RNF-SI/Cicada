@@ -1,7 +1,8 @@
 """
 Relais de l'exploration vers le hub (#636).
 
-Quand ``CICADA_EXPLORATION_SOURCE`` vaut ``hub``, les vues d'exploration ne
+Quand la source de l'exploration vaut ``hub`` (réglée dans Administration >
+Paramètres, sinon ``CICADA_EXPLORATION_SOURCE`` — cf. #695), les vues d'exploration ne
 lisent plus l'index local : elles transmettent la requête au hub et renvoient sa
 réponse telle quelle.
 
@@ -31,7 +32,7 @@ from django.conf import settings
 from rest_framework import status
 from rest_framework.response import Response
 
-from .raccordement import hub_url, jeton_lecture, raccordement
+from .raccordement import exploration_source, hub_url, jeton_lecture, raccordement
 
 logger = logging.getLogger(__name__)
 
@@ -61,9 +62,9 @@ def relais_actif():
     """
     from .push import partage_active
 
-    if settings.CICADA_EXPLORATION_SOURCE != 'hub':
-        return False
     ligne = raccordement()
+    if exploration_source(ligne) != 'hub':
+        return False
     return bool(hub_url(ligne) and jeton_lecture(ligne) and partage_active())
 
 

@@ -66,6 +66,7 @@ class FakeLoader implements TranslateLoader {
 
 function etatFactice(surcharge: {
   diagnostic?: Partial<EtatRaccordement['diagnostic']>;
+  configuration?: Partial<EtatRaccordement['configuration']>;
   adhesion?: Partial<EtatRaccordement['adhesion']>;
   publications?: EtatRaccordement['publications'];
 } = {}): EtatRaccordement {
@@ -79,10 +80,14 @@ function etatFactice(surcharge: {
       jeton_depot_defini: false,
       jeton_lecture_defini: false,
       exploration_source: 'local',
+      exploration_source_serveur: 'local',
+      hub_url_defaut: 'https://hub.rnf.example',
+      origines: { hub_url: 'base', jeton_depot: null, jeton_lecture: null, exploration_source: 'environnement' },
       relais_actif: false,
       publication_auto: true,
       partage: true,
       suivi_disponible: true,
+      ...surcharge.configuration,
     },
     adhesion: {
       statut: '',
@@ -108,6 +113,7 @@ describe('FederationRaccordementComponent', () => {
     demanderAdhesion: jest.Mock;
     confirmerCode: jest.Mock;
     contacterRnf: jest.Mock;
+    configurer: jest.Mock;
   };
   let dialog: { open: jest.Mock };
   let snackBar: { open: jest.Mock };
@@ -131,6 +137,7 @@ describe('FederationRaccordementComponent', () => {
       demanderAdhesion: jest.fn(),
       confirmerCode: jest.fn(),
       contacterRnf: jest.fn(),
+      configurer: jest.fn(),
     };
     dialog = { open: jest.fn() };
     snackBar = { open: jest.fn() };
@@ -162,6 +169,90 @@ describe('FederationRaccordementComponent', () => {
       .compileComponents();
 
     TestBed.inject(TranslateService).use('fr');
+  });
+
+  describe('raccordement manuel (#695)', () => {
+    const champ = (id: string): HTMLInputElement => el().querySelector(`[data-testid="${id}"]`) as HTMLInputElement;
+
+    it('pré-remplit l’URL avec le hub RNF quand aucune n’est définie', async () => {
+      await creer(etatFactice({ configuration: { hub_url: '', origines: { hub_url: null, jeton_depot: null, jeton_lecture: null, exploration_source: 'environnement' } } }));
+      expect(component.saisieHubUrl).toBe('https://hub.rnf.example');
+    });
+
+    it('n’envoie que ce qui a changé, et vide les jetons après envoi', async () => {
+      await creer(etatFactice());
+      service.configurer.mockReturnValue(of(etatFactice({ configuration: { source_jetons: 'saisie', jeton_depot_defini: true } })));
+      component.saisieJetonDepot = '  nouveau-jeton  ';
+      component.saisieExploration = 'hub';
+      component.enregistrerSaisie();
+      expect(service.configurer).toHaveBeenCalledWith({ jeton_depot: 'nouveau-jeton', exploration_source: 'hub' });
+      expect(component.saisieJetonDepot).toBe('');
+      expect(snackBar.open).toHaveBeenCalled();
+    });
+
+    it('n’appelle pas le serveur sans modification', async () => {
+      await creer(etatFactice());
+      expect(component.saisieModifiee()).toBe(false);
+      component.enregistrerSaisie();
+      expect(service.configurer).not.toHaveBeenCalled();
+    });
+
+    it('les jetons sont des champs masqués, jamais pré-remplis', async () => {
+      await creer(etatFactice({ configuration: { jeton_depot_defini: true, source_jetons: 'saisie' } }));
+      expect(champ('saisie-jeton-depot').type).toBe('password');
+      expect(champ('saisie-jeton-depot').value).toBe('');
+    });
+
+    it('verrouille les valeurs du .env et explique la migration', async () => {
+      await creer(etatFactice({
+        configuration: {
+          source_jetons: 'environnement',
+          origines: { hub_url: 'environnement', jeton_depot: 'environnement', jeton_lecture: null, exploration_source: 'environnement' },
+        },
+      }));
+      expect(el().querySelector('[data-testid="raccordement-migration"]')).not.toBeNull();
+      expect(component.valeurServeur('hub_url')).toBe(true);
+      expect(component.valeurServeur('jeton_lecture')).toBe(false);
+      component.saisieHubUrl = 'https://autre.example';
+      component.saisieJetonDepot = 'ignore';
+      expect(component.modificationsSaisie()).toEqual({});
+    });
+
+    it('sans valeur du .env, pas d’encart de migration', async () => {
+      await creer(etatFactice());
+      expect(el().querySelector('[data-testid="raccordement-migration"]')).toBeNull();
+    });
+
+    it('le relais réglé en base est repris dans le formulaire', async () => {
+      await creer(etatFactice({
+        configuration: {
+          exploration_source: 'hub',
+          origines: { hub_url: 'base', jeton_depot: null, jeton_lecture: null, exploration_source: 'base' },
+        },
+      }));
+      expect(component.saisieExploration).toBe('hub');
+      component.saisieExploration = '';
+      expect(component.modificationsSaisie()).toEqual({ exploration_source: '' });
+    });
+
+    it('affiche l’erreur renvoyée par le serveur', async () => {
+      await creer(etatFactice());
+      service.configurer.mockReturnValue(
+        throwError(() => new HttpErrorResponse({ status: 400, error: { erreur: 'configuration_invalide' } })),
+      );
+      component.saisieHubUrl = 'ftp://x';
+      component.enregistrerSaisie();
+      expect(component.erreurSaisie()).toBe('admin.settings.federation.etat.erreurs.configuration_invalide');
+    });
+
+    it('efface les jetons après confirmation', async () => {
+      await creer(etatFactice({ configuration: { source_jetons: 'saisie', jeton_depot_defini: true } }));
+      dialog.open.mockReturnValue({ afterClosed: () => of(true) });
+      service.configurer.mockReturnValue(of(etatFactice()));
+      expect(component.jetonsEffacables()).toBe(true);
+      component.effacerJetons();
+      expect(service.configurer).toHaveBeenCalledWith({ effacer_jetons: true });
+    });
   });
 
   it('charge l’état à l’initialisation', async () => {

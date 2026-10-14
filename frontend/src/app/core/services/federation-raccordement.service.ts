@@ -8,7 +8,9 @@ import { Observable } from 'rxjs';
  * Contrat servi par `GET /api/federation/raccordement/` (super admin). Aucun
  * jeton ni empreinte n'y figure : on ne sait que s'ils sont définis.
  */
-export type SourceJetons = 'environnement' | 'adhesion' | null;
+export type SourceJetons = 'environnement' | 'saisie' | 'adhesion' | null;
+/** Origine d'une valeur : le `.env` du serveur (prime, non modifiable ici), la base, ou absente. */
+export type OrigineValeur = 'environnement' | 'base' | null;
 export type StatutAdhesion = '' | 'en_attente' | 'code_envoye' | 'acceptee' | 'refusee';
 export type NiveauDiagnostic = 'erreur' | 'attention' | 'info' | 'ok';
 
@@ -32,6 +34,9 @@ export const CLES_ERREUR_RACCORDEMENT = [
   'jeton_suivi_absent',
   'deja_acceptee',
   'jetons_environnement',
+  'jetons_saisis',
+  'valeur_environnement',
+  'configuration_invalide',
   'hub_injoignable',
   'jeton_refuse',
   'contact_invalide',
@@ -51,7 +56,18 @@ export interface ConfigurationRaccordement {
   source_jetons: SourceJetons;
   jeton_depot_defini: boolean;
   jeton_lecture_defini: boolean;
+  /** Source effective de l'exploration (réglage de l'interface, sinon `.env`). */
   exploration_source: 'local' | 'hub' | string;
+  /** Ce que dit `CICADA_EXPLORATION_SOURCE` (choix « selon le serveur »). */
+  exploration_source_serveur: 'local' | 'hub' | string;
+  /** URL du hub RNF, pour pré-remplir la saisie (#695). */
+  hub_url_defaut: string;
+  origines: {
+    hub_url: OrigineValeur;
+    jeton_depot: OrigineValeur;
+    jeton_lecture: OrigineValeur;
+    exploration_source: 'environnement' | 'base';
+  };
   relais_actif: boolean;
   publication_auto: boolean;
   partage: boolean;
@@ -105,6 +121,20 @@ export interface DemandeAdhesion {
 export interface MessageContactRnf {
   sujet: string;
   message: string;
+}
+
+/**
+ * Corps de `PATCH /api/federation/raccordement/configuration/` (#695). Tous les
+ * champs sont facultatifs : seuls ceux envoyés sont modifiés. Les jetons
+ * remplacent la valeur en place et ne sont jamais relus. `exploration_source`
+ * vide = suivre la configuration du serveur.
+ */
+export interface SaisieRaccordement {
+  hub_url?: string;
+  jeton_depot?: string;
+  jeton_lecture?: string;
+  effacer_jetons?: boolean;
+  exploration_source?: '' | 'local' | 'hub';
 }
 
 /** Résultat de `POST /api/federation/raccordement/verifier/`. */
@@ -185,6 +215,11 @@ export class FederationRaccordementService {
    */
   confirmerCode(code: string): Observable<EtatRaccordement> {
     return this.http.post<EtatRaccordement>(`${this.apiUrl}confirmation/`, { code });
+  }
+
+  /** Saisie manuelle de l'URL, des jetons et du relais (#695) ; renvoie l'état. */
+  configurer(saisie: SaisieRaccordement): Observable<EtatRaccordement> {
+    return this.http.patch<EtatRaccordement>(`${this.apiUrl}configuration/`, saisie);
   }
 
   /** Écrit à RNF (si@rnfrance.org) via l'API de suivi. */

@@ -342,11 +342,12 @@ class ContenuIndexe(models.Model):
 
 class RaccordementHub(models.Model):
     """
-    Raccordement de cette instance au hub d'exploration, obtenu par adhésion (#696).
+    Raccordement de cette instance au hub d'exploration, obtenu par adhésion
+    (#696) ou saisi dans Administration > Paramètres (#695).
 
     **Singleton** (une seule ligne, `pk=1`) : une instance a un seul hub, celui
-    de RNF. La ligne n'existe que si une adhésion a été demandée — une instance
-    raccordée « à la main » par ses variables d'environnement n'en a pas besoin.
+    de RNF. Une instance raccordée par ses variables d'environnement n'en a pas
+    besoin.
 
     ## Pourquoi les jetons sont tirés ici
 
@@ -401,6 +402,25 @@ class RaccordementHub(models.Model):
     hub_url = models.CharField(
         _("URL du hub"), max_length=500, blank=True, default='',
         help_text=_("Reçue du suivi à l'acceptation de l'adhésion."),
+    )
+    # Jetons saisis à la main par un super admin (#695) — délivrés par
+    # `enroler_instance` côté hub, hors adhésion. Ils sont effectifs sans
+    # attendre d'acceptation : RNF les a déjà enrôlés.
+    jetons_saisis = models.BooleanField(
+        _("Jetons saisis manuellement"), default=False,
+    )
+    EXPLORATION_CHOICES = [
+        ('', _("Selon la configuration du serveur")),
+        ('local', _("Index local")),
+        ('hub', _("Hub d'exploration")),
+    ]
+    # Relais de l'exploration réglé dans l'interface (#695). Vide = la valeur
+    # de `CICADA_EXPLORATION_SOURCE`. Contrairement à l'URL et aux jetons, le
+    # réglage en base **prime** sur l'environnement : l'installeur écrit
+    # toujours cette variable, l'interface n'aurait sinon jamais d'effet.
+    exploration_source = models.CharField(
+        _("Source de l'exploration"), max_length=10, blank=True, default='',
+        choices=EXPLORATION_CHOICES,
     )
     # Le consentement au partage a été retiré, mais le hub n'a pas encore
     # purgé les plans de l'instance (injoignable au moment du décochage). Le

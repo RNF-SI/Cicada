@@ -189,6 +189,8 @@
         @default {
           @if (e.configuration.source_jetons === 'environnement') {
             <p class="text-mention">{{ 'admin.settings.federation.etat.adhesion.jetonsEnvironnement' | translate }}</p>
+          } @else if (e.configuration.source_jetons === 'saisie') {
+            <p class="text-mention" data-testid="adhesion-jetons-saisis">{{ 'admin.settings.federation.etat.adhesion.jetonsSaisis' | translate }}</p>
           } @else {
             <p class="text-mention">{{ 'admin.settings.federation.etat.adhesion.aucune' | translate }}</p>
           }
@@ -225,7 +227,102 @@
       </div>
     </div>
 
-    <!-- 4. Vérification en direct auprès du hub. -->
+    <!-- 4. Raccordement manuel (#695) : URL, jetons d'enroler_instance, relais. -->
+    <h4 class="raccordement-sous-titre">{{ 'admin.settings.federation.etat.saisie.titre' | translate }}</h4>
+    <p class="text-mention">{{ 'admin.settings.federation.etat.saisie.description' | translate }}</p>
+
+    @if (migrationPossible()) {
+      <div class="info-block info-block-warning raccordement-migration" data-testid="raccordement-migration">
+        <div class="info-block-icon"></div>
+        <div class="info-block-content">
+          <p class="info-block-content-title">{{ 'admin.settings.federation.etat.saisie.migrationTitre' | translate }}</p>
+          <p class="info-block-content-text">{{ 'admin.settings.federation.etat.saisie.migrationTexte' | translate }}</p>
+        </div>
+      </div>
+    }
+
+    <form class="raccordement-saisie" data-testid="raccordement-saisie" (ngSubmit)="enregistrerSaisie()" novalidate autocomplete="off">
+      <app-form-field
+        [label]="'admin.settings.federation.etat.saisie.hubUrl' | translate"
+        [helpText]="(valeurServeur('hub_url') ? 'admin.settings.federation.etat.saisie.valeurEnvironnement' : 'admin.settings.federation.etat.saisie.hubUrlAide') | translate">
+        <input type="url"
+               name="hub_url"
+               data-testid="saisie-hub-url"
+               spellcheck="false"
+               maxlength="500"
+               [disabled]="valeurServeur('hub_url')"
+               [(ngModel)]="saisieHubUrl" />
+      </app-form-field>
+
+      <app-form-field
+        [label]="'admin.settings.federation.etat.saisie.jetonDepot' | translate"
+        [helpText]="valeurServeur('jeton_depot') ? ('admin.settings.federation.etat.saisie.valeurEnvironnement' | translate) : undefined">
+        <input type="password"
+               name="jeton_depot"
+               data-testid="saisie-jeton-depot"
+               autocomplete="new-password"
+               spellcheck="false"
+               maxlength="500"
+               [placeholder]="(e.configuration.jeton_depot_defini ? 'admin.settings.federation.etat.saisie.jetonDefini' : 'admin.settings.federation.etat.saisie.jetonAbsent') | translate"
+               [disabled]="valeurServeur('jeton_depot')"
+               [(ngModel)]="saisieJetonDepot" />
+      </app-form-field>
+
+      <app-form-field
+        [label]="'admin.settings.federation.etat.saisie.jetonLecture' | translate"
+        [helpText]="valeurServeur('jeton_lecture') ? ('admin.settings.federation.etat.saisie.valeurEnvironnement' | translate) : undefined">
+        <input type="password"
+               name="jeton_lecture"
+               data-testid="saisie-jeton-lecture"
+               autocomplete="new-password"
+               spellcheck="false"
+               maxlength="500"
+               [placeholder]="(e.configuration.jeton_lecture_defini ? 'admin.settings.federation.etat.saisie.jetonDefini' : 'admin.settings.federation.etat.saisie.jetonAbsent') | translate"
+               [disabled]="valeurServeur('jeton_lecture')"
+               [(ngModel)]="saisieJetonLecture" />
+      </app-form-field>
+
+      <app-form-field
+        [label]="'admin.settings.federation.etat.saisie.exploration' | translate"
+        [helpText]="'admin.settings.federation.etat.saisie.explorationAide' | translate">
+        <select name="exploration_source" data-testid="saisie-exploration" [(ngModel)]="saisieExploration">
+          <option value="">{{ 'admin.settings.federation.etat.saisie.explorationServeur' | translate: { valeur: (cleExplorationServeur() | translate) } }}</option>
+          <option value="local">{{ 'admin.settings.federation.etat.saisie.explorationLocal' | translate }}</option>
+          <option value="hub">{{ 'admin.settings.federation.etat.saisie.explorationHub' | translate }}</option>
+        </select>
+      </app-form-field>
+
+      @if (erreurSaisie()) {
+        <p class="raccordement-erreur-verification" role="alert" data-testid="saisie-erreur">
+          <i class="fi fi-rr-triangle-warning"></i>
+          {{ erreurSaisie() }}
+        </p>
+      }
+
+      <div class="raccordement-adhesion-actions">
+        <button mat-flat-button color="primary" type="submit"
+                data-testid="bouton-enregistrer-saisie"
+                [disabled]="saisieEnCours() || !saisieModifiee()">
+          @if (saisieEnCours()) {
+            <mat-spinner diameter="18" class="bouton-spinner"></mat-spinner>
+          } @else {
+            <i class="fi fi-rr-disk"></i>
+          }
+          {{ 'admin.settings.federation.etat.saisie.enregistrer' | translate }}
+        </button>
+        @if (jetonsEffacables()) {
+          <button mat-button type="button"
+                  data-testid="bouton-effacer-jetons"
+                  [disabled]="saisieEnCours()"
+                  (click)="effacerJetons()">
+            <i class="fi fi-rr-trash"></i>
+            {{ 'admin.settings.federation.etat.saisie.effacer' | translate }}
+          </button>
+        }
+      </div>
+    </form>
+
+    <!-- 5. Vérification en direct auprès du hub. -->
     <h4 class="raccordement-sous-titre">{{ 'admin.settings.federation.etat.verification.titre' | translate }}</h4>
     <p class="text-mention">{{ 'admin.settings.federation.etat.verification.description' | translate }}</p>
     <button mat-stroked-button type="button"
@@ -273,7 +370,7 @@
       }
     }
 
-    <!-- 5. Dernières publications. -->
+    <!-- 6. Dernières publications. -->
     <h4 class="raccordement-sous-titre">{{ 'admin.settings.federation.etat.publications.titre' | translate }}</h4>
     @if (e.publications.length === 0) {
       <p class="text-mention" data-testid="publications-vide">{{ 'admin.settings.federation.etat.publications.vide' | translate }}</p>

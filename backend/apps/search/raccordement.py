@@ -8,7 +8,15 @@ Une instance se raccorde au hub de deux façons :
   à qui RNF a remis ses jetons (banc d'essai, instances pionnières) ;
 - **par adhésion** — l'instance demande à rejoindre l'exploration nationale
   depuis `Administration > Paramètres`, RNF accepte depuis l'admin de l'API de
-  suivi, et le hub enrôle les empreintes que l'instance a fournies.
+  suivi, et le hub enrôle les empreintes que l'instance a fournies ;
+- **par saisie** (#695) — un super admin pose l'URL et les jetons délivrés par
+  `enroler_instance` dans `Administration > Paramètres`. C'est aussi là qu'il
+  renouvelle un jeton : lu en base à chaque appel, il est pris en compte sans
+  redémarrage, worker et beat Celery compris.
+
+Pour l'URL et les jetons, **l'environnement garde la main** s'il est renseigné
+(installations existantes) ; la base sert de repli. Le relais de l'exploration
+fait exception : réglé dans l'interface, il prime (cf. `exploration_source()`).
 
 Tout le code qui parle au hub passe par ce module (`hub_url()`,
 `jeton_depot()`, `jeton_lecture()`) au lieu de lire les réglages : une lecture
@@ -44,7 +52,7 @@ import secrets
 import requests
 from django.conf import settings
 from django.core.exceptions import ValidationError
-from django.core.validators import validate_email
+from django.core.validators import URLValidator, validate_email
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 
@@ -64,6 +72,17 @@ PUBLICATIONS_AFFICHEES = 10
 
 SOURCE_ENVIRONNEMENT = 'environnement'
 SOURCE_ADHESION = 'adhesion'
+SOURCE_SAISIE = 'saisie'
+
+#: Origine d'une valeur de configuration, affichée à côté de chaque champ.
+ORIGINE_ENVIRONNEMENT = 'environnement'
+ORIGINE_BASE = 'base'
+
+#: Le hub unique de l'exploration nationale, hébergé par RNF — même valeur
+#: que l'installeur (`DEFAULT_HUB_URL`). Sert à pré-remplir la saisie.
+HUB_URL_RNF = 'https://hub.cicada.reserves-naturelles.org'
+
+EXPLORATION_SOURCES = ('local', 'hub')
 
 
 class ErreurRaccordement(Exception):
@@ -162,35 +181,74 @@ def hub_url(ligne=None):
     return (ligne.hub_url or '').rstrip('/')
 
 
-def _jeton_adhesion(champ, ligne=None):
+def _jeton_base(champ, ligne=None):
     """
-    Jeton tiré à l'adhésion — **seulement si elle est acceptée**.
+    Jeton gardé en base — saisi à la main, ou tiré à l'adhésion **acceptée**.
 
     Avant l'acceptation, le hub ne connaît pas encore l'empreinte : s'en servir
-    produirait des 403 que rien n'expliquerait à l'écran.
+    produirait des 403 que rien n'expliquerait à l'écran. Un jeton saisi, lui,
+    a été délivré par le hub (`enroler_instance`) : il est effectif d'emblée.
     """
     ligne = ligne or raccordement()
-    if ligne.adhesion_statut != RaccordementHub.STATUT_ACCEPTEE:
+    if not ligne.jetons_saisis and ligne.adhesion_statut != RaccordementHub.STATUT_ACCEPTEE:
         return None
     return dechiffrer(getattr(ligne, champ))
 
 
 def jeton_depot(ligne=None):
-    return settings.CICADA_HUB_PUSH_TOKEN or _jeton_adhesion('jeton_depot_chiffre', ligne)
+    return settings.CICADA_HUB_PUSH_TOKEN or _jeton_base('jeton_depot_chiffre', ligne)
 
 
 def jeton_lecture(ligne=None):
-    return settings.CICADA_HUB_READ_TOKEN or _jeton_adhesion('jeton_lecture_chiffre', ligne)
+    return settings.CICADA_HUB_READ_TOKEN or _jeton_base('jeton_lecture_chiffre', ligne)
 
 
 def source_jetons(ligne=None):
-    """D'où viennent les jetons effectifs : `environnement`, `adhesion` ou ``None``."""
+    """D'où viennent les jetons effectifs : `environnement`, `saisie`, `adhesion` ou ``None``."""
     if jetons_environnement():
         return SOURCE_ENVIRONNEMENT
     ligne = ligne or raccordement()
+    if ligne.jetons_saisis:
+        return SOURCE_SAISIE
     if ligne.adhesion_statut == RaccordementHub.STATUT_ACCEPTEE:
         return SOURCE_ADHESION
     return None
+
+
+def exploration_source(ligne=None):
+    """
+    `local` ou `hub` : le réglage de l'interface, sinon `CICADA_EXPLORATION_SOURCE`.
+
+    Le réglage en base prime ici, à l'inverse de l'URL et des jetons :
+    l'installeur écrit toujours la variable (`local` ou `hub`), l'interface
+    n'aurait sinon jamais d'effet. Ce n'est pas un secret, et revenir au
+    réglage du serveur reste possible (valeur vide).
+    """
+    ligne = ligne or raccordement()
+    return ligne.exploration_source or settings.CICADA_EXPLORATION_SOURCE
+
+
+def origines(ligne=None):
+    """D'où vient chaque valeur affichée : `environnement`, `base` ou ``None`` (absente)."""
+    ligne = ligne or raccordement()
+
+    def origine(environnement, base):
+        if environnement:
+            return ORIGINE_ENVIRONNEMENT
+        return ORIGINE_BASE if base else None
+
+    return {
+        'hub_url': origine(settings.CICADA_HUB_URL, ligne.hub_url),
+        'jeton_depot': origine(
+            settings.CICADA_HUB_PUSH_TOKEN, _jeton_base('jeton_depot_chiffre', ligne),
+        ),
+        'jeton_lecture': origine(
+            settings.CICADA_HUB_READ_TOKEN, _jeton_base('jeton_lecture_chiffre', ligne),
+        ),
+        'exploration_source': (
+            ORIGINE_BASE if ligne.exploration_source else ORIGINE_ENVIRONNEMENT
+        ),
+    }
 
 
 def identite_valide():
@@ -304,6 +362,7 @@ def adhesion_possible(ligne=None):
     return bool(
         identite_valide()
         and not jetons_environnement()
+        and not ligne.jetons_saisis
         and instance_token()
         and ligne.adhesion_statut in (RaccordementHub.STATUT_AUCUNE, RaccordementHub.STATUT_REFUSEE)
     )
@@ -360,6 +419,12 @@ def demander_adhesion(donnees=None):
             'jetons_environnement',
             "Des jetons du hub sont déjà fournis par l'environnement : l'adhésion "
             "ne concerne que les instances sans jetons.", 409,
+        )
+    if ligne.jetons_saisis:
+        raise ErreurRaccordement(
+            'jetons_saisis',
+            "Des jetons du hub ont été saisis dans les paramètres : effacez-les "
+            "avant de demander l'adhésion.", 409,
         )
     if ligne.adhesion_statut == RaccordementHub.STATUT_ACCEPTEE:
         raise ErreurRaccordement('deja_acceptee', "L'adhésion est déjà acceptée.", 409)
@@ -551,6 +616,118 @@ def contacter_rnf(utilisateur, donnees):
             'suivi_indisponible', "L'API de suivi a refusé ou échoué l'envoi du message.",
             429 if reponse.status_code == 429 else 400,
         )
+
+
+# --------------------------------------------------------------------------- #
+# Saisie manuelle du raccordement (#695)
+# --------------------------------------------------------------------------- #
+
+#: Champ de saisie → réglage d'environnement qui, s'il est renseigné, le fige.
+CHAMPS_ENVIRONNEMENT = {
+    'hub_url': 'CICADA_HUB_URL',
+    'jeton_depot': 'CICADA_HUB_PUSH_TOKEN',
+    'jeton_lecture': 'CICADA_HUB_READ_TOKEN',
+}
+
+#: Longueur maximale d'un jeton saisi (ceux du hub en font 64).
+LONGUEUR_JETON_MAX = 500
+
+
+def _invalide(message):
+    return ErreurRaccordement('configuration_invalide', message)
+
+
+def _valider_url(valeur):
+    if not isinstance(valeur, str):
+        raise _invalide("URL du hub invalide.")
+    valeur = valeur.strip().rstrip('/')
+    if not valeur:
+        return ''
+    if len(valeur) > 500:
+        raise _invalide("URL du hub trop longue.")
+    try:
+        URLValidator(schemes=['http', 'https'])(valeur)
+    except ValidationError:
+        raise _invalide("L'URL du hub doit commencer par http:// ou https://.")
+    return valeur
+
+
+def _valider_jeton(valeur):
+    # Un jeton ne contient jamais d'espace : refuser plutôt que tronquer un
+    # copier-coller incomplet en silence.
+    if (
+        not isinstance(valeur, str) or not valeur.strip()
+        or len(valeur.strip()) > LONGUEUR_JETON_MAX or any(c.isspace() for c in valeur.strip())
+    ):
+        raise _invalide("Jeton invalide : collez-le tel que `enroler_instance` l'a affiché.")
+    return valeur.strip()
+
+
+def configurer(donnees):
+    """
+    Enregistre le raccordement saisi par un super admin.
+
+    Champs, tous facultatifs : `hub_url`, `jeton_depot`, `jeton_lecture`
+    (remplacent la valeur en place, **jamais relus**), `effacer_jetons`
+    (oublie les jetons gardés en base) et `exploration_source` (`local`,
+    `hub`, ou vide pour suivre le serveur).
+
+    Une valeur fournie par l'environnement n'est pas modifiable ici : elle
+    prime, la saisie n'aurait aucun effet visible. L'interface le dit et
+    explique comment migrer vers la base.
+
+    Les jetons ne sont jamais journalisés : seuls les **noms** des champs
+    modifiés le sont.
+    """
+    if not isinstance(donnees, dict):
+        raise _invalide("Corps de requête invalide.")
+    ligne = raccordement()
+
+    for champ, reglage in CHAMPS_ENVIRONNEMENT.items():
+        if champ in donnees and getattr(settings, reglage):
+            raise ErreurRaccordement(
+                'valeur_environnement',
+                f"« {champ} » est fourni par la configuration du serveur ({reglage}) : "
+                "retirez-le de /var/lib/cicada/.env et recréez les conteneurs pour le "
+                "régler ici.", 409,
+            )
+
+    modifies = []
+    if 'hub_url' in donnees:
+        ligne.hub_url = _valider_url(donnees['hub_url'])
+        modifies.append('hub_url')
+    if 'exploration_source' in donnees:
+        source = donnees['exploration_source'] or ''
+        if source not in ('', *EXPLORATION_SOURCES):
+            raise _invalide("Source de l'exploration invalide (local ou hub).")
+        ligne.exploration_source = source
+        modifies.append('exploration_source')
+
+    if donnees.get('effacer_jetons'):
+        ligne.jeton_depot_chiffre = ''
+        ligne.jeton_lecture_chiffre = ''
+        ligne.jetons_saisis = False
+        # Sans jetons, une adhésion acceptée ne raccorde plus rien : l'instance
+        # redevient libre d'adhérer ou de saisir de nouveaux jetons.
+        if ligne.adhesion_statut == RaccordementHub.STATUT_ACCEPTEE:
+            ligne.adhesion_statut = RaccordementHub.STATUT_AUCUNE
+        modifies.append('effacer_jetons')
+    else:
+        jetons = {
+            champ: _valider_jeton(donnees[champ])
+            for champ in ('jeton_depot', 'jeton_lecture') if champ in donnees
+        }
+        if jetons:
+            # Passer en saisie garde l'autre jeton d'une adhésion acceptée :
+            # renouveler le seul jeton de dépôt ne doit pas couper la lecture.
+            ligne.jetons_saisis = True
+            for champ, jeton in jetons.items():
+                setattr(ligne, f'{champ}_chiffre', chiffrer(jeton))
+            modifies.extend(jetons)
+
+    ligne.save()
+    logger.info("Raccordement au hub modifié depuis les paramètres : %s.", ', '.join(modifies) or 'rien')
+    return ligne
 
 
 # --------------------------------------------------------------------------- #
@@ -806,7 +983,8 @@ def _date(valeur):
 def _diagnostic(ligne, configuration, publications):
     """Premier cas qui s'applique, du plus bloquant au plus anodin."""
     statut = ligne.adhesion_statut
-    env = configuration['source_jetons'] == SOURCE_ENVIRONNEMENT
+    # Jetons de l'environnement ou saisis : l'adhésion ne décide de rien.
+    env = configuration['source_jetons'] in (SOURCE_ENVIRONNEMENT, SOURCE_SAISIE)
 
     def cas(niveau, cle, **parametres):
         return {'niveau': niveau, 'cle': cle, 'parametres': parametres}
@@ -824,7 +1002,8 @@ def _diagnostic(ligne, configuration, publications):
     if not configuration['jeton_depot_defini']:
         # Adhésion acceptée mais jeton indéchiffrable : la SECRET_KEY a changé.
         cause = 'dechiffrement' if (
-            not env and ligne.jeton_depot_chiffre
+            configuration['source_jetons'] != SOURCE_ENVIRONNEMENT
+            and ligne.jeton_depot_chiffre
         ) else 'absent'
         return cas('attention', 'jeton_depot_absent', cause=cause)
     if ligne.retrait_en_attente:
@@ -868,7 +1047,10 @@ def etat(actualiser=True):
         'source_jetons': source_jetons(ligne),
         'jeton_depot_defini': bool(jeton_depot(ligne)),
         'jeton_lecture_defini': bool(jeton_lecture(ligne)),
-        'exploration_source': settings.CICADA_EXPLORATION_SOURCE,
+        'hub_url_defaut': HUB_URL_RNF,
+        'origines': origines(ligne),
+        'exploration_source': exploration_source(ligne),
+        'exploration_source_serveur': settings.CICADA_EXPLORATION_SOURCE,
         'relais_actif': relais_actif(),
         'publication_auto': settings.CICADA_HUB_PUSH_AUTO,
         'partage': partage_active(),

@@ -1100,7 +1100,7 @@ Publier le contenu de ses plans est un **engagement de la structure**, pas un r�
 | `CICADA_INSTANCE_ID` | identité de l'instance. **Doit être non vide** — une identité vide s'écrit dans chaque ligne d'index et plus aucune publication ne les retrouve |
 | `CICADA_PUBLIC_URL` | URL publique, transmise avec chaque plan |
 | `CICADA_HUB_URL` / `CICADA_HUB_PUSH_TOKEN` / `CICADA_HUB_READ_TOKEN` | adresse et jetons du hub |
-| `CICADA_EXPLORATION_SOURCE` | `local` (défaut) ou `hub`. Vide par défaut = comportement inchangé |
+| `CICADA_EXPLORATION_SOURCE` | `local` (défaut) ou `hub`. Vide par défaut = comportement inchangé. **Le réglage de l'interface prime** (#695 — `RaccordementHub.exploration_source`, l'installeur écrivant toujours la variable) |
 | `CICADA_HUB_PUSH_AUTO` | publication automatique chaque nuit à 2h30 (défaut `true`). Réglage distinct de l'URL du hub : une instance peut vouloir *lire* l'exploration nationale sans publier autrement qu'à la main |
 
 #### Registre des instances (côté hub)
@@ -1126,6 +1126,8 @@ l'environnement y apparaît en `enrolee: false`.
 
 **Désactiver ≠ dépublier** : suspendre les jetons n'efface rien, l'index déjà déposé reste servi. Le retrait est
 une décision de l'instance (décocher le partage, ou `retrait_federation --confirmer`).
+
+**Saisie depuis l'interface (#695)** : `Administration > Paramètres > Raccordement manuel` (super admin) pose l'URL du hub, les jetons délivrés par `enroler_instance` (chiffrés en base, **jamais relus**, `RaccordementHub.jetons_saisis`) et le relais — `PATCH /api/federation/raccordement/configuration/` (`raccordement.configurer()`). Lus en base à chaque appel : un jeton renouvelé est pris en compte sans redémarrage, Celery compris. Pour l'URL et les jetons, **le `.env` garde la main** s'il est renseigné (champ verrouillé, refus 409 `valeur_environnement`) ; l'état expose l'origine de chaque valeur (`configuration.origines`) et l'écran explique comment migrer (vider la variable, `up -d`).
 
 Passer à `hub` fait relayer l'exploration. **Pas de repli** sur l'index local si le hub est injoignable → **502 explicite** : servir les résultats d'une seule instance sous une interface qui promet une recherche transverse ferait conclure que les plans des autres organismes n'existent pas.
 

@@ -14,6 +14,7 @@ import {
   EtatRaccordement,
   FederationRaccordementService,
   PublicationHub,
+  SaisieRaccordement,
   VerificationHub,
   cleErreurRaccordement,
   essaisRestants,
@@ -25,6 +26,10 @@ import { FormFieldComponent } from '../../../../shared/components/form-field/for
 import { SettingsService } from '../../../../core/services/settings.service';
 import { AdhesionDialogComponent, AdhesionDialogData } from './adhesion-dialog/adhesion-dialog.component';
 import { ContactRnfDialogComponent } from './contact-rnf-dialog/contact-rnf-dialog.component';
+import { ConfirmDialogComponent, ConfirmDialogData } from '../../../../shared/components/confirm-dialog/confirm-dialog.component';
+
+/** Relais de l'exploration tel que choisi : vide = suivre le `.env` du serveur. */
+type ChoixExploration = '' | 'local' | 'hub';
 
 /** Largeur standard des modales du projet (cf. CLAUDE.md). */
 const DIALOGUE = { width: '1300px', maxWidth: '95vw', maxHeight: '90vh' } as const;
@@ -74,6 +79,11 @@ const VARIANTE_RESULTAT: Record<PublicationHub['resultat'], TagVariant> = {
  * envoie un code de confirmation par e-mail ; le saisir ici accepte l'adhésion
  * et enrôle l'instance sur le hub. « Contacter RNF » reste disponible à tout
  * moment (code non reçu, question…).
+ *
+ * Porte enfin le raccordement manuel (#695) : URL du hub et jetons délivrés par
+ * `enroler_instance`, et le relais de l'exploration — sans accès au serveur.
+ * Les jetons sont saisis et remplacés, jamais relus : le serveur ne dit que
+ * s'ils sont définis, et d'où ils viennent.
  */
 @Component({
   selector: 'app-federation-raccordement',
@@ -118,6 +128,14 @@ export class FederationRaccordementComponent implements OnInit {
   readonly confirmationEnCours = signal(false);
   /** Message d'erreur de la confirmation, déjà traduit (porte les essais restants). */
   readonly erreurCode = signal<string | null>(null);
+
+  /** Saisie manuelle du raccordement (#695). Les jetons sont vidés après envoi. */
+  saisieHubUrl = '';
+  saisieJetonDepot = '';
+  saisieJetonLecture = '';
+  saisieExploration: ChoixExploration = '';
+  readonly saisieEnCours = signal(false);
+  readonly erreurSaisie = signal<string | null>(null);
 
   ngOnInit(): void {
     this.charger();
@@ -174,7 +192,7 @@ export class FederationRaccordementComponent implements OnInit {
   aideProcessus(): string {
     const etat = this.etat();
     const base = this.translate.instant('admin.settings.federation.etat.adhesion.aideProcessus');
-    if (!etat || etat.configuration.source_jetons === 'environnement') {
+    if (!etat || etat.configuration.source_jetons === 'environnement' || etat.configuration.source_jetons === 'saisie') {
       return base;
     }
     const etape = ETAPE_PAR_STATUT[etat.adhesion.statut ?? ''];
@@ -190,7 +208,7 @@ export class FederationRaccordementComponent implements OnInit {
     this.erreurChargement.set(null);
     this.service.etat().subscribe({
       next: etat => {
-        this.etat.set(etat);
+        this.appliquerEtat(etat);
         this.chargement.set(false);
       },
       error: err => {
@@ -223,7 +241,7 @@ export class FederationRaccordementComponent implements OnInit {
       .subscribe(nouvelEtat => {
         this.demandeEnCours.set(false);
         if (nouvelEtat) {
-          this.etat.set(nouvelEtat);
+          this.appliquerEtat(nouvelEtat);
           this.notifier('adhesion.envoyee');
           // Demander l'adhésion vaut consentement au partage : le serveur a
           // coché la case. On relit les paramètres pour que la page la montre
@@ -231,6 +249,120 @@ export class FederationRaccordementComponent implements OnInit {
           this.settingsService.loadSettings().subscribe({ error: () => undefined });
         }
       });
+  }
+
+  /**
+   * Enregistre l'état et réinitialise la saisie manuelle sur la configuration
+   * en place : URL effective (sinon celle du hub RNF), relais choisi, jetons
+   * vides — ils ne sont jamais relus.
+   */
+  private appliquerEtat(etat: EtatRaccordement): void {
+    this.etat.set(etat);
+    const c = etat.configuration;
+    this.saisieHubUrl = c.hub_url || c.hub_url_defaut;
+    this.saisieJetonDepot = '';
+    this.saisieJetonLecture = '';
+    this.saisieExploration = c.origines.exploration_source === 'base' ? (c.exploration_source as ChoixExploration) : '';
+  }
+
+  /** Un champ fourni par le `.env` du serveur n'est pas modifiable ici. */
+  valeurServeur(champ: 'hub_url' | 'jeton_depot' | 'jeton_lecture'): boolean {
+    return this.etat()?.configuration.origines[champ] === 'environnement';
+  }
+
+  /** Au moins une valeur vient du `.env` : on explique comment migrer vers la base. */
+  migrationPossible(): boolean {
+    return (['hub_url', 'jeton_depot', 'jeton_lecture'] as const).some(champ => this.valeurServeur(champ));
+  }
+
+  /** Libellé de ce que dit le `.env` (option « selon le serveur »). */
+  cleExplorationServeur(): string {
+    const valeur = this.etat()?.configuration.exploration_source_serveur;
+    return `admin.settings.federation.etat.saisie.${valeur === 'hub' ? 'explorationHub' : 'explorationLocal'}`;
+  }
+
+  /** Des jetons gardés en base (saisis ou d'adhésion) peuvent être effacés. */
+  jetonsEffacables(): boolean {
+    const source = this.etat()?.configuration.source_jetons;
+    return source === 'saisie' || source === 'adhesion';
+  }
+
+  /** Ce qui a changé par rapport à l'état chargé — seuls ces champs partent. */
+  modificationsSaisie(): SaisieRaccordement {
+    const etat = this.etat();
+    if (!etat) {
+      return {};
+    }
+    const c = etat.configuration;
+    const saisie: SaisieRaccordement = {};
+    const url = this.saisieHubUrl.trim().replace(/\/+$/, '');
+    if (!this.valeurServeur('hub_url') && url && url !== c.hub_url) {
+      saisie.hub_url = url;
+    }
+    if (!this.valeurServeur('jeton_depot') && this.saisieJetonDepot.trim()) {
+      saisie.jeton_depot = this.saisieJetonDepot.trim();
+    }
+    if (!this.valeurServeur('jeton_lecture') && this.saisieJetonLecture.trim()) {
+      saisie.jeton_lecture = this.saisieJetonLecture.trim();
+    }
+    const explorationEnBase = c.origines.exploration_source === 'base' ? c.exploration_source : '';
+    if (this.saisieExploration !== explorationEnBase) {
+      saisie.exploration_source = this.saisieExploration;
+    }
+    return saisie;
+  }
+
+  saisieModifiee(): boolean {
+    return Object.keys(this.modificationsSaisie()).length > 0;
+  }
+
+  enregistrerSaisie(): void {
+    const saisie = this.modificationsSaisie();
+    if (!Object.keys(saisie).length) {
+      this.notifier('saisie.rienAModifier');
+      return;
+    }
+    this.envoyerSaisie(saisie, 'saisie.enregistre');
+  }
+
+  effacerJetons(): void {
+    this.dialog
+      .open<ConfirmDialogComponent, ConfirmDialogData, boolean>(ConfirmDialogComponent, {
+        ...DIALOGUE,
+        data: {
+          title: this.translate.instant('admin.settings.federation.etat.saisie.effacerTitre'),
+          message: this.translate.instant('admin.settings.federation.etat.saisie.effacerMessage'),
+          confirmText: this.translate.instant('admin.settings.federation.etat.saisie.effacer'),
+        },
+      })
+      .afterClosed()
+      .subscribe(confirme => {
+        if (confirme) {
+          this.envoyerSaisie({ effacer_jetons: true }, 'saisie.efface');
+        }
+      });
+  }
+
+  private envoyerSaisie(saisie: SaisieRaccordement, cleSucces: string): void {
+    if (this.saisieEnCours()) {
+      return;
+    }
+    this.saisieEnCours.set(true);
+    this.erreurSaisie.set(null);
+    this.verification.set(null);
+    this.service.configurer(saisie).subscribe({
+      next: etat => {
+        this.saisieEnCours.set(false);
+        this.appliquerEtat(etat);
+        this.notifier(cleSucces);
+      },
+      error: err => {
+        this.saisieEnCours.set(false);
+        this.erreurSaisie.set(
+          this.translate.instant(`admin.settings.federation.etat.erreurs.${cleErreurRaccordement(err)}`),
+        );
+      },
+    });
   }
 
   saisirCode(valeur: string): void {
@@ -253,7 +385,7 @@ export class FederationRaccordementComponent implements OnInit {
       next: etat => {
         this.confirmationEnCours.set(false);
         this.codeSaisi = '';
-        this.etat.set(etat);
+        this.appliquerEtat(etat);
         this.notifier('confirmation.reussie');
       },
       error: err => {

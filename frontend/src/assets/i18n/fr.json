@@ -854,7 +854,8 @@
             "source": {
               "environnement": "Fichier de configuration (.env)",
               "adhesion": "Adhésion validée par RNF",
-              "aucune": "Aucune"
+              "aucune": "Aucune",
+              "saisie": "Saisis dans les paramètres"
             },
             "exploration": "Exploration",
             "explorationLocale": "Locale (plans de cette instance seulement)",
@@ -908,7 +909,8 @@
               "messageAide": "Facultatif : contexte, disponibilités pour être contacté…",
               "avertissement": "L'identifiant de l'instance ne pourra plus être changé une fois l'adhésion acceptée.",
               "envoyer": "Envoyer la demande"
-            }
+            },
+            "jetonsSaisis": "Les jetons du hub ont été saisis dans la section « Raccordement manuel » : aucune adhésion n'est nécessaire."
           },
           "confirmation": {
             "reussie": "Code accepté : l'adhésion est validée et l'instance est enregistrée sur le hub."
@@ -925,6 +927,31 @@
           "formulaire": {
             "requis": "Ce champ est obligatoire.",
             "emailInvalide": "Adresse e-mail invalide."
+          },
+          "saisie": {
+            "titre": "Raccordement manuel",
+            "description": "Pour une instance enrôlée directement par RNF (commande « enroler_instance » sur le hub) : saisissez l'adresse du hub et les jetons reçus. Ils sont chiffrés, ne sont jamais réaffichés, et sont pris en compte immédiatement, publication de nuit comprise. Pour renouveler un jeton, saisissez simplement le nouveau.",
+            "hubUrl": "Adresse du hub",
+            "hubUrlAide": "Pré-remplie avec le hub de l'exploration nationale (RNF).",
+            "jetonDepot": "Jeton de dépôt",
+            "jetonLecture": "Jeton de lecture",
+            "jetonDefini": "Défini — saisir un nouveau jeton pour le remplacer",
+            "jetonAbsent": "Non défini",
+            "exploration": "Exploration des données",
+            "explorationAide": "« Nationale » relaie les recherches vers le hub ; il faut aussi un jeton de lecture et le partage activé.",
+            "explorationServeur": "Selon la configuration du serveur (actuellement : {{valeur}})",
+            "explorationLocal": "Locale (plans de cette instance seulement)",
+            "explorationHub": "Nationale (relayée par le hub)",
+            "valeurEnvironnement": "Fourni par le fichier de configuration du serveur",
+            "enregistrer": "Enregistrer",
+            "enregistre": "Raccordement enregistré.",
+            "rienAModifier": "Aucune modification à enregistrer.",
+            "effacer": "Effacer les jetons",
+            "effacerTitre": "Effacer les jetons du hub ?",
+            "effacerMessage": "Cette instance ne pourra plus ni publier ses plans ni explorer ceux des autres structures tant que de nouveaux jetons n'auront pas été saisis ou obtenus par adhésion.",
+            "efface": "Jetons effacés.",
+            "migrationTitre": "Valeurs fournies par le serveur",
+            "migrationTexte": "Les champs grisés viennent du fichier /var/lib/cicada/.env et priment sur cette page. Pour les gérer ici : retirez-en les variables concernées (CICADA_HUB_URL, CICADA_HUB_PUSH_TOKEN, CICADA_HUB_READ_TOKEN), recréez les conteneurs avec « docker compose up -d » (un simple redémarrage ne relit pas le fichier), worker et beat Celery compris, puis saisissez les valeurs ci-dessous."
           },
           "verification": {
             "titre": "Vérifier le raccordement",
@@ -983,7 +1010,10 @@
             "code_expire": "Ce code a expiré. Demandez un nouveau code à RNF (bouton « Contacter RNF »).",
             "trop_d_essais": "Trop d'essais incorrects : le code a été invalidé. RNF doit vous en envoyer un nouveau.",
             "pas_de_code": "Aucun code de confirmation n'est attendu pour cette demande.",
-            "erreur_inconnue": "Une erreur inattendue est survenue. Réessayez ou contactez un administrateur système."
+            "erreur_inconnue": "Une erreur inattendue est survenue. Réessayez ou contactez un administrateur système.",
+            "jetons_saisis": "Des jetons du hub ont été saisis manuellement : effacez-les avant de demander l'adhésion.",
+            "valeur_environnement": "Cette valeur est fournie par le fichier de configuration du serveur : elle ne peut pas être modifiée ici.",
+            "configuration_invalide": "Valeur invalide : vérifiez l'adresse du hub (http:// ou https://) et collez les jetons sans espace."
           }
         }
       },

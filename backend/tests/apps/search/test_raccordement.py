@@ -226,7 +226,8 @@ class TestDemandeAdhesion:
             'instance_id', 'instance_libelle', 'identite_valide', 'hub_url',
             'source_jetons', 'jeton_depot_defini', 'jeton_lecture_defini',
             'exploration_source', 'relais_actif', 'publication_auto', 'partage',
-            'suivi_disponible',
+            'suivi_disponible', 'hub_url_defaut', 'origines',
+            'exploration_source_serveur',
         }
         assert set(corps['adhesion']) == {
             'statut', 'demandee_le', 'motif', 'possible', 'erreur_suivi',
@@ -888,3 +889,150 @@ class TestLeCodeNeFuitPas:
         for forme in (code, code.replace('-', ''), code.lower(),
                       hashlib.sha256(code.replace('-', '').encode()).hexdigest()):
             assert forme not in texte
+
+
+# --------------------------------------------------------------------------- #
+# Saisie manuelle du raccordement (#695)
+# --------------------------------------------------------------------------- #
+
+URL_CONFIGURATION = URL_RACCORDEMENT + 'configuration/'
+
+
+@pytest.mark.django_db
+class TestSaisieManuelle:
+    """
+    Une instance raccordée hors adhésion (jetons délivrés par
+    `enroler_instance`) se configure depuis l'interface, sans accès au serveur.
+    """
+
+    def test_reserve_au_super_admin(self):
+        assert APIClient().patch(URL_CONFIGURATION, {}, format='json').status_code == 401
+        client = APIClient()
+        client.force_authenticate(user=UserFactory())
+        assert client.patch(URL_CONFIGURATION, {}, format='json').status_code == 403
+
+    def test_etat_expose_origines_et_url_par_defaut(self, admin_client):
+        configuration = admin_client.get(URL_RACCORDEMENT).json()['configuration']
+        assert configuration['hub_url_defaut'] == rac.HUB_URL_RNF
+        assert configuration['origines'] == {
+            'hub_url': None, 'jeton_depot': None, 'jeton_lecture': None,
+            'exploration_source': 'environnement',
+        }
+
+    def test_saisie_rend_les_jetons_effectifs_sans_redemarrage(self, admin_client):
+        rep = admin_client.patch(URL_CONFIGURATION, {
+            'hub_url': 'https://hub.example/', 'jeton_depot': 'depot-saisi',
+            'jeton_lecture': 'lecture-saisi',
+        }, format='json')
+        assert rep.status_code == 200
+        configuration = rep.json()['configuration']
+        assert configuration['hub_url'] == 'https://hub.example'
+        assert configuration['source_jetons'] == 'saisie'
+        assert configuration['jeton_depot_defini'] is True
+        assert configuration['origines']['jeton_depot'] == 'base'
+        assert configuration['origines']['hub_url'] == 'base'
+        # Lu en base à chaque appel : le worker Celery voit le même jeton.
+        assert rac.jeton_depot() == 'depot-saisi'
+        assert rac.jeton_lecture() == 'lecture-saisi'
+
+    def test_les_jetons_ne_sont_jamais_relus(self, admin_client, caplog):
+        caplog.set_level(logging.DEBUG)
+        rep = admin_client.patch(URL_CONFIGURATION, {
+            'hub_url': 'https://hub.example', 'jeton_depot': 'depot-tres-secret',
+            'jeton_lecture': 'lecture-tres-secrete',
+        }, format='json')
+        brut = rep.content.decode() + admin_client.get(URL_RACCORDEMENT).content.decode()
+        assert 'depot-tres-secret' not in brut
+        assert 'lecture-tres-secrete' not in brut
+        assert 'depot-tres-secret' not in caplog.text
+        ligne = RaccordementHub.objects.get()
+        assert 'depot-tres-secret' not in ligne.jeton_depot_chiffre
+
+    def test_renouvellement_d_un_seul_jeton(self, admin_client):
+        admin_client.patch(URL_CONFIGURATION, {
+            'hub_url': 'https://hub.example', 'jeton_depot': 'ancien', 'jeton_lecture': 'lecture',
+        }, format='json')
+        admin_client.patch(URL_CONFIGURATION, {'jeton_depot': 'nouveau'}, format='json')
+        assert rac.jeton_depot() == 'nouveau'
+        assert rac.jeton_lecture() == 'lecture'
+
+    def test_renouvellement_apres_adhesion(self, admin_client):
+        adhesion_acceptee()
+        admin_client.patch(URL_CONFIGURATION, {'jeton_depot': 'renouvele'}, format='json')
+        assert rac.jeton_depot() == 'renouvele'
+        assert rac.jeton_lecture() == 'lecture-secret'
+
+    def test_effacer_les_jetons(self, admin_client):
+        admin_client.patch(URL_CONFIGURATION, {
+            'hub_url': 'https://hub.example', 'jeton_depot': 'd', 'jeton_lecture': 'l',
+        }, format='json')
+        rep = admin_client.patch(URL_CONFIGURATION, {'effacer_jetons': True}, format='json')
+        assert rep.json()['configuration']['source_jetons'] is None
+        assert rac.jeton_depot() is None
+        assert rep.json()['adhesion']['possible'] is True
+
+    def test_jetons_saisis_bloquent_l_adhesion(self, admin_client):
+        admin_client.patch(URL_CONFIGURATION, {
+            'hub_url': 'https://hub.example', 'jeton_depot': 'd', 'jeton_lecture': 'l',
+        }, format='json')
+        corps = admin_client.get(URL_RACCORDEMENT).json()
+        assert corps['adhesion']['possible'] is False
+        assert admin_client.post(URL_RACCORDEMENT + 'adhesion/', CONTACT, format='json').status_code == 409
+
+    @pytest.mark.parametrize('url', ['ftp://hub', 'hub.example', 'https://', 'x' * 600])
+    def test_url_invalide(self, admin_client, url):
+        rep = admin_client.patch(URL_CONFIGURATION, {'hub_url': url}, format='json')
+        assert rep.status_code == 400
+        assert rep.json()['erreur'] == 'configuration_invalide'
+
+    def test_jeton_vide_refuse(self, admin_client):
+        rep = admin_client.patch(URL_CONFIGURATION, {'jeton_depot': '   '}, format='json')
+        assert rep.status_code == 400
+
+    @pytest.mark.parametrize('champ,reglage,valeur', [
+        ('hub_url', 'CICADA_HUB_URL', 'https://autre.example'),
+        ('jeton_depot', 'CICADA_HUB_PUSH_TOKEN', 'x'),
+        ('jeton_lecture', 'CICADA_HUB_READ_TOKEN', 'x'),
+    ])
+    def test_valeur_de_l_environnement_non_modifiable(self, admin_client, settings, champ, reglage, valeur):
+        setattr(settings, reglage, 'env-valeur')
+        rep = admin_client.patch(URL_CONFIGURATION, {champ: valeur}, format='json')
+        assert rep.status_code == 409
+        assert rep.json()['erreur'] == 'valeur_environnement'
+        origines = admin_client.get(URL_RACCORDEMENT).json()['configuration']['origines']
+        assert origines[champ] == 'environnement'
+
+    def test_relais_reglable_sans_redemarrage(self, admin_client, settings, partage):
+        settings.CICADA_EXPLORATION_SOURCE = 'local'
+        admin_client.patch(URL_CONFIGURATION, {
+            'hub_url': 'https://hub.example', 'jeton_lecture': 'l',
+        }, format='json')
+        assert relais_actif() is False
+        rep = admin_client.patch(URL_CONFIGURATION, {'exploration_source': 'hub'}, format='json')
+        configuration = rep.json()['configuration']
+        assert configuration['exploration_source'] == 'hub'
+        assert configuration['origines']['exploration_source'] == 'base'
+        assert relais_actif() is True
+
+    def test_le_relais_en_base_prime_sur_l_environnement(self, admin_client, settings, partage):
+        # L'installeur écrit toujours CICADA_EXPLORATION_SOURCE : sans cette
+        # priorité, le réglage de l'interface n'aurait jamais d'effet.
+        settings.CICADA_EXPLORATION_SOURCE = 'hub'
+        adhesion_acceptee()
+        assert relais_actif() is True
+        admin_client.patch(URL_CONFIGURATION, {'exploration_source': 'local'}, format='json')
+        assert relais_actif() is False
+        # Revenir au réglage du serveur.
+        rep = admin_client.patch(URL_CONFIGURATION, {'exploration_source': ''}, format='json')
+        assert rep.json()['configuration']['origines']['exploration_source'] == 'environnement'
+        assert relais_actif() is True
+
+    def test_relais_invalide(self, admin_client):
+        rep = admin_client.patch(URL_CONFIGURATION, {'exploration_source': 'ailleurs'}, format='json')
+        assert rep.status_code == 400
+
+    def test_diagnostic_d_une_saisie_complete(self, admin_client, partage):
+        corps = admin_client.patch(URL_CONFIGURATION, {
+            'hub_url': 'https://hub.example', 'jeton_depot': 'd', 'jeton_lecture': 'l',
+        }, format='json').json()
+        assert corps['diagnostic']['cle'] == 'aucune_publication'
