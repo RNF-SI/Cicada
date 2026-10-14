@@ -116,6 +116,7 @@ class ValidationRequestSerializer(serializers.ModelSerializer):
     pending_user_info = serializers.SerializerMethodField()
     can_validate = serializers.SerializerMethodField()
     blocked_by_org_link = serializers.SerializerMethodField()
+    blocked_by_organisme_creation = serializers.SerializerMethodField()
     organisme_admins = serializers.SerializerMethodField()
 
     class Meta:
@@ -141,6 +142,7 @@ class ValidationRequestSerializer(serializers.ModelSerializer):
             'pending_user_info',
             'can_validate',
             'blocked_by_org_link',
+            'blocked_by_organisme_creation',
             'organisme_admins',
             'request_as_referent',
             'created_at',
@@ -195,13 +197,13 @@ class ValidationRequestSerializer(serializers.ModelSerializer):
         if organisme is None and obj.request_type == 'user_registration':
             # Inscription avec création d'organisme : l'organisme est porté par
             # la demande liée tant qu'elle n'est pas approuvée.
-            has_pending_org = obj.linked_requests.filter(
+            org_request = obj.linked_requests.filter(
                 request_type='organisme_creation'
-            ).exists()
-            if not has_pending_org:
+            ).first()
+            if org_request is None:
                 return None
             return {
-                'organisme': None,
+                'organisme': (org_request.requested_data or {}).get('nom_organisme'),
                 'is_new_organisme': True,
                 'count': 0,
                 'admins': [],
@@ -246,6 +248,15 @@ class ValidationRequestSerializer(serializers.ModelSerializer):
             return obj.can_be_validated_by(request.user)
         return False
 
+    def get_blocked_by_organisme_creation(self, obj):
+        """Nom de l'organisme à créer qui bloque cette inscription, sinon None (#679)."""
+        if obj.status != 'pending':
+            return None
+        org_request = obj.pending_organisme_creation()
+        if org_request is None:
+            return None
+        return (org_request.requested_data or {}).get('nom_organisme') or str(_("organisme à créer"))
+
     def get_blocked_by_org_link(self, obj):
         """Indique si cette demande site_access est bloquee par un site_org_link en attente."""
         if obj.request_type != 'site_access' or obj.status != 'pending':
@@ -280,6 +291,7 @@ class ValidationRequestListSerializer(serializers.ModelSerializer):
     )
 
     blocked_by_org_link = serializers.SerializerMethodField()
+    blocked_by_organisme_creation = serializers.SerializerMethodField()
 
     class Meta:
         model = ValidationRequest
@@ -303,6 +315,7 @@ class ValidationRequestListSerializer(serializers.ModelSerializer):
             'created_at',
             'request_as_referent',
             'blocked_by_org_link',
+            'blocked_by_organisme_creation',
         ]
 
     def get_requester_name(self, obj):
@@ -333,6 +346,12 @@ class ValidationRequestListSerializer(serializers.ModelSerializer):
                 return obj.target_module
         if obj.requested_organisme:
             return f"Organisme: {obj.requested_organisme.nom_organisme}"
+        pending_org = obj.pending_organisme_creation()
+        if pending_org is not None:
+            # Inscription avec un nouvel organisme (#679) : on nomme l'organisme
+            # porté par la demande de création liée.
+            nom = (pending_org.requested_data or {}).get('nom_organisme')
+            return f"Organisme à créer: {nom}" if nom else "Organisme à créer"
         if obj.request_type == 'organisme_creation':
             nom = (obj.requested_data or {}).get('nom_organisme')
             return f"Organisme à créer: {nom}" if nom else "Organisme à créer"
@@ -343,6 +362,15 @@ class ValidationRequestListSerializer(serializers.ModelSerializer):
         if obj.validator:
             return str(obj.validator)
         return None
+
+    def get_blocked_by_organisme_creation(self, obj):
+        """Nom de l'organisme à créer qui bloque cette inscription, sinon None (#679)."""
+        if obj.status != 'pending':
+            return None
+        org_request = obj.pending_organisme_creation()
+        if org_request is None:
+            return None
+        return (org_request.requested_data or {}).get('nom_organisme') or str(_("organisme à créer"))
 
     def get_blocked_by_org_link(self, obj):
         """Indique si cette demande site_access est bloquee par un site_org_link en attente."""

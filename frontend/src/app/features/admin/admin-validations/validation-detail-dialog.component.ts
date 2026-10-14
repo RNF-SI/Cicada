@@ -236,6 +236,14 @@ interface DialogData {
             </div>
           }
 
+          <!-- #679 — Inscription bloquée par la création de l'organisme demandé -->
+          @if (validation()!.blocked_by_organisme_creation; as orgName) {
+            <div class="blocked-warning">
+              <i class="fi fi-rr-exclamation-triangle"></i>
+              <span>{{ 'admin.validations.warnings.blockedByOrganismeCreation' | translate:{ organisme: orgName } }}</span>
+            </div>
+          }
+
           <!-- Formulaire action si en attente -->
           @if (validation()!.status === 'pending' && !actionSuccess()) {
             <div class="action-section">
@@ -264,7 +272,7 @@ interface DialogData {
                       mat-raised-button
                       color="primary"
                       (click)="approveWithReferent(true)"
-                      [disabled]="processing() || validation()!.blocked_by_org_link"
+                      [disabled]="processing() || isBlocked()"
                     >
                       <i class="fi fi-rr-user-check"></i>
                       Approuver (référent)
@@ -272,7 +280,7 @@ interface DialogData {
                     <button
                       mat-stroked-button
                       (click)="approveWithReferent(false)"
-                      [disabled]="processing() || validation()!.blocked_by_org_link"
+                      [disabled]="processing() || isBlocked()"
                     >
                       <i class="fi fi-rr-user"></i>
                       Approuver (utilisateur)
@@ -283,7 +291,7 @@ interface DialogData {
                       mat-raised-button
                       color="primary"
                       (click)="approve()"
-                      [disabled]="processing() || validation()!.blocked_by_org_link"
+                      [disabled]="processing() || isBlocked()"
                     >
                       <i class="fi fi-rr-check"></i>
                       Approuver
@@ -643,6 +651,15 @@ export class ValidationDetailDialogComponent implements OnInit {
         this.loading.set(false);
       }
     });
+  }
+
+  /**
+   * La demande attend l'approbation d'une autre demande : lien organisme-site,
+   * ou création de l'organisme d'une inscription (#679).
+   */
+  isBlocked(): boolean {
+    const v = this.validation();
+    return !!v && (!!v.blocked_by_org_link || !!v.blocked_by_organisme_creation);
   }
 
   /**

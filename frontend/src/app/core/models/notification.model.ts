@@ -167,6 +167,11 @@ export interface ValidationRequest {
   /** Indique si cette demande site_access est bloquée par un site_org_link en attente */
   blocked_by_org_link?: boolean;
   /**
+   * Inscription avec un nouvel organisme (#679) : nom de l'organisme dont la
+   * demande de création doit être approuvée d'abord. `null` sinon.
+   */
+  blocked_by_organisme_creation?: string | null;
+  /**
    * Contexte « administrateurs de l'organisme » d'une demande d'inscription (#653) :
    * permet au validateur de savoir si l'organisme a déjà un admin_og avant
    * d'accepter le compte. `null` pour les autres types de demandes.
@@ -225,6 +230,11 @@ export interface ValidationRequestListItem {
   request_as_referent?: boolean;
   /** Indique si cette demande site_access est bloquée par un site_org_link en attente */
   blocked_by_org_link?: boolean;
+  /**
+   * Inscription avec un nouvel organisme (#679) : nom de l'organisme dont la
+   * demande de création doit être approuvée d'abord. `null` sinon.
+   */
+  blocked_by_organisme_creation?: string | null;
 }
 
 /**

@@ -769,7 +769,54 @@ class TestRegistrationOrganismeAdminsContext:
 
         ctx = client.get(f'/api/validations/{vr.id}/').data['organisme_admins']
         assert ctx['is_new_organisme'] is True
+        assert ctx['organisme'] == 'CEN Nouvelle-Aquitaine'
         assert ctx['count'] == 0
+
+    def _registration_with_new_organisme(self, nom='CEN Nouvelle-Aquitaine'):
+        vr = self._registration(None)
+        org_request = ValidationRequest.objects.create(
+            request_type='organisme_creation',
+            status='pending',
+            requester=None,
+            requested_data={'nom_organisme': nom},
+            related_request=vr,
+        )
+        return vr, org_request
+
+    def test_registration_with_new_organisme_names_it_in_list(self, admin_client):
+        """#679 — la ligne d'inscription nomme l'organisme à créer qui la bloque."""
+        client, _admin = admin_client
+        vr, _org = self._registration_with_new_organisme()
+
+        response = client.get('/api/validations/', {'status': 'pending'})
+        results = response.data.get('results', response.data)
+        row = next(r for r in results if r['id'] == vr.id)
+        assert row['target_name'] == 'Organisme à créer: CEN Nouvelle-Aquitaine'
+        assert row['blocked_by_organisme_creation'] == 'CEN Nouvelle-Aquitaine'
+
+        detail = client.get(f'/api/validations/{vr.id}/').data
+        assert detail['blocked_by_organisme_creation'] == 'CEN Nouvelle-Aquitaine'
+
+    def test_registration_no_longer_blocked_once_organisme_approved(self, admin_client):
+        client, _admin = admin_client
+        vr, org_request = self._registration_with_new_organisme()
+        org_request.status = 'approved'
+        org_request.save()
+
+        detail = client.get(f'/api/validations/{vr.id}/').data
+        assert detail['blocked_by_organisme_creation'] is None
+
+    def test_approve_error_names_the_organisme_to_create(self):
+        """#679 — le message de blocage dit quel organisme valider d'abord."""
+        from apps.notifications.models import PendingUser
+        from apps.notifications.services import ValidationService
+
+        vr, _org = self._registration_with_new_organisme()
+        PendingUser.objects.create(
+            email='nouveau@test.fr', password_hash='x', validation_request=vr,
+        )
+        with pytest.raises(ValueError, match='CEN Nouvelle-Aquitaine'):
+            ValidationService.approve_registration(vr, SuperAdminFactory())
 
     def test_other_request_types_have_no_context(self, admin_client):
         client, _admin = admin_client

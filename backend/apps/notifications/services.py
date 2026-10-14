@@ -1362,7 +1362,10 @@ class ValidationService:
                 request_type='organisme_creation', status='pending'
             ).first()
             if pending_org_request:
+                nom_org = (pending_org_request.requested_data or {}).get('nom_organisme')
                 raise ValueError(
+                    f"Veuillez d'abord approuver la demande de création de l'organisme « {nom_org} »."
+                    if nom_org else
                     "Veuillez d'abord approuver la demande de création d'organisme associée."
                 )
 

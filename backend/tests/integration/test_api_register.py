@@ -390,7 +390,7 @@ class TestRegistrationWithNewOrganisme:
         validator = SuperAdminFactory()
         pending = PendingUser.objects.get(email='newuser@test.fr')
 
-        with pytest.raises(ValueError, match="création d'organisme"):
+        with pytest.raises(ValueError, match="d'abord approuver la demande de création"):
             ValidationService.approve_registration(pending.validation_request, validator)
 
         assert not Role.objects.filter(email='newuser@test.fr').exists()

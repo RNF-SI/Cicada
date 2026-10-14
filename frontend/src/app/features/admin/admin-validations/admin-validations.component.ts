@@ -220,8 +220,8 @@ export class AdminValidationsComponent implements OnInit {
   quickApprove(validation: ValidationRequestListItem, event: Event): void {
     event.stopPropagation();
 
-    // Si la demande est bloquée par un site_org_link en attente, ouvrir le dialog
-    if (validation.blocked_by_org_link) {
+    // Si la demande est bloquée (site_org_link ou création d'organisme en attente), ouvrir le dialog
+    if (validation.blocked_by_org_link || validation.blocked_by_organisme_creation) {
       this.openDetail(validation);
       return;
     }

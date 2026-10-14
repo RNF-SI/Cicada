@@ -675,7 +675,8 @@
       },
       "warnings": {
         "checkDuplicateSite": "Avant d'approuver, assurez-vous que ce site n'existe pas déjà dans l'application pour éviter les doublons.",
-        "blockedByOrgLink": "Une demande de lien organisme-site est en attente pour ce site. Veuillez l'approuver en premier."
+        "blockedByOrgLink": "Une demande de lien organisme-site est en attente pour ce site. Veuillez l'approuver en premier.",
+        "blockedByOrganismeCreation": "Ce compte est rattaché au nouvel organisme « {{organisme}} », pas encore créé. Approuvez d'abord la demande de création de cet organisme : il sera alors rattaché automatiquement à ce compte."
       },
       "organismeAdmins": {
         "newOrganisme": "Nouvel organisme : il n'a encore aucun administrateur",

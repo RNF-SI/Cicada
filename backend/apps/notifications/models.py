@@ -379,6 +379,18 @@ class ValidationRequest(models.Model):
         """Verifie si la demande est en attente."""
         return self.status == 'pending'
 
+    def pending_organisme_creation(self):
+        """Demande de création d'organisme en attente liée à cette inscription (#679).
+
+        Une inscription avec un nouvel organisme n'a pas encore d'organisme : il
+        est porté par la demande `organisme_creation` liée, à approuver d'abord.
+        """
+        if self.request_type != 'user_registration' or self.requested_organisme_id:
+            return None
+        return self.linked_requests.filter(
+            request_type='organisme_creation', status='pending'
+        ).first()
+
     def can_be_validated_by(self, user):
         """
         Verifie si l'utilisateur peut valider cette demande.
