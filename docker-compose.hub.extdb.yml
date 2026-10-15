@@ -1,0 +1,17 @@
+# Hub de production avec sa base sur un serveur PostgreSQL existant
+# (docs/DEPLOIEMENT_HUB.md, « Variante : base sur un serveur PostgreSQL »).
+#
+# Toujours combiné au compose de production, jamais seul :
+#   docker compose -f docker-compose.hub.prod.yml -f docker-compose.hub.extdb.yml \
+#                  --env-file .env.hub.prod up -d
+# avec POSTGRES_HOST / POSTGRES_PORT renseignés dans .env.hub.prod.
+#
+# ⚠️ Oublier ce fichier dans une commande recrée le conteneur de base locale,
+# vide : le hub démarrerait alors sur une base sans registre ni index.
+# Compose ≥ 2.24 (pour !reset).
+services:
+  db:
+    # Le service n'est démarré que si l'on demande ce profil, ce qui n'arrive pas.
+    profiles: ["base-locale"]
+  hub:
+    depends_on: !reset {}

@@ -97,7 +97,7 @@ n'est prévenu. Détail : [RELEASE_PROCEDURE.md](RELEASE_PROCEDURE.md).
 | Serveur | Rôle | Fichiers et commandes clés | Documentation |
 |---|---|---|---|
 | **Serveur de suivi** | dépôt APT | `/var/www/repos/cicada` ; `packaging/apt-repo/init-repo.sh` (une fois), `publish.sh` (à chaque release) | [RELEASE_PROCEDURE.md](RELEASE_PROCEDURE.md) §4 |
-| | API de suivi | `/opt/tracking-api`, son `.env` (`LATEST_VERSION`), service `cicada-tracking-api`, admin sur `/admin/` | `tracking-api/INSTALLATION.md` |
+| | API de suivi | `/opt/tracking-api` (sur le serveur de production : `/home/tracking/Cicada/tracking-api`), son `.env` (`LATEST_VERSION`), service `cicada-tracking-api`, admin sur `/admin/` | `tracking-api/INSTALLATION.md` |
 | **Hub** | recherche transverse | `/opt/cicada-hub`, `.env.hub.prod`, `enroler_instance <id>` (délivre les 2 jetons) | [DEPLOIEMENT_HUB.md](DEPLOIEMENT_HUB.md) |
 | **Serveur de bases** | PostgreSQL + PostGIS | `cicada-prepare-db --client <ip-instance>` | [INSTALLATION_GUIDE.md](INSTALLATION_GUIDE.md) étape 3 |
 | **Instance** | l'application | `/var/lib/cicada/.env` (configuration, root seul), `/etc/cicada/` (jeton, URL de suivi), `/var/log/cicada/` (`heartbeat.log`, `updater.log`), `/var/lib/cicada/updates/` (échange avec le bouton « Mettre à jour ») | [INSTALLATION_GUIDE.md](INSTALLATION_GUIDE.md) |

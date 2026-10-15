@@ -18,7 +18,7 @@ Cette note décrit les étapes pour publier une nouvelle version : images Docker
 
 ## 2. Bumper la version et créer le tag
 
-Le tag se pose **sur `develop`**, qui est la branche de référence des releases : c’est de là que sont sorties toutes les versions depuis la 0.1.31. Avancer `main` est facultatif et se fait après coup, en fast-forward.
+Le tag se pose **sur `develop`**, qui est la branche de référence des releases : c’est de là que sont sorties toutes les versions depuis la 0.1.31. **Avant de poser le tag, tout `develop` doit être sur `main`** : `main` porte la dernière version publiée, son arbre doit être celui du tag.
 
 ```bash
 git checkout develop
@@ -29,14 +29,24 @@ echo "0.1.21" > version.txt
 git add version.txt
 git commit -m "chore: bump version 0.1.21"
 
+git push origin develop
+
+# Mettre tout develop sur main AVANT le tag. En fast-forward si main n'a
+# rien que develop n'a pas ; sinon, fusion --no-ff (jamais de push forcé).
+git fetch origin
+if git merge-base --is-ancestor origin/main origin/develop; then
+    git push origin develop:main
+else
+    git checkout main && git pull
+    git merge --no-ff develop -m "Merge develop into main (v0.1.21)"
+    git push origin main && git checkout develop
+fi
+# main doit avoir exactement l'arbre de develop (aucune sortie attendue)
+git diff origin/main develop --stat
+
 # Créer et pousser le tag
 git tag v0.1.21
-git push origin develop && git push origin v0.1.21
-
-# Facultatif : remettre main à niveau, sans merge commit ni divergence.
-# La condition doit être vraie, sinon main a des commits que develop n'a pas —
-# dans ce cas, ne pas forcer : traiter la divergence à part.
-git merge-base --is-ancestor origin/main origin/develop && git push origin develop:main
+git push origin v0.1.21
 ```
 
 **Effets :**
@@ -68,17 +78,45 @@ phrase secrète. Clé actuelle : créée le 2026-10-05, expire le 2031-10-04 —
 
 ```bash
 sudo -i
-export GPG_TTY=$(tty)        # sans cela, gpg ne peut pas demander la phrase secrète
 cd /root
 curl -fLO https://github.com/RNF-SI/Cicada/releases/download/vX.Y.Z/cicada_X.Y.Z_amd64.deb
-reprepro -b /var/www/repos/cicada includedeb stable cicada_X.Y.Z_amd64.deb
-reprepro -b /var/www/repos/cicada list stable
+curl -fsSLO https://raw.githubusercontent.com/RNF-SI/Cicada/vX.Y.Z/packaging/apt-repo/publish.sh
+bash publish.sh cicada_X.Y.Z_amd64.deb
 ```
 
-- La phrase secrète de la clé est demandée : la publication se fait donc en session interactive.
+- `publish.sh` demande la phrase secrète de la clé **en ligne de commande** (`Enter passphrase:`, rien ne
+  s'affiche à la saisie) : la publication se fait donc en session interactive. Il se termine par
+  « Publié : cicada X.Y.Z » ou par un **ÉCHEC** explicite.
 - reprepro ne garde **qu'une version** par paquet : publier X.Y.Z remplace la précédente.
-- Mettre ensuite à jour **`LATEST_VERSION`** dans le `.env` de l'API de suivi puis redémarrer son service :
-  c'est elle qui fait annoncer la mise à jour aux instances par leur heartbeat.
+
+⚠️ **`reprepro list` ne prouve pas la publication.** Il lit la base de reprepro, pas l'index que lisent les
+instances. Si la signature échoue (`gpgme gave error Pinentry:62: Timeout` : la fenêtre de saisie ne s'est
+pas affichée), le paquet est enregistré mais l'index public reste à l'ancienne version (constaté en 0.1.55).
+`publish.sh` le vérifie ; à la main :
+
+```bash
+grep -A1 "^Package: cicada" /var/www/repos/cicada/dists/stable/main/binary-amd64/Packages   # Version: X.Y.Z
+ls -l /var/www/repos/cicada/dists/stable/InRelease                                          # daté du jour
+# Sinon : saisir la phrase en ligne de commande, puis réécrire l'index
+export GPG_TTY=$(tty); gpg-connect-agent updatestartuptty /bye
+echo test | gpg --pinentry-mode loopback --clearsign > /dev/null
+reprepro -b /var/www/repos/cicada export stable
+```
+
+Mettre ensuite à jour **`LATEST_VERSION`** dans le `.env` de l'API de suivi et redémarrer son service :
+c'est elle qui fait annoncer la mise à jour aux instances par leur heartbeat. Sur le serveur de suivi de
+production, l'API n'est **pas** dans `/opt/tracking-api` (chemin de `tracking-api/INSTALLATION.md`) mais dans
+`/home/tracking/Cicada/tracking-api` ; en cas de doute, `systemctl cat cicada-tracking-api | grep WorkingDirectory`.
+
+```bash
+D=/home/tracking/Cicada/tracking-api
+sed -i 's/^LATEST_VERSION=.*/LATEST_VERSION=X.Y.Z/' $D/.env
+systemctl restart cicada-tracking-api
+grep ^LATEST_VERSION= $D/.env && systemctl is-active cicada-tracking-api
+```
+
+Pour faire apparaître le bouton sans attendre la nuit, sur une instance : `sudo systemctl start cicada-heartbeat.service`,
+puis `sudo cat /var/lib/cicada/updates/update_available.json`.
 
 ### 4.2 Script d'installation en une commande
 
@@ -119,10 +157,10 @@ sudo apt install cicada
 | Étape | Action |
 |-------|--------|
 | 1 | Développement sur `develop`, CI verte. |
-| 2 | Bumper `version.txt`, commiter, puis créer et pousser le tag `vX.Y.Z` **sur `develop`** → la CI construit les images Docker et le .deb. |
+| 2 | Bumper `version.txt`, commiter, **mettre tout `develop` sur `main`**, puis créer et pousser le tag `vX.Y.Z` → la CI construit les images Docker et le .deb. |
 | 3 | Attendre que **Docker Build & Push** et **Build Debian package** soient verts (le workflow `Tests` rejoue aussi la suite sur le tag). |
 | 4 | Créer la release GitHub avec le `.deb` en pièce jointe (`gh run download <run_id> -n cicada-deb-X.Y.Z`, puis `gh release create`). |
-| 5 | Publier le `.deb` dans le dépôt APT et mettre à jour `LATEST_VERSION` sur l'API de suivi (§4). |
+| 5 | Publier le `.deb` dans le dépôt APT (`publish.sh`, qui vérifie l'index publié) et mettre à jour `LATEST_VERSION` sur l'API de suivi (§4). |
 | 5 bis | Sur chaque instance : bouton « Mettre à jour », `sudo apt install cicada`, ou `sudo dpkg -i` du .deb — le `postinst` fait le reste (voir §7). |
 | 6 | Vérifier les tags d’images et les logs de démarrage (voir §7.4). |
 
@@ -215,6 +253,7 @@ Les commandes de la colonne « Solution » supposent l’alias `ccd` défini en 
 | CORS errors dans le navigateur | Domaine absent de `CORS_ALLOWED_ORIGINS` | Ajouter `https://votre-domaine` dans `.env` puis recréer le conteneur web |
 | `password authentication failed` | Le conteneur web pointe vers le mauvais PostgreSQL | Vérifier `POSTGRES_HOST` et `POSTGRES_PORT` dans `.env` (adresse du serveur de base telle que le serveur CICADA la joint, jamais `localhost`) |
 | `doit être le propriétaire de la fonction public.unaccent` | Extensions créées par `postgres`, pas par l'utilisateur applicatif | `sudo -u postgres psql -d cicada -c "ALTER FUNCTION public.unaccent(text) OWNER TO cicada_user;"` |
+| `apt-get update` : `Missing key 20D13929…` ; le bouton « Mettre à jour » échoue | L'instance n'a que l'**ancienne clé** du dépôt (changée le 2026-10-05) : paquet antérieur à 0.1.51 | Mettre à jour **une fois** par `sudo dpkg -i --force-confold cicada_X.Y.Z_amd64.deb` (le paquet apporte la nouvelle clé) ; les mises à jour suivantes repassent par le bouton |
 | Variables `.env` non prises en compte | `docker compose restart` ne relit pas le `.env` | Utiliser `$ccd up -d` (recrée le conteneur) |
 | `No space left` pendant le `pull` | L’extraction demande plus de place que le disque n’en offre, même avec quelques Go libres (le backend pèse ~1,9 Go décompressé) | `$ccd down`, supprimer les anciennes images (`docker image rm`), `docker system prune -af`, puis tirer le backend **seul** avant de relancer |
 | Référentiels vides (TaxRef, HabRef) | Imports non exécutés au premier démarrage | Voir section "Import des référentiels" dans `INSTALLATION_GUIDE.md` |

@@ -91,6 +91,53 @@ curl -s http://127.0.0.1:8002/api/health/
 # {"statut": "ok", "service": "cicada-hub", "instance": "hub"}
 ```
 
+### Variante : base sur un serveur PostgreSQL existant
+
+Par défaut la base du hub tourne en conteneur à côté de lui. Là où les bases
+sont regroupées sur un serveur dédié (cas de la production RNF : le hub sur un
+conteneur, sa base sur le serveur de bases partagé), on la crée avec le même
+outil que pour une instance, puis on écarte le conteneur de base.
+
+**Sur le serveur de bases, en root** — `cicada-prepare-db` crée le compte, la
+base, PostGIS, joue `init.sql` et n'ouvre `pg_hba.conf` qu'à l'adresse du hub :
+
+```bash
+# Le serveur de bases n'a souvent pas d'accès Internet : copier les deux
+# fichiers depuis le clone du hub (/opt/cicada-hub), en passant par son poste
+# si le serveur de bases n'accepte pas de SSH depuis le réseau du hub.
+#   packaging/debian/usr/bin/cicada-prepare-db  → prepare-db
+#   hub/docker/postgres/init.sql                → hub-init.sql
+mv hub-init.sql /tmp/        # PAS dans /root : le script le joue en tant que postgres
+PW=$(head -c 24 /dev/urandom | base64 | tr -d '/+=' | cut -c1-24)
+bash prepare-db --db-name cicada_hub --db-user cicada_hub_user --password "$PW" \
+    --init-sql /tmp/hub-init.sql --client <IP-du-hub>
+echo "$PW"                   # → coffre de mots de passe, puis POSTGRES_PASSWORD du hub
+```
+
+`--password` plutôt que le mot de passe généré : si le script échoue après
+avoir créé le compte, une relance sans `--password` garde un mot de passe que
+personne n'a vu.
+
+**Sur le hub** — `docker-compose.hub.extdb.yml` désactive le service `db` et la
+dépendance du hub envers lui :
+
+```bash
+cd /opt/cicada-hub
+# Seulement si une base locale a déjà été créée et ne contient rien à garder :
+sudo docker compose -f docker-compose.hub.prod.yml --env-file .env.hub.prod down -v
+# Dans .env.hub.prod : POSTGRES_HOST=<IP-serveur-bases>, POSTGRES_PORT=5432,
+# POSTGRES_DB / POSTGRES_USER / POSTGRES_PASSWORD = ceux passés à prepare-db
+alias hub='cd /opt/cicada-hub && sudo docker compose -f docker-compose.hub.prod.yml -f docker-compose.hub.extdb.yml --env-file .env.hub.prod'
+hub config --services        # « hub » seul — si « db » apparaît, l'overlay manque
+hub up -d && hub logs -f hub # « Attente de PostgreSQL (<IP>:5432) », migrations, imports
+```
+
+⚠️ **Toujours passer par les deux `-f`** (l'alias ci-dessus, à mettre dans le
+`.bashrc` de root) : une commande sans `docker-compose.hub.extdb.yml` recrée un
+conteneur de base vide, et le hub repart sans registre ni index. La sauvegarde
+de la base relève alors du serveur de bases ; le registre des instances (les
+empreintes des jetons) n'existe que là.
+
 ## Apache
 
 ```apache
@@ -132,6 +179,30 @@ Quatre pièges :
    en JSON. Le réglage `DATA_UPLOAD_MAX_MEMORY_SIZE` et le `LimitRequestBody`
    d'Apache doivent rester cohérents. La soupape côté instance est
    `push_federation --page-size N`.
+
+### Variante : derrière un reverse proxy qui porte le HTTPS
+
+Cas de la production RNF : un proxy frontal (Apache + certbot + ModSecurity)
+porte le TLS de tous les services et relaie en HTTP vers chaque conteneur.
+
+- **Sur le hub**, un vhost `:80` seulement : le bloc ci-dessus sans les lignes
+  `SSL*`, en `<VirtualHost *:80>`.
+- **Sur le proxy**, un vhost `:80` qui redirige vers HTTPS, le certificat
+  (`certbot certonly --apache -d <nom>`), puis un vhost `:443` qui relaie vers
+  `http://<IP-du-hub>/` avec `ProxyPreserveHost On`,
+  `RequestHeader set X-Forwarded-Proto "https"`, les mêmes `LimitRequestBody`
+  et `ProxyTimeout`, et **`SecRuleEngine Off`** : le hub n'est qu'une API à
+  jeton, et le jeu de règles CRS bloquerait le texte libre des plans et
+  plafonnerait les corps vers 13 Mo.
+- **DNS interne.** Les instances hébergées sur le même réseau joignent le hub
+  par son nom public. Si le pare-feu ne fait pas de *NAT reflection*, ce nom
+  (son IP publique) est injoignable de l'intérieur : `curl` répond
+  `Could not connect … after 0 ms` alors que le hub répond depuis l'extérieur.
+  Faire résoudre le nom vers l'IP **interne du proxy** par le résolveur du
+  réseau (pfSense : *Services › DNS Resolver › Host Overrides*) plutôt que par
+  un `/etc/hosts` : les conteneurs de l'instance ne lisent pas celui de l'hôte.
+  Vérifier depuis le conteneur qui publiera :
+  `sudo docker exec cicada_prod_web python -c "import urllib.request as u; print(u.urlopen('https://<nom>/api/health/').read())"`.
 
 ## Enrôler une instance
 
@@ -281,6 +352,9 @@ republie en arrière-plan, sans attendre la nuit. La commande, elle, ne modifie
 pas la case : si le partage reste coché, la publication suivante republiera.
 
 ## Monter de version
+
+Avec une base externe, remplacer chaque `docker compose -f docker-compose.hub.prod.yml --env-file .env.hub.prod`
+par l'alias `hub` (les deux `-f`).
 
 ```bash
 cd /opt/cicada-hub

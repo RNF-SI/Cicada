@@ -99,7 +99,17 @@ La cible est un **fournisseur d'identité standard (Keycloak, OpenID Connect, #6
 
 ## Mise en place sur l'instance RNF
 
-Avant d'activer la connexion, réaligner les 4 organismes créés à la main dans CICADA qui doublonnent un organisme UsersHub : `scripts/rnf/2026-10-realignement-uuid-organismes.sql` (une seule fois ; rapport avant/après, se termine par `ROLLBACK` tant qu'on n'a pas relu). Sans ce réalignement, la première connexion d'un agent RNF créerait un second « Réserves Naturelles de France » et lui ferait perdre l'accès aux plans de son organisme.
+Avant d'activer la connexion, réaligner les 4 organismes créés à la main dans CICADA qui doublonnent un organisme UsersHub : `scripts/rnf/2026-10-realignement-uuid-organismes.sql` (hors dépôt ; une seule fois). C'est un bloc `DO` unique, utilisable depuis DBeaver comme depuis psql : lancé tel quel (`appliquer := false`), il affiche le rapport avant/après puis s'interrompt sur « SIMULATION terminée » sans rien écrire ; passer `appliquer := true` après relecture. Sans ce réalignement, la première connexion d'un agent RNF créerait un second « Réserves Naturelles de France » et lui ferait perdre l'accès aux plans de son organisme.
+
+**En service depuis le 15/10/2026** (réalignement appliqué le 14/10) :
+
+| Réglage | Valeur |
+|---|---|
+| `GEONATURE_AUTH_URL` | `https://geonature.reserves-naturelles.org/api` (GeoNature 2.17.5) |
+| `GEONATURE_AUTH_ID_APPLICATION` | `18` |
+| `GEONATURE_AUTH_LIBELLE` | `RNF` |
+
+`API_ENDPOINT` et la version se lisent sans authentification : `curl -s <URL_APPLICATION>/api/gn_commons/config` (clés `API_ENDPOINT`, `GEONATURE_VERSION`). Vérifier aussi que **le serveur CICADA** joint cette adresse (`curl -o /dev/null -w '%{http_code}' <API>/gn_commons/config` → 200) : si GeoNature partage l'IP publique de l'instance et que le pare-feu ne fait pas de *NAT reflection*, il faut une résolution interne du nom (cf. [DEPLOIEMENT_HUB.md](DEPLOIEMENT_HUB.md), « DNS interne »).
 
 ## Code
 
