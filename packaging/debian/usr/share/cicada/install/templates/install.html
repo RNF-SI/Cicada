@@ -90,12 +90,22 @@
                 </div>
                 <div id="reverse_proxy_fields" class="hidden">
                     <div class="info-box">
-                        <p><strong>Pas de Traefik.</strong> Le frontend sera exposé sur le port ci-dessous. Vous devrez configurer un virtual host dédié sur votre Apache ou Nginx pour proxyfier le trafic vers ce port (et éventuellement <code>/api</code> vers le backend).</p>
+                        <p><strong>Pas de Traefik.</strong> Le frontend sera exposé sur le port ci-dessous. Vous devrez configurer un virtual host dédié sur votre Apache ou Nginx qui envoie <strong>tout</strong> le trafic vers ce port, <code>/api</code> compris : le frontend transmet lui-même <code>/api</code> à l'application.</p>
+                        <p>N'ajoutez <strong>pas</strong> de règle <code>/api</code> vers le port 8000 : sur un serveur qui héberge GeoNature, c'est GeoNature qui y répond, et la connexion à CICADA échouerait.</p>
                     </div>
                     <div class="form-group">
                         <label for="frontend_port">Port d'exposition du frontend</label>
                         <input type="number" id="frontend_port" name="frontend_port" value="8080" min="1" max="65535" placeholder="8080">
-                        <small class="form-help">Indiquez ce port dans la configuration de votre reverse proxy (ex. ProxyPass vers http://127.0.0.1:8080).</small>
+                        <small class="form-help">Un port libre sur ce serveur (vérifiable avec <code>ss -ltn</code>). Indiquez-le dans votre virtual host : <code>ProxyPass / http://127.0.0.1:8080/</code>.</small>
+                    </div>
+                    <div class="form-group">
+                        <label for="public_access">Adresse publique du site</label>
+                        <select id="public_access" name="public_access">
+                            <option value="https" selected>https://domaine — Apache/Nginx publie le site en HTTPS (recommandé)</option>
+                            <option value="http">http://domaine — Apache/Nginx publie le site sans HTTPS</option>
+                            <option value="port">http://domaine:port — pas de virtual host, accès direct au port (essais)</option>
+                        </select>
+                        <small class="form-help">C'est l'adresse qui figure dans les e-mails envoyés par CICADA (liens d'activation, notifications).</small>
                     </div>
                 </div>
                 <div id="traefik_fields">

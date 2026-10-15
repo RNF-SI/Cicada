@@ -29,6 +29,34 @@ def get_tracking_api_url():
 DEFAULT_HUB_URL = 'https://hub.cicada.reserves-naturelles.org'
 
 
+def public_urls(data):
+    """(adresse publique, adresse d'accès direct) de l'application.
+
+    - Traefik : https://domaine, les deux sont identiques.
+    - Apache/Nginx (`public_access`) : le serveur web publie le site sur les ports
+      standard, donc sans le port du frontend — `https` (défaut, certificat
+      certbot) ou `http`. `port` : pas de virtual host, on accède directement
+      au port du frontend (essais).
+
+    L'adresse publique devient SITE_URL : c'est elle que portent les liens des
+    e-mails. Auparavant, le mode Apache écrivait toujours http://domaine:port,
+    faux derrière un Apache en HTTPS.
+    """
+    domain = data['domain']
+    if data.get('use_traefik') in (True, 'true', '1'):
+        url = f"https://{domain}"
+        return url, url
+    try:
+        port = int(data.get('frontend_port', 80))
+    except (TypeError, ValueError):
+        port = 80
+    direct = f"http://{domain}" + (f":{port}" if port != 80 else "")
+    access = data.get('public_access') or 'https'
+    if access == 'port':
+        return direct, direct
+    return f"{'http' if access == 'http' else 'https'}://{domain}", direct
+
+
 def get_hub_url():
     """URL du hub d'exploration fédérée proposée par défaut dans le formulaire :
     variable d'environnement HUB_URL (surcharge : tests, dev), sinon
@@ -237,15 +265,10 @@ class InstallService:
         db_port = data.get('db_port', 5432)
         db_type = data.get('db_type', 'docker')
 
-        try:
-            frontend_port = int(data.get('frontend_port', 80))
-        except (TypeError, ValueError):
-            frontend_port = 80
-        use_traefik = data.get('use_traefik') in (True, 'true', '1')
-        scheme = 'https' if (use_traefik or data.get('use_https')) else 'http'
-        port_suffix = f":{frontend_port}" if frontend_port not in (80, 443) else ""
-        cors_origins = f"{scheme}://{data['domain']}{port_suffix}"
-        site_url = f"{scheme}://{data['domain']}{port_suffix}"
+        site_url, direct_url = public_urls(data)
+        # L'accès direct par le port reste autorisé : c'est par lui que l'on
+        # vérifie l'application avant d'avoir configuré le virtual host.
+        cors_origins = ','.join(dict.fromkeys([site_url, direct_url]))
         cicada_version = self.get_version()
         smtp_enabled = data.get('smtp_enabled') in (True, 'true', '1')
         smtp_use_auth = data.get('smtp_use_auth') in (True, 'true', '1')
@@ -772,17 +795,12 @@ class InstallService:
         return ''
 
     def _build_final_url(self, data):
-        """Construit l'URL finale de l'application (sans :80 ni :443 dans l'URL)."""
-        use_traefik = data.get('use_traefik') in (True, 'true', '1')
-        if use_traefik:
-            return f"https://{data['domain']}"
-        try:
-            port = int(data.get('frontend_port', 80))
-        except (TypeError, ValueError):
-            port = 80
-        scheme = 'https' if data.get('use_https') else 'http'
-        port_suffix = f":{port}" if port not in (80, 443) else ""
-        return f"{scheme}://{data['domain']}{port_suffix}"
+        """URL vers laquelle rediriger à la fin de l'installation.
+
+        Derrière Apache/Nginx, l'accès direct par le port : le virtual host
+        n'est souvent pas encore configuré à ce moment-là.
+        """
+        return public_urls(data)[1]
 
     def _get_compose_f_args(self):
         """Retourne la liste des arguments -f pour docker compose selon DB_TYPE et TRAEFIK_ENABLED dans .env."""
