@@ -36,26 +36,47 @@ Procédure :
    - Sors du flux les issues dont le retour est trop flou / non reproductible
      (elles partent à l'étape 5).
 
+3bis. N'HÉSITE PAS À ME POSER DES QUESTIONS. Dès qu'un retour se lit de deux
+   façons ou qu'un choix change le résultat visible, demande-moi dans le terminal
+   (AskUserQuestion) plutôt que de trancher seul — regroupe les questions du lot
+   en un seul appel quand c'est possible. Ne me demande pas ce que le code ou
+   l'historique permettent de trouver.
+
 4. Pour CHAQUE issue, dans l'ordre, en boucle :
    a. Annonce en une ligne les points retenus (issus de l'étape 2) avant de coder.
-   b. Corrige le symptôme décrit. Respecte le CLAUDE.md (architecture, i18n, design
+   b. Écris ou complète d'ABORD un test qui couvre CE cas précis (celui qui a
+      régressé), et LANCE-LE : il doit ÉCHOUER avant la correction — sinon il ne
+      protège pas contre un 3e aller-retour.
+   c. Corrige le symptôme décrit. Respecte le CLAUDE.md (architecture, i18n, design
       system : variables SCSS, jamais de hex ; composants Kit UI ; WCAG AA).
-   c. Écris ou complète un test qui couvre CE cas précis (celui qui a régressé) —
-      c'est ce qui évite un 3e aller-retour.
-   d. Lance UNIQUEMENT les tests concernés :
+   d. Tests :
       - Frontend : `docker compose exec frontend npx jest --findRelatedTests <fichiers>`.
       - Backend : `docker compose exec web pytest <chemin ou -k mot-clé> -q`.
-   e. Commit ATOMIQUE, un par issue : `fix(<scope>): <le nouveau symptôme> (#<n>)`.
+      - AUTRES TESTS IMPACTÉS : cherche les tests d'autres fichiers qui
+        utilisent la fonction, le composant ou l'endpoint modifié
+        (`grep -rl "<nom>" backend/tests frontend/src frontend/e2e`) et lance-les.
+        Un test cassé ailleurs se corrige dans le même commit, en disant pourquoi
+        son attente a changé.
+   e. JEU D'ESSAI — seulement si besoin, mais sans hésiter : si la correction
+        crée un cas, un rôle ou un état absent de `seed_testdata`, ou si la
+        validation manuelle demande des données qui n'existent pas, enrichis le
+        seeder concerné (`backend/apps/core/management/commands/seeders/`,
+        idempotent, années ancrées sur l'année courante), lance-le
+        (`seed_testdata --only=<seeder>`), mets à jour « Test Data Available »
+        du CLAUDE.md, et cite ces données dans le « À vérifier » du commentaire.
+   f. Commit ATOMIQUE, un par issue (tests, seed et doc compris) :
+      `fix(<scope>): <le nouveau symptôme> (#<n>)`.
       Ne regroupe JAMAIS plusieurs issues dans un même commit.
-   f. OBLIGATOIRE — ne passe PAS à l'issue suivante sans ces deux actions, et
+   g. OBLIGATOIRE — ne passe PAS à l'issue suivante sans ces deux actions, et
       vérifie qu'elles ont abouti :
-      - commente le résumé de la correction sur l'issue :
+      - commente le résumé de la correction sur l'issue, avec une section
+        « À vérifier » (étapes, données du jeu d'essai) :
         `gh issue comment <n> --body "..."` ;
       - fais repasser le label de `à corriger` à `à tester` :
         `gh issue edit <n> --remove-label "à corriger" --add-label "à tester"`.
       Si une commande échoue, corrige et relance avant de continuer.
-   g. Ne FERME JAMAIS l'issue — c'est le mainteneur qui valide et ferme.
-   h. Pour tout point HORS PÉRIMÈTRE repéré à l'étape 2 : ne le code pas ici.
+   h. Ne FERME JAMAIS l'issue — c'est le mainteneur qui valide et ferme.
+   i. Pour tout point HORS PÉRIMÈTRE repéré à l'étape 2 : ne le code pas ici.
       Ouvre une issue dédiée (`gh issue create`) et référence-la dans le
       commentaire de l'issue courante.
 
@@ -71,8 +92,8 @@ Procédure :
    qu'aucune correction n'en a cassé une autre du même lot.
 
 7. Termine par un RÉCAP du lot sous forme de tableau :
-   | Issue | Ce qui était KO | Fichiers | Commit | Test | Commenté (oui/non) | Hors-périmètre → issue |
-   La colonne « Commenté » doit être `oui` pour toute issue traitée (étape 4f) :
+   | Issue | Ce qui était KO | Fichiers | Commit | Test (vu en échec ?) | Autres tests impactés | Seed | Commenté (oui/non) | Hors-périmètre → issue |
+   La colonne « Commenté » doit être `oui` pour toute issue traitée (étape 4g) :
    une case `non` signale un travail non terminé. Puis liste les questions restées
-   en suspens (étape 5) et les issues dérivées créées (étape 4h), et ARRÊTE pour
+   en suspens (étape 5) et les issues dérivées créées (étape 4i), et ARRÊTE pour
    que je fasse le point avant la suite.
