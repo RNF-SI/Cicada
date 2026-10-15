@@ -224,6 +224,92 @@ describe('PlansListComponent — pas de demande d\'accès pour un gestionnaire (
   });
 });
 
+/**
+ * #712 — Un utilisateur simple voit, en lecture seule, les plans de son
+ * organisme : le sélecteur « Mes plans / Plans de mon organisme » lui est
+ * proposé et la vue « organisme » ne se limite plus aux plans où il est lié.
+ */
+describe('PlansListComponent — plans de mon organisme en lecture seule (#712)', () => {
+  const ORG_USER = { ...CURRENT_USER, organisme: { id_organisme: 7 } };
+  const roles = {
+    isSuperAdmin: signal(false),
+    isRedacteurPrincipal: signal(false), isRedacteur: signal(false),
+    isAdminOrganisme: signal(false),
+  };
+  const currentUser = signal<any>(ORG_USER);
+
+  async function setup(): Promise<PlansListComponent> {
+    roles.isSuperAdmin.set(false);
+    roles.isRedacteurPrincipal.set(false);
+    roles.isRedacteur.set(false);
+    roles.isAdminOrganisme.set(false);
+    currentUser.set(ORG_USER);
+
+    TestBed.resetTestingModule();
+    await TestBed.configureTestingModule({
+      imports: [
+        PlansListComponent,
+        HttpClientTestingModule,
+        NoopAnimationsModule,
+        RouterTestingModule,
+        TranslateModule.forRoot(),
+      ],
+      providers: [
+        {
+          provide: AdminService,
+          useValue: { getPlans: () => of({ results: [] }), getSites: () => of({ results: [] }) },
+        },
+        { provide: ValidationService, useValue: { getMyRequests: () => of([]) } },
+        { provide: AuthService, useValue: { currentUser, ...roles } },
+      ],
+    }).compileComponents();
+
+    const component = TestBed.createComponent(PlansListComponent).componentInstance;
+    component.allSites.set([{ id_site: 3, organismes: [{ id_organisme: 7 }] }] as any);
+    component.allPlans.set([
+      plan(1, 'Mon plan', 'valide', { sites: [{ id_site: 3 }] }),
+      plan(2, 'Plan de mon organisme', 'valide', {
+        sites: [{ id_site: 3 }], referents: [], isReferent: false,
+        accessStatus: 'none', isOrgPlan: true,
+      }),
+    ] as any);
+    return component;
+  }
+
+  it('propose le sélecteur « Plans de mon organisme » à un utilisateur simple', async () => {
+    const component = await setup();
+    expect(component.showScopeToggle()).toBe(true);
+    expect(component.showOrganismeOption()).toBe(true);
+  });
+
+  it('ne le propose pas à un rédacteur externe ni sans organisme', async () => {
+    const component = await setup();
+    roles.isRedacteur.set(true);
+    expect(component.showOrganismeOption()).toBe(false);
+    roles.isRedacteur.set(false);
+    currentUser.set(CURRENT_USER);
+    expect(component.showOrganismeOption()).toBe(false);
+  });
+
+  it('affiche tous les plans de l\'organisme, lecture seule pour ceux sans lien', async () => {
+    const component = await setup();
+    expect(component.scopedPlans().map(p => p.nom)).toEqual(['Mon plan']);
+
+    component.onScopeChange('organisme');
+    const plans = component.scopedPlans();
+    expect(plans.map(p => p.nom)).toEqual(['Mon plan', 'Plan de mon organisme']);
+    expect(component.isReadOnly(plans[0])).toBe(false);
+    expect(component.isReadOnly(plans[1])).toBe(true);
+  });
+
+  it('un gestionnaire n\'est jamais en lecture seule', async () => {
+    const component = await setup();
+    roles.isAdminOrganisme.set(true);
+    const orgPlan = component.allPlans()[1];
+    expect(component.isReadOnly(orgPlan)).toBe(false);
+  });
+});
+
 describe('PlansListComponent — jauge d\'un plan prolongé (#675)', () => {
   const Y = new Date().getFullYear();
   const comp = Object.create(PlansListComponent.prototype) as PlansListComponent;

@@ -1856,6 +1856,7 @@
       }
     },
     "myPlans": {
+      "readOnly": "Lecture seule",
       "empty": "Vous n'avez accès à aucun plan de gestion pour le moment.",
       "emptyTitle": "Aucun plan de gestion",
       "emptyHint1": "Vous n'êtes encore associé(e) à aucun plan, ce qui peut arriver si :",

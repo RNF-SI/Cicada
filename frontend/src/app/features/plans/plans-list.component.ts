@@ -121,8 +121,21 @@ export class PlansListComponent implements OnInit {
   private redacteurTerme = '';
   readonly isAdminOrganisme = this.authService.isAdminOrganisme;
 
-  // Afficher le toggle si admin_og, redacteur_principal ou super_admin
-  readonly showScopeToggle = computed(() => this.isAdminOrganisme() || this.isSuperAdmin());
+  /**
+   * #712 — Un utilisateur simple rattaché à un organisme peut consulter, en
+   * lecture seule, les plans de son organisme (le backend les lui sert déjà :
+   * `_q_lecture`). Le rédacteur externe en est exclu (#700).
+   */
+  readonly showOrganismeOption = computed(() =>
+    this.isAdminOrganisme() ||
+    (!this.isSuperAdmin() && !this.isRedacteurPrincipal() && !this.isRedacteur()
+      && !!this.authService.currentUser()?.organisme?.id_organisme)
+  );
+
+  // Afficher le toggle si admin_og, super_admin ou utilisateur d'un organisme (#712)
+  readonly showScopeToggle = computed(
+    () => this.isAdminOrganisme() || this.isSuperAdmin() || this.showOrganismeOption()
+  );
 
   /**
    * Gestionnaire : super admin, rédacteur principal ou admin d'organisme. Ces
@@ -209,9 +222,8 @@ export class PlansListComponent implements OnInit {
       case 'mine':
         return this.myDirectPlans();
       case 'organisme':
-        return isAdmin
-          ? this.organismePlans()
-          : this.organismePlans().filter(p => p.accessStatus === 'granted');
+        // #712 — tous les plans de l'organisme, en lecture seule faute de lien.
+        return this.organismePlans();
       case 'all':
         return isAdmin
           ? this.allPlans()
@@ -220,6 +232,21 @@ export class PlansListComponent implements OnInit {
         return this.myDirectPlans();
     }
   });
+
+  /**
+   * #712 — Plan consulté en lecture seule : l'utilisateur n'y est ni membre,
+   * ni référent, et n'est pas gestionnaire. Le changement de statut ne lui est
+   * pas proposé (le backend le refuserait).
+   */
+  isReadOnly(plan: PlanWithAccess): boolean {
+    if (this.hasOrgWidePlanAccess()) return false;
+    const userId = this.authService.currentUser()?.id;
+    return !(
+      plan.accessStatus === 'granted' ||
+      plan.isReferent ||
+      plan.referents?.some(r => r.id_role === userId)
+    );
+  }
 
   // Plans filtrés par statut (#635) + recherche.
   // Un plan remplacé (children_count > 0) n'est retiré des lignes principales que

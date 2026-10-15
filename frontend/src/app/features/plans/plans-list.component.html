@@ -83,7 +83,7 @@
       <app-view-scope-toggle
         [currentScope]="viewScope()"
         [showSitesOption]="false"
-        [showOrganismeOption]="isAdminOrganisme()"
+        [showOrganismeOption]="showOrganismeOption()"
         [showAllOption]="isSuperAdmin() || isRedacteurPrincipal()"
         [mineLabel]="'plans.scope.mine' | translate"
         [organismeLabel]="'plans.scope.organisme' | translate"
@@ -198,6 +198,15 @@
                             [label]="'plans.myPlans.referent' | translate">
                           </app-tag>
                         }
+                        @if (isReadOnly(plan)) {
+                          <app-tag
+                            variant="muted"
+                            icon="fi-rr-eye"
+                            size="sm"
+                            data-testid="plan-read-only"
+                            [label]="'plans.myPlans.readOnly' | translate">
+                          </app-tag>
+                        }
                       </div>
                       <span class="version-meta">{{ versionLabel(plan) }}</span>
                     </td>
@@ -224,9 +233,11 @@
                       <div class="status-content">
                         <app-status-chip [statut]="plan.statut"></app-status-chip>
                         <!-- #346 — le rédacteur principal peut aussi gérer le cycle de vie -->
-                        <button class="btn-icon" (click)="editStatus(plan)" [title]="'plans.list.actions.editStatus' | translate">
-                          <i class="fi fi-rr-pencil"></i>
-                        </button>
+                        @if (!isReadOnly(plan)) {
+                          <button class="btn-icon" (click)="editStatus(plan)" [title]="'plans.list.actions.editStatus' | translate">
+                            <i class="fi fi-rr-pencil"></i>
+                          </button>
+                        }
                       </div>
                     </td>
                     <td class="col-actions">
