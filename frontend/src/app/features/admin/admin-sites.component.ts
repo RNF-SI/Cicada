@@ -275,11 +275,21 @@ export class AdminSitesComponent implements OnInit, OnDestroy {
     };
   }
 
+  /**
+   * Création d'un site depuis l'administration (#716), ouverte à tous les rôles
+   * qui accèdent à cette page : le backend valide d'office pour qui en a le
+   * droit, sinon crée une demande de validation. Hors accès global, le site est
+   * rattaché à l'organisme de l'utilisateur, sans quoi il ne le verrait plus.
+   */
   openAddSiteModal(): void {
+    const organismeId = this.authService.hasGlobalAccess()
+      ? undefined
+      : this.currentUser()?.organisme?.id_organisme;
     const dialogRef = this.dialog.open(SiteFormModalComponent, {
       width: '1300px',
       maxWidth: '95vw',
-      maxHeight: '90vh'
+      maxHeight: '90vh',
+      data: organismeId ? { organismeId, principal: false } : undefined
     });
 
     dialogRef.afterClosed().subscribe(result => {

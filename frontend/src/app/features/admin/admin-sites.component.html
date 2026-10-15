@@ -13,12 +13,10 @@
         }
       </p>
     </div>
-    @if (isSuperAdmin()) {
-      <button class="btn-primary" (click)="openAddSiteModal()">
-        <i class="fi fi-rr-map-marker-plus"></i>
-        <span>{{ 'admin.sites.addSite' | translate }}</span>
-      </button>
-    }
+    <button class="btn-primary" data-testid="admin-sites-add" (click)="openAddSiteModal()">
+      <i class="fi fi-rr-map-marker-plus"></i>
+      <span>{{ 'admin.sites.addSite' | translate }}</span>
+    </button>
   </header>
 
   <!-- Filters -->

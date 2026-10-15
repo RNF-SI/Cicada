@@ -52,16 +52,24 @@ test.describe.serial('Admin Sites - CRUD', () => {
     await page.keyboard.press('Escape');
   });
 
-  test('admin organisme should not see add site button', async ({ adminRnfPage: page }) => {
+  // #716 : la création d'un site est ouverte à tous les rôles qui accèdent à la page
+  test('admin organisme should see add site button (#716)', async ({ adminRnfPage: page }) => {
     const sitesPage = new AdminSitesPage(page);
     await sitesPage.goto();
     await sitesPage.waitForData();
 
-    // admin_og may or may not have the add button depending on implementation
-    // This test documents the current behavior
-    const isVisible = await sitesPage.addSiteButton.isVisible().catch(() => false);
-    // If not visible, test passes; if visible, also acceptable for admin_og
-    expect(typeof isVisible).toBe('boolean');
+    await expect(sitesPage.addSiteButton).toBeVisible();
+    await sitesPage.addSiteButton.click();
+    await expect(page.locator('mat-dialog-container')).toBeVisible();
+    await page.keyboard.press('Escape');
+  });
+
+  test('referent should see add site button (#716)', async ({ referentPage: page }) => {
+    const sitesPage = new AdminSitesPage(page);
+    await sitesPage.goto();
+    await sitesPage.waitForData();
+
+    await expect(sitesPage.addSiteButton).toBeVisible();
   });
 
   test('referent should see their assigned sites', async ({ referentPage: page }) => {
