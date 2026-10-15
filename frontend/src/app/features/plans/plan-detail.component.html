@@ -99,7 +99,12 @@
                   <div class="meta-row">
                     <!-- Icône crayon retirée (revue design #315 : trompeur, ressemble à un bouton edit) -->
                     <span class="meta-label">{{ 'plans.detail.organismeRedacteur' | translate }} :</span>
-                    <span class="meta-value">{{ p.organismes_redacteurs_list[0].nom_organisme }}</span>
+                    <!-- #714 — tous les organismes rédacteurs (dont celui d'un rédacteur externe) -->
+                    <span class="meta-value">
+                      @for (org of p.organismes_redacteurs_list; track org.id_organisme; let last = $last) {
+                        {{ org.nom_organisme }}@if (!last) {, }
+                      }
+                    </span>
                   </div>
                 } @else if (p.redacteur_nom) {
                   <div class="meta-row">
@@ -694,6 +699,11 @@
                              [icon]="member.referent ? 'fi-rr-star' : 'fi-rr-user'"
                              [label]="(member.referent ? 'plans.detail.referent' : 'plans.detail.member') | translate">
                     </app-tag>
+                    @if (member.is_redacteur_externe) {
+                      <app-tag tileAction size="sm" variant="neutral" data-testid="tag-redacteur-externe"
+                               [label]="'plans.detail.redacteurExterne' | translate">
+                      </app-tag>
+                    }
                   </app-entity-tile>
                 }
               </div>

@@ -413,6 +413,8 @@ export interface PlanMembre {
   prenom_role?: string;
   nom_complet?: string;
   referent: boolean;
+  /** #714 — compte « Rédacteur externe » rattaché au plan. */
+  is_redacteur_externe?: boolean;
   date_association?: string;
   commentaire?: string;
 }

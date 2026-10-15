@@ -13,6 +13,7 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { AdminService } from '../../../../core/services/admin.service';
 import { AuthService } from '../../../../core/services/auth.service';
 import { AdminUser } from '../../../../core/models/admin.model';
+import { TagComponent } from '../../tag/tag.component';
 
 // Interface for user linked to plan
 interface PlanUserInfo {
@@ -22,6 +23,8 @@ interface PlanUserInfo {
   prenom_role?: string;
   nom_complet?: string;
   referent: boolean;
+  /** #714 — compte « Rédacteur externe ». */
+  is_redacteur_externe?: boolean;
 }
 
 // Interface for a user assignment in the modal
@@ -37,7 +40,7 @@ export interface LinkPlanReferentModalData {
     id_pg: number;
     nom: string;
     referents?: { id_role: number; email: string; nom_role?: string; prenom_role?: string; nom_complet?: string }[];
-    membres?: { id_role: number; email: string; nom_role?: string; prenom_role?: string; nom_complet?: string; referent: boolean }[];
+    membres?: { id_role: number; email: string; nom_role?: string; prenom_role?: string; nom_complet?: string; referent: boolean; is_redacteur_externe?: boolean }[];
   };
 }
 
@@ -54,7 +57,8 @@ export interface LinkPlanReferentModalData {
     MatProgressSpinnerModule,
     MatInputModule,
     MatIconModule,
-    TranslateModule
+    TranslateModule,
+    TagComponent
 ],
   templateUrl: './link-plan-referent-modal.component.html',
   changeDetection: ChangeDetectionStrategy.Eager,
@@ -88,6 +92,8 @@ export class LinkPlanReferentModalComponent implements OnInit {
   userControl = new FormControl<AdminUser | string>('');
   filteredUsers = signal<AdminUser[]>([]);
   addAsReferent = false;
+  /** #714 — rattacher l'utilisateur ajouté comme rédacteur externe (implique référent). */
+  addAsRedacteurExterne = false;
 
   get hasChanges(): boolean {
     return this.userAssignments().some(a => a.isNew || a.isDeleted || a.roleChanged);
@@ -146,6 +152,7 @@ export class LinkPlanReferentModalComponent implements OnInit {
           prenom_role: m.prenom_role,
           nom_complet: m.nom_complet,
           referent: m.referent,
+          is_redacteur_externe: m.is_redacteur_externe,
         },
         isNew: false,
         isDeleted: false,
@@ -215,7 +222,8 @@ export class LinkPlanReferentModalComponent implements OnInit {
         email: user.email,
         nom_role: user.nom_role,
         prenom_role: user.prenom_role,
-        referent: this.addAsReferent,
+        referent: this.addAsReferent || this.addAsRedacteurExterne,
+        is_redacteur_externe: this.addAsRedacteurExterne,
       },
       isNew: true,
       isDeleted: false,
@@ -359,9 +367,11 @@ export class LinkPlanReferentModalComponent implements OnInit {
 
     // Add new users (as referent or member)
     toAdd.forEach(assignment => {
-      const obs = assignment.user.referent
-        ? this.adminService.assignReferentToPlan(planId, assignment.user.id_role)
-        : this.adminService.assignMemberToPlan(planId, assignment.user.id_role);
+      const obs = assignment.user.is_redacteur_externe
+        ? this.adminService.assignRedacteurExterneToPlan(planId, assignment.user.id_role)
+        : assignment.user.referent
+          ? this.adminService.assignReferentToPlan(planId, assignment.user.id_role)
+          : this.adminService.assignMemberToPlan(planId, assignment.user.id_role);
 
       obs.subscribe({
         next: () => { completed++; checkComplete(); },

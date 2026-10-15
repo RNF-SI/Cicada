@@ -8,8 +8,13 @@ Est considéré comme lié :
 - membre ou référent du plan (``CorRolePlan``) ;
 - référent du plan via le M2M ``PlanGestion.referents`` ;
 - utilisateur rattaché à un des sites du plan (``CorRoleSite``) ;
-- utilisateur d'un organisme rédacteur du plan ;
 - utilisateur d'un organisme gestionnaire d'un des sites du plan.
+
+#714 — Être **organisme rédacteur** n'ouvre plus le plan à ses utilisateurs :
+c'est une mention (qui a rédigé), pas un droit. Un bureau d'étude dont un
+rédacteur externe est rattaché au plan devient organisme rédacteur, mais ses
+autres salariés n'ont pas à voir ce plan. Seul le rattachement individuel
+(membre / référent) et la gestion d'un site donnent accès.
 
 Ce périmètre est **le même** que celui de ``PlanGestionViewSet.get_queryset()`` :
 voir le plan implique voir son contenu. Les helpers ci-dessous factorisent cette
@@ -80,12 +85,10 @@ def plan_scope_q(user) -> Q:
     """
     organisme = user.id_organisme if user.id_organisme_id else None
 
-    # Admin organisme : les plans de ses sites et ceux dont son organisme est rédacteur.
+    # Admin organisme : les plans des sites dont son organisme est gestionnaire
+    # (#714 — être organisme rédacteur n'ouvre pas le plan).
     if user.is_admin_organisme() and organisme is not None:
-        return (
-            Q(sites__site__corogsite__uuid_og=organisme) |
-            Q(organismes_redacteurs__uuid_og=organisme)
-        )
+        return Q(sites__site__corogsite__uuid_og=organisme)
 
     direct = (
         Q(pk__in=CorRolePlan.objects.filter(id_role=user).values('plan_de_gestion_id')) |
@@ -93,14 +96,12 @@ def plan_scope_q(user) -> Q:
     )
     # #700 — Rédacteur externe : uniquement les plans auxquels il a été
     # rattaché à sa demande. Ni ses sites, ni son organisme (un bureau d'étude
-    # n'est ni gestionnaire ni rédacteur des plans qu'il rédige) n'ouvrent
-    # d'autres plans.
+    # n'est pas gestionnaire des plans qu'il rédige) n'ouvrent d'autres plans.
     if user.is_redacteur():
         return direct
 
     scope = direct | Q(sites__site__corrolesite__id_role=user)
     if organisme is not None:
-        scope |= Q(organismes_redacteurs__uuid_og=organisme)
         scope |= Q(sites__site__corogsite__uuid_og=organisme)
     return scope
 
@@ -207,7 +208,7 @@ def user_manages_plan(user, plan) -> bool:
     """Vrai si ``user`` a déjà la main sur ce plan **par son rôle** (#657).
 
     C'est-à-dire : super admin, rédacteur principal, ou admin d'un organisme
-    gestionnaire d'un des sites du plan / rédacteur du plan. Ces comptes ne
+    gestionnaire d'un des sites du plan (#714 — pas rédacteur). Ces comptes ne
     demandent pas l'accès à un plan de leur périmètre — ils l'ont déjà, et la
     demande n'aurait aucun destinataire pertinent.
 
@@ -220,9 +221,8 @@ def user_manages_plan(user, plan) -> bool:
     if not user.is_admin_organisme() or not user.id_organisme_id:
         return False
     organisme = user.id_organisme
-    return PlanGestion.objects.filter(pk=plan.pk).filter(
-        Q(sites__site__corogsite__uuid_og=organisme) |
-        Q(organismes_redacteurs__uuid_og=organisme)
+    return PlanGestion.objects.filter(
+        pk=plan.pk, sites__site__corogsite__uuid_og=organisme
     ).exists()
 
 
@@ -273,7 +273,6 @@ def suivi_scope_q(user) -> Q:
     )
     if user.is_admin_organisme() and user.id_organisme_id:
         organisme = user.id_organisme
-        scope |= Q(organismes_redacteurs__uuid_og=organisme)
         scope |= Q(sites__site__corogsite__uuid_og=organisme)
     return scope
 

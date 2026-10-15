@@ -81,6 +81,7 @@ class CanModifyOnlyDraftPlan(BasePermission):
         "remove_referent",
         "assign_member",
         "remove_member",
+        "assign_redacteur_externe",
         # Exports — POST seulement parce que le client transmet le tableau
         # affiché à mettre en forme (#638) : rien n'est écrit sur le plan, un
         # plan validé doit rester exportable.

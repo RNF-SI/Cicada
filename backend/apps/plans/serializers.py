@@ -167,12 +167,14 @@ class CorRolePlanSerializer(serializers.ModelSerializer):
     nom_role = serializers.CharField(source='id_role.nom_role', read_only=True)
     prenom_role = serializers.CharField(source='id_role.prenom_role', read_only=True)
     nom_complet = serializers.CharField(source='id_role.get_full_name', read_only=True)
+    # #714 — marqué « Rédacteur externe » dans la liste des utilisateurs du plan.
+    is_redacteur_externe = serializers.BooleanField(source='id_role.is_redacteur', read_only=True)
 
     class Meta:
         model = CorRolePlan
         fields = [
             'id_role', 'email', 'nom_role', 'prenom_role', 'nom_complet',
-            'referent', 'date_association', 'commentaire'
+            'referent', 'is_redacteur_externe', 'date_association', 'commentaire'
         ]
 
 
@@ -272,6 +274,7 @@ class PlanGestionListSerializer(serializers.ModelSerializer):
                 'prenom_role': m.id_role.prenom_role,
                 'nom_complet': m.id_role.get_full_name(),
                 'referent': m.referent,
+                'is_redacteur_externe': m.id_role.is_redacteur(),
             }
             for m in obj.membres.all()
         ]
@@ -549,8 +552,12 @@ class PlanGestionDetailSerializer(serializers.ModelSerializer):
         # Mettre à jour les organismes rédacteurs si fournis
         if organismes_redacteurs_ids is not None:
             from apps.users.models import BibOrganismes
+            from .redacteurs import organismes_redacteurs_externes
+            # #714 — l'organisme d'un rédacteur externe rattaché au plan reste
+            # rédacteur tant qu'il l'est : le formulaire ne le connaît pas.
+            conserves = {o.id_organisme for o in organismes_redacteurs_externes(plan)}
             CorRedacteurPlan.objects.filter(plan_de_gestion=plan).delete()
-            for org_id in organismes_redacteurs_ids:
+            for org_id in set(organismes_redacteurs_ids) | conserves:
                 org = BibOrganismes.objects.get(id_organisme=org_id)
                 CorRedacteurPlan.objects.create(plan_de_gestion=plan, uuid_og=org)
 

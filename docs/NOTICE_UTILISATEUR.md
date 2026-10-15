@@ -367,7 +367,7 @@ directement le suivi d'un plan validé.]{.nouveau}
 
 ::: nouveau
 En tant qu'utilisateur lié à un plan (membre du plan, rattaché à l'un de ses sites, ou membre d'un
-organisme rédacteur ou gestionnaire), vous consultez **tout le contenu du plan en lecture seule** :
+organisme gestionnaire), vous consultez **tout le contenu du plan en lecture seule** :
 
 - la **Vue d'ensemble** (synthèse, sites, utilisateurs, documents à télécharger) ;
 - **Détails et saisie** : les enjeux, facteurs clés de réussite, objectifs, indicateurs et

@@ -3,7 +3,7 @@ Signals Django pour les plans de gestion.
 """
 import logging
 
-from django.db.models.signals import post_delete
+from django.db.models.signals import m2m_changed, post_delete, post_save
 from django.dispatch import receiver
 
 logger = logging.getLogger(__name__)
@@ -48,3 +48,44 @@ def delete_orphaned_facteur_influence(sender, instance, **kwargs):
         facteur_id,
     )
     FacteurInfluence.objects.filter(pk=facteur_id).delete()
+
+
+@receiver(post_save, sender='plans.CorRolePlan')
+def rattacher_organisme_du_redacteur_membre(sender, instance, created, **kwargs):
+    """#714 — un rédacteur externe rattaché au plan rend son organisme rédacteur."""
+    if kwargs.get('raw'):
+        return
+    from .redacteurs import rattacher_organisme_redacteur
+
+    rattacher_organisme_redacteur(instance.plan_de_gestion, instance.id_role)
+
+
+def rattacher_organisme_du_redacteur_referent(sender, instance, action, pk_set, reverse, **kwargs):
+    """#714 — même règle pour le M2M ``PlanGestion.referents``."""
+    if action != 'post_add' or not pk_set:
+        return
+    from apps.users.models import Role
+
+    from .models import PlanGestion
+    from .redacteurs import rattacher_organisme_redacteur
+
+    if reverse:
+        # ``role.plans_referents.add(plan)`` : instance = utilisateur
+        for plan in PlanGestion.objects.filter(pk__in=pk_set):
+            rattacher_organisme_redacteur(plan, instance)
+    else:
+        for user in Role.objects.filter(pk__in=pk_set, role_level='redacteur'):
+            rattacher_organisme_redacteur(instance, user)
+
+
+def _connecter_referents():
+    from .models import PlanGestion
+
+    m2m_changed.connect(
+        rattacher_organisme_du_redacteur_referent,
+        sender=PlanGestion.referents.through,
+        dispatch_uid='plans_rattacher_organisme_redacteur_referent',
+    )
+
+
+_connecter_referents()

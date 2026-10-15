@@ -86,15 +86,14 @@ class PlanGestionViewSet(LectureExplorationMixin, viewsets.ModelViewSet):
     """
 
     def _can_manage_plan(self, user, plan):
-        """Vérifie si l'utilisateur peut gérer ce plan (admin_og+, référent, ou organisme rédacteur)."""
+        """Vérifie si l'utilisateur peut gérer ce plan (admin_og+ ou référent).
+
+        #714 — l'appartenance à un organisme rédacteur ne suffit plus : le
+        collègue d'un rédacteur externe n'a aucun droit sur le plan.
+        """
         if user.is_admin_organisme():
             return True
-        if plan.referents.filter(pk=user.pk).exists():
-            return True
-        # Utilisateur d'un organisme rédacteur du plan
-        if user.id_organisme and plan.organismes_redacteurs.filter(uuid_og=user.id_organisme).exists():
-            return True
-        return False
+        return plan.referents.filter(pk=user.pk).exists()
 
     def _can_export_plan(self, user, plan):
         """Vérifie si l'utilisateur peut exporter ce plan.
@@ -269,12 +268,10 @@ class PlanGestionViewSet(LectureExplorationMixin, viewsets.ModelViewSet):
         if user.is_redacteur_principal():
             return Q()
 
-        # Admin organisme : voir les plans des sites de son organisme + plans rédacteur
+        # Admin organisme : voir les plans des sites de son organisme
+        # (#714 — être organisme rédacteur n'ouvre pas le plan).
         if user.is_admin_organisme() and user.id_organisme:
-            return (
-                Q(sites__site__corogsite__uuid_og=user.id_organisme) |
-                Q(organismes_redacteurs__uuid_og=user.id_organisme)
-            )
+            return Q(sites__site__corogsite__uuid_og=user.id_organisme)
 
         # #700 — Rédacteur externe : seulement les plans auxquels il a été
         # rattaché (sur demande validée par l'OG) — jamais par son organisme.
@@ -292,10 +289,6 @@ class PlanGestionViewSet(LectureExplorationMixin, viewsets.ModelViewSet):
 
         # Plans dont il est membre direct (CorRolePlan)
         conditions |= Q(membres__id_role=user)
-
-        # Plans dont son organisme est rédacteur
-        if user.id_organisme:
-            conditions |= Q(organismes_redacteurs__uuid_og=user.id_organisme)
 
         # Plans de son organisme (pour pouvoir en demander l'accès)
         # Exclus si scope=mine (ex: page de duplication)
@@ -767,6 +760,62 @@ class PlanGestionViewSet(LectureExplorationMixin, viewsets.ModelViewSet):
         except Role.DoesNotExist:
             return Response({'error': 'Utilisateur non trouvé'},
                           status=status.HTTP_404_NOT_FOUND)
+
+    @action(detail=True, methods=['post'], url_path='assign-redacteur-externe',
+            permission_classes=[permissions.IsAuthenticated])
+    def assign_redacteur_externe(self, request, pk=None):
+        """
+        #714 — Rattacher un utilisateur au plan en tant que rédacteur externe.
+
+        POST /api/plans/plans/{id}/assign-redacteur-externe/
+        Body: {"user_id": 123}
+
+        Lui attribue le rôle de rédacteur externe (s'il est utilisateur simple)
+        et le rend référent du plan ; son organisme devient organisme rédacteur
+        (signal), sans ouvrir le plan à ses collègues. Le retrait passe par
+        ``remove_member`` : il révoque l'accès au plan, pas le rôle.
+        """
+        from apps.users.models import Role
+
+        plan = self.get_object()
+        if not self._can_manage_plan(request.user, plan):
+            return Response({'error': 'Vous devez être référent de ce plan ou administrateur.'},
+                            status=status.HTTP_403_FORBIDDEN)
+        user_id = request.data.get('user_id')
+        if not user_id:
+            return Response({'error': 'user_id requis'}, status=status.HTTP_400_BAD_REQUEST)
+        target = Role.objects.filter(id_role=user_id).first()
+        if target is None:
+            return Response({'error': 'Utilisateur non trouvé'}, status=status.HTTP_404_NOT_FOUND)
+        if target.is_superuser or target.role_level not in ('utilisateur', 'redacteur'):
+            return Response(
+                {'error': "Seul un utilisateur simple peut devenir rédacteur externe."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        from django.db import transaction
+
+        with transaction.atomic():
+            if target.role_level != 'redacteur':
+                target.role_level = 'redacteur'
+                target.save(update_fields=['role_level'])
+                from apps.core.services import ActivityService
+                ActivityService.log_activity(
+                    actor=request.user,
+                    action='status_change',
+                    entity_type='user',
+                    entity_id=target.pk,
+                    entity_name=target.get_full_name(),
+                    description=f'Passé Rédacteur externe (plan « {plan.nom} »)',
+                    related_user=target,
+                    related_plan=plan,
+                )
+            plan.referents.add(target)
+            CorRolePlan.objects.update_or_create(
+                id_role=target, plan_de_gestion=plan, defaults={'referent': True}
+            )
+
+        return Response({'message': f'Rédacteur externe {target} rattaché au plan'})
 
     @action(detail=True, methods=['delete'],
             permission_classes=[permissions.IsAuthenticated])

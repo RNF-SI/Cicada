@@ -5,6 +5,9 @@ Le rédacteur externe n'a accès à aucun plan par défaut. Il cherche le plan �
 rédiger, demande l'accès en saisie à l'organisme gestionnaire, et une fois
 rattaché il saisit, gère le cycle de vie et exporte comme un référent — mais
 n'accède jamais aux suivis. Son organisme n'ouvre, lui, aucun plan.
+
+#714 — Rattaché, il rend son organisme « organisme rédacteur » du plan, sans
+que ce lien n'ouvre le plan à ses collègues.
 """
 import pytest
 from rest_framework import status
@@ -122,10 +125,38 @@ class TestRedacteurRattache:
         assert [p['id_pg'] for p in response.data['results']] == [plan.id_pg]
         assert client.get(f'/api/plans/enjeux/by-plan/{plan.id_pg}/').status_code == 200
 
-    def test_son_organisme_n_est_pas_rattache(self, rattache):
+    def test_son_organisme_devient_redacteur(self, rattache):
+        """#714 — rédacteur, pas gestionnaire."""
         plan, bureau = rattache['plan'], rattache['bureau']
-        assert not plan.organismes_redacteurs.filter(uuid_og=bureau).exists()
+        assert plan.organismes_redacteurs.filter(uuid_og=bureau).exists()
         assert not rattache['site'].corogsite_set.filter(uuid_og=bureau).exists()
+
+    def test_ses_collegues_n_accedent_pas_au_plan(self, rattache):
+        """#714 — l'organisme rédacteur n'ouvre le plan à personne d'autre."""
+        plan, bureau = rattache['plan'], rattache['bureau']
+        for role in ('utilisateur', 'admin_og'):
+            collegue = RoleFactory(role_level=role, id_organisme=bureau)
+            assert not user_can_access_plan(collegue, plan)
+            response = _client(collegue).get('/api/plans/plans/')
+            assert response.data['results'] == []
+            assert _client(collegue).get(f'/api/plans/plans/{plan.id_pg}/').status_code == 404
+
+    def test_le_formulaire_du_plan_garde_l_organisme(self, rattache):
+        """#714 — la fiche du plan n'envoie qu'un organisme rédacteur : celui
+        du rédacteur externe ne doit pas être effacé à l'enregistrement."""
+        plan, bureau = rattache['plan'], rattache['bureau']
+        response = _client(rattache['admin_og']).patch(
+            f'/api/plans/plans/{plan.id_pg}/',
+            {'organismes_redacteurs_ids': [rattache['og'].id_organisme]}, format='json')
+        assert response.status_code == status.HTTP_200_OK, response.data
+        assert set(plan.organismes_redacteurs.values_list('uuid_og', flat=True)) == {
+            rattache['og'].uuid_organisme, bureau.uuid_organisme}
+
+    def test_membre_du_plan_marque_redacteur_externe(self, rattache):
+        plan, redacteur = rattache['plan'], rattache['redacteur']
+        response = _client(rattache['admin_og']).get(f'/api/plans/plans/{plan.id_pg}/')
+        [membre] = [m for m in response.data['membres'] if m['id_role'] == redacteur.pk]
+        assert membre['is_redacteur_externe'] is True
 
     def test_peut_exporter(self, rattache):
         plan = rattache['plan']
@@ -223,3 +254,53 @@ class TestValidationAccesPlanReferent:
         plan, redacteur = redacteur_data['plan'], redacteur_data['redacteur']
         assert not plan.referents.filter(pk=redacteur.pk).exists()
         assert CorRolePlan.objects.get(plan_de_gestion=plan, id_role=redacteur).referent is False
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+class TestRattacherRedacteurExterneDepuisLePlan:
+    """#714 — un référent du plan rattache un utilisateur comme rédacteur externe."""
+
+    def _url(self, plan):
+        return f'/api/plans/plans/{plan.id_pg}/assign-redacteur-externe/'
+
+    def test_referent_rattache_et_attribue_le_role(self, redacteur_data):
+        plan = redacteur_data['plan']
+        referent = RoleFactory(role_level='utilisateur', id_organisme=redacteur_data['og'])
+        plan.referents.add(referent)
+        bureau = OrganismeFactory()
+        cible = RoleFactory(role_level='utilisateur', id_organisme=bureau)
+
+        response = _client(referent).post(self._url(plan), {'user_id': cible.pk}, format='json')
+
+        assert response.status_code == status.HTTP_200_OK, response.data
+        cible.refresh_from_db()
+        assert cible.role_level == 'redacteur'
+        assert plan.referents.filter(pk=cible.pk).exists()
+        assert plan.organismes_redacteurs.filter(uuid_og=bureau).exists()
+
+    def test_refuse_un_gestionnaire(self, redacteur_data):
+        plan = redacteur_data['plan']
+        cible = RoleFactory(role_level='admin_og')
+        response = _client(redacteur_data['admin_og']).post(
+            self._url(plan), {'user_id': cible.pk}, format='json')
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+    def test_refuse_un_simple_membre(self, redacteur_data):
+        plan = redacteur_data['plan']
+        membre = RoleFactory(role_level='utilisateur')
+        from apps.plans.models import CorRolePlan
+        CorRolePlan.objects.create(id_role=membre, plan_de_gestion=plan, referent=False)
+        cible = RoleFactory(role_level='utilisateur')
+        response = _client(membre).post(self._url(plan), {'user_id': cible.pk}, format='json')
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    def test_retrait_du_plan_revoque_l_acces(self, redacteur_data):
+        plan, redacteur = redacteur_data['plan'], redacteur_data['redacteur']
+        client = _client(redacteur_data['admin_og'])
+        assert client.post(self._url(plan), {'user_id': redacteur.pk}, format='json').status_code == 200
+        assert user_can_access_plan(redacteur, plan)
+
+        response = client.delete(f'/api/plans/plans/{plan.id_pg}/remove_member/?user_id={redacteur.pk}')
+        assert response.status_code == status.HTTP_200_OK
+        assert not user_can_access_plan(redacteur, plan)

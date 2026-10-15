@@ -284,6 +284,14 @@
       accent-color: $primary-color;
     }
   }
+
+  // #714 — mention sous l'option « rédacteur externe »
+  .toggle-hint {
+    display: block;
+    margin-left: $spacing-lg;
+    font-size: $font-size-small;
+    color: $gray-dark;
+  }
 }
 
 // Add referent section

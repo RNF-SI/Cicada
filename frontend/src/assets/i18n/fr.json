@@ -366,7 +366,7 @@
           "acces": "Aucun plan par défaut : ni son organisme ni un site ne lui ouvrent de plan.",
           "demande": "Il cherche le plan dans « Plans de gestion › Trouver un plan à rédiger », puis demande l'accès en saisie. Les référents du plan ou l'administrateur de l'organisme gestionnaire valident la demande.",
           "droits": "Une fois référent du plan : saisie, cycle de vie et exports. Jamais les suivis (bilan, suivi des actions, tableau de bord, réalisations).",
-          "organisme": "Son organisme n'est pas rattaché au plan : il n'apparaît ni parmi les organismes gestionnaires ni parmi les organismes rédacteurs.",
+          "organisme": "Son organisme devient organisme rédacteur du plan (jamais gestionnaire). Ce lien n'ouvre le plan à aucun autre utilisateur de cet organisme : seul le rédacteur rattaché y accède.",
           "fin": "L'accès dure jusqu'à ce qu'on le retire du plan. Lui retirer le rôle (super admin) en fait un utilisateur simple : il garde les plans dont il est référent, retrouve l'accès à leurs suivis et voit de nouveau les plans de son organisme."
         }
       },
@@ -1302,6 +1302,8 @@
       "searchUser": "Rechercher un utilisateur",
       "searchPlaceholder": "Tapez pour rechercher...",
       "addAsReferent": "Ajouter en tant que référent",
+      "addAsRedacteurExterne": "Ajouter en tant que rédacteur externe",
+      "addAsRedacteurExterneHint": "Compte d'un bureau d'étude missionné pour rédiger ce plan : il devient référent du plan et son organisme est mentionné comme organisme rédacteur. Il n'accède ni aux suivis ni aux plans de son organisme.",
       "infoText": "Les <strong>référents</strong> peuvent modifier et valider le plan. Les <strong>membres</strong> ont accès en lecture seule aux données du plan. Les modifications ne seront appliquées qu'après avoir cliqué sur <strong>Enregistrer</strong>.",
       "badges": {
         "new": "Nouveau",
@@ -1310,6 +1312,7 @@
       "actions": {
         "removeReferent": "Retirer ce référent",
         "removeUser": "Retirer cet utilisateur",
+        "revokeRedacteur": "Révoquer l'accès de ce rédacteur externe",
         "restore": "Restaurer",
         "promoteToReferent": "Promouvoir en référent",
         "demoteToMember": "Rétrograder en membre"
@@ -2114,6 +2117,7 @@
       "noUsers": "Aucun utilisateur associé",
       "referent": "Référent",
       "member": "Membre",
+      "redacteurExterne": "Rédacteur externe",
       "manageSites": "Gérer les sites",
       "manageUsers": "Gérer les utilisateurs",
       "addSite": "Ajouter un site",

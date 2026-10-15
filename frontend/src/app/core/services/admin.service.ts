@@ -1108,6 +1108,16 @@ export class AdminService {
    * Assign a member (non-referent) to a plan
    * POST /api/plans/plans/{id}/assign_member/
    */
+  /**
+   * #714 — Rattache un utilisateur au plan en tant que rédacteur externe
+   * (lui attribue le rôle et le rend référent du plan).
+   */
+  assignRedacteurExterneToPlan(planId: number, userId: number): Observable<any> {
+    return this.http.post(`${this.plansApiUrl}/plans/${planId}/assign-redacteur-externe/`, {
+      user_id: userId
+    }).pipe(catchError(this.handleError));
+  }
+
   assignMemberToPlan(planId: number, userId: number): Observable<any> {
     return this.http.post(`${this.plansApiUrl}/plans/${planId}/assign_member/`, {
       user_id: userId

@@ -60,6 +60,10 @@
                   <span class="role-badge" [class.role-referent]="assignment.user.referent" [class.role-member]="!assignment.user.referent">
                     {{ assignment.user.referent ? ('plans.detail.referent' | translate) : ('plans.detail.member' | translate) }}
                   </span>
+                  @if (assignment.user.is_redacteur_externe) {
+                    <app-tag variant="neutral" size="sm" data-testid="tag-redacteur-externe"
+                             [label]="'plans.detail.redacteurExterne' | translate"></app-tag>
+                  }
                 </div>
 
                 @if (assignment.isNew) {
@@ -78,7 +82,7 @@
                   </button>
                   <button class="btn-remove"
                           type="button"
-                          [title]="'modals.linkPlanReferent.actions.removeUser' | translate"
+                          [title]="(assignment.user.is_redacteur_externe ? 'modals.linkPlanReferent.actions.revokeRedacteur' : 'modals.linkPlanReferent.actions.removeUser') | translate"
                           (click)="removeUser(assignment)">
                     <i class="fi fi-rr-cross-small"></i>
                   </button>
@@ -133,9 +137,16 @@
 
           <div class="add-as-toggle">
             <label class="toggle-label">
-              <input type="checkbox" [(ngModel)]="addAsReferent">
+              <input type="checkbox" [(ngModel)]="addAsReferent" [disabled]="addAsRedacteurExterne">
               <span>{{ 'modals.linkPlanReferent.addAsReferent' | translate }}</span>
             </label>
+          </div>
+          <div class="add-as-toggle">
+            <label class="toggle-label">
+              <input type="checkbox" [(ngModel)]="addAsRedacteurExterne" data-testid="add-as-redacteur-externe">
+              <span>{{ 'modals.linkPlanReferent.addAsRedacteurExterne' | translate }}</span>
+            </label>
+            <span class="toggle-hint">{{ 'modals.linkPlanReferent.addAsRedacteurExterneHint' | translate }}</span>
           </div>
         </div>
       </div>
