@@ -46,6 +46,8 @@ services:
       - DB_PASSWORD=tracking_password
       - DB_HOST=db
       - DB_PORT=5432
+      # Pas de reverse proxy en local : X-Forwarded-For est ignoré (#697).
+      - NUM_PROXIES=0
       - HUB_URL=${HUB_URL:-http://host.docker.internal:8002}
       - HUB_ADMIN_TOKEN=${HUB_ADMIN_TOKEN:-}
       # E-mails de l'adhésion capturés par le Mailpit du banc (rien ne sort).

@@ -1,11 +1,13 @@
 """
 Vues API pour le suivi des instances
 """
+import ipaddress
 import logging
 
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes, throttle_classes
 from rest_framework.response import Response
+from rest_framework.settings import api_settings
 from rest_framework.throttling import UserRateThrottle
 from rest_framework.permissions import IsAdminUser, AllowAny
 from django.db import transaction
@@ -14,8 +16,8 @@ from django.views.decorators.csrf import csrf_exempt
 from .adhesion import (ESSAIS_MAX, EchecEnrolement, code_correct, enroler_sur_hub,
                        envoyer_message_contact, notifier_nouvelle_demande, normaliser_code)
 from .models import AdhesionHub, Instance
-from .serializers import (ConfirmationSerializer, ContactSerializer, DemandeAdhesionSerializer,
-                          InstanceSerializer)
+from .serializers import (ConfirmationSerializer, ContactSerializer, DeclarationSerializer,
+                          DemandeAdhesionSerializer, InstanceSerializer)
 from tracking.settings import LATEST_VERSION
 
 logger = logging.getLogger(__name__)
@@ -52,11 +54,26 @@ def is_update_available(current):
 
 
 def get_client_ip(request):
-    """Récupère l'IP du client"""
-    x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
-    if x_forwarded_for:
-        return x_forwarded_for.split(',')[0].strip()
-    return request.META.get('REMOTE_ADDR')
+    """IP du client, vue par le reverse proxy de confiance (#697).
+
+    X-Forwarded-For est en partie écrit par le client : Apache *ajoute* l'IP qu'il
+    voit à la valeur reçue. Seules les NUM_PROXIES dernières valeurs sont donc
+    fiables, et l'on retient la plus éloignée d'entre elles — même règle que les
+    limites de débit de DRF, pour que l'IP journalisée soit celle qui est limitée.
+    Sans proxy (NUM_PROXIES = 0), l'en-tête est ignoré.
+    """
+    remote = request.META.get('REMOTE_ADDR')
+    nb_proxies = api_settings.NUM_PROXIES or 0
+    xff = request.META.get('HTTP_X_FORWARDED_FOR')
+    if nb_proxies > 0 and xff:
+        adresses = [a.strip() for a in xff.split(',') if a.strip()]
+        if adresses:
+            candidate = adresses[-min(nb_proxies, len(adresses))]
+            try:
+                return str(ipaddress.ip_address(candidate))
+            except ValueError:
+                pass
+    return remote
 
 
 @csrf_exempt
@@ -64,36 +81,39 @@ def get_client_ip(request):
 @permission_classes([AllowAny])
 @throttle_classes([RegisterThrottle])
 def register_instance(request):
-    """Enregistre ou met à jour une instance (sans auth : le token dans le body identifie l'instance)."""
+    """Enregistre une nouvelle instance (sans auth : le jeton, dans le corps, est tiré par l'instance).
+
+    N'écrit que pour un jeton inconnu (#697). Sur un jeton déjà enregistré, rien
+    n'est modifié : connaître le jeton d'une instance ne doit pas suffire à
+    réécrire sa structure, son e-mail ou son IP par une route ouverte. Ces
+    mises à jour passent par PATCH /instances/me/ (jeton en en-tête), la version
+    et l'IP par le heartbeat.
+    """
     data = request.data
-    token = data.get('token')
+    ip = get_client_ip(request)
+    try:
+        empreinte = Instance.empreinte_jeton(data.get('token') or '')
+    except ValueError:
+        return Response({'error': 'Token requis (UUID)'}, status=400)
 
-    if not token:
-        return Response({'error': 'Token requis'}, status=400)
+    if Instance.objects.filter(token_empreinte=empreinte).exists():
+        logger.info("Enregistrement sur un jeton déjà connu, ignoré (IP %s)", ip)
+        return Response({'status': 'already_registered'}, status=200)
 
-    instance_data = {
-        'version': data.get('version', 'unknown'),
-        'ip_address': get_client_ip(request),
-        'rgpd_consent': data.get('rgpd_consent', False),
-    }
+    instance = Instance(token_empreinte=empreinte, version=data.get('version', 'unknown'), ip_address=ip,
+                        rgpd_consent=bool(data.get('rgpd_consent', False)))
+    if instance.rgpd_consent:
+        instance.admin_name = data.get('admin_name')
+        instance.admin_email = data.get('admin_email')
+        instance.structure_name = data.get('structure_name')
+        instance.rgpd_consent_date = timezone.now()
+    instance.save()
+    logger.info("Instance %s enregistrée (v%s, IP %s, structure déclarée : %s)",
+                instance.id_court, instance.version, ip, instance.structure_name or '—')
 
-    if data.get('rgpd_consent'):
-        instance_data.update({
-            'admin_name': data.get('admin_name'),
-            'admin_email': data.get('admin_email'),
-            'structure_name': data.get('structure_name'),
-            'rgpd_consent_date': timezone.now(),
-        })
-
-    instance, created = Instance.objects.update_or_create(
-        token=token,
-        defaults=instance_data
-    )
-
-    return Response({
-        'status': 'registered' if created else 'updated',
-        'token': str(instance.token),
-    }, status=201 if created else 200)
+    # Le jeton n'est pas renvoyé : l'instance le connaît, et il n'a rien à faire
+    # dans une réponse qu'un proxy ou un journal pourrait garder.
+    return Response({'status': 'registered'}, status=201)
 
 
 @csrf_exempt
@@ -130,24 +150,47 @@ def check_version(request):
     })
 
 
-@api_view(['GET', 'DELETE'])
+def _effacer_donnees_personnelles(instance):
+    instance.admin_name = None
+    instance.admin_email = None
+    instance.structure_name = None
+    instance.rgpd_consent = False
+    instance.rgpd_withdrawal_date = timezone.now()
+
+
+@api_view(['GET', 'PATCH', 'DELETE'])
 def instance_me(request):
-    """Infos ou suppression des données personnelles"""
+    """Infos (GET), mise à jour des coordonnées déclarées (PATCH) ou effacement RGPD (DELETE)."""
     instance = request.user
 
     if request.method == 'DELETE':
         # Droit à l'effacement RGPD
-        instance.admin_name = None
-        instance.admin_email = None
-        instance.structure_name = None
-        instance.rgpd_consent = False
-        instance.rgpd_withdrawal_date = timezone.now()
+        _effacer_donnees_personnelles(instance)
         instance.save()
 
         return Response({
             'status': 'deleted',
             'message': 'Données personnelles supprimées'
         })
+
+    if request.method == 'PATCH':
+        # Seule route qui modifie structure et contact (#697) : authentifiée par
+        # le jeton, refusée à une instance désactivée par RNF.
+        serializer = DeclarationSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        donnees = serializer.validated_data
+        if donnees['rgpd_consent']:
+            if not instance.rgpd_consent:
+                instance.rgpd_consent_date = timezone.now()
+            instance.rgpd_consent = True
+            for champ in ('admin_name', 'admin_email', 'structure_name'):
+                if champ in donnees:
+                    setattr(instance, champ, donnees[champ] or None)
+        else:
+            _effacer_donnees_personnelles(instance)
+        instance.save()
+        logger.info("Instance %s : coordonnées mises à jour (IP %s, structure déclarée : %s)",
+                    instance.id_court, get_client_ip(request), instance.structure_name or '—')
 
     return Response(InstanceSerializer(instance).data)
 
@@ -305,7 +348,7 @@ def contact_rnf(request):
         envoyer_message_contact(request.user, adhesion, donnees['nom'], donnees['email'],
                                 donnees['sujet'], donnees['message'])
     except Exception:  # noqa: BLE001 — SMTP, réseau
-        logger.exception("Message de contact de l'instance %s non envoyé", str(request.user.token)[:8])
+        logger.exception("Message de contact de l'instance %s non envoyé", request.user.id_court)
         return Response({'erreur': 'envoi_impossible'}, status=502)
     return Response({'statut': 'envoye'}, status=202)
 

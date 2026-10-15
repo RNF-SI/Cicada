@@ -108,7 +108,13 @@ REST_FRAMEWORK = {
     'DEFAULT_THROTTLE_RATES': {
         'anon': '10/hour',
         'user': '100/hour',
-    }
+    },
+    # Nombre de reverse proxies de confiance devant Django (#697). En production,
+    # Apache ajoute l'IP qu'il voit à X-Forwarded-For : seule cette dernière valeur
+    # fait foi, le reste est écrit par le client. Non défini, DRF identifierait le
+    # client par l'en-tête entier — et la limite de débit se contournerait en le
+    # faisant varier. 0 = pas de proxy (développement) : l'en-tête est ignoré.
+    'NUM_PROXIES': config('NUM_PROXIES', default=1, cast=int),
 }
 
 # Dernière version publiée de CICADA, annoncée aux instances par le heartbeat.

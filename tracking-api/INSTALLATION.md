@@ -39,6 +39,9 @@ DB_USER=tracking_user
 DB_PASSWORD=<mot-de-passe-sécurisé>
 DB_HOST=localhost
 DB_PORT=5432
+# Reverse proxies devant Django (Apache = 1, défaut). Seule l'IP ajoutée par le
+# proxy est crue dans X-Forwarded-For ; 0 si Django est exposé directement.
+NUM_PROXIES=1
 # Dernière version publiée de CICADA, annoncée aux instances (vide = aucune)
 LATEST_VERSION=0.1.49
 # Hub d'exploration fédérée : enrôlement des instances dont l'adhésion est acceptée
@@ -242,6 +245,17 @@ python manage.py migrate
 python manage.py collectstatic --noinput
 sudo systemctl restart cicada-tracking-api
 ```
+
+> **Jetons de suivi en empreinte (#697, migrations `0003`/`0004`)** : la base ne garde plus le
+> jeton des instances, seulement son empreinte SHA-256 ; l'identifiant affiché dans l'admin est un
+> UUID opaque. Les instances continuent de s'authentifier avec leur jeton, sans rien changer de
+> leur côté. **Faire un backup avant** : le retour arrière rétablit la structure mais pas les
+> jetons (les instances se réenregistreraient alors au heartbeat suivant, sous une nouvelle ligne).
+>
+> Depuis cette version, `POST /api/instances/register/` ne modifie plus une instance déjà connue
+> (réponse `already_registered`) : structure et contact se mettent à jour par
+> `PATCH /api/instances/me/` (en-tête `X-Instance-Token`), ce que fait l'installateur à la
+> réinstallation.
 
 ### Backup de la base de données
 

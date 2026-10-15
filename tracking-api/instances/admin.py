@@ -15,15 +15,21 @@ logger = logging.getLogger(__name__)
 
 @admin.register(Instance)
 class InstanceAdmin(admin.ModelAdmin):
-    list_display = ('token_short', 'version', 'last_heartbeat', 'is_active', 
-                    'structure_name', 'rgpd_consent')
+    """Le jeton de suivi n'est pas en base (#697) : seul l'identifiant opaque s'affiche.
+
+    Structure et e-mail sont ceux que l'instance a déclarés, jamais vérifiés :
+    la vérification d'une structure passe par le code de confirmation de
+    l'adhésion au hub.
+    """
+    list_display = ('id_short', 'version', 'last_heartbeat', 'is_active',
+                    'structure_name', 'rgpd_consent', 'ip_address')
     list_filter = ('is_active', 'version', 'rgpd_consent', 'last_heartbeat')
-    search_fields = ('token', 'admin_email', 'structure_name')
-    readonly_fields = ('token', 'first_seen', 'created_at', 'updated_at')
-    
-    def token_short(self, obj):
-        return str(obj.token)[:8] + '...'
-    token_short.short_description = 'Token'
+    search_fields = ('id', 'admin_email', 'structure_name')
+    readonly_fields = ('id', 'first_seen', 'created_at', 'updated_at')
+
+    @admin.display(description='Identifiant')
+    def id_short(self, obj):
+        return obj.id_court + '…'
 
 
 @admin.register(Heartbeat)

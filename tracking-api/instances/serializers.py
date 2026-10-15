@@ -9,8 +9,9 @@ from .models import Instance
 class InstanceSerializer(serializers.ModelSerializer):
     class Meta:
         model = Instance
-        fields = '__all__'
-        read_only_fields = ('token', 'first_seen', 'created_at', 'updated_at')
+        # Jamais l'empreinte du jeton : elle n'a rien à faire hors de la base.
+        exclude = ('token_empreinte',)
+        read_only_fields = ('id', 'first_seen', 'created_at', 'updated_at')
 
     def to_representation(self, instance):
         """Masque les données personnelles si pas de consentement"""
@@ -23,6 +24,18 @@ class InstanceSerializer(serializers.ModelSerializer):
             data['structure_name'] = None
         
         return data
+
+
+class DeclarationSerializer(serializers.Serializer):
+    """Corps de PATCH /instances/me/ : coordonnées déclarées par l'instance (#697).
+
+    Seule route qui les modifie : l'enregistrement ne réécrit plus une instance
+    déjà connue.
+    """
+    rgpd_consent = serializers.BooleanField()
+    admin_name = serializers.CharField(max_length=200, required=False, allow_blank=True, allow_null=True)
+    admin_email = serializers.EmailField(required=False, allow_blank=True, allow_null=True)
+    structure_name = serializers.CharField(max_length=200, required=False, allow_blank=True, allow_null=True)
 
 
 class DemandeAdhesionSerializer(serializers.Serializer):

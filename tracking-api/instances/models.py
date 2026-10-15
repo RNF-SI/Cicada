@@ -1,15 +1,23 @@
 """
 Modèles pour le suivi des instances CICADA
 """
+import hashlib
 import uuid
 from django.db import models
 from django.utils import timezone
 
 
 class Instance(models.Model):
-    """Instance CICADA enregistrée"""
-    # Identifiant unique
-    token = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    """Instance CICADA enregistrée.
+
+    Le jeton de suivi (/etc/cicada/instance_token) n'est jamais conservé : seule
+    son empreinte SHA-256 l'est, comme le hub pour ses jetons (#697). Une fuite
+    de la base ou un accès à l'admin ne donne plus de quoi se faire passer pour
+    une instance. La clé primaire est un identifiant opaque, sans rapport avec le
+    jeton.
+    """
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    token_empreinte = models.CharField("empreinte du jeton", max_length=64, unique=True, editable=False)
 
     # Données techniques (toujours collectées)
     version = models.CharField(max_length=50)
@@ -45,8 +53,23 @@ class Instance(models.Model):
     is_authenticated = True
     is_anonymous = False
 
+    @staticmethod
+    def empreinte_jeton(jeton) -> str:
+        """SHA-256 de la forme canonique du jeton (UUID en minuscules).
+
+        Lève ValueError si le jeton n'est pas un UUID : l'installateur en tire
+        toujours un, et la forme canonique évite qu'une casse différente donne
+        une autre empreinte.
+        """
+        canonique = str(uuid.UUID(str(jeton).strip()))
+        return hashlib.sha256(canonique.encode('utf-8')).hexdigest()
+
+    @property
+    def id_court(self):
+        return str(self.id)[:8]
+
     def __str__(self):
-        return f"Instance {self.token} (v{self.version})"
+        return f"Instance {self.id_court} (v{self.version})"
 
 
 class Heartbeat(models.Model):
@@ -64,7 +87,7 @@ class Heartbeat(models.Model):
         ordering = ['-timestamp']
 
     def __str__(self):
-        return f"Heartbeat {self.instance.token} at {self.timestamp}"
+        return f"Heartbeat {self.instance.id_court} at {self.timestamp}"
 
 
 class AdhesionHub(models.Model):

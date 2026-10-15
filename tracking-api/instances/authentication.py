@@ -14,7 +14,11 @@ class InstanceTokenAuthentication(BaseAuthentication):
             return None
 
         try:
-            instance = Instance.objects.get(token=token, is_active=True)
+            empreinte = Instance.empreinte_jeton(token)
+        except ValueError:
+            raise AuthenticationFailed('Token invalide ou instance inactive')
+        try:
+            instance = Instance.objects.get(token_empreinte=empreinte, is_active=True)
             return (instance, None)  # (user, auth)
         except Instance.DoesNotExist:
             raise AuthenticationFailed('Token invalide ou instance inactive')

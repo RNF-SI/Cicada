@@ -180,7 +180,7 @@ def envoyer_message_contact(instance, adhesion, nom, email, sujet, message):
         f"Structure : {structure}",
         f"Identifiant d'instance : {identifiant}",
         f"URL publique : {(adhesion.url_publique if adhesion else '') or '(inconnue)'}",
-        f"Instance (jeton de suivi) : {str(instance.token)[:8]}…",
+        f"Instance (jeton de suivi) : {instance.id_court}…",
         f"Version : {instance.version}",
         "",
         f"Sujet : {sujet}",

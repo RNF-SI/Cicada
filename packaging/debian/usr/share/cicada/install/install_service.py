@@ -934,7 +934,22 @@ except Exception as e:
                 timeout=10  # Timeout réduit à 10 secondes
             )
             response.raise_for_status()
-            
+
+            if response.json().get('status') == 'already_registered':
+                # Réinstallation : l'API de suivi ne laisse plus l'enregistrement
+                # réécrire une instance connue (#697). Structure et contact se
+                # mettent à jour par la route authentifiée par le jeton.
+                declaration = {k: v for k, v in payload.items() if k not in ('token', 'version')}
+                try:
+                    requests.patch(
+                        f"{tracking_url}/instances/me/",
+                        json=declaration,
+                        headers={'X-Instance-Token': token},
+                        timeout=10,
+                    )
+                except requests.exceptions.RequestException:
+                    pass  # Non bloquant : l'instance reste enregistrée, avec ses anciennes coordonnées
+
             # Enregistrement réussi
             registration_pending = Path("/var/lib/cicada/registration_pending")
             if registration_pending.exists():

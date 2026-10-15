@@ -4,25 +4,36 @@ Les appels reproduisent exactement ceux de
 packaging/debian/usr/share/cicada/install/install_service.py (register) et
 packaging/debian/usr/bin/cicada-heartbeat (heartbeat).
 """
+import hashlib
 import re
 import uuid
 from datetime import timedelta
 from unittest import mock
 
 import requests
+from django.conf import settings
 from django.contrib.admin.sites import AdminSite
 from django.contrib.auth.models import User
 from django.contrib.messages.storage.fallback import FallbackStorage
 from django.core import mail
 from django.core.cache import cache
+from django.db import connection
 from django.test import RequestFactory, TestCase, override_settings
 from django.utils import timezone
 from rest_framework.test import APIClient
 
 from . import views
 from .adhesion import ALPHABET_CODE, empreinte, empreinte_code, normaliser_code, tirer_code
-from .admin import AdhesionHubAdmin
+from .admin import AdhesionHubAdmin, InstanceAdmin
 from .models import AdhesionHub, Instance
+
+
+def nouvelle_instance(**champs):
+    """Instance en base ; son jeton (absent de la base, #697) est gardé à côté, dans `.jeton`."""
+    jeton = str(uuid.uuid4())
+    instance = Instance.objects.create(token_empreinte=Instance.empreinte_jeton(jeton), **champs)
+    instance.jeton = jeton
+    return instance
 
 
 class ContratInstanceTest(TestCase):
@@ -59,9 +70,128 @@ class ContratInstanceTest(TestCase):
         response = self.client.get('/api/instances/me/', HTTP_X_INSTANCE_TOKEN=self.token)
         self.assertEqual(response.status_code, 200)
 
-    def test_reenregistrement_met_a_jour(self):
-        self.register('0.1.47')
-        self.assertEqual(self.register('0.1.49').status_code, 200)
+    def test_reenregistrement_ne_reecrit_rien(self):
+        """#697 : connaître le jeton ne suffit plus à réécrire structure, e-mail ou IP."""
+        self.client.post('/api/instances/register/',
+                         {'token': self.token, 'version': '0.1.47', 'rgpd_consent': True,
+                          'structure_name': 'CEN AURA', 'admin_email': 'vrai@cen-aura.fr'},
+                         format='json', REMOTE_ADDR='192.0.2.1')
+        reponse = self.client.post('/api/instances/register/',
+                                   {'token': self.token, 'version': '0.1.49', 'rgpd_consent': True,
+                                    'structure_name': 'Usurpateur', 'admin_email': 'pirate@x.test'},
+                                   format='json', REMOTE_ADDR='198.51.100.66')
+        self.assertEqual(reponse.status_code, 200)
+        self.assertEqual(reponse.json()['status'], 'already_registered')
+        instance = Instance.objects.get()
+        self.assertEqual((instance.structure_name, instance.admin_email, instance.ip_address, instance.version),
+                         ('CEN AURA', 'vrai@cen-aura.fr', '192.0.2.1', '0.1.47'))
+
+    def test_jeton_invalide_refuse(self):
+        reponse = self.client.post('/api/instances/register/', {'token': 'pas-un-uuid'}, format='json')
+        self.assertEqual(reponse.status_code, 400)
+
+
+class JetonEnEmpreinteTest(TestCase):
+    """#697 : le suivi ne garde que l'empreinte SHA-256 du jeton, comme le hub."""
+
+    def setUp(self):
+        cache.clear()
+        self.client = APIClient()
+        self.token = str(uuid.uuid4())
+
+    def test_jeton_absent_de_la_base(self):
+        reponse = self.client.post('/api/instances/register/', {'token': self.token, 'version': '0.1.52'},
+                                   format='json')
+        self.assertEqual(reponse.status_code, 201)
+        self.assertNotIn(self.token, str(reponse.json()))  # le jeton n'est pas renvoyé
+        with connection.cursor() as curseur:
+            curseur.execute("SELECT row_to_json(i)::text FROM tracking_instances i")
+            ligne = curseur.fetchone()[0]
+        self.assertNotIn(self.token, ligne)
+        self.assertIn(hashlib.sha256(self.token.encode()).hexdigest(), ligne)
+
+    def test_authentification_par_empreinte(self):
+        self.client.post('/api/instances/register/', {'token': self.token, 'version': '0.1.52'}, format='json')
+        reponse = self.client.get('/api/instances/me/', HTTP_X_INSTANCE_TOKEN=self.token.upper())
+        self.assertEqual(reponse.status_code, 200)
+        self.assertNotIn(self.token, str(reponse.json()))
+
+    def test_jeton_absent_de_l_admin(self):
+        self.assertNotIn('token', InstanceAdmin.search_fields)
+        self.assertNotIn('token', [f.name for f in Instance._meta.get_fields()])
+
+
+class MiseAJourAuthentifieeTest(TestCase):
+    """#697 : structure et contact se mettent à jour par PATCH /instances/me/, jeton en en-tête."""
+
+    def setUp(self):
+        cache.clear()
+        self.client = APIClient()
+        self.token = str(uuid.uuid4())
+        self.client.post('/api/instances/register/', {'token': self.token, 'version': '0.1.52'}, format='json')
+
+    def patch(self, corps, token=None):
+        return self.client.patch('/api/instances/me/', corps, format='json',
+                                 HTTP_X_INSTANCE_TOKEN=token or self.token)
+
+    def test_mise_a_jour_avec_consentement(self):
+        reponse = self.patch({'rgpd_consent': True, 'admin_name': 'Marie Dupont',
+                              'admin_email': 'marie@cen-aura.fr', 'structure_name': 'CEN AURA'})
+        self.assertEqual(reponse.status_code, 200)
+        instance = Instance.objects.get()
+        self.assertEqual((instance.structure_name, instance.admin_email), ('CEN AURA', 'marie@cen-aura.fr'))
+        self.assertTrue(instance.rgpd_consent)
+        self.assertIsNotNone(instance.rgpd_consent_date)
+
+    def test_retrait_du_consentement_efface(self):
+        self.patch({'rgpd_consent': True, 'admin_email': 'marie@cen-aura.fr', 'structure_name': 'CEN AURA'})
+        self.patch({'rgpd_consent': False, 'structure_name': 'ignoré'})
+        instance = Instance.objects.get()
+        self.assertIsNone(instance.structure_name)
+        self.assertIsNone(instance.admin_email)
+        self.assertFalse(instance.rgpd_consent)
+
+    def test_sans_jeton_refuse(self):
+        reponse = self.client.patch('/api/instances/me/', {'structure_name': 'X'}, format='json')
+        self.assertIn(reponse.status_code, (401, 403))
+
+    def test_instance_desactivee_refusee(self):
+        Instance.objects.update(is_active=False)
+        self.assertIn(self.patch({'rgpd_consent': True, 'structure_name': 'X'}).status_code, (401, 403))
+
+
+@override_settings(REST_FRAMEWORK={**settings.REST_FRAMEWORK, 'NUM_PROXIES': 1})
+class ProxyTest(TestCase):
+    """#697 : derrière Apache, seule la dernière valeur de X-Forwarded-For (ajoutée par Apache) fait foi."""
+
+    def setUp(self):
+        cache.clear()
+        self.client = APIClient()
+
+    def register(self, falsifiee, reelle='203.0.113.9'):
+        return self.client.post('/api/instances/register/', {'token': str(uuid.uuid4()), 'version': '0.1.52'},
+                                format='json', REMOTE_ADDR='127.0.0.1',
+                                HTTP_X_FORWARDED_FOR=f'{falsifiee}, {reelle}')
+
+    def test_ip_enregistree_est_celle_vue_par_le_proxy(self):
+        self.assertEqual(self.register('6.6.6.6').status_code, 201)
+        self.assertEqual(Instance.objects.get().ip_address, '203.0.113.9')
+
+    def test_get_client_ip(self):
+        requete = RequestFactory().get('/', REMOTE_ADDR='127.0.0.1', HTTP_X_FORWARDED_FOR='6.6.6.6, 203.0.113.9')
+        self.assertEqual(views.get_client_ip(requete), '203.0.113.9')
+        requete = RequestFactory().get('/', REMOTE_ADDR='127.0.0.1', HTTP_X_FORWARDED_FOR='pas-une-ip')
+        self.assertEqual(views.get_client_ip(requete), '127.0.0.1')
+
+    def test_limite_non_contournable_en_variant_l_en_tete(self):
+        codes = [self.register(f'10.0.0.{i}').status_code for i in range(11)]
+        self.assertEqual(codes[:10], [201] * 10)
+        self.assertEqual(codes[10], 429)
+
+    @override_settings(REST_FRAMEWORK={**settings.REST_FRAMEWORK, 'NUM_PROXIES': 0})
+    def test_sans_proxy_l_en_tete_est_ignore(self):
+        requete = RequestFactory().get('/', REMOTE_ADDR='192.0.2.7', HTTP_X_FORWARDED_FOR='6.6.6.6')
+        self.assertEqual(views.get_client_ip(requete), '192.0.2.7')
 
 
 class VersionTest(TestCase):
@@ -115,8 +245,8 @@ class AdhesionHubApiTest(TestCase):
     def setUp(self):
         cache.clear()
         self.client = APIClient()
-        self.instance = Instance.objects.create(version='0.1.52')
-        self.token = str(self.instance.token)
+        self.instance = nouvelle_instance(version='0.1.52')
+        self.token = str(self.instance.jeton)
 
     def corps(self, **surcharges):
         corps = {'instance_id': 'cen-aura', 'libelle': 'CEN Auvergne-Rhône-Alpes',
@@ -238,8 +368,8 @@ class AdhesionHubApiTest(TestCase):
         self.assertEqual(AdhesionHub.objects.get().libelle, 'CEN Auvergne-Rhône-Alpes')
 
     def test_conflit_si_identifiant_pris_par_une_autre_instance(self):
-        autre = Instance.objects.create(version='0.1.52')
-        self.demander(token=str(autre.token))
+        autre = nouvelle_instance(version='0.1.52')
+        self.demander(token=str(autre.jeton))
         AdhesionHub.objects.update(statut=AdhesionHub.ACCEPTEE)
         self.assertEqual(self.demander().status_code, 409)
         # Un identifiant seulement *demandé* ailleurs ne bloque pas : c'est RNF qui tranche.
@@ -272,8 +402,8 @@ class AdhesionHubApiTest(TestCase):
 
     def test_lecture_isolee_par_instance(self):
         self.demander()
-        autre = Instance.objects.create(version='0.1.52')
-        self.assertEqual(self.lire(token=str(autre.token)).status_code, 404)
+        autre = nouvelle_instance(version='0.1.52')
+        self.assertEqual(self.lire(token=str(autre.jeton)).status_code, 404)
 
     def test_hub_url_seulement_si_acceptee(self):
         self.demander()
@@ -293,7 +423,7 @@ class ConfirmationTest(TestCase):
     def setUp(self):
         cache.clear()
         self.client = APIClient()
-        self.instance = Instance.objects.create(version='0.1.52')
+        self.instance = nouvelle_instance(version='0.1.52')
         self.adhesion = AdhesionHub.objects.create(
             instance=self.instance, instance_id_demande='cen-aura', libelle='CEN AURA',
             url_publique='https://cicada.cen-aura.fr', empreinte_depot=EMPREINTE_DEPOT,
@@ -306,7 +436,7 @@ class ConfirmationTest(TestCase):
             reponse = reponse_hub(201, {'instance_id': 'cen-aura', 'active': True, 'cree': True})
         with mock.patch('instances.adhesion.requests.post', return_value=reponse, side_effect=effet) as post:
             resultat = self.client.post(self.URL, {'code': code}, format='json',
-                                        HTTP_X_INSTANCE_TOKEN=token or str(self.instance.token))
+                                        HTTP_X_INSTANCE_TOKEN=token or str(self.instance.jeton))
         self.adhesion.refresh_from_db()
         return resultat, post
 
@@ -338,8 +468,8 @@ class ConfirmationTest(TestCase):
         self.assertEqual(self.adhesion.statut, AdhesionHub.ACCEPTEE)
 
     def test_sans_demande(self):
-        autre = Instance.objects.create(version='0.1.52')
-        reponse, post = self.confirmer(CODE, token=str(autre.token))
+        autre = nouvelle_instance(version='0.1.52')
+        reponse, post = self.confirmer(CODE, token=str(autre.jeton))
         self.assertEqual(reponse.status_code, 404)
         post.assert_not_called()
 
@@ -422,13 +552,13 @@ class ContactTest(TestCase):
     def setUp(self):
         cache.clear()
         self.client = APIClient()
-        self.instance = Instance.objects.create(version='0.1.52', structure_name='CEN AURA (suivi)')
+        self.instance = nouvelle_instance(version='0.1.52', structure_name='CEN AURA (suivi)')
 
     def envoyer(self, **surcharges):
         corps = {'nom': 'Marie Dupont', 'email': 'marie@cen-aura.fr', 'sujet': 'Question\nsur le hub',
                  'message': 'Bonjour, une question.'}
         corps.update(surcharges)
-        return self.client.post(self.URL, corps, format='json', HTTP_X_INSTANCE_TOKEN=str(self.instance.token))
+        return self.client.post(self.URL, corps, format='json', HTTP_X_INSTANCE_TOKEN=str(self.instance.jeton))
 
     def test_envoi_sans_adhesion(self):
         reponse = self.envoyer()
@@ -477,7 +607,7 @@ class AdhesionHubAdminTest(TestCase):
     def setUp(self):
         self.admin = AdhesionHubAdmin(AdhesionHub, AdminSite())
         self.utilisateur = User.objects.create_superuser('rnf', 'rnf@example.org', 'x')
-        instance = Instance.objects.create(version='0.1.52')
+        instance = self.instance = nouvelle_instance(version='0.1.52')
         self.adhesion = AdhesionHub.objects.create(
             instance=instance, instance_id_demande='cen-aura', libelle='CEN AURA',
             url_publique='https://cicada.cen-aura.fr', empreinte_depot=EMPREINTE_DEPOT,
@@ -572,7 +702,7 @@ class AdhesionHubAdminTest(TestCase):
         cache.clear()
         with mock.patch('instances.adhesion.requests.post', return_value=reponse_hub(201)):
             reponse = APIClient().post('/api/instances/adhesion-hub/confirmation/', {'code': code.lower()},
-                                       format='json', HTTP_X_INSTANCE_TOKEN=str(self.adhesion.instance.token))
+                                       format='json', HTTP_X_INSTANCE_TOKEN=self.instance.jeton)
         self.assertEqual(reponse.status_code, 200)
 
     def test_refus(self):
