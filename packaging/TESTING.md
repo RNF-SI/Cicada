@@ -29,7 +29,7 @@ Conditions proches de la production : vrai OS Ubuntu, vrai systemd, vrai Docker,
 
 | Script | Durée | Ce qu'il teste |
 |--------|-------|----------------|
-| `test-upgrade-vm.sh` | 10-20 min | Installation v1 → upgrade v2 (options 2 et 3 du guide) |
+| `test-upgrade-vm.sh` | 10-20 min | Installation v1 → upgrade v2 (mise à jour par `apt`, cf. guide d'installation § 6) |
 
 ---
 

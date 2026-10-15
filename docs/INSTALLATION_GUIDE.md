@@ -1,41 +1,76 @@
 # Guide d'installation CICADA
 
-> Vue d'ensemble des serveurs et de leurs liens (dépôt APT, API de suivi, hub, serveur de bases) : [INFRASTRUCTURE.md](INFRASTRUCTURE.md).
+Ce guide s'adresse à la personne qui installe et administre un serveur CICADA. Il suit l'ordre de l'installation : les choix à faire **avant**, l'installation elle-même, puis l'exploitation (mises à jour, sauvegardes, dépannage).
 
-## Installation
+> Vue d'ensemble des serveurs et de leurs liens (dépôt APT, API de suivi, hub, serveur de bases) : [INFRASTRUCTURE.md](INFRASTRUCTURE.md). Tests du paquet avant une release : [packaging/TESTING.md](../packaging/TESTING.md).
 
-### Prérequis
+**Sommaire**
 
-- Un serveur **Debian 12+** ou **Ubuntu 22.04+** (amd64), avec un accès root ou sudo. Debian 11 n'est pas supportée.
-- Un accès Internet sortant (dépôts Docker et CICADA, images Docker).
-- **Si la base est sur un serveur PostgreSQL existant** : PostgreSQL 15+ avec PostGIS sur ce serveur de base, et un accès root à celui-ci pour une commande de préparation (voir l'étape 3)
+1. [Avant de commencer](#1-avant-de-commencer)
+2. [Installer](#2-installer)
+3. [Le formulaire, section par section](#3-le-formulaire-section-par-section)
+4. [Publier le site derrière Apache ou Nginx](#4-publier-le-site-derrière-apache-ou-nginx)
+5. [Premier accès et vérifications](#5-premier-accès-et-vérifications)
+6. [Mettre à jour](#6-mettre-à-jour)
+7. [Sauvegarder et restaurer](#7-sauvegarder-et-restaurer)
+8. [Modifier la configuration](#8-modifier-la-configuration)
+9. [Dépannage](#9-dépannage)
+10. [Désinstaller](#10-désinstaller)
+11. [Ce qu'il ne faut jamais faire](#11-ce-quil-ne-faut-jamais-faire)
 
-### Étapes d'installation
+---
 
-#### 1. Lancer l'installation (une commande)
+## 1. Avant de commencer
+
+### Le serveur
+
+- **Debian 12+** ou **Ubuntu 22.04+**, en **amd64**, avec un accès root ou sudo. Debian 11 n'est pas prise en charge.
+- Un accès Internet sortant : dépôts Docker et CICADA, images Docker.
+- Un **nom de domaine** (ex. `cicada.mon-organisme.org`) dont la zone DNS pointe **déjà** vers ce serveur. Sans lui, pas de certificat HTTPS.
+
+CICADA tourne entièrement dans des conteneurs Docker ; Docker est installé avec le paquet s'il manque.
+
+### Trois choix à faire avant d'ouvrir le formulaire
+
+| Choix | Options | Comment trancher |
+|---|---|---|
+| **Qui publie le site sur Internet ?** | **Traefik** (fourni par CICADA) ou **votre Apache/Nginx** | Si un Apache ou un Nginx tourne déjà sur le serveur (il occupe les ports 80 et 443), c'est lui : Traefik ne pourrait pas démarrer. Sinon, Traefik, qui gère seul le HTTPS. |
+| **Où est la base de données ?** | **Dans Docker**, sur ce serveur, ou sur un **serveur PostgreSQL existant** | Dans Docker : rien à préparer, c'est le plus simple. Serveur existant : une commande à lancer en root **sur le serveur de base** (voir [§ 3.3](#33-base-de-données-postgresql)). PostgreSQL installé directement sur le serveur CICADA n'est pas pris en charge : utilisez la base dans Docker. |
+| **Comment les utilisateurs se connectent ?** | **Comptes CICADA** (e-mail + mot de passe) ou **comptes GeoNature/UsersHub** | Un seul mode par instance. GeoNature/UsersHub demande GeoNature **2.17.0 minimum** (voir [§ 3.7](#37-mode-de-connexion)). |
+
+### Installer CICADA sur un serveur qui héberge déjà GeoNature
+
+C'est possible, sans rien changer à GeoNature (inutile de le « dockeriser ») : CICADA vit dans ses conteneurs, GeoNature reste tel qu'il est. Trois points d'attention :
+
+- **Apache est déjà là** (c'est lui qui publie GeoNature) : choisissez « Apache/Nginx » dans le formulaire, et publiez CICADA par un **second virtual host** ([§ 4](#4-publier-le-site-derrière-apache-ou-nginx)).
+- **Choisissez un port libre** pour CICADA : GeoNature et ses modules occupent déjà certains ports (8000 pour GeoNature, d'autres pour TaxHub, UsersHub, l'atlas…). Vérifiez avec `sudo ss -ltn`.
+- **Ne recopiez pas le virtual host de GeoNature** : il contient une règle `/api` qui, dans celui de CICADA, enverrait l'application… vers GeoNature ([le piège #231](#le-piège-à-éviter-règle-api)).
+
+Pour la base, la base dans Docker est la plus simple et ne touche pas au PostgreSQL de GeoNature. Utiliser ce dernier est possible ([§ 3.3](#33-base-de-données-postgresql)).
+
+Un serveur à part reste plus confortable (les deux applications ne se disputent ni la mémoire ni les ports), mais rien ne l'impose.
+
+---
+
+## 2. Installer
+
+### Une commande
 
 ```bash
 curl -fsSL https://apt.cicada.reserves-naturelles.org/install.sh | sudo bash
 ```
 
-Cette commande :
-- configure le dépôt de Docker (si Docker n'est pas déjà installé depuis ce dépôt) ;
-- configure le dépôt de CICADA et sa clé de signature ;
-- installe le paquet `cicada` (et Docker avec lui) ;
-- affiche l'adresse du formulaire d'installation (`http://votre-serveur:4567`).
+Elle configure le dépôt Docker (s'il ne l'est pas déjà) et celui de CICADA avec sa clé de signature, installe le paquet `cicada`, puis affiche l'adresse du formulaire d'installation : **`http://votre-serveur:4567`**.
 
-Elle peut être relancée sans risque. Pour installer une version précise : `… | sudo bash -s -- --version 0.1.50`.
+- Elle peut être relancée sans risque.
+- Version précise : `… | sudo bash -s -- --version 0.1.55`.
+- Système non reconnu (dérivé de Debian…) : `… | sudo bash -s -- --force`, à vos risques.
+- Si le système propose de redémarrer des services (dbus, getty, systemd-logind), vous pouvez ignorer : ils sont sans rapport avec CICADA.
 
-> **Note** : si le système vous demande de redémarrer des services (dbus, getty, systemd-logind), vous pouvez ignorer — ce sont des services système sans rapport avec CICADA.
-
-#### 2. Rien d'autre à configurer pour les mises à jour
-
-Le paquet apporte lui-même la source APT de CICADA (`/etc/apt/sources.list.d/cicada.list`) et la clé du dépôt (`/usr/share/keyrings/cicada-archive-keyring.gpg`). Les versions suivantes arrivent donc par `apt` — et par le bouton « Mettre à jour » de l'administration — sans aucune manipulation, y compris si la clé du dépôt change un jour.
-
-> ⚠️ Conséquence : un `sudo apt upgrade` de routine sur le serveur met aussi CICADA à jour quand une nouvelle version est publiée, ce qui redémarre l'application (~30 s). Pour garder la main sur le moment : `sudo apt-mark hold cicada`, puis `sudo apt-mark unhold cicada` avant une mise à jour voulue.
+Le paquet apporte sa propre source APT et la clé du dépôt : les versions suivantes arriveront par `apt` et par le bouton de mise à jour de l'application, sans autre manipulation ([§ 6](#6-mettre-à-jour)).
 
 <details>
-<summary>Installation manuelle, sans le script (ce qu'il fait, étape par étape)</summary>
+<summary>Installation manuelle, sans le script</summary>
 
 ```bash
 # Dépôt Docker
@@ -56,620 +91,398 @@ echo "deb [signed-by=/usr/share/keyrings/cicada-archive-keyring.gpg] https://apt
 sudo apt-get update && sudo apt-get install cicada
 ```
 
-Sans accès au dépôt CICADA, le paquet se télécharge aussi depuis la [page des versions](https://github.com/RNF-SI/Cicada/releases) : `sudo apt install ./cicada_X.Y.Z_amd64.deb` (le dépôt Docker reste nécessaire).
+Sans accès au dépôt CICADA, le paquet se télécharge depuis la [page des versions](https://github.com/RNF-SI/Cicada/releases) : `sudo apt install ./cicada_X.Y.Z_amd64.deb` (le dépôt Docker reste nécessaire).
 
 </details>
 
-#### 3. Choisir où sera la base de données
+### Ouvrir le formulaire
 
-C'est le seul choix qui se prépare **en dehors** du formulaire. Le formulaire le rappelle d'ailleurs dès sa première ligne.
+Dans un navigateur : **`http://votre-serveur:4567`**. Si la page ne répond pas : `sudo systemctl status cicada-installer` (et `sudo systemctl restart cicada-installer` s'il est arrêté).
 
-| Où est PostgreSQL ? | À faire avant le formulaire | Terminal nécessaire ? |
+Remplissez le formulaire ([§ 3](#3-le-formulaire-section-par-section)), puis cliquez sur **« Installer »**. Comptez **10 à 20 minutes** : l'installation vérifie la base, génère les secrets, télécharge les images, démarre les conteneurs, applique les migrations, importe les référentiels (nomenclatures, TaxRef, HabRef, INPG, CAMPanule, découpage administratif), crée le compte administrateur, enregistre l'instance auprès de l'API de suivi, puis redirige vers l'application.
+
+---
+
+## 3. Le formulaire, section par section
+
+### 3.1 Compte administrateur
+
+E-mail, mot de passe (8 caractères minimum, à confirmer), nom et prénom du premier **super administrateur**.
+
+> En mode de connexion **GeoNature/UsersHub** ([§ 3.7](#37-mode-de-connexion)), ce compte ne peut pas se connecter par mot de passe : il faut un compte UsersHub portant **le même e-mail**. CICADA le reconnaît à la première connexion et lui conserve ses droits.
+
+### 3.2 Configuration du site
+
+**Nom de domaine** : sans `http://` (ex. `cicada.mon-organisme.org`).
+
+**« Un serveur Apache ou Nginx est-il déjà présent sur ce serveur ? »**
+
+| | Case **décochée** : Traefik | Case **cochée** : votre Apache/Nginx |
 |---|---|---|
-| **Dans Docker, sur le serveur CICADA** (le plus simple) | rien : l'installation crée tout | non |
-| **Sur un serveur PostgreSQL existant** : autre machine, VM ou conteneur dédié aux bases (serveur mutualisé, cas de RNF) | préparer la base **sur le serveur de base** (ci-dessous) | **oui, sur le serveur de base**, avec les droits root |
-| PostgreSQL installé directement sur le serveur CICADA | — | pas encore pris en charge par le formulaire : utilisez la base dans Docker |
+| Qui écoute sur 80/443 | Traefik (conteneur CICADA) | votre Apache/Nginx |
+| HTTPS | automatique (Let's Encrypt) | à faire vous-même (certbot) |
+| À renseigner | l'e-mail pour Let's Encrypt (par défaut celui de l'administrateur) | le **port d'exposition** du frontend (ex. `8080`, à choisir libre) et l'**adresse publique** du site |
+| Après l'installation | rien | un virtual host ([§ 4](#4-publier-le-site-derrière-apache-ou-nginx)) |
 
-> **Pourquoi un terminal pour une base existante ?** Deux opérations ne peuvent se faire qu'**sur le serveur de base**, par quelqu'un qui en a les droits :
-> - créer l'extension **PostGIS**, qui exige un super-utilisateur PostgreSQL (contrairement aux autres extensions utilisées par CICADA) ;
-> - **autoriser le serveur CICADA** à se connecter (`pg_hba.conf`).
->
-> Le formulaire ne demande donc pas de compte super-utilisateur : tout se fait en une commande sur le serveur de base.
+L'**adresse publique** (mode Apache/Nginx) est celle que portent les liens des e-mails envoyés par CICADA :
+- `https://domaine` (défaut) : votre Apache publie le site en HTTPS — le cas normal ;
+- `http://domaine` : publié sans HTTPS ;
+- `http://domaine:port` : pas de virtual host, on accède directement au port (essais uniquement).
 
-##### Base sur un serveur PostgreSQL existant
+Le champ **« Port backend »** peut être laissé à `8000` : l'application n'est jamais exposée directement sur l'hôte.
 
-**Prérequis sur le serveur de base** (en général déjà remplis sur un serveur qui héberge GeoNature ou d'autres bases) :
-- PostgreSQL 15 ou plus, avec le paquet PostGIS correspondant (ex. `postgresql-17-postgis-3`) ;
-- PostgreSQL à l'écoute du réseau (`listen_addresses` ne doit pas se limiter à `localhost`).
+### 3.3 Base de données PostgreSQL
 
-> ⚠️ Si `listen_addresses` vaut `localhost`, il faut le modifier puis **redémarrer** PostgreSQL, ce qui coupe brièvement les autres applications qui l'utilisent. Le script de préparation le détecte et s'arrête avant de rien changer : choisissez le moment, puis relancez-le.
+**Nouvelle base dans Docker** : choisissez un mot de passe (ou cliquez sur « Générer ») et laissez les autres valeurs. La base est créée par l'installation.
 
-**Étapes :**
+> ⚠️ Ce mot de passe est fixé à la **première** création de la base. Si vous relancez le formulaire après un échec, réutilisez le même (voir [§ 9](#relancer-le-formulaire-après-un-échec)).
 
-1. Dans le formulaire (étape 5), section « Base de données », choisissez **« Serveur PostgreSQL existant »** et saisissez l'**adresse du serveur de base telle que le serveur CICADA la joint**. N'indiquez pas `localhost` : vu de l'application, qui tourne dans un conteneur, `localhost` désigne le conteneur lui-même.
-2. Le formulaire affiche alors la commande à lancer **sur le serveur de base**, en root, par exemple :
+**Serveur PostgreSQL existant** (serveur mutualisé, PostgreSQL de GeoNature…) :
+
+*Prérequis sur le serveur de base* : PostgreSQL 15 ou plus avec le paquet PostGIS correspondant (ex. `postgresql-17-postgis-3`), à l'écoute du réseau (`listen_addresses` ne doit pas valoir `localhost`). Si ce n'est pas le cas, il faudra le modifier puis **redémarrer** PostgreSQL, ce qui coupe brièvement les autres applications : le script de préparation le détecte et s'arrête avant de rien changer, à vous de choisir le moment.
+
+1. Saisissez l'**adresse du serveur de base telle que le serveur CICADA la joint**. Jamais `localhost` ni une adresse de la machine elle-même : vu de l'application, qui tourne dans un conteneur, `localhost` désigne le conteneur. Changez port, nom de base ou utilisateur si besoin.
+2. Le formulaire affiche une commande à lancer **en root sur le serveur de base**, par exemple :
 
    ```bash
    curl -fsSL http://192.0.2.10:4567/prepare-db.sh | sudo bash -s -- --client 192.0.2.10
    ```
 
-   Le script est fourni par l'installateur de CICADA lui-même. Il est donc de la même version et contient le `init.sql` correspondant. Il :
-   - crée le compte `cicada_user` (mot de passe généré et affiché) et la base `cicada` ;
+   Ce script, fourni par l'installateur (donc de la même version) :
+   - crée le compte `cicada_user` (mot de passe généré et **affiché à la fin**) et la base `cicada` ;
    - active PostGIS et crée les schémas de CICADA ;
-   - ajoute dans `pg_hba.conf` **une seule ligne**, limitée à la base `cicada`, au compte `cicada_user` et à l'adresse du serveur CICADA ;
-   - **recharge** la configuration de PostgreSQL, sans la redémarrer : aucune coupure pour les autres applications, et aucune autre base n'est touchée.
+   - ajoute **une seule ligne** à `pg_hba.conf`, limitée à cette base, ce compte et l'adresse du serveur CICADA ;
+   - **recharge** PostgreSQL sans le redémarrer : aucune coupure, aucune autre base touchée.
 
-   Il peut être relancé sans risque. Dans ce cas, le mot de passe d'un compte existant n'est **pas** modifié (option `--password` pour le redéfinir).
-3. Reportez dans le formulaire le **mot de passe affiché** à la fin du script, puis cliquez sur **« Tester la connexion »**. Le test vérifie la connexion depuis le serveur CICADA, PostGIS et les schémas. En cas d'échec, il dit quoi corriger : adresse non autorisée, mot de passe, base absente, serveur injoignable…
+   Il peut être relancé sans risque ; le mot de passe d'un compte existant n'est alors **pas** changé (`--password` pour le redéfinir). Si vous avez changé port, nom de base ou utilisateur, la commande affichée en tient déjà compte. Aide : `bash prepare-db.sh --help`.
+3. Reportez le **mot de passe affiché** dans le formulaire et cliquez sur **« Tester la connexion »**. Le test vérifie la connexion depuis le serveur CICADA, PostGIS et les schémas, et dit quoi corriger en cas d'échec. **L'installation ne démarre pas tant qu'il n'est pas vert.**
 
-L'installation refuse d'ailleurs de démarrer tant que ce test n'est pas vert. Il n'y a donc plus d'erreur découverte au démarrage de l'application, des minutes plus tard.
+*Le serveur de base ne joint pas le serveur CICADA* (pare-feu) : téléchargez le script depuis un poste qui voit l'installateur (`http://<serveur-cicada>:4567/prepare-db.sh`), copiez-le sur le serveur de base et lancez `sudo bash prepare-db.sh --client <ip-du-serveur-cicada>`.
 
-**Si le serveur de base ne peut pas joindre le serveur CICADA** (pare-feu entre les deux) : récupérez le script depuis un poste qui voit l'installateur (`http://<serveur-cicada>:4567/prepare-db.sh`), copiez-le sur le serveur de base, puis lancez-le :
+*Pourquoi une commande à part ?* Créer PostGIS exige un super-utilisateur PostgreSQL, et autoriser le serveur CICADA demande de modifier `pg_hba.conf` : deux opérations réservées à qui administre le serveur de base. Le formulaire n'a ainsi jamais besoin d'un compte super-utilisateur.
 
-```bash
-sudo bash prepare-db.sh --client <ip-du-serveur-cicada>
-```
+### 3.4 Redis
 
-Options : `--db-name`, `--db-user` et `--port` si vous voulez d'autres valeurs que `cicada`, `cicada_user` et `5432` (à reporter à l'identique dans le formulaire). Aide complète : `bash prepare-db.sh --help`.
+Rien à changer : Redis tourne dans Docker. Le mot de passe est généré s'il est laissé vide.
 
-#### 4. Accéder à l’interface d’installation
+### 3.5 Serveur mail (SMTP)
 
-Ouvrez votre navigateur :
+Pour que CICADA envoie des e-mails (inscriptions, notifications, mot de passe oublié) : serveur, port, TLS, authentification et adresse d'expéditeur. Case décochée, les e-mails sont seulement écrits dans les journaux : utile pour un essai, pas pour une instance en service.
 
-```
-http://votre-serveur:4567
-```
+### 3.6 Exploration fédérée (optionnel)
 
-> **Si la page est inaccessible** : vérifiez que le service tourne avec `sudo systemctl status cicada-installer`. Si inactif, relancez-le : `sudo systemctl restart cicada-installer`.
+Prépare le raccordement au **hub national**, qui permet de chercher dans les plans de toutes les structures participantes. Cocher la case **ne publie rien** : le partage s'active ensuite, par un super administrateur, dans *Administration > Paramètres*.
 
-#### 5. Remplir le formulaire d’installation
+- **Identifiant de l'instance** : ⚠️ **définitif**. Minuscules, chiffres et tirets (ex. `cen-aura`). Il entre dans la référence publique de chaque plan.
+- **Nom affiché** : ce que les autres structures voient comme provenance de vos plans.
+- **URL du hub** : déjà renseignée (hub RNF). À ne changer que pour un hub de test.
+- **Jetons** : laissez-les vides. L'adhésion se demande depuis *Administration > Paramètres* une fois l'installation terminée, et RNF la valide.
+- **Relayer l'exploration** : décoché, l'exploration ne montre que vos propres plans.
 
-Le formulaire comporte 5 sections :
+Tout cela se règle aussi plus tard dans *Administration > Paramètres*.
 
-**Compte administrateur :**
-- Email, mot de passe, nom, prénom du premier administrateur
+### 3.7 Mode de connexion
 
-**Configuration du site :**
-- Nom de domaine (ex. `cicada.mon-organisme.org`)
-- Présence d’Apache/Nginx (voir détails ci-dessous)
-- Port du frontend si Apache/Nginx (ex. `8080`)
+- **Comptes CICADA** : chacun se connecte avec l'e-mail et le mot de passe de son compte CICADA (inscription et mot de passe oublié dans l'application).
+- **Comptes GeoNature/UsersHub** (cas de RNF) : on se connecte **uniquement** avec son compte UsersHub ; le compte CICADA est créé à la première connexion et rattaché à son organisme UsersHub. GeoNature **2.17.0 minimum**. À renseigner :
+  - l'**adresse de l'API GeoNature** (valeur `API_ENDPOINT` de sa configuration, souvent terminée par `/api`) ;
+  - l'**identifiant de l'application CICADA dans UsersHub** ;
+  - le **libellé** du bouton de connexion (ex. « Compte RNF ») ;
+  - facultatif : les `id_organisme` UsersHub à ignorer (« Autre », comptes de test…).
 
-**Base de données PostgreSQL :**
-- **Type** : « Nouvelle base dans Docker » ou « Serveur PostgreSQL existant » (voir l'étape 3)
-- **Base existante** : l'adresse du serveur de base, la commande de préparation à lancer dessus, le mot de passe qu'elle affiche, et le bouton « Tester la connexion » (étape 3). **Ne pas mettre `localhost`.**
-- **Port** : `5432`
-- **Nom, utilisateur, mot de passe** : ceux définis à l’étape 3
+### 3.8 Consentement RGPD (optionnel)
 
-**Redis :** laisser les valeurs par défaut (Redis est géré dans Docker)
+Le suivi technique (version, heartbeat quotidien) est anonyme et ne demande pas de consentement. Cocher la case transmet en plus aux mainteneurs le nom de la structure et un e-mail de contact, pour pouvoir vous prévenir (mise à jour de sécurité…).
 
-**Email (SMTP) :** si vous souhaitez que CICADA envoie des emails (notifications, inscriptions) :
-- Serveur SMTP, port, TLS, authentification, adresse d’expéditeur
-- Si non configuré, les emails seront affichés dans les logs (pas d’envoi réel)
+---
 
-**RGPD (optionnel) :** consentement pour partager les infos de l’instance avec les mainteneurs
+## 4. Publier le site derrière Apache ou Nginx
 
-**Question « Un serveur Apache ou Nginx est-il déjà présent sur ce serveur ? »**
-- **Si vous ne cochez pas** : Traefik est utilisé sur les ports 80 et 443 (HTTPS avec Let’s Encrypt). Aucune configuration Apache/Nginx à prévoir.
-- **Si vous cochez** : pas de Traefik. Le frontend est exposé sur un port que vous choisissez (ex. 8080). Vous devrez configurer un virtual host dédié sur votre Apache ou Nginx pour proxyfier le trafic vers ce port.
+*Uniquement si vous avez coché « Apache ou Nginx » ([§ 3.2](#32-configuration-du-site)). Avec Traefik, il n'y a rien à faire.*
 
-#### 6. Lancer l’installation
-
-Cliquez sur "Installer" et attendez la fin du processus (~2–5 minutes). L’installation va :
-
-1. Valider les données
-2. Générer les secrets (SECRET_KEY Django, mot de passe Redis)
-3. Télécharger les images Docker
-4. Démarrer les conteneurs (web, frontend, redis, celery)
-5. Exécuter les migrations de base de données
-6. Importer les nomenclatures et référentiels
-7. Créer le compte administrateur
-
-#### 7. Accéder à l’application
-
-Une fois l’installation terminée, accédez à :
+Un **virtual host** dit à Apache : « les requêtes pour tel nom de domaine, envoie-les à tel endroit ». Celui de CICADA envoie **tout** le trafic de son domaine vers le port choisi dans le formulaire. Il cohabite avec les autres sites du serveur (GeoNature…) : Apache choisit le bon d'après le nom demandé.
 
 ```
-http://votre-domaine:8080    (si Apache/Nginx)
-https://votre-domaine        (si Traefik)
+Navigateur ──► Apache (80/443)
+                 ├─ geonature.mon-organisme.org → GeoNature (inchangé)
+                 └─ cicada.mon-organisme.org    → 127.0.0.1:8090 → conteneur frontend CICADA
+                                                                     └─ /api → application (réseau Docker interne)
 ```
 
-Connectez-vous avec l’email et le mot de passe administrateur définis à l’étape 5.
+Dans les exemples : domaine `cicada.mon-organisme.org`, port `8090`. Remplacez-les par les vôtres.
 
-### Sans Apache/Nginx sur le serveur : Traefik (tout en un clic)
-
-Si vous **ne cochez pas** « Un serveur Apache ou Nginx est-il déjà présent sur ce serveur ? » :
-
-- Un conteneur **Traefik** est lancé avec les conteneurs Cicada.
-- Traefik écoute sur les **ports 80 et 443** sur l’hôte.
-- Il obtient et renouvelle automatiquement un certificat Let's Encrypt pour le domaine indiqué.
-- Il redirige HTTP → HTTPS et route le trafic vers le frontend (Angular) et l’API (Django).
-- L’accès se fait en **https://votre-domaine** (sans port dans l’URL).
-
-Aucune configuration manuelle Apache/Nginx n’est nécessaire.
-
-### Avec Apache ou Nginx déjà installé
-
-Si vous **cochez** « Un serveur Apache ou Nginx est-il déjà présent sur ce serveur ? » :
-
-- **Pas de Traefik.** Le frontend est exposé sur le port que vous avez indiqué (ex. 8080).
-- Vous devez configurer un **virtual host dédié** sur votre Apache ou Nginx qui envoie **tout** le trafic vers ce port (`ProxyPass / http://127.0.0.1:8080/`). Vous gérez vous-même le HTTPS (certificat Let's Encrypt avec certbot).
-
-> ⚠️ **Ne proxifiez pas `/api` vers le port 8000.** Le conteneur frontend route déjà `/api/*` vers Django par le réseau Docker interne ; le backend n'est pas exposé sur l'hôte. Une règle `ProxyPass /api http://127.0.0.1:8000/api` envoie l'API vers **ce qui écoute sur le port 8000 de l'hôte** — sur un serveur qui héberge aussi **GeoNature**, c'est son gunicorn : la connexion à CICADA échoue en 404 (#231). Symptôme : `curl -i https://votre-domaine/api/health/` ne renvoie pas d'en-tête `X-Correlation-ID`.
-
-#### Exemple de configuration Apache
-
-Activer les modules nécessaires :
+**1. Modules Apache** (souvent déjà actifs) :
 
 ```bash
 sudo a2enmod proxy proxy_http proxy_wstunnel ssl headers
-sudo systemctl reload apache2
 ```
 
-Un seul virtual host sur le port 80 (à adapter : remplacer `cicada.example.org` par votre domaine, `8080` par le port indiqué lors de l’installation).
-
-**Fichier** `/etc/apache2/sites-available/cicada.conf` :
+**2. Le virtual host**, dans un fichier à lui — ne touchez pas à ceux des autres sites. `/etc/apache2/sites-available/cicada.conf` :
 
 ```apache
 <VirtualHost *:80>
-    ServerName cicada.example.org
+    ServerName cicada.mon-organisme.org
 
     ProxyPreserveHost On
     ProxyRequests Off
 
-    # Tout passe par le conteneur frontend, qui route lui-même /api vers Django.
-    # Pas de règle /api → 8000 (voir l'avertissement ci-dessus).
-    ProxyPass / http://127.0.0.1:8080/
-    ProxyPassReverse / http://127.0.0.1:8080/
+    # Tout passe par le conteneur frontend, qui transmet lui-même /api à l'application.
+    ProxyPass / http://127.0.0.1:8090/
+    ProxyPassReverse / http://127.0.0.1:8090/
 </VirtualHost>
 ```
 
-Activer le site et recharger Apache :
+**3. Activer** (un `reload` ne coupe pas les autres sites) :
 
 ```bash
 sudo a2ensite cicada.conf
+sudo apache2ctl configtest      # doit répondre « Syntax OK »
 sudo systemctl reload apache2
 ```
 
-Ensuite, exécutez **`sudo certbot --apache -d cicada.example.org`** pour générer le certificat Let's Encrypt et activer le HTTPS (port 443). Certbot ajoutera automatiquement le virtual host SSL.
-
-### Test en local (sans DNS ni Let's Encrypt)
-
-Pour tester sur votre machine sans domaine ni DNS :
-
-1. **Cochez** « Un serveur Apache ou Nginx est-il déjà présent sur ce serveur ? » (ou considérez que vous testez sans reverse proxy).
-2. Indiquez **Nom de domaine** : `localhost` (ou `127.0.0.1`) et **Port d’exposition du frontend** : `8080` (ou 80 si libre).
-3. Une fois l’installation terminée, ouvrez **http://localhost:8080** (ou le port choisi).
-
-Vous pouvez aussi utiliser un nom personnalisé via le fichier hosts : ajoutez par exemple `127.0.0.1 cicada.local` dans `/etc/hosts`, puis utilisez **Nom de domaine** = `cicada.local` et accédez à **http://cicada.local:8080**. Le trafic reste en HTTP, sans certificat.
-
-## Import des référentiels (base externe)
-
-Les référentiels sont importés automatiquement au premier démarrage. Si, sur une base existante, les tables sont vides (base préparée avant le script de préparation actuel, import interrompu…), lancez les imports manuellement :
-
-### Vérifier l'état des référentiels
+**4. HTTPS** (le domaine doit déjà pointer vers le serveur) :
 
 ```bash
-# Nomenclatures (données de référence)
-sudo -u postgres psql -d cicada -c "SELECT COUNT(*) FROM ref_nomenclatures.t_nomenclatures;"
-
-# TaxRef (taxonomie)
-sudo -u postgres psql -d cicada -c "SELECT COUNT(*) FROM taxonomie.taxref;"
-
-# HabRef (habitats)
-sudo -u postgres psql -d cicada -c "SELECT COUNT(*) FROM ref_habitats.habref;"
-
-# Extensions PostgreSQL (nécessaires pour l'autocomplete)
-sudo -u postgres psql -d cicada -c "SELECT extname FROM pg_extension WHERE extname IN ('pg_trgm', 'unaccent');"
+sudo certbot --apache -d cicada.mon-organisme.org
 ```
 
-### Corriger la propriété de la fonction unaccent
+Certbot crée le virtual host HTTPS (`cicada-le-ssl.conf`) en recopiant le précédent, et redirige HTTP vers HTTPS. Relisez-le : on ne doit y trouver que les deux lignes `ProxyPass /` et `ProxyPassReverse /`, plus les lignes de certificat.
 
-Le script de préparation (étape 3) le fait déjà. Sur une base préparée autrement, l'import TaxRef ne peut pas créer son index de recherche sans accents (il le saute sans bloquer). Corrigez avec :
+**5. Vérifier** :
 
 ```bash
-sudo -u postgres psql -d cicada -c "ALTER FUNCTION public.unaccent(text) OWNER TO cicada_user;"
+curl -i https://cicada.mon-organisme.org/api/health/
 ```
 
-### Lancer les imports
+La réponse doit contenir un en-tête **`X-Correlation-ID`** : c'est la preuve que la requête est arrivée à CICADA.
 
-```bash
-# Nomenclatures (si 0 résultat)
-sudo docker exec cicada_prod_web python manage.py import_nomenclatures
+### Le piège à éviter : règle `/api`
 
-# HabRef — habitats (~29 000 entrées)
-sudo docker exec cicada_prod_web python manage.py import_habref
+N'ajoutez **aucune** ligne `ProxyPass /api …` au virtual host de CICADA, même si celui de GeoNature en contient une. Le conteneur frontend s'occupe déjà de `/api`, et l'application n'est pas exposée sur l'hôte : une règle `/api` vers le port 8000 envoie les appels à **ce qui écoute sur le port 8000 de l'hôte** — sur un serveur GeoNature, GeoNature lui-même. La connexion à CICADA échoue alors en 404 (#231). Symptôme : pas d'en-tête `X-Correlation-ID` au test de l'étape 5.
 
-# TaxRef — taxonomie (~700 000 taxons, peut prendre plusieurs minutes)
-sudo docker exec cicada_prod_web python manage.py import_taxref
-# Variante allégée pour les environnements de test (~8 000 taxons) :
-# sudo docker exec cicada_prod_web python manage.py import_taxref --lite
+### Remarques
 
-# CAMPanule — protocoles (optionnel, ~224 protocoles)
-sudo docker exec cicada_prod_web python manage.py import_campanule
-```
+- Le port du frontend reste joignable directement (`http://serveur:8090`), en contournant Apache. Fermez-le au pare-feu si le serveur est exposé.
+- Avec Nginx, même principe : un bloc `server` dont la `location /` fait `proxy_pass http://127.0.0.1:8090;` avec `proxy_set_header Host $host;`.
 
-### Vérifier après import
+---
 
-```bash
-sudo -u postgres psql -d cicada -c "SELECT COUNT(*) as taxons FROM taxonomie.taxref;"
-sudo -u postgres psql -d cicada -c "SELECT COUNT(*) as habitats FROM ref_habitats.habref;"
-sudo -u postgres psql -d cicada -c "SELECT COUNT(*) FROM taxonomie.vm_taxref_list_forautocomplete;"
-sudo -u postgres psql -d cicada -c "SELECT COUNT(*) FROM ref_habitats.autocomplete_habitat;"
-```
+## 5. Premier accès et vérifications
 
-Résultats attendus :
-- TaxRef : ~708 000 taxons (complet) ou ~8 000 (--lite)
-- HabRef : ~29 000 habitats
-- Autocomplete TaxRef : ~300 000 entrées
-- Autocomplete HabRef : ~29 000 entrées
+L'adresse de l'application :
+- avec Traefik : `https://votre-domaine` ;
+- avec Apache/Nginx : `https://votre-domaine` une fois le virtual host en place ([§ 4](#4-publier-le-site-derrière-apache-ou-nginx)), ou en attendant `http://votre-domaine:port`.
 
-## Rappel : configuration Apache avec HTTPS (Let's Encrypt)
+Connectez-vous avec le compte administrateur ([§ 3.1](#31-compte-administrateur)). Puis, dans *Administration* :
+- **Paramètres** : textes d'accueil et logo de la structure, mesure d'audience, exploration fédérée ;
+- **Organismes** et **Sites** : votre structure et ses espaces ;
+- **Utilisateurs** : inviter ou valider les premiers comptes.
 
-Lorsque `certbot --apache` génère le virtual host SSL, il copie la configuration HTTP. Vérifiez que le fichier SSL contient bien les lignes suivantes **non commentées**, et **aucune** règle `ProxyPass /api` (héritée d'une ancienne version de ce guide ou d'un vhost GeoNature, cf. #231) :
+Les référentiels (nomenclatures, TaxRef, HabRef, INPG, CAMPanule, découpage administratif) sont importés au démarrage de l'application. Si une liste reste vide (espèces, habitats), voir [§ 9](#un-référentiel-est-vide).
 
-```apache
-# Fichier : /etc/apache2/sites-enabled/cicada-prod-le-ssl.conf (ou similaire)
-<VirtualHost *:443>
-    ServerName cicada.example.org
+---
 
-    ProxyPreserveHost On
-    ProxyRequests Off
+## 6. Mettre à jour
 
-    # Tout passe par le conteneur frontend (qui route /api vers Django)
-    ProxyPass / http://127.0.0.1:8080/
-    ProxyPassReverse / http://127.0.0.1:8080/
+### Ce qui se passe à chaque mise à jour
 
-    SSLCertificateFile /etc/letsencrypt/live/cicada.example.org/fullchain.pem
-    SSLCertificateKeyFile /etc/letsencrypt/live/cicada.example.org/privkey.pem
-    Include /etc/letsencrypt/options-ssl-apache.conf
-</VirtualHost>
-```
+Le paquet met à jour la version dans `/var/lib/cicada/.env`, télécharge les nouvelles images et redémarre l'application (~30 s d'interruption). Au démarrage, l'application applique seule les migrations de la base, complète les référentiels et son index de recherche. **Il n'y a jamais de `migrate` à lancer à la main.**
 
-Après modification, rechargez Apache :
+Faites une [sauvegarde](#7-sauvegarder-et-restaurer) avant.
 
-```bash
-sudo systemctl reload apache2
-```
+### Depuis l'application (recommandé)
 
-## Configuration post-installation
+*Administration > Mise à jour* (super administrateur) : quand une version plus récente est publiée, le bouton **« Mettre à jour »** lance la mise à jour sur le serveur, et la page en suit l'avancement. Elle est prévenue de la nouvelle version par le heartbeat quotidien.
 
-### Modifier l'URL de l'API de suivi
+En cas d'échec : `sudo journalctl -u cicada-updater.service` et `/var/log/cicada/updater.log`.
 
-Si nécessaire, vous pouvez modifier l'URL de l'API de suivi dans :
-
-```bash
-sudo nano /etc/cicada/cicada.conf
-```
-
-Puis redémarrer les services :
-
-```bash
-sudo systemctl restart cicada-installer
-sudo systemctl restart cicada-heartbeat.timer
-```
-
-## Mise à jour
-
-### Ce qui se passe automatiquement au démarrage
-
-À chaque démarrage du conteneur `web`, l'entrypoint exécute automatiquement :
-
-1. Attente que PostgreSQL et Redis soient disponibles
-2. **`python manage.py migrate`** — applique toutes les nouvelles migrations de base de données
-3. **`python manage.py collectstatic`** — met à jour les fichiers statiques
-4. **`python manage.py check`** — vérifie la cohérence de la configuration Django
-5. Lancement du serveur (gunicorn en production)
-
-**Vous n'avez donc jamais besoin de lancer `migrate` ou `collectstatic` manuellement.** Un simple redémarrage de la stack suffit.
-
-### Sauvegarde avant mise à jour (recommandé)
-
-Avant toute mise à jour, sauvegardez la base de données :
-
-```bash
-# Si la base est dans Docker (DB_TYPE=docker)
-docker compose --env-file /var/lib/cicada/.env exec db \
-  pg_dump -U ${POSTGRES_USER} ${POSTGRES_DB} > backup_cicada_$(date +%Y%m%d).sql
-
-# Si la base est externe (DB_TYPE=existing) — recommandé en production
-sudo -u postgres pg_dump cicada > backup_cicada_$(date +%Y%m%d).sql
-```
-
-### Les 3 méthodes de mise à jour
-
-| Méthode | Prérequis | Commandes à taper |
-|---------|-----------|-------------------|
-| **Option 1** — Interface web | API de suivi opérationnelle | Aucune (clic bouton) |
-| **Option 2** — `apt install` | Accès SSH au serveur | Une seule commande |
-| **Option 3** — Commandes manuelles | Accès SSH au serveur | 4 commandes |
-
-### Option 1 : Mise à jour depuis l'interface web (clic bouton)
-
-> **Prérequis** : L'API de suivi (`tracking.cicada.reserves-naturelles.org`) doit être opérationnelle. Si elle ne l'est pas, cette option n'est pas disponible — utilisez l'option 2 ou 3.
-
-1. Accédez à `/admin/system/` dans l'interface Django (compte superuser).
-2. Si une mise à jour est disponible (détectée par le heartbeat), cliquez sur **« Mettre à jour »**.
-3. La mise à jour est effectuée automatiquement sur le serveur :
-   - Un fichier « trigger » est créé ; le service systemd `cicada-updater.path` réagit immédiatement.
-   - Le script `cicada-updater` (exécuté en root) :
-     - met à jour le paquet via APT (`apt install cicada=<version>`),
-     - met à jour `CICADA_VERSION` dans `/var/lib/cicada/.env`,
-     - tire les nouvelles images Docker (`docker compose pull`) et redémarre la stack (`docker compose up -d`),
-     - redémarre le service de l'installateur web.
-4. Aucune commande manuelle sur le serveur n'est nécessaire. Rafraîchissez la page après quelques dizaines de secondes pour constater la nouvelle version.
-
-En cas d'échec, consulter les logs : `sudo journalctl -u cicada-updater.service` ou `sudo cat /var/log/cicada/updater.log`.
-
-### Option 2 : Mise à jour via `apt install` (recommandé)
-
-C'est la méthode la plus simple en ligne de commande. Le script `postinst` du package fait tout automatiquement : mise à jour de `CICADA_VERSION` dans `.env`, téléchargement des nouvelles images Docker, et redémarrage de la stack.
+### En ligne de commande
 
 ```bash
 sudo apt-get update
-sudo apt-get install cicada=<version>   # ex: cicada=0.1.15
+sudo apt-get install cicada            # dernière version
+# ou une version précise :  sudo apt-get install cicada=0.1.55
 ```
 
-C'est tout. Le package :
-1. Met à jour les fichiers sur disque (docker-compose, scripts)
-2. Met à jour `CICADA_VERSION` dans `/var/lib/cicada/.env`
-3. Tire les nouvelles images Docker (`docker compose pull`)
-4. Redémarre la stack Docker (`docker compose up -d`)
-5. Les migrations et le collectstatic s'appliquent automatiquement au démarrage
+C'est tout : le paquet fait le reste (version dans `.env`, images, redémarrage). En cas d'échec du téléchargement ou du redémarrage, il affiche les commandes à lancer.
 
-Si le pull ou le redémarrage échoue, le script affiche les commandes manuelles à lancer.
+### Garder la main sur le moment
 
-### Option 3 : Mise à jour manuelle (commandes détaillées)
+Le dépôt CICADA étant une source APT comme les autres, un `sudo apt upgrade` de routine met aussi CICADA à jour. Pour l'éviter : `sudo apt-mark hold cicada`, puis `sudo apt-mark unhold cicada` avant une mise à jour voulue.
 
-Si `apt install` n'est pas disponible ou en cas de problème, voici la procédure complète étape par étape via SSH.
+---
 
-#### Étape 1 — Sauvegarde de la base de données
+## 7. Sauvegarder et restaurer
+
+Deux choses à sauvegarder : **la base** et **les fichiers déposés** (documents des plans, logos). Le reste (images, configuration générée) se reconstruit à la réinstallation, à l'exception de `/var/lib/cicada/.env`, à garder aussi.
+
+### Base dans Docker
 
 ```bash
-# Si la base est dans Docker (DB_TYPE=docker)
-cd /usr/share/cicada
-sudo docker compose --env-file /var/lib/cicada/.env exec db \
-  pg_dump -U $(grep POSTGRES_USER /var/lib/cicada/.env | cut -d= -f2) \
-  $(grep POSTGRES_DB /var/lib/cicada/.env | cut -d= -f2) \
-  > backup_cicada_$(date +%Y%m%d_%H%M%S).sql
+# Sauvegarde
+sudo docker exec cicada_prod_db sh -c 'pg_dump -U "$POSTGRES_USER" -Fc "$POSTGRES_DB"' \
+  > cicada_$(date +%F).dump
 
-# Si la base est externe (DB_TYPE=existing)
-pg_dump -h <host> -U <user> <db_name> > backup_cicada_$(date +%Y%m%d_%H%M%S).sql
+# Restauration (application arrêtée pendant l'opération)
+sudo docker stop cicada_prod_web cicada_prod_celery_worker cicada_prod_celery_beat
+sudo docker exec -i cicada_prod_db sh -c 'pg_restore -U "$POSTGRES_USER" -d "$POSTGRES_DB" --clean --if-exists' \
+  < cicada_AAAA-MM-JJ.dump
+sudo docker start cicada_prod_web cicada_prod_celery_worker cicada_prod_celery_beat
 ```
 
-#### Étape 2 — Mettre à jour le package Debian
+### Base sur un serveur PostgreSQL existant
+
+Sur le **serveur de base** :
 
 ```bash
-sudo apt-get update
-sudo apt-get install cicada=<version>   # ex: cicada=0.1.15
+sudo -u postgres pg_dump -Fc cicada > cicada_$(date +%F).dump
+# Restauration (application arrêtée sur le serveur CICADA, comme ci-dessus) :
+sudo -u postgres pg_restore -d cicada --clean --if-exists cicada_AAAA-MM-JJ.dump
 ```
 
-#### Étape 3 — Mettre à jour la version dans le .env
+### Fichiers déposés
 
 ```bash
-sudo sed -i 's/^CICADA_VERSION=.*/CICADA_VERSION=<version>/' /var/lib/cicada/.env
-
-# Vérifier
-grep CICADA_VERSION /var/lib/cicada/.env
+sudo docker run --rm -v cicada_media_files:/media -v "$PWD":/sauvegarde alpine \
+  tar czf /sauvegarde/cicada_media_$(date +%F).tgz -C /media .
 ```
 
-#### Étape 4 — Tirer les nouvelles images Docker
+Planifiez ces commandes (cron) et copiez les fichiers hors du serveur.
+
+---
+
+## 8. Modifier la configuration
+
+La configuration de l'instance est dans **`/var/lib/cicada/.env`** (lisible par root seulement). Après l'avoir modifiée, il faut recréer les conteneurs.
+
+Les commandes `docker compose` de CICADA ont besoin de plusieurs fichiers, qui dépendent de vos choix (base dans Docker ou non, Traefik ou Apache). Plutôt que de les écrire à la main, définissez cette fonction dans votre session :
 
 ```bash
-cd /usr/share/cicada
-sudo docker compose --env-file /var/lib/cicada/.env pull
+cicada_compose() {
+  sudo bash -c '. /usr/share/cicada/compose-files.sh &&
+    docker compose $(compose_files_args) --env-file /var/lib/cicada/.env "$@"' cicada_compose "$@"
+}
 ```
 
-#### Étape 5 — Redémarrer la stack
+Puis :
 
 ```bash
-sudo docker compose --env-file /var/lib/cicada/.env down
-sudo docker compose --env-file /var/lib/cicada/.env up -d
+sudo nano /var/lib/cicada/.env
+cicada_compose up -d            # recrée les conteneurs dont la configuration a changé
+cicada_compose ps               # tous les services doivent être « Up » ou « Up (healthy) »
+cicada_compose logs -f web      # journaux de l'application (Ctrl+C pour quitter)
 ```
 
-Au redémarrage, l'entrypoint applique automatiquement :
-- `python manage.py migrate` (migrations de base de données)
-- `python manage.py collectstatic` (fichiers statiques)
-- `python manage.py check` (vérification Django)
+> N'utilisez pas `docker compose` sans ces fichiers (`down` puis `up -d` depuis `/usr/share/cicada`, par exemple) : en mode Apache, le frontend perdrait son port et le site tomberait ; en mode Traefik, il ne serait plus routé.
 
-#### Étape 6 — Vérifier les logs
+La plupart des réglages fonctionnels (textes d'accueil, logo, mesure d'audience, exploration fédérée, raccordement au hub) ne sont **pas** dans ce fichier mais dans *Administration > Paramètres*, sans redémarrage.
+
+`/etc/cicada/cicada.conf` porte l'adresse de l'API de suivi et du hub utilisées par le paquet (heartbeat, installateur). Vous n'avez normalement pas à y toucher.
+
+---
+
+## 9. Dépannage
+
+### Le formulaire d'installation ne répond pas
 
 ```bash
-sudo docker compose --env-file /var/lib/cicada/.env logs -f web
-```
-
-Attendez de voir dans les logs :
-```
-=== Application des migrations ===
-  Applying plans.0036_remove_etat_actuel... OK
-  ...
-=== Initialisation terminée ===
-```
-
-Ctrl+C pour quitter les logs une fois l'initialisation terminée.
-
-#### Étape 7 — Vérifier l'état des conteneurs
-
-```bash
-sudo docker compose --env-file /var/lib/cicada/.env ps
-```
-
-Tous les services doivent être à l'état `Up` ou `Up (healthy)`.
-
-#### Étape 8 — Mettre à jour les nomenclatures (si nécessaire)
-
-Si la nouvelle version ajoute ou modifie des nomenclatures (données de référence) :
-
-```bash
-sudo docker compose --env-file /var/lib/cicada/.env exec web \
-  python manage.py import_nomenclatures --force
-```
-
-Consultez les notes de version (changelog) pour savoir si cette étape est requise. En cas de doute, la lancer ne pose aucun risque — elle met à jour les nomenclatures existantes et ajoute les nouvelles.
-
-## Avertissements critiques — Ne pas perdre de données
-
-### JAMAIS `docker compose down -v`
-
-Le flag **`-v`** supprime les **volumes Docker**, c'est-à-dire :
-
-| Volume | Contenu | Conséquence si supprimé |
-|--------|---------|------------------------|
-| `postgres_data` | **Toute la base de données** | Plans, utilisateurs, sites, enjeux — **TOUT est perdu** |
-| `media_files` | Fichiers uploadés | Documents de plans, cartes, rapports — **perdus** |
-| `redis_data` | Cache et tâches Celery | Tâches en cours perdues (moins critique) |
-| `logs_data` | Historique des logs | Logs perdus (moins critique) |
-
-**Commande sûre** : `docker compose down` (sans `-v`) — arrête les conteneurs mais **préserve toutes les données**.
-
-### JAMAIS `seed_testdata` en production
-
-```bash
-# NE JAMAIS exécuter en production :
-docker compose exec web python manage.py seed_testdata         # injecte de faux utilisateurs/plans/sites
-docker compose exec web python manage.py seed_testdata --reset # SUPPRIME des données
-```
-
-### JAMAIS supprimer les volumes Docker manuellement
-
-```bash
-# NE JAMAIS exécuter :
-docker volume rm cicada_postgres_data     # supprime la base de données
-docker volume prune                       # supprime TOUS les volumes non utilisés
-docker system prune -a --volumes          # supprime TOUT (images + volumes + cache)
-```
-
-### JAMAIS modifier ou supprimer les fichiers de migration
-
-Les fichiers dans `migrations/` sont le versionnement de la base de données. Les supprimer ou les modifier après qu'ils ont été appliqués en production rend la base incohérente et peut entraîner des pertes de données.
-
-## Désinstallation
-
-```bash
-sudo apt remove cicada
-sudo apt purge cicada
-```
-
-**Attention** : La désinstallation ne supprime pas les conteneurs ni les volumes Docker. Pour tout arrêter et supprimer les conteneurs Cicada (y compris Traefik si vous l’aviez utilisé), voir la section *Nettoyer après des essais* ci‑dessous.
-
-## Dépannage
-
-### Nettoyer après des essais (conteneurs et ports)
-
-Si des installations précédentes ont laissé des conteneurs ou des ports utilisés (erreur « port is already allocated », « orphan containers »), nettoyez ainsi :
-
-```bash
-cd /usr/share/cicada
-
-# Arrêter et supprimer tous les conteneurs du projet (base + db + traefik)
-# --remove-orphans supprime les conteneurs orphelins (ex. Traefik si vous avez réinstallé sans Traefik)
-docker compose -f docker-compose.yml -f docker-compose.db.yml -f docker-compose.traefik.yml \
-  --env-file /var/lib/cicada/.env down --remove-orphans
-```
-
-Si le fichier `.env` n’existe pas ou vous voulez forcer l’arrêt de tout ce qui porte le nom « cicada » :
-
-```bash
-# Lister les conteneurs Cicada
-docker ps -a --filter "name=cicada"
-
-# Tout arrêter et supprimer
-docker rm -f $(docker ps -aq --filter "name=cicada") 2>/dev/null || true
-```
-
-Pour repartir de zéro (y compris la base de données et les volumes) :
-
-```bash
-cd /usr/share/cicada
-docker compose -f docker-compose.yml -f docker-compose.db.yml -f docker-compose.traefik.yml \
-  --env-file /var/lib/cicada/.env down -v --remove-orphans
-```
-
-Pour relancer le formulaire d’installation après un échec (sans désinstaller le package) :
-
-```bash
-sudo rm -f /var/lib/cicada/.install_lock
-# Puis ouvrir à nouveau http://localhost:4567 (ou l’URL du serveur d’installation)
-```
-
-### Le serveur d'installation ne démarre pas
-
-```bash
-# Vérifier le statut du service
 sudo systemctl status cicada-installer
-
-# Voir les logs
 sudo journalctl -u cicada-installer -f
 ```
 
-### Les conteneurs Docker ne démarrent pas
+Après une installation réussie, le formulaire répond « Installation déjà effectuée » : c'est normal.
+
+### Relancer le formulaire après un échec
+
+Il suffit de rouvrir `http://votre-serveur:4567` : rien n'est verrouillé tant que l'installation n'a pas réussi.
+
+Avec une **base dans Docker**, la base a pu être créée lors de la première tentative, avec le mot de passe saisi alors. Réutilisez **le même mot de passe**. Si vous l'avez perdu et que la base ne contient encore rien, supprimez-la avant de relancer :
 
 ```bash
-# Vérifier les logs Docker
-docker-compose -f /usr/share/cicada/docker-compose.yml logs
-
-# Vérifier le fichier .env
-cat /var/lib/cicada/.env
+cicada_compose down
+sudo docker volume rm cicada_postgres_data
 ```
+
+### Les conteneurs ne démarrent pas
+
+```bash
+cicada_compose ps
+cicada_compose logs web
+```
+
+Erreur « port is already allocated » : le port choisi est pris par un autre service (`sudo ss -ltnp` dit lequel). En mode Traefik, c'est en général un Apache/Nginx sur 80/443 : réinstallez en mode « Apache/Nginx ».
+
+### La connexion à CICADA échoue en 404 derrière Apache
+
+Une règle `ProxyPass /api` envoie l'application ailleurs : voir [le piège #231](#le-piège-à-éviter-règle-api).
+
+### Les liens des e-mails pointent vers `http://domaine:8080`
+
+Instances installées en mode Apache/Nginx avant la version 0.1.56 : l'installateur enregistrait toujours l'adresse d'accès direct. Corrigez dans `/var/lib/cicada/.env` :
+
+```
+SITE_URL=https://cicada.mon-organisme.org
+CORS_ALLOWED_ORIGINS=https://cicada.mon-organisme.org,http://cicada.mon-organisme.org:8080
+```
+
+puis `cicada_compose up -d`.
+
+### Un référentiel est vide
+
+Les imports tournent à chaque démarrage de l'application et sautent ce qui est déjà importé. S'ils ont échoué (journaux : `cicada_compose logs web | grep -i warn`), relancez-les :
+
+```bash
+sudo docker exec cicada_prod_web python manage.py import_nomenclatures
+sudo docker exec cicada_prod_web python manage.py import_habref        # ~29 000 habitats
+sudo docker exec cicada_prod_web python manage.py import_taxref        # ~700 000 taxons, plusieurs minutes
+sudo docker exec cicada_prod_web python manage.py import_inpg
+sudo docker exec cicada_prod_web python manage.py import_campanule
+sudo docker exec cicada_prod_web python manage.py import_ref_geo
+sudo docker exec cicada_prod_web python manage.py refresh_taxref_views
+```
+
+Base sur un serveur existant préparée **sans** le script de préparation : l'index de recherche sans accents de TaxRef ne peut pas être créé. Sur le serveur de base : `sudo -u postgres psql -d cicada -c "ALTER FUNCTION public.unaccent(text) OWNER TO cicada_user;"`, puis relancez `import_taxref`.
 
 ### Le heartbeat ne fonctionne pas
 
+Envoyé chaque jour à 3 h ; c'est lui qui annonce les nouvelles versions.
+
 ```bash
-# Vérifier le timer
 sudo systemctl status cicada-heartbeat.timer
-
-# Voir les logs du heartbeat
-sudo journalctl -u cicada-heartbeat.service -f
-
-# Exécuter manuellement
-sudo /usr/bin/cicada-heartbeat
+sudo journalctl -u cicada-heartbeat.service
+sudo /usr/bin/cicada-heartbeat          # l'exécuter maintenant
 ```
 
-## Tests de déploiement
+---
 
-Des scripts de test sont disponibles dans `packaging/` pour valider l'installation et la mise à jour avant un déploiement en production.
-
-| Test | Environnement | Durée | Usage |
-|------|--------------|-------|-------|
-| Tests Docker (5 scripts) | Conteneur Docker | 30s - 10 min | Développement courant |
-| **Test VM (Multipass)** | VM Ubuntu réelle | 10 - 20 min | **Avant une release** |
-
-Les tests Docker vérifient l'installation des fichiers et services, mais ne peuvent pas tester le vrai flux d'upgrade (pas de systemd). Le test VM (Multipass) teste le flux complet : installation v1 → upgrade v2, avec systemd et Docker réels.
-
-### Quand lancer ces tests
-
-- **Tests Docker** : pendant le développement, pour vérifier que les fichiers du package sont corrects
-- **Test VM** : **avant chaque publication d'un nouveau package `.deb`** (release). C'est le seul test qui valide le flux d'upgrade complet en conditions réelles.
-
-### Pourquoi ces tests ne sont pas en CI (GitHub Actions)
-
-1. **Hyperviseur requis** : le test VM utilise Multipass (KVM/QEMU), incompatible avec les runners GitHub Actions
-2. **Durée** : 10-20 min par exécution, trop long pour un pipeline déclenché à chaque push
-3. **Fréquence** : le packaging ne change qu'à chaque release, pas à chaque commit
-
-Les tests applicatifs (pytest, Jest, Playwright) qui valident les migrations, les nomenclatures et la logique métier tournent déjà en CI à chaque push.
-
-### Lancer le test d'upgrade
+## 10. Désinstaller
 
 ```bash
-# Prérequis (une seule fois)
-sudo snap install multipass
-
-cd packaging
-
-# Test complet (adapter les versions à la release en cours)
-./test-upgrade-vm.sh --from 0.1.14 --to 0.1.15
-
-# Relancer rapidement (réutilise la VM existante)
-./test-upgrade-vm.sh --skip-install --from 0.1.14 --to 0.1.15
-
-# Nettoyer après les tests
-./test-upgrade-vm.sh --cleanup
+sudo apt remove cicada     # arrête et supprime les conteneurs ; garde les données
+sudo apt purge cicada      # idem, et retire en plus la configuration du paquet
 ```
 
-Pour le détail complet des tests disponibles, voir [`packaging/TESTING.md`](../packaging/TESTING.md).
+Ni l'un ni l'autre ne supprime **les données** : volumes Docker (base, fichiers déposés), `/var/lib/cicada/.env` et l'identité de l'instance (`/etc/cicada/instance_token`). Une réinstallation reprend donc l'instance existante — c'est voulu.
+
+Pour **tout** effacer, définitivement (après une [sauvegarde](#7-sauvegarder-et-restaurer) si besoin) :
+
+```bash
+sudo apt purge cicada
+sudo docker volume rm cicada_postgres_data cicada_media_files cicada_static_files cicada_redis_data cicada_traefik_letsencrypt 2>/dev/null
+sudo rm -rf /var/lib/cicada /etc/cicada
+```
+
+---
+
+## 11. Ce qu'il ne faut jamais faire
+
+- **`docker compose down -v`**, `docker volume prune`, `docker system prune --volumes` : le `-v` et les `prune` suppriment les volumes, c'est-à-dire **la base de données** (base dans Docker) et **tous les documents déposés**. `down` sans `-v` est sans danger.
+- **`seed_testdata`** en production : il injecte de faux utilisateurs, plans et sites, et son option `--reset` supprime des données.
+- **Modifier ou supprimer des fichiers de migration** : la base deviendrait incohérente.
+- **Supprimer `cicada_traefik_letsencrypt`** (mode Traefik) : les certificats seraient redemandés, et Let's Encrypt limite le nombre de demandes.
+
+---
 
 ## Support
 
-Pour toute question ou problème, consultez :
-- La documentation : https://github.com/RNF-SI/Cicada
-- Les issues GitHub : https://github.com/RNF-SI/Cicada/issues
+Questions et signalements : https://github.com/RNF-SI/Cicada/issues
