@@ -12,7 +12,6 @@
 import { test, expect } from '../../fixtures/auth.fixture';
 import {
   findPlan,
-  findValidatedPlan,
   findFirstMetrique,
   apiGet,
   apiPost,
@@ -48,6 +47,41 @@ async function createSuiviOperation(page: any, planId: number) {
     throw new Error(`Failed to create suivi operation (status ${status}): ${JSON.stringify(data)}`);
   }
   return data; // OperationSerializer : inclut operation_annees (avec id_operation_annee)
+}
+
+/**
+ * #720 — plan « Ventilation validée — <mode> » du jeu d'essai (seeder
+ * `ventilation_plans`) : validé, donc saisie du suivi ouverte, et programmé de
+ * façon identique dans chaque mode. Cibler ce plan par son nom rend les tests
+ * indépendants de « dernier plan validé modifié », qui change avec le seed.
+ */
+async function findVentilationValidee(page: any, libelleMode: string) {
+  const nom = `Ventilation validée — ${libelleMode}`;
+  const { data } = await apiGet(page, 'plans/plans/', { search: 'Ventilation validée', page_size: '50' });
+  const plan = (data.results || data).find((p: any) => p.nom === nom);
+  expect(plan, `plan « ${nom} » absent : relancer seed_testdata`).toBeTruthy();
+  expect(plan.statut).toBe('valide');
+  return plan;
+}
+
+/** Détail d'une action du plan, retrouvée par la fin de son code (« -CS1 »…). */
+async function findOperationByCode(page: any, planId: number, codeSuffix: string) {
+  const { data } = await apiGet(page, `plans/operations/by-plan/${planId}/`);
+  for (const group of data.groups || []) {
+    for (const o of group.operations || []) {
+      if (o.code_operation?.endsWith(codeSuffix)) {
+        const { data: detail } = await apiGet(page, `plans/operations/${o.id_operation}/`);
+        return detail;
+      }
+    }
+  }
+  throw new Error(`Action *${codeSuffix} introuvable sur le plan ${planId}`);
+}
+
+/** Cellule de l'année affichée (colonne active) d'une ligne du tableau, par libellé. */
+function activeCell(page: any, scope: any, libelle: string) {
+  return scope.locator('tr', { has: page.locator('td.col-field', { hasText: libelle }) })
+    .locator('td.active');
 }
 
 // ─── Tests ───────────────────────────────────────────────────────
@@ -111,23 +145,9 @@ test.describe('Suivi - Saisie page', () => {
     // (le formulaire est verrouillé en lecture seule sur un brouillon). On cible
     // donc une opération seedée d'un plan validé (pas de création possible non
     // plus sur un plan validé, #248).
-    const plan = await findValidatedPlan(referentPage);
-    const { data } = await apiGet(referentPage, `plans/operations/by-plan/${plan.id_pg}/`);
-    let op: any = null;
-    for (const group of data.groups || []) {
-      for (const o of group.operations || []) {
-        const { data: detail } = await apiGet(referentPage, `plans/operations/${o.id_operation}/`);
-        if (detail.ventilation_mode === 'none' && detail.operation_annees?.length) {
-          op = detail;
-          break;
-        }
-      }
-      if (op) break;
-    }
-    if (!op) {
-      test.skip(true, 'No "none" ventilation operation on a validated plan');
-      return;
-    }
+    const plan = await findVentilationValidee(referentPage, 'aucune ventilation');
+    const op = await findOperationByCode(referentPage, plan.id_pg, '-CS1');
+    expect(op.ventilation_mode).toBe('none');
     const oa = op.operation_annees[0];
 
     const commentaires = 'textarea[formcontrolname="commentaires"]';
@@ -163,36 +183,52 @@ test.describe('Suivi - Saisie page', () => {
   });
 
   test('renders per-organisme sub-tables for by_org_type operations', async ({ referentPage }) => {
-    const plan = await findPlan(referentPage, 'Camargue');
-    // Trouver une op ventilée par organisme
-    const { data } = await apiGet(referentPage, `plans/operations/by-plan/${plan.id_pg}/`);
-    let opVentilated: any = null;
-    for (const group of data.groups || []) {
-      for (const op of group.operations || []) {
-        const { data: detail } = await apiGet(referentPage, `plans/operations/${op.id_operation}/`);
-        if (detail.ventilation_mode === 'by_org_type' && detail.operation_annees?.some((o: any) => o.organismes?.length)) {
-          opVentilated = detail;
-          break;
-        }
-      }
-      if (opVentilated) break;
-    }
-    if (!opVentilated) test.skip(true, 'No by_org_type operation in seed data');
+    const plan = await findVentilationValidee(referentPage, 'par organisme et type de budget');
+    const opVentilated = await findOperationByCode(referentPage, plan.id_pg, '-CS1');
+    expect(opVentilated.ventilation_mode).toBe('by_org_type');
 
     const oa = opVentilated.operation_annees.find((o: any) => o.organismes?.length);
     await referentPage.goto(
       `/plans/${plan.slug}/suivi-actions/saisie/${opVentilated.id_operation}/${oa.annee}`,
     );
 
-    // Un .org-block par organisme + un total
-    const blocks = referentPage.locator('.org-block');
-    await blocks.first().waitFor({ state: 'visible' });
-    const count = await blocks.count();
-    expect(count).toBeGreaterThanOrEqual(oa.organismes.length + 1); // orgs + TOTAL
-    await expect(referentPage.locator('.org-block.total-block .org-title.total')).toBeVisible();
+    // Une ligne d'en-tête par organisme + une ligne TOTAL (tableau de réalisation).
+    // Ce test visait l'ancien gabarit `.org-block` et passait inaperçu : il
+    // était toujours ignoré faute d'action « by_org_type » sur le plan Camargue.
+    const total = referentPage.locator('tr.total-header-row');
+    await expect(total).toBeVisible({ timeout: 15000 });
+    await expect(referentPage.locator('tr.org-header-row:not(.total-header-row)'))
+      .toHaveCount(oa.organismes.length);
 
     // Investissement présent (mode by_org_type)
     await expect(referentPage.getByText(/Budget investissement/i).first()).toBeVisible();
+  });
+
+  test('#720 — ventilation maximale : la saisie reprend la programmation de la fiche action', async ({ referentPage }) => {
+    // Action CS du plan validé « par organisme, type de budget et type de
+    // poste », coût salarial SAISI (#600). Programmation par an (seeder) :
+    //   organisme principal : salarial 1 500 (5 j × 300) + prestataire 2 500 + autres 800 = 4 800
+    //   organisme secondaire : salarial 1 600 (20 j × 80) + stage 1 200            = 2 800
+    // Suivi de l'année − 1 saisi à 55 % : jours et coûts réalisés × 0,55
+    //   principal 825 + 1 375 + 440 = 2 640 ; secondaire 880 + 660 = 1 540.
+    const plan = await findVentilationValidee(referentPage, 'par organisme, type de budget et type de poste');
+    const op = await findOperationByCode(referentPage, plan.id_pg, '-CS1');
+    expect(op.ventilation_mode).toBe('by_org_type_poste');
+    expect(op.cout_salarial_auto).toBe(false);
+
+    const annee = new Date().getFullYear() - 1;
+    await referentPage.goto(`/plans/${plan.slug}/suivi-actions/saisie/${op.id_operation}/${annee}`);
+    const prevu = activeCell(referentPage, referentPage, 'Budget total prévu (€)');
+    await expect(prevu).toHaveText(/^7\s600\s€$/, { timeout: 15000 });
+    await expect(activeCell(referentPage, referentPage, 'Budget total réalisé (€)')).toHaveText(/^4\s180\s€$/);
+
+    // Même chose organisme par organisme (ordre des organismes indifférent).
+    const ogPrev = (await activeCell(referentPage, referentPage, 'Budget total OG prévu (€)').allTextContents())
+      .map(t => t.replace(/\s/g, ''));
+    expect(ogPrev.sort()).toEqual(['2800€', '4800€']);
+    const ogReal = (await activeCell(referentPage, referentPage, 'Budget total OG réalisé (€)').allTextContents())
+      .map(t => t.replace(/\s/g, ''));
+    expect(ogReal.sort()).toEqual(['1540€', '2640€']);
   });
 
   test('clicking a year cell in suivi-actions navigates to saisie', async ({ referentPage }) => {

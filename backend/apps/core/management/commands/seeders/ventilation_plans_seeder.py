@@ -49,10 +49,18 @@ n'aurait rien à montrer dans la section « Protocole & objectifs ».
 
 Années : ``année courante − 2`` → ``année courante + 2``, pour avoir toujours du
 réalisé (2 années passées), l'année en cours et du prévisionnel pur.
+
+#720 — chaque plan existe aussi en version **validée** (« Ventilation validée —
+… »), même contenu, pour recetter le passage de la fiche action à la saisie du
+suivi : la programmation y est figée (verrou #248) et le suivi est **en cours de
+saisie** — année courante − 2 complète, suivi de l'animation de l'année − 1 à
+saisir, année en cours entamée sur la seule action CS (cf. ``_VARIANTES``).
 """
 from datetime import date
 from decimal import Decimal
 from typing import Dict, List
+
+from django.db.models import Q
 
 from apps.core.models import Nomenclature
 from apps.plans.models import PlanGestion, CorSitePg, CorRolePlan
@@ -98,6 +106,23 @@ _MODES = [
 ]
 
 _PLAN_PREFIX = 'Ventilation — '
+_PLAN_PREFIX_VALIDE = 'Ventilation validée — '
+
+# #720 — chaque mode existe en deux exemplaires au contenu identique :
+# - le brouillon, pour modifier la fiche action (programmation) ;
+# - le plan validé (programmation figée, verrou #248), dont le suivi est EN COURS
+#   DE SAISIE : c'est là que se recette le passage de la fiche action à la saisie
+#   du suivi. `suivi` = actions déjà saisies, par ancienneté de l'année
+#   (2 = année courante − 2, 0 = année courante) ; `None` = tout est saisi.
+# (préfixe du nom, statut, segment de code des actions, suivi saisi)
+_VARIANTES = [
+    (_PLAN_PREFIX, 'draft', '', None),
+    (_PLAN_PREFIX_VALIDE, 'valide', 'VAL-', {
+        2: {'CS1', 'IP1', 'PA1'},  # année close : tout est saisi
+        1: {'CS1', 'IP1'},         # le suivi de l'animation reste à saisir
+        0: {'CS1'},                # année en cours : seul le suivi des habitats est entamé
+    }),
+]
 
 # Mode dont les actions saisissent le coût salarial à la main (#600) plutôt que
 # de le laisser calculer depuis les jours × coût jour. Sert de support de recette
@@ -387,27 +412,28 @@ class VentilationPlansSeeder(BaseSeeder):
 
         plans: List[PlanGestion] = []
         nb_ops = 0
-        for mode, libelle_mode, code_suffix in _MODES:
-            plan = self._create_plan(
-                libelle_mode, site, admin, users,
-                annee_debut, annee_fin, nomenclatures,
-            )
-            postes = self._create_postes(plan, org_map)
-            metrique = self._create_arborescence(plan, admin, years, nomenclatures)
-            for action in _ACTIONS:
-                op = self._create_operation(
-                    plan, action, code_suffix, site, metrique, admin,
-                    years, nomenclatures,
+        for prefixe, statut, code_variante, suivi_saisi in _VARIANTES:
+            for mode, libelle_mode, code_suffix in _MODES:
+                plan = self._create_plan(
+                    prefixe, statut, libelle_mode, site, admin, users,
+                    annee_debut, annee_fin, nomenclatures,
                 )
-                self._program_operation(
-                    op, action, mode, postes, org_map, years, current_year,
-                    admin, nomenclatures,
-                )
-                nb_ops += 1
-            plans.append(plan)
-            self.log_item('plan', f'{plan.nom} ({len(_ACTIONS)} actions, {len(years)} années)')
+                postes = self._create_postes(plan, org_map)
+                metrique = self._create_arborescence(plan, admin, years, nomenclatures)
+                for action in _ACTIONS:
+                    op = self._create_operation(
+                        plan, prefixe, action, f'{code_variante}{code_suffix}', site,
+                        metrique, admin, years, nomenclatures,
+                    )
+                    self._program_operation(
+                        op, action, mode, postes, org_map, years, current_year,
+                        admin, nomenclatures, suivi_saisi,
+                    )
+                    nb_ops += 1
+                plans.append(plan)
+                self.log_item('plan', f'{plan.nom} ({len(_ACTIONS)} actions, {len(years)} années)')
 
-        self.log_summary(len(plans), 'plans « Ventilation » créés')
+        self.log_summary(len(plans), 'plans « Ventilation » créés (brouillons + validés)')
         self.log_summary(nb_ops, 'actions programmées (budget + RH + suivi)')
         self.context.set('ventilation_plans', plans)
         return {'ventilation_plans': plans}
@@ -464,17 +490,20 @@ class VentilationPlansSeeder(BaseSeeder):
 
     # ------------------------------------------------------------------ plans
 
-    def _create_plan(self, libelle_mode, site, admin, users,
+    def _create_plan(self, prefixe, statut, libelle_mode, site, admin, users,
                      annee_debut, annee_fin, nomenclatures) -> PlanGestion:
-        """Plan en brouillon (donc éditable) porté par le site de démonstration."""
+        """
+        Plan porté par le site de démonstration : en brouillon (fiche action
+        éditable) ou validé (suivi en cours de saisie, #720).
+        """
         plan, _ = PlanGestion.objects.update_or_create(
-            nom=f'{_PLAN_PREFIX}{libelle_mode}',
+            nom=f'{prefixe}{libelle_mode}',
             defaults={
                 'annee_debut': annee_debut,
                 'annee_fin': annee_fin,
                 'rang': 1,
                 'version': '1',
-                'statut': 'draft',
+                'statut': statut,
                 'surface': Decimal(str(site.surf_off)) if site.surf_off else None,
                 'id_type_document': nomenclatures.get('type_doc'),
                 'redacteur_nom': 'Jeu de démonstration CICADA',
@@ -484,6 +513,12 @@ class VentilationPlansSeeder(BaseSeeder):
                     "— … » portent le même contenu (mêmes jours, mêmes coûts) : "
                     "seul le stockage de la donnée budgétaire change, les totaux "
                     "affichés doivent donc être identiques d'un plan à l'autre."
+                    + (
+                        " Plan validé : la programmation est figée et le suivi est "
+                        "en cours de saisie (année en cours entamée, suivi de "
+                        "l'animation de l'an dernier à compléter)."
+                        if statut != 'draft' else ''
+                    )
                 ),
                 'id_utilisateur_ajout': admin,
                 'id_utilisateur_maj': admin,
@@ -579,7 +614,7 @@ class VentilationPlansSeeder(BaseSeeder):
 
     # --------------------------------------------------------------- actions
 
-    def _create_operation(self, plan, action, code_suffix, site, metrique,
+    def _create_operation(self, plan, prefixe, action, code_suffix, site, metrique,
                           admin, years, nomenclatures) -> Operation:
         code = f"{VENTILATION_OP_CODE_PREFIX}{code_suffix}-{action['suffix']}"
         debut, fin = action['annees']
@@ -605,7 +640,7 @@ class VentilationPlansSeeder(BaseSeeder):
         if not op.geom:
             op.geom = make_operation_geom(code, len(code))
             op.save(update_fields=['geom'])
-        self._create_suivi(op, plan, action, admin, nomenclatures)
+        self._create_suivi(op, plan, prefixe, action, admin, nomenclatures)
         CorOperationMetrique.objects.get_or_create(id_operation=op, id_metrique=metrique)
         CorOperationSite.objects.get_or_create(id_operation=op, id_site=site)
         for libelle, categorie in action['finances']:
@@ -615,7 +650,7 @@ class VentilationPlansSeeder(BaseSeeder):
             )
         return op
 
-    def _create_suivi(self, op, plan, action, admin, nomenclatures) -> None:
+    def _create_suivi(self, op, plan, prefixe, action, admin, nomenclatures) -> None:
         """
         #642 — Suivi/inventaire + protocoles de l'action CS.
 
@@ -627,7 +662,7 @@ class VentilationPlansSeeder(BaseSeeder):
             return
         ancien = op.id_suivi
         suivi = SuiviInventaire.objects.create(
-            intitule=f"{config['intitule']} — {plan.nom.replace(_PLAN_PREFIX, '')}",
+            intitule=f"{config['intitule']} — {plan.nom.replace(prefixe, '')}",
             id_pg=plan,
             integre_plan_gestion=True,
             suit_indicateur=True,
@@ -729,7 +764,8 @@ class VentilationPlansSeeder(BaseSeeder):
     # ------------------------------------------------- programmation annuelle
 
     def _program_operation(self, op, action, mode, postes, org_map, years,
-                           current_year, admin, nomenclatures) -> None:
+                           current_year, admin, nomenclatures,
+                           suivi_saisi=None) -> None:
         """Programme l'action année par année selon son mode de ventilation."""
         op.ventilation_mode = mode
         op.declinaison_par_poste = mode in Operation.VENTILATION_POSTE_MODES
@@ -770,10 +806,19 @@ class VentilationPlansSeeder(BaseSeeder):
                 jours_total, org_map, salarial,
             )
             lignes_prev = self._create_rh_lines(oa, action, mode, postes, org_map)
-            self._create_realisation(
-                oa, op, action, mode, year, current_year, lignes_prev,
-                admin, nomenclatures,
-            )
+            anciennete = current_year - year
+            saisi = suivi_saisi is None or action['suffix'] in suivi_saisi.get(anciennete, ())
+            if saisi:
+                self._create_realisation(
+                    oa, op, action, mode, year, current_year, lignes_prev,
+                    admin, nomenclatures,
+                )
+            else:
+                # Suivi pas encore saisi : on efface celui d'un passage précédent.
+                RealisationOperationAnnee.objects.filter(id_operation_annee=oa).delete()
+                RealisationOperationAnneeOrganisme.objects.filter(
+                    id_operation_annee_organisme__id_operation_annee=oa,
+                ).delete()
 
     def _create_annee(self, op, action, mode, year, totaux, total_fonct,
                       total_invest, jours_total, org_map,
@@ -1040,31 +1085,35 @@ class VentilationPlansSeeder(BaseSeeder):
 
     def reset(self) -> int:
         codes = [
-            f"{VENTILATION_OP_CODE_PREFIX}{suffix}-{action['suffix']}"
+            f"{VENTILATION_OP_CODE_PREFIX}{variante}{suffix}-{action['suffix']}"
+            for _prefixe, _statut, variante, _suivi in _VARIANTES
             for _mode, _libelle, suffix in _MODES
             for action in _ACTIONS
         ]
+        prefixes = Q()
+        for prefixe, *_ in _VARIANTES:
+            prefixes |= Q(nom__startswith=prefixe)
+        plans = PlanGestion.objects.filter(prefixes)
         # #642 — les suivis (et leurs protocoles) ne partent pas en cascade avec
         # l'action : c'est l'action qui pointe vers le suivi, pas l'inverse.
-        suivis = SuiviInventaire.objects.filter(
-            id_pg__nom__startswith=_PLAN_PREFIX,
-        )
+        suivis = SuiviInventaire.objects.filter(id_pg__in=plans)
         count = Protocole.objects.filter(suivis__in=suivis).delete()[0]
         count += suivis.delete()[0]
         count += Operation.objects.filter(code_operation__in=codes).delete()[0]
-        count += PlanGestion.objects.filter(nom__startswith=_PLAN_PREFIX).delete()[0]
+        count += plans.delete()[0]
         return count
 
     def get_dry_run_summary(self) -> List[str]:
         return [
             '\nPlans « Ventilation » (1 par mode de ventilation) :',
-            f'  - {len(_MODES)} plans en brouillon sur le site {_SITE_KEYWORD}, '
+            f'  - {len(_MODES)} plans en brouillon + {len(_MODES)} plans validés '
+            f'(suivi en cours de saisie, #720) sur le site {_SITE_KEYWORD}, '
             "années : année courante −2 → +2",
-            f'  - {len(_MODES)} × 1 enjeu → OLT → NE → indicateur → métrique',
-            f'  - {len(_MODES) * len(_ACTIONS)} actions programmées '
+            f'  - {len(_MODES) * len(_VARIANTES)} × 1 enjeu → OLT → NE → indicateur → métrique',
+            f'  - {len(_MODES) * len(_VARIANTES) * len(_ACTIONS)} actions programmées '
             '(budget, temps de travail, suivi de réalisation)',
-            f'  - {len(_MODES) * len(_POSTES)} postes (dont bénévoles et prestataire)',
-            f'  - {len(_MODES)} suivis + {len(_MODES) * 2} protocoles '
+            f'  - {len(_MODES) * len(_VARIANTES) * len(_POSTES)} postes (dont bénévoles et prestataire)',
+            f'  - {len(_MODES) * len(_VARIANTES)} suivis + {len(_MODES) * len(_VARIANTES) * 2} protocoles '
             '(action CS, pour la fiche action et son export — #642)',
             f'  - coût salarial saisi à la main sur le plan « {_MODE_SALAIRE_MANUEL} » '
             '(reprise du paramétrage de ventilation — #641)',
