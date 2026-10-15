@@ -90,17 +90,31 @@ else
     die "PostGIS n'est pas installé pour ce PostgreSQL" "Installez-le : sudo apt install postgresql-${MAJOR}-postgis-3"
 fi
 
+# Un compte dont le mot de passe vient d'être généré, puis un échec plus loin :
+# sans ce rappel, le mot de passe n'est affiché nulle part et une relance (sans
+# --password) le garde — personne ne le connaît plus.
+TMP_SQL=""
+a_la_sortie() {
+    local code=$?
+    [ -n "$TMP_SQL" ] && rm -f "$TMP_SQL"
+    if [ "$code" -ne 0 ] && [ "${PASSWORD_APPLIED:-false}" = true ] && [ "${PASSWORD_GENERATED:-false}" = true ]; then
+        echo -e "\n${YELLOW}!${NC} Le compte « $DB_USER » a déjà reçu ce mot de passe : ${BLUE}$DB_PASSWORD${NC}"
+        echo    "  Notez-le, corrigez l'erreur ci-dessus, puis relancez avec --password <ce mot de passe>."
+    fi
+}
+trap a_la_sortie EXIT
+
 # init.sql : fourni par l'installateur (variable INIT_SQL_CONTENT en tête du
 # script téléchargé), passé en option, ou celui du paquet cicada.
-TMP_SQL=""
-if [ -z "$INIT_SQL" ] && [ -n "${INIT_SQL_CONTENT:-}" ]; then
-    TMP_SQL="$(mktemp)"; printf '%s\n' "$INIT_SQL_CONTENT" > "$TMP_SQL"; INIT_SQL="$TMP_SQL"
-fi
-[ -n "$INIT_SQL" ] || INIT_SQL="/usr/share/cicada/docker/postgres/init.sql"
-[ -f "$INIT_SQL" ] || die "init.sql introuvable : $INIT_SQL" \
+[ -n "$INIT_SQL" ] || [ -n "${INIT_SQL_CONTENT:-}" ] || INIT_SQL="/usr/share/cicada/docker/postgres/init.sql"
+[ -z "$INIT_SQL" ] || [ -f "$INIT_SQL" ] || die "init.sql introuvable : $INIT_SQL" \
     "Récupérez le script depuis l'installateur de CICADA (init.sql inclus) :\n  curl -fsSL http://<serveur-cicada>:4567/prepare-db.sh | sudo bash -s -- --client <ip-cicada>"
-chmod 644 "$INIT_SQL"
-trap '[ -n "$TMP_SQL" ] && rm -f "$TMP_SQL"' EXIT
+# Il est joué en tant que « postgres » : on lui en donne une copie lisible, le
+# fichier fourni pouvant être dans un dossier qui lui est fermé (/root).
+TMP_SQL="$(mktemp)"
+if [ -n "$INIT_SQL" ]; then cp "$INIT_SQL" "$TMP_SQL"; else printf '%s\n' "$INIT_SQL_CONTENT" > "$TMP_SQL"; fi
+chmod 644 "$TMP_SQL"
+INIT_SQL="$TMP_SQL"
 
 LISTEN="$(pg -c 'show listen_addresses')"
 if [ ${#CLIENTS[@]} -gt 0 ] && { [ "$LISTEN" = "localhost" ] || [ "$LISTEN" = "127.0.0.1" ] || [ -z "$LISTEN" ]; }; then
@@ -125,6 +139,7 @@ else
 SELECT format('CREATE ROLE %I LOGIN', :'u') WHERE NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = :'u') \gexec
 SELECT format('ALTER ROLE %I WITH LOGIN PASSWORD %L', :'u', :'p') \gexec
 SQL
+    PASSWORD_APPLIED=true
     ok "Compte « $DB_USER » (mot de passe défini)"
 fi
 
@@ -196,7 +211,7 @@ else
     warn "Connexion locale (127.0.0.1) refusée par pg_hba.conf : normal si seules les machines distantes sont autorisées"
 fi
 
-ADDRS="$(hostname -I 2>/dev/null | xargs | sed 's/ /, /g')"
+ADDRS="$( (hostname -I 2>/dev/null || true) | xargs | sed 's/ /, /g')"
 echo -e "\n${GREEN}========================================${NC}"
 echo -e "${GREEN}  PostgreSQL est prêt pour CICADA${NC}"
 echo -e "${GREEN}========================================${NC}\n"
