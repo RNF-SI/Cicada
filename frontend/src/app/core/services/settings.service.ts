@@ -16,6 +16,10 @@ export interface SiteConfiguration {
   structure_logo: string | null;
   /** #448 — URL relative du logo de la structure. */
   structure_logo_url: string | null;
+  /** #710 — Titre de la page d'accueil (visiteur). Vide = texte CICADA par défaut. */
+  accueil_titre: string;
+  /** #710 — Sous-titre de la page d'accueil (visiteur). Vide = texte par défaut. */
+  accueil_sous_titre: string;
   /**
    * #458 — Paramètre d'instance : affiche le champ ID Doc'Gestion FCEN dans les
    * formulaires de plan. Désactivé par défaut (n'a de sens que sur l'instance FCEN).
@@ -158,6 +162,8 @@ export class SettingsService {
           export_color: this.defaultExportColor,
           structure_logo: null,
           structure_logo_url: null,
+          accueil_titre: '',
+          accueil_sous_titre: '',
           enable_docgestion_fcen: false,
           federation_partage: false,
           api_publique_plans: false,

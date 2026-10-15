@@ -301,6 +301,21 @@ $corner-size: 94px;
   }
 }
 
+.guest-hero__heading {
+  display: flex;
+  align-items: center;
+  gap: $spacing-lg;
+}
+
+// #710 — Logo de la structure qui déploie l'instance, à gauche du titre.
+.guest-hero__structure-logo {
+  flex-shrink: 0;
+  max-height: 96px;
+  max-width: 160px;
+  width: auto;
+  object-fit: contain;
+}
+
 .guest-hero__title {
   font-family: $font-family;
   font-size: 39px;
@@ -550,6 +565,16 @@ $corner-size: 94px;
 }
 
 @media (max-width: 576px) {
+  .guest-hero__heading {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: $spacing-md;
+  }
+
+  .guest-hero__structure-logo {
+    max-height: 64px;
+  }
+
   .guest-hero__logo {
     .cicada-logo {
       height: 40px;

@@ -348,6 +348,24 @@ class SiteConfiguration(models.Model):
         blank=True,
         help_text=_('Logo de la structure affiché en haut à gauche du bandeau')
     )
+    # #710 — Textes de la page d'accueil (visiteur non connecté), propres à
+    # l'instance. Vides par défaut : le frontend affiche alors les textes
+    # CICADA (fr.json), si bien qu'une mise à jour des textes par défaut
+    # profite à toute instance qui ne les a pas personnalisés.
+    accueil_titre = models.CharField(
+        _("Titre de la page d'accueil"),
+        max_length=300,
+        blank=True,
+        default='',
+        help_text=_("Titre affiché aux visiteurs non connectés. Vide = texte CICADA par défaut.")
+    )
+    accueil_sous_titre = models.CharField(
+        _("Sous-titre de la page d'accueil"),
+        max_length=500,
+        blank=True,
+        default='',
+        help_text=_("Sous-titre affiché aux visiteurs non connectés. Vide = texte CICADA par défaut.")
+    )
     # #601 — Les classeurs et documents exportés portent les couleurs de CICADA.
     # Chaque structure qui déploie son instance doit pouvoir y mettre les
     # siennes. Une seule couleur suffit : c'est celle des bandeaux, des titres

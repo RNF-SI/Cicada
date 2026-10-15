@@ -6,6 +6,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { TranslateModule } from '@ngx-translate/core';
 import { AuthService } from '../../core/services/auth.service';
+import { SettingsService } from '../../core/services/settings.service';
 import { LoginMode, LoginModeCode } from '../../core/models/user.model';
 import { FormFieldComponent } from '../../shared/components/form-field/form-field.component';
 
@@ -29,11 +30,14 @@ export class LoginComponent {
   private readonly authService = inject(AuthService);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
+  private readonly settingsService = inject(SettingsService);
 
   loginForm: FormGroup;
   hidePassword = signal(true);
   errorMessage = signal<string | null>(null);
   isLoading = this.authService.isLoading;
+  /** #710 — Logo de la structure (paramètres de l'instance, chargés par AppComponent). */
+  readonly structureLogoUrl = computed(() => this.settingsService.getStructureLogoUrl());
 
   /** #689 — mode de connexion imposé par l'instance (un seul à la fois). */
   loginMode = signal<LoginMode>({ mode: 'local' });

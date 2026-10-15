@@ -166,6 +166,40 @@
           </div>
         </section>
 
+        <!-- #710 — Textes de la page d'accueil (visiteur non connecté) -->
+        <section class="settings-section">
+          <div class="section-header">
+            <h2 class="section-title">
+              <i class="fi fi-rr-text"></i>
+              {{ 'admin.settings.textesAccueil.title' | translate }}
+            </h2>
+            <p class="section-description">{{ 'admin.settings.textesAccueil.description' | translate }}</p>
+          </div>
+
+          <div class="accueil-fields">
+            <app-form-field
+              [label]="'admin.settings.textesAccueil.titre' | translate"
+              [helpText]="'admin.settings.textesAccueil.videParDefaut' | translate">
+              <textarea rows="2" maxlength="300" data-testid="settings-accueil-titre"
+                        [ngModel]="accueilTitre()" (ngModelChange)="accueilTitre.set($event)"
+                        [placeholder]="'home.guest.title' | translate" [disabled]="isSaving()"></textarea>
+            </app-form-field>
+            <app-form-field
+              [label]="'admin.settings.textesAccueil.sousTitre' | translate"
+              [helpText]="'admin.settings.textesAccueil.videParDefaut' | translate">
+              <textarea rows="3" maxlength="500" data-testid="settings-accueil-sous-titre"
+                        [ngModel]="accueilSousTitre()" (ngModelChange)="accueilSousTitre.set($event)"
+                        [placeholder]="'home.guest.subtitle' | translate" [disabled]="isSaving()"></textarea>
+            </app-form-field>
+          </div>
+
+          <div class="banner-actions">
+            <button mat-flat-button color="primary" (click)="saveTextesAccueil()" [disabled]="isSaving()">
+              <i class="fi fi-rr-check"></i> {{ 'common.actions.save' | translate }}
+            </button>
+          </div>
+        </section>
+
         <!-- #448 — Couleur du bandeau -->
         <section class="settings-section">
           <div class="section-header">

@@ -126,6 +126,7 @@
       "hidePassword": "Masquer le mot de passe",
       "noAccount": "Pas encore inscrit ?",
       "createAccount": "Créer un compte",
+      "structureLogoAlt": "Logo de la structure",
       "backToHome": "Retour à l'accueil",
       "forgotPassword": "Mot de passe oublié ?",
       "modes": {
@@ -762,9 +763,16 @@
         "preview": "Titre d'un export",
         "previewBanner": "Bandeau d'un export"
       },
+      "textesAccueil": {
+        "title": "Textes de la page d'accueil",
+        "description": "Titre et sous-titre présentés aux visiteurs non connectés.",
+        "titre": "Titre",
+        "sousTitre": "Sous-titre",
+        "videParDefaut": "Laisser vide pour afficher le texte CICADA par défaut."
+      },
       "logo": {
         "title": "Logo de la structure",
-        "description": "Logo affiché en haut à gauche du bandeau. Format image (PNG/SVG), 5 Mo max.",
+        "description": "Logo affiché en haut à gauche du bandeau, à gauche du titre de la page d'accueil et sur la page de connexion. Format image (PNG/SVG), 5 Mo max.",
         "upload": "Changer le logo",
         "remove": "Retirer le logo",
         "none": "Aucun logo"

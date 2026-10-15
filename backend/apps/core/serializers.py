@@ -49,6 +49,9 @@ class SiteConfigurationSerializer(serializers.ModelSerializer):
             'export_color',
             'structure_logo',
             'structure_logo_url',
+            # #710 — Textes de la page d'accueil (vides = textes par défaut).
+            'accueil_titre',
+            'accueil_sous_titre',
             'enable_docgestion_fcen',
             # #636 — Participation à l'exploration fédérée.
             'federation_partage',
@@ -116,6 +119,9 @@ class SiteConfigurationUpdateSerializer(serializers.ModelSerializer):
             # #601 — couleur des exports, propre à la structure qui déploie.
             'export_color',
             'structure_logo',
+            # #710 — Textes de la page d'accueil.
+            'accueil_titre',
+            'accueil_sous_titre',
             # #458 — Paramètre d'instance : affichage du champ ID Doc'Gestion FCEN.
             'enable_docgestion_fcen',
             # #636 — Engagement de partage de la structure, pas réglage technique.

@@ -19,11 +19,17 @@
             <img src="assets/images/logo-cicada-2026.svg" alt="CICADA" class="cicada-logo" />
           </div>
 
-          <!-- Main Title -->
-          <h1 class="guest-hero__title">{{ 'home.guest.title' | translate }}</h1>
+          <!-- Main Title — #710 : logo de la structure à gauche, textes personnalisables -->
+          <div class="guest-hero__heading">
+            @if (structureLogoUrl()) {
+              <img [src]="structureLogoUrl()" [alt]="'home.guest.structureLogoAlt' | translate"
+                   class="guest-hero__structure-logo" data-testid="home-structure-logo" />
+            }
+            <h1 class="guest-hero__title" data-testid="home-guest-title">{{ accueilTitre() || ('home.guest.title' | translate) }}</h1>
+          </div>
 
           <!-- Subtitle -->
-          <p class="guest-hero__subtitle">{{ 'home.guest.subtitle' | translate }}</p>
+          <p class="guest-hero__subtitle" data-testid="home-guest-subtitle">{{ accueilSousTitre() || ('home.guest.subtitle' | translate) }}</p>
 
           <!-- CTA Buttons (revue design #305 : Se connecter en bouton secondaire avec icône) -->
           <div class="guest-hero__actions">

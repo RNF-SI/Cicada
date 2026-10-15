@@ -1,7 +1,14 @@
 <div class="login-page">
   <div class="login-container">
     <div class="login-header">
-      <img src="assets/images/logo-cicada-2026.svg" alt="CICADA" class="logo">
+      <!-- #710 — Logo de la structure qui déploie l'instance, à côté de celui de CICADA -->
+      <div class="logos">
+        @if (structureLogoUrl()) {
+          <img [src]="structureLogoUrl()" [alt]="'home.guest.structureLogoAlt' | translate"
+               class="logo logo--structure" data-testid="login-structure-logo">
+        }
+        <img src="assets/images/logo-cicada-2026.svg" alt="CICADA" class="logo">
+      </div>
       <h1>{{ 'auth.login.title' | translate }}</h1>
       <p class="subtitle">{{ 'auth.login.subtitle' | translate }}</p>
     </div>

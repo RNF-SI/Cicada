@@ -117,6 +117,10 @@ export class AdminSettingsComponent implements OnInit {
    */
   readonly exportColor = signal<string>('#025359');
 
+  /** #710 — Textes de la page d'accueil ; vides = textes CICADA par défaut. */
+  readonly accueilTitre = signal<string>('');
+  readonly accueilSousTitre = signal<string>('');
+
   readonly logoPreview = signal<string | null>(null);
   readonly selectedLogo = signal<File | null>(null);
 
@@ -133,6 +137,8 @@ export class AdminSettingsComponent implements OnInit {
       if (config?.export_color) {
         this.exportColor.set(config.export_color);
       }
+      this.accueilTitre.set(config?.accueil_titre ?? '');
+      this.accueilSousTitre.set(config?.accueil_sous_titre ?? '');
       // #458 — Paramètre d'instance : champ ID Doc'Gestion FCEN.
       this.docGestionFcenEnabled.set(config?.enable_docgestion_fcen === true);
       // #636 — L'absence de valeur ne vaut pas consentement.
@@ -490,6 +496,32 @@ export class AdminSettingsComponent implements OnInit {
         this.isSaving.set(false);
         // Rétablir l'état précédent : la sauvegarde a échoué.
         this.docGestionFcenEnabled.set(!enabled);
+        this.snackBar.open(
+          this.translate.instant('admin.settings.messages.error'),
+          this.translate.instant('common.actions.close'),
+          { duration: 3000 }
+        );
+      }
+    });
+  }
+
+  /** #710 — Un champ vidé rétablit le texte par défaut. */
+  saveTextesAccueil(): void {
+    this.isSaving.set(true);
+    const formData = new FormData();
+    formData.append('accueil_titre', this.accueilTitre().trim());
+    formData.append('accueil_sous_titre', this.accueilSousTitre().trim());
+    this.settingsService.updateSettings(formData).subscribe({
+      next: () => {
+        this.isSaving.set(false);
+        this.snackBar.open(
+          this.translate.instant('admin.settings.messages.saved'),
+          this.translate.instant('common.actions.close'),
+          { duration: 3000 }
+        );
+      },
+      error: () => {
+        this.isSaving.set(false);
         this.snackBar.open(
           this.translate.instant('admin.settings.messages.error'),
           this.translate.instant('common.actions.close'),

@@ -58,6 +58,8 @@ describe('AdminSettingsComponent', () => {
     export_color: '#025359',
     structure_logo: null,
     structure_logo_url: null,
+    accueil_titre: '',
+    accueil_sous_titre: '',
     enable_docgestion_fcen: false,
     federation_partage: false,
     api_publique_plans: false,
@@ -613,6 +615,28 @@ describe('AdminSettingsComponent', () => {
         [],
         expect.objectContaining({ queryParams: { onglet: 'fonctionnalites' } }),
       );
+    });
+  });
+  describe('Textes de la page d\'accueil (#710)', () => {
+    it('reprend les textes enregistrés', () => {
+      configSignal.set({ ...mockConfig, accueil_titre: 'Portail CEN', accueil_sous_titre: 'Bienvenue' });
+      fixture.detectChanges();
+
+      expect(component.accueilTitre()).toBe('Portail CEN');
+      expect(component.accueilSousTitre()).toBe('Bienvenue');
+    });
+
+    it('enregistre les textes, rognés (vide = texte par défaut)', () => {
+      fixture.detectChanges();
+      component.accueilTitre.set('  Portail CEN  ');
+      component.accueilSousTitre.set('   ');
+
+      component.saveTextesAccueil();
+
+      const formData = (mockSettingsService.updateSettings as jest.Mock).mock.calls[0][0] as FormData;
+      expect(formData.get('accueil_titre')).toBe('Portail CEN');
+      expect(formData.get('accueil_sous_titre')).toBe('');
+      expect(mockSnackBar.open).toHaveBeenCalled();
     });
   });
 });

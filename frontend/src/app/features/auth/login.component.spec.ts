@@ -8,6 +8,7 @@ import { of, throwError } from 'rxjs';
 import { LoginComponent } from './login.component';
 import { LoginMode } from '../../core/models/user.model';
 import { AuthService } from '../../core/services/auth.service';
+import { SettingsService } from '../../core/services/settings.service';
 
 // Dummy component for routes
 @Component({ template: '' })
@@ -33,6 +34,8 @@ describe('LoginComponent', () => {
 
   let loginMock: jest.Mock;
   let isLoadingSignal: WritableSignal<boolean>;
+  /** #710 — Logo de la structure renvoyé par les paramètres de l'instance. */
+  const structureLogo = signal<string | null>(null);
 
   const setupTestBed = async (
     returnUrl: string | null = null,
@@ -71,6 +74,7 @@ describe('LoginComponent', () => {
           { path: 'sites/:id', component: DummyComponent }
         ]),
         { provide: AuthService, useValue: authServiceMock },
+        { provide: SettingsService, useValue: { getStructureLogoUrl: () => structureLogo() } },
         { provide: ActivatedRoute, useValue: activatedRouteMock }
       ]
     }).compileComponents();
@@ -373,6 +377,27 @@ describe('LoginComponent', () => {
       component.loginForm.patchValue({ username: 'cdupont', password: 'secret' });
       component.onSubmit();
       expect(loginMock).toHaveBeenCalledWith({ username: 'cdupont', password: 'secret' }, 'geonature');
+    });
+  });
+  describe('Logo de la structure (#710)', () => {
+    afterEach(() => structureLogo.set(null));
+
+    it('affiche le logo de la structure à côté de celui de CICADA', async () => {
+      structureLogo.set('/api/settings/structure-logo/?v=logo.png');
+      await setupTestBed();
+
+      const img: HTMLImageElement | null =
+        fixture.nativeElement.querySelector('[data-testid="login-structure-logo"]');
+      expect(img).not.toBeNull();
+      expect(img!.getAttribute('src')).toBe('/api/settings/structure-logo/?v=logo.png');
+      expect(fixture.nativeElement.querySelector('img[alt="CICADA"]')).not.toBeNull();
+    });
+
+    it("n'affiche que le logo CICADA quand l'instance n'a pas de logo", async () => {
+      await setupTestBed();
+
+      expect(fixture.nativeElement.querySelector('[data-testid="login-structure-logo"]')).toBeNull();
+      expect(fixture.nativeElement.querySelector('img[alt="CICADA"]')).not.toBeNull();
     });
   });
 });

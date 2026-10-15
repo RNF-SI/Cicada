@@ -57,6 +57,12 @@ export class HomeComponent implements OnInit {
   // Homepage image (for guest view)
   readonly homepageImage = computed(() => this.settingsService.getHomepageImageUrl());
 
+  /** #710 — Logo de la structure qui déploie l'instance (null si aucun). */
+  readonly structureLogoUrl = computed(() => this.settingsService.getStructureLogoUrl());
+  /** #710 — Textes d'accueil personnalisés ; vides → textes par défaut (fr.json). */
+  readonly accueilTitre = computed(() => this.settingsService.config()?.accueil_titre || '');
+  readonly accueilSousTitre = computed(() => this.settingsService.config()?.accueil_sous_titre || '');
+
   // Homepage image position (top, center, bottom)
   readonly homepageImagePosition = computed(() => {
     const config = this.settingsService.config();

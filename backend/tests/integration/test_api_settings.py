@@ -504,3 +504,43 @@ class TestMatomoInstanceSetting:
 
         assert response.status_code == status.HTTP_403_FORBIDDEN
         assert SiteConfiguration.get_instance().matomo_enabled is False
+
+
+@pytest.mark.django_db
+class TestTextesAccueilInstanceSetting:
+    """#710 — Textes de la page d'accueil, personnalisables par l'instance."""
+
+    def _patch(self, api_client, data, user=None):
+        api_client.force_authenticate(user=user or SuperAdminFactory())
+        return api_client.patch('/api/settings/', data, format='json')
+
+    def test_empty_by_default_and_public(self, api_client):
+        response = api_client.get('/api/settings/')
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data['accueil_titre'] == ''
+        assert response.data['accueil_sous_titre'] == ''
+
+    def test_super_admin_can_customize(self, api_client):
+        response = self._patch(api_client, {
+            'accueil_titre': 'Le portail des réserves du CEN',
+            'accueil_sous_titre': 'Saisissez vos plans de gestion.',
+        })
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data['accueil_titre'] == 'Le portail des réserves du CEN'
+        assert response.data['accueil_sous_titre'] == 'Saisissez vos plans de gestion.'
+
+    def test_blank_restores_default(self, api_client):
+        self._patch(api_client, {'accueil_titre': 'Titre perso'})
+
+        response = self._patch(api_client, {'accueil_titre': '   '})
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data['accueil_titre'] == ''
+
+    def test_admin_organisme_cannot_customize(self, api_client):
+        response = self._patch(api_client, {'accueil_titre': 'X'}, user=AdminOrganismeFactory())
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+        assert SiteConfiguration.get_instance().accueil_titre == ''

@@ -23,11 +23,27 @@
   margin-bottom: $spacing-xl;
 }
 
+.logos {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: $spacing-lg;
+  margin-bottom: $spacing-lg;
+}
+
 .logo {
   // Nouveau logo CICADA 2026 — agrandi pour meilleure visibilité
   height: 64px;
   width: auto;
-  margin-bottom: $spacing-lg;
+}
+
+// #710 — Logo de la structure : hauteur bornée, largeur libre (logos horizontaux).
+.logo--structure {
+  height: auto;
+  max-height: 64px;
+  max-width: 160px;
+  object-fit: contain;
 }
 
 h1 {

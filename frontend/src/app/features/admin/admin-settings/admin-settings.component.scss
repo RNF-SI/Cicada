@@ -448,6 +448,13 @@
 }
 
 // #670 — Mesure d'audience Matomo : serveur + identifiant de site côte à côte.
+.accueil-fields {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-md;
+  margin: $spacing-md 0;
+}
+
 .matomo-fields {
   display: grid;
   grid-template-columns: 2fr 1fr;
