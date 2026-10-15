@@ -11,6 +11,7 @@ from apps.plans.models import PlanGestion
 from apps.users.models import BibOrganismes, Role, Site
 
 from .base import BaseSeeder
+from .users_seeder import REDACTEUR_EXTERNE_EMAIL
 
 
 class ValidationRequestsSeeder(BaseSeeder):
@@ -59,7 +60,23 @@ class ValidationRequestsSeeder(BaseSeeder):
 
         now = timezone.now()
 
-        return [
+        # #718 — demande d'accès EN SAISIE du rédacteur externe sur un plan d'un
+        # autre organisme (Grand-Voyeux, CEN AURA) : recette de la fenêtre
+        # « Approuver (référent) / Approuver (utilisateur) » par admin.cen@test.fr.
+        redacteur_externe = next(
+            (u for u in users if u.email == REDACTEUR_EXTERNE_EMAIL), None
+        )
+        demandes_redacteur = [] if redacteur_externe is None else [{
+            'request_type': 'plan_access',
+            'requester': redacteur_externe,
+            'target_plan': plans[2],  # Plan Grand-Voyeux (CEN AURA)
+            'status': 'pending',
+            'request_as_referent': True,
+            'justification': "Notre bureau d'études est missionné pour rédiger le "
+                             "renouvellement de ce plan de gestion.",
+        }]
+
+        return demandes_redacteur + [
             # DEMANDES D'ACCÈS SITE
             {
                 'request_type': 'site_access',
@@ -400,6 +417,7 @@ class ValidationRequestsSeeder(BaseSeeder):
                     'validator': validator,
                     'validation_comment': validation_comment,
                     'validated_at': validated_at,
+                    'request_as_referent': vr_data.get('request_as_referent', False),
                     'expires_at': timezone.now() + timedelta(days=14) if vr_data['status'] == 'pending' else None,
                 }
             )
@@ -432,13 +450,14 @@ class ValidationRequestsSeeder(BaseSeeder):
             Liste des lignes du résumé
         """
         return [
-            '\nDemandes de validation (31):',
+            '\nDemandes de validation (32):',
             '  Types: user_registration, site_access, plan_access, referent_validation,',
             '         admin_deactivation, module_access, site_creation, site_org_link,',
             '         site_org_unlink, invite_org_to_site, invite_user_to_site, plan_site_link',
             '  Statuts: pending, approved, rejected',
-            '\n  Demandes plan_access (7):',
+            '\n  Demandes plan_access (8):',
             '    - 5 demandes pending (user_rnf, user_cen, referent_camargue)',
+            '    - 1 demande pending EN SAISIE (redacteur.externe -> Grand-Voyeux, #718)',
             '    - 1 demande rejected (user_cen -> Aiguilles Rouges)',
             '    - 1 demande approved (referent_vercors -> Camargue)',
             '\n  Autres demandes:',

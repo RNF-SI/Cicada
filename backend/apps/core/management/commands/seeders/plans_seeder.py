@@ -13,6 +13,8 @@ from apps.plans.models import PlanGestion, CorSitePg, CorRolePlan, CorPgFichier
 from apps.users.models import Role, Site
 
 from .base import BaseSeeder
+from .organismes_seeder import BUREAU_ETUDE_NOM
+from .users_seeder import REDACTEUR_EXTERNE_EMAIL
 
 # PNG 1×1 transparent valide (utilisé comme image de démonstration).
 _DEMO_PNG = base64.b64decode(
@@ -96,6 +98,8 @@ NOM_GRAND_VOYEUX_ORIGINE = "Plan de gestion - Grand-Voyeux (RNR, version d'origi
 NOM_GRAND_VOYEUX_ETENDU = 'Plan de gestion - Grand-Voyeux (RNR étendu +1 an)'
 NOM_BROUAGE_ORIGINE = "Plan de gestion - Marais de Brouage (ENS, version d'origine)"
 NOM_BROUAGE_ETENDU = 'Plan de gestion - Marais de Brouage (ENS étendu +2 ans)'
+#: #718 — plan confié au rédacteur externe du jeu d'essai.
+NOM_PLAN_REDACTION_EXTERNE = 'Plan de gestion 2027-2037 - Lac de Remoray (rédaction externalisée)'
 
 
 def periodes_extension(annee=None):
@@ -691,6 +695,35 @@ class PlansSeeder(BaseSeeder):
                 (users[0], True),  # super_admin - referent
             ],
         })
+
+        # #718 — Plan confié à un rédacteur externe (#700) : brouillon dont il
+        # est le seul référent, pour recetter sans manipulation la saisie, le
+        # cycle de vie et les exports (Suivis masqués). Son bureau d'étude est
+        # organisme rédacteur (#714), ce qui n'ouvre le plan à personne d'autre.
+        redacteur_externe = next(
+            (u for u in users if u.email == REDACTEUR_EXTERNE_EMAIL), None
+        )
+        if redacteur_externe is not None:
+            plans.append({
+                'nom': NOM_PLAN_REDACTION_EXTERNE,
+                'annee_debut': 2027,
+                'annee_fin': 2037,
+                'rang': 2,
+                'surface': 286,
+                'statut': 'draft',
+                'version': '1',
+                'gestion_partagee': False,
+                'ct88': False,
+                'risque_incendie': False,
+                'id_evaluation': None,
+                'id_redacteur_type': redac_be,
+                'redacteur_nom': BUREAU_ETUDE_NOM,
+                'commentaire': 'Rédaction confiée à un bureau d\'étude (#718) : '
+                               'redacteur.externe@test.fr en est référent.',
+                'sites': [sites[6]],  # Lac de Remoray
+                'membres': [(redacteur_externe, True)],
+                'organismes_redacteurs_lookup': [BUREAU_ETUDE_NOM],
+            })
 
         return plans
 
@@ -1606,6 +1639,8 @@ class PlansSeeder(BaseSeeder):
             '  - Plan 2008-2018 Aiguilles Rouges ancien (archive)',
             '  - Plan complémentaire 2024-2034 Littoral (valide) - multisites, sans membres',
             '  - Plan 2025-2035 Lac de Remoray phase 2 (draft) - sans membres',
+            '  - Plan 2027-2037 Lac de Remoray, rédaction externalisée (draft) - '
+            'référent : redacteur.externe@test.fr (#718)',
             '\nChaînes de versions (8 plans historiques):',
             '  Camargue (5 niveaux):',
             '    v1.0 Plan initial 2000-2010 (archive)',

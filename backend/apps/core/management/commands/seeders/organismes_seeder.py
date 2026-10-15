@@ -9,6 +9,9 @@ from apps.core.models import Nomenclature
 
 from .base import BaseSeeder
 
+#: #718 — bureau d'étude du rédacteur externe (cf. users_seeder).
+BUREAU_ETUDE_NOM = "Écotone Conseil (bureau d'études)"
+
 
 class OrganismesSeeder(BaseSeeder):
     """
@@ -239,6 +242,17 @@ class OrganismesSeeder(BaseSeeder):
             'adresse_organisme': 'Adresse de test',
             'tel_organisme': '00 00 00 00 00'
         },
+        # #718 — bureau d'étude du rédacteur externe (#700) : organisme
+        # indépendant, sans site. Gardé en fin de liste : les autres seeders
+        # désignent les organismes par leur index.
+        {
+            'nom_organisme': BUREAU_ETUDE_NOM,
+            'email_organisme': 'contact@ecotone-conseil.example.org',
+            'ville_organisme': 'Besançon',
+            'cp_organisme': '25000',
+            'adresse_organisme': 'Adresse de test',
+            'tel_organisme': '00 00 00 00 00'
+        },
     ]
 
     # Variations de noms à nettoyer (ancien nom ASCII → nom canonique accentué).
@@ -279,6 +293,7 @@ class OrganismesSeeder(BaseSeeder):
         'DREAL Nouvelle-Aquitaine': 'DREAL',
         'Parc National des Écrins': 'PNX',
         'Office Français de la Biodiversité': 'OFB',
+        BUREAU_ETUDE_NOM: 'AUTRE',
     }
 
     #: Les organismes du réseau CEN ajoutés pour #652 portent tous le même type.
@@ -359,4 +374,5 @@ class OrganismesSeeder(BaseSeeder):
             '  - DREAL Nouvelle-Aquitaine',
             '  - Parc National des Écrins',
             '  - Office Français de la Biodiversité',
+            f'  - {BUREAU_ETUDE_NOM} (bureau d\'étude, sans site — #718)',
         ]

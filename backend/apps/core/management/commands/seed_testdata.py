@@ -44,6 +44,8 @@ from apps.plans.models_operations import (
 )
 from apps.notifications.models import Notification, ValidationRequest, PendingUser
 
+from .seeders.organismes_seeder import BUREAU_ETUDE_NOM
+from .seeders.users_seeder import REDACTEUR_EXTERNE_EMAIL
 from .seeders import (
     SEEDER_CLASSES,
     SeederContext,
@@ -292,6 +294,7 @@ class Command(BaseCommand):
             'ancien.rnf@test.fr', 'ancien.cen@test.fr', 'stagiaire.dreal@test.fr',
             'pending.rnf@test.fr', 'pending.cen@test.fr',
             'deletion.recent@test.fr', 'deletion.old@test.fr',
+            REDACTEUR_EXTERNE_EMAIL,  # #718
         ]
         count = Role.objects.filter(email__in=test_emails).delete()[0]
         self.stdout.write(f'  Utilisateurs supprimes: {count}')
@@ -311,6 +314,7 @@ class Command(BaseCommand):
             'DREAL Nouvelle-Aquitaine',
             'Parc National des Écrins',
             'Office Français de la Biodiversité',
+            BUREAU_ETUDE_NOM,  # #718
             # Anciennes variantes ASCII
             'Reserves Naturelles de France',
             'CEN Auvergne-Rhone-Alpes',

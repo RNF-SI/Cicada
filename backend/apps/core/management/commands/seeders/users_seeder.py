@@ -9,6 +9,7 @@ from django.utils import timezone
 from apps.users.models import Role, CorRoleSite, BibOrganismes, Site
 
 from .base import BaseSeeder
+from .organismes_seeder import BUREAU_ETUDE_NOM
 
 
 DEFAULT_PASSWORD = 'Test123!'
@@ -17,12 +18,16 @@ DEFAULT_PASSWORD = 'Test123!'
 # En production, configurez TEST_EMAIL_RECIPIENT dans les variables d'environnement
 REAL_TEST_EMAIL = 'test@example.com'
 
+#: #718 — rédacteur externe (#700) d'un bureau d'étude. Rattaché à un plan par
+#: plans_seeder, demande d'accès en attente par validation_requests_seeder.
+REDACTEUR_EXTERNE_EMAIL = 'redacteur.externe@test.fr'
+
 
 class UsersSeeder(BaseSeeder):
     """
     Crée les utilisateurs de test avec différents rôles.
 
-    Utilisateurs actifs (9):
+    Utilisateurs actifs (10):
     - admin@test.fr (super_admin)
     - admin.rnf@test.fr (admin_og)
     - admin.cen@test.fr (admin_og)
@@ -32,6 +37,7 @@ class UsersSeeder(BaseSeeder):
     - user.cen@test.fr (utilisateur)
     - test@example.com (utilisateur) - Pour tests email
     - redacteur.principal@test.fr (redacteur_principal) - Accès global plans
+    - redacteur.externe@test.fr (redacteur) - Bureau d'étude, #718
 
     Utilisateurs inactifs (3):
     - ancien.rnf@test.fr
@@ -56,6 +62,9 @@ class UsersSeeder(BaseSeeder):
         sites: List[Site]
     ) -> List[Dict]:
         """Retourne les données des utilisateurs."""
+        bureau_etude = next(
+            (o for o in organismes if o.nom_organisme == BUREAU_ETUDE_NOM), None
+        )
         return [
             {
                 'email': 'admin@test.fr',
@@ -271,6 +280,22 @@ class UsersSeeder(BaseSeeder):
                 'active': False,
                 'deletion_requested_days_ago': 25
             },
+            # #718 — Rédacteur externe (#700) : compte d'un bureau d'étude,
+            # sans site. Gardé en fin de liste : les autres seeders désignent
+            # les utilisateurs par leur index.
+            {
+                'email': REDACTEUR_EXTERNE_EMAIL,
+                'nom_role': 'Garnier',
+                'prenom_role': 'Hugo',
+                'identifiant': 'redacteur_externe',
+                'role_level': 'redacteur',
+                'is_staff': False,
+                'is_superuser': False,
+                'id_organisme': bureau_etude,
+                'groups': ['Utilisateurs'],
+                'sites_referent': [],
+                'active': True
+            },
         ]
 
     def _update_existing_superusers(self) -> None:
@@ -377,6 +402,7 @@ class UsersSeeder(BaseSeeder):
             'ancien.rnf@test.fr', 'ancien.cen@test.fr', 'stagiaire.dreal@test.fr',
             'pending.rnf@test.fr', 'pending.cen@test.fr',
             'deletion.recent@test.fr', 'deletion.old@test.fr',
+            REDACTEUR_EXTERNE_EMAIL,
         ]
         return Role.objects.filter(email__in=test_emails).delete()[0]
 
@@ -388,7 +414,7 @@ class UsersSeeder(BaseSeeder):
             Liste des lignes du résumé
         """
         return [
-            '\nUtilisateurs actifs (8):',
+            '\nUtilisateurs actifs (10):',
             f'  Mot de passe commun: {DEFAULT_PASSWORD}',
             '  - admin@test.fr (super_admin) - référent Camargue',
             '  - admin.rnf@test.fr (admin_og) - RNF, référent Camargue + Aiguilles Rouges',
@@ -398,6 +424,9 @@ class UsersSeeder(BaseSeeder):
             '  - user.rnf@test.fr (utilisateur) - RNF, membre Camargue + Aiguilles Rouges',
             '  - user.cen@test.fr (utilisateur) - CEN AURA, membre Grand-Voyeux + Vercors',
             f'  - {REAL_TEST_EMAIL} (utilisateur) - RNF [EMAIL RÉEL POUR TESTS]',
+            '  - redacteur.principal@test.fr (rédacteur principal) - RNF, accès global',
+            f'  - {REDACTEUR_EXTERNE_EMAIL} (rédacteur externe) - {BUREAU_ETUDE_NOM}, '
+            'référent du plan « rédaction externalisée » (#718)',
             '\nUtilisateurs inactifs (3):',
             '  - ancien.rnf@test.fr (référent) - RNF [INACTIF]',
             '  - ancien.cen@test.fr (admin_og) - CEN AURA [INACTIF]',

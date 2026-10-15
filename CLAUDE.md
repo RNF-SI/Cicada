@@ -633,13 +633,13 @@ backend/apps/core/management/commands/
     ├── signals.py                # Gestion centralisée des signaux (28)
     ├── modules_seeder.py         # 4 modules
     ├── groups_seeder.py          # 4 groupes Django
-    ├── organismes_seeder.py      # 5 organismes
+    ├── organismes_seeder.py      # 26 organismes (dont réseau CEN + bureau d'études #718)
     ├── sites_seeder.py           # 7 sites avec géométries PostGIS
-    ├── users_seeder.py           # 14 utilisateurs
+    ├── users_seeder.py           # 17 utilisateurs (dont rédacteur externe #718)
     ├── plans_seeder.py           # 9 plans de gestion + chaînes de versions
 ├── ventilation_plans_seeder.py  # 6 plans « Ventilation — … » (1 par mode de ventilation)
     ├── pending_users_seeder.py   # 3 PendingUser
-    ├── validation_requests_seeder.py  # 22 demandes de validation
+    ├── validation_requests_seeder.py  # 32 demandes de validation
     ├── notifications_seeder.py   # 21+ notifications
     ├── error_logs_seeder.py      # 8 logs d'erreur
     └── activity_logs_seeder.py   # 25+ logs d'activité
@@ -1352,9 +1352,9 @@ OPTIONS = {
 
 Run `docker compose exec web python manage.py seed_testdata` to create:
 
-- **5 Organizations**: RNF, CEN AURA, DREAL Nouvelle-Aquitaine, Parc Ecrins, OFB
+- **6 Organizations**: RNF, CEN AURA, DREAL Nouvelle-Aquitaine, Parc Ecrins, OFB, **Écotone Conseil (bureau d'études)** — organisme indépendant sans site, porteur du rédacteur externe (#718)
 - **7 Sites**: Camargue, Aiguilles Rouges, Grand-Voyeux, Vercors, Marais de Brouage, Scandola, Lac de Remoray
-- **8 Users** with different roles:
+- **10 Users** actifs with different roles:
   | Email | Role | Organization | Sites | Notes |
   |-------|------|--------------|-------|-------|
   | admin@test.fr | Super Admin | RNF | Referent: Camargue | |
@@ -1365,6 +1365,8 @@ Run `docker compose exec web python manage.py seed_testdata` to create:
   | user.rnf@test.fr | Utilisateur | RNF | Membre: Camargue, Aiguilles Rouges | Voit automatiquement les plans liés |
   | user.cen@test.fr | Utilisateur | CEN AURA | Membre: Grand-Voyeux, Vercors | Voit automatiquement les plans liés |
   | **test@example.com** | Utilisateur | RNF | Referent: Camargue | **Email pour tests SMTP** |
+  | redacteur.principal@test.fr | Rédacteur principal | RNF | — | Accès global aux plans |
+  | **redacteur.externe@test.fr** | **Rédacteur externe** (#700) | Écotone Conseil (bureau d'études) | — | Référent du seul plan *Lac de Remoray (rédaction externalisée)* (brouillon, son bureau y est organisme rédacteur #714, Suivis masqués) + demande d'**accès en saisie en attente** sur *Grand-Voyeux 2022-2032* (à valider par admin.cen@test.fr) — #718 |
 
   **Password for all test users**: `Test123!`
 - **Plans de Gestion (≥14)**: divers statuts (draft, valide, modifie, archive, avis_csrpn, comite_consultatif) avec associations sites/référents. Les chaînes Aiguilles Rouges et Vercors-Écrins exposent le statut `modifie` (plan révisé). Le plan *Grand-Voyeux 2022-2032* est seedé en `avis_csrpn` (workflow non-RNN) et le plan *Aiguilles Rouges 2027-2037* en `comite_consultatif` (workflow RNN, étape arrêté à venir) pour tester #277. Chaînes d'extension (#250 — prolongation = nouvelle version : v1 archivée → v2 étendue `modifie`), **années ancrées sur l'année courante Y** (`periodes_extension()` dans `plans_seeder.py`, noms sans années pour que le seed reste idempotent) : *Scandola* (Y-10 → Y-1, étendu +2 ans : toujours **en cours**, cumul max), *Grand-Voyeux RNR* (Y-11 → Y-2, étendu +1 an : échu l'an dernier, **reconductible**, #281), *Marais de Brouage ENS* (Y-12 → Y-3, étendu +2 ans : échu l'an dernier, #281). Leurs actions sont programmées jusqu'à l'échéance effective (#672). Verrouillé par `tests/apps/core/test_seed_chaines_prolongation.py` (2026 → 2040). *Vercors 2014-2024* (validé + en_revision, `next_rang_plan` pointant sur *Vercors 2026-2036* draft, #278). Panel évaluation mi-parcours (#276, 6 variantes) : *Camargue eval 2005* (archive historique), *Camargue eval 2025* (draft), *Vercors-Écrins eval 2026* (draft), *Lac de Remoray eval 2022* (avis_csrpn), *Vercors eval 2020* (comite_consultatif), *Aiguilles Rouges eval 2023* (modifie + is_mi_parcours=True).
@@ -1379,8 +1381,9 @@ Run `docker compose exec web python manage.py seed_testdata` to create:
   - **Suivi et protocoles (#642)** : l'action CS de chaque plan porte un `SuiviInventaire` (statut, objectif, cible, fréquence, outils) et **2 protocoles** — un standardisé (CAMPanule) et un libre non respecté avec justification. Sans eux, la section « Protocole & objectifs » de la fiche action et son export Excel seraient vides.
 - **Django Groups**: Super Administrateurs, Administrateurs Organisme, Utilisateurs
 - **Nomenclatures**: Importées automatiquement au démarrage via `import_nomenclatures` (types de sites, évaluations, rédacteurs, documents plan, suivis, enjeux, etc.)
-- **Validation Requests (27)**: Demandes de test avec différents statuts
+- **Validation Requests (32)**: Demandes de test avec différents statuts
   - 5 demandes `plan_access` en attente (pour tester la section "Plans en attente")
+  - 1 demande `plan_access` **en saisie** (`request_as_referent`) du rédacteur externe sur Grand-Voyeux (fenêtre *Approuver (référent) / (utilisateur)*, #718)
   - Demandes `site_access`, `referent_validation`, `module_access`, etc.
 
 ### Authentication System (JWT)
