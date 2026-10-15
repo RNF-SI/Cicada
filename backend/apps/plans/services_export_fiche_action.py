@@ -562,8 +562,26 @@ def _cadre(op):
 class _Writer:
     def __init__(self, ws, ncols):
         self.ws = ws
-        self.ncols = ncols          # nb total de colonnes (3 + nb années)
+        # Nb total de colonnes : 3 colonnes de libellé + une grille de données
+        # fine (cf. `_data_columns`), où années et mois fusionnent chacun leur
+        # part de colonnes.
+        self.ncols = ncols
         self.r = 1
+
+    def span(self, i, n):
+        """Colonnes (début, fin) de la i-ème des n cases égales de la zone de
+        données (colonnes 4..ncols) — une année parmi n, ou un mois parmi 12."""
+        size = (self.ncols - 3) // n
+        start = 4 + i * size
+        return start, start + size - 1
+
+    def put(self, i, n, value):
+        """Écrit `value` dans la i-ème des n cases de la zone de données,
+        fusionnée sur sa part de colonnes ; rend la cellule maîtresse."""
+        c1, c2 = self.span(i, n)
+        if c2 > c1:
+            self.ws.merge_cells(start_row=self.r, start_column=c1, end_row=self.r, end_column=c2)
+        return self.ws.cell(self.r, c1, value)
 
     def section(self, text):
         ws = self.ws
@@ -611,7 +629,7 @@ class _Writer:
         lc.font = _F_LABEL
         lc.alignment = _AL_L
         for i, y in enumerate(years):
-            c = ws.cell(self.r, 4 + i, y)
+            c = self.put(i, len(years), y)
             c.fill = PatternFill("solid", fgColor=_YEARHDR_FILL)
             c.font = _F_YEAR
             c.alignment = _AL_C
@@ -628,7 +646,7 @@ class _Writer:
         lc.alignment = _AL_L
         for i, y in enumerate(years):
             v = "x" if flags.get(y) else ""
-            c = ws.cell(self.r, 4 + i, v)
+            c = self.put(i, len(years), v)
             c.font = _F_X
             c.alignment = _AL_C
         for col in range(1, self.ncols + 1):
@@ -644,7 +662,7 @@ class _Writer:
         lc.font = label_font or _F_SUBLABEL
         lc.alignment = _AL_L
         for i, y in enumerate(years):
-            c = ws.cell(self.r, 4 + i, fmt(values_by_year.get(y, 0)))
+            c = self.put(i, len(years), fmt(values_by_year.get(y, 0)))
             c.font = font
             c.alignment = _AL_R
             c.fill = PatternFill("solid", fgColor=fill) if fill == _TOTAL_FILL else PatternFill()
@@ -777,25 +795,50 @@ class _Writer:
         self.r += 1
 
 
+def _data_columns(n_years):
+    """Nombre de colonnes de la zone de données.
+
+    #721 — les années (bloc budgétaire) et les 12 mois (programmation
+    mensuelle) doivent chacun tenir sur une seule ligne, alignés sur la même
+    largeur. La zone compte donc ppcm(nb années, 12) colonnes étroites : une
+    année en fusionne `D / nb années`, un mois `D / 12`."""
+    return math.lcm(max(n_years, 1), 12)
+
+
+# Largeur (en caractères) d'une année, et minimum d'un mois — « Avril » doit
+# rester lisible même pour un plan court (#721).
+_YEAR_WIDTH = 11
+_MONTH_MIN_WIDTH = 6
+
+
 def _render_action(ws, op, years, *, is_cs, code_local=""):
-    ncols = 3 + len(years)
+    n_data = _data_columns(len(years))
+    ncols = 3 + n_data
     w = _Writer(ws, ncols)
     # largeurs
     ws.column_dimensions["A"].width = 30
     ws.column_dimensions["B"].width = 16
     ws.column_dimensions["C"].width = 16
-    for i in range(len(years)):
-        ws.column_dimensions[get_column_letter(4 + i)].width = 11
+    total = max(_YEAR_WIDTH * len(years), _MONTH_MIN_WIDTH * 12)
+    for i in range(n_data):
+        ws.column_dimensions[get_column_letter(4 + i)].width = round(total / n_data, 2)
+    # #721 — l'impression tient en largeur de page (hauteur libre).
+    ws.sheet_properties.pageSetUpPr.fitToPage = True
+    ws.page_setup.fitToWidth = 1
+    ws.page_setup.fitToHeight = 0
 
     # ---- En-tête : code / intitulé / priorité ----
-    ws.merge_cells(start_row=w.r, start_column=1, end_row=w.r, end_column=ncols - 2)
+    # La priorité occupe la place des deux dernières années (la colonne C et
+    # l'unique année pour un plan d'un an).
+    prio_col = w.span(len(years) - 2, len(years))[0] if len(years) >= 2 else 3
+    ws.merge_cells(start_row=w.r, start_column=1, end_row=w.r, end_column=prio_col - 1)
     hc = ws.cell(w.r, 1, _txt(op.libelle))
     hc.fill = PatternFill("solid", fgColor=_PRIMARY)
     hc.font = _F_TITLE
     hc.alignment = _AL_L
-    ws.merge_cells(start_row=w.r, start_column=ncols - 1, end_row=w.r, end_column=ncols)
+    ws.merge_cells(start_row=w.r, start_column=prio_col, end_row=w.r, end_column=ncols)
     prio = op.id_priorite.label if op.id_priorite_id else ""
-    pc = ws.cell(w.r, ncols - 1, prio or "Priorité —")
+    pc = ws.cell(w.r, prio_col, prio or "Priorité —")
     pc.fill = PatternFill("solid", fgColor=_TERRA)
     pc.font = _F_PRIO
     pc.alignment = _AL_C
@@ -977,51 +1020,37 @@ def _monthly_flags(op, annees):
     return flags
 
 
-def _months_per_row(n_cols):
-    """Nombre de mois par ligne de la grille mensuelle.
-
-    #668 — la feuille compte une colonne par année du plan : un plan de 5 ans
-    n'offre que 5 colonnes, pas 12. On replie donc la grille par trimestres,
-    semestres ou année entière, selon la place disponible (diviseur de 12,
-    pour que chaque ligne soit pleine)."""
-    for size in (12, 6, 4, 3, 2, 1):
-        if size <= n_cols:
-            return size
-    return 1
-
-
 def _render_monthly(w, months, month_flags):
+    """#721 — les 12 mois sur une seule ligne d'en-tête et une seule ligne
+    « Périodicité », quelle que soit la durée du plan (chaque mois fusionne
+    sa part de la zone de données)."""
     ws = w.ws
-    per_row = _months_per_row(w.ncols - 3)
-    for start in range(0, 12, per_row):
-        first = start == 0
-        # En-tête des mois
-        ws.merge_cells(start_row=w.r, start_column=1, end_row=w.r, end_column=3)
-        lc = ws.cell(w.r, 1, "Programmation mensuelle" if first else None)
-        lc.fill = PatternFill("solid", fgColor=_LABEL_FILL)
-        lc.font = _F_LABEL
-        lc.alignment = _AL_L
-        for i in range(start, start + per_row):
-            c = ws.cell(w.r, 4 + i - start, months[i])
-            c.fill = PatternFill("solid", fgColor=_YEARHDR_FILL)
-            c.font = _F_YEAR
-            c.alignment = _AL_C
-        for col in range(1, w.ncols + 1):
-            ws.cell(w.r, col).border = _B
-        w.r += 1
-        # Mois programmés
-        ws.merge_cells(start_row=w.r, start_column=1, end_row=w.r, end_column=3)
-        lc = ws.cell(w.r, 1, "Périodicité")
-        lc.fill = PatternFill("solid", fgColor=_SUBLABEL_FILL)
-        lc.font = _F_SUBLABEL
-        lc.alignment = _AL_L
-        for i in range(start, start + per_row):
-            c = ws.cell(w.r, 4 + i - start, "x" if month_flags.get(i + 1) else "")
-            c.font = _F_X
-            c.alignment = _AL_C
-        for col in range(1, w.ncols + 1):
-            ws.cell(w.r, col).border = _B
-        w.r += 1
+    ws.merge_cells(start_row=w.r, start_column=1, end_row=w.r, end_column=3)
+    lc = ws.cell(w.r, 1, "Programmation mensuelle")
+    lc.fill = PatternFill("solid", fgColor=_LABEL_FILL)
+    lc.font = _F_LABEL
+    lc.alignment = _AL_L
+    for i, mois in enumerate(months):
+        c = w.put(i, 12, mois)
+        c.fill = PatternFill("solid", fgColor=_YEARHDR_FILL)
+        c.font = _F_YEAR
+        c.alignment = _AL_C
+    for col in range(1, w.ncols + 1):
+        ws.cell(w.r, col).border = _B
+    w.r += 1
+    # Mois programmés
+    ws.merge_cells(start_row=w.r, start_column=1, end_row=w.r, end_column=3)
+    lc = ws.cell(w.r, 1, "Périodicité")
+    lc.fill = PatternFill("solid", fgColor=_SUBLABEL_FILL)
+    lc.font = _F_SUBLABEL
+    lc.alignment = _AL_L
+    for i in range(12):
+        c = w.put(i, 12, "x" if month_flags.get(i + 1) else "")
+        c.font = _F_X
+        c.alignment = _AL_C
+    for col in range(1, w.ncols + 1):
+        ws.cell(w.r, col).border = _B
+    w.r += 1
 
 
 def _reponse_indicateurs(op):

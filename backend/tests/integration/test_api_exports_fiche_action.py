@@ -368,11 +368,41 @@ class TestExportFicheActionProgrammationMensuelle:
         assert ws.cell(debut + 1, 9).value == 'x'  # Juin
         assert ws.cell(debut + 2, 1).value != 'Périodicité'
 
-    @pytest.mark.parametrize('n_cols, attendu', [
-        (1, 1), (2, 2), (3, 3), (4, 4), (5, 4), (6, 6), (10, 6), (11, 6), (12, 12), (15, 12),
+    @pytest.mark.parametrize('n_annees, attendu', [
+        (1, 12), (2, 12), (3, 12), (4, 12), (5, 60), (6, 12), (10, 60), (12, 12),
     ])
-    def test_mois_par_ligne(self, n_cols, attendu):
-        assert fiche._months_per_row(n_cols) == attendu
+    def test_colonnes_de_donnees(self, n_annees, attendu):
+        """#721 — ppcm(nb années, 12) : années et mois tombent juste."""
+        assert fiche._data_columns(n_annees) == attendu
+
+    def test_plan_de_5_ans_douze_mois_sur_une_ligne(self):
+        """#721 — retour de recette : Janv → Déc sur une seule ligne, sous le
+        même bandeau que les 5 années du bloc budgétaire."""
+        ws = self._export(2024, 2028, annee={'3': True, '4': True, '5': True})
+        debut = next(r for r in range(1, ws.max_row + 1)
+                     if ws.cell(r, 1).value == 'Programmation mensuelle')
+
+        en_tete = [ws.cell(debut, c).value for c in range(4, ws.max_column + 1)]
+        assert [v for v in en_tete if v] == MOIS
+        coches = [ws.cell(debut + 1, c).value for c in range(4, ws.max_column + 1)]
+        assert coches.count('x') == 3
+        assert ws.cell(debut + 2, 1).value != 'Périodicité'
+
+        # Les années occupent toute la largeur des 12 mois.
+        prog = next(r for r in range(1, ws.max_row + 1)
+                    if ws.cell(r, 1).value == 'Programmation annuelle')
+        annees = [(ws.cell(prog, c).value, c) for c in range(4, ws.max_column + 1)
+                  if ws.cell(prog, c).value]
+        assert [a for a, _ in annees] == [2024, 2025, 2026, 2027, 2028]
+        fusions = {(m.min_row, m.min_col): m.max_col for m in ws.merged_cells.ranges}
+        assert fusions[(prog, annees[-1][1])] == ws.max_column
+        assert fusions[(debut, max(c for c in range(4, ws.max_column + 1)
+                                   if ws.cell(debut, c).value))] == ws.max_column
+
+    def test_impression_tient_en_largeur(self):
+        ws = self._export(2024, 2028)
+        assert ws.sheet_properties.pageSetUpPr.fitToPage is True
+        assert ws.page_setup.fitToWidth == 1
 
 
 @pytest.mark.django_db
@@ -396,17 +426,18 @@ class TestProgrammationMensuelleToutesDurees:
         ws = load_workbook(io.BytesIO(build_fiche_action_workbook(plan)))['ACT1']
 
         n_annees = len(plan.annees_plan()) or 1
-        derniere_colonne = 3 + n_annees
+        derniere_colonne = 3 + fiche._data_columns(n_annees)
         grille = TestExportFicheActionProgrammationMensuelle._grille_mensuelle(ws)
 
         assert list(grille) == MOIS, n_annees
         assert [m for m, v in grille.items() if v == 'x'] == ['Janv', 'Mai', 'Juin', 'Sept', 'Déc']
-        # Rien n'est écrit au-delà de la dernière colonne d'année.
         debut = next(r for r in range(1, ws.max_row + 1)
                      if ws.cell(r, 1).value == 'Programmation mensuelle')
-        for r in range(debut, debut + 24):
-            for c in range(derniere_colonne + 1, derniere_colonne + 13):
-                assert ws.cell(r, c).value in (None, ''), (n_annees, r, c)
+        # #721 — une seule ligne de mois, une seule ligne « Périodicité ».
+        assert ws.cell(debut + 1, 1).value == 'Périodicité', n_annees
+        assert ws.cell(debut + 2, 1).value != 'Périodicité', n_annees
+        # Rien n'est écrit au-delà de la dernière colonne de la feuille.
+        assert ws.max_column == derniere_colonne, n_annees
 
     @pytest.mark.parametrize('duree', range(1, 21))
     def test_plan_de_1_a_20_ans(self, duree):

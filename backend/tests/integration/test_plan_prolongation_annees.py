@@ -62,11 +62,14 @@ class TestPlanProlongeExportsEtBilan:
         ws = load_workbook(io.BytesIO(build_fiche_action_workbook(plan)))['ACT1']
         entete = next(r for r in range(1, ws.max_row + 1)
                       if ws.cell(r, 1).value == 'Programmation annuelle')
-        annees = [ws.cell(entete, c).value for c in range(4, ws.max_column + 1)]
+        # Une année fusionne plusieurs colonnes (#721) : on lit les cellules
+        # maîtresses.
+        colonnes = {ws.cell(entete, c).value: c for c in range(4, ws.max_column + 1)
+                    if ws.cell(entete, c).value}
 
-        assert annees == list(range(2021, 2028))
-        # Case « Périodicité » cochée sous 2027 (colonne D + 6).
-        assert ws.cell(entete + 1, 4 + 6).value == 'x'
+        assert list(colonnes) == list(range(2021, 2028))
+        # Case « Périodicité » cochée sous 2027.
+        assert ws.cell(entete + 1, colonnes[2027]).value == 'x'
 
     def test_budget_compte_les_annees_de_prolongation(self, plan):
         pf = build_plan_finance(plan)
