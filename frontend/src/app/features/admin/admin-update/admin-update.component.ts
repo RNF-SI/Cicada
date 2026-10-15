@@ -108,7 +108,8 @@ export class AdminUpdateComponent implements OnInit, OnDestroy {
       },
       error: (err) => {
         this.updating.set(false);
-        const msg = err?.error?.error || err?.message || this.translate.instant('admin.update.error');
+        // #719 — jamais le message technique d'Angular (« Http failure response… »).
+        const msg = err?.error?.error || this.translate.instant('admin.update.error');
         this.snackBar.open(msg, this.translate.instant('common.actions.close'), { duration: 5000 });
       }
     });
@@ -125,6 +126,7 @@ export class AdminUpdateComponent implements OnInit, OnDestroy {
 
   private startFollowing(initial: UpdatePhase): void {
     this.phase.set(initial);
+    this.systemUpdateService.markUpdateInProgress();
     this.startedAt = Date.now();
     this.stopPolling();
     this.pollTimer = setTimeout(() => this.poll(), POLL_INTERVAL_MS);
@@ -134,6 +136,7 @@ export class AdminUpdateComponent implements OnInit, OnDestroy {
     this.pollTimer = null;
     if (Date.now() - this.startedAt > GIVE_UP_AFTER_MS) {
       this.phase.set('unknown');
+      this.systemUpdateService.markUpdateFinished();
       return;
     }
     this.systemUpdateService.pollVersion().subscribe({
@@ -157,6 +160,7 @@ export class AdminUpdateComponent implements OnInit, OnDestroy {
         setTimeout(() => window.location.reload(), RELOAD_DELAY_MS);
       } else {
         this.phase.set('failed');
+        this.systemUpdateService.markUpdateFinished();
         this.failureMessage.set(result.error ?? null);
       }
       return;

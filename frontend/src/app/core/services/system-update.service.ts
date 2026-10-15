@@ -33,6 +33,30 @@ export class SystemUpdateService {
   private readonly http = inject(HttpClient);
   private readonly apiUrl = '/api/system';
 
+  /**
+   * #719 — Échéance (ms) jusqu'à laquelle une mise à jour lancée depuis cet
+   * onglet est réputée en cours. Pendant ce temps, l'application redémarre :
+   * les appels qui échouent faute de serveur ne sont pas des erreurs à
+   * signaler (cf. `updateInterceptor`). L'échéance borne le cas où le suivi
+   * s'arrête sans conclure (page quittée, updater muet).
+   */
+  private updateUntil = 0;
+
+  /** Durée maximale d'une mise à jour, au-delà de laquelle on cesse de masquer les erreurs. */
+  static readonly UPDATE_MAX_MS = 15 * 60 * 1000;
+
+  markUpdateInProgress(): void {
+    this.updateUntil = Date.now() + SystemUpdateService.UPDATE_MAX_MS;
+  }
+
+  markUpdateFinished(): void {
+    this.updateUntil = 0;
+  }
+
+  isUpdateInProgress(): boolean {
+    return Date.now() < this.updateUntil;
+  }
+
   getVersion(): Observable<SystemVersionInfo> {
     return this.http.get<SystemVersionInfo>(`${this.apiUrl}/version/`).pipe(
       catchError(() => of({
