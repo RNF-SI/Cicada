@@ -576,6 +576,7 @@ export class NotificationsDialogComponent implements OnInit {
       'user_removed_plan': 'fi-rr-document',
       'account_deactivated': 'fi-rr-user-slash',
       'account_activated': 'fi-rr-user-check',
+      'user_first_login': 'fi-rr-user-add',
       'site_orphaned': 'fi-rr-exclamation',
       'organisme_no_admin': 'fi-rr-exclamation',
       'system_alert': 'fi-rr-bell',

@@ -13,6 +13,7 @@ export type NotificationType =
   | 'user_removed_plan'
   | 'account_deactivated'
   | 'account_activated'
+  | 'user_first_login'
   | 'site_orphaned'
   | 'organisme_no_admin'
   | 'system_alert'

@@ -33,6 +33,8 @@ class Notification(models.Model):
         # #277 — Transitions du workflow CSRPN (avis demandé, avis rendu,
         # validation comité, arrêté préfectoral, validation finale).
         ('plan_csrpn_transition', _('Transition workflow CSRPN')),
+        # #706 — Première connexion d'un utilisateur (admins de son organisme).
+        ('user_first_login', _("Première connexion d'un utilisateur")),
         ('system_alert', _('Alerte système')),
         ('info', _('Information')),
     ]

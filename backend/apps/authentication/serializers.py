@@ -1,6 +1,8 @@
 """
 Serializers pour l'authentification.
 """
+import logging
+
 from django.contrib.auth import authenticate
 from django.contrib.auth.models import update_last_login
 from django.db.models import Q
@@ -9,6 +11,8 @@ from rest_framework import serializers
 from rest_framework_simplejwt.settings import api_settings as jwt_api_settings
 from rest_framework_simplejwt.tokens import RefreshToken
 from apps.users.models import Role
+
+logger = logging.getLogger(__name__)
 
 
 class CustomTokenObtainPairSerializer(serializers.Serializer):
@@ -94,11 +98,21 @@ def reponse_connexion(user):
     mode (local, GeoNature #689) : le frontend enchaîne de la même façon.
     """
     refresh = RefreshToken.for_user(user)
+    premiere_connexion = user.last_login is None
 
     # Mettre a jour last_login (le custom serializer ne passe pas par
     # le flow standard simplejwt qui le fait automatiquement)
     if jwt_api_settings.UPDATE_LAST_LOGIN:
         update_last_login(None, user)
+
+    # #706 — les admins de l'organisme sont prevenus de la premiere connexion.
+    if premiere_connexion:
+        from apps.notifications.services import NotificationService
+        try:
+            NotificationService.notify_first_login(user)
+        except Exception:
+            # Une notification ratee ne doit jamais empecher de se connecter.
+            logger.exception("Notification de premiere connexion impossible (compte %s)", user.pk)
 
     return {
         'refresh': str(refresh),

@@ -401,6 +401,50 @@ class NotificationService:
         )
 
     @staticmethod
+    def notify_first_login(user):
+        """
+        Previent les admin_og de l'organisme d'un utilisateur de sa premiere
+        connexion (#706). En connexion GeoNature, le compte est cree a ce
+        moment-la sans qu'aucun admin ne l'ait vu passer.
+
+        Organisme sans admin_og (ou utilisateur sans organisme) : les super
+        admins prennent le relais, faute de quoi personne ne serait prevenu.
+        In-app uniquement.
+        """
+        nom = f"{user.prenom_role or ''} {user.nom_role or ''}".strip() or user.email
+        organisme = user.id_organisme
+        title = f"Première connexion : {nom}"
+        if organisme:
+            message = f"{nom} ({user.email}) s'est connecté pour la première fois à CICADA " \
+                      f"au titre de l'organisme {organisme.nom_organisme}."
+        else:
+            message = f"{nom} ({user.email}) s'est connecté pour la première fois à CICADA, " \
+                      f"sans organisme de rattachement."
+
+        destinataires = Role.objects.none()
+        if organisme:
+            destinataires = Role.objects.filter(
+                id_organisme=organisme, role_level='admin_og', active=True,
+            ).exclude(pk=user.pk)
+        if not destinataires.exists():
+            destinataires = Role.objects.filter(
+                role_level='super_admin', active=True,
+            ).exclude(pk=user.pk)
+
+        for destinataire in destinataires:
+            NotificationService.create_notification(
+                recipient=destinataire,
+                notification_type='user_first_login',
+                title=title,
+                message=message,
+                priority='low',
+                related_user=user,
+                related_organisme=organisme,
+                action_url="/administration/utilisateurs",
+                send_email=False,
+            )
+
+    @staticmethod
     def notify_site_deleted(site_name, site_id, deleted_by, referent_ids, org_ids):
         """
         Notifie les acteurs liés lors de la suppression d'un site.

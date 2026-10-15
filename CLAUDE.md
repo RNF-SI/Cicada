@@ -1626,6 +1626,7 @@ class UsersConfig(AppConfig):
 | `user_removed_plan` | Retiré d'un plan | Retrait d'un plan |
 | `account_deactivated` | Compte désactivé | Désactivation par un admin |
 | `account_activated` | Compte activé | Réactivation par un admin |
+| `user_first_login` | Première connexion d'un utilisateur | 1re connexion (locale ou GeoNature) — in-app aux admin_og de son organisme, à défaut aux super admins (#706) |
 | `organisme_changed` | Organisme modifié | Changement d'organisme par un admin |
 | `site_orphaned` | Site sans utilisateurs | Plus aucun utilisateur sur le site |
 | `organisme_no_admin` | Organisme sans admin | Plus d'administrateur pour l'organisme |

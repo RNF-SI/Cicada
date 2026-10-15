@@ -874,3 +874,69 @@ class TestPasswordReset:
             format='json',
         )
         assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+class TestNotificationPremiereConnexion:
+    """#706 — à la première connexion, les admins de l'organisme sont prévenus (in-app)."""
+
+    def _connecter(self, api_client, user):
+        user.refresh_from_db()
+        user.set_password('TestPassword123!')
+        user.save()
+        return api_client.post('/api/auth/login/', {
+            'username': user.email, 'password': 'TestPassword123!'
+        }, format='json')
+
+    def test_admins_de_l_organisme_notifies(self, api_client):
+        from apps.notifications.models import Notification
+        from tests.factories.users import OrganismeFactory
+
+        organisme = OrganismeFactory()
+        admin = AdminOrganismeFactory(id_organisme=organisme)
+        autre_admin = AdminOrganismeFactory()
+        user = RoleFactory(id_organisme=organisme, last_login=None)
+
+        assert self._connecter(api_client, user).status_code == status.HTTP_200_OK
+
+        notifs = Notification.objects.filter(notification_type='user_first_login')
+        assert list(notifs.values_list('recipient', flat=True)) == [admin.pk]
+        notif = notifs.get()
+        assert notif.related_user == user
+        assert notif.related_organisme == organisme
+        assert not Notification.objects.filter(recipient=autre_admin).exists()
+
+    def test_pas_de_notification_aux_connexions_suivantes(self, api_client):
+        from apps.notifications.models import Notification
+        from tests.factories.users import OrganismeFactory
+
+        organisme = OrganismeFactory()
+        AdminOrganismeFactory(id_organisme=organisme)
+        user = RoleFactory(id_organisme=organisme, last_login=None)
+
+        self._connecter(api_client, user)
+        self._connecter(api_client, user)
+
+        assert Notification.objects.filter(notification_type='user_first_login').count() == 1
+
+    def test_organisme_sans_admin_notifie_les_super_admins(self, api_client):
+        from apps.notifications.models import Notification
+        from tests.factories.users import OrganismeFactory
+
+        super_admin = SuperAdminFactory()
+        user = RoleFactory(id_organisme=OrganismeFactory(), last_login=None)
+
+        self._connecter(api_client, user)
+
+        notifs = Notification.objects.filter(notification_type='user_first_login')
+        assert list(notifs.values_list('recipient', flat=True)) == [super_admin.pk]
+
+    def test_un_admin_qui_se_connecte_ne_se_notifie_pas_lui_meme(self, api_client):
+        from apps.notifications.models import Notification
+
+        admin = AdminOrganismeFactory(last_login=None)
+
+        self._connecter(api_client, admin)
+
+        assert not Notification.objects.filter(recipient=admin).exists()

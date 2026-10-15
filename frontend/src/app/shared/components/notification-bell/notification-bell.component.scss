@@ -190,7 +190,8 @@
 
   &.validation_approved,
   &.user_associated_site,
-  &.user_associated_plan {
+  &.user_associated_plan,
+  &.user_first_login {
     background-color: rgba($success-color, 0.15);
 
     i {

@@ -256,3 +256,17 @@ class TestOrganisme:
         assert res.status_code == 200
         compte.refresh_from_db()
         assert compte.id_organisme == organisme
+
+
+class TestPremiereConnexion:
+    def test_compte_cree_par_geonature_notifie_les_admins_de_l_organisme(self):
+        """#706 — un compte créé à la connexion n'a été vu par aucun admin."""
+        from apps.notifications.models import Notification
+
+        organisme = OrganismeFactory(uuid_organisme=uuid.uuid4())
+        admin = AdminOrganismeFactory(id_organisme=organisme)
+        res, _ = connecter(utilisateur_gn(), fiche_organisme(organisme.uuid_organisme))
+        assert res.status_code == 200
+        notif = Notification.objects.get(notification_type='user_first_login')
+        assert notif.recipient == admin
+        assert notif.related_user == Role.objects.get(usershub_id_role=146)
