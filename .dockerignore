@@ -1,9 +1,11 @@
 # Contexte de build à la RACINE du dépôt.
 #
-# Un seul build l'utilise : celui du hub (`hub/Dockerfile.prod`), qui a besoin
-# à la fois de `hub/` et des référentiels nationaux versionnés dans `backend/`
-# (ref_geo, nomenclatures). Les images backend et frontend se construisent
-# depuis leur propre sous-répertoire et ne lisent donc PAS ce fichier.
+# Deux builds l'utilisent comme contexte : le hub (`hub/Dockerfile.prod`), qui a
+# besoin à la fois de `hub/` et des référentiels nationaux versionnés dans
+# `backend/` (ref_geo, nomenclatures), et le frontend (`frontend/Dockerfile`),
+# qui embarque `documentation/`. Ce dernier lit toutefois SON propre fichier
+# d'exclusions, `frontend/Dockerfile.dockerignore` (BuildKit), et non celui-ci.
+# L'image backend se construit depuis `./backend` et ne lit pas ce fichier.
 #
 # Sans lui, le daemon recevrait tout le dépôt — frontend et node_modules
 # compris — pour produire une image qui n'en utilise qu'un centième.

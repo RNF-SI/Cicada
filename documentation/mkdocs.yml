@@ -1,0 +1,161 @@
+# Documentation CICADA — site statique MkDocs (Material).
+# Construit par `mkdocs build` ; servi sous /aide/ par l'image frontend (voir frontend/Dockerfile).
+site_name: Documentation CICADA
+site_description: Notice d'utilisation, guide d'administration et référence de l'API de CICADA
+site_author: RNF / FCEN
+repo_url: https://github.com/RNF-SI/Cicada
+repo_name: RNF-SI/Cicada
+edit_uri: edit/develop/documentation/docs/
+copyright: CICADA — RNF &amp; FCEN, programme LIFE Biodiv'France — licence GPL-3.0
+docs_dir: docs
+site_dir: site
+# L'URL réelle dépend de l'instance (https://<instance>/aide/) : liens relatifs uniquement.
+use_directory_urls: true
+# strict est passé en ligne de commande (`mkdocs build --strict` dans l'image et en CI),
+# pour que `mkdocs serve` reste utilisable pendant la rédaction.
+validation:
+  anchors: warn
+  links:
+    absolute_links: warn
+    unrecognized_links: warn
+
+theme:
+  name: material
+  language: fr
+  logo: assets/images/logo-cicada-nb-2026.svg
+  favicon: assets/images/logo-cicada-icon-2026.svg
+  font:
+    text: Nunito
+    code: JetBrains Mono
+  palette:
+    scheme: cicada
+  features:
+    - navigation.tabs
+    - navigation.tabs.sticky
+    - navigation.sections
+    - navigation.indexes
+    - navigation.top
+    - navigation.footer
+    - toc.follow
+    - search.suggest
+    - search.highlight
+    - search.share
+    - content.tabs.link
+    - content.code.copy
+  icon:
+    repo: fontawesome/brands/github
+    admonition:
+      tip: material/lightbulb-outline
+      note: material/information-outline
+      warning: material/alert-outline
+
+extra_css:
+  - stylesheets/cicada.css
+
+plugins:
+  - search:
+      lang: fr
+      separator: '[\s\-,:!=\[\]()"`/]+|\.(?!\d)|&[lg]t;|(?!\b)(?=[A-Z][a-z])'
+  - swagger-ui-tag:
+      docExpansion: list
+      filter: true
+      tryItOutEnabled: false
+      # « Try it out » exécute de vraies requêtes depuis le navigateur. Servie sous
+      # /aide/ sur la même origine que l'API de l'instance, la doc permettrait donc
+      # d'écrire sur les données réelles : seules les lectures restent essayables.
+      # Les essais complets se font sur /api/docs/ de l'instance (authentifié).
+      supportedSubmitMethods:
+        - get
+
+markdown_extensions:
+  - abbr
+  - admonition
+  - attr_list
+  - md_in_html
+  - footnotes
+  - tables
+  - toc:
+      permalink: true
+      permalink_title: Lien vers cette section
+      toc_depth: 3
+      slugify: !!python/object/apply:pymdownx.slugs.slugify
+        kwds:
+          case: lower
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.keys
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+
+nav:
+  - Accueil: index.md
+  - Guide utilisateur:
+      - utilisateur/index.md
+      - Notice Utilisateur:
+          - utilisateur/notice/index.md
+          - Se connecter: utilisateur/notice/se-connecter.md
+          - L'écran d'accueil: utilisateur/notice/ecran-accueil.md
+          - "L'en-tête : notification, menu et profil": utilisateur/notice/en-tete.md
+          - Consulter les sites: utilisateur/notice/consulter-sites.md
+          - Rejoindre ou créer un nouveau site: utilisateur/notice/rejoindre-creer-site.md
+          - Consulter les plans de gestion: utilisateur/notice/consulter-plans.md
+          - Comprendre la structure d'un plan de gestion: utilisateur/notice/structure-plan.md
+          - Explorer les données des plans de gestion: utilisateur/notice/exploration.md
+      - Notice Référent d'un plan de gestion:
+          - referent/index.md
+          - Créer un nouveau plan de gestion: referent/creer-plan.md
+          - La fiche d'un plan et sa navigation: referent/fiche-plan.md
+          - Le paramétrage du plan: referent/parametrage.md
+          - Le cycle de vie d'un plan de gestion: referent/cycle-de-vie.md
+          - Les enjeux et leur contenu: referent/enjeux.md
+          - Lier ou copier un élément: referent/lier-copier.md
+          - Les indicateurs et les métriques: referent/indicateurs-metriques.md
+          - Les actions de gestion: referent/actions.md
+          - Le suivi du plan de gestion: referent/suivi.md
+          - Le tableau d'arborescence: referent/tableau-arborescence.md
+          - Les documents du plan: referent/documents.md
+          - Les exports du plan: referent/exports.md
+          - Le module Mes inventaires et suivis: referent/inventaires-suivis.md
+      - Notice Administrateur d'organisme:
+          - admin-organisme/index.md
+          - Accéder à l'espace administration: admin-organisme/espace-administration.md
+          - Gérer les utilisateurs: admin-organisme/utilisateurs.md
+          - Gérer les sites: admin-organisme/sites.md
+          - Importer des sites en masse: admin-organisme/import-masse.md
+          - Gérer son organisme: admin-organisme/organisme.md
+          - Traiter les validations: admin-organisme/validations.md
+          - Repérer les sites orphelins: admin-organisme/orphelins.md
+      - Notice Administrateur d'une instance:
+          - admin-instance/index.md
+          - Le tableau de bord général d'une instance: admin-instance/tableau-de-bord.md
+          - Gérer tous les utilisateurs et l'impersonation: admin-instance/utilisateurs.md
+          - Gérer les rédacteurs généraux: admin-instance/redacteurs-generaux.md
+          - Gérer les modules: admin-instance/modules.md
+          - Consulter les journaux d'erreurs et du serveur: admin-instance/journaux.md
+          - Traiter les demandes RGPD: admin-instance/rgpd.md
+          - Paramètres de l'instance et mise à jour: admin-instance/parametres.md
+  - Administration technique:
+      - administration/index.md
+  - API:
+      - api/index.md
+      - Prise en main: api/prise-en-main.md
+      - Authentification et permissions: api/authentification.md
+      - Domaines:
+          - Authentification: api/auth.md
+          - Utilisateurs: api/users.md
+          - Organismes et sites: api/organismes-sites.md
+          - Plans de gestion: api/plans.md
+          - Arborescence: api/arborescence.md
+          - Actions et suivi: api/actions-suivi.md
+          - Référentiels: api/referentiels.md
+          - Notifications, validations et activité: api/notifications.md
+          - Exploration et fédération: api/exploration.md
+          - Administration de l'instance: api/administration.md
+          - API publique des métadonnées: api/api-publique-plans.md
+      - Référence complète: api/reference.md

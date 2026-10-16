@@ -27,12 +27,13 @@ Les erreurs portent une clé stable (`erreur`) que l'interface traduit, et un
 
 import logging
 
+from drf_spectacular.utils import extend_schema
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.users.permissions import IsSuperAdmin
 
-from . import raccordement
+from . import raccordement, schema
 
 logger = logging.getLogger(__name__)
 
@@ -42,6 +43,19 @@ class RaccordementView(APIView):
 
     permission_classes = [IsSuperAdmin]
 
+    @extend_schema(
+        operation_id='federation_raccordement_retrieve',
+        summary="État du raccordement au hub",
+        description=(
+            "Configuration effective, adhésion, dernières publications et un "
+            "`diagnostic` qui dit en une clé ce qui bloque. Une adhésion en attente "
+            "est d'abord actualisée auprès du suivi RNF. Aucun jeton ni empreinte "
+            "n'est jamais renvoyé."
+        ),
+        responses={200: schema.ETAT_RACCORDEMENT, 401: schema.REPONSE_401,
+                   403: schema.REPONSES_RACCORDEMENT_ERREURS[403]},
+        tags=[schema.TAG_FEDERATION],
+    )
     def get(self, request):
         return Response(raccordement.etat())
 
@@ -51,6 +65,19 @@ class RaccordementVerifierView(APIView):
 
     permission_classes = [IsSuperAdmin]
 
+    @extend_schema(
+        operation_id='federation_raccordement_verifier',
+        summary="Interroger le hub en direct",
+        description=(
+            "Le hub est-il joignable, cette instance y est-elle reconnue et active, "
+            "quand a-t-elle publié pour la dernière fois ? Rien n'est écrit. "
+            "`instance_reconnue` reste nul si l'instance n'a aucun jeton à présenter."
+        ),
+        request=None,
+        responses={200: schema.VERIFICATION_HUB, 401: schema.REPONSE_401,
+                   403: schema.REPONSES_RACCORDEMENT_ERREURS[403]},
+        tags=[schema.TAG_FEDERATION],
+    )
     def post(self, request):
         return Response(raccordement.verifier_hub())
 
@@ -69,6 +96,20 @@ class RaccordementAdhesionView(APIView):
 
     permission_classes = [IsSuperAdmin]
 
+    @extend_schema(
+        operation_id='federation_raccordement_adhesion',
+        summary="Demander l'adhésion à l'exploration nationale",
+        description=(
+            "Engage la structure : coche le consentement au partage, tire les jetons "
+            "et transmet leurs empreintes au suivi RNF avec le contact de "
+            "l'administrateur. Refusé (409) si des jetons viennent déjà de "
+            "l'environnement ou si l'adhésion est acceptée ; 400 si l'identité de "
+            "l'instance (`CICADA_INSTANCE_ID`/`LABEL`) manque. Renvoie l'état complet."
+        ),
+        request=schema.REQUETE_ADHESION,
+        responses={200: schema.ETAT_RACCORDEMENT, **schema.REPONSES_RACCORDEMENT_ERREURS},
+        tags=[schema.TAG_FEDERATION],
+    )
     def post(self, request):
         try:
             raccordement.demander_adhesion(request.data)
@@ -86,6 +127,18 @@ class RaccordementConfirmationView(APIView):
 
     permission_classes = [IsSuperAdmin]
 
+    @extend_schema(
+        operation_id='federation_raccordement_confirmation',
+        summary="Confirmer l'adhésion avec le code reçu par e-mail",
+        description=(
+            "Relaie le code au suivi RNF ; code juste ⇒ adhésion acceptée et instance "
+            "enrôlée sur le hub. Le code ne transite que dans cette requête : ni "
+            "stocké, ni journalisé, ni renvoyé. Renvoie l'état complet."
+        ),
+        request=schema.REQUETE_CONFIRMATION,
+        responses={200: schema.ETAT_RACCORDEMENT, **schema.REPONSES_RACCORDEMENT_ERREURS},
+        tags=[schema.TAG_FEDERATION],
+    )
     def post(self, request):
         try:
             donnees = request.data if isinstance(request.data, dict) else {}
@@ -104,6 +157,17 @@ class RaccordementContactView(APIView):
 
     permission_classes = [IsSuperAdmin]
 
+    @extend_schema(
+        operation_id='federation_raccordement_contact',
+        summary="Écrire à RNF",
+        description=(
+            "Message de l'administrateur connecté, transmis par le suivi RNF. "
+            "L'expéditeur (nom, adresse) est celui du compte connecté, jamais du corps."
+        ),
+        request=schema.REQUETE_CONTACT,
+        responses={202: schema.REPONSE_CONTACT, **schema.REPONSES_RACCORDEMENT_ERREURS},
+        tags=[schema.TAG_FEDERATION],
+    )
     def post(self, request):
         try:
             raccordement.contacter_rnf(request.user, request.data)
@@ -125,6 +189,19 @@ class RaccordementConfigurationView(APIView):
 
     permission_classes = [IsSuperAdmin]
 
+    @extend_schema(
+        operation_id='federation_raccordement_configuration',
+        summary="Saisir le raccordement au hub",
+        description=(
+            "URL du hub, jetons délivrés par `enroler_instance` (chiffrés en base, "
+            "jamais relus) et source de l'exploration. Une valeur fixée par le "
+            "`.env` ne se modifie pas ici (409 `valeur_environnement`). Rend l'état "
+            "complet, sans jeton."
+        ),
+        request=schema.REQUETE_CONFIGURATION,
+        responses={200: schema.ETAT_RACCORDEMENT, **schema.REPONSES_RACCORDEMENT_ERREURS},
+        tags=[schema.TAG_FEDERATION],
+    )
     def patch(self, request):
         try:
             raccordement.configurer(request.data)

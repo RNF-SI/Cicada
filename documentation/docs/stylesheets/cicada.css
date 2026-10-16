@@ -1,0 +1,195 @@
+/* Charte CICADA appliquée au thème Material.
+   Valeurs alignées sur frontend/src/assets/scss/_variables.scss (Kit UI 11/2025).
+   Toute évolution de la charte se reporte ici, jamais en dur dans les pages. */
+
+:root,
+[data-md-color-scheme="cicada"] {
+  /* Palette */
+  --ccd-primary: #025359;
+  --ccd-yellow: #FEC180;
+  --ccd-salmon: #F5B399;
+  --ccd-terra-cotta: #B74D5D;
+  --ccd-pale-green: #C0E3CF;
+  --ccd-success: #04854B;
+  --ccd-error: #E12329;
+  --ccd-info: #81C9D8;
+  --ccd-black: #343433;
+  --ccd-gray-dark: #746F6E;
+  --ccd-gray: #C6C6C6;
+  --ccd-gray-light: #E4E4E4;
+  --ccd-gray-lightest: #F6F6F6;
+  --ccd-beige: #F8F5F1;
+  --ccd-tip-bg: #FDF0EB;        /* fond des encadrés « 💡 » de la notice */
+  --ccd-tip-border: #F5B399;
+  --ccd-table-head: #C0E3CF;    /* en-tête des tableaux de la notice */
+
+  /* Tokens Material */
+  --md-primary-fg-color: var(--ccd-primary);
+  --md-primary-fg-color--light: #2d7a80;
+  --md-primary-fg-color--dark: #013d42;
+  --md-primary-bg-color: #FFFFFF;
+  --md-primary-bg-color--light: rgba(255, 255, 255, 0.7);
+  --md-accent-fg-color: var(--ccd-terra-cotta);
+  --md-accent-fg-color--transparent: rgba(183, 77, 93, 0.1);
+  --md-accent-bg-color: #FFFFFF;
+  --md-default-bg-color: #FFFFFF;
+  --md-default-fg-color: var(--ccd-black);
+  --md-default-fg-color--light: var(--ccd-gray-dark);
+  --md-default-fg-color--lighter: var(--ccd-gray);
+  --md-default-fg-color--lightest: var(--ccd-gray-light);
+  --md-typeset-color: var(--ccd-black);
+  --md-typeset-a-color: var(--ccd-primary);
+  --md-code-bg-color: var(--ccd-gray-lightest);
+  --md-code-fg-color: var(--ccd-black);
+  --md-footer-bg-color: var(--ccd-primary);
+  --md-footer-bg-color--dark: #013d42;
+  --md-typeset-table-color: var(--ccd-gray-light);
+}
+
+/* Typographie Nunito : titres en primaire, comme dans l'application */
+.md-typeset h1,
+.md-typeset h2 {
+  color: var(--ccd-primary);
+  font-weight: 700;
+}
+.md-typeset h3,
+.md-typeset h4 {
+  color: var(--ccd-terra-cotta);
+  font-weight: 700;
+}
+.md-typeset h1 { font-size: 2.1em; }
+.md-typeset h2 { font-size: 1.55em; }
+.md-typeset h3 { font-size: 1.2em; }
+
+/* En-tête et onglets */
+.md-header { box-shadow: 0 1px 0 rgba(0, 0, 0, 0.08); }
+.md-header__button.md-logo img { height: 1.6rem; filter: brightness(0) invert(1); } /* logo en blanc sur le bandeau primaire */
+.md-tabs__link--active { font-weight: 700; }
+
+/* Navigation latérale : entrée active en primaire, comme la sidebar de l'app */
+.md-nav__link--active { font-weight: 700; }
+.md-nav__item .md-nav__link[for] { color: var(--ccd-gray-dark); }
+
+/* Tableaux : en-tête vert pâle, texte noir (combinaison AA du kit UI) */
+.md-typeset table:not([class]) th {
+  background-color: var(--ccd-table-head);
+  color: var(--ccd-black);
+  font-weight: 700;
+}
+.md-typeset table:not([class]) td,
+.md-typeset table:not([class]) th {
+  border-color: var(--ccd-gray-light);
+  vertical-align: top;
+}
+
+/* Encadrés « 💡 » : rendu des astuces de la notice (fond saumon clair, ampoule) */
+.md-typeset .admonition.tip,
+.md-typeset details.tip {
+  border-color: var(--ccd-tip-border);
+  background-color: var(--ccd-tip-bg);
+}
+.md-typeset .tip > .admonition-title,
+.md-typeset .tip > summary {
+  background-color: transparent;
+  color: var(--ccd-black);
+  font-weight: 700;
+}
+.md-typeset .tip > .admonition-title::before,
+.md-typeset .tip > summary::before {
+  background-color: var(--ccd-terra-cotta);
+}
+.md-typeset .admonition.tip.no-title > .admonition-title { display: none; }
+
+/* Notes et avertissements dans la palette */
+.md-typeset .admonition.note { border-color: var(--ccd-info); }
+.md-typeset .note > .admonition-title { background-color: rgba(129, 201, 216, 0.15); }
+.md-typeset .note > .admonition-title::before { background-color: var(--ccd-primary); }
+.md-typeset .admonition.warning { border-color: var(--ccd-yellow); }
+.md-typeset .warning > .admonition-title { background-color: rgba(254, 193, 128, 0.2); color: var(--ccd-black); }
+.md-typeset .warning > .admonition-title::before { background-color: var(--ccd-terra-cotta); }
+.md-typeset .admonition.danger { border-color: var(--ccd-error); }
+.md-typeset .danger > .admonition-title { background-color: rgba(225, 35, 41, 0.08); color: var(--ccd-black); }
+.md-typeset .danger > .admonition-title::before { background-color: var(--ccd-error); }
+
+/* Figures : capture + légende numérotée, comme dans la notice PDF */
+.md-typeset figure {
+  margin: 1.2em auto;
+  text-align: center;
+}
+.md-typeset figure img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 12px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+}
+.md-typeset figure.figure--small img { max-width: 420px; }
+.md-typeset figure.figure--medium img { max-width: 640px; }
+.md-typeset figcaption {
+  color: var(--ccd-primary);
+  font-style: italic;
+  font-size: 0.78rem;
+  margin-top: 0.4em;
+}
+/* Figures côte à côte */
+.md-typeset .figure-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  justify-content: center;
+  align-items: flex-start;
+}
+.md-typeset .figure-row figure { flex: 1 1 260px; margin: 0.4em 0; }
+
+/* Liste à coches « Ce que vous pouvez faire » */
+.md-typeset ul.checklist { list-style: none; padding-left: 0; }
+.md-typeset ul.checklist > li { padding-left: 1.6em; position: relative; }
+.md-typeset ul.checklist > li::before {
+  content: "✓";
+  color: var(--ccd-success);
+  font-weight: 700;
+  position: absolute;
+  left: 0.2em;
+}
+
+/* Sous-titre « À qui s'adresse cette notice ? » en terra cotta */
+.md-typeset .lead { color: var(--ccd-terra-cotta); font-weight: 700; }
+
+/* Grille de tuiles de la page d'accueil */
+.md-typeset .tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 1rem;
+  margin: 1.5rem 0;
+}
+.md-typeset .tiles > a {
+  display: block;
+  padding: 1.1rem 1.2rem;
+  border-radius: 16px;
+  border: 1px solid var(--ccd-gray-light);
+  background: var(--ccd-beige);
+  color: var(--ccd-black);
+  text-decoration: none;
+  transition: box-shadow 0.15s ease, transform 0.15s ease;
+}
+.md-typeset .tiles > a:hover {
+  box-shadow: 0 4px 14px rgba(2, 83, 89, 0.15);
+  transform: translateY(-2px);
+}
+.md-typeset .tiles > a > strong {
+  display: block;
+  color: var(--ccd-primary);
+  font-size: 1.05em;
+  margin-bottom: 0.3em;
+}
+.md-typeset .tiles > a.tile--yellow { background: #FFF3E3; }
+.md-typeset .tiles > a.tile--salmon { background: #FDEDE6; }
+.md-typeset .tiles > a.tile--green { background: #E8F5EE; }
+.md-typeset .tiles > a.tile--terra { background: #F7E4E7; }
+
+/* Index « Je veux… » */
+.md-typeset .jeveux dt { font-weight: 700; color: var(--ccd-primary); margin-top: 0.8em; }
+.md-typeset .jeveux dd { margin-left: 1.2em; }
+
+/* Swagger UI dans la charte */
+.swagger-ui .topbar { display: none; }
+.swagger-ui .info .title { color: var(--ccd-primary); font-family: Nunito, sans-serif; }

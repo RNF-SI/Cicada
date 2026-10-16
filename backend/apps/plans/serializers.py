@@ -2,6 +2,8 @@
 Serializers pour l'API REST Plans de Gestion.
 """
 from rest_framework import serializers
+from drf_spectacular.utils import extend_schema_field
+from drf_spectacular.types import OpenApiTypes
 from django.contrib.gis.serializers.geojson import Serializer as GeoJSONSerializer
 from django.core.files.uploadedfile import InMemoryUploadedFile, TemporaryUploadedFile
 from django.utils.translation import gettext_lazy as _
@@ -23,6 +25,61 @@ class CorSitePgSerializer(serializers.ModelSerializer):
             'date_association'
         ]
         read_only_fields = ['id', 'date_association']
+
+
+# ---------------------------------------------------------------------------
+# Schémas documentaires (OpenAPI) des SerializerMethodField composites
+# ---------------------------------------------------------------------------
+
+class PersonneResumeSerializer(serializers.Serializer):
+    """Référent ou membre d'un plan (forme réduite)."""
+    id_role = serializers.IntegerField()
+    email = serializers.EmailField()
+    nom_role = serializers.CharField(allow_null=True)
+    prenom_role = serializers.CharField(allow_null=True)
+    nom_complet = serializers.CharField()
+
+
+class MembreResumeSerializer(PersonneResumeSerializer):
+    referent = serializers.BooleanField()
+
+
+class OrganismeResumeSerializer(serializers.Serializer):
+    id_organisme = serializers.IntegerField()
+    nom_organisme = serializers.CharField()
+
+
+class OrganismeGestionnaireSerializer(OrganismeResumeSerializer):
+    type_organisme_code = serializers.CharField(allow_null=True)
+
+
+class OrganismeSiteSerializer(OrganismeGestionnaireSerializer):
+    principal = serializers.BooleanField()
+
+
+class PlanSiteResumeSerializer(serializers.Serializer):
+    id_site = serializers.IntegerField()
+    nom_site = serializers.CharField()
+
+
+class VersionChainItemSerializer(serializers.Serializer):
+    """Maillon de la chaîne de versions (`PlanGestion.get_version_chain()`)."""
+    id_pg = serializers.IntegerField()
+    nom = serializers.CharField()
+    slug = serializers.CharField()
+    version = serializers.CharField()
+    statut = serializers.CharField()
+    rang = serializers.IntegerField(allow_null=True)
+    annee_debut = serializers.IntegerField(allow_null=True)
+    annee_fin = serializers.IntegerField(allow_null=True)
+    annees_extension = serializers.IntegerField()
+    en_revision = serializers.BooleanField()
+    is_mi_parcours = serializers.BooleanField()
+    next_rang_plan_id = serializers.IntegerField(allow_null=True)
+    type_document = serializers.CharField(allow_null=True)
+    type_document_mnemonique = serializers.CharField(allow_null=True)
+    is_current = serializers.BooleanField()
+    type_site_mnemonique = serializers.CharField(allow_null=True, required=False)
 
 
 class CorPgFichierSerializer(serializers.ModelSerializer):
@@ -47,6 +104,7 @@ class CorPgFichierSerializer(serializers.ModelSerializer):
             'date_upload'
         ]
 
+    @extend_schema_field(serializers.CharField(allow_null=True))
     def get_file_size_human(self, obj):
         """Retourne la taille du fichier en format lisible."""
         if obj.taille_fichier:
@@ -58,6 +116,7 @@ class CorPgFichierSerializer(serializers.ModelSerializer):
             return f"{size:.1f} TB"
         return None
 
+    @extend_schema_field(OpenApiTypes.BOOL)
     def get_is_image(self, obj):
         """Vérifie si le fichier est une image."""
         if obj.extension:
@@ -65,6 +124,7 @@ class CorPgFichierSerializer(serializers.ModelSerializer):
             return ext in ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'svg']
         return False
 
+    @extend_schema_field(OpenApiTypes.BOOL)
     def get_is_document(self, obj):
         """Vérifie si le fichier est un document."""
         if obj.extension:
@@ -72,6 +132,7 @@ class CorPgFichierSerializer(serializers.ModelSerializer):
             return ext in ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'odt', 'ods']
         return False
     
+    @extend_schema_field(serializers.CharField(allow_null=True))
     def get_url(self, obj):
         """URL de téléchargement du fichier."""
         if obj.chemin_fichier:
@@ -104,18 +165,21 @@ class PlanSiteListSerializer(serializers.ModelSerializer):
         fields = ['id_site', 'nom_site', 'slug', 'type_site_label', 'type_site_mnemonique',
                   'rang', 'current_user_has_access', 'organismes']
 
+    @extend_schema_field(serializers.CharField(allow_null=True))
     def get_type_site_label(self, obj):
         """Récupérer le label du type de site depuis la nomenclature."""
         if obj.site and obj.site.id_type_site:
             return obj.site.id_type_site.label
         return None
 
+    @extend_schema_field(serializers.CharField(allow_null=True))
     def get_type_site_mnemonique(self, obj):
         """Mnémonique du type de site (#281, pour contextualiser le badge d'extension)."""
         if obj.site and obj.site.id_type_site:
             return obj.site.id_type_site.mnemonique
         return None
 
+    @extend_schema_field(OpenApiTypes.BOOL)
     def get_current_user_has_access(self, obj):
         """Vérifie si l'utilisateur courant a accès au site.
 
@@ -131,6 +195,7 @@ class PlanSiteListSerializer(serializers.ModelSerializer):
             return False
         return request.user.has_access_to_site(obj.site)
 
+    @extend_schema_field(OrganismeSiteSerializer(many=True))
     def get_organismes(self, obj):
         """Retourne les organismes liés au site via CorOgSite."""
         from apps.users.models import CorOgSite
@@ -235,24 +300,31 @@ class PlanGestionListSerializer(serializers.ModelSerializer):
             'sites', 'referents', 'membres',
         ]
 
+    @extend_schema_field(OpenApiTypes.BOOL)
     def get_is_extended(self, obj):
         return obj.is_extended()
 
+    @extend_schema_field(OpenApiTypes.BOOL)
     def get_is_in_revision(self, obj):
         return obj.is_in_revision()
 
+    @extend_schema_field(OpenApiTypes.BOOL)
     def get_is_mid_term(self, obj):
         return obj.is_mid_term()
 
+    @extend_schema_field(OpenApiTypes.BOOL)
     def get_is_in_csrpn_workflow(self, obj):
         return obj.is_in_csrpn_workflow()
 
+    @extend_schema_field(OpenApiTypes.BOOL)
     def get_has_draft_child(self, obj):
         return obj.has_draft_child()
 
+    @extend_schema_field(OpenApiTypes.BOOL)
     def get_can_create_modification(self, obj):
         return obj.can_have_new_draft_child()
 
+    @extend_schema_field(PersonneResumeSerializer(many=True))
     def get_referents(self, obj):
         return [
             {
@@ -265,6 +337,7 @@ class PlanGestionListSerializer(serializers.ModelSerializer):
             for r in obj.referents.all()
         ]
 
+    @extend_schema_field(MembreResumeSerializer(many=True))
     def get_membres(self, obj):
         return [
             {
@@ -342,6 +415,7 @@ class PlanGestionDetailSerializer(serializers.ModelSerializer):
     organismes_redacteurs_ids = serializers.ListField(child=serializers.IntegerField(), write_only=True, required=False)
     organismes_redacteurs_list = serializers.SerializerMethodField(read_only=True)
 
+    @extend_schema_field(OpenApiTypes.BOOL)
     def get_peut_etre_etendu(self, obj):
         """Indique si le plan peut donner lieu à une prolongation (#250 — refonte).
 
@@ -364,26 +438,32 @@ class PlanGestionDetailSerializer(serializers.ModelSerializer):
         current_year = date.today().year
         return effective_end - 1 <= current_year <= effective_end + 2
 
+    @extend_schema_field(serializers.IntegerField(allow_null=True))
     def get_annee_fin_effective(self, obj):
         """Année de fin effective (annee_fin + annees_extension si étendu)."""
         return obj.annee_fin_effective
 
+    @extend_schema_field(OpenApiTypes.BOOL)
     def get_is_extended(self, obj):
         """#250 — Vrai si le plan a été prolongé (annees_extension > 0)."""
         return obj.is_extended()
 
+    @extend_schema_field(OpenApiTypes.BOOL)
     def get_is_in_revision(self, obj):
         """#278 — Vrai si le plan est en cours de révision."""
         return obj.is_in_revision()
 
+    @extend_schema_field(OpenApiTypes.BOOL)
     def get_is_mid_term(self, obj):
         """#276 — Vrai si cette version est l'évaluation mi-parcours du plan."""
         return obj.is_mid_term()
 
+    @extend_schema_field(OpenApiTypes.BOOL)
     def get_is_in_csrpn_workflow(self, obj):
         """#277 — Vrai si le plan est dans le workflow CSRPN (validation_step renseigné)."""
         return obj.is_in_csrpn_workflow()
 
+    @extend_schema_field(OpenApiTypes.BOOL)
     def get_has_draft_child(self, obj):
         """Vrai si le plan a déjà au moins un brouillon enfant.
 
@@ -392,6 +472,7 @@ class PlanGestionDetailSerializer(serializers.ModelSerializer):
         """
         return obj.has_draft_child()
 
+    @extend_schema_field(OpenApiTypes.BOOL)
     def get_can_create_modification(self, obj):
         """Vrai si on peut créer une nouvelle version (brouillon) de ce plan.
 
@@ -399,6 +480,7 @@ class PlanGestionDetailSerializer(serializers.ModelSerializer):
         """
         return obj.can_have_new_draft_child()
 
+    @extend_schema_field(OrganismeGestionnaireSerializer(many=True))
     def get_organismes_gestionnaires(self, obj):
         """Retourne la liste des noms des organismes gestionnaires."""
         organismes = []
@@ -420,6 +502,7 @@ class PlanGestionDetailSerializer(serializers.ModelSerializer):
                 unique.append(org)
         return unique
 
+    @extend_schema_field(PlanSiteResumeSerializer(many=True))
     def get_sites_list(self, obj):
         """Retourne la liste simplifiée des sites."""
         return [
@@ -427,10 +510,12 @@ class PlanGestionDetailSerializer(serializers.ModelSerializer):
             for site in obj.get_sites()
         ]
 
+    @extend_schema_field(VersionChainItemSerializer(many=True))
     def get_version_chain(self, obj):
         """Retourne la chaîne complète de versions."""
         return obj.get_version_chain()
 
+    @extend_schema_field(OrganismeResumeSerializer(many=True))
     def get_organismes_redacteurs_list(self, obj):
         """Retourne la liste des organismes rédacteurs du plan."""
         from apps.plans.models import CorRedacteurPlan

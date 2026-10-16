@@ -50,10 +50,13 @@ jobs:
           cache-from: type=gha,scope=backend
           cache-to: type=gha,mode=max,scope=backend
 
+      # Frontend : contexte = racine du dépôt, parce que l'image embarque aussi
+      # la documentation (documentation/ → /aide/). Les exclusions sont dans
+      # frontend/Dockerfile.dockerignore (BuildKit), pas dans le .dockerignore racine.
       - name: Build and push frontend
         uses: docker/build-push-action@v6
         with:
-          context: ./frontend
+          context: .
           file: ./frontend/Dockerfile
           push: true
           tags: |

@@ -238,6 +238,8 @@
   },
   "header": {
     "administration": "Administration",
+    "help": "Aide",
+    "helpTitle": "Ouvrir la documentation de CICADA (nouvel onglet)",
     "profile": "Mon profil",
     "myRequests": "Mes demandes",
     "settings": "Paramètres",

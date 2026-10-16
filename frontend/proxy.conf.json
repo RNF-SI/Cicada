@@ -10,5 +10,14 @@
     "secure": false,
     "changeOrigin": true,
     "logLevel": "debug"
+  },
+  "/aide": {
+    "target": "http://localhost:8001",
+    "secure": false,
+    "changeOrigin": true,
+    "logLevel": "debug",
+    "pathRewrite": {
+      "^/aide": ""
+    }
   }
 }

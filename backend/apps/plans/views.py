@@ -17,6 +17,14 @@ from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from rest_framework.exceptions import PermissionDenied
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import SearchFilter, OrderingFilter
+from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiResponse, inline_serializer
+from drf_spectacular.types import OpenApiTypes
+from rest_framework import serializers as drf_serializers
+
+from config.spectacular import (
+    ERREUR_SERIALIZER, FICHIER_XLSX_REQUEST, REPONSE_400, REPONSE_403, REPONSE_404,
+    geojson_feature_collection_schema, geojson_feature_schema, reponse_docx, reponse_xlsx,
+)
 
 from django.db.models import Count, Q
 
@@ -70,6 +78,55 @@ from .exploration import LectureExplorationMixin
 
 # Sentinel pour distinguer "step manquant" de "step=null" dans csrpn_step.
 _MISSING = object()
+
+
+# Schémas OpenAPI partagés par les endpoints GeoJSON des plans.
+PLAN_GEOJSON_PROPERTIES = inline_serializer(
+    name='PlanGeoJSONProperties',
+    fields={
+        'id_pg': drf_serializers.IntegerField(),
+        'nom': drf_serializers.CharField(),
+        'slug': drf_serializers.CharField(),
+        'periode_gestion': drf_serializers.CharField(),
+        'gestion_partagee': drf_serializers.BooleanField(),
+        'statut': drf_serializers.CharField(),
+        'statut_display': drf_serializers.CharField(),
+        'nb_sites': drf_serializers.IntegerField(),
+    },
+)
+PLAN_GEOJSON_FEATURE = geojson_feature_schema(PLAN_GEOJSON_PROPERTIES, name='PlanGeoJSONFeature')
+PLAN_GEOJSON_FEATURE_COLLECTION = geojson_feature_collection_schema(
+    PLAN_GEOJSON_PROPERTIES, name='PlanGeoJSONFeatureCollection')
+
+RAPPORT_IMPORT_RESPONSE = OpenApiResponse(
+    response=OpenApiTypes.OBJECT,
+    description="Rapport de validation : anomalies par onglet / ligne et décompte de ce qui serait créé.",
+)
+IMPORT_CREE_RESPONSE = OpenApiResponse(
+    response=inline_serializer(
+        name='ImportCree',
+        fields={
+            'created': drf_serializers.DictField(child=drf_serializers.IntegerField(),
+                                                 help_text="Nombre d'objets créés par type"),
+            'total': drf_serializers.IntegerField(),
+        },
+    ),
+    description='Import effectué',
+)
+IMPORT_ECHEC_RESPONSE = OpenApiResponse(
+    response=OpenApiTypes.OBJECT, description='Rapport de validation en échec, ou `{"error": "..."}`')
+IMPORT_MODE_PARAM = OpenApiParameter(
+    'mode', OpenApiTypes.STR, OpenApiParameter.QUERY, required=False, enum=['create', 'add', 'replace'],
+    description="create (défaut, refuse si le plan a déjà une arborescence), add (ajout), "
+                "replace (remplacement destructif). Accepté aussi dans le corps.",
+)
+DONNEES_ARBORESCENCE_REQUEST = inline_serializer(
+    name='DonneesArborescence',
+    fields={
+        'data': drf_serializers.DictField(help_text='Onglets → lignes, au format décrit par import-arborescence-schema'),
+        'mode': drf_serializers.ChoiceField(choices=['create', 'add', 'replace'], required=False),
+    },
+)
 
 
 class PlanGestionViewSet(LectureExplorationMixin, viewsets.ModelViewSet):
@@ -527,6 +584,7 @@ class PlanGestionViewSet(LectureExplorationMixin, viewsets.ModelViewSet):
             })
         return Response({'results': results})
 
+    @extend_schema(summary='Plans au format GeoJSON (FeatureCollection)', description="Plans visibles par l'utilisateur qui ont une géométrie, avec les filtres de la liste. Géométries en EPSG:4326.", responses={200: PLAN_GEOJSON_FEATURE_COLLECTION})
     @action(detail=False, methods=['get'])
     def geojson_list(self, request):
         """
@@ -554,6 +612,7 @@ class PlanGestionViewSet(LectureExplorationMixin, viewsets.ModelViewSet):
         
         return Response(geojson)
     
+    @extend_schema(summary='Un plan au format GeoJSON (Feature)', responses={200: PLAN_GEOJSON_FEATURE, 404: OpenApiResponse(response=ERREUR_SERIALIZER, description='Plan introuvable ou sans géométrie')})
     @action(detail=True, methods=['get'])
     def geojson(self, request, pk=None):
         """
@@ -1406,6 +1465,7 @@ class PlanGestionViewSet(LectureExplorationMixin, viewsets.ModelViewSet):
         result_serializer = PlanGestionDetailSerializer(new_plan)
         return Response(result_serializer.data, status=status.HTTP_201_CREATED)
 
+    @extend_schema(summary="Exemple de classeur d'arborescence", description="Classeur pédagogique fictif, indépendant de tout plan, illustrant tous les onglets du format d'import d'arborescence. Ouvert à tout utilisateur authentifié.", responses={200: reponse_xlsx('Classeur exemple')})
     @action(detail=False, methods=['get'], url_path='example-arborescence-xlsx',
             permission_classes=[permissions.IsAuthenticated])
     def example_arborescence_xlsx(self, request):
@@ -1431,6 +1491,7 @@ class PlanGestionViewSet(LectureExplorationMixin, viewsets.ModelViewSet):
         )
         return response
 
+    @extend_schema(summary="Exporter l'arborescence (format d'import)", description="Classeur multi-onglets au format d'import V1, pré-rempli avec l'arborescence du plan. Réservé aux référents du plan et aux gestionnaires (admin organisme, rédacteur principal, super admin).", parameters=[OpenApiParameter('empty', OpenApiTypes.BOOL, OpenApiParameter.QUERY, required=False, description='1 = modèle vierge, sans le contenu du plan')], responses={200: reponse_xlsx('Arborescence du plan'), 403: REPONSE_403, 404: REPONSE_404})
     @action(detail=True, methods=['get'], url_path='export-arborescence-xlsx')
     def export_arborescence_xlsx(self, request, pk=None):
         """
@@ -1463,6 +1524,7 @@ class PlanGestionViewSet(LectureExplorationMixin, viewsets.ModelViewSet):
         )
         return response
 
+    @extend_schema(summary="Exporter l'arborescence (présentation)", description="Classeur lisible / imprimable : un onglet par enjeu et par FCR avec la grille OLT → niveau d'exigence → indicateurs → actions. Réservé aux référents du plan et aux gestionnaires (admin organisme, rédacteur principal, super admin).", responses={200: reponse_xlsx('Arborescence mise en forme'), 403: REPONSE_403, 404: REPONSE_404})
     @action(detail=True, methods=['get'], url_path='export-arborescence-presentation-xlsx')
     def export_arborescence_presentation_xlsx(self, request, pk=None):
         """
@@ -1491,6 +1553,7 @@ class PlanGestionViewSet(LectureExplorationMixin, viewsets.ModelViewSet):
         )
         return response
 
+    @extend_schema(summary='Exporter les fiches action', description='Un onglet par opération (cadre, détails, volet financier). Réservé aux référents du plan et aux gestionnaires (admin organisme, rédacteur principal, super admin).', responses={200: reponse_xlsx('Fiches action du plan'), 403: REPONSE_403, 404: REPONSE_404})
     @action(detail=True, methods=['get'], url_path='export-fiches-actions-xlsx')
     def export_fiches_actions_xlsx(self, request, pk=None):
         """
@@ -1532,6 +1595,7 @@ class PlanGestionViewSet(LectureExplorationMixin, viewsets.ModelViewSet):
         )
         return response
 
+    @extend_schema(summary='Exporter les RH prévisionnelles', description='Jours prévisionnels par organisme et par année. Réservé aux référents du plan et aux gestionnaires (admin organisme, rédacteur principal, super admin).', responses={200: reponse_xlsx('RH prévisionnelles'), 403: REPONSE_403, 404: REPONSE_404})
     @action(detail=True, methods=['get'], url_path='export-rh-previsionnel-xlsx')
     def export_rh_previsionnel_xlsx(self, request, pk=None):
         """Exporter les RH prévisionnelles (jours) par organisme. Modèle CICADA."""
@@ -1540,6 +1604,7 @@ class PlanGestionViewSet(LectureExplorationMixin, viewsets.ModelViewSet):
         return self._xlsx_response(
             build_rh_previsionnel_workbook(plan), f'rh-previsionnel-{suffix}.xlsx')
 
+    @extend_schema(summary='Mettre en forme le tableau de bord des indicateurs', description="Le client envoie les lignes du tableau de bord telles qu'il les affiche (filtres et scores calculés côté client) ; le serveur ne fait que la mise en forme Excel. Réservé aux référents du plan et aux gestionnaires (admin organisme, rédacteur principal, super admin).", request=OpenApiTypes.OBJECT, responses={200: reponse_xlsx('Tableau de bord mis en forme'), 403: REPONSE_403, 404: REPONSE_404})
     @action(detail=True, methods=['post'], url_path='export-tableau-de-bord-xlsx')
     def export_tableau_de_bord_xlsx(self, request, pk=None):
         """
@@ -1559,6 +1624,7 @@ class PlanGestionViewSet(LectureExplorationMixin, viewsets.ModelViewSet):
         return self._xlsx_response(
             build_grille_workbook(payload), f'tableau-de-bord-{suffix}.xlsx')
 
+    @extend_schema(summary='Mettre en forme le tableau de suivi des actions', description="Même contrat que le tableau de bord : le client envoie l'onglet affiché (Réalisation, Budget, RH, Planification), filtres compris ; le serveur ne fait que la mise en forme Excel. Réservé aux référents du plan et aux gestionnaires (admin organisme, rédacteur principal, super admin).", request=OpenApiTypes.OBJECT, responses={200: reponse_xlsx('Suivi des actions mis en forme'), 403: REPONSE_403, 404: REPONSE_404})
     @action(detail=True, methods=['post'], url_path='export-suivi-actions-xlsx')
     def export_suivi_actions_xlsx(self, request, pk=None):
         """
@@ -1576,6 +1642,7 @@ class PlanGestionViewSet(LectureExplorationMixin, viewsets.ModelViewSet):
         return self._xlsx_response(
             build_grille_workbook(payload), f'suivi-actions-{suffix}.xlsx')
 
+    @extend_schema(summary='Exporter le suivi RH', description='Jours prévus / réalisés par organisme et par année. Réservé aux référents du plan et aux gestionnaires (admin organisme, rédacteur principal, super admin).', responses={200: reponse_xlsx('Suivi RH'), 403: REPONSE_403, 404: REPONSE_404})
     @action(detail=True, methods=['get'], url_path='export-rh-suivi-xlsx')
     def export_rh_suivi_xlsx(self, request, pk=None):
         """Exporter le suivi RH (jours prévus / réalisés) par organisme."""
@@ -1584,6 +1651,7 @@ class PlanGestionViewSet(LectureExplorationMixin, viewsets.ModelViewSet):
         return self._xlsx_response(
             build_rh_suivi_workbook(plan), f'rh-suivi-{suffix}.xlsx')
 
+    @extend_schema(summary='Exporter le budget prévisionnel', description='Fonctionnement / investissement par organisme et par année. Réservé aux référents du plan et aux gestionnaires (admin organisme, rédacteur principal, super admin).', responses={200: reponse_xlsx('Budget prévisionnel'), 403: REPONSE_403, 404: REPONSE_404})
     @action(detail=True, methods=['get'], url_path='export-budget-previsionnel-xlsx')
     def export_budget_previsionnel_xlsx(self, request, pk=None):
         """Exporter le budget prévisionnel (fonctionnement / investissement) par organisme."""
@@ -1592,6 +1660,7 @@ class PlanGestionViewSet(LectureExplorationMixin, viewsets.ModelViewSet):
         return self._xlsx_response(
             build_budget_previsionnel_workbook(plan), f'budget-previsionnel-{suffix}.xlsx')
 
+    @extend_schema(summary='Exporter le suivi budgétaire', description='Prévu / réalisé par organisme et par année. Réservé aux référents du plan et aux gestionnaires (admin organisme, rédacteur principal, super admin).', responses={200: reponse_xlsx('Suivi budgétaire'), 403: REPONSE_403, 404: REPONSE_404})
     @action(detail=True, methods=['get'], url_path='export-budget-suivi-xlsx')
     def export_budget_suivi_xlsx(self, request, pk=None):
         """Exporter le suivi budgétaire (prévu / réalisé) par organisme."""
@@ -1600,6 +1669,7 @@ class PlanGestionViewSet(LectureExplorationMixin, viewsets.ModelViewSet):
         return self._xlsx_response(
             build_budget_suivi_workbook(plan), f'budget-suivi-{suffix}.xlsx')
 
+    @extend_schema(summary='Exporter le plan de gestion en Word', description="Document rédigé (modèle CICADA) : enjeux écologiques puis socio-économiques, OLT, niveaux d'exigence, facteurs d'influence, pressions, FCR. Réservé aux référents du plan et aux gestionnaires (admin organisme, rédacteur principal, super admin).", responses={200: reponse_docx('Plan de gestion rédigé'), 403: REPONSE_403, 404: REPONSE_404})
     @action(detail=True, methods=['get'], url_path='export-plan-docx')
     def export_plan_docx(self, request, pk=None):
         """
@@ -1628,6 +1698,7 @@ class PlanGestionViewSet(LectureExplorationMixin, viewsets.ModelViewSet):
         )
         return response
 
+    @extend_schema(summary="Valider un classeur d'arborescence (sans écrire)", description="Analyse le classeur .xlsx et renvoie le rapport de validation ainsi que les données parsées (clé `data`) pour la correction interactive. N'écrit rien en base.", request=FICHIER_XLSX_REQUEST, parameters=[IMPORT_MODE_PARAM], responses={200: RAPPORT_IMPORT_RESPONSE, 400: REPONSE_400, 403: REPONSE_403, 404: REPONSE_404})
     @action(detail=True, methods=['post'], url_path='import-arborescence/validate',
             parser_classes=[MultiPartParser, FormParser])
     def import_arborescence_validate(self, request, pk=None):
@@ -1642,6 +1713,7 @@ class PlanGestionViewSet(LectureExplorationMixin, viewsets.ModelViewSet):
         """
         return self._run_import(request, execute=False)
 
+    @extend_schema(summary="Importer un classeur d'arborescence", description="Crée l'arborescence du plan dans une transaction. Refuse (400, rapport joint) si la validation échoue ou si le plan contient déjà une arborescence en mode `create`. Plan en brouillon uniquement.", request=FICHIER_XLSX_REQUEST, parameters=[IMPORT_MODE_PARAM], responses={201: IMPORT_CREE_RESPONSE, 400: IMPORT_ECHEC_RESPONSE, 403: REPONSE_403, 404: REPONSE_404})
     @action(detail=True, methods=['post'], url_path='import-arborescence',
             parser_classes=[MultiPartParser, FormParser])
     def import_arborescence(self, request, pk=None):
@@ -1693,6 +1765,7 @@ class PlanGestionViewSet(LectureExplorationMixin, viewsets.ModelViewSet):
             status=status.HTTP_201_CREATED,
         )
 
+    @extend_schema(summary="Décrire le format d'arborescence", description="Onglets et colonnes attendus par l'import (pilote la grille de correction et les cibles du mapping).", responses={200: inline_serializer(name='SchemaArborescence', fields={'sheets': drf_serializers.ListField(child=drf_serializers.DictField())})})
     @action(detail=False, methods=['get'], url_path='import-arborescence-schema',
             permission_classes=[permissions.IsAuthenticated])
     def import_arborescence_schema(self, request):
@@ -1704,6 +1777,7 @@ class PlanGestionViewSet(LectureExplorationMixin, viewsets.ModelViewSet):
         """
         return Response({'sheets': describe_schema()}, status=status.HTTP_200_OK)
 
+    @extend_schema(summary="Valider des données d'arborescence (JSON)", description='Variante sans fichier : les données éditées dans la grille de correction sont renvoyées en JSON.', request=DONNEES_ARBORESCENCE_REQUEST, responses={200: RAPPORT_IMPORT_RESPONSE, 403: REPONSE_403, 404: REPONSE_404})
     @action(detail=True, methods=['post'], url_path='import-arborescence/validate-data')
     def import_arborescence_validate_data(self, request, pk=None):
         """
@@ -1720,6 +1794,7 @@ class PlanGestionViewSet(LectureExplorationMixin, viewsets.ModelViewSet):
         payload['data'] = public_parsed(parsed)
         return Response(payload, status=status.HTTP_200_OK)
 
+    @extend_schema(summary="Résumé de l'arborescence existante", description="Décompte du contenu déjà présent dans le plan, pour la confirmation d'un remplacement.", responses={200: OpenApiResponse(response=OpenApiTypes.OBJECT, description="Compteurs par type d'objet")})
     @action(detail=True, methods=['get'], url_path='import-arborescence/existing-summary')
     def import_arborescence_existing_summary(self, request, pk=None):
         """
@@ -1730,6 +1805,7 @@ class PlanGestionViewSet(LectureExplorationMixin, viewsets.ModelViewSet):
         plan = self.get_object()
         return Response(count_existing_arborescence(plan), status=status.HTTP_200_OK)
 
+    @extend_schema(summary="Importer des données d'arborescence (JSON)", description="Variante sans fichier de l'import d'arborescence. Plan en brouillon uniquement.", request=DONNEES_ARBORESCENCE_REQUEST, responses={201: IMPORT_CREE_RESPONSE, 400: IMPORT_ECHEC_RESPONSE, 403: REPONSE_403, 404: REPONSE_404})
     @action(detail=True, methods=['post'], url_path='import-arborescence/import-data')
     def import_arborescence_import_data(self, request, pk=None):
         """
@@ -1754,6 +1830,7 @@ class PlanGestionViewSet(LectureExplorationMixin, viewsets.ModelViewSet):
             status=status.HTTP_201_CREATED,
         )
 
+    @extend_schema(summary='Lire un classeur Excel quelconque', description="Renvoie les onglets, en-têtes et lignes bruts d'un classeur, pour le mapping de colonnes.", request=FICHIER_XLSX_REQUEST, responses={200: inline_serializer(name='ClasseurLu', fields={'sheets': drf_serializers.ListField(child=inline_serializer(name='OngletLu', fields={'name': drf_serializers.CharField(), 'headers': drf_serializers.ListField(child=drf_serializers.CharField()), 'rows': drf_serializers.ListField(child=drf_serializers.ListField())}))}), 400: REPONSE_400})
     @action(detail=False, methods=['post'], url_path='read-xlsx',
             parser_classes=[MultiPartParser, FormParser],
             permission_classes=[permissions.IsAuthenticated])
@@ -1776,6 +1853,7 @@ class PlanGestionViewSet(LectureExplorationMixin, viewsets.ModelViewSet):
             return Response({'error': str(exc)}, status=status.HTTP_400_BAD_REQUEST)
         return Response({'sheets': sheets}, status=status.HTTP_200_OK)
 
+    @extend_schema(summary="Exemple de classeur d'actions", description='Classeur pédagogique fictif, indépendant de tout plan. Ouvert à tout utilisateur authentifié.', responses={200: reponse_xlsx('Classeur exemple')})
     @action(detail=False, methods=['get'], url_path='example-actions-xlsx',
             permission_classes=[permissions.IsAuthenticated])
     def example_actions_xlsx(self, request):
@@ -1801,6 +1879,7 @@ class PlanGestionViewSet(LectureExplorationMixin, viewsets.ModelViewSet):
         )
         return response
 
+    @extend_schema(summary="Exporter le classeur d'import des actions", description="Onglet « Indicateurs » pré-rempli avec les indicateurs du plan, onglet « Actions » vierge ou pré-rempli. Réservé aux référents du plan et aux gestionnaires (admin organisme, rédacteur principal, super admin).", responses={200: reponse_xlsx("Classeur d'actions"), 403: REPONSE_403, 404: REPONSE_404})
     @action(detail=True, methods=['get'], url_path='export-actions-xlsx')
     def export_actions_xlsx(self, request, pk=None):
         """
@@ -1826,6 +1905,7 @@ class PlanGestionViewSet(LectureExplorationMixin, viewsets.ModelViewSet):
         )
         return response
 
+    @extend_schema(summary="Valider un classeur d'actions (sans écrire)", request=FICHIER_XLSX_REQUEST, responses={200: RAPPORT_IMPORT_RESPONSE, 400: REPONSE_400, 403: REPONSE_403, 404: REPONSE_404})
     @action(detail=True, methods=['post'], url_path='import-actions/validate',
             parser_classes=[MultiPartParser, FormParser])
     def import_actions_validate(self, request, pk=None):
@@ -1835,6 +1915,7 @@ class PlanGestionViewSet(LectureExplorationMixin, viewsets.ModelViewSet):
         """
         return self._run_actions_import(request, execute=False)
 
+    @extend_schema(summary="Importer un classeur d'actions", description='Crée les actions du plan dans une transaction (création seule). Plan en brouillon uniquement.', request=FICHIER_XLSX_REQUEST, responses={201: IMPORT_CREE_RESPONSE, 400: IMPORT_ECHEC_RESPONSE, 403: REPONSE_403, 404: REPONSE_404})
     @action(detail=True, methods=['post'], url_path='import-actions',
             parser_classes=[MultiPartParser, FormParser])
     def import_actions(self, request, pk=None):
@@ -3178,6 +3259,33 @@ class CorPgFichierViewSet(viewsets.ModelViewSet):
 
 # Vues fonctionnelles pour actions spécifiques
 
+@extend_schema(
+    summary='Assigner des sites à plusieurs plans',
+    description=(
+        "Crée la relation plan ↔ site pour chaque couple (relations déjà existantes ignorées). "
+        "Réservé aux administrateurs d'organisme ; l'utilisateur doit pouvoir gérer chacun des sites."
+    ),
+    request=inline_serializer(
+        name='BulkAssignSitesRequest',
+        fields={
+            'plan_ids': drf_serializers.ListField(child=drf_serializers.IntegerField()),
+            'site_ids': drf_serializers.ListField(child=drf_serializers.IntegerField()),
+            'commentaire': drf_serializers.CharField(required=False, default='Assignation en masse'),
+        },
+    ),
+    responses={
+        200: inline_serializer(
+            name='BulkAssignSitesResponse',
+            fields={
+                'message': drf_serializers.CharField(),
+                'relations': drf_serializers.ListField(
+                    child=drf_serializers.CharField(), help_text='Libellés « plan ↔ site » créés'),
+            },
+        ),
+        400: REPONSE_400,
+        403: OpenApiResponse(response=ERREUR_SERIALIZER, description='Permissions insuffisantes sur un site'),
+    },
+)
 @api_view(['POST'])
 @permission_classes([permissions.IsAuthenticated, IsAdminOrganisme])
 def bulk_assign_sites(request):
@@ -3234,6 +3342,29 @@ def bulk_assign_sites(request):
                        status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
+@extend_schema(
+    summary='Export GeoJSON complet des plans',
+    description=(
+        "FeatureCollection des plans visibles par l'utilisateur qui ont une géométrie (EPSG:4326). "
+        "Réponse mise en cache 30 minutes."
+    ),
+    responses={200: geojson_feature_collection_schema(
+        inline_serializer(
+            name='PlanExportGeoJSONProperties',
+            fields={
+                'id_pg': drf_serializers.IntegerField(),
+                'nom': drf_serializers.CharField(),
+                'periode': drf_serializers.CharField(),
+                'statut': drf_serializers.CharField(),
+                'gestion_partagee': drf_serializers.BooleanField(),
+                'nb_sites': drf_serializers.IntegerField(),
+                'organismes': drf_serializers.ListField(child=drf_serializers.CharField()),
+            },
+        ),
+        crs=True,
+        name='PlanExportGeoJSON',
+    )},
+)
 @api_view(['GET'])
 @permission_classes([permissions.IsAuthenticated])
 @method_decorator(cache_page(60 * 30))

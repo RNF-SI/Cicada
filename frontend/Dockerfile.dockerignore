@@ -1,0 +1,17 @@
+# Exclusions du contexte de build de l'image frontend (contexte = racine du dépôt).
+# Lu par BuildKit à la place du .dockerignore de la racine, parce qu'il est
+# placé à côté de frontend/Dockerfile. Seuls `frontend/` et `documentation/`
+# entrent dans l'image.
+*
+!frontend
+!documentation
+frontend/node_modules
+frontend/dist
+frontend/.angular
+frontend/e2e
+frontend/test-results
+frontend/playwright-report
+frontend/coverage
+documentation/site
+documentation/.cache
+**/__pycache__

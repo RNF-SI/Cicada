@@ -26,11 +26,80 @@ Périmètre exclu, et la liste est exhaustive :
 Le test `TestFichePubliqueCloisonnement` vérifie ces exclusions champ par champ.
 """
 
+from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
 
 def _label(nomenclature):
     return nomenclature.label if nomenclature else None
+
+
+# --------------------------------------------------------------------------- #
+# Formes des dictionnaires construits à la main, pour le schéma OpenAPI
+# --------------------------------------------------------------------------- #
+
+def _inline(name, fields):
+    """Liste d'objets de cette forme, pour annoter un `SerializerMethodField`."""
+    from drf_spectacular.utils import inline_serializer
+
+    return inline_serializer(name, fields=fields, many=True)
+
+
+#: Formes instanciées une seule fois : `inline_serializer` crée une classe à
+#: chaque appel, et deux classes de même nom feraient signaler un conflit. Un
+#: `ListField(child=…)` lierait son enfant à la construction : on passe donc
+#: directement des sérialiseurs `many=True`.
+GRILLE_PALIER = _inline('FichePalierGrille', {
+    'niveau': serializers.IntegerField(),
+    'libelle': serializers.CharField(),
+    'valeur': serializers.CharField(allow_null=True),
+})
+METRIQUE_COURTE = _inline('FicheMetriqueCourte', {
+    'id_metrique': serializers.IntegerField(),
+    'nom_metrique': serializers.CharField(),
+    'unite': serializers.CharField(allow_null=True),
+})
+HABITAT = _inline('FicheHabitat', {
+    'cd_hab': serializers.IntegerField(allow_null=True),
+    'lb_hab_fr': serializers.CharField(allow_null=True),
+})
+TAXON = _inline('FicheTaxon', {
+    'cd_nom': serializers.IntegerField(),
+    'nom_complet': serializers.CharField(),
+    'nom_vern': serializers.CharField(allow_null=True),
+})
+SITE_ACTION = _inline('FicheSiteAction', {
+    'id_site': serializers.IntegerField(),
+    'nom_site': serializers.CharField(),
+    'slug': serializers.CharField(),
+})
+SITE_PLAN = _inline('FicheSite', {
+    'id_site': serializers.IntegerField(),
+    'nom_site': serializers.CharField(),
+    'slug': serializers.CharField(),
+    'type_site': serializers.CharField(allow_null=True),
+})
+
+
+def inline_grille():
+    return GRILLE_PALIER
+
+
+def inline_metrique_courte():
+    return METRIQUE_COURTE
+
+
+def inline_habitat():
+    return HABITAT
+
+
+def inline_taxon():
+    return TAXON
+
+
+def inline_site(type_site=False):
+    return SITE_PLAN if type_site else SITE_ACTION
 
 
 #: Libellés des 5 paliers de la grille de lecture, dans l'ordre des scores.
@@ -48,6 +117,7 @@ class MetriquePubliqueSerializer(serializers.Serializer):
     description = serializers.CharField(allow_null=True)
     grille = serializers.SerializerMethodField()
 
+    @extend_schema_field(inline_grille())
     def get_grille(self, metrique):
         """
         Grille de lecture 5 paliers, ou `None` si la métrique n'en a pas (#634).
@@ -82,6 +152,7 @@ class IndicateurPublicSerializer(serializers.Serializer):
     est_standardise = serializers.BooleanField()
     metriques = MetriquePubliqueSerializer(many=True)
 
+    @extend_schema_field(OpenApiTypes.STR)
     def get_type_indicateur(self, indicateur):
         return _label(indicateur.type_indicateur)
 
@@ -122,6 +193,7 @@ class ProtocolePublicSerializer(serializers.Serializer):
     documentation_disponible = serializers.BooleanField(allow_null=True)
     url_documentation = serializers.SerializerMethodField()
 
+    @extend_schema_field(OpenApiTypes.STR)
     def get_nom(self, protocole):
         """Le nom CAMPanule prime, avec repli sur la saisie libre (et vice-versa)."""
         if protocole.protocole_dans_campanule:
@@ -130,27 +202,35 @@ class ProtocolePublicSerializer(serializers.Serializer):
         return (_texte(protocole.nom_protocole)
                 or _texte(protocole.protocole_campanule_nom))
 
+    @extend_schema_field(OpenApiTypes.STR)
     def get_description(self, protocole):
         return _texte(protocole.description_protocole)
 
+    @extend_schema_field(OpenApiTypes.STR)
     def get_objectif(self, protocole):
         return _texte(protocole.objectif_protocole)
 
+    @extend_schema_field(OpenApiTypes.STR)
     def get_justification_non_respect(self, protocole):
         return _texte(protocole.justification_non_respect)
 
+    @extend_schema_field(OpenApiTypes.STR)
     def get_differences(self, protocole):
         return _texte(protocole.differences_protocole)
 
+    @extend_schema_field(OpenApiTypes.STR)
     def get_periode_echantillonnage(self, protocole):
         return _texte(protocole.periode_echantillonnage)
 
+    @extend_schema_field(OpenApiTypes.STR)
     def get_mode_validation(self, protocole):
         return _texte(protocole.mode_validation)
 
+    @extend_schema_field(OpenApiTypes.STR)
     def get_url_documentation(self, protocole):
         return _texte(protocole.url_documentation)
 
+    @extend_schema_field(serializers.ListField(child=serializers.CharField()))
     def get_periode_suivi(self, protocole):
         """Mois de suivi : mnémoniques en base, libellés en sortie."""
         libelles = getattr(protocole, 'libelles_pub', {})
@@ -202,34 +282,44 @@ class SuiviPublicSerializer(serializers.Serializer):
         libelles = getattr(suivi, 'libelles_pub', {})
         return libelles.get((type_mnemonique, mnemonique), mnemonique)
 
+    @extend_schema_field(OpenApiTypes.STR)
     def get_statut(self, suivi):
         return _label(suivi.id_statut)
 
+    @extend_schema_field(OpenApiTypes.STR)
     def get_objectif_principal(self, suivi):
         return self._libelle(suivi, 'OBJECTIF_SUIVI', suivi.objectif_principal)
 
+    @extend_schema_field(OpenApiTypes.STR)
     def get_objectif_secondaire(self, suivi):
         return self._libelle(suivi, 'OBJECTIF_SUIVI', suivi.objectif_secondaire)
 
+    @extend_schema_field(OpenApiTypes.STR)
     def get_cible_principale(self, suivi):
         return self._libelle(suivi, 'CIBLE_SUIVI', suivi.cibles_principales)
 
+    @extend_schema_field(OpenApiTypes.STR)
     def get_cible_secondaire(self, suivi):
         return self._libelle(suivi, 'CIBLE_SUIVI', suivi.cible_secondaire)
 
+    @extend_schema_field(OpenApiTypes.STR)
     def get_outil_saisie(self, suivi):
         return self._libelle(suivi, 'OUTIL_SAISIE', suivi.outil_saisie)
 
+    @extend_schema_field(OpenApiTypes.STR)
     def get_outil_bancarisation(self, suivi):
         return self._libelle(
             suivi, 'BANCARISATION_STOCKAGE', suivi.outil_bancarisation)
 
+    @extend_schema_field(OpenApiTypes.STR)
     def get_commentaires(self, suivi):
         return _texte(suivi.commentaires)
 
+    @extend_schema_field(OpenApiTypes.STR)
     def get_taxon(self, suivi):
         return _texte(suivi.taxon_taxref)
 
+    @extend_schema_field(inline_habitat())
     def get_habitats(self, suivi):
         """
         Habitats ciblés, structurés quand ils viennent de HabRef.
@@ -250,6 +340,7 @@ class SuiviPublicSerializer(serializers.Serializer):
         herite = _texte(suivi.habitat_ref)
         return [{'cd_hab': None, 'lb_hab_fr': herite}] if herite else []
 
+    @extend_schema_field(OpenApiTypes.STR)
     def get_frequence(self, suivi):
         """« 2 par an », ou la précision libre quand l'unité est « Autre »."""
         precision = _texte(suivi.frequence_unite_precision)
@@ -300,6 +391,7 @@ class ActionPubliqueSerializer(serializers.Serializer):
     indicateurs_reponse = serializers.SerializerMethodField()
     suivi = serializers.SerializerMethodField()
 
+    @extend_schema_field(OpenApiTypes.STR)
     def get_indicateur(self, operation):
         """
         Indicateur(s) d'état ou de pression servi(s) par l'action (#626).
@@ -318,6 +410,7 @@ class ActionPubliqueSerializer(serializers.Serializer):
                 noms.append(indicateur.nom_indicateur)
         return ' ; '.join(noms) or None
 
+    @extend_schema_field(inline_metrique_courte())
     def get_metriques(self, operation):
         from apps.plans.services_export_fiche_action import _is_reponse
 
@@ -329,6 +422,7 @@ class ActionPubliqueSerializer(serializers.Serializer):
             if not _is_reponse(metrique.id_indicateur)
         ]
 
+    @extend_schema_field(IndicateurPublicSerializer(many=True))
     def get_indicateurs_reponse(self, operation):
         """
         Source de vérité partagée avec l'export : `_reponse_indicateurs` (#626).
@@ -342,10 +436,12 @@ class ActionPubliqueSerializer(serializers.Serializer):
         return IndicateurPublicSerializer(
             _reponse_indicateurs(operation), many=True).data
 
+    @extend_schema_field(SuiviPublicSerializer)
     def get_suivi(self, operation):
         suivi = operation.id_suivi
         return SuiviPublicSerializer(suivi).data if suivi else None
 
+    @extend_schema_field(inline_site())
     def get_sites(self, operation):
         """Localisation de l'action : les sites qu'elle couvre (#626)."""
         return [
@@ -354,6 +450,7 @@ class ActionPubliqueSerializer(serializers.Serializer):
             for site in operation.sites.all()
         ]
 
+    @extend_schema_field(OpenApiTypes.STR)
     def get_frequence(self, operation):
         if not operation.frequence_nombre and not operation.frequence_unite:
             return None
@@ -362,15 +459,18 @@ class ActionPubliqueSerializer(serializers.Serializer):
             return f"{operation.frequence_nombre} / {unite}"
         return unite or str(operation.frequence_nombre)
 
+    @extend_schema_field(OpenApiTypes.STR)
     def get_categorie(self, operation):
         categorie = operation.id_categorie_action_reserve
         if not categorie:
             return None
         return f"{categorie.mnemonique} - {categorie.label}"
 
+    @extend_schema_field(OpenApiTypes.STR)
     def get_type_action(self, operation):
         return _label(operation.id_type_action)
 
+    @extend_schema_field(OpenApiTypes.STR)
     def get_priorite(self, operation):
         return _label(operation.id_priorite)
 
@@ -409,6 +509,7 @@ class PressionPubliqueSerializer(serializers.Serializer):
     description = serializers.CharField(allow_null=True)
     type_pression = serializers.SerializerMethodField()
 
+    @extend_schema_field(OpenApiTypes.STR)
     def get_type_pression(self, pression):
         return _label(pression.id_type_pression)
 
@@ -435,9 +536,11 @@ class EnjeuPublicSerializer(serializers.Serializer):
     objectifs_long_terme = ObjectifLongTermePublicSerializer(many=True, source='olt_pub')
     objectifs_operationnels = ObjectifOperationnelPublicSerializer(many=True, source='oo_pub')
 
+    @extend_schema_field(OpenApiTypes.STR)
     def get_categorie(self, enjeu):
         return _label(enjeu.id_categorie)
 
+    @extend_schema_field(inline_taxon())
     def get_taxons(self, enjeu):
         return [
             {'cd_nom': taxon.cd_nom, 'nom_complet': taxon.nom_complet,
@@ -445,6 +548,7 @@ class EnjeuPublicSerializer(serializers.Serializer):
             for taxon in enjeu.taxons.all()
         ]
 
+    @extend_schema_field(inline_habitat())
     def get_habitats(self, enjeu):
         return [
             {'cd_hab': habitat.cd_hab, 'lb_hab_fr': habitat.lb_hab_fr}
@@ -471,9 +575,11 @@ class FichePubliqueSerializer(serializers.Serializer):
     enjeux = EnjeuPublicSerializer(many=True, source='enjeux_pub')
     actions = ActionPubliqueSerializer(many=True, source='actions_pub')
 
+    @extend_schema_field(OpenApiTypes.STR)
     def get_type_document(self, plan):
         return _label(plan.id_type_document)
 
+    @extend_schema_field(inline_site(type_site=True))
     def get_sites(self, plan):
         return [
             {
@@ -488,6 +594,7 @@ class FichePubliqueSerializer(serializers.Serializer):
             for lien in plan.sites_ordonnes
         ]
 
+    @extend_schema_field(OpenApiTypes.STR)
     def get_gestionnaire_principal(self, plan):
         for lien in plan.sites_ordonnes:
             gestionnaires = getattr(lien.site, 'gestionnaires_principaux', [])

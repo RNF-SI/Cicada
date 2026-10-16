@@ -44,6 +44,12 @@
 
     <!-- Navigation -->
     <nav class="header-nav">
+      <!-- Aide : documentation statique servie sous /aide/ (nouvel onglet) -->
+      <a href="/aide/" target="_blank" rel="noopener" class="nav-link help-btn" data-testid="help-link"
+         [attr.aria-label]="'header.help' | translate" [title]="'header.helpTitle' | translate">
+        <i class="fi fi-rr-interrogation"></i>
+        <span class="btn-text">{{ 'header.help' | translate }}</span>
+      </a>
       @if (isAuthenticated()) {
         <!-- Administration button - opens in new window (except during impersonation) -->
         @if (canAccessAdmin()) {

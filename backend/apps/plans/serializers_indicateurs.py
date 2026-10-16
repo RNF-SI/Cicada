@@ -3,6 +3,9 @@ Serializers pour l'API REST Indicateurs, Métriques et Mesures.
 """
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
+from drf_spectacular.utils import extend_schema_field
+from drf_spectacular.types import OpenApiTypes
+from .serializers_operations import OperationNestedSerializer
 from .serializers_enjeux import _prefetched_count
 
 from .models_indicateurs import (
@@ -141,12 +144,14 @@ class MetriqueSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ['id_metrique', 'date_ajout', 'date_maj']
 
+    @extend_schema_field(OpenApiTypes.INT)
     def get_nb_mesures(self, obj):
         # Use prefetched data if available (avoids COUNT query)
         if hasattr(obj, '_prefetched_objects_cache') and 'mesures' in obj._prefetched_objects_cache:
             return len(obj.mesures.all())
         return _prefetched_count(obj, 'mesures')
 
+    @extend_schema_field(OperationNestedSerializer(many=True))
     def get_operations(self, obj):
         from .serializers_operations import OperationNestedSerializer
         # #263 — Propager le contexte (notamment `operation_codes` pré-calculé
@@ -157,6 +162,7 @@ class MetriqueSerializer(serializers.ModelSerializer):
             obj.operations.all(), many=True, context=self.context,
         ).data
 
+    @extend_schema_field(OpenApiTypes.INT)
     def get_nb_operations(self, obj):
         # Use prefetched data if available (avoids COUNT query)
         if hasattr(obj, '_prefetched_objects_cache') and 'operations' in obj._prefetched_objects_cache:
@@ -182,6 +188,7 @@ class MetriqueListSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ['id_metrique', 'date_ajout', 'date_maj']
 
+    @extend_schema_field(OpenApiTypes.INT)
     def get_nb_mesures(self, obj):
         return _prefetched_count(obj, 'mesures')
 
@@ -432,9 +439,11 @@ class IndicateurSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ['id_indicateur', 'date_ajout', 'date_maj']
 
+    @extend_schema_field(OpenApiTypes.INT)
     def get_nb_metriques(self, obj):
         return _prefetched_count(obj, 'metriques')
 
+    @extend_schema_field(serializers.ListField(child=serializers.IntegerField()))
     def get_ne_ids(self, obj):
         """#585 — niveaux d'exigence sous lesquels cet indicateur d'état apparaît.
 
@@ -446,6 +455,7 @@ class IndicateurSerializer(serializers.ModelSerializer):
         ids.add(obj.id_ne_id)
         return sorted(ids)
 
+    @extend_schema_field(serializers.ListField(child=serializers.IntegerField()))
     def get_ra_ids(self, obj):
         """#585 — résultats attendus sous lesquels cet indicateur de pression
         apparaît. Vide pour un indicateur d'état."""
@@ -455,6 +465,7 @@ class IndicateurSerializer(serializers.ModelSerializer):
         ids.add(obj.id_resultat_attendu_id)
         return sorted(ids)
 
+    @extend_schema_field(serializers.DictField(child=serializers.IntegerField(allow_null=True), help_text='année (en chaîne) → score surchargé 0..5'))
     def get_score_overrides(self, obj):
         """#518 — Mappe `année -> score forcé (1..5)` pour les saisies manuelles.
 
@@ -468,6 +479,7 @@ class IndicateurSerializer(serializers.ModelSerializer):
             if am.score_override is not None
         }
 
+    @extend_schema_field(serializers.IntegerField(allow_null=True))
     def get_global_score_override(self, obj):
         """#518 — Score (1..5) de l'évaluation globale forcée manuellement (#356),
         ou None si l'évaluation globale reste automatique. Le tableau de bord
@@ -475,6 +487,7 @@ class IndicateurSerializer(serializers.ModelSerializer):
         """
         return obj.get_evaluation_globale_override()
 
+    @extend_schema_field(serializers.CharField(allow_null=True))
     def get_enjeu_slug(self, obj):
         """#420 — Remonte au slug de l'enjeu de l'indicateur.
         Deux chemins possibles : via NE (Indicateur → NE → OLT → Enjeu) ou
@@ -508,6 +521,7 @@ class IndicateurSerializer(serializers.ModelSerializer):
             pass
         return None
 
+    @extend_schema_field(OperationNestedSerializer(many=True))
     def get_operations(self, obj):
         """#227/#367 — TOUTES les actions de l'indicateur, dédupliquées :
         rattachées directement (id_indicateur) OU via l'une de ses métriques.
@@ -544,11 +558,13 @@ class IndicateurListSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ['id_indicateur', 'date_ajout', 'date_maj']
 
+    @extend_schema_field(OpenApiTypes.INT)
     def get_nb_metriques(self, obj):
         if hasattr(obj, '_prefetched_objects_cache') and 'metriques' in obj._prefetched_objects_cache:
             return len(obj.metriques.all())
         return _prefetched_count(obj, 'metriques')
 
+    @extend_schema_field(OpenApiTypes.INT)
     def get_nb_operations(self, obj):
         # Use prefetched data if available to avoid N+1
         if hasattr(obj, '_prefetched_objects_cache') and 'metriques' in obj._prefetched_objects_cache:

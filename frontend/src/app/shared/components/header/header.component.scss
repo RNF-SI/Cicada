@@ -185,7 +185,8 @@
   }
 }
 
-// Administration button
+// Aide (documentation) et Administration : même gabarit
+.help-btn,
 .admin-btn {
   i {
     font-size: $font-size-h4;
@@ -509,6 +510,7 @@
   .user-icon,
   .chevron,
   .login-btn,
+  .help-btn,
   .admin-btn {
     color: #fff;
   }

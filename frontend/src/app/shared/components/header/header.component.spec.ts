@@ -365,6 +365,29 @@ describe('HeaderComponent', () => {
     });
   });
 
+  // ==================== HELP LINK (documentation /aide/) ====================
+
+  describe('Help link', () => {
+    const helpLink = () =>
+      fixture.nativeElement.querySelector('[data-testid="help-link"]') as HTMLAnchorElement | null;
+
+    it('should link to the documentation in a new tab when authenticated', () => {
+      fixture.detectChanges();
+      const link = helpLink();
+      expect(link).not.toBeNull();
+      expect(link!.getAttribute('href')).toBe('/aide/');
+      expect(link!.getAttribute('target')).toBe('_blank');
+      expect(link!.getAttribute('rel')).toContain('noopener');
+    });
+
+    it('should stay visible for guests (the notice covers login and sign-up)', () => {
+      isAuthenticatedSignal.set(false);
+      currentUserSignal.set(null);
+      fixture.detectChanges();
+      expect(helpLink()).not.toBeNull();
+    });
+  });
+
   // ==================== IMPERSONATION ====================
 
   describe('Impersonation', () => {

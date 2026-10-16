@@ -1,6 +1,8 @@
 """
 ViewSets pour l'API REST des utilisateurs.
 """
+from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import OpenApiParameter, extend_schema, extend_schema_view
 from rest_framework import viewsets, status, filters, serializers
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -21,6 +23,20 @@ from .permissions import (
 from .filters import RoleFilter
 
 
+# Le routeur expose la clé primaire sous le nom `id`, mais le modèle la nomme
+# `id_role` : drf-spectacular ne peut pas en déduire le type sans cette annotation.
+PARAM_ID_ROLE = OpenApiParameter(
+    'id', OpenApiTypes.INT, OpenApiParameter.PATH,
+    description="Identifiant de l'utilisateur (id_role)",
+)
+_ROLE_DETAIL_ACTIONS = [
+    'retrieve', 'update', 'partial_update', 'destroy', 'change_password',
+    'set_redacteur_principal', 'remove_redacteur_principal', 'set_redacteur',
+    'remove_redacteur', 'assign_site', 'deactivate_rgpd', 'anonymize_rgpd', 'reject_rgpd',
+]
+
+
+@extend_schema_view(**{a: extend_schema(parameters=[PARAM_ID_ROLE]) for a in _ROLE_DETAIL_ACTIONS})
 class RoleViewSet(viewsets.ModelViewSet):
     """
     ViewSet pour la gestion des utilisateurs via API REST.
@@ -51,6 +67,10 @@ class RoleViewSet(viewsets.ModelViewSet):
         """
         Filtrage des utilisateurs selon les permissions.
         """
+        # Génération du schéma OpenAPI : pas d'utilisateur réel
+        if getattr(self, 'swagger_fake_view', False):
+            return Role.objects.none()
+
         user = self.request.user
         
         # Super admin voit tous les utilisateurs
@@ -395,6 +415,14 @@ class RoleViewSet(viewsets.ModelViewSet):
         
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
+    @extend_schema(
+        parameters=[
+            PARAM_ID_ROLE,
+            OpenApiParameter('site_id', OpenApiTypes.INT, OpenApiParameter.PATH, description="Identifiant du site (id_site)"),
+        ],
+        request=None,
+        responses={204: None},
+    )
     @action(detail=True, methods=['delete'], url_path='sites/(?P<site_id>[^/.]+)')
     def unassign_site(self, request, pk=None, site_id=None):
         """

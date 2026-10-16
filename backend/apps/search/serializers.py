@@ -8,6 +8,8 @@ donnée jointe ne peut pas devenir obsolète, contrairement à une copie.
 """
 
 from django.db.models import Prefetch
+from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
 from apps.geo.models import LArea
@@ -82,12 +84,15 @@ class PlanResumeSerializer(serializers.Serializer):
     sites = serializers.SerializerMethodField()
     gestionnaire_principal = serializers.SerializerMethodField()
 
+    @extend_schema_field(OpenApiTypes.STR)
     def get_type_document(self, plan):
         return plan.id_type_document.label if plan.id_type_document_id else None
 
+    @extend_schema_field(SiteResumeSerializer(many=True))
     def get_sites(self, plan):
         return SiteResumeSerializer(_sites_du_plan(plan), many=True).data
 
+    @extend_schema_field(OpenApiTypes.STR)
     def get_gestionnaire_principal(self, plan):
         # Le gestionnaire affiché est celui du site principal du plan.
         for site in _sites_du_plan(plan):
@@ -123,6 +128,7 @@ class ContenuResultatSerializer(serializers.ModelSerializer):
             'acces_direct', 'plan',
         ]
 
+    @extend_schema_field(OpenApiTypes.BOOL)
     def get_acces_direct(self, contenu):
         """
         Vrai si l'objet peut s'ouvrir dans les écrans réels du plan (#683).
@@ -135,6 +141,7 @@ class ContenuResultatSerializer(serializers.ModelSerializer):
         """
         return contenu.id_pg_id is not None
 
+    @extend_schema_field(PlanResumeSerializer)
     def get_plan(self, contenu):
         """
         Bandeau du plan — joint pour un document local, recopié pour un distant.
@@ -149,6 +156,7 @@ class ContenuResultatSerializer(serializers.ModelSerializer):
         return PlanResumeSerializer(contenu.id_pg).data
 
 
+    @extend_schema_field(serializers.ListField(child=serializers.CharField()))
     def get_correspondances(self, contenu):
         """
         Champs ayant répondu à la recherche (#650).
@@ -170,6 +178,7 @@ class ContenuResultatSerializer(serializers.ModelSerializer):
     def _mot_cle(self):
         return (self.context.get('mot_cle') or '').strip()
 
+    @extend_schema_field(serializers.ListField(child=serializers.CharField()))
     def get_termes_surlignes(self, contenu):
         """
         Mots à surligner sur la tuile quand ils diffèrent de la requête (#681).
@@ -186,6 +195,7 @@ class ContenuResultatSerializer(serializers.ModelSerializer):
         ]
         return mots_proches(' '.join(t for t in textes if t), self._mot_cle())
 
+    @extend_schema_field(serializers.DictField(child=serializers.CharField()))
     def get_extraits(self, contenu):
         """
         Passage qui a répondu, par champ, sans balisage (#650, #681).
@@ -216,7 +226,7 @@ class PlanResultatSerializer(serializers.ModelSerializer):
     sites = serializers.SerializerMethodField()
     gestionnaire_principal = serializers.SerializerMethodField()
     # #683 — un plan de cette base s'ouvre dans ses écrans réels.
-    acces_direct = serializers.ReadOnlyField(default=True)
+    acces_direct = serializers.SerializerMethodField()
     zones_correspondantes = serializers.SerializerMethodField()
 
     class Meta:
@@ -228,6 +238,12 @@ class PlanResultatSerializer(serializers.ModelSerializer):
             'acces_direct', 'zones_correspondantes',
         ]
 
+    @extend_schema_field(OpenApiTypes.BOOL)
+    def get_acces_direct(self, plan):
+        """Un plan de cette base s'ouvre toujours dans ses écrans réels (#683)."""
+        return True
+
+    @extend_schema_field(serializers.ListField(child=serializers.CharField()))
     def get_zones_correspondantes(self, plan):
         """
         Départements et régions dont le nom porte le mot cherché (#681).
@@ -248,12 +264,15 @@ class PlanResultatSerializer(serializers.ModelSerializer):
             .distinct()
         )
 
+    @extend_schema_field(OpenApiTypes.STR)
     def get_type_document(self, plan):
         return plan.id_type_document.label if plan.id_type_document_id else None
 
+    @extend_schema_field(SiteResumeSerializer(many=True))
     def get_sites(self, plan):
         return SiteResumeSerializer(_sites_du_plan(plan), many=True).data
 
+    @extend_schema_field(OpenApiTypes.STR)
     def get_gestionnaire_principal(self, plan):
         for site in _sites_du_plan(plan):
             nom = _gestionnaire_principal(site)

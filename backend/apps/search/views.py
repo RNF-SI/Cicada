@@ -20,6 +20,8 @@ budget, ni RH, ni données empiriques.
 from django.conf import settings
 from django.db.models import Count, Prefetch
 from django.shortcuts import get_object_or_404
+from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -40,6 +42,7 @@ from .indexing import INDEXED_STATUSES
 from .models import ContenuIndexe
 from .pagination import ExplorationPagination, FederationPagination
 from .relay import reference_plan, relais_actif, relayer
+from . import schema
 from .serializers import (
     ContenuResultatSerializer, PlanResultatSerializer, prefetch_sites,
 )
@@ -56,6 +59,29 @@ class ExplorationContenuViewSet(ViewSet):
 
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(
+        operation_id='exploration_contenus_list',
+        summary="Rechercher dans le contenu des plans",
+        description=(
+            "Objets explorables (enjeux, facteurs d'influence, pressions, objectifs, "
+            "indicateurs, actions) des plans validés, modifiés ou archivés de **toutes** "
+            "les structures — jamais un brouillon, jamais de budget, RH ni mesures.\n\n"
+            "`compteurs` donne le nombre de résultats par type pour la recherche "
+            "entière, indépendamment de `onglet`. Chaque résultat dit quels champs ont "
+            "répondu (`correspondances`), en donne un extrait, et porte le bandeau de "
+            "son plan. `acces_direct` vrai = le plan existe dans cette base et ses "
+            "écrans réels s'ouvrent ; faux = seule la fiche publique est consultable.\n\n"
+            "Quand l'instance explore via le hub (`CICADA_EXPLORATION_SOURCE=hub`), la "
+            "requête est relayée telle quelle et la réponse a la même forme."
+        ),
+        parameters=schema.PARAMS_CONTENUS,
+        responses={
+            200: schema.REPONSE_CONTENUS,
+            401: schema.REPONSE_401,
+            502: schema.REPONSE_502,
+        },
+        tags=[schema.TAG_EXPLORATION],
+    )
     def list(self, request):
         if relais_actif():
             return relayer('/api/exploration/contenus/', request.query_params)
@@ -133,6 +159,30 @@ class FederationDocumentViewSet(ViewSet):
 
     permission_classes = [HasFederationToken]
 
+    @extend_schema(
+        operation_id='exploration_federation_documents_list',
+        summary="Lire l'index local, pour une exploration centralisée",
+        description=(
+            "Pages de documents d'index **produits par cette instance** (jamais "
+            "ceux reçus d'ailleurs), identifiants locaux remplacés par des codes "
+            "nationaux (INSEE, INPN). Machine à machine : authentification par "
+            "jeton partagé, pas par compte utilisateur. Pages de 500 documents "
+            "(2000 au plus). `format_version` dit comment lire les documents."
+        ),
+        parameters=[
+            schema.PARAM_JETON_FEDERATION,
+            schema.PARAM_PAGE,
+            OpenApiParameter(
+                'page_size', OpenApiTypes.INT, OpenApiParameter.QUERY,
+                description="Taille de page (500 par défaut, 2000 au plus).",
+            ),
+        ],
+        responses={
+            200: schema.REPONSE_FEDERATION_DOCUMENTS,
+            403: schema.REPONSE_403_FEDERATION,
+        },
+        tags=[schema.TAG_FEDERATION],
+    )
     def list(self, request):
         documents = (
             ContenuIndexe.objects
@@ -178,6 +228,31 @@ class ExplorationPlanViewSet(ViewSet):
     # quand l'exploration est relayée vers le hub (cf. `relay.reference_plan`).
     lookup_value_regex = '[-\\w:]+'
 
+    @extend_schema(
+        operation_id='exploration_plans_retrieve',
+        summary="Fiche publique d'un plan de gestion",
+        description=(
+            "Structure complète du plan en lecture seule : enjeux, facteurs, pressions, "
+            "objectifs, niveaux d'exigence, résultats attendus, indicateurs, métriques "
+            "et actions avec leur suivi et leurs protocoles. **Jamais** de budget, RH, "
+            "mesures ni réalisations (`serializers_fiche`). Le plan doit être validé, "
+            "modifié ou archivé : un brouillon répond 404.\n\n"
+            "En exploration relayée, `slug` peut être une référence `instance:slug` "
+            "(ex. `rnf:camargue`) ; la fiche est alors l'instantané déposé sur le hub."
+        ),
+        parameters=[OpenApiParameter(
+            'slug', OpenApiTypes.STR, OpenApiParameter.PATH,
+            description="Slug du plan, ou référence `instance:slug` en exploration "
+                        "relayée.",
+        )],
+        responses={
+            200: FichePubliqueSerializer,
+            401: schema.REPONSE_401,
+            404: schema.REPONSE_404,
+            502: schema.REPONSE_502,
+        },
+        tags=[schema.TAG_EXPLORATION],
+    )
     def retrieve(self, request, slug=None):
         """
         Fiche publique en lecture seule d'un plan de gestion.
@@ -198,6 +273,25 @@ class ExplorationPlanViewSet(ViewSet):
         )
         return Response(FichePubliqueSerializer(construire_fiche(plan)).data)
 
+    @extend_schema(
+        operation_id='exploration_plans_list',
+        summary="Rechercher un plan de gestion",
+        description=(
+            "Plans validés, modifiés ou archivés de toutes les structures, cherchés "
+            "par nom de plan, de site, de département ou de région. Mêmes facettes "
+            "que la recherche de contenu. `zones_correspondantes` liste les zones "
+            "dont le nom porte le mot cherché, pour expliquer un résultat.\n\n"
+            "Relayée vers le hub quand l'exploration est nationale ; même forme de "
+            "réponse."
+        ),
+        parameters=schema.PARAMS_PLANS,
+        responses={
+            200: schema.REPONSE_PLANS,
+            401: schema.REPONSE_401,
+            502: schema.REPONSE_502,
+        },
+        tags=[schema.TAG_EXPLORATION],
+    )
     def list(self, request):
         if relais_actif():
             return relayer('/api/exploration/plans/', request.query_params)
@@ -238,6 +332,23 @@ class InstancesExplorationView(APIView):
 
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(
+        operation_id='exploration_instances_list',
+        summary="Structures qui alimentent l'exploration",
+        description=(
+            "Liste des instances présentes dans l'index interrogé, avec leur libellé, "
+            "leur URL publique et leurs volumes. En exploration locale, une seule "
+            "entrée : cette instance. Via le hub, uniquement les instances ayant "
+            "déjà publié. Alimente le filtre « Structure d'origine » et la portée "
+            "annoncée avant la recherche."
+        ),
+        responses={
+            200: schema.REPONSE_INSTANCES,
+            401: schema.REPONSE_401,
+            502: schema.REPONSE_502,
+        },
+        tags=[schema.TAG_EXPLORATION],
+    )
     def get(self, request):
         if relais_actif():
             return relayer('/api/exploration/instances/')

@@ -5,6 +5,8 @@ Accessibles via JWT, réservées au super_admin.
 import json
 from pathlib import Path
 
+from drf_spectacular.utils import OpenApiResponse, extend_schema, inline_serializer
+from rest_framework import serializers
 from rest_framework.views import APIView
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -73,6 +75,34 @@ def get_update_info():
     }
 
 
+TAG = 'system'
+
+REPONSE_401 = OpenApiResponse(description="Authentification requise.")
+REPONSE_403 = OpenApiResponse(description="Réservé au super administrateur.")
+
+ERREUR_SYSTEME = inline_serializer('SystemErreur', fields={
+    'error': serializers.CharField(),
+})
+
+ETAT_MISE_A_JOUR = inline_serializer('SystemVersion', fields={
+    'current_version': serializers.CharField(
+        help_text="Version de l'application qui tourne."),
+    'update_available': serializers.BooleanField(
+        help_text="Vrai si la version annoncée est plus récente que l'installée."),
+    'latest_version': serializers.CharField(
+        allow_null=True, help_text="Dernière version annoncée par le dépôt."),
+    'last_check': serializers.CharField(
+        allow_null=True, help_text="Horodatage du dernier passage du heartbeat."),
+    'update_pending': serializers.BooleanField(
+        help_text="Un déclencheur a été déposé et n'est pas encore consommé par "
+                  "cicada-updater."),
+    'last_update': serializers.DictField(
+        allow_null=True,
+        help_text="Résultat de la dernière mise à jour (`success`, `version`, "
+                  "`timestamp`, `error`), ou nul."),
+})
+
+
 class SystemVersionView(APIView):
     """
     GET /api/system/version/
@@ -81,6 +111,17 @@ class SystemVersionView(APIView):
     """
     permission_classes = [IsSuperAdmin]
 
+    @extend_schema(
+        operation_id='system_version_retrieve',
+        summary="Version installée et état de la mise à jour",
+        description=(
+            "Version courante, dernière version annoncée par le dépôt APT (via "
+            "cicada-heartbeat), déclencheur en attente et résultat de la dernière "
+            "mise à jour. Réservé au super administrateur."
+        ),
+        responses={200: ETAT_MISE_A_JOUR, 401: REPONSE_401, 403: REPONSE_403},
+        tags=[TAG],
+    )
     def get(self, request: Request) -> Response:
         return Response(get_update_info())
 
@@ -97,6 +138,18 @@ class SystemAppVersionView(APIView):
     """
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(
+        operation_id='system_app_version_retrieve',
+        summary="Version de l'application",
+        description="Numéro de version seul, pour tout utilisateur connecté (#646).",
+        responses={
+            200: inline_serializer('SystemAppVersion', fields={
+                'version': serializers.CharField(),
+            }),
+            401: REPONSE_401,
+        },
+        tags=[TAG],
+    )
     def get(self, request: Request) -> Response:
         return Response({'version': __version__})
 
@@ -110,6 +163,30 @@ class SystemTriggerUpdateView(APIView):
     """
     permission_classes = [IsSuperAdmin]
 
+    @extend_schema(
+        operation_id='system_trigger_update_create',
+        summary="Programmer une mise à jour",
+        description=(
+            "Dépose le fichier déclencheur lu par cicada-updater sur l'hôte, qui "
+            "effectue la mise à jour vers la version demandée dans les instants "
+            "qui suivent. Réservé au super administrateur."
+        ),
+        request=inline_serializer('SystemTriggerUpdateRequete', fields={
+            'version': serializers.CharField(help_text="Version cible, ex. `0.1.56`."),
+        }),
+        responses={
+            200: inline_serializer('SystemTriggerUpdateReponse', fields={
+                'success': serializers.BooleanField(),
+                'message': serializers.CharField(),
+            }),
+            400: OpenApiResponse(ERREUR_SYSTEME, description="Version manquante."),
+            401: REPONSE_401,
+            403: REPONSE_403,
+            500: OpenApiResponse(ERREUR_SYSTEME,
+                                 description="Impossible d'écrire le déclencheur."),
+        },
+        tags=[TAG],
+    )
     def post(self, request: Request) -> Response:
         version = request.data.get('version') if isinstance(request.data, dict) else None
         if not version:

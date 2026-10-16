@@ -2,6 +2,8 @@
 Serializers pour l'API REST Enjeux, FCR et Responsabilités.
 """
 from rest_framework import serializers
+from drf_spectacular.utils import extend_schema_field
+from drf_spectacular.types import OpenApiTypes
 from django.contrib.gis.geos import GEOSGeometry
 from django.db.models import Max, Q
 from django.utils.translation import gettext_lazy as _
@@ -135,9 +137,11 @@ class CorEnjeuFichierSerializer(serializers.ModelSerializer):
             'id', 'nom_fichier', 'taille_fichier', 'extension', 'date_upload',
         ]
 
+    @extend_schema_field(serializers.CharField(allow_null=True))
     def get_file_size_human(self, obj):
         return obj.get_file_size_human()
 
+    @extend_schema_field(serializers.CharField(allow_null=True))
     def get_url(self, obj):
         if obj.chemin_fichier:
             return f"/media/enjeux/{obj.id_enjeu_id}/{obj.nom_fichier}"
@@ -220,6 +224,7 @@ class NiveauExigenceSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ['id_ne', 'date_ajout', 'date_maj']
 
+    @extend_schema_field(OpenApiTypes.INT)
     def get_nb_indicateurs(self, obj):
         return _prefetched_count(obj, 'indicateurs_partages')
 
@@ -264,9 +269,11 @@ class ResultatAttenduSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ['id_ra', 'date_ajout', 'date_maj']
 
+    @extend_schema_field(OpenApiTypes.INT)
     def get_nb_indicateurs(self, obj):
         return _prefetched_count(obj, 'indicateurs_partages')
 
+    @extend_schema_field(serializers.ListField(child=serializers.IntegerField()))
     def get_oo_ids(self, obj):
         """#585 — objectifs sous lesquels ce RA apparaît (porteur inclus).
 
@@ -300,6 +307,7 @@ class PressionLightSerializer(serializers.Serializer):
     libelle = serializers.CharField()
     facteur_influence_libelle = serializers.SerializerMethodField()
 
+    @extend_schema_field(serializers.CharField(allow_null=True))
     def get_facteur_influence_libelle(self, obj):
         try:
             return obj.id_facteur_influence.libelle
@@ -436,15 +444,19 @@ class ObjectifOperationnelSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ['id_oo', 'date_ajout', 'date_maj']
 
+    @extend_schema_field(OpenApiTypes.INT)
     def get_nb_resultats_attendus(self, obj):
         return _prefetched_count(obj, 'resultats_attendus_partages')
 
+    @extend_schema_field(serializers.ListField(child=serializers.IntegerField()))
     def get_pression_ids(self, obj):
         return [p.pk for p in _prefetched_list(obj, 'pressions')]
 
+    @extend_schema_field(serializers.ListField(child=serializers.IntegerField()))
     def get_shared_enjeu_ids(self, obj):
         return _oo_shared_enjeu_ids(obj)
 
+    @extend_schema_field(serializers.IntegerField(allow_null=True))
     def get_numero_affichage(self, obj):
         return (self.context.get('oo_numeros') or {}).get(obj.id_oo)
 
@@ -467,12 +479,15 @@ class ObjectifOperationnelListSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ['id_oo', 'date_ajout', 'date_maj']
 
+    @extend_schema_field(OpenApiTypes.INT)
     def get_nb_resultats_attendus(self, obj):
         return _prefetched_count(obj, 'resultats_attendus_partages')
 
+    @extend_schema_field(serializers.ListField(child=serializers.IntegerField()))
     def get_pression_ids(self, obj):
         return [p.pk for p in _prefetched_list(obj, 'pressions')]
 
+    @extend_schema_field(serializers.ListField(child=serializers.IntegerField()))
     def get_shared_enjeu_ids(self, obj):
         return _oo_shared_enjeu_ids(obj)
 
@@ -604,6 +619,7 @@ class ObjectifLongTermeSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ['id_olt', 'date_ajout', 'date_maj']
 
+    @extend_schema_field(OpenApiTypes.INT)
     def get_nb_niveaux_exigence(self, obj):
         return _prefetched_count(obj, 'niveaux_exigence')
 
@@ -623,6 +639,7 @@ class ObjectifLongTermeListSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ['id_olt', 'date_ajout', 'date_maj']
 
+    @extend_schema_field(OpenApiTypes.INT)
     def get_nb_niveaux_exigence(self, obj):
         return _prefetched_count(obj, 'niveaux_exigence')
 
@@ -663,6 +680,7 @@ class PressionSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ['id_pression', 'date_ajout', 'date_maj']
 
+    @extend_schema_field(OpenApiTypes.INT)
     def get_nb_objectifs_operationnels(self, obj):
         return _prefetched_count(obj, 'objectifs_operationnels')
 
@@ -715,12 +733,15 @@ class FacteurInfluenceSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ['id_facteur_influence', 'date_ajout', 'date_maj']
 
+    @extend_schema_field(OpenApiTypes.INT)
     def get_nb_pressions(self, obj):
         return _prefetched_count(obj, 'pressions')
 
+    @extend_schema_field(serializers.ListField(child=serializers.IntegerField()))
     def get_enjeu_ids(self, obj):
         return _facteur_enjeu_ids(obj)
 
+    @extend_schema_field(OpenApiTypes.INT)
     def get_ordre(self, obj):
         return _facteur_ordre(obj)
 
@@ -742,12 +763,15 @@ class FacteurInfluenceListSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ['id_facteur_influence', 'date_ajout', 'date_maj']
 
+    @extend_schema_field(OpenApiTypes.INT)
     def get_nb_pressions(self, obj):
         return _prefetched_count(obj, 'pressions')
 
+    @extend_schema_field(serializers.ListField(child=serializers.IntegerField()))
     def get_enjeu_ids(self, obj):
         return _facteur_enjeu_ids(obj)
 
+    @extend_schema_field(OpenApiTypes.INT)
     def get_ordre(self, obj):
         return _facteur_ordre(obj)
 
@@ -840,15 +864,19 @@ class EnjeuListSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ['id_enjeu', 'slug', 'date_ajout', 'date_maj']
 
+    @extend_schema_field(OpenApiTypes.INT)
     def get_nb_taxons(self, obj):
         return _prefetched_count(obj, 'taxons')
 
+    @extend_schema_field(OpenApiTypes.INT)
     def get_nb_habitats(self, obj):
         return _prefetched_count(obj, 'habitats')
 
+    @extend_schema_field(OpenApiTypes.INT)
     def get_nb_geologies(self, obj):
         return _prefetched_count(obj, 'geologies')
 
+    @extend_schema_field(OpenApiTypes.INT)
     def get_nb_facteurs_influence(self, obj):
         return _prefetched_count(obj, 'facteurs_influence')
 
@@ -928,6 +956,7 @@ class EnjeuDetailSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ['id_enjeu', 'slug', 'date_ajout', 'date_maj', 'id_utilisateur_ajout']
 
+    @extend_schema_field(serializers.ListField(child=serializers.DictField(), help_text='Même forme que FacteurInfluenceSerializer, avec l\'ordre propre à l\'enjeu'))
     def get_facteurs_influence(self, obj):
         """#552 — Sérialise les facteurs de cet enjeu via les lignes de liaison
         ``cor_facteurs`` (préchargées + ordonnées par ``ordre``), en injectant
@@ -941,9 +970,11 @@ class EnjeuDetailSerializer(serializers.ModelSerializer):
             facteurs.append(fi)
         return FacteurInfluenceSerializer(facteurs, many=True, context=self.context).data
 
+    @extend_schema_field(OpenApiTypes.INT)
     def get_nb_facteurs_influence(self, obj):
         return len(obj.cor_facteurs.all())
 
+    @extend_schema_field(serializers.DictField(child=serializers.IntegerField(), help_text='id_oo (en chaîne) → ordre dans cet enjeu'))
     def get_oo_ordre(self, obj):
         """#552 — Ordre des OO propre à CET enjeu ({id_oo: ordre}).
 
@@ -954,9 +985,11 @@ class EnjeuDetailSerializer(serializers.ModelSerializer):
         """
         return {cor.id_oo_id: cor.ordre for cor in obj.cor_oos.all()}
 
+    @extend_schema_field(OpenApiTypes.INT)
     def get_nb_objectifs_long_terme(self, obj):
         return _prefetched_count(obj, 'objectifs_long_terme')
 
+    @extend_schema_field(OpenApiTypes.INT)
     def get_nb_objectifs_operationnels(self, obj):
         return _prefetched_count(obj, 'objectifs_operationnels_directs')
 
@@ -1225,6 +1258,12 @@ class EnjeuCreateSerializer(serializers.ModelSerializer):
 # Serializers pour les Responsabilités
 # =============================================================================
 
+class EnjeuLieSerializer(serializers.Serializer):
+    """Schéma documentaire d'un enjeu lié à une responsabilité."""
+    id_enjeu = serializers.IntegerField()
+    libelle = serializers.CharField()
+
+
 class ResponsabiliteListSerializer(serializers.ModelSerializer):
     """Serializer pour la liste des Responsabilités."""
 
@@ -1250,12 +1289,15 @@ class ResponsabiliteListSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ['id_responsabilite', 'date_ajout', 'date_maj']
 
+    @extend_schema_field(OpenApiTypes.INT)
     def get_nb_taxons(self, obj):
         return _prefetched_count(obj, 'taxons')
 
+    @extend_schema_field(OpenApiTypes.INT)
     def get_nb_habitats(self, obj):
         return _prefetched_count(obj, 'habitats')
 
+    @extend_schema_field(OpenApiTypes.INT)
     def get_nb_enjeux_lies(self, obj):
         return _prefetched_count(obj, 'enjeux_lies')
 
@@ -1291,6 +1333,7 @@ class ResponsabiliteDetailSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ['id_responsabilite', 'date_ajout', 'date_maj', 'id_utilisateur_ajout']
 
+    @extend_schema_field(EnjeuLieSerializer(many=True))
     def get_enjeux_lies(self, obj):
         """Retourner les enjeux liés."""
         return [

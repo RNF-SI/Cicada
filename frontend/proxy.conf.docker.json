@@ -10,5 +10,14 @@
     "secure": false,
     "changeOrigin": true,
     "logLevel": "debug"
+  },
+  "/aide": {
+    "target": "http://docs:8000",
+    "secure": false,
+    "changeOrigin": true,
+    "logLevel": "debug",
+    "pathRewrite": {
+      "^/aide": ""
+    }
   }
 }

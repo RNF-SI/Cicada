@@ -2,6 +2,8 @@
 Serializers pour les notifications et validations.
 """
 from rest_framework import serializers
+from drf_spectacular.utils import extend_schema_field
+from drf_spectacular.types import OpenApiTypes
 from django.utils.translation import gettext_lazy as _
 
 from apps.users.serializers import RoleBasicSerializer, SiteBasicSerializer
@@ -96,6 +98,30 @@ class NotificationListSerializer(serializers.ModelSerializer):
         ]
 
 
+class PendingUserInfoSerializer(serializers.Serializer):
+    """Schéma documentaire de `pending_user_info` (demande `user_registration`)."""
+    email = serializers.EmailField()
+    nom_role = serializers.CharField(allow_null=True)
+    prenom_role = serializers.CharField(allow_null=True)
+    nom_complet = serializers.CharField()
+    justification = serializers.CharField(allow_null=True)
+    created_at = serializers.DateTimeField(allow_null=True)
+
+
+class OrganismeAdminItemSerializer(serializers.Serializer):
+    id = serializers.IntegerField()
+    nom_complet = serializers.CharField()
+    email = serializers.EmailField()
+
+
+class OrganismeAdminsSerializer(serializers.Serializer):
+    """Schéma documentaire de `organisme_admins`."""
+    organisme = serializers.CharField(allow_null=True, help_text="Nom de l'organisme demandé")
+    is_new_organisme = serializers.BooleanField(help_text="L'organisme n'existe pas encore")
+    count = serializers.IntegerField()
+    admins = OrganismeAdminItemSerializer(many=True)
+
+
 class ValidationRequestSerializer(serializers.ModelSerializer):
     """Serializer complet pour les demandes de validation."""
 
@@ -150,6 +176,7 @@ class ValidationRequestSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = fields
 
+    @extend_schema_field(PendingUserInfoSerializer(allow_null=True))
     def get_pending_user_info(self, obj):
         """Retourne les infos du PendingUser pour les inscriptions."""
         if obj.request_type == 'user_registration':
@@ -177,6 +204,7 @@ class ValidationRequestSerializer(serializers.ModelSerializer):
                 }
         return None
 
+    @extend_schema_field(OrganismeAdminsSerializer(allow_null=True))
     def get_organisme_admins(self, obj):
         """Contexte « administrateurs de l'organisme » pour une inscription (#653).
 
@@ -241,6 +269,7 @@ class ValidationRequestSerializer(serializers.ModelSerializer):
             ],
         }
 
+    @extend_schema_field(OpenApiTypes.BOOL)
     def get_can_validate(self, obj):
         """Indique si l'utilisateur courant peut valider cette demande."""
         request = self.context.get('request')
@@ -248,6 +277,7 @@ class ValidationRequestSerializer(serializers.ModelSerializer):
             return obj.can_be_validated_by(request.user)
         return False
 
+    @extend_schema_field(serializers.CharField(allow_null=True))
     def get_blocked_by_organisme_creation(self, obj):
         """Nom de l'organisme à créer qui bloque cette inscription, sinon None (#679)."""
         if obj.status != 'pending':
@@ -257,6 +287,7 @@ class ValidationRequestSerializer(serializers.ModelSerializer):
             return None
         return (org_request.requested_data or {}).get('nom_organisme') or str(_("organisme à créer"))
 
+    @extend_schema_field(OpenApiTypes.BOOL)
     def get_blocked_by_org_link(self, obj):
         """Indique si cette demande site_access est bloquee par un site_org_link en attente."""
         if obj.request_type != 'site_access' or obj.status != 'pending':
@@ -318,6 +349,7 @@ class ValidationRequestListSerializer(serializers.ModelSerializer):
             'blocked_by_organisme_creation',
         ]
 
+    @extend_schema_field(OpenApiTypes.STR)
     def get_requester_name(self, obj):
         """Nom du demandeur."""
         # Pour les demandes avec un requester (y compris inscriptions approuvees)
@@ -328,6 +360,7 @@ class ValidationRequestListSerializer(serializers.ModelSerializer):
             return obj.pending_user.get_full_name()
         return "Inconnu"
 
+    @extend_schema_field(serializers.CharField(allow_null=True))
     def get_target_name(self, obj):
         """Nom de la cible (site, plan, utilisateur, module)."""
         if obj.target_site:
@@ -357,12 +390,14 @@ class ValidationRequestListSerializer(serializers.ModelSerializer):
             return f"Organisme à créer: {nom}" if nom else "Organisme à créer"
         return None
 
+    @extend_schema_field(serializers.CharField(allow_null=True))
     def get_validator_name(self, obj):
         """Nom du validateur (si traite)."""
         if obj.validator:
             return str(obj.validator)
         return None
 
+    @extend_schema_field(serializers.CharField(allow_null=True))
     def get_blocked_by_organisme_creation(self, obj):
         """Nom de l'organisme à créer qui bloque cette inscription, sinon None (#679)."""
         if obj.status != 'pending':
@@ -372,6 +407,7 @@ class ValidationRequestListSerializer(serializers.ModelSerializer):
             return None
         return (org_request.requested_data or {}).get('nom_organisme') or str(_("organisme à créer"))
 
+    @extend_schema_field(OpenApiTypes.BOOL)
     def get_blocked_by_org_link(self, obj):
         """Indique si cette demande site_access est bloquee par un site_org_link en attente."""
         if obj.request_type != 'site_access' or obj.status != 'pending':

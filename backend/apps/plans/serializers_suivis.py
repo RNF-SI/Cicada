@@ -2,6 +2,8 @@
 Serializers pour l'API REST Suivis/Inventaires (standalone).
 """
 from rest_framework import serializers
+from drf_spectacular.utils import extend_schema_field
+from drf_spectacular.types import OpenApiTypes
 
 from .models_operations import SuiviInventaire
 from .serializers_operations import (
@@ -41,9 +43,11 @@ class SuiviInventaireListSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ['id_suivi_inventaire', 'date_ajout', 'date_maj']
 
+    @extend_schema_field(OpenApiTypes.INT)
     def get_nb_operations(self, obj):
         return obj.operations.count()
 
+    @extend_schema_field(serializers.CharField(allow_null=True, help_text='Noms des sites, séparés par des virgules'))
     def get_sites_list(self, obj):
         """Retourne les noms des sites associés via les opérations liées."""
         sites = obj.operations.values_list('sites__nom_site', flat=True).distinct()
@@ -100,9 +104,11 @@ class SuiviInventaireDetailSerializer(SuiviLabelsMixin, serializers.ModelSeriali
         ]
         read_only_fields = ['id_suivi_inventaire', 'date_ajout', 'date_maj']
 
+    @extend_schema_field(OpenApiTypes.INT)
     def get_nb_operations(self, obj):
         return obj.operations.count()
 
+    @extend_schema_field(ProtocoleSerializer(allow_null=True))
     def get_protocole(self, obj):
         """Premier protocole, pour les clients antérieurs à #252."""
         premier = obj.protocoles.first()
