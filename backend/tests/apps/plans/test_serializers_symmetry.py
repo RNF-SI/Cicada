@@ -98,6 +98,13 @@ class TestSuiviInventaireStandaloneSerializerSymmetry:
                 "type_action_code",
                 "type_action_label",
                 "plan_nom",
+                # #715 — libellés des nomenclatures, comme la fiche action (#571)
+                "objectif_principal_label",
+                "objectif_secondaire_label",
+                "cibles_principales_label",
+                "cible_secondaire_label",
+                "type_indicateur_label",
+                "frequence_unite_label",
                 # Audit + métadonnées
                 "date_ajout",
                 "date_maj",

@@ -30,6 +30,11 @@ from apps.users.models import Role, Site
 from .base import BaseSeeder
 
 
+
+# #715 — suivi autonome multi-protocoles, support de recette du suivi partagé
+# entre le module Inventaires et la fiche action.
+SUIVI_RECETTE_715 = 'Suivi des prairies humides'
+
 class EnjeuxSeeder(BaseSeeder):
     """
     Crée les enjeux, FCR et responsabilités de test.
@@ -6100,7 +6105,40 @@ class EnjeuxSeeder(BaseSeeder):
             },
         ]
 
+        # #715 — suivi autonome (sans plan, donc modifiable) qui réunit ce que
+        # seul le module Inventaires saisit : 2 protocoles, période de suivi,
+        # documentation, habitat structuré (correspondances). Support de recette
+        # du suivi partagé entre le module Inventaires et la fiche action.
+        from apps.habitats.models import Habref
+        habitat_prairie = Habref.objects.filter(lb_code='E3.4', cd_typo=7).first()
+        habitats_prairie = [{
+            'cd_hab': str(habitat_prairie.cd_hab) if habitat_prairie else None,
+            'lb_hab_fr': habitat_prairie.lb_hab_fr if habitat_prairie else 'Prairies humides',
+            'lb_code': 'E3.4',
+            'lb_typo': 'EUNIS',
+        }]
+        standalone_data.append({
+            'intitule': SUIVI_RECETTE_715,
+            'objectif_principal': 'OBJ_ETAT_CONSERVATION',
+            'objectif_secondaire': 'OBJ_INVENTAIRE_INITIAL',
+            'cibles_principales': 'HABITATS_VEGETATIONS',
+            'habitats': habitats_prairie,
+            'habitat_ref': habitats_prairie[0]['lb_hab_fr'],
+            'date_lancement_suivi': '2021-05-01',
+            'actif': True,
+            'id_type_action': ta_cs5,
+            'id_statut': statut_en_cours,
+            'commentaires': 'Placettes permanentes, relevés phytosociologiques.',
+            'frequence_nombre': 1,
+            'frequence_unite': 'AN',
+        })
+
         for index, data in enumerate(standalone_data):
+            # Relançable : un suivi autonome déjà présent n'est pas recréé.
+            if SuiviInventaire.objects.filter(
+                intitule=data['intitule'], operations__isnull=True,
+            ).exists():
+                continue
             # Créer un Protocole minimal pour chaque suivi standalone afin que
             # l'édition via le formulaire d'inventaire passe les validators
             # conditionnels (protocole_dans_campanule, respect_protocole, etc.).
@@ -6122,9 +6160,15 @@ class EnjeuxSeeder(BaseSeeder):
             )
             suivi.protocoles.add(protocole)
 
+            if data['intitule'] == SUIVI_RECETTE_715:
+                protocole.periode_suivi = 'MAI,JUIN'
+                protocole.documentation_disponible = True
+                protocole.url_documentation = 'https://example.org/protocole-prairies'
+                protocole.save()
+
             # Le premier suivi porte un second protocole complémentaire, pour
             # disposer d'un cas multi-protocoles dans les données de test (#252).
-            if index == 0:
+            if index == 0 or data['intitule'] == SUIVI_RECETTE_715:
                 protocole_complementaire = Protocole.objects.create(
                     protocole_dans_campanule=False,
                     nom_protocole=f"Protocole complémentaire {data['intitule'][:60]}",

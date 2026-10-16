@@ -1610,3 +1610,83 @@ describe('OperationFormComponent — paramétrage de ventilation par défaut (#6
     expect(readOnly.getVentilationDefaults).not.toHaveBeenCalled();
   });
 });
+
+// ---------------------------------------------------------------------------
+// #715 — la fiche action et le module Inventaires saisissent le même suivi
+// ---------------------------------------------------------------------------
+
+describe('OperationFormComponent — suivi partagé avec le module Inventaires (#715)', () => {
+  const CS8 = { id_nomenclature: 8, cd_nomenclature: 'CS8', label: 'Inventaire de la faune' } as any;
+
+  function makeComp(protocolesExistants: any[] = []): OperationFormComponent {
+    const comp = createComponentInstance();
+    (comp as any).fb = new FormBuilder();
+    (comp as any).initForm();
+    (comp as any).translate = { instant: (k: string) => k };
+    const selected = signal<any>(CS8);
+    (comp as any).selectedTypeAction = selected;
+    (comp as any).isCSAction = computed(() => String(selected()?.cd_nomenclature || '').startsWith('CS'));
+    (comp as any).estSuiviExistant = signal(false);
+    (comp as any).suiviProtocoles = signal<any[]>(protocolesExistants);
+    (comp as any).categorieActionReserveCtrl = new FormControl(null);
+    (comp as any).currentIndicateurId = () => null;
+    comp.taxonItems = [];
+    comp.habitatItems = [];
+    (comp as any).finances = [];
+    (comp as any).pendingEmprise = signal(undefined);
+    (comp as any).form.patchValue({ id_type_action: CS8.id_nomenclature, intitule_suivi: 'Suivi des chiroptères' });
+    return comp;
+  }
+
+  const payloadSuivi = (c: OperationFormComponent) => ((c as any).buildPayload().suivi_inventaire ?? {}) as any;
+
+  it('garde les protocoles 2..n et les champs propres à l\'inventaire du premier', () => {
+    const c = makeComp([
+      { id_protocole: 1, protocole_dans_campanule: false, nom_protocole: 'Transect',
+        periode_suivi: 'AVRIL,MAI', documentation_disponible: true, url_documentation: 'https://doc' },
+      { id_protocole: 2, protocole_dans_campanule: true, cd_protocole_campanule: 42,
+        protocole_campanule_nom: 'STOC' },
+    ]);
+    (c as any).form.patchValue({ protocole_dans_campanule: false, nom_protocole: 'Transect modifié' });
+
+    const protocoles = payloadSuivi(c).protocoles;
+
+    expect(protocoles).toHaveLength(2);
+    expect(protocoles[0]).toMatchObject({
+      nom_protocole: 'Transect modifié', periode_suivi: 'AVRIL,MAI',
+      documentation_disponible: true, url_documentation: 'https://doc',
+    });
+    expect(protocoles[0].id_protocole).toBeUndefined();
+    expect(protocoles[1]).toMatchObject({ cd_protocole_campanule: 42, protocole_campanule_nom: 'STOC' });
+  });
+
+  it('nouveau suivi : un seul protocole, celui saisi', () => {
+    const c = makeComp();
+    (c as any).form.patchValue({ protocole_dans_campanule: true, cd_protocole_campanule: 42, protocole_campanule_nom: 'STOC' });
+    const protocoles = payloadSuivi(c).protocoles;
+    expect(protocoles).toHaveLength(1);
+    expect(protocoles[0]).toMatchObject({ cd_protocole_campanule: 42 });
+  });
+
+  it('un champ vidé est envoyé vide pour être effacé', () => {
+    const c = makeComp();
+    (c as any).form.patchValue({ objectif_secondaire: '', cible_secondaire: '' });
+    const suivi = payloadSuivi(c);
+    expect(suivi.objectif_secondaire).toBe('');
+    expect(suivi.cible_secondaire).toBe('');
+    expect(suivi.taxon_taxref).toBe('');
+    expect(suivi.date_lancement_suivi).toBeNull();
+  });
+
+  it('retirer tous les habitats efface aussi leurs noms (habitat_ref)', () => {
+    const c = makeComp();
+    c.habitatItems = [];
+    const suivi = payloadSuivi(c);
+    expect(suivi.habitats).toEqual([]);
+    expect(suivi.habitat_ref).toBe('');
+  });
+
+  it('transmet le type d\'action au suivi', () => {
+    expect(payloadSuivi(makeComp()).id_type_action).toBe(CS8.id_nomenclature);
+  });
+});

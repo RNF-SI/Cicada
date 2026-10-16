@@ -3,6 +3,7 @@
  */
 
 import { Protocole } from './enjeu.model';
+import { StoredSuiviHabitat } from '../../shared/utils/suivi-habitats.utils';
 
 /**
  * Suivi/Inventaire - lightweight for list display
@@ -39,24 +40,30 @@ export interface SuiviInventaireDetail {
   integre_plan_gestion?: boolean;
   suit_indicateur?: boolean;
   type_indicateur?: string;
+  type_indicateur_label?: string;
   id_pg?: number;
   plan_nom?: string;
   cible_secondaire?: string;
+  cible_secondaire_label?: string;
   habitat_ref?: string;
   /** Habitats structurés [{cd_hab, lb_hab_fr}] — pour les correspondances. */
-  habitats?: { cd_hab: string; lb_hab_fr?: string }[];
+  habitats?: StoredSuiviHabitat[];
   id_statut?: number;
   statut_label?: string;
   actif: boolean;
   annee_fin_suivi?: number;
   frequence_nombre?: number;
   frequence_unite?: string;
+  frequence_unite_label?: string;
   frequence_unite_precision?: string;
   commentaires?: string;
-  // Original fields
+  // Original fields — #715 : libellés résolus côté serveur
   objectif_principal?: string;
+  objectif_principal_label?: string;
   objectif_secondaire?: string;
+  objectif_secondaire_label?: string;
   cibles_principales?: string;
+  cibles_principales_label?: string;
   taxon_taxref?: string;
   date_lancement_suivi?: string;
   // Protocoles (#252) — `protocole` = premier de la liste, déprécié
@@ -77,23 +84,25 @@ export interface SuiviInventaireDetail {
 }
 
 /**
- * Payload for creating/updating a suivi/inventaire
+ * Payload for creating/updating a suivi/inventaire.
+ * #715 — un champ vidé est envoyé vide (`''`) ou à `null` pour être effacé :
+ * un champ omis garde sa valeur précédente.
  */
 export interface SuiviInventaireCreatePayload {
   intitule: string;
-  id_type_action: number;
-  integre_plan_gestion?: boolean;
-  suit_indicateur?: boolean;
+  id_type_action: number | null;
+  integre_plan_gestion?: boolean | null;
+  suit_indicateur?: boolean | null;
   type_indicateur?: string;
   id_pg?: number;
   cible_secondaire?: string;
   habitat_ref?: string;
   /** Habitats structurés [{cd_hab, lb_hab_fr}] — pour les correspondances. */
-  habitats?: { cd_hab: string; lb_hab_fr?: string }[];
-  id_statut?: number;
+  habitats?: StoredSuiviHabitat[];
+  id_statut?: number | null;
   actif?: boolean;
-  annee_fin_suivi?: number;
-  frequence_nombre?: number;
+  annee_fin_suivi?: number | null;
+  frequence_nombre?: number | null;
   frequence_unite?: string;
   frequence_unite_precision?: string;
   commentaires?: string;
@@ -102,14 +111,14 @@ export interface SuiviInventaireCreatePayload {
   objectif_secondaire?: string;
   cibles_principales?: string;
   taxon_taxref?: string;
-  date_lancement_suivi?: string;
+  date_lancement_suivi?: string | null;
   // Protocoles (nested writable, #252) — `protocole` singulier déprécié
   protocoles?: Omit<Protocole, 'id_protocole' | 'date_ajout' | 'date_maj'>[];
   protocole?: Omit<Protocole, 'id_protocole' | 'date_ajout' | 'date_maj'>;
   // Bancarisation
   outil_bancarisation?: string;
   outil_saisie?: string;
-  transmission_donnee?: boolean;
+  transmission_donnee?: boolean | null;
 }
 
 /**

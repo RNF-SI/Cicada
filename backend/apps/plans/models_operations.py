@@ -142,6 +142,11 @@ class Protocole(models.Model):
     class Meta:
         db_table = '"general"."t_protocoles"'
         db_table_comment = "Protocoles associés aux suivis/inventaires"
+        # #715 — ordre de saisie : les protocoles sont recréés dans l'ordre de
+        # la liste à chaque enregistrement (`sync_suivi_protocoles`). Sans ordre,
+        # « le premier », que la fiche action édite, changeait d'une lecture à
+        # l'autre.
+        ordering = ['id_protocole']
         verbose_name = _("Protocole")
         verbose_name_plural = _("Protocoles")
 

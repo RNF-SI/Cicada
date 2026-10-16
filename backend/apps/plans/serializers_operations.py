@@ -829,24 +829,71 @@ def sync_suivi_protocoles(suivi, protocoles_data, user):
             ancien.delete()
 
 
-class SuiviInventaireSerializer(serializers.ModelSerializer):
-    """Serializer pour un suivi/inventaire (lecture)."""
-    protocoles = ProtocoleSerializer(many=True, read_only=True)
-    protocole = serializers.SerializerMethodField()
-    bancarisation_label = serializers.SerializerMethodField()
-    outil_saisie_label = serializers.SerializerMethodField()
-    # #571 — libellés lisibles des nomenclatures objectif/cible (les champs bruts
-    # stockent le mnémonique, ex. OBJ_PHYSICO_CHIMIQUES / ABIOTIQUE).
+class SuiviLabelsMixin(serializers.Serializer):
+    """Libellés lisibles des nomenclatures d'un suivi (#571, #715).
+
+    Les champs bruts stockent le mnémonique (OBJ_PHYSICO_CHIMIQUES, ESPECES,
+    AN…) : la fiche action ET la fiche du module Inventaires affichent le
+    libellé, résolu ici une seule fois pour les deux.
+    """
     objectif_principal_label = serializers.SerializerMethodField()
     objectif_secondaire_label = serializers.SerializerMethodField()
     cibles_principales_label = serializers.SerializerMethodField()
     cible_secondaire_label = serializers.SerializerMethodField()
+    type_indicateur_label = serializers.SerializerMethodField()
+    frequence_unite_label = serializers.SerializerMethodField()
+    bancarisation_label = serializers.SerializerMethodField()
+    outil_saisie_label = serializers.SerializerMethodField()
+
+    def _resolve_nomenclature_label(self, mnemonique, type_mnemonique):
+        if not mnemonique:
+            return None
+        from apps.core.models import Nomenclature
+        # iexact : d'anciennes unités de fréquence sont stockées en minuscules.
+        nom = Nomenclature.objects.filter(
+            mnemonique__iexact=mnemonique,
+            id_type__mnemonique=type_mnemonique
+        ).first()
+        return nom.label if nom else mnemonique
+
+    def get_bancarisation_label(self, obj):
+        return self._resolve_nomenclature_label(obj.outil_bancarisation, 'BANCARISATION_STOCKAGE')
+
+    def get_outil_saisie_label(self, obj):
+        return self._resolve_nomenclature_label(obj.outil_saisie, 'OUTIL_SAISIE')
+
+    def get_objectif_principal_label(self, obj):
+        return self._resolve_nomenclature_label(obj.objectif_principal, 'OBJECTIF_SUIVI')
+
+    def get_objectif_secondaire_label(self, obj):
+        return self._resolve_nomenclature_label(obj.objectif_secondaire, 'OBJECTIF_SUIVI')
+
+    def get_cibles_principales_label(self, obj):
+        return self._resolve_nomenclature_label(obj.cibles_principales, 'CIBLE_SUIVI')
+
+    def get_cible_secondaire_label(self, obj):
+        return self._resolve_nomenclature_label(obj.cible_secondaire, 'CIBLE_SUIVI')
+
+    def get_type_indicateur_label(self, obj):
+        return self._resolve_nomenclature_label(obj.type_indicateur, 'TYPE_INDICATEUR')
+
+    def get_frequence_unite_label(self, obj):
+        return self._resolve_nomenclature_label(obj.frequence_unite, 'FREQUENCE_EMBOITEMENT')
+
+
+class SuiviInventaireSerializer(SuiviLabelsMixin, serializers.ModelSerializer):
+    """Serializer pour un suivi/inventaire (lecture)."""
+    protocoles = ProtocoleSerializer(many=True, read_only=True)
+    protocole = serializers.SerializerMethodField()
 
     class Meta:
         model = SuiviInventaire
         fields = [
             'id_suivi_inventaire',
             'intitule', 'actif',
+            # #715 — type d'action du suivi (CS…), pour le retrouver ensuite
+            # dans « Suivi existant ? » des autres actions.
+            'id_type_action',
             # Détails
             'objectif_principal', 'objectif_principal_label',
             'objectif_secondaire', 'objectif_secondaire_label',
@@ -870,34 +917,6 @@ class SuiviInventaireSerializer(serializers.ModelSerializer):
         premier = obj.protocoles.first()
         return ProtocoleSerializer(premier).data if premier else None
 
-    def _resolve_nomenclature_label(self, mnemonique, type_mnemonique):
-        if not mnemonique:
-            return None
-        from apps.core.models import Nomenclature
-        nom = Nomenclature.objects.filter(
-            mnemonique=mnemonique,
-            id_type__mnemonique=type_mnemonique
-        ).first()
-        return nom.label if nom else mnemonique
-
-    def get_bancarisation_label(self, obj):
-        return self._resolve_nomenclature_label(obj.outil_bancarisation, 'BANCARISATION_STOCKAGE')
-
-    def get_outil_saisie_label(self, obj):
-        return self._resolve_nomenclature_label(obj.outil_saisie, 'OUTIL_SAISIE')
-
-    def get_objectif_principal_label(self, obj):
-        return self._resolve_nomenclature_label(obj.objectif_principal, 'OBJECTIF_SUIVI')
-
-    def get_objectif_secondaire_label(self, obj):
-        return self._resolve_nomenclature_label(obj.objectif_secondaire, 'OBJECTIF_SUIVI')
-
-    def get_cibles_principales_label(self, obj):
-        return self._resolve_nomenclature_label(obj.cibles_principales, 'CIBLE_SUIVI')
-
-    def get_cible_secondaire_label(self, obj):
-        return self._resolve_nomenclature_label(obj.cible_secondaire, 'CIBLE_SUIVI')
-
 
 class SuiviInventaireWriteSerializer(serializers.ModelSerializer):
     """Serializer pour un suivi/inventaire (écriture, accepte protocoles nested)."""
@@ -909,6 +928,7 @@ class SuiviInventaireWriteSerializer(serializers.ModelSerializer):
         fields = [
             'id_suivi_inventaire',
             'intitule', 'actif',
+            'id_type_action',
             # Détails
             'objectif_principal', 'objectif_secondaire',
             'cibles_principales', 'cible_secondaire',
@@ -1426,6 +1446,18 @@ class OperationCreateSerializer(serializers.ModelSerializer):
         """Use the read serializer for the response."""
         return OperationSerializer(instance, context=self.context).data
 
+    @staticmethod
+    def _accepte_un_suivi(type_action):
+        """Seules les actions CS (Connaissance et Suivi, GestRef) portent un suivi.
+
+        Une action sans type (import, saisie ancienne) garde le comportement
+        antérieur : le type est obligatoire dans le formulaire depuis #588.
+        """
+        if type_action is None:
+            return True
+        code = type_action.cd_nomenclature or type_action.mnemonique or ''
+        return code.startswith('CS')
+
     def _create_operation_annees(self, operation, annees_data):
         """Create OperationAnnee objects with nested organismes."""
         if not annees_data:
@@ -1497,10 +1529,19 @@ class OperationCreateSerializer(serializers.ModelSerializer):
             if first_met and first_met.id_indicateur_id:
                 validated_data['id_indicateur'] = first_met.id_indicateur
 
+        type_action = validated_data.get('id_type_action')
+        if not self._accepte_un_suivi(type_action):
+            suivi_data = None
+            validated_data['id_suivi'] = None
+            validated_data['est_suivi_existant'] = False
+
         # Create SuiviInventaire if provided
         if suivi_data:
             user = validated_data.get('id_utilisateur_ajout')
             protocoles_data = pop_protocoles_data(suivi_data)
+            # #715 — sans type, le suivi n'est plus proposé aux autres actions.
+            if not suivi_data.get('id_type_action'):
+                suivi_data['id_type_action'] = type_action
 
             suivi = SuiviInventaire.objects.create(
                 id_utilisateur_ajout=user,
@@ -1543,12 +1584,30 @@ class OperationCreateSerializer(serializers.ModelSerializer):
         finances_data = validated_data.pop('finances', None)
         suivi_data = validated_data.pop('suivi_inventaire', None)
 
+        type_action = validated_data.get('id_type_action', instance.id_type_action)
+        if not self._accepte_un_suivi(type_action):
+            # #715 — une action qui n'est plus CS se détache de son suivi (le
+            # suivi reste, pour les autres actions et le module Inventaires).
+            suivi_data = None
+            validated_data['id_suivi'] = None
+            validated_data['est_suivi_existant'] = False
+
+        # #715 — « Suivi existant ? » Oui → Non : l'action quitte le suivi
+        # qu'elle partageait et en crée un nouveau. Modifier le suivi rattaché
+        # écraserait celui des autres actions.
+        quitte_le_suivi_existant = (
+            instance.est_suivi_existant
+            and validated_data.get('est_suivi_existant') is False
+        )
+
         # Handle nested suivi_inventaire
         if suivi_data is not None:
             user = validated_data.get('id_utilisateur_maj') or instance.id_utilisateur_ajout
             protocoles_data = pop_protocoles_data(suivi_data)
+            if not suivi_data.get('id_type_action'):
+                suivi_data['id_type_action'] = type_action
 
-            if instance.id_suivi:
+            if instance.id_suivi and not quitte_le_suivi_existant:
                 # Update existing SuiviInventaire
                 for attr, value in suivi_data.items():
                     setattr(instance.id_suivi, attr, value)

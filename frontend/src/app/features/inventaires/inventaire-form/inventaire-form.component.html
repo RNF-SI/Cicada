@@ -63,7 +63,8 @@
 </app-form-field>
 
             <!-- Type (codes CS - autocomplete groupé) -->
-            <label class="app-mat-label">{{ 'inventaires.form.type' | translate }}</label>
+            <!-- #715 — obligatoire, comme dans la fiche action (#588) -->
+            <label class="app-mat-label">{{ 'inventaires.form.type' | translate }} <span class="required-star">*</span></label>
       <mat-form-field class="app-mat-form-field" appearance="outline">
               <mat-label></mat-label>
               <input matInput
@@ -91,10 +92,13 @@
                 }
               </mat-autocomplete>
             </mat-form-field>
+            @if (shouldShowError('id_type_action')) {
+              <p class="field-error"><i class="fi fi-rr-exclamation"></i>{{ getErrorMessage('id_type_action') }}</p>
+            }
 
             <!-- Intégré dans le plan de gestion -->
             <div class="radio-field-row" [class.has-error]="shouldShowError('integre_plan_gestion')">
-              <span class="radio-field-label">{{ 'inventaires.form.integrePG' | translate }} <span class="required-star">*</span></span>
+              <span class="radio-field-label">{{ 'inventaires.form.integrePG' | translate }}</span>
               <mat-radio-group formControlName="integre_plan_gestion" class="radio-inline">
                 <mat-radio-button [value]="true" color="primary">{{ 'common.yes' | translate }}</mat-radio-button>
                 <mat-radio-button [value]="false" color="primary">{{ 'common.no' | translate }}</mat-radio-button>
@@ -107,7 +111,7 @@
             <!-- Suit un indicateur (conditional: only if integre_plan_gestion == true) -->
             @if (showSuitIndicateur) {
               <div class="radio-field-row" [class.has-error]="shouldShowError('suit_indicateur')">
-                <span class="radio-field-label">{{ 'inventaires.form.suitIndicateur' | translate }} <span class="required-star">*</span></span>
+                <span class="radio-field-label">{{ 'inventaires.form.suitIndicateur' | translate }}</span>
                 <mat-radio-group formControlName="suit_indicateur" class="radio-inline">
                   <mat-radio-button [value]="true" color="primary">{{ 'common.yes' | translate }}</mat-radio-button>
                   <mat-radio-button [value]="false" color="primary">{{ 'common.no' | translate }}</mat-radio-button>
@@ -120,7 +124,7 @@
 
             <!-- Type d'indicateur (conditional: only if suit_indicateur == true) -->
             @if (showTypeIndicateur) {
-              <label class="app-mat-label">{{ 'inventaires.form.typeIndicateur' | translate }} <span class="required-star">*</span></label>
+              <label class="app-mat-label">{{ 'inventaires.form.typeIndicateur' | translate }}</label>
       <mat-form-field class="app-mat-form-field" appearance="outline">
                 <mat-label></mat-label>
                 <mat-select formControlName="type_indicateur">
@@ -222,9 +226,12 @@
             @if (showHabitat) {
               <div class="form-group">
                 <label class="form-label">{{ 'inventaires.form.habitat' | translate }}</label>
+                <!-- #715 — correspondances EUNIS/Corine, comme la fiche action -->
+                <span class="text-mention">{{ 'enjeux.operations.habitatCorrespHint' | translate }}</span>
                 <app-reference-item-list
                   type="habitat"
                   [items]="habitatItems"
+                  [showCorrespondences]="true"
                   (itemsChange)="onHabitatsChange($event)">
                 </app-reference-item-list>
               </div>
@@ -246,7 +253,7 @@
             }
 
             <!-- Date de lancement du suivi (date picker) -->
-            <label class="app-mat-label">{{ 'inventaires.form.dateLancement' | translate }} <span class="required-star">*</span></label>
+            <label class="app-mat-label">{{ 'inventaires.form.dateLancement' | translate }}</label>
       <mat-form-field class="app-mat-form-field" appearance="outline">
               <mat-label></mat-label>
               <input matInput [matDatepicker]="dateLancementPicker" formControlName="date_lancement_suivi"
@@ -387,7 +394,6 @@
                   <div class="radio-field-row" [class.has-error]="shouldShowProtocoleError($index, 'documentation_disponible')">
                     <span class="radio-field-label">
                       {{ 'inventaires.form.documentationDisponible' | translate }}
-                      <span class="required-star">*</span>
                     </span>
                     <mat-radio-group formControlName="documentation_disponible" class="radio-inline">
                       <mat-radio-button [value]="true" color="primary">{{ 'common.yes' | translate }}</mat-radio-button>
@@ -407,7 +413,7 @@
                   }
 
                   <!-- Nombre d'ETP par cycle de collecte -->
-                  <app-form-field [label]="'inventaires.form.nbEtpCycle' | translate" [required]="true" [helpText]="'inventaires.form.nbEtpCycleHint' | translate">
+                  <app-form-field [label]="'inventaires.form.nbEtpCycle' | translate" [helpText]="'inventaires.form.nbEtpCycleHint' | translate">
   <input type="number" formControlName="nb_etp_cycle">
 </app-form-field>
 
@@ -463,7 +469,6 @@
                     [class.has-error]="shouldShowProtocoleError($index, 'respect_protocole')">
                     <span class="radio-field-label">
                       {{ 'inventaires.form.respectProtocole' | translate }}
-                      <span class="required-star">*</span>
                     </span>
                     <mat-radio-group formControlName="respect_protocole" class="radio-inline">
                       <mat-radio-button [value]="true" color="primary">{{ 'common.yes' | translate }}</mat-radio-button>
@@ -521,7 +526,6 @@
         <div class="frequence-row">
           <label class="field-label">
             {{ 'inventaires.form.frequence' | translate }}
-            <span class="required-star">*</span>
           </label>
           <div class="frequence-controls">
             <div class="frequence-number" [class.has-error]="shouldShowError('frequence_nombre')">

@@ -15,6 +15,7 @@ import { InventaireService } from '../../../core/services/inventaire.service';
 import { SuiviInventaireDetail } from '../../../core/models/inventaire.model';
 import { Protocole } from '../../../core/models/enjeu.model';
 import { taxonRefsToText } from '../../../shared/utils/taxon-ref.utils';
+import { parseSuiviHabitats } from '../../../shared/utils/suivi-habitats.utils';
 
 @Component({
   selector: 'app-inventaire-detail',
@@ -60,11 +61,19 @@ export class InventaireDetailComponent implements OnInit {
     return '';
   });
 
+  /** #715 — habitats lus comme la fiche action (liste structurée d'abord). */
+  habitatsText = computed(() =>
+    parseSuiviHabitats(this.suivi()).map((h) => h.lb_hab_fr || h.cd_hab).filter(Boolean).join(', '),
+  );
+
+  /** #715 — unité résolue côté serveur (FREQUENCE_EMBOITEMENT), « 2 fois par Mois ». */
   frequenceLabel = computed(() => {
     const s = this.suivi();
     if (!s?.frequence_nombre || !s?.frequence_unite) return '';
-    const uniteKey = `inventaires.form.unite${this.capitalize(s.frequence_unite)}`;
-    const unite = this.translate.instant(uniteKey);
+    const unite =
+      s.frequence_unite === 'AUTRE' && s.frequence_unite_precision
+        ? s.frequence_unite_precision
+        : s.frequence_unite_label || s.frequence_unite;
     return `${s.frequence_nombre} ${this.translate.instant('inventaires.form.frequenceFoisPar')} ${unite}`;
   });
 
@@ -164,9 +173,5 @@ export class InventaireDetailComponent implements OnInit {
     if (label.includes('termin')) return 'status-termine';
     if (label.includes('venir')) return 'status-a-venir';
     return 'status-chip-default';
-  }
-
-  private capitalize(s: string): string {
-    return s.charAt(0).toUpperCase() + s.slice(1);
   }
 }

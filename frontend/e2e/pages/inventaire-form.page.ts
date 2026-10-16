@@ -177,34 +177,21 @@ export class InventaireFormPage {
   }
 
   /**
-   * Fill all fields required by the conditional validators :
-   * intitule, integre_plan_gestion=Non, objectif_principal, cibles_principales,
-   * date_lancement_suivi, protocole_dans_campanule=Non, nom_protocole,
-   * documentation_disponible=Non, nb_etp_cycle, frequence.
-   * After this call, the form is in a state that should pass validation.
+   * Remplit les champs obligatoires — #715 : les mêmes que la fiche d'une
+   * action de suivi (CS) : intitulé, type d'action, objectif et cible
+   * principaux, « protocole standardisé ? ». Tout le reste (date de lancement,
+   * « intégré au plan », documentation, nb ETP, fréquence) est facultatif : on
+   * ne le remplit pas, pour vérifier que ces seuls champs suffisent.
    */
   async fillAllRequiredFields(intitule: string) {
     await this.fillIntitule(intitule);
-    // integre_plan_gestion=Non (évite d'avoir à choisir suit_indicateur)
-    await this.integrePgNon.click();
-    await this.page.waitForTimeout(200);
+    await this.selectFirstTypeSuivi();
     await this.selectFirstObjectifPrincipal();
     await this.selectFirstCiblePrincipale();
-    await this.fillDateLancement('01/06/2024');
-    // Protocole hors-CAMPanule (mode le plus simple)
+    // Protocole hors-CAMPanule (mode le plus simple, nom facultatif #413)
     await this.protocoleCampanuleNon.click();
     await this.page.waitForTimeout(300);
     await this.nomProtocoleInput.fill('Protocole E2E');
-    await this.nbEtpCycleInput.fill('1');
-    // #413 — `respect_protocole` n'est demandé que pour les protocoles CAMPanule.
-    // En hors-CAMPanule, seuls `documentation_disponible` et `nb_etp_cycle` sont requis.
-    // documentation_disponible=Non
-    await this.protocoleBlocks.first().locator('mat-radio-group[formControlName="documentation_disponible"] mat-radio-button').nth(1).click();
-    // Fréquence : 1 fois par AN
-    await this.frequenceInput.fill('1');
-    await this.page.locator('mat-select[formControlName="frequence_unite"]').click();
-    // Nomenclature `AN` is labelled "Ans" (cf. seed FREQUENCE_EMBOITEMENT)
-    await this.page.locator('mat-option').filter({ hasText: /^Ans?$/i }).first().click();
   }
 
   async submit() {

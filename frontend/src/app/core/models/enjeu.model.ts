@@ -570,6 +570,8 @@ export interface SuiviInventaire {
   id_suivi_inventaire?: number;
   intitule?: string;
   actif?: boolean;
+  /** #715 — type d'action (CS…) du suivi. */
+  id_type_action?: number | null;
   // Détails
   objectif_principal?: string;
   // #571 — libellés lisibles résolus depuis la nomenclature (le champ brut

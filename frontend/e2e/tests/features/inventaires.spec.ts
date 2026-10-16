@@ -84,8 +84,13 @@ async function createFullInventaireViaApi(
   intitule: string,
   extra: Record<string, unknown> = {},
 ): Promise<number> {
+  // #715 — le type d'action est obligatoire dans le formulaire (comme dans
+  // la fiche action) : sans lui, l'édition serait bloquée.
+  const types = await apiGet(page, 'nomenclatures/', { type: 'TYPE_ACTION', prefix: 'CS' });
+  const typesList = types.data?.results ?? types.data ?? [];
   const payload = {
     intitule,
+    id_type_action: typesList[0]?.id_nomenclature,
     actif: true,
     integre_plan_gestion: false,
     objectif_principal: 'OBJ_INVENTAIRE_INITIAL',

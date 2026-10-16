@@ -55,6 +55,8 @@ import {
   displayNomenclatureFn,
 } from '../../../../shared/utils/nomenclature-autocomplete.utils';
 import { serializeTaxonRefs, parseTaxonRefs } from '../../../../shared/utils/taxon-ref.utils';
+import { parseSuiviHabitats, serializeSuiviHabitats } from '../../../../shared/utils/suivi-habitats.utils';
+import { protocolesDepuisAction } from '../../../../shared/utils/suivi-protocoles.utils';
 import { salaryIsComputed, salaryOptionAvailable } from '../../../../shared/utils/operation-budget';
 import {
   blankMetriqueFormData,
@@ -1512,16 +1514,9 @@ export class OperationFormComponent implements OnInit {
       if (suivi.taxon_taxref) {
         this.taxonItems = parseTaxonRefs(suivi.taxon_taxref);
       }
-      // Habitats : on privilégie la liste structurée (avec cd_hab, nécessaire
-      // aux correspondances), sinon on retombe sur le texte `habitat_ref`.
-      if (Array.isArray(suivi.habitats) && suivi.habitats.length > 0) {
-        this.habitatItems = suivi.habitats.map((h: any) => ({ cd_hab: h.cd_hab ?? '', lb_hab_fr: h.lb_hab_fr ?? '', lb_code: h.lb_code, lb_typo: h.lb_typo, lb_hab_fr_complet: h.lb_hab_fr_complet }));
-      } else if (suivi.habitat_ref) {
-        this.habitatItems = suivi.habitat_ref.split(',').map((s: string) => s.trim()).filter((s: string) => s).map((name: string) => ({
-          cd_hab: '',
-          lb_hab_fr: name,
-        }));
-      }
+      // Habitats : liste structurée (avec cd_hab, nécessaire aux
+      // correspondances) en priorité, sinon le texte `habitat_ref` (#715).
+      this.habitatItems = parseSuiviHabitats(suivi);
 
       this.form.patchValue({
         intitule_suivi: suivi.intitule || '',
@@ -1550,7 +1545,7 @@ export class OperationFormComponent implements OnInit {
           protocole_dans_campanule: proto.protocole_dans_campanule ?? null,
           protocole_campanule_nom: proto.protocole_campanule_nom || '',
           cd_protocole_campanule: proto.cd_protocole_campanule || null,
-          nb_etp_cycle: proto.nb_etp_cycle || null,
+          nb_etp_cycle: proto.nb_etp_cycle ?? null,
           nom_protocole: proto.nom_protocole || '',
           respect_protocole: proto.respect_protocole ?? null,
           justification_non_respect: proto.justification_non_respect || '',
@@ -2112,64 +2107,39 @@ export class OperationFormComponent implements OnInit {
       if (fv.intitule_suivi?.trim()) suiviData['intitule'] = fv.intitule_suivi.trim();
       // Propager le type d'action CS sélectionné
       if (fv.id_type_action) suiviData['id_type_action'] = fv.id_type_action;
-      if (rawFv.objectif_principal?.trim()) suiviData['objectif_principal'] = rawFv.objectif_principal.trim();
-      if (rawFv.objectif_secondaire?.trim()) suiviData['objectif_secondaire'] = rawFv.objectif_secondaire.trim();
-      if (rawFv.cibles_principales) suiviData['cibles_principales'] = rawFv.cibles_principales;
-      if (rawFv.cible_secondaire) suiviData['cible_secondaire'] = rawFv.cible_secondaire;
-      // Serialize taxon/habitat reference lists to strings
+      // #715 — chaque champ est envoyé, vide compris : un champ omis gardait sa
+      // valeur précédente, ce qui empêchait d'effacer une saisie.
+      suiviData['objectif_principal'] = (rawFv.objectif_principal || '').trim();
+      suiviData['objectif_secondaire'] = (rawFv.objectif_secondaire || '').trim();
+      suiviData['cibles_principales'] = rawFv.cibles_principales || '';
+      suiviData['cible_secondaire'] = rawFv.cible_secondaire || '';
       // Taxons : JSON (préserve cd_nom, gère les virgules dans les noms) — #563
-      if (this.taxonItems.length > 0) {
-        suiviData['taxon_taxref'] = serializeTaxonRefs(this.taxonItems);
-      }
-      if (this.habitatItems.length > 0) {
-        // `habitat_ref` (noms) conservé pour l'affichage hérité ; `habitats`
-        // (structuré, avec cd_hab) permet d'afficher les correspondances.
-        suiviData['habitat_ref'] = this.habitatItems.map(h => h.lb_hab_fr || h.cd_hab).join(', ');
-        // #368 — on conserve aussi les habitats « libres » (sans cd_hab, ex. Outre-mer) :
-        // cd_hab=null + libellé saisi. On ne garde que les entrées ayant un code OU un libellé.
-        suiviData['habitats'] = this.habitatItems
-          .filter(h => h.cd_hab || (h.lb_hab_fr || '').trim())
-          .map(h => ({
-            cd_hab: h.cd_hab || null,
-            lb_hab_fr: h.lb_hab_fr,
-            lb_code: h.lb_code,
-            lb_typo: h.lb_typo,
-            lb_hab_fr_complet: h.lb_hab_fr_complet,
-          }));
-      } else {
-        suiviData['habitats'] = [];
-      }
-      const dateLancement = this.formatDate(rawFv.date_lancement_suivi);
-      if (dateLancement) suiviData['date_lancement_suivi'] = dateLancement;
-      if (rawFv.outil_bancarisation) suiviData['outil_bancarisation'] = rawFv.outil_bancarisation;
-      if (rawFv.outil_saisie) suiviData['outil_saisie'] = rawFv.outil_saisie;
-      if (rawFv.transmission_donnee != null) suiviData['transmission_donnee'] = rawFv.transmission_donnee;
+      suiviData['taxon_taxref'] = serializeTaxonRefs(this.taxonItems);
+      // Habitats : `habitats` (avec cd_hab, pour les correspondances) et
+      // `habitat_ref` (noms) toujours ensemble, comme le module Inventaires (#715).
+      Object.assign(suiviData, serializeSuiviHabitats(this.habitatItems));
+      suiviData['date_lancement_suivi'] = this.formatDate(rawFv.date_lancement_suivi) ?? null;
+      suiviData['outil_bancarisation'] = rawFv.outil_bancarisation || '';
+      suiviData['outil_saisie'] = rawFv.outil_saisie || '';
+      suiviData['transmission_donnee'] = rawFv.transmission_donnee ?? null;
 
-      // Build nested protocole
-      const protocoleData: Record<string, unknown> = {};
-      if (rawFv.protocole_dans_campanule != null) protocoleData['protocole_dans_campanule'] = rawFv.protocole_dans_campanule;
-      if (rawFv.protocole_campanule_nom) protocoleData['protocole_campanule_nom'] = rawFv.protocole_campanule_nom;
-      if (rawFv.cd_protocole_campanule != null) protocoleData['cd_protocole_campanule'] = rawFv.cd_protocole_campanule;
-      if (rawFv.nb_etp_cycle != null) protocoleData['nb_etp_cycle'] = rawFv.nb_etp_cycle;
-      if (rawFv.nom_protocole?.trim()) protocoleData['nom_protocole'] = rawFv.nom_protocole.trim();
-      if (rawFv.respect_protocole != null) protocoleData['respect_protocole'] = rawFv.respect_protocole;
-      if (rawFv.justification_non_respect?.trim()) protocoleData['justification_non_respect'] = rawFv.justification_non_respect.trim();
-      if (rawFv.differences_protocole?.trim()) protocoleData['differences_protocole'] = rawFv.differences_protocole.trim();
-      if (rawFv.description_protocole?.trim()) protocoleData['description_protocole'] = rawFv.description_protocole.trim();
-      if (rawFv.objectif_protocole?.trim()) protocoleData['objectif_protocole'] = rawFv.objectif_protocole.trim();
-      if (rawFv.periode_echantillonnage?.trim()) protocoleData['periode_echantillonnage'] = rawFv.periode_echantillonnage.trim();
-
-      // #252 — le suivi porte une liste de protocoles. Depuis le formulaire
-      // d'action on n'en saisit qu'un (cas majoritaire) ; pour un suivi
-      // existant, la liste déjà enregistrée est conservée telle quelle.
-      if (this.estSuiviExistant()) {
-        const existants = this.suiviProtocoles();
-        if (existants.length > 0) {
-          suiviData['protocoles'] = existants.map((p) => this.stripProtocoleMeta(p));
-        }
-      } else if (Object.keys(protocoleData).length > 0) {
-        suiviData['protocoles'] = [protocoleData];
-      }
+      // #252 / #715 — la fiche action édite le premier protocole du suivi ; les
+      // suivants (saisis dans le module Inventaires) et les champs qu'elle ne
+      // connaît pas sont renvoyés tels quels.
+      const protocoles = protocolesDepuisAction(this.suiviProtocoles(), {
+        protocole_dans_campanule: rawFv.protocole_dans_campanule ?? null,
+        protocole_campanule_nom: rawFv.protocole_campanule_nom || '',
+        cd_protocole_campanule: rawFv.cd_protocole_campanule ?? null,
+        nb_etp_cycle: rawFv.nb_etp_cycle ?? null,
+        nom_protocole: (rawFv.nom_protocole || '').trim(),
+        respect_protocole: rawFv.respect_protocole ?? null,
+        justification_non_respect: (rawFv.justification_non_respect || '').trim(),
+        differences_protocole: (rawFv.differences_protocole || '').trim(),
+        description_protocole: (rawFv.description_protocole || '').trim(),
+        objectif_protocole: (rawFv.objectif_protocole || '').trim(),
+        periode_echantillonnage: (rawFv.periode_echantillonnage || '').trim(),
+      });
+      if (protocoles) suiviData['protocoles'] = protocoles;
 
       if (Object.keys(suiviData).length > 0) {
         payload.suivi_inventaire = suiviData;
@@ -2819,16 +2789,7 @@ export class OperationFormComponent implements OnInit {
         } else {
           this.taxonItems = [];
         }
-        if (Array.isArray(detail.habitats) && detail.habitats.length > 0) {
-          this.habitatItems = detail.habitats.map((h: any) => ({ cd_hab: h.cd_hab ?? '', lb_hab_fr: h.lb_hab_fr ?? '', lb_code: h.lb_code, lb_typo: h.lb_typo, lb_hab_fr_complet: h.lb_hab_fr_complet }));
-        } else if (detail.habitat_ref) {
-          this.habitatItems = detail.habitat_ref.split(',').map(s => s.trim()).filter(s => s).map(name => ({
-            cd_hab: '',
-            lb_hab_fr: name,
-          }));
-        } else {
-          this.habitatItems = [];
-        }
+        this.habitatItems = parseSuiviHabitats(detail);
 
         // Populate suivi fields
         this.form.patchValue({
@@ -2858,7 +2819,7 @@ export class OperationFormComponent implements OnInit {
             protocole_dans_campanule: proto.protocole_dans_campanule ?? null,
             protocole_campanule_nom: proto.protocole_campanule_nom || '',
             cd_protocole_campanule: proto.cd_protocole_campanule || null,
-            nb_etp_cycle: proto.nb_etp_cycle || null,
+            nb_etp_cycle: proto.nb_etp_cycle ?? null,
             nom_protocole: proto.nom_protocole || '',
             respect_protocole: proto.respect_protocole ?? null,
             justification_non_respect: proto.justification_non_respect || '',
@@ -3201,15 +3162,6 @@ export class OperationFormComponent implements OnInit {
       p.nom_protocole?.trim() ||
       this.translate.instant('inventaires.form.protocoleIndex', { index: index + 1 })
     );
-  }
-
-  /**
-   * Retire les champs non inscriptibles avant de renvoyer un protocole existant
-   * au backend (le serializer les refuserait / les ignorerait).
-   */
-  private stripProtocoleMeta(p: Protocole): Record<string, unknown> {
-    const { id_protocole, date_ajout, date_maj, ...rest } = p as Record<string, any>;
-    return rest;
   }
 
   get isCampanule(): boolean {

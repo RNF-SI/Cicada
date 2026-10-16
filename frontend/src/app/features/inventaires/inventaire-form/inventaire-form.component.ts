@@ -40,6 +40,7 @@ import {
   displayNomenclatureFn,
 } from '../../../shared/utils/nomenclature-autocomplete.utils';
 import { serializeTaxonRefs, parseTaxonRefs } from '../../../shared/utils/taxon-ref.utils';
+import { parseSuiviHabitats, serializeSuiviHabitats } from '../../../shared/utils/suivi-habitats.utils';
 
 @Component({
   selector: 'app-inventaire-form',
@@ -139,68 +140,37 @@ export class InventaireFormComponent implements OnInit {
   }
 
   /**
-   * Subscribe à tous les contrôles dont le changement de valeur peut faire
-   * apparaître / disparaître un autre champ requis, pour re-synchroniser les
-   * validators conditionnels.
+   * Synchro initiale des validators. Les seules obligations conditionnelles
+   * restantes (protocole choisi si « standardisé ») sont resynchronisées par
+   * chaque bloc protocole (cf. `addProtocole`).
    */
   private initValidatorsSync(): void {
-    const watched = [
-      'integre_plan_gestion',
-      'suit_indicateur',
-      'frequence_unite',
-    ];
-    for (const name of watched) {
-      this.form.get(name)?.valueChanges.subscribe(() => this.syncConditionalValidators());
-    }
-    // Synchro initiale (form vide → impose les "always required")
     this.syncConditionalValidators();
   }
 
   /**
    * Met à jour Validators.required sur tous les champs marqués d'un `*` dans
-   * le template. Les conditions reflètent les `@if` du HTML pour éviter
-   * d'imposer un required sur un champ caché.
+   * le template.
+   *
+   * #715 — mêmes obligations que la fiche d'une action de suivi (CS), qui
+   * saisit le même suivi : sinon un suivi créé depuis une action ne pouvait
+   * plus être réenregistré ici sans compléter des champs que l'action ne
+   * demande pas. Obligatoires : intitulé, type d'action (#588), objectif et
+   * cible principaux (#461), « protocole standardisé ? » et, si oui, le
+   * protocole choisi. Le reste est facultatif (respect du protocole : #561).
    */
   private syncConditionalValidators(): void {
-    const v = (name: string) => this.form.get(name)?.value;
-
-    // Toujours requis (champs visibles en haut de formulaire)
     this.applyRequiredValidator('intitule', true);
-    this.applyRequiredValidator('integre_plan_gestion', true);
+    this.applyRequiredValidator('id_type_action', true);
     this.applyRequiredValidator('objectif_principal', true);
     this.applyRequiredValidator('cibles_principales', true);
-    this.applyRequiredValidator('date_lancement_suivi', true);
-
-    // Indicateurs (conditionnels)
-    this.applyRequiredValidator('suit_indicateur', v('integre_plan_gestion') === true);
-    this.applyRequiredValidator(
-      'type_indicateur',
-      v('integre_plan_gestion') === true && v('suit_indicateur') === true,
-    );
 
     // Chaque protocole porte ses propres validators conditionnels (#252).
-    let auMoinsUnProtocoleRenseigne = false;
     for (const group of this.protocolesArray.controls) {
-      const gv = (name: string) => group.get(name)?.value;
-      const isCampanule = gv('protocole_dans_campanule') === true;
-      const isNotCampanule = gv('protocole_dans_campanule') === false;
-      if (isCampanule || isNotCampanule) auMoinsUnProtocoleRenseigne = true;
-
+      const isCampanule = group.get('protocole_dans_campanule')?.value === true;
       this.setRequired(group.get('protocole_dans_campanule'), true);
       this.setRequired(group.get('cd_protocole_campanule'), isCampanule);
-      // #413 — le nom d'un protocole non-CAMPanule (nom local) est facultatif.
-      this.setRequired(group.get('nom_protocole'), false);
-      // #414 — « Respect strict du protocole » réservé aux protocoles CAMPanule.
-      this.setRequired(group.get('respect_protocole'), isCampanule);
-      // Champs visibles uniquement en mode hors-CAMPanule
-      this.setRequired(group.get('documentation_disponible'), isNotCampanule);
-      this.setRequired(group.get('nb_etp_cycle'), isNotCampanule);
     }
-
-    // La fréquence est portée par le suivi : requise dès qu'un protocole est
-    // renseigné, quel qu'il soit.
-    this.applyRequiredValidator('frequence_nombre', auMoinsUnProtocoleRenseigne);
-    this.applyRequiredValidator('frequence_unite', auMoinsUnProtocoleRenseigne);
   }
 
   private applyRequiredValidator(controlName: string, required: boolean): void {
@@ -651,16 +621,18 @@ export class InventaireFormComponent implements OnInit {
     if (suivi.taxon_taxref) {
       this.taxonItems = parseTaxonRefs(suivi.taxon_taxref);
     }
-    // Parse habitat references from stored string
-    if (suivi.habitat_ref) {
-      this.habitatItems = suivi.habitat_ref.split(',').map(s => s.trim()).filter(s => s).map(name => ({
-        cd_hab: '',
-        lb_hab_fr: name,
-      }));
+    // #715 — liste structurée (avec cd_hab) en priorité, comme la fiche action.
+    this.habitatItems = parseSuiviHabitats(suivi);
+
+    // #715 — le type d'action doit revenir dans le contrôle, pas seulement à
+    // l'affichage : sinon l'enregistrement l'effaçait.
+    if (suivi.id_type_action) {
+      this.restoreTypeActionAutocomplete(suivi.id_type_action);
     }
 
     this.form.patchValue({
       intitule: suivi.intitule || '',
+      id_type_action: suivi.id_type_action ?? null,
       integre_plan_gestion: suivi.integre_plan_gestion,
       suit_indicateur: suivi.suit_indicateur ?? null,
       type_indicateur: suivi.type_indicateur || '',
@@ -873,6 +845,7 @@ export class InventaireFormComponent implements OnInit {
   /** Tableau (formControlName → clé i18n du label) pour les messages d'erreur. */
   private readonly fieldLabelKeys: Record<string, string> = {
     intitule: 'inventaires.form.intitule',
+    id_type_action: 'inventaires.form.type',
     integre_plan_gestion: 'inventaires.form.integrePG',
     suit_indicateur: 'inventaires.form.suitIndicateur',
     type_indicateur: 'inventaires.form.typeIndicateur',
@@ -1007,48 +980,39 @@ export class InventaireFormComponent implements OnInit {
 
     const fv = this.form.value;
 
+    // #715 — chaque champ est envoyé, vide compris : un champ omis garde sa
+    // valeur précédente, ce qui empêchait d'effacer une saisie.
+    const integre = fv.integre_plan_gestion ?? null;
+    const suit = integre === true ? (fv.suit_indicateur ?? null) : null;
     const payload: SuiviInventaireCreatePayload = {
       intitule: fv.intitule,
       id_type_action: fv.id_type_action,
+      integre_plan_gestion: integre,
+      suit_indicateur: suit,
+      type_indicateur: suit === true ? (fv.type_indicateur || '').trim() : '',
+      objectif_principal: (fv.objectif_principal || '').trim(),
+      objectif_secondaire: (fv.objectif_secondaire || '').trim(),
+      cibles_principales: fv.cibles_principales || '',
+      cible_secondaire: fv.cible_secondaire || '',
+      // Taxons : JSON (préserve cd_nom, gère les virgules dans les noms) — #563
+      taxon_taxref: serializeTaxonRefs(this.taxonItems),
+      // Habitats : les deux champs ensemble, comme la fiche action (#715)
+      ...serializeSuiviHabitats(this.habitatItems),
+      date_lancement_suivi: this.formatDate(fv.date_lancement_suivi) ?? null,
+      id_statut: fv.id_statut ?? null,
+      annee_fin_suivi: fv.annee_fin_suivi ?? null,
+      // Fréquence (portée par le suivi, affichée dans la section protocole)
+      frequence_nombre: fv.frequence_nombre ?? null,
+      frequence_unite: fv.frequence_unite || '',
+      frequence_unite_precision:
+        fv.frequence_unite === 'AUTRE' ? (fv.frequence_unite_precision || '').trim() : '',
+      // Bancarisation
+      outil_bancarisation: (fv.outil_bancarisation || '').trim(),
+      outil_saisie: (fv.outil_saisie || '').trim(),
+      transmission_donnee: fv.transmission_donnee ?? null,
+      // Details
+      commentaires: (fv.commentaires || '').trim(),
     };
-
-    // Main fields
-    if (fv.integre_plan_gestion != null) payload.integre_plan_gestion = fv.integre_plan_gestion;
-    if (fv.integre_plan_gestion === true && fv.suit_indicateur != null) payload.suit_indicateur = fv.suit_indicateur;
-    if (fv.integre_plan_gestion === true && fv.suit_indicateur === true && fv.type_indicateur?.trim()) {
-      payload.type_indicateur = fv.type_indicateur.trim();
-    }
-    if (fv.objectif_principal?.trim()) payload.objectif_principal = fv.objectif_principal.trim();
-    if (fv.objectif_secondaire?.trim()) payload.objectif_secondaire = fv.objectif_secondaire.trim();
-    if (fv.cibles_principales) payload.cibles_principales = fv.cibles_principales;
-    if (fv.cible_secondaire) payload.cible_secondaire = fv.cible_secondaire;
-    // Serialize taxon/habitat reference lists to strings
-    // Taxons : JSON (préserve cd_nom, gère les virgules dans les noms) — #563
-    if (this.taxonItems.length > 0) {
-      payload.taxon_taxref = serializeTaxonRefs(this.taxonItems);
-    }
-    if (this.habitatItems.length > 0) {
-      payload.habitat_ref = this.habitatItems.map(h => h.lb_hab_fr || h.cd_hab).join(', ');
-    }
-    const dateLancement = this.formatDate(fv.date_lancement_suivi);
-    if (dateLancement) payload.date_lancement_suivi = dateLancement;
-    if (fv.id_statut) payload.id_statut = fv.id_statut;
-    if (fv.annee_fin_suivi != null) payload.annee_fin_suivi = fv.annee_fin_suivi;
-
-    // Frequency (on SuiviInventaire, displayed in protocole section)
-    if (fv.frequence_nombre != null) payload.frequence_nombre = fv.frequence_nombre;
-    if (fv.frequence_unite) payload.frequence_unite = fv.frequence_unite;
-    if (fv.frequence_unite === 'AUTRE' && fv.frequence_unite_precision?.trim()) {
-      payload.frequence_unite_precision = fv.frequence_unite_precision.trim();
-    }
-
-    // Bancarisation
-    if (fv.outil_bancarisation?.trim()) payload.outil_bancarisation = fv.outil_bancarisation.trim();
-    if (fv.outil_saisie?.trim()) payload.outil_saisie = fv.outil_saisie.trim();
-    if (fv.transmission_donnee != null) payload.transmission_donnee = fv.transmission_donnee;
-
-    // Details
-    if (fv.commentaires?.trim()) payload.commentaires = fv.commentaires.trim();
 
     // Build nested protocoles (#252) — la liste envoyée fait foi côté backend.
     payload.protocoles = (fv.protocoles || [])

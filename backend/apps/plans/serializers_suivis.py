@@ -6,6 +6,7 @@ from rest_framework import serializers
 from .models_operations import SuiviInventaire
 from .serializers_operations import (
     ProtocoleSerializer,
+    SuiviLabelsMixin,
     pop_protocoles_data,
     sync_suivi_protocoles,
 )
@@ -53,7 +54,7 @@ class SuiviInventaireListSerializer(serializers.ModelSerializer):
 # Serializer détaillé
 # =============================================================================
 
-class SuiviInventaireDetailSerializer(serializers.ModelSerializer):
+class SuiviInventaireDetailSerializer(SuiviLabelsMixin, serializers.ModelSerializer):
     """Serializer détaillé pour un suivi/inventaire."""
     protocoles = ProtocoleSerializer(many=True, read_only=True)
     protocole = serializers.SerializerMethodField()
@@ -63,8 +64,6 @@ class SuiviInventaireDetailSerializer(serializers.ModelSerializer):
     nb_operations = serializers.SerializerMethodField()
     plan_nom = serializers.CharField(source='id_pg.nom', read_only=True, default=None)
     createur_nom = serializers.CharField(source='id_utilisateur_ajout.get_full_name', read_only=True)
-    bancarisation_label = serializers.SerializerMethodField()
-    outil_saisie_label = serializers.SerializerMethodField()
 
     class Meta:
         model = SuiviInventaire
@@ -74,17 +73,19 @@ class SuiviInventaireDetailSerializer(serializers.ModelSerializer):
             'intitule', 'prix_indicatif',
             'id_type_action', 'type_action_code', 'type_action_label',
             'integre_plan_gestion',
-            'suit_indicateur', 'type_indicateur',
+            'suit_indicateur', 'type_indicateur', 'type_indicateur_label',
             'id_pg', 'plan_nom',
-            'cible_secondaire', 'habitat_ref', 'habitats',
+            'cible_secondaire', 'cible_secondaire_label', 'habitat_ref', 'habitats',
             'id_statut', 'statut_label',
             'actif',
             'annee_fin_suivi',
-            'frequence_nombre', 'frequence_unite', 'frequence_unite_precision',
+            'frequence_nombre', 'frequence_unite', 'frequence_unite_label',
+            'frequence_unite_precision',
             'commentaires',
-            # Original fields
-            'objectif_principal', 'objectif_secondaire',
-            'cibles_principales', 'taxon_taxref',
+            # Original fields — #715 : libellés à côté des mnémoniques
+            'objectif_principal', 'objectif_principal_label',
+            'objectif_secondaire', 'objectif_secondaire_label',
+            'cibles_principales', 'cibles_principales_label', 'taxon_taxref',
             'date_lancement_suivi',
             # Protocoles (#252 — `protocole` = premier de la liste, déprécié)
             'protocoles', 'protocole',
@@ -106,23 +107,6 @@ class SuiviInventaireDetailSerializer(serializers.ModelSerializer):
         """Premier protocole, pour les clients antérieurs à #252."""
         premier = obj.protocoles.first()
         return ProtocoleSerializer(premier).data if premier else None
-
-    def _resolve_nomenclature_label(self, mnemonique, type_mnemonique):
-        """Resolve a nomenclature label from its mnemonique."""
-        if not mnemonique:
-            return None
-        from apps.core.models import Nomenclature
-        nom = Nomenclature.objects.filter(
-            mnemonique=mnemonique,
-            id_type__mnemonique=type_mnemonique
-        ).first()
-        return nom.label if nom else mnemonique
-
-    def get_bancarisation_label(self, obj):
-        return self._resolve_nomenclature_label(obj.outil_bancarisation, 'BANCARISATION_STOCKAGE')
-
-    def get_outil_saisie_label(self, obj):
-        return self._resolve_nomenclature_label(obj.outil_saisie, 'OUTIL_SAISIE')
 
 
 # =============================================================================
