@@ -513,6 +513,17 @@ Composants graphiques **standalone, data-driven, sans dépendance externe** (SVG
 - `actions_par_annee.niveaux` : counts par niveau × année → `BarChartComponent` mode `stacked`
 Ces tuiles ne s'affichent qu'en portée **Global / Mi-parcours** (masquées en Annuel).
 
+## Documentation utilisateur, administrateur et API (`documentation/`)
+
+Site statique **MkDocs Material** dans [`documentation/`](documentation/README.md), habillé à la charte (`docs/stylesheets/cicada.css`, valeurs de `_variables.scss`). Trois onglets : **Guide utilisateur** (la notice d'utilisation, reprise à l'identique de la notice PDF — texte, tableaux, encadrés, 64 figures dans `docs/assets/figures/`), **Administration technique** (squelette, à alimenter depuis `docs/*.md`), **API** (pages rédigées + référence générée).
+
+- **Servie par chaque instance sous `/aide/`** : construite dans le stage `docs` de `frontend/Dockerfile` et copiée dans `htdocs/aide/` de l'Apache du conteneur frontend. Aucun réglage de vhost : le `ProxyPass /` existant suffit. Le routage Angular exclut `/aide/` (`httpd.conf` + `.htaccess`). Lien « Aide » dans l'en-tête (`header.help`).
+- ⚠ **Le contexte de build de l'image frontend est la racine du dépôt** (`context: .`, `file: frontend/Dockerfile`), pour embarquer `documentation/`. Les exclusions sont dans `frontend/Dockerfile.dockerignore` (BuildKit), pas dans le `.dockerignore` racine.
+- **Dev** : `docker compose up docs` (http://localhost:8001, rechargement à chaud), ou `cd documentation && mkdocs serve`. Le dev server Angular proxifie `/aide` vers ce service.
+- **CI** : job `docs-build` (`mkdocs build --strict`) — un lien ou une ancre cassés font échouer le build, comme dans l'image.
+- **Référence de l'API** : `drf-spectacular` est branché (`/api/schema/`, `/api/docs/`, authentifiés). Le site se construit sans Django : le schéma est **committé** dans `documentation/docs/api/openapi.json`. **Après tout changement d'endpoint, relancer `scripts/export-openapi.sh`** et committer le fichier.
+- **Ajouter une page** : fichier Markdown dans le dossier de la notice concernée + entrée dans `nav:` de `mkdocs.yml`. Figures : `<figure markdown="span">` + `<figcaption>` ; encadrés « 💡 » : `!!! tip "Titre"`. Garder la numérotation des sections et des figures de la notice (les renvois « § x.y » sont des liens).
+
 ## Common Development Commands
 
 ### Project Setup (Current Implementation)

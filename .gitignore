@@ -108,6 +108,7 @@ scripts/*
 !scripts/federation.sh
 !scripts/sync-version.sh
 !scripts/generate-sbom.sh
+!scripts/export-openapi.sh
 
 # Packages Debian
 cicada_*.deb
@@ -134,3 +135,4 @@ docs/notice/
 # SBOM (regeneres par scripts/generate-sbom.sh)
 sbom/
 .sbom-tools/
+backend/_openapi.json

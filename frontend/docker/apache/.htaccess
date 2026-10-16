@@ -8,5 +8,8 @@ RewriteCond %{REQUEST_FILENAME} !-d
 # Ne pas reecrire les appels API
 RewriteCond %{REQUEST_URI} !^/api/
 
+# Ne pas reecrire la documentation (site statique MkDocs servi sous /aide/)
+RewriteCond %{REQUEST_URI} !^/aide/
+
 # Rediriger tout vers index.html pour le routing Angular
 RewriteRule . /index.html [L]

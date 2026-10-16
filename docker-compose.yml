@@ -132,6 +132,20 @@ services:
              python manage.py collectstatic --noinput &&
              python manage.py runserver 0.0.0.0:8000"
 
+  # Documentation (MkDocs) - Mode développement : rechargement à chaud sur http://localhost:8001
+  # En production elle est construite dans l'image frontend et servie sous /aide/.
+  docs:
+    image: python:3.12-alpine
+    container_name: cicada_docs
+    working_dir: /docs
+    volumes:
+      - ./documentation:/docs
+    ports:
+      - "${DOCS_PORT:-8001}:8000"
+    command: sh -c "pip install -q -r requirements.txt && mkdocs serve -a 0.0.0.0:8000"
+    networks:
+      - cicada_network
+
   # Application Angular (Frontend) - Mode développement
   frontend:
     image: node:22-alpine

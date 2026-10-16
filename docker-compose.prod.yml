@@ -117,8 +117,9 @@ services:
   frontend:
     image: ghcr.io/rnf-si/cicada-frontend:${CICADA_VERSION:-latest}
     build:
-      context: ./frontend
-      dockerfile: Dockerfile
+      # Racine du dépôt : l'image embarque aussi documentation/ (servie sous /aide/)
+      context: .
+      dockerfile: frontend/Dockerfile
     container_name: cicada_prod_frontend
     ports:
       - "${FRONTEND_PORT:-80}:80"
