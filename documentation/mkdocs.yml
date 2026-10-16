@@ -91,9 +91,6 @@ nav:
   - Accueil: index.md
   - Guide utilisateur:
       - utilisateur/index.md
-      - Contexte et rôles:
-          - Contexte et consignes de lecture: utilisateur/contexte.md
-          - Les différents rôles et profils: utilisateur/roles.md
       - Notice Utilisateur:
           - utilisateur/notice/index.md
           - Se connecter: utilisateur/notice/se-connecter.md

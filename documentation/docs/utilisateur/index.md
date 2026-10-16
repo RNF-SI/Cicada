@@ -4,14 +4,9 @@ title: Guide utilisateur
 
 # Guide utilisateur
 
-Ce guide reprend la **notice d'utilisation de CICADA**. Il rassemble quatre notices dans un seul ensemble, chacune s'adressant à un profil d'utilisateur différent. Les profils sont cumulatifs : un administrateur peut faire tout ce que fait un utilisateur simple, en plus des fonctions propres à son rôle.
+Ce guide reprend la **notice d'utilisation de CICADA**. Il rassemble quatre notices, chacune s'adressant à un profil d'utilisateur différent (voir [les différents rôles et profils](../index.md#les-différents-rôles-et-profils)). Les profils sont cumulatifs : un administrateur peut faire tout ce que fait un utilisateur simple, en plus des fonctions propres à son rôle.
 
 <div class="tiles">
-
-<a href="contexte/">
-<strong>Contexte et rôles</strong>
-Ce qu'est CICADA, à qui s'adressent les notices et les différents profils d'utilisateurs.
-</a>
 
 <a href="notice/" class="tile--green">
 <strong>Notice Utilisateur</strong>

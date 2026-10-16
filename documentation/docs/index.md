@@ -6,15 +6,26 @@ hide:
 
 # Documentation CICADA
 
-**CICADA** — l'outil de Capitalisation Inter-réseaux pour la Centralisation et l'Analyse des Données des Aires protégées — accompagne les gestionnaires d'aires protégées dans la **saisie et le suivi de leurs plans de gestion** selon la méthodologie **CT88**.
+## Contexte et consignes de lecture
 
-Cette documentation rassemble trois guides. Choisissez celui qui correspond à votre besoin, ou utilisez la **barre de recherche** en haut de page pour retrouver directement une fonctionnalité.
+CICADA est un outil numérique **open source** destiné à accompagner, entre autres, les gestionnaires d'aires protégées dans la **saisie et le suivi de leurs plans de gestion** selon la méthodologie **CT88**.
+
+<figure markdown="span" class="figure--medium">
+![Page d'accueil de CICADA - instance de RNF](assets/figures/fig01.png){ loading=lazy }
+<figcaption>Figure 1 : Page d'accueil de CICADA - instance de RNF</figcaption>
+</figure>
+
+Développé par **Réserves Naturelles de France (RNF)** et la **Fédération des Conservatoires d'espaces naturels (FCEN)**, en partenariat avec la Ligue pour la protection des oiseaux (LPO), PatriNat et l'Office français de la biodiversité (OFB) dans le cadre du programme européen **LIFE Biodiv'France**, CICADA vise à structurer le travail des gestionnaires tout en facilitant la remontée et la valorisation des données à l'échelle des réseaux.
+
+À ce jour, l'outil permet la saisie, le suivi et l'exploration des plans de gestion. Le module « Zonages réglementaires » sera développé en 2027. D'autres modules pourront aussi voir le jour ultérieurement, au gré des besoins et moyens disponibles.
+
+Cette documentation rassemble trois ensembles. La **barre de recherche** en haut de page permet de retrouver directement une fonctionnalité, quel que soit l'ensemble où elle est décrite.
 
 <div class="tiles">
 
 <a href="utilisateur/" class="tile--green">
 <strong>Guide utilisateur</strong>
-La notice d'utilisation de CICADA : connexion, sites, plans de gestion, saisie, suivi, exploration des données et administration. Quatre notices selon votre profil.
+La notice d'utilisation de CICADA : connexion, sites, plans de gestion, saisie, suivi, exploration des données et administration. Quatre notices selon votre profil (ci-dessous).
 </a>
 
 <a href="administration/" class="tile--yellow">
@@ -29,9 +40,29 @@ Authentification, permissions, API publique des métadonnées des plans et réf�
 
 </div>
 
+## Les différents rôles et profils
+
+Le guide utilisateur rassemble quatre notices. Chacune s'adresse à un profil d'utilisateur différent. Les profils sont cumulatifs : un administrateur peut faire tout ce que fait un utilisateur simple, en plus des fonctions propres à son rôle.
+
+| Profil | À qui s'adresse la notice | Où lire |
+|--------|---------------------------|---------|
+| **Utilisateur** | Toute personne disposant d'un compte CICADA | [Notice Utilisateur](utilisateur/notice/index.md) |
+| **Référent de plan de gestion** | Personne(s) chargée(s) de saisir et suivre un plan (référent(s) du plan) | [Notice Référent d'un plan de gestion](referent/index.md) |
+| **Administrateur d'organisme** | Responsable d'un organisme gestionnaire (CEN, RNF, Parc…) | [Notice Administrateur d'organisme](admin-organisme/index.md) |
+| **Administrateur d'une instance** | Super administrateur : pilote l'ensemble de l'outil sur son instance déployée | [Notice Administrateur d'une instance](admin-instance/index.md) et [Administration technique](administration/index.md) |
+
+!!! tip "Il existe deux profils intermédiaires :"
+
+    - **Le rédacteur général :** il peut consulter et modifier tous les plans de gestion et tous les sites de son instance. Il utilise donc les notices [Utilisateur](utilisateur/notice/index.md), [Référent](referent/index.md) et [Administrateur d'organisme](admin-organisme/index.md). Ce rôle n'est attribuable que par le super administrateur.
+    - **Le rédacteur externe :** il peut saisir et modifier un plan de gestion sur lequel il a des droits (mais n'a pas accès aux suivis). Ce profil permet à des personnes externes à l'organisme gestionnaire, de rédiger un plan (ex : prestataire). Ce rôle est attribuable par l'administrateur de l'instance ou par un référent du plan concerné.
+
+**Les fonctions de base** (se connecter, gérer son profil, recevoir des notifications, consulter sites et plans, demander un accès) **ne sont décrites qu'une seule fois, dans la [Notice Utilisateur](utilisateur/notice/index.md)**. Les notices suivantes y renvoient et ne détaillent que ce qui est propre à chaque rôle d'administration.
+
+Les développeurs et les intégrateurs (application documentaire tierce, connexion GeoNature, scripts) trouveront leur compte dans la partie [API](api/index.md) ; l'installation et l'exploitation d'une instance sont décrites dans l'[Administration technique](administration/index.md).
+
 ## Je veux…
 
-Un index par besoin, qui renvoie vers la section de la notice concernée.
+Un index par besoin, qui renvoie vers la section concernée.
 
 <dl class="jeveux" markdown>
 
@@ -71,13 +102,13 @@ Un index par besoin, qui renvoie vers la section de la notice concernée.
 <dt>Gérer les utilisateurs et les sites de mon organisme</dt>
 <dd markdown>[Notice Administrateur d'organisme](admin-organisme/index.md) — utilisateurs, sites, import en masse, validations, orphelins.</dd>
 
-<dt>Paramétrer mon instance ou la mettre à jour</dt>
+<dt>Paramétrer mon instance, partager avec l'exploration nationale ou la mettre à jour</dt>
 <dd markdown>[Paramètres de l'instance et mise à jour](admin-instance/parametres.md).</dd>
 
-<dt>Installer ou déployer CICADA</dt>
-<dd markdown>[Administration technique](administration/index.md).</dd>
+<dt>Installer, déployer ou exploiter une instance CICADA</dt>
+<dd markdown>[Administration technique](administration/index.md) — installation, infrastructure, hub d'exploration fédérée, releases.</dd>
 
-<dt>Interroger l'API</dt>
-<dd markdown>[API](api/index.md) — authentification, API publique des métadonnées, référence des endpoints.</dd>
+<dt>Interroger l'API ou brancher une application tierce</dt>
+<dd markdown>[API](api/index.md) — [authentification et permissions](api/authentification.md), [API publique des métadonnées des plans](api/api-publique-plans.md), [référence des endpoints](api/reference.md).</dd>
 
 </dl>
